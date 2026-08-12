@@ -1,0 +1,27 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function isAdmin() {
+      return request.auth != null && request.auth.token.email in [
+        'ezurukam@gmail.com',
+        'precheks.info@gmail.com'
+      ];
+    }
+
+    // ── Journals ─────────────────────────────────────────────
+    // MVP stage: only the two founders can publish. Everyone can read
+    // published + public entries. This is intentional for today's demo —
+    // opening this up to any signed-in user (so any professional can run
+    // their own journal) is the very next milestone, planned for the
+    // public launch, not this session.
+    match /journals/{journalId} {
+      allow read: if true;
+      allow create, update, delete: if isAdmin();
+    }
+
+    // ── Merges cleanly with Precheks' existing rules for /notes, /users,
+    //    and /usernames if you paste this block into the same rules file
+    //    rather than replacing it — the two collections don't overlap.
+  }
+}

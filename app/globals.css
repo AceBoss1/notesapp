@@ -1,0 +1,37 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html {
+    scroll-behavior: smooth;
+  }
+  body {
+    @apply bg-paper text-ink font-body;
+  }
+  ::selection {
+    @apply bg-crimson/20;
+  }
+  :focus-visible {
+    outline: 2px solid theme("colors.crimson");
+    outline-offset: 2px;
+  }
+}
+
+@layer components {
+  .eyebrow {
+    @apply inline-flex items-center gap-1.5 font-mono text-[11px] uppercase tracking-eyebrow text-crimson-bright;
+  }
+  .hairline {
+    @apply border-rule;
+  }
+  .btn-primary {
+    @apply inline-flex items-center justify-center gap-2 rounded-full bg-crimson px-6 py-3 font-ui text-sm font-semibold text-paper transition-colors hover:bg-crimson-bright;
+  }
+  .btn-ghost {
+    @apply inline-flex items-center justify-center gap-2 rounded-full border border-ink/15 px-6 py-3 font-ui text-sm font-semibold text-ink transition-colors hover:border-crimson hover:text-crimson;
+  }
+  .card {
+    @apply rounded-xl2 border border-rule bg-card;
+  }
+}
