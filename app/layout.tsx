@@ -22,7 +22,7 @@ const COMPANY = [
   { href: "/brand", label: "Brand" },
   { href: "/about", label: "About Us" },
   { href: "/contact", label: "Contact" },
-  { href: "/admin/login", label: "Staff Login" },
+  { href: "/advertise", label: "Advertise" },
 ];
 
 export default function RootLayout({
@@ -135,8 +135,11 @@ export default function RootLayout({
                   </a>
                 </li>
                 <li className="text-paper/50">
-                  Built in partnership with Precheks — our first reference
-                  customer.
+                  Built in partnership with Precheks — our first
+                  reference customer. —{" "}
+                  <Link href="/admin/login" className="text-paper/70 hover:text-paper">
+                    Staff Login
+                  </Link>
                 </li>
               </ul>
             </div>

@@ -37,7 +37,13 @@ export default function AdminJournalsPage() {
 
   return (
     <section className="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8 py-14">
-      <div className="flex items-center justify-between border-b-2 border-ink pb-4">
+      <Link
+        href="/admin"
+        className="font-ui text-xs font-semibold uppercase tracking-wideish text-crimson-bright"
+      >
+        ← Dashboard
+      </Link>
+      <div className="mt-6 flex items-center justify-between border-b-2 border-ink pb-4">
         <div>
           <p className="eyebrow">#NotesApp Admin</p>
           <h1 className="font-display text-4xl mt-2">Journals</h1>

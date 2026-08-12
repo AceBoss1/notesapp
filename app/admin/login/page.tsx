@@ -20,7 +20,7 @@ export default function AdminLoginPage() {
     try {
       const cred = await signInWithEmailAndPassword(auth, email, password);
       await ensureAdminProfile(cred.user);
-      router.push("/admin/journals");
+      router.push("/admin");
     } catch (err) {
       setError("Invalid email or password.");
     } finally {

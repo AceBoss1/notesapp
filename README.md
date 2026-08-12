@@ -106,11 +106,38 @@ products is a follow-up build, not this session's scope.
   bio, native booking calendar (demo), their public writing, and
   their brand store
 - `/login`, `/signup` — reader accounts (shared with Precheks)
-- `/admin/login`, `/admin/journals`, `/admin/journals/new`,
-  `/admin/journals/[id]/edit` — the founder-only composer
+- `/admin/login`, `/admin` (Dashboard: stats, top journals by views),
+  `/admin/journals`, `/admin/journals/new`,
+  `/admin/journals/[id]/edit`, `/admin/users` (read-only, shared
+  `users` collection), `/admin/settings` (shared `settings/site` doc —
+  see note in that page)
 - `/booking` — a short explainer of the booking product
 - `/brand` — the Company → Brand page: logo system, colors, and every
   seasonal/festival mark, with usage notes
+- `/advertise` — the ad-share program explainer (see below) — copy
+  only, not a working feature
+
+## Ad-share program — documented now, not built yet
+
+**Read this before touching anything ad-related in a future session —
+the plan is already decided, only the implementation is pending.**
+
+`/advertise` is a static explainer page for this. No ad serving, no
+payout logic, no database fields exist yet. When it's time to build:
+
+- **Free-tier journals**: ads shown, no revenue share to the author.
+- **Pro tier**: 25% ad revenue share, *if the professional opts in* to
+  showing ads on their pages.
+- **Business tier**: 45% ad revenue share, same opt-in condition.
+- Both paid tiers get their share **from day one of opting in** — no
+  follower/view threshold, no approval queue, unlike platforms that
+  gate ad revenue behind qualification criteria. This "no gated
+  conditions" framing is a deliberate differentiator, not a detail to
+  drop when building it.
+- **Anyone can buy an ad** — a #NotesApp user or not, free tier or
+  paid. Advertising isn't restricted to members.
+- Entry point is a single footer link ("Advertise") — that's the only
+  UI surface that exists today.
 
 ## Not built in this session (by design)
 
