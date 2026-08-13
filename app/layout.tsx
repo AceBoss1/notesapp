@@ -58,7 +58,7 @@ export default function RootLayout({
                 alt="#NotesApp"
                 width={36}
                 height={36}
-                className="rounded-lg"
+                className="h-9 w-9 rounded-lg"
               />
               <span className="font-ui text-xl font-extrabold tracking-tight text-ink">
                 Notes<span className="text-crimson">App</span>
@@ -96,7 +96,7 @@ export default function RootLayout({
                   alt="#NotesApp"
                   width={32}
                   height={32}
-                  className="rounded-lg"
+                  className="h-8 w-8 rounded-lg"
                 />
                 <span className="font-ui text-lg font-extrabold">
                   Notes<span className="text-crimson-bright">App</span>

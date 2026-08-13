@@ -40,6 +40,7 @@ export default function ProfilePage({ params }: { params: { username: string } }
   const [notes, setNotes] = useState<NoteWithComputed[]>([]);
   const [selectedSlot, setSelectedSlot] = useState<string | null>(null);
   const [followerCount, setFollowerCount] = useState<number | null>(null);
+  const [followerCountUnavailable, setFollowerCountUnavailable] = useState(false);
 
   useEffect(() => {
     if (isOfficial) return;
@@ -48,7 +49,7 @@ export default function ProfilePage({ params }: { params: { username: string } }
       .catch(() => setRealProfile(null));
   }, [params.username, isOfficial]);
 
-  const profile: DisplayProfile | null = isOfficial
+  const profile: DisplayProfile | null | undefined = isOfficial
     ? {
         username: OFFICIAL_NOTESAPP_PROFILE.username,
         displayName: OFFICIAL_NOTESAPP_PROFILE.displayName,
@@ -70,7 +71,18 @@ export default function ProfilePage({ params }: { params: { username: string } }
 
   useEffect(() => {
     if (!profile) return;
-    getFollowerCount(profile.username).then(setFollowerCount);
+    getFollowerCount(profile.username)
+      .then(setFollowerCount)
+      .catch((err) => {
+        // getCountFromServer occasionally fails with "unavailable" —
+        // most often a browser ad-blocker/privacy extension blocking
+        // the request (RunAggregationQuery reads as a tracking call to
+        // some blocklists), sometimes just a transient network blip.
+        // Not worth surfacing as an error; the count just quietly
+        // disappears instead of spinning forever.
+        console.warn("Follower count unavailable:", err);
+        setFollowerCountUnavailable(true);
+      });
     // @notesapp has no notes of its own — it's a platform account, not
     // an author in the shared /notes collection.
     if (isOfficial) return;
@@ -107,10 +119,12 @@ export default function ProfilePage({ params }: { params: { username: string } }
             {profile.roleLabel} · @{profile.username}
           </p>
           <p className="mt-2 max-w-lg text-sm text-slate">{profile.bio}</p>
-          <p className="mt-2 font-mono text-xs text-slate">
-            {followerCount === null ? "…" : followerCount} follower
-            {followerCount === 1 ? "" : "s"}
-          </p>
+          {!followerCountUnavailable && (
+            <p className="mt-2 font-mono text-xs text-slate">
+              {followerCount === null ? "…" : followerCount} follower
+              {followerCount === 1 ? "" : "s"}
+            </p>
+          )}
         </div>
         <div className="ml-0 flex shrink-0 flex-wrap gap-3 sm:ml-auto">
           <FollowButton username={profile.username} />

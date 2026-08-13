@@ -36,7 +36,7 @@ export default function BrandPage() {
               alt="#NotesApp icon"
               width={140}
               height={140}
-              className="rounded-2xl"
+              className="h-[140px] w-[140px] rounded-2xl"
             />
           </div>
           <p className="mt-4 font-ui text-sm font-semibold text-ink">

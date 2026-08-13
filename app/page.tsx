@@ -84,7 +84,7 @@ export default function Home() {
               alt=""
               width={72}
               height={72}
-              className="absolute -right-4 -top-4 rounded-2xl shadow-lg lg:-right-8 lg:-top-8"
+              className="absolute -right-4 -top-4 h-[72px] w-[72px] rounded-2xl shadow-lg lg:-right-8 lg:-top-8"
             />
           </div>
         </div>

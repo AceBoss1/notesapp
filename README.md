@@ -193,6 +193,16 @@ Paystack/Flutterwave wiring — `subscribeToJournal()` writes a
 the booking calendar's "Confirm & pay (demo)" button. Real billing is
 a follow-up build.
 
+**If a follower count shows nothing instead of a number:**
+`getFollowerCount()` uses Firestore's `getCountFromServer()`
+aggregation query, which occasionally fails with a `"unavailable"`
+RPC error — most often a browser ad-blocker or privacy extension
+blocking the request (`RunAggregationQuery` reads as a tracking call
+to some blocklists), sometimes just a transient network blip, not a
+code bug. The profile page catches this and quietly hides the
+follower count rather than spinning forever — check the browser
+console for the underlying error if it happens consistently.
+
 ## The real domain, and search
 
 `lib/site.ts` holds the actual production URL
