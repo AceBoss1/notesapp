@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { getAllNotes, NoteWithComputed } from "@/lib/firestore-notes";
+import JournalRow from "./JournalRow";
 
 // Renders Precheks' own published notes — same Firestore collection,
 // same documents. "Journal" is a #NotesApp UI label, not a different
@@ -45,38 +46,9 @@ export default function JournalsGrid() {
   }
 
   return (
-    <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
+    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
       {notes.map((n) => (
-        <Link
-          key={n.id}
-          href={`/journals/${n.slug}`}
-          className="card group flex flex-col overflow-hidden transition-shadow hover:shadow-lg"
-        >
-          {n.featured_image && (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
-              src={n.featured_image}
-              alt=""
-              className="h-44 w-full object-cover"
-            />
-          )}
-          <div className="flex flex-1 flex-col p-6">
-            <p className="font-mono text-[11px] uppercase tracking-eyebrow text-crimson-bright">
-              {n.author} · {n.reading_time} min read
-            </p>
-            <h3 className="mt-2 font-display text-xl leading-snug text-ink group-hover:text-crimson">
-              {n.title}
-            </h3>
-            <p className="mt-2 flex-1 text-sm text-slate">{n.excerpt}</p>
-            {(!!n.likeCount || !!n.viewCount) && (
-              <p className="mt-3 font-mono text-[11px] text-slate">
-                {!!n.viewCount && <span>{n.viewCount} views</span>}
-                {!!n.viewCount && !!n.likeCount && <span> · </span>}
-                {!!n.likeCount && <span>{n.likeCount} likes</span>}
-              </p>
-            )}
-          </div>
-        </Link>
+        <JournalRow key={n.id} note={n} showAuthor />
       ))}
     </div>
   );

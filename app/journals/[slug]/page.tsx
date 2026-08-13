@@ -7,6 +7,7 @@ import { getNoteBySlug, getMoreNotes } from "@/lib/firestore-notes";
 import { getUserByDisplayName } from "@/lib/users";
 import SocialBar from "@/components/SocialBar";
 import Comments from "@/components/Comments";
+import PremiumGate from "@/components/PremiumGate";
 
 // Same note, same Firestore doc as precheks.com.ng/notes/{slug} — this
 // route is #NotesApp's own reading UI over that exact shared content.
@@ -35,7 +36,14 @@ export default async function JournalDetail({
       >
         ← All Journals
       </Link>
-      <p className="eyebrow mt-6">{note.categories[0] || "Journal"}</p>
+      <p className="eyebrow mt-6">
+        {note.categories[0] || "Journal"}
+        {note.premium && (
+          <span className="ml-2 rounded-full bg-crimson/10 px-2.5 py-0.5 text-crimson">
+            🔒 Premium
+          </span>
+        )}
+      </p>
       <h1 className="mt-3 font-display text-4xl leading-[1.05] text-ink sm:text-5xl">
         {note.title}
       </h1>
@@ -100,9 +108,11 @@ export default async function JournalDetail({
         />
       )}
 
-      <div
-        className="prose prose-lg mt-10 max-w-none font-body text-ink prose-headings:font-display prose-a:text-crimson-bright"
-        dangerouslySetInnerHTML={{ __html: contentHtml }}
+      <PremiumGate
+        premium={!!note.premium}
+        authorUsername={authorProfile?.username || ""}
+        authorName={note.author}
+        contentHtml={contentHtml}
       />
 
       {note.tags.length > 0 && (

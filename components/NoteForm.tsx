@@ -49,6 +49,7 @@ export default function NoteForm({ noteId, initial }: Props) {
   const [status, setStatus] = useState<"draft" | "published">(
     initial?.status || "draft"
   );
+  const [premium, setPremium] = useState(initial?.premium || false);
   const [uploading, setUploading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
@@ -96,6 +97,7 @@ export default function NoteForm({ noteId, initial }: Props) {
       author_role: author.role,
       author_avatar: author.avatar,
       status,
+      premium,
     };
     try {
       if (noteId) {
@@ -103,7 +105,7 @@ export default function NoteForm({ noteId, initial }: Props) {
       } else {
         await createNote(payload);
       }
-      router.push("/admin/notes");
+      router.push("/admin/journals");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Save failed");
       setSaving(false);
@@ -213,6 +215,26 @@ export default function NoteForm({ noteId, initial }: Props) {
           <option value="draft">Draft</option>
           <option value="published">Published</option>
         </select>
+      </label>
+
+      <label className="flex items-center gap-3">
+        <input
+          type="checkbox"
+          checked={premium}
+          onChange={(e) => setPremium(e.target.checked)}
+          className="h-4 w-4 accent-crimson"
+        />
+        <span>
+          <span className="font-ui text-sm font-semibold text-ink">
+            Premium — subscribers only
+          </span>
+          <span className="block text-xs text-slate">
+            Non-subscribers see a teaser and a "Subscribe to unlock"
+            prompt instead of the full entry. #NotesApp-only field —
+            Precheks' own note pages ignore it and show the entry in
+            full either way.
+          </span>
+        </span>
       </label>
 
       {error && <p className="text-sm text-red-700">{error}</p>}

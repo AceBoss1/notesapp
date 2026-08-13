@@ -69,5 +69,42 @@ service cloud.firestore {
       allow read: if true;
       allow write: if isAdmin();
     }
+
+    // ── Follows (#NotesApp-only — no Precheks equivalent) ─────
+    // Doc id: `${followerUid}_${username}`. A member can only ever
+    // write their own follow relationship, never one on someone
+    // else's behalf. Mandatory follows (@notesapp + both founders)
+    // can't be deleted by anyone here — same rule for every account,
+    // since there's no paid-tier flag on a user yet to make an
+    // exception for (see lib/follows.ts).
+    match /follows/{followId} {
+      allow read: if true;
+      allow create: if isSignedIn() && request.resource.data.followerUid == request.auth.uid;
+      allow update: if false;
+      allow delete: if isSignedIn()
+        && resource.data.followerUid == request.auth.uid
+        && resource.data.mandatory != true;
+    }
+
+    // ── Subscriptions (#NotesApp-only) ────────────────────────
+    // Doc id: `${subscriberUid}_${username}`. No payment gateway
+    // wired yet — every doc here has status:"demo" (see
+    // lib/subscriptions.ts) — but access rules are real: only the
+    // subscriber can read/write their own record, so premium-note
+    // gating can't be spoofed from the client.
+    //
+    // Read is checked against the doc ID's uid prefix, not
+    // resource.data — `resource` doesn't exist for a not-yet-created
+    // subscription, and isSubscribed() has to be able to check that
+    // exact "no, not yet" case without a permission error. Firebase
+    // Auth UIDs never contain "_", so splitting on the first one to
+    // isolate the uid prefix is safe even though usernames can.
+    match /subscriptions/{subId} {
+      allow read: if isSignedIn()
+        && (subId.split('_')[0] == request.auth.uid || isAdmin());
+      allow create: if isSignedIn() && request.resource.data.subscriberUid == request.auth.uid;
+      allow update: if false;
+      allow delete: if isSignedIn() && resource.data.subscriberUid == request.auth.uid;
+    }
   }
 }

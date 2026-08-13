@@ -116,6 +116,10 @@ products is a follow-up build, not this session's scope.
   seasonal/festival mark, with usage notes
 - `/advertise` — the ad-share program explainer (see below) — copy
   only, not a working feature
+- `/roadmap` — social publishing, AI drafting, and enhanced booking —
+  decided and documented, not built yet
+- `/u/notesapp` — the synthetic official platform journal, auto-
+  followed by every member
 
 ## Ad-share program — documented now, not built yet
 
@@ -139,6 +143,69 @@ payout logic, no database fields exist yet. When it's time to build:
 - Entry point is a single footer link ("Advertise") — that's the only
   UI surface that exists today.
 
+## Follow & Subscribe — this DOES require a rules deploy
+
+Unlike every earlier change in this repo, follow/subscribe genuinely
+needed new Firestore collections — Precheks has no concept of
+following an author, so there was no existing data to reuse. Two new
+top-level collections, both #NotesApp-only:
+
+- **`follows/{followerUid}_{username}`** — following a journal means
+  its public entries show up for you; nothing paywalled unlocks from
+  a follow alone.
+- **`subscriptions/{subscriberUid}_{username}`** — subscribing to a
+  journal unlocks that journal's `premium: true` entries (a new,
+  additive, optional field on `Note` — Precheks' own note pages and
+  `NoteForm` ignore it and just show the entry, so this doesn't touch
+  Precheks' behavior at all).
+
+**Redeploy `firestore.rules`** — the copy in this repo now includes
+`match /follows/{followId}` and `match /subscriptions/{subId}` blocks
+that don't exist in Precheks' live rules yet. Everything else in the
+file is untouched. This is a real, necessary change, not a false
+alarm like an earlier draft of this app — deploy it before testing
+follow/subscribe locally or the dashboard's "Firestore rules likely
+out of date" banner will fire.
+
+**Mandatory follows.** `lib/journals-directory.ts` defines three
+journals every member auto-follows the moment they sign up:
+`@notesapp` (a synthetic platform account — no real Firebase Auth
+user, hardcoded, rendered at `/u/notesapp`), and both founders. Free
+accounts can't unfollow them — enforced both in `lib/follows.ts` and
+in `firestore.rules` (a `mandatory: true` doc can't be deleted by
+anyone). Letting a future paid tier unfollow these is a documented
+gap, not implemented.
+
+**Onboarding.** `/signup` now has a second step: the 3 mandatory
+follows write immediately, then the member picks 2 more from a
+search/browse list of real registered users (`getAllUsers()`) to
+reach 5 total, same as any other person already in the `users`
+collection — including someone who hasn't published anything yet,
+since following is about their journal going forward, not what
+already exists. If fewer than 2 other people have signed up yet, the
+requirement gracefully drops to whatever's available, with copy
+explaining why, rather than blocking signup on content that doesn't
+exist yet.
+
+**Subscribing is a demo, like the booking calendar.** No
+Paystack/Flutterwave wiring — `subscribeToJournal()` writes a
+`status: "demo"` doc and grants access immediately, same pattern as
+the booking calendar's "Confirm & pay (demo)" button. Real billing is
+a follow-up build.
+
+## The real domain, and search
+
+`lib/site.ts` holds the actual production URL
+(`https://www.notesapp.name.ng`) and the live company LinkedIn
+(`linkedin.com/company/na-notesapp`) — used in metadata, the footer,
+`/contact`, and `/about`. Update this one file if either ever
+changes.
+
+The header now has a real search bar (`components/SearchBar.tsx`) —
+client-side filter over notes and people, since the dataset is small
+enough that a proper search index isn't needed yet. Matches journals
+by title/category/tag and people by name/username.
+
 ## Not built in this session (by design)
 
 Payment integration (Paystack/Flutterwave), WhatsApp reminders,
@@ -146,3 +213,18 @@ non-admin publishing, the partner API for Precheks to pull this
 content onto precheks.com.ng, and subscription billing. All of these
 are represented in the copy/UI so the story is complete for a pitch,
 but none are wired to live services yet.
+
+`/roadmap` documents three more, same "decided, not built" treatment
+as the ad-share program — read it before starting any of these in a
+future session, the product decisions are already made:
+
+- **One-click social publishing** — LinkedIn, TikTok, Instagram,
+  Facebook, WhatsApp, multiple platforms from one click in the
+  composer, not a bolt-on scheduler.
+- **AI content drafting** — two distinct jobs: session capture via
+  Firefly/Read AI, and polishing raw notes into a publishable post via
+  Claude/Gemini/ChatGPT (user's choice of model).
+- **Client-driven session management** — the booking calendar is
+  currently a static demo; the real version needs client-initiated
+  rescheduling (not just booking), reminders on both sides, and an
+  actual charge behind "Confirm & pay".

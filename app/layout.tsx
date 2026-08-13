@@ -2,9 +2,12 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import Image from "next/image";
 import AuthNav from "@/components/AuthNav";
+import SearchBar from "@/components/SearchBar";
+import { SITE } from "@/lib/site";
 import "./globals.css";
 
 export const metadata: Metadata = {
+  metadataBase: new URL(SITE.url),
   title: "#NotesApp — Publish. Book. Get Paid. One Workspace.",
   description:
     "The professional publishing and booking platform built for African coaches, consultants, and knowledge professionals. Notes, calendar, and payments — one canvas.",
@@ -23,6 +26,7 @@ const COMPANY = [
   { href: "/about", label: "About Us" },
   { href: "/contact", label: "Contact" },
   { href: "/advertise", label: "Advertise" },
+  { href: "/roadmap", label: "Roadmap" },
 ];
 
 export default function RootLayout({
@@ -70,6 +74,7 @@ export default function RootLayout({
                   {item.label}
                 </Link>
               ))}
+              <SearchBar />
               <span className="h-4 w-px bg-rule" />
               <AuthNav />
             </nav>
@@ -130,8 +135,18 @@ export default function RootLayout({
               <p className="eyebrow text-crimson-bright/90">Connect</p>
               <ul className="mt-4 space-y-2 text-sm text-paper/75">
                 <li>
-                  <a href="mailto:hello@notesapp.africa" className="hover:text-paper">
-                    hello@notesapp.africa
+                  <a href={`mailto:${SITE.email}`} className="hover:text-paper">
+                    {SITE.email}
+                  </a>
+                </li>
+                <li>
+                  <a
+                    href={SITE.linkedin}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="hover:text-paper"
+                  >
+                    LinkedIn
                   </a>
                 </li>
                 <li className="text-paper/50">

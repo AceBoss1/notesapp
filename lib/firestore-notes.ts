@@ -29,6 +29,11 @@ export type Note = {
   viewCount?: number;
   likeCount?: number;
   shareCount?: number;
+  // #NotesApp-only, additive field — Precheks' own NoteForm never sets
+  // or reads this, and its updateDoc calls only touch the fields it
+  // knows about, so this survives edits made from either app. Gates
+  // the entry behind a subscription to its author's journal.
+  premium?: boolean;
 };
 
 export type NoteWithComputed = Note & {
