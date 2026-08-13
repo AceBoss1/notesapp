@@ -236,6 +236,50 @@ code bug. The profile page catches this and quietly hides the
 follower count rather than spinning forever — check the browser
 console for the underlying error if it happens consistently.
 
+## `/journals` redesign — People, Channels, Topics
+
+Same "official first" pattern as `/merchstore`, applied to the
+journals directory:
+
+1. **`ChannelSpotlight`** — @notesapp's card, first on the page. Bio
+   copy explaining what the channel is, follower/subscriber counts, a
+   Follow button, and — since there's no calendar to book for a brand
+   account — a dedicated **Subscribe card** in the same visual slot a
+   "Book a session" card occupies on a person's profile.
+2. **`FoundersSpotlight`** — one big card holding both founders'
+   journals, each with journal/follower/subscriber counts and their
+   own Follow + Subscribe buttons.
+3. Below both spotlights, a **hero search bar** (`JournalsHero`) sits
+   at the top of the page as its own section, with **People / Channels
+   / Topics / All** as tabs built into the same hero block, per how
+   this was specced — filters live in the hero, not scattered
+   elsewhere on the page.
+   - **People** — every individual journal (both founders, plus any
+     other registered member who isn't a brand account).
+   - **Channels** — brand/company journals. Just @notesapp today;
+     `lib/journals-directory.ts`'s `CHANNEL_JOURNALS` is where a
+     second one would be added later.
+   - **Topics** — categories aggregated from published notes as
+     clickable pills with counts, filtering the list below.
+   - **All** — every published journal, `JournalRow`-style, same as
+     the old page.
+   The search box filters whichever tab's data is currently showing.
+
+`lib/useJournalStats.ts` bundles journal count (computed client-side
+from already-fetched notes, not a separate query) with follower and
+subscriber counts (one aggregation query each) for any given journal —
+used by both spotlight cards and the People/Channels directory.
+
+**Rules change:** `subscriptions` read went from "owner + admin only"
+to fully public (`allow read: if true`), matching `follows`. Reason:
+`getSubscriberCount()` runs an aggregation query across every
+subscriber of a username, not just the current user's own doc — that
+can't be expressed as "read your own record only." This doesn't
+weaken the paywall: `PremiumGate` still only ever calls `isSubscribed()`
+for the signed-in user's own doc, and no premium content lives in the
+`subscriptions` collection itself, just the subscription record.
+Redeploy `firestore.rules` for subscriber counts to work.
+
 ## The real domain, and search
 
 `lib/site.ts` holds the actual production URL

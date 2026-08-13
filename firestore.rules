@@ -89,19 +89,21 @@ service cloud.firestore {
     // ── Subscriptions (#NotesApp-only) ────────────────────────
     // Doc id: `${subscriberUid}_${username}`. No payment gateway
     // wired yet — every doc here has status:"demo" (see
-    // lib/subscriptions.ts) — but access rules are real: only the
-    // subscriber can read/write their own record, so premium-note
-    // gating can't be spoofed from the client.
+    // lib/subscriptions.ts).
     //
-    // Read is checked against the doc ID's uid prefix, not
-    // resource.data — `resource` doesn't exist for a not-yet-created
-    // subscription, and isSubscribed() has to be able to check that
-    // exact "no, not yet" case without a permission error. Firebase
-    // Auth UIDs never contain "_", so splitting on the first one to
-    // isolate the uid prefix is safe even though usernames can.
+    // Read is public, same as follows — a subscriber count is shown
+    // on journal cards the same way a follower count is, and
+    // getSubscriberCount() runs an aggregation query across every
+    // subscriber of a given username, not just the current user's own
+    // doc, so it can't be restricted to "read your own record only."
+    // The only thing actually gated by a subscription — a premium
+    // note's content — is never in this collection; PremiumGate reads
+    // isSubscribed(), which only ever checks the signed-in user's own
+    // doc, so this doesn't weaken the paywall.
+    // Writes stay owner-only: nobody can create or delete a
+    // subscription on someone else's behalf.
     match /subscriptions/{subId} {
-      allow read: if isSignedIn()
-        && (subId.split('_')[0] == request.auth.uid || isAdmin());
+      allow read: if true;
       allow create: if isSignedIn() && request.resource.data.subscriberUid == request.auth.uid;
       allow update: if false;
       allow delete: if isSignedIn() && resource.data.subscriberUid == request.auth.uid;

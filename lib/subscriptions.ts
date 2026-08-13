@@ -1,4 +1,4 @@
-import { doc, getDoc, setDoc, deleteDoc } from "firebase/firestore";
+import { doc, getDoc, setDoc, deleteDoc, collection, query, where, getCountFromServer } from "firebase/firestore";
 import { db } from "./firebase";
 
 // Another new, #NotesApp-only collection — subscribing unlocks a
@@ -37,4 +37,10 @@ export async function subscribeToJournal(uid: string, username: string): Promise
 
 export async function unsubscribeFromJournal(uid: string, username: string): Promise<void> {
   await deleteDoc(doc(db, SUBSCRIPTIONS, subId(uid, username)));
+}
+
+export async function getSubscriberCount(username: string): Promise<number> {
+  const q = query(collection(db, SUBSCRIPTIONS), where("username", "==", username));
+  const snap = await getCountFromServer(q);
+  return snap.data().count;
 }
