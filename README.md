@@ -96,6 +96,37 @@ if a file is ever missing, so a typo'd filename degrades gracefully.
 do today — inline Paystack/Flutterwave checkout for #NotesApp's own
 products is a follow-up build, not this session's scope.
 
+## Admin dashboard — ported from Precheks' expanded version
+
+`app/admin/page.tsx` now matches Precheks' fuller dashboard build:
+stats grid, Top Journals by Views, Best Engagement
+((likes+shares+comments)÷views), Most Commented, Top Categories/Tags
+by views, and a 6-month Journals Published bar chart. Same `notes`
+collection, same numbers as Precheks' own dashboard — only the labels
+say "journal." Per-note comment counts are fetched one
+`getCountFromServer` call per note (fine at today's volume); if the
+note count grows into the hundreds, denormalize a `commentCount`
+field on write instead of querying per-note on every dashboard load.
+
+## Merch store — `/merchstore`
+
+Combines two things on one page:
+
+1. **Official #NotesApp merch** — t-shirts, caps, mugs, a Stanley-style
+   cup, mouse pad, coffee cup, laptop bag. Each item has a logo picker
+   (`components/MerchCard.tsx`) pulling from the same core + seasonal
+   marks on `/brand` (`lib/merch.ts`). No product photography exists
+   yet, so items render as an icon placeholder with the chosen logo
+   badged on top — swap in real mockup photos per logo/product
+   combination when they exist. "Add to Cart" is disabled and labeled
+   demo — no checkout or print-on-demand fulfillment wired up.
+2. **The two individual shops**, below it, **Emmanuel's first, then
+   Chimdinma's** (`lib/store.ts`'s existing real catalogues,
+   unchanged) — each links out to its own `/u/[username]/store` page.
+
+The footer's "Merch Store" link (Product column) now points here
+instead of straight to Chimdinma's individual store.
+
 ## What's in this MVP
 
 - `/` — landing page (product, the core loop, features, Precheks
@@ -114,6 +145,8 @@ products is a follow-up build, not this session's scope.
 - `/booking` — a short explainer of the booking product
 - `/brand` — the Company → Brand page: logo system, colors, and every
   seasonal/festival mark, with usage notes
+- `/merchstore` — official branded merch (demo, logo picker, no
+  checkout) plus links to the two individual creator stores
 - `/advertise` — the ad-share program explainer (see below) — copy
   only, not a working feature
 - `/roadmap` — social publishing, AI drafting, and enhanced booking —

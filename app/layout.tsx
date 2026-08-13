@@ -114,7 +114,7 @@ export default function RootLayout({
               <ul className="mt-4 space-y-2 text-sm text-paper/75">
                 <li><Link href="/journals" className="hover:text-paper">Journals</Link></li>
                 <li><Link href="/booking" className="hover:text-paper">Booking</Link></li>
-                <li><Link href="/u/chimdinma/store" className="hover:text-paper">Brand Store</Link></li>
+                <li><Link href="/merchstore" className="hover:text-paper">Merch Store</Link></li>
               </ul>
             </div>
 
