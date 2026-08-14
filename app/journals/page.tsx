@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { getAllNotes, NoteWithComputed } from "@/lib/firestore-notes";
 import { getAllUsers, UserProfile } from "@/lib/users";
-import { OFFICIAL_NOTESAPP_PROFILE, FOUNDER_JOURNALS, MANDATORY_USERNAMES } from "@/lib/journals-directory";
+import { FOUNDER_JOURNALS, MANDATORY_USERNAMES, CHANNEL_JOURNALS } from "@/lib/journals-directory";
 import JournalsHero, { JournalsTab } from "@/components/JournalsHero";
 import ChannelSpotlight from "@/components/ChannelSpotlight";
 import FoundersSpotlight from "@/components/FoundersSpotlight";
@@ -35,18 +35,9 @@ export default function JournalsPage() {
     return [...FOUNDER_JOURNALS, ...others];
   }, [users]);
 
-  // "Channels" — brand/company journals. Just @notesapp today.
-  const channels = useMemo(
-    () => [
-      {
-        username: OFFICIAL_NOTESAPP_PROFILE.username,
-        displayName: OFFICIAL_NOTESAPP_PROFILE.displayName,
-        avatar: OFFICIAL_NOTESAPP_PROFILE.avatar,
-        bio: OFFICIAL_NOTESAPP_PROFILE.bio,
-      },
-    ],
-    []
-  );
+  // "Channels" — brand/company journals. @notesapp (synthetic posts)
+  // and @na-notesapp (real, Firestore-backed) today.
+  const channels = CHANNEL_JOURNALS;
 
   const q = query.trim().toLowerCase();
 

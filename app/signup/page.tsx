@@ -6,7 +6,7 @@ import { createUserWithEmailAndPassword, User } from "firebase/auth";
 import { auth } from "@/lib/firebase";
 import { signUpProfile, isUsernameTaken, getAllUsers, UserProfile } from "@/lib/users";
 import { followJournal } from "@/lib/follows";
-import { MANDATORY_JOURNALS, MANDATORY_USERNAMES } from "@/lib/journals-directory";
+import { MANDATORY_JOURNALS, MANDATORY_USERNAMES, isReservedUsername } from "@/lib/journals-directory";
 import Avatar from "@/components/Avatar";
 
 const OPTIONAL_REQUIRED = 2; // "2 more of their choice" — total target is 3 mandatory + 2 = 5
@@ -46,6 +46,13 @@ export default function SignupPage() {
     const cleanUsername = normalizeUsername(username);
     if (cleanUsername.length < 3) {
       setError("Username must be at least 3 characters (letters, numbers, _).");
+      return;
+    }
+    if (isReservedUsername(cleanUsername)) {
+      // Matches firestore.rules' usernames/{username} create rule
+      // exactly — this is a friendlier client-side message for the
+      // same restriction, not a separate rule of its own.
+      setError('Usernames can\'t contain "notesapp" — that\'s reserved for the platform.');
       return;
     }
 

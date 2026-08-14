@@ -4,6 +4,8 @@ import Link from "next/link";
 import Avatar from "@/components/Avatar";
 import FollowButton from "@/components/FollowButton";
 import { NoteWithComputed } from "@/lib/firestore-notes";
+import { OFFICIAL_NOTESAPP_PROFILE } from "@/lib/journals-directory";
+import { NOTESAPP_POSTS } from "@/lib/notesapp-posts";
 
 export type DirectoryEntry = {
   username: string;
@@ -28,7 +30,12 @@ export default function JournalDirectory({
   return (
     <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
       {entries.map((entry) => {
-        const journalCount = allNotes.filter((n) => n.author === entry.displayName).length;
+        // @notesapp's "journal" is 5 hardcoded posts, not entries in
+        // the shared /notes collection — see lib/notesapp-posts.ts.
+        const journalCount =
+          entry.username === OFFICIAL_NOTESAPP_PROFILE.username
+            ? NOTESAPP_POSTS.length
+            : allNotes.filter((n) => n.author === entry.displayName).length;
         return (
           <div key={entry.username} className="card flex items-center gap-4 p-5">
             <Link href={`/u/${entry.username}`} className="flex flex-1 items-center gap-4">

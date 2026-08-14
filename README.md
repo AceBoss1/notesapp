@@ -10,6 +10,53 @@ changes for this demo. #NotesApp is a second, differently-branded UI
 over data Precheks already owns; "journal" is what this UI calls a
 note, nothing more.
 
+## Two company accounts — @notesapp and @na-notesapp
+
+Deliberately different, both documented in `lib/journals-directory.ts`:
+
+- **@notesapp** — unchanged from before. Fully synthetic, UI-only, 5
+  hardcoded posts, no comments (there's nothing in Firestore to
+  comment on).
+- **@na-notesapp** — new. Mirrors everything published on the official
+  social handles. Also has no real login of its own, but its entries
+  are **real, published notes** in the shared `notes` collection — an
+  admin picks "NotesApp" from the author toggle in `NoteForm.tsx`
+  (third option, alongside Chimdinma and Emmanuel) exactly like
+  choosing which founder wrote something. Full engagement — comments,
+  likes, shares — works normally on its notes, same as any other
+  journal, because they're regular note documents.
+
+Both are `synthetic: true` in `SYNTHETIC_JOURNALS` — `app/u/[username]/page.tsx`
+checks that list before ever calling `getUserByUsername()`, since
+neither has a `users` doc. Only `notesapp` skips the `/notes` fetch
+entirely (`isOfficial`); `na-notesapp` (`isSocialChannel`) still fetches
+and filters real notes by `author === "NotesApp"`, same mechanism the
+rest of the app already uses to key notes off a display name rather
+than a stored `authorUsername` field.
+
+Both show up in `/journals`' Channels tab (`CHANNEL_JOURNALS`) and on
+`/about` under "Company Accounts."
+
+**Reserved usernames.** Nobody can register a username containing
+"notesapp" — enforced in `firestore.rules`
+(`usernames/{username}`'s create rule now checks
+`!username.lower().matches('.*notesapp.*')`) and mirrored client-side
+in `/signup` (`lib/journals-directory.ts`'s `isReservedUsername()`) for
+a friendly error instead of a raw permission-denied. This has nothing
+to do with @notesapp or @na-notesapp themselves — neither ever goes
+through the `usernames` reservation path, since both are hardcoded.
+
+## Firestore rules — adopted your fix, added the username rule on top
+
+The `firestore.rules` in this repo is now based on the version you
+sent back (with the working comments-count fix — a
+`match /{path=**}/comments/{commentId} { allow read: if true; }`
+collection-group rule, needed because a `getCountFromServer(collectionGroup(...))`
+query on the admin dashboard doesn't satisfy against a rule scoped to
+one note's nested `comments` subcollection at a time). Only addition on
+top of your file: the reserved-username create rule above.
+**Redeploy this file** — it has both your fix and the new rule.
+
 ## Assets — a persistent problem worth flagging
 
 The core app icon (`public/images/brand/notesapp-icon.webp`) had been

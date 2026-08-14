@@ -5,6 +5,7 @@ import { remark } from "remark";
 import html from "remark-html";
 import { getNoteBySlug, getMoreNotes } from "@/lib/firestore-notes";
 import { getUserByDisplayName } from "@/lib/users";
+import { NA_NOTESAPP_PROFILE } from "@/lib/journals-directory";
 import SocialBar from "@/components/SocialBar";
 import Comments from "@/components/Comments";
 import PremiumGate from "@/components/PremiumGate";
@@ -28,6 +29,15 @@ export default async function JournalDetail({
   ]);
   const contentHtml = processed.toString();
 
+  // @na-notesapp has no `users` doc — getUserByDisplayName() can't
+  // find it — but its notes are real and should still link to
+  // /u/na-notesapp. Real people keep using authorProfile as before;
+  // this only fills the gap for that one synthetic channel.
+  const linkedUsername =
+    note.author === NA_NOTESAPP_PROFILE.displayName
+      ? NA_NOTESAPP_PROFILE.username
+      : authorProfile?.username;
+
   return (
     <article className="mx-auto max-w-3xl px-4 py-16 sm:px-6 lg:px-8">
       <Link
@@ -49,8 +59,8 @@ export default async function JournalDetail({
       </h1>
 
       <div className="mt-6 flex flex-wrap items-center justify-between gap-3 border-y border-rule py-4">
-        {authorProfile ? (
-          <Link href={`/u/${authorProfile.username}`} className="group flex items-center gap-3">
+        {linkedUsername ? (
+          <Link href={`/u/${linkedUsername}`} className="group flex items-center gap-3">
             <Image
               src={note.author_avatar}
               alt={note.author}
@@ -62,7 +72,7 @@ export default async function JournalDetail({
               <p className="font-ui text-sm font-semibold text-ink group-hover:text-crimson-bright">
                 By {note.author}{" "}
                 <span className="font-mono text-crimson-bright">
-                  @{authorProfile.username}
+                  @{linkedUsername}
                 </span>
               </p>
               <p className="mt-0.5 font-mono text-xs uppercase tracking-wide text-slate">
@@ -110,7 +120,7 @@ export default async function JournalDetail({
 
       <PremiumGate
         premium={!!note.premium}
-        authorUsername={authorProfile?.username || ""}
+        authorUsername={linkedUsername || ""}
         authorName={note.author}
         contentHtml={contentHtml}
       />

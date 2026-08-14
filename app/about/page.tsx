@@ -3,6 +3,7 @@ import Link from "next/link";
 import { ADMIN_PROFILES } from "@/lib/admin";
 import { SITE } from "@/lib/site";
 import Avatar from "@/components/Avatar";
+import { CHANNEL_JOURNALS } from "@/lib/journals-directory";
 
 const FOUNDERS = [
   { ...ADMIN_PROFILES["ezurukam@gmail.com"], role: "Founder & CEO" },
@@ -66,6 +67,37 @@ export default function AboutPage() {
                   {f.role}
                 </p>
                 <p className="mt-1 font-mono text-xs text-slate">@{f.username}</p>
+              </div>
+            </Link>
+          ))}
+        </div>
+      </div>
+
+      <div className="mt-14">
+        <p className="eyebrow">Company Accounts</p>
+        <p className="mt-2 max-w-2xl text-sm text-slate">
+          Two, deliberately different. <strong className="text-ink">@notesapp</strong>{" "}
+          is the platform's own voice — UI-only, no Firestore behind
+          it, and no comments open under it.{" "}
+          <strong className="text-ink">@na-notesapp</strong> mirrors
+          everything we publish on our official social handles — real
+          published entries, real comments, same as any journal on
+          here.
+        </p>
+        <div className="mt-5 grid grid-cols-1 gap-5 sm:grid-cols-2">
+          {CHANNEL_JOURNALS.map((c) => (
+            <Link
+              key={c.username}
+              href={`/u/${c.username}`}
+              className="card flex items-center gap-4 p-6 hover:shadow-md"
+            >
+              <Avatar src={c.avatar} alt={c.displayName} size={64} />
+              <div>
+                <p className="font-ui text-base font-bold text-ink">{c.displayName}</p>
+                <p className="font-mono text-xs uppercase tracking-eyebrow text-crimson-bright">
+                  {c.username === "notesapp" ? "Official Platform Journal" : "Official Social Channel"}
+                </p>
+                <p className="mt-1 font-mono text-xs text-slate">@{c.username}</p>
               </div>
             </Link>
           ))}

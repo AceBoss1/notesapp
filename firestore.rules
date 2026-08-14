@@ -49,6 +49,17 @@ service cloud.firestore {
       }
     }
 
+    // ── Comments (collection group access) ─────────────────────
+    // Needed separately from the nested rule above: collection group
+    // queries (e.g. getCountFromServer(collectionGroup(db, "comments")))
+    // are only validated against rules written with the recursive
+    // wildcard {path=**}. The nested match /notes/{noteId}/comments/{commentId}
+    // rule above only covers reads scoped to one note at a time and does
+    // NOT satisfy a cross-note collection group query.
+    match /{path=**}/comments/{commentId} {
+      allow read: if true;
+    }
+
     // ── Public profiles ──────────────────────────────────────
     match /users/{uid} {
       allow read: if true;

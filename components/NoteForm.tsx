@@ -23,6 +23,15 @@ const AUTHORS = [
     role: "Business Development Lead",
     avatar: "/images/headshots/emmanuel-adams-1.jpeg",
   },
+  {
+    // @na-notesapp — everything cross-posted from the official social
+    // handles. Unlike the other two, this is a genuinely new identity
+    // (not one Precheks already has), so there's no "keep it identical
+    // to Precheks" constraint on its role text.
+    name: "NotesApp",
+    role: "Official Channel",
+    avatar: "/images/brand/notesapp-icon.webp",
+  },
 ];
 
 type Props = {

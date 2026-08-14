@@ -11,7 +11,7 @@ import SubscribeButton from "@/components/SubscribeButton";
 import JournalRow from "@/components/JournalRow";
 import NotesAppPostRow from "@/components/NotesAppPostRow";
 import { STORE_ITEMS } from "@/lib/store";
-import { OFFICIAL_NOTESAPP_PROFILE } from "@/lib/journals-directory";
+import { OFFICIAL_NOTESAPP_PROFILE, NA_NOTESAPP_PROFILE, SYNTHETIC_USERNAMES } from "@/lib/journals-directory";
 import { NOTESAPP_POSTS } from "@/lib/notesapp-posts";
 
 const SLOTS = ["9:00 AM", "11:30 AM", "2:00 PM", "4:30 PM"];
@@ -35,9 +35,14 @@ type DisplayProfile = {
 
 export default function ProfilePage({ params }: { params: { username: string } }) {
   const isOfficial = params.username === OFFICIAL_NOTESAPP_PROFILE.username;
+  const isSocialChannel = params.username === NA_NOTESAPP_PROFILE.username;
+  // Both are synthetic — no real Firebase Auth account, no `users`
+  // doc — but only @notesapp skips the real /notes collection
+  // entirely. @na-notesapp's entries are real, published notes.
+  const synthetic = SYNTHETIC_USERNAMES.includes(params.username);
 
   const [realProfile, setRealProfile] = useState<UserProfile | null | undefined>(
-    isOfficial ? null : undefined
+    synthetic ? null : undefined
   );
   const [notes, setNotes] = useState<NoteWithComputed[]>([]);
   const [selectedSlot, setSelectedSlot] = useState<string | null>(null);
@@ -45,11 +50,11 @@ export default function ProfilePage({ params }: { params: { username: string } }
   const [followerCountUnavailable, setFollowerCountUnavailable] = useState(false);
 
   useEffect(() => {
-    if (isOfficial) return;
+    if (synthetic) return;
     getUserByUsername(params.username)
       .then(setRealProfile)
       .catch(() => setRealProfile(null));
-  }, [params.username, isOfficial]);
+  }, [params.username, synthetic]);
 
   const profile: DisplayProfile | null | undefined = isOfficial
     ? {
@@ -58,6 +63,14 @@ export default function ProfilePage({ params }: { params: { username: string } }
         avatar: OFFICIAL_NOTESAPP_PROFILE.avatar,
         bio: OFFICIAL_NOTESAPP_PROFILE.bio,
         roleLabel: "Official Platform Journal",
+      }
+    : isSocialChannel
+    ? {
+        username: NA_NOTESAPP_PROFILE.username,
+        displayName: NA_NOTESAPP_PROFILE.displayName,
+        avatar: NA_NOTESAPP_PROFILE.avatar,
+        bio: NA_NOTESAPP_PROFILE.bio,
+        roleLabel: "Official Social Channel",
       }
     : realProfile
     ? {
@@ -85,8 +98,10 @@ export default function ProfilePage({ params }: { params: { username: string } }
         console.warn("Follower count unavailable:", err);
         setFollowerCountUnavailable(true);
       });
-    // @notesapp has no notes of its own — it's a platform account, not
-    // an author in the shared /notes collection.
+    // @notesapp has no notes of its own — it's a fully synthetic
+    // account, nothing to filter for in the shared /notes collection.
+    // @na-notesapp DOES have real notes (authored as "NotesApp" via
+    // the toggle in NoteForm.tsx), so it still needs this fetch.
     if (isOfficial) return;
     // Notes are keyed by author display name, not username — same
     // shared /notes collection Precheks reads from, filtered here on
@@ -140,9 +155,9 @@ export default function ProfilePage({ params }: { params: { username: string } }
       </div>
 
       {/* Native booking calendar — a #NotesApp profile-level feature,
-          not tied to any per-note field. Not shown on the official
-          platform account — there's no one to book. */}
-      {!isOfficial && (
+          not tied to any per-note field. Not shown on either
+          synthetic channel account — there's no one to book. */}
+      {!synthetic && (
         <div className="card mt-12 p-7">
           <p className="eyebrow">Native booking calendar</p>
           <h2 className="mt-2 font-display text-2xl text-ink">Book a 1:1 session</h2>
