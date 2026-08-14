@@ -100,7 +100,7 @@ export default function JournalsPage() {
                 regardless of tab, same as merch shows official
                 products first every time. */}
             <div className="grid gap-6">
-              <ChannelSpotlight allNotes={notes} />
+              <ChannelSpotlight />
               <FoundersSpotlight allNotes={notes} />
             </div>
 

@@ -25,7 +25,6 @@ const COMPANY = [
   { href: "/brand", label: "Brand" },
   { href: "/about", label: "About Us" },
   { href: "/contact", label: "Contact" },
-  { href: "/advertise", label: "Advertise" },
   { href: "/roadmap", label: "Roadmap" },
 ];
 
@@ -115,6 +114,7 @@ export default function RootLayout({
                 <li><Link href="/journals" className="hover:text-paper">Journals</Link></li>
                 <li><Link href="/booking" className="hover:text-paper">Booking</Link></li>
                 <li><Link href="/merchstore" className="hover:text-paper">Merch Store</Link></li>
+                <li><Link href="/advertise" className="hover:text-paper">Advertise</Link></li>
               </ul>
             </div>
 

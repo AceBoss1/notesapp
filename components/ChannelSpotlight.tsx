@@ -7,16 +7,18 @@ import SubscribeButton from "@/components/SubscribeButton";
 import StatsRow from "@/components/StatsRow";
 import { useJournalStats } from "@/lib/useJournalStats";
 import { OFFICIAL_NOTESAPP_PROFILE } from "@/lib/journals-directory";
-import { NoteWithComputed } from "@/lib/firestore-notes";
+import { NOTESAPP_POSTS } from "@/lib/notesapp-posts";
 
 // @notesapp isn't a person, so there's no calendar to book — the card
 // that would be "Book a session" on an individual's profile is a
 // Subscribe card here instead: subscribing to the channel is the
 // analogous action for a brand journal.
-export default function ChannelSpotlight({ allNotes }: { allNotes: NoteWithComputed[] }) {
-  const journalCount = allNotes.filter(
-    (n) => n.author === OFFICIAL_NOTESAPP_PROFILE.displayName
-  ).length;
+export default function ChannelSpotlight() {
+  // journalCount is the 5 hardcoded posts (lib/notesapp-posts.ts) —
+  // @notesapp has no entries in the shared /notes collection at all,
+  // by design (see lib/journals-directory.ts), so there's nothing to
+  // filter allNotes for here.
+  const journalCount = NOTESAPP_POSTS.length;
   const stats = useJournalStats(OFFICIAL_NOTESAPP_PROFILE.username, journalCount);
 
   return (

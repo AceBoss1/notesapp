@@ -10,6 +10,34 @@ changes for this demo. #NotesApp is a second, differently-branded UI
 over data Precheks already owns; "journal" is what this UI calls a
 note, nothing more.
 
+## Assets — a persistent problem worth flagging
+
+The core app icon (`public/images/brand/notesapp-icon.webp`) had been
+wrong — a stretched 800×533 crop instead of the real square mark —
+across multiple earlier sessions, silently reappearing each time
+files got repackaged from an older working copy. It's now the correct
+891×891 square, replaced directly in this repo. If it goes wrong
+again, the fix is exactly this: get the correct file from the person
+and `cp` it over `public/images/brand/notesapp-icon.webp` — don't
+regenerate or re-derive it from anything else.
+
+## @notesapp's journal — 5 real posts, still no Firestore
+
+`/u/notesapp` now has actual content instead of an empty state:
+`lib/notesapp-posts.ts` hardcodes 5 explanatory posts (Summary, The
+Value Loop, How #NotesApp Works, How It Connects to Your Business,
+Life Without #NotesApp), each backed by one of the pitch-deck images
+in `public/images/pitch/`. `components/NotesAppPostRow.tsx` renders
+them in the same left-thumbnail style as `JournalRow`, and
+`app/u/notesapp/posts/[slug]/page.tsx` is a real detail page for each
+— full image, body copy, a "Next" link cycling through the other 4.
+
+This is still entirely UI-level, per the original instruction: no
+`notes` collection writes, no Firestore reads for this profile at
+all. `ChannelSpotlight`'s journal count now reads
+`NOTESAPP_POSTS.length` (5) instead of filtering `allNotes` for an
+author that will never exist there.
+
 ## Run it locally
 
 ```bash

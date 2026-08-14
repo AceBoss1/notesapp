@@ -9,8 +9,10 @@ import Avatar from "@/components/Avatar";
 import FollowButton from "@/components/FollowButton";
 import SubscribeButton from "@/components/SubscribeButton";
 import JournalRow from "@/components/JournalRow";
+import NotesAppPostRow from "@/components/NotesAppPostRow";
 import { STORE_ITEMS } from "@/lib/store";
 import { OFFICIAL_NOTESAPP_PROFILE } from "@/lib/journals-directory";
+import { NOTESAPP_POSTS } from "@/lib/notesapp-posts";
 
 const SLOTS = ["9:00 AM", "11:30 AM", "2:00 PM", "4:30 PM"];
 
@@ -107,7 +109,7 @@ export default function ProfilePage({ params }: { params: { username: string } }
   }
 
   const storeItems = STORE_ITEMS[profile.username] ?? [];
-  const hasPremium = notes.some((n) => n.premium);
+  const hasPremium = isOfficial || notes.some((n) => n.premium);
 
   return (
     <div className="mx-auto max-w-5xl px-4 py-16 sm:px-6 lg:px-8">
@@ -215,8 +217,20 @@ export default function ProfilePage({ params }: { params: { username: string } }
         </div>
       )}
 
-      {/* Their public writing — same /notes documents Precheks shows */}
-      {!isOfficial && (
+      {/* Their public writing — same /notes documents Precheks shows,
+          except for @notesapp, whose "journal" is 5 hardcoded
+          explanatory posts (see lib/notesapp-posts.ts) — UI-only, no
+          Firestore, same as the rest of this synthetic profile. */}
+      {isOfficial ? (
+        <div className="mt-14">
+          <p className="eyebrow">Journal</p>
+          <div className="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-2">
+            {NOTESAPP_POSTS.map((post) => (
+              <NotesAppPostRow key={post.slug} post={post} />
+            ))}
+          </div>
+        </div>
+      ) : (
         <div className="mt-14">
           <p className="eyebrow">Public journal</p>
           {notes.length === 0 ? (
