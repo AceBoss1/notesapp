@@ -69,9 +69,18 @@ service cloud.firestore {
     }
 
     // ── Username reservations (uniqueness) ───────────────────
+    // "notesapp" anywhere in the username is blocked outright — no
+    // *notesapp, notesapp*, or notesapp-in-the-middle variant is
+    // reservable by a member. This exists so nobody can register
+    // something that impersonates the platform itself; it has nothing
+    // to do with @notesapp or @na-notesapp, since neither ever goes
+    // through this path — both are hardcoded (lib/journals-directory.ts)
+    // and never have a doc in this collection at all.
     match /usernames/{username} {
       allow read: if true;
-      allow create: if isSignedIn() && request.resource.data.uid == request.auth.uid;
+      allow create: if isSignedIn()
+        && request.resource.data.uid == request.auth.uid
+        && !username.lower().matches('.*notesapp.*');
       allow delete: if false;
     }
 

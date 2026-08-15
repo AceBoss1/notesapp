@@ -100,6 +100,18 @@ export default function JournalsPage() {
             <div className="mt-16">
               {activeTab === "all" && (
                 <>
+                  {q && (filteredPeople.length > 0 || filteredChannels.length > 0) && (
+                    <div className="mb-10">
+                      <p className="eyebrow">People &amp; Channels</p>
+                      <div className="mt-4">
+                        <JournalDirectory
+                          entries={[...filteredChannels, ...filteredPeople]}
+                          allNotes={notes}
+                          emptyMessage=""
+                        />
+                      </div>
+                    </div>
+                  )}
                   <p className="eyebrow">More Journals</p>
                   {filteredNotes.length === 0 ? (
                     <p className="mt-4 text-sm text-slate">

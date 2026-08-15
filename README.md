@@ -94,30 +94,95 @@ themselves. This is the differentiator: not "AI writes a generic post
 for you," but "AI writes the post *you* would have written, because it
 actually knows how you write."
 
-**Part 2 — AI notetaker for booked sessions.** A user connects a
-transcription notetaker — Otter.ai, Fireflies, or Read AI — to their
-#NotesApp bookings (mentioned in the original pitch email as
-transcription integration; this expands it). When a session set up
-through the booking calendar starts, the notetaker joins the call
-automatically, transcribes it, and produces full meeting minutes and
-a summary when it ends.
+**Part 2 — AI notetaker for booked sessions.** This needed a real
+answer to "where does the meeting actually happen, and how do we
+guarantee a notetaker shows up" — worked out below, not hand-waved.
 
-**The handoff — where the two parts connect:** that meeting
-summary doesn't just sit in an inbox. It hands off automatically to
-whichever AI the user already connected in Part 1, which turns it
-into a new, ready-to-review draft — using the same "write in my voice"
-mechanism, now fed by a real session instead of a typed-in idea. A
-coach finishes a client call, and a draft is already waiting for them
-by the time they open #NotesApp — built from what was actually said,
-in their own voice, not the notetaker's.
+*Where sessions happen:* Zoom or Google Meet. #NotesApp isn't building
+its own video-calling product — that's out of scope entirely. Both
+have mature, well-documented APIs for programmatically creating a
+meeting, which is the part #NotesApp *can* control.
+
+*Can #NotesApp generate the session itself?* Yes, once — a
+professional connects their Zoom or Google account to #NotesApp (a
+one-time OAuth step in settings, not built yet). After that, every
+booking auto-creates a real meeting: a Zoom API call
+(`POST /users/{userId}/meetings`), or a Google Calendar event with
+`conferenceData.createRequest` set (which generates a Meet link as a
+side effect of creating the event). Either way, the booking confirmation
+and reminder carry a real, joinable link — not a placeholder.
+
+*Can #NotesApp guarantee Otter/Fireflies/Read AI attends?* Honestly,
+only partially, and it's worth being precise about the boundary:
+
+- **The realistic mechanism — calendar auto-join.** Otter, Fireflies,
+  Fathom, and Read AI all support connecting to a user's Google/Outlook
+  calendar and auto-joining any meeting on it that has a Zoom/Meet
+  link — no manual invite needed. If #NotesApp creates a proper
+  calendar event with a real video link (the OAuth step above), and
+  the professional has *separately* connected their calendar to
+  whichever notetaker they already use — on the notetaker's own
+  platform, outside #NotesApp's control — the bot joins automatically.
+  #NotesApp's job is narrow and achievable: make sure a real,
+  calendar-visible meeting exists. It cannot control whether the
+  professional has done their half of the setup, or whether the
+  notetaker's service is up.
+- **The tighter alternative — direct API integration.** Fireflies has
+  the most developer-friendly public API for this; Otter and Read AI's
+  equivalents are more enterprise-gated. Direct integration would mean
+  #NotesApp holding that vendor's API key per professional and calling
+  "join this specific meeting URL" itself at booking time — real
+  control, but a genuine per-vendor engineering commitment. Realistic
+  path: build this for one vendor first (Fireflies), not all three at
+  once.
+
+*Getting the transcript back into a draft:* also needs a real answer.
+Two paths, not mutually exclusive:
+1. **Webhook / Zapier bridge** — Fireflies and some Read AI/Otter
+   plans can fire a webhook (or a Zapier "new transcript" trigger) when
+   a transcript is ready. #NotesApp would need an endpoint to receive
+   that and hand it to the MCP-connected AI automatically. This is
+   real automation, but depends on the vendor's webhook support and
+   plan tier.
+2. **Manual paste, as the honest first version.** A simple "paste your
+   meeting summary here" box that hands whatever the user pastes to
+   their connected AI for drafting. Zero third-party API partnerships
+   required, works with literally any notetaker (or no notetaker —
+   just their own notes from the call), and still delivers the actual
+   value (AI drafting in their voice from real session content). The
+   automated join + automated handoff are upgrades on top of this, not
+   prerequisites for it.
+
+**The handoff — where the two parts connect:** however the meeting
+summary arrives (webhook or pasted), it hands off to whichever AI the
+user already connected in Part 1, which turns it into a new,
+ready-to-review draft — using the same "write in my voice" mechanism,
+now fed by a real session instead of a typed-in idea.
 
 **What none of this needs to touch:** the shared `notes` collection
 schema doesn't change for this — drafts created this way are ordinary
 `notes` docs with `status: "draft"`, same as any manually-written one.
 The new surface area is entirely: (a) an MCP server #NotesApp would
-need to build and host, (b) a settings page to generate/revoke access
-tokens, and (c) webhook receivers for whichever notetaker API is
-chosen, to receive the transcript when a session ends.
+need to build and host, (b) a settings page to connect Zoom/Google and
+generate/revoke MCP access tokens, and (c) either a paste-box (v1) or
+webhook receivers for a specific notetaker vendor (v2), to get a
+transcript into a draft.
+
+## Search — @na-notesapp was missing from both search surfaces
+
+Two separate gaps, not one:
+
+- **Header search** (`components/SearchBar.tsx`) hardcoded its people
+  pool as `[OFFICIAL_NOTESAPP_PROFILE, ...getAllUsers()]` — built
+  before @na-notesapp existed, never updated. Now pulls from
+  `CHANNEL_JOURNALS`, which includes both.
+- **`/journals`' default "All" tab** only ever searched note
+  title/author/categories/tags — never the People/Channels directory,
+  even though the Channels tab's own search worked fine. Typing
+  "na-notesapp" while on "All" (the tab everyone lands on) found
+  nothing unless it happened to have a matching real note. Fixed by
+  showing matching people/channels above the note results whenever
+  there's an active search query on "All," not just on their own tabs.
 
 ## Two company accounts — @notesapp and @na-notesapp
 

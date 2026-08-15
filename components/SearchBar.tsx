@@ -4,7 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { getAllNotes, NoteWithComputed } from "@/lib/firestore-notes";
 import { getAllUsers, UserProfile } from "@/lib/users";
-import { OFFICIAL_NOTESAPP_PROFILE } from "@/lib/journals-directory";
+import { CHANNEL_JOURNALS } from "@/lib/journals-directory";
 
 export default function SearchBar() {
   const [open, setOpen] = useState(false);
@@ -50,7 +50,7 @@ export default function SearchBar() {
     if (q.trim().length < 2) return [];
     const query = q.toLowerCase();
     const pool = [
-      { username: OFFICIAL_NOTESAPP_PROFILE.username, displayName: OFFICIAL_NOTESAPP_PROFILE.displayName },
+      ...CHANNEL_JOURNALS.map((c) => ({ username: c.username, displayName: c.displayName })),
       ...(people || []),
     ];
     return pool
