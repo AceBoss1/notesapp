@@ -8,11 +8,11 @@ const ITEMS = [
     detail: "Multi-platform publish from the composer, not a scheduling tool bolted on after the fact.",
   },
   {
-    title: "AI content drafting",
+    title: "AI content drafting, connected via MCP",
     tag: "AI",
-    body: "Two different jobs, both AI-assisted: capturing a session as it happens, and polishing raw notes into something publishable.",
+    body: "Two AI jobs, wired together into one loop: an AI notetaker that follows you into a booked session and writes it up, and your own AI assistant — connected straight to your #NotesApp data — that turns raw material into a finished draft in your voice.",
     detail:
-      "Session capture connects to Firefly and Read AI so a coaching call transcribes itself. Polishing connects to Claude, Gemini, or ChatGPT — your choice of model — to turn a rough private note into a publish-ready public one.",
+      "Part 1 — capture: connect a transcription notetaker (Otter.ai, Fireflies, Read AI) to your bookings. When a session starts, it joins, transcribes, and produces full meeting minutes and a summary — automatically. Part 2 — draft: connect Claude, Gemini, or ChatGPT to your #NotesApp account via MCP (Model Context Protocol). Drop a raw idea, or hand it that meeting summary, and it reads your own past notes for context — your topics, structure, phrasing — and finishes the draft as if you'd researched and written it yourself, not in generic AI voice. This is steps 7–9 of the Value Loop (Capture → Refine → Publish Again), automated end to end: session → transcript → draft, ready to review and publish.",
   },
   {
     title: "Client-driven session management",

@@ -10,6 +10,115 @@ changes for this demo. #NotesApp is a second, differently-branded UI
 over data Precheks already owns; "journal" is what this UI calls a
 note, nothing more.
 
+## "Reply as the brand" — comments as @na-notesapp
+
+Admins (Emmanuel, Chimdinma) can now post a comment or reply as
+**@na-notesapp** instead of themselves — a checkbox next to the
+comment box and each reply box in `components/Comments.tsx`, visible
+only to admins. The comment's `authorUid` still ends up as the real
+admin's Firebase uid either way (`firestore.rules`' comment-create
+rule requires `authorUid == request.auth.uid`, so it genuinely can't
+be spoofed to a different identity) — only the *display* fields
+(`authorUsername`, `authorDisplayName`, `authorAvatar`) change to
+@na-notesapp's. Brand-authored comments get a small "Official" badge.
+Delete permission is unaffected — it already checks the real
+`authorUid`, which never changes.
+
+## Site activity fix — adopted from Precheks
+
+Two files, both now match what's shipped and working on Precheks:
+
+- `lib/engagement.ts` — added `getRecentCommentsOnNotes()`, which
+  queries each note's own `comments` subcollection individually
+  (simple `orderBy`, no `where`) rather than a
+  `collectionGroup + where + orderBy` combo, then merges and sorts in
+  JS. Needs no composite index, unlike a collectionGroup approach
+  would.
+- `app/u/[username]/page.tsx` — anyone with real authored notes (a
+  founder, or @na-notesapp) now shows "Recent Comments on Their
+  Notes"; an ordinary reader keeps "Recent Activity" (their own
+  comments elsewhere) — that framing genuinely fits a reader's profile
+  better. @notesapp shows neither section — no real Firestore data
+  behind it to display.
+
+## @na-notesapp, now visible by default on /journals
+
+It was only reachable by clicking into the Channels tab — easy to
+miss entirely if nothing's been posted under it yet. Added
+`components/SocialChannelSpotlight.tsx`, shown unconditionally
+between the @notesapp and founders' spotlights, same as the other
+two — with its own follow/subscribe buttons, stats, and a preview of
+its most recent real posts once any exist.
+
+## AI drafting via MCP + AI notetaker → draft handoff — documented, not built
+
+**Read this before starting AI drafting work in a future session — the
+mechanism is worked out below, not just the feature name.** This
+expands the "AI content drafting" roadmap item into something
+buildable, and connects it back to steps 7–9 of the original Value
+Loop pitch deck (Capture → Refine → Publish Again) — this *is* that
+loop, automated.
+
+**The idea in one line:** a session gets transcribed automatically,
+and the user's own AI — already primed with their past writing — turns
+that transcript (or just a dropped-in idea) into a draft that sounds
+like them, not like generic AI output.
+
+**Part 1 — connect an AI assistant via MCP.** A user connects Claude,
+Gemini, or ChatGPT directly to their #NotesApp account using [MCP
+(Model Context Protocol)](https://docs.claude.com/en/docs/mcp) — the
+same mechanism Claude uses to connect to any external tool. #NotesApp
+would need to expose its own MCP server with tools such as:
+- `search_my_notes` / `get_note` — read access to a user's own past
+  published and private entries, so the AI has real context: their
+  topics, structure, phrasing, the way they actually write.
+- `create_draft` / `update_draft` — write access to save AI output
+  as a new private draft, not publish directly. Per how MCP tool
+  permissions normally work, a write action like this should require
+  the user's confirmation in their AI client, not fire silently.
+- `get_recent_session` — pulls in a meeting transcript/summary (Part
+  2 below), if the user wants to draft from a session rather than a
+  dropped-in idea.
+
+A user generates an access token from #NotesApp's own settings (not
+built yet — this is the piece that doesn't exist), pastes it into
+their AI client's MCP connector setup, and from then on that AI can
+read their own notes as context whenever they ask it to write
+something for #NotesApp.
+
+**The actual drafting moment:** the user drops a rough idea into a new
+draft. Their connected AI calls `search_my_notes`, reads a handful of
+their most relevant past entries, and finishes the piece — matching
+their tone and structure — as if they'd researched and written it
+themselves. This is the differentiator: not "AI writes a generic post
+for you," but "AI writes the post *you* would have written, because it
+actually knows how you write."
+
+**Part 2 — AI notetaker for booked sessions.** A user connects a
+transcription notetaker — Otter.ai, Fireflies, or Read AI — to their
+#NotesApp bookings (mentioned in the original pitch email as
+transcription integration; this expands it). When a session set up
+through the booking calendar starts, the notetaker joins the call
+automatically, transcribes it, and produces full meeting minutes and
+a summary when it ends.
+
+**The handoff — where the two parts connect:** that meeting
+summary doesn't just sit in an inbox. It hands off automatically to
+whichever AI the user already connected in Part 1, which turns it
+into a new, ready-to-review draft — using the same "write in my voice"
+mechanism, now fed by a real session instead of a typed-in idea. A
+coach finishes a client call, and a draft is already waiting for them
+by the time they open #NotesApp — built from what was actually said,
+in their own voice, not the notetaker's.
+
+**What none of this needs to touch:** the shared `notes` collection
+schema doesn't change for this — drafts created this way are ordinary
+`notes` docs with `status: "draft"`, same as any manually-written one.
+The new surface area is entirely: (a) an MCP server #NotesApp would
+need to build and host, (b) a settings page to generate/revoke access
+tokens, and (c) webhook receivers for whichever notetaker API is
+chosen, to receive the transcript when a session ends.
+
 ## Two company accounts — @notesapp and @na-notesapp
 
 Deliberately different, both documented in `lib/journals-directory.ts`:

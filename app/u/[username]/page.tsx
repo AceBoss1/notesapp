@@ -2,8 +2,10 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { getUserByUsername, UserProfile } from "@/lib/users";
+import Image from "next/image";
+import { getUserByUsername, getCommentsByUser, UserProfile, CommentActivity } from "@/lib/users";
 import { getAllNotes, NoteWithComputed } from "@/lib/firestore-notes";
+import { getRecentCommentsOnNotes, Comment } from "@/lib/engagement";
 import { getFollowerCount } from "@/lib/follows";
 import Avatar from "@/components/Avatar";
 import FollowButton from "@/components/FollowButton";
@@ -48,6 +50,15 @@ export default function ProfilePage({ params }: { params: { username: string } }
   const [selectedSlot, setSelectedSlot] = useState<string | null>(null);
   const [followerCount, setFollowerCount] = useState<number | null>(null);
   const [followerCountUnavailable, setFollowerCountUnavailable] = useState(false);
+  // "Activity" means different things for different accounts: for
+  // anyone with real authored notes (a founder or @na-notesapp), it's
+  // comments OTHERS left on their writing; for an ordinary reader,
+  // it's the comments they personally posted elsewhere. @notesapp
+  // gets neither — no real Firestore data to show at all.
+  const [ownComments, setOwnComments] = useState<CommentActivity[]>([]);
+  const [receivedComments, setReceivedComments] = useState<
+    (Comment & { noteId: string; noteSlug: string; noteTitle: string })[]
+  >([]);
 
   useEffect(() => {
     if (synthetic) return;
@@ -110,6 +121,29 @@ export default function ProfilePage({ params }: { params: { username: string } }
       .then((all) => setNotes(all.filter((n) => n.author === profile.displayName)))
       .catch(() => setNotes([]));
   }, [profile, isOfficial]);
+
+  useEffect(() => {
+    if (isOfficial) return; // @notesapp: no real Firestore data at all
+    if (isSocialChannel || realProfile?.role === "admin") {
+      getRecentCommentsOnNotes(
+        notes.map((n) => n.id),
+        5,
+        10
+      )
+        .then(setReceivedComments)
+        .catch((err) => {
+          console.error("getRecentCommentsOnNotes failed:", err);
+          setReceivedComments([]);
+        });
+    } else if (realProfile?.role === "reader") {
+      getCommentsByUser(realProfile.uid, 10)
+        .then(setOwnComments)
+        .catch((err) => {
+          console.error(`getCommentsByUser(${realProfile.uid}) failed:`, err);
+          setOwnComments([]);
+        });
+    }
+  }, [notes, isOfficial, isSocialChannel, realProfile]);
 
   if (profile === undefined) {
     return <div className="py-24 text-center text-sm text-slate">Loading…</div>;
@@ -254,6 +288,78 @@ export default function ProfilePage({ params }: { params: { username: string } }
             <div className="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-2">
               {notes.map((n) => (
                 <JournalRow key={n.id} note={n} />
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Activity — @notesapp gets none of this, there's no real
+          Firestore data behind it. */}
+      {!isOfficial && (
+        <div className="mt-14">
+          <p className="eyebrow">
+            {isSocialChannel || realProfile?.role === "admin"
+              ? "Recent Comments on Their Notes"
+              : "Recent Activity"}
+          </p>
+          {isSocialChannel || realProfile?.role === "admin" ? (
+            receivedComments.length === 0 ? (
+              <p className="mt-4 text-sm text-slate">No comments yet.</p>
+            ) : (
+              <div className="mt-5 divide-y divide-rule">
+                {receivedComments.map((c) => (
+                  <div key={c.id} className="flex gap-3 py-4 first:pt-0">
+                    <Link href={`/u/${c.authorUsername}`} className="flex-shrink-0">
+                      <Image
+                        src={c.authorAvatar}
+                        alt={c.authorDisplayName}
+                        width={36}
+                        height={36}
+                        className="h-9 w-9 rounded-full object-cover"
+                      />
+                    </Link>
+                    <div>
+                      <p className="font-mono text-xs text-slate">
+                        <Link
+                          href={`/u/${c.authorUsername}`}
+                          className="font-semibold text-ink hover:text-crimson-bright"
+                        >
+                          {c.authorDisplayName}
+                        </Link>{" "}
+                        commented on{" "}
+                        <Link href={`/journals/${c.noteSlug}`} className="text-crimson-bright hover:text-ink">
+                          {c.noteTitle}
+                        </Link>
+                      </p>
+                      <p className="mt-1.5 text-sm text-ink font-body">
+                        &ldquo;{c.content}&rdquo;
+                      </p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )
+          ) : ownComments.length === 0 ? (
+            <p className="mt-4 text-sm text-slate">No comments yet.</p>
+          ) : (
+            <div className="mt-5 divide-y divide-rule">
+              {ownComments.map((c) => (
+                <Link
+                  key={c.id}
+                  href={`/journals/${c.noteSlug}`}
+                  className="block py-4 first:pt-0 group"
+                >
+                  <p className="font-mono text-xs text-slate">
+                    Commented on{" "}
+                    <span className="text-crimson-bright group-hover:text-ink">
+                      {c.noteTitle}
+                    </span>
+                  </p>
+                  <p className="mt-1.5 text-sm text-ink font-body">
+                    &ldquo;{c.content}&rdquo;
+                  </p>
+                </Link>
               ))}
             </div>
           )}

@@ -15,6 +15,7 @@ import {
   Comment,
 } from "@/lib/engagement";
 import { isAdminEmail } from "@/lib/admin";
+import { NA_NOTESAPP_PROFILE } from "@/lib/journals-directory";
 
 function CommentRow({
   comment,
@@ -83,6 +84,11 @@ function CommentRow({
           >
             @{comment.authorUsername}
           </Link>
+          {comment.authorUsername === NA_NOTESAPP_PROFILE.username && (
+            <span className="rounded-full bg-crimson/10 px-2 py-0.5 font-mono text-[9px] uppercase tracking-wideish text-crimson-bright">
+              Official
+            </span>
+          )}
         </div>
         <p className="mt-1 text-sm text-ink font-body">{comment.content}</p>
 
@@ -137,6 +143,35 @@ export default function Comments({
   const [replyingTo, setReplyingTo] = useState<string | null>(null);
   const [replyText, setReplyText] = useState("");
   const [postingReply, setPostingReply] = useState(false);
+  // Admin-only: post/reply as @na-notesapp instead of as themselves.
+  // authorUid still ends up as the real admin's uid either way — the
+  // brand has no login of its own, and firestore.rules' comment
+  // create rule requires authorUid == request.auth.uid, so it can't
+  // be spoofed to anything else. Only the display identity changes.
+  const [postAsBrand, setPostAsBrand] = useState(false);
+  const [replyAsBrand, setReplyAsBrand] = useState(false);
+
+  const canModerate = !!(user?.email && isAdminEmail(user.email));
+
+  function authorFor(asBrand: boolean) {
+    if (!user) return null;
+    if (asBrand && canModerate) {
+      return {
+        uid: user.uid,
+        username: NA_NOTESAPP_PROFILE.username,
+        displayName: NA_NOTESAPP_PROFILE.displayName,
+        avatar: NA_NOTESAPP_PROFILE.avatar,
+      };
+    }
+    return profile
+      ? {
+          uid: user.uid,
+          username: profile.username,
+          displayName: profile.displayName,
+          avatar: profile.avatar,
+        }
+      : null;
+  }
 
   async function load() {
     setComments(await getComments(noteId));
@@ -153,43 +188,23 @@ export default function Comments({
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (!user || !profile || !text.trim()) return;
+    const author = authorFor(postAsBrand);
+    if (!author || !text.trim()) return;
     setPosting(true);
-    await addComment(
-      noteId,
-      slug,
-      title,
-      {
-        uid: user.uid,
-        username: profile.username,
-        displayName: profile.displayName,
-        avatar: profile.avatar,
-      },
-      text.trim()
-    );
+    await addComment(noteId, slug, title, author, text.trim());
     setText("");
     await load();
     setPosting(false);
   }
 
   async function handleReplySubmit(parentId: string) {
-    if (!user || !profile || !replyText.trim()) return;
+    const author = authorFor(replyAsBrand);
+    if (!author || !replyText.trim()) return;
     setPostingReply(true);
-    await addComment(
-      noteId,
-      slug,
-      title,
-      {
-        uid: user.uid,
-        username: profile.username,
-        displayName: profile.displayName,
-        avatar: profile.avatar,
-      },
-      replyText.trim(),
-      parentId
-    );
+    await addComment(noteId, slug, title, author, replyText.trim(), parentId);
     setReplyText("");
     setReplyingTo(null);
+    setReplyAsBrand(false);
     await load();
     setPostingReply(false);
   }
@@ -200,7 +215,6 @@ export default function Comments({
     load();
   }
 
-  const canModerate = !!(user?.email && isAdminEmail(user.email));
   const topLevel = comments.filter((c) => !c.parentCommentId);
   const repliesFor = (id: string) =>
     comments.filter((c) => c.parentCommentId === id);
@@ -214,8 +228,8 @@ export default function Comments({
       {user && profile ? (
         <form onSubmit={handleSubmit} className="mt-6 flex gap-3">
           <Image
-            src={profile.avatar}
-            alt={profile.displayName}
+            src={postAsBrand ? NA_NOTESAPP_PROFILE.avatar : profile.avatar}
+            alt={postAsBrand ? NA_NOTESAPP_PROFILE.displayName : profile.displayName}
             width={40}
             height={40}
             className="rounded-full object-cover w-10 h-10 flex-shrink-0"
@@ -225,16 +239,33 @@ export default function Comments({
               rows={3}
               value={text}
               onChange={(e) => setText(e.target.value)}
-              placeholder="Share your thoughts…"
+              placeholder={
+                postAsBrand
+                  ? `Reply as @${NA_NOTESAPP_PROFILE.username}…`
+                  : "Share your thoughts…"
+              }
               className="w-full border border-rule bg-card px-4 py-3 font-body focus:border-crimson outline-none"
             />
-            <button
-              type="submit"
-              disabled={posting || !text.trim()}
-              className="mt-2 bg-crimson text-paper font-ui text-sm font-semibold px-5 py-2 hover:bg-crimson-deep hover:text-paper transition-colors disabled:opacity-50"
-            >
-              {posting ? "Posting…" : "Post Comment"}
-            </button>
+            <div className="mt-2 flex items-center justify-between flex-wrap gap-3">
+              <button
+                type="submit"
+                disabled={posting || !text.trim()}
+                className="bg-crimson text-paper font-ui text-sm font-semibold px-5 py-2 hover:bg-crimson-bright transition-colors disabled:opacity-50"
+              >
+                {posting ? "Posting…" : postAsBrand ? "Post as @na-notesapp" : "Post Comment"}
+              </button>
+              {canModerate && (
+                <label className="flex items-center gap-2 font-ui text-xs text-slate">
+                  <input
+                    type="checkbox"
+                    checked={postAsBrand}
+                    onChange={(e) => setPostAsBrand(e.target.checked)}
+                    className="h-3.5 w-3.5 accent-crimson"
+                  />
+                  Reply as @na-notesapp
+                </label>
+              )}
+            </div>
           </div>
         </form>
       ) : user === null ? (
@@ -250,20 +281,37 @@ export default function Comments({
         {topLevel.map((c) => {
           const replies = repliesFor(c.id);
           const replyBox = (
-            <div className="flex gap-2">
-              <input
-                value={replyText}
-                onChange={(e) => setReplyText(e.target.value)}
-                placeholder={`Reply to ${c.authorDisplayName}…`}
-                className="flex-1 border border-rule bg-card px-3 py-2 text-sm focus:border-crimson outline-none"
-              />
-              <button
-                onClick={() => handleReplySubmit(c.id)}
-                disabled={postingReply || !replyText.trim()}
-                className="bg-crimson text-paper font-ui text-xs font-semibold px-4 py-2 hover:bg-crimson-deep hover:text-paper transition-colors disabled:opacity-50"
-              >
-                Reply
-              </button>
+            <div>
+              <div className="flex gap-2">
+                <input
+                  value={replyText}
+                  onChange={(e) => setReplyText(e.target.value)}
+                  placeholder={
+                    replyAsBrand
+                      ? `Reply as @${NA_NOTESAPP_PROFILE.username}…`
+                      : `Reply to ${c.authorDisplayName}…`
+                  }
+                  className="flex-1 border border-rule bg-card px-3 py-2 text-sm focus:border-crimson outline-none"
+                />
+                <button
+                  onClick={() => handleReplySubmit(c.id)}
+                  disabled={postingReply || !replyText.trim()}
+                  className="bg-crimson text-paper font-ui text-xs font-semibold px-4 py-2 hover:bg-crimson-bright transition-colors disabled:opacity-50"
+                >
+                  Reply
+                </button>
+              </div>
+              {canModerate && (
+                <label className="mt-1.5 flex items-center gap-2 font-ui text-xs text-slate">
+                  <input
+                    type="checkbox"
+                    checked={replyAsBrand}
+                    onChange={(e) => setReplyAsBrand(e.target.checked)}
+                    className="h-3.5 w-3.5 accent-crimson"
+                  />
+                  Reply as @na-notesapp
+                </label>
+              )}
             </div>
           );
 
@@ -274,9 +322,11 @@ export default function Comments({
                 noteId={noteId}
                 user={user}
                 canModerate={canModerate}
-                onReply={(id) =>
-                  setReplyingTo(replyingTo === id ? null : id)
-                }
+                onReply={(id) => {
+                  setReplyingTo(replyingTo === id ? null : id);
+                  setReplyAsBrand(false);
+                  setReplyText("");
+                }}
                 onDelete={handleDelete}
                 replyOpen={replyingTo === c.id && !!user}
                 replyBox={replyBox}

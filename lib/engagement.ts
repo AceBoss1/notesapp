@@ -12,6 +12,7 @@ import {
   increment,
   writeBatch,
   serverTimestamp,
+  limit as fsLimit,
 } from "firebase/firestore";
 import { db } from "./firebase";
 
@@ -71,6 +72,43 @@ export async function getComments(noteId: string): Promise<Comment[]> {
   );
   const snap = await getDocs(q);
   return snap.docs.map((d) => ({ id: d.id, ...d.data() } as Comment));
+}
+
+// Recent comments left ON a set of notes — used on an author's public
+// profile, where "activity" should mean engagement with THEIR writing,
+// not comments they personally posted elsewhere. Deliberately queries
+// each note's own comments subcollection (simple orderBy, no filter)
+// rather than a collectionGroup + where + orderBy combo, so this never
+// needs a composite index — unlike a collectionGroup approach would.
+export async function getRecentCommentsOnNotes(
+  noteIds: string[],
+  perNote = 5,
+  max = 10
+): Promise<(Comment & { noteId: string; noteSlug: string; noteTitle: string })[]> {
+  if (noteIds.length === 0) return [];
+  const results = await Promise.all(
+    noteIds.map(async (id) => {
+      try {
+        const q = query(
+          collection(db, "notes", id, "comments"),
+          orderBy("createdAt", "desc"),
+          fsLimit(perNote)
+        );
+        const snap = await getDocs(q);
+        return snap.docs.map((d) => ({ id: d.id, ...d.data() }) as Comment & {
+          noteId: string;
+          noteSlug: string;
+          noteTitle: string;
+        });
+      } catch {
+        return [];
+      }
+    })
+  );
+  return results
+    .flat()
+    .sort((a, b) => (a.createdAt < b.createdAt ? 1 : -1))
+    .slice(0, max);
 }
 
 export async function addComment(

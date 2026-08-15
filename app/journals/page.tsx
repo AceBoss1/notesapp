@@ -7,6 +7,7 @@ import { getAllUsers, UserProfile } from "@/lib/users";
 import { FOUNDER_JOURNALS, MANDATORY_USERNAMES, CHANNEL_JOURNALS } from "@/lib/journals-directory";
 import JournalsHero, { JournalsTab } from "@/components/JournalsHero";
 import ChannelSpotlight from "@/components/ChannelSpotlight";
+import SocialChannelSpotlight from "@/components/SocialChannelSpotlight";
 import FoundersSpotlight from "@/components/FoundersSpotlight";
 import JournalDirectory from "@/components/JournalDirectory";
 import TopicsBrowser from "@/components/TopicsBrowser";
@@ -87,11 +88,12 @@ export default function JournalsPage() {
           <p className="py-16 text-center text-sm text-slate">Loading journals…</p>
         ) : (
           <>
-            {/* @notesapp first, then the founders' big card — shown
-                regardless of tab, same as merch shows official
-                products first every time. */}
+            {/* @notesapp first, then @na-notesapp, then the founders'
+                big card — shown regardless of tab, same as merch
+                shows official products first every time. */}
             <div className="grid gap-6">
               <ChannelSpotlight />
+              <SocialChannelSpotlight allNotes={notes} />
               <FoundersSpotlight allNotes={notes} />
             </div>
 
