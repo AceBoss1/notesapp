@@ -12,7 +12,7 @@ const FEATURES = [
   { title: "Public & private journals", copy: "One toggle, same canvas. Publish an article, or keep a private session log for a client — your call, entry by entry." },
   { title: "Native booking calendar", copy: "Built into your profile page. No redirect, no second login, no lost momentum between reading and booking." },
   { title: "Inline payments", copy: "Paystack and Flutterwave, wired in from the start — because Naira is not an afterthought here." },
-  { title: "WhatsApp‑first reminders", copy: "Bookings and nudges land where your clients actually check — not in an inbox they forget." },
+  { title: "WhatsApp & email reminders", copy: "Bookings and nudges land where your clients actually check — WhatsApp first, with email as the reliable fallback that always lands somewhere." },
   { title: "A brand store for every journal", copy: "Every professional gets their own storefront on their profile — sell guides, templates, or sessions, no separate shop to manage." },
   { title: "Bring your own transcription", copy: "Connect Otter.ai or Whisper for session notes. We integrate; we don't lock you into one AI vendor." },
 ];
@@ -87,6 +87,41 @@ export default function Home() {
               className="absolute -right-4 -top-4 h-[72px] w-[72px] rounded-2xl shadow-lg lg:-right-8 lg:-top-8"
             />
           </div>
+        </div>
+      </section>
+
+      {/* Honest status strip — the hero above is the vision; this is
+          what's actually true right now. Added directly in response
+          to third-party review feedback: don't let "get paid, in
+          Naira" imply a working payment flow when it's still a demo. */}
+      <section className="border-y border-rule bg-paper py-12">
+        <div className="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8">
+          <p className="eyebrow text-center">What's actually true right now</p>
+          <div className="mt-8 grid grid-cols-1 gap-8 sm:grid-cols-2">
+            <div>
+              <p className="font-ui text-sm font-bold text-ink">✓ Live today</p>
+              <ul className="mt-3 space-y-2 text-sm text-slate">
+                <li>Journals — real published notes, shared live with precheks.com.ng</li>
+                <li>Comments, likes, shares, follow, subscribe — all real, all working</li>
+                <li>Admin composer, dashboard, and analytics</li>
+              </ul>
+            </div>
+            <div>
+              <p className="font-ui text-sm font-bold text-ink">○ On the roadmap, not live</p>
+              <ul className="mt-3 space-y-2 text-sm text-slate">
+                <li>Paystack / Flutterwave payments — booking and subscribe buttons are demos, no real charge</li>
+                <li>The booking calendar — static UI, no real availability yet</li>
+                <li>WhatsApp reminders, AI drafting, social publishing, ad-share</li>
+              </ul>
+            </div>
+          </div>
+          <p className="mt-8 text-center text-sm text-slate">
+            Full detail on what's built vs. planned:{" "}
+            <Link href="/roadmap" className="text-crimson underline underline-offset-2">
+              the roadmap
+            </Link>
+            .
+          </p>
         </div>
       </section>
 

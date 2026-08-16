@@ -1,9 +1,17 @@
 import Image from "next/image";
 import Link from "next/link";
+import type { Metadata } from "next";
 import { ADMIN_PROFILES } from "@/lib/admin";
 import { SITE } from "@/lib/site";
 import Avatar from "@/components/Avatar";
 import { CHANNEL_JOURNALS } from "@/lib/journals-directory";
+
+export const metadata: Metadata = {
+  title: "About",
+  description:
+    "Why #NotesApp exists — one workspace for African coaches, consultants, and knowledge professionals to publish, get booked, and get paid.",
+  openGraph: { images: ["/images/marketing/notesapp-showcase.png"] },
+};
 
 const FOUNDERS = [
   { ...ADMIN_PROFILES["ezurukam@gmail.com"], role: "Founder & CEO" },

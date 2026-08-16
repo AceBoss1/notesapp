@@ -1,132 +1,361 @@
 rules_version = '2';
+
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    function isAdmin() {
-      return request.auth != null && request.auth.token.email in [
-        'ezurukam@gmail.com',
-        'precheks.info@gmail.com'
-      ];
-    }
+    // ============================================================
+    // HELPER FUNCTIONS
+    // ============================================================
 
     function isSignedIn() {
       return request.auth != null;
     }
 
-    // ── Notes ────────────────────────────────────────────────
-    match /notes/{noteId} {
-      allow read: if true;
-      allow create, delete: if isAdmin();
+    function isAdmin() {
+      return request.auth != null
+        && request.auth.token.email in [
+          'ezurukam@gmail.com',
+          'precheks.info@gmail.com'
+        ];
+    }
 
+    // A NotesApp contributing writer.
+    // The role can only be assigned by an admin through /users.
+    function isWriter() {
+      return isSignedIn()
+        && exists(
+          /databases/$(database)/documents/users/$(request.auth.uid)
+        )
+        && get(
+          /databases/$(database)/documents/users/$(request.auth.uid)
+        ).data.role == 'writer';
+    }
+
+    // Suspended members are prevented from creating comments.
+    function isSuspended() {
+      return isSignedIn()
+        && exists(
+          /databases/$(database)/documents/users/$(request.auth.uid)
+        )
+        && get(
+          /databases/$(database)/documents/users/$(request.auth.uid)
+        ).data.status == 'suspended';
+    }
+
+
+    // ============================================================
+    // NOTES
+    // ============================================================
+
+    match /notes/{noteId} {
+
+      // Notes are publicly readable.
+      allow read: if true;
+
+      // Admins can create anything.
+      // Writers can create only notes authored by themselves.
+      allow create: if isAdmin()
+        || (
+          isWriter()
+          && request.resource.data.authorUid == request.auth.uid
+        );
+
+      // Admins can delete anything.
+      // Writers can delete only their own notes.
+      allow delete: if isAdmin()
+        || (
+          isWriter()
+          && resource.data.authorUid == request.auth.uid
+        );
+
+      // Updates:
+      // 1. Admins can update anything.
+      // 2. Writers can update their own notes.
+      // 3. Anyone can increment viewCount.
+      // 4. Signed-in users can update likeCount.
+      // 5. Anyone can update shareCount.
       allow update: if isAdmin()
-        || request.resource.data.diff(resource.data).affectedKeys().hasOnly(['viewCount'])
-        || (isSignedIn() && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['likeCount']))
-        || request.resource.data.diff(resource.data).affectedKeys().hasOnly(['shareCount']);
+        || (
+          isWriter()
+          && resource.data.authorUid == request.auth.uid
+        )
+        || request.resource.data.diff(resource.data)
+            .affectedKeys()
+            .hasOnly(['viewCount'])
+        || (
+          isSignedIn()
+          && request.resource.data.diff(resource.data)
+              .affectedKeys()
+              .hasOnly(['likeCount'])
+        )
+        || request.resource.data.diff(resource.data)
+            .affectedKeys()
+            .hasOnly(['shareCount']);
+
+
+      // ==========================================================
+      // NOTE LIKES
+      // ==========================================================
 
       match /likes/{uid} {
-        allow read, create, delete: if isSignedIn() && request.auth.uid == uid;
+        allow read, create, delete: if isSignedIn()
+          && request.auth.uid == uid;
       }
 
+
+      // ==========================================================
+      // COMMENTS
+      // ==========================================================
+
       match /comments/{commentId} {
+
+        // Comments are public.
         allow read: if true;
+
+        // A signed-in user can create a comment only as themselves.
+        // Suspended users cannot create comments.
         allow create: if isSignedIn()
+          && !isSuspended()
           && request.resource.data.authorUid == request.auth.uid;
+
+        // Comment updates:
+        // - author can edit own comment
+        // - admins can moderate
+        // - signed-in users can modify only likeCount
         allow update: if isSignedIn()
           && (
-            // comment author editing their own text, or an admin moderating
             request.auth.uid == resource.data.authorUid
             || isAdmin()
-            // OR any signed-in user bumping/undoing the like counter only
-            || request.resource.data.diff(resource.data).affectedKeys().hasOnly(['likeCount'])
+            || request.resource.data.diff(resource.data)
+                .affectedKeys()
+                .hasOnly(['likeCount'])
           );
-        allow delete: if isSignedIn()
-          && (request.auth.uid == resource.data.authorUid || isAdmin());
 
-        // Per-user like record on a comment, same pattern as note likes.
+        // Author or admin can delete.
+        allow delete: if isSignedIn()
+          && (
+            request.auth.uid == resource.data.authorUid
+            || isAdmin()
+          );
+
+
+        // ========================================================
+        // COMMENT LIKES
+        // ========================================================
+
         match /commentLikes/{uid} {
-          allow read, create, delete: if isSignedIn() && request.auth.uid == uid;
+          allow read, create, delete: if isSignedIn()
+            && request.auth.uid == uid;
         }
       }
     }
 
-    // ── Comments (collection group access) ─────────────────────
-    // Needed separately from the nested rule above: collection group
-    // queries (e.g. getCountFromServer(collectionGroup(db, "comments")))
-    // are only validated against rules written with the recursive
-    // wildcard {path=**}. The nested match /notes/{noteId}/comments/{commentId}
-    // rule above only covers reads scoped to one note at a time and does
-    // NOT satisfy a cross-note collection group query.
+
+    // ============================================================
+    // COMMENTS COLLECTION-GROUP READ ACCESS
+    // ============================================================
+
+    // Required for queries such as:
+    // collectionGroup(db, "comments")
+    //
+    // The nested /notes/{noteId}/comments rule above does not
+    // automatically authorise collection-group queries.
     match /{path=**}/comments/{commentId} {
       allow read: if true;
     }
 
-    // ── Public profiles ──────────────────────────────────────
+
+    // ============================================================
+    // USERS / PUBLIC PROFILES
+    // ============================================================
+
     match /users/{uid} {
+
+      // Public profiles.
       allow read: if true;
-      allow create: if isSignedIn() && request.auth.uid == uid;
-      allow update: if isSignedIn() && request.auth.uid == uid;
+
+      // A user can create only their own profile.
+      allow create: if isSignedIn()
+        && request.auth.uid == uid;
+
+      // Admins can manage profiles.
+      //
+      // Ordinary users may edit only ordinary profile fields.
+      // They cannot modify role, status, verification or suspension.
+      //
+      // A suspended user can submit an appeal by changing only the
+      // suspension object and setting appealStatus to "pending".
+      allow update: if
+
+        // --------------------------------------------------------
+        // 1. ADMIN
+        // --------------------------------------------------------
+        isAdmin()
+
+        // --------------------------------------------------------
+        // 2. ORDINARY PROFILE EDIT
+        // --------------------------------------------------------
+        || (
+          isSignedIn()
+          && request.auth.uid == uid
+          && request.resource.data.diff(resource.data)
+              .affectedKeys()
+              .hasOnly([
+                'displayName',
+                'bio',
+                'avatar',
+                'social'
+              ])
+        )
+
+        // --------------------------------------------------------
+        // 3. SUSPENDED USER APPEAL
+        // --------------------------------------------------------
+        || (
+          isSignedIn()
+          && request.auth.uid == uid
+          && resource.data.status == 'suspended'
+          && request.resource.data.diff(resource.data)
+              .affectedKeys()
+              .hasOnly(['suspension'])
+          && request.resource.data.status == resource.data.status
+          && request.resource.data.suspension.appealStatus == 'pending'
+          && request.resource.data.suspension.reason
+              == resource.data.suspension.reason
+          && request.resource.data.suspension.suspendedAt
+              == resource.data.suspension.suspendedAt
+          && request.resource.data.suspension.suspendedByUid
+              == resource.data.suspension.suspendedByUid
+        );
+
+      // User deletion is disabled.
       allow delete: if false;
     }
 
-    // ── Username reservations (uniqueness) ───────────────────
-    // "notesapp" anywhere in the username is blocked outright — no
-    // *notesapp, notesapp*, or notesapp-in-the-middle variant is
-    // reservable by a member. This exists so nobody can register
-    // something that impersonates the platform itself; it has nothing
-    // to do with @notesapp or @na-notesapp, since neither ever goes
-    // through this path — both are hardcoded (lib/journals-directory.ts)
-    // and never have a doc in this collection at all.
+
+    // ============================================================
+    // USERNAME RESERVATIONS
+    // ============================================================
+
     match /usernames/{username} {
+
       allow read: if true;
+
+      // A signed-in user can reserve their own username.
+      //
+      // "notesapp" is blocked anywhere in the username to prevent
+      // platform impersonation.
       allow create: if isSignedIn()
         && request.resource.data.uid == request.auth.uid
         && !username.lower().matches('.*notesapp.*');
+
+      // Username reservations cannot be deleted directly.
       allow delete: if false;
     }
 
-    // ── Site-wide settings (contact email, WhatsApp, socials) ─
+
+    // ============================================================
+    // SITE-WIDE SETTINGS
+    // ============================================================
+
     match /settings/{docId} {
+
+      // Public configuration such as contact email,
+      // WhatsApp and social links.
       allow read: if true;
+
+      // Only admins can change site-wide settings.
       allow write: if isAdmin();
     }
 
-    // ── Follows (#NotesApp-only — no Precheks equivalent) ─────
-    // Doc id: `${followerUid}_${username}`. A member can only ever
-    // write their own follow relationship, never one on someone
-    // else's behalf. Mandatory follows (@notesapp + both founders)
-    // can't be deleted by anyone here — same rule for every account,
-    // since there's no paid-tier flag on a user yet to make an
-    // exception for (see lib/follows.ts).
+
+    // ============================================================
+    // FOLLOWS — NOTESAPP
+    // ============================================================
+
     match /follows/{followId} {
+
+      // Public because follower counts are displayed publicly.
       allow read: if true;
-      allow create: if isSignedIn() && request.resource.data.followerUid == request.auth.uid;
+
+      // A user can create a follow only for themselves.
+      allow create: if isSignedIn()
+        && request.resource.data.followerUid == request.auth.uid;
+
+      // Follow records cannot be edited.
       allow update: if false;
+
+      // A user can remove their own non-mandatory follow.
       allow delete: if isSignedIn()
         && resource.data.followerUid == request.auth.uid
         && resource.data.mandatory != true;
     }
 
-    // ── Subscriptions (#NotesApp-only) ────────────────────────
-    // Doc id: `${subscriberUid}_${username}`. No payment gateway
-    // wired yet — every doc here has status:"demo" (see
-    // lib/subscriptions.ts).
-    //
-    // Read is public, same as follows — a subscriber count is shown
-    // on journal cards the same way a follower count is, and
-    // getSubscriberCount() runs an aggregation query across every
-    // subscriber of a given username, not just the current user's own
-    // doc, so it can't be restricted to "read your own record only."
-    // The only thing actually gated by a subscription — a premium
-    // note's content — is never in this collection; PremiumGate reads
-    // isSubscribed(), which only ever checks the signed-in user's own
-    // doc, so this doesn't weaken the paywall.
-    // Writes stay owner-only: nobody can create or delete a
-    // subscription on someone else's behalf.
+
+    // ============================================================
+    // SUBSCRIPTIONS — NOTESAPP
+    // ============================================================
+
     match /subscriptions/{subId} {
+
+      // Public because subscriber counts are displayed publicly.
       allow read: if true;
-      allow create: if isSignedIn() && request.resource.data.subscriberUid == request.auth.uid;
+
+      // A user can subscribe only as themselves.
+      allow create: if isSignedIn()
+        && request.resource.data.subscriberUid == request.auth.uid;
+
+      // Subscription documents cannot be edited directly.
       allow update: if false;
-      allow delete: if isSignedIn() && resource.data.subscriberUid == request.auth.uid;
+
+      // A subscriber can remove their own subscription.
+      allow delete: if isSignedIn()
+        && resource.data.subscriberUid == request.auth.uid;
     }
+
+
+    // ============================================================
+    // JOURNALS — NOTESAPP
+    // ============================================================
+
+    // MVP:
+    // Only admins/founders can publish, edit or delete journals.
+    // Everyone can read journals.
+    match /journals/{journalId} {
+
+      allow read: if true;
+
+      allow create, update, delete: if isAdmin();
+    }
+
+
+    // ============================================================
+    // LEADS — PRECHEKS
+    // ============================================================
+
+    match /leads/{leadId} {
+
+      // Public contact form submission.
+      //
+      // The visitor does not need to be authenticated.
+      // Restrict the fields and require status = "new".
+      allow create: if
+        request.resource.data.keys().hasOnly([
+          'name',
+          'email',
+          'message',
+          'status',
+          'createdAt'
+        ])
+        && request.resource.data.status == 'new'
+        && request.resource.data.name is string
+        && request.resource.data.email is string
+        && request.resource.data.message is string;
+
+      // Lead information is private.
+      // Only admins can access or manage it.
+      allow read, update, delete: if isAdmin();
+    }
+
   }
 }

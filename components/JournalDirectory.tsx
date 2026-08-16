@@ -4,8 +4,9 @@ import Link from "next/link";
 import Avatar from "@/components/Avatar";
 import FollowButton from "@/components/FollowButton";
 import { NoteWithComputed } from "@/lib/firestore-notes";
-import { OFFICIAL_NOTESAPP_PROFILE } from "@/lib/journals-directory";
+import { OFFICIAL_NOTESAPP_PROFILE, VERIFIED_USERNAMES } from "@/lib/journals-directory";
 import { NOTESAPP_POSTS } from "@/lib/notesapp-posts";
+import VerifiedBadge from "@/components/VerifiedBadge";
 
 export type DirectoryEntry = {
   username: string;
@@ -41,7 +42,10 @@ export default function JournalDirectory({
             <Link href={`/u/${entry.username}`} className="flex flex-1 items-center gap-4">
               <Avatar src={entry.avatar} alt={entry.displayName} size={48} />
               <div>
-                <p className="font-ui text-sm font-bold text-ink">{entry.displayName}</p>
+                <p className="flex items-center gap-1.5 font-ui text-sm font-bold text-ink">
+                  {entry.displayName}
+                  {VERIFIED_USERNAMES.includes(entry.username) && <VerifiedBadge size={13} />}
+                </p>
                 <p className="font-mono text-xs text-slate">
                   @{entry.username} · {journalCount} journal{journalCount === 1 ? "" : "s"}
                 </p>

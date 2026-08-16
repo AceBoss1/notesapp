@@ -9,6 +9,7 @@ export type JournalDirectoryEntry = {
   type: "channel" | "person"; // brand/company journal vs. an individual's
   synthetic: boolean; // no real Firebase Auth account / `users` doc — special-cased in app/u/[username]/page.tsx instead of calling getUserByUsername()
   firestoreBacked: boolean; // does this journal's content live in the real `notes` collection, with real comments/likes?
+  verified: boolean; // gets the ✔ badge — see VERIFIED_USERNAMES below
 };
 
 // @notesapp — the platform's own voice. Fully synthetic: no login, no
@@ -24,6 +25,7 @@ export const OFFICIAL_NOTESAPP_PROFILE: JournalDirectoryEntry = {
   type: "channel",
   synthetic: true,
   firestoreBacked: false,
+  verified: true,
 };
 
 // @na-notesapp — the social cross-post mirror: everything published
@@ -43,6 +45,7 @@ export const NA_NOTESAPP_PROFILE: JournalDirectoryEntry = {
   type: "channel",
   synthetic: true,
   firestoreBacked: true,
+  verified: true,
 };
 
 // The three journals every new member is auto-following from the
@@ -61,6 +64,7 @@ export const MANDATORY_JOURNALS: JournalDirectoryEntry[] = [
     type: "person",
     synthetic: false,
     firestoreBacked: true,
+    verified: true,
   },
   {
     username: ADMIN_PROFILES["precheks.info@gmail.com"].username,
@@ -71,10 +75,21 @@ export const MANDATORY_JOURNALS: JournalDirectoryEntry[] = [
     type: "person",
     synthetic: false,
     firestoreBacked: true,
+    verified: true,
   },
 ];
 
 export const MANDATORY_USERNAMES = MANDATORY_JOURNALS.map((j) => j.username);
+
+// Every username that gets the ✔ verified badge today — the 4
+// official accounts. Real members don't have a path to this yet; see
+// UserProfile.verified in lib/users.ts for where that's headed
+// (Pro/Business tier accounts that pass basic verification).
+export const VERIFIED_USERNAMES = [
+  OFFICIAL_NOTESAPP_PROFILE.username,
+  NA_NOTESAPP_PROFILE.username,
+  ...MANDATORY_JOURNALS.filter((j) => j.type === "person").map((j) => j.username),
+];
 
 // Every synthetic (no real `users` doc) username — app/u/[username]/page.tsx
 // checks against this list before ever calling getUserByUsername().

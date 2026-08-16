@@ -16,6 +16,7 @@ import {
 } from "@/lib/engagement";
 import { isAdminEmail } from "@/lib/admin";
 import { NA_NOTESAPP_PROFILE } from "@/lib/journals-directory";
+import { getSuspendedUids } from "@/lib/moderation";
 
 function CommentRow({
   comment,
@@ -27,6 +28,7 @@ function CommentRow({
   replyOpen,
   replyBox,
   isReply,
+  suspended,
 }: {
   comment: Comment;
   noteId: string;
@@ -37,6 +39,7 @@ function CommentRow({
   replyOpen: boolean;
   replyBox: React.ReactNode;
   isReply: boolean;
+  suspended: boolean;
 }) {
   const [liked, setLiked] = useState(false);
   const [likeCount, setLikeCount] = useState(comment.likeCount || 0);
@@ -63,7 +66,7 @@ function CommentRow({
     <div className={isReply ? "flex gap-3 py-4" : "flex gap-3 py-5 first:pt-0"}>
       <Link href={`/u/${comment.authorUsername}`} className="flex-shrink-0">
         <Image
-          src={comment.authorAvatar}
+          src={suspended ? "/images/brand/suspended-avatar.png" : comment.authorAvatar}
           alt={comment.authorDisplayName}
           width={isReply ? 32 : 40}
           height={isReply ? 32 : 40}
@@ -89,8 +92,19 @@ function CommentRow({
               Official
             </span>
           )}
+          {suspended && (
+            <span className="rounded-full bg-red-100 px-2 py-0.5 font-mono text-[9px] uppercase tracking-wideish text-red-800">
+              Suspended
+            </span>
+          )}
         </div>
-        <p className="mt-1 text-sm text-ink font-body">{comment.content}</p>
+        {suspended ? (
+          <p className="mt-1 text-sm italic text-slate">
+            This comment is hidden — the account is temporarily suspended.
+          </p>
+        ) : (
+          <p className="mt-1 text-sm text-ink font-body">{comment.content}</p>
+        )}
 
         <div className="mt-2 flex items-center gap-4 text-xs font-ui">
           <button
@@ -150,8 +164,10 @@ export default function Comments({
   // be spoofed to anything else. Only the display identity changes.
   const [postAsBrand, setPostAsBrand] = useState(false);
   const [replyAsBrand, setReplyAsBrand] = useState(false);
+  const [suspendedUids, setSuspendedUids] = useState<Set<string>>(new Set());
 
   const canModerate = !!(user?.email && isAdminEmail(user.email));
+  const currentUserSuspended = !!(user && suspendedUids.has(user.uid));
 
   function authorFor(asBrand: boolean) {
     if (!user) return null;
@@ -179,6 +195,9 @@ export default function Comments({
 
   useEffect(() => {
     load();
+    getSuspendedUids()
+      .then(setSuspendedUids)
+      .catch((err) => console.warn("getSuspendedUids failed:", err));
     return onAuthStateChanged(auth, async (u) => {
       setUser(u);
       setProfile(u ? await getUserByUid(u.uid) : null);
@@ -225,7 +244,7 @@ export default function Comments({
         Comments {comments.length > 0 && `(${comments.length})`}
       </p>
 
-      {user && profile ? (
+      {user && profile && !currentUserSuspended ? (
         <form onSubmit={handleSubmit} className="mt-6 flex gap-3">
           <Image
             src={postAsBrand ? NA_NOTESAPP_PROFILE.avatar : profile.avatar}
@@ -274,6 +293,15 @@ export default function Comments({
             Sign in
           </Link>{" "}
           to join the conversation.
+        </p>
+      ) : currentUserSuspended ? (
+        <p className="mt-6 text-sm text-slate">
+          Your account is temporarily suspended and can't post comments
+          right now.{" "}
+          <Link href={`/u/${profile?.username}`} className="text-crimson-bright font-semibold">
+            View your profile
+          </Link>{" "}
+          to file an appeal.
         </p>
       ) : null}
 
@@ -331,6 +359,7 @@ export default function Comments({
                 replyOpen={replyingTo === c.id && !!user}
                 replyBox={replyBox}
                 isReply={false}
+                suspended={suspendedUids.has(c.authorUid)}
               />
               {replies.length > 0 && (
                 <div className="ml-11 pl-3 border-l-2 border-rule divide-y divide-rule">
@@ -346,6 +375,7 @@ export default function Comments({
                       replyOpen={false}
                       replyBox={null}
                       isReply={true}
+                      suspended={suspendedUids.has(r.authorUid)}
                     />
                   ))}
                 </div>

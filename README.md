@@ -10,6 +10,168 @@ changes for this demo. #NotesApp is a second, differently-branded UI
 over data Precheks already owns; "journal" is what this UI calls a
 note, nothing more.
 
+## SEO — sitemap, robots, per-page metadata, real OG cards
+
+None of this existed. All of it does now:
+
+- **`app/sitemap.ts`** — static routes, every published journal
+  (`getAllNotes`), every real profile (`getAllUsers`) plus both
+  synthetic channels (hardcoded — `getAllUsers()` never returns them),
+  and all 5 of `@notesapp`'s hardcoded posts (also hardcoded — they're
+  not in Firestore either). Wrapped Firestore calls in try/catch so a
+  build-time outage still ships a sitemap with the static pages.
+- **`app/robots.ts`** — allows everything except `/admin`, points at
+  the sitemap.
+- **A real OG image** (`public/images/brand/og-default.jpg`) — none
+  existed, so I built one from scratch with PIL: crimson/ink brand
+  background, logo, the actual homepage headline, domain. 1200×630,
+  the standard size.
+- **Root layout** — title template (`"%s — #NotesApp"`), full
+  OpenGraph + Twitter card blocks pointing at that image.
+- **Per-page `metadata`** on every static page (`/about`, `/contact`,
+  `/brand`, `/roadmap`, `/advertise`, `/merchstore`, `/booking`), and
+  `generateMetadata` on every dynamic one: journal entries (real
+  featured image as OG image, falls back to the default), `@notesapp`
+  posts (its pitch-deck image), and profiles (real avatar, real bio).
+
+**The non-obvious part:** `/journals`, `/u/[username]`, and
+`/u/[username]/store` were all `"use client"` — and Next.js flatly
+won't let a client component export `metadata` or `generateMetadata`,
+by design. Fixed by splitting each into a thin async **server**
+`page.tsx` (handles `generateMetadata`, including a synthetic-profile
+branch for both official channels) that renders a **client**
+component holding all the original interactive logic unchanged:
+`JournalsPageClient.tsx`, `ProfilePageClient.tsx`, `StorePageClient.tsx`
+in `components/`. Nothing about how those pages *work* changed — only
+where the file boundary sits.
+
+## Verified badge — the 4 official accounts, plus where it's headed
+
+`✔` next to a name, wherever a name is shown prominently: profile
+headers, the two channel spotlights, the founders' card, and
+People/Channels directory rows. `lib/journals-directory.ts`'s
+`VERIFIED_USERNAMES` covers all 4 official accounts today (both
+channels, both founders) — hardcoded, since none of them go through
+the real verification flow that doesn't exist yet.
+
+The forward path is already typed: `UserProfile.verified?: boolean`
+in `lib/users.ts`, currently unset by every write path, documented
+inline as "where the Pro/Business-tier verification feature lands."
+Nothing writes to it yet — that's a real feature (some actual
+verification check) to design later, not just flipping a flag.
+
+## User suspension, roles, and appeals
+
+The core of this session. Three linked pieces:
+
+**Roles.** `UserProfile.role` widened from `"admin" | "reader"` to
+`"admin" | "staff" | "volunteer" | "reader"` — "staff" mirrors
+Precheks' in-house writers, "volunteer" mirrors external contributing
+writers. **Important scope boundary:** neither role currently grants
+publish permission. `firestore.rules`' `notes/{noteId}` create rule
+still only checks `isAdmin()` — the 2 hardcoded founder emails — not
+this field. A client-writable Firestore field was never going to be
+the right place to grant that (a malicious actor reasoning about it
+client-side is exactly the risk the third-party review's point #2
+flagged); wiring real publish permission for staff/volunteer needs the
+same Firebase custom-claims (Admin SDK) migration already documented
+there. Today, `role` is a label and a moderation marker, not an
+authorization grant. Admins assign it from `/admin/users`.
+
+**Suspension.** `lib/moderation.ts`: `suspendUser()`,
+`unsuspendUser()`, `rejectAppeal()`, `updateUserRole()`,
+`getSuspendedUids()`. A suspended account:
+- Shows the locked-profile avatar (`public/images/brand/suspended-avatar.png`)
+  and a "⚠ Temporarily Suspended" badge in place of the normal role
+  label, on their own profile page.
+- Has its published notes hidden behind a "temporarily hidden" banner
+  on the journal detail page (`authorProfile?.status === "suspended"`
+  check) — dormant in practice today since only founders can publish,
+  but built and ready for when staff/volunteer publishing exists.
+- Has its comments replaced with "This comment is hidden — the
+  account is temporarily suspended" wherever they appear
+  (`Comments.tsx`, via one `getSuspendedUids()` query up front rather
+  than a per-comment lookup) — this part is fully live today, since
+  any signed-up reader can already comment.
+- Can't post new comments — enforced in `firestore.rules` via a new
+  `isSuspended()` helper (a `get()` call on their own `users` doc),
+  not just hidden in the UI.
+
+**Deliberately NOT suspension-gated:** likes. Adding the same `get()`
+check there would mean an extra Firestore read on every like, for a
+much lower-stakes action than a comment. Worth revisiting if likes
+ever become a real spam vector; not assumed to be one today.
+
+**Appeals.** A suspended member sees an appeal form on their own
+profile (`isOwnProfile` check via the signed-in viewer's uid) — text
+box, submits via `submitAppeal()`. An admin sees pending appeals
+inline in `/admin/users` with "Uphold — Unsuspend" / "Reject — Stays
+Suspended" buttons. Resubmission after a rejection is allowed; there's
+no cap on appeal rounds in this version.
+
+**The security-critical part — `firestore.rules`' `users/{uid}` update
+rule.** This is why this needed a real rules rewrite, not just new
+client functions. The old rule let a signed-in user update their own
+doc with no field restrictions at all — meaning a suspended user could
+trivially write `status: "active"` back and un-suspend themselves.
+The new rule allows exactly three paths: admin (anything), the member
+updating only `displayName/bio/avatar/social`, or a suspended member
+updating only the `suspension` map — and even then, only to set
+`appealStatus: "pending"`, with `status` itself and the
+admin-authored fields (`reason`, `suspendedAt`, `suspendedByUid`)
+required to stay unchanged. **Redeploy `firestore.rules`** — this one
+is load-bearing, not cosmetic.
+
+## Contact form → Firestore `leads` collection
+
+Same pattern as Precheks' own leads tab, generalized per the brief —
+"it could be used in notesapp for anything to reach admins faster."
+`/contact` is a real form now (`components/ContactForm.tsx`), writes
+to a new `leads` collection with a `category` field (partnership,
+press, investment, support, bug report, other) rather than being
+investment-enquiry-specific. `/admin/leads` lists them with
+read/archive/delete and a status filter.
+
+`firestore.rules`: `leads/{leadId}` allows `create: if true` —
+genuinely public write, since a visitor filling out a contact form
+isn't authenticated at all, there's no author identity to restrict
+creation to. Read/update/delete are admin-only.
+
+## Third-party review — addressed
+
+A review of the whole project raised 5 points. Where each landed:
+
+1. **Headline promise ahead of what's built.** Agreed, and acted on
+   immediately — added a "What's actually true right now" section
+   directly on the homepage (`app/page.tsx`), right below the hero,
+   explicitly separating what's live from what's roadmap. Extends the
+   same "demo" honesty already used on the booking calendar and
+   subscribe buttons to the page that matters most for a first
+   impression.
+2. **Admin allowlist won't survive multi-tenant.** Correct, and
+   already the stated blocker for both "open publishing to any
+   professional" and now "staff/volunteer can actually publish" above.
+   Documented as needing Firebase custom claims via Admin SDK — not
+   built now, since it's not this session's ask, but the boundary is
+   written down everywhere it's relevant so nobody retrofits a
+   Firestore-field-based permission system under pressure later.
+3. **MCP: ship read tools before the write tool.** Incorporated
+   directly into the AI/MCP roadmap section below — `search_my_notes`
+   and `get_note` before `create_draft`, with token scoping, rate
+   limits, and revocation named as day-one requirements for the write
+   tool specifically, not nice-to-haves.
+4. **Scope check — prioritize real payments.** Fair. Noted in
+   `/roadmap` and here: if one roadmap item gets built next, it should
+   be Paystack/Flutterwave — "get paid" is the third word in the
+   headline, and it's the one piece most directly tied to the pitch
+   actually being true.
+5. **Don't over-attribute errors to ad-blockers reflexively.** Fair
+   epistemic point. Softened the language everywhere the
+   `getCountFromServer` "unavailable" error is discussed — framed as
+   "one common cause, not a confirmed diagnosis," with an explicit
+   note to actually investigate if it starts happening often with real
+   users, rather than reaching for the same explanation by reflex.
+
 ## "Reply as the brand" — comments as @na-notesapp
 
 Admins (Emmanuel, Chimdinma) can now post a comment or reply as
@@ -478,12 +640,15 @@ a follow-up build.
 **If a follower count shows nothing instead of a number:**
 `getFollowerCount()` uses Firestore's `getCountFromServer()`
 aggregation query, which occasionally fails with a `"unavailable"`
-RPC error — most often a browser ad-blocker or privacy extension
-blocking the request (`RunAggregationQuery` reads as a tracking call
-to some blocklists), sometimes just a transient network blip, not a
-code bug. The profile page catches this and quietly hides the
-follower count rather than spinning forever — check the browser
-console for the underlying error if it happens consistently.
+RPC error. A browser ad-blocker or privacy extension blocking the
+request (`RunAggregationQuery` reads as a tracking call to some
+blocklists) is one plausible, common cause — treat it as a starting
+hypothesis, not a confirmed diagnosis, especially if this starts
+happening often rather than occasionally once there are real users
+beyond local testing. The profile page catches this and quietly hides
+the follower count rather than spinning forever — check the browser
+console for the underlying error if it happens consistently, rather
+than assuming it's the same cause every time.
 
 ## `/journals` redesign — People, Channels, Topics
 

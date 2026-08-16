@@ -1,4 +1,11 @@
 import Link from "next/link";
+import type { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: "Roadmap",
+  description:
+    "What's next for #NotesApp — social publishing, AI drafting, client-driven booking, and the ad-share program. Decided and documented, not built yet.",
+};
 
 const ITEMS = [
   {
@@ -12,14 +19,14 @@ const ITEMS = [
     tag: "AI",
     body: "Two AI jobs, wired together into one loop: an AI notetaker that follows you into a booked session and writes it up, and your own AI assistant — connected straight to your #NotesApp data — that turns raw material into a finished draft in your voice.",
     detail:
-      "Part 1 — capture: connect a transcription notetaker (Otter.ai, Fireflies, Read AI) to your bookings. Realistically, this means calendar auto-join (the notetaker joins any meeting on your calendar with a video link — no per-meeting invite needed) plus a real Zoom/Google Meet link #NotesApp generates at booking time. Part 2 — draft: connect Claude, Gemini, or ChatGPT to your #NotesApp account via MCP (Model Context Protocol). Drop a raw idea, or hand it that meeting summary, and it reads your own past notes for context — your topics, structure, phrasing — and finishes the draft as if you'd researched and written it yourself, not in generic AI voice. This is steps 7–9 of the Value Loop (Capture → Refine → Publish Again), automated end to end: session → transcript → draft, ready to review and publish. Full breakdown of what #NotesApp can and can't guarantee about the notetaker step is in the README.",
+      "Part 1 — capture: connect a transcription notetaker (Otter.ai, Fireflies, Read AI) to your bookings. Realistically, this means calendar auto-join (the notetaker joins any meeting on your calendar with a video link — no per-meeting invite needed) plus a real Zoom/Google Meet link #NotesApp generates at booking time. Part 2 — draft: connect Claude, Gemini, or ChatGPT to your #NotesApp account via MCP (Model Context Protocol). Drop a raw idea, or hand it that meeting summary, and it reads your own past notes for context — your topics, structure, phrasing — and finishes the draft as if you'd researched and written it yourself, not in generic AI voice. Build order matters: ship the read-only tools (search_my_notes, get_note) well before the write tool (create_draft) — let people trust an AI reading their notes before handing out write access, with token scoping, rate limits, and revocation as day-one requirements for that write tool specifically. This is steps 7–9 of the Value Loop (Capture → Refine → Publish Again), automated end to end: session → transcript → draft, ready to review and publish. Full breakdown of what #NotesApp can and can't guarantee about the notetaker step is in the README.",
   },
   {
     title: "Client-driven session management",
     tag: "Booking",
     body: "The booking calendar on a profile page today is a static demo. The real version lets a client reschedule themselves, gets both sides a reminder, and ties a session to actual payment.",
     detail:
-      "Client-initiated rescheduling (not just booking), automatic reminders, and a real Paystack/Flutterwave charge behind the \"Confirm & pay\" button.",
+      "Client-initiated rescheduling (not just booking), automatic reminders, and a real Paystack/Flutterwave charge behind the \"Confirm & pay\" button. If one roadmap item gets built next, this — or specifically the payment piece of it — should be it: \"get paid\" is the third word in the homepage headline, and real payments are the single piece most directly tied to that promise actually being true.",
   },
 ];
 

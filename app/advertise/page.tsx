@@ -1,4 +1,11 @@
 import Link from "next/link";
+import type { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: "Advertise",
+  description:
+    "Ads on #NotesApp come with a revenue share built in from day one. Free journals carry ads; Pro and Business tiers earn 25% and 45% respectively.",
+};
 
 export default function AdvertisePage() {
   return (

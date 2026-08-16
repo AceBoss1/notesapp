@@ -16,6 +16,20 @@ import { User as FirebaseUser } from "firebase/auth";
 import { db } from "./firebase";
 import { ADMIN_PROFILES, SocialLinks } from "./admin";
 
+export type UserRole = "admin" | "staff" | "volunteer" | "reader";
+export type AppealStatus = "none" | "pending" | "upheld" | "rejected";
+
+export type Suspension = {
+  reason: string;
+  suspendedAt: string;
+  suspendedByUid: string;
+  appealStatus: AppealStatus;
+  appealText?: string;
+  appealedAt?: string;
+  resolvedAt?: string;
+  resolvedByUid?: string;
+};
+
 export type UserProfile = {
   uid: string;
   username: string;
@@ -23,9 +37,29 @@ export type UserProfile = {
   bio: string;
   avatar: string;
   social: SocialLinks;
-  role: "admin" | "reader";
+  // "staff" = in-house writers, "volunteer" = external contributing
+  // writers (Precheks' own terms, in parens so the mapping's explicit
+  // wherever this is surfaced). Neither currently grants note-publish
+  // permission — firestore.rules' notes/journals create rule still
+  // only checks isAdmin() (the 2 hardcoded founder emails), not this
+  // field. Wiring role-based publish permission is the same migration
+  // the README's "admin allowlist won't survive multi-tenant" section
+  // already flags — Firebase custom claims via Admin SDK, not a
+  // Firestore-document field a client could reason about. This field
+  // is a label + moderation marker today, not an authorization grant.
+  role: UserRole;
   email: string;
   createdAt: string;
+  // Not written by any path yet — this is where the "verified badge
+  // for Pro/Business accounts that pass basic verification" roadmap
+  // item lands once it's built. Until then this is always undefined
+  // for every real account; only the 4 hardcoded official accounts
+  // (lib/journals-directory.ts's VERIFIED_USERNAMES) show the badge.
+  verified?: boolean;
+  status: "active" | "suspended";
+  // Present once a suspension has ever happened, even after it's
+  // resolved — keeps a record rather than deleting history.
+  suspension?: Suspension;
 };
 
 const USERS = "users";
@@ -88,6 +122,7 @@ export async function signUpProfile(params: {
       role: admin ? "admin" : "reader",
       email,
       createdAt: new Date().toISOString(),
+      status: "active",
     };
     tx.set(usernameRef, { uid });
     tx.set(doc(db, USERS, uid), profile);
@@ -118,6 +153,7 @@ export async function ensureAdminProfile(user: FirebaseUser): Promise<void> {
     role: "admin",
     email: user.email,
     createdAt: new Date().toISOString(),
+    status: "active",
   };
   await setDoc(usernameRef, { uid: user.uid });
   await setDoc(doc(db, USERS, user.uid), profile);

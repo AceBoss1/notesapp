@@ -1,7 +1,30 @@
 import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import type { Metadata } from "next";
 import { NOTESAPP_POSTS } from "@/lib/notesapp-posts";
+
+export function generateMetadata({ params }: { params: { slug: string } }): Metadata {
+  const post = NOTESAPP_POSTS.find((p) => p.slug === params.slug);
+  if (!post) return { title: "Post Not Found" };
+
+  return {
+    title: post.title,
+    description: post.excerpt,
+    openGraph: {
+      title: post.title,
+      description: post.excerpt,
+      type: "article",
+      images: [post.image],
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: post.title,
+      description: post.excerpt,
+      images: [post.image],
+    },
+  };
+}
 
 export default function NotesAppPostDetail({ params }: { params: { slug: string } }) {
   const post = NOTESAPP_POSTS.find((p) => p.slug === params.slug);

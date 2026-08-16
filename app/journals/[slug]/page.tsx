@@ -3,6 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { remark } from "remark";
 import html from "remark-html";
+import type { Metadata } from "next";
 import { getNoteBySlug, getMoreNotes } from "@/lib/firestore-notes";
 import { getUserByDisplayName } from "@/lib/users";
 import { NA_NOTESAPP_PROFILE } from "@/lib/journals-directory";
@@ -13,6 +14,39 @@ import PremiumGate from "@/components/PremiumGate";
 // Same note, same Firestore doc as precheks.com.ng/notes/{slug} — this
 // route is #NotesApp's own reading UI over that exact shared content.
 export const dynamic = "force-dynamic";
+
+export async function generateMetadata({
+  params,
+}: {
+  params: { slug: string };
+}): Promise<Metadata> {
+  const note = await getNoteBySlug(params.slug);
+  if (!note) return { title: "Journal Not Found" };
+
+  // Premium entries still get a real OG card — the teaser/excerpt is
+  // already public by design (PremiumGate only gates the full body),
+  // so there's nothing sensitive in a share preview.
+  const ogImage = note.featured_image || "/images/brand/og-default.jpg";
+
+  return {
+    title: note.title,
+    description: note.excerpt,
+    openGraph: {
+      title: note.title,
+      description: note.excerpt,
+      type: "article",
+      publishedTime: note.date,
+      authors: [note.author],
+      images: [ogImage],
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: note.title,
+      description: note.excerpt,
+      images: [ogImage],
+    },
+  };
+}
 
 export default async function JournalDetail({
   params,
@@ -118,12 +152,23 @@ export default async function JournalDetail({
         />
       )}
 
-      <PremiumGate
-        premium={!!note.premium}
-        authorUsername={linkedUsername || ""}
-        authorName={note.author}
-        contentHtml={contentHtml}
-      />
+      {authorProfile?.status === "suspended" ? (
+        <div className="mt-10 card border-red-200 bg-red-50 p-8 text-center">
+          <p className="font-display text-xl text-red-800">
+            This entry is temporarily hidden.
+          </p>
+          <p className="mt-2 text-sm text-red-700">
+            {note.author}'s account is under review.
+          </p>
+        </div>
+      ) : (
+        <PremiumGate
+          premium={!!note.premium}
+          authorUsername={linkedUsername || ""}
+          authorName={note.author}
+          contentHtml={contentHtml}
+        />
+      )}
 
       {note.tags.length > 0 && (
         <div className="mt-10 flex flex-wrap gap-3 border-t border-rule pt-6">

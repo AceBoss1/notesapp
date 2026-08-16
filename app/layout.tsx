@@ -6,12 +6,31 @@ import SearchBar from "@/components/SearchBar";
 import { SITE } from "@/lib/site";
 import "./globals.css";
 
+const DEFAULT_TITLE = "#NotesApp — Publish. Book. Get Paid. One Workspace.";
+const DEFAULT_DESCRIPTION =
+  "The professional publishing and booking platform built for African coaches, consultants, and knowledge professionals. Notes, calendar, and payments — one canvas.";
+
 export const metadata: Metadata = {
   metadataBase: new URL(SITE.url),
-  title: "#NotesApp — Publish. Book. Get Paid. One Workspace.",
-  description:
-    "The professional publishing and booking platform built for African coaches, consultants, and knowledge professionals. Notes, calendar, and payments — one canvas.",
+  title: {
+    default: DEFAULT_TITLE,
+    template: "%s — #NotesApp",
+  },
+  description: DEFAULT_DESCRIPTION,
   icons: { icon: "/images/brand/notesapp-icon.webp" },
+  openGraph: {
+    siteName: "#NotesApp",
+    type: "website",
+    title: DEFAULT_TITLE,
+    description: DEFAULT_DESCRIPTION,
+    images: ["/images/brand/og-default.jpg"],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: DEFAULT_TITLE,
+    description: DEFAULT_DESCRIPTION,
+    images: ["/images/brand/og-default.jpg"],
+  },
 };
 
 const NAV = [

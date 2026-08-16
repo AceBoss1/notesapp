@@ -1,4 +1,11 @@
 import Link from "next/link";
+import type { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: "Booking",
+  description:
+    "A native booking calendar on every #NotesApp profile — no Calendly redirect, no second login, payment collects inline.",
+};
 
 export default function BookingPage() {
   return (

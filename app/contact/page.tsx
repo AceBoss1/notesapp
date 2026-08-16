@@ -1,4 +1,11 @@
 import { SITE } from "@/lib/site";
+import type { Metadata } from "next";
+import ContactForm from "@/components/ContactForm";
+
+export const metadata: Metadata = {
+  title: "Contact",
+  description: "Reach the #NotesApp founding team for partnership, investment, or press enquiries.",
+};
 
 export default function ContactPage() {
   return (
@@ -8,8 +15,10 @@ export default function ContactPage() {
         Talk to us
       </h1>
       <p className="mt-5 text-slate">
-        For partnership, investment, or press enquiries, reach the
-        founding team directly.
+        For partnership, investment, press, support — or anything else
+        — the fastest way to reach the team is the form below. It goes
+        straight to admins, not a shared inbox someone has to remember
+        to check.
       </p>
       <div className="card mt-8 grid gap-5 p-7 sm:grid-cols-2">
         <div>
@@ -30,6 +39,9 @@ export default function ContactPage() {
           </a>
         </div>
       </div>
+
+      <ContactForm />
     </div>
   );
 }
+

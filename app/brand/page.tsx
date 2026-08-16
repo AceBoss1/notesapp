@@ -1,4 +1,11 @@
 import Image from "next/image";
+import type { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: "Brand",
+  description:
+    "The #NotesApp brand system — primary mark, palette, and every seasonal/festival logo variant, with usage notes.",
+};
 
 const SEASONAL = [
   { file: "valentines.png", label: "Valentine's Day" },

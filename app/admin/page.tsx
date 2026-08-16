@@ -241,6 +241,12 @@ export default function AdminDashboard() {
             Users
           </Link>
           <Link
+            href="/admin/leads"
+            className="border border-rule px-5 py-2.5 font-ui text-sm font-semibold hover:border-crimson"
+          >
+            Leads
+          </Link>
+          <Link
             href="/admin/settings"
             className="border border-rule px-5 py-2.5 font-ui text-sm font-semibold hover:border-crimson"
           >

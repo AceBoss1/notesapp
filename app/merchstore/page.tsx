@@ -1,6 +1,13 @@
 import { ADMIN_PROFILES } from "@/lib/admin";
 import { STORE_ITEMS } from "@/lib/store";
 import { MERCH_ITEMS } from "@/lib/merch";
+import type { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: "Merch Store",
+  description:
+    "Official #NotesApp merch — t-shirts, caps, mugs, and more, any core or seasonal logo — plus Emmanuel's and Chimdinma's individual brand stores.",
+};
 import MerchCard from "@/components/MerchCard";
 import Avatar from "@/components/Avatar";
 import Link from "next/link";
