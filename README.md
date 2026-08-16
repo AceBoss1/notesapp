@@ -10,6 +10,47 @@ changes for this demo. #NotesApp is a second, differently-branded UI
 over data Precheks already owns; "journal" is what this UI calls a
 note, nothing more.
 
+## Rules audit — user-combined version, 3 findings
+
+You asked me to check your hand-combined `firestore.rules` for gaps.
+Two were live bugs, fixed directly; one is a real question, left for
+you to decide:
+
+1. **Fixed — the contact form was completely broken.** The `leads`
+   create rule's `hasOnly([...])` field allowlist was missing
+   `'category'` — but `lib/leads.ts`'s `submitLead()` always sends one
+   (`ContactForm.tsx` defaults it to `"other"`, never omits it).
+   `hasOnly()` is an exact allowlist; any write containing a key
+   outside it gets rejected outright. Every real submission would have
+   failed silently at the rules layer. Added `'category'` to the
+   allowed keys and a matching `is string` check, consistent with the
+   rest of that rule's validation style.
+2. **Fixed — removed a stale `/journals` collection block.** Leftover
+   from before this project consolidated everything onto the shared
+   `notes` collection (see "The one rule this build follows," near the
+   top of this file). Nothing in the app writes to a `journals`
+   collection anymore — it was dead, not harmful, but it directly
+   contradicted the documented single-source-of-truth architecture and
+   would mislead anyone reading the rules file cold.
+3. **Not touched — needs a decision, not a fix.** The combined file
+   adds an `isWriter()` helper (checks `role == 'writer'`) and lets
+   whoever passes it create/update/delete their own notes
+   (`authorUid == request.auth.uid`). Two things don't line up with
+   the actual app today: `UserRole` in `lib/users.ts` is
+   `"admin" | "staff" | "volunteer" | "reader"` — there is no
+   `"writer"` value anywhere, no UI ever sets one, so `isWriter()`
+   never returns true right now. And `Note` in
+   `lib/firestore-notes.ts` has no `authorUid` field at all — only a
+   free-text `author` display name — so even a hypothetical writer
+   role couldn't satisfy `authorUid == request.auth.uid`. As written,
+   this branch is syntactically valid but currently unreachable, not a
+   security hole. If the intent is to actually let staff/volunteer
+   publish now: say so, and I'll add `authorUid` to `Note`, wire a
+   real assignable role that matches (or rename this to check `staff`/
+   `volunteer` instead of `writer`), and build the composer UI for it.
+   If it was just forward-scaffolding, it's fine to leave as-is, but
+   it's worth knowing it does nothing yet either way.
+
 ## SEO — sitemap, robots, per-page metadata, real OG cards
 
 None of this existed. All of it does now:

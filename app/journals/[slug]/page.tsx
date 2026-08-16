@@ -152,7 +152,7 @@ export default async function JournalDetail({
         />
       )}
 
-      {authorProfile?.status === "suspended" ? (
+      {authorProfile?.suspended === true ? (
         <div className="mt-10 card border-red-200 bg-red-50 p-8 text-center">
           <p className="font-display text-xl text-red-800">
             This entry is temporarily hidden.

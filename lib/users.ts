@@ -56,7 +56,14 @@ export type UserProfile = {
   // for every real account; only the 4 hardcoded official accounts
   // (lib/journals-directory.ts's VERIFIED_USERNAMES) show the badge.
   verified?: boolean;
-  status: "active" | "suspended";
+  // Precheks built its own suspend feature independently, on the same
+  // shared `users` collection, using a flat boolean — not the
+  // `status` enum this used to be. That's now the canonical field
+  // both apps read; NotesApp's richer appeal metadata (reason,
+  // appealStatus, timestamps) lives alongside it in `suspension`,
+  // additive and NotesApp-only, same pattern as `Note.premium`.
+  // Precheks never reads or writes `suspension` — only `suspended`.
+  suspended: boolean;
   // Present once a suspension has ever happened, even after it's
   // resolved — keeps a record rather than deleting history.
   suspension?: Suspension;
@@ -122,7 +129,7 @@ export async function signUpProfile(params: {
       role: admin ? "admin" : "reader",
       email,
       createdAt: new Date().toISOString(),
-      status: "active",
+      suspended: false,
     };
     tx.set(usernameRef, { uid });
     tx.set(doc(db, USERS, uid), profile);
@@ -153,7 +160,7 @@ export async function ensureAdminProfile(user: FirebaseUser): Promise<void> {
     role: "admin",
     email: user.email,
     createdAt: new Date().toISOString(),
-    status: "active",
+    suspended: false,
   };
   await setDoc(usernameRef, { uid: user.uid });
   await setDoc(doc(db, USERS, user.uid), profile);

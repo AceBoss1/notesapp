@@ -173,7 +173,7 @@ export default function ProfilePageClient({ params }: { params: { username: stri
 
   const storeItems = STORE_ITEMS[profile.username] ?? [];
   const hasPremium = isOfficial || notes.some((n) => n.premium);
-  const suspended = realProfile?.status === "suspended";
+  const suspended = realProfile?.suspended === true;
   const verified = VERIFIED_USERNAMES.includes(profile.username) || !!realProfile?.verified;
   const isOwnProfile = !!(viewer && realProfile && viewer.uid === realProfile.uid);
   const canAppeal =

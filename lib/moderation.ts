@@ -19,7 +19,7 @@ export async function suspendUser(
     suspendedByUid,
     appealStatus: "none",
   };
-  await updateDoc(doc(db, USERS, uid), { status: "suspended", suspension });
+  await updateDoc(doc(db, USERS, uid), { suspended: true, suspension });
 }
 
 export async function unsuspendUser(uid: string, resolvedByUid: string, upheld: boolean): Promise<void> {
@@ -29,7 +29,7 @@ export async function unsuspendUser(uid: string, resolvedByUid: string, upheld: 
   // account goes back to active; only the recorded appealStatus
   // differs, for the history.
   await updateDoc(doc(db, USERS, uid), {
-    status: "active",
+    suspended: false,
     "suspension.appealStatus": upheld ? "upheld" : "none",
     "suspension.resolvedAt": new Date().toISOString(),
     "suspension.resolvedByUid": resolvedByUid,
@@ -66,7 +66,7 @@ export async function submitAppeal(uid: string, appealText: string): Promise<voi
 // large enough for this to matter, this is the first thing to swap for
 // a denormalized `authorStatus` field written at comment-create time.
 export async function getSuspendedUids(): Promise<Set<string>> {
-  const q = query(collection(db, USERS), where("status", "==", "suspended"));
+  const q = query(collection(db, USERS), where("suspended", "==", true));
   const snap = await getDocs(q);
   return new Set(snap.docs.map((d) => d.id));
 }

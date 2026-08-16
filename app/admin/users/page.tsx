@@ -119,7 +119,7 @@ export default function AdminUsersPage() {
         <div className="mt-8 divide-y divide-rule">
           {users.map((u) => {
             const isFounder = FOUNDER_USERNAMES.includes(u.username);
-            const suspended = u.status === "suspended";
+            const suspended = u.suspended === true;
             const pendingAppeal = suspended && u.suspension?.appealStatus === "pending";
 
             return (
