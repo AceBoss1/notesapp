@@ -1,8 +1,21 @@
 import { doc, updateDoc, getDocs, collection, query, where } from "firebase/firestore";
 import { db } from "./firebase";
 import { UserRole, Suspension } from "./users";
+import {
+  notifySuspended,
+  notifyUnsuspended,
+  notifyAppealRejected,
+  notifyRoleChanged,
+} from "./notifications";
 
 const USERS = "users";
+
+const ROLE_LABEL: Record<UserRole, string> = {
+  admin: "Admin",
+  staff: "Staff (in-house writer)",
+  volunteer: "Volunteer (contributing writer)",
+  reader: "Reader",
+};
 
 // Admin-only in practice — enforced by firestore.rules' users/{uid}
 // update rule (isAdmin() branch), not just by which UI surfaces call
@@ -10,6 +23,7 @@ const USERS = "users";
 // error from Firestore, not a silent no-op.
 export async function suspendUser(
   uid: string,
+  username: string,
   reason: string,
   suspendedByUid: string
 ): Promise<void> {
@@ -20,9 +34,17 @@ export async function suspendUser(
     appealStatus: "none",
   };
   await updateDoc(doc(db, USERS, uid), { suspended: true, suspension });
+  notifySuspended(uid, username, reason).catch((err) =>
+    console.warn("notifySuspended failed:", err)
+  );
 }
 
-export async function unsuspendUser(uid: string, resolvedByUid: string, upheld: boolean): Promise<void> {
+export async function unsuspendUser(
+  uid: string,
+  username: string,
+  resolvedByUid: string,
+  upheld: boolean
+): Promise<void> {
   // Called both for a direct admin unsuspend (upheld=false, no appeal
   // involved — admin just reversed their own call) and for resolving
   // an appeal in the member's favor (upheld=true). Either way the
@@ -34,19 +56,28 @@ export async function unsuspendUser(uid: string, resolvedByUid: string, upheld: 
     "suspension.resolvedAt": new Date().toISOString(),
     "suspension.resolvedByUid": resolvedByUid,
   });
+  notifyUnsuspended(uid, username, upheld).catch((err) =>
+    console.warn("notifyUnsuspended failed:", err)
+  );
 }
 
-export async function rejectAppeal(uid: string, resolvedByUid: string): Promise<void> {
+export async function rejectAppeal(uid: string, username: string, resolvedByUid: string): Promise<void> {
   // Status-quo remains: still suspended, appeal recorded as rejected.
   await updateDoc(doc(db, USERS, uid), {
     "suspension.appealStatus": "rejected",
     "suspension.resolvedAt": new Date().toISOString(),
     "suspension.resolvedByUid": resolvedByUid,
   });
+  notifyAppealRejected(uid, username).catch((err) =>
+    console.warn("notifyAppealRejected failed:", err)
+  );
 }
 
-export async function updateUserRole(uid: string, role: UserRole): Promise<void> {
+export async function updateUserRole(uid: string, username: string, role: UserRole): Promise<void> {
   await updateDoc(doc(db, USERS, uid), { role });
+  notifyRoleChanged(uid, username, ROLE_LABEL[role]).catch((err) =>
+    console.warn("notifyRoleChanged failed:", err)
+  );
 }
 
 // Called by the suspended member themselves — firestore.rules only

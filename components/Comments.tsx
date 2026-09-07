@@ -17,6 +17,7 @@ import {
 import { isAdminEmail } from "@/lib/admin";
 import { NA_NOTESAPP_PROFILE } from "@/lib/journals-directory";
 import { getSuspendedUids } from "@/lib/moderation";
+import { notifyComment, notifyReply } from "@/lib/notifications";
 
 function CommentRow({
   comment,
@@ -144,10 +145,12 @@ export default function Comments({
   noteId,
   slug,
   title,
+  noteAuthor,
 }: {
   noteId: string;
   slug: string;
   title: string;
+  noteAuthor: string;
 }) {
   const [user, setUser] = useState<User | null | undefined>(undefined);
   const [profile, setProfile] = useState<UserProfile | null>(null);
@@ -165,6 +168,8 @@ export default function Comments({
   const [postAsBrand, setPostAsBrand] = useState(false);
   const [replyAsBrand, setReplyAsBrand] = useState(false);
   const [suspendedUids, setSuspendedUids] = useState<Set<string>>(new Set());
+  const [postError, setPostError] = useState("");
+  const [replyError, setReplyError] = useState("");
 
   const canModerate = !!(user?.email && isAdminEmail(user.email));
   const currentUserSuspended = !!(user && suspendedUids.has(user.uid));
@@ -210,28 +215,70 @@ export default function Comments({
     const author = authorFor(postAsBrand);
     if (!author || !text.trim()) return;
     setPosting(true);
-    await addComment(noteId, slug, title, author, text.trim());
-    setText("");
-    await load();
-    setPosting(false);
+    setPostError("");
+    try {
+      await addComment(noteId, slug, title, author, text.trim());
+      notifyComment({ slug, title, author: noteAuthor }, author).catch((err) =>
+        console.warn("notifyComment failed:", err)
+      );
+      setText("");
+      await load();
+    } catch (err) {
+      // Without this catch, a thrown error (most often Firestore
+      // "permission-denied" from firestore.rules) left `posting` stuck
+      // true forever — the button would just say "Posting…" forever
+      // with no visible error and nothing in the UI to explain why.
+      console.error("Failed to post comment:", err);
+      setPostError(
+        err instanceof Error ? err.message : "Couldn't post your comment — try again."
+      );
+    } finally {
+      setPosting(false);
+    }
   }
 
   async function handleReplySubmit(parentId: string) {
     const author = authorFor(replyAsBrand);
     if (!author || !replyText.trim()) return;
     setPostingReply(true);
-    await addComment(noteId, slug, title, author, replyText.trim(), parentId);
-    setReplyText("");
-    setReplyingTo(null);
-    setReplyAsBrand(false);
-    await load();
-    setPostingReply(false);
+    setReplyError("");
+    try {
+      await addComment(noteId, slug, title, author, replyText.trim(), parentId);
+      const parent = comments.find((c) => c.id === parentId);
+      if (parent) {
+        notifyReply(
+          {
+            authorUid: parent.authorUid,
+            authorUsername: parent.authorUsername,
+            authorDisplayName: parent.authorDisplayName,
+          },
+          { slug, title, author: noteAuthor },
+          author
+        ).catch((err) => console.warn("notifyReply failed:", err));
+      }
+      setReplyText("");
+      setReplyingTo(null);
+      setReplyAsBrand(false);
+      await load();
+    } catch (err) {
+      console.error("Failed to post reply:", err);
+      setReplyError(
+        err instanceof Error ? err.message : "Couldn't post your reply — try again."
+      );
+    } finally {
+      setPostingReply(false);
+    }
   }
 
   async function handleDelete(commentId: string) {
     if (!confirm("Delete this comment?")) return;
-    await deleteComment(noteId, commentId);
-    load();
+    try {
+      await deleteComment(noteId, commentId);
+      await load();
+    } catch (err) {
+      console.error("Failed to delete comment:", err);
+      alert(err instanceof Error ? err.message : "Couldn't delete that comment.");
+    }
   }
 
   const topLevel = comments.filter((c) => !c.parentCommentId);
@@ -285,6 +332,7 @@ export default function Comments({
                 </label>
               )}
             </div>
+            {postError && <p className="mt-2 text-sm text-red-700">{postError}</p>}
           </div>
         </form>
       ) : user === null ? (
@@ -340,6 +388,7 @@ export default function Comments({
                   Reply as @na-notesapp
                 </label>
               )}
+              {replyError && <p className="mt-1.5 text-xs text-red-700">{replyError}</p>}
             </div>
           );
 

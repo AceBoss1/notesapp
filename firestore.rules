@@ -32,6 +32,9 @@ service cloud.firestore {
     }
 
     // Suspended members are prevented from creating comments.
+    // NOTE: the app's actual suspend feature writes a flat
+    // `suspended: true/false` boolean field on users/{uid} — not a
+    // `status` enum. This checks that real field.
     function isSuspended() {
       return isSignedIn()
         && exists(
@@ -39,7 +42,7 @@ service cloud.firestore {
         )
         && get(
           /databases/$(database)/documents/users/$(request.auth.uid)
-        ).data.status == 'suspended';
+        ).data.suspended == true;
     }
 
 
@@ -214,11 +217,11 @@ service cloud.firestore {
         || (
           isSignedIn()
           && request.auth.uid == uid
-          && resource.data.status == 'suspended'
+          && resource.data.suspended == true
           && request.resource.data.diff(resource.data)
               .affectedKeys()
               .hasOnly(['suspension'])
-          && request.resource.data.status == resource.data.status
+          && request.resource.data.suspended == resource.data.suspended
           && request.resource.data.suspension.appealStatus == 'pending'
           && request.resource.data.suspension.reason
               == resource.data.suspension.reason
@@ -315,21 +318,6 @@ service cloud.firestore {
 
 
     // ============================================================
-    // JOURNALS — NOTESAPP
-    // ============================================================
-
-    // MVP:
-    // Only admins/founders can publish, edit or delete journals.
-    // Everyone can read journals.
-    match /journals/{journalId} {
-
-      allow read: if true;
-
-      allow create, update, delete: if isAdmin();
-    }
-
-
-    // ============================================================
     // LEADS — PRECHEKS
     // ============================================================
 
@@ -343,6 +331,7 @@ service cloud.firestore {
         request.resource.data.keys().hasOnly([
           'name',
           'email',
+          'category',
           'message',
           'status',
           'createdAt'
@@ -350,11 +339,50 @@ service cloud.firestore {
         && request.resource.data.status == 'new'
         && request.resource.data.name is string
         && request.resource.data.email is string
+        && request.resource.data.category is string
         && request.resource.data.message is string;
 
       // Lead information is private.
       // Only admins can access or manage it.
       allow read, update, delete: if isAdmin();
+    }
+
+    // ============================================================
+    // NOTIFICATIONS — NOTESAPP
+    // ============================================================
+    //
+    // No Cloud Functions in this deployment — every notification is
+    // written directly by whichever client action caused it (the
+    // liker's browser writes a doc addressed to the note's author,
+    // not the author's own browser). That means creation can only be
+    // shape-validated here, not verified against "did this really
+    // happen" the way a trusted server-side function could — a
+    // motivated user could write a fake notification to any uid. Low
+    // severity: it's a fake in-app message, not a data leak or a
+    // permission escalation, and only the recipient can ever read it.
+    // If this becomes a real abuse vector, the fix is a Cloud
+    // Function that owns notification creation instead of the client.
+    match /notifications/{notificationId} {
+      allow read: if isSignedIn()
+        && (resource.data.recipientUid == request.auth.uid || isAdmin());
+
+      allow create: if isSignedIn()
+        && request.resource.data.recipientUid is string
+        && request.resource.data.type in [
+             'like', 'comment', 'reply', 'new_post',
+             'suspended', 'unsuspended', 'appeal_rejected', 'role_changed'
+           ]
+        && request.resource.data.message is string
+        && request.resource.data.read == false
+        && request.resource.data.createdAt is string;
+
+      // A recipient can only ever flip their own notification to
+      // read — nothing else about it, and never someone else's.
+      allow update: if isSignedIn()
+        && resource.data.recipientUid == request.auth.uid
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['read']);
+
+      allow delete: if false;
     }
 
   }

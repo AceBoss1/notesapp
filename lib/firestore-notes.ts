@@ -12,6 +12,7 @@ import {
   Timestamp,
 } from "firebase/firestore";
 import { db } from "./firebase";
+import { notifyNewPost } from "./notifications";
 
 export type Note = {
   id: string;
@@ -102,6 +103,16 @@ export async function createNote(
     shareCount: 0,
     ...data,
   });
+  if (data.status === "published") {
+    // Fire-and-forget — a slow/failed notification fan-out shouldn't
+    // block the composer from returning. Only fires on create, not on
+    // publishing a draft later via updateNote — a known gap, not
+    // worth the added complexity of diffing old/new status there for
+    // how rarely that path is used today.
+    notifyNewPost({ slug: data.slug, title: data.title, author: data.author }).catch((err) =>
+      console.warn("notifyNewPost failed:", err)
+    );
+  }
   return ref.id;
 }
 

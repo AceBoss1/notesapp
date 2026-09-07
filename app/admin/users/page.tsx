@@ -40,11 +40,11 @@ export default function AdminUsersPage() {
     return <div className="px-6 py-24 text-center text-slate">Loading…</div>;
   }
 
-  async function handleSuspend(uid: string) {
+  async function handleSuspend(uid: string, username: string) {
     if (!suspendReason.trim() || !user) return;
     setBusyUid(uid);
     try {
-      await suspendUser(uid, suspendReason.trim(), user.uid);
+      await suspendUser(uid, username, suspendReason.trim(), user.uid);
       setSuspendReasonFor(null);
       setSuspendReason("");
       reload();
@@ -53,32 +53,32 @@ export default function AdminUsersPage() {
     }
   }
 
-  async function handleUnsuspend(uid: string, upheld: boolean) {
+  async function handleUnsuspend(uid: string, username: string, upheld: boolean) {
     if (!user) return;
     setBusyUid(uid);
     try {
-      await unsuspendUser(uid, user.uid, upheld);
+      await unsuspendUser(uid, username, user.uid, upheld);
       reload();
     } finally {
       setBusyUid(null);
     }
   }
 
-  async function handleRejectAppeal(uid: string) {
+  async function handleRejectAppeal(uid: string, username: string) {
     if (!user) return;
     setBusyUid(uid);
     try {
-      await rejectAppeal(uid, user.uid);
+      await rejectAppeal(uid, username, user.uid);
       reload();
     } finally {
       setBusyUid(null);
     }
   }
 
-  async function handleRoleChange(uid: string, role: UserRole) {
+  async function handleRoleChange(uid: string, username: string, role: UserRole) {
     setBusyUid(uid);
     try {
-      await updateUserRole(uid, role);
+      await updateUserRole(uid, username, role);
       reload();
     } finally {
       setBusyUid(null);
@@ -158,7 +158,7 @@ export default function AdminUsersPage() {
                       <select
                         value={u.role}
                         disabled={busyUid === u.uid}
-                        onChange={(e) => handleRoleChange(u.uid, e.target.value as UserRole)}
+                        onChange={(e) => handleRoleChange(u.uid, u.username, e.target.value as UserRole)}
                         className="border border-rule bg-card px-2 py-1 font-mono text-xs disabled:opacity-50"
                       >
                         {ASSIGNABLE_ROLES.map((r) => (
@@ -178,7 +178,7 @@ export default function AdminUsersPage() {
                     {!isFounder &&
                       (suspended ? (
                         <button
-                          onClick={() => handleUnsuspend(u.uid, false)}
+                          onClick={() => handleUnsuspend(u.uid, u.username, false)}
                           disabled={busyUid === u.uid}
                           className="border border-rule px-3 py-1.5 font-ui text-xs font-semibold hover:border-crimson disabled:opacity-50"
                         >
@@ -206,7 +206,7 @@ export default function AdminUsersPage() {
                       className="flex-1 border border-rule bg-card px-3 py-2 text-sm focus:border-crimson outline-none"
                     />
                     <button
-                      onClick={() => handleSuspend(u.uid)}
+                      onClick={() => handleSuspend(u.uid, u.username)}
                       disabled={busyUid === u.uid || !suspendReason.trim()}
                       className="bg-crimson text-paper font-ui text-xs font-semibold px-4 py-2 hover:bg-crimson-bright transition-colors disabled:opacity-50"
                     >
@@ -226,14 +226,14 @@ export default function AdminUsersPage() {
                         <p className="mt-1 text-slate">&ldquo;{u.suspension.appealText}&rdquo;</p>
                         <div className="mt-3 flex gap-2">
                           <button
-                            onClick={() => handleUnsuspend(u.uid, true)}
+                            onClick={() => handleUnsuspend(u.uid, u.username, true)}
                             disabled={busyUid === u.uid}
                             className="bg-crimson text-paper font-ui text-xs font-semibold px-4 py-2 hover:bg-crimson-bright transition-colors disabled:opacity-50"
                           >
                             Uphold — Unsuspend
                           </button>
                           <button
-                            onClick={() => handleRejectAppeal(u.uid)}
+                            onClick={() => handleRejectAppeal(u.uid, u.username)}
                             disabled={busyUid === u.uid}
                             className="border border-rule px-4 py-2 font-ui text-xs font-semibold hover:border-crimson disabled:opacity-50"
                           >

@@ -26,9 +26,13 @@ const SLOTS = ["9:00 AM", "11:30 AM", "2:00 PM", "4:30 PM"];
 
 // #NotesApp-only framing for the two founders — display text only,
 // never written back into the shared `users` or `notes` documents.
+// Public-facing role labels shown on a profile page. Chimdinma's
+// internal title (Co-Founder & COO) is unchanged in fact — this is
+// only what's displayed publicly. See lib/journals-directory.ts for
+// the same decision applied to her spotlight-card bio.
 const ROLE_LABELS: Record<string, string> = {
-  emmanuel: "Founder & CEO, #NotesApp",
-  chimdinma: "Co-Founder & COO, #NotesApp",
+  emmanuel: "Founder & CEO @NOTESAPP",
+  chimdinma: "Guest Writer @NOTESAPP",
 };
 
 // Common shape both a real UserProfile and the synthetic @notesapp

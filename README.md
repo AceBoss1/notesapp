@@ -1,5 +1,16 @@
 # #NotesApp — landing page + MVP
 
+**⚠ Read "Independent infrastructure migration" before this
+paragraph — it's the most recent, most important architectural
+change, and it contradicts what's said immediately below.** Everything
+from here through the rest of this file was written while NotesApp
+deliberately shared Precheks' Firebase project. As of the migration
+section further down, that's no longer true — NotesApp has its own
+Firestore project and its own Cloudflare R2 bucket. Treat all
+"shared with Precheks" language below as history explaining *why* the
+architecture looks the way it does, not as the current state of
+Firestore access.
+
 A deployable Next.js app: the public marketing site plus a working
 demo of the core loop — a native booking calendar, a per-professional
 brand store, and full engagement (comments, likes, shares). It reads
@@ -9,6 +20,170 @@ Firebase Auth project, same security rules. Nothing about Firestore
 changes for this demo. #NotesApp is a second, differently-branded UI
 over data Precheks already owns; "journal" is what this UI calls a
 note, nothing more.
+
+## Independent infrastructure migration — separating from Precheks
+
+**Read this before touching Firebase/R2 config in a future session —
+the plan and the runbook are both here, not scattered across chat
+history.** Everything above and below this section, wherever it says
+"shared with Precheks" or "same Firestore project," describes the
+architecture as it existed *before* this migration. NotesApp now runs
+on its own independent Firebase project and its own Cloudflare R2
+bucket. Precheks keeps its original project, completely untouched —
+this migration only ever reads from it, never writes or deletes there.
+
+### What changes, concretely
+
+- **Firestore**: NotesApp gets a brand new Firebase project, created
+  fresh in the Firebase Console. `lib/firebase.ts` needed **zero code
+  changes** for this — it already reads every config value from env
+  vars, so switching projects is purely a `.env.local` swap.
+- **Media storage**: Cloudinary → Cloudflare R2. `lib/cloudinary.ts`
+  is gone. `lib/upload.ts` (`uploadToR2`) replaces it, used from
+  `NoteForm.tsx` exactly where `uploadToCloudinary` used to be called.
+- **Going forward, NotesApp and Precheks no longer share live data.**
+  This is the one architectural principle this whole project was built
+  around until now — "no schema changes, NotesApp just reads Precheks'
+  data" — and it's the thing actually changing today. After migration,
+  a comment posted on NotesApp does *not* show up on Precheks, and
+  vice versa. The two apps diverge from the migration snapshot onward.
+  Worth being certain this is really the intent before running it,
+  since there's no simple way back to live-shared data afterward.
+
+### Why the upload flow works differently now
+
+R2, unlike Cloudinary's unsigned-upload-preset pattern, has no concept
+of a safe, publicly-writable upload endpoint — R2 credentials are
+real AWS-style secret keys that must never reach the browser. So the
+new flow is a **presigned URL**, not a direct client upload:
+
+1. Browser calls `POST /api/upload` (a real Next.js server route now,
+   `app/api/upload/route.ts`) with the file's name and content type,
+   plus the signed-in user's Firebase ID token in the `Authorization`
+   header.
+2. The route verifies that token server-side via `firebase-admin`
+   (`lib/firebase-admin.ts`) and checks the resulting email against
+   the same 2-founder allowlist `isAdmin()` uses in
+   `firestore.rules` — this is a **real, separate security boundary**
+   now, not something Firestore rules alone can protect, since R2
+   isn't Firestore and has no security-rules concept of its own.
+3. If that passes, the route asks R2 for a one-time presigned `PUT`
+   URL (`lib/r2.ts`, `@aws-sdk/client-s3` + `@aws-sdk/s3-request-presigner`
+   — R2 is S3-compatible, so the AWS SDK works against it unchanged,
+   just pointed at Cloudflare's endpoint instead of AWS's).
+4. The browser uploads the file **directly to R2** using that URL —
+   the file's bytes never pass through the Next.js server at all. This
+   matters most once video uploads exist (see the video roadmap note
+   below): no server bandwidth or request-body-size limit involved.
+
+`FIREBASE_SERVICE_ACCOUNT_KEY` (the new server-only env var this
+requires) is the full service-account JSON, generated from Firebase
+Console → Project settings → Service accounts, pasted as one line.
+Never commit it, never prefix it `NEXT_PUBLIC_` — full details in
+`.env.local.example`.
+
+### Cloudflare R2 requires a card, even for the free tier
+
+Worth stating plainly since it surprises people: unlike Workers, KV,
+or D1, R2 requires a payment method on file to activate at all, even
+though you won't be charged unless you exceed the free 10GB-month /
+1M-write / 10M-read allowance. There's no way around this specific
+step — set a Cloudflare billing alert (e.g. at $1) as a tripwire
+rather than trying to avoid adding a card entirely.
+
+### Running the migration
+
+`scripts/migrate-to-own-infra.mjs` — full instructions in its own
+header comment, summarized here:
+
+1. **Create the new Firebase project** (Firebase Console → Add
+   project) and **the new R2 bucket** (Cloudflare dashboard → R2 →
+   Create bucket) — both manual, account-level steps only you can do.
+2. Get a service account key for **both** projects: the existing
+   `precheks-cms` one (source) and the new one (destination).
+3. `npm install` — picks up `firebase-admin` and the AWS SDK packages.
+4. **Dry run first**: `npm run migrate:dry-run` — logs exactly what
+   would be copied and which images would be re-uploaded, writes and
+   uploads nothing. Read this output before doing anything for real.
+5. `npm run migrate` — the real run. Migrates, in order: every note
+   (with its `comments`, nested `commentLikes`, and `likes`
+   subcollections, same document IDs preserved), then `users`,
+   `follows`, `subscriptions`, `leads`, and `notifications` as flat
+   collections. Any `featured_image` or `author_avatar` field pointing
+   at a Cloudinary URL gets downloaded and re-uploaded to the new R2
+   bucket automatically, with the note written to the destination
+   using the **new** URL — this is the "transfer existing images and
+   journals" part specifically asked for.
+6. Update `.env.local` to point at the new Firebase project and R2
+   bucket (see `.env.local.example` — every var needed is listed
+   there with where to find it).
+7. **Redeploy `firestore.rules` to the new project.** The file in this
+   repo needs no changes to work standalone — the only Precheks
+   reference left in it is Chimdinma's real email address in the admin
+   allowlist, which is correct to keep, not a dependency on Precheks'
+   infrastructure. Deploy the same file, just to the new project.
+8. Spot-check a handful of journals and profiles load correctly with
+   images showing before treating the old shared project as retired
+   for NotesApp's purposes. Precheks keeps using it exactly as before
+   — nothing there was touched.
+
+**What's covered vs. what isn't:** the explicit ask was user accounts,
+journals, and profiles — all covered (`users`, `notes` +
+subcollections). Also migrated, since leaving them behind would
+orphan them for no reason: `follows`, `subscriptions`, `leads`,
+`notifications` — all NotesApp-only collections that happened to live
+in the shared project, never Precheks' data to begin with.
+
+### Video uploads — still not built, now unblocked
+
+The financial-planning doc this migration is based on discusses a
+3-images/day and 7-videos/week posting limit and a compression
+pipeline for video specifically. Image upload via R2 is real as of
+this migration; **video upload is not built** — `NoteForm.tsx` only
+has an image field today. The presigned-URL pattern above extends
+directly to video (the API route already accepts any `video/*`
+content type), but real video needs a compression step before upload
+that this session didn't build — client-side video compression in the
+browser is a meaningfully different, heavier piece of work than an
+image upload button. Worth its own session, not bolted on here.
+
+## Suspension field reconciled with Precheks' own — this was the real finding
+
+Precheks built its own suspend feature independently, on the same
+shared `users` collection, using a flat `suspended: boolean` — not the
+`status: "active" | "suspended"` enum this used to be. Two apps
+writing incompatible shapes to the same shared field would have meant
+a user suspended via Precheks' own admin tools was invisible to
+NotesApp's checks, and vice versa — silently, with no error, just
+wrong behavior. Caught from a code comment in Precheks' updated
+`isSuspended()` helper flagging the real field name.
+
+**Reconciled in NotesApp's favor of Precheks' shape**, since it's
+already live there: `UserProfile.suspended: boolean` is now the
+canonical field both apps read and write. NotesApp's richer appeal
+data — reason, appeal status, timestamps, who resolved it — stays in
+the `suspension` object alongside it, same pattern as `Note.premium`:
+additive, NotesApp-only, Precheks never reads or writes it, doesn't
+need to know it exists.
+
+Every place that used to check `.status === "suspended"` now checks
+`.suspended === true`: `lib/users.ts` (type + both default-value
+writes), `lib/moderation.ts` (`suspendUser`/`unsuspendUser`/
+`getSuspendedUids`'s query), `ProfilePageClient.tsx`, `app/admin/users/page.tsx`,
+and the journal detail page's suspended-author banner. Also fixed an
+internal inconsistency in the rules file itself that came from the
+same edit — the `users/{uid}` update rule's appeal branch still
+checked `resource.data.status` after `isSuspended()` had already
+moved to `.suspended`, which would have silently broken the appeal
+flow (the eligibility check and the actual write-permission check
+would have disagreed with each other). Both now check `.suspended`
+consistently.
+
+**If anything else about a user gets built independently on Precheks'
+side in the future** — another moderation flag, another role concept
+— the same class of bug is possible again. Worth checking any future
+Precheks rules upload against `lib/users.ts`'s `UserProfile` type
+before assuming field names match.
 
 ## Rules audit — user-combined version, 3 findings
 
@@ -126,7 +301,7 @@ authorization grant. Admins assign it from `/admin/users`.
   and a "⚠ Temporarily Suspended" badge in place of the normal role
   label, on their own profile page.
 - Has its published notes hidden behind a "temporarily hidden" banner
-  on the journal detail page (`authorProfile?.status === "suspended"`
+  on the journal detail page (`authorProfile?.suspended === true`
   check) — dormant in practice today since only founders can publish,
   but built and ready for when staff/volunteer publishing exists.
 - Has its comments replaced with "This comment is hidden — the

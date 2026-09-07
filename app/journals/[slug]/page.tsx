@@ -201,13 +201,14 @@ export default async function JournalDetail({
           noteId={note.id}
           slug={note.slug}
           title={note.title}
+          noteAuthor={note.author}
           initialViewCount={note.viewCount || 0}
           initialLikeCount={note.likeCount || 0}
           initialShareCount={note.shareCount || 0}
         />
       </div>
 
-      <Comments noteId={note.id} slug={note.slug} title={note.title} />
+      <Comments noteId={note.id} slug={note.slug} title={note.title} noteAuthor={note.author} />
 
       {moreNotes.length > 0 && (
         <div className="mt-16 border-t-2 border-ink pt-10">

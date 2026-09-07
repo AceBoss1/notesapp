@@ -10,6 +10,8 @@ import {
   hasLiked,
   toggleLike,
 } from "@/lib/engagement";
+import { getUserByUid } from "@/lib/users";
+import { notifyLike } from "@/lib/notifications";
 
 const SHARE_TARGETS = [
   {
@@ -38,6 +40,7 @@ export default function SocialBar({
   noteId,
   slug,
   title,
+  noteAuthor,
   initialViewCount,
   initialLikeCount,
   initialShareCount,
@@ -45,6 +48,7 @@ export default function SocialBar({
   noteId: string;
   slug: string;
   title: string;
+  noteAuthor: string;
   initialViewCount: number;
   initialLikeCount: number;
   initialShareCount: number;
@@ -93,6 +97,14 @@ export default function SocialBar({
     const nowLiked = await toggleLike(noteId, uid);
     setLiked(nowLiked);
     setLikeCount((c) => c + (nowLiked ? 1 : -1));
+    if (nowLiked) {
+      const liker = await getUserByUid(uid);
+      if (liker) {
+        notifyLike({ slug, title, author: noteAuthor }, liker).catch((err) =>
+          console.warn("notifyLike failed:", err)
+        );
+      }
+    }
   }
 
   function scrollToComments() {

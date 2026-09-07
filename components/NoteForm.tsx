@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { Note, slugify, createNote, updateNote } from "@/lib/firestore-notes";
-import { uploadToCloudinary } from "@/lib/cloudinary";
+import { uploadToR2 } from "@/lib/upload";
 
 // Kept identical to Precheks' own author_role text on purpose — this
 // writes into the shared `notes` document, and Precheks renders
@@ -74,7 +74,7 @@ export default function NoteForm({ noteId, initial }: Props) {
     setUploading(true);
     setError("");
     try {
-      const url = await uploadToCloudinary(file);
+      const url = await uploadToR2(file);
       setFeaturedImage(url);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Upload failed");

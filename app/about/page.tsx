@@ -14,8 +14,11 @@ export const metadata: Metadata = {
 };
 
 const FOUNDERS = [
-  { ...ADMIN_PROFILES["ezurukam@gmail.com"], role: "Founder & CEO" },
-  { ...ADMIN_PROFILES["precheks.info@gmail.com"], role: "Co-Founder & COO" },
+  { ...ADMIN_PROFILES["ezurukam@gmail.com"], role: "Founder & CEO @NOTESAPP" },
+  // Public label, per how she's credited everywhere on NotesApp now —
+  // her real internal title (Co-Founder & COO) is unchanged, just not
+  // what's shown publicly. See lib/journals-directory.ts.
+  { ...ADMIN_PROFILES["precheks.info@gmail.com"], role: "Guest Writer @NOTESAPP" },
 ];
 
 export default function AboutPage() {
