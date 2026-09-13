@@ -26,6 +26,23 @@ export type Note = {
   author: string;
   author_role: string;
   author_avatar: string;
+  // Resolves the isWriter()/authorUid gap flagged in an earlier
+  // session: firestore.rules could reference authorUid, but nothing
+  // ever wrote it, so that permission branch was always unreachable.
+  // Now genuinely wired — set on create for anyone publishing under
+  // canPublish() (self, not admin picking an author identity), used
+  // by firestore.rules' isPublisher() branch to let a paid-tier/
+  // staff/volunteer account manage only their own notes. Admin-picked
+  // identities (Chimdinma/Emmanuel/@na-notesapp via NoteForm's author
+  // toggle) don't set this — those stay isAdmin()-gated, unchanged.
+  authorUid?: string;
+  authorUsername?: string;
+  // Additional authors beyond the primary `author` — display names,
+  // same convention as `author` itself (not uids; co-authors are
+  // resolved to profiles the same way the primary author is,
+  // via getUserByDisplayName). A note with co-authors appears on
+  // every listed co-author's profile, not just the primary author's.
+  coAuthors?: string[];
   status: "draft" | "published";
   viewCount?: number;
   likeCount?: number;
@@ -52,6 +69,14 @@ function withComputed(note: Note): NoteWithComputed {
     excerpt: plain.slice(0, 180) + (plain.length > 180 ? "…" : ""),
     reading_time: Math.max(1, Math.round(wordCount / 200)),
   };
+}
+
+// True if displayName wrote this note, as primary author OR co-author.
+// The one function everywhere that filters "this person's notes"
+// should call, so primary-author and co-author cases never drift
+// apart the way author-matching logic tends to when copy-pasted.
+export function isAuthorOf(note: Note, displayName: string): boolean {
+  return note.author === displayName || !!note.coAuthors?.includes(displayName);
 }
 
 export function slugify(title: string): string {

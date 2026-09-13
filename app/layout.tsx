@@ -36,6 +36,7 @@ export const metadata: Metadata = {
 const NAV = [
   { href: "/journals", label: "Journals" },
   { href: "/booking", label: "Booking" },
+  { href: "/pricing", label: "Pricing" },
   { href: "/about", label: "About" },
   { href: "/contact", label: "Contact" },
 ];
@@ -43,6 +44,7 @@ const NAV = [
 const COMPANY = [
   { href: "/brand", label: "Brand" },
   { href: "/about", label: "About Us" },
+  { href: "/pricing", label: "Pricing" },
   { href: "/contact", label: "Contact" },
   { href: "/roadmap", label: "Roadmap" },
 ];

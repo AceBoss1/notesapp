@@ -19,16 +19,30 @@ service cloud.firestore {
         ];
     }
 
-    // A NotesApp contributing writer.
-    // The role can only be assigned by an admin through /users.
-    function isWriter() {
+    // A self-serve paid/free-basic-publisher account, or an internal
+    // staff/volunteer designation — either grants publish permission
+    // over one's own notes. Deliberately does NOT include role==
+    // 'admin' — admin is covered separately by isAdmin() (the 2
+    // hardcoded founder emails) everywhere this is checked; keeping
+    // them separate here means this function's meaning stays exactly
+    // "the self-serve or internal-writer path," not "any of the three
+    // ways in." Mirrors lib/users.ts's canPublish() — keep both in
+    // sync if this logic ever changes; a Firestore rule can't import
+    // a TS function. "standard" is the only tier that can't publish —
+    // basic/pro/business/enterprise all can.
+    function isPublisher() {
       return isSignedIn()
         && exists(
           /databases/$(database)/documents/users/$(request.auth.uid)
         )
-        && get(
-          /databases/$(database)/documents/users/$(request.auth.uid)
-        ).data.role == 'writer';
+        && (
+          get(
+            /databases/$(database)/documents/users/$(request.auth.uid)
+          ).data.role in ['staff', 'volunteer']
+          || get(
+            /databases/$(database)/documents/users/$(request.auth.uid)
+          ).data.accountTier != 'standard'
+        );
     }
 
     // Suspended members are prevented from creating comments.
