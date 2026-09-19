@@ -80,7 +80,7 @@ export const TIERS: TierConfig[] = [
     label: "Enterprise",
     price: "Custom",
     canPublish: true,
-    adRevenueShare: 0.75, // base floor; the negotiable part is the commission side
+    adRevenueShare: 0.75, // increased from Business's 45%; the negotiable part is the commission side
     sessionAndUnlockCommission: "custom",
     sessionAndUnlockCommissionFloor: 0.05,
     merchCommission: "custom",

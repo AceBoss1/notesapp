@@ -19,6 +19,25 @@ import { ADMIN_PROFILES, SocialLinks } from "./admin";
 export type UserRole = "admin" | "staff" | "volunteer" | "reader";
 export type AppealStatus = "none" | "pending" | "upheld" | "rejected";
 
+// "Free Standard" in the Terms of Service = accountTier "standard"
+// (every account, by default) — reads, engages, books sessions, buys
+// merch; never publishes, never earns anything. The rest of the
+// ladder — "basic" through "enterprise" — all grant publish
+// permission; what differs between them is ad revenue share and
+// NotesApp's commission on that publisher's bookings, subscription
+// unlocks, and merch sales. Full numbers live in lib/tiers.ts, not
+// duplicated here.
+export type AccountTier = "standard" | "basic" | "pro" | "business" | "enterprise";
+export type TierRequestStatus = "none" | "pending" | "approved" | "rejected";
+
+export type TierRequest = {
+  status: TierRequestStatus;
+  message: string;
+  requestedAt: string;
+  resolvedAt?: string;
+  resolvedByUid?: string;
+};
+
 export type Suspension = {
   reason: string;
   suspendedAt: string;
@@ -56,6 +75,8 @@ export type UserProfile = {
   // for every real account; only the 4 hardcoded official accounts
   // (lib/journals-directory.ts's VERIFIED_USERNAMES) show the badge.
   verified?: boolean;
+  accountTier: AccountTier;
+  tierRequest?: TierRequest;
   // Precheks built its own suspend feature independently, on the same
   // shared `users` collection, using a flat boolean — not the
   // `status` enum this used to be. That's now the canonical field
@@ -68,6 +89,26 @@ export type UserProfile = {
   // resolved — keeps a record rather than deleting history.
   suspension?: Suspension;
 };
+
+// Admin, staff, and volunteer all get the ✔ automatically — per the
+// Terms of Service's explicit claim that "all accounts properly
+// designated within these specific administrative and internal
+// management tiers automatically receive the official #NotesApp
+// verified badge." The 4 hardcoded official accounts
+// (lib/journals-directory.ts's VERIFIED_USERNAMES) are verified for a
+// different reason (they're the platform itself, not a role), checked
+// separately wherever the badge renders.
+export function isVerifiedProfile(profile: UserProfile): boolean {
+  return profile.role === "admin" || profile.role === "staff" || profile.role === "volunteer";
+}
+
+// Can this account publish its own journal entries? Every tier except
+// "standard" grants it, same as an internal role (admin/staff/
+// volunteer) does. firestore.rules' isPublisher() must be kept in
+// sync with this — it can't import a TS function, rules aren't JS.
+export function canPublish(profile: UserProfile): boolean {
+  return profile.role !== "reader" || profile.accountTier !== "standard";
+}
 
 const USERS = "users";
 const USERNAMES = "usernames"; // reservation collection, doc id = username
@@ -129,6 +170,7 @@ export async function signUpProfile(params: {
       role: admin ? "admin" : "reader",
       email,
       createdAt: new Date().toISOString(),
+      accountTier: admin ? "basic" : "standard",
       suspended: false,
     };
     tx.set(usernameRef, { uid });
@@ -160,6 +202,7 @@ export async function ensureAdminProfile(user: FirebaseUser): Promise<void> {
     role: "admin",
     email: user.email,
     createdAt: new Date().toISOString(),
+    accountTier: "basic",
     suspended: false,
   };
   await setDoc(usernameRef, { uid: user.uid });

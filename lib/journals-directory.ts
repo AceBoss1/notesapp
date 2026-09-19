@@ -59,7 +59,7 @@ export const MANDATORY_JOURNALS: JournalDirectoryEntry[] = [
     username: ADMIN_PROFILES["ezurukam@gmail.com"].username,
     displayName: ADMIN_PROFILES["ezurukam@gmail.com"].displayName,
     avatar: ADMIN_PROFILES["ezurukam@gmail.com"].avatar,
-    bio: "Founder & CEO @NOTESAPP",
+    bio: "Founder & CEO, #NotesApp.",
     mandatory: true,
     type: "person",
     synthetic: false,
@@ -70,13 +70,7 @@ export const MANDATORY_JOURNALS: JournalDirectoryEntry[] = [
     username: ADMIN_PROFILES["precheks.info@gmail.com"].username,
     displayName: ADMIN_PROFILES["precheks.info@gmail.com"].displayName,
     avatar: ADMIN_PROFILES["precheks.info@gmail.com"].avatar,
-    // Public-facing label only — she remains Co-Founder & COO
-    // internally (that's still her real role/authority), but every
-    // PUBLIC surface (this bio, her profile page, journal bylines,
-    // /about) reads "Guest Writer @NOTESAPP" instead. Internal-only
-    // surfaces (nothing currently renders one) would use her real
-    // title, not this constant.
-    bio: "Guest Writer @NOTESAPP",
+    bio: "Co-Founder & COO, #NotesApp.",
     mandatory: true,
     type: "person",
     synthetic: false,
