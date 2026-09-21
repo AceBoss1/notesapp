@@ -73,7 +73,7 @@ service cloud.firestore {
       // Writers can create only notes authored by themselves.
       allow create: if isAdmin()
         || (
-          isWriter()
+          isPublisher()
           && request.resource.data.authorUid == request.auth.uid
         );
 
@@ -81,7 +81,7 @@ service cloud.firestore {
       // Writers can delete only their own notes.
       allow delete: if isAdmin()
         || (
-          isWriter()
+          isPublisher()
           && resource.data.authorUid == request.auth.uid
         );
 
@@ -93,7 +93,7 @@ service cloud.firestore {
       // 5. Anyone can update shareCount.
       allow update: if isAdmin()
         || (
-          isWriter()
+          isPublisher()
           && resource.data.authorUid == request.auth.uid
         )
         || request.resource.data.diff(resource.data)
