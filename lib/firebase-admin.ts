@@ -19,10 +19,27 @@ function getAdminApp(): App {
   const raw = process.env.FIREBASE_SERVICE_ACCOUNT_KEY;
   if (!raw) {
     throw new Error(
-      "FIREBASE_SERVICE_ACCOUNT_KEY is not set — required for server-side admin verification. See README."
+      "FIREBASE_SERVICE_ACCOUNT_KEY is not set in this environment's variables — required for uploads to work. See README."
     );
   }
-  const serviceAccount = JSON.parse(raw);
+  let serviceAccount: object;
+  try {
+    serviceAccount = JSON.parse(raw);
+  } catch (err) {
+    // This exact failure mode (a "No number after minus sign in JSON"
+    // or similar SyntaxError) is what happens when the env var holds
+    // a placeholder — e.g. a bare "-" typed into Vercel's dashboard
+    // while setting things up — instead of the real service account
+    // JSON. Firebase Console → Project settings → Service accounts →
+    // Generate new private key → paste the ENTIRE file contents as
+    // ONE line into this env var, then redeploy. Without this catch,
+    // that exact scenario surfaced as a raw, unexplained JSON
+    // SyntaxError on whatever page triggered an upload — this message
+    // is what should show up instead.
+    throw new Error(
+      "FIREBASE_SERVICE_ACCOUNT_KEY is set but isn't valid JSON — it's very likely a placeholder value rather than the real service account key. Paste the full JSON from Firebase Console → Project settings → Service accounts → Generate new private key, as one line, then redeploy."
+    );
+  }
   return initializeApp({ credential: cert(serviceAccount) });
 }
 
