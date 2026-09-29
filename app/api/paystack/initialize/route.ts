@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAdminDb, verifySignedInRequest } from "@/lib/firebase-admin";
-import { bookingId, initializeTransaction, newReference } from "@/lib/paystack";
+import { slotLockId, initializeTransaction, newReference } from "@/lib/paystack";
 import { PaymentRecord } from "@/lib/payments";
 import { loadPublisher } from "@/lib/publishers";
 import { weekdayOf } from "@/lib/booking-time";
@@ -52,7 +52,7 @@ export async function POST(req: NextRequest) {
       if (!(s.availability[String(weekdayOf(date))] || []).includes(slot)) {
         return NextResponse.json({ error: "That time isn't available." }, { status: 400 });
       }
-      if ((await db.doc(`bookings/${bookingId(username, date, slot)}`).get()).exists) {
+      if ((await db.doc(`slotLocks/${slotLockId(username, date, slot)}`).get()).exists) {
         return NextResponse.json({ error: "That slot was just taken — pick another." }, { status: 409 });
       }
       record = {

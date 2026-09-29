@@ -1,5 +1,5 @@
 import { getAdminDb } from "./firebase-admin";
-import { bookingId, verifyTransaction } from "./paystack";
+import { slotLockId, verifyTransaction } from "./paystack";
 import { getTierConfig } from "./tiers";
 import { sessionEnd, sessionStart, formatSlot, formatNaira } from "./booking-time";
 import { sendEmail } from "./email";
@@ -99,14 +99,16 @@ export async function fulfillPayment(reference: string): Promise<PaymentRecord> 
 
     if (current.kind === "booking" && current.booking) {
       const { username, date, slot, minutes } = current.booking;
-      const bRef = db.doc(`bookings/${bookingId(username, date, slot)}`);
-      const existing = await t.get(bRef);
+      const lockRef = db.doc(`slotLocks/${slotLockId(username, date, slot)}`);
+      const bRef = db.doc(`bookings/${reference}`);
+      const existing = await t.get(lockRef);
       if (existing.exists && existing.data()?.reference !== reference) {
         // Someone else's payment claimed this slot first. Money is
         // taken, so flag it for an admin refund rather than lose it.
         t.update(payRef, { status: "paid_slot_conflict", paidAt: now });
         return { payment: { ...current, status: "paid_slot_conflict" as const, paidAt: now }, fresh: true };
       }
+      t.set(lockRef, { reference, createdAt: now });
       t.set(bRef, {
         username,
         date,

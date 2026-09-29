@@ -72,7 +72,10 @@ export function isValidWebhookSignature(rawBody: string, signature: string | nul
   return a.length === b.length && timingSafeEqual(a, b);
 }
 
-export function bookingId(username: string, date: string, slot: string): string {
+// One lock doc per (publisher, date, slot). Bookings themselves are
+// keyed by payment reference so cancelled ones keep their history;
+// deleting the lock is what frees the slot again.
+export function slotLockId(username: string, date: string, slot: string): string {
   return `${username}_${date}_${slot.replace(/[^0-9]/g, "")}`;
 }
 
@@ -119,9 +122,10 @@ export function initiateTransfer(params: { amountKobo: number; recipient: string
   });
 }
 
-export function refundTransaction(reference: string) {
+// amountKobo omitted = full refund.
+export function refundTransaction(reference: string, amountKobo?: number) {
   return paystack<{ status: string }>("/refund", {
     method: "POST",
-    body: JSON.stringify({ transaction: reference }),
+    body: JSON.stringify({ transaction: reference, ...(amountKobo ? { amount: amountKobo } : {}) }),
   });
 }

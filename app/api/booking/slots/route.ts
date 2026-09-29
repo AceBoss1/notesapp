@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAdminDb } from "@/lib/firebase-admin";
 import { loadPublisher } from "@/lib/publishers";
-import { bookingId } from "@/lib/paystack";
+import { slotLockId } from "@/lib/paystack";
 import { weekdayOf } from "@/lib/booking-time";
 
 // Public: which slots can be booked on a given date, and at what price.
@@ -17,7 +17,7 @@ export async function GET(req: NextRequest) {
     const candidates = s.availability[String(weekdayOf(date))] || [];
     const db = getAdminDb();
     const taken = await Promise.all(
-      candidates.map((slot) => db.doc(`bookings/${bookingId(username, date, slot)}`).get())
+      candidates.map((slot) => db.doc(`slotLocks/${slotLockId(username, date, slot)}`).get())
     );
     const slots = candidates.filter((_, i) => !taken[i].exists);
     return NextResponse.json({ bookable: true, slots, priceKobo: s.priceKobo, minutes: s.minutes });

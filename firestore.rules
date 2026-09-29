@@ -334,6 +334,11 @@ service cloud.firestore {
     // Paystack confirms a charge. Clients can never write these.
     // ============================================================
 
+    // One doc per booked slot; server-only (Admin SDK). No client access at all.
+    match /slotLocks/{lockId} {
+      allow read, write: if false;
+    }
+
     match /bookings/{bookingId} {
       allow read: if isSignedIn()
         && (resource.data.clientUid == request.auth.uid

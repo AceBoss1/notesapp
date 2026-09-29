@@ -47,6 +47,9 @@ export default function AuthNav() {
           @{profile.username}
         </Link>
       )}
+      <Link href="/bookings" className="text-ink hover:text-crimson-bright normal-case font-ui text-xs">
+        Bookings
+      </Link>
       <button
         onClick={() => signOut(auth)}
         className="text-ink hover:text-crimson-bright normal-case font-ui text-xs"
