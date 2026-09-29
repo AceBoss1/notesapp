@@ -14,7 +14,7 @@ import { getFirestore } from "firebase-admin/firestore";
 // new private key), stored as a single-line env var, NOT committed to
 // the repo and NOT prefixed NEXT_PUBLIC_ (it must never reach the
 // browser).
-function getAdminApp(): App {
+export function getAdminApp(): App {
   if (getApps().length) return getApps()[0];
 
   const raw = process.env.FIREBASE_SERVICE_ACCOUNT_KEY;
@@ -78,4 +78,17 @@ export async function verifyAdminRequest(idToken: string | undefined): Promise<s
     throw new Error("Not an admin account");
   }
   return email;
+}
+
+export function getAdminDb() {
+  return getFirestore(getAdminApp());
+}
+
+// Any signed-in user (payments — no publisher/admin requirement).
+export async function verifySignedInRequest(
+  idToken: string | undefined
+): Promise<{ uid: string; email: string }> {
+  if (!idToken) throw new Error("Missing auth token");
+  const decoded = await getAuth(getAdminApp()).verifyIdToken(idToken);
+  return { uid: decoded.uid, email: decoded.email || "" };
 }

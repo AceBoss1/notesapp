@@ -981,3 +981,30 @@ Still not built (product decisions already made, see sections above):
    (duplicated in `firestore.rules`, `lib/admin.ts`, `lib/firebase-admin.ts`).
 7. Leftover `NEXT_PUBLIC_CLOUDINARY_*` env references and `test-r2.mjs`
    (root-level dev script) can be cleaned up once R2 is confirmed working.
+
+## Paystack payments — 1:1 session booking (built)
+
+Flow: profile page → pick date + slot → `POST /api/paystack/initialize`
+(server checks the caller's Firebase ID token, enforces the ₦15,000
+price and slot list from `lib/paystack.ts`, checks the slot is free,
+records a `pending` doc in `payments/`, returns Paystack's hosted
+checkout URL) → Paystack redirects to `/booking/confirm` →
+`GET /api/paystack/verify` re-confirms with Paystack, checks the amount,
+and creates `bookings/{username_date_slot}` in a transaction.
+`POST /api/paystack/webhook` (HMAC-SHA512 verified) runs the same
+idempotent `fulfillPayment()` for buyers who close the tab early.
+If two people pay for the same slot, the second payment is marked
+`paid_slot_conflict` in `payments/` — **refund those manually** in the
+Paystack dashboard. `bookings` and `payments` are server-write-only in
+`firestore.rules`.
+
+Setup: set `PAYSTACK_SECRET_KEY` (use `sk_test_…` first) and
+`NEXT_PUBLIC_SITE_URL`; register the webhook URL
+`https://www.notesapp.name.ng/api/paystack/webhook` in Paystack →
+Settings → API Keys & Webhooks; redeploy `firestore.rules`.
+
+Not yet on Paystack: journal subscriptions still use the free "demo"
+path (needs a price decision + recurring plans), merch checkout, and
+tier billing. Provider payouts/commission (see `lib/tiers.ts`) and
+reminders are also not built — all money currently lands in the one
+Paystack account.

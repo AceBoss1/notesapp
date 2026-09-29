@@ -332,6 +332,25 @@ service cloud.firestore {
 
 
     // ============================================================
+    // BOOKINGS + PAYMENTS — NOTESAPP (Paystack)
+    // Written only by the server (Admin SDK bypasses rules) after
+    // Paystack confirms a charge. Clients can never write these.
+    // ============================================================
+
+    match /bookings/{bookingId} {
+      allow read: if isSignedIn()
+        && (resource.data.clientUid == request.auth.uid || isAdmin());
+      allow write: if false;
+    }
+
+    match /payments/{reference} {
+      allow read: if isSignedIn()
+        && (resource.data.uid == request.auth.uid || isAdmin());
+      allow write: if false;
+    }
+
+
+    // ============================================================
     // LEADS — PRECHEKS
     // ============================================================
 

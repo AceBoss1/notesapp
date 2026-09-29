@@ -54,6 +54,9 @@ export default function ProfilePageClient({ params }: { params: { username: stri
   );
   const [notes, setNotes] = useState<NoteWithComputed[]>([]);
   const [selectedSlot, setSelectedSlot] = useState<string | null>(null);
+  const [bookingDate, setBookingDate] = useState("");
+  const [paying, setPaying] = useState(false);
+  const [payError, setPayError] = useState<string | null>(null);
   const [followerCount, setFollowerCount] = useState<number | null>(null);
   const [followerCountUnavailable, setFollowerCountUnavailable] = useState(false);
   // "Activity" means different things for different accounts: for
@@ -70,6 +73,38 @@ export default function ProfilePageClient({ params }: { params: { username: stri
   const [submittingAppeal, setSubmittingAppeal] = useState(false);
 
   useEffect(() => onAuthStateChanged(auth, setViewer), []);
+
+  // Paystack checkout: the server sets the price and returns a hosted
+  // payment page URL; the booking is only created after Paystack
+  // confirms the charge (see app/api/paystack + /booking/confirm).
+  async function handlePay() {
+    setPayError(null);
+    if (!viewer) {
+      setPayError("Sign in to book a session.");
+      return;
+    }
+    if (!bookingDate || !selectedSlot || !profile) {
+      setPayError("Pick a date and a time.");
+      return;
+    }
+    setPaying(true);
+    try {
+      const res = await fetch("/api/paystack/initialize", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${await viewer.getIdToken()}`,
+        },
+        body: JSON.stringify({ username: profile.username, date: bookingDate, slot: selectedSlot }),
+      });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error || "Couldn't start payment.");
+      window.location.href = json.authorizationUrl;
+    } catch (e) {
+      setPayError(e instanceof Error ? e.message : "Couldn't start payment.");
+      setPaying(false);
+    }
+  }
 
   useEffect(() => {
     if (synthetic) return;
@@ -292,7 +327,15 @@ export default function ProfilePageClient({ params }: { params: { username: stri
             No Calendly redirect, no separate login — pick a time, pay
             inline, get a WhatsApp reminder.
           </p>
-          <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-4">
+          <input
+            type="date"
+            value={bookingDate}
+            min={new Date(Date.now() + 86400000).toISOString().slice(0, 10)}
+            onChange={(e) => setBookingDate(e.target.value)}
+            className="mt-6 rounded-xl2 border border-rule bg-paper px-4 py-2 font-ui text-sm text-ink"
+            aria-label="Session date"
+          />
+          <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
             {SLOTS.map((slot) => (
               <button
                 key={slot}
@@ -313,11 +356,16 @@ export default function ProfilePageClient({ params }: { params: { username: stri
                 <p className="font-ui text-sm font-semibold text-ink">
                   {selectedSlot} · 45 min session
                 </p>
-                <p className="font-mono text-xs text-slate">₦15,000 · via Paystack / Flutterwave</p>
+                <p className="font-mono text-xs text-slate">₦15,000 · secure checkout via Paystack</p>
+                {payError && <p className="mt-1 text-xs text-crimson">{payError}</p>}
               </div>
-              <span className="btn-primary !px-5 !py-2 text-xs">
-                Confirm &amp; pay (demo)
-              </span>
+              <button
+                onClick={handlePay}
+                disabled={paying}
+                className="btn-primary !px-5 !py-2 text-xs disabled:opacity-50"
+              >
+                {paying ? "Redirecting…" : "Confirm & pay"}
+              </button>
             </div>
           )}
         </div>
