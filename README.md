@@ -1078,3 +1078,47 @@ image validation · (5) custom-claims admin migration · (6) rules tests ·
 (10) rich-text drafting · (11) video upload · (12) social publishing ·
 (13) AI drafting/MCP · (14) ad-share · (15) Cloudinary/test-r2 cleanup
 once R2 is confirmed.
+
+## Session 5 — dashboard, cancellations, consent, hardening, admin claims, rules tests, editor
+
+**Bookings dashboard** — `/bookings` (linked in the header): upcoming and
+past sessions for both roles, with a cancel button.
+**Cancellation policy (approved)** — `lib/cancellation.ts`: client cancels
+≥48 h before → 100% refund, 24–48 h → 50%, <24 h → none; publisher cancels
+→ always 100%. `POST /api/bookings/cancel` claims the booking, refunds via
+Paystack (partial when needed), frees the slot, adjusts the ledger (a kept
+portion becomes releasable to the publisher minus commission), emails both
+sides. Bookings are now keyed by payment reference; `slotLocks/` holds
+one doc per slot (deleting it frees the slot).
+**Terms + Privacy** — `/terms`, `/privacy` (**drafts — have a Nigerian
+lawyer review; NDPC registration may apply**), required checkbox at
+signup, consent stored on the user doc; older accounts are asked once at
+their first checkout. Bump `LEGAL_VERSION` (`lib/legal.ts`) to force
+re-acceptance.
+**Hardening** — `lib/rate-limit.ts` on upload, payment, verify, cancel,
+payout, settings, consent, slots, banks (in-memory per server instance —
+a speed bump, not a global cap; swap for Upstash if abuse appears).
+Uploads: type allowlist, per-purpose size caps (avatar 5 MB, image 10 MB),
+`Content-Length` signed into the presigned URL, and a magic-byte check so
+a renamed non-image is rejected in the browser.
+**Custom-claims admin** — admin = Firebase claim `admin: true`.
+Migration (do in order, nothing breaks in between because the old email
+list still works): (1) `FIREBASE_SERVICE_ACCOUNT_KEY='…' node scripts/set-admin-claims.mjs ezurukam@gmail.com precheks.info@gmail.com`;
+(2) both founders sign out and in; (3) deploy rules + code; confirm
+`/admin` works; (4) delete `isLegacyAdminEmail()` in `firestore.rules`,
+`LEGACY_ADMIN_EMAILS` in `lib/firebase-admin.ts`, and the `isAdminEmail`
+fallback in `lib/admin-claims.ts`, then redeploy. Add admins later with
+`POST /api/admin/set-admin {email, admin}`.
+**Rules tests** — `npm run test:rules` (needs Java; starts the Firestore
+emulator): 11 tests covering profile-field lockdown, server-only money
+collections, booking/ledger/payout read scopes, subscriptions, claims and
+notes. Runs in CI (`.github/workflows/ci.yml`) with `tsc`.
+**Editor** — journal composer now has a formatting toolbar (bold,
+italic, headings, quote, lists, code, link, divider, inline image
+upload), Ctrl+B/I/K, Write/Preview tabs, word count, and browser-local
+draft autosave/restore. Content is still Markdown, so existing journals
+and Precheks' shared notes render unchanged.
+
+Still queued (later sessions): Sentry, account deletion/export, media
+domain verification, video, social publishing, AI drafting/MCP, ad-share,
+partner API, Cloudinary/`test-r2.mjs` cleanup.
