@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { createUserWithEmailAndPassword, User } from "firebase/auth";
+import { createUserWithEmailAndPassword, sendEmailVerification, User } from "firebase/auth";
 import { auth } from "@/lib/firebase";
 import { signUpProfile, isUsernameTaken, getAllUsers, UserProfile } from "@/lib/users";
 import { followJournal } from "@/lib/follows";
@@ -70,6 +70,8 @@ export default function SignupPage() {
         username: cleanUsername,
         displayName: displayName || cleanUsername,
       });
+      // Non-fatal: the banner offers a resend if this fails.
+      sendEmailVerification(cred.user).catch((e) => console.warn("Verification email failed:", e));
       setNewUser(cred.user);
       setNewUsername(cleanUsername);
       setStep("follow");

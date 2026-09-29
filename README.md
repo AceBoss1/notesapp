@@ -1048,3 +1048,33 @@ error monitoring (Sentry) · custom media domain
 `media.notesapp.name.ng`. Also: merch checkout, tier billing, ad-share,
 auto-release of payouts, an in-app link to `/profile/edit` from the
 header (it's only reachable from your own profile page today).
+
+## Password reset + email verification (built)
+
+- `/forgot-password` sends Firebase's reset email (same response whether
+  or not the address has an account, to avoid leaking who's registered);
+  the login page links to it and now distinguishes rate-limit and network
+  errors from wrong credentials.
+- Signup sends a verification email automatically. `VerifyEmailBanner`
+  (site-wide) lets unverified users resend it (60 s cooldown) or refresh
+  once verified.
+- **Payments require a verified email** — enforced server-side in
+  `/api/paystack/initialize` from the ID token's `email_verified` claim.
+  Existing accounts that never verified will see the banner and must
+  verify before paying.
+- Firebase Console to-do: Authentication → Templates → customise the
+  reset/verify emails (sender name, subject) and set the action URL/
+  language; Authentication → Settings → Authorized domains must include
+  `www.notesapp.name.ng`. The default `noreply@…firebaseapp.com` sender
+  often lands in spam — configure a custom SMTP sender there if so.
+
+### Build order for the remaining approved items
+Each is its own session; nothing below is started except what is marked
+built above: (1) bookings dashboard · (2) cancellation/refund policy +
+self-serve cancel (needs your policy: e.g. full refund ≥48 h before, 50%
+24–48 h, none <24 h?) · (3) terms/privacy consent · (4) rate-limiting +
+image validation · (5) custom-claims admin migration · (6) rules tests ·
+(7) Sentry · (8) media custom domain · (9) account deletion/export ·
+(10) rich-text drafting · (11) video upload · (12) social publishing ·
+(13) AI drafting/MCP · (14) ad-share · (15) Cloudinary/test-r2 cleanup
+once R2 is confirmed.

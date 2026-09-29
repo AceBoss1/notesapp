@@ -87,10 +87,10 @@ export function getAdminDb() {
 // Any signed-in user (payments — no publisher/admin requirement).
 export async function verifySignedInRequest(
   idToken: string | undefined
-): Promise<{ uid: string; email: string }> {
+): Promise<{ uid: string; email: string; emailVerified: boolean }> {
   if (!idToken) throw new Error("Missing auth token");
   const decoded = await getAuth(getAdminApp()).verifyIdToken(idToken);
-  return { uid: decoded.uid, email: decoded.email || "" };
+  return { uid: decoded.uid, email: decoded.email || "", emailVerified: decoded.email_verified === true };
 }
 
 // Avatars: any signed-in, non-suspended account may upload their own

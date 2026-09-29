@@ -15,6 +15,13 @@ export async function POST(req: NextRequest) {
     if (!user) return NextResponse.json({ error: "Sign in to pay." }, { status: 401 });
     if (!user.email) return NextResponse.json({ error: "Your account needs an email to pay." }, { status: 400 });
 
+    if (!user.emailVerified) {
+      return NextResponse.json(
+        { error: "Verify your email first — use the banner at the top of the page to resend the link." },
+        { status: 403 }
+      );
+    }
+
     const body = await req.json();
     const { kind, username } = body;
     if (typeof username !== "string" || !/^[a-z0-9_-]{2,30}$/.test(username)) {
