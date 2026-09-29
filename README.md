@@ -945,3 +945,20 @@ future session, the product decisions are already made:
   currently a static demo; the real version needs client-initiated
   rescheduling (not just booking), reminders on both sides, and an
   actual charge behind "Confirm & pay".
+
+## Ops checklist — uploads, indexes, profiles (manual steps)
+
+1. **R2 CORS (required for image uploads).** Cloudflare dashboard → R2 →
+   `notesapp-media` → Settings → CORS policy → paste `scripts/r2-cors.json`.
+   Without it the browser's preflight to the presigned URL fails and the
+   form shows "Failed to fetch". The presign code also no longer adds the
+   CRC32 checksum header (`lib/r2.ts`), which R2 rejects on preflight.
+2. **Firestore indexes.** `firestore.indexes.json` already defines the
+   `notifications` (recipientUid + createdAt) and `comments` indexes, but
+   they must be deployed to the new project:
+   `firebase deploy --only firestore:indexes --project notesapp-a1402`.
+3. **Founder profiles.** `/u/emmanuel` and `/u/chimdinma` now fall back to
+   the static profile in `lib/admin.ts` if no `users` doc exists yet.
+   Real docs are still created on the founder's first admin sign-in.
+4. Inter-*.woff2 404s and "[Smart Unit Converter]" console lines come from
+   a browser extension, not this app.
