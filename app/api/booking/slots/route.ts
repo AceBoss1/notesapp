@@ -3,9 +3,12 @@ import { getAdminDb } from "@/lib/firebase-admin";
 import { loadPublisher } from "@/lib/publishers";
 import { slotLockId } from "@/lib/paystack";
 import { weekdayOf } from "@/lib/booking-time";
+import { rateLimit, clientIp } from "@/lib/rate-limit";
 
 // Public: which slots can be booked on a given date, and at what price.
 export async function GET(req: NextRequest) {
+  const limited = rateLimit(req, "slots", clientIp(req), 60, 60);
+  if (limited) return limited;
   try {
     const username = req.nextUrl.searchParams.get("username") || "";
     const date = req.nextUrl.searchParams.get("date") || "";

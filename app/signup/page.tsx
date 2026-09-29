@@ -28,6 +28,7 @@ export default function SignupPage() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [agreed, setAgreed] = useState(false);
   const router = useRouter();
 
   // Step 2 — follow onboarding
@@ -43,6 +44,10 @@ export default function SignupPage() {
     e.preventDefault();
     setError("");
 
+    if (!agreed) {
+      setError("Please accept the Terms of Service and Privacy Policy to continue.");
+      return;
+    }
     const cleanUsername = normalizeUsername(username);
     if (cleanUsername.length < 3) {
       setError("Username must be at least 3 characters (letters, numbers, _).");
@@ -282,6 +287,14 @@ export default function SignupPage() {
             onChange={(e) => setPassword(e.target.value)}
             className="mt-2 w-full border border-rule bg-card px-4 py-3 font-body focus:border-crimson outline-none"
           />
+        </label>
+        <label className="flex items-start gap-3 text-sm text-slate">
+          <input type="checkbox" checked={agreed} onChange={(e) => setAgreed(e.target.checked)} className="mt-1" />
+          <span>
+            I'm 18 or older and agree to the{" "}
+            <a href="/terms" target="_blank" className="text-crimson-bright underline">Terms of Service</a> and{" "}
+            <a href="/privacy" target="_blank" className="text-crimson-bright underline">Privacy Policy</a>.
+          </span>
         </label>
         {error && <p className="text-sm text-red-700">{error}</p>}
         <button

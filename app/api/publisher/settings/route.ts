@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getAdminDb, verifyPublisherRequest } from "@/lib/firebase-admin";
 import { createPlan } from "@/lib/paystack";
 import { LIMITS, PublisherSettings } from "@/lib/booking-time";
+import { rateLimit } from "@/lib/rate-limit";
 
 const SLOT_RE = /^([01]\d|2[0-3]):[0-5]\d$/;
 
@@ -14,6 +15,8 @@ export async function POST(req: NextRequest) {
     const idToken = req.headers.get("authorization")?.replace(/^Bearer\s+/i, "");
     const uid = await verifyPublisherRequest(idToken).catch(() => null);
     if (!uid) return NextResponse.json({ error: "Only publishing accounts can set rates." }, { status: 403 });
+    const limited = rateLimit(req, "pub-settings", uid, 20, 3600);
+    if (limited) return limited;
 
     const body = await req.json();
     const db = getAdminDb();

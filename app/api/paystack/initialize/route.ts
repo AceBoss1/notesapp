@@ -4,6 +4,8 @@ import { slotLockId, initializeTransaction, newReference } from "@/lib/paystack"
 import { PaymentRecord } from "@/lib/payments";
 import { loadPublisher } from "@/lib/publishers";
 import { weekdayOf } from "@/lib/booking-time";
+import { LEGAL_VERSION } from "@/lib/legal";
+import { rateLimit } from "@/lib/rate-limit";
 
 // Starts a Paystack checkout for a 1:1 session or a monthly journal
 // subscription. Price, slots and plan all come from the publisher's
@@ -18,6 +20,16 @@ export async function POST(req: NextRequest) {
     if (!user.emailVerified) {
       return NextResponse.json(
         { error: "Verify your email first — use the banner at the top of the page to resend the link." },
+        { status: 403 }
+      );
+    }
+
+    const limited = rateLimit(req, "pay-init", user.uid, 10, 600);
+    if (limited) return limited;
+    const payer = (await getAdminDb().doc(`users/${user.uid}`).get()).data();
+    if (payer?.consent?.version !== LEGAL_VERSION) {
+      return NextResponse.json(
+        { error: "Please accept the Terms of Service and Privacy Policy first.", code: "consent_required" },
         { status: 403 }
       );
     }

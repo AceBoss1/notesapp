@@ -3,6 +3,8 @@ import { PutObjectCommand } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import { getR2Client, R2_BUCKET, r2PublicUrl } from "@/lib/r2";
 import { verifyPublisherRequest, verifyAvatarUploadRequest } from "@/lib/firebase-admin";
+import { rateLimit } from "@/lib/rate-limit";
+import { ALLOWED_TYPES, maxUploadBytes } from "@/lib/upload-rules";
 
 // Presigned-URL pattern, not a proxy upload: the browser asks this
 // route for a one-time signed URL, then PUTs the file bytes directly
@@ -20,19 +22,25 @@ export async function POST(req: NextRequest) {
   try {
     const authHeader = req.headers.get("authorization");
     const idToken = authHeader?.replace(/^Bearer\s+/i, "");
-    const { filename, contentType, purpose } = await req.json();
+    const { filename, contentType, purpose, size } = await req.json();
     const isAvatar = purpose === "avatar";
     const uid = isAvatar
       ? await verifyAvatarUploadRequest(idToken)
       : await verifyPublisherRequest(idToken);
+    const limited = rateLimit(req, "upload", uid, 30, 600);
+    if (limited) return limited;
     if (!filename || !contentType) {
       return NextResponse.json({ error: "filename and contentType are required" }, { status: 400 });
     }
-    if (isAvatar && !contentType.startsWith("image/")) {
+    const kind = ALLOWED_TYPES[contentType];
+    if (!kind) {
+      return NextResponse.json({ error: "Unsupported file type. Use JPEG, PNG, WebP, GIF or AVIF images." }, { status: 400 });
+    }
+    if (isAvatar && kind !== "image") {
       return NextResponse.json({ error: "Avatars must be images" }, { status: 400 });
     }
-    if (!contentType.startsWith("image/") && !contentType.startsWith("video/")) {
-      return NextResponse.json({ error: "Only image/* and video/* uploads are allowed" }, { status: 400 });
+    if (!Number.isInteger(size) || size <= 0 || size > maxUploadBytes(kind, isAvatar)) {
+      return NextResponse.json({ error: "File is too large." }, { status: 413 });
     }
 
     const key = `${isAvatar ? `avatars/${uid}` : "journals"}/${Date.now()}-${filename.replace(/[^a-zA-Z0-9._-]/g, "_")}`;
@@ -41,6 +49,8 @@ export async function POST(req: NextRequest) {
       Bucket: R2_BUCKET,
       Key: key,
       ContentType: contentType,
+      // Signed into the URL: R2 rejects a body of any other length.
+      ContentLength: size,
     });
     const uploadUrl = await getSignedUrl(client, command, { expiresIn: 60 });
 

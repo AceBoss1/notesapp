@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAdminDb, verifyPublisherRequest } from "@/lib/firebase-admin";
 import { createTransferRecipient, resolveAccount } from "@/lib/paystack";
+import { rateLimit } from "@/lib/rate-limit";
 
 // Registers where a publisher gets paid. Paystack resolves the
 // account name from the bank (so we never pay an unverified account),
@@ -11,6 +12,8 @@ export async function POST(req: NextRequest) {
     const idToken = req.headers.get("authorization")?.replace(/^Bearer\s+/i, "");
     const uid = await verifyPublisherRequest(idToken).catch(() => null);
     if (!uid) return NextResponse.json({ error: "Only publishing accounts can add payout details." }, { status: 403 });
+    const limited = rateLimit(req, "payout-acct", uid, 5, 3600);
+    if (limited) return limited;
 
     const { bankCode, bankName, accountNumber } = await req.json();
     if (!/^\d{10}$/.test(String(accountNumber))) {

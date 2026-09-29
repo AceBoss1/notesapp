@@ -48,6 +48,8 @@ const COMPANY = [
   { href: "/pricing", label: "Pricing" },
   { href: "/contact", label: "Contact" },
   { href: "/roadmap", label: "Roadmap" },
+  { href: "/terms", label: "Terms" },
+  { href: "/privacy", label: "Privacy" },
 ];
 
 export default function RootLayout({

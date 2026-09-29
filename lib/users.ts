@@ -15,6 +15,7 @@ import {
 import { User as FirebaseUser } from "firebase/auth";
 import { db } from "./firebase";
 import { ADMIN_PROFILES, SocialLinks } from "./admin";
+import { LEGAL_VERSION, Consent } from "./legal";
 
 export type UserRole = "admin" | "staff" | "volunteer" | "reader";
 export type AppealStatus = "none" | "pending" | "upheld" | "rejected";
@@ -51,6 +52,8 @@ export type Suspension = {
 
 export type UserProfile = {
   uid: string;
+  // Server-written after accepting Terms + Privacy (see /api/consent).
+  consent?: Consent;
   username: string;
   displayName: string;
   bio: string;
@@ -198,6 +201,7 @@ export async function signUpProfile(params: {
       createdAt: new Date().toISOString(),
       accountTier: admin ? "basic" : "standard",
       suspended: false,
+      consent: { version: LEGAL_VERSION, acceptedAt: new Date().toISOString() },
     };
     tx.set(usernameRef, { uid });
     tx.set(doc(db, USERS, uid), profile);

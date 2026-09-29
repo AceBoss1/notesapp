@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAdminDb, verifySignedInRequest } from "@/lib/firebase-admin";
 import { fulfillPayment } from "@/lib/payments";
+import { rateLimit } from "@/lib/rate-limit";
 
 // Called by /booking/confirm after Paystack redirects the buyer back.
 export async function GET(req: NextRequest) {
@@ -8,6 +9,8 @@ export async function GET(req: NextRequest) {
     const idToken = req.headers.get("authorization")?.replace(/^Bearer\s+/i, "");
     const user = await verifySignedInRequest(idToken).catch(() => null);
     if (!user) return NextResponse.json({ error: "Sign in to view this payment." }, { status: 401 });
+    const limited = rateLimit(req, "pay-verify", user.uid, 30, 600);
+    if (limited) return limited;
 
     const reference = req.nextUrl.searchParams.get("reference");
     if (!reference) return NextResponse.json({ error: "Missing reference" }, { status: 400 });
