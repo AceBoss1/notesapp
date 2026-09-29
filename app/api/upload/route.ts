@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { PutObjectCommand } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import { getR2Client, R2_BUCKET, r2PublicUrl } from "@/lib/r2";
-import { verifyPublisherRequest } from "@/lib/firebase-admin";
+import { verifyPublisherRequest, verifyAvatarUploadRequest } from "@/lib/firebase-admin";
 
 // Presigned-URL pattern, not a proxy upload: the browser asks this
 // route for a one-time signed URL, then PUTs the file bytes directly
@@ -20,17 +20,22 @@ export async function POST(req: NextRequest) {
   try {
     const authHeader = req.headers.get("authorization");
     const idToken = authHeader?.replace(/^Bearer\s+/i, "");
-    await verifyPublisherRequest(idToken);
-
-    const { filename, contentType } = await req.json();
+    const { filename, contentType, purpose } = await req.json();
+    const isAvatar = purpose === "avatar";
+    const uid = isAvatar
+      ? await verifyAvatarUploadRequest(idToken)
+      : await verifyPublisherRequest(idToken);
     if (!filename || !contentType) {
       return NextResponse.json({ error: "filename and contentType are required" }, { status: 400 });
+    }
+    if (isAvatar && !contentType.startsWith("image/")) {
+      return NextResponse.json({ error: "Avatars must be images" }, { status: 400 });
     }
     if (!contentType.startsWith("image/") && !contentType.startsWith("video/")) {
       return NextResponse.json({ error: "Only image/* and video/* uploads are allowed" }, { status: 400 });
     }
 
-    const key = `journals/${Date.now()}-${filename.replace(/[^a-zA-Z0-9._-]/g, "_")}`;
+    const key = `${isAvatar ? `avatars/${uid}` : "journals"}/${Date.now()}-${filename.replace(/[^a-zA-Z0-9._-]/g, "_")}`;
     const client = getR2Client();
     const command = new PutObjectCommand({
       Bucket: R2_BUCKET,

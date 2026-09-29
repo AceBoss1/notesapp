@@ -956,7 +956,7 @@ future session, the product decisions are already made:
 2. **Firestore indexes.** `firestore.indexes.json` already defines the
    `notifications` (recipientUid + createdAt) and `comments` indexes, but
    they must be deployed to the new project:
-   `firebase deploy --only firestore:indexes --project notesapp-a1402`.
+   `firebase deploy --only firestore --project notesapp-a1402` (indexes + rules; `firebase.json` is now in the repo — run from the repo root).
 3. **Founder profiles.** `/u/emmanuel` and `/u/chimdinma` now fall back to
    the static profile in `lib/admin.ts` if no `users` doc exists yet.
    Real docs are still created on the founder's first admin sign-in.

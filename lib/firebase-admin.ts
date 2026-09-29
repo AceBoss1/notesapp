@@ -92,3 +92,12 @@ export async function verifySignedInRequest(
   const decoded = await getAuth(getAdminApp()).verifyIdToken(idToken);
   return { uid: decoded.uid, email: decoded.email || "" };
 }
+
+// Avatars: any signed-in, non-suspended account may upload their own
+// profile picture — no publisher tier needed.
+export async function verifyAvatarUploadRequest(idToken: string | undefined): Promise<string> {
+  const { uid } = await verifySignedInRequest(idToken);
+  const snap = await getAdminDb().doc(`users/${uid}`).get();
+  if (snap.data()?.suspended === true) throw new Error("Suspended accounts can't upload");
+  return uid;
+}
