@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAdminDb, verifySignedInRequest } from "@/lib/firebase-admin";
-import { fulfillPayment } from "@/lib/paystack";
+import { fulfillPayment } from "@/lib/payments";
 
 // Called by /booking/confirm after Paystack redirects the buyer back.
 export async function GET(req: NextRequest) {
@@ -18,7 +18,12 @@ export async function GET(req: NextRequest) {
     }
 
     const payment = await fulfillPayment(reference);
-    return NextResponse.json({ status: payment.status, booking: payment.booking });
+    return NextResponse.json({
+      status: payment.status,
+      kind: payment.kind,
+      booking: payment.booking,
+      subscription: payment.subscription,
+    });
   } catch (err) {
     console.error("Paystack verify failed:", err);
     const message = err instanceof Error ? err.message : "Couldn't verify payment";

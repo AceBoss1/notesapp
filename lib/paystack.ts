@@ -1,13 +1,7 @@
 import { createHmac, timingSafeEqual, randomBytes } from "crypto";
-import { getAdminDb } from "./firebase-admin";
 
 // Server-only. Paystack secret key never reaches the browser.
 const API = "https://api.paystack.co";
-
-// Amounts are decided HERE, never taken from the client — a browser
-// could otherwise send any price it likes.
-export const SESSION_PRICE_KOBO = 15_000 * 100; // ₦15,000, 45 min
-export const BOOKING_SLOTS = ["9:00 AM", "11:30 AM", "2:00 PM", "4:30 PM"];
 
 function secret(): string {
   const key = process.env.PAYSTACK_SECRET_KEY;
@@ -36,6 +30,7 @@ export function newReference(): string {
 }
 
 export function initializeTransaction(params: {
+  plan?: string;
   email: string;
   amountKobo: number;
   reference: string;
@@ -48,6 +43,7 @@ export function initializeTransaction(params: {
       email: params.email,
       amount: params.amountKobo,
       currency: "NGN",
+      ...(params.plan ? { plan: params.plan } : {}),
       reference: params.reference,
       callback_url: params.callbackUrl,
       metadata: params.metadata,
@@ -55,8 +51,15 @@ export function initializeTransaction(params: {
   });
 }
 
+export type PaystackTx = {
+  status: string;
+  amount: number;
+  currency: string;
+  reference: string;
+};
+
 export function verifyTransaction(reference: string) {
-  return paystack<{ status: string; amount: number; currency: string; reference: string }>(
+  return paystack<PaystackTx>(
     `/transaction/verify/${encodeURIComponent(reference)}`
   );
 }
@@ -70,68 +73,55 @@ export function isValidWebhookSignature(rawBody: string, signature: string | nul
 }
 
 export function bookingId(username: string, date: string, slot: string): string {
-  return `${username}_${date}_${slot.replace(/[^0-9A-Za-z]/g, "")}`;
+  return `${username}_${date}_${slot.replace(/[^0-9]/g, "")}`;
 }
 
-export type PaymentRecord = {
-  reference: string;
-  kind: "booking";
-  uid: string;
-  email: string;
-  amountKobo: number;
-  status: "pending" | "paid" | "paid_slot_conflict";
-  booking: { username: string; date: string; slot: string };
-  createdAt: string;
-  paidAt?: string;
-};
+export function createPlan(params: { name: string; amountKobo: number }) {
+  return paystack<{ plan_code: string }>("/plan", {
+    method: "POST",
+    body: JSON.stringify({ name: params.name, amount: params.amountKobo, interval: "monthly", currency: "NGN" }),
+  });
+}
 
-// Idempotent — called by both the redirect-verify route and the
-// webhook, in whichever order they land. Confirms with Paystack
-// itself (never trusts the caller), checks the amount matches what we
-// recorded server-side, then creates the booking in a transaction.
-export async function fulfillPayment(reference: string): Promise<PaymentRecord> {
-  const db = getAdminDb();
-  const payRef = db.doc(`payments/${reference}`);
-  const snap = await payRef.get();
-  if (!snap.exists) throw new Error("Unknown payment reference");
-  const payment = snap.data() as PaymentRecord;
-  if (payment.status !== "pending") return payment;
+export function listBanks() {
+  return paystack<{ name: string; code: string }[]>("/bank?country=nigeria&perPage=200");
+}
 
-  const tx = await verifyTransaction(reference);
-  if (tx.status !== "success") throw new Error(`Payment not successful (${tx.status})`);
-  if (tx.amount !== payment.amountKobo || tx.currency !== "NGN") {
-    throw new Error("Paid amount does not match the booking price");
-  }
+export function resolveAccount(accountNumber: string, bankCode: string) {
+  return paystack<{ account_name: string; account_number: string }>(
+    `/bank/resolve?account_number=${encodeURIComponent(accountNumber)}&bank_code=${encodeURIComponent(bankCode)}`
+  );
+}
 
-  const { username, date, slot } = payment.booking;
-  const bRef = db.doc(`bookings/${bookingId(username, date, slot)}`);
-  const now = new Date().toISOString();
+export function createTransferRecipient(params: { name: string; accountNumber: string; bankCode: string }) {
+  return paystack<{ recipient_code: string; details: { bank_name: string } }>("/transferrecipient", {
+    method: "POST",
+    body: JSON.stringify({
+      type: "nuban",
+      name: params.name,
+      account_number: params.accountNumber,
+      bank_code: params.bankCode,
+      currency: "NGN",
+    }),
+  });
+}
 
-  return db.runTransaction(async (t) => {
-    const [freshPay, existing] = await Promise.all([t.get(payRef), t.get(bRef)]);
-    const current = freshPay.data() as PaymentRecord;
-    if (current.status !== "pending") return current;
+export function initiateTransfer(params: { amountKobo: number; recipient: string; reference: string; reason: string }) {
+  return paystack<{ transfer_code: string; status: string }>("/transfer", {
+    method: "POST",
+    body: JSON.stringify({
+      source: "balance",
+      amount: params.amountKobo,
+      recipient: params.recipient,
+      reference: params.reference,
+      reason: params.reason,
+    }),
+  });
+}
 
-    if (existing.exists && existing.data()?.reference !== reference) {
-      // Someone else's payment claimed this slot first. Money is
-      // taken, so flag it for a manual refund rather than lose it.
-      const updated = { ...current, status: "paid_slot_conflict" as const, paidAt: now };
-      t.update(payRef, { status: updated.status, paidAt: now });
-      return updated;
-    }
-    t.set(bRef, {
-      username,
-      date,
-      slot,
-      clientUid: current.uid,
-      clientEmail: current.email,
-      reference,
-      amountKobo: current.amountKobo,
-      status: "confirmed",
-      createdAt: now,
-    });
-    const updated = { ...current, status: "paid" as const, paidAt: now };
-    t.update(payRef, { status: updated.status, paidAt: now });
-    return updated;
+export function refundTransaction(reference: string) {
+  return paystack<{ status: string }>("/refund", {
+    method: "POST",
+    body: JSON.stringify({ transaction: reference }),
   });
 }

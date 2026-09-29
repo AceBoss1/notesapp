@@ -24,9 +24,16 @@ const ITEMS = [
   {
     title: "Client-driven session management",
     tag: "Booking",
-    body: "The booking calendar on a profile page today is a static demo. The real version lets a client reschedule themselves, gets both sides a reminder, and ties a session to actual payment.",
+    body: "Booking, Paystack payment, per-publisher rates and email reminders are live. What's left is the client's side of the calendar: rescheduling and cancelling themselves.",
     detail:
-      "Client-initiated rescheduling (not just booking), automatic reminders, and a real Paystack/Flutterwave charge behind the \"Confirm & pay\" button. If one roadmap item gets built next, this — or specifically the payment piece of it — should be it: \"get paid\" is the third word in the homepage headline, and real payments are the single piece most directly tied to that promise actually being true.",
+      "Client-initiated rescheduling and cancellation under a published refund policy, WhatsApp reminders, and automatic payout release once a session is complete.",
+  },
+  {
+    title: "Trust, safety & account basics",
+    tag: "Foundations",
+    body: "The unglamorous pieces that real money needs: password reset and email verification, a bookings dashboard for both sides, a clear cancellation and refund policy, and terms and privacy consent before payment.",
+    detail:
+      "Also planned: account deletion and data export, rate-limiting on payment and upload endpoints, moving admin access to Firebase custom claims, automated Firestore rules tests, error monitoring, and a custom media domain. WhatsApp reminders follow the email reminders that are already live.",
   },
 ];
 
@@ -39,7 +46,7 @@ export default function RoadmapPage() {
       </h1>
       <p className="mt-5 max-w-2xl text-lg text-slate">
         The core loop — publish, book, get paid — is what's demoed
-        today. These three are decided and documented, not yet built.
+        today. These are decided and documented, not yet built. Paid sessions, monthly subscriptions, publisher rates and payouts are already live.
       </p>
 
       <div className="mt-12 grid grid-cols-1 gap-6">

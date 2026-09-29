@@ -982,29 +982,69 @@ Still not built (product decisions already made, see sections above):
 7. Leftover `NEXT_PUBLIC_CLOUDINARY_*` env references and `test-r2.mjs`
    (root-level dev script) can be cleaned up once R2 is confirmed working.
 
-## Paystack payments — 1:1 session booking (built)
+## Payments, payouts, rates, reminders (built)
 
-Flow: profile page → pick date + slot → `POST /api/paystack/initialize`
-(server checks the caller's Firebase ID token, enforces the ₦15,000
-price and slot list from `lib/paystack.ts`, checks the slot is free,
-records a `pending` doc in `payments/`, returns Paystack's hosted
-checkout URL) → Paystack redirects to `/booking/confirm` →
-`GET /api/paystack/verify` re-confirms with Paystack, checks the amount,
-and creates `bookings/{username_date_slot}` in a transaction.
-`POST /api/paystack/webhook` (HMAC-SHA512 verified) runs the same
-idempotent `fulfillPayment()` for buyers who close the tab early.
-If two people pay for the same slot, the second payment is marked
-`paid_slot_conflict` in `payments/` — **refund those manually** in the
-Paystack dashboard. `bookings` and `payments` are server-write-only in
-`firestore.rules`.
+**Media note:** images/avatars uploaded before the migration still serve
+from Cloudinary (`next.config.js` keeps `res.cloudinary.com`); they were
+never copied to R2. Everything uploaded from now on goes to R2.
 
-Setup: set `PAYSTACK_SECRET_KEY` (use `sk_test_…` first) and
-`NEXT_PUBLIC_SITE_URL`; register the webhook URL
-`https://www.notesapp.name.ng/api/paystack/webhook` in Paystack →
-Settings → API Keys & Webhooks; redeploy `firestore.rules`.
+### Publisher rates — `/profile/publishing`
+Any publishing account (staff/volunteer/paid tier/admin) sets its own:
+session price (₦5,000–₦500,000, enforced server-side), session length,
+weekly availability (Lagos time), and monthly journal-subscription price
+(₦1,000–₦100,000 — my chosen bounds, adjust in `LIMITS`,
+`lib/booking-time.ts`). Stored in `publisherSettings/{uid}` (public
+read, server-write only via `/api/publisher/settings`). Sessions and
+subscriptions stay hidden on a profile until the publisher enables them
+**and** has a verified payout account.
 
-Not yet on Paystack: journal subscriptions still use the free "demo"
-path (needs a price decision + recurring plans), merch checkout, and
-tier billing. Provider payouts/commission (see `lib/tiers.ts`) and
-reminders are also not built — all money currently lands in the one
-Paystack account.
+### Money flow
+1. Buyer pays through Paystack (`/api/paystack/initialize` → hosted
+   checkout → `/booking/confirm`; webhook is the backup). Price, slot,
+   and plan come from the publisher's server-side settings.
+2. **All money lands in the platform's Paystack balance — no split at
+   charge time.** That's deliberate: a Paystack split settles to the
+   publisher immediately, which contradicts "nobody is paid until the
+   session has happened". Each payment writes a `ledger/{reference}` entry
+   (gross, commission from `lib/tiers.ts` by the publisher's tier, net).
+3. Sessions: releasable after the session ends. Subscriptions: releasable
+   7 days after each charge (dispute window). Admin releases them in
+   `/admin/payments` → Paystack Transfer to the publisher's verified bank
+   account (`payoutAccounts/{uid}`, created via Paystack account
+   resolution + transfer recipient). Admin can also **Dispute** (freeze:
+   no-show/complaint) or **Refund**. Double-booked slots show up there
+   for refund too.
+4. Subscriptions use Paystack **plans** (monthly). Renewals arrive via
+   webhook and extend `currentPeriodEnd`; cancellations keep access
+   until that date. Legacy free "demo" subscriptions are grandfathered;
+   clients can no longer create subscriptions (rules).
+5. Enterprise commission is "custom" — until a per-account override
+   exists it uses the 5% floor.
+
+**Paystack setup:** `PAYSTACK_SECRET_KEY` (start with `sk_test_`);
+webhook URL `https://www.notesapp.name.ng/api/paystack/webhook`
+(events: charge.success, subscription.disable/not_renew,
+transfer.success/failed/reversed). **Transfers must be enabled on the
+Paystack account, and "Confirm transfers before sending" (OTP) turned
+off** in Settings → Preferences, or releases will stall awaiting OTP.
+Redeploy `firestore.rules`.
+
+### Emails & reminders
+Booking confirmation (both sides) is sent immediately via Resend
+(`RESEND_API_KEY`, `EMAIL_FROM`; verify the sending domain in Resend).
+24-hour and 1-hour reminders come from `GET /api/cron/reminders`, which
+must be hit every ~15 min with `Authorization: Bearer $CRON_SECRET`.
+Vercel Hobby only allows daily crons, so use Vercel Cron on Pro or a free
+pinger such as cron-job.org. WhatsApp reminders: later (needs Meta
+template approval).
+
+### Suggested gaps — awaiting approval (not built)
+Password reset + email verification · bookings dashboard for clients and
+publishers · cancellation/refund policy + self-serve cancel · Terms &
+Privacy consent before payment · account deletion + data export ·
+rate-limiting on upload/payment endpoints + real image validation ·
+admin allowlist → custom claims · Firestore rules tests (emulator) ·
+error monitoring (Sentry) · custom media domain
+`media.notesapp.name.ng`. Also: merch checkout, tier billing, ad-share,
+auto-release of payouts, an in-app link to `/profile/edit` from the
+header (it's only reachable from your own profile page today).

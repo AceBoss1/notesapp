@@ -5,8 +5,14 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { onAuthStateChanged } from "firebase/auth";
 import { auth } from "@/lib/firebase";
+import { formatSlot } from "@/lib/booking-time";
 
-type Result = { status: string; booking: { username: string; date: string; slot: string } };
+type Result = {
+  status: string;
+  kind: "booking" | "subscription";
+  booking?: { username: string; date: string; slot: string };
+  subscription?: { username: string };
+};
 
 function Confirm() {
   const params = useSearchParams();
@@ -43,11 +49,19 @@ function Confirm() {
         </>
       ) : !result ? (
         <p className="text-sm text-slate">Confirming your payment…</p>
-      ) : result.status === "paid" ? (
+      ) : result.status === "paid" && result.kind === "subscription" && result.subscription ? (
+        <>
+          <p className="font-display text-2xl text-ink">You're subscribed ✓</p>
+          <p className="mt-3 text-sm text-slate">Premium entries from @{result.subscription.username} are now unlocked. Renews monthly.</p>
+          <Link href={`/u/${result.subscription.username}`} className="btn-primary mt-6 inline-block !px-5 !py-2 text-xs">
+            Back to journal
+          </Link>
+        </>
+      ) : result.status === "paid" && result.booking ? (
         <>
           <p className="font-display text-2xl text-ink">Session booked ✓</p>
           <p className="mt-3 text-sm text-slate">
-            {result.booking.date} at {result.booking.slot} with @{result.booking.username}.
+            {result.booking.date} at {formatSlot(result.booking.slot)} (Lagos time) with @{result.booking.username}. A confirmation email is on its way.
           </p>
           <Link href={`/u/${result.booking.username}`} className="btn-primary mt-6 inline-block !px-5 !py-2 text-xs">
             Back to profile

@@ -1,0 +1,88 @@
+import { NextRequest, NextResponse } from "next/server";
+import { getAdminDb, verifyAdminRequest } from "@/lib/firebase-admin";
+import { initiateTransfer, refundTransaction } from "@/lib/paystack";
+import type { LedgerEntry } from "@/lib/payments";
+
+// Admin-only money actions on a payment reference:
+//   release  — pay the publisher (only after releaseAfter has passed)
+//   refund   — return the payer's money (also for paid_slot_conflict)
+//   dispute  — freeze a held payout (no-show, complaint) until resolved
+export async function POST(req: NextRequest) {
+  try {
+    const idToken = req.headers.get("authorization")?.replace(/^Bearer\s+/i, "");
+    await verifyAdminRequest(idToken);
+    const { action, reference } = await req.json();
+    if (typeof reference !== "string") return NextResponse.json({ error: "Missing reference" }, { status: 400 });
+
+    const db = getAdminDb();
+    const ledgerRef = db.doc(`ledger/${reference}`);
+    const payRef = db.doc(`payments/${reference}`);
+    const [ledgerSnap, paySnap] = await Promise.all([ledgerRef.get(), payRef.get()]);
+    if (!paySnap.exists) return NextResponse.json({ error: "Unknown payment" }, { status: 404 });
+    const ledger = ledgerSnap.data() as LedgerEntry | undefined;
+
+    if (action === "refund") {
+      if (ledger && (ledger.status === "paid_out" || ledger.status === "transferring")) {
+        return NextResponse.json({ error: "Already paid out — refund would come out of platform funds; handle in Paystack manually." }, { status: 409 });
+      }
+      if (ledger?.status === "refunded" || paySnap.data()?.status === "refunded") {
+        return NextResponse.json({ error: "Already refunded." }, { status: 409 });
+      }
+      await refundTransaction(reference);
+      const batch = db.batch();
+      batch.update(payRef, { status: "refunded" });
+      if (ledger) batch.update(ledgerRef, { status: "refunded" });
+      const b = paySnap.data()?.booking;
+      if (b && paySnap.data()?.status === "paid") {
+        batch.update(db.doc(`bookings/${b.username}_${b.date}_${String(b.slot).replace(/[^0-9]/g, "")}`), { status: "refunded" });
+      }
+      await batch.commit();
+      return NextResponse.json({ ok: true });
+    }
+
+    if (!ledger) return NextResponse.json({ error: "No payout entry for this payment" }, { status: 404 });
+
+    if (action === "dispute") {
+      if (ledger.status !== "held") return NextResponse.json({ error: `Can't dispute a ${ledger.status} payout.` }, { status: 409 });
+      await ledgerRef.update({ status: "disputed" });
+      return NextResponse.json({ ok: true });
+    }
+
+    if (action === "release") {
+      if (ledger.status !== "held" && ledger.status !== "disputed") {
+        return NextResponse.json({ error: `Payout is ${ledger.status}.` }, { status: 409 });
+      }
+      if (new Date(ledger.releaseAfter).getTime() > Date.now()) {
+        return NextResponse.json({ error: `Not releasable until ${ledger.releaseAfter}.` }, { status: 409 });
+      }
+      const account = (await db.doc(`payoutAccounts/${ledger.publisherUid}`).get()).data();
+      if (!account?.recipientCode) return NextResponse.json({ error: "Publisher has no payout account." }, { status: 409 });
+
+      // Claim first so a double-click can't send two transfers.
+      const claimed = await db.runTransaction(async (t) => {
+        const cur = (await t.get(ledgerRef)).data() as LedgerEntry;
+        if (cur.status !== "held" && cur.status !== "disputed") return false;
+        t.update(ledgerRef, { status: "transferring", failureReason: "" });
+        return true;
+      });
+      if (!claimed) return NextResponse.json({ error: "Already being released." }, { status: 409 });
+      try {
+        const tr = await initiateTransfer({
+          amountKobo: ledger.netKobo,
+          recipient: account.recipientCode,
+          reference: `payout_${reference}`,
+          reason: `#NotesApp ${ledger.kind} payout`,
+        });
+        await ledgerRef.update({ transferCode: tr.transfer_code });
+        return NextResponse.json({ ok: true, transferStatus: tr.status });
+      } catch (err) {
+        await ledgerRef.update({ status: "held", failureReason: err instanceof Error ? err.message : "Transfer failed" });
+        throw err;
+      }
+    }
+    return NextResponse.json({ error: "Unknown action" }, { status: 400 });
+  } catch (err) {
+    console.error("Admin payment action failed:", err);
+    return NextResponse.json({ error: err instanceof Error ? err.message : "Failed" }, { status: 500 });
+  }
+}
