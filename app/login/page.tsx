@@ -22,7 +22,14 @@ export default function LoginPage() {
       await ensureAdminProfile(cred.user); // no-op for regular readers
       router.push("/");
     } catch (err) {
-      setError("Invalid email or password.");
+      const code = (err as { code?: string }).code;
+      setError(
+        code === "auth/too-many-requests"
+          ? "Too many attempts. Reset your password or try again in a few minutes."
+          : code === "auth/network-request-failed"
+          ? "Network problem — check your connection and try again."
+          : "Invalid email or password."
+      );
     } finally {
       setLoading(false);
     }
@@ -62,7 +69,12 @@ export default function LoginPage() {
           {loading ? "Signing in…" : "Sign In"}
         </button>
       </form>
-      <p className="mt-6 text-sm text-slate">
+      <p className="mt-4 text-sm">
+        <a href="/forgot-password" className="text-crimson-bright font-semibold">
+          Forgot password?
+        </a>
+      </p>
+      <p className="mt-4 text-sm text-slate">
         New here?{" "}
         <a href="/signup" className="text-crimson-bright font-semibold">
           Create an account

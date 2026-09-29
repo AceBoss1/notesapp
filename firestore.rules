@@ -318,16 +318,54 @@ service cloud.firestore {
       // Public because subscriber counts are displayed publicly.
       allow read: if true;
 
-      // A user can subscribe only as themselves.
-      allow create: if isSignedIn()
-        && request.resource.data.subscriberUid == request.auth.uid;
+      // Created/renewed only by the server after Paystack confirms a
+      // charge (Admin SDK bypasses rules). No more free client writes.
+      allow create, update: if false;
 
-      // Subscription documents cannot be edited directly.
-      allow update: if false;
-
-      // A subscriber can remove their own subscription.
+      // A subscriber can remove their own subscription record.
       allow delete: if isSignedIn()
         && resource.data.subscriberUid == request.auth.uid;
+    }
+
+
+    // ============================================================
+    // BOOKINGS + PAYMENTS — NOTESAPP (Paystack)
+    // Written only by the server (Admin SDK bypasses rules) after
+    // Paystack confirms a charge. Clients can never write these.
+    // ============================================================
+
+    match /bookings/{bookingId} {
+      allow read: if isSignedIn()
+        && (resource.data.clientUid == request.auth.uid
+            || resource.data.publisherUid == request.auth.uid
+            || isAdmin());
+      allow write: if false;
+    }
+
+    // Publisher rates + availability: public (shown on profiles),
+    // written only by /api/publisher/settings after validation.
+    match /publisherSettings/{uid} {
+      allow read: if true;
+      allow write: if false;
+    }
+
+    // Where a publisher is paid — owner (and admins) can read, never write.
+    match /payoutAccounts/{uid} {
+      allow read: if isSignedIn() && (request.auth.uid == uid || isAdmin());
+      allow write: if false;
+    }
+
+    // Earnings ledger: publishers see their own entries; admins all.
+    match /ledger/{reference} {
+      allow read: if isSignedIn()
+        && (resource.data.publisherUid == request.auth.uid || isAdmin());
+      allow write: if false;
+    }
+
+    match /payments/{reference} {
+      allow read: if isSignedIn()
+        && (resource.data.uid == request.auth.uid || isAdmin());
+      allow write: if false;
     }
 
 

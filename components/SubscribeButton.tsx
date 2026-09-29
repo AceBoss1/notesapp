@@ -4,14 +4,33 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { onAuthStateChanged, User } from "firebase/auth";
 import { auth } from "@/lib/firebase";
-import { isSubscribed, subscribeToJournal } from "@/lib/subscriptions";
+import { doc, getDoc } from "firebase/firestore";
+import { db } from "@/lib/firebase";
+import { isSubscribed } from "@/lib/subscriptions";
+import { startCheckout } from "@/lib/checkout";
+import { formatNaira, PublisherSettings } from "@/lib/booking-time";
 
-export default function SubscribeButton({ username }: { username: string }) {
+export default function SubscribeButton({ username, publisherUid }: { username: string; publisherUid?: string }) {
   const [user, setUser] = useState<User | null | undefined>(undefined);
   const [subscribed, setSubscribed] = useState<boolean | null>(null);
   const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [priceKobo, setPriceKobo] = useState<number | null | undefined>(undefined); // null = not offered
 
   useEffect(() => onAuthStateChanged(auth, setUser), []);
+
+  useEffect(() => {
+    if (!publisherUid) {
+      setPriceKobo(null);
+      return;
+    }
+    getDoc(doc(db, "publisherSettings", publisherUid))
+      .then((snap) => {
+        const sub = (snap.data() as PublisherSettings | undefined)?.subscription;
+        setPriceKobo(sub?.enabled && sub.planCode ? sub.priceKobo : null);
+      })
+      .catch(() => setPriceKobo(null));
+  }, [publisherUid]);
 
   useEffect(() => {
     if (!user) {
@@ -21,9 +40,11 @@ export default function SubscribeButton({ username }: { username: string }) {
     isSubscribed(user.uid, username).then(setSubscribed);
   }, [user, username]);
 
-  if (user === undefined || (user && subscribed === null)) {
+  if (user === undefined || priceKobo === undefined || (user && subscribed === null)) {
     return <div className="h-10 w-40 animate-pulse rounded-full bg-rule" />;
   }
+
+  if (priceKobo === null && !subscribed) return null; // publisher hasn't opened subscriptions
 
   if (!user) {
     return (
@@ -44,21 +65,25 @@ export default function SubscribeButton({ username }: { username: string }) {
   async function handleSubscribe() {
     if (!user) return;
     setBusy(true);
+    setError(null);
     try {
-      await subscribeToJournal(user.uid, username);
-      setSubscribed(true);
-    } finally {
+      await startCheckout(user, { kind: "subscription", username });
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Couldn't start payment.");
       setBusy(false);
     }
   }
 
   return (
-    <button
-      onClick={handleSubscribe}
-      disabled={busy}
-      className="btn-primary !px-5 !py-2 text-xs disabled:opacity-50"
-    >
-      {busy ? "…" : "Subscribe (demo — no charge)"}
-    </button>
+    <div>
+      <button
+        onClick={handleSubscribe}
+        disabled={busy}
+        className="btn-primary !px-5 !py-2 text-xs disabled:opacity-50"
+      >
+        {busy ? "Redirecting…" : `Subscribe · ${formatNaira(priceKobo ?? 0)}/month`}
+      </button>
+      {error && <p className="mt-1 text-xs text-crimson">{error}</p>}
+    </div>
   );
 }

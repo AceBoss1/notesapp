@@ -13,6 +13,7 @@ import { submitAppeal } from "@/lib/moderation";
 import Avatar from "@/components/Avatar";
 import FollowButton from "@/components/FollowButton";
 import SubscribeButton from "@/components/SubscribeButton";
+import BookingCard from "@/components/BookingCard";
 import VerifiedBadge from "@/components/VerifiedBadge";
 import JournalRow from "@/components/JournalRow";
 import NotesAppPostRow from "@/components/NotesAppPostRow";
@@ -22,7 +23,6 @@ import { NOTESAPP_POSTS } from "@/lib/notesapp-posts";
 
 const SUSPENDED_AVATAR = "/images/brand/suspended-avatar.png";
 
-const SLOTS = ["9:00 AM", "11:30 AM", "2:00 PM", "4:30 PM"];
 
 // #NotesApp-only framing for the two founders — display text only,
 // never written back into the shared `users` or `notes` documents.
@@ -53,7 +53,7 @@ export default function ProfilePageClient({ params }: { params: { username: stri
     synthetic ? null : undefined
   );
   const [notes, setNotes] = useState<NoteWithComputed[]>([]);
-  const [selectedSlot, setSelectedSlot] = useState<string | null>(null);
+
   const [followerCount, setFollowerCount] = useState<number | null>(null);
   const [followerCountUnavailable, setFollowerCountUnavailable] = useState(false);
   // "Activity" means different things for different accounts: for
@@ -218,6 +218,12 @@ export default function ProfilePageClient({ params }: { params: { username: stri
             </p>
           )}
           <p className="mt-2 max-w-lg text-sm text-slate">{profile.bio}</p>
+          {viewer && realProfile && viewer.uid === realProfile.uid && (
+            <p className="mt-2 flex gap-4 font-ui text-xs font-semibold text-crimson">
+              <Link href="/profile/edit">Edit profile</Link>
+              <Link href="/profile/publishing">Rates &amp; payouts</Link>
+            </p>
+          )}
           {!followerCountUnavailable && (
             <p className="mt-2 font-mono text-xs text-slate">
               {followerCount === null ? "…" : followerCount} follower
@@ -227,7 +233,7 @@ export default function ProfilePageClient({ params }: { params: { username: stri
         </div>
         <div className="ml-0 flex shrink-0 flex-wrap gap-3 sm:ml-auto">
           <FollowButton username={profile.username} />
-          {hasPremium && <SubscribeButton username={profile.username} />}
+          {hasPremium && <SubscribeButton username={profile.username} publisherUid={realProfile?.uid} />}
           {storeItems.length > 0 && (
             <Link href={`/u/${profile.username}/store`} className="btn-ghost">
               Brand store
@@ -281,46 +287,11 @@ export default function ProfilePageClient({ params }: { params: { username: stri
         </div>
       )}
 
-      {/* Native booking calendar — a #NotesApp profile-level feature,
-          not tied to any per-note field. Not shown on either
-          synthetic channel account — there's no one to book. */}
+      {/* Paid 1:1 sessions at the publisher's own rate — hidden until
+          they switch it on in /profile/publishing. Not on synthetic
+          channel accounts. */}
       {!synthetic && (
-        <div className="card mt-12 p-7">
-          <p className="eyebrow">Native booking calendar</p>
-          <h2 className="mt-2 font-display text-2xl text-ink">Book a 1:1 session</h2>
-          <p className="mt-2 text-sm text-slate">
-            No Calendly redirect, no separate login — pick a time, pay
-            inline, get a WhatsApp reminder.
-          </p>
-          <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-4">
-            {SLOTS.map((slot) => (
-              <button
-                key={slot}
-                onClick={() => setSelectedSlot(slot)}
-                className={`rounded-xl2 border px-4 py-3 font-ui text-sm font-semibold transition-colors ${
-                  selectedSlot === slot
-                    ? "border-crimson bg-crimson text-paper"
-                    : "border-rule text-ink hover:border-crimson hover:text-crimson"
-                }`}
-              >
-                {slot}
-              </button>
-            ))}
-          </div>
-          {selectedSlot && (
-            <div className="mt-6 flex flex-col items-start justify-between gap-4 rounded-xl2 border border-rule bg-paper p-5 sm:flex-row sm:items-center">
-              <div>
-                <p className="font-ui text-sm font-semibold text-ink">
-                  {selectedSlot} · 45 min session
-                </p>
-                <p className="font-mono text-xs text-slate">₦15,000 · via Paystack / Flutterwave</p>
-              </div>
-              <span className="btn-primary !px-5 !py-2 text-xs">
-                Confirm &amp; pay (demo)
-              </span>
-            </div>
-          )}
-        </div>
+        <BookingCard username={profile.username} publisherUid={realProfile?.uid} viewer={viewer} />
       )}
 
       {/* Brand store teaser */}

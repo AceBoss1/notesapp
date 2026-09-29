@@ -5,7 +5,7 @@ import { auth } from "./firebase";
 // the file straight to R2 from the browser — matches the R2 bucket
 // this project now owns independently, not Precheks' shared
 // Cloudinary account.
-export async function uploadToR2(file: File): Promise<string> {
+export async function uploadToR2(file: File, purpose: "journal" | "avatar" = "journal"): Promise<string> {
   const user = auth.currentUser;
   if (!user) {
     throw new Error("You must be signed in to upload a file.");
@@ -18,7 +18,7 @@ export async function uploadToR2(file: File): Promise<string> {
       "Content-Type": "application/json",
       Authorization: `Bearer ${idToken}`,
     },
-    body: JSON.stringify({ filename: file.name, contentType: file.type }),
+    body: JSON.stringify({ filename: file.name, contentType: file.type, purpose }),
   });
 
   if (!presignRes.ok) {

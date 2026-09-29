@@ -1,19 +1,18 @@
-import { doc, getDoc, setDoc, deleteDoc, collection, query, where, getCountFromServer } from "firebase/firestore";
+import { doc, getDoc, deleteDoc, collection, query, where, getCountFromServer } from "firebase/firestore";
 import { db } from "./firebase";
 
-// Another new, #NotesApp-only collection — subscribing unlocks a
-// journal's premium entries (see Note.premium in lib/firestore-notes.ts).
-// No Paystack/Flutterwave wiring yet: subscribing here is the same
-// "(demo)" pattern as the booking calendar on a profile page — it
-// grants access immediately, with no real charge. Wiring a real
-// gateway is a follow-up build, not this session's scope.
+// Paid, server-written records (see lib/payments.ts). A subscription
+// is active while currentPeriodEnd is in the future — that includes
+// "cancelled" ones that simply won't renew. Legacy "demo" records
+// from before billing existed are grandfathered as active.
 const SUBSCRIPTIONS = "subscriptions";
 
 export type Subscription = {
   subscriberUid: string;
   username: string; // the journal subscribed to
   subscribedAt: string;
-  status: "demo"; // only value that exists until real billing is wired
+  status: "active" | "cancelled" | "demo";
+  currentPeriodEnd?: string;
 };
 
 function subId(uid: string, username: string) {
@@ -22,17 +21,10 @@ function subId(uid: string, username: string) {
 
 export async function isSubscribed(uid: string, username: string): Promise<boolean> {
   const snap = await getDoc(doc(db, SUBSCRIPTIONS, subId(uid, username)));
-  return snap.exists();
-}
-
-export async function subscribeToJournal(uid: string, username: string): Promise<void> {
-  const sub: Subscription = {
-    subscriberUid: uid,
-    username,
-    subscribedAt: new Date().toISOString(),
-    status: "demo",
-  };
-  await setDoc(doc(db, SUBSCRIPTIONS, subId(uid, username)), sub);
+  if (!snap.exists()) return false;
+  const sub = snap.data() as Subscription;
+  if (sub.status === "demo") return true;
+  return !!sub.currentPeriodEnd && new Date(sub.currentPeriodEnd).getTime() > Date.now();
 }
 
 export async function unsubscribeFromJournal(uid: string, username: string): Promise<void> {

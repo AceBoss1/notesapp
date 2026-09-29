@@ -6,7 +6,7 @@ import Image from "next/image";
 import { onAuthStateChanged } from "firebase/auth";
 import { auth } from "@/lib/firebase";
 import { getUserByUid, updateProfile, UserProfile } from "@/lib/users";
-import { uploadToCloudinary } from "@/lib/cloudinary";
+import { uploadToR2 } from "@/lib/upload";
 import { SocialLinks } from "@/lib/admin";
 
 const SOCIAL_FIELDS: { key: keyof SocialLinks; label: string }[] = [
@@ -28,6 +28,7 @@ export default function ProfileEditPage() {
   const [avatar, setAvatar] = useState("");
   const [social, setSocial] = useState<SocialLinks>({});
   const [uploading, setUploading] = useState(false);
+  const [uploadError, setUploadError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
 
@@ -53,9 +54,13 @@ export default function ProfileEditPage() {
     const file = e.target.files?.[0];
     if (!file) return;
     setUploading(true);
+    setUploadError(null);
     try {
-      const url = await uploadToCloudinary(file);
+      if (file.size > 5 * 1024 * 1024) throw new Error("Image must be under 5 MB.");
+      const url = await uploadToR2(file, "avatar");
       setAvatar(url);
+    } catch (err) {
+      setUploadError(err instanceof Error ? err.message : "Upload failed");
     } finally {
       setUploading(false);
     }
@@ -122,6 +127,7 @@ export default function ProfileEditPage() {
             <input type="file" accept="image/*" onChange={handleAvatarUpload} />
           </div>
           {uploading && <p className="text-xs text-slate mt-1">Uploading…</p>}
+          {uploadError && <p className="text-xs text-crimson mt-1">{uploadError}</p>}
         </label>
 
         <div>
