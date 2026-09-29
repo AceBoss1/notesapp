@@ -10,7 +10,7 @@ import RichTextEditor from "@/components/RichTextEditor";
 // Kept identical to Precheks' own author_role text on purpose — this
 // writes into the shared `notes` document, and Precheks renders
 // author_role verbatim on its own note pages. NotesApp's own framing
-// of these two people (Founder/CEO, Co-Founder/COO) is applied at the
+// of these two people (Founder/CEO, Guest Writer) is applied at the
 // UI level only, in lib/admin.ts + app/u/[username]/page.tsx, never
 // written back into shared data.
 const AUTHORS = [

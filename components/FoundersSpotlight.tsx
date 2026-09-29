@@ -48,10 +48,10 @@ export default function FoundersSpotlight({ allNotes }: { allNotes: NoteWithComp
     <section className="card overflow-hidden">
       <div className="p-8 pb-0">
         <span className="eyebrow">People</span>
-        <h2 className="mt-2 font-display text-2xl text-ink">The founders' journals</h2>
+        <h2 className="mt-2 font-display text-2xl text-ink">The founder's & guest writer's journals</h2>
         <p className="mt-2 max-w-2xl text-sm text-slate">
-          Auto-followed for every member, same as @notesapp — both run
-          their entire practice on #NotesApp, publicly, from day one.
+          Auto-followed for every member, same as @notesapp — the founder
+          and our first guest writer publish on #NotesApp, publicly, from day one.
         </p>
       </div>
       <div className="mt-6">

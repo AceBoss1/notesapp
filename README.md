@@ -1122,3 +1122,36 @@ and Precheks' shared notes render unchanged.
 Still queued (later sessions): Sentry, account deletion/export, media
 domain verification, video, social publishing, AI drafting/MCP, ad-share,
 partner API, Cloudinary/`test-r2.mjs` cleanup.
+
+## Step-by-step: switch admin to custom claims
+
+Do this from your own computer, in the repo folder, on the branch/main
+that contains `scripts/set-admin-claims.mjs`. Nothing breaks midway —
+the old email list keeps working until step 8.
+
+1. **Get a service-account key.** Firebase Console → project
+   `notesapp-a1402` → ⚙ Project settings → *Service accounts* → *Generate
+   new private key* → download the JSON. Treat it like a password; never
+   commit it.
+2. **Install deps** (once): `npm install`.
+3. **Run the script** (Git Bash on Windows shown; the key must be ONE line):
+   ```bash
+   export FIREBASE_SERVICE_ACCOUNT_KEY="$(cat ~/Downloads/notesapp-a1402-key.json | tr -d '\n')"
+   node scripts/set-admin-claims.mjs ezurukam@gmail.com precheks.info@gmail.com
+   ```
+   (PowerShell: `$env:GOOGLE_APPLICATION_CREDENTIALS="C:\path\key.json"` then the
+   same `node …` line.) Expected output: `Granted admin: <email> (<uid>)` twice.
+4. **Delete the key file** from Downloads when done.
+5. **Sign out and back in** on the live site, as each founder (claims are
+   read from the login token).
+6. **Deploy** this branch's code + rules
+   (`firebase deploy --only firestore --project notesapp-a1402`, and merge
+   for Vercel).
+7. **Verify:** `/admin` loads, you can open `/admin/payments` and publish a
+   journal. If something is locked out, nothing is lost — the legacy email
+   check is still active; re-run step 3.
+8. **Remove the legacy path** (separate small commit): delete
+   `isLegacyAdminEmail()` and its use in `firestore.rules`,
+   `LEGACY_ADMIN_EMAILS` in `lib/firebase-admin.ts`, and the `isAdminEmail`
+   fallback in `lib/admin-claims.ts`; redeploy rules + code. From now on
+   admins are managed with the script or `POST /api/admin/set-admin`.

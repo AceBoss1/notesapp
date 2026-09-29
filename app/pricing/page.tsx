@@ -30,7 +30,7 @@ const ROWS: { label: string; render: (t: (typeof TIERS)[number]) => string }[] =
     label: "External store (Selar, Amazon, etc.)",
     render: (t) => (t.canPublish ? (t.externalStoreAllowed ? "Available" : "Not available") : "—"),
   },
-  { label: "AI draft assistance", render: (t) => (t.canPublish ? "Included — every publisher tier" : "—") },
+  { label: "AI draft assistance", render: (t) => (t.canPublish ? "Planned — included on every publisher tier" : "—") },
 ];
 
 export default function PricingPage() {
@@ -48,9 +48,13 @@ export default function PricingPage() {
         you earn through it.
       </p>
       <p className="mt-3 max-w-2xl text-sm text-slate">
-        Every publisher tier — Free Basic included — can connect their
-        own AI assistant to draft from their past notes. That's not a
-        paid-tier perk here.
+        Publishers set their own prices — sessions from ₦5,000 to
+        ₦500,000, monthly journal subscriptions from ₦1,000 to
+        ₦100,000. The commission below comes out of each paid session
+        or subscription; you're paid to your verified bank account
+        after the session (subscriptions after a 7-day dispute window).
+        AI drafting from your past notes is planned for every publisher
+        tier — it won't be a paid-tier perk.
       </p>
 
       <div className="mt-12 overflow-x-auto">
@@ -90,7 +94,8 @@ export default function PricingPage() {
             Free Standard → Free Basic is a self-serve application from
             your own profile, reviewed by an admin — no payment
             involved. Pro, Business, and Enterprise are paid upgrades;
-            billing isn't live yet (see{" "}
+            tier billing isn't live yet — paid sessions and subscriptions
+            already are (see{" "}
             <Link href="/roadmap" className="text-crimson underline underline-offset-2">
               the roadmap
             </Link>
@@ -105,7 +110,7 @@ export default function PricingPage() {
           <p className="mt-2 text-sm text-slate">
             An external link-out (Selar, Amazon, etc.) is revenue
             NotesApp never takes a commission on. That option stays
-            available to the two founders' existing stores and to
+            available to the founder's and guest writer's existing stores and to
             Enterprise — everyone else sells through NotesApp's own
             internal fulfillment, where the commission table on the
             left actually applies.

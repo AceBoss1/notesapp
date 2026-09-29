@@ -4,17 +4,18 @@ import Image from "next/image";
 const LOOP = [
   { step: "Publish", copy: "Write a note. Toggle it public or keep it as a private client journal — same canvas." },
   { step: "Book", copy: "Readers book a session straight from what they just read. No Calendly redirect, no third‑party login." },
-  { step: "Get Paid", copy: "Payment collects inline via Paystack or Flutterwave. Naira‑native, from day one." },
-  { step: "Follow Up", copy: "A booking reminder lands on WhatsApp — where your clients already are." },
+  { step: "Get Paid", copy: "Readers pay through Paystack in Naira. Your earnings are released to your bank after the session takes place." },
+  { step: "Follow Up", copy: "Confirmation and reminder emails go to you and your client — 24 hours and 1 hour before. WhatsApp is next." },
 ];
 
 const FEATURES = [
   { title: "Public & private journals", copy: "One toggle, same canvas. Publish an article, or keep a private session log for a client — your call, entry by entry." },
-  { title: "Native booking calendar", copy: "Built into your profile page. No redirect, no second login, no lost momentum between reading and booking." },
-  { title: "Inline payments", copy: "Paystack and Flutterwave, wired in from the start — because Naira is not an afterthought here." },
-  { title: "WhatsApp & email reminders", copy: "Bookings and nudges land where your clients actually check — WhatsApp first, with email as the reliable fallback that always lands somewhere." },
+  { title: "Native booking calendar", copy: "Built into your profile page, running on your own weekly availability. No redirect, no second login — and clients can cancel or reschedule under a clear refund policy." },
+  { title: "Your rates, your payouts", copy: "Set your own session price and monthly subscription price. Paystack collects in Naira; earnings are paid to your verified bank account after each session." },
+  { title: "Booking confirmations & reminders", copy: "Email confirmations and 24-hour and 1-hour reminders are live today. WhatsApp reminders are coming next." },
+  { title: "A real writing desk", copy: "Format with a toolbar, preview as you go, drop in images, and never lose a draft — everything is saved as clean Markdown." },
   { title: "A brand store for every journal", copy: "Every professional gets their own storefront on their profile — sell guides, templates, or sessions, no separate shop to manage." },
-  { title: "Bring your own transcription", copy: "Connect Otter.ai or Whisper for session notes. We integrate; we don't lock you into one AI vendor." },
+  { title: "Bring your own transcription (coming)", copy: "Connect Otter.ai or Whisper for session notes. We integrate; we don't lock you into one AI vendor." },
 ];
 
 export default function Home() {
@@ -70,7 +71,7 @@ export default function Home() {
                       Book a 1:1 strategy session
                     </p>
                     <p className="font-mono text-xs text-slate">
-                      45 min · ₦15,000
+                      You set the length and the price
                     </p>
                   </div>
                   <span className="btn-primary !px-4 !py-2 text-xs">
@@ -101,17 +102,20 @@ export default function Home() {
             <div>
               <p className="font-ui text-sm font-bold text-ink">✓ Live today</p>
               <ul className="mt-3 space-y-2 text-sm text-slate">
-                <li>Journals — real published notes, shared live with precheks.com.ng</li>
-                <li>Comments, likes, shares, follow, subscribe — all real, all working</li>
-                <li>Admin composer, dashboard, and analytics</li>
+                <li>Journals — real published notes, with a rich-text composer</li>
+                <li>Paid 1:1 sessions on each publisher's own rate and availability, paid through Paystack, with a bookings dashboard and a clear cancellation policy</li>
+                <li>Paid monthly journal subscriptions that unlock premium entries</li>
+                <li>Publisher payouts to a verified bank account, released after the session</li>
+                <li>Email confirmations and reminders · password reset and email verification</li>
+                <li>Comments, likes, shares, follow — all real, all working</li>
               </ul>
             </div>
             <div>
               <p className="font-ui text-sm font-bold text-ink">○ On the roadmap, not live</p>
               <ul className="mt-3 space-y-2 text-sm text-slate">
-                <li>Paystack / Flutterwave payments — booking and subscribe buttons are demos, no real charge</li>
-                <li>The booking calendar — static UI, no real availability yet</li>
-                <li>WhatsApp reminders, AI drafting, social publishing, ad-share</li>
+                <li>WhatsApp reminders and clients rescheduling themselves</li>
+                <li>Merch checkout and paid Pro / Business / Enterprise tiers</li>
+                <li>AI drafting, social publishing, video uploads, ad-share</li>
               </ul>
             </div>
           </div>
@@ -176,8 +180,8 @@ export default function Home() {
             <p className="mt-3 max-w-xl font-body text-slate">
               Precheks — a data, career, and business consulting
               practice — runs its notes, calendar, and client sessions
-              on #NotesApp from day one, and pulls that same content
-              live onto{" "}
+              on #NotesApp from day one, and is the first practice we're
+              building a partner API for, to show that content on{" "}
               <a
                 href="https://precheks.com.ng"
                 target="_blank"
@@ -185,8 +189,8 @@ export default function Home() {
                 className="underline decoration-crimson/40 underline-offset-2 hover:text-crimson"
               >
                 precheks.com.ng
-              </a>{" "}
-              through our API.
+              </a>
+              .
             </p>
           </div>
           <Link href="/u/chimdinma" className="btn-ghost shrink-0">

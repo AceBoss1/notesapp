@@ -28,9 +28,9 @@ export default function JournalsHero({
           Search People, Channels &amp; Topics
         </h1>
         <p className="mt-3 text-paper/65">
-          Same notes, same Firestore database as precheks.com.ng — read
-          through #NotesApp, with follow, subscribe, and a booking
-          calendar one click away.
+          Read journals from professionals across Africa — follow the ones
+          you like, subscribe monthly to unlock their premium entries, and
+          book a paid 1:1 session straight from their profile.
         </p>
 
         <div className="mt-8">

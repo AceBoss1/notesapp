@@ -4,7 +4,7 @@ import JournalsPageClient from "@/components/JournalsPageClient";
 export const metadata: Metadata = {
   title: "Journals",
   description:
-    "Search People, Channels & Topics — the same notes Precheks publishes, read through #NotesApp, with follow, subscribe, and booking one click away.",
+    "Search people, channels and topics — follow journals, subscribe to unlock premium entries, and book paid 1:1 sessions with the professionals behind them.",
 };
 
 export default function JournalsPage() {
