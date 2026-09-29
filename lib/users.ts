@@ -127,8 +127,34 @@ export async function getUserByUsername(
   username: string
 ): Promise<UserProfile | null> {
   const reservation = await getDoc(doc(db, USERNAMES, username));
-  if (!reservation.exists()) return null;
-  return getUserByUid(reservation.data().uid);
+  if (reservation.exists()) {
+    const found = await getUserByUid(reservation.data().uid);
+    if (found) return found;
+  }
+  return adminFallbackProfile(username);
+}
+
+// Founder profiles are only written to Firestore the first time that
+// founder signs in (ensureAdminProfile) — and are missing entirely
+// after a migration to a fresh project. Until then, /u/<username>
+// rendered "Profile not found". Serve the known static profile instead.
+function adminFallbackProfile(username: string): UserProfile | null {
+  const entry = Object.entries(ADMIN_PROFILES).find(([, a]) => a.username === username);
+  if (!entry) return null;
+  const [email, a] = entry;
+  return {
+    uid: `admin:${a.username}`,
+    username: a.username,
+    displayName: a.displayName,
+    bio: a.bio,
+    avatar: a.avatar,
+    social: a.social,
+    role: "admin",
+    email,
+    createdAt: "",
+    accountTier: "basic",
+    suspended: false,
+  };
 }
 
 export async function getUserByDisplayName(

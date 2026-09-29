@@ -945,3 +945,39 @@ future session, the product decisions are already made:
   currently a static demo; the real version needs client-initiated
   rescheduling (not just booking), reminders on both sides, and an
   actual charge behind "Confirm & pay".
+
+## Ops checklist — uploads, indexes, profiles (manual steps)
+
+1. **R2 CORS (required for image uploads).** Cloudflare dashboard → R2 →
+   `notesapp-media` → Settings → CORS policy → paste `scripts/r2-cors.json`.
+   Without it the browser's preflight to the presigned URL fails and the
+   form shows "Failed to fetch". The presign code also no longer adds the
+   CRC32 checksum header (`lib/r2.ts`), which R2 rejects on preflight.
+2. **Firestore indexes.** `firestore.indexes.json` already defines the
+   `notifications` (recipientUid + createdAt) and `comments` indexes, but
+   they must be deployed to the new project:
+   `firebase deploy --only firestore:indexes --project notesapp-a1402`.
+3. **Founder profiles.** `/u/emmanuel` and `/u/chimdinma` now fall back to
+   the static profile in `lib/admin.ts` if no `users` doc exists yet.
+   Real docs are still created on the founder's first admin sign-in.
+4. Inter-*.woff2 404s and "[Smart Unit Converter]" console lines come from
+   a browser extension, not this app.
+
+## Gap audit (README + /roadmap) — what's left
+
+Fixed in code: `.env.local.example` (referenced above but was gitignored and
+missing) now exists; `/api/upload` accepts any account `firestore.rules`'
+`isPublisher()` allows (was admin-only, so non-admin publishers got 401);
+removed stray `lib/journals-directory_.ts` and `tsconfig.tsbuildinfo`.
+
+Still not built (product decisions already made, see sections above):
+1. Real payments (Paystack/Flutterwave) — booking "Confirm & pay (demo)",
+   subscriptions, merch. Highest priority per /roadmap ("get paid").
+2. Client-driven rescheduling + reminders (WhatsApp/email).
+3. One-click social publishing; AI drafting via MCP + notetaker handoff.
+4. Video upload + compression (image upload only today).
+5. Ad-share program; subscription billing; partner API for Precheks.
+6. Custom-claims migration replacing the hardcoded 2-email admin allowlist
+   (duplicated in `firestore.rules`, `lib/admin.ts`, `lib/firebase-admin.ts`).
+7. Leftover `NEXT_PUBLIC_CLOUDINARY_*` env references and `test-r2.mjs`
+   (root-level dev script) can be cleaned up once R2 is confirmed working.

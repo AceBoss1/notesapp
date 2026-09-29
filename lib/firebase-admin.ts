@@ -1,5 +1,6 @@
 import { initializeApp, getApps, cert, App } from "firebase-admin/app";
 import { getAuth } from "firebase-admin/auth";
+import { getFirestore } from "firebase-admin/firestore";
 
 // Server-only — never imported from a "use client" file. Distinct
 // from lib/firebase.ts (the client SDK used everywhere else in this
@@ -43,6 +44,26 @@ function getAdminApp(): App {
   return initializeApp({ credential: cert(serviceAccount) });
 }
 
+const ADMIN_EMAILS = ["ezurukam@gmail.com", "precheks.info@gmail.com"];
+
+// Admins, or any account firestore.rules' isPublisher() would let
+// write a note (role staff/volunteer, or accountTier != "standard").
+// Without this, non-admin publishers could create journals but every
+// image upload returned 401.
+export async function verifyPublisherRequest(idToken: string | undefined): Promise<string> {
+  if (!idToken) throw new Error("Missing auth token");
+  const app = getAdminApp();
+  const decoded = await getAuth(app).verifyIdToken(idToken);
+  if (decoded.email && ADMIN_EMAILS.includes(decoded.email)) return decoded.uid;
+  const snap = await getFirestore(app).doc(`users/${decoded.uid}`).get();
+  const u = snap.data();
+  if (!u || u.suspended === true) throw new Error("Not allowed to upload");
+  if (u.role === "staff" || u.role === "volunteer" || (u.accountTier && u.accountTier !== "standard")) {
+    return decoded.uid;
+  }
+  throw new Error("Your account tier can't publish or upload");
+}
+
 export async function verifyAdminRequest(idToken: string | undefined): Promise<string> {
   if (!idToken) throw new Error("Missing auth token");
   const decoded = await getAuth(getAdminApp()).verifyIdToken(idToken);
@@ -53,7 +74,6 @@ export async function verifyAdminRequest(idToken: string | undefined): Promise<s
   // boundary concerns of its own; duplicating the two emails is safer
   // than risking an accidental client-bundle import chain pulling
   // firebase-admin into browser code.
-  const ADMIN_EMAILS = ["ezurukam@gmail.com", "precheks.info@gmail.com"];
   if (!email || !ADMIN_EMAILS.includes(email)) {
     throw new Error("Not an admin account");
   }

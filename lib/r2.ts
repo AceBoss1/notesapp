@@ -20,6 +20,12 @@ export function getR2Client(): S3Client {
     region: "auto",
     endpoint: `https://${accountId}.r2.cloudflarestorage.com`,
     credentials: { accessKeyId, secretAccessKey },
+    // Newer AWS SDK versions add an x-amz-checksum-crc32 header to
+    // presigned PUTs by default. R2 rejects it on the browser's
+    // preflight, so uploads died with "Failed to fetch". Only
+    // compute checksums when an operation requires them.
+    requestChecksumCalculation: "WHEN_REQUIRED",
+    responseChecksumValidation: "WHEN_REQUIRED",
   });
 }
 

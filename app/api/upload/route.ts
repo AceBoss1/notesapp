@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { PutObjectCommand } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import { getR2Client, R2_BUCKET, r2PublicUrl } from "@/lib/r2";
-import { verifyAdminRequest } from "@/lib/firebase-admin";
+import { verifyPublisherRequest } from "@/lib/firebase-admin";
 
 // Presigned-URL pattern, not a proxy upload: the browser asks this
 // route for a one-time signed URL, then PUTs the file bytes directly
@@ -20,7 +20,7 @@ export async function POST(req: NextRequest) {
   try {
     const authHeader = req.headers.get("authorization");
     const idToken = authHeader?.replace(/^Bearer\s+/i, "");
-    await verifyAdminRequest(idToken);
+    await verifyPublisherRequest(idToken);
 
     const { filename, contentType } = await req.json();
     if (!filename || !contentType) {
@@ -43,6 +43,7 @@ export async function POST(req: NextRequest) {
   } catch (err) {
     console.error("Upload URL generation failed:", err);
     const message = err instanceof Error ? err.message : "Upload failed";
-    return NextResponse.json({ error: message }, { status: 401 });
+    const status = /R2 is not configured|NEXT_PUBLIC_R2|FIREBASE_SERVICE_ACCOUNT/.test(message) ? 500 : 401;
+    return NextResponse.json({ error: message }, { status });
   }
 }
