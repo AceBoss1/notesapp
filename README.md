@@ -962,3 +962,22 @@ future session, the product decisions are already made:
    Real docs are still created on the founder's first admin sign-in.
 4. Inter-*.woff2 404s and "[Smart Unit Converter]" console lines come from
    a browser extension, not this app.
+
+## Gap audit (README + /roadmap) — what's left
+
+Fixed in code: `.env.local.example` (referenced above but was gitignored and
+missing) now exists; `/api/upload` accepts any account `firestore.rules`'
+`isPublisher()` allows (was admin-only, so non-admin publishers got 401);
+removed stray `lib/journals-directory_.ts` and `tsconfig.tsbuildinfo`.
+
+Still not built (product decisions already made, see sections above):
+1. Real payments (Paystack/Flutterwave) — booking "Confirm & pay (demo)",
+   subscriptions, merch. Highest priority per /roadmap ("get paid").
+2. Client-driven rescheduling + reminders (WhatsApp/email).
+3. One-click social publishing; AI drafting via MCP + notetaker handoff.
+4. Video upload + compression (image upload only today).
+5. Ad-share program; subscription billing; partner API for Precheks.
+6. Custom-claims migration replacing the hardcoded 2-email admin allowlist
+   (duplicated in `firestore.rules`, `lib/admin.ts`, `lib/firebase-admin.ts`).
+7. Leftover `NEXT_PUBLIC_CLOUDINARY_*` env references and `test-r2.mjs`
+   (root-level dev script) can be cleaned up once R2 is confirmed working.
