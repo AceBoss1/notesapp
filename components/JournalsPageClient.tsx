@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { getAllNotes, NoteWithComputed } from "@/lib/firestore-notes";
-import { getAllUsers, UserProfile } from "@/lib/users";
+import { getAllUsers, hasVerifiedBadge, UserProfile } from "@/lib/users";
 import { FOUNDER_JOURNALS, MANDATORY_USERNAMES, CHANNEL_JOURNALS } from "@/lib/journals-directory";
 import BoostedStrip from "@/components/BoostedStrip";
 import JournalsHero, { JournalsTab } from "@/components/JournalsHero";
@@ -33,7 +33,7 @@ export default function JournalsPageClient() {
   const people = useMemo(() => {
     const others = users
       .filter((u) => !MANDATORY_USERNAMES.includes(u.username))
-      .map((u) => ({ username: u.username, displayName: u.displayName, avatar: u.avatar, bio: u.bio }));
+      .map((u) => ({ username: u.username, displayName: u.displayName, avatar: u.avatar, bio: u.bio, verified: hasVerifiedBadge(u) }));
     return [...FOUNDER_JOURNALS, ...others];
   }, [users]);
 

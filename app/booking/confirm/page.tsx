@@ -9,7 +9,7 @@ import { formatSlot } from "@/lib/booking-time";
 
 type Result = {
   status: string;
-  kind: "booking" | "subscription" | "boost" | "gift" | "tier";
+  kind: "booking" | "subscription" | "boost" | "gift" | "tier" | "badge";
   tier?: { tier: string; interval: string };
   boost?: { noteId: string };
   gift?: { username: string; noteSlug?: string };
@@ -66,6 +66,14 @@ function Confirm() {
           <p className="mt-3 text-sm text-slate">Your plan is active and renews {result.tier.interval === "annually" ? "yearly" : "monthly"}. Your lower commission applies from now.</p>
           <Link href="/profile/publishing" className="btn-primary mt-6 inline-block !px-5 !py-2 text-xs">
             Set up rates &amp; payouts
+          </Link>
+        </>
+      ) : result.status === "paid" && result.kind === "badge" ? (
+        <>
+          <p className="font-display text-2xl text-ink">Verified badge added ✓</p>
+          <p className="mt-3 text-sm text-slate">The ✔ now shows next to your name. It renews monthly; cancel any time under Edit profile.</p>
+          <Link href="/profile/edit" className="btn-primary mt-6 inline-block !px-5 !py-2 text-xs">
+            Back to profile
           </Link>
         </>
       ) : result.status === "paid" && result.kind === "boost" ? (

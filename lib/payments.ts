@@ -5,7 +5,7 @@ import { sessionEnd, sessionStart, formatSlot, formatNaira } from "./booking-tim
 import { sendEmail } from "./email";
 import type { AccountTier } from "./users";
 import { getBoostPackage } from "./boost-config";
-import { periodEndFrom } from "./tier-billing";
+import { periodEndFrom, cancelBadgeIfCovered } from "./tier-billing";
 
 // Server-only. All money-state changes happen here, via the Admin SDK
 // (Firestore rules make payments/bookings/ledger/subscriptions
@@ -13,7 +13,7 @@ import { periodEndFrom } from "./tier-billing";
 
 export type PaymentRecord = {
   reference: string;
-  kind: "booking" | "subscription" | "boost" | "gift" | "tier";
+  kind: "booking" | "subscription" | "boost" | "gift" | "tier" | "badge";
   uid: string; // the payer
   email: string;
   amountKobo: number;
@@ -25,6 +25,7 @@ export type PaymentRecord = {
   subscription?: { username: string; planCode: string };
   boost?: { noteId: string; packageId: string };
   tier?: { tier: "pro" | "business"; interval: "monthly" | "annually"; planCode: string };
+  badge?: { planCode: string };
   gift?: { username: string; noteId?: string; noteSlug?: string; message: string; anonymous: boolean; senderName: string };
   createdAt: string;
   paidAt?: string;
@@ -167,6 +168,17 @@ export async function fulfillPayment(reference: string): Promise<PaymentRecord> 
         subscribedAt: now,
         currentPeriodEnd: periodEndFrom(Date.now(), tr.interval),
       });
+    } else if (current.kind === "badge" && current.badge) {
+      const end = periodEndFrom(Date.now(), "monthly");
+      t.set(db.doc(`users/${current.uid}`), { badgeUntil: end }, { merge: true });
+      t.set(db.doc(`badgeSubscriptions/${current.uid}`), {
+        uid: current.uid,
+        email: current.email,
+        planCode: current.badge.planCode,
+        status: "active",
+        subscribedAt: now,
+        currentPeriodEnd: end,
+      });
     } else if (current.kind === "gift" && current.gift) {
       t.set(db.doc(`gifts/${reference}`), {
         reference,
@@ -205,6 +217,9 @@ export async function fulfillPayment(reference: string): Promise<PaymentRecord> 
 
   if (result.fresh && result.payment.status === "paid") {
     await notifyPaid(result.payment).catch((e) => console.error("notifyPaid failed", e));
+    if (result.payment.kind === "tier" && result.payment.tier?.tier === "business") {
+      await cancelBadgeIfCovered(result.payment.uid);
+    }
   }
   return result.payment;
 }
@@ -280,6 +295,14 @@ export async function markSubscriptionCancelled(planCode: string, email: string)
 
 async function notifyPaid(p: PaymentRecord) {
   if (p.kind === "gift" && p.gift) return notifyGift(p);
+  if (p.kind === "badge") {
+    await sendEmail({
+      to: p.email,
+      subject: "Your #NotesApp verified badge is active",
+      text: `The ✔ now shows next to your name (${formatNaira(p.amountKobo)}/month, renews automatically). Cancel any time under Edit profile — you keep the badge until the period ends.\nReference: ${p.reference}\n\n#NotesApp`,
+    });
+    return;
+  }
   if (p.kind === "tier" && p.tier) {
     const name = p.tier.tier === "pro" ? "Pro" : "Business";
     await sendEmail({

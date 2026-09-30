@@ -126,3 +126,10 @@ export function commissionRateFor(tier: AccountTier): number {
   // Enterprise is negotiated per account; until an override exists, use the floor.
   return c === "custom" ? getTierConfig(tier).sessionAndUnlockCommissionFloor ?? 0.05 : c;
 }
+
+// Verified badge: included free on Business and Enterprise; every other
+// tier (Free Standard, Free Basic, Pro) can add it for ₦999/month.
+export const BADGE_PRICE_KOBO = 999 * 100;
+export function badgeIncluded(tier: AccountTier): boolean {
+  return tier === "business" || tier === "enterprise";
+}

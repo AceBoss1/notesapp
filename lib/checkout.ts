@@ -20,6 +20,7 @@ export async function startCheckout(
     | { kind: "subscription"; username: string }
     | { kind: "boost"; noteId: string; packageId: string }
     | { kind: "tier"; tier: "pro" | "business"; interval: "monthly" | "annually" }
+    | { kind: "badge" }
     | { kind: "gift"; username: string; amountNaira: number; noteId?: string; message?: string; anonymous?: boolean }
 ): Promise<void> {
   let { res, json } = await post(user, body);

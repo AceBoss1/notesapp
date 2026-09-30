@@ -6,7 +6,7 @@ import Image from "next/image";
 import { onAuthStateChanged, User } from "firebase/auth";
 import { auth } from "@/lib/firebase";
 import { recordView } from "@/lib/track";
-import { getUserByUsername, getCommentsByUser, UserProfile, CommentActivity } from "@/lib/users";
+import { getUserByUsername, getCommentsByUser, hasVerifiedBadge, UserProfile, CommentActivity } from "@/lib/users";
 import { getAllNotes, NoteWithComputed } from "@/lib/firestore-notes";
 import { getRecentCommentsOnNotes, Comment } from "@/lib/engagement";
 import { getFollowerCount } from "@/lib/follows";
@@ -179,7 +179,7 @@ export default function ProfilePageClient({ params }: { params: { username: stri
   const storeItems = STORE_ITEMS[profile.username] ?? [];
   const hasPremium = isOfficial || notes.some((n) => n.premium);
   const suspended = realProfile?.suspended === true;
-  const verified = VERIFIED_USERNAMES.includes(profile.username) || !!realProfile?.verified;
+  const verified = VERIFIED_USERNAMES.includes(profile.username) || (!!realProfile && hasVerifiedBadge(realProfile));
   const isOwnProfile = !!(viewer && realProfile && viewer.uid === realProfile.uid);
   const canAppeal =
     suspended &&

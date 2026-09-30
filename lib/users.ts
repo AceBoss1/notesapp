@@ -16,6 +16,7 @@ import { User as FirebaseUser } from "firebase/auth";
 import { db } from "./firebase";
 import { ADMIN_PROFILES, SocialLinks } from "./admin";
 import { LEGAL_VERSION, Consent } from "./legal";
+import { badgeIncluded } from "./tiers";
 
 export type UserRole = "admin" | "staff" | "volunteer" | "reader";
 export type AppealStatus = "none" | "pending" | "upheld" | "rejected";
@@ -78,6 +79,9 @@ export type UserProfile = {
   // for every real account; only the 4 hardcoded official accounts
   // (lib/journals-directory.ts's VERIFIED_USERNAMES) show the badge.
   verified?: boolean;
+  // Paid verified-badge add-on: ISO end of the paid period. Server-written
+  // only (see lib/tier-billing.ts); firestore.rules stops clients editing it.
+  badgeUntil?: string;
   accountTier: AccountTier;
   tierRequest?: TierRequest;
   // Precheks built its own suspend feature independently, on the same
@@ -103,6 +107,19 @@ export type UserProfile = {
 // separately wherever the badge renders.
 export function isVerifiedProfile(profile: UserProfile): boolean {
   return profile.role === "admin" || profile.role === "staff" || profile.role === "volunteer";
+}
+
+// Everything that earns the ✔ for a real account: an internal role, the
+// admin `verified` flag, a Business/Enterprise plan (badge included), or
+// an active paid badge add-on. Suspended accounts never show it.
+export function hasVerifiedBadge(profile: UserProfile): boolean {
+  if (profile.suspended === true) return false;
+  return (
+    isVerifiedProfile(profile) ||
+    !!profile.verified ||
+    badgeIncluded(profile.accountTier) ||
+    (!!profile.badgeUntil && new Date(profile.badgeUntil).getTime() > Date.now())
+  );
 }
 
 // Can this account publish its own journal entries? Every tier except

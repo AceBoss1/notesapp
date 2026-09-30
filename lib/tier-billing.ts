@@ -1,6 +1,6 @@
 import { getAdminDb } from "./firebase-admin";
-import { createPlan, verifyTransaction } from "./paystack";
-import { TIERS } from "./tiers";
+import { createPlan, disableSubscription, verifyTransaction } from "./paystack";
+import { TIERS, BADGE_PRICE_KOBO } from "./tiers";
 import { sendEmail } from "./email";
 import type { AccountTier } from "./users";
 
@@ -49,6 +49,26 @@ export async function getTierPlanCode(tier: BillingTier, interval: Interval): Pr
   return { planCode: plan_code, amountKobo };
 }
 
+export type BadgeSubscription = {
+  uid: string;
+  email: string;
+  planCode: string;
+  status: "active" | "cancelled" | "expired";
+  subscribedAt: string;
+  currentPeriodEnd: string;
+};
+
+// The ₦999/month verified-badge add-on has its own plan.
+export async function getBadgePlanCode(): Promise<{ planCode: string; amountKobo: number }> {
+  const db = getAdminDb();
+  const ref = db.doc("platformPlans/badge_monthly");
+  const cur = (await ref.get()).data();
+  if (cur?.planCode && cur.amountKobo === BADGE_PRICE_KOBO) return { planCode: cur.planCode, amountKobo: BADGE_PRICE_KOBO };
+  const { plan_code } = await createPlan({ name: "#NotesApp Verified badge monthly", amountKobo: BADGE_PRICE_KOBO, interval: "monthly" });
+  await ref.set({ tier: "badge", interval: "monthly", planCode: plan_code, amountKobo: BADGE_PRICE_KOBO, createdAt: new Date().toISOString() });
+  return { planCode: plan_code, amountKobo: BADGE_PRICE_KOBO };
+}
+
 // Recurring charge on a platform plan. Returns true if it was one of ours.
 export async function fulfillTierRenewal(data: {
   reference: string;
@@ -59,17 +79,28 @@ export async function fulfillTierRenewal(data: {
   const email = data.customer?.email;
   if (!planCode || !email) return false;
   const db = getAdminDb();
-  const isPlatform = !(await db.collection("platformPlans").where("planCode", "==", planCode).limit(1).get()).empty;
-  if (!isPlatform) return false;
+  const planSnap = await db.collection("platformPlans").where("planCode", "==", planCode).limit(1).get();
+  if (planSnap.empty) return false;
+  const isBadge = planSnap.docs[0].data().tier === "badge";
 
   const seen = db.doc(`tierCharges/${data.reference}`);
   if ((await seen.get()).exists) return true;
   const tx = await verifyTransaction(data.reference);
   if (tx.status !== "success") return true;
 
-  const subs = await db.collection("tierSubscriptions").where("planCode", "==", planCode).where("email", "==", email).limit(1).get();
+  const subs = await db.collection(isBadge ? "badgeSubscriptions" : "tierSubscriptions").where("planCode", "==", planCode).where("email", "==", email).limit(1).get();
   if (subs.empty) return true;
   const doc = subs.docs[0];
+  if (isBadge) {
+    const b = doc.data() as BadgeSubscription;
+    const end = periodEndFrom(Math.max(Date.now(), new Date(b.currentPeriodEnd).getTime()), "monthly");
+    const bb = db.batch();
+    bb.update(doc.ref, { status: "active", currentPeriodEnd: end });
+    bb.set(db.doc(`users/${b.uid}`), { badgeUntil: end }, { merge: true });
+    bb.set(seen, { reference: data.reference, uid: b.uid, amountKobo: tx.amount, at: new Date().toISOString() });
+    await bb.commit();
+    return true;
+  }
   const sub = doc.data() as TierSubscription;
   const base = Math.max(Date.now(), new Date(sub.currentPeriodEnd).getTime());
   const batch = db.batch();
@@ -81,8 +112,26 @@ export async function fulfillTierRenewal(data: {
 }
 
 export async function markTierCancelled(planCode: string, email: string): Promise<void> {
-  const subs = await getAdminDb().collection("tierSubscriptions").where("planCode", "==", planCode).where("email", "==", email).get();
-  await Promise.all(subs.docs.map((d) => (d.data().status === "active" ? d.ref.update({ status: "cancelled" }) : null)));
+  const db = getAdminDb();
+  for (const col of ["tierSubscriptions", "badgeSubscriptions"]) {
+    const subs = await db.collection(col).where("planCode", "==", planCode).where("email", "==", email).get();
+    await Promise.all(subs.docs.map((d) => (d.data().status === "active" ? d.ref.update({ status: "cancelled" }) : null)));
+  }
+}
+
+// Business/Enterprise include the badge, so a running ₦999 add-on would
+// be double-billing — stop it (best effort; the badge stays either way).
+export async function cancelBadgeIfCovered(uid: string): Promise<void> {
+  try {
+    const ref = getAdminDb().doc(`badgeSubscriptions/${uid}`);
+    const b = (await ref.get()).data() as BadgeSubscription | undefined;
+    if (!b || b.status !== "active") return;
+    const found = await findPaystackSubscription(b.email, b.planCode);
+    if (found) await disableSubscription(found.code, found.token);
+    await ref.update({ status: "cancelled", cancelledAt: new Date().toISOString(), note: "covered by plan" });
+  } catch (err) {
+    console.error("cancelBadgeIfCovered failed:", err);
+  }
 }
 
 // Downgrades accounts whose paid period (plus grace) has ended.
@@ -107,6 +156,9 @@ export async function expireTiers(): Promise<number> {
     }
     n++;
   }
+  // Lapsed badge add-ons just get marked (badgeUntil already stops the ✔).
+  const badges = await db.collection("badgeSubscriptions").where("currentPeriodEnd", "<", cutoff).get();
+  await Promise.all(badges.docs.map((d) => (d.data().status !== "expired" ? d.ref.update({ status: "expired" }) : null)));
   return n;
 }
 

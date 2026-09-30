@@ -1,8 +1,9 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { TIERS, formatPercent } from "@/lib/tiers";
+import { TIERS, formatPercent, badgeIncluded, BADGE_PRICE_KOBO } from "@/lib/tiers";
 import { BOOST_PACKAGES } from "@/lib/boost-config";
 import UpgradeButton from "@/components/UpgradeButton";
+import BadgeCard from "@/components/BadgeCard";
 import { LIMITS, formatNaira } from "@/lib/booking-time";
 
 export const metadata: Metadata = {
@@ -24,6 +25,10 @@ const ROWS: { label: string; render: (t: (typeof TIERS)[number]) => string }[] =
       t.canPublish
         ? `NotesApp takes ${formatPercent(t.sessionAndUnlockCommission, t.sessionAndUnlockCommissionFloor)}`
         : "—",
+  },
+  {
+    label: "Verified badge ✔",
+    render: (t) => (badgeIncluded(t.tier) ? "Included free" : `Add-on: ${formatNaira(BADGE_PRICE_KOBO)}/month`),
   },
   {
     label: "Paid 1:1 sessions",
@@ -146,6 +151,10 @@ export default function PricingPage() {
             left actually applies.
           </p>
         </div>
+      </div>
+
+      <div className="mt-6">
+        <BadgeCard pitch />
       </div>
 
       <div className="card mt-6 p-6">

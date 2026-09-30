@@ -8,6 +8,7 @@ import { auth } from "@/lib/firebase";
 import { getUserByUid, updateProfile, UserProfile } from "@/lib/users";
 import { uploadToR2 } from "@/lib/upload";
 import { SocialLinks } from "@/lib/admin";
+import BadgeCard from "@/components/BadgeCard";
 
 const SOCIAL_FIELDS: { key: keyof SocialLinks; label: string }[] = [
   { key: "linkedin", label: "LinkedIn URL" },
@@ -91,6 +92,10 @@ export default function ProfileEditPage() {
     <section className="mx-auto max-w-2xl px-4 sm:px-6 lg:px-8 py-14">
       <p className="eyebrow">@{profile.username}</p>
       <h1 className="font-display text-4xl mt-3">Edit Profile</h1>
+
+      <div className="mt-6">
+        <BadgeCard />
+      </div>
 
       <form onSubmit={handleSubmit} className="mt-8 grid gap-6">
         <label className="block">

@@ -13,6 +13,7 @@ export type DirectoryEntry = {
   displayName: string;
   avatar: string;
   bio: string;
+  verified?: boolean;
 };
 
 export default function JournalDirectory({
@@ -44,7 +45,7 @@ export default function JournalDirectory({
               <div>
                 <p className="flex items-center gap-1.5 font-ui text-sm font-bold text-ink">
                   {entry.displayName}
-                  {VERIFIED_USERNAMES.includes(entry.username) && <VerifiedBadge size={13} />}
+                  {(entry.verified || VERIFIED_USERNAMES.includes(entry.username)) && <VerifiedBadge size={13} />}
                 </p>
                 <p className="font-mono text-xs text-slate">
                   @{entry.username} · {journalCount} journal{journalCount === 1 ? "" : "s"}

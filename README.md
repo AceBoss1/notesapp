@@ -1272,3 +1272,28 @@ and `/bookings` (Edit profile · Rates & payouts · Bookings · Boost). The
 "Draft for legal review" banners were removed from `/terms` and `/privacy`
 at the owner's request — the underlying advice (have a Nigerian lawyer
 review both; NDPC registration may apply) still stands.
+
+### Verified badge (paid add-on)
+Included free on **Business and Enterprise** (and for admin/staff/volunteer
+roles and the official accounts); **Free Standard, Free Basic and Pro** can
+add it for **₦999/month** (`BADGE_PRICE_KOBO` in `lib/tiers.ts`). Own
+Paystack plan (`platformPlans/badge_monthly`), `badgeSubscriptions/{uid}`
+(server-only), and the user doc's `badgeUntil` (server-written) drives the ✔:
+`hasVerifiedBadge()` in `lib/users.ts` is the single check — used on
+profiles, the people directory and the post byline; suspended accounts never
+show it. Buy/cancel on **Edit profile** and the pricing page
+(`components/BadgeCard.tsx`); renewals + cancellation flow through the same
+webhook as plans; upgrading to Business best-effort cancels a running add-on
+so nobody is double-billed. Terms gained §5b (a badge is *not* an identity
+check or endorsement; removable without refund for impersonation/suspension).
+Consider adding real identity verification later if the ✔ is to imply it.
+
+### Paystack webhook — exact setup
+URL: `https://www.notesapp.name.ng/api/paystack/webhook`. Paystack
+Dashboard → Settings → API Keys & Webhooks → paste it in **Webhook URL**
+(Test and Live modes each have their own URL field — set both). Paystack
+sends every event type to that one URL; the route verifies the
+`x-paystack-signature` header with your secret key, so it works with either
+mode's key as long as `PAYSTACK_SECRET_KEY` matches the mode. Events the app
+handles: `charge.success`, `subscription.disable`, `subscription.not_renew`,
+`transfer.success`, `transfer.failed`, `transfer.reversed`.

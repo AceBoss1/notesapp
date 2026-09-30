@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAdminDb, verifySignedInRequest } from "@/lib/firebase-admin";
 import { disableSubscription } from "@/lib/paystack";
-import { findPaystackSubscription, TierSubscription } from "@/lib/tier-billing";
+import { findPaystackSubscription, TierSubscription, BadgeSubscription } from "@/lib/tier-billing";
 import { rateLimit } from "@/lib/rate-limit";
 
 // Stops auto-renewal of the caller's Pro/Business plan. They keep the
@@ -14,8 +14,9 @@ export async function POST(req: NextRequest) {
     const limited = rateLimit(req, "cancel-tier", user.uid, 5, 3600);
     if (limited) return limited;
 
-    const ref = getAdminDb().doc(`tierSubscriptions/${user.uid}`);
-    const sub = (await ref.get()).data() as TierSubscription | undefined;
+    const body = await req.json().catch(() => ({}));
+    const ref = getAdminDb().doc(`${body.which === "badge" ? "badgeSubscriptions" : "tierSubscriptions"}/${user.uid}`);
+    const sub = (await ref.get()).data() as TierSubscription | BadgeSubscription | undefined;
     if (!sub || sub.status !== "active") return NextResponse.json({ error: "You don't have an active plan to cancel." }, { status: 404 });
 
     const found = await findPaystackSubscription(sub.email, sub.planCode);
