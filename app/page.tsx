@@ -1,6 +1,8 @@
 import Link from "next/link";
 import Image from "next/image";
 import BoostedStrip from "@/components/BoostedStrip";
+import GoldBadgeExplainer from "@/components/GoldBadgeExplainer";
+import { GOLD_KIND_LIVE } from "@/lib/badges";
 
 const LOOP = [
   { step: "Publish", copy: "Write a note. Toggle it public or keep it as a private client journal — same canvas." },
@@ -17,6 +19,7 @@ const FEATURES = [
   { title: "Boost a post", copy: "Put a post in front of more readers. You pay only for validated impressions, delivered over several days — undelivered ones are refunded." },
   { title: "Gifts", copy: "Readers can send you a gift on your profile or on any single post — from ₦200 up to ₦500,000, with a note if they like." },
   { title: "A real writing desk", copy: "Format with a toolbar, preview as you go, drop in images, and never lose a draft — everything is saved as clean Markdown." },
+  { title: "Gold badge", copy: "Get endorsed by #NotesApp, or identity-checked, and wear the gold ✔ beside your name on your profile, the directory and every post." },
   { title: "A brand store for every journal", copy: "Every professional gets their own storefront on their profile — sell guides, templates, or sessions, no separate shop to manage." },
   { title: "Bring your own transcription (coming)", copy: "Connect Otter.ai or Whisper for session notes. We integrate; we don't lock you into one AI vendor." },
 ];
@@ -99,6 +102,12 @@ export default function Home() {
 
       <BoostedStrip />
 
+      <section className="border-b border-rule py-16">
+        <div className="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8">
+          <GoldBadgeExplainer />
+        </div>
+      </section>
+
       {/* Honest status strip — the hero above is the vision; this is
           what's actually true right now. Added directly in response
           to third-party review feedback: don't let "get paid, in
@@ -115,6 +124,7 @@ export default function Home() {
                 <li>Paid monthly journal subscriptions that unlock premium entries</li>
                 <li>Post boosts (pay for validated impressions) and gifts on every profile and post — see <Link href="/boost" className="text-crimson underline">Boost</Link> and <Link href="/gifts" className="text-crimson underline">Gifts</Link></li>
                 <li>Trending feed and a live status page</li>
+                <li>Verification badges: the maroon ✔ for accounts in good standing and the <strong className="text-ink">gold ✔ for endorsed accounts</strong>{GOLD_KIND_LIVE.identity ? " and identity-checked accounts" : ""} — see <Link href="/badges" className="text-crimson underline">Verification badges</Link></li>
                 <li>Publisher payouts to a verified bank account, released after the session</li>
                 <li>Email confirmations and reminders · password reset and email verification</li>
                 <li>Comments, likes, shares, follow — all real, all working</li>
@@ -124,7 +134,7 @@ export default function Home() {
               <p className="font-ui text-sm font-bold text-ink">○ On the roadmap, not live</p>
               <ul className="mt-3 space-y-2 text-sm text-slate">
                 <li>WhatsApp reminders and clients rescheduling themselves</li>
-                <li>Gold badge for identity-checked and endorsed accounts</li>
+{GOLD_KIND_LIVE.identity ? null : <li>Identity-checked gold badge (NIN + face check for people, CAC for organisations)</li>}
                 <li>Merch checkout and paid Pro / Business / Enterprise tiers</li>
                 <li>AI drafting, social publishing, video uploads, ad-share</li>
               </ul>
