@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { TIERS, formatPercent, badgeIncluded, BADGE_PRICE_KOBO } from "@/lib/tiers";
 import { GOLD_PRICING } from "@/lib/gold";
+import GoldBadgeExplainer from "@/components/GoldBadgeExplainer";
 import { GOLD_KIND_LIVE } from "@/lib/badges";
 import { BOOST_PACKAGES } from "@/lib/boost-config";
 import UpgradeButton from "@/components/UpgradeButton";
@@ -164,15 +165,20 @@ export default function PricingPage() {
         <BadgeCard pitch />
       </div>
 
-      <div className="card mt-6 p-6">
-        <p className="font-ui text-sm font-bold text-ink">
-          <span className="mr-1.5"><VerifiedBadge size={14} level="gold" /></span>Gold badge — endorsement open, identity check {GOLD_KIND_LIVE.identity ? "now open" : "coming soon"}
-        </p>
-        <p className="mt-2 text-sm text-slate">
-          The maroon ✔ shows an account in good standing. The <strong className="text-ink">gold badge</strong> is different: it marks an
-          account that #NotesApp endorses after a manual review (no charge to apply), then {formatNaira(GOLD_PRICING.personal.monthlyKobo)}/month personal or {formatNaira(GOLD_PRICING.corporate.monthlyKobo)}/month corporate — the same on every plan — <Link href="/badges" className="text-crimson underline underline-offset-2">apply on the badges page</Link>.
-          Identity-checked gold (ID, business registration or professional credential) is {GOLD_KIND_LIVE.identity ? "now open" : "coming soon"} with a one-off non-refundable verification deposit.
-        </p>
+      <div className="mt-14">
+        <GoldBadgeExplainer />
+        <dl className="mt-6 divide-y divide-rule border-y border-rule">
+          {[
+            ["Does my plan change the gold price?", "No. Gold costs the same on Free Basic, Pro, Business and Enterprise. Business and Enterprise include the maroon ✔ free, but gold is always a separate, paid mark."],
+            ["Is the identity deposit refundable?", "No. It pays for the third-party identity check whether or not it passes, so it isn't refunded. Endorsement has no deposit at all."],
+            ["What do I get for the monthly fee?", "The gold ✔ beside your name everywhere it appears, for as long as you renew. Cancel any time and keep it until the paid period ends."],
+          ].map(([q, a]) => (
+            <div key={q} className="py-4">
+              <dt className="font-ui text-sm font-bold text-ink">{q}</dt>
+              <dd className="mt-1 text-sm text-slate">{a}</dd>
+            </div>
+          ))}
+        </dl>
       </div>
 
       <div className="card mt-6 p-6">

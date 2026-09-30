@@ -12,13 +12,37 @@ import { formatNaira } from "@/lib/booking-time";
 export const metadata: Metadata = {
   title: "Verification badges",
   description:
-    "What the #NotesApp team badge, the verified ✔ and the upcoming gold badge mean, who gets them, and how to add the verified badge to your profile.",
+    "What the #NotesApp team badge, the verified ✔ and the gold badge (endorsed or identity-checked) mean, who gets them, and how to add the verified badge to your profile.",
 };
 
 const FAQ = [
   {
     q: "Does the maroon ✔ mean #NotesApp checked my identity?",
     a: "No. It shows an account in good standing that is on an eligible plan or has the badge subscription. Identity checks and endorsements are what the gold badge is for — endorsements are open now, identity checks are " + (GOLD_KIND_LIVE.identity ? "open too." : "coming soon."),
+  },
+  {
+    q: "What is the gold badge?",
+    a: "A gold ✔ for accounts #NotesApp has vouched for. It comes in two kinds: endorsed (we reviewed your public work and back you) and identity-checked (you passed an ID check — NIN plus a live face check for people, CAC registration for organisations). It shows beside your name on your profile, the directory and your posts, and replaces the maroon ✔ while active.",
+  },
+  {
+    q: "How much does gold cost?",
+    a: "The same on every plan: ₦1,999/month for individuals, ₦2,999/month for organisations. Applying and being reviewed for an endorsement is free. An identity check adds a one-off deposit (₦999 personal, ₦1,999 organisation) paid before review.",
+  },
+  {
+    q: "Is the identity deposit refundable?",
+    a: "No. It covers the third-party check whether or not it passes. Endorsement has no deposit.",
+  },
+  {
+    q: "What happens to my ID documents?",
+    a: "We don't collect or store them. Identity checks run with our verification partner, Dojah, and an admin only sees the outcome.",
+  },
+  {
+    q: "How long does review take, and what if I'm declined?",
+    a: "Admins review applications by hand and the status shows on this page. If you're declined you can apply again with more detail (a new identity check needs a new deposit).",
+  },
+  {
+    q: "Can I cancel gold?",
+    a: "Yes, any time from this page. You keep the gold ✔ until the period you've paid for ends.",
   },
   {
     q: "Can I buy the #NotesApp team badge?",

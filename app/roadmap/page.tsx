@@ -29,11 +29,11 @@ const ITEMS = [
       "Client-initiated rescheduling and cancellation under a published refund policy, WhatsApp reminders, and automatic payout release once a session is complete.",
   },
   {
-    title: "Gold badge — identity checks & endorsements",
+    title: "Gold badge — endorsements live, identity checks next",
     tag: "Trust",
-    body: "A gold ✔ for accounts whose identity #NotesApp has checked, or that we endorse — distinct from the maroon ✔ that marks an account in good standing on a paid plan or add-on. See the verification badges page for how all three marks work.",
+    body: "The gold ✔ is live for endorsed accounts: apply on the verification badges page, an admin reviews it, and approved accounts subscribe (₦1,999/month personal, ₦2,999/month organisation, the same on every plan). Identity-checked gold — NIN and live face check for people, CAC for organisations, through Dojah, with a one-off non-refundable deposit — follows.",
     detail:
-      "By application and admin review (ID, business registration or professional credential), open to every tier. The badge, admin controls and display are built; the application flow, review process and pricing come next, and nothing gold shows publicly until then. Register your interest through the contact form.",
+      "Remaining work: automatic confirmation of identity-check results from Dojah (today an admin reads them in Dojah's dashboard and approves), and notifications when an application is decided.",
   },
   {
     title: "Trust, safety & account basics",
