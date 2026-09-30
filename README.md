@@ -1262,3 +1262,13 @@ Business ₦15,000/mo (₦150,000/yr) in `lib/tiers.ts`. The Terms gained a
 dropdown in `/admin/users` still works for manual/Enterprise grants.
 **Test it with a `sk_test_` key first**; Paystack's list-subscriptions API
 is scanned (5 pages) to find the cancel token, fine at this scale.
+
+### Navigation + legal pages
+Admin pages now share a sub-header (`app/admin/layout.tsx` →
+`AdminSubNav`): Back button + Dashboard / Journals / Notes / Users /
+Payments / Leads / Settings, admins only, hidden on the login page.
+Signed-in members get a matching "My account" sub-header on `/profile/*`
+and `/bookings` (Edit profile · Rates & payouts · Bookings · Boost). The
+"Draft for legal review" banners were removed from `/terms` and `/privacy`
+at the owner's request — the underlying advice (have a Nigerian lawyer
+review both; NDPC registration may apply) still stands.

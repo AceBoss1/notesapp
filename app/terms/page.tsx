@@ -13,11 +13,6 @@ export default function TermsPage() {
     <article className="prose mx-auto max-w-3xl px-4 py-16 sm:px-6">
       <p className="eyebrow">Version {LEGAL_VERSION}</p>
       <h1>Terms of Service</h1>
-      <p className="text-sm">
-        <strong>Draft for legal review.</strong> These terms describe how #NotesApp works today; have a Nigerian
-        lawyer confirm them before relying on them commercially.
-      </p>
-
       <h2>1. Accounts</h2>
       <p>You must be 18 or older, give accurate details, keep your password secret, and verify your email. You are responsible for activity on your account. We may suspend accounts that break these terms, with a right of appeal from your profile.</p>
 
