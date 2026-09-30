@@ -18,7 +18,7 @@ import { ADMIN_PROFILES, SocialLinks } from "./admin";
 import { LEGAL_VERSION, Consent } from "./legal";
 import { badgeIncluded } from "./tiers";
 import { ttlCache } from "./ttl-cache";
-import { GOLD_BADGE_LIVE, BadgeLevel, GoldBadgeKind } from "./badges";
+import { GOLD_BADGE_LIVE, GOLD_KIND_LIVE, BadgeLevel, GoldBadgeKind } from "./badges";
 
 export type UserRole = "admin" | "staff" | "volunteer" | "reader";
 export type AppealStatus = "none" | "pending" | "upheld" | "rejected";
@@ -89,7 +89,10 @@ export type UserProfile = {
   badgeUntil?: string;
   // Gold badge (identity check / endorsement) — admin-written only, and
   // only displayed once GOLD_BADGE_LIVE (lib/badges.ts) is true.
-  goldBadge?: { kind: GoldBadgeKind; grantedAt: string; note?: string };
+  goldBadge?: { kind: GoldBadgeKind; grantedAt: string; note?: string; track?: "personal" | "corporate" };
+  // Paid gold badges lapse when the subscription period ends. Absent = an
+  // admin grant with no expiry. Written only by the server.
+  goldUntil?: string;
   accountTier: AccountTier;
   tierRequest?: TierRequest;
   // Precheks built its own suspend feature independently, on the same
@@ -102,7 +105,9 @@ export type UserProfile = {
   suspended: boolean;
   // Present once a suspension has ever happened, even after it's
   // resolved — keeps a record rather than deleting history.
-  suspension?: Suspension;
+  suspension?: Suspension; // legacy — now lives in suspensions/{uid}
+  usernameChangedAt?: string; // set by /api/account/username
+  previousUsername?: string;
 };
 
 // Admin, staff, and volunteer all get the ✔ automatically — per the
@@ -141,7 +146,12 @@ export function isTeamMember(profile: UserProfile): boolean {
 // is live. Suspended accounts show none.
 export function badgeLevel(profile: UserProfile): BadgeLevel {
   if (profile.suspended === true) return null;
-  if (GOLD_BADGE_LIVE && profile.goldBadge) return "gold";
+  if (
+    GOLD_BADGE_LIVE &&
+    profile.goldBadge &&
+    GOLD_KIND_LIVE[profile.goldBadge.kind] &&
+    (!profile.goldUntil || new Date(profile.goldUntil).getTime() > Date.now())
+  ) return "gold";
   return hasVerifiedBadge(profile) ? "verified" : null;
 }
 

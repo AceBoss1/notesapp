@@ -5,6 +5,7 @@ import { ADMIN_PROFILES } from "@/lib/admin";
 import { getSiteSettingsCached } from "@/lib/settings";
 import Avatar from "@/components/Avatar";
 import { CHANNEL_JOURNALS } from "@/lib/journals-directory";
+import { GOLD_KIND_LIVE } from "@/lib/badges";
 
 export const metadata: Metadata = {
   title: "About",
@@ -111,7 +112,7 @@ export default async function AboutPage() {
           <li>Publisher earnings are held until the session has happened (or a 7-day window for subscriptions and gifts) and paid to a verified bank account.</li>
           <li>One published cancellation and refund policy for every session.</li>
           <li>Verified emails are required to pay; accounts can be suspended and appealed.</li>
-          <li>Badges: the #NotesApp team mark for staff and guest writers, the maroon ✔ for accounts in good standing, and a gold badge for identity-checked and endorsed accounts (coming soon) — see <Link href="/badges" className="text-crimson underline">Verification badges</Link>.</li>
+          <li>Badges: the #NotesApp team mark for staff and guest writers, the maroon ✔ for accounts in good standing, and a gold badge for accounts we endorse (identity-checked gold {GOLD_KIND_LIVE.identity ? "also available" : "coming soon"}) — see <Link href="/badges" className="text-crimson underline">Verification badges</Link>.</li>
           <li>Live service health is public on the <Link href="/status" className="text-crimson underline">status page</Link>; see our <Link href="/terms" className="text-crimson underline">Terms</Link> and <Link href="/privacy" className="text-crimson underline">Privacy Policy</Link>.</li>
         </ul>
       </div>

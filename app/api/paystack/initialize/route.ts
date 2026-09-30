@@ -8,7 +8,8 @@ import { weekdayOf } from "@/lib/booking-time";
 import { LEGAL_VERSION } from "@/lib/legal";
 import { GIFT_MAX_KOBO, GIFT_MESSAGE_MAX, GIFT_MIN_KOBO, getBoostPackage } from "@/lib/boost-config";
 import { verifyAdminRequest } from "@/lib/firebase-admin";
-import { getTierPlanCode, getBadgePlanCode } from "@/lib/tier-billing";
+import { getTierPlanCode, getBadgePlanCode, getGoldPlanCode } from "@/lib/tier-billing";
+import { GOLD_PRICING, isGoldKind, isGoldTrack } from "@/lib/gold";
 import { TIERS, badgeIncluded } from "@/lib/tiers";
 import { rateLimit } from "@/lib/rate-limit";
 
@@ -66,6 +67,55 @@ export async function POST(req: NextRequest) {
         reference, kind: "badge", uid: user.uid, email: user.email, amountKobo,
         status: "pending", publisherUid: user.uid, publisherUsername: "", commissionRate: 0,
         badge: { planCode }, createdAt: new Date().toISOString(),
+      };
+      await db.doc(`payments/${reference}`).set(record);
+      return NextResponse.json({ authorizationUrl: tx.authorization_url, reference });
+    }
+
+    // ---- gold badge: identity-check deposit (one-off) and the monthly plan ----
+    if (kind === "gold_deposit" || kind === "gold") {
+      const me = (await db.doc(`users/${user.uid}`).get()).data();
+      if (!me || me.suspended === true) return NextResponse.json({ error: "This account can't buy a badge." }, { status: 403 });
+      const req0 = (await db.doc(`badgeRequests/${user.uid}`).get()).data();
+      if (!req0 || !isGoldKind(req0.kind) || !isGoldTrack(req0.track)) {
+        return NextResponse.json({ error: "Apply for the gold badge first." }, { status: 409 });
+      }
+      const { kind: gKind, track } = req0;
+      const origin = (process.env.NEXT_PUBLIC_SITE_URL || req.nextUrl.origin).replace(/\/$/, "");
+      const reference = newReference();
+      if (kind === "gold_deposit") {
+        if (gKind !== "identity" || req0.status !== "awaiting_deposit") {
+          return NextResponse.json({ error: "No deposit is due for your application." }, { status: 409 });
+        }
+        const amountKobo = GOLD_PRICING[track as "personal" | "corporate"].identityDepositKobo;
+        const tx = await initializeTransaction({
+          email: user.email, amountKobo, reference, callbackUrl: `${origin}/booking/confirm`,
+          metadata: { kind, uid: user.uid },
+        });
+        const record: PaymentRecord = {
+          reference, kind: "gold_deposit", uid: user.uid, email: user.email, amountKobo,
+          status: "pending", publisherUid: user.uid, publisherUsername: "", commissionRate: 0,
+          gold: { kind: gKind, track }, createdAt: new Date().toISOString(),
+        };
+        await db.doc(`payments/${reference}`).set(record);
+        return NextResponse.json({ authorizationUrl: tx.authorization_url, reference });
+      }
+      if (req0.status !== "approved" && req0.status !== "active") {
+        return NextResponse.json({ error: "Your application hasn't been approved yet." }, { status: 409 });
+      }
+      const cur = (await db.doc(`goldSubscriptions/${user.uid}`).get()).data();
+      if (cur && cur.status === "active" && new Date(cur.currentPeriodEnd).getTime() > Date.now() - 3 * 86_400_000) {
+        return NextResponse.json({ error: "Your gold badge is already active." }, { status: 409 });
+      }
+      const { planCode, amountKobo } = await getGoldPlanCode(track);
+      const tx = await initializeTransaction({
+        plan: planCode, email: user.email, amountKobo, reference, callbackUrl: `${origin}/booking/confirm`,
+        metadata: { kind, uid: user.uid },
+      });
+      const record: PaymentRecord = {
+        reference, kind: "gold", uid: user.uid, email: user.email, amountKobo,
+        status: "pending", publisherUid: user.uid, publisherUsername: "", commissionRate: 0,
+        gold: { kind: gKind, track, planCode }, createdAt: new Date().toISOString(),
       };
       await db.doc(`payments/${reference}`).set(record);
       return NextResponse.json({ authorizationUrl: tx.authorization_url, reference });

@@ -21,6 +21,8 @@ export async function startCheckout(
     | { kind: "boost"; noteId: string; packageId: string }
     | { kind: "tier"; tier: "pro" | "business"; interval: "monthly" | "annually" }
     | { kind: "badge" }
+    | { kind: "gold_deposit" }
+    | { kind: "gold" }
     | { kind: "gift"; username: string; amountNaira: number; noteId?: string; message?: string; anonymous?: boolean }
 ): Promise<void> {
   let { res, json } = await post(user, body);

@@ -1,6 +1,7 @@
 import { getAdminDb } from "./firebase-admin";
 import { createPlan, disableSubscription, verifyTransaction } from "./paystack";
 import { TIERS, BADGE_PRICE_KOBO } from "./tiers";
+import { GOLD_PRICING, GoldTrack } from "./gold";
 import { sendEmail } from "./email";
 import type { AccountTier } from "./users";
 
@@ -69,6 +70,19 @@ export async function getBadgePlanCode(): Promise<{ planCode: string; amountKobo
   return { planCode: plan_code, amountKobo: BADGE_PRICE_KOBO };
 }
 
+// Gold badge monthly plan, one per track (same price on every tier).
+export async function getGoldPlanCode(track: GoldTrack): Promise<{ planCode: string; amountKobo: number }> {
+  const amountKobo = GOLD_PRICING[track].monthlyKobo;
+  const ref = getAdminDb().doc(`platformPlans/gold_${track}_monthly`);
+  const cur = (await ref.get()).data();
+  if (cur?.planCode && cur.amountKobo === amountKobo) return { planCode: cur.planCode, amountKobo };
+  const { plan_code } = await createPlan({ name: `#NotesApp Gold badge ${track} monthly`, amountKobo, interval: "monthly" });
+  await ref.set({ tier: "gold", track, interval: "monthly", planCode: plan_code, amountKobo, createdAt: new Date().toISOString() });
+  return { planCode: plan_code, amountKobo };
+}
+
+export type GoldSubscription = BadgeSubscription & { kind: "endorsement" | "identity"; track: GoldTrack };
+
 // Recurring charge on a platform plan. Returns true if it was one of ours.
 export async function fulfillTierRenewal(data: {
   reference: string;
@@ -81,14 +95,16 @@ export async function fulfillTierRenewal(data: {
   const db = getAdminDb();
   const planSnap = await db.collection("platformPlans").where("planCode", "==", planCode).limit(1).get();
   if (planSnap.empty) return false;
-  const isBadge = planSnap.docs[0].data().tier === "badge";
+  const planTier = planSnap.docs[0].data().tier;
+  const isGold = planTier === "gold";
+  const isBadge = planTier === "badge" || isGold;
 
   const seen = db.doc(`tierCharges/${data.reference}`);
   if ((await seen.get()).exists) return true;
   const tx = await verifyTransaction(data.reference);
   if (tx.status !== "success") return true;
 
-  const subs = await db.collection(isBadge ? "badgeSubscriptions" : "tierSubscriptions").where("planCode", "==", planCode).where("email", "==", email).limit(1).get();
+  const subs = await db.collection(isGold ? "goldSubscriptions" : isBadge ? "badgeSubscriptions" : "tierSubscriptions").where("planCode", "==", planCode).where("email", "==", email).limit(1).get();
   if (subs.empty) return true;
   const doc = subs.docs[0];
   if (isBadge) {
@@ -96,7 +112,7 @@ export async function fulfillTierRenewal(data: {
     const end = periodEndFrom(Math.max(Date.now(), new Date(b.currentPeriodEnd).getTime()), "monthly");
     const bb = db.batch();
     bb.update(doc.ref, { status: "active", currentPeriodEnd: end });
-    bb.set(db.doc(`users/${b.uid}`), { badgeUntil: end }, { merge: true });
+    bb.set(db.doc(`users/${b.uid}`), isGold ? { goldUntil: end } : { badgeUntil: end }, { merge: true });
     bb.set(seen, { reference: data.reference, uid: b.uid, amountKobo: tx.amount, at: new Date().toISOString() });
     await bb.commit();
     return true;
@@ -113,7 +129,7 @@ export async function fulfillTierRenewal(data: {
 
 export async function markTierCancelled(planCode: string, email: string): Promise<void> {
   const db = getAdminDb();
-  for (const col of ["tierSubscriptions", "badgeSubscriptions"]) {
+  for (const col of ["tierSubscriptions", "badgeSubscriptions", "goldSubscriptions"]) {
     const subs = await db.collection(col).where("planCode", "==", planCode).where("email", "==", email).get();
     await Promise.all(subs.docs.map((d) => (d.data().status === "active" ? d.ref.update({ status: "cancelled" }) : null)));
   }
@@ -159,6 +175,8 @@ export async function expireTiers(): Promise<number> {
   // Lapsed badge add-ons just get marked (badgeUntil already stops the ✔).
   const badges = await db.collection("badgeSubscriptions").where("currentPeriodEnd", "<", cutoff).get();
   await Promise.all(badges.docs.map((d) => (d.data().status !== "expired" ? d.ref.update({ status: "expired" }) : null)));
+  const golds = await db.collection("goldSubscriptions").where("currentPeriodEnd", "<", cutoff).get();
+  await Promise.all(golds.docs.map((d) => (d.data().status !== "expired" ? d.ref.update({ status: "expired" }) : null)));
   return n;
 }
 

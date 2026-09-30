@@ -53,6 +53,7 @@ test("money collections are never client-writable", async () => {
     ["tierSubscriptions/alice", { uid: "alice", tier: "business", status: "active" }],
     ["platformPlans/pro_monthly", { planCode: "x" }],
     ["badgeSubscriptions/alice", { uid: "alice", status: "active" }],
+    ["goldSubscriptions/alice", { uid: "alice", status: "active" }],
     ["tierCharges/x", {}],
     ["boosts/new", { publisherUid: "alice", impressionsPurchased: 999999 }],
     ["gifts/new", { toUid: "alice", fromUid: "alice" }],
@@ -154,4 +155,58 @@ test("a publisher can edit and delete their own entries, not other people's", as
   await assertFails(updateDoc(doc(as("pub"), "notes/theirs"), { title: "hijacked" }));
   await assertFails(deleteDoc(doc(as("pub"), "notes/theirs")));
   await assertSucceeds(deleteDoc(doc(as("pub"), "notes/mine")));
+});
+
+test("draft notes are private to their author and admins", async () => {
+  await env.withSecurityRulesDisabled(async (ctx) => {
+    const adminDb = ctx.firestore();
+    await setDoc(doc(adminDb, "notes/draft1"), { authorUid: "pub", title: "t", status: "draft" });
+    await setDoc(doc(adminDb, "notes/live1"), { authorUid: "pub", title: "t", status: "published" });
+  });
+  await assertSucceeds(getDoc(doc(anon(), "notes/live1")));
+  await assertFails(getDoc(doc(anon(), "notes/draft1")));
+  await assertFails(getDoc(doc(as("alice"), "notes/draft1")));
+  await assertSucceeds(getDoc(doc(as("pub"), "notes/draft1")));
+  await assertSucceeds(getDoc(doc(as("boss", { admin: true }), "notes/draft1")));
+});
+
+test("suspension details are private; the member can only file an appeal", async () => {
+  await env.withSecurityRulesDisabled(async (ctx) => {
+    const d = ctx.firestore();
+    await setDoc(doc(d, "users/alice"), { uid: "alice", username: "alice", suspended: true, accountTier: "standard", role: "reader" });
+    await setDoc(doc(d, "suspensions/alice"), { reason: "spam", suspendedAt: "x", suspendedByUid: "boss", appealStatus: "none" });
+  });
+  await assertFails(getDoc(doc(anon(), "suspensions/alice")));
+  await assertFails(getDoc(doc(as("pub"), "suspensions/alice")));
+  await assertSucceeds(getDoc(doc(as("alice"), "suspensions/alice")));
+  await assertSucceeds(getDoc(doc(as("boss", { admin: true }), "suspensions/alice")));
+  await assertFails(updateDoc(doc(as("alice"), "suspensions/alice"), { reason: "none" }));
+  await assertSucceeds(updateDoc(doc(as("alice"), "suspensions/alice"), { appealStatus: "pending", appealText: "sorry", appealedAt: "y" }));
+  await assertFails(updateDoc(doc(as("alice"), "users/alice"), { suspension: { reason: "x" } }));
+  await assertSucceeds(updateDoc(doc(as("boss", { admin: true }), "suspensions/alice"), { appealStatus: "rejected" }));
+});
+
+test("publishers manage only their own valid store items", async () => {
+  const item = { ownerUid: "pub", title: "Book", price: "₦1,000", link: "https://selar.com/x", image: "/x.png", cta: "Buy" };
+  await assertSucceeds(setDoc(doc(as("pub"), "storeItems/i1"), item));
+  await assertSucceeds(getDoc(doc(anon(), "storeItems/i1")));
+  await assertFails(setDoc(doc(as("alice"), "storeItems/i2"), { ...item, ownerUid: "alice" })); // standard tier can't publish
+  await assertFails(setDoc(doc(as("pub"), "storeItems/i3"), { ...item, ownerUid: "alice" }));
+  await assertFails(setDoc(doc(as("pub"), "storeItems/i4"), { ...item, link: "javascript:alert(1)" }));
+  await assertFails(setDoc(doc(as("pub"), "storeItems/i5"), { ...item, extra: "x" }));
+  await assertFails(updateDoc(doc(as("alice"), "storeItems/i1"), { title: "hijack" }));
+  await assertFails(deleteDoc(doc(as("alice"), "storeItems/i1")));
+  await assertSucceeds(deleteDoc(doc(as("pub"), "storeItems/i1")));
+});
+
+test("badge endorsement requests are private and server-created", async () => {
+  await env.withSecurityRulesDisabled(async (ctx) => {
+    await setDoc(doc(ctx.firestore(), "badgeRequests/alice"), { status: "pending", message: "hello there", requestedAt: "x" });
+  });
+  await assertFails(getDoc(doc(anon(), "badgeRequests/alice")));
+  await assertFails(getDoc(doc(as("pub"), "badgeRequests/alice")));
+  await assertSucceeds(getDoc(doc(as("alice"), "badgeRequests/alice")));
+  await assertFails(setDoc(doc(as("pub"), "badgeRequests/pub"), { status: "approved" }));
+  await assertFails(updateDoc(doc(as("alice"), "badgeRequests/alice"), { status: "approved" }));
+  await assertSucceeds(updateDoc(doc(as("boss", { admin: true }), "badgeRequests/alice"), { status: "approved" }));
 });

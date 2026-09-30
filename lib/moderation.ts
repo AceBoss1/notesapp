@@ -1,5 +1,6 @@
-import { doc, updateDoc, deleteField, getDocs, collection, query, where } from "firebase/firestore";
+import { doc, updateDoc, setDoc, getDoc, deleteField, getDocs, collection, query, where } from "firebase/firestore";
 import type { GoldBadgeKind } from "./badges";
+import type { GoldRequestStatus, GoldTrack } from "./gold";
 import { db } from "./firebase";
 import { UserRole, Suspension, AccountTier } from "./users";
 import {
@@ -11,6 +12,9 @@ import {
 } from "./notifications";
 
 const USERS = "users";
+// Reason / appeal text live in suspensions/{uid} (readable only by the
+// member and admins). users/{uid} is public and keeps just `suspended`.
+const SUSPENSIONS = "suspensions";
 
 const ROLE_LABEL: Record<UserRole, string> = {
   admin: "Admin",
@@ -35,7 +39,8 @@ export async function suspendUser(
     suspendedByUid,
     appealStatus: "none",
   };
-  await updateDoc(doc(db, USERS, uid), { suspended: true, suspension });
+  await setDoc(doc(db, SUSPENSIONS, uid), suspension);
+  await updateDoc(doc(db, USERS, uid), { suspended: true });
   notifySuspended(uid, username, reason).catch((err) =>
     console.warn("notifySuspended failed:", err)
   );
@@ -52,12 +57,12 @@ export async function unsuspendUser(
   // an appeal in the member's favor (upheld=true). Either way the
   // account goes back to active; only the recorded appealStatus
   // differs, for the history.
-  await updateDoc(doc(db, USERS, uid), {
-    suspended: false,
-    "suspension.appealStatus": upheld ? "upheld" : "none",
-    "suspension.resolvedAt": new Date().toISOString(),
-    "suspension.resolvedByUid": resolvedByUid,
+  await updateDoc(doc(db, SUSPENSIONS, uid), {
+    appealStatus: upheld ? "upheld" : "none",
+    resolvedAt: new Date().toISOString(),
+    resolvedByUid,
   });
+  await updateDoc(doc(db, USERS, uid), { suspended: false });
   notifyUnsuspended(uid, username, upheld).catch((err) =>
     console.warn("notifyUnsuspended failed:", err)
   );
@@ -65,10 +70,10 @@ export async function unsuspendUser(
 
 export async function rejectAppeal(uid: string, username: string, resolvedByUid: string): Promise<void> {
   // Status-quo remains: still suspended, appeal recorded as rejected.
-  await updateDoc(doc(db, USERS, uid), {
-    "suspension.appealStatus": "rejected",
-    "suspension.resolvedAt": new Date().toISOString(),
-    "suspension.resolvedByUid": resolvedByUid,
+  await updateDoc(doc(db, SUSPENSIONS, uid), {
+    appealStatus: "rejected",
+    resolvedAt: new Date().toISOString(),
+    resolvedByUid,
   });
   notifyAppealRejected(uid, username).catch((err) =>
     console.warn("notifyAppealRejected failed:", err)
@@ -103,6 +108,43 @@ export async function setGoldBadge(uid: string, kind: GoldBadgeKind | null, note
   });
 }
 
+// Endorsement applications live in the private badgeRequests/{uid}
+// (member + admins read; the server route writes new ones).
+export type BadgeRequest = {
+  status: GoldRequestStatus;
+  kind?: GoldBadgeKind; // absent on early endorsement-only requests
+  track?: GoldTrack;
+  message: string;
+  requestedAt: string;
+  depositPaidAt?: string;
+  resolvedAt?: string;
+  resolvedByUid?: string;
+};
+
+export async function getBadgeRequest(uid: string): Promise<BadgeRequest | null> {
+  try {
+    const snap = await getDoc(doc(db, "badgeRequests", uid));
+    return snap.exists() ? (snap.data() as BadgeRequest) : null;
+  } catch {
+    return null;
+  }
+}
+
+export async function getAllBadgeRequests(): Promise<Record<string, BadgeRequest>> {
+  const snap = await getDocs(collection(db, "badgeRequests"));
+  return Object.fromEntries(snap.docs.map((d) => [d.id, d.data() as BadgeRequest]));
+}
+
+// Admin-only. Approving does NOT grant the badge: the member then subscribes
+// (gold pricing) and the badge switches on when that payment lands.
+export async function resolveBadgeRequest(uid: string, adminUid: string, approve: boolean): Promise<void> {
+  await updateDoc(doc(db, "badgeRequests", uid), {
+    status: approve ? "approved" : "rejected",
+    resolvedAt: new Date().toISOString(),
+    resolvedByUid: adminUid,
+  });
+}
+
 export async function updateUserRole(uid: string, username: string, role: UserRole): Promise<void> {
   await updateDoc(doc(db, USERS, uid), { role });
   notifyRoleChanged(uid, username, ROLE_LABEL[role]).catch((err) =>
@@ -115,11 +157,27 @@ export async function updateUserRole(uid: string, username: string, role: UserRo
 // appealText/appealedAt; every other field on this update is rejected
 // by the rule if present, so this function only ever sends those three.
 export async function submitAppeal(uid: string, appealText: string): Promise<void> {
-  await updateDoc(doc(db, USERS, uid), {
-    "suspension.appealStatus": "pending",
-    "suspension.appealText": appealText,
-    "suspension.appealedAt": new Date().toISOString(),
+  await updateDoc(doc(db, SUSPENSIONS, uid), {
+    appealStatus: "pending",
+    appealText,
+    appealedAt: new Date().toISOString(),
   });
+}
+
+// The member's own suspension record (null if none / not readable).
+export async function getSuspension(uid: string): Promise<Suspension | null> {
+  try {
+    const snap = await getDoc(doc(db, SUSPENSIONS, uid));
+    return snap.exists() ? (snap.data() as Suspension) : null;
+  } catch {
+    return null;
+  }
+}
+
+// Admin-only: every suspension record, keyed by uid.
+export async function getAllSuspensions(): Promise<Record<string, Suspension>> {
+  const snap = await getDocs(collection(db, SUSPENSIONS));
+  return Object.fromEntries(snap.docs.map((d) => [d.id, d.data() as Suspension]));
 }
 
 // Used by Comments.tsx to gate rendering — one query up front instead

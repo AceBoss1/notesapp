@@ -9,6 +9,7 @@ import { BADGE_PRICE_KOBO, badgeIncluded } from "@/lib/tiers";
 import { formatNaira } from "@/lib/booking-time";
 import { startCheckout } from "@/lib/checkout";
 import VerifiedBadge from "@/components/VerifiedBadge";
+import { GOLD_KIND_LIVE } from "@/lib/badges";
 
 // Verified-badge status + buy/cancel. Free on Business/Enterprise,
 // ₦999/month add-on for everyone else. `pitch` = the pricing-page variant.
@@ -114,8 +115,8 @@ export default function BadgeCard({ pitch = false }: { pitch?: boolean }) {
       <p className="mt-2 flex items-center gap-1.5 text-[11px] text-slate">
         <VerifiedBadge size={12} level="gold" />
         <span>
-          <strong className="text-ink">Gold badge — coming soon:</strong> a separate badge for accounts whose identity we have checked or that
-          #NotesApp endorses. <a href="/contact" className="text-crimson underline">Register your interest</a>. <a href="/badges" className="text-crimson underline">How badges work</a>.
+          <strong className="text-ink">Gold badge:</strong> a separate badge for accounts #NotesApp endorses (apply on the badges page; paid monthly, same on every plan);
+          identity-checked gold is {GOLD_KIND_LIVE.identity ? "open too" : "coming soon"}. <a href="/badges" className="text-crimson underline">How badges work</a>.
         </span>
       </p>
     </div>

@@ -13,7 +13,7 @@ import { periodEndFrom, cancelBadgeIfCovered } from "./tier-billing";
 
 export type PaymentRecord = {
   reference: string;
-  kind: "booking" | "subscription" | "boost" | "gift" | "tier" | "badge";
+  kind: "booking" | "subscription" | "boost" | "gift" | "tier" | "badge" | "gold_deposit" | "gold";
   uid: string; // the payer
   email: string;
   amountKobo: number;
@@ -26,6 +26,7 @@ export type PaymentRecord = {
   boost?: { noteId: string; packageId: string };
   tier?: { tier: "pro" | "business"; interval: "monthly" | "annually"; planCode: string };
   badge?: { planCode: string };
+  gold?: { kind: "endorsement" | "identity"; track: "personal" | "corporate"; planCode?: string };
   gift?: { username: string; noteId?: string; noteSlug?: string; message: string; anonymous: boolean; senderName: string };
   createdAt: string;
   paidAt?: string;
@@ -179,6 +180,25 @@ export async function fulfillPayment(reference: string): Promise<PaymentRecord> 
         subscribedAt: now,
         currentPeriodEnd: end,
       });
+    } else if (current.kind === "gold_deposit" && current.gold) {
+      // Non-refundable identity-check deposit: platform revenue, moves the
+      // application into admin review.
+      t.set(db.doc(`badgeRequests/${current.uid}`), { status: "pending", depositPaidAt: now, depositReference: reference }, { merge: true });
+    } else if (current.kind === "gold" && current.gold?.planCode) {
+      const g = current.gold;
+      const end = periodEndFrom(Date.now(), "monthly");
+      t.set(db.doc(`users/${current.uid}`), { goldBadge: { kind: g.kind, track: g.track, grantedAt: now }, goldUntil: end }, { merge: true });
+      t.set(db.doc(`goldSubscriptions/${current.uid}`), {
+        uid: current.uid,
+        email: current.email,
+        planCode: g.planCode,
+        kind: g.kind,
+        track: g.track,
+        status: "active",
+        subscribedAt: now,
+        currentPeriodEnd: end,
+      });
+      t.set(db.doc(`badgeRequests/${current.uid}`), { status: "active" }, { merge: true });
     } else if (current.kind === "gift" && current.gift) {
       t.set(db.doc(`gifts/${reference}`), {
         reference,
@@ -300,6 +320,22 @@ async function notifyPaid(p: PaymentRecord) {
       to: p.email,
       subject: "Your #NotesApp verified badge is active",
       text: `The ✔ now shows next to your name (${formatNaira(p.amountKobo)}/month, renews automatically). Cancel any time under Edit profile — you keep the badge until the period ends.\nReference: ${p.reference}\n\n#NotesApp`,
+    });
+    return;
+  }
+  if (p.kind === "gold_deposit") {
+    await sendEmail({
+      to: p.email,
+      subject: "We received your #NotesApp identity-check deposit",
+      text: `Thanks — your ${formatNaira(p.amountKobo)} deposit (non-refundable; it covers the third-party check) is received and your gold badge application is now in review. We'll update the status on the badges page.\nReference: ${p.reference}\n\n#NotesApp`,
+    });
+    return;
+  }
+  if (p.kind === "gold") {
+    await sendEmail({
+      to: p.email,
+      subject: "Your #NotesApp gold badge is active",
+      text: `The gold ✔ now shows next to your name (${formatNaira(p.amountKobo)}/month, renews automatically). Cancel any time on the badges page — you keep it until the period ends.\nReference: ${p.reference}\n\n#NotesApp`,
     });
     return;
   }

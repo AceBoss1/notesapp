@@ -76,8 +76,12 @@ service cloud.firestore {
 
     match /notes/{noteId} {
 
-      // Notes are publicly readable.
-      allow read: if true;
+      // Published notes are public. Drafts are readable only by their
+      // author and admins (queries must filter on status == 'published'
+      // or authorUid == the caller's uid to be allowed).
+      allow read: if resource.data.status == 'published'
+        || isAdmin()
+        || (isSignedIn() && resource.data.authorUid == request.auth.uid);
 
       // Admins can create anything.
       // Writers can create only notes authored by themselves.
@@ -213,8 +217,7 @@ service cloud.firestore {
       // Ordinary users may edit only ordinary profile fields.
       // They cannot modify role, status, verification or suspension.
       //
-      // A suspended user can submit an appeal by changing only the
-      // suspension object and setting appealStatus to "pending".
+      // (Suspension reason/appeal live in the private suspensions/{uid}.)
       allow update: if
 
         // --------------------------------------------------------
@@ -236,30 +239,47 @@ service cloud.firestore {
                 'avatar',
                 'social'
               ])
-        )
-
-        // --------------------------------------------------------
-        // 3. SUSPENDED USER APPEAL
-        // --------------------------------------------------------
-        || (
-          isSignedIn()
-          && request.auth.uid == uid
-          && resource.data.suspended == true
-          && request.resource.data.diff(resource.data)
-              .affectedKeys()
-              .hasOnly(['suspension'])
-          && request.resource.data.suspended == resource.data.suspended
-          && request.resource.data.suspension.appealStatus == 'pending'
-          && request.resource.data.suspension.reason
-              == resource.data.suspension.reason
-          && request.resource.data.suspension.suspendedAt
-              == resource.data.suspension.suspendedAt
-          && request.resource.data.suspension.suspendedByUid
-              == resource.data.suspension.suspendedByUid
         );
 
       // User deletion is disabled.
       allow delete: if false;
+    }
+
+
+    // ============================================================
+    // SUSPENSIONS (private: the member and admins only)
+    // ============================================================
+
+    match /suspensions/{uid} {
+      allow read: if isAdmin() || (isSignedIn() && request.auth.uid == uid);
+      allow create, delete: if isAdmin();
+      allow update: if isAdmin()
+        // A suspended member can only file an appeal.
+        || (
+          isSignedIn()
+          && request.auth.uid == uid
+          && get(/databases/$(database)/documents/users/$(uid)).data.suspended == true
+          && request.resource.data.diff(resource.data).affectedKeys()
+              .hasOnly(['appealStatus', 'appealText', 'appealedAt'])
+          && request.resource.data.appealStatus == 'pending'
+        );
+    }
+
+
+    // ============================================================
+    // GOLD-BADGE ENDORSEMENT REQUESTS (private; created by the server)
+    // ============================================================
+
+    // Paid gold-badge subscription records — owner + admins read; server writes.
+    match /goldSubscriptions/{uid} {
+      allow read: if isAdmin() || (isSignedIn() && request.auth.uid == uid);
+      allow write: if false;
+    }
+
+    match /badgeRequests/{uid} {
+      allow read: if isAdmin() || (isSignedIn() && request.auth.uid == uid);
+      allow update: if isAdmin();
+      allow create, delete: if false;
     }
 
 
@@ -296,6 +316,37 @@ service cloud.firestore {
 
       // Only admins can change site-wide settings.
       allow write: if isAdmin();
+    }
+
+
+    // ============================================================
+    // STORE ITEMS — a publisher's own storefront listings (external
+    // links; no money moves through NotesApp here)
+    // ============================================================
+
+    function validStoreItem(d) {
+      return d.keys().hasOnly(['ownerUid', 'title', 'subtitle', 'price', 'badge', 'link', 'image', 'cta', 'createdAt', 'updatedAt'])
+        && d.keys().hasAll(['ownerUid', 'title', 'price', 'link', 'image', 'cta'])
+        && d.title is string && d.title.size() > 0 && d.title.size() <= 120
+        && (!('subtitle' in d) || (d.subtitle is string && d.subtitle.size() <= 400))
+        && d.price is string && d.price.size() <= 24
+        && (!('badge' in d) || (d.badge is string && d.badge.size() <= 24))
+        && d.link is string && d.link.matches('https://.*') && d.link.size() <= 500
+        && d.image is string && d.image.size() <= 500
+        && d.cta is string && d.cta.size() > 0 && d.cta.size() <= 30;
+    }
+
+    match /storeItems/{itemId} {
+      allow read: if true;
+      allow create: if isAdmin()
+        || (isPublisher() && request.resource.data.ownerUid == request.auth.uid
+            && validStoreItem(request.resource.data));
+      allow update: if isAdmin()
+        || (isPublisher() && resource.data.ownerUid == request.auth.uid
+            && request.resource.data.ownerUid == request.auth.uid
+            && validStoreItem(request.resource.data));
+      allow delete: if isAdmin()
+        || (isSignedIn() && resource.data.ownerUid == request.auth.uid);
     }
 
 
