@@ -1,5 +1,6 @@
 import { doc, updateDoc, setDoc, getDoc, deleteField, getDocs, collection, query, where } from "firebase/firestore";
 import type { GoldBadgeKind } from "./badges";
+import type { GoldRequestStatus, GoldTrack } from "./gold";
 import { db } from "./firebase";
 import { UserRole, Suspension, AccountTier } from "./users";
 import {
@@ -109,7 +110,16 @@ export async function setGoldBadge(uid: string, kind: GoldBadgeKind | null, note
 
 // Endorsement applications live in the private badgeRequests/{uid}
 // (member + admins read; the server route writes new ones).
-export type BadgeRequest = { status: "pending" | "approved" | "rejected"; message: string; requestedAt: string; resolvedAt?: string; resolvedByUid?: string };
+export type BadgeRequest = {
+  status: GoldRequestStatus;
+  kind?: GoldBadgeKind; // absent on early endorsement-only requests
+  track?: GoldTrack;
+  message: string;
+  requestedAt: string;
+  depositPaidAt?: string;
+  resolvedAt?: string;
+  resolvedByUid?: string;
+};
 
 export async function getBadgeRequest(uid: string): Promise<BadgeRequest | null> {
   try {
@@ -125,9 +135,9 @@ export async function getAllBadgeRequests(): Promise<Record<string, BadgeRequest
   return Object.fromEntries(snap.docs.map((d) => [d.id, d.data() as BadgeRequest]));
 }
 
-// Admin-only: approving grants the gold endorsement badge.
+// Admin-only. Approving does NOT grant the badge: the member then subscribes
+// (gold pricing) and the badge switches on when that payment lands.
 export async function resolveBadgeRequest(uid: string, adminUid: string, approve: boolean): Promise<void> {
-  if (approve) await setGoldBadge(uid, "endorsement");
   await updateDoc(doc(db, "badgeRequests", uid), {
     status: approve ? "approved" : "rejected",
     resolvedAt: new Date().toISOString(),

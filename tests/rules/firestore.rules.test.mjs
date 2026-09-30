@@ -53,6 +53,7 @@ test("money collections are never client-writable", async () => {
     ["tierSubscriptions/alice", { uid: "alice", tier: "business", status: "active" }],
     ["platformPlans/pro_monthly", { planCode: "x" }],
     ["badgeSubscriptions/alice", { uid: "alice", status: "active" }],
+    ["goldSubscriptions/alice", { uid: "alice", status: "active" }],
     ["tierCharges/x", {}],
     ["boosts/new", { publisherUid: "alice", impressionsPurchased: 999999 }],
     ["gifts/new", { toUid: "alice", fromUid: "alice" }],

@@ -1390,12 +1390,21 @@ if re-run (don't). `consent` on user docs is still public (version + timestamp o
   the `externalStoreAllowed` tier flag in `lib/tiers.ts` no longer gates listings
   (items are outbound links; NotesApp takes no payment). Founder catalogues in
   `lib/store.ts` still show first.
-- **Gold badge launch (endorsement only).** `GOLD_BADGE_LIVE=true`, but
-  `GOLD_KIND_LIVE` in `lib/badges.ts` shows only `endorsement`; `identity` stays
-  hidden/"coming soon" until a KYC vendor is added (when manual review volume
-  justifies it). Members apply on `/badges` (text + links, **no ID documents**
-  collected → `POST /api/badge-request` → private `badgeRequests/{uid}`); admins
-  Endorse/Decline in `/admin/users`. Redeploy `firestore.rules`.
+- **Gold badge — paid (same price on every plan tier).** `lib/gold.ts`:
+  Personal ₦1,999/mo, Corporate ₦2,999/mo; identity check adds a
+  **non-refundable** deposit (₦999 personal / ₦1,999 corporate) to cover the
+  third-party check (Dojah: NIN + liveness / CAC lookup, roughly ₦550–₦900 /
+  ₦550–₦700 per check). Flow (`badgeRequests/{uid}` status):
+  endorsement `pending → approved → active`; identity `awaiting_deposit →
+  pending → approved → active`. Members apply on `/badges` (text + links, **no ID
+  documents**), admins Approve/Decline in `/admin/users`, approved members pay
+  via Paystack (`gold` kind, monthly plan per track, renewals through the
+  existing webhook, `goldUntil` lapses the badge, `goldSubscriptions/{uid}`).
+  `GOLD_KIND_LIVE` in `lib/badges.ts`: endorsement **on**, identity **off** —
+  the deposit flow is built but not exposed, and the Dojah call itself is **not
+  integrated yet** (admin would record the result by hand until then; wire it
+  before flipping identity on). Admin dropdown grants still work as free comps.
+  Redeploy `firestore.rules`.
 - Header now shows the member's avatar (links to their profile) after the bell.
 
 ## Member journey — what people see and where they change things

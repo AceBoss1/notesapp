@@ -114,7 +114,7 @@ export default function BadgeCard({ pitch = false }: { pitch?: boolean }) {
       <p className="mt-2 flex items-center gap-1.5 text-[11px] text-slate">
         <VerifiedBadge size={12} level="gold" />
         <span>
-          <strong className="text-ink">Gold badge:</strong> a separate badge for accounts #NotesApp endorses (apply on the badges page);
+          <strong className="text-ink">Gold badge:</strong> a separate badge for accounts #NotesApp endorses (apply on the badges page; paid monthly, same on every plan);
           identity-checked gold is coming soon. <a href="/badges" className="text-crimson underline">How badges work</a>.
         </span>
       </p>

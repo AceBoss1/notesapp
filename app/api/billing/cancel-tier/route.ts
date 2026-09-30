@@ -16,7 +16,7 @@ export async function POST(req: NextRequest) {
     if (limited) return limited;
 
     const body = await req.json().catch(() => ({}));
-    const ref = getAdminDb().doc(`${body.which === "badge" ? "badgeSubscriptions" : "tierSubscriptions"}/${user.uid}`);
+    const ref = getAdminDb().doc(`${body.which === "gold" ? "goldSubscriptions" : body.which === "badge" ? "badgeSubscriptions" : "tierSubscriptions"}/${user.uid}`);
     const sub = (await ref.get()).data() as TierSubscription | BadgeSubscription | undefined;
     if (!sub || sub.status !== "active") return NextResponse.json({ error: "You don't have an active plan to cancel." }, { status: 404 });
 

@@ -205,10 +205,10 @@ export default function AdminUsersPage() {
                       <p className="text-xs text-slate mt-0.5">{emails[u.uid] || "—"}</p>
                     {badgeRequests[u.uid]?.status === "pending" && (
                       <div className="mt-2 border border-amber-200 bg-amber-50 p-2 text-xs text-ink">
-                        <p className="font-semibold">Applied for the gold endorsement badge</p>
+                        <p className="font-semibold">Applied for the gold badge ({(badgeRequests[u.uid].kind ?? "endorsement")}, {(badgeRequests[u.uid].track ?? "personal")})</p>
                         <p className="mt-0.5 whitespace-pre-line text-slate">“{badgeRequests[u.uid].message}”</p>
                         <div className="mt-1.5 flex gap-2">
-                          <button disabled={busyUid === u.uid} onClick={() => handleBadgeRequest(u.uid, true)} className="rounded-full border border-rule px-3 py-0.5 hover:border-crimson hover:text-crimson disabled:opacity-40">Endorse</button>
+                          <button disabled={busyUid === u.uid} onClick={() => handleBadgeRequest(u.uid, true)} className="rounded-full border border-rule px-3 py-0.5 hover:border-crimson hover:text-crimson disabled:opacity-40">Approve (they then pay)</button>
                           <button disabled={busyUid === u.uid} onClick={() => handleBadgeRequest(u.uid, false)} className="rounded-full border border-rule px-3 py-0.5 hover:border-crimson hover:text-crimson disabled:opacity-40">Decline</button>
                         </div>
                       </div>

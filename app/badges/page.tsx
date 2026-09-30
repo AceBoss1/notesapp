@@ -3,7 +3,8 @@ import type { Metadata } from "next";
 import VerifiedBadge from "@/components/VerifiedBadge";
 import TeamBadge from "@/components/TeamBadge";
 import BadgeCard from "@/components/BadgeCard";
-import EndorsementRequest from "@/components/EndorsementRequest";
+import GoldBadgeApplication from "@/components/GoldBadgeApplication";
+import { GOLD_PRICING } from "@/lib/gold";
 import { BADGE_PRICE_KOBO, TIERS, badgeIncluded } from "@/lib/tiers";
 import { formatNaira } from "@/lib/booking-time";
 
@@ -81,7 +82,7 @@ export default function BadgesPage() {
             An account that #NotesApp has reviewed and endorses — a real person or organisation with a public track record.
             Identity-checked gold (ID, business registration or professional credential) is coming soon.
           </p>
-          <p className="mt-3 font-mono text-xs uppercase tracking-eyebrow text-crimson-bright">Endorsement: apply now · Identity: coming soon</p>
+          <p className="mt-3 font-mono text-xs uppercase tracking-eyebrow text-crimson-bright">Personal {formatNaira(GOLD_PRICING.personal.monthlyKobo)}/mo · Corporate {formatNaira(GOLD_PRICING.corporate.monthlyKobo)}/mo</p>
         </div>
       </div>
 
@@ -101,7 +102,7 @@ export default function BadgesPage() {
                 <td className="px-4 py-3 text-slate">
                   {badgeIncluded(t.tier) ? "Included free" : `Add-on: ${formatNaira(BADGE_PRICE_KOBO)}/month`}
                 </td>
-                <td className="px-4 py-3 text-slate">Endorsement: by application · Identity: coming soon</td>
+                <td className="px-4 py-3 text-slate">{formatNaira(GOLD_PRICING.personal.monthlyKobo)}/mo personal · {formatNaira(GOLD_PRICING.corporate.monthlyKobo)}/mo corporate — same on every plan</td>
               </tr>
             ))}
           </tbody>
@@ -116,7 +117,7 @@ export default function BadgesPage() {
         <BadgeCard pitch />
       </div>
 
-      <EndorsementRequest />
+      <GoldBadgeApplication />
 
       <div className="card mt-6 p-6">
         <p className="flex items-center gap-2 font-ui text-sm font-bold text-ink">
@@ -124,9 +125,11 @@ export default function BadgesPage() {
         </p>
         <p className="mt-2 text-sm text-slate">
           <strong className="text-ink">Endorsement is open.</strong> Apply below with a short description and links to your
-          public work; an admin reviews it by hand. We don&apos;t collect ID documents for endorsement. Identity-checked gold
-          (ID, business registration or professional credential) will follow once we add a verification partner — any fee
-          will be published here first. Want to be told?{" "}
+          public work; an admin reviews it by hand at no charge. If approved, gold is {formatNaira(GOLD_PRICING.personal.monthlyKobo)}/month
+          for individuals or {formatNaira(GOLD_PRICING.corporate.monthlyKobo)}/month for organisations, on every plan. We don&apos;t
+          collect ID documents. <strong className="text-ink">Identity-checked gold is coming soon</strong>: a one-off,
+          non-refundable verification deposit ({formatNaira(GOLD_PRICING.personal.identityDepositKobo)} personal /{" "}
+          {formatNaira(GOLD_PRICING.corporate.identityDepositKobo)} corporate) covers the third-party check, then the same monthly price applies. Want to be told?{" "}
           <Link href="/contact" className="text-crimson underline underline-offset-2">Register your interest</Link>.
         </p>
       </div>
