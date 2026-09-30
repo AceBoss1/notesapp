@@ -133,6 +133,7 @@ test("plan records: owner reads their own, others cannot; users can't self-upgra
 test("users can't grant themselves the verified badge or extend it", async () => {
   await assertFails(updateDoc(doc(as("alice"), "users/alice"), { badgeUntil: "2099-01-01T00:00:00.000Z" }));
   await assertFails(updateDoc(doc(as("alice"), "users/alice"), { verified: true }));
+  await assertFails(updateDoc(doc(as("alice"), "users/alice"), { tierRequest: { status: "approved", message: "x", requestedAt: "x" } }));
   await assertFails(updateDoc(doc(as("alice"), "users/alice"), { goldBadge: { kind: "identity", grantedAt: "x" } }));
   await assertSucceeds(updateDoc(doc(as("boss", { admin: true }), "users/alice"), { goldBadge: { kind: "endorsement", grantedAt: "x" } }));
 });

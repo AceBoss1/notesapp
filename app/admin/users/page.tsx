@@ -5,7 +5,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { useAdminAuth } from "@/lib/useAdminAuth";
 import { getAllUsersForAdmin, UserProfile, UserRole, AccountTier } from "@/lib/users";
-import { suspendUser, unsuspendUser, rejectAppeal, updateUserRole, updateUserTier, setGoldBadge } from "@/lib/moderation";
+import { suspendUser, unsuspendUser, rejectAppeal, updateUserRole, updateUserTier, setGoldBadge, resolveTierRequest } from "@/lib/moderation";
 import { GOLD_BADGE_LIVE, GOLD_KIND_LABEL, GoldBadgeKind } from "@/lib/badges";
 import { TIERS } from "@/lib/tiers";
 import { ADMIN_PROFILES } from "@/lib/admin";
@@ -91,6 +91,17 @@ export default function AdminUsersPage() {
     }
   }
 
+  async function handleTierRequest(u: UserProfile, approve: boolean) {
+    if (!user) return;
+    setBusyUid(u.uid);
+    try {
+      await resolveTierRequest(u.uid, u.username, user.uid, approve);
+      reload();
+    } finally {
+      setBusyUid(null);
+    }
+  }
+
   async function handleGoldChange(uid: string, value: string) {
     setBusyUid(uid);
     try {
@@ -125,7 +136,7 @@ export default function AdminUsersPage() {
     <section className="mx-auto max-w-4xl px-4 sm:px-6 lg:px-8 py-14">
       <Link
         href="/admin"
-        className="font-ui text-xs font-semibold uppercase tracking-wideish text-crimson-bright"
+        className="block font-ui text-xs font-semibold uppercase tracking-wideish text-crimson-bright"
       >
         ← Dashboard
       </Link>
@@ -177,6 +188,16 @@ export default function AdminUsersPage() {
                         </span>
                       </p>
                       <p className="text-xs text-slate mt-0.5">{emails[u.uid] || "—"}</p>
+                    {u.tierRequest?.status === "pending" && (
+                      <div className="mt-2 border border-amber-200 bg-amber-50 p-2 text-xs text-ink">
+                        <p className="font-semibold">Applied for Free Basic</p>
+                        <p className="mt-0.5 text-slate">“{u.tierRequest.message}”</p>
+                        <div className="mt-1.5 flex gap-2">
+                          <button disabled={busyUid === u.uid} onClick={() => handleTierRequest(u, true)} className="rounded-full border border-rule px-3 py-0.5 hover:border-crimson hover:text-crimson disabled:opacity-40">Approve</button>
+                          <button disabled={busyUid === u.uid} onClick={() => handleTierRequest(u, false)} className="rounded-full border border-rule px-3 py-0.5 hover:border-crimson hover:text-crimson disabled:opacity-40">Reject</button>
+                        </div>
+                      </div>
+                    )}
                     </div>
                   </Link>
 

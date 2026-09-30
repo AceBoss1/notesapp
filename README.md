@@ -1367,3 +1367,25 @@ Users screen fetches emails through the admin-only `/api/admin/user-emails`.
 Also still public and worth tightening next: the `suspension` object on a
 user doc (reason + appeal text) and `consent`; `scripts/migrate-to-own-infra.mjs`
 copies the old shape and would re-add emails if re-run (don't).
+
+## Member journey — what people see and where they change things
+- **Header (signed in):** bell + an **@username ▾ account menu** — My profile,
+  Edit profile, Rates & payouts (or "Start publishing" for non-publishers),
+  Bookings, Boost a post, Verification badges, Sign out. Pages under
+  `/profile/*` and `/bookings` also show a "My account" sub-header.
+- **Edit profile** (`/profile/edit`): display name, bio, avatar upload (R2),
+  social links, and the verified-badge card. Username can't be changed and
+  email/password changes aren't self-serve yet (password reset is on the
+  login page).
+- **Rates & payouts** (`/profile/publishing`): for publishing accounts —
+  verified bank account, session price/length/weekly availability,
+  subscription price, gifts on/off, plan (cancel), boost results, earnings.
+  Nothing (booking, subscribe, gift) shows on a profile until a payout account
+  is verified. **Free Standard members** instead see "Start publishing":
+  apply for **Free Basic** (a short note; an admin approves/rejects it in
+  `/admin/users`, and the member is notified) or pick **Pro/Business** on
+  `/pricing` (publishing starts on payment). The application goes through
+  `POST /api/tier-request` (clients can't write `tierRequest` directly).
+- **Admin dashboard errors** now say what Firestore actually reported
+  (quota exhausted / permission denied / missing index) instead of always
+  blaming the rules.
