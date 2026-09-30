@@ -14,7 +14,8 @@ const FEATURES = [
   { title: "Native booking calendar", copy: "Built into your profile page, running on your own weekly availability. No redirect, no second login — and clients can cancel or reschedule under a clear refund policy." },
   { title: "Your rates, your payouts", copy: "Set your own session price and monthly subscription price. Paystack collects in Naira; earnings are paid to your verified bank account after each session." },
   { title: "Booking confirmations & reminders", copy: "Email confirmations and 24-hour and 1-hour reminders are live today. WhatsApp reminders are coming next." },
-  { title: "Boost & gifts", copy: "Boost a post to put it in front of more readers — you pay only for validated impressions, with undelivered ones refunded. Readers can also send you a gift on your profile or any post." },
+  { title: "Boost a post", copy: "Put a post in front of more readers. You pay only for validated impressions, delivered over several days — undelivered ones are refunded." },
+  { title: "Gifts", copy: "Readers can send you a gift on your profile or on any single post — from ₦200 up to ₦500,000, with a note if they like." },
   { title: "A real writing desk", copy: "Format with a toolbar, preview as you go, drop in images, and never lose a draft — everything is saved as clean Markdown." },
   { title: "A brand store for every journal", copy: "Every professional gets their own storefront on their profile — sell guides, templates, or sessions, no separate shop to manage." },
   { title: "Bring your own transcription (coming)", copy: "Connect Otter.ai or Whisper for session notes. We integrate; we don't lock you into one AI vendor." },
@@ -112,7 +113,7 @@ export default function Home() {
                 <li>Journals — real published notes, with a rich-text composer</li>
                 <li>Paid 1:1 sessions on each publisher's own rate and availability, paid through Paystack, with a bookings dashboard and a clear cancellation policy</li>
                 <li>Paid monthly journal subscriptions that unlock premium entries</li>
-                <li>Post boosts (pay for validated impressions) and gifts on every profile and post</li>
+                <li>Post boosts (pay for validated impressions) and gifts on every profile and post — see <Link href="/boost" className="text-crimson underline">Boost</Link> and <Link href="/gifts" className="text-crimson underline">Gifts</Link></li>
                 <li>Trending feed and a live status page</li>
                 <li>Publisher payouts to a verified bank account, released after the session</li>
                 <li>Email confirmations and reminders · password reset and email verification</li>

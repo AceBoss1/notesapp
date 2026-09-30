@@ -1227,3 +1227,21 @@ session price range, subscription price range, gifts, boost pricing and
 payout timing, all read from `LIMITS` / `BOOST_PACKAGES` so one edit in
 `lib/booking-time.ts` or `lib/boost-config.ts` updates the whole site.
 Sitemap now includes `/pricing`, `/boost`, `/trending`, `/status`, `/terms`, `/privacy`.
+
+### /gifts product page + Contact topics
+`/gifts` is a standalone page (footer → Product, sitemap, pricing link):
+presets, how it works, what a publisher keeps per tier on a ₦5,000 gift
+(computed from `lib/tiers.ts`), payout timing, and how to switch gifts on.
+`commissionRateFor()` now lives in `lib/tiers.ts` (pure) so client/server
+pages can share it. The Contact form's "What's this about?" list is now one
+source, `LEAD_CATEGORIES` in `lib/leads.ts` (support, bookings & sessions,
+payments/payouts/refunds, boosts/gifts/advertising, publishing, account,
+report a post or account, bug, partnership, press, investment, other) and
+the admin Leads inbox reads the same list.
+
+### Suggested Pro / Business prices (not yet applied — pricing still says "Coming soon")
+Pro **₦5,000/month** (or ₦50,000/year), Business **₦15,000/month** (or
+₦150,000/year). Break-even vs Free Basic (35% commission): Pro pays for
+itself at ₦50,000/month of sessions+subscriptions+gifts (10 pts cheaper
+commission); Business at ₦75,000/month vs Basic, ₦150,000/month vs Pro (and
+adds the 45% vs 25% ad share and a bigger merch-commission cut).

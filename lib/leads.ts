@@ -17,13 +17,22 @@ const LEADS = "leads";
 // `category` is what makes that generalization real — a partnership
 // inquiry and a bug report land in the same inbox but are visibly
 // different at a glance.
-export type LeadCategory =
-  | "partnership"
-  | "press"
-  | "investment"
-  | "support"
-  | "bug"
-  | "other";
+export const LEAD_CATEGORIES = [
+  { value: "support", label: "General support" },
+  { value: "bookings", label: "Bookings & sessions" },
+  { value: "payments", label: "Payments, payouts & refunds" },
+  { value: "boost", label: "Boosts, gifts & advertising" },
+  { value: "publishing", label: "Publishing & my journal" },
+  { value: "account", label: "Account & login" },
+  { value: "report", label: "Report a post or account" },
+  { value: "bug", label: "Bug report" },
+  { value: "partnership", label: "Partnership" },
+  { value: "press", label: "Press" },
+  { value: "investment", label: "Investment" },
+  { value: "other", label: "Other" },
+] as const;
+
+export type LeadCategory = (typeof LEAD_CATEGORIES)[number]["value"];
 
 export type Lead = {
   id: string;

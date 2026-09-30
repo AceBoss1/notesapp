@@ -107,3 +107,12 @@ export function canUseExternalStore(role: string, tier: AccountTier): boolean {
   if (role === "admin") return true;
   return getTierConfig(tier).externalStoreAllowed;
 }
+
+// NotesApp's cut of a session, subscription or gift for a publisher of
+// this tier (0–1). Enterprise is negotiated per account; until a
+// per-account override exists it uses the 5% floor.
+export function commissionRateFor(tier: AccountTier): number {
+  const c = getTierConfig(tier).sessionAndUnlockCommission;
+  // Enterprise is negotiated per account; until an override exists, use the floor.
+  return c === "custom" ? getTierConfig(tier).sessionAndUnlockCommissionFloor ?? 0.05 : c;
+}

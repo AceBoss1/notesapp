@@ -156,7 +156,7 @@ export default function PricingPage() {
             take place, subscriptions after a 7-day dispute window. Commission comes off the top, per your tier above.
           </li>
           <li>
-            <strong className="text-ink">Gifts</strong> — readers can send a publisher, or a single post, a gift of ₦200,
+            <Link href="/gifts" className="font-bold text-crimson underline underline-offset-2">Gifts</Link> — readers can send a publisher, or a single post, a gift of ₦200,
             ₦500, ₦1,000, ₦2,000, ₦5,000 or any amount up to ₦500,000. Same commission and payout timing as
             subscriptions (7-day window).
           </li>

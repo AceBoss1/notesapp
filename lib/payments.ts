@@ -1,6 +1,6 @@
 import { getAdminDb } from "./firebase-admin";
 import { slotLockId, verifyTransaction } from "./paystack";
-import { getTierConfig } from "./tiers";
+import { commissionRateFor } from "./tiers";
 import { sessionEnd, sessionStart, formatSlot, formatNaira } from "./booking-time";
 import { sendEmail } from "./email";
 import type { AccountTier } from "./users";
@@ -53,11 +53,7 @@ export type LedgerEntry = {
 const SUBSCRIPTION_HOLD_DAYS = 7; // dispute window before subscription earnings can be paid out
 const PERIOD_DAYS = 31;
 
-export function commissionRateFor(tier: AccountTier): number {
-  const c = getTierConfig(tier).sessionAndUnlockCommission;
-  // Enterprise is negotiated per account; until an override exists, use the floor.
-  return c === "custom" ? getTierConfig(tier).sessionAndUnlockCommissionFloor ?? 0.05 : c;
-}
+export { commissionRateFor };
 
 function ledgerFor(p: PaymentRecord, grossKobo: number, releaseAfter: Date, now: string): LedgerEntry {
   const commissionKobo = Math.round(grossKobo * p.commissionRate);

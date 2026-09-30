@@ -4,7 +4,7 @@ import ContactForm from "@/components/ContactForm";
 
 export const metadata: Metadata = {
   title: "Contact",
-  description: "Reach the #NotesApp founding team for partnership, investment, or press enquiries.",
+  description: "Contact #NotesApp — support, bookings and payments help, boosts and gifts, reporting a post, partnerships, press or investment.",
 };
 
 export default function ContactPage() {
@@ -15,8 +15,10 @@ export default function ContactPage() {
         Talk to us
       </h1>
       <p className="mt-5 text-slate">
-        For partnership, investment, press, support — or anything else
-        — the fastest way to reach the team is the form below. It goes
+        Help with a booking, payment, payout or refund; questions about
+        boosts and gifts; reporting a post or account; partnerships,
+        press, investment — or anything else. The fastest way to reach
+        the team is the form below. It goes
         straight to admins, not a shared inbox someone has to remember
         to check.
       </p>
