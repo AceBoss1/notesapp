@@ -7,13 +7,14 @@ import { NoteWithComputed } from "@/lib/firestore-notes";
 import { OFFICIAL_NOTESAPP_PROFILE, VERIFIED_USERNAMES } from "@/lib/journals-directory";
 import { NOTESAPP_POSTS } from "@/lib/notesapp-posts";
 import VerifiedBadge from "@/components/VerifiedBadge";
+import type { BadgeLevel } from "@/lib/badges";
 
 export type DirectoryEntry = {
   username: string;
   displayName: string;
   avatar: string;
   bio: string;
-  verified?: boolean;
+  badge?: BadgeLevel;
 };
 
 export default function JournalDirectory({
@@ -45,7 +46,7 @@ export default function JournalDirectory({
               <div>
                 <p className="flex items-center gap-1.5 font-ui text-sm font-bold text-ink">
                   {entry.displayName}
-                  {(entry.verified || VERIFIED_USERNAMES.includes(entry.username)) && <VerifiedBadge size={13} />}
+                  {(entry.badge || VERIFIED_USERNAMES.includes(entry.username)) && <VerifiedBadge size={13} level={entry.badge || "verified"} />}
                 </p>
                 <p className="font-mono text-xs text-slate">
                   @{entry.username} · {journalCount} journal{journalCount === 1 ? "" : "s"}

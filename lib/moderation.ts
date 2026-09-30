@@ -1,4 +1,5 @@
-import { doc, updateDoc, getDocs, collection, query, where } from "firebase/firestore";
+import { doc, updateDoc, deleteField, getDocs, collection, query, where } from "firebase/firestore";
+import type { GoldBadgeKind } from "./badges";
 import { db } from "./firebase";
 import { UserRole, Suspension, AccountTier } from "./users";
 import {
@@ -78,6 +79,14 @@ export async function rejectAppeal(uid: string, username: string, resolvedByUid:
 // tier is applied to an account.
 export async function updateUserTier(uid: string, tier: AccountTier): Promise<void> {
   await updateDoc(doc(db, USERS, uid), { accountTier: tier });
+}
+
+// Admin-only: grant/revoke the gold badge (identity check or endorsement).
+// Stored now; shown publicly only once GOLD_BADGE_LIVE is true.
+export async function setGoldBadge(uid: string, kind: GoldBadgeKind | null, note?: string): Promise<void> {
+  await updateDoc(doc(db, USERS, uid), {
+    goldBadge: kind ? { kind, grantedAt: new Date().toISOString(), ...(note ? { note } : {}) } : deleteField(),
+  });
 }
 
 export async function updateUserRole(uid: string, username: string, role: UserRole): Promise<void> {

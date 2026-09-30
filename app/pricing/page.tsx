@@ -4,6 +4,7 @@ import { TIERS, formatPercent, badgeIncluded, BADGE_PRICE_KOBO } from "@/lib/tie
 import { BOOST_PACKAGES } from "@/lib/boost-config";
 import UpgradeButton from "@/components/UpgradeButton";
 import BadgeCard from "@/components/BadgeCard";
+import VerifiedBadge from "@/components/VerifiedBadge";
 import { LIMITS, formatNaira } from "@/lib/booking-time";
 
 export const metadata: Metadata = {
@@ -29,6 +30,10 @@ const ROWS: { label: string; render: (t: (typeof TIERS)[number]) => string }[] =
   {
     label: "Verified badge ✔",
     render: (t) => (badgeIncluded(t.tier) ? "Included free" : `Add-on: ${formatNaira(BADGE_PRICE_KOBO)}/month`),
+  },
+  {
+    label: "Gold badge (identity checked / endorsed)",
+    render: () => "Coming soon — by application",
   },
   {
     label: "Paid 1:1 sessions",
@@ -155,6 +160,18 @@ export default function PricingPage() {
 
       <div className="mt-6">
         <BadgeCard pitch />
+      </div>
+
+      <div className="card mt-6 p-6">
+        <p className="font-ui text-sm font-bold text-ink">
+          <span className="mr-1.5"><VerifiedBadge size={14} level="gold" /></span>Gold badge — coming soon
+        </p>
+        <p className="mt-2 text-sm text-slate">
+          The maroon ✔ shows an account in good standing. The <strong className="text-ink">gold badge</strong> is different: it will mark an
+          account whose identity #NotesApp has checked (ID, business registration or professional credential) or that we endorse.
+          It will be by application and review, open to every tier. Details and pricing will be published here before launch —{" "}
+          <Link href="/contact" className="text-crimson underline underline-offset-2">register your interest</Link>.
+        </p>
       </div>
 
       <div className="card mt-6 p-6">

@@ -29,6 +29,13 @@ const ITEMS = [
       "Client-initiated rescheduling and cancellation under a published refund policy, WhatsApp reminders, and automatic payout release once a session is complete.",
   },
   {
+    title: "Gold badge — identity checks & endorsements",
+    tag: "Trust",
+    body: "A gold ✔ for accounts whose identity #NotesApp has checked, or that we endorse — distinct from the maroon ✔ that marks an account in good standing on a paid plan or add-on.",
+    detail:
+      "By application and admin review (ID, business registration or professional credential), open to every tier. The badge, admin controls and display are built; the application flow, review process and pricing come next, and nothing gold shows publicly until then. Register your interest through the contact form.",
+  },
+  {
     title: "Trust, safety & account basics",
     tag: "Foundations",
     body: "The unglamorous pieces that real money needs: password reset and email verification, a bookings dashboard for both sides, a clear cancellation and refund policy, and terms and privacy consent before payment.",

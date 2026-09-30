@@ -1297,3 +1297,19 @@ sends every event type to that one URL; the route verifies the
 mode's key as long as `PAYSTACK_SECRET_KEY` matches the mode. Events the app
 handles: `charge.success`, `subscription.disable`, `subscription.not_renew`,
 `transfer.success`, `transfer.failed`, `transfer.reversed`.
+
+### Gold badge — coming soon (groundwork built)
+Two ✔ levels (`lib/badges.ts`, `badgeLevel()` in `lib/users.ts`): the
+maroon **verified** badge (account in good standing — role, Business/
+Enterprise, or the ₦999 add-on) and the **gold** badge (identity checked /
+endorsed by #NotesApp). Built: the `goldBadge` field on `users/{uid}`
+(admin-written only — clients can't set it), a gold `VerifiedBadge` variant,
+gold-aware rendering on profiles, the people directory and post bylines, and
+an admin "Gold" dropdown in `/admin/users`. **Hidden until launch**: nothing
+gold renders while `GOLD_BADGE_LIVE = false`; the pricing page, roadmap,
+about, terms (§5b), Edit-profile badge card and home all say "coming soon",
+and Contact has a "Gold badge / identity verification" topic for interest.
+To launch: build the application + review flow (ID / CAC / credential
+upload to a private R2 prefix, admin review queue, decision emails), decide
+criteria and any fee, publish them on `/pricing`, then set
+`GOLD_BADGE_LIVE = true` and update the "coming soon" copy.

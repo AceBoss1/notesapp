@@ -17,6 +17,7 @@ import { db } from "./firebase";
 import { ADMIN_PROFILES, SocialLinks } from "./admin";
 import { LEGAL_VERSION, Consent } from "./legal";
 import { badgeIncluded } from "./tiers";
+import { GOLD_BADGE_LIVE, BadgeLevel, GoldBadgeKind } from "./badges";
 
 export type UserRole = "admin" | "staff" | "volunteer" | "reader";
 export type AppealStatus = "none" | "pending" | "upheld" | "rejected";
@@ -82,6 +83,9 @@ export type UserProfile = {
   // Paid verified-badge add-on: ISO end of the paid period. Server-written
   // only (see lib/tier-billing.ts); firestore.rules stops clients editing it.
   badgeUntil?: string;
+  // Gold badge (identity check / endorsement) — admin-written only, and
+  // only displayed once GOLD_BADGE_LIVE (lib/badges.ts) is true.
+  goldBadge?: { kind: GoldBadgeKind; grantedAt: string; note?: string };
   accountTier: AccountTier;
   tierRequest?: TierRequest;
   // Precheks built its own suspend feature independently, on the same
@@ -120,6 +124,14 @@ export function hasVerifiedBadge(profile: UserProfile): boolean {
     badgeIncluded(profile.accountTier) ||
     (!!profile.badgeUntil && new Date(profile.badgeUntil).getTime() > Date.now())
   );
+}
+
+// Which ✔ to draw: gold outranks the standard one, and only once gold
+// is live. Suspended accounts show none.
+export function badgeLevel(profile: UserProfile): BadgeLevel {
+  if (profile.suspended === true) return null;
+  if (GOLD_BADGE_LIVE && profile.goldBadge) return "gold";
+  return hasVerifiedBadge(profile) ? "verified" : null;
 }
 
 // Can this account publish its own journal entries? Every tier except

@@ -109,7 +109,14 @@ export default function BadgeCard({ pitch = false }: { pitch?: boolean }) {
       {body}
       {msg && <p className="mt-2 text-xs text-slate">{msg}</p>}
       <p className="mt-3 text-[11px] text-slate">
-        The badge shows an account in good standing with an active plan or subscription; it is not an identity check or an endorsement.
+        This badge shows an account in good standing with an active plan or subscription; it is not an identity check or an endorsement.
+      </p>
+      <p className="mt-2 flex items-center gap-1.5 text-[11px] text-slate">
+        <VerifiedBadge size={12} level="gold" />
+        <span>
+          <strong className="text-ink">Gold badge — coming soon:</strong> a separate badge for accounts whose identity we have checked or that
+          #NotesApp endorses. <a href="/contact" className="text-crimson underline">Register your interest</a>.
+        </span>
       </p>
     </div>
   );

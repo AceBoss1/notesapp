@@ -5,7 +5,7 @@ import { remark } from "remark";
 import html from "remark-html";
 import type { Metadata } from "next";
 import { getNoteBySlug, getMoreNotes } from "@/lib/firestore-notes";
-import { getUserByDisplayName, hasVerifiedBadge } from "@/lib/users";
+import { getUserByDisplayName, badgeLevel } from "@/lib/users";
 import VerifiedBadge from "@/components/VerifiedBadge";
 import { NA_NOTESAPP_PROFILE } from "@/lib/journals-directory";
 import SocialBar from "@/components/SocialBar";
@@ -107,7 +107,7 @@ export default async function JournalDetail({
             <div>
               <p className="font-ui text-sm font-semibold text-ink group-hover:text-crimson-bright">
                 By {note.author}{" "}
-                {authorProfile && hasVerifiedBadge(authorProfile) && <VerifiedBadge size={14} />}{" "}
+                {authorProfile && badgeLevel(authorProfile) && <VerifiedBadge size={14} level={badgeLevel(authorProfile)} />}{" "}
                 <span className="font-mono text-crimson-bright">
                   @{linkedUsername}
                 </span>

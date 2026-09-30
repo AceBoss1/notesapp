@@ -124,6 +124,7 @@ export default function Home() {
               <p className="font-ui text-sm font-bold text-ink">○ On the roadmap, not live</p>
               <ul className="mt-3 space-y-2 text-sm text-slate">
                 <li>WhatsApp reminders and clients rescheduling themselves</li>
+                <li>Gold badge for identity-checked and endorsed accounts</li>
                 <li>Merch checkout and paid Pro / Business / Enterprise tiers</li>
                 <li>AI drafting, social publishing, video uploads, ad-share</li>
               </ul>
