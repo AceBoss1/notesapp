@@ -36,6 +36,7 @@ export const metadata: Metadata = {
 
 const NAV = [
   { href: "/journals", label: "Journals" },
+  { href: "/trending", label: "Trending" },
   { href: "/pricing", label: "Pricing" },
   { href: "/booking", label: "Booking" },
   { href: "/about", label: "About" },
@@ -48,6 +49,7 @@ const COMPANY = [
   { href: "/pricing", label: "Pricing" },
   { href: "/contact", label: "Contact" },
   { href: "/roadmap", label: "Roadmap" },
+  { href: "/status", label: "Status" },
 ];
 
 export default function RootLayout({
@@ -136,6 +138,8 @@ export default function RootLayout({
               <ul className="mt-4 space-y-2 text-sm text-paper/75">
                 <li><Link href="/journals" className="hover:text-paper">Journals</Link></li>
                 <li><Link href="/booking" className="hover:text-paper">Booking</Link></li>
+                <li><Link href="/boost" className="hover:text-paper">Boost</Link></li>
+                <li><Link href="/gifts" className="hover:text-paper">Gifts</Link></li>
                 <li><Link href="/merchstore" className="hover:text-paper">Merch Store</Link></li>
                 <li><Link href="/advertise" className="hover:text-paper">Advertise</Link></li>
               </ul>

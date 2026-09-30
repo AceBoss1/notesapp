@@ -5,6 +5,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { onAuthStateChanged, User } from "firebase/auth";
 import { auth } from "@/lib/firebase";
+import { recordView } from "@/lib/track";
 import { getUserByUsername, getCommentsByUser, UserProfile, CommentActivity } from "@/lib/users";
 import { getAllNotes, NoteWithComputed } from "@/lib/firestore-notes";
 import { getRecentCommentsOnNotes, Comment } from "@/lib/engagement";
@@ -14,6 +15,7 @@ import Avatar from "@/components/Avatar";
 import FollowButton from "@/components/FollowButton";
 import SubscribeButton from "@/components/SubscribeButton";
 import BookingCard from "@/components/BookingCard";
+import GiftButton from "@/components/GiftButton";
 import VerifiedBadge from "@/components/VerifiedBadge";
 import JournalRow from "@/components/JournalRow";
 import NotesAppPostRow from "@/components/NotesAppPostRow";
@@ -70,6 +72,9 @@ export default function ProfilePageClient({ params }: { params: { username: stri
   const [submittingAppeal, setSubmittingAppeal] = useState(false);
 
   useEffect(() => onAuthStateChanged(auth, setViewer), []);
+  useEffect(() => {
+    if (!synthetic) recordView("profile", params.username);
+  }, [params.username, synthetic]);
 
   useEffect(() => {
     if (synthetic) return;
@@ -233,6 +238,7 @@ export default function ProfilePageClient({ params }: { params: { username: stri
         </div>
         <div className="ml-0 flex shrink-0 flex-wrap gap-3 sm:ml-auto">
           <FollowButton username={profile.username} />
+          {!synthetic && <GiftButton username={profile.username} publisherUid={realProfile?.uid} />}
           {hasPremium && <SubscribeButton username={profile.username} publisherUid={realProfile?.uid} />}
           {storeItems.length > 0 && (
             <Link href={`/u/${profile.username}/store`} className="btn-ghost">

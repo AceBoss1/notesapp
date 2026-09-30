@@ -60,6 +60,7 @@ export default function NoteForm({ noteId, initial }: Props) {
     initial?.status || "draft"
   );
   const [premium, setPremium] = useState(initial?.premium || false);
+  const [boostAfter, setBoostAfter] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
@@ -110,15 +111,17 @@ export default function NoteForm({ noteId, initial }: Props) {
       premium,
     };
     try {
+      let savedId = noteId;
       if (noteId) {
         await updateNote(noteId, payload);
       } else {
-        await createNote(payload);
+        savedId = await createNote(payload);
       }
       try {
         localStorage.removeItem(`notesapp:draft:${noteId || "new"}`);
       } catch {}
-      router.push("/admin/journals");
+      // Boosting is a paid step of its own — hand off to the package picker.
+      router.push(boostAfter && status === "published" && savedId ? `/boost/${savedId}` : "/admin/journals");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Save failed");
       setSaving(false);
@@ -225,6 +228,18 @@ export default function NoteForm({ noteId, initial }: Props) {
           <option value="published">Published</option>
         </select>
       </label>
+
+      {status === "published" && (
+        <label className="flex items-start gap-3 text-sm text-ink">
+          <input type="checkbox" checked={boostAfter} onChange={(e) => setBoostAfter(e.target.checked)} className="mt-1" />
+          <span>
+            Boost this post after saving
+            <span className="block text-xs text-slate">
+              Choose an impressions package next (from ₦3,000). You pay only for validated impressions delivered over several days.
+            </span>
+          </span>
+        </label>
+      )}
 
       <label className="flex items-center gap-3">
         <input

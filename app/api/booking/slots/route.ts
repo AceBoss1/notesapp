@@ -6,6 +6,9 @@ import { weekdayOf } from "@/lib/booking-time";
 import { rateLimit, clientIp } from "@/lib/rate-limit";
 
 // Public: which slots can be booked on a given date, and at what price.
+// Reads request headers/query, so it must never be prerendered at build time.
+export const dynamic = "force-dynamic";
+
 export async function GET(req: NextRequest) {
   const limited = rateLimit(req, "slots", clientIp(req), 60, 60);
   if (limited) return limited;

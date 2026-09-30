@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { TIERS, formatPercent } from "@/lib/tiers";
+import { BOOST_PACKAGES } from "@/lib/boost-config";
+import { LIMITS, formatNaira } from "@/lib/booking-time";
 
 export const metadata: Metadata = {
   title: "Pricing",
@@ -16,11 +18,31 @@ const ROWS: { label: string; render: (t: (typeof TIERS)[number]) => string }[] =
       t.adRevenueShare === null ? "—" : t.adRevenueShare === 0 ? "0% (ads run, no share)" : `${(t.adRevenueShare * 100).toFixed(0)}%`,
   },
   {
-    label: "Booking & unlock commission",
+    label: "Commission on sessions, subscriptions & gifts",
     render: (t) =>
       t.canPublish
         ? `NotesApp takes ${formatPercent(t.sessionAndUnlockCommission, t.sessionAndUnlockCommissionFloor)}`
         : "—",
+  },
+  {
+    label: "Paid 1:1 sessions",
+    render: (t) => (t.canPublish ? `You set the price: ${formatNaira(LIMITS.sessionMinKobo)} – ${formatNaira(LIMITS.sessionMaxKobo)}` : "Book & pay only"),
+  },
+  {
+    label: "Monthly journal subscriptions",
+    render: (t) => (t.canPublish ? `You set the price: ${formatNaira(LIMITS.subscriptionMinKobo)} – ${formatNaira(LIMITS.subscriptionMaxKobo)}/month` : "Subscribe & unlock only"),
+  },
+  {
+    label: "Gifts from readers",
+    render: (t) => (t.canPublish ? "Receive gifts of ₦200 – ₦500,000 on your profile and every post" : "Send gifts"),
+  },
+  {
+    label: "Post boosts",
+    render: (t) => (t.canPublish ? `From ${formatNaira(BOOST_PACKAGES[0].priceKobo)} · no commission · undelivered impressions refunded` : "—"),
+  },
+  {
+    label: "Payouts to your bank",
+    render: (t) => (t.canPublish ? "Sessions after they happen · subscriptions & gifts after 7 days" : "—"),
   },
   {
     label: "Internal merch store commission",
@@ -68,6 +90,7 @@ export default function PricingPage() {
                 <th key={t.tier} className="border-b-2 border-ink px-4 py-4">
                   <p className="font-display text-xl text-ink">{t.label}</p>
                   <p className="mt-1 font-mono text-sm text-crimson-bright">{t.price}</p>
+                  {t.priceNote && <p className="mt-1 max-w-[11rem] text-xs font-normal text-slate">{t.priceNote}</p>}
                 </th>
               ))}
             </tr>
@@ -93,14 +116,20 @@ export default function PricingPage() {
           <p className="mt-2 text-sm text-slate">
             Free Standard → Free Basic is a self-serve application from
             your own profile, reviewed by an admin — no payment
-            involved. Pro, Business, and Enterprise are paid upgrades;
-            tier billing isn't live yet — paid sessions and subscriptions
-            already are (see{" "}
+            involved. Pro (₦5,000/month) and Business (₦15,000/month) are
+            paid upgrades; Enterprise is custom. Billing for the paid tiers
+            opens soon (see{" "}
             <Link href="/roadmap" className="text-crimson underline underline-offset-2">
               the roadmap
             </Link>
-            ), so these show as "Coming soon" rather than a working
-            checkout today.
+            ) — until then,{" "}
+            <Link href="/contact" className="text-crimson underline underline-offset-2">
+              contact us
+            </Link>{" "}
+            to upgrade early. As a rule of thumb, Pro pays for itself once
+            you earn about ₦50,000 a month through sessions, subscriptions
+            and gifts (its commission is 10 points lower than Free Basic's);
+            Business does at about ₦75,000 a month.
           </p>
         </div>
         <div className="card p-6">
@@ -115,6 +144,51 @@ export default function PricingPage() {
             internal fulfillment, where the commission table on the
             left actually applies.
           </p>
+        </div>
+      </div>
+
+      <div className="card mt-6 p-6">
+        <p className="font-ui text-sm font-bold text-ink">Ways to earn, and how you're paid</p>
+        <ul className="mt-3 list-disc space-y-2 pl-5 text-sm text-slate">
+          <li>
+            <strong className="text-ink">Paid 1:1 sessions</strong> — you set the price and hours. Cancellations follow one
+            published policy (full refund 48h+ before, 50% at 24–48h, none inside 24h; always full if you cancel).
+          </li>
+          <li>
+            <strong className="text-ink">Monthly journal subscriptions</strong> — readers unlock your premium entries;
+            renews automatically until they cancel.
+          </li>
+          <li>
+            <strong className="text-ink">Payouts</strong> — to your verified Nigerian bank account: sessions after they
+            take place, subscriptions after a 7-day dispute window. Commission comes off the top, per your tier above.
+          </li>
+          <li>
+            <Link href="/gifts" className="font-bold text-crimson underline underline-offset-2">Gifts</Link> — readers can send a publisher, or a single post, a gift of ₦200,
+            ₦500, ₦1,000, ₦2,000, ₦5,000 or any amount up to ₦500,000. Same commission and payout timing as
+            subscriptions (7-day window).
+          </li>
+
+        </ul>
+      </div>
+
+      <div className="card mt-6 p-6">
+        <p className="font-ui text-sm font-bold text-ink">Boost a post</p>
+        <p className="mt-2 text-sm text-slate">
+          <Link href="/boost" className="text-crimson underline underline-offset-2">Boost</Link> puts a post in the Boosted slots on the home and Journals pages. You pay for{" "}
+          <strong className="text-ink">validated impressions</strong> — a real visitor seeing your post for about a
+          second, counted once per visitor per day — delivered over several days. Undelivered impressions are refunded
+          pro-rata. Boosts are not commissionable: what you pay is the price.
+        </p>
+        <div className="mt-4 grid gap-4 sm:grid-cols-3">
+          {BOOST_PACKAGES.map((p) => (
+            <div key={p.id} className="border border-rule p-4">
+              <p className="font-ui text-sm font-bold text-ink">{p.name}</p>
+              <p className="mt-1 font-display text-xl text-ink">{formatNaira(p.priceKobo)}</p>
+              <p className="mt-1 text-xs text-slate">
+                {p.impressions.toLocaleString()} impressions · up to {p.maxPerDay.toLocaleString()}/day · up to {p.windowDays} days
+              </p>
+            </div>
+          ))}
         </div>
       </div>
 

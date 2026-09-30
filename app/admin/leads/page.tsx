@@ -3,16 +3,9 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useAdminAuth } from "@/lib/useAdminAuth";
-import { getAllLeads, markLeadStatus, deleteLead, Lead } from "@/lib/leads";
+import { getAllLeads, markLeadStatus, deleteLead, Lead, LEAD_CATEGORIES } from "@/lib/leads";
 
-const CATEGORY_LABEL: Record<string, string> = {
-  partnership: "Partnership",
-  press: "Press",
-  investment: "Investment",
-  support: "Support",
-  bug: "Bug report",
-  other: "Other",
-};
+const CATEGORY_LABEL: Record<string, string> = Object.fromEntries(LEAD_CATEGORIES.map((c) => [c.value, c.label]));
 
 export default function AdminLeadsPage() {
   const { user, loading } = useAdminAuth();

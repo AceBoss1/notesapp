@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { onAuthStateChanged } from "firebase/auth";
 import { auth } from "@/lib/firebase";
+import { recordView } from "@/lib/track";
 import {
   incrementViewCount,
   incrementShareCount,
@@ -70,6 +71,7 @@ export default function SocialBar({
       incrementViewCount(noteId);
       setViewCount((v) => v + 1);
     }
+    recordView("note", noteId); // daily bucket for the trending feed
   }, [noteId]);
 
   useEffect(() => {

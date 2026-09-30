@@ -4,8 +4,9 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { useAdminAuth } from "@/lib/useAdminAuth";
-import { getAllUsers, UserProfile, UserRole } from "@/lib/users";
-import { suspendUser, unsuspendUser, rejectAppeal, updateUserRole } from "@/lib/moderation";
+import { getAllUsers, UserProfile, UserRole, AccountTier } from "@/lib/users";
+import { suspendUser, unsuspendUser, rejectAppeal, updateUserRole, updateUserTier } from "@/lib/moderation";
+import { TIERS } from "@/lib/tiers";
 import { ADMIN_PROFILES } from "@/lib/admin";
 
 const FOUNDER_USERNAMES = Object.values(ADMIN_PROFILES).map((p) => p.username);
@@ -69,6 +70,16 @@ export default function AdminUsersPage() {
     setBusyUid(uid);
     try {
       await rejectAppeal(uid, username, user.uid);
+      reload();
+    } finally {
+      setBusyUid(null);
+    }
+  }
+
+  async function handleTierChange(uid: string, tier: AccountTier) {
+    setBusyUid(uid);
+    try {
+      await updateUserTier(uid, tier);
       reload();
     } finally {
       setBusyUid(null);
@@ -155,6 +166,20 @@ export default function AdminUsersPage() {
                         admin
                       </span>
                     ) : (
+                      <>
+                      <select
+                        title="Account tier"
+                        value={u.accountTier || "standard"}
+                        disabled={busyUid === u.uid}
+                        onChange={(e) => handleTierChange(u.uid, e.target.value as AccountTier)}
+                        className="border border-rule bg-card px-2 py-1 font-mono text-xs disabled:opacity-50"
+                      >
+                        {TIERS.map((t) => (
+                          <option key={t.tier} value={t.tier}>
+                            {t.label}
+                          </option>
+                        ))}
+                      </select>
                       <select
                         value={u.role}
                         disabled={busyUid === u.uid}
@@ -167,6 +192,7 @@ export default function AdminUsersPage() {
                           </option>
                         ))}
                       </select>
+                      </>
                     )}
                     <p className="text-xs text-slate font-mono">
                       {new Date(u.createdAt).toLocaleDateString("en-NG", {

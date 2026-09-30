@@ -7,7 +7,8 @@ import { AccountTier } from "./users";
 export type TierConfig = {
   tier: AccountTier;
   label: string;
-  price: string; // display string for /pricing — real billing not wired yet, see README
+  price: string; // display string for /pricing
+  priceNote?: string; // small print under the price (yearly price, billing status)
   canPublish: boolean;
   // Ads carry on every publisher's pages regardless of tier — what
   // differs is whether the publisher earns a cut. null = doesn't
@@ -58,7 +59,8 @@ export const TIERS: TierConfig[] = [
   {
     tier: "pro",
     label: "Pro",
-    price: "Coming soon",
+    price: "₦5,000/month",
+    priceNote: "or ₦50,000/year (2 months free) · billing opens soon",
     canPublish: true,
     adRevenueShare: 0.25,
     sessionAndUnlockCommission: 0.25,
@@ -68,7 +70,8 @@ export const TIERS: TierConfig[] = [
   {
     tier: "business",
     label: "Business",
-    price: "Coming soon",
+    price: "₦15,000/month",
+    priceNote: "or ₦150,000/year (2 months free) · billing opens soon",
     canPublish: true,
     adRevenueShare: 0.45,
     sessionAndUnlockCommission: 0.15,
@@ -106,4 +109,13 @@ export function formatPercent(value: number | "custom", floor?: number): string 
 export function canUseExternalStore(role: string, tier: AccountTier): boolean {
   if (role === "admin") return true;
   return getTierConfig(tier).externalStoreAllowed;
+}
+
+// NotesApp's cut of a session, subscription or gift for a publisher of
+// this tier (0–1). Enterprise is negotiated per account; until a
+// per-account override exists it uses the 5% floor.
+export function commissionRateFor(tier: AccountTier): number {
+  const c = getTierConfig(tier).sessionAndUnlockCommission;
+  // Enterprise is negotiated per account; until an override exists, use the floor.
+  return c === "custom" ? getTierConfig(tier).sessionAndUnlockCommissionFloor ?? 0.05 : c;
 }

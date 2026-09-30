@@ -51,8 +51,8 @@ export default function AboutPage() {
           private session notes into your next public article. Follow
           a journal to see everything it publishes; subscribe to one
           to unlock what it keeps for paying readers. Paid sessions,
-          monthly subscriptions and publisher payouts are live today,
-          in Naira, through Paystack.
+          monthly subscriptions, post boosts, gifts and publisher payouts
+          are live today, in Naira, through Paystack.
         </p>
         <p>
           We're building this alongside the professionals who will run

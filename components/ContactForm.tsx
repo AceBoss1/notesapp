@@ -1,21 +1,13 @@
 "use client";
 
 import { useState } from "react";
-import { submitLead, LeadCategory } from "@/lib/leads";
+import { submitLead, LeadCategory, LEAD_CATEGORIES } from "@/lib/leads";
 
-const CATEGORIES: { value: LeadCategory; label: string }[] = [
-  { value: "partnership", label: "Partnership" },
-  { value: "press", label: "Press" },
-  { value: "investment", label: "Investment" },
-  { value: "support", label: "Support" },
-  { value: "bug", label: "Bug report" },
-  { value: "other", label: "Other" },
-];
 
 export default function ContactForm() {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
-  const [category, setCategory] = useState<LeadCategory>("other");
+  const [category, setCategory] = useState<LeadCategory>("support");
   const [message, setMessage] = useState("");
   const [sending, setSending] = useState(false);
   const [sent, setSent] = useState(false);
@@ -78,7 +70,7 @@ export default function ContactForm() {
           onChange={(e) => setCategory(e.target.value as LeadCategory)}
           className="mt-2 w-full border border-rule bg-paper px-4 py-3 font-body focus:border-crimson outline-none"
         >
-          {CATEGORIES.map((c) => (
+          {LEAD_CATEGORIES.map((c) => (
             <option key={c.value} value={c.value}>
               {c.label}
             </option>

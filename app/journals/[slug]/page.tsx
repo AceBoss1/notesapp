@@ -10,6 +10,7 @@ import { NA_NOTESAPP_PROFILE } from "@/lib/journals-directory";
 import SocialBar from "@/components/SocialBar";
 import Comments from "@/components/Comments";
 import PremiumGate from "@/components/PremiumGate";
+import GiftButton from "@/components/GiftButton";
 
 // Same note, same Firestore doc as precheks.com.ng/notes/{slug} — this
 // route is #NotesApp's own reading UI over that exact shared content.
@@ -206,6 +207,11 @@ export default async function JournalDetail({
           initialLikeCount={note.likeCount || 0}
           initialShareCount={note.shareCount || 0}
         />
+        {authorProfile && linkedUsername && (
+          <div className="mt-4">
+            <GiftButton username={linkedUsername} publisherUid={authorProfile.uid} noteId={note.id} label="🎁 Gift this post" />
+          </div>
+        )}
       </div>
 
       <Comments noteId={note.id} slug={note.slug} title={note.title} noteAuthor={note.author} />

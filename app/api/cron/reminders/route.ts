@@ -8,6 +8,9 @@ import { formatSlot } from "@/lib/booking-time";
 // (Vercel Cron on a Pro plan sends that header automatically when
 // CRON_SECRET is set; on Hobby use a free pinger such as cron-job.org —
 // Vercel Hobby only allows daily crons, too coarse for 1-hour reminders).
+// Reads request headers/query, so it must never be prerendered at build time.
+export const dynamic = "force-dynamic";
+
 export async function GET(req: NextRequest) {
   const secret = process.env.CRON_SECRET;
   if (!secret || req.headers.get("authorization") !== `Bearer ${secret}`) {

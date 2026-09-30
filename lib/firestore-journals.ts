@@ -15,6 +15,8 @@ import { db } from "./firebase";
 // Kept in its own collection, "journals" — separate from Precheks' "notes"
 // collection — so the two apps can safely share one Firebase project
 // today without their content mixing.
+import { sortNewestFirst } from "./dates";
+
 const COLLECTION = "journals";
 
 export type Journal = {
@@ -60,10 +62,9 @@ export function slugify(title: string): string {
 }
 
 export async function getPublicJournals(): Promise<JournalWithComputed[]> {
-  const q = query(collection(db, COLLECTION), orderBy("date", "desc"));
-  const snap = await getDocs(q);
+  const snap = await getDocs(collection(db, COLLECTION));
   const journals = snap.docs.map((d) => ({ id: d.id, ...d.data() } as Journal));
-  return journals
+  return sortNewestFirst(journals)
     .filter((j) => j.status === "published" && j.visibility === "public")
     .map(withComputed);
 }
@@ -79,11 +80,8 @@ export async function getJournalBySlug(
 }
 
 export async function getAllJournalsForAdmin(): Promise<JournalWithComputed[]> {
-  const q = query(collection(db, COLLECTION), orderBy("date", "desc"));
-  const snap = await getDocs(q);
-  return snap.docs
-    .map((d) => ({ id: d.id, ...d.data() } as Journal))
-    .map(withComputed);
+  const snap = await getDocs(collection(db, COLLECTION));
+  return sortNewestFirst(snap.docs.map((d) => ({ id: d.id, ...d.data() } as Journal))).map(withComputed);
 }
 
 export async function createJournal(data: Omit<Journal, "id">) {

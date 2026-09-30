@@ -37,7 +37,10 @@ export async function POST(req: NextRequest) {
       recipientCode: recipient.recipient_code,
       updatedAt: new Date().toISOString(),
     };
-    await getAdminDb().doc(`payoutAccounts/${uid}`).set(record);
+    const db = getAdminDb();
+    await db.doc(`payoutAccounts/${uid}`).set(record);
+    const username = (await db.doc(`users/${uid}`).get()).data()?.username;
+    await db.doc(`publisherSettings/${uid}`).set({ uid, username, payoutReady: true }, { merge: true });
     return NextResponse.json({ ok: true, accountName: record.accountName, bankName: record.bankName, accountLast4: record.accountLast4 });
   } catch (err) {
     console.error("Payout account failed:", err);

@@ -1155,3 +1155,98 @@ the old email list keeps working until step 8.
    `LEGACY_ADMIN_EMAILS` in `lib/firebase-admin.ts`, and the `isAdminEmail`
    fallback in `lib/admin-claims.ts`; redeploy rules + code. From now on
    admins are managed with the script or `POST /api/admin/set-admin`.
+
+## Session 6 — ordering, trending, status (built) + boosts & gifts (proposal)
+
+**Chronological order everywhere.** Root cause of "wrong order": `date` is
+a string in mixed formats (ISO from the composer, RFC-2822 like
+`Thu, 08 May 2025…` on seeded/Precheks notes), and Firestore orders strings
+lexicographically — RFC dates sorted *ahead of* newer ISO ones (and notes
+without a date vanished). `lib/dates.ts` now parses to timestamps and
+`getAllNotes` / journals lists sort newest-first in code. Profiles, the
+journals directory, search and "more notes" all derive from those, so they
+follow. `@notesapp`'s 5 explainer posts are an intentional fixed series
+(no dates), so they keep their reading order.
+
+**Trending** — `/trending` (header nav): top publishers and top posts.
+Visits are counted per page per day (`pageViews/`, server-only) via
+`POST /api/views` (one count per visitor IP per page per 30 min, bots
+ignored — a popularity signal, not audited analytics). `GET /api/trending`
+ranks the last 7 days (falls back to lifetime `viewCount` until windowed
+data exists) and is CDN-cached 5 min. Publisher score = profile visits +
+visits to their posts. Existing lifetime `viewCount` still increments as before.
+
+**Status page** — `/status` (footer → Company). `GET /api/status` checks
+database, auth, R2 uploads, media domain, Paystack, Resend (each
+"not enabled yet" if its key is missing), shows up/slow/down + latency,
+cached 60 s, page auto-refreshes. It runs inside the app, so it can't
+report the app itself being unreachable — add an external monitor
+(UptimeRobot / Better Stack free tier) on `/api/status` for that, and
+optionally point a `status.notesapp.name.ng` hosted page at it.
+
+### Boosts & gifts (built — approved 2026-09-30)
+**Gifts** — 🎁 button on every publisher profile and every post
+(`components/GiftButton.tsx`). Presets ₦200/500/1,000/2,000/5,000 or custom
+up to ₦500,000 (server-enforced, `lib/boost-config.ts`), optional message,
+optional anonymous. Paystack one-time charge → `gifts/{ref}` + a ledger
+entry (`kind: gift`) at the recipient's **tier commission**, held 7 days
+like subscriptions, paid out from `/admin/payments`. Recipient gets an
+in-app notification + email. Needs the publisher to have a verified payout
+account (`publisherSettings.payoutReady`); they can switch gifts off in
+`/profile/publishing`. No self-gifting; refunds are admin-only. Public
+supporter counts: not built (per decision).
+**Boosts** — sold by **validated impressions**, delivered over days.
+`/boost/[noteId]` (linked from the composer's "Boost this post after saving"
+checkbox and from Admin → Notes). Suggested packages (edit in
+`lib/boost-config.ts`; also shown on `/pricing`):
+Starter ₦3,000 = 1,000 impressions (≥3 days, ≤7) · Growth ₦12,500 = 5,000
+(≥5 days, ≤14) · Scale ₦45,000 = 20,000 (≥10 days, ≤30) — i.e. ₦3,000 /
+₦2,500 / ₦2,250 per 1,000 impressions. A daily cap
+(`impressions ÷ minDays`) forces delivery to spread over days. An impression
+counts only after the boosted card was ≥50% visible for 1 s
+(IntersectionObserver), once per visitor (hash of IP+UA) per boost per day,
+bots and the publisher's own views excluded; clicks are tracked the same
+way. Served in "Boosted posts" strips on the home and Journals pages
+(`GET /api/boosts/active`, fair rotation by least-delivered). When a boost
+ends with impressions left, admin clicks **Refund undelivered** in
+`/admin/payments → Boosts` (partial Paystack refund, pro-rata). One active
+boost per post; only the post's author or an admin can boost it. Boost
+revenue is 100% platform (no ledger entry). **Housekeeping:** add a
+Firestore TTL policy on collection group `seen`, field `expireAt`, so
+de-dup docs clean themselves up.
+**Not built yet:** in-app "Sponsored" disclosure beyond the label,
+per-boost analytics charts, self-serve boost refunds, public supporter counts.
+
+### Boost as its own product page
+`/boost` is now a standalone marketing + entry page (packages, how
+validated impressions work, fairness/refund terms, and — when signed in —
+a list of your published posts with a Boost button). Linked from the footer
+(Product), the home hero, the pricing page and `/advertise`; `/boost/[noteId]`
+remains the purchase step. `/pricing` now shows, for every publisher tier:
+session price range, subscription price range, gifts, boost pricing and
+payout timing, all read from `LIMITS` / `BOOST_PACKAGES` so one edit in
+`lib/booking-time.ts` or `lib/boost-config.ts` updates the whole site.
+Sitemap now includes `/pricing`, `/boost`, `/trending`, `/status`, `/terms`, `/privacy`.
+
+### /gifts product page + Contact topics
+`/gifts` is a standalone page (footer → Product, sitemap, pricing link):
+presets, how it works, what a publisher keeps per tier on a ₦5,000 gift
+(computed from `lib/tiers.ts`), payout timing, and how to switch gifts on.
+`commissionRateFor()` now lives in `lib/tiers.ts` (pure) so client/server
+pages can share it. The Contact form's "What's this about?" list is now one
+source, `LEAD_CATEGORIES` in `lib/leads.ts` (support, bookings & sessions,
+payments/payouts/refunds, boosts/gifts/advertising, publishing, account,
+report a post or account, bug, partnership, press, investment, other) and
+the admin Leads inbox reads the same list.
+
+### Pro / Business prices (applied)
+Pro **₦5,000/month** (₦50,000/year), Business **₦15,000/month**
+(₦150,000/year) — set in `lib/tiers.ts` (`price` + `priceNote`) and shown
+on `/pricing` and the roadmap. **Billing itself is not built**: there is no
+checkout for tier upgrades yet, so until it is, upgrades are arranged
+manually via Contact and an admin sets the tier with the new tier
+dropdown in `/admin/users` (added with this change; it writes
+`accountTier`, which firestore.rules only lets admins change). Next step:
+(Paystack plans + a self-serve upgrade button are the next step).
+Break-even vs Free Basic (35% commission): Pro at ₦50,000/month earned,
+Business at ₦75,000/month (₦150,000/month vs Pro).

@@ -23,6 +23,8 @@ beforeEach(async () => {
     await setDoc(doc(db, "ledger/ref1"), { publisherUid: "pub", payerUid: "alice", netKobo: 100 });
     await setDoc(doc(db, "payoutAccounts/pub"), { uid: "pub", recipientCode: "RCP_x" });
     await setDoc(doc(db, "publisherSettings/pub"), { uid: "pub" });
+    await setDoc(doc(db, "boosts/b1"), { publisherUid: "pub", impressionsPurchased: 1000 });
+    await setDoc(doc(db, "gifts/g1"), { toUid: "pub", fromUid: "alice", amountKobo: 100 });
     await setDoc(doc(db, "subscriptions/alice_pub"), { subscriberUid: "alice", username: "pub", status: "active" });
   });
 });
@@ -47,6 +49,9 @@ test("money collections are never client-writable", async () => {
     ["payments/new", { uid: "alice" }],
     ["ledger/new", { publisherUid: "alice" }],
     ["slotLocks/new", {}],
+    ["boosts/new", { publisherUid: "alice", impressionsPurchased: 999999 }],
+    ["gifts/new", { toUid: "alice", fromUid: "alice" }],
+    ["pageViews/note_x_20260930", { count: 999999 }],
     ["payoutAccounts/alice", { recipientCode: "mine" }],
     ["publisherSettings/alice", { uid: "alice" }],
     ["subscriptions/alice_other", { subscriberUid: "alice" }],
@@ -101,4 +106,14 @@ test("a standard-tier user cannot create a note; a basic-tier publisher can (own
   await assertFails(setDoc(doc(as("alice"), "notes/n1"), { authorUid: "alice", title: "t" }));
   await assertSucceeds(setDoc(doc(as("pub"), "notes/n2"), { authorUid: "pub", title: "t" }));
   await assertFails(setDoc(doc(as("pub"), "notes/n3"), { authorUid: "alice", title: "t" }));
+});
+
+test("boost stats readable by the buyer only; gifts by recipient and sender only", async () => {
+  await assertSucceeds(getDoc(doc(as("pub"), "boosts/b1")));
+  await assertFails(getDoc(doc(as("alice"), "boosts/b1")));
+  await assertFails(updateDoc(doc(as("pub"), "boosts/b1"), { impressionsDelivered: 1000 }));
+  await assertFails(getDoc(doc(anon(), "boosts/b1")));
+  await assertSucceeds(getDoc(doc(as("pub"), "gifts/g1")));
+  await assertSucceeds(getDoc(doc(as("alice"), "gifts/g1")));
+  await assertFails(getDoc(doc(as("mallory"), "gifts/g1")));
 });

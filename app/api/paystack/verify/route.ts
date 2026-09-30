@@ -4,6 +4,9 @@ import { fulfillPayment } from "@/lib/payments";
 import { rateLimit } from "@/lib/rate-limit";
 
 // Called by /booking/confirm after Paystack redirects the buyer back.
+// Reads request headers/query, so it must never be prerendered at build time.
+export const dynamic = "force-dynamic";
+
 export async function GET(req: NextRequest) {
   try {
     const idToken = req.headers.get("authorization")?.replace(/^Bearer\s+/i, "");
@@ -26,6 +29,8 @@ export async function GET(req: NextRequest) {
       kind: payment.kind,
       booking: payment.booking,
       subscription: payment.subscription,
+      boost: payment.boost,
+      gift: payment.gift && { username: payment.gift.username, noteSlug: payment.gift.noteSlug },
     });
   } catch (err) {
     console.error("Paystack verify failed:", err);
