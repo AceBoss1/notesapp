@@ -350,6 +350,25 @@ service cloud.firestore {
       allow read, write: if false;
     }
 
+    // Boost campaigns: the buyer (and admins) can read their stats; only the server writes.
+    match /boosts/{boostId} {
+      allow read: if isSignedIn()
+        && (resource.data.publisherUid == request.auth.uid || isAdmin());
+      allow write: if false;
+      match /seen/{seenId} {
+        allow read, write: if false;
+      }
+    }
+
+    // Gifts: recipient, sender and admins can read; server-written only.
+    match /gifts/{giftId} {
+      allow read: if isSignedIn()
+        && (resource.data.toUid == request.auth.uid
+            || resource.data.fromUid == request.auth.uid
+            || isAdmin());
+      allow write: if false;
+    }
+
     match /slotLocks/{lockId} {
       allow read, write: if false;
     }

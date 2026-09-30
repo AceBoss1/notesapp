@@ -15,6 +15,7 @@ import Avatar from "@/components/Avatar";
 import FollowButton from "@/components/FollowButton";
 import SubscribeButton from "@/components/SubscribeButton";
 import BookingCard from "@/components/BookingCard";
+import GiftButton from "@/components/GiftButton";
 import VerifiedBadge from "@/components/VerifiedBadge";
 import JournalRow from "@/components/JournalRow";
 import NotesAppPostRow from "@/components/NotesAppPostRow";
@@ -237,6 +238,7 @@ export default function ProfilePageClient({ params }: { params: { username: stri
         </div>
         <div className="ml-0 flex shrink-0 flex-wrap gap-3 sm:ml-auto">
           <FollowButton username={profile.username} />
+          {!synthetic && <GiftButton username={profile.username} publisherUid={realProfile?.uid} />}
           {hasPremium && <SubscribeButton username={profile.username} publisherUid={realProfile?.uid} />}
           {storeItems.length > 0 && (
             <Link href={`/u/${profile.username}/store`} className="btn-ghost">

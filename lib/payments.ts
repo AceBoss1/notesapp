@@ -4,6 +4,7 @@ import { getTierConfig } from "./tiers";
 import { sessionEnd, sessionStart, formatSlot, formatNaira } from "./booking-time";
 import { sendEmail } from "./email";
 import type { AccountTier } from "./users";
+import { getBoostPackage } from "./boost-config";
 
 // Server-only. All money-state changes happen here, via the Admin SDK
 // (Firestore rules make payments/bookings/ledger/subscriptions
@@ -11,7 +12,7 @@ import type { AccountTier } from "./users";
 
 export type PaymentRecord = {
   reference: string;
-  kind: "booking" | "subscription";
+  kind: "booking" | "subscription" | "boost" | "gift";
   uid: string; // the payer
   email: string;
   amountKobo: number;
@@ -21,6 +22,8 @@ export type PaymentRecord = {
   commissionRate: number; // NotesApp's cut, 0–1, fixed at checkout time
   booking?: { username: string; date: string; slot: string; minutes: number };
   subscription?: { username: string; planCode: string };
+  boost?: { noteId: string; packageId: string };
+  gift?: { username: string; noteId?: string; noteSlug?: string; message: string; anonymous: boolean; senderName: string };
   createdAt: string;
   paidAt?: string;
 };
@@ -33,7 +36,7 @@ export type LedgerStatus = "held" | "disputed" | "transferring" | "paid_out" | "
 
 export type LedgerEntry = {
   reference: string;
-  kind: "booking" | "subscription";
+  kind: "booking" | "subscription" | "gift";
   publisherUid: string;
   publisherUsername: string;
   payerUid: string;
@@ -60,7 +63,7 @@ function ledgerFor(p: PaymentRecord, grossKobo: number, releaseAfter: Date, now:
   const commissionKobo = Math.round(grossKobo * p.commissionRate);
   return {
     reference: p.reference,
-    kind: p.kind,
+    kind: p.kind as LedgerEntry["kind"], // boosts never reach the ledger
     publisherUid: p.publisherUid,
     publisherUsername: p.publisherUsername,
     payerUid: p.uid,
@@ -126,6 +129,49 @@ export async function fulfillPayment(reference: string): Promise<PaymentRecord> 
         createdAt: now,
       });
       t.set(db.doc(`ledger/${reference}`), ledgerFor(current, current.amountKobo, sessionEnd(date, slot, minutes), now));
+    } else if (current.kind === "boost" && current.boost) {
+      // Boosts are platform revenue: no ledger entry, just an active campaign.
+      const pk = getBoostPackage(current.boost.packageId);
+      if (!pk) throw new Error("Unknown boost package");
+      const note = (await t.get(db.doc(`notes/${current.boost.noteId}`))).data();
+      t.set(db.doc(`boosts/${reference}`), {
+        reference,
+        noteId: current.boost.noteId,
+        slug: note?.slug || "",
+        title: note?.title || "",
+        author: note?.author || "",
+        image: note?.featured_image || "",
+        publisherUid: current.uid,
+        packageId: pk.id,
+        amountKobo: current.amountKobo,
+        impressionsPurchased: pk.impressions,
+        impressionsDelivered: 0,
+        clicks: 0,
+        maxPerDay: pk.maxPerDay,
+        daily: {},
+        startsAt: now,
+        endsAt: new Date(Date.now() + pk.windowDays * 86_400_000).toISOString(),
+        status: "active",
+        refundedKobo: 0,
+        createdAt: now,
+      });
+    } else if (current.kind === "gift" && current.gift) {
+      t.set(db.doc(`gifts/${reference}`), {
+        reference,
+        toUid: current.publisherUid,
+        toUsername: current.gift.username,
+        fromUid: current.uid,
+        senderName: current.gift.anonymous ? "" : current.gift.senderName,
+        anonymous: current.gift.anonymous,
+        message: current.gift.message,
+        noteId: current.gift.noteId || "",
+        noteSlug: current.gift.noteSlug || "",
+        amountKobo: current.amountKobo,
+        createdAt: now,
+      });
+      // Held for the same 7-day dispute window as subscriptions.
+      const hold = new Date(Date.now() + SUBSCRIPTION_HOLD_DAYS * 86_400_000);
+      t.set(db.doc(`ledger/${reference}`), ledgerFor(current, current.amountKobo, hold, now));
     } else if (current.kind === "subscription" && current.subscription) {
       const { username, planCode } = current.subscription;
       const subRef = db.doc(`subscriptions/${current.uid}_${username}`);
@@ -221,6 +267,7 @@ export async function markSubscriptionCancelled(planCode: string, email: string)
 }
 
 async function notifyPaid(p: PaymentRecord) {
+  if (p.kind === "gift" && p.gift) return notifyGift(p);
   if (p.kind !== "booking" || !p.booking) return;
   const db = getAdminDb();
   const pubUser = (await db.doc(`users/${p.publisherUid}`).get()).data();
@@ -235,6 +282,30 @@ async function notifyPaid(p: PaymentRecord) {
       to: pubUser.email,
       subject: `New booking — ${when}`,
       text: `You have a new paid ${p.booking.minutes}-minute session on ${when}.\nClient: ${p.email}\nYour earnings (after ${Math.round(p.commissionRate * 100)}% commission) are released after the session.\nReference: ${p.reference}\n\n#NotesApp`,
+    });
+  }
+}
+
+async function notifyGift(p: PaymentRecord) {
+  if (!p.gift) return;
+  const db = getAdminDb();
+  const who = p.gift.anonymous ? "Someone" : p.gift.senderName || "A reader";
+  const net = p.amountKobo - Math.round(p.amountKobo * p.commissionRate);
+  const about = p.gift.noteSlug ? " on one of your posts" : "";
+  await db.collection("notifications").add({
+    recipientUid: p.publisherUid,
+    type: "gift",
+    message: `${who} sent you a gift of ${formatNaira(p.amountKobo)}${about}${p.gift.message ? ` — "${p.gift.message}"` : ""}`,
+    read: false,
+    createdAt: new Date().toISOString(),
+    linkHref: p.gift.noteSlug ? `/journals/${p.gift.noteSlug}` : `/u/${p.gift.username}`,
+  });
+  const pub = (await db.doc(`users/${p.publisherUid}`).get()).data();
+  if (pub?.email) {
+    await sendEmail({
+      to: pub.email,
+      subject: `You received a ${formatNaira(p.amountKobo)} gift`,
+      text: `${who} sent you a gift of ${formatNaira(p.amountKobo)}${about}.${p.gift.message ? `\n\n"${p.gift.message}"` : ""}\n\nYour share after commission (${formatNaira(net)}) is released after a 7-day dispute window, to your verified bank account.\nReference: ${p.reference}\n\n#NotesApp`,
     });
   }
 }

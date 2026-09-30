@@ -1184,19 +1184,35 @@ report the app itself being unreachable — add an external monitor
 (UptimeRobot / Better Stack free tier) on `/api/status` for that, and
 optionally point a `status.notesapp.name.ng` hosted page at it.
 
-### Proposal — boosts & gifts (needs your approval; not built)
-**Boost** — chosen while publishing (or later from the post): pay via
-Paystack, e.g. ₦1,000 / 3 days · ₦2,500 / 7 days · ₦5,000 / 14 days
-(suggested). Boosted posts get a "Boosted" label and a slot at the top of
-`/journals` and the home page for the duration; 100% platform revenue, no
-commission. Admin can end a boost (with refund) for policy violations;
-premium posts can be boosted too (teaser only).
-**Gifts** — a Gift button on every publisher profile and every post:
-presets ₦500 / ₦1,000 / ₦2,000 / ₦5,000 or custom (₦200–₦100,000), optional
-message, optional anonymous. Paystack one-time payment → ledger entry
-(kind `gift`), held 7 days like subscriptions, then paid out to the
-publisher's bank account; commission = the publisher's tier rate (same as
-sessions/subscriptions) — or a flat 10% if you prefer. Publisher gets an
-in-app notification + email; no self-gifting; refunds admin-only.
-**Decisions needed:** boost prices/durations · gift amounts & commission
-model · whether gifts show public supporter counts.
+### Boosts & gifts (built — approved 2026-09-30)
+**Gifts** — 🎁 button on every publisher profile and every post
+(`components/GiftButton.tsx`). Presets ₦200/500/1,000/2,000/5,000 or custom
+up to ₦500,000 (server-enforced, `lib/boost-config.ts`), optional message,
+optional anonymous. Paystack one-time charge → `gifts/{ref}` + a ledger
+entry (`kind: gift`) at the recipient's **tier commission**, held 7 days
+like subscriptions, paid out from `/admin/payments`. Recipient gets an
+in-app notification + email. Needs the publisher to have a verified payout
+account (`publisherSettings.payoutReady`); they can switch gifts off in
+`/profile/publishing`. No self-gifting; refunds are admin-only. Public
+supporter counts: not built (per decision).
+**Boosts** — sold by **validated impressions**, delivered over days.
+`/boost/[noteId]` (linked from the composer's "Boost this post after saving"
+checkbox and from Admin → Notes). Suggested packages (edit in
+`lib/boost-config.ts`; also shown on `/pricing`):
+Starter ₦3,000 = 1,000 impressions (≥3 days, ≤7) · Growth ₦12,500 = 5,000
+(≥5 days, ≤14) · Scale ₦45,000 = 20,000 (≥10 days, ≤30) — i.e. ₦3,000 /
+₦2,500 / ₦2,250 per 1,000 impressions. A daily cap
+(`impressions ÷ minDays`) forces delivery to spread over days. An impression
+counts only after the boosted card was ≥50% visible for 1 s
+(IntersectionObserver), once per visitor (hash of IP+UA) per boost per day,
+bots and the publisher's own views excluded; clicks are tracked the same
+way. Served in "Boosted posts" strips on the home and Journals pages
+(`GET /api/boosts/active`, fair rotation by least-delivered). When a boost
+ends with impressions left, admin clicks **Refund undelivered** in
+`/admin/payments → Boosts` (partial Paystack refund, pro-rata). One active
+boost per post; only the post's author or an admin can boost it. Boost
+revenue is 100% platform (no ledger entry). **Housekeeping:** add a
+Firestore TTL policy on collection group `seen`, field `expireAt`, so
+de-dup docs clean themselves up.
+**Not built yet:** in-app "Sponsored" disclosure beyond the label,
+per-boost analytics charts, self-serve boost refunds, public supporter counts.

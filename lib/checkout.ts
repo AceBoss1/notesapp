@@ -15,7 +15,11 @@ async function post(user: User, body: unknown) {
 // Privacy Policy once, then the checkout is retried.
 export async function startCheckout(
   user: User,
-  body: { kind: "booking"; username: string; date: string; slot: string } | { kind: "subscription"; username: string }
+  body:
+    | { kind: "booking"; username: string; date: string; slot: string }
+    | { kind: "subscription"; username: string }
+    | { kind: "boost"; noteId: string; packageId: string }
+    | { kind: "gift"; username: string; amountNaira: number; noteId?: string; message?: string; anonymous?: boolean }
 ): Promise<void> {
   let { res, json } = await post(user, body);
   if (res.status === 403 && json.code === "consent_required") {

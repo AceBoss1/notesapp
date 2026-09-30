@@ -5,6 +5,7 @@ import Link from "next/link";
 import { getAllNotes, NoteWithComputed } from "@/lib/firestore-notes";
 import { getAllUsers, UserProfile } from "@/lib/users";
 import { FOUNDER_JOURNALS, MANDATORY_USERNAMES, CHANNEL_JOURNALS } from "@/lib/journals-directory";
+import BoostedStrip from "@/components/BoostedStrip";
 import JournalsHero, { JournalsTab } from "@/components/JournalsHero";
 import ChannelSpotlight from "@/components/ChannelSpotlight";
 import SocialChannelSpotlight from "@/components/SocialChannelSpotlight";
@@ -76,6 +77,8 @@ export default function JournalsPageClient() {
         activeTab={activeTab}
         onTabChange={setActiveTab}
       />
+
+      <BoostedStrip />
 
       <div className="mx-auto max-w-7xl px-4 py-14 sm:px-6 lg:px-8">
         {error ? (

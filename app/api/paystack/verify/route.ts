@@ -29,6 +29,8 @@ export async function GET(req: NextRequest) {
       kind: payment.kind,
       booking: payment.booking,
       subscription: payment.subscription,
+      boost: payment.boost,
+      gift: payment.gift && { username: payment.gift.username, noteSlug: payment.gift.noteSlug },
     });
   } catch (err) {
     console.error("Paystack verify failed:", err);

@@ -1,5 +1,6 @@
 import Link from "next/link";
 import Image from "next/image";
+import BoostedStrip from "@/components/BoostedStrip";
 
 const LOOP = [
   { step: "Publish", copy: "Write a note. Toggle it public or keep it as a private client journal — same canvas." },
@@ -90,6 +91,8 @@ export default function Home() {
           </div>
         </div>
       </section>
+
+      <BoostedStrip />
 
       {/* Honest status strip — the hero above is the vision; this is
           what's actually true right now. Added directly in response

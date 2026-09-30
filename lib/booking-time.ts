@@ -45,6 +45,12 @@ export type PublisherSettings = {
     priceKobo: number;
     planCode?: string;
   };
+  // Gifts are on by default once a payout account exists; publishers can switch them off.
+  gifts?: { enabled: boolean };
+  // Set by the payout-account route once a verified bank account exists,
+  // so the browser can tell whether this publisher can be paid (the
+  // payout account itself is private).
+  payoutReady?: boolean;
   updatedAt: string;
 };
 

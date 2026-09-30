@@ -19,6 +19,22 @@ export async function POST(req: NextRequest) {
     const payRef = db.doc(`payments/${reference}`);
     const [ledgerSnap, paySnap] = await Promise.all([ledgerRef.get(), payRef.get()]);
     if (!paySnap.exists) return NextResponse.json({ error: "Unknown payment" }, { status: 404 });
+
+    // Boost that ended with impressions undelivered → refund the undelivered share.
+    if (action === "refund_boost") {
+      const boostRef = db.doc(`boosts/${reference}`);
+      const b = (await boostRef.get()).data();
+      if (!b) return NextResponse.json({ error: "Boost not found" }, { status: 404 });
+      if (b.status === "closed") return NextResponse.json({ error: "Already settled." }, { status: 409 });
+      const ended = new Date(b.endsAt).getTime() <= Date.now() || b.status === "completed";
+      if (!ended) return NextResponse.json({ error: "Boost is still running." }, { status: 409 });
+      const shortfall = Math.max(0, b.impressionsPurchased - b.impressionsDelivered);
+      const refundKobo = Math.floor((b.amountKobo * shortfall) / b.impressionsPurchased);
+      if (refundKobo > 0) await refundTransaction(reference, refundKobo);
+      await boostRef.update({ status: "closed", refundedKobo: refundKobo, closedAt: new Date().toISOString() });
+      return NextResponse.json({ ok: true, refundKobo });
+    }
+
     const ledger = ledgerSnap.data() as LedgerEntry | undefined;
 
     if (action === "refund") {

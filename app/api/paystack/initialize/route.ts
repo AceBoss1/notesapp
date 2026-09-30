@@ -5,6 +5,8 @@ import { PaymentRecord } from "@/lib/payments";
 import { loadPublisher } from "@/lib/publishers";
 import { weekdayOf } from "@/lib/booking-time";
 import { LEGAL_VERSION } from "@/lib/legal";
+import { GIFT_MAX_KOBO, GIFT_MESSAGE_MAX, GIFT_MIN_KOBO, getBoostPackage } from "@/lib/boost-config";
+import { verifyAdminRequest } from "@/lib/firebase-admin";
 import { rateLimit } from "@/lib/rate-limit";
 
 // Starts a Paystack checkout for a 1:1 session or a monthly journal
@@ -36,6 +38,42 @@ export async function POST(req: NextRequest) {
 
     const body = await req.json();
     const { kind, username } = body;
+    const db = getAdminDb();
+
+    // ---- boost: the payer must own the post (or be an admin); no publisher lookup ----
+    if (kind === "boost") {
+      const pk = getBoostPackage(String(body.packageId));
+      if (!pk) return NextResponse.json({ error: "Unknown boost package." }, { status: 400 });
+      const noteId = String(body.noteId || "");
+      const noteSnap = noteId ? await db.doc(`notes/${noteId}`).get() : null;
+      const note = noteSnap?.data();
+      if (!note || note.status !== "published") {
+        return NextResponse.json({ error: "Only published posts can be boosted." }, { status: 400 });
+      }
+      const isAdmin = await verifyAdminRequest(idToken).then(() => true).catch(() => false);
+      if (!isAdmin && note.authorUid !== user.uid) {
+        return NextResponse.json({ error: "You can only boost your own posts." }, { status: 403 });
+      }
+      const active = await db.collection("boosts").where("noteId", "==", noteId).where("status", "==", "active").get();
+      if (active.docs.some((d) => new Date(d.data().endsAt).getTime() > Date.now())) {
+        return NextResponse.json({ error: "This post already has an active boost." }, { status: 409 });
+      }
+      const reference = newReference();
+      const origin = (process.env.NEXT_PUBLIC_SITE_URL || req.nextUrl.origin).replace(/\/$/, "");
+      const tx = await initializeTransaction({
+        email: user.email, amountKobo: pk.priceKobo, reference,
+        callbackUrl: `${origin}/booking/confirm`,
+        metadata: { kind, noteId, packageId: pk.id, uid: user.uid },
+      });
+      const record: PaymentRecord = {
+        reference, kind: "boost", uid: user.uid, email: user.email, amountKobo: pk.priceKobo,
+        status: "pending", publisherUid: user.uid, publisherUsername: "", commissionRate: 0,
+        boost: { noteId, packageId: pk.id }, createdAt: new Date().toISOString(),
+      };
+      await db.doc(`payments/${reference}`).set(record);
+      return NextResponse.json({ authorizationUrl: tx.authorization_url, reference });
+    }
+
     if (typeof username !== "string" || !/^[a-z0-9_-]{2,30}$/.test(username)) {
       return NextResponse.json({ error: "Invalid journal." }, { status: 400 });
     }
@@ -45,7 +83,6 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "This publisher hasn't set up payouts yet." }, { status: 409 });
     }
 
-    const db = getAdminDb();
     const reference = newReference();
     const origin = (process.env.NEXT_PUBLIC_SITE_URL || req.nextUrl.origin).replace(/\/$/, "");
     let record: PaymentRecord;
@@ -85,6 +122,32 @@ export async function POST(req: NextRequest) {
         status: "pending", publisherUid: pub.uid, publisherUsername: username,
         commissionRate: pub.commissionRate,
         subscription: { username, planCode: sub.planCode },
+        createdAt: new Date().toISOString(),
+      };
+    } else if (kind === "gift") {
+      if (pub.settings?.gifts?.enabled === false) {
+        return NextResponse.json({ error: "This publisher isn't accepting gifts." }, { status: 409 });
+      }
+      const amountKobo = Math.round(Number(body.amountNaira) * 100);
+      if (!Number.isFinite(amountKobo) || amountKobo < GIFT_MIN_KOBO || amountKobo > GIFT_MAX_KOBO) {
+        return NextResponse.json({ error: "Gifts must be between ₦200 and ₦500,000." }, { status: 400 });
+      }
+      const message = typeof body.message === "string" ? body.message.trim().slice(0, GIFT_MESSAGE_MAX) : "";
+      let noteSlug: string | undefined;
+      let noteId: string | undefined;
+      if (body.noteId) {
+        const n = (await db.doc(`notes/${String(body.noteId)}`).get()).data();
+        if (n && n.status === "published") {
+          noteId = String(body.noteId);
+          noteSlug = n.slug;
+        }
+      }
+      const senderName = ((await db.doc(`users/${user.uid}`).get()).data()?.displayName as string) || "A reader";
+      record = {
+        reference, kind: "gift", uid: user.uid, email: user.email, amountKobo,
+        status: "pending", publisherUid: pub.uid, publisherUsername: username,
+        commissionRate: pub.commissionRate,
+        gift: { username, ...(noteId ? { noteId, noteSlug } : {}), message, anonymous: !!body.anonymous, senderName },
         createdAt: new Date().toISOString(),
       };
     } else {

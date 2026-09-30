@@ -29,13 +29,6 @@ const ITEMS = [
       "Client-initiated rescheduling and cancellation under a published refund policy, WhatsApp reminders, and automatic payout release once a session is complete.",
   },
   {
-    title: "Boosts & gifts",
-    tag: "Monetisation",
-    body: "Publishers can boost a post as they publish it to put it in front of more readers, and readers can send a gift — to a publisher, or to a single post.",
-    detail:
-      "Both run on Paystack. Gifts follow the same held-then-released payout flow as sessions and subscriptions. Pricing, duration and commission will be published on the pricing page before launch.",
-  },
-  {
     title: "Trust, safety & account basics",
     tag: "Foundations",
     body: "The unglamorous pieces that real money needs: password reset and email verification, a bookings dashboard for both sides, a clear cancellation and refund policy, and terms and privacy consent before payment.",
@@ -53,7 +46,7 @@ export default function RoadmapPage() {
       </h1>
       <p className="mt-5 max-w-2xl text-lg text-slate">
         The core loop — publish, book, get paid — is what's demoed
-        today. These are decided and documented, not yet built. Paid sessions, monthly subscriptions, publisher rates and payouts are already live.
+        today. These are decided and documented, not yet built. Paid sessions, monthly subscriptions, publisher rates and payouts, post boosts and gifts are already live.
       </p>
 
       <div className="mt-12 grid grid-cols-1 gap-6">

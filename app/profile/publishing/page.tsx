@@ -28,6 +28,7 @@ export default function PublishingSettingsPage() {
   const [avail, setAvail] = useState<Record<string, string[]>>({});
   const [subOn, setSubOn] = useState(false);
   const [subPrice, setSubPrice] = useState("2000");
+  const [giftsOn, setGiftsOn] = useState(true);
   const [saving, setSaving] = useState(false);
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
 
@@ -38,6 +39,7 @@ export default function PublishingSettingsPage() {
   const [payoutBusy, setPayoutBusy] = useState(false);
   const [payoutMsg, setPayoutMsg] = useState<{ ok: boolean; text: string } | null>(null);
   const [ledger, setLedger] = useState<LedgerEntry[]>([]);
+  const [boosts, setBoosts] = useState<Record<string, any>[]>([]);
 
   useEffect(
     () =>
@@ -47,6 +49,9 @@ export default function PublishingSettingsPage() {
         const p = await getUserByUid(u.uid);
         setProfile(p);
         if (!p) return;
+        getDocs(query(collection(db, "boosts"), where("publisherUid", "==", u.uid)))
+          .then((b) => setBoosts(b.docs.map((d) => d.data()).sort((a, c) => String(c.createdAt).localeCompare(String(a.createdAt)))))
+          .catch(() => {});
         const [sSnap, pSnap, lSnap] = await Promise.all([
           getDoc(doc(db, "publisherSettings", u.uid)),
           getDoc(doc(db, "payoutAccounts", u.uid)),
@@ -54,12 +59,15 @@ export default function PublishingSettingsPage() {
         ]);
         const s = sSnap.data() as PublisherSettings | undefined;
         if (s) {
-          setSessionOn(s.session.enabled);
-          setPrice(String(s.session.priceKobo / 100));
-          setMinutes(s.session.minutes);
-          setAvail(s.session.availability);
-          setSubOn(s.subscription.enabled);
-          setSubPrice(String(s.subscription.priceKobo / 100));
+          setSessionOn(!!s.session?.enabled);
+          if (s.session) {
+            setPrice(String(s.session.priceKobo / 100));
+            setMinutes(s.session.minutes);
+            setAvail(s.session.availability);
+          }
+          setSubOn(!!s.subscription?.enabled);
+          if (s.subscription) setSubPrice(String(s.subscription.priceKobo / 100));
+          setGiftsOn(s.gifts?.enabled !== false);
         }
         if (pSnap.exists()) setPayout(pSnap.data() as Payout);
         setLedger(lSnap.docs.map((d) => d.data() as LedgerEntry).sort((a, b) => b.createdAt.localeCompare(a.createdAt)));
@@ -90,6 +98,7 @@ export default function PublishingSettingsPage() {
       await authedPost("/api/publisher/settings", {
         session: { enabled: sessionOn, priceNaira: Number(price), minutes, availability: avail },
         subscription: { enabled: subOn, priceNaira: Number(subPrice) },
+        gifts: { enabled: giftsOn },
       });
       setMsg({ ok: true, text: "Saved." });
     } catch (err) {
@@ -233,11 +242,36 @@ export default function PublishingSettingsPage() {
           )}
         </div>
 
+        <div className="card p-6">
+          <label className="flex items-center gap-3">
+            <input type="checkbox" checked={giftsOn} onChange={(e) => setGiftsOn(e.target.checked)} />
+            <span className="eyebrow">Accept gifts (a Gift button on your profile and every post)</span>
+          </label>
+          <p className="mt-2 text-xs text-slate">Needs a verified payout account. Gifts pay out after a 7-day window, minus your tier's commission.</p>
+        </div>
+
         <div className="flex items-center gap-4">
           <button disabled={saving} className="btn-primary !px-6 !py-3 disabled:opacity-50">{saving ? "Saving…" : "Save rates"}</button>
           {msg && <span className={`text-sm ${msg.ok ? "text-ink" : "text-crimson"}`}>{msg.text}</span>}
         </div>
       </form>
+
+      {boosts.length > 0 && (
+        <div className="card mt-10 p-6">
+          <p className="eyebrow">Boost results</p>
+          <ul className="mt-3 divide-y divide-rule text-sm">
+            {boosts.map((b) => (
+              <li key={b.reference} className="py-2">
+                <p className="text-ink">{b.title}</p>
+                <p className="text-xs text-slate">
+                  {b.impressionsDelivered.toLocaleString()} / {b.impressionsPurchased.toLocaleString()} impressions · {b.clicks} clicks ·{" "}
+                  {b.status === "active" && new Date(b.endsAt).getTime() > Date.now() ? `runs until ${String(b.endsAt).slice(0, 10)}` : b.status === "closed" && b.refundedKobo ? `ended · ${formatNaira(b.refundedKobo)} refunded for undelivered impressions` : "ended"}
+                </p>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
 
       <div className="card mt-10 p-6">
         <p className="eyebrow">Earnings</p>

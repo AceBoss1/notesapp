@@ -106,6 +106,11 @@ export default function AdminNotesPage() {
                 >
                   Edit
                 </Link>
+                {n.status === "published" && (
+                  <Link href={`/boost/${n.id}`} className="font-ui text-sm font-semibold text-crimson hover:text-ink">
+                    Boost
+                  </Link>
+                )}
                 <button
                   onClick={() => handleDelete(n.id, n.title)}
                   className="font-ui text-sm font-semibold text-red-700 hover:text-red-900"

@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { TIERS, formatPercent } from "@/lib/tiers";
+import { BOOST_PACKAGES } from "@/lib/boost-config";
+import { formatNaira } from "@/lib/booking-time";
 
 export const metadata: Metadata = {
   title: "Pricing",
@@ -134,10 +136,33 @@ export default function PricingPage() {
             take place, subscriptions after a 7-day dispute window. Commission comes off the top, per your tier above.
           </li>
           <li>
-            <strong className="text-ink">Coming soon:</strong> post boosts (promote a post when you publish it) and
-            gifts (readers can tip a publisher or a single post). Pricing for both will be published here before launch.
+            <strong className="text-ink">Gifts</strong> — readers can send a publisher, or a single post, a gift of ₦200,
+            ₦500, ₦1,000, ₦2,000, ₦5,000 or any amount up to ₦500,000. Same commission and payout timing as
+            subscriptions (7-day window).
           </li>
+
         </ul>
+      </div>
+
+      <div className="card mt-6 p-6">
+        <p className="font-ui text-sm font-bold text-ink">Boost a post</p>
+        <p className="mt-2 text-sm text-slate">
+          Promote a post in the Boosted slots on the home and Journals pages. You pay for{" "}
+          <strong className="text-ink">validated impressions</strong> — a real visitor seeing your post for about a
+          second, counted once per visitor per day — delivered over several days. Undelivered impressions are refunded
+          pro-rata. Boosts are not commissionable: what you pay is the price.
+        </p>
+        <div className="mt-4 grid gap-4 sm:grid-cols-3">
+          {BOOST_PACKAGES.map((p) => (
+            <div key={p.id} className="border border-rule p-4">
+              <p className="font-ui text-sm font-bold text-ink">{p.name}</p>
+              <p className="mt-1 font-display text-xl text-ink">{formatNaira(p.priceKobo)}</p>
+              <p className="mt-1 text-xs text-slate">
+                {p.impressions.toLocaleString()} impressions · up to {p.maxPerDay.toLocaleString()}/day · up to {p.windowDays} days
+              </p>
+            </div>
+          ))}
+        </div>
       </div>
 
       <p className="mt-10 text-sm text-slate">

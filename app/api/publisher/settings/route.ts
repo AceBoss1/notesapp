@@ -77,6 +77,8 @@ export async function POST(req: NextRequest) {
         priceKobo: subEnabled ? subPriceKobo : existing?.subscription?.priceKobo ?? LIMITS.subscriptionMinKobo,
         ...(planCode ? { planCode } : {}),
       },
+      gifts: { enabled: body.gifts?.enabled !== undefined ? !!body.gifts.enabled : existing?.gifts?.enabled ?? true },
+      ...(existing?.payoutReady ? { payoutReady: true } : {}),
       updatedAt: new Date().toISOString(),
     };
     await db.doc(`publisherSettings/${uid}`).set(settings);

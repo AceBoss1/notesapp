@@ -9,7 +9,9 @@ import { formatSlot } from "@/lib/booking-time";
 
 type Result = {
   status: string;
-  kind: "booking" | "subscription";
+  kind: "booking" | "subscription" | "boost" | "gift";
+  boost?: { noteId: string };
+  gift?: { username: string; noteSlug?: string };
   booking?: { username: string; date: string; slot: string };
   subscription?: { username: string };
 };
@@ -55,6 +57,22 @@ function Confirm() {
           <p className="mt-3 text-sm text-slate">Premium entries from @{result.subscription.username} are now unlocked. Renews monthly.</p>
           <Link href={`/u/${result.subscription.username}`} className="btn-primary mt-6 inline-block !px-5 !py-2 text-xs">
             Back to journal
+          </Link>
+        </>
+      ) : result.status === "paid" && result.kind === "boost" ? (
+        <>
+          <p className="font-display text-2xl text-ink">Boost is live ✓</p>
+          <p className="mt-3 text-sm text-slate">Your post now rotates in the Boosted slots on the home and Journals pages. Impressions are counted once a real visitor has seen it, spread over several days.</p>
+          <Link href="/profile/publishing" className="btn-primary mt-6 inline-block !px-5 !py-2 text-xs">
+            See boost results
+          </Link>
+        </>
+      ) : result.status === "paid" && result.kind === "gift" && result.gift ? (
+        <>
+          <p className="font-display text-2xl text-ink">Gift sent 🎁</p>
+          <p className="mt-3 text-sm text-slate">Thank you — @{result.gift.username} has been notified.</p>
+          <Link href={result.gift.noteSlug ? `/journals/${result.gift.noteSlug}` : `/u/${result.gift.username}`} className="btn-primary mt-6 inline-block !px-5 !py-2 text-xs">
+            Back
           </Link>
         </>
       ) : result.status === "paid" && result.booking ? (
