@@ -39,7 +39,7 @@ export default function AdminJournalsPage() {
     <section className="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8 py-14">
       <Link
         href="/admin"
-        className="font-ui text-xs font-semibold uppercase tracking-wideish text-crimson-bright"
+        className="block font-ui text-xs font-semibold uppercase tracking-wideish text-crimson-bright"
       >
         ← Dashboard
       </Link>

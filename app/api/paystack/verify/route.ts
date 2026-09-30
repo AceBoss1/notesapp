@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { friendlyMessage } from "@/lib/api-errors";
 import { getAdminDb, verifySignedInRequest } from "@/lib/firebase-admin";
 import { fulfillPayment } from "@/lib/payments";
 import { rateLimit } from "@/lib/rate-limit";
@@ -35,7 +36,7 @@ export async function GET(req: NextRequest) {
     });
   } catch (err) {
     console.error("Paystack verify failed:", err);
-    const message = err instanceof Error ? err.message : "Couldn't verify payment";
-    return NextResponse.json({ error: message }, { status: 500 });
+    const f = friendlyMessage(err, "Couldn't verify payment");
+    return NextResponse.json({ error: f.status === 503 ? "We're at capacity for a moment — your payment is safe and will be confirmed automatically. Refresh in a little while." : f.message }, { status: f.status });
   }
 }

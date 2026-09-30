@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { friendlyMessage } from "@/lib/api-errors";
 import { getAdminDb } from "@/lib/firebase-admin";
 import { loadPublisher } from "@/lib/publishers";
 import { slotLockId } from "@/lib/paystack";
@@ -28,6 +29,7 @@ export async function GET(req: NextRequest) {
     const slots = candidates.filter((_, i) => !taken[i].exists);
     return NextResponse.json({ bookable: true, slots, priceKobo: s.priceKobo, minutes: s.minutes });
   } catch (err) {
-    return NextResponse.json({ error: err instanceof Error ? err.message : "Failed" }, { status: 404 });
+    const f = friendlyMessage(err, "Failed");
+    return NextResponse.json({ error: f.message }, { status: f.status === 503 ? 503 : 404 });
   }
 }

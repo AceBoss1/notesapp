@@ -60,6 +60,7 @@ export type NoteWithComputed = Note & {
 };
 
 import { sortNewestFirst } from "./dates";
+import { ttlCache } from "./ttl-cache";
 
 const COLLECTION = "notes";
 
@@ -81,6 +82,15 @@ export function isAuthorOf(note: Note, displayName: string): boolean {
   return note.author === displayName || !!note.coAuthors?.includes(displayName);
 }
 
+// Whose note is it? Prefer stable ids (authorUid / authorUsername) so a
+// member changing their display name doesn't orphan their posts; fall back
+// to the display-name match older notes rely on (founder / channel posts).
+export function isNoteBy(note: Note, who: { uid?: string; username?: string; displayName: string }): boolean {
+  if (who.uid && note.authorUid === who.uid) return true;
+  if (who.username && note.authorUsername === who.username) return true;
+  return isAuthorOf(note, who.displayName);
+}
+
 export function slugify(title: string): string {
   return title
     .toLowerCase()
@@ -90,20 +100,39 @@ export function slugify(title: string): string {
     .replace(/-+/g, "-");
 }
 
+// Direct Firestore read of every note. No orderBy("date") on purpose:
+// `date` is a string in mixed formats, so Firestore's string ordering is
+// wrong (and silently drops docs without a date) — sort by parsed time.
+async function readNotesFromFirestore(publishedOnly: boolean): Promise<NoteWithComputed[]> {
+  const snap = await getDocs(
+    publishedOnly ? query(collection(db, COLLECTION), where("status", "==", "published")) : collection(db, COLLECTION)
+  );
+  const notes = snap.docs.map((d) => ({ id: d.id, ...d.data() } as Note));
+  return sortNewestFirst(notes).map(withComputed);
+}
+
+// Public list reads are the biggest Firestore-quota consumer (every
+// visitor re-reading every note). They're cached, and in the browser they
+// go through /api/public/notes (CDN-cached, no note bodies) so ALL
+// visitors share one read set. Admin views (publishedOnly:false) still
+// read Firestore directly.
+const serverPublicNotes = ttlCache(5 * 60_000, () => readNotesFromFirestore(true));
+const browserPublicNotes = ttlCache(2 * 60_000, async () => {
+  const res = await fetch("/api/public/notes");
+  if (!res.ok) throw new Error("Couldn't load journals right now.");
+  return ((await res.json()).notes as NoteWithComputed[]) || [];
+});
+
+export function invalidateNotesCache() {
+  serverPublicNotes.invalidate();
+  browserPublicNotes.invalidate();
+}
+
 export async function getAllNotes(
   opts: { publishedOnly?: boolean } = { publishedOnly: true }
 ): Promise<NoteWithComputed[]> {
-  // No orderBy("date") here on purpose: `date` is a string in mixed
-  // formats, so Firestore's string ordering is wrong (and silently
-  // drops docs without a date). Sort by parsed time instead.
-  const snap = await getDocs(collection(db, COLLECTION));
-  const notes = snap.docs.map(
-    (d) => ({ id: d.id, ...d.data() } as Note)
-  );
-  const filtered = opts.publishedOnly
-    ? notes.filter((n) => n.status === "published")
-    : notes;
-  return sortNewestFirst(filtered).map(withComputed);
+  if (opts.publishedOnly === false) return readNotesFromFirestore(false);
+  return typeof window === "undefined" ? serverPublicNotes() : browserPublicNotes();
 }
 
 export async function getNoteBySlug(
@@ -116,6 +145,20 @@ export async function getNoteBySlug(
   return withComputed({ id: d.id, ...d.data() } as Note);
 }
 
+// A member's own entries, drafts included (used by /write). Single-field
+// query — no composite index — and only their own documents are read.
+export async function getNotesByAuthorUid(uid: string): Promise<NoteWithComputed[]> {
+  const snap = await getDocs(query(collection(db, COLLECTION), where("authorUid", "==", uid)));
+  return sortNewestFirst(snap.docs.map((d) => ({ id: d.id, ...d.data() } as Note))).map(withComputed);
+}
+
+// True if another note already uses this slug (note URLs must be unique —
+// getNoteBySlug returns the first match).
+export async function slugTaken(slug: string, exceptId?: string): Promise<boolean> {
+  const snap = await getDocs(query(collection(db, COLLECTION), where("slug", "==", slug)));
+  return snap.docs.some((d) => d.id !== exceptId);
+}
+
 export async function getNoteById(id: string): Promise<Note | null> {
   const ref = doc(db, COLLECTION, id);
   const snap = await getDoc(ref);
@@ -126,6 +169,7 @@ export async function getNoteById(id: string): Promise<Note | null> {
 export async function createNote(
   data: Omit<Note, "id">
 ): Promise<string> {
+  invalidateNotesCache();
   const ref = await addDoc(collection(db, COLLECTION), {
     viewCount: 0,
     likeCount: 0,
@@ -150,10 +194,12 @@ export async function updateNote(
   data: Partial<Omit<Note, "id">>
 ): Promise<void> {
   await updateDoc(doc(db, COLLECTION, id), data);
+  invalidateNotesCache();
 }
 
 export async function deleteNote(id: string): Promise<void> {
   await deleteDoc(doc(db, COLLECTION, id));
+  invalidateNotesCache();
 }
 
 export async function getMoreNotes(

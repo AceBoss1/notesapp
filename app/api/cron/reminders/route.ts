@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getAdminDb } from "@/lib/firebase-admin";
+import { getAdminDb, getUserEmail } from "@/lib/firebase-admin";
 import { sendEmail } from "@/lib/email";
 import { formatSlot } from "@/lib/booking-time";
 import { expireTiers } from "@/lib/tier-billing";
@@ -36,11 +36,11 @@ export async function GET(req: NextRequest) {
     // A 1-hour reminder also covers the 24-hour one for late bookings.
     const label = flag === "reminder1Sent" ? "starts in about 1 hour" : "is tomorrow";
     const when = `${b.date} at ${formatSlot(b.slot)} (WAT)`;
-    const pub = (await db.doc(`users/${b.publisherUid}`).get()).data();
+    const pubEmail = await getUserEmail(b.publisherUid);
     const text = `Reminder: your ${b.minutes}-minute #NotesApp session with @${b.username} ${label} — ${when}.`;
     const results = await Promise.all([
       sendEmail({ to: b.clientEmail, subject: `Reminder: session ${when}`, text }),
-      pub?.email ? sendEmail({ to: pub.email, subject: `Reminder: session ${when}`, text }) : Promise.resolve(true),
+      pubEmail ? sendEmail({ to: pubEmail, subject: `Reminder: session ${when}`, text }) : Promise.resolve(true),
     ]);
     if (results.every(Boolean)) {
       await doc.ref.update(flag === "reminder1Sent" ? { reminder1Sent: true, reminder24Sent: true } : { reminder24Sent: true });

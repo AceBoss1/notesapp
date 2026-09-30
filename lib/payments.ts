@@ -1,4 +1,4 @@
-import { getAdminDb } from "./firebase-admin";
+import { getAdminDb, getUserEmail } from "./firebase-admin";
 import { slotLockId, verifyTransaction } from "./paystack";
 import { commissionRateFor } from "./tiers";
 import { sessionEnd, sessionStart, formatSlot, formatNaira } from "./booking-time";
@@ -313,17 +313,16 @@ async function notifyPaid(p: PaymentRecord) {
     return;
   }
   if (p.kind !== "booking" || !p.booking) return;
-  const db = getAdminDb();
-  const pubUser = (await db.doc(`users/${p.publisherUid}`).get()).data();
+  const pubEmail = await getUserEmail(p.publisherUid);
   const when = `${p.booking.date} at ${formatSlot(p.booking.slot)} (WAT, ${p.booking.minutes} min)`;
   await sendEmail({
     to: p.email,
     subject: `Session confirmed — ${when}`,
     text: `Your ${p.booking.minutes}-minute session with @${p.booking.username} is confirmed for ${when}.\nPaid: ${formatNaira(p.amountKobo)}.\nReference: ${p.reference}\n\n#NotesApp`,
   });
-  if (pubUser?.email) {
+  if (pubEmail) {
     await sendEmail({
-      to: pubUser.email,
+      to: pubEmail,
       subject: `New booking — ${when}`,
       text: `You have a new paid ${p.booking.minutes}-minute session on ${when}.\nClient: ${p.email}\nYour earnings (after ${Math.round(p.commissionRate * 100)}% commission) are released after the session.\nReference: ${p.reference}\n\n#NotesApp`,
     });
@@ -344,10 +343,10 @@ async function notifyGift(p: PaymentRecord) {
     createdAt: new Date().toISOString(),
     linkHref: p.gift.noteSlug ? `/journals/${p.gift.noteSlug}` : `/u/${p.gift.username}`,
   });
-  const pub = (await db.doc(`users/${p.publisherUid}`).get()).data();
-  if (pub?.email) {
+  const pubEmail = await getUserEmail(p.publisherUid);
+  if (pubEmail) {
     await sendEmail({
-      to: pub.email,
+      to: pubEmail,
       subject: `You received a ${formatNaira(p.amountKobo)} gift`,
       text: `${who} sent you a gift of ${formatNaira(p.amountKobo)}${about}.${p.gift.message ? `\n\n"${p.gift.message}"` : ""}\n\nYour share after commission (${formatNaira(net)}) is released after a 7-day dispute window, to your verified bank account.\nReference: ${p.reference}\n\n#NotesApp`,
     });

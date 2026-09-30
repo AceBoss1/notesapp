@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { friendlyMessage } from "@/lib/api-errors";
 import { getAdminDb, verifyPublisherRequest } from "@/lib/firebase-admin";
 import { createTransferRecipient, resolveAccount } from "@/lib/paystack";
 import { rateLimit } from "@/lib/rate-limit";
@@ -44,6 +45,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ ok: true, accountName: record.accountName, bankName: record.bankName, accountLast4: record.accountLast4 });
   } catch (err) {
     console.error("Payout account failed:", err);
-    return NextResponse.json({ error: err instanceof Error ? err.message : "Couldn't verify that account" }, { status: 400 });
+    const f = friendlyMessage(err, "Couldn't verify that account");
+    return NextResponse.json({ error: f.message }, { status: f.status === 503 ? 503 : 400 });
   }
 }

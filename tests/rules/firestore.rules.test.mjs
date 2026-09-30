@@ -133,6 +133,25 @@ test("plan records: owner reads their own, others cannot; users can't self-upgra
 test("users can't grant themselves the verified badge or extend it", async () => {
   await assertFails(updateDoc(doc(as("alice"), "users/alice"), { badgeUntil: "2099-01-01T00:00:00.000Z" }));
   await assertFails(updateDoc(doc(as("alice"), "users/alice"), { verified: true }));
+  await assertFails(updateDoc(doc(as("alice"), "users/alice"), { tierRequest: { status: "approved", message: "x", requestedAt: "x" } }));
   await assertFails(updateDoc(doc(as("alice"), "users/alice"), { goldBadge: { kind: "identity", grantedAt: "x" } }));
   await assertSucceeds(updateDoc(doc(as("boss", { admin: true }), "users/alice"), { goldBadge: { kind: "endorsement", grantedAt: "x" } }));
+});
+
+test("public user documents can't be created with an email field", async () => {
+  const base = { uid: "newbie", username: "newbie", displayName: "N", bio: "", avatar: "", social: {}, role: "reader", createdAt: "x", accountTier: "standard", suspended: false };
+  await assertFails(setDoc(doc(as("newbie"), "users/newbie"), { ...base, email: "n@x.com" }));
+  await assertSucceeds(setDoc(doc(as("newbie"), "users/newbie"), base));
+});
+
+test("a publisher can edit and delete their own entries, not other people's", async () => {
+  await env.withSecurityRulesDisabled(async (ctx) => {
+    const adminDb = ctx.firestore();
+    await setDoc(doc(adminDb, "notes/mine"), { authorUid: "pub", title: "t", status: "draft" });
+    await setDoc(doc(adminDb, "notes/theirs"), { authorUid: "someone", title: "t", status: "published" });
+  });
+  await assertSucceeds(updateDoc(doc(as("pub"), "notes/mine"), { title: "edited", status: "published" }));
+  await assertFails(updateDoc(doc(as("pub"), "notes/theirs"), { title: "hijacked" }));
+  await assertFails(deleteDoc(doc(as("pub"), "notes/theirs")));
+  await assertSucceeds(deleteDoc(doc(as("pub"), "notes/mine")));
 });

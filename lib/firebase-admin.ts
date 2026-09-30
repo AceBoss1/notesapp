@@ -108,3 +108,25 @@ export async function verifyAvatarUploadRequest(idToken: string | undefined): Pr
   if (snap.data()?.suspended === true) throw new Error("Suspended accounts can't upload");
   return uid;
 }
+
+// Emails live ONLY in Firebase Authentication — never in the (publicly
+// readable) users/{uid} documents. Server code that needs to email a user
+// looks it up here; Auth reads don't count against Firestore quota.
+export async function getUserEmail(uid: string): Promise<string | null> {
+  try {
+    return (await getAuth(getAdminApp()).getUser(uid)).email || null;
+  } catch {
+    return null;
+  }
+}
+
+export async function getUserEmails(uids: string[]): Promise<Record<string, string>> {
+  const out: Record<string, string> = {};
+  for (let i = 0; i < uids.length; i += 100) {
+    const res = await getAuth(getAdminApp()).getUsers(uids.slice(i, i + 100).map((uid) => ({ uid })));
+    res.users.forEach((u) => {
+      if (u.email) out[u.uid] = u.email;
+    });
+  }
+  return out;
+}

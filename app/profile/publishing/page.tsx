@@ -8,6 +8,7 @@ import { auth, db } from "@/lib/firebase";
 import { canPublish, getUserByUid, UserProfile } from "@/lib/users";
 import { LIMITS, WEEKDAYS, formatNaira, formatSlot, PublisherSettings } from "@/lib/booking-time";
 import type { LedgerEntry } from "@/lib/payments";
+import BecomePublisher from "@/components/BecomePublisher";
 
 const TIME_OPTIONS = Array.from({ length: 30 }, (_, i) => {
   const mins = 6 * 60 + i * 30; // 06:00 … 20:30
@@ -153,11 +154,7 @@ export default function PublishingSettingsPage() {
 
   if (profile === undefined) return <div className="px-6 py-24 text-center text-slate">Loading…</div>;
   if (!profile || !canPublish(profile)) {
-    return (
-      <div className="mx-auto max-w-xl px-6 py-24 text-center text-slate">
-        Rates and payouts are for publishing accounts. Upgrade your tier to start earning.
-      </div>
-    );
+    return <BecomePublisher user={user} profile={profile} onApplied={() => setProfile((p) => (p ? { ...p, tierRequest: { status: "pending", message: "", requestedAt: new Date().toISOString() } } : p))} />;
   }
 
   const input = "mt-1 w-full border border-rule bg-card px-3 py-2 text-sm outline-none focus:border-crimson";

@@ -1,21 +1,31 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { onAuthStateChanged, signOut, User } from "firebase/auth";
 import { auth } from "@/lib/firebase";
-import { getUserByUid, UserProfile } from "@/lib/users";
+import { getUserByUid, canPublish, UserProfile } from "@/lib/users";
 import NotificationBell from "@/components/NotificationBell";
 
 export default function AuthNav() {
   const [user, setUser] = useState<User | null | undefined>(undefined);
   const [profile, setProfile] = useState<UserProfile | null>(null);
+  const [open, setOpen] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     return onAuthStateChanged(auth, async (u) => {
       setUser(u);
       setProfile(u ? await getUserByUid(u.uid) : null);
     });
+  }, []);
+
+  useEffect(() => {
+    function onClick(e: MouseEvent) {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) setOpen(false);
+    }
+    document.addEventListener("mousedown", onClick);
+    return () => document.removeEventListener("mousedown", onClick);
   }, []);
 
   if (user === undefined) return null;
@@ -36,26 +46,32 @@ export default function AuthNav() {
     );
   }
 
+  const item = "block px-4 py-2 text-left font-ui text-xs normal-case text-ink hover:bg-paper hover:text-crimson-bright";
+
   return (
     <div className="flex items-center gap-4">
       <NotificationBell user={user} />
-      {profile && (
-        <Link
-          href={`/u/${profile.username}`}
-          className="font-mono text-crimson-bright"
-        >
-          @{profile.username}
-        </Link>
-      )}
-      <Link href="/bookings" className="text-ink hover:text-crimson-bright normal-case font-ui text-xs">
-        Bookings
-      </Link>
-      <button
-        onClick={() => signOut(auth)}
-        className="text-ink hover:text-crimson-bright normal-case font-ui text-xs"
-      >
-        Sign Out
-      </button>
+      <div className="relative" ref={menuRef}>
+        <button onClick={() => setOpen((o) => !o)} aria-haspopup="menu" aria-expanded={open} className="font-mono text-crimson-bright">
+          {profile ? `@${profile.username}` : "Account"} ▾
+        </button>
+        {open && (
+          <div role="menu" className="absolute right-0 z-50 mt-2 w-52 border border-rule bg-card py-1 shadow-lg" onClick={() => setOpen(false)}>
+            {profile && <Link href={`/u/${profile.username}`} className={item}>My profile</Link>}
+            {profile && canPublish(profile) && <Link href="/write" className={item}>My journal (write)</Link>}
+            <Link href="/profile/edit" className={item}>Edit profile</Link>
+            <Link href="/profile/publishing" className={item}>
+              {profile && canPublish(profile) ? "Rates & payouts" : "Start publishing"}
+            </Link>
+            <Link href="/bookings" className={item}>Bookings</Link>
+            <Link href="/boost" className={item}>Boost a post</Link>
+            <Link href="/badges" className={item}>Verification badges</Link>
+            <button onClick={() => signOut(auth)} className={`${item} w-full border-t border-rule`}>
+              Sign out
+            </button>
+          </div>
+        )}
+      </div>
     </div>
   );
 }

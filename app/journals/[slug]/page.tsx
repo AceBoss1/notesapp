@@ -5,7 +5,7 @@ import { remark } from "remark";
 import html from "remark-html";
 import type { Metadata } from "next";
 import { getNoteBySlug, getMoreNotes } from "@/lib/firestore-notes";
-import { getUserByDisplayName, badgeLevel, isTeamMember } from "@/lib/users";
+import { getUserByDisplayName, getUserByUid, badgeLevel, isTeamMember } from "@/lib/users";
 import TeamBadge from "@/components/TeamBadge";
 import VerifiedBadge from "@/components/VerifiedBadge";
 import { NA_NOTESAPP_PROFILE } from "@/lib/journals-directory";
@@ -62,7 +62,7 @@ export default async function JournalDetail({
   const [processed, moreNotes, authorProfile] = await Promise.all([
     remark().use(html).process(note.content),
     getMoreNotes(note.slug, 4),
-    getUserByDisplayName(note.author),
+    (note.authorUid ? getUserByUid(note.authorUid) : Promise.resolve(null)).then((u) => u || getUserByDisplayName(note.author)),
   ]);
   const contentHtml = processed.toString();
 
@@ -99,15 +99,15 @@ export default async function JournalDetail({
         {linkedUsername ? (
           <Link href={`/u/${linkedUsername}`} className="group flex items-center gap-3">
             <Image
-              src={note.author_avatar}
-              alt={note.author}
+              src={authorProfile?.avatar || note.author_avatar}
+              alt={authorProfile?.displayName || note.author}
               width={44}
               height={44}
               className="h-11 w-11 flex-shrink-0 rounded-full border-2 border-crimson object-cover"
             />
             <div>
               <p className="font-ui text-sm font-semibold text-ink group-hover:text-crimson-bright">
-                By {note.author}{" "}
+                By {authorProfile?.displayName || note.author}{" "}
                 {authorProfile && badgeLevel(authorProfile) && <VerifiedBadge size={14} level={badgeLevel(authorProfile)} />}
                 {authorProfile && isTeamMember(authorProfile) && <TeamBadge size={14} />}{" "}
                 <span className="font-mono text-crimson-bright">
@@ -122,14 +122,14 @@ export default async function JournalDetail({
         ) : (
           <div className="flex items-center gap-3">
             <Image
-              src={note.author_avatar}
-              alt={note.author}
+              src={authorProfile?.avatar || note.author_avatar}
+              alt={authorProfile?.displayName || note.author}
               width={44}
               height={44}
               className="h-11 w-11 flex-shrink-0 rounded-full border-2 border-crimson object-cover"
             />
             <div>
-              <p className="font-ui text-sm font-semibold text-ink">By {note.author}</p>
+              <p className="font-ui text-sm font-semibold text-ink">By {authorProfile?.displayName || note.author}</p>
               <p className="mt-0.5 font-mono text-xs uppercase tracking-wide text-slate">
                 {note.author_role}
               </p>

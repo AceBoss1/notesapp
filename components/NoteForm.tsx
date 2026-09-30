@@ -3,9 +3,11 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
-import { Note, slugify, createNote, updateNote } from "@/lib/firestore-notes";
+import { Note, slugify, createNote, updateNote, slugTaken } from "@/lib/firestore-notes";
 import { uploadToR2 } from "@/lib/upload";
 import RichTextEditor from "@/components/RichTextEditor";
+import type { UserProfile } from "@/lib/users";
+import { getTierConfig } from "@/lib/tiers";
 
 // Kept identical to Precheks' own author_role text on purpose — this
 // writes into the shared `notes` document, and Precheks renders
@@ -38,9 +40,19 @@ const AUTHORS = [
 type Props = {
   noteId?: string;
   initial?: Partial<Note>;
+  // Set when a member (not an admin picking an identity) is writing: the
+  // byline, author id and avatar come from their own profile, and saving
+  // returns to their own journal (/write).
+  self?: UserProfile;
 };
 
-export default function NoteForm({ noteId, initial }: Props) {
+function selfRoleLabel(p: UserProfile): string {
+  if (p.role === "staff") return "Staff Writer";
+  if (p.role === "volunteer") return "Guest Writer";
+  return getTierConfig(p.accountTier).label.replace(/^Free /, "") + " Publisher";
+}
+
+export default function NoteForm({ noteId, initial, self }: Props) {
   const router = useRouter();
   const [title, setTitle] = useState(initial?.title || "");
   const [slug, setSlug] = useState(initial?.slug || "");
@@ -89,10 +101,22 @@ export default function NoteForm({ noteId, initial }: Props) {
     e.preventDefault();
     setSaving(true);
     setError("");
-    const author = AUTHORS.find((a) => a.name === authorName) || AUTHORS[0];
+    const author = self
+      ? { name: self.displayName, role: selfRoleLabel(self), avatar: self.avatar }
+      : AUTHORS.find((a) => a.name === authorName) || AUTHORS[0];
+    const finalSlug = slug || slugify(title);
+    try {
+      if (await slugTaken(finalSlug, noteId)) {
+        setError("Another entry already uses that URL — change the slug.");
+        setSaving(false);
+        return;
+      }
+    } catch {
+      /* if the check itself fails, let the save decide */
+    }
     const payload = {
       title,
-      slug: slug || slugify(title),
+      slug: finalSlug,
       date: initial?.date || new Date().toISOString(),
       categories: categories
         .split(",")
@@ -107,6 +131,7 @@ export default function NoteForm({ noteId, initial }: Props) {
       author: author.name,
       author_role: author.role,
       author_avatar: author.avatar,
+      ...(self ? { authorUid: self.uid, authorUsername: self.username } : {}),
       status,
       premium,
     };
@@ -121,7 +146,7 @@ export default function NoteForm({ noteId, initial }: Props) {
         localStorage.removeItem(`notesapp:draft:${noteId || "new"}`);
       } catch {}
       // Boosting is a paid step of its own — hand off to the package picker.
-      router.push(boostAfter && status === "published" && savedId ? `/boost/${savedId}` : "/admin/journals");
+      router.push(boostAfter && status === "published" && savedId ? `/boost/${savedId}` : self ? "/write" : "/admin/journals");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Save failed");
       setSaving(false);
@@ -173,6 +198,7 @@ export default function NoteForm({ noteId, initial }: Props) {
         </label>
       </div>
 
+      {!self && (
       <label className="block">
         <span className="eyebrow">Author</span>
         <select
@@ -187,6 +213,7 @@ export default function NoteForm({ noteId, initial }: Props) {
           ))}
         </select>
       </label>
+      )}
 
       <label className="block">
         <span className="eyebrow">Featured Image</span>

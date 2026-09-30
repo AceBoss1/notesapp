@@ -127,7 +127,7 @@ export default function PricingPage() {
           <p className="font-ui text-sm font-bold text-ink">How to move up the ladder</p>
           <p className="mt-2 text-sm text-slate">
             Free Standard → Free Basic is a self-serve application from
-            your own profile, reviewed by an admin — no payment
+            your own profile (Rates &amp; payouts), reviewed by an admin — no payment
             involved. Pro (₦5,000/month) and Business (₦15,000/month) are
             paid plans you can start right from this table — monthly or
             yearly (two months free), renewing automatically through

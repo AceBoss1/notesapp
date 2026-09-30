@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { friendlyMessage } from "@/lib/api-errors";
 import { getAdminDb, verifyPublisherRequest } from "@/lib/firebase-admin";
 import { createPlan } from "@/lib/paystack";
 import { LIMITS, PublisherSettings } from "@/lib/booking-time";
@@ -85,6 +86,6 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ ok: true, settings });
   } catch (err) {
     console.error("Publisher settings failed:", err);
-    return NextResponse.json({ error: err instanceof Error ? err.message : "Couldn't save" }, { status: 500 });
+    { const f = friendlyMessage(err, "Couldn't save"); return NextResponse.json({ error: f.message }, { status: f.status }); }
   }
 }

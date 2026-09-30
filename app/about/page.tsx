@@ -2,7 +2,7 @@ import Image from "next/image";
 import Link from "next/link";
 import type { Metadata } from "next";
 import { ADMIN_PROFILES } from "@/lib/admin";
-import { SITE } from "@/lib/site";
+import { getSiteSettingsCached } from "@/lib/settings";
 import Avatar from "@/components/Avatar";
 import { CHANNEL_JOURNALS } from "@/lib/journals-directory";
 
@@ -27,7 +27,8 @@ const FOUNDERS = [
   { ...ADMIN_PROFILES["precheks.info@gmail.com"], role: "Guest Writer" },
 ];
 
-export default function AboutPage() {
+export default async function AboutPage() {
+  const site = await getSiteSettingsCached();
   return (
     <div className="mx-auto max-w-4xl px-4 py-16 sm:px-6 lg:px-8">
       <span className="eyebrow">About</span>
@@ -176,7 +177,7 @@ export default function AboutPage() {
           </p>
         </div>
         <a
-          href={SITE.linkedin}
+          href={site.social.linkedin || "https://www.linkedin.com/company/na-notesapp"}
           target="_blank"
           rel="noopener noreferrer"
           className="btn-primary shrink-0"

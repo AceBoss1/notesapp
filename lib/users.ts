@@ -17,6 +17,7 @@ import { db } from "./firebase";
 import { ADMIN_PROFILES, SocialLinks } from "./admin";
 import { LEGAL_VERSION, Consent } from "./legal";
 import { badgeIncluded } from "./tiers";
+import { ttlCache } from "./ttl-cache";
 import { GOLD_BADGE_LIVE, BadgeLevel, GoldBadgeKind } from "./badges";
 
 export type UserRole = "admin" | "staff" | "volunteer" | "reader";
@@ -72,7 +73,10 @@ export type UserProfile = {
   // Firestore-document field a client could reason about. This field
   // is a label + moderation marker today, not an authorization grant.
   role: UserRole;
-  email: string;
+  // DEPRECATED — emails live only in Firebase Auth now. Older documents
+  // may still carry one until scripts/strip-user-emails.mjs is run; nothing
+  // writes it any more and firestore.rules forbids clients from doing so.
+  email?: string;
   createdAt: string;
   // Not written by any path yet — this is where the "verified badge
   // for Pro/Business accounts that pass basic verification" roadmap
@@ -180,7 +184,7 @@ export async function getUserByUsername(
 function adminFallbackProfile(username: string): UserProfile | null {
   const entry = Object.entries(ADMIN_PROFILES).find(([, a]) => a.username === username);
   if (!entry) return null;
-  const [email, a] = entry;
+  const [, a] = entry;
   return {
     uid: `admin:${a.username}`,
     username: a.username,
@@ -189,7 +193,6 @@ function adminFallbackProfile(username: string): UserProfile | null {
     avatar: a.avatar,
     social: a.social,
     role: "admin",
-    email,
     createdAt: "",
     accountTier: "basic",
     suspended: false,
@@ -233,7 +236,6 @@ export async function signUpProfile(params: {
       avatar: admin?.avatar || "/images/headshots/default-avatar.png",
       social: admin?.social || {},
       role: admin ? "admin" : "reader",
-      email,
       createdAt: new Date().toISOString(),
       accountTier: admin ? "basic" : "standard",
       suspended: false,
@@ -266,7 +268,6 @@ export async function ensureAdminProfile(user: FirebaseUser): Promise<void> {
     avatar: admin.avatar,
     social: admin.social,
     role: "admin",
-    email: user.email,
     createdAt: new Date().toISOString(),
     accountTier: "basic",
     suspended: false,
@@ -282,10 +283,29 @@ export async function updateProfile(
   await updateDoc(doc(db, USERS, uid), data);
 }
 
-export async function getAllUsers(): Promise<UserProfile[]> {
+async function readUsersFromFirestore(): Promise<UserProfile[]> {
   const q = query(collection(db, USERS), orderBy("createdAt", "desc"));
   const snap = await getDocs(q);
   return snap.docs.map((d) => d.data() as UserProfile);
+}
+
+// Public directory reads are cached (see lib/ttl-cache.ts): on the server
+// in-process, in the browser via /api/public/users (CDN-cached and with
+// private fields such as email stripped). The admin screen needs the real
+// documents and uses getAllUsersForAdmin().
+const serverPublicUsers = ttlCache(5 * 60_000, readUsersFromFirestore);
+const browserPublicUsers = ttlCache(2 * 60_000, async () => {
+  const res = await fetch("/api/public/users");
+  if (!res.ok) throw new Error("Couldn't load people right now.");
+  return ((await res.json()).users as UserProfile[]) || [];
+});
+
+export async function getAllUsers(): Promise<UserProfile[]> {
+  return typeof window === "undefined" ? serverPublicUsers() : browserPublicUsers();
+}
+
+export function getAllUsersForAdmin(): Promise<UserProfile[]> {
+  return readUsersFromFirestore();
 }
 
 export type CommentActivity = {

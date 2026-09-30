@@ -81,6 +81,16 @@ async function getCommentCounts(notes: NoteWithComputed[]): Promise<Record<strin
   return Object.fromEntries(entries);
 }
 
+// Firestore's error code says what actually went wrong — the old text blamed
+// the rules for everything, including a used-up free-tier quota.
+function countErrorReason(err: unknown): string {
+  const code = (err as { code?: string })?.code || "";
+  if (code.includes("resource-exhausted")) return "Firestore's daily free quota is used up (it resets daily; the Blaze plan removes the cap).";
+  if (code.includes("permission-denied")) return "Firestore rules don't allow this — redeploy firestore.rules.";
+  if (code.includes("failed-precondition")) return "a Firestore index is missing — see the console link in the browser log.";
+  return "Firestore returned an error (details in the browser console).";
+}
+
 export default function AdminDashboard() {
   const { user, loading } = useAdminAuth();
   const [noteStats, setNoteStats] = useState<NoteStats | null>(null);
@@ -125,14 +135,14 @@ export default function AdminDashboard() {
       .then((snap) => setTotalComments(snap.data().count))
       .catch((err) => {
         console.error("Dashboard: comments count failed:", err);
-        setCommentsError("Couldn't load comment count — Firestore rules likely out of date.");
+        setCommentsError(`Couldn't load comment count — ${countErrorReason(err)}`);
       });
 
     getCountFromServer(collection(db, "users"))
       .then((snap) => setTotalUsers(snap.data().count))
       .catch((err) => {
         console.error("Dashboard: users count failed:", err);
-        setUsersError("Couldn't load user count — Firestore rules likely out of date.");
+        setUsersError(`Couldn't load user count — ${countErrorReason(err)}`);
       });
   }, [user]);
 
@@ -284,8 +294,8 @@ export default function AdminDashboard() {
             ))}
           </ul>
           <p className="mt-2 text-xs text-red-700">
-            Most likely cause: firestore.rules in Firebase Console doesn't
-            match the current version yet — redeploy it, then refresh.
+            Each line above says what Firestore reported; more detail is in the
+            browser console. Refresh once it's resolved.
           </p>
         </div>
       )}

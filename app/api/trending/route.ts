@@ -3,6 +3,10 @@ import { getAdminDb } from "@/lib/firebase-admin";
 import { clientIp, rateLimit } from "@/lib/rate-limit";
 import { NA_NOTESAPP_PROFILE } from "@/lib/journals-directory";
 import { toMillis } from "@/lib/dates";
+import { getAllNotes } from "@/lib/firestore-notes";
+import { getAllUsers } from "@/lib/users";
+import { ttlCache } from "@/lib/ttl-cache";
+import { friendlyMessage } from "@/lib/api-errors";
 
 export const dynamic = "force-dynamic";
 
@@ -20,10 +24,12 @@ export async function GET(req: NextRequest) {
     const db = getAdminDb();
     const cutoff = new Date(Date.now() - days * 86_400_000).toISOString().slice(0, 10);
 
-    const [viewSnap, noteSnap, userSnap] = await Promise.all([
+    // Notes and users come from the shared 5-minute caches; only the
+    // pageViews buckets (bounded by days × pages) are read fresh.
+    const [viewSnap, allNotes, allUsers] = await Promise.all([
       db.collection("pageViews").where("day", ">=", cutoff).get(),
-      db.collection("notes").where("status", "==", "published").get(),
-      db.collection("users").get(),
+      getAllNotes({ publishedOnly: true }),
+      getAllUsers(),
     ]);
 
     const noteViews = new Map<string, number>();
@@ -37,8 +43,7 @@ export async function GET(req: NextRequest) {
     const windowed = windowTotal > 0;
 
     const byName = new Map<string, { username: string; displayName: string; avatar: string }>();
-    userSnap.docs.forEach((d) => {
-      const u = d.data();
+    allUsers.forEach((u) => {
       if (u.suspended !== true && u.username) byName.set(u.displayName, { username: u.username, displayName: u.displayName, avatar: u.avatar });
     });
     byName.set(NA_NOTESAPP_PROFILE.displayName, {
@@ -47,18 +52,17 @@ export async function GET(req: NextRequest) {
       avatar: NA_NOTESAPP_PROFILE.avatar,
     });
 
-    const notes = noteSnap.docs.map((d) => {
-      const n = d.data();
+    const notes = allNotes.map((n) => {
       const lifetime = Number(n.viewCount) || 0;
       return {
-        id: d.id,
+        id: n.id,
         slug: n.slug as string,
         title: n.title as string,
         author: n.author as string,
         authorUsername: byName.get(n.author)?.username,
         featured_image: (n.featured_image as string) || "",
         date: n.date as string,
-        views: windowed ? noteViews.get(d.id) || 0 : lifetime,
+        views: windowed ? noteViews.get(n.id) || 0 : lifetime,
         lifetime,
         premium: !!n.premium,
       };
@@ -99,10 +103,11 @@ export async function GET(req: NextRequest) {
 
     return NextResponse.json(
       { basis: windowed ? `last ${days} days` : "all time", posts, publishers },
-      { headers: { "Cache-Control": "public, s-maxage=300, stale-while-revalidate=600" } }
+      { headers: { "Cache-Control": "public, s-maxage=900, stale-while-revalidate=1800" } }
     );
   } catch (err) {
     console.error("trending failed:", err);
-    return NextResponse.json({ error: "Couldn't load trending" }, { status: 500 });
+    const { message, status } = friendlyMessage(err, "Couldn't load trending");
+    return NextResponse.json({ error: message }, { status });
   }
 }

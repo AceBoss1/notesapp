@@ -7,6 +7,7 @@ import {
   notifyUnsuspended,
   notifyAppealRejected,
   notifyRoleChanged,
+  notifyTierDecision,
 } from "./notifications";
 
 const USERS = "users";
@@ -79,6 +80,19 @@ export async function rejectAppeal(uid: string, username: string, resolvedByUid:
 // tier is applied to an account.
 export async function updateUserTier(uid: string, tier: AccountTier): Promise<void> {
   await updateDoc(doc(db, USERS, uid), { accountTier: tier });
+}
+
+// Admin-only: approve (→ Free Basic, publishing enabled) or reject a Free
+// Basic application, and tell the member.
+export async function resolveTierRequest(uid: string, username: string, adminUid: string, approve: boolean): Promise<void> {
+  const now = new Date().toISOString();
+  await updateDoc(doc(db, USERS, uid), {
+    ...(approve ? { accountTier: "basic" as AccountTier } : {}),
+    "tierRequest.status": approve ? "approved" : "rejected",
+    "tierRequest.resolvedAt": now,
+    "tierRequest.resolvedByUid": adminUid,
+  });
+  notifyTierDecision(uid, username, approve).catch((err) => console.warn("notifyTierDecision failed:", err));
 }
 
 // Admin-only: grant/revoke the gold badge (identity check or endorsement).

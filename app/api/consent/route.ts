@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { friendlyMessage } from "@/lib/api-errors";
 import { getAdminDb, verifySignedInRequest } from "@/lib/firebase-admin";
 import { LEGAL_VERSION } from "@/lib/legal";
 import { rateLimit } from "@/lib/rate-limit";
@@ -17,6 +18,6 @@ export async function POST(req: NextRequest) {
       .set({ consent: { version: LEGAL_VERSION, acceptedAt: new Date().toISOString() } }, { merge: true });
     return NextResponse.json({ ok: true });
   } catch (err) {
-    return NextResponse.json({ error: err instanceof Error ? err.message : "Failed" }, { status: 500 });
+    { const f = friendlyMessage(err, "Failed"); return NextResponse.json({ error: f.message }, { status: f.status }); }
   }
 }

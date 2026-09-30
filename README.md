@@ -1324,3 +1324,91 @@ team, verified and gold marks, tier table, FAQ, and embeds the buy card.
 Footer changes: Terms of Service / Privacy Policy moved from Connect to
 Company; Facebook (`SITE.facebook`) added under Connect; a blank line now
 precedes the "Built in partnership with Precheks … Staff Login" line.
+
+## Firestore quota (free tier) — what burned it and what changed
+Symptom: `8 RESOURCE_EXHAUSTED: Quota exceeded` — the Spark (free) plan
+allows 50,000 reads and 20,000 writes per day, then blocks everything
+until the daily reset. Main cause: several public pages read WHOLE
+collections on every visit (all notes on Home/Journals/Profile/"more
+journals"; all users on Journals/Signup/Sitemap), so reads ≈ visitors ×
+(notes + users), and crawlers multiply it. Changes: public list reads are
+now cached (`lib/ttl-cache.ts`) — in the browser they call
+`/api/public/notes` and `/api/public/users` (CDN-cached 5 min, no note
+bodies, no emails), on the server they share a 5-minute in-process cache;
+drafts are no longer read for public lists; trending reuses those caches
+(CDN 15 min); active boosts cached 1 min; `/api/views` no longer reads
+Firestore; the admin screens still read directly. Payment/booking routes now
+answer quota errors with a friendly "at capacity, you haven't been
+charged" message. **Real fix: upgrade the Firebase project to the Blaze
+(pay-as-you-go) plan** — the same free allowance applies but there's no
+hard daily stop; set a budget alert (Google Cloud Console → Billing →
+Budgets). Watch Firebase Console → Firestore → Usage to see reads vs
+writes. **Privacy note (not yet fixed):** `users/{uid}` documents include
+`email` and are publicly readable by the rules, so anyone using the client
+SDK could list emails — the public API strips them, but the rules and data
+model should move email into a private doc (next task).
+
+## Emails moved out of public user documents (privacy fix)
+`users/{uid}` is publicly readable (profiles, directory), and it used to
+contain each member's `email`. Emails now live **only in Firebase
+Authentication**: nothing writes `email` to `users` any more, the rules
+reject any create that includes one, server code that needs to email
+someone (booking/gift notifications, reminders, cancellations) looks it up
+with the Admin SDK (`getUserEmail`, Auth — no Firestore reads), and the admin
+Users screen fetches emails through the admin-only `/api/admin/user-emails`.
+**Migration steps (in this order):**
+1. Merge + deploy this code and `firestore.rules`.
+2. Dry run: `FIREBASE_SERVICE_ACCOUNT_KEY='<json one line>' node scripts/strip-user-emails.mjs`
+   — prints how many user docs still carry an email; writes nothing.
+3. Apply: same command with `--apply` (writes one small update per affected
+   doc — **run it after the Firestore quota resets or once on Blaze**, since it
+   needs writes).
+4. Check a user doc in Firebase Console → Firestore → `users`: no `email` field.
+Also still public and worth tightening next: the `suspension` object on a
+user doc (reason + appeal text) and `consent`; `scripts/migrate-to-own-infra.mjs`
+copies the old shape and would re-add emails if re-run (don't).
+
+## Member journey — what people see and where they change things
+- **Header (signed in):** bell + an **@username ▾ account menu** — My profile,
+  Edit profile, Rates & payouts (or "Start publishing" for non-publishers),
+  Bookings, Boost a post, Verification badges, Sign out. Pages under
+  `/profile/*` and `/bookings` also show a "My account" sub-header.
+- **Edit profile** (`/profile/edit`): display name, bio, avatar upload (R2),
+  social links, and the verified-badge card. Username can't be changed and
+  email/password changes aren't self-serve yet (password reset is on the
+  login page).
+- **Rates & payouts** (`/profile/publishing`): for publishing accounts —
+  verified bank account, session price/length/weekly availability,
+  subscription price, gifts on/off, plan (cancel), boost results, earnings.
+  Nothing (booking, subscribe, gift) shows on a profile until a payout account
+  is verified. **Free Standard members** instead see "Start publishing":
+  apply for **Free Basic** (a short note; an admin approves/rejects it in
+  `/admin/users`, and the member is notified) or pick **Pro/Business** on
+  `/pricing` (publishing starts on payment). The application goes through
+  `POST /api/tier-request` (clients can't write `tierRequest` directly).
+- **Admin dashboard errors** now say what Firestore actually reported
+  (quota exhausted / permission denied / missing index) instead of always
+  blaming the rules.
+
+## Session — footer settings, profile visibility, publisher composer
+- **#NotesApp footer is now editable.** `/admin/settings` writes
+  `settings/notesapp-site` (email, WhatsApp, LinkedIn, Facebook, Instagram, X,
+  website); the footer's Connect column, the Contact page and About read it
+  (`getSiteSettingsCached`, 1-minute server cache, falls back to defaults so
+  the footer never breaks). The old `settings/site` doc (Precheks' footer
+  config) is no longer read. Blank fields are simply hidden.
+- **Profile edits are visible to others.** Social links are now shown on the
+  public profile (`SocialLinksRow`, http(s) only); note bylines use the
+  author's *current* profile (name/avatar) via `authorUid`; a member's posts
+  are matched by `authorUid`/`authorUsername` before display name, so
+  renaming yourself no longer orphans your entries. The profile page itself
+  reads Firestore directly (instant); directory/search lists update within a
+  few minutes (cache).
+- **Publishing for members (`/write`).** Approved/paid publishers get *My
+  journal*: list (drafts + published), New entry, Edit, Boost, Delete, all via
+  the rich-text composer with the byline taken from their own profile
+  (`NoteForm self`). Slugs must be unique (`slugTaken`). Menu, account
+  sub-header and the profile page link to it.
+- **Known gap:** `notes` documents (drafts included) are publicly readable by
+  the rules — a draft's text is visible to anyone using the client SDK. Fix by
+  serving drafts only through an owner-only path (next task).

@@ -192,6 +192,17 @@ export async function notifyRoleChanged(uid: string, username: string, newRoleLa
   });
 }
 
+export async function notifyTierDecision(uid: string, username: string, approved: boolean): Promise<void> {
+  await createNotification({
+    recipientUid: uid,
+    type: "role_changed",
+    message: approved
+      ? "Your Free Basic application was approved — you can now publish. Set your rates and payouts under Rates & payouts."
+      : "Your Free Basic application wasn't approved this time. You can reapply, or choose Pro or Business.",
+    linkHref: approved ? "/profile/publishing" : `/u/${username}`,
+  });
+}
+
 // Live subscription — the bell needs real-time updates, not a
 // one-shot fetch, so this is the one place in the app that uses
 // onSnapshot instead of getDocs.
