@@ -350,6 +350,18 @@ service cloud.firestore {
       allow read, write: if false;
     }
 
+    // Pro/Business plan records — owner + admins read; server-only writes.
+    match /tierSubscriptions/{uid} {
+      allow read: if isSignedIn() && (request.auth.uid == uid || isAdmin());
+      allow write: if false;
+    }
+    match /platformPlans/{id} {
+      allow read, write: if false;
+    }
+    match /tierCharges/{id} {
+      allow read, write: if false;
+    }
+
     // Boost campaigns: the buyer (and admins) can read their stats; only the server writes.
     match /boosts/{boostId} {
       allow read: if isSignedIn()

@@ -1239,14 +1239,26 @@ payments/payouts/refunds, boosts/gifts/advertising, publishing, account,
 report a post or account, bug, partnership, press, investment, other) and
 the admin Leads inbox reads the same list.
 
-### Pro / Business prices (applied)
-Pro **₦5,000/month** (₦50,000/year), Business **₦15,000/month**
-(₦150,000/year) — set in `lib/tiers.ts` (`price` + `priceNote`) and shown
-on `/pricing` and the roadmap. **Billing itself is not built**: there is no
-checkout for tier upgrades yet, so until it is, upgrades are arranged
-manually via Contact and an admin sets the tier with the new tier
-dropdown in `/admin/users` (added with this change; it writes
-`accountTier`, which firestore.rules only lets admins change). Next step:
-(Paystack plans + a self-serve upgrade button are the next step).
-Break-even vs Free Basic (35% commission): Pro at ₦50,000/month earned,
-Business at ₦75,000/month (₦150,000/month vs Pro).
+### Pro / Business plans — checkout built
+Pricing table buttons (`components/UpgradeButton.tsx`, monthly/yearly toggle)
+→ `POST /api/paystack/initialize {kind:"tier"}` → Paystack **plan** checkout
+(plans are created lazily per tier+interval and cached in `platformPlans/`,
+re-created if the price in `lib/tiers.ts` changes) → on payment the account's
+`accountTier` is set and `tierSubscriptions/{uid}` is written (server-only;
+owner can read). Renewals arrive via the webhook (`charge.success` on a
+platform plan → extends `currentPeriodEnd`); `subscription.disable/not_renew`
+marks it cancelled. **Cancel** = `POST /api/billing/cancel-tier` (finds the
+subscription at Paystack and disables it); the plan runs to the end of the
+paid period, no partial refunds. **Expiry**: the reminders cron
+(`/api/cron/reminders`, every ~15 min) also runs `expireTiers()` — plans
+lapsed more than 3 days become Free Basic *only if the account's tier is
+still the one they paid for* (admin-set tiers are never touched). Plan
+revenue is 100% platform (no ledger entry). You can't start a second plan
+while one is running (cancel, wait for the end, then switch) — self-serve
+upgrade/downgrade proration is not built. Prices: Pro ₦5,000/mo (₦50,000/yr),
+Business ₦15,000/mo (₦150,000/yr) in `lib/tiers.ts`. The Terms gained a
+"Paid plans, boosts and gifts" section and `LEGAL_VERSION` moved to
+2026-09-30, so everyone re-accepts at their next checkout. The admin tier
+dropdown in `/admin/users` still works for manual/Enterprise grants.
+**Test it with a `sk_test_` key first**; Paystack's list-subscriptions API
+is scanned (5 pages) to find the cancel token, fine at this scale.

@@ -23,6 +23,7 @@ beforeEach(async () => {
     await setDoc(doc(db, "ledger/ref1"), { publisherUid: "pub", payerUid: "alice", netKobo: 100 });
     await setDoc(doc(db, "payoutAccounts/pub"), { uid: "pub", recipientCode: "RCP_x" });
     await setDoc(doc(db, "publisherSettings/pub"), { uid: "pub" });
+    await setDoc(doc(db, "tierSubscriptions/pub"), { uid: "pub", tier: "pro", status: "active" });
     await setDoc(doc(db, "boosts/b1"), { publisherUid: "pub", impressionsPurchased: 1000 });
     await setDoc(doc(db, "gifts/g1"), { toUid: "pub", fromUid: "alice", amountKobo: 100 });
     await setDoc(doc(db, "subscriptions/alice_pub"), { subscriberUid: "alice", username: "pub", status: "active" });
@@ -49,6 +50,9 @@ test("money collections are never client-writable", async () => {
     ["payments/new", { uid: "alice" }],
     ["ledger/new", { publisherUid: "alice" }],
     ["slotLocks/new", {}],
+    ["tierSubscriptions/alice", { uid: "alice", tier: "business", status: "active" }],
+    ["platformPlans/pro_monthly", { planCode: "x" }],
+    ["tierCharges/x", {}],
     ["boosts/new", { publisherUid: "alice", impressionsPurchased: 999999 }],
     ["gifts/new", { toUid: "alice", fromUid: "alice" }],
     ["pageViews/note_x_20260930", { count: 999999 }],
@@ -116,4 +120,11 @@ test("boost stats readable by the buyer only; gifts by recipient and sender only
   await assertSucceeds(getDoc(doc(as("pub"), "gifts/g1")));
   await assertSucceeds(getDoc(doc(as("alice"), "gifts/g1")));
   await assertFails(getDoc(doc(as("mallory"), "gifts/g1")));
+});
+
+test("plan records: owner reads their own, others cannot; users can't self-upgrade their tier", async () => {
+  await assertSucceeds(getDoc(doc(as("pub"), "tierSubscriptions/pub")));
+  await assertFails(getDoc(doc(as("alice"), "tierSubscriptions/pub")));
+  await assertFails(getDoc(doc(as("alice"), "platformPlans/pro_monthly")));
+  await assertFails(updateDoc(doc(as("alice"), "users/alice"), { accountTier: "business" }));
 });

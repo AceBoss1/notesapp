@@ -29,6 +29,9 @@ export default function PublishingSettingsPage() {
   const [subOn, setSubOn] = useState(false);
   const [subPrice, setSubPrice] = useState("2000");
   const [giftsOn, setGiftsOn] = useState(true);
+  const [plan, setPlan] = useState<Record<string, any> | null>(null);
+  const [planBusy, setPlanBusy] = useState(false);
+  const [planMsg, setPlanMsg] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
 
@@ -49,6 +52,7 @@ export default function PublishingSettingsPage() {
         const p = await getUserByUid(u.uid);
         setProfile(p);
         if (!p) return;
+        getDoc(doc(db, "tierSubscriptions", u.uid)).then((p) => setPlan(p.exists() ? p.data() : null)).catch(() => {});
         getDocs(query(collection(db, "boosts"), where("publisherUid", "==", u.uid)))
           .then((b) => setBoosts(b.docs.map((d) => d.data()).sort((a, c) => String(c.createdAt).localeCompare(String(a.createdAt)))))
           .catch(() => {});
@@ -125,6 +129,21 @@ export default function PublishingSettingsPage() {
     }
   }
 
+  async function cancelPlan() {
+    if (!confirm("Stop auto-renewal? You keep your plan until the end of the period you've paid for. No partial refunds.")) return;
+    setPlanBusy(true);
+    setPlanMsg(null);
+    try {
+      const r = await authedPost("/api/billing/cancel-tier", {});
+      setPlan((p) => (p ? { ...p, status: "cancelled" } : p));
+      setPlanMsg(`Auto-renewal stopped. You keep your plan until ${String(r.accessUntil).slice(0, 10)}.`);
+    } catch (err) {
+      setPlanMsg(err instanceof Error ? err.message : "Couldn't cancel");
+    } finally {
+      setPlanBusy(false);
+    }
+  }
+
   function toggleSlot(day: number, t: string) {
     setAvail((a) => {
       const cur = a[String(day)] || [];
@@ -149,6 +168,22 @@ export default function PublishingSettingsPage() {
     <section className="mx-auto max-w-3xl px-4 py-14 sm:px-6 lg:px-8">
       <p className="eyebrow">@{profile.username}</p>
       <h1 className="mt-3 font-display text-4xl">Rates & payouts</h1>
+
+      {plan && plan.status !== "expired" && (
+        <div className="card mt-8 p-6">
+          <p className="eyebrow">Your plan</p>
+          <p className="mt-2 text-sm text-ink">
+            {plan.tier === "pro" ? "Pro" : "Business"} · billed {plan.interval === "annually" ? "yearly" : "monthly"} ·{" "}
+            {plan.status === "active" ? `renews around ${String(plan.currentPeriodEnd).slice(0, 10)}` : `ends ${String(plan.currentPeriodEnd).slice(0, 10)} (auto-renewal off)`}
+          </p>
+          {plan.status === "active" && (
+            <button onClick={cancelPlan} disabled={planBusy} className="mt-3 rounded-full border border-rule px-4 py-1.5 text-xs hover:border-crimson hover:text-crimson disabled:opacity-40">
+              {planBusy ? "Cancelling…" : "Cancel auto-renewal"}
+            </button>
+          )}
+          {planMsg && <p className="mt-2 text-xs text-slate">{planMsg}</p>}
+        </div>
+      )}
 
       <div className="card mt-8 p-6">
         <p className="eyebrow">Payout account</p>

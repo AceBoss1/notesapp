@@ -7,6 +7,8 @@ import { weekdayOf } from "@/lib/booking-time";
 import { LEGAL_VERSION } from "@/lib/legal";
 import { GIFT_MAX_KOBO, GIFT_MESSAGE_MAX, GIFT_MIN_KOBO, getBoostPackage } from "@/lib/boost-config";
 import { verifyAdminRequest } from "@/lib/firebase-admin";
+import { getTierPlanCode } from "@/lib/tier-billing";
+import { TIERS } from "@/lib/tiers";
 import { rateLimit } from "@/lib/rate-limit";
 
 // Starts a Paystack checkout for a 1:1 session or a monthly journal
@@ -39,6 +41,45 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
     const { kind, username } = body;
     const db = getAdminDb();
+
+    // ---- paid plan (Pro / Business) ----
+    if (kind === "tier") {
+      const tier = String(body.tier);
+      const interval = body.interval === "annually" ? "annually" : "monthly";
+      if (tier !== "pro" && tier !== "business") return NextResponse.json({ error: "Unknown plan." }, { status: 400 });
+      const existing = (await db.doc(`tierSubscriptions/${user.uid}`).get()).data();
+      if (existing && existing.status !== "expired" && new Date(existing.currentPeriodEnd).getTime() > Date.now() - 3 * 86_400_000) {
+        return NextResponse.json(
+          {
+            error:
+              existing.tier === tier && existing.interval === interval
+                ? "You're already on this plan."
+                : `You're on ${existing.tier === "pro" ? "Pro" : "Business"} until ${String(existing.currentPeriodEnd).slice(0, 10)}. Cancel it under Rates & payouts, then choose a new plan when it ends.`,
+          },
+          { status: 409 }
+        );
+      }
+      const currentTier = ((await db.doc(`users/${user.uid}`).get()).data()?.accountTier as string) || "standard";
+      const rank = ["standard", "basic", "pro", "business", "enterprise"];
+      if (rank.indexOf(currentTier) > rank.indexOf(tier) && rank.indexOf(currentTier) >= 2) {
+        return NextResponse.json({ error: "Your account is already on a higher plan." }, { status: 409 });
+      }
+      const { planCode, amountKobo } = await getTierPlanCode(tier, interval);
+      const reference = newReference();
+      const origin = (process.env.NEXT_PUBLIC_SITE_URL || req.nextUrl.origin).replace(/\/$/, "");
+      const tx = await initializeTransaction({
+        plan: planCode, email: user.email, amountKobo, reference,
+        callbackUrl: `${origin}/booking/confirm`,
+        metadata: { kind, tier, interval, uid: user.uid },
+      });
+      const record: PaymentRecord = {
+        reference, kind: "tier", uid: user.uid, email: user.email, amountKobo,
+        status: "pending", publisherUid: user.uid, publisherUsername: "", commissionRate: 0,
+        tier: { tier, interval, planCode }, createdAt: new Date().toISOString(),
+      };
+      await db.doc(`payments/${reference}`).set(record);
+      return NextResponse.json({ authorizationUrl: tx.authorization_url, reference });
+    }
 
     // ---- boost: the payer must own the post (or be an admin); no publisher lookup ----
     if (kind === "boost") {

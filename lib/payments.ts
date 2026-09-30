@@ -5,6 +5,7 @@ import { sessionEnd, sessionStart, formatSlot, formatNaira } from "./booking-tim
 import { sendEmail } from "./email";
 import type { AccountTier } from "./users";
 import { getBoostPackage } from "./boost-config";
+import { periodEndFrom } from "./tier-billing";
 
 // Server-only. All money-state changes happen here, via the Admin SDK
 // (Firestore rules make payments/bookings/ledger/subscriptions
@@ -12,7 +13,7 @@ import { getBoostPackage } from "./boost-config";
 
 export type PaymentRecord = {
   reference: string;
-  kind: "booking" | "subscription" | "boost" | "gift";
+  kind: "booking" | "subscription" | "boost" | "gift" | "tier";
   uid: string; // the payer
   email: string;
   amountKobo: number;
@@ -23,6 +24,7 @@ export type PaymentRecord = {
   booking?: { username: string; date: string; slot: string; minutes: number };
   subscription?: { username: string; planCode: string };
   boost?: { noteId: string; packageId: string };
+  tier?: { tier: "pro" | "business"; interval: "monthly" | "annually"; planCode: string };
   gift?: { username: string; noteId?: string; noteSlug?: string; message: string; anonymous: boolean; senderName: string };
   createdAt: string;
   paidAt?: string;
@@ -151,6 +153,20 @@ export async function fulfillPayment(reference: string): Promise<PaymentRecord> 
         refundedKobo: 0,
         createdAt: now,
       });
+    } else if (current.kind === "tier" && current.tier) {
+      // Paid plan: platform revenue (no ledger). Grant the tier now.
+      const tr = current.tier;
+      t.set(db.doc(`users/${current.uid}`), { accountTier: tr.tier }, { merge: true });
+      t.set(db.doc(`tierSubscriptions/${current.uid}`), {
+        uid: current.uid,
+        email: current.email,
+        tier: tr.tier,
+        interval: tr.interval,
+        planCode: tr.planCode,
+        status: "active",
+        subscribedAt: now,
+        currentPeriodEnd: periodEndFrom(Date.now(), tr.interval),
+      });
     } else if (current.kind === "gift" && current.gift) {
       t.set(db.doc(`gifts/${reference}`), {
         reference,
@@ -264,6 +280,15 @@ export async function markSubscriptionCancelled(planCode: string, email: string)
 
 async function notifyPaid(p: PaymentRecord) {
   if (p.kind === "gift" && p.gift) return notifyGift(p);
+  if (p.kind === "tier" && p.tier) {
+    const name = p.tier.tier === "pro" ? "Pro" : "Business";
+    await sendEmail({
+      to: p.email,
+      subject: `Welcome to #NotesApp ${name}`,
+      text: `Your ${name} plan (${formatNaira(p.amountKobo)} per ${p.tier.interval === "annually" ? "year" : "month"}) is active. Your lower commission and ${name} benefits apply from now. It renews automatically; cancel any time under Rates & payouts and you keep the plan until the period ends.\nReference: ${p.reference}\n\n#NotesApp`,
+    });
+    return;
+  }
   if (p.kind !== "booking" || !p.booking) return;
   const db = getAdminDb();
   const pubUser = (await db.doc(`users/${p.publisherUid}`).get()).data();
