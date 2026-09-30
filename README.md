@@ -1155,3 +1155,48 @@ the old email list keeps working until step 8.
    `LEGACY_ADMIN_EMAILS` in `lib/firebase-admin.ts`, and the `isAdminEmail`
    fallback in `lib/admin-claims.ts`; redeploy rules + code. From now on
    admins are managed with the script or `POST /api/admin/set-admin`.
+
+## Session 6 — ordering, trending, status (built) + boosts & gifts (proposal)
+
+**Chronological order everywhere.** Root cause of "wrong order": `date` is
+a string in mixed formats (ISO from the composer, RFC-2822 like
+`Thu, 08 May 2025…` on seeded/Precheks notes), and Firestore orders strings
+lexicographically — RFC dates sorted *ahead of* newer ISO ones (and notes
+without a date vanished). `lib/dates.ts` now parses to timestamps and
+`getAllNotes` / journals lists sort newest-first in code. Profiles, the
+journals directory, search and "more notes" all derive from those, so they
+follow. `@notesapp`'s 5 explainer posts are an intentional fixed series
+(no dates), so they keep their reading order.
+
+**Trending** — `/trending` (header nav): top publishers and top posts.
+Visits are counted per page per day (`pageViews/`, server-only) via
+`POST /api/views` (one count per visitor IP per page per 30 min, bots
+ignored — a popularity signal, not audited analytics). `GET /api/trending`
+ranks the last 7 days (falls back to lifetime `viewCount` until windowed
+data exists) and is CDN-cached 5 min. Publisher score = profile visits +
+visits to their posts. Existing lifetime `viewCount` still increments as before.
+
+**Status page** — `/status` (footer → Company). `GET /api/status` checks
+database, auth, R2 uploads, media domain, Paystack, Resend (each
+"not enabled yet" if its key is missing), shows up/slow/down + latency,
+cached 60 s, page auto-refreshes. It runs inside the app, so it can't
+report the app itself being unreachable — add an external monitor
+(UptimeRobot / Better Stack free tier) on `/api/status` for that, and
+optionally point a `status.notesapp.name.ng` hosted page at it.
+
+### Proposal — boosts & gifts (needs your approval; not built)
+**Boost** — chosen while publishing (or later from the post): pay via
+Paystack, e.g. ₦1,000 / 3 days · ₦2,500 / 7 days · ₦5,000 / 14 days
+(suggested). Boosted posts get a "Boosted" label and a slot at the top of
+`/journals` and the home page for the duration; 100% platform revenue, no
+commission. Admin can end a boost (with refund) for policy violations;
+premium posts can be boosted too (teaser only).
+**Gifts** — a Gift button on every publisher profile and every post:
+presets ₦500 / ₦1,000 / ₦2,000 / ₦5,000 or custom (₦200–₦100,000), optional
+message, optional anonymous. Paystack one-time payment → ledger entry
+(kind `gift`), held 7 days like subscriptions, then paid out to the
+publisher's bank account; commission = the publisher's tier rate (same as
+sessions/subscriptions) — or a flat 10% if you prefer. Publisher gets an
+in-app notification + email; no self-gifting; refunds admin-only.
+**Decisions needed:** boost prices/durations · gift amounts & commission
+model · whether gifts show public supporter counts.

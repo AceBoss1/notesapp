@@ -47,6 +47,7 @@ test("money collections are never client-writable", async () => {
     ["payments/new", { uid: "alice" }],
     ["ledger/new", { publisherUid: "alice" }],
     ["slotLocks/new", {}],
+    ["pageViews/note_x_20260930", { count: 999999 }],
     ["payoutAccounts/alice", { recipientCode: "mine" }],
     ["publisherSettings/alice", { uid: "alice" }],
     ["subscriptions/alice_other", { subscriberUid: "alice" }],

@@ -345,6 +345,11 @@ service cloud.firestore {
     // ============================================================
 
     // One doc per booked slot; server-only (Admin SDK). No client access at all.
+    // Visit counters for the trending feed — server-only (Admin SDK).
+    match /pageViews/{id} {
+      allow read, write: if false;
+    }
+
     match /slotLocks/{lockId} {
       allow read, write: if false;
     }

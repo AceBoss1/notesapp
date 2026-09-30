@@ -5,6 +5,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { onAuthStateChanged, User } from "firebase/auth";
 import { auth } from "@/lib/firebase";
+import { recordView } from "@/lib/track";
 import { getUserByUsername, getCommentsByUser, UserProfile, CommentActivity } from "@/lib/users";
 import { getAllNotes, NoteWithComputed } from "@/lib/firestore-notes";
 import { getRecentCommentsOnNotes, Comment } from "@/lib/engagement";
@@ -70,6 +71,9 @@ export default function ProfilePageClient({ params }: { params: { username: stri
   const [submittingAppeal, setSubmittingAppeal] = useState(false);
 
   useEffect(() => onAuthStateChanged(auth, setViewer), []);
+  useEffect(() => {
+    if (!synthetic) recordView("profile", params.username);
+  }, [params.username, synthetic]);
 
   useEffect(() => {
     if (synthetic) return;

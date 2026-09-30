@@ -29,6 +29,13 @@ const ITEMS = [
       "Client-initiated rescheduling and cancellation under a published refund policy, WhatsApp reminders, and automatic payout release once a session is complete.",
   },
   {
+    title: "Boosts & gifts",
+    tag: "Monetisation",
+    body: "Publishers can boost a post as they publish it to put it in front of more readers, and readers can send a gift — to a publisher, or to a single post.",
+    detail:
+      "Both run on Paystack. Gifts follow the same held-then-released payout flow as sessions and subscriptions. Pricing, duration and commission will be published on the pricing page before launch.",
+  },
+  {
     title: "Trust, safety & account basics",
     tag: "Foundations",
     body: "The unglamorous pieces that real money needs: password reset and email verification, a bookings dashboard for both sides, a clear cancellation and refund policy, and terms and privacy consent before payment.",

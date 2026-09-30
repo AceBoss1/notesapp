@@ -118,6 +118,28 @@ export default function PricingPage() {
         </div>
       </div>
 
+      <div className="card mt-6 p-6">
+        <p className="font-ui text-sm font-bold text-ink">Ways to earn, and how you're paid</p>
+        <ul className="mt-3 list-disc space-y-2 pl-5 text-sm text-slate">
+          <li>
+            <strong className="text-ink">Paid 1:1 sessions</strong> — you set the price and hours. Cancellations follow one
+            published policy (full refund 48h+ before, 50% at 24–48h, none inside 24h; always full if you cancel).
+          </li>
+          <li>
+            <strong className="text-ink">Monthly journal subscriptions</strong> — readers unlock your premium entries;
+            renews automatically until they cancel.
+          </li>
+          <li>
+            <strong className="text-ink">Payouts</strong> — to your verified Nigerian bank account: sessions after they
+            take place, subscriptions after a 7-day dispute window. Commission comes off the top, per your tier above.
+          </li>
+          <li>
+            <strong className="text-ink">Coming soon:</strong> post boosts (promote a post when you publish it) and
+            gifts (readers can tip a publisher or a single post). Pricing for both will be published here before launch.
+          </li>
+        </ul>
+      </div>
+
       <p className="mt-10 text-sm text-slate">
         Full ad-share policy detail (why no gated conditions, who can
         advertise):{" "}

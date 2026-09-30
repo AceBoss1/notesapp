@@ -59,6 +59,8 @@ export type NoteWithComputed = Note & {
   reading_time: number;
 };
 
+import { sortNewestFirst } from "./dates";
+
 const COLLECTION = "notes";
 
 function withComputed(note: Note): NoteWithComputed {
@@ -91,15 +93,17 @@ export function slugify(title: string): string {
 export async function getAllNotes(
   opts: { publishedOnly?: boolean } = { publishedOnly: true }
 ): Promise<NoteWithComputed[]> {
-  const q = query(collection(db, COLLECTION), orderBy("date", "desc"));
-  const snap = await getDocs(q);
+  // No orderBy("date") here on purpose: `date` is a string in mixed
+  // formats, so Firestore's string ordering is wrong (and silently
+  // drops docs without a date). Sort by parsed time instead.
+  const snap = await getDocs(collection(db, COLLECTION));
   const notes = snap.docs.map(
     (d) => ({ id: d.id, ...d.data() } as Note)
   );
   const filtered = opts.publishedOnly
     ? notes.filter((n) => n.status === "published")
     : notes;
-  return filtered.map(withComputed);
+  return sortNewestFirst(filtered).map(withComputed);
 }
 
 export async function getNoteBySlug(
