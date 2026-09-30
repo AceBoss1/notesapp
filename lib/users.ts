@@ -102,7 +102,9 @@ export type UserProfile = {
   suspended: boolean;
   // Present once a suspension has ever happened, even after it's
   // resolved — keeps a record rather than deleting history.
-  suspension?: Suspension;
+  suspension?: Suspension; // legacy — now lives in suspensions/{uid}
+  usernameChangedAt?: string; // set by /api/account/username
+  previousUsername?: string;
 };
 
 // Admin, staff, and volunteer all get the ✔ automatically — per the

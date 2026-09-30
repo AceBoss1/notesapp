@@ -6,6 +6,7 @@ import { onAuthStateChanged, signOut, User } from "firebase/auth";
 import { auth } from "@/lib/firebase";
 import { getUserByUid, canPublish, UserProfile } from "@/lib/users";
 import NotificationBell from "@/components/NotificationBell";
+import Avatar from "@/components/Avatar";
 
 export default function AuthNav() {
   const [user, setUser] = useState<User | null | undefined>(undefined);
@@ -51,6 +52,11 @@ export default function AuthNav() {
   return (
     <div className="flex items-center gap-4">
       <NotificationBell user={user} />
+      {profile && (
+        <Link href={`/u/${profile.username}`} aria-label="My profile" title="My profile" className="flex">
+          <Avatar src={profile.avatar} alt={profile.displayName} size={28} />
+        </Link>
+      )}
       <div className="relative" ref={menuRef}>
         <button onClick={() => setOpen((o) => !o)} aria-haspopup="menu" aria-expanded={open} className="font-mono text-crimson-bright">
           {profile ? `@${profile.username}` : "Account"} ▾
@@ -60,6 +66,7 @@ export default function AuthNav() {
             {profile && <Link href={`/u/${profile.username}`} className={item}>My profile</Link>}
             {profile && canPublish(profile) && <Link href="/write" className={item}>My journal (write)</Link>}
             <Link href="/profile/edit" className={item}>Edit profile</Link>
+            <Link href="/profile/account" className={item}>Account (email, username)</Link>
             <Link href="/profile/publishing" className={item}>
               {profile && canPublish(profile) ? "Rates & payouts" : "Start publishing"}
             </Link>
