@@ -73,7 +73,10 @@ export type UserProfile = {
   // Firestore-document field a client could reason about. This field
   // is a label + moderation marker today, not an authorization grant.
   role: UserRole;
-  email: string;
+  // DEPRECATED — emails live only in Firebase Auth now. Older documents
+  // may still carry one until scripts/strip-user-emails.mjs is run; nothing
+  // writes it any more and firestore.rules forbids clients from doing so.
+  email?: string;
   createdAt: string;
   // Not written by any path yet — this is where the "verified badge
   // for Pro/Business accounts that pass basic verification" roadmap
@@ -181,7 +184,7 @@ export async function getUserByUsername(
 function adminFallbackProfile(username: string): UserProfile | null {
   const entry = Object.entries(ADMIN_PROFILES).find(([, a]) => a.username === username);
   if (!entry) return null;
-  const [email, a] = entry;
+  const [, a] = entry;
   return {
     uid: `admin:${a.username}`,
     username: a.username,
@@ -190,7 +193,6 @@ function adminFallbackProfile(username: string): UserProfile | null {
     avatar: a.avatar,
     social: a.social,
     role: "admin",
-    email,
     createdAt: "",
     accountTier: "basic",
     suspended: false,
@@ -234,7 +236,6 @@ export async function signUpProfile(params: {
       avatar: admin?.avatar || "/images/headshots/default-avatar.png",
       social: admin?.social || {},
       role: admin ? "admin" : "reader",
-      email,
       createdAt: new Date().toISOString(),
       accountTier: admin ? "basic" : "standard",
       suspended: false,
@@ -267,7 +268,6 @@ export async function ensureAdminProfile(user: FirebaseUser): Promise<void> {
     avatar: admin.avatar,
     social: admin.social,
     role: "admin",
-    email: user.email,
     createdAt: new Date().toISOString(),
     accountTier: "basic",
     suspended: false,

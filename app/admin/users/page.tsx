@@ -22,13 +22,27 @@ export default function AdminUsersPage() {
   const { user, loading } = useAdminAuth();
   const [users, setUsers] = useState<UserProfile[] | null>(null);
   const [error, setError] = useState("");
+  const [emails, setEmails] = useState<Record<string, string>>({});
   const [busyUid, setBusyUid] = useState<string | null>(null);
   const [suspendReasonFor, setSuspendReasonFor] = useState<string | null>(null);
   const [suspendReason, setSuspendReason] = useState("");
 
   function reload() {
     getAllUsersForAdmin()
-      .then(setUsers)
+      .then(async (list) => {
+        setUsers(list);
+        // Emails come from Firebase Auth via an admin-only endpoint.
+        try {
+          const res = await fetch("/api/admin/user-emails", {
+            method: "POST",
+            headers: { "Content-Type": "application/json", Authorization: `Bearer ${await user!.getIdToken()}` },
+            body: JSON.stringify({ uids: list.map((u) => u.uid) }),
+          });
+          if (res.ok) setEmails((await res.json()).emails || {});
+        } catch {
+          /* emails are a convenience; the list still works without them */
+        }
+      })
       .catch((err) => setError(err instanceof Error ? err.message : "Failed to load users"));
   }
 
@@ -162,7 +176,7 @@ export default function AdminUsersPage() {
                           @{u.username}
                         </span>
                       </p>
-                      <p className="text-xs text-slate mt-0.5">{u.email}</p>
+                      <p className="text-xs text-slate mt-0.5">{emails[u.uid] || "—"}</p>
                     </div>
                   </Link>
 

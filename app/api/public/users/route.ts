@@ -21,7 +21,6 @@ export async function GET() {
       goldBadge: u.goldBadge,
       suspended: u.suspended === true,
       createdAt: u.createdAt,
-      email: "",
     }));
     return NextResponse.json({ users }, { headers: { "Cache-Control": "public, s-maxage=300, stale-while-revalidate=900" } });
   } catch (err) {

@@ -136,3 +136,9 @@ test("users can't grant themselves the verified badge or extend it", async () =>
   await assertFails(updateDoc(doc(as("alice"), "users/alice"), { goldBadge: { kind: "identity", grantedAt: "x" } }));
   await assertSucceeds(updateDoc(doc(as("boss", { admin: true }), "users/alice"), { goldBadge: { kind: "endorsement", grantedAt: "x" } }));
 });
+
+test("public user documents can't be created with an email field", async () => {
+  const base = { uid: "newbie", username: "newbie", displayName: "N", bio: "", avatar: "", social: {}, role: "reader", createdAt: "x", accountTier: "standard", suspended: false };
+  await assertFails(setDoc(doc(as("newbie"), "users/newbie"), { ...base, email: "n@x.com" }));
+  await assertSucceeds(setDoc(doc(as("newbie"), "users/newbie"), base));
+});

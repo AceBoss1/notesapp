@@ -202,8 +202,11 @@ service cloud.firestore {
       allow read: if true;
 
       // A user can create only their own profile.
+      // No `email` key: emails live only in Firebase Authentication, and
+      // this document is publicly readable.
       allow create: if isSignedIn()
-        && request.auth.uid == uid;
+        && request.auth.uid == uid
+        && !('email' in request.resource.data);
 
       // Admins can manage profiles.
       //

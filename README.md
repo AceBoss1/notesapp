@@ -1347,3 +1347,23 @@ writes. **Privacy note (not yet fixed):** `users/{uid}` documents include
 `email` and are publicly readable by the rules, so anyone using the client
 SDK could list emails — the public API strips them, but the rules and data
 model should move email into a private doc (next task).
+
+## Emails moved out of public user documents (privacy fix)
+`users/{uid}` is publicly readable (profiles, directory), and it used to
+contain each member's `email`. Emails now live **only in Firebase
+Authentication**: nothing writes `email` to `users` any more, the rules
+reject any create that includes one, server code that needs to email
+someone (booking/gift notifications, reminders, cancellations) looks it up
+with the Admin SDK (`getUserEmail`, Auth — no Firestore reads), and the admin
+Users screen fetches emails through the admin-only `/api/admin/user-emails`.
+**Migration steps (in this order):**
+1. Merge + deploy this code and `firestore.rules`.
+2. Dry run: `FIREBASE_SERVICE_ACCOUNT_KEY='<json one line>' node scripts/strip-user-emails.mjs`
+   — prints how many user docs still carry an email; writes nothing.
+3. Apply: same command with `--apply` (writes one small update per affected
+   doc — **run it after the Firestore quota resets or once on Blaze**, since it
+   needs writes).
+4. Check a user doc in Firebase Console → Firestore → `users`: no `email` field.
+Also still public and worth tightening next: the `suspension` object on a
+user doc (reason + appeal text) and `consent`; `scripts/migrate-to-own-infra.mjs`
+copies the old shape and would re-add emails if re-run (don't).

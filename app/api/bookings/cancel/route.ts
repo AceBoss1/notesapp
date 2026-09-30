@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { friendlyMessage } from "@/lib/api-errors";
-import { getAdminDb, verifySignedInRequest } from "@/lib/firebase-admin";
+import { getAdminDb, getUserEmail, verifySignedInRequest } from "@/lib/firebase-admin";
 import { refundTransaction, slotLockId } from "@/lib/paystack";
 import { refundFraction } from "@/lib/cancellation";
 import { sendEmail } from "@/lib/email";
@@ -83,10 +83,10 @@ export async function POST(req: NextRequest) {
 
     const when = `${b.date} at ${formatSlot(b.slot)} (WAT)`;
     const line = refundKobo > 0 ? `A refund of ${formatNaira(refundKobo)} has been issued (allow a few business days).` : "Under the cancellation policy no refund applies.";
-    const pub = (await db.doc(`users/${b.publisherUid}`).get()).data();
+    const pubEmail = await getUserEmail(b.publisherUid);
     await Promise.all([
       sendEmail({ to: b.clientEmail, subject: `Session cancelled — ${when}`, text: `The session on ${when} was cancelled by the ${by}.\n${line}\nReference: ${reference}` }),
-      pub?.email ? sendEmail({ to: pub.email, subject: `Session cancelled — ${when}`, text: `The session on ${when} was cancelled by the ${by}.\nReference: ${reference}` }) : Promise.resolve(true),
+      pubEmail ? sendEmail({ to: pubEmail, subject: `Session cancelled — ${when}`, text: `The session on ${when} was cancelled by the ${by}.\nReference: ${reference}` }) : Promise.resolve(true),
     ]).catch(() => {});
 
     return NextResponse.json({ ok: true, refundKobo, cancelledBy: by });
