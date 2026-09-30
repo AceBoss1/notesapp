@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { TIERS, formatPercent } from "@/lib/tiers";
 import { BOOST_PACKAGES } from "@/lib/boost-config";
-import { formatNaira } from "@/lib/booking-time";
+import { LIMITS, formatNaira } from "@/lib/booking-time";
 
 export const metadata: Metadata = {
   title: "Pricing",
@@ -18,11 +18,31 @@ const ROWS: { label: string; render: (t: (typeof TIERS)[number]) => string }[] =
       t.adRevenueShare === null ? "—" : t.adRevenueShare === 0 ? "0% (ads run, no share)" : `${(t.adRevenueShare * 100).toFixed(0)}%`,
   },
   {
-    label: "Booking & unlock commission",
+    label: "Commission on sessions, subscriptions & gifts",
     render: (t) =>
       t.canPublish
         ? `NotesApp takes ${formatPercent(t.sessionAndUnlockCommission, t.sessionAndUnlockCommissionFloor)}`
         : "—",
+  },
+  {
+    label: "Paid 1:1 sessions",
+    render: (t) => (t.canPublish ? `You set the price: ${formatNaira(LIMITS.sessionMinKobo)} – ${formatNaira(LIMITS.sessionMaxKobo)}` : "Book & pay only"),
+  },
+  {
+    label: "Monthly journal subscriptions",
+    render: (t) => (t.canPublish ? `You set the price: ${formatNaira(LIMITS.subscriptionMinKobo)} – ${formatNaira(LIMITS.subscriptionMaxKobo)}/month` : "Subscribe & unlock only"),
+  },
+  {
+    label: "Gifts from readers",
+    render: (t) => (t.canPublish ? "Receive gifts of ₦200 – ₦500,000 on your profile and every post" : "Send gifts"),
+  },
+  {
+    label: "Post boosts",
+    render: (t) => (t.canPublish ? `From ${formatNaira(BOOST_PACKAGES[0].priceKobo)} · no commission · undelivered impressions refunded` : "—"),
+  },
+  {
+    label: "Payouts to your bank",
+    render: (t) => (t.canPublish ? "Sessions after they happen · subscriptions & gifts after 7 days" : "—"),
   },
   {
     label: "Internal merch store commission",
@@ -147,7 +167,7 @@ export default function PricingPage() {
       <div className="card mt-6 p-6">
         <p className="font-ui text-sm font-bold text-ink">Boost a post</p>
         <p className="mt-2 text-sm text-slate">
-          Promote a post in the Boosted slots on the home and Journals pages. You pay for{" "}
+          <Link href="/boost" className="text-crimson underline underline-offset-2">Boost</Link> puts a post in the Boosted slots on the home and Journals pages. You pay for{" "}
           <strong className="text-ink">validated impressions</strong> — a real visitor seeing your post for about a
           second, counted once per visitor per day — delivered over several days. Undelivered impressions are refunded
           pro-rata. Boosts are not commissionable: what you pay is the price.

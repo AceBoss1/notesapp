@@ -1216,3 +1216,14 @@ Firestore TTL policy on collection group `seen`, field `expireAt`, so
 de-dup docs clean themselves up.
 **Not built yet:** in-app "Sponsored" disclosure beyond the label,
 per-boost analytics charts, self-serve boost refunds, public supporter counts.
+
+### Boost as its own product page
+`/boost` is now a standalone marketing + entry page (packages, how
+validated impressions work, fairness/refund terms, and — when signed in —
+a list of your published posts with a Boost button). Linked from the footer
+(Product), the home hero, the pricing page and `/advertise`; `/boost/[noteId]`
+remains the purchase step. `/pricing` now shows, for every publisher tier:
+session price range, subscription price range, gifts, boost pricing and
+payout timing, all read from `LIMITS` / `BOOST_PACKAGES` so one edit in
+`lib/booking-time.ts` or `lib/boost-config.ts` updates the whole site.
+Sitemap now includes `/pricing`, `/boost`, `/trending`, `/status`, `/terms`, `/privacy`.

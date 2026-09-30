@@ -71,8 +71,18 @@ export default function AdvertisePage() {
         </p>
       </div>
 
+      <div className="card mt-6 border-crimson p-7">
+        <p className="font-ui text-base font-bold text-ink">Want reach today? Boost a post.</p>
+        <p className="mt-2 text-sm text-slate">
+          Publishers can already pay to promote a post — priced by validated impressions, delivered over several days.
+        </p>
+        <Link href="/boost" className="mt-3 inline-block text-sm text-crimson underline underline-offset-2">
+          See Boost packages →
+        </Link>
+      </div>
+
       <p className="mt-10 text-sm text-slate">
-        This is a roadmap commitment, not a live feature yet — nothing
+        Third-party ad placements and ad-share payouts are a roadmap commitment, not a live feature yet — nothing
         here is wired up for real ad placements or payouts. Want early
         access when it ships?{" "}
         <Link href="/contact" className="text-crimson underline underline-offset-2">
