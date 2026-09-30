@@ -123,6 +123,7 @@ export default function Home() {
                 <li>Paid 1:1 sessions on each publisher's own rate and availability, paid through Paystack, with a bookings dashboard and a clear cancellation policy</li>
                 <li>Paid monthly journal subscriptions that unlock premium entries</li>
                 <li>Post boosts (pay for validated impressions) and gifts on every profile and post — see <Link href="/boost" className="text-crimson underline">Boost</Link> and <Link href="/gifts" className="text-crimson underline">Gifts</Link></li>
+                <li>Paid Pro and Business plans through Paystack, and official #NotesApp merch pre-orders in Naira — see <Link href="/pricing" className="text-crimson underline">Pricing</Link> and the <Link href="/merchstore" className="text-crimson underline">Merch store</Link></li>
                 <li>Trending feed and a live status page</li>
                 <li>Verification badges: the maroon ✔ for accounts in good standing and the <strong className="text-ink">gold ✔ for endorsed accounts</strong>{GOLD_KIND_LIVE.identity ? " and identity-checked accounts" : ""} — see <Link href="/badges" className="text-crimson underline">Verification badges</Link></li>
                 <li>Publisher payouts to a verified bank account, released after the session</li>
@@ -135,7 +136,7 @@ export default function Home() {
               <ul className="mt-3 space-y-2 text-sm text-slate">
                 <li>WhatsApp reminders and clients rescheduling themselves</li>
 {GOLD_KIND_LIVE.identity ? null : <li>Identity-checked gold badge (NIN + face check for people, CAC for organisations)</li>}
-                <li>Merch checkout and paid Pro / Business / Enterprise tiers</li>
+                <li>Enterprise plans (custom commission, contact us) and in-platform checkout for members' own merch</li>
                 <li>AI drafting, social publishing, video uploads, ad-share</li>
               </ul>
             </div>

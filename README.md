@@ -1412,6 +1412,19 @@ if re-run (don't). `consent` on user docs is still public (version + timestamp o
   (more steps ⇒ higher cost). Automating the result is a later step once
   Dojah's docs/sandbox keys are available. Admin dropdown grants still work as
   free comps. Redeploy `firestore.rules`.
+- **Official merch (pre-order batches).** `/merchstore` items show a product
+  mockup with the chosen logo superimposed (`components/MerchMockup.tsx`; drawn
+  placeholder shapes until real photos exist — drop a plain photo at
+  `public/images/merch/<id>.webp`, set `photo` on the item in `lib/merch.ts`, and
+  tune its `print` box). Checkout is `kind: "merch"` (Paystack; price, flat
+  delivery, quantity, batch and Nigerian address all validated server-side) →
+  `merchOrders/{reference}` (owner/admin read, server write). Admin → **Merch**
+  (`/admin/merch`) shows a "to print" tally and moves orders
+  preordered → printed → shipped → delivered (shipped emails the buyer); refunds go
+  through Payments and are blocked once an order is printed. **Edit in
+  `lib/merch.ts` before launch:** `MERCH_BATCH.closesOn` (placeholder
+  2026-11-15), `MERCH_DELIVERY_KOBO` (placeholder ₦3,000) and the item prices.
+  Redeploy `firestore.rules`.
 - Header now shows the member's avatar (links to their profile) after the bell.
 
 ## Member journey — what people see and where they change things

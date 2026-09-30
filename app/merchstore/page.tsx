@@ -1,6 +1,7 @@
 import { ADMIN_PROFILES } from "@/lib/admin";
 import { STORE_ITEMS } from "@/lib/store";
-import { MERCH_ITEMS } from "@/lib/merch";
+import { MERCH_ITEMS, MERCH_BATCH, MERCH_DELIVERY_KOBO } from "@/lib/merch";
+import { formatNaira } from "@/lib/booking-time";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
@@ -32,8 +33,10 @@ export default function MerchStorePage() {
         <Link href="/brand" className="text-crimson underline underline-offset-2">
           the Brand page
         </Link>
-        . This is a demo catalogue — checkout and print-on-demand
-        fulfillment aren't wired up yet.
+        . Pre-order now, pay with Paystack — we print after the batch
+        closes ({MERCH_BATCH.label} closes {MERCH_BATCH.closesOn}) and deliver anywhere in Nigeria
+        for a flat {formatNaira(MERCH_DELIVERY_KOBO)}. The pictures are previews with your chosen logo
+        superimposed; real product photography is coming.
       </p>
 
       <div className="mt-10 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">

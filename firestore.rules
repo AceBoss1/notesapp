@@ -270,6 +270,12 @@ service cloud.firestore {
     // GOLD-BADGE ENDORSEMENT REQUESTS (private; created by the server)
     // ============================================================
 
+    // Official merch pre-orders — owner + admins read; server-only writes.
+    match /merchOrders/{ref} {
+      allow read: if isAdmin() || (isSignedIn() && resource.data.uid == request.auth.uid);
+      allow write: if false;
+    }
+
     // Paid gold-badge subscription records — owner + admins read; server writes.
     match /goldSubscriptions/{uid} {
       allow read: if isAdmin() || (isSignedIn() && request.auth.uid == uid);

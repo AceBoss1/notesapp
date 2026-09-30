@@ -45,10 +45,17 @@ export async function POST(req: NextRequest) {
       if (ledger?.status === "refunded" || paySnap.data()?.status === "refunded") {
         return NextResponse.json({ error: "Already refunded." }, { status: 409 });
       }
+      if (paySnap.data()?.kind === "merch") {
+        const o = (await db.doc(`merchOrders/${reference}`).get()).data();
+        if (o && ["printed", "shipped", "delivered"].includes(o.status)) {
+          return NextResponse.json({ error: `This order is already ${o.status} — refund in Paystack manually if needed.` }, { status: 409 });
+        }
+      }
       await refundTransaction(reference);
       const batch = db.batch();
       batch.update(payRef, { status: "refunded" });
       if (ledger) batch.update(ledgerRef, { status: "refunded" });
+      if (paySnap.data()?.kind === "merch") batch.update(db.doc(`merchOrders/${reference}`), { status: "refunded" });
       const b = paySnap.data()?.booking;
       if (b && paySnap.data()?.status === "paid") {
         batch.update(db.doc(`bookings/${reference}`), { status: "refunded" });

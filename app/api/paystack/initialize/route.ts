@@ -10,6 +10,7 @@ import { GIFT_MAX_KOBO, GIFT_MESSAGE_MAX, GIFT_MIN_KOBO, getBoostPackage } from 
 import { verifyAdminRequest } from "@/lib/firebase-admin";
 import { getTierPlanCode, getBadgePlanCode, getGoldPlanCode } from "@/lib/tier-billing";
 import { GOLD_PRICING, isGoldKind, isGoldTrack } from "@/lib/gold";
+import { getMerchItem, LOGO_OPTIONS, MERCH_BATCH, MERCH_DELIVERY_KOBO, MERCH_MAX_QTY, merchBatchOpen, validateAddress } from "@/lib/merch";
 import { TIERS, badgeIncluded } from "@/lib/tiers";
 import { rateLimit } from "@/lib/rate-limit";
 
@@ -67,6 +68,49 @@ export async function POST(req: NextRequest) {
         reference, kind: "badge", uid: user.uid, email: user.email, amountKobo,
         status: "pending", publisherUid: user.uid, publisherUsername: "", commissionRate: 0,
         badge: { planCode }, createdAt: new Date().toISOString(),
+      };
+      await db.doc(`payments/${reference}`).set(record);
+      return NextResponse.json({ authorizationUrl: tx.authorization_url, reference });
+    }
+
+    // ---- official merch pre-order (price, delivery and batch all server-side) ----
+    if (kind === "merch") {
+      const item = getMerchItem(String(body.itemId));
+      const logo = LOGO_OPTIONS.find((l) => l.id === body.logoId);
+      if (!item || !logo) return NextResponse.json({ error: "Unknown item or logo." }, { status: 400 });
+      if (!merchBatchOpen()) return NextResponse.json({ error: "This batch has closed." }, { status: 409 });
+      const quantity = Number(body.quantity);
+      if (!Number.isInteger(quantity) || quantity < 1 || quantity > MERCH_MAX_QTY) {
+        return NextResponse.json({ error: `Choose a quantity from 1 to ${MERCH_MAX_QTY}.` }, { status: 400 });
+      }
+      const size = item.sizes ? String(body.size) : undefined;
+      if (item.sizes && !item.sizes.includes(size as string)) return NextResponse.json({ error: "Choose a size." }, { status: 400 });
+      const addrProblem = validateAddress(body.address);
+      if (addrProblem) return NextResponse.json({ error: addrProblem }, { status: 400 });
+      const a = body.address;
+      const address = {
+        fullName: String(a.fullName).trim(),
+        phone: String(a.phone).replace(/[\s-]/g, ""),
+        street: String(a.street).trim(),
+        city: String(a.city).trim(),
+        state: String(a.state),
+      };
+      const amountKobo = item.priceKobo * quantity + MERCH_DELIVERY_KOBO;
+      const reference = newReference();
+      const origin = (process.env.NEXT_PUBLIC_SITE_URL || req.nextUrl.origin).replace(/\/$/, "");
+      const tx = await initializeTransaction({
+        email: user.email, amountKobo, reference, callbackUrl: `${origin}/booking/confirm`,
+        metadata: { kind, itemId: item.id, uid: user.uid },
+      });
+      const record: PaymentRecord = {
+        reference, kind: "merch", uid: user.uid, email: user.email, amountKobo,
+        status: "pending", publisherUid: user.uid, publisherUsername: "", commissionRate: 0,
+        merch: {
+          itemId: item.id, itemName: item.name, logoId: logo.id, logoLabel: logo.label,
+          ...(size ? { size } : {}), quantity, unitKobo: item.priceKobo, deliveryKobo: MERCH_DELIVERY_KOBO,
+          batchId: MERCH_BATCH.id, address,
+        },
+        createdAt: new Date().toISOString(),
       };
       await db.doc(`payments/${reference}`).set(record);
       return NextResponse.json({ authorizationUrl: tx.authorization_url, reference });

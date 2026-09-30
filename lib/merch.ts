@@ -1,23 +1,73 @@
-// Official #NotesApp merch — demo catalogue, no real checkout or
-// print-on-demand integration yet. Each item can be previewed with any
-// of the brand's core or seasonal logos, matching /brand's wardrobe.
+// Official #NotesApp merch — sold in pre-order batches through Paystack
+// (flat Nigeria delivery, manual fulfilment). Each item can carry any of
+// the brand's core or seasonal logos, matching /brand's wardrobe.
+
+export type MerchShape = "tshirt" | "cap" | "mug" | "stanley" | "mousepad" | "coffeecup" | "laptopbag";
 
 export type MerchItem = {
   id: string;
   name: string;
-  emoji: string; // stand-in visual — no real product photography yet
-  price: string;
+  shape: MerchShape; // drawn mockup used until a real photo is supplied
+  // Drop a plain product photo at /public/images/merch/<id>.webp and set
+  // `photo` to "/images/merch/<id>.webp" — the logo is overlaid at `print`.
+  photo?: string;
+  // Where the logo sits on the mockup/photo, as % of the square image box.
+  print: { left: number; top: number; size: number };
+  priceKobo: number;
+  sizes?: string[];
 };
 
+const TEE_SIZES = ["S", "M", "L", "XL", "XXL"];
+
 export const MERCH_ITEMS: MerchItem[] = [
-  { id: "tshirt", name: "T-Shirt", emoji: "👕", price: "₦12,000" },
-  { id: "cap", name: "Cap", emoji: "🧢", price: "₦8,000" },
-  { id: "mug", name: "Mug", emoji: "☕", price: "₦6,500" },
-  { id: "stanley", name: "Stanley-Style Cup", emoji: "🥤", price: "₦18,000" },
-  { id: "mousepad", name: "Mouse Pad", emoji: "🖱️", price: "₦5,000" },
-  { id: "coffeecup", name: "Coffee Cup", emoji: "🫖", price: "₦6,000" },
-  { id: "laptopbag", name: "Laptop Bag", emoji: "💼", price: "₦25,000" },
+  { id: "tshirt", name: "T-Shirt", shape: "tshirt", print: { left: 35, top: 34, size: 30 }, priceKobo: 12_000_00, sizes: TEE_SIZES },
+  { id: "cap", name: "Cap", shape: "cap", print: { left: 38, top: 42, size: 24 }, priceKobo: 8_000_00 },
+  { id: "mug", name: "Mug", shape: "mug", print: { left: 37, top: 44, size: 26 }, priceKobo: 6_500_00 },
+  { id: "stanley", name: "Stanley-Style Cup", shape: "stanley", print: { left: 39, top: 42, size: 22 }, priceKobo: 18_000_00 },
+  { id: "mousepad", name: "Mouse Pad", shape: "mousepad", print: { left: 39, top: 42, size: 22 }, priceKobo: 5_000_00 },
+  { id: "coffeecup", name: "Coffee Cup", shape: "coffeecup", print: { left: 38, top: 46, size: 24 }, priceKobo: 6_000_00 },
+  { id: "laptopbag", name: "Laptop Bag", shape: "laptopbag", print: { left: 38, top: 42, size: 24 }, priceKobo: 25_000_00 },
 ];
+
+export const getMerchItem = (id: string) => MERCH_ITEMS.find((i) => i.id === id);
+
+// Pre-order batches: people pay now, we print after the batch closes.
+// EDIT THESE when you open a new batch (dates are Lagos time).
+export const MERCH_BATCH = {
+  id: "batch-1",
+  label: "Batch 1",
+  closesOn: "2026-11-15", // last day to order, inclusive
+  deliveryNote: "Printed after the batch closes; delivered within about 3 weeks of closing.",
+};
+export const MERCH_DELIVERY_KOBO = 3_000_00; // flat delivery fee, Nigeria only — EDIT to your real fee
+export const MERCH_MAX_QTY = 10;
+
+export function merchBatchOpen(now = Date.now()): boolean {
+  return now <= new Date(`${MERCH_BATCH.closesOn}T23:59:59+01:00`).getTime();
+}
+
+export const NIGERIAN_STATES = [
+  "Abia", "Adamawa", "Akwa Ibom", "Anambra", "Bauchi", "Bayelsa", "Benue", "Borno", "Cross River", "Delta", "Ebonyi", "Edo",
+  "Ekiti", "Enugu", "FCT (Abuja)", "Gombe", "Imo", "Jigawa", "Kaduna", "Kano", "Katsina", "Kebbi", "Kogi", "Kwara", "Lagos",
+  "Nasarawa", "Niger", "Ogun", "Ondo", "Osun", "Oyo", "Plateau", "Rivers", "Sokoto", "Taraba", "Yobe", "Zamfara",
+];
+
+export type DeliveryAddress = { fullName: string; phone: string; street: string; city: string; state: string };
+
+// Shared by the checkout form (friendly errors) and the server (enforcement).
+export function validateAddress(a: Partial<DeliveryAddress> | undefined): string | null {
+  if (!a) return "Enter a delivery address.";
+  const fullName = String(a.fullName ?? "").trim();
+  const phone = String(a.phone ?? "").replace(/[\s-]/g, "");
+  const street = String(a.street ?? "").trim();
+  const city = String(a.city ?? "").trim();
+  if (fullName.length < 2 || fullName.length > 80) return "Enter the recipient's full name.";
+  if (!/^(\+234|0)\d{10}$/.test(phone)) return "Enter a valid Nigerian phone number (e.g. 08012345678).";
+  if (street.length < 5 || street.length > 200) return "Enter the street address.";
+  if (city.length < 2 || city.length > 80) return "Enter the city or town.";
+  if (!NIGERIAN_STATES.includes(String(a.state ?? ""))) return "Choose a state.";
+  return null;
+}
 
 export type LogoOption = {
   id: string;
