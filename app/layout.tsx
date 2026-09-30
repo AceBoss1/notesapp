@@ -172,6 +172,16 @@ export default function RootLayout({
                     LinkedIn
                   </a>
                 </li>
+                <li>
+                  <Link href="/terms" className="hover:text-paper">
+                    Terms of Service
+                  </Link>
+                </li>
+                <li>
+                  <Link href="/privacy" className="hover:text-paper">
+                    Privacy Policy
+                  </Link>
+                </li>
                 <li className="text-paper/50">
                   Built in partnership with Precheks — our first
                   reference customer. —{" "}

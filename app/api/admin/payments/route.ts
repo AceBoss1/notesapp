@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAdminDb, verifyAdminRequest } from "@/lib/firebase-admin";
-import { initiateTransfer, refundTransaction } from "@/lib/paystack";
+import { initiateTransfer, refundTransaction, slotLockId } from "@/lib/paystack";
 import type { LedgerEntry } from "@/lib/payments";
 
 // Admin-only money actions on a payment reference:
@@ -34,7 +34,8 @@ export async function POST(req: NextRequest) {
       if (ledger) batch.update(ledgerRef, { status: "refunded" });
       const b = paySnap.data()?.booking;
       if (b && paySnap.data()?.status === "paid") {
-        batch.update(db.doc(`bookings/${b.username}_${b.date}_${String(b.slot).replace(/[^0-9]/g, "")}`), { status: "refunded" });
+        batch.update(db.doc(`bookings/${reference}`), { status: "refunded" });
+        batch.delete(db.doc(`slotLocks/${slotLockId(b.username, b.date, b.slot)}`));
       }
       await batch.commit();
       return NextResponse.json({ ok: true });

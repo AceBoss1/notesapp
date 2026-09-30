@@ -14,7 +14,7 @@ import {
   toggleCommentLike,
   Comment,
 } from "@/lib/engagement";
-import { isAdminEmail } from "@/lib/admin";
+import { isAdminUser } from "@/lib/admin-claims";
 import { NA_NOTESAPP_PROFILE } from "@/lib/journals-directory";
 import { getSuspendedUids } from "@/lib/moderation";
 import { notifyComment, notifyReply } from "@/lib/notifications";
@@ -171,7 +171,10 @@ export default function Comments({
   const [postError, setPostError] = useState("");
   const [replyError, setReplyError] = useState("");
 
-  const canModerate = !!(user?.email && isAdminEmail(user.email));
+  const [canModerate, setCanModerate] = useState(false);
+  useEffect(() => {
+    isAdminUser(user).then(setCanModerate);
+  }, [user]);
   const currentUserSuspended = !!(user && suspendedUids.has(user.uid));
 
   function authorFor(asBrand: boolean) {

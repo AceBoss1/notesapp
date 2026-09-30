@@ -51,7 +51,7 @@ export default function StorePageClient({ params }: { params: { username: string
         shared marketplace — this is {profile.displayName.split(" ")[0]}
         &apos;s shelf, branded to them, not to us. Today, checkout hands
         off to wherever each item already lives (Selar, Amazon, or a
-        magazine feature); inline Paystack / Flutterwave checkout for
+        magazine feature); inline Paystack checkout for
         #NotesApp's own products is the next build.
       </p>
 

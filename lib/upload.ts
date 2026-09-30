@@ -1,4 +1,5 @@
 import { auth } from "./firebase";
+import { ALLOWED_TYPES, looksLikeImage, maxUploadBytes } from "./upload-rules";
 
 // Replaces lib/cloudinary.ts. Two-step flow: ask app/api/upload for a
 // presigned URL (server verifies the caller is an admin), then PUT
@@ -10,6 +11,14 @@ export async function uploadToR2(file: File, purpose: "journal" | "avatar" = "jo
   if (!user) {
     throw new Error("You must be signed in to upload a file.");
   }
+  const kind = ALLOWED_TYPES[file.type];
+  if (!kind) throw new Error("Unsupported file type. Use a JPEG, PNG, WebP, GIF or AVIF image.");
+  if (file.size > maxUploadBytes(kind, purpose === "avatar")) {
+    throw new Error(`File is too large (max ${Math.round(maxUploadBytes(kind, purpose === "avatar") / 1048576)} MB).`);
+  }
+  if (kind === "image" && !(await looksLikeImage(file))) {
+    throw new Error("That file isn't a valid image.");
+  }
   const idToken = await user.getIdToken();
 
   const presignRes = await fetch("/api/upload", {
@@ -18,7 +27,7 @@ export async function uploadToR2(file: File, purpose: "journal" | "avatar" = "jo
       "Content-Type": "application/json",
       Authorization: `Bearer ${idToken}`,
     },
-    body: JSON.stringify({ filename: file.name, contentType: file.type, purpose }),
+    body: JSON.stringify({ filename: file.name, contentType: file.type, purpose, size: file.size }),
   });
 
   if (!presignRes.ok) {

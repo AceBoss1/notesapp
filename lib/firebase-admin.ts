@@ -44,7 +44,15 @@ export function getAdminApp(): App {
   return initializeApp({ credential: cert(serviceAccount) });
 }
 
-const ADMIN_EMAILS = ["ezurukam@gmail.com", "precheks.info@gmail.com"];
+// Admin = custom claim `admin: true`. LEGACY_ADMIN_EMAILS is the
+// temporary fallback for the claims migration (same list as
+// firestore.rules' isLegacyAdminEmail) — delete it once both founders
+// carry the claim.
+const LEGACY_ADMIN_EMAILS = ["ezurukam@gmail.com", "precheks.info@gmail.com"];
+
+function isAdminToken(decoded: { admin?: unknown; email?: string }): boolean {
+  return decoded.admin === true || (!!decoded.email && LEGACY_ADMIN_EMAILS.includes(decoded.email));
+}
 
 // Admins, or any account firestore.rules' isPublisher() would let
 // write a note (role staff/volunteer, or accountTier != "standard").
@@ -54,7 +62,7 @@ export async function verifyPublisherRequest(idToken: string | undefined): Promi
   if (!idToken) throw new Error("Missing auth token");
   const app = getAdminApp();
   const decoded = await getAuth(app).verifyIdToken(idToken);
-  if (decoded.email && ADMIN_EMAILS.includes(decoded.email)) return decoded.uid;
+  if (isAdminToken(decoded)) return decoded.uid;
   const snap = await getFirestore(app).doc(`users/${decoded.uid}`).get();
   const u = snap.data();
   if (!u || u.suspended === true) throw new Error("Not allowed to upload");
@@ -67,17 +75,16 @@ export async function verifyPublisherRequest(idToken: string | undefined): Promi
 export async function verifyAdminRequest(idToken: string | undefined): Promise<string> {
   if (!idToken) throw new Error("Missing auth token");
   const decoded = await getAuth(getAdminApp()).verifyIdToken(idToken);
-  const email = decoded.email;
-  // Mirrors firestore.rules' isAdmin() allowlist exactly — keep both
-  // in sync if this ever changes. Hardcoded here rather than imported
-  // from lib/admin.ts because that file has no server/client
-  // boundary concerns of its own; duplicating the two emails is safer
-  // than risking an accidental client-bundle import chain pulling
-  // firebase-admin into browser code.
-  if (!email || !ADMIN_EMAILS.includes(email)) {
-    throw new Error("Not an admin account");
-  }
-  return email;
+  if (!isAdminToken(decoded)) throw new Error("Not an admin account");
+  return decoded.uid;
+}
+
+// Grants or revokes the admin claim. The user must sign in again (or
+// force-refresh their token) before it shows up.
+export async function setAdminClaim(uid: string, admin: boolean): Promise<void> {
+  const auth = getAuth(getAdminApp());
+  const existing = (await auth.getUser(uid)).customClaims || {};
+  await auth.setCustomUserClaims(uid, { ...existing, admin });
 }
 
 export function getAdminDb() {

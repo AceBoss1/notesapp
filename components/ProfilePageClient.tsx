@@ -28,7 +28,7 @@ const SUSPENDED_AVATAR = "/images/brand/suspended-avatar.png";
 // never written back into the shared `users` or `notes` documents.
 const ROLE_LABELS: Record<string, string> = {
   emmanuel: "Founder & CEO, #NotesApp",
-  chimdinma: "Co-Founder & COO, #NotesApp",
+  chimdinma: "Guest Writer, #NotesApp",
 };
 
 // Common shape both a real UserProfile and the synthetic @notesapp

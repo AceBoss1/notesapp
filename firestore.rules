@@ -11,12 +11,22 @@ service cloud.firestore {
       return request.auth != null;
     }
 
+    // Admin = Firebase custom claim `admin: true` (set with
+    // scripts/set-admin-claims.mjs or /api/admin/set-admin).
+    // The email list below is the TEMPORARY legacy path so nobody is
+    // locked out mid-migration. Once both founders have the claim
+    // (sign out/in, check /admin works), delete isLegacyAdminEmail()
+    // and its use here — see README "Custom-claims admin".
+    function isLegacyAdminEmail() {
+      return request.auth.token.email in [
+        'ezurukam@gmail.com',
+        'precheks.info@gmail.com'
+      ];
+    }
+
     function isAdmin() {
       return request.auth != null
-        && request.auth.token.email in [
-          'ezurukam@gmail.com',
-          'precheks.info@gmail.com'
-        ];
+        && (request.auth.token.admin == true || isLegacyAdminEmail());
     }
 
     // A self-serve paid/free-basic-publisher account, or an internal
@@ -333,6 +343,11 @@ service cloud.firestore {
     // Written only by the server (Admin SDK bypasses rules) after
     // Paystack confirms a charge. Clients can never write these.
     // ============================================================
+
+    // One doc per booked slot; server-only (Admin SDK). No client access at all.
+    match /slotLocks/{lockId} {
+      allow read, write: if false;
+    }
 
     match /bookings/{bookingId} {
       allow read: if isSignedIn()

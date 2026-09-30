@@ -4,20 +4,20 @@ import { useEffect, useState } from "react";
 import { onAuthStateChanged, User } from "firebase/auth";
 import { useRouter } from "next/navigation";
 import { auth } from "./firebase";
-import { isAdminEmail } from "./admin";
+import { isAdminUser } from "./admin-claims";
 
 export function useAdminAuth() {
   const [user, setUser] = useState<User | null | undefined>(undefined); // undefined = loading
   const router = useRouter();
 
   useEffect(() => {
-    const unsub = onAuthStateChanged(auth, (u) => {
+    const unsub = onAuthStateChanged(auth, async (u) => {
       if (!u) {
         setUser(null);
         router.replace("/admin/login");
         return;
       }
-      if (!isAdminEmail(u.email)) {
+      if (!(await isAdminUser(u))) {
         // signed in, but not one of the two admin accounts — not for them
         setUser(null);
         router.replace("/");

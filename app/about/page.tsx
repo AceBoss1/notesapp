@@ -15,7 +15,7 @@ export const metadata: Metadata = {
 
 const FOUNDERS = [
   { ...ADMIN_PROFILES["ezurukam@gmail.com"], role: "Founder & CEO" },
-  { ...ADMIN_PROFILES["precheks.info@gmail.com"], role: "Co-Founder & COO" },
+  { ...ADMIN_PROFILES["precheks.info@gmail.com"], role: "Guest Writer" },
 ];
 
 export default function AboutPage() {
@@ -50,7 +50,9 @@ export default function AboutPage() {
           it, get paid inline, follow up on WhatsApp — then turn the
           private session notes into your next public article. Follow
           a journal to see everything it publishes; subscribe to one
-          to unlock what it keeps for paying readers.
+          to unlock what it keeps for paying readers. Paid sessions,
+          monthly subscriptions and publisher payouts are live today,
+          in Naira, through Paystack.
         </p>
         <p>
           We're building this alongside the professionals who will run
@@ -60,7 +62,7 @@ export default function AboutPage() {
       </div>
 
       <div className="mt-14">
-        <p className="eyebrow">Founders</p>
+        <p className="eyebrow">Founder &amp; Guest Writer</p>
         <div className="mt-5 grid grid-cols-1 gap-5 sm:grid-cols-2">
           {FOUNDERS.map((f) => (
             <Link

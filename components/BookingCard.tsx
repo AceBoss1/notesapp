@@ -5,6 +5,7 @@ import { User } from "firebase/auth";
 import { doc, getDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { startCheckout } from "@/lib/checkout";
+import { POLICY_TEXT } from "@/lib/cancellation";
 import { formatNaira, formatSlot, PublisherSettings } from "@/lib/booking-time";
 
 type Slots = { bookable: boolean; slots: string[]; priceKobo?: number; minutes?: number };
@@ -100,6 +101,7 @@ export default function BookingCard({
           ))}
         </div>
       )}
+      <p className="mt-4 text-xs text-slate">{POLICY_TEXT}</p>
       {slot && (
         <div className="mt-6 flex flex-col items-start justify-between gap-4 rounded-xl2 border border-rule bg-paper p-5 sm:flex-row sm:items-center">
           <div>

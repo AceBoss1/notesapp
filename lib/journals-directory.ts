@@ -70,7 +70,7 @@ export const MANDATORY_JOURNALS: JournalDirectoryEntry[] = [
     username: ADMIN_PROFILES["precheks.info@gmail.com"].username,
     displayName: ADMIN_PROFILES["precheks.info@gmail.com"].displayName,
     avatar: ADMIN_PROFILES["precheks.info@gmail.com"].avatar,
-    bio: "Co-Founder & COO, #NotesApp.",
+    bio: "Guest Writer, #NotesApp.",
     mandatory: true,
     type: "person",
     synthetic: false,

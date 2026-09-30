@@ -5,11 +5,12 @@ import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { Note, slugify, createNote, updateNote } from "@/lib/firestore-notes";
 import { uploadToR2 } from "@/lib/upload";
+import RichTextEditor from "@/components/RichTextEditor";
 
 // Kept identical to Precheks' own author_role text on purpose — this
 // writes into the shared `notes` document, and Precheks renders
 // author_role verbatim on its own note pages. NotesApp's own framing
-// of these two people (Founder/CEO, Co-Founder/COO) is applied at the
+// of these two people (Founder/CEO, Guest Writer) is applied at the
 // UI level only, in lib/admin.ts + app/u/[username]/page.tsx, never
 // written back into shared data.
 const AUTHORS = [
@@ -114,6 +115,9 @@ export default function NoteForm({ noteId, initial }: Props) {
       } else {
         await createNote(payload);
       }
+      try {
+        localStorage.removeItem(`notesapp:draft:${noteId || "new"}`);
+      } catch {}
       router.push("/admin/journals");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Save failed");
@@ -203,16 +207,12 @@ export default function NoteForm({ noteId, initial }: Props) {
         )}
       </label>
 
-      <label className="block">
-        <span className="eyebrow">Content (Markdown)</span>
-        <textarea
-          required
-          rows={16}
-          value={content}
-          onChange={(e) => setContent(e.target.value)}
-          className="mt-2 w-full border border-rule bg-card px-4 py-3 font-mono text-sm focus:border-crimson outline-none"
-        />
-      </label>
+      <div className="block">
+        <span className="eyebrow">Content</span>
+        <div className="mt-2">
+          <RichTextEditor value={content} onChange={setContent} draftKey={noteId || "new"} />
+        </div>
+      </div>
 
       <label className="block">
         <span className="eyebrow">Status</span>

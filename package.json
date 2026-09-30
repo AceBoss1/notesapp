@@ -9,7 +9,8 @@
     "lint": "next lint",
     "migrate:dry-run": "node scripts/migrate-to-own-infra.mjs --dry-run",
     "migrate:structure-only": "node scripts/migrate-to-own-infra.mjs --skip-media",
-    "migrate": "node scripts/migrate-to-own-infra.mjs"
+    "migrate": "node scripts/migrate-to-own-infra.mjs",
+    "test:rules": "npx firebase-tools@13 emulators:exec --only firestore --project demo-notesapp \"node --test tests/rules/*.test.mjs\""
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1136.0",
@@ -23,6 +24,7 @@
     "remark-html": "^16.0.1"
   },
   "devDependencies": {
+    "@firebase/rules-unit-testing": "^3.0.4",
     "@tailwindcss/typography": "^0.5.15",
     "@types/node": "^20.14.15",
     "@types/react": "^18.3.3",
