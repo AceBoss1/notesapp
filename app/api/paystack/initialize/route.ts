@@ -7,6 +7,8 @@ import { weekdayOf } from "@/lib/booking-time";
 import { LEGAL_VERSION } from "@/lib/legal";
 import { GIFT_MAX_KOBO, GIFT_MESSAGE_MAX, GIFT_MIN_KOBO, getBoostPackage } from "@/lib/boost-config";
 import { verifyAdminRequest } from "@/lib/firebase-admin";
+import { getTierPlanCode, getBadgePlanCode } from "@/lib/tier-billing";
+import { TIERS, badgeIncluded } from "@/lib/tiers";
 import { rateLimit } from "@/lib/rate-limit";
 
 // Starts a Paystack checkout for a 1:1 session or a monthly journal
@@ -39,6 +41,73 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
     const { kind, username } = body;
     const db = getAdminDb();
+
+    // ---- verified badge add-on (₦999/month) ----
+    if (kind === "badge") {
+      const me = (await db.doc(`users/${user.uid}`).get()).data();
+      if (!me || me.suspended === true) return NextResponse.json({ error: "This account can't buy a badge." }, { status: 403 });
+      if (badgeIncluded((me.accountTier as string as any) || "standard") || ["admin", "staff", "volunteer"].includes(me.role)) {
+        return NextResponse.json({ error: "Your account already includes the verified badge." }, { status: 409 });
+      }
+      const cur = (await db.doc(`badgeSubscriptions/${user.uid}`).get()).data();
+      if (cur && cur.status !== "expired" && new Date(cur.currentPeriodEnd).getTime() > Date.now() - 3 * 86_400_000) {
+        return NextResponse.json({ error: "You already have an active verified badge." }, { status: 409 });
+      }
+      const { planCode, amountKobo } = await getBadgePlanCode();
+      const reference = newReference();
+      const origin = (process.env.NEXT_PUBLIC_SITE_URL || req.nextUrl.origin).replace(/\/$/, "");
+      const tx = await initializeTransaction({
+        plan: planCode, email: user.email, amountKobo, reference,
+        callbackUrl: `${origin}/booking/confirm`,
+        metadata: { kind, uid: user.uid },
+      });
+      const record: PaymentRecord = {
+        reference, kind: "badge", uid: user.uid, email: user.email, amountKobo,
+        status: "pending", publisherUid: user.uid, publisherUsername: "", commissionRate: 0,
+        badge: { planCode }, createdAt: new Date().toISOString(),
+      };
+      await db.doc(`payments/${reference}`).set(record);
+      return NextResponse.json({ authorizationUrl: tx.authorization_url, reference });
+    }
+
+    // ---- paid plan (Pro / Business) ----
+    if (kind === "tier") {
+      const tier = String(body.tier);
+      const interval = body.interval === "annually" ? "annually" : "monthly";
+      if (tier !== "pro" && tier !== "business") return NextResponse.json({ error: "Unknown plan." }, { status: 400 });
+      const existing = (await db.doc(`tierSubscriptions/${user.uid}`).get()).data();
+      if (existing && existing.status !== "expired" && new Date(existing.currentPeriodEnd).getTime() > Date.now() - 3 * 86_400_000) {
+        return NextResponse.json(
+          {
+            error:
+              existing.tier === tier && existing.interval === interval
+                ? "You're already on this plan."
+                : `You're on ${existing.tier === "pro" ? "Pro" : "Business"} until ${String(existing.currentPeriodEnd).slice(0, 10)}. Cancel it under Rates & payouts, then choose a new plan when it ends.`,
+          },
+          { status: 409 }
+        );
+      }
+      const currentTier = ((await db.doc(`users/${user.uid}`).get()).data()?.accountTier as string) || "standard";
+      const rank = ["standard", "basic", "pro", "business", "enterprise"];
+      if (rank.indexOf(currentTier) > rank.indexOf(tier) && rank.indexOf(currentTier) >= 2) {
+        return NextResponse.json({ error: "Your account is already on a higher plan." }, { status: 409 });
+      }
+      const { planCode, amountKobo } = await getTierPlanCode(tier, interval);
+      const reference = newReference();
+      const origin = (process.env.NEXT_PUBLIC_SITE_URL || req.nextUrl.origin).replace(/\/$/, "");
+      const tx = await initializeTransaction({
+        plan: planCode, email: user.email, amountKobo, reference,
+        callbackUrl: `${origin}/booking/confirm`,
+        metadata: { kind, tier, interval, uid: user.uid },
+      });
+      const record: PaymentRecord = {
+        reference, kind: "tier", uid: user.uid, email: user.email, amountKobo,
+        status: "pending", publisherUid: user.uid, publisherUsername: "", commissionRate: 0,
+        tier: { tier, interval, planCode }, createdAt: new Date().toISOString(),
+      };
+      await db.doc(`payments/${reference}`).set(record);
+      return NextResponse.json({ authorizationUrl: tx.authorization_url, reference });
+    }
 
     // ---- boost: the payer must own the post (or be an admin); no publisher lookup ----
     if (kind === "boost") {

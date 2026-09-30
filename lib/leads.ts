@@ -25,6 +25,7 @@ export const LEAD_CATEGORIES = [
   { value: "publishing", label: "Publishing & my journal" },
   { value: "account", label: "Account & login" },
   { value: "report", label: "Report a post or account" },
+  { value: "verification", label: "Gold badge / identity verification" },
   { value: "bug", label: "Bug report" },
   { value: "partnership", label: "Partnership" },
   { value: "press", label: "Press" },

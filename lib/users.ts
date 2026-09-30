@@ -16,6 +16,8 @@ import { User as FirebaseUser } from "firebase/auth";
 import { db } from "./firebase";
 import { ADMIN_PROFILES, SocialLinks } from "./admin";
 import { LEGAL_VERSION, Consent } from "./legal";
+import { badgeIncluded } from "./tiers";
+import { GOLD_BADGE_LIVE, BadgeLevel, GoldBadgeKind } from "./badges";
 
 export type UserRole = "admin" | "staff" | "volunteer" | "reader";
 export type AppealStatus = "none" | "pending" | "upheld" | "rejected";
@@ -78,6 +80,12 @@ export type UserProfile = {
   // for every real account; only the 4 hardcoded official accounts
   // (lib/journals-directory.ts's VERIFIED_USERNAMES) show the badge.
   verified?: boolean;
+  // Paid verified-badge add-on: ISO end of the paid period. Server-written
+  // only (see lib/tier-billing.ts); firestore.rules stops clients editing it.
+  badgeUntil?: string;
+  // Gold badge (identity check / endorsement) — admin-written only, and
+  // only displayed once GOLD_BADGE_LIVE (lib/badges.ts) is true.
+  goldBadge?: { kind: GoldBadgeKind; grantedAt: string; note?: string };
   accountTier: AccountTier;
   tierRequest?: TierRequest;
   // Precheks built its own suspend feature independently, on the same
@@ -103,6 +111,34 @@ export type UserProfile = {
 // separately wherever the badge renders.
 export function isVerifiedProfile(profile: UserProfile): boolean {
   return profile.role === "admin" || profile.role === "staff" || profile.role === "volunteer";
+}
+
+// Everything that earns the ✔ for a real account: an internal role, the
+// admin `verified` flag, a Business/Enterprise plan (badge included), or
+// an active paid badge add-on. Suspended accounts never show it.
+export function hasVerifiedBadge(profile: UserProfile): boolean {
+  if (profile.suspended === true) return false;
+  return (
+    isVerifiedProfile(profile) ||
+    !!profile.verified ||
+    badgeIncluded(profile.accountTier) ||
+    (!!profile.badgeUntil && new Date(profile.badgeUntil).getTime() > Date.now())
+  );
+}
+
+// #NotesApp team mark (beside the ✔): staff, guest writers and admins —
+// i.e. the internal roles. Official accounts are handled by
+// VERIFIED_USERNAMES where they render.
+export function isTeamMember(profile: UserProfile): boolean {
+  return profile.suspended !== true && isVerifiedProfile(profile);
+}
+
+// Which ✔ to draw: gold outranks the standard one, and only once gold
+// is live. Suspended accounts show none.
+export function badgeLevel(profile: UserProfile): BadgeLevel {
+  if (profile.suspended === true) return null;
+  if (GOLD_BADGE_LIVE && profile.goldBadge) return "gold";
+  return hasVerifiedBadge(profile) ? "verified" : null;
 }
 
 // Can this account publish its own journal entries? Every tier except

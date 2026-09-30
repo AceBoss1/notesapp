@@ -79,11 +79,15 @@ export function slotLockId(username: string, date: string, slot: string): string
   return `${username}_${date}_${slot.replace(/[^0-9]/g, "")}`;
 }
 
-export function createPlan(params: { name: string; amountKobo: number }) {
+export function createPlan(params: { name: string; amountKobo: number; interval?: "monthly" | "annually" }) {
   return paystack<{ plan_code: string }>("/plan", {
     method: "POST",
-    body: JSON.stringify({ name: params.name, amount: params.amountKobo, interval: "monthly", currency: "NGN" }),
+    body: JSON.stringify({ name: params.name, amount: params.amountKobo, interval: params.interval || "monthly", currency: "NGN" }),
   });
+}
+
+export function disableSubscription(code: string, token: string) {
+  return paystack<unknown>("/subscription/disable", { method: "POST", body: JSON.stringify({ code, token }) });
 }
 
 export function listBanks() {

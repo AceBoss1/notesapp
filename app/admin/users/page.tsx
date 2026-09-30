@@ -5,7 +5,8 @@ import Link from "next/link";
 import Image from "next/image";
 import { useAdminAuth } from "@/lib/useAdminAuth";
 import { getAllUsers, UserProfile, UserRole, AccountTier } from "@/lib/users";
-import { suspendUser, unsuspendUser, rejectAppeal, updateUserRole, updateUserTier } from "@/lib/moderation";
+import { suspendUser, unsuspendUser, rejectAppeal, updateUserRole, updateUserTier, setGoldBadge } from "@/lib/moderation";
+import { GOLD_BADGE_LIVE, GOLD_KIND_LABEL, GoldBadgeKind } from "@/lib/badges";
 import { TIERS } from "@/lib/tiers";
 import { ADMIN_PROFILES } from "@/lib/admin";
 
@@ -70,6 +71,16 @@ export default function AdminUsersPage() {
     setBusyUid(uid);
     try {
       await rejectAppeal(uid, username, user.uid);
+      reload();
+    } finally {
+      setBusyUid(null);
+    }
+  }
+
+  async function handleGoldChange(uid: string, value: string) {
+    setBusyUid(uid);
+    try {
+      await setGoldBadge(uid, (value || null) as GoldBadgeKind | null);
       reload();
     } finally {
       setBusyUid(null);
@@ -167,6 +178,20 @@ export default function AdminUsersPage() {
                       </span>
                     ) : (
                       <>
+                      <select
+                        title={GOLD_BADGE_LIVE ? "Gold badge" : "Gold badge (stored now; hidden publicly until launch)"}
+                        value={u.goldBadge?.kind || ""}
+                        disabled={busyUid === u.uid}
+                        onChange={(e) => handleGoldChange(u.uid, e.target.value)}
+                        className="border border-rule bg-card px-2 py-1 font-mono text-xs disabled:opacity-50"
+                      >
+                        <option value="">No gold</option>
+                        {(Object.keys(GOLD_KIND_LABEL) as GoldBadgeKind[]).map((k) => (
+                          <option key={k} value={k}>
+                            Gold: {GOLD_KIND_LABEL[k]}
+                          </option>
+                        ))}
+                      </select>
                       <select
                         title="Account tier"
                         value={u.accountTier || "standard"}

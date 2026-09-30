@@ -1239,14 +1239,88 @@ payments/payouts/refunds, boosts/gifts/advertising, publishing, account,
 report a post or account, bug, partnership, press, investment, other) and
 the admin Leads inbox reads the same list.
 
-### Pro / Business prices (applied)
-Pro **₦5,000/month** (₦50,000/year), Business **₦15,000/month**
-(₦150,000/year) — set in `lib/tiers.ts` (`price` + `priceNote`) and shown
-on `/pricing` and the roadmap. **Billing itself is not built**: there is no
-checkout for tier upgrades yet, so until it is, upgrades are arranged
-manually via Contact and an admin sets the tier with the new tier
-dropdown in `/admin/users` (added with this change; it writes
-`accountTier`, which firestore.rules only lets admins change). Next step:
-(Paystack plans + a self-serve upgrade button are the next step).
-Break-even vs Free Basic (35% commission): Pro at ₦50,000/month earned,
-Business at ₦75,000/month (₦150,000/month vs Pro).
+### Pro / Business plans — checkout built
+Pricing table buttons (`components/UpgradeButton.tsx`, monthly/yearly toggle)
+→ `POST /api/paystack/initialize {kind:"tier"}` → Paystack **plan** checkout
+(plans are created lazily per tier+interval and cached in `platformPlans/`,
+re-created if the price in `lib/tiers.ts` changes) → on payment the account's
+`accountTier` is set and `tierSubscriptions/{uid}` is written (server-only;
+owner can read). Renewals arrive via the webhook (`charge.success` on a
+platform plan → extends `currentPeriodEnd`); `subscription.disable/not_renew`
+marks it cancelled. **Cancel** = `POST /api/billing/cancel-tier` (finds the
+subscription at Paystack and disables it); the plan runs to the end of the
+paid period, no partial refunds. **Expiry**: the reminders cron
+(`/api/cron/reminders`, every ~15 min) also runs `expireTiers()` — plans
+lapsed more than 3 days become Free Basic *only if the account's tier is
+still the one they paid for* (admin-set tiers are never touched). Plan
+revenue is 100% platform (no ledger entry). You can't start a second plan
+while one is running (cancel, wait for the end, then switch) — self-serve
+upgrade/downgrade proration is not built. Prices: Pro ₦5,000/mo (₦50,000/yr),
+Business ₦15,000/mo (₦150,000/yr) in `lib/tiers.ts`. The Terms gained a
+"Paid plans, boosts and gifts" section and `LEGAL_VERSION` moved to
+2026-09-30, so everyone re-accepts at their next checkout. The admin tier
+dropdown in `/admin/users` still works for manual/Enterprise grants.
+**Test it with a `sk_test_` key first**; Paystack's list-subscriptions API
+is scanned (5 pages) to find the cancel token, fine at this scale.
+
+### Navigation + legal pages
+Admin pages now share a sub-header (`app/admin/layout.tsx` →
+`AdminSubNav`): Back button + Dashboard / Journals / Notes / Users /
+Payments / Leads / Settings, admins only, hidden on the login page.
+Signed-in members get a matching "My account" sub-header on `/profile/*`
+and `/bookings` (Edit profile · Rates & payouts · Bookings · Boost). The
+"Draft for legal review" banners were removed from `/terms` and `/privacy`
+at the owner's request — the underlying advice (have a Nigerian lawyer
+review both; NDPC registration may apply) still stands.
+
+### Verified badge (paid add-on)
+Included free on **Business and Enterprise** (and for admin/staff/volunteer
+roles and the official accounts); **Free Standard, Free Basic and Pro** can
+add it for **₦999/month** (`BADGE_PRICE_KOBO` in `lib/tiers.ts`). Own
+Paystack plan (`platformPlans/badge_monthly`), `badgeSubscriptions/{uid}`
+(server-only), and the user doc's `badgeUntil` (server-written) drives the ✔:
+`hasVerifiedBadge()` in `lib/users.ts` is the single check — used on
+profiles, the people directory and the post byline; suspended accounts never
+show it. Buy/cancel on **Edit profile** and the pricing page
+(`components/BadgeCard.tsx`); renewals + cancellation flow through the same
+webhook as plans; upgrading to Business best-effort cancels a running add-on
+so nobody is double-billed. Terms gained §5b (a badge is *not* an identity
+check or endorsement; removable without refund for impersonation/suspension).
+Consider adding real identity verification later if the ✔ is to imply it.
+
+### Paystack webhook — exact setup
+URL: `https://www.notesapp.name.ng/api/paystack/webhook`. Paystack
+Dashboard → Settings → API Keys & Webhooks → paste it in **Webhook URL**
+(Test and Live modes each have their own URL field — set both). Paystack
+sends every event type to that one URL; the route verifies the
+`x-paystack-signature` header with your secret key, so it works with either
+mode's key as long as `PAYSTACK_SECRET_KEY` matches the mode. Events the app
+handles: `charge.success`, `subscription.disable`, `subscription.not_renew`,
+`transfer.success`, `transfer.failed`, `transfer.reversed`.
+
+### Gold badge — coming soon (groundwork built)
+Two ✔ levels (`lib/badges.ts`, `badgeLevel()` in `lib/users.ts`): the
+maroon **verified** badge (account in good standing — role, Business/
+Enterprise, or the ₦999 add-on) and the **gold** badge (identity checked /
+endorsed by #NotesApp). Built: the `goldBadge` field on `users/{uid}`
+(admin-written only — clients can't set it), a gold `VerifiedBadge` variant,
+gold-aware rendering on profiles, the people directory and post bylines, and
+an admin "Gold" dropdown in `/admin/users`. **Hidden until launch**: nothing
+gold renders while `GOLD_BADGE_LIVE = false`; the pricing page, roadmap,
+about, terms (§5b), Edit-profile badge card and home all say "coming soon",
+and Contact has a "Gold badge / identity verification" topic for interest.
+To launch: build the application + review flow (ID / CAC / credential
+upload to a private R2 prefix, admin review queue, decision emails), decide
+criteria and any fee, publish them on `/pricing`, then set
+`GOLD_BADGE_LIVE = true` and update the "coming soon" copy.
+
+### #NotesApp team badge + /badges page + footer
+`components/TeamBadge.tsx` (the #NotesApp icon) renders beside the ✔ for
+staff, guest writers and admins (`isTeamMember()` = internal roles) and for
+the official accounts/founders (`VERIFIED_USERNAMES`): profiles, the people
+directory, post bylines and the channel/founder spotlights. Not purchasable.
+`/badges` ("Verification badges", footer → Product, sitemap) explains the
+team, verified and gold marks, tier table, FAQ, and embeds the buy card.
+Footer changes: Terms of Service / Privacy Policy moved from Connect to
+Company; Facebook (`SITE.facebook`) added under Connect; a blank line now
+precedes the "Built in partnership with Precheks … Staff Login" line.

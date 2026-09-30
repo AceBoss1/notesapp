@@ -50,6 +50,8 @@ const COMPANY = [
   { href: "/contact", label: "Contact" },
   { href: "/roadmap", label: "Roadmap" },
   { href: "/status", label: "Status" },
+  { href: "/terms", label: "Terms of Service" },
+  { href: "/privacy", label: "Privacy Policy" },
 ];
 
 export default function RootLayout({
@@ -141,6 +143,7 @@ export default function RootLayout({
                 <li><Link href="/boost" className="hover:text-paper">Boost</Link></li>
                 <li><Link href="/gifts" className="hover:text-paper">Gifts</Link></li>
                 <li><Link href="/merchstore" className="hover:text-paper">Merch Store</Link></li>
+                <li><Link href="/badges" className="hover:text-paper">Verification badges</Link></li>
                 <li><Link href="/advertise" className="hover:text-paper">Advertise</Link></li>
               </ul>
             </div>
@@ -177,16 +180,16 @@ export default function RootLayout({
                   </a>
                 </li>
                 <li>
-                  <Link href="/terms" className="hover:text-paper">
-                    Terms of Service
-                  </Link>
+                  <a
+                    href={SITE.facebook}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="hover:text-paper"
+                  >
+                    Facebook
+                  </a>
                 </li>
-                <li>
-                  <Link href="/privacy" className="hover:text-paper">
-                    Privacy Policy
-                  </Link>
-                </li>
-                <li className="text-paper/50">
+                <li className="mt-6 text-paper/50">
                   Built in partnership with Precheks — our first
                   reference customer. —{" "}
                   <Link href="/admin/login" className="text-paper/70 hover:text-paper">

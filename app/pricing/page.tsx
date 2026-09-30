@@ -1,7 +1,10 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { TIERS, formatPercent } from "@/lib/tiers";
+import { TIERS, formatPercent, badgeIncluded, BADGE_PRICE_KOBO } from "@/lib/tiers";
 import { BOOST_PACKAGES } from "@/lib/boost-config";
+import UpgradeButton from "@/components/UpgradeButton";
+import BadgeCard from "@/components/BadgeCard";
+import VerifiedBadge from "@/components/VerifiedBadge";
 import { LIMITS, formatNaira } from "@/lib/booking-time";
 
 export const metadata: Metadata = {
@@ -23,6 +26,14 @@ const ROWS: { label: string; render: (t: (typeof TIERS)[number]) => string }[] =
       t.canPublish
         ? `NotesApp takes ${formatPercent(t.sessionAndUnlockCommission, t.sessionAndUnlockCommissionFloor)}`
         : "—",
+  },
+  {
+    label: "Verified badge ✔ (see /badges)",
+    render: (t) => (badgeIncluded(t.tier) ? "Included free" : `Add-on: ${formatNaira(BADGE_PRICE_KOBO)}/month`),
+  },
+  {
+    label: "Gold badge (identity checked / endorsed)",
+    render: () => "Coming soon — by application",
   },
   {
     label: "Paid 1:1 sessions",
@@ -91,6 +102,7 @@ export default function PricingPage() {
                   <p className="font-display text-xl text-ink">{t.label}</p>
                   <p className="mt-1 font-mono text-sm text-crimson-bright">{t.price}</p>
                   {t.priceNote && <p className="mt-1 max-w-[11rem] text-xs font-normal text-slate">{t.priceNote}</p>}
+                  {(t.tier === "pro" || t.tier === "business") && <UpgradeButton tier={t.tier} label={t.label} />}
                 </th>
               ))}
             </tr>
@@ -117,16 +129,15 @@ export default function PricingPage() {
             Free Standard → Free Basic is a self-serve application from
             your own profile, reviewed by an admin — no payment
             involved. Pro (₦5,000/month) and Business (₦15,000/month) are
-            paid upgrades; Enterprise is custom. Billing for the paid tiers
-            opens soon (see{" "}
-            <Link href="/roadmap" className="text-crimson underline underline-offset-2">
-              the roadmap
-            </Link>
-            ) — until then,{" "}
+            paid plans you can start right from this table — monthly or
+            yearly (two months free), renewing automatically through
+            Paystack. Cancel any time under Rates &amp; payouts: you keep the
+            plan until the period you paid for ends, with no partial
+            refunds. Enterprise is custom —{" "}
             <Link href="/contact" className="text-crimson underline underline-offset-2">
               contact us
-            </Link>{" "}
-            to upgrade early. As a rule of thumb, Pro pays for itself once
+            </Link>
+            . As a rule of thumb, Pro pays for itself once
             you earn about ₦50,000 a month through sessions, subscriptions
             and gifts (its commission is 10 points lower than Free Basic's);
             Business does at about ₦75,000 a month.
@@ -145,6 +156,22 @@ export default function PricingPage() {
             left actually applies.
           </p>
         </div>
+      </div>
+
+      <div className="mt-6">
+        <BadgeCard pitch />
+      </div>
+
+      <div className="card mt-6 p-6">
+        <p className="font-ui text-sm font-bold text-ink">
+          <span className="mr-1.5"><VerifiedBadge size={14} level="gold" /></span>Gold badge — coming soon
+        </p>
+        <p className="mt-2 text-sm text-slate">
+          The maroon ✔ shows an account in good standing. The <strong className="text-ink">gold badge</strong> is different: it will mark an
+          account whose identity #NotesApp has checked (ID, business registration or professional credential) or that we endorse.
+          It will be by application and review, open to every tier. Details and pricing will be published here before launch —{" "}
+          <Link href="/contact" className="text-crimson underline underline-offset-2">register your interest</Link>.
+        </p>
       </div>
 
       <div className="card mt-6 p-6">

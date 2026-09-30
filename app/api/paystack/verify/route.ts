@@ -30,6 +30,7 @@ export async function GET(req: NextRequest) {
       booking: payment.booking,
       subscription: payment.subscription,
       boost: payment.boost,
+      tier: payment.tier && { tier: payment.tier.tier, interval: payment.tier.interval },
       gift: payment.gift && { username: payment.gift.username, noteSlug: payment.gift.noteSlug },
     });
   } catch (err) {

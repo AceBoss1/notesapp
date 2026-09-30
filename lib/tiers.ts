@@ -9,6 +9,9 @@ export type TierConfig = {
   label: string;
   price: string; // display string for /pricing
   priceNote?: string; // small print under the price (yearly price, billing status)
+  // Paid plans only: what Paystack actually charges (kobo). Keep in sync with `price`.
+  monthlyKobo?: number;
+  yearlyKobo?: number;
   canPublish: boolean;
   // Ads carry on every publisher's pages regardless of tier — what
   // differs is whether the publisher earns a cut. null = doesn't
@@ -60,7 +63,9 @@ export const TIERS: TierConfig[] = [
     tier: "pro",
     label: "Pro",
     price: "₦5,000/month",
-    priceNote: "or ₦50,000/year (2 months free) · billing opens soon",
+    priceNote: "or ₦50,000/year (2 months free) · cancel anytime",
+    monthlyKobo: 5_000 * 100,
+    yearlyKobo: 50_000 * 100,
     canPublish: true,
     adRevenueShare: 0.25,
     sessionAndUnlockCommission: 0.25,
@@ -71,7 +76,9 @@ export const TIERS: TierConfig[] = [
     tier: "business",
     label: "Business",
     price: "₦15,000/month",
-    priceNote: "or ₦150,000/year (2 months free) · billing opens soon",
+    priceNote: "or ₦150,000/year (2 months free) · cancel anytime",
+    monthlyKobo: 15_000 * 100,
+    yearlyKobo: 150_000 * 100,
     canPublish: true,
     adRevenueShare: 0.45,
     sessionAndUnlockCommission: 0.15,
@@ -118,4 +125,11 @@ export function commissionRateFor(tier: AccountTier): number {
   const c = getTierConfig(tier).sessionAndUnlockCommission;
   // Enterprise is negotiated per account; until an override exists, use the floor.
   return c === "custom" ? getTierConfig(tier).sessionAndUnlockCommissionFloor ?? 0.05 : c;
+}
+
+// Verified badge: included free on Business and Enterprise; every other
+// tier (Free Standard, Free Basic, Pro) can add it for ₦999/month.
+export const BADGE_PRICE_KOBO = 999 * 100;
+export function badgeIncluded(tier: AccountTier): boolean {
+  return tier === "business" || tier === "enterprise";
 }

@@ -6,7 +6,9 @@ import Image from "next/image";
 import { onAuthStateChanged, User } from "firebase/auth";
 import { auth } from "@/lib/firebase";
 import { recordView } from "@/lib/track";
-import { getUserByUsername, getCommentsByUser, UserProfile, CommentActivity } from "@/lib/users";
+import { getUserByUsername, getCommentsByUser, badgeLevel, isTeamMember, UserProfile, CommentActivity } from "@/lib/users";
+import TeamBadge from "@/components/TeamBadge";
+import type { BadgeLevel } from "@/lib/badges";
 import { getAllNotes, NoteWithComputed } from "@/lib/firestore-notes";
 import { getRecentCommentsOnNotes, Comment } from "@/lib/engagement";
 import { getFollowerCount } from "@/lib/follows";
@@ -179,7 +181,7 @@ export default function ProfilePageClient({ params }: { params: { username: stri
   const storeItems = STORE_ITEMS[profile.username] ?? [];
   const hasPremium = isOfficial || notes.some((n) => n.premium);
   const suspended = realProfile?.suspended === true;
-  const verified = VERIFIED_USERNAMES.includes(profile.username) || !!realProfile?.verified;
+  const badge: BadgeLevel = VERIFIED_USERNAMES.includes(profile.username) ? "verified" : realProfile ? badgeLevel(realProfile) : null;
   const isOwnProfile = !!(viewer && realProfile && viewer.uid === realProfile.uid);
   const canAppeal =
     suspended &&
@@ -211,7 +213,8 @@ export default function ProfilePageClient({ params }: { params: { username: stri
         <div>
           <h1 className="flex items-center gap-2 font-display text-3xl text-ink">
             {profile.displayName}
-            {verified && !suspended && <VerifiedBadge size={20} />}
+            {badge && !suspended && <VerifiedBadge size={20} level={badge} />}
+            {!suspended && (VERIFIED_USERNAMES.includes(profile.username) || (!!realProfile && isTeamMember(realProfile))) && <TeamBadge size={20} />}
           </h1>
           {suspended ? (
             <p className="font-mono text-xs uppercase tracking-eyebrow text-red-700">

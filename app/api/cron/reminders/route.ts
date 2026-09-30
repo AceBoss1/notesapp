@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getAdminDb } from "@/lib/firebase-admin";
 import { sendEmail } from "@/lib/email";
 import { formatSlot } from "@/lib/booking-time";
+import { expireTiers } from "@/lib/tier-billing";
 
 // Run every ~15 minutes by an external scheduler with
 //   Authorization: Bearer $CRON_SECRET
@@ -46,5 +47,7 @@ export async function GET(req: NextRequest) {
       sent++;
     }
   }
-  return NextResponse.json({ checked: snap.size, sent });
+  // Same scheduler run also downgrades lapsed Pro/Business plans.
+  const expired = await expireTiers().catch((e) => (console.error("expireTiers failed", e), 0));
+  return NextResponse.json({ checked: snap.size, sent, expiredPlans: expired });
 }

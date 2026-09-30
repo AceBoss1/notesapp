@@ -6,4 +6,5 @@ export const SITE = {
   url: "https://www.notesapp.name.ng",
   email: "hello@notesapp.name.ng",
   linkedin: "https://www.linkedin.com/company/na-notesapp",
+  facebook: "https://web.facebook.com/na-notesapp",
 };

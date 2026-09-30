@@ -29,11 +29,11 @@ const ITEMS = [
       "Client-initiated rescheduling and cancellation under a published refund policy, WhatsApp reminders, and automatic payout release once a session is complete.",
   },
   {
-    title: "Pro & Business billing",
-    tag: "Monetisation",
-    body: "Pro is ₦5,000/month and Business is ₦15,000/month (₦50,000 and ₦150,000 a year — two months free). Self-serve upgrade and automatic recurring billing through Paystack are next.",
+    title: "Gold badge — identity checks & endorsements",
+    tag: "Trust",
+    body: "A gold ✔ for accounts whose identity #NotesApp has checked, or that we endorse — distinct from the maroon ✔ that marks an account in good standing on a paid plan or add-on. See the verification badges page for how all three marks work.",
     detail:
-      "Until billing opens, upgrades are arranged through the contact form. Enterprise stays custom — negotiated per account, with commission from 5%.",
+      "By application and admin review (ID, business registration or professional credential), open to every tier. The badge, admin controls and display are built; the application flow, review process and pricing come next, and nothing gold shows publicly until then. Register your interest through the contact form.",
   },
   {
     title: "Trust, safety & account basics",
@@ -53,7 +53,7 @@ export default function RoadmapPage() {
       </h1>
       <p className="mt-5 max-w-2xl text-lg text-slate">
         The core loop — publish, book, get paid — is what's demoed
-        today. These are decided and documented, not yet built. Paid sessions, monthly subscriptions, publisher rates and payouts, post boosts and gifts are already live.
+        today. These are decided and documented, not yet built. Paid sessions, monthly subscriptions, publisher rates and payouts, post boosts, gifts and Pro / Business plans are already live.
       </p>
 
       <div className="mt-12 grid grid-cols-1 gap-6">

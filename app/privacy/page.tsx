@@ -8,11 +8,6 @@ export default function PrivacyPage() {
     <article className="prose mx-auto max-w-3xl px-4 py-16 sm:px-6">
       <p className="eyebrow">Version {LEGAL_VERSION}</p>
       <h1>Privacy Policy</h1>
-      <p className="text-sm">
-        <strong>Draft for legal review.</strong> Written with the Nigeria Data Protection Act 2023 in mind; have counsel
-        confirm it, and register with the NDPC if your processing volume requires it.
-      </p>
-
       <h2>What we collect</h2>
       <p>Account details (name, username, email, avatar, bio, social links), content you publish and comments you write, bookings and payment references, payout bank details for publishers (we store the account name, bank and last four digits, plus a Paystack recipient code — not the full number), and basic technical data needed to run the site.</p>
 
