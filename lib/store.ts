@@ -1,3 +1,7 @@
+import { addDoc, collection, deleteDoc, doc, getDoc, getDocs, query, setDoc, where } from "firebase/firestore";
+import { db } from "./firebase";
+import { toMillis } from "./dates";
+
 // Demo catalogue for today — one array per username, hardcoded rather
 // than a Firestore read, so the store has real content in front of
 // investors without waiting on a CMS UI for products. The `journals/
@@ -5,6 +9,7 @@
 // once that UI exists.
 
 export type StoreItem = {
+  id?: string; // Firestore doc id — absent on the hardcoded founder catalogues
   title: string;
   subtitle?: string;
   price: string; // display string — "Free", "$8", "₦6,000", etc.
@@ -79,3 +84,59 @@ export const STORE_ITEMS: Record<string, StoreItem[]> = {
     },
   ],
 };
+
+
+// ---- Publisher-managed items (Firestore `storeItems`) -------------------
+// Anyone who can publish manages their own shelf; the founders' catalogues
+// above are shown first and can't be edited in the UI.
+
+export type StoreItemInput = Omit<StoreItem, "id">;
+
+export const DEFAULT_STORE_IMAGE = "/images/brand/store-placeholder.svg";
+
+export async function getStoreItems(uid: string | undefined, username: string): Promise<StoreItem[]> {
+  const fixed = STORE_ITEMS[username] ?? [];
+  if (!uid || uid.startsWith("admin:")) return fixed;
+  try {
+    const snap = await getDocs(query(collection(db, "storeItems"), where("ownerUid", "==", uid)));
+    const own = snap.docs
+      .map((d) => ({ id: d.id, createdAt: d.data().createdAt as string | undefined, ...(d.data() as StoreItemInput) }))
+      .sort((a, b) => toMillis(a.createdAt) - toMillis(b.createdAt));
+    return [...fixed, ...own];
+  } catch {
+    return fixed;
+  }
+}
+
+function clean(input: StoreItemInput) {
+  return {
+    title: input.title.trim(),
+    ...(input.subtitle?.trim() ? { subtitle: input.subtitle.trim() } : {}),
+    price: input.price.trim(),
+    ...(input.badge?.trim() ? { badge: input.badge.trim() } : {}),
+    link: input.link.trim(),
+    image: input.image.trim() || DEFAULT_STORE_IMAGE,
+    cta: input.cta.trim() || "View",
+  };
+}
+
+export async function addStoreItem(uid: string, input: StoreItemInput): Promise<void> {
+  const now = new Date().toISOString();
+  await addDoc(collection(db, "storeItems"), { ownerUid: uid, ...clean(input), createdAt: now, updatedAt: now });
+}
+
+export async function updateStoreItem(uid: string, id: string, input: StoreItemInput): Promise<void> {
+  const ref = doc(db, "storeItems", id);
+  // Replace the whole listing so cleared optional fields actually disappear.
+  const existing = await getDoc(ref);
+  await setDoc(ref, {
+    ownerUid: uid,
+    ...clean(input),
+    createdAt: existing.data()?.createdAt ?? new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  });
+}
+
+export async function deleteStoreItem(id: string): Promise<void> {
+  await deleteDoc(doc(db, "storeItems", id));
+}

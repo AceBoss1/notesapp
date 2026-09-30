@@ -184,3 +184,16 @@ test("suspension details are private; the member can only file an appeal", async
   await assertFails(updateDoc(doc(as("alice"), "users/alice"), { suspension: { reason: "x" } }));
   await assertSucceeds(updateDoc(doc(as("boss", { admin: true }), "suspensions/alice"), { appealStatus: "rejected" }));
 });
+
+test("publishers manage only their own valid store items", async () => {
+  const item = { ownerUid: "pub", title: "Book", price: "₦1,000", link: "https://selar.com/x", image: "/x.png", cta: "Buy" };
+  await assertSucceeds(setDoc(doc(as("pub"), "storeItems/i1"), item));
+  await assertSucceeds(getDoc(doc(anon(), "storeItems/i1")));
+  await assertFails(setDoc(doc(as("alice"), "storeItems/i2"), { ...item, ownerUid: "alice" })); // standard tier can't publish
+  await assertFails(setDoc(doc(as("pub"), "storeItems/i3"), { ...item, ownerUid: "alice" }));
+  await assertFails(setDoc(doc(as("pub"), "storeItems/i4"), { ...item, link: "javascript:alert(1)" }));
+  await assertFails(setDoc(doc(as("pub"), "storeItems/i5"), { ...item, extra: "x" }));
+  await assertFails(updateDoc(doc(as("alice"), "storeItems/i1"), { title: "hijack" }));
+  await assertFails(deleteDoc(doc(as("alice"), "storeItems/i1")));
+  await assertSucceeds(deleteDoc(doc(as("pub"), "storeItems/i1")));
+});

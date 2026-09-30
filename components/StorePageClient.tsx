@@ -2,16 +2,30 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { getUserByUsername, UserProfile } from "@/lib/users";
+import { onAuthStateChanged, User } from "firebase/auth";
+import { auth } from "@/lib/firebase";
+import { getUserByUsername, canPublish, UserProfile } from "@/lib/users";
 import Avatar from "@/components/Avatar";
-import { STORE_ITEMS } from "@/lib/store";
+import StoreManager from "@/components/StoreManager";
+import { getStoreItems, StoreItem } from "@/lib/store";
 
 export default function StorePageClient({ params }: { params: { username: string } }) {
   const [profile, setProfile] = useState<UserProfile | null | undefined>(undefined);
+  const [items, setItems] = useState<StoreItem[]>([]);
+  const [viewer, setViewer] = useState<User | null>(null);
+
+  useEffect(() => onAuthStateChanged(auth, setViewer), []);
+
+  async function loadItems(p: UserProfile) {
+    setItems(await getStoreItems(p.uid, p.username));
+  }
 
   useEffect(() => {
     getUserByUsername(params.username)
-      .then(setProfile)
+      .then((p) => {
+        setProfile(p);
+        if (p) loadItems(p);
+      })
       .catch(() => setProfile(null));
   }, [params.username]);
 
@@ -27,7 +41,8 @@ export default function StorePageClient({ params }: { params: { username: string
     );
   }
 
-  const items = STORE_ITEMS[profile.username] ?? [];
+  const isOwner = !!viewer && viewer.uid === profile.uid;
+  const ownerCanEdit = isOwner && canPublish(profile);
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-16 sm:px-6 lg:px-8">
@@ -49,18 +64,25 @@ export default function StorePageClient({ params }: { params: { username: string
       <p className="mt-6 max-w-2xl text-sm text-slate">
         Every journal on #NotesApp gets its own storefront instead of a
         shared marketplace — this is {profile.displayName.split(" ")[0]}
-        &apos;s shelf, branded to them, not to us. Today, checkout hands
-        off to wherever each item already lives (Selar, Amazon, or a
-        magazine feature); inline Paystack checkout for
-        #NotesApp's own products is the next build.
+        &apos;s shelf, branded to them, not to us. Checkout hands off to
+        wherever each item already lives (Selar, Amazon, a payment link or
+        their own site); #NotesApp doesn&apos;t take payment for these items.
       </p>
+
+      {ownerCanEdit && <StoreManager profile={profile} items={items} onChanged={() => loadItems(profile)} />}
+      {isOwner && !ownerCanEdit && (
+        <p className="mt-6 text-sm text-slate">
+          This is your store. Once you can publish, you&apos;ll be able to add items here —{" "}
+          <Link href="/profile/publishing" className="text-crimson">start publishing</Link>.
+        </p>
+      )}
 
       {items.length === 0 ? (
         <p className="mt-10 text-sm text-slate">This store is empty for now.</p>
       ) : (
         <div className="mt-10 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
           {items.map((item) => (
-            <div key={item.title} className="card flex flex-col overflow-hidden">
+            <div key={item.id ?? item.title} className="card flex flex-col overflow-hidden">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 src={item.image}

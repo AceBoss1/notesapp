@@ -22,7 +22,7 @@ import GiftButton from "@/components/GiftButton";
 import VerifiedBadge from "@/components/VerifiedBadge";
 import JournalRow from "@/components/JournalRow";
 import NotesAppPostRow from "@/components/NotesAppPostRow";
-import { STORE_ITEMS } from "@/lib/store";
+import { getStoreItems, StoreItem } from "@/lib/store";
 import { OFFICIAL_NOTESAPP_PROFILE, NA_NOTESAPP_PROFILE, SYNTHETIC_USERNAMES, VERIFIED_USERNAMES } from "@/lib/journals-directory";
 import { NOTESAPP_POSTS } from "@/lib/notesapp-posts";
 
@@ -75,8 +75,14 @@ export default function ProfilePageClient({ params }: { params: { username: stri
   const [submittingAppeal, setSubmittingAppeal] = useState(false);
   // Private suspensions/{uid} record — only readable by the member.
   const [suspension, setSuspension] = useState<Suspension | null>(null);
+  const [storeItems, setStoreItems] = useState<StoreItem[]>([]);
 
   useEffect(() => onAuthStateChanged(auth, setViewer), []);
+  useEffect(() => {
+    if (params.username && !isOfficial && !isSocialChannel) {
+      getStoreItems(realProfile?.uid, params.username).then(setStoreItems);
+    }
+  }, [params.username, realProfile?.uid, isOfficial, isSocialChannel]);
   useEffect(() => {
     if (viewer && realProfile && viewer.uid === realProfile.uid && realProfile.suspended) {
       getSuspension(realProfile.uid).then(setSuspension);
@@ -186,7 +192,6 @@ export default function ProfilePageClient({ params }: { params: { username: stri
     );
   }
 
-  const storeItems = STORE_ITEMS[profile.username] ?? [];
   const hasPremium = isOfficial || notes.some((n) => n.premium);
   const suspended = realProfile?.suspended === true;
   const badge: BadgeLevel = VERIFIED_USERNAMES.includes(profile.username) ? "verified" : realProfile ? badgeLevel(realProfile) : null;
@@ -236,6 +241,7 @@ export default function ProfilePageClient({ params }: { params: { username: stri
           {viewer && realProfile && viewer.uid === realProfile.uid && (
             <p className="mt-2 flex gap-4 font-ui text-xs font-semibold text-crimson">
               {canPublish(realProfile) && <Link href="/write">Write</Link>}
+              <Link href={`/u/${realProfile.username}/store`}>My store</Link>
               <Link href="/profile/edit">Edit profile</Link>
               <Link href="/profile/publishing">Rates &amp; payouts</Link>
             </p>
@@ -327,7 +333,7 @@ export default function ProfilePageClient({ params }: { params: { username: stri
             {storeItems.slice(0, 3).map((item) => (
               // eslint-disable-next-line @next/next/no-img-element
               <a
-                key={item.title}
+                key={item.id ?? item.title}
                 href={item.link}
                 target="_blank"
                 rel="noopener noreferrer"

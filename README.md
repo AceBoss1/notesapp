@@ -1364,9 +1364,33 @@ Users screen fetches emails through the admin-only `/api/admin/user-emails`.
    doc — **run it after the Firestore quota resets or once on Blaze**, since it
    needs writes).
 4. Check a user doc in Firebase Console → Firestore → `users`: no `email` field.
-Also still public and worth tightening next: the `suspension` object on a
-user doc (reason + appeal text) and `consent`; `scripts/migrate-to-own-infra.mjs`
-copies the old shape and would re-add emails if re-run (don't).
+`scripts/migrate-to-own-infra.mjs` copies the old shape and would re-add emails
+if re-run (don't). `consent` on user docs is still public (version + timestamp only).
+
+## Privacy round 2: drafts, suspensions, account changes, stores
+- **Drafts are private.** `notes` reads are allowed only for `status ==
+  'published'`, the author, or admins. Queries must therefore filter on
+  `status == 'published'` (or the author's uid) — `getNoteBySlug` and
+  `slugTaken` already do. An author can no longer open their own draft by URL on
+  `/journals/<slug>` (server-rendered, unauthenticated); edit it from `/write`.
+  **Redeploy `firestore.rules`.**
+- **Suspension details are private.** Reason/appeal now live in
+  `suspensions/{uid}` (member + admins only). `users/{uid}` keeps just the
+  public `suspended` flag. **After deploying code + rules run** (dry run first):
+  `FIREBASE_SERVICE_ACCOUNT_KEY='<json>' node scripts/move-suspensions.mjs [--apply]`
+- **Account settings** (`/profile/account`, menu → "Account (email, username)"):
+  change username (server route `/api/account/username`: once per 30 days, old
+  name stays reserved and still resolves; notes/follows/subscriptions are
+  updated; founders and `notesapp` names blocked), change email (re-enter
+  password, confirmation link goes to the *new* address — enable the
+  "email address change" template in Firebase Auth), change password.
+- **Stores.** `/u/<username>/store` now has an owner-only "Manage your store"
+  panel (add/edit/remove items, image upload) backed by `storeItems`
+  (rules validate fields, https links only). Open to anyone who can publish —
+  the `externalStoreAllowed` tier flag in `lib/tiers.ts` no longer gates listings
+  (items are outbound links; NotesApp takes no payment). Founder catalogues in
+  `lib/store.ts` still show first.
+- Header now shows the member's avatar (links to their profile) after the bell.
 
 ## Member journey — what people see and where they change things
 - **Header (signed in):** bell + an **@username ▾ account menu** — My profile,

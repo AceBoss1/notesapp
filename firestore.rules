@@ -303,6 +303,37 @@ service cloud.firestore {
 
 
     // ============================================================
+    // STORE ITEMS — a publisher's own storefront listings (external
+    // links; no money moves through NotesApp here)
+    // ============================================================
+
+    function validStoreItem(d) {
+      return d.keys().hasOnly(['ownerUid', 'title', 'subtitle', 'price', 'badge', 'link', 'image', 'cta', 'createdAt', 'updatedAt'])
+        && d.keys().hasAll(['ownerUid', 'title', 'price', 'link', 'image', 'cta'])
+        && d.title is string && d.title.size() > 0 && d.title.size() <= 120
+        && (!('subtitle' in d) || (d.subtitle is string && d.subtitle.size() <= 400))
+        && d.price is string && d.price.size() <= 24
+        && (!('badge' in d) || (d.badge is string && d.badge.size() <= 24))
+        && d.link is string && d.link.matches('https://.*') && d.link.size() <= 500
+        && d.image is string && d.image.size() <= 500
+        && d.cta is string && d.cta.size() > 0 && d.cta.size() <= 30;
+    }
+
+    match /storeItems/{itemId} {
+      allow read: if true;
+      allow create: if isAdmin()
+        || (isPublisher() && request.resource.data.ownerUid == request.auth.uid
+            && validStoreItem(request.resource.data));
+      allow update: if isAdmin()
+        || (isPublisher() && resource.data.ownerUid == request.auth.uid
+            && request.resource.data.ownerUid == request.auth.uid
+            && validStoreItem(request.resource.data));
+      allow delete: if isAdmin()
+        || (isSignedIn() && resource.data.ownerUid == request.auth.uid);
+    }
+
+
+    // ============================================================
     // FOLLOWS — NOTESAPP
     // ============================================================
 
