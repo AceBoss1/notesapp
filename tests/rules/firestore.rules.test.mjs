@@ -155,3 +155,16 @@ test("a publisher can edit and delete their own entries, not other people's", as
   await assertFails(deleteDoc(doc(as("pub"), "notes/theirs")));
   await assertSucceeds(deleteDoc(doc(as("pub"), "notes/mine")));
 });
+
+test("draft notes are private to their author and admins", async () => {
+  await env.withSecurityRulesDisabled(async (ctx) => {
+    const adminDb = ctx.firestore();
+    await setDoc(doc(adminDb, "notes/draft1"), { authorUid: "pub", title: "t", status: "draft" });
+    await setDoc(doc(adminDb, "notes/live1"), { authorUid: "pub", title: "t", status: "published" });
+  });
+  await assertSucceeds(getDoc(doc(anon(), "notes/live1")));
+  await assertFails(getDoc(doc(anon(), "notes/draft1")));
+  await assertFails(getDoc(doc(as("alice"), "notes/draft1")));
+  await assertSucceeds(getDoc(doc(as("pub"), "notes/draft1")));
+  await assertSucceeds(getDoc(doc(as("boss", { admin: true }), "notes/draft1")));
+});

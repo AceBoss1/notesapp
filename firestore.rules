@@ -76,8 +76,12 @@ service cloud.firestore {
 
     match /notes/{noteId} {
 
-      // Notes are publicly readable.
-      allow read: if true;
+      // Published notes are public. Drafts are readable only by their
+      // author and admins (queries must filter on status == 'published'
+      // or authorUid == the caller's uid to be allowed).
+      allow read: if resource.data.status == 'published'
+        || isAdmin()
+        || (isSignedIn() && resource.data.authorUid == request.auth.uid);
 
       // Admins can create anything.
       // Writers can create only notes authored by themselves.

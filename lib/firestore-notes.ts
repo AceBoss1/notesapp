@@ -11,7 +11,7 @@ import {
   where,
   Timestamp,
 } from "firebase/firestore";
-import { db } from "./firebase";
+import { db, auth } from "./firebase";
 import { notifyNewPost } from "./notifications";
 
 export type Note = {
@@ -138,7 +138,9 @@ export async function getAllNotes(
 export async function getNoteBySlug(
   slug: string
 ): Promise<NoteWithComputed | null> {
-  const q = query(collection(db, COLLECTION), where("slug", "==", slug));
+  // status filter is required: rules only allow public queries for
+  // published notes (drafts are private to their author and admins).
+  const q = query(collection(db, COLLECTION), where("slug", "==", slug), where("status", "==", "published"));
   const snap = await getDocs(q);
   if (snap.empty) return null;
   const d = snap.docs[0];
@@ -155,8 +157,13 @@ export async function getNotesByAuthorUid(uid: string): Promise<NoteWithComputed
 // True if another note already uses this slug (note URLs must be unique —
 // getNoteBySlug returns the first match).
 export async function slugTaken(slug: string, exceptId?: string): Promise<boolean> {
-  const snap = await getDocs(query(collection(db, COLLECTION), where("slug", "==", slug)));
-  return snap.docs.some((d) => d.id !== exceptId);
+  // Rules hide other people's drafts, so check published notes plus the
+  // caller's own notes (two queries the rules accept).
+  const queries = [query(collection(db, COLLECTION), where("slug", "==", slug), where("status", "==", "published"))];
+  const uid = auth.currentUser?.uid;
+  if (uid) queries.push(query(collection(db, COLLECTION), where("slug", "==", slug), where("authorUid", "==", uid)));
+  const snaps = await Promise.all(queries.map((q) => getDocs(q)));
+  return snaps.some((snap) => snap.docs.some((d) => d.id !== exceptId));
 }
 
 export async function getNoteById(id: string): Promise<Note | null> {
