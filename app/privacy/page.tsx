@@ -9,13 +9,13 @@ export default function PrivacyPage() {
       <p className="eyebrow">Version {LEGAL_VERSION}</p>
       <h1>Privacy Policy</h1>
       <h2>What we collect</h2>
-      <p>Account details (name, username, email, avatar, bio, social links), content you publish and comments you write, bookings and payment references, payout bank details for publishers (we store the account name, bank and last four digits, plus a Paystack recipient code — not the full number), and basic technical data needed to run the site.</p>
+      <p>Account details (name, username, email, avatar, bio, social links), content you publish and comments you write, bookings and payment references, payout bank details for publishers (we store the account name, bank and last four digits, plus a Paystack recipient code — not the full number), and basic technical data needed to run the site. If you apply for an identity-checked gold badge we record only your application, the deposit payment and the outcome of the check (passed, failed or pending) with a reference number — not your ID number, ID photo, selfie or CAC documents.</p>
 
       <h2>Why we use it</h2>
       <p>To run your account, deliver bookings and subscriptions, process payments and payouts, send confirmations and reminders, keep the platform safe, and meet legal obligations. Our legal bases are performing our contract with you, our legitimate interests in security and fraud prevention, and your consent where required.</p>
 
       <h2>Who processes it for us</h2>
-      <p>Google Firebase (accounts and database), Cloudflare (media storage), Paystack (payments and payouts), Resend (transactional email) and Vercel (hosting). Some of these process data outside Nigeria under appropriate safeguards.</p>
+      <p>Google Firebase (accounts and database), Cloudflare (media storage), Paystack (payments and payouts), Resend (transactional email) and Vercel (hosting). Only if you choose an identity-checked gold badge, Dojah also processes the identity details you submit (for individuals a NIN and a live face check; for organisations CAC registration details) to run the check; you enter them on Dojah&apos;s own page, it handles them under its own privacy policy, and #NotesApp does not keep them. Some of these providers process data outside Nigeria under appropriate safeguards.</p>
 
       <h2>How long we keep it</h2>
       <p>While your account is active, and afterwards only what we must keep for financial, tax and dispute records.</p>
