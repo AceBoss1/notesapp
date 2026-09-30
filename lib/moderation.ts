@@ -1,6 +1,6 @@
 import { doc, updateDoc, getDocs, collection, query, where } from "firebase/firestore";
 import { db } from "./firebase";
-import { UserRole, Suspension } from "./users";
+import { UserRole, Suspension, AccountTier } from "./users";
 import {
   notifySuspended,
   notifyUnsuspended,
@@ -71,6 +71,13 @@ export async function rejectAppeal(uid: string, username: string, resolvedByUid:
   notifyAppealRejected(uid, username).catch((err) =>
     console.warn("notifyAppealRejected failed:", err)
   );
+}
+
+// Admin-only (firestore.rules lets admins update any user field).
+// Until self-serve tier billing exists, this is how a paid or approved
+// tier is applied to an account.
+export async function updateUserTier(uid: string, tier: AccountTier): Promise<void> {
+  await updateDoc(doc(db, USERS, uid), { accountTier: tier });
 }
 
 export async function updateUserRole(uid: string, username: string, role: UserRole): Promise<void> {

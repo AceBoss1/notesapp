@@ -1244,7 +1244,9 @@ Pro **₦5,000/month** (₦50,000/year), Business **₦15,000/month**
 (₦150,000/year) — set in `lib/tiers.ts` (`price` + `priceNote`) and shown
 on `/pricing` and the roadmap. **Billing itself is not built**: there is no
 checkout for tier upgrades yet, so until it is, upgrades are arranged
-manually via Contact and the tier is set by an admin in `/admin/users`
+manually via Contact and an admin sets the tier with the new tier
+dropdown in `/admin/users` (added with this change; it writes
+`accountTier`, which firestore.rules only lets admins change). Next step:
 (Paystack plans + a self-serve upgrade button are the next step).
 Break-even vs Free Basic (35% commission): Pro at ₦50,000/month earned,
 Business at ₦75,000/month (₦150,000/month vs Pro).
