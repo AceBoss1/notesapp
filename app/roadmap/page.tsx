@@ -29,6 +29,13 @@ const ITEMS = [
       "Client-initiated rescheduling and cancellation under a published refund policy, WhatsApp reminders, and automatic payout release once a session is complete.",
   },
   {
+    title: "Pro & Business billing",
+    tag: "Monetisation",
+    body: "Pro is ₦5,000/month and Business is ₦15,000/month (₦50,000 and ₦150,000 a year — two months free). Self-serve upgrade and automatic recurring billing through Paystack are next.",
+    detail:
+      "Until billing opens, upgrades are arranged through the contact form. Enterprise stays custom — negotiated per account, with commission from 5%.",
+  },
+  {
     title: "Trust, safety & account basics",
     tag: "Foundations",
     body: "The unglamorous pieces that real money needs: password reset and email verification, a bookings dashboard for both sides, a clear cancellation and refund policy, and terms and privacy consent before payment.",

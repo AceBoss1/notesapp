@@ -90,6 +90,7 @@ export default function PricingPage() {
                 <th key={t.tier} className="border-b-2 border-ink px-4 py-4">
                   <p className="font-display text-xl text-ink">{t.label}</p>
                   <p className="mt-1 font-mono text-sm text-crimson-bright">{t.price}</p>
+                  {t.priceNote && <p className="mt-1 max-w-[11rem] text-xs font-normal text-slate">{t.priceNote}</p>}
                 </th>
               ))}
             </tr>
@@ -115,14 +116,20 @@ export default function PricingPage() {
           <p className="mt-2 text-sm text-slate">
             Free Standard → Free Basic is a self-serve application from
             your own profile, reviewed by an admin — no payment
-            involved. Pro, Business, and Enterprise are paid upgrades;
-            tier billing isn't live yet — paid sessions and subscriptions
-            already are (see{" "}
+            involved. Pro (₦5,000/month) and Business (₦15,000/month) are
+            paid upgrades; Enterprise is custom. Billing for the paid tiers
+            opens soon (see{" "}
             <Link href="/roadmap" className="text-crimson underline underline-offset-2">
               the roadmap
             </Link>
-            ), so these show as "Coming soon" rather than a working
-            checkout today.
+            ) — until then,{" "}
+            <Link href="/contact" className="text-crimson underline underline-offset-2">
+              contact us
+            </Link>{" "}
+            to upgrade early. As a rule of thumb, Pro pays for itself once
+            you earn about ₦50,000 a month through sessions, subscriptions
+            and gifts (its commission is 10 points lower than Free Basic's);
+            Business does at about ₦75,000 a month.
           </p>
         </div>
         <div className="card p-6">

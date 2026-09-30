@@ -1239,9 +1239,12 @@ payments/payouts/refunds, boosts/gifts/advertising, publishing, account,
 report a post or account, bug, partnership, press, investment, other) and
 the admin Leads inbox reads the same list.
 
-### Suggested Pro / Business prices (not yet applied — pricing still says "Coming soon")
-Pro **₦5,000/month** (or ₦50,000/year), Business **₦15,000/month** (or
-₦150,000/year). Break-even vs Free Basic (35% commission): Pro pays for
-itself at ₦50,000/month of sessions+subscriptions+gifts (10 pts cheaper
-commission); Business at ₦75,000/month vs Basic, ₦150,000/month vs Pro (and
-adds the 45% vs 25% ad share and a bigger merch-commission cut).
+### Pro / Business prices (applied)
+Pro **₦5,000/month** (₦50,000/year), Business **₦15,000/month**
+(₦150,000/year) — set in `lib/tiers.ts` (`price` + `priceNote`) and shown
+on `/pricing` and the roadmap. **Billing itself is not built**: there is no
+checkout for tier upgrades yet, so until it is, upgrades are arranged
+manually via Contact and the tier is set by an admin in `/admin/users`
+(Paystack plans + a self-serve upgrade button are the next step).
+Break-even vs Free Basic (35% commission): Pro at ₦50,000/month earned,
+Business at ₦75,000/month (₦150,000/month vs Pro).
