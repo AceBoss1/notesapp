@@ -107,6 +107,34 @@ export async function setGoldBadge(uid: string, kind: GoldBadgeKind | null, note
   });
 }
 
+// Endorsement applications live in the private badgeRequests/{uid}
+// (member + admins read; the server route writes new ones).
+export type BadgeRequest = { status: "pending" | "approved" | "rejected"; message: string; requestedAt: string; resolvedAt?: string; resolvedByUid?: string };
+
+export async function getBadgeRequest(uid: string): Promise<BadgeRequest | null> {
+  try {
+    const snap = await getDoc(doc(db, "badgeRequests", uid));
+    return snap.exists() ? (snap.data() as BadgeRequest) : null;
+  } catch {
+    return null;
+  }
+}
+
+export async function getAllBadgeRequests(): Promise<Record<string, BadgeRequest>> {
+  const snap = await getDocs(collection(db, "badgeRequests"));
+  return Object.fromEntries(snap.docs.map((d) => [d.id, d.data() as BadgeRequest]));
+}
+
+// Admin-only: approving grants the gold endorsement badge.
+export async function resolveBadgeRequest(uid: string, adminUid: string, approve: boolean): Promise<void> {
+  if (approve) await setGoldBadge(uid, "endorsement");
+  await updateDoc(doc(db, "badgeRequests", uid), {
+    status: approve ? "approved" : "rejected",
+    resolvedAt: new Date().toISOString(),
+    resolvedByUid: adminUid,
+  });
+}
+
 export async function updateUserRole(uid: string, username: string, role: UserRole): Promise<void> {
   await updateDoc(doc(db, USERS, uid), { role });
   notifyRoleChanged(uid, username, ROLE_LABEL[role]).catch((err) =>

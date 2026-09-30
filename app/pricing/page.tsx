@@ -33,7 +33,7 @@ const ROWS: { label: string; render: (t: (typeof TIERS)[number]) => string }[] =
   },
   {
     label: "Gold badge (identity checked / endorsed)",
-    render: () => "Coming soon — by application",
+    render: () => "Endorsement: by application · Identity check: coming soon",
   },
   {
     label: "Paid 1:1 sessions",
@@ -164,13 +164,12 @@ export default function PricingPage() {
 
       <div className="card mt-6 p-6">
         <p className="font-ui text-sm font-bold text-ink">
-          <span className="mr-1.5"><VerifiedBadge size={14} level="gold" /></span>Gold badge — coming soon
+          <span className="mr-1.5"><VerifiedBadge size={14} level="gold" /></span>Gold badge — endorsement open, identity check coming soon
         </p>
         <p className="mt-2 text-sm text-slate">
-          The maroon ✔ shows an account in good standing. The <strong className="text-ink">gold badge</strong> is different: it will mark an
-          account whose identity #NotesApp has checked (ID, business registration or professional credential) or that we endorse.
-          It will be by application and review, open to every tier. Details and pricing will be published here before launch —{" "}
-          <Link href="/contact" className="text-crimson underline underline-offset-2">register your interest</Link>.
+          The maroon ✔ shows an account in good standing. The <strong className="text-ink">gold badge</strong> is different: it marks an
+          account that #NotesApp endorses after a manual review, open to every tier — <Link href="/badges" className="text-crimson underline underline-offset-2">apply on the badges page</Link>.
+          Identity-checked gold (ID, business registration or professional credential) is coming soon; any fee will be published first.
         </p>
       </div>
 

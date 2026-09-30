@@ -5,8 +5,8 @@ import Link from "next/link";
 import Image from "next/image";
 import { useAdminAuth } from "@/lib/useAdminAuth";
 import { getAllUsersForAdmin, UserProfile, UserRole, AccountTier } from "@/lib/users";
-import { getAllSuspensions, suspendUser, unsuspendUser, rejectAppeal, updateUserRole, updateUserTier, setGoldBadge, resolveTierRequest } from "@/lib/moderation";
-import { GOLD_BADGE_LIVE, GOLD_KIND_LABEL, GoldBadgeKind } from "@/lib/badges";
+import { getAllBadgeRequests, resolveBadgeRequest, getAllSuspensions, suspendUser, unsuspendUser, rejectAppeal, updateUserRole, updateUserTier, setGoldBadge, resolveTierRequest } from "@/lib/moderation";
+import { GOLD_KIND_LABEL, GOLD_KIND_LIVE, GoldBadgeKind } from "@/lib/badges";
 import { TIERS } from "@/lib/tiers";
 import { ADMIN_PROFILES } from "@/lib/admin";
 
@@ -23,6 +23,7 @@ export default function AdminUsersPage() {
   const [users, setUsers] = useState<UserProfile[] | null>(null);
   const [error, setError] = useState("");
   const [emails, setEmails] = useState<Record<string, string>>({});
+  const [badgeRequests, setBadgeRequests] = useState<Awaited<ReturnType<typeof getAllBadgeRequests>>>({});
   const [busyUid, setBusyUid] = useState<string | null>(null);
   const [suspendReasonFor, setSuspendReasonFor] = useState<string | null>(null);
   const [suspendReason, setSuspendReason] = useState("");
@@ -33,6 +34,7 @@ export default function AdminUsersPage() {
         const suspensions = await getAllSuspensions().catch(() => ({}) as Record<string, UserProfile["suspension"]>);
         const list = rawList.map((u) => ({ ...u, suspension: suspensions[u.uid] ?? u.suspension }));
         setUsers(list);
+        getAllBadgeRequests().then(setBadgeRequests).catch(() => {});
         // Emails come from Firebase Auth via an admin-only endpoint.
         try {
           const res = await fetch("/api/admin/user-emails", {
@@ -98,6 +100,17 @@ export default function AdminUsersPage() {
     setBusyUid(u.uid);
     try {
       await resolveTierRequest(u.uid, u.username, user.uid, approve);
+      reload();
+    } finally {
+      setBusyUid(null);
+    }
+  }
+
+  async function handleBadgeRequest(uid: string, approve: boolean) {
+    if (!user) return;
+    setBusyUid(uid);
+    try {
+      await resolveBadgeRequest(uid, user.uid, approve);
       reload();
     } finally {
       setBusyUid(null);
@@ -190,6 +203,16 @@ export default function AdminUsersPage() {
                         </span>
                       </p>
                       <p className="text-xs text-slate mt-0.5">{emails[u.uid] || "—"}</p>
+                    {badgeRequests[u.uid]?.status === "pending" && (
+                      <div className="mt-2 border border-amber-200 bg-amber-50 p-2 text-xs text-ink">
+                        <p className="font-semibold">Applied for the gold endorsement badge</p>
+                        <p className="mt-0.5 whitespace-pre-line text-slate">“{badgeRequests[u.uid].message}”</p>
+                        <div className="mt-1.5 flex gap-2">
+                          <button disabled={busyUid === u.uid} onClick={() => handleBadgeRequest(u.uid, true)} className="rounded-full border border-rule px-3 py-0.5 hover:border-crimson hover:text-crimson disabled:opacity-40">Endorse</button>
+                          <button disabled={busyUid === u.uid} onClick={() => handleBadgeRequest(u.uid, false)} className="rounded-full border border-rule px-3 py-0.5 hover:border-crimson hover:text-crimson disabled:opacity-40">Decline</button>
+                        </div>
+                      </div>
+                    )}
                     {u.tierRequest?.status === "pending" && (
                       <div className="mt-2 border border-amber-200 bg-amber-50 p-2 text-xs text-ink">
                         <p className="font-semibold">Applied for Free Basic</p>
@@ -216,14 +239,14 @@ export default function AdminUsersPage() {
                     ) : (
                       <>
                       <select
-                        title={GOLD_BADGE_LIVE ? "Gold badge" : "Gold badge (stored now; hidden publicly until launch)"}
+                        title="Gold badge (endorsement is live; identity check is coming soon and stays hidden)"
                         value={u.goldBadge?.kind || ""}
                         disabled={busyUid === u.uid}
                         onChange={(e) => handleGoldChange(u.uid, e.target.value)}
                         className="border border-rule bg-card px-2 py-1 font-mono text-xs disabled:opacity-50"
                       >
                         <option value="">No gold</option>
-                        {(Object.keys(GOLD_KIND_LABEL) as GoldBadgeKind[]).map((k) => (
+                        {(Object.keys(GOLD_KIND_LABEL) as GoldBadgeKind[]).filter((k) => GOLD_KIND_LIVE[k] || u.goldBadge?.kind === k).map((k) => (
                           <option key={k} value={k}>
                             Gold: {GOLD_KIND_LABEL[k]}
                           </option>

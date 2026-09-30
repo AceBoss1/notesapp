@@ -267,6 +267,17 @@ service cloud.firestore {
 
 
     // ============================================================
+    // GOLD-BADGE ENDORSEMENT REQUESTS (private; created by the server)
+    // ============================================================
+
+    match /badgeRequests/{uid} {
+      allow read: if isAdmin() || (isSignedIn() && request.auth.uid == uid);
+      allow update: if isAdmin();
+      allow create, delete: if false;
+    }
+
+
+    // ============================================================
     // USERNAME RESERVATIONS
     // ============================================================
 

@@ -197,3 +197,15 @@ test("publishers manage only their own valid store items", async () => {
   await assertFails(deleteDoc(doc(as("alice"), "storeItems/i1")));
   await assertSucceeds(deleteDoc(doc(as("pub"), "storeItems/i1")));
 });
+
+test("badge endorsement requests are private and server-created", async () => {
+  await env.withSecurityRulesDisabled(async (ctx) => {
+    await setDoc(doc(ctx.firestore(), "badgeRequests/alice"), { status: "pending", message: "hello there", requestedAt: "x" });
+  });
+  await assertFails(getDoc(doc(anon(), "badgeRequests/alice")));
+  await assertFails(getDoc(doc(as("pub"), "badgeRequests/alice")));
+  await assertSucceeds(getDoc(doc(as("alice"), "badgeRequests/alice")));
+  await assertFails(setDoc(doc(as("pub"), "badgeRequests/pub"), { status: "approved" }));
+  await assertFails(updateDoc(doc(as("alice"), "badgeRequests/alice"), { status: "approved" }));
+  await assertSucceeds(updateDoc(doc(as("boss", { admin: true }), "badgeRequests/alice"), { status: "approved" }));
+});

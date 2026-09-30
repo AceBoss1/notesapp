@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import VerifiedBadge from "@/components/VerifiedBadge";
 import TeamBadge from "@/components/TeamBadge";
 import BadgeCard from "@/components/BadgeCard";
+import EndorsementRequest from "@/components/EndorsementRequest";
 import { BADGE_PRICE_KOBO, TIERS, badgeIncluded } from "@/lib/tiers";
 import { formatNaira } from "@/lib/booking-time";
 
@@ -15,7 +16,7 @@ export const metadata: Metadata = {
 const FAQ = [
   {
     q: "Does the maroon ✔ mean #NotesApp checked my identity?",
-    a: "No. It shows an account in good standing that is on an eligible plan or has the badge subscription. Identity checks and endorsements are what the gold badge is for (coming soon).",
+    a: "No. It shows an account in good standing that is on an eligible plan or has the badge subscription. Identity checks and endorsements are what the gold badge is for — endorsements are open now, identity checks are coming soon.",
   },
   {
     q: "Can I buy the #NotesApp team badge?",
@@ -77,10 +78,10 @@ export default function BadgesPage() {
             <VerifiedBadge size={22} level="gold" /> Gold
           </p>
           <p className="mt-3 text-sm text-slate">
-            An account whose identity #NotesApp has checked — ID, business registration or professional credential — or that we
-            endorse. By application and review.
+            An account that #NotesApp has reviewed and endorses — a real person or organisation with a public track record.
+            Identity-checked gold (ID, business registration or professional credential) is coming soon.
           </p>
-          <p className="mt-3 font-mono text-xs uppercase tracking-eyebrow text-crimson-bright">Coming soon</p>
+          <p className="mt-3 font-mono text-xs uppercase tracking-eyebrow text-crimson-bright">Endorsement: apply now · Identity: coming soon</p>
         </div>
       </div>
 
@@ -100,7 +101,7 @@ export default function BadgesPage() {
                 <td className="px-4 py-3 text-slate">
                   {badgeIncluded(t.tier) ? "Included free" : `Add-on: ${formatNaira(BADGE_PRICE_KOBO)}/month`}
                 </td>
-                <td className="px-4 py-3 text-slate">Coming soon — by application</td>
+                <td className="px-4 py-3 text-slate">Endorsement: by application · Identity: coming soon</td>
               </tr>
             ))}
           </tbody>
@@ -115,14 +116,17 @@ export default function BadgesPage() {
         <BadgeCard pitch />
       </div>
 
+      <EndorsementRequest />
+
       <div className="card mt-6 p-6">
         <p className="flex items-center gap-2 font-ui text-sm font-bold text-ink">
           <VerifiedBadge size={16} level="gold" /> About the gold badge
         </p>
         <p className="mt-2 text-sm text-slate">
-          We're building an application and review process — you'll submit an ID, business registration or professional
-          credential, an admin reviews it, and you're told the outcome by email. Accounts we endorse directly can receive it too.
-          Criteria and any fee will be published here before it launches. Want to be first in line?{" "}
+          <strong className="text-ink">Endorsement is open.</strong> Apply below with a short description and links to your
+          public work; an admin reviews it by hand. We don&apos;t collect ID documents for endorsement. Identity-checked gold
+          (ID, business registration or professional credential) will follow once we add a verification partner — any fee
+          will be published here first. Want to be told?{" "}
           <Link href="/contact" className="text-crimson underline underline-offset-2">Register your interest</Link>.
         </p>
       </div>

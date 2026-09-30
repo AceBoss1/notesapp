@@ -18,7 +18,7 @@ import { ADMIN_PROFILES, SocialLinks } from "./admin";
 import { LEGAL_VERSION, Consent } from "./legal";
 import { badgeIncluded } from "./tiers";
 import { ttlCache } from "./ttl-cache";
-import { GOLD_BADGE_LIVE, BadgeLevel, GoldBadgeKind } from "./badges";
+import { GOLD_BADGE_LIVE, GOLD_KIND_LIVE, BadgeLevel, GoldBadgeKind } from "./badges";
 
 export type UserRole = "admin" | "staff" | "volunteer" | "reader";
 export type AppealStatus = "none" | "pending" | "upheld" | "rejected";
@@ -143,7 +143,7 @@ export function isTeamMember(profile: UserProfile): boolean {
 // is live. Suspended accounts show none.
 export function badgeLevel(profile: UserProfile): BadgeLevel {
   if (profile.suspended === true) return null;
-  if (GOLD_BADGE_LIVE && profile.goldBadge) return "gold";
+  if (GOLD_BADGE_LIVE && profile.goldBadge && GOLD_KIND_LIVE[profile.goldBadge.kind]) return "gold";
   return hasVerifiedBadge(profile) ? "verified" : null;
 }
 
