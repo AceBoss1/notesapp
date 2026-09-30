@@ -213,6 +213,9 @@ test("badge endorsement requests are private and server-created", async () => {
 });
 
 test("merch orders are readable by the buyer and admins only", async () => {
+  await env.withSecurityRulesDisabled(async (ctx) => {
+    await setDoc(doc(ctx.firestore(), "merchOrders/ref1"), { uid: "alice", status: "preordered" });
+  });
   await assertSucceeds(getDoc(doc(as("alice"), "merchOrders/ref1")));
   await assertFails(getDoc(doc(as("pub"), "merchOrders/ref1")));
   await assertFails(getDoc(doc(anon(), "merchOrders/ref1")));
