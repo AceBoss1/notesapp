@@ -17,6 +17,7 @@ import { db } from "./firebase";
 import { ADMIN_PROFILES, SocialLinks } from "./admin";
 import { LEGAL_VERSION, Consent } from "./legal";
 import { badgeIncluded } from "./tiers";
+import { ttlCache } from "./ttl-cache";
 import { GOLD_BADGE_LIVE, BadgeLevel, GoldBadgeKind } from "./badges";
 
 export type UserRole = "admin" | "staff" | "volunteer" | "reader";
@@ -282,10 +283,29 @@ export async function updateProfile(
   await updateDoc(doc(db, USERS, uid), data);
 }
 
-export async function getAllUsers(): Promise<UserProfile[]> {
+async function readUsersFromFirestore(): Promise<UserProfile[]> {
   const q = query(collection(db, USERS), orderBy("createdAt", "desc"));
   const snap = await getDocs(q);
   return snap.docs.map((d) => d.data() as UserProfile);
+}
+
+// Public directory reads are cached (see lib/ttl-cache.ts): on the server
+// in-process, in the browser via /api/public/users (CDN-cached and with
+// private fields such as email stripped). The admin screen needs the real
+// documents and uses getAllUsersForAdmin().
+const serverPublicUsers = ttlCache(5 * 60_000, readUsersFromFirestore);
+const browserPublicUsers = ttlCache(2 * 60_000, async () => {
+  const res = await fetch("/api/public/users");
+  if (!res.ok) throw new Error("Couldn't load people right now.");
+  return ((await res.json()).users as UserProfile[]) || [];
+});
+
+export async function getAllUsers(): Promise<UserProfile[]> {
+  return typeof window === "undefined" ? serverPublicUsers() : browserPublicUsers();
+}
+
+export function getAllUsersForAdmin(): Promise<UserProfile[]> {
+  return readUsersFromFirestore();
 }
 
 export type CommentActivity = {

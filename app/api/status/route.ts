@@ -16,5 +16,8 @@ export async function GET(req: NextRequest) {
   }
   const active = cache.services.filter((s) => s.state !== "not_configured");
   const overall = active.some((s) => s.state === "down") ? "outage" : active.some((s) => s.state === "degraded") ? "degraded" : "operational";
-  return NextResponse.json({ overall, checkedAt: new Date(cache.at).toISOString(), services: cache.services });
+  return NextResponse.json(
+    { overall, checkedAt: new Date(cache.at).toISOString(), services: cache.services },
+    { headers: { "Cache-Control": "public, s-maxage=60, stale-while-revalidate=60" } }
+  );
 }

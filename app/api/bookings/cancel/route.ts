@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { friendlyMessage } from "@/lib/api-errors";
 import { getAdminDb, verifySignedInRequest } from "@/lib/firebase-admin";
 import { refundTransaction, slotLockId } from "@/lib/paystack";
 import { refundFraction } from "@/lib/cancellation";
@@ -91,6 +92,6 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ ok: true, refundKobo, cancelledBy: by });
   } catch (err) {
     console.error("Cancel failed:", err);
-    return NextResponse.json({ error: err instanceof Error ? err.message : "Couldn't cancel" }, { status: 500 });
+    { const f = friendlyMessage(err, "Couldn't cancel"); return NextResponse.json({ error: f.message }, { status: f.status }); }
   }
 }

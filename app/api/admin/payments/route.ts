@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { friendlyMessage } from "@/lib/api-errors";
 import { getAdminDb, verifyAdminRequest } from "@/lib/firebase-admin";
 import { initiateTransfer, refundTransaction, slotLockId } from "@/lib/paystack";
 import type { LedgerEntry } from "@/lib/payments";
@@ -100,6 +101,6 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Unknown action" }, { status: 400 });
   } catch (err) {
     console.error("Admin payment action failed:", err);
-    return NextResponse.json({ error: err instanceof Error ? err.message : "Failed" }, { status: 500 });
+    { const f = friendlyMessage(err, "Failed"); return NextResponse.json({ error: f.message }, { status: f.status }); }
   }
 }

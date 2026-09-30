@@ -1,6 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAdminDb } from "@/lib/firebase-admin";
 import { clientIp, rateLimit } from "@/lib/rate-limit";
+import { ttlCache } from "@/lib/ttl-cache";
+
+// One read of the active boosts serves everyone for a minute.
+const activeBoosts = ttlCache(60_000, async () => {
+  const snap = await getAdminDb().collection("boosts").where("status", "==", "active").get();
+  return snap.docs.map((d) => ({ id: d.id, ...d.data() }) as Record<string, any>);
+});
 
 export const dynamic = "force-dynamic";
 
@@ -13,11 +20,9 @@ export async function GET(req: NextRequest) {
   if (limited) return limited;
   try {
     const limit = Math.min(6, Math.max(1, Number(req.nextUrl.searchParams.get("limit")) || 3));
-    const snap = await getAdminDb().collection("boosts").where("status", "==", "active").get();
     const now = Date.now();
     const today = new Date().toISOString().slice(0, 10);
-    const boosts = snap.docs
-      .map((d) => ({ id: d.id, ...d.data() }) as Record<string, any>)
+    const boosts = (await activeBoosts())
       .filter(
         (b) =>
           new Date(b.endsAt).getTime() > now &&
@@ -27,7 +32,7 @@ export async function GET(req: NextRequest) {
       .sort((a, b) => a.impressionsDelivered / a.impressionsPurchased - b.impressionsDelivered / b.impressionsPurchased)
       .slice(0, limit)
       .map((b) => ({ id: b.id, slug: b.slug, title: b.title, author: b.author, image: b.image }));
-    return NextResponse.json({ boosts }, { headers: { "Cache-Control": "public, s-maxage=30, stale-while-revalidate=60" } });
+    return NextResponse.json({ boosts }, { headers: { "Cache-Control": "public, s-maxage=60, stale-while-revalidate=120" } });
   } catch (err) {
     console.error("boosts active failed:", err);
     return NextResponse.json({ boosts: [] });

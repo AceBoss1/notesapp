@@ -1324,3 +1324,26 @@ team, verified and gold marks, tier table, FAQ, and embeds the buy card.
 Footer changes: Terms of Service / Privacy Policy moved from Connect to
 Company; Facebook (`SITE.facebook`) added under Connect; a blank line now
 precedes the "Built in partnership with Precheks … Staff Login" line.
+
+## Firestore quota (free tier) — what burned it and what changed
+Symptom: `8 RESOURCE_EXHAUSTED: Quota exceeded` — the Spark (free) plan
+allows 50,000 reads and 20,000 writes per day, then blocks everything
+until the daily reset. Main cause: several public pages read WHOLE
+collections on every visit (all notes on Home/Journals/Profile/"more
+journals"; all users on Journals/Signup/Sitemap), so reads ≈ visitors ×
+(notes + users), and crawlers multiply it. Changes: public list reads are
+now cached (`lib/ttl-cache.ts`) — in the browser they call
+`/api/public/notes` and `/api/public/users` (CDN-cached 5 min, no note
+bodies, no emails), on the server they share a 5-minute in-process cache;
+drafts are no longer read for public lists; trending reuses those caches
+(CDN 15 min); active boosts cached 1 min; `/api/views` no longer reads
+Firestore; the admin screens still read directly. Payment/booking routes now
+answer quota errors with a friendly "at capacity, you haven't been
+charged" message. **Real fix: upgrade the Firebase project to the Blaze
+(pay-as-you-go) plan** — the same free allowance applies but there's no
+hard daily stop; set a budget alert (Google Cloud Console → Billing →
+Budgets). Watch Firebase Console → Firestore → Usage to see reads vs
+writes. **Privacy note (not yet fixed):** `users/{uid}` documents include
+`email` and are publicly readable by the rules, so anyone using the client
+SDK could list emails — the public API strips them, but the rules and data
+model should move email into a private doc (next task).

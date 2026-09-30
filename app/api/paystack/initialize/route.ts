@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { friendlyMessage } from "@/lib/api-errors";
 import { getAdminDb, verifySignedInRequest } from "@/lib/firebase-admin";
 import { slotLockId, initializeTransaction, newReference } from "@/lib/paystack";
 import { PaymentRecord } from "@/lib/payments";
@@ -235,6 +236,6 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ authorizationUrl: tx.authorization_url, reference });
   } catch (err) {
     console.error("Paystack initialize failed:", err);
-    return NextResponse.json({ error: err instanceof Error ? err.message : "Couldn't start payment" }, { status: 500 });
+    { const f = friendlyMessage(err, "Couldn't start payment"); return NextResponse.json({ error: f.message }, { status: f.status }); }
   }
 }

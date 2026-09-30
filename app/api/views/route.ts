@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { FieldValue } from "firebase-admin/firestore";
 import { getAdminDb } from "@/lib/firebase-admin";
 import { clientIp, rateLimit } from "@/lib/rate-limit";
+import { getAllNotes } from "@/lib/firestore-notes";
+import { getAllUsers } from "@/lib/users";
 
 // Records one visit into a per-day bucket (pageViews/{kind}_{id}_{yyyymmdd})
 // so /api/trending can rank by a recent window instead of all-time.
@@ -24,10 +26,11 @@ export async function POST(req: NextRequest) {
 
     const db = getAdminDb();
     // Only count pages that exist (and published notes), so junk ids can't create docs.
+    // Checked against the shared 5-minute caches, so a visit costs one
+    // write and no reads.
     if (kind === "note") {
-      const n = await db.doc(`notes/${id}`).get();
-      if (!n.exists || n.data()?.status !== "published") return NextResponse.json({ ok: true, counted: false });
-    } else if (!(await db.doc(`usernames/${id}`).get()).exists) {
+      if (!(await getAllNotes({ publishedOnly: true })).some((n) => n.id === id)) return NextResponse.json({ ok: true, counted: false });
+    } else if (!(await getAllUsers()).some((u) => u.username === id)) {
       return NextResponse.json({ ok: true, counted: false });
     }
 

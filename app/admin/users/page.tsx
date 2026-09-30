@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { useAdminAuth } from "@/lib/useAdminAuth";
-import { getAllUsers, UserProfile, UserRole, AccountTier } from "@/lib/users";
+import { getAllUsersForAdmin, UserProfile, UserRole, AccountTier } from "@/lib/users";
 import { suspendUser, unsuspendUser, rejectAppeal, updateUserRole, updateUserTier, setGoldBadge } from "@/lib/moderation";
 import { GOLD_BADGE_LIVE, GOLD_KIND_LABEL, GoldBadgeKind } from "@/lib/badges";
 import { TIERS } from "@/lib/tiers";
@@ -27,7 +27,7 @@ export default function AdminUsersPage() {
   const [suspendReason, setSuspendReason] = useState("");
 
   function reload() {
-    getAllUsers()
+    getAllUsersForAdmin()
       .then(setUsers)
       .catch((err) => setError(err instanceof Error ? err.message : "Failed to load users"));
   }
