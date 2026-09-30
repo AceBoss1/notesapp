@@ -217,8 +217,7 @@ service cloud.firestore {
       // Ordinary users may edit only ordinary profile fields.
       // They cannot modify role, status, verification or suspension.
       //
-      // A suspended user can submit an appeal by changing only the
-      // suspension object and setting appealStatus to "pending".
+      // (Suspension reason/appeal live in the private suspensions/{uid}.)
       allow update: if
 
         // --------------------------------------------------------
@@ -240,30 +239,30 @@ service cloud.firestore {
                 'avatar',
                 'social'
               ])
-        )
-
-        // --------------------------------------------------------
-        // 3. SUSPENDED USER APPEAL
-        // --------------------------------------------------------
-        || (
-          isSignedIn()
-          && request.auth.uid == uid
-          && resource.data.suspended == true
-          && request.resource.data.diff(resource.data)
-              .affectedKeys()
-              .hasOnly(['suspension'])
-          && request.resource.data.suspended == resource.data.suspended
-          && request.resource.data.suspension.appealStatus == 'pending'
-          && request.resource.data.suspension.reason
-              == resource.data.suspension.reason
-          && request.resource.data.suspension.suspendedAt
-              == resource.data.suspension.suspendedAt
-          && request.resource.data.suspension.suspendedByUid
-              == resource.data.suspension.suspendedByUid
         );
 
       // User deletion is disabled.
       allow delete: if false;
+    }
+
+
+    // ============================================================
+    // SUSPENSIONS (private: the member and admins only)
+    // ============================================================
+
+    match /suspensions/{uid} {
+      allow read: if isAdmin() || (isSignedIn() && request.auth.uid == uid);
+      allow create, delete: if isAdmin();
+      allow update: if isAdmin()
+        // A suspended member can only file an appeal.
+        || (
+          isSignedIn()
+          && request.auth.uid == uid
+          && get(/databases/$(database)/documents/users/$(uid)).data.suspended == true
+          && request.resource.data.diff(resource.data).affectedKeys()
+              .hasOnly(['appealStatus', 'appealText', 'appealedAt'])
+          && request.resource.data.appealStatus == 'pending'
+        );
     }
 
 

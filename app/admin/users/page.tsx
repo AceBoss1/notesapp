@@ -5,7 +5,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { useAdminAuth } from "@/lib/useAdminAuth";
 import { getAllUsersForAdmin, UserProfile, UserRole, AccountTier } from "@/lib/users";
-import { suspendUser, unsuspendUser, rejectAppeal, updateUserRole, updateUserTier, setGoldBadge, resolveTierRequest } from "@/lib/moderation";
+import { getAllSuspensions, suspendUser, unsuspendUser, rejectAppeal, updateUserRole, updateUserTier, setGoldBadge, resolveTierRequest } from "@/lib/moderation";
 import { GOLD_BADGE_LIVE, GOLD_KIND_LABEL, GoldBadgeKind } from "@/lib/badges";
 import { TIERS } from "@/lib/tiers";
 import { ADMIN_PROFILES } from "@/lib/admin";
@@ -29,7 +29,9 @@ export default function AdminUsersPage() {
 
   function reload() {
     getAllUsersForAdmin()
-      .then(async (list) => {
+      .then(async (rawList) => {
+        const suspensions = await getAllSuspensions().catch(() => ({}) as Record<string, UserProfile["suspension"]>);
+        const list = rawList.map((u) => ({ ...u, suspension: suspensions[u.uid] ?? u.suspension }));
         setUsers(list);
         // Emails come from Firebase Auth via an admin-only endpoint.
         try {

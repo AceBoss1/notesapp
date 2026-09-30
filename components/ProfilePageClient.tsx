@@ -6,14 +6,14 @@ import Image from "next/image";
 import { onAuthStateChanged, User } from "firebase/auth";
 import { auth } from "@/lib/firebase";
 import { recordView } from "@/lib/track";
-import { getUserByUsername, getCommentsByUser, badgeLevel, isTeamMember, canPublish, UserProfile, CommentActivity } from "@/lib/users";
+import { getUserByUsername, getCommentsByUser, badgeLevel, isTeamMember, canPublish, UserProfile, CommentActivity, Suspension } from "@/lib/users";
 import TeamBadge from "@/components/TeamBadge";
 import type { BadgeLevel } from "@/lib/badges";
 import { getAllNotes, isNoteBy, NoteWithComputed } from "@/lib/firestore-notes";
 import SocialLinksRow from "@/components/SocialLinksRow";
 import { getRecentCommentsOnNotes, Comment } from "@/lib/engagement";
 import { getFollowerCount } from "@/lib/follows";
-import { submitAppeal } from "@/lib/moderation";
+import { submitAppeal, getSuspension } from "@/lib/moderation";
 import Avatar from "@/components/Avatar";
 import FollowButton from "@/components/FollowButton";
 import SubscribeButton from "@/components/SubscribeButton";
@@ -73,8 +73,15 @@ export default function ProfilePageClient({ params }: { params: { username: stri
   const [viewer, setViewer] = useState<User | null | undefined>(undefined);
   const [appealText, setAppealText] = useState("");
   const [submittingAppeal, setSubmittingAppeal] = useState(false);
+  // Private suspensions/{uid} record — only readable by the member.
+  const [suspension, setSuspension] = useState<Suspension | null>(null);
 
   useEffect(() => onAuthStateChanged(auth, setViewer), []);
+  useEffect(() => {
+    if (viewer && realProfile && viewer.uid === realProfile.uid && realProfile.suspended) {
+      getSuspension(realProfile.uid).then(setSuspension);
+    }
+  }, [viewer, realProfile]);
   useEffect(() => {
     if (!synthetic) recordView("profile", params.username);
   }, [params.username, synthetic]);
@@ -187,16 +194,14 @@ export default function ProfilePageClient({ params }: { params: { username: stri
   const canAppeal =
     suspended &&
     isOwnProfile &&
-    (realProfile?.suspension?.appealStatus === "none" ||
-      realProfile?.suspension?.appealStatus === "rejected");
+    (suspension?.appealStatus === "none" || suspension?.appealStatus === "rejected");
 
   async function handleSubmitAppeal() {
     if (!realProfile || !appealText.trim()) return;
     setSubmittingAppeal(true);
     try {
       await submitAppeal(realProfile.uid, appealText.trim());
-      const refreshed = await getUserByUsername(realProfile.username);
-      setRealProfile(refreshed);
+      setSuspension(await getSuspension(realProfile.uid));
       setAppealText("");
     } finally {
       setSubmittingAppeal(false);
@@ -264,16 +269,16 @@ export default function ProfilePageClient({ params }: { params: { username: stri
           </p>
           {isOwnProfile && (
             <div className="mt-4 border-t border-red-200 pt-4">
-              {realProfile?.suspension?.appealStatus === "pending" ? (
+              {suspension?.appealStatus === "pending" ? (
                 <p className="text-sm text-red-700">
                   Your appeal was submitted{" "}
-                  {realProfile.suspension.appealedAt &&
-                    new Date(realProfile.suspension.appealedAt).toLocaleDateString("en-NG")}{" "}
+                  {suspension.appealedAt &&
+                    new Date(suspension.appealedAt).toLocaleDateString("en-NG")}{" "}
                   and is awaiting review.
                 </p>
               ) : canAppeal ? (
                 <>
-                  {realProfile?.suspension?.appealStatus === "rejected" && (
+                  {suspension?.appealStatus === "rejected" && (
                     <p className="mb-3 text-sm text-red-700">
                       Your previous appeal wasn't upheld — status quo remains. You can submit a new one below.
                     </p>

@@ -168,3 +168,19 @@ test("draft notes are private to their author and admins", async () => {
   await assertSucceeds(getDoc(doc(as("pub"), "notes/draft1")));
   await assertSucceeds(getDoc(doc(as("boss", { admin: true }), "notes/draft1")));
 });
+
+test("suspension details are private; the member can only file an appeal", async () => {
+  await env.withSecurityRulesDisabled(async (ctx) => {
+    const d = ctx.firestore();
+    await setDoc(doc(d, "users/alice"), { uid: "alice", username: "alice", suspended: true, accountTier: "standard", role: "reader" });
+    await setDoc(doc(d, "suspensions/alice"), { reason: "spam", suspendedAt: "x", suspendedByUid: "boss", appealStatus: "none" });
+  });
+  await assertFails(getDoc(doc(anon(), "suspensions/alice")));
+  await assertFails(getDoc(doc(as("pub"), "suspensions/alice")));
+  await assertSucceeds(getDoc(doc(as("alice"), "suspensions/alice")));
+  await assertSucceeds(getDoc(doc(as("boss", { admin: true }), "suspensions/alice")));
+  await assertFails(updateDoc(doc(as("alice"), "suspensions/alice"), { reason: "none" }));
+  await assertSucceeds(updateDoc(doc(as("alice"), "suspensions/alice"), { appealStatus: "pending", appealText: "sorry", appealedAt: "y" }));
+  await assertFails(updateDoc(doc(as("alice"), "users/alice"), { suspension: { reason: "x" } }));
+  await assertSucceeds(updateDoc(doc(as("boss", { admin: true }), "suspensions/alice"), { appealStatus: "rejected" }));
+});
