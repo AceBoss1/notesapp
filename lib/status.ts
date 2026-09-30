@@ -1,6 +1,7 @@
 import { HeadBucketCommand } from "@aws-sdk/client-s3";
 import { getAdminDb } from "./firebase-admin";
 import { getR2Client, R2_BUCKET } from "./r2";
+import { GOLD_KIND_LIVE } from "./badges";
 
 // Server-only service health checks behind /status. Reports only
 // up/slow/down + latency — never error details or config.
@@ -92,6 +93,15 @@ export async function checkServices(): Promise<ServiceStatus[]> {
           return res.status < 500; // a restricted send-only key returns 401 but proves the API is up
         }).then((r) => toStatus("email", "Email", "Booking confirmations and reminders (Resend)", r))
       : Promise.resolve(notConfigured("email", "Email", "Booking confirmations and reminders (Resend)"))
+  );
+
+  // Identity checks for the gold badge (Dojah hosted widget) — only once enabled.
+  checks.push(
+    GOLD_KIND_LIVE.identity
+      ? timed(reachable("https://identity.dojah.io", { method: "HEAD" })).then((r) =>
+          toStatus("identity", "Identity verification", "Gold badge identity checks (Dojah)", r)
+        )
+      : Promise.resolve(notConfigured("identity", "Identity verification", "Gold badge identity checks (Dojah)"))
   );
 
   return Promise.all(checks);
