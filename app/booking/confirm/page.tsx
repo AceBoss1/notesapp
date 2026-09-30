@@ -9,7 +9,7 @@ import { formatSlot } from "@/lib/booking-time";
 
 type Result = {
   status: string;
-  kind: "booking" | "subscription" | "boost" | "gift" | "tier" | "badge";
+  kind: "booking" | "subscription" | "boost" | "gift" | "tier" | "badge" | "gold" | "gold_deposit" | "merch";
   tier?: { tier: string; interval: string };
   boost?: { noteId: string };
   gift?: { username: string; noteSlug?: string };
@@ -74,6 +74,30 @@ function Confirm() {
           <p className="mt-3 text-sm text-slate">The ✔ now shows next to your name. It renews monthly; cancel any time under Edit profile.</p>
           <Link href="/profile/edit" className="btn-primary mt-6 inline-block !px-5 !py-2 text-xs">
             Back to profile
+          </Link>
+        </>
+      ) : result.status === "paid" && result.kind === "gold" ? (
+        <>
+          <p className="font-display text-2xl text-ink">Gold badge active ✓</p>
+          <p className="mt-3 text-sm text-slate">The gold ✔ now shows next to your name. It renews monthly; cancel any time on the badges page.</p>
+          <Link href="/badges" className="btn-primary mt-6 inline-block !px-5 !py-2 text-xs">
+            Back to badges
+          </Link>
+        </>
+      ) : result.status === "paid" && result.kind === "gold_deposit" ? (
+        <>
+          <p className="font-display text-2xl text-ink">Deposit received ✓</p>
+          <p className="mt-3 text-sm text-slate">Next, complete your identity check from the badges page. An admin then reviews the result.</p>
+          <Link href="/badges" className="btn-primary mt-6 inline-block !px-5 !py-2 text-xs">
+            Continue on badges page
+          </Link>
+        </>
+      ) : result.status === "paid" && result.kind === "merch" ? (
+        <>
+          <p className="font-display text-2xl text-ink">Pre-order confirmed ✓</p>
+          <p className="mt-3 text-sm text-slate">Thank you! We print after the batch closes and deliver within about 3 weeks. A confirmation email is on its way.</p>
+          <Link href="/merchstore" className="btn-primary mt-6 inline-block !px-5 !py-2 text-xs">
+            Back to the merch store
           </Link>
         </>
       ) : result.status === "paid" && result.kind === "boost" ? (

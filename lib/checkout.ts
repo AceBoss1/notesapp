@@ -23,6 +23,7 @@ export async function startCheckout(
     | { kind: "badge" }
     | { kind: "gold_deposit" }
     | { kind: "gold" }
+    | { kind: "merch"; itemId: string; logoId: string; size?: string; quantity: number; address: import("./merch").DeliveryAddress }
     | { kind: "gift"; username: string; amountNaira: number; noteId?: string; message?: string; anonymous?: boolean }
 ): Promise<void> {
   let { res, json } = await post(user, body);

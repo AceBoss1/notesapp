@@ -54,6 +54,7 @@ test("money collections are never client-writable", async () => {
     ["platformPlans/pro_monthly", { planCode: "x" }],
     ["badgeSubscriptions/alice", { uid: "alice", status: "active" }],
     ["goldSubscriptions/alice", { uid: "alice", status: "active" }],
+    ["merchOrders/ref1", { uid: "alice", status: "delivered" }],
     ["tierCharges/x", {}],
     ["boosts/new", { publisherUid: "alice", impressionsPurchased: 999999 }],
     ["gifts/new", { toUid: "alice", fromUid: "alice" }],
@@ -209,4 +210,14 @@ test("badge endorsement requests are private and server-created", async () => {
   await assertFails(setDoc(doc(as("pub"), "badgeRequests/pub"), { status: "approved" }));
   await assertFails(updateDoc(doc(as("alice"), "badgeRequests/alice"), { status: "approved" }));
   await assertSucceeds(updateDoc(doc(as("boss", { admin: true }), "badgeRequests/alice"), { status: "approved" }));
+});
+
+test("merch orders are readable by the buyer and admins only", async () => {
+  await env.withSecurityRulesDisabled(async (ctx) => {
+    await setDoc(doc(ctx.firestore(), "merchOrders/ref1"), { uid: "alice", status: "preordered" });
+  });
+  await assertSucceeds(getDoc(doc(as("alice"), "merchOrders/ref1")));
+  await assertFails(getDoc(doc(as("pub"), "merchOrders/ref1")));
+  await assertFails(getDoc(doc(anon(), "merchOrders/ref1")));
+  await assertSucceeds(getDoc(doc(as("boss", { admin: true }), "merchOrders/ref1")));
 });
