@@ -126,6 +126,13 @@ export function hasVerifiedBadge(profile: UserProfile): boolean {
   );
 }
 
+// #NotesApp team mark (beside the ✔): staff, guest writers and admins —
+// i.e. the internal roles. Official accounts are handled by
+// VERIFIED_USERNAMES where they render.
+export function isTeamMember(profile: UserProfile): boolean {
+  return profile.suspended !== true && isVerifiedProfile(profile);
+}
+
 // Which ✔ to draw: gold outranks the standard one, and only once gold
 // is live. Suspended accounts show none.
 export function badgeLevel(profile: UserProfile): BadgeLevel {

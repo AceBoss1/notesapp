@@ -28,7 +28,7 @@ const ROWS: { label: string; render: (t: (typeof TIERS)[number]) => string }[] =
         : "—",
   },
   {
-    label: "Verified badge ✔",
+    label: "Verified badge ✔ (see /badges)",
     render: (t) => (badgeIncluded(t.tier) ? "Included free" : `Add-on: ${formatNaira(BADGE_PRICE_KOBO)}/month`),
   },
   {

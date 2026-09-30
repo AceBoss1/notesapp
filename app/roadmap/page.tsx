@@ -31,7 +31,7 @@ const ITEMS = [
   {
     title: "Gold badge — identity checks & endorsements",
     tag: "Trust",
-    body: "A gold ✔ for accounts whose identity #NotesApp has checked, or that we endorse — distinct from the maroon ✔ that marks an account in good standing on a paid plan or add-on.",
+    body: "A gold ✔ for accounts whose identity #NotesApp has checked, or that we endorse — distinct from the maroon ✔ that marks an account in good standing on a paid plan or add-on. See the verification badges page for how all three marks work.",
     detail:
       "By application and admin review (ID, business registration or professional credential), open to every tier. The badge, admin controls and display are built; the application flow, review process and pricing come next, and nothing gold shows publicly until then. Register your interest through the contact form.",
   },

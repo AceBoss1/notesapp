@@ -1313,3 +1313,14 @@ To launch: build the application + review flow (ID / CAC / credential
 upload to a private R2 prefix, admin review queue, decision emails), decide
 criteria and any fee, publish them on `/pricing`, then set
 `GOLD_BADGE_LIVE = true` and update the "coming soon" copy.
+
+### #NotesApp team badge + /badges page + footer
+`components/TeamBadge.tsx` (the #NotesApp icon) renders beside the ✔ for
+staff, guest writers and admins (`isTeamMember()` = internal roles) and for
+the official accounts/founders (`VERIFIED_USERNAMES`): profiles, the people
+directory, post bylines and the channel/founder spotlights. Not purchasable.
+`/badges` ("Verification badges", footer → Product, sitemap) explains the
+team, verified and gold marks, tier table, FAQ, and embeds the buy card.
+Footer changes: Terms of Service / Privacy Policy moved from Connect to
+Company; Facebook (`SITE.facebook`) added under Connect; a blank line now
+precedes the "Built in partnership with Precheks … Staff Login" line.

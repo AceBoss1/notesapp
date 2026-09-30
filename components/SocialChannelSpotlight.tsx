@@ -6,6 +6,7 @@ import FollowButton from "@/components/FollowButton";
 import SubscribeButton from "@/components/SubscribeButton";
 import StatsRow from "@/components/StatsRow";
 import VerifiedBadge from "@/components/VerifiedBadge";
+import TeamBadge from "@/components/TeamBadge";
 import JournalRow from "@/components/JournalRow";
 import { useJournalStats } from "@/lib/useJournalStats";
 import { NA_NOTESAPP_PROFILE } from "@/lib/journals-directory";
@@ -28,6 +29,7 @@ export default function SocialChannelSpotlight({ allNotes }: { allNotes: NoteWit
           <div className="flex flex-wrap items-center gap-3">
             <h2 className="font-display text-2xl text-ink">{NA_NOTESAPP_PROFILE.displayName}</h2>
             <VerifiedBadge />
+            <TeamBadge />
             <span className="rounded-full bg-crimson/10 px-2.5 py-0.5 font-mono text-[10px] uppercase tracking-wideish text-crimson-bright">
               @na-notesapp
             </span>
