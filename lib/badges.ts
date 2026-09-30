@@ -12,9 +12,11 @@
 // by us). Identity checks stay "coming soon" until a KYC vendor is added
 // once review volume justifies it.
 export const GOLD_BADGE_LIVE = true; // any gold badge can render at all
+// Identity switches on by itself once both Dojah hosted-widget ids are set
+// in the environment (NEXT_PUBLIC_DOJAH_WIDGET_PERSONAL / _CORPORATE).
 export const GOLD_KIND_LIVE: Record<"identity" | "endorsement", boolean> = {
   endorsement: true,
-  identity: false,
+  identity: !!process.env.NEXT_PUBLIC_DOJAH_WIDGET_PERSONAL && !!process.env.NEXT_PUBLIC_DOJAH_WIDGET_CORPORATE,
 };
 
 export type BadgeLevel = "gold" | "verified" | null;

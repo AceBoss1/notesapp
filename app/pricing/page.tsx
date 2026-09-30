@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { TIERS, formatPercent, badgeIncluded, BADGE_PRICE_KOBO } from "@/lib/tiers";
 import { GOLD_PRICING } from "@/lib/gold";
+import { GOLD_KIND_LIVE } from "@/lib/badges";
 import { BOOST_PACKAGES } from "@/lib/boost-config";
 import UpgradeButton from "@/components/UpgradeButton";
 import BadgeCard from "@/components/BadgeCard";
@@ -34,7 +35,7 @@ const ROWS: { label: string; render: (t: (typeof TIERS)[number]) => string }[] =
   },
   {
     label: "Gold badge (identity checked / endorsed)",
-    render: () => `${formatNaira(GOLD_PRICING.personal.monthlyKobo)}/mo personal · ${formatNaira(GOLD_PRICING.corporate.monthlyKobo)}/mo corporate (endorsement, by application; identity check coming soon)`,
+    render: () => `${formatNaira(GOLD_PRICING.personal.monthlyKobo)}/mo personal · ${formatNaira(GOLD_PRICING.corporate.monthlyKobo)}/mo corporate (by application; identity check ${GOLD_KIND_LIVE.identity ? "available" : "coming soon"})`,
   },
   {
     label: "Paid 1:1 sessions",
@@ -165,12 +166,12 @@ export default function PricingPage() {
 
       <div className="card mt-6 p-6">
         <p className="font-ui text-sm font-bold text-ink">
-          <span className="mr-1.5"><VerifiedBadge size={14} level="gold" /></span>Gold badge — endorsement open, identity check coming soon
+          <span className="mr-1.5"><VerifiedBadge size={14} level="gold" /></span>Gold badge — endorsement open, identity check {GOLD_KIND_LIVE.identity ? "now open" : "coming soon"}
         </p>
         <p className="mt-2 text-sm text-slate">
           The maroon ✔ shows an account in good standing. The <strong className="text-ink">gold badge</strong> is different: it marks an
           account that #NotesApp endorses after a manual review (no charge to apply), then {formatNaira(GOLD_PRICING.personal.monthlyKobo)}/month personal or {formatNaira(GOLD_PRICING.corporate.monthlyKobo)}/month corporate — the same on every plan — <Link href="/badges" className="text-crimson underline underline-offset-2">apply on the badges page</Link>.
-          Identity-checked gold (ID, business registration or professional credential) is coming soon with a one-off non-refundable verification deposit.
+          Identity-checked gold (ID, business registration or professional credential) is {GOLD_KIND_LIVE.identity ? "now open" : "coming soon"} with a one-off non-refundable verification deposit.
         </p>
       </div>
 

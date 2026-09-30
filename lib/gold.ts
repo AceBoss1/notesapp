@@ -13,6 +13,16 @@ export const GOLD_PRICING: Record<GoldTrack, { label: string; monthlyKobo: numbe
   corporate: { label: "Corporate / organisation", monthlyKobo: 2999 * 100, identityDepositKobo: 1999 * 100 },
 };
 
+// Dojah hosted identity widgets (configured in the Dojah dashboard): one for
+// people (NIN + liveness…), one for organisations (CAC…). The ids are not
+// secrets. Results are read by an admin in the Dojah dashboard — we do not
+// receive or store any ID data ourselves.
+export function dojahWidgetUrl(track: GoldTrack, reference: string): string | null {
+  const id = track === "corporate" ? process.env.NEXT_PUBLIC_DOJAH_WIDGET_CORPORATE : process.env.NEXT_PUBLIC_DOJAH_WIDGET_PERSONAL;
+  if (!id) return null;
+  return `https://identity.dojah.io?widget_id=${encodeURIComponent(id)}&reference_id=${encodeURIComponent(reference)}`;
+}
+
 export const isGoldTrack = (v: unknown): v is GoldTrack => v === "personal" || v === "corporate";
 export const isGoldKind = (v: unknown): v is GoldBadgeKind => v === "endorsement" || v === "identity";
 

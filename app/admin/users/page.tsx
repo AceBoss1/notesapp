@@ -206,6 +206,9 @@ export default function AdminUsersPage() {
                     {badgeRequests[u.uid]?.status === "pending" && (
                       <div className="mt-2 border border-amber-200 bg-amber-50 p-2 text-xs text-ink">
                         <p className="font-semibold">Applied for the gold badge ({(badgeRequests[u.uid].kind ?? "endorsement")}, {(badgeRequests[u.uid].track ?? "personal")})</p>
+                        {badgeRequests[u.uid].kind === "identity" && (
+                          <p className="mt-0.5 text-slate">Deposit paid {badgeRequests[u.uid].depositPaidAt?.slice(0, 10)} — check the result in the Dojah dashboard (reference na_{u.uid}) before approving.</p>
+                        )}
                         <p className="mt-0.5 whitespace-pre-line text-slate">“{badgeRequests[u.uid].message}”</p>
                         <div className="mt-1.5 flex gap-2">
                           <button disabled={busyUid === u.uid} onClick={() => handleBadgeRequest(u.uid, true)} className="rounded-full border border-rule px-3 py-0.5 hover:border-crimson hover:text-crimson disabled:opacity-40">Approve (they then pay)</button>

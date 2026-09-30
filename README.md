@@ -1400,11 +1400,18 @@ if re-run (don't). `consent` on user docs is still public (version + timestamp o
   documents**), admins Approve/Decline in `/admin/users`, approved members pay
   via Paystack (`gold` kind, monthly plan per track, renewals through the
   existing webhook, `goldUntil` lapses the badge, `goldSubscriptions/{uid}`).
-  `GOLD_KIND_LIVE` in `lib/badges.ts`: endorsement **on**, identity **off** —
-  the deposit flow is built but not exposed, and the Dojah call itself is **not
-  integrated yet** (admin would record the result by hand until then; wire it
-  before flipping identity on). Admin dropdown grants still work as free comps.
-  Redeploy `firestore.rules`.
+  **Identity (Dojah hosted widgets):** turns on automatically when
+  `NEXT_PUBLIC_DOJAH_WIDGET_PERSONAL` and `NEXT_PUBLIC_DOJAH_WIDGET_CORPORATE`
+  are set (widget ids from the Dojah dashboard; set both in Vercel). Flow:
+  apply → pay deposit → "Start identity check" opens
+  `https://identity.dojah.io?widget_id=…&reference_id=na_<uid>` → an admin reads
+  the result in the Dojah dashboard and Approves in `/admin/users`. **No result
+  is received automatically** (the Dojah API/webhook/`reference_id` behaviour
+  was not verifiable from our build environment) and we store no ID data. Check
+  Dojah's per-check price for the steps you enabled — the deposit must cover it
+  (more steps ⇒ higher cost). Automating the result is a later step once
+  Dojah's docs/sandbox keys are available. Admin dropdown grants still work as
+  free comps. Redeploy `firestore.rules`.
 - Header now shows the member's avatar (links to their profile) after the bell.
 
 ## Member journey — what people see and where they change things

@@ -7,7 +7,8 @@ import { auth } from "@/lib/firebase";
 import { getUserByUid, UserProfile } from "@/lib/users";
 import { getBadgeRequest, BadgeRequest } from "@/lib/moderation";
 import { GOLD_KIND_LIVE, GOLD_KIND_LABEL } from "@/lib/badges";
-import { GOLD_PRICING, GoldTrack } from "@/lib/gold";
+import { GOLD_PRICING, GoldTrack, dojahWidgetUrl } from "@/lib/gold";
+import type { GoldBadgeKind } from "@/lib/badges";
 import { formatNaira } from "@/lib/booking-time";
 import { startCheckout } from "@/lib/checkout";
 
@@ -18,6 +19,7 @@ export default function GoldBadgeApplication() {
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [request, setRequest] = useState<BadgeRequest | null>(null);
   const [track, setTrack] = useState<GoldTrack>("personal");
+  const [kind, setKind] = useState<GoldBadgeKind>("endorsement");
   const [message, setMessage] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
@@ -46,7 +48,7 @@ export default function GoldBadgeApplication() {
       const res = await fetch("/api/badge-request", {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${await user!.getIdToken()}` },
-        body: JSON.stringify({ message, kind: "endorsement", track }),
+        body: JSON.stringify({ message, kind, track }),
       });
       const json = await res.json();
       if (!res.ok) throw new Error(json.error || "Couldn't submit");
@@ -82,6 +84,19 @@ export default function GoldBadgeApplication() {
         </button>
       </div>
     );
+  } else if (request?.status === "pending" && request.kind === "identity" && user) {
+    const url = dojahWidgetUrl(request.track ?? "personal", `na_${user.uid}`);
+    body = (
+      <div className="mt-2 text-sm text-ink">
+        <p>Deposit received. Now complete your identity check with our verification partner, Dojah. Your ID details go to Dojah, not to #NotesApp.</p>
+        {url && (
+          <a href={url} target="_blank" rel="noopener noreferrer" className="btn-primary mt-3 inline-block !px-4 !py-2 text-xs">
+            Start identity check
+          </a>
+        )}
+        <p className="mt-3 border border-amber-200 bg-amber-50 px-3 py-2">After you finish, an admin reviews the result — we&apos;ll show the outcome here.</p>
+      </div>
+    );
   } else if (request?.status === "pending") {
     body = <p className="mt-2 border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-ink">Your application is waiting for review.</p>;
   } else if (request?.status === "approved") {
@@ -109,6 +124,16 @@ export default function GoldBadgeApplication() {
     body = (
       <form onSubmit={apply} className="mt-3">
         {request?.status === "rejected" && <p className="mb-2 text-sm text-slate">Your last application wasn&apos;t approved. You can apply again with more detail.</p>}
+        {GOLD_KIND_LIVE.identity && (
+          <div className="mb-3 flex flex-wrap gap-4 text-sm">
+            {(["endorsement", "identity"] as GoldBadgeKind[]).map((k) => (
+              <label key={k} className="flex items-center gap-2">
+                <input type="radio" name="kind" checked={kind === k} onChange={() => setKind(k)} />
+                {GOLD_KIND_LABEL[k]}{k === "identity" ? ` (+ ${formatNaira(GOLD_PRICING[track].identityDepositKobo)} non-refundable deposit)` : " (no deposit)"}
+              </label>
+            ))}
+          </div>
+        )}
         <div className="flex flex-wrap gap-4 text-sm">
           {(Object.keys(GOLD_PRICING) as GoldTrack[]).map((t) => (
             <label key={t} className="flex items-center gap-2">
@@ -120,9 +145,9 @@ export default function GoldBadgeApplication() {
         <textarea rows={4} value={message} onChange={(e) => setMessage(e.target.value)} maxLength={800} required
           placeholder="Who you are (or your organisation), what you publish, and links that back it up (website, LinkedIn, published work)."
           className="mt-3 w-full border border-rule bg-card px-3 py-2 text-sm outline-none focus:border-gold" />
-        <button disabled={busy} className="btn-primary mt-3 !px-4 !py-2 text-xs">{busy ? "Sending…" : "Apply for endorsement"}</button>
+        <button disabled={busy} className="btn-primary mt-3 !px-4 !py-2 text-xs">{busy ? "Sending…" : kind === "identity" ? "Apply for identity check" : "Apply for endorsement"}</button>
         <p className="mt-2 text-[11px] text-slate">
-          No fee to apply or to be reviewed. If approved, the badge costs {formatNaira(GOLD_PRICING[track].monthlyKobo)}/month on any plan.
+          {kind === "identity" ? "After applying you pay the deposit, then complete the check with Dojah." : "No fee to apply or to be reviewed."} If approved, the badge costs {formatNaira(GOLD_PRICING[track].monthlyKobo)}/month on any plan.
           Please don&apos;t send ID documents — we don&apos;t collect them.
           {!GOLD_KIND_LIVE.identity && " Identity-checked gold (with a one-off verification deposit) is coming soon."}
         </p>

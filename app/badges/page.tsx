@@ -5,6 +5,7 @@ import TeamBadge from "@/components/TeamBadge";
 import BadgeCard from "@/components/BadgeCard";
 import GoldBadgeApplication from "@/components/GoldBadgeApplication";
 import { GOLD_PRICING } from "@/lib/gold";
+import { GOLD_KIND_LIVE } from "@/lib/badges";
 import { BADGE_PRICE_KOBO, TIERS, badgeIncluded } from "@/lib/tiers";
 import { formatNaira } from "@/lib/booking-time";
 
@@ -17,7 +18,7 @@ export const metadata: Metadata = {
 const FAQ = [
   {
     q: "Does the maroon ✔ mean #NotesApp checked my identity?",
-    a: "No. It shows an account in good standing that is on an eligible plan or has the badge subscription. Identity checks and endorsements are what the gold badge is for — endorsements are open now, identity checks are coming soon.",
+    a: "No. It shows an account in good standing that is on an eligible plan or has the badge subscription. Identity checks and endorsements are what the gold badge is for — endorsements are open now, identity checks are " + (GOLD_KIND_LIVE.identity ? "open too." : "coming soon."),
   },
   {
     q: "Can I buy the #NotesApp team badge?",
@@ -80,7 +81,7 @@ export default function BadgesPage() {
           </p>
           <p className="mt-3 text-sm text-slate">
             An account that #NotesApp has reviewed and endorses — a real person or organisation with a public track record.
-            Identity-checked gold (ID, business registration or professional credential) is coming soon.
+            Identity-checked gold (ID, business registration or professional credential) is {GOLD_KIND_LIVE.identity ? "now open" : "coming soon"}.
           </p>
           <p className="mt-3 font-mono text-xs uppercase tracking-eyebrow text-crimson-bright">Personal {formatNaira(GOLD_PRICING.personal.monthlyKobo)}/mo · Corporate {formatNaira(GOLD_PRICING.corporate.monthlyKobo)}/mo</p>
         </div>
@@ -127,7 +128,7 @@ export default function BadgesPage() {
           <strong className="text-ink">Endorsement is open.</strong> Apply below with a short description and links to your
           public work; an admin reviews it by hand at no charge. If approved, gold is {formatNaira(GOLD_PRICING.personal.monthlyKobo)}/month
           for individuals or {formatNaira(GOLD_PRICING.corporate.monthlyKobo)}/month for organisations, on every plan. We don&apos;t
-          collect ID documents. <strong className="text-ink">Identity-checked gold is coming soon</strong>: a one-off,
+          collect ID documents. <strong className="text-ink">Identity-checked gold is {GOLD_KIND_LIVE.identity ? "now open" : "coming soon"}</strong>: a one-off,
           non-refundable verification deposit ({formatNaira(GOLD_PRICING.personal.identityDepositKobo)} personal /{" "}
           {formatNaira(GOLD_PRICING.corporate.identityDepositKobo)} corporate) covers the third-party check, then the same monthly price applies. Want to be told?{" "}
           <Link href="/contact" className="text-crimson underline underline-offset-2">Register your interest</Link>.
