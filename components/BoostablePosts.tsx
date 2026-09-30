@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { onAuthStateChanged, User } from "firebase/auth";
 import { auth } from "@/lib/firebase";
-import { getAllNotes, isAuthorOf, NoteWithComputed } from "@/lib/firestore-notes";
+import { getAllNotes, isNoteBy, NoteWithComputed } from "@/lib/firestore-notes";
 import { getUserByUid } from "@/lib/users";
 
 // Signed-in publishers see their own published posts with a Boost
@@ -20,7 +20,7 @@ export default function BoostablePosts() {
         if (!u) return;
         try {
           const [profile, all] = await Promise.all([getUserByUid(u.uid), getAllNotes({ publishedOnly: true })]);
-          setPosts(all.filter((n) => n.authorUid === u.uid || (profile ? isAuthorOf(n, profile.displayName) : false)));
+          setPosts(all.filter((n) => isNoteBy(n, { uid: u.uid, username: profile?.username, displayName: profile?.displayName || "" })));
         } catch {
           setPosts([]);
         }

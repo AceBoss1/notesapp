@@ -1389,3 +1389,26 @@ copies the old shape and would re-add emails if re-run (don't).
 - **Admin dashboard errors** now say what Firestore actually reported
   (quota exhausted / permission denied / missing index) instead of always
   blaming the rules.
+
+## Session — footer settings, profile visibility, publisher composer
+- **#NotesApp footer is now editable.** `/admin/settings` writes
+  `settings/notesapp-site` (email, WhatsApp, LinkedIn, Facebook, Instagram, X,
+  website); the footer's Connect column, the Contact page and About read it
+  (`getSiteSettingsCached`, 1-minute server cache, falls back to defaults so
+  the footer never breaks). The old `settings/site` doc (Precheks' footer
+  config) is no longer read. Blank fields are simply hidden.
+- **Profile edits are visible to others.** Social links are now shown on the
+  public profile (`SocialLinksRow`, http(s) only); note bylines use the
+  author's *current* profile (name/avatar) via `authorUid`; a member's posts
+  are matched by `authorUid`/`authorUsername` before display name, so
+  renaming yourself no longer orphans your entries. The profile page itself
+  reads Firestore directly (instant); directory/search lists update within a
+  few minutes (cache).
+- **Publishing for members (`/write`).** Approved/paid publishers get *My
+  journal*: list (drafts + published), New entry, Edit, Boost, Delete, all via
+  the rich-text composer with the byline taken from their own profile
+  (`NoteForm self`). Slugs must be unique (`slugTaken`). Menu, account
+  sub-header and the profile page link to it.
+- **Known gap:** `notes` documents (drafts included) are publicly readable by
+  the rules — a draft's text is visible to anyone using the client SDK. Fix by
+  serving drafts only through an owner-only path (next task).

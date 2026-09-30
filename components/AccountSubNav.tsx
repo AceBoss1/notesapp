@@ -6,6 +6,7 @@ import { auth } from "@/lib/firebase";
 import SectionNav from "./SectionNav";
 
 const LINKS = [
+  { href: "/write", label: "My journal" },
   { href: "/profile/edit", label: "Edit profile" },
   { href: "/profile/publishing", label: "Rates & payouts" },
   { href: "/bookings", label: "Bookings" },

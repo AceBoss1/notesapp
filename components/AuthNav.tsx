@@ -58,6 +58,7 @@ export default function AuthNav() {
         {open && (
           <div role="menu" className="absolute right-0 z-50 mt-2 w-52 border border-rule bg-card py-1 shadow-lg" onClick={() => setOpen(false)}>
             {profile && <Link href={`/u/${profile.username}`} className={item}>My profile</Link>}
+            {profile && canPublish(profile) && <Link href="/write" className={item}>My journal (write)</Link>}
             <Link href="/profile/edit" className={item}>Edit profile</Link>
             <Link href="/profile/publishing" className={item}>
               {profile && canPublish(profile) ? "Rates & payouts" : "Start publishing"}

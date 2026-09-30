@@ -49,11 +49,9 @@ export default function AdminSettingsPage() {
       <p className="eyebrow mt-6">Site-Wide Settings</p>
       <h1 className="font-display text-4xl mt-3">Settings</h1>
       <p className="mt-3 text-sm text-slate">
-        This is the same <code className="font-mono text-crimson-bright">settings/site</code>{" "}
-        Firestore document Precheks' own footer reads from — saving
-        here updates Precheks' live site. #NotesApp's own footer
-        (below) is still hardcoded in <code className="font-mono text-crimson-bright">app/layout.tsx</code>,
-        not wired to this doc yet — editing here won't change it.
+        These are #NotesApp's own contact details. They appear in the site
+        footer (Connect), on the Contact page and on About. Changes go live
+        within about a minute. (Precheks' old shared settings are no longer used.)
       </p>
 
       <form onSubmit={handleSubmit} className="mt-8 grid gap-6">

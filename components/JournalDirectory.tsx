@@ -3,7 +3,7 @@
 import Link from "next/link";
 import Avatar from "@/components/Avatar";
 import FollowButton from "@/components/FollowButton";
-import { NoteWithComputed } from "@/lib/firestore-notes";
+import { NoteWithComputed, isNoteBy } from "@/lib/firestore-notes";
 import { OFFICIAL_NOTESAPP_PROFILE, VERIFIED_USERNAMES } from "@/lib/journals-directory";
 import { NOTESAPP_POSTS } from "@/lib/notesapp-posts";
 import VerifiedBadge from "@/components/VerifiedBadge";
@@ -40,7 +40,7 @@ export default function JournalDirectory({
         const journalCount =
           entry.username === OFFICIAL_NOTESAPP_PROFILE.username
             ? NOTESAPP_POSTS.length
-            : allNotes.filter((n) => n.author === entry.displayName).length;
+            : allNotes.filter((n) => isNoteBy(n as any, { username: entry.username, displayName: entry.displayName })).length;
         return (
           <div key={entry.username} className="card flex items-center gap-4 p-5">
             <Link href={`/u/${entry.username}`} className="flex flex-1 items-center gap-4">

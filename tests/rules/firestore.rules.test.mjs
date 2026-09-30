@@ -143,3 +143,14 @@ test("public user documents can't be created with an email field", async () => {
   await assertFails(setDoc(doc(as("newbie"), "users/newbie"), { ...base, email: "n@x.com" }));
   await assertSucceeds(setDoc(doc(as("newbie"), "users/newbie"), base));
 });
+
+test("a publisher can edit and delete their own entries, not other people's", async () => {
+  await env.withSecurityRulesDisabled(async (ctx) => {
+    await setDoc(doc(ctx.firestore(), "notes/mine"), { authorUid: "pub", title: "t", status: "draft" });
+    await setDoc(doc(ctx.firestore(), "notes/theirs"), { authorUid: "someone", title: "t", status: "published" });
+  });
+  await assertSucceeds(updateDoc(doc(as("pub"), "notes/mine"), { title: "edited", status: "published" }));
+  await assertFails(updateDoc(doc(as("pub"), "notes/theirs"), { title: "hijacked" }));
+  await assertFails(deleteDoc(doc(as("pub"), "notes/theirs")));
+  await assertSucceeds(deleteDoc(doc(as("pub"), "notes/mine")));
+});

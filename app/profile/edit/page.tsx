@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
+import Link from "next/link";
 import { onAuthStateChanged } from "firebase/auth";
 import { auth } from "@/lib/firebase";
 import { getUserByUid, updateProfile, UserProfile } from "@/lib/users";
@@ -162,7 +163,12 @@ export default function ProfileEditPage() {
           >
             {saving ? "Saving…" : "Save Profile"}
           </button>
-          {saved && <p className="text-sm text-slate">Saved.</p>}
+          {saved && (
+            <p className="text-sm text-slate">
+              Saved — <Link href={`/u/${profile.username}`} className="text-crimson underline">view your public profile</Link>.
+              Your profile page updates right away; lists and search can take a few minutes.
+            </p>
+          )}
         </div>
       </form>
     </section>

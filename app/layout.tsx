@@ -5,6 +5,7 @@ import AuthNav from "@/components/AuthNav";
 import VerifyEmailBanner from "@/components/VerifyEmailBanner";
 import SearchBar from "@/components/SearchBar";
 import { SITE } from "@/lib/site";
+import { getSiteSettingsCached } from "@/lib/settings";
 import "./globals.css";
 
 const DEFAULT_TITLE = "#NotesApp — Publish. Book. Get Paid. One Workspace.";
@@ -54,11 +55,21 @@ const COMPANY = [
   { href: "/privacy", label: "Privacy Policy" },
 ];
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  const site = await getSiteSettingsCached();
+  const social = [
+    { label: "LinkedIn", href: site.social.linkedin },
+    { label: "Facebook", href: site.social.facebook },
+    { label: "Instagram", href: site.social.instagram },
+    { label: "X / Twitter", href: site.social.twitter },
+    { label: "WhatsApp", href: site.whatsapp },
+    { label: "Website", href: site.social.website },
+  ].filter((l) => !!l.href);
+
   return (
     <html lang="en">
       <head>
@@ -165,30 +176,17 @@ export default function RootLayout({
               <p className="eyebrow text-crimson-bright/90">Connect</p>
               <ul className="mt-4 space-y-2 text-sm text-paper/75">
                 <li>
-                  <a href={`mailto:${SITE.email}`} className="hover:text-paper">
-                    {SITE.email}
+                  <a href={`mailto:${site.email}`} className="hover:text-paper">
+                    {site.email}
                   </a>
                 </li>
-                <li>
-                  <a
-                    href={SITE.linkedin}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="hover:text-paper"
-                  >
-                    LinkedIn
-                  </a>
-                </li>
-                <li>
-                  <a
-                    href={SITE.facebook}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="hover:text-paper"
-                  >
-                    Facebook
-                  </a>
-                </li>
+                {social.map((l) => (
+                  <li key={l.label}>
+                    <a href={l.href} target="_blank" rel="noopener noreferrer" className="hover:text-paper">
+                      {l.label}
+                    </a>
+                  </li>
+                ))}
                 <li className="mt-6 text-paper/50">
                   Built in partnership with Precheks — our first
                   reference customer. —{" "}

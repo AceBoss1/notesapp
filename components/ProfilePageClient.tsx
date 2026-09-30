@@ -6,10 +6,11 @@ import Image from "next/image";
 import { onAuthStateChanged, User } from "firebase/auth";
 import { auth } from "@/lib/firebase";
 import { recordView } from "@/lib/track";
-import { getUserByUsername, getCommentsByUser, badgeLevel, isTeamMember, UserProfile, CommentActivity } from "@/lib/users";
+import { getUserByUsername, getCommentsByUser, badgeLevel, isTeamMember, canPublish, UserProfile, CommentActivity } from "@/lib/users";
 import TeamBadge from "@/components/TeamBadge";
 import type { BadgeLevel } from "@/lib/badges";
-import { getAllNotes, NoteWithComputed } from "@/lib/firestore-notes";
+import { getAllNotes, isNoteBy, NoteWithComputed } from "@/lib/firestore-notes";
+import SocialLinksRow from "@/components/SocialLinksRow";
 import { getRecentCommentsOnNotes, Comment } from "@/lib/engagement";
 import { getFollowerCount } from "@/lib/follows";
 import { submitAppeal } from "@/lib/moderation";
@@ -139,7 +140,7 @@ export default function ProfilePageClient({ params }: { params: { username: stri
     // shared /notes collection Precheks reads from, filtered here on
     // the UI side, not in Firestore.
     getAllNotes({ publishedOnly: true })
-      .then((all) => setNotes(all.filter((n) => n.author === profile.displayName)))
+      .then((all) => setNotes(all.filter((n) => isNoteBy(n, { uid: realProfile?.uid, username: profile.username, displayName: profile.displayName }))))
       .catch(() => setNotes([]));
   }, [profile, isOfficial]);
 
@@ -226,8 +227,10 @@ export default function ProfilePageClient({ params }: { params: { username: stri
             </p>
           )}
           <p className="mt-2 max-w-lg text-sm text-slate">{profile.bio}</p>
+          {realProfile && <SocialLinksRow social={realProfile.social} />}
           {viewer && realProfile && viewer.uid === realProfile.uid && (
             <p className="mt-2 flex gap-4 font-ui text-xs font-semibold text-crimson">
+              {canPublish(realProfile) && <Link href="/write">Write</Link>}
               <Link href="/profile/edit">Edit profile</Link>
               <Link href="/profile/publishing">Rates &amp; payouts</Link>
             </p>

@@ -82,6 +82,15 @@ export function isAuthorOf(note: Note, displayName: string): boolean {
   return note.author === displayName || !!note.coAuthors?.includes(displayName);
 }
 
+// Whose note is it? Prefer stable ids (authorUid / authorUsername) so a
+// member changing their display name doesn't orphan their posts; fall back
+// to the display-name match older notes rely on (founder / channel posts).
+export function isNoteBy(note: Note, who: { uid?: string; username?: string; displayName: string }): boolean {
+  if (who.uid && note.authorUid === who.uid) return true;
+  if (who.username && note.authorUsername === who.username) return true;
+  return isAuthorOf(note, who.displayName);
+}
+
 export function slugify(title: string): string {
   return title
     .toLowerCase()
@@ -134,6 +143,20 @@ export async function getNoteBySlug(
   if (snap.empty) return null;
   const d = snap.docs[0];
   return withComputed({ id: d.id, ...d.data() } as Note);
+}
+
+// A member's own entries, drafts included (used by /write). Single-field
+// query — no composite index — and only their own documents are read.
+export async function getNotesByAuthorUid(uid: string): Promise<NoteWithComputed[]> {
+  const snap = await getDocs(query(collection(db, COLLECTION), where("authorUid", "==", uid)));
+  return sortNewestFirst(snap.docs.map((d) => ({ id: d.id, ...d.data() } as Note))).map(withComputed);
+}
+
+// True if another note already uses this slug (note URLs must be unique —
+// getNoteBySlug returns the first match).
+export async function slugTaken(slug: string, exceptId?: string): Promise<boolean> {
+  const snap = await getDocs(query(collection(db, COLLECTION), where("slug", "==", slug)));
+  return snap.docs.some((d) => d.id !== exceptId);
 }
 
 export async function getNoteById(id: string): Promise<Note | null> {
