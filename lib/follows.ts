@@ -7,10 +7,10 @@ import {
   collection,
   query,
   where,
-  getCountFromServer,
 } from "firebase/firestore";
 import { db } from "./firebase";
 import { MANDATORY_USERNAMES } from "./journals-directory";
+import { getJournalCounts } from "./journal-counts";
 
 // New collection, genuinely #NotesApp-only — Precheks has no concept
 // of following an author. Doc id is `${followerUid}_${username}` so a
@@ -39,10 +39,10 @@ export async function getFollowedUsernames(uid: string): Promise<string[]> {
   return snap.docs.map((d) => d.data().username as string);
 }
 
+// Served from the cached /api/public/journal-stats endpoint (see
+// lib/journal-counts.ts) so page views don't each run a Firestore count query.
 export async function getFollowerCount(username: string): Promise<number> {
-  const q = query(collection(db, FOLLOWS), where("username", "==", username));
-  const snap = await getCountFromServer(q);
-  return snap.data().count;
+  return (await getJournalCounts(username)).followers;
 }
 
 export async function followJournal(
