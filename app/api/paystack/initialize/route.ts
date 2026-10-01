@@ -10,6 +10,9 @@ import { GIFT_MAX_KOBO, GIFT_MESSAGE_MAX, GIFT_MIN_KOBO, getBoostPackage } from 
 import { verifyAdminRequest } from "@/lib/firebase-admin";
 import { getTierPlanCode, getBadgePlanCode, getGoldPlanCode } from "@/lib/tier-billing";
 import { GOLD_PRICING, isGoldKind, isGoldTrack } from "@/lib/gold";
+import { getAdPackage } from "@/lib/ad-packages";
+import { isPlacement } from "@/lib/ads";
+import { r2PublicUrl } from "@/lib/r2";
 import { getMerchItem, LOGO_OPTIONS, MERCH_BATCH, MERCH_DELIVERY_KOBO, MERCH_MAX_QTY, merchBatchOpen, validateAddress } from "@/lib/merch";
 import { TIERS, badgeIncluded } from "@/lib/tiers";
 import { rateLimit } from "@/lib/rate-limit";
@@ -68,6 +71,44 @@ export async function POST(req: NextRequest) {
         reference, kind: "badge", uid: user.uid, email: user.email, amountKobo,
         status: "pending", publisherUid: user.uid, publisherUsername: "", commissionRate: 0,
         badge: { planCode }, createdAt: new Date().toISOString(),
+      };
+      await db.doc(`payments/${reference}`).set(record);
+      return NextResponse.json({ authorizationUrl: tx.authorization_url, reference });
+    }
+
+    // ---- advertiser campaign (self-serve banner ads; reviewed before going live) ----
+    if (kind === "ad") {
+      const pk = getAdPackage(body.packageId);
+      if (!pk) return NextResponse.json({ error: "Choose a package." }, { status: 400 });
+      const advertiserName = String(body.advertiserName || "").trim().slice(0, 80);
+      const title = String(body.title || "").trim().slice(0, 90);
+      const text = String(body.text || "").trim().slice(0, 180);
+      const href = String(body.href || "").trim().slice(0, 500);
+      const image = String(body.image || "").trim().slice(0, 500);
+      if (advertiserName.length < 2) return NextResponse.json({ error: "Enter your business or advertiser name." }, { status: 400 });
+      if (title.length < 3) return NextResponse.json({ error: "Add a headline." }, { status: 400 });
+      if (!/^https:\/\/[^\s]+$/i.test(href)) return NextResponse.json({ error: "The ad link must start with https://" }, { status: 400 });
+      // Images must be ones we host (uploaded through the campaign form).
+      if (image && !image.startsWith(r2PublicUrl("ads/"))) return NextResponse.json({ error: "Upload the ad image through the form." }, { status: 400 });
+      const placements = Array.isArray(body.placements) ? Array.from(new Set(body.placements.filter(isPlacement))) : [];
+      if (placements.length === 0) return NextResponse.json({ error: "Pick at least one placement." }, { status: 400 });
+      if (body.agreed !== true) return NextResponse.json({ error: "Please confirm you've read the advertising rules." }, { status: 400 });
+      const reference = newReference();
+      const origin = (process.env.NEXT_PUBLIC_SITE_URL || req.nextUrl.origin).replace(/\/$/, "");
+      const tx = await initializeTransaction({
+        email: user.email, amountKobo: pk.priceKobo, reference, callbackUrl: `${origin}/booking/confirm`,
+        metadata: { kind, packageId: pk.id, uid: user.uid },
+      });
+      const now = new Date().toISOString();
+      await db.doc(`adCampaigns/${reference}`).set({
+        id: reference, uid: user.uid, email: user.email, advertiserName, packageId: pk.id, packageName: pk.name,
+        impressionsBudget: pk.impressions, windowDays: pk.windowDays, amountKobo: pk.priceKobo, placements,
+        creative: { title, text, image, href }, status: "awaiting_payment", createdAt: now,
+      });
+      const record: PaymentRecord = {
+        reference, kind: "ad", uid: user.uid, email: user.email, amountKobo: pk.priceKobo,
+        status: "pending", publisherUid: user.uid, publisherUsername: "", commissionRate: 0,
+        ad: { campaignId: reference, packageId: pk.id }, createdAt: now,
       };
       await db.doc(`payments/${reference}`).set(record);
       return NextResponse.json({ authorizationUrl: tx.authorization_url, reference });

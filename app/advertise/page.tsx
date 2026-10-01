@@ -1,5 +1,7 @@
 import Link from "next/link";
 import type { Metadata } from "next";
+import { AD_PACKAGES } from "@/lib/ad-packages";
+import { formatNaira } from "@/lib/booking-time";
 
 export const metadata: Metadata = {
   title: "Advertise",
@@ -10,7 +12,7 @@ export const metadata: Metadata = {
 export default function AdvertisePage() {
   return (
     <div className="mx-auto max-w-3xl px-4 py-16 sm:px-6 lg:px-8">
-      <span className="eyebrow">Coming Soon</span>
+      <span className="eyebrow">Advertise</span>
       <h1 className="mt-4 font-display text-4xl text-ink sm:text-5xl">
         Advertise on #NotesApp
       </h1>
@@ -19,6 +21,25 @@ export default function AdvertisePage() {
         one — not something a professional has to unlock, earn, or
         wait for.
       </p>
+
+      <div className="card mt-10 border-crimson p-7">
+        <p className="font-ui text-base font-bold text-ink">Buy a banner campaign</p>
+        <p className="mt-2 text-sm text-slate">
+          Pay online for a block of validated impressions (unique per visitor per ad per day). We review every ad; if we can&apos;t run it, you&apos;re refunded in full,
+          and any impressions not delivered by the end date are refunded pro rata.
+        </p>
+        <div className="mt-4 grid gap-3 sm:grid-cols-3">
+          {AD_PACKAGES.map((p) => (
+            <div key={p.id} className="border border-rule p-3">
+              <p className="font-display text-lg text-ink">{p.name}</p>
+              <p className="text-sm text-ink">{formatNaira(p.priceKobo)}</p>
+              <p className="text-xs text-slate">{p.impressions.toLocaleString()} impressions · up to {p.windowDays} days</p>
+            </div>
+          ))}
+        </div>
+        <Link href="/advertise/new" className="btn-primary mt-4 inline-block">Start a campaign</Link>
+        <Link href="/advertise/campaigns" className="ml-4 text-sm text-crimson underline underline-offset-2">My campaigns</Link>
+      </div>
 
       <div className="mt-12 grid grid-cols-1 gap-6 sm:grid-cols-3">
         <div className="card p-6">
@@ -121,13 +142,9 @@ export default function AdvertisePage() {
       </div>
 
       <p className="mt-10 text-sm text-slate">
-        Third-party ad placements and ad-share payouts are a roadmap commitment, not a live feature yet — nothing
-        here is wired up for real ad placements or payouts. Want early
-        access when it ships?{" "}
-        <Link href="/contact" className="text-crimson underline underline-offset-2">
-          Get in touch
-        </Link>
-        .
+        Google, Meta and AdMob placements are still on the{" "}
+        <Link href="/roadmap" className="text-crimson underline underline-offset-2">roadmap</Link>. Questions about advertising?{" "}
+        <Link href="/contact" className="text-crimson underline underline-offset-2">Get in touch</Link>.
       </p>
     </div>
   );

@@ -311,6 +311,12 @@ service cloud.firestore {
       allow write: if false;
     }
 
+    // Advertiser campaigns — the advertiser and admins read; server-written.
+    match /adCampaigns/{id} {
+      allow read: if isAdmin() || (isSignedIn() && resource.data.uid == request.auth.uid);
+      allow write: if false;
+    }
+
     // House ad creatives — admin only (the public reads them through /api/ads).
     match /adCreatives/{id} {
       allow read, write: if isAdmin();

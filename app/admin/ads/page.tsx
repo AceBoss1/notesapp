@@ -5,6 +5,8 @@ import { addDoc, collection, deleteDoc, doc, getDocs, orderBy, query, updateDoc 
 import { db } from "@/lib/firebase";
 import { useAdminAuth } from "@/lib/useAdminAuth";
 import { uploadToR2 } from "@/lib/upload";
+import type { AdCampaign } from "@/lib/ad-packages";
+import { formatNaira } from "@/lib/booking-time";
 import { AD_FOOTER, AD_PLACEMENTS, AdCreative, AdPlacement } from "@/lib/ads";
 
 type Row = AdCreative & { createdAt?: string };
@@ -20,6 +22,32 @@ export default function AdminAdsPage() {
   const [editing, setEditing] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
+  const [camps, setCamps] = useState<AdCampaign[]>([]);
+
+  async function loadCamps() {
+    const snap = await getDocs(collection(db, "adCampaigns"));
+    setCamps(snap.docs.map((d) => d.data() as AdCampaign).filter((c) => c.status !== "awaiting_payment").sort((a, b) => (a.createdAt < b.createdAt ? 1 : -1)));
+  }
+  async function decide(c: AdCampaign, action: "approve" | "reject" | "refund_undelivered") {
+    let reason: string | undefined;
+    if (action === "reject") {
+      reason = window.prompt("Reason (sent to the advertiser; they're refunded in full):")?.trim();
+      if (!reason) return;
+    } else if (!window.confirm(action === "approve" ? "Approve and start this campaign?" : "Refund the undelivered impressions?")) return;
+    setError("");
+    try {
+      const res = await fetch("/api/admin/ad-campaigns", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${await user!.getIdToken()}` },
+        body: JSON.stringify({ action, id: c.id, reason }),
+      });
+      const j = await res.json();
+      if (!res.ok) throw new Error(j.error || "Failed");
+      await Promise.all([loadCamps(), load()]);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Failed");
+    }
+  }
 
   async function load() {
     const snap = await getDocs(query(collection(db, "adCreatives"), orderBy("createdAt", "desc")));
@@ -28,6 +56,7 @@ export default function AdminAdsPage() {
   useEffect(() => {
     if (!user) return;
     load().catch((e) => setError(e.message));
+    loadCamps().catch((e) => setError(e.message));
     user.getIdToken().then((t) =>
       fetch("/api/admin/ads-stats?days=30", { headers: { Authorization: `Bearer ${t}` } })
         .then((r) => (r.ok ? r.json() : { byAd: {} }))
@@ -155,6 +184,41 @@ export default function AdminAdsPage() {
           {editing && <button type="button" onClick={() => { setEditing(null); setForm(EMPTY); }} className="btn-ghost !px-4 !py-2 text-xs">Cancel</button>}
         </div>
       </form>
+
+      <div className="card mt-10 p-5">
+        <p className="font-ui text-sm font-bold text-ink">Paid campaigns</p>
+        <p className="mt-1 text-xs text-slate">Advertisers pay first; approve to start delivery, or reject to refund in full. After a campaign ends, refund any undelivered impressions.</p>
+        {camps.length === 0 ? (
+          <p className="mt-3 text-sm text-slate">No paid campaigns yet.</p>
+        ) : (
+          <div className="mt-3 space-y-3">
+            {camps.map((c) => {
+              const ended = c.status === "completed" || (c.status === "live" && !!c.endsAt && new Date(c.endsAt).getTime() < Date.now());
+              return (
+                <div key={c.id} className="border-t border-rule pt-3 text-sm">
+                  <p className="font-semibold text-ink">{c.creative.title} <span className="font-mono text-[11px] text-slate">{c.status}</span></p>
+                  <p className="text-xs text-slate">{c.advertiserName} · {c.email} · {c.packageName} {formatNaira(c.amountKobo)} · {c.impressionsBudget.toLocaleString()} imps · {c.placements.join(", ")}</p>
+                  <p className="text-xs"><a href={c.creative.href} target="_blank" rel="noopener noreferrer nofollow" className="text-crimson underline">{c.creative.href}</a></p>
+                  {c.creative.text && <p className="text-xs text-ink">{c.creative.text}</p>}
+                  {c.creative.image && (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={c.creative.image} alt="" className="mt-1 h-16 w-28 object-cover" />
+                  )}
+                  {c.rejectedReason && <p className="text-xs text-crimson">Rejected: {c.rejectedReason}</p>}
+                  {c.refundedKobo ? <p className="text-xs text-slate">Refunded {formatNaira(c.refundedKobo)}</p> : null}
+                  <div className="mt-1 flex gap-4 text-xs font-semibold">
+                    {c.status === "in_review" && (<>
+                      <button onClick={() => decide(c, "approve")} className="text-crimson">Approve</button>
+                      <button onClick={() => decide(c, "reject")} className="text-slate hover:text-crimson">Reject &amp; refund</button>
+                    </>)}
+                    {ended && !c.refundedKobo && <button onClick={() => decide(c, "refund_undelivered")} className="text-crimson">Settle &amp; refund undelivered</button>}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
 
       <div className="card mt-10 overflow-x-auto p-5">
         <p className="font-ui text-sm font-bold text-ink">Ad-share review — publisher pages, last 30 days</p>

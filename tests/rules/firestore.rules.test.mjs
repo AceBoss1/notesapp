@@ -222,6 +222,18 @@ test("merch orders are readable by the buyer and admins only", async () => {
   await assertSucceeds(getDoc(doc(as("boss", { admin: true }), "merchOrders/ref1")));
 });
 
+test("ad campaigns are readable by the advertiser and admins, never writable", async () => {
+  await env.withSecurityRulesDisabled(async (ctx) => {
+    await setDoc(doc(ctx.firestore(), "adCampaigns/ref1"), { uid: "alice", status: "in_review" });
+  });
+  await assertSucceeds(getDoc(doc(as("alice"), "adCampaigns/ref1")));
+  await assertFails(getDoc(doc(as("pub"), "adCampaigns/ref1")));
+  await assertFails(getDoc(doc(anon(), "adCampaigns/ref1")));
+  await assertSucceeds(getDoc(doc(as("boss", { admin: true }), "adCampaigns/ref1")));
+  await assertFails(updateDoc(doc(as("alice"), "adCampaigns/ref1"), { status: "live" }));
+  await assertFails(setDoc(doc(as("alice"), "adCampaigns/new"), { uid: "alice", status: "live" }));
+});
+
 test("co-author fields and invites are server-controlled", async () => {
   await env.withSecurityRulesDisabled(async (ctx) => {
     const d = ctx.firestore();
