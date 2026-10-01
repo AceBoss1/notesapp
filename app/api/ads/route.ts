@@ -1,17 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getAdminDb } from "@/lib/firebase-admin";
 import { friendlyMessage } from "@/lib/api-errors";
 import { clientIp, rateLimit } from "@/lib/rate-limit";
-import { ttlCache } from "@/lib/ttl-cache";
-import { AdCreative, isPlacement } from "@/lib/ads";
+import { loadActiveAds as loadActive } from "@/lib/ads-server";
+import { isPlacement } from "@/lib/ads";
 
 export const dynamic = "force-dynamic";
-
-// One read of the active creatives serves every visitor for 5 minutes.
-const loadActive = ttlCache(5 * 60_000, async () => {
-  const snap = await getAdminDb().collection("adCreatives").where("active", "==", true).get();
-  return snap.docs.map((d) => ({ provider: "notesapp", ...d.data(), id: d.id }) as AdCreative);
-});
 
 export async function GET(req: NextRequest) {
   const limited = rateLimit(req, "ads", clientIp(req), 120, 60);

@@ -32,6 +32,7 @@ export default function PublishingSettingsPage() {
   const [subPrice, setSubPrice] = useState("2000");
   const [giftsOn, setGiftsOn] = useState(true);
   const [adsOn, setAdsOn] = useState(false);
+  const [adViews, setAdViews] = useState<{ impressions: number; clicks: number } | null>(null);
   const [plan, setPlan] = useState<Record<string, any> | null>(null);
   const [planBusy, setPlanBusy] = useState(false);
   const [planMsg, setPlanMsg] = useState<string | null>(null);
@@ -56,6 +57,13 @@ export default function PublishingSettingsPage() {
         setProfile(p);
         if (!p) return;
         setAdsOn(p.adsOptIn === true);
+        const cutoff = new Date(Date.now() - 30 * 86_400_000).toLocaleDateString("en-CA", { timeZone: "Africa/Lagos" }).replace(/-/g, "");
+        getDocs(query(collection(db, "adPublisherStats"), where("publisherUid", "==", u.uid)))
+          .then((s) => {
+            const rows = s.docs.map((d) => d.data()).filter((x) => String(x.day) >= cutoff);
+            setAdViews({ impressions: rows.reduce((n, x) => n + (Number(x.impressions) || 0), 0), clicks: rows.reduce((n, x) => n + (Number(x.clicks) || 0), 0) });
+          })
+          .catch(() => {});
         getDoc(doc(db, "tierSubscriptions", u.uid)).then((p) => setPlan(p.exists() ? p.data() : null)).catch(() => {});
         getDocs(query(collection(db, "boosts"), where("publisherUid", "==", u.uid)))
           .then((b) => setBoosts(b.docs.map((d) => d.data()).sort((a, c) => String(c.createdAt).localeCompare(String(a.createdAt)))))
@@ -297,6 +305,9 @@ export default function PublishingSettingsPage() {
                 Ads carry a “Sponsored” note. Pro earns 25% and Business 45% of the ad revenue from your pages, from day one of opting in.
                 Ad-share payouts start when the ad program launches — see <Link href="/advertise" className="text-crimson underline">Advertise</Link>.
               </p>
+              {adViews && (
+                <p className="mt-2 text-xs text-ink">Ads on your pages, last 30 days: {adViews.impressions.toLocaleString()} views · {adViews.clicks.toLocaleString()} clicks.</p>
+              )}
             </>
           ) : (
             <p className="text-xs text-slate">

@@ -14,6 +14,7 @@ const field = "mt-1 w-full border border-rule bg-card px-3 py-2 text-sm outline-
 export default function AdminAdsPage() {
   const { user, loading } = useAdminAuth();
   const [rows, setRows] = useState<Row[] | null>(null);
+  const [stats, setStats] = useState<Record<string, { impressions: number; clicks: number }>>({});
   const [form, setForm] = useState(EMPTY);
   const [editing, setEditing] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -24,7 +25,14 @@ export default function AdminAdsPage() {
     setRows(snap.docs.map((d) => ({ ...(d.data() as Row), id: d.id })));
   }
   useEffect(() => {
-    if (user) load().catch((e) => setError(e.message));
+    if (!user) return;
+    load().catch((e) => setError(e.message));
+    user.getIdToken().then((t) =>
+      fetch("/api/admin/ads-stats?days=30", { headers: { Authorization: `Bearer ${t}` } })
+        .then((r) => (r.ok ? r.json() : { byAd: {} }))
+        .then((j) => setStats(j.byAd || {}))
+        .catch(() => {})
+    );
   }, [user]);
 
   function togglePlacement(p: AdPlacement) {
@@ -154,6 +162,10 @@ export default function AdminAdsPage() {
             <div key={r.id} className="card flex flex-wrap items-center justify-between gap-3 p-4 text-sm">
               <div>
                 <p className="font-semibold text-ink">{r.title} <span className="font-mono text-[11px] text-slate">{r.active ? "active" : "paused"} · weight {r.weight}</span></p>
+                <p className="text-xs text-ink">
+                  Last 30 days: {(stats[r.id]?.impressions ?? 0).toLocaleString()} views · {(stats[r.id]?.clicks ?? 0).toLocaleString()} clicks
+                  {stats[r.id]?.impressions ? ` · ${((stats[r.id].clicks / stats[r.id].impressions) * 100).toFixed(1)}% click rate` : ""}
+                </p>
                 <p className="text-xs text-slate">{r.placements.map((p) => AD_PLACEMENTS[p]?.label ?? p).join(" · ")}{r.endsAt ? ` · ends ${r.endsAt.slice(0, 10)}` : ""}</p>
               </div>
               <div className="flex gap-3 text-xs font-semibold">

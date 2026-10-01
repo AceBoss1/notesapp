@@ -5,7 +5,9 @@ import { useRouter } from "next/navigation";
 import { onAuthStateChanged, User } from "firebase/auth";
 import { collection, getDocs, query, where } from "firebase/firestore";
 import { auth, db } from "@/lib/firebase";
-import { CoAuthorInvite } from "@/lib/coauthors";
+import Link from "next/link";
+import { CoAuthorInvite, canAcceptCoAuthor } from "@/lib/coauthors";
+import { getUserByUid, UserProfile } from "@/lib/users";
 
 // Co-author invitations addressed to the signed-in member.
 export default function InvitesPage() {
@@ -14,6 +16,7 @@ export default function InvitesPage() {
   const [invites, setInvites] = useState<CoAuthorInvite[] | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState("");
+  const [profile, setProfile] = useState<UserProfile | null>(null);
 
   const load = useCallback(async (u: User) => {
     const snap = await getDocs(query(collection(db, "coAuthorInvites"), where("inviteeUid", "==", u.uid)));
@@ -25,6 +28,7 @@ export default function InvitesPage() {
       onAuthStateChanged(auth, (u) => {
         if (!u) return router.replace("/login");
         setUser(u);
+        getUserByUid(u.uid).then(setProfile).catch(() => {});
         load(u).catch(() => setInvites([]));
       }),
     [router, load]
@@ -59,6 +63,12 @@ export default function InvitesPage() {
         If you accept, you&apos;re listed as a co-author when the post is published and receive the share shown of what that post
         earns. The split is locked at publishing.
       </p>
+      {profile && !canAcceptCoAuthor(profile) && (
+        <p className="mt-4 border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-ink">
+          You can see invites on any account, but to <strong>accept</strong> one you need a publishing account, because your share is paid out to a
+          publisher. <Link href="/profile/publishing" className="text-crimson underline">Apply for Free Basic</Link> (free), then come back.
+        </p>
+      )}
       {error && <p className="mt-4 text-sm text-crimson">{error}</p>}
       {invites.length === 0 ? (
         <p className="mt-8 text-sm text-slate">No invites yet.</p>
@@ -72,7 +82,7 @@ export default function InvitesPage() {
               </p>
               {i.status === "pending" && (
                 <div className="mt-3 flex gap-2">
-                  <button disabled={busy === i.noteId} onClick={() => respond(i, true)} className="btn-primary !px-4 !py-2 text-xs disabled:opacity-50">Accept</button>
+                  <button disabled={busy === i.noteId || (!!profile && !canAcceptCoAuthor(profile))} onClick={() => respond(i, true)} className="btn-primary !px-4 !py-2 text-xs disabled:opacity-50">Accept</button>
                   <button disabled={busy === i.noteId} onClick={() => respond(i, false)} className="btn-ghost !px-4 !py-2 text-xs disabled:opacity-50">Decline</button>
                 </div>
               )}

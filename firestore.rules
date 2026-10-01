@@ -289,6 +289,17 @@ service cloud.firestore {
       allow write: if false;
     }
 
+    // Ad impression/click aggregates — written by /api/ads/track only. Admins read
+    // all; a publisher reads their own daily totals (the base for ad-share).
+    match /adStats/{id} {
+      allow read: if isAdmin();
+      allow write: if false;
+    }
+    match /adPublisherStats/{id} {
+      allow read: if isAdmin() || (isSignedIn() && resource.data.publisherUid == request.auth.uid);
+      allow write: if false;
+    }
+
     // House ad creatives — admin only (the public reads them through /api/ads).
     match /adCreatives/{id} {
       allow read, write: if isAdmin();

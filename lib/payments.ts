@@ -51,7 +51,9 @@ export type PaymentRecord = {
 export type LedgerStatus = "held" | "disputed" | "transferring" | "paid_out" | "refunded";
 
 export type LedgerEntry = {
-  reference: string;
+  reference: string; // ledger doc id (the payment reference, or `<ref>_<uid>` for a co-author's share)
+  paymentReference?: string; // the Paystack payment this entry belongs to (set on split entries)
+  sharePercent?: number; // this author's % of a co-authored post's gift
   kind: "booking" | "subscription" | "gift";
   publisherUid: string;
   publisherUsername: string;
@@ -88,6 +90,29 @@ function ledgerFor(p: PaymentRecord, grossKobo: number, releaseAfter: Date, now:
   };
 }
 
+// Who shares a gift. A gift on a co-authored post is divided between the lead
+// and the accepted co-authors in the percentages agreed before publishing
+// (coAuthorInvites); each author's portion carries THEIR OWN plan's commission.
+// Anything else (no post, no co-authors) is 100% the publisher's.
+type Share = { uid: string; username: string; percent: number; rate: number };
+async function giftShares(p: PaymentRecord): Promise<Share[]> {
+  const lead: Share = { uid: p.publisherUid, username: p.publisherUsername, percent: 100, rate: p.commissionRate };
+  const noteId = p.gift?.noteId;
+  if (!noteId) return [lead];
+  const db = getAdminDb();
+  const inv = await db.collection("coAuthorInvites").where("noteId", "==", noteId).where("status", "==", "accepted").get();
+  const co: Share[] = [];
+  for (const d of inv.docs) {
+    const i = d.data();
+    const u = (await db.doc(`users/${i.inviteeUid}`).get()).data();
+    if (!u || u.suspended) continue; // their share stays with the lead
+    co.push({ uid: i.inviteeUid, username: i.inviteeUsername, percent: Number(i.percent), rate: commissionRateFor((u.accountTier as AccountTier) || "basic") });
+  }
+  if (!co.length) return [lead];
+  lead.percent = 100 - co.reduce((s, c) => s + c.percent, 0);
+  return [lead, ...co];
+}
+
 // Idempotent — called by the redirect-verify route and the webhook,
 // in whichever order they land. Confirms with Paystack itself, checks
 // the amount against what we recorded server-side, then writes
@@ -114,6 +139,7 @@ export async function fulfillPayment(reference: string): Promise<PaymentRecord> 
   }
 
   const now = new Date().toISOString();
+  const shares = payment.kind === "gift" ? await giftShares(payment) : [];
   const result = await db.runTransaction(async (t) => {
     const freshPay = await t.get(payRef);
     const current = freshPay.data() as PaymentRecord;
@@ -244,9 +270,16 @@ export async function fulfillPayment(reference: string): Promise<PaymentRecord> 
         amountKobo: current.amountKobo,
         createdAt: now,
       });
-      // Held for the same 7-day dispute window as subscriptions.
+      // Held for the same 7-day dispute window as subscriptions. One entry per
+      // author when the post is co-authored (lead keeps the rounding remainder).
       const hold = new Date(Date.now() + SUBSCRIPTION_HOLD_DAYS * 86_400_000);
-      t.set(db.doc(`ledger/${reference}`), ledgerFor(current, current.amountKobo, hold, now));
+      const coGross = shares.slice(1).map((s) => Math.floor((current.amountKobo * s.percent) / 100));
+      const grosses = [current.amountKobo - coGross.reduce((a, b) => a + b, 0), ...coGross];
+      shares.forEach((s, idx) => {
+        const entryId = idx === 0 ? reference : `${reference}_${s.uid}`;
+        const base = ledgerFor({ ...current, publisherUid: s.uid, publisherUsername: s.username, commissionRate: s.rate }, grosses[idx], hold, now);
+        t.set(db.doc(`ledger/${entryId}`), shares.length > 1 ? { ...base, reference: entryId, paymentReference: reference, sharePercent: s.percent } : base);
+      });
     } else if (current.kind === "subscription" && current.subscription) {
       const { username, planCode } = current.subscription;
       const subRef = db.doc(`subscriptions/${current.uid}_${username}`);
@@ -268,6 +301,7 @@ export async function fulfillPayment(reference: string): Promise<PaymentRecord> 
 
   if (result.fresh && result.payment.status === "paid") {
     await notifyPaid(result.payment).catch((e) => console.error("notifyPaid failed", e));
+    if (shares.length > 1 && result.payment.gift) await notifyGiftShares(result.payment, shares).catch((e) => console.error("notifyGiftShares failed", e));
     if (result.payment.kind === "tier" && result.payment.tier?.tier === "business") {
       await cancelBadgeIfCovered(result.payment.uid);
     }
@@ -403,6 +437,24 @@ async function notifyPaid(p: PaymentRecord) {
       text: `You have a new paid ${p.booking.minutes}-minute session on ${when}.\nClient: ${p.email}\nYour earnings (after ${Math.round(p.commissionRate * 100)}% commission) are released after the session.\nReference: ${p.reference}\n\n#NotesApp`,
     });
   }
+}
+
+async function notifyGiftShares(p: PaymentRecord, shares: Share[]) {
+  const db = getAdminDb();
+  const who = p.gift?.anonymous ? "Someone" : p.gift?.senderName || "A reader";
+  const coGross = shares.slice(1).map((s) => Math.floor((p.amountKobo * s.percent) / 100));
+  await Promise.all(
+    shares.slice(1).map((s, i) =>
+      db.collection("notifications").add({
+        recipientUid: s.uid,
+        type: "gift",
+        message: `${who} sent a ${formatNaira(p.amountKobo)} gift on a post you co-wrote — your ${s.percent}% share is ${formatNaira(coGross[i] - Math.round(coGross[i] * s.rate))} after commission`,
+        read: false,
+        createdAt: new Date().toISOString(),
+        linkHref: p.gift?.noteSlug ? `/journals/${p.gift.noteSlug}` : "/profile/publishing",
+      })
+    )
+  );
 }
 
 async function notifyGift(p: PaymentRecord) {

@@ -60,11 +60,13 @@ export default async function JournalDetail({
   const note = await getNoteBySlug(params.slug);
   if (!note) return notFound();
 
-  const [processed, moreNotes, authorProfile] = await Promise.all([
+  const [processed, moreNotes, authorProfile, coProfiles] = await Promise.all([
     remark().use(html).process(note.content),
     getMoreNotes(note.slug, 4),
     (note.authorUid ? getUserByUid(note.authorUid) : Promise.resolve(null)).then((u) => u || getUserByDisplayName(note.author)),
+    Promise.all((note.coAuthorUids || []).map((uid) => getUserByUid(uid).catch(() => null))),
   ]);
+  const coAuthorProfiles = coProfiles.filter((u): u is NonNullable<typeof u> => !!u && !u.suspended);
   const contentHtml = processed.toString();
 
   // @na-notesapp has no `users` doc — getUserByDisplayName() can't
@@ -189,6 +191,21 @@ export default async function JournalDetail({
         </div>
       )}
 
+      {coAuthorProfiles.length > 0 && (
+        <div className="card mt-10 p-6">
+          <p className="font-ui text-sm font-bold text-ink">Co-authors — book a session with each</p>
+          <p className="mt-1 text-xs text-slate">Sessions are personal: each author has their own calendar, price and payout.</p>
+          <ul className="mt-3 space-y-2">
+            {coAuthorProfiles.map((c) => (
+              <li key={c.uid} className="flex items-center justify-between gap-3 text-sm">
+                <span className="text-ink">{c.displayName} <span className="font-mono text-xs text-crimson-bright">@{c.username}</span></span>
+                <Link href={`/u/${c.username}`} className="text-xs font-semibold text-crimson underline">View calendar</Link>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
       {authorProfile && (
         <div className="card mt-10 flex flex-col items-start gap-4 p-7 sm:flex-row sm:items-center sm:justify-between">
           <div>
@@ -222,7 +239,7 @@ export default async function JournalDetail({
         )}
       </div>
 
-      <AdSlot placement="post" publisher={authorProfile ?? undefined} />
+      <AdSlot placement="post" publisher={authorProfile ?? undefined} publisherUid={authorProfile?.uid} />
 
       <Comments noteId={note.id} slug={note.slug} title={note.title} noteAuthor={note.author} />
 

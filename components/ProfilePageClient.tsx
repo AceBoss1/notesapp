@@ -318,7 +318,7 @@ export default function ProfilePageClient({ params }: { params: { username: stri
         <BookingCard username={profile.username} publisherUid={realProfile?.uid} viewer={viewer} />
       )}
 
-      <AdSlot placement="profile" publisher={realProfile ?? undefined} />
+      <AdSlot placement="profile" publisher={realProfile ?? undefined} publisherUid={realProfile?.uid} />
 
       {/* Brand store teaser */}
       {storeItems.length > 0 && (

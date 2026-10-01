@@ -3,7 +3,7 @@ import { FieldValue } from "firebase-admin/firestore";
 import { friendlyMessage } from "@/lib/api-errors";
 import { getAdminDb, verifySignedInRequest } from "@/lib/firebase-admin";
 import { rateLimit } from "@/lib/rate-limit";
-import { CoAuthorInvite, MAX_CO_AUTHORS, MIN_CO_PERCENT, MIN_LEAD_PERCENT, inviteId, leadPercent } from "@/lib/coauthors";
+import { canAcceptCoAuthor, canLeadCoAuthors, CoAuthorInvite, MAX_CO_AUTHORS, MIN_CO_PERCENT, MIN_LEAD_PERCENT, inviteId, leadPercent } from "@/lib/coauthors";
 
 export const dynamic = "force-dynamic";
 
@@ -49,6 +49,9 @@ export async function POST(req: NextRequest) {
 
     // ---------------------------------------------------------- invite
     if (body.action === "invite") {
+      if (!canLeadCoAuthors(meDoc)) {
+        return NextResponse.json({ error: "Inviting co-authors is a Pro and Business feature.", code: "needs_pro" }, { status: 403 });
+      }
       const noteRef = db.doc(`notes/${String(body.noteId)}`);
       const note = (await noteRef.get()).data();
       if (!note || note.authorUid !== me.uid) return NextResponse.json({ error: "You can only add co-authors to your own post." }, { status: 403 });
@@ -104,6 +107,9 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ error: "This post was already published or removed, so the invite expired." }, { status: 409 });
       }
       const accept = !!body.accept;
+      if (accept && !canAcceptCoAuthor(meDoc)) {
+        return NextResponse.json({ error: "To accept, you need a publishing account — apply for Free Basic first.", code: "needs_basic" }, { status: 403 });
+      }
       await ref.update({ status: accept ? "accepted" : "declined", respondedAt: new Date().toISOString() });
       if (accept) await syncNote(db, inv.noteId);
       await notify(db, inv.leadUid, `${meDoc.displayName} ${accept ? "accepted" : "declined"} your co-author invite for "${inv.noteTitle}"`, "/write", { username: meDoc.username, displayName: meDoc.displayName });

@@ -197,8 +197,8 @@ export default function PricingPage() {
             take place, subscriptions after a 7-day dispute window. Commission comes off the top, per your tier above.
           </li>
           <li>
-            <Link href="/coauthoring" className="font-bold text-crimson underline underline-offset-2">Co-authoring</Link> — share a post with other members and agree each person&apos;s
-            percentage of what it earns; the split locks at publishing. Free on every plan.
+            <Link href="/coauthoring" className="font-bold text-crimson underline underline-offset-2">Co-authoring</Link> — Pro and Business publishers can share a post with other members and agree each person&apos;s
+            percentage of what it earns (gifts on it are split now; ad share when ad payouts launch). Any publisher can accept an invite.
           </li>
           <li>
             <Link href="/gifts" className="font-bold text-crimson underline underline-offset-2">Gifts</Link> — readers can send a publisher, or a single post, a gift of ₦200,
