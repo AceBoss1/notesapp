@@ -4,6 +4,7 @@ import Image from "next/image";
 import AuthNav from "@/components/AuthNav";
 import VerifyEmailBanner from "@/components/VerifyEmailBanner";
 import SearchBar from "@/components/SearchBar";
+import CelebrationBanner from "@/components/CelebrationBanner";
 import { SITE } from "@/lib/site";
 import { getSiteSettingsCached } from "@/lib/settings";
 import "./globals.css";
@@ -85,6 +86,7 @@ export default async function RootLayout({
         />
       </head>
       <body>
+        <CelebrationBanner />
         <VerifyEmailBanner />
         {/* Masthead */}
         <header className="sticky top-0 z-40 border-b border-rule bg-paper/90 backdrop-blur">
