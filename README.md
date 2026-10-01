@@ -1425,6 +1425,20 @@ if re-run (don't). `consent` on user docs is still public (version + timestamp o
   `lib/merch.ts` before launch:** `MERCH_BATCH.closesOn` (placeholder
   2026-11-15), `MERCH_DELIVERY_KOBO` (placeholder ₦3,000) and the item prices.
   Redeploy `firestore.rules`.
+- **Co-authoring.** Lead authors invite members to a *draft* from the Co-authors
+  panel in the composer (`components/CoAuthorsPanel.tsx`), proposing each person's
+  % of the post's earnings (co-author ≥5%, lead keeps ≥10%, max 4). Invitees
+  accept/decline on `/invites` (also a bell notification). All state changes go
+  through `POST /api/coauthors` (`invite` / `respond` / `revoke`); clients can't
+  write `coAuthors` / `coAuthorUids` (rules) or `coAuthorInvites` (server-only,
+  lead + invitee + admin read). Accepting syncs `coAuthors` / `coAuthorUids` onto
+  the note (byline "with …", profile listing via `isNoteBy`). The split is locked
+  at publish: invites/accepts work only on drafts; pending invites then expire.
+  **The agreed % live in `coAuthorInvites` (accepted ones) and are NOT used for
+  money yet** — ad-share isn't built, and gifts on a post still go to the lead
+  author. When building ad-share / per-post gift splits, read the accepted invites
+  (lead = 100 − sum). Co-authors can't edit the post (lead only). Redeploy
+  `firestore.rules`.
 - Header now shows the member's avatar (links to their profile) after the bell.
 
 ## Member journey — what people see and where they change things

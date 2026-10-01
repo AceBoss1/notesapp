@@ -117,6 +117,9 @@ export default async function JournalDetail({
               <p className="mt-0.5 font-mono text-xs uppercase tracking-wide text-slate">
                 {note.author_role}
               </p>
+              {note.coAuthors && note.coAuthors.length > 0 && (
+                <p className="mt-0.5 text-xs text-slate">with {note.coAuthors.join(", ")}</p>
+              )}
             </div>
           </Link>
         ) : (

@@ -81,6 +81,15 @@ export default function AdvertisePage() {
         </Link>
       </div>
 
+      <div className="card mt-6 p-6">
+        <p className="font-ui text-sm font-bold text-ink">Co-authored posts</p>
+        <p className="mt-2 text-sm text-slate">
+          When a post has co-authors, the ad share it earns is divided between its authors in the percentages the lead author
+          set and every co-author accepted <em>before</em> publishing; the split is locked once the post is live. Each author
+          is paid at their own plan&apos;s ad-share rate on their portion. (Ad-share payouts themselves are not live yet — see below.)
+        </p>
+      </div>
+
       <p className="mt-10 text-sm text-slate">
         Third-party ad placements and ad-share payouts are a roadmap commitment, not a live feature yet — nothing
         here is wired up for real ad placements or payouts. Want early

@@ -71,6 +71,7 @@ export default function AuthNav() {
               {profile && canPublish(profile) ? "Rates & payouts" : "Start publishing"}
             </Link>
             {profile && <Link href={`/u/${profile.username}/store`} className={item}>My store</Link>}
+            {profile && canPublish(profile) && <Link href="/invites" className={item}>Co-author invites</Link>}
             <Link href="/bookings" className={item}>Bookings</Link>
             <Link href="/boost" className={item}>Boost a post</Link>
             <Link href="/badges" className={item}>Verification badges</Link>

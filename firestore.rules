@@ -85,10 +85,12 @@ service cloud.firestore {
 
       // Admins can create anything.
       // Writers can create only notes authored by themselves.
+      // coAuthors / coAuthorUids are written only by /api/coauthors (consent).
       allow create: if isAdmin()
         || (
           isPublisher()
           && request.resource.data.authorUid == request.auth.uid
+          && !request.resource.data.keys().hasAny(['coAuthors', 'coAuthorUids'])
         );
 
       // Admins can delete anything.
@@ -109,6 +111,9 @@ service cloud.firestore {
         || (
           isPublisher()
           && resource.data.authorUid == request.auth.uid
+          && !request.resource.data.diff(resource.data)
+              .affectedKeys()
+              .hasAny(['coAuthors', 'coAuthorUids'])
         )
         || request.resource.data.diff(resource.data)
             .affectedKeys()
@@ -273,6 +278,14 @@ service cloud.firestore {
     // Official merch pre-orders — owner + admins read; server-only writes.
     match /merchOrders/{ref} {
       allow read: if isAdmin() || (isSignedIn() && resource.data.uid == request.auth.uid);
+      allow write: if false;
+    }
+
+    // Co-author invites (and the agreed earnings split): the lead, the invitee
+    // and admins read; the server route is the only writer.
+    match /coAuthorInvites/{id} {
+      allow read: if isAdmin()
+        || (isSignedIn() && (resource.data.leadUid == request.auth.uid || resource.data.inviteeUid == request.auth.uid));
       allow write: if false;
     }
 

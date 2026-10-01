@@ -31,7 +31,7 @@ export default function JournalRow({
         </p>
         <p className="mt-1 truncate text-xs text-slate">{note.excerpt}</p>
         <p className="mt-1 font-mono text-[10px] uppercase tracking-eyebrow text-crimson-bright">
-          {showAuthor ? `${note.author} · ` : ""}
+          {showAuthor ? `${note.author}${note.coAuthors?.length ? ` + ${note.coAuthors.length}` : ""} · ` : ""}
           {note.categories[0] || "Journal"}
           {note.premium && <span className="ml-1.5 text-crimson">🔒</span>}
         </p>

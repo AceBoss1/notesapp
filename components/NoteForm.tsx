@@ -1,5 +1,6 @@
 "use client";
 
+import CoAuthorsPanel from "@/components/CoAuthorsPanel";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
@@ -299,6 +300,9 @@ export default function NoteForm({ noteId, initial, self }: Props) {
           {saving ? "Saving…" : noteId ? "Save Changes" : "Publish / Save Draft"}
         </button>
       </div>
+      {noteId && self && initial?.authorUid === self.uid && initial?.status !== "published" && (
+        <CoAuthorsPanel noteId={noteId} leadUid={self.uid} />
+      )}
     </form>
   );
 }

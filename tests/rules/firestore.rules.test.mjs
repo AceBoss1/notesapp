@@ -221,3 +221,20 @@ test("merch orders are readable by the buyer and admins only", async () => {
   await assertFails(getDoc(doc(anon(), "merchOrders/ref1")));
   await assertSucceeds(getDoc(doc(as("boss", { admin: true }), "merchOrders/ref1")));
 });
+
+test("co-author fields and invites are server-controlled", async () => {
+  await env.withSecurityRulesDisabled(async (ctx) => {
+    const d = ctx.firestore();
+    await setDoc(doc(d, "notes/co1"), { authorUid: "pub", title: "t", status: "draft" });
+    await setDoc(doc(d, "coAuthorInvites/co1_alice"), { noteId: "co1", leadUid: "pub", inviteeUid: "alice", percent: 20, status: "pending" });
+  });
+  // a lead can't grant co-authorship by writing the note directly
+  await assertFails(updateDoc(doc(as("pub"), "notes/co1"), { coAuthorUids: ["alice"], coAuthors: ["Alice"] }));
+  await assertFails(setDoc(doc(as("pub"), "notes/co2"), { authorUid: "pub", title: "t", status: "draft", coAuthorUids: ["alice"] }));
+  await assertSucceeds(updateDoc(doc(as("pub"), "notes/co1"), { title: "edited" }));
+  // invites: lead + invitee read, others don't, nobody writes
+  await assertSucceeds(getDoc(doc(as("pub"), "coAuthorInvites/co1_alice")));
+  await assertSucceeds(getDoc(doc(as("alice"), "coAuthorInvites/co1_alice")));
+  await assertFails(getDoc(doc(anon(), "coAuthorInvites/co1_alice")));
+  await assertFails(updateDoc(doc(as("alice"), "coAuthorInvites/co1_alice"), { status: "accepted", percent: 90 }));
+});
