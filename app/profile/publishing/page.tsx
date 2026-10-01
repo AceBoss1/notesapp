@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { onAuthStateChanged, User } from "firebase/auth";
 import { collection, doc, getDoc, getDocs, query, where } from "firebase/firestore";
 import { auth, db } from "@/lib/firebase";
@@ -288,9 +289,15 @@ export default function PublishingSettingsPage() {
         </div>
       </form>
 
-      {boosts.length > 0 && (
-        <div className="card mt-10 p-6">
-          <p className="eyebrow">Boost results</p>
+      <div className="card mt-10 p-6">
+        <p className="eyebrow">Boost results</p>
+        {boosts.length === 0 ? (
+          <p className="mt-3 text-sm text-slate">
+            No boosts yet. <Link href="/boost" className="text-crimson underline">Boost a post</Link> to see its impressions and clicks here.
+            A boost appears only after its payment is confirmed — if you just paid and nothing shows, reopen the confirmation link from
+            your payment, or contact us with the payment reference.
+          </p>
+        ) : (
           <ul className="mt-3 divide-y divide-rule text-sm">
             {boosts.map((b) => (
               <li key={b.reference} className="py-2">
@@ -302,8 +309,8 @@ export default function PublishingSettingsPage() {
               </li>
             ))}
           </ul>
-        </div>
-      )}
+        )}
+      </div>
 
       <div className="card mt-10 p-6">
         <p className="eyebrow">Earnings</p>
