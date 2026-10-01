@@ -10,16 +10,18 @@ export const metadata: Metadata = {
 
 const STEPS = [
   { t: "Start a draft", d: "Write your post as usual and save it as a draft. Co-authors can only be added while it's a draft." },
-  { t: "Invite & set shares", d: `Invite up to ${MAX_CO_AUTHORS} members by username and set each one's % of the post's earnings. You keep at least ${MIN_LEAD_PERCENT}%; each co-author gets at least ${MIN_CO_PERCENT}%.` },
-  { t: "They accept", d: "Each invitee sees their share on their Co-author invites page (and in the bell) and accepts or declines. Nobody is listed without saying yes." },
+  { t: "Invite & set shares", d: `Pro and Business publishers can invite up to ${MAX_CO_AUTHORS} members by username and set each one's % of the post's earnings. You keep at least ${MIN_LEAD_PERCENT}%; each co-author gets at least ${MIN_CO_PERCENT}%.` },
+  { t: "They accept", d: "Each invitee sees their share on their Co-author invites page (and in the bell) and accepts or declines. Anyone can be invited, but accepting needs a publishing account — a Free Standard member applies for Free Basic first. Nobody is listed without saying yes." },
   { t: "Publish — split locks", d: "The byline reads “with …”, the post shows on every co-author's profile, and the agreed split can no longer change. Invites still waiting at publish time expire." },
 ];
 
 const FAQ = [
-  { q: "Who can I invite?", a: "Any #NotesApp member in good standing. They don't need a paid plan to be listed as a co-author." },
+  { q: "What do co-authors actually get?", a: "Credit on the byline and on their own profile, and a share of what the post earns: gifts sent on the post are split between its authors in the agreed percentages today (each portion paid like any gift, minus that author's own plan commission), and the ad share on the post is split the same way once ad-share payouts launch. Sessions stay personal — see below." },
+  { q: "Who can lead a co-authored post?", a: "Pro, Business and Enterprise publishers. Co-authoring is how a bigger publisher brings in contributors and pays them fairly." },
+  { q: "Who can I invite? Do they need a paid plan?", a: "Anyone with an account. They don't need a paid plan — but to accept, they need a publishing account (Free Basic or above), because their share is paid out to a publisher. A Free Standard member applies for Free Basic first, which is free." },
+  { q: "What about booking sessions?", a: "Sessions are personal services, not post earnings. Each author keeps their own calendar, price and payout, and a co-authored post shows a “book a session” link for every author. Nothing about a session is split." },
   { q: "Who can edit the post?", a: "The lead author. Co-authors are credited and share earnings but don't edit the draft." },
   { q: "Can the split change after publishing?", a: "No. It's fixed when the post goes live, so nobody can be surprised later." },
-  { q: "How is the money shared?", a: "Where a post's earnings are shared — ad share, once ad-share payouts launch — they're divided in the agreed percentages, and each author's portion is subject to their own plan's rate. Until per-post sharing is live, gifts on a post are paid to the lead author, who settles any agreement with co-authors. See our Terms (5c)." },
   { q: "What if someone declines or I change my mind?", a: "A declined invite just frees the slot. You can withdraw a pending or accepted invite any time before you publish." },
 ];
 
@@ -29,8 +31,8 @@ export default function CoauthoringPage() {
       <span className="eyebrow">Product</span>
       <h1 className="mt-4 font-display text-4xl text-ink sm:text-5xl">Write together. Share the credit — and the earnings.</h1>
       <p className="mt-5 max-w-2xl text-lg text-slate">
-        Co-author a post with other members, agree up front who gets what share of what it earns, and share the byline. Consent is
-        built in: everyone accepts before they&apos;re listed, and the split locks when you publish.
+        Pro and Business publishers can co-author a post with other members, agree up front who gets what share of what it earns, and
+        share the byline. Consent is built in: everyone accepts before they&apos;re listed, and the split locks when you publish.
       </p>
 
       <div className="mt-12 grid grid-cols-1 gap-6 sm:grid-cols-2">

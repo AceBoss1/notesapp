@@ -245,3 +245,16 @@ test("ad creatives are admin-only", async () => {
   await assertSucceeds(setDoc(doc(as("boss", { admin: true }), "adCreatives/a1"), { title: "x", active: true }));
   await assertFails(updateDoc(doc(as("alice"), "users/alice"), { adsOptIn: true }));
 });
+
+test("ad stats are server-written; publishers read only their own totals", async () => {
+  await env.withSecurityRulesDisabled(async (ctx) => {
+    const d = ctx.firestore();
+    await setDoc(doc(d, "adPublisherStats/pub_20261001"), { publisherUid: "pub", day: "20261001", impressions: 3 });
+    await setDoc(doc(d, "adStats/a_20261001"), { adId: "a", impressions: 3 });
+  });
+  await assertSucceeds(getDoc(doc(as("pub"), "adPublisherStats/pub_20261001")));
+  await assertFails(getDoc(doc(as("alice"), "adPublisherStats/pub_20261001")));
+  await assertFails(setDoc(doc(as("pub"), "adPublisherStats/pub_20261002"), { publisherUid: "pub", impressions: 999999 }));
+  await assertFails(getDoc(doc(as("pub"), "adStats/a_20261001")));
+  await assertSucceeds(getDoc(doc(as("boss", { admin: true }), "adStats/a_20261001")));
+});

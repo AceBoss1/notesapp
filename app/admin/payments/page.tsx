@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { collection, getDocs, orderBy, query, where } from "firebase/firestore";
+import { collection, getDocs, limit, orderBy, query, where } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { useAdminAuth } from "@/lib/useAdminAuth";
 import { formatNaira } from "@/lib/booking-time";
@@ -12,6 +12,8 @@ export default function AdminPaymentsPage() {
   const [ledger, setLedger] = useState<LedgerEntry[] | null>(null);
   const [conflicts, setConflicts] = useState<PaymentRecord[]>([]);
   const [boosts, setBoosts] = useState<Record<string, any>[]>([]);
+  const [all, setAll] = useState<PaymentRecord[] | null>(null);
+  const [kindFilter, setKindFilter] = useState("");
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState("");
 
@@ -23,6 +25,7 @@ export default function AdminPaymentsPage() {
     setLedger(l.docs.map((d) => d.data() as LedgerEntry));
     getDocs(query(collection(db, "boosts"), orderBy("createdAt", "desc"))).then((b) => setBoosts(b.docs.map((d) => d.data()))).catch(() => {});
     setConflicts(c.docs.map((d) => d.data() as PaymentRecord));
+    getDocs(query(collection(db, "payments"), orderBy("createdAt", "desc"), limit(300))).then((p) => setAll(p.docs.map((d) => d.data() as PaymentRecord))).catch(() => setAll([]));
   }
 
   useEffect(() => {
@@ -84,7 +87,7 @@ export default function AdminPaymentsPage() {
                 <tr key={l.reference}>
                   <td className="py-2">{l.createdAt.slice(0, 10)}</td>
                   <td>@{l.publisherUsername}</td>
-                  <td>{l.kind}</td>
+                  <td>{l.kind}{l.sharePercent ? ` · ${l.sharePercent}% share` : ""}</td>
                   <td>{formatNaira(l.grossKobo)}</td>
                   <td>{formatNaira(l.netKobo)}</td>
                   <td>{l.status.replace("_", " ")}{l.failureReason ? ` — ${l.failureReason}` : ""}</td>
@@ -100,6 +103,35 @@ export default function AdminPaymentsPage() {
           </tbody>
         </table>
         {ledger && ledger.length === 0 && <p className="mt-6 text-sm text-slate">No payments yet.</p>}
+      </div>
+
+      <h2 className="mt-12 font-display text-2xl">All payments</h2>
+      <p className="mt-1 text-sm text-slate">Every checkout across all products (latest 300). “pending” means the buyer started a payment that was never confirmed — check Paystack.</p>
+      <div className="mt-3 flex flex-wrap gap-2">
+        {["", "booking", "subscription", "gift", "boost", "tier", "badge", "gold", "gold_deposit", "merch"].map((k) => (
+          <button key={k || "all"} onClick={() => setKindFilter(k)} className={`rounded-full border px-3 py-1 text-xs ${kindFilter === k ? "border-crimson bg-crimson text-paper" : "border-rule text-ink"}`}>{k || "all"}</button>
+        ))}
+      </div>
+      <div className="mt-4 overflow-x-auto">
+        <table className="w-full text-left text-sm">
+          <thead className="text-xs uppercase text-slate">
+            <tr><th className="py-2">Date</th><th>Product</th><th>Payer</th><th>Amount</th><th>Status</th><th>Reference</th></tr>
+          </thead>
+          <tbody className="divide-y divide-rule">
+            {(all || []).filter((p) => !kindFilter || p.kind === kindFilter).map((p) => (
+              <tr key={p.reference}>
+                <td className="py-2">{(p.paidAt || p.createdAt || "").slice(0, 10)}</td>
+                <td>{p.kind}</td>
+                <td className="max-w-[180px] truncate">{p.email}</td>
+                <td>{formatNaira(p.amountKobo)}</td>
+                <td className={p.status === "paid" ? "text-green-700" : p.status === "pending" ? "text-amber-700" : ""}>{p.status.replace("_", " ")}</td>
+                <td className="font-mono text-[11px] text-slate">{p.reference}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+        {all === null && <p className="mt-4 text-sm text-slate">Loading…</p>}
+        {all && all.length === 0 && <p className="mt-4 text-sm text-slate">No payments yet.</p>}
       </div>
 
       <h2 className="mt-12 font-display text-2xl">Boosts</h2>

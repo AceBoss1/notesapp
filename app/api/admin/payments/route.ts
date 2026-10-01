@@ -17,8 +17,12 @@ export async function POST(req: NextRequest) {
 
     const db = getAdminDb();
     const ledgerRef = db.doc(`ledger/${reference}`);
-    const payRef = db.doc(`payments/${reference}`);
-    const [ledgerSnap, paySnap] = await Promise.all([ledgerRef.get(), payRef.get()]);
+    const ledgerSnap = await ledgerRef.get();
+    // A co-author's share of a gift has its own ledger doc (`<ref>_<uid>`); the
+    // payment it came from is named by paymentReference.
+    const paymentRef = (ledgerSnap.data()?.paymentReference as string | undefined) || reference;
+    const payRef = db.doc(`payments/${paymentRef}`);
+    const paySnap = await payRef.get();
     if (!paySnap.exists) return NextResponse.json({ error: "Unknown payment" }, { status: 404 });
 
     // Boost that ended with impressions undelivered → refund the undelivered share.
@@ -39,26 +43,31 @@ export async function POST(req: NextRequest) {
     const ledger = ledgerSnap.data() as LedgerEntry | undefined;
 
     if (action === "refund") {
-      if (ledger && (ledger.status === "paid_out" || ledger.status === "transferring")) {
-        return NextResponse.json({ error: "Already paid out — refund would come out of platform funds; handle in Paystack manually." }, { status: 409 });
+      // Refunding returns the WHOLE payment, so every ledger entry from it (the
+      // lead's plus any co-author shares) must still be unpaid.
+      const entries = [paymentRef, ...(await db.collection("ledger").where("paymentReference", "==", paymentRef).get()).docs.map((d) => d.id)];
+      const entrySnaps = await Promise.all(entries.map((id) => db.doc(`ledger/${id}`).get()));
+      const existing = entrySnaps.filter((e) => e.exists);
+      if (existing.some((e) => ["paid_out", "transferring"].includes(e.data()?.status))) {
+        return NextResponse.json({ error: "Already (partly) paid out — a refund would come out of platform funds; handle in Paystack manually." }, { status: 409 });
       }
-      if (ledger?.status === "refunded" || paySnap.data()?.status === "refunded") {
+      if (existing.some((e) => e.data()?.status === "refunded") || paySnap.data()?.status === "refunded") {
         return NextResponse.json({ error: "Already refunded." }, { status: 409 });
       }
       if (paySnap.data()?.kind === "merch") {
-        const o = (await db.doc(`merchOrders/${reference}`).get()).data();
+        const o = (await db.doc(`merchOrders/${paymentRef}`).get()).data();
         if (o && ["printed", "shipped", "delivered"].includes(o.status)) {
           return NextResponse.json({ error: `This order is already ${o.status} — refund in Paystack manually if needed.` }, { status: 409 });
         }
       }
-      await refundTransaction(reference);
+      await refundTransaction(paymentRef);
       const batch = db.batch();
       batch.update(payRef, { status: "refunded" });
-      if (ledger) batch.update(ledgerRef, { status: "refunded" });
-      if (paySnap.data()?.kind === "merch") batch.update(db.doc(`merchOrders/${reference}`), { status: "refunded" });
+      existing.forEach((e) => batch.update(e.ref, { status: "refunded" }));
+      if (paySnap.data()?.kind === "merch") batch.update(db.doc(`merchOrders/${paymentRef}`), { status: "refunded" });
       const b = paySnap.data()?.booking;
       if (b && paySnap.data()?.status === "paid") {
-        batch.update(db.doc(`bookings/${reference}`), { status: "refunded" });
+        batch.update(db.doc(`bookings/${paymentRef}`), { status: "refunded" });
         batch.delete(db.doc(`slotLocks/${slotLockId(b.username, b.date, b.slot)}`));
       }
       await batch.commit();

@@ -85,6 +85,9 @@ export default function RoadmapPage() {
           Free journals carry ads with no revenue share; Pro and
           Business tiers get 25% and 45% respectively, from day one of
           opting in — no follower or view threshold to clear first.
+          NotesApp banners, ad tracking (unique views and clicks per publisher) and
+          co-author gift splits are built; ad-share payouts follow, with fraud review and a
+          payout hold, alongside Google ads on the web and AdMob in the mobile apps.
         </p>
         <Link
           href="/advertise"

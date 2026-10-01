@@ -34,3 +34,15 @@ export const inviteId = (noteId: string, inviteeUid: string) => `${noteId}_${inv
 export function leadPercent(invites: Pick<CoAuthorInvite, "percent" | "status">[]): number {
   return 100 - invites.filter((i) => i.status === "pending" || i.status === "accepted").reduce((s, i) => s + i.percent, 0);
 }
+
+// Who may LEAD a co-authored post (invite co-authors, set the split): Pro,
+// Business and Enterprise publishers, and admins.
+export function canLeadCoAuthors(p: { accountTier?: string; role?: string } | null | undefined): boolean {
+  return !!p && (p.role === "admin" || p.accountTier === "pro" || p.accountTier === "business" || p.accountTier === "enterprise");
+}
+
+// Anyone can be INVITED, but accepting needs a publishing account (Free Basic
+// or above, or staff/volunteer) because the share is paid out to a publisher.
+export function canAcceptCoAuthor(p: { accountTier?: string; role?: string } | null | undefined): boolean {
+  return !!p && (p.role !== "reader" || p.accountTier !== "standard");
+}

@@ -1469,6 +1469,39 @@ if re-run (don't). `consent` on user docs is still public (version + timestamp o
   summary of the same.
 - **Roadmap:** iOS and Android apps added (push notifications, in-app Paystack,
   offline drafts, AdMob and other app ad networks, PWA after the phone apps).
+- **Co-authoring rules (updated).** Lead must be Pro/Business/Enterprise (or admin)
+  — `canLeadCoAuthors` in `lib/coauthors.ts`, enforced in `/api/coauthors`; anyone
+  can be invited but *accepting* needs `canAcceptCoAuthor` (publishing account).
+  The composer shows a "Write this with co-authors" option on new posts (saves a
+  draft, then opens the panel) and the panel on drafts; non-Pro leads see an
+  upsell. **Gifts on a co-authored post are now split** in `lib/payments.ts`
+  (`giftShares`): one ledger entry per author (`ledger/<ref>` for the lead,
+  `ledger/<ref>_<uid>` for co-authors, with `paymentReference` + `sharePercent`),
+  each at that author's own plan commission, lead keeps the rounding remainder,
+  co-authors get a notification; admin refund returns the whole payment and needs
+  every entry unpaid. Sessions are NOT split (personal; each author keeps their
+  own calendar). Co-author gift splits go through the existing 7-day hold and
+  payout flow, so co-authors need a payout account.
+- **Ad tracking.** `POST /api/ads/track` (impression once per ad per tab-session
+  when ≥50% visible; click on tap) → daily aggregates `adStats/{ad}_{YYYYMMDD}` and,
+  on publisher-scoped slots, `adPublisherStats/{publisherUid}_{day}` (the base for
+  ad-share; opted-in publishers see their last-30-day totals on
+  `/profile/publishing`; admin sees per-ad views/clicks/CTR on `/admin/ads`).
+  Bots are skipped by user-agent and the endpoint is rate-limited, but counts are
+  NOT fraud-proof — add filtering before paying anyone from them. Ad-share
+  payouts and the revenue ledger for ads are still to build.
+- **Ad fraud controls (built) and what's still needed before paying ad-share.**
+  Built: unique-per-visitor counting (`adSeen/{hash}`, salted hash of IP+UA — set
+  `AD_HASH_SALT` in Vercel and a **Firestore TTL policy on `adSeen.expireAt`**), a
+  click only counts after that visitor's view, bot user-agents skipped, rate limit,
+  and an admin "Ad-share review" table on `/admin/ads` flagging more-clicks-than-
+  views, >15% click rate, and one-day spikes. NOT built (do before any payout):
+  hold ad-share ~30 days with manual approval, minimum payout, exclude the
+  publisher's own traffic (needs verified viewer ids), Cloudflare Turnstile on
+  suspicious traffic, and clawback terms in the Terms. Ad-share payouts and the ad
+  revenue ledger are the remaining build.
+- **Admin Payments** now lists **all payments** (every product, latest 300,
+  filterable; `pending` = started but never confirmed) above the payout ledger.
 - Header now shows the member's avatar (links to their profile) after the bell.
 
 ## Member journey — what people see and where they change things

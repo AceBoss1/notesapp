@@ -1,6 +1,8 @@
 "use client";
 
 import CoAuthorsPanel from "@/components/CoAuthorsPanel";
+import { canLeadCoAuthors } from "@/lib/coauthors";
+import Link from "next/link";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
@@ -74,6 +76,7 @@ export default function NoteForm({ noteId, initial, self }: Props) {
   );
   const [premium, setPremium] = useState(initial?.premium || false);
   const [boostAfter, setBoostAfter] = useState(false);
+  const [coOpen, setCoOpen] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
@@ -98,8 +101,9 @@ export default function NoteForm({ noteId, initial, self }: Props) {
     }
   }
 
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
+  // Saves the entry (optionally forcing draft). Returns the note id, or null if
+  // validation/saving failed (the error is shown on the form).
+  async function persist(forceDraft = false): Promise<string | null> {
     setSaving(true);
     setError("");
     const author = self
@@ -110,7 +114,7 @@ export default function NoteForm({ noteId, initial, self }: Props) {
       if (await slugTaken(finalSlug, noteId)) {
         setError("Another entry already uses that URL — change the slug.");
         setSaving(false);
-        return;
+        return null;
       }
     } catch {
       /* if the check itself fails, let the save decide */
@@ -133,7 +137,7 @@ export default function NoteForm({ noteId, initial, self }: Props) {
       author_role: author.role,
       author_avatar: author.avatar,
       ...(self ? { authorUid: self.uid, authorUsername: self.username } : {}),
-      status,
+      status: forceDraft ? ("draft" as const) : status,
       premium,
     };
     try {
@@ -146,15 +150,34 @@ export default function NoteForm({ noteId, initial, self }: Props) {
       try {
         localStorage.removeItem(`notesapp:draft:${noteId || "new"}`);
       } catch {}
-      // Boosting is a paid step of its own — hand off to the package picker.
-      router.push(boostAfter && status === "published" && savedId ? `/boost/${savedId}` : self ? "/write" : "/admin/journals");
+      return savedId ?? null;
     } catch (err) {
       setError(err instanceof Error ? err.message : "Save failed");
       setSaving(false);
+      return null;
     }
   }
 
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    const savedId = await persist();
+    if (savedId === null) return;
+    // Boosting is a paid step of its own — hand off to the package picker.
+    router.push(boostAfter && status === "published" && savedId ? `/boost/${savedId}` : self ? "/write" : "/admin/journals");
+  }
+
+  // Co-authors need a saved draft to be invited to: save, then reopen it in the editor.
+  async function saveDraftForCoAuthors() {
+    if (!title.trim()) {
+      setError("Add a title first, then save the draft to invite co-authors.");
+      return;
+    }
+    const savedId = await persist(true);
+    if (savedId) router.push(`/write/${savedId}/edit`);
+  }
+
   return (
+    <>
     <form onSubmit={handleSubmit} className="grid gap-6 max-w-3xl">
       <label className="block">
         <span className="eyebrow">Title</span>
@@ -300,9 +323,38 @@ export default function NoteForm({ noteId, initial, self }: Props) {
           {saving ? "Saving…" : noteId ? "Save Changes" : "Publish / Save Draft"}
         </button>
       </div>
-      {noteId && self && initial?.authorUid === self.uid && initial?.status !== "published" && (
-        <CoAuthorsPanel noteId={noteId} leadUid={self.uid} />
-      )}
     </form>
+
+    {self && (
+      <div className="mt-8 max-w-3xl">
+        {!canLeadCoAuthors(self) ? (
+          <div className="card p-5">
+            <p className="eyebrow">Co-authors</p>
+            <p className="mt-2 text-sm text-slate">
+              Inviting co-authors and sharing a post&apos;s earnings is a Pro and Business feature.{" "}
+              <Link href="/pricing" className="text-crimson underline">See plans</Link> · <Link href="/coauthoring" className="text-crimson underline">How it works</Link>
+            </p>
+          </div>
+        ) : noteId && initial?.authorUid === self.uid && initial?.status !== "published" ? (
+          <CoAuthorsPanel noteId={noteId} leadUid={self.uid} />
+        ) : !noteId ? (
+          <div className="card p-5">
+            <label className="flex items-center gap-3">
+              <input type="checkbox" checked={coOpen} onChange={(e) => setCoOpen(e.target.checked)} />
+              <span className="eyebrow">Write this with co-authors</span>
+            </label>
+            {coOpen && (
+              <div className="mt-3 text-sm text-slate">
+                <p>Invite members and agree each person&apos;s share of what the post earns. Co-authors can only be invited to a saved draft.</p>
+                <button type="button" onClick={saveDraftForCoAuthors} disabled={saving} className="btn-primary mt-3 !px-4 !py-2 text-xs disabled:opacity-50">
+                  {saving ? "Saving…" : "Save draft & invite co-authors"}
+                </button>
+              </div>
+            )}
+          </div>
+        ) : null}
+      </div>
+    )}
+    </>
   );
 }
