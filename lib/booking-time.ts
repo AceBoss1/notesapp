@@ -61,5 +61,5 @@ export const LIMITS = {
   subscriptionMinKobo: 1_000 * 100,
   subscriptionMaxKobo: 100_000 * 100,
   sessionMinutes: [15, 30, 45, 60, 90, 120],
-  maxSlotsPerDay: 12,
+  maxSlotsPerDay: 30, // every half-hour start the editor offers (06:00–20:30)
 };
