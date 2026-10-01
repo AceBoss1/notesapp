@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { PutObjectCommand } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import { getR2Client, R2_BUCKET, r2PublicUrl } from "@/lib/r2";
-import { verifyPublisherRequest, verifyAvatarUploadRequest } from "@/lib/firebase-admin";
+import { verifyPublisherRequest, verifyAvatarUploadRequest, verifySignedInRequest } from "@/lib/firebase-admin";
 import { rateLimit } from "@/lib/rate-limit";
 import { ALLOWED_TYPES, maxUploadBytes } from "@/lib/upload-rules";
 
@@ -24,9 +24,16 @@ export async function POST(req: NextRequest) {
     const idToken = authHeader?.replace(/^Bearer\s+/i, "");
     const { filename, contentType, purpose, size } = await req.json();
     const isAvatar = purpose === "avatar";
-    const uid = isAvatar
-      ? await verifyAvatarUploadRequest(idToken)
-      : await verifyPublisherRequest(idToken);
+    const isAd = purpose === "ad"; // advertiser creative: any verified member, image only, small
+    const uid = isAd
+      ? await (async () => {
+          const me = await verifySignedInRequest(idToken);
+          if (!me.emailVerified) throw new Error("Verify your email first");
+          return verifyAvatarUploadRequest(idToken);
+        })()
+      : isAvatar
+        ? await verifyAvatarUploadRequest(idToken)
+        : await verifyPublisherRequest(idToken);
     const limited = rateLimit(req, "upload", uid, 30, 600);
     if (limited) return limited;
     if (!filename || !contentType) {
@@ -36,14 +43,14 @@ export async function POST(req: NextRequest) {
     if (!kind) {
       return NextResponse.json({ error: "Unsupported file type. Use JPEG, PNG, WebP, GIF or AVIF images." }, { status: 400 });
     }
-    if (isAvatar && kind !== "image") {
+    if ((isAvatar || isAd) && kind !== "image") {
       return NextResponse.json({ error: "Avatars must be images" }, { status: 400 });
     }
-    if (!Number.isInteger(size) || size <= 0 || size > maxUploadBytes(kind, isAvatar)) {
+    if (!Number.isInteger(size) || size <= 0 || size > maxUploadBytes(kind, isAvatar || isAd)) {
       return NextResponse.json({ error: "File is too large." }, { status: 413 });
     }
 
-    const key = `${isAvatar ? `avatars/${uid}` : "journals"}/${Date.now()}-${filename.replace(/[^a-zA-Z0-9._-]/g, "_")}`;
+    const key = `${isAd ? `ads/${uid}` : isAvatar ? `avatars/${uid}` : "journals"}/${Date.now()}-${filename.replace(/[^a-zA-Z0-9._-]/g, "_")}`;
     const client = getR2Client();
     const command = new PutObjectCommand({
       Bucket: R2_BUCKET,

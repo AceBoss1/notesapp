@@ -1583,3 +1583,15 @@ if re-run (don't). `consent` on user docs is still public (version + timestamp o
 - **Known gap:** `notes` documents (drafts included) are publicly readable by
   the rules — a draft's text is visible to anyone using the client SDK. Fix by
   serving drafts only through an owner-only path (next task).
+
+## Advertiser campaigns (self-serve banners)
+
+Anyone with a verified account buys a banner campaign at `/advertise/new` (packages in `lib/ad-packages.ts` — **placeholder prices, edit there**). Flow:
+
+1. Checkout (`kind: "ad"`) writes `adCampaigns/{reference}` (awaiting_payment) + `payments/{reference}`; the image must be uploaded via the `"ad"` upload purpose.
+2. Paystack confirmation (webhook or verify) moves it to `in_review`.
+3. `/admin/ads` → **Paid campaigns**: Approve (creates `adCreatives/{id}` with an impression budget + end date, and records `adRevenue/campaign_{id}`) or Reject (full Paystack refund + reason emailed).
+4. Delivery stops automatically when the budget of validated impressions is reached or the window closes (`lib/ads-server.ts`). Admin then runs **Settle & refund undelivered** for a pro-rata refund (negative `adRevenue` entry keeps revenue accurate).
+5. Advertisers track delivery at `/advertise/campaigns`. Terms 5e covers the rules.
+
+Deploy `firestore.rules` (new `adCampaigns` rule). Not covered: Google/Meta/AdMob slots.

@@ -13,7 +13,7 @@ import { periodEndFrom, cancelBadgeIfCovered } from "./tier-billing";
 
 export type PaymentRecord = {
   reference: string;
-  kind: "booking" | "subscription" | "boost" | "gift" | "tier" | "badge" | "gold_deposit" | "gold" | "merch";
+  kind: "booking" | "subscription" | "boost" | "gift" | "tier" | "badge" | "gold_deposit" | "gold" | "merch" | "ad";
   uid: string; // the payer
   email: string;
   amountKobo: number;
@@ -26,6 +26,7 @@ export type PaymentRecord = {
   boost?: { noteId: string; packageId: string };
   tier?: { tier: "pro" | "business"; interval: "monthly" | "annually"; planCode: string };
   badge?: { planCode: string };
+  ad?: { campaignId: string; packageId: string };
   merch?: {
     itemId: string;
     itemName: string;
@@ -237,6 +238,10 @@ export async function fulfillPayment(reference: string): Promise<PaymentRecord> 
         status: "preordered",
         createdAt: now,
       });
+    } else if (current.kind === "ad" && current.ad) {
+      // Paid campaign enters the admin review queue. It is NOT revenue yet — the ad
+      // revenue entry is created when an admin approves it (a rejection refunds it).
+      t.update(db.doc(`adCampaigns/${current.ad.campaignId}`), { status: "in_review", paidAt: now });
     } else if (current.kind === "gold_deposit" && current.gold) {
       // Non-refundable identity-check deposit: platform revenue, moves the
       // application into admin review.
@@ -385,6 +390,14 @@ async function notifyPaid(p: PaymentRecord) {
       to: p.email,
       subject: "Your #NotesApp verified badge is active",
       text: `The ✔ now shows next to your name (${formatNaira(p.amountKobo)}/month, renews automatically). Cancel any time under Edit profile — you keep the badge until the period ends.\nReference: ${p.reference}\n\n#NotesApp`,
+    });
+    return;
+  }
+  if (p.kind === "ad" && p.ad) {
+    await sendEmail({
+      to: p.email,
+      subject: "Your #NotesApp ad campaign is in review",
+      text: `Thanks — we received ${formatNaira(p.amountKobo)} for your ad campaign. We review every ad before it goes live (usually within a day). If we can't run it you'll get a full refund. Track it any time at ${process.env.NEXT_PUBLIC_SITE_URL || "https://www.notesapp.name.ng"}/advertise/campaigns.\nReference: ${p.reference}\n\n#NotesApp`,
     });
     return;
   }

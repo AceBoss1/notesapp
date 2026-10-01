@@ -6,15 +6,15 @@ import { ALLOWED_TYPES, looksLikeImage, maxUploadBytes } from "./upload-rules";
 // the file straight to R2 from the browser — matches the R2 bucket
 // this project now owns independently, not Precheks' shared
 // Cloudinary account.
-export async function uploadToR2(file: File, purpose: "journal" | "avatar" = "journal"): Promise<string> {
+export async function uploadToR2(file: File, purpose: "journal" | "avatar" | "ad" = "journal"): Promise<string> {
   const user = auth.currentUser;
   if (!user) {
     throw new Error("You must be signed in to upload a file.");
   }
   const kind = ALLOWED_TYPES[file.type];
   if (!kind) throw new Error("Unsupported file type. Use a JPEG, PNG, WebP, GIF or AVIF image.");
-  if (file.size > maxUploadBytes(kind, purpose === "avatar")) {
-    throw new Error(`File is too large (max ${Math.round(maxUploadBytes(kind, purpose === "avatar") / 1048576)} MB).`);
+  if (file.size > maxUploadBytes(kind, purpose !== "journal")) {
+    throw new Error(`File is too large (max ${Math.round(maxUploadBytes(kind, purpose !== "journal") / 1048576)} MB).`);
   }
   if (kind === "image" && !(await looksLikeImage(file))) {
     throw new Error("That file isn't a valid image.");
