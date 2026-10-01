@@ -113,7 +113,7 @@ export async function fulfillTierRenewal(data: {
     const bb = db.batch();
     bb.update(doc.ref, { status: "active", currentPeriodEnd: end });
     bb.set(db.doc(`users/${b.uid}`), isGold ? { goldUntil: end } : { badgeUntil: end }, { merge: true });
-    bb.set(seen, { reference: data.reference, uid: b.uid, amountKobo: pricePaidKobo(tx), at: new Date().toISOString() });
+    bb.set(seen, { reference: data.reference, uid: b.uid, kind: isGold ? "gold" : "badge", amountKobo: pricePaidKobo(tx), at: new Date().toISOString() });
     await bb.commit();
     return true;
   }
@@ -122,7 +122,7 @@ export async function fulfillTierRenewal(data: {
   const batch = db.batch();
   batch.update(doc.ref, { status: "active", currentPeriodEnd: periodEndFrom(base, sub.interval) });
   batch.update(db.doc(`users/${sub.uid}`), { accountTier: sub.tier });
-  batch.set(seen, { reference: data.reference, uid: sub.uid, amountKobo: pricePaidKobo(tx), at: new Date().toISOString() });
+  batch.set(seen, { reference: data.reference, uid: sub.uid, kind: "tier", amountKobo: pricePaidKobo(tx), at: new Date().toISOString() });
   await batch.commit();
   return true;
 }

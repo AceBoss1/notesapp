@@ -12,6 +12,7 @@ const LINKS = [
   { href: "/admin/journals", label: "Journals" },
   { href: "/admin/notes", label: "Notes" },
   { href: "/admin/users", label: "Users" },
+  { href: "/admin/revenue", label: "Revenue" },
   { href: "/admin/payments", label: "Payments" },
   { href: "/admin/merch", label: "Merch" },
   { href: "/admin/ads", label: "Ads" },

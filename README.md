@@ -1453,6 +1453,22 @@ if re-run (don't). `consent` on user docs is still public (version + timestamp o
   needs its own approval; Google needs `ads.txt`; personalised ads need a consent
   banner first (our privacy page currently says we use only essential storage);
   update the Privacy Policy when a network goes live. Redeploy `firestore.rules`.
+- **Revenue analytics (admin).** `/admin/revenue` (Revenue in the admin nav) ←
+  `GET /api/admin/revenue?days=7|30|90|365|0`, built on `lib/revenue.ts`, which
+  defines what counts as platform revenue: commission only for sessions,
+  subscriptions and gifts (ledger `commissionKobo`); 100% for boosts (minus
+  undelivered-impression refunds), Pro/Business plans, verified badges, gold
+  (deposits + monthly), merch; refunded payments excluded; Paystack fees (customer-
+  borne) and merch cost of goods NOT deducted. Plan/badge/gold **renewals** come
+  from `tierCharges` (now stamped with `kind`; older records without it count as
+  plans). Raw data is cached 2 min server-side. **Ads** has a row marked "not live
+  yet" — there's no ad accounting until ad-share/tracking is built.
+- **Boost performance (publishers).** `/profile/boosts` (menu: "Boost performance"):
+  totals, active vs ended, delivered/purchased progress, clicks, click rate, 14-day
+  impressions chart, days left, refunds. `/profile/publishing` shows a compact
+  summary of the same.
+- **Roadmap:** iOS and Android apps added (push notifications, in-app Paystack,
+  offline drafts, AdMob and other app ad networks, PWA after the phone apps).
 - Header now shows the member's avatar (links to their profile) after the bell.
 
 ## Member journey — what people see and where they change things

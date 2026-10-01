@@ -36,6 +36,13 @@ const ITEMS = [
       "Remaining work: automatic confirmation of identity-check results from Dojah (today an admin reads them in Dojah's dashboard and approves), and notifications when an application is decided.",
   },
   {
+    title: "Mobile apps — iOS and Android",
+    tag: "Apps",
+    body: "#NotesApp isn't complete until it runs as a real app on the devices people use: native-feeling iOS and Android apps for reading, publishing, booking sessions, getting paid, and managing your journal from your phone.",
+    detail:
+      "Planned with the apps: push notifications (bookings, reminders, gifts, new posts), in-app payments through Paystack, offline drafts, and — for ads — Google AdMob and other app ad networks, which only run inside mobile apps and sit alongside the NotesApp banners labelled \"Sponsored\". Tablet and desktop-installable (PWA) versions follow the phone apps.",
+  },
+  {
     title: "Trust, safety & account basics",
     tag: "Foundations",
     body: "The unglamorous pieces that real money needs: password reset and email verification, a bookings dashboard for both sides, a clear cancellation and refund policy, and terms and privacy consent before payment.",

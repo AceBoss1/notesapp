@@ -87,7 +87,8 @@ export default function AdvertisePage() {
           Banners rotate across #NotesApp — the home, Journals and Trending pages, and on publisher profiles and at the end of posts.
           Free journals always carry them; Pro and Business publishers choose whether to show them (and earn their share if they do).
           Every ad is labelled with who it&apos;s from — <strong>Sponsored: NotesApp Ads</strong> for our own banners, and the
-          matching Google, Meta or AdMob label if and when those networks are switched on.
+          matching Google, Meta or AdMob label if and when those networks are switched on (AdMob arrives with our iOS and Android apps — see the{" "}
+          <Link href="/roadmap" className="text-crimson underline">roadmap</Link>).
         </p>
       </div>
 

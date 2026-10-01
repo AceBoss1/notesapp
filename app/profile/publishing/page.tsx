@@ -317,22 +317,28 @@ export default function PublishingSettingsPage() {
         {boosts.length === 0 ? (
           <p className="mt-3 text-sm text-slate">
             No boosts yet. <Link href="/boost" className="text-crimson underline">Boost a post</Link> to see its impressions and clicks here.
-            A boost appears only after its payment is confirmed — if you just paid and nothing shows, reopen the confirmation link from
-            your payment, or contact us with the payment reference.
           </p>
         ) : (
-          <ul className="mt-3 divide-y divide-rule text-sm">
-            {boosts.map((b) => (
-              <li key={b.reference} className="py-2">
-                <p className="text-ink">{b.title}</p>
-                <p className="text-xs text-slate">
-                  {b.impressionsDelivered.toLocaleString()} / {b.impressionsPurchased.toLocaleString()} impressions · {b.clicks} clicks ·{" "}
-                  {b.status === "active" && new Date(b.endsAt).getTime() > Date.now() ? `runs until ${String(b.endsAt).slice(0, 10)}` : b.status === "closed" && b.refundedKobo ? `ended · ${formatNaira(b.refundedKobo)} refunded for undelivered impressions` : "ended"}
-                </p>
-              </li>
-            ))}
-          </ul>
+          <>
+            <p className="mt-3 text-sm text-ink">
+              {boosts.filter((b) => b.status === "active" && new Date(b.endsAt).getTime() > Date.now() && b.impressionsDelivered < b.impressionsPurchased).length} active ·{" "}
+              {boosts.reduce((s, b) => s + b.impressionsDelivered, 0).toLocaleString()} impressions ·{" "}
+              {boosts.reduce((s, b) => s + b.clicks, 0).toLocaleString()} clicks
+            </p>
+            <ul className="mt-3 divide-y divide-rule text-sm">
+              {boosts.slice(0, 3).map((b) => (
+                <li key={b.reference} className="py-2">
+                  <p className="text-ink">{b.title}</p>
+                  <p className="text-xs text-slate">
+                    {b.impressionsDelivered.toLocaleString()} / {b.impressionsPurchased.toLocaleString()} impressions · {b.clicks} clicks ·{" "}
+                    {b.status === "active" && new Date(b.endsAt).getTime() > Date.now() ? `runs until ${String(b.endsAt).slice(0, 10)}` : "ended"}
+                  </p>
+                </li>
+              ))}
+            </ul>
+          </>
         )}
+        <Link href="/profile/boosts" className="mt-3 inline-block text-xs font-semibold text-crimson underline">Full boost performance →</Link>
       </div>
 
       <div className="card mt-10 p-6">

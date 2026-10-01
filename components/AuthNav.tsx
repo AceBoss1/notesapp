@@ -74,6 +74,7 @@ export default function AuthNav() {
             {profile && canPublish(profile) && <Link href="/invites" className={item}>Co-author invites</Link>}
             <Link href="/bookings" className={item}>Bookings</Link>
             <Link href="/boost" className={item}>Boost a post</Link>
+            <Link href="/profile/boosts" className={item}>Boost performance</Link>
             <Link href="/badges" className={item}>Verification badges</Link>
             <button onClick={() => signOut(auth)} className={`${item} w-full border-t border-rule`}>
               Sign out

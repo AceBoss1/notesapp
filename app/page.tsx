@@ -143,7 +143,7 @@ export default function Home() {
                 <li>WhatsApp reminders and clients rescheduling themselves</li>
 {GOLD_KIND_LIVE.identity ? null : <li>Identity-checked gold badge (NIN + face check for people, CAC for organisations)</li>}
                 <li>Enterprise plans (custom commission, contact us) and in-platform checkout for members' own merch</li>
-                <li>AI drafting, social publishing, video uploads, ad-share</li>
+                <li>iOS and Android apps, AI drafting, social publishing, video uploads, ad-share</li>
               </ul>
             </div>
           </div>

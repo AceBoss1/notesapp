@@ -104,7 +104,7 @@ function Confirm() {
         <>
           <p className="font-display text-2xl text-ink">Boost is live ✓</p>
           <p className="mt-3 text-sm text-slate">Your post now rotates in the Boosted slots on the home and Journals pages. Impressions are counted once a real visitor has seen it, spread over several days.</p>
-          <Link href="/profile/publishing" className="btn-primary mt-6 inline-block !px-5 !py-2 text-xs">
+          <Link href="/profile/boosts" className="btn-primary mt-6 inline-block !px-5 !py-2 text-xs">
             See boost results
           </Link>
         </>
