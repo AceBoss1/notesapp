@@ -1,5 +1,6 @@
-import { doc, getDoc, deleteDoc, collection, query, where, getCountFromServer } from "firebase/firestore";
+import { doc, getDoc, deleteDoc } from "firebase/firestore";
 import { db } from "./firebase";
+import { getJournalCounts } from "./journal-counts";
 
 // Paid, server-written records (see lib/payments.ts). A subscription
 // is active while currentPeriodEnd is in the future — that includes
@@ -32,7 +33,5 @@ export async function unsubscribeFromJournal(uid: string, username: string): Pro
 }
 
 export async function getSubscriberCount(username: string): Promise<number> {
-  const q = query(collection(db, SUBSCRIPTIONS), where("username", "==", username));
-  const snap = await getCountFromServer(q);
-  return snap.data().count;
+  return (await getJournalCounts(username)).subscribers;
 }
