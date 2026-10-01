@@ -54,7 +54,7 @@ export type LedgerEntry = {
   reference: string; // ledger doc id (the payment reference, or `<ref>_<uid>` for a co-author's share)
   paymentReference?: string; // the Paystack payment this entry belongs to (set on split entries)
   sharePercent?: number; // this author's % of a co-authored post's gift
-  kind: "booking" | "subscription" | "gift";
+  kind: "booking" | "subscription" | "gift" | "adshare";
   publisherUid: string;
   publisherUsername: string;
   payerUid: string;

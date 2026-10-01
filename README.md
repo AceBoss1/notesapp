@@ -1515,6 +1515,26 @@ if re-run (don't). `consent` on user docs is still public (version + timestamp o
      ttls update expireAt --collection-group=adSeen --enable-ttl
      --database='(default)' --project=notesapp-a1402`. Documents are removed
      within about a day of expiring; without a policy they just pile up (small).
+- **Ad-share payouts + ad revenue accounting (built).** `lib/ad-share.ts`,
+  `/api/admin/ad-share`, admin page **`/admin/ad-share`** (nav "Ad share").
+  Monthly flow: (1) admin records ad revenue actually *received* (`adRevenue`:
+  source, label, ₦, month); (2) **Compute statements**: RPM = revenue ÷ ALL valid
+  impressions that month (`adStats`); each opted-in paid publisher (Pro 25% /
+  Business 45% / Enterprise 75%, `users.adsOptIn`, not suspended) earns
+  impressions-on-their-pages × RPM × share → `adShareStatements/{month}_{uid}`
+  (`pending_review`, fraud flags attached; free journals earn nothing);
+  (3) admin **Approves / Withholds** (or "Approve all unflagged"); approval adds a
+  `ledger/adshare_<id>` entry (`kind: "adshare"`, no commission, held
+  `AD_SHARE_HOLD_DAYS`=30) released via Payments → Paystack transfer (webhook marks
+  the statement `paid`); (4) under `AD_SHARE_MIN_KOBO`=₦1,000 the statement
+  `rolled_over` and is added to the next approval (older one → `rolled_forward`).
+  Decided statements are locked and the month's revenue can't be removed.
+  Publishers see their statements on `/profile/publishing`. **Revenue report:** the
+  Ads row = revenue received − shares owed (pending/approved/rolled/paid), dated the
+  28th of the month. Redeploy `firestore.rules` (`adRevenue`, `adShareStatements`).
+  **Still manual / not built:** advertisers paying through the site (self-serve ad
+  checkout) — revenue is recorded by an admin when money arrives; third-party ad
+  networks; verified-viewer exclusion of a publisher's own traffic.
 - **Admin Payments** now lists **all payments** (every product, latest 300,
   filterable; `pending` = started but never confirmed) above the payout ledger.
 - Header now shows the member's avatar (links to their profile) after the bell.

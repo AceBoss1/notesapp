@@ -38,6 +38,10 @@ export async function POST(req: NextRequest) {
               ? { status: "paid_out" }
               : { status: "held", failureReason: `Transfer ${event.split(".")[1]}: ${data?.reason || "see Paystack"}` }
           );
+          // Ad-share payouts mirror their result onto the publisher's statement.
+          if (event === "transfer.success" && ref.startsWith("adshare_")) {
+            await db.doc(`adShareStatements/${ref.slice("adshare_".length)}`).update({ status: "paid" }).catch(() => {});
+          }
         }
       }
     }

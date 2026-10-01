@@ -300,6 +300,17 @@ service cloud.firestore {
       allow write: if false;
     }
 
+    // Ad revenue received (admin-recorded) and per-publisher monthly ad-share
+    // statements. Server-written; a publisher reads only their own statements.
+    match /adRevenue/{id} {
+      allow read: if isAdmin();
+      allow write: if false;
+    }
+    match /adShareStatements/{id} {
+      allow read: if isAdmin() || (isSignedIn() && resource.data.uid == request.auth.uid);
+      allow write: if false;
+    }
+
     // House ad creatives — admin only (the public reads them through /api/ads).
     match /adCreatives/{id} {
       allow read, write: if isAdmin();

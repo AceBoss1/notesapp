@@ -258,3 +258,16 @@ test("ad stats are server-written; publishers read only their own totals", async
   await assertFails(getDoc(doc(as("pub"), "adStats/a_20261001")));
   await assertSucceeds(getDoc(doc(as("boss", { admin: true }), "adStats/a_20261001")));
 });
+
+test("ad revenue is admin-only; publishers read only their own ad-share statements", async () => {
+  await env.withSecurityRulesDisabled(async (ctx) => {
+    const d = ctx.firestore();
+    await setDoc(doc(d, "adRevenue/r1"), { month: "2026-10", amountKobo: 100000 });
+    await setDoc(doc(d, "adShareStatements/2026-10_pub"), { uid: "pub", month: "2026-10", shareKobo: 5000, status: "pending_review" });
+  });
+  await assertFails(getDoc(doc(as("pub"), "adRevenue/r1")));
+  await assertSucceeds(getDoc(doc(as("boss", { admin: true }), "adRevenue/r1")));
+  await assertSucceeds(getDoc(doc(as("pub"), "adShareStatements/2026-10_pub")));
+  await assertFails(getDoc(doc(as("alice"), "adShareStatements/2026-10_pub")));
+  await assertFails(updateDoc(doc(as("pub"), "adShareStatements/2026-10_pub"), { shareKobo: 9999999, status: "approved" }));
+});

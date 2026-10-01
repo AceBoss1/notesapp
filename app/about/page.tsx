@@ -22,6 +22,9 @@ const LIVE = [
   { href: "/gifts", title: "Gifts", copy: "Readers can send you a gift on your profile or on any post." },
   { href: "/coauthoring", title: "Co-authoring", copy: "Write a post with other members, agree each person's share of its earnings, and share the byline." },
   { href: "/boost", title: "Boost", copy: "Promote a post and pay only for validated impressions." },
+  { href: "/badges", title: "Verification badges", copy: "A verified ✔ for accounts in good standing, and a gold ✔ for accounts we endorse or identity-check." },
+  { href: "/advertise", title: "Ads & ad share", copy: "NotesApp banners across the site; Pro and Business publishers can opt in and earn a share, paid monthly after review." },
+  { href: "/merchstore", title: "Merch store", copy: "Official #NotesApp merch with your choice of logo — pre-order in batches, delivered in Nigeria." },
   { href: "/trending", title: "Trending", copy: "The most visited publishers and posts on #NotesApp." },
 ];
 
@@ -84,9 +87,9 @@ export default async function AboutPage() {
           ))}
         </div>
         <p className="mt-4 text-sm text-slate">
-          Still to come: WhatsApp reminders, AI drafting and social
-          publishing, video, ad-share, and self-serve plan changes for
-          every tier — see the{" "}
+          Still to come: WhatsApp reminders, iOS and Android apps, AI
+          drafting and social publishing, video, and Google and Meta ads
+          alongside our own — see the{" "}
           <Link href="/roadmap" className="text-crimson underline underline-offset-2">roadmap</Link>.
         </p>
       </div>
@@ -101,7 +104,9 @@ export default async function AboutPage() {
             falls as you move up the tier ladder (from 35% on Free Basic
             to 15% on Business, negotiable on Enterprise). Boosts are
             priced by validated impressions with no commission. Pro and
-            Business are paid plans. Every number is on the{" "}
+            Business are paid plans; verification badges, gold and our own
+            merch are paid add-ons; and ads fund the ad share we pay opted-in
+            publishers. Every number is on the{" "}
             <Link href="/pricing" className="text-crimson underline">pricing page</Link>.
           </p>
         </div>
@@ -180,17 +185,27 @@ export default async function AboutPage() {
         <div>
           <p className="font-ui text-base font-bold text-ink">Follow along</p>
           <p className="mt-1 text-sm text-slate">
-            Company updates and build-in-public notes, on LinkedIn.
+            Company updates and build-in-public notes, on LinkedIn and Facebook.
           </p>
         </div>
-        <a
-          href={site.social.linkedin || "https://www.linkedin.com/company/na-notesapp"}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="btn-primary shrink-0"
-        >
-          linkedin.com/company/na-notesapp
-        </a>
+        <div className="flex shrink-0 flex-wrap gap-3">
+          <a
+            href={site.social.linkedin || "https://www.linkedin.com/company/na-notesapp"}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="btn-primary"
+          >
+            LinkedIn
+          </a>
+          <a
+            href={site.social.facebook || "https://web.facebook.com/na-notesapp"}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="btn-ghost"
+          >
+            Facebook
+          </a>
+        </div>
       </div>
     </div>
   );

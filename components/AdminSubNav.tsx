@@ -16,6 +16,7 @@ const LINKS = [
   { href: "/admin/payments", label: "Payments" },
   { href: "/admin/merch", label: "Merch" },
   { href: "/admin/ads", label: "Ads" },
+  { href: "/admin/ad-share", label: "Ad share" },
   { href: "/admin/leads", label: "Leads" },
   { href: "/admin/settings", label: "Settings" },
 ];

@@ -29,7 +29,7 @@ const ROWS: { label: string; href?: string; render: (t: (typeof TIERS)[number]) 
     label: "Ad revenue share",
     href: "/advertise",
     render: (t) =>
-      t.adRevenueShare === null ? "—" : t.adRevenueShare === 0 ? "0% (ads run, no share)" : `${(t.adRevenueShare * 100).toFixed(0)}% if you opt in to ads (payouts start with the ad program)`,
+      t.adRevenueShare === null ? "—" : t.adRevenueShare === 0 ? "0% (ads run, no share)" : `${(t.adRevenueShare * 100).toFixed(0)}% of the ad revenue on your pages if you opt in — paid monthly after review`,
   },
   {
     label: "Commission on sessions, subscriptions & gifts",
