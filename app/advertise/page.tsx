@@ -93,6 +93,15 @@ export default function AdvertisePage() {
       </div>
 
       <div className="card mt-6 p-6">
+        <p className="font-ui text-sm font-bold text-ink">Fair counting</p>
+        <p className="mt-2 text-sm text-slate">
+          Ad share is based on <strong>unique views and clicks by real visitors</strong>, not raw page loads: one view and one click per
+          visitor per ad per day, and a click only counts after that visitor has seen the ad. Payouts are held for a review period, and
+          share can be withheld for invalid activity (clicking your own ads, bots, paid clicks). See Terms 5d.
+        </p>
+      </div>
+
+      <div className="card mt-6 p-6">
         <p className="font-ui text-sm font-bold text-ink">Co-authored posts</p>
         <p className="mt-2 text-sm text-slate">
           When a post has co-authors, the ad share it earns is divided between its authors in the percentages the lead author

@@ -21,7 +21,16 @@ const ROWS: { label: string; render: (t: (typeof TIERS)[number]) => string }[] =
   {
     label: "Ad revenue share",
     render: (t) =>
-      t.adRevenueShare === null ? "—" : t.adRevenueShare === 0 ? "0% (ads run, no share)" : `${(t.adRevenueShare * 100).toFixed(0)}%`,
+      t.adRevenueShare === null ? "—" : t.adRevenueShare === 0 ? "0% (ads run, no share)" : `${(t.adRevenueShare * 100).toFixed(0)}% if you opt in to ads (payouts start with the ad program)`,
+  },
+  {
+    label: "Co-authored posts (split gifts & ad share)",
+    render: (t) =>
+      !t.canPublish
+        ? "Accept an invite after upgrading to Free Basic"
+        : t.tier === "pro" || t.tier === "business" || t.tier === "enterprise"
+          ? "Lead: invite up to 4 co-authors and set each share · or join as a co-author"
+          : "Join as a co-author when invited",
   },
   {
     label: "Commission on sessions, subscriptions & gifts",

@@ -1490,6 +1490,16 @@ if re-run (don't). `consent` on user docs is still public (version + timestamp o
   Bots are skipped by user-agent and the endpoint is rate-limited, but counts are
   NOT fraud-proof — add filtering before paying anyone from them. Ad-share
   payouts and the revenue ledger for ads are still to build.
+- **Ad fraud controls (built) and what's still needed before paying ad-share.**
+  Built: unique-per-visitor counting (`adSeen/{hash}`, salted hash of IP+UA — set
+  `AD_HASH_SALT` in Vercel and a **Firestore TTL policy on `adSeen.expireAt`**), a
+  click only counts after that visitor's view, bot user-agents skipped, rate limit,
+  and an admin "Ad-share review" table on `/admin/ads` flagging more-clicks-than-
+  views, >15% click rate, and one-day spikes. NOT built (do before any payout):
+  hold ad-share ~30 days with manual approval, minimum payout, exclude the
+  publisher's own traffic (needs verified viewer ids), Cloudflare Turnstile on
+  suspicious traffic, and clawback terms in the Terms. Ad-share payouts and the ad
+  revenue ledger are the remaining build.
 - **Admin Payments** now lists **all payments** (every product, latest 300,
   filterable; `pending` = started but never confirmed) above the payout ledger.
 - Header now shows the member's avatar (links to their profile) after the bell.

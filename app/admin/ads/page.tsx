@@ -15,6 +15,7 @@ export default function AdminAdsPage() {
   const { user, loading } = useAdminAuth();
   const [rows, setRows] = useState<Row[] | null>(null);
   const [stats, setStats] = useState<Record<string, { impressions: number; clicks: number }>>({});
+  const [pubs, setPubs] = useState<{ uid: string; username: string; accountTier: string; adsOptIn: boolean; impressions: number; clicks: number; flags: string[] }[]>([]);
   const [form, setForm] = useState(EMPTY);
   const [editing, setEditing] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -30,7 +31,10 @@ export default function AdminAdsPage() {
     user.getIdToken().then((t) =>
       fetch("/api/admin/ads-stats?days=30", { headers: { Authorization: `Bearer ${t}` } })
         .then((r) => (r.ok ? r.json() : { byAd: {} }))
-        .then((j) => setStats(j.byAd || {}))
+        .then((j) => {
+          setStats(j.byAd || {});
+          setPubs(j.publishers || []);
+        })
         .catch(() => {})
     );
   }, [user]);
@@ -151,6 +155,33 @@ export default function AdminAdsPage() {
           {editing && <button type="button" onClick={() => { setEditing(null); setForm(EMPTY); }} className="btn-ghost !px-4 !py-2 text-xs">Cancel</button>}
         </div>
       </form>
+
+      <div className="card mt-10 overflow-x-auto p-5">
+        <p className="font-ui text-sm font-bold text-ink">Ad-share review — publisher pages, last 30 days</p>
+        <p className="mt-1 text-xs text-slate">
+          Counts are unique per visitor per ad per day, and a click needs a prior view. Anything flagged should be reviewed before any ad-share is paid.
+        </p>
+        {pubs.length === 0 ? (
+          <p className="mt-3 text-sm text-slate">No ad activity on publisher pages yet.</p>
+        ) : (
+          <table className="mt-3 w-full min-w-[520px] text-left text-sm">
+            <thead><tr className="text-xs text-slate"><th className="py-1 pr-3 font-normal">Publisher</th><th className="font-normal">Plan</th><th className="font-normal">Opted in</th><th className="font-normal">Views</th><th className="font-normal">Clicks</th><th className="font-normal">Click rate</th><th className="font-normal">Flags</th></tr></thead>
+            <tbody>
+              {pubs.map((p) => (
+                <tr key={p.uid} className="border-t border-rule">
+                  <td className="py-1.5 pr-3 text-ink">@{p.username}</td>
+                  <td className="text-slate">{p.accountTier}</td>
+                  <td className="text-slate">{p.adsOptIn ? "yes" : "free tier"}</td>
+                  <td>{p.impressions.toLocaleString()}</td>
+                  <td>{p.clicks.toLocaleString()}</td>
+                  <td>{p.impressions ? ((p.clicks / p.impressions) * 100).toFixed(1) + "%" : "—"}</td>
+                  <td className={p.flags.length ? "text-crimson" : "text-slate"}>{p.flags.join(", ") || "ok"}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+      </div>
 
       <div className="mt-8 space-y-3">
         {rows === null ? (
