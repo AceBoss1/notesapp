@@ -32,6 +32,7 @@ export default function PublishingSettingsPage() {
   const [subPrice, setSubPrice] = useState("2000");
   const [giftsOn, setGiftsOn] = useState(true);
   const [adsOn, setAdsOn] = useState(false);
+  const [adStatements, setAdStatements] = useState<{ id: string; month: string; impressions: number; shareKobo: number; payableKobo?: number; status: string; note?: string }[]>([]);
   const [adViews, setAdViews] = useState<{ impressions: number; clicks: number } | null>(null);
   const [plan, setPlan] = useState<Record<string, any> | null>(null);
   const [planBusy, setPlanBusy] = useState(false);
@@ -58,6 +59,9 @@ export default function PublishingSettingsPage() {
         if (!p) return;
         setAdsOn(p.adsOptIn === true);
         const cutoff = new Date(Date.now() - 30 * 86_400_000).toLocaleDateString("en-CA", { timeZone: "Africa/Lagos" }).replace(/-/g, "");
+        getDocs(query(collection(db, "adShareStatements"), where("uid", "==", u.uid)))
+          .then((s) => setAdStatements(s.docs.map((d) => d.data() as { id: string; month: string; impressions: number; shareKobo: number; payableKobo?: number; status: string; note?: string }).sort((a, b) => b.month.localeCompare(a.month))))
+          .catch(() => {});
         getDocs(query(collection(db, "adPublisherStats"), where("publisherUid", "==", u.uid)))
           .then((s) => {
             const rows = s.docs.map((d) => d.data()).filter((x) => String(x.day) >= cutoff);
@@ -303,8 +307,22 @@ export default function PublishingSettingsPage() {
               </label>
               <p className="mt-2 text-xs text-slate">
                 Ads carry a “Sponsored” note. Pro earns 25% and Business 45% of the ad revenue from your pages, from day one of opting in.
-                Ad-share payouts start when the ad program launches — see <Link href="/advertise" className="text-crimson underline">Advertise</Link>.
+                Your share is calculated monthly from the ad revenue received, reviewed, held 30 days, then paid to your bank — see <Link href="/advertise" className="text-crimson underline">Advertise</Link>.
               </p>
+              {adStatements.length > 0 && (
+                <div className="mt-3 border-t border-rule pt-3">
+                  <p className="text-xs font-semibold text-ink">Ad-share statements</p>
+                  <ul className="mt-1 space-y-1 text-xs text-slate">
+                    {adStatements.map((s) => (
+                      <li key={s.id}>
+                        {s.month}: {s.impressions.toLocaleString()} views → <strong className="text-ink">{formatNaira(s.shareKobo)}</strong>
+                        {s.payableKobo && s.payableKobo !== s.shareKobo ? ` (payable ${formatNaira(s.payableKobo)} with rolled-over earnings)` : ""} ·{" "}
+                        {s.status === "pending_review" ? "under review" : s.status === "approved" ? "approved — released after the hold" : s.status === "rolled_over" ? "below the ₦1,000 minimum — rolls into next month" : s.status === "rolled_forward" ? "paid with a later month" : s.status === "withheld" ? `withheld${s.note ? `: ${s.note}` : ""}` : s.status}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
               {adViews && (
                 <p className="mt-2 text-xs text-ink">Ads on your pages, last 30 days: {adViews.impressions.toLocaleString()} views · {adViews.clicks.toLocaleString()} clicks.</p>
               )}

@@ -93,6 +93,16 @@ export default function AdvertisePage() {
       </div>
 
       <div className="card mt-6 p-6">
+        <p className="font-ui text-sm font-bold text-ink">How ad share is calculated and paid</p>
+        <p className="mt-2 text-sm text-slate">
+          Once a month we take the ad revenue we actually received and divide it by every valid impression served — that&apos;s the
+          revenue per impression. Your share is the impressions on <em>your</em> pages × that rate × your plan&apos;s share (Pro 25%,
+          Business 45%). You see a statement on Rates &amp; payouts; once it&apos;s reviewed and approved it&apos;s held for 30 days and then
+          paid to your verified bank account. Amounts under ₦1,000 roll into the next month.
+        </p>
+      </div>
+
+      <div className="card mt-6 p-6">
         <p className="font-ui text-sm font-bold text-ink">Fair counting</p>
         <p className="mt-2 text-sm text-slate">
           Ad share is based on <strong>unique views and clicks by real visitors</strong>, not raw page loads: one view and one click per
@@ -106,7 +116,7 @@ export default function AdvertisePage() {
         <p className="mt-2 text-sm text-slate">
           When a post has co-authors, the ad share it earns is divided between its authors in the percentages the lead author
           set and every co-author accepted <em>before</em> publishing; the split is locked once the post is live. Each author
-          is paid at their own plan&apos;s ad-share rate on their portion. (Ad views and clicks are now counted per publisher; ad-share payouts themselves are not live yet — see below.)
+          is paid at their own plan&apos;s ad-share rate on their portion. (Ad views and clicks are counted per publisher and paid out monthly as above.)
         </p>
       </div>
 

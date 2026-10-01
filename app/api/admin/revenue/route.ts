@@ -17,11 +17,13 @@ export async function GET(req: NextRequest) {
 
     if (!raw || Date.now() - raw.at > 120_000) {
       const db = getAdminDb();
-      const [pay, led, boosts, charges] = await Promise.all([
+      const [pay, led, boosts, charges, adRev, adSh] = await Promise.all([
         db.collection("payments").get(),
         db.collection("ledger").get(),
         db.collection("boosts").get(),
         db.collection("tierCharges").get(),
+        db.collection("adRevenue").get(),
+        db.collection("adShareStatements").get(),
       ]);
       raw = {
         at: Date.now(),
@@ -33,6 +35,8 @@ export async function GET(req: NextRequest) {
           }),
           commissionByRef: Object.fromEntries(led.docs.map((d) => [d.id, Number(d.data().commissionKobo) || 0])),
           boostRefundByRef: Object.fromEntries(boosts.docs.map((d) => [d.id, Number(d.data().refundedKobo) || 0])),
+          adRevenue: adRev.docs.map((d) => ({ month: String(d.data().month), amountKobo: Number(d.data().amountKobo) || 0 })),
+          adShares: adSh.docs.map((d) => ({ month: String(d.data().month), shareKobo: Number(d.data().shareKobo) || 0, status: String(d.data().status) })),
           charges: charges.docs.map((d) => {
             const c = d.data();
             return { reference: d.id, kind: c.kind, amountKobo: Number(c.amountKobo) || 0, at: c.at };

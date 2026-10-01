@@ -23,7 +23,11 @@ export async function POST(req: NextRequest) {
     const paymentRef = (ledgerSnap.data()?.paymentReference as string | undefined) || reference;
     const payRef = db.doc(`payments/${paymentRef}`);
     const paySnap = await payRef.get();
-    if (!paySnap.exists) return NextResponse.json({ error: "Unknown payment" }, { status: 404 });
+    const isAdShare = ledgerSnap.data()?.kind === "adshare"; // ad-share entries have no customer payment behind them
+    if (!paySnap.exists && !isAdShare) return NextResponse.json({ error: "Unknown payment" }, { status: 404 });
+    if (isAdShare && action === "refund") {
+      return NextResponse.json({ error: "Ad share isn't refunded — withhold or dispute it instead." }, { status: 409 });
+    }
 
     // Boost that ended with impressions undelivered → refund the undelivered share.
     if (action === "refund_boost") {

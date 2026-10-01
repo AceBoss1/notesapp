@@ -18,7 +18,7 @@ export const STREAMS: Record<StreamId, { label: string; model: "commission" | "f
   badges: { label: "Verified badge add-on", model: "full", live: true },
   gold: { label: "Gold badge (deposits + monthly)", model: "full", live: true },
   merch: { label: "Merch pre-orders", model: "full", live: true },
-  ads: { label: "Ads (house + networks)", model: "full", live: false },
+  ads: { label: "Ads (revenue received − publisher shares)", model: "full", live: true },
 };
 
 const KIND_TO_STREAM: Record<string, StreamId> = {
@@ -52,6 +52,8 @@ export function computeRevenue(input: {
   commissionByRef: Record<string, number>; // ledger commissions
   boostRefundByRef: Record<string, number>; // boosts.refundedKobo
   charges: ChargeLite[]; // plan / badge / gold renewals
+  adRevenue?: { month: string; amountKobo: number }[]; // ad money received
+  adShares?: { month: string; shareKobo: number; status: string }[]; // shares owed to publishers
   days: number;
   now?: number;
 }): RevenueReport {
@@ -100,6 +102,21 @@ export function computeRevenue(input: {
   for (const c of input.charges) {
     const stream: StreamId = c.kind === "badge" ? "badges" : c.kind === "gold" ? "gold" : "plans";
     add(stream, c.at, c.amountKobo, c.amountKobo);
+  }
+
+  // Ads: money received is processed volume; revenue is what's left after the
+  // publishers' shares (pending, approved, rolled-over and paid all count as owed;
+  // withheld shares do not). Dated the 28th of the month.
+  const ownedStatuses = ["pending_review", "approved", "rolled_over", "rolled_forward", "paid"];
+  for (const a of input.adRevenue ?? []) add("ads", `${a.month}-28T12:00:00Z`, a.amountKobo, a.amountKobo);
+  for (const sh of input.adShares ?? []) {
+    if (!ownedStatuses.includes(sh.status)) continue;
+    const t = new Date(`${sh.month}-28T12:00:00Z`).getTime();
+    if (t < since || t > now) continue;
+    streams.ads.revenueKobo -= sh.shareKobo;
+    totals.revenueKobo -= sh.shareKobo;
+    const key = unit === "day" ? `${sh.month}-28` : sh.month;
+    byBucket.set(key, (byBucket.get(key) ?? 0) - sh.shareKobo);
   }
 
   const series = [...byBucket.entries()].sort(([a], [b]) => (a < b ? -1 : 1)).map(([key, revenueKobo]) => ({ key, revenueKobo }));
