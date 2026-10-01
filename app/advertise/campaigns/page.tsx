@@ -10,7 +10,7 @@ import { formatNaira } from "@/lib/booking-time";
 
 type Row = AdCampaign & { stats: { impressions: number; clicks: number } };
 const LABEL: Record<AdCampaign["status"], string> = {
-  awaiting_payment: "Awaiting payment", in_review: "In review", live: "Live", completed: "Completed", rejected: "Not approved (refunded)",
+  awaiting_payment: "Awaiting payment", in_review: "In review", live: "Live", completed: "Completed", rejected: "Not approved (refund started)",
 };
 
 export default function MyCampaignsPage() {
@@ -58,7 +58,7 @@ export default function MyCampaignsPage() {
               </p>
             )}
             {c.rejectedReason && <p className="mt-1 text-xs text-crimson">Reason: {c.rejectedReason}</p>}
-            {c.status === "completed" && !!c.refundedKobo && <p className="mt-1 text-xs text-slate">{formatNaira(c.refundedKobo)} refunded for undelivered impressions.</p>}
+            {c.status === "completed" && !!c.refundedKobo && <p className="mt-1 text-xs text-slate">{formatNaira(c.refundedKobo)} refund started for undelivered impressions (Paystack handles the rest; it can take a few business days).</p>}
           </div>
         ))}
       </div>

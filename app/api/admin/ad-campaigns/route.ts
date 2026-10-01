@@ -55,7 +55,7 @@ export async function POST(req: NextRequest) {
       batch.update(ref, { status: "rejected", rejectedReason: why, refundedKobo: c.amountKobo });
       batch.update(db.doc(`payments/${c.id}`), { status: "refunded" });
       await batch.commit();
-      await sendEmail({ to: c.email, subject: "Your #NotesApp ad wasn't approved", text: `We couldn't run "${c.creative.title}": ${why}\n\nYour ${formatNaira(c.amountKobo)} has been refunded in full. You're welcome to submit a revised ad at ${site()}/advertise/new.\n\n#NotesApp` }).catch(() => {});
+      await sendEmail({ to: c.email, subject: "Your #NotesApp ad wasn't approved", text: `We couldn't run "${c.creative.title}": ${why}\n\nYour ${formatNaira(c.amountKobo)} is being refunded in full. We've started the refund and Paystack handles the rest of the process; it can take several business days to reach your bank or card. You're welcome to submit a revised ad at ${site()}/advertise/new.\n\n#NotesApp` }).catch(() => {});
       return NextResponse.json({ ok: true });
     }
 
@@ -78,7 +78,7 @@ export async function POST(req: NextRequest) {
       batch.update(ref, { status: "completed", refundedKobo: refundKobo, impressionsDelivered: delivered, completedAt: c.completedAt ?? now });
       batch.update(db.doc(`adCreatives/${c.id}`), { active: false });
       await batch.commit();
-      if (refundKobo > 0) await sendEmail({ to: c.email, subject: "Refund for undelivered ad impressions", text: `Your campaign delivered ${delivered.toLocaleString()} of ${c.impressionsBudget.toLocaleString()} impressions, so ${formatNaira(refundKobo)} has been refunded.\n\n#NotesApp` }).catch(() => {});
+      if (refundKobo > 0) await sendEmail({ to: c.email, subject: "Refund for undelivered ad impressions", text: `Your campaign delivered ${delivered.toLocaleString()} of ${c.impressionsBudget.toLocaleString()} impressions, so ${formatNaira(refundKobo)} is being refunded. We've started the refund and Paystack handles the rest of the process; it can take several business days to reach your bank or card.\n\n#NotesApp` }).catch(() => {});
       return NextResponse.json({ ok: true, refundKobo });
     }
 
