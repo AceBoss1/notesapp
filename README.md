@@ -1425,6 +1425,50 @@ if re-run (don't). `consent` on user docs is still public (version + timestamp o
   `lib/merch.ts` before launch:** `MERCH_BATCH.closesOn` (placeholder
   2026-11-15), `MERCH_DELIVERY_KOBO` (placeholder ₦3,000) and the item prices.
   Redeploy `firestore.rules`.
+- **Co-authoring.** Lead authors invite members to a *draft* from the Co-authors
+  panel in the composer (`components/CoAuthorsPanel.tsx`), proposing each person's
+  % of the post's earnings (co-author ≥5%, lead keeps ≥10%, max 4). Invitees
+  accept/decline on `/invites` (also a bell notification). All state changes go
+  through `POST /api/coauthors` (`invite` / `respond` / `revoke`); clients can't
+  write `coAuthors` / `coAuthorUids` (rules) or `coAuthorInvites` (server-only,
+  lead + invitee + admin read). Accepting syncs `coAuthors` / `coAuthorUids` onto
+  the note (byline "with …", profile listing via `isNoteBy`). The split is locked
+  at publish: invites/accepts work only on drafts; pending invites then expire.
+  **The agreed % live in `coAuthorInvites` (accepted ones) and are NOT used for
+  money yet** — ad-share isn't built, and gifts on a post still go to the lead
+  author. When building ad-share / per-post gift splits, read the accepted invites
+  (lead = 100 − sum). Co-authors can't edit the post (lead only). Redeploy
+  `firestore.rules`.
+- **Ads scaffold (house banners only).** `lib/ads.ts` (providers, footer notes,
+  placements, `publisherShowsAds`), `GET /api/ads?placement=` (active creatives,
+  cached 5 min), `components/AdSlot.tsx` (weighted rotation every 15 s, renders
+  nothing when there's no active ad), admin CRUD at `/admin/ads` (`adCreatives`,
+  admin-only rules). Placements: home, journals, trending (site) and profile, post
+  (publisher-scoped: free tiers always show; Pro/Business only if they ticked "Show
+  ads on my journal" on `/profile/publishing` → `users.adsOptIn`, server-written).
+  Every house ad shows "Sponsored: NotesApp Ads". **Not built:** impression/click
+  tracking, ad-share accounting/payouts, and the Google/Meta/AdMob slots — those
+  footers exist in `AD_FOOTER` but nothing third-party loads. Notes before adding
+  them: AdMob is a mobile-app SDK (web would be AdSense / Ad Manager); each network
+  needs its own approval; Google needs `ads.txt`; personalised ads need a consent
+  banner first (our privacy page currently says we use only essential storage);
+  update the Privacy Policy when a network goes live. Redeploy `firestore.rules`.
+- **Revenue analytics (admin).** `/admin/revenue` (Revenue in the admin nav) ←
+  `GET /api/admin/revenue?days=7|30|90|365|0`, built on `lib/revenue.ts`, which
+  defines what counts as platform revenue: commission only for sessions,
+  subscriptions and gifts (ledger `commissionKobo`); 100% for boosts (minus
+  undelivered-impression refunds), Pro/Business plans, verified badges, gold
+  (deposits + monthly), merch; refunded payments excluded; Paystack fees (customer-
+  borne) and merch cost of goods NOT deducted. Plan/badge/gold **renewals** come
+  from `tierCharges` (now stamped with `kind`; older records without it count as
+  plans). Raw data is cached 2 min server-side. **Ads** has a row marked "not live
+  yet" — there's no ad accounting until ad-share/tracking is built.
+- **Boost performance (publishers).** `/profile/boosts` (menu: "Boost performance"):
+  totals, active vs ended, delivered/purchased progress, clicks, click rate, 14-day
+  impressions chart, days left, refunds. `/profile/publishing` shows a compact
+  summary of the same.
+- **Roadmap:** iOS and Android apps added (push notifications, in-app Paystack,
+  offline drafts, AdMob and other app ad networks, PWA after the phone apps).
 - Header now shows the member's avatar (links to their profile) after the bell.
 
 ## Member journey — what people see and where they change things

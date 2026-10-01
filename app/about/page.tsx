@@ -20,6 +20,7 @@ const LIVE = [
   { href: "/booking", title: "Paid 1:1 sessions", copy: "Your own price and weekly availability, Paystack checkout, reminders and a clear cancellation policy." },
   { href: "/journals", title: "Monthly subscriptions", copy: "Readers subscribe to unlock your premium entries; renewals are automatic." },
   { href: "/gifts", title: "Gifts", copy: "Readers can send you a gift on your profile or on any post." },
+  { href: "/coauthoring", title: "Co-authoring", copy: "Write a post with other members, agree each person's share of its earnings, and share the byline." },
   { href: "/boost", title: "Boost", copy: "Promote a post and pay only for validated impressions." },
   { href: "/trending", title: "Trending", copy: "The most visited publishers and posts on #NotesApp." },
 ];

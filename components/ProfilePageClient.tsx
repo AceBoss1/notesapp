@@ -23,6 +23,7 @@ import VerifiedBadge from "@/components/VerifiedBadge";
 import JournalRow from "@/components/JournalRow";
 import NotesAppPostRow from "@/components/NotesAppPostRow";
 import { getStoreItems, StoreItem } from "@/lib/store";
+import AdSlot from "@/components/AdSlot";
 import { OFFICIAL_NOTESAPP_PROFILE, NA_NOTESAPP_PROFILE, SYNTHETIC_USERNAMES, VERIFIED_USERNAMES } from "@/lib/journals-directory";
 import { NOTESAPP_POSTS } from "@/lib/notesapp-posts";
 
@@ -316,6 +317,8 @@ export default function ProfilePageClient({ params }: { params: { username: stri
       {!synthetic && (
         <BookingCard username={profile.username} publisherUid={realProfile?.uid} viewer={viewer} />
       )}
+
+      <AdSlot placement="profile" publisher={realProfile ?? undefined} />
 
       {/* Brand store teaser */}
       {storeItems.length > 0 && (

@@ -3,6 +3,7 @@ import Image from "next/image";
 import BoostedStrip from "@/components/BoostedStrip";
 import GoldBadgeExplainer from "@/components/GoldBadgeExplainer";
 import IndependenceDoodle from "@/components/IndependenceDoodle";
+import AdSlot from "@/components/AdSlot";
 import { GOLD_KIND_LIVE } from "@/lib/badges";
 
 const LOOP = [
@@ -20,6 +21,7 @@ const FEATURES = [
   { title: "Boost a post", copy: "Put a post in front of more readers. You pay only for validated impressions, delivered over several days — undelivered ones are refunded." },
   { title: "Gifts", copy: "Readers can send you a gift on your profile or on any single post — from ₦200 up to ₦500,000, with a note if they like." },
   { title: "A real writing desk", copy: "Format with a toolbar, preview as you go, drop in images, and never lose a draft — everything is saved as clean Markdown." },
+  { title: "Co-authoring", copy: "Write a post with other members, agree each person's share of what it earns, and share the byline — everyone accepts before it's listed." },
   { title: "Gold badge", copy: "Get endorsed by #NotesApp, or identity-checked, and wear the gold ✔ beside your name on your profile, the directory and every post." },
   { title: "A brand store for every journal", copy: "Every professional gets their own storefront on their profile — sell guides, templates, or sessions, no separate shop to manage." },
   { title: "Bring your own transcription (coming)", copy: "Connect Otter.ai or Whisper for session notes. We integrate; we don't lock you into one AI vendor." },
@@ -104,6 +106,8 @@ export default function Home() {
 
       <BoostedStrip />
 
+      <div className="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8"><AdSlot placement="home" /></div>
+
       <section className="border-b border-rule py-16">
         <div className="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8">
           <GoldBadgeExplainer />
@@ -139,7 +143,7 @@ export default function Home() {
                 <li>WhatsApp reminders and clients rescheduling themselves</li>
 {GOLD_KIND_LIVE.identity ? null : <li>Identity-checked gold badge (NIN + face check for people, CAC for organisations)</li>}
                 <li>Enterprise plans (custom commission, contact us) and in-platform checkout for members' own merch</li>
-                <li>AI drafting, social publishing, video uploads, ad-share</li>
+                <li>iOS and Android apps, AI drafting, social publishing, video uploads, ad-share</li>
               </ul>
             </div>
           </div>

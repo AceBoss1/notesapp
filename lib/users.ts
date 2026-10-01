@@ -106,6 +106,9 @@ export type UserProfile = {
   // Present once a suspension has ever happened, even after it's
   // resolved — keeps a record rather than deleting history.
   suspension?: Suspension; // legacy — now lives in suspensions/{uid}
+  // Pro/Business/Enterprise opt in to showing ads on their pages (set by the
+  // server from /profile/publishing). Free tiers always show ads.
+  adsOptIn?: boolean;
   usernameChangedAt?: string; // set by /api/account/username
   previousUsername?: string;
 };

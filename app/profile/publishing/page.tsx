@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { onAuthStateChanged, User } from "firebase/auth";
 import { collection, doc, getDoc, getDocs, query, where } from "firebase/firestore";
 import { auth, db } from "@/lib/firebase";
@@ -30,6 +31,7 @@ export default function PublishingSettingsPage() {
   const [subOn, setSubOn] = useState(false);
   const [subPrice, setSubPrice] = useState("2000");
   const [giftsOn, setGiftsOn] = useState(true);
+  const [adsOn, setAdsOn] = useState(false);
   const [plan, setPlan] = useState<Record<string, any> | null>(null);
   const [planBusy, setPlanBusy] = useState(false);
   const [planMsg, setPlanMsg] = useState<string | null>(null);
@@ -53,6 +55,7 @@ export default function PublishingSettingsPage() {
         const p = await getUserByUid(u.uid);
         setProfile(p);
         if (!p) return;
+        setAdsOn(p.adsOptIn === true);
         getDoc(doc(db, "tierSubscriptions", u.uid)).then((p) => setPlan(p.exists() ? p.data() : null)).catch(() => {});
         getDocs(query(collection(db, "boosts"), where("publisherUid", "==", u.uid)))
           .then((b) => setBoosts(b.docs.map((d) => d.data()).sort((a, c) => String(c.createdAt).localeCompare(String(a.createdAt)))))
@@ -104,6 +107,7 @@ export default function PublishingSettingsPage() {
         session: { enabled: sessionOn, priceNaira: Number(price), minutes, availability: avail },
         subscription: { enabled: subOn, priceNaira: Number(subPrice) },
         gifts: { enabled: giftsOn },
+        ads: { optIn: adsOn },
       });
       setMsg({ ok: true, text: "Saved." });
     } catch (err) {
@@ -282,28 +286,60 @@ export default function PublishingSettingsPage() {
           <p className="mt-2 text-xs text-slate">Needs a verified payout account. Gifts pay out after a 7-day window, minus your tier's commission.</p>
         </div>
 
+        <div className="card p-6">
+          {profile && ["pro", "business", "enterprise"].includes(profile.accountTier) ? (
+            <>
+              <label className="flex items-center gap-3">
+                <input type="checkbox" checked={adsOn} onChange={(e) => setAdsOn(e.target.checked)} />
+                <span className="eyebrow">Show ads on my journal (earn your plan&apos;s ad share)</span>
+              </label>
+              <p className="mt-2 text-xs text-slate">
+                Ads carry a “Sponsored” note. Pro earns 25% and Business 45% of the ad revenue from your pages, from day one of opting in.
+                Ad-share payouts start when the ad program launches — see <Link href="/advertise" className="text-crimson underline">Advertise</Link>.
+              </p>
+            </>
+          ) : (
+            <p className="text-xs text-slate">
+              Free journals carry ads (no revenue share). Pro and Business publishers can opt in to ads and earn an ad share —{" "}
+              <Link href="/pricing" className="text-crimson underline">see plans</Link>.
+            </p>
+          )}
+        </div>
+
         <div className="flex items-center gap-4">
           <button disabled={saving} className="btn-primary !px-6 !py-3 disabled:opacity-50">{saving ? "Saving…" : "Save rates"}</button>
           {msg && <span className={`text-sm ${msg.ok ? "text-ink" : "text-crimson"}`}>{msg.text}</span>}
         </div>
       </form>
 
-      {boosts.length > 0 && (
-        <div className="card mt-10 p-6">
-          <p className="eyebrow">Boost results</p>
-          <ul className="mt-3 divide-y divide-rule text-sm">
-            {boosts.map((b) => (
-              <li key={b.reference} className="py-2">
-                <p className="text-ink">{b.title}</p>
-                <p className="text-xs text-slate">
-                  {b.impressionsDelivered.toLocaleString()} / {b.impressionsPurchased.toLocaleString()} impressions · {b.clicks} clicks ·{" "}
-                  {b.status === "active" && new Date(b.endsAt).getTime() > Date.now() ? `runs until ${String(b.endsAt).slice(0, 10)}` : b.status === "closed" && b.refundedKobo ? `ended · ${formatNaira(b.refundedKobo)} refunded for undelivered impressions` : "ended"}
-                </p>
-              </li>
-            ))}
-          </ul>
-        </div>
-      )}
+      <div className="card mt-10 p-6">
+        <p className="eyebrow">Boost results</p>
+        {boosts.length === 0 ? (
+          <p className="mt-3 text-sm text-slate">
+            No boosts yet. <Link href="/boost" className="text-crimson underline">Boost a post</Link> to see its impressions and clicks here.
+          </p>
+        ) : (
+          <>
+            <p className="mt-3 text-sm text-ink">
+              {boosts.filter((b) => b.status === "active" && new Date(b.endsAt).getTime() > Date.now() && b.impressionsDelivered < b.impressionsPurchased).length} active ·{" "}
+              {boosts.reduce((s, b) => s + b.impressionsDelivered, 0).toLocaleString()} impressions ·{" "}
+              {boosts.reduce((s, b) => s + b.clicks, 0).toLocaleString()} clicks
+            </p>
+            <ul className="mt-3 divide-y divide-rule text-sm">
+              {boosts.slice(0, 3).map((b) => (
+                <li key={b.reference} className="py-2">
+                  <p className="text-ink">{b.title}</p>
+                  <p className="text-xs text-slate">
+                    {b.impressionsDelivered.toLocaleString()} / {b.impressionsPurchased.toLocaleString()} impressions · {b.clicks} clicks ·{" "}
+                    {b.status === "active" && new Date(b.endsAt).getTime() > Date.now() ? `runs until ${String(b.endsAt).slice(0, 10)}` : "ended"}
+                  </p>
+                </li>
+              ))}
+            </ul>
+          </>
+        )}
+        <Link href="/profile/boosts" className="mt-3 inline-block text-xs font-semibold text-crimson underline">Full boost performance →</Link>
+      </div>
 
       <div className="card mt-10 p-6">
         <p className="eyebrow">Earnings</p>

@@ -81,6 +81,26 @@ export default function AdvertisePage() {
         </Link>
       </div>
 
+      <div className="card mt-6 p-6">
+        <p className="font-ui text-sm font-bold text-ink">How ads will appear</p>
+        <p className="mt-2 text-sm text-slate">
+          Banners rotate across #NotesApp — the home, Journals and Trending pages, and on publisher profiles and at the end of posts.
+          Free journals always carry them; Pro and Business publishers choose whether to show them (and earn their share if they do).
+          Every ad is labelled with who it&apos;s from — <strong>Sponsored: NotesApp Ads</strong> for our own banners, and the
+          matching Google, Meta or AdMob label if and when those networks are switched on (AdMob arrives with our iOS and Android apps — see the{" "}
+          <Link href="/roadmap" className="text-crimson underline">roadmap</Link>).
+        </p>
+      </div>
+
+      <div className="card mt-6 p-6">
+        <p className="font-ui text-sm font-bold text-ink">Co-authored posts</p>
+        <p className="mt-2 text-sm text-slate">
+          When a post has co-authors, the ad share it earns is divided between its authors in the percentages the lead author
+          set and every co-author accepted <em>before</em> publishing; the split is locked once the post is live. Each author
+          is paid at their own plan&apos;s ad-share rate on their portion. (Ad-share payouts themselves are not live yet — see below.)
+        </p>
+      </div>
+
       <p className="mt-10 text-sm text-slate">
         Third-party ad placements and ad-share payouts are a roadmap commitment, not a live feature yet — nothing
         here is wired up for real ad placements or payouts. Want early

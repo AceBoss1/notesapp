@@ -27,7 +27,8 @@ export type NotificationType =
   | "unsuspended"
   | "appeal_rejected"
   | "role_changed"
-  | "gift";
+  | "gift"
+  | "coauthor";
 
 export type AppNotification = {
   id: string;

@@ -22,7 +22,7 @@ export const LEAD_CATEGORIES = [
   { value: "bookings", label: "Bookings & sessions" },
   { value: "payments", label: "Payments, payouts & refunds" },
   { value: "boost", label: "Boosts, gifts & advertising" },
-  { value: "publishing", label: "Publishing & my journal" },
+  { value: "publishing", label: "Publishing, co-authoring & my journal" },
   { value: "account", label: "Account & login" },
   { value: "report", label: "Report a post or account" },
   { value: "verification", label: "Gold badge / identity verification" },

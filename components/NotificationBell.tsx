@@ -21,6 +21,7 @@ const ICON: Record<NotificationType, string> = {
   appeal_rejected: "✕",
   role_changed: "🎖",
   gift: "🎁",
+  coauthor: "🤝",
 };
 
 function timeAgo(iso: string): string {

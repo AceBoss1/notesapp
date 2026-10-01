@@ -43,6 +43,9 @@ export type Note = {
   // via getUserByDisplayName). A note with co-authors appears on
   // every listed co-author's profile, not just the primary author's.
   coAuthors?: string[];
+  // Accepted co-authors' uids (server-written via /api/coauthors; the agreed
+  // earnings split lives in the private coAuthorInvites collection).
+  coAuthorUids?: string[];
   status: "draft" | "published";
   viewCount?: number;
   likeCount?: number;
@@ -86,7 +89,7 @@ export function isAuthorOf(note: Note, displayName: string): boolean {
 // member changing their display name doesn't orphan their posts; fall back
 // to the display-name match older notes rely on (founder / channel posts).
 export function isNoteBy(note: Note, who: { uid?: string; username?: string; displayName: string }): boolean {
-  if (who.uid && note.authorUid === who.uid) return true;
+  if (who.uid && (note.authorUid === who.uid || !!note.coAuthorUids?.includes(who.uid))) return true;
   if (who.username && note.authorUsername === who.username) return true;
   return isAuthorOf(note, who.displayName);
 }
