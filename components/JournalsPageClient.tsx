@@ -1,5 +1,6 @@
 "use client";
 
+import AdSlot from "@/components/AdSlot";
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { getAllNotes, NoteWithComputed } from "@/lib/firestore-notes";
@@ -79,6 +80,7 @@ export default function JournalsPageClient() {
       />
 
       <BoostedStrip />
+      <AdSlot placement="journals" />
 
       <div className="mx-auto max-w-7xl px-4 py-14 sm:px-6 lg:px-8">
         {error ? (

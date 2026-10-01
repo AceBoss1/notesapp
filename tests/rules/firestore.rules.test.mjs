@@ -238,3 +238,10 @@ test("co-author fields and invites are server-controlled", async () => {
   await assertFails(getDoc(doc(anon(), "coAuthorInvites/co1_alice")));
   await assertFails(updateDoc(doc(as("alice"), "coAuthorInvites/co1_alice"), { status: "accepted", percent: 90 }));
 });
+
+test("ad creatives are admin-only", async () => {
+  await assertFails(setDoc(doc(as("pub"), "adCreatives/a1"), { title: "x", active: true }));
+  await assertFails(getDoc(doc(anon(), "adCreatives/a1")));
+  await assertSucceeds(setDoc(doc(as("boss", { admin: true }), "adCreatives/a1"), { title: "x", active: true }));
+  await assertFails(updateDoc(doc(as("alice"), "users/alice"), { adsOptIn: true }));
+});

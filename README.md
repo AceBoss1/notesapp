@@ -1439,6 +1439,20 @@ if re-run (don't). `consent` on user docs is still public (version + timestamp o
   author. When building ad-share / per-post gift splits, read the accepted invites
   (lead = 100 − sum). Co-authors can't edit the post (lead only). Redeploy
   `firestore.rules`.
+- **Ads scaffold (house banners only).** `lib/ads.ts` (providers, footer notes,
+  placements, `publisherShowsAds`), `GET /api/ads?placement=` (active creatives,
+  cached 5 min), `components/AdSlot.tsx` (weighted rotation every 15 s, renders
+  nothing when there's no active ad), admin CRUD at `/admin/ads` (`adCreatives`,
+  admin-only rules). Placements: home, journals, trending (site) and profile, post
+  (publisher-scoped: free tiers always show; Pro/Business only if they ticked "Show
+  ads on my journal" on `/profile/publishing` → `users.adsOptIn`, server-written).
+  Every house ad shows "Sponsored: NotesApp Ads". **Not built:** impression/click
+  tracking, ad-share accounting/payouts, and the Google/Meta/AdMob slots — those
+  footers exist in `AD_FOOTER` but nothing third-party loads. Notes before adding
+  them: AdMob is a mobile-app SDK (web would be AdSense / Ad Manager); each network
+  needs its own approval; Google needs `ads.txt`; personalised ads need a consent
+  banner first (our privacy page currently says we use only essential storage);
+  update the Privacy Policy when a network goes live. Redeploy `firestore.rules`.
 - Header now shows the member's avatar (links to their profile) after the bell.
 
 ## Member journey — what people see and where they change things

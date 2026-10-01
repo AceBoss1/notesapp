@@ -13,6 +13,7 @@ import SocialBar from "@/components/SocialBar";
 import Comments from "@/components/Comments";
 import PremiumGate from "@/components/PremiumGate";
 import GiftButton from "@/components/GiftButton";
+import AdSlot from "@/components/AdSlot";
 
 // Same note, same Firestore doc as precheks.com.ng/notes/{slug} — this
 // route is #NotesApp's own reading UI over that exact shared content.
@@ -220,6 +221,8 @@ export default async function JournalDetail({
           </div>
         )}
       </div>
+
+      <AdSlot placement="post" publisher={authorProfile ?? undefined} />
 
       <Comments noteId={note.id} slug={note.slug} title={note.title} noteAuthor={note.author} />
 

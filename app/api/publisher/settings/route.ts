@@ -86,6 +86,11 @@ export async function POST(req: NextRequest) {
       updatedAt: new Date().toISOString(),
     };
     await db.doc(`publisherSettings/${uid}`).set(settings);
+    // Ad opt-in is a public flag on the profile so pages can decide whether to
+    // show ads without reading private settings. Only paid tiers can choose.
+    if (body.ads?.optIn !== undefined && ["pro", "business", "enterprise"].includes(user.accountTier)) {
+      await db.doc(`users/${uid}`).update({ adsOptIn: !!body.ads.optIn });
+    }
     return NextResponse.json({ ok: true, settings });
   } catch (err) {
     console.error("Publisher settings failed:", err);

@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import Avatar from "@/components/Avatar";
+import AdSlot from "@/components/AdSlot";
 
 type Post = { id: string; slug: string; title: string; author: string; authorUsername?: string; views: number; date: string };
 type Publisher = { username: string; displayName: string; avatar: string; views: number; posts: number };
@@ -37,6 +38,7 @@ export default function TrendingPage() {
         Ranked by visits{data ? ` (${data.basis})` : ""}. Refreshed every few minutes.
       </p>
       <div className="mt-6 flex gap-2">{tabBtn("publishers", "Top publishers")}{tabBtn("posts", "Top posts")}</div>
+      <AdSlot placement="trending" />
 
       {error && <p className="mt-8 text-sm text-crimson">{error}</p>}
       {!data && !error && <p className="mt-8 text-sm text-slate">Loading…</p>}
