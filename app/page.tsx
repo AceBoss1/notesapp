@@ -2,6 +2,7 @@ import Link from "next/link";
 import Image from "next/image";
 import BoostedStrip from "@/components/BoostedStrip";
 import GoldBadgeExplainer from "@/components/GoldBadgeExplainer";
+import IndependenceDoodle from "@/components/IndependenceDoodle";
 import { GOLD_KIND_LIVE } from "@/lib/badges";
 
 const LOOP = [
@@ -27,6 +28,7 @@ const FEATURES = [
 export default function Home() {
   return (
     <>
+      <IndependenceDoodle />
       {/* Hero */}
       <section className="relative overflow-hidden">
         <div className="mx-auto grid max-w-7xl grid-cols-1 gap-14 px-4 py-20 sm:px-6 lg:grid-cols-[1.1fr,0.9fr] lg:items-center lg:px-8 lg:py-28">
