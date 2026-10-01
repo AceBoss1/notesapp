@@ -103,7 +103,14 @@ export async function fulfillPayment(reference: string): Promise<PaymentRecord> 
   const tx = await verifyTransaction(reference);
   if (tx.status !== "success") throw new Error(`Payment not successful (${tx.status})`);
   if (tx.amount !== payment.amountKobo || tx.currency !== "NGN") {
-    throw new Error("Paid amount does not match the price");
+    // Keep the evidence (a plan-based charge uses the PLAN's amount, so a stale
+    // plan shows up here) and say exactly what differed.
+    const detail = { kind: payment.kind, expectedKobo: payment.amountKobo, paidKobo: tx.amount, currency: tx.currency };
+    console.error("Paystack amount mismatch", reference, detail);
+    await payRef.update({ mismatch: { ...detail, at: new Date().toISOString() } }).catch(() => {});
+    throw new Error(
+      `Paid amount does not match the price (expected ${formatNaira(payment.amountKobo)}, Paystack charged ${formatNaira(tx.amount)} ${tx.currency}).`
+    );
   }
 
   const now = new Date().toISOString();
