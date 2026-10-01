@@ -2,12 +2,9 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { TIERS, formatPercent, badgeIncluded, BADGE_PRICE_KOBO } from "@/lib/tiers";
 import { GOLD_PRICING } from "@/lib/gold";
-import GoldBadgeExplainer from "@/components/GoldBadgeExplainer";
-import { GOLD_KIND_LIVE } from "@/lib/badges";
 import { BOOST_PACKAGES } from "@/lib/boost-config";
+import { GOLD_KIND_LIVE } from "@/lib/badges";
 import UpgradeButton from "@/components/UpgradeButton";
-import BadgeCard from "@/components/BadgeCard";
-import VerifiedBadge from "@/components/VerifiedBadge";
 import { LIMITS, formatNaira } from "@/lib/booking-time";
 
 export const metadata: Metadata = {
@@ -16,21 +13,23 @@ export const metadata: Metadata = {
     "#NotesApp's tier ladder — Free Standard for readers, Free Basic through Enterprise for publishers, with transparent ad revenue share and booking/unlock/merch commission at every level.",
 };
 
-const ROWS: { label: string; render: (t: (typeof TIERS)[number]) => string }[] = [
+const ROWS: { label: string; href?: string; render: (t: (typeof TIERS)[number]) => string }[] = [
   { label: "Can publish?", render: (t) => (t.canPublish ? "Yes" : "No — read & engage only") },
   {
-    label: "Ad revenue share",
-    render: (t) =>
-      t.adRevenueShare === null ? "—" : t.adRevenueShare === 0 ? "0% (ads run, no share)" : `${(t.adRevenueShare * 100).toFixed(0)}% if you opt in to ads (payouts start with the ad program)`,
-  },
-  {
-    label: "Co-authored posts (split gifts & ad share)",
+    label: "Can co-author?",
+    href: "/coauthoring",
     render: (t) =>
       !t.canPublish
-        ? "Accept an invite after upgrading to Free Basic"
+        ? "Accept an invite once you have Free Basic"
         : t.tier === "pro" || t.tier === "business" || t.tier === "enterprise"
-          ? "Lead: invite up to 4 co-authors and set each share · or join as a co-author"
+          ? "Yes — lead posts with up to 4 co-authors, or join one"
           : "Join as a co-author when invited",
+  },
+  {
+    label: "Ad revenue share",
+    href: "/advertise",
+    render: (t) =>
+      t.adRevenueShare === null ? "—" : t.adRevenueShare === 0 ? "0% (ads run, no share)" : `${(t.adRevenueShare * 100).toFixed(0)}% if you opt in to ads (payouts start with the ad program)`,
   },
   {
     label: "Commission on sessions, subscriptions & gifts",
@@ -40,15 +39,18 @@ const ROWS: { label: string; render: (t: (typeof TIERS)[number]) => string }[] =
         : "—",
   },
   {
-    label: "Verified badge ✔ (see /badges)",
+    label: "Verified badge ✔",
+    href: "/badges",
     render: (t) => (badgeIncluded(t.tier) ? "Included free" : `Add-on: ${formatNaira(BADGE_PRICE_KOBO)}/month`),
   },
   {
     label: "Gold badge (identity checked / endorsed)",
+    href: "/badges",
     render: () => `${formatNaira(GOLD_PRICING.personal.monthlyKobo)}/mo personal · ${formatNaira(GOLD_PRICING.corporate.monthlyKobo)}/mo corporate (by application; identity check ${GOLD_KIND_LIVE.identity ? "available" : "coming soon"})`,
   },
   {
     label: "Paid 1:1 sessions",
+    href: "/booking",
     render: (t) => (t.canPublish ? `You set the price: ${formatNaira(LIMITS.sessionMinKobo)} – ${formatNaira(LIMITS.sessionMaxKobo)}` : "Book & pay only"),
   },
   {
@@ -57,10 +59,12 @@ const ROWS: { label: string; render: (t: (typeof TIERS)[number]) => string }[] =
   },
   {
     label: "Gifts from readers",
+    href: "/gifts",
     render: (t) => (t.canPublish ? "Receive gifts of ₦200 – ₦500,000 on your profile and every post" : "Send gifts"),
   },
   {
     label: "Post boosts",
+    href: "/boost",
     render: (t) => (t.canPublish ? `From ${formatNaira(BOOST_PACKAGES[0].priceKobo)} · no commission · undelivered impressions refunded` : "—"),
   },
   {
@@ -69,6 +73,7 @@ const ROWS: { label: string; render: (t: (typeof TIERS)[number]) => string }[] =
   },
   {
     label: "Internal merch store commission",
+    href: "/merchstore",
     render: (t) => (t.canPublish ? `NotesApp takes ${formatPercent(t.merchCommission, t.merchCommissionFloor)}` : "—"),
   },
   {
@@ -122,7 +127,13 @@ export default function PricingPage() {
           <tbody>
             {ROWS.map((row) => (
               <tr key={row.label} className="border-b border-rule">
-                <td className="py-4 pr-4 font-ui text-sm font-semibold text-ink">{row.label}</td>
+                <td className="py-4 pr-4 font-ui text-sm font-semibold text-ink">
+                  {row.href ? (
+                    <Link href={row.href} className="underline decoration-rule underline-offset-4 hover:text-crimson">{row.label}</Link>
+                  ) : (
+                    row.label
+                  )}
+                </td>
                 {TIERS.map((t) => (
                   <td key={t.tier} className="px-4 py-4 text-sm text-slate">
                     {row.render(t)}
@@ -170,83 +181,25 @@ export default function PricingPage() {
         </div>
       </div>
 
-      <div className="mt-6">
-        <BadgeCard pitch />
-      </div>
-
-      <div className="mt-14">
-        <GoldBadgeExplainer />
-        <dl className="mt-6 divide-y divide-rule border-y border-rule">
-          {[
-            ["Does my plan change the gold price?", "No. Gold costs the same on Free Basic, Pro, Business and Enterprise. Business and Enterprise include the maroon ✔ free, but gold is always a separate, paid mark."],
-            ["Is the identity deposit refundable?", "No. It pays for the third-party identity check whether or not it passes, so it isn't refunded. Endorsement has no deposit at all."],
-            ["What do I get for the monthly fee?", "The gold ✔ beside your name everywhere it appears, for as long as you renew. Cancel any time and keep it until the paid period ends."],
-          ].map(([q, a]) => (
-            <div key={q} className="py-4">
-              <dt className="font-ui text-sm font-bold text-ink">{q}</dt>
-              <dd className="mt-1 text-sm text-slate">{a}</dd>
-            </div>
-          ))}
-        </dl>
-      </div>
-
       <div className="card mt-6 p-6">
-        <p className="font-ui text-sm font-bold text-ink">Ways to earn, and how you're paid</p>
-        <ul className="mt-3 list-disc space-y-2 pl-5 text-sm text-slate">
-          <li>
-            <strong className="text-ink">Paid 1:1 sessions</strong> — you set the price and hours. Cancellations follow one
-            published policy (full refund 48h+ before, 50% at 24–48h, none inside 24h; always full if you cancel).
-          </li>
-          <li>
-            <strong className="text-ink">Monthly journal subscriptions</strong> — readers unlock your premium entries;
-            renews automatically until they cancel.
-          </li>
-          <li>
-            <strong className="text-ink">Payouts</strong> — to your verified Nigerian bank account: sessions after they
-            take place, subscriptions after a 7-day dispute window. Commission comes off the top, per your tier above.
-          </li>
-          <li>
-            <Link href="/coauthoring" className="font-bold text-crimson underline underline-offset-2">Co-authoring</Link> — Pro and Business publishers can share a post with other members and agree each person&apos;s
-            percentage of what it earns (gifts on it are split now; ad share when ad payouts launch). Any publisher can accept an invite.
-          </li>
-          <li>
-            <Link href="/gifts" className="font-bold text-crimson underline underline-offset-2">Gifts</Link> — readers can send a publisher, or a single post, a gift of ₦200,
-            ₦500, ₦1,000, ₦2,000, ₦5,000 or any amount up to ₦500,000. Same commission and payout timing as
-            subscriptions (7-day window).
-          </li>
-
+        <p className="font-ui text-sm font-bold text-ink">Learn more about each product</p>
+        <ul className="mt-3 grid grid-cols-1 gap-2 text-sm sm:grid-cols-2">
+          {[
+            ["/booking", "Paid sessions & bookings"],
+            ["/gifts", "Gifts"],
+            ["/boost", "Boost a post (packages and prices)"],
+            ["/coauthoring", "Co-authoring and earnings splits"],
+            ["/badges", "Verification badges — verified and gold, with prices"],
+            ["/merchstore", "Merch store"],
+            ["/advertise", "Ads and ad share"],
+          ].map(([href, label]) => (
+            <li key={href}>
+              <Link href={href} className="text-crimson underline underline-offset-2">{label} →</Link>
+            </li>
+          ))}
         </ul>
       </div>
 
-      <div className="card mt-6 p-6">
-        <p className="font-ui text-sm font-bold text-ink">Boost a post</p>
-        <p className="mt-2 text-sm text-slate">
-          <Link href="/boost" className="text-crimson underline underline-offset-2">Boost</Link> puts a post in the Boosted slots on the home and Journals pages. You pay for{" "}
-          <strong className="text-ink">validated impressions</strong> — a real visitor seeing your post for about a
-          second, counted once per visitor per day — delivered over several days. Undelivered impressions are refunded
-          pro-rata. Boosts are not commissionable: what you pay is the price.
-        </p>
-        <div className="mt-4 grid gap-4 sm:grid-cols-3">
-          {BOOST_PACKAGES.map((p) => (
-            <div key={p.id} className="border border-rule p-4">
-              <p className="font-ui text-sm font-bold text-ink">{p.name}</p>
-              <p className="mt-1 font-display text-xl text-ink">{formatNaira(p.priceKobo)}</p>
-              <p className="mt-1 text-xs text-slate">
-                {p.impressions.toLocaleString()} impressions · up to {p.maxPerDay.toLocaleString()}/day · up to {p.windowDays} days
-              </p>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      <p className="mt-10 text-sm text-slate">
-        Full ad-share policy detail (why no gated conditions, who can
-        advertise):{" "}
-        <Link href="/advertise" className="text-crimson underline underline-offset-2">
-          Advertise page
-        </Link>
-        .
-      </p>
     </div>
   );
 }

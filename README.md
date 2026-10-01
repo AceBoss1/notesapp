@@ -1500,6 +1500,21 @@ if re-run (don't). `consent` on user docs is still public (version + timestamp o
   publisher's own traffic (needs verified viewer ids), Cloudflare Turnstile on
   suspicious traffic, and clawback terms in the Terms. Ad-share payouts and the ad
   revenue ledger are the remaining build.
+- **Setup: `AD_HASH_SALT` and the `adSeen` TTL (step by step).**
+  1. *Salt:* in Git Bash run `openssl rand -hex 32` and copy the output (or use a
+     password manager's generator). Keep it secret; never `NEXT_PUBLIC_`.
+  2. Vercel → project → Settings → Environment Variables → Add: Key `AD_HASH_SALT`,
+     Value = the string, Environments = Production (and Preview if you like),
+     tick **Sensitive** → Save.
+  3. Vercel → Deployments → latest → ⋯ → **Redeploy** (new env vars only apply to
+     new deployments). Changing the salt later just resets today's de-dup memory.
+  4. *TTL:* Google Cloud Console (same account) → project `notesapp-a1402` →
+     Firestore → **Time-to-live (TTL)** → Create policy → Collection group ID
+     `adSeen`, Timestamp field `expireAt` → Create. Repeat for boosts with
+     collection group `seen`, field `expireAt`. Or CLI: `gcloud firestore fields
+     ttls update expireAt --collection-group=adSeen --enable-ttl
+     --database='(default)' --project=notesapp-a1402`. Documents are removed
+     within about a day of expiring; without a policy they just pile up (small).
 - **Admin Payments** now lists **all payments** (every product, latest 300,
   filterable; `pending` = started but never confirmed) above the payout ledger.
 - Header now shows the member's avatar (links to their profile) after the bell.
