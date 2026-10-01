@@ -1,5 +1,5 @@
 import { getAdminDb, getUserEmail } from "./firebase-admin";
-import { slotLockId, verifyTransaction } from "./paystack";
+import { slotLockId, verifyTransaction, pricePaidKobo } from "./paystack";
 import { commissionRateFor } from "./tiers";
 import { sessionEnd, sessionStart, formatSlot, formatNaira } from "./booking-time";
 import { sendEmail } from "./email";
@@ -102,8 +102,15 @@ export async function fulfillPayment(reference: string): Promise<PaymentRecord> 
 
   const tx = await verifyTransaction(reference);
   if (tx.status !== "success") throw new Error(`Payment not successful (${tx.status})`);
-  if (tx.amount !== payment.amountKobo || tx.currency !== "NGN") {
-    throw new Error("Paid amount does not match the price");
+  if (pricePaidKobo(tx) !== payment.amountKobo || tx.currency !== "NGN") {
+    // Keep the evidence (a plan-based charge uses the PLAN's amount, so a stale
+    // plan shows up here) and say exactly what differed.
+    const detail = { kind: payment.kind, expectedKobo: payment.amountKobo, paidKobo: tx.amount, requestedKobo: tx.requested_amount ?? null, feesKobo: tx.fees ?? null, currency: tx.currency };
+    console.error("Paystack amount mismatch", reference, detail);
+    await payRef.update({ mismatch: { ...detail, at: new Date().toISOString() } }).catch(() => {});
+    throw new Error(
+      `Paid amount does not match the price (expected ${formatNaira(payment.amountKobo)}, Paystack charged ${formatNaira(pricePaidKobo(tx))} ${tx.currency}).`
+    );
   }
 
   const now = new Date().toISOString();
@@ -306,7 +313,7 @@ export async function fulfillRenewal(data: {
     kind: "subscription",
     uid: sub.subscriberUid,
     email,
-    amountKobo: tx.amount,
+    amountKobo: pricePaidKobo(tx),
     status: "paid",
     publisherUid,
     publisherUsername: sub.username,
@@ -323,7 +330,7 @@ export async function fulfillRenewal(data: {
   batch.set(db.doc(`payments/${data.reference}`), payment);
   batch.set(
     db.doc(`ledger/${data.reference}`),
-    ledgerFor(payment, tx.amount, new Date(now.getTime() + SUBSCRIPTION_HOLD_DAYS * 86_400_000), now.toISOString())
+    ledgerFor(payment, pricePaidKobo(tx), new Date(now.getTime() + SUBSCRIPTION_HOLD_DAYS * 86_400_000), now.toISOString())
   );
   await batch.commit();
 }

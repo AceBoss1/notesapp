@@ -53,10 +53,20 @@ export function initializeTransaction(params: {
 
 export type PaystackTx = {
   status: string;
+  // What the customer was charged. If the Paystack account makes the CUSTOMER
+  // bear transaction fees, this includes the fee (e.g. ₦3,000 price → ₦3,147.21).
   amount: number;
+  requested_amount?: number; // the price we asked for, before any customer-borne fee
+  fees?: number;
   currency: string;
   reference: string;
 };
+
+// The price we asked for — compare/record THIS, not `amount`, so fee-bearer
+// settings in the Paystack dashboard can't break payment confirmation.
+export function pricePaidKobo(tx: PaystackTx): number {
+  return typeof tx.requested_amount === "number" && tx.requested_amount > 0 ? tx.requested_amount : tx.amount;
+}
 
 export function verifyTransaction(reference: string) {
   return paystack<PaystackTx>(

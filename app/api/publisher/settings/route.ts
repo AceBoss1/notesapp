@@ -32,7 +32,10 @@ export async function POST(req: NextRequest) {
     const availability: Record<string, string[]> = {};
     for (let d = 0; d < 7; d++) {
       const slots: unknown = sIn.availability?.[String(d)] ?? [];
-      if (!Array.isArray(slots) || slots.length > LIMITS.maxSlotsPerDay || !slots.every((x) => typeof x === "string" && SLOT_RE.test(x))) {
+      if (Array.isArray(slots) && slots.length > LIMITS.maxSlotsPerDay) {
+        return NextResponse.json({ error: `Too many times on one day (max ${LIMITS.maxSlotsPerDay}).` }, { status: 400 });
+      }
+      if (!Array.isArray(slots) || !slots.every((x) => typeof x === "string" && SLOT_RE.test(x))) {
         return NextResponse.json({ error: "Invalid availability." }, { status: 400 });
       }
       availability[String(d)] = Array.from(new Set(slots as string[])).sort();
