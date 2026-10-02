@@ -23,6 +23,7 @@ export type DojahSummary = {
   overall: boolean | null; // top-level `status`
   steps: Record<string, boolean>; // one pass/fail per step the user went through
   unscored: string[]; // steps Dojah sent without a true/false status — shown to the admin, not counted
+  businessNumber?: string; // registration number Dojah found (a public CAC number, not personal data)
   missing: string[]; // required parts of this track's check that weren't scored true (so it can't read as passed)
   passed: boolean; // Completed + overall true + every step true — "Completed" alone only means the session finished
   terminal: boolean; // Completed / Failed / Abandoned — Ongoing and Pending mean another event is coming
@@ -42,7 +43,16 @@ function scoreStep(step: any): boolean | undefined {
     if (BAD_WORDS.includes(w)) return false;
   }
   if (step.data && typeof step.data === "object" && typeof step.data.status === "boolean") return step.data.status;
+  // Dojah's business steps (business_data, business_id) carry the CAC lookup result itself and no
+  // status: a returned registration number with a company name means the lookup succeeded.
+  if (hasBusinessRecord(step)) return true;
   return undefined;
+}
+
+const digitsOf = (v: unknown) => String(v ?? "").replace(/\D/g, "");
+function hasBusinessRecord(step: any): boolean {
+  const num = digitsOf(step?.business_number);
+  return num.length >= 3 && typeof step?.business_name === "string" && step.business_name.trim().length > 1;
 }
 
 // A description of an unscored step that holds NO personal data: its field NAMES and a short status word.
@@ -62,7 +72,10 @@ const REQUIRED: Record<"personal" | "corporate", string[]> = {
   corporate: ["business", "government", "selfie"],
 };
 
-export function summarizeDojahEvent(event: any, track: "personal" | "corporate" = "personal"): DojahSummary {
+// `expectedRc` is the registration number the organisation declared. In production the number Dojah
+// found must match it (otherwise someone checked a different company); Dojah's sandbox returns fixed
+// test data, so the match is skipped when DOJAH_API_BASE points at the sandbox.
+export function summarizeDojahEvent(event: any, track: "personal" | "corporate" = "personal", expectedRc?: string | null): DojahSummary {
   const verificationStatus = String(event?.verification_status ?? "");
   const overall = typeof event?.status === "boolean" ? event.status : null;
   const steps: Record<string, boolean> = {};
@@ -76,12 +89,23 @@ export function summarizeDojahEvent(event: any, track: "personal" | "corporate" 
     }
   }
   const stepsOk = Object.values(steps).every(Boolean);
+  let businessNumber: string | undefined;
+  if (data && typeof data === "object") {
+    for (const [name, step] of Object.entries<any>(data)) {
+      if (name.toLowerCase().includes("business") && hasBusinessRecord(step)) businessNumber = digitsOf(step.business_number).slice(0, 12);
+    }
+  }
   const names = Object.keys(steps).map((n) => n.toLowerCase());
   const missing = REQUIRED[track].filter((part) => !names.some((n) => n.includes(part) && steps[Object.keys(steps).find((k) => k.toLowerCase() === n)!]));
+  const sandbox = (process.env.DOJAH_API_BASE || "").includes("sandbox");
+  if (track === "corporate" && !sandbox && businessNumber && expectedRc && digitsOf(expectedRc) !== businessNumber) {
+    missing.push("a registration number matching the one the organisation signed up with");
+  }
   return {
     verificationStatus,
     overall,
     steps,
+    ...(businessNumber ? { businessNumber } : {}),
     unscored: unscored.slice(0, 20),
     missing,
     // a step we could not read as pass/fail is unknown, so it keeps the check from reading as passed
