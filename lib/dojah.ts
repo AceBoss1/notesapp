@@ -23,6 +23,7 @@ export type DojahSummary = {
   overall: boolean | null; // top-level `status`
   steps: Record<string, boolean>; // one pass/fail per step the user went through
   unscored: string[]; // steps Dojah sent without a true/false status — shown to the admin, not counted
+  missing: string[]; // required parts of this track's check that weren't scored true (so it can't read as passed)
   passed: boolean; // Completed + overall true + every step true — "Completed" alone only means the session finished
   terminal: boolean; // Completed / Failed / Abandoned — Ongoing and Pending mean another event is coming
   receivedAt: string;
@@ -30,7 +31,15 @@ export type DojahSummary = {
 
 // The event fields are top-level (no wrapper): reference_id, verification_status, status,
 // data{ <step>: { status, message, data } }, metadata.
-export function summarizeDojahEvent(event: any): DojahSummary {
+// What a check must contain before we call it passed. A session where only the email step ran,
+// or where the business steps weren't scored, must NOT read as passed — it goes to the admin.
+// (Step names seen from Dojah: email, government_data, selfie; the business steps' names are matched loosely.)
+const REQUIRED: Record<"personal" | "corporate", string[]> = {
+  personal: ["government", "selfie"],
+  corporate: ["business", "government", "selfie"],
+};
+
+export function summarizeDojahEvent(event: any, track: "personal" | "corporate" = "personal"): DojahSummary {
   const verificationStatus = String(event?.verification_status ?? "");
   const overall = typeof event?.status === "boolean" ? event.status : null;
   const steps: Record<string, boolean> = {};
@@ -43,12 +52,15 @@ export function summarizeDojahEvent(event: any): DojahSummary {
     }
   }
   const stepsOk = Object.values(steps).every(Boolean);
+  const names = Object.keys(steps).map((n) => n.toLowerCase());
+  const missing = REQUIRED[track].filter((part) => !names.some((n) => n.includes(part) && steps[Object.keys(steps).find((k) => k.toLowerCase() === n)!]));
   return {
     verificationStatus,
     overall,
     steps,
     unscored: unscored.slice(0, 20),
-    passed: verificationStatus === "Completed" && overall === true && stepsOk,
+    missing,
+    passed: verificationStatus === "Completed" && overall === true && stepsOk && missing.length === 0,
     terminal: ["Completed", "Failed", "Abandoned"].includes(verificationStatus),
     receivedAt: new Date().toISOString(),
   };
