@@ -89,7 +89,7 @@ export default function GoldBadgeApplication() {
     body = (
       <div className="mt-2 text-sm text-ink">
         <p>Deposit received. Now complete your identity check with our verification partner, Dojah. Your ID details go to Dojah, not to #NotesApp.</p>
-        {url && (
+        {url && !request.dojah?.passed && (
           <a href={url} target="_blank" rel="noopener noreferrer" className="btn-primary mt-3 inline-block !px-4 !py-2 text-xs">
             Start identity check
           </a>
