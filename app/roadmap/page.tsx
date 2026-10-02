@@ -78,6 +78,21 @@ export default function RoadmapPage() {
 
       <div className="card mt-6 p-7">
         <span className="font-mono text-[11px] uppercase tracking-eyebrow text-crimson-bright">
+          Organisations
+        </span>
+        <h2 className="mt-2 font-display text-2xl text-ink">Organisation accounts</h2>
+        <p className="mt-3 text-slate">
+          Live: organisation sign-up with a CAC registration number, a free 30-day Business trial, an &ldquo;unverified organisation&rdquo; notice until we
+          confirm the registration, and the maroon ✔ once confirmed. Next: team members (owner, admins and writers publishing under the channel&apos;s name,
+          four seats on Business) and one shared payout account for the whole organisation.
+        </p>
+        <Link href="/organisations" className="mt-4 inline-block text-sm text-crimson underline underline-offset-2">
+          How organisation accounts work →
+        </Link>
+      </div>
+
+      <div className="card mt-6 p-7">
+        <span className="font-mono text-[11px] uppercase tracking-eyebrow text-crimson-bright">
           Ads
         </span>
         <h2 className="mt-2 font-display text-2xl text-ink">Ad-share program</h2>

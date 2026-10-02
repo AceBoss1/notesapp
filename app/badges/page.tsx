@@ -21,6 +21,10 @@ const FAQ = [
     a: "No. It shows an account in good standing that is on an eligible plan or has the badge subscription. Identity checks and endorsements are what the gold badge is for — endorsements are open now, identity checks are " + (GOLD_KIND_LIVE.identity ? "open too." : "coming soon."),
   },
   {
+    q: "How does the maroon ✔ work for organisations?",
+    a: "An organisation's maroon ✔ means two things together: its CAC registration has been confirmed by #NotesApp, and it is on an eligible plan (Business and Enterprise include it). Until we confirm the registration, the channel shows an \"unverified organisation\" notice instead of the ✔, and so does each of its posts — including during the free trial. It still isn't an identity check: for that, apply for the gold badge (Corporate track).",
+  },
+  {
     q: "What is the gold badge?",
     a: "A gold ✔ for accounts #NotesApp has vouched for. It comes in two kinds: endorsed (we reviewed your public work and back you) and identity-checked (you passed an ID check — NIN plus a live face check for people, CAC registration for organisations). It shows beside your name on your profile, the directory and your posts, and replaces the maroon ✔ while active.",
   },

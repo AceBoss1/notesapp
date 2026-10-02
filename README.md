@@ -1595,3 +1595,16 @@ Anyone with a verified account buys a banner campaign at `/advertise/new` (packa
 5. Advertisers track delivery at `/advertise/campaigns`. Terms 5e covers the rules.
 
 Deploy `firestore.rules` (new `adCampaigns` rule). Not covered: Google/Meta/AdMob slots.
+
+## Organisation accounts (phase 1)
+
+Sign up as **Organisation** at `/signup` (name + CAC number), onboarding checklist at `/organisation`, public explainer at `/organisations`.
+
+- Data (all server-written; `firestore.rules` lets an owner edit only name/bio/logo/links): `users/{uid}.accountKind = "organisation"`, `org { rcNumber, rcStatus: unverified|verified|rejected }`, `trialUntil/trialTier/trialUsedAt`. `orgRc/{number}` = one organisation per registration number; `orgTrials/{number}` = one free trial per number; `orgRequests/{uid}` = admin-approved conversion of an older personal account.
+- `POST /api/org`: `register`, `resubmit`, `start_trial` (30-day Business, needs a verified email). The cron (`expireTiers`) emails 5 days before the end and drops to Free Basic unless a paid plan started (payment fulfilment clears the trial fields).
+- `/admin/organisations`: check each number on search.cac.gov.ng, then verify/reject (`/api/admin/organisations`).
+- Maroon ✔ for an organisation needs `rcStatus === "verified"` **and** a plan that includes the badge; until then the channel and each post show the "unverified organisation" notice (`components/OrgNotice.tsx`).
+- Also fixed: the `users` create rule used to accept any fields (a client could self-assign a tier). It now allows only the ordinary starting fields as a Free Standard reader.
+- Phase 2 (not built): team members/seats and a shared payout account.
+
+Redeploy `firestore.rules`.

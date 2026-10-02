@@ -146,6 +146,26 @@ test("public user documents can't be created with an email field", async () => {
   await assertSucceeds(setDoc(doc(as("newbie"), "users/newbie"), base));
 });
 
+test("a new profile can't self-assign a tier, badge, organisation or trial", async () => {
+  const base = { uid: "n2", username: "n2", displayName: "N", bio: "", avatar: "", social: {}, role: "reader", createdAt: "x", accountTier: "standard", suspended: false };
+  await assertFails(setDoc(doc(as("n2"), "users/n2"), { ...base, accountTier: "enterprise" }));
+  await assertFails(setDoc(doc(as("n2"), "users/n2"), { ...base, role: "admin" }));
+  await assertFails(setDoc(doc(as("n2"), "users/n2"), { ...base, verified: true }));
+  await assertFails(setDoc(doc(as("n2"), "users/n2"), { ...base, accountKind: "organisation", org: { rcStatus: "verified" } }));
+  await assertFails(setDoc(doc(as("n2"), "users/n2"), { ...base, trialUntil: "2099-01-01T00:00:00.000Z" }));
+  await assertSucceeds(setDoc(doc(as("n2"), "users/n2"), { ...base, consent: { version: "v", acceptedAt: "x" } }));
+});
+
+test("organisation fields can't be edited by the owner", async () => {
+  await env.withSecurityRulesDisabled(async (ctx) => {
+    await setDoc(doc(ctx.firestore(), "users/orgx"), { uid: "orgx", username: "orgx", displayName: "Org", bio: "", avatar: "", social: {}, role: "reader", createdAt: "x", accountTier: "business", suspended: false, accountKind: "organisation", org: { rcNumber: "RC123", rcStatus: "unverified" } });
+  });
+  await assertSucceeds(updateDoc(doc(as("orgx"), "users/orgx"), { bio: "We build things", social: { website: "https://x.com" } }));
+  await assertFails(updateDoc(doc(as("orgx"), "users/orgx"), { "org.rcStatus": "verified" }));
+  await assertFails(updateDoc(doc(as("orgx"), "users/orgx"), { trialUntil: "2099-01-01T00:00:00.000Z" }));
+  await assertFails(updateDoc(doc(as("orgx"), "users/orgx"), { accountKind: "personal" }));
+});
+
 test("a publisher can edit and delete their own entries, not other people's", async () => {
   await env.withSecurityRulesDisabled(async (ctx) => {
     const adminDb = ctx.firestore();

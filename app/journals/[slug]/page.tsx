@@ -14,6 +14,7 @@ import Comments from "@/components/Comments";
 import PremiumGate from "@/components/PremiumGate";
 import GiftButton from "@/components/GiftButton";
 import AdSlot from "@/components/AdSlot";
+import { UnverifiedOrgNotice } from "@/components/OrgNotice";
 
 // Same note, same Firestore doc as precheks.com.ng/notes/{slug} — this
 // route is #NotesApp's own reading UI over that exact shared content.
@@ -152,6 +153,8 @@ export default async function JournalDetail({
           &nbsp;|&nbsp; {note.reading_time} min read
         </p>
       </div>
+
+      <UnverifiedOrgNotice profile={authorProfile} compact />
 
       {note.featured_image && (
         <Image

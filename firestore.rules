@@ -213,9 +213,25 @@ service cloud.firestore {
       // A user can create only their own profile.
       // No `email` key: emails live only in Firebase Authentication, and
       // this document is publicly readable.
+      //
+      // Only the ordinary starting fields, as a plain reader on Free
+      // Standard: tier, badges, organisation and trial fields are granted
+      // by the server (or an admin), never self-assigned at creation.
       allow create: if isSignedIn()
         && request.auth.uid == uid
-        && !('email' in request.resource.data);
+        && !('email' in request.resource.data)
+        && (
+          isAdmin()
+          || (
+            request.resource.data.keys().hasOnly([
+              'uid', 'username', 'displayName', 'bio', 'avatar', 'social',
+              'role', 'createdAt', 'accountTier', 'suspended', 'consent'
+            ])
+            && request.resource.data.role == 'reader'
+            && request.resource.data.accountTier == 'standard'
+            && request.resource.data.suspended == false
+          )
+        );
 
       // Admins can manage profiles.
       //
