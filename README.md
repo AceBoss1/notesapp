@@ -1645,3 +1645,5 @@ Setup, per environment (sandbox first, then production):
 Dojah's file links expire after about an hour and we ignore them. Duplicate or out-of-order events are safe (a late "Ongoing" never overwrites a finished result).
 
 Gold-badge decisions: `POST /api/admin/badge-request` (used by Approve/Decline in `/admin/users`) records the decision, sends the applicant a bell notification (type `badge`) and an email, and stores an optional decline reason.
+
+Testing the webhook without a real check: `DOJAH_WEBHOOK_SECRET=… node scripts/dojah-test-event.mjs <uid> [pass|fail|abandoned]` sends a correctly signed fake event for a member who has a paid identity application, so you can confirm the signature check and the `/admin/users` display independently of Dojah's sandbox. Dojah sandbox values (only against `https://sandbox.dojah.io`): NIN 70123456789, BVN 22222222222, phone 09011111111, RC/CAC 1261103 or 14320749, TIN 18609323-0001.
