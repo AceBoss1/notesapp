@@ -106,7 +106,12 @@ export function summarizeDojahEvent(event: any, track: "personal" | "corporate" 
   if (businessNumber && data && typeof data === "object") {
     for (const [name, step] of Object.entries<any>(data)) {
       const key = name.slice(0, 40);
-      if (name.toLowerCase().includes("business") && steps[key] === undefined && digitsOf(step?.business_number) === businessNumber) {
+      // A "type selection" step (only business_type filled — e.g. the RC/BN choice) carries nothing to
+      // verify on its own; it is fine alongside a verified lookup elsewhere. Anything else must match.
+      const typeOnly =
+        typeof step?.business_type === "string" && step.business_type.trim().length > 0 &&
+        !digitsOf(step?.business_number) && !(typeof step?.business_name === "string" && step.business_name.trim());
+      if (name.toLowerCase().includes("business") && steps[key] === undefined && (typeOnly || digitsOf(step?.business_number) === businessNumber)) {
         steps[key] = true;
         const i = unscored.findIndex((u) => u.startsWith(`${key} [`));
         if (i >= 0) unscored.splice(i, 1);
