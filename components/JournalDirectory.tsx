@@ -8,7 +8,7 @@ import { OFFICIAL_NOTESAPP_PROFILE, VERIFIED_USERNAMES } from "@/lib/journals-di
 import { NOTESAPP_POSTS } from "@/lib/notesapp-posts";
 import VerifiedBadge from "@/components/VerifiedBadge";
 import TeamBadge from "@/components/TeamBadge";
-import type { BadgeLevel } from "@/lib/badges";
+import type { BadgeLevel, GoldBadgeKind } from "@/lib/badges";
 
 export type DirectoryEntry = {
   username: string;
@@ -16,6 +16,7 @@ export type DirectoryEntry = {
   avatar: string;
   bio: string;
   badge?: BadgeLevel;
+  goldKind?: GoldBadgeKind;
   team?: boolean;
 };
 
@@ -48,7 +49,7 @@ export default function JournalDirectory({
               <div>
                 <p className="flex items-center gap-1.5 font-ui text-sm font-bold text-ink">
                   {entry.displayName}
-                  {(entry.badge || VERIFIED_USERNAMES.includes(entry.username)) && <VerifiedBadge size={13} level={entry.badge || "verified"} />}
+                  {(entry.badge || VERIFIED_USERNAMES.includes(entry.username)) && <VerifiedBadge size={13} level={entry.badge || "verified"} goldKind={entry.goldKind} />}
                   {(entry.team || VERIFIED_USERNAMES.includes(entry.username)) && <TeamBadge size={13} />}
                 </p>
                 <p className="font-mono text-xs text-slate">

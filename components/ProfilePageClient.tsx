@@ -6,9 +6,9 @@ import Image from "next/image";
 import { onAuthStateChanged, User } from "firebase/auth";
 import { auth } from "@/lib/firebase";
 import { recordView } from "@/lib/track";
-import { getUserByUsername, getCommentsByUser, badgeLevel, isTeamMember, canPublish, UserProfile, CommentActivity, Suspension } from "@/lib/users";
+import { getUserByUsername, getCommentsByUser, badgeLevel, goldKindOf, isTeamMember, canPublish, UserProfile, CommentActivity, Suspension } from "@/lib/users";
 import TeamBadge from "@/components/TeamBadge";
-import type { BadgeLevel } from "@/lib/badges";
+import { GOLD_BADGE_TITLE, type BadgeLevel } from "@/lib/badges";
 import { getAllNotes, isNoteBy, NoteWithComputed } from "@/lib/firestore-notes";
 import SocialLinksRow from "@/components/SocialLinksRow";
 import { getRecentCommentsOnNotes, Comment } from "@/lib/engagement";
@@ -226,7 +226,7 @@ export default function ProfilePageClient({ params }: { params: { username: stri
         <div>
           <h1 className="flex items-center gap-2 font-display text-3xl text-ink">
             {profile.displayName}
-            {badge && !suspended && <VerifiedBadge size={20} level={badge} />}
+            {badge && !suspended && <VerifiedBadge size={20} level={badge} goldKind={goldKindOf(realProfile)} />}
             {!suspended && (VERIFIED_USERNAMES.includes(profile.username) || (!!realProfile && isTeamMember(realProfile))) && <TeamBadge size={20} />}
             <OrgLabel profile={realProfile} />
           </h1>
@@ -240,6 +240,9 @@ export default function ProfilePageClient({ params }: { params: { username: stri
             </p>
           )}
           <p className="mt-2 max-w-lg text-sm text-slate">{profile.bio}</p>
+          {!suspended && badge === "gold" && goldKindOf(realProfile) && (
+            <p className="mt-1 text-xs font-semibold text-slate">{GOLD_BADGE_TITLE[goldKindOf(realProfile)!].replace("Gold badge — ", "Gold ✔ · ")}</p>
+          )}
           {!suspended && <UnverifiedOrgNotice profile={realProfile} />}
           {realProfile && <SocialLinksRow social={realProfile.social} />}
           {viewer && realProfile && viewer.uid === realProfile.uid && (

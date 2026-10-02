@@ -165,6 +165,11 @@ export function badgeLevel(profile: UserProfile): BadgeLevel {
   return hasVerifiedBadge(profile) ? "verified" : null;
 }
 
+// Which kind of gold ✔ an account shows (undefined unless it is showing gold).
+export function goldKindOf(profile: UserProfile | null | undefined): GoldBadgeKind | undefined {
+  return profile && badgeLevel(profile) === "gold" ? profile.goldBadge?.kind : undefined;
+}
+
 // Can this account publish its own journal entries? Every tier except
 // "standard" grants it, same as an internal role (admin/staff/
 // volunteer) does. firestore.rules' isPublisher() must be kept in

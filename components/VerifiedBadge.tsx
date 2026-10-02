@@ -1,7 +1,9 @@
-export default function VerifiedBadge({ size = 16, level = "verified" }: { size?: number; level?: "verified" | "gold" | null }) {
+import { GOLD_BADGE_TITLE, GoldBadgeKind } from "@/lib/badges";
+
+export default function VerifiedBadge({ size = 16, level = "verified", goldKind }: { size?: number; level?: "verified" | "gold" | null; goldKind?: GoldBadgeKind }) {
   if (!level) return null;
   const gold = level === "gold";
-  const label = gold ? "Gold badge — identity checked or endorsed by #NotesApp" : "Verified";
+  const label = gold ? (goldKind ? GOLD_BADGE_TITLE[goldKind] : "Gold badge — identity verified by Dojah or endorsed by #NotesApp") : "Verified";
   return (
     <svg
       width={size}
