@@ -4,7 +4,7 @@ import ContactForm from "@/components/ContactForm";
 
 export const metadata: Metadata = {
   title: "Contact",
-  description: "Contact #NotesApp — support, bookings and payments help, boosts and gifts, reporting a post, partnerships, press or investment.",
+  description: "Contact #NotesApp — bookings and payments help, store orders and parcels, advertising campaigns, organisation accounts and CAC verification, boosts and gifts, reporting a post or account, partnerships, press or investment.",
 };
 
 export default async function ContactPage() {
@@ -16,12 +16,14 @@ export default async function ContactPage() {
         Talk to us
       </h1>
       <p className="mt-5 text-slate">
-        Help with a booking, payment, payout or refund; questions about
-        boosts and gifts; reporting a post or account; partnerships,
-        press, investment — or anything else. The fastest way to reach
-        the team is the form below. It goes
-        straight to admins, not a shared inbox someone has to remember
-        to check.
+        Help with a booking, payment, payout or refund; a store order, a
+        parcel or a delivery problem; an advertising campaign; setting up an
+        organisation account, CAC verification or your team; boosts and gifts;
+        the gold badge; reporting a post or account; partnerships, press,
+        investment — or anything else. Pick the topic in the form below and it
+        goes straight to admins, not a shared inbox someone has to remember to
+        check. For a parcel, include its ID (it looks like NA-7K2M9QXD) — you
+        can also <a href="/track" className="text-crimson underline">track it yourself</a>.
       </p>
       <div className="card mt-8 grid gap-5 p-7 sm:grid-cols-2">
         <div>

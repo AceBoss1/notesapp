@@ -55,6 +55,26 @@ export default function OrganisationsPage() {
         <p className="mt-3"><strong className="text-ink">Gold ✔.</strong> Endorsed or identity-checked by #NotesApp. Corporate track: {formatNaira(GOLD_PRICING.corporate.monthlyKobo)}/month, plus a {formatNaira(GOLD_PRICING.corporate.identityDepositKobo)} non-refundable deposit for an identity check. <Link href="/badges" className="text-crimson underline">Details</Link></p>
       </div>
 
+      <h2 className="mt-12 font-display text-2xl text-ink">Selling from your organisation&apos;s store</h2>
+      <div className="card mt-4 p-6 text-sm text-slate">
+        <p>
+          Your organisation has its own store at <code>/u/yourname/store</code>. The owner lists physical items (price, delivery fee and a stock count); buyers pay through #NotesApp,
+          and the money is held until they confirm delivery, then paid to the <strong className="text-ink">organisation&apos;s</strong> payout account. Every order gets a parcel ID to track.
+        </p>
+        <p className="mt-3">
+          <strong className="text-ink">Who runs it.</strong> The owner can run the store alone, or tick &ldquo;runs the store&rdquo; for chosen team members on the team page. Those members can add and
+          edit items and handle orders and tracking — but the funds, the payouts and the liability always stay with the organisation, never with the individual. Store access
+          needs the Business or Enterprise plan.
+        </p>
+        <p className="mt-3"><Link href="/store-selling" className="text-crimson underline">How selling, stock and parcel tracking work →</Link></p>
+      </div>
+
+      <h2 className="mt-12 font-display text-2xl text-ink">Moving existing posts into the organisation</h2>
+      <p className="mt-3 text-sm text-slate">
+        Already publishing under a personal journal? Ask us (<Link href="/contact" className="text-crimson underline">contact</Link>) to move selected posts to the organisation&apos;s channel. They keep their web addresses, now appear under the
+        organisation&apos;s name, and credit the person who wrote them as &ldquo;Written by @person for #Org&rdquo;. Gifts and ad share from them go to the organisation from then on.
+      </p>
+
       <h2 className="mt-12 font-display text-2xl text-ink">Plans and seats</h2>
       <p className="mt-3 text-sm text-slate">
         Organisations start on Business ({ORG_SEATS.business} seats: the owner plus three team members, counting pending invitations) or Enterprise (seats and commission agreed with us). Team publishing needs one of these plans; if the plan ends, the team can&apos;t publish until it returns, and everything already published stays.{" "}
