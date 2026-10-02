@@ -29,6 +29,29 @@ export type DojahSummary = {
   receivedAt: string;
 };
 
+// One step's verdict: a boolean `status`, a clearly worded string status ("success", "failed"…),
+// or a boolean `data.status`. Anything else is NOT scored — it is listed for the admin instead.
+const OK_WORDS = ["success", "successful", "completed", "verified", "passed", "approved", "true"];
+const BAD_WORDS = ["failed", "failure", "error", "rejected", "unverified", "declined", "false"];
+function scoreStep(step: any): boolean | undefined {
+  if (!step || typeof step !== "object") return undefined;
+  if (typeof step.status === "boolean") return step.status;
+  if (typeof step.status === "string") {
+    const w = step.status.trim().toLowerCase();
+    if (OK_WORDS.includes(w)) return true;
+    if (BAD_WORDS.includes(w)) return false;
+  }
+  if (step.data && typeof step.data === "object" && typeof step.data.status === "boolean") return step.data.status;
+  return undefined;
+}
+
+// A description of an unscored step that holds NO personal data: its field NAMES and a short status word.
+function describeStep(name: string, step: any): string {
+  if (!step || typeof step !== "object") return `${name} [${typeof step}]`;
+  const st = typeof step.status === "string" ? `status="${step.status.slice(0, 20)}"` : `status:${typeof step.status}`;
+  return `${name} [${st}; fields: ${Object.keys(step).slice(0, 8).join(",")}]`.slice(0, 160);
+}
+
 // The event fields are top-level (no wrapper): reference_id, verification_status, status,
 // data{ <step>: { status, message, data } }, metadata.
 // What a check must contain before we call it passed. A session where only the email step ran,
@@ -47,8 +70,9 @@ export function summarizeDojahEvent(event: any, track: "personal" | "corporate" 
   const data = event?.data;
   if (data && typeof data === "object") {
     for (const [name, step] of Object.entries<any>(data)) {
-      if (step && typeof step.status === "boolean") steps[name.slice(0, 40)] = step.status;
-      else unscored.push(name.slice(0, 40));
+      const verdict = scoreStep(step);
+      if (verdict !== undefined) steps[name.slice(0, 40)] = verdict;
+      else unscored.push(describeStep(name.slice(0, 40), step));
     }
   }
   const stepsOk = Object.values(steps).every(Boolean);
