@@ -27,17 +27,10 @@ export type TierConfig = {
   // NotesApp's cut of the item price when a buyer pays on-platform for
   // a physical good from a publisher's store (/u/username/store). Lower than
   // the session/subscription cut because physical margins are thin. Delivery
-  // fees pass through untouched. Distinct from external stores (Selar, Amazon,
-  // etc.) — those link out and pay us nothing, see externalStoreAllowed.
+  // fees pass through untouched. Stores sell through #NotesApp checkout only —
+  // there are no link-out items (links live in posts and the profile link).
   physicalCommission: number | "custom";
   physicalCommissionFloor?: number;
-  // Linking out to an external store (Selar, Amazon, etc.) instead of
-  // NotesApp's own fulfillment. Restricted on purpose — an external
-  // link-out is revenue NotesApp never takes a commission on, so it's
-  // only available where that trade-off already makes sense: the two
-  // founders' existing stores (a separate, role-based allowance — see
-  // canUseExternalStore below, not tied to tier at all) and Enterprise.
-  externalStoreAllowed: boolean;
 };
 
 export const TIERS: TierConfig[] = [
@@ -49,7 +42,6 @@ export const TIERS: TierConfig[] = [
     adRevenueShare: null,
     sessionAndUnlockCommission: 0, // N/A — Standard can't publish, nothing to take a cut of
     physicalCommission: 0,
-    externalStoreAllowed: false,
   },
   {
     tier: "basic",
@@ -59,7 +51,6 @@ export const TIERS: TierConfig[] = [
     adRevenueShare: 0,
     sessionAndUnlockCommission: 0.35,
     physicalCommission: 0.08,
-    externalStoreAllowed: false,
   },
   {
     tier: "pro",
@@ -72,7 +63,6 @@ export const TIERS: TierConfig[] = [
     adRevenueShare: 0.25,
     sessionAndUnlockCommission: 0.25,
     physicalCommission: 0.05,
-    externalStoreAllowed: false,
   },
   {
     tier: "business",
@@ -85,7 +75,6 @@ export const TIERS: TierConfig[] = [
     adRevenueShare: 0.45,
     sessionAndUnlockCommission: 0.15,
     physicalCommission: 0.04,
-    externalStoreAllowed: false,
   },
   {
     tier: "enterprise",
@@ -97,7 +86,6 @@ export const TIERS: TierConfig[] = [
     sessionAndUnlockCommissionFloor: 0.05,
     physicalCommission: "custom",
     physicalCommissionFloor: 0.03,
-    externalStoreAllowed: true,
   },
 ];
 
@@ -108,16 +96,6 @@ export function getTierConfig(tier: AccountTier): TierConfig {
 export function formatPercent(value: number | "custom", floor?: number): string {
   if (value === "custom") return `Custom (from ${((floor ?? 0.05) * 100).toFixed(0)}%+)`;
   return `${(value * 100).toFixed(0)}%`;
-}
-
-// Founders (Emmanuel/Chimdinma — role "admin") get external stores
-// regardless of tier — a role-based allowance, not a tier one. This
-// is why lib/store.ts's two hardcoded catalogues (Selar/Amazon links)
-// were never tier-gated to begin with; this function makes that
-// existing behavior explicit rather than accidental.
-export function canUseExternalStore(role: string, tier: AccountTier): boolean {
-  if (role === "admin") return true;
-  return getTierConfig(tier).externalStoreAllowed;
 }
 
 // NotesApp's cut of a session, subscription or gift for a publisher of

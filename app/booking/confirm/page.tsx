@@ -142,6 +142,13 @@ function Confirm() {
             Back to profile
           </Link>
         </>
+      ) : result.kind === "store" ? (
+        <>
+          <p className="font-display text-2xl text-ink">That item sold out</p>
+          <p className="mt-3 text-sm text-slate">
+            Your payment went through after the last one was taken. We&apos;ll refund you in full — contact us with reference {reference} if it doesn&apos;t arrive.
+          </p>
+        </>
       ) : (
         <>
           <p className="font-display text-2xl text-ink">Slot no longer available</p>

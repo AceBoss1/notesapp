@@ -113,39 +113,43 @@ export async function getStoreItems(uid: string | undefined, username: string): 
   }
 }
 
+// Every publisher listing is a physical item sold through #NotesApp checkout: a price, a
+// delivery fee and a managed stock count (no link-outs — the founders' own catalogues above
+// are the only exception). Legacy link-out listings can no longer be saved, only removed.
 function clean(input: StoreItemInput) {
-  const sellable = input.sellable === true;
   return {
-    ...(sellable
-      ? {
-          sellable: true,
-          priceKobo: Math.round(Number(input.priceKobo)),
-          deliveryKobo: Math.round(Number(input.deliveryKobo ?? 0)),
-          ...(input.stock !== undefined && Number.isFinite(Number(input.stock)) ? { stock: Math.max(0, Math.floor(Number(input.stock))) } : {}),
-        }
-      : {}),
+    sellable: true as const,
+    priceKobo: Math.round(Number(input.priceKobo)),
+    deliveryKobo: Math.round(Number(input.deliveryKobo ?? 0)),
+    stock: Math.max(0, Math.floor(Number(input.stock ?? 0))),
     title: input.title.trim(),
     ...(input.subtitle?.trim() ? { subtitle: input.subtitle.trim() } : {}),
     price: input.price.trim(),
     ...(input.badge?.trim() ? { badge: input.badge.trim() } : {}),
-    link: sellable ? input.link?.trim() || "https://www.notesapp.name.ng" : input.link.trim(),
+    link: "https://www.notesapp.name.ng",
     image: input.image.trim() || DEFAULT_STORE_IMAGE,
-    cta: input.cta.trim() || "View",
+    cta: "Buy now",
   };
 }
 
-export async function addStoreItem(uid: string, input: StoreItemInput): Promise<void> {
+export async function addStoreItem(uid: string, input: StoreItemInput): Promise<string> {
   const now = new Date().toISOString();
-  await addDoc(collection(db, "storeItems"), { ownerUid: uid, ...clean(input), createdAt: now, updatedAt: now });
+  const ref = await addDoc(collection(db, "storeItems"), { ownerUid: uid, ...clean(input), createdAt: now, updatedAt: now });
+  return ref.id;
 }
 
-export async function updateStoreItem(uid: string, id: string, input: StoreItemInput): Promise<void> {
+// `stockChanged` is true only when the seller edited the stock field. Otherwise the
+// stock currently in the database wins: orders reserve and release stock on the server,
+// and writing back a stale number from the form would undo them.
+export async function updateStoreItem(uid: string, id: string, input: StoreItemInput, stockChanged = false): Promise<void> {
   const ref = doc(db, "storeItems", id);
   // Replace the whole listing so cleared optional fields actually disappear.
   const existing = await getDoc(ref);
+  const data = clean(input);
   await setDoc(ref, {
-    ownerUid: uid,
-    ...clean(input),
+    ...data,
+    ...(!stockChanged && Number.isInteger(existing.data()?.stock) ? { stock: existing.data()!.stock } : {}),
+    ownerUid: existing.data()?.ownerUid ?? uid,
     createdAt: existing.data()?.createdAt ?? new Date().toISOString(),
     updatedAt: new Date().toISOString(),
   });

@@ -5,7 +5,7 @@ import { getAdminDb, getUserEmail, verifySignedInRequest } from "@/lib/firebase-
 import { rateLimit } from "@/lib/rate-limit";
 import { sendEmail } from "@/lib/email";
 import { CustodyEntry, StoreOrder, cleanText, isHolderType, isHttpsUrl, normalizePhone } from "@/lib/orders";
-import { autoReleaseAt, confirmOrder, expireLinks, hashToken, holderUrl, newLinkToken } from "@/lib/orders-server";
+import { autoReleaseAt, canActForSeller, confirmOrder, expireLinks, hashToken, holderUrl, newLinkToken } from "@/lib/orders-server";
 
 export const dynamic = "force-dynamic";
 const site = () => process.env.NEXT_PUBLIC_SITE_URL || "https://www.notesapp.name.ng";
@@ -22,8 +22,15 @@ export async function GET(req: NextRequest) {
     const me = await verifySignedInRequest(bearer(req)).catch(() => null);
     if (!me) return NextResponse.json({ error: "Sign in first." }, { status: 401 });
     const role = req.nextUrl.searchParams.get("role") === "selling" ? "sellerUid" : "buyerUid";
-    const snap = await getAdminDb().collection("storeOrders").where(role, "==", me.uid).get();
-    const orders = snap.docs.map((d) => d.data() as StoreOrder).sort((a, b) => (a.paidAt < b.paidAt ? 1 : -1));
+    const db = getAdminDb();
+    // Selling = my own store plus any organisation store I've been given access to.
+    const sellerUids = [me.uid];
+    if (role === "sellerUid") {
+      const mem = await db.collection("orgMembers").where("memberUid", "==", me.uid).get();
+      for (const m of mem.docs) if (m.data().store === true && (await canActForSeller(me.uid, m.data().orgUid))) sellerUids.push(m.data().orgUid);
+    }
+    const snaps = await Promise.all(sellerUids.map((u) => db.collection("storeOrders").where(role, "==", u).get()));
+    const orders = snaps.flatMap((s) => s.docs.map((d) => d.data() as StoreOrder)).sort((a, b) => (a.paidAt < b.paidAt ? 1 : -1));
     // The seller doesn't need the buyer's email; the buyer doesn't need the seller's anything private.
     return NextResponse.json({ orders: orders.map(({ buyerEmail, ...o }) => (role === "sellerUid" ? o : { ...o, address: { ...o.address, phone: o.address.phone } })) });
   } catch (err) {
@@ -46,7 +53,7 @@ export async function POST(req: NextRequest) {
     const parcelRef = db.doc(`parcels/${order.parcelId}`);
     const now = new Date().toISOString();
     const isBuyer = order.buyerUid === me.uid;
-    const isSeller = order.sellerUid === me.uid;
+    const isSeller = await canActForSeller(me.uid, order.sellerUid);
     const action = String(body.action);
 
     // ---- buyer ----

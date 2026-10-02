@@ -24,7 +24,7 @@ const FEATURES = [
   { title: "Ad share, from day one", copy: "Pro publishers earn 25% and Business publishers 45% of the ad revenue on their pages — no follower or view thresholds to clear first. Ads are opt-in for paid plans, every one is labelled “Sponsored”, and your share is paid monthly after review. Brands can buy a banner campaign online." },
   { title: "Co-authoring", copy: "Pro and Business publishers can write a post with other members, agree each person's share of what it earns — gifts on it are split now — and share the byline. Everyone accepts before it's listed." },
   { title: "Gold badge", copy: "Get endorsed by #NotesApp, or identity-checked, and wear the gold ✔ beside your name on your profile, the directory and every post." },
-  { title: "A brand store for every journal", copy: "Every professional gets their own storefront on their profile — sell guides, templates, or sessions, no separate shop to manage." },
+  { title: "A brand store for every journal", copy: "Every professional gets their own storefront on their profile — sell physical goods with buyer payments held until delivery, a managed stock count and a tracking ID for every parcel. Organisations can run theirs with their team." },
   { title: "Bring your own transcription (coming)", copy: "Connect Otter.ai or Whisper for session notes. We integrate; we don't lock you into one AI vendor." },
 ];
 

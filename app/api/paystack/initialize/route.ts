@@ -16,6 +16,7 @@ import { r2PublicUrl } from "@/lib/r2";
 import { getMerchItem, LOGO_OPTIONS, MERCH_BATCH, MERCH_DELIVERY_KOBO, MERCH_MAX_QTY, merchBatchOpen, validateAddress } from "@/lib/merch";
 import { TIERS, badgeIncluded, physicalCommissionRateFor } from "@/lib/tiers";
 import { STORE_ITEM_MAX_KOBO, STORE_MAX_QTY } from "@/lib/orders";
+import { RESERVATION_MINUTES, StockError, releaseExpiredReservations, reserveStock, returnStock } from "@/lib/orders-server";
 import type { AccountTier } from "@/lib/users";
 import { rateLimit } from "@/lib/rate-limit";
 
@@ -127,9 +128,6 @@ export async function POST(req: NextRequest) {
       if (!Number.isInteger(quantity) || quantity < 1 || quantity > STORE_MAX_QTY) {
         return NextResponse.json({ error: `Choose a quantity from 1 to ${STORE_MAX_QTY}.` }, { status: 400 });
       }
-      if (item.stock !== undefined && Number(item.stock) < quantity) {
-        return NextResponse.json({ error: Number(item.stock) > 0 ? `Only ${item.stock} left.` : "Sold out." }, { status: 409 });
-      }
       const addrProblem = validateAddress(body.address);
       if (addrProblem) return NextResponse.json({ error: addrProblem }, { status: 400 });
       const seller = (await db.doc(`users/${item.ownerUid}`).get()).data();
@@ -151,11 +149,27 @@ export async function POST(req: NextRequest) {
       if (amountKobo > STORE_ITEM_MAX_KOBO * 2) return NextResponse.json({ error: "That order is too large." }, { status: 400 });
       const reference = newReference();
       const origin = (process.env.NEXT_PUBLIC_SITE_URL || req.nextUrl.origin).replace(/\/$/, "");
-      const tx = await initializeTransaction({
-        email: user.email, amountKobo, reference, callbackUrl: `${origin}/booking/confirm`,
-        metadata: { kind, itemId: itemSnap.id, uid: user.uid },
-      });
+      // Managed stock: take the quantity out now so nobody else can order it while this
+      // buyer pays (given back after RESERVATION_MINUTES if the payment never lands).
+      await releaseExpiredReservations(itemSnap.id).catch(() => 0);
+      try {
+        await reserveStock(itemSnap.id, quantity);
+      } catch (e) {
+        if (e instanceof StockError) return NextResponse.json({ error: e.message }, { status: 409 });
+        throw e;
+      }
+      let tx;
+      try {
+        tx = await initializeTransaction({
+          email: user.email, amountKobo, reference, callbackUrl: `${origin}/booking/confirm`,
+          metadata: { kind, itemId: itemSnap.id, uid: user.uid },
+        });
+      } catch (e) {
+        await returnStock(itemSnap.id, quantity).catch(() => {});
+        throw e;
+      }
       const record: PaymentRecord = {
+        reservedUntil: new Date(Date.now() + RESERVATION_MINUTES * 60_000).toISOString(),
         reference, kind: "store", uid: user.uid, email: user.email, amountKobo,
         status: "pending", publisherUid: item.ownerUid, publisherUsername: seller.username || "",
         commissionRate: physicalCommissionRateFor((seller.accountTier as AccountTier) || "basic"),
@@ -165,7 +179,12 @@ export async function POST(req: NextRequest) {
         },
         createdAt: new Date().toISOString(),
       };
-      await db.doc(`payments/${reference}`).set(record);
+      try {
+        await db.doc(`payments/${reference}`).set(record);
+      } catch (e) {
+        await returnStock(itemSnap.id, quantity).catch(() => {});
+        throw e;
+      }
       return NextResponse.json({ authorizationUrl: tx.authorization_url, reference });
     }
 

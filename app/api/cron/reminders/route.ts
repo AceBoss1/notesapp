@@ -3,7 +3,7 @@ import { getAdminDb, getUserEmail } from "@/lib/firebase-admin";
 import { sendEmail } from "@/lib/email";
 import { formatSlot } from "@/lib/booking-time";
 import { expireTiers } from "@/lib/tier-billing";
-import { releaseDueOrders } from "@/lib/orders-server";
+import { releaseDueOrders, releaseExpiredReservations } from "@/lib/orders-server";
 
 // Run every ~15 minutes by an external scheduler with
 //   Authorization: Bearer $CRON_SECRET
@@ -52,5 +52,7 @@ export async function GET(req: NextRequest) {
   const expired = await expireTiers().catch((e) => (console.error("expireTiers failed", e), 0));
   // ...and releases store orders whose 7 "delivered" days passed without a buyer reply.
   const released = await releaseDueOrders().catch((e) => (console.error("releaseDueOrders failed", e), 0));
-  return NextResponse.json({ checked: snap.size, sent, expiredPlans: expired, releasedOrders: released });
+  // ...and gives back stock reserved by checkouts that were never paid.
+  const unreserved = await releaseExpiredReservations().catch((e) => (console.error("releaseExpiredReservations failed", e), 0));
+  return NextResponse.json({ checked: snap.size, sent, expiredPlans: expired, releasedOrders: released, unreservedCheckouts: unreserved });
 }

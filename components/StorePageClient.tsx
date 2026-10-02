@@ -8,6 +8,8 @@ import { getUserByUsername, canPublish, UserProfile } from "@/lib/users";
 import Avatar from "@/components/Avatar";
 import StoreManager from "@/components/StoreManager";
 import { getStoreItems, StoreItem } from "@/lib/store";
+import { useMemberships } from "@/lib/useMemberships";
+import NotifyWhenBack from "@/components/NotifyWhenBack";
 
 export default function StorePageClient({ params }: { params: { username: string } }) {
   const [profile, setProfile] = useState<UserProfile | null | undefined>(undefined);
@@ -15,6 +17,7 @@ export default function StorePageClient({ params }: { params: { username: string
   const [viewer, setViewer] = useState<User | null>(null);
 
   useEffect(() => onAuthStateChanged(auth, setViewer), []);
+  const { orgs } = useMemberships(viewer);
 
   async function loadItems(p: UserProfile) {
     setItems(await getStoreItems(p.uid, p.username));
@@ -42,7 +45,11 @@ export default function StorePageClient({ params }: { params: { username: string
   }
 
   const isOwner = !!viewer && viewer.uid === profile.uid;
-  const ownerCanEdit = isOwner && canPublish(profile);
+  // An organisation's owner can give team members store access; funds and liability stay with the organisation.
+  const teamAccess = !!viewer && !isOwner && (orgs || []).some((o) => o.uid === profile.uid && o.store && o.canPublish);
+  const ownerCanEdit = (isOwner && canPublish(profile)) || teamAccess;
+  // Publisher listings are on-platform physical goods only; legacy link-out listings stay hidden.
+  const shown = items.filter((i) => !i.id || i.sellable);
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-16 sm:px-6 lg:px-8">
@@ -64,9 +71,9 @@ export default function StorePageClient({ params }: { params: { username: string
       <p className="mt-6 max-w-2xl text-sm text-slate">
         Every journal on #NotesApp gets its own storefront instead of a
         shared marketplace — this is {profile.displayName.split(" ")[0]}
-        &apos;s shelf, branded to them, not to us. Checkout hands off to
-        wherever each item already lives (Selar, Amazon, a payment link or
-        their own site); #NotesApp doesn&apos;t take payment for these items.
+        &apos;s shelf, branded to them, not to us. You pay here and #NotesApp
+        holds your money until you confirm the parcel arrived; every order gets a parcel ID you can{" "}
+        <Link href="/track" className="text-crimson underline">track</Link>. The seller sets the price and arranges delivery.
       </p>
 
       {ownerCanEdit && <StoreManager profile={profile} items={items} onChanged={() => loadItems(profile)} />}
@@ -77,11 +84,11 @@ export default function StorePageClient({ params }: { params: { username: string
         </p>
       )}
 
-      {items.length === 0 ? (
+      {shown.length === 0 ? (
         <p className="mt-10 text-sm text-slate">This store is empty for now.</p>
       ) : (
         <div className="mt-10 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
-          {items.map((item) => (
+          {shown.map((item) => (
             <div key={item.id ?? item.title} className="card flex flex-col overflow-hidden">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
@@ -106,10 +113,13 @@ export default function StorePageClient({ params }: { params: { username: string
                     {item.price}
                   </span>
                   {item.sellable && item.id ? (
-                    (item.stock === undefined || item.stock > 0) ? (
-                      <Link href={`/shop/${item.id}`} className="btn-primary !px-4 !py-2 text-xs">Buy now</Link>
+                    (item.stock ?? 0) > 0 ? (
+                      <span className="flex items-center gap-3">
+                        {(item.stock ?? 0) <= 5 && <span className="font-mono text-[11px] text-slate">Only {item.stock} left</span>}
+                        <Link href={`/shop/${item.id}`} className="btn-primary !px-4 !py-2 text-xs">Buy now</Link>
+                      </span>
                     ) : (
-                      <span className="font-mono text-xs text-slate">Sold out</span>
+                      <span className="flex items-center gap-3"><span className="font-mono text-xs text-slate">Sold out</span><NotifyWhenBack itemId={item.id} compact /></span>
                     )
                   ) : (
                   <a

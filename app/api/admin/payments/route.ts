@@ -3,7 +3,7 @@ import { friendlyMessage } from "@/lib/api-errors";
 import { getAdminDb, verifyAdminRequest } from "@/lib/firebase-admin";
 import { initiateTransfer, refundTransaction, slotLockId } from "@/lib/paystack";
 import type { LedgerEntry } from "@/lib/payments";
-import { confirmOrder } from "@/lib/orders-server";
+import { confirmOrder, notifyBackInStock, returnStock } from "@/lib/orders-server";
 
 // Admin-only money actions on a payment reference:
 //   release  — pay the publisher (only after releaseAfter has passed)
@@ -60,9 +60,11 @@ export async function POST(req: NextRequest) {
       if (existing.some((e) => e.data()?.status === "refunded") || paySnap.data()?.status === "refunded") {
         return NextResponse.json({ error: "Already refunded." }, { status: 409 });
       }
+      let storeStatusBefore: string | undefined;
       if (paySnap.data()?.kind === "store") {
         const o = (await db.doc(`storeOrders/${paymentRef}`).get()).data();
         if (o && o.status === "refunded") return NextResponse.json({ error: "Already refunded." }, { status: 409 });
+        storeStatusBefore = o?.status;
       }
       if (paySnap.data()?.kind === "merch") {
         const o = (await db.doc(`merchOrders/${paymentRef}`).get()).data();
@@ -88,6 +90,15 @@ export async function POST(req: NextRequest) {
         batch.delete(db.doc(`slotLocks/${slotLockId(b.username, b.date, b.slot)}`));
       }
       await batch.commit();
+      // An unshipped store order that is refunded goes back on the shelf.
+      if (paySnap.data()?.kind === "store") {
+        const was = storeStatusBefore;
+        const st = paySnap.data()?.store;
+        if (st && paySnap.data()?.status === "paid" && was === "paid") {
+          await returnStock(st.itemId, st.quantity).catch(() => {});
+          await notifyBackInStock(st.itemId).catch(() => {});
+        }
+      }
       return NextResponse.json({ ok: true });
     }
 

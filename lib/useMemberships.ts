@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import type { User } from "firebase/auth";
 import type { OrgInvite } from "./org";
 
-export type Membership = { uid: string; username: string; displayName: string; avatar: string; accountTier: string; role: "admin" | "writer"; canPublish: boolean };
+export type Membership = { uid: string; username: string; displayName: string; avatar: string; accountTier: string; role: "admin" | "writer"; canPublish: boolean; store: boolean };
 
 // Organisations the signed-in member writes for, and invitations waiting for them.
 // `orgs === undefined` while loading; failures just mean "none".

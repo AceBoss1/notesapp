@@ -129,6 +129,7 @@ export default function TeamPage() {
                 <li key={m.memberUid} className="flex flex-wrap items-center justify-between gap-2 py-3">
                   <span className="text-ink">{m.memberName} <span className="font-mono text-xs text-slate">@{m.memberUsername} · {m.role}</span></span>
                   <span className="flex gap-4 text-xs font-semibold">
+                    {team.role === "owner" && <label className="flex items-center gap-1 font-normal text-slate"><input type="checkbox" checked={m.store === true} onChange={(e) => act({ action: "set_store_access", memberUid: m.memberUid, enabled: e.target.checked }, e.target.checked ? "They can now run the store and orders." : "Store access removed.")} /> runs the store</label>}
                     {team.role === "owner" && <button onClick={() => act({ action: "set_role", memberUid: m.memberUid, role: m.role === "admin" ? "writer" : "admin" }, "Role updated.")} className="text-crimson">Make {m.role === "admin" ? "writer" : "admin"}</button>}
                     {(team.role === "owner" || m.role === "writer") && <button onClick={() => confirm(`Remove @${m.memberUsername}? Their posts stay with the organisation.`) && act({ action: "remove", memberUid: m.memberUid }, "Removed.")} className="text-slate hover:text-crimson">Remove</button>}
                   </span>

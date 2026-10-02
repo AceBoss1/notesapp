@@ -11,6 +11,7 @@ import { formatNaira } from "@/lib/booking-time";
 import { NIGERIAN_STATES, validateAddress } from "@/lib/merch";
 import { STORE_MAX_QTY } from "@/lib/orders";
 import type { StoreItem } from "@/lib/store";
+import NotifyWhenBack from "@/components/NotifyWhenBack";
 
 const field = "mt-1 w-full border border-rule bg-card px-3 py-2 text-sm outline-none focus:border-crimson";
 
@@ -45,7 +46,8 @@ export default function ShopItemPage() {
   const unit = item.priceKobo ?? 0;
   const delivery = item.deliveryKobo ?? 0;
   const total = unit * quantity + delivery;
-  const maxQty = Math.min(STORE_MAX_QTY, item.stock ?? STORE_MAX_QTY);
+  const inStock = item.stock ?? 0;
+  const maxQty = Math.max(1, Math.min(STORE_MAX_QTY, inStock));
   const set = (k: keyof typeof addr) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => setAddr((a) => ({ ...a, [k]: e.target.value }));
 
   async function pay(e: React.FormEvent) {
@@ -76,6 +78,13 @@ export default function ShopItemPage() {
         <p className="text-sm text-slate">{item.subtitle}</p>
       </div>
 
+      {inStock <= 0 ? (
+        <div className="card mt-8 p-5 text-sm">
+          <p className="font-ui font-bold text-ink">Sold out</p>
+          <p className="mt-1 text-slate">This item is out of stock right now. We&apos;ll put an alert in your bell the moment the seller restocks it.</p>
+          <div className="mt-3"><NotifyWhenBack itemId={itemId} /></div>
+        </div>
+      ) : (
       <form onSubmit={pay} className="mt-8 grid gap-3 sm:grid-cols-2">
         <label className="text-xs text-slate">Quantity
           <input type="number" min={1} max={maxQty} value={quantity} onChange={(e) => setQuantity(Math.max(1, Math.min(maxQty, Number(e.target.value) || 1)))} className={field} />
@@ -95,12 +104,13 @@ export default function ShopItemPage() {
           </select>
         </label>
         <p className="sm:col-span-2 text-xs text-slate">
-          Your payment is held by #NotesApp until you confirm the parcel arrived (or 7 days after it&apos;s marked delivered). You get a parcel ID to track it, and you can report a problem.
+          {inStock <= 5 && <>Only {inStock} left — we reserve your quantity for 30 minutes while you pay. </>}Your payment is held by #NotesApp until you confirm the parcel arrived (or 7 days after it&apos;s marked delivered). You get a parcel ID to track it, and you can report a problem.
           #NotesApp is not the seller or the carrier — see <Link href="/terms" className="text-crimson underline">Terms 5g</Link>.
         </p>
         {error && <p className="sm:col-span-2 text-sm text-crimson">{error}</p>}
         <button disabled={busy} className="btn-primary sm:col-span-2">{busy ? "Please wait…" : user ? `Pay ${formatNaira(total)}` : "Sign in to buy"}</button>
       </form>
+      )}
     </section>
   );
 }

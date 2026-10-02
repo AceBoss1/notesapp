@@ -77,8 +77,8 @@ const ROWS: { label: string; href?: string; render: (t: (typeof TIERS)[number]) 
     render: (t) => (t.canPublish ? `NotesApp takes ${formatPercent(t.physicalCommission, t.physicalCommissionFloor)} of the item price (delivery fee is yours) — buyer's money is held until delivery is confirmed` : "—"),
   },
   {
-    label: "External store (Selar, Amazon, etc.)",
-    render: (t) => (t.canPublish ? (t.externalStoreAllowed ? "Available" : "Not available") : "—"),
+    label: "Links out to other shops",
+    render: (t) => (t.canPublish ? "Only your one profile link and links inside your posts — stores sell through #NotesApp checkout" : "—"),
   },
   { label: "AI draft assistance", render: (t) => (t.canPublish ? "Planned — included on every publisher tier" : "—") },
 ];
@@ -168,15 +168,12 @@ export default function PricingPage() {
         </div>
         <div className="card p-6">
           <p className="font-ui text-sm font-bold text-ink">
-            Why external stores are restricted
+            Why stores don&apos;t link out
           </p>
           <p className="mt-2 text-sm text-slate">
-            An external link-out (Selar, Amazon, etc.) is revenue
-            NotesApp never takes a commission on. That option stays
-            available to the founder's and guest writer's existing stores and to
-            Enterprise — everyone else sells through NotesApp's own
-            internal fulfillment, where the commission table on the
-            left actually applies.
+            A store item is a physical good sold through #NotesApp checkout: the buyer&apos;s money is held until delivery is confirmed, every parcel
+            gets a tracking ID, and disputes go through us. A link to someone else&apos;s checkout can&apos;t offer any of that, so the only links out
+            are your profile link and the links you put in your posts. <Link href="/store-selling" className="text-crimson underline">How selling works</Link>.
           </p>
         </div>
       </div>

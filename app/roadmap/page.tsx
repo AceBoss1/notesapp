@@ -78,6 +78,21 @@ export default function RoadmapPage() {
 
       <div className="card mt-6 p-7">
         <span className="font-mono text-[11px] uppercase tracking-eyebrow text-crimson-bright">
+          Stores
+        </span>
+        <h2 className="mt-2 font-display text-2xl text-ink">Selling physical goods</h2>
+        <p className="mt-3 text-slate">
+          Live: stores sell through #NotesApp checkout only — buyers pay here, the money is held until they confirm delivery (or 7 days after it&apos;s marked delivered),
+          stock is managed (reserved while a buyer pays, sold-out items can&apos;t be ordered, &ldquo;Notify me&rdquo; alerts land in the bell), every parcel gets a tracking ID with courier
+          details or a bike/bus/park hand-off log, and an organisation&apos;s owner can give team members store access. Next: courier tracking pulled in automatically.
+        </p>
+        <Link href="/store-selling" className="mt-4 inline-block text-sm text-crimson underline underline-offset-2">
+          How selling works →
+        </Link>
+      </div>
+
+      <div className="card mt-6 p-7">
+        <span className="font-mono text-[11px] uppercase tracking-eyebrow text-crimson-bright">
           Organisations
         </span>
         <h2 className="mt-2 font-display text-2xl text-ink">Organisation accounts</h2>

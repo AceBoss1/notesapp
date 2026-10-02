@@ -52,6 +52,9 @@ export type PaymentRecord = {
   };
   gold?: { kind: "endorsement" | "identity"; track: "personal" | "corporate"; planCode?: string };
   gift?: { username: string; noteId?: string; noteSlug?: string; message: string; anonymous: boolean; senderName: string };
+  // Store orders reserve stock while the buyer pays; an unpaid reservation is returned later.
+  reservedUntil?: string;
+  reservationReleased?: boolean;
   createdAt: string;
   paidAt?: string;
 };
@@ -197,6 +200,16 @@ export async function fulfillPayment(reference: string): Promise<PaymentRecord> 
       const parcelId = newParcelId();
       const goodsKobo = st.unitKobo * st.quantity;
       const commissionKobo = Math.round(goodsKobo * current.commissionRate);
+      // Stock was reserved when checkout started. If that reservation was already given
+      // back (the buyer paid very late), take it again — or, if it's gone, flag a refund.
+      if (current.reservationReleased) {
+        const stock = Number.isInteger(item?.stock) ? Number(item?.stock) : 0;
+        if (!item || stock < st.quantity) {
+          t.update(payRef, { status: "paid_slot_conflict", paidAt: now });
+          return { payment: { ...current, status: "paid_slot_conflict" as const, paidAt: now }, fresh: true };
+        }
+        t.update(itemRef, { stock: stock - st.quantity });
+      }
       t.set(db.doc(`storeOrders/${reference}`), {
         reference, parcelId, sellerUid: current.publisherUid, sellerUsername: current.publisherUsername, buyerUid: current.uid,
         buyerEmail: current.email, itemId: st.itemId, itemTitle: st.itemTitle, itemImage: st.itemImage, quantity: st.quantity,
@@ -208,7 +221,6 @@ export async function fulfillPayment(reference: string): Promise<PaymentRecord> 
         sellerName: seller?.displayName || current.publisherUsername, buyerUid: current.uid, buyerPhoneLast4: phoneLast4(st.address.phone),
         itemTitle: st.itemTitle, quantity: st.quantity, city: st.address.city, state: st.address.state, status: "paid", custody: [], createdAt: now,
       });
-      if (item && item.stock !== undefined) t.update(itemRef, { stock: FieldValue.increment(-st.quantity) });
       t.set(db.doc(`ledger/${reference}`), {
         reference, kind: "order", publisherUid: current.publisherUid, publisherUsername: current.publisherUsername, payerUid: current.uid,
         grossKobo: current.amountKobo, commissionKobo, netKobo: current.amountKobo - commissionKobo, status: "held",

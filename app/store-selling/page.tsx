@@ -13,13 +13,13 @@ export default function StoreSellingPage() {
       <span className="eyebrow">Stores</span>
       <h1 className="mt-4 font-display text-4xl text-ink sm:text-5xl">Sell physical goods from your store</h1>
       <p className="mt-5 text-lg text-slate">
-        Your store at <code>/u/yourname/store</code> can link out to Selar or Amazon, or take payment on #NotesApp for physical items — with the buyer&apos;s money
-        held until the parcel arrives, and a parcel ID anyone can track.
+        Your store at <code>/u/yourname/store</code> sells physical items through #NotesApp checkout — the buyer&apos;s money is held until the parcel arrives, and every
+        order gets a parcel ID anyone can track. (Stores don&apos;t link out to other shops; your profile link and the links in your posts are where you point people elsewhere.)
       </p>
 
       <h2 className="mt-12 font-display text-2xl text-ink">How a sale works</h2>
       <ol className="mt-4 space-y-3 text-sm text-slate">
-        <li className="card p-4"><strong className="text-ink">1. List it.</strong> On your store page, add an item and tick &ldquo;Sell this physical item through #NotesApp checkout&rdquo;. Set the price, your delivery fee and (optionally) stock. You need a payout account under Rates &amp; payouts.</li>
+        <li className="card p-4"><strong className="text-ink">1. List it.</strong> On your store page, add an item and tick &ldquo;Sell this physical item through #NotesApp checkout&rdquo;. Set the price, your delivery fee and your stock count. Stock goes down with every order (we reserve a buyer&apos;s quantity for 30 minutes while they pay); at zero nobody can order, and people who tapped &ldquo;Notify me&rdquo; get a bell alert when you restock. You need a payout account under Rates &amp; payouts.</li>
         <li className="card p-4"><strong className="text-ink">2. The buyer pays here</strong>, with their delivery address. They get a parcel ID (like <code>NA-7K2M9QXD</code>) by email.</li>
         <li className="card p-4"><strong className="text-ink">3. You dispatch and keep the log.</strong> By courier: enter the courier, tracking number and link — buyers get an &ldquo;Open tracking&rdquo; button. By bike, bus or motor park: record who holds the parcel and where, with their phone number if they agree. Holders can update the location and hand on to the next holder from a short no-login link that stops working the moment the next person confirms they have it. You can also just call them and update it yourself.</li>
         <li className="card p-4"><strong className="text-ink">4. Delivery is confirmed.</strong> Your payout is released when the buyer confirms it arrived, or 7 days after you mark it delivered if they say nothing. If the buyer reports a problem, the money stays held while we review.</li>
@@ -32,6 +32,12 @@ export default function StoreSellingPage() {
           <li key={t.tier} className="card flex items-center justify-between p-3"><span className="text-ink">{t.label}</span><span className="font-mono text-crimson-bright">{formatPercent(t.physicalCommission, t.physicalCommissionFloor)}</span></li>
         ))}
       </ul>
+
+      <h2 className="mt-12 font-display text-2xl text-ink">Organisations</h2>
+      <p className="mt-3 text-sm text-slate">
+        An organisation&apos;s store is run by its owner, who can also give team members store access (<Link href="/organisations" className="text-crimson underline">Organisation team</Link>). The money, payouts and
+        liability stay with the organisation either way.
+      </p>
 
       <h2 className="mt-12 font-display text-2xl text-ink">Who&apos;s responsible</h2>
       <p className="mt-3 text-sm text-slate">

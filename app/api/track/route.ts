@@ -4,6 +4,7 @@ import { friendlyMessage } from "@/lib/api-errors";
 import { getAdminApp, getAdminDb } from "@/lib/firebase-admin";
 import { clientIp, rateLimit } from "@/lib/rate-limit";
 import { Parcel, normalizeParcelId } from "@/lib/orders";
+import { canActForSeller } from "@/lib/orders-server";
 
 export const dynamic = "force-dynamic";
 
@@ -29,7 +30,7 @@ export async function GET(req: NextRequest) {
     const token = req.headers.get("authorization")?.replace(/^Bearer\s+/i, "");
     if (token) {
       const d = await getAuth(getAdminApp()).verifyIdToken(token).catch(() => null);
-      if (d && (d.uid === parcel.buyerUid || d.uid === parcel.sellerUid || d.admin === true)) privileged = true;
+      if (d && (d.uid === parcel.buyerUid || d.admin === true || (await canActForSeller(d.uid, parcel.sellerUid)))) privileged = true;
     }
     let phonesUnlocked = privileged;
     let phoneError = "";
