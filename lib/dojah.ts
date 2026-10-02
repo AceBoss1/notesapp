@@ -59,7 +59,10 @@ function hasBusinessRecord(step: any): boolean {
 function describeStep(name: string, step: any): string {
   if (!step || typeof step !== "object") return `${name} [${typeof step}]`;
   const st = typeof step.status === "string" ? `status="${step.status.slice(0, 20)}"` : `status:${typeof step.status}`;
-  return `${name} [${st}; fields: ${Object.keys(step).slice(0, 8).join(",")}]`.slice(0, 160);
+  // Field names with a KIND only (text / empty / number / null …) — never the values.
+  const kind = (v: unknown) => (v === null ? "null" : typeof v === "string" ? (v.trim() ? "text" : "empty") : Array.isArray(v) ? "list" : typeof v);
+  const fields = Object.entries(step).slice(0, 8).map(([k, v]) => `${k}:${kind(v)}`).join(",");
+  return `${name} [${st}; fields: ${fields}]`.slice(0, 220);
 }
 
 // The event fields are top-level (no wrapper): reference_id, verification_status, status,
@@ -97,6 +100,19 @@ export function summarizeDojahEvent(event: any, track: "personal" | "corporate" 
   }
   const names = Object.keys(steps).map((n) => n.toLowerCase());
   const missing = REQUIRED[track].filter((part) => !names.some((n) => n.includes(part) && steps[Object.keys(steps).find((k) => k.toLowerCase() === n)!]));
+  // A business step that only echoes the registration number (no company name — e.g. what the
+  // applicant typed) is consistent with, not independent of, a verified lookup in another business
+  // step: count it only when it carries the SAME number the verified lookup returned.
+  if (businessNumber && data && typeof data === "object") {
+    for (const [name, step] of Object.entries<any>(data)) {
+      const key = name.slice(0, 40);
+      if (name.toLowerCase().includes("business") && steps[key] === undefined && digitsOf(step?.business_number) === businessNumber) {
+        steps[key] = true;
+        const i = unscored.findIndex((u) => u.startsWith(`${key} [`));
+        if (i >= 0) unscored.splice(i, 1);
+      }
+    }
+  }
   const sandbox = (process.env.DOJAH_API_BASE || "").includes("sandbox");
   if (track === "corporate" && !sandbox && businessNumber && expectedRc && digitsOf(expectedRc) !== businessNumber) {
     missing.push("a registration number matching the one the organisation signed up with");
