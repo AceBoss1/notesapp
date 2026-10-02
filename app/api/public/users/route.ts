@@ -19,6 +19,9 @@ export async function GET() {
       verified: u.verified,
       badgeUntil: u.badgeUntil,
       goldBadge: u.goldBadge,
+      // Organisation accounts: just what the directory and the ✔ rules need (the registration number stays private).
+      accountKind: u.accountKind,
+      org: u.org ? { rcStatus: u.org.rcStatus } : undefined,
       suspended: u.suspended === true,
       createdAt: u.createdAt,
     }));
