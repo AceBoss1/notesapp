@@ -18,6 +18,8 @@ export type DirectoryEntry = {
   badge?: BadgeLevel;
   goldKind?: GoldBadgeKind;
   team?: boolean;
+  organisation?: boolean;
+  unverified?: boolean; // organisation whose registration we haven't confirmed yet
 };
 
 export default function JournalDirectory({
@@ -54,6 +56,7 @@ export default function JournalDirectory({
                 </p>
                 <p className="font-mono text-xs text-slate">
                   @{entry.username} · {journalCount} journal{journalCount === 1 ? "" : "s"}
+                  {entry.organisation && <span className="ml-2 rounded-full border border-rule px-1.5 py-0.5 text-[9px] uppercase tracking-wideish">Organisation{entry.unverified ? " · unverified" : ""}</span>}
                 </p>
               </div>
             </Link>

@@ -33,14 +33,23 @@ export default function JournalsPageClient() {
   // registered member who isn't a brand/channel account.
   const people = useMemo(() => {
     const others = users
-      .filter((u) => !MANDATORY_USERNAMES.includes(u.username))
+      .filter((u) => !MANDATORY_USERNAMES.includes(u.username) && u.accountKind !== "organisation")
       .map((u) => ({ username: u.username, displayName: u.displayName, avatar: u.avatar, bio: u.bio, badge: badgeLevel(u), goldKind: goldKindOf(u), team: isTeamMember(u) }));
     return [...FOUNDER_JOURNALS, ...others];
   }, [users]);
 
   // "Channels" — brand/company journals. @notesapp (synthetic posts)
   // and @na-notesapp (real, Firestore-backed) today.
-  const channels = CHANNEL_JOURNALS;
+  // Organisation accounts are channels too — each is a company, NGO, church or school's own journal.
+  const channels = useMemo(() => {
+    const orgs = users
+      .filter((u) => u.accountKind === "organisation" && u.suspended !== true)
+      .map((u) => ({
+        username: u.username, displayName: u.displayName, avatar: u.avatar, bio: u.bio,
+        badge: badgeLevel(u), goldKind: goldKindOf(u), organisation: true, unverified: u.org?.rcStatus !== "verified",
+      }));
+    return [...CHANNEL_JOURNALS, ...orgs];
+  }, [users]);
 
   const q = query.trim().toLowerCase();
 
@@ -154,7 +163,7 @@ export default function JournalsPageClient() {
               {activeTab === "channels" && (
                 <>
                   <p className="eyebrow">Channels</p>
-                  <p className="mt-1 text-sm text-slate">Brand and company journals.</p>
+                  <p className="mt-1 text-sm text-slate">Brand, company and organisation journals — the official #NotesApp channels plus every organisation account.</p>
                   <div className="mt-5">
                     <JournalDirectory
                       entries={filteredChannels}
