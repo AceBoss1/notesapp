@@ -117,6 +117,8 @@ export type BadgeRequest = {
   message: string;
   requestedAt: string;
   depositPaidAt?: string;
+  // Pass/fail summary of the Dojah identity check, written by /api/dojah/webhook (no ID data).
+  dojah?: { verificationStatus: string; overall: boolean | null; steps: Record<string, boolean>; passed: boolean; terminal: boolean; receivedAt: string };
   resolvedAt?: string;
   resolvedByUid?: string;
 };

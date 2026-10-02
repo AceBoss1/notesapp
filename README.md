@@ -1405,11 +1405,9 @@ if re-run (don't). `consent` on user docs is still public (version + timestamp o
   are set (widget ids from the Dojah dashboard; set both in Vercel). Flow:
   apply → pay deposit → "Start identity check" opens
   `https://identity.dojah.io?widget_id=…&reference_id=na_<uid>` → an admin reads
-  the result in the Dojah dashboard and Approves in `/admin/users`. **No result
-  is received automatically** (the Dojah API/webhook/`reference_id` behaviour
-  was not verifiable from our build environment) and we store no ID data. Check
-  Dojah's per-check price for the steps you enabled — the deposit must cover it
-  (more steps ⇒ higher cost). Automating the result is a later step once
+  the result and Approves in `/admin/users`. **Results now arrive by webhook** (below);
+  we store only a pass/fail summary, never ID data. Check Dojah's per-check price for
+  the steps you enabled — the deposit must cover it (more steps ⇒ higher cost).
   Dojah's docs/sandbox keys are available. Admin dropdown grants still work as
   free comps. Redeploy `firestore.rules`.
 - **Official merch (pre-order batches).** `/merchstore` items show a product
@@ -1634,3 +1632,14 @@ Redeploy `firestore.rules`.
 
 `/admin/organisations` → **Move posts into an organisation**: choose the organisation and the person (`@chimdinma`, `@emmanuel`), load their posts, tick the ones to move. Each post keeps its slug/URL; `authorUid/authorUsername/author/author_role/author_avatar` become the organisation's, `writerUid/writerUsername` become the person (byline "Written by @person for #Org"), and the original byline is saved in `movedFrom` so **Undo** restores it (load the org's own @username to find them). Gifts and ad share from moved posts go to the organisation.
 Each organisation row also has **Give gold ✔ (endorsed)** and **Verify** (CAC). Setting up a founder org: sign up as Organisation with its own email → verify the email → Verify the CAC number here → set the plan in `/admin/users` (Business/Enterprise, or start the free trial) → invite the founder under `/organisation/team` → give gold → move the posts.
+
+## Dojah webhook (identity-check results)
+
+`POST /api/dojah/webhook` receives Dojah's `kyc_widget` events. It verifies `x-dojah-signature` (HMAC-SHA256 of the **raw body** with `DOJAH_WEBHOOK_SECRET`, compared in constant time; 401 otherwise), maps `reference_id` (`na_<uid>`) to `badgeRequests/{uid}`, and writes `dojah: { verificationStatus, overall, steps{name: bool}, passed, terminal }` there — no ID numbers, images or PDFs. `passed` means status `Completed` **and** top-level `status` true **and** every step true (a "Completed" session can still have failed steps). `/admin/users` shows the result next to Approve; the member sees a plain-language status on `/badges`. Nothing is approved automatically unless **`DOJAH_AUTO_APPROVE=true`** (then only a fully-passed application that is waiting for review).
+
+Setup, per environment (sandbox first, then production):
+1. Vercel env: `DOJAH_APP_ID` (your app ID, not secret), `DOJAH_SECRET_KEY` (only needed by the subscribe script, so run that locally rather than storing it), `DOJAH_WEBHOOK_SECRET` (below), optional `DOJAH_AUTO_APPROVE`, and for sandbox keys `DOJAH_API_BASE` (Dojah's sandbox host).
+2. Register the URL: `DOJAH_SECRET_KEY=… DOJAH_APP_ID=… node scripts/dojah-subscribe.mjs https://www.notesapp.name.ng/api/dojah/webhook` (POSTs `{webhook, service: "kyc_widget"}` to `/api/v1/webhook/subscribe`).
+3. Dojah dashboard → Developers → Webhooks → reveal the subscription's **Secret** (not your API secret) → set it as `DOJAH_WEBHOOK_SECRET` in Vercel → redeploy. Until it is set the endpoint rejects every event.
+4. Sandbox and production use different keys, app IDs, widget IDs and secrets; switch them together.
+Dojah's file links expire after about an hour and we ignore them. Duplicate or out-of-order events are safe (a late "Ongoing" never overwrites a finished result).

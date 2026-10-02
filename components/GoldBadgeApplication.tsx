@@ -94,7 +94,19 @@ export default function GoldBadgeApplication() {
             Start identity check
           </a>
         )}
-        <p className="mt-3 border border-amber-200 bg-amber-50 px-3 py-2">After you finish, an admin reviews the result — we&apos;ll show the outcome here.</p>
+        {request.dojah ? (
+          <p className="mt-3 border border-amber-200 bg-amber-50 px-3 py-2">
+            {request.dojah.passed
+              ? "Your identity check passed. It's now with an admin to approve."
+              : request.dojah.verificationStatus === "Abandoned"
+              ? "You left the identity check before finishing — start it again to continue."
+              : request.dojah.terminal
+              ? "Your identity check finished but one of the steps didn't pass. An admin will review it."
+              : "Your identity check is still in progress."}
+          </p>
+        ) : (
+          <p className="mt-3 border border-amber-200 bg-amber-50 px-3 py-2">After you finish, an admin reviews the result — we&apos;ll show the outcome here.</p>
+        )}
       </div>
     );
   } else if (request?.status === "pending") {

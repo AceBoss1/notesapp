@@ -207,7 +207,13 @@ export default function AdminUsersPage() {
                       <div className="mt-2 border border-amber-200 bg-amber-50 p-2 text-xs text-ink">
                         <p className="font-semibold">Applied for the gold badge ({(badgeRequests[u.uid].kind ?? "endorsement")}, {(badgeRequests[u.uid].track ?? "personal")})</p>
                         {badgeRequests[u.uid].kind === "identity" && (
-                          <p className="mt-0.5 text-slate">Deposit paid {badgeRequests[u.uid].depositPaidAt?.slice(0, 10)} — check the result in the Dojah dashboard (reference na_{u.uid}) before approving.</p>
+                          <p className="mt-0.5 text-slate">Deposit paid {badgeRequests[u.uid].depositPaidAt?.slice(0, 10)} — {badgeRequests[u.uid].dojah ? "Dojah's result is below; " : "no Dojah result yet (it arrives by webhook) — or check "}the Dojah dashboard (reference na_{u.uid}) before approving.</p>
+                        )}
+                        {badgeRequests[u.uid].dojah && (
+                          <p className={`mt-0.5 font-semibold ${badgeRequests[u.uid].dojah!.passed ? "text-green-700" : badgeRequests[u.uid].dojah!.terminal ? "text-crimson" : "text-slate"}`}>
+                            Dojah: {badgeRequests[u.uid].dojah!.verificationStatus} — {badgeRequests[u.uid].dojah!.passed ? "every step passed" : badgeRequests[u.uid].dojah!.terminal ? "needs your review (a step failed or is missing)" : "still in progress"}
+                            <span className="ml-2 font-normal text-slate">{Object.entries(badgeRequests[u.uid].dojah!.steps).map(([k, v]) => `${k} ${v ? "✓" : "✗"}`).join(" · ")}</span>
+                          </p>
                         )}
                         <p className="mt-0.5 whitespace-pre-line text-slate">“{badgeRequests[u.uid].message}”</p>
                         <div className="mt-1.5 flex gap-2">
