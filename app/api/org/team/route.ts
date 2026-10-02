@@ -54,7 +54,7 @@ export async function GET(req: NextRequest) {
             const m = d.data() as OrgMember;
             const o = (await db.doc(`users/${m.orgUid}`).get()).data();
             if (!o || o.suspended === true) return null;
-            return { uid: m.orgUid, username: o.username, displayName: o.displayName, avatar: o.avatar, accountTier: o.accountTier, role: m.role, canPublish: canHaveTeam(o.accountTier) };
+            return { uid: m.orgUid, username: o.username, displayName: o.displayName, avatar: o.avatar, accountTier: o.accountTier, role: m.role, canPublish: canHaveTeam(o.accountTier), store: m.store === true };
           })
         )
       ).filter(Boolean);
@@ -159,6 +159,15 @@ export async function POST(req: NextRequest) {
       if (!inv || inv.orgUid !== orgUid || inv.status !== "pending") throw new Fail("No such invitation.", 404);
       if (inv.role === "admin" && role !== "owner") throw new Fail("Only the owner can revoke admin invitations.", 403);
       await ref.update({ status: "revoked", resolvedAt: now });
+      return NextResponse.json({ ok: true });
+    }
+
+    if (action === "set_store_access") {
+      // Only the owner decides who may run the organisation's store and orders.
+      if (role !== "owner") throw new Fail("Only the owner can give store access.", 403);
+      const mref = db.doc(`orgMembers/${mid(orgUid, String(body.memberUid))}`);
+      if (!(await mref.get()).exists) throw new Fail("They're not on the team.", 404);
+      await mref.update({ store: body.enabled === true });
       return NextResponse.json({ ok: true });
     }
 

@@ -22,6 +22,13 @@ export const GOLD_KIND_LIVE: Record<"identity" | "endorsement", boolean> = {
 export type BadgeLevel = "gold" | "verified" | null;
 
 export type GoldBadgeKind = "identity" | "endorsement";
+// What the gold ✔ says when hovered / read by a screen reader — exactly one of the
+// two, never both. (Identity checks run through our verification partner, Dojah.)
+export const GOLD_BADGE_TITLE: Record<GoldBadgeKind, string> = {
+  identity: "Gold badge — identity verified by Dojah",
+  endorsement: "Gold badge — endorsed by #NotesApp",
+};
+
 export const GOLD_KIND_LABEL: Record<GoldBadgeKind, string> = {
   identity: "Identity checked",
   endorsement: "Endorsed by #NotesApp",

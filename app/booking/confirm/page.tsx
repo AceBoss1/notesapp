@@ -9,7 +9,7 @@ import { formatSlot } from "@/lib/booking-time";
 
 type Result = {
   status: string;
-  kind: "booking" | "subscription" | "boost" | "gift" | "tier" | "badge" | "gold" | "gold_deposit" | "merch" | "ad";
+  kind: "booking" | "subscription" | "boost" | "gift" | "tier" | "badge" | "gold" | "gold_deposit" | "merch" | "ad" | "store";
   tier?: { tier: string; interval: string };
   boost?: { noteId: string };
   gift?: { username: string; noteSlug?: string };
@@ -100,6 +100,14 @@ function Confirm() {
             See my campaigns
           </Link>
         </>
+      ) : result.status === "paid" && result.kind === "store" ? (
+        <>
+          <p className="font-display text-2xl text-ink">Order placed ✓</p>
+          <p className="mt-3 text-sm text-slate">Your money is held by #NotesApp until you confirm the parcel arrived. Follow it and confirm delivery on My orders. A confirmation email is on its way.</p>
+          <Link href="/orders" className="btn-primary mt-6 inline-block !px-5 !py-2 text-xs">
+            My orders
+          </Link>
+        </>
       ) : result.status === "paid" && result.kind === "merch" ? (
         <>
           <p className="font-display text-2xl text-ink">Pre-order confirmed ✓</p>
@@ -133,6 +141,13 @@ function Confirm() {
           <Link href={`/u/${result.booking.username}`} className="btn-primary mt-6 inline-block !px-5 !py-2 text-xs">
             Back to profile
           </Link>
+        </>
+      ) : result.kind === "store" ? (
+        <>
+          <p className="font-display text-2xl text-ink">That item sold out</p>
+          <p className="mt-3 text-sm text-slate">
+            Your payment went through after the last one was taken. We&apos;ll refund you in full — contact us with reference {reference} if it doesn&apos;t arrive.
+          </p>
         </>
       ) : (
         <>

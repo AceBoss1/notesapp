@@ -3,11 +3,13 @@ import { friendlyMessage } from "@/lib/api-errors";
 import { getAdminDb, verifyAdminRequest } from "@/lib/firebase-admin";
 import { initiateTransfer, refundTransaction, slotLockId } from "@/lib/paystack";
 import type { LedgerEntry } from "@/lib/payments";
+import { confirmOrder, notifyBackInStock, returnStock } from "@/lib/orders-server";
 
 // Admin-only money actions on a payment reference:
 //   release  — pay the publisher (only after releaseAfter has passed)
 //   refund   — return the payer's money (also for paid_slot_conflict)
 //   dispute  — freeze a held payout (no-show, complaint) until resolved
+//   confirm_order — store order: treat delivery as confirmed, so the seller's money becomes payable
 export async function POST(req: NextRequest) {
   try {
     const idToken = req.headers.get("authorization")?.replace(/^Bearer\s+/i, "");
@@ -58,6 +60,12 @@ export async function POST(req: NextRequest) {
       if (existing.some((e) => e.data()?.status === "refunded") || paySnap.data()?.status === "refunded") {
         return NextResponse.json({ error: "Already refunded." }, { status: 409 });
       }
+      let storeStatusBefore: string | undefined;
+      if (paySnap.data()?.kind === "store") {
+        const o = (await db.doc(`storeOrders/${paymentRef}`).get()).data();
+        if (o && o.status === "refunded") return NextResponse.json({ error: "Already refunded." }, { status: 409 });
+        storeStatusBefore = o?.status;
+      }
       if (paySnap.data()?.kind === "merch") {
         const o = (await db.doc(`merchOrders/${paymentRef}`).get()).data();
         if (o && ["printed", "shipped", "delivered"].includes(o.status)) {
@@ -69,20 +77,50 @@ export async function POST(req: NextRequest) {
       batch.update(payRef, { status: "refunded" });
       existing.forEach((e) => batch.update(e.ref, { status: "refunded" }));
       if (paySnap.data()?.kind === "merch") batch.update(db.doc(`merchOrders/${paymentRef}`), { status: "refunded" });
+      if (paySnap.data()?.kind === "store") {
+        const o = (await db.doc(`storeOrders/${paymentRef}`).get()).data();
+        if (o) {
+          batch.update(db.doc(`storeOrders/${paymentRef}`), { status: "refunded" });
+          batch.update(db.doc(`parcels/${o.parcelId}`), { status: "refunded" });
+        }
+      }
       const b = paySnap.data()?.booking;
       if (b && paySnap.data()?.status === "paid") {
         batch.update(db.doc(`bookings/${paymentRef}`), { status: "refunded" });
         batch.delete(db.doc(`slotLocks/${slotLockId(b.username, b.date, b.slot)}`));
       }
       await batch.commit();
+      // An unshipped store order that is refunded goes back on the shelf.
+      if (paySnap.data()?.kind === "store") {
+        const was = storeStatusBefore;
+        const st = paySnap.data()?.store;
+        if (st && paySnap.data()?.status === "paid" && was === "paid") {
+          await returnStock(st.itemId, st.quantity).catch(() => {});
+          await notifyBackInStock(st.itemId).catch(() => {});
+        }
+      }
       return NextResponse.json({ ok: true });
     }
 
     if (!ledger) return NextResponse.json({ error: "No payout entry for this payment" }, { status: 404 });
 
+    if (action === "confirm_order") {
+      if (ledger.kind !== "order") return NextResponse.json({ error: "Only store orders have a delivery hold." }, { status: 409 });
+      if (!["held", "disputed"].includes(ledger.status)) return NextResponse.json({ error: `Payout is ${ledger.status}.` }, { status: 409 });
+      await confirmOrder(reference, "admin");
+      return NextResponse.json({ ok: true });
+    }
+
     if (action === "dispute") {
       if (ledger.status !== "held") return NextResponse.json({ error: `Can't dispute a ${ledger.status} payout.` }, { status: 409 });
       await ledgerRef.update({ status: "disputed" });
+      if (ledger.kind === "order") {
+        const o = (await db.doc(`storeOrders/${reference}`).get()).data();
+        if (o && o.status !== "disputed") {
+          await db.doc(`storeOrders/${reference}`).update({ status: "disputed", disputeReason: o.disputeReason || "Frozen by an admin" });
+          await db.doc(`parcels/${o.parcelId}`).update({ status: "disputed" });
+        }
+      }
       return NextResponse.json({ ok: true });
     }
 

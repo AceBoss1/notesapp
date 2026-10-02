@@ -22,6 +22,7 @@ const ICON: Record<NotificationType, string> = {
   role_changed: "🎖",
   gift: "🎁",
   coauthor: "🤝",
+  stock: "📦",
 };
 
 function timeAgo(iso: string): string {

@@ -52,7 +52,12 @@ export default function MerchStorePage() {
         </h2>
         <p className="mt-3 max-w-2xl text-slate">
           Every #NotesApp journal gets its own brand store, separate
-          from this one — here are the two live today.
+          from this one — here are the two founder shops. Any publisher can open one and sell physical goods through
+          #NotesApp checkout, with the buyer&apos;s money held until delivery and a tracking ID for every parcel:{" "}
+          <Link href="/store-selling" className="text-crimson underline underline-offset-2">
+            how selling works
+          </Link>
+          .
         </p>
 
         <div className="mt-10 grid grid-cols-1 gap-6 sm:grid-cols-2">

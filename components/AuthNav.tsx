@@ -73,6 +73,7 @@ export default function AuthNav() {
             {profile && <Link href={`/u/${profile.username}/store`} className={item}>My store</Link>}
             {profile && <Link href="/invites" className={item}>Co-author invites</Link>}
             <Link href="/bookings" className={item}>Bookings</Link>
+            <Link href="/orders" className={item}>Orders &amp; parcels</Link>
             <Link href="/boost" className={item}>Boost a post</Link>
             <Link href="/profile/boosts" className={item}>Boost performance</Link>
             {profile?.accountKind === "organisation" && <Link href="/organisation" className={item}>Organisation setup</Link>}

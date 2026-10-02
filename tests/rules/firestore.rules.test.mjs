@@ -208,7 +208,7 @@ test("suspension details are private; the member can only file an appeal", async
 });
 
 test("publishers manage only their own valid store items", async () => {
-  const item = { ownerUid: "pub", title: "Book", price: "₦1,000", link: "https://selar.com/x", image: "/x.png", cta: "Buy" };
+  const item = { ownerUid: "pub", title: "Book", price: "₦1,000", link: "https://www.notesapp.name.ng", image: "/x.png", cta: "Buy now", sellable: true, priceKobo: 100000, deliveryKobo: 0, stock: 4 };
   await assertSucceeds(setDoc(doc(as("pub"), "storeItems/i1"), item));
   await assertSucceeds(getDoc(doc(anon(), "storeItems/i1")));
   await assertFails(setDoc(doc(as("alice"), "storeItems/i2"), { ...item, ownerUid: "alice" })); // standard tier can't publish
@@ -292,6 +292,70 @@ test("organisation team members write for the organisation, within limits", asyn
   // the team tables are server-only
   await assertFails(setDoc(doc(as("wri"), "orgMembers/org1_pub"), { orgUid: "org1", memberUid: "pub", role: "admin" }));
   await assertFails(getDoc(doc(as("wri"), "orgMembers/org1_wri")));
+});
+
+test("store orders, parcels and handoff links are server-controlled", async () => {
+  await env.withSecurityRulesDisabled(async (ctx) => {
+    const d = ctx.firestore();
+    await setDoc(doc(d, "storeOrders/o1"), { buyerUid: "alice", sellerUid: "pub", status: "paid" });
+    await setDoc(doc(d, "parcels/NA-AAAAAAAA"), { buyerUid: "alice", sellerUid: "pub", custody: [] });
+    await setDoc(doc(d, "parcelLinks/h"), { parcelId: "NA-AAAAAAAA", active: true });
+  });
+  await assertSucceeds(getDoc(doc(as("alice"), "storeOrders/o1"))); // buyer
+  await assertSucceeds(getDoc(doc(as("pub"), "storeOrders/o1"))); // seller
+  await assertFails(getDoc(doc(as("stranger"), "storeOrders/o1")));
+  await assertFails(getDoc(doc(anon(), "storeOrders/o1")));
+  await assertSucceeds(getDoc(doc(as("boss", { admin: true }), "storeOrders/o1")));
+  await assertFails(updateDoc(doc(as("alice"), "storeOrders/o1"), { status: "confirmed" }));
+  await assertFails(updateDoc(doc(as("pub"), "storeOrders/o1"), { status: "delivered" }));
+  await assertFails(getDoc(doc(as("alice"), "parcels/NA-AAAAAAAA")));
+  await assertFails(updateDoc(doc(as("pub"), "parcels/NA-AAAAAAAA"), { custody: [{ holderName: "x" }] }));
+  await assertFails(getDoc(doc(as("boss", { admin: true }), "parcelLinks/h")));
+});
+
+test("a seller can list a physical item for sale: managed stock, no link-outs", async () => {
+  const item = { ownerUid: "pub", title: "Laptop stand", price: "₦9,500", link: "https://www.notesapp.name.ng", image: "x", cta: "Buy now", sellable: true, priceKobo: 950000, deliveryKobo: 150000, stock: 5 };
+  await assertSucceeds(setDoc(doc(as("pub"), "storeItems/s1"), item));
+  await assertSucceeds(setDoc(doc(as("pub"), "storeItems/s1b"), { ...item, stock: 0 })); // sold out is fine
+  await assertFails(setDoc(doc(as("pub"), "storeItems/s2"), { ...item, priceKobo: 50 })); // below ₦100
+  await assertFails(setDoc(doc(as("pub"), "storeItems/s3"), { ...item, sellable: false }));
+  await assertFails(setDoc(doc(as("pub"), "storeItems/s4"), { ...item, deliveryKobo: 99999999 }));
+  const { stock, ...noStock } = item;
+  await assertFails(setDoc(doc(as("pub"), "storeItems/s5"), noStock)); // stock is required
+  await assertFails(setDoc(doc(as("pub"), "storeItems/s5b"), { ...item, stock: -1 }));
+  const { sellable, priceKobo, deliveryKobo, ...linkOut } = item;
+  await assertFails(setDoc(doc(as("pub"), "storeItems/s5c"), { ...linkOut, link: "https://selar.com/x" })); // no link-out items
+  await assertFails(setDoc(doc(as("alice"), "storeItems/s6"), { ...item, ownerUid: "alice" })); // Free Standard can't publish
+  await assertFails(setDoc(doc(as("alice"), "storeItems/s7"), { ...item, ownerUid: "pub" })); // not someone else's store
+});
+
+test("an organisation's store can be run by team members the owner permitted", async () => {
+  await env.withSecurityRulesDisabled(async (ctx) => {
+    const d = ctx.firestore();
+    const base = { role: "reader", social: {}, bio: "", avatar: "", createdAt: "x", suspended: false };
+    await setDoc(doc(d, "users/orgs"), { ...base, uid: "orgs", username: "orgs", displayName: "Org S", accountKind: "organisation", accountTier: "business" });
+    await setDoc(doc(d, "users/orgb"), { ...base, uid: "orgb", username: "orgb", displayName: "Org B", accountKind: "organisation", accountTier: "basic" });
+    await setDoc(doc(d, "users/seller"), { ...base, uid: "seller", username: "seller", displayName: "S", accountTier: "standard" });
+    await setDoc(doc(d, "users/plain"), { ...base, uid: "plain", username: "plain", displayName: "P", accountTier: "standard" });
+    await setDoc(doc(d, "orgMembers/orgs_seller"), { orgUid: "orgs", memberUid: "seller", role: "writer", store: true });
+    await setDoc(doc(d, "orgMembers/orgs_plain"), { orgUid: "orgs", memberUid: "plain", role: "admin" });
+    await setDoc(doc(d, "orgMembers/orgb_seller"), { orgUid: "orgb", memberUid: "seller", role: "writer", store: true });
+    await setDoc(doc(d, "storeItems/orgitem"), { ownerUid: "orgs", title: "t", price: "p", link: "https://www.notesapp.name.ng", image: "x", cta: "Buy now", sellable: true, priceKobo: 100000, deliveryKobo: 0, stock: 3 });
+  });
+  const item = (owner) => ({ ownerUid: owner, title: "Bag", price: "₦5,000", link: "https://www.notesapp.name.ng", image: "x", cta: "Buy now", sellable: true, priceKobo: 500000, deliveryKobo: 0, stock: 2 });
+  // a member with store access lists, edits and removes the organisation's items
+  await assertSucceeds(setDoc(doc(as("seller"), "storeItems/o1"), item("orgs")));
+  await assertSucceeds(updateDoc(doc(as("seller"), "storeItems/orgitem"), { stock: 9 }));
+  await assertFails(updateDoc(doc(as("seller"), "storeItems/orgitem"), { ownerUid: "seller" }));
+  await assertSucceeds(deleteDoc(doc(as("seller"), "storeItems/o1")));
+  // an admin-role member WITHOUT store access, or a stranger, can't
+  await assertFails(setDoc(doc(as("plain"), "storeItems/o2"), item("orgs")));
+  await assertFails(setDoc(doc(as("pub"), "storeItems/o3"), item("orgs")));
+  // the organisation has to be on a team plan
+  await assertFails(setDoc(doc(as("seller"), "storeItems/o4"), item("orgb")));
+  // "notify me" watches are server-only
+  await assertFails(setDoc(doc(as("alice"), "stockWatches/orgitem_alice"), { itemId: "orgitem", uid: "alice" }));
+  await assertFails(getDoc(doc(as("alice"), "stockWatches/orgitem_alice")));
 });
 
 test("co-author fields and invites are server-controlled", async () => {
