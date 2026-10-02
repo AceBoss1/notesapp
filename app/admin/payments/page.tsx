@@ -32,7 +32,7 @@ export default function AdminPaymentsPage() {
     if (user) load().catch((e) => setError(e.message));
   }, [user]);
 
-  async function act(action: "release" | "refund" | "dispute" | "refund_boost", reference: string) {
+  async function act(action: "release" | "refund" | "dispute" | "refund_boost" | "confirm_order", reference: string) {
     if (action === "refund_boost" && !confirm("Refund the undelivered impressions share of this boost?")) return;
     if (action === "refund" && !confirm("Refund this payment to the payer?")) return;
     if (action === "release" && !confirm("Send this payout to the publisher's bank now?")) return;
@@ -95,6 +95,7 @@ export default function AdminPaymentsPage() {
                   <td className="space-x-2 whitespace-nowrap">
                     {open && <button className={btn} disabled={!ready || !!busy} onClick={() => act("release", l.reference)}>Release</button>}
                     {l.status === "held" && <button className={btn} disabled={!!busy} onClick={() => act("dispute", l.reference)}>Dispute</button>}
+                    {l.kind === "order" && open && !ready && <button className={btn} disabled={!!busy} onClick={() => act("confirm_order", l.reference)}>Confirm delivery</button>}
                     {open && <button className={btn} disabled={!!busy} onClick={() => act("refund", l.reference)}>Refund</button>}
                   </td>
                 </tr>
@@ -108,7 +109,7 @@ export default function AdminPaymentsPage() {
       <h2 className="mt-12 font-display text-2xl">All payments</h2>
       <p className="mt-1 text-sm text-slate">Every checkout across all products (latest 300). “pending” means the buyer started a payment that was never confirmed — check Paystack.</p>
       <div className="mt-3 flex flex-wrap gap-2">
-        {["", "booking", "subscription", "gift", "boost", "tier", "badge", "gold", "gold_deposit", "merch"].map((k) => (
+        {["", "booking", "subscription", "gift", "boost", "tier", "badge", "gold", "gold_deposit", "merch", "store"].map((k) => (
           <button key={k || "all"} onClick={() => setKindFilter(k)} className={`rounded-full border px-3 py-1 text-xs ${kindFilter === k ? "border-crimson bg-crimson text-paper" : "border-rule text-ink"}`}>{k || "all"}</button>
         ))}
       </div>

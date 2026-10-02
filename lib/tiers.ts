@@ -24,11 +24,13 @@ export type TierConfig = {
   // rather than a single value.
   sessionAndUnlockCommission: number | "custom";
   sessionAndUnlockCommissionFloor?: number; // Enterprise: "ranging from 5%+"
-  // NotesApp's cut of a sale through a publisher's INTERNAL brand
-  // store. Distinct from external stores (Selar, Amazon, etc.) —
-  // those are gated separately, see externalStoreAllowed.
-  merchCommission: number | "custom";
-  merchCommissionFloor?: number;
+  // NotesApp's cut of the item price when a buyer pays on-platform for
+  // a physical good from a publisher's store (/u/username/store). Lower than
+  // the session/subscription cut because physical margins are thin. Delivery
+  // fees pass through untouched. Distinct from external stores (Selar, Amazon,
+  // etc.) — those link out and pay us nothing, see externalStoreAllowed.
+  physicalCommission: number | "custom";
+  physicalCommissionFloor?: number;
   // Linking out to an external store (Selar, Amazon, etc.) instead of
   // NotesApp's own fulfillment. Restricted on purpose — an external
   // link-out is revenue NotesApp never takes a commission on, so it's
@@ -46,7 +48,7 @@ export const TIERS: TierConfig[] = [
     canPublish: false,
     adRevenueShare: null,
     sessionAndUnlockCommission: 0, // N/A — Standard can't publish, nothing to take a cut of
-    merchCommission: 0,
+    physicalCommission: 0,
     externalStoreAllowed: false,
   },
   {
@@ -56,7 +58,7 @@ export const TIERS: TierConfig[] = [
     canPublish: true,
     adRevenueShare: 0,
     sessionAndUnlockCommission: 0.35,
-    merchCommission: 0.20,
+    physicalCommission: 0.08,
     externalStoreAllowed: false,
   },
   {
@@ -69,7 +71,7 @@ export const TIERS: TierConfig[] = [
     canPublish: true,
     adRevenueShare: 0.25,
     sessionAndUnlockCommission: 0.25,
-    merchCommission: 0.15,
+    physicalCommission: 0.05,
     externalStoreAllowed: false,
   },
   {
@@ -82,7 +84,7 @@ export const TIERS: TierConfig[] = [
     canPublish: true,
     adRevenueShare: 0.45,
     sessionAndUnlockCommission: 0.15,
-    merchCommission: 0.10,
+    physicalCommission: 0.04,
     externalStoreAllowed: false,
   },
   {
@@ -93,8 +95,8 @@ export const TIERS: TierConfig[] = [
     adRevenueShare: 0.75, // increased from Business's 45%; the negotiable part is the commission side
     sessionAndUnlockCommission: "custom",
     sessionAndUnlockCommissionFloor: 0.05,
-    merchCommission: "custom",
-    merchCommissionFloor: 0.05,
+    physicalCommission: "custom",
+    physicalCommissionFloor: 0.03,
     externalStoreAllowed: true,
   },
 ];
@@ -125,6 +127,13 @@ export function commissionRateFor(tier: AccountTier): number {
   const c = getTierConfig(tier).sessionAndUnlockCommission;
   // Enterprise is negotiated per account; until an override exists, use the floor.
   return c === "custom" ? getTierConfig(tier).sessionAndUnlockCommissionFloor ?? 0.05 : c;
+}
+
+// NotesApp's cut of the item price on a physical-goods sale (0–1). Enterprise is
+// negotiated; until an override exists it uses the 3% floor.
+export function physicalCommissionRateFor(tier: AccountTier): number {
+  const c = getTierConfig(tier).physicalCommission;
+  return c === "custom" ? getTierConfig(tier).physicalCommissionFloor ?? 0.03 : c;
 }
 
 // Verified badge: included free on Business and Enterprise; every other

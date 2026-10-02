@@ -9,7 +9,7 @@ import { formatSlot } from "@/lib/booking-time";
 
 type Result = {
   status: string;
-  kind: "booking" | "subscription" | "boost" | "gift" | "tier" | "badge" | "gold" | "gold_deposit" | "merch" | "ad";
+  kind: "booking" | "subscription" | "boost" | "gift" | "tier" | "badge" | "gold" | "gold_deposit" | "merch" | "ad" | "store";
   tier?: { tier: string; interval: string };
   boost?: { noteId: string };
   gift?: { username: string; noteSlug?: string };
@@ -98,6 +98,14 @@ function Confirm() {
           <p className="mt-3 text-sm text-slate">We review every ad before it goes live, usually within a day. If we can't run it you get a full refund. A confirmation email is on its way.</p>
           <Link href="/advertise/campaigns" className="btn-primary mt-6 inline-block !px-5 !py-2 text-xs">
             See my campaigns
+          </Link>
+        </>
+      ) : result.status === "paid" && result.kind === "store" ? (
+        <>
+          <p className="font-display text-2xl text-ink">Order placed ✓</p>
+          <p className="mt-3 text-sm text-slate">Your money is held by #NotesApp until you confirm the parcel arrived. Follow it and confirm delivery on My orders. A confirmation email is on its way.</p>
+          <Link href="/orders" className="btn-primary mt-6 inline-block !px-5 !py-2 text-xs">
+            My orders
           </Link>
         </>
       ) : result.status === "paid" && result.kind === "merch" ? (

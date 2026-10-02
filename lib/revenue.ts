@@ -1,18 +1,19 @@
 // Platform revenue accounting (server + admin page). One place defines what
 // counts as NotesApp revenue so every number on /admin/revenue agrees:
-//   commission streams  — sessions, subscriptions, gifts: revenue = the
+//   commission streams  — sessions, subscriptions, gifts, store sales: revenue = the
 //                         commission taken (ledger.commissionKobo); the rest
 //                         belongs to the publisher.
 //   full streams        — boosts, plans, badges, gold, merch, ads: 100% is ours.
 // Not deducted: Paystack fees (customers bear them), merch cost of goods.
 // Refunded payments are excluded; a boost's undelivered-impression refund is
 // subtracted from boost revenue.
-export type StreamId = "sessions" | "subscriptions" | "gifts" | "boosts" | "plans" | "badges" | "gold" | "merch" | "ads";
+export type StreamId = "sessions" | "subscriptions" | "gifts" | "store" | "boosts" | "plans" | "badges" | "gold" | "merch" | "ads";
 
 export const STREAMS: Record<StreamId, { label: string; model: "commission" | "full"; live: boolean }> = {
   sessions: { label: "Paid sessions", model: "commission", live: true },
   subscriptions: { label: "Journal subscriptions", model: "commission", live: true },
   gifts: { label: "Gifts", model: "commission", live: true },
+  store: { label: "Store sales (physical goods)", model: "commission", live: true },
   boosts: { label: "Post boosts", model: "full", live: true },
   plans: { label: "Pro / Business plans", model: "full", live: true },
   badges: { label: "Verified badge add-on", model: "full", live: true },
@@ -25,6 +26,7 @@ const KIND_TO_STREAM: Record<string, StreamId> = {
   booking: "sessions",
   subscription: "subscriptions",
   gift: "gifts",
+  store: "store",
   boost: "boosts",
   tier: "plans",
   badge: "badges",

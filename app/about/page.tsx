@@ -24,6 +24,7 @@ const LIVE = [
   { href: "/boost", title: "Boost", copy: "Promote a post and pay only for validated impressions." },
   { href: "/badges", title: "Verification badges", copy: "A verified ✔ for accounts in good standing, and a gold ✔ for accounts we endorse or identity-check." },
   { href: "/advertise", title: "Ads & ad share", copy: "Buy a banner campaign online and reach readers across the site; Pro and Business publishers can opt in and earn a share, paid monthly after review." },
+  { href: "/store-selling", title: "Sell physical goods", copy: "Take payment in your store, with the buyer's money held until delivery is confirmed and a parcel ID anyone can track." },
   { href: "/merchstore", title: "Merch store", copy: "Official #NotesApp merch with your choice of logo — pre-order in batches, delivered in Nigeria." },
   { href: "/trending", title: "Trending", copy: "The most visited publishers and posts on #NotesApp." },
 ];

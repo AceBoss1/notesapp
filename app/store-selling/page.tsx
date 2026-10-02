@@ -1,0 +1,44 @@
+import Link from "next/link";
+import type { Metadata } from "next";
+import { TIERS, formatPercent } from "@/lib/tiers";
+
+export const metadata: Metadata = {
+  title: "Sell physical goods",
+  description: "Sell physical goods from your #NotesApp store: buyers pay on-platform, the money is held until delivery is confirmed, and every parcel gets a tracking ID.",
+};
+
+export default function StoreSellingPage() {
+  return (
+    <div className="mx-auto max-w-3xl px-4 py-16 sm:px-6 lg:px-8">
+      <span className="eyebrow">Stores</span>
+      <h1 className="mt-4 font-display text-4xl text-ink sm:text-5xl">Sell physical goods from your store</h1>
+      <p className="mt-5 text-lg text-slate">
+        Your store at <code>/u/yourname/store</code> can link out to Selar or Amazon, or take payment on #NotesApp for physical items — with the buyer&apos;s money
+        held until the parcel arrives, and a parcel ID anyone can track.
+      </p>
+
+      <h2 className="mt-12 font-display text-2xl text-ink">How a sale works</h2>
+      <ol className="mt-4 space-y-3 text-sm text-slate">
+        <li className="card p-4"><strong className="text-ink">1. List it.</strong> On your store page, add an item and tick &ldquo;Sell this physical item through #NotesApp checkout&rdquo;. Set the price, your delivery fee and (optionally) stock. You need a payout account under Rates &amp; payouts.</li>
+        <li className="card p-4"><strong className="text-ink">2. The buyer pays here</strong>, with their delivery address. They get a parcel ID (like <code>NA-7K2M9QXD</code>) by email.</li>
+        <li className="card p-4"><strong className="text-ink">3. You dispatch and keep the log.</strong> By courier: enter the courier, tracking number and link — buyers get an &ldquo;Open tracking&rdquo; button. By bike, bus or motor park: record who holds the parcel and where, with their phone number if they agree. Holders can update the location and hand on to the next holder from a short no-login link that stops working the moment the next person confirms they have it. You can also just call them and update it yourself.</li>
+        <li className="card p-4"><strong className="text-ink">4. Delivery is confirmed.</strong> Your payout is released when the buyer confirms it arrived, or 7 days after you mark it delivered if they say nothing. If the buyer reports a problem, the money stays held while we review.</li>
+      </ol>
+
+      <h2 className="mt-12 font-display text-2xl text-ink">What we take</h2>
+      <p className="mt-3 text-sm text-slate">A commission on the item price only — your delivery fee is yours:</p>
+      <ul className="mt-3 grid gap-2 text-sm sm:grid-cols-2">
+        {TIERS.filter((t) => t.canPublish).map((t) => (
+          <li key={t.tier} className="card flex items-center justify-between p-3"><span className="text-ink">{t.label}</span><span className="font-mono text-crimson-bright">{formatPercent(t.physicalCommission, t.physicalCommissionFloor)}</span></li>
+        ))}
+      </ul>
+
+      <h2 className="mt-12 font-display text-2xl text-ink">Who&apos;s responsible</h2>
+      <p className="mt-3 text-sm text-slate">
+        You are the seller and arrange delivery; #NotesApp isn&apos;t the carrier. Holders&apos; phone numbers are shown only to the buyer, to you, or to someone who gives the parcel ID
+        <em> and</em> the last four digits of the receiver&apos;s phone number — and only if the holder agreed. Read <Link href="/terms" className="text-crimson underline">Terms 5g</Link>.
+      </p>
+      <p className="mt-6 text-sm text-slate"><Link href="/track" className="text-crimson underline">Track a parcel</Link> · <Link href="/pricing" className="text-crimson underline">Pricing</Link></p>
+    </div>
+  );
+}

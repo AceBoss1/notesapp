@@ -105,6 +105,13 @@ export default function StorePageClient({ params }: { params: { username: string
                   <span className="font-mono text-sm text-crimson-bright">
                     {item.price}
                   </span>
+                  {item.sellable && item.id ? (
+                    (item.stock === undefined || item.stock > 0) ? (
+                      <Link href={`/shop/${item.id}`} className="btn-primary !px-4 !py-2 text-xs">Buy now</Link>
+                    ) : (
+                      <span className="font-mono text-xs text-slate">Sold out</span>
+                    )
+                  ) : (
                   <a
                     href={item.link}
                     target="_blank"
@@ -113,6 +120,7 @@ export default function StorePageClient({ params }: { params: { username: string
                   >
                     {item.cta}
                   </a>
+                  )}
                 </div>
               </div>
             </div>

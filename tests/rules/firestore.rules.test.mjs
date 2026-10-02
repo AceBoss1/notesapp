@@ -294,6 +294,36 @@ test("organisation team members write for the organisation, within limits", asyn
   await assertFails(getDoc(doc(as("wri"), "orgMembers/org1_wri")));
 });
 
+test("store orders, parcels and handoff links are server-controlled", async () => {
+  await env.withSecurityRulesDisabled(async (ctx) => {
+    const d = ctx.firestore();
+    await setDoc(doc(d, "storeOrders/o1"), { buyerUid: "alice", sellerUid: "pub", status: "paid" });
+    await setDoc(doc(d, "parcels/NA-AAAAAAAA"), { buyerUid: "alice", sellerUid: "pub", custody: [] });
+    await setDoc(doc(d, "parcelLinks/h"), { parcelId: "NA-AAAAAAAA", active: true });
+  });
+  await assertSucceeds(getDoc(doc(as("alice"), "storeOrders/o1"))); // buyer
+  await assertSucceeds(getDoc(doc(as("pub"), "storeOrders/o1"))); // seller
+  await assertFails(getDoc(doc(as("stranger"), "storeOrders/o1")));
+  await assertFails(getDoc(doc(anon(), "storeOrders/o1")));
+  await assertSucceeds(getDoc(doc(as("boss", { admin: true }), "storeOrders/o1")));
+  await assertFails(updateDoc(doc(as("alice"), "storeOrders/o1"), { status: "confirmed" }));
+  await assertFails(updateDoc(doc(as("pub"), "storeOrders/o1"), { status: "delivered" }));
+  await assertFails(getDoc(doc(as("alice"), "parcels/NA-AAAAAAAA")));
+  await assertFails(updateDoc(doc(as("pub"), "parcels/NA-AAAAAAAA"), { custody: [{ holderName: "x" }] }));
+  await assertFails(getDoc(doc(as("boss", { admin: true }), "parcelLinks/h")));
+});
+
+test("a seller can list a physical item for sale, within limits", async () => {
+  const item = { ownerUid: "pub", title: "Laptop stand", price: "₦9,500", link: "https://www.notesapp.name.ng", image: "x", cta: "Buy now", sellable: true, priceKobo: 950000, deliveryKobo: 150000, stock: 5 };
+  await assertSucceeds(setDoc(doc(as("pub"), "storeItems/s1"), item));
+  await assertFails(setDoc(doc(as("pub"), "storeItems/s2"), { ...item, priceKobo: 50 })); // below ₦100
+  await assertFails(setDoc(doc(as("pub"), "storeItems/s3"), { ...item, sellable: false }));
+  await assertFails(setDoc(doc(as("pub"), "storeItems/s4"), { ...item, deliveryKobo: 99999999 }));
+  const { sellable, ...noFlag } = item;
+  await assertFails(setDoc(doc(as("pub"), "storeItems/s5"), noFlag)); // sale fields without the flag
+  await assertFails(setDoc(doc(as("alice"), "storeItems/s6"), { ...item, ownerUid: "alice" })); // Free Standard can't publish
+});
+
 test("co-author fields and invites are server-controlled", async () => {
   await env.withSecurityRulesDisabled(async (ctx) => {
     const d = ctx.firestore();

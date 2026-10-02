@@ -7,6 +7,7 @@ import { sendEmail } from "./email";
 import type { AccountTier } from "./users";
 import { getBoostPackage } from "./boost-config";
 import { periodEndFrom, cancelBadgeIfCovered } from "./tier-billing";
+import { ESCROW_PLACEHOLDER_DAYS, newParcelId, phoneLast4 } from "./orders";
 
 // Server-only. All money-state changes happen here, via the Admin SDK
 // (Firestore rules make payments/bookings/ledger/subscriptions
@@ -14,7 +15,7 @@ import { periodEndFrom, cancelBadgeIfCovered } from "./tier-billing";
 
 export type PaymentRecord = {
   reference: string;
-  kind: "booking" | "subscription" | "boost" | "gift" | "tier" | "badge" | "gold_deposit" | "gold" | "merch" | "ad";
+  kind: "booking" | "subscription" | "boost" | "gift" | "tier" | "badge" | "gold_deposit" | "gold" | "merch" | "ad" | "store";
   uid: string; // the payer
   email: string;
   amountKobo: number;
@@ -40,6 +41,15 @@ export type PaymentRecord = {
     batchId: string;
     address: { fullName: string; phone: string; street: string; city: string; state: string };
   };
+  store?: {
+    itemId: string;
+    itemTitle: string;
+    itemImage: string;
+    quantity: number;
+    unitKobo: number;
+    deliveryKobo: number;
+    address: { fullName: string; phone: string; street: string; city: string; state: string };
+  };
   gold?: { kind: "endorsement" | "identity"; track: "personal" | "corporate"; planCode?: string };
   gift?: { username: string; noteId?: string; noteSlug?: string; message: string; anonymous: boolean; senderName: string };
   createdAt: string;
@@ -56,7 +66,7 @@ export type LedgerEntry = {
   reference: string; // ledger doc id (the payment reference, or `<ref>_<uid>` for a co-author's share)
   paymentReference?: string; // the Paystack payment this entry belongs to (set on split entries)
   sharePercent?: number; // this author's % of a co-authored post's gift
-  kind: "booking" | "subscription" | "gift" | "adshare";
+  kind: "booking" | "subscription" | "gift" | "adshare" | "order";
   publisherUid: string;
   publisherUsername: string;
   payerUid: string;
@@ -176,6 +186,34 @@ export async function fulfillPayment(reference: string): Promise<PaymentRecord> 
         createdAt: now,
       });
       t.set(db.doc(`ledger/${reference}`), ledgerFor(current, current.amountKobo, sessionEnd(date, slot, minutes), now));
+    } else if (current.kind === "store" && current.store) {
+      // Physical goods: the order + its parcel are created now; the seller's money is
+      // held (far-future releaseAfter) until the buyer confirms delivery or the
+      // auto-release timer set when the parcel is marked delivered runs out.
+      const st = current.store;
+      const itemRef = db.doc(`storeItems/${st.itemId}`);
+      const item = (await t.get(itemRef)).data();
+      const seller = (await t.get(db.doc(`users/${current.publisherUid}`))).data();
+      const parcelId = newParcelId();
+      const goodsKobo = st.unitKobo * st.quantity;
+      const commissionKobo = Math.round(goodsKobo * current.commissionRate);
+      t.set(db.doc(`storeOrders/${reference}`), {
+        reference, parcelId, sellerUid: current.publisherUid, sellerUsername: current.publisherUsername, buyerUid: current.uid,
+        buyerEmail: current.email, itemId: st.itemId, itemTitle: st.itemTitle, itemImage: st.itemImage, quantity: st.quantity,
+        unitKobo: st.unitKobo, deliveryKobo: st.deliveryKobo, amountKobo: current.amountKobo, commissionKobo,
+        address: st.address, status: "paid", paidAt: now,
+      });
+      t.set(db.doc(`parcels/${parcelId}`), {
+        parcelId, orderRef: reference, sellerUid: current.publisherUid, sellerUsername: current.publisherUsername,
+        sellerName: seller?.displayName || current.publisherUsername, buyerUid: current.uid, buyerPhoneLast4: phoneLast4(st.address.phone),
+        itemTitle: st.itemTitle, quantity: st.quantity, city: st.address.city, state: st.address.state, status: "paid", custody: [], createdAt: now,
+      });
+      if (item && item.stock !== undefined) t.update(itemRef, { stock: FieldValue.increment(-st.quantity) });
+      t.set(db.doc(`ledger/${reference}`), {
+        reference, kind: "order", publisherUid: current.publisherUid, publisherUsername: current.publisherUsername, payerUid: current.uid,
+        grossKobo: current.amountKobo, commissionKobo, netKobo: current.amountKobo - commissionKobo, status: "held",
+        releaseAfter: new Date(Date.now() + ESCROW_PLACEHOLDER_DAYS * 86_400_000).toISOString(), createdAt: now,
+      } satisfies LedgerEntry);
     } else if (current.kind === "boost" && current.boost) {
       // Boosts are platform revenue: no ledger entry, just an active campaign.
       const pk = getBoostPackage(current.boost.packageId);
@@ -409,6 +447,24 @@ async function notifyPaid(p: PaymentRecord) {
       subject: "Your #NotesApp ad campaign is in review",
       text: `Thanks — we received ${formatNaira(p.amountKobo)} for your ad campaign. We review every ad before it goes live (usually within a day). If we can't run it you'll get a full refund. Track it any time at ${process.env.NEXT_PUBLIC_SITE_URL || "https://www.notesapp.name.ng"}/advertise/campaigns.\nReference: ${p.reference}\n\n#NotesApp`,
     });
+    return;
+  }
+  if (p.kind === "store" && p.store) {
+    const site = process.env.NEXT_PUBLIC_SITE_URL || "https://www.notesapp.name.ng";
+    const st = p.store;
+    await sendEmail({
+      to: p.email,
+      subject: "Your #NotesApp order is confirmed",
+      text: `Thanks! ${st.quantity} × ${st.itemTitle} — ${formatNaira(p.amountKobo)} including delivery, to ${st.address.fullName}, ${st.address.street}, ${st.address.city}, ${st.address.state}.\nYour money is held by #NotesApp until you confirm the parcel arrived (or 7 days after it's marked delivered). Follow it and confirm delivery at ${site}/orders.\nReference: ${p.reference}\n\n#NotesApp`,
+    });
+    const sellerEmail = await getUserEmail(p.publisherUid);
+    if (sellerEmail) {
+      await sendEmail({
+        to: sellerEmail,
+        subject: "New order on your #NotesApp store",
+        text: `${st.quantity} × ${st.itemTitle} was ordered (${formatNaira(p.amountKobo)} incl. delivery). Deliver to ${st.address.fullName}, ${st.address.phone}, ${st.address.street}, ${st.address.city}, ${st.address.state}.\nDispatch it and keep the tracking up to date at ${site}/orders (courier details, or each hand-off if it goes by bike, bus or park). You're paid after the buyer confirms delivery, or 7 days after you mark it delivered.\n\n#NotesApp`,
+      }).catch(() => {});
+    }
     return;
   }
   if (p.kind === "merch" && p.merch) {

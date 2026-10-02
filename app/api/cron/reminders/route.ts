@@ -3,6 +3,7 @@ import { getAdminDb, getUserEmail } from "@/lib/firebase-admin";
 import { sendEmail } from "@/lib/email";
 import { formatSlot } from "@/lib/booking-time";
 import { expireTiers } from "@/lib/tier-billing";
+import { releaseDueOrders } from "@/lib/orders-server";
 
 // Run every ~15 minutes by an external scheduler with
 //   Authorization: Bearer $CRON_SECRET
@@ -49,5 +50,7 @@ export async function GET(req: NextRequest) {
   }
   // Same scheduler run also downgrades lapsed Pro/Business plans.
   const expired = await expireTiers().catch((e) => (console.error("expireTiers failed", e), 0));
-  return NextResponse.json({ checked: snap.size, sent, expiredPlans: expired });
+  // ...and releases store orders whose 7 "delivered" days passed without a buyer reply.
+  const released = await releaseDueOrders().catch((e) => (console.error("releaseDueOrders failed", e), 0));
+  return NextResponse.json({ checked: snap.size, sent, expiredPlans: expired, releasedOrders: released });
 }

@@ -14,7 +14,9 @@ import { getAdPackage } from "@/lib/ad-packages";
 import { isPlacement } from "@/lib/ads";
 import { r2PublicUrl } from "@/lib/r2";
 import { getMerchItem, LOGO_OPTIONS, MERCH_BATCH, MERCH_DELIVERY_KOBO, MERCH_MAX_QTY, merchBatchOpen, validateAddress } from "@/lib/merch";
-import { TIERS, badgeIncluded } from "@/lib/tiers";
+import { TIERS, badgeIncluded, physicalCommissionRateFor } from "@/lib/tiers";
+import { STORE_ITEM_MAX_KOBO, STORE_MAX_QTY } from "@/lib/orders";
+import type { AccountTier } from "@/lib/users";
 import { rateLimit } from "@/lib/rate-limit";
 
 // Starts a Paystack checkout for a 1:1 session or a monthly journal
@@ -115,6 +117,58 @@ export async function POST(req: NextRequest) {
     }
 
     // ---- official merch pre-order (price, delivery and batch all server-side) ----
+    // ---- physical goods from a publisher's store (money held until delivery) ----
+    if (kind === "store") {
+      const itemSnap = await db.doc(`storeItems/${String(body.itemId)}`).get();
+      const item = itemSnap.data();
+      if (!item || item.sellable !== true || !Number.isInteger(item.priceKobo)) return NextResponse.json({ error: "This item isn't for sale here." }, { status: 404 });
+      if (item.ownerUid === user.uid) return NextResponse.json({ error: "You can't buy your own item." }, { status: 409 });
+      const quantity = Number(body.quantity);
+      if (!Number.isInteger(quantity) || quantity < 1 || quantity > STORE_MAX_QTY) {
+        return NextResponse.json({ error: `Choose a quantity from 1 to ${STORE_MAX_QTY}.` }, { status: 400 });
+      }
+      if (item.stock !== undefined && Number(item.stock) < quantity) {
+        return NextResponse.json({ error: Number(item.stock) > 0 ? `Only ${item.stock} left.` : "Sold out." }, { status: 409 });
+      }
+      const addrProblem = validateAddress(body.address);
+      if (addrProblem) return NextResponse.json({ error: addrProblem }, { status: 400 });
+      const seller = (await db.doc(`users/${item.ownerUid}`).get()).data();
+      if (!seller || seller.suspended === true || (seller.accountTier === "standard" && !["staff", "volunteer", "admin"].includes(seller.role))) {
+        return NextResponse.json({ error: "This seller isn't taking orders right now." }, { status: 409 });
+      }
+      const payout = (await db.doc(`payoutAccounts/${item.ownerUid}`).get()).data();
+      if (!payout?.recipientCode) return NextResponse.json({ error: "This seller hasn't set up payouts yet, so they can't take orders." }, { status: 409 });
+      const a = body.address;
+      const address = {
+        fullName: String(a.fullName).trim(),
+        phone: String(a.phone).replace(/[\s-]/g, ""),
+        street: String(a.street).trim(),
+        city: String(a.city).trim(),
+        state: String(a.state),
+      };
+      const deliveryKobo = Number(item.deliveryKobo) || 0;
+      const amountKobo = item.priceKobo * quantity + deliveryKobo;
+      if (amountKobo > STORE_ITEM_MAX_KOBO * 2) return NextResponse.json({ error: "That order is too large." }, { status: 400 });
+      const reference = newReference();
+      const origin = (process.env.NEXT_PUBLIC_SITE_URL || req.nextUrl.origin).replace(/\/$/, "");
+      const tx = await initializeTransaction({
+        email: user.email, amountKobo, reference, callbackUrl: `${origin}/booking/confirm`,
+        metadata: { kind, itemId: itemSnap.id, uid: user.uid },
+      });
+      const record: PaymentRecord = {
+        reference, kind: "store", uid: user.uid, email: user.email, amountKobo,
+        status: "pending", publisherUid: item.ownerUid, publisherUsername: seller.username || "",
+        commissionRate: physicalCommissionRateFor((seller.accountTier as AccountTier) || "basic"),
+        store: {
+          itemId: itemSnap.id, itemTitle: String(item.title), itemImage: String(item.image || ""), quantity,
+          unitKobo: item.priceKobo, deliveryKobo, address,
+        },
+        createdAt: new Date().toISOString(),
+      };
+      await db.doc(`payments/${reference}`).set(record);
+      return NextResponse.json({ authorizationUrl: tx.authorization_url, reference });
+    }
+
     if (kind === "merch") {
       const item = getMerchItem(String(body.itemId));
       const logo = LOGO_OPTIONS.find((l) => l.id === body.logoId);

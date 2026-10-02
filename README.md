@@ -1616,3 +1616,13 @@ Sign up as **Organisation** at `/signup` (name + CAC number), onboarding checkli
 - Limits: co-authoring isn't offered on org posts; Boost is owner-only.
 
 Redeploy `firestore.rules`.
+
+## Seller checkout and parcel tracking
+
+- **Listing:** a publisher marks a store item "sell through #NotesApp checkout" (`storeItems` gets `sellable`, `priceKobo`, `deliveryKobo`, optional `stock`; validated in `firestore.rules`). `/shop/[itemId]` is the buy page → `POST /api/paystack/initialize` `kind: "store"` (seller must have a payout account; amount comes from the item doc, never the client).
+- **Commission** (`lib/tiers.ts` `physicalCommission`): Free Basic 8%, Pro 5%, Business 4%, Enterprise 3%+ — on the item price only; the delivery fee is the seller's. Shown on `/pricing` and `/store-selling`. Revenue stream "Store sales" (commission) on `/admin/revenue`.
+- **Escrow:** `lib/payments.ts` creates `storeOrders/{ref}`, `parcels/{NA-XXXXXXXX}` and a `ledger` entry (kind `order`) held with a far-future `releaseAfter`. It becomes payable when the buyer confirms, when the cron auto-confirms 7 days after "delivered" (`releaseDueOrders`, in `/api/cron/reminders`), or when an admin clicks **Confirm delivery** on `/admin/payments`. A buyer dispute freezes the entry; an admin can refund or confirm.
+- **Tracking:** seller records either courier details (name, number, https link → "Open tracking" opens in a new tab; no iframe because most couriers forbid embedding) or hand-off entries (bike/bus/park, name, location, phone with the holder's consent). Holders use no-login links (`/p/[token]`, stored hashed in `parcelLinks`) that die when the next holder confirms or after 14 days. `/track/[id]` shows status and the current holder; phone numbers only for buyer/seller/admin or with the receiver's last 4 digits (lockout after 8 wrong guesses/hour).
+- **Pages/APIs:** `/orders` (buying + selling), `/track`, `/track/[id]`, `/p/[token]`, `/store-selling`; `/api/store/orders`, `/api/track`, `/api/track/holder`. Terms 5g.
+- **Not built:** stock reservation (a sale can briefly oversell), seller notifications beyond email, partial refunds, org team members selling from the organisation's store, courier-API auto tracking.
+- Redeploy `firestore.rules` (new `storeOrders`/`parcels`/`parcelLinks` rules, `storeItems` sale fields).

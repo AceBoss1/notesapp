@@ -17,6 +17,11 @@ export type StoreItem = {
   link: string; // external checkout / read link
   image: string;
   cta: string; // button label
+  // Physical goods sold on-platform (buyer pays through #NotesApp, money held until delivery).
+  sellable?: boolean;
+  priceKobo?: number;
+  deliveryKobo?: number;
+  stock?: number; // optional; counts down per sale
 };
 
 export const STORE_ITEMS: Record<string, StoreItem[]> = {
@@ -109,12 +114,21 @@ export async function getStoreItems(uid: string | undefined, username: string): 
 }
 
 function clean(input: StoreItemInput) {
+  const sellable = input.sellable === true;
   return {
+    ...(sellable
+      ? {
+          sellable: true,
+          priceKobo: Math.round(Number(input.priceKobo)),
+          deliveryKobo: Math.round(Number(input.deliveryKobo ?? 0)),
+          ...(input.stock !== undefined && Number.isFinite(Number(input.stock)) ? { stock: Math.max(0, Math.floor(Number(input.stock))) } : {}),
+        }
+      : {}),
     title: input.title.trim(),
     ...(input.subtitle?.trim() ? { subtitle: input.subtitle.trim() } : {}),
     price: input.price.trim(),
     ...(input.badge?.trim() ? { badge: input.badge.trim() } : {}),
-    link: input.link.trim(),
+    link: sellable ? input.link?.trim() || "https://www.notesapp.name.ng" : input.link.trim(),
     image: input.image.trim() || DEFAULT_STORE_IMAGE,
     cta: input.cta.trim() || "View",
   };

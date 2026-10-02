@@ -72,9 +72,9 @@ const ROWS: { label: string; href?: string; render: (t: (typeof TIERS)[number]) 
     render: (t) => (t.canPublish ? "Sessions after they happen · subscriptions & gifts after 7 days" : "—"),
   },
   {
-    label: "Internal merch store commission",
-    href: "/merchstore",
-    render: (t) => (t.canPublish ? `NotesApp takes ${formatPercent(t.merchCommission, t.merchCommissionFloor)}` : "—"),
+    label: "Physical goods sold in your store",
+    href: "/store-selling",
+    render: (t) => (t.canPublish ? `NotesApp takes ${formatPercent(t.physicalCommission, t.physicalCommissionFloor)} of the item price (delivery fee is yours) — buyer's money is held until delivery is confirmed` : "—"),
   },
   {
     label: "External store (Selar, Amazon, etc.)",
@@ -192,6 +192,7 @@ export default function PricingPage() {
             ["/badges", "Verification badges — verified and gold, with prices"],
             ["/merchstore", "Merch store"],
             ["/advertise", "Advertise — banner campaigns and ad share"],
+            ["/store-selling", "Sell physical goods — checkout, delivery hold, parcel tracking"],
             ["/organisations", "Organisations — free 30-day Business trial, CAC verification"],
           ].map(([href, label]) => (
             <li key={href}>
