@@ -6,7 +6,7 @@ import { formatNaira } from "@/lib/booking-time";
 export const metadata: Metadata = {
   title: "Advertise",
   description:
-    "Ads on #NotesApp come with a revenue share built in from day one. Free journals carry ads; Pro and Business tiers earn 25% and 45% respectively.",
+    "Buy a banner campaign on #NotesApp, paid online and priced by validated impressions. Ads come with a revenue share built in: Pro and Business publishers earn 25% and 45%.",
 };
 
 export default function AdvertisePage() {

@@ -23,7 +23,7 @@ const LIVE = [
   { href: "/coauthoring", title: "Co-authoring", copy: "Write a post with other members, agree each person's share of its earnings, and share the byline." },
   { href: "/boost", title: "Boost", copy: "Promote a post and pay only for validated impressions." },
   { href: "/badges", title: "Verification badges", copy: "A verified ✔ for accounts in good standing, and a gold ✔ for accounts we endorse or identity-check." },
-  { href: "/advertise", title: "Ads & ad share", copy: "NotesApp banners across the site; Pro and Business publishers can opt in and earn a share, paid monthly after review." },
+  { href: "/advertise", title: "Ads & ad share", copy: "Buy a banner campaign online and reach readers across the site; Pro and Business publishers can opt in and earn a share, paid monthly after review." },
   { href: "/merchstore", title: "Merch store", copy: "Official #NotesApp merch with your choice of logo — pre-order in batches, delivered in Nigeria." },
   { href: "/trending", title: "Trending", copy: "The most visited publishers and posts on #NotesApp." },
 ];
@@ -105,7 +105,7 @@ export default async function AboutPage() {
             to 15% on Business, negotiable on Enterprise). Boosts are
             priced by validated impressions with no commission. Pro and
             Business are paid plans; verification badges, gold and our own
-            merch are paid add-ons; and ads fund the ad share we pay opted-in
+            merch are paid add-ons; and advertisers' banner campaigns (paid up front, reviewed before they run, refunded for anything undelivered) fund the ad share we pay opted-in
             publishers. Every number is on the{" "}
             <Link href="/pricing" className="text-crimson underline">pricing page</Link>.
           </p>

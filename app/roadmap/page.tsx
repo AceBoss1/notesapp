@@ -87,13 +87,13 @@ export default function RoadmapPage() {
           opting in — no follower or view threshold to clear first.
           NotesApp banners, ad tracking (unique views and clicks per publisher), monthly
           ad-share statements with fraud review and a 30-day payout hold, and co-author
-          gift splits are built; Google ads on the web and AdMob in the mobile apps come next.
+          gift splits are built. Advertisers can already buy banner campaigns online (pay with Paystack, reviewed before they run, refunded if we can&apos;t run them or can&apos;t deliver every impression); Google ads on the web and AdMob in the mobile apps come next.
         </p>
         <Link
           href="/advertise"
           className="mt-4 inline-block text-sm text-crimson underline underline-offset-2"
         >
-          Full details on the Advertise page →
+          Full details, and buy a campaign, on the Advertise page →
         </Link>
       </div>
 
