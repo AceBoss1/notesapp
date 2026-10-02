@@ -110,8 +110,22 @@ export default function AdminUsersPage() {
     if (!user) return;
     setBusyUid(uid);
     try {
-      await resolveBadgeRequest(uid, user.uid, approve);
+      // Server-side so the applicant also gets a bell notification and an email.
+      let reason: string | undefined;
+      if (!approve) {
+        const r = window.prompt("Reason for declining (shown to the applicant; optional):");
+        if (r === null) return;
+        reason = r.trim() || undefined;
+      }
+      const res = await fetch("/api/admin/badge-request", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${await user.getIdToken()}` },
+        body: JSON.stringify({ uid, approve, reason }),
+      });
+      if (!res.ok) throw new Error((await res.json().catch(() => ({}))).error || "Couldn't record the decision");
       reload();
+    } catch (e) {
+      alert(e instanceof Error ? e.message : "Couldn't record the decision");
     } finally {
       setBusyUid(null);
     }
@@ -207,7 +221,7 @@ export default function AdminUsersPage() {
                       <div className="mt-2 border border-amber-200 bg-amber-50 p-2 text-xs text-ink">
                         <p className="font-semibold">Applied for the gold badge ({(badgeRequests[u.uid].kind ?? "endorsement")}, {(badgeRequests[u.uid].track ?? "personal")})</p>
                         {badgeRequests[u.uid].kind === "identity" && (
-                          <p className="mt-0.5 text-slate">Deposit paid {badgeRequests[u.uid].depositPaidAt?.slice(0, 10)} — {badgeRequests[u.uid].dojah ? "Dojah's result is below; " : "no Dojah result yet (it arrives by webhook) — or check "}the Dojah dashboard (reference na_{u.uid}) before approving.</p>
+                          <p className="mt-0.5 text-slate">Deposit paid {badgeRequests[u.uid].depositPaidAt?.slice(0, 10)} — {badgeRequests[u.uid].dojah ? "Dojah's result is below." : "no Dojah result yet (it arrives by webhook)."} Dojah dashboard reference: na_{u.uid}</p>
                         )}
                         {badgeRequests[u.uid].dojah && (
                           <p className={`mt-0.5 font-semibold ${badgeRequests[u.uid].dojah!.passed ? "text-green-700" : badgeRequests[u.uid].dojah!.terminal ? "text-crimson" : "text-slate"}`}>

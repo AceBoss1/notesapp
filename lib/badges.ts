@@ -9,8 +9,8 @@
 //              Flip it when the application/review flow is ready.
 //
 // Launch plan: endorsement is LIVE (manual admin review, no ID documents held
-// by us). Identity checks stay "coming soon" until a KYC vendor is added
-// once review volume justifies it.
+// by us). Identity checks (Dojah) switch on when the widget ids are set; results
+// arrive by signed webhook (/api/dojah/webhook) and an admin still approves.
 export const GOLD_BADGE_LIVE = true; // any gold badge can render at all
 // Identity switches on by itself once both Dojah hosted-widget ids are set
 // in the environment (NEXT_PUBLIC_DOJAH_WIDGET_PERSONAL / _CORPORATE).
