@@ -78,6 +78,21 @@ export default function RoadmapPage() {
 
       <div className="card mt-6 p-7">
         <span className="font-mono text-[11px] uppercase tracking-eyebrow text-crimson-bright">
+          Organisations
+        </span>
+        <h2 className="mt-2 font-display text-2xl text-ink">Organisation accounts</h2>
+        <p className="mt-3 text-slate">
+          Live: organisation sign-up with a CAC registration number, a free 30-day Business trial, an &ldquo;unverified organisation&rdquo; notice until we
+          confirm the registration, and the maroon ✔ once confirmed. Team members too: the owner, admins and writers publish under the channel&apos;s name (four seats on Business), and
+          everything their posts earn goes to the organisation&apos;s single payout account.
+        </p>
+        <Link href="/organisations" className="mt-4 inline-block text-sm text-crimson underline underline-offset-2">
+          How organisation accounts work →
+        </Link>
+      </div>
+
+      <div className="card mt-6 p-7">
+        <span className="font-mono text-[11px] uppercase tracking-eyebrow text-crimson-bright">
           Ads
         </span>
         <h2 className="mt-2 font-display text-2xl text-ink">Ad-share program</h2>
@@ -87,13 +102,13 @@ export default function RoadmapPage() {
           opting in — no follower or view threshold to clear first.
           NotesApp banners, ad tracking (unique views and clicks per publisher), monthly
           ad-share statements with fraud review and a 30-day payout hold, and co-author
-          gift splits are built; Google ads on the web and AdMob in the mobile apps come next.
+          gift splits are built. Advertisers can already buy banner campaigns online (pay with Paystack, reviewed before they run, refunded if we can&apos;t run them or can&apos;t deliver every impression); Google ads on the web and AdMob in the mobile apps come next.
         </p>
         <Link
           href="/advertise"
           className="mt-4 inline-block text-sm text-crimson underline underline-offset-2"
         >
-          Full details on the Advertise page →
+          Full details, and buy a campaign, on the Advertise page →
         </Link>
       </div>
 

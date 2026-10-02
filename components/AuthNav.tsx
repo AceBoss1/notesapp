@@ -75,6 +75,7 @@ export default function AuthNav() {
             <Link href="/bookings" className={item}>Bookings</Link>
             <Link href="/boost" className={item}>Boost a post</Link>
             <Link href="/profile/boosts" className={item}>Boost performance</Link>
+            {profile?.accountKind === "organisation" && <Link href="/organisation" className={item}>Organisation setup</Link>}
             <Link href="/advertise/campaigns" className={item}>My ad campaigns</Link>
             <Link href="/badges" className={item}>Verification badges</Link>
             <button onClick={() => signOut(auth)} className={`${item} w-full border-t border-rule`}>

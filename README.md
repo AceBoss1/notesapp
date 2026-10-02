@@ -1595,3 +1595,24 @@ Anyone with a verified account buys a banner campaign at `/advertise/new` (packa
 5. Advertisers track delivery at `/advertise/campaigns`. Terms 5e covers the rules.
 
 Deploy `firestore.rules` (new `adCampaigns` rule). Not covered: Google/Meta/AdMob slots.
+
+## Organisation accounts (phase 1)
+
+Sign up as **Organisation** at `/signup` (name + CAC number), onboarding checklist at `/organisation`, public explainer at `/organisations`.
+
+- Data (all server-written; `firestore.rules` lets an owner edit only name/bio/logo/links): `users/{uid}.accountKind = "organisation"`, `org { rcNumber, rcStatus: unverified|verified|rejected }`, `trialUntil/trialTier/trialUsedAt`. `orgRc/{number}` = one organisation per registration number; `orgTrials/{number}` = one free trial per number; `orgRequests/{uid}` = admin-approved conversion of an older personal account.
+- `POST /api/org`: `register`, `resubmit`, `start_trial` (30-day Business, needs a verified email). The cron (`expireTiers`) emails 5 days before the end and drops to Free Basic unless a paid plan started (payment fulfilment clears the trial fields).
+- `/admin/organisations`: check each number on search.cac.gov.ng, then verify/reject (`/api/admin/organisations`).
+- Maroon ✔ for an organisation needs `rcStatus === "verified"` **and** a plan that includes the badge; until then the channel and each post show the "unverified organisation" notice (`components/OrgNotice.tsx`).
+- Also fixed: the `users` create rule used to accept any fields (a client could self-assign a tier). It now allows only the ordinary starting fields as a Free Standard reader.
+- Maroon ✔ confirmation is manual (`/admin/organisations`), or automatic when the organisation's **corporate identity-check** gold badge activates (`lib/payments.ts`).
+
+## Organisation teams (phase 2)
+
+- `orgMembers/{orgUid}_{uid}` (active members only; the owner is the org account itself) and `orgInvites/{orgUid}_{uid}` — server-written via `/api/org/team` (`invite` by @username or email, `revoke`, `remove`, `set_role`, `accept`, `decline`, `leave`). Owner can add admins; admins manage writers. Seats: Business 4 (owner + members + pending invites), Enterprise unlimited, others 1.
+- Org posts: `authorUid` = the organisation, `writerUid/writerUsername` = the person. Money (gifts, subscriptions, ad share, sessions) therefore lands in the organisation's own payout account with no change to the money code; the owner sets it at Rates & payouts.
+- `firestore.rules`: `orgRole()` / `orgCanPublish()` let writers create/edit/delete their own org posts and admins any, only while the org is on Business/Enterprise; `authorUid`/`writerUid` can't be changed. `verifyPublisherRequest` lets members upload for an org on a team plan.
+- UI: `/organisation/team` (manage), "Post as" selector in `/write/new`, team invitations at `/invites`, byline "Written by @person for #Org".
+- Limits: co-authoring isn't offered on org posts; Boost is owner-only.
+
+Redeploy `firestore.rules`.

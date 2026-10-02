@@ -191,7 +191,8 @@ export default function PricingPage() {
             ["/coauthoring", "Co-authoring and earnings splits"],
             ["/badges", "Verification badges — verified and gold, with prices"],
             ["/merchstore", "Merch store"],
-            ["/advertise", "Ads and ad share"],
+            ["/advertise", "Advertise — banner campaigns and ad share"],
+            ["/organisations", "Organisations — free 30-day Business trial, CAC verification"],
           ].map(([href, label]) => (
             <li key={href}>
               <Link href={href} className="text-crimson underline underline-offset-2">{label} →</Link>

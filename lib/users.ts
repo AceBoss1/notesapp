@@ -18,6 +18,7 @@ import { ADMIN_PROFILES, SocialLinks } from "./admin";
 import { LEGAL_VERSION, Consent } from "./legal";
 import { badgeIncluded } from "./tiers";
 import { ttlCache } from "./ttl-cache";
+import type { AccountKind, OrgInfo } from "./org";
 import { GOLD_BADGE_LIVE, GOLD_KIND_LIVE, BadgeLevel, GoldBadgeKind } from "./badges";
 
 export type UserRole = "admin" | "staff" | "volunteer" | "reader";
@@ -109,6 +110,12 @@ export type UserProfile = {
   // Pro/Business/Enterprise opt in to showing ads on their pages (set by the
   // server from /profile/publishing). Free tiers always show ads.
   adsOptIn?: boolean;
+  // Organisation accounts (server-written; see lib/org.ts). Absent = personal.
+  accountKind?: AccountKind;
+  org?: OrgInfo;
+  trialUntil?: string; // free Business trial end
+  trialTier?: AccountTier;
+  trialUsedAt?: string;
   usernameChangedAt?: string; // set by /api/account/username
   previousUsername?: string;
 };
@@ -130,12 +137,12 @@ export function isVerifiedProfile(profile: UserProfile): boolean {
 // an active paid badge add-on. Suspended accounts never show it.
 export function hasVerifiedBadge(profile: UserProfile): boolean {
   if (profile.suspended === true) return false;
-  return (
-    isVerifiedProfile(profile) ||
-    !!profile.verified ||
-    badgeIncluded(profile.accountTier) ||
-    (!!profile.badgeUntil && new Date(profile.badgeUntil).getTime() > Date.now())
-  );
+  if (isVerifiedProfile(profile) || profile.verified) return true;
+  const paid = badgeIncluded(profile.accountTier) || (!!profile.badgeUntil && new Date(profile.badgeUntil).getTime() > Date.now());
+  // An organisation's ✔ also needs its registration confirmed: until then it
+  // is labelled "unverified organisation" instead (see lib/org.ts).
+  if (profile.accountKind === "organisation") return paid && profile.org?.rcStatus === "verified";
+  return paid;
 }
 
 // #NotesApp team mark (beside the ✔): staff, guest writers and admins —

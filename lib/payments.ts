@@ -1,3 +1,4 @@
+import { FieldValue } from "firebase-admin/firestore";
 import { getAdminDb, getUserEmail } from "./firebase-admin";
 import { slotLockId, verifyTransaction, pricePaidKobo } from "./paystack";
 import { commissionRateFor } from "./tiers";
@@ -204,7 +205,7 @@ export async function fulfillPayment(reference: string): Promise<PaymentRecord> 
     } else if (current.kind === "tier" && current.tier) {
       // Paid plan: platform revenue (no ledger). Grant the tier now.
       const tr = current.tier;
-      t.set(db.doc(`users/${current.uid}`), { accountTier: tr.tier }, { merge: true });
+      t.set(db.doc(`users/${current.uid}`), { accountTier: tr.tier, trialUntil: FieldValue.delete(), trialTier: FieldValue.delete(), trialReminderSent: FieldValue.delete() }, { merge: true });
       t.set(db.doc(`tierSubscriptions/${current.uid}`), {
         uid: current.uid,
         email: current.email,
@@ -309,6 +310,15 @@ export async function fulfillPayment(reference: string): Promise<PaymentRecord> 
     if (shares.length > 1 && result.payment.gift) await notifyGiftShares(result.payment, shares).catch((e) => console.error("notifyGiftShares failed", e));
     if (result.payment.kind === "tier" && result.payment.tier?.tier === "business") {
       await cancelBadgeIfCovered(result.payment.uid);
+    }
+    // A corporate identity check runs against the CAC register, so an organisation that
+    // passes it (admin approved, then subscribed) counts as registration-confirmed too.
+    if (result.payment.kind === "gold" && result.payment.gold?.kind === "identity" && result.payment.gold?.track === "corporate") {
+      const uref = db.doc(`users/${result.payment.uid}`);
+      const u = (await uref.get()).data();
+      if (u?.accountKind === "organisation" && u.org?.rcStatus !== "verified") {
+        await uref.update({ "org.rcStatus": "verified", "org.rcVerifiedAt": new Date().toISOString(), "org.rcNote": "Confirmed by corporate identity check" }).catch((e) => console.error("org verify failed", e));
+      }
     }
   }
   return result.payment;

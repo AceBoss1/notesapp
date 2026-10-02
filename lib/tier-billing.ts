@@ -1,8 +1,10 @@
 import { getAdminDb } from "./firebase-admin";
+import { FieldValue } from "firebase-admin/firestore";
 import { createPlan, disableSubscription, verifyTransaction, pricePaidKobo } from "./paystack";
 import { TIERS, BADGE_PRICE_KOBO } from "./tiers";
 import { GOLD_PRICING, GoldTrack } from "./gold";
 import { sendEmail } from "./email";
+import { getUserEmail } from "./firebase-admin";
 import type { AccountTier } from "./users";
 
 // Server-only. Pro / Business plan billing: one Paystack plan per
@@ -177,6 +179,43 @@ export async function expireTiers(): Promise<number> {
   await Promise.all(badges.docs.map((d) => (d.data().status !== "expired" ? d.ref.update({ status: "expired" }) : null)));
   const golds = await db.collection("goldSubscriptions").where("currentPeriodEnd", "<", cutoff).get();
   await Promise.all(golds.docs.map((d) => (d.data().status !== "expired" ? d.ref.update({ status: "expired" }) : null)));
+  return n + (await expireOrgTrials());
+}
+
+const TRIAL_REMINDER_DAYS = 5;
+
+// Free organisation trials: remind a few days before the end, then drop the
+// account to Free Basic unless it has paid for the plan in the meantime.
+export async function expireOrgTrials(): Promise<number> {
+  const db = getAdminDb();
+  const site = process.env.NEXT_PUBLIC_SITE_URL || "https://www.notesapp.name.ng";
+  const now = Date.now();
+  const snap = await db.collection("users").where("trialUntil", "<", new Date(now + TRIAL_REMINDER_DAYS * 86_400_000).toISOString()).get();
+  let n = 0;
+  for (const d of snap.docs) {
+    const u = d.data();
+    const end = new Date(u.trialUntil).getTime();
+    const email = await getUserEmail(d.id);
+    if (end > now) {
+      if (!u.trialReminderSent && email) {
+        await sendEmail({ to: email, subject: "Your #NotesApp free trial ends soon", text: `Your free Business trial for ${u.displayName} ends on ${new Date(end).toDateString()}. Keep Business (₦15,000/month) from ${site}/pricing, or your account moves to Free Basic — your journal, followers and earnings stay.\n\n#NotesApp` }).catch(() => {});
+        await d.ref.update({ trialReminderSent: true });
+      }
+      continue;
+    }
+    const paid = (await db.doc(`tierSubscriptions/${d.id}`).get()).data();
+    const stillPaid = paid && paid.status === "active";
+    await d.ref.update({
+      ...(!stillPaid && u.accountTier === u.trialTier ? { accountTier: "basic" as AccountTier } : {}),
+      trialUntil: FieldValue.delete(),
+      trialTier: FieldValue.delete(),
+      trialReminderSent: FieldValue.delete(),
+    });
+    if (!stillPaid && email) {
+      await sendEmail({ to: email, subject: "Your #NotesApp free trial has ended", text: `The free Business trial for ${u.displayName} has ended, so the account is back on Free Basic. Everything you published stays. Upgrade any time at ${site}/pricing.\n\n#NotesApp` }).catch(() => {});
+    }
+    n++;
+  }
   return n;
 }
 

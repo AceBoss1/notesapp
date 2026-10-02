@@ -8,6 +8,7 @@ import { signUpProfile, isUsernameTaken, getAllUsers, UserProfile } from "@/lib/
 import { followJournal } from "@/lib/follows";
 import { MANDATORY_JOURNALS, MANDATORY_USERNAMES, isReservedUsername } from "@/lib/journals-directory";
 import Avatar from "@/components/Avatar";
+import { normalizeRc, ORG_TRIAL_DAYS } from "@/lib/org";
 
 const OPTIONAL_REQUIRED = 2; // "2 more of their choice" — total target is 3 mandatory + 2 = 5
 
@@ -29,6 +30,8 @@ export default function SignupPage() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [agreed, setAgreed] = useState(false);
+  const [kind, setKind] = useState<"personal" | "organisation">("personal");
+  const [rcNumber, setRcNumber] = useState("");
   const router = useRouter();
 
   // Step 2 — follow onboarding
@@ -46,6 +49,10 @@ export default function SignupPage() {
 
     if (!agreed) {
       setError("Please accept the Terms of Service and Privacy Policy to continue.");
+      return;
+    }
+    if (kind === "organisation" && !normalizeRc(rcNumber)) {
+      setError("Enter your CAC registration number, e.g. RC1234567 or BN1234567.");
       return;
     }
     const cleanUsername = normalizeUsername(username);
@@ -75,6 +82,19 @@ export default function SignupPage() {
         username: cleanUsername,
         displayName: displayName || cleanUsername,
       });
+      // An organisation sends its registration number to the server (clients can't
+      // write organisation fields). If that fails, /organisation lets them retry.
+      if (kind === "organisation") {
+        try {
+          await fetch("/api/org", {
+            method: "POST",
+            headers: { "Content-Type": "application/json", Authorization: `Bearer ${await cred.user.getIdToken()}` },
+            body: JSON.stringify({ action: "register", rcNumber }),
+          });
+        } catch (e) {
+          console.warn("Organisation registration failed:", e);
+        }
+      }
       // Non-fatal: the banner offers a resend if this fails.
       sendEmailVerification(cred.user).catch((e) => console.warn("Verification email failed:", e));
       setNewUser(cred.user);
@@ -141,7 +161,7 @@ export default function SignupPage() {
       await Promise.all(
         [...chosen].map((username) => followJournal(newUser.uid, username, false))
       );
-      router.push(`/u/${newUsername}`);
+      router.push(kind === "organisation" ? "/organisation" : `/u/${newUsername}`);
     } finally {
       setFinishing(false);
     }
@@ -246,8 +266,20 @@ export default function SignupPage() {
         @username — the same account works on Precheks too.
       </p>
       <form onSubmit={handleSubmit} className="mt-8 grid gap-5">
+        <fieldset>
+          <legend className="eyebrow">Account type</legend>
+          <div className="mt-2 grid grid-cols-2 gap-3 text-sm">
+            {([["personal", "Personal", "A person — write, read, book."], ["organisation", "Organisation", `A company, NGO, church or school. ${ORG_TRIAL_DAYS}-day free Business trial.`]] as const).map(([k, label, hint]) => (
+              <label key={k} className={`card cursor-pointer p-3 ${kind === k ? "!border-crimson" : ""}`}>
+                <input type="radio" name="kind" className="sr-only" checked={kind === k} onChange={() => setKind(k)} />
+                <span className="font-ui font-semibold text-ink">{label}</span>
+                <span className="mt-1 block text-xs text-slate">{hint}</span>
+              </label>
+            ))}
+          </div>
+        </fieldset>
         <label className="block">
-          <span className="eyebrow">Display Name</span>
+          <span className="eyebrow">{kind === "organisation" ? "Organisation name" : "Display Name"}</span>
           <input
             required
             value={displayName}
@@ -255,6 +287,19 @@ export default function SignupPage() {
             className="mt-2 w-full border border-rule bg-card px-4 py-3 font-body focus:border-crimson outline-none"
           />
         </label>
+        {kind === "organisation" && (
+          <label className="block">
+            <span className="eyebrow">CAC registration number</span>
+            <input
+              required
+              value={rcNumber}
+              onChange={(e) => setRcNumber(e.target.value)}
+              placeholder="RC1234567"
+              className="mt-2 w-full border border-rule bg-card px-4 py-3 font-mono outline-none focus:border-crimson"
+            />
+            <span className="mt-1 block text-xs text-slate">We check it against the CAC register. Until we do, your channel shows an &ldquo;unverified organisation&rdquo; notice. Use a work email you can verify.</span>
+          </label>
+        )}
         <label className="block">
           <span className="eyebrow">Username</span>
           <div className="mt-2 flex items-center border border-rule bg-card focus-within:border-crimson">

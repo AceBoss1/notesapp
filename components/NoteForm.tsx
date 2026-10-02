@@ -47,6 +47,9 @@ type Props = {
   // byline, author id and avatar come from their own profile, and saving
   // returns to their own journal (/write).
   self?: UserProfile;
+  // Writing for an organisation as a team member: the organisation is the
+  // author (byline, avatar, money), `self` is recorded as the writer.
+  org?: { profile: UserProfile };
 };
 
 function selfRoleLabel(p: UserProfile): string {
@@ -55,7 +58,7 @@ function selfRoleLabel(p: UserProfile): string {
   return getTierConfig(p.accountTier).label.replace(/^Free /, "") + " Publisher";
 }
 
-export default function NoteForm({ noteId, initial, self }: Props) {
+export default function NoteForm({ noteId, initial, self, org }: Props) {
   const router = useRouter();
   const [title, setTitle] = useState(initial?.title || "");
   const [slug, setSlug] = useState(initial?.slug || "");
@@ -106,7 +109,9 @@ export default function NoteForm({ noteId, initial, self }: Props) {
   async function persist(forceDraft = false): Promise<string | null> {
     setSaving(true);
     setError("");
-    const author = self
+    const author = org
+      ? { name: org.profile.displayName, role: "Organisation channel", avatar: org.profile.avatar }
+      : self
       ? { name: self.displayName, role: selfRoleLabel(self), avatar: self.avatar }
       : AUTHORS.find((a) => a.name === authorName) || AUTHORS[0];
     const finalSlug = slug || slugify(title);
@@ -136,7 +141,11 @@ export default function NoteForm({ noteId, initial, self }: Props) {
       author: author.name,
       author_role: author.role,
       author_avatar: author.avatar,
-      ...(self ? { authorUid: self.uid, authorUsername: self.username } : {}),
+      ...(org && self
+        ? { authorUid: org.profile.uid, authorUsername: org.profile.username, writerUid: initial?.writerUid ?? self.uid, writerUsername: initial?.writerUsername ?? self.username }
+        : self
+        ? { authorUid: self.uid, authorUsername: self.username }
+        : {}),
       status: forceDraft ? ("draft" as const) : status,
       premium,
     };
@@ -325,7 +334,7 @@ export default function NoteForm({ noteId, initial, self }: Props) {
       </div>
     </form>
 
-    {self && (
+    {self && !org && (
       <div className="mt-8 max-w-3xl">
         {!canLeadCoAuthors(self) ? (
           <div className="card p-5">

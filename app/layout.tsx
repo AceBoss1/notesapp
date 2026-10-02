@@ -159,6 +159,7 @@ export default async function RootLayout({
                 <li><Link href="/merchstore" className="hover:text-paper">Merch Store</Link></li>
                 <li><Link href="/badges" className="hover:text-paper">Verification badges</Link></li>
                 <li><Link href="/advertise" className="hover:text-paper">Advertise</Link></li>
+                <li><Link href="/organisations" className="hover:text-paper">Organisations</Link></li>
               </ul>
             </div>
 

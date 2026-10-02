@@ -20,6 +20,7 @@ import SubscribeButton from "@/components/SubscribeButton";
 import BookingCard from "@/components/BookingCard";
 import GiftButton from "@/components/GiftButton";
 import VerifiedBadge from "@/components/VerifiedBadge";
+import { OrgLabel, UnverifiedOrgNotice } from "@/components/OrgNotice";
 import JournalRow from "@/components/JournalRow";
 import NotesAppPostRow from "@/components/NotesAppPostRow";
 import { getStoreItems, StoreItem } from "@/lib/store";
@@ -227,6 +228,7 @@ export default function ProfilePageClient({ params }: { params: { username: stri
             {profile.displayName}
             {badge && !suspended && <VerifiedBadge size={20} level={badge} />}
             {!suspended && (VERIFIED_USERNAMES.includes(profile.username) || (!!realProfile && isTeamMember(realProfile))) && <TeamBadge size={20} />}
+            <OrgLabel profile={realProfile} />
           </h1>
           {suspended ? (
             <p className="font-mono text-xs uppercase tracking-eyebrow text-red-700">
@@ -238,6 +240,7 @@ export default function ProfilePageClient({ params }: { params: { username: stri
             </p>
           )}
           <p className="mt-2 max-w-lg text-sm text-slate">{profile.bio}</p>
+          {!suspended && <UnverifiedOrgNotice profile={realProfile} />}
           {realProfile && <SocialLinksRow social={realProfile.social} />}
           {viewer && realProfile && viewer.uid === realProfile.uid && (
             <p className="mt-2 flex gap-4 font-ui text-xs font-semibold text-crimson">
@@ -245,6 +248,7 @@ export default function ProfilePageClient({ params }: { params: { username: stri
               <Link href={`/u/${realProfile.username}/store`}>My store</Link>
               <Link href="/profile/edit">Edit profile</Link>
               <Link href="/profile/publishing">Rates &amp; payouts</Link>
+              {realProfile.accountKind === "organisation" && <Link href="/organisation">Organisation</Link>}
             </p>
           )}
           {!followerCountUnavailable && (

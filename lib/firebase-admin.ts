@@ -69,6 +69,12 @@ export async function verifyPublisherRequest(idToken: string | undefined): Promi
   if (u.role === "staff" || u.role === "volunteer" || (u.accountTier && u.accountTier !== "standard")) {
     return decoded.uid;
   }
+  // A team member writing for an organisation on Business/Enterprise.
+  const mem = await getFirestore(app).collection("orgMembers").where("memberUid", "==", decoded.uid).get();
+  for (const m of mem.docs) {
+    const org = (await getFirestore(app).doc(`users/${m.data().orgUid}`).get()).data();
+    if (org && org.suspended !== true && ["business", "enterprise"].includes(org.accountTier)) return decoded.uid;
+  }
   throw new Error("Your account tier can't publish or upload");
 }
 
