@@ -226,7 +226,7 @@ export default function AdminUsersPage() {
                         {badgeRequests[u.uid].dojah && (
                           <p className={`mt-0.5 font-semibold ${badgeRequests[u.uid].dojah!.passed ? "text-green-700" : badgeRequests[u.uid].dojah!.terminal ? "text-crimson" : "text-slate"}`}>
                             Dojah: {badgeRequests[u.uid].dojah!.verificationStatus} — {badgeRequests[u.uid].dojah!.passed ? "every step passed" : badgeRequests[u.uid].dojah!.terminal ? "needs your review (a step failed or is missing)" : "still in progress"}
-                            <span className="ml-2 font-normal text-slate">{Object.entries(badgeRequests[u.uid].dojah!.steps).map(([k, v]) => `${k} ${v ? "✓" : "✗"}`).join(" · ")}{badgeRequests[u.uid].dojah!.unscored?.length ? ` · not scored: ${badgeRequests[u.uid].dojah!.unscored!.join(", ")}` : ""}{badgeRequests[u.uid].dojah!.missing?.length ? ` · missing: ${badgeRequests[u.uid].dojah!.missing!.join(", ")}` : ""}</span>
+                            <span className="ml-2 font-normal text-slate">{Object.entries(badgeRequests[u.uid].dojah!.steps).map(([k, v]) => `${k} ${v ? "✓" : "✗"}`).join(" · ")}{badgeRequests[u.uid].dojah!.unscored?.length ? ` · not scored: ${badgeRequests[u.uid].dojah!.unscored!.join(", ")}` : ""}{badgeRequests[u.uid].dojah!.businessNumber ? ` · CAC lookup found ${badgeRequests[u.uid].dojah!.businessNumber}` : ""}{badgeRequests[u.uid].dojah!.missing?.length ? ` · missing: ${badgeRequests[u.uid].dojah!.missing!.join(", ")}` : ""}</span>
                           </p>
                         )}
                         <p className="mt-0.5 whitespace-pre-line text-slate">“{badgeRequests[u.uid].message}”</p>

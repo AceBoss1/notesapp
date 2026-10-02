@@ -27,7 +27,9 @@ export async function POST(req: NextRequest) {
     const request = (await reqRef.get()).data();
     if (!request || request.kind !== "identity") return NextResponse.json({ ok: true, ignored: "no identity application" });
 
-    const s = summarizeDojahEvent(event, request.track === "corporate" ? "corporate" : "personal");
+    const track = request.track === "corporate" ? "corporate" : "personal";
+    const expectedRc = track === "corporate" ? ((await db.doc(`users/${uid}`).get()).data()?.org?.rcNumber ?? null) : null;
+    const s = summarizeDojahEvent(event, track, expectedRc);
     // Don't let a late "Ongoing" event overwrite a terminal result we already have.
     if (request.dojah?.terminal && !s.terminal) return NextResponse.json({ ok: true });
     await reqRef.update({ dojah: s });
