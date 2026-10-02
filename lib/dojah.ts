@@ -59,7 +59,10 @@ function hasBusinessRecord(step: any): boolean {
 function describeStep(name: string, step: any): string {
   if (!step || typeof step !== "object") return `${name} [${typeof step}]`;
   const st = typeof step.status === "string" ? `status="${step.status.slice(0, 20)}"` : `status:${typeof step.status}`;
-  return `${name} [${st}; fields: ${Object.keys(step).slice(0, 8).join(",")}]`.slice(0, 160);
+  // Field names with a KIND only (text / empty / number / null …) — never the values.
+  const kind = (v: unknown) => (v === null ? "null" : typeof v === "string" ? (v.trim() ? "text" : "empty") : Array.isArray(v) ? "list" : typeof v);
+  const fields = Object.entries(step).slice(0, 8).map(([k, v]) => `${k}:${kind(v)}`).join(",");
+  return `${name} [${st}; fields: ${fields}]`.slice(0, 220);
 }
 
 // The event fields are top-level (no wrapper): reference_id, verification_status, status,
