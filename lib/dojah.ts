@@ -84,7 +84,8 @@ export function summarizeDojahEvent(event: any, track: "personal" | "corporate" 
     steps,
     unscored: unscored.slice(0, 20),
     missing,
-    passed: verificationStatus === "Completed" && overall === true && stepsOk && missing.length === 0,
+    // a step we could not read as pass/fail is unknown, so it keeps the check from reading as passed
+    passed: verificationStatus === "Completed" && overall === true && stepsOk && missing.length === 0 && unscored.length === 0,
     terminal: ["Completed", "Failed", "Abandoned"].includes(verificationStatus),
     receivedAt: new Date().toISOString(),
   };
