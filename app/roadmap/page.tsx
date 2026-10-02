@@ -83,8 +83,8 @@ export default function RoadmapPage() {
         <h2 className="mt-2 font-display text-2xl text-ink">Organisation accounts</h2>
         <p className="mt-3 text-slate">
           Live: organisation sign-up with a CAC registration number, a free 30-day Business trial, an &ldquo;unverified organisation&rdquo; notice until we
-          confirm the registration, and the maroon ✔ once confirmed. Next: team members (owner, admins and writers publishing under the channel&apos;s name,
-          four seats on Business) and one shared payout account for the whole organisation.
+          confirm the registration, and the maroon ✔ once confirmed. Team members too: the owner, admins and writers publish under the channel&apos;s name (four seats on Business), and
+          everything their posts earn goes to the organisation&apos;s single payout account.
         </p>
         <Link href="/organisations" className="mt-4 inline-block text-sm text-crimson underline underline-offset-2">
           How organisation accounts work →

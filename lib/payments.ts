@@ -311,6 +311,15 @@ export async function fulfillPayment(reference: string): Promise<PaymentRecord> 
     if (result.payment.kind === "tier" && result.payment.tier?.tier === "business") {
       await cancelBadgeIfCovered(result.payment.uid);
     }
+    // A corporate identity check runs against the CAC register, so an organisation that
+    // passes it (admin approved, then subscribed) counts as registration-confirmed too.
+    if (result.payment.kind === "gold" && result.payment.gold?.kind === "identity" && result.payment.gold?.track === "corporate") {
+      const uref = db.doc(`users/${result.payment.uid}`);
+      const u = (await uref.get()).data();
+      if (u?.accountKind === "organisation" && u.org?.rcStatus !== "verified") {
+        await uref.update({ "org.rcStatus": "verified", "org.rcVerifiedAt": new Date().toISOString(), "org.rcNote": "Confirmed by corporate identity check" }).catch((e) => console.error("org verify failed", e));
+      }
+    }
   }
   return result.payment;
 }

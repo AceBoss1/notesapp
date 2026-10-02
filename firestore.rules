@@ -55,6 +55,24 @@ service cloud.firestore {
         );
     }
 
+    // Organisation teams (phase 2). orgMembers/{orgUid}_{uid} exists only for
+    // ACTIVE members and is written by the server (/api/org/team); the owner
+    // is the organisation account itself. Team members may write for the
+    // organisation only while it is on Business or Enterprise.
+    function orgRole(orgUid) {
+      return isSignedIn()
+        && exists(/databases/$(database)/documents/orgMembers/$(orgUid + '_' + request.auth.uid))
+        ? get(/databases/$(database)/documents/orgMembers/$(orgUid + '_' + request.auth.uid)).data.role
+        : '';
+    }
+
+    function orgCanPublish(orgUid) {
+      return exists(/databases/$(database)/documents/users/$(orgUid))
+        && get(/databases/$(database)/documents/users/$(orgUid)).data.accountKind == 'organisation'
+        && get(/databases/$(database)/documents/users/$(orgUid)).data.accountTier in ['business', 'enterprise']
+        && get(/databases/$(database)/documents/users/$(orgUid)).data.get('suspended', false) != true;
+    }
+
     // Suspended members are prevented from creating comments.
     // NOTE: the app's actual suspend feature writes a flat
     // `suspended: true/false` boolean field on users/{uid} — not a
@@ -81,7 +99,9 @@ service cloud.firestore {
       // or authorUid == the caller's uid to be allowed).
       allow read: if resource.data.status == 'published'
         || isAdmin()
-        || (isSignedIn() && resource.data.authorUid == request.auth.uid);
+        || (isSignedIn() && resource.data.authorUid == request.auth.uid)
+        || (isSignedIn() && resource.data.get('writerUid', '') == request.auth.uid)
+        || (isSignedIn() && orgRole(resource.data.get('authorUid', '-')) == 'admin');
 
       // Admins can create anything.
       // Writers can create only notes authored by themselves.
@@ -90,6 +110,15 @@ service cloud.firestore {
         || (
           isPublisher()
           && request.resource.data.authorUid == request.auth.uid
+          && !request.resource.data.keys().hasAny(['coAuthors', 'coAuthorUids', 'writerUid'])
+        )
+        // A team member writing for their organisation: the org is the author,
+        // the member is recorded as the writer.
+        || (
+          isSignedIn()
+          && request.resource.data.get('writerUid', '') == request.auth.uid
+          && orgRole(request.resource.data.authorUid) in ['writer', 'admin']
+          && orgCanPublish(request.resource.data.authorUid)
           && !request.resource.data.keys().hasAny(['coAuthors', 'coAuthorUids'])
         );
 
@@ -99,7 +128,9 @@ service cloud.firestore {
         || (
           isPublisher()
           && resource.data.authorUid == request.auth.uid
-        );
+        )
+        || (isSignedIn() && resource.data.get('writerUid', '') == request.auth.uid && orgRole(resource.data.get('authorUid', '-')) in ['writer', 'admin'])
+        || (isSignedIn() && orgRole(resource.data.get('authorUid', '-')) == 'admin');
 
       // Updates:
       // 1. Admins can update anything.
@@ -113,7 +144,20 @@ service cloud.firestore {
           && resource.data.authorUid == request.auth.uid
           && !request.resource.data.diff(resource.data)
               .affectedKeys()
-              .hasAny(['coAuthors', 'coAuthorUids'])
+              .hasAny(['coAuthors', 'coAuthorUids', 'writerUid', 'authorUid'])
+        )
+        // Team members: a writer edits their own posts for the organisation, an
+        // org admin edits any of its posts. Neither can change who wrote it.
+        || (
+          isSignedIn()
+          && orgCanPublish(resource.data.get('authorUid', '-'))
+          && (
+            orgRole(resource.data.get('authorUid', '-')) == 'admin'
+            || (orgRole(resource.data.get('authorUid', '-')) == 'writer' && resource.data.get('writerUid', '') == request.auth.uid)
+          )
+          && !request.resource.data.diff(resource.data)
+              .affectedKeys()
+              .hasAny(['coAuthors', 'coAuthorUids', 'writerUid', 'authorUid'])
         )
         || request.resource.data.diff(resource.data)
             .affectedKeys()
@@ -302,6 +346,17 @@ service cloud.firestore {
     match /coAuthorInvites/{id} {
       allow read: if isAdmin()
         || (isSignedIn() && (resource.data.leadUid == request.auth.uid || resource.data.inviteeUid == request.auth.uid));
+      allow write: if false;
+    }
+
+    // Organisation teams: read and written only through /api/org/team (rules
+    // above peek at orgMembers with exists()/get(), which needs no read access).
+    match /orgMembers/{id} {
+      allow read: if isAdmin();
+      allow write: if false;
+    }
+    match /orgInvites/{id} {
+      allow read: if isAdmin();
       allow write: if false;
     }
 

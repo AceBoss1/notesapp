@@ -153,7 +153,8 @@ export default function OrganisationPage() {
           Endorsed or identity-checked by #NotesApp. <Link href="/badges" className="text-crimson underline">Apply</Link>
         </Step>
         <Step done={false} title="Invite your team">
-          Seats: {ORG_SEATS[profile.accountTier] ?? "agreed with us"} on your plan. Team invitations are coming next.
+          Seats: {ORG_SEATS[profile.accountTier] ?? (profile.accountTier === "enterprise" ? "agreed with us" : "none until you're on Business")} on your plan. <Link href="/organisation/team" className="text-crimson underline">Manage team</Link>
+          <span className="mt-1 block text-xs">Payouts: the organisation has one payout account, set by the owner under <Link href="/profile/publishing" className="text-crimson underline">Rates &amp; payouts</Link>.</span>
         </Step>
       </ol>
     </section>

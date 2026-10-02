@@ -37,6 +37,10 @@ export type Note = {
   // toggle) don't set this — those stay isAdmin()-gated, unchanged.
   authorUid?: string;
   authorUsername?: string;
+  // Organisation posts: authorUid is the organisation; this is the team member
+  // who wrote it (shown as "by @person for #Org").
+  writerUid?: string;
+  writerUsername?: string;
   // Additional authors beyond the primary `author` — display names,
   // same convention as `author` itself (not uids; co-authors are
   // resolved to profiles the same way the primary author is,
@@ -154,6 +158,12 @@ export async function getNoteBySlug(
 // query — no composite index — and only their own documents are read.
 export async function getNotesByAuthorUid(uid: string): Promise<NoteWithComputed[]> {
   const snap = await getDocs(query(collection(db, COLLECTION), where("authorUid", "==", uid)));
+  return sortNewestFirst(snap.docs.map((d) => ({ id: d.id, ...d.data() } as Note))).map(withComputed);
+}
+
+// Posts a team member wrote for organisations (authorUid is the organisation).
+export async function getNotesByWriterUid(uid: string): Promise<NoteWithComputed[]> {
+  const snap = await getDocs(query(collection(db, COLLECTION), where("writerUid", "==", uid)));
   return sortNewestFirst(snap.docs.map((d) => ({ id: d.id, ...d.data() } as Note))).map(withComputed);
 }
 

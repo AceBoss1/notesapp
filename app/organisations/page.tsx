@@ -16,7 +16,7 @@ const STEPS = [
   ["Set up your channel", "Add your logo, description and website under Edit profile. Your channel lives at /u/yourname like any journal."],
   ["We confirm your registration", "An admin checks your number against the CAC register. Once confirmed, the “unverified” notice goes and the maroon ✔ shows (Business and Enterprise include it)."],
   ["Optional: the gold badge", "Apply for the Corporate gold badge — endorsement or an identity check against the CAC register."],
-  ["Invite your team", "Coming next: add admins and writers to publish under the channel's name."],
+  ["Invite your team", "Invite writers and admins by @username or email. They publish under your channel's name, shown as “by @person for #YourOrg”. Everything those posts earn goes to your organisation's single payout account, set by the owner."],
 ];
 
 export default function OrganisationsPage() {
@@ -57,7 +57,7 @@ export default function OrganisationsPage() {
 
       <h2 className="mt-12 font-display text-2xl text-ink">Plans and seats</h2>
       <p className="mt-3 text-sm text-slate">
-        Organisations start on Business ({ORG_SEATS.business} seats: the owner plus three team members) or Enterprise (seats and commission agreed with us).{" "}
+        Organisations start on Business ({ORG_SEATS.business} seats: the owner plus three team members, counting pending invitations) or Enterprise (seats and commission agreed with us). Team publishing needs one of these plans; if the plan ends, the team can&apos;t publish until it returns, and everything already published stays.{" "}
         <Link href="/pricing" className="text-crimson underline">See pricing</Link> · <Link href="/contact" className="text-crimson underline">Talk to us about Enterprise</Link>
       </p>
     </div>

@@ -154,6 +154,12 @@ export default async function JournalDetail({
         </p>
       </div>
 
+      {note.writerUsername && note.writerUsername !== note.authorUsername && (
+        <p className="mt-3 text-xs text-slate">
+          Written by <Link href={`/u/${note.writerUsername}`} className="font-mono text-crimson-bright">@{note.writerUsername}</Link> for{" "}
+          <Link href={`/u/${linkedUsername || note.authorUsername}`} className="font-semibold text-ink hover:text-crimson-bright">#{authorProfile?.displayName || note.author}</Link>
+        </p>
+      )}
       <UnverifiedOrgNotice profile={authorProfile} compact />
 
       {note.featured_image && (

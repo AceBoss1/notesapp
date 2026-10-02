@@ -3,8 +3,9 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { canPublish } from "@/lib/users";
-import { deleteNote, getNotesByAuthorUid, NoteWithComputed } from "@/lib/firestore-notes";
+import { deleteNote, getNotesByAuthorUid, getNotesByWriterUid, NoteWithComputed } from "@/lib/firestore-notes";
 import { useSelfPublisher } from "@/lib/useSelfPublisher";
+import { useMemberships } from "@/lib/useMemberships";
 import BecomePublisher from "@/components/BecomePublisher";
 import { toMillis } from "@/lib/dates";
 
@@ -12,14 +13,23 @@ import { toMillis } from "@/lib/dates";
 // with write / edit / boost / delete.
 export default function MyJournalPage() {
   const { user, profile, setProfile } = useSelfPublisher();
+  const { orgs } = useMemberships(user);
+  const teamOrgs = (orgs || []).filter((o) => o.canPublish);
   const [notes, setNotes] = useState<NoteWithComputed[] | null>(null);
   const [error, setError] = useState("");
+  const mayWrite = !!profile && (canPublish(profile) || teamOrgs.length > 0);
 
   useEffect(() => {
-    if (user && profile && canPublish(profile)) {
-      getNotesByAuthorUid(user.uid).then(setNotes).catch((e) => setError(e.message));
+    if (user && profile && orgs !== undefined && mayWrite) {
+      // Own entries plus anything written for an organisation as a team member.
+      Promise.all([canPublish(profile) ? getNotesByAuthorUid(user.uid) : Promise.resolve([]), teamOrgs.length ? getNotesByWriterUid(user.uid) : Promise.resolve([])])
+        .then(([mine, team]) => {
+          const seen = new Set<string>();
+          setNotes([...mine, ...team].filter((n) => (seen.has(n.id) ? false : (seen.add(n.id), true))));
+        })
+        .catch((e) => setError(e.message));
     }
-  }, [user, profile]);
+  }, [user, profile, orgs]); // eslint-disable-line react-hooks/exhaustive-deps
 
   async function remove(n: NoteWithComputed) {
     if (!confirm(`Delete “${n.title}”? This can't be undone.`)) return;
@@ -27,8 +37,8 @@ export default function MyJournalPage() {
     setNotes((all) => (all || []).filter((x) => x.id !== n.id));
   }
 
-  if (profile === undefined) return <div className="px-6 py-24 text-center text-slate">Loading…</div>;
-  if (!profile || !canPublish(profile)) {
+  if (profile === undefined || orgs === undefined) return <div className="px-6 py-24 text-center text-slate">Loading…</div>;
+  if (!profile || !mayWrite) {
     return <BecomePublisher user={user} profile={profile ?? null} onApplied={() => setProfile((p) => (p ? { ...p, tierRequest: { status: "pending", message: "", requestedAt: new Date().toISOString() } } : p))} />;
   }
 
@@ -57,13 +67,13 @@ export default function MyJournalPage() {
               <div className="min-w-0">
                 <p className="truncate font-ui text-sm font-bold text-ink">{n.title}</p>
                 <p className="font-mono text-xs text-slate">
-                  {n.status === "published" ? "Published" : "Draft"} · {toMillis(n.date) ? new Date(toMillis(n.date)).toLocaleDateString() : "—"} · 👁 {n.viewCount || 0}
+                  {n.writerUid && n.authorUid !== user?.uid ? `For ${n.author} · ` : ""}{n.status === "published" ? "Published" : "Draft"} · {toMillis(n.date) ? new Date(toMillis(n.date)).toLocaleDateString() : "—"} · 👁 {n.viewCount || 0}
                 </p>
               </div>
               <div className="flex shrink-0 gap-4 text-sm font-semibold">
                 {n.status === "published" && <Link href={`/journals/${n.slug}`} className="text-slate hover:text-ink">View</Link>}
                 <Link href={`/write/${n.id}/edit`} className="text-crimson hover:text-ink">Edit</Link>
-                {n.status === "published" && <Link href={`/boost/${n.id}`} className="text-crimson hover:text-ink">Boost</Link>}
+                {n.status === "published" && n.authorUid === user?.uid && <Link href={`/boost/${n.id}`} className="text-crimson hover:text-ink">Boost</Link>}
                 <button onClick={() => remove(n)} className="text-red-700 hover:text-red-900">Delete</button>
               </div>
             </li>

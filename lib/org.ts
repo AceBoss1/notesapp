@@ -38,3 +38,26 @@ export const CAC_SEARCH_URL = "https://search.cac.gov.ng/";
 // Shown on an organisation's profile and under each of its posts until we confirm the registration.
 export const UNVERIFIED_ORG_NOTICE =
   "This organisation hasn't been verified yet — #NotesApp has not confirmed its registration (CAC) details.";
+
+// ---- Team (phase 2) ----
+// orgMembers/{orgUid}_{memberUid}: an ACTIVE member (the owner is the organisation
+// account itself and has no row). orgInvites/{id}: pending/closed invitations.
+// Both are server-written (/api/org/team). Team publishing needs Business/Enterprise.
+export type OrgRole = "owner" | "admin" | "writer";
+export type OrgMember = { orgUid: string; memberUid: string; memberUsername: string; memberName: string; role: "admin" | "writer"; joinedAt: string };
+export type OrgInvite = {
+  id: string;
+  orgUid: string;
+  orgUsername: string;
+  orgName: string;
+  inviteeUid: string;
+  inviteeUsername: string;
+  role: "admin" | "writer";
+  status: "pending" | "accepted" | "declined" | "revoked";
+  invitedByUid: string;
+  createdAt: string;
+};
+export const TEAM_TIERS = ["business", "enterprise"];
+export const canHaveTeam = (tier?: string) => !!tier && TEAM_TIERS.includes(tier);
+// null = no fixed limit (Enterprise, agreed per account)
+export const seatLimit = (tier?: string): number | null => (tier === "enterprise" ? null : tier === "business" ? ORG_SEATS.business : 1);

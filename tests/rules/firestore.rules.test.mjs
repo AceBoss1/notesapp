@@ -254,6 +254,46 @@ test("ad campaigns are readable by the advertiser and admins, never writable", a
   await assertFails(setDoc(doc(as("alice"), "adCampaigns/new"), { uid: "alice", status: "live" }));
 });
 
+test("organisation team members write for the organisation, within limits", async () => {
+  await env.withSecurityRulesDisabled(async (ctx) => {
+    const d = ctx.firestore();
+    const base = { role: "reader", social: {}, bio: "", avatar: "", createdAt: "x", suspended: false };
+    await setDoc(doc(d, "users/org1"), { ...base, uid: "org1", username: "org1", displayName: "Org One", accountKind: "organisation", accountTier: "business" });
+    await setDoc(doc(d, "users/org2"), { ...base, uid: "org2", username: "org2", displayName: "Org Two", accountKind: "organisation", accountTier: "basic" });
+    await setDoc(doc(d, "users/wri"), { ...base, uid: "wri", username: "wri", displayName: "Writer", accountTier: "standard" });
+    await setDoc(doc(d, "users/adm"), { ...base, uid: "adm", username: "adm", displayName: "Admin", accountTier: "standard" });
+    await setDoc(doc(d, "orgMembers/org1_wri"), { orgUid: "org1", memberUid: "wri", role: "writer" });
+    await setDoc(doc(d, "orgMembers/org1_adm"), { orgUid: "org1", memberUid: "adm", role: "admin" });
+    await setDoc(doc(d, "orgMembers/org2_wri"), { orgUid: "org2", memberUid: "wri", role: "writer" });
+    await setDoc(doc(d, "notes/orgnote"), { authorUid: "org1", writerUid: "adm", title: "t", status: "draft" });
+  });
+  const note = (org, writer) => ({ authorUid: org, writerUid: writer, title: "t", status: "draft", slug: "s" });
+  // a writer publishes as the organisation
+  await assertSucceeds(setDoc(doc(as("wri"), "notes/n1"), note("org1", "wri")));
+  // ...but not for an organisation they're not on, one that isn't on Business, or as someone else
+  await assertFails(setDoc(doc(as("wri"), "notes/n2"), note("org3", "wri")));
+  await assertFails(setDoc(doc(as("wri"), "notes/n3"), note("org2", "wri")));
+  await assertFails(setDoc(doc(as("wri"), "notes/n4"), note("org1", "adm")));
+  // a plain member can't use writerUid on their own post, or claim another author
+  await assertFails(setDoc(doc(as("alice"), "notes/n5"), { authorUid: "alice", writerUid: "alice", title: "t", status: "draft" }));
+  await assertFails(setDoc(doc(as("alice"), "notes/n6"), note("org1", "alice")));
+  // writer edits only their own org posts; an org admin edits any; nobody changes the author
+  await assertSucceeds(setDoc(doc(as("wri"), "notes/mine"), note("org1", "wri")).then(() => updateDoc(doc(as("wri"), "notes/mine"), { title: "edited" })));
+  await assertFails(updateDoc(doc(as("wri"), "notes/orgnote"), { title: "nope" }));
+  await assertSucceeds(updateDoc(doc(as("adm"), "notes/orgnote"), { title: "edited by admin" }));
+  await assertFails(updateDoc(doc(as("adm"), "notes/orgnote"), { authorUid: "org2" }));
+  await assertFails(updateDoc(doc(as("wri"), "notes/mine"), { writerUid: "adm" }));
+  // drafts: the writer and org admins can read them, other members can't
+  await assertSucceeds(getDoc(doc(as("adm"), "notes/orgnote")));
+  await assertFails(getDoc(doc(as("pub"), "notes/orgnote")));
+  // delete: own post yes, someone else's no, admin yes
+  await assertFails(deleteDoc(doc(as("wri"), "notes/orgnote")));
+  await assertSucceeds(deleteDoc(doc(as("adm"), "notes/orgnote")));
+  // the team tables are server-only
+  await assertFails(setDoc(doc(as("wri"), "orgMembers/org1_pub"), { orgUid: "org1", memberUid: "pub", role: "admin" }));
+  await assertFails(getDoc(doc(as("wri"), "orgMembers/org1_wri")));
+});
+
 test("co-author fields and invites are server-controlled", async () => {
   await env.withSecurityRulesDisabled(async (ctx) => {
     const d = ctx.firestore();

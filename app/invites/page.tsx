@@ -8,6 +8,7 @@ import { auth, db } from "@/lib/firebase";
 import Link from "next/link";
 import { CoAuthorInvite, canAcceptCoAuthor } from "@/lib/coauthors";
 import { getUserByUid, UserProfile } from "@/lib/users";
+import { useMemberships } from "@/lib/useMemberships";
 
 // Co-author invitations addressed to the signed-in member.
 export default function InvitesPage() {
@@ -17,6 +18,25 @@ export default function InvitesPage() {
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState("");
   const [profile, setProfile] = useState<UserProfile | null>(null);
+  const { orgs, invites: teamInvites } = useMemberships(user);
+  const [teamDone, setTeamDone] = useState<Record<string, string>>({});
+
+  async function respondTeam(body: Record<string, unknown>, key: string, done: string) {
+    if (!user) return;
+    setError("");
+    try {
+      const res = await fetch("/api/org/team", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${await user.getIdToken()}` },
+        body: JSON.stringify(body),
+      });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error || "Failed");
+      setTeamDone((d) => ({ ...d, [key]: done }));
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Failed");
+    }
+  }
 
   const load = useCallback(async (u: User) => {
     const snap = await getDocs(query(collection(db, "coAuthorInvites"), where("inviteeUid", "==", u.uid)));
@@ -70,6 +90,29 @@ export default function InvitesPage() {
         </p>
       )}
       {error && <p className="mt-4 text-sm text-crimson">{error}</p>}
+      {(teamInvites.length > 0 || (orgs || []).length > 0) && (
+        <div className="card mt-8 p-5 text-sm">
+          <p className="font-ui font-bold text-ink">Organisation teams</p>
+          {teamInvites.map((t) => (
+            <div key={t.id} className="mt-3 border-t border-rule pt-3">
+              <p className="text-ink">{t.orgName} invited you to join as {t.role === "admin" ? "an admin" : "a writer"}.</p>
+              <p className="mt-1 text-xs text-slate">Posts you write for them are published under their name, and what those posts earn goes to the organisation.</p>
+              {teamDone[t.id] ? <p className="mt-2 text-xs text-slate">{teamDone[t.id]}</p> : (
+                <p className="mt-2 flex gap-4 text-xs font-semibold">
+                  <button onClick={() => respondTeam({ action: "accept", inviteId: t.id }, t.id, "Joined — you can now post as this organisation from New entry.")} className="text-crimson">Accept</button>
+                  <button onClick={() => respondTeam({ action: "decline", inviteId: t.id }, t.id, "Declined.")} className="text-slate hover:text-crimson">Decline</button>
+                </p>
+              )}
+            </div>
+          ))}
+          {(orgs || []).map((o) => (
+            <p key={o.uid} className="mt-3 flex items-center justify-between border-t border-rule pt-3 text-xs text-slate">
+              <span>You write for <strong className="text-ink">{o.displayName}</strong> as {o.role}.</span>
+              {teamDone[`left_${o.uid}`] ? <span>Left.</span> : <button onClick={() => confirm(`Leave ${o.displayName}?`) && respondTeam({ action: "leave", orgUid: o.uid }, `left_${o.uid}`, "Left.")} className="font-semibold hover:text-crimson">Leave</button>}
+            </p>
+          ))}
+        </div>
+      )}
       {invites.length === 0 ? (
         <p className="mt-8 text-sm text-slate">No invites yet.</p>
       ) : (
