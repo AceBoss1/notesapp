@@ -29,7 +29,8 @@ export type NotificationType =
   | "role_changed"
   | "gift"
   | "coauthor"
-  | "stock";
+  | "stock"
+  | "badge";
 
 export type AppNotification = {
   id: string;

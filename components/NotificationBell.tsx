@@ -23,6 +23,7 @@ const ICON: Record<NotificationType, string> = {
   gift: "🎁",
   coauthor: "🤝",
   stock: "📦",
+  badge: "✔",
 };
 
 function timeAgo(iso: string): string {

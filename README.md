@@ -1643,3 +1643,5 @@ Setup, per environment (sandbox first, then production):
 3. Dojah dashboard → Developers → Webhooks → reveal the subscription's **Secret** (not your API secret) → set it as `DOJAH_WEBHOOK_SECRET` in Vercel → redeploy. Until it is set the endpoint rejects every event.
 4. Sandbox and production use different keys, app IDs, widget IDs and secrets; switch them together.
 Dojah's file links expire after about an hour and we ignore them. Duplicate or out-of-order events are safe (a late "Ongoing" never overwrites a finished result).
+
+Gold-badge decisions: `POST /api/admin/badge-request` (used by Approve/Decline in `/admin/users`) records the decision, sends the applicant a bell notification (type `badge`) and an email, and stores an optional decline reason.

@@ -29,11 +29,11 @@ const ITEMS = [
       "Client-initiated rescheduling and cancellation under a published refund policy, WhatsApp reminders, and automatic payout release once a session is complete.",
   },
   {
-    title: "Gold badge — endorsements live, identity checks next",
+    title: "Gold badge — endorsements and identity checks",
     tag: "Trust",
-    body: "The gold ✔ is live for endorsed accounts: apply on the verification badges page, an admin reviews it, and approved accounts subscribe (₦1,999/month personal, ₦2,999/month organisation, the same on every plan). Identity-checked gold — NIN and live face check for people, CAC for organisations, through Dojah, with a one-off non-refundable deposit — follows.",
+    body: "The gold ✔ is live: apply on the verification badges page, an admin reviews it, and approved accounts subscribe (₦1,999/month personal, ₦2,999/month organisation, the same on every plan). Identity-checked gold — NIN and live face check for people, CAC for organisations, through Dojah, with a one-off non-refundable deposit — is built too, and its results now reach us automatically.",
     detail:
-      "Remaining work: automatic confirmation of identity-check results from Dojah (today an admin reads them in Dojah's dashboard and approves), and notifications when an application is decided.",
+      "Identity-check results arrive from Dojah by signed webhook and show next to the application (we store only pass/fail, never ID data); an admin still approves, and applicants get a bell notification and an email when their application is decided. An organisation whose corporate identity check passes is marked registration-confirmed when its gold subscription starts. Coming: approving fully passed checks automatically (built, switched off until we've watched real results).",
   },
   {
     title: "Mobile apps — iOS and Android",

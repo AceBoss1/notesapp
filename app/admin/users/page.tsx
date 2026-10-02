@@ -110,8 +110,22 @@ export default function AdminUsersPage() {
     if (!user) return;
     setBusyUid(uid);
     try {
-      await resolveBadgeRequest(uid, user.uid, approve);
+      // Server-side so the applicant also gets a bell notification and an email.
+      let reason: string | undefined;
+      if (!approve) {
+        const r = window.prompt("Reason for declining (shown to the applicant; optional):");
+        if (r === null) return;
+        reason = r.trim() || undefined;
+      }
+      const res = await fetch("/api/admin/badge-request", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${await user.getIdToken()}` },
+        body: JSON.stringify({ uid, approve, reason }),
+      });
+      if (!res.ok) throw new Error((await res.json().catch(() => ({}))).error || "Couldn't record the decision");
       reload();
+    } catch (e) {
+      alert(e instanceof Error ? e.message : "Couldn't record the decision");
     } finally {
       setBusyUid(null);
     }
