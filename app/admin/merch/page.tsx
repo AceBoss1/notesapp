@@ -1,12 +1,12 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { collection, getDocs, orderBy, query } from "firebase/firestore";
+import { collection, doc, getDoc, getDocs, orderBy, query } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { useAdminAuth } from "@/lib/useAdminAuth";
 import { formatNaira } from "@/lib/booking-time";
 import { MERCH_BATCH, MerchOrder } from "@/lib/merch";
-import { HOLDER_LABEL, HolderType } from "@/lib/orders";
+import { CustodyEntry, HOLDER_LABEL, HolderType } from "@/lib/orders";
 
 type Order = MerchOrder;
 
@@ -24,6 +24,9 @@ export default function AdminMerchPage() {
   const [shipping, setShipping] = useState<{ reference: string; courier: string; trackingNumber: string; trackingUrl: string } | null>(null);
   // Hand-off log form (rider / bus / park) for one order at a time.
   const [hand, setHand] = useState<{ reference: string; holderType: string; holderName: string; holderPhone: string; location: string; consent: boolean } | null>(null);
+  // Hand-off log per order (read from the parcel) and the private rider links generated this session.
+  const [custody, setCustody] = useState<Record<string, CustodyEntry[]>>({});
+  const [riderLinks, setRiderLinks] = useState<Record<string, string>>({});
   const [error, setError] = useState("");
 
   async function load() {
@@ -56,6 +59,29 @@ export default function AdminMerchPage() {
     }
   }
 
+  async function loadCustody(o: Order) {
+    if (!o.parcelId) return;
+    const snap = await getDoc(doc(db, "parcels", o.parcelId));
+    setCustody((c) => ({ ...c, [o.reference]: ((snap.data()?.custody as CustodyEntry[] | undefined) ?? []) }));
+  }
+
+  async function riderLink(o: Order, entryId: string) {
+    if (!user) return;
+    setError("");
+    try {
+      const res = await fetch("/api/admin/merch", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${await user.getIdToken()}` },
+        body: JSON.stringify({ action: "holder_link", reference: o.reference, entryId }),
+      });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error || "Failed");
+      setRiderLinks((l) => ({ ...l, [entryId]: json.url }));
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Failed");
+    }
+  }
+
   async function addHolder() {
     if (!hand || !user) return;
     setBusy(hand.reference);
@@ -68,7 +94,10 @@ export default function AdminMerchPage() {
       });
       const json = await res.json();
       if (!res.ok) throw new Error(json.error || "Failed");
+      const ref = hand.reference;
       setHand(null);
+      const o = orders?.find((x) => x.reference === ref);
+      if (o) await loadCustody(o);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Failed");
     } finally {
@@ -150,6 +179,7 @@ export default function AdminMerchPage() {
                       <input type="checkbox" checked={hand.consent} onChange={(e) => setHand({ ...hand, consent: e.target.checked })} className="mt-0.5" />
                       <span>The holder agrees to their number being shown to the buyer (needed if you add a number).</span>
                     </label>
+                    {error && <p className="text-xs text-crimson sm:col-span-2">{error}</p>}
                     <div className="flex gap-3 sm:col-span-2">
                       <button disabled={busy === o.reference} onClick={addHolder} className="rounded-full border border-crimson px-3 py-1 text-xs text-crimson disabled:opacity-40">Add to the buyer&apos;s tracking</button>
                       <button onClick={() => setHand(null)} className="text-xs text-slate">Cancel</button>
@@ -158,6 +188,26 @@ export default function AdminMerchPage() {
                 ) : (
                   <button onClick={() => setHand({ reference: o.reference, holderType: "bike", holderName: "", holderPhone: "", location: "", consent: false })} className="mt-2 mr-2 text-xs font-semibold text-crimson">Record who holds it (rider / bus / park)</button>
                 )
+              )}
+              {["printed", "shipped"].includes(o.status) && o.parcelId && (
+                <div className="mt-2">
+                  <button onClick={() => loadCustody(o)} className="text-xs font-semibold text-slate hover:text-crimson">{custody[o.reference] ? "Refresh hand-offs" : "Show hand-offs & rider links"}</button>
+                  {custody[o.reference]?.length === 0 && <p className="mt-1 text-xs text-slate">Nobody recorded yet.</p>}
+                  <ul className="mt-1 space-y-1 text-xs text-ink">
+                    {custody[o.reference]?.map((c) => (
+                      <li key={c.id}>
+                        {HOLDER_LABEL[c.holderType]}: {c.holderName}{c.holderPhone ? ` (${c.holderPhone})` : ""} — {c.location} <span className="text-slate">· {c.status === "pending" ? "waiting for them to confirm" : new Date(c.at).toLocaleString()}</span>
+                        <button onClick={() => riderLink(o, c.id)} className="ml-2 font-semibold text-crimson">Get their update link</button>
+                        {riderLinks[c.id] && (
+                          <span className="mt-1 block break-all">
+                            Send this to {c.holderName}: <span className="font-mono">{riderLinks[c.id]}</span>{" "}
+                            <button onClick={() => navigator.clipboard?.writeText(riderLinks[c.id])} className="font-semibold text-crimson">Copy</button>
+                          </span>
+                        )}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
               )}
               {o.status === "shipped" && (o.courier || o.trackingNumber) && (
                 <p className="mt-1 text-xs text-ink">Courier: {[o.courier, o.trackingNumber].filter(Boolean).join(" · ")}</p>

@@ -1427,7 +1427,10 @@ if re-run (don't). `consent` on user docs is still public (version + timestamp o
   tracking page), and "Record who holds it" logs a rider / bus / motor-park hand-off
   (optional phone, only with the holder's agreement) into the same custody log store
   parcels use. Buyers also see the status line under **Orders → My purchases**
-  (`components/MerchPreorders.tsx`, read straight from `merchOrders` via the owner rule). Refunds go
+  Each hand-off has a **"Get their update link"**: a private no-login `/p/<token>` page (same one store sellers
+  use) where the rider/driver/agent updates the location, hands the parcel on, or marks it delivered —
+  for merch that records the delivery on the order and emails the buyer (no escrow to release). Links
+  expire when the next holder is recorded or after 14 days. (`components/MerchPreorders.tsx`, read straight from `merchOrders` via the owner rule). Refunds go
   through Payments and are blocked once an order is printed. **Edit in
   `lib/merch.ts` before launch:** `MERCH_BATCH.closesOn` (placeholder
   2026-11-15), `MERCH_DELIVERY_KOBO` (placeholder ₦3,000) and the item prices.

@@ -182,3 +182,30 @@ export function merchParcelDoc(parcelId: string, o: Pick<MerchOrder, "reference"
     status: parcelStatusForMerch(o.status), custody: [], createdAt: now,
   };
 }
+
+// The buyer's merch status emails (printed / shipped / delivered), shared by the admin
+// screen and the rider's no-login page so both say the same thing.
+export async function sendMerchStatusEmail(
+  order: Pick<MerchOrder, "email" | "reference" | "quantity" | "itemName" | "size" | "address">,
+  parcelId: string,
+  status: "printed" | "shipped" | "delivered",
+  courier?: { name?: string; trackingNumber?: string }
+): Promise<void> {
+  if (!order.email) return;
+  const what = `${order.quantity} × ${order.itemName}${order.size ? ` (${order.size})` : ""}`;
+  const where = `${order.address?.city}, ${order.address?.state}`;
+  const idLine = `\nParcel ID: ${parcelId} — follow it at ${site()}/track/${parcelId}\nReference: ${order.reference}`;
+  const courierLine = courier?.name || courier?.trackingNumber ? `\nCourier: ${[courier.name, courier.trackingNumber].filter(Boolean).join(" · ")}` : "";
+  const msg = {
+    printed: {
+      subject: "Your #NotesApp merch has been printed",
+      text: `Good news — your ${what} has been printed and is being prepared for delivery to ${where}. We'll email you again when it ships. (Refunds are no longer available once an order is printed.)${idLine}`,
+    },
+    shipped: { subject: "Your #NotesApp merch is on its way", text: `Your ${what} is on its way to ${where}.${courierLine}${idLine}` },
+    delivered: {
+      subject: "Your #NotesApp merch was delivered",
+      text: `Your ${what} has been marked delivered to ${where}. If anything isn't right, reply via the Contact page on the site and quote your reference.${idLine}`,
+    },
+  }[status];
+  await sendEmail({ to: order.email, subject: msg.subject, text: `${msg.text}\n\n#NotesApp`, action: { label: "Track your order", url: `${site()}/track/${parcelId}` } }).catch(() => {});
+}

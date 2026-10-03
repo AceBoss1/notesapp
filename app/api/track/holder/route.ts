@@ -5,7 +5,8 @@ import { getAdminDb, getUserEmail } from "@/lib/firebase-admin";
 import { clientIp, rateLimit } from "@/lib/rate-limit";
 import { sendEmail } from "@/lib/email";
 import { CustodyEntry, HOLDER_LABEL, Parcel, StoreOrder, cleanText, isHolderType, normalizePhone } from "@/lib/orders";
-import { autoReleaseAt, expireLinks, hashToken, holderUrl, newLinkToken } from "@/lib/orders-server";
+import type { MerchOrder } from "@/lib/merch";
+import { autoReleaseAt, expireLinks, hashToken, holderUrl, newLinkToken, sendMerchStatusEmail } from "@/lib/orders-server";
 
 export const dynamic = "force-dynamic";
 class Fail extends Error {
@@ -69,7 +70,8 @@ export async function POST(req: NextRequest) {
     if (action === "confirm") {
       if (entry.status !== "pending") throw new Fail("You've already confirmed.", 409);
       const updated = entries.map((c) => (c.id === entry.id ? { ...c, status: "confirmed" as const, at: now } : c));
-      await pref.update({ custody: updated, status: "dispatched" });
+      // Official merch keeps its own stages (admin marks shipped); a holder confirming only updates the log.
+      await pref.update({ custody: updated, ...(parcel.kind === "merch" ? {} : { status: "dispatched" }) });
       await expireLinks(parcel.parcelId, entry.id);
       return NextResponse.json({ ok: true });
     }
@@ -105,6 +107,20 @@ export async function POST(req: NextRequest) {
       const to = order ? await getUserEmail(order.sellerUid) : null;
       if (to) await sendEmail({ to, subject: `Parcel ${parcel.parcelId} handed on`, text: `${entry.holderName} handed ${parcel.itemTitle} on to ${holderName} (${HOLDER_LABEL[body.holderType as keyof typeof HOLDER_LABEL]}) at ${location}. It shows as confirmed once ${holderName} opens their link and confirms.\n\n#NotesApp`, action: { label: "Track the parcel", url: `${process.env.NEXT_PUBLIC_SITE_URL || "https://www.notesapp.name.ng"}/track/${parcel.parcelId}` } }).catch(() => {});
       return NextResponse.json({ ok: true, nextUrl: holderUrl(token) });
+    }
+
+    if (action === "delivered" && parcel.kind === "merch") {
+      // Official merch has no escrow: record the delivery and tell the buyer.
+      const mref = db.doc(`merchOrders/${parcel.orderRef}`);
+      const morder = (await mref.get()).data() as MerchOrder | undefined;
+      if (!morder || !["printed", "shipped"].includes(morder.status)) throw new Fail("This parcel can't be marked delivered now.", 409);
+      const batch = db.batch();
+      batch.update(mref, { status: "delivered", deliveredAt: now, ...(morder.shippedAt ? {} : { shippedAt: now }) });
+      batch.update(pref, { status: "delivered", merchStatus: "delivered" });
+      await batch.commit();
+      await expireLinks(parcel.parcelId);
+      await sendMerchStatusEmail(morder, parcel.parcelId, "delivered");
+      return NextResponse.json({ ok: true });
     }
 
     if (action === "delivered") {
