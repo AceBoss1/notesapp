@@ -3,7 +3,7 @@ import { FieldValue } from "firebase-admin/firestore";
 import { friendlyMessage } from "@/lib/api-errors";
 import { getAdminDb, getUserEmail, verifySignedInRequest } from "@/lib/firebase-admin";
 import { rateLimit } from "@/lib/rate-limit";
-import { sendEmail } from "@/lib/email";
+import { notifyBell, sendEmail } from "@/lib/email";
 import { CustodyEntry, StoreOrder, cleanText, isHolderType, isHttpsUrl, normalizePhone } from "@/lib/orders";
 import { autoReleaseAt, canActForSeller, confirmOrder, expireLinks, hashToken, holderUrl, newLinkToken } from "@/lib/orders-server";
 
@@ -73,7 +73,7 @@ export async function POST(req: NextRequest) {
       batch.update(db.doc(`ledger/${order.reference}`), { status: "disputed" });
       await batch.commit();
       const to = await getUserEmail(order.sellerUid);
-      if (to) await sendEmail({ to, subject: "A buyer reported a problem with an order", text: `The buyer of ${order.itemTitle} reported a problem: "${reason}". The money stays held while #NotesApp reviews it — please keep your tracking and any proof of delivery handy and reply to our email if we contact you.\n\n#NotesApp` }).catch(() => {});
+      if (to) await sendEmail({ to, bell: { uid: order.sellerUid, type: "order", linkHref: "/orders" }, subject: "A buyer reported a problem with an order", text: `The buyer of ${order.itemTitle} reported a problem: "${reason}". The money stays held while #NotesApp reviews it — please keep your tracking and any proof of delivery handy and reply to our email if we contact you.\n\n#NotesApp` }).catch(() => {});
       return NextResponse.json({ ok: true });
     }
 
@@ -95,7 +95,7 @@ export async function POST(req: NextRequest) {
       batch.update(parcelRef, { status: "dispatched", mode: "courier", courier });
       await batch.commit();
       const to = order.buyerEmail;
-      if (!order.dispatchedAt && to) await sendEmail({ to, subject: "Your #NotesApp order is on its way", text: `${order.itemTitle} was handed to ${name} (tracking ${trackingNumber}).\nFollow it with parcel ID ${order.parcelId} at ${site()}/track/${order.parcelId}, and confirm delivery at ${site()}/orders when it arrives.\n\n#NotesApp`, action: { label: "Track your parcel", url: `${site()}/track/${order.parcelId}` } }).catch(() => {});
+      if (!order.dispatchedAt && to) await sendEmail({ to, bell: { uid: order.buyerUid, type: "order", linkHref: `/track/${order.parcelId}`, message: `Your order is on its way: ${order.itemTitle}` }, subject: "Your #NotesApp order is on its way", text: `${order.itemTitle} was handed to ${name} (tracking ${trackingNumber}).\nFollow it with parcel ID ${order.parcelId} at ${site()}/track/${order.parcelId}, and confirm delivery at ${site()}/orders when it arrives.\n\n#NotesApp`, action: { label: "Track your parcel", url: `${site()}/track/${order.parcelId}` } }).catch(() => {});
       return NextResponse.json({ ok: true });
     }
 
@@ -122,7 +122,8 @@ export async function POST(req: NextRequest) {
       batch.update(parcelRef, { status: "dispatched", mode: "handoff", custody: FieldValue.arrayUnion(entry) });
       await batch.commit();
       await expireLinks(order.parcelId).catch(() => {}); // the seller recording the next holder ends earlier holders' links
-      if (!order.dispatchedAt && order.buyerEmail) await sendEmail({ to: order.buyerEmail, subject: "Your #NotesApp order is on its way", text: `${order.itemTitle} is with ${holderName} (${location}).\nFollow it with parcel ID ${order.parcelId} at ${site()}/track/${order.parcelId}, and confirm delivery at ${site()}/orders when it arrives.\n\n#NotesApp`, action: { label: "Track your parcel", url: `${site()}/track/${order.parcelId}` } }).catch(() => {});
+      await notifyBell({ uid: order.buyerUid, type: "order", linkHref: `/track/${order.parcelId}`, message: `Your order is now with ${holderName} (${location}).` });
+      if (!order.dispatchedAt && order.buyerEmail) await sendEmail({ to: order.buyerEmail, bell: { uid: order.buyerUid, type: "order", linkHref: `/track/${order.parcelId}`, message: `Your order is on its way: ${order.itemTitle}` }, subject: "Your #NotesApp order is on its way", text: `${order.itemTitle} is with ${holderName} (${location}).\nFollow it with parcel ID ${order.parcelId} at ${site()}/track/${order.parcelId}, and confirm delivery at ${site()}/orders when it arrives.\n\n#NotesApp`, action: { label: "Track your parcel", url: `${site()}/track/${order.parcelId}` } }).catch(() => {});
       return NextResponse.json({ ok: true, entryId: entry.id });
     }
 
@@ -145,7 +146,7 @@ export async function POST(req: NextRequest) {
       batch.update(ref, { status: "delivered", deliveredAt: now, autoReleaseAt: releaseAt });
       batch.update(parcelRef, { status: "delivered" });
       await batch.commit();
-      if (order.buyerEmail) await sendEmail({ to: order.buyerEmail, subject: "Your #NotesApp order was marked delivered", text: `The seller marked ${order.itemTitle} as delivered. If it's with you, confirm at ${site()}/orders. If something's wrong, report it there within 7 days — after that the money is released to the seller automatically.\n\n#NotesApp`, action: { label: "Track or confirm your order", url: `${site()}/orders` } }).catch(() => {});
+      if (order.buyerEmail) await sendEmail({ to: order.buyerEmail, bell: { uid: order.buyerUid, type: "order", linkHref: "/orders", message: `Delivered? Please confirm: ${order.itemTitle}` }, subject: "Your #NotesApp order was marked delivered", text: `The seller marked ${order.itemTitle} as delivered. If it's with you, confirm at ${site()}/orders. If something's wrong, report it there within 7 days — after that the money is released to the seller automatically.\n\n#NotesApp`, action: { label: "Track or confirm your order", url: `${site()}/orders` } }).catch(() => {});
       return NextResponse.json({ ok: true });
     }
 

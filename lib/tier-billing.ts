@@ -168,6 +168,7 @@ export async function expireTiers(): Promise<number> {
     if (sub.email) {
       await sendEmail({
         to: sub.email,
+        bell: { uid: sub.uid, type: "plan", linkHref: "/pricing" },
         subject: `Your #NotesApp ${sub.tier === "pro" ? "Pro" : "Business"} plan has ended`,
         text: `Your paid plan ended, so your account is back on Free Basic. Your journal, bookings and earnings are untouched. You can upgrade again any time from ${process.env.NEXT_PUBLIC_SITE_URL || "https://www.notesapp.name.ng"}/pricing.`,
       }).catch(() => {});
@@ -198,7 +199,7 @@ export async function expireOrgTrials(): Promise<number> {
     const email = await getUserEmail(d.id);
     if (end > now) {
       if (!u.trialReminderSent && email) {
-        await sendEmail({ to: email, subject: "Your #NotesApp free trial ends soon", text: `Your free Business trial for ${u.displayName} ends on ${new Date(end).toDateString()}. Keep Business (₦15,000/month) from ${site}/pricing, or your account moves to Free Basic — your journal, followers and earnings stay.\n\n#NotesApp` }).catch(() => {});
+        await sendEmail({ to: email, bell: { uid: d.id, type: "plan", linkHref: "/pricing" }, subject: "Your #NotesApp free trial ends soon", text: `Your free Business trial for ${u.displayName} ends on ${new Date(end).toDateString()}. Keep Business (₦15,000/month) from ${site}/pricing, or your account moves to Free Basic — your journal, followers and earnings stay.\n\n#NotesApp` }).catch(() => {});
         await d.ref.update({ trialReminderSent: true });
       }
       continue;
@@ -212,7 +213,7 @@ export async function expireOrgTrials(): Promise<number> {
       trialReminderSent: FieldValue.delete(),
     });
     if (!stillPaid && email) {
-      await sendEmail({ to: email, subject: "Your #NotesApp free trial has ended", text: `The free Business trial for ${u.displayName} has ended, so the account is back on Free Basic. Everything you published stays. Upgrade any time at ${site}/pricing.\n\n#NotesApp` }).catch(() => {});
+      await sendEmail({ to: email, bell: { uid: d.id, type: "plan", linkHref: "/pricing" }, subject: "Your #NotesApp free trial has ended", text: `The free Business trial for ${u.displayName} has ended, so the account is back on Free Basic. Everything you published stays. Upgrade any time at ${site}/pricing.\n\n#NotesApp` }).catch(() => {});
     }
     n++;
   }

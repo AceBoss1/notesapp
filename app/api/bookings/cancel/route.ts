@@ -85,8 +85,8 @@ export async function POST(req: NextRequest) {
     const line = refundKobo > 0 ? `A refund of ${formatNaira(refundKobo)} has been issued (allow a few business days).` : "Under the cancellation policy no refund applies.";
     const pubEmail = await getUserEmail(b.publisherUid);
     await Promise.all([
-      sendEmail({ to: b.clientEmail, subject: `Session cancelled — ${when}`, text: `The session on ${when} was cancelled by the ${by}.\n${line}\nReference: ${reference}` }),
-      pubEmail ? sendEmail({ to: pubEmail, subject: `Session cancelled — ${when}`, text: `The session on ${when} was cancelled by the ${by}.\nReference: ${reference}` }) : Promise.resolve(true),
+      sendEmail({ to: b.clientEmail, bell: { uid: b.clientUid, type: "booking", linkHref: "/bookings" }, subject: `Session cancelled — ${when}`, text: `The session on ${when} was cancelled by the ${by}.\n${line}\nReference: ${reference}` }),
+      pubEmail ? sendEmail({ to: pubEmail, bell: { uid: b.publisherUid, type: "booking", linkHref: "/bookings" }, subject: `Session cancelled — ${when}`, text: `The session on ${when} was cancelled by the ${by}.\nReference: ${reference}` }) : Promise.resolve(true),
     ]).catch(() => {});
 
     return NextResponse.json({ ok: true, refundKobo, cancelledBy: by });

@@ -30,7 +30,13 @@ export type NotificationType =
   | "gift"
   | "coauthor"
   | "stock"
-  | "badge";
+  | "badge"
+  | "order" // store order updates (buyer and seller)
+  | "merch" // official merch pre-orders
+  | "booking"
+  | "ad" // advertiser campaigns
+  | "plan" // Pro/Business plans and trials
+  | "org"; // organisation verification and invitations
 
 export type AppNotification = {
   id: string;

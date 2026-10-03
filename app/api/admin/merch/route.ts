@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { friendlyMessage } from "@/lib/api-errors";
 import { getAdminDb, verifyAdminRequest } from "@/lib/firebase-admin";
-import { sendEmail } from "@/lib/email";
+import { notifyBell, sendEmail } from "@/lib/email";
 import { FieldValue } from "firebase-admin/firestore";
 import type { MerchOrder } from "@/lib/merch";
 import { cleanText, isHolderType, isHttpsUrl, normalizePhone } from "@/lib/orders";
@@ -49,6 +49,7 @@ export async function POST(req: NextRequest) {
       };
       await parcelRef.update({ custody: FieldValue.arrayUnion(entry), ...(order.courier ? {} : { mode: "handoff" }) });
       await expireLinks(parcelId).catch(() => {}); // recording the next holder ends earlier holders' links
+      await notifyBell({ uid: order.uid, type: "merch", linkHref: `/track/${parcelId}`, message: `Your order is now with ${holderName} (${location}).` });
       return NextResponse.json({ ok: true, entryId: entry.id });
     }
 

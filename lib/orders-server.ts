@@ -1,6 +1,6 @@
 import { createHash, randomBytes } from "crypto";
 import { getAdminDb, getUserEmail } from "./firebase-admin";
-import { sendEmail } from "./email";
+import { notifyBell, sendEmail } from "./email";
 import { FieldValue } from "firebase-admin/firestore";
 import { ESCROW_AUTO_RELEASE_DAYS, StoreOrder, newParcelId, phoneLast4 } from "./orders";
 import type { MerchOrder } from "./merch";
@@ -31,9 +31,12 @@ export async function confirmOrder(reference: string, by: "buyer" | "auto" | "ad
     t.update(db.doc(`parcels/${order.parcelId}`), { status: "confirmed" });
     if (l && ["held", "disputed"].includes(l.status)) t.update(lref, { releaseAfter: now, ...(l.status === "disputed" && by === "admin" ? { status: "held" } : {}) });
   });
+  if (order && by === "buyer") {
+    await notifyBell({ uid: order.sellerUid, type: "order", linkHref: "/orders", message: `The buyer confirmed ${order.itemTitle} arrived — your payout is released.` });
+  }
   if (order && by !== "buyer") {
     const to = await getUserEmail(order.sellerUid);
-    if (to) await sendEmail({ to, subject: "Your order payout is ready", text: `The order for ${order.itemTitle} (${formatNaira(order.amountKobo)}) is ${by === "auto" ? "automatically confirmed after the 7-day window" : "confirmed"}, so your money is no longer held and will be paid out to your bank.\n\n#NotesApp` }).catch(() => {});
+    if (to) await sendEmail({ to, bell: { uid: order.sellerUid, type: "order", linkHref: "/orders" }, subject: "Your order payout is ready", text: `The order for ${order.itemTitle} (${formatNaira(order.amountKobo)}) is ${by === "auto" ? "automatically confirmed after the 7-day window" : "confirmed"}, so your money is no longer held and will be paid out to your bank.\n\n#NotesApp` }).catch(() => {});
   }
 }
 
@@ -186,7 +189,7 @@ export function merchParcelDoc(parcelId: string, o: Pick<MerchOrder, "reference"
 // The buyer's merch status emails (printed / shipped / delivered), shared by the admin
 // screen and the rider's no-login page so both say the same thing.
 export async function sendMerchStatusEmail(
-  order: Pick<MerchOrder, "email" | "reference" | "quantity" | "itemName" | "size" | "address">,
+  order: Pick<MerchOrder, "uid" | "email" | "reference" | "quantity" | "itemName" | "size" | "address">,
   parcelId: string,
   status: "printed" | "shipped" | "delivered",
   courier?: { name?: string; trackingNumber?: string }
@@ -207,5 +210,5 @@ export async function sendMerchStatusEmail(
       text: `Your ${what} has been marked delivered to ${where}. If anything isn't right, reply via the Contact page on the site and quote your reference.${idLine}`,
     },
   }[status];
-  await sendEmail({ to: order.email, subject: msg.subject, text: `${msg.text}\n\n#NotesApp`, action: { label: "Track your order", url: `${site()}/track/${parcelId}` } }).catch(() => {});
+  await sendEmail({ to: order.email, subject: msg.subject, text: `${msg.text}\n\n#NotesApp`, action: { label: "Track your order", url: `${site()}/track/${parcelId}` }, bell: { uid: order.uid, type: "merch", linkHref: `/track/${parcelId}` } }).catch(() => {});
 }

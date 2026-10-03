@@ -1,3 +1,6 @@
+import { getAdminDb } from "./firebase-admin";
+import type { NotificationType } from "./notifications";
+
 // Server-only transactional email via Resend's HTTP API (no SDK needed).
 // Without RESEND_API_KEY this logs and no-ops, so booking/payment
 // flows never fail just because email isn't configured yet.
@@ -21,6 +24,27 @@ function linkify(escaped: string): string {
 }
 
 export type EmailAction = { label: string; url: string };
+
+// Every email that matters to a signed-in member can also land in their bell: pass `bell`
+// to sendEmail and both are done together (the bell is written first, so it still appears
+// when email isn't configured or fails). Server-side writes bypass the client-create rules.
+export type BellNote = { uid?: string | null; type: NotificationType; linkHref?: string; message?: string };
+
+export async function notifyBell(note: BellNote & { message: string }): Promise<void> {
+  if (!note.uid) return;
+  try {
+    await getAdminDb().collection("notifications").add({
+      recipientUid: note.uid,
+      type: note.type,
+      message: note.message.slice(0, 280),
+      read: false,
+      createdAt: new Date().toISOString(),
+      ...(note.linkHref ? { linkHref: note.linkHref } : {}),
+    });
+  } catch (err) {
+    console.error("[bell] notification failed", err);
+  }
+}
 
 export function renderEmailHtml(text: string, action?: EmailAction): string {
   const site = (process.env.NEXT_PUBLIC_SITE_URL || "https://www.notesapp.name.ng").replace(/\/$/, "");
@@ -48,7 +72,8 @@ export function renderEmailHtml(text: string, action?: EmailAction): string {
 </table></td></tr></table></body></html>`;
 }
 
-export async function sendEmail(params: { to: string; subject: string; text: string; action?: EmailAction }): Promise<boolean> {
+export async function sendEmail(params: { to: string; subject: string; text: string; action?: EmailAction; bell?: BellNote }): Promise<boolean> {
+  if (params.bell) await notifyBell({ ...params.bell, message: params.bell.message ?? params.subject });
   const key = process.env.RESEND_API_KEY;
   if (!key) {
     console.warn(`[email] RESEND_API_KEY not set — skipped "${params.subject}" to ${params.to}`);

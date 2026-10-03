@@ -148,7 +148,7 @@ export async function POST(req: NextRequest) {
       await db.doc(`orgInvites/${invId}`).set(invite);
       const to = await getUserEmail(uid);
       if (to) {
-        await sendEmail({ to, subject: `${org.displayName} invited you to write for them on #NotesApp`, text: `${org.displayName} invited you to join their team as ${wantRole === "admin" ? "an admin" : "a writer"}. Accept or decline at ${site()}/invites.\n\nPosts you write for them are published under the organisation's name (shown as "by @${invitee.username} for ${org.displayName}"), and anything those posts earn goes to the organisation, not to you.\n\n#NotesApp` }).catch(() => {});
+        await sendEmail({ to, bell: { uid, type: "org", linkHref: "/invites" }, subject: `${org.displayName} invited you to write for them on #NotesApp`, text: `${org.displayName} invited you to join their team as ${wantRole === "admin" ? "an admin" : "a writer"}. Accept or decline at ${site()}/invites.\n\nPosts you write for them are published under the organisation's name (shown as "by @${invitee.username} for ${org.displayName}"), and anything those posts earn goes to the organisation, not to you.\n\n#NotesApp` }).catch(() => {});
       }
       return NextResponse.json({ ok: true });
     }
