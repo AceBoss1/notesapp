@@ -247,6 +247,15 @@ test("digital store items: no delivery/stock, kind is fixed, files and purchases
   await assertFails(setDoc(doc(as("alice"), "digitalPurchases/r2"), { buyerUid: "alice", sellerUid: "pub" }));
 });
 
+test("error logs are server-only", async () => {
+  await env.withSecurityRulesDisabled(async (ctx) => {
+    await setDoc(doc(ctx.firestore(), "errorLogs/e1"), { message: "x", count: 1 });
+  });
+  await assertFails(getDoc(doc(as("pub"), "errorLogs/e1")));
+  await assertFails(getDoc(doc(as("boss", { admin: true }), "errorLogs/e1"))); // even admins go through the server route
+  await assertFails(setDoc(doc(anon(), "errorLogs/e2"), { message: "spam" }));
+});
+
 test("badge endorsement requests are private and server-created", async () => {
   await env.withSecurityRulesDisabled(async (ctx) => {
     await setDoc(doc(ctx.firestore(), "badgeRequests/alice"), { status: "pending", message: "hello there", requestedAt: "x" });

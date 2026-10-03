@@ -1207,6 +1207,12 @@ section above, without `DOJAH_API_BASE`), copy that subscription's webhook secre
 - *Where buyers/sellers look*: Orders → My purchases → **My downloads**; Orders → Sales from my store → **Download sales**.
 - Terms 5g gained a digital-downloads paragraph and `LEGAL_VERSION` moved to 2026-10-03, so each member is asked to accept once at their next payment.
 
+**Pitch-readiness: traction snapshot, Trust & security, data rights, error monitoring.**
+- *Traction snapshot* — `/admin/traction` (`lib/traction.ts`, `GET /api/admin/traction`): registered users, publishers, sellers and items, organisations, gold-verified, store orders, digital sales, sessions, merch, boosts, total money processed (refunded, pending and slot-conflict payments excluded), paying customers, commission, payouts made, money held in escrow, by-type and six-month tables. "Copy summary for a deck" and CSV download. Counts only — no personal data.
+- *Trust & security* — public `/security` (linked in the footer and sitemap): payments and held money, signed webhooks, private downloads, tested rules, identity checks, monitoring, data rights — and an honest "still building" box (no certifications, no independent pen test yet). Keep it true: only claim what the code does.
+- *Data rights* (`lib/account-server.ts`, `/api/account/export`, `/api/account/delete`, `components/AccountData.tsx` on `/profile/account`): download a JSON copy of your data; delete your account after a fresh sign-in (≤ 10 minutes) and typing your username. Refused while money or obligations are open (unpaid earnings, open store/merch orders, upcoming sessions, active plans or subscriptions, running ads/boosts, co-authored posts, a team, or an admin account). Deletion removes the profile, posts (with their comments), your comments, store items and private files, follows, notifications, payout account and settings, frees the username and deletes the login; payments, bookings and orders are kept with email, name, address and phone replaced by `[deleted]`. Per-post likes aren't searched out.
+- *Error monitoring* (`lib/monitoring.ts`, `/admin/errors`, `components/ErrorReporter.tsx`, `app/error.tsx`): unexpected server errors (caught where routes call `friendlyMessage`, filtered to real faults rather than deliberate messages) and browser errors (`/api/errors`, rate-limited, bots ignored) are grouped by fingerprint into `errorLogs` with a count, scrubbed of emails/tokens/ids, and expire after 30 days (the TTL policy is declared in `firestore.indexes.json`, so the next `firebase deploy` creates it). The first sighting of each new error emails `SUPPORT_EMAIL` (max 10 an hour). No third-party account is needed; Sentry can be added later if wanted.
+
 **Scheduled-jobs status.** `/api/cron/reminders` writes `cronRuns/reminders`
 (server-only, no client rules) after every run; `/status` shows it as
 "Scheduled jobs": operational under 30 min old, slow at 30–60 min or after a
@@ -1239,6 +1245,16 @@ cached 60 s, page auto-refreshes. It runs inside the app, so it can't
 report the app itself being unreachable — add an external monitor
 (UptimeRobot / Better Stack free tier) on `/api/status` for that, and
 optionally point a `status.notesapp.name.ng` hosted page at it.
+
+The page also shows **recent response times** (bars from your browser's last
+24 checks, kept in localStorage), an **incident history** and **email
+subscriptions**. An incident opens after two consecutive slow/down checks and
+resolves on the first clean one (state in `settings/statusState`, incidents in
+`statusIncidents`, subscribers in `statusSubscribers` — all server-only);
+subscribers are emailed on open and resolve with a one-click unsubscribe link
+(`GET /api/status/subscribe?id=&t=`). Checks run when someone loads /status or
+an external monitor pings `/api/status`, so ping it every 5 min for reliable
+incident detection.
 
 ### Boosts & gifts (built — approved 2026-09-30)
 **Gifts** — 🎁 button on every publisher profile and every post

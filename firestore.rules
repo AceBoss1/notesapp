@@ -514,6 +514,11 @@ service cloud.firestore {
         || orgStoreFlag(resource.data.ownerUid);
     }
 
+    // Recorded errors (lib/monitoring.ts) — written and read by the server only.
+    match /errorLogs/{id} {
+      allow read, write: if false;
+    }
+
     // The private file behind a digital item (bucket key etc.) — server-only, never readable.
     match /storeFiles/{id} {
       allow read, write: if false;
