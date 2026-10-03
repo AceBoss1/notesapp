@@ -1,3 +1,4 @@
+import ErrorReporter from "@/components/ErrorReporter";
 import type { Metadata } from "next";
 import Link from "next/link";
 import Image from "next/image";
@@ -53,6 +54,7 @@ const COMPANY = [
   { href: "/track", label: "Track a Parcel" },
   { href: "/roadmap", label: "Roadmap" },
   { href: "/status", label: "Status" },
+  { href: "/security", label: "Trust & Security" },
   { href: "/terms", label: "Terms of Service" },
   { href: "/privacy", label: "Privacy Policy" },
 ];
@@ -124,6 +126,7 @@ export default async function RootLayout({
           </div>
         </header>
 
+        <ErrorReporter />
         <main>{children}</main>
 
         {/* Footer */}
