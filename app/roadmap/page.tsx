@@ -24,9 +24,9 @@ const ITEMS = [
   {
     title: "Client-driven session management",
     tag: "Booking",
-    body: "Booking, Paystack payment, per-publisher rates and email reminders are live. What's left is the client's side of the calendar: rescheduling and cancelling themselves.",
+    body: "Booking, Paystack payment, per-publisher rates, email reminders, client rescheduling (free, up to twice, 24 hours or more ahead), cancellation under a published refund policy, \"report a problem\" after a session, and automatic payouts 24 hours after a session ends are all live. What's left is WhatsApp reminders.",
     detail:
-      "Client-initiated rescheduling and cancellation under a published refund policy, WhatsApp reminders, and automatic payout release once a session is complete.",
+      "WhatsApp reminders alongside email and the bell. Everything else in this item is built: see the booking policy on the booking pages and in the Terms.",
   },
   {
     title: "Gold badge — endorsements and identity checks",
@@ -47,7 +47,7 @@ const ITEMS = [
     tag: "Foundations",
     body: "The unglamorous pieces that real money needs: password reset and email verification, a bookings dashboard for both sides, a clear cancellation and refund policy, and terms and privacy consent before payment.",
     detail:
-      "Also planned: account deletion and data export, rate-limiting on payment and upload endpoints, moving admin access to Firebase custom claims, automated Firestore rules tests, error monitoring, and a custom media domain. WhatsApp reminders follow the email reminders that are already live.",
+      "Already in place: rate-limiting on payment and upload endpoints, admin access through Firebase custom claims, automated Firestore security-rules tests, a public status page, a custom media domain, and private storage for paid downloads. Still planned: account deletion and data export, and error monitoring.",
   },
 ];
 
@@ -60,7 +60,7 @@ export default function RoadmapPage() {
       </h1>
       <p className="mt-5 max-w-2xl text-lg text-slate">
         The core loop — publish, book, get paid — is what's demoed
-        today. These are decided and documented, not yet built. Paid sessions, monthly subscriptions, publisher rates and payouts, post boosts, gifts and Pro / Business plans are already live.
+        today. These are decided and documented, not yet built. Paid sessions (with rescheduling and automatic payouts), monthly subscriptions, publisher rates and payouts, post and item boosts, gifts, Pro / Business plans, organisation accounts, stores for physical goods and digital downloads, parcel tracking, and official merch are already live.
       </p>
 
       <div className="mt-12 grid grid-cols-1 gap-6">

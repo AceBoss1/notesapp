@@ -58,8 +58,8 @@ export default function OrganisationsPage() {
       <h2 className="mt-12 font-display text-2xl text-ink">Selling from your organisation&apos;s store</h2>
       <div className="card mt-4 p-6 text-sm text-slate">
         <p>
-          Your organisation has its own store at <code>/u/yourname/store</code>. The owner lists physical items (price, delivery fee and a stock count); buyers pay through #NotesApp,
-          and the money is held until they confirm delivery, then paid to the <strong className="text-ink">organisation&apos;s</strong> payout account. Every order gets a parcel ID to track.
+          Your organisation has its own store at <code>/u/yourname/store</code>. The owner lists physical items (price, delivery fee and a stock count) and digital downloads; buyers pay through #NotesApp,
+          and the money is held until they confirm delivery (downloads: after a short dispute window), then paid to the <strong className="text-ink">organisation&apos;s</strong> payout account. Every physical order gets a parcel ID to track.
         </p>
         <p className="mt-3">
           <strong className="text-ink">Who runs it.</strong> The owner can run the store alone, or tick &ldquo;runs the store&rdquo; for chosen team members on the team page. Those members can add and

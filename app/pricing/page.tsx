@@ -194,7 +194,7 @@ export default function PricingPage() {
             ["/badges", "Verification badges — verified and gold, with prices"],
             ["/merchstore", "Merch store"],
             ["/advertise", "Advertise — banner campaigns and ad share"],
-            ["/store-selling", "Sell physical goods — checkout, delivery hold, parcel tracking"],
+            ["/store-selling", "Sell physical goods & digital downloads — checkout, delivery hold, parcel tracking, instant downloads"],
             ["/organisations", "Organisations — free 30-day Business trial, CAC verification"],
           ].map(([href, label]) => (
             <li key={href}>
