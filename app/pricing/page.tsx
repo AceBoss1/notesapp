@@ -77,6 +77,11 @@ const ROWS: { label: string; href?: string; render: (t: (typeof TIERS)[number]) 
     render: (t) => (t.canPublish ? `NotesApp takes ${formatPercent(t.physicalCommission, t.physicalCommissionFloor)} of the item price (delivery fee is yours) — buyer's money is held until delivery is confirmed` : "—"),
   },
   {
+    label: "Digital downloads sold in your store",
+    href: "/store-selling",
+    render: (t) => (t.canPublish ? `NotesApp takes ${formatPercent(t.digitalCommission, t.digitalCommissionFloor)} of the price — instant download after payment, final once downloaded (no refunds)` : "—"),
+  },
+  {
     label: "Links out to other shops",
     render: (t) => (t.canPublish ? "Only your one profile link and links inside your posts — stores sell through #NotesApp checkout" : "—"),
   },

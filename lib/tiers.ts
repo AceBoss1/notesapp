@@ -31,6 +31,10 @@ export type TierConfig = {
   // there are no link-out items (links live in posts and the profile link).
   physicalCommission: number | "custom";
   physicalCommissionFloor?: number;
+  // NotesApp's cut of a digital download (a file the seller uploads; instant, no delivery,
+  // final once downloaded). Higher than physical because there is no cost of goods to share.
+  digitalCommission: number | "custom";
+  digitalCommissionFloor?: number;
 };
 
 export const TIERS: TierConfig[] = [
@@ -42,6 +46,7 @@ export const TIERS: TierConfig[] = [
     adRevenueShare: null,
     sessionAndUnlockCommission: 0, // N/A — Standard can't publish, nothing to take a cut of
     physicalCommission: 0,
+    digitalCommission: 0,
   },
   {
     tier: "basic",
@@ -51,6 +56,7 @@ export const TIERS: TierConfig[] = [
     adRevenueShare: 0,
     sessionAndUnlockCommission: 0.35,
     physicalCommission: 0.08,
+    digitalCommission: 0.2,
   },
   {
     tier: "pro",
@@ -63,6 +69,7 @@ export const TIERS: TierConfig[] = [
     adRevenueShare: 0.25,
     sessionAndUnlockCommission: 0.25,
     physicalCommission: 0.05,
+    digitalCommission: 0.15,
   },
   {
     tier: "business",
@@ -75,6 +82,7 @@ export const TIERS: TierConfig[] = [
     adRevenueShare: 0.45,
     sessionAndUnlockCommission: 0.15,
     physicalCommission: 0.04,
+    digitalCommission: 0.1,
   },
   {
     tier: "enterprise",
@@ -86,6 +94,8 @@ export const TIERS: TierConfig[] = [
     sessionAndUnlockCommissionFloor: 0.05,
     physicalCommission: "custom",
     physicalCommissionFloor: 0.03,
+    digitalCommission: "custom",
+    digitalCommissionFloor: 0.05,
   },
 ];
 
@@ -112,6 +122,12 @@ export function commissionRateFor(tier: AccountTier): number {
 export function physicalCommissionRateFor(tier: AccountTier): number {
   const c = getTierConfig(tier).physicalCommission;
   return c === "custom" ? getTierConfig(tier).physicalCommissionFloor ?? 0.03 : c;
+}
+
+// NotesApp's cut of a digital download (0–1): 20 / 15 / 10 %, Enterprise negotiated (5% floor).
+export function digitalCommissionRateFor(tier: AccountTier): number {
+  const c = getTierConfig(tier).digitalCommission;
+  return c === "custom" ? getTierConfig(tier).digitalCommissionFloor ?? 0.05 : c;
 }
 
 // Verified badge: included free on Business and Enterprise; every other

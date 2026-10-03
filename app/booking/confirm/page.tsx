@@ -9,7 +9,7 @@ import { formatSlot } from "@/lib/booking-time";
 
 type Result = {
   status: string;
-  kind: "booking" | "subscription" | "boost" | "gift" | "tier" | "badge" | "gold" | "gold_deposit" | "merch" | "ad" | "store";
+  kind: "booking" | "subscription" | "boost" | "gift" | "tier" | "badge" | "gold" | "gold_deposit" | "merch" | "ad" | "store" | "digital";
   tier?: { tier: string; interval: string };
   boost?: { noteId: string };
   gift?: { username: string; noteSlug?: string };
@@ -106,6 +106,14 @@ function Confirm() {
           <p className="mt-3 text-sm text-slate">Your money is held by #NotesApp until you confirm the parcel arrived. Follow it and confirm delivery on My orders. A confirmation email is on its way.</p>
           <Link href="/orders" className="btn-primary mt-6 inline-block !px-5 !py-2 text-xs">
             My orders
+          </Link>
+        </>
+      ) : result.status === "paid" && result.kind === "digital" ? (
+        <>
+          <p className="font-display text-2xl text-ink">Your download is ready ✓</p>
+          <p className="mt-3 text-sm text-slate">Download it from My orders → My purchases. Digital downloads are final once downloaded, so there are no refunds after that. A confirmation email is on its way.</p>
+          <Link href="/orders" className="btn-primary mt-6 inline-block !px-5 !py-2 text-xs">
+            Go to my downloads
           </Link>
         </>
       ) : result.status === "paid" && result.kind === "merch" ? (

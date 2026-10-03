@@ -20,6 +20,9 @@ export async function GET(req: NextRequest) {
   if (limited) return limited;
   try {
     const limit = Math.min(6, Math.max(1, Number(req.nextUrl.searchParams.get("limit")) || 3));
+    // ?kind=item|post narrows the strip; ?owner=<uid> shows only that publisher's boosts (a store page).
+    const want = req.nextUrl.searchParams.get("kind");
+    const owner = req.nextUrl.searchParams.get("owner") || "";
     const now = Date.now();
     const today = new Date().toISOString().slice(0, 10);
     const boosts = (await activeBoosts())
@@ -27,11 +30,13 @@ export async function GET(req: NextRequest) {
         (b) =>
           new Date(b.endsAt).getTime() > now &&
           b.impressionsDelivered < b.impressionsPurchased &&
-          (b.daily?.[today] || 0) < b.maxPerDay
+          (b.daily?.[today] || 0) < b.maxPerDay &&
+          (want !== "item" && want !== "post" ? true : (b.itemId ? "item" : "post") === want) &&
+          (!owner || b.publisherUid === owner)
       )
       .sort((a, b) => a.impressionsDelivered / a.impressionsPurchased - b.impressionsDelivered / b.impressionsPurchased)
       .slice(0, limit)
-      .map((b) => ({ id: b.id, slug: b.slug, title: b.title, author: b.author, image: b.image }));
+      .map((b) => ({ id: b.id, href: b.itemId ? `/shop/${b.itemId}` : `/journals/${b.slug}`, kind: b.itemId ? "item" : "post", title: b.title, author: b.author, image: b.image }));
     return NextResponse.json({ boosts }, { headers: { "Cache-Control": "public, s-maxage=60, stale-while-revalidate=120" } });
   } catch (err) {
     console.error("boosts active failed:", err);

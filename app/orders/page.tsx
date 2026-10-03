@@ -7,6 +7,7 @@ import { onAuthStateChanged, User } from "firebase/auth";
 import { auth } from "@/lib/firebase";
 import { formatNaira } from "@/lib/booking-time";
 import MerchPreorders from "@/components/MerchPreorders";
+import DigitalPurchases from "@/components/DigitalPurchases";
 import { HOLDER_LABEL, HolderType, ORDER_STATUS_LABEL, StoreOrder } from "@/lib/orders";
 
 type Order = Omit<StoreOrder, "buyerEmail">;
@@ -215,10 +216,12 @@ export default function OrdersPage() {
       </div>
       {error && <p className="mt-4 text-sm text-crimson">{error}</p>}
       {orders === null && !error && <p className="mt-6 text-sm text-slate">Loading…</p>}
-      {orders?.length === 0 && <p className="mt-6 text-sm text-slate">{tab === "buying" ? "You haven't bought anything from a store yet." : "No orders yet. Add an item you can sell here from your store page."}</p>}
+      {orders?.length === 0 && <p className="mt-6 text-sm text-slate">{tab === "buying" ? "You haven't bought any physical items from a store yet." : "No physical orders yet. Add an item you can sell here from your store page."}</p>}
       <ul className="mt-6 space-y-3">
         {user && orders?.map((o) => (tab === "buying" ? <BuyerCard key={o.reference} o={o} user={user} onDone={() => load(user, tab)} /> : <SellerCard key={o.reference} o={o} user={user} onDone={() => load(user, tab)} />))}
       </ul>
+      {user && tab === "buying" && <DigitalPurchases user={user} as="buyer" />}
+      {user && tab === "selling" && <DigitalPurchases user={user} as="seller" />}
       {user && tab === "buying" && <MerchPreorders uid={user.uid} />}
     </section>
   );

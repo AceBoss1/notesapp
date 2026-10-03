@@ -16,7 +16,7 @@ import { merchParcelDoc } from "./orders-server";
 
 export type PaymentRecord = {
   reference: string;
-  kind: "booking" | "subscription" | "boost" | "gift" | "tier" | "badge" | "gold_deposit" | "gold" | "merch" | "ad" | "store";
+  kind: "booking" | "subscription" | "boost" | "gift" | "tier" | "badge" | "gold_deposit" | "gold" | "merch" | "ad" | "store" | "digital";
   uid: string; // the payer
   email: string;
   amountKobo: number;
@@ -26,7 +26,7 @@ export type PaymentRecord = {
   commissionRate: number; // NotesApp's cut, 0–1, fixed at checkout time
   booking?: { username: string; date: string; slot: string; minutes: number };
   subscription?: { username: string; planCode: string };
-  boost?: { noteId: string; packageId: string };
+  boost?: { noteId?: string; itemId?: string; packageId: string }; // a post, or a store item
   tier?: { tier: "pro" | "business"; interval: "monthly" | "annually"; planCode: string };
   badge?: { planCode: string };
   ad?: { campaignId: string; packageId: string };
@@ -51,6 +51,8 @@ export type PaymentRecord = {
     deliveryKobo: number;
     address: { fullName: string; phone: string; street: string; city: string; state: string };
   };
+  // A downloadable file from a publisher's store: instant, final once downloaded.
+  digital?: { itemId: string; itemTitle: string; itemImage: string };
   gold?: { kind: "endorsement" | "identity"; track: "personal" | "corporate"; planCode?: string };
   gift?: { username: string; noteId?: string; noteSlug?: string; message: string; anonymous: boolean; senderName: string };
   // Store orders reserve stock while the buyer pays; an unpaid reservation is returned later.
@@ -70,7 +72,7 @@ export type LedgerEntry = {
   reference: string; // ledger doc id (the payment reference, or `<ref>_<uid>` for a co-author's share)
   paymentReference?: string; // the Paystack payment this entry belongs to (set on split entries)
   sharePercent?: number; // this author's % of a co-authored post's gift
-  kind: "booking" | "subscription" | "gift" | "adshare" | "order";
+  kind: "booking" | "subscription" | "gift" | "adshare" | "order" | "digital";
   publisherUid: string;
   publisherUsername: string;
   payerUid: string;
@@ -85,6 +87,7 @@ export type LedgerEntry = {
 };
 
 const SUBSCRIPTION_HOLD_DAYS = 7; // dispute window before subscription earnings can be paid out
+export const DIGITAL_HOLD_DAYS = 7; // same window before a digital sale is paid out (a purchase is final once downloaded)
 const PERIOD_DAYS = 31;
 
 export { commissionRateFor };
@@ -227,18 +230,31 @@ export async function fulfillPayment(reference: string): Promise<PaymentRecord> 
         grossKobo: current.amountKobo, commissionKobo, netKobo: current.amountKobo - commissionKobo, status: "held",
         releaseAfter: new Date(Date.now() + ESCROW_PLACEHOLDER_DAYS * 86_400_000).toISOString(), createdAt: now,
       } satisfies LedgerEntry);
+    } else if (current.kind === "digital" && current.digital) {
+      // A digital sale: access is instant. The seller's money is held for the usual dispute window
+      // (paid out automatically afterwards); the buyer cannot be refunded once they download.
+      const dg = current.digital;
+      t.set(db.doc(`digitalPurchases/${reference}`), {
+        reference, buyerUid: current.uid, buyerEmail: current.email, itemId: dg.itemId, itemTitle: dg.itemTitle,
+        sellerUid: current.publisherUid, sellerUsername: current.publisherUsername, amountKobo: current.amountKobo,
+        downloads: 0, createdAt: now,
+      });
+      t.set(db.doc(`ledger/${reference}`), ledgerFor(current, current.amountKobo, new Date(Date.now() + DIGITAL_HOLD_DAYS * 86_400_000), now));
     } else if (current.kind === "boost" && current.boost) {
       // Boosts are platform revenue: no ledger entry, just an active campaign.
       const pk = getBoostPackage(current.boost.packageId);
       if (!pk) throw new Error("Unknown boost package");
-      const note = (await t.get(db.doc(`notes/${current.boost.noteId}`))).data();
+      // Either a post or a store item (its listing is what the Boosted card links to).
+      const note = current.boost.noteId ? (await t.get(db.doc(`notes/${current.boost.noteId}`))).data() : undefined;
+      const item = current.boost.itemId ? (await t.get(db.doc(`storeItems/${current.boost.itemId}`))).data() : undefined;
+      const owner = item ? (await t.get(db.doc(`users/${item.ownerUid}`))).data() : undefined;
       t.set(db.doc(`boosts/${reference}`), {
         reference,
-        noteId: current.boost.noteId,
+        ...(current.boost.itemId ? { itemId: current.boost.itemId, href: `/shop/${current.boost.itemId}`, targetKind: "item" } : { noteId: current.boost.noteId, targetKind: "post" }),
         slug: note?.slug || "",
-        title: note?.title || "",
-        author: note?.author || "",
-        image: note?.featured_image || "",
+        title: note?.title || item?.title || "",
+        author: note?.author || owner?.displayName || "",
+        image: note?.featured_image || item?.image || "",
         publisherUid: current.uid,
         packageId: pk.id,
         amountKobo: current.amountKobo,
@@ -453,6 +469,27 @@ async function notifyPaid(p: PaymentRecord) {
   if (p.kind === "boost") {
     // No email for boosts — the bell is the receipt.
     await notifyBell({ uid: p.uid, type: "plan", linkHref: "/profile/boosts", message: `Your boost is live (${formatNaira(p.amountKobo)}). Track it under Boost performance.` });
+    return;
+  }
+  if (p.kind === "digital" && p.digital) {
+    const site = process.env.NEXT_PUBLIC_SITE_URL || "https://www.notesapp.name.ng";
+    await sendEmail({
+      to: p.email,
+      subject: "Your #NotesApp download is ready",
+      bell: { uid: p.uid, type: "order", linkHref: "/orders", message: `Your download is ready: ${p.digital.itemTitle}` },
+      text: `Thanks! ${p.digital.itemTitle} (${formatNaira(p.amountKobo)}) is yours. Download it any time from My orders → My purchases. Digital downloads are final once downloaded, so there are no refunds after that.\nReference: ${p.reference}\n\n#NotesApp`,
+      action: { label: "Download", url: `${site}/orders` },
+    });
+    const sellerEmail = await getUserEmail(p.publisherUid);
+    const net = p.amountKobo - Math.round(p.amountKobo * p.commissionRate);
+    if (sellerEmail) {
+      await sendEmail({
+        to: sellerEmail,
+        subject: "You sold a download",
+        bell: { uid: p.publisherUid, type: "order", linkHref: "/orders", message: `Sold: ${p.digital.itemTitle}` },
+        text: `${p.digital.itemTitle} was bought for ${formatNaira(p.amountKobo)}. Your share after commission (${formatNaira(net)}) is paid to your bank account after a ${DIGITAL_HOLD_DAYS}-day dispute window.\nReference: ${p.reference}\n\n#NotesApp`,
+      }).catch(() => {});
+    }
     return;
   }
   if (p.kind === "subscription" && p.subscription) {

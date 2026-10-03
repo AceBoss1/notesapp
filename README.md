@@ -1187,6 +1187,26 @@ section above, without `DOJAH_API_BASE`), copy that subscription's webhook secre
 `DOJAH_WEBHOOK_SECRET`; (4) redeploy, run one real check for a real corporate and personal account, and keep
 `DOJAH_AUTO_APPROVE` off until a few real results look right.
 
+**Digital downloads, store boosts, and the store layout.** A store item is `kind: "physical"` (default) or
+`"digital"`, chosen on the add-item form and fixed afterwards (rules refuse switching).
+- *Digital*: the seller uploads a file (≤ 200 MB; pdf, epub, zip, mp3/m4a/wav, mp4/mov, docx/xlsx/pptx, txt/csv, png/jpg/webp)
+  straight to a **private** R2 bucket via `POST /api/store/file-upload` (signed PUT) and `POST /api/store/files` (server checks
+  the object, writes `storeFiles/{itemId}` — never client-readable — and the public name/size). Buyers pay with checkout kind
+  `digital` (they must tick that it is final); `digitalPurchases/{reference}` is created and the file is available at once through
+  `GET /api/store/download` (one-minute signed link; the first download makes the sale final — the admin refund is then refused).
+  No stock, no delivery, no tracking. The seller's money is held 7 days (`DIGITAL_HOLD_DAYS`), then released automatically by the
+  cron (same retry rules as session payouts; `AUTO_PAYOUTS=off` pauses it).
+  **Setup:** create a second R2 bucket that is *not* exposed on any public domain, set `R2_PRIVATE_BUCKET` in Vercel, and apply
+  `scripts/r2-cors.json` to it too (the browser PUTs the file to it). Without `R2_PRIVATE_BUCKET`, digital items can't be uploaded or bought.
+- *Commission* (`lib/tiers.ts`): digital 20 / 15 / 10 % (Basic / Pro / Business; Enterprise negotiated, 5% floor); physical stays 8 / 5 / 4 / 3 %.
+  Both are on `/pricing` and `/store-selling`.
+- *Store page*: a **Digital downloads** section first, **Physical items** below; a download without its file attached is hidden from buyers.
+- *Boosting items*: `/boost/item/<itemId>` (a "Boost" link next to each item in the store manager) reuses the post-boost packages. A boost
+  doc carries `itemId`; `/api/boosts/active` returns `href`/`kind` and takes `?kind=item|post` and `?owner=<uid>`; boosted items show in the
+  Journals strip, the `/shop` page, and at the top of the owner's store page.
+- *Where buyers/sellers look*: Orders → My purchases → **My downloads**; Orders → Sales from my store → **Download sales**.
+- Terms 5g gained a digital-downloads paragraph and `LEGAL_VERSION` moved to 2026-10-03, so each member is asked to accept once at their next payment.
+
 **Scheduled-jobs status.** `/api/cron/reminders` writes `cronRuns/reminders`
 (server-only, no client rules) after every run; `/status` shows it as
 "Scheduled jobs": operational under 30 min old, slow at 30–60 min or after a

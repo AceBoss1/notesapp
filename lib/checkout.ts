@@ -19,6 +19,8 @@ export async function startCheckout(
     | { kind: "booking"; username: string; date: string; slot: string }
     | { kind: "subscription"; username: string }
     | { kind: "boost"; noteId: string; packageId: string }
+    | { kind: "boost"; itemId: string; packageId: string }
+    | { kind: "digital"; itemId: string; acceptFinal: boolean }
     | { kind: "tier"; tier: "pro" | "business"; interval: "monthly" | "annually" }
     | { kind: "badge" }
     | { kind: "gold_deposit" }
