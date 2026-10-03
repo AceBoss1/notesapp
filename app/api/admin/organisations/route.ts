@@ -106,7 +106,7 @@ export async function POST(req: NextRequest) {
     if (action === "verify") {
       if (user.accountKind !== "organisation") return NextResponse.json({ error: "Not an organisation." }, { status: 409 });
       await ref.update({ "org.rcStatus": "verified", "org.rcVerifiedAt": now, "org.rcNote": "" });
-      if (email) await sendEmail({ to: email, subject: "Your organisation is verified on #NotesApp", text: `We've confirmed ${user.displayName}'s registration (${user.org?.rcNumber}). The "unverified" notice is gone from your channel and posts${["business", "enterprise"].includes(user.accountTier) ? ", and your verified ✔ now shows" : ""}.\n\n${site()}/u/${user.username}\n\n#NotesApp` }).catch(() => {});
+      if (email) await sendEmail({ to: email, bell: { uid: String(uid), type: "org", linkHref: "/organisation" }, subject: "Your organisation is verified on #NotesApp", text: `We've confirmed ${user.displayName}'s registration (${user.org?.rcNumber}). The "unverified" notice is gone from your channel and posts${["business", "enterprise"].includes(user.accountTier) ? ", and your verified ✔ now shows" : ""}.\n\n${site()}/u/${user.username}\n\n#NotesApp` }).catch(() => {});
       return NextResponse.json({ ok: true });
     }
     if (action === "reject") {
@@ -114,7 +114,7 @@ export async function POST(req: NextRequest) {
       if (!why) return NextResponse.json({ error: "Give a reason — it's sent to the organisation." }, { status: 400 });
       await ref.update({ "org.rcStatus": "rejected", "org.rcNote": why });
       await db.doc(`orgRc/${user.org?.rcNumber}`).delete().catch(() => {});
-      if (email) await sendEmail({ to: email, subject: "We couldn't verify your organisation", text: `We couldn't confirm ${user.displayName}'s registration: ${why}\n\nYou can send a corrected number from ${site()}/organisation.\n\n#NotesApp` }).catch(() => {});
+      if (email) await sendEmail({ to: email, bell: { uid: String(uid), type: "org", linkHref: "/organisation" }, subject: "We couldn't verify your organisation", text: `We couldn't confirm ${user.displayName}'s registration: ${why}\n\nYou can send a corrected number from ${site()}/organisation.\n\n#NotesApp` }).catch(() => {});
       return NextResponse.json({ ok: true });
     }
     if (action === "approve_conversion" || action === "decline_conversion") {
@@ -132,7 +132,7 @@ export async function POST(req: NextRequest) {
       } else {
         await rq.update({ status: "declined", resolvedAt: now, note: String(note || "").slice(0, 300) });
       }
-      if (email) await sendEmail({ to: email, subject: action === "approve_conversion" ? "Your account is now an organisation" : "Organisation request not approved", text: action === "approve_conversion" ? `Your account is now an organisation account. Finish setup at ${site()}/organisation.\n\n#NotesApp` : `We couldn't approve the conversion${note ? `: ${String(note).slice(0, 300)}` : "."}\n\n#NotesApp` }).catch(() => {});
+      if (email) await sendEmail({ to: email, bell: { uid: String(uid), type: "org", linkHref: "/organisation" }, subject: action === "approve_conversion" ? "Your account is now an organisation" : "Organisation request not approved", text: action === "approve_conversion" ? `Your account is now an organisation account. Finish setup at ${site()}/organisation.\n\n#NotesApp` : `We couldn't approve the conversion${note ? `: ${String(note).slice(0, 300)}` : "."}\n\n#NotesApp` }).catch(() => {});
       return NextResponse.json({ ok: true });
     }
     return NextResponse.json({ error: "Unknown action." }, { status: 400 });

@@ -24,6 +24,12 @@ const ICON: Record<NotificationType, string> = {
   coauthor: "🤝",
   stock: "📦",
   badge: "✔",
+  order: "🛍",
+  merch: "👕",
+  booking: "📅",
+  ad: "📣",
+  plan: "⭐",
+  org: "🏢",
 };
 
 function timeAgo(iso: string): string {

@@ -3,7 +3,7 @@ import { FieldValue } from "firebase-admin/firestore";
 import { friendlyMessage } from "@/lib/api-errors";
 import { getAdminDb, getUserEmail } from "@/lib/firebase-admin";
 import { clientIp, rateLimit } from "@/lib/rate-limit";
-import { sendEmail } from "@/lib/email";
+import { notifyBell, sendEmail } from "@/lib/email";
 import { CustodyEntry, HOLDER_LABEL, Parcel, StoreOrder, cleanText, isHolderType, normalizePhone } from "@/lib/orders";
 import type { MerchOrder } from "@/lib/merch";
 import { autoReleaseAt, expireLinks, hashToken, holderUrl, newLinkToken, sendMerchStatusEmail } from "@/lib/orders-server";
@@ -102,10 +102,12 @@ export async function POST(req: NextRequest) {
       batch.update(pref, { custody: FieldValue.arrayUnion(next) });
       batch.set(db.doc(`parcelLinks/${hashToken(token)}`), { parcelId: parcel.parcelId, entryId: next.id, active: true, createdAt: now, expiresAt: new Date(Date.now() + 14 * 86_400_000).toISOString() });
       await batch.commit();
+      // The buyer sees where it is now (bell only; the seller gets the email below for store orders).
+      await notifyBell({ uid: parcel.buyerUid, type: parcel.kind === "merch" ? "merch" : "order", linkHref: `/track/${parcel.parcelId}`, message: `Your order is now with ${holderName} (${location}).` });
       // Tell the seller who it's with now (holders' links expire on confirmation).
       const order = (await db.doc(`storeOrders/${parcel.orderRef}`).get()).data() as StoreOrder | undefined;
       const to = order ? await getUserEmail(order.sellerUid) : null;
-      if (to) await sendEmail({ to, subject: `Parcel ${parcel.parcelId} handed on`, text: `${entry.holderName} handed ${parcel.itemTitle} on to ${holderName} (${HOLDER_LABEL[body.holderType as keyof typeof HOLDER_LABEL]}) at ${location}. It shows as confirmed once ${holderName} opens their link and confirms.\n\n#NotesApp`, action: { label: "Track the parcel", url: `${process.env.NEXT_PUBLIC_SITE_URL || "https://www.notesapp.name.ng"}/track/${parcel.parcelId}` } }).catch(() => {});
+      if (to) await sendEmail({ to, bell: { uid: order?.sellerUid, type: "order", linkHref: "/orders", message: `Parcel ${parcel.parcelId}: ${entry.holderName} handed it to ${holderName}` }, subject: `Parcel ${parcel.parcelId} handed on`, text: `${entry.holderName} handed ${parcel.itemTitle} on to ${holderName} (${HOLDER_LABEL[body.holderType as keyof typeof HOLDER_LABEL]}) at ${location}. It shows as confirmed once ${holderName} opens their link and confirms.\n\n#NotesApp`, action: { label: "Track the parcel", url: `${process.env.NEXT_PUBLIC_SITE_URL || "https://www.notesapp.name.ng"}/track/${parcel.parcelId}` } }).catch(() => {});
       return NextResponse.json({ ok: true, nextUrl: holderUrl(token) });
     }
 
@@ -131,7 +133,7 @@ export async function POST(req: NextRequest) {
       batch.update(pref, { status: "delivered" });
       await batch.commit();
       await expireLinks(parcel.parcelId);
-      if (order.buyerEmail) await sendEmail({ to: order.buyerEmail, subject: "Your #NotesApp order was marked delivered", text: `${parcel.itemTitle} was marked delivered by ${entry.holderName}. If it's with you, confirm at ${process.env.NEXT_PUBLIC_SITE_URL || "https://www.notesapp.name.ng"}/orders. If something's wrong, report it there within 7 days — after that the money is released to the seller automatically.\n\n#NotesApp`, action: { label: "Confirm or report", url: `${process.env.NEXT_PUBLIC_SITE_URL || "https://www.notesapp.name.ng"}/orders` } }).catch(() => {});
+      if (order.buyerEmail) await sendEmail({ to: order.buyerEmail, bell: { uid: order.buyerUid, type: "order", linkHref: "/orders", message: `Delivered? Please confirm: ${parcel.itemTitle}` }, subject: "Your #NotesApp order was marked delivered", text: `${parcel.itemTitle} was marked delivered by ${entry.holderName}. If it's with you, confirm at ${process.env.NEXT_PUBLIC_SITE_URL || "https://www.notesapp.name.ng"}/orders. If something's wrong, report it there within 7 days — after that the money is released to the seller automatically.\n\n#NotesApp`, action: { label: "Confirm or report", url: `${process.env.NEXT_PUBLIC_SITE_URL || "https://www.notesapp.name.ng"}/orders` } }).catch(() => {});
       return NextResponse.json({ ok: true });
     }
 

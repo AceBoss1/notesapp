@@ -38,7 +38,7 @@ export async function POST(req: NextRequest) {
     if (s.passed && request.status === "pending" && process.env.DOJAH_AUTO_APPROVE === "true") {
       await reqRef.update({ status: "approved", resolvedAt: new Date().toISOString(), resolvedByUid: "dojah" });
       const to = await getUserEmail(uid);
-      if (to) await sendEmail({ to, subject: "Your identity check passed", text: `Your identity check with our verification partner passed and your gold badge application is approved. Subscribe to switch the badge on: ${site()}/badges\n\n#NotesApp` }).catch(() => {});
+      if (to) await sendEmail({ to, bell: { uid, type: "badge", linkHref: "/badges" }, subject: "Your identity check passed", text: `Your identity check with our verification partner passed and your gold badge application is approved. Subscribe to switch the badge on: ${site()}/badges\n\n#NotesApp` }).catch(() => {});
     }
     return NextResponse.json({ ok: true });
   } catch (err) {

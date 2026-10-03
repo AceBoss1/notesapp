@@ -3,7 +3,7 @@ import { getAdminDb, getUserEmail } from "./firebase-admin";
 import { slotLockId, verifyTransaction, pricePaidKobo } from "./paystack";
 import { commissionRateFor } from "./tiers";
 import { sessionEnd, sessionStart, formatSlot, formatNaira } from "./booking-time";
-import { sendEmail } from "./email";
+import { notifyBell, sendEmail } from "./email";
 import type { AccountTier } from "./users";
 import { getBoostPackage } from "./boost-config";
 import { periodEndFrom, cancelBadgeIfCovered } from "./tier-billing";
@@ -450,10 +450,21 @@ export async function markSubscriptionCancelled(planCode: string, email: string)
 
 async function notifyPaid(p: PaymentRecord) {
   if (p.kind === "gift" && p.gift) return notifyGift(p);
+  if (p.kind === "boost") {
+    // No email for boosts — the bell is the receipt.
+    await notifyBell({ uid: p.uid, type: "plan", linkHref: "/profile/boosts", message: `Your boost is live (${formatNaira(p.amountKobo)}). Track it under Boost performance.` });
+    return;
+  }
+  if (p.kind === "subscription" && p.subscription) {
+    await notifyBell({ uid: p.uid, type: "plan", linkHref: `/u/${p.subscription.username}`, message: `You're subscribed to @${p.subscription.username} (${formatNaira(p.amountKobo)}/month).` });
+    await notifyBell({ uid: p.publisherUid, type: "plan", linkHref: "/profile/publishing", message: "You have a new subscriber." });
+    return;
+  }
   if (p.kind === "badge") {
     await sendEmail({
       to: p.email,
       subject: "Your #NotesApp verified badge is active",
+      bell: { uid: p.uid, type: "badge", linkHref: "/badges" },
       text: `The ✔ now shows next to your name (${formatNaira(p.amountKobo)}/month, renews automatically). Cancel any time under Edit profile — you keep the badge until the period ends.\nReference: ${p.reference}\n\n#NotesApp`,
     });
     return;
@@ -462,6 +473,7 @@ async function notifyPaid(p: PaymentRecord) {
     await sendEmail({
       to: p.email,
       subject: "Your #NotesApp ad campaign is in review",
+      bell: { uid: p.uid, type: "ad", linkHref: "/advertise/campaigns" },
       text: `Thanks — we received ${formatNaira(p.amountKobo)} for your ad campaign. We review every ad before it goes live (usually within a day). If we can't run it you'll get a full refund. Track it any time at ${process.env.NEXT_PUBLIC_SITE_URL || "https://www.notesapp.name.ng"}/advertise/campaigns.\nReference: ${p.reference}\n\n#NotesApp`,
     });
     return;
@@ -472,6 +484,7 @@ async function notifyPaid(p: PaymentRecord) {
     await sendEmail({
       to: p.email,
       subject: "Your #NotesApp order is confirmed",
+      bell: { uid: p.uid, type: "order", linkHref: "/orders" },
       text: `Thanks! ${st.quantity} × ${st.itemTitle} — ${formatNaira(p.amountKobo)} including delivery, to ${st.address.fullName}, ${st.address.street}, ${st.address.city}, ${st.address.state}.\nYour money is held by #NotesApp until you confirm the parcel arrived (or 7 days after it's marked delivered). Follow it and confirm delivery at ${site}/orders.\nReference: ${p.reference}\n\n#NotesApp`,
     });
     const sellerEmail = await getUserEmail(p.publisherUid);
@@ -479,6 +492,7 @@ async function notifyPaid(p: PaymentRecord) {
       await sendEmail({
         to: sellerEmail,
         subject: "New order on your #NotesApp store",
+        bell: { uid: p.publisherUid, type: "order", linkHref: "/orders", message: `New order: ${st.quantity} × ${st.itemTitle}` },
         text: `${st.quantity} × ${st.itemTitle} was ordered (${formatNaira(p.amountKobo)} incl. delivery). Deliver to ${st.address.fullName}, ${st.address.phone}, ${st.address.street}, ${st.address.city}, ${st.address.state}.\nDispatch it and keep the tracking up to date at ${site}/orders (courier details, or each hand-off if it goes by bike, bus or park). You're paid after the buyer confirms delivery, or 7 days after you mark it delivered.\n\n#NotesApp`,
       }).catch(() => {});
     }
@@ -491,6 +505,7 @@ async function notifyPaid(p: PaymentRecord) {
     await sendEmail({
       to: p.email,
       subject: "Your #NotesApp merch pre-order is confirmed",
+      bell: { uid: p.uid, type: "merch", linkHref: parcelId ? `/track/${parcelId}` : "/orders" },
       text: `Thanks! ${m.quantity} × ${m.itemName}${m.size ? ` (${m.size})` : ""} with the ${m.logoLabel} logo — ${formatNaira(p.amountKobo)} including delivery.\nDelivering to ${m.address.fullName}, ${m.address.street}, ${m.address.city}, ${m.address.state}.\nWe print after the batch closes and deliver within about 3 weeks of closing. You can ask for a refund before the batch is printed.${parcelId ? `\nTrack it any time with parcel ID ${parcelId}.` : ""}\nReference: ${p.reference}\n\n#NotesApp`,
       ...(parcelId ? { action: { label: "Track your order", url: `${site}/track/${parcelId}` } } : {}),
     });
@@ -500,6 +515,7 @@ async function notifyPaid(p: PaymentRecord) {
     await sendEmail({
       to: p.email,
       subject: "We received your #NotesApp identity-check deposit",
+      bell: { uid: p.uid, type: "badge", linkHref: "/badges" },
       text: `Thanks — your ${formatNaira(p.amountKobo)} deposit (non-refundable; it covers the third-party check) is received and your gold badge application is now in review. We'll update the status on the badges page.\nReference: ${p.reference}\n\n#NotesApp`,
     });
     return;
@@ -508,6 +524,7 @@ async function notifyPaid(p: PaymentRecord) {
     await sendEmail({
       to: p.email,
       subject: "Your #NotesApp gold badge is active",
+      bell: { uid: p.uid, type: "badge", linkHref: "/badges" },
       text: `The gold ✔ now shows next to your name (${formatNaira(p.amountKobo)}/month, renews automatically). Cancel any time on the badges page — you keep it until the period ends.\nReference: ${p.reference}\n\n#NotesApp`,
     });
     return;
@@ -517,6 +534,7 @@ async function notifyPaid(p: PaymentRecord) {
     await sendEmail({
       to: p.email,
       subject: `Welcome to #NotesApp ${name}`,
+      bell: { uid: p.uid, type: "plan", linkHref: "/pricing" },
       text: `Your ${name} plan (${formatNaira(p.amountKobo)} per ${p.tier.interval === "annually" ? "year" : "month"}) is active. Your lower commission and ${name} benefits apply from now. It renews automatically; cancel any time under Rates & payouts and you keep the plan until the period ends.\nReference: ${p.reference}\n\n#NotesApp`,
     });
     return;
@@ -527,12 +545,14 @@ async function notifyPaid(p: PaymentRecord) {
   await sendEmail({
     to: p.email,
     subject: `Session confirmed — ${when}`,
+    bell: { uid: p.uid, type: "booking", linkHref: "/bookings" },
     text: `Your ${p.booking.minutes}-minute session with @${p.booking.username} is confirmed for ${when}.\nPaid: ${formatNaira(p.amountKobo)}.\nReference: ${p.reference}\n\n#NotesApp`,
   });
   if (pubEmail) {
     await sendEmail({
       to: pubEmail,
       subject: `New booking — ${when}`,
+      bell: { uid: p.publisherUid, type: "booking", linkHref: "/bookings" },
       text: `You have a new paid ${p.booking.minutes}-minute session on ${when}.\nClient: ${p.email}\nYour earnings (after ${Math.round(p.commissionRate * 100)}% commission) are released after the session.\nReference: ${p.reference}\n\n#NotesApp`,
     });
   }

@@ -1150,6 +1150,15 @@ the old email list keeps working until step 8.
    If an admin is ever locked out, re-run `scripts/set-admin-claims.mjs <email>` and have
    them sign out and in.
 
+**Bell notifications for purchases and orders.** `sendEmail` takes an optional `bell`
+(`{ uid, type, linkHref }`); the notification is written first, so it appears even when email
+isn't configured. Every transactional email now carries one: merch (pre-order, printed, shipped,
+delivered, hand-offs), store orders (new order, dispatched, delivered, hand-offs, dispute,
+buyer-confirmed, payout), bookings (confirmed, new, reminders, cancelled), ads (in review, live,
+declined, refund), plans/trials, boosts and subscriptions, gold/badge payments, and organisation
+verification and team invites. New types: `order`, `merch`, `booking`, `ad`, `plan`, `org`.
+Server writes bypass the client-create rules, so `firestore.rules` is unchanged.
+
 **Scheduled-jobs status.** `/api/cron/reminders` writes `cronRuns/reminders`
 (server-only, no client rules) after every run; `/status` shows it as
 "Scheduled jobs": operational under 30 min old, slow at 30–60 min or after a

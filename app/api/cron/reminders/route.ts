@@ -40,8 +40,8 @@ export async function GET(req: NextRequest) {
     const pubEmail = await getUserEmail(b.publisherUid);
     const text = `Reminder: your ${b.minutes}-minute #NotesApp session with @${b.username} ${label} — ${when}.`;
     const results = await Promise.all([
-      sendEmail({ to: b.clientEmail, subject: `Reminder: session ${when}`, text }),
-      pubEmail ? sendEmail({ to: pubEmail, subject: `Reminder: session ${when}`, text }) : Promise.resolve(true),
+      sendEmail({ to: b.clientEmail, bell: { uid: b.clientUid, type: "booking", linkHref: "/bookings" }, subject: `Reminder: session ${when}`, text }),
+      pubEmail ? sendEmail({ to: pubEmail, bell: { uid: b.publisherUid, type: "booking", linkHref: "/bookings" }, subject: `Reminder: session ${when}`, text }) : Promise.resolve(true),
     ]);
     if (results.every(Boolean)) {
       await doc.ref.update(flag === "reminder1Sent" ? { reminder1Sent: true, reminder24Sent: true } : { reminder24Sent: true });
