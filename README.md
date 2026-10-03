@@ -1419,9 +1419,15 @@ if re-run (don't). `consent` on user docs is still public (version + timestamp o
   (`/admin/merch`) shows a "to print" tally and moves orders
   preordered → printed → shipped → delivered; the buyer is emailed at printed, shipped
   and delivered, and "Mark shipped" asks for an optional courier and tracking number
-  that go into the email and onto the order. Buyers see a four-step status line for
-  each pre-order under **Orders → My purchases** (`components/MerchPreorders.tsx`,
-  read straight from `merchOrders` via the owner rule). Refunds go
+  that go into the email and onto the order. Every merch order also gets a **parcel ID** (NA-XXXXXXXX, created at
+  checkout; older orders get one on their first status change) and so a public
+  `/track/<id>` page with the same four stages — the pre-order, printed, shipped and
+  delivered emails carry a "Track your order" button to it. On `/admin/merch`, "Mark
+  shipped" takes an optional courier, tracking number and tracking link (shown on the
+  tracking page), and "Record who holds it" logs a rider / bus / motor-park hand-off
+  (optional phone, only with the holder's agreement) into the same custody log store
+  parcels use. Buyers also see the status line under **Orders → My purchases**
+  (`components/MerchPreorders.tsx`, read straight from `merchOrders` via the owner rule). Refunds go
   through Payments and are blocked once an order is printed. **Edit in
   `lib/merch.ts` before launch:** `MERCH_BATCH.closesOn` (placeholder
   2026-11-15), `MERCH_DELIVERY_KOBO` (placeholder ₦3,000) and the item prices.

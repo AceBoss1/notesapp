@@ -6,6 +6,7 @@ import { db } from "@/lib/firebase";
 import { useAdminAuth } from "@/lib/useAdminAuth";
 import { formatNaira } from "@/lib/booking-time";
 import { MERCH_BATCH, MerchOrder } from "@/lib/merch";
+import { HOLDER_LABEL, HolderType } from "@/lib/orders";
 
 type Order = MerchOrder;
 
@@ -20,7 +21,9 @@ export default function AdminMerchPage() {
   const [orders, setOrders] = useState<Order[] | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
   // Which order is asking for courier details before being marked shipped.
-  const [shipping, setShipping] = useState<{ reference: string; courier: string; trackingNumber: string } | null>(null);
+  const [shipping, setShipping] = useState<{ reference: string; courier: string; trackingNumber: string; trackingUrl: string } | null>(null);
+  // Hand-off log form (rider / bus / park) for one order at a time.
+  const [hand, setHand] = useState<{ reference: string; holderType: string; holderName: string; holderPhone: string; location: string; consent: boolean } | null>(null);
   const [error, setError] = useState("");
 
   async function load() {
@@ -46,6 +49,26 @@ export default function AdminMerchPage() {
       if (!res.ok) throw new Error(json.error || "Failed");
       setShipping(null);
       await load();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Failed");
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  async function addHolder() {
+    if (!hand || !user) return;
+    setBusy(hand.reference);
+    setError("");
+    try {
+      const res = await fetch("/api/admin/merch", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${await user.getIdToken()}` },
+        body: JSON.stringify({ action: "add_custody", ...hand }),
+      });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error || "Failed");
+      setHand(null);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Failed");
     } finally {
@@ -107,6 +130,35 @@ export default function AdminMerchPage() {
                 {o.address.fullName} · {o.address.phone} · {o.address.street}, {o.address.city}, {o.address.state}
               </p>
               <p className="mt-1 font-mono text-[11px] text-slate">{o.email} · {o.reference} · {new Date(o.createdAt).toLocaleDateString("en-NG")}</p>
+              {o.parcelId && (
+                <p className="mt-1 text-xs text-slate">
+                  Parcel <a href={`/track/${o.parcelId}`} target="_blank" rel="noopener noreferrer" className="font-mono text-crimson underline">{o.parcelId}</a> — what the buyer sees at /track
+                </p>
+              )}
+              {["printed", "shipped"].includes(o.status) && (
+                hand?.reference === o.reference ? (
+                  <div className="mt-2 grid gap-2 sm:grid-cols-2">
+                    <label className="text-xs text-slate">Who holds it
+                      <select value={hand.holderType} onChange={(e) => setHand({ ...hand, holderType: e.target.value })} className="mt-1 block w-full border border-rule bg-card px-2 py-1 text-sm">
+                        {(["seller", "bike", "bus", "park", "courier"] as HolderType[]).map((t) => <option key={t} value={t}>{HOLDER_LABEL[t]}</option>)}
+                      </select>
+                    </label>
+                    <label className="text-xs text-slate">Name<input value={hand.holderName} onChange={(e) => setHand({ ...hand, holderName: e.target.value })} className="mt-1 block w-full border border-rule bg-card px-2 py-1 text-sm" /></label>
+                    <label className="text-xs text-slate">Phone (optional)<input value={hand.holderPhone} onChange={(e) => setHand({ ...hand, holderPhone: e.target.value })} className="mt-1 block w-full border border-rule bg-card px-2 py-1 text-sm" placeholder="08012345678" /></label>
+                    <label className="text-xs text-slate">Where the parcel is<input value={hand.location} onChange={(e) => setHand({ ...hand, location: e.target.value })} className="mt-1 block w-full border border-rule bg-card px-2 py-1 text-sm" placeholder="Ojota motor park, Lagos" /></label>
+                    <label className="flex items-start gap-2 text-xs text-slate sm:col-span-2">
+                      <input type="checkbox" checked={hand.consent} onChange={(e) => setHand({ ...hand, consent: e.target.checked })} className="mt-0.5" />
+                      <span>The holder agrees to their number being shown to the buyer (needed if you add a number).</span>
+                    </label>
+                    <div className="flex gap-3 sm:col-span-2">
+                      <button disabled={busy === o.reference} onClick={addHolder} className="rounded-full border border-crimson px-3 py-1 text-xs text-crimson disabled:opacity-40">Add to the buyer&apos;s tracking</button>
+                      <button onClick={() => setHand(null)} className="text-xs text-slate">Cancel</button>
+                    </div>
+                  </div>
+                ) : (
+                  <button onClick={() => setHand({ reference: o.reference, holderType: "bike", holderName: "", holderPhone: "", location: "", consent: false })} className="mt-2 mr-2 text-xs font-semibold text-crimson">Record who holds it (rider / bus / park)</button>
+                )
+              )}
               {o.status === "shipped" && (o.courier || o.trackingNumber) && (
                 <p className="mt-1 text-xs text-ink">Courier: {[o.courier, o.trackingNumber].filter(Boolean).join(" · ")}</p>
               )}
@@ -118,12 +170,15 @@ export default function AdminMerchPage() {
                   <label className="text-xs text-slate">Tracking number (optional)
                     <input value={shipping.trackingNumber} onChange={(e) => setShipping({ ...shipping, trackingNumber: e.target.value })} className="mt-1 block border border-rule bg-card px-2 py-1 text-sm" />
                   </label>
-                  <button disabled={busy === o.reference} onClick={() => advance(o, { courier: shipping.courier, trackingNumber: shipping.trackingNumber })} className="rounded-full border border-crimson px-3 py-1 text-xs text-crimson disabled:opacity-40">Mark shipped &amp; email buyer</button>
+                  <label className="text-xs text-slate">Tracking link (optional, https://…)
+                    <input value={shipping.trackingUrl} onChange={(e) => setShipping({ ...shipping, trackingUrl: e.target.value })} className="mt-1 block border border-rule bg-card px-2 py-1 text-sm" />
+                  </label>
+                  <button disabled={busy === o.reference} onClick={() => advance(o, { courier: shipping.courier, trackingNumber: shipping.trackingNumber, trackingUrl: shipping.trackingUrl })} className="rounded-full border border-crimson px-3 py-1 text-xs text-crimson disabled:opacity-40">Mark shipped &amp; email buyer</button>
                   <button onClick={() => setShipping(null)} className="text-xs text-slate">Cancel</button>
                 </div>
               ) : (
                 NEXT[o.status] && (
-                  <button disabled={busy === o.reference} onClick={() => (o.status === "printed" ? setShipping({ reference: o.reference, courier: "", trackingNumber: "" }) : advance(o))} className="mt-2 rounded-full border border-rule px-3 py-1 text-xs hover:border-crimson hover:text-crimson disabled:opacity-40">
+                  <button disabled={busy === o.reference} onClick={() => (o.status === "printed" ? setShipping({ reference: o.reference, courier: "", trackingNumber: "", trackingUrl: "" }) : advance(o))} className="mt-2 rounded-full border border-rule px-3 py-1 text-xs hover:border-crimson hover:text-crimson disabled:opacity-40">
                     {NEXT[o.status]!.label}
                   </button>
                 )

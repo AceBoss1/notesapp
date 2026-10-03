@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import { collection, getDocs, query, where } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { formatNaira } from "@/lib/booking-time";
@@ -50,7 +51,9 @@ export default function MerchPreorders({ uid }: { uid: string }) {
               {o.status === "shipped" && (o.courier || o.trackingNumber) && (
                 <p className="mt-2 text-xs text-ink">Courier: {[o.courier, o.trackingNumber].filter(Boolean).join(" · ")}</p>
               )}
-              <p className="mt-2 font-mono text-[11px] text-slate">{o.reference}</p>
+              <p className="mt-2 font-mono text-[11px] text-slate">
+                {o.parcelId ? <><Link href={`/track/${o.parcelId}`} className="font-semibold text-crimson underline">Track {o.parcelId}</Link> · </> : null}{o.reference}
+              </p>
             </li>
           );
         })}

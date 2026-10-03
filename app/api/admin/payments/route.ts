@@ -76,7 +76,11 @@ export async function POST(req: NextRequest) {
       const batch = db.batch();
       batch.update(payRef, { status: "refunded" });
       existing.forEach((e) => batch.update(e.ref, { status: "refunded" }));
-      if (paySnap.data()?.kind === "merch") batch.update(db.doc(`merchOrders/${paymentRef}`), { status: "refunded" });
+      if (paySnap.data()?.kind === "merch") {
+        batch.update(db.doc(`merchOrders/${paymentRef}`), { status: "refunded" });
+        const mo = (await db.doc(`merchOrders/${paymentRef}`).get()).data();
+        if (mo?.parcelId) batch.update(db.doc(`parcels/${mo.parcelId}`), { status: "refunded", merchStatus: "refunded" });
+      }
       if (paySnap.data()?.kind === "store") {
         const o = (await db.doc(`storeOrders/${paymentRef}`).get()).data();
         if (o) {

@@ -92,6 +92,7 @@ export const LOGO_OPTIONS: LogoOption[] = [
 export type MerchOrderStatus = "preordered" | "printed" | "shipped" | "delivered" | "refunded";
 export type MerchOrder = {
   reference: string;
+  parcelId?: string; // set at checkout (older orders get one on their first status change)
   uid: string;
   email: string;
   itemName: string;
@@ -107,6 +108,7 @@ export type MerchOrder = {
   deliveredAt?: string;
   courier?: string;
   trackingNumber?: string;
+  trackingUrl?: string;
   address: { fullName: string; phone: string; street: string; city: string; state: string };
 };
 

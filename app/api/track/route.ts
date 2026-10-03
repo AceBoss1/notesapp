@@ -54,6 +54,8 @@ export async function GET(req: NextRequest) {
       itemTitle: parcel.itemTitle,
       quantity: parcel.quantity,
       status: parcel.status,
+      kind: parcel.kind ?? "store",
+      merchStatus: parcel.merchStatus ?? null,
       seller: { name: parcel.sellerName, username: parcel.sellerUsername },
       destination: `${parcel.city}, ${parcel.state}`,
       mode: parcel.mode ?? null,
