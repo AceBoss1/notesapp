@@ -23,7 +23,8 @@ export default function GiftButton({
   label?: string;
 }) {
   const [user, setUser] = useState<User | null | undefined>(undefined);
-  const [ready, setReady] = useState(false);
+  // "off": publisher switched gifts off (hidden); "no-payout": not set up to be paid yet (shown disabled).
+  const [ready, setReady] = useState<"loading" | "ready" | "no-payout" | "off">("loading");
   const [open, setOpen] = useState(false);
   const [amount, setAmount] = useState<number>(GIFT_PRESETS_NAIRA[1]);
   const [custom, setCustom] = useState("");
@@ -38,12 +39,23 @@ export default function GiftButton({
     getDoc(doc(db, "publisherSettings", publisherUid))
       .then((snap) => {
         const s = snap.data() as PublisherSettings | undefined;
-        setReady(!!s?.payoutReady && s.gifts?.enabled !== false);
+        setReady(s?.gifts?.enabled === false ? "off" : s?.payoutReady ? "ready" : "no-payout");
       })
-      .catch(() => setReady(false));
+      .catch(() => setReady("no-payout"));
   }, [publisherUid]);
 
-  if (!ready || user === undefined || user?.uid === publisherUid) return null;
+  if (ready === "loading" || ready === "off" || user === undefined || user?.uid === publisherUid) return null;
+
+  if (ready === "no-payout") {
+    return (
+      <span className="inline-flex flex-col items-start gap-1">
+        <button type="button" disabled aria-disabled="true" className="btn-ghost !px-4 !py-2 text-xs cursor-not-allowed opacity-50">
+          {label}
+        </button>
+        <span className="text-[11px] text-slate">This publisher hasn't set up payouts yet.</span>
+      </span>
+    );
+  }
 
   const naira = custom ? Number(custom) : amount;
 

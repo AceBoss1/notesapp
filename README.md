@@ -1246,6 +1246,16 @@ report the app itself being unreachable — add an external monitor
 (UptimeRobot / Better Stack free tier) on `/api/status` for that, and
 optionally point a `status.notesapp.name.ng` hosted page at it.
 
+The page also shows **recent response times** (bars from your browser's last
+24 checks, kept in localStorage), an **incident history** and **email
+subscriptions**. An incident opens after two consecutive slow/down checks and
+resolves on the first clean one (state in `settings/statusState`, incidents in
+`statusIncidents`, subscribers in `statusSubscribers` — all server-only);
+subscribers are emailed on open and resolve with a one-click unsubscribe link
+(`GET /api/status/subscribe?id=&t=`). Checks run when someone loads /status or
+an external monitor pings `/api/status`, so ping it every 5 min for reliable
+incident detection.
+
 ### Boosts & gifts (built — approved 2026-09-30)
 **Gifts** — 🎁 button on every publisher profile and every post
 (`components/GiftButton.tsx`). Presets ₦200/500/1,000/2,000/5,000 or custom
