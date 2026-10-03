@@ -7,14 +7,15 @@
 // Not deducted: Paystack fees (customers bear them), merch cost of goods.
 // Refunded payments are excluded; a boost's undelivered-impression refund is
 // subtracted from boost revenue.
-export type StreamId = "sessions" | "subscriptions" | "gifts" | "store" | "boosts" | "plans" | "badges" | "gold" | "merch" | "ads";
+export type StreamId = "sessions" | "subscriptions" | "gifts" | "store" | "digital" | "boosts" | "plans" | "badges" | "gold" | "merch" | "ads";
 
 export const STREAMS: Record<StreamId, { label: string; model: "commission" | "full"; live: boolean }> = {
   sessions: { label: "Paid sessions", model: "commission", live: true },
   subscriptions: { label: "Journal subscriptions", model: "commission", live: true },
   gifts: { label: "Gifts", model: "commission", live: true },
   store: { label: "Store sales (physical goods)", model: "commission", live: true },
-  boosts: { label: "Post boosts", model: "full", live: true },
+  digital: { label: "Store sales (digital downloads)", model: "commission", live: true },
+  boosts: { label: "Post & item boosts", model: "full", live: true },
   plans: { label: "Pro / Business plans", model: "full", live: true },
   badges: { label: "Verified badge add-on", model: "full", live: true },
   gold: { label: "Gold badge (deposits + monthly)", model: "full", live: true },
@@ -27,6 +28,7 @@ const KIND_TO_STREAM: Record<string, StreamId> = {
   subscription: "subscriptions",
   gift: "gifts",
   store: "store",
+  digital: "digital",
   boost: "boosts",
   tier: "plans",
   badge: "badges",
