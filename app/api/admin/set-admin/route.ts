@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAuth } from "firebase-admin/auth";
-import { getAdminApp, setAdminClaim, verifyAdminRequest } from "@/lib/firebase-admin";
+import { getAdminApp, getAdminDb, setAdminClaim, verifyAdminRequest } from "@/lib/firebase-admin";
 import { rateLimit } from "@/lib/rate-limit";
 
 // Admin-only: grant or revoke the `admin` custom claim by email.
@@ -23,6 +23,8 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "You can't remove your own admin access." }, { status: 400 });
     }
     await setAdminClaim(target.uid, admin);
+    // Admins are Business publishers (no expiry); revoking leaves the tier alone.
+    if (admin) await getAdminDb().doc(`users/${target.uid}`).set({ accountTier: "business" }, { merge: true }).catch(() => {});
     return NextResponse.json({ ok: true, uid: target.uid, admin });
   } catch (err) {
     return NextResponse.json({ error: err instanceof Error ? err.message : "Failed" }, { status: 500 });

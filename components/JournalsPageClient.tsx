@@ -14,6 +14,7 @@ import FoundersSpotlight from "@/components/FoundersSpotlight";
 import JournalDirectory from "@/components/JournalDirectory";
 import TopicsBrowser from "@/components/TopicsBrowser";
 import JournalRow from "@/components/JournalRow";
+import BadgeToast from "@/components/BadgeToast";
 
 export default function JournalsPageClient() {
   const [notes, setNotes] = useState<NoteWithComputed[] | null>(null);
@@ -191,6 +192,7 @@ export default function JournalsPageClient() {
           </>
         )}
       </div>
+      <BadgeToast />
     </div>
   );
 }

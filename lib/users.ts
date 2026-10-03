@@ -16,7 +16,7 @@ import { User as FirebaseUser } from "firebase/auth";
 import { db } from "./firebase";
 import { ADMIN_PROFILES, SocialLinks } from "./admin";
 import { LEGAL_VERSION, Consent } from "./legal";
-import { badgeIncluded } from "./tiers";
+import { badgeIncluded, getTierConfig } from "./tiers";
 import { ttlCache } from "./ttl-cache";
 import type { AccountKind, OrgInfo } from "./org";
 import { GOLD_BADGE_LIVE, GOLD_KIND_LIVE, BadgeLevel, GoldBadgeKind } from "./badges";
@@ -163,6 +163,47 @@ export function badgeLevel(profile: UserProfile): BadgeLevel {
     (!profile.goldUntil || new Date(profile.goldUntil).getTime() > Date.now())
   ) return "gold";
   return hasVerifiedBadge(profile) ? "verified" : null;
+}
+
+// The two founder accounts. They are always treated as Business publishers, whatever the
+// stored `accountTier` says (older documents still read "basic"); `scripts/set-founder-tier.mjs`
+// also fixes the stored value.
+export const FOUNDER_USERNAMES: string[] = Object.values(ADMIN_PROFILES).map((p) => p.username);
+export function effectiveTier(p: Pick<UserProfile, "username" | "role" | "accountTier">): AccountTier {
+  return p.role === "admin" || FOUNDER_USERNAMES.includes(p.username) ? "business" : p.accountTier;
+}
+
+// #NotesApp-only framing for the two founders — display text only, never written back into the
+// shared `users` or `notes` documents.
+export const FOUNDER_ROLE_LABELS: Record<string, string> = {
+  emmanuel: "Founder & CEO, #NotesApp",
+  chimdinma: "Guest Writer, #NotesApp",
+};
+
+// The one line under a person's name, everywhere (profile, journal byline, new posts) so the same
+// account never reads differently in two places.
+export function roleLabelFor(p: Pick<UserProfile, "username" | "role" | "accountTier">): string {
+  if (FOUNDER_ROLE_LABELS[p.username]) return FOUNDER_ROLE_LABELS[p.username];
+  if (p.role === "staff") return "Staff Writer";
+  if (p.role === "volunteer") return "Guest Writer";
+  if (effectiveTier(p) === "standard") return "Member";
+  return getTierConfig(effectiveTier(p)).label.replace(/^Free /, "") + " Publisher";
+}
+
+// The profile behind a journal entry. Entries shared with Precheks carry no author uid, only a
+// display name — and more than one account can share a name — so the two founders resolve by their
+// fixed usernames instead of "whichever Emmanuel Adams comes back first".
+export async function getAuthorProfile(note: { authorUid?: string; author: string }): Promise<UserProfile | null> {
+  if (note.authorUid) {
+    const byUid = await getUserByUid(note.authorUid);
+    if (byUid) return byUid;
+  }
+  const founder = Object.values(ADMIN_PROFILES).find((p) => p.displayName === note.author);
+  if (founder) {
+    const f = await getUserByUsername(founder.username);
+    if (f) return f;
+  }
+  return getUserByDisplayName(note.author);
 }
 
 // Which kind of gold ✔ an account shows (undefined unless it is showing gold).

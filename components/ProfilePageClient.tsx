@@ -6,7 +6,7 @@ import Image from "next/image";
 import { onAuthStateChanged, User } from "firebase/auth";
 import { auth } from "@/lib/firebase";
 import { recordView } from "@/lib/track";
-import { getUserByUsername, getCommentsByUser, badgeLevel, goldKindOf, isTeamMember, canPublish, UserProfile, CommentActivity, Suspension } from "@/lib/users";
+import { getUserByUsername, getCommentsByUser, badgeLevel, goldKindOf, isTeamMember, canPublish, roleLabelFor, UserProfile, CommentActivity, Suspension } from "@/lib/users";
 import TeamBadge from "@/components/TeamBadge";
 import { GOLD_BADGE_TITLE, type BadgeLevel } from "@/lib/badges";
 import { getAllNotes, isNoteBy, NoteWithComputed } from "@/lib/firestore-notes";
@@ -20,6 +20,7 @@ import SubscribeButton from "@/components/SubscribeButton";
 import BookingCard from "@/components/BookingCard";
 import GiftButton from "@/components/GiftButton";
 import VerifiedBadge from "@/components/VerifiedBadge";
+import BadgeToast from "@/components/BadgeToast";
 import { OrgLabel, UnverifiedOrgNotice } from "@/components/OrgNotice";
 import JournalRow from "@/components/JournalRow";
 import NotesAppPostRow from "@/components/NotesAppPostRow";
@@ -33,10 +34,7 @@ const SUSPENDED_AVATAR = "/images/brand/suspended-avatar.png";
 
 // #NotesApp-only framing for the two founders — display text only,
 // never written back into the shared `users` or `notes` documents.
-const ROLE_LABELS: Record<string, string> = {
-  emmanuel: "Founder & CEO, #NotesApp",
-  chimdinma: "Guest Writer, #NotesApp",
-};
+
 
 // Common shape both a real UserProfile and the synthetic @notesapp
 // profile can be rendered from.
@@ -123,11 +121,15 @@ export default function ProfilePageClient({ params }: { params: { username: stri
         displayName: realProfile.displayName,
         avatar: realProfile.avatar,
         bio: realProfile.bio,
-        roleLabel: ROLE_LABELS[realProfile.username] || realProfile.role,
+        roleLabel: roleLabelFor(realProfile),
       }
     : realProfile === null
     ? null
     : undefined;
+
+  // "Joined October 2026" — from the account's creation time (the official channels have none).
+  const joinedAt = realProfile?.createdAt ? new Date(realProfile.createdAt) : null;
+  const joined = joinedAt && !Number.isNaN(joinedAt.getTime()) ? joinedAt.toLocaleDateString("en-NG", { month: "long", year: "numeric" }) : "";
 
   useEffect(() => {
     if (!profile) return;
@@ -258,6 +260,7 @@ export default function ProfilePageClient({ params }: { params: { username: stri
             <p className="mt-2 font-mono text-xs text-slate">
               {followerCount === null ? "…" : followerCount} follower
               {followerCount === 1 ? "" : "s"}
+              {joined && <> · Joined {joined}</>}
             </p>
           )}
         </div>
@@ -466,6 +469,7 @@ export default function ProfilePageClient({ params }: { params: { username: stri
           )}
         </div>
       )}
+      {badge && !suspended && <BadgeToast subjectUid={realProfile?.uid} />}
     </div>
   );
 }
