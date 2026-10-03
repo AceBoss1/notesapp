@@ -5,7 +5,7 @@ import { sendEmail } from "@/lib/email";
 import { FieldValue } from "firebase-admin/firestore";
 import type { MerchOrder } from "@/lib/merch";
 import { cleanText, isHolderType, isHttpsUrl, normalizePhone } from "@/lib/orders";
-import { ensureMerchParcel, parcelStatusForMerch } from "@/lib/orders-server";
+import { ensureMerchParcel, expireLinks, hashToken, holderUrl, newLinkToken, parcelStatusForMerch, sendMerchStatusEmail } from "@/lib/orders-server";
 
 export const dynamic = "force-dynamic";
 
@@ -25,7 +25,6 @@ export async function POST(req: NextRequest) {
     const order = (await ref.get()).data() as MerchOrder | undefined;
     if (!order) return NextResponse.json({ error: "Order not found." }, { status: 404 });
     if (order.status === "refunded") return NextResponse.json({ error: "This order was refunded." }, { status: 409 });
-    const site = process.env.NEXT_PUBLIC_SITE_URL || "https://www.notesapp.name.ng";
     // Every merch order has a parcel (and so a public /track page); older orders get theirs here.
     const parcelId = await ensureMerchParcel(order);
     const parcelRef = db.doc(`parcels/${parcelId}`);
@@ -49,7 +48,23 @@ export async function POST(req: NextRequest) {
         holderType: body.holderType, holderName, ...(holderPhone ? { holderPhone } : {}), location, at: now, status: "confirmed", by: "seller",
       };
       await parcelRef.update({ custody: FieldValue.arrayUnion(entry), ...(order.courier ? {} : { mode: "handoff" }) });
-      return NextResponse.json({ ok: true });
+      await expireLinks(parcelId).catch(() => {}); // recording the next holder ends earlier holders' links
+      return NextResponse.json({ ok: true, entryId: entry.id });
+    }
+
+    // A private no-login link for the rider / driver / agent holding the parcel (same /p/<token>
+    // page store sellers use): they can update the location, hand it on, or mark it delivered.
+    if (action === "holder_link") {
+      if (!["printed", "shipped"].includes(order.status)) {
+        return NextResponse.json({ error: "This order isn't in transit." }, { status: 409 });
+      }
+      const parcel = (await parcelRef.get()).data() as { custody?: { id: string }[] } | undefined;
+      if (!parcel?.custody?.some((c) => c.id === body.entryId)) return NextResponse.json({ error: "No such hand-off entry." }, { status: 404 });
+      const token = newLinkToken();
+      await db.doc(`parcelLinks/${hashToken(token)}`).set({
+        parcelId, entryId: body.entryId, active: true, createdAt: now, expiresAt: new Date(Date.now() + 14 * 86_400_000).toISOString(),
+      });
+      return NextResponse.json({ ok: true, url: holderUrl(token) });
     }
 
     if (!FLOW.includes(status)) return NextResponse.json({ error: "Invalid request." }, { status: 400 });
@@ -75,27 +90,7 @@ export async function POST(req: NextRequest) {
     });
 
     // Tell the buyer at every step (the pre-order confirmation covers "preordered").
-    if (order.email) {
-      const what = `${order.quantity} × ${order.itemName}${order.size ? ` (${order.size})` : ""}`;
-      const where = `${order.address?.city}, ${order.address?.state}`;
-      const idLine = `\nParcel ID: ${parcelId} — follow it at ${site}/track/${parcelId}\nReference: ${order.reference}`;
-      const msg: Record<string, { subject: string; text: string }> = {
-        printed: {
-          subject: "Your #NotesApp merch has been printed",
-          text: `Good news — your ${what} has been printed and is being prepared for delivery to ${where}. We'll email you again when it ships. (Refunds are no longer available once an order is printed.)${idLine}`,
-        },
-        shipped: {
-          subject: "Your #NotesApp merch is on its way",
-          text: `Your ${what} is on its way to ${where}.${courierName || tracking ? `\nCourier: ${[courierName, tracking].filter(Boolean).join(" · ")}` : ""}${idLine}`,
-        },
-        delivered: {
-          subject: "Your #NotesApp merch was delivered",
-          text: `Your ${what} has been marked delivered to ${where}. If anything isn't right, reply via the Contact page on the site and quote your reference.${idLine}`,
-        },
-      };
-      const m = msg[status];
-      if (m) await sendEmail({ to: order.email, subject: m.subject, text: `${m.text}\n\n#NotesApp`, action: { label: "Track your order", url: `${site}/track/${parcelId}` } }).catch(() => {});
-    }
+    if (status !== "preordered") await sendMerchStatusEmail(order, parcelId, status, { name: courierName, trackingNumber: tracking });
     return NextResponse.json({ ok: true });
   } catch (err) {
     const f = friendlyMessage(err, "Couldn't update the order");
