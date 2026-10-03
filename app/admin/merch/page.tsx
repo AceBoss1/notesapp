@@ -150,6 +150,7 @@ export default function AdminMerchPage() {
                       <input type="checkbox" checked={hand.consent} onChange={(e) => setHand({ ...hand, consent: e.target.checked })} className="mt-0.5" />
                       <span>The holder agrees to their number being shown to the buyer (needed if you add a number).</span>
                     </label>
+                    {error && <p className="text-xs text-crimson sm:col-span-2">{error}</p>}
                     <div className="flex gap-3 sm:col-span-2">
                       <button disabled={busy === o.reference} onClick={addHolder} className="rounded-full border border-crimson px-3 py-1 text-xs text-crimson disabled:opacity-40">Add to the buyer&apos;s tracking</button>
                       <button onClick={() => setHand(null)} className="text-xs text-slate">Cancel</button>

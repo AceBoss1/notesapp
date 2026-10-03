@@ -42,7 +42,7 @@ export async function POST(req: NextRequest) {
       const holderPhone = body.holderPhone ? normalizePhone(body.holderPhone) : null;
       if (!isHolderType(body.holderType) || body.holderType === "buyer") return NextResponse.json({ error: "Choose who holds it." }, { status: 400 });
       if (!holderName || !location) return NextResponse.json({ error: "Enter the holder's name and where the parcel is." }, { status: 400 });
-      if (body.holderPhone && !holderPhone) return NextResponse.json({ error: "That phone number doesn't look right." }, { status: 400 });
+      if (body.holderPhone && !holderPhone) return NextResponse.json({ error: "Use an 11-digit Nigerian number like 08012345678 (or +2348012345678)." }, { status: 400 });
       if (holderPhone && body.consent !== true) return NextResponse.json({ error: "Tick that the holder agrees to their number being shown to the buyer." }, { status: 400 });
       const entry = {
         id: `${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`,
