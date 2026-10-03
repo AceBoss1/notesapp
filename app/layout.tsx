@@ -50,6 +50,7 @@ const COMPANY = [
   { href: "/about", label: "About Us" },
   { href: "/pricing", label: "Pricing" },
   { href: "/contact", label: "Contact" },
+  { href: "/track", label: "Track a Parcel" },
   { href: "/roadmap", label: "Roadmap" },
   { href: "/status", label: "Status" },
   { href: "/terms", label: "Terms of Service" },

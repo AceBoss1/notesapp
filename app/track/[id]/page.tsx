@@ -6,12 +6,15 @@ import { useParams } from "next/navigation";
 import { onAuthStateChanged } from "firebase/auth";
 import { auth } from "@/lib/firebase";
 import { HOLDER_LABEL, HolderType, ORDER_STATUS_LABEL, OrderStatus } from "@/lib/orders";
+import { MERCH_STEPS, MerchOrderStatus } from "@/lib/merch";
 
 type View = {
   parcelId: string;
   itemTitle: string;
   quantity: number;
   status: OrderStatus;
+  kind: "store" | "merch";
+  merchStatus: MerchOrderStatus | null;
   seller: { name: string; username: string };
   destination: string;
   mode: "courier" | "handoff" | null;
@@ -59,13 +62,32 @@ export default function TrackParcelPage() {
   if (error && !view) return <div className="mx-auto max-w-md px-4 py-24 text-center text-slate">{error} <Link href="/track" className="text-crimson underline">Try another ID</Link></div>;
   if (!view) return <div className="px-6 py-24 text-center text-slate">Loading…</div>;
   const latest = [...view.custody].reverse().find((c) => c.status === "confirmed");
+  const merch = view.kind === "merch";
+  const merchStep = merch ? MERCH_STEPS.findIndex((s) => s.status === view.merchStatus) : -1;
 
   return (
     <section className="mx-auto max-w-xl px-4 py-14 sm:px-6">
       <span className="eyebrow">Parcel {view.parcelId}</span>
       <h1 className="mt-3 font-display text-3xl text-ink">{view.quantity} × {view.itemTitle}</h1>
-      <p className="mt-1 text-sm text-slate">From <Link href={`/u/${view.seller.username}/store`} className="text-crimson underline">{view.seller.name}</Link> · to {view.destination}</p>
-      <p className="mt-4 inline-block border border-rule px-3 py-1 font-mono text-xs uppercase tracking-wideish text-ink">{ORDER_STATUS_LABEL[view.status]}</p>
+      <p className="mt-1 text-sm text-slate">
+        From {view.seller.username ? <Link href={`/u/${view.seller.username}/store`} className="text-crimson underline">{view.seller.name}</Link> : view.seller.name} · to {view.destination}
+      </p>
+      {merch ? (
+        view.merchStatus === "refunded" ? (
+          <p className="mt-4 inline-block border border-rule px-3 py-1 font-mono text-xs uppercase tracking-wideish text-ink">Refunded</p>
+        ) : (
+          <ol className="mt-5 grid grid-cols-4 gap-1 text-center text-[11px]">
+            {MERCH_STEPS.map((s, i) => (
+              <li key={s.status} className={i <= merchStep ? "text-crimson" : "text-slate/60"}>
+                <span className={`mx-auto mb-1 block h-1.5 rounded-full ${i <= merchStep ? "bg-crimson" : "bg-rule"}`} />
+                <span className="font-semibold">{s.label}</span>
+              </li>
+            ))}
+          </ol>
+        )
+      ) : (
+        <p className="mt-4 inline-block border border-rule px-3 py-1 font-mono text-xs uppercase tracking-wideish text-ink">{ORDER_STATUS_LABEL[view.status]}</p>
+      )}
 
       {view.mode === "courier" && view.courier && (
         <div className="card mt-6 p-5 text-sm">
@@ -117,11 +139,19 @@ export default function TrackParcelPage() {
         </div>
       )}
 
-      {!view.mode && view.status === "paid" && <p className="mt-6 text-sm text-slate">The seller hasn&apos;t dispatched this yet.</p>}
-      <p className="mt-8 text-xs text-slate">
-        #NotesApp holds the buyer&apos;s payment until delivery is confirmed but isn&apos;t the seller or the carrier — the seller keeps this record up to date.
-        Buyers can confirm delivery or report a problem under <Link href="/orders" className="text-crimson underline">My orders</Link>.
-      </p>
+      {!view.mode && view.status === "paid" && (
+        <p className="mt-6 text-sm text-slate">
+          {merch ? "Official merch is printed after the batch closes, then shipped. This page updates at every step." : "The seller hasn't dispatched this yet."}
+        </p>
+      )}
+      {merch ? (
+        <p className="mt-8 text-xs text-slate">Official #NotesApp merch, fulfilled by #NotesApp. Questions? Use the <Link href="/contact" className="text-crimson underline">Contact</Link> page and quote parcel {view.parcelId}.</p>
+      ) : (
+        <p className="mt-8 text-xs text-slate">
+          #NotesApp holds the buyer&apos;s payment until delivery is confirmed but isn&apos;t the seller or the carrier — the seller keeps this record up to date.
+          Buyers can confirm delivery or report a problem under <Link href="/orders" className="text-crimson underline">My orders</Link>.
+        </p>
+      )}
     </section>
   );
 }

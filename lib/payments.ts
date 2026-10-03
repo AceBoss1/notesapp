@@ -8,6 +8,7 @@ import type { AccountTier } from "./users";
 import { getBoostPackage } from "./boost-config";
 import { periodEndFrom, cancelBadgeIfCovered } from "./tier-billing";
 import { ESCROW_PLACEHOLDER_DAYS, newParcelId, phoneLast4 } from "./orders";
+import { merchParcelDoc } from "./orders-server";
 
 // Server-only. All money-state changes happen here, via the Admin SDK
 // (Firestore rules make payments/bookings/ledger/subscriptions
@@ -280,8 +281,10 @@ export async function fulfillPayment(reference: string): Promise<PaymentRecord> 
     } else if (current.kind === "merch" && current.merch) {
       // Official merch is platform revenue (no ledger). One order per payment,
       // collected into a pre-order batch for admin fulfilment.
+      const merchParcelId = newParcelId();
       t.set(db.doc(`merchOrders/${reference}`), {
         reference,
+        parcelId: merchParcelId,
         uid: current.uid,
         email: current.email,
         ...current.merch,
@@ -289,6 +292,8 @@ export async function fulfillPayment(reference: string): Promise<PaymentRecord> 
         status: "preordered",
         createdAt: now,
       });
+      // The same public tracking page store orders use, so the buyer can follow it.
+      t.set(db.doc(`parcels/${merchParcelId}`), merchParcelDoc(merchParcelId, { reference, uid: current.uid, itemName: current.merch.itemName, size: current.merch.size, quantity: current.merch.quantity, address: current.merch.address, status: "preordered" }, now));
     } else if (current.kind === "ad" && current.ad) {
       // Paid campaign enters the admin review queue. It is NOT revenue yet — the ad
       // revenue entry is created when an admin approves it (a rejection refunds it).
@@ -481,10 +486,13 @@ async function notifyPaid(p: PaymentRecord) {
   }
   if (p.kind === "merch" && p.merch) {
     const m = p.merch;
+    const site = process.env.NEXT_PUBLIC_SITE_URL || "https://www.notesapp.name.ng";
+    const parcelId = ((await getAdminDb().doc(`merchOrders/${p.reference}`).get()).data() as { parcelId?: string } | undefined)?.parcelId;
     await sendEmail({
       to: p.email,
       subject: "Your #NotesApp merch pre-order is confirmed",
-      text: `Thanks! ${m.quantity} × ${m.itemName}${m.size ? ` (${m.size})` : ""} with the ${m.logoLabel} logo — ${formatNaira(p.amountKobo)} including delivery.\nDelivering to ${m.address.fullName}, ${m.address.street}, ${m.address.city}, ${m.address.state}.\nWe print after the batch closes and deliver within about 3 weeks of closing. You can ask for a refund before the batch is printed.\nReference: ${p.reference}\n\n#NotesApp`,
+      text: `Thanks! ${m.quantity} × ${m.itemName}${m.size ? ` (${m.size})` : ""} with the ${m.logoLabel} logo — ${formatNaira(p.amountKobo)} including delivery.\nDelivering to ${m.address.fullName}, ${m.address.street}, ${m.address.city}, ${m.address.state}.\nWe print after the batch closes and deliver within about 3 weeks of closing. You can ask for a refund before the batch is printed.${parcelId ? `\nTrack it any time with parcel ID ${parcelId}.` : ""}\nReference: ${p.reference}\n\n#NotesApp`,
+      ...(parcelId ? { action: { label: "Track your order", url: `${site}/track/${parcelId}` } } : {}),
     });
     return;
   }

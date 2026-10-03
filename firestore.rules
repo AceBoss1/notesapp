@@ -12,21 +12,10 @@ service cloud.firestore {
     }
 
     // Admin = Firebase custom claim `admin: true` (set with
-    // scripts/set-admin-claims.mjs or /api/admin/set-admin).
-    // The email list below is the TEMPORARY legacy path so nobody is
-    // locked out mid-migration. Once both founders have the claim
-    // (sign out/in, check /admin works), delete isLegacyAdminEmail()
-    // and its use here — see README "Custom-claims admin".
-    function isLegacyAdminEmail() {
-      return request.auth.token.email in [
-        'ezurukam@gmail.com',
-        'precheks.info@gmail.com'
-      ];
-    }
-
+    // scripts/set-admin-claims.mjs or /api/admin/set-admin). An email
+    // address alone grants nothing.
     function isAdmin() {
-      return request.auth != null
-        && (request.auth.token.admin == true || isLegacyAdminEmail());
+      return request.auth != null && request.auth.token.admin == true;
     }
 
     // A self-serve paid/free-basic-publisher account, or an internal

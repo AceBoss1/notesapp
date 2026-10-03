@@ -2,7 +2,8 @@ import { createHash, randomBytes } from "crypto";
 import { getAdminDb, getUserEmail } from "./firebase-admin";
 import { sendEmail } from "./email";
 import { FieldValue } from "firebase-admin/firestore";
-import { ESCROW_AUTO_RELEASE_DAYS, StoreOrder } from "./orders";
+import { ESCROW_AUTO_RELEASE_DAYS, StoreOrder, newParcelId, phoneLast4 } from "./orders";
+import type { MerchOrder } from "./merch";
 import { formatNaira } from "./booking-time";
 
 // Server-only helpers for seller orders and parcel links.
@@ -151,4 +152,33 @@ export async function canActForSeller(uid: string, sellerUid: string): Promise<b
   if (!m || m.store !== true) return false;
   const org = (await db.doc(`users/${sellerUid}`).get()).data();
   return !!org && org.suspended !== true && ["business", "enterprise"].includes(org.accountTier);
+}
+
+// Parcel stage mirrored from a merch order (the public /track page reads the parcel).
+export const parcelStatusForMerch = (s: MerchOrder["status"]) =>
+  s === "shipped" ? "dispatched" : s === "delivered" ? "delivered" : s === "refunded" ? "refunded" : "paid";
+
+// Official merch gets a parcel (and so a /track page) like any store order. New orders get
+// theirs at checkout; this backfills orders placed before that existed. Returns the parcel ID.
+export async function ensureMerchParcel(order: MerchOrder): Promise<string> {
+  if (order.parcelId) return order.parcelId;
+  const db = getAdminDb();
+  const parcelId = newParcelId();
+  const now = new Date().toISOString();
+  const batch = db.batch();
+  batch.set(db.doc(`parcels/${parcelId}`), merchParcelDoc(parcelId, order, now));
+  batch.update(db.doc(`merchOrders/${order.reference}`), { parcelId });
+  await batch.commit();
+  return parcelId;
+}
+
+export function merchParcelDoc(parcelId: string, o: Pick<MerchOrder, "reference" | "uid" | "itemName" | "size" | "quantity" | "address" | "status">, now: string) {
+  return {
+    parcelId, orderRef: o.reference, kind: "merch", merchStatus: o.status,
+    sellerUid: "notesapp", sellerUsername: "", sellerName: "#NotesApp",
+    buyerUid: o.uid, buyerPhoneLast4: phoneLast4(o.address.phone),
+    itemTitle: `${o.itemName}${o.size ? ` (${o.size})` : ""}`, quantity: o.quantity,
+    city: o.address.city, state: o.address.state,
+    status: parcelStatusForMerch(o.status), custody: [], createdAt: now,
+  };
 }

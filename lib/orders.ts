@@ -62,6 +62,10 @@ export type Parcel = {
   city: string;
   state: string;
   status: OrderStatus;
+  // Official #NotesApp merch uses the same tracking page; its own four stages replace
+  // the escrow-flavoured `status` wording (see lib/merch.ts MERCH_STEPS).
+  kind?: "store" | "merch";
+  merchStatus?: "preordered" | "printed" | "shipped" | "delivered" | "refunded";
   mode?: "courier" | "handoff";
   courier?: CourierInfo;
   custody: CustodyEntry[];
