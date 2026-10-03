@@ -13,22 +13,47 @@ export async function POST(req: NextRequest) {
   try {
     const idToken = req.headers.get("authorization")?.replace(/^Bearer\s+/i, "");
     await verifyAdminRequest(idToken);
-    const { reference, status } = await req.json();
+    const { reference, status, courier, trackingNumber } = await req.json();
     if (typeof reference !== "string" || !FLOW.includes(status)) {
       return NextResponse.json({ error: "Invalid request." }, { status: 400 });
     }
+    // Optional courier details, only meaningful when marking shipped.
+    const clean = (v: unknown) => (typeof v === "string" ? v.trim().slice(0, 80) : "");
+    const courierName = status === "shipped" ? clean(courier) : "";
+    const tracking = status === "shipped" ? clean(trackingNumber) : "";
     const ref = getAdminDb().doc(`merchOrders/${reference}`);
     const order = (await ref.get()).data();
     if (!order) return NextResponse.json({ error: "Order not found." }, { status: 404 });
     if (order.status === "refunded") return NextResponse.json({ error: "This order was refunded." }, { status: 409 });
-    await ref.update({ status, [`${status}At`]: new Date().toISOString() });
+    // A repeated click must not re-send the buyer's email.
+    if (order.status === status) return NextResponse.json({ ok: true });
+    await ref.update({
+      status,
+      [`${status}At`]: new Date().toISOString(),
+      ...(courierName ? { courier: courierName } : {}),
+      ...(tracking ? { trackingNumber: tracking } : {}),
+    });
 
-    if (status === "shipped" && order.email) {
-      await sendEmail({
-        to: order.email,
-        subject: "Your #NotesApp merch is on its way",
-        text: `Your ${order.quantity} × ${order.itemName} is on its way to ${order.address?.city}, ${order.address?.state}. Reference: ${order.reference}\n\n#NotesApp`,
-      }).catch(() => {});
+    // Tell the buyer at every step (the pre-order confirmation covers "preordered").
+    if (order.email) {
+      const what = `${order.quantity} × ${order.itemName}${order.size ? ` (${order.size})` : ""}`;
+      const where = `${order.address?.city}, ${order.address?.state}`;
+      const msg: Record<string, { subject: string; text: string }> = {
+        printed: {
+          subject: "Your #NotesApp merch has been printed",
+          text: `Good news — your ${what} has been printed and is being prepared for delivery to ${where}. We'll email you again when it ships. (Refunds are no longer available once an order is printed.)\nReference: ${order.reference}`,
+        },
+        shipped: {
+          subject: "Your #NotesApp merch is on its way",
+          text: `Your ${what} is on its way to ${where}.${courierName || tracking ? `\nCourier: ${[courierName, tracking].filter(Boolean).join(" · ")}` : ""}\nReference: ${order.reference}`,
+        },
+        delivered: {
+          subject: "Your #NotesApp merch was delivered",
+          text: `Your ${what} has been marked delivered to ${where}. If anything isn't right, reply via the Contact page on the site and quote your reference.\nReference: ${order.reference}`,
+        },
+      };
+      const m = msg[status];
+      if (m) await sendEmail({ to: order.email, subject: m.subject, text: `${m.text}\n\n#NotesApp` }).catch(() => {});
     }
     return NextResponse.json({ ok: true });
   } catch (err) {

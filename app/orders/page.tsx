@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { onAuthStateChanged, User } from "firebase/auth";
 import { auth } from "@/lib/firebase";
 import { formatNaira } from "@/lib/booking-time";
+import MerchPreorders from "@/components/MerchPreorders";
 import { HOLDER_LABEL, HolderType, ORDER_STATUS_LABEL, StoreOrder } from "@/lib/orders";
 
 type Order = Omit<StoreOrder, "buyerEmail">;
@@ -218,6 +219,7 @@ export default function OrdersPage() {
       <ul className="mt-6 space-y-3">
         {user && orders?.map((o) => (tab === "buying" ? <BuyerCard key={o.reference} o={o} user={user} onDone={() => load(user, tab)} /> : <SellerCard key={o.reference} o={o} user={user} onDone={() => load(user, tab)} />))}
       </ul>
+      {user && tab === "buying" && <MerchPreorders uid={user.uid} />}
     </section>
   );
 }

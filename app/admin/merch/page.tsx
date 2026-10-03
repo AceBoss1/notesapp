@@ -5,21 +5,9 @@ import { collection, getDocs, orderBy, query } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { useAdminAuth } from "@/lib/useAdminAuth";
 import { formatNaira } from "@/lib/booking-time";
-import { MERCH_BATCH } from "@/lib/merch";
+import { MERCH_BATCH, MerchOrder } from "@/lib/merch";
 
-type Order = {
-  reference: string;
-  email: string;
-  itemName: string;
-  logoLabel: string;
-  size?: string;
-  quantity: number;
-  amountKobo: number;
-  status: "preordered" | "printed" | "shipped" | "delivered" | "refunded";
-  batchId: string;
-  createdAt: string;
-  address: { fullName: string; phone: string; street: string; city: string; state: string };
-};
+type Order = MerchOrder;
 
 const NEXT: Record<string, { to: string; label: string } | undefined> = {
   preordered: { to: "printed", label: "Mark printed" },
@@ -31,6 +19,8 @@ export default function AdminMerchPage() {
   const { user, loading } = useAdminAuth();
   const [orders, setOrders] = useState<Order[] | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
+  // Which order is asking for courier details before being marked shipped.
+  const [shipping, setShipping] = useState<{ reference: string; courier: string; trackingNumber: string } | null>(null);
   const [error, setError] = useState("");
 
   async function load() {
@@ -41,7 +31,7 @@ export default function AdminMerchPage() {
     if (user) load().catch((e) => setError(e.message));
   }, [user]);
 
-  async function advance(o: Order) {
+  async function advance(o: Order, extra: Record<string, string> = {}) {
     const step = NEXT[o.status];
     if (!step || !user) return;
     setBusy(o.reference);
@@ -50,10 +40,11 @@ export default function AdminMerchPage() {
       const res = await fetch("/api/admin/merch", {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${await user.getIdToken()}` },
-        body: JSON.stringify({ reference: o.reference, status: step.to }),
+        body: JSON.stringify({ reference: o.reference, status: step.to, ...extra }),
       });
       const json = await res.json();
       if (!res.ok) throw new Error(json.error || "Failed");
+      setShipping(null);
       await load();
     } catch (e) {
       setError(e instanceof Error ? e.message : "Failed");
@@ -116,10 +107,26 @@ export default function AdminMerchPage() {
                 {o.address.fullName} · {o.address.phone} · {o.address.street}, {o.address.city}, {o.address.state}
               </p>
               <p className="mt-1 font-mono text-[11px] text-slate">{o.email} · {o.reference} · {new Date(o.createdAt).toLocaleDateString("en-NG")}</p>
-              {NEXT[o.status] && (
-                <button disabled={busy === o.reference} onClick={() => advance(o)} className="mt-2 rounded-full border border-rule px-3 py-1 text-xs hover:border-crimson hover:text-crimson disabled:opacity-40">
-                  {NEXT[o.status]!.label}
-                </button>
+              {o.status === "shipped" && (o.courier || o.trackingNumber) && (
+                <p className="mt-1 text-xs text-ink">Courier: {[o.courier, o.trackingNumber].filter(Boolean).join(" · ")}</p>
+              )}
+              {NEXT[o.status] && shipping?.reference === o.reference ? (
+                <div className="mt-2 flex flex-wrap items-end gap-2">
+                  <label className="text-xs text-slate">Courier (optional)
+                    <input value={shipping.courier} onChange={(e) => setShipping({ ...shipping, courier: e.target.value })} className="mt-1 block border border-rule bg-card px-2 py-1 text-sm" placeholder="GIG Logistics" />
+                  </label>
+                  <label className="text-xs text-slate">Tracking number (optional)
+                    <input value={shipping.trackingNumber} onChange={(e) => setShipping({ ...shipping, trackingNumber: e.target.value })} className="mt-1 block border border-rule bg-card px-2 py-1 text-sm" />
+                  </label>
+                  <button disabled={busy === o.reference} onClick={() => advance(o, { courier: shipping.courier, trackingNumber: shipping.trackingNumber })} className="rounded-full border border-crimson px-3 py-1 text-xs text-crimson disabled:opacity-40">Mark shipped &amp; email buyer</button>
+                  <button onClick={() => setShipping(null)} className="text-xs text-slate">Cancel</button>
+                </div>
+              ) : (
+                NEXT[o.status] && (
+                  <button disabled={busy === o.reference} onClick={() => (o.status === "printed" ? setShipping({ reference: o.reference, courier: "", trackingNumber: "" }) : advance(o))} className="mt-2 rounded-full border border-rule px-3 py-1 text-xs hover:border-crimson hover:text-crimson disabled:opacity-40">
+                    {NEXT[o.status]!.label}
+                  </button>
+                )
               )}
             </div>
           ))

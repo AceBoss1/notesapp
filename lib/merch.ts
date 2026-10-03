@@ -86,3 +86,33 @@ export const LOGO_OPTIONS: LogoOption[] = [
   { id: "argungu", label: "Argungu Fishing Festival", image: "/images/seasonal/arugungu-fishing-festival.webp" },
   { id: "christmas", label: "Christmas", image: "/images/seasonal/christmas.webp" },
 ];
+
+// A pre-order as stored in merchOrders/{reference}. Written only by the server
+// (payment confirmation + /api/admin/merch); the owner and admins can read it.
+export type MerchOrderStatus = "preordered" | "printed" | "shipped" | "delivered" | "refunded";
+export type MerchOrder = {
+  reference: string;
+  uid: string;
+  email: string;
+  itemName: string;
+  logoLabel: string;
+  size?: string;
+  quantity: number;
+  amountKobo: number;
+  status: MerchOrderStatus;
+  batchId: string;
+  createdAt: string;
+  printedAt?: string;
+  shippedAt?: string;
+  deliveredAt?: string;
+  courier?: string;
+  trackingNumber?: string;
+  address: { fullName: string; phone: string; street: string; city: string; state: string };
+};
+
+export const MERCH_STEPS: { status: Exclude<MerchOrderStatus, "refunded">; label: string; at: "createdAt" | "printedAt" | "shippedAt" | "deliveredAt" }[] = [
+  { status: "preordered", label: "Pre-ordered", at: "createdAt" },
+  { status: "printed", label: "Printed", at: "printedAt" },
+  { status: "shipped", label: "Shipped", at: "shippedAt" },
+  { status: "delivered", label: "Delivered", at: "deliveredAt" },
+];

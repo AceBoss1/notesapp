@@ -1417,7 +1417,11 @@ if re-run (don't). `consent` on user docs is still public (version + timestamp o
   delivery, quantity, batch and Nigerian address all validated server-side) →
   `merchOrders/{reference}` (owner/admin read, server write). Admin → **Merch**
   (`/admin/merch`) shows a "to print" tally and moves orders
-  preordered → printed → shipped → delivered (shipped emails the buyer); refunds go
+  preordered → printed → shipped → delivered; the buyer is emailed at printed, shipped
+  and delivered, and "Mark shipped" asks for an optional courier and tracking number
+  that go into the email and onto the order. Buyers see a four-step status line for
+  each pre-order under **Orders → My purchases** (`components/MerchPreorders.tsx`,
+  read straight from `merchOrders` via the owner rule). Refunds go
   through Payments and are blocked once an order is printed. **Edit in
   `lib/merch.ts` before launch:** `MERCH_BATCH.closesOn` (placeholder
   2026-11-15), `MERCH_DELIVERY_KOBO` (placeholder ₦3,000) and the item prices.
