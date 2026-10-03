@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { friendlyMessage } from "@/lib/api-errors";
 import { getAdminDb, verifyAdminRequest } from "@/lib/firebase-admin";
-import { initiateTransfer, refundTransaction, slotLockId } from "@/lib/paystack";
+import { refundTransaction, slotLockId } from "@/lib/paystack";
+import { releaseLedgerEntry } from "@/lib/payouts";
 import type { LedgerEntry } from "@/lib/payments";
 import { confirmOrder, notifyBackInStock, returnStock } from "@/lib/orders-server";
 
@@ -129,36 +130,9 @@ export async function POST(req: NextRequest) {
     }
 
     if (action === "release") {
-      if (ledger.status !== "held" && ledger.status !== "disputed") {
-        return NextResponse.json({ error: `Payout is ${ledger.status}.` }, { status: 409 });
-      }
-      if (new Date(ledger.releaseAfter).getTime() > Date.now()) {
-        return NextResponse.json({ error: `Not releasable until ${ledger.releaseAfter}.` }, { status: 409 });
-      }
-      const account = (await db.doc(`payoutAccounts/${ledger.publisherUid}`).get()).data();
-      if (!account?.recipientCode) return NextResponse.json({ error: "Publisher has no payout account." }, { status: 409 });
-
-      // Claim first so a double-click can't send two transfers.
-      const claimed = await db.runTransaction(async (t) => {
-        const cur = (await t.get(ledgerRef)).data() as LedgerEntry;
-        if (cur.status !== "held" && cur.status !== "disputed") return false;
-        t.update(ledgerRef, { status: "transferring", failureReason: "" });
-        return true;
-      });
-      if (!claimed) return NextResponse.json({ error: "Already being released." }, { status: 409 });
-      try {
-        const tr = await initiateTransfer({
-          amountKobo: ledger.netKobo,
-          recipient: account.recipientCode,
-          reference: `payout_${reference}`,
-          reason: `#NotesApp ${ledger.kind} payout`,
-        });
-        await ledgerRef.update({ transferCode: tr.transfer_code });
-        return NextResponse.json({ ok: true, transferStatus: tr.status });
-      } catch (err) {
-        await ledgerRef.update({ status: "held", failureReason: err instanceof Error ? err.message : "Transfer failed" });
-        throw err;
-      }
+      const r = await releaseLedgerEntry(reference, { allowDisputed: true });
+      if (!r.ok) return NextResponse.json({ error: r.error }, { status: r.status });
+      return NextResponse.json({ ok: true, transferStatus: r.transferStatus });
     }
     return NextResponse.json({ error: "Unknown action" }, { status: 400 });
   } catch (err) {

@@ -4,6 +4,7 @@ import { sendEmail } from "@/lib/email";
 import { formatSlot } from "@/lib/booking-time";
 import { expireTiers } from "@/lib/tier-billing";
 import { releaseDueOrders, releaseExpiredReservations } from "@/lib/orders-server";
+import { autoReleasePayouts } from "@/lib/payouts";
 
 // Run every ~15 minutes by an external scheduler with
 //   Authorization: Bearer $CRON_SECRET
@@ -58,7 +59,9 @@ export async function GET(req: NextRequest) {
   const expired = await job("expireTiers", expireTiers);
   const released = await job("releaseDueOrders", releaseDueOrders);
   const unreserved = await job("releaseExpiredReservations", releaseExpiredReservations);
+  // ...and pays publishers for sessions that ended PAYOUT_HOLD_HOURS ago with no problem reported.
+  const paidOut = await job("autoReleasePayouts", () => autoReleasePayouts());
   // Heartbeat read by /status ("Scheduled jobs"); server-only collection, no client rules.
   await db.collection("cronRuns").doc("reminders").set({ at: new Date().toISOString(), ok: failed.length === 0, failed }).catch((e) => console.error("cron heartbeat failed", e));
-  return NextResponse.json({ checked: snap.size, sent, expiredPlans: expired, releasedOrders: released, unreservedCheckouts: unreserved });
+  return NextResponse.json({ checked: snap.size, sent, expiredPlans: expired, releasedOrders: released, unreservedCheckouts: unreserved, payoutsStarted: paidOut });
 }
