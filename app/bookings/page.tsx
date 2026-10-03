@@ -7,7 +7,8 @@ import { onAuthStateChanged, User } from "firebase/auth";
 import { collection, getDocs, query, where } from "firebase/firestore";
 import { auth, db } from "@/lib/firebase";
 import { formatNaira, formatSlot } from "@/lib/booking-time";
-import { POLICY_TEXT, refundFraction } from "@/lib/cancellation";
+import { PAYOUT_HOLD_HOURS, POLICY_TEXT, RESCHEDULE_MAX, canReschedule, refundFraction } from "@/lib/cancellation";
+import { sessionEnd } from "@/lib/booking-time";
 
 type Booking = {
   reference: string;
@@ -22,6 +23,8 @@ type Booking = {
   clientEmail: string;
   publisherUid: string;
   refundKobo?: number;
+  rescheduleCount?: number;
+  reportedProblem?: { reason: string; at: string };
 };
 
 const STATUS_LABEL: Record<string, string> = {
@@ -38,6 +41,9 @@ export default function BookingsPage() {
   const [bookings, setBookings] = useState<Booking[] | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState("");
+  // Inline forms live here (not in Row, which is re-created on every render).
+  const [rs, setRs] = useState<{ reference: string; date: string; slots: string[] | null; slot: string | null } | null>(null);
+  const [rep, setRep] = useState<{ reference: string; reason: string } | null>(null);
 
   async function load(u: User) {
     const [asClient, asPublisher] = await Promise.all([
@@ -91,6 +97,39 @@ export default function BookingsPage() {
     }
   }
 
+  async function pickDate(b: Booking, date: string) {
+    setRs({ reference: b.reference, date, slots: null, slot: null });
+    if (!date) return;
+    try {
+      const j = await (await fetch(`/api/booking/slots?username=${encodeURIComponent(b.username)}&date=${date}`)).json();
+      setRs((cur) => (cur && cur.reference === b.reference && cur.date === date ? { ...cur, slots: j.slots ?? [] } : cur));
+    } catch {
+      setRs((cur) => (cur ? { ...cur, slots: [] } : cur));
+    }
+  }
+
+  async function post(path: string, body: Record<string, unknown>, ref: string, fail: string) {
+    if (!user) return;
+    setBusy(ref);
+    setError("");
+    try {
+      const res = await fetch(path, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${await user.getIdToken()}` },
+        body: JSON.stringify(body),
+      });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error || fail);
+      setRs(null);
+      setRep(null);
+      await load(user);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : fail);
+    } finally {
+      setBusy(null);
+    }
+  }
+
   if (!user || bookings === null) {
     return <div className="px-6 py-24 text-center text-slate">{error || "Loading…"}</div>;
   }
@@ -100,9 +139,17 @@ export default function BookingsPage() {
   const rest = bookings.filter((b) => !upcoming.includes(b));
 
   function Row({ b, canCancel }: { b: Booking; canCancel: boolean }) {
+    const isClient = b.clientUid === user!.uid;
     const mine = b.publisherUid === user!.uid ? "As publisher" : "As client";
+    const hoursBefore = (new Date(b.startsAt).getTime() - now) / 3_600_000;
+    const used = b.rescheduleCount || 0;
+    const mayMove = canCancel && isClient && canReschedule(hoursBefore, used);
+    const endedAt = sessionEnd(b.date, b.slot, b.minutes).getTime();
+    const mayReport = isClient && b.status === "confirmed" && !b.reportedProblem && endedAt <= now && now <= endedAt + PAYOUT_HOLD_HOURS * 3_600_000;
+    const tomorrow = new Date(now + 86_400_000).toISOString().slice(0, 10);
     return (
-      <li className="flex flex-col gap-3 py-4 sm:flex-row sm:items-center sm:justify-between">
+      <li className="flex flex-col gap-3 py-4">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <p className="font-ui text-sm font-semibold text-ink">
             {b.date} · {formatSlot(b.slot)} · {b.minutes} min
@@ -115,16 +162,59 @@ export default function BookingsPage() {
             {STATUS_LABEL[b.status] || b.status}
             {b.refundKobo ? ` · refunded ${formatNaira(b.refundKobo)}` : ""}
             {b.status === "confirmed" && new Date(b.startsAt).getTime() <= now ? " · completed" : ""}
+            {b.reportedProblem ? " · problem reported — payout paused while we review" : ""}
+            {used > 0 ? ` · rescheduled ${used}×` : ""}
           </p>
         </div>
+        <div className="flex flex-wrap gap-2">
+        {mayMove && (
+          <button onClick={() => setRs(rs?.reference === b.reference ? null : { reference: b.reference, date: "", slots: null, slot: null })} className="rounded-full border border-rule px-4 py-1.5 text-xs hover:border-crimson hover:text-crimson">
+            Reschedule
+          </button>
+        )}
+        {mayReport && (
+          <button onClick={() => setRep(rep?.reference === b.reference ? null : { reference: b.reference, reason: "" })} className="rounded-full border border-rule px-4 py-1.5 text-xs hover:border-crimson hover:text-crimson">
+            Report a problem
+          </button>
+        )}
         {canCancel && (
           <button
             onClick={() => cancel(b)}
             disabled={busy === b.reference}
             className="rounded-full border border-rule px-4 py-1.5 text-xs hover:border-crimson hover:text-crimson disabled:opacity-40"
           >
-            {busy === b.reference ? "Cancelling…" : "Cancel session"}
+            {busy === b.reference ? "Working…" : "Cancel session"}
           </button>
+        )}
+        </div>
+        </div>
+        {rs?.reference === b.reference && (
+          <div className="rounded-xl2 border border-rule bg-paper p-4 text-sm">
+            <p className="font-ui font-semibold text-ink">Pick a new time ({RESCHEDULE_MAX - used} reschedule{RESCHEDULE_MAX - used === 1 ? "" : "s"} left, free)</p>
+            <input type="date" value={rs.date} min={tomorrow} onChange={(e) => pickDate(b, e.target.value)} className="mt-2 rounded-xl2 border border-rule bg-card px-3 py-2 text-sm" aria-label="New date" />
+            {rs.date && rs.slots && rs.slots.length === 0 && <p className="mt-2 text-xs text-slate">No open times that day — try another.</p>}
+            {rs.slots && rs.slots.length > 0 && (
+              <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-4">
+                {rs.slots.map((sl) => (
+                  <button key={sl} onClick={() => setRs({ ...rs, slot: sl })} className={`rounded-xl2 border px-3 py-2 text-sm font-semibold ${rs.slot === sl ? "border-crimson bg-crimson text-paper" : "border-rule text-ink hover:border-crimson"}`}>{formatSlot(sl)}</button>
+                ))}
+              </div>
+            )}
+            {rs.slot && (
+              <button disabled={busy === b.reference} onClick={() => post("/api/bookings/reschedule", { reference: b.reference, date: rs.date, slot: rs.slot }, b.reference, "Couldn't reschedule")} className="btn-primary mt-3 !px-4 !py-2 text-xs">
+                {busy === b.reference ? "Moving…" : `Move to ${rs.date} · ${formatSlot(rs.slot)}`}
+              </button>
+            )}
+            <p className="mt-2 text-xs text-slate">Times are in Lagos time (WAT). Cancelling the new time follows the refund policy above.</p>
+          </div>
+        )}
+        {rep?.reference === b.reference && (
+          <div className="rounded-xl2 border border-rule bg-paper p-4 text-sm">
+            <p className="font-ui font-semibold text-ink">What went wrong?</p>
+            <textarea value={rep.reason} onChange={(e) => setRep({ ...rep, reason: e.target.value })} rows={3} className="mt-2 w-full border border-rule bg-card px-3 py-2 text-sm" placeholder="e.g. the publisher didn't show up" />
+            <button disabled={busy === b.reference || rep.reason.trim().length < 10} onClick={() => post("/api/bookings/report", { reference: b.reference, reason: rep.reason }, b.reference, "Couldn't send your report")} className="btn-primary mt-2 !px-4 !py-2 text-xs">Send to #NotesApp</button>
+            <p className="mt-2 text-xs text-slate">This pauses the publisher&apos;s payout while we look into it. You can report within {PAYOUT_HOLD_HOURS} hours of the session ending.</p>
+          </div>
         )}
       </li>
     );

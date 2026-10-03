@@ -1159,6 +1159,34 @@ declined, refund), plans/trials, boosts and subscriptions, gold/badge payments, 
 verification and team invites. New types: `order`, `merch`, `booking`, `ad`, `plan`, `org`.
 Server writes bypass the client-create rules, so `firestore.rules` is unchanged.
 
+**Booking policy: rescheduling, problem reports, automatic payouts.** One policy, one file
+(`lib/cancellation.ts`, shown on the booking pages and Terms):
+- *Cancel* (already existed): 48h+ → full refund, 24–48h → 50%, under 24h → none; publisher cancels → full refund.
+- *Reschedule* (`POST /api/bookings/reschedule`, logic in `lib/bookings-server.ts`): the client can move
+  their own session free, up to 2 times, while it is at least 24h away, to an open slot in the
+  publisher's availability that is itself 24h–60 days ahead. One transaction swaps the slot lock, updates
+  the booking (and resets the reminders) and moves the ledger's `releaseAfter`; price, refund rights and
+  earnings are unchanged. Both sides get an email and a bell notification.
+- *Report a problem* (`POST /api/bookings/report`): within 24h after the session ends the client can
+  report a no-show etc. That freezes the payout (`ledger.status = "disputed"`), emails
+  `SUPPORT_EMAIL` (default hello@notesapp.name.ng), the client and the publisher, and an admin decides
+  on `/admin/payments` (release or refund).
+- *Automatic payout* (`lib/payouts.ts`, run by `/api/cron/reminders`): booking earnings are transferred
+  24h after the session ends, unless frozen. It skips publishers with no payout account (they get a
+  bell notification), retries a failed transfer up to 3 times and then leaves it for a manual release
+  (the reason shows on `/admin/payments`). Set `AUTO_PAYOUTS=off` in Vercel to pause it. The admin
+  "Release" button uses the same code (`releaseLedgerEntry`). Gifts, subscriptions and store orders
+  are not auto-released.
+
+**Going live with Dojah.** No code change: (1) in Dojah, switch to live mode, create the personal and
+corporate hosted widgets and top up the wallet; (2) Vercel: set `DOJAH_APP_ID`, both
+`NEXT_PUBLIC_DOJAH_WIDGET_*` ids to the **live** widget ids, and **delete `DOJAH_API_BASE`** (that is what
+selects the sandbox host and, for corporate checks, skips the registration-number match that production
+enforces); (3) register the production webhook locally with the live secret key (command in the Dojah
+section above, without `DOJAH_API_BASE`), copy that subscription's webhook secret into
+`DOJAH_WEBHOOK_SECRET`; (4) redeploy, run one real check for a real corporate and personal account, and keep
+`DOJAH_AUTO_APPROVE` off until a few real results look right.
+
 **Scheduled-jobs status.** `/api/cron/reminders` writes `cronRuns/reminders`
 (server-only, no client rules) after every run; `/status` shows it as
 "Scheduled jobs": operational under 30 min old, slow at 30–60 min or after a
