@@ -5,8 +5,9 @@ import { remark } from "remark";
 import html from "remark-html";
 import type { Metadata } from "next";
 import { getNoteBySlug, getMoreNotes } from "@/lib/firestore-notes";
-import { getUserByDisplayName, getUserByUid, badgeLevel, goldKindOf, isTeamMember } from "@/lib/users";
+import { getAuthorProfile, getUserByUid, badgeLevel, goldKindOf, isTeamMember, roleLabelFor } from "@/lib/users";
 import TeamBadge from "@/components/TeamBadge";
+import BadgeToast from "@/components/BadgeToast";
 import VerifiedBadge from "@/components/VerifiedBadge";
 import { NA_NOTESAPP_PROFILE } from "@/lib/journals-directory";
 import SocialBar from "@/components/SocialBar";
@@ -64,7 +65,7 @@ export default async function JournalDetail({
   const [processed, moreNotes, authorProfile, coProfiles] = await Promise.all([
     remark().use(html).process(note.content),
     getMoreNotes(note.slug, 4),
-    (note.authorUid ? getUserByUid(note.authorUid) : Promise.resolve(null)).then((u) => u || getUserByDisplayName(note.author)),
+    getAuthorProfile(note),
     Promise.all((note.coAuthorUids || []).map((uid) => getUserByUid(uid).catch(() => null))),
   ]);
   const coAuthorProfiles = coProfiles.filter((u): u is NonNullable<typeof u> => !!u && !u.suspended);
@@ -119,7 +120,7 @@ export default async function JournalDetail({
                 </span>
               </p>
               <p className="mt-0.5 font-mono text-xs uppercase tracking-wide text-slate">
-                {note.author_role}
+                {authorProfile ? roleLabelFor(authorProfile) : note.author_role}
               </p>
               {note.coAuthors && note.coAuthors.length > 0 && (
                 <p className="mt-0.5 text-xs text-slate">with {note.coAuthors.join(", ")}</p>
@@ -138,7 +139,7 @@ export default async function JournalDetail({
             <div>
               <p className="font-ui text-sm font-semibold text-ink">By {authorProfile?.displayName || note.author}</p>
               <p className="mt-0.5 font-mono text-xs uppercase tracking-wide text-slate">
-                {note.author_role}
+                {authorProfile ? roleLabelFor(authorProfile) : note.author_role}
               </p>
             </div>
           </div>
@@ -276,6 +277,7 @@ export default async function JournalDetail({
           </div>
         </div>
       )}
+      <BadgeToast />
     </article>
   );
 }

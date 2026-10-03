@@ -22,7 +22,15 @@ export type StoreItem = {
   priceKobo?: number;
   deliveryKobo?: number;
   stock?: number; // optional; counts down per sale
+  // "digital" = a file the buyer downloads after paying (no delivery, no stock, final once
+  // downloaded); anything else is a physical item. The file itself lives in a private bucket
+  // (storeFiles/{id}, server-only); only its name and size are public.
+  kind?: "physical" | "digital";
+  fileName?: string;
+  fileSize?: number;
 };
+
+export const isDigital = (i: Pick<StoreItem, "kind">) => i.kind === "digital";
 
 export const STORE_ITEMS: Record<string, StoreItem[]> = {
   // Sold via Selar, same as precheks.com.ng/shop — Chimdinma's existing
@@ -117,18 +125,20 @@ export async function getStoreItems(uid: string | undefined, username: string): 
 // delivery fee and a managed stock count (no link-outs — the founders' own catalogues above
 // are the only exception). Legacy link-out listings can no longer be saved, only removed.
 function clean(input: StoreItemInput) {
+  const digital = input.kind === "digital";
   return {
     sellable: true as const,
+    ...(digital ? { kind: "digital" as const, ...(input.fileName ? { fileName: input.fileName, fileSize: input.fileSize ?? 0 } : {}) } : {}),
     priceKobo: Math.round(Number(input.priceKobo)),
-    deliveryKobo: Math.round(Number(input.deliveryKobo ?? 0)),
-    stock: Math.max(0, Math.floor(Number(input.stock ?? 0))),
+    deliveryKobo: digital ? 0 : Math.round(Number(input.deliveryKobo ?? 0)),
+    stock: digital ? 0 : Math.max(0, Math.floor(Number(input.stock ?? 0))),
     title: input.title.trim(),
     ...(input.subtitle?.trim() ? { subtitle: input.subtitle.trim() } : {}),
     price: input.price.trim(),
     ...(input.badge?.trim() ? { badge: input.badge.trim() } : {}),
     link: "https://www.notesapp.name.ng",
     image: input.image.trim() || DEFAULT_STORE_IMAGE,
-    cta: "Buy now",
+    cta: digital ? "Buy & download" : "Buy now",
   };
 }
 
@@ -145,7 +155,9 @@ export async function updateStoreItem(uid: string, id: string, input: StoreItemI
   const ref = doc(db, "storeItems", id);
   // Replace the whole listing so cleared optional fields actually disappear.
   const existing = await getDoc(ref);
-  const data = clean(input);
+  // A listing keeps its kind, and a digital one its attached file (set by the server).
+  const keepKind = existing.data()?.kind === "digital" ? "digital" : undefined;
+  const data = clean({ ...input, kind: keepKind, ...(keepKind ? { fileName: existing.data()?.fileName, fileSize: existing.data()?.fileSize } : {}) });
   await setDoc(ref, {
     ...data,
     ...(!stockChanged && Number.isInteger(existing.data()?.stock) ? { stock: existing.data()!.stock } : {}),

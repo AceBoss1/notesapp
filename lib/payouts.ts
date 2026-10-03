@@ -54,7 +54,8 @@ const AUTO_MAX_ATTEMPTS = 3;
 const AUTO_BATCH = 100;
 
 // Scheduled: pay out booking earnings once the session is over and the problem-report window
-// (PAYOUT_HOLD_HOURS) has passed. Skips anything an admin froze ("disputed"), publishers
+// (PAYOUT_HOLD_HOURS) has passed, and digital-download earnings once their dispute window
+// (releaseAfter, set at purchase) has passed. Skips anything an admin froze ("disputed"), publishers
 // without a payout account, and entries that already failed AUTO_MAX_ATTEMPTS times (those
 // wait for a manual release, with the reason shown on /admin/payments). Set
 // AUTO_PAYOUTS=off in the environment to pause it. Returns how many transfers were started.
@@ -66,7 +67,10 @@ export async function autoReleasePayouts(opts: { transfer?: typeof initiateTrans
   const snap = await db.collection("ledger").where("status", "==", "held").limit(AUTO_BATCH * 5).get();
   const due = snap.docs
     .map((d) => d.data() as LedgerEntry & { autoAttempts?: number })
-    .filter((l) => l.kind === "booking" && new Date(l.releaseAfter).getTime() <= dueBefore && (l.autoAttempts ?? 0) < AUTO_MAX_ATTEMPTS)
+    .filter((l) => {
+      const due = l.kind === "booking" ? dueBefore : l.kind === "digital" ? now : -Infinity;
+      return new Date(l.releaseAfter).getTime() <= due && (l.autoAttempts ?? 0) < AUTO_MAX_ATTEMPTS;
+    })
     .slice(0, AUTO_BATCH);
   let started = 0;
   for (const l of due) {
@@ -77,12 +81,12 @@ export async function autoReleasePayouts(opts: { transfer?: typeof initiateTrans
         started++;
         await ref.update({ autoReleasedAt: new Date(now).toISOString() });
         const to = await getUserEmail(l.publisherUid);
-        if (!to) await notifyBell({ uid: l.publisherUid, type: "booking", linkHref: "/profile/publishing", message: `Payout of ${formatNaira(l.netKobo)} for your session is on its way.` });
+        if (!to) await notifyBell({ uid: l.publisherUid, type: "booking", linkHref: "/profile/publishing", message: `Payout of ${formatNaira(l.netKobo)} for your ${l.kind === "digital" ? "sale" : "session"} is on its way.` });
         else await sendEmail({
           to,
-          subject: "Your session payout is on its way",
-          text: `Your earnings of ${formatNaira(l.netKobo)} for a completed session are being paid to your bank account now. Transfers usually arrive within minutes.\nReference: ${l.reference}\n\n#NotesApp`,
-          bell: { uid: l.publisherUid, type: "booking", linkHref: "/profile/publishing", message: `Payout of ${formatNaira(l.netKobo)} for your session is on its way.` },
+          subject: l.kind === "digital" ? "Your download sale payout is on its way" : "Your session payout is on its way",
+          text: `Your earnings of ${formatNaira(l.netKobo)} for ${l.kind === "digital" ? "a download sale" : "a completed session"} are being paid to your bank account now. Transfers usually arrive within minutes.\nReference: ${l.reference}\n\n#NotesApp`,
+          bell: { uid: l.publisherUid, type: "booking", linkHref: "/profile/publishing", message: `Payout of ${formatNaira(l.netKobo)} for your ${l.kind === "digital" ? "sale" : "session"} is on its way.` },
         }).catch(() => {});
       } else if (r.error === "Publisher has no payout account.") {
         await ref.update({ failureReason: r.error, autoAttempts: AUTO_MAX_ATTEMPTS });

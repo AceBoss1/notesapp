@@ -67,6 +67,11 @@ export async function POST(req: NextRequest) {
         if (o && o.status === "refunded") return NextResponse.json({ error: "Already refunded." }, { status: 409 });
         storeStatusBefore = o?.status;
       }
+      if (paySnap.data()?.kind === "digital") {
+        // A download is final once the buyer has started it.
+        const dp = (await db.doc(`digitalPurchases/${paymentRef}`).get()).data();
+        if (dp?.firstDownloadAt) return NextResponse.json({ error: "The buyer has already downloaded this — digital sales are final, so it can't be refunded." }, { status: 409 });
+      }
       if (paySnap.data()?.kind === "merch") {
         const o = (await db.doc(`merchOrders/${paymentRef}`).get()).data();
         if (o && ["printed", "shipped", "delivered"].includes(o.status)) {

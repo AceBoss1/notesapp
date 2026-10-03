@@ -4,13 +4,14 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { onAuthStateChanged, User } from "firebase/auth";
-import { doc, getDoc } from "firebase/firestore";
+import { collection, doc, getDocs, getDoc, limit, query, where } from "firebase/firestore";
 import { auth, db } from "@/lib/firebase";
 import { startCheckout } from "@/lib/checkout";
 import { formatNaira } from "@/lib/booking-time";
 import { NIGERIAN_STATES, validateAddress } from "@/lib/merch";
 import { STORE_MAX_QTY } from "@/lib/orders";
 import type { StoreItem } from "@/lib/store";
+import { fmtSize } from "@/lib/store-files";
 import NotifyWhenBack from "@/components/NotifyWhenBack";
 
 const field = "mt-1 w-full border border-rule bg-card px-3 py-2 text-sm outline-none focus:border-crimson";
@@ -25,8 +26,16 @@ export default function ShopItemPage() {
   const [addr, setAddr] = useState({ fullName: "", phone: "", street: "", city: "", state: "" });
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
+  const [agreed, setAgreed] = useState(false);
+  const [owned, setOwned] = useState(false); // this buyer already bought this download
 
   useEffect(() => onAuthStateChanged(auth, (u) => setUser(u)), []);
+  useEffect(() => {
+    if (!user) return setOwned(false);
+    getDocs(query(collection(db, "digitalPurchases"), where("buyerUid", "==", user.uid), where("itemId", "==", itemId), limit(1)))
+      .then((s) => setOwned(!s.empty))
+      .catch(() => setOwned(false));
+  }, [user, itemId]);
   useEffect(() => {
     getDoc(doc(db, "storeItems", itemId))
       .then(async (s) => {
@@ -43,12 +52,26 @@ export default function ShopItemPage() {
   if (item === undefined || user === undefined) return <div className="px-6 py-24 text-center text-slate">Loading…</div>;
   if (!item) return <div className="px-6 py-24 text-center text-slate">This item isn&apos;t for sale here.</div>;
 
+  const digital = item.kind === "digital";
   const unit = item.priceKobo ?? 0;
   const delivery = item.deliveryKobo ?? 0;
   const total = unit * quantity + delivery;
   const inStock = item.stock ?? 0;
   const maxQty = Math.max(1, Math.min(STORE_MAX_QTY, inStock));
   const set = (k: keyof typeof addr) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => setAddr((a) => ({ ...a, [k]: e.target.value }));
+
+  async function payDigital() {
+    setError("");
+    if (!user) return router.push("/login");
+    if (!agreed) return setError("Tick the box to confirm you understand a download is final.");
+    setBusy(true);
+    try {
+      await startCheckout(user, { kind: "digital", itemId, acceptFinal: true });
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Couldn't start payment.");
+      setBusy(false);
+    }
+  }
 
   async function pay(e: React.FormEvent) {
     e.preventDefault();
@@ -78,7 +101,29 @@ export default function ShopItemPage() {
         <p className="text-sm text-slate">{item.subtitle}</p>
       </div>
 
-      {inStock <= 0 ? (
+      {digital ? (
+        !item.fileName ? (
+          <p className="card mt-8 p-5 text-sm text-slate">The seller is still finishing setting this download up. Check back soon.</p>
+        ) : owned ? (
+          <div className="card mt-8 p-5 text-sm">
+            <p className="font-ui font-bold text-ink">You own this download</p>
+            <p className="mt-1 text-slate">Find it under My orders → My purchases.</p>
+            <Link href="/orders" className="btn-primary mt-3 inline-block !px-4 !py-2 text-xs">Go to my downloads</Link>
+          </div>
+        ) : (
+          <div className="card mt-8 p-5 text-sm">
+            <p className="font-ui font-bold text-ink">Digital download · {item.fileName}{item.fileSize ? ` (${fmtSize(item.fileSize)})` : ""}</p>
+            <p className="mt-1 text-slate">Instant access after payment: no shipping, nothing to wait for.</p>
+            <p className="mt-3 text-ink">Price: <strong>{formatNaira(unit)}</strong></p>
+            <label className="mt-3 flex items-start gap-2 text-xs text-slate">
+              <input type="checkbox" checked={agreed} onChange={(e) => setAgreed(e.target.checked)} className="mt-0.5" />
+              <span>I understand this is a digital download: once I download it the purchase is final and can&apos;t be refunded. See <Link href="/terms" className="text-crimson underline">Terms 5g</Link>.</span>
+            </label>
+            {error && <p className="mt-3 text-sm text-crimson">{error}</p>}
+            <button onClick={payDigital} disabled={busy} className="btn-primary mt-4">{busy ? "Please wait…" : user ? `Pay ${formatNaira(unit)}` : "Sign in to buy"}</button>
+          </div>
+        )
+      ) : inStock <= 0 ? (
         <div className="card mt-8 p-5 text-sm">
           <p className="font-ui font-bold text-ink">Sold out</p>
           <p className="mt-1 text-slate">This item is out of stock right now. We&apos;ll put an alert in your bell the moment the seller restocks it.</p>

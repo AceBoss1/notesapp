@@ -12,6 +12,7 @@ type Boost = {
   reference: string;
   title: string;
   slug?: string;
+  itemId?: string;
   image?: string;
   amountKobo: number;
   impressionsPurchased: number;
@@ -107,7 +108,7 @@ export default function BoostPerformancePage() {
           <p><span className="block font-mono text-[10px] uppercase text-slate">Refunded</span>{b.refundedKobo ? formatNaira(b.refundedKobo) : "—"}</p>
         </div>
         <Daily daily={b.daily} />
-        {b.slug && <Link href={`/journals/${b.slug}`} className="mt-3 inline-block text-xs text-crimson underline">View post</Link>}
+        {b.itemId ? <Link href={`/shop/${b.itemId}`} className="mt-3 inline-block text-xs text-crimson underline">View item</Link> : b.slug && <Link href={`/journals/${b.slug}`} className="mt-3 inline-block text-xs text-crimson underline">View post</Link>}
       </li>
     );
   };

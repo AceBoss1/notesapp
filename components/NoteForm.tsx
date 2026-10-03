@@ -9,8 +9,7 @@ import Image from "next/image";
 import { Note, slugify, createNote, updateNote, slugTaken } from "@/lib/firestore-notes";
 import { uploadToR2 } from "@/lib/upload";
 import RichTextEditor from "@/components/RichTextEditor";
-import type { UserProfile } from "@/lib/users";
-import { getTierConfig } from "@/lib/tiers";
+import { roleLabelFor, type UserProfile } from "@/lib/users";
 
 // Kept identical to Precheks' own author_role text on purpose — this
 // writes into the shared `notes` document, and Precheks renders
@@ -52,10 +51,9 @@ type Props = {
   org?: { profile: UserProfile };
 };
 
+// Stored on new entries as the fallback byline; the journal page shows the live label (roleLabelFor).
 function selfRoleLabel(p: UserProfile): string {
-  if (p.role === "staff") return "Staff Writer";
-  if (p.role === "volunteer") return "Guest Writer";
-  return getTierConfig(p.accountTier).label.replace(/^Free /, "") + " Publisher";
+  return roleLabelFor(p);
 }
 
 export default function NoteForm({ noteId, initial, self, org }: Props) {

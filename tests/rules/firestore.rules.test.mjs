@@ -220,6 +220,33 @@ test("publishers manage only their own valid store items", async () => {
   await assertSucceeds(deleteDoc(doc(as("pub"), "storeItems/i1")));
 });
 
+test("digital store items: no delivery/stock, kind is fixed, files and purchases are server-only", async () => {
+  const base = { ownerUid: "pub", title: "Guide", price: "₦2,000", link: "https://www.notesapp.name.ng", image: "/x.png", cta: "Buy & download", sellable: true, priceKobo: 200000, deliveryKobo: 0, stock: 0 };
+  const digital = { ...base, kind: "digital", fileName: "guide.pdf", fileSize: 1234 };
+  await assertSucceeds(setDoc(doc(as("pub"), "storeItems/d1"), digital));
+  await assertSucceeds(updateDoc(doc(as("pub"), "storeItems/d1"), { priceKobo: 300000, price: "₦3,000" }));
+  await assertFails(setDoc(doc(as("pub"), "storeItems/d2"), { ...digital, deliveryKobo: 500000 })); // digital has no delivery fee
+  await assertFails(setDoc(doc(as("pub"), "storeItems/d3"), { ...digital, stock: 5 }));
+  await assertFails(setDoc(doc(as("pub"), "storeItems/d4"), { ...base, kind: "physical", fileName: "x.pdf" })); // physical carries no file
+  await assertFails(setDoc(doc(as("pub"), "storeItems/d5"), { ...digital, kind: "download" }));
+  // physical <-> digital switching is refused
+  await assertFails(updateDoc(doc(as("pub"), "storeItems/d1"), { kind: "physical", fileName: null }));
+  await assertSucceeds(setDoc(doc(as("pub"), "storeItems/p1"), { ...base, deliveryKobo: 100000, stock: 3 }));
+  await assertFails(updateDoc(doc(as("pub"), "storeItems/p1"), { kind: "digital", deliveryKobo: 0, stock: 0 }));
+  // the private file record and purchases can't be read or written from a client
+  await env.withSecurityRulesDisabled(async (ctx) => {
+    const adminDb = ctx.firestore();
+    await setDoc(doc(adminDb, "storeFiles/d1"), { key: "digital/d1/guide.pdf" });
+    await setDoc(doc(adminDb, "digitalPurchases/r1"), { buyerUid: "alice", sellerUid: "pub", itemId: "d1" });
+  });
+  await assertFails(getDoc(doc(as("pub"), "storeFiles/d1")));
+  await assertFails(setDoc(doc(as("pub"), "storeFiles/d9"), { key: "x" }));
+  await assertSucceeds(getDoc(doc(as("alice"), "digitalPurchases/r1"))); // buyer
+  await assertSucceeds(getDoc(doc(as("pub"), "digitalPurchases/r1"))); // seller
+  await assertFails(getDoc(doc(as("other"), "digitalPurchases/r1")));
+  await assertFails(setDoc(doc(as("alice"), "digitalPurchases/r2"), { buyerUid: "alice", sellerUid: "pub" }));
+});
+
 test("badge endorsement requests are private and server-created", async () => {
   await env.withSecurityRulesDisabled(async (ctx) => {
     await setDoc(doc(ctx.firestore(), "badgeRequests/alice"), { status: "pending", message: "hello there", requestedAt: "x" });

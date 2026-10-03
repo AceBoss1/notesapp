@@ -14,9 +14,10 @@ import { getAdPackage } from "@/lib/ad-packages";
 import { isPlacement } from "@/lib/ads";
 import { r2PublicUrl } from "@/lib/r2";
 import { getMerchItem, LOGO_OPTIONS, MERCH_BATCH, MERCH_DELIVERY_KOBO, MERCH_MAX_QTY, merchBatchOpen, validateAddress } from "@/lib/merch";
-import { TIERS, badgeIncluded, physicalCommissionRateFor } from "@/lib/tiers";
+import { TIERS, badgeIncluded, digitalCommissionRateFor, physicalCommissionRateFor } from "@/lib/tiers";
+import { privateFilesConfigured } from "@/lib/private-files";
 import { STORE_ITEM_MAX_KOBO, STORE_MAX_QTY } from "@/lib/orders";
-import { RESERVATION_MINUTES, StockError, releaseExpiredReservations, reserveStock, returnStock } from "@/lib/orders-server";
+import { RESERVATION_MINUTES, StockError, canActForSeller, releaseExpiredReservations, reserveStock, returnStock } from "@/lib/orders-server";
 import type { AccountTier } from "@/lib/users";
 import { rateLimit } from "@/lib/rate-limit";
 
@@ -123,6 +124,7 @@ export async function POST(req: NextRequest) {
       const itemSnap = await db.doc(`storeItems/${String(body.itemId)}`).get();
       const item = itemSnap.data();
       if (!item || item.sellable !== true || !Number.isInteger(item.priceKobo)) return NextResponse.json({ error: "This item isn't for sale here." }, { status: 404 });
+      if (item.kind === "digital") return NextResponse.json({ error: "That's a digital download — buy it with the download checkout." }, { status: 409 });
       if (item.ownerUid === user.uid) return NextResponse.json({ error: "You can't buy your own item." }, { status: 409 });
       const quantity = Number(body.quantity);
       if (!Number.isInteger(quantity) || quantity < 1 || quantity > STORE_MAX_QTY) {
@@ -185,6 +187,40 @@ export async function POST(req: NextRequest) {
         await returnStock(itemSnap.id, quantity).catch(() => {});
         throw e;
       }
+      return NextResponse.json({ authorizationUrl: tx.authorization_url, reference });
+    }
+
+    // ---- digital download: instant, no delivery, final once downloaded ----
+    if (kind === "digital") {
+      if (body.acceptFinal !== true) return NextResponse.json({ error: "Please confirm you understand a download is final and can't be refunded." }, { status: 400 });
+      if (!privateFilesConfigured()) return NextResponse.json({ error: "Downloads aren't available right now." }, { status: 503 });
+      const itemSnap = await db.doc(`storeItems/${String(body.itemId)}`).get();
+      const item = itemSnap.data();
+      if (!item || item.sellable !== true || item.kind !== "digital" || !Number.isInteger(item.priceKobo)) return NextResponse.json({ error: "This download isn't for sale here." }, { status: 404 });
+      if (!item.fileName || !(await db.doc(`storeFiles/${itemSnap.id}`).get()).exists) return NextResponse.json({ error: "The seller hasn't finished setting this download up yet." }, { status: 409 });
+      if (item.ownerUid === user.uid) return NextResponse.json({ error: "You can't buy your own item." }, { status: 409 });
+      const owned = await db.collection("digitalPurchases").where("buyerUid", "==", user.uid).where("itemId", "==", itemSnap.id).limit(1).get();
+      if (!owned.empty) return NextResponse.json({ error: "You already own this download — find it under My orders." }, { status: 409 });
+      const seller = (await db.doc(`users/${item.ownerUid}`).get()).data();
+      if (!seller || seller.suspended === true || (seller.accountTier === "standard" && !["staff", "volunteer", "admin"].includes(seller.role))) {
+        return NextResponse.json({ error: "This seller isn't taking orders right now." }, { status: 409 });
+      }
+      const payout = (await db.doc(`payoutAccounts/${item.ownerUid}`).get()).data();
+      if (!payout?.recipientCode) return NextResponse.json({ error: "This seller hasn't set up payouts yet, so they can't take orders." }, { status: 409 });
+      const reference = newReference();
+      const origin = (process.env.NEXT_PUBLIC_SITE_URL || req.nextUrl.origin).replace(/\/$/, "");
+      const tx = await initializeTransaction({
+        email: user.email, amountKobo: item.priceKobo, reference, callbackUrl: `${origin}/booking/confirm`,
+        metadata: { kind, itemId: itemSnap.id, uid: user.uid },
+      });
+      const record: PaymentRecord = {
+        reference, kind: "digital", uid: user.uid, email: user.email, amountKobo: item.priceKobo,
+        status: "pending", publisherUid: item.ownerUid, publisherUsername: seller.username || "",
+        commissionRate: digitalCommissionRateFor((seller.accountTier as AccountTier) || "basic"),
+        digital: { itemId: itemSnap.id, itemTitle: String(item.title), itemImage: String(item.image || "") },
+        createdAt: new Date().toISOString(),
+      };
+      await db.doc(`payments/${reference}`).set(record);
       return NextResponse.json({ authorizationUrl: tx.authorization_url, reference });
     }
 
@@ -322,31 +358,44 @@ export async function POST(req: NextRequest) {
     if (kind === "boost") {
       const pk = getBoostPackage(String(body.packageId));
       if (!pk) return NextResponse.json({ error: "Unknown boost package." }, { status: 400 });
-      const noteId = String(body.noteId || "");
-      const noteSnap = noteId ? await db.doc(`notes/${noteId}`).get() : null;
-      const note = noteSnap?.data();
-      if (!note || note.status !== "published") {
-        return NextResponse.json({ error: "Only published posts can be boosted." }, { status: 400 });
-      }
-      const isAdmin = await verifyAdminRequest(idToken).then(() => true).catch(() => false);
-      if (!isAdmin && note.authorUid !== user.uid) {
-        return NextResponse.json({ error: "You can only boost your own posts." }, { status: 403 });
-      }
-      const active = await db.collection("boosts").where("noteId", "==", noteId).where("status", "==", "active").get();
-      if (active.docs.some((d) => new Date(d.data().endsAt).getTime() > Date.now())) {
-        return NextResponse.json({ error: "This post already has an active boost." }, { status: 409 });
+      const itemId = String(body.itemId || "");
+      const noteId = itemId ? "" : String(body.noteId || "");
+      if (itemId) {
+        // A store item: the payer must run the store (owner, or a team member with store access).
+        const item = (await db.doc(`storeItems/${itemId}`).get()).data();
+        if (!item || item.sellable !== true) return NextResponse.json({ error: "Only items on sale can be boosted." }, { status: 400 });
+        if (item.kind === "digital" && !item.fileName) return NextResponse.json({ error: "Finish setting up the download before boosting it." }, { status: 400 });
+        if (!(await canActForSeller(user.uid, String(item.ownerUid)))) return NextResponse.json({ error: "You can only boost items in your own store." }, { status: 403 });
+        const active = await db.collection("boosts").where("itemId", "==", itemId).where("status", "==", "active").get();
+        if (active.docs.some((d) => new Date(d.data().endsAt).getTime() > Date.now())) {
+          return NextResponse.json({ error: "This item already has an active boost." }, { status: 409 });
+        }
+      } else {
+        const noteSnap = noteId ? await db.doc(`notes/${noteId}`).get() : null;
+        const note = noteSnap?.data();
+        if (!note || note.status !== "published") {
+          return NextResponse.json({ error: "Only published posts can be boosted." }, { status: 400 });
+        }
+        const isAdmin = await verifyAdminRequest(idToken).then(() => true).catch(() => false);
+        if (!isAdmin && note.authorUid !== user.uid) {
+          return NextResponse.json({ error: "You can only boost your own posts." }, { status: 403 });
+        }
+        const active = await db.collection("boosts").where("noteId", "==", noteId).where("status", "==", "active").get();
+        if (active.docs.some((d) => new Date(d.data().endsAt).getTime() > Date.now())) {
+          return NextResponse.json({ error: "This post already has an active boost." }, { status: 409 });
+        }
       }
       const reference = newReference();
       const origin = (process.env.NEXT_PUBLIC_SITE_URL || req.nextUrl.origin).replace(/\/$/, "");
       const tx = await initializeTransaction({
         email: user.email, amountKobo: pk.priceKobo, reference,
         callbackUrl: `${origin}/booking/confirm`,
-        metadata: { kind, noteId, packageId: pk.id, uid: user.uid },
+        metadata: { kind, ...(itemId ? { itemId } : { noteId }), packageId: pk.id, uid: user.uid },
       });
       const record: PaymentRecord = {
         reference, kind: "boost", uid: user.uid, email: user.email, amountKobo: pk.priceKobo,
         status: "pending", publisherUid: user.uid, publisherUsername: "", commissionRate: 0,
-        boost: { noteId, packageId: pk.id }, createdAt: new Date().toISOString(),
+        boost: { ...(itemId ? { itemId } : { noteId }), packageId: pk.id }, createdAt: new Date().toISOString(),
       };
       await db.doc(`payments/${reference}`).set(record);
       return NextResponse.json({ authorizationUrl: tx.authorization_url, reference });

@@ -33,6 +33,22 @@ export default function StoreSellingPage() {
         ))}
       </ul>
 
+      <h2 className="mt-12 font-display text-2xl text-ink">Digital downloads</h2>
+      <p className="mt-3 text-sm text-slate">
+        Sell a file instead of a parcel: choose &ldquo;Digital download&rdquo; when you add the item and upload it (PDF, ePub, ZIP, audio, video, Office files, images; up to 200 MB). It is stored privately — only people who pay can download it.
+        The buyer gets it the moment they pay, no shipping or tracking, and the sale is <strong className="text-ink">final once they download it</strong> (no refunds). Your share is paid to your bank after a 7-day dispute window. Commission on the price:
+      </p>
+      <ul className="mt-3 grid gap-2 text-sm sm:grid-cols-2">
+        {TIERS.filter((t) => t.canPublish).map((t) => (
+          <li key={t.tier} className="card flex items-center justify-between p-3"><span className="text-ink">{t.label}</span><span className="font-mono text-crimson-bright">{formatPercent(t.digitalCommission, t.digitalCommissionFloor)}</span></li>
+        ))}
+      </ul>
+
+      <h2 className="mt-12 font-display text-2xl text-ink">Boost your items</h2>
+      <p className="mt-3 text-sm text-slate">
+        Any item can be boosted from your store page with the same packages as post boosts — it then rotates in the Boosted strips and at the top of your store page. See <Link href="/boost" className="text-crimson underline">Boost</Link>.
+      </p>
+
       <h2 className="mt-12 font-display text-2xl text-ink">Organisations</h2>
       <p className="mt-3 text-sm text-slate">
         An organisation&apos;s store is run by its owner, who can also give team members store access (<Link href="/organisations" className="text-crimson underline">Organisation team</Link>). The money, payouts and

@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import Avatar from "@/components/Avatar";
 import AdSlot from "@/components/AdSlot";
+import BadgeToast from "@/components/BadgeToast";
 
 type Post = { id: string; slug: string; title: string; author: string; authorUsername?: string; views: number; date: string };
 type Publisher = { username: string; displayName: string; avatar: string; views: number; posts: number };
@@ -79,6 +80,7 @@ export default function TrendingPage() {
           ))}
         </ol>
       )}
+      <BadgeToast />
     </section>
   );
 }

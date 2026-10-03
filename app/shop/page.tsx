@@ -1,5 +1,6 @@
 import Image from "next/image";
 import { PRODUCTS } from "@/lib/products";
+import BoostedStrip from "@/components/BoostedStrip";
 
 export const metadata = { title: "Shop — Precheks" };
 
@@ -12,6 +13,8 @@ export default function ShopPage() {
         Our courses and digital products are sold through Selar — click any
         card to purchase and receive instant access.
       </p>
+
+      <BoostedStrip kind="item" title="Boosted from #NotesApp stores" />
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mt-10 border-t-2 border-ink pt-10">
         {PRODUCTS.map((p) => (

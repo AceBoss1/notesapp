@@ -183,8 +183,8 @@ export default function AdminUsersPage() {
         Publishing: "Staff" and "Volunteer" accounts can publish their own
         notes, and so can any account on a paid or Basic publisher plan.
         Only admins (the founder accounts) can publish for others or change
-        site settings. Roles are set here; admin rights come from the
-        founder emails or an admin claim, never from this dropdown.
+        site settings. Roles are set here; admin rights come only from the
+        admin claim, never from this dropdown.
       </p>
 
       {error && <p className="mt-6 text-sm text-red-700">{error}</p>}
@@ -194,6 +194,7 @@ export default function AdminUsersPage() {
       ) : (
         <div className="mt-8 divide-y divide-rule">
           {users.map((u) => {
+            const sameName = users.filter((o) => o.uid !== u.uid && o.displayName.trim().toLowerCase() === u.displayName.trim().toLowerCase());
             const isFounder = FOUNDER_USERNAMES.includes(u.username);
             const suspended = u.suspended === true;
             const pendingAppeal = suspended && u.suspension?.appealStatus === "pending";
@@ -217,6 +218,11 @@ export default function AdminUsersPage() {
                         </span>
                       </p>
                       <p className="text-xs text-slate mt-0.5">{emails[u.uid] || "—"}</p>
+                      {sameName.length > 0 && (
+                        <p className="mt-1 text-xs font-semibold text-amber-800">
+                          ⚠ Same name as {sameName.map((o) => `@${o.username}`).join(", ")} — possible duplicate account (uid {u.uid.slice(0, 8)}…). Journals shared with Precheks that name this person resolve to the founder account; suspend or rename the extra one.
+                        </p>
+                      )}
                     {badgeRequests[u.uid]?.status === "pending" && (
                       <div className="mt-2 border border-amber-200 bg-amber-50 p-2 text-xs text-ink">
                         <p className="font-semibold">Applied for the gold badge ({(badgeRequests[u.uid].kind ?? "endorsement")}, {(badgeRequests[u.uid].track ?? "personal")})</p>

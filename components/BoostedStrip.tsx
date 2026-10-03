@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { auth } from "@/lib/firebase";
 
-type Boost = { id: string; slug: string; title: string; author: string; image: string };
+type Boost = { id: string; href: string; kind: "post" | "item"; title: string; author: string; image: string };
 
 // Beacon with optional sign-in token so a publisher's own views of their
 // boost aren't counted.
@@ -46,13 +46,13 @@ function BoostCard({ b }: { b: Boost }) {
   }, [b.id]);
 
   return (
-    <Link ref={ref} href={`/journals/${b.slug}`} onClick={() => beacon(b.id, "click")} className="card flex flex-col overflow-hidden hover:shadow-md">
+    <Link ref={ref} href={b.href} onClick={() => beacon(b.id, "click")} className="card flex flex-col overflow-hidden hover:shadow-md">
       {b.image && (
         // eslint-disable-next-line @next/next/no-img-element
         <img src={b.image} alt="" className="h-36 w-full object-cover" loading="lazy" />
       )}
       <div className="p-4">
-        <span className="font-mono text-[10px] uppercase tracking-eyebrow text-crimson-bright">Boosted</span>
+        <span className="font-mono text-[10px] uppercase tracking-eyebrow text-crimson-bright">{b.kind === "item" ? "Boosted item" : "Boosted post"}</span>
         <p className="mt-1 font-ui text-sm font-bold text-ink">{b.title}</p>
         <p className="mt-1 font-mono text-xs text-slate">{b.author}</p>
       </div>
@@ -60,18 +60,21 @@ function BoostCard({ b }: { b: Boost }) {
   );
 }
 
-export default function BoostedStrip({ limit = 3 }: { limit?: number }) {
+// kind: only posts or only store items (default: both). owner: only one publisher's boosts, used on
+// that publisher's own store page.
+export default function BoostedStrip({ limit = 3, kind, owner, title }: { limit?: number; kind?: "post" | "item"; owner?: string; title?: string }) {
   const [boosts, setBoosts] = useState<Boost[]>([]);
   useEffect(() => {
-    fetch(`/api/boosts/active?limit=${limit}`)
+    const q = new URLSearchParams({ limit: String(limit), ...(kind ? { kind } : {}), ...(owner ? { owner } : {}) });
+    fetch(`/api/boosts/active?${q}`)
       .then((r) => r.json())
       .then((d) => setBoosts(d.boosts || []))
       .catch(() => {});
-  }, [limit]);
+  }, [limit, kind, owner]);
   if (boosts.length === 0) return null;
   return (
     <section className="mx-auto max-w-7xl px-4 pt-10 sm:px-6 lg:px-8">
-      <p className="eyebrow">Boosted posts</p>
+      <p className="eyebrow">{title ?? (kind === "item" ? "Boosted items" : kind === "post" ? "Boosted posts" : "Boosted")}</p>
       <div className="mt-4 grid grid-cols-1 gap-5 sm:grid-cols-3">
         {boosts.map((b) => (
           <BoostCard key={b.id} b={b} />
