@@ -174,17 +174,17 @@ export default function AdminUsersPage() {
       </p>
       <h1 className="font-display text-4xl mt-3">Users</h1>
       <p className="mt-3 text-sm text-slate max-w-xl">
-        Everyone who's signed up to comment or like on the site, plus the
-        two founder accounts. Shared with Precheks — same `users`
-        collection — so anyone who's ever signed up on either site shows
-        up here.
+        Everyone who's signed up on the site, including organisation
+        accounts and the founder accounts. Shared with Precheks — same
+        `users` collection — so anyone who's ever signed up on either site
+        shows up here.
       </p>
       <p className="mt-3 text-sm text-slate max-w-xl">
-        The role dropdown labels an account "Staff" or "Volunteer" — it
-        doesn't grant publishing rights yet. Only the two founder emails
-        can publish today (firestore.rules' isAdmin()); role-based
-        publish permission needs a Firebase custom-claims migration
-        first — see the README before wiring that up.
+        Publishing: "Staff" and "Volunteer" accounts can publish their own
+        notes, and so can any account on a paid or Basic publisher plan.
+        Only admins (the founder accounts) can publish for others or change
+        site settings. Roles are set here; admin rights come from the
+        founder emails or an admin claim, never from this dropdown.
       </p>
 
       {error && <p className="mt-6 text-sm text-red-700">{error}</p>}

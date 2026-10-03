@@ -10,6 +10,9 @@ export type ServiceStatus = { id: string; name: string; description: string; sta
 
 const SLOW_MS = 2500;
 const TIMEOUT_MS = 5000;
+// The scheduler runs every ~15 min: late after 30, stopped after 60.
+const CRON_SLOW_MIN = 30;
+const CRON_DOWN_MIN = 60;
 
 async function timed(fn: (signal: AbortSignal) => Promise<boolean>): Promise<{ ok: boolean; ms: number }> {
   const ctl = new AbortController();
@@ -102,6 +105,19 @@ export async function checkServices(): Promise<ServiceStatus[]> {
           toStatus("identity", "Identity verification", "Gold badge identity checks (Dojah)", r)
         )
       : Promise.resolve(notConfigured("identity", "Identity verification", "Gold badge identity checks (Dojah)"))
+  );
+
+  // Scheduled jobs: /api/cron/reminders writes cronRuns/reminders after every run, so
+  // this catches the scheduler silently stopping (escrow never released, trials never expiring).
+  checks.push(
+    getAdminDb().collection("cronRuns").doc("reminders").get().then((snap): ServiceStatus => {
+      const id = "cron", name = "Scheduled jobs", description = "Session reminders, plan expiry and order releases";
+      const d = snap.data();
+      if (!d?.at) return notConfigured(id, name, description);
+      const ageMin = (Date.now() - new Date(d.at).getTime()) / 60_000;
+      const state: ServiceState = ageMin > CRON_DOWN_MIN ? "down" : ageMin > CRON_SLOW_MIN || d.ok === false ? "degraded" : "operational";
+      return { id, name, description, state };
+    }).catch(() => ({ id: "cron", name: "Scheduled jobs", description: "Session reminders, plan expiry and order releases", state: "down" as ServiceState }))
   );
 
   return Promise.all(checks);
