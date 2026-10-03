@@ -44,14 +44,9 @@ export function getAdminApp(): App {
   return initializeApp({ credential: cert(serviceAccount) });
 }
 
-// Admin = custom claim `admin: true`. LEGACY_ADMIN_EMAILS is the
-// temporary fallback for the claims migration (same list as
-// firestore.rules' isLegacyAdminEmail) — delete it once both founders
-// carry the claim.
-const LEGACY_ADMIN_EMAILS = ["ezurukam@gmail.com", "precheks.info@gmail.com"];
-
-function isAdminToken(decoded: { admin?: unknown; email?: string }): boolean {
-  return decoded.admin === true || (!!decoded.email && LEGACY_ADMIN_EMAILS.includes(decoded.email));
+// Admin = custom claim `admin: true` (same rule as firestore.rules' isAdmin()).
+function isAdminToken(decoded: { admin?: unknown; [key: string]: unknown }): boolean {
+  return decoded.admin === true;
 }
 
 // Admins, or any account firestore.rules' isPublisher() would let

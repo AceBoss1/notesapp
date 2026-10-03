@@ -104,8 +104,8 @@ test("admin custom claim grants access; a plain user with an admin-like claim na
   await assertFails(getDoc(doc(as("boss", { isAdmin: true }), "ledger/ref1")));
 });
 
-test("legacy founder email still works during the claims migration", async () => {
-  await assertSucceeds(getDoc(doc(as("f", { email: "precheks.info@gmail.com" }), "ledger/ref1")));
+test("a founder email without the admin claim is no longer an admin", async () => {
+  await assertFails(getDoc(doc(as("f", { email: "precheks.info@gmail.com" }), "ledger/ref1")));
   await assertFails(getDoc(doc(as("x", { email: "someone@else.com" }), "ledger/ref1")));
 });
 

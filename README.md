@@ -1101,9 +1101,7 @@ a renamed non-image is rejected in the browser.
 Migration (do in order, nothing breaks in between because the old email
 list still works): (1) `FIREBASE_SERVICE_ACCOUNT_KEY='…' node scripts/set-admin-claims.mjs ezurukam@gmail.com precheks.info@gmail.com`;
 (2) both founders sign out and in; (3) deploy rules + code; confirm
-`/admin` works; (4) delete `isLegacyAdminEmail()` in `firestore.rules`,
-`LEGACY_ADMIN_EMAILS` in `lib/firebase-admin.ts`, and the `isAdminEmail`
-fallback in `lib/admin-claims.ts`, then redeploy. Add admins later with
+`/admin` works; (4) the legacy email fallback has been removed (done) — admin is the claim only. Add admins later with
 `POST /api/admin/set-admin {email, admin}`.
 **Rules tests** — `npm run test:rules` (needs Java; starts the Firestore
 emulator): 11 tests covering profile-field lockdown, server-only money
@@ -1146,11 +1144,11 @@ the old email list keeps working until step 8.
 7. **Verify:** `/admin` loads, you can open `/admin/payments` and publish a
    journal. If something is locked out, nothing is lost — the legacy email
    check is still active; re-run step 3.
-8. **Remove the legacy path** (separate small commit): delete
-   `isLegacyAdminEmail()` and its use in `firestore.rules`,
-   `LEGACY_ADMIN_EMAILS` in `lib/firebase-admin.ts`, and the `isAdminEmail`
-   fallback in `lib/admin-claims.ts`; redeploy rules + code. From now on
-   admins are managed with the script or `POST /api/admin/set-admin`.
+8. **Legacy path removed.** The founder-email fallback is gone from
+   `firestore.rules`, `lib/firebase-admin.ts` and `lib/admin-claims.ts`; admin is the
+   `admin` claim only. Admins are managed with the script or `POST /api/admin/set-admin`.
+   If an admin is ever locked out, re-run `scripts/set-admin-claims.mjs <email>` and have
+   them sign out and in.
 
 **Scheduled-jobs status.** `/api/cron/reminders` writes `cronRuns/reminders`
 (server-only, no client rules) after every run; `/status` shows it as
