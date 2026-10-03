@@ -283,16 +283,12 @@ The core of this session. Three linked pieces:
 **Roles.** `UserProfile.role` widened from `"admin" | "reader"` to
 `"admin" | "staff" | "volunteer" | "reader"` — "staff" mirrors
 Precheks' in-house writers, "volunteer" mirrors external contributing
-writers. **Important scope boundary:** neither role currently grants
-publish permission. `firestore.rules`' `notes/{noteId}` create rule
-still only checks `isAdmin()` — the 2 hardcoded founder emails — not
-this field. A client-writable Firestore field was never going to be
-the right place to grant that (a malicious actor reasoning about it
-client-side is exactly the risk the third-party review's point #2
-flagged); wiring real publish permission for staff/volunteer needs the
-same Firebase custom-claims (Admin SDK) migration already documented
-there. Today, `role` is a label and a moderation marker, not an
-authorization grant. Admins assign it from `/admin/users`.
+writers. **Publishing:** both roles grant publish permission over one's
+own notes (`isPublisher()` in `firestore.rules`, mirrored by `canPublish()`
+in `lib/users.ts`), as does any account tier other than "standard".
+Admin rights are separate: the two founder emails or a custom `admin`
+claim. A client can't grant itself any of this — the role field is only
+writable through the admin routes. Admins assign it from `/admin/users`.
 
 **Suspension.** `lib/moderation.ts`: `suspendUser()`,
 `unsuspendUser()`, `rejectAppeal()`, `updateUserRole()`,
@@ -1155,6 +1151,11 @@ the old email list keeps working until step 8.
    `LEGACY_ADMIN_EMAILS` in `lib/firebase-admin.ts`, and the `isAdminEmail`
    fallback in `lib/admin-claims.ts`; redeploy rules + code. From now on
    admins are managed with the script or `POST /api/admin/set-admin`.
+
+**Scheduled-jobs status.** `/api/cron/reminders` writes `cronRuns/reminders`
+(server-only, no client rules) after every run; `/status` shows it as
+"Scheduled jobs": operational under 30 min old, slow at 30–60 min or after a
+partly failed run, down beyond 60 min.
 
 ## Session 6 — ordering, trending, status (built) + boosts & gifts (proposal)
 

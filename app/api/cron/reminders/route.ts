@@ -48,11 +48,17 @@ export async function GET(req: NextRequest) {
       sent++;
     }
   }
-  // Same scheduler run also downgrades lapsed Pro/Business plans.
-  const expired = await expireTiers().catch((e) => (console.error("expireTiers failed", e), 0));
-  // ...and releases store orders whose 7 "delivered" days passed without a buyer reply.
-  const released = await releaseDueOrders().catch((e) => (console.error("releaseDueOrders failed", e), 0));
-  // ...and gives back stock reserved by checkouts that were never paid.
-  const unreserved = await releaseExpiredReservations().catch((e) => (console.error("releaseExpiredReservations failed", e), 0));
+  // Same scheduler run also downgrades lapsed Pro/Business plans, releases store
+  // orders whose 7 "delivered" days passed without a buyer reply, and gives back
+  // stock reserved by checkouts that were never paid. Each job is isolated so one
+  // failure can't stop the others, and is recorded for /status.
+  const failed: string[] = [];
+  const job = (name: string, fn: () => Promise<number>) =>
+    fn().catch((e) => (console.error(`${name} failed`, e), failed.push(name), 0));
+  const expired = await job("expireTiers", expireTiers);
+  const released = await job("releaseDueOrders", releaseDueOrders);
+  const unreserved = await job("releaseExpiredReservations", releaseExpiredReservations);
+  // Heartbeat read by /status ("Scheduled jobs"); server-only collection, no client rules.
+  await db.collection("cronRuns").doc("reminders").set({ at: new Date().toISOString(), ok: failed.length === 0, failed }).catch((e) => console.error("cron heartbeat failed", e));
   return NextResponse.json({ checked: snap.size, sent, expiredPlans: expired, releasedOrders: released, unreservedCheckouts: unreserved });
 }
