@@ -53,7 +53,7 @@ export async function POST(req: NextRequest) {
         },
       };
       const m = msg[status];
-      if (m) await sendEmail({ to: order.email, subject: m.subject, text: `${m.text}\n\n#NotesApp` }).catch(() => {});
+      if (m) await sendEmail({ to: order.email, subject: m.subject, text: `${m.text}\n\n#NotesApp`, action: { label: "View your order", url: `${process.env.NEXT_PUBLIC_SITE_URL || "https://www.notesapp.name.ng"}/orders` } }).catch(() => {});
     }
     return NextResponse.json({ ok: true });
   } catch (err) {
