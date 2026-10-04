@@ -4,7 +4,6 @@ import BoostedStrip from "@/components/BoostedStrip";
 import GoldBadgeExplainer from "@/components/GoldBadgeExplainer";
 import IndependenceDoodle from "@/components/IndependenceDoodle";
 import AdSlot from "@/components/AdSlot";
-import { GOLD_KIND_LIVE } from "@/lib/badges";
 
 const LOOP = [
   { step: "Publish", copy: "Write a note. Toggle it public or keep it as a private client journal — same canvas." },
@@ -112,49 +111,6 @@ export default function Home() {
       <section className="border-b border-rule py-16">
         <div className="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8">
           <GoldBadgeExplainer />
-        </div>
-      </section>
-
-      {/* Honest status strip — the hero above is the vision; this is
-          what's actually true right now. Added directly in response
-          to third-party review feedback: don't let "get paid, in
-          Naira" imply a working payment flow when it's still a demo. */}
-      <section className="border-y border-rule bg-paper py-12">
-        <div className="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8">
-          <p className="eyebrow text-center">What's actually true right now</p>
-          <div className="mt-8 grid grid-cols-1 gap-8 sm:grid-cols-2">
-            <div>
-              <p className="font-ui text-sm font-bold text-ink">✓ Live today</p>
-              <ul className="mt-3 space-y-2 text-sm text-slate">
-                <li>Journals — real published notes, with a rich-text composer</li>
-                <li>Paid 1:1 sessions on each publisher's own rate and availability, paid through Paystack, with a bookings dashboard and a clear cancellation policy</li>
-                <li>Paid monthly journal subscriptions that unlock premium entries</li>
-                <li>Post boosts (pay for validated impressions) and gifts on every profile and post — see <Link href="/boost" className="text-crimson underline">Boost</Link> and <Link href="/gifts" className="text-crimson underline">Gifts</Link></li>
-                <li>Paid Pro and Business plans through Paystack, and official #NotesApp merch pre-orders in Naira — see <Link href="/pricing" className="text-crimson underline">Pricing</Link> and the <Link href="/merchstore" className="text-crimson underline">Merch store</Link></li>
-                <li>Trending feed and a live status page</li>
-                <li>Verification badges: the maroon ✔ for accounts in good standing and the <strong className="text-ink">gold ✔ for endorsed accounts</strong>{GOLD_KIND_LIVE.identity ? " and identity-checked accounts" : ""} — see <Link href="/badges" className="text-crimson underline">Verification badges</Link></li>
-                <li>Publisher payouts to a verified bank account, released after the session</li>
-                <li>Email confirmations and reminders · password reset and email verification</li>
-                <li>Comments, likes, shares, follow — all real, all working</li>
-              </ul>
-            </div>
-            <div>
-              <p className="font-ui text-sm font-bold text-ink">○ On the roadmap, not live</p>
-              <ul className="mt-3 space-y-2 text-sm text-slate">
-                <li>WhatsApp reminders and clients rescheduling themselves</li>
-{GOLD_KIND_LIVE.identity ? null : <li>Identity-checked gold badge (NIN + face check for people, CAC for organisations)</li>}
-                <li>Enterprise plans (custom commission, contact us) and in-platform checkout for members' own merch</li>
-                <li>iOS and Android apps, AI drafting, social publishing, video uploads, ad-share</li>
-              </ul>
-            </div>
-          </div>
-          <p className="mt-8 text-center text-sm text-slate">
-            Full detail on what's built vs. planned:{" "}
-            <Link href="/roadmap" className="text-crimson underline underline-offset-2">
-              the roadmap
-            </Link>
-            .
-          </p>
         </div>
       </section>
 

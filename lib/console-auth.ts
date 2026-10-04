@@ -33,5 +33,5 @@ export async function consoleRoute(fallback: string, fn: () => Promise<NextRespo
 }
 
 export const needApi = (m: ConsoleMember) => {
-  if (!m.apiAccess) throw new HttpError(403, "API access isn't enabled for this account yet. It's switched on per account — contact hello@notesapp.name.ng.");
+  if (!m.apiAccess) throw new HttpError(403, "API access isn't enabled for this account yet. It's switched on per account — send us a request at /contact?topic=api.");
 };

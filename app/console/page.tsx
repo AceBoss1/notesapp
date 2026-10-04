@@ -121,7 +121,7 @@ export default function ConsolePage() {
       {/* ---------------- API keys ---------------- */}
       <h2 className="mt-12 font-display text-2xl text-ink">API keys</h2>
       {!access.apiAccess ? (
-        <Locked>API access is switched on per account for Enterprise partners. To get it, email <a className="text-crimson underline" href="mailto:hello@notesapp.name.ng">hello@notesapp.name.ng</a> and we&apos;ll set you up.</Locked>
+        <Locked>API access is switched on per account for Enterprise partners. To get it, send us a request with the <Link href="/contact?topic=api" className="text-crimson underline">contact form</Link> and we&apos;ll set you up.</Locked>
       ) : (
         <>
           <form

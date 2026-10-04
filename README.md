@@ -1257,7 +1257,7 @@ an external monitor pings `/api/status`, so ping it every 5 min for reliable
 incident detection.
 
 ### API, Console, Docs and custom domains (Enterprise)
-**Access.** `users/{uid}.apiAccess` (admin-only field; users can't write it — rules-tested) is switched on per
+**Access.** Members request it through the contact form (`/contact?topic=api` opens it on the "API access, Console & Enterprise" topic, which lands in `/admin/leads`). `users/{uid}.apiAccess` (admin-only field; users can't write it — rules-tested) is switched on per
 account at `/admin/api-access`, which also lists/activates custom domains. Turning it off revokes the
 account's keys and pauses its webhooks. Console (`/console`) shows keys/webhooks only with `apiAccess`; the domain
 section needs a tier with `customDomain` (Enterprise).

@@ -1,5 +1,6 @@
 import Link from "next/link";
 import type { Metadata } from "next";
+import { GOLD_KIND_LIVE } from "@/lib/badges";
 
 export const metadata: Metadata = {
   title: "Roadmap",
@@ -62,6 +63,38 @@ export default function RoadmapPage() {
         The core loop — publish, book, get paid — is what's demoed
         today. These are decided and documented, not yet built. Paid sessions (with rescheduling and automatic payouts), monthly subscriptions, publisher rates and payouts, post and item boosts, gifts, Pro / Business plans, organisation accounts, stores for physical goods and digital downloads, parcel tracking, and official merch are already live.
       </p>
+
+      {/* The honest status strip: what's built and working versus what's still planned. */}
+      <section className="mt-12 border-y border-rule py-10" aria-labelledby="true-now">
+        <p id="true-now" className="eyebrow text-center">What&apos;s actually true right now</p>
+        <div className="mt-8 grid grid-cols-1 gap-8 sm:grid-cols-2">
+          <div>
+            <p className="font-ui text-sm font-bold text-ink">✓ Live today</p>
+            <ul className="mt-3 space-y-2 text-sm text-slate">
+              <li>Journals — real published notes, with a rich-text composer</li>
+              <li>Paid 1:1 sessions on each publisher&apos;s own rate and availability, paid through Paystack, with a bookings dashboard, rescheduling and a clear cancellation policy</li>
+              <li>Paid monthly journal subscriptions that unlock premium entries</li>
+              <li>Post and store-item boosts (pay for validated impressions) and gifts on every profile and post — see <Link href="/boost" className="text-crimson underline">Boost</Link> and <Link href="/gifts" className="text-crimson underline">Gifts</Link></li>
+              <li>Your own store with physical goods and instant digital downloads, sold through #NotesApp checkout with parcel tracking — see <Link href="/store-selling" className="text-crimson underline">Store selling</Link></li>
+              <li>Paid Pro and Business plans through Paystack, and official #NotesApp merch pre-orders in Naira — see <Link href="/pricing" className="text-crimson underline">Pricing</Link> and the <Link href="/merchstore" className="text-crimson underline">Merch store</Link></li>
+              <li>Enterprise extras: server-to-server API, Console and webhooks, and your own domain — see the <Link href="/docs" className="text-crimson underline">API Docs</Link></li>
+              <li>Trending feed, a live <Link href="/status" className="text-crimson underline">status page</Link> and a public <Link href="/changelog" className="text-crimson underline">changelog</Link></li>
+              <li>Verification badges: the maroon ✔ for accounts in good standing and the <strong className="text-ink">gold ✔ for endorsed accounts</strong>{GOLD_KIND_LIVE.identity ? " and identity-checked accounts" : ""} — see <Link href="/badges" className="text-crimson underline">Verification badges</Link></li>
+              <li>Publisher payouts to a verified bank account, released automatically after the session</li>
+              <li>Email confirmations and reminders · password reset and email verification</li>
+              <li>Comments, likes, shares, follow — all real, all working</li>
+            </ul>
+          </div>
+          <div>
+            <p className="font-ui text-sm font-bold text-ink">○ On the roadmap, not live</p>
+            <ul className="mt-3 space-y-2 text-sm text-slate">
+              <li>WhatsApp reminders alongside email and the bell</li>
+              {GOLD_KIND_LIVE.identity ? null : <li>Identity-checked gold badge (NIN + face check for people, CAC for organisations)</li>}
+              <li>iOS and Android apps, AI drafting, social publishing, video uploads, ad-share</li>
+            </ul>
+          </div>
+        </div>
+      </section>
 
       <div className="mt-12 grid grid-cols-1 gap-6">
         {ITEMS.map((item) => (

@@ -30,7 +30,7 @@ export default function DocsPage() {
 
       <h2 id="quickstart" className="mt-12 font-display text-3xl text-ink">Quickstart</h2>
       <ol className="mt-3 list-decimal space-y-1 pl-5 text-slate">
-        <li>Ask us to switch on API access for your account (<a className="text-crimson underline" href="mailto:hello@notesapp.name.ng">hello@notesapp.name.ng</a>).</li>
+        <li>Ask us to switch on API access for your account with the <Link href="/contact?topic=api" className="text-crimson underline">contact form</Link>.</li>
         <li>Open the Console and create a key with the permissions you need. Copy it — it&apos;s shown once.</li>
         <li>Call the API:</li>
       </ol>

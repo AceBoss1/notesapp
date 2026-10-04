@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { submitLead, LeadCategory, LEAD_CATEGORIES } from "@/lib/leads";
 
 
@@ -12,6 +12,15 @@ export default function ContactForm() {
   const [sending, setSending] = useState(false);
   const [sent, setSent] = useState(false);
   const [error, setError] = useState("");
+
+  // /contact?topic=api (linked from the API Docs and Console) opens the form on the right topic with a starter message.
+  useEffect(() => {
+    const topic = new URLSearchParams(window.location.search).get("topic");
+    const match = LEAD_CATEGORIES.find((c) => c.value === topic);
+    if (!match) return;
+    setCategory(match.value);
+    if (match.value === "api") setMessage((m) => m || "Please switch on API access for my account.\n\nUsername: @\nWhat we want to build: ");
+  }, []);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();

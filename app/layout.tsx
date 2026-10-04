@@ -186,6 +186,11 @@ export default async function RootLayout({
               <p className="eyebrow text-crimson-bright/90">Connect</p>
               <ul className="mt-4 space-y-2 text-sm text-paper/75">
                 <li>
+                  <Link href="/trending" className="hover:text-paper">
+                    Trending
+                  </Link>
+                </li>
+                <li>
                   <Link href="/contact" className="hover:text-paper">
                     Contact
                   </Link>
