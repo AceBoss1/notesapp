@@ -1,4 +1,4 @@
-import { HeadBucketCommand } from "@aws-sdk/client-s3";
+import { GetObjectCommand, HeadBucketCommand } from "@aws-sdk/client-s3";
 import { getAdminDb } from "./firebase-admin";
 import { getR2Client, R2_BUCKET } from "./r2";
 import { GOLD_KIND_LIVE } from "./badges";
@@ -84,8 +84,17 @@ export async function checkServices(): Promise<ServiceStatus[]> {
   checks.push(
     privateFilesConfigured()
       ? timed(async (signal) => {
-          await getR2Client().send(new HeadBucketCommand({ Bucket: privateBucket() }), { abortSignal: signal });
-          return true;
+          // Ask for an object that doesn't exist: "no such key" proves the bucket name, account and credentials all
+          // work for reading — exactly what a download needs — without needing bucket-level (HeadBucket) permission.
+          try {
+            await getR2Client().send(new GetObjectCommand({ Bucket: privateBucket(), Key: "status-probe-does-not-exist" }), { abortSignal: signal });
+            return true;
+          } catch (err) {
+            const e = err as { name?: string; $metadata?: { httpStatusCode?: number } };
+            if (e.name === "NoSuchKey") return true;
+            console.warn("[status] private downloads bucket check failed:", e.name, e.$metadata?.httpStatusCode);
+            return false;
+          }
         }).then((r) => toStatus("downloads", "Digital downloads", "Private file storage for paid downloads (Cloudflare R2)", r))
       : Promise.resolve(notConfigured("downloads", "Digital downloads", "Private file storage for paid downloads (Cloudflare R2)"))
   );
