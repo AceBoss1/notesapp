@@ -2,6 +2,19 @@
 // social links in lib/admin.ts. Central place so the domain/handles
 // only need updating in one spot.
 
+// The legal entity behind #NotesApp, from the CAC certified extract (2 Sep 2026) and the
+// Nigeria Revenue Service tax ID letter (3 Sep 2026). The registered address is on the CAC
+// register but is also the director's residence, so it is deliberately not shown on the site.
+// `smedanId` stays null until the SMEDAN registration exists; set it and it appears in the
+// footer and on /security.
+export const COMPANY_INFO = {
+  legalName: "NOTESAPP TECHNOLOGIES LTD",
+  rcNumber: "9825642",
+  registeredOn: "2026-09-02",
+  tin: "2623750527563",
+  smedanId: null as string | null,
+};
+
 export const SITE = {
   url: "https://www.notesapp.name.ng",
   email: "hello@notesapp.name.ng",

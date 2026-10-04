@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { LEGAL_CONTACT, LEGAL_VERSION } from "@/lib/legal";
+import { COMPANY_INFO } from "@/lib/site";
 
 export const metadata: Metadata = { title: "Privacy Policy" };
 
@@ -27,7 +28,7 @@ export default function PrivacyPage() {
       <p>We use only what is needed to keep you signed in and remember basic preferences.</p>
 
       <h2>Contact</h2>
-      <p>{LEGAL_CONTACT}</p>
+      <p>{COMPANY_INFO.legalName} (RC {COMPANY_INFO.rcNumber}) · {LEGAL_CONTACT}</p>
     </article>
   );
 }

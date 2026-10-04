@@ -135,18 +135,21 @@ export default function BoostNudge({ noteId, itemId, title, author, authorAvatar
             <p className="line-clamp-2 text-sm text-ink">{title}</p>
           </div>
           <p className="mt-2 text-xs font-semibold text-slate">↗ Boosted</p>
-          <div className="relative mt-2 flex items-center gap-4 text-xs text-slate">
+          <div className="mt-2 flex items-center gap-4 text-xs text-slate">
             {isItem ? <span>🛒 {shown(0, 37)}</span> : <span>💬 {shown(0, 3)}</span>}
-            {!isItem && <span>🔁 {shown(shares, 41)}</span>}
-            <span className="font-semibold text-pink-600">❤ {shown(likes, 1014)}</span>
-            <span>📊 {shown(views, 18100)}</span>
-            <div className="pointer-events-none absolute left-[42%] top-0" aria-hidden="true">
-              {hearts.map((id) => (
-                <span key={id} className="na-heart absolute text-base" style={{ left: `${(id * 37) % 40}px`, animation: "na-heart-pop 1.4s ease-out forwards" }}>
-                  ❤️
-                </span>
-              ))}
-            </div>
+            {!isItem && <span>↗ {shown(shares, 41)}</span>}
+            {/* Hearts pop from the heart itself: the burst layer is anchored to this span. */}
+            <span className="relative font-semibold text-pink-600">
+              ♥ {shown(likes, 1014)}
+              <span className="pointer-events-none absolute left-0 top-0" aria-hidden="true">
+                {hearts.map((id) => (
+                  <span key={id} className="na-heart absolute text-sm" style={{ left: `${(id * 5) % 12 - 2}px`, top: "-2px", animation: "na-heart-pop 1.4s ease-out forwards" }}>
+                    ❤️
+                  </span>
+                ))}
+              </span>
+            </span>
+            <span className="ml-auto whitespace-nowrap font-mono">👁 {shown(views, 18100)}</span>
           </div>
         </div>
         <p className="mx-auto mt-1 max-w-sm text-center text-[10px] text-slate">Illustration of how a boosted {isItem ? "item" : "post"} can look. Results vary and aren't guaranteed.</p>

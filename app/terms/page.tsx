@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { POLICY_TEXT } from "@/lib/cancellation";
 import { LEGAL_CONTACT, LEGAL_VERSION } from "@/lib/legal";
+import { COMPANY_INFO } from "@/lib/site";
 import { TIERS, formatPercent } from "@/lib/tiers";
 
 export const metadata: Metadata = { title: "Terms of Service" };
@@ -58,7 +59,7 @@ export default function TermsPage() {
       <p>These terms are governed by the laws of the Federal Republic of Nigeria.</p>
 
       <h2>8. Contact</h2>
-      <p>{LEGAL_CONTACT}</p>
+      <p>{COMPANY_INFO.legalName} (RC {COMPANY_INFO.rcNumber}) · {LEGAL_CONTACT}</p>
     </article>
   );
 }

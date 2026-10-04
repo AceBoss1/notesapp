@@ -1,5 +1,6 @@
 import Link from "next/link";
 import type { Metadata } from "next";
+import { COMPANY_INFO } from "@/lib/site";
 
 export const metadata: Metadata = {
   title: "Trust & Security",
@@ -38,6 +39,7 @@ const SECTIONS: { title: string; points: string[] }[] = [
   {
     title: "Who you're dealing with",
     points: [
+      `#NotesApp is run by ${COMPANY_INFO.legalName}, a private company limited by shares registered with the Corporate Affairs Commission (RC ${COMPANY_INFO.rcNumber}, registered ${new Date(COMPANY_INFO.registeredOn).toLocaleDateString("en-NG", { day: "numeric", month: "long", year: "numeric" })}) and tax-registered with the Nigeria Revenue Service (TIN ${COMPANY_INFO.tin}).`,
       "Gold identity checks are done by Dojah. We receive only a pass or fail result and never store ID numbers, selfies or documents.",
       "Organisations are checked against their CAC registration before they are marked verified, and are labelled unverified until then.",
       "Email must be verified before you can pay. Emails are never shown on public profiles.",
