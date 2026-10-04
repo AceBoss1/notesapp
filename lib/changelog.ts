@@ -11,9 +11,18 @@ export type Release = {
 
 export const CHANGELOG: Release[] = [
   {
+    version: "v0.4.1",
+    bump: "patch",
+    date: "2026-10-04",
+    changes: [
+      { kind: "added", text: "The status page now also tracks digital downloads storage, the developer API and custom-domain connections." },
+      { kind: "changed", text: "The digital downloads check tests storage the way a real download reads it." },
+    ],
+  },
+  {
     version: "v0.4.0",
     bump: "minor",
-    date: "2026-10-05",
+    date: "2026-10-04",
     changes: [
       { kind: "added", text: "API for Enterprise partners: publish and edit posts, and read your own bookings, orders, download sales and earnings, with scoped, revocable keys." },
       { kind: "added", text: "Console: create and revoke API keys, manage webhooks with signed deliveries, a delivery log and one-click resend, and connect your domain." },
