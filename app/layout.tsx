@@ -53,6 +53,7 @@ const COMPANY = [
   { href: "/pricing", label: "Pricing" },
   { href: "/roadmap", label: "Roadmap" },
   { href: "/status", label: "Status" },
+  { href: "/docs", label: "API Docs" },
   { href: "/changelog", label: "Changelog" },
   { href: "/security", label: "Trust & Security" },
   { href: "/terms", label: "Terms of Service" },
@@ -172,7 +173,6 @@ export default async function RootLayout({
                 <li><Link href="/badges" className="hover:text-paper">Verification badges</Link></li>
                 <li><Link href="/advertise" className="hover:text-paper">Advertise</Link></li>
                 <li><Link href="/organisations" className="hover:text-paper">Organisations</Link></li>
-                <li><Link href="/docs" className="hover:text-paper">API Docs</Link></li>
               </ul>
             </div>
 
