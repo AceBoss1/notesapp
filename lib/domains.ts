@@ -53,6 +53,16 @@ export async function checkDomain(host: string): Promise<{ active: boolean; note
   return { active: false, note: !verified ? "We can't verify this domain yet — add the DNS records below, then check again (DNS can take a few minutes to hours)." : "DNS isn't pointing at #NotesApp yet — check the records below." };
 }
 
+// True when the token and project ID work (used by /status). Never throws.
+export async function pingVercel(): Promise<boolean> {
+  if (!api()) return false;
+  try {
+    return (await vercel(`/v9/projects/${api()!.project}`)).ok;
+  } catch {
+    return false;
+  }
+}
+
 export async function removeDomain(host: string): Promise<void> {
   if (!api()) return;
   await vercel(`/v9/projects/${api()!.project}/domains/${encodeURIComponent(host)}`, { method: "DELETE" }).catch(() => {});

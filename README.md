@@ -1239,8 +1239,9 @@ data exists) and is CDN-cached 5 min. Publisher score = profile visits +
 visits to their posts. Existing lifetime `viewCount` still increments as before.
 
 **Status page** — `/status` (footer → Company). `GET /api/status` checks
-database, auth, R2 uploads, media domain, Paystack, Resend (each
-"not enabled yet" if its key is missing), shows up/slow/down + latency,
+database, auth, R2 uploads, media domain, private download storage, the
+Enterprise API, custom-domain connection (Vercel API — checks the token works),
+Paystack, Resend (each "not enabled yet" if its key is missing), shows up/slow/down + latency,
 cached 60 s, page auto-refreshes. It runs inside the app, so it can't
 report the app itself being unreachable — add an external monitor
 (UptimeRobot / Better Stack free tier) on `/api/status` for that, and
