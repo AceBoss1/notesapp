@@ -1256,6 +1256,39 @@ subscribers are emailed on open and resolve with a one-click unsubscribe link
 an external monitor pings `/api/status`, so ping it every 5 min for reliable
 incident detection.
 
+### API, Console, Docs and custom domains (Enterprise)
+**Access.** `users/{uid}.apiAccess` (admin-only field; users can't write it — rules-tested) is switched on per
+account at `/admin/api-access`, which also lists/activates custom domains. Turning it off revokes the
+account's keys and pauses its webhooks. Console (`/console`) shows keys/webhooks only with `apiAccess`; the domain
+section needs a tier with `customDomain` (Enterprise).
+
+**API (`/api/v1/*`, `lib/api-keys.ts`, `lib/api-v1.ts`).** Keys are `nak_<id>.<secret>`; only a SHA-256 of the secret is
+stored (`apiKeys/{id}`, server-only), compared in constant time, shown once. Scopes: `read:posts`, `write:posts`,
+`read:bookings`, `read:orders`, `read:earnings`. 120 req/min per key (in-memory limiter, like the rest of the app).
+Endpoints: `GET /me`, `GET|POST /posts`, `GET|PATCH /posts/{id}`, `GET /bookings`, `GET /orders` (`?kind=digital`),
+`GET /earnings`. `POST /posts` takes an `Idempotency-Key` (`apiIdempotency`, 24 h TTL). Buyer/client PII (email, phone,
+street address) is never returned. The docs page renders from `lib/api-docs.ts` — edit endpoints there and in the route together.
+
+**Webhooks (`lib/webhooks.ts`).** `webhookEndpoints` (server-only, with signing secret) and `webhookDeliveries` (30-day TTL).
+Events: `booking.created`, `order.paid`, `digital.sold` (emitted from `lib/payments.ts` after settlement),
+`payout.released` (from `lib/payouts.ts`), `post.published` (API). Signature header
+`NotesApp-Signature: t=<unix>,v1=<HMAC-SHA256 of "t.body">`. Targets must be public HTTPS names (private/loopback/IP
+literals refused, DNS-checked), 5 s timeout, no redirects. One attempt per event — failures are logged and can be resent
+from the Console.
+
+**Custom domains (`middleware.ts`, `lib/domains.ts`, `lib/host.ts`).** One domain per account (subdomain or root);
+`customDomains/{host}` is server-only. With `VERCEL_API_TOKEN` + `VERCEL_PROJECT_ID` (+ `VERCEL_TEAM_ID` for a team project)
+the domain is added to the Vercel project and checked through the Vercel API; without them it stays *pending* until an admin adds
+it in Vercel and presses Activate. Middleware does nothing on our own hosts. On a member's domain `/` → their profile (or store, their
+choice), `/store`, `/journals/<slug>` and `/shop/<id>` (only if they belong to that member) are served; everything else (login,
+checkout, bookings…) 307s to `www.notesapp.name.ng`, because sign-in and Paystack live there. The shop page shows
+"Continue to secure checkout" on a custom domain and a "← Back to the store" link when it arrives with `?from=<verified domain>`.
+Known limits: full sign-in/like/comment on the custom domain isn't supported (those hop to the main site), and webhooks
+are single-attempt.
+
+**Deploy.** `firebase deploy --only firestore` (new server-only rules + TTL on `webhookDeliveries.expireAt` and
+`apiIdempotency.expireAt`; answer `N` to deleting other field overrides).
+
 ### Changelog & Enterprise extras
 `/changelog` renders `lib/changelog.ts` (newest first; each release has a version,
 major/minor/patch, a date and Added/Changed/Fixed lines) — add an object at the top

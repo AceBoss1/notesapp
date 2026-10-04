@@ -11,6 +11,19 @@ export type Release = {
 
 export const CHANGELOG: Release[] = [
   {
+    version: "v0.4.0",
+    bump: "minor",
+    date: "2026-10-05",
+    changes: [
+      { kind: "added", text: "API for Enterprise partners: publish and edit posts, and read your own bookings, orders, download sales and earnings, with scoped, revocable keys." },
+      { kind: "added", text: "Console: create and revoke API keys, manage webhooks with signed deliveries, a delivery log and one-click resend, and connect your domain." },
+      { kind: "added", text: "Webhooks for new bookings, paid orders, download sales, released payouts and published posts." },
+      { kind: "added", text: "API Docs: quickstart, authentication, every endpoint, webhook signature verification and errors." },
+      { kind: "added", text: "Your own domain for Enterprise: serve your page, journals and store on notes.yourbrand.com or yourbrand.com. Signing in and paying stay on www.notesapp.name.ng, then buyers return to your store." },
+      { kind: "changed", text: "API access is switched on per account by our team." },
+    ],
+  },
+  {
     version: "v0.3.0",
     bump: "minor",
     date: "2026-10-04",

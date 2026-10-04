@@ -1,4 +1,5 @@
 import { FieldValue } from "firebase-admin/firestore";
+import { emitWebhook } from "./webhooks";
 import { getAdminDb, getUserEmail } from "./firebase-admin";
 import { slotLockId, verifyTransaction, pricePaidKobo } from "./paystack";
 import { commissionRateFor } from "./tiers";
@@ -378,6 +379,7 @@ export async function fulfillPayment(reference: string): Promise<PaymentRecord> 
 
   if (result.fresh && result.payment.status === "paid") {
     await notifyPaid(result.payment).catch((e) => console.error("notifyPaid failed", e));
+    await emitSaleWebhooks(result.payment);
     if (shares.length > 1 && result.payment.gift) await notifyGiftShares(result.payment, shares).catch((e) => console.error("notifyGiftShares failed", e));
     if (result.payment.kind === "tier" && result.payment.tier?.tier === "business") {
       await cancelBadgeIfCovered(result.payment.uid);
@@ -462,6 +464,18 @@ export async function markSubscriptionCancelled(planCode: string, email: string)
     .where("subscriberEmail", "==", email)
     .get();
   await Promise.all(subs.docs.map((d) => d.ref.update({ status: "cancelled" })));
+}
+
+// Tell the seller's webhook endpoints (Enterprise API accounts) about a settled sale. Never throws.
+async function emitSaleWebhooks(p: PaymentRecord): Promise<void> {
+  if (!p.publisherUid) return;
+  if (p.kind === "booking" && p.booking) {
+    await emitWebhook(p.publisherUid, "booking.created", { id: p.reference, date: p.booking.date, slot: p.booking.slot, minutes: p.booking.minutes, amount_kobo: p.amountKobo });
+  } else if (p.kind === "store" && p.store) {
+    await emitWebhook(p.publisherUid, "order.paid", { id: p.reference, item_id: p.store.itemId, item_title: p.store.itemTitle, quantity: p.store.quantity, amount_kobo: p.amountKobo, ship_to: { city: p.store.address.city, state: p.store.address.state } });
+  } else if (p.kind === "digital" && p.digital) {
+    await emitWebhook(p.publisherUid, "digital.sold", { id: p.reference, item_id: p.digital.itemId, item_title: p.digital.itemTitle, amount_kobo: p.amountKobo });
+  }
 }
 
 async function notifyPaid(p: PaymentRecord) {

@@ -256,6 +256,22 @@ test("error logs are server-only", async () => {
   await assertFails(setDoc(doc(anon(), "errorLogs/e2"), { message: "spam" }));
 });
 
+test("API keys, webhooks, deliveries and domains are server-only; members can't grant themselves API access", async () => {
+  await env.withSecurityRulesDisabled(async (ctx) => {
+    const db = ctx.firestore();
+    await setDoc(doc(db, "apiKeys/k1"), { uid: "pub", hash: "x" });
+    await setDoc(doc(db, "webhookEndpoints/w1"), { uid: "pub", secret: "whsec_x" });
+    await setDoc(doc(db, "webhookDeliveries/d1"), { uid: "pub" });
+    await setDoc(doc(db, "customDomains/notes.brand.com"), { uid: "pub", status: "active" });
+  });
+  for (const path of ["apiKeys/k1", "webhookEndpoints/w1", "webhookDeliveries/d1", "customDomains/notes.brand.com"]) {
+    await assertFails(getDoc(doc(as("pub"), path)));
+    await assertFails(getDoc(doc(as("boss", { admin: true }), path)));
+    await assertFails(setDoc(doc(as("pub"), path), { uid: "pub" }));
+  }
+  await assertFails(updateDoc(doc(as("pub"), "users/pub"), { apiAccess: true }));
+});
+
 test("badge endorsement requests are private and server-created", async () => {
   await env.withSecurityRulesDisabled(async (ctx) => {
     await setDoc(doc(ctx.firestore(), "badgeRequests/alice"), { status: "pending", message: "hello there", requestedAt: "x" });

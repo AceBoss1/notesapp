@@ -51,8 +51,6 @@ const COMPANY = [
   { href: "/brand", label: "Brand" },
   { href: "/about", label: "About Us" },
   { href: "/pricing", label: "Pricing" },
-  { href: "/contact", label: "Contact" },
-  { href: "/track", label: "Track a Parcel" },
   { href: "/roadmap", label: "Roadmap" },
   { href: "/status", label: "Status" },
   { href: "/changelog", label: "Changelog" },
@@ -163,9 +161,11 @@ export default async function RootLayout({
                 <li><Link href="/gifts" className="hover:text-paper">Gifts</Link></li>
                 <li><Link href="/coauthoring" className="hover:text-paper">Co-authoring</Link></li>
                 <li><Link href="/merchstore" className="hover:text-paper">Merch Store</Link></li>
+                <li><Link href="/track" className="hover:text-paper">Track a Parcel</Link></li>
                 <li><Link href="/badges" className="hover:text-paper">Verification badges</Link></li>
                 <li><Link href="/advertise" className="hover:text-paper">Advertise</Link></li>
                 <li><Link href="/organisations" className="hover:text-paper">Organisations</Link></li>
+                <li><Link href="/docs" className="hover:text-paper">API Docs</Link></li>
               </ul>
             </div>
 
@@ -185,6 +185,11 @@ export default async function RootLayout({
             <div>
               <p className="eyebrow text-crimson-bright/90">Connect</p>
               <ul className="mt-4 space-y-2 text-sm text-paper/75">
+                <li>
+                  <Link href="/contact" className="hover:text-paper">
+                    Contact
+                  </Link>
+                </li>
                 <li>
                   <a href={`mailto:${site.email}`} className="hover:text-paper">
                     {site.email}
