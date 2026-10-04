@@ -150,6 +150,13 @@ export default async function RootLayout({
                 for African coaches, consultants, and knowledge
                 professionals.
               </p>
+              <p className="mt-6 max-w-xs text-sm text-paper/50">
+                Built in partnership with Precheks — our first
+                reference customer. —{" "}
+                <Link href="/admin/login" className="text-paper/70 hover:text-paper">
+                  Staff Login
+                </Link>
+              </p>
             </div>
 
             <div>
@@ -207,13 +214,6 @@ export default async function RootLayout({
                     </a>
                   </li>
                 ))}
-                <li className="mt-6 text-paper/50">
-                  Built in partnership with Precheks — our first
-                  reference customer. —{" "}
-                  <Link href="/admin/login" className="text-paper/70 hover:text-paper">
-                    Staff Login
-                  </Link>
-                </li>
               </ul>
             </div>
           </div>
