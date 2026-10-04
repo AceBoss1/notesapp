@@ -1257,6 +1257,12 @@ an external monitor pings `/api/status`, so ping it every 5 min for reliable
 incident detection.
 
 ### Boosts & gifts (built — approved 2026-09-30)
+**Boost nudge** — when an author opens their own post and it has no active
+boost, `components/BoostNudge.tsx` shows a bottom sheet (3.5 s after load) with
+an animated preview — hearts popping, counters racing up — and "Boost now"
+(→ `/boost/<noteId>`) / "Maybe later". Once per post per session, and quiet
+for 3 days after "Maybe later". The preview figures are an illustration and
+are labelled as such; reduced-motion users get static end values.
 **Gifts** — 🎁 button on every publisher profile and every post
 (`components/GiftButton.tsx`). Presets ₦200/500/1,000/2,000/5,000 or custom
 up to ₦500,000 (server-enforced, `lib/boost-config.ts`), optional message,
