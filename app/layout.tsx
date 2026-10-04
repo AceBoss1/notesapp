@@ -8,6 +8,7 @@ import SearchBar from "@/components/SearchBar";
 import CelebrationBanner from "@/components/CelebrationBanner";
 import { SITE } from "@/lib/site";
 import { getSiteSettingsCached } from "@/lib/settings";
+import { COMPANY_INFO } from "@/lib/site";
 import "./globals.css";
 
 const DEFAULT_TITLE = "#NotesApp — Publish. Book. Get Paid. One Workspace.";
@@ -207,7 +208,11 @@ export default async function RootLayout({
           </div>
 
           <div className="border-t border-paper/10 py-5 text-center text-xs text-paper/45">
-            © {new Date().getFullYear()} #NotesApp. All rights reserved.
+            <p>© {new Date().getFullYear()} #NotesApp. All rights reserved.</p>
+            <p className="mt-1">
+              {COMPANY_INFO.legalName} · RC {COMPANY_INFO.rcNumber} · TIN {COMPANY_INFO.tin}
+              {COMPANY_INFO.smedanId ? ` · SMEDAN ${COMPANY_INFO.smedanId}` : ""}
+            </p>
           </div>
         </footer>
       </body>

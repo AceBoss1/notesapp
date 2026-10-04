@@ -1256,6 +1256,15 @@ subscribers are emailed on open and resolve with a one-click unsubscribe link
 an external monitor pings `/api/status`, so ping it every 5 min for reliable
 incident detection.
 
+### Company identity
+`COMPANY_INFO` in `lib/site.ts` holds the legal entity — NOTESAPP TECHNOLOGIES
+LTD, RC 9825642 (registered 2 Sep 2026), TIN 2623750527563 — taken from the CAC
+certified extract and the tax ID letter. It shows in the footer, on `/security`
+and in the Terms/Privacy contact line. The registered address is the director's
+residence, so it is intentionally not published. **SMEDAN:** not registered yet —
+`smedanId` is `null`; once you have the number, set it in `lib/site.ts` and it
+appears in the footer automatically.
+
 ### Boosts & gifts (built — approved 2026-09-30)
 **Boost nudge** — when an author opens their own post and it has no active
 boost, `components/BoostNudge.tsx` shows a bottom sheet (3.5 s after load) with
