@@ -13,6 +13,7 @@ import { STORE_MAX_QTY } from "@/lib/orders";
 import type { StoreItem } from "@/lib/store";
 import { fmtSize } from "@/lib/store-files";
 import NotifyWhenBack from "@/components/NotifyWhenBack";
+import BoostNudge from "@/components/BoostNudge";
 
 const field = "mt-1 w-full border border-rule bg-card px-3 py-2 text-sm outline-none focus:border-crimson";
 
@@ -156,6 +157,7 @@ export default function ShopItemPage() {
         <button disabled={busy} className="btn-primary sm:col-span-2">{busy ? "Please wait…" : user ? `Pay ${formatNaira(total)}` : "Sign in to buy"}</button>
       </form>
       )}
+      <BoostNudge itemId={itemId} title={item.title} author={seller?.displayName || "Your store"} image={item.image} authorUid={item.ownerUid} />
     </section>
   );
 }
