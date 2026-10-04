@@ -55,6 +55,7 @@ const COMPANY = [
   { href: "/track", label: "Track a Parcel" },
   { href: "/roadmap", label: "Roadmap" },
   { href: "/status", label: "Status" },
+  { href: "/changelog", label: "Changelog" },
   { href: "/security", label: "Trust & Security" },
   { href: "/terms", label: "Terms of Service" },
   { href: "/privacy", label: "Privacy Policy" },

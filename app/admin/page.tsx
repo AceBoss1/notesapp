@@ -364,7 +364,7 @@ export default function AdminDashboard() {
                 <div className="flex gap-5 text-xs font-mono text-slate flex-shrink-0">
                   <span>👁 {n.viewCount || 0}</span>
                   <span>♥ {n.likeCount || 0}</span>
-                  <span>↗ {n.shareCount || 0}</span>
+                  <span>🔁 {n.shareCount || 0}</span>
                 </div>
               </div>
             ))}
@@ -394,7 +394,7 @@ export default function AdminDashboard() {
                   <div className="flex gap-4 text-xs font-mono text-slate">
                     <span>👁 {note.viewCount || 0}</span>
                     <span>♥ {note.likeCount || 0}</span>
-                    <span>↗ {note.shareCount || 0}</span>
+                    <span>🔁 {note.shareCount || 0}</span>
                     <span>💬 {comments}</span>
                   </div>
                   <span className="font-display text-xl text-crimson-bright w-16 text-right">

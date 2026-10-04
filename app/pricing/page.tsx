@@ -85,6 +85,20 @@ const ROWS: { label: string; href?: string; render: (t: (typeof TIERS)[number]) 
     label: "Links out to other shops",
     render: (t) => (t.canPublish ? "Only your one profile link and links inside your posts — stores sell through #NotesApp checkout" : "—"),
   },
+  {
+    label: "Your own domain",
+    render: (t) =>
+      !t.canPublish
+        ? "—"
+        : t.customDomain
+          ? "Serve your page, journals and store on notes.yourbrand.com or yourbrand.com — your /u/username page stays the default home, and you can switch back any time"
+          : "Your page lives at notesapp.name.ng/u/username",
+  },
+  {
+    label: "API & Console",
+    href: "/changelog",
+    render: (t) => (t.canPublish ? (t.apiAccess ? "Server-to-server API, keys and webhooks — enabled per account by our team" : "—") : "—"),
+  },
   { label: "AI draft assistance", render: (t) => (t.canPublish ? "Planned — included on every publisher tier" : "—") },
 ];
 
