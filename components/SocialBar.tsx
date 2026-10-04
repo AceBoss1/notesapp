@@ -164,7 +164,7 @@ export default function SocialBar({
             onClick={() => setShareOpen((v) => !v)}
             className="flex items-center gap-2 px-4 py-2.5 border border-rule text-slate hover:border-crimson hover:text-crimson-bright font-ui text-sm font-semibold transition-colors"
           >
-            <span className="text-lg leading-none">↗</span>
+            <span className="text-lg leading-none">🔁</span>
             <span>{copied ? "Link copied" : `Share (${shareCount})`}</span>
           </button>
 

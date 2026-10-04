@@ -1256,6 +1256,15 @@ subscribers are emailed on open and resolve with a one-click unsubscribe link
 an external monitor pings `/api/status`, so ping it every 5 min for reliable
 incident detection.
 
+### Changelog & Enterprise extras
+`/changelog` renders `lib/changelog.ts` (newest first; each release has a version,
+major/minor/patch, a date and Added/Changed/Fixed lines) — add an object at the top
+to ship a note. `/pricing` has two new Enterprise-only rows, **Your own domain**
+(notes.yourbrand.com or the root domain; `/u/username` stays the default home) and
+**API & Console** (enabled per account by an admin, no self-serve). They are driven
+by `customDomain` / `apiAccess` in `lib/tiers.ts`. The domain, API and Console
+themselves are planned, not built.
+
 ### Company identity
 `COMPANY_INFO` in `lib/site.ts` holds the legal entity — NOTESAPP TECHNOLOGIES
 LTD, RC 9825642 (registered 2 Sep 2026), TIN 2623750527563 — taken from the CAC

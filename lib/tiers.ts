@@ -35,6 +35,11 @@ export type TierConfig = {
   // final once downloaded). Higher than physical because there is no cost of goods to share.
   digitalCommission: number | "custom";
   digitalCommissionFloor?: number;
+  // Enterprise-only extras. Own domain: the member's page, journals and store served on their
+  // domain (notes.yourbrand.com or the root yourbrand.com); default home stays /u/username.
+  // API access: server-to-server API + Console, switched on per account by an admin.
+  customDomain?: boolean;
+  apiAccess?: boolean;
 };
 
 export const TIERS: TierConfig[] = [
@@ -96,6 +101,8 @@ export const TIERS: TierConfig[] = [
     physicalCommissionFloor: 0.03,
     digitalCommission: "custom",
     digitalCommissionFloor: 0.05,
+    customDomain: true,
+    apiAccess: true,
   },
 ];
 
