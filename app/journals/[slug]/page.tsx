@@ -8,6 +8,7 @@ import { getNoteBySlug, getMoreNotes } from "@/lib/firestore-notes";
 import { getAuthorProfile, getUserByUid, badgeLevel, goldKindOf, isTeamMember, roleLabelFor } from "@/lib/users";
 import TeamBadge from "@/components/TeamBadge";
 import BadgeToast from "@/components/BadgeToast";
+import BoostNudge from "@/components/BoostNudge";
 import VerifiedBadge from "@/components/VerifiedBadge";
 import { NA_NOTESAPP_PROFILE } from "@/lib/journals-directory";
 import SocialBar from "@/components/SocialBar";
@@ -277,7 +278,17 @@ export default async function JournalDetail({
           </div>
         </div>
       )}
-      <BadgeToast />
+      <BadgeToast subjectUid={authorProfile?.uid} />
+      <BoostNudge
+        noteId={note.id}
+        title={note.title}
+        author={authorProfile?.displayName || note.author}
+        authorAvatar={authorProfile?.avatar || note.author_avatar}
+        authorUid={authorProfile?.uid}
+        views={note.viewCount || 0}
+        likes={note.likeCount || 0}
+        shares={note.shareCount || 0}
+      />
     </article>
   );
 }
