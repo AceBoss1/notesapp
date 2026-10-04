@@ -355,8 +355,8 @@ A review of the whole project raised 5 points. Where each landed:
 
 1. **Headline promise ahead of what's built.** Agreed, and acted on
    immediately — added a "What's actually true right now" section
-   directly on the homepage (`app/page.tsx`), right below the hero,
-   explicitly separating what's live from what's roadmap. Extends the
+   (now at the top of `/roadmap`, `app/roadmap/page.tsx`; it started on
+   the homepage), explicitly separating what's live from what's roadmap. Extends the
    same "demo" honesty already used on the booking calendar and
    subscribe buttons to the page that matters most for a first
    impression.
