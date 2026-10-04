@@ -137,7 +137,7 @@ export default function BoostNudge({ noteId, itemId, title, author, authorAvatar
           <p className="mt-2 text-xs font-semibold text-slate">↗ Boosted</p>
           <div className="mt-2 flex items-center gap-4 text-xs text-slate">
             {isItem ? <span>🛒 {shown(0, 37)}</span> : <span>💬 {shown(0, 3)}</span>}
-            {!isItem && <span>↗ {shown(shares, 41)}</span>}
+            {!isItem && <span>🔁 {shown(shares, 41)}</span>}
             {/* Hearts pop from the heart itself: the burst layer is anchored to this span. */}
             <span className="relative font-semibold text-pink-600">
               ♥ {shown(likes, 1014)}
