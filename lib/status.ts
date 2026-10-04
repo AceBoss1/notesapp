@@ -2,6 +2,8 @@ import { HeadBucketCommand } from "@aws-sdk/client-s3";
 import { getAdminDb } from "./firebase-admin";
 import { getR2Client, R2_BUCKET } from "./r2";
 import { GOLD_KIND_LIVE } from "./badges";
+import { privateBucket, privateFilesConfigured } from "./private-files";
+import { pingVercel, vercelConfigured } from "./domains";
 
 // Server-only service health checks behind /status. Reports only
 // up/slow/down + latency — never error details or config.
@@ -76,6 +78,29 @@ export async function checkServices(): Promise<ServiceStatus[]> {
     media
       ? timed(reachable(media, { method: "HEAD" })).then((r) => toStatus("media", "Media delivery", "Serving uploaded images (media domain)", r))
       : Promise.resolve(notConfigured("media", "Media delivery", "Serving uploaded images (media domain)"))
+  );
+
+  // Paid digital downloads live in a separate private bucket.
+  checks.push(
+    privateFilesConfigured()
+      ? timed(async (signal) => {
+          await getR2Client().send(new HeadBucketCommand({ Bucket: privateBucket() }), { abortSignal: signal });
+          return true;
+        }).then((r) => toStatus("downloads", "Digital downloads", "Private file storage for paid downloads (Cloudflare R2)", r))
+      : Promise.resolve(notConfigured("downloads", "Digital downloads", "Private file storage for paid downloads (Cloudflare R2)"))
+  );
+
+  // The Enterprise API answers (a request without a key is refused with 401, which proves the route is up).
+  const site = (process.env.NEXT_PUBLIC_SITE_URL || "https://www.notesapp.name.ng").replace(/\/$/, "");
+  checks.push(
+    timed(reachable(`${site}/api/v1/me`)).then((r) => toStatus("api", "Developer API", "Enterprise API, Console and webhooks", r))
+  );
+
+  // Own-domain connections go through the Vercel API; only checked once it's configured.
+  checks.push(
+    vercelConfigured()
+      ? timed(() => pingVercel()).then((r) => toStatus("domains", "Custom domains", "Connecting and verifying Enterprise domains (Vercel)", r))
+      : Promise.resolve(notConfigured("domains", "Custom domains", "Connecting and verifying Enterprise domains (Vercel)"))
   );
 
   const paystack = process.env.PAYSTACK_SECRET_KEY;

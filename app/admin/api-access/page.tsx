@@ -12,6 +12,7 @@ export default function AdminApiAccessPage() {
   const [members, setMembers] = useState<Member[]>([]);
   const [domains, setDomains] = useState<Domain[]>([]);
   const [username, setUsername] = useState("");
+  const [autoConnect, setAutoConnect] = useState<boolean | null>(null);
   const [error, setError] = useState("");
   const [msg, setMsg] = useState("");
 
@@ -24,7 +25,7 @@ export default function AdminApiAccessPage() {
   }, [user]);
 
   const load = useCallback(() => {
-    call().then((j) => { setMembers(j.enabled); setDomains(j.domains); }).catch((e) => setError(e.message));
+    call().then((j) => { setMembers(j.enabled); setDomains(j.domains); setAutoConnect(!!j.autoConnect); }).catch((e) => setError(e.message));
   }, [call]);
   useEffect(() => { if (user) load(); }, [user, load]);
 
@@ -61,7 +62,11 @@ export default function AdminApiAccessPage() {
       )}
 
       <h2 className="mt-10 font-display text-2xl">Custom domains</h2>
-      <p className="mt-1 text-xs text-slate">When the Vercel API isn&apos;t configured (VERCEL_API_TOKEN, VERCEL_PROJECT_ID), add each domain to the Vercel project yourself, then press Activate.</p>
+      {autoConnect === null ? null : autoConnect ? (
+        <p className="mt-1 text-xs text-emerald-800">Automatic connection is on: domains are added to the Vercel project when a member saves them, and members check their own DNS in the Console. Use Activate or Pause only if one gets stuck. (Live check: Custom domains on the <a href="/status" className="underline">status page</a>.)</p>
+      ) : (
+        <p className="mt-1 text-xs text-slate">Automatic connection is off — set VERCEL_API_TOKEN and VERCEL_PROJECT_ID (and VERCEL_TEAM_ID for a team project) in Vercel and redeploy. Until then, add each domain to the Vercel project yourself, then press Activate.</p>
+      )}
       {domains.length === 0 ? <p className="mt-3 text-sm text-slate">None yet.</p> : (
         <ul className="card mt-3 divide-y divide-rule">
           {domains.map((d) => (

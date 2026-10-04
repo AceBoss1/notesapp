@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { friendlyMessage } from "@/lib/api-errors";
 import { getAdminDb, verifyAdminRequest } from "@/lib/firebase-admin";
-import { DomainDoc, removeDomain } from "@/lib/domains";
+import { DomainDoc, removeDomain, vercelConfigured } from "@/lib/domains";
 import { notifyBell } from "@/lib/email";
 
 export const dynamic = "force-dynamic";
@@ -16,6 +16,7 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({
       enabled: enabled.docs.map((d) => ({ uid: d.id, username: d.data().username, displayName: d.data().displayName, tier: d.data().accountTier })),
       domains: domains.docs.map((d) => ({ ...(d.data() as DomainDoc) })),
+      autoConnect: vercelConfigured(),
     });
   } catch (err) {
     const f = friendlyMessage(err, "Couldn't load API access");
