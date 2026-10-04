@@ -17,13 +17,16 @@ const FEATURES = [
   { title: "Native booking calendar", copy: "Built into your profile page, running on your own weekly availability. No redirect, no second login — and clients can cancel or reschedule under a clear refund policy." },
   { title: "Your rates, your payouts", copy: "Set your own session price and monthly subscription price. Paystack collects in Naira; earnings are paid to your verified bank account after each session." },
   { title: "Booking confirmations & reminders", copy: "Email confirmations and 24-hour and 1-hour reminders are live today. WhatsApp reminders are coming next." },
-  { title: "Boost a post", copy: "Put a post in front of more readers. You pay only for validated impressions, delivered over several days — undelivered ones are refunded." },
-  { title: "Gifts", copy: "Readers can send you a gift on your profile or on any single post — from ₦200 up to ₦500,000, with a note if they like." },
+  { title: "Boost a post or a store item", copy: "Put a post or a product in front of more readers. You pay only for validated impressions, delivered over several days — undelivered ones are refunded." },
+  { title: "Gifts", copy: "Readers can send you a gift on your profile or on any single post — from ₦200 up to ₦500,000, with a note if they like. Add your payout account and the 🎁 button switches on." },
   { title: "A real writing desk", copy: "Format with a toolbar, preview as you go, drop in images, and never lose a draft — everything is saved as clean Markdown." },
   { title: "Ad share, from day one", copy: "Pro publishers earn 25% and Business publishers 45% of the ad revenue on their pages — no follower or view thresholds to clear first. Ads are opt-in for paid plans, every one is labelled “Sponsored”, and your share is paid monthly after review. Brands can buy a banner campaign online." },
   { title: "Co-authoring", copy: "Pro and Business publishers can write a post with other members, agree each person's share of what it earns — gifts on it are split now — and share the byline. Everyone accepts before it's listed." },
   { title: "Gold badge", copy: "Get endorsed by #NotesApp, or identity-checked, and wear the gold ✔ beside your name on your profile, the directory and every post." },
   { title: "A brand store for every journal", copy: "Every professional gets their own storefront on their profile — sell physical goods with buyer payments held until delivery, a managed stock count and a tracking ID for every parcel — or digital downloads delivered instantly after payment. Boost any item to put it in front of more readers. Organisations can run theirs with their team." },
+  { title: "Enterprise: API, webhooks & your own domain", copy: "Partners get a server-to-server API to publish posts and read bookings, orders and earnings, signed webhooks, a Console for keys, and their page, journals and store on their own domain." },
+  { title: "Trust you can check", copy: "Buyer payments held until delivery, private downloads behind short-lived links, tested access rules, and your own data to download or delete. Read how it works on Trust & security." },
+  { title: "Open about what's live", copy: "A public status page with response times and incident updates, and a changelog of every release, so you always know what changed." },
   { title: "Bring your own transcription (coming)", copy: "Connect Otter.ai or Whisper for session notes. We integrate; we don't lock you into one AI vendor." },
 ];
 

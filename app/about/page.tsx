@@ -21,12 +21,16 @@ const LIVE = [
   { href: "/journals", title: "Monthly subscriptions", copy: "Readers subscribe to unlock your premium entries; renewals are automatic." },
   { href: "/gifts", title: "Gifts", copy: "Readers can send you a gift on your profile or on any post." },
   { href: "/coauthoring", title: "Co-authoring", copy: "Write a post with other members, agree each person's share of its earnings, and share the byline." },
-  { href: "/boost", title: "Boost", copy: "Promote a post and pay only for validated impressions." },
+  { href: "/boost", title: "Boost", copy: "Promote a post or a store item and pay only for validated impressions." },
   { href: "/badges", title: "Verification badges", copy: "A verified ✔ for accounts in good standing, and a gold ✔ for accounts we endorse or identity-check." },
   { href: "/advertise", title: "Ads & ad share", copy: "Buy a banner campaign online and reach readers across the site; Pro and Business publishers can opt in and earn a share, paid monthly after review." },
   { href: "/store-selling", title: "Sell physical goods & digital downloads", copy: "Sell in your store (or your organisation's): physical items with managed stock, the buyer's money held until delivery is confirmed and a parcel ID anyone can track — or digital downloads that buyers get instantly after paying. Boost any item to reach more readers." },
   { href: "/merchstore", title: "Merch store", copy: "Official #NotesApp merch with your choice of logo — pre-order in batches, delivered in Nigeria." },
   { href: "/trending", title: "Trending", copy: "The most visited publishers and posts on #NotesApp." },
+  { href: "/docs", title: "API, Console & your own domain", copy: "Enterprise accounts get a server-to-server API, signed webhooks and a Console, and can serve their page, journals and store on their own domain." },
+  { href: "/security", title: "Trust & security", copy: "How payments, files, access rules and your data are protected — including downloading or deleting your own data." },
+  { href: "/status", title: "Live status", copy: "Public service health with response times, incident history and email updates." },
+  { href: "/changelog", title: "Changelog", copy: "Every release, with what was added, changed and fixed." },
 ];
 
 const FOUNDERS = [
@@ -119,6 +123,7 @@ export default async function AboutPage() {
           <li>Payments are handled by Paystack — we never store card details.</li>
           <li>Publisher earnings are held until the session has happened (or a 7-day window for subscriptions and gifts) and paid to a verified bank account.</li>
           <li>One published cancellation and refund policy for every session.</li>
+          <li>You can download a copy of your data or delete your account yourself — see <Link href="/security" className="text-crimson underline">Trust &amp; security</Link>.</li>
           <li>Verified emails are required to pay; accounts can be suspended and appealed.</li>
           <li>Badges: the #NotesApp team mark for staff and guest writers, the maroon ✔ for accounts in good standing, and a gold badge for accounts we endorse (identity-checked gold {GOLD_KIND_LIVE.identity ? "also available" : "coming soon"}) — see <Link href="/badges" className="text-crimson underline">Verification badges</Link>.</li>
           <li>Live service health is public on the <Link href="/status" className="text-crimson underline">status page</Link>; see our <Link href="/terms" className="text-crimson underline">Terms</Link> and <Link href="/privacy" className="text-crimson underline">Privacy Policy</Link>.</li>
