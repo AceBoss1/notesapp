@@ -1,4 +1,5 @@
 import { getAdminDb, getUserEmail } from "./firebase-admin";
+import { emitWebhook } from "./webhooks";
 import { initiateTransfer } from "./paystack";
 import { notifyBell, sendEmail } from "./email";
 import { formatNaira } from "./booking-time";
@@ -42,6 +43,7 @@ export async function releaseLedgerEntry(
       reason: `#NotesApp ${ledger.kind} payout`,
     });
     await ledgerRef.update({ transferCode: tr.transfer_code });
+    await emitWebhook(ledger.publisherUid, "payout.released", { id: reference, kind: ledger.kind, net_kobo: ledger.netKobo, transfer_status: tr.status });
     return { ok: true, transferStatus: tr.status };
   } catch (err) {
     const msg = err instanceof Error ? err.message : "Transfer failed";

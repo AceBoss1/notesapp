@@ -1,4 +1,5 @@
 import type { Firestore } from "firebase-admin/firestore";
+import { removeDomain } from "./domains";
 
 // Server-only. A member's data rights under the Nigeria Data Protection Act: get a copy of what we
 // hold about them (export) and have their account erased (deletion). Money records are different:
@@ -50,6 +51,9 @@ export async function collectExport(db: Firestore, uid: string, email: string) {
     teamMemberships: await docs(db, "orgMembers", "memberUid", uid),
     badgeApplication: (await db.doc(`badgeRequests/${uid}`).get()).data() ?? null,
     publisherSettings: (await db.doc(`publisherSettings/${uid}`).get()).data() ?? null,
+    apiKeys: strip(await docs(db, "apiKeys", "uid", uid), ["hash"]),
+    webhookEndpoints: strip(await docs(db, "webhookEndpoints", "uid", uid), ["secret"]),
+    customDomains: await docs(db, "customDomains", "uid", uid),
     payoutAccount: payout ? { bankName: payout.bankName, accountName: payout.accountName, accountLast4: payout.accountLast4 } : null,
   };
 }
@@ -138,6 +142,7 @@ export async function eraseAccount(db: Firestore, uid: string, deleteFile: (key:
   counts.storeItems = items.size;
 
   const own = async (col: string, field: string, value: string) => (await db.collection(col).where(field, "==", value).get()).docs;
+  for (const d of await own("customDomains", "uid", uid)) await removeDomain(d.id).catch(() => {});
   const toDelete = [
     ...(await own("follows", "followerUid", uid)),
     ...(username ? await own("follows", "username", username) : []),
@@ -145,6 +150,10 @@ export async function eraseAccount(db: Firestore, uid: string, deleteFile: (key:
     ...(await own("stockWatches", "uid", uid)),
     ...(await own("orgMembers", "memberUid", uid)),
     ...(await own("orgInvites", "inviteeUid", uid)),
+    ...(await own("apiKeys", "uid", uid)),
+    ...(await own("webhookEndpoints", "uid", uid)),
+    ...(await own("webhookDeliveries", "uid", uid)),
+    ...(await own("customDomains", "uid", uid)),
   ];
   await deleteAll(db, toDelete.map((d) => d.ref));
   counts.relationships = toDelete.length;

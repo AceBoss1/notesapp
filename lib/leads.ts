@@ -25,6 +25,7 @@ export const LEAD_CATEGORIES = [
   { value: "advertising", label: "Advertising campaigns" },
   { value: "store", label: "Store orders, parcels & selling" },
   { value: "organisation", label: "Organisation accounts & team" },
+  { value: "api", label: "API access, Console & Enterprise" },
   { value: "publishing", label: "Publishing, co-authoring & my journal" },
   { value: "account", label: "Account & login" },
   { value: "report", label: "Report a post or account" },

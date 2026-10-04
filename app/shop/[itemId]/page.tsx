@@ -14,6 +14,7 @@ import type { StoreItem } from "@/lib/store";
 import { fmtSize } from "@/lib/store-files";
 import NotifyWhenBack from "@/components/NotifyWhenBack";
 import BoostNudge from "@/components/BoostNudge";
+import { MAIN_HOST, isMainHost } from "@/lib/host";
 
 const field = "mt-1 w-full border border-rule bg-card px-3 py-2 text-sm outline-none focus:border-crimson";
 
@@ -29,6 +30,19 @@ export default function ShopItemPage() {
   const [error, setError] = useState("");
   const [agreed, setAgreed] = useState(false);
   const [owned, setOwned] = useState(false); // this buyer already bought this download
+  // On a seller's own domain (Enterprise) we only show the item; signing in and paying happen on the main site.
+  const [customHost, setCustomHost] = useState(false);
+  const [backTo, setBackTo] = useState<{ host: string; username: string } | null>(null);
+  useEffect(() => {
+    setCustomHost(!isMainHost(window.location.hostname));
+    const from = new URLSearchParams(window.location.search).get("from");
+    if (from) {
+      fetch(`/api/public/domain-resolve?host=${encodeURIComponent(from)}`)
+        .then((r) => r.json())
+        .then((d) => d.found && setBackTo({ host: d.host, username: d.username }))
+        .catch(() => {});
+    }
+  }, []);
 
   useEffect(() => onAuthStateChanged(auth, (u) => setUser(u)), []);
   useEffect(() => {
@@ -91,6 +105,9 @@ export default function ShopItemPage() {
 
   return (
     <section className="mx-auto max-w-2xl px-4 py-14 sm:px-6">
+      {backTo && (
+        <a href={`https://${backTo.host}/store`} className="mb-3 inline-block text-sm text-crimson underline">← Back to the store</a>
+      )}
       <span className="eyebrow">Store</span>
       <h1 className="mt-3 font-display text-3xl text-ink">{item.title}</h1>
       {seller && <p className="mt-1 text-sm text-slate">Sold by <Link href={`/u/${seller.username}/store`} className="text-crimson underline">{seller.displayName}</Link></p>}
@@ -102,7 +119,15 @@ export default function ShopItemPage() {
         <p className="text-sm text-slate">{item.subtitle}</p>
       </div>
 
-      {digital ? (
+      {customHost ? (
+        <div className="card mt-8 p-5 text-sm">
+          <p className="font-ui font-bold text-ink">{digital ? "Digital download" : "Buy this item"} · {formatNaira(unit)}</p>
+          <p className="mt-1 text-slate">Checkout is secure and runs on #NotesApp: you sign in and pay there, then come back to the store.</p>
+          <a href={`https://${MAIN_HOST}/shop/${itemId}?from=${encodeURIComponent(typeof window !== "undefined" ? window.location.hostname : "")}`} className="btn-primary mt-4 inline-block">
+            Continue to secure checkout
+          </a>
+        </div>
+      ) : digital ? (
         !item.fileName ? (
           <p className="card mt-8 p-5 text-sm text-slate">The seller is still finishing setting this download up. Check back soon.</p>
         ) : owned ? (

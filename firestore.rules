@@ -519,6 +519,14 @@ service cloud.firestore {
       allow read, write: if false;
     }
 
+    // API keys (hashed), webhook endpoints (with their signing secrets), delivery logs, idempotency records
+    // and custom domains — all server-only; the Console and /api/v1 routes are the only way in or out.
+    match /apiKeys/{id} { allow read, write: if false; }
+    match /webhookEndpoints/{id} { allow read, write: if false; }
+    match /webhookDeliveries/{id} { allow read, write: if false; }
+    match /apiIdempotency/{id} { allow read, write: if false; }
+    match /customDomains/{host} { allow read, write: if false; }
+
     // The private file behind a digital item (bucket key etc.) — server-only, never readable.
     match /storeFiles/{id} {
       allow read, write: if false;

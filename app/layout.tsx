@@ -51,10 +51,9 @@ const COMPANY = [
   { href: "/brand", label: "Brand" },
   { href: "/about", label: "About Us" },
   { href: "/pricing", label: "Pricing" },
-  { href: "/contact", label: "Contact" },
-  { href: "/track", label: "Track a Parcel" },
   { href: "/roadmap", label: "Roadmap" },
   { href: "/status", label: "Status" },
+  { href: "/docs", label: "API Docs" },
   { href: "/changelog", label: "Changelog" },
   { href: "/security", label: "Trust & Security" },
   { href: "/terms", label: "Terms of Service" },
@@ -152,6 +151,13 @@ export default async function RootLayout({
                 for African coaches, consultants, and knowledge
                 professionals.
               </p>
+              <p className="mt-6 max-w-xs text-sm text-paper/50">
+                Built in partnership with Precheks — our first
+                reference customer. —{" "}
+                <Link href="/admin/login" className="text-paper/70 hover:text-paper">
+                  Staff Login
+                </Link>
+              </p>
             </div>
 
             <div>
@@ -163,6 +169,7 @@ export default async function RootLayout({
                 <li><Link href="/gifts" className="hover:text-paper">Gifts</Link></li>
                 <li><Link href="/coauthoring" className="hover:text-paper">Co-authoring</Link></li>
                 <li><Link href="/merchstore" className="hover:text-paper">Merch Store</Link></li>
+                <li><Link href="/track" className="hover:text-paper">Track a Parcel</Link></li>
                 <li><Link href="/badges" className="hover:text-paper">Verification badges</Link></li>
                 <li><Link href="/advertise" className="hover:text-paper">Advertise</Link></li>
                 <li><Link href="/organisations" className="hover:text-paper">Organisations</Link></li>
@@ -186,6 +193,16 @@ export default async function RootLayout({
               <p className="eyebrow text-crimson-bright/90">Connect</p>
               <ul className="mt-4 space-y-2 text-sm text-paper/75">
                 <li>
+                  <Link href="/trending" className="hover:text-paper">
+                    Trending
+                  </Link>
+                </li>
+                <li>
+                  <Link href="/contact" className="hover:text-paper">
+                    Contact
+                  </Link>
+                </li>
+                <li>
                   <a href={`mailto:${site.email}`} className="hover:text-paper">
                     {site.email}
                   </a>
@@ -197,13 +214,6 @@ export default async function RootLayout({
                     </a>
                   </li>
                 ))}
-                <li className="mt-6 text-paper/50">
-                  Built in partnership with Precheks — our first
-                  reference customer. —{" "}
-                  <Link href="/admin/login" className="text-paper/70 hover:text-paper">
-                    Staff Login
-                  </Link>
-                </li>
               </ul>
             </div>
           </div>
