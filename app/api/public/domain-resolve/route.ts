@@ -14,10 +14,12 @@ export async function GET(req: NextRequest) {
   if (limited) return limited;
   const host = normalizeHost(req.nextUrl.searchParams.get("host") || "");
   const headers = { "Cache-Control": "public, s-maxage=30, stale-while-revalidate=60" };
-  if (!host) return NextResponse.json({ found: false }, { headers });
+  // Misses are never cached: a domain that has just been activated must start working straight away.
+  const miss = { "Cache-Control": "no-store" };
+  if (!host) return NextResponse.json({ found: false }, { headers: miss });
   const db = getAdminDb();
   const d = (await db.doc(`customDomains/${host}`).get()).data() as DomainDoc | undefined;
-  if (!d || d.status !== "active") return NextResponse.json({ found: false }, { headers });
+  if (!d || d.status !== "active") return NextResponse.json({ found: false }, { headers: miss });
   const out: Record<string, unknown> = { found: true, host, uid: d.uid, username: d.username, home: d.home };
   const check = req.nextUrl.searchParams.get("check");
   if (check) {

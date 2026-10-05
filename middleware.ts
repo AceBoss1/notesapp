@@ -10,14 +10,15 @@ import { MAIN_HOST, isMainHost } from "@/lib/host";
 type Resolved = { found: boolean; uid?: string; username?: string; home?: "profile" | "store"; owned?: boolean };
 const cache = new Map<string, { at: number; v: Resolved }>();
 const TTL_MS = 60_000;
+const MISS_TTL_MS = 5_000; // a domain that was just activated shouldn't stay "not connected" for a minute
 
 async function resolve(host: string, check?: string): Promise<Resolved> {
   const key = `${host}|${check || ""}`;
   const hit = cache.get(key);
-  if (hit && Date.now() - hit.at < TTL_MS) return hit.v;
+  if (hit && Date.now() - hit.at < (hit.v.found ? TTL_MS : MISS_TTL_MS)) return hit.v;
   let v: Resolved = { found: false };
   try {
-    const res = await fetch(`https://${MAIN_HOST}/api/public/domain-resolve?host=${encodeURIComponent(host)}${check ? `&check=${encodeURIComponent(check)}` : ""}`);
+    const res = await fetch(`https://${MAIN_HOST}/api/public/domain-resolve?host=${encodeURIComponent(host)}${check ? `&check=${encodeURIComponent(check)}` : ""}`, { cache: "no-store" });
     if (res.ok) v = await res.json();
   } catch {
     /* fall through: treated as not found for this minute */
