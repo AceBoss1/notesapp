@@ -43,6 +43,10 @@ export async function POST(req: NextRequest) {
     if (!kind) {
       return NextResponse.json({ error: "Unsupported file type. Use JPEG, PNG, WebP, GIF or AVIF images." }, { status: 400 });
     }
+    // Post videos have their own route (/api/video: length, weekly quota, verification). This one is images only.
+    if (kind !== "image") {
+      return NextResponse.json({ error: "Videos are uploaded from the post editor." }, { status: 400 });
+    }
     if ((isAvatar || isAd) && kind !== "image") {
       return NextResponse.json({ error: "Avatars must be images" }, { status: 400 });
     }

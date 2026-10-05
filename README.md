@@ -1299,6 +1299,26 @@ to ship a note. `/pricing` has two new Enterprise-only rows, **Your own domain**
 by `customDomain` / `apiAccess` in `lib/tiers.ts`. The domain, API and Console
 themselves are planned, not built.
 
+### Video on posts
+One optional video per post, stored in the public media bucket (`videos/<uid>/<id>.mp4|webm`) and played by our own
+`components/VideoPlayer.tsx` (no autoload: `preload="none"`, shows length + data size before play, speed, fullscreen,
+keyboard, resume position in localStorage). There is **no transcoding** — instead the rules are: MP4 (H.264 — QuickTime/HEVC
+brands are refused) or WebM, ≤ 100 MB, ≤ 3 minutes, weekly uploads by plan (`VIDEO_WEEKLY_LIMIT` in `lib/video-rules.ts`:
+Basic 2 · Pro 7 · Business 14 · Enterprise 30; ISO week), not on premium posts. All limits live in `lib/video-rules.ts`.
+
+Flow (`app/api/video`, `lib/video-server.ts`, `lib/video-upload.ts`): the composer checks the file and its length in the
+browser → `start` validates again, takes a quota slot and returns a signed PUT (the exact byte length is signed in) →
+the browser PUTs straight to R2 with progress → `finish` HEADs the object, compares the size and reads the first bytes
+(must really be MP4/WebM) and only then marks `videoUploads/{id}` verified; a failed check deletes the file and refunds the slot.
+**`firestore.rules` refuse to save a post that points at a video that isn't a verified upload by the same member**
+(`videoValid`/`videoOkOnEdit`; rules-tested). `/api/upload` is images-only now. Unverified upload records expire after
+2 days (TTL on `videoUploads.expireAt`); account deletion removes the member's video files.
+
+Housekeeping: `node scripts/clean-orphan-videos.mjs [--apply]` lists/deletes video files no post references (files younger
+than 2 days are kept) — run it monthly. Terms section 2a carries the content rules (legal version bumped to 2026-10-05, so
+members re-accept before their next payment). Deploy: `firebase deploy --only firestore` (rules + TTL), and make sure the
+media bucket's CORS (`scripts/r2-cors.json`) allows PUT from the site, as it already does for images.
+
 ### Company identity
 `COMPANY_INFO` in `lib/site.ts` holds the legal entity — NOTESAPP TECHNOLOGIES
 LTD, RC 9825642 (registered 2 Sep 2026), TIN 2623750527563 — taken from the CAC

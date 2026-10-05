@@ -2,7 +2,7 @@
 import { test, before, after, beforeEach } from "node:test";
 import { readFileSync } from "node:fs";
 import { initializeTestEnvironment, assertFails, assertSucceeds } from "@firebase/rules-unit-testing";
-import { doc, getDoc, setDoc, updateDoc, deleteDoc } from "firebase/firestore";
+import { doc, getDoc, setDoc, updateDoc, deleteDoc, deleteField } from "firebase/firestore";
 
 let env;
 before(async () => {
@@ -270,6 +270,35 @@ test("API keys, webhooks, deliveries and domains are server-only; members can't 
     await assertFails(setDoc(doc(as("pub"), path), { uid: "pub" }));
   }
   await assertFails(updateDoc(doc(as("pub"), "users/pub"), { apiAccess: true }));
+});
+
+test("a post can only carry a video the same member uploaded and the server verified", async () => {
+  await env.withSecurityRulesDisabled(async (ctx) => {
+    const db = ctx.firestore();
+    await setDoc(doc(db, "videoUploads/v_ok"), { uid: "pub", key: "videos/pub/v_ok.mp4", verified: true });
+    await setDoc(doc(db, "videoUploads/v_pending"), { uid: "pub", key: "videos/pub/v_pending.mp4", verified: false });
+    await setDoc(doc(db, "videoUploads/v_other"), { uid: "someone", key: "videos/someone/v_other.mp4", verified: true });
+    await setDoc(doc(db, "notes/withvideo"), { authorUid: "pub", title: "t", status: "published", videoId: "v_ok", videoKey: "videos/pub/v_ok.mp4" });
+  });
+  const note = (extra) => ({ authorUid: "pub", title: "t", ...extra });
+  // verified, own, matching key → fine
+  await assertSucceeds(setDoc(doc(as("pub"), "notes/a"), note({ videoId: "v_ok", videoKey: "videos/pub/v_ok.mp4", videoDuration: 30 })));
+  // not verified yet, someone else's, wrong key, made-up id, no key → all refused
+  await assertFails(setDoc(doc(as("pub"), "notes/b"), note({ videoId: "v_pending", videoKey: "videos/pub/v_pending.mp4" })));
+  await assertFails(setDoc(doc(as("pub"), "notes/c"), note({ videoId: "v_other", videoKey: "videos/someone/v_other.mp4" })));
+  await assertFails(setDoc(doc(as("pub"), "notes/d"), note({ videoId: "v_ok", videoKey: "videos/pub/other-file.mp4" })));
+  await assertFails(setDoc(doc(as("pub"), "notes/e"), note({ videoId: "nope", videoKey: "videos/pub/nope.mp4" })));
+  await assertFails(setDoc(doc(as("pub"), "notes/f"), note({ videoId: "v_ok" })));
+  // a post without video is unaffected; editing other fields keeps the video; removing it is allowed; swapping in a bad one is not
+  await assertSucceeds(setDoc(doc(as("pub"), "notes/g"), note({})));
+  await assertSucceeds(updateDoc(doc(as("pub"), "notes/withvideo"), { title: "edited" }));
+  await assertFails(updateDoc(doc(as("pub"), "notes/withvideo"), { videoId: "v_pending", videoKey: "videos/pub/v_pending.mp4" }));
+  await assertFails(updateDoc(doc(as("pub"), "notes/g"), { videoId: "v_other", videoKey: "videos/someone/v_other.mp4" }));
+  await assertSucceeds(updateDoc(doc(as("pub"), "notes/withvideo"), { videoId: deleteField(), videoKey: deleteField() }));
+  // the upload records themselves are server-only
+  await assertFails(getDoc(doc(as("pub"), "videoUploads/v_ok")));
+  await assertFails(setDoc(doc(as("pub"), "videoUploads/mine"), { uid: "pub", key: "videos/pub/mine.mp4", verified: true }));
+  await assertFails(setDoc(doc(as("pub"), "videoUsage/pub_2026-W41"), { uid: "pub", count: 0 }));
 });
 
 test("badge endorsement requests are private and server-created", async () => {

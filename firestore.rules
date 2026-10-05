@@ -55,6 +55,24 @@ service cloud.firestore {
         : '';
     }
 
+    // A video on a post must be a verified upload by the member saving it (videoUploads is written only by /api/video).
+    function videoUploadOf(d) {
+      return get(/databases/$(database)/documents/videoUploads/$(d.videoId)).data;
+    }
+    function videoValid(d) {
+      return !('videoId' in d)
+        || (d.videoId is string && d.videoKey is string
+            && exists(/databases/$(database)/documents/videoUploads/$(d.videoId))
+            && videoUploadOf(d).verified == true
+            && videoUploadOf(d).uid == request.auth.uid
+            && videoUploadOf(d).key == d.videoKey);
+    }
+    // On an edit, the video may stay exactly as it was (a team admin can edit a post whose video a writer uploaded).
+    function videoOkOnEdit(d, old) {
+      return (d.get('videoId', '') == old.get('videoId', '') && d.get('videoKey', '') == old.get('videoKey', ''))
+        || videoValid(d);
+    }
+
     function orgCanPublish(orgUid) {
       return exists(/databases/$(database)/documents/users/$(orgUid))
         && get(/databases/$(database)/documents/users/$(orgUid)).data.accountKind == 'organisation'
@@ -100,6 +118,7 @@ service cloud.firestore {
           isPublisher()
           && request.resource.data.authorUid == request.auth.uid
           && !request.resource.data.keys().hasAny(['coAuthors', 'coAuthorUids', 'writerUid'])
+          && videoValid(request.resource.data)
         )
         // A team member writing for their organisation: the org is the author,
         // the member is recorded as the writer.
@@ -109,6 +128,7 @@ service cloud.firestore {
           && orgRole(request.resource.data.authorUid) in ['writer', 'admin']
           && orgCanPublish(request.resource.data.authorUid)
           && !request.resource.data.keys().hasAny(['coAuthors', 'coAuthorUids'])
+          && videoValid(request.resource.data)
         );
 
       // Admins can delete anything.
@@ -134,6 +154,7 @@ service cloud.firestore {
           && !request.resource.data.diff(resource.data)
               .affectedKeys()
               .hasAny(['coAuthors', 'coAuthorUids', 'writerUid', 'authorUid'])
+          && videoOkOnEdit(request.resource.data, resource.data)
         )
         // Team members: a writer edits their own posts for the organisation, an
         // org admin edits any of its posts. Neither can change who wrote it.
@@ -147,6 +168,7 @@ service cloud.firestore {
           && !request.resource.data.diff(resource.data)
               .affectedKeys()
               .hasAny(['coAuthors', 'coAuthorUids', 'writerUid', 'authorUid'])
+          && videoOkOnEdit(request.resource.data, resource.data)
         )
         || request.resource.data.diff(resource.data)
             .affectedKeys()
@@ -526,6 +548,11 @@ service cloud.firestore {
     match /webhookDeliveries/{id} { allow read, write: if false; }
     match /apiIdempotency/{id} { allow read, write: if false; }
     match /customDomains/{host} { allow read, write: if false; }
+
+    // Post-video uploads and weekly quota counters — written only by /api/video. (The notes rules read videoUploads
+    // with get()/exists(), which is allowed even though clients can't read or write it directly.)
+    match /videoUploads/{id} { allow read, write: if false; }
+    match /videoUsage/{id} { allow read, write: if false; }
 
     // The private file behind a digital item (bucket key etc.) — server-only, never readable.
     match /storeFiles/{id} {

@@ -20,6 +20,9 @@ export default function TermsPage() {
       <h2>2. Your content</h2>
       <p>You own what you publish. You give #NotesApp a licence to host, display and distribute it on the platform. Do not publish anything unlawful, infringing, hateful or misleading, and only upload media you have the rights to.</p>
 
+      <h2>2a. Videos</h2>
+      <p>Publishers can add one video to a post, as an MP4 (H.264) or WebM file of up to 100 MB and 3 minutes, within a weekly upload allowance that depends on their plan (2 on Free Basic, 7 on Pro, 14 on Business, 30 on Enterprise). Videos can&apos;t be added to premium (subscribers-only) posts. You may only upload video you made or have permission to use, and it must follow section 2: nothing unlawful, infringing, sexually explicit, graphically violent, hateful, harassing, misleading or that endangers children or shows someone without their consent. Videos are public on the post and anyone who can see the post can view them. We may remove any video, and suspend the account that posted it, without notice if these rules are broken or a report is upheld; report one through the Contact page (“Report a post or account”). We check that an upload is a genuine MP4 or WebM file, but we don&apos;t screen content before it&apos;s published. Deleting your account removes your videos; deleting a post removes the post, and we clear up its video file in routine maintenance.</p>
+
       <h2>3. Paid sessions and subscriptions</h2>
       <p>Publishers set their own prices within platform limits. Payments are processed by Paystack; #NotesApp does not store card details. Session times are in Lagos time (WAT). Journal subscriptions renew monthly until cancelled and unlock the publisher's premium entries.</p>
 

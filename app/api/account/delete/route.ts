@@ -4,6 +4,7 @@ import { friendlyMessage } from "@/lib/api-errors";
 import { getAdminApp, getAdminDb } from "@/lib/firebase-admin";
 import { deletionBlockers, eraseAccount } from "@/lib/account-server";
 import { deleteObject, privateFilesConfigured } from "@/lib/private-files";
+import { deleteMediaObject } from "@/lib/r2";
 import { sendEmail } from "@/lib/email";
 import { rateLimit } from "@/lib/rate-limit";
 
@@ -49,7 +50,7 @@ export async function POST(req: NextRequest) {
     const blockers = await deletionBlockers(db, me.uid, { isAdmin: me.isAdmin });
     if (blockers.length) return NextResponse.json({ error: "Your account can't be deleted yet.", blockers }, { status: 409 });
 
-    const counts = await eraseAccount(db, me.uid, privateFilesConfigured() ? deleteObject : undefined);
+    const counts = await eraseAccount(db, me.uid, privateFilesConfigured() ? deleteObject : undefined, deleteMediaObject);
     if (me.email) {
       await sendEmail({ to: me.email, subject: "Your #NotesApp account was deleted", text: `Your #NotesApp account and the personal data tied to it have been deleted, as you asked. Payment and order records are kept without your personal details, as the law requires. If this wasn't you, reply via the Contact page right away.\n\n#NotesApp` }).catch(() => {});
     }

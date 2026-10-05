@@ -19,7 +19,7 @@ const FEATURES = [
   { title: "Booking confirmations & reminders", copy: "Email confirmations and 24-hour and 1-hour reminders are live today. WhatsApp reminders are coming next." },
   { title: "Boost a post or a store item", copy: "Put a post or a product in front of more readers. You pay only for validated impressions, delivered over several days — undelivered ones are refunded." },
   { title: "Gifts", copy: "Readers can send you a gift on your profile or on any single post — from ₦200 up to ₦500,000, with a note if they like. Add your payout account and the 🎁 button switches on." },
-  { title: "A real writing desk", copy: "Format with a toolbar, preview as you go, drop in images, and never lose a draft — everything is saved as clean Markdown." },
+  { title: "A real writing desk", copy: "Format with a toolbar, preview as you go, drop in images, add a short video, and never lose a draft — everything is saved as clean Markdown. Videos play in our own light player that only loads when you press play." },
   { title: "Ad share, from day one", copy: "Pro publishers earn 25% and Business publishers 45% of the ad revenue on their pages — no follower or view thresholds to clear first. Ads are opt-in for paid plans, every one is labelled “Sponsored”, and your share is paid monthly after review. Brands can buy a banner campaign online." },
   { title: "Co-authoring", copy: "Pro and Business publishers can write a post with other members, agree each person's share of what it earns — gifts on it are split now — and share the byline. Everyone accepts before it's listed." },
   { title: "Gold badge", copy: "Get endorsed by #NotesApp, or identity-checked, and wear the gold ✔ beside your name on your profile, the directory and every post." },

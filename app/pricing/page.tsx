@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { TIERS, formatPercent, badgeIncluded, BADGE_PRICE_KOBO } from "@/lib/tiers";
+import { VIDEO_MAX_BYTES, VIDEO_MAX_SECONDS, VIDEO_WEEKLY_LIMIT } from "@/lib/video-rules";
 import { GOLD_PRICING } from "@/lib/gold";
 import { BOOST_PACKAGES } from "@/lib/boost-config";
 import { GOLD_KIND_LIVE } from "@/lib/badges";
@@ -84,6 +85,13 @@ const ROWS: { label: string; href?: string; render: (t: (typeof TIERS)[number]) 
   {
     label: "Links out to other shops",
     render: (t) => (t.canPublish ? "Only your one profile link and links inside your posts — stores sell through #NotesApp checkout" : "—"),
+  },
+  {
+    label: "Video on posts",
+    render: (t) =>
+      t.canPublish
+        ? `One video per post (MP4 or WebM, up to ${VIDEO_MAX_SECONDS / 60} minutes and ${Math.round(VIDEO_MAX_BYTES / 1048576)} MB), played in our own player · ${VIDEO_WEEKLY_LIMIT[t.tier]} uploads a week`
+        : "Watch videos on any post",
   },
   {
     label: "Your own domain",

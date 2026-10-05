@@ -51,6 +51,7 @@ export async function collectExport(db: Firestore, uid: string, email: string) {
     teamMemberships: await docs(db, "orgMembers", "memberUid", uid),
     badgeApplication: (await db.doc(`badgeRequests/${uid}`).get()).data() ?? null,
     publisherSettings: (await db.doc(`publisherSettings/${uid}`).get()).data() ?? null,
+    videoUploads: await docs(db, "videoUploads", "uid", uid),
     apiKeys: strip(await docs(db, "apiKeys", "uid", uid), ["hash"]),
     webhookEndpoints: strip(await docs(db, "webhookEndpoints", "uid", uid), ["secret"]),
     customDomains: await docs(db, "customDomains", "uid", uid),
@@ -119,13 +120,19 @@ const ANON_ADDRESS = (city: unknown, state: unknown) => ({ fullName: GONE, phone
 
 // Erases the account's personal data. Run deletionBlockers() first. Returns counts for the log.
 // The caller removes the Firebase Authentication user afterwards.
-export async function eraseAccount(db: Firestore, uid: string, deleteFile: (key: string) => Promise<void> = async () => {}) {
+export async function eraseAccount(db: Firestore, uid: string, deleteFile: (key: string) => Promise<void> = async () => {}, deleteMedia: (key: string) => Promise<void> = async () => {}) {
   const counts: Record<string, number> = {};
   const u = (await db.doc(`users/${uid}`).get()).data();
   const username = u?.username as string | undefined;
 
   // --- content and relationships: deleted ---
   const notes = await db.collection("notes").where("authorUid", "==", uid).get();
+  // Videos on their posts (and uploads never attached to a post) live in the media bucket: remove the files too.
+  const uploads = await db.collection("videoUploads").where("uid", "==", uid).get();
+  const videoKeys = new Set<string>([...notes.docs.map((n) => n.data().videoKey as string | undefined), ...uploads.docs.map((u) => u.data().key as string | undefined)].filter((k): k is string => !!k));
+  for (const k of Array.from(videoKeys)) await deleteMedia(k).catch(() => {});
+  await deleteAll(db, uploads.docs.map((d) => d.ref));
+  counts.videos = videoKeys.size;
   for (const n of notes.docs) await db.recursiveDelete(n.ref); // includes the post's own comments and likes
   counts.notes = notes.size;
   const comments = await db.collectionGroup("comments").where("authorUid", "==", uid).get();
