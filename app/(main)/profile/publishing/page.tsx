@@ -32,6 +32,7 @@ export default function PublishingSettingsPage() {
   const [subPrice, setSubPrice] = useState("2000");
   const [giftsOn, setGiftsOn] = useState(true);
   const [adsOn, setAdsOn] = useState(false);
+  const [shopListed, setShopListed] = useState(true);
   const [adStatements, setAdStatements] = useState<{ id: string; month: string; impressions: number; shareKobo: number; payableKobo?: number; status: string; note?: string }[]>([]);
   const [adViews, setAdViews] = useState<{ impressions: number; clicks: number } | null>(null);
   const [plan, setPlan] = useState<Record<string, any> | null>(null);
@@ -58,6 +59,7 @@ export default function PublishingSettingsPage() {
         setProfile(p);
         if (!p) return;
         setAdsOn(p.adsOptIn === true);
+        setShopListed(p.shopListed !== false);
         const cutoff = new Date(Date.now() - 30 * 86_400_000).toLocaleDateString("en-CA", { timeZone: "Africa/Lagos" }).replace(/-/g, "");
         getDocs(query(collection(db, "adShareStatements"), where("uid", "==", u.uid)))
           .then((s) => setAdStatements(s.docs.map((d) => d.data() as { id: string; month: string; impressions: number; shareKobo: number; payableKobo?: number; status: string; note?: string }).sort((a, b) => b.month.localeCompare(a.month))))
@@ -120,6 +122,7 @@ export default function PublishingSettingsPage() {
         subscription: { enabled: subOn, priceNaira: Number(subPrice) },
         gifts: { enabled: giftsOn },
         ads: { optIn: adsOn },
+        shop: { listed: shopListed },
       });
       setMsg({ ok: true, text: "Saved." });
     } catch (err) {
@@ -288,6 +291,14 @@ export default function PublishingSettingsPage() {
               <span className="mt-1 block">Changing the price applies to new subscribers; current ones keep their old price.</span>
             </label>
           )}
+        </div>
+
+        <div className="card p-6">
+          <label className="flex items-center gap-3">
+            <input type="checkbox" checked={shopListed} onChange={(e) => setShopListed(e.target.checked)} />
+            <span className="eyebrow">List my shop on the Merch Store page</span>
+          </label>
+          <p className="mt-2 text-xs text-slate">Your shop appears under &ldquo;Individual Shops&rdquo; on the Merch Store page while you have something buyable (an item in stock, or a download with its file) and a payout account. Switch this off to keep it off that page; your shop and its links keep working.</p>
         </div>
 
         <div className="card p-6">

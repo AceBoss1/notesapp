@@ -10,6 +10,8 @@ export const metadata: Metadata = {
     "Official #NotesApp merch — t-shirts, caps, mugs, and more, any core or seasonal logo — plus Emmanuel's and Chimdinma's individual brand stores.",
 };
 import MerchCard from "@/components/MerchCard";
+import ShopDirectory from "@/components/ShopDirectory";
+import { getShopDirectory } from "@/lib/shop-directory";
 import Avatar from "@/components/Avatar";
 import Link from "next/link";
 
@@ -20,7 +22,12 @@ const SHOP_ORDER = [
   ADMIN_PROFILES["precheks.info@gmail.com"],
 ];
 
-export default function MerchStorePage() {
+// The publishers' shops come from live data; refreshed every minute.
+export const revalidate = 60;
+
+export default async function MerchStorePage() {
+  const founderNames = SHOP_ORDER.map((p) => p.username);
+  const shops = (await getShopDirectory()).filter((s) => !founderNames.includes(s.username));
   return (
     <div className="mx-auto max-w-6xl px-4 py-16 sm:px-6 lg:px-8">
       <span className="eyebrow">Merch Store</span>
@@ -52,7 +59,7 @@ export default function MerchStorePage() {
         </h2>
         <p className="mt-3 max-w-2xl text-slate">
           Every #NotesApp journal gets its own brand store, separate
-          from this one — here are the two founder shops. Any publisher can open one and sell physical goods or digital downloads through
+          from this one — the two founder shops come first, then every publisher shop that has something to buy right now. Any publisher can open one and sell physical goods or digital downloads through
           #NotesApp checkout — physical orders held until delivery with a tracking ID for every parcel, downloads delivered instantly:{" "}
           <Link href="/store-selling" className="text-crimson underline underline-offset-2">
             how selling works
@@ -100,6 +107,8 @@ export default function MerchStorePage() {
             );
           })}
         </div>
+
+        <ShopDirectory shops={shops} />
       </div>
     </div>
   );
