@@ -12,6 +12,7 @@ import { useOwnNotes } from "./useOwnNotes";
 import { useOwnItems } from "./useOwnItems";
 import NoteCard from "./NoteCard";
 import SiteProfileHeader from "./SiteProfileHeader";
+import ScrollToHash from "@/components/ScrollToHash";
 
 // Home: who they are, how to book them, and a taste of the notes and the shop.
 export default function SiteHome() {
@@ -57,7 +58,10 @@ export default function SiteHome() {
       <SiteProfileHeader />
 
       {/* Booking runs right here: pick a time, sign in if needed (the visitor is brought back signed in), pay with Paystack. */}
-      <BookingCard username={site.username} publisherUid={site.uid} viewer={viewer} signInHref="/login" />
+      <div id="book" className="scroll-mt-28">
+        <BookingCard username={site.username} publisherUid={site.uid} viewer={viewer} signInHref="/login" />
+      </div>
+      <ScrollToHash />
 
       {shopFirst ? <>{itemsSection}{notesSection}</> : <>{notesSection}{itemsSection}</>}
     </div>
