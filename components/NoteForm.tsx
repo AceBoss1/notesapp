@@ -68,8 +68,10 @@ export default function NoteForm({ noteId, initial, self, org }: Props) {
   );
   const [tags, setTags] = useState((initial?.tags || []).join(", "));
   const [content, setContent] = useState(initial?.content || "");
+  // A featured image that was only the video's cover (filled in automatically on save) counts as "not set", so a
+  // changed or removed video cover carries through.
   const [featuredImage, setFeaturedImage] = useState(
-    initial?.featured_image || ""
+    initial?.videoPoster && initial.featured_image === initial.videoPoster ? "" : initial?.featured_image || ""
   );
   const [authorName, setAuthorName] = useState(
     initial?.author || AUTHORS[0].name
@@ -138,7 +140,7 @@ export default function NoteForm({ noteId, initial, self, org }: Props) {
         .split(",")
         .map((t) => t.trim())
         .filter(Boolean),
-      featured_image: featuredImage,
+      featured_image: featuredImage || video?.videoPoster || "",
       content,
       author: author.name,
       author_role: author.role,
@@ -266,6 +268,9 @@ export default function NoteForm({ noteId, initial, self, org }: Props) {
         />
         {uploading && (
           <p className="text-xs text-slate mt-1">Uploading…</p>
+        )}
+        {!featuredImage && video?.videoPoster && (
+          <p className="mt-1 text-xs text-slate">Using the video&apos;s cover image. Upload one here to use a different featured image.</p>
         )}
         {featuredImage && (
           <Image

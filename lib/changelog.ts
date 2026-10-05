@@ -11,6 +11,15 @@ export type Release = {
 
 export const CHANGELOG: Release[] = [
   {
+    version: "v0.5.1",
+    bump: "patch",
+    date: "2026-10-05",
+    changes: [
+      { kind: "added", text: "Cover image for video posts: choose any frame from the video or upload your own. It shows before the video plays and becomes the post's featured image unless you set a different one." },
+      { kind: "fixed", text: "Shared links now preview with the post's or store item's own image, title and price instead of the site-wide image. Posts without a featured image use their video cover or first picture." },
+    ],
+  },
+  {
     version: "v0.5.0",
     bump: "minor",
     date: "2026-10-05",
