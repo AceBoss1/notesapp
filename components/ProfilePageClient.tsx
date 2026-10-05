@@ -18,6 +18,7 @@ import Avatar from "@/components/Avatar";
 import FollowButton from "@/components/FollowButton";
 import SubscribeButton from "@/components/SubscribeButton";
 import BookingCard from "@/components/BookingCard";
+import ScrollToHash from "@/components/ScrollToHash";
 import GiftButton from "@/components/GiftButton";
 import VerifiedBadge from "@/components/VerifiedBadge";
 import BadgeToast from "@/components/BadgeToast";
@@ -273,7 +274,11 @@ export default function ProfilePageClient({ params }: { params: { username: stri
         <div className="ml-0 flex shrink-0 flex-wrap gap-3 sm:ml-auto">
           <FollowButton username={profile.username} />
           {!synthetic && <GiftButton username={profile.username} publisherUid={realProfile?.uid} />}
-          {hasPremium && <SubscribeButton username={profile.username} publisherUid={realProfile?.uid} />}
+          {hasPremium && (
+            <div id="subscribe" className="scroll-mt-28 rounded-full">
+              <SubscribeButton username={profile.username} publisherUid={realProfile?.uid} />
+            </div>
+          )}
           {storeItems.length > 0 && (
             <Link href={`/u/${profile.username}/store`} className="btn-ghost">
               Brand store
@@ -331,7 +336,9 @@ export default function ProfilePageClient({ params }: { params: { username: stri
           they switch it on in /profile/publishing. Not on synthetic
           channel accounts. */}
       {!synthetic && (
-        <BookingCard username={profile.username} publisherUid={realProfile?.uid} viewer={viewer} />
+        <div id="book" className="scroll-mt-28">
+          <BookingCard username={profile.username} publisherUid={realProfile?.uid} viewer={viewer} />
+        </div>
       )}
 
       <AdSlot placement="profile" publisher={realProfile ?? undefined} publisherUid={realProfile?.uid} />
@@ -461,6 +468,7 @@ export default function ProfilePageClient({ params }: { params: { username: stri
           )}
         </div>
       )}
+      <ScrollToHash />
       {badge && !suspended && <BadgeToast subjectUid={realProfile?.uid} />}
     </div>
   );

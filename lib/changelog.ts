@@ -11,6 +11,14 @@ export type Release = {
 
 export const CHANGELOG: Release[] = [
   {
+    version: "v0.5.7",
+    bump: "patch",
+    date: "2026-10-05",
+    changes: [
+      { kind: "added", text: "Direct links to a profile's booking card and subscribe button: add #book or #subscribe to the profile address (for example /u/yourname#book) and the page opens scrolled to it." },
+    ],
+  },
+  {
     version: "v0.5.6",
     bump: "patch",
     date: "2026-10-05",
