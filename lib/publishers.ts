@@ -22,6 +22,6 @@ export async function loadPublisher(username: string) {
     username,
     settings: settingsSnap.data() as PublisherSettings | undefined,
     hasPayoutAccount: payoutSnap.exists && !!payoutSnap.data()?.recipientCode,
-    commissionRate: commissionRateFor((user.accountTier as AccountTier) || "basic"),
+    commissionRate: commissionRateFor((user.accountTier as AccountTier) || "basic", user.customRates),
   };
 }

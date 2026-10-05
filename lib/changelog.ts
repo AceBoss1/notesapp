@@ -11,6 +11,15 @@ export type Release = {
 
 export const CHANGELOG: Release[] = [
   {
+    version: "v0.5.4",
+    bump: "patch",
+    date: "2026-10-05",
+    changes: [
+      { kind: "added", text: "Profiles now show your social links as icons (LinkedIn, Instagram, Facebook, X, WhatsApp, website), and you can add a TikTok link under Edit profile. They also appear on your own domain's Home page." },
+      { kind: "changed", text: "Enterprise commission and ad-share rates can now be agreed per account." },
+    ],
+  },
+  {
     version: "v0.5.3",
     bump: "patch",
     date: "2026-10-05",

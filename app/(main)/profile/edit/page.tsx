@@ -16,6 +16,7 @@ const SOCIAL_FIELDS: { key: keyof SocialLinks; label: string }[] = [
   { key: "instagram", label: "Instagram URL" },
   { key: "facebook", label: "Facebook URL" },
   { key: "twitter", label: "X / Twitter URL" },
+  { key: "tiktok", label: "TikTok URL" },
   { key: "whatsapp", label: "WhatsApp URL" },
   { key: "website", label: "Website URL" },
 ];

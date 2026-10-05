@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { friendlyMessage } from "@/lib/api-errors";
 import { getAdminDb, verifyAdminRequest } from "@/lib/firebase-admin";
-import { getTierConfig } from "@/lib/tiers";
+import { adShareFor } from "@/lib/tiers";
 import { AD_SHARE_HOLD_DAYS, AD_SHARE_MIN_KOBO, AdRevenueEntry, AdShareStatement, adFlags, isMonth } from "@/lib/ad-share";
 
 export const dynamic = "force-dynamic";
@@ -92,7 +92,7 @@ export async function POST(req: NextRequest) {
       for (const [uid, t] of byPub) {
         const u = (await db.doc(`users/${uid}`).get()).data();
         if (!u || u.suspended) continue;
-        const rate = getTierConfig(u.accountTier).adRevenueShare ?? 0;
+        const rate = adShareFor(u.accountTier, u.customRates);
         if (!(rate > 0) || u.adsOptIn !== true) continue; // free journals carry ads but earn no share
         const id = `${month}_${uid}`;
         const ref = db.doc(`adShareStatements/${id}`);

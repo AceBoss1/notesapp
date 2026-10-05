@@ -21,6 +21,7 @@ const LINKS = [
   { href: "/admin/leads", label: "Leads" },
   { href: "/admin/traction", label: "Traction" },
   { href: "/admin/errors", label: "Errors" },
+  { href: "/admin/enterprise", label: "Enterprise" },
   { href: "/admin/api-access", label: "API & domains" },
   { href: "/admin/settings", label: "Settings" },
 ];
