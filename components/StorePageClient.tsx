@@ -13,7 +13,7 @@ import NotifyWhenBack from "@/components/NotifyWhenBack";
 import BoostedStrip from "@/components/BoostedStrip";
 import { fmtSize } from "@/lib/store-files";
 
-function ItemCard({ item }: { item: StoreItem }) {
+export function ItemCard({ item, shopBase = "/shop" }: { item: StoreItem; shopBase?: string }) {
   const digital = item.kind === "digital";
   return (
     <div className="card flex flex-col overflow-hidden">
@@ -33,11 +33,11 @@ function ItemCard({ item }: { item: StoreItem }) {
           <span className="font-mono text-sm text-crimson-bright">{item.price}</span>
           {item.sellable && item.id ? (
             digital ? (
-              <Link href={`/shop/${item.id}`} className="btn-primary !px-4 !py-2 text-xs">Buy &amp; download</Link>
+              <Link href={`${shopBase}/${item.id}`} className="btn-primary !px-4 !py-2 text-xs">Buy &amp; download</Link>
             ) : (item.stock ?? 0) > 0 ? (
               <span className="flex items-center gap-3">
                 {(item.stock ?? 0) <= 5 && <span className="font-mono text-[11px] text-slate">Only {item.stock} left</span>}
-                <Link href={`/shop/${item.id}`} className="btn-primary !px-4 !py-2 text-xs">Buy now</Link>
+                <Link href={`${shopBase}/${item.id}`} className="btn-primary !px-4 !py-2 text-xs">Buy now</Link>
               </span>
             ) : (
               <span className="flex items-center gap-3"><span className="font-mono text-xs text-slate">Sold out</span><NotifyWhenBack itemId={item.id} compact /></span>

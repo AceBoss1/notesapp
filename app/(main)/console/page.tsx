@@ -209,7 +209,7 @@ export default function ConsolePage() {
       {/* ---------------- Domain ---------------- */}
       <h2 className="mt-12 font-display text-2xl text-ink">Your own domain</h2>
       {!access.domainAllowed ? (
-        <Locked>Serving your page, journals and store on your own domain is an Enterprise feature. Until then your page lives at <span className="font-mono">notesapp.name.ng/u/{access.username}</span>. See <Link href="/pricing" className="text-crimson underline">Pricing</Link>.</Locked>
+        <Locked>A branded site on your own domain (Home, Notes and Shop) is an Enterprise feature. Until then your page lives at <span className="font-mono">notesapp.name.ng/u/{access.username}</span>. See <Link href="/pricing" className="text-crimson underline">Pricing</Link>.</Locked>
       ) : !domain ? (
         <form className="card mt-4 p-5" onSubmit={(e) => { e.preventDefault(); act(async () => { await call(user, "/api/console/domain", { method: "POST", body: JSON.stringify({ host }) }); setHost(""); }, "Domain added — now add the DNS records below."); }}>
           <label className="text-xs text-slate">Domain<input value={host} onChange={(e) => setHost(e.target.value)} placeholder="notes.yourbrand.com  or  yourbrand.com" className={`${field} font-mono`} /></label>

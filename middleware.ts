@@ -1,12 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { MAIN_HOST, isMainHost } from "@/lib/host";
 
-// Custom domains (Enterprise). On our own hosts this does nothing. On a member's domain it serves only their
-// public pages — home, store, journals and store items — and sends everything else (sign-in, checkout, settings)
-// to www.notesapp.name.ng, which is where those must happen.
-//   /          → their profile (or store, per their setting)      /store → their store
-//   /journals/<slug>, /shop/<id> → only when they belong to this member
-//   anything else → redirect to https://www.notesapp.name.ng<same path>
+// Custom domains (Enterprise). On our own hosts this does nothing. On a member's domain it serves their branded site
+// (app/(site)/s/[username]: header with their name, Home, Notes, Shop, "Powered by #NotesApp" footer) and sends everything
+// else — sign-in, checkout, bookings, settings, other people's pages — to www.notesapp.name.ng, where those must happen.
+//   /                     → Home (or the Shop, if they chose the store as their front page)
+//   /notes, /notes/<slug> → their notes          (/journals/… is an alias)
+//   /shop, /shop/<id>     → their shop           (/store and /u/<username>/store are aliases)
+// A note or item that isn't theirs is sent to the main site instead.
 type Resolved = { found: boolean; uid?: string; username?: string; home?: "profile" | "store"; owned?: boolean };
 const cache = new Map<string, { at: number; v: Resolved }>();
 const TTL_MS = 60_000;
@@ -28,7 +29,7 @@ async function resolve(host: string, check?: string): Promise<Resolved> {
   return v;
 }
 
-const PASS = /^\/(_next\/|favicon|robots\.txt|sitemap|images\/|fonts\/|api\/(views|trending|boosts|public|status)\b)/;
+const PASS = /^\/(_next\/|favicon|robots\.txt|sitemap|images\/|fonts\/|api\/(views|trending|boosts|ads|public|status)\b)/;
 const PUBLIC_FILE = /\.[a-z0-9]{2,5}$/i;
 
 export async function middleware(req: NextRequest) {
@@ -45,15 +46,19 @@ export async function middleware(req: NextRequest) {
   headers.set("x-custom-owner", d.uid || "");
   const rewrite = (path: string) => NextResponse.rewrite(new URL(path + search, req.url), { request: { headers } });
 
-  if (pathname === "/") return rewrite(d.home === "store" ? `/u/${d.username}/store` : `/u/${d.username}`);
-  if (pathname === "/store") return rewrite(`/u/${d.username}/store`);
-  if (pathname === `/u/${d.username}` || pathname === `/u/${d.username}/store`) return NextResponse.next({ request: { headers } });
+  const site = `/s/${d.username}`;
+  if (pathname === "/") return rewrite(d.home === "store" ? `${site}/shop` : site);
+  if (pathname === "/notes" || pathname === "/journals") return rewrite(`${site}/notes`);
+  if (pathname === "/shop" || pathname === "/store" || pathname === `/u/${d.username}/store`) return rewrite(`${site}/shop`);
+  if (pathname === `/u/${d.username}`) return rewrite(site);
 
-  const m = /^\/(journals|shop)\/([^/]+)\/?$/.exec(pathname);
+  const m = /^\/(notes|journals|shop)\/([^/]+)\/?$/.exec(pathname);
   if (m) {
-    const r = await resolve(host, `${m[1] === "journals" ? "journal" : "item"}:${decodeURIComponent(m[2])}`);
-    if (!r.owned) return new NextResponse("Not found", { status: 404 });
-    return NextResponse.next({ request: { headers } });
+    const journal = m[1] !== "shop";
+    const r = await resolve(host, `${journal ? "journal" : "item"}:${decodeURIComponent(m[2])}`);
+    if (r.owned) return rewrite(`${site}/${journal ? "notes" : "shop"}/${m[2]}`);
+    // Not theirs: the main site has it (or says it doesn't exist).
+    return NextResponse.redirect(`https://${MAIN_HOST}/${journal ? "journals" : "shop"}/${m[2]}`, 307);
   }
 
   // Sign-in, checkout, bookings, settings, other people's pages … all live on the main site.
