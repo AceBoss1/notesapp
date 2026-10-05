@@ -1,11 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { signInWithEmailAndPassword } from "firebase/auth";
+import { onAuthStateChanged, signInWithEmailAndPassword } from "firebase/auth";
 import { auth } from "@/lib/firebase";
 import { ensureAdminProfile } from "@/lib/users";
-import { returnTarget } from "@/lib/return-to";
+import { goBack } from "@/lib/return-to";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
@@ -13,6 +13,8 @@ export default function LoginPage() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const router = useRouter();
+  // Already signed in here and sent over from a member's own site? Carry on straight back to it.
+  useEffect(() => onAuthStateChanged(auth, (u) => { if (u) goBack(u); }), []);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -21,9 +23,7 @@ export default function LoginPage() {
     try {
       const cred = await signInWithEmailAndPassword(auth, email, password);
       await ensureAdminProfile(cred.user); // no-op for regular readers
-      const back = await returnTarget(); // came from a member's own domain? go back there
-      if (back) window.location.href = back;
-      else router.push("/");
+      if (!(await goBack(cred.user))) router.push("/"); // came from a member's own domain? sign in there and go back
     } catch (err) {
       const code = (err as { code?: string }).code;
       setError(

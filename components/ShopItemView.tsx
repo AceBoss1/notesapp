@@ -14,7 +14,7 @@ import type { StoreItem } from "@/lib/store";
 import { fmtSize } from "@/lib/store-files";
 import NotifyWhenBack from "@/components/NotifyWhenBack";
 import BoostNudge from "@/components/BoostNudge";
-import { MAIN_HOST, isMainHost } from "@/lib/host";
+import { isMainHost } from "@/lib/host";
 
 const field = "mt-1 w-full border border-rule bg-card px-3 py-2 text-sm outline-none focus:border-crimson";
 
@@ -119,13 +119,11 @@ export default function ShopItemPage() {
         <p className="text-sm text-slate">{item.subtitle}</p>
       </div>
 
-      {customHost ? (
+      {customHost && !user ? (
         <div className="card mt-8 p-5 text-sm">
           <p className="font-ui font-bold text-ink">{digital ? "Digital download" : "Buy this item"} · {formatNaira(unit)}</p>
-          <p className="mt-1 text-slate">Checkout is secure and runs on #NotesApp: you sign in and pay there, then come back to the store.</p>
-          <a href={`https://${MAIN_HOST}/shop/${itemId}?from=${encodeURIComponent(typeof window !== "undefined" ? window.location.hostname : "")}`} className="btn-primary mt-4 inline-block">
-            Continue to secure checkout
-          </a>
+          <p className="mt-1 text-slate">Sign in to buy. You&apos;ll be brought straight back here, then pay securely with Paystack.</p>
+          <a href="/login" className="btn-primary mt-4 inline-block">Sign in to buy</a>
         </div>
       ) : digital ? (
         !item.fileName ? (

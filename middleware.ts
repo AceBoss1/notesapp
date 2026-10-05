@@ -29,7 +29,7 @@ async function resolve(host: string, check?: string): Promise<Resolved> {
   return v;
 }
 
-const PASS = /^\/(_next\/|favicon|robots\.txt|sitemap|images\/|fonts\/|api\/(views|trending|boosts|ads|public|status)\b)/;
+const PASS = /^\/(_next\/|favicon|robots\.txt|sitemap|images\/|fonts\/|api\/(views|trending|boosts|ads|public|status|consent|booking\/slots|paystack\/(initialize|verify))\b)/;
 const PUBLIC_FILE = /\.[a-z0-9]{2,5}$/i;
 
 export async function middleware(req: NextRequest) {
@@ -51,6 +51,7 @@ export async function middleware(req: NextRequest) {
   if (pathname === "/notes" || pathname === "/journals") return rewrite(`${site}/notes`);
   if (pathname === "/shop" || pathname === "/store" || pathname === `/u/${d.username}/store`) return rewrite(`${site}/shop`);
   if (pathname === `/u/${d.username}`) return rewrite(site);
+  if (pathname === "/auth/handoff" || pathname === "/booking/confirm") return rewrite(`${site}${pathname}`);
 
   const m = /^\/(notes|journals|shop)\/([^/]+)\/?$/.exec(pathname);
   if (m) {

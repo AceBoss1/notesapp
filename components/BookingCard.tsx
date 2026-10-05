@@ -17,10 +17,13 @@ export default function BookingCard({
   username,
   publisherUid,
   viewer,
+  signInHref,
 }: {
   username: string;
   publisherUid?: string;
   viewer: User | null | undefined;
+  // On a member's own site: where the "sign in" prompt goes (the visitor is brought back here signed in).
+  signInHref?: string;
 }) {
   const [offered, setOffered] = useState<PublisherSettings["session"] | null>(null);
   const [date, setDate] = useState("");
@@ -53,7 +56,10 @@ export default function BookingCard({
 
   async function pay() {
     setError(null);
-    if (!viewer) return setError("Sign in to book a session.");
+    if (!viewer) {
+      if (signInHref) return void (window.location.href = signInHref);
+      return setError("Sign in to book a session.");
+    }
     if (!date || !slot) return setError("Pick a date and a time.");
     setBusy(true);
     try {
@@ -112,7 +118,7 @@ export default function BookingCard({
             {error && <p className="mt-1 text-xs text-crimson">{error}</p>}
           </div>
           <button onClick={pay} disabled={busy} className="btn-primary !px-5 !py-2 text-xs disabled:opacity-50">
-            {busy ? "Redirecting…" : "Confirm & pay"}
+            {busy ? "Redirecting…" : viewer || !signInHref ? "Confirm & pay" : "Sign in to book"}
           </button>
         </div>
       )}
