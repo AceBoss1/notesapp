@@ -226,6 +226,7 @@ export default function ProfilePageClient({ params }: { params: { username: stri
     <div className="mx-auto max-w-5xl px-4 py-16 sm:px-6 lg:px-8">
       <div className="flex flex-col items-start gap-6 sm:flex-row sm:items-center">
         <Avatar
+          square
           src={suspended ? SUSPENDED_AVATAR : profile.avatar}
           alt={profile.displayName}
           size={88}
