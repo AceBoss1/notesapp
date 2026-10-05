@@ -23,6 +23,7 @@ export async function generateMetadata({ params }: { params: { username: string 
   return {
     title: { default: p.displayName, template: `%s — ${p.displayName}` },
     description,
+    icons: { icon: p.avatar }, // their logo is the tab icon
     openGraph: { siteName: p.displayName, title: p.displayName, description, images: [p.avatar] },
     twitter: { card: "summary_large_image", title: p.displayName, description, images: [p.avatar] },
   };
@@ -69,10 +70,15 @@ export default async function SiteLayout({ children, params }: Props) {
             <SiteNav footer />
           </div>
           <div className="border-t border-paper/10 py-4 text-center text-xs text-paper/55">
-            <a href={`https://${MAIN_HOST}`} className="inline-flex items-center gap-2 hover:text-paper">
-              <Image src="/images/brand/notesapp-icon.webp" alt="" width={16} height={16} className="h-4 w-4 rounded" />
-              {p.displayName} is powered by <span className="font-semibold text-paper/80">#NotesApp</span>
-            </a>
+            <p className="inline-flex flex-wrap items-center justify-center gap-x-2 gap-y-1">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={p.avatar} alt="" className="h-4 w-4 shrink-0 rounded object-cover" />
+              <span>{p.displayName} is powered by</span>
+              <a href={`https://${MAIN_HOST}`} className="inline-flex items-center gap-1.5 font-semibold text-paper/80 hover:text-paper">
+                <Image src="/images/brand/notesapp-icon.webp" alt="" width={16} height={16} className="h-4 w-4 rounded" />
+                #NotesApp
+              </a>
+            </p>
           </div>
         </footer>
       </div>
