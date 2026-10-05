@@ -226,10 +226,18 @@ export default function ConsolePage() {
               <table className="mt-2 w-full text-left font-mono text-xs"><tbody>
                 {domain.dns.map((r, i) => <tr key={i} className="border-t border-rule"><td className="py-1.5 pr-3 font-bold">{r.type}</td><td className="pr-3">{r.name}</td><td className="break-all">{r.value}</td></tr>)}
               </tbody></table>
+              <div className="mt-4 border border-rule bg-paper p-4 text-xs text-slate">
+                <p className="font-ui text-xs font-bold text-ink">Easiest: let Vercel run the domain&apos;s DNS</p>
+                <p className="mt-1">
+                  If your domain isn&apos;t hosted anywhere yet, or your provider won&apos;t take the record above, change the domain&apos;s <strong className="text-ink">nameservers</strong> at your registrar to{" "}
+                  <span className="font-mono text-ink">ns1.vercel-dns.com</span> and <span className="font-mono text-ink">ns2.vercel-dns.com</span>. Vercel then manages the records for you and the domain connects by itself, usually within minutes.
+                  This moves <em>all</em> of the domain&apos;s DNS to Vercel, so if the domain also runs email (MX records) or other services, recreate those records there too, or use the records above instead.
+                </p>
+              </div>
               {domain.dns.some((r) => r.type === "A") && (
                 <p className="mt-3 text-xs text-slate">
-                  <strong className="text-ink">Provider won&apos;t take it?</strong> Some providers want the Name left blank or set to the full domain instead of <span className="font-mono">@</span>, and the value typed with no spaces. If it still refuses an A record,
-                  connect <span className="font-mono">www.{domain.host}</span> instead: remove this domain, add that, and create the CNAME it shows. (Press <em>Check status</em> after any change; DNS can take a while.)
+                  <strong className="text-ink">Using the A record and your provider won&apos;t take it?</strong> Some providers want the Name left blank or set to the full domain instead of <span className="font-mono">@</span>, and the value typed with no spaces. Or connect{" "}
+                  <span className="font-mono">www.{domain.host}</span> instead: remove this domain, add that, and create the CNAME it shows. (Press <em>Check status</em> after any change; DNS can take a while.)
                 </p>
               )}
               {!autoConnect && <p className="mt-3 text-xs text-slate">Our team connects new domains by hand for now, so after you add the records we&apos;ll switch it on and notify you.</p>}
