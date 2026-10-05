@@ -16,7 +16,10 @@ export type SiteInfo = {
 };
 
 const Ctx = createContext<SiteInfo | null>(null);
-export const SiteProvider = Ctx.Provider;
+// A real component (not Ctx.Provider itself): a server layout can't render a context object across the client boundary.
+export function SiteProvider({ value, children }: { value: SiteInfo; children: React.ReactNode }) {
+  return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
+}
 export function useSite(): SiteInfo {
   const v = useContext(Ctx);
   if (!v) throw new Error("useSite() used outside a member site");

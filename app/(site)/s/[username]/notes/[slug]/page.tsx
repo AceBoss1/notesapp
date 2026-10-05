@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 import { getNoteBySlug } from "@/lib/firestore-notes";
 import { getUserByUsername } from "@/lib/users";
 import { journalMetadata } from "@/lib/og";
-import JournalDetail from "@/app/(main)/journals/[slug]/page";
+import JournalDetail from "@/components/JournalDetail";
 
 // A note inside the member's own site: the same reading page as /journals/<slug>, but only for their notes.
 export const dynamic = "force-dynamic";
