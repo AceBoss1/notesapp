@@ -1,5 +1,6 @@
 "use client";
 
+import { returnTarget } from "@/lib/return-to";
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createUserWithEmailAndPassword, sendEmailVerification, User } from "firebase/auth";
@@ -161,7 +162,9 @@ export default function SignupPage() {
       await Promise.all(
         [...chosen].map((username) => followJournal(newUser.uid, username, false))
       );
-      router.push(kind === "organisation" ? "/organisation" : `/u/${newUsername}`);
+      const back = await returnTarget();
+      if (back) window.location.href = back;
+      else router.push(kind === "organisation" ? "/organisation" : `/u/${newUsername}`);
     } finally {
       setFinishing(false);
     }

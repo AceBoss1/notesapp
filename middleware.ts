@@ -61,6 +61,16 @@ export async function middleware(req: NextRequest) {
     return NextResponse.redirect(`https://${MAIN_HOST}/${journal ? "journals" : "shop"}/${m[2]}`, 307);
   }
 
+  // Signing in or up happens on the main site; tell it where to send the visitor back to (the page they were on).
+  if (pathname === "/login" || pathname === "/signup") {
+    let next = "/";
+    try {
+      const ref = new URL(req.headers.get("referer") || "");
+      if (ref.hostname.toLowerCase() === host) next = ref.pathname + ref.search;
+    } catch { /* no referer: back to the home page */ }
+    return NextResponse.redirect(`https://${MAIN_HOST}${pathname}?from=${encodeURIComponent(host)}&next=${encodeURIComponent(next)}`, 307);
+  }
+
   // Sign-in, checkout, bookings, settings, other people's pages … all live on the main site.
   return NextResponse.redirect(`https://${MAIN_HOST}${pathname}${search}`, 307);
 }

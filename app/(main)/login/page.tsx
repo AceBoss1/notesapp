@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { signInWithEmailAndPassword } from "firebase/auth";
 import { auth } from "@/lib/firebase";
 import { ensureAdminProfile } from "@/lib/users";
+import { returnTarget } from "@/lib/return-to";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
@@ -20,7 +21,9 @@ export default function LoginPage() {
     try {
       const cred = await signInWithEmailAndPassword(auth, email, password);
       await ensureAdminProfile(cred.user); // no-op for regular readers
-      router.push("/");
+      const back = await returnTarget(); // came from a member's own domain? go back there
+      if (back) window.location.href = back;
+      else router.push("/");
     } catch (err) {
       const code = (err as { code?: string }).code;
       setError(

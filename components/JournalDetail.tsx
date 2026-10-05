@@ -3,7 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { remark } from "remark";
 import html from "remark-html";
-import { getNoteBySlug, getMoreNotes } from "@/lib/firestore-notes";
+import { getNoteBySlug, getMoreNotes, getAllNotes } from "@/lib/firestore-notes";
 import { getAuthorProfile, getUserByUid, badgeLevel, goldKindOf, isTeamMember, roleLabelFor } from "@/lib/users";
 import TeamBadge from "@/components/TeamBadge";
 import BadgeToast from "@/components/BadgeToast";
@@ -20,17 +20,23 @@ import AdSlot from "@/components/AdSlot";
 import { UnverifiedOrgNotice } from "@/components/OrgNotice";
 
 // The reading page for one note (same Firestore doc as precheks.com.ng/notes/{slug}). Used by /journals/<slug> and a member's own site.
+// `site` is set on a member's own site: "more notes" are then only theirs, links stay inside the site
+// (`base` is "" on their domain, "/s/<username>" on the preview), and other people's names aren't links to #NotesApp.
 export default async function JournalDetail({
   params,
+  site,
 }: {
   params: { slug: string };
+  site?: { uid: string; base: string };
 }) {
   const note = await getNoteBySlug(params.slug);
   if (!note) return notFound();
 
   const [processed, moreNotes, authorProfile, coProfiles] = await Promise.all([
     remark().use(html).process(note.content),
-    getMoreNotes(note.slug, 4),
+    site
+      ? getAllNotes().then((all) => all.filter((n) => n.authorUid === site.uid && n.slug !== note.slug).slice(0, 4))
+      : getMoreNotes(note.slug, 4),
     getAuthorProfile(note),
     Promise.all((note.coAuthorUids || []).map((uid) => getUserByUid(uid).catch(() => null))),
   ]);
@@ -46,13 +52,18 @@ export default async function JournalDetail({
       ? NA_NOTESAPP_PROFILE.username
       : authorProfile?.username;
 
+  const notesBase = site ? `${site.base}/notes` : "/journals";
+  // Profile links go to #NotesApp, so inside a member's site they're plain text.
+  const Who = ({ href, className, children }: { href: string; className?: string; children: React.ReactNode }) =>
+    site ? <span className={className}>{children}</span> : <Link href={href} className={className}>{children}</Link>;
+
   return (
     <article className="mx-auto max-w-3xl px-4 py-16 sm:px-6 lg:px-8">
       <Link
-        href="/journals"
+        href={site ? notesBase || "/notes" : "/journals"}
         className="font-ui text-xs font-semibold uppercase tracking-wideish text-crimson-bright"
       >
-        ← All Journals
+        {site ? "← All notes" : "← All Journals"}
       </Link>
       <p className="eyebrow mt-6">
         {note.categories[0] || "Journal"}
@@ -68,7 +79,7 @@ export default async function JournalDetail({
 
       <div className="mt-6 flex flex-wrap items-center justify-between gap-3 border-y border-rule py-4">
         {linkedUsername ? (
-          <Link href={`/u/${linkedUsername}`} className="group flex items-center gap-3">
+          <Link href={site ? site.base || "/" : `/u/${linkedUsername}`} className="group flex items-center gap-3">
             <Image
               src={authorProfile?.avatar || note.author_avatar}
               alt={authorProfile?.displayName || note.author}
@@ -123,8 +134,8 @@ export default async function JournalDetail({
 
       {note.writerUsername && note.writerUsername !== note.authorUsername && (
         <p className="mt-3 text-xs text-slate">
-          Written by <Link href={`/u/${note.writerUsername}`} className="font-mono text-crimson-bright">@{note.writerUsername}</Link> for{" "}
-          <Link href={`/u/${linkedUsername || note.authorUsername}`} className="font-semibold text-ink hover:text-crimson-bright">#{authorProfile?.displayName || note.author}</Link>
+          Written by <Who href={`/u/${note.writerUsername}`} className="font-mono text-crimson-bright">@{note.writerUsername}</Who> for{" "}
+          <Who href={`/u/${linkedUsername || note.authorUsername}`} className="font-semibold text-ink hover:text-crimson-bright">#{authorProfile?.displayName || note.author}</Who>
         </p>
       )}
       <UnverifiedOrgNotice profile={authorProfile} compact />
@@ -222,14 +233,14 @@ export default async function JournalDetail({
 
       <AdSlot placement="post" publisher={authorProfile ?? undefined} publisherUid={authorProfile?.uid} />
 
-      <Comments noteId={note.id} slug={note.slug} title={note.title} noteAuthor={note.author} />
+      <Comments noteId={note.id} slug={note.slug} title={note.title} noteAuthor={note.author} linkProfiles={!site} />
 
       {moreNotes.length > 0 && (
         <div className="mt-16 border-t-2 border-ink pt-10">
-          <p className="eyebrow">More journals</p>
+          <p className="eyebrow">{site ? "More notes" : "More journals"}</p>
           <div className="mt-6 grid grid-cols-1 gap-x-8 gap-y-8 sm:grid-cols-2">
             {moreNotes.map((n) => (
-              <Link key={n.slug} href={`/journals/${n.slug}`} className="group">
+              <Link key={n.slug} href={`${notesBase}/${n.slug}`} className="group">
                 {n.featured_image && (
                   <Image
                     src={n.featured_image}
