@@ -20,6 +20,7 @@ import { STORE_ITEM_MAX_KOBO, STORE_MAX_QTY } from "@/lib/orders";
 import { RESERVATION_MINUTES, StockError, canActForSeller, releaseExpiredReservations, reserveStock, returnStock } from "@/lib/orders-server";
 import type { AccountTier } from "@/lib/users";
 import { rateLimit } from "@/lib/rate-limit";
+import { callbackOrigin } from "@/lib/origin";
 
 // Starts a Paystack checkout for a 1:1 session or a monthly journal
 // subscription. Price, slots and plan all come from the publisher's
@@ -65,7 +66,7 @@ export async function POST(req: NextRequest) {
       }
       const { planCode, amountKobo } = await getBadgePlanCode();
       const reference = newReference();
-      const origin = (process.env.NEXT_PUBLIC_SITE_URL || req.nextUrl.origin).replace(/\/$/, "");
+      const origin = await callbackOrigin(req);
       const tx = await initializeTransaction({
         plan: planCode, email: user.email, amountKobo, reference,
         callbackUrl: `${origin}/booking/confirm`,
@@ -98,7 +99,7 @@ export async function POST(req: NextRequest) {
       if (placements.length === 0) return NextResponse.json({ error: "Pick at least one placement." }, { status: 400 });
       if (body.agreed !== true) return NextResponse.json({ error: "Please confirm you've read the advertising rules." }, { status: 400 });
       const reference = newReference();
-      const origin = (process.env.NEXT_PUBLIC_SITE_URL || req.nextUrl.origin).replace(/\/$/, "");
+      const origin = await callbackOrigin(req);
       const tx = await initializeTransaction({
         email: user.email, amountKobo: pk.priceKobo, reference, callbackUrl: `${origin}/booking/confirm`,
         metadata: { kind, packageId: pk.id, uid: user.uid },
@@ -150,7 +151,7 @@ export async function POST(req: NextRequest) {
       const amountKobo = item.priceKobo * quantity + deliveryKobo;
       if (amountKobo > STORE_ITEM_MAX_KOBO * 2) return NextResponse.json({ error: "That order is too large." }, { status: 400 });
       const reference = newReference();
-      const origin = (process.env.NEXT_PUBLIC_SITE_URL || req.nextUrl.origin).replace(/\/$/, "");
+      const origin = await callbackOrigin(req);
       // Managed stock: take the quantity out now so nobody else can order it while this
       // buyer pays (given back after RESERVATION_MINUTES if the payment never lands).
       await releaseExpiredReservations(itemSnap.id).catch(() => 0);
@@ -208,7 +209,7 @@ export async function POST(req: NextRequest) {
       const payout = (await db.doc(`payoutAccounts/${item.ownerUid}`).get()).data();
       if (!payout?.recipientCode) return NextResponse.json({ error: "This seller hasn't set up payouts yet, so they can't take orders." }, { status: 409 });
       const reference = newReference();
-      const origin = (process.env.NEXT_PUBLIC_SITE_URL || req.nextUrl.origin).replace(/\/$/, "");
+      const origin = await callbackOrigin(req);
       const tx = await initializeTransaction({
         email: user.email, amountKobo: item.priceKobo, reference, callbackUrl: `${origin}/booking/confirm`,
         metadata: { kind, itemId: itemSnap.id, uid: user.uid },
@@ -247,7 +248,7 @@ export async function POST(req: NextRequest) {
       };
       const amountKobo = item.priceKobo * quantity + MERCH_DELIVERY_KOBO;
       const reference = newReference();
-      const origin = (process.env.NEXT_PUBLIC_SITE_URL || req.nextUrl.origin).replace(/\/$/, "");
+      const origin = await callbackOrigin(req);
       const tx = await initializeTransaction({
         email: user.email, amountKobo, reference, callbackUrl: `${origin}/booking/confirm`,
         metadata: { kind, itemId: item.id, uid: user.uid },
@@ -275,7 +276,7 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ error: "Apply for the gold badge first." }, { status: 409 });
       }
       const { kind: gKind, track } = req0;
-      const origin = (process.env.NEXT_PUBLIC_SITE_URL || req.nextUrl.origin).replace(/\/$/, "");
+      const origin = await callbackOrigin(req);
       const reference = newReference();
       if (kind === "gold_deposit") {
         if (gKind !== "identity" || req0.status !== "awaiting_deposit") {
@@ -339,7 +340,7 @@ export async function POST(req: NextRequest) {
       }
       const { planCode, amountKobo } = await getTierPlanCode(tier, interval);
       const reference = newReference();
-      const origin = (process.env.NEXT_PUBLIC_SITE_URL || req.nextUrl.origin).replace(/\/$/, "");
+      const origin = await callbackOrigin(req);
       const tx = await initializeTransaction({
         plan: planCode, email: user.email, amountKobo, reference,
         callbackUrl: `${origin}/booking/confirm`,
@@ -386,7 +387,7 @@ export async function POST(req: NextRequest) {
         }
       }
       const reference = newReference();
-      const origin = (process.env.NEXT_PUBLIC_SITE_URL || req.nextUrl.origin).replace(/\/$/, "");
+      const origin = await callbackOrigin(req);
       const tx = await initializeTransaction({
         email: user.email, amountKobo: pk.priceKobo, reference,
         callbackUrl: `${origin}/booking/confirm`,
@@ -411,7 +412,7 @@ export async function POST(req: NextRequest) {
     }
 
     const reference = newReference();
-    const origin = (process.env.NEXT_PUBLIC_SITE_URL || req.nextUrl.origin).replace(/\/$/, "");
+    const origin = await callbackOrigin(req);
     let record: PaymentRecord;
     let plan: string | undefined;
 

@@ -6,6 +6,7 @@ import { getUserByUsername } from "@/lib/users";
 import { MAIN_HOST, isMainHost } from "@/lib/host";
 import { SiteProvider } from "@/components/site/SiteContext";
 import SiteNav from "@/components/site/SiteNav";
+import SiteAccount from "@/components/site/SiteAccount";
 
 // A member's branded site (Enterprise custom domains): their name in the header, three pages — Home (profile and
 // booking), Notes and Shop — and a "Powered by #NotesApp" footer. No #NotesApp navigation. On their own domain the
@@ -52,7 +53,10 @@ export default async function SiteLayout({ children, params }: Props) {
               <img src={p.avatar} alt="" className="h-9 w-9 shrink-0 rounded-full object-cover" />
               <span className="truncate font-ui text-lg font-extrabold tracking-tight text-ink">{p.displayName}</span>
             </Link>
-            <SiteNav />
+            <div className="flex shrink-0 items-center gap-5">
+              <SiteNav />
+              <SiteAccount />
+            </div>
           </div>
         </header>
         <main className="flex-1">{children}</main>
