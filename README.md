@@ -1,5 +1,7 @@
 # #NotesApp — landing page + MVP
 
+**Start with "Where things stand" just below — it is the current state, env vars and deploy checklist.**
+
 **⚠ Read "Independent infrastructure migration" before this
 paragraph — it's the most recent, most important architectural
 change, and it contradicts what's said immediately below.** Everything
@@ -10,6 +12,79 @@ Firestore project and its own Cloudflare R2 bucket. Treat all
 "shared with Precheks" language below as history explaining *why* the
 architecture looks the way it does, not as the current state of
 Firestore access.
+
+## Where things stand (updated 5 Oct 2026)
+
+**Read this section first.** Everything below it is a chronological build log; where an older passage says something is
+"not built", "demo" or "shared with Precheks", this section is the current truth.
+
+### Live today
+| Area | What exists | Where to read more |
+|---|---|---|
+| Publishing | Journals (rich-text composer, drafts, premium posts), follow, likes, comments, shares, co-authoring, organisation channels and teams | "Who can publish", "Organisation accounts", co-authoring in "Boosts & gifts" |
+| **Video on posts** | One MP4/WebM per post (≤ 100 MB, ≤ 3 min, weekly allowance by plan), our own player, cover-image picker, server-verified uploads | "Video on posts" |
+| **Share previews** | Per-post, per-store-item and per-store Open Graph cards | "Share previews (Open Graph)" |
+| Booking & money | Native calendar, Paystack checkout, escrow-style holds, automatic payouts, client rescheduling/cancellation + problem reports | "Payments, payouts, rates, reminders", "Money flow" |
+| Stores | Physical goods (managed stock, parcel IDs, rider links, tracking), digital downloads (private bucket, short-lived links), store boosts, official merch pre-orders | "Seller checkout and parcel tracking", "Boosts & gifts", `/store-selling` |
+| Promotion | Post/item boosts, gifts, self-serve banner ads and ad share | "Boosts & gifts", "Advertiser campaigns" |
+| Plans & badges | Free Standard/Basic, Pro, Business (Paystack plans), Enterprise (custom); maroon ✔, gold ✔ (endorsed; identity-checked is built but **Dojah is still on the sandbox**) | "Pro / Business plans", "Verified badge", "Dojah webhook" |
+| **Enterprise** | Server-to-server API (`/api/v1`), Console, signed webhooks, `/docs`, own domain (subdomain or root) | "API, Console, Docs and custom domains" |
+| Trust & ops | `/security`, `/status` (+ incidents, response times, email subscribers), `/changelog`, account export/deletion, error monitoring, traction snapshot, admin by custom claims | "Where to look when something's wrong" below |
+| Company | NOTESAPP TECHNOLOGIES LTD (RC and TIN in `lib/site.ts`; SMEDAN number pending) | "Company identity" |
+
+### Not built yet
+WhatsApp reminders (plan: Meta WhatsApp Cloud API directly; booking reminders + delivery updates; needs Meta Business
+verification and approved templates) · one-click social publishing · AI drafting via MCP + notetaker handoff · iOS/Android apps ·
+video transcoding/streaming (we cap size and length instead) · Dojah **live** mode (README "Going live with Dojah") ·
+webhook retries (one attempt, manual resend) · OAuth for third-party API apps · full sign-in on custom domains (they hop to
+the main site) · Sentry (we have built-in error monitoring instead).
+
+### Environment variables (Vercel → Settings → Environment Variables; redeploy after changing any)
+| Variable | Secret? | Purpose |
+|---|---|---|
+| `NEXT_PUBLIC_FIREBASE_API_KEY`, `_AUTH_DOMAIN`, `_PROJECT_ID`, `_STORAGE_BUCKET`, `_MESSAGING_SENDER_ID`, `_APP_ID` | no | Firebase web config |
+| `FIREBASE_SERVICE_ACCOUNT_KEY` | **yes** | Service-account JSON as one line; all server routes need it |
+| `R2_ACCOUNT_ID`, `R2_ACCESS_KEY_ID` | no / yes | Cloudflare R2 account and key id |
+| `R2_SECRET_ACCESS_KEY` | **yes** | R2 secret. The R2 token must cover **both** buckets (media and private) with Object Read & Write |
+| `R2_BUCKET_NAME` | no | Public media bucket (default `notesapp-media`): images, avatars, post videos |
+| `NEXT_PUBLIC_R2_PUBLIC_URL` | no | Public URL of the media bucket (e.g. `https://media.notesapp.name.ng`) |
+| `R2_PRIVATE_BUCKET` | no | Name of the private bucket for paid downloads (just a name, a plain variable) |
+| `PAYSTACK_SECRET_KEY` | **yes** | Paystack API key (also verifies webhook signatures) |
+| `NEXT_PUBLIC_SITE_URL` | no | `https://www.notesapp.name.ng` (emails, API URLs, share links) |
+| `RESEND_API_KEY` | **yes** | Resend key; without it emails are skipped |
+| `EMAIL_FROM`, `SUPPORT_EMAIL` | no | Sender (`#NotesApp <…>`) and where support/error alerts go (default hello@notesapp.name.ng) |
+| `CRON_SECRET` | **yes** | Bearer secret for `/api/cron/reminders` |
+| `AUTO_PAYOUTS` | no | `off` pauses automatic payout release |
+| `AD_HASH_SALT` | no | Salt for hashing ad-visitor ids (default `notesapp`) |
+| `DOJAH_APP_ID`, `DOJAH_SECRET_KEY`, `DOJAH_WEBHOOK_SECRET` | secret key / webhook secret **yes** | Dojah identity checks |
+| `DOJAH_API_BASE` | no | Sandbox only — **delete for live** |
+| `NEXT_PUBLIC_DOJAH_WIDGET_PERSONAL`, `_CORPORATE` | no | Dojah widget ids (sandbox now; live ids at go-live) |
+| `DOJAH_AUTO_APPROVE` | no | Keep off; `true` auto-approves a gold application whose every step passed |
+| `VERCEL_API_TOKEN`, `VERCEL_PROJECT_ID`, `VERCEL_TEAM_ID` | token **yes** | Optional: auto-connect Enterprise custom domains and `/status` check; team id only for a team project |
+
+Script-only (never in Vercel): `SOURCE_SERVICE_ACCOUNT`, `DEST_SERVICE_ACCOUNT` (migration), `GOOGLE_APPLICATION_CREDENTIALS`.
+A copy-paste template is `.env.local.example`.
+
+### Deploy checklist (after merging a change that touches rules or indexes)
+1. `firebase deploy --only firestore` — publishes `firestore.rules` and the TTL policies in `firestore.indexes.json`
+   (`errorLogs`, `webhookDeliveries`, `apiIdempotency`, `videoUploads`, plus older ones). If it offers to delete the
+   `adSeen`/`seen` field overrides, answer **N**.
+2. `npm run test:rules` before deploying rules (starts the Firestore emulator; needs Java) — 36 tests.
+3. cron-job.org: `GET https://www.notesapp.name.ng/api/cron/reminders` every 15 min with `Authorization: Bearer $CRON_SECRET`, and
+   `GET /api/status` every 5 min (so incidents are detected without visitors).
+4. Media bucket CORS from `scripts/r2-cors.json` on **both** R2 buckets (browser PUTs go straight to R2).
+
+### Where to look when something's wrong
+`/status` (live checks: database, auth, uploads, media, **digital downloads**, **developer API**, **custom domains**, payments, email,
+identity, scheduled jobs) · `/admin/errors` (grouped errors, 30-day retention) · `/admin/traction` (numbers for decks) ·
+`/admin/payments` (held/failed payouts) · `/admin/api-access` (API access and domains) · Vercel → Logs.
+
+### Scripts (`scripts/`)
+`set-admin-claims.mjs` · `set-founder-tier.mjs` · `fix-founder-profiles.mjs` · `move-suspensions.mjs` · `strip-user-emails.mjs` ·
+`dojah-subscribe.mjs` / `dojah-test-event.mjs` · `seed-journals-from-notes.mjs` · `migrate-to-own-infra.mjs` ·
+`clean-orphan-videos.mjs` (monthly). Each prints a dry run first; pass `--apply` to write.
+
+---
 
 A deployable Next.js app: the public marketing site plus a working
 demo of the core loop — a native booking calendar, a per-professional
@@ -73,8 +148,7 @@ new flow is a **presigned URL**, not a direct client upload:
    just pointed at Cloudflare's endpoint instead of AWS's).
 4. The browser uploads the file **directly to R2** using that URL —
    the file's bytes never pass through the Next.js server at all. This
-   matters most once video uploads exist (see the video roadmap note
-   below): no server bandwidth or request-body-size limit involved.
+   matters most for video (see "Video on posts" further down): no server bandwidth or request-body-size limit involved.
 
 `FIREBASE_SERVICE_ACCOUNT_KEY` (the new server-only env var this
 requires) is the full service-account JSON, generated from Firebase
@@ -134,18 +208,12 @@ orphan them for no reason: `follows`, `subscriptions`, `leads`,
 `notifications` — all NotesApp-only collections that happened to live
 in the shared project, never Precheks' data to begin with.
 
-### Video uploads — still not built, now unblocked
+### Video uploads — built later (see "Video on posts")
 
-The financial-planning doc this migration is based on discusses a
-3-images/day and 7-videos/week posting limit and a compression
-pipeline for video specifically. Image upload via R2 is real as of
-this migration; **video upload is not built** — `NoteForm.tsx` only
-has an image field today. The presigned-URL pattern above extends
-directly to video (the API route already accepts any `video/*`
-content type), but real video needs a compression step before upload
-that this session didn't build — client-side video compression in the
-browser is a meaningfully different, heavier piece of work than an
-image upload button. Worth its own session, not bolted on here.
+This migration shipped image upload only; the 3-images/day and 7-videos/week idea from the planning doc was not followed
+literally. Video on posts now exists: one MP4/WebM per post through the same presigned-PUT pattern (the file never passes through
+the server), with size, length and weekly-quota limits instead of server-side compression. Details, rules and the verification
+flow are under "Video on posts" further down.
 
 ## Suspension field reconciled with Precheks' own — this was the real finding
 
@@ -919,7 +987,9 @@ client-side filter over notes and people, since the dataset is small
 enough that a proper search index isn't needed yet. Matches journals
 by title/category/tag and people by name/username.
 
-## Not built in this session (by design)
+## Not built in this session (by design) — historical
+
+> Written when payments were still a demo. Payments, rescheduling/reminders, subscriptions and non-admin publishing are live now.
 
 Payment integration (Paystack/Flutterwave), WhatsApp reminders,
 non-admin publishing, the partner API for Precheks to pull this
@@ -960,6 +1030,10 @@ future session, the product decisions are already made:
    a browser extension, not this app.
 
 ## Gap audit (README + /roadmap) — what's left
+
+> **Historical (written in September 2026).** Since then: payments, rescheduling, custom-claims admin, rules tests, account
+> deletion/export, consent, rate limiting, media domain, ad share, partner API (Enterprise API), video upload and error monitoring
+> are all built. See "Where things stand" at the top for the current list.
 
 Fixed in code: `.env.local.example` (referenced above but was gitignored and
 missing) now exists; `/api/upload` accepts any account `firestore.rules`'
@@ -1034,7 +1108,7 @@ Vercel Hobby only allows daily crons, so use Vercel Cron on Pro or a free
 pinger such as cron-job.org. WhatsApp reminders: later (needs Meta
 template approval).
 
-### Suggested gaps — awaiting approval (not built)
+### Suggested gaps — awaiting approval (historical — mostly built since; see "Where things stand")
 Password reset + email verification · bookings dashboard for clients and
 publishers · cancellation/refund policy + self-serve cancel · Terms &
 Privacy consent before payment · account deletion + data export ·
@@ -1064,7 +1138,7 @@ header (it's only reachable from your own profile page today).
   `www.notesapp.name.ng`. The default `noreply@…firebaseapp.com` sender
   often lands in spam — configure a custom SMTP sender there if so.
 
-### Build order for the remaining approved items
+### Build order for the remaining approved items (historical)
 Each is its own session; nothing below is started except what is marked
 built above: (1) bookings dashboard · (2) cancellation/refund policy +
 self-serve cancel (needs your policy: e.g. full refund ≥48 h before, 50%
@@ -1113,9 +1187,8 @@ upload), Ctrl+B/I/K, Write/Preview tabs, word count, and browser-local
 draft autosave/restore. Content is still Markdown, so existing journals
 and Precheks' shared notes render unchanged.
 
-Still queued (later sessions): Sentry, account deletion/export, media
-domain verification, video, social publishing, AI drafting/MCP, ad-share,
-partner API, Cloudinary/`test-r2.mjs` cleanup.
+Still queued at the time (since done except social publishing and AI drafting/MCP): Sentry (built-in error monitoring
+instead), account deletion/export, media domain verification, video, ad-share, partner API.
 
 ## Step-by-step: switch admin to custom claims
 
