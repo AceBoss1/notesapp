@@ -7,7 +7,7 @@ import { auth } from "@/lib/firebase";
 import BookingCard from "@/components/BookingCard";
 import { recordView } from "@/lib/track";
 import SocialLinksRow from "@/components/SocialLinksRow";
-import { ItemCard } from "@/components/StorePageClient";
+import ItemCard from "@/components/StoreItemCard";
 import { useSite } from "./SiteContext";
 import { useOwnNotes } from "./useOwnNotes";
 import { useOwnItems } from "./useOwnItems";
@@ -18,6 +18,8 @@ export default function SiteHome() {
   const site = useSite();
   const notes = useOwnNotes();
   const items = useOwnItems();
+  // No notes published (yet): the shop is what the home page is about, so show all of it.
+  const storeFirst = notes !== undefined && notes.length === 0;
   const [viewer, setViewer] = useState<User | null | undefined>(undefined);
 
   useEffect(() => {
@@ -55,11 +57,11 @@ export default function SiteHome() {
       {items && items.length > 0 && (
         <section className="mt-14">
           <div className="flex items-center justify-between">
-            <p className="eyebrow">From the shop</p>
-            <Link href={`${site.base}/shop`} className="font-ui text-xs font-semibold text-crimson hover:text-crimson-bright">Visit the shop →</Link>
+            <p className="eyebrow">{storeFirst ? "Shop" : "From the shop"}</p>
+            {!storeFirst && items.length > 3 && <Link href={`${site.base}/shop`} className="font-ui text-xs font-semibold text-crimson hover:text-crimson-bright">Visit the shop →</Link>}
           </div>
-          <div className="mt-5 grid grid-cols-1 gap-4 sm:grid-cols-3">
-            {items.slice(0, 3).map((i) => <ItemCard key={i.id} item={i} shopBase={`${site.base}/shop`} />)}
+          <div className="mt-5 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {(storeFirst ? items : items.slice(0, 3)).map((i) => <ItemCard key={i.id} item={i} shopBase={`${site.base}/shop`} />)}
           </div>
         </section>
       )}

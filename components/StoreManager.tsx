@@ -6,12 +6,14 @@ import { auth } from "@/lib/firebase";
 import { uploadToR2 } from "@/lib/upload";
 import { STORE_DELIVERY_MAX_KOBO, STORE_ITEM_MAX_KOBO, STORE_ITEM_MIN_KOBO } from "@/lib/orders";
 import Link from "next/link";
-import { addStoreItem, updateStoreItem, deleteStoreItem, StoreItem } from "@/lib/store";
+import { addStoreItem, updateStoreItem, deleteStoreItem, StoreItem, MAX_CHOICES, MAX_IMAGES, MAX_OPTIONS, cleanOptions, variantCombos, variantKey, DEFAULT_STORE_IMAGE } from "@/lib/store";
 import { attachDigitalFile, fmtSize } from "@/lib/store-files";
 import { DIGITAL_EXTENSIONS, DIGITAL_MAX_BYTES } from "@/lib/private-files-config";
 
 const field = "mt-1 w-full border border-rule bg-card px-3 py-2 font-body text-sm outline-none focus:border-gold";
-const EMPTY = { title: "", subtitle: "", badge: "", image: "", priceNaira: "", deliveryNaira: "0", stock: "" };
+const EMPTY = { title: "", subtitle: "", badge: "", priceNaira: "", deliveryNaira: "0", stock: "" };
+type OptionRow = { name: string; choices: string }; // choices typed as "S, M, L"
+const EMPTY_OPTIONS: OptionRow[] = [{ name: "", choices: "" }, { name: "", choices: "" }];
 
 // Panel on /u/<username>/store for the store's owner — or, for an organisation's store, a
 // team member the owner gave store access. Items are physical goods sold through
@@ -36,6 +38,12 @@ export default function StoreManager({
   const [kind, setKind] = useState<"physical" | "digital">("physical");
   const [file, setFile] = useState<File | null>(null);
   const [progress, setProgress] = useState("");
+  // Photos (the first is the main one), up to two options like Size/Colour, and stock per combination.
+  const [images, setImages] = useState<string[]>([]);
+  const [optionRows, setOptionRows] = useState<OptionRow[]>(EMPTY_OPTIONS);
+  const [vstock, setVstock] = useState<Record<string, string>>({});
+  const options = cleanOptions(optionRows.map((r) => ({ name: r.name, choices: r.choices.split(",") })));
+  const combos = variantCombos(options);
 
   const sellable = items.filter((i) => i.id && i.sellable);
   const legacy = items.filter((i) => i.id && !i.sellable);
@@ -46,9 +54,14 @@ export default function StoreManager({
     setKind(item?.kind === "digital" ? "digital" : "physical");
     setFile(null);
     setProgress("");
+    setImages(item ? (item.images?.length ? item.images : item.image && item.image !== DEFAULT_STORE_IMAGE ? [item.image] : []) : []);
+    setOptionRows(
+      EMPTY_OPTIONS.map((_, i) => ({ name: item?.options?.[i]?.name ?? "", choices: item?.options?.[i]?.choices.join(", ") ?? "" }))
+    );
+    setVstock(Object.fromEntries(Object.entries(item?.variantStock ?? {}).map(([k, v]) => [k, String(v)])));
     setForm(
       item
-        ? { title: item.title, subtitle: item.subtitle ?? "", badge: item.badge ?? "", image: item.image, priceNaira: String((item.priceKobo ?? 0) / 100), deliveryNaira: String((item.deliveryKobo ?? 0) / 100), stock: String(item.stock ?? 0) }
+        ? { title: item.title, subtitle: item.subtitle ?? "", badge: item.badge ?? "", priceNaira: String((item.priceKobo ?? 0) / 100), deliveryNaira: String((item.deliveryKobo ?? 0) / 100), stock: String(item.stock ?? 0) }
         : EMPTY
     );
     setError("");
@@ -57,13 +70,15 @@ export default function StoreManager({
   }
 
   async function upload(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0];
-    if (!file) return;
+    const files = Array.from(e.target.files ?? []).slice(0, Math.max(0, MAX_IMAGES - images.length));
+    e.target.value = "";
+    if (files.length === 0) return;
     setBusy(true);
     setError("");
     try {
-      const url = await uploadToR2(file, "journal");
-      setForm((f) => ({ ...f, image: url }));
+      const urls: string[] = [];
+      for (const f of files) urls.push(await uploadToR2(f, "journal"));
+      setImages((cur) => [...cur, ...urls].slice(0, MAX_IMAGES));
     } catch (err) {
       setError(err instanceof Error ? err.message : "Upload failed");
     } finally {
@@ -77,15 +92,21 @@ export default function StoreManager({
     const priceKobo = Math.round(Number(form.priceNaira) * 100);
     const deliveryKobo = Math.round(Number(form.deliveryNaira || 0) * 100);
     const digital = kind === "digital";
-    const stock = digital ? 0 : Number(form.stock);
+    const withOptions = !digital && options.length > 0;
+    const stocks = combos.map((c) => Number(vstock[variantKey(c)] ?? ""));
+    const stock = digital ? 0 : withOptions ? stocks.reduce((n, x) => n + (Number.isInteger(x) ? x : 0), 0) : Number(form.stock);
     if (!form.title.trim()) return setError("Add a title.");
     if (!Number.isFinite(priceKobo) || priceKobo < STORE_ITEM_MIN_KOBO || priceKobo > STORE_ITEM_MAX_KOBO) return setError("Price must be between ₦100 and ₦5,000,000.");
     if (!digital && (!Number.isFinite(deliveryKobo) || deliveryKobo < 0 || deliveryKobo > STORE_DELIVERY_MAX_KOBO)) return setError("Delivery fee must be between ₦0 and ₦50,000.");
-    if (!digital && (form.stock.trim() === "" || !Number.isInteger(stock) || stock < 0 || stock > 100000)) return setError("Enter how many you have in stock (a whole number; 0 means sold out).");
+    if (!withOptions && !digital && (form.stock.trim() === "" || !Number.isInteger(stock) || stock < 0 || stock > 100000)) return setError("Enter how many you have in stock (a whole number; 0 means sold out).");
+    if (withOptions && (combos.some((c) => (vstock[variantKey(c)] ?? "").trim() === "") || stocks.some((x) => !Number.isInteger(x) || x < 0 || x > 100000))) return setError("Enter the stock for every combination (a whole number; 0 means sold out).");
+    if (optionRows.some((r) => (r.name.trim() === "") !== (r.choices.trim() === ""))) return setError("Give each option both a name (like Size) and its choices (like S, M, L), or clear both.");
+    if (images.length > MAX_IMAGES) return setError(`Up to ${MAX_IMAGES} photos.`);
     if (digital && !editing && !file) return setError("Choose the file buyers will download.");
     if (file && file.size > DIGITAL_MAX_BYTES) return setError(`The file is too big — the limit is ${DIGITAL_MAX_BYTES / 1024 / 1024} MB.`);
     const input = {
-      title: form.title, subtitle: form.subtitle, badge: form.badge, image: form.image,
+      title: form.title, subtitle: form.subtitle, badge: form.badge, image: images[0] ?? "", images,
+      ...(withOptions ? { options, variantStock: Object.fromEntries(combos.map((c, i) => [variantKey(c), stocks[i]])) } : {}),
       price: `₦${(priceKobo / 100).toLocaleString("en-NG")}`, link: "", cta: digital ? "Buy & download" : "Buy now",
       sellable: true, priceKobo, deliveryKobo: digital ? 0 : deliveryKobo, stock,
       ...(digital ? { kind: "digital" as const } : {}),
@@ -93,7 +114,10 @@ export default function StoreManager({
     setBusy(true);
     try {
       const previousStock = editing?.stock ?? 0;
-      const stockChanged = !editing || stock !== previousStock;
+      // Stock counts as edited when it, or the options it's kept under, changed — otherwise the live numbers in the database win.
+      const sameOptions = JSON.stringify(options) === JSON.stringify(editing?.options ?? []);
+      const sameVariantStock = combos.every((c, i) => (editing?.variantStock?.[variantKey(c)] ?? -1) === stocks[i]);
+      const stockChanged = !editing || (withOptions ? !sameOptions || !sameVariantStock : stock !== previousStock || (editing.options?.length ?? 0) > 0);
       let id = editing?.id;
       if (editing?.id) await updateStoreItem(profile.uid, editing.id, input, stockChanged);
       else id = await addStoreItem(profile.uid, input);
@@ -107,6 +131,9 @@ export default function StoreManager({
           setOpen(false);
           setEditing(null);
           setForm(EMPTY);
+          setImages([]);
+          setOptionRows(EMPTY_OPTIONS);
+          setVstock({});
           setFile(null);
           setError((err instanceof Error ? err.message : "The file didn't upload.") + " The item is saved but hidden from buyers — use Edit to attach the file again.");
           onChanged();
@@ -124,6 +151,9 @@ export default function StoreManager({
       setOpen(false);
       setEditing(null);
       setForm(EMPTY);
+      setImages([]);
+      setOptionRows(EMPTY_OPTIONS);
+      setVstock({});
       setFile(null);
       setMsg("Saved.");
       onChanged();
@@ -167,7 +197,7 @@ export default function StoreManager({
         <ul className="mt-4 divide-y divide-rule border-t border-rule">
           {sellable.map((i) => (
             <li key={i.id} className="flex items-center justify-between gap-3 py-2 text-sm">
-              <span className="truncate">{i.title} <span className="font-mono text-xs text-slate">· {i.price} · {i.kind === "digital" ? (i.fileName ? `download · ${i.fileName}${i.fileSize ? ` (${fmtSize(i.fileSize)})` : ""}` : "download · NO FILE YET") : i.stock && i.stock > 0 ? `${i.stock} in stock` : "sold out"}</span></span>
+              <span className="truncate">{i.title} <span className="font-mono text-xs text-slate">· {i.price} · {i.kind === "digital" ? (i.fileName ? `download · ${i.fileName}${i.fileSize ? ` (${fmtSize(i.fileSize)})` : ""}` : "download · NO FILE YET") : i.stock && i.stock > 0 ? `${i.stock} in stock${i.options?.length ? ` · ${i.options.map((o) => o.name).join(" × ")}` : ""}` : "sold out"}</span></span>
               <span className="flex shrink-0 gap-3 font-ui text-xs font-semibold">
                 <Link href={`/boost/item/${i.id}`} className="text-crimson">Boost</Link>
                 <button onClick={() => startEdit(i)} className="text-crimson">{i.kind === "digital" ? "Edit / replace file" : "Edit / restock"}</button>
@@ -221,9 +251,36 @@ export default function StoreManager({
               <label className="text-xs text-slate">Delivery fee (₦, yours)
                 <input type="number" min={0} step={50} value={form.deliveryNaira} onChange={set("deliveryNaira")} className={field} />
               </label>
-              <label className="text-xs text-slate">In stock
-                <input type="number" min={0} step={1} value={form.stock} onChange={set("stock")} className={field} required />
-              </label>
+              {options.length === 0 && (
+                <label className="text-xs text-slate">In stock
+                  <input type="number" min={0} step={1} value={form.stock} onChange={set("stock")} className={field} required />
+                </label>
+              )}
+              <div className="sm:col-span-2 text-xs text-slate">
+                Options buyers choose from (optional) — for example Size and Colour. Up to {MAX_OPTIONS} options, each with up to {MAX_CHOICES} choices separated by commas.
+                <div className="mt-1 grid gap-2 sm:grid-cols-2">
+                  {optionRows.map((r, i) => (
+                    <div key={i} className="grid grid-cols-[7rem_1fr] gap-2">
+                      <input value={r.name} maxLength={20} placeholder={i === 0 ? "Size" : "Colour"} onChange={(e) => setOptionRows((rows) => rows.map((x, j) => (j === i ? { ...x, name: e.target.value } : x)))} className={field} aria-label={`Option ${i + 1} name`} />
+                      <input value={r.choices} placeholder={i === 0 ? "S, M, L, XL" : "Red, Blue, Black"} onChange={(e) => setOptionRows((rows) => rows.map((x, j) => (j === i ? { ...x, choices: e.target.value } : x)))} className={field} aria-label={`Option ${i + 1} choices`} />
+                    </div>
+                  ))}
+                </div>
+                {optionRows.some((r) => r.choices.split(",").filter((c) => c.trim()).length > MAX_CHOICES) && <span className="mt-1 block text-crimson">Only the first {MAX_CHOICES} choices of an option are used.</span>}
+              </div>
+              {combos.length > 0 && (
+                <div className="sm:col-span-2 text-xs text-slate">
+                  In stock for each combination
+                  <div className="mt-1 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+                    {combos.map((c) => (
+                      <label key={variantKey(c)} className="flex items-center justify-between gap-2 border border-rule bg-card px-3 py-1.5">
+                        <span className="truncate text-ink">{c.join(" / ")}</span>
+                        <input type="number" min={0} step={1} value={vstock[variantKey(c)] ?? ""} onChange={(e) => setVstock((v) => ({ ...v, [variantKey(c)]: e.target.value }))} className="w-20 border border-rule bg-paper px-2 py-1 text-right text-sm outline-none focus:border-gold" required />
+                      </label>
+                    ))}
+                  </div>
+                </div>
+              )}
             </>
           ) : (
             <div className="sm:col-span-2 text-xs text-slate">
@@ -239,13 +296,18 @@ export default function StoreManager({
             <input value={form.badge} onChange={set("badge")} maxLength={24} className={field} />
           </label>
           <div className="sm:col-span-2 text-xs text-slate">
-            Photo
-            <div className="mt-1 flex items-center gap-3">
-              {form.image && (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img src={form.image} alt="" className="h-16 w-12 object-cover" />
-              )}
-              <input type="file" accept="image/*" onChange={upload} />
+            Photos (up to {MAX_IMAGES}; the first is the main one — 2 or 3 show your item best)
+            <div className="mt-1 flex flex-wrap items-center gap-3">
+              {images.map((src, i) => (
+                <span key={src} className="relative">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={src} alt="" className="h-20 w-16 object-cover" />
+                  {i === 0 && <span className="absolute bottom-0 left-0 bg-ink/70 px-1 text-[10px] text-paper">Main</span>}
+                  <button type="button" aria-label="Remove photo" onClick={() => setImages((cur) => cur.filter((_, j) => j !== i))} className="absolute -right-1.5 -top-1.5 h-5 w-5 rounded-full bg-crimson text-[11px] leading-5 text-paper">×</button>
+                  {i > 0 && <button type="button" onClick={() => setImages((cur) => [cur[i], ...cur.filter((_, j) => j !== i)])} className="absolute bottom-0 right-0 bg-paper/90 px-1 text-[10px] text-crimson">Make main</button>}
+                </span>
+              ))}
+              {images.length < MAX_IMAGES && <input type="file" accept="image/*" multiple onChange={upload} />}
             </div>
           </div>
           {error && <p className="sm:col-span-2 text-sm text-crimson">{error}</p>}

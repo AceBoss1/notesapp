@@ -10,7 +10,7 @@ import { startCheckout } from "@/lib/checkout";
 import { formatNaira } from "@/lib/booking-time";
 import { NIGERIAN_STATES, validateAddress } from "@/lib/merch";
 import { STORE_MAX_QTY } from "@/lib/orders";
-import type { StoreItem } from "@/lib/store";
+import { variantCombos, variantKey, type StoreItem } from "@/lib/store";
 import { fmtSize } from "@/lib/store-files";
 import NotifyWhenBack from "@/components/NotifyWhenBack";
 import BoostNudge from "@/components/BoostNudge";
@@ -25,6 +25,8 @@ export default function ShopItemPage() {
   const [item, setItem] = useState<(StoreItem & { ownerUid: string }) | null | undefined>(undefined);
   const [seller, setSeller] = useState<{ username: string; displayName: string } | null>(null);
   const [quantity, setQuantity] = useState(1);
+  const [selection, setSelection] = useState<string[]>([]); // one choice per option (Size, Colour …); "" = not chosen yet
+  const [shown, setShown] = useState(0); // which photo is large
   const [addr, setAddr] = useState({ fullName: "", phone: "", street: "", city: "", state: "" });
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
@@ -70,9 +72,19 @@ export default function ShopItemPage() {
   const digital = item.kind === "digital";
   const unit = item.priceKobo ?? 0;
   const delivery = item.deliveryKobo ?? 0;
-  const total = unit * quantity + delivery;
-  const inStock = item.stock ?? 0;
-  const maxQty = Math.max(1, Math.min(STORE_MAX_QTY, inStock));
+  const options = digital ? [] : item.options ?? [];
+  const vs = item.variantStock ?? {};
+  const chosen = options.length > 0 && options.every((_, i) => selection[i]);
+  const selectedStock = chosen ? Number(vs[variantKey(selection)]) || 0 : null;
+  // A choice can be picked if some combination with it (and with what's already chosen) is in stock.
+  const available = (i: number, choice: string) =>
+    variantCombos(options).some((c) => c[i] === choice && c.every((x, j) => j === i || !selection[j] || selection[j] === x) && (Number(vs[variantKey(c)]) || 0) > 0);
+  const inStock = item.stock ?? 0; // total across options
+  const maxQty = Math.max(1, Math.min(STORE_MAX_QTY, selectedStock ?? inStock));
+  const photos = item.images?.length ? item.images : item.image ? [item.image] : [];
+  const unitsLeft = selectedStock ?? inStock;
+  const qty = Math.min(quantity, maxQty);
+  const total = unit * qty + delivery;
   const set = (k: keyof typeof addr) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => setAddr((a) => ({ ...a, [k]: e.target.value }));
 
   async function payDigital() {
@@ -92,11 +104,13 @@ export default function ShopItemPage() {
     e.preventDefault();
     setError("");
     if (!user) return router.push("/login");
+    if (options.length && !chosen) return setError(`Choose ${options.map((o) => o.name.toLowerCase()).join(" and ")} first.`);
+    if (selectedStock !== null && selectedStock <= 0) return setError("That option is sold out — pick another.");
     const problem = validateAddress(addr);
     if (problem) return setError(problem);
     setBusy(true);
     try {
-      await startCheckout(user, { kind: "store", itemId, quantity, address: addr });
+      await startCheckout(user, { kind: "store", itemId, quantity: qty, ...(options.length ? { variant: selection } : {}), address: addr });
     } catch (err) {
       setError(err instanceof Error ? err.message : "Couldn't start payment.");
       setBusy(false);
@@ -111,13 +125,49 @@ export default function ShopItemPage() {
       <span className="eyebrow">Store</span>
       <h1 className="mt-3 font-display text-3xl text-ink">{item.title}</h1>
       {seller && <p className="mt-1 text-sm text-slate">Sold by <Link href={`/u/${seller.username}/store`} className="text-crimson underline">{seller.displayName}</Link></p>}
-      <div className="mt-6 flex gap-4">
-        {item.image && (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img src={item.image} alt="" className="h-28 w-28 shrink-0 border border-rule object-cover" />
+      <div className="mt-6">
+        {photos.length > 0 && (
+          <div>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={photos[Math.min(shown, photos.length - 1)]} alt="" className="max-h-[28rem] w-full border border-rule object-contain" />
+            {photos.length > 1 && (
+              <div className="mt-2 flex gap-2">
+                {photos.map((src, i) => (
+                  <button key={src} type="button" onClick={() => setShown(i)} aria-label={`Photo ${i + 1}`} className={`border ${i === shown ? "border-crimson" : "border-rule"}`}>
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={src} alt="" className="h-16 w-14 object-cover" />
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
         )}
-        <p className="text-sm text-slate">{item.subtitle}</p>
+        <p className="mt-4 text-sm text-slate">{item.subtitle}</p>
       </div>
+
+      {options.map((o, i) => (
+        <div key={o.name} className="mt-6">
+          <p className="font-ui text-xs font-bold text-ink">{o.name}{selection[i] ? <span className="ml-1 font-normal text-slate">: {selection[i]}</span> : null}</p>
+          <div className="mt-2 flex flex-wrap gap-2">
+            {o.choices.map((c) => {
+              const ok = available(i, c);
+              const on = selection[i] === c;
+              return (
+                <button
+                  key={c}
+                  type="button"
+                  disabled={!ok && !on}
+                  aria-pressed={on}
+                  onClick={() => setSelection((cur) => { const n = options.map((_, j) => cur[j] || ""); n[i] = on ? "" : c; return n; })}
+                  className={`min-w-[3rem] border px-3 py-2 text-sm ${on ? "border-ink bg-ink text-paper" : "border-rule text-ink"} ${!ok && !on ? "cursor-not-allowed text-slate/50 line-through opacity-60" : "hover:border-crimson"}`}
+                >
+                  {c}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      ))}
 
       {customHost && !user ? (
         <div className="card mt-8 p-5 text-sm">
@@ -156,10 +206,10 @@ export default function ShopItemPage() {
       ) : (
       <form onSubmit={pay} className="mt-8 grid gap-3 sm:grid-cols-2">
         <label className="text-xs text-slate">Quantity
-          <input type="number" min={1} max={maxQty} value={quantity} onChange={(e) => setQuantity(Math.max(1, Math.min(maxQty, Number(e.target.value) || 1)))} className={field} />
+          <input type="number" min={1} max={maxQty} value={qty} onChange={(e) => setQuantity(Math.max(1, Math.min(maxQty, Number(e.target.value) || 1)))} className={field} />
         </label>
         <div className="self-end text-sm text-ink">
-          {formatNaira(unit)} × {quantity}{delivery ? ` + ${formatNaira(delivery)} delivery` : " · delivery arranged by the seller"} = <strong>{formatNaira(total)}</strong>
+          {formatNaira(unit)} × {qty}{delivery ? ` + ${formatNaira(delivery)} delivery` : " · delivery arranged by the seller"} = <strong>{formatNaira(total)}</strong>
         </div>
         <p className="sm:col-span-2 mt-2 font-ui text-sm font-bold text-ink">Deliver to</p>
         <label className="text-xs text-slate">Full name<input value={addr.fullName} onChange={set("fullName")} className={field} /></label>
@@ -173,7 +223,7 @@ export default function ShopItemPage() {
           </select>
         </label>
         <p className="sm:col-span-2 text-xs text-slate">
-          {inStock <= 5 && <>Only {inStock} left — we reserve your quantity for 30 minutes while you pay. </>}Your payment is held by #NotesApp until you confirm the parcel arrived (or 7 days after it&apos;s marked delivered). You get a parcel ID to track it, and you can report a problem.
+          {unitsLeft <= 5 && <>Only {unitsLeft} left{selectedStock !== null ? " in that option" : ""} — we reserve your quantity for 30 minutes while you pay. </>}Your payment is held by #NotesApp until you confirm the parcel arrived (or 7 days after it&apos;s marked delivered). You get a parcel ID to track it, and you can report a problem.
           #NotesApp is not the seller or the carrier — see <Link href="/terms" className="text-crimson underline">Terms 5g</Link>.
         </p>
         {error && <p className="sm:col-span-2 text-sm text-crimson">{error}</p>}

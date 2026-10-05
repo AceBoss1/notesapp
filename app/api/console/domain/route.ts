@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAdminDb } from "@/lib/firebase-admin";
-import { DomainDoc, checkDomain, domainForUid, registerDomain, removeDomain, vercelConfigured } from "@/lib/domains";
+import { DomainDoc, checkDomain, domainForUid, recommendedDns, registerDomain, removeDomain, vercelConfigured } from "@/lib/domains";
 import { normalizeHost } from "@/lib/host";
 import { HttpError, consoleMember, consoleRoute } from "@/lib/console-auth";
 
@@ -52,7 +52,10 @@ export async function PATCH(req: NextRequest) {
     }
     if (body.action === "check") {
       const r = await checkDomain(d.host);
-      const patch: Partial<DomainDoc> = r.active ? { status: "active", note: "", verifiedAt: new Date().toISOString() } : { status: "pending", note: r.note || "" };
+      // Re-read the records Vercel recommends now, so a domain added before we did that picks up the right ones.
+      const verification = (d.dns || []).filter((x) => x.type === "TXT");
+      const dns = r.active ? d.dns : [...(await recommendedDns(d.host)), ...verification];
+      const patch: Partial<DomainDoc> = r.active ? { status: "active", note: "", verifiedAt: new Date().toISOString() } : { status: "pending", note: r.note || "", dns };
       await ref.update(patch);
       return NextResponse.json({ domain: view({ ...d, ...patch }) });
     }

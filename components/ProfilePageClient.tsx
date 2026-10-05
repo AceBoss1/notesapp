@@ -25,6 +25,7 @@ import { OrgLabel, UnverifiedOrgNotice } from "@/components/OrgNotice";
 import JournalRow from "@/components/JournalRow";
 import NotesAppPostRow from "@/components/NotesAppPostRow";
 import { getStoreItems, StoreItem } from "@/lib/store";
+import ItemCard from "@/components/StoreItemCard";
 import AdSlot from "@/components/AdSlot";
 import { OFFICIAL_NOTESAPP_PROFILE, NA_NOTESAPP_PROFILE, SYNTHETIC_USERNAMES, VERIFIED_USERNAMES } from "@/lib/journals-directory";
 import { NOTESAPP_POSTS } from "@/lib/notesapp-posts";
@@ -58,6 +59,7 @@ export default function ProfilePageClient({ params }: { params: { username: stri
     synthetic ? null : undefined
   );
   const [notes, setNotes] = useState<NoteWithComputed[]>([]);
+  const [notesLoaded, setNotesLoaded] = useState(false);
 
   const [followerCount, setFollowerCount] = useState<number | null>(null);
   const [followerCountUnavailable, setFollowerCountUnavailable] = useState(false);
@@ -158,7 +160,8 @@ export default function ProfilePageClient({ params }: { params: { username: stri
     // the UI side, not in Firestore.
     getAllNotes({ publishedOnly: true })
       .then((all) => setNotes(all.filter((n) => isNoteBy(n, { uid: realProfile?.uid, username: profile.username, displayName: profile.displayName }))))
-      .catch(() => setNotes([]));
+      .catch(() => setNotes([]))
+      .finally(() => setNotesLoaded(true));
   }, [profile, isOfficial]);
 
   useEffect(() => {
@@ -198,6 +201,8 @@ export default function ProfilePageClient({ params }: { params: { username: stri
 
   const hasPremium = isOfficial || notes.some((n) => n.premium);
   const suspended = realProfile?.suspended === true;
+  // Someone who only sells: with no journal entries, the store is what the page is about.
+  const storeFirst = !isOfficial && !isSocialChannel && notesLoaded && notes.length === 0 && storeItems.length > 0 && !suspended;
   const badge: BadgeLevel = VERIFIED_USERNAMES.includes(profile.username) ? "verified" : realProfile ? badgeLevel(realProfile) : null;
   const isOwnProfile = !!(viewer && realProfile && viewer.uid === realProfile.uid);
   const canAppeal =
@@ -330,37 +335,23 @@ export default function ProfilePageClient({ params }: { params: { username: stri
 
       <AdSlot placement="profile" publisher={realProfile ?? undefined} publisherUid={realProfile?.uid} />
 
-      {/* Brand store teaser */}
+      {/* The store: a taste of it under the journal, or the whole shelf as the page's main content when they publish no journal. */}
       {storeItems.length > 0 && (
         <div className="mt-14">
           <div className="flex items-center justify-between">
-            <p className="eyebrow">From the brand store</p>
-            <Link
-              href={`/u/${profile.username}/store`}
-              className="font-ui text-xs font-semibold text-crimson hover:text-crimson-bright"
-            >
-              View all →
-            </Link>
-          </div>
-          <div className="mt-5 grid grid-cols-2 gap-4 sm:grid-cols-3">
-            {storeItems.slice(0, 3).map((item) => (
-              // eslint-disable-next-line @next/next/no-img-element
-              <a
-                key={item.id ?? item.title}
-                href={item.link}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="card overflow-hidden"
+            <p className="eyebrow">{storeFirst ? "Store" : "From the brand store"}</p>
+            {!storeFirst && storeItems.length > 3 && (
+              <Link
+                href={`/u/${profile.username}/store`}
+                className="font-ui text-xs font-semibold text-crimson hover:text-crimson-bright"
               >
-                <img
-                  src={item.image}
-                  alt={item.title}
-                  className="aspect-[3/4] w-full object-cover"
-                />
-                <p className="p-3 font-ui text-xs font-semibold leading-snug text-ink">
-                  {item.title}
-                </p>
-              </a>
+                View all →
+              </Link>
+            )}
+          </div>
+          <div className="mt-5 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
+            {(storeFirst ? storeItems : storeItems.slice(0, 3)).map((item) => (
+              <ItemCard key={item.id ?? item.title} item={item} />
             ))}
           </div>
         </div>
@@ -379,7 +370,7 @@ export default function ProfilePageClient({ params }: { params: { username: stri
             ))}
           </div>
         </div>
-      ) : (
+      ) : storeFirst ? null : (
         <div className="mt-14">
           <p className="eyebrow">Public journal</p>
           {suspended ? (

@@ -21,7 +21,13 @@ export type StoreItem = {
   sellable?: boolean;
   priceKobo?: number;
   deliveryKobo?: number;
-  stock?: number; // optional; counts down per sale
+  stock?: number; // optional; counts down per sale (for an item with options: the total across all combinations)
+  // Extra photos (the first is the main one, also kept in `image`): up to MAX_IMAGES.
+  images?: string[];
+  // Up to two options a buyer picks from (for example Size and Colour), each with up to five choices. Stock is then kept
+  // per combination in `variantStock`, keyed like "XL|Red" (see variantKey).
+  options?: StoreOption[];
+  variantStock?: Record<string, number>;
   // "digital" = a file the buyer downloads after paying (no delivery, no stock, final once
   // downloaded); anything else is a physical item. The file itself lives in a private bucket
   // (storeFiles/{id}, server-only); only its name and size are public.
@@ -29,6 +35,33 @@ export type StoreItem = {
   fileName?: string;
   fileSize?: number;
 };
+
+export type StoreOption = { name: string; choices: string[] };
+export const MAX_IMAGES = 5;
+export const MAX_OPTIONS = 2;
+export const MAX_CHOICES = 5;
+
+// One combination of choices ("XL", "Red") ↔ the key it's stored under ("XL|Red").
+export const variantKey = (selection: string[]) => selection.join("|");
+
+// Every combination the options allow, in order (Size S/M × Colour Red/Blue → S|Red, S|Blue, M|Red, M|Blue).
+export function variantCombos(options: StoreOption[] = []): string[][] {
+  return options.reduce<string[][]>((acc, o) => acc.flatMap((a) => o.choices.map((c) => [...a, c])), [[]]).filter((c) => c.length === options.length && options.length > 0);
+}
+
+// "Size: XL, Colour: Red" for a stored key.
+export const variantLabel = (options: StoreOption[], key: string) => key.split("|").map((c, i) => `${options[i]?.name ?? "Option"}: ${c}`).join(", ");
+
+// Trims, drops blanks and repeats, and enforces the limits. A choice may not contain "|" (it separates choices in a key).
+export function cleanOptions(options: StoreOption[] | undefined): StoreOption[] {
+  return (options ?? [])
+    .map((o) => ({
+      name: o.name.replace(/\|/g, " ").trim().slice(0, 20),
+      choices: [...new Set(o.choices.map((c) => c.replace(/\|/g, " ").trim().slice(0, 24)).filter(Boolean))].slice(0, MAX_CHOICES),
+    }))
+    .filter((o) => o.name && o.choices.length > 0)
+    .slice(0, MAX_OPTIONS);
+}
 
 export const isDigital = (i: Pick<StoreItem, "kind">) => i.kind === "digital";
 
@@ -126,18 +159,25 @@ export async function getStoreItems(uid: string | undefined, username: string): 
 // are the only exception). Legacy link-out listings can no longer be saved, only removed.
 function clean(input: StoreItemInput) {
   const digital = input.kind === "digital";
+  const images = [...new Set((input.images ?? []).map((u) => u.trim()).filter(Boolean))].slice(0, MAX_IMAGES);
+  const options = digital ? [] : cleanOptions(input.options);
+  const combos = variantCombos(options).map(variantKey);
+  const variantStock = Object.fromEntries(combos.map((k) => [k, Math.max(0, Math.floor(Number(input.variantStock?.[k] ?? 0)))]));
+  const stock = digital ? 0 : options.length ? combos.reduce((n, k) => n + variantStock[k], 0) : Math.max(0, Math.floor(Number(input.stock ?? 0)));
   return {
     sellable: true as const,
     ...(digital ? { kind: "digital" as const, ...(input.fileName ? { fileName: input.fileName, fileSize: input.fileSize ?? 0 } : {}) } : {}),
     priceKobo: Math.round(Number(input.priceKobo)),
     deliveryKobo: digital ? 0 : Math.round(Number(input.deliveryKobo ?? 0)),
-    stock: digital ? 0 : Math.max(0, Math.floor(Number(input.stock ?? 0))),
+    stock,
+    ...(options.length ? { options, variantStock } : {}),
+    ...(images.length ? { images } : {}),
     title: input.title.trim(),
     ...(input.subtitle?.trim() ? { subtitle: input.subtitle.trim() } : {}),
     price: input.price.trim(),
     ...(input.badge?.trim() ? { badge: input.badge.trim() } : {}),
     link: "https://www.notesapp.name.ng",
-    image: input.image.trim() || DEFAULT_STORE_IMAGE,
+    image: images[0] || input.image.trim() || DEFAULT_STORE_IMAGE,
     cta: digital ? "Buy & download" : "Buy now",
   };
 }
@@ -160,7 +200,9 @@ export async function updateStoreItem(uid: string, id: string, input: StoreItemI
   const data = clean({ ...input, kind: keepKind, ...(keepKind ? { fileName: existing.data()?.fileName, fileSize: existing.data()?.fileSize } : {}) });
   await setDoc(ref, {
     ...data,
+    // Unless the seller edited stock (or the options), the numbers in the database win: orders reserve and release them.
     ...(!stockChanged && Number.isInteger(existing.data()?.stock) ? { stock: existing.data()!.stock } : {}),
+    ...(!stockChanged && existing.data()?.variantStock && data.options ? { variantStock: existing.data()!.variantStock } : {}),
     ownerUid: existing.data()?.ownerUid ?? uid,
     createdAt: existing.data()?.createdAt ?? new Date().toISOString(),
     updatedAt: new Date().toISOString(),

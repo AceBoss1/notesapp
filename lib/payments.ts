@@ -48,6 +48,9 @@ export type PaymentRecord = {
     itemTitle: string;
     itemImage: string;
     quantity: number;
+    // For an item with options: the chosen combination ("XL|Red") and how to show it ("Size: XL, Colour: Red").
+    variant?: string;
+    variantLabel?: string;
     unitKobo: number;
     deliveryKobo: number;
     address: { fullName: string; phone: string; street: string; city: string; state: string };
@@ -208,16 +211,20 @@ export async function fulfillPayment(reference: string): Promise<PaymentRecord> 
       // Stock was reserved when checkout started. If that reservation was already given
       // back (the buyer paid very late), take it again — or, if it's gone, flag a refund.
       if (current.reservationReleased) {
-        const stock = Number.isInteger(item?.stock) ? Number(item?.stock) : 0;
+        const vs = st.variant && item?.variantStock ? (item.variantStock as Record<string, number>) : null;
+        const stock = vs ? Number(vs[st.variant!]) || 0 : Number.isInteger(item?.stock) ? Number(item?.stock) : 0;
         if (!item || stock < st.quantity) {
           t.update(payRef, { status: "paid_slot_conflict", paidAt: now });
           return { payment: { ...current, status: "paid_slot_conflict" as const, paidAt: now }, fresh: true };
         }
-        t.update(itemRef, { stock: stock - st.quantity });
+        if (vs) {
+          const next = { ...vs, [st.variant!]: stock - st.quantity };
+          t.update(itemRef, { variantStock: next, stock: Object.values(next).reduce((n: number, v) => n + (Number(v) > 0 ? Number(v) : 0), 0) });
+        } else t.update(itemRef, { stock: stock - st.quantity });
       }
       t.set(db.doc(`storeOrders/${reference}`), {
         reference, parcelId, sellerUid: current.publisherUid, sellerUsername: current.publisherUsername, buyerUid: current.uid,
-        buyerEmail: current.email, itemId: st.itemId, itemTitle: st.itemTitle, itemImage: st.itemImage, quantity: st.quantity,
+        buyerEmail: current.email, itemId: st.itemId, itemTitle: st.itemTitle, itemImage: st.itemImage, quantity: st.quantity, ...(st.variantLabel ? { variantLabel: st.variantLabel } : {}),
         unitKobo: st.unitKobo, deliveryKobo: st.deliveryKobo, amountKobo: current.amountKobo, commissionKobo,
         address: st.address, status: "paid", paidAt: now,
       });
@@ -472,7 +479,7 @@ async function emitSaleWebhooks(p: PaymentRecord): Promise<void> {
   if (p.kind === "booking" && p.booking) {
     await emitWebhook(p.publisherUid, "booking.created", { id: p.reference, date: p.booking.date, slot: p.booking.slot, minutes: p.booking.minutes, amount_kobo: p.amountKobo });
   } else if (p.kind === "store" && p.store) {
-    await emitWebhook(p.publisherUid, "order.paid", { id: p.reference, item_id: p.store.itemId, item_title: p.store.itemTitle, quantity: p.store.quantity, amount_kobo: p.amountKobo, ship_to: { city: p.store.address.city, state: p.store.address.state } });
+    await emitWebhook(p.publisherUid, "order.paid", { id: p.reference, item_id: p.store.itemId, item_title: p.store.itemTitle, quantity: p.store.quantity, ...(p.store.variantLabel ? { options: p.store.variantLabel } : {}), amount_kobo: p.amountKobo, ship_to: { city: p.store.address.city, state: p.store.address.state } });
   } else if (p.kind === "digital" && p.digital) {
     await emitWebhook(p.publisherUid, "digital.sold", { id: p.reference, item_id: p.digital.itemId, item_title: p.digital.itemTitle, amount_kobo: p.amountKobo });
   }
@@ -536,15 +543,15 @@ async function notifyPaid(p: PaymentRecord) {
       to: p.email,
       subject: "Your #NotesApp order is confirmed",
       bell: { uid: p.uid, type: "order", linkHref: "/orders" },
-      text: `Thanks! ${st.quantity} × ${st.itemTitle} — ${formatNaira(p.amountKobo)} including delivery, to ${st.address.fullName}, ${st.address.street}, ${st.address.city}, ${st.address.state}.\nYour money is held by #NotesApp until you confirm the parcel arrived (or 7 days after it's marked delivered). Follow it and confirm delivery at ${site}/orders.\nReference: ${p.reference}\n\n#NotesApp`,
+      text: `Thanks! ${st.quantity} × ${st.itemTitle}${st.variantLabel ? ` (${st.variantLabel})` : ""} — ${formatNaira(p.amountKobo)} including delivery, to ${st.address.fullName}, ${st.address.street}, ${st.address.city}, ${st.address.state}.\nYour money is held by #NotesApp until you confirm the parcel arrived (or 7 days after it's marked delivered). Follow it and confirm delivery at ${site}/orders.\nReference: ${p.reference}\n\n#NotesApp`,
     });
     const sellerEmail = await getUserEmail(p.publisherUid);
     if (sellerEmail) {
       await sendEmail({
         to: sellerEmail,
         subject: "New order on your #NotesApp store",
-        bell: { uid: p.publisherUid, type: "order", linkHref: "/orders", message: `New order: ${st.quantity} × ${st.itemTitle}` },
-        text: `${st.quantity} × ${st.itemTitle} was ordered (${formatNaira(p.amountKobo)} incl. delivery). Deliver to ${st.address.fullName}, ${st.address.phone}, ${st.address.street}, ${st.address.city}, ${st.address.state}.\nDispatch it and keep the tracking up to date at ${site}/orders (courier details, or each hand-off if it goes by bike, bus or park). You're paid after the buyer confirms delivery, or 7 days after you mark it delivered.\n\n#NotesApp`,
+        bell: { uid: p.publisherUid, type: "order", linkHref: "/orders", message: `New order: ${st.quantity} × ${st.itemTitle}${st.variantLabel ? ` (${st.variantLabel})` : ""}` },
+        text: `${st.quantity} × ${st.itemTitle}${st.variantLabel ? ` (${st.variantLabel})` : ""} was ordered (${formatNaira(p.amountKobo)} incl. delivery). Deliver to ${st.address.fullName}, ${st.address.phone}, ${st.address.street}, ${st.address.city}, ${st.address.state}.\nDispatch it and keep the tracking up to date at ${site}/orders (courier details, or each hand-off if it goes by bike, bus or park). You're paid after the buyer confirms delivery, or 7 days after you mark it delivered.\n\n#NotesApp`,
       }).catch(() => {});
     }
     return;

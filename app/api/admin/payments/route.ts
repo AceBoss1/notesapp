@@ -105,7 +105,7 @@ export async function POST(req: NextRequest) {
         const was = storeStatusBefore;
         const st = paySnap.data()?.store;
         if (st && paySnap.data()?.status === "paid" && was === "paid") {
-          await returnStock(st.itemId, st.quantity).catch(() => {});
+          await returnStock(st.itemId, st.quantity, st.variant).catch(() => {});
           await notifyBackInStock(st.itemId).catch(() => {});
         }
       }

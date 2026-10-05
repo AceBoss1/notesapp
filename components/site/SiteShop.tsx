@@ -1,6 +1,6 @@
 "use client";
 
-import { ItemCard } from "@/components/StorePageClient";
+import ItemCard from "@/components/StoreItemCard";
 import { useSite } from "./SiteContext";
 import { useOwnItems } from "./useOwnItems";
 

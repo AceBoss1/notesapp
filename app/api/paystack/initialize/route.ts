@@ -131,6 +131,18 @@ export async function POST(req: NextRequest) {
       if (!Number.isInteger(quantity) || quantity < 1 || quantity > STORE_MAX_QTY) {
         return NextResponse.json({ error: `Choose a quantity from 1 to ${STORE_MAX_QTY}.` }, { status: 400 });
       }
+      // An item with options (Size, Colour …): the buyer must pick one choice from each, checked against the listing.
+      let variant: string | undefined;
+      let variantLabel: string | undefined;
+      const options = (Array.isArray(item.options) ? item.options : []) as { name: string; choices: string[] }[];
+      if (options.length) {
+        const picked = Array.isArray(body.variant) ? (body.variant as unknown[]).map(String) : [];
+        if (picked.length !== options.length || picked.some((c, i) => !options[i].choices.includes(c))) {
+          return NextResponse.json({ error: `Choose ${options.map((o) => o.name.toLowerCase()).join(" and ")} first.` }, { status: 400 });
+        }
+        variant = picked.join("|");
+        variantLabel = options.map((o, i) => `${o.name}: ${picked[i]}`).join(", ");
+      }
       const addrProblem = validateAddress(body.address);
       if (addrProblem) return NextResponse.json({ error: addrProblem }, { status: 400 });
       const seller = (await db.doc(`users/${item.ownerUid}`).get()).data();
@@ -156,7 +168,7 @@ export async function POST(req: NextRequest) {
       // buyer pays (given back after RESERVATION_MINUTES if the payment never lands).
       await releaseExpiredReservations(itemSnap.id).catch(() => 0);
       try {
-        await reserveStock(itemSnap.id, quantity);
+        await reserveStock(itemSnap.id, quantity, variant);
       } catch (e) {
         if (e instanceof StockError) return NextResponse.json({ error: e.message }, { status: 409 });
         throw e;
@@ -168,7 +180,7 @@ export async function POST(req: NextRequest) {
           metadata: { kind, itemId: itemSnap.id, uid: user.uid },
         });
       } catch (e) {
-        await returnStock(itemSnap.id, quantity).catch(() => {});
+        await returnStock(itemSnap.id, quantity, variant).catch(() => {});
         throw e;
       }
       const record: PaymentRecord = {
@@ -178,6 +190,7 @@ export async function POST(req: NextRequest) {
         commissionRate: physicalCommissionRateFor((seller.accountTier as AccountTier) || "basic", seller.customRates),
         store: {
           itemId: itemSnap.id, itemTitle: String(item.title), itemImage: String(item.image || ""), quantity,
+          ...(variant ? { variant, variantLabel } : {}),
           unitKobo: item.priceKobo, deliveryKobo, address,
         },
         createdAt: new Date().toISOString(),
@@ -185,7 +198,7 @@ export async function POST(req: NextRequest) {
       try {
         await db.doc(`payments/${reference}`).set(record);
       } catch (e) {
-        await returnStock(itemSnap.id, quantity).catch(() => {});
+        await returnStock(itemSnap.id, quantity, variant).catch(() => {});
         throw e;
       }
       return NextResponse.json({ authorizationUrl: tx.authorization_url, reference });
