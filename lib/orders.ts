@@ -85,6 +85,7 @@ export type StoreOrder = {
   itemTitle: string;
   itemImage: string;
   quantity: number;
+  variantLabel?: string; // e.g. "Size: XL, Colour: Red" for an item with options
   unitKobo: number;
   deliveryKobo: number;
   amountKobo: number;

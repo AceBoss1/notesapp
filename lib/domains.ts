@@ -27,9 +27,29 @@ async function vercel(path: string, init: RequestInit = {}): Promise<{ ok: boole
   return { ok: res.ok, status: res.status, body: await res.json().catch(() => ({})) };
 }
 
+// The records Vercel currently recommends for this domain (it publishes project-specific values and has widened its
+// IP range over time), falling back to the long-standing ones. Never throws.
+export async function recommendedDns(host: string): Promise<DnsRecord[]> {
+  const fallback = dnsInstructions(host);
+  if (!api()) return fallback;
+  try {
+    const cfg = await vercel(`/v6/domains/${encodeURIComponent(host)}/config`);
+    if (!cfg.ok) return fallback;
+    const best = <T extends { rank: number }>(list?: T[]) => (list || []).slice().sort((a, b) => a.rank - b.rank)[0];
+    if (isApexDomain(host)) {
+      const ip = best<{ rank: number; value: string[] }>(cfg.body?.recommendedIPv4)?.value?.[0];
+      return ip ? [{ type: "A", name: "@", value: ip }] : fallback;
+    }
+    const cname = best<{ rank: number; value: string }>(cfg.body?.recommendedCNAME)?.value;
+    return cname ? [{ type: "CNAME", name: host.split(".")[0], value: cname.replace(/\.$/, "") }] : fallback;
+  } catch {
+    return fallback;
+  }
+}
+
 // Adds the domain to the project. Returns DNS records to show the owner (plus any TXT verification Vercel wants).
 export async function registerDomain(host: string): Promise<{ dns: DnsRecord[]; note?: string; vercel: boolean }> {
-  const dns = dnsInstructions(host);
+  const dns = await recommendedDns(host);
   if (!api()) return { dns, vercel: false, note: "Waiting for #NotesApp to connect this domain. We'll email you when it's live." };
   const r = await vercel(`/v10/projects/${api()!.project}/domains`, { method: "POST", body: JSON.stringify({ name: host }) });
   if (!r.ok && r.body?.error?.code !== "domain_already_in_use" && r.body?.error?.code !== "domain_already_exists") {

@@ -226,6 +226,12 @@ export default function ConsolePage() {
               <table className="mt-2 w-full text-left font-mono text-xs"><tbody>
                 {domain.dns.map((r, i) => <tr key={i} className="border-t border-rule"><td className="py-1.5 pr-3 font-bold">{r.type}</td><td className="pr-3">{r.name}</td><td className="break-all">{r.value}</td></tr>)}
               </tbody></table>
+              {domain.dns.some((r) => r.type === "A") && (
+                <p className="mt-3 text-xs text-slate">
+                  <strong className="text-ink">Provider won&apos;t take it?</strong> Some providers want the Name left blank or set to the full domain instead of <span className="font-mono">@</span>, and the value typed with no spaces. If it still refuses an A record,
+                  connect <span className="font-mono">www.{domain.host}</span> instead: remove this domain, add that, and create the CNAME it shows. (Press <em>Check status</em> after any change; DNS can take a while.)
+                </p>
+              )}
               {!autoConnect && <p className="mt-3 text-xs text-slate">Our team connects new domains by hand for now, so after you add the records we&apos;ll switch it on and notify you.</p>}
               <button disabled={busy} className="btn-primary mt-4 !px-4 !py-2 text-xs" onClick={() => act(() => call(user, "/api/console/domain", { method: "PATCH", body: JSON.stringify({ action: "check" }) }))}>Check status</button>
             </>

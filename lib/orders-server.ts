@@ -81,21 +81,48 @@ export class StockError extends Error {
   }
 }
 
-export async function reserveStock(itemId: string, qty: number): Promise<void> {
+// For an item with options, stock lives per combination in `variantStock` (keyed like "XL|Red"); `stock` is kept as
+// their total. `variant` is that key and is required exactly when the item has options.
+const hasOptions = (item: FirebaseFirestore.DocumentData | undefined) => Array.isArray(item?.options) && item!.options.length > 0;
+const sumStock = (vs: Record<string, number>) => Object.values(vs).reduce((n, v) => n + (Number.isInteger(v) && v > 0 ? v : 0), 0);
+
+export async function reserveStock(itemId: string, qty: number, variant?: string): Promise<void> {
   const db = getAdminDb();
   const ref = db.doc(`storeItems/${itemId}`);
   await db.runTransaction(async (t) => {
     const item = (await t.get(ref)).data();
     if (!item || item.sellable !== true) throw new StockError("This item isn't for sale here.");
+    if (hasOptions(item)) {
+      const vs = (item.variantStock || {}) as Record<string, number>;
+      if (!variant || !(variant in vs)) throw new StockError("Choose one of the available options.");
+      const left = Number.isInteger(vs[variant]) ? Number(vs[variant]) : 0;
+      if (left < qty) throw new StockError(left > 0 ? `Only ${left} left in that option.` : "That option is sold out.");
+      const next = { ...vs, [variant]: left - qty };
+      t.update(ref, { variantStock: next, stock: sumStock(next) });
+      return;
+    }
     const stock = Number.isInteger(item.stock) ? Number(item.stock) : 0;
     if (stock < qty) throw new StockError(stock > 0 ? `Only ${stock} left.` : "Sold out.");
     t.update(ref, { stock: stock - qty });
   });
 }
 
-export async function returnStock(itemId: string, qty: number): Promise<void> {
-  const ref = getAdminDb().doc(`storeItems/${itemId}`);
-  if ((await ref.get()).exists) await ref.update({ stock: FieldValue.increment(qty) });
+export async function returnStock(itemId: string, qty: number, variant?: string): Promise<void> {
+  const db = getAdminDb();
+  const ref = db.doc(`storeItems/${itemId}`);
+  await db.runTransaction(async (t) => {
+    const item = (await t.get(ref)).data();
+    if (!item) return;
+    if (hasOptions(item) && variant) {
+      const vs = (item.variantStock || {}) as Record<string, number>;
+      if (variant in vs) {
+        const next = { ...vs, [variant]: (Number(vs[variant]) || 0) + qty };
+        t.update(ref, { variantStock: next, stock: sumStock(next) });
+        return;
+      }
+    }
+    t.update(ref, { stock: FieldValue.increment(qty) });
+  });
 }
 
 // Give back reservations whose payment was never completed. Runs before each checkout
@@ -116,7 +143,7 @@ export async function releaseExpiredReservations(itemId?: string): Promise<numbe
       return true;
     });
     if (!claimed) continue;
-    await returnStock(p.store.itemId, p.store.quantity).catch((e) => console.error("returnStock failed", e));
+    await returnStock(p.store.itemId, p.store.quantity, p.store.variant).catch((e) => console.error("returnStock failed", e));
     n++;
     if (p.store?.itemId) await notifyBackInStock(p.store.itemId).catch(() => {});
   }

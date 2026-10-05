@@ -45,7 +45,7 @@ function BuyerCard({ o, user, onDone }: { o: Order; user: User; onDone: () => vo
   }
   return (
     <li className="card p-4 text-sm">
-      <p className="font-semibold text-ink">{o.quantity} × {o.itemTitle} <span className="font-mono text-xs text-slate">· {formatNaira(o.amountKobo)}</span></p>
+      <p className="font-semibold text-ink">{o.quantity} × {o.itemTitle}{o.variantLabel ? ` (${o.variantLabel})` : ""} <span className="font-mono text-xs text-slate">· {formatNaira(o.amountKobo)}</span></p>
       <p className="text-xs text-slate">{ORDER_STATUS_LABEL[o.status]} · parcel <Link href={`/track/${o.parcelId}`} className="font-mono text-crimson underline">{o.parcelId}</Link> · from @{o.sellerUsername}</p>
       {o.status === "delivered" && o.autoReleaseAt && <p className="mt-1 text-xs text-slate">If you say nothing, the seller is paid on {o.autoReleaseAt.slice(0, 10)}.</p>}
       {error && <p className="mt-2 text-xs text-crimson">{error}</p>}
@@ -99,7 +99,7 @@ function SellerCard({ o, user, onDone }: { o: Order; user: User; onDone: () => v
   const open = ["paid", "dispatched"].includes(o.status);
   return (
     <li className="card p-4 text-sm">
-      <p className="font-semibold text-ink">{o.quantity} × {o.itemTitle} <span className="font-mono text-xs text-slate">· {formatNaira(o.amountKobo)} · your payout {formatNaira(o.amountKobo - o.commissionKobo)}</span></p>
+      <p className="font-semibold text-ink">{o.quantity} × {o.itemTitle}{o.variantLabel ? ` (${o.variantLabel})` : ""} <span className="font-mono text-xs text-slate">· {formatNaira(o.amountKobo)} · your payout {formatNaira(o.amountKobo - o.commissionKobo)}</span></p>
       <p className="text-xs text-slate">{ORDER_STATUS_LABEL[o.status]} · parcel <Link href={`/track/${o.parcelId}`} className="font-mono text-crimson underline">{o.parcelId}</Link></p>
       <button onClick={() => setShowAddr((v) => !v)} className="mt-1 text-xs font-semibold text-crimson">{showAddr ? "Hide" : "Show"} delivery address</button>
       {showAddr && <p className="mt-1 text-xs text-ink">{o.address.fullName} · {o.address.phone}<br />{o.address.street}, {o.address.city}, {o.address.state}</p>}
