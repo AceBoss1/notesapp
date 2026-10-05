@@ -3,10 +3,11 @@ import type { Metadata } from "next";
 import { ORG_TRIAL_DAYS, ORG_SEATS } from "@/lib/org";
 import { GOLD_PRICING } from "@/lib/gold";
 import { formatNaira } from "@/lib/booking-time";
+import { getTierConfig } from "@/lib/tiers";
 
 export const metadata: Metadata = {
   title: "Organisations",
-  description: "Companies, NGOs, churches, schools and other bodies can run a verified #channel on #NotesApp: a free 30-day Business trial, CAC verification, and a team that writes under one name.",
+  description: "Companies, NGOs, churches, schools and other bodies can run a verified #channel on #NotesApp: a free 30-day Business trial, CAC verification, a team that writes under one name, and Enterprise: your own branded site on your own domain, an API, and rates agreed with us.",
 };
 
 const STEPS = [
@@ -19,7 +20,15 @@ const STEPS = [
   ["Invite your team", "Invite writers and admins by @username or email. They publish under your channel's name, shown as “by @person for #YourOrg”. Everything those posts earn goes to your organisation's single payout account, set by the owner."],
 ];
 
+const ENTERPRISE = [
+  ["Your own branded site", "Your name and logo, on your own domain (notes.yourbrand.com or yourbrand.com): a Home page with your profile and booking, a Notes page and a Shop. A small “powered by #NotesApp” footer, and your logo as the tab icon. Visitors sign in, comment, book sessions and buy without leaving your site."],
+  ["Rates agreed with us", "Enterprise isn't a fixed price list. We agree your commission on sessions, store sales and downloads, and your share of the ad revenue on your pages, for your account."],
+  ["API, webhooks and a Console", "Publish posts from your own systems, read bookings, orders and earnings, and get signed webhooks when a booking is made or an order is paid. Keys and webhooks are managed in the Console; the docs are public."],
+  ["Seats and onboarding", "A team size that fits you, with the maroon ✔ included, and onboarding help from us to set up your channel, domain and payouts."],
+];
+
 export default function OrganisationsPage() {
+  const e = getTierConfig("enterprise");
   return (
     <div className="mx-auto max-w-3xl px-4 py-16 sm:px-6 lg:px-8">
       <span className="eyebrow">Organisations</span>
@@ -33,9 +42,35 @@ export default function OrganisationsPage() {
         <p className="font-ui text-base font-bold text-ink">{ORG_TRIAL_DAYS} days of Business, free</p>
         <p className="mt-2 text-sm text-slate">
           New organisations get the Business plan free for {ORG_TRIAL_DAYS} days — 45% ad share, the lower 15% commission and the included ✔ once verified. Afterwards
-          it&apos;s ₦15,000/month, or the account moves to Free Basic and keeps everything it published. We email you before it ends. Larger bodies can ask about Enterprise.
+          it&apos;s ₦15,000/month, or the account moves to Free Basic and keeps everything it published. We email you before it ends. Larger bodies can ask about <a href="#enterprise" className="text-crimson underline">Enterprise</a>.
         </p>
         <Link href="/signup" className="btn-primary mt-4 inline-block">Create an organisation account</Link>
+      </div>
+
+      <div id="enterprise" className="card mt-10 p-7">
+        <p className="eyebrow">Enterprise</p>
+        <h2 className="mt-2 font-display text-2xl text-ink">For larger organisations and businesses</h2>
+        <p className="mt-3 text-sm text-slate">
+          When a channel isn&apos;t enough, Enterprise gives you your own site, your own domain and your own terms, running on the same publishing,
+          booking and payments platform. Precheks, our first reference customer, runs this way at{" "}
+          <a href="https://notes.precheks.com.ng" className="text-crimson underline">notes.precheks.com.ng</a>.
+        </p>
+        <ul className="mt-5 grid gap-3 sm:grid-cols-2">
+          {ENTERPRISE.map(([t, d]) => (
+            <li key={t} className="rounded-xl2 border border-rule p-4">
+              <p className="font-ui text-sm font-bold text-ink">{t}</p>
+              <p className="mt-1 text-sm text-slate">{d}</p>
+            </li>
+          ))}
+        </ul>
+        <p className="mt-5 text-xs text-slate">
+          Enterprise rates start at {((e.sessionAndUnlockCommissionFloor ?? 0.05) * 100).toFixed(0)}% commission on sessions, {((e.physicalCommissionFloor ?? 0.03) * 100).toFixed(0)}% on store items and {((e.digitalCommissionFloor ?? 0.05) * 100).toFixed(0)}% on downloads, with a {((e.adRevenueShare ?? 0.75) * 100).toFixed(0)}% ad share, and are confirmed with you before you start. API access and your domain are switched on for your account by us.
+        </p>
+        <div className="mt-5 flex flex-wrap gap-3">
+          <Link href="/contact?topic=api" className="btn-primary !px-5 !py-2 text-sm">Talk to us about Enterprise</Link>
+          <Link href="/pricing" className="btn-ghost !px-5 !py-2 text-sm">Compare plans</Link>
+          <Link href="/docs" className="btn-ghost !px-5 !py-2 text-sm">API docs</Link>
+        </div>
       </div>
 
       <h2 className="mt-12 font-display text-2xl text-ink">How onboarding works</h2>

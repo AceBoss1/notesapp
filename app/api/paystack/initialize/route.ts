@@ -175,7 +175,7 @@ export async function POST(req: NextRequest) {
         reservedUntil: new Date(Date.now() + RESERVATION_MINUTES * 60_000).toISOString(),
         reference, kind: "store", uid: user.uid, email: user.email, amountKobo,
         status: "pending", publisherUid: item.ownerUid, publisherUsername: seller.username || "",
-        commissionRate: physicalCommissionRateFor((seller.accountTier as AccountTier) || "basic"),
+        commissionRate: physicalCommissionRateFor((seller.accountTier as AccountTier) || "basic", seller.customRates),
         store: {
           itemId: itemSnap.id, itemTitle: String(item.title), itemImage: String(item.image || ""), quantity,
           unitKobo: item.priceKobo, deliveryKobo, address,
@@ -217,7 +217,7 @@ export async function POST(req: NextRequest) {
       const record: PaymentRecord = {
         reference, kind: "digital", uid: user.uid, email: user.email, amountKobo: item.priceKobo,
         status: "pending", publisherUid: item.ownerUid, publisherUsername: seller.username || "",
-        commissionRate: digitalCommissionRateFor((seller.accountTier as AccountTier) || "basic"),
+        commissionRate: digitalCommissionRateFor((seller.accountTier as AccountTier) || "basic", seller.customRates),
         digital: { itemId: itemSnap.id, itemTitle: String(item.title), itemImage: String(item.image || "") },
         createdAt: new Date().toISOString(),
       };

@@ -126,7 +126,7 @@ async function giftShares(p: PaymentRecord): Promise<Share[]> {
     const i = d.data();
     const u = (await db.doc(`users/${i.inviteeUid}`).get()).data();
     if (!u || u.suspended) continue; // their share stays with the lead
-    co.push({ uid: i.inviteeUid, username: i.inviteeUsername, percent: Number(i.percent), rate: commissionRateFor((u.accountTier as AccountTier) || "basic") });
+    co.push({ uid: i.inviteeUid, username: i.inviteeUsername, percent: Number(i.percent), rate: commissionRateFor((u.accountTier as AccountTier) || "basic", u.customRates) });
   }
   if (!co.length) return [lead];
   lead.percent = 100 - co.reduce((s, c) => s + c.percent, 0);
@@ -439,7 +439,7 @@ export async function fulfillRenewal(data: {
     status: "paid",
     publisherUid,
     publisherUsername: sub.username,
-    commissionRate: commissionRateFor((user?.accountTier as AccountTier) || "basic"),
+    commissionRate: commissionRateFor((user?.accountTier as AccountTier) || "basic", user?.customRates),
     subscription: { username: sub.username, planCode },
     createdAt: now.toISOString(),
     paidAt: now.toISOString(),

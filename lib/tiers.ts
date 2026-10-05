@@ -115,26 +115,37 @@ export function formatPercent(value: number | "custom", floor?: number): string 
   return `${(value * 100).toFixed(0)}%`;
 }
 
+// Rates agreed with one Enterprise account (users/{uid}.customRates, set by an admin only), as fractions 0–1.
+// They apply only while the account is on Enterprise; blank fields fall back to the Enterprise defaults below.
+export type CustomRates = { session?: number; physical?: number; digital?: number; adShare?: number };
+const agreed = (tier: AccountTier, v: unknown): number | undefined =>
+  tier === "enterprise" && typeof v === "number" && v >= 0 && v <= 0.5 ? v : undefined;
+// Same rule for the ad share, which can be up to 100%.
+const agreedShare = (tier: AccountTier, v: unknown): number | undefined =>
+  tier === "enterprise" && typeof v === "number" && v >= 0 && v <= 1 ? v : undefined;
+
 // NotesApp's cut of a session, subscription or gift for a publisher of
-// this tier (0–1). Enterprise is negotiated per account; until a
-// per-account override exists it uses the 5% floor.
-export function commissionRateFor(tier: AccountTier): number {
+// this tier (0–1). Enterprise is negotiated per account: the account's agreed rate, else the 5% floor.
+export function commissionRateFor(tier: AccountTier, custom?: CustomRates): number {
   const c = getTierConfig(tier).sessionAndUnlockCommission;
-  // Enterprise is negotiated per account; until an override exists, use the floor.
-  return c === "custom" ? getTierConfig(tier).sessionAndUnlockCommissionFloor ?? 0.05 : c;
+  return agreed(tier, custom?.session) ?? (c === "custom" ? getTierConfig(tier).sessionAndUnlockCommissionFloor ?? 0.05 : c);
 }
 
-// NotesApp's cut of the item price on a physical-goods sale (0–1). Enterprise is
-// negotiated; until an override exists it uses the 3% floor.
-export function physicalCommissionRateFor(tier: AccountTier): number {
+// NotesApp's cut of the item price on a physical-goods sale (0–1). Enterprise: the agreed rate, else the 3% floor.
+export function physicalCommissionRateFor(tier: AccountTier, custom?: CustomRates): number {
   const c = getTierConfig(tier).physicalCommission;
-  return c === "custom" ? getTierConfig(tier).physicalCommissionFloor ?? 0.03 : c;
+  return agreed(tier, custom?.physical) ?? (c === "custom" ? getTierConfig(tier).physicalCommissionFloor ?? 0.03 : c);
 }
 
-// NotesApp's cut of a digital download (0–1): 20 / 15 / 10 %, Enterprise negotiated (5% floor).
-export function digitalCommissionRateFor(tier: AccountTier): number {
+// NotesApp's cut of a digital download (0–1): 20 / 15 / 10 %, Enterprise: the agreed rate, else the 5% floor.
+export function digitalCommissionRateFor(tier: AccountTier, custom?: CustomRates): number {
   const c = getTierConfig(tier).digitalCommission;
-  return c === "custom" ? getTierConfig(tier).digitalCommissionFloor ?? 0.05 : c;
+  return agreed(tier, custom?.digital) ?? (c === "custom" ? getTierConfig(tier).digitalCommissionFloor ?? 0.05 : c);
+}
+
+// The publisher's share of the ad revenue on their pages (0–1): by tier, or the Enterprise account's agreed share.
+export function adShareFor(tier: AccountTier, custom?: CustomRates): number {
+  return agreedShare(tier, custom?.adShare) ?? (getTierConfig(tier).adRevenueShare ?? 0);
 }
 
 // Verified badge: included free on Business and Enterprise; every other
