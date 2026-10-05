@@ -6,6 +6,7 @@ import { useSearchParams } from "next/navigation";
 import { onAuthStateChanged } from "firebase/auth";
 import { auth } from "@/lib/firebase";
 import { formatSlot } from "@/lib/booking-time";
+import { forgetReturnHost, rememberedReturnHost } from "@/lib/return-to";
 
 type Result = {
   status: string;
@@ -22,6 +23,9 @@ function Confirm() {
   const reference = params.get("reference") || params.get("trxref");
   const [result, setResult] = useState<Result | null>(null);
   const [error, setError] = useState<string | null>(null);
+  // Bought from a member's own domain? Offer the way back to it.
+  const [backHost, setBackHost] = useState<string | null>(null);
+  useEffect(() => setBackHost(rememberedReturnHost()), []);
 
   useEffect(() => {
     if (!reference) {
@@ -164,6 +168,17 @@ function Confirm() {
             Your payment went through but someone booked that time first. We'll refund you — contact us with reference {reference}.
           </p>
         </>
+      )}
+      {backHost && (error || result) && (
+        <p className="mt-10">
+          <a
+            href={`https://${backHost}${result && (result.kind === "digital" || result.kind === "store") ? "/shop" : "/"}`}
+            onClick={forgetReturnHost}
+            className="text-sm font-semibold text-crimson underline"
+          >
+            ← Back to {backHost}
+          </a>
+        </p>
       )}
     </div>
   );

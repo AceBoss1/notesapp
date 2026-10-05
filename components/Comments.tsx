@@ -30,6 +30,7 @@ function CommentRow({
   replyBox,
   isReply,
   suspended,
+  linkProfiles,
 }: {
   comment: Comment;
   noteId: string;
@@ -41,7 +42,11 @@ function CommentRow({
   replyBox: React.ReactNode;
   isReply: boolean;
   suspended: boolean;
+  linkProfiles: boolean;
 }) {
+  // On a member's own site profiles live on #NotesApp, so the names and avatars there are plain text.
+  const ProfileLink = ({ className, children }: { className?: string; children: React.ReactNode }) =>
+    linkProfiles ? <Link href={`/u/${comment.authorUsername}`} className={className}>{children}</Link> : <span className={className}>{children}</span>;
   const [liked, setLiked] = useState(false);
   const [likeCount, setLikeCount] = useState(comment.likeCount || 0);
 
@@ -65,7 +70,7 @@ function CommentRow({
 
   return (
     <div className={isReply ? "flex gap-3 py-4" : "flex gap-3 py-5 first:pt-0"}>
-      <Link href={`/u/${comment.authorUsername}`} className="flex-shrink-0">
+      <ProfileLink className="flex-shrink-0">
         <Image
           src={suspended ? "/images/brand/suspended-avatar.png" : comment.authorAvatar}
           alt={comment.authorDisplayName}
@@ -73,21 +78,15 @@ function CommentRow({
           height={isReply ? 32 : 40}
           className={`rounded-full object-cover ${isReply ? "w-8 h-8" : "w-10 h-10"}`}
         />
-      </Link>
+      </ProfileLink>
       <div className="flex-1">
         <div className="flex items-center gap-2 flex-wrap">
-          <Link
-            href={`/u/${comment.authorUsername}`}
-            className="font-ui text-sm font-semibold text-ink hover:text-crimson-bright"
-          >
+          <ProfileLink className="font-ui text-sm font-semibold text-ink hover:text-crimson-bright">
             {comment.authorDisplayName}
-          </Link>
-          <Link
-            href={`/u/${comment.authorUsername}`}
-            className="font-mono text-xs text-crimson-bright"
-          >
+          </ProfileLink>
+          <ProfileLink className="font-mono text-xs text-crimson-bright">
             @{comment.authorUsername}
-          </Link>
+          </ProfileLink>
           {comment.authorUsername === NA_NOTESAPP_PROFILE.username && (
             <span className="rounded-full bg-crimson/10 px-2 py-0.5 font-mono text-[9px] uppercase tracking-wideish text-crimson-bright">
               Official
@@ -146,11 +145,13 @@ export default function Comments({
   slug,
   title,
   noteAuthor,
+  linkProfiles = true,
 }: {
   noteId: string;
   slug: string;
   title: string;
   noteAuthor: string;
+  linkProfiles?: boolean;
 }) {
   const [user, setUser] = useState<User | null | undefined>(undefined);
   const [profile, setProfile] = useState<UserProfile | null>(null);
@@ -411,6 +412,7 @@ export default function Comments({
                 replyOpen={replyingTo === c.id && !!user}
                 replyBox={replyBox}
                 isReply={false}
+                linkProfiles={linkProfiles}
                 suspended={suspendedUids.has(c.authorUid)}
               />
               {replies.length > 0 && (
@@ -427,6 +429,7 @@ export default function Comments({
                       replyOpen={false}
                       replyBox={null}
                       isReply={true}
+                      linkProfiles={linkProfiles}
                       suspended={suspendedUids.has(r.authorUid)}
                     />
                   ))}

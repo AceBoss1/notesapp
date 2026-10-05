@@ -4,6 +4,7 @@ import AuthNav from "@/components/AuthNav";
 import VerifyEmailBanner from "@/components/VerifyEmailBanner";
 import SearchBar from "@/components/SearchBar";
 import CelebrationBanner from "@/components/CelebrationBanner";
+import RememberReturn from "@/components/RememberReturn";
 import { getSiteSettingsCached } from "@/lib/settings";
 import { COMPANY_INFO } from "@/lib/site";
 
@@ -47,6 +48,7 @@ const site = await getSiteSettingsCached();
 
   return (
     <>
+        <RememberReturn />
         <CelebrationBanner />
         <VerifyEmailBanner />
         {/* Masthead */}

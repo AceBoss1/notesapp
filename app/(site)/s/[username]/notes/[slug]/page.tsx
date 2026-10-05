@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
+import { headers } from "next/headers";
+import { isMainHost } from "@/lib/host";
 import { getNoteBySlug } from "@/lib/firestore-notes";
 import { getUserByUsername } from "@/lib/users";
 import { journalMetadata } from "@/lib/og";
@@ -15,5 +17,6 @@ export async function generateMetadata({ params }: { params: { slug: string } })
 export default async function Page({ params }: { params: { username: string; slug: string } }) {
   const [owner, note] = await Promise.all([getUserByUsername(params.username).catch(() => null), getNoteBySlug(params.slug)]);
   if (!owner || !note || note.authorUid !== owner.uid) return notFound();
-  return <JournalDetail params={{ slug: params.slug }} />;
+  const host = (headers().get("host") || "").toLowerCase().replace(/:\d+$/, "");
+  return <JournalDetail params={{ slug: params.slug }} site={{ uid: owner.uid, base: isMainHost(host) ? `/s/${owner.username}` : "" }} />;
 }
