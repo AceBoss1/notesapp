@@ -296,7 +296,7 @@ export default function StoreManager({
             <input value={form.badge} onChange={set("badge")} maxLength={24} className={field} />
           </label>
           <div className="sm:col-span-2 text-xs text-slate">
-            Photos (up to {MAX_IMAGES}; the first is the main one — 2 or 3 show your item best)
+            {kind === "digital" ? <>Images (up to {MAX_IMAGES}; the first is the main one — for a book, add the front and back cover)</> : <>Photos (up to {MAX_IMAGES}; the first is the main one — 2 or 3 show your item best)</>}
             <div className="mt-1 flex flex-wrap items-center gap-3">
               {images.map((src, i) => (
                 <span key={src} className="relative">

@@ -8,11 +8,13 @@ export default function Avatar({
   alt,
   size,
   className = "",
+  square = false,
 }: {
   src: string;
   alt: string;
   size: number;
   className?: string;
+  square?: boolean; // a rounded square instead of a circle (profile blocks)
 }) {
   const [failed, setFailed] = useState(false);
 
@@ -28,7 +30,7 @@ export default function Avatar({
       width={size}
       height={size}
       onError={() => setFailed(true)}
-      className={`rounded-full border border-rule object-cover ${className}`}
+      className={`${square ? "rounded-2xl" : "rounded-full"} border border-rule object-cover ${className}`}
       style={{ width: size, height: size }}
     />
   );

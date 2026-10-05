@@ -4,7 +4,7 @@ import { MAIN_HOST, isMainHost } from "@/lib/host";
 // Custom domains (Enterprise). On our own hosts this does nothing. On a member's domain it serves their branded site
 // (app/(site)/s/[username]: header with their name, Home, Notes, Shop, "Powered by #NotesApp" footer) and sends everything
 // else — sign-in, checkout, bookings, settings, other people's pages — to www.notesapp.name.ng, where those must happen.
-//   /                     → Home (or the Shop, if they chose the store as their front page)
+//   /                     → Home (profile header, booking, then the shop and notes, in the order of their front-page setting)
 //   /notes, /notes/<slug> → their notes          (/journals/… is an alias)
 //   /shop, /shop/<id>     → their shop           (/store and /u/<username>/store are aliases)
 // A note or item that isn't theirs is sent to the main site instead.
@@ -47,7 +47,7 @@ export async function middleware(req: NextRequest) {
   const rewrite = (path: string) => NextResponse.rewrite(new URL(path + search, req.url), { request: { headers } });
 
   const site = `/s/${d.username}`;
-  if (pathname === "/") return rewrite(d.home === "store" ? `${site}/shop` : site);
+  if (pathname === "/") return rewrite(site); // Home: their profile, then the shop first or the notes first (their "front page" setting)
   if (pathname === "/notes" || pathname === "/journals") return rewrite(`${site}/notes`);
   if (pathname === "/shop" || pathname === "/store" || pathname === `/u/${d.username}/store`) return rewrite(`${site}/shop`);
   if (pathname === `/u/${d.username}`) return rewrite(site);

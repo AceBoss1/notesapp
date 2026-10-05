@@ -11,7 +11,7 @@ export const metadata: Metadata = {
 };
 
 const STEPS = [
-  { t: "Pick a post", d: "Any published post of yours — new or old. Or tick “Boost” in the composer as you publish." },
+  { t: "Pick a post or a store item", d: "Any published post of yours — new or old — or any item in your store (a download needs its file attached first). Or tick “Boost” in the composer as you publish." },
   { t: "Choose a package", d: "Buy a set number of impressions. Bigger packages cost less per impression." },
   { t: "We show it", d: "It rotates in the Boosted slots on the home page and Journals page for up to the package's window." },
   { t: "Pay for what's delivered", d: "Anything not delivered by the end is refunded pro-rata." },
@@ -21,7 +21,7 @@ export default function BoostPage() {
   return (
     <div className="mx-auto max-w-5xl px-4 py-16 sm:px-6 lg:px-8">
       <span className="eyebrow">Product</span>
-      <h1 className="mt-4 font-display text-4xl text-ink sm:text-5xl">Boost a post. Pay for real attention.</h1>
+      <h1 className="mt-4 font-display text-4xl text-ink sm:text-5xl">Boost a post or a product. Pay for real attention.</h1>
       <p className="mt-5 max-w-2xl text-lg text-slate">
         Good writing still needs an audience. Boost puts your post in front of readers browsing #NotesApp — and you're
         charged for <strong className="text-ink">validated impressions</strong>, not clicks-you-hope-for or hours on a clock.
@@ -74,7 +74,7 @@ export default function BoostPage() {
         <div className="card p-6">
           <p className="font-ui text-sm font-bold text-ink">Who can boost</p>
           <p className="mt-2 text-sm text-slate">
-            Any publisher, for their own published posts. Payment is by Paystack in Naira, and you need a verified email
+            Any publisher, for their own published posts and the items in their own store. Payment is by Paystack in Naira, and you need a verified email
             (see <Link href="/pricing" className="text-crimson underline">pricing</Link> for the full picture).
           </p>
         </div>

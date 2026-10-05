@@ -13,6 +13,7 @@ export type SiteInfo = {
   avatar: string;
   bio: string;
   social: SocialLinks;
+  home: "profile" | "store"; // which comes first on the Home page
 };
 
 const Ctx = createContext<SiteInfo | null>(null);
