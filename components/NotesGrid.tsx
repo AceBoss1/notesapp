@@ -41,7 +41,7 @@ export default function NotesGrid({ notes }: { notes: NoteWithComputed[] }) {
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-x-8 gap-y-10 mt-10">
         {filtered.map((n) => (
-          <Link key={n.slug} href={`/notes/${n.slug}`} className="group">
+          <Link key={n.slug} href={`/journals/${n.slug}`} className="group">
             {n.featured_image && (
               <Image
                 src={n.featured_image}

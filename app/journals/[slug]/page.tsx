@@ -10,6 +10,7 @@ import TeamBadge from "@/components/TeamBadge";
 import BadgeToast from "@/components/BadgeToast";
 import BoostNudge from "@/components/BoostNudge";
 import VideoPlayer from "@/components/VideoPlayer";
+import { journalMetadata } from "@/lib/og";
 import { videoPublicUrl } from "@/lib/video-rules";
 import VerifiedBadge from "@/components/VerifiedBadge";
 import { NA_NOTESAPP_PROFILE } from "@/lib/journals-directory";
@@ -29,32 +30,7 @@ export async function generateMetadata({
 }: {
   params: { slug: string };
 }): Promise<Metadata> {
-  const note = await getNoteBySlug(params.slug);
-  if (!note) return { title: "Journal Not Found" };
-
-  // Premium entries still get a real OG card — the teaser/excerpt is
-  // already public by design (PremiumGate only gates the full body),
-  // so there's nothing sensitive in a share preview.
-  const ogImage = note.featured_image || "/images/brand/og-default.jpg";
-
-  return {
-    title: note.title,
-    description: note.excerpt,
-    openGraph: {
-      title: note.title,
-      description: note.excerpt,
-      type: "article",
-      publishedTime: note.date,
-      authors: [note.author],
-      images: [ogImage],
-    },
-    twitter: {
-      card: "summary_large_image",
-      title: note.title,
-      description: note.excerpt,
-      images: [ogImage],
-    },
-  };
+  return journalMetadata(params.slug);
 }
 
 export default async function JournalDetail({

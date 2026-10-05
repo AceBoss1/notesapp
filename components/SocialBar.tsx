@@ -121,14 +121,14 @@ export default function SocialBar({
   }
 
   async function handleShareClick(buildUrl: (url: string, title: string) => string) {
-    const url = `${window.location.origin}/notes/${slug}`;
+    const url = `${window.location.origin}/journals/${slug}`;
     window.open(buildUrl(url, title), "_blank", "noopener,noreferrer");
     setShareOpen(false);
     await recordShare();
   }
 
   async function handleCopyLink() {
-    const url = `${window.location.origin}/notes/${slug}`;
+    const url = `${window.location.origin}/journals/${slug}`;
     await navigator.clipboard.writeText(url);
     setCopied(true);
     setShareOpen(false);

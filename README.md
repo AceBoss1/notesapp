@@ -1314,10 +1314,22 @@ the browser PUTs straight to R2 with progress → `finish` HEADs the object, com
 (`videoValid`/`videoOkOnEdit`; rules-tested). `/api/upload` is images-only now. Unverified upload records expire after
 2 days (TTL on `videoUploads.expireAt`); account deletion removes the member's video files.
 
+Cover image: a poster frame is made automatically; in the composer the member can pick any frame (read from the file just
+uploaded, or from the media domain for a saved video — needs its CORS headers) or upload an image. The cover is saved as
+`videoPoster` and, unless a featured image is set, as the post's `featured_image` (so cards, search and share previews use it).
+
 Housekeeping: `node scripts/clean-orphan-videos.mjs [--apply]` lists/deletes video files no post references (files younger
 than 2 days are kept) — run it monthly. Terms section 2a carries the content rules (legal version bumped to 2026-10-05, so
 members re-accept before their next payment). Deploy: `firebase deploy --only firestore` (rules + TTL), and make sure the
 media bucket's CORS (`scripts/r2-cors.json`) allows PUT from the site, as it already does for images.
+
+### Share previews (Open Graph)
+`lib/og.ts` builds each page's card: **posts** use featured image → video cover → first image in the body → default
+(`journalMetadata`, shared with the legacy `/notes/<slug>` redirect, whose redirect response would otherwise carry only the
+site default to scrapers that don't follow it); **store items** (`app/shop/[itemId]/layout.tsx`, since the page is a client
+component) use the item's photo, title and price — or the seller's avatar, never a private file's name; **store pages** use the
+first item photo and the real item count. The Share button and Copy link now point straight at `/journals/<slug>`. Platforms
+cache previews: after deploy, re-scrape a link with Facebook's Sharing Debugger (WhatsApp/Telegram refresh on their own after a while).
 
 ### Company identity
 `COMPANY_INFO` in `lib/site.ts` holds the legal entity — NOTESAPP TECHNOLOGIES
