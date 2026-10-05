@@ -11,6 +11,14 @@ export type Release = {
 
 export const CHANGELOG: Release[] = [
   {
+    version: "v0.5.3",
+    bump: "patch",
+    date: "2026-10-05",
+    changes: [
+      { kind: "changed", text: "On a custom domain, the member's logo is now the browser tab icon and sits beside their name in the footer, with the #NotesApp icon next to “powered by #NotesApp”." },
+    ],
+  },
+  {
     version: "v0.5.2",
     bump: "patch",
     date: "2026-10-05",

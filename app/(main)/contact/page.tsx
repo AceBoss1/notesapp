@@ -1,6 +1,7 @@
 import { getSiteSettingsCached } from "@/lib/settings";
 import type { Metadata } from "next";
 import ContactForm from "@/components/ContactForm";
+import { FacebookIcon, LinkedInIcon, MailIcon, NotesAppIcon } from "@/components/ContactIcons";
 
 export const metadata: Metadata = {
   title: "Contact",
@@ -28,26 +29,32 @@ export default async function ContactPage() {
       <div className="card mt-8 grid gap-5 p-7 sm:grid-cols-2">
         <div>
           <p className="font-ui text-sm font-semibold text-ink">Email</p>
-          <a href={`mailto:${site.email}`} className="text-crimson">
-            {site.email}
+          <a href={`mailto:${site.email}`} className="inline-flex items-center gap-2 text-crimson">
+            <MailIcon /> {site.email}
           </a>
         </div>
         {site.social.linkedin && (
           <div>
             <p className="font-ui text-sm font-semibold text-ink">LinkedIn</p>
-            <a href={site.social.linkedin} target="_blank" rel="noopener noreferrer" className="text-crimson">
-              {site.social.linkedin.replace(/^https?:\/\/(www\.)?/, "")}
+            <a href={site.social.linkedin} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 text-crimson">
+              <LinkedInIcon /> {site.social.linkedin.replace(/^https?:\/\/(www\.)?/, "")}
             </a>
           </div>
         )}
         {site.social.facebook && (
           <div>
             <p className="font-ui text-sm font-semibold text-ink">Facebook</p>
-            <a href={site.social.facebook} target="_blank" rel="noopener noreferrer" className="text-crimson">
-              {site.social.facebook.replace(/^https?:\/\/(www\.|web\.)?/, "")}
+            <a href={site.social.facebook} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 text-crimson">
+              <FacebookIcon /> {site.social.facebook.replace(/^https?:\/\/(www\.|web\.)?/, "")}
             </a>
           </div>
         )}
+        <div>
+          <p className="font-ui text-sm font-semibold text-ink">#NotesApp on #NotesApp</p>
+          <a href="/u/na-notesapp" className="inline-flex items-center gap-2 text-crimson">
+            <NotesAppIcon /> notesapp.name.ng/u/na-notesapp
+          </a>
+        </div>
         {site.whatsapp && (
           <div>
             <p className="font-ui text-sm font-semibold text-ink">WhatsApp</p>

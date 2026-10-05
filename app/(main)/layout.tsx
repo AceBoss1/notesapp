@@ -7,6 +7,7 @@ import CelebrationBanner from "@/components/CelebrationBanner";
 import RememberReturn from "@/components/RememberReturn";
 import { getSiteSettingsCached } from "@/lib/settings";
 import { COMPANY_INFO } from "@/lib/site";
+import { FacebookIcon, LinkedInIcon, MailIcon, NotesAppIcon } from "@/components/ContactIcons";
 
 const NAV = [
   { href: "/journals", label: "Journals" },
@@ -161,11 +162,30 @@ const site = await getSiteSettingsCached();
                   </Link>
                 </li>
                 <li>
-                  <a href={`mailto:${site.email}`} className="hover:text-paper">
-                    {site.email}
+                  <a href={`mailto:${site.email}`} className="inline-flex items-center gap-2 hover:text-paper">
+                    <MailIcon /> {site.email}
                   </a>
                 </li>
-                {social.map((l) => (
+                {site.social.linkedin && (
+                  <li>
+                    <a href={site.social.linkedin} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 hover:text-paper">
+                      <LinkedInIcon /> {site.social.linkedin.replace(/^https?:\/\/(www\.)?/, "")}
+                    </a>
+                  </li>
+                )}
+                {site.social.facebook && (
+                  <li>
+                    <a href={site.social.facebook} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 hover:text-paper">
+                      <FacebookIcon /> {site.social.facebook.replace(/^https?:\/\/(www\.|web\.)?/, "")}
+                    </a>
+                  </li>
+                )}
+                <li>
+                  <Link href="/u/na-notesapp" className="inline-flex items-center gap-2 hover:text-paper">
+                    <NotesAppIcon /> notesapp.name.ng/u/na-notesapp
+                  </Link>
+                </li>
+                {social.filter((l) => !["LinkedIn", "Facebook"].includes(l.label)).map((l) => (
                   <li key={l.label}>
                     <a href={l.href} target="_blank" rel="noopener noreferrer" className="hover:text-paper">
                       {l.label}
@@ -178,7 +198,8 @@ const site = await getSiteSettingsCached();
 
           <div className="border-t border-paper/10 py-5 text-center text-xs text-paper/45">
             <p>© {new Date().getFullYear()} #NotesApp. All rights reserved.</p>
-            <p className="mt-1">
+            <p className="mt-1 inline-flex flex-wrap items-center justify-center gap-1.5">
+              <NotesAppIcon />
               {COMPANY_INFO.legalName} · RC {COMPANY_INFO.rcNumber} · TIN {COMPANY_INFO.tin}
               {COMPANY_INFO.smedanId ? ` · SMEDAN ${COMPANY_INFO.smedanId}` : ""}
             </p>
