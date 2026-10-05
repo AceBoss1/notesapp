@@ -96,8 +96,8 @@ function verify(rawBody, header, secret) {
 
       <h2 id="domains" className="mt-12 font-display text-3xl text-ink">Your own domain</h2>
       <p className="mt-3 text-slate">
-        Enterprise accounts can serve their page, journals and store on their own domain — <span className="font-mono text-xs">notes.yourbrand.com</span> or the root <span className="font-mono text-xs">yourbrand.com</span>. Add it in the Console, create the DNS record it shows
-        (a CNAME for a subdomain, an A record for a root domain), then press <em>Check status</em>. Your <span className="font-mono text-xs">/u/username</span> page stays the default home and keeps working; you choose whether the domain&apos;s front page shows your profile or your store.
+        Enterprise accounts get their own branded site on their own domain — <span className="font-mono text-xs">notes.yourbrand.com</span> or the root <span className="font-mono text-xs">yourbrand.com</span>. Add it in the Console, create the DNS record it shows
+        (a CNAME for a subdomain, an A record for a root domain), then press <em>Check status</em>. The site has your name in the header, three pages — Home (your profile and booking), Notes (<span className="font-mono text-xs">/notes</span>) and Shop (<span className="font-mono text-xs">/shop</span>) — and a small “powered by #NotesApp” footer. Your <span className="font-mono text-xs">/u/username</span> page keeps working; you choose whether the front page shows Home or your Shop.
         Visitors browse on your domain, and signing in or paying happens securely on www.notesapp.name.ng, then they&apos;re sent back to your store.
       </p>
     </div>
