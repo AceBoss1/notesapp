@@ -8,7 +8,7 @@ import { activeHostForUsername } from "@/lib/domains";
 
 // The reference customer's link points at their own site once they have one; refreshed every few minutes.
 export const revalidate = 300;
-const REFERENCE_USERNAME = "chimdinma";
+const REFERENCE_USERNAME = "precheks";
 
 const LOOP = [
   { step: "Publish", copy: "Write a note. Toggle it public or keep it as a private client journal — same canvas." },
