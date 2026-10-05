@@ -7,6 +7,8 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { Note, slugify, createNote, updateNote, slugTaken } from "@/lib/firestore-notes";
+import { deleteField } from "firebase/firestore";
+import VideoUploader, { VideoValue, videoFromNote } from "@/components/VideoUploader";
 import { uploadToR2 } from "@/lib/upload";
 import RichTextEditor from "@/components/RichTextEditor";
 import { roleLabelFor, type UserProfile } from "@/lib/users";
@@ -76,6 +78,8 @@ export default function NoteForm({ noteId, initial, self, org }: Props) {
     initial?.status || "draft"
   );
   const [premium, setPremium] = useState(initial?.premium || false);
+  const [video, setVideo] = useState<VideoValue | null>(videoFromNote(initial));
+  const [videoBusy, setVideoBusy] = useState(false);
   const [boostAfter, setBoostAfter] = useState(false);
   const [coOpen, setCoOpen] = useState(false);
   const [uploading, setUploading] = useState(false);
@@ -146,7 +150,13 @@ export default function NoteForm({ noteId, initial, self, org }: Props) {
         : {}),
       status: forceDraft ? ("draft" as const) : status,
       premium,
-    };
+      // Saving with a video attaches it; removing one clears the stored fields (updateDoc only touches what it's given).
+      ...(video
+        ? { videoId: video.videoId, videoKey: video.videoKey, videoDuration: video.videoDuration, videoSize: video.videoSize, ...(video.videoPoster ? { videoPoster: video.videoPoster } : {}) }
+        : initial?.videoId
+          ? { videoId: deleteField(), videoKey: deleteField(), videoPoster: deleteField(), videoDuration: deleteField(), videoSize: deleteField() }
+          : {}),
+    } as Parameters<typeof createNote>[0];
     try {
       let savedId = noteId;
       if (noteId) {
@@ -268,6 +278,14 @@ export default function NoteForm({ noteId, initial, self, org }: Props) {
         )}
       </label>
 
+      <VideoUploader
+        value={video}
+        onChange={setVideo}
+        onBusy={setVideoBusy}
+        disabled={premium}
+        disabledReason="Videos can't be added to premium (subscribers-only) posts yet. Untick Premium to add one."
+      />
+
       <div className="block">
         <span className="eyebrow">Content</span>
         <div className="mt-2">
@@ -303,6 +321,7 @@ export default function NoteForm({ noteId, initial, self, org }: Props) {
         <input
           type="checkbox"
           checked={premium}
+          disabled={!!video}
           onChange={(e) => setPremium(e.target.checked)}
           className="h-4 w-4 accent-crimson"
         />
@@ -314,7 +333,7 @@ export default function NoteForm({ noteId, initial, self, org }: Props) {
             Non-subscribers see a teaser and a "Subscribe to unlock"
             prompt instead of the full entry. #NotesApp-only field —
             Precheks' own note pages ignore it and show the entry in
-            full either way.
+            full either way.{video ? " Remove the video first to make this post premium." : ""}
           </span>
         </span>
       </label>
@@ -324,7 +343,7 @@ export default function NoteForm({ noteId, initial, self, org }: Props) {
       <div className="flex gap-4">
         <button
           type="submit"
-          disabled={saving || uploading}
+          disabled={saving || uploading || videoBusy}
           className="bg-crimson text-paper font-ui font-semibold px-6 py-3 hover:bg-crimson-deep hover:text-paper transition-colors disabled:opacity-50"
         >
           {saving ? "Saving…" : noteId ? "Save Changes" : "Publish / Save Draft"}

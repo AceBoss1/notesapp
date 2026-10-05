@@ -59,6 +59,13 @@ export type Note = {
   // knows about, so this survives edits made from either app. Gates
   // the entry behind a subscription to its author's journal.
   premium?: boolean;
+  // One optional video per post, uploaded through /api/video and verified there; firestore.rules only let a post
+  // point at a video the same member uploaded. Not available on premium posts.
+  videoId?: string;
+  videoKey?: string;
+  videoPoster?: string;
+  videoDuration?: number;
+  videoSize?: number;
 };
 
 export type NoteWithComputed = Note & {

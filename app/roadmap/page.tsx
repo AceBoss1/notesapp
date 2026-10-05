@@ -78,6 +78,7 @@ export default function RoadmapPage() {
               <li>Your own store with physical goods and instant digital downloads, sold through #NotesApp checkout with parcel tracking — see <Link href="/store-selling" className="text-crimson underline">Store selling</Link></li>
               <li>Paid Pro and Business plans through Paystack, and official #NotesApp merch pre-orders in Naira — see <Link href="/pricing" className="text-crimson underline">Pricing</Link> and the <Link href="/merchstore" className="text-crimson underline">Merch store</Link></li>
               <li>Enterprise extras: server-to-server API, Console and webhooks, and your own domain — see the <Link href="/docs" className="text-crimson underline">API Docs</Link></li>
+              <li>Video on posts — one MP4 or WebM per post (up to 3 minutes and 100 MB), played in our own data-friendly player, with a weekly allowance by plan</li>
               <li>Trending feed, a live <Link href="/status" className="text-crimson underline">status page</Link> and a public <Link href="/changelog" className="text-crimson underline">changelog</Link></li>
               <li>Verification badges: the maroon ✔ for accounts in good standing and the <strong className="text-ink">gold ✔ for endorsed accounts</strong>{GOLD_KIND_LIVE.identity ? " and identity-checked accounts" : ""} — see <Link href="/badges" className="text-crimson underline">Verification badges</Link></li>
               <li>Publisher payouts to a verified bank account, released automatically after the session</li>
@@ -90,7 +91,7 @@ export default function RoadmapPage() {
             <ul className="mt-3 space-y-2 text-sm text-slate">
               <li>WhatsApp reminders alongside email and the bell</li>
               {GOLD_KIND_LIVE.identity ? null : <li>Identity-checked gold badge (NIN + face check for people, CAC for organisations)</li>}
-              <li>iOS and Android apps, AI drafting, social publishing, video uploads, ad-share</li>
+              <li>iOS and Android apps, AI drafting, social publishing, ad-share</li>
             </ul>
           </div>
         </div>

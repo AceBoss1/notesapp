@@ -11,6 +11,17 @@ export type Release = {
 
 export const CHANGELOG: Release[] = [
   {
+    version: "v0.5.0",
+    bump: "minor",
+    date: "2026-10-05",
+    changes: [
+      { kind: "added", text: "Video on posts: add one MP4 (H.264) or WebM video, up to 3 minutes and 100 MB, from the post editor, with an automatic preview image." },
+      { kind: "added", text: "Our own video player: nothing downloads until you press play, with the length and data size shown up front, speed control, full screen, keyboard shortcuts and resume where you stopped." },
+      { kind: "added", text: "Weekly video allowance by plan: 2 on Free Basic, 7 on Pro, 14 on Business and 30 on Enterprise." },
+      { kind: "changed", text: "The Terms now include video rules (section 2a). You'll be asked to accept them before your next payment." },
+    ],
+  },
+  {
     version: "v0.4.1",
     bump: "patch",
     date: "2026-10-04",

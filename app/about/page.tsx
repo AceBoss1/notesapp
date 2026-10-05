@@ -29,8 +29,8 @@ const LIVE = [
   { href: "/trending", title: "Trending", copy: "The most visited publishers and posts on #NotesApp." },
   { href: "/docs", title: "API, Console & your own domain", copy: "Enterprise accounts get a server-to-server API, signed webhooks and a Console, and can serve their page, journals and store on their own domain." },
   { href: "/security", title: "Trust & security", copy: "How payments, files, access rules and your data are protected — including downloading or deleting your own data." },
-  { href: "/status", title: "Live status", copy: "Public service health with response times, incident history and email updates." },
-  { href: "/changelog", title: "Changelog", copy: "Every release, with what was added, changed and fixed." },
+  { href: "/status", title: "Status & changelog", copy: "Live service health with response times and incident updates, plus a changelog of every release." },
+  { href: "/pricing", title: "Video on posts", copy: "Add a short video to a post — one MP4 or WebM up to 3 minutes — played in our own player that only loads when you press play." },
 ];
 
 const FOUNDERS = [
@@ -93,7 +93,7 @@ export default async function AboutPage() {
         </div>
         <p className="mt-4 text-sm text-slate">
           Still to come: WhatsApp reminders, iOS and Android apps, AI
-          drafting and social publishing, video, and Google and Meta ads
+          drafting and social publishing, and Google and Meta ads
           alongside our own — see the{" "}
           <Link href="/roadmap" className="text-crimson underline underline-offset-2">roadmap</Link>.
         </p>

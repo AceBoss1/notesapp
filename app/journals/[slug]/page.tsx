@@ -9,6 +9,8 @@ import { getAuthorProfile, getUserByUid, badgeLevel, goldKindOf, isTeamMember, r
 import TeamBadge from "@/components/TeamBadge";
 import BadgeToast from "@/components/BadgeToast";
 import BoostNudge from "@/components/BoostNudge";
+import VideoPlayer from "@/components/VideoPlayer";
+import { videoPublicUrl } from "@/lib/video-rules";
 import VerifiedBadge from "@/components/VerifiedBadge";
 import { NA_NOTESAPP_PROFILE } from "@/lib/journals-directory";
 import SocialBar from "@/components/SocialBar";
@@ -184,12 +186,17 @@ export default async function JournalDetail({
           </p>
         </div>
       ) : (
+        <>
+        {note.videoKey && !note.premium && (
+          <VideoPlayer src={videoPublicUrl(note.videoKey)} poster={note.videoPoster} duration={note.videoDuration} size={note.videoSize} title={note.title} />
+        )}
         <PremiumGate
           premium={!!note.premium}
           authorUsername={linkedUsername || ""}
           authorName={note.author}
           contentHtml={contentHtml}
         />
+        </>
       )}
 
       {note.tags.length > 0 && (

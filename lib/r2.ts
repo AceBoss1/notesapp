@@ -1,4 +1,4 @@
-import { S3Client } from "@aws-sdk/client-s3";
+import { DeleteObjectCommand, S3Client } from "@aws-sdk/client-s3";
 
 // R2 is S3-compatible, so the AWS SDK works against it unchanged —
 // just point the endpoint at the Cloudflare account URL instead of
@@ -27,6 +27,15 @@ export function getR2Client(): S3Client {
     requestChecksumCalculation: "WHEN_REQUIRED",
     responseChecksumValidation: "WHEN_REQUIRED",
   });
+}
+
+// Removes an object from the public media bucket (used when a member deletes their account). Never throws.
+export async function deleteMediaObject(key: string): Promise<void> {
+  try {
+    await getR2Client().send(new DeleteObjectCommand({ Bucket: R2_BUCKET, Key: key }));
+  } catch (err) {
+    console.error("[r2] couldn't delete media object", key, err);
+  }
 }
 
 export const R2_BUCKET = process.env.R2_BUCKET_NAME || "notesapp-media";
