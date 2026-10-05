@@ -11,6 +11,14 @@ export type Release = {
 
 export const CHANGELOG: Release[] = [
   {
+    version: "v0.5.8",
+    bump: "minor",
+    date: "2026-10-05",
+    changes: [
+      { kind: "added", text: "The Merch Store page now lists every publisher's shop that has something to buy right now, under Individual Shops: boosted shops first, then the most recently stocked, with search and “Show more”. A shop on its own domain opens there. Switch yours off under Rates & payouts." },
+    ],
+  },
+  {
     version: "v0.5.7",
     bump: "patch",
     date: "2026-10-05",

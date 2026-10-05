@@ -110,6 +110,9 @@ export type UserProfile = {
   // Pro/Business/Enterprise opt in to showing ads on their pages (set by the
   // server from /profile/publishing). Free tiers always show ads.
   adsOptIn?: boolean;
+  // Shown in the Merch Store's "Individual Shops" directory unless the publisher switched it off (shopListed === false) or an admin hid it (shopHidden).
+  shopListed?: boolean;
+  shopHidden?: boolean;
   // Organisation accounts (server-written; see lib/org.ts). Absent = personal.
   accountKind?: AccountKind;
   org?: OrgInfo;
