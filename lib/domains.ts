@@ -72,4 +72,13 @@ export async function domainForUid(uid: string): Promise<(DomainDoc & { id: stri
   const snap = await getAdminDb().collection("customDomains").where("uid", "==", uid).limit(1).get();
   return snap.empty ? null : { id: snap.docs[0].id, ...(snap.docs[0].data() as DomainDoc) };
 }
+// The live custom domain of a member, by username — for places that link to "their site" (null → use /u/<username>).
+export async function activeHostForUsername(username: string): Promise<string | null> {
+  try {
+    const snap = await getAdminDb().collection("customDomains").where("username", "==", username).where("status", "==", "active").limit(1).get();
+    return snap.empty ? null : (snap.docs[0].data() as DomainDoc).host;
+  } catch {
+    return null;
+  }
+}
 export { isApexDomain };

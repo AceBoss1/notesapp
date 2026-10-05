@@ -19,9 +19,11 @@ export default function SiteHome() {
   const site = useSite();
   const notes = useOwnNotes();
   const items = useOwnItems();
+  const [origin, setOrigin] = useState("");
   const [session, setSession] = useState<PublisherSettings["session"] | null>(null);
 
   useEffect(() => {
+    setOrigin(window.location.hostname);
     recordView("profile", site.username);
     getDoc(doc(db, "publisherSettings", site.uid))
       .then((s) => {
@@ -53,7 +55,7 @@ export default function SiteHome() {
             </p>
           </div>
           {/* Signing in and paying happen on the main site; the booking page there is theirs. */}
-          <a href={`https://${MAIN_HOST}/u/${site.username}`} className="btn-primary shrink-0">Book a time</a>
+          <a href={`https://${MAIN_HOST}/u/${site.username}${origin ? `?from=${encodeURIComponent(origin)}` : ""}`} className="btn-primary shrink-0">Book a time</a>
         </section>
       )}
 
