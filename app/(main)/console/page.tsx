@@ -246,8 +246,8 @@ export default function ConsolePage() {
           )}
           <label className="mt-5 block text-xs text-slate">Front page of {domain.host}
             <select value={domain.home} onChange={(e) => act(() => call(user, "/api/console/domain", { method: "PATCH", body: JSON.stringify({ home: e.target.value }) }), "Front page updated.")} className={field}>
-              <option value="profile">My profile (default)</option>
-              <option value="store">My store</option>
+              <option value="profile">Profile, then notes (default)</option>
+              <option value="store">Profile, then my shop first</option>
             </select>
           </label>
           <p className="mt-3 text-xs text-slate">Visitors browse your page, journals and store here. Signing in and paying happen securely on www.notesapp.name.ng, and they&apos;re sent back to your store afterwards.</p>

@@ -4,6 +4,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { getUserByUsername } from "@/lib/users";
 import { MAIN_HOST, isMainHost } from "@/lib/host";
+import { domainForUid } from "@/lib/domains";
 import { SiteProvider } from "@/components/site/SiteContext";
 import SiteNav from "@/components/site/SiteNav";
 import SiteAccount from "@/components/site/SiteAccount";
@@ -41,8 +42,10 @@ export default async function SiteLayout({ children, params }: Props) {
   }
   const host = (headers().get("host") || "").toLowerCase().replace(/:\d+$/, "");
   const base = isMainHost(host) ? `/s/${p.username}` : "";
+  const domain = await domainForUid(p.uid).catch(() => null);
   const info = {
     base, uid: p.uid, username: p.username, displayName: p.displayName, avatar: p.avatar, bio: p.bio, social: p.social || {},
+    home: (domain?.home === "store" ? "store" : "profile") as "profile" | "store",
   };
   return (
     <SiteProvider value={info}>
