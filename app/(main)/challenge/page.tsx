@@ -34,7 +34,7 @@ const PRIZES = [
   {
     amount: "₦250,000",
     to: "Your followers",
-    body: "In Bonus Credits, between ₦5,000 and ₦25,000 each, for followers who watched your live for at least 5 minutes, chosen by you from a list of the most active. Each follower also gets 1 month of the personal maroon ✔, and both arrive automatically once they are identity-checked (NIN and face match, through Dojah). They can upgrade to the gold ✔ with their Bonus Credits. Bonus Credits can be spent on calls, advert banner payments, boosts and badges only.",
+    body: "In Bonus Credits, between ₦5,000 and ₦25,000 each, for followers who watched your live for at least 5 minutes, chosen by you from a list of the most active. Any follower can be picked, as long as they aren&apos;t a bot and didn&apos;t get on the list by fraud. Each follower also gets 1 month of the personal maroon ✔, and both arrive automatically once they are identity-checked (NIN and face match, through Dojah). They can upgrade to the gold ✔ with their Bonus Credits. Bonus Credits can be spent on calls, advert banner payments, boosts and badges only.",
   },
   {
     amount: "₦250,000",
