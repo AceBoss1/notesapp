@@ -4,6 +4,14 @@ import { useEffect, useState } from "react";
 import { useAdminAuth } from "@/lib/useAdminAuth";
 import { formatNaira } from "@/lib/booking-time";
 import type { Traction } from "@/lib/traction";
+import { COMPLIANCE, STATUS_LABEL, type ComplianceStatus } from "@/lib/compliance";
+
+const STATUS_STYLE: Record<ComplianceStatus, string> = {
+  "not-required": "bg-emerald-100 text-emerald-900",
+  "in-place": "bg-emerald-100 text-emerald-900",
+  "in-progress": "bg-amber-100 text-amber-900",
+  "to-do": "bg-crimson/10 text-crimson",
+};
 
 type Data = { traction: Traction; summary: string; csv: string };
 
@@ -100,6 +108,24 @@ export default function AdminTractionPage() {
             <thead className="text-xs uppercase text-slate"><tr><th className="py-1">Kind</th><th>Paid</th><th className="text-right">Processed</th></tr></thead>
             <tbody>{t.money.byKind.map((r) => <tr key={r.kind} className="border-t border-rule"><td className="py-1.5">{r.kind}</td><td>{r.count}</td><td className="text-right">{k(r.kobo)}</td></tr>)}</tbody>
           </table>
+
+          <h2 className="mt-10 font-display text-2xl">Licences &amp; compliance</h2>
+          <p className="mt-1 text-sm text-slate">What each regulated activity needs, on whose advice, and where it stands. It is part of the deck summary above. To change an entry, edit <code>lib/compliance.ts</code>.</p>
+          <ul className="mt-3 space-y-3">
+            {COMPLIANCE.map((c) => (
+              <li key={c.id} className="card p-4 text-sm">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <p className="font-ui font-bold text-ink">{c.area}</p>
+                  <span className={`rounded-full px-2.5 py-0.5 font-mono text-[10px] uppercase ${STATUS_STYLE[c.status]}`}>{STATUS_LABEL[c.status]}</span>
+                </div>
+                <p className="mt-1 text-slate">{c.question}</p>
+                <p className="mt-1 text-ink"><strong>{c.position}</strong></p>
+                <p className="mt-1 font-mono text-[11px] text-slate">Basis: {c.basis} · reviewed {c.reviewed}</p>
+                {c.controls && <ul className="mt-2 list-disc space-y-0.5 pl-5 text-xs text-slate">{c.controls.map((x) => <li key={x}>{x}</li>)}</ul>}
+                {c.next && <p className="mt-2 text-xs text-ink"><strong>Next:</strong> {c.next}</p>}
+              </li>
+            ))}
+          </ul>
 
           <h2 className="mt-10 font-display text-2xl">Last six months</h2>
           <table className="mt-3 w-full text-left text-sm">
