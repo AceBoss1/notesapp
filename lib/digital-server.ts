@@ -30,7 +30,8 @@ export async function createDownloadLink(uid: string, reference: string): Promis
   const ref = db.doc(`digitalPurchases/${reference}`);
   const p = (await ref.get()).data() as DigitalPurchase | undefined;
   if (!p || p.buyerUid !== uid) throw new DigitalFail("Purchase not found.", 404);
-  const file = (await db.doc(`storeFiles/${p.itemId}`).get()).data() as { key: string; name: string } | undefined;
+  const file = (await db.doc(`storeFiles/${p.itemId}`).get()).data() as { key: string; name: string; access?: string } | undefined;
+  if (file?.access === "view") throw new DigitalFail("This one is view-only — open it from My orders instead of downloading.", 409);
   if (!file?.key) throw new DigitalFail("The seller hasn't attached the file yet — contact support with your reference.", 409);
   const url = await presignDownload(file.key, file.name);
   const now = new Date().toISOString();

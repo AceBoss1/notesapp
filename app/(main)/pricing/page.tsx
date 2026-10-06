@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { TIERS, formatPercent, badgeIncluded, BADGE_PRICE_KOBO } from "@/lib/tiers";
+import { TIERS, formatPercent, badgeIncluded, canSellViewOnly, BADGE_PRICE_KOBO } from "@/lib/tiers";
 import { VIDEO_MAX_BYTES, VIDEO_MAX_SECONDS, VIDEO_WEEKLY_LIMIT } from "@/lib/video-rules";
 import { GOLD_PRICING } from "@/lib/gold";
 import { BOOST_PACKAGES } from "@/lib/boost-config";
@@ -83,6 +83,11 @@ const ROWS: { label: string; href?: string; render: (t: (typeof TIERS)[number]) 
     render: (t) => (t.canPublish ? `NotesApp takes ${formatPercent(t.digitalCommission, t.digitalCommissionFloor)} of the price — instant download after payment, final once downloaded (no refunds)` : "—"),
   },
   {
+    label: "View-only files & video courses",
+    href: "/store-selling#view-only",
+    render: (t) => (t.canPublish ? (canSellViewOnly(t.tier) ? "Yes — sell PDFs and video lessons that buyers watch or read here, with no download, on up to 2 devices" : "Upgrade to Pro — downloads only") : "—"),
+  },
+  {
     label: "Links out to other shops",
     render: (t) => (t.canPublish ? "Only your one profile link and links inside your posts — stores sell through #NotesApp checkout" : "—"),
   },
@@ -92,6 +97,16 @@ const ROWS: { label: string; href?: string; render: (t: (typeof TIERS)[number]) 
       t.canPublish
         ? `One video per post (MP4 or WebM, up to ${VIDEO_MAX_SECONDS / 60} minutes and ${Math.round(VIDEO_MAX_BYTES / 1048576)} MB), played in our own player · ${VIDEO_WEEKLY_LIMIT[t.tier]} uploads a week`
         : "Watch videos on any post",
+  },
+  {
+    label: "Team seats",
+    href: "/organisations",
+    render: (t) => (!t.canPublish ? "—" : t.tier === "business" ? "4 — the owner plus 3 team members (clerk, rider, supervisor)" : t.tier === "enterprise" ? "As many as you need, agreed with us" : "1 — the owner"),
+  },
+  {
+    label: "Parcel tracking & escrow",
+    href: "/store-selling",
+    render: (t) => (t.canPublish ? "Buyer's money held until delivery · parcel ID · no-login hand-over links for riders and drivers" : "—"),
   },
   {
     label: "Your own domain",
@@ -183,14 +198,14 @@ export default function PricingPage() {
             yearly (two months free), renewing automatically through
             Paystack. Cancel any time under Rates &amp; payouts: you keep the
             plan until the period you paid for ends, with no partial
-            refunds. Enterprise is custom —{" "}
+            refunds. Enterprise starts at ₦35,000/month with rates agreed with us —{" "}
             <Link href="/contact" className="text-crimson underline underline-offset-2">
               contact us
             </Link>
             . As a rule of thumb, Pro pays for itself once
             you earn about ₦50,000 a month through sessions, subscriptions
             and gifts (its commission is 10 points lower than Free Basic's);
-            Business does at about ₦75,000 a month.
+            Business does at about ₦75,000 a month. On store sales the gap is wider still: Free Basic takes 6% of physical items and 9% of downloads, Pro 4% and 6%, Business 2.5% and 4%, Enterprise from 1% and 1.5%.
           </p>
         </div>
         <div className="card p-6">

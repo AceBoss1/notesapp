@@ -260,6 +260,22 @@ test("digital store items: no delivery/stock, kind is fixed, files and purchases
   await assertFails(setDoc(doc(as("alice"), "digitalPurchases/r2"), { buyerUid: "alice", sellerUid: "pub" }));
 });
 
+test("view-only items: access/lessons only on digital items, device records are server-only", async () => {
+  const base = { ownerUid: "pub", title: "Course", price: "₦9,000", link: "https://www.notesapp.name.ng", image: "/x.png", cta: "Buy & view", sellable: true, priceKobo: 900000, deliveryKobo: 0, stock: 0 };
+  const view = { ...base, kind: "digital", access: "view" };
+  await assertSucceeds(setDoc(doc(as("pub"), "storeItems/v1"), view));
+  await assertSucceeds(setDoc(doc(as("pub"), "storeItems/v2"), { ...view, lessons: [{ id: "a1", title: "Intro", kind: "video" }], lessonCount: 1 }));
+  await assertFails(setDoc(doc(as("pub"), "storeItems/v3"), { ...view, access: "stream" })); // only download | view
+  await assertFails(setDoc(doc(as("pub"), "storeItems/v4"), { ...base, access: "view" })); // physical items have no access mode
+  await assertFails(setDoc(doc(as("pub"), "storeItems/v5"), { ...view, lessonCount: 99 }));
+  await assertFails(setDoc(doc(as("pub"), "storeItems/v6"), { ...view, lessons: "x" }));
+  await env.withSecurityRulesDisabled(async (ctx) => {
+    await setDoc(doc(ctx.firestore(), "viewAccess/r1"), { buyerUid: "alice", devices: [] });
+  });
+  await assertFails(getDoc(doc(as("alice"), "viewAccess/r1")));
+  await assertFails(setDoc(doc(as("alice"), "viewAccess/r2"), { buyerUid: "alice", devices: [] }));
+});
+
 test("error logs are server-only", async () => {
   await env.withSecurityRulesDisabled(async (ctx) => {
     await setDoc(doc(ctx.firestore(), "errorLogs/e1"), { message: "x", count: 1 });

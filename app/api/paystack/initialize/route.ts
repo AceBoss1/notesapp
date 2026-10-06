@@ -211,7 +211,9 @@ export async function POST(req: NextRequest) {
       const itemSnap = await db.doc(`storeItems/${String(body.itemId)}`).get();
       const item = itemSnap.data();
       if (!item || item.sellable !== true || item.kind !== "digital" || !Number.isInteger(item.priceKobo)) return NextResponse.json({ error: "This download isn't for sale here." }, { status: 404 });
-      if (!item.fileName || !(await db.doc(`storeFiles/${itemSnap.id}`).get()).exists) return NextResponse.json({ error: "The seller hasn't finished setting this download up yet." }, { status: 409 });
+      const sf = (await db.doc(`storeFiles/${itemSnap.id}`).get()).data();
+      const ready = item.access === "view" ? sf?.access === "view" && Array.isArray(sf.lessons) && sf.lessons.length > 0 : !!item.fileName && !!sf;
+      if (!ready) return NextResponse.json({ error: "The seller hasn't finished setting this download up yet." }, { status: 409 });
       if (item.ownerUid === user.uid) return NextResponse.json({ error: "You can't buy your own item." }, { status: 409 });
       const owned = await db.collection("digitalPurchases").where("buyerUid", "==", user.uid).where("itemId", "==", itemSnap.id).limit(1).get();
       if (!owned.empty) return NextResponse.json({ error: "You already own this download — find it under My orders." }, { status: 409 });
@@ -378,7 +380,7 @@ export async function POST(req: NextRequest) {
         // A store item: the payer must run the store (owner, or a team member with store access).
         const item = (await db.doc(`storeItems/${itemId}`).get()).data();
         if (!item || item.sellable !== true) return NextResponse.json({ error: "Only items on sale can be boosted." }, { status: 400 });
-        if (item.kind === "digital" && !item.fileName) return NextResponse.json({ error: "Finish setting up the download before boosting it." }, { status: 400 });
+        if (item.kind === "digital" && !item.fileName && !(item.lessonCount > 0)) return NextResponse.json({ error: "Finish setting up the download before boosting it." }, { status: 400 });
         if (!(await canActForSeller(user.uid, String(item.ownerUid)))) return NextResponse.json({ error: "You can only boost items in your own store." }, { status: 403 });
         const active = await db.collection("boosts").where("itemId", "==", itemId).where("status", "==", "active").get();
         if (active.docs.some((d) => new Date(d.data().endsAt).getTime() > Date.now())) {

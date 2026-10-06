@@ -6,7 +6,7 @@ import { onAuthStateChanged, User } from "firebase/auth";
 import { auth } from "@/lib/firebase";
 import { getAllNotes, isNoteBy, NoteWithComputed } from "@/lib/firestore-notes";
 import { getUserByUid } from "@/lib/users";
-import { getStoreItems, StoreItem } from "@/lib/store";
+import { digitalReady, getStoreItems, StoreItem } from "@/lib/store";
 
 // Signed-in publishers see their own published posts with a Boost
 // button; everyone else gets sign-in / sign-up prompts.
@@ -25,7 +25,7 @@ export default function BoostablePosts() {
           // Store items can be boosted too (a download needs its file attached first).
           if (profile) {
             const own = await getStoreItems(u.uid, profile.username).catch(() => [] as StoreItem[]);
-            setItems(own.filter((i) => i.id && i.sellable && (i.kind !== "digital" || i.fileName)));
+            setItems(own.filter((i) => i.id && i.sellable && (i.kind !== "digital" || digitalReady(i))));
           }
           setPosts(all.filter((n) => isNoteBy(n, { uid: u.uid, username: profile?.username, displayName: profile?.displayName || "" })));
         } catch {

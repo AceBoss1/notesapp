@@ -496,10 +496,10 @@ async function notifyPaid(p: PaymentRecord) {
     const site = process.env.NEXT_PUBLIC_SITE_URL || "https://www.notesapp.name.ng";
     await sendEmail({
       to: p.email,
-      subject: "Your #NotesApp download is ready",
-      bell: { uid: p.uid, type: "order", linkHref: "/orders", message: `Your download is ready: ${p.digital.itemTitle}` },
-      text: `Thanks! ${p.digital.itemTitle} (${formatNaira(p.amountKobo)}) is yours. Download it any time from My orders → My purchases. Digital downloads are final once downloaded, so there are no refunds after that.\nReference: ${p.reference}\n\n#NotesApp`,
-      action: { label: "Download", url: `${site}/orders` },
+      subject: "Your #NotesApp purchase is ready",
+      bell: { uid: p.uid, type: "order", linkHref: "/orders", message: `Your purchase is ready: ${p.digital.itemTitle}` },
+      text: `Thanks! ${p.digital.itemTitle} (${formatNaira(p.amountKobo)}) is yours. Open or download it any time from My orders → My purchases. Digital purchases are final once downloaded or opened, so there are no refunds after that. If it is a view-only item, it works on up to 2 devices.\nReference: ${p.reference}\n\n#NotesApp`,
+      action: { label: "Open My orders", url: `${site}/orders` },
     });
     const sellerEmail = await getUserEmail(p.publisherUid);
     const net = p.amountKobo - Math.round(p.amountKobo * p.commissionRate);

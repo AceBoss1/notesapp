@@ -30,7 +30,7 @@ async function build(includeHidden: boolean): Promise<DirectoryShop[]> {
   const byOwner = new Map<string, FirebaseFirestore.DocumentData[]>();
   for (const d of itemsSnap.docs) {
     const i = d.data();
-    const buyable = i.kind === "digital" ? !!i.fileName : Number(i.stock) > 0;
+    const buyable = i.kind === "digital" ? !!i.fileName || Number(i.lessonCount) > 0 : Number(i.stock) > 0;
     if (!buyable || !i.ownerUid) continue;
     byOwner.set(i.ownerUid, [...(byOwner.get(i.ownerUid) || []), { ...i, id: d.id }]);
   }

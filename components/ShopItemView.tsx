@@ -10,7 +10,7 @@ import { startCheckout } from "@/lib/checkout";
 import { formatNaira } from "@/lib/booking-time";
 import { NIGERIAN_STATES, validateAddress } from "@/lib/merch";
 import { STORE_MAX_QTY } from "@/lib/orders";
-import { variantCombos, variantKey, type StoreItem } from "@/lib/store";
+import { digitalReady, isViewOnly, variantCombos, variantKey, type StoreItem } from "@/lib/store";
 import { fmtSize } from "@/lib/store-files";
 import NotifyWhenBack from "@/components/NotifyWhenBack";
 import BoostNudge from "@/components/BoostNudge";
@@ -70,6 +70,7 @@ export default function ShopItemPage() {
   if (!item) return <div className="px-6 py-24 text-center text-slate">This item isn&apos;t for sale here.</div>;
 
   const digital = item.kind === "digital";
+  const viewOnly = isViewOnly(item);
   const unit = item.priceKobo ?? 0;
   const delivery = item.deliveryKobo ?? 0;
   const options = digital ? [] : item.options ?? [];
@@ -171,27 +172,41 @@ export default function ShopItemPage() {
 
       {customHost && !user ? (
         <div className="card mt-8 p-5 text-sm">
-          <p className="font-ui font-bold text-ink">{digital ? "Digital download" : "Buy this item"} · {formatNaira(unit)}</p>
+          <p className="font-ui font-bold text-ink">{digital ? (viewOnly ? "View-only" : "Digital download") : "Buy this item"} · {formatNaira(unit)}</p>
           <p className="mt-1 text-slate">Sign in to buy. You&apos;ll be brought straight back here, then pay securely with Paystack.</p>
           <a href="/login" className="btn-primary mt-4 inline-block">Sign in to buy</a>
         </div>
       ) : digital ? (
-        !item.fileName ? (
-          <p className="card mt-8 p-5 text-sm text-slate">The seller is still finishing setting this download up. Check back soon.</p>
+        !digitalReady(item) ? (
+          <p className="card mt-8 p-5 text-sm text-slate">The seller is still finishing setting this {viewOnly ? "up" : "download up"}. Check back soon.</p>
         ) : owned ? (
           <div className="card mt-8 p-5 text-sm">
-            <p className="font-ui font-bold text-ink">You own this download</p>
+            <p className="font-ui font-bold text-ink">{viewOnly ? "You own this" : "You own this download"}</p>
             <p className="mt-1 text-slate">Find it under My orders → My purchases.</p>
-            <Link href="/orders" className="btn-primary mt-3 inline-block !px-4 !py-2 text-xs">Go to my downloads</Link>
+            <Link href="/orders" className="btn-primary mt-3 inline-block !px-4 !py-2 text-xs">{viewOnly ? "Open it" : "Go to my downloads"}</Link>
           </div>
         ) : (
           <div className="card mt-8 p-5 text-sm">
-            <p className="font-ui font-bold text-ink">Digital download · {item.fileName}{item.fileSize ? ` (${fmtSize(item.fileSize)})` : ""}</p>
-            <p className="mt-1 text-slate">Instant access after payment: no shipping, nothing to wait for.</p>
+            {viewOnly ? (
+              <>
+                <p className="font-ui font-bold text-ink">{(item.lessonCount ?? 0) > 1 ? `Course · ${item.lessonCount} lessons` : "View-only"} · watch or read online</p>
+                <p className="mt-1 text-slate">Instant access after payment. There is nothing to download: you watch the videos and read the PDFs here on #NotesApp, on up to <strong>2 devices</strong> (as many times as you like on those two).</p>
+                {item.lessons && item.lessons.length > 0 && (
+                  <ol className="mt-3 list-decimal space-y-0.5 pl-5 text-xs text-slate">
+                    {item.lessons.map((l) => <li key={l.id}>{l.title} <span className="font-mono">· {l.kind === "video" ? "video" : "PDF"}</span></li>)}
+                  </ol>
+                )}
+              </>
+            ) : (
+              <>
+                <p className="font-ui font-bold text-ink">Digital download · {item.fileName}{item.fileSize ? ` (${fmtSize(item.fileSize)})` : ""}</p>
+                <p className="mt-1 text-slate">Instant access after payment: no shipping, nothing to wait for.</p>
+              </>
+            )}
             <p className="mt-3 text-ink">Price: <strong>{formatNaira(unit)}</strong></p>
             <label className="mt-3 flex items-start gap-2 text-xs text-slate">
               <input type="checkbox" checked={agreed} onChange={(e) => setAgreed(e.target.checked)} className="mt-0.5" />
-              <span>I understand this is a digital download: once I download it the purchase is final and can&apos;t be refunded. See <Link href="/terms" className="text-crimson underline">Terms 5g</Link>.</span>
+              <span>{viewOnly ? "I understand this is view-only, works on 2 devices, and once I open it the purchase is final and can't be refunded." : "I understand this is a digital download: once I download it the purchase is final and can't be refunded."} See <Link href="/terms" className="text-crimson underline">Terms 5g</Link>.</span>
             </label>
             {error && <p className="mt-3 text-sm text-crimson">{error}</p>}
             <button onClick={payDigital} disabled={busy} className="btn-primary mt-4">{busy ? "Please wait…" : user ? `Pay ${formatNaira(unit)}` : "Sign in to buy"}</button>

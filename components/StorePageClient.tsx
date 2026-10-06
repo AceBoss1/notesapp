@@ -7,7 +7,7 @@ import { auth } from "@/lib/firebase";
 import { getUserByUsername, canPublish, UserProfile } from "@/lib/users";
 import Avatar from "@/components/Avatar";
 import StoreManager from "@/components/StoreManager";
-import { getStoreItems, StoreItem } from "@/lib/store";
+import { digitalReady, getStoreItems, StoreItem } from "@/lib/store";
 import { useMemberships } from "@/lib/useMemberships";
 import ItemCard from "@/components/StoreItemCard";
 import BoostedStrip from "@/components/BoostedStrip";
@@ -52,7 +52,7 @@ export default function StorePageClient({ params }: { params: { username: string
   // Publisher listings are on-platform physical goods only; legacy link-out listings stay hidden.
   const shown = items.filter((i) => !i.id || i.sellable);
   // Downloads first, then physical items. A download isn't shown to buyers until its file is attached.
-  const digitalItems = shown.filter((i) => i.kind === "digital" && (isOwner || teamAccess || i.fileName));
+  const digitalItems = shown.filter((i) => i.kind === "digital" && (isOwner || teamAccess || digitalReady(i)));
   const physicalItems = shown.filter((i) => i.kind !== "digital");
 
   return (

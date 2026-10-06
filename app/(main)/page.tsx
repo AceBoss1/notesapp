@@ -28,9 +28,10 @@ const FEATURES = [
   { title: "Ad share, from day one", copy: "Pro publishers earn 25% and Business publishers 45% of the ad revenue on their pages — no follower or view thresholds to clear first. Ads are opt-in for paid plans, every one is labelled “Sponsored”, and your share is paid monthly after review. Brands can buy a banner campaign online." },
   { title: "Co-authoring", copy: "Pro and Business publishers can write a post with other members, agree each person's share of what it earns — gifts on it are split now — and share the byline. Everyone accepts before it's listed." },
   { title: "Gold badge", copy: "Get endorsed by #NotesApp, or identity-checked, and wear the gold ✔ beside your name on your profile, the directory and every post." },
-  { title: "A brand store for every journal", copy: "Every professional gets their own storefront on their profile — sell physical goods with buyer payments held until delivery, a managed stock count and a tracking ID for every parcel — or digital downloads delivered instantly after payment. Boost any item to put it in front of more readers. Organisations can run theirs with their team." },
-  { title: "Enterprise: API, webhooks & your own domain", copy: "Partners get a server-to-server API to publish posts and read bookings, orders and earnings, signed webhooks, a Console for keys, and their page, journals and store on their own domain." },
-  { title: "Trust you can check", copy: "Buyer payments held until delivery, private downloads behind short-lived links, tested access rules, and your own data to download or delete. Read how it works on Trust & security." },
+  { title: "A brand store for every journal", copy: "Every professional gets their own storefront on their profile — sell physical goods with buyer payments held until delivery, a managed stock count and a tracking ID for every parcel — or digital downloads delivered instantly after payment, or — on Pro and above — view-only files and video courses that buyers watch on up to 2 devices with no download. Items can have up to 5 photos and Size and Colour options. Boost any item to put it in front of more readers. Organisations can run theirs with their team." },
+  { title: "Parcel tracking for riders & drivers", copy: "Every parcel gets a chain-of-custody log: record each holder — bike rider, bus driver, park agent — and they update the location or hand on to the next person from a short link, with no login. Buyers see it on the parcel's tracking page." },
+  { title: "Enterprise: your own branded site, API & the lowest rates", copy: "Your name and logo on your own domain with Home, Notes and Shop, visitors who sign in, book and pay without leaving it, a server-to-server API with signed webhooks, unlimited team seats, a 75% ad share and store commissions from 1% on physical items and 1.5% on downloads. Business includes 4 seats (the owner plus three team members)." },
+  { title: "Trust you can check", copy: "Buyer payments held until delivery, private files behind short-lived links, view-only courses on two devices, tested access rules, and your own data to download or delete. Read how it works on Trust & security." },
   { title: "Open about what's live", copy: "A public status page with response times and incident updates, and a changelog of every release, so you always know what changed." },
   { title: "Bring your own transcription (coming)", copy: "Connect Otter.ai or Whisper for session notes. We integrate; we don't lock you into one AI vendor." },
 ];
@@ -54,9 +55,9 @@ export default async function Home() {
             </h1>
             <p className="mt-6 max-w-xl font-body text-lg text-slate">
               #NotesApp fuses a publishing journal, a native booking
-              calendar, and inline Naira payments into one workspace —
-              so coaches, consultants, and therapists stop stitching
-              together WhatsApp, a booking link, and a blog just to run
+              calendar, a shop and inline Naira payments into one workspace —
+              so coaches, consultants, therapists and growing brands stop stitching
+              together WhatsApp, a booking link, a blog and a store just to run
               their practice.
             </p>
             <div className="mt-9 flex flex-wrap items-center gap-4">

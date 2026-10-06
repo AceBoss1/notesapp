@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import type { StoreItem } from "@/lib/store";
+import { digitalReady, isViewOnly, type StoreItem } from "@/lib/store";
 import NotifyWhenBack from "@/components/NotifyWhenBack";
 import { fmtSize } from "@/lib/store-files";
 
@@ -29,7 +29,7 @@ export default function ItemCard({ item, shopBase = "/shop" }: { item: StoreItem
       <div className="flex flex-1 flex-col p-5">
         {(item.badge || digital) && (
           <span className="mb-2 inline-block w-fit rounded-full bg-crimson/10 px-2.5 py-0.5 font-mono text-[10px] uppercase tracking-wideish text-crimson">
-            {digital ? "Digital download" : item.badge}
+            {digital ? (isViewOnly(item) ? (item.lessonCount && item.lessonCount > 1 ? "Course · view only" : "View only") : "Digital download") : item.badge}
           </span>
         )}
         <h3 className="font-ui text-base font-bold leading-snug text-ink">
@@ -43,12 +43,13 @@ export default function ItemCard({ item, shopBase = "/shop" }: { item: StoreItem
           </p>
         )}
         {href && b && !b.cut && <p className="mt-1"><Link href={href} className="text-xs font-semibold text-crimson hover:underline">Learn more »</Link></p>}
+        {digital && isViewOnly(item) && digitalReady(item) && <p className="mt-2 font-mono text-[11px] text-slate">{item.lessonCount} lesson{item.lessonCount === 1 ? "" : "s"} · watch or read online, no download</p>}
         {digital && item.fileName && <p className="mt-2 font-mono text-[11px] text-slate">{item.fileName}{item.fileSize ? ` · ${fmtSize(item.fileSize)}` : ""}</p>}
-        {digital && !item.fileName && <p className="mt-2 font-mono text-[11px] text-amber-800">File not attached yet — buyers can&apos;t see this item.</p>}
+        {digital && !digitalReady(item) && <p className="mt-2 font-mono text-[11px] text-amber-800">{isViewOnly(item) ? "No lessons added yet" : "File not attached yet"} — buyers can&apos;t see this item.</p>}
         <div className="mt-5 flex items-center justify-end gap-3">
           {item.sellable && item.id ? (
             digital ? (
-              <Link href={href!} className="btn-primary !px-4 !py-2 text-xs">Buy &amp; download</Link>
+              <Link href={href!} className="btn-primary !px-4 !py-2 text-xs">{isViewOnly(item) ? "Buy & view" : "Buy & download"}</Link>
             ) : (item.stock ?? 0) > 0 ? (
               <>
                 {(item.stock ?? 0) <= 5 && <span className="mr-auto font-mono text-[11px] text-slate">Only {item.stock} left</span>}

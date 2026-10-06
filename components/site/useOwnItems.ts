@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { getStoreItems, StoreItem } from "@/lib/store";
+import { digitalReady, getStoreItems, StoreItem } from "@/lib/store";
 import { useSite } from "./SiteContext";
 
 // The member's items that can actually be bought (undefined while loading).
@@ -10,7 +10,7 @@ export function useOwnItems(): StoreItem[] | undefined {
   const [items, setItems] = useState<StoreItem[] | undefined>(undefined);
   useEffect(() => {
     getStoreItems(uid, username)
-      .then((all) => setItems(all.filter((i) => i.sellable && i.id && (i.kind === "digital" ? !!i.fileName : true))))
+      .then((all) => setItems(all.filter((i) => i.sellable && i.id && (i.kind === "digital" ? digitalReady(i) : true))))
       .catch(() => setItems([]));
   }, [uid, username]);
   return items;
