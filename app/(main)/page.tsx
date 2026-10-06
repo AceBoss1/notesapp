@@ -3,6 +3,7 @@ import Image from "next/image";
 import BoostedStrip from "@/components/BoostedStrip";
 import GoldBadgeExplainer from "@/components/GoldBadgeExplainer";
 import IndependenceDoodle from "@/components/IndependenceDoodle";
+import ChallengeHero from "@/components/ChallengeHero";
 import AdSlot from "@/components/AdSlot";
 import { activeHostForUsername } from "@/lib/domains";
 import PartnerIcon from "@/components/PartnerIcon";
@@ -43,6 +44,7 @@ export default async function Home() {
   return (
     <>
       <IndependenceDoodle />
+      <ChallengeHero />
       {/* Hero */}
       <section className="relative overflow-hidden">
         <div className="mx-auto grid max-w-7xl grid-cols-1 gap-14 px-4 py-20 sm:px-6 lg:grid-cols-[1.1fr,0.9fr] lg:items-center lg:px-8 lg:py-28">

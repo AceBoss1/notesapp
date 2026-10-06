@@ -4,6 +4,7 @@ import AuthNav from "@/components/AuthNav";
 import VerifyEmailBanner from "@/components/VerifyEmailBanner";
 import SearchBar from "@/components/SearchBar";
 import CelebrationBanner from "@/components/CelebrationBanner";
+import ChallengeBanner from "@/components/ChallengeBanner";
 import RememberReturn from "@/components/RememberReturn";
 import { getSiteSettingsCached } from "@/lib/settings";
 import { COMPANY_INFO } from "@/lib/site";
@@ -52,6 +53,7 @@ const site = await getSiteSettingsCached();
     <>
         <RememberReturn />
         <CelebrationBanner />
+        <ChallengeBanner />
         <VerifyEmailBanner />
         {/* Masthead */}
         <header className="sticky top-0 z-40 border-b border-rule bg-paper/90 backdrop-blur">
