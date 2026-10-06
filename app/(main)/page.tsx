@@ -192,9 +192,9 @@ export default async function Home() {
           </div>
           <div className="card flex flex-col items-start justify-between gap-6 p-8">
             <div>
-              <p className="font-ui text-sm font-bold text-ink">ApexGlitz · shop</p>
+              <p className="font-ui text-sm font-bold text-ink">ApexGlitz Boutique · shop</p>
               <p className="mt-3 max-w-xl font-body text-slate">
-                ApexGlitz runs its shop on #NotesApp — products with photos and options, checkout in Naira with the buyer&apos;s payment held until delivery — on its own domain at{" "}
+                ApexGlitz Boutique — a fashion boutique — sells from its own shop on #NotesApp, with several photos and size and colour options per item, checkout in Naira and the buyer&apos;s payment held until delivery, on its own domain at{" "}
                 <a href={`https://${shopHost ?? "apexglitz.com.ng"}`} className="underline decoration-crimson/40 underline-offset-2 hover:text-crimson">
                   {shopHost ?? "apexglitz.com.ng"}
                 </a>

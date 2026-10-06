@@ -48,12 +48,21 @@ export async function playbackToken(uid: string, seconds = 4 * 3600): Promise<st
 }
 export const playerUrl = (token: string) => `https://iframe.videodelivery.net/${token}`;
 
-// For /status: does the Stream API answer for our token? (a one-item listing)
+// For /status: does the Stream API answer for our token? Asks for the account's storage usage (one small object, however many
+// videos there are). On failure the reason goes to the server log so a bad token, wrong account id or missing Stream
+// subscription can be told apart.
 export async function pingStream(): Promise<boolean> {
   try {
-    await cf("?per_page=1");
-    return true;
-  } catch {
+    const res = await fetch(`https://api.cloudflare.com/client/v4/accounts/${accountId()}/stream/storage-usage`, {
+      headers: { Authorization: `Bearer ${process.env.CLOUDFLARE_STREAM_TOKEN}` },
+      cache: "no-store",
+    });
+    if (res.ok) return true;
+    const j = await res.json().catch(() => ({}));
+    console.warn("[status] Cloudflare Stream check failed:", res.status, j?.errors?.[0]?.code, j?.errors?.[0]?.message);
+    return false;
+  } catch (e) {
+    console.warn("[status] Cloudflare Stream check failed:", e instanceof Error ? e.message : e);
     return false;
   }
 }
