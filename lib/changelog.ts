@@ -11,6 +11,14 @@ export type Release = {
 
 export const CHANGELOG: Release[] = [
   {
+    version: "v0.6.5",
+    bump: "patch",
+    date: "2026-10-06",
+    changes: [
+      { kind: "changed", text: "The landing, About, Organisations and API Docs pages now say that Precheks' main website, precheks.com.ng, runs on the #NotesApp API and webhooks, alongside its branded journal at notes.precheks.com.ng." },
+    ],
+  },
+  {
     version: "v0.6.4",
     bump: "patch",
     date: "2026-10-06",

@@ -4,7 +4,7 @@ import { ENDPOINTS, WEBHOOK_DOCS } from "@/lib/api-docs";
 
 export const metadata: Metadata = {
   title: "API Docs",
-  description: "The #NotesApp API for Enterprise partners (authentication, posts, bookings, orders, earnings, webhooks) and how Business and Enterprise accounts connect their own domain.",
+  description: "The #NotesApp API for Enterprise partners, as used by precheks.com.ng: authentication, posts, bookings, orders, earnings and webhooks, plus how Business and Enterprise accounts connect their own domain.",
 };
 
 const code = "overflow-x-auto rounded bg-ink px-4 py-3 font-mono text-xs leading-relaxed text-paper";
