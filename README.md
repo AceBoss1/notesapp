@@ -48,6 +48,7 @@ the main site) · Sentry (we have built-in error monitoring instead).
 | `R2_SECRET_ACCESS_KEY` | **yes** | R2 secret. The R2 token must cover **both** buckets (media and private) with Object Read & Write |
 | `R2_BUCKET_NAME` | no | Public media bucket (default `notesapp-media`): images, avatars, post videos |
 | `NEXT_PUBLIC_R2_PUBLIC_URL` | no | Public URL of the media bucket (e.g. `https://media.notesapp.name.ng`) |
+| `CLOUDFLARE_STREAM_TOKEN` | no | Cloudflare API token with **Stream: Edit** — video lessons of view-only items and courses (uploaded with signed-URL protection; the account id is `R2_ACCOUNT_ID` unless `CLOUDFLARE_ACCOUNT_ID` is set). Without it, only PDF lessons work |
 | `R2_PRIVATE_BUCKET` | no | Name of the private bucket for paid downloads (just a name, a plain variable) |
 | `PAYSTACK_SECRET_KEY` | **yes** | Paystack API key (also verifies webhook signatures) |
 | `NEXT_PUBLIC_SITE_URL` | no | `https://www.notesapp.name.ng` (emails, API URLs, share links) |

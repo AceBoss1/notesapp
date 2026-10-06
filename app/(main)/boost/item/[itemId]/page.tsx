@@ -52,7 +52,7 @@ export default function BoostItemPage() {
 
   if (item === undefined) return <div className="px-6 py-24 text-center text-slate">Loading…</div>;
   if (!item) return <div className="px-6 py-24 text-center text-slate">Item not found.</div>;
-  const unfinished = item.kind === "digital" && !item.fileName;
+  const unfinished = item.kind === "digital" && !item.fileName && !(item.lessonCount && item.lessonCount > 0);
 
   return (
     <section className="mx-auto max-w-3xl px-4 py-14 sm:px-6">

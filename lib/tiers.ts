@@ -155,3 +155,6 @@ export const BADGE_PRICE_KOBO = 999 * 100;
 export function badgeIncluded(tier: AccountTier): boolean {
   return tier === "business" || tier === "enterprise";
 }
+
+// View-only digital items and video courses (no download, up to 2 devices) are for Pro and above.
+export const canSellViewOnly = (tier: AccountTier): boolean => tier === "pro" || tier === "business" || tier === "enterprise";

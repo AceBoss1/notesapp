@@ -34,7 +34,20 @@ export type StoreItem = {
   kind?: "physical" | "digital";
   fileName?: string;
   fileSize?: number;
+  // Digital only. "view" = view-only: no file to download — the buyer watches video lessons and reads PDF lessons in
+  // the player (see lib/view-access.ts). `lessons` is the public outline (the files themselves are private, in storeFiles),
+  // kept by the server; `access` is chosen when the item is added. Anything else is a plain download.
+  access?: "download" | "view";
+  lessons?: PublicLesson[];
+  lessonCount?: number;
 };
+
+export type PublicLesson = { id: string; title: string; kind: "video" | "pdf"; durationSec?: number };
+export const MAX_LESSONS = 50;
+
+// A digital item a buyer can actually be given: an attached file, or at least one lesson.
+export const digitalReady = (i: Pick<StoreItem, "fileName" | "lessonCount">) => !!i.fileName || (i.lessonCount ?? 0) > 0;
+export const isViewOnly = (i: Pick<StoreItem, "kind" | "access">) => i.kind === "digital" && i.access === "view";
 
 export type StoreOption = { name: string; choices: string[] };
 export const MAX_IMAGES = 5;
@@ -166,7 +179,7 @@ function clean(input: StoreItemInput) {
   const stock = digital ? 0 : options.length ? combos.reduce((n, k) => n + variantStock[k], 0) : Math.max(0, Math.floor(Number(input.stock ?? 0)));
   return {
     sellable: true as const,
-    ...(digital ? { kind: "digital" as const, ...(input.fileName ? { fileName: input.fileName, fileSize: input.fileSize ?? 0 } : {}) } : {}),
+    ...(digital ? { kind: "digital" as const, ...(input.access === "view" ? { access: "view" as const } : {}), ...(input.fileName ? { fileName: input.fileName, fileSize: input.fileSize ?? 0 } : {}) } : {}),
     priceKobo: Math.round(Number(input.priceKobo)),
     deliveryKobo: digital ? 0 : Math.round(Number(input.deliveryKobo ?? 0)),
     stock,
@@ -178,7 +191,7 @@ function clean(input: StoreItemInput) {
     ...(input.badge?.trim() ? { badge: input.badge.trim() } : {}),
     link: "https://www.notesapp.name.ng",
     image: images[0] || input.image.trim() || DEFAULT_STORE_IMAGE,
-    cta: digital ? "Buy & download" : "Buy now",
+    cta: digital ? (input.access === "view" ? "Buy & view" : "Buy & download") : "Buy now",
   };
 }
 
@@ -197,12 +210,14 @@ export async function updateStoreItem(uid: string, id: string, input: StoreItemI
   const existing = await getDoc(ref);
   // A listing keeps its kind, and a digital one its attached file (set by the server).
   const keepKind = existing.data()?.kind === "digital" ? "digital" : undefined;
-  const data = clean({ ...input, kind: keepKind, ...(keepKind ? { fileName: existing.data()?.fileName, fileSize: existing.data()?.fileSize } : {}) });
+  const data = clean({ ...input, kind: keepKind, ...(keepKind ? { fileName: existing.data()?.fileName, fileSize: existing.data()?.fileSize, access: existing.data()?.access } : {}) });
   await setDoc(ref, {
     ...data,
     // Unless the seller edited stock (or the options), the numbers in the database win: orders reserve and release them.
     ...(!stockChanged && Number.isInteger(existing.data()?.stock) ? { stock: existing.data()!.stock } : {}),
     ...(!stockChanged && existing.data()?.variantStock && data.options ? { variantStock: existing.data()!.variantStock } : {}),
+    // The lesson outline is kept by the server (see /api/store/lessons); a replace must not wipe it.
+    ...(existing.data()?.lessons ? { lessons: existing.data()!.lessons, lessonCount: existing.data()!.lessonCount ?? 0 } : {}),
     ownerUid: existing.data()?.ownerUid ?? uid,
     createdAt: existing.data()?.createdAt ?? new Date().toISOString(),
     updatedAt: new Date().toISOString(),

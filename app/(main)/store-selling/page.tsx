@@ -44,6 +44,17 @@ export default function StoreSellingPage() {
         ))}
       </ul>
 
+      <h2 id="view-only" className="mt-12 font-display text-2xl text-ink">View-only files and video courses</h2>
+      <p className="mt-3 text-sm text-slate">
+        On Pro and above, choose &ldquo;View only&rdquo; when you add a digital item. Instead of one downloadable file you add <strong className="text-ink">lessons</strong>: videos (hosted on Cloudflare Stream and played only with short-lived, per-buyer links) and PDFs (drawn in the page). One lesson is a single view-only file; several make a course, with a lesson list and the order you set.
+      </p>
+      <ul className="mt-3 list-disc space-y-1 pl-5 text-sm text-slate">
+        <li>There is no download button and no file link. The buyer&apos;s email is stamped faintly over the video and each PDF page, and right-click and printing are blocked.</li>
+        <li><strong className="text-ink">Two devices per purchase</strong>, with as many sessions as the buyer likes on those two. A third device is refused, the buyer sees &ldquo;Blocked attempt #n&rdquo;, and every attempt is counted. A buyer who loses a device can remove it, up to twice in 30 days.</li>
+        <li>Like a download, the sale is final once the buyer first opens it. Your share is paid after the usual 7-day window.</li>
+        <li>Honest limits: nothing on a screen can be made impossible to copy — someone determined can record their screen. This stops casual saving and sharing, and ties each purchase to one buyer and two devices.</li>
+      </ul>
+
       <h2 className="mt-12 font-display text-2xl text-ink">Boost your items</h2>
       <p className="mt-3 text-sm text-slate">
         Any item can be boosted from your store page with the same packages as post boosts — it then rotates in the Boosted strips and at the top of your store page. See <Link href="/boost" className="text-crimson underline">Boost</Link>.

@@ -8,6 +8,9 @@ import { STORE_DELIVERY_MAX_KOBO, STORE_ITEM_MAX_KOBO, STORE_ITEM_MIN_KOBO } fro
 import Link from "next/link";
 import { addStoreItem, updateStoreItem, deleteStoreItem, StoreItem, MAX_CHOICES, MAX_IMAGES, MAX_OPTIONS, cleanOptions, variantCombos, variantKey, DEFAULT_STORE_IMAGE } from "@/lib/store";
 import { attachDigitalFile, fmtSize } from "@/lib/store-files";
+import LessonsEditor from "@/components/LessonsEditor";
+import { canSellViewOnly } from "@/lib/tiers";
+import { effectiveTier } from "@/lib/users";
 import { DIGITAL_EXTENSIONS, DIGITAL_MAX_BYTES } from "@/lib/private-files-config";
 
 const field = "mt-1 w-full border border-rule bg-card px-3 py-2 font-body text-sm outline-none focus:border-gold";
@@ -37,6 +40,10 @@ export default function StoreManager({
   // Physical or digital — chosen when the item is added, fixed afterwards.
   const [kind, setKind] = useState<"physical" | "digital">("physical");
   const [file, setFile] = useState<File | null>(null);
+  // Digital only: a file to download, or view-only lessons (Pro and above), chosen when the item is added.
+  const [access, setAccess] = useState<"download" | "view">("download");
+  const [lessonsFor, setLessonsFor] = useState<string | null>(null);
+  const viewOnlyOk = canSellViewOnly(effectiveTier(profile));
   const [progress, setProgress] = useState("");
   // Photos (the first is the main one), up to two options like Size/Colour, and stock per combination.
   const [images, setImages] = useState<string[]>([]);
@@ -52,6 +59,7 @@ export default function StoreManager({
   function startEdit(item?: StoreItem) {
     setEditing(item ?? null);
     setKind(item?.kind === "digital" ? "digital" : "physical");
+    setAccess(item?.access === "view" ? "view" : "download");
     setFile(null);
     setProgress("");
     setImages(item ? (item.images?.length ? item.images : item.image && item.image !== DEFAULT_STORE_IMAGE ? [item.image] : []) : []);
@@ -102,14 +110,16 @@ export default function StoreManager({
     if (withOptions && (combos.some((c) => (vstock[variantKey(c)] ?? "").trim() === "") || stocks.some((x) => !Number.isInteger(x) || x < 0 || x > 100000))) return setError("Enter the stock for every combination (a whole number; 0 means sold out).");
     if (optionRows.some((r) => (r.name.trim() === "") !== (r.choices.trim() === ""))) return setError("Give each option both a name (like Size) and its choices (like S, M, L), or clear both.");
     if (images.length > MAX_IMAGES) return setError(`Up to ${MAX_IMAGES} photos.`);
-    if (digital && !editing && !file) return setError("Choose the file buyers will download.");
+    const viewOnly = digital && access === "view";
+    if (viewOnly && !editing && !viewOnlyOk) return setError("View-only items and courses are on the Pro plan and above.");
+    if (digital && !viewOnly && !editing && !file) return setError("Choose the file buyers will download.");
     if (file && file.size > DIGITAL_MAX_BYTES) return setError(`The file is too big — the limit is ${DIGITAL_MAX_BYTES / 1024 / 1024} MB.`);
     const input = {
       title: form.title, subtitle: form.subtitle, badge: form.badge, image: images[0] ?? "", images,
       ...(withOptions ? { options, variantStock: Object.fromEntries(combos.map((c, i) => [variantKey(c), stocks[i]])) } : {}),
-      price: `₦${(priceKobo / 100).toLocaleString("en-NG")}`, link: "", cta: digital ? "Buy & download" : "Buy now",
+      price: `₦${(priceKobo / 100).toLocaleString("en-NG")}`, link: "", cta: digital ? (viewOnly ? "Buy & view" : "Buy & download") : "Buy now",
       sellable: true, priceKobo, deliveryKobo: digital ? 0 : deliveryKobo, stock,
-      ...(digital ? { kind: "digital" as const } : {}),
+      ...(digital ? { kind: "digital" as const, ...(viewOnly ? { access: "view" as const } : {}) } : {}),
     };
     setBusy(true);
     try {
@@ -124,7 +134,7 @@ export default function StoreManager({
       // A digital item's file goes to private storage after the listing exists (the server checks
       // the file and attaches it). If the upload fails the listing stays hidden from buyers until
       // a file is attached — the seller can retry with Edit.
-      if (digital && file && id && auth.currentUser) {
+      if (digital && !viewOnly && file && id && auth.currentUser) {
         try {
           await attachDigitalFile(auth.currentUser, id, file, setProgress);
         } catch (err) {
@@ -155,7 +165,8 @@ export default function StoreManager({
       setOptionRows(EMPTY_OPTIONS);
       setVstock({});
       setFile(null);
-      setMsg("Saved.");
+      setMsg(viewOnly && id && !editing ? "Saved — now add its lessons below. Buyers can't see it until it has one." : "Saved.");
+      if (viewOnly && id) setLessonsFor(id);
       onChanged();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Couldn't save the item.");
@@ -196,13 +207,17 @@ export default function StoreManager({
       {sellable.length > 0 && !open && (
         <ul className="mt-4 divide-y divide-rule border-t border-rule">
           {sellable.map((i) => (
-            <li key={i.id} className="flex items-center justify-between gap-3 py-2 text-sm">
-              <span className="truncate">{i.title} <span className="font-mono text-xs text-slate">· {i.price} · {i.kind === "digital" ? (i.fileName ? `download · ${i.fileName}${i.fileSize ? ` (${fmtSize(i.fileSize)})` : ""}` : "download · NO FILE YET") : i.stock && i.stock > 0 ? `${i.stock} in stock${i.options?.length ? ` · ${i.options.map((o) => o.name).join(" × ")}` : ""}` : "sold out"}</span></span>
+            <li key={i.id} className="py-2 text-sm">
+             <div className="flex items-center justify-between gap-3">
+              <span className="truncate">{i.title} <span className="font-mono text-xs text-slate">· {i.price} · {i.kind === "digital" ? (i.access === "view" ? ((i.lessonCount ?? 0) > 0 ? `view only · ${i.lessonCount} lesson${i.lessonCount === 1 ? "" : "s"}` : "view only · NO LESSONS YET") : i.fileName ? `download · ${i.fileName}${i.fileSize ? ` (${fmtSize(i.fileSize)})` : ""}` : "download · NO FILE YET") : i.stock && i.stock > 0 ? `${i.stock} in stock${i.options?.length ? ` · ${i.options.map((o) => o.name).join(" × ")}` : ""}` : "sold out"}</span></span>
               <span className="flex shrink-0 gap-3 font-ui text-xs font-semibold">
                 <Link href={`/boost/item/${i.id}`} className="text-crimson">Boost</Link>
-                <button onClick={() => startEdit(i)} className="text-crimson">{i.kind === "digital" ? "Edit / replace file" : "Edit / restock"}</button>
+                {i.access === "view" && <button onClick={() => setLessonsFor(lessonsFor === i.id ? null : i.id!)} className="text-crimson">Lessons</button>}
+                <button onClick={() => startEdit(i)} className="text-crimson">{i.kind === "digital" ? (i.access === "view" ? "Edit" : "Edit / replace file") : "Edit / restock"}</button>
                 <button onClick={() => remove(i.id!)} className="text-slate hover:text-crimson" disabled={busy}>Remove</button>
               </span>
+             </div>
+             {lessonsFor === i.id && auth.currentUser && <LessonsEditor key={i.id} user={auth.currentUser} item={i} onChanged={onChanged} />}
             </li>
           ))}
         </ul>
@@ -237,6 +252,20 @@ export default function StoreManager({
             </div>
             {editing && <span className="ml-2">(can&apos;t be changed after adding)</span>}
           </div>
+          {kind === "digital" && (
+            <div className="sm:col-span-2 text-xs text-slate">
+              How do buyers get it?
+              <div className="mt-1 inline-flex overflow-hidden rounded-full border border-rule" role="group" aria-label="Delivery">
+                {(["download", "view"] as const).map((a) => (
+                  <button key={a} type="button" disabled={!!editing || (a === "view" && !viewOnlyOk)} onClick={() => setAccess(a)}
+                    className={`px-4 py-1.5 text-xs font-semibold ${access === a ? "bg-crimson text-paper" : "text-ink hover:text-crimson"} disabled:cursor-not-allowed disabled:opacity-50`}>
+                    {a === "download" ? "Download the file" : "View only — video & course"}
+                  </button>
+                ))}
+              </div>
+              {!viewOnlyOk && !editing && <span className="ml-2">View-only and courses are on <Link href="/pricing" className="text-crimson underline">Pro and above</Link>.</span>}
+            </div>
+          )}
           <label className="sm:col-span-2 text-xs text-slate">Title
             <input value={form.title} onChange={set("title")} maxLength={120} className={field} required />
           </label>
@@ -282,6 +311,10 @@ export default function StoreManager({
                 </div>
               )}
             </>
+          ) : access === "view" ? (
+            <div className="sm:col-span-2 text-xs text-slate">
+              View-only: you&apos;ll add the video and PDF lessons right after saving. Buyers watch and read them here on #NotesApp, on up to 2 devices, and can&apos;t download them. A sale is final once they open it.
+            </div>
           ) : (
             <div className="sm:col-span-2 text-xs text-slate">
               {editing ? "Replace the file (optional)" : "File buyers will download"}

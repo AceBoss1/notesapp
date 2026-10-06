@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { TIERS, formatPercent, badgeIncluded, BADGE_PRICE_KOBO } from "@/lib/tiers";
+import { TIERS, formatPercent, badgeIncluded, canSellViewOnly, BADGE_PRICE_KOBO } from "@/lib/tiers";
 import { VIDEO_MAX_BYTES, VIDEO_MAX_SECONDS, VIDEO_WEEKLY_LIMIT } from "@/lib/video-rules";
 import { GOLD_PRICING } from "@/lib/gold";
 import { BOOST_PACKAGES } from "@/lib/boost-config";
@@ -81,6 +81,11 @@ const ROWS: { label: string; href?: string; render: (t: (typeof TIERS)[number]) 
     label: "Digital downloads sold in your store",
     href: "/store-selling",
     render: (t) => (t.canPublish ? `NotesApp takes ${formatPercent(t.digitalCommission, t.digitalCommissionFloor)} of the price — instant download after payment, final once downloaded (no refunds)` : "—"),
+  },
+  {
+    label: "View-only files & video courses",
+    href: "/store-selling#view-only",
+    render: (t) => (t.canPublish ? (canSellViewOnly(t.tier) ? "Yes — sell PDFs and video lessons that buyers watch or read here, with no download, on up to 2 devices" : "Upgrade to Pro — downloads only") : "—"),
   },
   {
     label: "Links out to other shops",
