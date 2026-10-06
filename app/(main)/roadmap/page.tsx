@@ -104,10 +104,13 @@ export default function RoadmapPage() {
             <p className="font-ui text-sm font-bold text-ink">○ On the roadmap, not live</p>
             <ul className="mt-3 space-y-2 text-sm text-slate">
               <li>WhatsApp reminders alongside email and the bell</li>
-              {GOLD_KIND_LIVE.identity ? null : <li>Identity-checked gold badge (NIN + face check for people, CAC for organisations)</li>}
-              <li>Full white label for Enterprise, Paylony payments and Tap-to-Pay</li>
-              <li>iOS and Android apps, AI drafting, social publishing, ad-share</li>
-              <li>Audio and video meetings, meeting chat and direct messages (under discussion)</li>
+              {GOLD_KIND_LIVE.identity ? null : <li>Automatic identity-checked gold badge (all built; NIN + face check for people, CAC for organisations awaiting final tests)</li>}
+              <li>Full white label for Enterprise</li>
+              <li>Paylony payments and Tap-to-Pay</li>
+              <li>iOS and Android apps</li>
+              <li>AI drafting, social publishing, ad-share</li>
+              <li>Audio and video meetings, meeting chat (under team discussion)</li>
+              <li>Direct messages + audio and video calls (under team discussion)</li>
             </ul>
           </div>
         </div>
