@@ -16,6 +16,7 @@ export const CHANGELOG: Release[] = [
     date: "2026-10-06",
     changes: [
       { kind: "added", text: "Your own domain is now on Business as well as Enterprise: serve your page, journals and store on notes.yourbrand.com or yourbrand.com. On Business it is semi white-label — the footer reads “Your name is powered by #NotesApp” and emails go out under #NotesApp's name on your behalf. The Console is for connecting your domain; the API, keys and webhooks stay Enterprise-only." },
+      { kind: "changed", text: "Enterprise now starts at ₦55,000/month, and its site footer reads “Your name, powered by” with the #NotesApp icon (Business keeps “Your name is powered by #NotesApp”)." },
       { kind: "added", text: "The status page now monitors video courses (Cloudflare Stream)." },
     ],
   },

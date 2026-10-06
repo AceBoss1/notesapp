@@ -41,6 +41,9 @@ export type TierConfig = {
   // API access: server-to-server API + Console, switched on per account by an admin.
   customDomain?: boolean;
   apiAccess?: boolean;
+  // Footer on the member's own domain: Business shows "Name is powered by [na] #NotesApp" (semi white-label); Enterprise
+  // shows "Name, powered by [na]" with just the icon.
+  whiteLabel?: "partial" | "full";
 };
 
 export const TIERS: TierConfig[] = [
@@ -85,6 +88,7 @@ export const TIERS: TierConfig[] = [
     monthlyKobo: 15_000 * 100,
     yearlyKobo: 150_000 * 100,
     customDomain: true,
+    whiteLabel: "partial",
     canPublish: true,
     adRevenueShare: 0.45,
     sessionAndUnlockCommission: 0.15,
@@ -94,7 +98,7 @@ export const TIERS: TierConfig[] = [
   {
     tier: "enterprise",
     label: "Enterprise",
-    price: "From ₦35,000/month",
+    price: "From ₦55,000/month",
     priceNote: "rates and seats agreed with us",
     canPublish: true,
     adRevenueShare: 0.75, // increased from Business's 45%; the negotiable part is the commission side
@@ -106,6 +110,7 @@ export const TIERS: TierConfig[] = [
     digitalCommissionFloor: 0.015,
     customDomain: true,
     apiAccess: true,
+    whiteLabel: "full",
   },
 ];
 

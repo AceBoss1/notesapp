@@ -2,7 +2,8 @@ import type { Metadata } from "next";
 import { headers } from "next/headers";
 import Link from "next/link";
 import Image from "next/image";
-import { getUserByUsername } from "@/lib/users";
+import { effectiveTier, getUserByUsername } from "@/lib/users";
+import { getTierConfig } from "@/lib/tiers";
 import { MAIN_HOST, isMainHost } from "@/lib/host";
 import { domainForUid } from "@/lib/domains";
 import { SiteProvider } from "@/components/site/SiteContext";
@@ -42,6 +43,8 @@ export default async function SiteLayout({ children, params }: Props) {
   }
   const host = (headers().get("host") || "").toLowerCase().replace(/:\d+$/, "");
   const base = isMainHost(host) ? `/s/${p.username}` : "";
+  // Business: "Name is powered by [na] #NotesApp". Enterprise: "Name, powered by [na]" — just the icon.
+  const fullLabel = getTierConfig(effectiveTier(p)).whiteLabel === "full";
   const domain = await domainForUid(p.uid).catch(() => null);
   const info = {
     base, uid: p.uid, username: p.username, displayName: p.displayName, avatar: p.avatar, bio: p.bio, social: p.social || {},
@@ -76,10 +79,10 @@ export default async function SiteLayout({ children, params }: Props) {
             <p className="inline-flex flex-wrap items-center justify-center gap-x-2 gap-y-1">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src={p.avatar} alt="" className="h-4 w-4 shrink-0 rounded object-cover" />
-              <span>{p.displayName} is powered by</span>
-              <a href={`https://${MAIN_HOST}`} className="inline-flex items-center gap-1.5 font-semibold text-paper/80 hover:text-paper">
+              <span>{fullLabel ? `${p.displayName}, powered by` : `${p.displayName} is powered by`}</span>
+              <a href={`https://${MAIN_HOST}`} aria-label="#NotesApp" className="inline-flex items-center gap-1.5 font-semibold text-paper/80 hover:text-paper">
                 <Image src="/images/brand/notesapp-icon.webp" alt="" width={16} height={16} className="h-4 w-4 rounded" />
-                #NotesApp
+                {!fullLabel && "#NotesApp"}
               </a>
             </p>
           </div>

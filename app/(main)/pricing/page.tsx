@@ -200,7 +200,7 @@ export default function PricingPage() {
             yearly (two months free), renewing automatically through
             Paystack. Cancel any time under Rates &amp; payouts: you keep the
             plan until the period you paid for ends, with no partial
-            refunds. Enterprise starts at ₦35,000/month with rates agreed with us —{" "}
+            refunds. Enterprise starts at ₦55,000/month with rates agreed with us —{" "}
             <Link href="/contact" className="text-crimson underline underline-offset-2">
               contact us
             </Link>
