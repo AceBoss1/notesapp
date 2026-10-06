@@ -260,6 +260,14 @@ test("digital store items: no delivery/stock, kind is fixed, files and purchases
   await assertFails(setDoc(doc(as("alice"), "digitalPurchases/r2"), { buyerUid: "alice", sellerUid: "pub" }));
 });
 
+test("Paylony webhook events are server-only", async () => {
+  await env.withSecurityRulesDisabled(async (ctx) => {
+    await setDoc(doc(ctx.firestore(), "paylonyEvents/e1"), { event: "collection", amount: "5000" });
+  });
+  await assertFails(getDoc(doc(as("alice"), "paylonyEvents/e1")));
+  await assertFails(setDoc(doc(as("alice"), "paylonyEvents/e2"), { event: "collection" }));
+});
+
 test("view-only items: access/lessons only on digital items, device records are server-only", async () => {
   const base = { ownerUid: "pub", title: "Course", price: "₦9,000", link: "https://www.notesapp.name.ng", image: "/x.png", cta: "Buy & view", sellable: true, priceKobo: 900000, deliveryKobo: 0, stock: 0 };
   const view = { ...base, kind: "digital", access: "view" };

@@ -24,6 +24,7 @@ const LINKS = [
   { href: "/admin/enterprise", label: "Enterprise" },
   { href: "/admin/shops", label: "Shops" },
   { href: "/admin/stream", label: "Video storage" },
+  { href: "/admin/paylony", label: "Paylony" },
   { href: "/admin/api-access", label: "API & domains" },
   { href: "/admin/settings", label: "Settings" },
 ];

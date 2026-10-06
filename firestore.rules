@@ -574,6 +574,11 @@ service cloud.firestore {
       allow read, write: if false;
     }
 
+    // Webhook events received from Paylony — server-only.
+    match /paylonyEvents/{id} {
+      allow read, write: if false;
+    }
+
     // Which devices a view-only purchase is registered on, and blocked attempts — server-only.
     match /viewAccess/{ref} {
       allow read, write: if false;
