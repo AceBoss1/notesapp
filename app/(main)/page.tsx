@@ -176,8 +176,8 @@ export default async function Home() {
             <div>
               <p className="font-ui text-sm font-bold text-ink">Precheks · journal</p>
               <p className="mt-3 max-w-xl font-body text-slate">
-                Precheks — a data, career, and business consulting practice — runs its notes, calendar, and client sessions on #NotesApp from day one,
-                and now on its own branded site at{" "}
+                Precheks — a data, career, and business consulting practice — runs its notes, calendar, and client sessions on #NotesApp from day one. Its main website,{" "}
+                <a href="https://precheks.com.ng" target="_blank" rel="noopener noreferrer" className="underline decoration-crimson/40 underline-offset-2 hover:text-crimson">precheks.com.ng</a>, is powered by our API and webhooks, and its journal has its own branded site at{" "}
                 <a href={`https://${referenceHost ?? "notes.precheks.com.ng"}`} className="underline decoration-crimson/40 underline-offset-2 hover:text-crimson">
                   {referenceHost ?? "notes.precheks.com.ng"}
                 </a>
