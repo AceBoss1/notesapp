@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { friendlyMessage } from "@/lib/api-errors";
 import { getAdminDb, verifyAdminRequest } from "@/lib/firebase-admin";
 import { computeTraction, summaryText, tractionCsv } from "@/lib/traction";
+import { complianceSummary } from "@/lib/compliance";
 
 export const dynamic = "force-dynamic";
 
@@ -34,7 +35,7 @@ export async function GET(req: NextRequest) {
       boosts: boosts.data().count,
       adCampaigns: ads.docs.map((d) => d.data() as never),
     });
-    return NextResponse.json({ traction: t, summary: summaryText(t), csv: tractionCsv(t) }, { headers: { "Cache-Control": "no-store" } });
+    return NextResponse.json({ traction: t, summary: `${summaryText(t)}\n\n${complianceSummary()}`, csv: tractionCsv(t) }, { headers: { "Cache-Control": "no-store" } });
   } catch (err) {
     const f = friendlyMessage(err, "Couldn't build the snapshot");
     return NextResponse.json({ error: f.message }, { status: f.status });
