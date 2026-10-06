@@ -34,7 +34,7 @@ const PRIZES = [
   {
     amount: "₦250,000",
     to: "Your followers",
-    body: "In Bonus Credits, between ₦5,000 and ₦25,000 each, for followers who watched your live for at least 5 minutes, chosen by you from a list of the most active. Each follower also gets 1 month of the identity-checked gold ✔, and both arrive automatically once they pass a NIN and face match. Bonus Credits can be spent on calls, advert banner payments, boosts and badges only.",
+    body: "In Bonus Credits, between ₦5,000 and ₦25,000 each, for followers who watched your live for at least 5 minutes, chosen by you from a list of the most active. Each follower also gets 1 month of the personal maroon ✔, and both arrive automatically once they are identity-checked (NIN and face match, through Dojah). They can upgrade to the gold ✔ with their Bonus Credits. Bonus Credits can be spent on calls, advert banner payments, boosts and badges only.",
   },
   {
     amount: "₦250,000",
@@ -94,7 +94,7 @@ export default function ChallengePage() {
           <li>Each influencer can win once, and the first 10 influencers to qualify each month are paid.</li>
           <li>A viewer counts after 5 minutes of watching. Your follower picks come from a list of the viewers who were most active in the last 5 minutes of your live, ranked by shares, then likes, then comments. You can&apos;t pick yourself, your own other accounts, or accounts linked to you.</li>
           <li>Before the ₦500,000 cash payout we confirm your identity (NIN and a face match, through Dojah) and handle any tax that applies.</li>
-          <li>The influencer and each chosen follower also get 1 month of the identity-checked gold ✔ badge, free, granted automatically once they pass the NIN and face match.</li>
+          <li>The influencer also gets 1 month of the identity-checked gold ✔ badge, free. Every prize has a 30-day claim window, and an unclaimed prize expires.</li>
           <li>Bonus Credits can&apos;t be transferred or cashed out.</li>
         </ul>
       </section>
