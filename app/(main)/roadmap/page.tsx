@@ -48,7 +48,7 @@ const ITEMS = [
     tag: "Payments",
     body: "A prepaid balance you top up once and spend across #NotesApp, so you don't have to enter card details every time. Planned uses: audio and video calls, boosts, verification badges, ad campaigns, and items and sessions in other members' shops.",
     detail:
-      "Top up from ₦1,000 on the web. Larger top-ups will earn Bonus Credits, extra credit that is spent first on calls, boosts and badges only. NotesApp Credit can't be sent to other members and can't be cashed out; sellers and publishers are still paid to their bank accounts, never into a balance. Paying for a shop item or session with NotesApp Credit works like paying by card: your money is held until the item is delivered or the session has happened, then the seller is paid. Premium calls will be billed from NotesApp Credit, with the rate shown before you start. Rates and bonus amounts can change, and are always shown before you pay.",
+      "Top up from ₦1,000 on the web. Larger top-ups will earn Bonus Credits, extra credit that is spent first, and only on calls, advert banner payments, boosts and badges. NotesApp Credit can't be sent to other members and can't be cashed out; sellers and publishers are still paid to their bank accounts, never into a balance. Paying for a shop item or session with NotesApp Credit works like paying by card: your money is held until the item is delivered or the session has happened, then the seller is paid. Premium calls will be billed from NotesApp Credit, with the rate shown before you start. Rates and bonus amounts can change, and are always shown before you pay.",
   },
   {
     title: "Paylony payments and Tap-to-Pay",
@@ -56,6 +56,13 @@ const ITEMS = [
     body: "Paylony as the main payment provider for one-off payments and payouts, with an admin switch to fall back to Paystack. Then Tap-to-Pay: team members' Android phones taking contactless card payments at a pop-up or a customer's door.",
     detail:
       "Build order: a provider layer that handles every payment and payout through one interface, the admin switch with an automatic fallback, a Paylony webhook, Paylony payouts, then Tap-to-Pay for the team seats on Business and Enterprise, which needs an NFC-capable mobile app.",
+  },
+  {
+    title: "#1MillionNairaNotesAppChallenge for influencers",
+    tag: "Growth",
+    body: "Reach 100k views and 10k followers to unlock LIVE video, then bring 2,000 registered members into a single live to open a ₦1,000,000 giveaway for that live automatically: ₦250,000 in Bonus Credits for your followers (₦5,000 to ₦25,000 each), ₦250,000 in NotesApp Credit for you, and ₦500,000 you can withdraw straight away, plus a free month of the identity-checked gold ✔ badge for you, and a free month of the maroon ✔ for each follower you pick. Prizes have a 30-day claim window.",
+    detail:
+      "Coming soon, together with live video. The first 10 influencers to qualify each month are paid, and each influencer can win once. Full rules, including how views, followers and live audiences are counted and checked, are confirmed before launch. See the challenge page for the details.",
   },
   {
     title: "Mobile apps — iOS and Android",
@@ -115,6 +122,7 @@ export default function RoadmapPage() {
               <li>Full white label for Enterprise</li>
               <li>NotesApp Credit and Bonus Credits</li>
               <li>Paylony payments and Tap-to-Pay</li>
+              <li><Link href="/challenge" className="text-crimson underline">#1MillionNairaNotesAppChallenge</Link> for influencers (coming soon)</li>
               <li>iOS and Android apps</li>
               <li>AI drafting, social publishing, ad-share</li>
               <li>Audio and video meetings, meeting chat (under team discussion)</li>

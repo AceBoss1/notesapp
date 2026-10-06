@@ -4,6 +4,7 @@ import { getR2Client, R2_BUCKET } from "./r2";
 import { pingStream, streamConfigured } from "./stream";
 import { GOLD_KIND_LIVE } from "./badges";
 import { privateBucket, privateFilesConfigured } from "./private-files";
+import { paylonyConfigured, walletBalance } from "./paylony";
 import { pingVercel, vercelConfigured } from "./domains";
 
 // Server-only service health checks behind /status. Reports only
@@ -128,6 +129,13 @@ export async function checkServices(): Promise<ServiceStatus[]> {
           return res.ok;
         }).then((r) => toStatus("payments", "Payments & payouts", "Paystack checkout, refunds and transfers", r))
       : Promise.resolve(notConfigured("payments", "Payments & payouts", "Paystack checkout, refunds and transfers"))
+  );
+
+  // Paylony (bank payouts and virtual accounts): only listed once its key is set. A wallet-balance read proves key + network.
+  checks.push(
+    paylonyConfigured()
+      ? timed(async () => (await walletBalance()).ok).then((r) => toStatus("paylony", "Bank payouts (Paylony)", "Paylony transfers and virtual accounts", r))
+      : Promise.resolve(notConfigured("paylony", "Bank payouts (Paylony)", "Paylony transfers and virtual accounts"))
   );
 
   const resend = process.env.RESEND_API_KEY;

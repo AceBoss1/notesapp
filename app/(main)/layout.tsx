@@ -193,6 +193,11 @@ const site = await getSiteSettingsCached();
                     </a>
                   </li>
                 ))}
+                <li>
+                  <Link href="/challenge" className="hover:text-paper">
+                    #1MillionNairaNotesAppChallenge
+                  </Link>
+                </li>
               </ul>
             </div>
           </div>

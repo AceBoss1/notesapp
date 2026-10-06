@@ -38,7 +38,7 @@ export const COMPLIANCE: ComplianceItem[] = [
       "No transfers between members; a member's balance can never increase because another member's decreases.",
       "No cash-out of NotesApp Credit.",
       "Seller and publisher earnings are paid to their bank accounts and are never credited to NotesApp Credit.",
-      "Bonus Credits can't be transferred or cashed out and can't pay for shop items or sessions.",
+      "Bonus Credits can't be transferred or cashed out, and can only pay for calls, advert banner payments, boosts and badges (not shop items or sessions).",
     ],
     reviewed: "2026-10-06",
   },
@@ -60,6 +60,17 @@ export const COMPLIANCE: ComplianceItem[] = [
     status: "not-required",
     basis: COUNSEL,
     reviewed: "2026-10-06",
+  },
+  {
+    id: "vat-tax",
+    area: "Tax",
+    question: "Where does VAT (and other tax) apply on the platform: our fees, plans, ad sales, commissions, NotesApp Credit top-ups, prizes and giveaways?",
+    position: "Company TIN is registered (see Company registration and tax below). VAT registration and treatment is not yet reviewed: it needs an accountant's or tax counsel's answer before launch of NotesApp Credit and the challenge.",
+    status: "to-do",
+    basis: "Open item raised by the founder, October 2026",
+    next:
+      "Confirm: whether and when we must register for VAT, which of our charges are VAT-able (plans, commissions, ad banners, boosts, calls) and whether prices are shown with VAT included; whether a top-up is VAT-able when paid or when spent; sellers' own VAT duties on marketplace sales; withholding tax and reporting on giveaway prizes and the ₦500,000 payout; invoices and receipts we must issue.",
+    reviewed: "2026-10-07",
   },
   {
     id: "data-protection",
