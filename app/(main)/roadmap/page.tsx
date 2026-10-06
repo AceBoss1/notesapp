@@ -20,7 +20,7 @@ const ITEMS = [
     tag: "AI",
     body: "Two AI jobs, wired together into one loop: an AI notetaker that follows you into a booked session and writes it up, and your own AI assistant — connected straight to your #NotesApp data — that turns raw material into a finished draft in your voice.",
     detail:
-      "Part 1 — capture: connect a transcription notetaker (Otter.ai, Fireflies, Read AI) to your bookings. Realistically, this means calendar auto-join (the notetaker joins any meeting on your calendar with a video link — no per-meeting invite needed) plus a real Zoom/Google Meet link #NotesApp generates at booking time. Part 2 — draft: connect Claude, Gemini, or ChatGPT to your #NotesApp account via MCP (Model Context Protocol). Drop a raw idea, or hand it that meeting summary, and it reads your own past notes for context — your topics, structure, phrasing — and finishes the draft as if you'd researched and written it yourself, not in generic AI voice. Build order matters: ship the read-only tools (search_my_notes, get_note) well before the write tool (create_draft) — let people trust an AI reading their notes before handing out write access, with token scoping, rate limits, and revocation as day-one requirements for that write tool specifically. This is steps 7–9 of the Value Loop (Capture → Refine → Publish Again), automated end to end: session → transcript → draft, ready to review and publish. Full breakdown of what #NotesApp can and can't guarantee about the notetaker step is in the README.",
+      "Part 1 — capture: connect a transcription notetaker (Otter.ai, Fireflies, Read AI) to your bookings. Realistically, this means calendar auto-join (the notetaker joins any meeting on your calendar with a video link — no per-meeting invite needed) plus a real Zoom/Google Meet link #NotesApp generates at booking time. Part 2 — draft: connect Claude, Gemini, or ChatGPT to your #NotesApp account via MCP (Model Context Protocol). Drop a raw idea, or hand it that meeting summary, and it reads your own past notes for context — your topics, structure, phrasing — and finishes the draft as if you'd researched and written it yourself, not in generic AI voice. Build order matters: ship the read-only tools (search_my_notes, get_note) well before the write tool (create_draft) — let people trust an AI reading their notes before handing out write access, with token scoping, rate limits, and revocation as day-one requirements for that write tool specifically. This is steps 7–9 of the Value Loop (Capture → Refine → Publish Again), automated end to end: session → transcript → draft, ready to review and publish.",
   },
   {
     title: "Client-driven session management",
@@ -48,7 +48,7 @@ const ITEMS = [
     tag: "Payments",
     body: "Paylony as the main payment provider for one-off payments and payouts, with an admin switch to fall back to Paystack. Then Tap-to-Pay: team members' Android phones taking contactless card payments at a pop-up or a customer's door.",
     detail:
-      "Paylony has given us private early access. Their card checkout and Tap-to-Pay are not public yet, and they don't yet charge a card on a schedule, so Pro and Business plan billing, badge subscriptions and journal subscriptions stay on Paystack, as do refunds until Paylony supports them. Build order: a provider layer that handles every payment and payout through one interface, the admin switch with an automatic fallback, a Paylony webhook, Paylony payouts, then Tap-to-Pay for the team seats on Business and Enterprise, which needs an NFC-capable mobile app.",
+      "Build order: a provider layer that handles every payment and payout through one interface, the admin switch with an automatic fallback, a Paylony webhook, Paylony payouts, then Tap-to-Pay for the team seats on Business and Enterprise, which needs an NFC-capable mobile app.",
   },
   {
     title: "Mobile apps — iOS and Android",
@@ -145,10 +145,6 @@ export default function RoadmapPage() {
           <li><strong className="text-ink">Meeting chat.</strong> Chat during a meeting, in a group or one-to-one.</li>
           <li><strong className="text-ink">Direct messages.</strong> A message button on publisher and organisation profiles so they can be reached directly, with audio and video calls inside those conversations.</li>
         </ul>
-        <p className="mt-4 text-sm text-slate/80">
-          Questions to settle first: who pays for call minutes (included by plan, or charged to the session price); consent and notice when a meeting is recorded or transcribed, under Nigerian data-protection law;
-          where recordings, transcripts and shared files are kept and for how long; which plans get meetings and direct messages; and how people block, report and moderate messages so the inbox can&apos;t be used for abuse.
-        </p>
       </div>
 
       <div className="card mt-6 p-7">

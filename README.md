@@ -1898,3 +1898,20 @@ Dojah's file links expire after about an hour and we ignore them. Duplicate or o
 Gold-badge decisions: `POST /api/admin/badge-request` (used by Approve/Decline in `/admin/users`) records the decision, sends the applicant a bell notification (type `badge`) and an email, and stores an optional decline reason.
 
 Testing the webhook without a real check: `DOJAH_WEBHOOK_SECRET=… node scripts/dojah-test-event.mjs <uid> [pass|fail|abandoned]` sends a correctly signed fake event for a member who has a paid identity application, so you can confirm the signature check and the `/admin/users` display independently of Dojah's sandbox. Dojah sandbox values (only against `https://sandbox.dojah.io`): NIN 70123456789, BVN 22222222222, phone 09011111111, RC/CAC 1261103 or 14320749, TIN 18609323-0001.
+
+## Planned: meetings, calls and direct messages (decisions so far — not built)
+
+Internal planning notes; the public `/roadmap` only says these are under team discussion.
+
+- **Provider:** Daily (daily.co) for audio and video rooms, screen sharing, in-call chat and optional transcription. Confirm each capability on the plan we buy before building.
+- **Who pays for calls:**
+  - Audio-only calls are free to users; #NotesApp absorbs the cost.
+  - Video calls, and audio calls that use presentation (screen sharing), are charged to whoever starts or schedules the meeting, paid in advance, at roughly ₦10–18 per minute **regardless of how many people join**.
+  - Unused call credit stays on the account and can be used for later calls.
+  - Possible in-built wallet: the caller must hold credit with us before the video-call button goes live.
+- **Who gets which button:**
+  - The direct-message button is live on every registered account.
+  - The audio-call button goes live from Pro; the video-call button from Business.
+  - Anyone, including Free Standard, can *receive* audio calls. Receiving video calls needs Free Basic or above, so a Free Standard member is asked to move up first.
+- **Blocking, reporting and moderation:** the same tools other social apps give — block, mute, report a message or account, admin review and suspension — with rate limits on new conversations.
+- **Still to decide:** consent and notice when a meeting is recorded or transcribed (Nigeria Data Protection Act); where recordings, transcripts and shared files are stored and for how long; what the AI note-taker can and can't guarantee (accuracy, who sees the transcript, deletion); exact per-minute price and wallet top-up rules.
