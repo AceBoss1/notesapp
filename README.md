@@ -1922,3 +1922,27 @@ Internal planning notes; the public `/roadmap` only says these are under team di
   - How long files are kept depends on the storage and transcript options we offer; the owner can delete a recording or transcript at any time.
 - **AI note-taker:** to explore next — Daily's own transcription service and its rates (what it costs per minute, which languages and accents it handles well, such as Nigerian English and Pidgin, where the transcript is stored, and whether it can be deleted on request). What we can and can't guarantee about accuracy, who sees a transcript and deletion follows from that.
 - **Still to decide:** how recordings and shared files are stored and retained in practice (follows the options above), the wallet's refund and expiry rules, and the exact build order.
+
+### Wallet (planned): rules and how to make it safe
+
+**Product rules so far** (draft copy; rates and percentages are settings, not code):
+- Premium video calls are billed from the member's #NotesApp wallet; audio calls stay free. The rate (draft copy says ₦10/min; the earlier decision above says ₦15/min — confirm) is shown live before a call starts and can change.
+- Top-up bonus, web only, for a top-up of ₦10,000 or more: Tuesday–Friday +5%, Saturday and Sunday +7.5%, Monday +10% (all in WAT). The top-up button is turned off inside the mobile apps.
+- **Bonus credit** is spent first, and only on calls, boosts and badges. It can't be combined with other offers, sent to another member, or cashed out.
+- **Topped-up (real) funds** can pay for anything on the platform and can be transferred to another member. The wallet itself can't be cashed out.
+
+**Before building: licensing.** Holding member balances and letting members transfer them to each other is regulated activity in Nigeria (central-bank rules on payment service providers and wallets). Get legal advice before enabling balances or transfers, and consider holding the money with a licensed partner (for example Paylony virtual accounts) instead of in our own books. Spending on our own services only (calls, boosts, badges) is the lighter case; transfers between members are the part that most needs a licence.
+
+**Never spend twice (ten devices, one balance).**
+1. The wallet only changes on the server. Browsers and apps can ask for a spend; they can never write a balance (Firestore rules: no client writes to wallet data).
+2. Every spend, transfer and top-up is one Firestore *transaction*: read the wallet, check `balance >= amount`, subtract, and append a ledger entry, all together. Firestore makes concurrent transactions on the same wallet take turns, each re-reading the latest balance. With ₦2.5m and ten devices each spending ₦1m at once, two succeed and the other eight fail with "insufficient funds".
+3. Money is whole kobo integers, the ledger is append-only, and the balance is derived from it. Refunds are new reversing entries, never edits. A nightly job re-adds the ledger and flags any wallet whose balance doesn't match.
+4. Bonus and real funds are separate buckets; the server decides which to spend from and enforces what each can pay for.
+
+**Never charge twice (the connection drops after paying).**
+1. Every spend carries an idempotency key made when the member taps Pay and saved on the device before the request is sent. The server stores the key with the result inside the same transaction as the debit. A retry with the same key gets the original result back and is never charged again; the same key with a different amount or target is rejected.
+2. When the app reopens or the network returns, it first asks "what happened to key X?" and shows "checking your payment…", never an enabled Pay button that would make a new key.
+3. The strongest guard is on the business action itself: a unique reference per thing being bought (the call id and minute number, the boost id, the order reference). The server refuses a second charge for the same reference even if a client invents a new key.
+4. Calls reserve a small block of credit up front (a hold), bill each minute once (call id + minute number), and release what is unused. Holds expire on their own if the app crashes.
+5. Top-ups only credit the wallet from the payment provider's verified confirmation, keyed by the payment reference, using the same "pending to paid exactly once" step the payments code already uses for orders and plans.
+6. Transfers are one transaction that debits the sender and credits the receiver together, with limits, a daily cap and a PIN or code check for larger amounts. Every debit sends a notification, so an unexpected one is noticed quickly.
