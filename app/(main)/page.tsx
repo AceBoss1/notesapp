@@ -6,9 +6,10 @@ import IndependenceDoodle from "@/components/IndependenceDoodle";
 import AdSlot from "@/components/AdSlot";
 import { activeHostForUsername } from "@/lib/domains";
 
-// The reference customer's link points at their own site once they have one; refreshed every few minutes.
+// The reference customers' links point at their own sites once they have them; refreshed every few minutes.
 export const revalidate = 300;
 const REFERENCE_USERNAME = "precheks";
+const SHOP_REFERENCE_USERNAME = "apexglitz";
 
 const LOOP = [
   { step: "Publish", copy: "Write a note. Toggle it public or keep it as a private client journal — same canvas." },
@@ -37,7 +38,7 @@ const FEATURES = [
 ];
 
 export default async function Home() {
-  const referenceHost = await activeHostForUsername(REFERENCE_USERNAME);
+  const [referenceHost, shopHost] = await Promise.all([activeHostForUsername(REFERENCE_USERNAME), activeHostForUsername(SHOP_REFERENCE_USERNAME)]);
   return (
     <>
       <IndependenceDoodle />
@@ -167,36 +168,45 @@ export default async function Home() {
         </div>
       </section>
 
-      {/* Partner strip */}
+      {/* Partner strip: the first reference customers, each on their own domain */}
       <section className="mx-auto max-w-7xl px-4 pb-20 sm:px-6 lg:px-8">
-        <div className="card flex flex-col items-start gap-6 p-8 sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            <p className="eyebrow">First reference customer</p>
-            <p className="mt-3 max-w-xl font-body text-slate">
-              Precheks — a data, career, and business consulting
-              practice — runs its notes, calendar, and client sessions
-              on #NotesApp from day one, and is the first practice we're
-              building a partner API for, to show that content on{" "}
-              <a
-                href="https://precheks.com.ng"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="underline decoration-crimson/40 underline-offset-2 hover:text-crimson"
-              >
-                precheks.com.ng
-              </a>
-              .
-            </p>
+        <p className="eyebrow">First reference customers</p>
+        <div className="mt-4 grid gap-6 lg:grid-cols-2">
+          <div className="card flex flex-col items-start justify-between gap-6 p-8">
+            <div>
+              <p className="font-ui text-sm font-bold text-ink">Precheks · journal</p>
+              <p className="mt-3 max-w-xl font-body text-slate">
+                Precheks — a data, career, and business consulting practice — runs its notes, calendar, and client sessions on #NotesApp from day one,
+                and now on its own branded site at{" "}
+                <a href={`https://${referenceHost ?? "notes.precheks.com.ng"}`} className="underline decoration-crimson/40 underline-offset-2 hover:text-crimson">
+                  {referenceHost ?? "notes.precheks.com.ng"}
+                </a>
+                .
+              </p>
+            </div>
+            {referenceHost ? (
+              <a href={`https://${referenceHost}`} className="btn-ghost shrink-0">View their journal</a>
+            ) : (
+              <Link href={`/u/${REFERENCE_USERNAME}`} className="btn-ghost shrink-0">View their journal</Link>
+            )}
           </div>
-          {referenceHost ? (
-            <a href={`https://${referenceHost}`} className="btn-ghost shrink-0">
-              View their journal
-            </a>
-          ) : (
-            <Link href={`/u/${REFERENCE_USERNAME}`} className="btn-ghost shrink-0">
-              View their journal
-            </Link>
-          )}
+          <div className="card flex flex-col items-start justify-between gap-6 p-8">
+            <div>
+              <p className="font-ui text-sm font-bold text-ink">ApexGlitz · shop</p>
+              <p className="mt-3 max-w-xl font-body text-slate">
+                ApexGlitz runs its shop on #NotesApp — products with photos and options, checkout in Naira with the buyer&apos;s payment held until delivery — on its own domain at{" "}
+                <a href={`https://${shopHost ?? "apexglitz.com.ng"}`} className="underline decoration-crimson/40 underline-offset-2 hover:text-crimson">
+                  {shopHost ?? "apexglitz.com.ng"}
+                </a>
+                .
+              </p>
+            </div>
+            {shopHost ? (
+              <a href={`https://${shopHost}`} className="btn-ghost shrink-0">Visit their shop</a>
+            ) : (
+              <Link href={`/u/${SHOP_REFERENCE_USERNAME}/store`} className="btn-ghost shrink-0">Visit their shop</Link>
+            )}
+          </div>
         </div>
       </section>
     </>

@@ -80,7 +80,7 @@ export default async function AboutPage() {
         <p>
           We're building this alongside the professionals who run their
           practice on it from day one, starting with our first reference
-          customer, Precheks.
+          customers: Precheks, a journal, at notes.precheks.com.ng, and ApexGlitz, a shop, at apexglitz.com.ng.
         </p>
       </div>
 

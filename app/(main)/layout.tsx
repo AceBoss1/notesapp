@@ -111,8 +111,8 @@ const site = await getSiteSettingsCached();
                 professionals.
               </p>
               <p className="mt-6 max-w-xs text-sm text-paper/50">
-                Built in partnership with Precheks — our first
-                reference customer. —{" "}
+                Built in partnership with Precheks (journal) and ApexGlitz
+                (shop) — our first reference customers. —{" "}
                 <Link href="/admin/login" className="text-paper/70 hover:text-paper">
                   Staff Login
                 </Link>

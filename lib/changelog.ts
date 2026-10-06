@@ -11,6 +11,14 @@ export type Release = {
 
 export const CHANGELOG: Release[] = [
   {
+    version: "v0.6.3",
+    bump: "patch",
+    date: "2026-10-06",
+    changes: [
+      { kind: "changed", text: "Our first reference customers are now shown across the site: Precheks (a journal, at notes.precheks.com.ng) and ApexGlitz (a shop, at apexglitz.com.ng) on the landing page, About, Organisations and the footer." },
+    ],
+  },
+  {
     version: "v0.6.2",
     bump: "patch",
     date: "2026-10-06",

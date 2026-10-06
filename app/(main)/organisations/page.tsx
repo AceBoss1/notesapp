@@ -52,8 +52,9 @@ export default function OrganisationsPage() {
         <h2 className="mt-2 font-display text-2xl text-ink">For larger organisations and businesses</h2>
         <p className="mt-3 text-sm text-slate">
           When a channel isn&apos;t enough, Enterprise gives you your own site, your own domain and your own terms, running on the same publishing,
-          booking and payments platform. Precheks, our first reference customer, runs this way at{" "}
-          <a href="https://notes.precheks.com.ng" className="text-crimson underline">notes.precheks.com.ng</a>.
+          booking and payments platform. Precheks, our first reference customer journal, runs this way at{" "}
+          <a href="https://notes.precheks.com.ng" className="text-crimson underline">notes.precheks.com.ng</a>, and ApexGlitz, our first reference customer shop, at{" "}
+          <a href="https://apexglitz.com.ng" className="text-crimson underline">apexglitz.com.ng</a>.
         </p>
         <ul className="mt-5 grid gap-3 sm:grid-cols-2">
           {ENTERPRISE.map(([t, d]) => (
