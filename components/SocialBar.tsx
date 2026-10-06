@@ -1,7 +1,7 @@
 "use client";
 
+import { useAppPush } from "@/components/AppLink";
 import { useEffect, useRef, useState } from "react";
-import { useRouter } from "next/navigation";
 import { onAuthStateChanged } from "firebase/auth";
 import { auth } from "@/lib/firebase";
 import { recordView } from "@/lib/track";
@@ -54,7 +54,7 @@ export default function SocialBar({
   initialLikeCount: number;
   initialShareCount: number;
 }) {
-  const router = useRouter();
+  const push = useAppPush(); // a full page load on a member's own domain
   const [uid, setUid] = useState<string | null>(null);
   const [liked, setLiked] = useState(false);
   const [likeCount, setLikeCount] = useState(initialLikeCount);
@@ -93,7 +93,7 @@ export default function SocialBar({
 
   async function handleLike() {
     if (!uid) {
-      router.push("/login");
+      push("/login");
       return;
     }
     const nowLiked = await toggleLike(noteId, uid);

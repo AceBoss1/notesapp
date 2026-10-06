@@ -1,8 +1,9 @@
 "use client";
 
+import AppLink, { useAppPush } from "@/components/AppLink";
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { useParams, useRouter } from "next/navigation";
+import { useParams } from "next/navigation";
 import { onAuthStateChanged, User } from "firebase/auth";
 import { collection, doc, getDocs, getDoc, limit, query, where } from "firebase/firestore";
 import { auth, db } from "@/lib/firebase";
@@ -20,7 +21,7 @@ const field = "mt-1 w-full border border-rule bg-card px-3 py-2 text-sm outline-
 
 export default function ShopItemPage() {
   const { itemId } = useParams<{ itemId: string }>();
-  const router = useRouter();
+  const push = useAppPush(); // a full page load on a member's own domain
   const [user, setUser] = useState<User | null | undefined>(undefined);
   const [item, setItem] = useState<(StoreItem & { ownerUid: string }) | null | undefined>(undefined);
   const [seller, setSeller] = useState<{ username: string; displayName: string } | null>(null);
@@ -90,7 +91,7 @@ export default function ShopItemPage() {
 
   async function payDigital() {
     setError("");
-    if (!user) return router.push("/login");
+    if (!user) return push("/login");
     if (!agreed) return setError("Tick the box to confirm you understand a download is final.");
     setBusy(true);
     try {
@@ -104,7 +105,7 @@ export default function ShopItemPage() {
   async function pay(e: React.FormEvent) {
     e.preventDefault();
     setError("");
-    if (!user) return router.push("/login");
+    if (!user) return push("/login");
     if (options.length && !chosen) return setError(`Choose ${options.map((o) => o.name.toLowerCase()).join(" and ")} first.`);
     if (selectedStock !== null && selectedStock <= 0) return setError("That option is sold out — pick another.");
     const problem = validateAddress(addr);
@@ -183,7 +184,7 @@ export default function ShopItemPage() {
           <div className="card mt-8 p-5 text-sm">
             <p className="font-ui font-bold text-ink">{viewOnly ? "You own this" : "You own this download"}</p>
             <p className="mt-1 text-slate">Find it under My orders → My purchases.</p>
-            <Link href="/orders" className="btn-primary mt-3 inline-block !px-4 !py-2 text-xs">{viewOnly ? "Open it" : "Go to my downloads"}</Link>
+            <AppLink href="/orders" className="btn-primary mt-3 inline-block !px-4 !py-2 text-xs">{viewOnly ? "Open it" : "Go to my downloads"}</AppLink>
           </div>
         ) : (
           <div className="card mt-8 p-5 text-sm">

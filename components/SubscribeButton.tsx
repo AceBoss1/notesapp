@@ -1,5 +1,6 @@
 "use client";
 
+import AppLink from "@/components/AppLink";
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { onAuthStateChanged, User } from "firebase/auth";
@@ -48,9 +49,9 @@ export default function SubscribeButton({ username, publisherUid }: { username: 
 
   if (!user) {
     return (
-      <Link href="/signup" className="btn-primary !px-5 !py-2 text-xs">
+      <AppLink href="/signup" className="btn-primary !px-5 !py-2 text-xs">
         Sign up to subscribe
-      </Link>
+      </AppLink>
     );
   }
 

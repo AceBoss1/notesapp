@@ -1,5 +1,6 @@
 "use client";
 
+import AppLink from "@/components/AppLink";
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { onAuthStateChanged, User } from "firebase/auth";
@@ -30,9 +31,9 @@ export default function FollowButton({ username }: { username: string }) {
 
   if (!user) {
     return (
-      <Link href="/signup" className="btn-ghost !px-5 !py-2 text-xs">
+      <AppLink href="/signup" className="btn-ghost !px-5 !py-2 text-xs">
         Sign up to follow
-      </Link>
+      </AppLink>
     );
   }
 
