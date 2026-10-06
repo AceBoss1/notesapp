@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { FieldValue } from "firebase-admin/firestore";
 import { getAdminDb } from "@/lib/firebase-admin";
 import { PaylonyWebhook, webhookAuthorised } from "@/lib/paylony";
+import { reconcilePaylonyPayouts } from "@/lib/paylony-payouts";
 import { clientIp, rateLimit } from "@/lib/rate-limit";
 
 export const dynamic = "force-dynamic";
@@ -34,6 +35,9 @@ export async function POST(req: NextRequest) {
     await ref.create({ ...event, receivedAt: new Date().toISOString(), handled: false, firstSeen: FieldValue.serverTimestamp() }).catch((e: { code?: number }) => {
       if (e?.code !== 6) throw e; // 6 = ALREADY_EXISTS: a repeat delivery, which is fine
     });
+    // A payout changed state: settle the payouts we are waiting on by asking Paylony about each one by OUR reference (the webhook's
+    // own reference is Paylony's, so we don't trust it to name the payout). Failures here are retried by the scheduled job.
+    if (event.event === "payout") await reconcilePaylonyPayouts({ ageMs: 0 }).catch((e) => console.error("[paylony] reconcile failed", e));
     return new NextResponse("success", { status: 200, headers: { "Content-Type": "text/plain" } });
   } catch (err) {
     console.error("[paylony] couldn't store webhook", err);

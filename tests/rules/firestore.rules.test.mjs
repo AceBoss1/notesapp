@@ -260,6 +260,14 @@ test("digital store items: no delivery/stock, kind is fixed, files and purchases
   await assertFails(setDoc(doc(as("alice"), "digitalPurchases/r2"), { buyerUid: "alice", sellerUid: "pub" }));
 });
 
+test("payout secrets are server-only", async () => {
+  await env.withSecurityRulesDisabled(async (ctx) => {
+    await setDoc(doc(ctx.firestore(), "payoutSecrets/alice"), { accountNumberEnc: "x" });
+  });
+  await assertFails(getDoc(doc(as("alice"), "payoutSecrets/alice"))); // not even the owner
+  await assertFails(setDoc(doc(as("alice"), "payoutSecrets/alice"), { accountNumberEnc: "y" }));
+});
+
 test("Paylony webhook events are server-only", async () => {
   await env.withSecurityRulesDisabled(async (ctx) => {
     await setDoc(doc(ctx.firestore(), "paylonyEvents/e1"), { event: "collection", amount: "5000" });

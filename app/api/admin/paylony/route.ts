@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { friendlyMessage } from "@/lib/api-errors";
 import { getAdminDb, verifyAdminRequest } from "@/lib/firebase-admin";
+import { accountCryptoConfigured } from "@/lib/account-crypto";
+import { paylonyConfig, reconcilePaylonyPayouts } from "@/lib/paylony-payouts";
 import {
   SIGN_FORMATS, accountName, bankList, bankTransfer, createCheckoutAccount, paylonyCodeText, paylonyDiagnostics, paylonyMode, replyCode,
   type PaylonyReply,
@@ -16,14 +18,24 @@ export async function GET(req: NextRequest) {
   try {
     await verifyAdminRequest(bearer(req));
     const db = getAdminDb();
-    const [diagnostics, events, cfg] = await Promise.all([
+    const [diagnostics, events, cfg, accounts, secrets, pending] = await Promise.all([
       paylonyDiagnostics(),
       db.collection("paylonyEvents").orderBy("receivedAt", "desc").limit(25).get(),
       db.doc("paylonyConfig/main").get(),
+      db.collection("payoutAccounts").get(),
+      db.collection("payoutSecrets").get(),
+      db.collection("ledger").where("status", "==", "transferring").limit(100).get(),
     ]);
+    const have = new Set(secrets.docs.map((d) => d.id));
+    const pc = await paylonyConfig();
     return NextResponse.json({
       diagnostics,
-      config: { signFormat: (cfg.data()?.signFormat as string) || null, verifiedAt: (cfg.data()?.verifiedAt as string) || null },
+      config: { signFormat: (cfg.data()?.signFormat as string) || null, verifiedAt: (cfg.data()?.verifiedAt as string) || null, payoutProvider: pc.payoutProvider, accountKeySet: accountCryptoConfigured() },
+      payouts: {
+        accounts: accounts.size,
+        ready: accounts.docs.filter((d) => d.data().paylonyBankCode && have.has(d.id)).length, // has Paylony's bank code and the encrypted number
+        waiting: pending.docs.filter((d) => d.data().transferProvider === "paylony").map((d) => ({ id: d.id, reference: d.data().transferReference, netKobo: d.data().netKobo, note: d.data().failureReason || "" })),
+      },
       events: events.docs.map((d) => {
         const e = d.data();
         return { id: d.id, event: e.event, status: e.status, amount: e.amount, trx: e.trx, reference: e.reference, receivedAt: e.receivedAt, handled: e.handled === true };
@@ -47,6 +59,17 @@ export async function POST(req: NextRequest) {
     const body = await req.json().catch(() => ({}));
     const action = String(body.action || "");
 
+    if (action === "set_provider") {
+      const want = body.provider === "paylony" ? "paylony" : "paystack";
+      if (want === "paylony") {
+        const cfg = await paylonyConfig();
+        const missing = [!cfg.signFormat && "the signing format isn't verified (run the Signature test with a test key)", !process.env.PAYLONY_ENCRYPTION_KEY && "PAYLONY_ENCRYPTION_KEY isn't set", !accountCryptoConfigured() && "ACCOUNT_DATA_KEY isn't set", paylonyMode() === "unset" && "PAYLONY_SECRET_KEY isn't set"].filter(Boolean);
+        if (missing.length) return NextResponse.json({ error: `Can't switch to Paylony yet: ${missing.join("; ")}.` }, { status: 409 });
+      }
+      await getAdminDb().doc("paylonyConfig/main").set({ payoutProvider: want, providerChangedAt: new Date().toISOString() }, { merge: true });
+      return NextResponse.json({ ok: true, provider: want });
+    }
+    if (action === "reconcile") return NextResponse.json({ result: await reconcilePaylonyPayouts({ ageMs: 0 }) });
     if (action === "banks") {
       const r = await bankList();
       const list = (r.body as { data?: unknown })?.data;

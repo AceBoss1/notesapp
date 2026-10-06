@@ -87,6 +87,12 @@ export type LedgerEntry = {
   releaseAfter: string; // ISO — earliest a payout may be released
   createdAt: string;
   transferCode?: string;
+  // Paylony payouts: which provider sent it, the reference we gave it (it can be asked about by that reference), when, and how
+  // many Paylony attempts have already failed (a failed transfer's reference can't be reused, so each retry gets a new one).
+  transferProvider?: "paystack" | "paylony";
+  transferReference?: string;
+  transferStartedAt?: string;
+  paylonyAttempts?: number;
   failureReason?: string;
 };
 

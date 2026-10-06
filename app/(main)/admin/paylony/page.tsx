@@ -14,7 +14,8 @@ export default function AdminPaylonyPage() {
   const [events, setEvents] = useState<Ev[]>([]);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
-  const [config, setConfig] = useState<{ signFormat: string | null; verifiedAt: string | null }>({ signFormat: null, verifiedAt: null });
+  const [config, setConfig] = useState<{ signFormat: string | null; verifiedAt: string | null; payoutProvider?: string; accountKeySet?: boolean }>({ signFormat: null, verifiedAt: null });
+  const [payouts, setPayouts] = useState<{ accounts: number; ready: number; waiting: { id: string; reference: string; netKobo: number; note: string }[] } | null>(null);
   const [tool, setTool] = useState<string>("");
   const [out, setOut] = useState("");
   const [bank, setBank] = useState({ bankCode: "000013", accountNumber: "" });
@@ -28,7 +29,7 @@ export default function AdminPaylonyPage() {
       const j = await r.json();
       if (!r.ok) throw new Error(j.error || "Something went wrong");
       setOut(JSON.stringify(j, null, 2));
-      if (action === "signature_test") void load();
+      if (action === "signature_test" || action === "set_provider" || action === "reconcile") void load();
     } catch (e) {
       setError(e instanceof Error ? e.message : "Something went wrong");
     } finally {
@@ -46,6 +47,7 @@ export default function AdminPaylonyPage() {
       setDiag(j.diagnostics);
       setEvents(j.events);
       setConfig(j.config);
+      setPayouts(j.payouts);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Something went wrong");
     } finally {
@@ -76,6 +78,20 @@ export default function AdminPaylonyPage() {
         </div>
       )}
       <button onClick={load} disabled={busy} className="btn-ghost mt-3 !px-4 !py-2 text-xs">{busy ? "Checking…" : "Test connection"}</button>
+
+      <h2 className="mt-10 font-display text-2xl">Pay publishers through</h2>
+      <p className="mt-2 text-sm text-slate">Paystack is the default. Paylony is used only for a publisher who has re-saved their payout account since the keys were set (so we hold their encrypted account number and Paylony&apos;s bank code); everyone else is still paid through Paystack. If Paylony definitely refuses a payout, that payout goes through Paystack instead; if its answer is unclear it is never retried elsewhere, only checked by its reference.</p>
+      <p className="mt-2 font-mono text-xs text-slate">Now: {config.payoutProvider || "paystack"} · encryption key for account numbers {config.accountKeySet ? "set" : "NOT set (ACCOUNT_DATA_KEY)"}{payouts ? ` · ${payouts.ready} of ${payouts.accounts} payout accounts ready for Paylony` : ""}</p>
+      <div className="mt-3 flex flex-wrap gap-2">
+        <button onClick={() => run("set_provider", { provider: "paystack" })} disabled={!!tool || config.payoutProvider !== "paylony"} className="btn-ghost !px-4 !py-2 text-xs">Use Paystack</button>
+        <button onClick={() => run("set_provider", { provider: "paylony" })} disabled={!!tool || config.payoutProvider === "paylony"} className="btn-primary !px-4 !py-2 text-xs">Use Paylony</button>
+        <button onClick={() => run("reconcile")} disabled={!!tool} className="btn-ghost !px-4 !py-2 text-xs">Check waiting payouts now</button>
+      </div>
+      {payouts && payouts.waiting.length > 0 && (
+        <ul className="card mt-3 divide-y divide-rule text-sm">
+          {payouts.waiting.map((w) => <li key={w.id} className="px-4 py-2"><span className="font-mono text-xs">{w.reference}</span> · ₦{(w.netKobo / 100).toLocaleString("en-NG")} · waiting for Paylony{w.note ? <span className="block text-xs text-crimson">{w.note}</span> : null}</li>)}
+        </ul>
+      )}
 
       <h2 className="mt-10 font-display text-2xl">Tools</h2>
       <p className="mt-2 text-sm text-slate">For learning how Paylony answers. The signature test and the test virtual account only run with a TEST key (sk_test_…), where no real money moves.</p>

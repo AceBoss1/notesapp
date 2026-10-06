@@ -574,6 +574,11 @@ service cloud.firestore {
       allow read, write: if false;
     }
 
+    // The full bank account number behind a payout account, encrypted — server-only; no client can read or write it.
+    match /payoutSecrets/{uid} {
+      allow read, write: if false;
+    }
+
     // Paylony settings learned from tests (the accepted payout signing format) — server-only.
     match /paylonyConfig/{id} {
       allow read, write: if false;

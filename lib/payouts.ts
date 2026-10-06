@@ -1,6 +1,7 @@
 import { getAdminDb, getUserEmail } from "./firebase-admin";
 import { emitWebhook } from "./webhooks";
 import { initiateTransfer } from "./paystack";
+import { canUsePaylony, payViaPaylony } from "./paylony-payouts";
 import { notifyBell, sendEmail } from "./email";
 import { formatNaira } from "./booking-time";
 import { PAYOUT_HOLD_HOURS } from "./cancellation";
@@ -25,6 +26,8 @@ export async function releaseLedgerEntry(
   }
   const account = (await db.doc(`payoutAccounts/${ledger.publisherUid}`).get()).data();
   if (!account?.recipientCode) return { ok: false, status: 409, error: "Publisher has no payout account." };
+  // Through Paylony only when the admin chose it and this account has what Paylony needs; otherwise Paystack, as before.
+  const viaPaylony = await canUsePaylony({ uid: ledger.publisherUid, accountName: String(account.accountName || ""), paylonyBankCode: account.paylonyBankCode }).catch(() => false);
 
   // Claim first so a double-click (or the cron overlapping an admin) can't send two transfers.
   const claimed = await db.runTransaction(async (t) => {
@@ -36,6 +39,26 @@ export async function releaseLedgerEntry(
   });
   if (!claimed) return { ok: false, status: 409, error: "Already being released." };
   try {
+    if (viaPaylony) {
+      // Our own reference is Paylony's idempotency key: sending it twice can't pay twice (Paylony answers "09 already exists").
+      const attempt = (ledger as LedgerEntry).paylonyAttempts ?? 0;
+      const reference_ = attempt ? `payout_${reference}_r${attempt}` : `payout_${reference}`;
+      const res = await payViaPaylony({
+        account: { uid: ledger.publisherUid, accountName: String(account.accountName || ""), paylonyBankCode: account.paylonyBankCode },
+        amountKobo: ledger.netKobo,
+        reference: reference_,
+        narration: `#NotesApp ${ledger.kind} payout`,
+      });
+      if (res.state === "sent" || res.state === "uncertain") {
+        // Accepted, or unclear: either way it may exist, so never fall back to Paystack. It stays "transferring" until Paylony's
+        // result is read (webhook, scheduled check, or the admin's "Check now"); an unclear one is flagged for the admin.
+        await ledgerRef.update({ transferProvider: "paylony", transferReference: reference_, transferStartedAt: new Date().toISOString(), failureReason: res.state === "uncertain" ? `Paylony reply unclear (${res.reason}) — check the transfer status` : "" });
+        await emitWebhook(ledger.publisherUid, "payout.released", { id: reference, kind: ledger.kind, net_kobo: ledger.netKobo, transfer_status: "pending" });
+        return { ok: true, transferStatus: "pending" };
+      }
+      // Definitely refused: nothing was created, so Paystack can safely take it.
+      await ledgerRef.update({ failureReason: `Paylony refused (${res.reason}); sent through Paystack instead` });
+    }
     const tr = await (opts.transfer ?? initiateTransfer)({
       amountKobo: ledger.netKobo,
       recipient: account.recipientCode,
