@@ -16,7 +16,7 @@ const STEPS = [
   {
     n: "2",
     title: "Go live",
-    body: "Go live on #NotesApp for your audience. Only registered #NotesApp members count towards your live audience.",
+    body: "Start a live on #NotesApp for your audience. Only registered #NotesApp members count towards your live audience.",
   },
   {
     n: "3",
@@ -26,7 +26,7 @@ const STEPS = [
   {
     n: "4",
     title: "The giveaway opens",
-    body: "The ₦1,000,000 giveaway opens, split three ways below.",
+    body: "Once a live you started reaches 2,000 counted viewers, the giveaway opens for that live automatically. It is split three ways below.",
   },
 ];
 
@@ -94,7 +94,7 @@ export default function ChallengePage() {
           <li>Each influencer can win once, and the first 10 influencers to qualify each month are paid.</li>
           <li>A viewer counts after 5 minutes of watching. Your follower picks come from a list of the viewers who were most active in the last 5 minutes of your live, ranked by shares, then likes, then comments. You can&apos;t pick yourself, your own other accounts, or accounts linked to you.</li>
           <li>Before the ₦500,000 cash payout we confirm your identity (NIN and a face match, through Dojah) and handle any tax that applies.</li>
-          <li>Every winner also gets 1 month of the personal maroon ✔ badge, free.</li>
+          <li>Every winner also gets 1 month of the identity-checked gold ✔ badge, free.</li>
           <li>Bonus Credits can&apos;t be transferred or cashed out.</li>
         </ul>
       </section>
