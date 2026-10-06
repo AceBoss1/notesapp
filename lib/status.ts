@@ -1,6 +1,7 @@
 import { GetObjectCommand, HeadBucketCommand } from "@aws-sdk/client-s3";
 import { getAdminDb } from "./firebase-admin";
 import { getR2Client, R2_BUCKET } from "./r2";
+import { pingStream, streamConfigured } from "./stream";
 import { GOLD_KIND_LIVE } from "./badges";
 import { privateBucket, privateFilesConfigured } from "./private-files";
 import { pingVercel, vercelConfigured } from "./domains";
@@ -97,6 +98,13 @@ export async function checkServices(): Promise<ServiceStatus[]> {
           }
         }).then((r) => toStatus("downloads", "Digital downloads", "Private file storage for paid downloads (Cloudflare R2)", r))
       : Promise.resolve(notConfigured("downloads", "Digital downloads", "Private file storage for paid downloads (Cloudflare R2)"))
+  );
+
+  // Video lessons of view-only items and courses (Cloudflare Stream).
+  checks.push(
+    streamConfigured()
+      ? timed(() => pingStream()).then((r) => toStatus("video", "Video courses", "Video lessons for view-only items and courses (Cloudflare Stream)", r))
+      : Promise.resolve(notConfigured("video", "Video courses", "Video lessons for view-only items and courses (Cloudflare Stream)"))
   );
 
   // The Enterprise API answers (a request without a key is refused with 401, which proves the route is up).

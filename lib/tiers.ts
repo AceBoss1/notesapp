@@ -35,11 +35,15 @@ export type TierConfig = {
   // final once downloaded). Higher than physical because there is no cost of goods to share.
   digitalCommission: number | "custom";
   digitalCommissionFloor?: number;
-  // Enterprise-only extras. Own domain: the member's page, journals and store served on their
+  // Own domain (Business and Enterprise): on Business it is semi white-label — the footer reads "Name is powered by #NotesApp"
+  // and emails go out under #NotesApp's name on the member's behalf. API access: Enterprise only. Own domain: the member's page, journals and store served on their
   // domain (notes.yourbrand.com or the root yourbrand.com); default home stays /u/username.
   // API access: server-to-server API + Console, switched on per account by an admin.
   customDomain?: boolean;
   apiAccess?: boolean;
+  // Footer on the member's own domain: Business shows "Name is powered by [na] #NotesApp" (semi white-label); Enterprise
+  // shows "Name, powered by [na]" with just the icon.
+  whiteLabel?: "partial" | "full";
 };
 
 export const TIERS: TierConfig[] = [
@@ -83,6 +87,8 @@ export const TIERS: TierConfig[] = [
     priceNote: "or ₦150,000/year (2 months free) · cancel anytime",
     monthlyKobo: 15_000 * 100,
     yearlyKobo: 150_000 * 100,
+    customDomain: true,
+    whiteLabel: "partial",
     canPublish: true,
     adRevenueShare: 0.45,
     sessionAndUnlockCommission: 0.15,
@@ -92,7 +98,7 @@ export const TIERS: TierConfig[] = [
   {
     tier: "enterprise",
     label: "Enterprise",
-    price: "From ₦35,000/month",
+    price: "From ₦55,000/month",
     priceNote: "rates and seats agreed with us",
     canPublish: true,
     adRevenueShare: 0.75, // increased from Business's 45%; the negotiable part is the commission side
@@ -104,6 +110,7 @@ export const TIERS: TierConfig[] = [
     digitalCommissionFloor: 0.015,
     customDomain: true,
     apiAccess: true,
+    whiteLabel: "full",
   },
 ];
 

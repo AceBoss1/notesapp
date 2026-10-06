@@ -114,13 +114,15 @@ const ROWS: { label: string; href?: string; render: (t: (typeof TIERS)[number]) 
       !t.canPublish
         ? "—"
         : t.customDomain
-          ? "Serve your page, journals and store on notes.yourbrand.com or yourbrand.com — your /u/username page stays the default home, and you can switch back any time"
+          ? t.tier === "business"
+            ? "Serve your page, journals and store on notes.yourbrand.com or yourbrand.com — your /u/username page stays the default home, and you can switch back any time. Semi white-label: the footer reads “Your name is powered by #NotesApp” and emails go out under #NotesApp's name on your behalf"
+            : "Serve your page, journals and store on notes.yourbrand.com or yourbrand.com — your /u/username page stays the default home, and you can switch back any time"
           : "Your page lives at notesapp.name.ng/u/username",
   },
   {
     label: "API & Console",
     href: "/changelog",
-    render: (t) => (t.canPublish ? (t.apiAccess ? "Server-to-server API, keys and webhooks — enabled per account by our team" : "—") : "—"),
+    render: (t) => (t.canPublish ? (t.apiAccess ? "Server-to-server API, keys and webhooks — enabled per account by our team" : t.customDomain ? "Console for connecting your own domain only — no API" : "—") : "—"),
   },
   { label: "AI draft assistance", render: (t) => (t.canPublish ? "Planned — included on every publisher tier" : "—") },
 ];
@@ -198,7 +200,7 @@ export default function PricingPage() {
             yearly (two months free), renewing automatically through
             Paystack. Cancel any time under Rates &amp; payouts: you keep the
             plan until the period you paid for ends, with no partial
-            refunds. Enterprise starts at ₦35,000/month with rates agreed with us —{" "}
+            refunds. Enterprise starts at ₦55,000/month with rates agreed with us —{" "}
             <Link href="/contact" className="text-crimson underline underline-offset-2">
               contact us
             </Link>

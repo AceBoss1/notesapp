@@ -21,7 +21,7 @@ const STEPS = [
 ];
 
 const ENTERPRISE = [
-  ["Your own branded site", "Your name and logo, on your own domain (notes.yourbrand.com or yourbrand.com): a Home page with your profile and booking, a Notes page and a Shop. A small “powered by #NotesApp” footer, and your logo as the tab icon. Visitors sign in, comment, book sessions and buy without leaving your site."],
+  ["Your own branded site", "Your name and logo, on your own domain (notes.yourbrand.com or yourbrand.com): a Home page with your profile and booking, a Notes page and a Shop. A small “powered by #NotesApp” footer, and your logo as the tab icon. Business has this too, as a semi white-label site; Enterprise adds the API and the lowest rates. Visitors sign in, comment, book sessions and buy without leaving your site."],
   ["Rates agreed with us", "Enterprise isn't a fixed price list. We agree your commission on sessions, store sales and downloads, and your share of the ad revenue on your pages, for your account."],
   ["API, webhooks and a Console", "Publish posts from your own systems, read bookings, orders and earnings, and get signed webhooks when a booking is made or an order is paid. Keys and webhooks are managed in the Console; the docs are public."],
   ["Seats and onboarding", "A team size that fits you, with the maroon ✔ included, and onboarding help from us to set up your channel, domain and payouts."],
@@ -64,7 +64,7 @@ export default function OrganisationsPage() {
           ))}
         </ul>
         <p className="mt-5 text-xs text-slate">
-          Enterprise starts at ₦35,000/month. Rates start at {((e.sessionAndUnlockCommissionFloor ?? 0.05) * 100).toFixed(0)}% commission on sessions, {+((e.physicalCommissionFloor ?? 0.01) * 100).toFixed(1)}% on store items and {+((e.digitalCommissionFloor ?? 0.015) * 100).toFixed(1)}% on downloads, with a {((e.adRevenueShare ?? 0.75) * 100).toFixed(0)}% ad share, and are confirmed with you before you start. API access and your domain are switched on for your account by us.
+          Enterprise starts at ₦55,000/month. Rates start at {((e.sessionAndUnlockCommissionFloor ?? 0.05) * 100).toFixed(0)}% commission on sessions, {+((e.physicalCommissionFloor ?? 0.01) * 100).toFixed(1)}% on store items and {+((e.digitalCommissionFloor ?? 0.015) * 100).toFixed(1)}% on downloads, with a {((e.adRevenueShare ?? 0.75) * 100).toFixed(0)}% ad share, and are confirmed with you before you start. API access and your domain are switched on for your account by us.
         </p>
         <div className="mt-5 flex flex-wrap gap-3">
           <Link href="/contact?topic=api" className="btn-primary !px-5 !py-2 text-sm">Talk to us about Enterprise</Link>

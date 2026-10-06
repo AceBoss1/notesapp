@@ -9,7 +9,7 @@ const MAX_ACTIVE = 10;
 export async function GET(req: NextRequest) {
   return consoleRoute("Couldn't load your keys", async () => {
     const m = await consoleMember(req);
-    const access = { apiAccess: m.apiAccess, domainAllowed: m.domainAllowed, username: m.user.username as string };
+    const access = { apiAccess: m.apiAccess, apiPlan: m.apiPlan, domainAllowed: m.domainAllowed, username: m.user.username as string };
     if (!m.apiAccess) return NextResponse.json({ access, keys: [] });
     const snap = await getAdminDb().collection("apiKeys").where("uid", "==", m.uid).get();
     const keys = snap.docs

@@ -10,7 +10,7 @@ const view = (d: (DomainDoc & { id?: string }) | null) => d && { host: d.host, s
 
 async function allowed(req: NextRequest) {
   const m = await consoleMember(req);
-  if (!m.domainAllowed) throw new HttpError(403, "Your own domain is an Enterprise feature. See the Pricing page, or send us a request at /contact.");
+  if (!m.domainAllowed) throw new HttpError(403, "Your own domain is a Business and Enterprise feature. See the Pricing page, or send us a request at /contact.");
   return m;
 }
 
