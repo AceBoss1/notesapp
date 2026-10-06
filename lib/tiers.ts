@@ -51,6 +51,7 @@ export const TIERS: TierConfig[] = [
     tier: "standard",
     label: "Free Standard",
     price: "₦0",
+    priceNote: "free forever",
     canPublish: false,
     adRevenueShare: null,
     sessionAndUnlockCommission: 0, // N/A — Standard can't publish, nothing to take a cut of
@@ -61,6 +62,7 @@ export const TIERS: TierConfig[] = [
     tier: "basic",
     label: "Free Basic",
     price: "₦0",
+    priceNote: "free forever",
     canPublish: true,
     adRevenueShare: 0,
     sessionAndUnlockCommission: 0.35,
@@ -98,8 +100,8 @@ export const TIERS: TierConfig[] = [
   {
     tier: "enterprise",
     label: "Enterprise",
-    price: "From ₦55,000/month",
-    priceNote: "rates and seats agreed with us",
+    price: "Starting from ₦55,000+/month",
+    priceNote: "or ₦550,000+/year (2 months free) · cancel anytime · rates and seats agreed with us",
     canPublish: true,
     adRevenueShare: 0.75, // increased from Business's 45%; the negotiable part is the commission side
     sessionAndUnlockCommission: "custom",

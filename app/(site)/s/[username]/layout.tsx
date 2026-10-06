@@ -71,7 +71,11 @@ export default async function SiteLayout({ children, params }: Props) {
           <div className="mx-auto flex max-w-5xl flex-col items-start justify-between gap-4 px-4 py-8 sm:flex-row sm:items-center sm:px-6">
             <div>
               <p className="font-ui text-sm font-bold">{p.displayName}</p>
-              <p className="mt-1 text-xs text-paper/55">© {new Date().getFullYear()} {p.displayName}. All rights reserved.</p>
+              <p className="mt-1 text-xs text-paper/55">
+                © {new Date().getFullYear()} {p.displayName}. All rights reserved. ·{" "}
+                <Link href={`${base}/terms`} className="underline hover:text-paper">Terms</Link> ·{" "}
+                <Link href={`${base}/privacy`} className="underline hover:text-paper">Privacy</Link>
+              </p>
             </div>
             <SiteNav footer />
           </div>

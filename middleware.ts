@@ -7,6 +7,7 @@ import { MAIN_HOST, isMainHost } from "@/lib/host";
 //   /                     → Home (profile header, booking, then the shop and notes, in the order of their front-page setting)
 //   /notes, /notes/<slug> → their notes          (/journals/… is an alias)
 //   /shop, /shop/<id>     → their shop           (/store and /u/<username>/store are aliases)
+//   /terms, /privacy      → their own legal pages, with a "powered by #NotesApp" block
 // A note or item that isn't theirs is sent to the main site instead.
 type Resolved = { found: boolean; uid?: string; username?: string; home?: "profile" | "store"; owned?: boolean };
 const cache = new Map<string, { at: number; v: Resolved }>();
@@ -52,6 +53,7 @@ export async function middleware(req: NextRequest) {
   if (pathname === "/shop" || pathname === "/store" || pathname === `/u/${d.username}/store`) return rewrite(`${site}/shop`);
   if (pathname === `/u/${d.username}`) return rewrite(site);
   if (pathname === "/auth/handoff" || pathname === "/booking/confirm") return rewrite(`${site}${pathname}`);
+  if (pathname === "/terms" || pathname === "/privacy") return rewrite(`${site}${pathname}`); // the member's own legal pages
 
   const m = /^\/(notes|journals|shop)\/([^/]+)\/?$/.exec(pathname);
   if (m) {
