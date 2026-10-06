@@ -58,6 +58,13 @@ const ITEMS = [
       "Build order: a provider layer that handles every payment and payout through one interface, the admin switch with an automatic fallback, a Paylony webhook, Paylony payouts, then Tap-to-Pay for the team seats on Business and Enterprise, which needs an NFC-capable mobile app.",
   },
   {
+    title: "#1MillionNairaNotesAppChallenge for influencers",
+    tag: "Growth",
+    body: "Reach 100k views and 10k followers to unlock LIVE video, then bring 2,000 registered members into a single live to open a ₦1,000,000 giveaway: ₦250,000 in Bonus Credits for your followers, ₦250,000 in NotesApp Credit for you, and ₦500,000 you can withdraw straight away.",
+    detail:
+      "Coming soon, together with live video. Full rules, including how views, followers and live audiences are counted, are confirmed before launch. See the challenge page for the details.",
+  },
+  {
     title: "Mobile apps — iOS and Android",
     tag: "Apps",
     body: "#NotesApp isn't complete until it runs as a real app on the devices people use: native-feeling iOS and Android apps for reading, publishing, booking sessions, getting paid, and managing your journal from your phone.",
@@ -115,6 +122,7 @@ export default function RoadmapPage() {
               <li>Full white label for Enterprise</li>
               <li>NotesApp Credit and Bonus Credits</li>
               <li>Paylony payments and Tap-to-Pay</li>
+              <li><Link href="/challenge" className="text-crimson underline">#1MillionNairaNotesAppChallenge</Link> for influencers (coming soon)</li>
               <li>iOS and Android apps</li>
               <li>AI drafting, social publishing, ad-share</li>
               <li>Audio and video meetings, meeting chat (under team discussion)</li>

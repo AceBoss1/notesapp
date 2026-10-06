@@ -1975,3 +1975,12 @@ Paylony is being added for **bank payouts** and **virtual accounts** first; Pays
 5. **Still to verify with real Paylony replies:** the shape of `fetch_transfer_details` (the code looks for `statusMessage`, as in the payout webhook, and leaves anything it can't read untouched), the shape of `/bank_list`, and the signing format (admin Signature test). Run the test tools with the test key before switching.
 
 **Build order from here:** (1) run the bank list, name check and signature test with the test key and confirm the reply shapes; (2) a test payout end to end with the test key; (3) switch real payouts to Paylony in the admin; (4) bank-transfer checkout and NotesApp Credit top-ups with checkout virtual accounts, matched by `receiving_account` and confirmed with `transaction_verify`.
+
+## Planned: #1MillionNairaNotesAppChallenge (influencers) — not built
+
+Public page: `/challenge`. Rules as decided so far:
+- Unlock: 100k views and 10k followers turns on the LIVE video button (live video itself is not built; it depends on the Daily work above).
+- Trigger: 2,000 *registered member* viewers in one live (not cumulative across lives).
+- Giveaway of ₦1,000,000: ₦250,000 Bonus Credits shared among followers watching live, chosen by the influencer; ₦250,000 NotesApp Credit to the influencer; ₦500,000 withdrawable cash to the influencer's bank.
+
+Open points to settle before building: how views, followers and live audience are counted and de-duplicated (fake accounts, bots, self-viewing), per-follower split and minimum watch time, whether it is once per influencer, who pays for it (marketing budget, with a cap), tax and identity checks before the ₦500,000 payout, and the Bonus Credits spend restrictions (calls, boosts and badges only, as above) so the page wording matches.
