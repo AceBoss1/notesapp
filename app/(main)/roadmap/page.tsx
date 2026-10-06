@@ -5,7 +5,7 @@ import { GOLD_KIND_LIVE } from "@/lib/badges";
 export const metadata: Metadata = {
   title: "Roadmap",
   description:
-    "What's next for #NotesApp — social publishing, AI drafting, client-driven booking, and the ad-share program. Decided and documented, not built yet.",
+    "What's next for #NotesApp — social publishing, AI drafting, full white label, Paylony payments, meetings and messaging, and the ad-share program. Decided and documented, or under discussion; not built yet.",
 };
 
 const ITEMS = [
@@ -35,6 +35,20 @@ const ITEMS = [
     body: "The gold ✔ is live: apply on the verification badges page, an admin reviews it, and approved accounts subscribe (₦1,999/month personal, ₦2,999/month organisation, the same on every plan). Identity-checked gold — NIN and live face check for people, CAC for organisations, through Dojah, with a one-off non-refundable deposit — is built too, and its results now reach us automatically.",
     detail:
       "Identity-check results arrive from Dojah by signed webhook and show next to the application (we store only pass/fail, never ID data); an admin still approves, and applicants get a bell notification and an email when their application is decided. An organisation whose corporate identity check passes is marked registration-confirmed when its gold subscription starts. Coming: approving fully passed checks automatically (built, switched off until we've watched real results).",
+  },
+  {
+    title: "Full white label for Enterprise",
+    tag: "Enterprise",
+    body: "Live today: Enterprise sites run on the member's own domain with the footer “Your name, powered by” and the #NotesApp icon. Next, so that nothing visitors touch says #NotesApp: sign-in and sign-up on the member's own domain, checkout that opens as a popup on their site, and email that goes out under their own name.",
+    detail:
+      "Sign-in: an email-and-password form on the member's domain, next to “Continue with your #NotesApp account” (which keeps Google and any future method working on every domain). Checkout: Paystack's inline popup instead of a redirect — the popup still shows #NotesApp's name, which we'll confirm with Paystack before promising otherwise. Email: each Enterprise domain becomes a verified sending domain (SPF and DKIM records the member adds), so booking and order emails come from, for example, bookings@theirbrand.com. A sweep of error pages and leftover #NotesApp wording follows. The rest of the Enterprise plan is also still to come: unlimited team seats provisioned per account, a dedicated support channel with a service-level agreement, field-team Tap-to-Pay, and syncing sales into accounting tools such as QuickBooks and Xero.",
+  },
+  {
+    title: "Paylony payments and Tap-to-Pay",
+    tag: "Payments",
+    body: "Paylony as the main payment provider for one-off payments and payouts, with an admin switch to fall back to Paystack. Then Tap-to-Pay: team members' Android phones taking contactless card payments at a pop-up or a customer's door.",
+    detail:
+      "Paylony has given us private early access. Their card checkout and Tap-to-Pay are not public yet, and they don't yet charge a card on a schedule, so Pro and Business plan billing, badge subscriptions and journal subscriptions stay on Paystack, as do refunds until Paylony supports them. Build order: a provider layer that handles every payment and payout through one interface, the admin switch with an automatic fallback, a Paylony webhook, Paylony payouts, then Tap-to-Pay for the team seats on Business and Enterprise, which needs an NFC-capable mobile app.",
   },
   {
     title: "Mobile apps — iOS and Android",
@@ -91,7 +105,9 @@ export default function RoadmapPage() {
             <ul className="mt-3 space-y-2 text-sm text-slate">
               <li>WhatsApp reminders alongside email and the bell</li>
               {GOLD_KIND_LIVE.identity ? null : <li>Identity-checked gold badge (NIN + face check for people, CAC for organisations)</li>}
+              <li>Full white label for Enterprise, Paylony payments and Tap-to-Pay</li>
               <li>iOS and Android apps, AI drafting, social publishing, ad-share</li>
+              <li>Audio and video meetings, meeting chat and direct messages (under discussion)</li>
             </ul>
           </div>
         </div>
@@ -108,6 +124,28 @@ export default function RoadmapPage() {
             <p className="mt-3 text-sm text-slate/80">{item.detail}</p>
           </div>
         ))}
+      </div>
+
+      <div className="card mt-6 border-dashed p-7">
+        <span className="font-mono text-[11px] uppercase tracking-eyebrow text-crimson-bright">
+          Under discussion
+        </span>
+        <h2 className="mt-2 font-display text-2xl text-ink">Audio and video meetings, and messaging</h2>
+        <p className="mt-3 text-slate">
+          Nothing here is built or decided yet — this is what we&apos;re weighing. The idea is that a booked session can happen inside #NotesApp, and that publishers
+          and organisations can be reached directly from their profiles.
+        </p>
+        <ul className="mt-4 list-disc space-y-2 pl-5 text-sm text-slate">
+          <li><strong className="text-ink">Meetings.</strong> Audio and video sessions powered by Daily, started from a booking: one link, no separate meeting app. Daily&apos;s ready-made call screen already covers the basics below, which we&apos;d confirm before building.</li>
+          <li><strong className="text-ink">Transcripts and AI notes.</strong> Optional transcription, with an AI note-taker that joins, writes up the session and reports back to the publisher (and, if they choose, the client). This would work alongside the notetaker connections already described above, not replace them.</li>
+          <li><strong className="text-ink">Screen sharing and files.</strong> Screen sharing for presentations, and sharing files in the meeting.</li>
+          <li><strong className="text-ink">Meeting chat.</strong> Chat during a meeting, in a group or one-to-one.</li>
+          <li><strong className="text-ink">Direct messages.</strong> A message button on publisher and organisation profiles so they can be reached directly, with audio and video calls inside those conversations.</li>
+        </ul>
+        <p className="mt-4 text-sm text-slate/80">
+          Questions to settle first: who pays for call minutes (included by plan, or charged to the session price); consent and notice when a meeting is recorded or transcribed, under Nigerian data-protection law;
+          where recordings, transcripts and shared files are kept and for how long; which plans get meetings and direct messages; and how people block, report and moderate messages so the inbox can&apos;t be used for abuse.
+        </p>
       </div>
 
       <div className="card mt-6 p-7">
