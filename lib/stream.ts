@@ -59,10 +59,43 @@ export async function pingStream(): Promise<boolean> {
     });
     if (res.ok) return true;
     const j = await res.json().catch(() => ({}));
-    console.warn("[status] Cloudflare Stream check failed:", res.status, j?.errors?.[0]?.code, j?.errors?.[0]?.message);
-    return false;
+    console.warn("[status] Cloudflare Stream storage-usage failed:", res.status, j?.errors?.[0]?.code, j?.errors?.[0]?.message);
+    // Some tokens can list videos but not read usage: any successful Stream call proves the service answers.
+    const list = await fetch(`https://api.cloudflare.com/client/v4/accounts/${accountId()}/stream`, { headers: { Authorization: `Bearer ${process.env.CLOUDFLARE_STREAM_TOKEN}` }, cache: "no-store" });
+    if (!list.ok) console.warn("[status] Cloudflare Stream list failed:", list.status);
+    return list.ok;
   } catch (e) {
     console.warn("[status] Cloudflare Stream check failed:", e instanceof Error ? e.message : e);
     return false;
   }
+}
+
+// ---- Admin diagnostics and clean-up ----
+export type StreamVideoRow = { uid: string; created?: string; creator?: string; duration?: number; size?: number; name?: string };
+
+// What Cloudflare says to a storage-usage request, in full, for the admin "Test connection" button.
+export async function streamDiagnostics() {
+  const acct = accountId();
+  const out = { tokenSet: !!process.env.CLOUDFLARE_STREAM_TOKEN, accountIdEnding: acct ? `…${acct.slice(-4)}` : "", ok: false, status: 0, code: "", message: "" };
+  if (!out.tokenSet || !acct) {
+    out.message = !out.tokenSet ? "CLOUDFLARE_STREAM_TOKEN isn't set on the server." : "No Cloudflare account id (R2_ACCOUNT_ID / CLOUDFLARE_ACCOUNT_ID) is set.";
+    return out;
+  }
+  try {
+    const res = await fetch(`https://api.cloudflare.com/client/v4/accounts/${acct}/stream/storage-usage`, { headers: { Authorization: `Bearer ${process.env.CLOUDFLARE_STREAM_TOKEN}` }, cache: "no-store" });
+    const j = await res.json().catch(() => ({}));
+    out.status = res.status;
+    out.ok = res.ok;
+    out.code = String(j?.errors?.[0]?.code ?? "");
+    out.message = res.ok ? `Connected. ${j?.result?.videoCount ?? "?"} video(s), ${j?.result?.totalStorageMinutes ?? "?"} minutes stored.` : String(j?.errors?.[0]?.message ?? "Cloudflare refused the request.");
+  } catch (e) {
+    out.message = e instanceof Error ? e.message : "The request failed.";
+  }
+  return out;
+}
+
+// Every video in the account (Stream returns them newest first; an account this size fits in one response).
+export async function listVideos(): Promise<StreamVideoRow[]> {
+  const rows = await cf<{ uid: string; created?: string; creator?: string; duration?: number; size?: number; meta?: { name?: string } }[]>("");
+  return rows.map((v) => ({ uid: v.uid, created: v.created, creator: v.creator, duration: v.duration, size: v.size, name: v.meta?.name }));
 }

@@ -23,6 +23,7 @@ const LINKS = [
   { href: "/admin/errors", label: "Errors" },
   { href: "/admin/enterprise", label: "Enterprise" },
   { href: "/admin/shops", label: "Shops" },
+  { href: "/admin/stream", label: "Video storage" },
   { href: "/admin/api-access", label: "API & domains" },
   { href: "/admin/settings", label: "Settings" },
 ];
