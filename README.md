@@ -1905,13 +1905,20 @@ Internal planning notes; the public `/roadmap` only says these are under team di
 
 - **Provider:** Daily (daily.co) for audio and video rooms, screen sharing, in-call chat and optional transcription. Confirm each capability on the plan we buy before building.
 - **Who pays for calls:**
-  - Audio-only calls are free to users; #NotesApp absorbs the cost.
-  - Video calls, and audio calls that use presentation (screen sharing), are charged to whoever starts or schedules the meeting, paid in advance, at roughly ₦10–18 per minute **regardless of how many people join**.
+  - A plain audio call (a one-to-one call in a direct message) is free; #NotesApp absorbs the cost because it is cheap.
+  - Everything else is charged at the video rate, **₦15 per minute**, whatever the call type or how many people join: video calls, booked-session meetings (even if audio only), group calls, and any call where screen sharing or a presentation is available.
+  - The person who starts or schedules the meeting pays, in advance.
+  - Billing rounds up to whole minutes: every started minute counts (61 seconds is billed as 2 minutes).
   - Unused call credit stays on the account and can be used for later calls.
-  - Possible in-built wallet: the caller must hold credit with us before the video-call button goes live.
+  - In-built wallet: the minimum top-up is ₦1,000. The caller must hold credit with us before a paid call, or the video-call button, goes live.
 - **Who gets which button:**
   - The direct-message button is live on every registered account.
   - The audio-call button goes live from Pro; the video-call button from Business.
   - Anyone, including Free Standard, can *receive* audio calls. Receiving video calls needs Free Basic or above, so a Free Standard member is asked to move up first.
 - **Blocking, reporting and moderation:** the same tools other social apps give — block, mute, report a message or account, admin review and suspension — with rate limits on new conversations.
-- **Still to decide:** consent and notice when a meeting is recorded or transcribed (Nigeria Data Protection Act); where recordings, transcripts and shared files are stored and for how long; what the AI note-taker can and can't guarantee (accuracy, who sees the transcript, deletion); exact per-minute price and wallet top-up rules.
+- **Recording and transcription (Nigeria Data Protection Act):**
+  - The meeting owner chooses where a recording or transcript is kept (their own device, or cloud storage) and has to give permission for it before it starts.
+  - Every participant sees an on-screen flash notice and hears an audio announcement, before they join, that the meeting is recorded or transcribed.
+  - How long files are kept depends on the storage and transcript options we offer; the owner can delete a recording or transcript at any time.
+- **AI note-taker:** to explore next — Daily's own transcription service and its rates (what it costs per minute, which languages and accents it handles well, such as Nigerian English and Pidgin, where the transcript is stored, and whether it can be deleted on request). What we can and can't guarantee about accuracy, who sees a transcript and deletion follows from that.
+- **Still to decide:** how recordings and shared files are stored and retained in practice (follows the options above), the wallet's refund and expiry rules, and the exact build order.
