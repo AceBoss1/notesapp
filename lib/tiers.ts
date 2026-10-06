@@ -60,8 +60,8 @@ export const TIERS: TierConfig[] = [
     canPublish: true,
     adRevenueShare: 0,
     sessionAndUnlockCommission: 0.35,
-    physicalCommission: 0.08,
-    digitalCommission: 0.2,
+    physicalCommission: 0.06,
+    digitalCommission: 0.09,
   },
   {
     tier: "pro",
@@ -73,8 +73,8 @@ export const TIERS: TierConfig[] = [
     canPublish: true,
     adRevenueShare: 0.25,
     sessionAndUnlockCommission: 0.25,
-    physicalCommission: 0.05,
-    digitalCommission: 0.15,
+    physicalCommission: 0.04,
+    digitalCommission: 0.06,
   },
   {
     tier: "business",
@@ -86,21 +86,22 @@ export const TIERS: TierConfig[] = [
     canPublish: true,
     adRevenueShare: 0.45,
     sessionAndUnlockCommission: 0.15,
-    physicalCommission: 0.04,
-    digitalCommission: 0.1,
+    physicalCommission: 0.025,
+    digitalCommission: 0.04,
   },
   {
     tier: "enterprise",
     label: "Enterprise",
-    price: "Custom",
+    price: "From ₦35,000/month",
+    priceNote: "rates and seats agreed with us",
     canPublish: true,
     adRevenueShare: 0.75, // increased from Business's 45%; the negotiable part is the commission side
     sessionAndUnlockCommission: "custom",
     sessionAndUnlockCommissionFloor: 0.05,
     physicalCommission: "custom",
-    physicalCommissionFloor: 0.03,
+    physicalCommissionFloor: 0.01,
     digitalCommission: "custom",
-    digitalCommissionFloor: 0.05,
+    digitalCommissionFloor: 0.015,
     customDomain: true,
     apiAccess: true,
   },
@@ -111,8 +112,8 @@ export function getTierConfig(tier: AccountTier): TierConfig {
 }
 
 export function formatPercent(value: number | "custom", floor?: number): string {
-  if (value === "custom") return `Custom (from ${((floor ?? 0.05) * 100).toFixed(0)}%+)`;
-  return `${(value * 100).toFixed(0)}%`;
+  if (value === "custom") return `Custom (from ${+((floor ?? 0.05) * 100).toFixed(1)}%+)`;
+  return `${+(value * 100).toFixed(1)}%`;
 }
 
 // Rates agreed with one Enterprise account (users/{uid}.customRates, set by an admin only), as fractions 0–1.
@@ -131,13 +132,13 @@ export function commissionRateFor(tier: AccountTier, custom?: CustomRates): numb
   return agreed(tier, custom?.session) ?? (c === "custom" ? getTierConfig(tier).sessionAndUnlockCommissionFloor ?? 0.05 : c);
 }
 
-// NotesApp's cut of the item price on a physical-goods sale (0–1). Enterprise: the agreed rate, else the 3% floor.
+// NotesApp's cut of the item price on a physical-goods sale (0–1). Enterprise: the agreed rate, else the 1% floor.
 export function physicalCommissionRateFor(tier: AccountTier, custom?: CustomRates): number {
   const c = getTierConfig(tier).physicalCommission;
   return agreed(tier, custom?.physical) ?? (c === "custom" ? getTierConfig(tier).physicalCommissionFloor ?? 0.03 : c);
 }
 
-// NotesApp's cut of a digital download (0–1): 20 / 15 / 10 %, Enterprise: the agreed rate, else the 5% floor.
+// NotesApp's cut of a digital download (0–1): 9 / 6 / 4 %, Enterprise: the agreed rate, else the 1.5% floor.
 export function digitalCommissionRateFor(tier: AccountTier, custom?: CustomRates): number {
   const c = getTierConfig(tier).digitalCommission;
   return agreed(tier, custom?.digital) ?? (c === "custom" ? getTierConfig(tier).digitalCommissionFloor ?? 0.05 : c);

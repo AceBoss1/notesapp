@@ -25,6 +25,8 @@ const LIVE = [
   { href: "/badges", title: "Verification badges", copy: "A verified ✔ for accounts in good standing, and a gold ✔ for accounts we endorse or identity-check." },
   { href: "/advertise", title: "Ads & ad share", copy: "Buy a banner campaign online and reach readers across the site; Pro and Business publishers can opt in and earn a share, paid monthly after review." },
   { href: "/store-selling", title: "Sell physical goods & digital downloads", copy: "Sell in your store (or your organisation's): physical items with managed stock, the buyer's money held until delivery is confirmed and a parcel ID anyone can track — or digital downloads that buyers get instantly after paying. Boost any item to reach more readers." },
+  { href: "/store-selling", title: "Parcel tracking for riders & drivers", copy: "A chain-of-custody log for every parcel: record each holder — bike rider, bus driver, park agent — and they update the location or hand on to the next person from a short link, with no login." },
+  { href: "/organisations", title: "Team seats & your own site", copy: "Business includes 4 seats (owner plus three team members); Enterprise has as many as you need, a branded site on your own domain, an API and the lowest commissions." },
   { href: "/merchstore", title: "Merch store", copy: "Official #NotesApp merch with your choice of logo — pre-order in batches, delivered in Nigeria." },
   { href: "/trending", title: "Trending", copy: "The most visited publishers and posts on #NotesApp." },
   { href: "/docs", title: "API, Console & your own domain", copy: "Enterprise accounts get a server-to-server API, signed webhooks and a Console, and can serve their page, journals and store on their own domain." },
@@ -61,7 +63,7 @@ export default async function AboutPage() {
         <p>
           No platform today is purpose-built for African coaches,
           consultants, therapists, and knowledge professionals who
-          publish content, take bookings, collect payment in Naira, and
+          publish content, take bookings, set up shops, collect payment in Naira, and
           manage client relationships — all in one place. Substack
           assumes a Western reader. Calendly assumes Stripe. Notion is
           built for tech teams.
@@ -107,7 +109,7 @@ export default async function AboutPage() {
             free to do. Publishers set their own prices; #NotesApp takes a
             commission on paid sessions, subscriptions and gifts that
             falls as you move up the tier ladder (from 35% on Free Basic
-            to 15% on Business, negotiable on Enterprise). Boosts are
+            to 15% on Business, negotiable on Enterprise), and a smaller one on store sales: 6% of physical items and 9% of downloads on Free Basic, down to 2.5% and 4% on Business and from 1% and 1.5% on Enterprise. Boosts are
             priced by validated impressions with no commission. Pro and
             Business are paid plans; verification badges, gold and our own
             merch are paid add-ons; and advertisers' banner campaigns (paid up front, reviewed before they run, refunded for anything undelivered) fund the ad share we pay opted-in

@@ -94,6 +94,16 @@ const ROWS: { label: string; href?: string; render: (t: (typeof TIERS)[number]) 
         : "Watch videos on any post",
   },
   {
+    label: "Team seats",
+    href: "/organisations",
+    render: (t) => (!t.canPublish ? "—" : t.tier === "business" ? "4 — the owner plus 3 team members (clerk, rider, supervisor)" : t.tier === "enterprise" ? "As many as you need, agreed with us" : "1 — the owner"),
+  },
+  {
+    label: "Parcel tracking & escrow",
+    href: "/store-selling",
+    render: (t) => (t.canPublish ? "Buyer's money held until delivery · parcel ID · no-login hand-over links for riders and drivers" : "—"),
+  },
+  {
     label: "Your own domain",
     render: (t) =>
       !t.canPublish
@@ -183,14 +193,14 @@ export default function PricingPage() {
             yearly (two months free), renewing automatically through
             Paystack. Cancel any time under Rates &amp; payouts: you keep the
             plan until the period you paid for ends, with no partial
-            refunds. Enterprise is custom —{" "}
+            refunds. Enterprise starts at ₦35,000/month with rates agreed with us —{" "}
             <Link href="/contact" className="text-crimson underline underline-offset-2">
               contact us
             </Link>
             . As a rule of thumb, Pro pays for itself once
             you earn about ₦50,000 a month through sessions, subscriptions
             and gifts (its commission is 10 points lower than Free Basic's);
-            Business does at about ₦75,000 a month.
+            Business does at about ₦75,000 a month. On store sales the gap is wider still: Free Basic takes 6% of physical items and 9% of downloads, Pro 4% and 6%, Business 2.5% and 4%, Enterprise from 1% and 1.5%.
           </p>
         </div>
         <div className="card p-6">
