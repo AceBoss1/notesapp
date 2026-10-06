@@ -1926,12 +1926,18 @@ Internal planning notes; the public `/roadmap` only says these are under team di
 ### Wallet (planned): rules and how to make it safe
 
 **Product rules so far** (draft copy; rates and percentages are settings, not code):
-- Premium video calls are billed from the member's #NotesApp wallet; audio calls stay free. The rate (draft copy says ₦10/min; the earlier decision above says ₦15/min — confirm) is shown live before a call starts and can change.
+- Premium video calls are billed from the member's #NotesApp wallet; audio calls stay free. The rate is **₦15 per minute** (decided; every started minute counts) and is shown live before a call starts. It is a setting and can change.
 - Top-up bonus, web only, for a top-up of ₦10,000 or more: Tuesday–Friday +5%, Saturday and Sunday +7.5%, Monday +10% (all in WAT). The top-up button is turned off inside the mobile apps.
 - **Bonus credit** is spent first, and only on calls, boosts and badges. It can't be combined with other offers, sent to another member, or cashed out.
-- **Topped-up (real) funds** can pay for anything on the platform and can be transferred to another member. The wallet itself can't be cashed out.
+- **Topped-up (real) funds** can pay for anything on the platform: calls, boosts, badges, plans, and items and sessions in other members' shops (see below). They can't be sent to another member, and the wallet can't be cashed out. **There are no member-to-member transfers** (decided).
 
-**Before building: licensing.** Holding member balances and letting members transfer them to each other is regulated activity in Nigeria (central-bank rules on payment service providers and wallets). Get legal advice before enabling balances or transfers, and consider holding the money with a licensed partner (for example Paylony virtual accounts) instead of in our own books. Spending on our own services only (calls, boosts, badges) is the lighter case; transfers between members are the part that most needs a licence.
+**Before building: licensing.** Holding member balances is regulated activity in Nigeria (central-bank rules on payment service providers and wallets). Member-to-member transfers are the part that most needs a licence, so they are left out. Get legal advice before enabling balances at all, and consider holding the money with a licensed partner (for example Paylony virtual accounts) rather than in our own books. Spending only on our own services (calls, boosts, badges) is the lighter case; a lawyer should also confirm that paying other members' shops from the wallet stays within the same closed-loop position.
+
+**Paying other members' shops and sessions from the wallet (no transfers).**
+- The wallet is just another way to fund checkout, like a card. The buyer's wallet is debited into the platform's escrow (the same held-until-delivery or after-the-session flow used today), and the seller or publisher is later paid by **bank payout** from the platform, minus our commission. The seller never receives wallet money, so no balance moves from one member to another.
+- Seller earnings stay a payout ledger paid to a bank account; they are not credited to the seller's wallet. (If we later let people spend earnings on calls, boosts or badges, that is a conversion on our own services, not a transfer.)
+- At checkout: "Pay with wallet" shows only when the balance covers the price (cash balance only: bonus credit never pays for shop items or sessions). If it falls short, show "Top up ₦X more" and then pay. Refunds on wallet-paid orders go back to the buyer's wallet as cash balance.
+- Build: a wallet option in the existing checkout (`/api/paystack/initialize` and its siblings) that debits the wallet in one transaction, writes the payment as paid and runs the same confirmation, ledger and payout steps as a card payment. The idempotency key is the payment reference.
 
 **Never spend twice (ten devices, one balance).**
 1. The wallet only changes on the server. Browsers and apps can ask for a spend; they can never write a balance (Firestore rules: no client writes to wallet data).
@@ -1945,4 +1951,4 @@ Internal planning notes; the public `/roadmap` only says these are under team di
 3. The strongest guard is on the business action itself: a unique reference per thing being bought (the call id and minute number, the boost id, the order reference). The server refuses a second charge for the same reference even if a client invents a new key.
 4. Calls reserve a small block of credit up front (a hold), bill each minute once (call id + minute number), and release what is unused. Holds expire on their own if the app crashes.
 5. Top-ups only credit the wallet from the payment provider's verified confirmation, keyed by the payment reference, using the same "pending to paid exactly once" step the payments code already uses for orders and plans.
-6. Transfers are one transaction that debits the sender and credits the receiver together, with limits, a daily cap and a PIN or code check for larger amounts. Every debit sends a notification, so an unexpected one is noticed quickly.
+6. There are no transfers between members. Every debit sends a notification, so an unexpected one is noticed quickly, and larger wallet payments can ask for a PIN or code.
