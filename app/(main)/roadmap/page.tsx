@@ -48,7 +48,7 @@ const ITEMS = [
     tag: "Payments",
     body: "A prepaid balance you top up once and spend across #NotesApp, so you don't have to enter card details every time. Planned uses: audio and video calls, boosts, verification badges, ad campaigns, and items and sessions in other members' shops.",
     detail:
-      "Top up from ₦1,000 on the web. Larger top-ups will earn Bonus Credits, extra credit that is spent first on calls, boosts and badges only. NotesApp Credit can't be sent to other members and can't be cashed out; sellers and publishers are still paid to their bank accounts, never into a balance. Paying for a shop item or session with NotesApp Credit works like paying by card: your money is held until the item is delivered or the session has happened, then the seller is paid. Premium calls will be billed from NotesApp Credit, with the rate shown before you start. Rates and bonus amounts can change, and are always shown before you pay.",
+      "Top up from ₦1,000 on the web. Larger top-ups will earn Bonus Credits, extra credit that is spent first, and only on calls, advert banner payments, boosts and badges. NotesApp Credit can't be sent to other members and can't be cashed out; sellers and publishers are still paid to their bank accounts, never into a balance. Paying for a shop item or session with NotesApp Credit works like paying by card: your money is held until the item is delivered or the session has happened, then the seller is paid. Premium calls will be billed from NotesApp Credit, with the rate shown before you start. Rates and bonus amounts can change, and are always shown before you pay.",
   },
   {
     title: "Paylony payments and Tap-to-Pay",
@@ -60,7 +60,7 @@ const ITEMS = [
   {
     title: "#1MillionNairaNotesAppChallenge for influencers",
     tag: "Growth",
-    body: "Reach 100k views and 10k followers to unlock LIVE video, then bring 2,000 registered members into a single live to open a ₦1,000,000 giveaway: ₦250,000 in Bonus Credits for your followers, ₦250,000 in NotesApp Credit for you, and ₦500,000 you can withdraw straight away.",
+    body: "Reach 100k views and 10k followers to unlock LIVE video, then bring 2,000 registered members into a single live to open a ₦1,000,000 giveaway: ₦250,000 in Bonus Credits for your followers (₦5,000 to ₦25,000 each), ₦250,000 in NotesApp Credit for you, and ₦500,000 you can withdraw straight away.",
     detail:
       "Coming soon, together with live video. Full rules, including how views, followers and live audiences are counted, are confirmed before launch. See the challenge page for the details.",
   },

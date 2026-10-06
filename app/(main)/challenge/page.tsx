@@ -34,7 +34,7 @@ const PRIZES = [
   {
     amount: "₦250,000",
     to: "Your followers",
-    body: "In Bonus Credits, shared among followers who are watching your live, chosen by you.",
+    body: "In Bonus Credits, between ₦5,000 and ₦25,000 each, for followers who are watching your live, chosen by you. Bonus Credits can be spent on calls, advert banner payments, boosts and badges only.",
   },
   {
     amount: "₦250,000",
@@ -85,6 +85,16 @@ export default function ChallengePage() {
             </div>
           ))}
         </div>
+      </section>
+
+      <section className="mt-12" aria-labelledby="rules">
+        <h2 id="rules" className="font-display text-2xl text-ink">The ground rules</h2>
+        <ul className="mt-4 list-disc space-y-2 pl-5 text-sm text-slate">
+          <li>Every view, follower and live viewer is counted and checked. Fake accounts, bots and self-viewing don&apos;t count, and an account that tries them is disqualified.</li>
+          <li>Each influencer can win once.</li>
+          <li>Before the ₦500,000 cash payout we verify your identity and handle any tax that applies.</li>
+          <li>Bonus Credits can&apos;t be transferred or cashed out.</li>
+        </ul>
       </section>
 
       <section className="mt-12 card border-dashed p-7">
