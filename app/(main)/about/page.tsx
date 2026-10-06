@@ -11,7 +11,7 @@ import GoldBadgeExplainer from "@/components/GoldBadgeExplainer";
 export const metadata: Metadata = {
   title: "About",
   description:
-    "Why #NotesApp exists — one workspace for African coaches, consultants, and knowledge professionals to publish, get booked, and get paid — and what you can do on it today.",
+    "Why #NotesApp exists — one workspace for African coaches, consultants, and knowledge professionals to publish, get booked, sell from a shop and get paid — and what you can do on it today.",
   openGraph: { images: ["/images/marketing/notesapp-showcase.png"] },
 };
 
@@ -24,12 +24,13 @@ const LIVE = [
   { href: "/boost", title: "Boost", copy: "Promote a post or a store item and pay only for validated impressions." },
   { href: "/badges", title: "Verification badges", copy: "A verified ✔ for accounts in good standing, and a gold ✔ for accounts we endorse or identity-check." },
   { href: "/advertise", title: "Ads & ad share", copy: "Buy a banner campaign online and reach readers across the site; Pro and Business publishers can opt in and earn a share, paid monthly after review." },
-  { href: "/store-selling", title: "Sell physical goods & digital downloads", copy: "Sell in your store (or your organisation's): physical items with managed stock, the buyer's money held until delivery is confirmed and a parcel ID anyone can track — or digital downloads that buyers get instantly after paying. Boost any item to reach more readers." },
+  { href: "/store-selling", title: "Sell physical goods & digital downloads", copy: "Sell in your store (or your organisation's): physical items with photos, Size and Colour options and managed stock, the buyer's money held until delivery is confirmed and a parcel ID anyone can track — or digital downloads that buyers get instantly after paying. Boost any item to reach more readers." },
+  { href: "/store-selling#view-only", title: "View-only files & video courses", copy: "On Pro and above, sell PDFs and video lessons that buyers watch or read on #NotesApp with no download, on up to 2 devices per purchase. Videos are hosted on Cloudflare Stream and play only with short-lived links." },
   { href: "/store-selling", title: "Parcel tracking for riders & drivers", copy: "A chain-of-custody log for every parcel: record each holder — bike rider, bus driver, park agent — and they update the location or hand on to the next person from a short link, with no login." },
   { href: "/organisations", title: "Team seats & your own site", copy: "Business includes 4 seats (owner plus three team members); Enterprise has as many as you need, a branded site on your own domain, an API and the lowest commissions." },
   { href: "/merchstore", title: "Merch store", copy: "Official #NotesApp merch with your choice of logo — pre-order in batches, delivered in Nigeria." },
   { href: "/trending", title: "Trending", copy: "The most visited publishers and posts on #NotesApp." },
-  { href: "/docs", title: "API, Console & your own domain", copy: "Enterprise accounts get a server-to-server API, signed webhooks and a Console, and can serve their page, journals and store on their own domain." },
+  { href: "/docs", title: "API, Console & your own domain", copy: "Enterprise accounts get a server-to-server API, signed webhooks and a Console, and a branded site — Home, Notes and Shop — on their own domain." },
   { href: "/security", title: "Trust & security", copy: "How payments, files, access rules and your data are protected — including downloading or deleting your own data." },
   { href: "/status", title: "Status & changelog", copy: "Live service health with response times and incident updates, plus a changelog of every release." },
   { href: "/pricing", title: "Video on posts", copy: "Add a short video to a post — one MP4 or WebM up to 3 minutes — played in our own player that only loads when you press play." },

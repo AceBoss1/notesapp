@@ -4,7 +4,7 @@ import { TIERS, formatPercent } from "@/lib/tiers";
 
 export const metadata: Metadata = {
   title: "Sell physical goods & digital downloads",
-  description: "Sell physical goods and digital downloads from your #NotesApp store: buyers pay on-platform, the money is held until delivery is confirmed, and every parcel gets a tracking ID.",
+  description: "Sell physical goods, digital downloads and view-only video courses from your #NotesApp store: buyers pay on-platform, the money is held until delivery is confirmed, and every parcel gets a tracking ID.",
 };
 
 export default function StoreSellingPage() {

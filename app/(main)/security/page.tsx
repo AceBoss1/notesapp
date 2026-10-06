@@ -23,6 +23,7 @@ const SECTIONS: { title: string; points: string[] }[] = [
     title: "Your files and content",
     points: [
       "Paid digital downloads live in a separate private storage bucket that has no public address. A buyer gets a short-lived download link (valid for one minute) only after paying, and the file is never exposed on a public URL.",
+      "View-only items and courses never expose a file: PDF pages are streamed only to the buyer's signed-in, registered device and drawn in the page, and videos play from Cloudflare Stream with short-lived signed links and downloads switched off. Each purchase is tied to the buyer's account and two devices; a third device is refused and every attempt is counted. This deters sharing and casual copying — it can't stop someone recording their screen.",
       "Uploads are limited by file type and size, and the size is built into the upload link so it can't be exceeded. Executable files are not accepted.",
       "Drafts are private to their author; suspension records and appeals are private to the account and to admins.",
     ],
