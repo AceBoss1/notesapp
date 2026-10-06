@@ -1910,7 +1910,7 @@ Internal planning notes; the public `/roadmap` only says these are under team di
   - The person who starts or schedules the meeting pays, in advance.
   - Billing rounds up to whole minutes: every started minute counts (61 seconds is billed as 2 minutes).
   - Unused call credit stays on the account and can be used for later calls.
-  - In-built wallet: the minimum top-up is ₦1,000. The caller must hold credit with us before a paid call, or the video-call button, goes live.
+  - NotesApp Credit: the minimum top-up is ₦1,000. The caller must hold credit with us before a paid call, or the video-call button, goes live.
 - **Who gets which button:**
   - The direct-message button is live on every registered account.
   - The audio-call button goes live from Pro; the video-call button from Business.
@@ -1921,34 +1921,36 @@ Internal planning notes; the public `/roadmap` only says these are under team di
   - Every participant sees an on-screen flash notice and hears an audio announcement, before they join, that the meeting is recorded or transcribed.
   - How long files are kept depends on the storage and transcript options we offer; the owner can delete a recording or transcript at any time.
 - **AI note-taker:** to explore next — Daily's own transcription service and its rates (what it costs per minute, which languages and accents it handles well, such as Nigerian English and Pidgin, where the transcript is stored, and whether it can be deleted on request). What we can and can't guarantee about accuracy, who sees a transcript and deletion follows from that.
-- **Still to decide:** how recordings and shared files are stored and retained in practice (follows the options above), the wallet's refund and expiry rules, and the exact build order.
+- **Still to decide:** how recordings and shared files are stored and retained in practice (follows the options above), the refund and expiry rules for NotesApp Credit, and the exact build order.
 
-### Wallet (planned): rules and how to make it safe
+### NotesApp Credit and Bonus Credits (planned): rules and how to make them safe
+
+Names: the prepaid balance is **NotesApp Credit**; promotional extras are **Bonus Credits**. ("Wallet" is only a technical word in the notes below.)
 
 **Product rules so far** (draft copy; rates and percentages are settings, not code):
-- Premium video calls are billed from the member's #NotesApp wallet; audio calls stay free. The rate is **₦15 per minute** (decided; every started minute counts) and is shown live before a call starts. It is a setting and can change.
+- Premium video calls are billed from the member's NotesApp Credit; audio calls stay free. The rate is **₦15 per minute** (decided; every started minute counts) and is shown live before a call starts. It is a setting and can change.
 - Top-up bonus, web only, for a top-up of ₦10,000 or more: Tuesday–Friday +5%, Saturday and Sunday +7.5%, Monday +10% (all in WAT). The top-up button is turned off inside the mobile apps.
-- **Bonus credit** is spent first, and only on calls, boosts and badges. It can't be combined with other offers, sent to another member, or cashed out.
-- **Topped-up (real) funds** can pay for anything on the platform: calls, boosts, badges, plans, and items and sessions in other members' shops (see below). They can't be sent to another member, and the wallet can't be cashed out. **There are no member-to-member transfers** (decided).
+- **Bonus Credits** are spent first, and only on calls, boosts and badges. It can't be combined with other offers, sent to another member, or cashed out.
+- **NotesApp Credit (topped-up funds)** can pay for anything on the platform: calls, boosts, badges, plans, and items and sessions in other members' shops (see below). They can't be sent to another member, and NotesApp Credit can't be cashed out. **There are no member-to-member transfers** (decided).
 
 **Licensing: counsel's view (October 2026).** Nigerian legal counsel advised that (1) a prepaid balance usable only on our platform, including paying other members' shops and sessions, needs no licence; (2) the existing "held until delivery, then paid to the seller" flow needs nothing beyond what the payment provider holds; (3) holding the money with a licensed partner means the platform needs no approval of its own; and (4) we should **prepare for data-protection registration** (NDPC). This holds only while the controls stay true: no member-to-member transfers, no cash-out, seller earnings paid to bank accounts only, and bonus credit that can't be moved or cashed. The register is shown on `/admin/traction` (source: `lib/compliance.ts`) so investors can see it in the deck summary; update it whenever counsel's advice changes.
 
-**Paying other members' shops and sessions from the wallet (no transfers).**
-- The wallet is just another way to fund checkout, like a card. The buyer's wallet is debited into the platform's escrow (the same held-until-delivery or after-the-session flow used today), and the seller or publisher is later paid by **bank payout** from the platform, minus our commission. The seller never receives wallet money, so no balance moves from one member to another.
-- Seller earnings stay a payout ledger paid to a bank account; they are not credited to the seller's wallet. (If we later let people spend earnings on calls, boosts or badges, that is a conversion on our own services, not a transfer.)
-- At checkout: "Pay with wallet" shows only when the balance covers the price (cash balance only: bonus credit never pays for shop items or sessions). If it falls short, show "Top up ₦X more" and then pay. Refunds on wallet-paid orders go back to the buyer's wallet as cash balance.
-- Build: a wallet option in the existing checkout (`/api/paystack/initialize` and its siblings) that debits the wallet in one transaction, writes the payment as paid and runs the same confirmation, ledger and payout steps as a card payment. The idempotency key is the payment reference.
+**Paying other members' shops and sessions with NotesApp Credit (no transfers).**
+- NotesApp Credit is just another way to fund checkout, like a card. The buyer's balance is debited into the platform's escrow (the same held-until-delivery or after-the-session flow used today), and the seller or publisher is later paid by **bank payout** from the platform, minus our commission. The seller never receives wallet money, so no balance moves from one member to another.
+- Seller earnings stay a payout ledger paid to a bank account; they are not credited to the seller's NotesApp Credit. (If we later let people spend earnings on calls, boosts or badges, that is a conversion on our own services, not a transfer.)
+- At checkout: "Pay with NotesApp Credit" shows only when the balance covers the price (cash balance only: Bonus Credits never pay for shop items or sessions). If it falls short, show "Top up ₦X more" and then pay. Refunds on wallet-paid orders go back to the buyer's wallet as cash balance.
+- Build: a NotesApp Credit option in the existing checkout (`/api/paystack/initialize` and its siblings) that debits the balance in one transaction, writes the payment as paid and runs the same confirmation, ledger and payout steps as a card payment. The idempotency key is the payment reference.
 
 **Never spend twice (ten devices, one balance).**
-1. The wallet only changes on the server. Browsers and apps can ask for a spend; they can never write a balance (Firestore rules: no client writes to wallet data).
-2. Every spend, transfer and top-up is one Firestore *transaction*: read the wallet, check `balance >= amount`, subtract, and append a ledger entry, all together. Firestore makes concurrent transactions on the same wallet take turns, each re-reading the latest balance. With ₦2.5m and ten devices each spending ₦1m at once, two succeed and the other eight fail with "insufficient funds".
+1. A balance only changes on the server. Browsers and apps can ask for a spend; they can never write a balance (Firestore rules: no client writes to wallet data).
+2. Every spend, transfer and top-up is one Firestore *transaction*: read the balance record, check `balance >= amount`, subtract, and append a ledger entry, all together. Firestore makes concurrent transactions on the same wallet take turns, each re-reading the latest balance. With ₦2.5m and ten devices each spending ₦1m at once, two succeed and the other eight fail with "insufficient funds".
 3. Money is whole kobo integers, the ledger is append-only, and the balance is derived from it. Refunds are new reversing entries, never edits. A nightly job re-adds the ledger and flags any wallet whose balance doesn't match.
-4. Bonus and real funds are separate buckets; the server decides which to spend from and enforces what each can pay for.
+4. Bonus Credits and NotesApp Credit are separate buckets; the server decides which to spend from and enforces what each can pay for.
 
 **Never charge twice (the connection drops after paying).**
 1. Every spend carries an idempotency key made when the member taps Pay and saved on the device before the request is sent. The server stores the key with the result inside the same transaction as the debit. A retry with the same key gets the original result back and is never charged again; the same key with a different amount or target is rejected.
 2. When the app reopens or the network returns, it first asks "what happened to key X?" and shows "checking your payment…", never an enabled Pay button that would make a new key.
 3. The strongest guard is on the business action itself: a unique reference per thing being bought (the call id and minute number, the boost id, the order reference). The server refuses a second charge for the same reference even if a client invents a new key.
 4. Calls reserve a small block of credit up front (a hold), bill each minute once (call id + minute number), and release what is unused. Holds expire on their own if the app crashes.
-5. Top-ups only credit the wallet from the payment provider's verified confirmation, keyed by the payment reference, using the same "pending to paid exactly once" step the payments code already uses for orders and plans.
-6. There are no transfers between members. Every debit sends a notification, so an unexpected one is noticed quickly, and larger wallet payments can ask for a PIN or code.
+5. Top-ups only credit NotesApp Credit from the payment provider's verified confirmation, keyed by the payment reference, using the same "pending to paid exactly once" step the payments code already uses for orders and plans.
+6. There are no transfers between members. Every debit sends a notification, so an unexpected one is noticed quickly, and larger payments from NotesApp Credit can ask for a PIN or code.

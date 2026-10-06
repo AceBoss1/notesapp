@@ -44,6 +44,13 @@ const ITEMS = [
       "Sign-in: an email-and-password form on the member's domain, next to “Continue with your #NotesApp account” (which keeps Google and any future method working on every domain). Checkout: Paystack's inline popup instead of a redirect — the popup still shows #NotesApp's name, which we'll confirm with Paystack before promising otherwise. Email: each Enterprise domain becomes a verified sending domain (SPF and DKIM records the member adds), so booking and order emails come from, for example, bookings@theirbrand.com. A sweep of error pages and leftover #NotesApp wording follows. The rest of the Enterprise plan is also still to come: unlimited team seats provisioned per account, a dedicated support channel with a service-level agreement, field-team Tap-to-Pay, and syncing sales into accounting tools such as QuickBooks and Xero.",
   },
   {
+    title: "NotesApp Credit and Bonus Credits",
+    tag: "Payments",
+    body: "A prepaid balance you top up once and spend across #NotesApp, so you don't have to enter card details every time. Planned uses: audio and video calls, boosts, verification badges, ad campaigns, and items and sessions in other members' shops.",
+    detail:
+      "Top up from ₦1,000 on the web. Larger top-ups will earn Bonus Credits, extra credit that is spent first on calls, boosts and badges only. NotesApp Credit can't be sent to other members and can't be cashed out; sellers and publishers are still paid to their bank accounts, never into a balance. Paying for a shop item or session with NotesApp Credit works like paying by card: your money is held until the item is delivered or the session has happened, then the seller is paid. Premium calls will be billed from NotesApp Credit, with the rate shown before you start. Rates and bonus amounts can change, and are always shown before you pay.",
+  },
+  {
     title: "Paylony payments and Tap-to-Pay",
     tag: "Payments",
     body: "Paylony as the main payment provider for one-off payments and payouts, with an admin switch to fall back to Paystack. Then Tap-to-Pay: team members' Android phones taking contactless card payments at a pop-up or a customer's door.",
@@ -106,6 +113,7 @@ export default function RoadmapPage() {
               <li>WhatsApp reminders alongside email and the bell</li>
               {GOLD_KIND_LIVE.identity ? null : <li>Automatic identity-checked gold badge (all built; NIN + face check for people, CAC for organisations awaiting final tests)</li>}
               <li>Full white label for Enterprise</li>
+              <li>NotesApp Credit and Bonus Credits</li>
               <li>Paylony payments and Tap-to-Pay</li>
               <li>iOS and Android apps</li>
               <li>AI drafting, social publishing, ad-share</li>
