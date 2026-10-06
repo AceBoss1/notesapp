@@ -5,6 +5,7 @@ import GoldBadgeExplainer from "@/components/GoldBadgeExplainer";
 import IndependenceDoodle from "@/components/IndependenceDoodle";
 import AdSlot from "@/components/AdSlot";
 import { activeHostForUsername } from "@/lib/domains";
+import PartnerIcon from "@/components/PartnerIcon";
 
 // The reference customers' links point at their own sites once they have them; refreshed every few minutes.
 export const revalidate = 300;
@@ -174,7 +175,7 @@ export default async function Home() {
         <div className="mt-4 grid gap-6 lg:grid-cols-2">
           <div className="card flex flex-col items-start justify-between gap-6 p-8">
             <div>
-              <p className="font-ui text-sm font-bold text-ink">Precheks · journal</p>
+              <p className="inline-flex items-center gap-2 font-ui text-sm font-bold text-ink"><PartnerIcon partner="precheks" /> Precheks · journal</p>
               <p className="mt-3 max-w-xl font-body text-slate">
                 Precheks — a data, career, and business consulting practice — runs its notes, calendar, and client sessions on #NotesApp from day one. Its main website,{" "}
                 <a href="https://precheks.com.ng" target="_blank" rel="noopener noreferrer" className="underline decoration-crimson/40 underline-offset-2 hover:text-crimson">precheks.com.ng</a>, is powered by our API and webhooks, and its journal has its own branded site at{" "}
@@ -192,7 +193,7 @@ export default async function Home() {
           </div>
           <div className="card flex flex-col items-start justify-between gap-6 p-8">
             <div>
-              <p className="font-ui text-sm font-bold text-ink">ApexGlitz Boutique · shop</p>
+              <p className="inline-flex items-center gap-2 font-ui text-sm font-bold text-ink"><PartnerIcon partner="apexglitz" /> ApexGlitz Boutique · shop</p>
               <p className="mt-3 max-w-xl font-body text-slate">
                 ApexGlitz Boutique is a fashion brand whose original store, apexglitz.com, runs on Shopify; it sells to Africa through its shop on #NotesApp — several photos and size and colour options per item, checkout in Naira, the buyer&apos;s payment held until delivery — on its own domain at{" "}
                 <a href={`https://${shopHost ?? "apexglitz.com.ng"}`} className="underline decoration-crimson/40 underline-offset-2 hover:text-crimson">

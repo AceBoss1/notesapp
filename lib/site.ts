@@ -15,6 +15,12 @@ export const COMPANY_INFO = {
   smedanId: null as string | null,
 };
 
+// The first reference customers' logos (their profile pictures), shown as small rounded squares beside their names.
+export const PARTNER_ICONS = {
+  precheks: "https://media.notesapp.name.ng/avatars/Cmz7aPEa6RdkTF8VTZtm44aiUo92/1791174100104-favicon-icon.png",
+  apexglitz: "https://media.notesapp.name.ng/avatars/26Ss0mx0scTK00KdErkqov5dKo72/1791215458894-apexjpeg.jpeg",
+};
+
 export const SITE = {
   url: "https://www.notesapp.name.ng",
   email: "hello@notesapp.name.ng",
