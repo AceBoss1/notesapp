@@ -194,7 +194,7 @@ export default async function Home() {
             <div>
               <p className="font-ui text-sm font-bold text-ink">ApexGlitz Boutique · shop</p>
               <p className="mt-3 max-w-xl font-body text-slate">
-                ApexGlitz Boutique — a fashion boutique — sells from its own shop on #NotesApp, with several photos and size and colour options per item, checkout in Naira and the buyer&apos;s payment held until delivery, on its own domain at{" "}
+                ApexGlitz Boutique is a fashion brand whose original store, apexglitz.com, runs on Shopify; it sells to Africa through its shop on #NotesApp — several photos and size and colour options per item, checkout in Naira, the buyer&apos;s payment held until delivery — on its own domain at{" "}
                 <a href={`https://${shopHost ?? "apexglitz.com.ng"}`} className="underline decoration-crimson/40 underline-offset-2 hover:text-crimson">
                   {shopHost ?? "apexglitz.com.ng"}
                 </a>

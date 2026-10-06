@@ -1,5 +1,6 @@
 "use client";
 
+import AppLink from "@/components/AppLink";
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
@@ -341,9 +342,9 @@ export default function Comments({
         </form>
       ) : user === null ? (
         <p className="mt-6 text-sm text-slate">
-          <Link href="/login" className="text-crimson-bright font-semibold">
+          <AppLink href="/login" className="text-crimson-bright font-semibold">
             Sign in
-          </Link>{" "}
+          </AppLink>{" "}
           to join the conversation.
         </p>
       ) : currentUserSuspended ? (

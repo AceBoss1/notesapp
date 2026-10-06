@@ -1,13 +1,13 @@
 "use client";
 
+import { useAppPush } from "@/components/AppLink";
 import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
 import { onAuthStateChanged, User } from "firebase/auth";
 import { auth } from "@/lib/firebase";
 
 // "Notify me when it's back": a bell alert is sent when the seller restocks.
 export default function NotifyWhenBack({ itemId, compact = false }: { itemId: string; compact?: boolean }) {
-  const router = useRouter();
+  const push = useAppPush(); // a full page load on a member's own domain
   const [user, setUser] = useState<User | null | undefined>(undefined);
   const [watching, setWatching] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -25,7 +25,7 @@ export default function NotifyWhenBack({ itemId, compact = false }: { itemId: st
   }, [user, itemId]);
 
   async function toggle() {
-    if (!user) return router.push("/login");
+    if (!user) return push("/login");
     setBusy(true);
     setError("");
     try {

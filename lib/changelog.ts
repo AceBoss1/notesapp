@@ -11,6 +11,15 @@ export type Release = {
 
 export const CHANGELOG: Release[] = [
   {
+    version: "v0.6.4",
+    bump: "patch",
+    date: "2026-10-06",
+    changes: [
+      { kind: "fixed", text: "On a member's own domain, Follow, Subscribe, sign-in prompts and “My orders” links no longer trigger blocked cross-origin requests in the browser console; they now open the #NotesApp page with a normal page load." },
+      { kind: "fixed", text: "The status page's Video courses check now asks Cloudflare for the account's storage usage, so it no longer reports Down when Stream is fine." },
+    ],
+  },
+  {
     version: "v0.6.3",
     bump: "patch",
     date: "2026-10-06",

@@ -26,3 +26,7 @@ export function useSite(): SiteInfo {
   if (!v) throw new Error("useSite() used outside a member site");
   return v;
 }
+// Like useSite(), but null on the main site (for components shared between the main site and member sites).
+export function useSiteOptional(): SiteInfo | null {
+  return useContext(Ctx);
+}

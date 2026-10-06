@@ -1,5 +1,6 @@
 "use client";
 
+import AppLink from "@/components/AppLink";
 import { Suspense, useEffect, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
@@ -68,17 +69,17 @@ function Confirm() {
         <>
           <p className="font-display text-2xl text-ink">Welcome to {result.tier.tier === "pro" ? "Pro" : "Business"} ✓</p>
           <p className="mt-3 text-sm text-slate">Your plan is active and renews {result.tier.interval === "annually" ? "yearly" : "monthly"}. Your lower commission applies from now.</p>
-          <Link href="/profile/publishing" className="btn-primary mt-6 inline-block !px-5 !py-2 text-xs">
+          <AppLink href="/profile/publishing" className="btn-primary mt-6 inline-block !px-5 !py-2 text-xs">
             Set up rates &amp; payouts
-          </Link>
+          </AppLink>
         </>
       ) : result.status === "paid" && result.kind === "badge" ? (
         <>
           <p className="font-display text-2xl text-ink">Verified badge added ✓</p>
           <p className="mt-3 text-sm text-slate">The ✔ now shows next to your name. It renews monthly; cancel any time under Edit profile.</p>
-          <Link href="/profile/edit" className="btn-primary mt-6 inline-block !px-5 !py-2 text-xs">
+          <AppLink href="/profile/edit" className="btn-primary mt-6 inline-block !px-5 !py-2 text-xs">
             Back to profile
-          </Link>
+          </AppLink>
         </>
       ) : result.status === "paid" && result.kind === "gold" ? (
         <>
@@ -108,17 +109,17 @@ function Confirm() {
         <>
           <p className="font-display text-2xl text-ink">Order placed ✓</p>
           <p className="mt-3 text-sm text-slate">Your money is held by #NotesApp until you confirm the parcel arrived. Follow it and confirm delivery on My orders. A confirmation email is on its way.</p>
-          <Link href="/orders" className="btn-primary mt-6 inline-block !px-5 !py-2 text-xs">
+          <AppLink href="/orders" className="btn-primary mt-6 inline-block !px-5 !py-2 text-xs">
             My orders
-          </Link>
+          </AppLink>
         </>
       ) : result.status === "paid" && result.kind === "digital" ? (
         <>
           <p className="font-display text-2xl text-ink">Your download is ready ✓</p>
           <p className="mt-3 text-sm text-slate">Download it from My orders → My purchases. Digital downloads are final once downloaded, so there are no refunds after that. A confirmation email is on its way.</p>
-          <Link href="/orders" className="btn-primary mt-6 inline-block !px-5 !py-2 text-xs">
+          <AppLink href="/orders" className="btn-primary mt-6 inline-block !px-5 !py-2 text-xs">
             Go to my downloads
-          </Link>
+          </AppLink>
         </>
       ) : result.status === "paid" && result.kind === "merch" ? (
         <>
@@ -132,9 +133,9 @@ function Confirm() {
         <>
           <p className="font-display text-2xl text-ink">Boost is live ✓</p>
           <p className="mt-3 text-sm text-slate">Your post now rotates in the Boosted slots on the home and Journals pages. Impressions are counted once a real visitor has seen it, spread over several days.</p>
-          <Link href="/profile/boosts" className="btn-primary mt-6 inline-block !px-5 !py-2 text-xs">
+          <AppLink href="/profile/boosts" className="btn-primary mt-6 inline-block !px-5 !py-2 text-xs">
             See boost results
-          </Link>
+          </AppLink>
         </>
       ) : result.status === "paid" && result.kind === "gift" && result.gift ? (
         <>
