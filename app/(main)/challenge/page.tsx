@@ -93,7 +93,8 @@ export default function ChallengePage() {
           <li>Every view, follower and live viewer is counted and checked. Fake accounts, bots and self-viewing don&apos;t count, and an account that tries them is disqualified.</li>
           <li>Each influencer can win once, and the first 10 influencers to qualify each month are paid.</li>
           <li>A viewer counts after 5 minutes of watching. Your follower picks come from a list of the viewers who were most active in the last 5 minutes of your live, ranked by shares, then likes, then comments. You can&apos;t pick yourself, your own other accounts, or accounts linked to you.</li>
-          <li>Before the ₦500,000 cash payout we verify your identity (through Dojah) and handle any tax that applies.</li>
+          <li>Before the ₦500,000 cash payout we confirm your identity (NIN and a face match, through Dojah) and handle any tax that applies.</li>
+          <li>Every winner also gets 1 month of the personal maroon ✔ badge, free.</li>
           <li>Bonus Credits can&apos;t be transferred or cashed out.</li>
         </ul>
       </section>

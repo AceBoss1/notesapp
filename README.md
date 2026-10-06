@@ -1985,7 +1985,7 @@ Public page: `/challenge`. Rules as decided so far:
 
 Decided: all views, followers and live audiences are counted and checked for fake accounts, bots and self-viewing; each influencer can win once; the founder funds it from personal funds (not stated publicly); identity and tax checks are required before the ₦500,000 payout; Bonus Credits for followers are ₦5,000 minimum and ₦25,000 maximum each (so the ₦250,000 reaches 10 to 50 followers) and carry the usual Bonus Credits limits (calls, advert banner payments, boosts and badges only).
 
-Also decided: first 10 influencers to qualify each month are paid (cap of 10 per month, one win per influencer ever); a viewer counts after 5 minutes of watching; identity check through Dojah before the ₦500,000 payout.
+Also decided: first 10 influencers to qualify each month are paid (cap of 10 per month, one win per influencer ever); a viewer counts after 5 minutes of watching; identity check through Dojah (NIN plus face match, the same check as the gold identity badge, `lib/dojah.ts` and the personal widget) before the ₦500,000 payout. Every winner also gets 1 month of the personal maroon ✔ badge free (the ₦999/month badge add-on, granted by admin or automatically on approval). Note: the maroon ✔ is not itself an identity check; winners pass the NIN and face check as a payout condition.
 
 Follower picks: the influencer chooses from a ranked list of followers who watched at least 5 minutes, ordered by their activity in the last 5 minutes of the live: most shares first, then most likes, then most comments. The influencer cannot pick their own accounts or accounts linked to them (see below).
 
@@ -1999,4 +1999,4 @@ Counting and fraud checks (recommended method; confirm before building):
 - Human review: every qualifying live goes to an admin review queue with the counts, flags and the removed accounts. Nothing is paid until a person approves it, and the ₦500,000 payout waits for the identity check and a 7-day hold so late fraud flags can still stop it.
 - Disqualification: attempts at fake accounts, bots or self-viewing disqualify the influencer, with the reason recorded.
 
-Still open: the numeric thresholds above (7 days, 3 accounts per device, the bot score cut-off) are starting values to tune; Dojah integration details (which checks: BVN or NIN with face match); tax treatment of the prizes (see the VAT and tax entry in the compliance register); and whether "first 10 to qualify" is by the time the live reaches 2,000 counted viewers or by the time admin approves.
+Still open: the numeric thresholds above (7 days, 3 accounts per device, the bot score cut-off) are starting values to tune; tax treatment of the prizes (see the VAT and tax entry in the compliance register); and whether "first 10 to qualify" is by the time the live reaches 2,000 counted viewers or by the time admin approves.
