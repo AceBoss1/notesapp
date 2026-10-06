@@ -1999,4 +1999,4 @@ Counting and fraud checks (recommended method; confirm before building):
 - Human review: every qualifying live goes to an admin review queue with the counts, flags and the removed accounts. Nothing is paid until a person approves it, and the ₦500,000 payout waits for the identity check and a 7-day hold so late fraud flags can still stop it.
 - Disqualification: attempts at fake accounts, bots or self-viewing disqualify the influencer, with the reason recorded.
 
-Still open: the numeric thresholds above (7 days, 3 accounts per device, the bot score cut-off) are starting values to tune; tax treatment of the prizes (see the VAT and tax entry in the compliance register); and whether "first 10 to qualify" is by the time the live reaches 2,000 counted viewers or by the time admin approves.
+Still open: the numeric thresholds above (7 days, 3 accounts per device, the bot score cut-off) are starting values to tune; tax treatment of the prizes (see the VAT and tax entry in the compliance register);.
