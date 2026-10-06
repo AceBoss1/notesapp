@@ -11,7 +11,7 @@ const STEPS = [
   {
     n: "1",
     title: "Reach the bar",
-    body: "100,000 views and 10,000 followers. Hit both and the LIVE video button turns on for your account.",
+    body: "100,000 views and 10,000 followers, and the 10,000 must be new: people who joined #NotesApp through you after you enrolled, not members who were already here. Hit both and the LIVE video button turns on for your account.",
   },
   {
     n: "2",
