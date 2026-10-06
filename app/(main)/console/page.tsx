@@ -7,7 +7,7 @@ import { onAuthStateChanged, User } from "firebase/auth";
 import { auth } from "@/lib/firebase";
 
 // The Console: API keys, webhooks and your own domain. Keys and webhooks are switched on per account by our team
-// (Enterprise); the domain section needs a plan that includes your own domain.
+// (Enterprise); the domain section needs a plan that includes your own domain (Business and Enterprise).
 type Key = { id: string; name: string; prefix: string; scopes: string[]; createdAt: string; lastUsedAt: string | null; revokedAt: string | null };
 type Endpoint = { id: string; url: string; events: string[]; active: boolean; createdAt: string };
 type Delivery = { id: string; endpointId: string; url: string; event: string; ok: boolean; status: number | null; error: string; durationMs: number; at: string };
@@ -51,7 +51,7 @@ function Secret({ label, value, onClose }: { label: string; value: string; onClo
 export default function ConsolePage() {
   const router = useRouter();
   const [user, setUser] = useState<User | null | undefined>(undefined);
-  const [access, setAccess] = useState<{ apiAccess: boolean; domainAllowed: boolean; username: string } | null>(null);
+  const [access, setAccess] = useState<{ apiAccess: boolean; apiPlan?: boolean; domainAllowed: boolean; username: string } | null>(null);
   const [keys, setKeys] = useState<Key[]>([]);
   const [endpoints, setEndpoints] = useState<Endpoint[]>([]);
   const [deliveries, setDeliveries] = useState<Delivery[]>([]);
@@ -121,7 +121,13 @@ export default function ConsolePage() {
       {/* ---------------- API keys ---------------- */}
       <h2 className="mt-12 font-display text-2xl text-ink">API keys</h2>
       {!access.apiAccess ? (
-        <Locked>API access is switched on per account for Enterprise partners. To get it, send us a request with the <Link href="/contact?topic=api" className="text-crimson underline">contact form</Link> and we&apos;ll set you up.</Locked>
+        <Locked>
+          {access.apiPlan === false ? (
+            <>The server-to-server API, keys and webhooks are part of the Enterprise plan; on Business the Console is for connecting your own domain. See <Link href="/pricing" className="text-crimson underline">Pricing</Link>, or <Link href="/contact?topic=api" className="text-crimson underline">talk to us about Enterprise</Link>.</>
+          ) : (
+            <>API access is switched on per account for Enterprise partners. To get it, send us a request with the <Link href="/contact?topic=api" className="text-crimson underline">contact form</Link> and we&apos;ll set you up.</>
+          )}
+        </Locked>
       ) : (
         <>
           <form
@@ -209,7 +215,7 @@ export default function ConsolePage() {
       {/* ---------------- Domain ---------------- */}
       <h2 className="mt-12 font-display text-2xl text-ink">Your own domain</h2>
       {!access.domainAllowed ? (
-        <Locked>A branded site on your own domain (Home, Notes and Shop) is an Enterprise feature. Until then your page lives at <span className="font-mono">notesapp.name.ng/u/{access.username}</span>. See <Link href="/pricing" className="text-crimson underline">Pricing</Link>.</Locked>
+        <Locked>A branded site on your own domain (Home, Notes and Shop) is a Business and Enterprise feature. Until then your page lives at <span className="font-mono">notesapp.name.ng/u/{access.username}</span>. See <Link href="/pricing" className="text-crimson underline">Pricing</Link>.</Locked>
       ) : !domain ? (
         <form className="card mt-4 p-5" onSubmit={(e) => { e.preventDefault(); act(async () => { await call(user, "/api/console/domain", { method: "POST", body: JSON.stringify({ host }) }); setHost(""); }, "Domain added — now add the DNS records below."); }}>
           <label className="text-xs text-slate">Domain<input value={host} onChange={(e) => setHost(e.target.value)} placeholder="notes.yourbrand.com  or  yourbrand.com" className={`${field} font-mono`} /></label>

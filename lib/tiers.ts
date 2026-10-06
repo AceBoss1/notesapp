@@ -35,7 +35,8 @@ export type TierConfig = {
   // final once downloaded). Higher than physical because there is no cost of goods to share.
   digitalCommission: number | "custom";
   digitalCommissionFloor?: number;
-  // Enterprise-only extras. Own domain: the member's page, journals and store served on their
+  // Own domain (Business and Enterprise): on Business it is semi white-label — the footer reads "Name is powered by #NotesApp"
+  // and emails go out under #NotesApp's name on the member's behalf. API access: Enterprise only. Own domain: the member's page, journals and store served on their
   // domain (notes.yourbrand.com or the root yourbrand.com); default home stays /u/username.
   // API access: server-to-server API + Console, switched on per account by an admin.
   customDomain?: boolean;
@@ -83,6 +84,7 @@ export const TIERS: TierConfig[] = [
     priceNote: "or ₦150,000/year (2 months free) · cancel anytime",
     monthlyKobo: 15_000 * 100,
     yearlyKobo: 150_000 * 100,
+    customDomain: true,
     canPublish: true,
     adRevenueShare: 0.45,
     sessionAndUnlockCommission: 0.15,

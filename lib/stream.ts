@@ -47,3 +47,13 @@ export async function playbackToken(uid: string, seconds = 4 * 3600): Promise<st
   return r.token;
 }
 export const playerUrl = (token: string) => `https://iframe.videodelivery.net/${token}`;
+
+// For /status: does the Stream API answer for our token? (a one-item listing)
+export async function pingStream(): Promise<boolean> {
+  try {
+    await cf("?per_page=1");
+    return true;
+  } catch {
+    return false;
+  }
+}

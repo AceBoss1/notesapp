@@ -6,16 +6,19 @@ import { getTierConfig } from "./tiers";
 
 export const bearer = (req: NextRequest) => req.headers.get("authorization")?.replace(/^Bearer\s+/i, "");
 
-export type ConsoleMember = { uid: string; user: Record<string, any>; apiAccess: boolean; domainAllowed: boolean };
+export type ConsoleMember = { uid: string; user: Record<string, any>; apiAccess: boolean; apiPlan: boolean; domainAllowed: boolean };
 
 // The signed-in member behind a /api/console request, plus what their account unlocks:
-// API keys & webhooks need the admin-set `apiAccess` flag; custom domains need a tier that includes them (Enterprise).
+// API keys & webhooks need an Enterprise plan AND the admin-set `apiAccess` flag; custom domains need a tier that includes
+// them (Business and Enterprise).
 export async function consoleMember(req: NextRequest): Promise<ConsoleMember> {
   const { uid } = await verifySignedInRequest(bearer(req));
   const user = (await getAdminDb().doc(`users/${uid}`).get()).data();
   if (!user) throw new HttpError(404, "No profile found for this account.");
   if (user.suspended) throw new HttpError(403, "This account is suspended.");
-  return { uid, user, apiAccess: user.apiAccess === true, domainAllowed: !!getTierConfig(effectiveTier(user as never)).customDomain };
+  const tier = getTierConfig(effectiveTier(user as never));
+  const apiPlan = !!tier.apiAccess;
+  return { uid, user, apiAccess: apiPlan && user.apiAccess === true, apiPlan, domainAllowed: !!tier.customDomain };
 }
 
 export class HttpError extends Error {

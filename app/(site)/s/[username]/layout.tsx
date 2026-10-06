@@ -9,7 +9,7 @@ import { SiteProvider } from "@/components/site/SiteContext";
 import SiteNav from "@/components/site/SiteNav";
 import SiteAccount from "@/components/site/SiteAccount";
 
-// A member's branded site (Enterprise custom domains): their name in the header, three pages — Home (profile and
+// A member's branded site (Business and Enterprise custom domains): their name in the header, three pages — Home (profile and
 // booking), Notes and Shop — and a "Powered by #NotesApp" footer. No #NotesApp navigation. On their own domain the
 // URLs are /, /notes and /shop (middleware.ts rewrites them here); www.notesapp.name.ng/s/<username> previews it.
 // `data-site-theme` is where future themes will plug in.
