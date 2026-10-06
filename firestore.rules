@@ -574,6 +574,11 @@ service cloud.firestore {
       allow read, write: if false;
     }
 
+    // Paylony settings learned from tests (the accepted payout signing format) — server-only.
+    match /paylonyConfig/{id} {
+      allow read, write: if false;
+    }
+
     // Webhook events received from Paylony — server-only.
     match /paylonyEvents/{id} {
       allow read, write: if false;

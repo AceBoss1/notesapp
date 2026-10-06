@@ -14,6 +14,27 @@ export default function AdminPaylonyPage() {
   const [events, setEvents] = useState<Ev[]>([]);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
+  const [config, setConfig] = useState<{ signFormat: string | null; verifiedAt: string | null }>({ signFormat: null, verifiedAt: null });
+  const [tool, setTool] = useState<string>("");
+  const [out, setOut] = useState("");
+  const [bank, setBank] = useState({ bankCode: "000013", accountNumber: "" });
+
+  const run = async (action: string, extra: Record<string, unknown> = {}) => {
+    setTool(action);
+    setOut("");
+    setError("");
+    try {
+      const r = await fetch("/api/admin/paylony", { method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${await user!.getIdToken()}` }, body: JSON.stringify({ action, ...extra }) });
+      const j = await r.json();
+      if (!r.ok) throw new Error(j.error || "Something went wrong");
+      setOut(JSON.stringify(j, null, 2));
+      if (action === "signature_test") void load();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Something went wrong");
+    } finally {
+      setTool("");
+    }
+  };
 
   const load = useCallback(async () => {
     setBusy(true);
@@ -24,6 +45,7 @@ export default function AdminPaylonyPage() {
       if (!r.ok) throw new Error(j.error || "Something went wrong");
       setDiag(j.diagnostics);
       setEvents(j.events);
+      setConfig(j.config);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Something went wrong");
     } finally {
@@ -54,6 +76,21 @@ export default function AdminPaylonyPage() {
         </div>
       )}
       <button onClick={load} disabled={busy} className="btn-ghost mt-3 !px-4 !py-2 text-xs">{busy ? "Checking…" : "Test connection"}</button>
+
+      <h2 className="mt-10 font-display text-2xl">Tools</h2>
+      <p className="mt-2 text-sm text-slate">For learning how Paylony answers. The signature test and the test virtual account only run with a TEST key (sk_test_…), where no real money moves.</p>
+      <p className="mt-2 font-mono text-xs text-slate">Payout signing format: {config.signFormat ? `${config.signFormat} (verified ${config.verifiedAt ? new Date(config.verifiedAt).toLocaleString("en-NG") : ""})` : "not verified yet"}</p>
+      <div className="mt-3 flex flex-wrap gap-2">
+        <button onClick={() => run("banks")} disabled={!!tool} className="btn-ghost !px-4 !py-2 text-xs">Bank list</button>
+        <button onClick={() => run("signature_test")} disabled={!!tool} className="btn-ghost !px-4 !py-2 text-xs">{tool === "signature_test" ? "Testing…" : "Signature test (test key)"}</button>
+        <button onClick={() => run("checkout_test")} disabled={!!tool} className="btn-ghost !px-4 !py-2 text-xs">Test virtual account (test key)</button>
+      </div>
+      <div className="mt-3 flex flex-wrap items-end gap-2">
+        <label className="text-xs text-slate">Bank code<input value={bank.bankCode} onChange={(e) => setBank((b) => ({ ...b, bankCode: e.target.value }))} className="mt-1 block w-28 border border-rule bg-card px-2 py-1.5 text-sm" /></label>
+        <label className="text-xs text-slate">Account number<input value={bank.accountNumber} onChange={(e) => setBank((b) => ({ ...b, accountNumber: e.target.value }))} className="mt-1 block w-40 border border-rule bg-card px-2 py-1.5 text-sm" /></label>
+        <button onClick={() => run("account_name", bank)} disabled={!!tool || !bank.accountNumber} className="btn-ghost !px-4 !py-2 text-xs">Check name</button>
+      </div>
+      {out && <pre className="mt-3 max-h-80 overflow-auto bg-card p-2 font-mono text-[11px] text-slate">{out}</pre>}
 
       <h2 className="mt-10 font-display text-2xl">Webhook</h2>
       <p className="mt-2 text-sm text-slate">Give Paylony this webhook address: <code>https://www.notesapp.name.ng/api/paylony/webhook</code>, with the webhook key set in Vercel as PAYLONY_WEBHOOK_KEY. Events arrive for money paid into a virtual account and for payouts that change state.</p>
