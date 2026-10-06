@@ -113,13 +113,17 @@ export default function AdminRevenuePage() {
             {report.series.length === 0 ? (
               <p className="mt-3 text-sm text-slate">No revenue in this period.</p>
             ) : (
-              <div className="mt-4 flex h-40 items-end gap-1 overflow-x-auto" role="img" aria-label="Revenue chart">
-                {report.series.map((s) => (
-                  <div key={s.key} className="flex min-w-[10px] flex-1 flex-col items-center justify-end" title={`${s.key}: ${formatNaira(s.revenueKobo)}`}>
-                    <div className="w-full rounded-t bg-crimson" style={{ height: `${Math.max(2, (s.revenueKobo / max) * 100)}%` }} />
-                  </div>
-                ))}
-              </div>
+              <>
+                <p className="mt-3 font-mono text-[10px] text-slate">Tallest bar: {formatNaira(max)}</p>
+                {/* Each column is as tall as the chart (h-full) so the bar's percentage height has something to measure against. */}
+                <div className="mt-2 flex h-40 items-end gap-1 overflow-x-auto border-b border-rule" role="img" aria-label="Revenue chart">
+                  {report.series.map((s) => (
+                    <div key={s.key} className="flex h-full min-w-[10px] max-w-[56px] flex-1 flex-col justify-end" title={`${s.key}: ${formatNaira(s.revenueKobo)}`}>
+                      <div className="w-full rounded-t bg-crimson" style={{ height: `${Math.max(2, (s.revenueKobo / max) * 100)}%` }} />
+                    </div>
+                  ))}
+                </div>
+              </>
             )}
             {report.series.length > 0 && (
               <p className="mt-2 flex justify-between font-mono text-[10px] text-slate">
