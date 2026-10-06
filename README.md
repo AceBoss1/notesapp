@@ -1985,4 +1985,18 @@ Public page: `/challenge`. Rules as decided so far:
 
 Decided: all views, followers and live audiences are counted and checked for fake accounts, bots and self-viewing; each influencer can win once; the founder funds it from personal funds (not stated publicly); identity and tax checks are required before the ₦500,000 payout; Bonus Credits for followers are ₦5,000 minimum and ₦25,000 maximum each (so the ₦250,000 reaches 10 to 50 followers) and carry the usual Bonus Credits limits (calls, advert banner payments, boosts and badges only).
 
-Still open: the exact counting and de-duplication method, minimum watch time to qualify as a viewer, how the influencer picks followers (and what stops them picking their own accounts), identity-check provider and tax treatment of the prizes (see the VAT and tax entry in the compliance register), and a cap on how many influencers can be paid per month.
+Also decided: first 10 influencers to qualify each month are paid (cap of 10 per month, one win per influencer ever); a viewer counts after 5 minutes of watching; identity check through Dojah before the ₦500,000 payout.
+
+Follower picks: the influencer chooses from a ranked list of followers who watched at least 5 minutes, ordered by their activity in the last 5 minutes of the live: most shares first, then most likes, then most comments. The influencer cannot pick their own accounts or accounts linked to them (see below).
+
+Counting and fraud checks (recommended method; confirm before building):
+- A counted viewer is a signed-in member with a verified email, an account at least 7 days old when the live starts, and a followed or unfollowed state recorded before the live (no follow-then-vanish). New accounts that appear right before a live do not count.
+- Watch time comes from the server, not the app: the player sends a heartbeat every 15 seconds, and 5 minutes means 5 minutes of heartbeats, with the tab or app in the foreground and the video playing. One active session per account; a second session pauses the first.
+- One counted viewer per device and per household network: a device fingerprint (the same one used for view-only items) and an IP range may count for at most 3 accounts, and the rest are not counted.
+- Self-viewing and linked accounts: excluded if the account shares a device, payout bank account, phone number, recovery email or card with the influencer, or was created through the influencer's own invite link within 24 hours of the live (invite signups count, but are flagged for review rather than excluded).
+- Bot signals: scoring on signup velocity (many signups from one source in a short time), no profile or activity history, disposable email domains, identical viewing patterns, and likes, shares and comments that arrive in bursts. Accounts scoring over the threshold are held out and counted separately.
+- Followers: counted only when the account passes the viewer test above; the 10,000 follower and 100,000 view bars use the same rules, counted once per account.
+- Human review: every qualifying live goes to an admin review queue with the counts, flags and the removed accounts. Nothing is paid until a person approves it, and the ₦500,000 payout waits for the identity check and a 7-day hold so late fraud flags can still stop it.
+- Disqualification: attempts at fake accounts, bots or self-viewing disqualify the influencer, with the reason recorded.
+
+Still open: the numeric thresholds above (7 days, 3 accounts per device, the bot score cut-off) are starting values to tune; Dojah integration details (which checks: BVN or NIN with face match); tax treatment of the prizes (see the VAT and tax entry in the compliance register); and whether "first 10 to qualify" is by the time the live reaches 2,000 counted viewers or by the time admin approves.

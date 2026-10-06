@@ -62,7 +62,7 @@ const ITEMS = [
     tag: "Growth",
     body: "Reach 100k views and 10k followers to unlock LIVE video, then bring 2,000 registered members into a single live to open a ₦1,000,000 giveaway: ₦250,000 in Bonus Credits for your followers (₦5,000 to ₦25,000 each), ₦250,000 in NotesApp Credit for you, and ₦500,000 you can withdraw straight away.",
     detail:
-      "Coming soon, together with live video. Full rules, including how views, followers and live audiences are counted, are confirmed before launch. See the challenge page for the details.",
+      "Coming soon, together with live video. The first 10 influencers to qualify each month are paid, and each influencer can win once. Full rules, including how views, followers and live audiences are counted and checked, are confirmed before launch. See the challenge page for the details.",
   },
   {
     title: "Mobile apps — iOS and Android",

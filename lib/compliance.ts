@@ -65,7 +65,7 @@ export const COMPLIANCE: ComplianceItem[] = [
     id: "vat-tax",
     area: "Tax",
     question: "Where does VAT (and other tax) apply on the platform: our fees, plans, ad sales, commissions, NotesApp Credit top-ups, prizes and giveaways?",
-    position: "Not yet reviewed. Needs an accountant's or tax counsel's answer before launch of NotesApp Credit and the challenge.",
+    position: "Company TIN is registered (see Company registration and tax below). VAT registration and treatment is not yet reviewed: it needs an accountant's or tax counsel's answer before launch of NotesApp Credit and the challenge.",
     status: "to-do",
     basis: "Open item raised by the founder, October 2026",
     next:
