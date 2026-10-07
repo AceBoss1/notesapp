@@ -11,6 +11,15 @@ export type Release = {
 
 export const CHANGELOG: Release[] = [
   {
+    version: "v0.7.7",
+    bump: "patch",
+    date: "2026-10-07",
+    changes: [
+      { kind: "changed", text: "Suspensions can now be for a set time (from a day to a year), and the member is told when theirs ends. The account comes back by itself when the time is up." },
+      { kind: "changed", text: "Reports about nudity or violence are now sent to our team straight away, so we can meet our 24-hour promise." },
+    ],
+  },
+  {
     version: "v0.7.6",
     bump: "patch",
     date: "2026-10-07",

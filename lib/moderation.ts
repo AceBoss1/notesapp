@@ -2,6 +2,7 @@ import { doc, updateDoc, setDoc, getDoc, deleteField, getDocs, collection, query
 import type { GoldBadgeKind } from "./badges";
 import type { GoldRequestStatus, GoldTrack } from "./gold";
 import { db } from "./firebase";
+import { suspensionEnd, type SuspensionLength } from "./suspension-length";
 import { UserRole, Suspension, AccountTier } from "./users";
 import {
   notifySuspended,
@@ -31,17 +32,20 @@ export async function suspendUser(
   uid: string,
   username: string,
   reason: string,
-  suspendedByUid: string
+  suspendedByUid: string,
+  length: SuspensionLength = "indefinite"
 ): Promise<void> {
+  const until = suspensionEnd(length);
   const suspension: Suspension = {
     reason,
     suspendedAt: new Date().toISOString(),
     suspendedByUid,
     appealStatus: "none",
+    ...(until ? { until } : {}),
   };
   await setDoc(doc(db, SUSPENSIONS, uid), suspension);
   await updateDoc(doc(db, USERS, uid), { suspended: true });
-  notifySuspended(uid, username, reason).catch((err) =>
+  notifySuspended(uid, username, reason, until).catch((err) =>
     console.warn("notifySuspended failed:", err)
   );
 }

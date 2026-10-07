@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { useAdminAuth } from "@/lib/useAdminAuth";
+import { SUSPENSION_LENGTHS, type SuspensionLength } from "@/lib/suspension-length";
 import { REPORT_REASON_LABEL, REPORT_URGENT_HOURS, URGENT_REASONS, type ReportReason } from "@/lib/moments-rules";
 
 type Report = {
@@ -18,6 +19,7 @@ export default function AdminReportsPage() {
   const [status, setStatus] = useState<"open" | "resolved">("open");
   const [reports, setReports] = useState<Report[] | null>(null);
   const [error, setError] = useState("");
+  const [length, setLength] = useState<Record<string, SuspensionLength>>({});
   const [note, setNote] = useState<Record<string, string>>({});
 
   const call = useCallback(async (path: string, init?: RequestInit) => {
@@ -43,9 +45,10 @@ export default function AdminReportsPage() {
   }
 
   async function suspend(r: Report) {
-    if (!window.confirm(`Suspend @${r.target}? They are told why (your note, or the report reason), and this report is marked actioned${r.kind === "moment" ? " and the moment removed" : ""}. You can unsuspend them on the Users page.`)) return;
+    const len = length[r.id] ?? "1w";
+    if (!window.confirm(`Suspend @${r.target} for ${SUSPENSION_LENGTHS.find((l) => l.id === len)?.label.toLowerCase()}? They are told why (your note, or the report reason), and this report is marked actioned${r.kind === "moment" ? " and the moment removed" : ""}. You can unsuspend them on the Users page.`)) return;
     setError("");
-    try { await call("/api/admin/reports", { method: "POST", body: JSON.stringify({ id: r.id, suspend: true, note: note[r.id] ?? "" }) }); load(); }
+    try { await call("/api/admin/reports", { method: "POST", body: JSON.stringify({ id: r.id, suspend: true, length: len, note: note[r.id] ?? "" }) }); load(); }
     catch (e) { setError(e instanceof Error ? e.message : "Something went wrong"); }
   }
 
@@ -94,6 +97,9 @@ export default function AdminReportsPage() {
               <div className="mt-3 flex flex-wrap items-center gap-2">
                 <input value={note[r.id] ?? ""} onChange={(e) => setNote({ ...note, [r.id]: e.target.value })} placeholder="Note (optional)" maxLength={500} className="min-w-0 flex-1 rounded border border-rule px-3 py-1.5 text-sm" />
                 <button onClick={() => resolve(r.id, "dismissed")} className="btn-ghost">Dismiss</button>
+                <select value={length[r.id] ?? "1w"} onChange={(e) => setLength({ ...length, [r.id]: e.target.value as SuspensionLength })} aria-label="Suspend for" className="rounded border border-rule px-2 py-1.5 text-sm">
+                  {SUSPENSION_LENGTHS.map((l) => <option key={l.id} value={l.id}>{l.label}</option>)}
+                </select>
                 <button onClick={() => suspend(r)} className="rounded border border-red-700 px-3 py-1.5 text-sm font-semibold text-red-700">Suspend @{r.target}</button>
                 <button onClick={() => resolve(r.id, "actioned")} className="btn-primary">Actioned{r.kind === "moment" ? " (removes the moment)" : ""}</button>
               </div>

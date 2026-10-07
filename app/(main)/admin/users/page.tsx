@@ -5,6 +5,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { useAdminAuth } from "@/lib/useAdminAuth";
 import { getAllUsersForAdmin, UserProfile, UserRole, AccountTier } from "@/lib/users";
+import { SUSPENSION_LENGTHS, describeUntil, type SuspensionLength } from "@/lib/suspension-length";
 import { getAllBadgeRequests, resolveBadgeRequest, getAllSuspensions, suspendUser, unsuspendUser, rejectAppeal, updateUserRole, updateUserTier, setGoldBadge, resolveTierRequest } from "@/lib/moderation";
 import { GOLD_KIND_LABEL, GOLD_KIND_LIVE, GoldBadgeKind } from "@/lib/badges";
 import { TIERS } from "@/lib/tiers";
@@ -27,6 +28,7 @@ export default function AdminUsersPage() {
   const [busyUid, setBusyUid] = useState<string | null>(null);
   const [suspendReasonFor, setSuspendReasonFor] = useState<string | null>(null);
   const [suspendReason, setSuspendReason] = useState("");
+  const [suspendLength, setSuspendLength] = useState<SuspensionLength>("1w");
 
   function reload() {
     getAllUsersForAdmin()
@@ -64,7 +66,7 @@ export default function AdminUsersPage() {
     if (!suspendReason.trim() || !user) return;
     setBusyUid(uid);
     try {
-      await suspendUser(uid, username, suspendReason.trim(), user.uid);
+      await suspendUser(uid, username, suspendReason.trim(), user.uid, suspendLength);
       setSuspendReasonFor(null);
       setSuspendReason("");
       reload();
@@ -345,6 +347,9 @@ export default function AdminUsersPage() {
                       placeholder="Reason (shown in the moderation record)"
                       className="flex-1 border border-rule bg-card px-3 py-2 text-sm focus:border-crimson outline-none"
                     />
+                    <select value={suspendLength} onChange={(e) => setSuspendLength(e.target.value as SuspensionLength)} aria-label="How long" className="border border-rule bg-card px-2 py-2 text-sm">
+                      {SUSPENSION_LENGTHS.map((l) => <option key={l.id} value={l.id}>{l.label}</option>)}
+                    </select>
                     <button
                       onClick={() => handleSuspend(u.uid, u.username)}
                       disabled={busyUid === u.uid || !suspendReason.trim()}
@@ -358,7 +363,7 @@ export default function AdminUsersPage() {
                 {suspended && u.suspension && (
                   <div className="mt-3 rounded-lg bg-paper p-4 text-sm">
                     <p className="text-slate">
-                      <span className="font-semibold text-ink">Reason:</span> {u.suspension.reason}
+                      <span className="font-semibold text-ink">Reason:</span> {u.suspension.reason} · <span className="font-semibold text-ink">Length:</span> {u.suspension.until ? describeUntil(u.suspension.until) : "until lifted"}
                     </p>
                     {pendingAppeal && (
                       <div className="mt-3 border-t border-rule pt-3">
