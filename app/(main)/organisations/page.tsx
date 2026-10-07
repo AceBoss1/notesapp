@@ -21,7 +21,7 @@ const STEPS = [
 ];
 
 const ENTERPRISE = [
-  ["Your own branded site", "Your name and logo, on your own domain (notes.yourbrand.com or yourbrand.com): a Home page with your profile and booking, a Notes page and a Shop. A small “powered by #NotesApp” footer, and your logo as the tab icon. Business has this too, as a semi white-label site; Enterprise adds the API and the lowest rates. Visitors sign in, comment, book sessions and buy without leaving your site."],
+  ["Your own branded site", "Your name and logo, on your own domain (notes.yourbrand.com or yourbrand.com): a Home page with your profile and booking, a Notes page and a Shop. A small “powered by #NotesApp” footer, and your logo as the tab icon. Business has this too, as a semi white-label site; Enterprise adds fully branded sign-in and sign-up in your name, the API and the lowest rates. Visitors sign in, comment, book sessions and buy without leaving your site."],
   ["Rates agreed with us", "Enterprise isn't a fixed price list. We agree your commission on sessions, store sales and downloads, and your share of the ad revenue on your pages, for your account."],
   ["API, webhooks and a Console", "Publish posts from your own systems, read bookings, orders and earnings, and get signed webhooks when a booking is made or an order is paid. Keys and webhooks are managed in the Console; the docs are public."],
   ["Seats and onboarding", "A team size that fits you, with the maroon ✔ included, and onboarding help from us to set up your channel, domain and payouts."],

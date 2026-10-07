@@ -46,8 +46,11 @@ export async function notifyBell(note: BellNote & { message: string }): Promise<
   }
 }
 
-export function renderEmailHtml(text: string, action?: EmailAction): string {
-  const site = (process.env.NEXT_PUBLIC_SITE_URL || "https://www.notesapp.name.ng").replace(/\/$/, "");
+// A member's own brand for emails sent on their behalf (Enterprise full white label): their name and logo replace #NotesApp's.
+export type EmailBrand = { name: string; logoUrl: string; siteUrl: string };
+
+export function renderEmailHtml(text: string, action?: EmailAction, brand?: EmailBrand): string {
+  const site = (brand?.siteUrl || process.env.NEXT_PUBLIC_SITE_URL || "https://www.notesapp.name.ng").replace(/\/$/, "");
   // The footer carries the #NotesApp sign-off, so drop a trailing one from the body.
   const body = text.replace(/\s*#NotesApp\s*$/, "").trim();
   const paragraphs = body
@@ -63,28 +66,33 @@ export function renderEmailHtml(text: string, action?: EmailAction): string {
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:560px;font-family:-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
 <tr><td height="6" bgcolor="${BRAND.crimson}" style="background:${BRAND.crimson};font-size:0;line-height:0;border-radius:6px 6px 0 0;">&nbsp;</td></tr>
 <tr><td bgcolor="#ffffff" style="background:#ffffff;padding:28px 28px 8px;border-left:1px solid ${BRAND.rule};border-right:1px solid ${BRAND.rule};">
-<a href="${site}" style="text-decoration:none;"><img src="${site}/images/brand/email-logo.png" width="180" alt="#NotesApp" style="display:block;border:0;height:auto;width:180px;"></a>
+${brand
+  ? `<a href="${site}" style="text-decoration:none;"><img src="${esc(brand.logoUrl)}" width="56" height="56" alt="${esc(brand.name)}" style="display:inline-block;vertical-align:middle;border:0;border-radius:50%;width:56px;height:56px;object-fit:cover;"> <span style="vertical-align:middle;font-size:20px;font-weight:800;color:${BRAND.ink};margin-left:10px;">${esc(brand.name)}</span></a>`
+  : `<a href="${site}" style="text-decoration:none;"><img src="${site}/images/brand/email-logo.png" width="180" alt="#NotesApp" style="display:block;border:0;height:auto;width:180px;"></a>`}
 </td></tr>
 <tr><td bgcolor="#ffffff" style="background:#ffffff;padding:20px 28px 12px;border-left:1px solid ${BRAND.rule};border-right:1px solid ${BRAND.rule};">${paragraphs}${button}</td></tr>
 <tr><td bgcolor="#ffffff" style="background:#ffffff;padding:16px 28px 24px;border:1px solid ${BRAND.rule};border-top:1px solid ${BRAND.rule};border-radius:0 0 6px 6px;font-size:12px;line-height:1.5;color:${BRAND.muted};">
-<strong style="color:${BRAND.crimson};">#NotesApp</strong> &middot; <a href="${site}" style="color:${BRAND.muted};">${site.replace(/^https?:\/\//, "")}</a><br>Replies to this address aren't monitored. Need help? <a href="${site}/contact" style="color:${BRAND.muted};">Contact us</a>.
+<strong style="color:${BRAND.crimson};">${brand ? esc(brand.name) : "#NotesApp"}</strong> &middot; <a href="${site}" style="color:${BRAND.muted};">${site.replace(/^https?:\/\//, "")}</a><br>Replies to this address aren't monitored.${brand ? "" : ` Need help? <a href="${site}/contact" style="color:${BRAND.muted};">Contact us</a>.`}
 </td></tr>
 </table></td></tr></table></body></html>`;
 }
 
-export async function sendEmail(params: { to: string; subject: string; text: string; action?: EmailAction; bell?: BellNote }): Promise<boolean> {
+export async function sendEmail(params: { to: string; subject: string; text: string; action?: EmailAction; bell?: BellNote; brand?: EmailBrand }): Promise<boolean> {
   if (params.bell) await notifyBell({ ...params.bell, message: params.bell.message ?? params.subject });
   const key = process.env.RESEND_API_KEY;
   if (!key) {
     console.warn(`[email] RESEND_API_KEY not set — skipped "${params.subject}" to ${params.to}`);
     return false;
   }
-  const from = process.env.EMAIL_FROM || "#NotesApp <onboarding@resend.dev>";
+  const baseFrom = process.env.EMAIL_FROM || "#NotesApp <onboarding@resend.dev>";
+  // On a member's behalf the sender's name is theirs (the address stays ours until their own domain is verified with Resend).
+  const address = /<([^>]+)>/.exec(baseFrom)?.[1] ?? baseFrom;
+  const from = params.brand ? `${params.brand.name.replace(/[<>"\r\n]/g, "")} <${address}>` : baseFrom;
   try {
     const res = await fetch("https://api.resend.com/emails", {
       method: "POST",
       headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
-      body: JSON.stringify({ from, to: params.to, subject: params.subject, text: params.action && !params.text.includes(params.action.url) ? `${params.text}\n\n${params.action.label}: ${params.action.url}` : params.text, html: renderEmailHtml(params.text, params.action) }),
+      body: JSON.stringify({ from, to: params.to, subject: params.subject, text: params.action && !params.text.includes(params.action.url) ? `${params.text}\n\n${params.action.label}: ${params.action.url}` : params.text, html: renderEmailHtml(params.text, params.action, params.brand) }),
     });
     if (!res.ok) console.error("[email] Resend error", res.status, await res.text().catch(() => ""));
     return res.ok;

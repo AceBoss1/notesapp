@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAdminDb } from "@/lib/firebase-admin";
-import { getThread } from "@/lib/messages-server";
+import { getThread, markRead } from "@/lib/messages-server";
 import { authed, fail } from "@/lib/moments-api";
 
 export const dynamic = "force-dynamic";
@@ -12,8 +12,20 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
     const db = getAdminDb();
     const t = await getThread(db, me.uid, params.id);
     const u = (await db.doc(`users/${t.withUid}`).get()).data();
-    return NextResponse.json({ ...t, with: { uid: t.withUid, username: u?.username ?? "", displayName: u?.displayName ?? "Member", avatar: u?.avatar ?? "" } });
+    const blockedByMe = (await db.doc(`dmBlocks/${me.uid}_${t.withUid}`).get()).exists;
+    return NextResponse.json({ ...t, blockedByMe, with: { uid: t.withUid, username: u?.username ?? "", displayName: u?.displayName ?? "Member", avatar: u?.avatar ?? "" } });
   } catch (err) {
     return fail(err, "Couldn't load the conversation");
+  }
+}
+
+// POST → marks the conversation read for you (the live view calls this as messages arrive)
+export async function POST(req: NextRequest, { params }: { params: { id: string } }) {
+  try {
+    const me = await authed(req, "messages");
+    await markRead(getAdminDb(), me.uid, params.id);
+    return NextResponse.json({ ok: true });
+  } catch (err) {
+    return fail(err, "Couldn't update the conversation");
   }
 }

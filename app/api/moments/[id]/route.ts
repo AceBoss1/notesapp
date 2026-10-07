@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAdminDb } from "@/lib/firebase-admin";
 import { rateLimit } from "@/lib/rate-limit";
-import { MomentError, deleteMoment, recordView, replyToMoment, reshare, toggleLike } from "@/lib/moments-server";
+import { MomentError, deleteMoment, listViewers, recordView, replyToMoment, reshare, toggleLike } from "@/lib/moments-server";
 import { authed, fail, momentDeps } from "@/lib/moments-api";
 
 export const dynamic = "force-dynamic";
@@ -32,5 +32,15 @@ export async function DELETE(req: NextRequest, { params }: { params: { id: strin
     return NextResponse.json({ ok: true });
   } catch (err) {
     return fail(err, "Couldn't delete the moment");
+  }
+}
+
+// GET → who has seen this moment (the owner only)
+export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
+  try {
+    const me = await authed(req, "moments");
+    return NextResponse.json({ viewers: await listViewers(getAdminDb(), me.uid, params.id) });
+  } catch (err) {
+    return fail(err, "Couldn't load the viewers");
   }
 }

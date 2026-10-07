@@ -2026,12 +2026,18 @@ Moments are short-lived pictures, videos or text that sit on top of a member's p
 - UI, only when switched on: a ring and an add button on profile pictures, a viewer (like, reshare, reply, delete), a composer (text, picture, video, 24/48/72 hours), a Message button on profiles, `/messages`, `/messages/[id]` and `/messages/new?to=username`, and a Messages link in the account menu.
 - Tests: rules tests (41 pass) and a server test against the Firestore emulator that covered create, limits, audience, expiry, likes, views, reshare, replies and expired references, blocks, suspension, deletion and the sweep.
 
+**Built since (founder, 8 October):**
+- Voice-over: record in the browser (up to 90 seconds, WebM or MP4 audio), uploaded through `/api/moments/audio` (type, size, length checked, first bytes verified), played over the picture, video or text. Unused recordings are removed after two days.
+- Reply and message notifications: a bell for a new message or a reply to a moment, one per burst (nothing new while the last is still unread), and an unread count beside "Messages" in the menu.
+- Block: from a conversation. A block works both ways: neither of you sees the other's moments or can message the other; the person blocked sees "member not found", and a blocker must unblock before messaging.
+- Report: on a moment (in the viewer) and on a conversation. A report keeps a copy of what was reported (a moment's details and files, or the last 20 messages) until someone looks at it; `/admin/reports` lists open reports with that copy. Dismiss clears it; Actioned also removes a live reported moment. Resolving deletes the copy and the kept files (unless another open report still needs them). Reported moments are not deleted at expiry until their report is resolved.
+- A reshare of a reshare is allowed. It points at the original, ends when the original ends, and deleting the original removes the whole chain. You can't reshare something that began as your own moment.
+- A moment is visible to followers and the owner only (no public option).
+
 **Not built yet (next steps):**
-- Voice-over: the data model has `audioKey` but there is no recorder or upload. Plan: record in the browser (up to 90 seconds), upload like the video, play over the picture or video.
-- Notifications for replies and messages (bell, email) and unread count in the menu.
-- Block and report buttons, and a moderation view of reported moments and messages (Terms section for messages and moments; reports need a place to land).
-- Live updates (the inbox polls every 10 seconds today), typing and read receipts, deleting a message.
+- Live updates (the inbox polls every 10 seconds today), typing and read receipts, deleting a single message.
 - Who has seen a moment (viewers list for the owner; view counts are stored).
+- Email for messages (bell only for now), push notifications on mobile.
 - Audio and video calls inside conversations (separate decisions in the calls section above).
 
 **Decided (founder, 7 October):**
@@ -2040,6 +2046,24 @@ Moments are short-lived pictures, videos or text that sit on top of a member's p
 - Privacy text drafted: the Privacy Policy has a "Moments and direct messages" section, the "What we collect" paragraph mentions them, and the data-protection register entry lists the controls and the to-do (add them to the record of processing before launch). Account deletion now removes a member's moments and files and the messages they wrote (a thread nobody else wrote in goes entirely); the data download includes live moments and sent messages. LEGAL_VERSION was not bumped because the features are off: bump it on the day Moments or messages go live so everyone re-accepts.
 
 **Still open:**
-1. Should a non-follower be able to see a moment if the owner makes it public? (Today: followers and the owner only.)
-2. Reshare of a reshare is refused; replies to a reshare go to the resharer. Fine?
-3. Have counsel read the new Privacy Policy section before launch.
+1. Counsel reading the new Privacy Policy section before launch (founder: OK).
+2. Who handles `/admin/reports` day to day, and how fast we promise to look (suggest: within 24 hours for anything flagged nudity or violence).
+3. Warn or suspend from a report is done in the Users page, then the report is marked actioned; a one-click "suspend from this report" could come later.
+
+## Messaging, notifications and review: how they run (founder decisions, 7 October)
+
+- **Live inbox:** the inbox, the conversation and the unread count beside "Messages" now update live (they listen to the member's own conversations, which `firestore.rules` let only the two people in each one read). No more polling.
+- **Notifications for a new message or a reply to a moment:** a bell, an email (on by default, at most one an hour per conversation, switchable off under Messages) and a device notification (web push, opt-in per device). None carries what was written, only who it's from. One of each per burst (nothing new while the last message is unread).
+- **Switch on device notifications:** run `npx web-push generate-vapid-keys`, then set `NEXT_PUBLIC_VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY` and `VAPID_SUBJECT` (a `mailto:` address) in Vercel and redeploy. Without them the button doesn't appear and /status shows "Device notifications" as not enabled. Works on Android Chrome and desktop browsers; on iPhone the site has to be added to the home screen first.
+- **Moment viewers:** the owner can see who viewed a moment (each person once, newest first) by tapping the view count.
+- **Reports are reviewed by the founder's team.** Promise: anything marked nudity or violence within 24 hours. `/admin/reports` shows those first, with an "URGENT / OVERDUE" badge, and every report emails `REPORTS_EMAIL` the moment it comes in (nudity and violence marked URGENT; set that env var to the team's mailbox). The admin dashboard has an "Open reports" card (open count, urgent, overdue; amber when something is urgent, red when something is past 24 hours). The Terms (2b) say we aim to review those within 24 hours.
+- **DON'T FORGET (do later): one-click "Suspend from this report".** Today: warn or suspend on the Users page, then mark the report actioned. The button should suspend the reported member (reason prefilled from the report), mark the report actioned and delete the kept copy in one step. Deferred on purpose; it needs a confirmation and an audit note.
+
+## Enterprise full white label: sign-in and sign-up (built)
+
+On an Enterprise member's own domain, `/login`, `/signup` and `/forgot-password` no longer go to the #NotesApp page. Middleware rewrites them to the member's home page with a branded window (`components/site/SiteAuth.tsx`): their logo and name, headed "Sign in with a NotesApp account" or "Sign up with a NotesApp account". Business domains keep the main-site page and hand-off.
+- Sign-up creates the NotesApp account on the domain itself (same profile, consent version and starting follows as the main page, plus a follow of the site's owner); no five-journals step.
+- Password reset and email confirmation go out through `/api/auth/branded` in the member's name and logo (the sender name is theirs; the address is still ours), and their links open `/auth/action` on the member's domain, so nobody lands on a #NotesApp or Firebase page.
+- Not done yet (listed on the roadmap): Google sign-in in the window (needs each domain added to Firebase's authorised domains; a Google-only member sets a password with "Forgot your password"), checkout and bookings still open on #NotesApp (the visitor has to sign in there once more; the fix is the Paystack popup plus a session hand-off the other way), a sending address on the member's own domain (SPF and DKIM through Resend), and a sweep of error pages. Do these as one piece of work before promising "nothing says #NotesApp".
+- Env: none new. Firebase's web API key must allow the member domains (the existing hand-off already depends on this).
+

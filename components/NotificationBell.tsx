@@ -30,6 +30,8 @@ const ICON: Record<NotificationType, string> = {
   ad: "📣",
   plan: "⭐",
   org: "🏢",
+  message: "✉",
+  moment: "◎",
 };
 
 function timeAgo(iso: string): string {

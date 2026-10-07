@@ -13,6 +13,7 @@ export async function GET(req: NextRequest) {
     const me = await authed(req, "messages");
     const db = getAdminDb();
     const rows = await listConversations(db, me.uid);
+    if (new URL(req.url).searchParams.get("unread") === "1") return NextResponse.json({ unread: rows.reduce((n, r) => n + r.unread, 0) });
     const users = await db.getAll(...rows.map((r) => db.doc(`users/${r.withUid}`)));
     const byUid = new Map(users.map((u) => [u.id, u.data()]));
     return NextResponse.json({

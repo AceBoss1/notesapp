@@ -6,6 +6,7 @@ import { uploadToR2WithKey } from "@/lib/upload";
 import { api } from "@/lib/moments-client";
 import { MOMENT_DEFAULT_HOURS, MOMENT_HINT, MOMENT_HOURS, MOMENT_TEXT_MAX, MOMENT_VIDEO_MAX_SECONDS, type MomentHours, type MomentKind } from "@/lib/moments-rules";
 import { VIDEO_ACCEPT } from "@/lib/video-rules";
+import VoiceOverRecorder, { uploadVoiceOver, type VoiceOver } from "./VoiceOverRecorder";
 
 const readDuration = (file: File) =>
   new Promise<number>((resolve, reject) => {
@@ -17,12 +18,13 @@ const readDuration = (file: File) =>
   });
 
 // Create a moment: text, a picture or a video up to 90 seconds, for 24 hours by default (48 or 72 if you choose).
-// Voice-over is planned (the data model has a place for it) but not built yet.
+// A voice-over (recorded here, up to 90 seconds) can go on top of any of them.
 export default function MomentComposer({ onClose, onPosted }: { onClose: () => void; onPosted: () => void }) {
   const [kind, setKind] = useState<MomentKind>("text");
   const [text, setText] = useState("");
   const [hours, setHours] = useState<MomentHours>(MOMENT_DEFAULT_HOURS);
   const [file, setFile] = useState<File | null>(null);
+  const [voice, setVoice] = useState<VoiceOver | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -43,6 +45,7 @@ export default function MomentComposer({ onClose, onPosted }: { onClose: () => v
         await api("/api/video", { body: { action: "finish", purpose: "moment", id: start.id } });
         body.videoUploadId = start.id;
       }
+      if (voice) body.audioUploadId = await uploadVoiceOver(voice);
       if (!auth.currentUser) throw new Error("Sign in first.");
       await api("/api/moments", { body });
       onPosted();
@@ -75,6 +78,7 @@ export default function MomentComposer({ onClose, onPosted }: { onClose: () => v
         )}
         <textarea value={text} onChange={(e) => setText(e.target.value)} maxLength={MOMENT_TEXT_MAX} rows={4} placeholder={MOMENT_HINT} className="mt-4 w-full rounded border border-rule p-3 text-sm" />
         <p className="text-right text-xs text-slate">{text.length}/{MOMENT_TEXT_MAX}</p>
+        <VoiceOverRecorder value={voice} onChange={setVoice} />
         <fieldset className="mt-3">
           <legend className="text-sm font-bold text-ink">Disappears after</legend>
           <div className="mt-2 flex gap-4 text-sm">

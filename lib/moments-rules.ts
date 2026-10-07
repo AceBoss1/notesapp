@@ -35,3 +35,26 @@ export function timeLeftLabel(expiresAt: string, now = new Date()): string {
   if (h >= 1) return `${h}h left`;
   return `${Math.max(1, Math.ceil(ms / 60_000))}m left`;
 }
+
+// Voice-over: a recording (made in the browser) played over a picture, a video or text. Up to 90 seconds.
+export const AUDIO_TYPES: Record<string, "webm" | "m4a"> = { "audio/webm": "webm", "audio/mp4": "m4a" };
+export const AUDIO_MAX_BYTES = 5 * 1024 * 1024;
+
+// What the first bytes say it is: WebM (the EBML magic number) or MP4 audio (an `ftyp` box).
+export function sniffAudio(bytes: Uint8Array, contentType: string): boolean {
+  if (contentType === "audio/webm") return bytes[0] === 0x1a && bytes[1] === 0x45 && bytes[2] === 0xdf && bytes[3] === 0xa3;
+  if (contentType === "audio/mp4") return String.fromCharCode(bytes[4], bytes[5], bytes[6], bytes[7]) === "ftyp";
+  return false;
+}
+
+// Why someone reports a moment or a conversation.
+export const REPORT_REASONS = ["spam", "harassment", "nudity", "violence", "scam", "other"] as const;
+export type ReportReason = (typeof REPORT_REASONS)[number];
+export const REPORT_REASON_LABEL: Record<ReportReason, string> = {
+  spam: "Spam", harassment: "Harassment or hate", nudity: "Nudity or sexual content", violence: "Violence or threats", scam: "Scam or fraud", other: "Something else",
+};
+export const REPORT_NOTE_MAX = 500;
+// The team looks at reports of nudity or violence within 24 hours; the rest as soon as they can.
+export const URGENT_REASONS: ReportReason[] = ["nudity", "violence"];
+export const REPORT_URGENT_HOURS = 24;
+export const isReportReason = (v: unknown): v is ReportReason => REPORT_REASONS.includes(v as ReportReason);

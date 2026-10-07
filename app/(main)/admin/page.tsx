@@ -104,6 +104,7 @@ export default function AdminDashboard() {
   const [totalUsers, setTotalUsers] = useState<number | null>(null);
   const [usersError, setUsersError] = useState("");
 
+  const [reports, setReports] = useState<{ open: number; urgent: number; overdue: number } | null>(null);
   const [commentCounts, setCommentCounts] = useState<Record<string, number>>({});
   const [commentCountsError, setCommentCountsError] = useState("");
 
@@ -148,6 +149,21 @@ export default function AdminDashboard() {
 
   // Per-note comment counts, fetched once notes are in — powers "Most
   // Commented" and feeds into the engagement rate calculation.
+  // Open reports on moments and conversations (the card below). Refreshed every minute while this page is open.
+  useEffect(() => {
+    if (!user) return;
+    let live = true;
+    const get = async () => {
+      try {
+        const r = await fetch("/api/admin/reports?counts=1", { headers: { Authorization: `Bearer ${await user.getIdToken()}` } });
+        if (live && r.ok) setReports(await r.json());
+      } catch { /* the card just stays blank */ }
+    };
+    get();
+    const t = setInterval(get, 60_000);
+    return () => { live = false; clearInterval(t); };
+  }, [user]);
+
   useEffect(() => {
     if (allNotes.length === 0) return;
     const published = allNotes.filter((n) => n.status === "published");
@@ -251,6 +267,12 @@ export default function AdminDashboard() {
             Users
           </Link>
           <Link
+            href="/admin/reports"
+            className="border border-rule px-5 py-2.5 font-ui text-sm font-semibold hover:border-crimson"
+          >
+            Reports
+          </Link>
+          <Link
             href="/admin/leads"
             className="border border-rule px-5 py-2.5 font-ui text-sm font-semibold hover:border-crimson"
           >
@@ -311,6 +333,23 @@ export default function AdminDashboard() {
           </p>
         </div>
       )}
+
+      {/* ── Open reports ──────────────────────────────────────── */}
+      <Link
+        href="/admin/reports"
+        className={`mt-8 flex items-center justify-between gap-4 border p-5 hover:border-crimson ${reports && reports.overdue > 0 ? "border-red-600 bg-red-50" : reports && reports.urgent > 0 ? "border-amber-500 bg-amber-50" : "border-rule bg-card"}`}
+      >
+        <div>
+          <p className="font-display text-3xl text-ink">{reports ? reports.open : "…"}</p>
+          <p className="mt-1 font-mono text-[11px] uppercase tracking-eyebrow text-slate">Open reports</p>
+        </div>
+        <p className="text-right text-sm text-slate">
+          {!reports ? "" : reports.open === 0 ? "Nothing waiting." : reports.overdue > 0
+            ? <strong className="text-red-700">{reports.overdue} overdue (past 24 hours){reports.urgent > reports.overdue ? `, ${reports.urgent - reports.overdue} more urgent` : ""}</strong>
+            : reports.urgent > 0 ? <strong className="text-amber-700">{reports.urgent} urgent: review within 24 hours</strong> : "None urgent."}
+          <span className="block text-xs">Moments and conversations members have reported →</span>
+        </p>
+      </Link>
 
       {/* ── Top-line stats ────────────────────────────────────── */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mt-8">

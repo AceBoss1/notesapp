@@ -5,6 +5,7 @@ import Link from "next/link";
 import { api } from "@/lib/moments-client";
 import { timeLeftLabel } from "@/lib/moments-rules";
 import type { MomentView } from "@/lib/moments-server";
+import ReportDialog from "./ReportDialog";
 
 const STILL_MS = 6000; // how long an image or text moment stays before the next one
 
@@ -16,16 +17,21 @@ export default function MomentViewer({ moments, onClose, onChanged }: { moments:
   const [reply, setReply] = useState("");
   const [note, setNote] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [reporting, setReporting] = useState(false);
+  const [viewers, setViewers] = useState<{ uid: string; username: string; displayName: string }[] | null>(null);
+  const [showViewers, setShowViewers] = useState(false);
   const timer = useRef<ReturnType<typeof setTimeout>>();
   const m = items[i];
 
+  useEffect(() => setShowViewers(false), [i]);
   const next = () => (i + 1 < items.length ? setI(i + 1) : onClose());
   // Stills advance by themselves; a video advances when it ends.
   useEffect(() => {
     if (!m) return;
     api(`/api/moments/${m.id}`, { body: { action: "view" } }).catch(() => {});
     if (m.kind !== "video") {
-      timer.current = setTimeout(next, STILL_MS);
+      // Long enough for the voice-over to finish, if there is one.
+      timer.current = setTimeout(next, Math.max(STILL_MS, ((m.audioDurationSec ?? 0) + 1) * 1000));
       return () => clearTimeout(timer.current);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -56,14 +62,24 @@ export default function MomentViewer({ moments, onClose, onChanged }: { moments:
           {m.kind === "image" && /* eslint-disable-next-line @next/next/no-img-element */ <img src={m.imageUrl} alt="" className="max-h-full max-w-full object-contain" />}
           {m.kind === "video" && <video src={m.videoUrl} autoPlay playsInline controls={false} onEnded={next} className="max-h-full max-w-full" />}
           {m.kind === "text" && <p className="px-8 text-center font-display text-3xl leading-snug">{m.text}</p>}
+          {m.audioUrl && <audio key={m.id} src={m.audioUrl} autoPlay />}
           {m.kind !== "text" && m.text && <p className="absolute inset-x-0 bottom-0 bg-black/60 p-3 text-center text-sm">{m.text}</p>}
         </div>
 
         <div className="space-y-2 p-3">
           {note && <p className="text-xs text-amber-300" role="status">{note}</p>}
+          {m.mine && showViewers && (
+            <div className="max-h-28 overflow-y-auto rounded border border-white/20 p-2 text-xs">
+              {viewers === null ? "Loading…" : viewers.length === 0 ? "No one has seen it yet." : viewers.map((v) => <p key={v.uid}>{v.displayName} <span className="text-white/60">@{v.username}</span></p>)}
+            </div>
+          )}
           {m.mine ? (
             <div className="flex items-center justify-between text-sm text-white/80">
-              <span>♥ {m.likeCount} · ↻ {m.reshareCount}</span>
+              <button
+                type="button"
+                onClick={() => { pause(); setShowViewers((s) => !s); setViewers(null); api<{ viewers: { uid: string; username: string; displayName: string }[] }>(`/api/moments/${m.id}`).then((r) => setViewers(r.viewers)).catch(() => setViewers([])); }}
+                className="underline"
+              >👁 {m.viewCount ?? 0} · ♥ {m.likeCount} · ↻ {m.reshareCount}</button>
               <button
                 disabled={busy}
                 onClick={() => act(async () => {
@@ -93,6 +109,7 @@ export default function MomentViewer({ moments, onClose, onChanged }: { moments:
                   onClick={() => act(async () => { await api(`/api/moments/${m.id}`, { body: { action: "reshare" } }); setNote("Reshared to your moments."); onChanged?.(); })}
                   className="rounded border border-white/40 px-3 py-1 text-sm hover:bg-white/10"
                 >↻ Reshare</button>
+                <button disabled={busy} onClick={() => { pause(); setReporting(true); }} className="ml-auto rounded border border-white/40 px-3 py-1 text-sm hover:bg-white/10">Report</button>
               </div>
               <form
                 className="flex gap-2"
@@ -105,6 +122,7 @@ export default function MomentViewer({ moments, onClose, onChanged }: { moments:
           )}
         </div>
       </div>
+      {reporting && <ReportDialog kind="moment" targetId={m.id} onClose={() => setReporting(false)} />}
     </div>
   );
 }

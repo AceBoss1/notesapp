@@ -158,9 +158,9 @@ export async function eraseAccount(db: Firestore, uid: string, deleteFile: (key:
   let momentCount = 0;
   for (const m of moments.docs) {
     const d = m.data();
-    const reshares = await db.collection("moments").where("resharedFrom.momentId", "==", m.id).get();
+    const reshares = await db.collection("moments").where("resharedFrom.rootMomentId", "==", m.id).get();
     for (const r of reshares.docs) await db.recursiveDelete(r.ref);
-    if (d.ownsMedia) for (const k of [d.imageKey, d.videoKey, d.audioKey]) if (k) await deleteMedia(String(k)).catch(() => {});
+    if (d.ownsMedia && !d.reported) for (const k of [d.imageKey, d.videoKey, d.audioKey]) if (k) await deleteMedia(String(k)).catch(() => {});
     await db.recursiveDelete(m.ref);
     momentCount++;
   }
