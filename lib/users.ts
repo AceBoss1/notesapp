@@ -47,6 +47,7 @@ export type Suspension = {
   reason: string;
   suspendedAt: string;
   suspendedByUid: string;
+  until?: string; // ISO: the scheduler lifts the suspension then; absent = until an admin lifts it
   appealStatus: AppealStatus;
   appealText?: string;
   appealedAt?: string;

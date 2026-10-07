@@ -12,6 +12,7 @@ import {
   getDocs,
   Unsubscribe,
 } from "firebase/firestore";
+import { describeUntil } from "./suspension-length";
 import { db } from "./firebase";
 import { getUserByDisplayName } from "./users";
 import { resolveAuthorUsername } from "./journals-directory";
@@ -165,11 +166,11 @@ export async function notifyNewPost(note: NoteRef): Promise<void> {
   await batch.commit();
 }
 
-export async function notifySuspended(uid: string, username: string, reason: string): Promise<void> {
+export async function notifySuspended(uid: string, username: string, reason: string, until?: string): Promise<void> {
   await createNotification({
     recipientUid: uid,
     type: "suspended",
-    message: `Your account was suspended: ${reason}`,
+    message: `Your account was suspended ${describeUntil(until)}: ${reason}`,
     linkHref: `/u/${username}`,
   });
 }

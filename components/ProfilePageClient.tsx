@@ -13,6 +13,7 @@ import { getAllNotes, isNoteBy, NoteWithComputed } from "@/lib/firestore-notes";
 import SocialLinksRow from "@/components/SocialLinksRow";
 import { getRecentCommentsOnNotes, Comment } from "@/lib/engagement";
 import { getFollowerCount } from "@/lib/follows";
+import { describeUntil } from "@/lib/suspension-length";
 import { submitAppeal, getSuspension } from "@/lib/moderation";
 import Avatar from "@/components/Avatar";
 import FollowButton from "@/components/FollowButton";
@@ -307,7 +308,7 @@ export default function ProfilePageClient({ params }: { params: { username: stri
       {suspended && (
         <div className="card mt-8 border-red-200 bg-red-50 p-6">
           <p className="font-ui text-sm font-bold text-red-800">
-            This account is temporarily suspended.
+            This account is temporarily suspended{suspension?.until ? ` ${describeUntil(suspension.until)}` : ""}.
           </p>
           <p className="mt-1 text-sm text-red-700">
             Their posts and comments are hidden while under review.

@@ -2,6 +2,7 @@ import type { Firestore } from "firebase-admin/firestore";
 import { FieldValue } from "firebase-admin/firestore";
 import { isMomentExpired, isReportReason, REPORT_NOTE_MAX, REPORT_REASON_LABEL, type ReportReason, REPORT_URGENT_HOURS, URGENT_REASONS } from "./moments-rules";
 import { sendEmail } from "./email";
+import { isSuspensionLength, suspensionEnd, describeUntil } from "./suspension-length";
 import { MomentError, adminRemoveMoment, type MomentDeps } from "./moments-server";
 
 // Reports on moments and conversations. Because moments disappear and messages can be deleted, a report keeps a copy of
@@ -66,7 +67,12 @@ export async function createReport(
   await ref.set({
     reporterUid, targetUid, kind, targetId, reason: input.reason, note, status: "open", createdAt: now.toISOString(), evidence, evidenceKeys,
   });
-  // No email per report: the team gets one digest a day (sendReportsDigest, run by the scheduler), so reports can't eat the sending quota.
+  // Only nudity and violence email the team straight away (we promise to review those within 24 hours); everything else waits for the
+  // daily digest (sendReportsDigest), so reports can't eat the sending quota.
+  if (URGENT_REASONS.includes(input.reason)) {
+    const link = `${(process.env.NEXT_PUBLIC_SITE_URL || "https://www.notesapp.name.ng").replace(/\/$/, "")}/admin/reports`;
+    await emailTeam(`URGENT: ${REPORT_REASON_LABEL[input.reason]} report on #NotesApp`, `A ${kind} was just reported for "${REPORT_REASON_LABEL[input.reason]}". We aim to review these within ${REPORT_URGENT_HOURS} hours.\n\nReview it here: ${link}`).catch(() => {});
+  }
   return { id };
 }
 
@@ -134,7 +140,8 @@ export async function resolveReport(db: Firestore, adminUid: string, id: string,
 
 // One click from a report: suspend the reported member (same records the Users page writes: the private suspensions/{uid} with the
 // reason, `suspended` on the public profile, and a notification to them), then action the report. Admins can't be suspended this way.
-export async function suspendFromReport(db: Firestore, adminUid: string, id: string, note: unknown, deps: MediaDeps, now = new Date()): Promise<void> {
+export async function suspendFromReport(db: Firestore, adminUid: string, id: string, note: unknown, length: unknown, deps: MediaDeps, now = new Date()): Promise<void> {
+  if (!isSuspensionLength(length)) throw new MomentError(400, "Choose how long to suspend them for.");
   const r = (await db.doc(`contentReports/${id}`).get()).data();
   if (!r) throw new MomentError(404, "That report wasn't found.");
   if (r.status === "resolved") throw new MomentError(409, "That report is already resolved.");
@@ -143,11 +150,29 @@ export async function suspendFromReport(db: Firestore, adminUid: string, id: str
   if (target.role === "admin") throw new MomentError(403, "Admins can't be suspended from a report.");
   if (target.suspended !== true) {
     const reason = trimNote(note) || `Reported for ${REPORT_REASON_LABEL[r.reason as ReportReason] ?? r.reason}`;
-    await db.doc(`suspensions/${r.targetUid}`).set({ reason, suspendedAt: now.toISOString(), suspendedByUid: adminUid, appealStatus: "none" });
+    const until = suspensionEnd(length, now);
+    await db.doc(`suspensions/${r.targetUid}`).set({ reason, suspendedAt: now.toISOString(), suspendedByUid: adminUid, appealStatus: "none", ...(until ? { until } : {}) });
     await db.doc(`users/${r.targetUid}`).update({ suspended: true });
-    await db.collection("notifications").add({ recipientUid: r.targetUid, type: "suspended", message: `Your account was suspended: ${reason}`, linkHref: `/u/${target.username}`, read: false, createdAt: now.toISOString() });
+    await db.collection("notifications").add({ recipientUid: r.targetUid, type: "suspended", message: `Your account was suspended ${describeUntil(until)}: ${reason}`, linkHref: `/u/${target.username}`, read: false, createdAt: now.toISOString() });
   }
   await resolveReport(db, adminUid, id, "actioned", note, deps, now);
+}
+
+// Lifts suspensions whose time is up (run by the scheduler): the account goes active again, the member is told, and the record keeps
+// who/when for the history. Suspensions without an end are never touched. Returns how many accounts were reactivated.
+export async function liftExpiredSuspensions(db: Firestore, now = new Date()): Promise<number> {
+  const due = await db.collection("suspensions").where("until", "<=", now.toISOString()).get();
+  let lifted = 0;
+  for (const d of due.docs) {
+    const user = await db.doc(`users/${d.id}`).get();
+    if (user.data()?.suspended === true) {
+      await db.doc(`users/${d.id}`).update({ suspended: false });
+      await db.collection("notifications").add({ recipientUid: d.id, type: "unsuspended", message: "Your suspension has ended, your account is active again.", linkHref: `/u/${user.data()?.username}`, read: false, createdAt: now.toISOString() });
+      lifted++;
+    }
+    await d.ref.update({ until: FieldValue.delete(), appealStatus: "none", resolvedAt: now.toISOString(), resolvedByUid: "system" });
+  }
+  return lifted;
 }
 
 // For the admin dashboard card: how many reports are open, how many of those are urgent (nudity or violence), and how many of
