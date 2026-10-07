@@ -541,6 +541,8 @@ test("moments are API-only; conversations are readable only by their two members
     await setDoc(doc(d, "moments/m1/likes/alice"), { uid: "alice" });
     await setDoc(doc(d, "momentUsage/pub_2026-10-07"), { count: 1 });
     await setDoc(doc(d, "dmBlocks/pub_alice"), { at: "x" });
+    await setDoc(doc(d, "momentAudio/a1"), { uid: "pub", key: "moments/pub/a1.webm" });
+    await setDoc(doc(d, "contentReports/r1"), { reporterUid: "alice", targetUid: "pub", kind: "moment", evidence: { text: "x" } });
     await setDoc(doc(d, "conversations/alice_pub"), { participants: ["alice", "pub"], unread: {} });
     await setDoc(doc(d, "conversations/alice_pub/messages/1"), { from: "alice", text: "hi", createdAt: "x" });
     await setDoc(doc(d, "conversations/boss_pub"), { participants: ["boss", "pub"], unread: {} });
@@ -554,6 +556,12 @@ test("moments are API-only; conversations are readable only by their two members
   await assertFails(deleteDoc(doc(as("pub"), "moments/m1")));
   await assertFails(setDoc(doc(as("pub"), "momentUsage/pub_2026-10-07"), { count: 0 }));
   await assertFails(getDoc(doc(as("alice"), "dmBlocks/pub_alice")));
+  // Recordings and reports (which hold a copy of what was reported): server-only, not even for the reporter or the owner.
+  for (const path of ["momentAudio/a1", "contentReports/r1"]) {
+    for (const ctx of [as("pub"), as("alice"), as("boss", { admin: true }), anon()]) await assertFails(getDoc(doc(ctx, path)));
+  }
+  await assertFails(setDoc(doc(as("alice"), "contentReports/new"), { reporterUid: "alice" }));
+  await assertFails(setDoc(doc(as("pub"), "momentAudio/new"), { uid: "pub" }));
   await assertFails(setDoc(doc(as("alice"), "dmBlocks/alice_pub"), { at: "x" }));
   // Conversations: both members read; a third member and signed-out visitors can't.
   await assertSucceeds(getDoc(doc(as("alice"), "conversations/alice_pub")));

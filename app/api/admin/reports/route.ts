@@ -1,0 +1,39 @@
+import { NextRequest, NextResponse } from "next/server";
+import { friendlyMessage } from "@/lib/api-errors";
+import { getAdminDb, verifyAdminRequest } from "@/lib/firebase-admin";
+import { listReports, resolveReport } from "@/lib/reports-server";
+import { momentDeps } from "@/lib/moments-api";
+import { MomentError } from "@/lib/moments-server";
+
+export const dynamic = "force-dynamic";
+const bearer = (req: NextRequest) => req.headers.get("authorization")?.replace(/^Bearer\s+/i, "");
+
+// Admin: GET ?status=open|resolved → reports with what was reported (open ones only); POST { id, outcome: "dismissed"|"actioned", note? }
+export async function GET(req: NextRequest) {
+  try {
+    await verifyAdminRequest(bearer(req));
+    const status = req.nextUrl.searchParams.get("status") === "resolved" ? "resolved" : "open";
+    const db = getAdminDb();
+    const rows = await listReports(db, status);
+    const uids = Array.from(new Set(rows.flatMap((r) => [r.reporterUid, r.targetUid])));
+    const users = uids.length ? await db.getAll(...uids.map((u) => db.doc(`users/${u}`))) : [];
+    const names = Object.fromEntries(users.map((u) => [u.id, u.data()?.username ?? u.id]));
+    return NextResponse.json({ reports: rows.map((r) => ({ ...r, reporter: names[r.reporterUid], target: names[r.targetUid], mediaUrls: (r.evidenceKeys ?? []).map((k) => momentDeps.publicUrl(k)) })) });
+  } catch (err) {
+    const f = friendlyMessage(err, "Couldn't load reports");
+    return NextResponse.json({ error: f.message }, { status: f.status });
+  }
+}
+
+export async function POST(req: NextRequest) {
+  try {
+    const admin = await verifyAdminRequest(bearer(req));
+    const body = await req.json().catch(() => ({}));
+    await resolveReport(getAdminDb(), admin, String(body.id ?? ""), body.outcome, body.note, momentDeps);
+    return NextResponse.json({ ok: true });
+  } catch (err) {
+    if (err instanceof MomentError) return NextResponse.json({ error: err.message }, { status: err.status });
+    const f = friendlyMessage(err, "Couldn't resolve the report");
+    return NextResponse.json({ error: f.message }, { status: f.status });
+  }
+}

@@ -8,12 +8,14 @@ import { getUserByUid, canPublish, UserProfile } from "@/lib/users";
 import NotificationBell from "@/components/NotificationBell";
 import Avatar from "@/components/Avatar";
 import { MESSAGES_LIVE } from "@/lib/moments-rules";
+import { api } from "@/lib/moments-client";
 
 export default function AuthNav() {
   const [user, setUser] = useState<User | null | undefined>(undefined);
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [open, setOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
+  const [unreadDms, setUnreadDms] = useState(0);
 
   useEffect(() => {
     return onAuthStateChanged(auth, async (u) => {
@@ -21,6 +23,15 @@ export default function AuthNav() {
       setProfile(u ? await getUserByUid(u.uid) : null);
     });
   }, []);
+
+  // The number beside "Messages", refreshed every minute while signed in (only when messaging is switched on).
+  useEffect(() => {
+    if (!MESSAGES_LIVE || !user) return;
+    const get = () => api<{ unread: number }>("/api/messages?unread=1").then((r) => setUnreadDms(r.unread)).catch(() => {});
+    get();
+    const t = setInterval(get, 60_000);
+    return () => clearInterval(t);
+  }, [user]);
 
   useEffect(() => {
     function onClick(e: MouseEvent) {
@@ -73,7 +84,7 @@ export default function AuthNav() {
             </Link>
             {profile && <Link href={`/u/${profile.username}/store`} className={item}>My store</Link>}
             {profile && <Link href="/invites" className={item}>Co-author invites</Link>}
-            {MESSAGES_LIVE && <Link href="/messages" className={item}>Messages</Link>}
+            {MESSAGES_LIVE && <Link href="/messages" className={item}>Messages{unreadDms > 0 && <span className="ml-2 rounded-full bg-crimson px-1.5 py-0.5 text-[10px] font-bold text-white">{unreadDms}</span>}</Link>}
             <Link href="/bookings" className={item}>Bookings</Link>
             <Link href="/orders" className={item}>Orders &amp; parcels</Link>
             <Link href="/boost" className={item}>Boost a post</Link>

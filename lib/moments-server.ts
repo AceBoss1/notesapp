@@ -2,7 +2,7 @@ import type { Firestore } from "firebase-admin/firestore";
 import { FieldValue } from "firebase-admin/firestore";
 import { randomBytes } from "crypto";
 import {
-  MOMENT_DAILY_LIMIT, MOMENT_DEFAULT_HOURS, MOMENT_TEXT_MAX, MOMENT_VIDEO_MAX_SECONDS, MOMENT_VIDEO_WEEKLY_LIMIT,
+  MOMENT_DAILY_LIMIT, MOMENT_DEFAULT_HOURS, MOMENT_TEXT_MAX, MOMENT_VIDEO_MAX_SECONDS, MOMENT_VIDEO_WEEKLY_LIMIT, MOMENT_AUDIO_MAX_SECONDS, AUDIO_MAX_BYTES, AUDIO_TYPES, sniffAudio,
   isMomentExpired, isMomentHours, isMomentKind, momentExpiry, type MomentHours, type MomentKind,
 } from "./moments-rules";
 import { sendMessage } from "./messages-server";
@@ -25,16 +25,18 @@ export type MomentDeps = {
 type MomentDoc = {
   ownerUid: string; ownerUsername: string; kind: MomentKind;
   text?: string; imageKey?: string; videoKey?: string; durationSec?: number;
-  audioKey?: string; // voice-over, not built yet
+  audioKey?: string; audioDurationSec?: number; // voice-over
   hours: MomentHours; createdAt: string; expiresAt: string;
   likeCount: number; reshareCount: number; viewCount: number;
   ownsMedia: boolean; // false on a reshare: the file belongs to the original
-  resharedFrom?: { momentId: string; ownerUsername: string };
+  // momentId/ownerUsername: who it was reshared from (a reshare of a reshare points at the one before); root*: the original.
+  resharedFrom?: { momentId: string; ownerUsername: string; rootMomentId: string; rootOwnerUid: string };
+  reported?: boolean; // someone reported it: its files are kept as evidence until the report is resolved
 };
 
 export type MomentView = {
   id: string; ownerUid: string; ownerUsername: string; kind: MomentKind;
-  text?: string; imageUrl?: string; videoUrl?: string; durationSec?: number;
+  text?: string; imageUrl?: string; videoUrl?: string; durationSec?: number; audioUrl?: string; audioDurationSec?: number;
   hours: MomentHours; createdAt: string; expiresAt: string;
   likeCount: number; reshareCount: number; liked: boolean; mine: boolean;
   resharedFrom?: { ownerUsername: string };
@@ -48,7 +50,11 @@ async function follows(db: Firestore, viewerUid: string, ownerUsername: string):
 
 // The audience: the owner, and members who follow the owner's journal.
 async function canSee(db: Firestore, viewerUid: string, m: MomentDoc): Promise<boolean> {
-  return m.ownerUid === viewerUid || (await follows(db, viewerUid, m.ownerUsername));
+  if (m.ownerUid === viewerUid) return true;
+  // A block either way hides the moments (and the reshares that point at them).
+  const [a, b] = await Promise.all([db.doc(`dmBlocks/${m.ownerUid}_${viewerUid}`).get(), db.doc(`dmBlocks/${viewerUid}_${m.ownerUid}`).get()]);
+  if (a.exists || b.exists) return false;
+  return follows(db, viewerUid, m.ownerUsername);
 }
 
 function toView(id: string, m: MomentDoc, viewerUid: string, liked: boolean, deps: MomentDeps): MomentView {
@@ -57,13 +63,14 @@ function toView(id: string, m: MomentDoc, viewerUid: string, liked: boolean, dep
     ...(m.text ? { text: m.text } : {}),
     ...(m.imageKey ? { imageUrl: deps.publicUrl(m.imageKey) } : {}),
     ...(m.videoKey ? { videoUrl: deps.publicUrl(m.videoKey), durationSec: m.durationSec } : {}),
+    ...(m.audioKey ? { audioUrl: deps.publicUrl(m.audioKey), audioDurationSec: m.audioDurationSec } : {}),
     hours: m.hours, createdAt: m.createdAt, expiresAt: m.expiresAt,
     likeCount: m.likeCount, reshareCount: m.reshareCount, liked, mine: m.ownerUid === viewerUid,
     ...(m.resharedFrom ? { resharedFrom: { ownerUsername: m.resharedFrom.ownerUsername } } : {}),
   };
 }
 
-export type CreateInput = { kind: unknown; text?: unknown; hours?: unknown; imageKey?: unknown; videoUploadId?: unknown };
+export type CreateInput = { kind: unknown; text?: unknown; hours?: unknown; imageKey?: unknown; videoUploadId?: unknown; audioUploadId?: unknown };
 
 export async function createMoment(db: Firestore, owner: { uid: string; username: string }, input: CreateInput, deps: MomentDeps, now = new Date()): Promise<MomentView> {
   if (!owner.username) throw new MomentError(400, "Finish setting up your profile first.");
@@ -96,6 +103,18 @@ export async function createMoment(db: Firestore, owner: { uid: string; username
     doc.durationSec = up.durationSec;
   }
 
+  // Voice-over (any kind): a verified recording of this member's, not already used.
+  let audioRef: ReturnType<Firestore["doc"]> | null = null;
+  if (input.audioUploadId) {
+    audioRef = db.doc(`momentAudio/${String(input.audioUploadId)}`);
+    const au = (await audioRef.get()).data();
+    if (!au || au.uid !== owner.uid || au.verified !== true || au.attached === true) throw new MomentError(400, "The voice-over hasn't finished uploading.");
+    if (!String(au.key).startsWith(`moments/${owner.uid}/`)) throw new MomentError(400, "That recording wasn't made for a moment.");
+    if (au.durationSec > MOMENT_AUDIO_MAX_SECONDS + 1) throw new MomentError(413, `Voice-overs can be up to ${MOMENT_AUDIO_MAX_SECONDS} seconds.`);
+    doc.audioKey = au.key;
+    doc.audioDurationSec = au.durationSec;
+  }
+
   const id = randomBytes(8).toString("hex");
   const createdAt = now.toISOString();
   const full: MomentDoc = { ...doc, createdAt, expiresAt: momentExpiry(now, hours).toISOString() };
@@ -105,6 +124,7 @@ export async function createMoment(db: Firestore, owner: { uid: string; username
     if (used >= MOMENT_DAILY_LIMIT) throw new MomentError(429, `You can share ${MOMENT_DAILY_LIMIT} moments a day. Try again tomorrow.`);
     t.set(usageRef, { uid: owner.uid, day: dayKey(now), count: used + 1 }, { merge: true });
     t.set(db.doc(`moments/${id}`), { ...full, expireAt: new Date(full.expiresAt) });
+    if (audioRef) t.update(audioRef, { attached: true });
   });
   return toView(id, full, owner.uid, false, deps);
 }
@@ -130,9 +150,13 @@ export async function listFeed(db: Firestore, viewer: { uid: string; username: s
       if (!isMomentExpired(m.expiresAt, now)) docs.push({ id: d.id, m });
     }
   }
-  const liked = await likedSet(db, viewer.uid, docs.map((d) => d.id));
+  // Hide anyone who blocked the viewer, or whom the viewer blocked.
+  const [byMe, onMe] = await Promise.all([db.collection("dmBlocks").where("blocker", "==", viewer.uid).get(), db.collection("dmBlocks").where("blocked", "==", viewer.uid).get()]);
+  const hidden = new Set([...byMe.docs.map((d) => d.data().blocked as string), ...onMe.docs.map((d) => d.data().blocker as string)]);
+  const visible = docs.filter((d) => !hidden.has(d.m.ownerUid));
+  const liked = await likedSet(db, viewer.uid, visible.map((d) => d.id));
   const groups = new Map<string, MomentGroup>();
-  for (const { id, m } of docs.sort((a, b) => (a.m.createdAt < b.m.createdAt ? -1 : 1))) {
+  for (const { id, m } of visible.sort((a, b) => (a.m.createdAt < b.m.createdAt ? -1 : 1))) {
     const g = groups.get(m.ownerUid) ?? { ownerUid: m.ownerUid, ownerUsername: m.ownerUsername, moments: [] };
     g.moments.push(toView(id, m, viewer.uid, liked.has(id), deps));
     groups.set(m.ownerUid, g);
@@ -190,12 +214,18 @@ export async function recordView(db: Firestore, uid: string, id: string, now = n
 export async function reshare(db: Firestore, user: { uid: string; username: string }, id: string, deps: MomentDeps, now = new Date()): Promise<MomentView> {
   const { m } = await loadActive(db, user.uid, id, now);
   if (m.ownerUid === user.uid) throw new MomentError(400, "That's already your moment.");
-  if (m.resharedFrom) throw new MomentError(400, "Reshare the original moment instead.");
+  // A reshare of a reshare is allowed; it points at the original so the chain can be traced and cleaned up together.
+  const rootMomentId = m.resharedFrom?.rootMomentId ?? id;
+  const rootOwnerUid = m.resharedFrom?.rootOwnerUid ?? m.ownerUid;
+  if (rootOwnerUid === user.uid) throw new MomentError(400, "That began as your own moment.");
   if (!user.username) throw new MomentError(400, "Finish setting up your profile first.");
   const newId = `rs_${user.uid}_${id}`; // one reshare per member per moment
+  const { reported: _reported, ...rest } = m;
+  void _reported;
   const full: MomentDoc = {
-    ...m, ownerUid: user.uid, ownerUsername: user.username, createdAt: now.toISOString(),
-    likeCount: 0, reshareCount: 0, viewCount: 0, ownsMedia: false, resharedFrom: { momentId: id, ownerUsername: m.ownerUsername },
+    ...rest, ownerUid: user.uid, ownerUsername: user.username, createdAt: now.toISOString(),
+    likeCount: 0, reshareCount: 0, viewCount: 0, ownsMedia: false,
+    resharedFrom: { momentId: id, ownerUsername: m.ownerUsername, rootMomentId, rootOwnerUid },
   };
   await db.runTransaction(async (t) => {
     if ((await t.get(db.doc(`moments/${newId}`))).exists) throw new MomentError(409, "You've already reshared this moment.");
@@ -220,13 +250,14 @@ export async function deleteMoment(db: Firestore, uid: string, id: string, deps:
   const m = (await ref.get()).data() as MomentDoc | undefined;
   if (!m || m.ownerUid !== uid) throw new MomentError(404, "That moment wasn't found.");
   // Reshares point at the original's file, so they go with it.
-  const shares = await db.collection("moments").where("resharedFrom.momentId", "==", ref.id).get();
+  const shares = await db.collection("moments").where("resharedFrom.rootMomentId", "==", ref.id).get();
   for (const d of shares.docs) await removeMoment(db, d.id, d.data() as MomentDoc, deps);
   await removeMoment(db, ref.id, m, deps);
 }
 
 async function removeMoment(db: Firestore, id: string, m: MomentDoc, deps: MomentDeps) {
-  if (m.ownsMedia) for (const key of [m.imageKey, m.videoKey, m.audioKey]) if (key) await deps.remove(key).catch(() => {});
+  // A reported moment's files stay until its report is resolved (the report holds the keys); see lib/reports-server.ts.
+  if (m.ownsMedia && !m.reported) for (const key of [m.imageKey, m.videoKey, m.audioKey]) if (key) await deps.remove(key).catch(() => {});
   await db.recursiveDelete(db.doc(`moments/${id}`)); // the likes and views under it go too
 }
 
@@ -275,4 +306,73 @@ export async function startMomentVideo(
     await usageRef.update({ count: FieldValue.increment(-1) }).catch(() => {});
     throw err;
   }
+}
+
+// Voice-over upload, same shape as the video one: ask (type, size and length checked, size signed in), PUT to the bucket,
+// then finish (the stored size matches and the first bytes really are WebM or MP4 audio).
+export async function startMomentAudio(
+  db: Firestore, uid: string, input: { size: number; contentType: string; durationSec: number },
+  presign: (key: string, contentType: string, size: number) => Promise<string>, now = new Date()
+): Promise<{ id: string; key: string; uploadUrl: string }> {
+  const ext = AUDIO_TYPES[input.contentType];
+  if (!ext) throw new MomentError(400, "Use a recording made in the browser (WebM or MP4 audio).");
+  if (!Number.isInteger(input.size) || input.size <= 0) throw new MomentError(400, "That recording looks empty.");
+  if (input.size > AUDIO_MAX_BYTES) throw new MomentError(413, "That recording is too large.");
+  if (!Number.isFinite(input.durationSec) || input.durationSec <= 0) throw new MomentError(400, "We couldn't read the recording's length.");
+  if (input.durationSec > MOMENT_AUDIO_MAX_SECONDS + 1) throw new MomentError(413, `Voice-overs can be up to ${MOMENT_AUDIO_MAX_SECONDS} seconds.`);
+  const id = randomBytes(8).toString("hex");
+  const key = `moments/${uid}/${id}.${ext}`;
+  const uploadUrl = await presign(key, input.contentType, input.size);
+  await db.doc(`momentAudio/${id}`).set({
+    uid, key, size: input.size, contentType: input.contentType, durationSec: Math.round(input.durationSec), verified: false, attached: false,
+    createdAt: now.toISOString(), expireAt: new Date(now.getTime() + 2 * 86_400_000), // an unused recording is removed after two days
+  });
+  return { id, key, uploadUrl };
+}
+
+export type AudioFinishDeps = {
+  head: (key: string) => Promise<{ size: number } | null>;
+  readStart: (key: string) => Promise<Uint8Array>;
+  remove: (key: string) => Promise<void>;
+};
+
+export async function finishMomentAudio(db: Firestore, uid: string, id: string, deps: AudioFinishDeps): Promise<{ key: string }> {
+  const ref = db.doc(`momentAudio/${id}`);
+  const rec = (await ref.get()).data();
+  if (!rec || rec.uid !== uid) throw new MomentError(404, "That recording wasn't found.");
+  if (rec.verified === true) return { key: rec.key };
+  const reject = async (why: string): Promise<never> => {
+    await deps.remove(rec.key).catch(() => {});
+    await ref.delete().catch(() => {});
+    throw new MomentError(400, why);
+  };
+  const head = await deps.head(rec.key);
+  if (!head) throw new MomentError(409, "The recording hasn't finished uploading yet.");
+  if (head.size !== rec.size || head.size > AUDIO_MAX_BYTES) return reject("The uploaded file didn't match the recording. Try again.");
+  if (!sniffAudio(await deps.readStart(rec.key), rec.contentType)) return reject("That doesn't look like an audio recording.");
+  await ref.update({ verified: true });
+  return { key: rec.key };
+}
+
+// Run by the scheduler: recordings that were uploaded but never used by a moment.
+export async function sweepStaleAudio(db: Firestore, deps: MomentDeps, now = new Date(), batch = 200): Promise<number> {
+  const snap = await db.collection("momentAudio").where("expireAt", "<=", now).limit(batch).get();
+  for (const d of snap.docs) {
+    if (d.data().attached !== true) await deps.remove(String(d.data().key)).catch(() => {});
+    await d.ref.delete();
+  }
+  return snap.size;
+}
+
+// For an admin who has decided a reported moment must go: removes it now (and the reshares of it) with its files.
+export async function adminRemoveMoment(db: Firestore, id: string, deps: MomentDeps): Promise<void> {
+  const ref = db.doc(`moments/${id}`);
+  const m = (await ref.get()).data() as MomentDoc | undefined;
+  if (!m) return;
+  const rootId = m.resharedFrom?.rootMomentId ?? id;
+  const shares = await db.collection("moments").where("resharedFrom.rootMomentId", "==", rootId).get();
+  for (const d of shares.docs) await removeMoment(db, d.id, { ...(d.data() as MomentDoc), reported: false }, deps);
+  const root = (await db.doc(`moments/${rootId}`).get()).data() as MomentDoc | undefined;
+  if (root) await removeMoment(db, rootId, { ...root, reported: false }, deps);
+  if (rootId !== id) await removeMoment(db, id, { ...m, reported: false }, deps);
 }

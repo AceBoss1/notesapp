@@ -2026,12 +2026,18 @@ Moments are short-lived pictures, videos or text that sit on top of a member's p
 - UI, only when switched on: a ring and an add button on profile pictures, a viewer (like, reshare, reply, delete), a composer (text, picture, video, 24/48/72 hours), a Message button on profiles, `/messages`, `/messages/[id]` and `/messages/new?to=username`, and a Messages link in the account menu.
 - Tests: rules tests (41 pass) and a server test against the Firestore emulator that covered create, limits, audience, expiry, likes, views, reshare, replies and expired references, blocks, suspension, deletion and the sweep.
 
+**Built since (founder, 8 October):**
+- Voice-over: record in the browser (up to 90 seconds, WebM or MP4 audio), uploaded through `/api/moments/audio` (type, size, length checked, first bytes verified), played over the picture, video or text. Unused recordings are removed after two days.
+- Reply and message notifications: a bell for a new message or a reply to a moment, one per burst (nothing new while the last is still unread), and an unread count beside "Messages" in the menu.
+- Block: from a conversation. A block works both ways: neither of you sees the other's moments or can message the other; the person blocked sees "member not found", and a blocker must unblock before messaging.
+- Report: on a moment (in the viewer) and on a conversation. A report keeps a copy of what was reported (a moment's details and files, or the last 20 messages) until someone looks at it; `/admin/reports` lists open reports with that copy. Dismiss clears it; Actioned also removes a live reported moment. Resolving deletes the copy and the kept files (unless another open report still needs them). Reported moments are not deleted at expiry until their report is resolved.
+- A reshare of a reshare is allowed. It points at the original, ends when the original ends, and deleting the original removes the whole chain. You can't reshare something that began as your own moment.
+- A moment is visible to followers and the owner only (no public option).
+
 **Not built yet (next steps):**
-- Voice-over: the data model has `audioKey` but there is no recorder or upload. Plan: record in the browser (up to 90 seconds), upload like the video, play over the picture or video.
-- Notifications for replies and messages (bell, email) and unread count in the menu.
-- Block and report buttons, and a moderation view of reported moments and messages (Terms section for messages and moments; reports need a place to land).
-- Live updates (the inbox polls every 10 seconds today), typing and read receipts, deleting a message.
+- Live updates (the inbox polls every 10 seconds today), typing and read receipts, deleting a single message.
 - Who has seen a moment (viewers list for the owner; view counts are stored).
+- Email for messages (bell only for now), push notifications on mobile.
 - Audio and video calls inside conversations (separate decisions in the calls section above).
 
 **Decided (founder, 7 October):**
@@ -2040,6 +2046,7 @@ Moments are short-lived pictures, videos or text that sit on top of a member's p
 - Privacy text drafted: the Privacy Policy has a "Moments and direct messages" section, the "What we collect" paragraph mentions them, and the data-protection register entry lists the controls and the to-do (add them to the record of processing before launch). Account deletion now removes a member's moments and files and the messages they wrote (a thread nobody else wrote in goes entirely); the data download includes live moments and sent messages. LEGAL_VERSION was not bumped because the features are off: bump it on the day Moments or messages go live so everyone re-accepts.
 
 **Still open:**
-1. Should a non-follower be able to see a moment if the owner makes it public? (Today: followers and the owner only.)
-2. Reshare of a reshare is refused; replies to a reshare go to the resharer. Fine?
-3. Have counsel read the new Privacy Policy section before launch.
+1. Counsel reading the new Privacy Policy section before launch (founder: OK).
+2. Who handles `/admin/reports` day to day, and how fast we promise to look (suggest: within 24 hours for anything flagged nudity or violence).
+3. Warn or suspend from a report is done in the Users page, then the report is marked actioned; a one-click "suspend from this report" could come later.
+

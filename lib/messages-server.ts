@@ -3,6 +3,9 @@ import { FieldValue } from "firebase-admin/firestore";
 import { randomBytes } from "crypto";
 import { MESSAGE_MAX, conversationId, type MomentRef, type ThreadMessage } from "./messages-rules";
 import { isMomentExpired } from "./moments-rules";
+import { notifyBell } from "./email";
+
+export type Notify = (note: { uid: string; type: "message" | "moment"; linkHref: string; message: string }) => Promise<void>;
 
 // Server side of direct messages. Clients never write messages: every send goes through here so the checks
 // (not yourself, recipient exists, neither suspended, not blocked, length) can't be skipped.
@@ -12,22 +15,24 @@ export class MessageError extends Error {
 
 export type SendInput = { text: string; moment?: MomentRef };
 
-export async function sendMessage(db: Firestore, fromUid: string, toUid: string, input: SendInput, now = new Date()): Promise<{ conversationId: string; messageId: string }> {
+export async function sendMessage(db: Firestore, fromUid: string, toUid: string, input: SendInput, now = new Date(), notify: Notify = notifyBell): Promise<{ conversationId: string; messageId: string }> {
   const text = String(input.text ?? "").trim();
   if (!text) throw new MessageError(400, "Write a message first.");
   if (text.length > MESSAGE_MAX) throw new MessageError(413, `Messages can be up to ${MESSAGE_MAX} characters.`);
   if (!toUid || toUid === fromUid) throw new MessageError(400, "Pick someone else to message.");
 
-  const [from, to, blocked] = await Promise.all([
+  const [from, to, blocked, iBlocked] = await Promise.all([
     db.doc(`users/${fromUid}`).get(),
     db.doc(`users/${toUid}`).get(),
     db.doc(`dmBlocks/${toUid}_${fromUid}`).get(), // recipient has blocked sender
+    db.doc(`dmBlocks/${fromUid}_${toUid}`).get(), // sender has blocked recipient
   ]);
   if (!to.exists) throw new MessageError(404, "That member wasn't found.");
   if (from.data()?.suspended === true) throw new MessageError(403, "Your account can't send messages right now.");
   if (to.data()?.suspended === true) throw new MessageError(404, "That member wasn't found.");
   // Same message as a missing account, so a block doesn't tell the sender they were blocked.
   if (blocked.exists) throw new MessageError(404, "That member wasn't found.");
+  if (iBlocked.exists) throw new MessageError(403, "You've blocked this member. Unblock them to send a message.");
 
   const cid = conversationId(fromUid, toUid);
   const messageId = `${String(now.getTime()).padStart(13, "0")}_${randomBytes(4).toString("hex")}`;
@@ -35,8 +40,10 @@ export async function sendMessage(db: Firestore, fromUid: string, toUid: string,
   const msgRef = convRef.collection("messages").doc(messageId);
   const createdAt = now.toISOString();
 
+  let prevUnread = 0; // what the recipient hadn't read before this message
   await db.runTransaction(async (t) => {
     const conv = await t.get(convRef);
+    prevUnread = (conv.data()?.unread?.[toUid] as number | undefined) ?? 0;
     if (!conv.exists) {
       t.set(convRef, { participants: [fromUid, toUid].sort(), createdAt, unread: { [fromUid]: 0, [toUid]: 0 } });
     }
@@ -48,6 +55,11 @@ export async function sendMessage(db: Firestore, fromUid: string, toUid: string,
       [`unread.${fromUid}`]: 0,
     });
   });
+  // One bell per burst: nothing new while the last message is still unread.
+  if (prevUnread === 0) {
+    const name = String(from.data()?.displayName ?? "A member");
+    await notify({ uid: toUid, type: input.moment ? "moment" : "message", linkHref: `/messages/${cid}`, message: input.moment ? `${name} replied to your moment` : `New message from ${name}` }).catch(() => {});
+  }
   return { conversationId: cid, messageId };
 }
 
@@ -85,4 +97,22 @@ export async function getThread(db: Firestore, uid: string, cid: string, now = n
   });
   await convRef.update({ [`unread.${uid}`]: 0 }).catch(() => {});
   return { withUid: (conv.participants as string[]).find((p) => p !== uid) ?? uid, messages };
+}
+
+// Total unread across conversations (the number beside "Messages" in the menu).
+export async function unreadTotal(db: Firestore, uid: string): Promise<number> {
+  return (await listConversations(db, uid)).reduce((n, c) => n + c.unread, 0);
+}
+
+export async function myBlocks(db: Firestore, uid: string): Promise<string[]> {
+  const snap = await db.collection("dmBlocks").where("blocker", "==", uid).get();
+  return snap.docs.map((d) => d.data().blocked as string);
+}
+
+// Blocking: they can't message you or see your moments, and you won't see theirs or be able to message them until you unblock.
+export async function setBlock(db: Firestore, uid: string, otherUid: string, block: boolean, now = new Date()): Promise<void> {
+  if (!otherUid || otherUid === uid) throw new MessageError(400, "Pick someone else.");
+  const ref = db.doc(`dmBlocks/${uid}_${otherUid}`);
+  if (block) await ref.set({ blocker: uid, blocked: otherUid, at: now.toISOString() });
+  else await ref.delete();
 }

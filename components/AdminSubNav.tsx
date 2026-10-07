@@ -19,6 +19,7 @@ const LINKS = [
   { href: "/admin/ads", label: "Ads" },
   { href: "/admin/ad-share", label: "Ad share" },
   { href: "/admin/leads", label: "Leads" },
+  { href: "/admin/reports", label: "Reports" },
   { href: "/admin/traction", label: "Traction" },
   { href: "/admin/errors", label: "Errors" },
   { href: "/admin/enterprise", label: "Enterprise" },

@@ -36,7 +36,9 @@ export type NotificationType =
   | "booking"
   | "ad" // advertiser campaigns
   | "plan" // Pro/Business plans and trials
-  | "org"; // organisation verification and invitations
+  | "org" // organisation verification and invitations
+  | "message" // a new direct message
+  | "moment"; // a reply or reshare of a moment
 
 export type AppNotification = {
   id: string;

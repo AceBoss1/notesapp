@@ -6,6 +6,7 @@ import { onAuthStateChanged, type User } from "firebase/auth";
 import { auth } from "@/lib/firebase";
 import { api } from "@/lib/moments-client";
 import { MESSAGE_MAX, type ThreadMessage } from "@/lib/messages-rules";
+import ReportDialog from "@/components/moments/ReportDialog";
 
 type Who = { uid: string; username: string; displayName: string; avatar: string };
 
@@ -19,12 +20,14 @@ export default function Thread({ id, to }: { id?: string; to?: string }) {
   const [text, setText] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [blockedByMe, setBlockedByMe] = useState(false);
+  const [reporting, setReporting] = useState(false);
   const end = useRef<HTMLDivElement>(null);
   useEffect(() => onAuthStateChanged(auth, setUser), []);
 
   const load = useCallback(() => {
     if (!user || !cid) return;
-    api<{ messages: ThreadMessage[]; with: Who }>(`/api/messages/${cid}`).then((r) => { setMessages(r.messages); setWho(r.with); }).catch((e) => setError(e.message));
+    api<{ messages: ThreadMessage[]; with: Who; blockedByMe: boolean }>(`/api/messages/${cid}`).then((r) => { setMessages(r.messages); setWho(r.with); setBlockedByMe(r.blockedByMe); }).catch((e) => setError(e.message));
   }, [user, cid]);
   useEffect(() => {
     load();
@@ -47,10 +50,24 @@ export default function Thread({ id, to }: { id?: string; to?: string }) {
     }
   }
 
+  async function toggleBlock() {
+    if (!who) return;
+    if (!blockedByMe && !confirm(`Block ${who.displayName}? They won't be able to message you or see your moments, and you won't see theirs.`)) return;
+    setError(null);
+    try { await api("/api/messages/block", { body: { uid: who.uid, block: !blockedByMe } }); setBlockedByMe(!blockedByMe); }
+    catch (e) { setError(e instanceof Error ? e.message : "Couldn't update the block."); }
+  }
+
   if (user === null) return <p className="text-slate"><Link href="/login" className="text-crimson underline">Sign in</Link> to message.</p>;
   return (
     <div className="flex flex-col">
       <p className="mb-4 text-sm text-slate"><Link href="/messages" className="text-crimson underline">← Messages</Link>{who ? <> · <Link href={`/u/${who.username}`} className="font-bold text-ink">{who.displayName}</Link></> : to ? ` · @${to}` : ""}</p>
+      {cid && who && (
+        <p className="-mt-2 mb-4 flex gap-4 text-xs">
+          <button onClick={toggleBlock} className="text-slate underline">{blockedByMe ? "Unblock" : "Block"}</button>
+          <button onClick={() => setReporting(true)} className="text-slate underline">Report</button>
+        </p>
+      )}
       <div className="min-h-[40vh] space-y-2">
         {messages.map((m) => {
           const mine = m.from === user?.uid;
@@ -70,9 +87,11 @@ export default function Thread({ id, to }: { id?: string; to?: string }) {
         <div ref={end} />
       </div>
       {error && <p className="mt-2 text-sm text-red-700" role="alert">{error}</p>}
+      {blockedByMe && <p className="mt-3 text-sm text-slate">You&apos;ve blocked this member. Unblock them to send a message.</p>}
+      {reporting && cid && <ReportDialog kind="conversation" targetId={cid} onClose={() => setReporting(false)} />}
       <form className="mt-4 flex gap-2" onSubmit={(e) => { e.preventDefault(); if (text.trim()) send(); }}>
         <input value={text} onChange={(e) => setText(e.target.value)} maxLength={MESSAGE_MAX} placeholder="Write a message" className="min-w-0 flex-1 rounded border border-rule px-3 py-2 text-sm" />
-        <button disabled={busy || !text.trim()} className="btn-primary disabled:opacity-50">Send</button>
+        <button disabled={busy || !text.trim() || blockedByMe} className="btn-primary disabled:opacity-50">Send</button>
       </form>
     </div>
   );
