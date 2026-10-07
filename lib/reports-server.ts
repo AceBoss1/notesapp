@@ -19,7 +19,6 @@ const trimNote = (note: unknown) => {
 
 export async function createReport(
   db: Firestore, reporterUid: string, input: { kind: unknown; targetId: unknown; reason: unknown; note?: unknown }, now = new Date(),
-  alertTeam: (subject: string, text: string) => Promise<void> = emailTeam
 ): Promise<{ id: string }> {
   const kind = input.kind;
   if (kind !== "moment" && kind !== "conversation") throw new MomentError(400, "Choose what to report.");
@@ -67,19 +66,40 @@ export async function createReport(
   await ref.set({
     reporterUid, targetUid, kind, targetId, reason: input.reason, note, status: "open", createdAt: now.toISOString(), evidence, evidenceKeys,
   });
-  // Every report emails the team (REPORTS_EMAIL). Nudity and violence are marked urgent: they are looked at within 24 hours.
-  const urgent = URGENT_REASONS.includes(input.reason);
-  const link = `${(process.env.NEXT_PUBLIC_SITE_URL || "https://www.notesapp.name.ng").replace(/\/$/, "")}/admin/reports`;
-  await alertTeam(
-    `${urgent ? "URGENT report" : "New report"}: ${input.reason} (${kind})`,
-    `A ${kind} was reported for ${input.reason}.${urgent ? ` This kind is reviewed within ${REPORT_URGENT_HOURS} hours.` : ""}\n\nReview it here: ${link}`
-  ).catch(() => {});
+  // No email per report: the team gets one digest a day (sendReportsDigest, run by the scheduler), so reports can't eat the sending quota.
   return { id };
 }
 
-async function emailTeam(subject: string, text: string): Promise<void> {
+const DIGEST_HOUR = 8; // Lagos time: the daily digest goes out once it is 8am or later
+
+export async function emailTeam(subject: string, text: string): Promise<void> {
   const to = process.env.REPORTS_EMAIL;
   if (to) await sendEmail({ to, subject, text });
+}
+
+// One email a day to the team (REPORTS_EMAIL) listing what's waiting: the count, how many are urgent (nudity or violence) and how many of
+// those are overdue, and a breakdown by reason. Nothing is sent on a day with no open reports. Run by the scheduler; the day it last went
+// out is kept in cronRuns/reportsDigest so the 15-minute scheduler can't send it twice. Returns whether an email was sent.
+export async function sendReportsDigest(db: Firestore, now = new Date(), send: (subject: string, text: string) => Promise<void> = emailTeam): Promise<boolean> {
+  const hour = Number(new Intl.DateTimeFormat("en-GB", { timeZone: "Africa/Lagos", hour: "2-digit", hour12: false }).format(now)) % 24;
+  if (hour < DIGEST_HOUR) return false;
+  const today = now.toLocaleDateString("en-CA", { timeZone: "Africa/Lagos" });
+  const stateRef = db.doc("cronRuns/reportsDigest");
+  if ((await stateRef.get()).data()?.day === today) return false;
+  const snap = await db.collection("contentReports").where("status", "==", "open").select("reason", "kind", "createdAt").get();
+  await stateRef.set({ day: today, at: now.toISOString(), open: snap.size }); // marked first: a failed send is not retried every 15 minutes
+  if (snap.empty) return false;
+  const counts = await reportCounts(db, now);
+  const byReason = new Map<string, number>();
+  for (const d of snap.docs) byReason.set(d.data().reason, (byReason.get(d.data().reason) ?? 0) + 1);
+  const lines = Array.from(byReason.entries()).sort((a, b) => b[1] - a[1]).map(([r, n]) => `  ${n} × ${r}${URGENT_REASONS.includes(r as never) ? " (urgent)" : ""}`);
+  const link = `${(process.env.NEXT_PUBLIC_SITE_URL || "https://www.notesapp.name.ng").replace(/\/$/, "")}/admin/reports`;
+  const head = counts.overdue > 0 ? `${counts.overdue} OVERDUE (waiting more than ${REPORT_URGENT_HOURS} hours), ` : "";
+  await send(
+    `${counts.urgent > 0 ? "URGENT: " : ""}${snap.size} open report${snap.size === 1 ? "" : "s"} on #NotesApp`,
+    `${head}${counts.urgent} urgent (nudity or violence: reviewed within ${REPORT_URGENT_HOURS} hours), ${snap.size} open in all.\n\n${lines.join("\n")}\n\nReview them here: ${link}`
+  ).catch(() => {});
+  return true;
 }
 
 export type ReportRow = { id: string; kind: ReportKind; reason: string; note: string; createdAt: string; status: string; reporterUid: string; targetUid: string; evidence?: unknown; evidenceKeys?: string[]; outcome?: string };

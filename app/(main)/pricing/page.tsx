@@ -120,6 +120,10 @@ const ROWS: { label: string; href?: string; render: (t: (typeof TIERS)[number]) 
           : "Your page lives at notesapp.name.ng/u/username",
   },
   {
+    label: "Email for new messages",
+    render: (t) => (t.messageEmails ? "Yes: off until you switch it on, at most one email an hour" : "Bell, plus notifications on your device if you turn them on"),
+  },
+  {
     label: "API & Console",
     href: "/changelog",
     render: (t) => (t.canPublish ? (t.apiAccess ? "Server-to-server API, keys and webhooks — enabled per account by our team" : t.customDomain ? "Console for connecting your own domain only — no API" : "—") : "—"),

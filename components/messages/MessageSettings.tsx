@@ -4,14 +4,14 @@ import { useEffect, useState } from "react";
 import { api } from "@/lib/moments-client";
 import { currentSubscription, disablePush, enablePush, pushSupported } from "@/lib/push-client";
 
-// How you hear about new messages: a bell (always), an email (on by default, at most one an hour per conversation) and,
+// How you hear about new messages: a bell (always), an email (off until you switch it on; Business and Enterprise only, at most one an hour) and,
 // if switched on for this device, a notification. None of them shows what was written.
 export default function MessageSettings() {
-  const [prefs, setPrefs] = useState<{ emailMessages: boolean; pushAvailable: boolean; vapidKey: string | null } | null>(null);
+  const [prefs, setPrefs] = useState<{ emailMessages: boolean; emailAllowed: boolean; pushAvailable: boolean; vapidKey: string | null } | null>(null);
   const [pushOn, setPushOn] = useState(false);
   const [error, setError] = useState("");
   useEffect(() => {
-    api<{ emailMessages: boolean; pushAvailable: boolean; vapidKey: string | null }>("/api/messages/prefs").then(setPrefs).catch(() => {});
+    api<{ emailMessages: boolean; emailAllowed: boolean; pushAvailable: boolean; vapidKey: string | null }>("/api/messages/prefs").then(setPrefs).catch(() => {});
     currentSubscription().then((s) => setPushOn(!!s)).catch(() => {});
   }, []);
   if (!prefs) return null;
@@ -29,7 +29,14 @@ export default function MessageSettings() {
 
   return (
     <div className="mt-6 space-y-2 border-y border-rule py-4 text-sm">
-      <label className="flex items-center gap-2 text-ink"><input type="checkbox" checked={prefs.emailMessages} onChange={(e) => toggleEmail(e.target.checked)} /> Email me when I get a new message</label>
+      <label className={`flex items-center gap-2 ${prefs.emailAllowed ? "text-ink" : "text-slate"}`}>
+        <input type="checkbox" checked={prefs.emailMessages} disabled={!prefs.emailAllowed} onChange={(e) => toggleEmail(e.target.checked)} /> Email me when I get a new message
+      </label>
+      <p className="text-xs text-slate">
+        {prefs.emailAllowed
+          ? "Off until you switch it on. At most one email an hour, and it never shows what was written."
+          : <>Email for new messages comes with the Business and Enterprise plans (<a href="/pricing" className="text-crimson underline">see plans</a>). You always get the bell, and notifications on this device if you turn them on.</>}
+      </p>
       {prefs.pushAvailable && pushSupported() && (
         <p><button onClick={togglePush} className="rounded border border-rule px-3 py-1.5">{pushOn ? "🔕 Turn off notifications on this device" : "🔔 Turn on notifications on this device"}</button></p>
       )}

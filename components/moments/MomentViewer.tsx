@@ -59,12 +59,14 @@ export default function MomentViewer({ moments, onClose, onChanged }: { moments:
           <button onClick={onClose} aria-label="Close" className="px-2 text-2xl leading-none">×</button>
         </div>
 
-        <div className="relative flex min-h-0 flex-1 items-center justify-center bg-black" onClick={next}>
-          {m.kind === "image" && /* eslint-disable-next-line @next/next/no-img-element */ <img src={m.imageUrl} alt="" className="max-h-full max-w-full object-contain" />}
+        {/* The picture or video is told its size (the whole stage) and letterboxed inside it, so a wide or very large file, such as a
+            side-by-side TikTok duet, can never spill past the edges of the window. */}
+        <div className="relative flex min-h-0 min-w-0 flex-1 items-center justify-center overflow-hidden bg-black" onClick={next}>
+          {m.kind === "image" && /* eslint-disable-next-line @next/next/no-img-element */ <img src={m.imageUrl} alt="" className="h-full w-full object-contain" />}
           {m.kind === "video" && (
             // A part of a longer video plays only its own stretch of the file: it starts at clipStart and moves on at clipEnd.
             <video
-              key={m.id} src={m.videoUrl} autoPlay playsInline controls={false} className="max-h-full max-w-full"
+              key={m.id} src={m.videoUrl} autoPlay playsInline controls={false} className="h-full w-full object-contain"
               onLoadedMetadata={(e) => { if (m.clipStart) e.currentTarget.currentTime = m.clipStart; }}
               onTimeUpdate={(e) => { if (m.clipEnd && e.currentTarget.currentTime >= m.clipEnd - 0.05 && advanced.current !== m.id) { advanced.current = m.id; next(); } }}
               onEnded={() => { if (advanced.current !== m.id) { advanced.current = m.id; next(); } }}
