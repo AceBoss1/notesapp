@@ -25,7 +25,8 @@ export async function POST(req: NextRequest) {
     const { filename, contentType, purpose, size } = await req.json();
     const isAvatar = purpose === "avatar";
     const isAd = purpose === "ad"; // advertiser creative: any verified member, image only, small
-    const uid = isAd
+    const isMoment = purpose === "moment"; // a moment's picture: same rules as an ad creative, in the member's own folder
+    const uid = isAd || isMoment
       ? await (async () => {
           const me = await verifySignedInRequest(idToken);
           if (!me.emailVerified) throw new Error("Verify your email first");
@@ -47,14 +48,14 @@ export async function POST(req: NextRequest) {
     if (kind !== "image") {
       return NextResponse.json({ error: "Videos are uploaded from the post editor." }, { status: 400 });
     }
-    if ((isAvatar || isAd) && kind !== "image") {
+    if ((isAvatar || isAd || isMoment) && kind !== "image") {
       return NextResponse.json({ error: "Avatars must be images" }, { status: 400 });
     }
-    if (!Number.isInteger(size) || size <= 0 || size > maxUploadBytes(kind, isAvatar || isAd)) {
+    if (!Number.isInteger(size) || size <= 0 || size > maxUploadBytes(kind, isAvatar || isAd || isMoment)) {
       return NextResponse.json({ error: "File is too large." }, { status: 413 });
     }
 
-    const key = `${isAd ? `ads/${uid}` : isAvatar ? `avatars/${uid}` : "journals"}/${Date.now()}-${filename.replace(/[^a-zA-Z0-9._-]/g, "_")}`;
+    const key = `${isAd ? `ads/${uid}` : isMoment ? `moments/${uid}` : isAvatar ? `avatars/${uid}` : "journals"}/${Date.now()}-${filename.replace(/[^a-zA-Z0-9._-]/g, "_")}`;
     const client = getR2Client();
     const command = new PutObjectCommand({
       Bucket: R2_BUCKET,

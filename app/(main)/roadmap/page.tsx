@@ -126,6 +126,7 @@ export default function RoadmapPage() {
               <li>iOS and Android apps</li>
               <li>AI drafting, social publishing, ad-share</li>
               <li>Audio and video meetings, meeting chat (under team discussion)</li>
+              <li>Moments: pictures, video and text on profile pictures for 24, 48 or 72 hours</li>
               <li>Direct messages + audio and video calls (under team discussion)</li>
             </ul>
           </div>

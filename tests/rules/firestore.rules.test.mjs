@@ -533,3 +533,39 @@ test("ad revenue is admin-only; publishers read only their own ad-share statemen
   await assertFails(getDoc(doc(as("alice"), "adShareStatements/2026-10_pub")));
   await assertFails(updateDoc(doc(as("pub"), "adShareStatements/2026-10_pub"), { shareKobo: 9999999, status: "approved" }));
 });
+
+test("moments are API-only; conversations are readable only by their two members and never writable", async () => {
+  await env.withSecurityRulesDisabled(async (ctx) => {
+    const d = ctx.firestore();
+    await setDoc(doc(d, "moments/m1"), { ownerUid: "pub", ownerUsername: "pub", expiresAt: "2099-01-01T00:00:00.000Z" });
+    await setDoc(doc(d, "moments/m1/likes/alice"), { uid: "alice" });
+    await setDoc(doc(d, "momentUsage/pub_2026-10-07"), { count: 1 });
+    await setDoc(doc(d, "dmBlocks/pub_alice"), { at: "x" });
+    await setDoc(doc(d, "conversations/alice_pub"), { participants: ["alice", "pub"], unread: {} });
+    await setDoc(doc(d, "conversations/alice_pub/messages/1"), { from: "alice", text: "hi", createdAt: "x" });
+    await setDoc(doc(d, "conversations/boss_pub"), { participants: ["boss", "pub"], unread: {} });
+  });
+  // Moments: not even the owner, and not signed out.
+  for (const ctx of [as("pub"), as("alice"), anon()]) {
+    await assertFails(getDoc(doc(ctx, "moments/m1")));
+    await assertFails(getDoc(doc(ctx, "moments/m1/likes/alice")));
+  }
+  await assertFails(setDoc(doc(as("pub"), "moments/m2"), { ownerUid: "pub", expiresAt: "2099-01-01T00:00:00.000Z" }));
+  await assertFails(deleteDoc(doc(as("pub"), "moments/m1")));
+  await assertFails(setDoc(doc(as("pub"), "momentUsage/pub_2026-10-07"), { count: 0 }));
+  await assertFails(getDoc(doc(as("alice"), "dmBlocks/pub_alice")));
+  await assertFails(setDoc(doc(as("alice"), "dmBlocks/alice_pub"), { at: "x" }));
+  // Conversations: both members read; a third member and signed-out visitors can't.
+  await assertSucceeds(getDoc(doc(as("alice"), "conversations/alice_pub")));
+  await assertSucceeds(getDoc(doc(as("pub"), "conversations/alice_pub")));
+  await assertSucceeds(getDoc(doc(as("alice"), "conversations/alice_pub/messages/1")));
+  await assertFails(getDoc(doc(as("boss"), "conversations/alice_pub")));
+  await assertFails(getDoc(doc(as("boss"), "conversations/alice_pub/messages/1")));
+  await assertFails(getDoc(doc(anon(), "conversations/alice_pub")));
+  await assertFails(getDoc(doc(as("alice"), "conversations/boss_pub")));
+  // Never written from a browser, not even by a member of the conversation.
+  await assertFails(setDoc(doc(as("alice"), "conversations/alice_pub/messages/2"), { from: "alice", text: "forged", createdAt: "x" }));
+  await assertFails(updateDoc(doc(as("alice"), "conversations/alice_pub"), { unread: {} }));
+  await assertFails(deleteDoc(doc(as("alice"), "conversations/alice_pub/messages/1")));
+  await assertFails(setDoc(doc(as("alice"), "conversations/alice_zed"), { participants: ["alice", "zed"] }));
+});
