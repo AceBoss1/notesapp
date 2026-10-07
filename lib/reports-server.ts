@@ -67,10 +67,13 @@ export async function createReport(
   await ref.set({
     reporterUid, targetUid, kind, targetId, reason: input.reason, note, status: "open", createdAt: now.toISOString(), evidence, evidenceKeys,
   });
-  // Nudity and violence are looked at within 24 hours: tell the team now (REPORTS_EMAIL), not when someone next opens the page.
-  if (URGENT_REASONS.includes(input.reason)) {
-    await alertTeam(`Urgent report: ${input.reason} (${kind})`, `A ${kind} was reported for ${input.reason}. Please review it within ${REPORT_URGENT_HOURS} hours: ${(process.env.NEXT_PUBLIC_SITE_URL || "https://www.notesapp.name.ng").replace(/\/$/, "")}/admin/reports`).catch(() => {});
-  }
+  // Every report emails the team (REPORTS_EMAIL). Nudity and violence are marked urgent: they are looked at within 24 hours.
+  const urgent = URGENT_REASONS.includes(input.reason);
+  const link = `${(process.env.NEXT_PUBLIC_SITE_URL || "https://www.notesapp.name.ng").replace(/\/$/, "")}/admin/reports`;
+  await alertTeam(
+    `${urgent ? "URGENT report" : "New report"}: ${input.reason} (${kind})`,
+    `A ${kind} was reported for ${input.reason}.${urgent ? ` This kind is reviewed within ${REPORT_URGENT_HOURS} hours.` : ""}\n\nReview it here: ${link}`
+  ).catch(() => {});
   return { id };
 }
 
@@ -107,4 +110,18 @@ export async function resolveReport(db: Firestore, adminUid: string, id: string,
     if (!live || outcome === "actioned") for (const k of (r.evidenceKeys as string[]) ?? []) if (!stillNeeded.has(k)) await deps.remove(k).catch(() => {});
   }
   await ref.update({ status: "resolved", outcome, resolvedBy: adminUid, resolvedAt: now.toISOString(), resolutionNote: trimNote(note), evidence: FieldValue.delete(), evidenceKeys: [] });
+}
+
+// For the admin dashboard card: how many reports are open, how many of those are urgent (nudity or violence), and how many of
+// the urgent ones have waited past the 24 hours we promise.
+export async function reportCounts(db: Firestore, now = new Date()): Promise<{ open: number; urgent: number; overdue: number }> {
+  const snap = await db.collection("contentReports").where("status", "==", "open").select("reason", "createdAt").get();
+  let urgent = 0, overdue = 0;
+  for (const d of snap.docs) {
+    const r = d.data();
+    if (!URGENT_REASONS.includes(r.reason)) continue;
+    urgent++;
+    if (now.getTime() - new Date(r.createdAt).getTime() >= REPORT_URGENT_HOURS * 3_600_000) overdue++;
+  }
+  return { open: snap.size, urgent, overdue };
 }

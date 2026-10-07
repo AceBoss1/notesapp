@@ -1,17 +1,18 @@
 import { NextRequest, NextResponse } from "next/server";
 import { friendlyMessage } from "@/lib/api-errors";
 import { getAdminDb, verifyAdminRequest } from "@/lib/firebase-admin";
-import { listReports, resolveReport } from "@/lib/reports-server";
+import { listReports, reportCounts, resolveReport } from "@/lib/reports-server";
 import { momentDeps } from "@/lib/moments-api";
 import { MomentError } from "@/lib/moments-server";
 
 export const dynamic = "force-dynamic";
 const bearer = (req: NextRequest) => req.headers.get("authorization")?.replace(/^Bearer\s+/i, "");
 
-// Admin: GET ?status=open|resolved → reports with what was reported (open ones only); POST { id, outcome: "dismissed"|"actioned", note? }
+// Admin: GET ?counts=1 → { open, urgent, overdue }; GET ?status=open|resolved → reports with what was reported (open ones only); POST { id, outcome: "dismissed"|"actioned", note? }
 export async function GET(req: NextRequest) {
   try {
     await verifyAdminRequest(bearer(req));
+    if (req.nextUrl.searchParams.get("counts") === "1") return NextResponse.json(await reportCounts(getAdminDb())); // the dashboard card
     const status = req.nextUrl.searchParams.get("status") === "resolved" ? "resolved" : "open";
     const db = getAdminDb();
     const rows = await listReports(db, status);
