@@ -9,6 +9,17 @@ import { sendClientError } from "@/components/ErrorReporter";
 export default function PageError({ error, reset }: { error: Error & { digest?: string }; reset: () => void }) {
   useEffect(() => {
     sendClientError(error.message || "Page error", error.stack);
+    // Right after a release, a phone that still holds the old page can fail to load a new script ("ChunkLoadError"). One
+    // reload fetches the new version; the flag stops it from reloading in a loop if something else is wrong.
+    if (/ChunkLoadError|Loading chunk|Loading CSS chunk|dynamically imported module|Importing a module script failed/i.test(`${error.name} ${error.message}`)) {
+      try {
+        const last = Number(sessionStorage.getItem("na-chunk-reload") || 0);
+        if (Date.now() - last > 60_000) {
+          sessionStorage.setItem("na-chunk-reload", String(Date.now()));
+          window.location.reload();
+        }
+      } catch { /* no storage: the buttons below still work */ }
+    }
   }, [error]);
   return (
     <div className="mx-auto max-w-md px-4 py-24 text-center">

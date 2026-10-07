@@ -7,7 +7,7 @@ import { rateLimit } from "@/lib/rate-limit";
 import { friendlyMessage } from "@/lib/api-errors";
 import { effectiveTier } from "@/lib/users";
 import { VideoError, finishVideoUpload, startVideoUpload } from "@/lib/video-server";
-import { MomentError, startMomentVideo } from "@/lib/moments-server";
+import { MomentError, momentVideoQuota, startMomentVideo } from "@/lib/moments-server";
 import { MOMENTS_LIVE } from "@/lib/moments-rules";
 import { verifyAvatarUploadRequest, verifySignedInRequest } from "@/lib/firebase-admin";
 
@@ -32,6 +32,12 @@ export async function POST(req: NextRequest) {
     const limited = rateLimit(req, "video", uid, 20, 600);
     if (limited) return limited;
     const db = getAdminDb();
+
+    if (body.action === "quota" && isMoment) {
+      const qu = (await db.doc(`users/${uid}`).get()).data();
+      return NextResponse.json(await momentVideoQuota(db, uid, effectiveTier({ username: qu?.username ?? "", role: qu?.role ?? "reader", accountTier: qu?.accountTier ?? "standard" })));
+    }
+
     const r2 = getR2Client();
 
     if (body.action === "start" && isMoment) {

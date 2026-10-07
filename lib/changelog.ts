@@ -11,6 +11,23 @@ export type Release = {
 
 export const CHANGELOG: Release[] = [
   {
+    version: "v0.7.3",
+    bump: "patch",
+    date: "2026-10-07",
+    changes: [
+      { kind: "fixed", text: "Opening a conversation could crash the Messages page on newer browsers (“n is not a function”). Fixed." },
+    ],
+  },
+  {
+    version: "v0.7.2",
+    bump: "patch",
+    date: "2026-10-07",
+    changes: [
+      { kind: "added", text: "Moments: a video longer than 90 seconds is no longer refused. It is cut into equal parts of up to 90 seconds, shared as separate moments in order, using one of your plan's weekly video moments for each part. If you don't have enough left, only the first 90 seconds of as many parts as you have room for is used, and you're told before you share which it will be." },
+      { kind: "fixed", text: "Messages now shows what went wrong, and records it, instead of replacing the page, and a phone holding an out-of-date copy of the site after an update reloads itself once instead of showing an error." },
+    ],
+  },
+  {
     version: "v0.7.1",
     bump: "patch",
     date: "2026-10-07",

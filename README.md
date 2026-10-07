@@ -2067,3 +2067,12 @@ On an Enterprise member's own domain, `/login`, `/signup` and `/forgot-password`
 - Not done yet (listed on the roadmap): Google sign-in in the window (needs each domain added to Firebase's authorised domains; a Google-only member sets a password with "Forgot your password"), checkout and bookings still open on #NotesApp (the visitor has to sign in there once more; the fix is the Paystack popup plus a session hand-off the other way), a sending address on the member's own domain (SPF and DKIM through Resend), and a sweep of error pages. Do these as one piece of work before promising "nothing says #NotesApp".
 - Env: none new. Firebase's web API key must allow the member domains (the existing hand-off already depends on this).
 
+## Longer videos in Moments (built, 7 October)
+
+A moment's video is up to 90 seconds. A longer video (up to 10 minutes and 100 MB) is no longer refused: the composer reads its length, asks how many video moments the plan has left this week (`POST /api/video {action:"quota", purpose:"moment"}`) and tells the member what will happen before they press Share.
+- Room for every part: the video is cut into equal parts (none over 90 seconds), shared as separate moments in order ("Part 1 of 3" or the caption with "(1/3)"), each using one of the weekly video moments. A voice-over goes on the first part.
+- Room for fewer parts: only the first 90 seconds of each part there is room for is used; the rest is left out, and the member is told. No room at all: nothing is shared (as before).
+- No trimming or re-encoding happens: the file is uploaded once and each moment plays its own stretch (`clipStart` to `clipEnd`); the viewer seeks to the start and moves on at the end. So there is no load on the phone and no server video processing. The cost is that the whole file is stored (up to 100 MB) until the last part expires.
+- The parts share one file: the first owns it; deleting or expiring a part passes ownership on, and the file goes with the last part. A rejected upload gives back every part it was granted.
+- Weekly allowance by plan stays 0 / 2 / 7 / 14 / 30 (Free Standard / Basic / Pro / Business / Enterprise). Open: should the allowance count parts or uploads? (Today: parts, one per moment, so a 3-part video uses 3.)
+
