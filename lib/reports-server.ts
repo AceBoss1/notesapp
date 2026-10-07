@@ -1,6 +1,6 @@
 import type { Firestore } from "firebase-admin/firestore";
 import { FieldValue } from "firebase-admin/firestore";
-import { isMomentExpired, isReportReason, REPORT_NOTE_MAX, REPORT_URGENT_HOURS, URGENT_REASONS } from "./moments-rules";
+import { isMomentExpired, isReportReason, REPORT_NOTE_MAX, REPORT_REASON_LABEL, type ReportReason, REPORT_URGENT_HOURS, URGENT_REASONS } from "./moments-rules";
 import { sendEmail } from "./email";
 import { MomentError, adminRemoveMoment, type MomentDeps } from "./moments-server";
 
@@ -130,6 +130,24 @@ export async function resolveReport(db: Firestore, adminUid: string, id: string,
     if (!live || outcome === "actioned") for (const k of (r.evidenceKeys as string[]) ?? []) if (!stillNeeded.has(k)) await deps.remove(k).catch(() => {});
   }
   await ref.update({ status: "resolved", outcome, resolvedBy: adminUid, resolvedAt: now.toISOString(), resolutionNote: trimNote(note), evidence: FieldValue.delete(), evidenceKeys: [] });
+}
+
+// One click from a report: suspend the reported member (same records the Users page writes: the private suspensions/{uid} with the
+// reason, `suspended` on the public profile, and a notification to them), then action the report. Admins can't be suspended this way.
+export async function suspendFromReport(db: Firestore, adminUid: string, id: string, note: unknown, deps: MediaDeps, now = new Date()): Promise<void> {
+  const r = (await db.doc(`contentReports/${id}`).get()).data();
+  if (!r) throw new MomentError(404, "That report wasn't found.");
+  if (r.status === "resolved") throw new MomentError(409, "That report is already resolved.");
+  const target = (await db.doc(`users/${r.targetUid}`).get()).data();
+  if (!target) throw new MomentError(404, "That member wasn't found.");
+  if (target.role === "admin") throw new MomentError(403, "Admins can't be suspended from a report.");
+  if (target.suspended !== true) {
+    const reason = trimNote(note) || `Reported for ${REPORT_REASON_LABEL[r.reason as ReportReason] ?? r.reason}`;
+    await db.doc(`suspensions/${r.targetUid}`).set({ reason, suspendedAt: now.toISOString(), suspendedByUid: adminUid, appealStatus: "none" });
+    await db.doc(`users/${r.targetUid}`).update({ suspended: true });
+    await db.collection("notifications").add({ recipientUid: r.targetUid, type: "suspended", message: `Your account was suspended: ${reason}`, linkHref: `/u/${target.username}`, read: false, createdAt: now.toISOString() });
+  }
+  await resolveReport(db, adminUid, id, "actioned", note, deps, now);
 }
 
 // For the admin dashboard card: how many reports are open, how many of those are urgent (nudity or violence), and how many of

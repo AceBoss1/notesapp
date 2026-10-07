@@ -42,12 +42,19 @@ export default function AdminReportsPage() {
     catch (e) { setError(e instanceof Error ? e.message : "Something went wrong"); }
   }
 
+  async function suspend(r: Report) {
+    if (!window.confirm(`Suspend @${r.target}? They are told why (your note, or the report reason), and this report is marked actioned${r.kind === "moment" ? " and the moment removed" : ""}. You can unsuspend them on the Users page.`)) return;
+    setError("");
+    try { await call("/api/admin/reports", { method: "POST", body: JSON.stringify({ id: r.id, suspend: true, note: note[r.id] ?? "" }) }); load(); }
+    catch (e) { setError(e instanceof Error ? e.message : "Something went wrong"); }
+  }
+
   if (loading) return <p className="p-8 text-slate">Loading…</p>;
   if (!user) return <p className="p-8 text-slate">Admins only.</p>;
   return (
     <div className="mx-auto max-w-4xl px-4 py-12">
       <h1 className="font-display text-3xl text-ink">Reports</h1>
-      <p className="mt-2 text-sm text-slate">Moments and conversations members have reported. To warn or suspend someone, use <Link href="/admin/users" className="text-crimson underline">Users</Link>, then mark the report actioned.</p>
+      <p className="mt-2 text-sm text-slate">Moments and conversations members have reported. “Suspend” suspends the reported member and actions the report in one click (your note becomes the reason they see). To warn someone instead, use <Link href="/admin/users" className="text-crimson underline">Users</Link>.</p>
       <div className="mt-4 flex gap-2">
         {(["open", "resolved"] as const).map((s) => (
           <button key={s} onClick={() => { setReports(null); setStatus(s); }} aria-pressed={status === s} className={`rounded-full border px-4 py-1 text-sm ${status === s ? "border-crimson bg-crimson text-white" : "border-rule"}`}>{s === "open" ? "Open" : "Resolved"}</button>
@@ -87,6 +94,7 @@ export default function AdminReportsPage() {
               <div className="mt-3 flex flex-wrap items-center gap-2">
                 <input value={note[r.id] ?? ""} onChange={(e) => setNote({ ...note, [r.id]: e.target.value })} placeholder="Note (optional)" maxLength={500} className="min-w-0 flex-1 rounded border border-rule px-3 py-1.5 text-sm" />
                 <button onClick={() => resolve(r.id, "dismissed")} className="btn-ghost">Dismiss</button>
+                <button onClick={() => suspend(r)} className="rounded border border-red-700 px-3 py-1.5 text-sm font-semibold text-red-700">Suspend @{r.target}</button>
                 <button onClick={() => resolve(r.id, "actioned")} className="btn-primary">Actioned{r.kind === "moment" ? " (removes the moment)" : ""}</button>
               </div>
             ) : <p className="mt-2 text-sm text-slate">Resolved: {r.outcome}</p>}
