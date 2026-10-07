@@ -6,9 +6,19 @@ import { onAuthStateChanged, type User } from "firebase/auth";
 import { collection, limit, onSnapshot, orderBy, query } from "firebase/firestore";
 import { auth, db } from "@/lib/firebase";
 import { api } from "@/lib/moments-client";
-import { MESSAGE_MAX, type ThreadMessage } from "@/lib/messages-rules";
+import { ATTACHMENT_ACCEPT, MESSAGE_MAX, attachmentTypeOf, formatBytes, type ThreadMessage } from "@/lib/messages-rules";
+import { wrapSelection } from "@/lib/message-format";
+import FormattedText from "./FormattedText";
+import MessageAttachments from "./MessageAttachments";
 import { isMomentExpired } from "@/lib/moments-rules";
 import ReportDialog from "@/components/moments/ReportDialog";
+
+// "2:05 PM" today, "12 Oct, 2:05 PM" on another day.
+const stamp = (iso: string) => {
+  const d = new Date(iso);
+  const t = d.toLocaleTimeString("en-NG", { hour: "numeric", minute: "2-digit" });
+  return d.toDateString() === new Date().toDateString() ? t : `${d.toLocaleDateString("en-NG", { day: "numeric", month: "short" })}, ${t}`;
+};
 
 type Who = { uid: string; username: string; displayName: string; avatar: string };
 
@@ -20,12 +30,17 @@ export default function Thread({ id, to }: { id?: string; to?: string }) {
   const [who, setWho] = useState<Who | null>(null);
   const [messages, setMessages] = useState<ThreadMessage[]>([]);
   const [text, setText] = useState("");
+  const [files, setFiles] = useState<File[]>([]);
+  const [allowed, setAllowed] = useState<{ maxBytes: number; maxCount: number } | null>(null);
+  const box = useRef<HTMLTextAreaElement>(null);
+  const picker = useRef<HTMLInputElement>(null);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [blockedByMe, setBlockedByMe] = useState(false);
   const [reporting, setReporting] = useState(false);
   const end = useRef<HTMLDivElement>(null);
   useEffect(() => onAuthStateChanged(auth, setUser), []);
+  useEffect(() => { if (user) api<{ maxBytes: number; maxCount: number }>("/api/messages/attachments").then(setAllowed).catch(() => {}); }, [user]);
 
   // Who it's with, and whether you've blocked them (this also marks the conversation read).
   const loadMeta = useCallback(() => {
@@ -44,7 +59,7 @@ export default function Thread({ id, to }: { id?: string; to?: string }) {
         const rows: ThreadMessage[] = snap.docs.reverse().map((d) => {
           const m = d.data();
           // A reply to a moment says whether the moment has expired; the moment itself is never in the message.
-          return { id: d.id, from: m.from, text: m.text, createdAt: m.createdAt, ...(m.momentRef ? { moment: { momentId: m.momentRef.momentId, expired: isMomentExpired(m.momentRef.expiresAt) } } : {}) };
+          return { id: d.id, from: m.from, text: m.text, createdAt: m.createdAt, ...(m.readAt ? { readAt: m.readAt } : {}), ...(m.attachments ? { attachments: (m.attachments as { name: string; size: number; type: string; kind: "image" | "video" | "document" }[]).map(({ name, size, type, kind }) => ({ name, size, type, kind })) } : {}), ...(m.momentRef ? { moment: { momentId: m.momentRef.momentId, expired: isMomentExpired(m.momentRef.expiresAt) } } : {}) };
         });
         setMessages(rows);
         // Something new from them while this is open: it's read.
@@ -57,11 +72,42 @@ export default function Thread({ id, to }: { id?: string; to?: string }) {
   // returning it made React call it as a clean-up ("destroy is not a function"), which crashed the page.
   useEffect(() => { end.current?.scrollIntoView({ block: "end" }); }, [messages.length]);
 
+  function pick(list: FileList | null) {
+    if (!list) return;
+    setError(null);
+    const next = [...files];
+    for (const f of Array.from(list)) {
+      if (!attachmentTypeOf(f.name)) { setError(`${f.name}: that kind of file can't be sent. Pictures, videos, PDFs, Office files, text and zip files can.`); continue; }
+      if (allowed && f.size > allowed.maxBytes) { setError(`${f.name} is ${formatBytes(f.size)}. Files can be up to ${formatBytes(allowed.maxBytes)} on your plan.`); continue; }
+      if (allowed && next.length >= allowed.maxCount) { setError(`You can send ${allowed.maxCount} file${allowed.maxCount === 1 ? "" : "s"} in one message on your plan.`); break; }
+      next.push(f);
+    }
+    setFiles(next);
+    if (picker.current) picker.current.value = "";
+  }
+
+  // **bold**, _italic_ and __underline__ are typed as plain text; these buttons (and Ctrl/Cmd + B, I, U) add the marks around the selection.
+  function format(marker: "**" | "_" | "__") {
+    const el = box.current;
+    if (!el) return;
+    const r = wrapSelection(text, el.selectionStart, el.selectionEnd, marker);
+    setText(r.value);
+    requestAnimationFrame(() => { el.focus(); el.setSelectionRange(r.selStart, r.selEnd); });
+  }
+
   async function send() {
     setBusy(true); setError(null);
     try {
-      const r = await api<{ conversationId: string }>("/api/messages", { body: to ? { toUsername: to, text } : { toUid: who?.uid, text } });
-      setText(""); setCid(r.conversationId);
+      // Files go straight to private storage first; the message then names them.
+      const attachmentIds: string[] = [];
+      for (const f of files) {
+        const up = await api<{ id: string; uploadUrl: string; contentType: string }>("/api/messages/attachments", { body: { name: f.name, size: f.size } });
+        const put = await fetch(up.uploadUrl, { method: "PUT", headers: { "Content-Type": up.contentType }, body: f });
+        if (!put.ok) throw new Error(`${f.name} didn't upload. Try again.`);
+        attachmentIds.push(up.id);
+      }
+      const r = await api<{ conversationId: string }>("/api/messages", { body: to ? { toUsername: to, text, attachmentIds } : { toUid: who?.uid, text, attachmentIds } });
+      setText(""); setFiles([]); setCid(r.conversationId);
       if (!id) window.history.replaceState(null, "", `/messages/${r.conversationId}`);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Couldn't send.");
@@ -99,7 +145,12 @@ export default function Thread({ id, to }: { id?: string; to?: string }) {
                     {m.moment.expired ? "Replied to a moment that has expired" : "Replied to a moment"}
                   </p>
                 )}
-                <p className="whitespace-pre-wrap break-words">{m.text}</p>
+                {m.attachments && cid && <MessageAttachments cid={cid} mid={m.id} files={m.attachments} mine={mine} />}
+                {m.text && <p className="whitespace-pre-wrap break-words"><FormattedText text={m.text} /></p>}
+                <p className={`mt-1 flex flex-wrap justify-end gap-x-3 text-[11px] ${mine ? "text-white/80" : "text-slate"}`}>
+                  <span>{mine && <span aria-label="Sent">✔ </span>}{stamp(m.createdAt)}</span>
+                  {mine && m.readAt && <span><span aria-label="Read">✔✔ </span>{stamp(m.readAt)}</span>}
+                </p>
               </div>
             </div>
           );
@@ -109,9 +160,37 @@ export default function Thread({ id, to }: { id?: string; to?: string }) {
       {error && <p className="mt-2 text-sm text-red-700" role="alert">{error}</p>}
       {blockedByMe && <p className="mt-3 text-sm text-slate">You&apos;ve blocked this member. Unblock them to send a message.</p>}
       {reporting && cid && <ReportDialog kind="conversation" targetId={cid} onClose={() => setReporting(false)} />}
-      <form className="mt-4 flex gap-2" onSubmit={(e) => { e.preventDefault(); if (text.trim()) send(); }}>
-        <input value={text} onChange={(e) => setText(e.target.value)} maxLength={MESSAGE_MAX} placeholder="Write a message" className="min-w-0 flex-1 rounded border border-rule px-3 py-2 text-sm" />
-        <button disabled={busy || !text.trim() || blockedByMe} className="btn-primary disabled:opacity-50">Send</button>
+      <form className="mt-4" onSubmit={(e) => { e.preventDefault(); if ((text.trim() || files.length) && !busy && !blockedByMe) send(); }}>
+        <div className="mb-1 flex flex-wrap items-center gap-1 text-sm">
+          <button type="button" onClick={() => format("**")} aria-label="Bold" title="Bold (Ctrl+B)" className="w-8 rounded border border-rule py-1 font-bold">B</button>
+          <button type="button" onClick={() => format("_")} aria-label="Italic" title="Italic (Ctrl+I)" className="w-8 rounded border border-rule py-1 italic">I</button>
+          <button type="button" onClick={() => format("__")} aria-label="Underline" title="Underline (Ctrl+U)" className="w-8 rounded border border-rule py-1 underline">U</button>
+          <button type="button" onClick={() => picker.current?.click()} aria-label="Attach files" title="Attach pictures, videos or documents" className="ml-1 rounded border border-rule px-3 py-1">📎 Attach</button>
+          <input ref={picker} type="file" multiple accept={ATTACHMENT_ACCEPT} className="hidden" onChange={(e) => pick(e.target.files)} />
+          {allowed && <span className="ml-1 text-xs text-slate">up to {allowed.maxCount} file{allowed.maxCount === 1 ? "" : "s"}, {formatBytes(allowed.maxBytes)} each</span>}
+        </div>
+        {files.length > 0 && (
+          <ul className="mb-2 flex flex-wrap gap-2 text-xs">
+            {files.map((f, k) => (
+              <li key={k} className="flex items-center gap-2 rounded border border-rule px-2 py-1">
+                <span className="max-w-[12rem] truncate">{f.name}</span><span className="text-slate">{formatBytes(f.size)}</span>
+                <button type="button" onClick={() => setFiles(files.filter((_, j) => j !== k))} aria-label={`Remove ${f.name}`} className="text-slate">×</button>
+              </li>
+            ))}
+          </ul>
+        )}
+        <div className="flex gap-2">
+          <textarea
+            ref={box} value={text} rows={2} maxLength={MESSAGE_MAX} placeholder="Write a message" onChange={(e) => setText(e.target.value)}
+            onKeyDown={(e) => {
+              const k = e.key.toLowerCase();
+              if ((e.ctrlKey || e.metaKey) && (k === "b" || k === "i" || k === "u")) { e.preventDefault(); format(k === "b" ? "**" : k === "i" ? "_" : "__"); }
+              else if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); e.currentTarget.form?.requestSubmit(); }
+            }}
+            className="min-w-0 flex-1 resize-y rounded border border-rule px-3 py-2 text-sm"
+          />
+          <button disabled={busy || (!text.trim() && !files.length) || blockedByMe} className="btn-primary self-end disabled:opacity-50">{busy ? "Sending…" : "Send"}</button>
+        </div>
       </form>
     </div>
   );

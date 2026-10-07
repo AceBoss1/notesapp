@@ -587,6 +587,8 @@ service cloud.firestore {
     match /userPrefs/{id} { allow read, write: if false; }
     match /pushSubscriptions/{id} { allow read, write: if false; }
     match /contentReports/{id} { allow read, write: if false; }
+    match /serverConfig/{id} { allow read, write: if false; } // admin-set limits: read and written by the server only
+    match /messageUploads/{id} { allow read, write: if false; }
     match /dmBlocks/{id} { allow read, write: if false; }
     match /conversations/{cid} {
       allow read: if isSignedIn() && request.auth.uid in resource.data.participants;

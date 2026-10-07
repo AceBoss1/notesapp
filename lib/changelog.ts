@@ -11,6 +11,17 @@ export type Release = {
 
 export const CHANGELOG: Release[] = [
   {
+    version: "v0.8.0",
+    bump: "minor",
+    date: "2026-10-08",
+    changes: [
+      { kind: "added", text: "Messages: make text bold, italic or underlined, and see when each message was sent (one tick) and when it was read (two ticks), with the times." },
+      { kind: "added", text: "Messages: attach pictures, videos and documents. How big and how many depends on your plan." },
+      { kind: "added", text: "Moments: the bars at the top now fill in maroon as each moment plays, so you can see how much is left." },
+      { kind: "fixed", text: "Moments: a wide video, such as a side-by-side duet, now fits inside the viewer instead of being cropped." },
+    ],
+  },
+  {
     version: "v0.7.7",
     bump: "patch",
     date: "2026-10-07",

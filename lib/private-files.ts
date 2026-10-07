@@ -41,3 +41,13 @@ export async function headObject(key: string): Promise<{ size: number } | null> 
 export async function deleteObject(key: string): Promise<void> {
   await getR2Client().send(new DeleteObjectCommand({ Bucket: privateBucket(), Key: key })).catch(() => {});
 }
+
+// A link to show a message's file in the page (a picture or video) or to download it: short-lived, and only ever handed to the two
+// people in the conversation by /api/messages/file.
+export function presignGet(key: string, filename: string, contentType: string, inline: boolean) {
+  return getSignedUrl(
+    getR2Client(),
+    new GetObjectCommand({ Bucket: privateBucket(), Key: key, ResponseContentType: contentType, ResponseContentDisposition: `${inline ? "inline" : "attachment"}; filename="${safeFileName(filename)}"` }),
+    { expiresIn: inline ? 900 : 60 }
+  );
+}
