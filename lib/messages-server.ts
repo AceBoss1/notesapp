@@ -3,7 +3,9 @@ import { FieldValue } from "firebase-admin/firestore";
 import { randomBytes } from "crypto";
 import { MESSAGE_MAX, conversationId, type MomentRef, type ThreadMessage } from "./messages-rules";
 import { isMomentExpired } from "./moments-rules";
-import { notifyBell } from "./email";
+import { notifyBell, sendEmail } from "./email";
+import { getAdminDb, getUserEmail } from "./firebase-admin";
+import { sendPush, type PushPayload } from "./push-server";
 
 export type Notify = (note: { uid: string; type: "message" | "moment"; linkHref: string; message: string }) => Promise<void>;
 
@@ -13,9 +15,17 @@ export class MessageError extends Error {
   constructor(public status: number, message: string) { super(message); }
 }
 
+// What happens besides the bell when a burst of messages starts. Injected so it can be tested.
+export type Alerts = {
+  email: (toUid: string, mail: { subject: string; text: string; label: string; url: string }) => Promise<void>;
+  push: (toUid: string, payload: PushPayload) => Promise<number>;
+};
+const siteUrl = () => (process.env.NEXT_PUBLIC_SITE_URL || "https://www.notesapp.name.ng").replace(/\/$/, "");
+const EMAIL_EVERY_MS = 3_600_000; // at most one email an hour per conversation
+
 export type SendInput = { text: string; moment?: MomentRef };
 
-export async function sendMessage(db: Firestore, fromUid: string, toUid: string, input: SendInput, now = new Date(), notify: Notify = notifyBell): Promise<{ conversationId: string; messageId: string }> {
+export async function sendMessage(db: Firestore, fromUid: string, toUid: string, input: SendInput, now = new Date(), notify: Notify = notifyBell, alerts?: Alerts): Promise<{ conversationId: string; messageId: string }> {
   const text = String(input.text ?? "").trim();
   if (!text) throw new MessageError(400, "Write a message first.");
   if (text.length > MESSAGE_MAX) throw new MessageError(413, `Messages can be up to ${MESSAGE_MAX} characters.`);
@@ -55,13 +65,34 @@ export async function sendMessage(db: Firestore, fromUid: string, toUid: string,
       [`unread.${fromUid}`]: 0,
     });
   });
-  // One bell per burst: nothing new while the last message is still unread.
+  // One bell, one push and (at most hourly, unless switched off) one email per burst: nothing new while the last message is still
+  // unread. None of them carries what was written, only who it's from.
   if (prevUnread === 0) {
     const name = String(from.data()?.displayName ?? "A member");
-    await notify({ uid: toUid, type: input.moment ? "moment" : "message", linkHref: `/messages/${cid}`, message: input.moment ? `${name} replied to your moment` : `New message from ${name}` }).catch(() => {});
+    const what = input.moment ? `${name} replied to your moment` : `New message from ${name}`;
+    await notify({ uid: toUid, type: input.moment ? "moment" : "message", linkHref: `/messages/${cid}`, message: what }).catch(() => {});
+    const a = alerts ?? defaultAlerts();
+    await a.push(toUid, { title: input.moment ? "Reply to your moment" : "New message", body: `${name}`, url: `/messages/${cid}` }).catch(() => 0);
+    const prefs = (await db.doc(`userPrefs/${toUid}`).get()).data();
+    const last = (await convRef.get()).data()?.emailedAt?.[toUid] as string | undefined;
+    if (prefs?.emailMessages !== false && (!last || now.getTime() - new Date(last).getTime() >= EMAIL_EVERY_MS)) {
+      await convRef.update({ [`emailedAt.${toUid}`]: now.toISOString() }).catch(() => {});
+      await a.email(toUid, {
+        subject: what, label: "Open your messages", url: `${siteUrl()}/messages/${cid}`,
+        text: `${what} on #NotesApp. Open your messages to read it and reply.\n\nYou can turn these emails off in your Messages settings.`,
+      }).catch(() => {});
+    }
   }
   return { conversationId: cid, messageId };
 }
+
+const defaultAlerts = (): Alerts => ({
+  email: async (toUid, m) => {
+    const to = await getUserEmail(toUid);
+    if (to) await sendEmail({ to, subject: m.subject, text: m.text, action: { label: m.label, url: m.url } });
+  },
+  push: async (toUid, payload) => sendPush(getAdminDb(), toUid, payload), // async: a missing config rejects instead of throwing here
+});
 
 export type ConversationRow = { id: string; withUid: string; lastText: string; lastAt: string; lastFromMe: boolean; unread: number; moment: boolean };
 
@@ -115,4 +146,19 @@ export async function setBlock(db: Firestore, uid: string, otherUid: string, blo
   const ref = db.doc(`dmBlocks/${uid}_${otherUid}`);
   if (block) await ref.set({ blocker: uid, blocked: otherUid, at: now.toISOString() });
   else await ref.delete();
+}
+
+export async function markRead(db: Firestore, uid: string, cid: string): Promise<void> {
+  const ref = db.doc(`conversations/${cid}`);
+  const c = (await ref.get()).data();
+  if (!c || !(c.participants as string[]).includes(uid)) throw new MessageError(404, "That conversation wasn't found.");
+  await ref.update({ [`unread.${uid}`]: 0 });
+}
+
+export type MessagePrefs = { emailMessages: boolean };
+export async function getPrefs(db: Firestore, uid: string): Promise<MessagePrefs> {
+  return { emailMessages: (await db.doc(`userPrefs/${uid}`).get()).data()?.emailMessages !== false };
+}
+export async function setPrefs(db: Firestore, uid: string, prefs: Partial<MessagePrefs>): Promise<void> {
+  if (typeof prefs.emailMessages === "boolean") await db.doc(`userPrefs/${uid}`).set({ uid, emailMessages: prefs.emailMessages }, { merge: true });
 }

@@ -9,6 +9,7 @@ import { domainForUid } from "@/lib/domains";
 import { SiteProvider } from "@/components/site/SiteContext";
 import SiteNav from "@/components/site/SiteNav";
 import SiteAccount from "@/components/site/SiteAccount";
+import { SiteAuthProvider } from "@/components/site/SiteAuth";
 
 // A member's branded site (Business and Enterprise custom domains): their name in the header, three pages — Home (profile and
 // booking), Notes and Shop — and a "Powered by #NotesApp" footer. No #NotesApp navigation. On their own domain the
@@ -50,8 +51,12 @@ export default async function SiteLayout({ children, params }: Props) {
     base, uid: p.uid, username: p.username, displayName: p.displayName, avatar: p.avatar, bio: p.bio, social: p.social || {},
     home: (domain?.home === "store" ? "store" : "profile") as "profile" | "store",
   };
+  // Enterprise on its own domain: sign-in and sign-up are a branded window on the site itself (not on the main-site preview).
+  const ownDomainAuth = fullLabel && !isMainHost(host);
+  const Auth = ownDomainAuth ? SiteAuthProvider : ({ children }: { children: React.ReactNode }) => <>{children}</>;
   return (
     <SiteProvider value={info}>
+     <Auth>
       <div data-site-theme="classic" className="flex min-h-screen flex-col">
         <header className="sticky top-0 z-40 border-b border-rule bg-paper/90 backdrop-blur">
           <div className="mx-auto flex max-w-5xl items-center justify-between gap-4 px-4 py-4 sm:px-6">
@@ -92,6 +97,7 @@ export default async function SiteLayout({ children, params }: Props) {
           </div>
         </footer>
       </div>
+     </Auth>
     </SiteProvider>
   );
 }

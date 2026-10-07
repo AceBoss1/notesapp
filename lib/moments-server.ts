@@ -39,6 +39,7 @@ export type MomentView = {
   text?: string; imageUrl?: string; videoUrl?: string; durationSec?: number; audioUrl?: string; audioDurationSec?: number;
   hours: MomentHours; createdAt: string; expiresAt: string;
   likeCount: number; reshareCount: number; liked: boolean; mine: boolean;
+  viewCount?: number; // only for the owner
   resharedFrom?: { ownerUsername: string };
 };
 
@@ -66,6 +67,7 @@ function toView(id: string, m: MomentDoc, viewerUid: string, liked: boolean, dep
     ...(m.audioKey ? { audioUrl: deps.publicUrl(m.audioKey), audioDurationSec: m.audioDurationSec } : {}),
     hours: m.hours, createdAt: m.createdAt, expiresAt: m.expiresAt,
     likeCount: m.likeCount, reshareCount: m.reshareCount, liked, mine: m.ownerUid === viewerUid,
+    ...(m.ownerUid === viewerUid ? { viewCount: m.viewCount } : {}),
     ...(m.resharedFrom ? { resharedFrom: { ownerUsername: m.resharedFrom.ownerUsername } } : {}),
   };
 }
@@ -375,4 +377,19 @@ export async function adminRemoveMoment(db: Firestore, id: string, deps: MomentD
   const root = (await db.doc(`moments/${rootId}`).get()).data() as MomentDoc | undefined;
   if (root) await removeMoment(db, rootId, { ...root, reported: false }, deps);
   if (rootId !== id) await removeMoment(db, id, { ...m, reported: false }, deps);
+}
+
+export type Viewer = { uid: string; username: string; displayName: string; avatar: string; at: string };
+
+// Who has seen a moment: the owner only. Each person once, newest first.
+export async function listViewers(db: Firestore, ownerUid: string, id: string, now = new Date()): Promise<Viewer[]> {
+  const m = (await db.doc(`moments/${id}`).get()).data() as MomentDoc | undefined;
+  if (!m || m.ownerUid !== ownerUid || isMomentExpired(m.expiresAt, now)) throw new MomentError(404, "That moment isn't available any more.");
+  const snap = await db.collection(`moments/${id}/views`).orderBy("at", "desc").limit(200).get();
+  if (snap.empty) return [];
+  const users = await db.getAll(...snap.docs.map((d) => db.doc(`users/${d.id}`)));
+  return snap.docs.map((d, i) => {
+    const u = users[i].data();
+    return { uid: d.id, username: u?.username ?? "", displayName: u?.displayName ?? "Member", avatar: u?.avatar ?? "", at: d.data().at };
+  });
 }

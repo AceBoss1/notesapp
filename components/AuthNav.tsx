@@ -3,12 +3,12 @@
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { onAuthStateChanged, signOut, User } from "firebase/auth";
-import { auth } from "@/lib/firebase";
+import { auth, db } from "@/lib/firebase";
 import { getUserByUid, canPublish, UserProfile } from "@/lib/users";
 import NotificationBell from "@/components/NotificationBell";
 import Avatar from "@/components/Avatar";
 import { MESSAGES_LIVE } from "@/lib/moments-rules";
-import { api } from "@/lib/moments-client";
+import { collection, onSnapshot, query, where } from "firebase/firestore";
 
 export default function AuthNav() {
   const [user, setUser] = useState<User | null | undefined>(undefined);
@@ -24,13 +24,15 @@ export default function AuthNav() {
     });
   }, []);
 
-  // The number beside "Messages", refreshed every minute while signed in (only when messaging is switched on).
+  // The number beside "Messages", live while signed in (only when messaging is switched on).
   useEffect(() => {
     if (!MESSAGES_LIVE || !user) return;
-    const get = () => api<{ unread: number }>("/api/messages?unread=1").then((r) => setUnreadDms(r.unread)).catch(() => {});
-    get();
-    const t = setInterval(get, 60_000);
-    return () => clearInterval(t);
+    const uid = user.uid;
+    return onSnapshot(
+      query(collection(db, "conversations"), where("participants", "array-contains", uid)),
+      (snap) => setUnreadDms(snap.docs.reduce((n, d) => n + ((d.data().unread?.[uid] as number | undefined) ?? 0), 0)),
+      () => {}
+    );
   }, [user]);
 
   useEffect(() => {

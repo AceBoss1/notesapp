@@ -584,6 +584,8 @@ service cloud.firestore {
     }
     match /momentUsage/{id} { allow read, write: if false; }
     match /momentAudio/{id} { allow read, write: if false; }
+    match /userPrefs/{id} { allow read, write: if false; }
+    match /pushSubscriptions/{id} { allow read, write: if false; }
     match /contentReports/{id} { allow read, write: if false; }
     match /dmBlocks/{id} { allow read, write: if false; }
     match /conversations/{cid} {

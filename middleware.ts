@@ -8,8 +8,9 @@ import { MAIN_HOST, isMainHost } from "@/lib/host";
 //   /notes, /notes/<slug> → their notes          (/journals/… is an alias)
 //   /shop, /shop/<id>     → their shop           (/store and /u/<username>/store are aliases)
 //   /terms, /privacy      → their own legal pages, with a "powered by #NotesApp" block
+//   /login, /signup       → Enterprise: a branded sign-in / sign-up window on their domain; Business: the main-site page, then back here
 // A note or item that isn't theirs is sent to the main site instead.
-type Resolved = { found: boolean; uid?: string; username?: string; home?: "profile" | "store"; owned?: boolean };
+type Resolved = { found: boolean; uid?: string; username?: string; home?: "profile" | "store"; owned?: boolean; full?: boolean };
 const cache = new Map<string, { at: number; v: Resolved }>();
 const TTL_MS = 60_000;
 const MISS_TTL_MS = 5_000; // a domain that was just activated shouldn't stay "not connected" for a minute
@@ -30,7 +31,7 @@ async function resolve(host: string, check?: string): Promise<Resolved> {
   return v;
 }
 
-const PASS = /^\/(_next\/|favicon|robots\.txt|sitemap|images\/|fonts\/|api\/(views|trending|boosts|ads|public|status|consent|booking\/slots|paystack\/(initialize|verify))\b)/;
+const PASS = /^\/(_next\/|favicon|robots\.txt|sitemap|images\/|fonts\/|api\/(views|trending|boosts|ads|public|status|consent|booking\/slots|auth\/branded|paystack\/(initialize|verify))\b)/;
 const PUBLIC_FILE = /\.[a-z0-9]{2,5}$/i;
 
 export async function middleware(req: NextRequest) {
@@ -52,7 +53,7 @@ export async function middleware(req: NextRequest) {
   if (pathname === "/notes" || pathname === "/journals") return rewrite(`${site}/notes`);
   if (pathname === "/shop" || pathname === "/store" || pathname === `/u/${d.username}/store`) return rewrite(`${site}/shop`);
   if (pathname === `/u/${d.username}`) return rewrite(site);
-  if (pathname === "/auth/handoff" || pathname === "/booking/confirm") return rewrite(`${site}${pathname}`);
+  if (pathname === "/auth/handoff" || pathname === "/booking/confirm" || pathname === "/auth/action") return rewrite(`${site}${pathname}`);
   if (pathname === "/terms" || pathname === "/privacy") return rewrite(`${site}${pathname}`); // the member's own legal pages
 
   const m = /^\/(notes|journals|shop)\/([^/]+)\/?$/.exec(pathname);
@@ -64,13 +65,20 @@ export async function middleware(req: NextRequest) {
     return NextResponse.redirect(`https://${MAIN_HOST}/${journal ? "journals" : "shop"}/${m[2]}`, 307);
   }
 
-  // Signing in or up happens on the main site; tell it where to send the visitor back to (the page they were on).
-  if (pathname === "/login" || pathname === "/signup") {
+  // Signing in or up: where to send the visitor back to afterwards (the page they were on).
+  if (pathname === "/login" || pathname === "/signup" || pathname === "/forgot-password") {
     let next = "/";
     try {
       const ref = new URL(req.headers.get("referer") || "");
       if (ref.hostname.toLowerCase() === host) next = ref.pathname + ref.search;
     } catch { /* no referer: back to the home page */ }
+    // Enterprise (full white label): the sign-in / sign-up form is a branded window on their own domain, never the #NotesApp page.
+    if (d.full) {
+      const mode = pathname === "/signup" ? "signup" : pathname === "/forgot-password" ? "forgot" : "signin";
+      return NextResponse.rewrite(new URL(`${site}?auth=${mode}&next=${encodeURIComponent(next)}`, req.url), { request: { headers } });
+    }
+    if (pathname === "/forgot-password") return NextResponse.redirect(`https://${MAIN_HOST}/forgot-password`, 307);
+    // Everyone else: it happens on the main site, which sends them back here once they're signed in.
     return NextResponse.redirect(`https://${MAIN_HOST}${pathname}?from=${encodeURIComponent(host)}&next=${encodeURIComponent(next)}`, 307);
   }
 

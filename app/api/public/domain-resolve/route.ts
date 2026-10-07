@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAdminDb } from "@/lib/firebase-admin";
-import { DomainDoc } from "@/lib/domains";
+import { DomainDoc, whiteLabelOwner } from "@/lib/domains";
 import { clientIp, rateLimit } from "@/lib/rate-limit";
 import { normalizeHost } from "@/lib/host";
 
@@ -20,7 +20,8 @@ export async function GET(req: NextRequest) {
   const db = getAdminDb();
   const d = (await db.doc(`customDomains/${host}`).get()).data() as DomainDoc | undefined;
   if (!d || d.status !== "active") return NextResponse.json({ found: false }, { headers: miss });
-  const out: Record<string, unknown> = { found: true, host, uid: d.uid, username: d.username, home: d.home };
+  // `full`: Enterprise full white label, so sign-in and sign-up happen on the domain itself (middleware.ts).
+  const out: Record<string, unknown> = { found: true, host, uid: d.uid, username: d.username, home: d.home, full: !!(await whiteLabelOwner(host).catch(() => null)) };
   const check = req.nextUrl.searchParams.get("check");
   if (check) {
     const [kind, ref] = [check.split(":")[0], check.slice(check.indexOf(":") + 1)];

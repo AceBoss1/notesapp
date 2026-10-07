@@ -1,5 +1,7 @@
 import { getAdminDb } from "./firebase-admin";
 import { DnsRecord, dnsInstructions, isApexDomain } from "./host";
+import { effectiveTier } from "./users";
+import { getTierConfig } from "./tiers";
 
 // Custom domains for Enterprise accounts (`customDomains/{host}`, server-only; one per account).
 // The domain is registered on the Vercel project through its API when VERCEL_API_TOKEN and VERCEL_PROJECT_ID
@@ -102,3 +104,16 @@ export async function activeHostForUsername(username: string): Promise<string | 
   }
 }
 export { isApexDomain };
+
+// The owner of an ACTIVE custom domain whose plan has full white label (Enterprise), or null. Sign-in, sign-up and the emails
+// around them are branded as the member's own only for these; Business keeps "powered by #NotesApp" and the main-site sign-in.
+export async function whiteLabelOwner(host: string): Promise<{ uid: string; username: string; displayName: string; avatar: string } | null> {
+  const db = getAdminDb();
+  const d = (await db.doc(`customDomains/${host}`).get()).data() as DomainDoc | undefined;
+  if (!d || d.status !== "active") return null;
+  const u = (await db.doc(`users/${d.uid}`).get()).data();
+  if (!u || u.suspended === true) return null;
+  const tier = effectiveTier({ username: u.username ?? "", role: u.role ?? "reader", accountTier: u.accountTier ?? "standard" });
+  if (getTierConfig(tier).whiteLabel !== "full") return null;
+  return { uid: d.uid, username: String(u.username), displayName: String(u.displayName ?? u.username), avatar: String(u.avatar ?? "") };
+}

@@ -18,9 +18,12 @@ export default function MomentViewer({ moments, onClose, onChanged }: { moments:
   const [note, setNote] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [reporting, setReporting] = useState(false);
+  const [viewers, setViewers] = useState<{ uid: string; username: string; displayName: string }[] | null>(null);
+  const [showViewers, setShowViewers] = useState(false);
   const timer = useRef<ReturnType<typeof setTimeout>>();
   const m = items[i];
 
+  useEffect(() => setShowViewers(false), [i]);
   const next = () => (i + 1 < items.length ? setI(i + 1) : onClose());
   // Stills advance by themselves; a video advances when it ends.
   useEffect(() => {
@@ -65,9 +68,18 @@ export default function MomentViewer({ moments, onClose, onChanged }: { moments:
 
         <div className="space-y-2 p-3">
           {note && <p className="text-xs text-amber-300" role="status">{note}</p>}
+          {m.mine && showViewers && (
+            <div className="max-h-28 overflow-y-auto rounded border border-white/20 p-2 text-xs">
+              {viewers === null ? "Loading…" : viewers.length === 0 ? "No one has seen it yet." : viewers.map((v) => <p key={v.uid}>{v.displayName} <span className="text-white/60">@{v.username}</span></p>)}
+            </div>
+          )}
           {m.mine ? (
             <div className="flex items-center justify-between text-sm text-white/80">
-              <span>♥ {m.likeCount} · ↻ {m.reshareCount}</span>
+              <button
+                type="button"
+                onClick={() => { pause(); setShowViewers((s) => !s); setViewers(null); api<{ viewers: { uid: string; username: string; displayName: string }[] }>(`/api/moments/${m.id}`).then((r) => setViewers(r.viewers)).catch(() => setViewers([])); }}
+                className="underline"
+              >👁 {m.viewCount ?? 0} · ♥ {m.likeCount} · ↻ {m.reshareCount}</button>
               <button
                 disabled={busy}
                 onClick={() => act(async () => {

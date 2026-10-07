@@ -1,6 +1,7 @@
 import Link from "next/link";
 import type { Metadata } from "next";
 import { GOLD_KIND_LIVE } from "@/lib/badges";
+import { MESSAGES_LIVE, MOMENTS_LIVE } from "@/lib/moments-rules";
 
 export const metadata: Metadata = {
   title: "Roadmap",
@@ -39,9 +40,9 @@ const ITEMS = [
   {
     title: "Full white label for Enterprise",
     tag: "Enterprise",
-    body: "Live today: Enterprise sites run on the member's own domain with the footer “Your name, powered by” and the #NotesApp icon. Next, so that nothing visitors touch says #NotesApp: sign-in and sign-up on the member's own domain, checkout that opens as a popup on their site, and email that goes out under their own name.",
+    body: "Live today: Enterprise sites run on the member's own domain with the footer “Your name, powered by” and the #NotesApp icon, with sign-in and sign-up in a window in the member's name and logo (it still says plainly that it is a NotesApp account) and password-reset and confirmation emails sent in the member's name. Next, so that nothing visitors touch says #NotesApp: checkout and bookings that open as a popup on their site, and a sending address on their own domain.",
     detail:
-      "Sign-in: an email-and-password form on the member's domain, next to “Continue with your #NotesApp account” (which keeps Google and any future method working on every domain). Checkout: Paystack's inline popup instead of a redirect — the popup still shows #NotesApp's name, which we'll confirm with Paystack before promising otherwise. Email: each Enterprise domain becomes a verified sending domain (SPF and DKIM records the member adds), so booking and order emails come from, for example, bookings@theirbrand.com. A sweep of error pages and leftover #NotesApp wording follows. The rest of the Enterprise plan is also still to come: unlimited team seats provisioned per account, a dedicated support channel with a service-level agreement, field-team Tap-to-Pay, and syncing sales into accounting tools such as QuickBooks and Xero.",
+      "Today: Google sign-in isn't offered in the window (someone who signed up with Google chooses “Forgot your password” to set one), and the sender address on those emails is still ours, with the member's name on it. Checkout: Paystack's inline popup instead of a redirect — the popup still shows #NotesApp's name, which we'll confirm with Paystack before promising otherwise. Email: each Enterprise domain becomes a verified sending domain (SPF and DKIM records the member adds), so emails come from, for example, bookings@theirbrand.com. A sweep of error pages and leftover #NotesApp wording follows. The rest of the Enterprise plan is also still to come: unlimited team seats provisioned per account, a dedicated support channel with a service-level agreement, field-team Tap-to-Pay, and syncing sales into accounting tools such as QuickBooks and Xero.",
   },
   {
     title: "NotesApp Credit and Bonus Credits",
@@ -107,6 +108,8 @@ export default function RoadmapPage() {
               <li>Paid Pro and Business plans through Paystack, and official #NotesApp merch pre-orders in Naira — see <Link href="/pricing" className="text-crimson underline">Pricing</Link> and the <Link href="/merchstore" className="text-crimson underline">Merch store</Link></li>
               <li>Your own domain (Business and Enterprise) and, on Enterprise, the server-to-server API, Console keys and webhooks — see the <Link href="/docs" className="text-crimson underline">API Docs</Link></li>
               <li>Video on posts — one MP4 or WebM per post (up to 3 minutes and 100 MB), played in our own data-friendly player, with a weekly allowance by plan</li>
+              {MOMENTS_LIVE && <li>Moments: a picture, video (up to 90 seconds) or text, with an optional voice-over, on your profile picture for 24, 48 or 72 hours</li>}
+              {MESSAGES_LIVE && <li>Direct messages with a live inbox, email and notifications, and block and report tools</li>}
               <li>Trending feed, a live <Link href="/status" className="text-crimson underline">status page</Link> and a public <Link href="/changelog" className="text-crimson underline">changelog</Link></li>
               <li>Verification badges: the maroon ✔ for accounts in good standing and the <strong className="text-ink">gold ✔ for endorsed accounts</strong>{GOLD_KIND_LIVE.identity ? " and identity-checked accounts" : ""} — see <Link href="/badges" className="text-crimson underline">Verification badges</Link></li>
               <li>Publisher payouts to a verified bank account, released automatically after the session</li>
@@ -126,8 +129,9 @@ export default function RoadmapPage() {
               <li>iOS and Android apps</li>
               <li>AI drafting, social publishing, ad-share</li>
               <li>Audio and video meetings, meeting chat (under team discussion)</li>
-              <li>Moments: pictures, video and text on profile pictures for 24, 48 or 72 hours</li>
-              <li>Direct messages + audio and video calls (under team discussion)</li>
+              {!MOMENTS_LIVE && <li>Moments: pictures, video and text on profile pictures for 24, 48 or 72 hours</li>}
+              {!MESSAGES_LIVE && <li>Direct messages</li>}
+              <li>Audio and video calls inside messages (under team discussion)</li>
             </ul>
           </div>
         </div>
@@ -150,17 +154,17 @@ export default function RoadmapPage() {
         <span className="font-mono text-[11px] uppercase tracking-eyebrow text-crimson-bright">
           Under discussion
         </span>
-        <h2 className="mt-2 font-display text-2xl text-ink">Audio and video meetings, and messaging</h2>
+        <h2 className="mt-2 font-display text-2xl text-ink">Audio and video meetings and calls</h2>
         <p className="mt-3 text-slate">
           Nothing here is built or decided yet — this is what we&apos;re weighing. The idea is that a booked session can happen inside #NotesApp, and that publishers
-          and organisations can be reached directly from their profiles.
+          and organisations can be reached directly from their profiles (direct messages are already live; calls inside them are what&apos;s still being weighed).
         </p>
         <ul className="mt-4 list-disc space-y-2 pl-5 text-sm text-slate">
           <li><strong className="text-ink">Meetings.</strong> Audio and video sessions powered by Daily, started from a booking: one link, no separate meeting app. Daily&apos;s ready-made call screen already covers the basics below, which we&apos;d confirm before building.</li>
           <li><strong className="text-ink">Transcripts and AI notes.</strong> Optional transcription, with an AI note-taker that joins, writes up the session and reports back to the publisher (and, if they choose, the client). This would work alongside the notetaker connections already described above, not replace them.</li>
           <li><strong className="text-ink">Screen sharing and files.</strong> Screen sharing for presentations, and sharing files in the meeting.</li>
           <li><strong className="text-ink">Meeting chat.</strong> Chat during a meeting, in a group or one-to-one.</li>
-          <li><strong className="text-ink">Direct messages.</strong> A message button on publisher and organisation profiles so they can be reached directly, with audio and video calls inside those conversations.</li>
+          <li><strong className="text-ink">Calls in messages.</strong> Audio and video calls inside direct message conversations.</li>
         </ul>
       </div>
 

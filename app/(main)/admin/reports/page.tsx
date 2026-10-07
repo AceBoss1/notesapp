@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { useAdminAuth } from "@/lib/useAdminAuth";
-import { REPORT_REASON_LABEL, type ReportReason } from "@/lib/moments-rules";
+import { REPORT_REASON_LABEL, REPORT_URGENT_HOURS, URGENT_REASONS, type ReportReason } from "@/lib/moments-rules";
 
 type Report = {
   id: string; kind: "moment" | "conversation"; reason: ReportReason; note: string; createdAt: string; status: string;
@@ -27,7 +27,12 @@ export default function AdminReportsPage() {
     return j;
   }, [user]);
   const load = useCallback(() => {
-    call(`/api/admin/reports?status=${status}`).then((j) => setReports(j.reports)).catch((e) => setError(e.message));
+    call(`/api/admin/reports?status=${status}`)
+      .then((j: { reports: Report[] }) => setReports(status === "open"
+        // Urgent ones (nudity, violence) first, then the oldest.
+        ? j.reports.slice().sort((a, b) => Number(URGENT_REASONS.includes(b.reason)) - Number(URGENT_REASONS.includes(a.reason)) || (a.createdAt < b.createdAt ? -1 : 1))
+        : j.reports))
+      .catch((e) => setError(e.message));
   }, [call, status]);
   useEffect(() => { if (user) load(); }, [user, load]);
 
@@ -53,6 +58,12 @@ export default function AdminReportsPage() {
       <ul className="mt-6 space-y-4">
         {reports?.map((r) => (
           <li key={r.id} className="card p-5">
+            {r.status === "open" && URGENT_REASONS.includes(r.reason) && (() => {
+              const hrs = (Date.now() - new Date(r.createdAt).getTime()) / 3_600_000;
+              return hrs >= REPORT_URGENT_HOURS
+                ? <p className="mb-2 inline-block rounded bg-red-700 px-2 py-0.5 text-xs font-bold text-white">OVERDUE · {Math.floor(hrs)}h old, our promise is {REPORT_URGENT_HOURS}h</p>
+                : <p className="mb-2 inline-block rounded bg-amber-500 px-2 py-0.5 text-xs font-bold text-ink">URGENT · review within {REPORT_URGENT_HOURS}h ({Math.max(0, Math.ceil(REPORT_URGENT_HOURS - hrs))}h left)</p>;
+            })()}
             <p className="text-sm"><strong className="text-ink">{r.kind === "moment" ? "Moment" : "Conversation"}</strong> reported by @{r.reporter} against @{r.target} · {REPORT_REASON_LABEL[r.reason] ?? r.reason} · {new Date(r.createdAt).toLocaleString()}</p>
             {r.note && <p className="mt-2 text-sm text-slate">“{r.note}”</p>}
             {r.status === "open" && r.evidence && (

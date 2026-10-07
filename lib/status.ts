@@ -5,6 +5,8 @@ import { pingStream, streamConfigured } from "./stream";
 import { GOLD_KIND_LIVE } from "./badges";
 import { privateBucket, privateFilesConfigured } from "./private-files";
 import { paylonyConfigured, walletBalance } from "./paylony";
+import { pushConfigured } from "./push-server";
+import { MESSAGES_LIVE, MOMENTS_LIVE } from "./moments-rules";
 import { pingVercel, vercelConfigured } from "./domains";
 
 // Server-only service health checks behind /status. Reports only
@@ -136,6 +138,20 @@ export async function checkServices(): Promise<ServiceStatus[]> {
     paylonyConfigured()
       ? timed(async () => (await walletBalance()).ok).then((r) => toStatus("paylony", "Bank payouts (Paylony)", "Paylony transfers and virtual accounts", r))
       : Promise.resolve(notConfigured("paylony", "Bank payouts (Paylony)", "Paylony transfers and virtual accounts"))
+  );
+
+  // Messages and moments (only listed once switched on): the database that holds conversations answers. Expired moments are
+  // removed by the scheduler job below, which reports through "Scheduled jobs".
+  checks.push(
+    MESSAGES_LIVE
+      ? timed(async () => { await getAdminDb().collection("conversations").limit(1).get(); return true; }).then((r) => toStatus("messages", MOMENTS_LIVE ? "Messages & moments" : "Messages", "Direct messages, moments and their live updates", r))
+      : Promise.resolve(notConfigured("messages", "Messages & moments", "Direct messages, moments and their live updates"))
+  );
+  // Device notifications need the three VAPID settings; this only confirms they are present.
+  checks.push(
+    Promise.resolve(pushConfigured()
+      ? ({ id: "push", name: "Device notifications", description: "Notifications for new messages on phones and browsers", state: "operational" } as ServiceStatus)
+      : notConfigured("push", "Device notifications", "Notifications for new messages on phones and browsers"))
   );
 
   const resend = process.env.RESEND_API_KEY;

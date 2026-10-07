@@ -11,6 +11,19 @@ export type Release = {
 
 export const CHANGELOG: Release[] = [
   {
+    version: "v0.7.0",
+    bump: "minor",
+    date: "2026-10-07",
+    changes: [
+      { kind: "added", text: "Moments: share a picture, a video of up to 90 seconds or text with your followers from your profile picture, for 24 hours (or 48 or 72), with an optional voice-over. Followers can like, reshare or reply; everything disappears when the time is up. Video moments depend on your plan." },
+      { kind: "added", text: "Messages: a message button on profiles and an inbox that updates live. Replies to a moment land there, marked as a reply to a moment that has expired once it has. You hear about new messages by bell and email (you can turn the email off), and can block a member or report a moment or conversation." },
+      { kind: "added", text: "The #1MillionNairaNotesAppChallenge page: how influencers can unlock LIVE video and open a ₦1,000,000 giveaway. It opens when live video does." },
+      { kind: "added", text: "Enterprise sites on their own domain now have fully branded sign-in and sign-up windows in the site owner's name and logo (still clearly a NotesApp account), with password-reset and confirmation emails sent in the site owner's name and opening on their domain." },
+      { kind: "added", text: "The status page now covers messages and moments, and device notifications." },
+      { kind: "changed", text: "The Terms of Service and Privacy Policy now cover moments, messages, reports and blocking. You'll be asked to accept the new version before your next payment." },
+    ],
+  },
+  {
     version: "v0.6.4",
     bump: "patch",
     date: "2026-10-06",

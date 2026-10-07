@@ -1,6 +1,7 @@
 import type { Firestore } from "firebase-admin/firestore";
 import { FieldValue } from "firebase-admin/firestore";
-import { isMomentExpired, isReportReason, REPORT_NOTE_MAX } from "./moments-rules";
+import { isMomentExpired, isReportReason, REPORT_NOTE_MAX, REPORT_URGENT_HOURS, URGENT_REASONS } from "./moments-rules";
+import { sendEmail } from "./email";
 import { MomentError, adminRemoveMoment, type MomentDeps } from "./moments-server";
 
 // Reports on moments and conversations. Because moments disappear and messages can be deleted, a report keeps a copy of
@@ -17,7 +18,8 @@ const trimNote = (note: unknown) => {
 };
 
 export async function createReport(
-  db: Firestore, reporterUid: string, input: { kind: unknown; targetId: unknown; reason: unknown; note?: unknown }, now = new Date()
+  db: Firestore, reporterUid: string, input: { kind: unknown; targetId: unknown; reason: unknown; note?: unknown }, now = new Date(),
+  alertTeam: (subject: string, text: string) => Promise<void> = emailTeam
 ): Promise<{ id: string }> {
   const kind = input.kind;
   if (kind !== "moment" && kind !== "conversation") throw new MomentError(400, "Choose what to report.");
@@ -65,7 +67,16 @@ export async function createReport(
   await ref.set({
     reporterUid, targetUid, kind, targetId, reason: input.reason, note, status: "open", createdAt: now.toISOString(), evidence, evidenceKeys,
   });
+  // Nudity and violence are looked at within 24 hours: tell the team now (REPORTS_EMAIL), not when someone next opens the page.
+  if (URGENT_REASONS.includes(input.reason)) {
+    await alertTeam(`Urgent report: ${input.reason} (${kind})`, `A ${kind} was reported for ${input.reason}. Please review it within ${REPORT_URGENT_HOURS} hours: ${(process.env.NEXT_PUBLIC_SITE_URL || "https://www.notesapp.name.ng").replace(/\/$/, "")}/admin/reports`).catch(() => {});
+  }
   return { id };
+}
+
+async function emailTeam(subject: string, text: string): Promise<void> {
+  const to = process.env.REPORTS_EMAIL;
+  if (to) await sendEmail({ to, subject, text });
 }
 
 export type ReportRow = { id: string; kind: ReportKind; reason: string; note: string; createdAt: string; status: string; reporterUid: string; targetUid: string; evidence?: unknown; evidenceKeys?: string[]; outcome?: string };

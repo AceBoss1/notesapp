@@ -2,7 +2,7 @@
 import { test, before, after, beforeEach } from "node:test";
 import { readFileSync } from "node:fs";
 import { initializeTestEnvironment, assertFails, assertSucceeds } from "@firebase/rules-unit-testing";
-import { doc, getDoc, setDoc, updateDoc, deleteDoc, deleteField } from "firebase/firestore";
+import { doc, getDoc, getDocs, setDoc, updateDoc, deleteDoc, deleteField, collection, query, where, orderBy, limit } from "firebase/firestore";
 
 let env;
 before(async () => {
@@ -571,6 +571,17 @@ test("moments are API-only; conversations are readable only by their two members
   await assertFails(getDoc(doc(as("boss"), "conversations/alice_pub/messages/1")));
   await assertFails(getDoc(doc(anon(), "conversations/alice_pub")));
   await assertFails(getDoc(doc(as("alice"), "conversations/boss_pub")));
+  // The live views list a member's own conversations and one conversation's messages: allowed only with the constraint that proves it.
+  await assertSucceeds(getDocs(query(collection(as("alice"), "conversations"), where("participants", "array-contains", "alice"))));
+  await assertFails(getDocs(query(collection(as("alice"), "conversations"), where("participants", "array-contains", "pub"))));
+  await assertFails(getDocs(collection(as("alice"), "conversations")));
+  await assertSucceeds(getDocs(query(collection(as("pub"), "conversations/alice_pub/messages"), orderBy("createdAt", "desc"), limit(100))));
+  await assertFails(getDocs(query(collection(as("boss"), "conversations/alice_pub/messages"), orderBy("createdAt", "desc"), limit(100))));
+  // Preferences and push subscriptions: server-only.
+  for (const path of ["userPrefs/alice", "pushSubscriptions/p1"]) {
+    await assertFails(getDoc(doc(as("alice"), path)));
+    await assertFails(setDoc(doc(as("alice"), path), { uid: "alice", emailMessages: false }));
+  }
   // Never written from a browser, not even by a member of the conversation.
   await assertFails(setDoc(doc(as("alice"), "conversations/alice_pub/messages/2"), { from: "alice", text: "forged", createdAt: "x" }));
   await assertFails(updateDoc(doc(as("alice"), "conversations/alice_pub"), { unread: {} }));

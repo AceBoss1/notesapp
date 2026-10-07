@@ -3,9 +3,11 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { onAuthStateChanged, type User } from "firebase/auth";
-import { auth } from "@/lib/firebase";
+import { collection, limit, onSnapshot, orderBy, query } from "firebase/firestore";
+import { auth, db } from "@/lib/firebase";
 import { api } from "@/lib/moments-client";
 import { MESSAGE_MAX, type ThreadMessage } from "@/lib/messages-rules";
+import { isMomentExpired } from "@/lib/moments-rules";
 import ReportDialog from "@/components/moments/ReportDialog";
 
 type Who = { uid: string; username: string; displayName: string; avatar: string };
@@ -25,15 +27,32 @@ export default function Thread({ id, to }: { id?: string; to?: string }) {
   const end = useRef<HTMLDivElement>(null);
   useEffect(() => onAuthStateChanged(auth, setUser), []);
 
-  const load = useCallback(() => {
+  // Who it's with, and whether you've blocked them (this also marks the conversation read).
+  const loadMeta = useCallback(() => {
     if (!user || !cid) return;
-    api<{ messages: ThreadMessage[]; with: Who; blockedByMe: boolean }>(`/api/messages/${cid}`).then((r) => { setMessages(r.messages); setWho(r.with); setBlockedByMe(r.blockedByMe); }).catch((e) => setError(e.message));
+    api<{ with: Who; blockedByMe: boolean }>(`/api/messages/${cid}`).then((r) => { setWho(r.with); setBlockedByMe(r.blockedByMe); }).catch((e) => setError(e.message));
   }, [user, cid]);
+  useEffect(loadMeta, [loadMeta]);
+
+  // The messages themselves, live: they appear as they arrive. Only the two people in a conversation can read it (firestore.rules).
   useEffect(() => {
-    load();
-    const t = setInterval(load, 10_000); // simple polling for now; live updates can read the conversation directly later
-    return () => clearInterval(t);
-  }, [load]);
+    if (!user || !cid) return;
+    const uid = user.uid;
+    return onSnapshot(
+      query(collection(db, `conversations/${cid}/messages`), orderBy("createdAt", "desc"), limit(100)),
+      (snap) => {
+        const rows: ThreadMessage[] = snap.docs.reverse().map((d) => {
+          const m = d.data();
+          // A reply to a moment says whether the moment has expired; the moment itself is never in the message.
+          return { id: d.id, from: m.from, text: m.text, createdAt: m.createdAt, ...(m.momentRef ? { moment: { momentId: m.momentRef.momentId, expired: isMomentExpired(m.momentRef.expiresAt) } } : {}) };
+        });
+        setMessages(rows);
+        // Something new from them while this is open: it's read.
+        if (snap.docChanges().some((c) => c.type === "added" && c.doc.data().from !== uid && !c.doc.metadata.hasPendingWrites)) api(`/api/messages/${cid}`, { method: "POST", body: {} }).catch(() => {});
+      },
+      (e) => setError(e.message)
+    );
+  }, [user, cid]);
   useEffect(() => end.current?.scrollIntoView({ block: "end" }), [messages.length]);
 
   async function send() {
@@ -42,7 +61,6 @@ export default function Thread({ id, to }: { id?: string; to?: string }) {
       const r = await api<{ conversationId: string }>("/api/messages", { body: to ? { toUsername: to, text } : { toUid: who?.uid, text } });
       setText(""); setCid(r.conversationId);
       if (!id) window.history.replaceState(null, "", `/messages/${r.conversationId}`);
-      load();
     } catch (e) {
       setError(e instanceof Error ? e.message : "Couldn't send.");
     } finally {

@@ -2050,3 +2050,20 @@ Moments are short-lived pictures, videos or text that sit on top of a member's p
 2. Who handles `/admin/reports` day to day, and how fast we promise to look (suggest: within 24 hours for anything flagged nudity or violence).
 3. Warn or suspend from a report is done in the Users page, then the report is marked actioned; a one-click "suspend from this report" could come later.
 
+## Messaging, notifications and review: how they run (founder decisions, 7 October)
+
+- **Live inbox:** the inbox, the conversation and the unread count beside "Messages" now update live (they listen to the member's own conversations, which `firestore.rules` let only the two people in each one read). No more polling.
+- **Notifications for a new message or a reply to a moment:** a bell, an email (on by default, at most one an hour per conversation, switchable off under Messages) and a device notification (web push, opt-in per device). None carries what was written, only who it's from. One of each per burst (nothing new while the last message is unread).
+- **Switch on device notifications:** run `npx web-push generate-vapid-keys`, then set `NEXT_PUBLIC_VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY` and `VAPID_SUBJECT` (a `mailto:` address) in Vercel and redeploy. Without them the button doesn't appear and /status shows "Device notifications" as not enabled. Works on Android Chrome and desktop browsers; on iPhone the site has to be added to the home screen first.
+- **Moment viewers:** the owner can see who viewed a moment (each person once, newest first) by tapping the view count.
+- **Reports are reviewed by the founder's team.** Promise: anything marked nudity or violence within 24 hours. `/admin/reports` shows those first, with an "URGENT / OVERDUE" badge, and an email goes to `REPORTS_EMAIL` the moment one comes in (set that env var to the team's mailbox). The Terms (2b) say we aim to review those within 24 hours.
+- **DON'T FORGET (do later): one-click "Suspend from this report".** Today: warn or suspend on the Users page, then mark the report actioned. The button should suspend the reported member (reason prefilled from the report), mark the report actioned and delete the kept copy in one step. Deferred on purpose; it needs a confirmation and an audit note.
+
+## Enterprise full white label: sign-in and sign-up (built)
+
+On an Enterprise member's own domain, `/login`, `/signup` and `/forgot-password` no longer go to the #NotesApp page. Middleware rewrites them to the member's home page with a branded window (`components/site/SiteAuth.tsx`): their logo and name, headed "Sign in with a NotesApp account" or "Sign up with a NotesApp account". Business domains keep the main-site page and hand-off.
+- Sign-up creates the NotesApp account on the domain itself (same profile, consent version and starting follows as the main page, plus a follow of the site's owner); no five-journals step.
+- Password reset and email confirmation go out through `/api/auth/branded` in the member's name and logo (the sender name is theirs; the address is still ours), and their links open `/auth/action` on the member's domain, so nobody lands on a #NotesApp or Firebase page.
+- Not done yet (listed on the roadmap): Google sign-in in the window (needs each domain added to Firebase's authorised domains; a Google-only member sets a password with "Forgot your password"), checkout and bookings still open on #NotesApp (the visitor has to sign in there once more; the fix is the Paystack popup plus a session hand-off the other way), a sending address on the member's own domain (SPF and DKIM through Resend), and a sweep of error pages. Do these as one piece of work before promising "nothing says #NotesApp".
+- Env: none new. Firebase's web API key must allow the member domains (the existing hand-off already depends on this).
+

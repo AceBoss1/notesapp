@@ -54,4 +54,7 @@ export const REPORT_REASON_LABEL: Record<ReportReason, string> = {
   spam: "Spam", harassment: "Harassment or hate", nudity: "Nudity or sexual content", violence: "Violence or threats", scam: "Scam or fraud", other: "Something else",
 };
 export const REPORT_NOTE_MAX = 500;
+// The team looks at reports of nudity or violence within 24 hours; the rest as soon as they can.
+export const URGENT_REASONS: ReportReason[] = ["nudity", "violence"];
+export const REPORT_URGENT_HOURS = 24;
 export const isReportReason = (v: unknown): v is ReportReason => REPORT_REASONS.includes(v as ReportReason);
