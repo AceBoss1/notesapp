@@ -20,26 +20,35 @@ export default function MomentViewer({ moments, onClose, onChanged }: { moments:
   const [reporting, setReporting] = useState(false);
   const [viewers, setViewers] = useState<{ uid: string; username: string; displayName: string }[] | null>(null);
   const [showViewers, setShowViewers] = useState(false);
-  const timer = useRef<ReturnType<typeof setTimeout>>();
+  const [paused, setPaused] = useState(false); // you've started replying, reporting or looking at who saw it: stills stop moving on
+  const [frac, setFrac] = useState(0); // how much of the moment now showing has played (0 to 1): fills its bar
   const advanced = useRef<string | null>(null); // the video moment already moved on from (timeupdate fires several times near the end)
   const m = items[i];
 
-  useEffect(() => { setShowViewers(false); }, [i]);
+  useEffect(() => { setShowViewers(false); setPaused(false); setFrac(0); }, [i]);
   const next = () => (i + 1 < items.length ? setI(i + 1) : onClose());
   // Stills advance by themselves; a video advances when it ends.
   useEffect(() => {
     if (!m) return;
     api(`/api/moments/${m.id}`, { body: { action: "view" } }).catch(() => {});
-    if (m.kind !== "video") {
-      // Long enough for the voice-over to finish, if there is one.
-      timer.current = setTimeout(next, Math.max(STILL_MS, ((m.audioDurationSec ?? 0) + 1) * 1000));
-      return () => clearTimeout(timer.current);
-    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [i, m?.id]);
+  // Pictures and text move on by themselves, long enough for the voice-over to finish if there is one; the bar fills as time passes.
+  const stillMs = m ? Math.max(STILL_MS, ((m.audioDurationSec ?? 0) + 1) * 1000) : STILL_MS;
+  useEffect(() => {
+    if (!m || m.kind === "video" || paused) return;
+    const started = Date.now(); // each moment starts its bar from empty (a pause is never resumed, so there is nothing to carry over)
+    const t = setInterval(() => {
+      const f = Math.min(1, (Date.now() - started) / stillMs);
+      setFrac(f);
+      if (f >= 1) { clearInterval(t); next(); }
+    }, 100);
+    return () => clearInterval(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [i, m?.id, paused]);
 
   if (!m) return null;
-  const pause = () => timer.current && clearTimeout(timer.current);
+  const pause = () => setPaused(true);
   const act = async (fn: () => Promise<void>) => {
     setBusy(true); setNote(null); pause();
     try { await fn(); } catch (e) { setNote(e instanceof Error ? e.message : "Something went wrong."); } finally { setBusy(false); }
@@ -49,7 +58,12 @@ export default function MomentViewer({ moments, onClose, onChanged }: { moments:
     <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/90" role="dialog" aria-modal="true" aria-label={`Moments from @${m.ownerUsername}`}>
       <div className="relative flex h-full w-full max-w-md flex-col bg-ink text-white sm:h-[90vh] sm:rounded-xl">
         <div className="flex gap-1 p-2" aria-hidden>
-          {items.map((x, k) => <span key={x.id} className={`h-1 flex-1 rounded ${k < i ? "bg-white" : k === i ? "bg-white/90" : "bg-white/30"}`} />)}
+          {/* One bar per moment: the maroon part is what has played, the rest is still to come. */}
+          {items.map((x, k) => (
+            <span key={x.id} className="h-1.5 flex-1 overflow-hidden rounded bg-white/70">
+              <span className="block h-full bg-crimson transition-[width] duration-150 ease-linear" style={{ width: `${k < i ? 100 : k === i ? Math.round(frac * 100) : 0}%` }} />
+            </span>
+          ))}
         </div>
         <div className="flex items-center justify-between px-3 pb-2 text-sm">
           <Link href={`/u/${m.ownerUsername}`} className="font-bold hover:underline">@{m.ownerUsername}</Link>
@@ -68,7 +82,11 @@ export default function MomentViewer({ moments, onClose, onChanged }: { moments:
             <video
               key={m.id} src={m.videoUrl} autoPlay playsInline controls={false} className="h-full w-full object-contain"
               onLoadedMetadata={(e) => { if (m.clipStart) e.currentTarget.currentTime = m.clipStart; }}
-              onTimeUpdate={(e) => { if (m.clipEnd && e.currentTarget.currentTime >= m.clipEnd - 0.05 && advanced.current !== m.id) { advanced.current = m.id; next(); } }}
+              onTimeUpdate={(e) => {
+                const v = e.currentTarget, from = m.clipStart ?? 0, to = m.clipEnd ?? v.duration;
+                if (to > from) setFrac(Math.min(1, Math.max(0, (v.currentTime - from) / (to - from))));
+                if (m.clipEnd && e.currentTarget.currentTime >= m.clipEnd - 0.05 && advanced.current !== m.id) { advanced.current = m.id; next(); }
+              }}
               onEnded={() => { if (advanced.current !== m.id) { advanced.current = m.id; next(); } }}
             />
           )}

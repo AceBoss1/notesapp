@@ -6,6 +6,7 @@ import { onAuthStateChanged, type User } from "firebase/auth";
 import { collection, doc, getDoc, onSnapshot, query, where } from "firebase/firestore";
 import { auth, db } from "@/lib/firebase";
 import Avatar from "@/components/Avatar";
+import { stripFormat } from "@/lib/message-format";
 import MessageSettings from "./MessageSettings";
 
 type Who = { uid: string; username: string; displayName: string; avatar: string };
@@ -60,7 +61,7 @@ export default function Inbox() {
                 <Avatar src={r.with.avatar} alt={r.with.displayName} size={44} />
                 <span className="min-w-0 flex-1">
                   <span className="block font-bold text-ink">{r.with.displayName} <span className="font-normal text-slate">@{r.with.username}</span></span>
-                  <span className="block truncate text-sm text-slate">{r.moment ? "↩ Moment reply · " : ""}{r.lastFromMe ? "You: " : ""}{r.lastText}</span>
+                  <span className="block truncate text-sm text-slate">{r.moment ? "↩ Moment reply · " : ""}{r.lastFromMe ? "You: " : ""}{stripFormat(r.lastText)}</span>
                 </span>
                 {r.unread > 0 && <span className="rounded-full bg-crimson px-2 py-0.5 text-xs font-bold text-white">{r.unread}</span>}
               </Link>

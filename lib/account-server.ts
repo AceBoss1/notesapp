@@ -168,10 +168,11 @@ export async function eraseAccount(db: Firestore, uid: string, deleteFile: (key:
   const convs = await db.collection("conversations").where("participants", "array-contains", uid).get();
   for (const c of convs.docs) {
     const mine = await c.ref.collection("messages").where("from", "==", uid).get();
+    for (const m of mine.docs) for (const f of (m.data().attachments as { key: string }[] | undefined) ?? []) await deleteFile(String(f.key)).catch(() => {}); // files they sent
     await deleteAll(db, mine.docs.map((d) => d.ref));
     const last = await c.ref.collection("messages").orderBy("createdAt", "desc").limit(1).get();
     if (last.empty) await db.recursiveDelete(c.ref);
-    else { const l = last.docs[0].data(); await c.ref.update({ lastMessage: { from: l.from, text: String(l.text).slice(0, 120), at: l.createdAt }, lastMessageAt: l.createdAt }); }
+    else { const l = last.docs[0].data(); await c.ref.update({ lastMessage: { from: l.from, text: String(l.text || "📎").slice(0, 120), at: l.createdAt }, lastMessageAt: l.createdAt }); }
   }
   counts.conversations = convs.size;
   const usage = await db.collection("momentUsage").where("uid", "==", uid).get();

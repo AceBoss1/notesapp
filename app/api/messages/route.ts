@@ -1,11 +1,19 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAdminDb } from "@/lib/firebase-admin";
 import { rateLimit } from "@/lib/rate-limit";
+import { HeadObjectCommand } from "@aws-sdk/client-s3";
+import { getR2Client } from "@/lib/r2";
+import { privateBucket, privateFilesConfigured } from "@/lib/private-files";
 import { MessageError, listConversations, sendMessage } from "@/lib/messages-server";
 import { MESSAGES_PER_MINUTE } from "@/lib/messages-rules";
 import { authed, fail } from "@/lib/moments-api";
 
 export const dynamic = "force-dynamic";
+
+// Checks a sent file really is in the private bucket, and how big it is.
+async function headPrivate(key: string): Promise<{ size: number } | null> {
+  try { return { size: Number((await getR2Client().send(new HeadObjectCommand({ Bucket: privateBucket(), Key: key }))).ContentLength || 0) }; } catch { return null; }
+}
 
 // GET → your conversations, newest first, with the other member's name and picture
 export async function GET(req: NextRequest) {
@@ -27,7 +35,7 @@ export async function GET(req: NextRequest) {
   }
 }
 
-// POST { toUid? , toUsername?, text }
+// POST { toUid? , toUsername?, text, attachmentIds? }
 export async function POST(req: NextRequest) {
   try {
     const me = await authed(req, "messages", true);
@@ -41,7 +49,7 @@ export async function POST(req: NextRequest) {
       toUid = String(name?.uid ?? "");
     }
     if (!toUid) throw new MessageError(404, "That member wasn't found.");
-    return NextResponse.json(await sendMessage(db, me.uid, toUid, { text: String(body.text ?? "") }));
+    return NextResponse.json(await sendMessage(db, me.uid, toUid, { text: String(body.text ?? ""), attachmentIds: Array.isArray(body.attachmentIds) ? body.attachmentIds : [] }, new Date(), undefined, undefined, privateFilesConfigured() ? { head: headPrivate } : undefined));
   } catch (err) {
     return fail(err, "Couldn't send the message");
   }

@@ -2,13 +2,14 @@ import type { Firestore } from "firebase-admin/firestore";
 import { FieldValue } from "firebase-admin/firestore";
 import { randomBytes } from "crypto";
 import {
-  MOMENT_DAILY_LIMIT, MOMENT_DEFAULT_HOURS, MOMENT_TEXT_MAX, MOMENT_VIDEO_MAX_SECONDS, MOMENT_VIDEO_SOURCE_MAX_SECONDS, MOMENT_VIDEO_WEEKLY_LIMIT, momentVideoParts, MOMENT_AUDIO_MAX_SECONDS, AUDIO_MAX_BYTES, AUDIO_TYPES, sniffAudio,
+  MOMENT_DEFAULT_HOURS, MOMENT_TEXT_MAX, MOMENT_VIDEO_MAX_SECONDS, MOMENT_VIDEO_SOURCE_MAX_SECONDS, momentVideoParts, MOMENT_AUDIO_MAX_SECONDS, AUDIO_MAX_BYTES, AUDIO_TYPES, sniffAudio,
   isMomentExpired, isMomentHours, isMomentKind, momentExpiry, type MomentHours, type MomentKind,
 } from "./moments-rules";
 import { sendMessage } from "./messages-server";
 import { MESSAGE_MAX } from "./messages-rules";
 import { VIDEO_MAX_BYTES, VIDEO_TYPES, isoWeekKey } from "./video-rules";
-import type { AccountTier } from "./users";
+import { effectiveTier, type AccountTier } from "./users";
+import { limit } from "./limits-server";
 
 // Server side of Moments. Clients never read or write the `moments` collection directly (firestore.rules say no):
 // every read goes through here so the audience check (the owner and their followers) and the expiry check can't be skipped,
@@ -132,11 +133,13 @@ export async function createMoment(db: Firestore, owner: { uid: string; username
   const createdAt = now.toISOString();
   const full: MomentDoc = { ...doc, createdAt, expiresAt: momentExpiry(now, hours).toISOString() };
   const usageRef = db.doc(`momentUsage/${owner.uid}_${dayKey(now)}`);
+  const ownerDoc = (await db.doc(`users/${owner.uid}`).get()).data();
+  const dailyLimit = await limit(db, "momentsPerDay", effectiveTier({ username: ownerDoc?.username ?? "", role: ownerDoc?.role ?? "reader", accountTier: ownerDoc?.accountTier ?? "standard" }));
   await db.runTransaction(async (t) => {
     // All reads first (a transaction can't read after it has written).
     const used = ((await t.get(usageRef)).data()?.count as number | undefined) ?? 0;
     const created = videoRef ? (((await t.get(videoRef)).data()?.partsCreated as number | undefined) ?? 0) : 0;
-    if (used >= MOMENT_DAILY_LIMIT) throw new MomentError(429, `You can share ${MOMENT_DAILY_LIMIT} moments a day. Try again tomorrow.`);
+    if (used >= dailyLimit) throw new MomentError(429, `You can share ${dailyLimit} moments a day. Try again tomorrow.`);
     t.set(usageRef, { uid: owner.uid, day: dayKey(now), count: used + 1 }, { merge: true });
     if (videoRef) {
       // Each part of an upload uses one of the parts it was allowed; the first owns the file, the others share it.
@@ -300,8 +303,10 @@ export async function sweepExpiredMoments(db: Firestore, deps: MomentDeps, now =
 // A moment's video: same file checks as post videos (finishVideoUpload in lib/video-server.ts verifies it afterwards), but
 // 90 seconds at most, in the member's own `moments/` folder, and no weekly post-video quota — moments have their own daily limit.
 // Where the member stands on video moments this week: the plan's allowance, what's used, and what's left.
+const weeklyVideoLimit = (db: Firestore, tier: AccountTier) => limit(db, "momentVideosPerWeek", tier);
+
 export async function momentVideoQuota(db: Firestore, uid: string, tier: AccountTier, now = new Date()): Promise<{ limit: number; used: number; remaining: number }> {
-  const limit = MOMENT_VIDEO_WEEKLY_LIMIT[tier] ?? 0;
+  const limit = await weeklyVideoLimit(db, tier);
   const used = ((await db.doc(`videoUsage/${uid}_${isoWeekKey(now)}_moment`).get()).data()?.count as number | undefined) ?? 0;
   return { limit, used, remaining: Math.max(0, limit - used) };
 }
@@ -321,7 +326,7 @@ export async function startMomentVideo(
   if (!Number.isFinite(input.durationSec) || input.durationSec <= 0) throw new MomentError(400, "We couldn't read the video's length.");
   if (input.durationSec > MOMENT_VIDEO_SOURCE_MAX_SECONDS + 1) throw new MomentError(413, `Videos can be up to ${MOMENT_VIDEO_SOURCE_MAX_SECONDS / 60} minutes.`);
   const partsNeeded = momentVideoParts(input.durationSec);
-  const limit = MOMENT_VIDEO_WEEKLY_LIMIT[tier] ?? 0;
+  const limit = await weeklyVideoLimit(db, tier);
   const quotaDoc = `videoUsage/${uid}_${isoWeekKey(now)}_moment`;
   const usageRef = db.doc(quotaDoc);
   let partsAllowed = 0;

@@ -273,6 +273,12 @@ export default function AdminDashboard() {
             Reports
           </Link>
           <Link
+            href="/admin/limits"
+            className="border border-rule px-5 py-2.5 font-ui text-sm font-semibold hover:border-crimson"
+          >
+            Limits
+          </Link>
+          <Link
             href="/admin/leads"
             className="border border-rule px-5 py-2.5 font-ui text-sm font-semibold hover:border-crimson"
           >
