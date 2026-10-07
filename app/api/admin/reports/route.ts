@@ -1,14 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import { friendlyMessage } from "@/lib/api-errors";
 import { getAdminDb, verifyAdminRequest } from "@/lib/firebase-admin";
-import { listReports, reportCounts, resolveReport } from "@/lib/reports-server";
+import { listReports, reportCounts, resolveReport, suspendFromReport } from "@/lib/reports-server";
 import { momentDeps } from "@/lib/moments-api";
 import { MomentError } from "@/lib/moments-server";
 
 export const dynamic = "force-dynamic";
 const bearer = (req: NextRequest) => req.headers.get("authorization")?.replace(/^Bearer\s+/i, "");
 
-// Admin: GET ?counts=1 → { open, urgent, overdue }; GET ?status=open|resolved → reports with what was reported (open ones only); POST { id, outcome: "dismissed"|"actioned", note? }
+// Admin: GET ?counts=1 → { open, urgent, overdue }; GET ?status=open|resolved → reports with what was reported (open ones only); POST { id, outcome: "dismissed"|"actioned", note? } or { id, suspend: true, note? } (suspends the reported member, then actions it)
 export async function GET(req: NextRequest) {
   try {
     await verifyAdminRequest(bearer(req));
@@ -30,7 +30,8 @@ export async function POST(req: NextRequest) {
   try {
     const admin = await verifyAdminRequest(bearer(req));
     const body = await req.json().catch(() => ({}));
-    await resolveReport(getAdminDb(), admin, String(body.id ?? ""), body.outcome, body.note, momentDeps);
+    if (body.suspend === true) await suspendFromReport(getAdminDb(), admin, String(body.id ?? ""), body.note, momentDeps); // also actions the report
+    else await resolveReport(getAdminDb(), admin, String(body.id ?? ""), body.outcome, body.note, momentDeps);
     return NextResponse.json({ ok: true });
   } catch (err) {
     if (err instanceof MomentError) return NextResponse.json({ error: err.message }, { status: err.status });

@@ -2048,7 +2048,7 @@ Moments are short-lived pictures, videos or text that sit on top of a member's p
 **Still open:**
 1. Counsel reading the new Privacy Policy section before launch (founder: OK).
 2. Who handles `/admin/reports` day to day, and how fast we promise to look (suggest: within 24 hours for anything flagged nudity or violence).
-3. Warn or suspend from a report is done in the Users page, then the report is marked actioned; a one-click "suspend from this report" could come later.
+3. Each open report has a "Suspend @user" button: after a confirm it suspends the reported member (your note, or the report reason, is what they are told), notifies them, and marks the report actioned (removing a live moment and the kept copy). Admins can't be suspended this way. To warn or to unsuspend, use the Users page.
 
 ## Messaging, notifications and review: how they run (founder decisions, 7 October)
 
@@ -2057,7 +2057,7 @@ Moments are short-lived pictures, videos or text that sit on top of a member's p
 - **Switch on device notifications:** run `npx web-push generate-vapid-keys`, then set `NEXT_PUBLIC_VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY` and `VAPID_SUBJECT` (a `mailto:` address) in Vercel and redeploy. Without them the button doesn't appear and /status shows "Device notifications" as not enabled. Works on Android Chrome and desktop browsers; on iPhone the site has to be added to the home screen first.
 - **Moment viewers:** the owner can see who viewed a moment (each person once, newest first) by tapping the view count.
 - **Reports are reviewed by the founder's team.** Promise: anything marked nudity or violence within 24 hours. `/admin/reports` shows those first, with an "URGENT / OVERDUE" badge, and one digest email a day (about 8am Lagos, sent by the reminders cron, only when reports are open; subject starts URGENT when nudity/violence is waiting) goes to `REPORTS_EMAIL` instead of one email per report, to save the free email quota. Tradeoff: an urgent report can wait until the next digest before the team is emailed, though it shows first in `/admin/reports` and the dashboard card. Option: email urgent-only reports immediately. The admin dashboard has an "Open reports" card (open count, urgent, overdue; amber when something is urgent, red when something is past 24 hours). The Terms (2b) say we aim to review those within 24 hours.
-- **DON'T FORGET (do later): one-click "Suspend from this report".** Today: warn or suspend on the Users page, then mark the report actioned. The button should suspend the reported member (reason prefilled from the report), mark the report actioned and delete the kept copy in one step. Deferred on purpose; it needs a confirmation and an audit note.
+- **Suspend from this report: done.** See point 3 above. The audit trail is `suspensions/{uid}.suspendedByUid` plus the report's `resolvedBy` and `resolutionNote`.
 
 ## Enterprise full white label: sign-in and sign-up (built)
 
