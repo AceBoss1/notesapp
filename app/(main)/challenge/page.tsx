@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Image from "next/image";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
@@ -59,7 +60,15 @@ export default function ChallengePage() {
         Bring your audience to #NotesApp, go live, and open a ₦1,000,000 giveaway — for you and for the followers who show up.
       </p>
 
-      {/* Landscape graphics go here once ready. */}
+      <Image
+        src="/images/challenge/challenge-banner.webp"
+        alt="#1MillionNairaNotesAppChallenge for influencers: ₦10m up for grabs each month. Reach 100k views and 10k new followers, go live, reach 2,000 viewers in one live, and the ₦1,000,000 giveaway opens."
+        width={2000}
+        height={1125}
+        priority
+        sizes="(min-width: 896px) 896px, 100vw"
+        className="mt-8 h-auto w-full rounded-lg border border-rule"
+      />
 
       <section className="mt-12" aria-labelledby="how">
         <h2 id="how" className="font-display text-2xl text-ink">How it works</h2>
@@ -75,7 +84,8 @@ export default function ChallengePage() {
       </section>
 
       <section className="mt-12" aria-labelledby="prizes">
-        <h2 id="prizes" className="font-display text-2xl text-ink">What the ₦1,000,000 is made of</h2>
+        <h2 id="prizes" className="font-display text-2xl text-ink">What each ₦1,000,000 is made of</h2>
+        <p className="mt-2 text-sm text-slate">Up to ₦10,000,000 a month: ₦1,000,000 each for the first 10 influencers who qualify.</p>
         <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-3">
           {PRIZES.map((p) => (
             <div key={p.to} className="card border-crimson p-6">
