@@ -52,11 +52,24 @@ export async function collectExport(db: Firestore, uid: string, email: string) {
     badgeApplication: (await db.doc(`badgeRequests/${uid}`).get()).data() ?? null,
     publisherSettings: (await db.doc(`publisherSettings/${uid}`).get()).data() ?? null,
     videoUploads: await docs(db, "videoUploads", "uid", uid),
+    moments: await docs(db, "moments", "ownerUid", uid), // only the ones still live; expired ones are already gone
+    messagesSent: await sentMessages(db, uid),
     apiKeys: strip(await docs(db, "apiKeys", "uid", uid), ["hash"]),
     webhookEndpoints: strip(await docs(db, "webhookEndpoints", "uid", uid), ["secret"]),
     customDomains: await docs(db, "customDomains", "uid", uid),
     payoutAccount: payout ? { bankName: payout.bankName, accountName: payout.accountName, accountLast4: payout.accountLast4 } : null,
   };
+}
+
+// The messages this person wrote (not what others wrote to them).
+async function sentMessages(db: Firestore, uid: string) {
+  const convs = await db.collection("conversations").where("participants", "array-contains", uid).limit(200).get();
+  const out: Row[] = [];
+  for (const c of convs.docs) {
+    const msgs = await c.ref.collection("messages").where("from", "==", uid).limit(1000).get();
+    for (const m of msgs.docs) out.push({ id: m.id, conversationId: c.id, ...clean(m.data()) });
+  }
+  return out;
 }
 
 const OPEN_STORE = ["paid", "dispatched", "delivered", "disputed"];
@@ -138,6 +151,31 @@ export async function eraseAccount(db: Firestore, uid: string, deleteFile: (key:
   const comments = await db.collectionGroup("comments").where("authorUid", "==", uid).get();
   await deleteAll(db, comments.docs.map((d) => d.ref));
   counts.comments = comments.size;
+
+  // Moments (and anyone's reshares of them) go with their files. Messages: the ones this person wrote are deleted; a thread
+  // nobody else wrote in goes entirely, and one the other member wrote in stays for them, without the deleted member's words.
+  const moments = await db.collection("moments").where("ownerUid", "==", uid).get();
+  let momentCount = 0;
+  for (const m of moments.docs) {
+    const d = m.data();
+    const reshares = await db.collection("moments").where("resharedFrom.momentId", "==", m.id).get();
+    for (const r of reshares.docs) await db.recursiveDelete(r.ref);
+    if (d.ownsMedia) for (const k of [d.imageKey, d.videoKey, d.audioKey]) if (k) await deleteMedia(String(k)).catch(() => {});
+    await db.recursiveDelete(m.ref);
+    momentCount++;
+  }
+  counts.moments = momentCount;
+  const convs = await db.collection("conversations").where("participants", "array-contains", uid).get();
+  for (const c of convs.docs) {
+    const mine = await c.ref.collection("messages").where("from", "==", uid).get();
+    await deleteAll(db, mine.docs.map((d) => d.ref));
+    const last = await c.ref.collection("messages").orderBy("createdAt", "desc").limit(1).get();
+    if (last.empty) await db.recursiveDelete(c.ref);
+    else { const l = last.docs[0].data(); await c.ref.update({ lastMessage: { from: l.from, text: String(l.text).slice(0, 120), at: l.createdAt }, lastMessageAt: l.createdAt }); }
+  }
+  counts.conversations = convs.size;
+  const usage = await db.collection("momentUsage").where("uid", "==", uid).get();
+  await deleteAll(db, usage.docs.map((d) => d.ref));
 
   const items = await db.collection("storeItems").where("ownerUid", "==", uid).get();
   for (const it of items.docs) {

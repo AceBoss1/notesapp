@@ -2,12 +2,13 @@ import type { Firestore } from "firebase-admin/firestore";
 import { FieldValue } from "firebase-admin/firestore";
 import { randomBytes } from "crypto";
 import {
-  MOMENT_DAILY_LIMIT, MOMENT_DEFAULT_HOURS, MOMENT_TEXT_MAX, MOMENT_VIDEO_MAX_SECONDS,
+  MOMENT_DAILY_LIMIT, MOMENT_DEFAULT_HOURS, MOMENT_TEXT_MAX, MOMENT_VIDEO_MAX_SECONDS, MOMENT_VIDEO_WEEKLY_LIMIT,
   isMomentExpired, isMomentHours, isMomentKind, momentExpiry, type MomentHours, type MomentKind,
 } from "./moments-rules";
 import { sendMessage } from "./messages-server";
 import { MESSAGE_MAX } from "./messages-rules";
-import { VIDEO_MAX_BYTES, VIDEO_TYPES } from "./video-rules";
+import { VIDEO_MAX_BYTES, VIDEO_TYPES, isoWeekKey } from "./video-rules";
+import type { AccountTier } from "./users";
 
 // Server side of Moments. Clients never read or write the `moments` collection directly (firestore.rules say no):
 // every read goes through here so the audience check (the owner and their followers) and the expiry check can't be skipped,
@@ -239,7 +240,7 @@ export async function sweepExpiredMoments(db: Firestore, deps: MomentDeps, now =
 // A moment's video: same file checks as post videos (finishVideoUpload in lib/video-server.ts verifies it afterwards), but
 // 90 seconds at most, in the member's own `moments/` folder, and no weekly post-video quota — moments have their own daily limit.
 export async function startMomentVideo(
-  db: Firestore, uid: string, input: { size: number; contentType: string; durationSec: number },
+  db: Firestore, uid: string, tier: AccountTier, input: { size: number; contentType: string; durationSec: number },
   presign: (key: string, contentType: string, size: number) => Promise<string>, now = new Date()
 ): Promise<{ id: string; key: string; uploadUrl: string }> {
   const ext = VIDEO_TYPES[input.contentType];
@@ -248,12 +249,30 @@ export async function startMomentVideo(
   if (input.size > VIDEO_MAX_BYTES) throw new MomentError(413, "That video is too large.");
   if (!Number.isFinite(input.durationSec) || input.durationSec <= 0) throw new MomentError(400, "We couldn't read the video's length.");
   if (input.durationSec > MOMENT_VIDEO_MAX_SECONDS + 1) throw new MomentError(413, `Moment videos can be up to ${MOMENT_VIDEO_MAX_SECONDS} seconds.`);
+  // Plan limit, counted apart from post videos. A rejected or failed upload gives its slot back (see finishVideoUpload).
+  const limit = MOMENT_VIDEO_WEEKLY_LIMIT[tier] ?? 0;
+  const quotaDoc = `videoUsage/${uid}_${isoWeekKey(now)}_moment`;
+  const usageRef = db.doc(quotaDoc);
+  await db.runTransaction(async (t) => {
+    const used = ((await t.get(usageRef)).data()?.count as number | undefined) ?? 0;
+    if (used >= limit) {
+      throw new MomentError(429, limit === 0
+        ? "Video moments come with a paid plan. Pictures and text are free."
+        : `You've used your ${limit} video moment${limit === 1 ? "" : "s"} for this week. It resets on Monday, or move up a plan for more.`);
+    }
+    t.set(usageRef, { uid, week: isoWeekKey(now), kind: "moment", count: used + 1 }, { merge: true });
+  });
   const id = randomBytes(8).toString("hex");
   const key = `moments/${uid}/${id}.${ext}`;
-  const uploadUrl = await presign(key, input.contentType, input.size);
-  await db.doc(`videoUploads/${id}`).set({
-    uid, key, size: input.size, contentType: input.contentType, durationSec: Math.round(input.durationSec), verified: false,
-    createdAt: now.toISOString(), expireAt: new Date(now.getTime() + 2 * 86_400_000),
-  });
-  return { id, key, uploadUrl };
+  try {
+    const uploadUrl = await presign(key, input.contentType, input.size);
+    await db.doc(`videoUploads/${id}`).set({
+      uid, key, size: input.size, contentType: input.contentType, durationSec: Math.round(input.durationSec), verified: false, quotaDoc,
+      createdAt: now.toISOString(), expireAt: new Date(now.getTime() + 2 * 86_400_000),
+    });
+    return { id, key, uploadUrl };
+  } catch (err) {
+    await usageRef.update({ count: FieldValue.increment(-1) }).catch(() => {});
+    throw err;
+  }
 }

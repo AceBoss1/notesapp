@@ -2034,10 +2034,12 @@ Moments are short-lived pictures, videos or text that sit on top of a member's p
 - Who has seen a moment (viewers list for the owner; view counts are stored).
 - Audio and video calls inside conversations (separate decisions in the calls section above).
 
-**Open questions:**
-1. Who may post: all verified members today. Should video moments be limited by plan, as post video is?
-2. Moment files sit in the public media bucket under an unguessable path, so anyone with the exact link can open one until it is deleted. Acceptable for a 24 to 72 hour moment, or use short-lived signed links (more work, safer)?
-3. Should a non-follower be able to see a moment if the owner makes it public? (Today: followers and the owner only.)
-4. Messages are personal data: add them to the privacy policy and the data-protection register (retention, deletion on account removal, who can read them: nobody but the two members, plus admins for reported messages only).
-5. Reshare of a reshare is refused; replies to a reshare go to the resharer. Fine?
+**Decided (founder, 7 October):**
+- Video moments are limited by plan, like post video, but counted separately: Free Standard 0, Basic 2, Pro 7, Business 14, Enterprise 30 a week (pictures and text are free for every verified member). A rejected upload gives its slot back to the moment counter, never the post-video one.
+- Moment files stay in the public media bucket under a hard-to-guess path until they are deleted. Accepted for 24 to 72 hours.
+- Privacy text drafted: the Privacy Policy has a "Moments and direct messages" section, the "What we collect" paragraph mentions them, and the data-protection register entry lists the controls and the to-do (add them to the record of processing before launch). Account deletion now removes a member's moments and files and the messages they wrote (a thread nobody else wrote in goes entirely); the data download includes live moments and sent messages. LEGAL_VERSION was not bumped because the features are off: bump it on the day Moments or messages go live so everyone re-accepts.
 
+**Still open:**
+1. Should a non-follower be able to see a moment if the owner makes it public? (Today: followers and the owner only.)
+2. Reshare of a reshare is refused; replies to a reshare go to the resharer. Fine?
+3. Have counsel read the new Privacy Policy section before launch.

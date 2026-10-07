@@ -1,6 +1,8 @@
 // Moments: client-safe constants and helpers, shared by the composer, the viewer and the server.
 // A moment is a short-lived image, video or text sitting on top of a member's profile picture. It disappears
 // when its chosen duration ends; replies live on in direct messages (see lib/messages-server.ts).
+import type { AccountTier } from "./users";
+
 const flag = (v: string | undefined) => v === "true";
 
 // Everything stays hidden until these are switched on (Vercel env vars, then redeploy).
@@ -14,6 +16,8 @@ export const MOMENT_DEFAULT_HOURS: MomentHours = 24;
 export const MOMENT_VIDEO_MAX_SECONDS = 90;
 export const MOMENT_AUDIO_MAX_SECONDS = 90; // voice-over (not built yet)
 export const MOMENT_TEXT_MAX = 280;
+// Video moments per ISO week by plan, counted separately from post videos (same numbers, so Free Standard has none).
+export const MOMENT_VIDEO_WEEKLY_LIMIT: Record<AccountTier, number> = { standard: 0, basic: 2, pro: 7, business: 14, enterprise: 30 };
 export const MOMENT_DAILY_LIMIT = 10; // new moments per member per day (reshares don't count)
 export const MOMENT_HINT = "Share your moment with your followers";
 

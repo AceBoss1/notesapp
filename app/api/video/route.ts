@@ -35,8 +35,9 @@ export async function POST(req: NextRequest) {
     const r2 = getR2Client();
 
     if (body.action === "start" && isMoment) {
+      const mu = (await db.doc(`users/${uid}`).get()).data();
       const out = await startMomentVideo(
-        db, uid,
+        db, uid, effectiveTier({ username: mu?.username ?? "", role: mu?.role ?? "reader", accountTier: mu?.accountTier ?? "standard" }),
         { size: Number(body.size), contentType: String(body.contentType || ""), durationSec: Number(body.durationSec) },
         (key, contentType, size) => getSignedUrl(r2, new PutObjectCommand({ Bucket: R2_BUCKET, Key: key, ContentType: contentType, ContentLength: size }), { expiresIn: 900 })
       );
