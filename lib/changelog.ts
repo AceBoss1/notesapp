@@ -11,6 +11,14 @@ export type Release = {
 
 export const CHANGELOG: Release[] = [
   {
+    version: "v0.7.1",
+    bump: "patch",
+    date: "2026-10-07",
+    changes: [
+      { kind: "fixed", text: "Profile pages (and so Moments on profile pictures) could freeze phones and laptops: the page kept re-loading a member's notes and follower count over and over in the background. It now loads them once." },
+    ],
+  },
+  {
     version: "v0.7.0",
     bump: "minor",
     date: "2026-10-07",
