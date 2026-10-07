@@ -101,6 +101,7 @@ export default function ChallengePage() {
         <h2 id="rules" className="font-display text-2xl text-ink">The ground rules</h2>
         <ul className="mt-4 list-disc space-y-2 pl-5 text-sm text-slate">
           <li>Every view, follower and live viewer is counted and checked. Fake accounts, bots and self-viewing don&apos;t count, and an account that tries them is disqualified.</li>
+          <li>Enrolled influencers get a private challenge dashboard showing their qualified followers, views and live audience against each bar, and the status of any prize.</li>
           <li>Each influencer can win once, and the first 10 influencers to qualify each month are paid.</li>
           <li>A viewer counts after 5 minutes of watching. Your follower picks come from a list of the viewers who were most active in the last 5 minutes of your live, ranked by shares, then likes, then comments. You can&apos;t pick yourself, your own other accounts, or accounts linked to you.</li>
           <li>Before the ₦500,000 cash payout we confirm your identity (NIN and a face match, through Dojah) and handle any tax that applies.</li>
