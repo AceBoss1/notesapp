@@ -83,9 +83,10 @@ export const COMPLIANCE: ComplianceItem[] = [
       "Privacy Policy and consent before payment are live; members can download or delete their own data.",
       "Error records are stripped of personal data and deleted after 30 days.",
       "Full payout account numbers are kept only encrypted (AES-256-GCM), in a collection no browser can read, so a payout can be sent through Paylony.",
+      "Moments and direct messages (built, switched off until launch): messages are readable only by the two members, written only by our server, and deleted with the account (the other member keeps their own words); moments expire and are deleted with their files after 24, 48 or 72 hours; both are in the data download and in the Privacy Policy.",
     ],
-    next: "Confirm with counsel whether we are a data controller of major importance and which category applies; appoint a data protection officer; register with NDPC (through a licensed compliance organisation); keep a record of processing; prepare the annual compliance audit; write a breach-response procedure.",
-    reviewed: "2026-10-06",
+    next: "Confirm with counsel whether we are a data controller of major importance and which category applies; appoint a data protection officer; register with NDPC (through a licensed compliance organisation); keep a record of processing (add direct messages and moments to it before they go live); prepare the annual compliance audit; write a breach-response procedure.",
+    reviewed: "2026-10-07",
   },
   {
     id: "company",

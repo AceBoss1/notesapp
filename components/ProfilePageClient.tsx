@@ -16,6 +16,8 @@ import { getFollowerCount } from "@/lib/follows";
 import { submitAppeal, getSuspension } from "@/lib/moderation";
 import Avatar from "@/components/Avatar";
 import FollowButton from "@/components/FollowButton";
+import MomentRing from "@/components/moments/MomentRing";
+import MessageButton from "@/components/messages/MessageButton";
 import SubscribeButton from "@/components/SubscribeButton";
 import BookingCard from "@/components/BookingCard";
 import ScrollToHash from "@/components/ScrollToHash";
@@ -226,12 +228,19 @@ export default function ProfilePageClient({ params }: { params: { username: stri
   return (
     <div className="mx-auto max-w-5xl px-4 py-16 sm:px-6 lg:px-8">
       <div className="flex flex-col items-start gap-6 sm:flex-row sm:items-center">
-        <Avatar
-          square
-          src={suspended ? SUSPENDED_AVATAR : profile.avatar}
-          alt={profile.displayName}
-          size={88}
-        />
+        {!suspended && !synthetic && realProfile ? (
+          // A ring when the member has moments you can see (only when Moments is switched on).
+          <MomentRing username={profile.username} isOwn={isOwnProfile}>
+            <Avatar square src={profile.avatar} alt={profile.displayName} size={88} />
+          </MomentRing>
+        ) : (
+          <Avatar
+            square
+            src={suspended ? SUSPENDED_AVATAR : profile.avatar}
+            alt={profile.displayName}
+            size={88}
+          />
+        )}
         <div>
           <h1 className="flex items-center gap-2 font-display text-3xl text-ink">
             {profile.displayName}
@@ -273,6 +282,7 @@ export default function ProfilePageClient({ params }: { params: { username: stri
         </div>
         <div className="ml-0 flex shrink-0 flex-wrap gap-3 sm:ml-auto">
           <FollowButton username={profile.username} />
+          {!synthetic && !suspended && <MessageButton username={profile.username} profileUid={realProfile?.uid} />}
           {!synthetic && <GiftButton username={profile.username} publisherUid={realProfile?.uid} />}
           {hasPremium && (
             <div id="subscribe" className="scroll-mt-28 rounded-full">

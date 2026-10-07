@@ -71,7 +71,8 @@ export async function finishVideoUpload(db: Firestore, uid: string, id: string, 
     await deps.remove(rec.key).catch(() => {});
     await ref.delete().catch(() => {});
     // The attempt doesn't count against this week's quota.
-    await db.doc(`videoUsage/${uid}_${isoWeekKey(new Date(rec.createdAt))}`).update({ count: FieldValue.increment(-1) }).catch(() => {});
+    // A moment's video gave back its own counter (recorded on the upload), never the post-video one.
+    await db.doc(rec.quotaDoc ?? `videoUsage/${uid}_${isoWeekKey(new Date(rec.createdAt))}`).update({ count: FieldValue.increment(-1) }).catch(() => {});
     throw new VideoError(400, why);
   };
 

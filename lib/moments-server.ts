@@ -1,0 +1,278 @@
+import type { Firestore } from "firebase-admin/firestore";
+import { FieldValue } from "firebase-admin/firestore";
+import { randomBytes } from "crypto";
+import {
+  MOMENT_DAILY_LIMIT, MOMENT_DEFAULT_HOURS, MOMENT_TEXT_MAX, MOMENT_VIDEO_MAX_SECONDS, MOMENT_VIDEO_WEEKLY_LIMIT,
+  isMomentExpired, isMomentHours, isMomentKind, momentExpiry, type MomentHours, type MomentKind,
+} from "./moments-rules";
+import { sendMessage } from "./messages-server";
+import { MESSAGE_MAX } from "./messages-rules";
+import { VIDEO_MAX_BYTES, VIDEO_TYPES, isoWeekKey } from "./video-rules";
+import type { AccountTier } from "./users";
+
+// Server side of Moments. Clients never read or write the `moments` collection directly (firestore.rules say no):
+// every read goes through here so the audience check (the owner and their followers) and the expiry check can't be skipped,
+// and nothing past its time is ever returned — the sweep below then removes the leftovers.
+export class MomentError extends Error {
+  constructor(public status: number, message: string) { super(message); }
+}
+
+export type MomentDeps = {
+  publicUrl: (key: string) => string;
+  remove: (key: string) => Promise<void>; // deletes a media object from the bucket
+};
+
+type MomentDoc = {
+  ownerUid: string; ownerUsername: string; kind: MomentKind;
+  text?: string; imageKey?: string; videoKey?: string; durationSec?: number;
+  audioKey?: string; // voice-over, not built yet
+  hours: MomentHours; createdAt: string; expiresAt: string;
+  likeCount: number; reshareCount: number; viewCount: number;
+  ownsMedia: boolean; // false on a reshare: the file belongs to the original
+  resharedFrom?: { momentId: string; ownerUsername: string };
+};
+
+export type MomentView = {
+  id: string; ownerUid: string; ownerUsername: string; kind: MomentKind;
+  text?: string; imageUrl?: string; videoUrl?: string; durationSec?: number;
+  hours: MomentHours; createdAt: string; expiresAt: string;
+  likeCount: number; reshareCount: number; liked: boolean; mine: boolean;
+  resharedFrom?: { ownerUsername: string };
+};
+
+const dayKey = (d: Date) => d.toLocaleDateString("en-CA", { timeZone: "Africa/Lagos" });
+
+async function follows(db: Firestore, viewerUid: string, ownerUsername: string): Promise<boolean> {
+  return (await db.doc(`follows/${viewerUid}_${ownerUsername}`).get()).exists;
+}
+
+// The audience: the owner, and members who follow the owner's journal.
+async function canSee(db: Firestore, viewerUid: string, m: MomentDoc): Promise<boolean> {
+  return m.ownerUid === viewerUid || (await follows(db, viewerUid, m.ownerUsername));
+}
+
+function toView(id: string, m: MomentDoc, viewerUid: string, liked: boolean, deps: MomentDeps): MomentView {
+  return {
+    id, ownerUid: m.ownerUid, ownerUsername: m.ownerUsername, kind: m.kind,
+    ...(m.text ? { text: m.text } : {}),
+    ...(m.imageKey ? { imageUrl: deps.publicUrl(m.imageKey) } : {}),
+    ...(m.videoKey ? { videoUrl: deps.publicUrl(m.videoKey), durationSec: m.durationSec } : {}),
+    hours: m.hours, createdAt: m.createdAt, expiresAt: m.expiresAt,
+    likeCount: m.likeCount, reshareCount: m.reshareCount, liked, mine: m.ownerUid === viewerUid,
+    ...(m.resharedFrom ? { resharedFrom: { ownerUsername: m.resharedFrom.ownerUsername } } : {}),
+  };
+}
+
+export type CreateInput = { kind: unknown; text?: unknown; hours?: unknown; imageKey?: unknown; videoUploadId?: unknown };
+
+export async function createMoment(db: Firestore, owner: { uid: string; username: string }, input: CreateInput, deps: MomentDeps, now = new Date()): Promise<MomentView> {
+  if (!owner.username) throw new MomentError(400, "Finish setting up your profile first.");
+  if (!isMomentKind(input.kind)) throw new MomentError(400, "Pick image, video or text.");
+  const hours = input.hours === undefined ? MOMENT_DEFAULT_HOURS : input.hours;
+  if (!isMomentHours(hours)) throw new MomentError(400, "A moment can last 24, 48 or 72 hours.");
+  const text = typeof input.text === "string" ? input.text.trim() : "";
+  if (text.length > MOMENT_TEXT_MAX) throw new MomentError(413, `Text can be up to ${MOMENT_TEXT_MAX} characters.`);
+
+  const doc: Omit<MomentDoc, "createdAt" | "expiresAt"> = {
+    ownerUid: owner.uid, ownerUsername: owner.username, kind: input.kind, hours,
+    likeCount: 0, reshareCount: 0, viewCount: 0, ownsMedia: true,
+  };
+  if (text) doc.text = text;
+
+  if (input.kind === "text") {
+    if (!text) throw new MomentError(400, "Write something to share.");
+  } else if (input.kind === "image") {
+    const key = String(input.imageKey ?? "");
+    // Uploaded through /api/upload (purpose "moment"), which puts it under this member's own folder.
+    if (!key.startsWith(`moments/${owner.uid}/`) || key.includes("..")) throw new MomentError(400, "Upload an image first.");
+    doc.imageKey = key;
+  } else {
+    const up = (await db.doc(`videoUploads/${String(input.videoUploadId ?? "")}`).get()).data();
+    if (!up || up.uid !== owner.uid || up.verified !== true) throw new MomentError(400, "The video hasn't finished uploading.");
+    if (!String(up.key).startsWith(`moments/${owner.uid}/`)) throw new MomentError(400, "That video wasn't uploaded for a moment.");
+    if (!(up.contentType in VIDEO_TYPES)) throw new MomentError(400, "Use an MP4 or WebM video.");
+    if (up.durationSec > MOMENT_VIDEO_MAX_SECONDS + 1) throw new MomentError(413, `Moment videos can be up to ${MOMENT_VIDEO_MAX_SECONDS} seconds.`);
+    doc.videoKey = up.key;
+    doc.durationSec = up.durationSec;
+  }
+
+  const id = randomBytes(8).toString("hex");
+  const createdAt = now.toISOString();
+  const full: MomentDoc = { ...doc, createdAt, expiresAt: momentExpiry(now, hours).toISOString() };
+  const usageRef = db.doc(`momentUsage/${owner.uid}_${dayKey(now)}`);
+  await db.runTransaction(async (t) => {
+    const used = ((await t.get(usageRef)).data()?.count as number | undefined) ?? 0;
+    if (used >= MOMENT_DAILY_LIMIT) throw new MomentError(429, `You can share ${MOMENT_DAILY_LIMIT} moments a day. Try again tomorrow.`);
+    t.set(usageRef, { uid: owner.uid, day: dayKey(now), count: used + 1 }, { merge: true });
+    t.set(db.doc(`moments/${id}`), { ...full, expireAt: new Date(full.expiresAt) });
+  });
+  return toView(id, full, owner.uid, false, deps);
+}
+
+async function likedSet(db: Firestore, uid: string, ids: string[]): Promise<Set<string>> {
+  if (!ids.length) return new Set();
+  const snaps = await db.getAll(...ids.map((id) => db.doc(`moments/${id}/likes/${uid}`)));
+  return new Set(snaps.filter((s) => s.exists).map((s) => s.ref.parent.parent!.id));
+}
+
+export type MomentGroup = { ownerUid: string; ownerUsername: string; moments: MomentView[] };
+
+// Moments from the people the viewer follows, plus the viewer's own. Expired ones are never returned.
+export async function listFeed(db: Firestore, viewer: { uid: string; username: string }, deps: MomentDeps, now = new Date()): Promise<MomentGroup[]> {
+  const f = await db.collection("follows").where("followerUid", "==", viewer.uid).limit(300).get();
+  const names = Array.from(new Set([...(viewer.username ? [viewer.username] : []), ...f.docs.map((d) => d.data().username as string)]));
+  const docs: { id: string; m: MomentDoc }[] = [];
+  for (let i = 0; i < names.length; i += 30) {
+    // `in` on one field only, so no composite index; expiry is filtered below.
+    const snap = await db.collection("moments").where("ownerUsername", "in", names.slice(i, i + 30)).get();
+    for (const d of snap.docs) {
+      const m = d.data() as MomentDoc;
+      if (!isMomentExpired(m.expiresAt, now)) docs.push({ id: d.id, m });
+    }
+  }
+  const liked = await likedSet(db, viewer.uid, docs.map((d) => d.id));
+  const groups = new Map<string, MomentGroup>();
+  for (const { id, m } of docs.sort((a, b) => (a.m.createdAt < b.m.createdAt ? -1 : 1))) {
+    const g = groups.get(m.ownerUid) ?? { ownerUid: m.ownerUid, ownerUsername: m.ownerUsername, moments: [] };
+    g.moments.push(toView(id, m, viewer.uid, liked.has(id), deps));
+    groups.set(m.ownerUid, g);
+  }
+  // Own moments first, then newest activity first.
+  return Array.from(groups.values()).sort((a, b) => {
+    if (a.ownerUid === viewer.uid) return -1;
+    if (b.ownerUid === viewer.uid) return 1;
+    return a.moments[a.moments.length - 1].createdAt < b.moments[b.moments.length - 1].createdAt ? 1 : -1;
+  });
+}
+
+// One member's active moments, if the viewer is in the audience (used for the ring on a profile picture).
+export async function listForOwner(db: Firestore, viewerUid: string, ownerUsername: string, deps: MomentDeps, now = new Date()): Promise<MomentView[]> {
+  const snap = await db.collection("moments").where("ownerUsername", "==", ownerUsername).get();
+  const docs = snap.docs.map((d) => ({ id: d.id, m: d.data() as MomentDoc })).filter((d) => !isMomentExpired(d.m.expiresAt, now));
+  if (!docs.length) return [];
+  if (!(await canSee(db, viewerUid, docs[0].m))) return [];
+  const liked = await likedSet(db, viewerUid, docs.map((d) => d.id));
+  return docs.sort((a, b) => (a.m.createdAt < b.m.createdAt ? -1 : 1)).map((d) => toView(d.id, d.m, viewerUid, liked.has(d.id), deps));
+}
+
+async function loadActive(db: Firestore, viewerUid: string, id: string, now: Date): Promise<{ m: MomentDoc }> {
+  const m = (await db.doc(`moments/${id}`).get()).data() as MomentDoc | undefined;
+  // Missing, expired and not-in-the-audience all look the same.
+  if (!m || isMomentExpired(m.expiresAt, now) || !(await canSee(db, viewerUid, m))) throw new MomentError(404, "That moment isn't available any more.");
+  return { m };
+}
+
+export async function toggleLike(db: Firestore, uid: string, id: string, now = new Date()): Promise<{ liked: boolean; likeCount: number }> {
+  const { m } = await loadActive(db, uid, id, now);
+  const likeRef = db.doc(`moments/${id}/likes/${uid}`);
+  const ref = db.doc(`moments/${id}`);
+  return db.runTransaction(async (t) => {
+    const had = (await t.get(likeRef)).exists;
+    if (had) t.delete(likeRef); else t.set(likeRef, { uid, at: now.toISOString(), expireAt: new Date(m.expiresAt) });
+    t.update(ref, { likeCount: FieldValue.increment(had ? -1 : 1) });
+    return { liked: !had, likeCount: Math.max(0, m.likeCount + (had ? -1 : 1)) };
+  });
+}
+
+// Counts each member once; the owner's own views don't count.
+export async function recordView(db: Firestore, uid: string, id: string, now = new Date()): Promise<void> {
+  const { m } = await loadActive(db, uid, id, now);
+  if (m.ownerUid === uid) return;
+  const viewRef = db.doc(`moments/${id}/views/${uid}`);
+  await db.runTransaction(async (t) => {
+    if ((await t.get(viewRef)).exists) return;
+    t.set(viewRef, { uid, at: now.toISOString(), expireAt: new Date(m.expiresAt) });
+    t.update(db.doc(`moments/${id}`), { viewCount: FieldValue.increment(1) });
+  });
+}
+
+// A reshare puts the moment on the resharer's own ring for the rest of the original's time — never longer.
+export async function reshare(db: Firestore, user: { uid: string; username: string }, id: string, deps: MomentDeps, now = new Date()): Promise<MomentView> {
+  const { m } = await loadActive(db, user.uid, id, now);
+  if (m.ownerUid === user.uid) throw new MomentError(400, "That's already your moment.");
+  if (m.resharedFrom) throw new MomentError(400, "Reshare the original moment instead.");
+  if (!user.username) throw new MomentError(400, "Finish setting up your profile first.");
+  const newId = `rs_${user.uid}_${id}`; // one reshare per member per moment
+  const full: MomentDoc = {
+    ...m, ownerUid: user.uid, ownerUsername: user.username, createdAt: now.toISOString(),
+    likeCount: 0, reshareCount: 0, viewCount: 0, ownsMedia: false, resharedFrom: { momentId: id, ownerUsername: m.ownerUsername },
+  };
+  await db.runTransaction(async (t) => {
+    if ((await t.get(db.doc(`moments/${newId}`))).exists) throw new MomentError(409, "You've already reshared this moment.");
+    t.set(db.doc(`moments/${newId}`), { ...full, expireAt: new Date(m.expiresAt) });
+    t.update(db.doc(`moments/${id}`), { reshareCount: FieldValue.increment(1) });
+  });
+  return toView(newId, full, user.uid, false, deps);
+}
+
+// A reply goes to the owner's inbox. It keeps only a reference (id and expiry) — after the moment expires the message
+// stays and says so, but the moment can't be opened.
+export async function replyToMoment(db: Firestore, uid: string, id: string, text: string, now = new Date()): Promise<{ conversationId: string }> {
+  const { m } = await loadActive(db, uid, id, now);
+  if (m.ownerUid === uid) throw new MomentError(400, "You can't reply to your own moment.");
+  if (String(text ?? "").trim().length > MESSAGE_MAX) throw new MomentError(413, `Messages can be up to ${MESSAGE_MAX} characters.`);
+  const sent = await sendMessage(db, uid, m.ownerUid, { text, moment: { momentId: id, expiresAt: m.expiresAt } }, now);
+  return { conversationId: sent.conversationId };
+}
+
+export async function deleteMoment(db: Firestore, uid: string, id: string, deps: MomentDeps): Promise<void> {
+  const ref = db.doc(`moments/${id}`);
+  const m = (await ref.get()).data() as MomentDoc | undefined;
+  if (!m || m.ownerUid !== uid) throw new MomentError(404, "That moment wasn't found.");
+  // Reshares point at the original's file, so they go with it.
+  const shares = await db.collection("moments").where("resharedFrom.momentId", "==", ref.id).get();
+  for (const d of shares.docs) await removeMoment(db, d.id, d.data() as MomentDoc, deps);
+  await removeMoment(db, ref.id, m, deps);
+}
+
+async function removeMoment(db: Firestore, id: string, m: MomentDoc, deps: MomentDeps) {
+  if (m.ownsMedia) for (const key of [m.imageKey, m.videoKey, m.audioKey]) if (key) await deps.remove(key).catch(() => {});
+  await db.recursiveDelete(db.doc(`moments/${id}`)); // the likes and views under it go too
+}
+
+// Run by the scheduler: removes moments whose time is up, and their files. Reads are already refusing them.
+export async function sweepExpiredMoments(db: Firestore, deps: MomentDeps, now = new Date(), batch = 200): Promise<number> {
+  const snap = await db.collection("moments").where("expiresAt", "<=", now.toISOString()).limit(batch).get();
+  for (const d of snap.docs) await removeMoment(db, d.id, d.data() as MomentDoc, deps);
+  return snap.size;
+}
+
+// A moment's video: same file checks as post videos (finishVideoUpload in lib/video-server.ts verifies it afterwards), but
+// 90 seconds at most, in the member's own `moments/` folder, and no weekly post-video quota — moments have their own daily limit.
+export async function startMomentVideo(
+  db: Firestore, uid: string, tier: AccountTier, input: { size: number; contentType: string; durationSec: number },
+  presign: (key: string, contentType: string, size: number) => Promise<string>, now = new Date()
+): Promise<{ id: string; key: string; uploadUrl: string }> {
+  const ext = VIDEO_TYPES[input.contentType];
+  if (!ext) throw new MomentError(400, "Use an MP4 (H.264) or WebM video.");
+  if (!Number.isInteger(input.size) || input.size <= 0) throw new MomentError(400, "That file looks empty.");
+  if (input.size > VIDEO_MAX_BYTES) throw new MomentError(413, "That video is too large.");
+  if (!Number.isFinite(input.durationSec) || input.durationSec <= 0) throw new MomentError(400, "We couldn't read the video's length.");
+  if (input.durationSec > MOMENT_VIDEO_MAX_SECONDS + 1) throw new MomentError(413, `Moment videos can be up to ${MOMENT_VIDEO_MAX_SECONDS} seconds.`);
+  // Plan limit, counted apart from post videos. A rejected or failed upload gives its slot back (see finishVideoUpload).
+  const limit = MOMENT_VIDEO_WEEKLY_LIMIT[tier] ?? 0;
+  const quotaDoc = `videoUsage/${uid}_${isoWeekKey(now)}_moment`;
+  const usageRef = db.doc(quotaDoc);
+  await db.runTransaction(async (t) => {
+    const used = ((await t.get(usageRef)).data()?.count as number | undefined) ?? 0;
+    if (used >= limit) {
+      throw new MomentError(429, limit === 0
+        ? "Video moments come with a paid plan. Pictures and text are free."
+        : `You've used your ${limit} video moment${limit === 1 ? "" : "s"} for this week. It resets on Monday, or move up a plan for more.`);
+    }
+    t.set(usageRef, { uid, week: isoWeekKey(now), kind: "moment", count: used + 1 }, { merge: true });
+  });
+  const id = randomBytes(8).toString("hex");
+  const key = `moments/${uid}/${id}.${ext}`;
+  try {
+    const uploadUrl = await presign(key, input.contentType, input.size);
+    await db.doc(`videoUploads/${id}`).set({
+      uid, key, size: input.size, contentType: input.contentType, durationSec: Math.round(input.durationSec), verified: false, quotaDoc,
+      createdAt: now.toISOString(), expireAt: new Date(now.getTime() + 2 * 86_400_000),
+    });
+    return { id, key, uploadUrl };
+  } catch (err) {
+    await usageRef.update({ count: FieldValue.increment(-1) }).catch(() => {});
+    throw err;
+  }
+}

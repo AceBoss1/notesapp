@@ -575,6 +575,25 @@ service cloud.firestore {
     }
 
     // The full bank account number behind a payout account, encrypted — server-only; no client can read or write it.
+    // Moments and direct messages: written only by the server (lib/moments-server.ts, lib/messages-server.ts), so the audience,
+    // expiry, block and length checks can't be skipped. Moments are read through the API only. Conversations and their messages
+    // can be read by the two members in them (for live updates later) and never written from a browser.
+    match /moments/{id} {
+      allow read, write: if false;
+      match /{sub=**} { allow read, write: if false; }
+    }
+    match /momentUsage/{id} { allow read, write: if false; }
+    match /dmBlocks/{id} { allow read, write: if false; }
+    match /conversations/{cid} {
+      allow read: if isSignedIn() && request.auth.uid in resource.data.participants;
+      allow write: if false;
+      match /messages/{mid} {
+        allow read: if isSignedIn()
+          && request.auth.uid in get(/databases/$(database)/documents/conversations/$(cid)).data.participants;
+        allow write: if false;
+      }
+    }
+
     match /payoutSecrets/{uid} {
       allow read, write: if false;
     }

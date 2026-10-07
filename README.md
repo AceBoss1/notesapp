@@ -2003,3 +2003,43 @@ Counting and fraud checks (recommended method; confirm before building):
 Challenge dashboard (decided): an influencer's public followers list stays exactly as it is for everyone. Separately, each enrolled influencer gets a private challenge dashboard (their eyes only) showing: qualified new followers against the 10,000 bar; all-time views against the 100,000 bar; whether LIVE video is unlocked; for each live, counted viewers (5 minutes or more) against the 2,000 bar and the best single live so far; this month's slots ("3 of 10 taken") and their position in the queue; prizes with status and the days left in each 30-day claim window; the Dojah check status; and a count of accounts "not counted" (a number only). The dashboard never shows individual fraud scores, signals or the reason an account was not counted, so it can't be used to learn how to get around the checks. Admins see everything in the review queue.
 
 Still open: VAT and tax treatment of the prizes (see the VAT and tax entry in the compliance register; waiting for the accountant). Nothing in the challenge is built yet; it all depends on live video.
+
+## Scaffold: Moments and direct messages (built, switched off)
+
+Moments are short-lived pictures, videos or text that sit on top of a member's profile picture (like WhatsApp Status). Replies go to a direct-message inbox, so both were built together. Nothing shows until you switch them on.
+
+**Switches (Vercel env vars, then redeploy):** `NEXT_PUBLIC_MOMENTS_LIVE=true` turns on Moments and messaging; `NEXT_PUBLIC_MESSAGES_LIVE=true` turns on messaging alone. Also run `firebase deploy --only firestore` once (new rules).
+
+**Decided (from the founder):**
+- Name: **Moments**. Hint text in the box: "Share your moment with your followers".
+- Duration: 24 hours by default; the member can choose 48 or 72 hours.
+- Content: a picture, a video up to 90 seconds, or text only. Voice-over on top is wanted (see "not built yet").
+- Viewers can like, reply or reshare. Everything disappears when the time is up.
+- A reply goes to the owner's inbox as a direct message and stays there, with a note ("Replied to a moment that has expired") once the moment is gone. The moment itself can no longer be opened. The message keeps only the moment's id and expiry, never its content.
+- A reshare lands on the resharer's own ring for the rest of the original's time, never longer.
+
+**What was built:**
+- `lib/moments-rules.ts` (constants, flags), `lib/moments-server.ts` (create, feed, ring, like, view, reshare, reply, delete, expiry sweep), `lib/messages-server.ts` (send, inbox, thread), API routes under `app/api/moments` and `app/api/messages`, picture upload through `/api/upload` (purpose `moment`), video through `/api/video` (purpose `moment`).
+- Audience: the owner and members who follow the owner's journal. Expired, missing and not-allowed all answer "not available". Moments, likes, views, usage and blocks are server-only in `firestore.rules`; conversations and their messages can be read by the two members only and are never written from a browser.
+- Limits: 10 new moments per member a day (Lagos time), email verified to post or send, suspended accounts can't post or send, 2,000 characters a message, 20 messages a minute, a block (`dmBlocks/{recipient}_{sender}`) looks like "member not found".
+- Clean-up: the scheduler (`/api/cron/reminders`) deletes expired moments, their likes and views, and their files. Reads already refuse expired ones, so a late run only costs storage. Optional belt and braces: turn on Firestore TTL for the `expireAt` field on `moments` and its `likes` and `views`.
+- UI, only when switched on: a ring and an add button on profile pictures, a viewer (like, reshare, reply, delete), a composer (text, picture, video, 24/48/72 hours), a Message button on profiles, `/messages`, `/messages/[id]` and `/messages/new?to=username`, and a Messages link in the account menu.
+- Tests: rules tests (41 pass) and a server test against the Firestore emulator that covered create, limits, audience, expiry, likes, views, reshare, replies and expired references, blocks, suspension, deletion and the sweep.
+
+**Not built yet (next steps):**
+- Voice-over: the data model has `audioKey` but there is no recorder or upload. Plan: record in the browser (up to 90 seconds), upload like the video, play over the picture or video.
+- Notifications for replies and messages (bell, email) and unread count in the menu.
+- Block and report buttons, and a moderation view of reported moments and messages (Terms section for messages and moments; reports need a place to land).
+- Live updates (the inbox polls every 10 seconds today), typing and read receipts, deleting a message.
+- Who has seen a moment (viewers list for the owner; view counts are stored).
+- Audio and video calls inside conversations (separate decisions in the calls section above).
+
+**Decided (founder, 7 October):**
+- Video moments are limited by plan, like post video, but counted separately: Free Standard 0, Basic 2, Pro 7, Business 14, Enterprise 30 a week (pictures and text are free for every verified member). A rejected upload gives its slot back to the moment counter, never the post-video one.
+- Moment files stay in the public media bucket under a hard-to-guess path until they are deleted. Accepted for 24 to 72 hours.
+- Privacy text drafted: the Privacy Policy has a "Moments and direct messages" section, the "What we collect" paragraph mentions them, and the data-protection register entry lists the controls and the to-do (add them to the record of processing before launch). Account deletion now removes a member's moments and files and the messages they wrote (a thread nobody else wrote in goes entirely); the data download includes live moments and sent messages. LEGAL_VERSION was not bumped because the features are off: bump it on the day Moments or messages go live so everyone re-accepts.
+
+**Still open:**
+1. Should a non-follower be able to see a moment if the owner makes it public? (Today: followers and the owner only.)
+2. Reshare of a reshare is refused; replies to a reshare go to the resharer. Fine?
+3. Have counsel read the new Privacy Policy section before launch.

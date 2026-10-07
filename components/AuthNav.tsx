@@ -7,6 +7,7 @@ import { auth } from "@/lib/firebase";
 import { getUserByUid, canPublish, UserProfile } from "@/lib/users";
 import NotificationBell from "@/components/NotificationBell";
 import Avatar from "@/components/Avatar";
+import { MESSAGES_LIVE } from "@/lib/moments-rules";
 
 export default function AuthNav() {
   const [user, setUser] = useState<User | null | undefined>(undefined);
@@ -72,6 +73,7 @@ export default function AuthNav() {
             </Link>
             {profile && <Link href={`/u/${profile.username}/store`} className={item}>My store</Link>}
             {profile && <Link href="/invites" className={item}>Co-author invites</Link>}
+            {MESSAGES_LIVE && <Link href="/messages" className={item}>Messages</Link>}
             <Link href="/bookings" className={item}>Bookings</Link>
             <Link href="/orders" className={item}>Orders &amp; parcels</Link>
             <Link href="/boost" className={item}>Boost a post</Link>

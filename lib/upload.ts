@@ -6,7 +6,12 @@ import { ALLOWED_TYPES, looksLikeImage, maxUploadBytes } from "./upload-rules";
 // the file straight to R2 from the browser — matches the R2 bucket
 // this project now owns independently, not Precheks' shared
 // Cloudinary account.
-export async function uploadToR2(file: File, purpose: "journal" | "avatar" | "ad" = "journal"): Promise<string> {
+export async function uploadToR2(file: File, purpose: "journal" | "avatar" | "ad" | "moment" = "journal"): Promise<string> {
+  return (await uploadToR2WithKey(file, purpose)).publicUrl;
+}
+
+// Same upload, also returning the storage key (a moment stores the key, not the URL).
+export async function uploadToR2WithKey(file: File, purpose: "journal" | "avatar" | "ad" | "moment" = "journal"): Promise<{ publicUrl: string; key: string }> {
   const user = auth.currentUser;
   if (!user) {
     throw new Error("You must be signed in to upload a file.");
@@ -35,7 +40,7 @@ export async function uploadToR2(file: File, purpose: "journal" | "avatar" | "ad
     throw new Error(err.error || "Couldn't get an upload URL.");
   }
 
-  const { uploadUrl, publicUrl } = await presignRes.json();
+  const { uploadUrl, publicUrl, key } = await presignRes.json();
 
   const putRes = await fetch(uploadUrl, {
     method: "PUT",
@@ -47,5 +52,5 @@ export async function uploadToR2(file: File, purpose: "journal" | "avatar" | "ad
     throw new Error("Upload to storage failed.");
   }
 
-  return publicUrl as string;
+  return { publicUrl: publicUrl as string, key: key as string };
 }

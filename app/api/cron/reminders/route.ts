@@ -6,6 +6,8 @@ import { expireTiers } from "@/lib/tier-billing";
 import { releaseDueOrders, releaseExpiredReservations } from "@/lib/orders-server";
 import { autoReleasePayouts } from "@/lib/payouts";
 import { reconcilePaylonyPayouts } from "@/lib/paylony-payouts";
+import { sweepExpiredMoments } from "@/lib/moments-server";
+import { momentDeps } from "@/lib/moments-api";
 
 // Run every ~15 minutes by an external scheduler with
 //   Authorization: Bearer $CRON_SECRET
@@ -62,6 +64,8 @@ export async function GET(req: NextRequest) {
   const unreserved = await job("releaseExpiredReservations", releaseExpiredReservations);
   // ...and pays publishers for sessions that ended PAYOUT_HOLD_HOURS ago with no problem reported.
   const paidOut = await job("autoReleasePayouts", () => autoReleasePayouts());
+  // Moments past their 24, 48 or 72 hours are deleted with their files (reads already refuse them).
+  await job("sweepExpiredMoments", () => sweepExpiredMoments(db, momentDeps));
   await job("reconcilePaylonyPayouts", () => reconcilePaylonyPayouts().then((r) => r.paid + r.failed));
   // Heartbeat read by /status ("Scheduled jobs"); server-only collection, no client rules.
   await db.collection("cronRuns").doc("reminders").set({ at: new Date().toISOString(), ok: failed.length === 0, failed }).catch((e) => console.error("cron heartbeat failed", e));
