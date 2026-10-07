@@ -22,7 +22,7 @@ export default function MomentRing({ username, isOwn, children }: { username: st
     if (!user) return;
     api<{ moments: MomentView[] }>(`/api/moments?username=${encodeURIComponent(username)}`).then((r) => setMoments(r.moments)).catch(() => setMoments([]));
   }, [user, username]);
-  useEffect(load, [load]);
+  useEffect(() => { load(); }, [load]);
 
   if (!MOMENTS_LIVE || !user) return <>{children}</>;
   const has = moments.length > 0;

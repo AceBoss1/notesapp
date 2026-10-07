@@ -24,7 +24,7 @@ export default function MomentViewer({ moments, onClose, onChanged }: { moments:
   const advanced = useRef<string | null>(null); // the video moment already moved on from (timeupdate fires several times near the end)
   const m = items[i];
 
-  useEffect(() => setShowViewers(false), [i]);
+  useEffect(() => { setShowViewers(false); }, [i]);
   const next = () => (i + 1 < items.length ? setI(i + 1) : onClose());
   // Stills advance by themselves; a video advances when it ends.
   useEffect(() => {

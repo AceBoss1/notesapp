@@ -32,7 +32,7 @@ export default function Thread({ id, to }: { id?: string; to?: string }) {
     if (!user || !cid) return;
     api<{ with: Who; blockedByMe: boolean }>(`/api/messages/${cid}`).then((r) => { setWho(r.with); setBlockedByMe(r.blockedByMe); }).catch((e) => setError(e.message));
   }, [user, cid]);
-  useEffect(loadMeta, [loadMeta]);
+  useEffect(() => { loadMeta(); }, [loadMeta]);
 
   // The messages themselves, live: they appear as they arrive. Only the two people in a conversation can read it (firestore.rules).
   useEffect(() => {
@@ -53,7 +53,9 @@ export default function Thread({ id, to }: { id?: string; to?: string }) {
       (e) => setError(e.message)
     );
   }, [user, cid]);
-  useEffect(() => end.current?.scrollIntoView({ block: "end" }), [messages.length]);
+  // Braces matter: an effect must return nothing or a clean-up function. Some browsers' scrollIntoView() now returns a Promise, and
+  // returning it made React call it as a clean-up ("destroy is not a function"), which crashed the page.
+  useEffect(() => { end.current?.scrollIntoView({ block: "end" }); }, [messages.length]);
 
   async function send() {
     setBusy(true); setError(null);
