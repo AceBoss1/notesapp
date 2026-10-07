@@ -136,9 +136,15 @@ export default function ProfilePageClient({ params }: { params: { username: stri
   const joinedAt = realProfile?.createdAt ? new Date(realProfile.createdAt) : null;
   const joined = joinedAt && !Number.isNaN(joinedAt.getTime()) ? joinedAt.toLocaleDateString("en-NG", { month: "long", year: "numeric" }) : "";
 
+  // Depend on the plain values, never on the `profile` object: it is rebuilt on every render, so listing it here made this
+  // effect run after every render, and every run set state (a new notes array), which rendered again, which ran it again,
+  // without end. That loop re-fetched every note and the follower count dozens of times a second and froze devices.
+  const profileUsername = profile?.username;
+  const profileDisplayName = profile?.displayName;
+  const profileUid = realProfile?.uid;
   useEffect(() => {
-    if (!profile) return;
-    getFollowerCount(profile.username)
+    if (!profileUsername || profileDisplayName === undefined) return;
+    getFollowerCount(profileUsername)
       .then(setFollowerCount)
       .catch((err) => {
         // getCountFromServer occasionally fails with "unavailable".
@@ -162,10 +168,11 @@ export default function ProfilePageClient({ params }: { params: { username: stri
     // shared /notes collection Precheks reads from, filtered here on
     // the UI side, not in Firestore.
     getAllNotes({ publishedOnly: true })
-      .then((all) => setNotes(all.filter((n) => isNoteBy(n, { uid: realProfile?.uid, username: profile.username, displayName: profile.displayName }))))
+      .then((all) => setNotes(all.filter((n) => isNoteBy(n, { uid: profileUid, username: profileUsername, displayName: profileDisplayName }))))
       .catch(() => setNotes([]))
       .finally(() => setNotesLoaded(true));
-  }, [profile, isOfficial]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [profileUsername, profileDisplayName, profileUid, isOfficial]);
 
   useEffect(() => {
     if (isOfficial) return; // @notesapp: no real Firestore data at all
