@@ -11,6 +11,14 @@ export type Release = {
 
 export const CHANGELOG: Release[] = [
   {
+    version: "v0.7.4",
+    bump: "patch",
+    date: "2026-10-07",
+    changes: [
+      { kind: "changed", text: "Email for new messages is now off until you switch it on, and is part of the Business and Enterprise plans (at most one email an hour). Everyone still gets the bell, and notifications on their device if they turn them on." },
+    ],
+  },
+  {
     version: "v0.7.3",
     bump: "patch",
     date: "2026-10-07",

@@ -44,6 +44,9 @@ export type TierConfig = {
   // Footer on the member's own domain: Business shows "Name is powered by [na] #NotesApp" (semi white-label); Enterprise
   // shows "Name, powered by [na]" with just the icon.
   whiteLabel?: "partial" | "full";
+  // Email for new messages (Business and Enterprise only, off until switched on, at most one an hour): every email counts against our
+  // sending quota, so it is a paid feature. The bell, and device notifications, stay free for everyone.
+  messageEmails?: boolean;
 };
 
 export const TIERS: TierConfig[] = [
@@ -91,6 +94,7 @@ export const TIERS: TierConfig[] = [
     yearlyKobo: 150_000 * 100,
     customDomain: true,
     whiteLabel: "partial",
+    messageEmails: true,
     canPublish: true,
     adRevenueShare: 0.45,
     sessionAndUnlockCommission: 0.15,
@@ -113,6 +117,7 @@ export const TIERS: TierConfig[] = [
     customDomain: true,
     apiAccess: true,
     whiteLabel: "full",
+    messageEmails: true,
   },
 ];
 

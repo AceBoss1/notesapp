@@ -6,6 +6,8 @@ import { isMomentExpired } from "./moments-rules";
 import { notifyBell, sendEmail } from "./email";
 import { getAdminDb, getUserEmail } from "./firebase-admin";
 import { sendPush, type PushPayload } from "./push-server";
+import { effectiveTier } from "./users";
+import { getTierConfig } from "./tiers";
 
 export type Notify = (note: { uid: string; type: "message" | "moment"; linkHref: string; message: string }) => Promise<void>;
 
@@ -21,7 +23,7 @@ export type Alerts = {
   push: (toUid: string, payload: PushPayload) => Promise<number>;
 };
 const siteUrl = () => (process.env.NEXT_PUBLIC_SITE_URL || "https://www.notesapp.name.ng").replace(/\/$/, "");
-const EMAIL_EVERY_MS = 3_600_000; // at most one email an hour per conversation
+const EMAIL_EVERY_MS = 3_600_000; // at most one message email an hour per member (all conversations together)
 
 export type SendInput = { text: string; moment?: MomentRef };
 
@@ -73,10 +75,11 @@ export async function sendMessage(db: Firestore, fromUid: string, toUid: string,
     await notify({ uid: toUid, type: input.moment ? "moment" : "message", linkHref: `/messages/${cid}`, message: what }).catch(() => {});
     const a = alerts ?? defaultAlerts();
     await a.push(toUid, { title: input.moment ? "Reply to your moment" : "New message", body: `${name}`, url: `/messages/${cid}` }).catch(() => 0);
+    // Email is off unless the member switched it on, and only Business and Enterprise can: it uses our sending quota. At most one an hour.
     const prefs = (await db.doc(`userPrefs/${toUid}`).get()).data();
-    const last = (await convRef.get()).data()?.emailedAt?.[toUid] as string | undefined;
-    if (prefs?.emailMessages !== false && (!last || now.getTime() - new Date(last).getTime() >= EMAIL_EVERY_MS)) {
-      await convRef.update({ [`emailedAt.${toUid}`]: now.toISOString() }).catch(() => {});
+    const last = prefs?.lastMessageEmailAt as string | undefined;
+    if (prefs?.emailMessages === true && (!last || now.getTime() - new Date(last).getTime() >= EMAIL_EVERY_MS) && (await emailsAllowed(db, toUid))) {
+      await db.doc(`userPrefs/${toUid}`).set({ lastMessageEmailAt: now.toISOString() }, { merge: true }).catch(() => {});
       await a.email(toUid, {
         subject: what, label: "Open your messages", url: `${siteUrl()}/messages/${cid}`,
         text: `${what} on #NotesApp. Open your messages to read it and reply.\n\nYou can turn these emails off in your Messages settings.`,
@@ -155,10 +158,21 @@ export async function markRead(db: Firestore, uid: string, cid: string): Promise
   await ref.update({ [`unread.${uid}`]: 0 });
 }
 
-export type MessagePrefs = { emailMessages: boolean };
-export async function getPrefs(db: Firestore, uid: string): Promise<MessagePrefs> {
-  return { emailMessages: (await db.doc(`userPrefs/${uid}`).get()).data()?.emailMessages !== false };
+// Whether this member's plan includes email for new messages (Business and Enterprise). Read at send time, so a plan that lapses stops them.
+export async function emailsAllowed(db: Firestore, uid: string): Promise<boolean> {
+  const u = (await db.doc(`users/${uid}`).get()).data();
+  if (!u || u.suspended === true) return false;
+  return getTierConfig(effectiveTier({ username: u.username ?? "", role: u.role ?? "reader", accountTier: u.accountTier ?? "standard" })).messageEmails === true;
 }
-export async function setPrefs(db: Firestore, uid: string, prefs: Partial<MessagePrefs>): Promise<void> {
-  if (typeof prefs.emailMessages === "boolean") await db.doc(`userPrefs/${uid}`).set({ uid, emailMessages: prefs.emailMessages }, { merge: true });
+
+export type MessagePrefs = { emailMessages: boolean; emailAllowed: boolean };
+export async function getPrefs(db: Firestore, uid: string): Promise<MessagePrefs> {
+  const emailAllowed = await emailsAllowed(db, uid);
+  // Off unless switched on, and never on for a plan that doesn't include it.
+  return { emailMessages: emailAllowed && (await db.doc(`userPrefs/${uid}`).get()).data()?.emailMessages === true, emailAllowed };
+}
+export async function setPrefs(db: Firestore, uid: string, prefs: { emailMessages?: unknown }): Promise<void> {
+  if (typeof prefs.emailMessages !== "boolean") return;
+  if (prefs.emailMessages && !(await emailsAllowed(db, uid))) throw new MessageError(403, "Email for new messages comes with the Business and Enterprise plans.");
+  await db.doc(`userPrefs/${uid}`).set({ uid, emailMessages: prefs.emailMessages }, { merge: true });
 }
