@@ -13,7 +13,8 @@ export const MESSAGES_LIVE = flag(process.env.NEXT_PUBLIC_MESSAGES_LIVE) || MOME
 export const MOMENT_HOURS = [24, 48, 72] as const;
 export type MomentHours = (typeof MOMENT_HOURS)[number];
 export const MOMENT_DEFAULT_HOURS: MomentHours = 24;
-export const MOMENT_VIDEO_MAX_SECONDS = 90;
+export const MOMENT_VIDEO_MAX_SECONDS = 90; // one moment
+export const MOMENT_VIDEO_SOURCE_MAX_SECONDS = 600; // the longest video we'll cut into moments (up to 7 parts)
 export const MOMENT_AUDIO_MAX_SECONDS = 90; // voice-over (not built yet)
 export const MOMENT_TEXT_MAX = 280;
 // Video moments per ISO week by plan, counted separately from post videos (same numbers, so Free Standard has none).
@@ -58,3 +59,18 @@ export const REPORT_NOTE_MAX = 500;
 export const URGENT_REASONS: ReportReason[] = ["nudity", "violence"];
 export const REPORT_URGENT_HOURS = 24;
 export const isReportReason = (v: unknown): v is ReportReason => REPORT_REASONS.includes(v as ReportReason);
+
+// A video longer than 90 seconds becomes several moments, in order, each up to 90 seconds, using one of the plan's weekly video
+// moments for each part. The file is uploaded once; each moment plays its own stretch of it (clipStart to clipEnd).
+export const momentVideoParts = (durationSec: number) => (durationSec <= MOMENT_VIDEO_MAX_SECONDS + 1 ? 1 : Math.ceil(durationSec / MOMENT_VIDEO_MAX_SECONDS));
+
+export type VideoClip = { start: number; end: number };
+const tenth = (n: number) => Math.round(n * 10) / 10;
+// With room for every part, the video is cut into equal parts (none longer than 90 seconds). With room for fewer, only the first
+// 90 seconds of each of the parts there is room for are used, and the rest is left out.
+export function momentVideoClips(durationSec: number, allowedParts: number): VideoClip[] {
+  const needed = momentVideoParts(durationSec);
+  const n = Math.max(1, Math.min(needed, Math.floor(allowedParts)));
+  if (n >= needed) return Array.from({ length: n }, (_, i) => ({ start: tenth((i * durationSec) / n), end: i === n - 1 ? tenth(durationSec) : tenth(((i + 1) * durationSec) / n) }));
+  return Array.from({ length: n }, (_, i) => ({ start: i * MOMENT_VIDEO_MAX_SECONDS, end: Math.min(tenth(durationSec), (i + 1) * MOMENT_VIDEO_MAX_SECONDS) }));
+}

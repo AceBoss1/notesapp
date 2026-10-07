@@ -21,6 +21,7 @@ export default function MomentViewer({ moments, onClose, onChanged }: { moments:
   const [viewers, setViewers] = useState<{ uid: string; username: string; displayName: string }[] | null>(null);
   const [showViewers, setShowViewers] = useState(false);
   const timer = useRef<ReturnType<typeof setTimeout>>();
+  const advanced = useRef<string | null>(null); // the video moment already moved on from (timeupdate fires several times near the end)
   const m = items[i];
 
   useEffect(() => setShowViewers(false), [i]);
@@ -60,7 +61,15 @@ export default function MomentViewer({ moments, onClose, onChanged }: { moments:
 
         <div className="relative flex min-h-0 flex-1 items-center justify-center bg-black" onClick={next}>
           {m.kind === "image" && /* eslint-disable-next-line @next/next/no-img-element */ <img src={m.imageUrl} alt="" className="max-h-full max-w-full object-contain" />}
-          {m.kind === "video" && <video src={m.videoUrl} autoPlay playsInline controls={false} onEnded={next} className="max-h-full max-w-full" />}
+          {m.kind === "video" && (
+            // A part of a longer video plays only its own stretch of the file: it starts at clipStart and moves on at clipEnd.
+            <video
+              key={m.id} src={m.videoUrl} autoPlay playsInline controls={false} className="max-h-full max-w-full"
+              onLoadedMetadata={(e) => { if (m.clipStart) e.currentTarget.currentTime = m.clipStart; }}
+              onTimeUpdate={(e) => { if (m.clipEnd && e.currentTarget.currentTime >= m.clipEnd - 0.05 && advanced.current !== m.id) { advanced.current = m.id; next(); } }}
+              onEnded={() => { if (advanced.current !== m.id) { advanced.current = m.id; next(); } }}
+            />
+          )}
           {m.kind === "text" && <p className="px-8 text-center font-display text-3xl leading-snug">{m.text}</p>}
           {m.audioUrl && <audio key={m.id} src={m.audioUrl} autoPlay />}
           {m.kind !== "text" && m.text && <p className="absolute inset-x-0 bottom-0 bg-black/60 p-3 text-center text-sm">{m.text}</p>}

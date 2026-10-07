@@ -2,7 +2,7 @@ import type { Firestore } from "firebase-admin/firestore";
 import { FieldValue } from "firebase-admin/firestore";
 import { randomBytes } from "crypto";
 import {
-  MOMENT_DAILY_LIMIT, MOMENT_DEFAULT_HOURS, MOMENT_TEXT_MAX, MOMENT_VIDEO_MAX_SECONDS, MOMENT_VIDEO_WEEKLY_LIMIT, MOMENT_AUDIO_MAX_SECONDS, AUDIO_MAX_BYTES, AUDIO_TYPES, sniffAudio,
+  MOMENT_DAILY_LIMIT, MOMENT_DEFAULT_HOURS, MOMENT_TEXT_MAX, MOMENT_VIDEO_MAX_SECONDS, MOMENT_VIDEO_SOURCE_MAX_SECONDS, MOMENT_VIDEO_WEEKLY_LIMIT, momentVideoParts, MOMENT_AUDIO_MAX_SECONDS, AUDIO_MAX_BYTES, AUDIO_TYPES, sniffAudio,
   isMomentExpired, isMomentHours, isMomentKind, momentExpiry, type MomentHours, type MomentKind,
 } from "./moments-rules";
 import { sendMessage } from "./messages-server";
@@ -25,6 +25,7 @@ export type MomentDeps = {
 type MomentDoc = {
   ownerUid: string; ownerUsername: string; kind: MomentKind;
   text?: string; imageKey?: string; videoKey?: string; durationSec?: number;
+  clipStart?: number; clipEnd?: number; splitGroup?: string; // a part of a longer video: this moment plays clipStart to clipEnd of the shared file
   audioKey?: string; audioDurationSec?: number; // voice-over
   hours: MomentHours; createdAt: string; expiresAt: string;
   likeCount: number; reshareCount: number; viewCount: number;
@@ -36,7 +37,7 @@ type MomentDoc = {
 
 export type MomentView = {
   id: string; ownerUid: string; ownerUsername: string; kind: MomentKind;
-  text?: string; imageUrl?: string; videoUrl?: string; durationSec?: number; audioUrl?: string; audioDurationSec?: number;
+  text?: string; imageUrl?: string; videoUrl?: string; durationSec?: number; clipStart?: number; clipEnd?: number; audioUrl?: string; audioDurationSec?: number;
   hours: MomentHours; createdAt: string; expiresAt: string;
   likeCount: number; reshareCount: number; liked: boolean; mine: boolean;
   viewCount?: number; // only for the owner
@@ -63,7 +64,7 @@ function toView(id: string, m: MomentDoc, viewerUid: string, liked: boolean, dep
     id, ownerUid: m.ownerUid, ownerUsername: m.ownerUsername, kind: m.kind,
     ...(m.text ? { text: m.text } : {}),
     ...(m.imageKey ? { imageUrl: deps.publicUrl(m.imageKey) } : {}),
-    ...(m.videoKey ? { videoUrl: deps.publicUrl(m.videoKey), durationSec: m.durationSec } : {}),
+    ...(m.videoKey ? { videoUrl: deps.publicUrl(m.videoKey), durationSec: m.durationSec, ...(m.clipEnd ? { clipStart: m.clipStart ?? 0, clipEnd: m.clipEnd } : {}) } : {}),
     ...(m.audioKey ? { audioUrl: deps.publicUrl(m.audioKey), audioDurationSec: m.audioDurationSec } : {}),
     hours: m.hours, createdAt: m.createdAt, expiresAt: m.expiresAt,
     likeCount: m.likeCount, reshareCount: m.reshareCount, liked, mine: m.ownerUid === viewerUid,
@@ -72,7 +73,7 @@ function toView(id: string, m: MomentDoc, viewerUid: string, liked: boolean, dep
   };
 }
 
-export type CreateInput = { kind: unknown; text?: unknown; hours?: unknown; imageKey?: unknown; videoUploadId?: unknown; audioUploadId?: unknown };
+export type CreateInput = { kind: unknown; text?: unknown; hours?: unknown; imageKey?: unknown; videoUploadId?: unknown; clipStart?: unknown; clipEnd?: unknown; audioUploadId?: unknown };
 
 export async function createMoment(db: Firestore, owner: { uid: string; username: string }, input: CreateInput, deps: MomentDeps, now = new Date()): Promise<MomentView> {
   if (!owner.username) throw new MomentError(400, "Finish setting up your profile first.");
@@ -82,6 +83,8 @@ export async function createMoment(db: Firestore, owner: { uid: string; username
   const text = typeof input.text === "string" ? input.text.trim() : "";
   if (text.length > MOMENT_TEXT_MAX) throw new MomentError(413, `Text can be up to ${MOMENT_TEXT_MAX} characters.`);
 
+  let videoRef: ReturnType<Firestore["doc"]> | null = null;
+  let partsAllowed = 1;
   const doc: Omit<MomentDoc, "createdAt" | "expiresAt"> = {
     ownerUid: owner.uid, ownerUsername: owner.username, kind: input.kind, hours,
     likeCount: 0, reshareCount: 0, viewCount: 0, ownsMedia: true,
@@ -100,9 +103,17 @@ export async function createMoment(db: Firestore, owner: { uid: string; username
     if (!up || up.uid !== owner.uid || up.verified !== true) throw new MomentError(400, "The video hasn't finished uploading.");
     if (!String(up.key).startsWith(`moments/${owner.uid}/`)) throw new MomentError(400, "That video wasn't uploaded for a moment.");
     if (!(up.contentType in VIDEO_TYPES)) throw new MomentError(400, "Use an MP4 or WebM video.");
-    if (up.durationSec > MOMENT_VIDEO_MAX_SECONDS + 1) throw new MomentError(413, `Moment videos can be up to ${MOMENT_VIDEO_MAX_SECONDS} seconds.`);
+    // Which stretch of the file this moment plays: at most 90 seconds. A video that's short enough needs no clip.
+    const start = input.clipStart === undefined ? 0 : Number(input.clipStart);
+    const end = input.clipEnd === undefined ? Math.min(up.durationSec, MOMENT_VIDEO_MAX_SECONDS) : Number(input.clipEnd);
+    if (!Number.isFinite(start) || !Number.isFinite(end) || start < 0 || end <= start || end > up.durationSec + 1) throw new MomentError(400, "That part of the video isn't valid.");
+    if (end - start > MOMENT_VIDEO_MAX_SECONDS + 1) throw new MomentError(413, `Each moment can be up to ${MOMENT_VIDEO_MAX_SECONDS} seconds.`);
     doc.videoKey = up.key;
     doc.durationSec = up.durationSec;
+    if (up.durationSec > MOMENT_VIDEO_MAX_SECONDS + 1 || input.clipEnd !== undefined) { doc.clipStart = start; doc.clipEnd = end; }
+    doc.splitGroup = String(input.videoUploadId);
+    videoRef = db.doc(`videoUploads/${String(input.videoUploadId)}`);
+    partsAllowed = (up.partsAllowed as number | undefined) ?? 1;
   }
 
   // Voice-over (any kind): a verified recording of this member's, not already used.
@@ -122,9 +133,17 @@ export async function createMoment(db: Firestore, owner: { uid: string; username
   const full: MomentDoc = { ...doc, createdAt, expiresAt: momentExpiry(now, hours).toISOString() };
   const usageRef = db.doc(`momentUsage/${owner.uid}_${dayKey(now)}`);
   await db.runTransaction(async (t) => {
+    // All reads first (a transaction can't read after it has written).
     const used = ((await t.get(usageRef)).data()?.count as number | undefined) ?? 0;
+    const created = videoRef ? (((await t.get(videoRef)).data()?.partsCreated as number | undefined) ?? 0) : 0;
     if (used >= MOMENT_DAILY_LIMIT) throw new MomentError(429, `You can share ${MOMENT_DAILY_LIMIT} moments a day. Try again tomorrow.`);
     t.set(usageRef, { uid: owner.uid, day: dayKey(now), count: used + 1 }, { merge: true });
+    if (videoRef) {
+      // Each part of an upload uses one of the parts it was allowed; the first owns the file, the others share it.
+      if (created >= partsAllowed) throw new MomentError(400, "That video has already been shared in every part there was room for.");
+      t.update(videoRef, { partsCreated: created + 1 });
+      full.ownsMedia = created === 0;
+    }
     t.set(db.doc(`moments/${id}`), { ...full, expireAt: new Date(full.expiresAt) });
     if (audioRef) t.update(audioRef, { attached: true });
   });
@@ -259,7 +278,15 @@ export async function deleteMoment(db: Firestore, uid: string, id: string, deps:
 
 async function removeMoment(db: Firestore, id: string, m: MomentDoc, deps: MomentDeps) {
   // A reported moment's files stay until its report is resolved (the report holds the keys); see lib/reports-server.ts.
-  if (m.ownsMedia && !m.reported) for (const key of [m.imageKey, m.videoKey, m.audioKey]) if (key) await deps.remove(key).catch(() => {});
+  // Whether this moment owns the file is read afresh: an earlier part removed in the same sweep may have passed it on to this one.
+  const owns = ((await db.doc(`moments/${id}`).get()).data()?.ownsMedia as boolean | undefined) ?? m.ownsMedia;
+  let keepVideo = false;
+  if (owns && m.splitGroup) {
+    // Other parts of the same video still need the file: pass it on to one of them instead of deleting it.
+    const others = (await db.collection("moments").where("splitGroup", "==", m.splitGroup).get()).docs.filter((d) => d.id !== id);
+    if (others.length) { await others[0].ref.update({ ownsMedia: true }); keepVideo = true; }
+  }
+  if (owns && !m.reported) for (const key of [m.imageKey, m.videoKey, m.audioKey]) if (key && !(keepVideo && key === m.videoKey)) await deps.remove(key).catch(() => {});
   await db.recursiveDelete(db.doc(`moments/${id}`)); // the likes and views under it go too
 }
 
@@ -272,28 +299,42 @@ export async function sweepExpiredMoments(db: Firestore, deps: MomentDeps, now =
 
 // A moment's video: same file checks as post videos (finishVideoUpload in lib/video-server.ts verifies it afterwards), but
 // 90 seconds at most, in the member's own `moments/` folder, and no weekly post-video quota — moments have their own daily limit.
+// Where the member stands on video moments this week: the plan's allowance, what's used, and what's left.
+export async function momentVideoQuota(db: Firestore, uid: string, tier: AccountTier, now = new Date()): Promise<{ limit: number; used: number; remaining: number }> {
+  const limit = MOMENT_VIDEO_WEEKLY_LIMIT[tier] ?? 0;
+  const used = ((await db.doc(`videoUsage/${uid}_${isoWeekKey(now)}_moment`).get()).data()?.count as number | undefined) ?? 0;
+  return { limit, used, remaining: Math.max(0, limit - used) };
+}
+
+// A moment's video: same file checks as post videos (finishVideoUpload in lib/video-server.ts verifies it afterwards), in the member's
+// own `moments/` folder, with no weekly post-video quota: moments have their own weekly allowance by plan, one for each moment.
+// A video longer than 90 seconds is cut into parts, one moment each: the parts it needs come out of the allowance, and if there
+// isn't room for all of them only the first 90 seconds of as many parts as there is room for are used (`partsAllowed`).
 export async function startMomentVideo(
   db: Firestore, uid: string, tier: AccountTier, input: { size: number; contentType: string; durationSec: number },
   presign: (key: string, contentType: string, size: number) => Promise<string>, now = new Date()
-): Promise<{ id: string; key: string; uploadUrl: string }> {
+): Promise<{ id: string; key: string; uploadUrl: string; partsAllowed: number; partsNeeded: number }> {
   const ext = VIDEO_TYPES[input.contentType];
   if (!ext) throw new MomentError(400, "Use an MP4 (H.264) or WebM video.");
   if (!Number.isInteger(input.size) || input.size <= 0) throw new MomentError(400, "That file looks empty.");
   if (input.size > VIDEO_MAX_BYTES) throw new MomentError(413, "That video is too large.");
   if (!Number.isFinite(input.durationSec) || input.durationSec <= 0) throw new MomentError(400, "We couldn't read the video's length.");
-  if (input.durationSec > MOMENT_VIDEO_MAX_SECONDS + 1) throw new MomentError(413, `Moment videos can be up to ${MOMENT_VIDEO_MAX_SECONDS} seconds.`);
-  // Plan limit, counted apart from post videos. A rejected or failed upload gives its slot back (see finishVideoUpload).
+  if (input.durationSec > MOMENT_VIDEO_SOURCE_MAX_SECONDS + 1) throw new MomentError(413, `Videos can be up to ${MOMENT_VIDEO_SOURCE_MAX_SECONDS / 60} minutes.`);
+  const partsNeeded = momentVideoParts(input.durationSec);
   const limit = MOMENT_VIDEO_WEEKLY_LIMIT[tier] ?? 0;
   const quotaDoc = `videoUsage/${uid}_${isoWeekKey(now)}_moment`;
   const usageRef = db.doc(quotaDoc);
+  let partsAllowed = 0;
   await db.runTransaction(async (t) => {
     const used = ((await t.get(usageRef)).data()?.count as number | undefined) ?? 0;
-    if (used >= limit) {
+    const remaining = limit - used;
+    if (remaining <= 0) {
       throw new MomentError(429, limit === 0
         ? "Video moments come with a paid plan. Pictures and text are free."
         : `You've used your ${limit} video moment${limit === 1 ? "" : "s"} for this week. It resets on Monday, or move up a plan for more.`);
     }
-    t.set(usageRef, { uid, week: isoWeekKey(now), kind: "moment", count: used + 1 }, { merge: true });
+    partsAllowed = Math.min(partsNeeded, remaining);
+    t.set(usageRef, { uid, week: isoWeekKey(now), kind: "moment", count: used + partsAllowed }, { merge: true });
   });
   const id = randomBytes(8).toString("hex");
   const key = `moments/${uid}/${id}.${ext}`;
@@ -301,11 +342,12 @@ export async function startMomentVideo(
     const uploadUrl = await presign(key, input.contentType, input.size);
     await db.doc(`videoUploads/${id}`).set({
       uid, key, size: input.size, contentType: input.contentType, durationSec: Math.round(input.durationSec), verified: false, quotaDoc,
+      partsAllowed, partsNeeded, partsCreated: 0,
       createdAt: now.toISOString(), expireAt: new Date(now.getTime() + 2 * 86_400_000),
     });
-    return { id, key, uploadUrl };
+    return { id, key, uploadUrl, partsAllowed, partsNeeded };
   } catch (err) {
-    await usageRef.update({ count: FieldValue.increment(-1) }).catch(() => {});
+    await usageRef.update({ count: FieldValue.increment(-partsAllowed) }).catch(() => {});
     throw err;
   }
 }

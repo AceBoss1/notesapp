@@ -29,13 +29,14 @@ export default function Inbox() {
         const docs = snap.docs.map((d) => ({ id: d.id, c: d.data() }));
         const others = Array.from(new Set(docs.map(({ c }) => (c.participants as string[]).find((p) => p !== uid) ?? uid)));
         await Promise.all(others.filter((o) => !people.current.has(o)).map(async (o) => {
-          const u = (await getDoc(doc(db, "users", o))).data();
+          // A profile that can't be read (or doesn't exist) shows as "Member" rather than breaking the list.
+          const u = o ? await getDoc(doc(db, "users", o)).then((s) => s.data()).catch(() => undefined) : undefined;
           people.current.set(o, { uid: o, username: u?.username ?? "", displayName: u?.displayName ?? "Member", avatar: u?.avatar ?? "" });
         }));
         setRows(docs.map(({ id, c }) => {
           const o = (c.participants as string[]).find((p) => p !== uid) ?? uid;
           return {
-            id, with: people.current.get(o)!, lastText: c.lastMessage?.text ?? "", lastAt: c.lastMessageAt ?? c.createdAt ?? "",
+            id, with: people.current.get(o) ?? { uid: o, username: "", displayName: "Member", avatar: "" }, lastText: c.lastMessage?.text ?? "", lastAt: c.lastMessageAt ?? c.createdAt ?? "",
             lastFromMe: c.lastMessage?.from === uid, unread: (c.unread?.[uid] as number | undefined) ?? 0, moment: c.lastMessage?.moment === true,
           };
         }).sort((a, b) => (a.lastAt < b.lastAt ? 1 : -1)));
