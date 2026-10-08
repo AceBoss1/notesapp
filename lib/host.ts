@@ -1,7 +1,7 @@
 // Pure host helpers (no Node-only imports — also used by middleware.ts on the edge runtime).
 export const MAIN_HOST = "www.notesapp.name.ng";
 // The app domain: opens #NotesApp like an app (splash, then the journal) and sends marketing pages to MAIN_HOST.
-export const APP_HOSTS = ["notesapp.ng", "www.notesapp.ng"];
+export const APP_HOSTS = ["app.notesapp.name.ng", "notesapp.ng", "www.notesapp.ng"];
 export function isAppHost(hostname: string): boolean {
   return APP_HOSTS.includes(hostname.toLowerCase().replace(/:\d+$/, ""));
 }
