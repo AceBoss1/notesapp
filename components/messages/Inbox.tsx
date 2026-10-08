@@ -9,10 +9,11 @@ import Avatar from "@/components/Avatar";
 import { stripFormat } from "@/lib/message-format";
 import MessageSettings from "./MessageSettings";
 import VerifiedBadge from "@/components/VerifiedBadge";
-import { badgeLevel, goldKindOf, type UserProfile } from "@/lib/users";
+import TeamBadge from "@/components/TeamBadge";
+import { badgeLevel, goldKindOf, isTeamMember, type UserProfile } from "@/lib/users";
 import type { GoldBadgeKind } from "@/lib/badges";
 
-type Who = { uid: string; username: string; displayName: string; avatar: string; level?: "verified" | "gold" | null; goldKind?: GoldBadgeKind };
+type Who = { uid: string; username: string; displayName: string; avatar: string; level?: "verified" | "gold" | null; goldKind?: GoldBadgeKind; team?: boolean };
 type Row = { id: string; lastText: string; lastAt: string; lastFromMe: boolean; unread: number; moment: boolean; with: Who };
 
 // The inbox, live: new messages and unread counts appear as they arrive (it listens to the member's own conversations, which
@@ -35,7 +36,7 @@ export default function Inbox() {
         await Promise.all(others.filter((o) => !people.current.has(o)).map(async (o) => {
           // A profile that can't be read (or doesn't exist) shows as "Member" rather than breaking the list.
           const u = o ? await getDoc(doc(db, "users", o)).then((s) => s.data()).catch(() => undefined) : undefined;
-          people.current.set(o, { uid: o, username: u?.username ?? "", displayName: u?.displayName ?? "Member", avatar: u?.avatar ?? "", ...(u ? { level: badgeLevel(u as UserProfile), goldKind: goldKindOf(u as UserProfile) } : {}) });
+          people.current.set(o, { uid: o, username: u?.username ?? "", displayName: u?.displayName ?? "Member", avatar: u?.avatar ?? "", ...(u ? { level: badgeLevel(u as UserProfile), goldKind: goldKindOf(u as UserProfile), team: isTeamMember(u as UserProfile) } : {}) });
         }));
         setRows(docs.map(({ id, c }) => {
           const o = (c.participants as string[]).find((p) => p !== uid) ?? uid;
@@ -63,7 +64,7 @@ export default function Inbox() {
               <Link href={`/messages/${r.id}`} className="flex items-center gap-3 py-3 hover:bg-paper">
                 <Avatar src={r.with.avatar} alt={r.with.displayName} size={44} />
                 <span className="min-w-0 flex-1">
-                  <span className="block font-bold text-ink">{r.with.displayName} {r.with.level && <VerifiedBadge size={14} level={r.with.level} goldKind={r.with.goldKind} />} <span className="font-normal text-slate">@{r.with.username}</span></span>
+                  <span className="block font-bold text-ink">{r.with.displayName} {r.with.level && <VerifiedBadge size={14} level={r.with.level} goldKind={r.with.goldKind} />}{r.with.team && <TeamBadge size={14} />} <span className="font-normal text-slate">@{r.with.username}</span></span>
                   <span className="block truncate text-sm text-slate">{r.moment ? "↩ Moment reply · " : ""}{r.lastFromMe ? "You: " : ""}{stripFormat(r.lastText)}</span>
                 </span>
                 {r.unread > 0 && <span className="rounded-full bg-crimson px-2 py-0.5 text-xs font-bold text-white">{r.unread}</span>}
