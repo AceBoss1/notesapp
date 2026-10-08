@@ -1,5 +1,6 @@
 "use client";
 
+import ProfileAvatar from "@/components/ProfileAvatar";
 import AppLink from "@/components/AppLink";
 import { useEffect, useState } from "react";
 import Link from "next/link";
@@ -71,15 +72,19 @@ function CommentRow({
 
   return (
     <div className={isReply ? "flex gap-3 py-4" : "flex gap-3 py-5 first:pt-0"}>
-      <ProfileLink className="flex-shrink-0">
-        <Image
-          src={suspended ? "/images/brand/suspended-avatar.png" : comment.authorAvatar}
-          alt={comment.authorDisplayName}
-          width={isReply ? 32 : 40}
-          height={isReply ? 32 : 40}
-          className={`rounded-full object-cover ${isReply ? "w-8 h-8" : "w-10 h-10"}`}
-        />
-      </ProfileLink>
+      {linkProfiles && !suspended ? (
+        <ProfileAvatar username={comment.authorUsername} src={comment.authorAvatar} alt={comment.authorDisplayName} size={isReply ? 32 : 40} from="comment" />
+      ) : (
+        <span className="flex-shrink-0">
+          <Image
+            src={suspended ? "/images/brand/suspended-avatar.png" : comment.authorAvatar}
+            alt={comment.authorDisplayName}
+            width={isReply ? 32 : 40}
+            height={isReply ? 32 : 40}
+            className={`rounded-full object-cover ${isReply ? "w-8 h-8" : "w-10 h-10"}`}
+          />
+        </span>
+      )}
       <div className="flex-1">
         <div className="flex items-center gap-2 flex-wrap">
           <ProfileLink className="font-ui text-sm font-semibold text-ink hover:text-crimson-bright">

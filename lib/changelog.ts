@@ -11,6 +11,17 @@ export type Release = {
 
 export const CHANGELOG: Release[] = [
   {
+    version: "v0.9.5",
+    bump: "patch",
+    date: "2026-10-08",
+    changes: [
+      { kind: "added", text: "Messages: reply to a particular message. The reply quotes it, and tapping the quote takes you back to the original." },
+      { kind: "changed", text: "Messages: a picture beside every message, the name with its verified or gold badge, and a Today, Yesterday or date divider whenever a new day starts. Received messages are now easier to see." },
+      { kind: "added", text: "Tapping someone's picture in a conversation, a journal or a comment now asks whether you want their profile, their moments, or to message them." },
+      { kind: "fixed", text: "A picture that failed to load once could stay on the default picture. It now tries again when the picture changes." },
+    ],
+  },
+  {
     version: "v0.9.4",
     bump: "patch",
     date: "2026-10-08",

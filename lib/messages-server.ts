@@ -10,6 +10,7 @@ import { effectiveTier } from "./users";
 import { getTierConfig } from "./tiers";
 import { limit } from "./limits-server";
 import { stickerById } from "./stickers";
+import { stripFormat } from "./message-format";
 import { safeFileName } from "./private-files";
 
 export type Notify = (note: { uid: string; type: "message" | "moment"; linkHref: string; message: string }) => Promise<void>;
@@ -28,7 +29,7 @@ export type Alerts = {
 const siteUrl = () => (process.env.NEXT_PUBLIC_SITE_URL || "https://www.notesapp.name.ng").replace(/\/$/, "");
 const EMAIL_EVERY_MS = 3_600_000; // at most one message email an hour per member (all conversations together)
 
-export type SendInput = { text: string; moment?: MomentRef; attachmentIds?: string[]; sticker?: string };
+export type SendInput = { text: string; moment?: MomentRef; attachmentIds?: string[]; sticker?: string; replyToId?: string };
 // How the server checks an uploaded file really arrived (a HEAD on the private bucket); injected so it can be tested.
 export type FileDeps = { head: (key: string) => Promise<{ size: number } | null> };
 
@@ -123,6 +124,14 @@ export async function sendMessage(db: Firestore, fromUid: string, toUid: string,
   const attachments = ids.length ? await claimAttachments(db, fromUid, ids, files) : [];
   const preview = (text || (attachments.length ? attachmentLabel(attachments) : "🖼 Sticker")).slice(0, 120);
   const cid = conversationId(fromUid, toUid);
+  // A reply quotes one earlier message of this conversation: who wrote it and the start of what it said.
+  let replyTo: { id: string; from: string; text: string } | undefined;
+  if (input.replyToId) {
+    const orig = (await db.doc(`conversations/${cid}/messages/${String(input.replyToId)}`).get()).data();
+    if (!orig) throw new MessageError(400, "The message you're replying to wasn't found.");
+    const what = orig.text ? stripFormat(String(orig.text)) : orig.attachments?.length ? attachmentLabel(orig.attachments) : orig.sticker ? "🖼 Sticker" : "";
+    replyTo = { id: String(input.replyToId), from: String(orig.from), text: what.slice(0, 140) };
+  }
   const messageId = `${String(now.getTime()).padStart(13, "0")}_${randomBytes(4).toString("hex")}`;
   const convRef = db.doc(`conversations/${cid}`);
   const msgRef = convRef.collection("messages").doc(messageId);
@@ -135,7 +144,7 @@ export async function sendMessage(db: Firestore, fromUid: string, toUid: string,
     if (!conv.exists) {
       t.set(convRef, { participants: [fromUid, toUid].sort(), createdAt, unread: { [fromUid]: 0, [toUid]: 0 } });
     }
-    t.set(msgRef, { from: fromUid, text, createdAt, ...(attachments.length ? { attachments } : {}), ...(sticker ? { sticker } : {}), ...(input.moment ? { momentRef: input.moment } : {}) });
+    t.set(msgRef, { from: fromUid, text, createdAt, ...(attachments.length ? { attachments } : {}), ...(sticker ? { sticker } : {}), ...(replyTo ? { replyTo } : {}), ...(input.moment ? { momentRef: input.moment } : {}) });
     t.update(convRef, {
       lastMessage: { from: fromUid, text: preview, at: createdAt, ...(input.moment ? { moment: true } : {}) },
       lastMessageAt: createdAt,
@@ -201,7 +210,7 @@ export async function getThread(db: Firestore, uid: string, cid: string, now = n
     const m = d.data();
     const ref = m.momentRef as MomentRef | undefined;
     return {
-      id: d.id, from: m.from, text: m.text, createdAt: m.createdAt, ...(m.readAt ? { readAt: m.readAt } : {}), ...(m.sticker ? { sticker: m.sticker } : {}),
+      id: d.id, from: m.from, text: m.text, createdAt: m.createdAt, ...(m.readAt ? { readAt: m.readAt } : {}), ...(m.sticker ? { sticker: m.sticker } : {}), ...(m.replyTo ? { replyTo: m.replyTo } : {}),
       ...(m.attachments ? { attachments: (m.attachments as MessageAttachment[]).map(({ key: _k, ...info }) => info) } : {}),
       // Only whether it has expired — never the moment's content.
       ...(ref ? { moment: { momentId: ref.momentId, expired: isMomentExpired(ref.expiresAt, now) } } : {}),
