@@ -1,6 +1,7 @@
 import Link from "next/link";
 import Image from "next/image";
 import AuthNav from "@/components/AuthNav";
+import MobileNav from "@/components/MobileNav";
 import VerifyEmailBanner from "@/components/VerifyEmailBanner";
 import SearchBar from "@/components/SearchBar";
 import CelebrationBanner from "@/components/CelebrationBanner";
@@ -84,9 +85,7 @@ const site = await getSiteSettingsCached();
               <span className="h-4 w-px bg-rule" />
               <AuthNav />
             </nav>
-            <Link href="/journals" className="btn-primary md:hidden">
-              Explore
-            </Link>
+            <MobileNav links={NAV} />
           </div>
         </header>
 

@@ -127,7 +127,7 @@ export default function MomentViewer({ moments, onClose, onChanged }: { moments:
                 type="button"
                 onClick={() => { pause(); setShowViewers((s) => !s); setViewers(null); api<{ viewers: { uid: string; username: string; displayName: string }[] }>(`/api/moments/${m.id}`).then((r) => setViewers(r.viewers)).catch(() => setViewers([])); }}
                 className="underline"
-              >👁 {m.viewCount ?? 0} · ♥ {m.likeCount} · ↻ {m.reshareCount}</button>
+              >👁 {m.viewCount ?? 0} · ♥ {m.likeCount} · 🔁 {m.reshareCount}</button>
               <button
                 disabled={busy}
                 onClick={() => act(async () => {
@@ -156,14 +156,14 @@ export default function MomentViewer({ moments, onClose, onChanged }: { moments:
                   disabled={busy}
                   onClick={() => act(async () => { await api(`/api/moments/${m.id}`, { body: { action: "reshare" } }); setNote("Reshared to your moments."); onChanged?.(); })}
                   className="rounded border border-white/40 px-3 py-1 text-sm hover:bg-white/10"
-                >↻ Reshare</button>
+                >🔁 Reshare</button>
                 <button disabled={busy} onClick={() => { pause(); setReporting(true); }} className="ml-auto rounded border border-white/40 px-3 py-1 text-sm hover:bg-white/10">Report</button>
               </div>
               <form
                 className="flex gap-2"
                 onSubmit={(e) => { e.preventDefault(); act(async () => { await api(`/api/moments/${m.id}`, { body: { action: "reply", text: reply } }); setReply(""); setNote("Sent to their inbox."); }); }}
               >
-                <input value={reply} onChange={(e) => setReply(e.target.value)} placeholder={`Reply to @${m.ownerUsername}`} maxLength={2000} className="min-w-0 flex-1 rounded border border-white/30 bg-transparent px-3 py-2 text-sm placeholder:text-white/50" />
+                <input value={reply} onChange={(e) => setReply(e.target.value)} placeholder={`💬 Reply to @${m.ownerUsername}`} maxLength={2000} className="min-w-0 flex-1 rounded border border-white/30 bg-transparent px-3 py-2 text-sm placeholder:text-white/50" />
                 <button disabled={busy || !reply.trim()} className="rounded bg-crimson px-3 py-2 text-sm font-bold disabled:opacity-50">Send</button>
               </form>
             </>

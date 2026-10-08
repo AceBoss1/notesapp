@@ -11,6 +11,15 @@ export type Release = {
 
 export const CHANGELOG: Release[] = [
   {
+    version: "v0.8.2",
+    bump: "patch",
+    date: "2026-10-08",
+    changes: [
+      { kind: "fixed", text: "On phones the menu was missing: only an Explore button showed. There is now a Menu button with every page, search, and sign in or your account." },
+      { kind: "changed", text: "Messages and replies to moments now use the 💬 icon (on profiles, in notifications and in the moment viewer), and re-sharing a moment uses 🔁." },
+    ],
+  },
+  {
     version: "v0.8.1",
     bump: "patch",
     date: "2026-10-08",
