@@ -14,7 +14,8 @@ import VoiceNoteButton from "./VoiceNoteButton";
 import StickerPicker from "./StickerPicker";
 import ProfileAvatar from "@/components/ProfileAvatar";
 import VerifiedBadge from "@/components/VerifiedBadge";
-import { badgeLevel, getUserByUid, goldKindOf } from "@/lib/users";
+import TeamBadge from "@/components/TeamBadge";
+import { badgeLevel, getUserByUid, goldKindOf, isTeamMember } from "@/lib/users";
 import { stickerById } from "@/lib/stickers";
 import { isMomentExpired } from "@/lib/moments-rules";
 import ReportDialog from "@/components/moments/ReportDialog";
@@ -37,7 +38,7 @@ function dayLabel(iso: string): string {
 }
 const GROUP_GAP_MS = 5 * 60_000; // messages from one person within five minutes share one name line
 
-type Person = { name: string; username: string; avatar: string; level: "verified" | "gold" | null; goldKind?: ReturnType<typeof goldKindOf> };
+type Person = { name: string; username: string; avatar: string; level: "verified" | "gold" | null; goldKind?: ReturnType<typeof goldKindOf>; team?: boolean };
 type Who = { uid: string; username: string; displayName: string; avatar: string };
 
 // One conversation. `to` (a username) starts a new one; `id` opens an existing one. Replies to moments carry a small note:
@@ -77,7 +78,7 @@ export default function Thread({ id, to }: { id?: string; to?: string }) {
     Promise.all([getUserByUid(user.uid).catch(() => null), getUserByUid(who.uid).catch(() => null)]).then(([me, them]) => {
       if (!live) return;
       const make = (p: Awaited<ReturnType<typeof getUserByUid>>, fallback: { name: string; username: string; avatar: string }): Person =>
-        p ? { name: p.displayName, username: p.username, avatar: p.avatar, level: badgeLevel(p), goldKind: goldKindOf(p) } : { ...fallback, level: null };
+        p ? { name: p.displayName, username: p.username, avatar: p.avatar, level: badgeLevel(p), goldKind: goldKindOf(p), team: isTeamMember(p) } : { ...fallback, level: null };
       setPeople({
         [user.uid]: make(me, { name: user.displayName || "You", username: "", avatar: "" }),
         [who.uid]: make(them, { name: who.displayName, username: who.username, avatar: who.avatar }),
@@ -223,6 +224,7 @@ export default function Thread({ id, to }: { id?: string; to?: string }) {
                     <p className="mb-1 flex items-center gap-1.5 font-ui text-sm font-bold text-ink">
                       {person?.name ?? ""}
                       {person?.level && <VerifiedBadge size={14} level={person.level} goldKind={person.goldKind} />}
+                      {person?.team && <TeamBadge size={14} />}
                     </p>
                   )}
                   {sticker ? (

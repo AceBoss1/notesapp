@@ -11,6 +11,14 @@ export type Release = {
 
 export const CHANGELOG: Release[] = [
   {
+    version: "v0.9.6",
+    bump: "patch",
+    date: "2026-10-08",
+    changes: [
+      { kind: "changed", text: "Messages: people on the #NotesApp team now show the team badge beside their verified or gold badge, in conversations and in the inbox." },
+    ],
+  },
+  {
     version: "v0.9.5",
     bump: "patch",
     date: "2026-10-08",
