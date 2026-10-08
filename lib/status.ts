@@ -99,8 +99,8 @@ export async function checkServices(): Promise<ServiceStatus[]> {
             console.warn("[status] private downloads bucket check failed:", e.name, e.$metadata?.httpStatusCode);
             return false;
           }
-        }).then((r) => toStatus("downloads", "Digital downloads", "Private file storage for paid downloads (Cloudflare R2)", r))
-      : Promise.resolve(notConfigured("downloads", "Digital downloads", "Private file storage for paid downloads (Cloudflare R2)"))
+        }).then((r) => toStatus("downloads", "Digital downloads", "Private file storage for paid downloads and files sent in messages (Cloudflare R2)", r))
+      : Promise.resolve(notConfigured("downloads", "Digital downloads", "Private file storage for paid downloads and files sent in messages (Cloudflare R2)"))
   );
 
   // Video lessons of view-only items and courses (Cloudflare Stream).
@@ -144,8 +144,8 @@ export async function checkServices(): Promise<ServiceStatus[]> {
   // removed by the scheduler job below, which reports through "Scheduled jobs".
   checks.push(
     MESSAGES_LIVE
-      ? timed(async () => { await getAdminDb().collection("conversations").limit(1).get(); return true; }).then((r) => toStatus("messages", MOMENTS_LIVE ? "Messages & moments" : "Messages", "Direct messages, moments and their live updates", r))
-      : Promise.resolve(notConfigured("messages", "Messages & moments", "Direct messages, moments and their live updates"))
+      ? timed(async () => { await getAdminDb().collection("conversations").limit(1).get(); return true; }).then((r) => toStatus("messages", MOMENTS_LIVE ? "Messages & moments" : "Messages", "Direct messages, moments, their live updates and read ticks", r))
+      : Promise.resolve(notConfigured("messages", "Messages & moments", "Direct messages, moments, their live updates and read ticks"))
   );
   // Device notifications need the three VAPID settings; this only confirms they are present.
   checks.push(
@@ -160,8 +160,8 @@ export async function checkServices(): Promise<ServiceStatus[]> {
       ? timed(async (signal) => {
           const res = await fetch("https://api.resend.com/domains", { headers: { Authorization: `Bearer ${resend}` }, signal, cache: "no-store" });
           return res.status < 500; // a restricted send-only key returns 401 but proves the API is up
-        }).then((r) => toStatus("email", "Email", "Booking confirmations and reminders (Resend)", r))
-      : Promise.resolve(notConfigured("email", "Email", "Booking confirmations and reminders (Resend)"))
+        }).then((r) => toStatus("email", "Email", "Booking confirmations, reminders and the team's report alerts (Resend)", r))
+      : Promise.resolve(notConfigured("email", "Email", "Booking confirmations, reminders and the team's report alerts (Resend)"))
   );
 
   // Identity checks for the gold badge (Dojah hosted widget) — only once enabled.
@@ -177,13 +177,13 @@ export async function checkServices(): Promise<ServiceStatus[]> {
   // this catches the scheduler silently stopping (escrow never released, trials never expiring).
   checks.push(
     getAdminDb().collection("cronRuns").doc("reminders").get().then((snap): ServiceStatus => {
-      const id = "cron", name = "Scheduled jobs", description = "Session reminders, plan expiry and order releases";
+      const id = "cron", name = "Scheduled jobs", description = "Session reminders, plan expiry, order releases, moment clean-up, the daily reports digest and timed-suspension lifts";
       const d = snap.data();
       if (!d?.at) return notConfigured(id, name, description);
       const ageMin = (Date.now() - new Date(d.at).getTime()) / 60_000;
       const state: ServiceState = ageMin > CRON_DOWN_MIN ? "down" : ageMin > CRON_SLOW_MIN || d.ok === false ? "degraded" : "operational";
       return { id, name, description, state };
-    }).catch(() => ({ id: "cron", name: "Scheduled jobs", description: "Session reminders, plan expiry and order releases", state: "down" as ServiceState }))
+    }).catch(() => ({ id: "cron", name: "Scheduled jobs", description: "Session reminders, plan expiry, order releases, moment clean-up, the daily reports digest and timed-suspension lifts", state: "down" as ServiceState }))
   );
 
   return Promise.all(checks);

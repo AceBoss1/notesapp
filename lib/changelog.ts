@@ -11,6 +11,15 @@ export type Release = {
 
 export const CHANGELOG: Release[] = [
   {
+    version: "v0.8.3",
+    bump: "patch",
+    date: "2026-10-08",
+    changes: [
+      { kind: "changed", text: "The roadmap and the home page now list Moments and private messages as live, with what each one does." },
+      { kind: "changed", text: "The status page now says that file storage covers files sent in messages, and that scheduled jobs include moment clean-up, the daily reports digest and the lifting of timed suspensions." },
+    ],
+  },
+  {
     version: "v0.8.2",
     bump: "patch",
     date: "2026-10-08",
