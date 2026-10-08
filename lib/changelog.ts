@@ -11,6 +11,14 @@ export type Release = {
 
 export const CHANGELOG: Release[] = [
   {
+    version: "v0.9.8",
+    bump: "patch",
+    date: "2026-10-08",
+    changes: [
+      { kind: "added", text: "Messages: an emoji button before Bold, Italic and Underline. Pick an emoji and it goes into your message where the cursor is." },
+    ],
+  },
+  {
     version: "v0.9.7",
     bump: "patch",
     date: "2026-10-08",

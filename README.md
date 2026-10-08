@@ -2119,3 +2119,5 @@ A moment's video is up to 90 seconds. A longer video (up to 10 minutes and 100 M
 - **Badges in the inbox** now show beside names too.
 - **Picture menu** (`components/ProfileAvatar.tsx`): tapping someone's picture in a chat, a journal (author, directory cards) or a comment asks what to do: View profile; View moments (only when they have one up that you may see); and, away from a chat, Send a message. Signed out, it goes to the profile.
 - Also fixed: `Avatar` kept the "failed" fallback after an empty first `src`; it now retries when `src` changes.
+
+- **Emoji button (v0.9.8):** a 😊 button before B / I / U in the message toolbar (`components/messages/EmojiPicker.tsx`, 64 everyday emojis, no flags or skin tones because those draw badly on some devices). Picking one inserts it at the cursor.
