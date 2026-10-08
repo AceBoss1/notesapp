@@ -11,6 +11,14 @@ export type Release = {
 
 export const CHANGELOG: Release[] = [
   {
+    version: "v0.9.4",
+    bump: "patch",
+    date: "2026-10-08",
+    changes: [
+      { kind: "changed", text: "The About page now covers Moments and private messages (voice notes, stickers, files), who can see your moments, and how reports and suspensions work. The Contact page says where to report a moment or a conversation." },
+    ],
+  },
+  {
     version: "v0.9.3",
     bump: "patch",
     date: "2026-10-08",

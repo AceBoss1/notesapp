@@ -20,7 +20,7 @@ export default async function ContactPage() {
         Help with a booking, payment, payout or refund; a store order, a
         parcel or a delivery problem; an advertising campaign; setting up an
         organisation account, CAC verification or your team; boosts and gifts;
-        the gold badge; reporting a post or account; partnerships, press,
+        the gold badge; reporting a post or account (a moment or a conversation can also be reported with the Report button in the app); partnerships, press,
         investment — or anything else. Pick the topic in the form below and it
         goes straight to admins, not a shared inbox someone has to remember to
         check. For a parcel, include its ID (it looks like NA-7K2M9QXD) — you

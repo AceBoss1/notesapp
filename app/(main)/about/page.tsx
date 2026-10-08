@@ -7,15 +7,18 @@ import Avatar from "@/components/Avatar";
 import { CHANNEL_JOURNALS } from "@/lib/journals-directory";
 import { GOLD_KIND_LIVE } from "@/lib/badges";
 import GoldBadgeExplainer from "@/components/GoldBadgeExplainer";
+import { MESSAGES_LIVE, MOMENTS_LIVE } from "@/lib/moments-rules";
 
 export const metadata: Metadata = {
   title: "About",
   description:
-    "Why #NotesApp exists — one workspace for African coaches, consultants, and knowledge professionals to publish, get booked, sell from a shop and get paid — and what you can do on it today.",
+    "Why #NotesApp exists — one workspace for African coaches, consultants, and knowledge professionals to publish, get booked, sell from a shop, share moments, message and get paid — and what you can do on it today.",
   openGraph: { images: ["/images/marketing/notesapp-showcase.png"] },
 };
 
 const LIVE = [
+  ...(MOMENTS_LIVE ? [{ href: "/journals", title: "Moments", copy: "Share a picture, a video of up to 90 seconds or text, with an optional voice-over, on your profile picture for 24, 48 or 72 hours. See them in the Moments row on Journals, like WhatsApp Status; you choose whether only your followers or everyone can see yours." }] : []),
+  ...(MESSAGES_LIVE ? [{ href: "/messages", title: "Private messages", copy: "One-to-one messages with bold, italic and underline, sent and read ticks with times, pictures, videos and documents, voice notes of up to 5 minutes, and stickers. Replies to your moments land here too, and notifications on your device are on by default." }] : []),
   { href: "/journals", title: "Journals", copy: "Publish with a rich-text composer; readers follow, comment, like and share." },
   { href: "/booking", title: "Paid 1:1 sessions", copy: "Your own price and weekly availability, Paystack checkout, reminders and a clear cancellation policy." },
   { href: "/journals", title: "Monthly subscriptions", copy: "Readers subscribe to unlock your premium entries; renewals are automatic." },
@@ -127,7 +130,8 @@ export default async function AboutPage() {
           <li>Publisher earnings are held until the session has happened (or a 7-day window for subscriptions and gifts) and paid to a verified bank account.</li>
           <li>One published cancellation and refund policy for every session.</li>
           <li>You can download a copy of your data or delete your account yourself — see <Link href="/security" className="text-crimson underline">Trust &amp; security</Link>.</li>
-          <li>Verified emails are required to pay; accounts can be suspended and appealed.</li>
+          <li>Verified emails are required to pay; accounts can be suspended, for a set time or until lifted, and appealed.</li>
+          <li>Messages are private to the two people in them, and your moments are seen only by the people you allow: your followers, or everyone if you choose (Edit profile, Moments privacy). Anyone can block a member or report a moment or conversation; reports of nudity or violence are reviewed within 24 hours — see <Link href="/privacy" className="text-crimson underline">Privacy</Link>.</li>
           <li>Badges: the #NotesApp team mark for staff and guest writers, the maroon ✔ for accounts in good standing, and a gold badge for accounts we endorse (identity-checked gold {GOLD_KIND_LIVE.identity ? "also available" : "coming soon"}) — see <Link href="/badges" className="text-crimson underline">Verification badges</Link>.</li>
           <li>Live service health is public on the <Link href="/status" className="text-crimson underline">status page</Link>; see our <Link href="/terms" className="text-crimson underline">Terms</Link> and <Link href="/privacy" className="text-crimson underline">Privacy Policy</Link>.</li>
         </ul>
