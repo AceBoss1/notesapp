@@ -11,6 +11,15 @@ export type Release = {
 
 export const CHANGELOG: Release[] = [
   {
+    version: "v0.9.9",
+    bump: "patch",
+    date: "2026-10-08",
+    changes: [
+      { kind: "added", text: "A Domains page: what domain sales and DNS management will look like, with our domain partner Whogohost (now go54). Not live yet." },
+      { kind: "changed", text: "The roadmap lists domain sales and DNS management for Business and Enterprise." },
+    ],
+  },
+  {
     version: "v0.9.8",
     bump: "patch",
     date: "2026-10-08",
