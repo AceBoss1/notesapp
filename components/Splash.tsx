@@ -21,7 +21,16 @@ export default function Splash() {
   }, [router]);
 
   return (
-    <main className="flex min-h-screen flex-col items-center justify-center bg-paper px-6 text-center">
+    <div className="md:grid md:min-h-screen md:grid-cols-2">
+      {/* Tablet and desktop: the left half repeats the brand on the same gradient as the challenge hero. */}
+      <aside className="hidden flex-col items-center justify-center border-r border-rule bg-gradient-to-b from-crimson/10 via-white to-white px-10 text-center md:flex" aria-hidden>
+        <Image src="/images/brand/notesapp-icon.webp" alt="" width={128} height={128} className="h-32 w-32 rounded-3xl shadow-md" />
+        <p className="mt-8 font-ui text-5xl font-extrabold tracking-tight text-ink">
+          Notes<span className="text-crimson">App</span>
+        </p>
+        <p className="mt-4 max-w-sm text-lg text-slate">Publish a note, take a booking, get paid.</p>
+      </aside>
+    <main className="flex min-h-screen flex-col items-center justify-center bg-paper px-6 text-center md:min-h-0">
       <Image src="/images/brand/notesapp-icon.webp" alt="#NotesApp" width={96} height={96} priority className="h-24 w-24 rounded-2xl" />
       <h1 className="mt-6 font-ui text-4xl font-extrabold tracking-tight text-ink">
         Notes<span className="text-crimson">App</span>
@@ -41,5 +50,6 @@ export default function Splash() {
         <a href={`https://${MAIN_HOST}/privacy`} className="underline">Privacy Policy</a>.
       </p>
     </main>
+    </div>
   );
 }

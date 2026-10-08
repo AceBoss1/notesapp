@@ -1020,6 +1020,7 @@ future session, the product decisions are already made:
    Without it the browser's preflight to the presigned URL fails and the
    form shows "Failed to fetch". The presign code also no longer adds the
    CRC32 checksum header (`lib/r2.ts`), which R2 rejects on preflight.
+   Every site address must be in the list: `app.notesapp.name.ng`, `notesapp.ng` and `www.notesapp.ng` were added for the app address, so re-paste it into **both** buckets after any change.
 2. **Firestore indexes.** `firestore.indexes.json` already defines the
    `notifications` (recipientUid + createdAt) and `comments` indexes, but
    they must be deployed to the new project:
