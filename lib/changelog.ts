@@ -11,6 +11,17 @@ export type Release = {
 
 export const CHANGELOG: Release[] = [
   {
+    version: "v0.9.2",
+    bump: "patch",
+    date: "2026-10-08",
+    changes: [
+      { kind: "changed", text: "Device notifications are now on by default: if your browser has allowed them we turn them on for you, and if not we offer once (you can turn them off in Messages and we won't turn them back on)." },
+      { kind: "added", text: "The #1MillionNairaNotesAppChallenge artwork is now a sticker you can send." },
+      { kind: "changed", text: "Rates & payouts: Earnings now comes straight after Your plan." },
+      { kind: "changed", text: "Privacy Policy, Terms, Trust & security, Pricing, the home page and the roadmap now cover moments privacy (who can see your moments and how to change it), voice notes, stickers, files in messages and the per-plan limits." },
+    ],
+  },
+  {
     version: "v0.9.0",
     bump: "minor",
     date: "2026-10-08",

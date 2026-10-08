@@ -3,6 +3,7 @@ import Image from "next/image";
 import AuthNav from "@/components/AuthNav";
 import MobileNav from "@/components/MobileNav";
 import VerifyEmailBanner from "@/components/VerifyEmailBanner";
+import PushPrompt from "@/components/messages/PushPrompt";
 import SearchBar from "@/components/SearchBar";
 import CelebrationBanner from "@/components/CelebrationBanner";
 import ChallengeBanner from "@/components/ChallengeBanner";
@@ -56,6 +57,7 @@ const site = await getSiteSettingsCached();
         <CelebrationBanner />
         <ChallengeBanner />
         <VerifyEmailBanner />
+        <PushPrompt />
         {/* Masthead */}
         <header className="sticky top-0 z-40 border-b border-rule bg-paper/90 backdrop-blur">
           <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-4 sm:px-6 lg:px-8">

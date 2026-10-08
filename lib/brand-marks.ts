@@ -4,6 +4,11 @@ export const ICON_MARKS = [
   { id: "icon-alt", file: "/images/brand/notesapp-icon-alt.webp", label: "#NotesApp icon (alternate)" },
 ] as const;
 
+// Campaign artwork (wide, so it is shown larger than the icons when sent as a sticker).
+export const CAMPAIGN_MARKS = [
+  { id: "challenge", file: "/images/brand/challenge-graphic.webp", label: "#1MillionNairaNotesAppChallenge" },
+] as const;
+
 // Seasonal and festival versions of the icon (files are in public/images/seasonal, as .webp).
 export const SEASONAL = [
   { file: "valentines.png", label: "Valentine's Day" },

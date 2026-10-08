@@ -26,6 +26,8 @@ const SECTIONS: { title: string; points: string[] }[] = [
       "View-only items and courses never expose a file: PDF pages are streamed only to the buyer's signed-in, registered device and drawn in the page, and videos play from Cloudflare Stream with short-lived signed links and downloads switched off. Each purchase is tied to the buyer's account and two devices; a third device is refused and every attempt is counted. This deters sharing and casual copying — it can't stop someone recording their screen.",
       "Uploads are limited by file type and size, and the size is built into the upload link so it can't be exceeded. Executable files are not accepted.",
       "Drafts are private to their author; suspension records and appeals are private to the account and to admins.",
+      "Messages can be read only by the two people in the conversation. Pictures, videos, voice notes and documents sent in messages sit in private storage and open only through short-lived links given to those two people.",
+      "Moments are seen only by the people you allow: your followers by default, or everyone if you choose that in Moments privacy. Blocking someone hides your moments from them, and moments are deleted when their time is up.",
     ],
   },
   {
@@ -44,7 +46,7 @@ const SECTIONS: { title: string; points: string[] }[] = [
       "Gold identity checks are done by Dojah. We receive only a pass or fail result and never store ID numbers, selfies or documents.",
       "Organisations are checked against their CAC registration before they are marked verified, and are labelled unverified until then.",
       "Email must be verified before you can pay. Emails are never shown on public profiles.",
-      "Accounts can be suspended with a reason, and the member can appeal.",
+      "Accounts can be suspended with a reason, for a set time or until lifted, and the member can appeal. Reports of nudity or violence reach our team straight away and are reviewed within 24 hours.",
     ],
   },
   {

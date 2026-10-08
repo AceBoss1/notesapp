@@ -168,9 +168,9 @@ export default function Thread({ id, to }: { id?: string; to?: string }) {
           if (sticker) {
             return (
               <div key={m.id} className={`flex ${mine ? "justify-end" : "justify-start"}`}>
-                <div className="max-w-[60%]">
+                <div className={sticker.wide ? "max-w-[80%]" : "max-w-[60%]"}>
                   {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={sticker.src} alt={`${sticker.label} sticker`} className="h-28 w-28 object-contain" />
+                  <img src={sticker.src} alt={`${sticker.label} sticker`} className={sticker.wide ? "h-auto w-56 max-w-full object-contain" : "h-28 w-28 object-contain"} />
                   <p className={`flex gap-x-3 text-[11px] text-slate ${mine ? "justify-end" : ""}`}>
                     <span>{mine && <span aria-label="Sent">✔ </span>}{stamp(m.createdAt)}</span>
                     {mine && m.readAt && <span><span aria-label="Read">✔✔ </span>{stamp(m.readAt)}</span>}

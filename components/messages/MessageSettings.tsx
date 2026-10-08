@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { api } from "@/lib/moments-client";
-import { currentSubscription, disablePush, enablePush, pushSupported } from "@/lib/push-client";
+import { currentSubscription, disablePush, enablePush, pushSupported, setPushChoice } from "@/lib/push-client";
 
 // How you hear about new messages: a bell (always), an email (off until you switch it on; Business and Enterprise only, at most one an hour) and,
 // if switched on for this device, a notification. None of them shows what was written.
@@ -23,7 +23,7 @@ export default function MessageSettings() {
   }
   async function togglePush() {
     setError("");
-    try { if (pushOn) { await disablePush(); setPushOn(false); } else { await enablePush(prefs!.vapidKey!); setPushOn(true); } }
+    try { if (pushOn) { await disablePush(); setPushChoice("off"); setPushOn(false); } else { await enablePush(prefs!.vapidKey!); setPushChoice(null); setPushOn(true); } }
     catch (e) { setError(e instanceof Error ? e.message : "Couldn't change that."); }
   }
 
