@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { MAIN_HOST, isMainHost } from "@/lib/host";
+import { MAIN_HOST, isMainHost, isAppHost } from "@/lib/host";
 
 // Custom domains (Enterprise). On our own hosts this does nothing. On a member's domain it serves their branded site
 // (app/(site)/s/[username]: header with their name, Home, Notes, Shop, "Powered by #NotesApp" footer) and sends everything
@@ -32,10 +32,20 @@ async function resolve(host: string, check?: string): Promise<Resolved> {
 }
 
 const PASS = /^\/(_next\/|favicon|robots\.txt|sitemap|images\/|fonts\/|api\/(views|trending|boosts|ads|public|status|consent|booking\/slots|auth\/branded|paystack\/(initialize|verify))\b)/;
+// Pages the app domain doesn't carry: it sends them to www.notesapp.name.ng.
+const APP_TO_MAIN = /^\/(about|pricing|roadmap|status|docs|changelog|security|terms|privacy|brand|challenge|advertise|domains|organisations|store-selling|merchstore|contact|coauthoring|gifts|boost|badges|track)(\/|$)/;
 const PUBLIC_FILE = /\.[a-z0-9]{2,5}$/i;
 
 export async function middleware(req: NextRequest) {
   const host = (req.headers.get("host") || "").toLowerCase().replace(/:\d+$/, "");
+  if (host && isAppHost(host)) {
+    // The app domain (notesapp.ng): the home page is a splash to sign up or sign in (a signed-in member goes straight to the journal);
+    // the marketing and company pages live on the main site.
+    const { pathname, search } = req.nextUrl;
+    if (pathname === "/") return NextResponse.rewrite(new URL("/welcome", req.url));
+    if (APP_TO_MAIN.test(pathname)) return NextResponse.redirect(`https://${MAIN_HOST}${pathname}${search}`, 307);
+    return NextResponse.next();
+  }
   if (!host || isMainHost(host)) return NextResponse.next();
 
   const { pathname, search } = req.nextUrl;

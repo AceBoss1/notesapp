@@ -267,6 +267,7 @@ export default async function PricingPage() {
             ["/merchstore", "Merch store"],
             ["/advertise", "Advertise — banner campaigns and ad share"],
             ["/store-selling", "Sell physical goods & digital downloads — checkout, delivery hold, parcel tracking, instant downloads"],
+            ["/domains", "Domains — search, register and manage, with DNS (coming soon, Business and Enterprise)"],
             ["/organisations", "Organisations — free 30-day Business trial, CAC verification"],
           ].map(([href, label]) => (
             <li key={href}>
