@@ -11,6 +11,15 @@ export type Release = {
 
 export const CHANGELOG: Release[] = [
   {
+    version: "v0.8.1",
+    bump: "patch",
+    date: "2026-10-08",
+    changes: [
+      { kind: "fixed", text: "Moments: watching a video that was split into parts is lighter on your device: the parts now play from one download instead of fetching the same video again for each part, and each moment is counted as seen once." },
+      { kind: "fixed", text: "Moments: if a video can't be loaded you now see a message instead of nothing." },
+    ],
+  },
+  {
     version: "v0.8.0",
     bump: "minor",
     date: "2026-10-08",
