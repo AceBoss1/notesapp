@@ -6,7 +6,7 @@ import { MESSAGES_LIVE, MOMENTS_LIVE } from "@/lib/moments-rules";
 export const metadata: Metadata = {
   title: "Roadmap",
   description:
-    "What's next for #NotesApp — social publishing, AI drafting, full white label, Paylony payments, meetings and messaging, and the ad-share program. Decided and documented, or under discussion; not built yet.",
+    "What's live and what's next for #NotesApp — moments and messages are live; social publishing, AI drafting, full white label, Paylony payments, calls and meetings, and the ad-share program are next. Decided and documented, or under discussion.",
 };
 
 const ITEMS = [
@@ -77,7 +77,7 @@ const ITEMS = [
     tag: "Foundations",
     body: "The unglamorous pieces that real money needs: password reset and email verification, a bookings dashboard for both sides, a clear cancellation and refund policy, and terms and privacy consent before payment.",
     detail:
-      "Already in place: rate-limiting on payment and upload endpoints, admin access through Firebase custom claims, automated Firestore security-rules tests, a public status page, a custom media domain, and private storage for paid downloads. Still planned: account deletion and data export, and error monitoring.",
+      "Already in place: reports on moments and conversations reviewed by our team (anything marked nudity or violence within 24 hours), suspensions for a set time that lift on their own, with appeals, rate-limiting on payment and upload endpoints, admin access through Firebase custom claims, automated Firestore security-rules tests, a public status page, a custom media domain, and private storage for paid downloads. Still planned: account deletion and data export, and error monitoring.",
   },
 ];
 
@@ -108,8 +108,8 @@ export default function RoadmapPage() {
               <li>Paid Pro and Business plans through Paystack, and official #NotesApp merch pre-orders in Naira — see <Link href="/pricing" className="text-crimson underline">Pricing</Link> and the <Link href="/merchstore" className="text-crimson underline">Merch store</Link></li>
               <li>Your own domain (Business and Enterprise) and, on Enterprise, the server-to-server API, Console keys and webhooks — see the <Link href="/docs" className="text-crimson underline">API Docs</Link></li>
               <li>Video on posts — one MP4 or WebM per post (up to 3 minutes and 100 MB), played in our own data-friendly player, with a weekly allowance by plan</li>
-              {MOMENTS_LIVE && <li>Moments: a picture, video (up to 90 seconds) or text, with an optional voice-over, on your profile picture for 24, 48 or 72 hours</li>}
-              {MESSAGES_LIVE && <li>Direct messages with a live inbox, email and notifications, and block and report tools</li>}
+              {MOMENTS_LIVE && <li>Moments: a picture, a video or text, with an optional voice-over, on your profile picture for 24, 48 or 72 hours. A video over 90 seconds is split into parts (as many as your plan&apos;s weekly video allowance covers); a bar at the top fills in maroon as each moment plays; followers can like, 🔁 re-share or 💬 reply, you can see who watched, and anyone can block or report</li>}
+              {MESSAGES_LIVE && <li>Direct messages with a live inbox: bold, italic and underline, a ✔ when sent and a ✔✔ with the time when read, and pictures, videos and documents attached (how big and how many depends on your plan). Notifications on your device, email on Business and Enterprise (off until you switch it on, at most one an hour), and block and report tools</li>}
               <li>Trending feed, a live <Link href="/status" className="text-crimson underline">status page</Link> and a public <Link href="/changelog" className="text-crimson underline">changelog</Link></li>
               <li>Verification badges: the maroon ✔ for accounts in good standing and the <strong className="text-ink">gold ✔ for endorsed accounts</strong>{GOLD_KIND_LIVE.identity ? " and identity-checked accounts" : ""} — see <Link href="/badges" className="text-crimson underline">Verification badges</Link></li>
               <li>Publisher payouts to a verified bank account, released automatically after the session</li>
@@ -122,7 +122,7 @@ export default function RoadmapPage() {
             <ul className="mt-3 space-y-2 text-sm text-slate">
               <li>WhatsApp reminders alongside email and the bell</li>
               {GOLD_KIND_LIVE.identity ? null : <li>Automatic identity-checked gold badge (all built; NIN + face check for people, CAC for organisations awaiting final tests)</li>}
-              <li>Full white label for Enterprise</li>
+              <li>Full white label for Enterprise (sign-in, sign-up and emails in the member&apos;s name are live; checkout and bookings on their own site, and their own sending address, are next)</li>
               <li>NotesApp Credit and Bonus Credits</li>
               <li>Paylony payments and Tap-to-Pay</li>
               <li><Link href="/challenge" className="text-crimson underline">#1MillionNairaNotesAppChallenge</Link> for influencers (coming soon)</li>
