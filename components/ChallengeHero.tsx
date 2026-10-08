@@ -13,7 +13,7 @@ export default function ChallengeHero() {
 
   return (
     <section className="border-b border-rule bg-gradient-to-b from-crimson/10 via-white to-white">
-      <div className="mx-auto flex max-w-5xl flex-col items-center gap-6 px-4 py-10 text-center sm:flex-row sm:text-left lg:px-8">
+      <div className="mx-auto flex max-w-6xl flex-col items-center gap-6 px-4 py-10 text-center sm:flex-row sm:text-left lg:px-8">
         <div className="relative flex shrink-0 items-end gap-1" aria-hidden>
           <Image src="/images/brand/notesapp-icon.webp" alt="" width={84} height={84} className="h-20 w-20 rounded-2xl shadow-md" />
           <svg viewBox="0 0 90 120" className="h-24 w-[72px]">
@@ -38,6 +38,17 @@ export default function ChallengeHero() {
             <Link href="/signup" className="btn-ghost">Create your free account</Link>
           </div>
         </div>
+        {/* The campaign artwork, on the right: opens the challenge page. */}
+        <Link href={CHALLENGE_PROMO.href} className="shrink-0 sm:ml-auto" aria-label="Read about the #1MillionNairaNotesAppChallenge">
+          <Image
+            src="/images/brand/challenge-graphic.webp"
+            alt="#1MillionNairaNotesAppChallenge: ₦10m up for grabs this month"
+            width={1536}
+            height={1024}
+            sizes="(min-width: 1024px) 340px, (min-width: 640px) 260px, 300px"
+            className="h-auto w-[300px] max-w-full sm:w-[260px] lg:w-[340px]"
+          />
+        </Link>
       </div>
       <style>{`
         @keyframes na-wave { 0%,100% { transform: skewY(0deg) translateY(0); } 50% { transform: skewY(-3deg) translateY(1px); } }
