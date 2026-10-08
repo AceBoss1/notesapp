@@ -35,7 +35,7 @@ export async function GET(req: NextRequest) {
   }
 }
 
-// POST { toUid? , toUsername?, text, attachmentIds?, sticker? }
+// POST { toUid? , toUsername?, text, attachmentIds?, sticker?, replyToId? }
 export async function POST(req: NextRequest) {
   try {
     const me = await authed(req, "messages", true);
@@ -49,7 +49,7 @@ export async function POST(req: NextRequest) {
       toUid = String(name?.uid ?? "");
     }
     if (!toUid) throw new MessageError(404, "That member wasn't found.");
-    return NextResponse.json(await sendMessage(db, me.uid, toUid, { text: String(body.text ?? ""), attachmentIds: Array.isArray(body.attachmentIds) ? body.attachmentIds : [], sticker: body.sticker ? String(body.sticker) : undefined }, new Date(), undefined, undefined, privateFilesConfigured() ? { head: headPrivate } : undefined));
+    return NextResponse.json(await sendMessage(db, me.uid, toUid, { text: String(body.text ?? ""), attachmentIds: Array.isArray(body.attachmentIds) ? body.attachmentIds : [], sticker: body.sticker ? String(body.sticker) : undefined, replyToId: body.replyToId ? String(body.replyToId) : undefined }, new Date(), undefined, undefined, privateFilesConfigured() ? { head: headPrivate } : undefined));
   } catch (err) {
     return fail(err, "Couldn't send the message");
   }

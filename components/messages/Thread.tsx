@@ -12,6 +12,9 @@ import FormattedText from "./FormattedText";
 import MessageAttachments from "./MessageAttachments";
 import VoiceNoteButton from "./VoiceNoteButton";
 import StickerPicker from "./StickerPicker";
+import ProfileAvatar from "@/components/ProfileAvatar";
+import VerifiedBadge from "@/components/VerifiedBadge";
+import { badgeLevel, getUserByUid, goldKindOf } from "@/lib/users";
 import { stickerById } from "@/lib/stickers";
 import { isMomentExpired } from "@/lib/moments-rules";
 import ReportDialog from "@/components/moments/ReportDialog";
@@ -23,6 +26,18 @@ const stamp = (iso: string) => {
   return d.toDateString() === new Date().toDateString() ? t : `${d.toLocaleDateString("en-NG", { day: "numeric", month: "short" })}, ${t}`;
 };
 
+// The divider above a new day: TODAY, YESTERDAY, or the date.
+const dayKey = (iso: string) => new Date(iso).toDateString();
+function dayLabel(iso: string): string {
+  const d = new Date(iso), now = new Date();
+  if (d.toDateString() === now.toDateString()) return "Today";
+  const y = new Date(now); y.setDate(now.getDate() - 1);
+  if (d.toDateString() === y.toDateString()) return "Yesterday";
+  return d.toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short", ...(d.getFullYear() !== now.getFullYear() ? { year: "numeric" } : {}) });
+}
+const GROUP_GAP_MS = 5 * 60_000; // messages from one person within five minutes share one name line
+
+type Person = { name: string; username: string; avatar: string; level: "verified" | "gold" | null; goldKind?: ReturnType<typeof goldKindOf> };
 type Who = { uid: string; username: string; displayName: string; avatar: string };
 
 // One conversation. `to` (a username) starts a new one; `id` opens an existing one. Replies to moments carry a small note:
@@ -42,6 +57,8 @@ export default function Thread({ id, to }: { id?: string; to?: string }) {
   const [busy, setBusy] = useState(false);
   const [blockedByMe, setBlockedByMe] = useState(false);
   const [reporting, setReporting] = useState(false);
+  const [people, setPeople] = useState<Record<string, Person>>({});
+  const [replyingTo, setReplyingTo] = useState<ThreadMessage | null>(null);
   const end = useRef<HTMLDivElement>(null);
   useEffect(() => onAuthStateChanged(auth, setUser), []);
   useEffect(() => { if (user) api<{ maxBytes: number; maxCount: number; maxVoiceSeconds: number }>("/api/messages/attachments").then(setAllowed).catch(() => {}); }, [user]);
@@ -53,6 +70,22 @@ export default function Thread({ id, to }: { id?: string; to?: string }) {
   }, [user, cid]);
   useEffect(() => { loadMeta(); }, [loadMeta]);
 
+  // Names, pictures and badges for both people (the badge shows beside the name, as everywhere else).
+  useEffect(() => {
+    if (!user || !who) return;
+    let live = true;
+    Promise.all([getUserByUid(user.uid).catch(() => null), getUserByUid(who.uid).catch(() => null)]).then(([me, them]) => {
+      if (!live) return;
+      const make = (p: Awaited<ReturnType<typeof getUserByUid>>, fallback: { name: string; username: string; avatar: string }): Person =>
+        p ? { name: p.displayName, username: p.username, avatar: p.avatar, level: badgeLevel(p), goldKind: goldKindOf(p) } : { ...fallback, level: null };
+      setPeople({
+        [user.uid]: make(me, { name: user.displayName || "You", username: "", avatar: "" }),
+        [who.uid]: make(them, { name: who.displayName, username: who.username, avatar: who.avatar }),
+      });
+    });
+    return () => { live = false; };
+  }, [user, who]);
+
   // The messages themselves, live: they appear as they arrive. Only the two people in a conversation can read it (firestore.rules).
   useEffect(() => {
     if (!user || !cid) return;
@@ -63,7 +96,7 @@ export default function Thread({ id, to }: { id?: string; to?: string }) {
         const rows: ThreadMessage[] = snap.docs.reverse().map((d) => {
           const m = d.data();
           // A reply to a moment says whether the moment has expired; the moment itself is never in the message.
-          return { id: d.id, from: m.from, text: m.text, createdAt: m.createdAt, ...(m.readAt ? { readAt: m.readAt } : {}), ...(m.sticker ? { sticker: m.sticker } : {}), ...(m.attachments ? { attachments: (m.attachments as { name: string; size: number; type: string; kind: "image" | "video" | "document" | "audio"; durationSec?: number }[]).map(({ name, size, type, kind, durationSec }) => ({ name, size, type, kind, ...(durationSec ? { durationSec } : {}) })) } : {}), ...(m.momentRef ? { moment: { momentId: m.momentRef.momentId, expired: isMomentExpired(m.momentRef.expiresAt) } } : {}) };
+          return { id: d.id, from: m.from, text: m.text, createdAt: m.createdAt, ...(m.readAt ? { readAt: m.readAt } : {}), ...(m.sticker ? { sticker: m.sticker } : {}), ...(m.replyTo ? { replyTo: m.replyTo } : {}), ...(m.attachments ? { attachments: (m.attachments as { name: string; size: number; type: string; kind: "image" | "video" | "document" | "audio"; durationSec?: number }[]).map(({ name, size, type, kind, durationSec }) => ({ name, size, type, kind, ...(durationSec ? { durationSec } : {}) })) } : {}), ...(m.momentRef ? { moment: { momentId: m.momentRef.momentId, expired: isMomentExpired(m.momentRef.expiresAt) } } : {}) };
         });
         setMessages(rows);
         // Something new from them while this is open: it's read.
@@ -110,8 +143,8 @@ export default function Thread({ id, to }: { id?: string; to?: string }) {
         if (!put.ok) throw new Error(`${f.name} didn't upload. Try again.`);
         attachmentIds.push(up.id);
       }
-      const r = await api<{ conversationId: string }>("/api/messages", { body: to ? { toUsername: to, text, attachmentIds } : { toUid: who?.uid, text, attachmentIds } });
-      setText(""); setFiles([]); setCid(r.conversationId);
+      const r = await api<{ conversationId: string }>("/api/messages", { body: to ? { toUsername: to, text, attachmentIds, replyToId: replyingTo?.id } : { toUid: who?.uid, text, attachmentIds, replyToId: replyingTo?.id } });
+      setText(""); setFiles([]); setReplyingTo(null); setCid(r.conversationId);
       if (!id) window.history.replaceState(null, "", `/messages/${r.conversationId}`);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Couldn't send.");
@@ -161,38 +194,74 @@ export default function Thread({ id, to }: { id?: string; to?: string }) {
           <button onClick={() => setReporting(true)} className="text-slate underline">Report</button>
         </p>
       )}
-      <div className="min-h-[40vh] space-y-2">
-        {messages.map((m) => {
+      <div className="min-h-[40vh] space-y-1">
+        {messages.map((m, idx) => {
           const mine = m.from === user?.uid;
+          const person = people[m.from];
+          const prev = messages[idx - 1];
+          const newDay = !prev || dayKey(prev.createdAt) !== dayKey(m.createdAt);
+          const newGroup = newDay || prev.from !== m.from || new Date(m.createdAt).getTime() - new Date(prev.createdAt).getTime() > GROUP_GAP_MS;
           const sticker = m.sticker ? stickerById(m.sticker) : undefined;
-          if (sticker) {
-            return (
-              <div key={m.id} className={`flex ${mine ? "justify-end" : "justify-start"}`}>
-                <div className={sticker.wide ? "max-w-[80%]" : "max-w-[60%]"}>
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={sticker.src} alt={`${sticker.label} sticker`} className={sticker.wide ? "h-auto w-56 max-w-full object-contain" : "h-28 w-28 object-contain"} />
-                  <p className={`flex gap-x-3 text-[11px] text-slate ${mine ? "justify-end" : ""}`}>
-                    <span>{mine && <span aria-label="Sent">✔ </span>}{stamp(m.createdAt)}</span>
-                    {mine && m.readAt && <span><span aria-label="Read">✔✔ </span>{stamp(m.readAt)}</span>}
-                  </p>
-                </div>
-              </div>
-            );
-          }
+          const quoted = m.replyTo ? people[m.replyTo.from] : undefined;
+          const replyButton = (msg: ThreadMessage) => !blockedByMe && (
+            <button type="button" onClick={() => { setReplyingTo(msg); box.current?.focus(); }} className="font-bold opacity-80 hover:opacity-100" aria-label="Reply to this message" title="Reply">↩ Reply</button>
+          );
+          const firstName = (p?: Person) => (p?.name || "").split(" ")[0] || "Member";
           return (
-            <div key={m.id} className={`flex ${mine ? "justify-end" : "justify-start"}`}>
-              <div className={`max-w-[80%] rounded-lg px-3 py-2 text-sm ${mine ? "bg-crimson text-white" : "bg-paper text-ink"}`}>
-                {m.moment && (
-                  <p className={`mb-1 text-xs italic ${mine ? "text-white/80" : "text-slate"}`}>
-                    {m.moment.expired ? "Replied to a moment that has expired" : "Replied to a moment"}
-                  </p>
-                )}
-                {m.attachments && cid && <MessageAttachments cid={cid} mid={m.id} files={m.attachments} mine={mine} />}
-                {m.text && <p className="whitespace-pre-wrap break-words"><FormattedText text={m.text} /></p>}
-                <p className={`mt-1 flex flex-wrap justify-end gap-x-3 text-[11px] ${mine ? "text-white/80" : "text-slate"}`}>
-                  <span>{mine && <span aria-label="Sent">✔ </span>}{stamp(m.createdAt)}</span>
-                  {mine && m.readAt && <span><span aria-label="Read">✔✔ </span>{stamp(m.readAt)}</span>}
-                </p>
+            <div key={m.id}>
+              {newDay && (
+                <div className="my-5 flex items-center gap-4" role="separator" aria-label={dayLabel(m.createdAt)}>
+                  <span className="h-px flex-1 bg-rule" />
+                  <span className="font-ui text-xs font-semibold uppercase tracking-eyebrow text-slate">{dayLabel(m.createdAt)}</span>
+                  <span className="h-px flex-1 bg-rule" />
+                </div>
+              )}
+              <div id={`m-${m.id}`} className={`flex items-start gap-2 ${mine ? "flex-row-reverse" : ""} ${newGroup ? "mt-4" : "mt-1"}`}>
+                <ProfileAvatar username={person?.username || (mine ? "" : who?.username ?? "")} src={person?.avatar ?? ""} alt={person?.name ?? ""} size={32} square from="chat" />
+                <div className={`flex min-w-0 max-w-[80%] flex-col ${mine ? "items-end" : "items-start"}`}>
+                  {newGroup && (
+                    <p className="mb-1 flex items-center gap-1.5 font-ui text-sm font-bold text-ink">
+                      {person?.name ?? ""}
+                      {person?.level && <VerifiedBadge size={14} level={person.level} goldKind={person.goldKind} />}
+                    </p>
+                  )}
+                  {sticker ? (
+                    <div>
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={sticker.src} alt={`${sticker.label} sticker`} className={sticker.wide ? "h-auto w-56 max-w-full object-contain" : "h-28 w-28 object-contain"} />
+                      <p className={`flex gap-x-3 text-[11px] text-slate ${mine ? "justify-end" : ""}`}>
+                        <span>{mine && <span aria-label="Sent">✔ </span>}{stamp(m.createdAt)}</span>
+                        {mine && m.readAt && <span><span aria-label="Read">✔✔ </span>{stamp(m.readAt)}</span>}
+                        {replyButton(m)}
+                      </p>
+                    </div>
+                  ) : (
+                    <div className={`rounded-lg px-3 py-2 text-sm ${mine ? "bg-crimson text-white" : "border border-rule bg-card text-ink"}`}>
+                      {m.replyTo && (
+                        <button
+                          type="button"
+                          onClick={() => document.getElementById(`m-${m.replyTo!.id}`)?.scrollIntoView({ block: "center", behavior: "smooth" })}
+                          className={`mb-2 block w-full border-l-4 pl-2 text-left text-xs ${mine ? "border-white/60 text-white/85" : "border-crimson text-slate"}`}
+                          aria-label="Go to the message this answers"
+                        >
+                          <span className="line-clamp-3 whitespace-pre-wrap"><strong>{firstName(quoted)}:</strong> {(m.replyTo.text || "…").replace(/\n{2,}/g, "\n")}</span>
+                        </button>
+                      )}
+                      {m.moment && (
+                        <p className={`mb-1 text-xs italic ${mine ? "text-white/80" : "text-slate"}`}>
+                          {m.moment.expired ? "Replied to a moment that has expired" : "Replied to a moment"}
+                        </p>
+                      )}
+                      {m.attachments && cid && <MessageAttachments cid={cid} mid={m.id} files={m.attachments} mine={mine} />}
+                      {m.text && <p className="whitespace-pre-wrap break-words"><FormattedText text={m.text} /></p>}
+                      <p className={`mt-1 flex flex-wrap items-center justify-end gap-x-3 text-[11px] ${mine ? "text-white/80" : "text-slate"}`}>
+                        <span>{mine && <span aria-label="Sent">✔ </span>}{stamp(m.createdAt)}</span>
+                        {mine && m.readAt && <span><span aria-label="Read">✔✔ </span>{stamp(m.readAt)}</span>}
+                        {replyButton(m)}
+                      </p>
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
           );
@@ -212,6 +281,12 @@ export default function Thread({ id, to }: { id?: string; to?: string }) {
           <input ref={picker} type="file" multiple accept={ATTACHMENT_ACCEPT} className="hidden" onChange={(e) => pick(e.target.files)} />
           {allowed && <span className="ml-1 text-xs text-slate">up to {allowed.maxCount} file{allowed.maxCount === 1 ? "" : "s"}, {formatBytes(allowed.maxBytes)} each</span>}
         </div>
+        {replyingTo && (
+          <div className="mb-2 flex items-start justify-between gap-3 border-l-4 border-crimson bg-paper px-3 py-2 text-xs text-slate">
+            <span className="line-clamp-2 min-w-0"><strong className="text-ink">Replying to {replyingTo.from === user?.uid ? "yourself" : (people[replyingTo.from]?.name || "them").split(" ")[0]}:</strong> {replyingTo.text || (replyingTo.sticker ? "🖼 Sticker" : replyingTo.attachments?.length ? "📎 Attachment" : "")}</span>
+            <button type="button" onClick={() => setReplyingTo(null)} aria-label="Cancel the reply" className="text-base leading-none">×</button>
+          </div>
+        )}
         {files.length > 0 && (
           <ul className="mb-2 flex flex-wrap gap-2 text-xs">
             {files.map((f, k) => (

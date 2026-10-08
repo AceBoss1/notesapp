@@ -13,6 +13,7 @@ export type ThreadMessage = {
   createdAt: string;
   // A reply to a moment. The moment itself is never copied into the message: once it has expired it can't be viewed.
   moment?: { momentId: string; expired: boolean };
+  replyTo?: { id: string; from: string; text: string }; // the message this one answers (a short copy, so the quote still reads if it is long gone)
   sticker?: string; // a sticker's id (lib/stickers.ts); a sticker is a message of its own
   readAt?: string; // when the other person opened it (shown to the sender as a double tick)
   attachments?: AttachmentInfo[];

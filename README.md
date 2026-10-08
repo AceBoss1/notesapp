@@ -2111,3 +2111,11 @@ A moment's video is up to 90 seconds. A longer video (up to 10 minutes and 100 M
 
 - The challenge artwork sits on the right of the home-page challenge banner (`components/ChallengeHero.tsx`) and links to `/challenge`; the full wordmark (`notesapp-logo-full.webp`) is a sticker (`WORDMARK_MARKS` in `lib/brand-marks.ts`); the roadmap's challenge item links to `/challenge`.
 - **LEGAL_VERSION is now `2026-10-08.2`** (it is compared as a plain string): everyone has to accept the updated Privacy Policy and Terms before their next payment.
+
+## Conversation look: avatars, badges, day dividers, replies, avatar menu (v0.9.5)
+
+- **Thread layout** (`components/messages/Thread.tsx`): the other person's messages on the left, yours on the right, as before, now with a rounded-square picture beside every bubble, the name and badge (maroon or gold ✔, via `getUserByUid`, `badgeLevel`, `goldKindOf`) above the first message of each run (same person within five minutes), and a TODAY / YESTERDAY / date divider whenever the day changes. Received bubbles are white cards with a hairline (they used to vanish into the page colour).
+- **Reply to a message:** "↩ Reply" in each bubble's footer puts a quote bar above the box; the reply shows "Name: the start of the message" with a bar, and tapping it scrolls to the original. Stored as `replyTo: { id, from, text }` (a 140-character copy, formatting stripped; attachments and stickers are named, e.g. "🎙 Voice note"); the server checks the quoted message exists in that conversation (`replyToId` in `POST /api/messages`).
+- **Badges in the inbox** now show beside names too.
+- **Picture menu** (`components/ProfileAvatar.tsx`): tapping someone's picture in a chat, a journal (author, directory cards) or a comment asks what to do: View profile; View moments (only when they have one up that you may see); and, away from a chat, Send a message. Signed out, it goes to the profile.
+- Also fixed: `Avatar` kept the "failed" fallback after an empty first `src`; it now retries when `src` changes.

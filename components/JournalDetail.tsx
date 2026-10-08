@@ -1,3 +1,4 @@
+import ProfileAvatar from "@/components/ProfileAvatar";
 import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
@@ -79,14 +80,21 @@ export default async function JournalDetail({
 
       <div className="mt-6 flex flex-wrap items-center justify-between gap-3 border-y border-rule py-4">
         {linkedUsername ? (
-          <Link href={site ? site.base || "/" : `/u/${linkedUsername}`} className="group flex items-center gap-3">
-            <Image
-              src={authorProfile?.avatar || note.author_avatar}
-              alt={authorProfile?.displayName || note.author}
-              width={44}
-              height={44}
-              className="h-11 w-11 flex-shrink-0 rounded-full border-2 border-crimson object-cover"
-            />
+          <div className="group flex items-center gap-3">
+            {site ? (
+              <Link href={site.base || "/"} className="flex-shrink-0">
+                <Image
+                  src={authorProfile?.avatar || note.author_avatar}
+                  alt={authorProfile?.displayName || note.author}
+                  width={44}
+                  height={44}
+                  className="h-11 w-11 flex-shrink-0 rounded-full border-2 border-crimson object-cover"
+                />
+              </Link>
+            ) : (
+              <ProfileAvatar username={linkedUsername} src={authorProfile?.avatar || note.author_avatar} alt={authorProfile?.displayName || note.author} size={44} from="journal" />
+            )}
+            <Link href={site ? site.base || "/" : `/u/${linkedUsername}`} className="block">
             <div>
               <p className="font-ui text-sm font-semibold text-ink group-hover:text-crimson-bright">
                 By {authorProfile?.displayName || note.author}{" "}
@@ -103,7 +111,8 @@ export default async function JournalDetail({
                 <p className="mt-0.5 text-xs text-slate">with {note.coAuthors.join(", ")}</p>
               )}
             </div>
-          </Link>
+            </Link>
+          </div>
         ) : (
           <div className="flex items-center gap-3">
             <Image

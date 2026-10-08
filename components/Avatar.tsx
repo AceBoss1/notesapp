@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { DEFAULT_AVATAR } from "@/lib/admin";
 
 export default function Avatar({
@@ -17,6 +17,7 @@ export default function Avatar({
   square?: boolean; // a rounded square instead of a circle (profile blocks)
 }) {
   const [failed, setFailed] = useState(false);
+  useEffect(() => setFailed(false), [src]); // a new picture gets its own chance (an empty or broken one earlier must not stick)
 
   return (
     // Plain <img>, not next/image — this needs a runtime onError
