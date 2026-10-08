@@ -26,7 +26,7 @@ export default function ChannelSpotlight() {
   return (
     <section className="card overflow-hidden border-crimson/30 bg-gradient-to-br from-crimson/5 to-transparent">
       <div className="p-8">
-        <span className="eyebrow">Channel</span>
+        <span className="eyebrow">NotesApp Premium channel</span>
         <div className="mt-4 flex flex-col gap-6 sm:flex-row sm:items-start">
           <Avatar
             src={OFFICIAL_NOTESAPP_PROFILE.avatar}

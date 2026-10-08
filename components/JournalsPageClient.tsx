@@ -7,6 +7,7 @@ import { getAllNotes, NoteWithComputed } from "@/lib/firestore-notes";
 import { getAllUsers, badgeLevel, goldKindOf, isTeamMember, UserProfile } from "@/lib/users";
 import { FOUNDER_JOURNALS, MANDATORY_USERNAMES, CHANNEL_JOURNALS } from "@/lib/journals-directory";
 import BoostedStrip from "@/components/BoostedStrip";
+import MomentsStrip from "@/components/moments/MomentsStrip";
 import JournalsHero, { JournalsTab } from "@/components/JournalsHero";
 import ChannelSpotlight from "@/components/ChannelSpotlight";
 import SocialChannelSpotlight from "@/components/SocialChannelSpotlight";
@@ -52,6 +53,8 @@ export default function JournalsPageClient() {
     return [...CHANNEL_JOURNALS, ...orgs];
   }, [users]);
 
+  const orgChannels = useMemo(() => channels.filter((c) => !CHANNEL_JOURNALS.some((o) => o.username === c.username)), [channels]);
+
   const q = query.trim().toLowerCase();
 
   const filteredNotes = useMemo(() => {
@@ -90,6 +93,7 @@ export default function JournalsPageClient() {
       />
 
       <BoostedStrip />
+      <MomentsStrip />
       <AdSlot placement="journals" />
 
       <div className="mx-auto max-w-7xl px-4 py-14 sm:px-6 lg:px-8">
@@ -109,6 +113,12 @@ export default function JournalsPageClient() {
             <div className="grid gap-6">
               <ChannelSpotlight />
               <SocialChannelSpotlight allNotes={notes} />
+              {/* The channels, listed as on the Channels tab, right under the Public Channels card (the two official ones are the cards above). */}
+              {orgChannels.length > 0 && (
+                <div className="-mt-2">
+                  <JournalDirectory entries={orgChannels} allNotes={notes} emptyMessage="" />
+                </div>
+              )}
               <FoundersSpotlight allNotes={notes} />
             </div>
 

@@ -22,6 +22,16 @@ export const CHANGELOG: Release[] = [
     ],
   },
   {
+    version: "v0.9.1",
+    bump: "patch",
+    date: "2026-10-08",
+    changes: [
+      { kind: "added", text: "Journals: a Moments card, like Status in WhatsApp. See your own moments (with a + to add one) and a tile for each person you follow who has shared one." },
+      { kind: "added", text: "Profile settings: choose who can see your moments, your followers only (the default) or everyone." },
+      { kind: "changed", text: "Journals: the first channel card is now “NotesApp Premium channel”, the second is “Public Channels”, and the channels are listed under it." },
+    ],
+  },
+  {
     version: "v0.9.0",
     bump: "minor",
     date: "2026-10-08",

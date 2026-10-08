@@ -51,13 +51,25 @@ async function follows(db: Firestore, viewerUid: string, ownerUsername: string):
   return (await db.doc(`follows/${viewerUid}_${ownerUsername}`).get()).exists;
 }
 
-// The audience: the owner, and members who follow the owner's journal.
+// Whether a member lets anyone signed in see their moments (their choice, in their profile settings). Off unless they switch it on.
+export async function momentsPublic(db: Firestore, uid: string): Promise<boolean> {
+  return (await db.doc(`userPrefs/${uid}`).get()).data()?.momentsPublic === true;
+}
+export async function getMomentPrefs(db: Firestore, uid: string): Promise<{ momentsPublic: boolean }> {
+  return { momentsPublic: await momentsPublic(db, uid) };
+}
+export async function setMomentPrefs(db: Firestore, uid: string, value: unknown): Promise<void> {
+  if (typeof value !== "boolean") throw new MomentError(400, "Choose who can see your moments.");
+  await db.doc(`userPrefs/${uid}`).set({ uid, momentsPublic: value }, { merge: true });
+}
+
+// The audience: the owner, and members who follow the owner's journal, or anyone signed in if the owner made their moments public.
 async function canSee(db: Firestore, viewerUid: string, m: MomentDoc): Promise<boolean> {
   if (m.ownerUid === viewerUid) return true;
   // A block either way hides the moments (and the reshares that point at them).
   const [a, b] = await Promise.all([db.doc(`dmBlocks/${m.ownerUid}_${viewerUid}`).get(), db.doc(`dmBlocks/${viewerUid}_${m.ownerUid}`).get()]);
   if (a.exists || b.exists) return false;
-  return follows(db, viewerUid, m.ownerUsername);
+  return (await follows(db, viewerUid, m.ownerUsername)) || momentsPublic(db, m.ownerUid);
 }
 
 function toView(id: string, m: MomentDoc, viewerUid: string, liked: boolean, deps: MomentDeps): MomentView {
@@ -159,7 +171,7 @@ async function likedSet(db: Firestore, uid: string, ids: string[]): Promise<Set<
   return new Set(snaps.filter((s) => s.exists).map((s) => s.ref.parent.parent!.id));
 }
 
-export type MomentGroup = { ownerUid: string; ownerUsername: string; moments: MomentView[] };
+export type MomentGroup = { ownerUid: string; ownerUsername: string; displayName: string; avatar: string; moments: MomentView[] };
 
 // Moments from the people the viewer follows, plus the viewer's own. Expired ones are never returned.
 export async function listFeed(db: Firestore, viewer: { uid: string; username: string }, deps: MomentDeps, now = new Date()): Promise<MomentGroup[]> {
@@ -179,9 +191,13 @@ export async function listFeed(db: Firestore, viewer: { uid: string; username: s
   const hidden = new Set([...byMe.docs.map((d) => d.data().blocked as string), ...onMe.docs.map((d) => d.data().blocker as string)]);
   const visible = docs.filter((d) => !hidden.has(d.m.ownerUid));
   const liked = await likedSet(db, viewer.uid, visible.map((d) => d.id));
+  // Names and pictures for the tiles (one read for each member who has something up).
+  const ownerIds = Array.from(new Set(visible.map((d) => d.m.ownerUid)));
+  const owners = ownerIds.length ? await db.getAll(...ownerIds.map((u) => db.doc(`users/${u}`))) : [];
+  const who = new Map(owners.map((o) => [o.id, { displayName: String(o.data()?.displayName ?? ""), avatar: String(o.data()?.avatar ?? "") }]));
   const groups = new Map<string, MomentGroup>();
   for (const { id, m } of visible.sort((a, b) => (a.m.createdAt < b.m.createdAt ? -1 : 1))) {
-    const g = groups.get(m.ownerUid) ?? { ownerUid: m.ownerUid, ownerUsername: m.ownerUsername, moments: [] };
+    const g = groups.get(m.ownerUid) ?? { ownerUid: m.ownerUid, ownerUsername: m.ownerUsername, displayName: who.get(m.ownerUid)?.displayName || m.ownerUsername, avatar: who.get(m.ownerUid)?.avatar ?? "", moments: [] };
     g.moments.push(toView(id, m, viewer.uid, liked.has(id), deps));
     groups.set(m.ownerUid, g);
   }
