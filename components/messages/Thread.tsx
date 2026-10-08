@@ -12,6 +12,7 @@ import FormattedText from "./FormattedText";
 import MessageAttachments from "./MessageAttachments";
 import VoiceNoteButton from "./VoiceNoteButton";
 import StickerPicker from "./StickerPicker";
+import EmojiPicker from "./EmojiPicker";
 import ProfileAvatar from "@/components/ProfileAvatar";
 import VerifiedBadge from "@/components/VerifiedBadge";
 import TeamBadge from "@/components/TeamBadge";
@@ -131,6 +132,15 @@ export default function Thread({ id, to }: { id?: string; to?: string }) {
     const r = wrapSelection(text, el.selectionStart, el.selectionEnd, marker);
     setText(r.value);
     requestAnimationFrame(() => { el.focus(); el.setSelectionRange(r.selStart, r.selEnd); });
+  }
+
+  // An emoji goes in where the cursor is (replacing any selected text), and the cursor lands just after it.
+  function insertEmoji(emoji: string) {
+    const el = box.current;
+    const start = el?.selectionStart ?? text.length, end = el?.selectionEnd ?? text.length;
+    if (text.length + emoji.length > MESSAGE_MAX) return;
+    setText(text.slice(0, start) + emoji + text.slice(end));
+    requestAnimationFrame(() => { el?.focus(); el?.setSelectionRange(start + emoji.length, start + emoji.length); });
   }
 
   async function send() {
@@ -275,6 +285,7 @@ export default function Thread({ id, to }: { id?: string; to?: string }) {
       {reporting && cid && <ReportDialog kind="conversation" targetId={cid} onClose={() => setReporting(false)} />}
       <form className="mt-4" onSubmit={(e) => { e.preventDefault(); if ((text.trim() || files.length) && !busy && !blockedByMe) send(); }}>
         <div className="mb-1 flex flex-wrap items-center gap-1 text-sm">
+          <EmojiPicker onPick={insertEmoji} disabled={blockedByMe} />
           <button type="button" onClick={() => format("**")} aria-label="Bold" title="Bold (Ctrl+B)" className="w-8 rounded border border-rule py-1 font-bold">B</button>
           <button type="button" onClick={() => format("_")} aria-label="Italic" title="Italic (Ctrl+I)" className="w-8 rounded border border-rule py-1 italic">I</button>
           <button type="button" onClick={() => format("__")} aria-label="Underline" title="Underline (Ctrl+U)" className="w-8 rounded border border-rule py-1 underline">U</button>
