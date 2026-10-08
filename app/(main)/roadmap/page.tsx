@@ -45,6 +45,14 @@ const ITEMS: { title: string; tag: string; body: string; detail: string; link?: 
       "Today: Google sign-in isn't offered in the window (someone who signed up with Google chooses “Forgot your password” to set one), and the sender address on those emails is still ours, with the member's name on it. Checkout: Paystack's inline popup instead of a redirect — the popup still shows #NotesApp's name, which we'll confirm with Paystack before promising otherwise. Email: each Enterprise domain becomes a verified sending domain (SPF and DKIM records the member adds), so emails come from, for example, bookings@theirbrand.com. A sweep of error pages and leftover #NotesApp wording follows. The rest of the Enterprise plan is also still to come: unlimited team seats provisioned per account, a dedicated support channel with a service-level agreement, field-team Tap-to-Pay, and syncing sales into accounting tools such as QuickBooks and Xero.",
   },
   {
+    title: "Domain sales and DNS management",
+    tag: "Enterprise",
+    body: "Search, register and manage domains, including .ng and .com.ng, and edit DNS records without leaving #NotesApp, through our domain partner Whogohost (now go54). For Business and Enterprise, with you as the registrant.",
+    detail:
+      "Registration asks for four sets of contact details (registrant, admin, technical and billing). We suggest what we already have, ask before using it, request anything missing, and offer to copy a finished form into the next. Then renew, lock, nameservers, transfer codes and a DNS records editor, and a one-step connection to your #NotesApp site. It starts once the partnership and Whogohost's search, pricing and DNS calls are confirmed.",
+    link: { href: "/domains", label: "See the domains page →" },
+  },
+  {
     title: "NotesApp Credit and Bonus Credits",
     tag: "Payments",
     body: "A prepaid balance you top up once and spend across #NotesApp, so you don't have to enter card details every time. Planned uses: audio and video calls, boosts, verification badges, ad campaigns, and items and sessions in other members' shops.",
@@ -124,6 +132,7 @@ export default function RoadmapPage() {
               <li>WhatsApp reminders alongside email and the bell</li>
               {GOLD_KIND_LIVE.identity ? null : <li>Automatic identity-checked gold badge (all built; NIN + face check for people, CAC for organisations awaiting final tests)</li>}
               <li>Full white label for Enterprise (sign-in, sign-up and emails in the member&apos;s name are live; checkout and bookings on their own site, and their own sending address, are next)</li>
+              <li><Link href="/domains" className="text-crimson underline">Domain sales and DNS management</Link> through Whogohost (now go54), for Business and Enterprise</li>
               <li>NotesApp Credit and Bonus Credits</li>
               <li>Paylony payments and Tap-to-Pay</li>
               <li><Link href="/challenge" className="text-crimson underline">#1MillionNairaNotesAppChallenge</Link> for influencers (coming soon)</li>
