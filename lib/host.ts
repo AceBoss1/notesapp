@@ -1,6 +1,11 @@
 // Pure host helpers (no Node-only imports — also used by middleware.ts on the edge runtime).
 export const MAIN_HOST = "www.notesapp.name.ng";
-const MAIN_HOSTS = ["www.notesapp.name.ng", "notesapp.name.ng"];
+// The app domain: opens #NotesApp like an app (splash, then the journal) and sends marketing pages to MAIN_HOST.
+export const APP_HOSTS = ["app.notesapp.name.ng", "notesapp.ng", "www.notesapp.ng"];
+export function isAppHost(hostname: string): boolean {
+  return APP_HOSTS.includes(hostname.toLowerCase().replace(/:\d+$/, ""));
+}
+const MAIN_HOSTS = ["www.notesapp.name.ng", "notesapp.name.ng", ...APP_HOSTS];
 
 // True for our own hosts, local development and Vercel preview deployments — everything else is a
 // member's custom domain.

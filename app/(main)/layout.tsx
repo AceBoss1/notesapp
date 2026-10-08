@@ -1,5 +1,7 @@
 import Link from "next/link";
 import Image from "next/image";
+import NavLinks from "@/components/NavLinks";
+import HideOnAppHost from "@/components/HideOnAppHost";
 import AuthNav from "@/components/AuthNav";
 import MobileNav from "@/components/MobileNav";
 import VerifyEmailBanner from "@/components/VerifyEmailBanner";
@@ -20,6 +22,14 @@ const NAV = [
   { href: "/booking", label: "Booking" },
   { href: "/about", label: "About" },
   { href: "/contact", label: "Contact" },
+];
+
+// On the app domain (notesapp.ng) the masthead carries only the app.
+const APP_NAV = [
+  { href: "/journals", label: "Journals" },
+  { href: "/messages", label: "Messages" },
+  { href: "/bookings", label: "Bookings" },
+  { href: "/trending", label: "Trending" },
 ];
 
 const COMPANY = [
@@ -74,26 +84,19 @@ const site = await getSiteSettingsCached();
               </span>
             </Link>
             <nav className="hidden items-center gap-7 font-ui text-sm font-semibold text-ink md:flex">
-              {NAV.map((item) => (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  className="hover:text-crimson transition-colors"
-                >
-                  {item.label}
-                </Link>
-              ))}
+              <NavLinks links={NAV} appLinks={APP_NAV} />
               <SearchBar />
               <span className="h-4 w-px bg-rule" />
               <AuthNav />
             </nav>
-            <MobileNav links={NAV} />
+            <MobileNav links={NAV} appLinks={APP_NAV} />
           </div>
         </header>
 
         <main>{children}</main>
 
         {/* Footer */}
+        <HideOnAppHost>
         <footer className="mt-24 border-t border-rule bg-ink text-paper">
           <div className="mx-auto grid max-w-7xl grid-cols-1 gap-10 px-4 py-16 sm:grid-cols-2 sm:px-6 lg:grid-cols-4 lg:px-8">
             <div>
@@ -136,6 +139,8 @@ const site = await getSiteSettingsCached();
                 <li><Link href="/badges" className="hover:text-paper">Verification badges</Link></li>
                 <li><Link href="/advertise" className="hover:text-paper">Advertise</Link></li>
                 <li><Link href="/organisations" className="hover:text-paper">Organisations</Link></li>
+                <li><Link href="/store-selling" className="hover:text-paper">Store selling</Link></li>
+                <li><Link href="/domains" className="hover:text-paper">Domains</Link></li>
               </ul>
             </div>
 
@@ -214,6 +219,7 @@ const site = await getSiteSettingsCached();
             </p>
           </div>
         </footer>
+        </HideOnAppHost>
     </>
   );
 }
