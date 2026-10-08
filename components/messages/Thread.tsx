@@ -301,7 +301,7 @@ export default function Thread({ id, to }: { id?: string; to?: string }) {
         )}
         <div className="flex gap-2">
           <textarea
-            ref={box} value={text} rows={2} maxLength={MESSAGE_MAX} placeholder="Write a message" onChange={(e) => setText(e.target.value)}
+            ref={box} value={text} rows={2} maxLength={MESSAGE_MAX} placeholder="Start or reply a conversation" onChange={(e) => setText(e.target.value)}
             onKeyDown={(e) => {
               const k = e.key.toLowerCase();
               if ((e.ctrlKey || e.metaKey) && (k === "b" || k === "i" || k === "u")) { e.preventDefault(); format(k === "b" ? "**" : k === "i" ? "_" : "__"); }

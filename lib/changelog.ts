@@ -11,6 +11,14 @@ export type Release = {
 
 export const CHANGELOG: Release[] = [
   {
+    version: "v0.9.7",
+    bump: "patch",
+    date: "2026-10-08",
+    changes: [
+      { kind: "changed", text: "Messages: the message box now says “Start or reply a conversation”." },
+    ],
+  },
+  {
     version: "v0.9.6",
     bump: "patch",
     date: "2026-10-08",
