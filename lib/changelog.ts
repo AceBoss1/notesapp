@@ -11,6 +11,17 @@ export type Release = {
 
 export const CHANGELOG: Release[] = [
   {
+    version: "v0.9.3",
+    bump: "patch",
+    date: "2026-10-08",
+    changes: [
+      { kind: "changed", text: "The #1MillionNairaNotesAppChallenge artwork now sits on the right of the home page banner and opens the challenge page." },
+      { kind: "added", text: "The full #NotesApp wordmark is now a sticker you can send." },
+      { kind: "changed", text: "The roadmap links to the challenge page for its details." },
+      { kind: "changed", text: "We updated the Privacy Policy and Terms (moments privacy, voice notes, files and stickers). You will be asked to accept the new version before your next payment." },
+    ],
+  },
+  {
     version: "v0.9.2",
     bump: "patch",
     date: "2026-10-08",

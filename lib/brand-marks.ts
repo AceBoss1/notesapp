@@ -4,6 +4,11 @@ export const ICON_MARKS = [
   { id: "icon-alt", file: "/images/brand/notesapp-icon-alt.webp", label: "#NotesApp icon (alternate)" },
 ] as const;
 
+// The full wordmark: the monogram with "NotesApp" (wide).
+export const WORDMARK_MARKS = [
+  { id: "logo-full", file: "/images/brand/notesapp-logo-full.webp", label: "#NotesApp full wordmark" },
+] as const;
+
 // Campaign artwork (wide, so it is shown larger than the icons when sent as a sticker).
 export const CAMPAIGN_MARKS = [
   { id: "challenge", file: "/images/brand/challenge-graphic.webp", label: "#1MillionNairaNotesAppChallenge" },

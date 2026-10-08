@@ -9,7 +9,7 @@ export const metadata: Metadata = {
     "What's live and what's next for #NotesApp — moments and messages are live; social publishing, AI drafting, full white label, Paylony payments, calls and meetings, and the ad-share program are next. Decided and documented, or under discussion.",
 };
 
-const ITEMS = [
+const ITEMS: { title: string; tag: string; body: string; detail: string; link?: { href: string; label: string } }[] = [
   {
     title: "One-click social publishing",
     tag: "Social",
@@ -63,7 +63,8 @@ const ITEMS = [
     tag: "Growth",
     body: "Reach 100k views and 10k new followers (people who join #NotesApp through you) to unlock LIVE video, then bring 2,000 registered members into a single live to open a ₦1,000,000 giveaway for that live automatically: ₦250,000 in Bonus Credits for your followers (₦5,000 to ₦25,000 each), ₦250,000 in NotesApp Credit for you, and ₦500,000 you can withdraw straight away, plus a free month of the identity-checked gold ✔ badge for you, and a free month of the maroon ✔ for each follower you pick. Prizes have a 30-day claim window.",
     detail:
-      "Coming soon, together with live video. The first 10 influencers to qualify each month are paid, and each influencer can win once. Full rules, including how views, followers and live audiences are counted and checked, are confirmed before launch. See the challenge page for the details.",
+      "Coming soon, together with live video. The first 10 influencers to qualify each month are paid, and each influencer can win once. Full rules, including how views, followers and live audiences are counted and checked, are confirmed before launch.",
+    link: { href: "/challenge", label: "See the challenge page for the details →" },
   },
   {
     title: "Mobile apps — iOS and Android",
@@ -146,6 +147,7 @@ export default function RoadmapPage() {
             <h2 className="mt-2 font-display text-2xl text-ink">{item.title}</h2>
             <p className="mt-3 text-slate">{item.body}</p>
             <p className="mt-3 text-sm text-slate/80">{item.detail}</p>
+            {item.link && <p className="mt-3 text-sm"><Link href={item.link.href} className="font-semibold text-crimson underline">{item.link.label}</Link></p>}
           </div>
         ))}
       </div>
