@@ -7,7 +7,7 @@ import { MOMENT_DAILY_LIMIT, MOMENT_VIDEO_WEEKLY_LIMIT } from "./moments-rules";
 export const LIMIT_TIERS: AccountTier[] = ["standard", "basic", "pro", "business", "enterprise"];
 export const LIMIT_TIER_LABEL: Record<AccountTier, string> = { standard: "Free Standard", basic: "Basic", pro: "Pro", business: "Business", enterprise: "Enterprise" };
 
-export type LimitKey = "messageAttachmentMB" | "messageAttachmentsPerMessage" | "momentVideosPerWeek" | "momentsPerDay";
+export type LimitKey = "messageAttachmentMB" | "messageAttachmentsPerMessage" | "messageVoiceNoteSeconds" | "momentVideosPerWeek" | "momentsPerDay";
 export type LimitDef = { key: LimitKey; group: string; label: string; unit: string; min: number; max: number; defaults: Record<AccountTier, number> };
 
 const flat = (n: number): Record<AccountTier, number> => ({ standard: n, basic: n, pro: n, business: n, enterprise: n });
@@ -15,6 +15,7 @@ const flat = (n: number): Record<AccountTier, number> => ({ standard: n, basic: 
 export const LIMITS: LimitDef[] = [
   { key: "messageAttachmentMB", group: "Messages", label: "Largest file in a message", unit: "MB", min: 1, max: 500, defaults: { standard: 5, basic: 10, pro: 25, business: 50, enterprise: 100 } },
   { key: "messageAttachmentsPerMessage", group: "Messages", label: "Files in one message", unit: "files", min: 1, max: 20, defaults: { standard: 1, basic: 3, pro: 5, business: 8, enterprise: 10 } },
+  { key: "messageVoiceNoteSeconds", group: "Messages", label: "Longest voice note", unit: "seconds", min: 10, max: 900, defaults: flat(300) },
   { key: "momentVideosPerWeek", group: "Moments", label: "Video moments a week (each part of a long video counts)", unit: "videos", min: 0, max: 500, defaults: MOMENT_VIDEO_WEEKLY_LIMIT },
   { key: "momentsPerDay", group: "Moments", label: "New moments a day", unit: "moments", min: 1, max: 200, defaults: flat(MOMENT_DAILY_LIMIT) },
 ];

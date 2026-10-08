@@ -1,5 +1,6 @@
 import Image from "next/image";
 import type { Metadata } from "next";
+import { SEASONAL } from "@/lib/brand-marks";
 
 export const metadata: Metadata = {
   title: "Brand",
@@ -7,16 +8,6 @@ export const metadata: Metadata = {
     "The #NotesApp brand system — primary mark, palette, and every seasonal/festival logo variant, with usage notes.",
 };
 
-const SEASONAL = [
-  { file: "valentines.png", label: "Valentine's Day" },
-  { file: "eid-al-fitr.png", label: "Eid al-Fitr" },
-  { file: "eid-al-adha.png", label: "Eid al-Adha" },
-  { file: "igbo-new-yam-festival.png", label: "Igbo New Yam Festival" },
-  { file: "lagos-eyo-festival.png", label: "Lagos Eyo Festival" },
-  { file: "calabar-carnival.png", label: "Calabar Carnival" },
-  { file: "arugungu-fishing-festival.png", label: "Argungu Fishing Festival" },
-  { file: "christmas.png", label: "Christmas" },
-];
 
 export default function BrandPage() {
   return (
@@ -72,6 +63,27 @@ export default function BrandPage() {
         </div>
       </div>
 
+      {/* Campaign graphic */}
+      <div className="mt-14">
+        <p className="eyebrow">Campaign graphic</p>
+        <div className="card mt-5 overflow-hidden">
+          <div className="flex items-center justify-center bg-white p-4 sm:p-8">
+            <Image
+              src="/images/brand/challenge-graphic.webp"
+              alt="#1MillionNairaNotesAppChallenge: ₦10m up for grabs this month, with a creator going live on a phone"
+              width={1536}
+              height={1024}
+              className="h-auto w-full max-w-2xl object-contain"
+            />
+          </div>
+          <p className="border-t border-rule px-4 py-3 font-ui text-sm font-semibold text-ink">#1MillionNairaNotesAppChallenge</p>
+          <p className="px-4 pb-4 text-xs text-slate">
+            The challenge artwork: for the challenge page, social posts and creator briefs. Keep it whole, and don&apos;t crop or restyle the title.
+            Download it from <a href="/images/brand/challenge-graphic.webp" download className="text-crimson underline">here</a>.
+          </p>
+        </div>
+      </div>
+
       {/* Color */}
       <div className="mt-14">
         <p className="eyebrow">Color</p>
@@ -101,6 +113,7 @@ export default function BrandPage() {
           icon mark is dressed for the occasion — used only in-app,
           on social, and in seasonal email banners. The wordmark and
           primary crimson identity never change; only the icon adapts.
+          The icon marks and every seasonal mark here are also chat stickers that members can send in Messages.
         </p>
         <div className="mt-6 grid grid-cols-2 gap-5 sm:grid-cols-3 lg:grid-cols-4">
           {SEASONAL.map((s) => (

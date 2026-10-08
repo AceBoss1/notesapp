@@ -11,6 +11,16 @@ export type Release = {
 
 export const CHANGELOG: Release[] = [
   {
+    version: "v0.9.0",
+    bump: "minor",
+    date: "2026-10-08",
+    changes: [
+      { kind: "added", text: "Messages: record and send voice notes of up to 5 minutes with the new microphone button beside Send." },
+      { kind: "added", text: "Messages: send stickers. Every #NotesApp icon on the Brand page, including the seasonal ones, is a sticker." },
+      { kind: "added", text: "The #1MillionNairaNotesAppChallenge artwork is now on the Brand page." },
+    ],
+  },
+  {
     version: "v0.8.4",
     bump: "patch",
     date: "2026-10-08",

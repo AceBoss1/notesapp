@@ -10,6 +10,9 @@ import { ATTACHMENT_ACCEPT, MESSAGE_MAX, attachmentTypeOf, formatBytes, type Thr
 import { wrapSelection } from "@/lib/message-format";
 import FormattedText from "./FormattedText";
 import MessageAttachments from "./MessageAttachments";
+import VoiceNoteButton from "./VoiceNoteButton";
+import StickerPicker from "./StickerPicker";
+import { stickerById } from "@/lib/stickers";
 import { isMomentExpired } from "@/lib/moments-rules";
 import ReportDialog from "@/components/moments/ReportDialog";
 
@@ -31,16 +34,17 @@ export default function Thread({ id, to }: { id?: string; to?: string }) {
   const [messages, setMessages] = useState<ThreadMessage[]>([]);
   const [text, setText] = useState("");
   const [files, setFiles] = useState<File[]>([]);
-  const [allowed, setAllowed] = useState<{ maxBytes: number; maxCount: number } | null>(null);
+  const [allowed, setAllowed] = useState<{ maxBytes: number; maxCount: number; maxVoiceSeconds: number } | null>(null);
   const box = useRef<HTMLTextAreaElement>(null);
   const picker = useRef<HTMLInputElement>(null);
+  const voiceLength = useRef(new WeakMap<File, number>()); // how long each recorded voice note is
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [blockedByMe, setBlockedByMe] = useState(false);
   const [reporting, setReporting] = useState(false);
   const end = useRef<HTMLDivElement>(null);
   useEffect(() => onAuthStateChanged(auth, setUser), []);
-  useEffect(() => { if (user) api<{ maxBytes: number; maxCount: number }>("/api/messages/attachments").then(setAllowed).catch(() => {}); }, [user]);
+  useEffect(() => { if (user) api<{ maxBytes: number; maxCount: number; maxVoiceSeconds: number }>("/api/messages/attachments").then(setAllowed).catch(() => {}); }, [user]);
 
   // Who it's with, and whether you've blocked them (this also marks the conversation read).
   const loadMeta = useCallback(() => {
@@ -59,7 +63,7 @@ export default function Thread({ id, to }: { id?: string; to?: string }) {
         const rows: ThreadMessage[] = snap.docs.reverse().map((d) => {
           const m = d.data();
           // A reply to a moment says whether the moment has expired; the moment itself is never in the message.
-          return { id: d.id, from: m.from, text: m.text, createdAt: m.createdAt, ...(m.readAt ? { readAt: m.readAt } : {}), ...(m.attachments ? { attachments: (m.attachments as { name: string; size: number; type: string; kind: "image" | "video" | "document" }[]).map(({ name, size, type, kind }) => ({ name, size, type, kind })) } : {}), ...(m.momentRef ? { moment: { momentId: m.momentRef.momentId, expired: isMomentExpired(m.momentRef.expiresAt) } } : {}) };
+          return { id: d.id, from: m.from, text: m.text, createdAt: m.createdAt, ...(m.readAt ? { readAt: m.readAt } : {}), ...(m.sticker ? { sticker: m.sticker } : {}), ...(m.attachments ? { attachments: (m.attachments as { name: string; size: number; type: string; kind: "image" | "video" | "document" | "audio"; durationSec?: number }[]).map(({ name, size, type, kind, durationSec }) => ({ name, size, type, kind, ...(durationSec ? { durationSec } : {}) })) } : {}), ...(m.momentRef ? { moment: { momentId: m.momentRef.momentId, expired: isMomentExpired(m.momentRef.expiresAt) } } : {}) };
         });
         setMessages(rows);
         // Something new from them while this is open: it's read.
@@ -101,7 +105,7 @@ export default function Thread({ id, to }: { id?: string; to?: string }) {
       // Files go straight to private storage first; the message then names them.
       const attachmentIds: string[] = [];
       for (const f of files) {
-        const up = await api<{ id: string; uploadUrl: string; contentType: string }>("/api/messages/attachments", { body: { name: f.name, size: f.size } });
+        const up = await api<{ id: string; uploadUrl: string; contentType: string }>("/api/messages/attachments", { body: { name: f.name, size: f.size, ...(voiceLength.current.get(f) ? { durationSec: voiceLength.current.get(f) } : {}) } });
         const put = await fetch(up.uploadUrl, { method: "PUT", headers: { "Content-Type": up.contentType }, body: f });
         if (!put.ok) throw new Error(`${f.name} didn't upload. Try again.`);
         attachmentIds.push(up.id);
@@ -114,6 +118,29 @@ export default function Thread({ id, to }: { id?: string; to?: string }) {
     } finally {
       setBusy(false);
     }
+  }
+
+  // A sticker is sent the moment it is picked, as a message of its own.
+  async function sendSticker(stickerId: string) {
+    setBusy(true); setError(null);
+    try {
+      const r = await api<{ conversationId: string }>("/api/messages", { body: to ? { toUsername: to, text: "", sticker: stickerId } : { toUid: who?.uid, text: "", sticker: stickerId } });
+      setCid(r.conversationId);
+      if (!id) window.history.replaceState(null, "", `/messages/${r.conversationId}`);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Couldn't send.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  // A finished voice note joins the files waiting to be sent (it counts as one of them).
+  function addVoiceNote(file: File, durationSec: number) {
+    setError(null);
+    if (allowed && files.length >= allowed.maxCount) { setError(`You can send ${allowed.maxCount} file${allowed.maxCount === 1 ? "" : "s"} in one message on your plan.`); return; }
+    if (allowed && file.size > allowed.maxBytes) { setError(`That voice note is ${formatBytes(file.size)}. Files can be up to ${formatBytes(allowed.maxBytes)} on your plan.`); return; }
+    voiceLength.current.set(file, durationSec);
+    setFiles((f) => [...f, file]);
   }
 
   async function toggleBlock() {
@@ -137,6 +164,21 @@ export default function Thread({ id, to }: { id?: string; to?: string }) {
       <div className="min-h-[40vh] space-y-2">
         {messages.map((m) => {
           const mine = m.from === user?.uid;
+          const sticker = m.sticker ? stickerById(m.sticker) : undefined;
+          if (sticker) {
+            return (
+              <div key={m.id} className={`flex ${mine ? "justify-end" : "justify-start"}`}>
+                <div className="max-w-[60%]">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={sticker.src} alt={`${sticker.label} sticker`} className="h-28 w-28 object-contain" />
+                  <p className={`flex gap-x-3 text-[11px] text-slate ${mine ? "justify-end" : ""}`}>
+                    <span>{mine && <span aria-label="Sent">✔ </span>}{stamp(m.createdAt)}</span>
+                    {mine && m.readAt && <span><span aria-label="Read">✔✔ </span>{stamp(m.readAt)}</span>}
+                  </p>
+                </div>
+              </div>
+            );
+          }
           return (
             <div key={m.id} className={`flex ${mine ? "justify-end" : "justify-start"}`}>
               <div className={`max-w-[80%] rounded-lg px-3 py-2 text-sm ${mine ? "bg-crimson text-white" : "bg-paper text-ink"}`}>
@@ -165,7 +207,8 @@ export default function Thread({ id, to }: { id?: string; to?: string }) {
           <button type="button" onClick={() => format("**")} aria-label="Bold" title="Bold (Ctrl+B)" className="w-8 rounded border border-rule py-1 font-bold">B</button>
           <button type="button" onClick={() => format("_")} aria-label="Italic" title="Italic (Ctrl+I)" className="w-8 rounded border border-rule py-1 italic">I</button>
           <button type="button" onClick={() => format("__")} aria-label="Underline" title="Underline (Ctrl+U)" className="w-8 rounded border border-rule py-1 underline">U</button>
-          <button type="button" onClick={() => picker.current?.click()} aria-label="Attach files" title="Attach pictures, videos or documents" className="ml-1 rounded border border-rule px-3 py-1">📎 Attach</button>
+          <StickerPicker onPick={sendSticker} disabled={busy || blockedByMe} />
+          <button type="button" onClick={() => picker.current?.click()} aria-label="Attach files" title="Attach pictures, videos, voice notes or documents" className="ml-1 rounded border border-rule px-3 py-1">📎 Attach</button>
           <input ref={picker} type="file" multiple accept={ATTACHMENT_ACCEPT} className="hidden" onChange={(e) => pick(e.target.files)} />
           {allowed && <span className="ml-1 text-xs text-slate">up to {allowed.maxCount} file{allowed.maxCount === 1 ? "" : "s"}, {formatBytes(allowed.maxBytes)} each</span>}
         </div>
@@ -173,7 +216,7 @@ export default function Thread({ id, to }: { id?: string; to?: string }) {
           <ul className="mb-2 flex flex-wrap gap-2 text-xs">
             {files.map((f, k) => (
               <li key={k} className="flex items-center gap-2 rounded border border-rule px-2 py-1">
-                <span className="max-w-[12rem] truncate">{f.name}</span><span className="text-slate">{formatBytes(f.size)}</span>
+                <span className="max-w-[12rem] truncate">{voiceLength.current.has(f) ? `🎙 Voice note ${Math.floor(voiceLength.current.get(f)! / 60)}:${String(Math.floor(voiceLength.current.get(f)! % 60)).padStart(2, "0")}` : f.name}</span><span className="text-slate">{formatBytes(f.size)}</span>
                 <button type="button" onClick={() => setFiles(files.filter((_, j) => j !== k))} aria-label={`Remove ${f.name}`} className="text-slate">×</button>
               </li>
             ))}
@@ -189,6 +232,7 @@ export default function Thread({ id, to }: { id?: string; to?: string }) {
             }}
             className="min-w-0 flex-1 resize-y rounded border border-rule px-3 py-2 text-sm"
           />
+          <VoiceNoteButton maxSeconds={allowed?.maxVoiceSeconds ?? 300} disabled={busy || blockedByMe} onRecorded={addVoiceNote} onError={setError} />
           <button disabled={busy || (!text.trim() && !files.length) || blockedByMe} className="btn-primary self-end disabled:opacity-50">{busy ? "Sending…" : "Send"}</button>
         </div>
       </form>

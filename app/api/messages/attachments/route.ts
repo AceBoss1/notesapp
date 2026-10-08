@@ -26,7 +26,7 @@ export async function POST(req: NextRequest) {
     if (limited) return limited;
     if (!privateFilesConfigured()) throw new MessageError(503, "Sending files isn't set up yet.");
     const body = await req.json().catch(() => ({}));
-    return NextResponse.json(await startMessageAttachment(getAdminDb(), me.uid, { name: body.name, size: body.size }, async (key, type, size) => presignUpload(key, type, size)));
+    return NextResponse.json(await startMessageAttachment(getAdminDb(), me.uid, { name: body.name, size: body.size, durationSec: body.durationSec }, async (key, type, size) => presignUpload(key, type, size)));
   } catch (err) {
     return fail(err, "Couldn't start the upload");
   }
