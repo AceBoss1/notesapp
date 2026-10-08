@@ -2125,6 +2125,7 @@ A moment's video is up to 90 seconds. A longer video (up to 10 minutes and 100 M
 ## Vercel deployment storage
 
 Every deployment (a production build for each merge to `main`, and a preview for each push to a branch) keeps its own copy of the build in Vercel until deleted, and the Hobby plan caps Functions Storage at 10 GB. `vercel.json` therefore turns off automatic deployments for branches named `claude/*` (the working branch used for pull requests), so pushes there no longer build a preview; merging to `main` still deploys to production as before. Consequences: pull requests from those branches have no Vercel preview link (CI, the `checks` job, still runs on every push), and fewer, bigger pull requests mean fewer production deployments too. Also set **Deployment Retention** (project Settings, Security) and delete old preview deployments from the Deployments page.
+
 ## Planned: domain sales and DNS management via Whogohost (go54) — not built
 
 Decisions (founder, 8 October): the member is the registrant and owns the domain; no extra `.ng` or `.com.ng` documents beyond the four standard contact blocks; Business and Enterprise only. The registration flow suggests profile data for each of the four blocks (registrant, admin, technical, billing), asks before using it, requests missing fields, and offers to copy a finished block into the next. `/domains` is the public page (with the Whogohost gold partner badge in `public/images/partners/`), and the roadmap lists it.
