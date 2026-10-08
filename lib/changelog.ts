@@ -11,6 +11,15 @@ export type Release = {
 
 export const CHANGELOG: Release[] = [
   {
+    version: "v0.9.10",
+    bump: "patch",
+    date: "2026-10-08",
+    changes: [
+      { kind: "added", text: "An app address (app.notesapp.name.ng): it opens on a welcome screen to create an account or sign in, goes straight to your journal if you are already signed in, and shows only the app: Journals, Messages, Bookings and Trending." },
+      { kind: "changed", text: "Domains now appears under “Learn more about each product” on Pricing, and Store selling and Domains are in the footer’s Product list." },
+    ],
+  },
+  {
     version: "v0.9.9",
     bump: "patch",
     date: "2026-10-08",
