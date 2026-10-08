@@ -30,8 +30,8 @@ const ICON: Record<NotificationType, string> = {
   ad: "📣",
   plan: "⭐",
   org: "🏢",
-  message: "✉",
-  moment: "◎",
+  message: "💬",
+  moment: "💬", // a reply to your moment is a conversation too
 };
 
 function timeAgo(iso: string): string {

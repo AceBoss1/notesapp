@@ -11,5 +11,5 @@ export default function MessageButton({ username, ownUid, profileUid }: { userna
   const [user, setUser] = useState<User | null | undefined>(undefined);
   useEffect(() => (MESSAGES_LIVE ? onAuthStateChanged(auth, setUser) : undefined), []);
   if (!MESSAGES_LIVE || !user || user.uid === (ownUid ?? profileUid)) return null;
-  return <Link href={`/messages/new?to=${encodeURIComponent(username)}`} className="btn-ghost">✉ Message</Link>;
+  return <Link href={`/messages/new?to=${encodeURIComponent(username)}`} className="btn-ghost">💬 Message</Link>;
 }

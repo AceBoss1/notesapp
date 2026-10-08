@@ -86,7 +86,7 @@ export default function AuthNav() {
             </Link>
             {profile && <Link href={`/u/${profile.username}/store`} className={item}>My store</Link>}
             {profile && <Link href="/invites" className={item}>Co-author invites</Link>}
-            {MESSAGES_LIVE && <Link href="/messages" className={item}>Messages{unreadDms > 0 && <span className="ml-2 rounded-full bg-crimson px-1.5 py-0.5 text-[10px] font-bold text-white">{unreadDms}</span>}</Link>}
+            {MESSAGES_LIVE && <Link href="/messages" className={item}>💬 Messages{unreadDms > 0 && <span className="ml-2 rounded-full bg-crimson px-1.5 py-0.5 text-[10px] font-bold text-white">{unreadDms}</span>}</Link>}
             <Link href="/bookings" className={item}>Bookings</Link>
             <Link href="/orders" className={item}>Orders &amp; parcels</Link>
             <Link href="/boost" className={item}>Boost a post</Link>
