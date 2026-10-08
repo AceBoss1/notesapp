@@ -20,7 +20,7 @@ function One({ cid, mid, i, f, mine }: { cid: string; mid: string; i: number; f:
   const q = `/api/messages/file?cid=${encodeURIComponent(cid)}&mid=${encodeURIComponent(mid)}&i=${i}`;
   const [url, setUrl] = useState<string | null>(null);
   const [failed, setFailed] = useState(false);
-  const media = f.kind === "image" || f.kind === "video";
+  const media = f.kind === "image" || f.kind === "video" || f.kind === "audio";
   useEffect(() => {
     if (!media) return;
     let live = true;
@@ -37,6 +37,11 @@ function One({ cid, mid, i, f, mine }: { cid: string; mid: string; i: number; f:
       // eslint-disable-next-line @next/next/no-img-element
       ? <a href={url} target="_blank" rel="noopener noreferrer"><img src={url} alt={f.name} className="max-h-64 max-w-full rounded" /></a>
       : <p className="text-xs opacity-80">{failed ? `Couldn't load ${f.name}` : "Loading picture…"}</p>;
+  }
+  if (f.kind === "audio") {
+    return url
+      ? <div><audio src={url} controls preload="metadata" className="h-10 w-60 max-w-full" />{f.durationSec ? <span className="ml-1 text-[11px] opacity-80">{Math.floor(f.durationSec / 60)}:{String(Math.floor(f.durationSec % 60)).padStart(2, "0")}</span> : null}</div>
+      : <p className="text-xs opacity-80">{failed ? `Couldn't load ${f.name}` : "Loading voice note…"}</p>;
   }
   if (f.kind === "video") {
     return url

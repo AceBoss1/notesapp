@@ -9,6 +9,7 @@ import { sendPush, type PushPayload } from "./push-server";
 import { effectiveTier } from "./users";
 import { getTierConfig } from "./tiers";
 import { limit } from "./limits-server";
+import { stickerById } from "./stickers";
 import { safeFileName } from "./private-files";
 
 export type Notify = (note: { uid: string; type: "message" | "moment"; linkHref: string; message: string }) => Promise<void>;
@@ -27,7 +28,7 @@ export type Alerts = {
 const siteUrl = () => (process.env.NEXT_PUBLIC_SITE_URL || "https://www.notesapp.name.ng").replace(/\/$/, "");
 const EMAIL_EVERY_MS = 3_600_000; // at most one message email an hour per member (all conversations together)
 
-export type SendInput = { text: string; moment?: MomentRef; attachmentIds?: string[] };
+export type SendInput = { text: string; moment?: MomentRef; attachmentIds?: string[]; sticker?: string };
 // How the server checks an uploaded file really arrived (a HEAD on the private bucket); injected so it can be tested.
 export type FileDeps = { head: (key: string) => Promise<{ size: number } | null> };
 
@@ -37,15 +38,15 @@ const tierOf = async (db: Firestore, uid: string) => {
 };
 
 // What this member may attach, by plan (admins set the numbers in /admin/limits).
-export async function attachmentLimits(db: Firestore, uid: string): Promise<{ maxBytes: number; maxCount: number }> {
+export async function attachmentLimits(db: Firestore, uid: string): Promise<{ maxBytes: number; maxCount: number; maxVoiceSeconds: number }> {
   const tier = await tierOf(db, uid);
-  return { maxBytes: (await limit(db, "messageAttachmentMB", tier)) * 1024 * 1024, maxCount: await limit(db, "messageAttachmentsPerMessage", tier) };
+  return { maxBytes: (await limit(db, "messageAttachmentMB", tier)) * 1024 * 1024, maxCount: await limit(db, "messageAttachmentsPerMessage", tier), maxVoiceSeconds: await limit(db, "messageVoiceNoteSeconds", tier) };
 }
 
 // Step one of attaching a file: checks the type and size against the plan and returns a short-lived upload link. Nothing is attached
 // until the message is sent with the returned id; a file never used is cleaned up by sweepMessageUploads.
 export async function startMessageAttachment(
-  db: Firestore, uid: string, input: { name: unknown; size: unknown; contentType?: unknown },
+  db: Firestore, uid: string, input: { name: unknown; size: unknown; contentType?: unknown; durationSec?: unknown },
   presign: (key: string, contentType: string, size: number) => Promise<string>, now = new Date(),
 ): Promise<{ id: string; uploadUrl: string; contentType: string }> {
   const name = String(input.name ?? "").trim().slice(0, 200);
@@ -53,11 +54,19 @@ export async function startMessageAttachment(
   const what = attachmentTypeOf(name);
   if (!what) throw new MessageError(400, "That kind of file can't be sent. Pictures, videos, PDFs, Office files, text and zip files can.");
   if (!Number.isInteger(size) || size <= 0) throw new MessageError(400, "That file looks empty.");
-  const { maxBytes } = await attachmentLimits(db, uid);
+  const { maxBytes, maxVoiceSeconds } = await attachmentLimits(db, uid);
   if (size > maxBytes) throw new MessageError(413, `Files can be up to ${Math.floor(maxBytes / 1048576)} MB on your plan.`);
+  // A voice note says how long it is (shown beside the player); it can't be longer than the plan allows.
+  let durationSec: number | undefined;
+  if (what.kind === "audio" && input.durationSec !== undefined) {
+    const d = Number(input.durationSec);
+    if (!Number.isFinite(d) || d <= 0) throw new MessageError(400, "We couldn't read how long that recording is.");
+    if (d > maxVoiceSeconds + 2) throw new MessageError(413, `Voice notes can be up to ${Math.floor(maxVoiceSeconds / 60)}:${String(maxVoiceSeconds % 60).padStart(2, "0")} on your plan.`);
+    durationSec = Math.round(d * 10) / 10;
+  }
   const id = randomBytes(8).toString("hex");
   const key = `messages/${uid}/${id}-${safeFileName(name)}`;
-  await db.doc(`messageUploads/${id}`).set({ uid, key, name, size, type: what.type, kind: what.kind, used: false, createdAt: now.toISOString() });
+  await db.doc(`messageUploads/${id}`).set({ uid, key, name, size, type: what.type, kind: what.kind, ...(durationSec ? { durationSec } : {}), used: false, createdAt: now.toISOString() });
   return { id, uploadUrl: await presign(key, what.type, size), contentType: what.type };
 }
 
@@ -72,7 +81,7 @@ async function claimAttachments(db: Firestore, uid: string, ids: string[], files
     if (up.used) throw new MessageError(400, "One of the files was already sent.");
     const head = await files.head(up.key);
     if (!head || head.size !== up.size || head.size > maxBytes) throw new MessageError(400, "A file didn't upload properly. Attach it again.");
-    out.push({ key: up.key, name: up.name, size: up.size, type: up.type, kind: up.kind });
+    out.push({ key: up.key, name: up.name, size: up.size, type: up.type, kind: up.kind, ...(up.durationSec ? { durationSec: up.durationSec } : {}) });
   }
   return out;
 }
@@ -92,7 +101,9 @@ export async function sweepMessageUploads(db: Firestore, remove: (key: string) =
 export async function sendMessage(db: Firestore, fromUid: string, toUid: string, input: SendInput, now = new Date(), notify: Notify = notifyBell, alerts?: Alerts, files?: FileDeps): Promise<{ conversationId: string; messageId: string }> {
   const text = String(input.text ?? "").trim();
   const ids = Array.isArray(input.attachmentIds) ? input.attachmentIds.map(String) : [];
-  if (!text && !ids.length) throw new MessageError(400, "Write a message first.");
+  const sticker = input.sticker ? String(input.sticker) : "";
+  if (sticker && !stickerById(sticker)) throw new MessageError(400, "That sticker isn't available.");
+  if (!text && !ids.length && !sticker) throw new MessageError(400, "Write a message first.");
   if (text.length > MESSAGE_MAX) throw new MessageError(413, `Messages can be up to ${MESSAGE_MAX} characters.`);
   if (!toUid || toUid === fromUid) throw new MessageError(400, "Pick someone else to message.");
 
@@ -110,7 +121,7 @@ export async function sendMessage(db: Firestore, fromUid: string, toUid: string,
   if (iBlocked.exists) throw new MessageError(403, "You've blocked this member. Unblock them to send a message.");
 
   const attachments = ids.length ? await claimAttachments(db, fromUid, ids, files) : [];
-  const preview = (text || attachmentLabel(attachments)).slice(0, 120);
+  const preview = (text || (attachments.length ? attachmentLabel(attachments) : "🖼 Sticker")).slice(0, 120);
   const cid = conversationId(fromUid, toUid);
   const messageId = `${String(now.getTime()).padStart(13, "0")}_${randomBytes(4).toString("hex")}`;
   const convRef = db.doc(`conversations/${cid}`);
@@ -124,7 +135,7 @@ export async function sendMessage(db: Firestore, fromUid: string, toUid: string,
     if (!conv.exists) {
       t.set(convRef, { participants: [fromUid, toUid].sort(), createdAt, unread: { [fromUid]: 0, [toUid]: 0 } });
     }
-    t.set(msgRef, { from: fromUid, text, createdAt, ...(attachments.length ? { attachments } : {}), ...(input.moment ? { momentRef: input.moment } : {}) });
+    t.set(msgRef, { from: fromUid, text, createdAt, ...(attachments.length ? { attachments } : {}), ...(sticker ? { sticker } : {}), ...(input.moment ? { momentRef: input.moment } : {}) });
     t.update(convRef, {
       lastMessage: { from: fromUid, text: preview, at: createdAt, ...(input.moment ? { moment: true } : {}) },
       lastMessageAt: createdAt,
@@ -190,7 +201,7 @@ export async function getThread(db: Firestore, uid: string, cid: string, now = n
     const m = d.data();
     const ref = m.momentRef as MomentRef | undefined;
     return {
-      id: d.id, from: m.from, text: m.text, createdAt: m.createdAt, ...(m.readAt ? { readAt: m.readAt } : {}),
+      id: d.id, from: m.from, text: m.text, createdAt: m.createdAt, ...(m.readAt ? { readAt: m.readAt } : {}), ...(m.sticker ? { sticker: m.sticker } : {}),
       ...(m.attachments ? { attachments: (m.attachments as MessageAttachment[]).map(({ key: _k, ...info }) => info) } : {}),
       // Only whether it has expired — never the moment's content.
       ...(ref ? { moment: { momentId: ref.momentId, expired: isMomentExpired(ref.expiresAt, now) } } : {}),
