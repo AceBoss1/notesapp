@@ -22,17 +22,35 @@ export default function MomentViewer({ moments, onClose, onChanged }: { moments:
   const [showViewers, setShowViewers] = useState(false);
   const [paused, setPaused] = useState(false); // you've started replying, reporting or looking at who saw it: stills stop moving on
   const [frac, setFrac] = useState(0); // how much of the moment now showing has played (0 to 1): fills its bar
+  const videoEl = useRef<HTMLVideoElement>(null);
+  const viewed = useRef(new Set<string>()); // a moment is counted as seen once per time the viewer is open, however often this re-renders
+  const advances = useRef<number[]>([]); // when we last moved on: a runaway loop closes the viewer instead of hammering the device
   const advanced = useRef<string | null>(null); // the video moment already moved on from (timeupdate fires several times near the end)
   const m = items[i];
 
   useEffect(() => { setShowViewers(false); setPaused(false); setFrac(0); }, [i]);
-  const next = () => (i + 1 < items.length ? setI(i + 1) : onClose());
+  const next = () => {
+    const now = Date.now();
+    advances.current = advances.current.filter((t) => now - t < 3000).concat(now);
+    if (advances.current.length > 6) return onClose();
+    if (i + 1 < items.length) setI(i + 1); else onClose();
+  };
   // Stills advance by themselves; a video advances when it ends.
   useEffect(() => {
     if (!m) return;
-    api(`/api/moments/${m.id}`, { body: { action: "view" } }).catch(() => {});
+    if (!viewed.current.has(m.id)) { viewed.current.add(m.id); api(`/api/moments/${m.id}`, { body: { action: "view" } }).catch(() => {}); }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [i, m?.id]);
+  // The parts of one long video share one file, so one video element plays them all: moving to the next part only moves the
+  // playhead (usually it is already there), instead of fetching and decoding the same file again for every part.
+  useEffect(() => {
+    const v = videoEl.current;
+    if (!m || m.kind !== "video" || !v || v.readyState < 1) return; // a fresh element seeks itself once it knows its length
+    const start = m.clipStart ?? 0;
+    if (Math.abs(v.currentTime - start) > 0.5) v.currentTime = start;
+    if (v.paused) v.play().catch(() => {});
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [m?.id]);
   // Pictures and text move on by themselves, long enough for the voice-over to finish if there is one; the bar fills as time passes.
   const stillMs = m ? Math.max(STILL_MS, ((m.audioDurationSec ?? 0) + 1) * 1000) : STILL_MS;
   useEffect(() => {
@@ -42,7 +60,7 @@ export default function MomentViewer({ moments, onClose, onChanged }: { moments:
       const f = Math.min(1, (Date.now() - started) / stillMs);
       setFrac(f);
       if (f >= 1) { clearInterval(t); next(); }
-    }, 100);
+    }, 250);
     return () => clearInterval(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [i, m?.id, paused]);
@@ -61,7 +79,7 @@ export default function MomentViewer({ moments, onClose, onChanged }: { moments:
           {/* One bar per moment: the maroon part is what has played, the rest is still to come. */}
           {items.map((x, k) => (
             <span key={x.id} className="h-1.5 flex-1 overflow-hidden rounded bg-white/70">
-              <span className="block h-full bg-crimson transition-[width] duration-150 ease-linear" style={{ width: `${k < i ? 100 : k === i ? Math.round(frac * 100) : 0}%` }} />
+              <span className="block h-full bg-crimson transition-[width] duration-300 ease-linear" style={{ width: `${k < i ? 100 : k === i ? Math.round(frac * 100) : 0}%` }} />
             </span>
           ))}
         </div>
@@ -80,13 +98,14 @@ export default function MomentViewer({ moments, onClose, onChanged }: { moments:
           {m.kind === "video" && (
             // A part of a longer video plays only its own stretch of the file: it starts at clipStart and moves on at clipEnd.
             <video
-              key={m.id} src={m.videoUrl} autoPlay playsInline controls={false} className="h-full w-full object-contain"
+              key={m.videoUrl} ref={videoEl} src={m.videoUrl} autoPlay playsInline controls={false} className="h-full w-full object-contain"
               onLoadedMetadata={(e) => { if (m.clipStart) e.currentTarget.currentTime = m.clipStart; }}
               onTimeUpdate={(e) => {
                 const v = e.currentTarget, from = m.clipStart ?? 0, to = m.clipEnd ?? v.duration;
-                if (to > from) setFrac(Math.min(1, Math.max(0, (v.currentTime - from) / (to - from))));
+                if (to > from && Number.isFinite(to)) { const f = Math.round(Math.min(1, Math.max(0, (v.currentTime - from) / (to - from))) * 100) / 100; setFrac((p) => (p === f ? p : f)); }
                 if (m.clipEnd && e.currentTarget.currentTime >= m.clipEnd - 0.05 && advanced.current !== m.id) { advanced.current = m.id; next(); }
               }}
+              onError={() => setNote("This video couldn't be loaded. Check your connection and try again.")}
               onEnded={() => { if (advanced.current !== m.id) { advanced.current = m.id; next(); } }}
             />
           )}
