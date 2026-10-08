@@ -202,6 +202,26 @@ export default function PublishingSettingsPage() {
       )}
 
       <div className="card mt-8 p-6">
+        <p className="eyebrow">Earnings</p>
+        <p className="mt-2 text-sm text-ink">
+          Awaiting release: {formatNaira(owed)} · Paid out: {formatNaira(paid)}
+        </p>
+        <p className="mt-1 text-xs text-slate">
+          Session earnings are released after the session; subscription earnings after a 7-day dispute window. Amounts are after NotesApp's commission for your tier.
+        </p>
+        {ledger.length > 0 && (
+          <ul className="mt-4 divide-y divide-rule text-sm">
+            {ledger.slice(0, 20).map((l) => (
+              <li key={l.reference} className="flex justify-between py-2">
+                <span className="text-slate">{l.createdAt.slice(0, 10)} · {l.kind}</span>
+                <span className="text-ink">{formatNaira(l.netKobo)} · {l.status.replace("_", " ")}</span>
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
+
+      <div className="card mt-8 p-6">
         <p className="eyebrow">Payout account</p>
         {payout ? (
           <p className="mt-2 text-sm text-ink">
@@ -379,26 +399,6 @@ export default function PublishingSettingsPage() {
           </>
         )}
         <Link href="/profile/boosts" className="mt-3 inline-block text-xs font-semibold text-crimson underline">Full boost performance →</Link>
-      </div>
-
-      <div className="card mt-10 p-6">
-        <p className="eyebrow">Earnings</p>
-        <p className="mt-2 text-sm text-ink">
-          Awaiting release: {formatNaira(owed)} · Paid out: {formatNaira(paid)}
-        </p>
-        <p className="mt-1 text-xs text-slate">
-          Session earnings are released after the session; subscription earnings after a 7-day dispute window. Amounts are after NotesApp's commission for your tier.
-        </p>
-        {ledger.length > 0 && (
-          <ul className="mt-4 divide-y divide-rule text-sm">
-            {ledger.slice(0, 20).map((l) => (
-              <li key={l.reference} className="flex justify-between py-2">
-                <span className="text-slate">{l.createdAt.slice(0, 10)} · {l.kind}</span>
-                <span className="text-ink">{formatNaira(l.netKobo)} · {l.status.replace("_", " ")}</span>
-              </li>
-            ))}
-          </ul>
-        )}
       </div>
     </section>
   );

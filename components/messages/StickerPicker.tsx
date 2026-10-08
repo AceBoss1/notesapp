@@ -20,7 +20,7 @@ export default function StickerPicker({ onPick, disabled }: { onPick: (id: strin
         <div className="absolute bottom-full left-0 z-20 mb-2 w-72 rounded-lg border border-rule bg-card p-3 shadow-lg" role="dialog" aria-label="Choose a sticker">
           <div className="grid max-h-64 grid-cols-3 gap-2 overflow-y-auto">
             {STICKERS.map((s) => (
-              <button key={s.id} type="button" onClick={() => { setOpen(false); onPick(s.id); }} title={s.label} aria-label={`Send the ${s.label} sticker`} className="flex aspect-square items-center justify-center rounded border border-transparent p-1 hover:border-crimson hover:bg-paper">
+              <button key={s.id} type="button" onClick={() => { setOpen(false); onPick(s.id); }} title={s.label} aria-label={`Send the ${s.label} sticker`} className={`flex items-center justify-center rounded border border-transparent p-1 hover:border-crimson hover:bg-paper ${s.wide ? "col-span-3 aspect-[3/2]" : "aspect-square"}`}>
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img src={s.src} alt="" className="max-h-full max-w-full object-contain" loading="lazy" />
               </button>

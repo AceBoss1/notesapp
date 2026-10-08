@@ -22,7 +22,7 @@ export default function SocialChannelSpotlight({ allNotes }: { allNotes: NoteWit
 
   return (
     <section className="card p-8">
-      <span className="eyebrow">Channel</span>
+      <span className="eyebrow">Public Channels</span>
       <div className="mt-4 flex flex-col gap-6 sm:flex-row sm:items-start">
         <Avatar src={NA_NOTESAPP_PROFILE.avatar} alt={NA_NOTESAPP_PROFILE.displayName} size={64} />
         <div className="flex-1">

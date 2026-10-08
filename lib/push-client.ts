@@ -30,3 +30,22 @@ export async function disablePush(): Promise<void> {
   await api("/api/push", { method: "DELETE", body: { endpoint: sub.endpoint } }).catch(() => {});
   await sub.unsubscribe();
 }
+
+// What this device's owner chose, remembered on the device (a subscription belongs to one browser): "off" once they turn notifications off
+// themselves, so we never turn them back on; "later:<time>" when they dismissed the offer, which comes back after a week.
+const CHOICE_KEY = "notesapp-push-choice";
+const WEEK_MS = 7 * 24 * 3600 * 1000;
+export function pushChoiceBlocks(now = Date.now()): boolean {
+  try {
+    const v = localStorage.getItem(CHOICE_KEY);
+    if (v === "off") return true;
+    if (v?.startsWith("later:")) return now - Number(v.slice(6)) < WEEK_MS;
+  } catch { /* storage unavailable: treat as no choice */ }
+  return false;
+}
+export function setPushChoice(v: "off" | "later" | null): void {
+  try {
+    if (v === null) localStorage.removeItem(CHOICE_KEY);
+    else localStorage.setItem(CHOICE_KEY, v === "off" ? "off" : `later:${Date.now()}`);
+  } catch { /* ignore */ }
+}

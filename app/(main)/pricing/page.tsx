@@ -7,6 +7,10 @@ import { BOOST_PACKAGES } from "@/lib/boost-config";
 import { GOLD_KIND_LIVE } from "@/lib/badges";
 import UpgradeButton from "@/components/UpgradeButton";
 import { LIMITS, formatNaira } from "@/lib/booking-time";
+import { limitTable, type LimitTable } from "@/lib/limits";
+import { getAdminDb } from "@/lib/firebase-admin";
+import { getLimitTable } from "@/lib/limits-server";
+import { MESSAGES_LIVE, MOMENTS_LIVE } from "@/lib/moments-rules";
 
 export const metadata: Metadata = {
   title: "Pricing",
@@ -14,7 +18,13 @@ export const metadata: Metadata = {
     "#NotesApp's tier ladder — Free Standard for readers, Free Basic through Enterprise for publishers, with transparent ad revenue share and booking/unlock/merch commission at every level.",
 };
 
-const ROWS: { label: string; href?: string; render: (t: (typeof TIERS)[number]) => string }[] = [
+// These numbers are set by the admin team and can change; the page re-reads them every minute.
+export const revalidate = 60;
+
+type Row = { label: string; href?: string; render: (t: (typeof TIERS)[number], L: LimitTable) => string; show?: boolean };
+const mins = (s: number) => (s % 60 === 0 ? `${s / 60} minute${s === 60 ? "" : "s"}` : `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`);
+
+const ROWS: Row[] = [
   { label: "Can publish?", render: (t) => (t.canPublish ? "Yes" : "No — read & engage only") },
   {
     label: "Can co-author?",
@@ -120,6 +130,23 @@ const ROWS: { label: string; href?: string; render: (t: (typeof TIERS)[number]) 
           : "Your page lives at notesapp.name.ng/u/username",
   },
   {
+    label: "Files in messages",
+    show: MESSAGES_LIVE,
+    render: (t, L) => `Send pictures, videos and documents: ${L.messageAttachmentsPerMessage[t.tier]} file${L.messageAttachmentsPerMessage[t.tier] === 1 ? "" : "s"} per message, up to ${L.messageAttachmentMB[t.tier]} MB each`,
+  },
+  {
+    label: "Voice notes",
+    show: MESSAGES_LIVE,
+    render: (t, L) => `Record and send voice notes of up to ${mins(L.messageVoiceNoteSeconds[t.tier])}`,
+  },
+  {
+    label: "Moments",
+    show: MOMENTS_LIVE,
+    render: (t, L) =>
+      `Pictures and text, up to ${L.momentsPerDay[t.tier]} a day, for 24, 48 or 72 hours · ` +
+      (L.momentVideosPerWeek[t.tier] > 0 ? `${L.momentVideosPerWeek[t.tier]} video moments a week (each 90-second part of a longer video counts as one)` : "video moments come with a paid plan"),
+  },
+  {
     label: "Email for new messages",
     render: (t) => (t.messageEmails ? "Yes: off until you switch it on, at most one email an hour" : "Bell, plus notifications on your device if you turn them on"),
   },
@@ -131,7 +158,9 @@ const ROWS: { label: string; href?: string; render: (t: (typeof TIERS)[number]) 
   { label: "AI draft assistance", render: (t) => (t.canPublish ? "Planned — included on every publisher tier" : "—") },
 ];
 
-export default function PricingPage() {
+export default async function PricingPage() {
+  // The admin-set limits; the built-in defaults if they can't be read.
+  const L = await (async () => getLimitTable(getAdminDb()))().catch(() => limitTable());
   return (
     <div className="mx-auto max-w-6xl px-4 py-16 sm:px-6 lg:px-8">
       <span className="eyebrow">Pricing</span>
@@ -173,7 +202,7 @@ export default function PricingPage() {
             </tr>
           </thead>
           <tbody>
-            {ROWS.map((row) => (
+            {ROWS.filter((row) => row.show !== false).map((row) => (
               <tr key={row.label} className="border-b border-rule">
                 <td className="py-4 pr-4 font-ui text-sm font-semibold text-ink">
                   {row.href ? (
@@ -184,7 +213,7 @@ export default function PricingPage() {
                 </td>
                 {TIERS.map((t) => (
                   <td key={t.tier} className="px-4 py-4 text-sm text-slate">
-                    {row.render(t)}
+                    {row.render(t, L)}
                   </td>
                 ))}
               </tr>
