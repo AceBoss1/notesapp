@@ -5,7 +5,7 @@ import { pingStream, streamConfigured } from "./stream";
 import { GOLD_KIND_LIVE } from "./badges";
 import { privateBucket, privateFilesConfigured } from "./private-files";
 import { paylonyConfigured, walletBalance } from "./paylony";
-import { pushConfigured } from "./push-server";
+import { pushConfigured, pushProblem } from "./push-server";
 import { MESSAGES_LIVE, MOMENTS_LIVE } from "./moments-rules";
 import { pingVercel, vercelConfigured } from "./domains";
 
@@ -151,7 +151,10 @@ export async function checkServices(): Promise<ServiceStatus[]> {
   checks.push(
     Promise.resolve(pushConfigured()
       ? ({ id: "push", name: "Device notifications", description: "Notifications for new messages on phones and browsers", state: "operational" } as ServiceStatus)
-      : notConfigured("push", "Device notifications", "Notifications for new messages on phones and browsers"))
+      : pushProblem()
+        // Set, but wrong: shown as down so it is noticed (the text says exactly what to fix; it never shows a key).
+        ? ({ id: "push", name: "Device notifications", description: `Settings need fixing: ${pushProblem()}`, state: "down" } as ServiceStatus)
+        : notConfigured("push", "Device notifications", "Notifications for new messages on phones and browsers"))
   );
 
   const resend = process.env.RESEND_API_KEY;

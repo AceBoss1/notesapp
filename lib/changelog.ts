@@ -11,6 +11,14 @@ export type Release = {
 
 export const CHANGELOG: Release[] = [
   {
+    version: "v0.8.4",
+    bump: "patch",
+    date: "2026-10-08",
+    changes: [
+      { kind: "fixed", text: "Turning on device notifications could fail with “The provided applicationServerKey is not valid”. The notification settings are now checked, stray spaces and quotes are ignored, and the status page says exactly which setting needs fixing." },
+    ],
+  },
+  {
     version: "v0.8.3",
     bump: "patch",
     date: "2026-10-08",

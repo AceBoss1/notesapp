@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAdminDb } from "@/lib/firebase-admin";
 import { getPrefs, setPrefs } from "@/lib/messages-server";
-import { pushConfigured } from "@/lib/push-server";
+import { pushConfigured, vapidPublicKey } from "@/lib/push-server";
 import { authed, fail } from "@/lib/moments-api";
 
 export const dynamic = "force-dynamic";
@@ -10,7 +10,7 @@ export const dynamic = "force-dynamic";
 export async function GET(req: NextRequest) {
   try {
     const me = await authed(req, "messages");
-    return NextResponse.json({ ...(await getPrefs(getAdminDb(), me.uid)), pushAvailable: pushConfigured(), vapidKey: pushConfigured() ? process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY : null });
+    return NextResponse.json({ ...(await getPrefs(getAdminDb(), me.uid)), pushAvailable: pushConfigured(), vapidKey: pushConfigured() ? vapidPublicKey() : null });
   } catch (err) {
     return fail(err, "Couldn't load your settings");
   }
