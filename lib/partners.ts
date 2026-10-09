@@ -16,13 +16,13 @@ export const TRUSTED_BY: { username: string; what?: string }[] = [
 // `wordmark: true` means the file already spells the company's name, so it is shown alone (with the short line under it).
 export const PARTNERS: { name: string; what: string; logo?: string; wordmark?: boolean; href?: string }[] = [
   { name: "Whogohost (go54)", what: "Domain partner · gold partnership", logo: "/images/partners/whogohost-gold-partner.png", href: "/domains" },
-  { name: "Paystack", what: "Payments in Naira", logo: "/images/partners/paystack.png", wordmark: true },
-  { name: "Paylony", what: "Bank payouts", logo: "/images/partners/paylony.png", wordmark: true },
+  { name: "Paystack", what: "Payments in Naira", logo: "/images/partners/paystack.png" },
+  { name: "Paylony", what: "Bank payouts", logo: "/images/partners/paylony.png" },
   { name: "Cloudflare", what: "Storage and video", logo: "/images/partners/cloudflare.svg" },
   { name: "Google Firebase", what: "Accounts and data", logo: "/images/partners/firebase.svg" },
   { name: "Vercel", what: "Hosting", logo: "/images/partners/vercel.svg" },
   { name: "Resend", what: "Email", logo: "/images/partners/resend.svg" },
-  { name: "Dojah", what: "Identity checks", logo: "/images/partners/dojah.png", wordmark: true },
-  { name: "LinkedIn", what: "Sharing your posts", logo: "/images/partners/linkedin.png", wordmark: true },
+  { name: "Dojah", what: "Identity checks", logo: "/images/partners/dojah.png" },
+  { name: "LinkedIn", what: "Sharing your posts", logo: "/images/partners/linkedin.png" },
   { name: "X", what: "Sharing your posts", logo: "/images/partners/x.svg" },
 ];
