@@ -12,13 +12,25 @@ const TIMEOUT_MS = 20_000;
 // Whogohost only accepts calls from addresses it has been given, and Vercel's change. When WHOGOHOST_PROXY_URL is set (an HTTP(S) proxy with a
 // fixed outgoing address, e.g. http://user:pass@host:port), every call to Whogohost goes through it; nothing else does. The URL holds a
 // password, so it is never logged or returned.
-let agent: ProxyAgent | undefined;
+let agent: { url: string; a: ProxyAgent } | undefined;
 export const proxyConfigured = () => !!process.env.WHOGOHOST_PROXY_URL;
+// The proxy's host and port only (never the user name or password), for the admin page.
+export function proxyHost(): string | null {
+  try { const u = new URL(process.env.WHOGOHOST_PROXY_URL || ""); return `${u.protocol}//${u.host}`; } catch { return process.env.WHOGOHOST_PROXY_URL ? "(not a valid URL)" : null; }
+}
+// What went wrong with a network failure, without any credential: the low-level code (ECONNREFUSED, ENOTFOUND, ETIMEDOUT, a proxy 407 …).
+function networkDetail(err: unknown): string {
+  const e = err as { name?: string; message?: string; code?: string; cause?: { code?: string; message?: string; name?: string } };
+  let t = [e.cause?.code, e.cause?.message || e.cause?.name, e.code, e.message].filter(Boolean).join(" · ");
+  const proxy = process.env.WHOGOHOST_PROXY_URL;
+  if (proxy) { try { const u = new URL(proxy); for (const x of [proxy, u.password, u.username]) if (x) t = t.split(x).join("***"); } catch { t = t.split(proxy).join("***"); } }
+  return t.slice(0, 200);
+}
 export async function proxiedFetch(url: string, init: RequestInit = {}): Promise<Response> {
   const proxy = process.env.WHOGOHOST_PROXY_URL;
   if (!proxy) return fetch(url, init);
-  agent ??= new ProxyAgent(proxy);
-  return (await undiciFetch(url, { ...(init as object), dispatcher: agent } as never)) as unknown as Response;
+  if (agent?.url !== proxy) agent = { url: proxy, a: new ProxyAgent(proxy) };
+  return (await undiciFetch(url, { ...(init as object), dispatcher: agent.a } as never)) as unknown as Response;
 }
 
 // The address the service sees our calls come from (through the proxy, when one is set): what to give Whogohost to allow.
@@ -77,7 +89,8 @@ async function probe(name: string, fn: () => Promise<unknown>) {
   } catch (err) {
     const body = err instanceof WhogohostError ? JSON.stringify(err.body ?? err.message).slice(0, 200) : "failed";
     const blocked = err instanceof WhogohostError && /not allowed/i.test(JSON.stringify(err.body ?? ""));
-    return { name, state: blocked ? ("blocked" as const) : ("allowed" as const), note: body };
+    const unreachable = err instanceof WhogohostError && (err.status === 502 || err.status === 503);
+    return { name, state: unreachable ? ("unreachable" as const) : blocked ? ("blocked" as const) : ("allowed" as const), note: body };
   }
 }
 
@@ -95,7 +108,7 @@ export async function wgDiagnose() {
     probe("DNS records (a domain we don't own)", () => wgGetDns("example-probe.com")),
     probe("Nameservers (a domain we don't own)", () => wgGetNameservers("example-probe.com")),
   ]);
-  return { configured: true, emailSet, keySet, ok: c.ok, summary: c.ok ? "Connected: the service accepted our login." : c.error, version: shape(version), credits: c, tlds: shape(tlds), proxy: proxyConfigured(), probes, outgoingIp: ip.status === "fulfilled" ? ip.value : null } as const;
+  return { configured: true, emailSet, keySet, ok: c.ok, summary: c.ok ? "Connected: the service accepted our login." : c.error, version: shape(version), credits: c, tlds: shape(tlds), proxy: proxyConfigured(), proxyHost: proxyHost(), probes, outgoingIp: ip.status === "fulfilled" ? ip.value : null } as const;
 }
 
 export class WhogohostError extends Error {
@@ -131,7 +144,8 @@ async function call<T = unknown>(method: "GET" | "POST", path: string, params: R
     return body as T;
   } catch (err) {
     if (err instanceof WhogohostError) throw err;
-    throw new WhogohostError(err instanceof Error && err.name === "AbortError" ? "The domain service took too long to answer." : "Couldn't reach the domain service.", 502);
+    const timedOut = err instanceof Error && err.name === "AbortError";
+    throw new WhogohostError(`${timedOut ? "The domain service took too long to answer" : "Couldn't reach the domain service"}${proxyConfigured() ? " (through the proxy)" : ""}: ${networkDetail(err)}`, 502);
   } finally {
     clearTimeout(timer);
   }

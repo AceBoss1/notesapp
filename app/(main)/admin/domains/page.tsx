@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { useAdminAuth } from "@/lib/useAdminAuth";
 
 type Part = { ok: true; data: unknown } | { ok: false; error: string };
-type Diag = { configured: boolean; emailSet: boolean; keySet: boolean; ok: boolean; summary: string; version?: Part; credits?: Part; tlds?: Part; proxy?: boolean; outgoingIp?: string | null; probes?: { name: string; state: "allowed" | "blocked"; note: string }[] };
+type Diag = { configured: boolean; emailSet: boolean; keySet: boolean; ok: boolean; summary: string; version?: Part; credits?: Part; tlds?: Part; proxy?: boolean; outgoingIp?: string | null; proxyHost?: string | null; probes?: { name: string; state: "allowed" | "blocked" | "unreachable"; note: string }[] };
 
 // Domain sales (Whogohost / go54 reseller API): is the connection up, which settings exist, our credit balance and the extensions offered.
 export default function AdminDomainSalesPage() {
@@ -55,7 +55,7 @@ export default function AdminDomainSalesPage() {
           </ul>
           {diag.configured && (
             <p className="mt-3 text-slate">
-              Calls leave from <strong className="font-mono text-ink">{diag.outgoingIp || "an address we couldn't read"}</strong>{diag.proxy ? " (through the fixed-address proxy)" : " (no proxy set: Vercel's address, which changes)"}. Whogohost must list this address under IP restrictions.
+              Calls leave from <strong className="font-mono text-ink">{diag.outgoingIp || "an address we couldn't read"}</strong>{diag.proxy ? ` (through the proxy at ${diag.proxyHost})` : " (no proxy set: Vercel's address, which changes)"}. Whogohost must list this address under IP restrictions.
             </p>
           )}
           {diag.probes && (
@@ -63,7 +63,7 @@ export default function AdminDomainSalesPage() {
               <p className="font-ui text-sm font-bold text-ink">Which actions the service allows from this address</p>
               <ul className="mt-1 space-y-1 text-xs">
                 {diag.probes.map((p) => (
-                  <li key={p.name}><span className={p.state === "allowed" ? "text-emerald-800" : "text-crimson"}>{p.state === "allowed" ? "allowed" : "REFUSED"}</span> · {p.name} <span className="block font-mono text-[11px] text-slate">{p.note}</span></li>
+                  <li key={p.name}><span className={p.state === "allowed" ? "text-emerald-800" : "text-crimson"}>{p.state === "allowed" ? "allowed" : p.state === "blocked" ? "REFUSED" : "NOT REACHED"}</span> · {p.name} <span className="block font-mono text-[11px] text-slate">{p.note}</span></li>
                 ))}
               </ul>
             </div>
