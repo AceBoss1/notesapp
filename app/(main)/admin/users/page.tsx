@@ -10,6 +10,7 @@ import { getAllBadgeRequests, resolveBadgeRequest, getAllSuspensions, suspendUse
 import { GOLD_KIND_LABEL, GOLD_KIND_LIVE, GoldBadgeKind } from "@/lib/badges";
 import { TIERS } from "@/lib/tiers";
 import { ADMIN_PROFILES } from "@/lib/admin";
+import { hasAnyDept, hasDept } from "@/lib/admin-access";
 
 const FOUNDER_USERNAMES = Object.values(ADMIN_PROFILES).map((p) => p.username);
 
@@ -20,7 +21,9 @@ const ASSIGNABLE_ROLES: { value: UserRole; label: string }[] = [
 ];
 
 export default function AdminUsersPage() {
-  const { user, loading } = useAdminAuth();
+  const { user, access, loading } = useAdminAuth();
+  const canMoney = hasDept(access, "finance"); // tiers and roles
+  const canCare = hasAnyDept(access, ["support", "moderation"]); // gold badges, suspensions
   const [users, setUsers] = useState<UserProfile[] | null>(null);
   const [error, setError] = useState("");
   const [emails, setEmails] = useState<Record<string, string>>({});
@@ -269,7 +272,7 @@ export default function AdminUsersPage() {
                       </span>
                     ) : (
                       <>
-                      <select
+                      {canCare && <select
                         title="Gold badge (endorsement is live; identity check is coming soon and stays hidden)"
                         value={u.goldBadge?.kind || ""}
                         disabled={busyUid === u.uid}
@@ -282,8 +285,8 @@ export default function AdminUsersPage() {
                             Gold: {GOLD_KIND_LABEL[k]}
                           </option>
                         ))}
-                      </select>
-                      <select
+                      </select>}
+                      {canMoney && <select
                         title="Account tier"
                         value={u.accountTier || "standard"}
                         disabled={busyUid === u.uid}
@@ -295,8 +298,8 @@ export default function AdminUsersPage() {
                             {t.label}
                           </option>
                         ))}
-                      </select>
-                      <select
+                      </select>}
+                      {canMoney && <select
                         value={u.role}
                         disabled={busyUid === u.uid}
                         onChange={(e) => handleRoleChange(u.uid, u.username, e.target.value as UserRole)}
@@ -307,7 +310,7 @@ export default function AdminUsersPage() {
                             {r.label}
                           </option>
                         ))}
-                      </select>
+                      </select>}
                       </>
                     )}
                     <p className="text-xs text-slate font-mono">
@@ -317,7 +320,7 @@ export default function AdminUsersPage() {
                         day: "numeric",
                       })}
                     </p>
-                    {!isFounder &&
+                    {!isFounder && canCare &&
                       (suspended ? (
                         <button
                           onClick={() => handleUnsuspend(u.uid, u.username, false)}

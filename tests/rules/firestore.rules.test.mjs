@@ -629,3 +629,72 @@ test("moments are API-only; conversations are readable only by their two members
   await assertFails(deleteDoc(doc(as("alice"), "conversations/alice_pub/messages/1")));
   await assertFails(setDoc(doc(as("alice"), "conversations/alice_zed"), { participants: ["alice", "zed"] }));
 });
+
+// ---- Staff roles: a super admin (or an account with only the old `admin` claim) sees everything; an admin sees only their departments.
+const staff = (...depts) => as("staff", { admin: true, adminRole: "admin", depts });
+const superAdmin = () => as("boss", { admin: true, adminRole: "super" });
+const legacyAdmin = () => as("boss2", { admin: true });
+
+test("staff roles: each department reaches its own collections and not the others'", async () => {
+  await env.withSecurityRulesDisabled(async (ctx) => {
+    const d = ctx.firestore();
+    await setDoc(doc(d, "notes/draft1"), { slug: "d", title: "x", status: "draft", authorUid: "pub" });
+    await setDoc(doc(d, "notes/pub1"), { slug: "p", title: "x", status: "published", authorUid: "pub" });
+    await setDoc(doc(d, "notes/pub1/comments/c1"), { authorUid: "alice", text: "x", likeCount: 0 });
+    await setDoc(doc(d, "leads/l1"), { name: "n", email: "e", category: "other", message: "m", status: "new", createdAt: "x" });
+    await setDoc(doc(d, "suspensions/alice"), { reason: "x", appealStatus: "none" });
+    await setDoc(doc(d, "merchOrders/m1"), { uid: "alice", status: "preordered" });
+    await setDoc(doc(d, "storeOrders/o1"), { buyerUid: "alice", sellerUid: "pub", status: "paid" });
+    await setDoc(doc(d, "adRevenue/r1"), { month: "2026-10" });
+    await setDoc(doc(d, "adCampaigns/a1"), { uid: "alice", status: "live" });
+    await setDoc(doc(d, "adCreatives/c1"), { title: "x" });
+    await setDoc(doc(d, "orgMembers/o_p"), { orgUid: "o", memberUid: "pub" });
+    await setDoc(doc(d, "badgeRequests/alice"), { status: "pending" });
+    await setDoc(doc(d, "settings/site"), { email: "x" });
+  });
+  const reads = { // path → the departments allowed to read it (a super admin always can)
+    "notes/draft1": ["content", "moderation"], "leads/l1": ["support", "growth"], "suspensions/alice": ["support", "moderation"],
+    "merchOrders/m1": ["finance", "support"], "storeOrders/o1": ["finance", "support"], "adRevenue/r1": ["finance"], "adCampaigns/a1": ["growth", "finance"],
+    "adCreatives/c1": ["growth"], "orgMembers/o_p": ["support", "growth"], "badgeRequests/alice": ["support", "moderation"],
+    "payments/ref1": ["finance"], "ledger/ref1": ["finance"], "payoutAccounts/pub": ["finance"], "bookings/ref1": ["support", "finance"], "gifts/g1": ["finance", "support"],
+    "boosts/b1": ["growth", "finance"], "tierSubscriptions/pub": ["finance", "support"],
+  };
+  const all = ["support", "moderation", "finance", "growth", "content", "product"];
+  for (const [path, allowed] of Object.entries(reads)) {
+    for (const dept of all) {
+      const run = allowed.includes(dept) ? assertSucceeds : assertFails;
+      await run(getDoc(doc(staff(dept), path))).catch((e) => { throw new Error(`${dept} reading ${path} (allowed: ${allowed.includes(dept)}): ${e.message}`); });
+    }
+    await assertSucceeds(getDoc(doc(superAdmin(), path))).catch((e) => { throw new Error(`super reading ${path}: ${e.message}`); });
+    await assertSucceeds(getDoc(doc(legacyAdmin(), path))).catch((e) => { throw new Error(`legacy reading ${path}: ${e.message}`); }); // accounts set up before roles existed stay super admins
+    await assertFails(getDoc(doc(staff(), path))).catch((e) => { throw new Error(`no-department reading ${path}: ${e.message}`); }); // an admin with no department sees none of it
+    await assertFails(getDoc(doc(as("nobody", { adminRole: "super" }), path))).catch((e) => { throw new Error(`role-only reading ${path}: ${e.message}`); }); // a role claim without `admin` is nothing
+    await assertFails(getDoc(doc(as("odd", { admin: true, adminRole: "weird", depts: ["finance"] }), path.replace(/.*/, "leads/l1")))); // an unknown role is the safe reading (depts, not super)
+  }
+  // Writing: each department only where it belongs.
+  await assertSucceeds(updateDoc(doc(staff("content"), "notes/pub1"), { title: "edited" }));
+  await assertFails(updateDoc(doc(staff("finance"), "notes/pub1"), { title: "finance edit" }));
+  await assertSucceeds(deleteDoc(doc(staff("moderation"), "notes/pub1/comments/c1")));
+  await assertSucceeds(setDoc(doc(staff("content"), "notes/new1"), { slug: "n", title: "x", status: "draft", authorUid: "staff" }));
+  await assertFails(setDoc(doc(staff("support"), "notes/new2"), { slug: "n", title: "x", status: "draft", authorUid: "staff" }));
+  await assertSucceeds(setDoc(doc(staff("product"), "settings/site"), { email: "y" }));
+  await assertFails(setDoc(doc(staff("support"), "settings/site"), { email: "y" }));
+  await assertSucceeds(setDoc(doc(staff("growth"), "adCreatives/c2"), { title: "y" }));
+  await assertFails(setDoc(doc(staff("finance"), "adCreatives/c3"), { title: "y" }));
+  await assertSucceeds(updateDoc(doc(staff("support"), "leads/l1"), { status: "read" }));
+  await assertFails(updateDoc(doc(staff("moderation"), "leads/l1"), { status: "read" }));
+  await assertSucceeds(updateDoc(doc(staff("moderation"), "badgeRequests/alice"), { status: "approved" }));
+  await assertFails(updateDoc(doc(staff("growth"), "badgeRequests/alice"), { status: "approved" }));
+  // Members' profiles: customer care and trust & safety can suspend and reinstate, nothing else; finance and super admins can change tiers.
+  await assertSucceeds(updateDoc(doc(staff("support"), "users/alice"), { suspended: true }));
+  await assertSucceeds(updateDoc(doc(staff("moderation"), "users/alice"), { suspended: false }));
+  await assertFails(updateDoc(doc(staff("support"), "users/alice"), { accountTier: "enterprise" }));
+  await assertFails(updateDoc(doc(staff("moderation"), "users/alice"), { suspended: true, role: "staff" }));
+  await assertFails(updateDoc(doc(staff("content"), "users/alice"), { suspended: true }));
+  await assertSucceeds(updateDoc(doc(staff("finance"), "users/alice"), { accountTier: "pro" }));
+  await assertSucceeds(updateDoc(doc(superAdmin(), "users/alice"), { accountTier: "business" }));
+  await assertSucceeds(setDoc(doc(staff("support"), "suspensions/pub"), { reason: "x", appealStatus: "none" }));
+  await assertFails(setDoc(doc(staff("finance"), "suspensions/pub2"), { reason: "x", appealStatus: "none" }));
+  // Nobody gives themselves staff access from the browser.
+  await assertFails(setDoc(doc(as("alice"), "adminAccessLog/x"), { at: "x" }));
+});

@@ -392,7 +392,7 @@ export async function POST(req: NextRequest) {
         if (!note || note.status !== "published") {
           return NextResponse.json({ error: "Only published posts can be boosted." }, { status: 400 });
         }
-        const isAdmin = await verifyAdminRequest(idToken).then(() => true).catch(() => false);
+        const isAdmin = await verifyAdminRequest(idToken, ["growth"]).then(() => true).catch(() => false);
         if (!isAdmin && note.authorUid !== user.uid) {
           return NextResponse.json({ error: "You can only boost your own posts." }, { status: 403 });
         }

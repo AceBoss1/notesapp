@@ -16,7 +16,7 @@ const FLOW = ["preordered", "printed", "shipped", "delivered"] as const;
 export async function POST(req: NextRequest) {
   try {
     const idToken = req.headers.get("authorization")?.replace(/^Bearer\s+/i, "");
-    await verifyAdminRequest(idToken);
+    await verifyAdminRequest(idToken, ["finance", "support"]);
     const body = await req.json();
     const { reference, status, courier, trackingNumber, trackingUrl, action } = body;
     if (typeof reference !== "string") return NextResponse.json({ error: "Invalid request." }, { status: 400 });

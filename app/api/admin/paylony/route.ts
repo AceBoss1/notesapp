@@ -16,7 +16,7 @@ const show = (r: PaylonyReply) => ({ httpStatus: r.httpStatus, code: replyCode(r
 // Admin: GET → does our Paylony key work, which keys are set, the saved signing format and the latest webhook events.
 export async function GET(req: NextRequest) {
   try {
-    await verifyAdminRequest(bearer(req));
+    await verifyAdminRequest(bearer(req), ["finance"]);
     const db = getAdminDb();
     const [diagnostics, events, cfg, accounts, secrets, pending] = await Promise.all([
       paylonyDiagnostics(),
@@ -55,7 +55,7 @@ export async function GET(req: NextRequest) {
 //   { action: "checkout_test" }    — creates a one-time test virtual account so we can see the reply
 export async function POST(req: NextRequest) {
   try {
-    await verifyAdminRequest(bearer(req));
+    await verifyAdminRequest(bearer(req), ["finance"]);
     const body = await req.json().catch(() => ({}));
     const action = String(body.action || "");
 

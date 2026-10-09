@@ -10,6 +10,9 @@ export function friendlyMessage(err: unknown, fallback = "Something went wrong."
   if (/RESOURCE_EXHAUSTED|quota/i.test(raw)) {
     return { message: "We're at capacity right now — please try again in a little while. You haven't been charged.", status: 503 };
   }
+  // Staff access: not signed in as staff, or a role that doesn't include this area.
+  if (/Not an admin account|Your role doesn't include this area/i.test(raw)) return { message: raw, status: 403 };
+  if (/Missing auth token|id-token-revoked|ID token has been revoked|ID token has expired|Decoding Firebase ID token failed/i.test(raw)) return { message: "Sign in again to continue.", status: 401 };
   if (isUnexpected(err)) void reportError(err, { source: "server", route: fallback });
   return { message: raw || fallback, status: 500 };
 }

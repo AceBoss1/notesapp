@@ -14,7 +14,7 @@ import { confirmOrder, notifyBackInStock, returnStock } from "@/lib/orders-serve
 export async function POST(req: NextRequest) {
   try {
     const idToken = req.headers.get("authorization")?.replace(/^Bearer\s+/i, "");
-    await verifyAdminRequest(idToken);
+    await verifyAdminRequest(idToken, ["finance"]);
     const { action, reference } = await req.json();
     if (typeof reference !== "string") return NextResponse.json({ error: "Missing reference" }, { status: 400 });
 

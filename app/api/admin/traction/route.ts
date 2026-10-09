@@ -10,7 +10,7 @@ export const dynamic = "force-dynamic";
 // Admin-only platform numbers for decks and applications (counts only — no personal data leaves).
 export async function GET(req: NextRequest) {
   try {
-    await verifyAdminRequest(req.headers.get("authorization")?.replace(/^Bearer\s+/i, ""));
+    await verifyAdminRequest(req.headers.get("authorization")?.replace(/^Bearer\s+/i, ""), ["growth", "finance"]);
     const t = await gatherTraction(getAdminDb());
     return NextResponse.json({ traction: t, summary: `${summaryText(t)}\n\n${complianceSummary()}`, csv: tractionCsv(t) }, { headers: { "Cache-Control": "no-store" } });
   } catch (err) {

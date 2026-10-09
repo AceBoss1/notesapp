@@ -11,7 +11,7 @@ const bearer = (req: NextRequest) => req.headers.get("authorization")?.replace(/
 // Admin: every organisation account + pending conversion requests.
 export async function GET(req: NextRequest) {
   try {
-    await verifyAdminRequest(bearer(req));
+    await verifyAdminRequest(bearer(req), ["support", "growth"]);
     const db = getAdminDb();
     const [orgs, reqs] = await Promise.all([
       db.collection("users").where("accountKind", "==", "organisation").get(),
@@ -37,7 +37,7 @@ export async function GET(req: NextRequest) {
 // verify / reject an organisation's registration; approve / decline a conversion request.
 export async function POST(req: NextRequest) {
   try {
-    const adminUid0 = await verifyAdminRequest(bearer(req));
+    const adminUid0 = await verifyAdminRequest(bearer(req), ["support", "growth"]);
     const body = await req.json();
     const { action, uid, note } = body;
     const db = getAdminDb();

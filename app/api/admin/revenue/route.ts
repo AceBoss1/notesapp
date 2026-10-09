@@ -12,7 +12,7 @@ let raw: { at: number; data: Parameters<typeof computeRevenue>[0] } | null = nul
 
 export async function GET(req: NextRequest) {
   try {
-    await verifyAdminRequest(req.headers.get("authorization")?.replace(/^Bearer\s+/i, ""));
+    await verifyAdminRequest(req.headers.get("authorization")?.replace(/^Bearer\s+/i, ""), ["finance"]);
     const days = [7, 30, 90, 365, 0].includes(Number(req.nextUrl.searchParams.get("days"))) ? Number(req.nextUrl.searchParams.get("days")) : 30;
 
     if (!raw || Date.now() - raw.at > 120_000) {

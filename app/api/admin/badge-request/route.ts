@@ -11,7 +11,7 @@ const site = () => process.env.NEXT_PUBLIC_SITE_URL || "https://www.notesapp.nam
 // closes it. Either way the applicant gets a bell notification and an email.
 export async function POST(req: NextRequest) {
   try {
-    const adminUid = await verifyAdminRequest(req.headers.get("authorization")?.replace(/^Bearer\s+/i, ""));
+    const adminUid = await verifyAdminRequest(req.headers.get("authorization")?.replace(/^Bearer\s+/i, ""), ["support", "moderation"]);
     const { uid, approve, reason } = await req.json();
     const db = getAdminDb();
     const ref = db.doc(`badgeRequests/${String(uid)}`);

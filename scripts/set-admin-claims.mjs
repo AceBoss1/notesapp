@@ -1,4 +1,5 @@
-// Grants (or with --revoke, removes) the `admin` custom claim.
+// Grants (or with --revoke, removes) the `admin` custom claim. A bare `admin` claim is a super admin (see lib/admin-access.ts); use this to
+// bootstrap the first one, then manage everyone else from Admin → Team access.
 //   FIREBASE_SERVICE_ACCOUNT_KEY='<json one line>' \
 //     node scripts/set-admin-claims.mjs ezurukam@gmail.com precheks.info@gmail.com
 // (or GOOGLE_APPLICATION_CREDENTIALS=path/to/key.json)

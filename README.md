@@ -1179,8 +1179,23 @@ a renamed non-image is rejected in the browser.
 Migration (do in order, nothing breaks in between because the old email
 list still works): (1) `FIREBASE_SERVICE_ACCOUNT_KEY='…' node scripts/set-admin-claims.mjs ezurukam@gmail.com precheks.info@gmail.com`;
 (2) both founders sign out and in; (3) deploy rules + code; confirm
-`/admin` works; (4) the legacy email fallback has been removed (done) — admin is the claim only. Add admins later with
-`POST /api/admin/set-admin {email, admin}`.
+`/admin` works; (4) the legacy email fallback has been removed (done) — admin is the claim only. Add and remove staff later from
+**Admin → Team access** (see *Staff roles* below).
+**Staff roles** — `lib/admin-access.ts` (pure, shared by the browser, the API routes and the tests).
+Claims: `admin: true` plus `adminRole: "super" | "admin"` and, for admins, `depts: [...]`.
+A bare `admin: true` (accounts set up before roles existed) is a super admin. Departments:
+`support` (Customer care), `moderation` (Trust & safety), `finance`, `growth` (Growth & partnerships),
+`content` (Editorial), `product` (Product & tech). A super admin sees everything; an admin sees only the
+pages and data of their departments (`ADMIN_SECTIONS` lists who can open what). The owner is whoever
+`OWNER_EMAIL` names (defaults to the first founder in `lib/admin.ts`): only the owner appoints or removes
+super admins; other super admins appoint and remove admins and choose departments; nobody changes the
+owner or themselves. Manage it all at **Admin → Team access** (`/api/admin/access`; changes are logged in
+`adminAccessLog`, the person gets a bell, and narrowing or removing access signs them out of old sessions).
+The person must already have an account. Enforcement is in three places: `verifyAdminRequest(token, need)`
+on every admin API route, `isSuper()/adminHas()/adminHasAny()` in `firestore.rules`, and the nav/page gate
+in the browser. Note: a token already issued keeps its claims until it refreshes (up to an hour) for direct
+database reads; API routes check revocation on every call. Deploy with `firebase deploy --only firestore`.
+`POST /api/admin/set-admin` was removed.
 **Rules tests** — `npm run test:rules` (needs Java; starts the Firestore
 emulator): 11 tests covering profile-field lockdown, server-only money
 collections, booking/ledger/payout read scopes, subscriptions, claims and
@@ -1223,7 +1238,7 @@ the old email list keeps working until step 8.
    check is still active; re-run step 3.
 8. **Legacy path removed.** The founder-email fallback is gone from
    `firestore.rules`, `lib/firebase-admin.ts` and `lib/admin-claims.ts`; admin is the
-   `admin` claim only. Admins are managed with the script or `POST /api/admin/set-admin`.
+   `admin` claim only. Staff are managed from Admin → Team access (the script only bootstraps the first super admin).
    If an admin is ever locked out, re-run `scripts/set-admin-claims.mjs <email>` and have
    them sign out and in.
 

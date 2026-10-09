@@ -8,7 +8,7 @@ export const dynamic = "force-dynamic";
 // Per-ad impressions/clicks for the last N days (default 30).
 export async function GET(req: NextRequest) {
   try {
-    await verifyAdminRequest(req.headers.get("authorization")?.replace(/^Bearer\s+/i, ""));
+    await verifyAdminRequest(req.headers.get("authorization")?.replace(/^Bearer\s+/i, ""), ["growth", "finance"]);
     const days = Math.min(365, Math.max(1, Number(req.nextUrl.searchParams.get("days")) || 30));
     const cutoff = lagosDay(new Date(Date.now() - days * 86_400_000));
     const snap = await getAdminDb().collection("adStats").where("day", ">=", cutoff).get();

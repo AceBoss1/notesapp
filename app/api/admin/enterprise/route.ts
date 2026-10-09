@@ -10,7 +10,7 @@ const bearer = (req: NextRequest) => req.headers.get("authorization")?.replace(/
 // (Firestore rules stop members editing it); it applies while the account is on Enterprise.
 export async function GET(req: NextRequest) {
   try {
-    await verifyAdminRequest(bearer(req));
+    await verifyAdminRequest(bearer(req), ["growth"]);
     const db = getAdminDb();
     const [users, domains] = await Promise.all([db.collection("users").where("accountTier", "==", "enterprise").get(), db.collection("customDomains").get()]);
     const host = new Map(domains.docs.map((d) => [d.data().uid as string, d.data().host as string]));
@@ -30,7 +30,7 @@ export async function GET(req: NextRequest) {
 // a blank or missing field clears that override, so the Enterprise default applies.
 export async function POST(req: NextRequest) {
   try {
-    await verifyAdminRequest(bearer(req));
+    await verifyAdminRequest(bearer(req), ["growth"]);
     const body = await req.json();
     const db = getAdminDb();
     const name = String(body.username || "").trim().toLowerCase().replace(/^@/, "");

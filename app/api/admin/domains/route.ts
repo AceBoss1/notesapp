@@ -11,7 +11,7 @@ const bearer = (req: NextRequest) => req.headers.get("authorization")?.replace(/
 // balance and the extensions on offer, exactly as it answered. No secrets are included.
 export async function GET(req: NextRequest) {
   try {
-    await verifyAdminRequest(bearer(req));
+    await verifyAdminRequest(bearer(req), ["product"]);
     // ?name=example.com.ng → is it free (registry lookup) and what does Whogohost charge for it, exactly as each answered.
     const name = req.nextUrl.searchParams.get("name");
     if (name) {
