@@ -5,6 +5,7 @@ import HideOnAppHost from "@/components/HideOnAppHost";
 import AuthNav from "@/components/AuthNav";
 import MobileNav from "@/components/MobileNav";
 import VerifyEmailBanner from "@/components/VerifyEmailBanner";
+import WorkPrompt from "@/components/WorkPrompt";
 import PushPrompt from "@/components/messages/PushPrompt";
 import SearchBar from "@/components/SearchBar";
 import CelebrationBanner from "@/components/CelebrationBanner";
@@ -66,6 +67,7 @@ const site = await getSiteSettingsCached();
         <CelebrationBanner />
         <ChallengeBanner />
         <VerifyEmailBanner />
+        <WorkPrompt />
         <PushPrompt />
         {/* Masthead */}
         <header className="sticky top-0 z-40 border-b border-rule bg-paper/90 backdrop-blur">
@@ -139,6 +141,7 @@ const site = await getSiteSettingsCached();
                 <li><Link href="/organisations" className="hover:text-paper">Organisations</Link></li>
                 <li><Link href="/store-selling" className="hover:text-paper">Store selling</Link></li>
                 <li><Link href="/domains" className="hover:text-paper">Domains</Link></li>
+                <li><Link href="/teams" className="hover:text-paper">Team hub</Link></li>
               </ul>
             </div>
 

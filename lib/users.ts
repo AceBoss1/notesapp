@@ -195,7 +195,7 @@ export function roleLabelFor(p: Pick<UserProfile, "username" | "role" | "account
   if (FOUNDER_ROLE_LABELS[p.username]) return FOUNDER_ROLE_LABELS[p.username];
   if (p.role === "staff") return "Staff Writer";
   if (p.role === "volunteer") return "Guest Writer";
-  if (effectiveTier(p) === "standard") return "Member";
+  if (effectiveTier(p) === "standard") return "Viewer";
   return getTierConfig(effectiveTier(p)).label.replace(/^Free /, "") + " Publisher";
 }
 

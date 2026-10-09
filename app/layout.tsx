@@ -5,7 +5,7 @@ import "./globals.css";
 
 const DEFAULT_TITLE = "#NotesApp — Publish. Book. Get Paid. One Workspace.";
 const DEFAULT_DESCRIPTION =
-  "#NotesApp is where African creators, professionals and businesses publish journals, grow an audience, take bookings, sell products and downloads, and get paid in Naira — in one place.";
+  "#NotesApp is where African creators, professionals, coaches, consultants, therapists and businesses publish their work, build an audience they can talk to directly, and get paid in Naira. Write journals, take bookings for private sessions, sell products, PDF/video courses and other digital downloads, earn subscriptions and gifts, and run it all under your own name or your own domain, in one place.";
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE.url),

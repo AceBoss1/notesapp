@@ -23,7 +23,7 @@ const ITEMS: { title: string; tag: string; body: string; detail: string; link?: 
     body: "A shared workspace for your team: a work board with what is moving, stuck or waiting on a decision, milestones, a morning summary and weekly review, and a team room for meetings and chat. Our own team is using it first; it opens to Business and Enterprise accounts once our internal testing is done.",
     detail:
       "We are running it ourselves before anyone else relies on it, so we can fix what gets in the way. Business and Enterprise accounts will get it for their team seats (four on Business, as many as you need on Enterprise), with the people on your team seeing only what their role needs. It builds on group chats, which are already live. No date yet; we will announce it on this page, the changelog and by email when it opens.",
-    link: { href: "/pricing", label: "See plans and team seats →" },
+    link: { href: "/teams", label: "See the team hub page →" },
   },
   {
     title: "AI content drafting, connected via MCP",

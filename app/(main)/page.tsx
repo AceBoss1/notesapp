@@ -61,11 +61,13 @@ export default async function Home() {
               Get paid, in Naira.
             </h1>
             <p className="mt-6 max-w-xl font-body text-lg text-slate">
-              #NotesApp is where African creators, professionals and businesses
-              publish their work, build an audience they can talk to directly,
-              and get paid in Naira. Write journals, take bookings, sell
-              products and downloads, earn subscriptions and gifts, and run it
-              all under your own name or your own domain, in one place.
+              #NotesApp is where African creators, professionals, coaches,
+              consultants, therapists and businesses publish their work, build an
+              audience they can talk to directly, and get paid in Naira. Write
+              journals, take bookings for private sessions, sell products,
+              PDF/video courses and other digital downloads, earn subscriptions
+              and gifts, and run it all under your own name or your own domain,
+              in one place.
             </p>
             <div className="mt-9 flex flex-wrap items-center gap-4">
               <Link href="/journals" className="btn-primary">

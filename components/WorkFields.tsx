@@ -23,7 +23,7 @@ export default function WorkFields({ value, onChange, inputClass, orgOnly = fals
           </label>
           <label className="block">
             <span className="text-sm text-ink">Where you work</span>
-            <input value={value.workplace ?? ""} maxLength={WORKPLACE_MAX} onChange={(e) => onChange({ ...value, workplace: e.target.value })} placeholder="e.g. Acme Ltd" autoComplete="organization" className={inputClass} />
+            <input value={value.workplace ?? ""} maxLength={WORKPLACE_MAX} onChange={(e) => onChange({ ...value, workplace: e.target.value })} placeholder="e.g. Adams Ltd" autoComplete="organization" className={inputClass} />
           </label>
         </div>
       )}
