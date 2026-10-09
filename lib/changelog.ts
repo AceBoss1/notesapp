@@ -11,6 +11,14 @@ export type Release = {
 
 export const CHANGELOG: Release[] = [
   {
+    version: "v0.9.12",
+    bump: "patch",
+    date: "2026-10-09",
+    changes: [
+      { kind: "changed", text: "The app address welcome screen on tablets and computers now shows the #1MillionNairaNotesAppChallenge announcement on the left, with sign-up and sign-in on the right." },
+    ],
+  },
+  {
     version: "v0.9.11",
     bump: "patch",
     date: "2026-10-09",
