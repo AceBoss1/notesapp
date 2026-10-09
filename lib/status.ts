@@ -141,6 +141,15 @@ export async function checkServices(): Promise<ServiceStatus[]> {
       : notConfigured("social", "Sharing to LinkedIn and X", "Publishing a post's excerpt to connected LinkedIn and X accounts"))
   );
 
+  // Claude (Anthropic) writes Nana's replies and writing help when an AI key is set. The check lists models, which costs nothing.
+  const claudeKey = (process.env.ANTHROPIC_API_KEY || "").trim();
+  const claudeDesc = "Claude by Anthropic, the AI behind Nana AI's answers and writing help";
+  checks.push(
+    claudeKey
+      ? timed(async (signal) => (await fetch(`${(process.env.ANTHROPIC_BASE_URL || "https://api.anthropic.com").replace(/\/$/, "")}/v1/models?limit=1`, { headers: { "x-api-key": claudeKey, "anthropic-version": "2023-06-01" }, signal, cache: "no-store" })).ok).then((r) => toStatus("claude", "Claude AI (Anthropic)", claudeDesc, r))
+      : Promise.resolve(notConfigured("claude", "Claude AI (Anthropic)", `${claudeDesc} (not switched on; Nana answers from the help centre, and members can connect their own account)`))
+  );
+
   // Nana AI, the chat helper: only says whether its AI key is set (we don't spend a request to test it).
   checks.push(
     Promise.resolve(({

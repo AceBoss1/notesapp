@@ -36,7 +36,7 @@ const LIVE = [
   { href: "/trending", title: "Trending", copy: "The most visited publishers and posts on #NotesApp." },
   { href: "/docs", title: "API, Console & your own domain", copy: "Business and Enterprise accounts get a branded site — Home, Notes and Shop — on their own domain; Enterprise adds a server-to-server API, signed webhooks and Console keys." },
   { href: "/security", title: "Trust & security", copy: "How payments, files, access rules and your data are protected — including downloading or deleting your own data." },
-  { href: "/nana", title: "Nana AI & help centre", copy: "Ask Nana, our helper, about anything on #NotesApp from the chat button on every page, in Messages, or browse the help centre. She links you to the right page and passes you to a person when she can't help." },
+  { href: "/nana", title: "Nana AI & help centre", copy: "Ask Nana, our helper, about anything on #NotesApp from the chat button on every page, in Messages, or browse the help centre. She links you to the right page and passes you to a person when she can't help. She is powered by Claude, from our partner Anthropic." },
   { href: "/status", title: "Status & changelog", copy: "Live service health with response times and incident updates, plus a changelog of every release." },
   { href: "/pricing", title: "Video on posts", copy: "Add a short video to a post — one MP4 or WebM up to 3 minutes — played in our own player that only loads when you press play." },
 ];

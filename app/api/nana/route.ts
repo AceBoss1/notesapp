@@ -5,6 +5,7 @@ import { getAdminApp, getAdminDb, verifyAdminAccess } from "@/lib/firebase-admin
 import { rateLimit, clientIp } from "@/lib/rate-limit";
 import { NanaError } from "@/lib/nana";
 import { chat } from "@/lib/nana-server";
+import { aiStatus } from "@/lib/ai-connect";
 import { hubContextFor } from "@/lib/nana-hub";
 
 export const dynamic = "force-dynamic";
@@ -30,8 +31,11 @@ export async function POST(req: NextRequest) {
     }
     // Per person and per address, so one visitor can't use up everyone's share.
     const who = signedIn?.uid ?? String(body.email ?? "").toLowerCase().slice(0, 100);
-    const limited = rateLimit(req, "nana", `${clientIp(req)}:${who}`, 14, 600) ?? rateLimit(req, "nana-ip", clientIp(req), 60, 3600);
-    if (limited) return limited;
+    // These limits protect #NotesApp's bill and inbox; a member using their own AI account is not limited.
+    if (!(signedIn && (await aiStatus(db, signedIn.uid)).connected)) {
+      const limited = rateLimit(req, "nana", `${clientIp(req)}:${who}`, 14, 600) ?? rateLimit(req, "nana-ip", clientIp(req), 60, 3600);
+      if (limited) return limited;
+    }
 
     let hubContext: string | undefined;
     if (body.context === "hub") {

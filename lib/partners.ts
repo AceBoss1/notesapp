@@ -24,6 +24,7 @@ export const PARTNERS: { name: string; what: string; logo?: string; wordmark?: b
   { name: "Vercel", what: "Hosting", logo: "/images/partners/vercel.svg" },
   { name: "Resend", what: "Email", logo: "/images/partners/resend.svg" },
   { name: "Dojah", what: "Identity checks", logo: "/images/partners/dojah.png" },
+  { name: "Anthropic (Claude)", what: "Powers Nana AI", logo: "/images/partners/anthropic.png" },
   { name: "LinkedIn", what: "Sharing your posts", logo: "/images/partners/linkedin.png" },
   { name: "X", what: "Sharing your posts", logo: "/images/partners/x.svg" },
 ];

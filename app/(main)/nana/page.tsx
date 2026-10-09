@@ -49,13 +49,13 @@ export default function NanaPage() {
           <div className="card p-5"><p className="font-ui text-sm font-bold text-ink">With AI</p><p className="mt-1 text-sm text-slate">Nana holds a real conversation, combines what she knows, and gives the writing help above. If the AI is ever unavailable, she carries on from the help centre.</p></div>
         </div>
         <p className="mt-4 rounded-lg border border-rule bg-card p-4 text-sm text-ink">
-          {ai ? "Right now: the AI is switched on for everyone. Writing help has a small free allowance each day; connect your own AI account below for more." : "Right now: Nana answers from the help centre for everyone. To switch the full version on for yourself today, connect your own AI account below. When we switch our own AI on for everyone, it works without it."}
+          {ai ? "Right now: the AI is switched on for everyone. Our AI has a small free allowance each day for each person, because we pay for it. Connect your own AI account below and there is no limit from us at all." : "Right now: Nana answers from the help centre for everyone. To switch the full version on for yourself today, connect your own AI account below. When we switch our own AI on for everyone, it works without it."}
         </p>
       </section>
 
       <section className="mt-14" aria-labelledby="connect">
         <h2 id="connect" className="font-display text-2xl text-ink">Connect your own AI account</h2>
-        <p className="mt-2 max-w-3xl text-sm text-slate">Use your own Anthropic account to power Nana in your chats, drafts, shares and messages, and in the team hub for staff. The AI cost goes to your account, and you can set a spending limit with Anthropic. Your text is sent to Anthropic to write the answer; we don&apos;t keep the text you send for writing help. We store your key encrypted and delete it when you disconnect or delete your account. See the <Link href="/privacy" className="underline">Privacy Policy</Link>.</p>
+        <p className="mt-2 max-w-3xl text-sm text-slate">Use your own Anthropic account to power Nana in your chats, drafts, shares and messages, and in the team hub for staff. The AI cost goes to your account, you can set a spending limit with Anthropic, and #NotesApp puts no daily limit on you. Your text is sent to Anthropic to write the answer; we don&apos;t keep the text you send for writing help. We store your key encrypted and delete it when you disconnect or delete your account. See the <Link href="/privacy" className="underline">Privacy Policy</Link>.</p>
         <div className="mt-5 max-w-xl"><NanaConnect /></div>
       </section>
 
