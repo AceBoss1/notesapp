@@ -545,7 +545,7 @@ test("moments are API-only; conversations are readable only by their two members
     await setDoc(doc(d, "serverConfig/limits"), { overrides: {} });
     await setDoc(doc(d, "teamItems/t1"), { title: "x", status: "todo" });
     await setDoc(doc(d, "teamMilestones/m1"), { title: "x" });
-    await setDoc(doc(d, "teamItems/t1/comments/c1"), { byUid: "boss", text: "x" });
+    await setDoc(doc(d, "teamItems/t1/discussion/c1"), { byUid: "boss", text: "x" });
     await setDoc(doc(d, "teamMeetings/mt1"), { title: "x" });
     await setDoc(doc(d, "teamReviews/2026-10-05"), { wins: "x" });
     await setDoc(doc(d, "teamDigests/2026-10-09"), { sent: 1 });
@@ -571,12 +571,12 @@ test("moments are API-only; conversations are readable only by their two members
     for (const ctx of [as("pub"), as("alice"), as("boss", { admin: true }), anon()]) await assertFails(getDoc(doc(ctx, path)));
   }
   // The team hub is read and written by the admin API only: not even an admin from the browser.
-  for (const path of ["teamItems/t1", "teamItems/t1/comments/c1", "teamMilestones/m1", "teamMeetings/mt1", "teamReviews/2026-10-05", "teamDigests/2026-10-09"]) {
+  for (const path of ["teamItems/t1", "teamItems/t1/discussion/c1", "teamMilestones/m1", "teamMeetings/mt1", "teamReviews/2026-10-05", "teamDigests/2026-10-09"]) {
     for (const ctx of [as("alice"), as("boss", { admin: true }), anon()]) await assertFails(getDoc(doc(ctx, path)));
   }
   await assertFails(setDoc(doc(as("boss", { admin: true }), "teamItems/new"), { title: "x" }));
   await assertFails(deleteDoc(doc(as("boss", { admin: true }), "teamItems/t1")));
-  await assertFails(setDoc(doc(as("boss", { admin: true }), "teamItems/t1/comments/new"), { byUid: "boss", text: "x" }));
+  await assertFails(setDoc(doc(as("boss", { admin: true }), "teamItems/t1/discussion/new"), { byUid: "boss", text: "x" }));
   await assertFails(setDoc(doc(as("boss", { admin: true }), "teamMeetings/new"), { title: "x" }));
   await assertFails(setDoc(doc(as("alice"), "contentReports/new"), { reporterUid: "alice" }));
   await assertFails(setDoc(doc(as("pub"), "momentAudio/new"), { uid: "pub" }));

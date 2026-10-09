@@ -181,12 +181,12 @@ export async function syncTeamRooms(db: Firestore, me: string, teamUids: string[
   await Promise.all(open.map((m) => syncMembers(db, m.conversationId, teamUids)));
 }
 
-// ---- Comments on items ---------------------------------------------------------------------------------------------------------------
+// ---- Comments on items (stored under `discussion`: a subcollection named `comments` would be world-readable through the collection-group rule for journal comments) ---------------------------------------------------------------------------------------------------------------
 const nameIn = (people: Person[], uid: string) => people.find((p) => p.uid === uid)?.name ?? "A teammate";
 const siteUrl = () => (process.env.NEXT_PUBLIC_SITE_URL || "https://www.notesapp.name.ng").replace(/\/$/, "");
 
 export async function listComments(db: Firestore, itemId: string): Promise<TeamComment[]> {
-  const snap = await db.collection(`${ITEMS}/${itemId}/comments`).orderBy("createdAt").limit(200).get();
+  const snap = await db.collection(`${ITEMS}/${itemId}/discussion`).orderBy("createdAt").limit(200).get();
   return snap.docs.map((d) => ({ ...(d.data() as Omit<TeamComment, "id">), id: d.id }));
 }
 
@@ -196,7 +196,7 @@ export async function addComment(db: Firestore, adminUid: string, itemId: string
   const ref = db.doc(`${ITEMS}/${itemId}`);
   const item = (await ref.get()).data() as TeamItem | undefined;
   if (!item) throw new TeamError("That item no longer exists.", 404);
-  const c = await ref.collection("comments").add({ byUid: adminUid, text: t, createdAt: now.toISOString() });
+  const c = await ref.collection("discussion").add({ byUid: adminUid, text: t, createdAt: now.toISOString() });
   await ref.update({ commentCount: FieldValue.increment(1) });
   const who = Array.from(new Set([item.ownerUid, item.createdByUid].filter((u) => u && u !== adminUid)));
   await Promise.all(who.map((uid) => notify({ uid, type: "team", linkHref: "/admin/team", message: `${nameIn(people, adminUid)} commented on “${item.title}”: ${t.slice(0, 100)}` }).catch(() => {})));
@@ -204,7 +204,7 @@ export async function addComment(db: Firestore, adminUid: string, itemId: string
 }
 
 export async function deleteComment(db: Firestore, adminUid: string, itemId: string, commentId: string) {
-  const ref = db.doc(`${ITEMS}/${itemId}/comments/${commentId}`);
+  const ref = db.doc(`${ITEMS}/${itemId}/discussion/${commentId}`);
   const c = (await ref.get()).data();
   if (!c) return;
   if (c.byUid !== adminUid) throw new TeamError("You can only delete your own comments.", 403);
