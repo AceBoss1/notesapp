@@ -1,5 +1,6 @@
 "use client";
 
+import NanaAssist from "./NanaAssist";
 import { useCallback, useEffect, useState } from "react";
 import { onAuthStateChanged, type User } from "firebase/auth";
 import { auth } from "@/lib/firebase";
@@ -97,11 +98,16 @@ export default function SocialPublish({ noteId, authorUid }: { noteId: string; a
       {texts && !results && (
         <div className="mt-4 space-y-3">
           {ready.map((c) => (
-            <label key={c.provider} className="block text-[11px] text-slate">
+            <div key={c.provider}>
+            <label className="block text-[11px] text-slate">
               {c.label}
               <textarea value={texts[c.provider]} rows={c.provider === "x" ? 6 : 8} onChange={(e) => setTexts({ ...texts, [c.provider]: e.target.value })} className="mt-1 block w-full border border-rule bg-paper px-2 py-1.5 text-sm text-ink" />
               <span className={over(c.provider) ? "text-red-700" : ""}>{c.provider === "x" ? `${xWeight(xFull(texts.x))} of ${X_LIMIT}${texts.x.includes(url) ? " (a link counts as 23)" : " (with the link added after your words: a link counts as 23)"}` : `${texts.linkedin.length} of ${LINKEDIN_LIMIT}. The post also carries a card that opens the journal.`}</span>
             </label>
+            <NanaAssist surface="social" platform={c.provider} className="mt-1"
+              getText={() => (c.provider === "x" ? texts[c.provider].replace(url, "").trim() : texts[c.provider].replace(/\n*Read the full journal on #NotesApp:\s*$/, "").trim())}
+              onApply={(t) => setTexts({ ...texts, [c.provider]: c.provider === "x" ? (texts.x.includes(url) ? `${t}\n\n${url}` : t) : (texts.linkedin.includes("Read the full journal on #NotesApp:") ? `${t}\n\nRead the full journal on #NotesApp:` : t) })} />
+            </div>
           ))}
           <span className="flex flex-wrap gap-2">
             <button disabled={busy || !ready.length || ready.some((c) => over(c.provider))} onClick={() => post()} className="btn-primary !px-4 !py-2 text-xs disabled:opacity-50">{busy ? "Posting…" : `Post to ${ready.map((c) => c.label).join(" and ")}`}</button>

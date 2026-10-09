@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useAdminAuth } from "@/lib/useAdminAuth";
+import NanaPanel from "@/components/NanaPanel";
 import { hasAnyDept } from "@/lib/admin-access";
 import { formatNaira } from "@/lib/booking-time";
 import {
@@ -176,6 +177,7 @@ function MilestoneCard({ m, people, send }: { m: MilestoneRow; people: Person[];
 
 export default function AdminTeamPage() {
   const { user, access, loading } = useAdminAuth();
+  const [nana, setNana] = useState(false); // the Ask Nana panel
   const [data, setData] = useState<Data | null>(null);
   const [error, setError] = useState("");
   const [mineOnly, setMineOnly] = useState(false);
@@ -232,12 +234,18 @@ export default function AdminTeamPage() {
           <p className="mt-1 text-sm text-slate">{dayLabel(today)} · what is moving, what is stuck, and what needs a decision.</p>
         </div>
         <span className="flex flex-wrap items-center gap-3 text-sm text-slate">
+          <button type="button" onClick={() => setNana((v) => !v)} aria-expanded={nana} className="btn-ghost !px-4 !py-2 text-xs">{nana ? "Close Nana" : "Ask Nana ✨"}</button>
           <Link href="/admin/team/review" className="btn-ghost !px-4 !py-2 text-xs">Weekly review →</Link>
           {hasAnyDept(access, ["finance", "product"]) && <Link href="/admin/team/finance" className="btn-ghost !px-4 !py-2 text-xs">Money ledger →</Link>}
           <label className="flex items-center gap-2"><input type="checkbox" checked={mineOnly} onChange={(e) => setMineOnly(e.target.checked)} /> Only mine</label>
         </span>
       </div>
       {error && <p className="mt-3 text-sm text-crimson">{error}</p>}
+      {nana && (
+        <div className="mt-5 overflow-hidden rounded-xl border border-rule" role="region" aria-label="Ask Nana">
+          <NanaPanel context="hub" onClose={() => setNana(false)} className="h-[520px]" />
+        </div>
+      )}
 
       <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
         <Tile label="Members" value={data.snapshot.registered.toLocaleString()} />

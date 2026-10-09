@@ -1,5 +1,6 @@
 "use client";
 
+import NanaAssist from "@/components/NanaAssist";
 import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { onAuthStateChanged, type User } from "firebase/auth";
@@ -331,6 +332,8 @@ export default function Thread({ id, to, embedded = false }: { id?: string; to?:
           <button type="button" onClick={() => format("_")} aria-label="Italic" title="Italic (Ctrl+I)" className="w-8 rounded border border-rule py-1 italic">I</button>
           <button type="button" onClick={() => format("__")} aria-label="Underline" title="Underline (Ctrl+U)" className="w-8 rounded border border-rule py-1 underline">U</button>
           <StickerPicker onPick={sendSticker} disabled={busy || blockedByMe} />
+          {!blockedByMe && <NanaAssist surface="chat" label="Nana" getText={() => text} onApply={(t) => { setText(t); setTimeout(() => box.current?.focus(), 0); }}
+            getContext={() => messages.slice(-8).map((m) => `${m.from === user?.uid ? "Me" : (people[m.from]?.name || "Them").split(" ")[0]}: ${m.text || (m.sticker ? "(sticker)" : m.attachments?.length ? "(attachment)" : "")}`).join("\n")} />}
           <button type="button" onClick={() => picker.current?.click()} aria-label="Attach files" title="Attach pictures, videos, voice notes or documents" className="ml-1 rounded border border-rule px-3 py-1">📎 Attach</button>
           <input ref={picker} type="file" multiple accept={ATTACHMENT_ACCEPT} className="hidden" onChange={(e) => pick(e.target.files)} />
           {allowed && <span className="ml-1 text-xs text-slate">up to {allowed.maxCount} file{allowed.maxCount === 1 ? "" : "s"}, {formatBytes(allowed.maxBytes)} each</span>}

@@ -410,6 +410,20 @@ service cloud.firestore {
     match /financeLog/{id} {
       allow read, write: if false;
     }
+    // The knowledge base staff write, Nana AI's saved chats and its daily counter: server-only (chats hold visitors' names and emails).
+    match /kbArticles/{id} {
+      allow read, write: if false;
+    }
+    match /nanaChats/{id} {
+      allow read, write: if false;
+    }
+    // A member's own connected AI account (an encrypted key): server-only, never readable from a browser.
+    match /aiConnections/{id} {
+      allow read, write: if false;
+    }
+    match /nanaUsage/{id} {
+      allow read, write: if false;
+    }
     match /parcelLinks/{id} {
       allow read, write: if false;
     }

@@ -4,6 +4,7 @@ import CoAuthorsPanel from "@/components/CoAuthorsPanel";
 import { canLeadCoAuthors } from "@/lib/coauthors";
 import Link from "next/link";
 import { useState } from "react";
+import NanaAssist from "./NanaAssist";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { Note, slugify, createNote, updateNote, slugTaken } from "@/lib/firestore-notes";
@@ -292,7 +293,7 @@ export default function NoteForm({ noteId, initial, self, org }: Props) {
       />
 
       <div className="block">
-        <span className="eyebrow">Content</span>
+        <span className="flex flex-wrap items-center justify-between gap-2"><span className="eyebrow">Content</span><NanaAssist surface="draft" align="right" getText={() => content} onApply={setContent} /></span>
         <div className="mt-2">
           <RichTextEditor value={content} onChange={setContent} draftKey={noteId || "new"} />
         </div>

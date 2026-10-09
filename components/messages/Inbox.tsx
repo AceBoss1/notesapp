@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import Image from "next/image";
 import Link from "next/link";
 import { onAuthStateChanged, type User } from "firebase/auth";
 import { collection, doc, getDoc, onSnapshot, query, where } from "firebase/firestore";
@@ -59,10 +60,16 @@ export default function Inbox() {
   return (
     <>
       <p className="mb-3 text-right"><Link href="/messages/new-group" className="btn-ghost !px-4 !py-2 text-xs">+ New group</Link></p>
-      {!rows.length ? (
-        <p className="text-slate">No messages yet. Replies to your moments, and messages from other members, land here. You can also <Link href="/messages/new-group" className="text-crimson underline">start a group</Link>.</p>
-      ) : (
-        <ul className="divide-y divide-rule border-y border-rule">
+      <ul className="divide-y divide-rule border-y border-rule">
+          <li className="bg-amber-50/60">
+            <Link href="/messages/nana" className="flex items-center gap-3 px-2 py-3 hover:bg-paper">
+              <Image src="/images/nana/nana-sm.webp" alt="" width={44} height={44} className="h-11 w-11 rounded-full" />
+              <span className="min-w-0 flex-1">
+                <span className="block font-bold text-ink">Nana AI <span className="rounded bg-crimson/10 px-1.5 py-0.5 text-[10px] font-bold text-crimson">PINNED</span></span>
+                <span className="block truncate text-sm text-slate">Your #NotesApp helper. Ask me anything about the platform.</span>
+              </span>
+            </Link>
+          </li>
           {rows.map((r) => (
             <li key={r.id}>
               <Link href={`/messages/${r.id}`} className="flex items-center gap-3 py-3 hover:bg-paper">
@@ -80,7 +87,7 @@ export default function Inbox() {
             </li>
           ))}
         </ul>
-      )}
+      {!rows.length && <p className="mt-4 text-slate">No messages yet. Replies to your moments, and messages from other members, land here. You can also <Link href="/messages/new-group" className="text-crimson underline">start a group</Link>.</p>}
       <MessageSettings />
     </>
   );

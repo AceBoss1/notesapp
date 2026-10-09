@@ -76,7 +76,7 @@ export function PartnersStrip({ className = "" }: { className?: string }) {
       <p id="partners-strip" className="text-center font-mono text-[11px] uppercase tracking-eyebrow text-slate">Our partners and the services we connect to</p>
       <Strip label="Partners and integrations" count={PARTNERS.length} seconds={50}
         render={(hidden, k) => PARTNERS.map((p) => (
-          <Item key={`${k}-${p.name}`} hidden={hidden} href={p.href}>
+          <Item key={`${k}-${p.name}`} hidden={hidden} href="/status">
             {p.logo && p.wordmark ? (
               <span className="flex flex-col items-start gap-1">
                 {/* eslint-disable-next-line @next/next/no-img-element */}

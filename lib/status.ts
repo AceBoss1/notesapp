@@ -10,6 +10,7 @@ import { MESSAGES_LIVE, MOMENTS_LIVE } from "./moments-rules";
 import { pingVercel, vercelConfigured } from "./domains";
 import { whogohostConfigured, wgCredits } from "./whogohost";
 import { PROVIDERS, providerConfigured } from "./social-server";
+import { nanaConfigured } from "./nana-config";
 
 // Server-only service health checks behind /status. Reports only
 // up/slow/down + latency — never error details or config.
@@ -138,6 +139,24 @@ export async function checkServices(): Promise<ServiceStatus[]> {
     Promise.resolve(social.length
       ? ({ id: "social", name: "Sharing to LinkedIn and X", description: "Publishing a post's excerpt to connected LinkedIn and X accounts", state: "operational" } as ServiceStatus)
       : notConfigured("social", "Sharing to LinkedIn and X", "Publishing a post's excerpt to connected LinkedIn and X accounts"))
+  );
+
+  // Claude (Anthropic) writes Nana's replies and writing help when an AI key is set. The check lists models, which costs nothing.
+  const claudeKey = (process.env.ANTHROPIC_API_KEY || "").trim();
+  const claudeDesc = "Claude by Anthropic, the AI behind Nana AI's answers and writing help";
+  checks.push(
+    claudeKey
+      ? timed(async (signal) => (await fetch(`${(process.env.ANTHROPIC_BASE_URL || "https://api.anthropic.com").replace(/\/$/, "")}/v1/models?limit=1`, { headers: { "x-api-key": claudeKey, "anthropic-version": "2023-06-01" }, signal, cache: "no-store" })).ok).then((r) => toStatus("claude", "Claude AI (Anthropic)", claudeDesc, r))
+      : Promise.resolve(notConfigured("claude", "Claude AI (Anthropic)", `${claudeDesc} (not switched on; Nana answers from the help centre, and members can connect their own account)`))
+  );
+
+  // Nana AI, the chat helper: only says whether its AI key is set (we don't spend a request to test it).
+  checks.push(
+    Promise.resolve(({
+      id: "nana", name: "Nana AI",
+      description: nanaConfigured() ? "The chat helper that answers questions about #NotesApp, with AI switched on" : "The chat helper that answers questions about #NotesApp, from the help centre (AI is not switched on)",
+      state: "operational",
+    } as ServiceStatus))
   );
 
   const paystack = process.env.PAYSTACK_SECRET_KEY;

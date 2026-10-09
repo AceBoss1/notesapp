@@ -6,6 +6,7 @@ import AuthNav from "@/components/AuthNav";
 import MobileNav from "@/components/MobileNav";
 import VerifyEmailBanner from "@/components/VerifyEmailBanner";
 import WorkPrompt from "@/components/WorkPrompt";
+import NanaChat from "@/components/NanaChat";
 import PushPrompt from "@/components/messages/PushPrompt";
 import SearchBar from "@/components/SearchBar";
 import CelebrationBanner from "@/components/CelebrationBanner";
@@ -160,6 +161,8 @@ const site = await getSiteSettingsCached();
             <div>
               <p className="eyebrow text-crimson-bright/90">Connect</p>
               <ul className="mt-4 space-y-2 text-sm text-paper/75">
+                <li><Link href="/nana" className="hover:text-paper">Nana AI</Link></li>
+                <li><Link href="/help" className="hover:text-paper">Help centre</Link></li>
                 <li>
                   <Link href="/trending" className="hover:text-paper">
                     Trending
@@ -221,6 +224,7 @@ const site = await getSiteSettingsCached();
           </div>
         </footer>
         </HideOnAppHost>
+      <NanaChat />
     </>
   );
 }
