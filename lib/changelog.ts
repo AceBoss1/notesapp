@@ -11,6 +11,15 @@ export type Release = {
 
 export const CHANGELOG: Release[] = [
   {
+    version: "v0.10.1",
+    bump: "patch",
+    date: "2026-10-09",
+    changes: [
+      { kind: "changed", text: "A post's preview (on cards, in search and when shared to LinkedIn, Facebook and WhatsApp) now shows the opening of the post as plain words, without formatting marks or image links." },
+      { kind: "changed", text: "Sharing a post to X now carries the title and the opening of the post, trimmed to fit, with the link back to the full journal." },
+    ],
+  },
+  {
     version: "v0.10.0",
     bump: "minor",
     date: "2026-10-09",

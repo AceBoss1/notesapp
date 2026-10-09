@@ -74,12 +74,14 @@ export type NoteWithComputed = Note & {
 };
 
 import { sortNewestFirst } from "./dates";
+import { plainText } from "./social-text";
 import { ttlCache } from "./ttl-cache";
 
 const COLLECTION = "notes";
 
 function withComputed(note: Note): NoteWithComputed {
-  const plain = note.content.replace(/\s+/g, " ").trim();
+  // The opening of the post as plain words (no Markdown marks or image links): it is what cards, search and share previews show.
+  const plain = plainText(note.content);
   const wordCount = plain.split(" ").filter(Boolean).length;
   return {
     ...note,

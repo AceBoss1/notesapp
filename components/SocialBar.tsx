@@ -13,6 +13,7 @@ import {
 } from "@/lib/engagement";
 import { getUserByUid } from "@/lib/users";
 import { notifyLike } from "@/lib/notifications";
+import { xIntentText } from "@/lib/social-text";
 
 const SHARE_TARGETS = [
   {
@@ -22,8 +23,8 @@ const SHARE_TARGETS = [
   },
   {
     label: "X / Twitter",
-    build: (url: string, title: string) =>
-      `https://twitter.com/intent/tweet?text=${encodeURIComponent(title)}&url=${encodeURIComponent(url)}`,
+    build: (url: string, title: string, excerpt?: string) =>
+      `https://twitter.com/intent/tweet?text=${encodeURIComponent(excerpt ? xIntentText({ title, excerpt }) : title)}&url=${encodeURIComponent(url)}`,
   },
   {
     label: "Facebook",
@@ -42,6 +43,7 @@ export default function SocialBar({
   slug,
   title,
   noteAuthor,
+  excerpt,
   initialViewCount,
   initialLikeCount,
   initialShareCount,
@@ -50,6 +52,7 @@ export default function SocialBar({
   slug: string;
   title: string;
   noteAuthor: string;
+  excerpt?: string; // the opening of the post: what the share window to X carries beside the title
   initialViewCount: number;
   initialLikeCount: number;
   initialShareCount: number;
@@ -120,9 +123,9 @@ export default function SocialBar({
     setShareCount((c) => c + 1);
   }
 
-  async function handleShareClick(buildUrl: (url: string, title: string) => string) {
+  async function handleShareClick(buildUrl: (url: string, title: string, excerpt?: string) => string) {
     const url = `${window.location.origin}/journals/${slug}`;
-    window.open(buildUrl(url, title), "_blank", "noopener,noreferrer");
+    window.open(buildUrl(url, title, excerpt), "_blank", "noopener,noreferrer");
     setShareOpen(false);
     await recordShare();
   }

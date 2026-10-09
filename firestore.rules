@@ -592,6 +592,9 @@ service cloud.firestore {
       match /{sub=**} { allow read, write: if false; }
     }
     match /teamMilestones/{id} { allow read, write: if false; }
+    match /socialConnections/{id} { allow read, write: if false; } // connected LinkedIn / X accounts (encrypted tokens): server only
+    match /socialStates/{id} { allow read, write: if false; }
+    match /socialPosts/{id} { allow read, write: if false; }
     match /teamMeetings/{id} { allow read, write: if false; }
     match /teamReviews/{id} { allow read, write: if false; }
     match /teamDigests/{id} { allow read, write: if false; }

@@ -549,6 +549,9 @@ test("moments are API-only; conversations are readable only by their two members
     await setDoc(doc(d, "teamMeetings/mt1"), { title: "x" });
     await setDoc(doc(d, "teamReviews/2026-10-05"), { wins: "x" });
     await setDoc(doc(d, "teamDigests/2026-10-09"), { sent: 1 });
+    await setDoc(doc(d, "socialConnections/alice_x"), { uid: "alice", accessToken: "enc" });
+    await setDoc(doc(d, "socialStates/s1"), { uid: "alice" });
+    await setDoc(doc(d, "socialPosts/n1_x"), { uid: "alice" });
     await setDoc(doc(d, "messageUploads/u1"), { uid: "alice", key: "messages/alice/u1-a.png", used: false });
     await setDoc(doc(d, "contentReports/r1"), { reporterUid: "alice", targetUid: "pub", kind: "moment", evidence: { text: "x" } });
     await setDoc(doc(d, "conversations/alice_pub"), { participants: ["alice", "pub"], unread: {} });
@@ -575,6 +578,12 @@ test("moments are API-only; conversations are readable only by their two members
     for (const ctx of [as("alice"), as("boss", { admin: true }), anon()]) await assertFails(getDoc(doc(ctx, path)));
   }
   await assertFails(setDoc(doc(as("boss", { admin: true }), "teamItems/new"), { title: "x" }));
+  // Connected social accounts hold encrypted tokens: not even the owner can read or change them from the browser.
+  for (const path of ["socialConnections/alice_x", "socialStates/s1", "socialPosts/n1_x"]) {
+    for (const ctx of [as("alice"), as("boss", { admin: true }), anon()]) await assertFails(getDoc(doc(ctx, path)));
+  }
+  await assertFails(setDoc(doc(as("alice"), "socialConnections/alice_x"), { uid: "alice", accessToken: "mine" }));
+  await assertFails(deleteDoc(doc(as("alice"), "socialConnections/alice_x")));
   await assertFails(deleteDoc(doc(as("boss", { admin: true }), "teamItems/t1")));
   await assertFails(setDoc(doc(as("boss", { admin: true }), "teamItems/t1/discussion/new"), { byUid: "boss", text: "x" }));
   await assertFails(setDoc(doc(as("boss", { admin: true }), "teamMeetings/new"), { title: "x" }));

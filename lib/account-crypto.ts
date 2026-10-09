@@ -30,3 +30,7 @@ export function decryptAccountNumber(blob: string): string {
   d.setAuthTag(tag);
   return Buffer.concat([d.update(enc), d.final()]).toString("utf8");
 }
+
+// The same encryption for other small secrets kept server-side (the tokens of connected social accounts).
+export const encryptSecret = encryptAccountNumber;
+export const decryptSecret = decryptAccountNumber;

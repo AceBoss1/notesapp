@@ -13,8 +13,9 @@ const ITEMS: { title: string; tag: string; body: string; detail: string; link?: 
   {
     title: "One-click social publishing",
     tag: "Social",
-    body: "Publish a finished draft straight to LinkedIn, TikTok, Instagram, Facebook, and WhatsApp at once — pick your platforms, one click, no separate copy-pasting into five apps.",
-    detail: "Multi-platform publish from the composer, not a scheduling tool bolted on after the fact.",
+    body: "From your own post, connect LinkedIn and X once and publish an excerpt with a link back to the full journal on #NotesApp. You see and can change the words first, and nothing goes out until you press Post. Built, and switching on as soon as our LinkedIn and X apps are approved. Facebook, Instagram and TikTok follow, each on its own rules.",
+    detail:
+      "The sharing menu on every post (WhatsApp, X, Facebook, LinkedIn, copy link) already works without connecting anything; X now carries the title and an excerpt. Connected posting: LinkedIn (a link card with the post's picture) and X (the text and link). Facebook only lets apps post to Pages and reviews every app, Instagram needs a professional account linked to a Page, TikTok is mostly video and keeps posts private until it has audited the app, and WhatsApp has no posting service. LinkedIn connections last about 60 days before you reconnect.",
   },
   {
     title: "AI content drafting, connected via MCP",
