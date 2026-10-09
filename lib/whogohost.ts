@@ -43,6 +43,17 @@ function domainPath(domain: string): string {
   return encodeURIComponent(d);
 }
 
+// For the admin page and /status: which settings exist and whether the service answers us. The service's reply is passed on as it came.
+export async function wgDiagnose() {
+  const emailSet = !!process.env.WHOGOHOST_RESELLER_EMAIL, keySet = !!process.env.WHOGOHOST_API_KEY;
+  if (!emailSet || !keySet) return { configured: false, emailSet, keySet, ok: false, summary: "Set WHOGOHOST_RESELLER_EMAIL and WHOGOHOST_API_KEY in Vercel." } as const;
+  const [version, credits, tlds] = await Promise.allSettled([wgVersion(), wgCredits(), wgTlds()]);
+  const shape = (r: PromiseSettledResult<unknown>) =>
+    r.status === "fulfilled" ? { ok: true as const, data: r.value } : { ok: false as const, error: r.reason instanceof WhogohostError ? `${r.reason.message}${r.reason.body ? ` ${JSON.stringify(r.reason.body).slice(0, 300)}` : ""}` : "Failed" };
+  const v = shape(version);
+  return { configured: true, emailSet, keySet, ok: v.ok, summary: v.ok ? "Connected: the service accepted our login." : v.error, version: v, credits: shape(credits), tlds: shape(tlds) } as const;
+}
+
 export class WhogohostError extends Error {
   constructor(message: string, readonly status: number, readonly body?: unknown) {
     super(message);
