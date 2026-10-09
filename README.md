@@ -61,6 +61,7 @@ the main site) · Sentry (we have built-in error monitoring instead).
 | `DOJAH_API_BASE` | no | Sandbox only — **delete for live** |
 | `NEXT_PUBLIC_DOJAH_WIDGET_PERSONAL`, `_CORPORATE` | no | Dojah widget ids (sandbox now; live ids at go-live) |
 | `DOJAH_AUTO_APPROVE` | no | Keep off; `true` auto-approves a gold application whose every step passed |
+| `WHOGOHOST_RESELLER_EMAIL`, `WHOGOHOST_API_KEY` | key **yes** | Domain reseller API (Whogohost / go54). Production only, mark both Sensitive. Check them at `GET /api/admin/domains` (admin) |
 | `VERCEL_API_TOKEN`, `VERCEL_PROJECT_ID`, `VERCEL_TEAM_ID` | token **yes** | Optional: auto-connect Enterprise custom domains and `/status` check; team id only for a team project |
 
 Script-only (never in Vercel): `SOURCE_SERVICE_ACCOUNT`, `DEST_SERVICE_ACCOUNT` (migration), `GOOGLE_APPLICATION_CREDENTIALS`.
@@ -2131,4 +2132,6 @@ Every deployment (a production build for each merge to `main`, and a preview for
 
 Decisions (founder, 8 October): the member is the registrant and owns the domain; no extra `.ng` or `.com.ng` documents beyond the four standard contact blocks; Business and Enterprise only. The registration flow suggests profile data for each of the four blocks (registrant, admin, technical, billing), asks before using it, requests missing fields, and offers to copy a finished block into the next. `/domains` is the public page (with the Whogohost gold partner badge in `public/images/partners/`), and the roadmap lists it.
 
-Waiting on Whogohost: the availability and price call, the DNS record read and save calls, and confirmation of the HMAC `token` argument order. The reseller email and API key will go in new Vercel environment variables; never paste them into chat or commit them. The client will attach to `lib/domains.ts`.
+Built so far: `lib/whogohost.ts`, a server-only client for the reseller API (signing, form encoding, typed calls for pricing, TLD list, DNS, nameservers, contact, lock, EPP code, register, renew), and `GET /api/admin/domains`, an admin check that returns the service version, the reseller credit balance and the TLD list. The token is `base64(hex(HMAC-SHA256(data = api key, key = "<email>:<UTC yy-mm-dd HH>")))`, as their sample shows; it changes every UTC hour and a failed call is retried once. Still to confirm with Whogohost: how to check that a name is free (there is a pricing call but no availability call), the shape of `dnsrecords`, whether calls need whitelisted IPs, and whether a test mode exists. Not built yet: the forms, payment, the DNS editor and the page for members.
+
+Originally waiting on: the availability and price call, the DNS record read and save calls, and the HMAC `token` order. The reseller email and API key will go in new Vercel environment variables; never paste them into chat or commit them. The client will attach to `lib/domains.ts`.
