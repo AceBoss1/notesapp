@@ -8,14 +8,15 @@ export const TRUSTED_BY: { username: string; what?: string }[] = [
   { username: "apexglitz", what: "Shop" },
   { username: "clickam", what: "Journal and shop" },
   { username: "lwb", what: "Shop and courses" },
-  { username: "chef_adams" },
+  { username: "chef_adams", what: "Journal and shop" },
 ];
 
 // Partners and the services #NotesApp is connected to. `logo` is a file in public/images/partners/; leave it out to show the name only.
 // To add a logo: save the file there (SVG or PNG with a transparent background, about 80px tall is plenty) and add the line below.
+// Every partner card links to the status page (/status), which shows how each connected service is doing.
 // `wordmark: true` means the file already spells the company's name, so it is shown alone (with the short line under it).
-export const PARTNERS: { name: string; what: string; logo?: string; wordmark?: boolean; href?: string }[] = [
-  { name: "Whogohost (go54)", what: "Domain partner · gold partnership", logo: "/images/partners/whogohost-gold-partner.png", href: "/domains" },
+export const PARTNERS: { name: string; what: string; logo?: string; wordmark?: boolean }[] = [
+  { name: "Whogohost (go54)", what: "Domain partner · gold partnership", logo: "/images/partners/whogohost-gold-partner.png" },
   { name: "Paystack", what: "Payments in Naira", logo: "/images/partners/paystack.png" },
   { name: "Paylony", what: "Bank payouts", logo: "/images/partners/paylony.png" },
   { name: "Cloudflare", what: "Storage and video", logo: "/images/partners/cloudflare.svg" },
