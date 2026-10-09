@@ -9,6 +9,8 @@ import { signUpProfile, isUsernameTaken, getAllUsers, UserProfile } from "@/lib/
 import { followJournal } from "@/lib/follows";
 import { MANDATORY_JOURNALS, MANDATORY_USERNAMES, isReservedUsername } from "@/lib/journals-directory";
 import Avatar from "@/components/Avatar";
+import WorkFields from "@/components/WorkFields";
+import type { Work } from "@/lib/profile-work";
 import { normalizeRc, ORG_TRIAL_DAYS } from "@/lib/org";
 
 const OPTIONAL_REQUIRED = 2; // "2 more of their choice" — total target is 3 mandatory + 2 = 5
@@ -33,6 +35,7 @@ export default function SignupPage() {
   const [agreed, setAgreed] = useState(false);
   const [kind, setKind] = useState<"personal" | "organisation">("personal");
   const [rcNumber, setRcNumber] = useState("");
+  const [work, setWork] = useState<Work>({});
   const router = useRouter();
 
   // Step 2 — follow onboarding
@@ -82,6 +85,7 @@ export default function SignupPage() {
         email,
         username: cleanUsername,
         displayName: displayName || cleanUsername,
+        work: kind === "organisation" ? { industry: work.industry } : work,
       });
       // An organisation sends its registration number to the server (clients can't
       // write organisation fields). If that fails, /organisation lets them retry.
@@ -335,6 +339,7 @@ export default function SignupPage() {
             className="mt-2 w-full border border-rule bg-card px-4 py-3 font-body focus:border-crimson outline-none"
           />
         </label>
+        <WorkFields value={work} onChange={setWork} orgOnly={kind === "organisation"} inputClass="mt-1 w-full border border-rule bg-card px-4 py-3 font-body focus:border-crimson outline-none" />
         <label className="flex items-start gap-3 text-sm text-slate">
           <input type="checkbox" checked={agreed} onChange={(e) => setAgreed(e.target.checked)} className="mt-1" />
           <span>

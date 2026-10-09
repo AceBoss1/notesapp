@@ -11,6 +11,16 @@ export type Release = {
 
 export const CHANGELOG: Release[] = [
   {
+    version: "v0.12.0",
+    bump: "minor",
+    date: "2026-10-09",
+    changes: [
+      { kind: "added", text: "Tell us a little about you, if you like: what you do, your role (for example CEO) and where you work. You can add it when you sign up or any time in Edit profile, and it shows under your name on your profile, for example “CEO at Acme”. It is optional and you can clear it whenever you like." },
+      { kind: "changed", text: "Privacy Policy: now says that these optional lines appear on your public profile and are counted, without names, to help us understand who our members are." },
+      { kind: "changed", text: "The admin menu groups related pages together (Workspace, Content, People & trust, Money, Growth, Platform), and a money ledger for our team sits in the team hub. Nothing changes for members." },
+    ],
+  },
+  {
     version: "v0.11.0",
     bump: "minor",
     date: "2026-10-09",

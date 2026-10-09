@@ -1,5 +1,6 @@
 "use client";
 
+import { headline } from "@/lib/profile-work";
 import { useEffect, useState } from "react";
 import { badgeLevel, getUserByUsername, goldKindOf, roleLabelFor, UserProfile } from "@/lib/users";
 import { getFollowerCount } from "@/lib/follows";
@@ -38,6 +39,7 @@ export default function SiteProfileHeader() {
           {badge && <VerifiedBadge size={22} level={badge} goldKind={gold} />}
           <OrgLabel profile={profile} />
         </h1>
+        {profile && headline(profile) && <p className="mt-1 text-base font-semibold text-ink">{headline(profile)}</p>}
         {profile && <p className="font-mono text-xs uppercase tracking-eyebrow text-crimson-bright">{roleLabelFor(profile)} · @{site.username}</p>}
         {site.bio && <p className="mt-3 max-w-xl text-base text-slate">{site.bio}</p>}
         {badge === "gold" && gold && <p className="mt-1 text-xs font-semibold text-slate">{GOLD_BADGE_TITLE[gold].replace("Gold badge — ", "Gold ✔ · ")}</p>}

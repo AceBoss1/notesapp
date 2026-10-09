@@ -40,6 +40,22 @@ test("users can edit their own bio but not role, tier, suspension or consent", a
   await assertFails(updateDoc(doc(as("alice"), "users/alice"), { suspended: false, consent: { version: "x" } }));
 });
 
+test("profile work lines: optional, short, and only on your own profile", async () => {
+  await assertSucceeds(updateDoc(doc(as("alice"), "users/alice"), { industry: "tech", jobTitle: "CEO", workplace: "Acme Ltd" }));
+  await assertSucceeds(updateDoc(doc(as("alice"), "users/alice"), { industry: "", jobTitle: "", workplace: "" })); // clearing them is fine
+  await assertFails(updateDoc(doc(as("alice"), "users/alice"), { jobTitle: "x".repeat(61) }));
+  await assertFails(updateDoc(doc(as("alice"), "users/alice"), { workplace: "x".repeat(81) }));
+  await assertFails(updateDoc(doc(as("alice"), "users/alice"), { industry: "x".repeat(31) }));
+  await assertFails(updateDoc(doc(as("alice"), "users/alice"), { jobTitle: 42 }));
+  await assertFails(updateDoc(doc(as("pub"), "users/alice"), { jobTitle: "CEO" })); // not someone else's
+  await assertFails(updateDoc(doc(as("alice"), "users/alice"), { jobTitle: "CEO", role: "admin" })); // and nothing else rides along
+  // At sign-up the same keys are allowed alongside the ordinary fields, with the same limits.
+  const base = { uid: "newbie", username: "newbie", displayName: "N", bio: "", avatar: "", social: {}, role: "reader", createdAt: "x", accountTier: "standard", suspended: false, consent: { version: "v", acceptedAt: "x" } };
+  await assertSucceeds(setDoc(doc(as("newbie"), "users/newbie"), { ...base, industry: "coaching", jobTitle: "CEO", workplace: "Acme" }));
+  await assertFails(setDoc(doc(as("newbie2"), "users/newbie2"), { ...base, uid: "newbie2", username: "newbie2", jobTitle: "x".repeat(200) }));
+  await assertFails(setDoc(doc(as("newbie3"), "users/newbie3"), { ...base, uid: "newbie3", username: "newbie3", notAllowed: "x" }));
+});
+
 test("users cannot edit someone else's profile", async () => {
   await assertFails(updateDoc(doc(as("pub"), "users/alice"), { bio: "hacked" }));
 });

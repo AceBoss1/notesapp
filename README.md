@@ -1204,6 +1204,11 @@ export. Who: **finance** (and super admins) record entries dated today or up to 
 entry and void recent ones with a reason; **product** reads everything except payroll lines (payroll shows as a total); only the
 **owner** (`OWNER_EMAIL`) enters older dates, edits, voids history and bulk-imports a CSV (up to 500 rows, checked first,
 duplicates skipped). Nothing is deleted. Collections `financeEntries` and `financeLog` are server-only in `firestore.rules`.
+**Profile work lines** — optional `industry` ("What do you do?", a fixed list in `lib/profile-work.ts`), `jobTitle` and `workplace` on the
+public `users` document: asked at sign-up (organisations only get the industry), editable in Edit profile, shown as "CEO at Acme" under the
+name (`headline()`), listed in `/api/public/users`, and counted on Admin → Users ("What our members do"). `firestore.rules` allows only
+those keys with length limits (`workOk`). Privacy Policy mentions them; `LEGAL_VERSION` was not bumped (voluntary public profile info,
+so no forced re-acceptance), bump it if you change that.
 **Rules tests** — `npm run test:rules` (needs Java; starts the Firestore
 emulator): 11 tests covering profile-field lockdown, server-only money
 collections, booking/ledger/payout read scopes, subscriptions, claims and
