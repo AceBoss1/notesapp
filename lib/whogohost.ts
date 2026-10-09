@@ -68,6 +68,19 @@ function domainPath(domain: string): string {
 }
 
 // For the admin page and /status: which settings exist and whether the service answers us. The service's reply is passed on as it came.
+// Read-only probes of the actions we will need, to learn which ones the service refuses ("Action is not allowed", with our IP). An answer
+// that is an ordinary error (unknown domain, bad input) still proves the action itself is allowed.
+async function probe(name: string, fn: () => Promise<unknown>) {
+  try {
+    await fn();
+    return { name, state: "allowed" as const, note: "answered" };
+  } catch (err) {
+    const body = err instanceof WhogohostError ? JSON.stringify(err.body ?? err.message).slice(0, 200) : "failed";
+    const blocked = err instanceof WhogohostError && /not allowed/i.test(JSON.stringify(err.body ?? ""));
+    return { name, state: blocked ? ("blocked" as const) : ("allowed" as const), note: body };
+  }
+}
+
 export async function wgDiagnose() {
   const emailSet = !!process.env.WHOGOHOST_RESELLER_EMAIL, keySet = !!process.env.WHOGOHOST_API_KEY;
   if (!emailSet || !keySet) return { configured: false, emailSet, keySet, ok: false, summary: "Set WHOGOHOST_RESELLER_EMAIL and WHOGOHOST_API_KEY in Vercel." } as const;
@@ -76,7 +89,13 @@ export async function wgDiagnose() {
     r.status === "fulfilled" ? { ok: true as const, data: r.value } : { ok: false as const, error: r.reason instanceof WhogohostError ? `${r.reason.message}${r.reason.body ? ` ${JSON.stringify(r.reason.body).slice(0, 300)}` : ""}` : "Failed" };
   // "Connected" rests on the credit call: /version has been refused with "Action is not allowed" while credit and the extension list work.
   const c = shape(credits);
-  return { configured: true, emailSet, keySet, ok: c.ok, summary: c.ok ? "Connected: the service accepted our login." : c.error, version: shape(version), credits: c, tlds: shape(tlds), proxy: proxyConfigured(), outgoingIp: ip.status === "fulfilled" ? ip.value : null } as const;
+  const probes = await Promise.all([
+    probe("Price of a name (register)", () => wgPricing("register", "example-probe.com")),
+    probe("Domain details (a domain we don't own)", () => wgInfo("example-probe.com")),
+    probe("DNS records (a domain we don't own)", () => wgGetDns("example-probe.com")),
+    probe("Nameservers (a domain we don't own)", () => wgGetNameservers("example-probe.com")),
+  ]);
+  return { configured: true, emailSet, keySet, ok: c.ok, summary: c.ok ? "Connected: the service accepted our login." : c.error, version: shape(version), credits: c, tlds: shape(tlds), proxy: proxyConfigured(), probes, outgoingIp: ip.status === "fulfilled" ? ip.value : null } as const;
 }
 
 export class WhogohostError extends Error {
