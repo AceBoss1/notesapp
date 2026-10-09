@@ -84,10 +84,16 @@ async function call<T = unknown>(method: "GET" | "POST", path: string, params: R
 
 export type ContactBlock = {
   firstname: string; lastname: string; fullname: string; companyname: string; email: string;
-  address1: string; address2: string; city: string; state: string; zipcode: string; country: string;
+  address1: string; address2: string; city: string; state: string; postcode: string; country: string;
   phonenumber: string; // +234.812345678
 };
+// Every field but address2 is required by the service; companyname too, so an individual's company is their own name.
 export type Contacts = { registrant: ContactBlock; tech: ContactBlock; billing: ContactBlock; admin: ContactBlock };
+// Their model calls it `postcode`; their register sample says `zipcode`. We send both, with the same value.
+function withZip(c: ContactBlock): ContactBlock & { zipcode: string } { return { ...c, zipcode: c.postcode }; }
+function zipAll(c: Contacts) { return { registrant: withZip(c.registrant), tech: withZip(c.tech), billing: withZip(c.billing), admin: withZip(c.admin) }; }
+
+export type DnsRecord = { hostname: string; type: string; address: string; priority: number; recid?: string };
 export type Addons = { dnsmanagement?: boolean | 0 | 1; emailforwarding?: boolean | 0 | 1; idprotection?: boolean | 0 | 1 };
 
 // Reads. Response shapes are returned as the service sends them until we've seen real answers.
@@ -103,14 +109,17 @@ export const wgGetLock = (domain: string) => call("GET", `/domains/${domainPath(
 export const wgGetEpp = (domain: string) => call("GET", `/domains/${domainPath(domain)}/eppcode`);
 
 // Writes.
-export const wgSaveDns = (domain: string, dnsrecords: unknown) => call("POST", `/domains/${domainPath(domain)}/dns`, { dnsrecords });
+export const wgSaveDns = (domain: string, dnsrecords: DnsRecord[]) => call("POST", `/domains/${domainPath(domain)}/dns`, { dnsrecords });
 export const wgSaveNameservers = (domain: string, ns: string[]) =>
   call("POST", `/domains/${domainPath(domain)}/nameservers`, Object.fromEntries(ns.slice(0, 5).map((n, i) => [`ns${i + 1}`, n])));
 export const wgSaveLock = (domain: string, locked: boolean) => call("POST", `/domains/${domainPath(domain)}/lock`, { lockstatus: locked ? "locked" : "unlocked" });
+// Saving contacts uses capitalised keys (their `contactsdetails` model).
+export const wgSaveContact = (domain: string, c: Contacts) =>
+  call("POST", `/domains/${domainPath(domain)}/contact`, { contactdetails: { Registrant: withZip(c.registrant), Technical: withZip(c.tech), Billing: withZip(c.billing), Admin: withZip(c.admin) } });
 export const wgSync = (domain: string) => call("POST", `/domains/${domainPath(domain)}/sync`);
 export const wgRegister = (domain: string, years: number, nameservers: string[], contacts: Contacts, addons?: Addons) =>
   call("POST", "/order/domains/register", {
-    domain, regperiod: years, contacts, addons,
+    domain, regperiod: years, contacts: zipAll(contacts), addons,
     nameservers: Object.fromEntries(nameservers.slice(0, 5).map((n, i) => [`ns${i + 1}`, n])),
   });
 export const wgRenew = (domain: string, years: number, addons?: Addons) => call("POST", "/order/domains/renew", { domain, regperiod: years, addons });
