@@ -50,8 +50,9 @@ export async function wgDiagnose() {
   const [version, credits, tlds] = await Promise.allSettled([wgVersion(), wgCredits(), wgTlds()]);
   const shape = (r: PromiseSettledResult<unknown>) =>
     r.status === "fulfilled" ? { ok: true as const, data: r.value } : { ok: false as const, error: r.reason instanceof WhogohostError ? `${r.reason.message}${r.reason.body ? ` ${JSON.stringify(r.reason.body).slice(0, 300)}` : ""}` : "Failed" };
-  const v = shape(version);
-  return { configured: true, emailSet, keySet, ok: v.ok, summary: v.ok ? "Connected: the service accepted our login." : v.error, version: v, credits: shape(credits), tlds: shape(tlds) } as const;
+  // "Connected" rests on the credit call: /version has been refused with "Action is not allowed" while credit and the extension list work.
+  const c = shape(credits);
+  return { configured: true, emailSet, keySet, ok: c.ok, summary: c.ok ? "Connected: the service accepted our login." : c.error, version: shape(version), credits: c, tlds: shape(tlds) } as const;
 }
 
 export class WhogohostError extends Error {

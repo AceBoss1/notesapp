@@ -8,7 +8,7 @@ import { paylonyConfigured, walletBalance } from "./paylony";
 import { pushConfigured, pushProblem } from "./push-server";
 import { MESSAGES_LIVE, MOMENTS_LIVE } from "./moments-rules";
 import { pingVercel, vercelConfigured } from "./domains";
-import { whogohostConfigured, wgVersion } from "./whogohost";
+import { whogohostConfigured, wgCredits } from "./whogohost";
 
 // Server-only service health checks behind /status. Reports only
 // up/slow/down + latency — never error details or config.
@@ -124,10 +124,10 @@ export async function checkServices(): Promise<ServiceStatus[]> {
       : Promise.resolve(notConfigured("domains", "Custom domains", "Connecting and verifying Enterprise domains (Vercel)"))
   );
 
-  // Domain sales and DNS (Whogohost reseller API): only listed once its two settings exist. The version call costs nothing.
+  // Domain sales and DNS (Whogohost reseller API): only listed once its two settings exist. The credit read costs nothing.
   checks.push(
     whogohostConfigured()
-      ? timed(async () => { await wgVersion(); return true; }).then((r) => toStatus("registrar", "Domain registration", "Domain sales and DNS management (Whogohost)", r))
+      ? timed(async () => { await wgCredits(); return true; }).then((r) => toStatus("registrar", "Domain registration", "Domain sales and DNS management (Whogohost)", r))
       : Promise.resolve(notConfigured("registrar", "Domain registration", "Domain sales and DNS management (Whogohost)"))
   );
 
