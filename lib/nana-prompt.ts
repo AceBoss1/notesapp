@@ -13,6 +13,9 @@ export const NANA_PAGES: [path: string, what: string][] = [
   ["/security", "Trust and security"], ["/terms", "Terms of Service"], ["/privacy", "Privacy Policy"], ["/contact", "Contact the team"], ["/challenge", "#1MillionNairaNotesAppChallenge"], ["/help", "Help centre"],
 ];
 
+// Admin pages Nana may link to, only when she is talking with staff inside the team hub.
+export const STAFF_PAGES = ["/admin/team", "/admin/team/review", "/admin/team/finance", "/admin/access", "/admin/help"];
+
 export const KNOWLEDGE_MAX_CHARS = 90_000;
 
 // Every path a reply may link to.

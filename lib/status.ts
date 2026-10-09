@@ -143,9 +143,11 @@ export async function checkServices(): Promise<ServiceStatus[]> {
 
   // Nana AI, the chat helper: only says whether its AI key is set (we don't spend a request to test it).
   checks.push(
-    Promise.resolve(nanaConfigured()
-      ? ({ id: "nana", name: "Nana AI", description: "The chat helper that answers questions about #NotesApp", state: "operational" } as ServiceStatus)
-      : notConfigured("nana", "Nana AI", "The chat helper that answers questions about #NotesApp"))
+    Promise.resolve(({
+      id: "nana", name: "Nana AI",
+      description: nanaConfigured() ? "The chat helper that answers questions about #NotesApp, with AI switched on" : "The chat helper that answers questions about #NotesApp, from the help centre (AI is not switched on)",
+      state: "operational",
+    } as ServiceStatus))
   );
 
   const paystack = process.env.PAYSTACK_SECRET_KEY;

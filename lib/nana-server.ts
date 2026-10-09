@@ -1,35 +1,47 @@
 import Anthropic from "@anthropic-ai/sdk";
 import type { Firestore } from "firebase-admin/firestore";
+import { ownKey } from "./ai-connect";
 import { getArticles } from "./kb-server";
-import { sanitizeLinks } from "./kb";
+import { internalArticles } from "./kb-articles";
+import { sanitizeLinks, type KbArticle } from "./kb";
 import {
   NANA_HISTORY_MAX, NANA_TRANSCRIPT_MAX, NANA_USER_MAX, NanaError, cleanVisitor, parseReply, type NanaMsg,
 } from "./nana";
-import { buildSystem, knownPaths, visitorBlock } from "./nana-prompt";
+import { kbReply } from "./nana-kb";
+import { STAFF_PAGES, buildSystem, knownPaths, visitorBlock } from "./nana-prompt";
 
 // The server side of Nana AI. A chat is stateless on the wire (the page sends the conversation each turn); we keep a transcript in the
 // server-only collection `nanaChats` so staff can see what people ask, fill gaps in the knowledge base and follow up when someone wants a
-// person. Cost is bounded by rate limits (in the route), short messages, a short history, and a daily cap (NANA_DAILY_LIMIT).
+// person.
+//
+// Who pays for the AI, in order: the member's own connected AI account (lib/ai-connect.ts), then #NotesApp's key (ANTHROPIC_API_KEY, bounded
+// by rate limits and a daily cap). With neither, or when the AI is unavailable, out of credit, or the key is rejected, Nana answers from the
+// knowledge base alone (lib/nana-kb.ts), so the chat never just stops.
 
 export { nanaConfigured } from "./nana-config";
 // Claude Opus 5.5 is the default; set NANA_MODEL (for example claude-haiku-5-5 or claude-sonnet-5-5) to trade some quality for cost.
 export const nanaModel = () => (process.env.NANA_MODEL || "").trim() || "claude-opus-5-5";
+const platformKey = () => (process.env.ANTHROPIC_API_KEY || "").trim();
 const dailyLimit = () => Math.max(1, Number(process.env.NANA_DAILY_LIMIT) || 1500);
 
-type SystemBlock = { type: "text"; text: string; cache_control?: { type: "ephemeral" } };
+export type SystemBlock = { type: "text"; text: string; cache_control?: { type: "ephemeral" } };
 export type Completion = { text: string; refused: boolean };
-export type NanaDeps = {
-  complete: (system: SystemBlock[], messages: NanaMsg[]) => Promise<Completion>;
-  now: () => Date;
-};
+export type CompleteArgs = { apiKey: string; system: SystemBlock[]; messages: NanaMsg[]; maxTokens: number };
+export type NanaDeps = { complete: (a: CompleteArgs) => Promise<Completion>; now: () => Date };
 
-let client: Anthropic | null = null;
-const realComplete: NanaDeps["complete"] = async (system, messages) => {
-  client ??= new Anthropic({ timeout: 45_000, maxRetries: 1 }); // key from ANTHROPIC_API_KEY
+// The AI could not be used right now. `kind` says why, so a rejected key or an empty balance can be told apart from a short outage.
+export class AiDown extends Error {
+  constructor(readonly kind: "auth" | "billing" | "busy" | "other", message = "AI unavailable") {
+    super(message);
+  }
+}
+
+const realComplete: NanaDeps["complete"] = async ({ apiKey, system, messages, maxTokens }) => {
+  const client = new Anthropic({ apiKey, timeout: 45_000, maxRetries: 1 });
   try {
     const res = await client.beta.messages.create({
       model: nanaModel(),
-      max_tokens: 2000, // thinking counts toward this as well as the reply
+      max_tokens: maxTokens, // thinking counts toward this as well as the reply
       system,
       messages,
       output_config: { effort: "low" }, // a support answer should be quick; thinking depth is the speed and cost control on this model
@@ -40,24 +52,67 @@ const realComplete: NanaDeps["complete"] = async (system, messages) => {
     const text = res.content.filter((b): b is Anthropic.Beta.BetaTextBlock => b.type === "text").map((b) => b.text).join("\n").trim();
     return { text, refused: false };
   } catch (err) {
-    if (err instanceof Anthropic.RateLimitError || (err instanceof Anthropic.APIError && (err.status ?? 0) >= 500)) throw new NanaError("I'm a bit busy right now. Please try again in a minute, or use the contact page and the team will help.", 503);
-    if (err instanceof Anthropic.AuthenticationError || err instanceof Anthropic.PermissionDeniedError) {
-      console.error("[nana] the AI key was rejected");
-      throw new NanaError("Nana isn't available right now. Please use the contact page.", 503);
-    }
+    if (err instanceof Anthropic.AuthenticationError || err instanceof Anthropic.PermissionDeniedError) throw new AiDown("auth", "the key was rejected");
+    if (err instanceof Anthropic.APIError && err.status === 400 && /credit|billing|balance/i.test(err.message)) throw new AiDown("billing", "no credit left");
+    if (err instanceof Anthropic.RateLimitError || (err instanceof Anthropic.APIError && (err.status ?? 0) >= 500) || err instanceof Anthropic.APIConnectionError) throw new AiDown("busy", "busy");
     console.error("[nana] model call failed", err instanceof Error ? err.message : err);
-    throw new NanaError("Something went wrong on my side. Please try again, or use the contact page.", 502);
+    throw new AiDown("other");
   }
 };
-const realDeps = (): NanaDeps => ({ complete: realComplete, now: () => new Date() });
+export const realDeps = (): NanaDeps => ({ complete: realComplete, now: () => new Date() });
+
+// ---- who pays
+export type AiSource = { source: "own" | "platform"; apiKey: string };
+// The keys to try, in order: the member's own account first, then ours. Empty means the knowledge base answers.
+export async function aiCandidates(db: Firestore, uid?: string): Promise<AiSource[]> {
+  const out: AiSource[] = [];
+  const own = uid ? await ownKey(db, uid) : null;
+  if (own) out.push({ source: "own", apiKey: own });
+  if (platformKey()) out.push({ source: "platform", apiKey: platformKey() });
+  return out;
+}
+
+// #NotesApp's own AI is rationed: one counter for the whole day and, when we know who is asking, one for the person. A transaction keeps it exact.
+export async function chargePlatform(db: Firestore, now: Date, uid: string | undefined, perUserLimit: number): Promise<boolean> {
+  const day = new Date(now.getTime() + 3_600_000).toISOString().slice(0, 10);
+  const all = db.collection("nanaUsage").doc(day);
+  const mine = uid ? db.collection("nanaUsage").doc(`${day}_${uid}`) : null;
+  return db.runTransaction(async (t) => {
+    const [a, m] = await Promise.all([t.get(all), mine ? t.get(mine) : Promise.resolve(null)]);
+    const n = (a.data()?.count as number | undefined) ?? 0, mn = (m?.data()?.count as number | undefined) ?? 0;
+    if (n >= dailyLimit() || (mine && mn >= perUserLimit)) return false;
+    t.set(all, { count: n + 1, day }, { merge: true });
+    if (mine) t.set(mine, { count: mn + 1, day, uid }, { merge: true });
+    return true;
+  });
+}
+
+export type Via = "own" | "platform" | "kb";
+export type Ran = { completion: Completion; via: "own" | "platform"; notice?: string } | { completion: null; via: "kb"; notice?: string };
+
+// Tries each AI source in turn; a null completion means none worked and the caller should fall back to the knowledge base.
+export async function runAi(db: Firestore, deps: NanaDeps, now: Date, uid: string | undefined, req: Omit<CompleteArgs, "apiKey">, perUserLimit: number): Promise<Ran> {
+  let notice: string | undefined;
+  for (const c of await aiCandidates(db, uid)) {
+    if (c.source === "platform" && !(await chargePlatform(db, now, uid, perUserLimit))) continue; // today's allowance is used up
+    try {
+      return { completion: await deps.complete({ ...req, apiKey: c.apiKey }), via: c.source, notice };
+    } catch (err) {
+      if (!(err instanceof AiDown)) throw err;
+      if (c.source === "own") notice = err.kind === "billing" ? "Your connected AI account is out of credit, so I used the next best thing." : err.kind === "auth" ? "Your connected AI account didn't accept its key, so I used the next best thing. You can reconnect it on the Nana page." : undefined;
+    }
+  }
+  return { completion: null, via: "kb", notice };
+}
 
 export type ChatInput = {
   chatId?: unknown; name?: unknown; email?: unknown; messages?: unknown; page?: unknown;
   signedIn?: { uid: string; name: string; email: string } | null; // from the verified sign-in, never from the request body
+  hubContext?: string; // staff only: what the team hub knows about this person, built by the server after checking they are staff
 };
-export type ChatResult = { reply: string; chatId: string; handoff: boolean; gap: boolean };
+export type ChatResult = { reply: string; chatId: string; handoff: boolean; gap: boolean; mode: "ai" | "kb"; via: Via; notice?: string };
 
-function cleanMessages(raw: unknown): NanaMsg[] {
+export function cleanMessages(raw: unknown): NanaMsg[] {
   if (!Array.isArray(raw) || !raw.length) throw new NanaError("Type a message and I'll help.");
   const msgs: NanaMsg[] = [];
   for (const m of raw.slice(-NANA_HISTORY_MAX)) {
@@ -72,6 +127,8 @@ function cleanMessages(raw: unknown): NanaMsg[] {
   return msgs;
 }
 
+const perUserChatLimit = () => Math.max(1, Number(process.env.NANA_CHAT_PER_USER_DAILY) || 100);
+
 // One turn of the conversation.
 export async function chat(db: Firestore, input: ChatInput, deps: NanaDeps = realDeps()): Promise<ChatResult> {
   const now = deps.now();
@@ -79,50 +136,52 @@ export async function chat(db: Firestore, input: ChatInput, deps: NanaDeps = rea
     ? { name: input.signedIn.name || "there", email: input.signedIn.email, uid: input.signedIn.uid }
     : { ...cleanVisitor({ name: input.name, email: input.email }), uid: undefined as string | undefined };
   const messages = cleanMessages(input.messages);
+  const asked = String(messages[messages.length - 1].content);
 
-  // The daily cap: a counter per Lagos-day, bumped in a transaction.
-  const day = new Date(now.getTime() + 3_600_000).toISOString().slice(0, 10);
-  const usage = db.collection("nanaUsage").doc(day);
-  const over = await db.runTransaction(async (t) => {
-    const n = ((await t.get(usage)).data()?.count as number | undefined) ?? 0;
-    if (n >= dailyLimit()) return true;
-    t.set(usage, { count: n + 1, day }, { merge: true });
-    return false;
-  });
-  if (over) throw new NanaError("I've answered a lot of questions today and need a rest. Please use the contact page and the team will get back to you.", 503);
-
-  const articles = await getArticles(db, now.getTime());
+  const articles: KbArticle[] = await getArticles(db, now.getTime());
   const page = typeof input.page === "string" && /^\/[A-Za-z0-9\-._~/]{0,120}$/.test(input.page) ? input.page : undefined;
+  const staffKb = input.hubContext !== undefined ? internalArticles() : [];
   const system: SystemBlock[] = [
     { type: "text", text: buildSystem(articles), cache_control: { type: "ephemeral" } },
-    { type: "text", text: visitorBlock({ name: who.name, signedIn: !!who.uid, page }) },
+    ...(staffKb.length ? [{ type: "text" as const, text: `TEAM-ONLY KNOWLEDGE (you are talking with a #NotesApp staff member inside the team hub; use this for questions about the hub and admin tools, and never tell anyone else about it):\n\n${staffKb.map((a) => `### ${a.title}\nPage: ${a.slug}\n${a.body}`).join("\n\n")}`, cache_control: { type: "ephemeral" as const } }] : []),
+    { type: "text", text: visitorBlock({ name: who.name, signedIn: !!who.uid, page }) + (input.hubContext ? `\n\n${input.hubContext}` : "") },
   ];
-  const out = await deps.complete(system, messages);
-  const parsed = parseReply(out.refused || !out.text ? "I'm sorry, I can't help with that one. The team can, though: please use the contact page. [[GAP]]" : out.text);
-  const reply = sanitizeLinks(parsed.text, knownPaths(articles)) || "Sorry, I didn't catch that. Could you say it another way?";
+
+  const ran = await runAi(db, deps, now, who.uid, { system, messages, maxTokens: 2000 }, perUserChatLimit());
+  let parsed: { text: string; handoff: boolean; gap: boolean };
+  let via: Via = ran.via;
+  if (ran.completion) {
+    parsed = parseReply(ran.completion.refused || !ran.completion.text ? "I'm sorry, I can't help with that one. The team can, though: please use the contact page. [[GAP]]" : ran.completion.text);
+  } else {
+    const k = kbReply([...articles, ...staffKb], asked, who.name, messages);
+    parsed = { text: k.text, handoff: k.handoff, gap: k.gap };
+    via = "kb";
+  }
+  const paths = knownPaths(articles);
+  if (staffKb.length) for (const p of STAFF_PAGES) paths.add(p); // inside the hub, Nana may link to the admin pages she explains
+  const reply = sanitizeLinks(parsed.text, paths) || "Sorry, I didn't catch that. Could you say it another way?";
 
   // Save the transcript (the same chat continues when the page sends back its id and it belongs to this person).
-  const asked = String(messages[messages.length - 1].content);
   const asId = typeof input.chatId === "string" && /^[A-Za-z0-9]{10,40}$/.test(input.chatId) ? input.chatId : null;
   const prev = asId ? (await db.collection("nanaChats").doc(asId).get()).data() : undefined;
   const mine = prev && ((who.uid && prev.uid === who.uid) || (!who.uid && !prev.uid && prev.email === who.email));
   // Someone else's chat id (or an unknown one) never overwrites a chat: it starts a fresh one.
   const ref = asId && (mine || !prev) ? db.collection("nanaChats").doc(asId) : db.collection("nanaChats").doc();
   const base = mine ? prev! : { startedAt: now.toISOString(), name: who.name, email: who.email, ...(who.uid ? { uid: who.uid } : {}), handoff: false, gap: false, count: 0, transcript: [] as unknown[] };
-  const chatDoc = ref.id;
   const transcript = [...((base.transcript as { role: string; text: string; at: string }[]) ?? []), { role: "user", text: asked, at: now.toISOString() }, { role: "assistant", text: reply, at: now.toISOString() }].slice(-NANA_TRANSCRIPT_MAX);
   const firstHandoff = parsed.handoff && !base.handoff;
   await ref.set({
     ...base, name: who.name, email: who.email, lastAt: now.toISOString(), count: (Number(base.count) || 0) + 1, transcript,
-    handoff: !!base.handoff || parsed.handoff, gap: !!base.gap || parsed.gap, ...(page ? { page } : {}),
+    handoff: !!base.handoff || parsed.handoff, gap: !!base.gap || parsed.gap, lastVia: via, ...(page ? { page } : {}),
+    ...(input.hubContext !== undefined ? { hub: true } : {}),
     ...(parsed.gap ? { lastGapQuestion: asked.slice(0, 300) } : {}),
   });
   // Someone asked for a person: it lands in the Leads inbox the support team already works from.
   if (firstHandoff) {
     await db.collection("leads").add({
       name: who.name, email: who.email, category: "support", status: "new", createdAt: now.toISOString(),
-      message: `From a Nana AI chat. They asked for a person, or Nana thought a person should follow up.\n\nTheir last message: ${asked.slice(0, 500)}\n\nThe whole chat is under Admin → Help & Nana → Chats (chat ${chatDoc}).`,
+      message: `From a Nana AI chat. They asked for a person, or Nana thought a person should follow up.\n\nTheir last message: ${asked.slice(0, 500)}\n\nThe whole chat is under Admin → Help & Nana → Chats (chat ${ref.id}).`,
     });
   }
-  return { reply, chatId: chatDoc, handoff: parsed.handoff, gap: parsed.gap };
+  return { reply, chatId: ref.id, handoff: parsed.handoff, gap: parsed.gap, mode: ran.completion ? "ai" : "kb", via, ...(ran.notice ? { notice: ran.notice } : {}) };
 }

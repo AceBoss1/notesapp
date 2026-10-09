@@ -417,6 +417,10 @@ service cloud.firestore {
     match /nanaChats/{id} {
       allow read, write: if false;
     }
+    // A member's own connected AI account (an encrypted key): server-only, never readable from a browser.
+    match /aiConnections/{id} {
+      allow read, write: if false;
+    }
     match /nanaUsage/{id} {
       allow read, write: if false;
     }

@@ -150,8 +150,7 @@ const ROWS: Row[] = [
     href: "/changelog",
     render: (t) => (t.canPublish ? (t.apiAccess ? "Server-to-server API, keys and webhooks — enabled per account by our team" : t.customDomain ? "Console for connecting your own domain only — no API" : "—") : "—"),
   },
-  { label: "AI draft assistance", render: (t) => (t.canPublish ? "Planned — included on every publisher tier" : "—") },
-];
+  ];
 
 export default async function PricingPage() {
   // The admin-set limits; the built-in defaults if they can't be read.
@@ -175,8 +174,7 @@ export default async function PricingPage() {
         ₦100,000. The commission below comes out of each paid session
         or subscription; you're paid to your verified bank account
         after the session (subscriptions after a 7-day dispute window).
-        AI drafting from your past notes is planned for every publisher
-        tier — it won't be a paid-tier perk.
+        Nana AI helps with drafts, posts for LinkedIn and X, and messages on every plan, never as a paid-tier perk: connect your own AI account today, and once our own AI is switched on for everyone each member gets a small daily allowance (<Link href="/nana" className="text-crimson underline">about Nana</Link>).
       </p>
 
       <div className="mt-12 overflow-x-auto">

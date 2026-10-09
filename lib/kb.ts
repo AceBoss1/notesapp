@@ -76,17 +76,38 @@ export function sanitizeLinks(text: string, knownPaths: ReadonlySet<string>): st
 }
 
 // ---- search
-const STOP = new Set(["the", "a", "an", "and", "or", "of", "to", "in", "on", "for", "is", "are", "how", "do", "i", "my", "me", "can", "what", "does", "it", "with", "at", "be", "you", "your"]);
-const words = (s: string) => s.toLowerCase().replace(/[^a-z0-9₦\s]/g, " ").split(/\s+/).filter((w) => w.length > 1 && !STOP.has(w));
+// Questions rarely use the article's own words ("how much does it cost?" vs "Plans and prices"), so words are reduced to a rough stem and a few
+// everyday synonyms are folded together before matching.
+const STOP = new Set(["the", "a", "an", "and", "or", "of", "to", "in", "on", "for", "is", "are", "how", "do", "does", "did", "i", "my", "me", "can", "what", "it", "with", "at", "be", "you", "your", "much", "many", "get", "want", "need", "like", "about", "tell", "please", "there", "this", "that", "if", "when", "where", "who", "why", "would", "should", "could", "will", "have", "has", "am", "us", "we", "any", "some"]);
+const SYN: Record<string, string> = {
+  cost: "price", costs: "price", pricing: "price", prices: "price", fee: "price", fees: "price", cheap: "price", expensive: "price", plan: "price", plans: "price", subscription: "subscribe", subscriptions: "subscribe", subscribing: "subscribe",
+  pay: "payout", paid: "payout", payouts: "payout", withdraw: "payout", withdrawal: "payout", earn: "payout", earnings: "payout", earning: "payout", salary: "payout", bank: "payout",
+  cancel: "cancel", cancelling: "cancel", cancelled: "cancel", cancellation: "cancel", cancellations: "cancel", refund: "refund", refunds: "refund", refunded: "refund", "money-back": "refund",
+  sell: "selling", sells: "selling", shop: "selling", store: "selling", stores: "selling", product: "selling", products: "selling", download: "selling", downloads: "selling",
+  book: "booking", books: "booking", booked: "booking", session: "booking", sessions: "booking", appointment: "booking", calendar: "booking",
+  tick: "badge", verified: "badge", verification: "badge", gold: "gold", endorsement: "gold", endorsed: "gold",
+  login: "signin", "log-in": "signin", password: "signin", account: "account", delete: "delete", deleting: "delete", remove: "delete",
+  chat: "message", chats: "message", messages: "message", messaging: "message", dm: "message", group: "message", groups: "message",
+  ad: "ads", advert: "ads", adverts: "ads", advertise: "ads", advertising: "ads", advertisement: "ads", boosts: "boost", boosting: "boost", promote: "boost",
+  org: "organisation", organization: "organisation", organisations: "organisation", organizations: "organisation", company: "organisation", ngo: "organisation", team: "organisation", seats: "organisation", seat: "organisation",
+  domain: "domain", domains: "domain", website: "domain", api: "api", console: "api", webhook: "api", webhooks: "api",
+  report: "report", reporting: "report", block: "report", abuse: "report", suspended: "suspension", suspension: "suspension", appeal: "suspension", appeals: "suspension", safe: "safety", secure: "safety", security: "safety",
+  data: "data", privacy: "data", gdpr: "data", contact: "contact", support: "contact", help: "contact", email: "contact",
+};
+const tokens = (s: string) => s.toLowerCase().replace(/₦/g, " naira ").replace(/[^a-z0-9\s-]/g, " ").split(/\s+/).filter((w) => w.length > 1);
+const stem = (w: string) => SYN[w] ?? (w.length > 5 && w.endsWith("ing") ? w.slice(0, -3) : w.length > 3 && w.endsWith("s") && !w.endsWith("ss") ? w.slice(0, -1) : w);
+export const queryWords = (s: string): string[] => Array.from(new Set(tokens(s).filter((w) => !STOP.has(w)).map(stem)));
+export const tokenSet = (s: string): Set<string> => new Set(tokens(s).map(stem));
+export const countMatches = (text: string, ws: string[]) => { const t = tokenSet(text); return ws.filter((w) => t.has(w)).length; };
 
 // A simple ranking: words in the title count most, then the category, then the body.
 export function searchArticles(all: KbArticle[], q: string, limit = 20): KbArticle[] {
-  const ws = words(q);
+  const ws = queryWords(q);
   if (!ws.length) return [];
   const scored = all.map((a) => {
-    const t = a.title.toLowerCase(), c = a.category.toLowerCase(), b = a.body.toLowerCase();
+    const T = tokenSet(a.title), C = tokenSet(a.category), B = tokenSet(a.body);
     let score = 0;
-    for (const w of ws) score += (t.includes(w) ? 5 : 0) + (c.includes(w) ? 2 : 0) + (b.includes(w) ? 1 : 0);
+    for (const w of ws) score += (T.has(w) ? 5 : 0) + (C.has(w) ? 2 : 0) + (B.has(w) ? 1 : 0);
     return { a, score };
   });
   return scored.filter((x) => x.score > 0).sort((x, y) => y.score - x.score).slice(0, limit).map((x) => x.a);

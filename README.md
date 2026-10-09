@@ -52,7 +52,7 @@ the main site) · Sentry (we have built-in error monitoring instead).
 | `R2_PRIVATE_BUCKET` | no | Name of the private bucket for paid downloads (just a name, a plain variable) |
 | `PAYSTACK_SECRET_KEY` | **yes** | Paystack API key (also verifies webhook signatures) |
 | `NEXT_PUBLIC_SITE_URL` | no | `https://www.notesapp.name.ng` (emails, API URLs, share links) |
-| `ANTHROPIC_API_KEY` | for Nana AI | Anthropic API key (Sensitive). The Nana chat button and the AI replies only exist when it is set; optional `NANA_MODEL`, `NANA_DAILY_LIMIT` |
+| `ANTHROPIC_API_KEY` | no | Anthropic API key (Sensitive) that switches Nana's AI on for everyone. Without it Nana answers from the help centre and members can connect their own key; optional `NANA_MODEL`, `NANA_DAILY_LIMIT`, `NANA_CHAT_PER_USER_DAILY`, `NANA_ASSIST_DAILY` |
 | `RESEND_API_KEY` | **yes** | Resend key; without it emails are skipped |
 | `EMAIL_FROM`, `SUPPORT_EMAIL` | no | Sender (`#NotesApp <…>`) and where support/error alerts go (default hello@notesapp.name.ng) |
 | `CRON_SECRET` | **yes** | Bearer secret for `/api/cron/reminders` |
@@ -1210,16 +1210,25 @@ public `users` document: asked at sign-up (organisations only get the industry),
 name (`headline()`), listed in `/api/public/users`, and counted on Admin → Users ("What our members do"). `firestore.rules` allows only
 those keys with length limits (`workOk`). Privacy Policy mentions them; `LEGAL_VERSION` was not bumped (voluntary public profile info,
 so no forced re-acceptance), bump it if you change that.
-**Nana AI and the help centre** — `components/NanaChat.tsx` (the chat button, in `app/(main)/layout.tsx`, shown only when `ANTHROPIC_API_KEY` is set),
-`POST /api/nana` (`lib/nana-server.ts`: the official `@anthropic-ai/sdk`, `claude-opus-5-5` by default with low effort, the knowledge base in a cached
-system block, server-side fallbacks on), `lib/nana-prompt.ts` (persona, rules, the pages she may link to). The knowledge base is `lib/kb-articles.ts`
-(built-in articles that read the real prices and limits from code) plus articles staff write at **Admin → Help & Nana** (`kbArticles`, a staff
-article with a built-in slug replaces it); readers see the same articles at `/help`. Replies are checked before showing: links survive only if
-they point at a page of ours that exists, and the `[[HANDOFF]]` / `[[GAP]]` tags the model adds are removed. A visitor must give a name and email
-(members are recognised from their sign-in). Chats are saved in `nanaChats` (server-only), a request for a person creates a lead in the Leads inbox,
-and the Chats tab shows what Nana couldn't answer. Cost is limited by per-person and per-address rate limits, an 800-character message cap, a
-14-message history and a daily cap. Variables: `ANTHROPIC_API_KEY` (required, set as Sensitive), `NANA_MODEL` (optional, for example
-`claude-haiku-5-5` or `claude-sonnet-5-5` to spend less), `NANA_DAILY_LIMIT` (optional, replies per day, default 1500).
+**Nana AI and the help centre** — one chat (`components/NanaPanel.tsx`) shown as the corner button (`NanaChat`), the conversation pinned at the top
+of Messages (`/messages/nana`), her own page (`/nana`) and an Ask Nana panel in the team hub. `POST /api/nana` → `lib/nana-server.ts`:
+the official `@anthropic-ai/sdk`, `claude-opus-5-5` by default at low effort, the knowledge base in a cached system block, server-side
+fallbacks on. **Who pays, in order:** the member's own connected AI account (`lib/ai-connect.ts`, an Anthropic key checked at connect time and kept
+AES-GCM encrypted in `aiConnections` with `ACCOUNT_DATA_KEY`), then #NotesApp's `ANTHROPIC_API_KEY` (limited by rate limits, `NANA_DAILY_LIMIT` for
+the day and a per-person allowance), and with neither, or if the AI is out of credit, rejects the key or is down, **Nana answers from the knowledge
+base alone** (`lib/nana-kb.ts`: searches the articles and replies in a friendly template with links, detects requests for a person), so the chat
+never stops. The knowledge base is `lib/kb-articles.ts` (built-in articles that read the real prices and limits from code) plus articles staff write at
+**Admin → Help & Nana** (`kbArticles`; a staff article with a built-in slug replaces it); readers see the same articles at `/help`. In the team
+hub, `context: "hub"` (admin sign-in required) adds team-only articles (`internalArticles()`) and the person's open items (`lib/nana-hub.ts`).
+Replies are checked before showing: links survive only if they point at a page of ours that exists (`sanitizeLinks`), and the `[[HANDOFF]]` /
+`[[GAP]]` tags the model adds are removed. Visitors must give a name and email (members are recognised from their sign-in). Chats are saved in
+`nanaChats` (server-only); a request for a person creates a lead in the Leads inbox; the Chats tab shows what Nana couldn't answer.
+**Writing help** (`POST /api/nana/assist`, `lib/nana-assist.ts`, button `components/NanaAssist.tsx`): improve / shorten / expand / friendlier /
+more professional / notes-to-draft in the journal composer, a post for LinkedIn or X in the share panel (limits enforced on the result), and
+reply suggestions and polish in a conversation. Text is not stored. It needs an AI account (own key, or ours within `NANA_ASSIST_DAILY` per person
+per day, default 20); the knowledge base cannot write. Variables: `ANTHROPIC_API_KEY` (optional, Sensitive: without it Nana still works from the
+help centre and members can connect their own), `NANA_MODEL` (for example `claude-haiku-5-5` to spend less), `NANA_DAILY_LIMIT` (replies a day, default
+1500), `NANA_CHAT_PER_USER_DAILY` (default 100), `NANA_ASSIST_DAILY` (default 20). No voice: Nana is text only.
 **Rules tests** — `npm run test:rules` (needs Java; starts the Firestore
 emulator): 11 tests covering profile-field lockdown, server-only money
 collections, booking/ledger/payout read scopes, subscriptions, claims and

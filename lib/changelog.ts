@@ -15,9 +15,12 @@ export const CHANGELOG: Release[] = [
     bump: "minor",
     date: "2026-10-09",
     changes: [
-      { kind: "added", text: "Nana AI: a chat helper in the corner of every page. Ask her anything about #NotesApp (plans and prices, payouts, bookings and refunds, selling, badges, organisations) and she answers in plain words with links to the right page. Members are recognised automatically; visitors give a name and email first. If she can't help she passes you to a person, who follows up by email." },
-      { kind: "added", text: "A help centre at /help: short articles on getting started, plans and pricing, publishing and earning, selling, badges, organisations, and safety and your data, with search. Nana answers from the same articles, and our team can write and correct them." },
-      { kind: "changed", text: "Privacy Policy: now explains that chats with Nana are kept (with the name and email a visitor gives), that the messages are processed by Anthropic to write her replies, and how to have a chat removed. Chats you have while signed in are in your data download and deleted with your account." },
+      { kind: "added", text: "Nana AI: a helper you can ask anything about #NotesApp, from the chat button on every page, from a conversation pinned at the top of your Messages, and on her own page. She answers in plain words with links to the right page, and if she can't help she passes you to a person, who follows up by email. Members are recognised automatically; visitors give a name and email first." },
+      { kind: "added", text: "A help centre at /help: short articles on getting started, plans and pricing, publishing and earning, selling, badges, organisations, and safety and your data, with search. Nana answers from the same articles, and our team can write and correct them. If the AI is ever off or unavailable, Nana still answers from these articles." },
+      { kind: "added", text: "Writing help from Nana: in the journal composer (improve, shorten, expand, friendlier, more professional, or turn notes into a draft), when you share to LinkedIn or X (she writes the words, you edit them), and in a conversation (suggest a reply or polish your message). You always see the result first and decide whether to use it." },
+      { kind: "added", text: "Connect your own AI account on the Nana page: paste an Anthropic API key and Nana, the writing help and the team hub use your account, so you can use them today. The key is checked, kept encrypted, never shown again, and deleted when you disconnect or delete your account." },
+      { kind: "added", text: "The team hub has an Ask Nana panel for our team: she knows how the hub and admin tools work and can see your open items, so you can ask what to focus on today." },
+      { kind: "changed", text: "Privacy Policy: now explains Nana chats (kept, with the name and email a visitor gives), that your text is sent to Anthropic when the AI is on or you ask for writing help (and is not stored by us), and how your own AI key is kept. Chats you have while signed in are in your data download and deleted with your account." },
     ],
   },
   {

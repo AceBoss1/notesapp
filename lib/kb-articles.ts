@@ -183,3 +183,21 @@ A coming-soon challenge for influencers: reach 100,000 views and 10,000 new foll
   ];
   return list;
 }
+
+// Articles for the #NotesApp team only: how the team hub and admin tools work. They are never shown in the public help centre and never
+// go into the public Nana's knowledge; they are added only when a signed-in staff member asks Nana from inside the team hub.
+export function internalArticles(): KbArticle[] {
+  const A = (slug: string, title: string, body: string): KbArticle => ({ slug, title, category: "Teams and organisations", body: body.trim(), source: "built-in" });
+  return [
+    A("hub-work-board", "Using the team hub work board", `
+Open [Team hub](/admin/team). Every item has a status (To do, Doing, Blocked, Needs a decision, Done) and a horizon (Today, This week, Later), an owner and an optional due date. A **Blocked** item says why it is stuck and on whom; a **Needs a decision** item holds the question and, once answered, the decision. Overdue items sort first. Tick "Only mine" to see your own work, and talk about an item in its comments.
+
+The morning summary (email and bell, switch either off on the hub) lists what is due, blocked or waiting on you. The [weekly review](/admin/team/review) shows the week in numbers and work, with a place for wins, lessons and next week's focus; focus lines can become next week's items. Meetings get their own chat room, decisions and actions, and the team room is the everyday group chat for staff.`),
+    A("hub-money-ledger", "Recording money in the ledger", `
+The [Money ledger](/admin/team/finance) holds expenses, payroll and money in that is not platform revenue (grants, sponsorships, direct transfers), with receipts, next to platform revenue. Finance records entries dated today or up to 3 days back, adds receipts to any entry and can void recent ones with a reason. Product can read everything except payroll lines. Only the owner can enter older dates, edit an entry, void old history and import a CSV. Nothing is ever deleted: a voided entry stays with who voided it and why.`),
+    A("hub-roles", "Staff roles and departments", `
+Staff are either a **super admin** (sees everything) or an **admin** with one or more departments: Customer care, Trust & safety, Finance, Growth & partnerships, Editorial, Product & tech. An admin sees only the pages of their departments. At [Team access](/admin/access) the owner appoints and removes super admins, and other super admins appoint and remove admins and choose their departments. The person needs a #NotesApp account first. Nobody can change their own access or the owner's.`),
+    A("hub-help-admin", "Writing help articles and reading Nana's chats", `
+At [Help & Nana](/admin/help) the team writes the help articles that visitors read at the help centre and that Nana answers from. An article with the same address as a built-in one replaces it. The Chats tab shows what people asked Nana, highlights questions she could not answer and requests for a person (these also appear in the Leads inbox), and lets you mark a chat as followed up or turn a gap into a new article.`),
+  ];
+}
