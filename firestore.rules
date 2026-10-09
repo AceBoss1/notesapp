@@ -389,6 +389,14 @@ service cloud.firestore {
       allow read: if adminHasAny(['finance', 'support']);
       allow write: if false;
     }
+    // The team hub's money ledger and its audit trail: written and read only by the server (/api/admin/finance), which applies the
+    // finance/product/owner rules. Payroll lines must never reach a browser directly.
+    match /financeEntries/{id} {
+      allow read, write: if false;
+    }
+    match /financeLog/{id} {
+      allow read, write: if false;
+    }
     match /parcelLinks/{id} {
       allow read, write: if false;
     }

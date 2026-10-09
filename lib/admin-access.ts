@@ -43,6 +43,7 @@ export type Section = { href: string; label: string; need: Need; exact?: boolean
 export const ADMIN_SECTIONS: Section[] = [
   { href: "/admin", label: "Dashboard", need: "all", exact: true },
   { href: "/admin/team", label: "Team hub", need: "all" },
+  { href: "/admin/team/finance", label: "Money ledger", need: ["finance", "product"] },
   { href: "/admin/journals", label: "Journals", need: ["content", "moderation"] },
   { href: "/admin/notes", label: "Notes", need: ["content", "moderation"] },
   { href: "/admin/users", label: "Users", need: ["support", "moderation", "finance"] },

@@ -695,6 +695,13 @@ test("staff roles: each department reaches its own collections and not the other
   await assertSucceeds(updateDoc(doc(superAdmin(), "users/alice"), { accountTier: "business" }));
   await assertSucceeds(setDoc(doc(staff("support"), "suspensions/pub"), { reason: "x", appealStatus: "none" }));
   await assertFails(setDoc(doc(staff("finance"), "suspensions/pub2"), { reason: "x", appealStatus: "none" }));
+  // The money ledger is server-only: not even a super admin or finance reads it from a browser (payroll lines must not leak).
+  for (const who of [superAdmin(), staff("finance"), staff("product"), legacyAdmin()]) {
+    await assertFails(getDoc(doc(who, "financeEntries/e1")));
+    await assertFails(setDoc(doc(who, "financeEntries/e2"), { kind: "expense" }));
+    await assertFails(getDoc(doc(who, "financeLog/l1")));
+    await assertFails(setDoc(doc(who, "financeLog/l2"), { at: "x" }));
+  }
   // Nobody gives themselves staff access from the browser.
   await assertFails(setDoc(doc(as("alice"), "adminAccessLog/x"), { at: "x" }));
 });

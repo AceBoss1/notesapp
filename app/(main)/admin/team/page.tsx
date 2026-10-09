@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useAdminAuth } from "@/lib/useAdminAuth";
+import { hasAnyDept } from "@/lib/admin-access";
 import { formatNaira } from "@/lib/booking-time";
 import {
   HORIZONS, HORIZON_LABEL, METRICS, STATUS_LABEL, addDays, groupItems, isOverdue, lagosParts,
@@ -174,7 +175,7 @@ function MilestoneCard({ m, people, send }: { m: MilestoneRow; people: Person[];
 }
 
 export default function AdminTeamPage() {
-  const { user, loading } = useAdminAuth();
+  const { user, access, loading } = useAdminAuth();
   const [data, setData] = useState<Data | null>(null);
   const [error, setError] = useState("");
   const [mineOnly, setMineOnly] = useState(false);
@@ -232,6 +233,7 @@ export default function AdminTeamPage() {
         </div>
         <span className="flex flex-wrap items-center gap-3 text-sm text-slate">
           <Link href="/admin/team/review" className="btn-ghost !px-4 !py-2 text-xs">Weekly review →</Link>
+          {hasAnyDept(access, ["finance", "product"]) && <Link href="/admin/team/finance" className="btn-ghost !px-4 !py-2 text-xs">Money ledger →</Link>}
           <label className="flex items-center gap-2"><input type="checkbox" checked={mineOnly} onChange={(e) => setMineOnly(e.target.checked)} /> Only mine</label>
         </span>
       </div>
