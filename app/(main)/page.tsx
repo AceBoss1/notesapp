@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { PartnersStrip, TrustedByStrip } from "@/components/PartnerMarquees";
 import Image from "next/image";
 import BoostedStrip from "@/components/BoostedStrip";
 import GoldBadgeExplainer from "@/components/GoldBadgeExplainer";
@@ -123,6 +124,8 @@ export default async function Home() {
         </div>
       </section>
 
+      <TrustedByStrip className="border-b border-rule bg-paper px-4 py-8" />
+
       <BoostedStrip />
 
       <div className="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8"><AdSlot placement="home" /></div>
@@ -217,6 +220,8 @@ export default async function Home() {
           </div>
         </div>
       </section>
+
+      <PartnersStrip className="border-t border-rule px-4 py-12" />
     </>
   );
 }
