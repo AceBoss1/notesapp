@@ -20,6 +20,9 @@ import { badgeLevel, getUserByUid, goldKindOf, isTeamMember } from "@/lib/users"
 import { stickerById } from "@/lib/stickers";
 import { isMomentExpired } from "@/lib/moments-rules";
 import ReportDialog from "@/components/moments/ReportDialog";
+import GroupAvatar from "./GroupAvatar";
+import GroupMembers, { type GroupMember } from "./GroupMembers";
+import { isGroupId, type GroupInfo } from "@/lib/messages-rules";
 
 // "2:05 PM" today, "12 Oct, 2:05 PM" on another day.
 const stamp = (iso: string) => {
@@ -44,10 +47,12 @@ type Who = { uid: string; username: string; displayName: string; avatar: string 
 
 // One conversation. `to` (a username) starts a new one; `id` opens an existing one. Replies to moments carry a small note:
 // "Replied to a moment" while it's live, "…that has expired" after — the moment itself can't be opened once it's gone.
-export default function Thread({ id, to }: { id?: string; to?: string }) {
+export default function Thread({ id, to, embedded = false }: { id?: string; to?: string; embedded?: boolean }) {
   const [user, setUser] = useState<User | null | undefined>(undefined);
   const [cid, setCid] = useState(id);
   const [who, setWho] = useState<Who | null>(null);
+  const [group, setGroup] = useState<(GroupInfo & { members: GroupMember[] }) | null>(null); // set when this is a group chat
+  const [showMembers, setShowMembers] = useState(false);
   const [messages, setMessages] = useState<ThreadMessage[]>([]);
   const [text, setText] = useState("");
   const [files, setFiles] = useState<File[]>([]);
@@ -59,20 +64,39 @@ export default function Thread({ id, to }: { id?: string; to?: string }) {
   const [busy, setBusy] = useState(false);
   const [blockedByMe, setBlockedByMe] = useState(false);
   const [reporting, setReporting] = useState(false);
+  const [reportingMsg, setReportingMsg] = useState<string | null>(null); // a message in a group
   const [people, setPeople] = useState<Record<string, Person>>({});
   const [replyingTo, setReplyingTo] = useState<ThreadMessage | null>(null);
   const end = useRef<HTMLDivElement>(null);
+  const isGroup = !!group || (!!cid && isGroupId(cid)); // known from the id, so a message sent before the details arrive still goes to the group
   useEffect(() => onAuthStateChanged(auth, setUser), []);
   useEffect(() => { if (user) api<{ maxBytes: number; maxCount: number; maxVoiceSeconds: number }>("/api/messages/attachments").then(setAllowed).catch(() => {}); }, [user]);
 
   // Who it's with, and whether you've blocked them (this also marks the conversation read).
   const loadMeta = useCallback(() => {
     if (!user || !cid) return;
-    api<{ with: Who; blockedByMe: boolean }>(`/api/messages/${cid}`).then((r) => { setWho(r.with); setBlockedByMe(r.blockedByMe); }).catch((e) => setError(e.message));
+    api<{ kind: "direct" | "group"; with?: Who; blockedByMe?: boolean; group?: GroupInfo; members?: GroupMember[] }>(`/api/messages/${cid}`).then((r) => {
+      if (r.kind === "group" && r.group) { setGroup({ ...r.group, members: r.members ?? [] }); return; }
+      if (r.with) { setWho(r.with); setBlockedByMe(r.blockedByMe === true); }
+    }).catch((e) => setError(e.message));
   }, [user, cid]);
   useEffect(() => { loadMeta(); }, [loadMeta]);
 
   // Names, pictures and badges for both people (the badge shows beside the name, as everywhere else).
+  // A group: everyone in it, so each message shows its sender.
+  useEffect(() => {
+    if (!user || !group) return;
+    let live = true;
+    Promise.all(group.members.map((m) => getUserByUid(m.uid).catch(() => null))).then((profiles) => {
+      if (!live) return;
+      setPeople(Object.fromEntries(group.members.map((m, i) => {
+        const p = profiles[i];
+        return [m.uid, p ? { name: p.displayName, username: p.username, avatar: p.avatar, level: badgeLevel(p), goldKind: goldKindOf(p), team: isTeamMember(p) } : { name: m.displayName, username: m.username, avatar: m.avatar, level: null }];
+      })));
+    });
+    return () => { live = false; };
+  }, [user, group]);
+
   useEffect(() => {
     if (!user || !who) return;
     let live = true;
@@ -154,7 +178,7 @@ export default function Thread({ id, to }: { id?: string; to?: string }) {
         if (!put.ok) throw new Error(`${f.name} didn't upload. Try again.`);
         attachmentIds.push(up.id);
       }
-      const r = await api<{ conversationId: string }>("/api/messages", { body: to ? { toUsername: to, text, attachmentIds, replyToId: replyingTo?.id } : { toUid: who?.uid, text, attachmentIds, replyToId: replyingTo?.id } });
+      const r = await api<{ conversationId: string }>("/api/messages", { body: isGroup ? { conversationId: cid, text, attachmentIds, replyToId: replyingTo?.id } : to ? { toUsername: to, text, attachmentIds, replyToId: replyingTo?.id } : { toUid: who?.uid, text, attachmentIds, replyToId: replyingTo?.id } });
       setText(""); setFiles([]); setReplyingTo(null); setCid(r.conversationId);
       if (!id) window.history.replaceState(null, "", `/messages/${r.conversationId}`);
     } catch (e) {
@@ -168,7 +192,7 @@ export default function Thread({ id, to }: { id?: string; to?: string }) {
   async function sendSticker(stickerId: string) {
     setBusy(true); setError(null);
     try {
-      const r = await api<{ conversationId: string }>("/api/messages", { body: to ? { toUsername: to, text: "", sticker: stickerId } : { toUid: who?.uid, text: "", sticker: stickerId } });
+      const r = await api<{ conversationId: string }>("/api/messages", { body: isGroup ? { conversationId: cid, text: "", sticker: stickerId } : to ? { toUsername: to, text: "", sticker: stickerId } : { toUid: who?.uid, text: "", sticker: stickerId } });
       setCid(r.conversationId);
       if (!id) window.history.replaceState(null, "", `/messages/${r.conversationId}`);
     } catch (e) {
@@ -198,8 +222,19 @@ export default function Thread({ id, to }: { id?: string; to?: string }) {
   if (user === null) return <p className="text-slate"><Link href="/login" className="text-crimson underline">Sign in</Link> to message.</p>;
   return (
     <div className="flex flex-col">
-      <p className="mb-4 text-sm text-slate"><Link href="/messages" className="text-crimson underline">← Messages</Link>{who ? <> · <Link href={`/u/${who.username}`} className="font-bold text-ink">{who.displayName}</Link></> : to ? ` · @${to}` : ""}</p>
-      {cid && who && (
+      {group ? (
+        <div className="mb-4 flex flex-wrap items-center gap-3 text-sm text-slate">
+          {!embedded && <Link href="/messages" className="text-crimson underline">← Messages</Link>}
+          <GroupAvatar title={group.title} size={36} team={group.scope === "team"} />
+          <span className="font-bold text-ink">{group.title}</span>
+          {group.scope === "team" && <span className="rounded bg-amber-100 px-1.5 py-0.5 text-[10px] font-bold text-amber-900">TEAM</span>}
+          <button type="button" onClick={() => setShowMembers((s) => !s)} aria-expanded={showMembers} className="underline">{group.members.length} members {showMembers ? "▲" : "▼"}</button>
+        </div>
+      ) : (
+        <p className="mb-4 text-sm text-slate"><Link href="/messages" className="text-crimson underline">← Messages</Link>{who ? <> · <Link href={`/u/${who.username}`} className="font-bold text-ink">{who.displayName}</Link></> : to ? ` · @${to}` : ""}</p>
+      )}
+      {group && showMembers && cid && user && <GroupMembers cid={cid} group={group} members={group.members} meUid={user.uid} onChanged={loadMeta} onLeft={() => { window.location.href = "/messages"; }} />}
+      {cid && who && !group && (
         <p className="-mt-2 mb-4 flex gap-4 text-xs">
           <button onClick={toggleBlock} className="text-slate underline">{blockedByMe ? "Unblock" : "Block"}</button>
           <button onClick={() => setReporting(true)} className="text-slate underline">Report</button>
@@ -216,6 +251,9 @@ export default function Thread({ id, to }: { id?: string; to?: string }) {
           const quoted = m.replyTo ? people[m.replyTo.from] : undefined;
           const replyButton = (msg: ThreadMessage) => !blockedByMe && (
             <button type="button" onClick={() => { setReplyingTo(msg); box.current?.focus(); }} className="font-bold opacity-80 hover:opacity-100" aria-label="Reply to this message" title="Reply">↩ Reply</button>
+          );
+          const reportButton = (msg: ThreadMessage) => isGroup && msg.from !== user?.uid && (
+            <button type="button" onClick={() => setReportingMsg(msg.id)} className="opacity-80 hover:opacity-100" aria-label="Report this message">Report</button>
           );
           const firstName = (p?: Person) => (p?.name || "").split(" ")[0] || "Member";
           return (
@@ -245,6 +283,7 @@ export default function Thread({ id, to }: { id?: string; to?: string }) {
                         <span>{mine && <span aria-label="Sent">✔ </span>}{stamp(m.createdAt)}</span>
                         {mine && m.readAt && <span><span aria-label="Read">✔✔ </span>{stamp(m.readAt)}</span>}
                         {replyButton(m)}
+                        {reportButton(m)}
                       </p>
                     </div>
                   ) : (
@@ -270,6 +309,7 @@ export default function Thread({ id, to }: { id?: string; to?: string }) {
                         <span>{mine && <span aria-label="Sent">✔ </span>}{stamp(m.createdAt)}</span>
                         {mine && m.readAt && <span><span aria-label="Read">✔✔ </span>{stamp(m.readAt)}</span>}
                         {replyButton(m)}
+                        {reportButton(m)}
                       </p>
                     </div>
                   )}
@@ -283,6 +323,7 @@ export default function Thread({ id, to }: { id?: string; to?: string }) {
       {error && <p className="mt-2 text-sm text-red-700" role="alert">{error}</p>}
       {blockedByMe && <p className="mt-3 text-sm text-slate">You&apos;ve blocked this member. Unblock them to send a message.</p>}
       {reporting && cid && <ReportDialog kind="conversation" targetId={cid} onClose={() => setReporting(false)} />}
+      {reportingMsg && cid && <ReportDialog kind="conversation" targetId={cid} messageId={reportingMsg} onClose={() => setReportingMsg(null)} />}
       <form className="mt-4" onSubmit={(e) => { e.preventDefault(); if ((text.trim() || files.length) && !busy && !blockedByMe) send(); }}>
         <div className="mb-1 flex flex-wrap items-center gap-1 text-sm">
           <EmojiPicker onPick={insertEmoji} disabled={blockedByMe} />

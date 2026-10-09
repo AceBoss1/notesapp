@@ -9,6 +9,7 @@ import SectionNav from "./SectionNav";
 
 const LINKS = [
   { href: "/admin", label: "Dashboard", exact: true },
+  { href: "/admin/team", label: "Team hub" },
   { href: "/admin/journals", label: "Journals" },
   { href: "/admin/notes", label: "Notes" },
   { href: "/admin/users", label: "Users" },

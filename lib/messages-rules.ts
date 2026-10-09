@@ -5,6 +5,16 @@ export const MESSAGES_PER_MINUTE = 20; // per sender, per instance (see lib/rate
 // One conversation per pair of members; the id is the two uids in sorted order so either side finds it by id.
 export const conversationId = (a: string, b: string) => [a, b].sort().join("_");
 
+// Group chats: a conversation with `kind: "group"` has a title, any number of members and some admins. "team" groups are the staff-only rooms and
+// meetings (only people with the admin claim, managed from the team hub); "public" groups are ordinary members' groups.
+export const GROUP_TITLE_MAX = 60;
+export const GROUP_MEMBERS_MAX = 50;
+export type GroupScope = "public" | "team";
+export type GroupInfo = { title: string; scope: GroupScope; memberUids: string[]; adminUids: string[]; createdBy: string; meetingId?: string };
+// A group's id never looks like the two-uids id of a direct conversation.
+export const newGroupId = (rand: string) => `g_${rand}`;
+export const isGroupId = (id: string) => id.startsWith("g_") || id.startsWith("meeting_") || id === "team_room";
+
 export type MomentRef = { momentId: string; expiresAt: string };
 export type ThreadMessage = {
   id: string;

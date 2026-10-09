@@ -19,7 +19,6 @@ const NAV = [
   { href: "/journals", label: "Journals" },
   { href: "/trending", label: "Trending" },
   { href: "/pricing", label: "Pricing" },
-  { href: "/booking", label: "Booking" },
   { href: "/about", label: "About" },
   { href: "/contact", label: "Contact" },
 ];
@@ -70,8 +69,8 @@ const site = await getSiteSettingsCached();
         <PushPrompt />
         {/* Masthead */}
         <header className="sticky top-0 z-40 border-b border-rule bg-paper/90 backdrop-blur">
-          <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-4 sm:px-6 lg:px-8">
-            <Link href="/" className="flex items-center gap-2.5">
+          <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 py-4 sm:px-6 lg:px-8">
+            <Link href="/" className="flex shrink-0 items-center gap-2.5">
               <Image
                 src="/images/brand/notesapp-icon.webp"
                 alt="#NotesApp"
@@ -83,7 +82,7 @@ const site = await getSiteSettingsCached();
                 Notes<span className="text-crimson">App</span>
               </span>
             </Link>
-            <nav className="hidden items-center gap-7 font-ui text-sm font-semibold text-ink md:flex">
+            <nav className="hidden items-center gap-5 font-ui text-sm font-semibold text-ink lg:flex xl:gap-7">
               <NavLinks links={NAV} appLinks={APP_NAV} />
               <SearchBar />
               <span className="h-4 w-px bg-rule" />

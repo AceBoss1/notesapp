@@ -14,6 +14,7 @@ import { videoPublicUrl } from "@/lib/video-rules";
 import VerifiedBadge from "@/components/VerifiedBadge";
 import { NA_NOTESAPP_PROFILE } from "@/lib/journals-directory";
 import SocialBar from "@/components/SocialBar";
+import SocialPublish from "@/components/SocialPublish";
 import Comments from "@/components/Comments";
 import PremiumGate from "@/components/PremiumGate";
 import GiftButton from "@/components/GiftButton";
@@ -229,10 +230,12 @@ export default async function JournalDetail({
           slug={note.slug}
           title={note.title}
           noteAuthor={note.author}
+          excerpt={note.excerpt}
           initialViewCount={note.viewCount || 0}
           initialLikeCount={note.likeCount || 0}
           initialShareCount={note.shareCount || 0}
         />
+        {!site && <SocialPublish noteId={note.id} authorUid={note.authorUid} />}
         {authorProfile && linkedUsername && (
           <div className="mt-4">
             <GiftButton username={linkedUsername} publisherUid={authorProfile.uid} noteId={note.id} label="🎁 Gift this post" />

@@ -19,14 +19,19 @@ const trimNote = (note: unknown) => {
 };
 
 export async function createReport(
-  db: Firestore, reporterUid: string, input: { kind: unknown; targetId: unknown; reason: unknown; note?: unknown }, now = new Date(),
+  db: Firestore, reporterUid: string, input: { kind: unknown; targetId: unknown; reason: unknown; note?: unknown; messageId?: unknown }, now = new Date(),
 ): Promise<{ id: string }> {
   const kind = input.kind;
   if (kind !== "moment" && kind !== "conversation") throw new MomentError(400, "Choose what to report.");
   if (!isReportReason(input.reason)) throw new MomentError(400, "Choose a reason.");
   const targetId = String(input.targetId ?? "");
   const note = trimNote(input.note);
-  const id = `${reporterUid}_${kind}_${targetId}`; // one report per person per thing
+  // A group chat is reported through one message (that message's author is who is reported); a direct conversation has only one other person.
+  const convData = kind === "conversation" ? (await db.doc(`conversations/${targetId}`).get()).data() : undefined;
+  const isGroup = convData?.kind === "group";
+  const messageId = isGroup ? String(input.messageId ?? "") : "";
+  if (isGroup && !messageId) throw new MomentError(400, "Choose the message to report.");
+  const id = `${reporterUid}_${kind}_${targetId}${messageId ? `_${messageId}` : ""}`; // one report per person per thing
   const ref = db.doc(`contentReports/${id}`);
   if ((await ref.get()).exists) throw new MomentError(409, "You've already reported this. Thank you, we're looking at it.");
 
@@ -56,12 +61,18 @@ export async function createReport(
     await db.doc(`moments/${targetId}`).update(flag);
     if (rootId !== targetId && root) await db.doc(`moments/${rootId}`).update(flag).catch(() => {});
   } else {
-    const c = (await db.doc(`conversations/${targetId}`).get()).data();
+    const c = convData;
     if (!c || !(c.participants as string[]).includes(reporterUid)) throw new MomentError(404, "That conversation wasn't found.");
     targetUid = (c.participants as string[]).find((p) => p !== reporterUid) ?? reporterUid;
+    if (isGroup) {
+      const reported = (await db.doc(`conversations/${targetId}/messages/${messageId}`).get()).data();
+      if (!reported) throw new MomentError(404, "That message wasn't found.");
+      if (reported.from === reporterUid) throw new MomentError(400, "That's your own message.");
+      targetUid = String(reported.from);
+    }
     // The last 20 messages, as they were when it was reported.
     const msgs = await db.collection(`conversations/${targetId}/messages`).orderBy("createdAt", "desc").limit(20).get();
-    evidence = { conversationId: targetId, messages: msgs.docs.reverse().map((d) => ({ from: d.data().from, text: d.data().text, createdAt: d.data().createdAt, ...(d.data().momentRef ? { replyToMoment: true } : {}) })) };
+    evidence = { conversationId: targetId, ...(isGroup ? { group: String(c.title ?? ""), reportedMessageId: messageId } : {}), messages: msgs.docs.reverse().map((d) => ({ from: d.data().from, text: d.data().text, createdAt: d.data().createdAt, ...(d.data().momentRef ? { replyToMoment: true } : {}) })) };
   }
 
   await ref.set({

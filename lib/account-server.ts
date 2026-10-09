@@ -1,4 +1,4 @@
-import type { Firestore } from "firebase-admin/firestore";
+import { FieldValue, type Firestore } from "firebase-admin/firestore";
 import { removeDomain } from "./domains";
 
 // Server-only. A member's data rights under the Nigeria Data Protection Act: get a copy of what we
@@ -53,7 +53,8 @@ export async function collectExport(db: Firestore, uid: string, email: string) {
     publisherSettings: (await db.doc(`publisherSettings/${uid}`).get()).data() ?? null,
     videoUploads: await docs(db, "videoUploads", "uid", uid),
     moments: await docs(db, "moments", "ownerUid", uid), // only the ones still live; expired ones are already gone
-    messagesSent: await sentMessages(db, uid),
+    messagesSent: await sentMessages(db, uid), // direct messages and group messages you wrote
+    socialAccounts: await socialAccountsOf(db, uid), // LinkedIn / X accounts you connected (never the access tokens)
     apiKeys: strip(await docs(db, "apiKeys", "uid", uid), ["hash"]),
     webhookEndpoints: strip(await docs(db, "webhookEndpoints", "uid", uid), ["secret"]),
     customDomains: await docs(db, "customDomains", "uid", uid),
@@ -70,6 +71,15 @@ async function sentMessages(db: Firestore, uid: string) {
     for (const m of msgs.docs) out.push({ id: m.id, conversationId: c.id, ...clean(m.data()) });
   }
   return out;
+}
+
+// Connected LinkedIn / X accounts and what we posted to them for this person. The saved tokens are never included.
+async function socialAccountsOf(db: Firestore, uid: string) {
+  const conns = await Promise.all(["linkedin", "x"].map((p) => db.doc(`socialConnections/${uid}_${p}`).get()));
+  return {
+    connections: conns.filter((c) => c.exists).map((c) => { const d = c.data()!; return { provider: d.provider, name: d.name, handle: d.handle || null, connectedAt: d.connectedAt, expiresAt: d.expiresAt }; }),
+    posts: await docs(db, "socialPosts", "uid", uid),
+  };
 }
 
 const OPEN_STORE = ["paid", "dispatched", "delivered", "disputed"];
@@ -171,6 +181,19 @@ export async function eraseAccount(db: Firestore, uid: string, deleteFile: (key:
     for (const m of mine.docs) for (const f of (m.data().attachments as { key: string }[] | undefined) ?? []) await deleteFile(String(f.key)).catch(() => {}); // files they sent
     await deleteAll(db, mine.docs.map((d) => d.ref));
     const last = await c.ref.collection("messages").orderBy("createdAt", "desc").limit(1).get();
+    // A group goes on without them: they leave it (another member becomes admin if they were the only one), and it is deleted only when nobody is left.
+    if (c.data().kind === "group") {
+      const g = c.data();
+      const left = (g.participants as string[]).filter((p) => p !== uid);
+      if (!left.length) { await db.recursiveDelete(c.ref); continue; }
+      const admins = ((g.adminUids as string[] | undefined) ?? []).filter((a) => a !== uid);
+      const l = last.empty ? null : last.docs[0].data();
+      await c.ref.update({
+        participants: left, adminUids: admins.length ? admins : [left[0]], [`unread.${uid}`]: FieldValue.delete(), [`readMarker.${uid}`]: FieldValue.delete(),
+        ...(l ? { lastMessage: { from: l.from, text: String(l.text || "📎").slice(0, 120), at: l.createdAt }, lastMessageAt: l.createdAt } : { lastMessage: FieldValue.delete() }),
+      });
+      continue;
+    }
     if (last.empty) await db.recursiveDelete(c.ref);
     else { const l = last.docs[0].data(); await c.ref.update({ lastMessage: { from: l.from, text: String(l.text || "📎").slice(0, 120), at: l.createdAt }, lastMessageAt: l.createdAt }); }
   }
@@ -200,6 +223,9 @@ export async function eraseAccount(db: Firestore, uid: string, deleteFile: (key:
     ...(await own("webhookEndpoints", "uid", uid)),
     ...(await own("webhookDeliveries", "uid", uid)),
     ...(await own("customDomains", "uid", uid)),
+    ...(await own("socialPosts", "uid", uid)), // what we posted to their LinkedIn / X
+    ...(await own("socialStates", "uid", uid)),
+    ...(await Promise.all(["linkedin", "x"].map((p) => db.doc(`socialConnections/${uid}_${p}`).get()))).filter((d) => d.exists), // their saved access tokens
   ];
   await deleteAll(db, toDelete.map((d) => d.ref));
   counts.relationships = toDelete.length;

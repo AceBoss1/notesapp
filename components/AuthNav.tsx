@@ -73,7 +73,7 @@ export default function AuthNav() {
       )}
       <div className="relative" ref={menuRef}>
         <button onClick={() => setOpen((o) => !o)} aria-haspopup="menu" aria-expanded={open} className="font-mono text-crimson-bright">
-          {profile ? `@${profile.username}` : "Account"} ▾
+          <span className="inline-block max-w-[10rem] truncate align-bottom">{profile ? `@${profile.username}` : "Account"}</span> ▾
         </button>
         {open && (
           <div role="menu" className="absolute right-0 z-50 mt-2 w-52 border border-rule bg-card py-1 shadow-lg" onClick={() => setOpen(false)}>

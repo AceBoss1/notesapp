@@ -11,6 +11,34 @@ export type Release = {
 
 export const CHANGELOG: Release[] = [
   {
+    version: "v0.10.2",
+    bump: "patch",
+    date: "2026-10-09",
+    changes: [
+      { kind: "changed", text: "Terms of Service and Privacy Policy updated for group chats (who can see what, who can be added, leaving, reports) and for sharing your posts to LinkedIn or X (what we ask for, what we keep, how to disconnect). You will be asked to accept them before your next payment." },
+      { kind: "changed", text: "The top menu no longer lists Booking (it is in the footer and on every profile), which also fixes the logo and menu overlapping on medium-width screens. Tablets now use the Menu button, like phones." },
+      { kind: "fixed", text: "Deleting your account now removes you from the groups you are in (another member takes over as admin when needed) instead of leaving your name in them, and removes any connected LinkedIn or X access." },
+    ],
+  },
+  {
+    version: "v0.10.1",
+    bump: "patch",
+    date: "2026-10-09",
+    changes: [
+      { kind: "changed", text: "A post's preview (on cards, in search and when shared to LinkedIn, Facebook and WhatsApp) now shows the opening of the post as plain words, without formatting marks or image links." },
+      { kind: "changed", text: "Sharing a post to X now carries the title and the opening of the post, trimmed to fit, with the link back to the full journal." },
+    ],
+  },
+  {
+    version: "v0.10.0",
+    bump: "minor",
+    date: "2026-10-09",
+    changes: [
+      { kind: "added", text: "Group chats: start a group from Messages with people you follow or who follow you (up to 50). Everyone in the group sees each message with the sender's name and picture; pictures, files, voice notes, stickers, replies and the emoji button all work. Group admins can rename it, add and remove people and make others admin; anyone can leave, and any message from someone else can be reported." },
+      { kind: "changed", text: "Messages now lists groups next to your conversations, with the number of members and who said what last." },
+    ],
+  },
+  {
     version: "v0.9.13",
     bump: "patch",
     date: "2026-10-09",

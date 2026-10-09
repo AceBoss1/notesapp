@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { useAdminAuth } from "@/lib/useAdminAuth";
 
 type Part = { ok: true; data: unknown } | { ok: false; error: string };
-type Diag = { configured: boolean; emailSet: boolean; keySet: boolean; ok: boolean; summary: string; version?: Part; credits?: Part; tlds?: Part; proxy?: boolean; outgoingIp?: string | null; probes?: { name: string; state: "allowed" | "blocked"; note: string }[] };
+type Diag = { configured: boolean; emailSet: boolean; keySet: boolean; ok: boolean; summary: string; version?: Part; credits?: Part; tlds?: Part; proxy?: boolean; outgoingIp?: string | null; proxyHost?: string | null; probes?: { name: string; state: "allowed" | "blocked" | "unreachable"; note: string }[] };
 
 // Domain sales (Whogohost / go54 reseller API): is the connection up, which settings exist, our credit balance and the extensions offered.
 export default function AdminDomainSalesPage() {
@@ -13,6 +13,24 @@ export default function AdminDomainSalesPage() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [scannedAt, setScannedAt] = useState<Date | null>(null);
+  const [name, setName] = useState("");
+  const [checking, setChecking] = useState(false);
+  const [lookup, setLookup] = useState<{ lookup: { domain: string; state: string; source: string; httpStatus?: number; note?: string }; price: Part | null } | null>(null);
+
+  const check = async () => {
+    setChecking(true);
+    setError("");
+    try {
+      const r = await fetch(`/api/admin/domains?name=${encodeURIComponent(name)}`, { headers: { Authorization: `Bearer ${await user!.getIdToken()}` } });
+      const j = await r.json();
+      if (!r.ok) throw new Error(j.error || "Something went wrong");
+      setLookup(j);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Something went wrong");
+    } finally {
+      setChecking(false);
+    }
+  };
 
   const scan = useCallback(async () => {
     setBusy(true);
@@ -55,7 +73,7 @@ export default function AdminDomainSalesPage() {
           </ul>
           {diag.configured && (
             <p className="mt-3 text-slate">
-              Calls leave from <strong className="font-mono text-ink">{diag.outgoingIp || "an address we couldn't read"}</strong>{diag.proxy ? " (through the fixed-address proxy)" : " (no proxy set: Vercel's address, which changes)"}. Whogohost must list this address under IP restrictions.
+              Calls leave from <strong className="font-mono text-ink">{diag.outgoingIp || "an address we couldn't read"}</strong>{diag.proxy ? ` (through the proxy at ${diag.proxyHost})` : " (no proxy set: Vercel's address, which changes)"}. Whogohost must list this address under IP restrictions.
             </p>
           )}
           {diag.probes && (
@@ -63,7 +81,7 @@ export default function AdminDomainSalesPage() {
               <p className="font-ui text-sm font-bold text-ink">Which actions the service allows from this address</p>
               <ul className="mt-1 space-y-1 text-xs">
                 {diag.probes.map((p) => (
-                  <li key={p.name}><span className={p.state === "allowed" ? "text-emerald-800" : "text-crimson"}>{p.state === "allowed" ? "allowed" : "REFUSED"}</span> · {p.name} <span className="block font-mono text-[11px] text-slate">{p.note}</span></li>
+                  <li key={p.name}><span className={p.state === "allowed" ? "text-emerald-800" : "text-crimson"}>{p.state === "allowed" ? "allowed" : p.state === "blocked" ? "REFUSED" : "NOT REACHED"}</span> · {p.name} <span className="block font-mono text-[11px] text-slate">{p.note}</span></li>
                 ))}
               </ul>
             </div>
@@ -77,6 +95,20 @@ export default function AdminDomainSalesPage() {
         <button onClick={scan} disabled={busy} className="btn-ghost !px-4 !py-2 text-xs">{busy ? "Scanning…" : "Scan now"}</button>
         {scannedAt && <span className="font-mono text-[11px] text-slate">Last scan {scannedAt.toLocaleTimeString("en-NG")}</span>}
       </div>
+      <h2 className="mt-10 font-display text-2xl">Check a name</h2>
+      <p className="mt-2 text-sm text-slate">Whogohost has no lookup call, so availability comes from the registry (RDAP). Try names you know are taken and free, and compare. Shows the registry&apos;s answer and Whogohost&apos;s price call, exactly as received.</p>
+      <form onSubmit={(e) => { e.preventDefault(); if (name.trim()) void check(); }} className="mt-3 flex flex-wrap items-end gap-2">
+        <label className="text-xs text-slate">Domain<input value={name} onChange={(e) => setName(e.target.value)} placeholder="example.com.ng" className="mt-1 block w-64 border border-rule bg-card px-2 py-1.5 text-sm" /></label>
+        <button disabled={checking || !name.trim()} className="btn-ghost !px-4 !py-2 text-xs">{checking ? "Checking…" : "Check"}</button>
+      </form>
+      {lookup && (
+        <div className="card mt-3 p-4 text-sm">
+          <p className="font-ui font-bold text-ink">{lookup.lookup.domain}: {lookup.lookup.state === "available" ? "looks available" : lookup.lookup.state === "taken" ? "taken" : "couldn't tell"}</p>
+          <p className="mt-1 font-mono text-[11px] text-slate">Registry: {lookup.lookup.source}{lookup.lookup.httpStatus ? ` · HTTP ${lookup.lookup.httpStatus}` : ""}{lookup.lookup.note ? ` · ${lookup.lookup.note}` : ""}</p>
+          {part("Whogohost price (register)", lookup.price ?? undefined)}
+        </div>
+      )}
+
       <h2 className="mt-10 font-display text-2xl">How members will pay</h2>
       <p className="mt-2 text-sm text-slate">Members pay us in Naira through Paystack, then we register the domain from our Whogohost credit. Our price is Whogohost&apos;s price plus 20%. Not built yet.</p>
     </section>
