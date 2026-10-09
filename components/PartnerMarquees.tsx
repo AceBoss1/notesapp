@@ -1,7 +1,8 @@
 import Link from "next/link";
 import { activeHostForUsername } from "@/lib/domains";
 import { PARTNERS, TRUSTED_BY } from "@/lib/partners";
-import { getAllUsers } from "@/lib/users";
+import { badgeLevel, getAllUsers, goldKindOf } from "@/lib/users";
+import VerifiedBadge from "@/components/VerifiedBadge";
 
 // A row that scrolls sideways, pauses when you point at it, and stands still (wrapped and centred) for people who ask their device for
 // less motion. Each copy of the names is long enough to fill a wide screen, and the repeats are hidden from screen readers.
@@ -51,7 +52,7 @@ export async function TrustedByStrip({ className = "" }: { className?: string })
     const u = users.find((x) => x.username === c.username);
     if (!u || u.suspended) return null;
     const host = await activeHostForUsername(c.username);
-    return { key: c.username, name: u.displayName, avatar: u.avatar, what: c.what, href: host ? `https://${host}` : `/u/${c.username}`, external: !!host };
+    return { key: c.username, name: u.displayName, avatar: u.avatar, what: c.what, badge: badgeLevel(u), gold: goldKindOf(u), href: host ? `https://${host}` : `/u/${c.username}`, external: !!host };
   }))).filter((r): r is NonNullable<typeof r> => !!r);
   if (!rows.length) return null;
   return (
@@ -62,7 +63,7 @@ export async function TrustedByStrip({ className = "" }: { className?: string })
           <Item key={`${k}-${r.key}`} hidden={hidden} href={r.href} external={r.external}>
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src={r.avatar} alt="" width={36} height={36} className="h-9 w-9 shrink-0 rounded-lg object-cover" />
-            <span><span className="block font-ui text-sm font-bold text-ink">{r.name}</span>{r.what && <span className="block text-xs text-slate">{r.what}</span>}</span>
+            <span><span className="flex items-center gap-1 font-ui text-sm font-bold text-ink">{r.name}<VerifiedBadge size={14} level={r.badge} goldKind={r.gold} /></span>{r.what && <span className="block text-xs text-slate">{r.what}</span>}</span>
           </Item>
         ))} />
     </section>
@@ -76,9 +77,19 @@ export function PartnersStrip({ className = "" }: { className?: string }) {
       <Strip label="Partners and integrations" count={PARTNERS.length} seconds={50}
         render={(hidden, k) => PARTNERS.map((p) => (
           <Item key={`${k}-${p.name}`} hidden={hidden} href={p.href}>
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            {p.logo && <img src={p.logo} alt="" height={32} className="h-8 w-auto max-w-[3.5rem] shrink-0 object-contain" />}
-            <span><span className="block font-ui text-sm font-bold text-ink">{p.name}</span><span className="block text-xs text-slate">{p.what}</span></span>
+            {p.logo && p.wordmark ? (
+              <span className="flex flex-col items-start gap-1">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={p.logo} alt={p.name} height={28} className="h-7 w-auto max-w-[8rem] object-contain object-left" />
+                <span className="text-xs text-slate">{p.what}</span>
+              </span>
+            ) : (
+              <>
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                {p.logo && <img src={p.logo} alt="" height={32} className="h-8 w-auto max-w-[3.5rem] shrink-0 object-contain" />}
+                <span><span className="block font-ui text-sm font-bold text-ink">{p.name}</span><span className="block text-xs text-slate">{p.what}</span></span>
+              </>
+            )}
           </Item>
         ))} />
       <p className="mx-auto mt-4 max-w-2xl px-4 text-center text-xs text-slate">
