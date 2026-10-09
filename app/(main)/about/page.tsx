@@ -1,4 +1,5 @@
 import Image from "next/image";
+import { PartnersStrip, TrustedByStrip } from "@/components/PartnerMarquees";
 import Link from "next/link";
 import type { Metadata } from "next";
 import { ADMIN_PROFILES } from "@/lib/admin";
@@ -104,6 +105,9 @@ export default async function AboutPage() {
           <Link href="/roadmap" className="text-crimson underline underline-offset-2">roadmap</Link>.
         </p>
       </div>
+
+      <TrustedByStrip className="mt-14" />
+      <PartnersStrip className="mt-10" />
 
       <div className="mt-14">
         <p className="eyebrow">How we make money — in the open</p>

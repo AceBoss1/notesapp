@@ -130,6 +130,12 @@ export default function ProfileEditPage() {
         </label>
 
         <WorkFields value={work} onChange={setWork} orgOnly={profile?.accountKind === "organisation"} inputClass="mt-1 w-full border border-rule bg-card px-4 py-3 font-body focus:border-gold outline-none" />
+        {profile && profile.accountKind !== "organisation" && (
+          <p className="text-sm text-slate">
+            Is this account for a company, NGO, church, school or club?{" "}
+            <Link href="/organisation" className="text-crimson underline">Make it an organisation</Link>: you keep your username, posts and followers, and add your CAC registration number.
+          </p>
+        )}
 
         <label className="block">
           <span className="eyebrow">Avatar</span>
