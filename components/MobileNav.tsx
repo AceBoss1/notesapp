@@ -16,7 +16,7 @@ export default function MobileNav({ links, appLinks }: { links: { href: string; 
   useEffect(() => { setOpen(false); }, [pathname]); // going to a page closes the menu
 
   return (
-    <div className="md:hidden">
+    <div className="lg:hidden">
       <button
         type="button"
         onClick={() => setOpen((o) => !o)}

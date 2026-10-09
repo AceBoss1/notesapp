@@ -11,6 +11,16 @@ export type Release = {
 
 export const CHANGELOG: Release[] = [
   {
+    version: "v0.10.2",
+    bump: "patch",
+    date: "2026-10-09",
+    changes: [
+      { kind: "changed", text: "Terms of Service and Privacy Policy updated for group chats (who can see what, who can be added, leaving, reports) and for sharing your posts to LinkedIn or X (what we ask for, what we keep, how to disconnect). You will be asked to accept them before your next payment." },
+      { kind: "changed", text: "The top menu no longer lists Booking (it is in the footer and on every profile), which also fixes the logo and menu overlapping on medium-width screens. Tablets now use the Menu button, like phones." },
+      { kind: "fixed", text: "Deleting your account now removes you from the groups you are in (another member takes over as admin when needed) instead of leaving your name in them, and removes any connected LinkedIn or X access." },
+    ],
+  },
+  {
     version: "v0.10.1",
     bump: "patch",
     date: "2026-10-09",
