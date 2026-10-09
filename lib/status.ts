@@ -9,6 +9,7 @@ import { pushConfigured, pushProblem } from "./push-server";
 import { MESSAGES_LIVE, MOMENTS_LIVE } from "./moments-rules";
 import { pingVercel, vercelConfigured } from "./domains";
 import { whogohostConfigured, wgCredits } from "./whogohost";
+import { PROVIDERS, providerConfigured } from "./social-server";
 
 // Server-only service health checks behind /status. Reports only
 // up/slow/down + latency — never error details or config.
@@ -129,6 +130,14 @@ export async function checkServices(): Promise<ServiceStatus[]> {
     whogohostConfigured()
       ? timed(async () => { await wgCredits(); return true; }).then((r) => toStatus("registrar", "Domain registration", "Domain sales and DNS management (Whogohost)", r))
       : Promise.resolve(notConfigured("registrar", "Domain registration", "Domain sales and DNS management (Whogohost)"))
+  );
+
+  // Sharing to LinkedIn and X: only says whether the connections are set up (we don't post anything to test it).
+  const social = PROVIDERS.filter(providerConfigured);
+  checks.push(
+    Promise.resolve(social.length
+      ? ({ id: "social", name: "Sharing to LinkedIn and X", description: "Publishing a post's excerpt to connected LinkedIn and X accounts", state: "operational" } as ServiceStatus)
+      : notConfigured("social", "Sharing to LinkedIn and X", "Publishing a post's excerpt to connected LinkedIn and X accounts"))
   );
 
   const paystack = process.env.PAYSTACK_SECRET_KEY;

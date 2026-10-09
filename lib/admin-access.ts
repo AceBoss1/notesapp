@@ -39,33 +39,34 @@ export const hasAnyDept = (a: Access | null | undefined, ds: readonly Dept[]) =>
 
 // Every page in the admin area and who can open it: "all" (any staff), "super", or the departments that include it.
 export type Need = "all" | "super" | readonly Dept[];
-export type Section = { href: string; label: string; need: Need; exact?: boolean };
+export type Section = { href: string; label: string; need: Need; exact?: boolean; group: string };
 export const ADMIN_SECTIONS: Section[] = [
-  { href: "/admin", label: "Dashboard", need: "all", exact: true },
-  { href: "/admin/team", label: "Team hub", need: "all" },
-  { href: "/admin/journals", label: "Journals", need: ["content", "moderation"] },
-  { href: "/admin/notes", label: "Notes", need: ["content", "moderation"] },
-  { href: "/admin/users", label: "Users", need: ["support", "moderation", "finance"] },
-  { href: "/admin/organisations", label: "Organisations", need: ["support", "growth"] },
-  { href: "/admin/revenue", label: "Revenue", need: ["finance"] },
-  { href: "/admin/payments", label: "Payments", need: ["finance"] },
-  { href: "/admin/merch", label: "Merch", need: ["finance", "support"] },
-  { href: "/admin/ads", label: "Ads", need: ["growth", "finance"] },
-  { href: "/admin/ad-share", label: "Ad share", need: ["finance"] },
-  { href: "/admin/leads", label: "Leads", need: ["support", "growth"] },
-  { href: "/admin/reports", label: "Reports", need: ["moderation"] },
-  { href: "/admin/traction", label: "Traction", need: ["growth", "finance"] },
-  { href: "/admin/errors", label: "Errors", need: ["product"] },
-  { href: "/admin/enterprise", label: "Enterprise", need: ["growth"] },
-  { href: "/admin/shops", label: "Shops", need: ["support", "moderation"] },
-  { href: "/admin/stream", label: "Video storage", need: ["product"] },
-  { href: "/admin/paylony", label: "Paylony", need: ["finance"] },
-  { href: "/admin/api-access", label: "API & domains", need: ["product"] },
-  { href: "/admin/domains", label: "Domain sales", need: ["product"] },
-  { href: "/admin/limits", label: "Limits", need: ["product"] },
-  { href: "/admin/settings", label: "Settings", need: ["product"] },
-  { href: "/admin/seed", label: "Seed", need: "super" },
-  { href: "/admin/access", label: "Team access", need: "super" },
+  { href: "/admin", label: "Dashboard", need: "all", exact: true, group: "Workspace" },
+  { href: "/admin/team", label: "Team hub", need: "all", group: "Workspace" },
+  { href: "/admin/team/finance", label: "Money ledger", need: ["finance", "product"], group: "Workspace" },
+  { href: "/admin/journals", label: "Journals", need: ["content", "moderation"], group: "Content" },
+  { href: "/admin/notes", label: "Notes", need: ["content", "moderation"], group: "Content" },
+  { href: "/admin/users", label: "Users", need: ["support", "moderation", "finance"], group: "People & trust" },
+  { href: "/admin/organisations", label: "Organisations", need: ["support", "growth"], group: "People & trust" },
+  { href: "/admin/revenue", label: "Revenue", need: ["finance"], group: "Money" },
+  { href: "/admin/payments", label: "Payments", need: ["finance"], group: "Money" },
+  { href: "/admin/merch", label: "Merch", need: ["finance", "support"], group: "Money" },
+  { href: "/admin/ads", label: "Ads", need: ["growth", "finance"], group: "Growth" },
+  { href: "/admin/ad-share", label: "Ad share", need: ["finance"], group: "Money" },
+  { href: "/admin/leads", label: "Leads", need: ["support", "growth"], group: "People & trust" },
+  { href: "/admin/reports", label: "Reports", need: ["moderation"], group: "People & trust" },
+  { href: "/admin/traction", label: "Traction", need: ["growth", "finance"], group: "Growth" },
+  { href: "/admin/errors", label: "Errors", need: ["product"], group: "Platform" },
+  { href: "/admin/enterprise", label: "Enterprise", need: ["growth"], group: "Growth" },
+  { href: "/admin/shops", label: "Shops", need: ["support", "moderation"], group: "People & trust" },
+  { href: "/admin/stream", label: "Video storage", need: ["product"], group: "Platform" },
+  { href: "/admin/paylony", label: "Paylony", need: ["finance"], group: "Money" },
+  { href: "/admin/api-access", label: "API & domains", need: ["product"], group: "Platform" },
+  { href: "/admin/domains", label: "Domain sales", need: ["product"], group: "Platform" },
+  { href: "/admin/limits", label: "Limits", need: ["product"], group: "Platform" },
+  { href: "/admin/settings", label: "Settings", need: ["product"], group: "Platform" },
+  { href: "/admin/seed", label: "Seed", need: "super", group: "Admin" },
+  { href: "/admin/access", label: "Team access", need: "super", group: "Admin" },
 ];
 
 export function canOpen(a: Access | null | undefined, need: Need): boolean {
@@ -85,7 +86,10 @@ export function pathAllowed(a: Access | null | undefined, pathname: string): boo
   return canOpen(a, s ? s.need : "super");
 }
 
-export const allowedSections = (a: Access | null | undefined) => ADMIN_SECTIONS.filter((s) => canOpen(a, s.need));
+// The menu shows related pages together: groups in this order, pages within a group in the order listed above.
+export const GROUP_ORDER = ["Workspace", "Content", "People & trust", "Money", "Growth", "Platform", "Admin"];
+export const allowedSections = (a: Access | null | undefined) =>
+  ADMIN_SECTIONS.filter((s) => canOpen(a, s.need)).sort((x, y) => GROUP_ORDER.indexOf(x.group) - GROUP_ORDER.indexOf(y.group));
 
 export function roleLabel(a: Access | null | undefined, owner = false): string {
   if (!a) return "";
