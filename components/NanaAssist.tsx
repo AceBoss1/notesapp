@@ -20,8 +20,8 @@ const MENU: Record<Surface, Task[]> = {
   chat: ["reply", "improve", "friendlier", "professional", "shorten"],
 };
 
-export default function NanaAssist({ surface, getText, onApply, platform, getContext, label = "Nana", className = "" }: {
-  surface: Surface; getText: () => string; onApply: (text: string) => void; platform?: "linkedin" | "x"; getContext?: () => string; label?: string; className?: string;
+export default function NanaAssist({ surface, getText, onApply, platform, getContext, label = "Nana", className = "", align = "left" }: {
+  surface: Surface; getText: () => string; onApply: (text: string) => void; platform?: "linkedin" | "x"; getContext?: () => string; label?: string; className?: string; align?: "left" | "right";
 }) {
   const [open, setOpen] = useState(false);
   const [busy, setBusy] = useState<Task | null>(null);
@@ -59,7 +59,7 @@ export default function NanaAssist({ surface, getText, onApply, platform, getCon
       </button>
       {undo !== null && !open && <button type="button" onClick={() => { onApply(undo); setUndo(null); }} className="ml-2 font-ui text-xs text-slate underline">Undo Nana&apos;s change</button>}
       {open && (
-        <div role="region" aria-label="Nana's writing help" className="absolute left-0 top-full z-30 mt-1 w-[min(22rem,calc(100vw-2rem))] rounded-lg border border-rule bg-card p-3 text-sm shadow-xl">
+        <div role="region" aria-label="Nana's writing help" className={`fixed inset-x-3 bottom-3 z-50 max-h-[75dvh] overflow-y-auto rounded-lg border border-rule bg-card p-3 text-sm shadow-xl sm:absolute sm:inset-x-auto sm:bottom-auto ${align === "right" ? "sm:right-0" : "sm:left-0"} sm:top-full sm:z-30 sm:mt-1 sm:max-h-none sm:w-[22rem]`}>
           {!result && (
             <>
               <p className="text-xs text-slate">{surface === "chat" ? "I'll read the last few messages to suggest a reply. You read it and send it yourself." : "Pick what you'd like, and I'll show you before anything changes."}</p>

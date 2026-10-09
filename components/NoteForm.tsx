@@ -293,7 +293,7 @@ export default function NoteForm({ noteId, initial, self, org }: Props) {
       />
 
       <div className="block">
-        <span className="flex flex-wrap items-center justify-between gap-2"><span className="eyebrow">Content</span><NanaAssist surface="draft" getText={() => content} onApply={setContent} /></span>
+        <span className="flex flex-wrap items-center justify-between gap-2"><span className="eyebrow">Content</span><NanaAssist surface="draft" align="right" getText={() => content} onApply={setContent} /></span>
         <div className="mt-2">
           <RichTextEditor value={content} onChange={setContent} draftKey={noteId || "new"} />
         </div>
