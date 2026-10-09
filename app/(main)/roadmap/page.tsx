@@ -46,6 +46,13 @@ const ITEMS: { title: string; tag: string; body: string; detail: string; link?: 
       "Today: Google sign-in isn't offered in the window (someone who signed up with Google chooses “Forgot your password” to set one), and the sender address on those emails is still ours, with the member's name on it. Checkout: Paystack's inline popup instead of a redirect — the popup still shows #NotesApp's name, which we'll confirm with Paystack before promising otherwise. Email: each Enterprise domain becomes a verified sending domain (SPF and DKIM records the member adds), so emails come from, for example, bookings@theirbrand.com. A sweep of error pages and leftover #NotesApp wording follows. The rest of the Enterprise plan is also still to come: unlimited team seats provisioned per account, a dedicated support channel with a service-level agreement, field-team Tap-to-Pay, and syncing sales into accounting tools such as QuickBooks and Xero.",
   },
   {
+    title: "Advertise on LinkedIn from #NotesApp",
+    tag: "Ads",
+    body: "Under review: boost one of your posts on LinkedIn from inside #NotesApp, using your own LinkedIn ad account, and see what it earned next to your #NotesApp numbers. We are applying to LinkedIn for access first, so there is no date yet.",
+    detail:
+      "How it would work: you connect your LinkedIn ad account, pick a post, set a budget and audience, and LinkedIn bills you directly; #NotesApp never holds your ad money. Reporting comes back to your dashboard. Later steps, each its own approval and its own privacy review: sending sign-ups back to LinkedIn so campaigns can be measured, and bringing in LinkedIn leads. We would only list audiences you create from your own followers with your consent. LinkedIn ads cost more per click than most platforms, so this suits Business and Enterprise members selling to companies and professionals; our own boosts remain the lower-cost way to be seen on #NotesApp.",
+  },
+  {
     title: "Domain sales and DNS management",
     tag: "Enterprise",
     body: "Search, register and manage domains, including .ng and .com.ng, and edit DNS records without leaving #NotesApp, through our domain partner Whogohost (now go54), a gold partnership. For Business and Enterprise, with you as the registrant.",

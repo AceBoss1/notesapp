@@ -11,6 +11,17 @@ export type Release = {
 
 export const CHANGELOG: Release[] = [
   {
+    version: "v0.11.0",
+    bump: "minor",
+    date: "2026-10-09",
+    changes: [
+      { kind: "added", text: "Publish to LinkedIn and X from your own post: connect once, see the words we suggest (an excerpt with a link back to the full journal), change them, then press Post. Nothing goes out until you do, and you can disconnect any time. It switches on as soon as our LinkedIn and X apps are approved; until then the share menu still works as before." },
+      { kind: "added", text: "Status page: a new line shows whether sharing to LinkedIn and X is connected." },
+      { kind: "added", text: "Roadmap: LinkedIn advertising from #NotesApp (boost a post on LinkedIn from your own ad account), under review." },
+      { kind: "changed", text: "Behind the scenes, our own team now works with roles and departments, so each person sees only what their job needs. Nothing changes for members." },
+    ],
+  },
+  {
     version: "v0.10.2",
     bump: "patch",
     date: "2026-10-09",
