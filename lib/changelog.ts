@@ -16,6 +16,9 @@ export const CHANGELOG: Release[] = [
     date: "2026-10-09",
     changes: [
       { kind: "added", text: "Tell us a little about you, if you like: what you do, your role (for example CEO) and where you work. You can add it when you sign up or any time in Edit profile, and it shows under your name on your profile, for example “CEO at Acme”. It is optional and you can clear it whenever you like." },
+      { kind: "changed", text: "We describe #NotesApp more simply: a home where African creators, professionals and businesses publish, build an audience and get paid in Naira. The home page, About page, footer and search descriptions are updated, and the lists of what you can do now include group chats." },
+      { kind: "changed", text: "Pricing: the gold badge costs the same on every plan, so it is no longer a row in the table. It has its own paragraph beside “Why stores don’t link out”, with its prices and the link to the badges page." },
+      { kind: "added", text: "Roadmap: team hub and team messaging for Business and Enterprise, opening after our own team has tested them." },
       { kind: "changed", text: "Privacy Policy: now says that these optional lines appear on your public profile and are counted, without names, to help us understand who our members are." },
       { kind: "changed", text: "The admin menu groups related pages together (Workspace, Content, People & trust, Money, Growth, Platform), and a money ledger for our team sits in the team hub. Nothing changes for members." },
     ],

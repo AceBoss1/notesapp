@@ -12,13 +12,13 @@ import { MESSAGES_LIVE, MOMENTS_LIVE } from "@/lib/moments-rules";
 export const metadata: Metadata = {
   title: "About",
   description:
-    "Why #NotesApp exists — one workspace for African coaches, consultants, and knowledge professionals to publish, get booked, sell from a shop, share moments, message and get paid — and what you can do on it today.",
+    "Why #NotesApp exists — one home for African creators, professionals and businesses to publish, get booked, sell, share moments, message their audience and get paid in Naira — and what you can do on it today.",
   openGraph: { images: ["/images/marketing/notesapp-showcase.png"] },
 };
 
 const LIVE = [
   ...(MOMENTS_LIVE ? [{ href: "/journals", title: "Moments", copy: "Share a picture, a video of up to 90 seconds or text, with an optional voice-over, on your profile picture for 24, 48 or 72 hours. See them in the Moments row on Journals, like WhatsApp Status; you choose whether only your followers or everyone can see yours." }] : []),
-  ...(MESSAGES_LIVE ? [{ href: "/messages", title: "Private messages", copy: "One-to-one messages with bold, italic and underline, sent and read ticks with times, pictures, videos and documents, voice notes of up to 5 minutes, and stickers. Replies to your moments land here too, and notifications on your device are on by default." }] : []),
+  ...(MESSAGES_LIVE ? [{ href: "/messages", title: "Messages & group chats", copy: "One-to-one messages, and groups of up to 50 people you follow or who follow you, with bold, italic and underline, sent and read ticks with times, pictures, videos and documents, voice notes of up to 5 minutes, and stickers. Replies to your moments land here too, and notifications on your device are on by default." }] : []),
   { href: "/journals", title: "Journals", copy: "Publish with a rich-text composer; readers follow, comment, like and share." },
   { href: "/booking", title: "Paid 1:1 sessions", copy: "Your own price and weekly availability, Paystack checkout, reminders and a clear cancellation policy." },
   { href: "/journals", title: "Monthly subscriptions", copy: "Readers subscribe to unlock your premium entries; renewals are automatic." },
@@ -65,24 +65,24 @@ export default async function AboutPage() {
 
       <div className="prose prose-lg mt-10 max-w-none font-body text-ink">
         <p>
-          No platform today is purpose-built for African coaches,
-          consultants, therapists, and knowledge professionals who
-          publish content, take bookings, set up shops, collect payment in Naira, and
-          manage client relationships — all in one place. Substack
+          No platform today is built for African creators, professionals
+          and businesses who publish content, take bookings, sell products and
+          downloads, collect payment in Naira, and stay in touch with the
+          people who follow them — all in one place. Substack
           assumes a Western reader. Calendly assumes Stripe. Notion is
           built for tech teams.
         </p>
         <p>
           #NotesApp closes that loop: publish a note, get booked from
-          it, get paid in Naira through Paystack, and follow up by email
-          (WhatsApp is next). Follow a journal to see everything it
+          it, get paid in Naira through Paystack, and follow up by email, in
+          messages and in group chats (WhatsApp is next). Follow a journal to see everything it
           publishes; subscribe to one to unlock what it keeps for paying
           readers; send a gift to say thanks; boost a post to reach more
           people.
         </p>
         <p>
-          We're building this alongside the professionals who run their
-          practice on it from day one, starting with our first reference
+          We're building this alongside the creators, professionals and businesses
+          who run their work on it from day one, starting with our first reference
           customers: Precheks, a journal, at notes.precheks.com.ng (its main website, precheks.com.ng, runs on our API and webhooks), and ApexGlitz, a fashion shop that sells to Africa through #NotesApp, at apexglitz.com.ng.
         </p>
       </div>

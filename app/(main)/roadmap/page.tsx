@@ -18,6 +18,14 @@ const ITEMS: { title: string; tag: string; body: string; detail: string; link?: 
       "The sharing menu on every post (WhatsApp, X, Facebook, LinkedIn, copy link) already works without connecting anything; X now carries the title and an excerpt. Connected posting: LinkedIn (a link card with the post's picture) and X (the text and link). Facebook only lets apps post to Pages and reviews every app, Instagram needs a professional account linked to a Page, TikTok is mostly video and keeps posts private until it has audited the app, and WhatsApp has no posting service. LinkedIn connections last about 60 days before you reconnect.",
   },
   {
+    title: "Team hub and team messaging for Business and Enterprise",
+    tag: "Teams",
+    body: "A shared workspace for your team: a work board with what is moving, stuck or waiting on a decision, milestones, a morning summary and weekly review, and a team room for meetings and chat. Our own team is using it first; it opens to Business and Enterprise accounts once our internal testing is done.",
+    detail:
+      "We are running it ourselves before anyone else relies on it, so we can fix what gets in the way. Business and Enterprise accounts will get it for their team seats (four on Business, as many as you need on Enterprise), with the people on your team seeing only what their role needs. It builds on group chats, which are already live. No date yet; we will announce it on this page, the changelog and by email when it opens.",
+    link: { href: "/pricing", label: "See plans and team seats →" },
+  },
+  {
     title: "AI content drafting, connected via MCP",
     tag: "AI",
     body: "Two AI jobs, wired together into one loop: an AI notetaker that follows you into a booked session and writes it up, and your own AI assistant — connected straight to your #NotesApp data — that turns raw material into a finished draft in your voice.",

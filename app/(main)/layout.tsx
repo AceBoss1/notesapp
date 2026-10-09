@@ -112,9 +112,8 @@ const site = await getSiteSettingsCached();
                 </span>
               </div>
               <p className="mt-4 max-w-xs text-sm text-paper/65">
-                Publish a note, take a booking, get paid — one workspace
-                for African coaches, consultants, and knowledge
-                professionals.
+                Publish, connect and get paid in Naira — one home for
+                African creators, professionals and businesses.
               </p>
               <p className="mt-6 max-w-xs text-sm text-paper/50">
                 Built in partnership with <PartnerIcon partner="precheks" /> Precheks (journal) and{" "}
