@@ -1,18 +1,19 @@
 import { getAuth } from "firebase-admin/auth";
-import type { Firestore } from "firebase-admin/firestore";
+import { FieldValue, type Firestore } from "firebase-admin/firestore";
 import { getAdminApp } from "./firebase-admin";
 import { ADMIN_PROFILES } from "./admin";
 import { reportCounts } from "./reports-server";
 import { gatherTraction } from "./traction-server";
 import type { Traction } from "./traction";
+import { createGroup, sendGroupMessage, syncMembers, syncTeamRoom, type GroupDeps } from "./groups-server";
 import {
-  TeamError, cleanItem, cleanMilestone, metricValue, statusEffects, lagosDate, addDays,
+  TeamError, cleanItem, cleanMeeting, MEETING_STATUSES, type Meeting, type MeetingStatus, cleanMilestone, metricValue, statusEffects, lagosDate, addDays,
   type Milestone, type TeamItem, type Status,
 } from "./team";
 
 // Server side of the team hub. Everything lives in two server-only collections (teamItems, teamMilestones); only signed-in admins reach
 // them, through /api/admin/team.
-const ITEMS = "teamItems", MILESTONES = "teamMilestones";
+const ITEMS = "teamItems", MILESTONES = "teamMilestones", MEETINGS = "teamMeetings";
 
 export type Person = { uid: string; name: string; email: string };
 export type Signal = { id: string; label: string; count: number; href: string; urgent?: boolean };
@@ -110,4 +111,71 @@ export async function createMilestone(db: Firestore, adminUid: string, body: Rec
 
 export async function deleteMilestone(db: Firestore, id: string) {
   await db.doc(`${MILESTONES}/${id}`).delete();
+}
+
+// ---- Meetings ----------------------------------------------------------------------------------------------------------------------
+export async function listMeetings(db: Firestore): Promise<Meeting[]> {
+  const snap = await db.collection(MEETINGS).orderBy("startsAt", "desc").limit(40).get();
+  return snap.docs.map((d) => ({ ...(d.data() as Omit<Meeting, "id">), id: d.id }));
+}
+
+export async function getMeeting(db: Firestore, id: string): Promise<Meeting> {
+  const d = await db.doc(`${MEETINGS}/${id}`).get();
+  if (!d.exists) throw new TeamError("That meeting wasn't found.", 404);
+  return { ...(d.data() as Omit<Meeting, "id">), id: d.id };
+}
+
+export async function meetingActions(db: Firestore, meetingId: string): Promise<TeamItem[]> {
+  const snap = await db.collection(ITEMS).where("meetingId", "==", meetingId).limit(100).get();
+  return snap.docs.map((d) => ({ ...(d.data() as Omit<TeamItem, "id">), id: d.id })).sort((a, b) => a.createdAt.localeCompare(b.createdAt));
+}
+
+// Schedules a meeting: its own room in the group chat (every team member in it, the agenda as the first message, which also rings their bell).
+export async function createMeeting(db: Firestore, adminUid: string, body: Record<string, unknown>, teamUids: string[], now = new Date(), deps?: GroupDeps) {
+  const c = cleanMeeting(body);
+  const ref = db.collection(MEETINGS).doc();
+  const room = await createGroup(db, adminUid, { title: c.title, memberUids: teamUids.filter((u) => u !== adminUid), scope: "team", id: `meeting_${ref.id}`, meetingId: ref.id }, now, deps);
+  const meeting: Omit<Meeting, "id"> = { ...c, conversationId: room.id, status: "scheduled", notes: "", decisions: [], createdByUid: adminUid, createdAt: now.toISOString(), endedAt: "" };
+  await ref.set(meeting);
+  const when = new Date(c.startsAt).toLocaleString("en-NG", { timeZone: "Africa/Lagos", weekday: "short", day: "numeric", month: "short", hour: "numeric", minute: "2-digit" });
+  await sendGroupMessage(db, adminUid, room.id, { text: `Meeting: ${c.title}\n${when} (Lagos time)${c.agenda ? `\n\nAgenda:\n${c.agenda}` : ""}` }, now, undefined, deps).catch(() => {});
+  return { id: ref.id, conversationId: room.id };
+}
+
+export async function updateMeeting(db: Firestore, id: string, body: Record<string, unknown>, now = new Date()) {
+  const m = await getMeeting(db, id);
+  const patch: Record<string, unknown> = {};
+  if ("agenda" in body) patch.agenda = String(body.agenda ?? "").trim().slice(0, 2000);
+  if ("notes" in body) patch.notes = String(body.notes ?? "").trim().slice(0, 2000);
+  if (typeof body.status === "string") {
+    if (!MEETING_STATUSES.includes(body.status as MeetingStatus)) throw new TeamError("Unknown meeting status.");
+    patch.status = body.status;
+    patch.endedAt = body.status === "done" ? now.toISOString() : "";
+  }
+  if (Object.keys(patch).length) await db.doc(`${MEETINGS}/${m.id}`).update(patch);
+}
+
+export async function addDecision(db: Firestore, id: string, adminUid: string, text: unknown, now = new Date()) {
+  const t = String(text ?? "").trim().slice(0, 500);
+  if (!t) throw new TeamError("Write down what was decided.");
+  const m = await getMeeting(db, id);
+  await db.doc(`${MEETINGS}/${m.id}`).update({ decisions: FieldValue.arrayUnion({ text: t, at: now.toISOString(), byUid: adminUid }) });
+}
+
+export async function removeDecision(db: Firestore, id: string, at: unknown) {
+  const m = await getMeeting(db, id);
+  await db.doc(`${MEETINGS}/${m.id}`).update({ decisions: m.decisions.filter((d) => d.at !== at) });
+}
+
+// An action agreed in a meeting becomes a work item with the meeting's id on it (due date and owner as given).
+export async function addMeetingAction(db: Firestore, adminUid: string, meetingId: string, body: Record<string, unknown>) {
+  const m = await getMeeting(db, meetingId);
+  return createItem(db, adminUid, { title: body.title, ownerUid: body.ownerUid, due: body.due, horizon: "week", status: "todo", detail: `From the meeting "${m.title}".`, meetingId: m.id });
+}
+
+// Keeps the standing Team room and the room of each upcoming meeting in step with who is on the team now.
+export async function syncTeamRooms(db: Firestore, me: string, teamUids: string[], deps?: GroupDeps) {
+  await syncTeamRoom(db, me, teamUids, new Date(), deps);
+  const open = (await listMeetings(db)).filter((m) => m.status !== "done");
+  await Promise.all(open.map((m) => syncMembers(db, m.conversationId, teamUids)));
 }

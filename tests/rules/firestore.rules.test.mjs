@@ -550,6 +550,8 @@ test("moments are API-only; conversations are readable only by their two members
     await setDoc(doc(d, "conversations/alice_pub"), { participants: ["alice", "pub"], unread: {} });
     await setDoc(doc(d, "conversations/alice_pub/messages/1"), { from: "alice", text: "hi", createdAt: "x" });
     await setDoc(doc(d, "conversations/boss_pub"), { participants: ["boss", "pub"], unread: {} });
+    await setDoc(doc(d, "conversations/g_crew"), { kind: "group", scope: "public", title: "Crew", participants: ["alice", "pub", "boss"], adminUids: ["alice"], unread: {} });
+    await setDoc(doc(d, "conversations/g_crew/messages/1"), { from: "alice", text: "hi all", createdAt: "x" });
   });
   // Moments: not even the owner, and not signed out.
   for (const ctx of [as("pub"), as("alice"), anon()]) {
@@ -583,6 +585,18 @@ test("moments are API-only; conversations are readable only by their two members
   await assertFails(getDoc(doc(as("boss"), "conversations/alice_pub/messages/1")));
   await assertFails(getDoc(doc(anon(), "conversations/alice_pub")));
   await assertFails(getDoc(doc(as("alice"), "conversations/boss_pub")));
+  // Group chats: every member reads; someone outside (or signed out) can't; nobody writes from the browser, not even a group admin.
+  for (const who of ["alice", "pub", "boss"]) {
+    await assertSucceeds(getDoc(doc(as(who), "conversations/g_crew")));
+    await assertSucceeds(getDoc(doc(as(who), "conversations/g_crew/messages/1")));
+  }
+  await assertFails(getDoc(doc(as("stranger"), "conversations/g_crew")));
+  await assertFails(getDoc(doc(as("stranger"), "conversations/g_crew/messages/1")));
+  await assertFails(getDoc(doc(anon(), "conversations/g_crew")));
+  await assertFails(setDoc(doc(as("alice"), "conversations/g_crew/messages/2"), { from: "alice", text: "forged", createdAt: "x" }));
+  await assertFails(updateDoc(doc(as("alice"), "conversations/g_crew"), { participants: ["alice", "stranger"] }));
+  await assertFails(updateDoc(doc(as("alice"), "conversations/g_crew"), { adminUids: ["alice", "boss"] }));
+  await assertFails(deleteDoc(doc(as("alice"), "conversations/g_crew")));
   // The live views list a member's own conversations and one conversation's messages: allowed only with the constraint that proves it.
   await assertSucceeds(getDocs(query(collection(as("alice"), "conversations"), where("participants", "array-contains", "alice"))));
   await assertFails(getDocs(query(collection(as("alice"), "conversations"), where("participants", "array-contains", "pub"))));

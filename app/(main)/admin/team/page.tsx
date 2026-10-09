@@ -5,15 +5,15 @@ import Link from "next/link";
 import { useAdminAuth } from "@/lib/useAdminAuth";
 import { formatNaira } from "@/lib/booking-time";
 import {
-  HORIZONS, HORIZON_LABEL, METRICS, STATUS_LABEL, addDays, groupItems, isOverdue,
-  type Horizon, type MetricKey, type Milestone, type Progress, type Status, type TeamItem,
+  HORIZONS, HORIZON_LABEL, METRICS, STATUS_LABEL, addDays, groupItems, isOverdue, lagosParts,
+  type Horizon, type Meeting, type MetricKey, type Milestone, type Progress, type Status, type TeamItem,
 } from "@/lib/team";
 
 type Person = { uid: string; name: string; email: string };
 type Signal = { id: string; label: string; count: number; href: string; urgent?: boolean };
 type MilestoneRow = Milestone & { progress: Progress };
 type Data = {
-  me: string; today: string; items: TeamItem[]; milestones: MilestoneRow[]; people: Person[]; signals: Signal[];
+  me: string; today: string; items: TeamItem[]; milestones: MilestoneRow[]; people: Person[]; signals: Signal[]; meetings: Meeting[]; teamRoomId: string;
   snapshot: { registered: number; newLast30Days: number; paidPlans: number; goldBadges: number; processedLast30DaysKobo: number; inEscrowKobo: number; generatedAt: string };
 };
 
@@ -159,6 +159,8 @@ export default function AdminTeamPage() {
   const [showMs, setShowMs] = useState(false);
   const [ms, setMs] = useState({ title: "", metric: "registered" as MetricKey, mode: "gain", target: "", startsOn: "", endsOn: "", ownerUid: "", note: "" });
   const [showLater, setShowLater] = useState(false);
+  const [showMeet, setShowMeet] = useState(false);
+  const [meet, setMeet] = useState({ title: "", date: "", time: "10:00", agenda: "" });
 
   const call = useCallback(async (init?: { body: Record<string, unknown> }) => {
     const token = await user!.getIdToken();
@@ -260,6 +262,49 @@ export default function AdminTeamPage() {
         {showLater && (g.later.length ? list(g.later) : <p className="mt-3 text-sm text-slate">Nothing here.</p>)}
       </section>
 
+      <section className="mt-10" aria-labelledby="meet">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <h2 id="meet" className="font-display text-2xl text-ink">Meetings</h2>
+          <span className="flex flex-wrap gap-2">
+            <Link href={`/messages/${data.teamRoomId}`} className="btn-ghost !px-4 !py-2 text-xs">Open the Team room</Link>
+            <button onClick={() => { setMeet({ ...meet, date: meet.date || today }); setShowMeet((x) => !x); }} className="btn-primary !px-4 !py-2 text-xs">{showMeet ? "Close" : "Schedule a meeting"}</button>
+          </span>
+        </div>
+        <p className="mt-1 text-xs text-slate">Each meeting gets its own room in the group chat with the whole team in it. Decisions and actions are written down beside the chat, and actions land on the board above.</p>
+        {showMeet && (
+          <form className="card mt-3 grid gap-2 p-4 sm:grid-cols-2" onSubmit={async (e) => {
+            e.preventDefault();
+            await send({ action: "createMeeting", ...meet });
+            setShowMeet(false);
+            setMeet({ title: "", date: "", time: "10:00", agenda: "" });
+          }}>
+            <label className="text-[11px] text-slate sm:col-span-2">Title<input value={meet.title} onChange={(e) => setMeet({ ...meet, title: e.target.value })} placeholder="e.g. Weekly review" className={input} /></label>
+            <label className="text-[11px] text-slate">Date<input type="date" value={meet.date} onChange={(e) => setMeet({ ...meet, date: e.target.value })} className={input} /></label>
+            <label className="text-[11px] text-slate">Time (Lagos)<input type="time" value={meet.time} onChange={(e) => setMeet({ ...meet, time: e.target.value })} className={input} /></label>
+            <label className="text-[11px] text-slate sm:col-span-2">Agenda<textarea value={meet.agenda} onChange={(e) => setMeet({ ...meet, agenda: e.target.value })} rows={3} className={input} /></label>
+            <div className="sm:col-span-2"><button disabled={!meet.title.trim() || !meet.date} className="btn-primary !px-4 !py-2 text-xs">Schedule and invite the team</button></div>
+          </form>
+        )}
+        {data.meetings.length ? (
+          <ul className="mt-3 space-y-2">
+            {[...data.meetings.filter((x) => x.status !== "done").sort((a, b) => a.startsAt.localeCompare(b.startsAt)), ...data.meetings.filter((x) => x.status === "done").slice(0, 5)].map((x) => {
+              const w = lagosParts(x.startsAt);
+              return (
+                <li key={x.id}>
+                  <Link href={`/admin/team/meetings/${x.id}`} className="card flex flex-wrap items-center justify-between gap-2 p-3 hover:border-crimson">
+                    <span><span className="font-ui text-sm font-bold text-ink">{x.title}</span> <span className="text-xs text-slate">{dayLabel(w.date)}, {w.time}</span></span>
+                    <span className="flex items-center gap-2 text-[11px]">
+                      {x.decisions.length > 0 && <span className="text-slate">{x.decisions.length} decision{x.decisions.length === 1 ? "" : "s"}</span>}
+                      <span className={`rounded px-2 py-0.5 font-semibold ${x.status === "live" ? "bg-crimson text-white" : x.status === "done" ? "bg-card text-slate ring-1 ring-rule" : "bg-amber-100 text-amber-900"}`}>{x.status === "live" ? "Live now" : x.status === "done" ? "Done" : w.date === today ? "Today" : "Scheduled"}</span>
+                    </span>
+                  </Link>
+                </li>
+              );
+            })}
+          </ul>
+        ) : <p className="mt-3 text-sm text-slate">No meetings yet.</p>}
+      </section>
+
       <section className="mt-10" aria-labelledby="ms">
         <div className="flex flex-wrap items-center justify-between gap-2">
           <h2 id="ms" className="font-display text-2xl text-ink">Milestones <span className="font-ui text-sm font-normal text-slate">({data.milestones.length})</span></h2>
@@ -308,7 +353,7 @@ export default function AdminTeamPage() {
 
       <section className="card mt-10 border-dashed p-5">
         <p className="font-mono text-[11px] uppercase tracking-eyebrow text-crimson-bright">Coming next</p>
-        <p className="mt-2 text-sm text-slate">A morning summary by email, team meetings in a group chat room with their decisions and actions saved here, and a weekly review built from these numbers.</p>
+        <p className="mt-2 text-sm text-slate">A morning summary by email and bell, a weekly review built from these numbers, and comments on items.</p>
       </section>
     </section>
   );

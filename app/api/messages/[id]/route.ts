@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAdminDb } from "@/lib/firebase-admin";
 import { getThread, markRead } from "@/lib/messages-server";
+import { groupMembers } from "@/lib/groups-server";
 import { authed, fail } from "@/lib/moments-api";
 
 export const dynamic = "force-dynamic";
@@ -11,9 +12,10 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
     const me = await authed(req, "messages");
     const db = getAdminDb();
     const t = await getThread(db, me.uid, params.id);
+    if (t.kind === "group" && t.group) return NextResponse.json({ kind: "group", group: t.group, members: await groupMembers(db, t.group), messages: t.messages });
     const u = (await db.doc(`users/${t.withUid}`).get()).data();
     const blockedByMe = (await db.doc(`dmBlocks/${me.uid}_${t.withUid}`).get()).exists;
-    return NextResponse.json({ ...t, blockedByMe, with: { uid: t.withUid, username: u?.username ?? "", displayName: u?.displayName ?? "Member", avatar: u?.avatar ?? "" } });
+    return NextResponse.json({ ...t, kind: "direct", blockedByMe, with: { uid: t.withUid, username: u?.username ?? "", displayName: u?.displayName ?? "Member", avatar: u?.avatar ?? "" } });
   } catch (err) {
     return fail(err, "Couldn't load the conversation");
   }

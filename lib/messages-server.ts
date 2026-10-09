@@ -1,7 +1,7 @@
 import type { Firestore } from "firebase-admin/firestore";
 import { FieldValue } from "firebase-admin/firestore";
 import { randomBytes } from "crypto";
-import { MESSAGE_MAX, attachmentLabel, attachmentTypeOf, conversationId, type MessageAttachment, type MomentRef, type ThreadMessage } from "./messages-rules";
+import { MESSAGE_MAX, attachmentLabel, attachmentTypeOf, conversationId, type GroupInfo, type GroupScope, type MessageAttachment, type MomentRef, type ThreadMessage } from "./messages-rules";
 import { isMomentExpired } from "./moments-rules";
 import { notifyBell, sendEmail } from "./email";
 import { getAdminDb, getUserEmail } from "./firebase-admin";
@@ -71,7 +71,7 @@ export async function startMessageAttachment(
   return { id, uploadUrl: await presign(key, what.type, size), contentType: what.type };
 }
 
-async function claimAttachments(db: Firestore, uid: string, ids: string[], files: FileDeps | undefined): Promise<MessageAttachment[]> {
+export async function claimAttachments(db: Firestore, uid: string, ids: string[], files: FileDeps | undefined): Promise<MessageAttachment[]> {
   const { maxCount, maxBytes } = await attachmentLimits(db, uid);
   if (ids.length > maxCount) throw new MessageError(413, `You can send ${maxCount} file${maxCount === 1 ? "" : "s"} in one message on your plan.`);
   if (!files) throw new MessageError(503, "Sending files isn't set up yet.");
@@ -97,6 +97,14 @@ export async function sweepMessageUploads(db: Firestore, remove: (key: string) =
     await d.ref.delete();
   }
   return n;
+}
+
+// A reply quotes one earlier message of this conversation: who wrote it and the start of what it said.
+export async function quoteOf(db: Firestore, cid: string, messageId: string): Promise<{ id: string; from: string; text: string }> {
+  const orig = (await db.doc(`conversations/${cid}/messages/${messageId}`).get()).data();
+  if (!orig) throw new MessageError(400, "The message you're replying to wasn't found.");
+  const what = orig.text ? stripFormat(String(orig.text)) : orig.attachments?.length ? attachmentLabel(orig.attachments) : orig.sticker ? "🖼 Sticker" : "";
+  return { id: messageId, from: String(orig.from), text: what.slice(0, 140) };
 }
 
 export async function sendMessage(db: Firestore, fromUid: string, toUid: string, input: SendInput, now = new Date(), notify: Notify = notifyBell, alerts?: Alerts, files?: FileDeps): Promise<{ conversationId: string; messageId: string }> {
@@ -125,13 +133,7 @@ export async function sendMessage(db: Firestore, fromUid: string, toUid: string,
   const preview = (text || (attachments.length ? attachmentLabel(attachments) : "🖼 Sticker")).slice(0, 120);
   const cid = conversationId(fromUid, toUid);
   // A reply quotes one earlier message of this conversation: who wrote it and the start of what it said.
-  let replyTo: { id: string; from: string; text: string } | undefined;
-  if (input.replyToId) {
-    const orig = (await db.doc(`conversations/${cid}/messages/${String(input.replyToId)}`).get()).data();
-    if (!orig) throw new MessageError(400, "The message you're replying to wasn't found.");
-    const what = orig.text ? stripFormat(String(orig.text)) : orig.attachments?.length ? attachmentLabel(orig.attachments) : orig.sticker ? "🖼 Sticker" : "";
-    replyTo = { id: String(input.replyToId), from: String(orig.from), text: what.slice(0, 140) };
-  }
+  const replyTo = input.replyToId ? await quoteOf(db, cid, String(input.replyToId)) : undefined;
   const messageId = `${String(now.getTime()).padStart(13, "0")}_${randomBytes(4).toString("hex")}`;
   const convRef = db.doc(`conversations/${cid}`);
   const msgRef = convRef.collection("messages").doc(messageId);
@@ -183,7 +185,7 @@ const defaultAlerts = (): Alerts => ({
   push: async (toUid, payload) => sendPush(getAdminDb(), toUid, payload), // async: a missing config rejects instead of throwing here
 });
 
-export type ConversationRow = { id: string; withUid: string; lastText: string; lastAt: string; lastFromMe: boolean; unread: number; moment: boolean };
+export type ConversationRow = { id: string; kind: "direct" | "group"; withUid: string; lastText: string; lastAt: string; lastFromMe: boolean; unread: number; moment: boolean; group?: { title: string; scope: GroupScope; memberCount: number; lastFromName?: string } };
 
 export async function listConversations(db: Firestore, uid: string): Promise<ConversationRow[]> {
   // array-contains only (no orderBy) so no composite index is needed; sorted here.
@@ -191,9 +193,11 @@ export async function listConversations(db: Firestore, uid: string): Promise<Con
   return snap.docs
     .map((d) => {
       const c = d.data();
-      const withUid = (c.participants as string[]).find((p) => p !== uid) ?? uid;
+      const isGroup = c.kind === "group";
+      const withUid = isGroup ? "" : (c.participants as string[]).find((p) => p !== uid) ?? uid;
       return {
-        id: d.id, withUid,
+        id: d.id, kind: isGroup ? "group" as const : "direct" as const, withUid,
+        ...(isGroup ? { group: { title: String(c.title ?? "Group"), scope: (c.scope === "team" ? "team" : "public") as GroupScope, memberCount: (c.participants as string[]).length, ...(c.lastMessage?.fromName ? { lastFromName: String(c.lastMessage.fromName) } : {}) } } : {}),
         lastText: c.lastMessage?.text ?? "", lastAt: c.lastMessageAt ?? c.createdAt ?? "",
         lastFromMe: c.lastMessage?.from === uid, unread: (c.unread?.[uid] as number | undefined) ?? 0, moment: c.lastMessage?.moment === true,
       };
@@ -201,7 +205,7 @@ export async function listConversations(db: Firestore, uid: string): Promise<Con
     .sort((a, b) => (a.lastAt < b.lastAt ? 1 : -1));
 }
 
-export async function getThread(db: Firestore, uid: string, cid: string, now = new Date(), limit = 100): Promise<{ withUid: string; messages: ThreadMessage[] }> {
+export async function getThread(db: Firestore, uid: string, cid: string, now = new Date(), limit = 100): Promise<{ kind: "direct" | "group"; withUid: string; group?: GroupInfo; messages: ThreadMessage[] }> {
   const convRef = db.doc(`conversations/${cid}`);
   const conv = (await convRef.get()).data();
   if (!conv || !(conv.participants as string[]).includes(uid)) throw new MessageError(404, "That conversation wasn't found.");
@@ -217,7 +221,12 @@ export async function getThread(db: Firestore, uid: string, cid: string, now = n
     };
   });
   await stampRead(db, convRef, uid, now).catch(() => {});
-  return { withUid: (conv.participants as string[]).find((p) => p !== uid) ?? uid, messages };
+  if (conv.kind === "group") return { kind: "group", withUid: "", group: groupInfoOf(conv), messages };
+  return { kind: "direct", withUid: (conv.participants as string[]).find((p) => p !== uid) ?? uid, messages };
+}
+
+export function groupInfoOf(conv: FirebaseFirestore.DocumentData): GroupInfo {
+  return { title: String(conv.title ?? "Group"), scope: conv.scope === "team" ? "team" : "public", memberUids: conv.participants as string[], adminUids: (conv.adminUids as string[] | undefined) ?? [], createdBy: String(conv.createdBy ?? ""), ...(conv.meetingId ? { meetingId: String(conv.meetingId) } : {}) };
 }
 
 // Total unread across conversations (the number beside "Messages" in the menu).
@@ -249,10 +258,12 @@ export async function markRead(db: Firestore, uid: string, cid: string, now = ne
 // they see the double tick and the time. `readMarker.<uid>` remembers the newest message already stamped, so each message gets its
 // time exactly once (opening the conversation again later doesn't move it).
 async function stampRead(db: Firestore, ref: ReturnType<Firestore["doc"]>, uid: string, now: Date): Promise<void> {
-  const marker = ((await ref.get()).data()?.readMarker?.[uid] as string | undefined) ?? "";
+  const conv = (await ref.get()).data();
+  const marker = (conv?.readMarker?.[uid] as string | undefined) ?? "";
   const snap = await ref.collection("messages").where("createdAt", ">", marker).orderBy("createdAt").limit(500).get();
   const batch = db.batch();
-  for (const d of snap.docs) if (d.data().from !== uid && !d.data().readAt) batch.update(d.ref, { readAt: now.toISOString() });
+  // Direct conversations show the sender a double tick and time; a group has no single reader, so it only clears your own count.
+  if (conv?.kind !== "group") for (const d of snap.docs) if (d.data().from !== uid && !d.data().readAt) batch.update(d.ref, { readAt: now.toISOString() });
   const newest = snap.empty ? marker : String(snap.docs[snap.docs.length - 1].data().createdAt);
   batch.update(ref, { [`unread.${uid}`]: 0, [`readMarker.${uid}`]: newest });
   await batch.commit();

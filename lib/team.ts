@@ -24,6 +24,7 @@ export type TeamItem = {
   createdAt: string;
   updatedAt: string;
   doneAt: string;
+  meetingId?: string; // the meeting it came out of, if any
 };
 
 const DATE = /^\d{4}-\d{2}-\d{2}$/;
@@ -73,6 +74,7 @@ export function cleanItem(body: Record<string, unknown>, partial: boolean): Part
   if (has("blockedReason")) out.blockedReason = clip(body.blockedReason, 500);
   if (has("decisionQuestion")) out.decisionQuestion = clip(body.decisionQuestion, 500);
   if (has("decidedNote")) out.decidedNote = clip(body.decidedNote, 500);
+  if (!partial && body.meetingId) out.meetingId = clip(body.meetingId, 64);
   return out;
 }
 
@@ -187,4 +189,49 @@ export function milestoneProgress(m: Milestone, now: number, today: string): Pro
   const timePct = Math.min(100, (gone / total) * 100);
   // The first stretch of a milestone is never "behind": nothing is expected after a day.
   return { current: now, value, pct, state: timePct <= 20 || pct >= timePct * 0.9 ? "on-track" : "behind" };
+}
+
+// ---- Meetings: a scheduled get-together with its own room in the group chat, an agenda, the decisions taken and the actions agreed
+// (actions become work items with the meeting's id on them).
+export const MEETING_STATUSES = ["scheduled", "live", "done"] as const;
+export type MeetingStatus = (typeof MEETING_STATUSES)[number];
+export type MeetingDecision = { text: string; at: string; byUid: string };
+export type Meeting = {
+  id: string;
+  title: string;
+  startsAt: string; // ISO time
+  agenda: string;
+  conversationId: string; // the meeting's room in the group chat
+  status: MeetingStatus;
+  notes: string; // a short summary, written at the end
+  decisions: MeetingDecision[];
+  createdByUid: string;
+  createdAt: string;
+  endedAt: string;
+};
+
+// "2026-10-12" + "15:30" in Lagos time (UTC+1) → the matching ISO instant.
+export function lagosToIso(date: string, time: string): string {
+  if (!DATE.test(date) || !/^\d{2}:\d{2}$/.test(time)) throw new TeamError("Give the meeting a date and a time.");
+  const t = Date.parse(`${date}T${time}:00+01:00`);
+  if (!Number.isFinite(t)) throw new TeamError("That date or time isn't valid.");
+  return new Date(t).toISOString();
+}
+export const lagosParts = (iso: string) => ({ date: lagosDate(new Date(iso)), time: new Date(Date.parse(iso) + 3_600_000).toISOString().slice(11, 16) });
+
+export function cleanMeeting(body: Record<string, unknown>) {
+  const title = clip(body.title, 100);
+  if (!title) throw new TeamError("Give the meeting a title.");
+  return { title, startsAt: lagosToIso(clip(body.date, 10), clip(body.time, 5)), agenda: clip(body.agenda, 2000) };
+}
+
+// A plain-text recap to paste anywhere: when, what was decided, what was agreed and who owns it.
+export function meetingSummary(m: Meeting, actions: TeamItem[], nameOf: (uid: string) => string): string {
+  const when = lagosParts(m.startsAt);
+  const lines = [`${m.title} (${when.date}, ${when.time})`];
+  if (m.agenda) lines.push("", "Agenda:", m.agenda);
+  if (m.decisions.length) lines.push("", "Decisions:", ...m.decisions.map((d) => `- ${d.text}`));
+  if (actions.length) lines.push("", "Actions:", ...actions.map((a) => `- ${a.title}${a.ownerUid ? ` (${nameOf(a.ownerUid)})` : ""}${a.due ? `, due ${a.due}` : ""}${a.status === "done" ? " [done]" : ""}`));
+  if (m.notes) lines.push("", "Notes:", m.notes);
+  return lines.join("\n");
 }

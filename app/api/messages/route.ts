@@ -5,6 +5,7 @@ import { HeadObjectCommand } from "@aws-sdk/client-s3";
 import { getR2Client } from "@/lib/r2";
 import { privateBucket, privateFilesConfigured } from "@/lib/private-files";
 import { MessageError, listConversations, sendMessage } from "@/lib/messages-server";
+import { sendGroupMessage } from "@/lib/groups-server";
 import { MESSAGES_PER_MINUTE } from "@/lib/messages-rules";
 import { authed, fail } from "@/lib/moments-api";
 
@@ -22,10 +23,12 @@ export async function GET(req: NextRequest) {
     const db = getAdminDb();
     const rows = await listConversations(db, me.uid);
     if (new URL(req.url).searchParams.get("unread") === "1") return NextResponse.json({ unread: rows.reduce((n, r) => n + r.unread, 0) });
-    const users = await db.getAll(...rows.map((r) => db.doc(`users/${r.withUid}`)));
+    const direct = rows.filter((r) => r.kind === "direct");
+    const users = direct.length ? await db.getAll(...direct.map((r) => db.doc(`users/${r.withUid}`))) : [];
     const byUid = new Map(users.map((u) => [u.id, u.data()]));
     return NextResponse.json({
       conversations: rows.map((r) => {
+        if (r.kind === "group") return r;
         const u = byUid.get(r.withUid);
         return { ...r, with: { uid: r.withUid, username: u?.username ?? "", displayName: u?.displayName ?? "Member", avatar: u?.avatar ?? "" } };
       }),
@@ -35,7 +38,7 @@ export async function GET(req: NextRequest) {
   }
 }
 
-// POST { toUid? , toUsername?, text, attachmentIds?, sticker?, replyToId? }
+// POST { toUid? , toUsername? (a direct message) or conversationId (a group), text, attachmentIds?, sticker?, replyToId? }
 export async function POST(req: NextRequest) {
   try {
     const me = await authed(req, "messages", true);
@@ -43,6 +46,8 @@ export async function POST(req: NextRequest) {
     if (limited) return limited;
     const body = await req.json().catch(() => ({}));
     const db = getAdminDb();
+    const input = { text: String(body.text ?? ""), attachmentIds: Array.isArray(body.attachmentIds) ? body.attachmentIds : [], sticker: body.sticker ? String(body.sticker) : undefined, replyToId: body.replyToId ? String(body.replyToId) : undefined };
+    if (body.conversationId) return NextResponse.json(await sendGroupMessage(db, me.uid, String(body.conversationId), input, new Date(), undefined, undefined, privateFilesConfigured() ? { head: headPrivate } : undefined));
     let toUid = String(body.toUid ?? "");
     if (!toUid && body.toUsername) {
       const name = (await db.doc(`usernames/${String(body.toUsername).toLowerCase()}`).get()).data();
