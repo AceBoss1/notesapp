@@ -1200,7 +1200,7 @@ database reads; API routes check revocation on every call. Deploy with `firebase
 `lib/finance-server.ts` for the logic). Expenses, payroll and money in that isn't platform revenue (grants, sponsorships, direct
 transfers), with receipts and invoices (private R2 bucket, short-lived links, same bucket and CORS as message files), next to
 the platform's own revenue (shared with /admin/revenue through `lib/revenue-server.ts`). Month-by-month and by-category totals, CSV
-export. Who: **finance** (and super admins) record entries dated today or up to 7 days back (`BACKDATE_DAYS`), add receipts to any
+export. Who: **finance** (and super admins) record entries dated today or up to 3 days back (`BACKDATE_DAYS`), add receipts to any
 entry and void recent ones with a reason; **product** reads everything except payroll lines (payroll shows as a total); only the
 **owner** (`OWNER_EMAIL`) enters older dates, edits, voids history and bulk-imports a CSV (up to 500 rows, checked first,
 duplicates skipped). Nothing is deleted. Collections `financeEntries` and `financeLog` are server-only in `firestore.rules`.

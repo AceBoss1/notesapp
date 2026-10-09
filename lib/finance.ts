@@ -2,7 +2,7 @@
 // as platform revenue (grants, sponsorships, direct transfers). Pure and client-safe; the server side is lib/finance-server.ts.
 //
 // Who may do what:
-//   - Finance (and super admins) record entries dated today or up to BACKDATE_DAYS ago, attach receipts to any entry, and void
+//   - Finance (and super admins) record entries dated today or up to BACKDATE_DAYS (3) ago, attach receipts to any entry, and void
 //     a recent entry with a reason.
 //   - Product (and finance) read everything except payroll, which only finance and super admins see.
 //   - The owner alone enters older (backdated) entries, edits or voids history, and imports past records in bulk.
@@ -41,7 +41,7 @@ export const CATEGORIES: Record<EntryKind, { key: string; label: string }[]> = {
 export const categoryLabel = (kind: EntryKind, key: string) => CATEGORIES[kind].find((c) => c.key === key)?.label ?? key;
 
 // Entries dated within this many days of today are ordinary; older ones are backdated and need the owner.
-export const BACKDATE_DAYS = 7;
+export const BACKDATE_DAYS = 3;
 export const MAX_AMOUNT_KOBO = 100_000_000_00; // ₦100 million per entry: a typo guard, not a business limit
 export const MAX_RECEIPTS = 5;
 export const MAX_IMPORT_ROWS = 500;

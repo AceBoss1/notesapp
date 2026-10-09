@@ -14,5 +14,5 @@ export default function AdminSubNav() {
   const [access, setAccess] = useState<Access | null>(null);
   useEffect(() => onAuthStateChanged(auth, async (u) => setAccess(await adminAccess(u))), []);
   if (!access || pathname.startsWith("/admin/login")) return null;
-  return <SectionNav title="Admin" links={allowedSections(access).map(({ href, label, exact }) => ({ href, label, exact }))} fallbackHref="/admin" />;
+  return <SectionNav title="Admin" links={allowedSections(access).map(({ href, label, exact, group }) => ({ href, label, exact, group }))} fallbackHref="/admin" />;
 }

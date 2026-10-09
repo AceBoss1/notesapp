@@ -29,7 +29,10 @@ const env = (k: string) => (process.env[k] ?? "").trim();
 const cfg = (p: Provider) => p === "linkedin"
   ? { id: env("LINKEDIN_CLIENT_ID"), secret: env("LINKEDIN_CLIENT_SECRET") }
   : { id: env("X_CLIENT_ID"), secret: env("X_CLIENT_SECRET") };
-export const redirectUri = (p: Provider) => `${site()}/api/social/callback/${p}`;
+// The address LinkedIn and X send the member back to. It must match what is registered in each app exactly, so it is fixed to the main
+// site (https://www.notesapp.name.ng/api/social/callback/linkedin and .../x) and does not depend on any setting; only a local test
+// server (localhost) is allowed to differ.
+export const redirectUri = (p: Provider) => `${/^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(site()) ? site() : `https://${MAIN_HOST}`}/api/social/callback/${p}`;
 export const providerConfigured = (p: Provider) => !!(cfg(p).id && cfg(p).secret) && accountCryptoConfigured();
 const LINKEDIN_VERSION = () => env("LINKEDIN_API_VERSION") || "202606";
 
