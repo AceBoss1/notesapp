@@ -1,14 +1,15 @@
 import { getAuth } from "firebase-admin/auth";
 import { FieldValue, type Firestore } from "firebase-admin/firestore";
-import { getAdminApp } from "./firebase-admin";
+import { getAdminApp, getUserEmail } from "./firebase-admin";
+import { notifyBell, sendEmail } from "./email";
 import { ADMIN_PROFILES } from "./admin";
 import { reportCounts } from "./reports-server";
 import { gatherTraction } from "./traction-server";
 import type { Traction } from "./traction";
 import { createGroup, sendGroupMessage, syncMembers, syncTeamRoom, type GroupDeps } from "./groups-server";
 import {
-  TeamError, cleanItem, cleanMeeting, MEETING_STATUSES, type Meeting, type MeetingStatus, cleanMilestone, metricValue, statusEffects, lagosDate, addDays,
-  type Milestone, type TeamItem, type Status,
+  TeamError, cleanItem, cleanMeeting, cleanComment, cleanReview, focusLines, buildMorningSummary, bucketWeeks, weekStart, weekEnd, lagosDay, lagosParts, type Review, type TeamComment, type WeekNumbers, MEETING_STATUSES, type Meeting, type MeetingStatus, cleanMilestone, metricValue, statusEffects, lagosDate, addDays,
+  milestoneProgress, type Milestone, type TeamItem, type Status,
 } from "./team";
 
 // Server side of the team hub. Everything lives in two server-only collections (teamItems, teamMilestones); only signed-in admins reach
@@ -179,3 +180,123 @@ export async function syncTeamRooms(db: Firestore, me: string, teamUids: string[
   const open = (await listMeetings(db)).filter((m) => m.status !== "done");
   await Promise.all(open.map((m) => syncMembers(db, m.conversationId, teamUids)));
 }
+
+// ---- Comments on items ---------------------------------------------------------------------------------------------------------------
+const nameIn = (people: Person[], uid: string) => people.find((p) => p.uid === uid)?.name ?? "A teammate";
+const siteUrl = () => (process.env.NEXT_PUBLIC_SITE_URL || "https://www.notesapp.name.ng").replace(/\/$/, "");
+
+export async function listComments(db: Firestore, itemId: string): Promise<TeamComment[]> {
+  const snap = await db.collection(`${ITEMS}/${itemId}/comments`).orderBy("createdAt").limit(200).get();
+  return snap.docs.map((d) => ({ ...(d.data() as Omit<TeamComment, "id">), id: d.id }));
+}
+
+// A comment goes under the item; the owner and whoever created it (unless they wrote it) get a bell.
+export async function addComment(db: Firestore, adminUid: string, itemId: string, text: unknown, people: Person[], now = new Date(), notify = notifyBell) {
+  const t = cleanComment(text);
+  const ref = db.doc(`${ITEMS}/${itemId}`);
+  const item = (await ref.get()).data() as TeamItem | undefined;
+  if (!item) throw new TeamError("That item no longer exists.", 404);
+  const c = await ref.collection("comments").add({ byUid: adminUid, text: t, createdAt: now.toISOString() });
+  await ref.update({ commentCount: FieldValue.increment(1) });
+  const who = Array.from(new Set([item.ownerUid, item.createdByUid].filter((u) => u && u !== adminUid)));
+  await Promise.all(who.map((uid) => notify({ uid, type: "team", linkHref: "/admin/team", message: `${nameIn(people, adminUid)} commented on “${item.title}”: ${t.slice(0, 100)}` }).catch(() => {})));
+  return { id: c.id };
+}
+
+export async function deleteComment(db: Firestore, adminUid: string, itemId: string, commentId: string) {
+  const ref = db.doc(`${ITEMS}/${itemId}/comments/${commentId}`);
+  const c = (await ref.get()).data();
+  if (!c) return;
+  if (c.byUid !== adminUid) throw new TeamError("You can only delete your own comments.", 403);
+  await ref.delete();
+  await db.doc(`${ITEMS}/${itemId}`).update({ commentCount: FieldValue.increment(-1) }).catch(() => {});
+}
+
+// ---- Each person's choice for the morning summary (both on until switched off) --------------------------------------------------------------
+export type TeamPrefs = { morningEmail: boolean; morningBell: boolean };
+export async function getTeamPrefs(db: Firestore, uid: string): Promise<TeamPrefs> {
+  const p = (await db.doc(`userPrefs/${uid}`).get()).data();
+  return { morningEmail: p?.teamMorningEmail !== false, morningBell: p?.teamMorningBell !== false };
+}
+export async function setTeamPrefs(db: Firestore, uid: string, body: Record<string, unknown>) {
+  const patch: Record<string, boolean> = {};
+  if (typeof body.morningEmail === "boolean") patch.teamMorningEmail = body.morningEmail;
+  if (typeof body.morningBell === "boolean") patch.teamMorningBell = body.morningBell;
+  if (Object.keys(patch).length) await db.doc(`userPrefs/${uid}`).set({ uid, ...patch }, { merge: true });
+}
+
+// ---- The morning summary ----------------------------------------------------------------------------------------------------------------------
+export type DigestDeps = {
+  email: (to: string, mail: { subject: string; text: string; label: string; url: string }) => Promise<void>;
+  bell: (uid: string, message: string) => Promise<void>;
+  emailOf: (uid: string) => Promise<string | null>;
+  people: () => Promise<Person[]>;
+};
+const defaultDigestDeps = (db: Firestore): DigestDeps => ({
+  email: async (to, m) => { await sendEmail({ to, subject: m.subject, text: m.text, action: { label: m.label, url: m.url } }); },
+  bell: async (uid, message) => notifyBell({ uid, type: "team", linkHref: "/admin/team", message }),
+  emailOf: getUserEmail,
+  people: () => listTeamPeople(db),
+});
+
+// From 07:00 Lagos time, once a day: every team member gets one summary (email and/or bell, as they chose) of their day, the decisions and blockers
+// waiting on the team, the review queues, milestones and today's meetings. Nothing is sent to someone with nothing to read. Returns how many went.
+export async function sendMorningSummaries(db: Firestore, now = new Date(), deps: DigestDeps = defaultDigestDeps(db)): Promise<number> {
+  const today = lagosDate(now);
+  if (new Date(now.getTime() + 3_600_000).getUTCHours() < 7) return 0;
+  const mark = db.doc(`teamDigests/${today}`);
+  try { await mark.create({ startedAt: now.toISOString() }); } catch { return 0; } // already sent (or being sent) today
+  const [people, { items, milestones }, signals, meetings, t] = await Promise.all([deps.people(), listTeam(db), teamSignals(db), listMeetings(db), cachedTraction(db)]);
+  const progress = milestones.filter((m) => m.startsOn <= today && m.endsOn >= today).map((m) => ({ title: m.title, ...(({ pct, state }) => ({ pct, state }))(milestoneProgress(m, metricValue(t, m.metric), today)) }));
+  const meetingsToday = meetings.filter((m) => m.status !== "done" && lagosParts(m.startsAt).date === today).map((m) => ({ title: m.title, time: lagosParts(m.startsAt).time }));
+  let sent = 0;
+  for (const p of people) {
+    const prefs = await getTeamPrefs(db, p.uid);
+    if (!prefs.morningEmail && !prefs.morningBell) continue;
+    const d = buildMorningSummary({ name: p.name, uid: p.uid, today, items, signals, milestones: progress, meetingsToday, nameOf: (u) => nameIn(people, u), link: `${siteUrl()}/admin/team` });
+    if (d.empty) continue;
+    if (prefs.morningBell) await deps.bell(p.uid, d.bell).catch(() => {});
+    if (prefs.morningEmail) {
+      const to = await deps.emailOf(p.uid).catch(() => null);
+      if (to) await deps.email(to, { subject: d.subject, text: d.text, label: "Open the team hub", url: `${siteUrl()}/admin/team` }).catch(() => {});
+    }
+    sent++;
+  }
+  await mark.update({ sentAt: new Date().toISOString(), sent });
+  return sent;
+}
+
+// ---- The weekly review -----------------------------------------------------------------------------------------------------------------------------
+// Sign-ups and payments for the last few weeks, counted from the dates people joined and paid.
+export async function weeklyNumbers(db: Firestore, currentWeekStart: string, weeks = 6): Promise<WeekNumbers[]> {
+  const from = new Date(`${currentWeekStart}T00:00:00+01:00`).getTime() - 7 * (weeks - 1) * 86_400_000;
+  const iso = new Date(from).toISOString();
+  const [users, pays] = await Promise.all([
+    db.collection("users").where("createdAt", ">=", iso).select("createdAt").get(),
+    db.collection("payments").where("paidAt", ">=", iso).select("paidAt", "status", "amountKobo").get(),
+  ]);
+  return bucketWeeks(
+    users.docs.map((d) => lagosDay(String(d.data().createdAt))),
+    pays.docs.filter((d) => d.data().status === "paid").map((d) => ({ date: lagosDay(String(d.data().paidAt)), kobo: Number(d.data().amountKobo) || 0 })),
+    currentWeekStart, weeks,
+  );
+}
+
+export async function getReview(db: Firestore, start: string): Promise<(Review & { updatedAt: string; updatedByUid: string }) | null> {
+  const d = (await db.doc(`teamReviews/${start}`).get()).data();
+  return d ? ({ wins: d.wins ?? "", lessons: d.lessons ?? "", nextFocus: d.nextFocus ?? "", updatedAt: d.updatedAt ?? "", updatedByUid: d.updatedByUid ?? "" }) : null;
+}
+export async function saveReview(db: Firestore, adminUid: string, start: string, body: Record<string, unknown>, now = new Date()) {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(start) || weekStart(start) !== start) throw new TeamError("That isn't the start of a week.");
+  await db.doc(`teamReviews/${start}`).set({ ...cleanReview(body), updatedAt: now.toISOString(), updatedByUid: adminUid });
+}
+
+// "Next week's focus", one line each, becomes work items for the week ahead (owned by whoever pressed the button).
+export async function focusToItems(db: Firestore, adminUid: string, text: unknown) {
+  const lines = focusLines(String(text ?? ""));
+  if (!lines.length) throw new TeamError("Write at least one line of focus first.");
+  for (const title of lines) await createItem(db, adminUid, { title, ownerUid: adminUid, horizon: "week", detail: "From the weekly review." });
+  return { created: lines.length };
+}
+
+export { weekEnd };

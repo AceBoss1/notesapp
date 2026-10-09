@@ -25,6 +25,7 @@ export type TeamItem = {
   updatedAt: string;
   doneAt: string;
   meetingId?: string; // the meeting it came out of, if any
+  commentCount?: number;
 };
 
 const DATE = /^\d{4}-\d{2}-\d{2}$/;
@@ -34,6 +35,8 @@ const clip = (v: unknown, n: number) => (typeof v === "string" ? v.trim().slice(
 export function lagosDate(now = new Date()): string {
   return new Date(now.getTime() + 3_600_000).toISOString().slice(0, 10);
 }
+// The Lagos date of an ISO time.
+export const lagosDay = (iso: string) => lagosDate(new Date(iso));
 export function addDays(date: string, days: number): string {
   return new Date(new Date(`${date}T00:00:00Z`).getTime() + days * 86_400_000).toISOString().slice(0, 10);
 }
@@ -112,7 +115,7 @@ export function groupItems(items: TeamItem[], today: string): Grouped {
     else g.later.push(i);
   }
   const since = addDays(today, -7);
-  g.recentlyDone = items.filter((i) => i.status === "done" && i.doneAt.slice(0, 10) >= since).sort((a, b) => b.doneAt.localeCompare(a.doneAt));
+  g.recentlyDone = items.filter((i) => i.status === "done" && i.doneAt && lagosDay(i.doneAt) >= since).sort((a, b) => b.doneAt.localeCompare(a.doneAt));
   for (const k of ["decisions", "blocked", "overdue", "today", "week", "later"] as const) g[k].sort(byDue);
   return g;
 }
@@ -233,5 +236,130 @@ export function meetingSummary(m: Meeting, actions: TeamItem[], nameOf: (uid: st
   if (m.decisions.length) lines.push("", "Decisions:", ...m.decisions.map((d) => `- ${d.text}`));
   if (actions.length) lines.push("", "Actions:", ...actions.map((a) => `- ${a.title}${a.ownerUid ? ` (${nameOf(a.ownerUid)})` : ""}${a.due ? `, due ${a.due}` : ""}${a.status === "done" ? " [done]" : ""}`));
   if (m.notes) lines.push("", "Notes:", m.notes);
+  return lines.join("\n");
+}
+
+// ---- Comments on items
+export type TeamComment = { id: string; byUid: string; text: string; createdAt: string };
+export const COMMENT_MAX = 1000;
+export function cleanComment(text: unknown): string {
+  const t = String(text ?? "").trim().slice(0, COMMENT_MAX);
+  if (!t) throw new TeamError("Write a comment first.");
+  return t;
+}
+
+// ---- The morning summary: one message per person, built from the same lists as the hub.
+export type DigestSignal = { label: string; count: number };
+export type DigestInput = {
+  name: string;
+  uid: string;
+  today: string;
+  items: TeamItem[];
+  signals: DigestSignal[];
+  milestones: { title: string; pct: number; state: string }[];
+  meetingsToday: { title: string; time: string }[];
+  nameOf: (uid: string) => string;
+  link: string;
+};
+export type Digest = { subject: string; text: string; bell: string; empty: boolean };
+
+export function buildMorningSummary(i: DigestInput): Digest {
+  const g = groupItems(i.items, i.today);
+  const mine = (x: TeamItem) => x.ownerUid === i.uid;
+  const todayMine = g.today.filter(mine);
+  const overdueMine = g.overdue.filter((x) => mine(x) && x.status !== "blocked" && x.status !== "decision");
+  const doneYesterday = i.items.filter((x) => x.status === "done" && x.doneAt && lagosDay(x.doneAt) === addDays(i.today, -1)).length;
+  const lines: string[] = [`Good morning, ${i.name.split(" ")[0] || "team"}.`];
+  const dated = (x: TeamItem) => (x.due ? ` (due ${x.due === i.today ? "today" : x.due})` : "");
+  if (todayMine.length) lines.push("", `Your day (${todayMine.length})`, ...todayMine.map((x) => `- ${x.title}${dated(x)}${isOverdue(x, i.today) ? " [overdue]" : ""}`));
+  else lines.push("", "Nothing is set for you today.");
+  if (i.meetingsToday.length) lines.push("", "Meetings today", ...i.meetingsToday.map((m) => `- ${m.time} ${m.title}`));
+  if (g.decisions.length) lines.push("", `Waiting for a decision (${g.decisions.length})`, ...g.decisions.slice(0, 8).map((x) => `- ${x.decisionQuestion || x.title}${x.ownerUid ? ` (${i.nameOf(x.ownerUid)})` : ""}`));
+  if (g.blocked.length) lines.push("", `Blocked (${g.blocked.length})`, ...g.blocked.slice(0, 8).map((x) => `- ${x.title}: ${x.blockedReason}${x.ownerUid ? ` (${i.nameOf(x.ownerUid)})` : ""}`));
+  if (i.signals.length) lines.push("", "Waiting in the review queues", ...i.signals.map((s) => `- ${s.count} ${s.label.toLowerCase()}`));
+  if (i.milestones.length) lines.push("", "Milestones", ...i.milestones.map((m) => `- ${m.title}: ${m.pct}% (${m.state})`));
+  if (doneYesterday) lines.push("", `The team finished ${doneYesterday} item${doneYesterday === 1 ? "" : "s"} yesterday.`);
+  lines.push("", `Open the team hub: ${i.link}`);
+
+  const parts = [
+    todayMine.length ? `${todayMine.length} for you today` : "",
+    overdueMine.length ? `${overdueMine.length} overdue` : "",
+    g.decisions.length ? `${g.decisions.length} decision${g.decisions.length === 1 ? "" : "s"} waiting` : "",
+    g.blocked.length ? `${g.blocked.length} blocked` : "",
+    i.meetingsToday.length ? `${i.meetingsToday.length} meeting${i.meetingsToday.length === 1 ? "" : "s"}` : "",
+  ].filter(Boolean);
+  const empty = !todayMine.length && !g.decisions.length && !g.blocked.length && !i.signals.length && !i.meetingsToday.length && !i.milestones.length;
+  const day = new Date(`${i.today}T12:00:00Z`).toLocaleDateString("en-NG", { weekday: "long", day: "numeric", month: "long" });
+  return { subject: `Team hub, ${day}${parts.length ? `: ${parts.join(", ")}` : ""}`, text: lines.join("\n"), bell: parts.length ? `Today: ${parts.join(", ")}.` : "Your team hub summary for today is ready.", empty };
+}
+
+// ---- The weekly review: weeks run Monday to Sunday (Lagos dates).
+export function weekStart(date: string): string {
+  const dow = new Date(`${date}T12:00:00Z`).getUTCDay(); // 0 = Sunday
+  return addDays(date, -((dow + 6) % 7));
+}
+export const weekEnd = (start: string) => addDays(start, 6);
+
+export type WeekNumbers = { weekStart: string; signups: number; payments: number; processedKobo: number };
+// Counts by week from the dates people joined and paid.
+export function bucketWeeks(signupDates: string[], payments: { date: string; kobo: number }[], currentWeekStart: string, weeks: number): WeekNumbers[] {
+  const starts = Array.from({ length: weeks }, (_, k) => addDays(currentWeekStart, -7 * (weeks - 1 - k)));
+  const idx = (d: string) => starts.indexOf(weekStart(d));
+  const out: WeekNumbers[] = starts.map((s) => ({ weekStart: s, signups: 0, payments: 0, processedKobo: 0 }));
+  for (const d of signupDates) { const k = idx(d); if (k >= 0) out[k].signups++; }
+  for (const p of payments) { const k = idx(p.date); if (k >= 0) { out[k].payments++; out[k].processedKobo += p.kobo; } }
+  return out;
+}
+
+export type WeekWork = { done: TeamItem[]; created: number; carriedOver: TeamItem[]; blocked: TeamItem[]; decisions: TeamItem[]; overdue: number };
+export function weekWork(items: TeamItem[], start: string, today: string): WeekWork {
+  const end = weekEnd(start);
+  const inWeek = (iso: string) => { const d = lagosDay(iso); return d >= start && d <= end; };
+  const open = items.filter(isOpen);
+  return {
+    done: items.filter((x) => x.status === "done" && x.doneAt && inWeek(x.doneAt)).sort((a, b) => a.doneAt.localeCompare(b.doneAt)),
+    created: items.filter((x) => x.createdAt && inWeek(x.createdAt)).length,
+    carriedOver: open.filter((x) => x.status !== "blocked" && x.status !== "decision" && (x.horizon !== "later" || (x.due && x.due <= end))).sort((a, b) => (a.due || "9999").localeCompare(b.due || "9999")),
+    blocked: open.filter((x) => x.status === "blocked"),
+    decisions: open.filter((x) => x.status === "decision"),
+    overdue: open.filter((x) => isOverdue(x, today)).length,
+  };
+}
+
+export type Review = { wins: string; lessons: string; nextFocus: string };
+export function cleanReview(body: Record<string, unknown>): Review {
+  return { wins: clip(body.wins, 2000), lessons: clip(body.lessons, 2000), nextFocus: clip(body.nextFocus, 2000) };
+}
+// One line per thing to do next week: "- Ship forms", "1. Ship forms" and plain lines all work.
+export function focusLines(text: string): string[] {
+  return text.split("\n").map((l) => l.replace(/^\s*(?:[-*\u2022]|\d+[.)])\s*/, "").trim()).filter(Boolean).slice(0, 20);
+}
+
+// The weekly review as plain text (pasted into an email or used as a meeting's agenda).
+export function reviewSummary(i: {
+  weekStart: string;
+  numbers: WeekNumbers[]; // the last weeks, oldest first, ending with this one
+  work: WeekWork;
+  milestones: { title: string; pct: number; state: string }[];
+  meetings: { title: string; decisions: number }[];
+  review: Review | null;
+  nameOf: (uid: string) => string;
+  naira: (kobo: number) => string;
+}): string {
+  const cur = i.numbers[i.numbers.length - 1], prev = i.numbers[i.numbers.length - 2];
+  const delta = (a: number, b: number | undefined) => (b === undefined ? "" : a === b ? " (same as last week)" : ` (${a > b ? "+" : ""}${a - b} on last week)`);
+  const lines = [`Weekly review: ${i.weekStart} to ${weekEnd(i.weekStart)}`, "", "Numbers",
+    `- New members: ${cur?.signups ?? 0}${delta(cur?.signups ?? 0, prev?.signups)}`,
+    `- Payments: ${cur?.payments ?? 0}${delta(cur?.payments ?? 0, prev?.payments)}`,
+    `- Money processed: ${i.naira(cur?.processedKobo ?? 0)}`];
+  lines.push("", `Work: ${i.work.done.length} done, ${i.work.created} added, ${i.work.carriedOver.length} carried over, ${i.work.overdue} overdue`);
+  if (i.work.done.length) lines.push("Done:", ...i.work.done.map((x) => `- ${x.title}${x.ownerUid ? ` (${i.nameOf(x.ownerUid)})` : ""}`));
+  if (i.work.decisions.length) lines.push("Waiting for a decision:", ...i.work.decisions.map((x) => `- ${x.decisionQuestion || x.title}`));
+  if (i.work.blocked.length) lines.push("Blocked:", ...i.work.blocked.map((x) => `- ${x.title}: ${x.blockedReason}`));
+  if (i.milestones.length) lines.push("", "Milestones", ...i.milestones.map((m) => `- ${m.title}: ${m.pct}% (${m.state})`));
+  if (i.meetings.length) lines.push("", "Meetings", ...i.meetings.map((m) => `- ${m.title}${m.decisions ? `, ${m.decisions} decision${m.decisions === 1 ? "" : "s"}` : ""}`));
+  if (i.review?.wins) lines.push("", "Wins:", i.review.wins);
+  if (i.review?.lessons) lines.push("", "Lessons:", i.review.lessons);
+  if (i.review?.nextFocus) lines.push("", "Next week's focus:", i.review.nextFocus);
   return lines.join("\n");
 }

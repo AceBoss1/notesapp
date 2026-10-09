@@ -39,7 +39,8 @@ export type NotificationType =
   | "plan" // Pro/Business plans and trials
   | "org" // organisation verification and invitations
   | "message" // a new direct message
-  | "moment"; // a reply or reshare of a moment
+  | "moment" // a reply or reshare of a moment
+  | "team"; // the team hub: a comment on your work, the morning summary
 
 export type AppNotification = {
   id: string;

@@ -6,14 +6,14 @@ import { useAdminAuth } from "@/lib/useAdminAuth";
 import { formatNaira } from "@/lib/booking-time";
 import {
   HORIZONS, HORIZON_LABEL, METRICS, STATUS_LABEL, addDays, groupItems, isOverdue, lagosParts,
-  type Horizon, type Meeting, type MetricKey, type Milestone, type Progress, type Status, type TeamItem,
+  type Horizon, type Meeting, type MetricKey, type Milestone, type Progress, type Status, type TeamComment, type TeamItem,
 } from "@/lib/team";
 
 type Person = { uid: string; name: string; email: string };
 type Signal = { id: string; label: string; count: number; href: string; urgent?: boolean };
 type MilestoneRow = Milestone & { progress: Progress };
 type Data = {
-  me: string; today: string; items: TeamItem[]; milestones: MilestoneRow[]; people: Person[]; signals: Signal[]; meetings: Meeting[]; teamRoomId: string;
+  me: string; today: string; items: TeamItem[]; milestones: MilestoneRow[]; people: Person[]; signals: Signal[]; meetings: Meeting[]; teamRoomId: string; prefs: { morningEmail: boolean; morningBell: boolean };
   snapshot: { registered: number; newLast30Days: number; paidPlans: number; goldBadges: number; processedLast30DaysKobo: number; inEscrowKobo: number; generatedAt: string };
 };
 
@@ -30,11 +30,15 @@ function Tile({ label, value }: { label: string; value: string }) {
 }
 
 // One piece of work. Quick buttons for the usual moves; blocking and asking for a decision each ask for the one line that makes them useful.
-function ItemCard({ item, people, today, send }: { item: TeamItem; people: Person[]; today: string; send: (body: Record<string, unknown>) => Promise<void> }) {
+function ItemCard({ item, people, today, me, send, fetchComments }: { item: TeamItem; people: Person[]; today: string; me: string; send: (body: Record<string, unknown>) => Promise<void>; fetchComments: (id: string) => Promise<TeamComment[]> }) {
   const [mode, setMode] = useState<null | "edit" | "block" | "ask" | "decide">(null);
   const [text, setText] = useState("");
   const [draft, setDraft] = useState(item);
   const [busy, setBusy] = useState(false);
+  const [showC, setShowC] = useState(false);
+  const [comments, setComments] = useState<TeamComment[] | null>(null);
+  const [cText, setCText] = useState("");
+  const loadC = useCallback(() => { fetchComments(item.id).then(setComments).catch(() => setComments([])); }, [fetchComments, item.id]);
   const owner = people.find((p) => p.uid === item.ownerUid)?.name;
   const overdue = isOverdue(item, today);
   const act = async (body: Record<string, unknown>) => {
@@ -67,6 +71,25 @@ function ItemCard({ item, people, today, send }: { item: TeamItem; people: Perso
           {item.status === "decision" && <button onClick={() => { setText(""); setMode("decide"); }} className={btn}>Decided</button>}
           {item.status === "done" && <button disabled={busy} onClick={() => act({ status: "todo" })} className={btn}>Reopen</button>}
           <button onClick={() => { setDraft(item); setMode("edit"); }} className={btn}>Edit</button>
+          <button onClick={() => { if (!showC) loadC(); setShowC((x) => !x); }} aria-expanded={showC} className={btn}>Comments{item.commentCount ? ` (${item.commentCount})` : ""}</button>
+        </div>
+      )}
+      {showC && (
+        <div className="mt-2 border-t border-rule pt-2">
+          {comments === null ? <p className="text-xs text-slate">Loading…</p> : comments.length === 0 ? <p className="text-xs text-slate">No comments yet.</p> : (
+            <ul className="space-y-1.5">
+              {comments.map((c) => (
+                <li key={c.id} className="flex items-start justify-between gap-2 text-xs">
+                  <span className="text-ink"><strong>{people.find((p) => p.uid === c.byUid)?.name ?? "Someone"}:</strong> <span className="whitespace-pre-line">{c.text}</span> <span className="text-slate">· {new Date(c.createdAt).toLocaleString("en-NG", { day: "numeric", month: "short", hour: "numeric", minute: "2-digit" })}</span></span>
+                  {c.byUid === me && <button aria-label="Delete this comment" onClick={async () => { await send({ action: "deleteComment", id: item.id, commentId: c.id }); loadC(); }} className="text-slate">×</button>}
+                </li>
+              ))}
+            </ul>
+          )}
+          <form className="mt-2 flex gap-2" onSubmit={async (e) => { e.preventDefault(); if (!cText.trim()) return; await send({ action: "addComment", id: item.id, text: cText }); setCText(""); loadC(); }}>
+            <input value={cText} onChange={(e) => setCText(e.target.value)} placeholder="Add a comment" maxLength={1000} className={`${input} mt-0 flex-1`} />
+            <button disabled={!cText.trim()} className="btn-primary !px-3 !py-1.5 text-xs">Post</button>
+          </form>
         </div>
       )}
 
@@ -159,12 +182,14 @@ export default function AdminTeamPage() {
   const [showMs, setShowMs] = useState(false);
   const [ms, setMs] = useState({ title: "", metric: "registered" as MetricKey, mode: "gain", target: "", startsOn: "", endsOn: "", ownerUid: "", note: "" });
   const [showLater, setShowLater] = useState(false);
+  const [prefs, setPrefs] = useState({ morningEmail: true, morningBell: true }); // shown at once, saved in the background
+  useEffect(() => { if (data) setPrefs(data.prefs); }, [data]);
   const [showMeet, setShowMeet] = useState(false);
   const [meet, setMeet] = useState({ title: "", date: "", time: "10:00", agenda: "" });
 
-  const call = useCallback(async (init?: { body: Record<string, unknown> }) => {
+  const call = useCallback(async (init?: { body: Record<string, unknown> }, qs = "") => {
     const token = await user!.getIdToken();
-    const r = await fetch("/api/admin/team", init ? { method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` }, body: JSON.stringify(init.body) } : { headers: { Authorization: `Bearer ${token}` } });
+    const r = await fetch(`/api/admin/team${qs}`, init ? { method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` }, body: JSON.stringify(init.body) } : { headers: { Authorization: `Bearer ${token}` } });
     const j = await r.json();
     if (!r.ok) throw new Error(j.error || "Something went wrong");
     return j;
@@ -179,6 +204,7 @@ export default function AdminTeamPage() {
     try { await call({ body }); await load(); } catch (e) { setError(e instanceof Error ? e.message : "Couldn't save"); throw e; }
   }, [call, load]);
 
+  const fetchComments = useCallback(async (id: string) => (await call(undefined, `?comments=${encodeURIComponent(id)}`)).comments as TeamComment[], [call]);
   const visible = useMemo(() => (data ? data.items.filter((i) => !mineOnly || i.ownerUid === data.me) : []), [data, mineOnly]);
   const g = useMemo(() => (data ? groupItems(visible, data.today) : null), [data, visible]);
 
@@ -187,7 +213,7 @@ export default function AdminTeamPage() {
 
   const today = data.today;
   const people = data.people;
-  const list = (items: TeamItem[]) => <ul className="mt-3 space-y-2">{items.map((i) => <ItemCard key={i.id} item={i} people={people} today={today} send={send} />)}</ul>;
+  const list = (items: TeamItem[]) => <ul className="mt-3 space-y-2">{items.map((i) => <ItemCard key={i.id} item={i} people={people} today={today} me={data.me} send={send} fetchComments={fetchComments} />)}</ul>;
   const needs = g.decisions.length + g.blocked.length + g.overdue.filter((i) => i.status !== "blocked" && i.status !== "decision").length + data.signals.length;
   const section = (title: string, hint: string, items: TeamItem[]) => (
     <section className="mt-8">
@@ -204,7 +230,10 @@ export default function AdminTeamPage() {
           <h1 className="font-display text-4xl">Team hub</h1>
           <p className="mt-1 text-sm text-slate">{dayLabel(today)} · what is moving, what is stuck, and what needs a decision.</p>
         </div>
-        <label className="flex items-center gap-2 text-sm text-slate"><input type="checkbox" checked={mineOnly} onChange={(e) => setMineOnly(e.target.checked)} /> Only mine</label>
+        <span className="flex flex-wrap items-center gap-3 text-sm text-slate">
+          <Link href="/admin/team/review" className="btn-ghost !px-4 !py-2 text-xs">Weekly review →</Link>
+          <label className="flex items-center gap-2"><input type="checkbox" checked={mineOnly} onChange={(e) => setMineOnly(e.target.checked)} /> Only mine</label>
+        </span>
       </div>
       {error && <p className="mt-3 text-sm text-crimson">{error}</p>}
 
@@ -351,9 +380,13 @@ export default function AdminTeamPage() {
 
       {section("Done this week", "Finished in the last seven days.", g.recentlyDone)}
 
-      <section className="card mt-10 border-dashed p-5">
-        <p className="font-mono text-[11px] uppercase tracking-eyebrow text-crimson-bright">Coming next</p>
-        <p className="mt-2 text-sm text-slate">A morning summary by email and bell, a weekly review built from these numbers, and comments on items.</p>
+      <section className="card mt-10 p-5" aria-labelledby="morning">
+        <h2 id="morning" className="font-display text-xl text-ink">Your morning summary</h2>
+        <p className="mt-1 text-xs text-slate">Every morning from 7:00 (Lagos time): your day, the decisions and blockers waiting on the team, the review queues, milestones and today&apos;s meetings. Nothing is sent when there is nothing to read.</p>
+        <div className="mt-3 flex flex-wrap gap-4 text-sm text-ink">
+          <label className="flex items-center gap-2"><input type="checkbox" checked={prefs.morningEmail} onChange={(e) => { setPrefs({ ...prefs, morningEmail: e.target.checked }); void send({ action: "setPrefs", morningEmail: e.target.checked }); }} /> By email</label>
+          <label className="flex items-center gap-2"><input type="checkbox" checked={prefs.morningBell} onChange={(e) => { setPrefs({ ...prefs, morningBell: e.target.checked }); void send({ action: "setPrefs", morningBell: e.target.checked }); }} /> In the bell</label>
+        </div>
       </section>
     </section>
   );
