@@ -18,6 +18,18 @@ service cloud.firestore {
       return request.auth != null && request.auth.token.admin == true;
     }
 
+    // Staff roles (custom claims, set by /api/admin/access; see lib/admin-access.ts). A super admin does everything; an admin works in the
+    // departments listed in `depts`. A bare `admin: true` with no `adminRole` (every account set up before roles existed) is a super admin.
+    function isSuper() {
+      return isAdmin() && request.auth.token.get('adminRole', 'super') == 'super';
+    }
+    function adminHas(dept) {
+      return isSuper() || (isAdmin() && request.auth.token.get('depts', []).hasAny([dept]));
+    }
+    function adminHasAny(depts) {
+      return isSuper() || (isAdmin() && request.auth.token.get('depts', []).hasAny(depts));
+    }
+
     // A self-serve paid/free-basic-publisher account, or an internal
     // staff/volunteer designation — either grants publish permission
     // over one's own notes. Deliberately does NOT include role==
@@ -105,7 +117,7 @@ service cloud.firestore {
       // author and admins (queries must filter on status == 'published'
       // or authorUid == the caller's uid to be allowed).
       allow read: if resource.data.status == 'published'
-        || isAdmin()
+        || adminHasAny(['content', 'moderation'])
         || (isSignedIn() && resource.data.authorUid == request.auth.uid)
         || (isSignedIn() && resource.data.get('writerUid', '') == request.auth.uid)
         || (isSignedIn() && orgRole(resource.data.get('authorUid', '-')) == 'admin');
@@ -113,7 +125,7 @@ service cloud.firestore {
       // Admins can create anything.
       // Writers can create only notes authored by themselves.
       // coAuthors / coAuthorUids are written only by /api/coauthors (consent).
-      allow create: if isAdmin()
+      allow create: if adminHas('content')
         || (
           isPublisher()
           && request.resource.data.authorUid == request.auth.uid
@@ -133,7 +145,7 @@ service cloud.firestore {
 
       // Admins can delete anything.
       // Writers can delete only their own notes.
-      allow delete: if isAdmin()
+      allow delete: if adminHasAny(['content', 'moderation'])
         || (
           isPublisher()
           && resource.data.authorUid == request.auth.uid
@@ -147,7 +159,7 @@ service cloud.firestore {
       // 3. Anyone can increment viewCount.
       // 4. Signed-in users can update likeCount.
       // 5. Anyone can update shareCount.
-      allow update: if isAdmin()
+      allow update: if adminHasAny(['content', 'moderation'])
         || (
           isPublisher()
           && resource.data.authorUid == request.auth.uid
@@ -216,7 +228,7 @@ service cloud.firestore {
         allow update: if isSignedIn()
           && (
             request.auth.uid == resource.data.authorUid
-            || isAdmin()
+            || adminHas('moderation')
             || request.resource.data.diff(resource.data)
                 .affectedKeys()
                 .hasOnly(['likeCount'])
@@ -226,7 +238,7 @@ service cloud.firestore {
         allow delete: if isSignedIn()
           && (
             request.auth.uid == resource.data.authorUid
-            || isAdmin()
+            || adminHas('moderation')
           );
 
 
@@ -299,7 +311,12 @@ service cloud.firestore {
         // --------------------------------------------------------
         // 1. ADMIN
         // --------------------------------------------------------
-        isAdmin()
+        (
+          isSuper() || adminHas('finance')
+          // Customer care and trust & safety may suspend and reinstate, nothing else on a profile.
+          || ((adminHas('support') || adminHas('moderation'))
+              && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['suspended']))
+        )
 
         // --------------------------------------------------------
         // 2. ORDINARY PROFILE EDIT
@@ -327,9 +344,9 @@ service cloud.firestore {
     // ============================================================
 
     match /suspensions/{uid} {
-      allow read: if isAdmin() || (isSignedIn() && request.auth.uid == uid);
-      allow create, delete: if isAdmin();
-      allow update: if isAdmin()
+      allow read: if adminHasAny(['support', 'moderation']) || (isSignedIn() && request.auth.uid == uid);
+      allow create, delete: if adminHasAny(['support', 'moderation']);
+      allow update: if adminHasAny(['support', 'moderation'])
         // A suspended member can only file an appeal.
         || (
           isSignedIn()
@@ -348,14 +365,14 @@ service cloud.firestore {
 
     // Official merch pre-orders — owner + admins read; server-only writes.
     match /merchOrders/{ref} {
-      allow read: if isAdmin() || (isSignedIn() && resource.data.uid == request.auth.uid);
+      allow read: if adminHasAny(['finance', 'support']) || (isSignedIn() && resource.data.uid == request.auth.uid);
       allow write: if false;
     }
 
     // Co-author invites (and the agreed earnings split): the lead, the invitee
     // and admins read; the server route is the only writer.
     match /coAuthorInvites/{id} {
-      allow read: if isAdmin()
+      allow read: if adminHasAny(['finance', 'support'])
         || (isSignedIn() && (resource.data.leadUid == request.auth.uid || resource.data.inviteeUid == request.auth.uid));
       allow write: if false;
     }
@@ -364,12 +381,12 @@ service cloud.firestore {
     // change goes through /api/store/orders (parcels and their no-login links are
     // reached only through /api/track).
     match /storeOrders/{id} {
-      allow read: if isAdmin()
+      allow read: if adminHasAny(['finance', 'support'])
         || (isSignedIn() && (resource.data.buyerUid == request.auth.uid || resource.data.sellerUid == request.auth.uid));
       allow write: if false;
     }
     match /parcels/{id} {
-      allow read: if isAdmin();
+      allow read: if adminHasAny(['finance', 'support']);
       allow write: if false;
     }
     match /parcelLinks/{id} {
@@ -379,56 +396,56 @@ service cloud.firestore {
     // Organisation teams: read and written only through /api/org/team (rules
     // above peek at orgMembers with exists()/get(), which needs no read access).
     match /orgMembers/{id} {
-      allow read: if isAdmin();
+      allow read: if adminHasAny(['support', 'growth']);
       allow write: if false;
     }
     match /orgInvites/{id} {
-      allow read: if isAdmin();
+      allow read: if adminHasAny(['support', 'growth']);
       allow write: if false;
     }
 
     // Ad impression/click aggregates — written by /api/ads/track only. Admins read
     // all; a publisher reads their own daily totals (the base for ad-share).
     match /adStats/{id} {
-      allow read: if isAdmin();
+      allow read: if adminHasAny(['growth', 'finance']);
       allow write: if false;
     }
     match /adPublisherStats/{id} {
-      allow read: if isAdmin() || (isSignedIn() && resource.data.publisherUid == request.auth.uid);
+      allow read: if adminHasAny(['growth', 'finance']) || (isSignedIn() && resource.data.publisherUid == request.auth.uid);
       allow write: if false;
     }
 
     // Ad revenue received (admin-recorded) and per-publisher monthly ad-share
     // statements. Server-written; a publisher reads only their own statements.
     match /adRevenue/{id} {
-      allow read: if isAdmin();
+      allow read: if adminHas('finance');
       allow write: if false;
     }
     match /adShareStatements/{id} {
-      allow read: if isAdmin() || (isSignedIn() && resource.data.uid == request.auth.uid);
+      allow read: if adminHas('finance') || (isSignedIn() && resource.data.uid == request.auth.uid);
       allow write: if false;
     }
 
     // Advertiser campaigns — the advertiser and admins read; server-written.
     match /adCampaigns/{id} {
-      allow read: if isAdmin() || (isSignedIn() && resource.data.uid == request.auth.uid);
+      allow read: if adminHasAny(['growth', 'finance']) || (isSignedIn() && resource.data.uid == request.auth.uid);
       allow write: if false;
     }
 
     // House ad creatives — admin only (the public reads them through /api/ads).
     match /adCreatives/{id} {
-      allow read, write: if isAdmin();
+      allow read, write: if adminHas('growth');
     }
 
     // Paid gold-badge subscription records — owner + admins read; server writes.
     match /goldSubscriptions/{uid} {
-      allow read: if isAdmin() || (isSignedIn() && request.auth.uid == uid);
+      allow read: if adminHasAny(['finance', 'support']) || (isSignedIn() && request.auth.uid == uid);
       allow write: if false;
     }
 
     match /badgeRequests/{uid} {
-      allow read: if isAdmin() || (isSignedIn() && request.auth.uid == uid);
-      allow update: if isAdmin();
+      allow read: if adminHasAny(['support', 'moderation']) || (isSignedIn() && request.auth.uid == uid);
+      allow update: if adminHasAny(['support', 'moderation']);
       allow create, delete: if false;
     }
 
@@ -465,7 +482,7 @@ service cloud.firestore {
       allow read: if true;
 
       // Only admins can change site-wide settings.
-      allow write: if isAdmin();
+      allow write: if adminHas('product');
     }
 
 
@@ -532,12 +549,12 @@ service cloud.firestore {
 
     match /storeItems/{itemId} {
       allow read: if true;
-      allow create: if isAdmin()
+      allow create: if adminHasAny(['support', 'moderation'])
         || (isPublisher() && request.resource.data.ownerUid == request.auth.uid
             && validStoreItem(request.resource.data))
         || (orgStoreFlag(request.resource.data.ownerUid) && orgCanPublish(request.resource.data.ownerUid)
             && validStoreItem(request.resource.data));
-      allow update: if isAdmin()
+      allow update: if adminHasAny(['support', 'moderation'])
         || (isPublisher() && resource.data.ownerUid == request.auth.uid
             && request.resource.data.ownerUid == request.auth.uid
             && sameKind(request.resource.data, resource.data)
@@ -546,7 +563,7 @@ service cloud.firestore {
             && request.resource.data.ownerUid == resource.data.ownerUid
             && sameKind(request.resource.data, resource.data)
             && validStoreItem(request.resource.data));
-      allow delete: if isAdmin()
+      allow delete: if adminHasAny(['support', 'moderation'])
         || (isSignedIn() && resource.data.ownerUid == request.auth.uid)
         || orgStoreFlag(resource.data.ownerUid);
     }
@@ -632,7 +649,7 @@ service cloud.firestore {
 
     // Who bought which download. The buyer, the seller and admins can read; only the server writes.
     match /digitalPurchases/{ref} {
-      allow read: if isAdmin()
+      allow read: if adminHasAny(['finance', 'support'])
         || (isSignedIn() && (resource.data.buyerUid == request.auth.uid || resource.data.sellerUid == request.auth.uid));
       allow write: if false;
     }
@@ -699,11 +716,11 @@ service cloud.firestore {
 
     // Pro/Business plan records — owner + admins read; server-only writes.
     match /tierSubscriptions/{uid} {
-      allow read: if isSignedIn() && (request.auth.uid == uid || isAdmin());
+      allow read: if isSignedIn() && (request.auth.uid == uid || adminHasAny(['finance', 'support']));
       allow write: if false;
     }
     match /badgeSubscriptions/{uid} {
-      allow read: if isSignedIn() && (request.auth.uid == uid || isAdmin());
+      allow read: if isSignedIn() && (request.auth.uid == uid || adminHasAny(['finance', 'support']));
       allow write: if false;
     }
     match /platformPlans/{id} {
@@ -716,7 +733,7 @@ service cloud.firestore {
     // Boost campaigns: the buyer (and admins) can read their stats; only the server writes.
     match /boosts/{boostId} {
       allow read: if isSignedIn()
-        && (resource.data.publisherUid == request.auth.uid || isAdmin());
+        && (resource.data.publisherUid == request.auth.uid || adminHasAny(['growth', 'finance']));
       allow write: if false;
       match /seen/{seenId} {
         allow read, write: if false;
@@ -728,7 +745,7 @@ service cloud.firestore {
       allow read: if isSignedIn()
         && (resource.data.toUid == request.auth.uid
             || resource.data.fromUid == request.auth.uid
-            || isAdmin());
+            || adminHasAny(['finance', 'support']));
       allow write: if false;
     }
 
@@ -740,7 +757,7 @@ service cloud.firestore {
       allow read: if isSignedIn()
         && (resource.data.clientUid == request.auth.uid
             || resource.data.publisherUid == request.auth.uid
-            || isAdmin());
+            || adminHasAny(['support', 'finance']));
       allow write: if false;
     }
 
@@ -753,20 +770,20 @@ service cloud.firestore {
 
     // Where a publisher is paid — owner (and admins) can read, never write.
     match /payoutAccounts/{uid} {
-      allow read: if isSignedIn() && (request.auth.uid == uid || isAdmin());
+      allow read: if isSignedIn() && (request.auth.uid == uid || adminHas('finance'));
       allow write: if false;
     }
 
     // Earnings ledger: publishers see their own entries; admins all.
     match /ledger/{reference} {
       allow read: if isSignedIn()
-        && (resource.data.publisherUid == request.auth.uid || isAdmin());
+        && (resource.data.publisherUid == request.auth.uid || adminHas('finance'));
       allow write: if false;
     }
 
     match /payments/{reference} {
       allow read: if isSignedIn()
-        && (resource.data.uid == request.auth.uid || isAdmin());
+        && (resource.data.uid == request.auth.uid || adminHas('finance'));
       allow write: if false;
     }
 
@@ -798,7 +815,7 @@ service cloud.firestore {
 
       // Lead information is private.
       // Only admins can access or manage it.
-      allow read, update, delete: if isAdmin();
+      allow read, update, delete: if adminHasAny(['support', 'growth']);
     }
 
     // ============================================================
@@ -818,7 +835,7 @@ service cloud.firestore {
     // Function that owns notification creation instead of the client.
     match /notifications/{notificationId} {
       allow read: if isSignedIn()
-        && (resource.data.recipientUid == request.auth.uid || isAdmin());
+        && (resource.data.recipientUid == request.auth.uid || isSuper());
 
       allow create: if isSignedIn()
         && request.resource.data.recipientUid is string

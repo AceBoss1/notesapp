@@ -13,7 +13,7 @@ const SOURCES = ["notesapp", "google", "meta", "admob"];
 // month's revenue entries, impression totals and statements.
 export async function GET(req: NextRequest) {
   try {
-    await verifyAdminRequest(req.headers.get("authorization")?.replace(/^Bearer\s+/i, ""));
+    await verifyAdminRequest(req.headers.get("authorization")?.replace(/^Bearer\s+/i, ""), ["finance"]);
     const month = req.nextUrl.searchParams.get("month");
     if (!isMonth(month)) return NextResponse.json({ error: "Invalid month." }, { status: 400 });
     const db = getAdminDb();
@@ -36,7 +36,7 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   try {
-    const adminUid = await verifyAdminRequest(req.headers.get("authorization")?.replace(/^Bearer\s+/i, ""));
+    const adminUid = await verifyAdminRequest(req.headers.get("authorization")?.replace(/^Bearer\s+/i, ""), ["finance"]);
     const body = await req.json().catch(() => ({}));
     const db = getAdminDb();
     const now = new Date().toISOString();

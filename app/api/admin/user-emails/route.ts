@@ -7,7 +7,7 @@ import { rateLimit } from "@/lib/rate-limit";
 export async function POST(req: NextRequest) {
   try {
     const idToken = req.headers.get("authorization")?.replace(/^Bearer\s+/i, "");
-    const adminUid = await verifyAdminRequest(idToken).catch(() => null);
+    const adminUid = await verifyAdminRequest(idToken, ["support", "moderation", "finance"]).catch(() => null);
     if (!adminUid) return NextResponse.json({ error: "Admins only." }, { status: 403 });
     const limited = rateLimit(req, "user-emails", adminUid, 60, 600);
     if (limited) return limited;

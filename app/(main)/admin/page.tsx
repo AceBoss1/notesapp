@@ -6,6 +6,7 @@ import { signOut } from "firebase/auth";
 import { collection, getCountFromServer, collectionGroup } from "firebase/firestore";
 import { auth, db } from "@/lib/firebase";
 import { useAdminAuth } from "@/lib/useAdminAuth";
+import { allowedSections, pathAllowed, hasAnyDept, hasDept, roleLabel, deptSummary } from "@/lib/admin-access";
 import { getAllNotes, NoteWithComputed } from "@/lib/firestore-notes";
 
 // Ported from Precheks' own expanded /admin dashboard — same notes
@@ -92,7 +93,9 @@ function countErrorReason(err: unknown): string {
 }
 
 export default function AdminDashboard() {
-  const { user, loading } = useAdminAuth();
+  const { user, access, loading } = useAdminAuth();
+  const canNotes = hasAnyDept(access, ["content", "moderation"]);
+  const canUsers = hasAnyDept(access, ["support", "moderation", "finance"]);
   const [noteStats, setNoteStats] = useState<NoteStats | null>(null);
   const [allNotes, setAllNotes] = useState<NoteWithComputed[]>([]);
   const [topByViews, setTopByViews] = useState<NoteWithComputed[]>([]);
@@ -111,9 +114,9 @@ export default function AdminDashboard() {
   // Each stat loads independently — one permission/rules issue on a
   // single query no longer blanks the whole dashboard.
   useEffect(() => {
-    if (!user) return;
+    if (!user || !access) return;
 
-    getAllNotes({ publishedOnly: false })
+    if (canNotes) getAllNotes({ publishedOnly: false })
       .then((notes) => {
         setAllNotes(notes);
         setNoteStats({
@@ -139,19 +142,19 @@ export default function AdminDashboard() {
         setCommentsError(`Couldn't load comment count — ${countErrorReason(err)}`);
       });
 
-    getCountFromServer(collection(db, "users"))
+    if (canUsers) getCountFromServer(collection(db, "users"))
       .then((snap) => setTotalUsers(snap.data().count))
       .catch((err) => {
         console.error("Dashboard: users count failed:", err);
         setUsersError(`Couldn't load user count — ${countErrorReason(err)}`);
       });
-  }, [user]);
+  }, [user, access, canNotes, canUsers]);
 
   // Per-note comment counts, fetched once notes are in — powers "Most
   // Commented" and feeds into the engagement rate calculation.
   // Open reports on moments and conversations (the card below). Refreshed every minute while this page is open.
   useEffect(() => {
-    if (!user) return;
+    if (!user || !hasDept(access, "moderation")) return;
     let live = true;
     const get = async () => {
       try {
@@ -162,7 +165,7 @@ export default function AdminDashboard() {
     get();
     const t = setInterval(get, 60_000);
     return () => { live = false; clearInterval(t); };
-  }, [user]);
+  }, [user, access]);
 
   useEffect(() => {
     if (allNotes.length === 0) return;
@@ -226,6 +229,25 @@ export default function AdminDashboard() {
     return <div className="px-6 py-24 text-center text-slate">Loading…</div>;
   }
 
+  if (!canNotes) {
+    // Staff whose departments don't cover journals get a short landing page with their own areas instead of site-wide stats.
+    const mine = allowedSections(access).filter((x) => x.href !== "/admin");
+    return (
+      <section className="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8 py-14">
+        <p className="eyebrow">#NotesApp Admin</p>
+        <h1 className="font-display text-4xl mt-2">Dashboard</h1>
+        <p className="mt-3 text-sm text-slate">{roleLabel(access)} · {deptSummary(access)}</p>
+        {mine.length === 0 ? (
+          <p className="mt-8 text-slate">You have no departments yet. Ask a super admin to add you to one.</p>
+        ) : (
+          <div className="mt-8 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            {mine.map((x) => <Link key={x.href} href={x.href} className="border border-rule bg-card p-5 font-display text-lg hover:border-crimson">{x.label}</Link>)}
+          </div>
+        )}
+      </section>
+    );
+  }
+
   const cards = [
     { label: "Published Journals", value: noteStats?.publishedCount, error: notesError },
     { label: "Drafts", value: noteStats?.draftCount, error: notesError },
@@ -233,7 +255,7 @@ export default function AdminDashboard() {
     { label: "Total Likes", value: noteStats?.totalLikes, error: notesError },
     { label: "Total Shares", value: noteStats?.totalShares, error: notesError },
     { label: "Total Comments", value: totalComments ?? undefined, error: commentsError },
-    { label: "Registered Users", value: totalUsers ?? undefined, error: usersError },
+    ...(canUsers ? [{ label: "Registered Users", value: totalUsers ?? undefined, error: usersError }] : []),
     {
       label: "Avg Read Time (min)",
       value: avgReadingTime ?? undefined,
@@ -254,60 +276,78 @@ export default function AdminDashboard() {
           <h1 className="font-display text-4xl mt-2">Dashboard</h1>
         </div>
         <div className="flex gap-3 flex-wrap">
-          <Link
+          {pathAllowed(access, "/admin/journals") && (
+<Link
             href="/admin/journals"
             className="border border-rule px-5 py-2.5 font-ui text-sm font-semibold hover:border-crimson"
           >
             Manage Journals
           </Link>
-          <Link
+)}
+          {pathAllowed(access, "/admin/users") && (
+<Link
             href="/admin/users"
             className="border border-rule px-5 py-2.5 font-ui text-sm font-semibold hover:border-crimson"
           >
             Users
           </Link>
-          <Link
+)}
+          {pathAllowed(access, "/admin/reports") && (
+<Link
             href="/admin/reports"
             className="border border-rule px-5 py-2.5 font-ui text-sm font-semibold hover:border-crimson"
           >
             Reports
           </Link>
-          <Link
+)}
+          {pathAllowed(access, "/admin/limits") && (
+<Link
             href="/admin/limits"
             className="border border-rule px-5 py-2.5 font-ui text-sm font-semibold hover:border-crimson"
           >
             Limits
           </Link>
-          <Link
+)}
+          {pathAllowed(access, "/admin/leads") && (
+<Link
             href="/admin/leads"
             className="border border-rule px-5 py-2.5 font-ui text-sm font-semibold hover:border-crimson"
           >
             Leads
           </Link>
-          <Link
+)}
+          {pathAllowed(access, "/admin/revenue") && (
+<Link
             href="/admin/revenue"
             className="border border-rule px-5 py-2.5 font-ui text-sm font-semibold hover:border-crimson"
           >
             Revenue
           </Link>
-          <Link
+)}
+          {pathAllowed(access, "/admin/payments") && (
+<Link
             href="/admin/payments"
             className="border border-rule px-5 py-2.5 font-ui text-sm font-semibold hover:border-crimson"
           >
             Payments
           </Link>
-          <Link
+)}
+          {pathAllowed(access, "/admin/merch") && (
+<Link
             href="/admin/merch"
             className="border border-rule px-5 py-2.5 font-ui text-sm font-semibold hover:border-crimson"
           >
             Merch
           </Link>
-          <Link
+)}
+          {pathAllowed(access, "/admin/settings") && (
+<Link
             href="/admin/settings"
             className="border border-rule px-5 py-2.5 font-ui text-sm font-semibold hover:border-crimson"
           >
             Settings
           </Link>
+)}
           <Link
             href="/admin/journals/new"
             className="bg-crimson text-paper font-ui font-semibold px-5 py-2.5 hover:bg-crimson-bright transition-colors"
@@ -341,7 +381,7 @@ export default function AdminDashboard() {
       )}
 
       {/* ── Open reports ──────────────────────────────────────── */}
-      <Link
+      {hasDept(access, "moderation") && <Link
         href="/admin/reports"
         className={`mt-8 flex items-center justify-between gap-4 border p-5 hover:border-crimson ${reports && reports.overdue > 0 ? "border-red-600 bg-red-50" : reports && reports.urgent > 0 ? "border-amber-500 bg-amber-50" : "border-rule bg-card"}`}
       >
@@ -355,7 +395,7 @@ export default function AdminDashboard() {
             : reports.urgent > 0 ? <strong className="text-amber-700">{reports.urgent} urgent: review within 24 hours</strong> : "None urgent."}
           <span className="block text-xs">Moments and conversations members have reported →</span>
         </p>
-      </Link>
+      </Link>}
 
       {/* ── Top-line stats ────────────────────────────────────── */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mt-8">

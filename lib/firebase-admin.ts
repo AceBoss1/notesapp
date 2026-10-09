@@ -1,6 +1,8 @@
 import { initializeApp, getApps, cert, App } from "firebase-admin/app";
 import { getAuth } from "firebase-admin/auth";
 import { getFirestore } from "firebase-admin/firestore";
+import { ADMIN_PROFILES } from "./admin";
+import { accessFromClaims, hasAnyDept, isSuper, type Access, type Dept } from "./admin-access";
 
 // Server-only — never imported from a "use client" file. Distinct
 // from lib/firebase.ts (the client SDK used everywhere else in this
@@ -44,7 +46,7 @@ export function getAdminApp(): App {
   return initializeApp({ credential: cert(serviceAccount) });
 }
 
-// Admin = custom claim `admin: true` (same rule as firestore.rules' isAdmin()).
+// Admin = custom claim `admin: true` (same rule as firestore.rules' isAdmin()); what they may do is in lib/admin-access.ts.
 function isAdminToken(decoded: { admin?: unknown; [key: string]: unknown }): boolean {
   return decoded.admin === true;
 }
@@ -73,11 +75,34 @@ export async function verifyPublisherRequest(idToken: string | undefined): Promi
   throw new Error("Your account tier can't publish or upload");
 }
 
-export async function verifyAdminRequest(idToken: string | undefined): Promise<string> {
-  if (!idToken) throw new Error("Missing auth token");
-  const decoded = await getAuth(getAdminApp()).verifyIdToken(idToken);
-  if (!isAdminToken(decoded)) throw new Error("Not an admin account");
-  return decoded.uid;
+// The founder who alone appoints and removes super admins. Set OWNER_EMAIL to change it; the default is the first founder account (lib/admin.ts).
+export const ownerEmail = () => (process.env.OWNER_EMAIL || Object.keys(ADMIN_PROFILES)[0] || "").trim().toLowerCase();
+export const isOwnerEmail = (email?: string | null) => !!email && email.trim().toLowerCase() === ownerEmail();
+
+export class AccessError extends Error {
+  constructor(message: string) { super(message); }
+}
+
+// A signed-in staff member and what their role allows. The ID token is also checked for revocation, so removing someone's access (which
+// revokes their sessions) stops their admin requests at once instead of when the token runs out.
+export async function verifyAdminAccess(idToken: string | undefined): Promise<{ uid: string; email: string; access: Access; owner: boolean }> {
+  if (!idToken) throw new AccessError("Missing auth token");
+  const decoded = await getAuth(getAdminApp()).verifyIdToken(idToken, true);
+  const access = accessFromClaims(decoded as unknown as Record<string, unknown>);
+  if (!access) throw new AccessError("Not an admin account");
+  return { uid: decoded.uid, email: decoded.email || "", access, owner: isOwnerEmail(decoded.email) };
+}
+
+// `need` narrows it: "super", or the department(s) the route belongs to (a super admin always passes).
+export async function verifyAdminRequest(idToken: string | undefined, need?: Dept | readonly Dept[] | "super"): Promise<string> {
+  const a = await verifyAdminAccess(idToken);
+  if (need === "super") {
+    if (!isSuper(a.access)) throw new AccessError("Your role doesn't include this area");
+  } else if (need) {
+    const list = typeof need === "string" ? [need] : need;
+    if (!hasAnyDept(a.access, list)) throw new AccessError("Your role doesn't include this area");
+  }
+  return a.uid;
 }
 
 // Grants or revokes the admin claim. The user must sign in again (or

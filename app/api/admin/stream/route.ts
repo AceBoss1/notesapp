@@ -12,7 +12,7 @@ const bearer = (req: NextRequest) => req.headers.get("authorization")?.replace(/
 // ?scan=1 adds what a clean-up would remove. POST → run the clean-up.
 export async function GET(req: NextRequest) {
   try {
-    await verifyAdminRequest(bearer(req));
+    await verifyAdminRequest(bearer(req), ["product"]);
     const diagnostics = await streamDiagnostics();
     if (req.nextUrl.searchParams.get("scan") !== "1") return NextResponse.json({ diagnostics });
     return NextResponse.json({ diagnostics, orphans: await scanOrphans() });
@@ -24,7 +24,7 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   try {
-    await verifyAdminRequest(bearer(req));
+    await verifyAdminRequest(bearer(req), ["product"]);
     return NextResponse.json({ removed: await cleanOrphans() });
   } catch (err) {
     const f = friendlyMessage(err, "Couldn't clean up");

@@ -16,7 +16,8 @@ import {
   toggleCommentLike,
   Comment,
 } from "@/lib/engagement";
-import { isAdminUser } from "@/lib/admin-claims";
+import { adminAccess } from "@/lib/admin-claims";
+import { hasDept } from "@/lib/admin-access";
 import { NA_NOTESAPP_PROFILE } from "@/lib/journals-directory";
 import { getSuspendedUids } from "@/lib/moderation";
 import { notifyComment, notifyReply } from "@/lib/notifications";
@@ -180,7 +181,7 @@ export default function Comments({
 
   const [canModerate, setCanModerate] = useState(false);
   useEffect(() => {
-    isAdminUser(user).then(setCanModerate);
+    adminAccess(user).then((a) => setCanModerate(hasDept(a, "moderation")));
   }, [user]);
   const currentUserSuspended = !!(user && suspendedUids.has(user.uid));
 

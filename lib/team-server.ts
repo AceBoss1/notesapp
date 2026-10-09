@@ -1,8 +1,7 @@
-import { getAuth } from "firebase-admin/auth";
 import { FieldValue, type Firestore } from "firebase-admin/firestore";
-import { getAdminApp, getUserEmail } from "./firebase-admin";
+import { getUserEmail } from "./firebase-admin";
+import { listStaff } from "./admin-access-server";
 import { notifyBell, sendEmail } from "./email";
-import { ADMIN_PROFILES } from "./admin";
 import { reportCounts } from "./reports-server";
 import { gatherTraction } from "./traction-server";
 import type { Traction } from "./traction";
@@ -19,22 +18,9 @@ const ITEMS = "teamItems", MILESTONES = "teamMilestones", MEETINGS = "teamMeetin
 export type Person = { uid: string; name: string; email: string };
 export type Signal = { id: string; label: string; count: number; href: string; urgent?: boolean };
 
-// Every account with the admin claim, with a readable name.
+// Everyone with staff access (any role), with a readable name. Read from the accounts and cached for a minute (lib/admin-access-server.ts).
 export async function listTeamPeople(db: Firestore): Promise<Person[]> {
-  const auth = getAuth(getAdminApp());
-  const admins: { uid: string; email: string }[] = [];
-  let token: string | undefined;
-  do {
-    const page = await auth.listUsers(1000, token);
-    for (const u of page.users) if (u.customClaims?.admin === true) admins.push({ uid: u.uid, email: u.email || "" });
-    token = page.pageToken;
-  } while (token);
-  const docs = admins.length ? await db.getAll(...admins.map((a) => db.doc(`users/${a.uid}`))) : [];
-  return admins.map((a, i) => {
-    const d = docs[i].data();
-    const name = d?.displayName || ADMIN_PROFILES[a.email]?.displayName || d?.username || a.email.split("@")[0] || a.uid;
-    return { uid: a.uid, name: String(name), email: a.email };
-  });
+  return (await listStaff(db)).map((p) => ({ uid: p.uid, name: p.name, email: p.email }));
 }
 
 // Short-lived copy of the platform numbers: the page and every edit ask for them, and counting is heavy.

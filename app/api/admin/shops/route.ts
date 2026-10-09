@@ -9,7 +9,7 @@ const bearer = (req: NextRequest) => req.headers.get("authorization")?.replace(/
 // Admin: the shops that can take orders (the Merch Store's candidates), with those switched off flagged.
 export async function GET(req: NextRequest) {
   try {
-    await verifyAdminRequest(bearer(req));
+    await verifyAdminRequest(bearer(req), ["support", "moderation"]);
     return NextResponse.json({ shops: await getShopDirectoryForAdmin() });
   } catch (err) {
     const f = friendlyMessage(err, "Couldn't load shops");
@@ -20,7 +20,7 @@ export async function GET(req: NextRequest) {
 // { username, hidden } — hide a shop from the Merch Store page (or show it again). The shop itself keeps working.
 export async function POST(req: NextRequest) {
   try {
-    await verifyAdminRequest(bearer(req));
+    await verifyAdminRequest(bearer(req), ["support", "moderation"]);
     const body = await req.json();
     const name = String(body.username || "").trim().toLowerCase().replace(/^@/, "");
     const db = getAdminDb();

@@ -10,7 +10,7 @@ const bearer = (req: NextRequest) => req.headers.get("authorization")?.replace(/
 // defaults apply to anything left out). Applies sitewide within about 30 seconds.
 export async function GET(req: NextRequest) {
   try {
-    await verifyAdminRequest(bearer(req));
+    await verifyAdminRequest(bearer(req), ["product"]);
     return NextResponse.json({ limits: await getLimitTable(getAdminDb()) });
   } catch (err) {
     const f = friendlyMessage(err, "Couldn't load the limits");
@@ -20,7 +20,7 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   try {
-    const admin = await verifyAdminRequest(bearer(req));
+    const admin = await verifyAdminRequest(bearer(req), ["product"]);
     const body = await req.json().catch(() => ({}));
     return NextResponse.json({ limits: await saveLimitOverrides(getAdminDb(), body.limits, admin) });
   } catch (err) {

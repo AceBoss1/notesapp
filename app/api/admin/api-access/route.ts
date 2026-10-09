@@ -10,7 +10,7 @@ const bearer = (req: NextRequest) => req.headers.get("authorization")?.replace(/
 // Admin: who has API access, and every custom domain.
 export async function GET(req: NextRequest) {
   try {
-    await verifyAdminRequest(bearer(req));
+    await verifyAdminRequest(bearer(req), ["product"]);
     const db = getAdminDb();
     const [enabled, domains] = await Promise.all([db.collection("users").where("apiAccess", "==", true).get(), db.collection("customDomains").get()]);
     return NextResponse.json({
@@ -27,7 +27,7 @@ export async function GET(req: NextRequest) {
 // { action: "set_access", username, enabled } | { action: "set_domain", host, status: "active"|"pending" } | { action: "remove_domain", host }
 export async function POST(req: NextRequest) {
   try {
-    await verifyAdminRequest(bearer(req));
+    await verifyAdminRequest(bearer(req), ["product"]);
     const body = await req.json();
     const db = getAdminDb();
     if (body.action === "set_access") {

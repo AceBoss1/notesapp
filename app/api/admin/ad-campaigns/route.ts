@@ -18,7 +18,7 @@ const lagosMonth = () => new Date().toLocaleDateString("en-CA", { timeZone: "Afr
 //   refund_undelivered — after it ends: refund the impressions never delivered
 export async function POST(req: NextRequest) {
   try {
-    const adminUid = await verifyAdminRequest(req.headers.get("authorization")?.replace(/^Bearer\s+/i, ""));
+    const adminUid = await verifyAdminRequest(req.headers.get("authorization")?.replace(/^Bearer\s+/i, ""), ["growth", "finance"]);
     const { action, id, reason } = await req.json();
     const db = getAdminDb();
     const ref = db.doc(`adCampaigns/${String(id)}`);
