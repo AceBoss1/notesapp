@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { useAdminAuth } from "@/lib/useAdminAuth";
 
 type Part = { ok: true; data: unknown } | { ok: false; error: string };
-type Diag = { configured: boolean; emailSet: boolean; keySet: boolean; ok: boolean; summary: string; version?: Part; credits?: Part; tlds?: Part };
+type Diag = { configured: boolean; emailSet: boolean; keySet: boolean; ok: boolean; summary: string; version?: Part; credits?: Part; tlds?: Part; proxy?: boolean; outgoingIp?: string | null };
 
 // Domain sales (Whogohost / go54 reseller API): is the connection up, which settings exist, our credit balance and the extensions offered.
 export default function AdminDomainSalesPage() {
@@ -51,7 +51,13 @@ export default function AdminDomainSalesPage() {
           <ul className="mt-2 space-y-0.5">
             {flag(diag.emailSet, "WHOGOHOST_RESELLER_EMAIL")}
             {flag(diag.keySet, "WHOGOHOST_API_KEY")}
+            <li className="font-mono text-xs">WHOGOHOST_PROXY_URL (optional): <span className={diag.proxy ? "text-emerald-800" : "text-slate"}>{diag.proxy ? "set" : "not set"}</span></li>
           </ul>
+          {diag.configured && (
+            <p className="mt-3 text-slate">
+              Calls leave from <strong className="font-mono text-ink">{diag.outgoingIp || "an address we couldn't read"}</strong>{diag.proxy ? " (through the fixed-address proxy)" : " (no proxy set: Vercel's address, which changes)"}. Whogohost must list this address under IP restrictions.
+            </p>
+          )}
           {part("Service version", diag.version)}
           {part("Our credit with Whogohost", diag.credits)}
           {part("Extensions on offer", diag.tlds)}

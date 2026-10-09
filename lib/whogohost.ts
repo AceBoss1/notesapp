@@ -1,4 +1,5 @@
 import { createHmac } from "crypto";
+import { ProxyAgent, fetch as undiciFetch } from "undici";
 
 // Client for the Whogohost (go54) Domain Reseller API. Server-only: it reads WHOGOHOST_RESELLER_EMAIL and WHOGOHOST_API_KEY, which must
 // never reach the browser. Requests carry a `username` header (the reseller email) and a `token`:
@@ -7,6 +8,29 @@ import { createHmac } from "crypto";
 // request that fails right at the hour is retried once with a fresh token.
 const ENDPOINT = "https://whogohost.com/host/modules/addons/DomainsReseller/api/index.php";
 const TIMEOUT_MS = 20_000;
+
+// Whogohost only accepts calls from addresses it has been given, and Vercel's change. When WHOGOHOST_PROXY_URL is set (an HTTP(S) proxy with a
+// fixed outgoing address, e.g. http://user:pass@host:port), every call to Whogohost goes through it; nothing else does. The URL holds a
+// password, so it is never logged or returned.
+let agent: ProxyAgent | undefined;
+export const proxyConfigured = () => !!process.env.WHOGOHOST_PROXY_URL;
+export async function proxiedFetch(url: string, init: RequestInit = {}): Promise<Response> {
+  const proxy = process.env.WHOGOHOST_PROXY_URL;
+  if (!proxy) return fetch(url, init);
+  agent ??= new ProxyAgent(proxy);
+  return (await undiciFetch(url, { ...(init as object), dispatcher: agent } as never)) as unknown as Response;
+}
+
+// The address the service sees our calls come from (through the proxy, when one is set): what to give Whogohost to allow.
+export async function outgoingIp(): Promise<string | null> {
+  try {
+    const res = await proxiedFetch("https://api.ipify.org", { signal: AbortSignal.timeout(8000), cache: "no-store" });
+    const t = (await res.text()).trim();
+    return /^[0-9a-f.:]{3,45}$/i.test(t) ? t : null;
+  } catch {
+    return null;
+  }
+}
 
 export function whogohostConfigured(): boolean {
   return !!(process.env.WHOGOHOST_RESELLER_EMAIL && process.env.WHOGOHOST_API_KEY);
@@ -47,12 +71,12 @@ function domainPath(domain: string): string {
 export async function wgDiagnose() {
   const emailSet = !!process.env.WHOGOHOST_RESELLER_EMAIL, keySet = !!process.env.WHOGOHOST_API_KEY;
   if (!emailSet || !keySet) return { configured: false, emailSet, keySet, ok: false, summary: "Set WHOGOHOST_RESELLER_EMAIL and WHOGOHOST_API_KEY in Vercel." } as const;
-  const [version, credits, tlds] = await Promise.allSettled([wgVersion(), wgCredits(), wgTlds()]);
+  const [version, credits, tlds, ip] = await Promise.allSettled([wgVersion(), wgCredits(), wgTlds(), outgoingIp()]);
   const shape = (r: PromiseSettledResult<unknown>) =>
     r.status === "fulfilled" ? { ok: true as const, data: r.value } : { ok: false as const, error: r.reason instanceof WhogohostError ? `${r.reason.message}${r.reason.body ? ` ${JSON.stringify(r.reason.body).slice(0, 300)}` : ""}` : "Failed" };
   // "Connected" rests on the credit call: /version has been refused with "Action is not allowed" while credit and the extension list work.
   const c = shape(credits);
-  return { configured: true, emailSet, keySet, ok: c.ok, summary: c.ok ? "Connected: the service accepted our login." : c.error, version: shape(version), credits: c, tlds: shape(tlds) } as const;
+  return { configured: true, emailSet, keySet, ok: c.ok, summary: c.ok ? "Connected: the service accepted our login." : c.error, version: shape(version), credits: c, tlds: shape(tlds), proxy: proxyConfigured(), outgoingIp: ip.status === "fulfilled" ? ip.value : null } as const;
 }
 
 export class WhogohostError extends Error {
@@ -69,7 +93,7 @@ async function call<T = unknown>(method: "GET" | "POST", path: string, params: R
   const ctl = new AbortController();
   const timer = setTimeout(() => ctl.abort(), TIMEOUT_MS);
   try {
-    const res = await fetch(url, {
+    const res = await proxiedFetch(url, {
       method,
       headers: {
         username: email,
