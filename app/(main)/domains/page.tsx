@@ -58,7 +58,7 @@ export default function DomainsPage() {
         <div>
           <h2 id="partner" className="font-display text-2xl text-ink">Our domain partner: Whogohost (now go54)</h2>
           <p className="mt-2 text-sm text-slate">
-            Domains will be registered through Whogohost, now go54, a Nigerian registrar. We are working on the partnership now, so nothing on this page can be bought yet.
+            Whogohost, now go54, is our domain partner: domains will be registered through them. We are building the connection now, so nothing on this page can be bought yet.
           </p>
         </div>
       </section>
