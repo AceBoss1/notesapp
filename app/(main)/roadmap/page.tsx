@@ -56,7 +56,7 @@ const ITEMS: { title: string; tag: string; body: string; detail: string; link?: 
   {
     title: "Advertise on LinkedIn from #NotesApp",
     tag: "Ads",
-    body: "Under review: boost one of your posts on LinkedIn from inside #NotesApp, using your own LinkedIn ad account, and see what it earned next to your #NotesApp numbers. LinkedIn has given us development access to build and test it, and we are applying for full access, so there is no date yet.",
+    body: "Under review: boost one of your posts on LinkedIn from inside #NotesApp, using your own LinkedIn ad account, and see what it earned next to your #NotesApp numbers. LinkedIn has approved our first access requests, and we are building and testing it before it opens, so there is no date yet.",
     detail:
       "How it would work: you connect your LinkedIn ad account, pick a post, set a budget and audience, and LinkedIn bills you directly; #NotesApp never holds your ad money. Reporting comes back to your dashboard. Later steps, each its own approval and its own privacy review: sending sign-ups back to LinkedIn so campaigns can be measured, and bringing in LinkedIn leads. We would only list audiences you create from your own followers with your consent. LinkedIn ads cost more per click than most platforms, so this suits Business and Enterprise members selling to companies and professionals; our own boosts remain the lower-cost way to be seen on #NotesApp.",
   },
