@@ -5,7 +5,7 @@ import { api } from "@/lib/moments-client";
 import { REPORT_NOTE_MAX, REPORT_REASONS, REPORT_REASON_LABEL, type ReportReason } from "@/lib/moments-rules";
 
 // Report a moment or a conversation. We keep a copy of what was reported until someone has looked at it, then delete the copy.
-export default function ReportDialog({ kind, targetId, onClose }: { kind: "moment" | "conversation"; targetId: string; onClose: () => void }) {
+export default function ReportDialog({ kind, targetId, messageId, onClose }: { kind: "moment" | "conversation"; targetId: string; messageId?: string; onClose: () => void }) {
   const [reason, setReason] = useState<ReportReason>("spam");
   const [note, setNote] = useState("");
   const [busy, setBusy] = useState(false);
@@ -14,7 +14,7 @@ export default function ReportDialog({ kind, targetId, onClose }: { kind: "momen
 
   async function send() {
     setBusy(true); setError(null);
-    try { await api("/api/reports", { body: { kind, targetId, reason, note } }); setDone(true); }
+    try { await api("/api/reports", { body: { kind, targetId, messageId, reason, note } }); setDone(true); }
     catch (e) { setError(e instanceof Error ? e.message : "Couldn't send the report."); }
     finally { setBusy(false); }
   }
@@ -22,7 +22,7 @@ export default function ReportDialog({ kind, targetId, onClose }: { kind: "momen
   return (
     <div className="fixed inset-0 z-[110] flex items-center justify-center bg-black/60 p-4" role="dialog" aria-modal="true" aria-label="Report">
       <div className="w-full max-w-sm rounded-xl bg-white p-6 text-ink shadow-xl">
-        <h2 className="font-display text-xl">Report this {kind === "moment" ? "moment" : "conversation"}</h2>
+        <h2 className="font-display text-xl">Report this {kind === "moment" ? "moment" : messageId ? "message" : "conversation"}</h2>
         {done ? (
           <>
             <p className="mt-3 text-sm text-slate">Thank you. We&apos;ll look at it, and the other person won&apos;t be told who reported.</p>

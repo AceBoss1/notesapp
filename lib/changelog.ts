@@ -11,6 +11,15 @@ export type Release = {
 
 export const CHANGELOG: Release[] = [
   {
+    version: "v0.10.0",
+    bump: "minor",
+    date: "2026-10-09",
+    changes: [
+      { kind: "added", text: "Group chats: start a group from Messages with people you follow or who follow you (up to 50). Everyone in the group sees each message with the sender's name and picture; pictures, files, voice notes, stickers, replies and the emoji button all work. Group admins can rename it, add and remove people and make others admin; anyone can leave, and any message from someone else can be reported." },
+      { kind: "changed", text: "Messages now lists groups next to your conversations, with the number of members and who said what last." },
+    ],
+  },
+  {
     version: "v0.9.13",
     bump: "patch",
     date: "2026-10-09",

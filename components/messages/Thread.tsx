@@ -64,6 +64,7 @@ export default function Thread({ id, to, embedded = false }: { id?: string; to?:
   const [busy, setBusy] = useState(false);
   const [blockedByMe, setBlockedByMe] = useState(false);
   const [reporting, setReporting] = useState(false);
+  const [reportingMsg, setReportingMsg] = useState<string | null>(null); // a message in a group
   const [people, setPeople] = useState<Record<string, Person>>({});
   const [replyingTo, setReplyingTo] = useState<ThreadMessage | null>(null);
   const end = useRef<HTMLDivElement>(null);
@@ -251,6 +252,9 @@ export default function Thread({ id, to, embedded = false }: { id?: string; to?:
           const replyButton = (msg: ThreadMessage) => !blockedByMe && (
             <button type="button" onClick={() => { setReplyingTo(msg); box.current?.focus(); }} className="font-bold opacity-80 hover:opacity-100" aria-label="Reply to this message" title="Reply">↩ Reply</button>
           );
+          const reportButton = (msg: ThreadMessage) => isGroup && msg.from !== user?.uid && (
+            <button type="button" onClick={() => setReportingMsg(msg.id)} className="opacity-80 hover:opacity-100" aria-label="Report this message">Report</button>
+          );
           const firstName = (p?: Person) => (p?.name || "").split(" ")[0] || "Member";
           return (
             <div key={m.id}>
@@ -279,6 +283,7 @@ export default function Thread({ id, to, embedded = false }: { id?: string; to?:
                         <span>{mine && <span aria-label="Sent">✔ </span>}{stamp(m.createdAt)}</span>
                         {mine && m.readAt && <span><span aria-label="Read">✔✔ </span>{stamp(m.readAt)}</span>}
                         {replyButton(m)}
+                        {reportButton(m)}
                       </p>
                     </div>
                   ) : (
@@ -304,6 +309,7 @@ export default function Thread({ id, to, embedded = false }: { id?: string; to?:
                         <span>{mine && <span aria-label="Sent">✔ </span>}{stamp(m.createdAt)}</span>
                         {mine && m.readAt && <span><span aria-label="Read">✔✔ </span>{stamp(m.readAt)}</span>}
                         {replyButton(m)}
+                        {reportButton(m)}
                       </p>
                     </div>
                   )}
@@ -317,6 +323,7 @@ export default function Thread({ id, to, embedded = false }: { id?: string; to?:
       {error && <p className="mt-2 text-sm text-red-700" role="alert">{error}</p>}
       {blockedByMe && <p className="mt-3 text-sm text-slate">You&apos;ve blocked this member. Unblock them to send a message.</p>}
       {reporting && cid && <ReportDialog kind="conversation" targetId={cid} onClose={() => setReporting(false)} />}
+      {reportingMsg && cid && <ReportDialog kind="conversation" targetId={cid} messageId={reportingMsg} onClose={() => setReportingMsg(null)} />}
       <form className="mt-4" onSubmit={(e) => { e.preventDefault(); if ((text.trim() || files.length) && !busy && !blockedByMe) send(); }}>
         <div className="mb-1 flex flex-wrap items-center gap-1 text-sm">
           <EmojiPicker onPick={insertEmoji} disabled={blockedByMe} />

@@ -58,8 +58,9 @@ export default function Inbox() {
   if (!rows) return <p className="text-slate">Loading…</p>;
   return (
     <>
+      <p className="mb-3 text-right"><Link href="/messages/new-group" className="btn-ghost !px-4 !py-2 text-xs">+ New group</Link></p>
       {!rows.length ? (
-        <p className="text-slate">No messages yet. Replies to your moments, and messages from other members, land here.</p>
+        <p className="text-slate">No messages yet. Replies to your moments, and messages from other members, land here. You can also <Link href="/messages/new-group" className="text-crimson underline">start a group</Link>.</p>
       ) : (
         <ul className="divide-y divide-rule border-y border-rule">
           {rows.map((r) => (
