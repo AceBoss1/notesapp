@@ -47,9 +47,9 @@ const ITEMS: { title: string; tag: string; body: string; detail: string; link?: 
   {
     title: "Domain sales and DNS management",
     tag: "Enterprise",
-    body: "Search, register and manage domains, including .ng and .com.ng, and edit DNS records without leaving #NotesApp, through our domain partner Whogohost (now go54). For Business and Enterprise, with you as the registrant.",
+    body: "Search, register and manage domains, including .ng and .com.ng, and edit DNS records without leaving #NotesApp, through our domain partner Whogohost (now go54), a gold partnership. For Business and Enterprise, with you as the registrant.",
     detail:
-      "Registration asks for four sets of contact details (registrant, admin, technical and billing). We suggest what we already have, ask before using it, request anything missing, and offer to copy a finished form into the next. Then renew, lock, nameservers, transfer codes and a DNS records editor, and a one-step connection to your #NotesApp site. It starts once the partnership and Whogohost's search, pricing and DNS calls are confirmed.",
+      "Registration asks for four sets of contact details (registrant, admin, technical and billing). We suggest what we already have, ask before using it, request anything missing, and offer to copy a finished form into the next. Then renew, lock, nameservers, transfer codes and a DNS records editor, and a one-step connection to your #NotesApp site. It starts once Whogohost confirms the search, pricing and DNS calls.",
     link: { href: "/domains", label: "See the domains page →" },
   },
   {

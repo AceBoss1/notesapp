@@ -11,6 +11,14 @@ export type Release = {
 
 export const CHANGELOG: Release[] = [
   {
+    version: "v0.9.13",
+    bump: "patch",
+    date: "2026-10-09",
+    changes: [
+      { kind: "changed", text: "The Domains page and roadmap now say Whogohost (go54) is our domain partner. Domain sales are still being built and can't be bought yet." },
+    ],
+  },
+  {
     version: "v0.9.12",
     bump: "patch",
     date: "2026-10-09",
