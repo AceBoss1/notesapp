@@ -1,5 +1,6 @@
 "use client";
 
+import { headline } from "@/lib/profile-work";
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
@@ -49,6 +50,7 @@ type DisplayProfile = {
   avatar: string;
   bio: string;
   roleLabel: string;
+  headline?: string; // "CEO at Acme", from the member's optional role and workplace
 };
 
 export default function ProfilePageClient({ params }: { params: { username: string } }) {
@@ -128,6 +130,7 @@ export default function ProfilePageClient({ params }: { params: { username: stri
         avatar: realProfile.avatar,
         bio: realProfile.bio,
         roleLabel: roleLabelFor(realProfile),
+        headline: headline(realProfile),
       }
     : realProfile === null
     ? null
@@ -256,6 +259,7 @@ export default function ProfilePageClient({ params }: { params: { username: stri
             {!suspended && (VERIFIED_USERNAMES.includes(profile.username) || (!!realProfile && isTeamMember(realProfile))) && <TeamBadge size={20} />}
             <OrgLabel profile={realProfile} />
           </h1>
+          {!suspended && profile.headline && <p className="mt-0.5 text-sm font-semibold text-ink">{profile.headline}</p>}
           {suspended ? (
             <p className="font-mono text-xs uppercase tracking-eyebrow text-red-700">
               ⚠ Temporarily Suspended · @{profile.username}

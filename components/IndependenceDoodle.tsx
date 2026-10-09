@@ -35,7 +35,7 @@ export default function IndependenceDoodle() {
             Happy Independence Day, Nigeria — and welcome to the #NotesApp beta
           </h2>
           <p className="mt-3 max-w-2xl text-slate">
-            We&apos;re opening to the public today, built by Nigerians for African knowledge professionals: publish a note, get
+            We&apos;re opening to the public today, built by Nigerians for African creators, professionals and businesses: publish a note, get
             booked for it, and get paid in Naira. Come and try it, then tell us what to fix.
           </p>
           <div className="mt-5 flex flex-wrap justify-center gap-3 sm:justify-start">

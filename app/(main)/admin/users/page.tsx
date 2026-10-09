@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { useAdminAuth } from "@/lib/useAdminAuth";
@@ -11,6 +11,7 @@ import { GOLD_KIND_LABEL, GOLD_KIND_LIVE, GoldBadgeKind } from "@/lib/badges";
 import { TIERS } from "@/lib/tiers";
 import { ADMIN_PROFILES } from "@/lib/admin";
 import { hasAnyDept, hasDept } from "@/lib/admin-access";
+import { INDUSTRY_LABEL, headline, industryMix, isIndustry } from "@/lib/profile-work";
 
 const FOUNDER_USERNAMES = Object.values(ADMIN_PROFILES).map((p) => p.username);
 
@@ -32,6 +33,8 @@ export default function AdminUsersPage() {
   const [suspendReasonFor, setSuspendReasonFor] = useState<string | null>(null);
   const [suspendReason, setSuspendReason] = useState("");
   const [suspendLength, setSuspendLength] = useState<SuspensionLength>("1w");
+
+  const mix = useMemo(() => (users ? industryMix(users) : null), [users]);
 
   function reload() {
     getAllUsersForAdmin()
@@ -194,6 +197,21 @@ export default function AdminUsersPage() {
 
       {error && <p className="mt-6 text-sm text-red-700">{error}</p>}
 
+      {mix && mix.answered > 0 && (
+        <section className="card mt-8 p-5" aria-label="What members do">
+          <h2 className="font-display text-xl text-ink">What our members do</h2>
+          <p className="mt-1 text-xs text-slate">From the optional &ldquo;What do you do?&rdquo; answer at sign-up and in Edit profile: {mix.answered} of {mix.total} members have answered.</p>
+          <ul className="mt-3 space-y-2 text-sm">
+            {mix.rows.map((r) => (
+              <li key={r.key}>
+                <div className="flex justify-between gap-2"><span>{r.label}</span><span>{r.count} · {Math.round((r.count / mix.answered) * 100)}%</span></div>
+                <div className="mt-1 h-1.5 bg-rule"><div className="h-1.5 bg-crimson" style={{ width: `${(r.count / mix.rows[0].count) * 100}%` }} /></div>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+
       {!users ? (
         <p className="mt-8 text-slate">Loading…</p>
       ) : (
@@ -223,6 +241,9 @@ export default function AdminUsersPage() {
                         </span>
                       </p>
                       <p className="text-xs text-slate mt-0.5">{emails[u.uid] || "—"}</p>
+                      {(headline(u) || isIndustry(u.industry)) && (
+                        <p className="mt-0.5 text-xs text-ink">{[headline(u), isIndustry(u.industry) ? INDUSTRY_LABEL[u.industry] : ""].filter(Boolean).join(" · ")}</p>
+                      )}
                       {sameName.length > 0 && (
                         <p className="mt-1 text-xs font-semibold text-amber-800">
                           ⚠ Same name as {sameName.map((o) => `@${o.username}`).join(", ")} — possible duplicate account (uid {u.uid.slice(0, 8)}…). Journals shared with Precheks that name this person resolve to the founder account; suspend or rename the extra one.

@@ -1,5 +1,7 @@
 "use client";
 
+import WorkFields from "@/components/WorkFields";
+import { cleanWork, type Work } from "@/lib/profile-work";
 import MomentSettings from "@/components/moments/MomentSettings";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
@@ -31,6 +33,7 @@ export default function ProfileEditPage() {
   const [bio, setBio] = useState("");
   const [avatar, setAvatar] = useState("");
   const [social, setSocial] = useState<SocialLinks>({});
+  const [work, setWork] = useState<Work>({});
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
@@ -49,6 +52,7 @@ export default function ProfileEditPage() {
         setBio(p.bio);
         setAvatar(p.avatar);
         setSocial(p.social || {});
+        setWork({ industry: p.industry, jobTitle: p.jobTitle, workplace: p.workplace });
       }
     });
     return unsub;
@@ -75,7 +79,7 @@ export default function ProfileEditPage() {
     if (!profile) return;
     setSaving(true);
     setSaved(false);
-    await updateProfile(profile.uid, { displayName, bio, avatar, social });
+    await updateProfile(profile.uid, { displayName, bio, avatar, social, ...cleanWork(profile.accountKind === "organisation" ? { industry: work.industry } : work) });
     setSaving(false);
     setSaved(true);
   }
@@ -124,6 +128,8 @@ export default function ProfileEditPage() {
             className="mt-2 w-full border border-rule bg-card px-4 py-3 font-body focus:border-gold outline-none"
           />
         </label>
+
+        <WorkFields value={work} onChange={setWork} orgOnly={profile?.accountKind === "organisation"} inputClass="mt-1 w-full border border-rule bg-card px-4 py-3 font-body focus:border-gold outline-none" />
 
         <label className="block">
           <span className="eyebrow">Avatar</span>

@@ -20,6 +20,7 @@ import { badgeIncluded, getTierConfig } from "./tiers";
 import { ttlCache } from "./ttl-cache";
 import type { AccountKind, OrgInfo } from "./org";
 import { GOLD_BADGE_LIVE, GOLD_KIND_LIVE, BadgeLevel, GoldBadgeKind } from "./badges";
+import { cleanWork, type Work } from "./profile-work";
 
 export type UserRole = "admin" | "staff" | "volunteer" | "reader";
 export type AppealStatus = "none" | "pending" | "upheld" | "rejected";
@@ -64,6 +65,10 @@ export type UserProfile = {
   bio: string;
   avatar: string;
   social: SocialLinks;
+  // Optional, member-written, shown on the public profile (see lib/profile-work.ts): what they do, their role and where they work.
+  industry?: string;
+  jobTitle?: string;
+  workplace?: string;
   // "staff" = in-house writers, "volunteer" = external contributing
   // writers (Precheks' own terms, in parens so the mapping's explicit
   // wherever this is surfaced). Neither currently grants note-publish
@@ -190,7 +195,7 @@ export function roleLabelFor(p: Pick<UserProfile, "username" | "role" | "account
   if (FOUNDER_ROLE_LABELS[p.username]) return FOUNDER_ROLE_LABELS[p.username];
   if (p.role === "staff") return "Staff Writer";
   if (p.role === "volunteer") return "Guest Writer";
-  if (effectiveTier(p) === "standard") return "Member";
+  if (effectiveTier(p) === "standard") return "Viewer";
   return getTierConfig(effectiveTier(p)).label.replace(/^Free /, "") + " Publisher";
 }
 
@@ -288,8 +293,10 @@ export async function signUpProfile(params: {
   email: string;
   username: string;
   displayName: string;
+  work?: Work; // optional: what they do, role, workplace
 }): Promise<void> {
   const { uid, email, username, displayName } = params;
+  const w = cleanWork(params.work);
   const usernameRef = doc(db, USERNAMES, username);
 
   await runTransaction(db, async (tx) => {
@@ -310,6 +317,10 @@ export async function signUpProfile(params: {
       accountTier: admin ? "basic" : "standard",
       suspended: false,
       consent: { version: LEGAL_VERSION, acceptedAt: new Date().toISOString() },
+      // Only what they filled in (the rules allow these keys but nothing is required).
+      ...(w.industry ? { industry: w.industry } : {}),
+      ...(w.jobTitle ? { jobTitle: w.jobTitle } : {}),
+      ...(w.workplace ? { workplace: w.workplace } : {}),
     };
     tx.set(usernameRef, { uid });
     tx.set(doc(db, USERS, uid), profile);
@@ -348,7 +359,7 @@ export async function ensureAdminProfile(user: FirebaseUser): Promise<void> {
 
 export async function updateProfile(
   uid: string,
-  data: Partial<Pick<UserProfile, "displayName" | "bio" | "avatar" | "social">>
+  data: Partial<Pick<UserProfile, "displayName" | "bio" | "avatar" | "social" | "industry" | "jobTitle" | "workplace">>
 ): Promise<void> {
   await updateDoc(doc(db, USERS, uid), data);
 }

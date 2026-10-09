@@ -32,7 +32,7 @@ const FEATURES = [
   { title: "Ad share, from day one", copy: "Pro publishers earn 25% and Business publishers 45% of the ad revenue on their pages — no follower or view thresholds to clear first. Ads are opt-in for paid plans, every one is labelled “Sponsored”, and your share is paid monthly after review. Brands can buy a banner campaign online." },
   { title: "Co-authoring", copy: "Pro and Business publishers can write a post with other members, agree each person's share of what it earns — gifts on it are split now — and share the byline. Everyone accepts before it's listed." },
   ...(MOMENTS_LIVE ? [{ title: "Moments", copy: "Share a picture, a video of up to 90 seconds (longer ones are split into parts) or a line of text, with an optional voice-over, on your profile picture for 24, 48 or 72 hours. Followers watch it play from the Moments row on their Journals page, like it, 🔁 re-share it or 💬 reply, and it disappears when its time is up. You choose who can see yours: your followers only, or everyone." }] : []),
-  ...(MESSAGES_LIVE ? [{ title: "Private messages", copy: "Talk one to one with bold, italic and underline, a ✔ when your message is sent and ✔✔ when it is read, with the times, and attach pictures, videos and documents (how big and how many depends on your plan), record voice notes of up to 5 minutes and send stickers. Replies to your moments land here too. You can block or report anyone." }] : []),
+  ...(MESSAGES_LIVE ? [{ title: "Messages & group chats", copy: "Talk one to one, or start a group of up to 50 people you follow or who follow you, with bold, italic and underline, a ✔ when your message is sent and ✔✔ when it is read, with the times, and attach pictures, videos and documents (how big and how many depends on your plan), record voice notes of up to 5 minutes and send stickers. Replies to your moments land here too. You can block or report anyone." }] : []),
   { title: "Gold badge", copy: "Get endorsed by #NotesApp, or identity-checked, and wear the gold ✔ beside your name on your profile, the directory and every post." },
   { title: "A brand store for every journal", copy: "Every professional gets their own storefront on their profile — sell physical goods with buyer payments held until delivery, a managed stock count and a tracking ID for every parcel — or digital downloads delivered instantly after payment, or — on Pro and above — view-only files and video courses that buyers watch on up to 2 devices with no download. Items can have up to 5 photos and Size and Colour options. Boost any item to put it in front of more readers. Organisations can run theirs with their team." },
   { title: "Parcel tracking for riders & drivers", copy: "Every parcel gets a chain-of-custody log: record each holder — bike rider, bus driver, park agent — and they update the location or hand on to the next person from a short link, with no login. Buyers see it on the parcel's tracking page." },
@@ -52,7 +52,7 @@ export default async function Home() {
       <section className="relative overflow-hidden">
         <div className="mx-auto grid max-w-7xl grid-cols-1 gap-14 px-4 py-20 sm:px-6 lg:grid-cols-[1.1fr,0.9fr] lg:items-center lg:px-8 lg:py-28">
           <div>
-            <span className="eyebrow">Built for African knowledge professionals</span>
+            <span className="eyebrow">Built for African creators, professionals and businesses</span>
             <h1 className="mt-6 font-display text-[2.75rem] leading-[1.05] tracking-tight text-ink sm:text-6xl">
               Publish a note.
               <br />
@@ -61,11 +61,13 @@ export default async function Home() {
               Get paid, in Naira.
             </h1>
             <p className="mt-6 max-w-xl font-body text-lg text-slate">
-              #NotesApp fuses a publishing journal, a native booking
-              calendar, a shop and inline Naira payments into one workspace —
-              so coaches, consultants, therapists and growing brands stop stitching
-              together WhatsApp, a booking link, a blog and a store just to run
-              their practice.
+              #NotesApp is where African creators, professionals, coaches,
+              consultants, therapists and businesses publish their work, build an
+              audience they can talk to directly, and get paid in Naira. Write
+              journals, take bookings for private sessions, sell products,
+              PDF/video courses and other digital downloads, earn subscriptions
+              and gifts, and run it all under your own name or your own domain,
+              in one place.
             </p>
             <div className="mt-9 flex flex-wrap items-center gap-4">
               <Link href="/journals" className="btn-primary">

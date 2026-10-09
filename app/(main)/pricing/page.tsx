@@ -55,11 +55,6 @@ const ROWS: Row[] = [
     render: (t) => (badgeIncluded(t.tier) ? "Included free" : `Add-on: ${formatNaira(BADGE_PRICE_KOBO)}/month`),
   },
   {
-    label: "Gold badge (identity checked / endorsed)",
-    href: "/badges",
-    render: () => `${formatNaira(GOLD_PRICING.personal.monthlyKobo)}/mo personal · ${formatNaira(GOLD_PRICING.corporate.monthlyKobo)}/mo corporate (by application; identity check ${GOLD_KIND_LIVE.identity ? "available" : "coming soon"})`,
-  },
-  {
     label: "Paid 1:1 sessions",
     href: "/booking",
     render: (t) => (t.canPublish ? `You set the price: ${formatNaira(LIMITS.sessionMinKobo)} – ${formatNaira(LIMITS.sessionMaxKobo)}` : "Book & pay only"),
@@ -111,7 +106,7 @@ const ROWS: Row[] = [
   {
     label: "Team seats",
     href: "/organisations",
-    render: (t) => (!t.canPublish ? "—" : t.tier === "business" ? "4 — the owner plus 3 team members (clerk, rider, supervisor)" : t.tier === "enterprise" ? "As many as you need, agreed with us" : "1 — the owner"),
+    render: (t) => (!t.canPublish ? "—" : t.tier === "business" ? "4 — the owner plus 3 team members (clerk, rider, supervisor). Team hub and team messaging are coming to Business and Enterprise" : t.tier === "enterprise" ? "As many as you need, agreed with us. Team hub and team messaging are coming to Business and Enterprise" : "1 — the owner"),
   },
   {
     label: "Parcel tracking & escrow",
@@ -252,6 +247,14 @@ export default async function PricingPage() {
             gets a tracking ID, and disputes go through us. A link to someone else&apos;s checkout can&apos;t offer any of that, so the only links out
             are your profile link and the links you put in your posts. <Link href="/store-selling" className="text-crimson underline">How selling works</Link>.
           </p>
+          <p className="mt-5 font-ui text-sm font-bold text-ink">Gold badge: the same on every plan</p>
+          <p className="mt-2 text-sm text-slate">
+            The gold ✔ is not part of the ladder: it costs the same whether you are on Free Basic or Enterprise, and you apply for it from your profile.
+            Endorsed gold means we reviewed your public work and back you. Identity-checked gold means you passed an ID check
+            (identity checks are {GOLD_KIND_LIVE.identity ? "open now" : "coming soon"}). Either way it is {formatNaira(GOLD_PRICING.personal.monthlyKobo)} a month for a person
+            or {formatNaira(GOLD_PRICING.corporate.monthlyKobo)} a month for an organisation, and you can cancel any time and keep it until the period you paid for ends.{" "}
+            <Link href="/badges" className="text-crimson underline">See the gold badge</Link>.
+          </p>
         </div>
       </div>
 
@@ -268,6 +271,7 @@ export default async function PricingPage() {
             ["/advertise", "Advertise — banner campaigns and ad share"],
             ["/store-selling", "Sell physical goods & digital downloads — checkout, delivery hold, parcel tracking, instant downloads"],
             ["/domains", "Domains — search, register and manage, with DNS (coming soon, Business and Enterprise)"],
+            ["/teams", "Team hub and team messaging (coming soon, Business and Enterprise)"],
             ["/organisations", "Organisations — free 30-day Business trial, CAC verification"],
           ].map(([href, label]) => (
             <li key={href}>

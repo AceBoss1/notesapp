@@ -272,6 +272,13 @@ service cloud.firestore {
     // USERS / PUBLIC PROFILES
     // ============================================================
 
+    // The optional "what you do / role / workplace" lines on a profile: short plain strings (limits match lib/profile-work.ts).
+    function workOk(d) {
+      return (!('industry' in d) || (d.industry is string && d.industry.size() <= 30))
+        && (!('jobTitle' in d) || (d.jobTitle is string && d.jobTitle.size() <= 60))
+        && (!('workplace' in d) || (d.workplace is string && d.workplace.size() <= 80));
+    }
+
     match /users/{uid} {
 
       // Public profiles.
@@ -292,8 +299,10 @@ service cloud.firestore {
           || (
             request.resource.data.keys().hasOnly([
               'uid', 'username', 'displayName', 'bio', 'avatar', 'social',
-              'role', 'createdAt', 'accountTier', 'suspended', 'consent'
+              'role', 'createdAt', 'accountTier', 'suspended', 'consent',
+              'industry', 'jobTitle', 'workplace'
             ])
+            && workOk(request.resource.data)
             && request.resource.data.role == 'reader'
             && request.resource.data.accountTier == 'standard'
             && request.resource.data.suspended == false
@@ -330,8 +339,12 @@ service cloud.firestore {
                 'displayName',
                 'bio',
                 'avatar',
-                'social'
+                'social',
+                'industry',
+                'jobTitle',
+                'workplace'
               ])
+          && workOk(request.resource.data)
         );
 
       // User deletion is disabled.

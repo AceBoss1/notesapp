@@ -5,6 +5,7 @@ import HideOnAppHost from "@/components/HideOnAppHost";
 import AuthNav from "@/components/AuthNav";
 import MobileNav from "@/components/MobileNav";
 import VerifyEmailBanner from "@/components/VerifyEmailBanner";
+import WorkPrompt from "@/components/WorkPrompt";
 import PushPrompt from "@/components/messages/PushPrompt";
 import SearchBar from "@/components/SearchBar";
 import CelebrationBanner from "@/components/CelebrationBanner";
@@ -42,6 +43,7 @@ const COMPANY = [
   { href: "/security", label: "Trust & Security" },
   { href: "/terms", label: "Terms of Service" },
   { href: "/privacy", label: "Privacy Policy" },
+  { href: "/teams", label: "Team hub" },
 ];
 
 // The #NotesApp masthead and footer. The members' branded sites live in app/(site) and don't get these.
@@ -66,6 +68,7 @@ const site = await getSiteSettingsCached();
         <CelebrationBanner />
         <ChallengeBanner />
         <VerifyEmailBanner />
+        <WorkPrompt />
         <PushPrompt />
         {/* Masthead */}
         <header className="sticky top-0 z-40 border-b border-rule bg-paper/90 backdrop-blur">
@@ -112,9 +115,8 @@ const site = await getSiteSettingsCached();
                 </span>
               </div>
               <p className="mt-4 max-w-xs text-sm text-paper/65">
-                Publish a note, take a booking, get paid — one workspace
-                for African coaches, consultants, and knowledge
-                professionals.
+                Publish, connect and get paid in Naira — one home for
+                African creators, professionals and businesses.
               </p>
               <p className="mt-6 max-w-xs text-sm text-paper/50">
                 Built in partnership with <PartnerIcon partner="precheks" /> Precheks (journal) and{" "}
@@ -134,7 +136,6 @@ const site = await getSiteSettingsCached();
                 <li><Link href="/gifts" className="hover:text-paper">Gifts</Link></li>
                 <li><Link href="/coauthoring" className="hover:text-paper">Co-authoring</Link></li>
                 <li><Link href="/merchstore" className="hover:text-paper">Merch Store</Link></li>
-                <li><Link href="/track" className="hover:text-paper">Track a Parcel</Link></li>
                 <li><Link href="/badges" className="hover:text-paper">Verification badges</Link></li>
                 <li><Link href="/advertise" className="hover:text-paper">Advertise</Link></li>
                 <li><Link href="/organisations" className="hover:text-paper">Organisations</Link></li>
@@ -169,6 +170,7 @@ const site = await getSiteSettingsCached();
                     Contact
                   </Link>
                 </li>
+                <li><Link href="/track" className="hover:text-paper">Track a Parcel</Link></li>
                 <li>
                   <a href={`mailto:${site.email}`} className="inline-flex items-center gap-2 hover:text-paper">
                     <MailIcon /> {site.email}
