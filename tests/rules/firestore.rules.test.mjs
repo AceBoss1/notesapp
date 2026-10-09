@@ -716,6 +716,11 @@ test("staff roles: each department reaches its own collections and not the other
     await assertFails(getDoc(doc(who, "financeEntries/e1")));
     await assertFails(setDoc(doc(who, "financeEntries/e2"), { kind: "expense" }));
     await assertFails(getDoc(doc(who, "financeLog/l1")));
+    // Nana AI's chats hold visitors' names and emails; the knowledge base and the daily counter are written by the server too.
+    for (const c of ["nanaChats", "kbArticles", "nanaUsage"]) {
+      await assertFails(getDoc(doc(who, `${c}/x1`)));
+      await assertFails(setDoc(doc(who, `${c}/x2`), { a: 1 }));
+    }
     await assertFails(setDoc(doc(who, "financeLog/l2"), { at: "x" }));
   }
   // Nobody gives themselves staff access from the browser.

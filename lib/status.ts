@@ -10,6 +10,7 @@ import { MESSAGES_LIVE, MOMENTS_LIVE } from "./moments-rules";
 import { pingVercel, vercelConfigured } from "./domains";
 import { whogohostConfigured, wgCredits } from "./whogohost";
 import { PROVIDERS, providerConfigured } from "./social-server";
+import { nanaConfigured } from "./nana-config";
 
 // Server-only service health checks behind /status. Reports only
 // up/slow/down + latency — never error details or config.
@@ -138,6 +139,13 @@ export async function checkServices(): Promise<ServiceStatus[]> {
     Promise.resolve(social.length
       ? ({ id: "social", name: "Sharing to LinkedIn and X", description: "Publishing a post's excerpt to connected LinkedIn and X accounts", state: "operational" } as ServiceStatus)
       : notConfigured("social", "Sharing to LinkedIn and X", "Publishing a post's excerpt to connected LinkedIn and X accounts"))
+  );
+
+  // Nana AI, the chat helper: only says whether its AI key is set (we don't spend a request to test it).
+  checks.push(
+    Promise.resolve(nanaConfigured()
+      ? ({ id: "nana", name: "Nana AI", description: "The chat helper that answers questions about #NotesApp", state: "operational" } as ServiceStatus)
+      : notConfigured("nana", "Nana AI", "The chat helper that answers questions about #NotesApp"))
   );
 
   const paystack = process.env.PAYSTACK_SECRET_KEY;

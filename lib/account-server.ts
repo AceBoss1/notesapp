@@ -55,6 +55,7 @@ export async function collectExport(db: Firestore, uid: string, email: string) {
     moments: await docs(db, "moments", "ownerUid", uid), // only the ones still live; expired ones are already gone
     messagesSent: await sentMessages(db, uid), // direct messages and group messages you wrote
     socialAccounts: await socialAccountsOf(db, uid), // LinkedIn / X accounts you connected (never the access tokens)
+    nanaChats: await docs(db, "nanaChats", "uid", uid), // your conversations with Nana AI
     apiKeys: strip(await docs(db, "apiKeys", "uid", uid), ["hash"]),
     webhookEndpoints: strip(await docs(db, "webhookEndpoints", "uid", uid), ["secret"]),
     customDomains: await docs(db, "customDomains", "uid", uid),
@@ -225,6 +226,7 @@ export async function eraseAccount(db: Firestore, uid: string, deleteFile: (key:
     ...(await own("customDomains", "uid", uid)),
     ...(await own("socialPosts", "uid", uid)), // what we posted to their LinkedIn / X
     ...(await own("socialStates", "uid", uid)),
+    ...(await own("nanaChats", "uid", uid)), // chats with Nana AI while signed in
     ...(await Promise.all(["linkedin", "x"].map((p) => db.doc(`socialConnections/${uid}_${p}`).get()))).filter((d) => d.exists), // their saved access tokens
   ];
   await deleteAll(db, toDelete.map((d) => d.ref));

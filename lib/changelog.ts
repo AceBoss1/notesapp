@@ -11,6 +11,16 @@ export type Release = {
 
 export const CHANGELOG: Release[] = [
   {
+    version: "v0.13.0",
+    bump: "minor",
+    date: "2026-10-09",
+    changes: [
+      { kind: "added", text: "Nana AI: a chat helper in the corner of every page. Ask her anything about #NotesApp (plans and prices, payouts, bookings and refunds, selling, badges, organisations) and she answers in plain words with links to the right page. Members are recognised automatically; visitors give a name and email first. If she can't help she passes you to a person, who follows up by email." },
+      { kind: "added", text: "A help centre at /help: short articles on getting started, plans and pricing, publishing and earning, selling, badges, organisations, and safety and your data, with search. Nana answers from the same articles, and our team can write and correct them." },
+      { kind: "changed", text: "Privacy Policy: now explains that chats with Nana are kept (with the name and email a visitor gives), that the messages are processed by Anthropic to write her replies, and how to have a chat removed. Chats you have while signed in are in your data download and deleted with your account." },
+    ],
+  },
+  {
     version: "v0.12.0",
     bump: "minor",
     date: "2026-10-09",
