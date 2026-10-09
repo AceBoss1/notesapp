@@ -27,6 +27,7 @@ const LINKS = [
   { href: "/admin/stream", label: "Video storage" },
   { href: "/admin/paylony", label: "Paylony" },
   { href: "/admin/api-access", label: "API & domains" },
+  { href: "/admin/domains", label: "Domain sales" },
   { href: "/admin/settings", label: "Settings" },
 ];
 
