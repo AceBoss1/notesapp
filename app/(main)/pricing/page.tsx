@@ -175,19 +175,32 @@ export default async function PricingPage() {
         Nana AI helps with drafts, posts for LinkedIn and X, and messages on every plan, never as a paid-tier perk: connect your own AI account today, and once our own AI is switched on for everyone each member gets a small daily allowance (<Link href="/nana" className="text-crimson underline">about Nana</Link>).
       </p>
       </PageHero>
-    <div className="mx-auto max-w-6xl px-4 pb-16 pt-4 sm:px-6 lg:px-8">
-      <div className="mt-10 overflow-x-auto">
-        <table className="w-full min-w-[900px] border-collapse text-left">
+    <div className="mx-auto max-w-6xl px-4 pb-16 sm:px-6 lg:px-8">
+      <ul className="relative z-10 -mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-5" aria-label="The plans">
+        {TIERS.map((t) => (
+          <li key={t.tier} className={`flex flex-col rounded-2xl border p-5 shadow-md ${t.tier === "pro" ? "border-crimson bg-white ring-2 ring-crimson/30" : "border-rule bg-white"}`}>
+            <p className="font-ui text-sm font-bold text-ink">{t.label}</p>
+            <p className="mt-2 font-display text-2xl leading-tight text-crimson">{t.price}</p>
+            {t.priceNote && <p className="mt-1 text-xs text-slate">{t.priceNote}</p>}
+            <p className="mt-3 flex-1 text-xs text-slate">
+              {!t.canPublish ? "Read, comment, book sessions and buy." : `Sessions and subscriptions: ${formatPercent(t.sessionAndUnlockCommission, t.sessionAndUnlockCommissionFloor)} commission${t.adRevenueShare ? ` · ${Math.round(t.adRevenueShare * 100)}% ad share` : ""}.`}
+            </p>
+            <a href="#compare" className="mt-4 inline-block rounded-full border border-crimson px-4 py-2 text-center font-ui text-xs font-bold text-crimson hover:bg-crimson hover:text-white">Compare this plan</a>
+          </li>
+        ))}
+      </ul>
+      <div id="compare" className="mt-12 overflow-x-auto rounded-2xl border border-rule shadow-sm scroll-mt-24">
+        <table className="w-full min-w-[860px] border-collapse text-left">
           <thead>
-            <tr>
-              <th className="border-b-2 border-ink py-4 pr-4 font-ui text-sm text-slate">
-                &nbsp;
+            <tr className="bg-crimson text-white">
+              <th scope="col" className="sticky left-0 z-10 w-40 bg-crimson px-4 py-4 font-ui text-sm font-bold text-white sm:w-56">
+                Feature
               </th>
               {TIERS.map((t) => (
-                <th key={t.tier} className="border-b-2 border-ink px-4 py-4">
-                  <p className="font-display text-xl text-ink">{t.label}</p>
-                  <p className="mt-1 font-mono text-sm text-crimson-bright">{t.price}</p>
-                  {t.priceNote && <p className="mt-1 max-w-[11rem] text-xs font-normal text-slate">{t.priceNote}</p>}
+                <th key={t.tier} scope="col" className="px-4 py-4 align-top [&_.btn-primary]:!bg-paper [&_.btn-primary]:!text-crimson-deep [&_.text-crimson]:!text-white">
+                  <p className="font-ui text-sm font-bold text-white">{t.label}</p>
+                  <p className="mt-1 font-mono text-sm font-semibold text-pink-200">{t.price}</p>
+                  {t.priceNote && <p className="mt-1 max-w-[11rem] text-xs font-normal text-white/75">{t.priceNote}</p>}
                   {(t.tier === "pro" || t.tier === "business") && <UpgradeButton tier={t.tier} label={t.label} />}
                 </th>
               ))}
@@ -195,8 +208,8 @@ export default async function PricingPage() {
           </thead>
           <tbody>
             {ROWS.filter((row) => row.show !== false).map((row) => (
-              <tr key={row.label} className="border-b border-rule">
-                <td className="py-4 pr-4 font-ui text-sm font-semibold text-ink">
+              <tr key={row.label} className="border-t border-rule bg-white even:bg-paper">
+                <td className="sticky left-0 z-10 bg-inherit px-4 py-3.5 font-ui text-[13px] font-semibold text-[#372f2b] shadow-[1px_0_0_#E7DAD3]">
                   {row.href ? (
                     <Link href={row.href} className="underline decoration-rule underline-offset-4 hover:text-crimson">{row.label}</Link>
                   ) : (
@@ -204,7 +217,7 @@ export default async function PricingPage() {
                   )}
                 </td>
                 {TIERS.map((t) => (
-                  <td key={t.tier} className="px-4 py-4 text-sm text-slate">
+                  <td key={t.tier} className="px-4 py-3.5 align-top text-[13px] text-[#372f2b]">
                     {row.render(t, L)}
                   </td>
                 ))}
@@ -213,6 +226,23 @@ export default async function PricingPage() {
           </tbody>
         </table>
       </div>
+
+      <section className="mt-14 overflow-hidden rounded-2xl text-paper" style={{ backgroundImage: "linear-gradient(160deg, #1A1210 0%, #2a0a14 100%)" }} aria-label="What #NotesApp takes">
+        <div className="px-6 py-10 sm:px-10">
+          <p className="font-mono text-[11px] uppercase tracking-eyebrow text-pink-300">What #NotesApp takes</p>
+          <h2 className="mt-3 max-w-2xl font-display text-3xl sm:text-4xl">Each rung takes a smaller cut of what you earn.</h2>
+          <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            {TIERS.filter((t) => t.canPublish).map((t) => (
+              <div key={t.tier} className="rounded-2xl border border-white/10 bg-white/5 p-5">
+                <p className="font-ui text-sm font-bold text-paper/80">{t.label}</p>
+                <p className="mt-2 font-display text-4xl text-white">{formatPercent(t.sessionAndUnlockCommission, t.sessionAndUnlockCommissionFloor)}</p>
+                <p className="text-xs text-paper/60">on sessions and subscriptions</p>
+                <p className="mt-3 text-xs text-paper/75">Physical goods {formatPercent(t.physicalCommission, t.physicalCommissionFloor)} · Digital {formatPercent(t.digitalCommission, t.digitalCommissionFloor)}{t.adRevenueShare ? ` · ${Math.round(t.adRevenueShare * 100)}% ad share` : ""}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
 
       <div className="mt-10 grid grid-cols-1 gap-6 sm:grid-cols-2">
         <div className="card p-6">

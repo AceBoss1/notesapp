@@ -56,6 +56,19 @@ export default async function HelpPage({ searchParams }: { searchParams: { q?: s
           </section>
         ))
       )}
+        <section className="mt-14 overflow-hidden rounded-2xl text-paper" style={{ backgroundImage: "linear-gradient(135deg, #4E0119 0%, #7A0328 100%)" }} aria-label="Still need help?">
+          <div className="flex flex-col items-center gap-6 p-8 sm:flex-row sm:justify-between sm:p-10">
+            <div>
+              <p className="font-mono text-[11px] uppercase tracking-eyebrow text-paper/70">Still stuck?</p>
+              <h2 className="mt-2 font-display text-3xl">Ask Nana, or talk to a person on the team.</h2>
+              <div className="mt-5 flex flex-wrap gap-3">
+                <Link href="/nana" className="rounded-full bg-paper px-6 py-3 font-ui text-sm font-bold text-crimson-deep hover:opacity-90">Ask Nana</Link>
+                <Link href="/contact" className="rounded-full border border-paper/40 px-6 py-3 font-ui text-sm font-bold text-paper hover:bg-paper/10">Contact the team</Link>
+              </div>
+            </div>
+            <Image src="/images/nana/nana.webp" alt="" aria-hidden width={200} height={200} className="h-36 w-36 shrink-0 object-contain drop-shadow-xl" />
+          </div>
+        </section>
       </div>
     </div>
   );

@@ -135,7 +135,7 @@ export default async function JournalDetail({
             </div>
           </div>
         )}
-        <p className="whitespace-nowrap font-mono text-xs text-slate">
+        <p className="font-mono text-xs text-slate sm:whitespace-nowrap">
           {note.date &&
             new Date(note.date).toLocaleDateString("en-NG", {
               year: "numeric",
