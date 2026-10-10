@@ -7,6 +7,7 @@ import MobileNav from "@/components/MobileNav";
 import VerifyEmailBanner from "@/components/VerifyEmailBanner";
 import WorkPrompt from "@/components/WorkPrompt";
 import NanaChat from "@/components/NanaChat";
+import FooterCta from "@/components/FooterCta";
 import PushPrompt from "@/components/messages/PushPrompt";
 import SearchBar from "@/components/SearchBar";
 import CelebrationBanner from "@/components/CelebrationBanner";
@@ -72,7 +73,7 @@ const site = await getSiteSettingsCached();
         <WorkPrompt />
         <PushPrompt />
         {/* Masthead */}
-        <header className="sticky top-0 z-40 border-b border-rule bg-paper/90 backdrop-blur">
+        <header className="sticky top-0 z-40 bg-crimson-deep text-paper shadow-md" style={{ backgroundImage: "linear-gradient(100deg, #4E0119 0%, #7A0328 60%, #A6093D 100%)" }}>
           <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 py-4 sm:px-6 lg:px-8">
             <Link href="/" className="flex shrink-0 items-center gap-2.5">
               <Image
@@ -82,15 +83,15 @@ const site = await getSiteSettingsCached();
                 height={36}
                 className="h-9 w-9 rounded-lg"
               />
-              <span className="font-ui text-xl font-extrabold tracking-tight text-ink">
-                Notes<span className="text-crimson">App</span>
+              <span className="font-ui text-xl font-extrabold tracking-tight text-paper">
+                Notes<span className="text-[#FFB3C6]">App</span>
               </span>
             </Link>
-            <nav className="hidden items-center gap-5 font-ui text-sm font-semibold text-ink lg:flex xl:gap-7">
+            <nav className="hidden items-center gap-5 font-ui text-sm font-semibold text-paper lg:flex xl:gap-7">
               <NavLinks links={NAV} appLinks={APP_NAV} />
               <SearchBar />
-              <span className="h-4 w-px bg-rule" />
-              <AuthNav />
+              <span className="h-4 w-px bg-paper/30" />
+              <AuthNav onDark />
             </nav>
             <MobileNav links={NAV} appLinks={APP_NAV} />
           </div>
@@ -100,7 +101,8 @@ const site = await getSiteSettingsCached();
 
         {/* Footer */}
         <HideOnAppHost>
-        <footer className="mt-24 border-t border-rule bg-ink text-paper">
+        <footer className="mt-24 bg-crimson-deep text-paper" style={{ backgroundImage: "linear-gradient(160deg, #4E0119 0%, #7A0328 100%)" }}>
+          <FooterCta />
           <div className="mx-auto grid max-w-7xl grid-cols-1 gap-10 px-4 py-16 sm:grid-cols-2 sm:px-6 lg:grid-cols-4 lg:px-8">
             <div>
               <div className="flex items-center gap-2.5">

@@ -93,7 +93,7 @@ export default async function JournalDetail({
                 />
               </Link>
             ) : (
-              <ProfileAvatar username={linkedUsername} src={authorProfile?.avatar || note.author_avatar} alt={authorProfile?.displayName || note.author} size={44} from="journal" />
+              <ProfileAvatar username={linkedUsername} src={authorProfile?.avatar || note.author_avatar} alt={authorProfile?.displayName || note.author} size={44} square={authorProfile?.accountKind === "organisation"} from="journal" />
             )}
             <Link href={site ? site.base || "/" : `/u/${linkedUsername}`} className="block">
             <div>

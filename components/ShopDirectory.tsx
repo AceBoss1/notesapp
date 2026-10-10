@@ -33,7 +33,7 @@ export default function ShopDirectory({ shops }: { shops: DirectoryShop[] }) {
           const body = (
             <>
               <div className="flex items-center gap-4">
-                <Avatar src={s.avatar} alt={s.displayName} size={56} square />
+                <Avatar src={s.avatar} alt={s.displayName} size={56} square={!!s.isOrg} />
                 <div className="min-w-0">
                   <p className="truncate font-ui text-base font-bold text-ink">
                     {s.displayName}&apos;s store

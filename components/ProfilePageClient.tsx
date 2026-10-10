@@ -236,17 +236,21 @@ export default function ProfilePageClient({ params }: { params: { username: stri
     }
   }
 
+  // People get a circle, organisations a rounded square.
+  const isOrgAcct = realProfile?.accountKind === "organisation";
   return (
-    <div className="mx-auto max-w-5xl px-4 py-16 sm:px-6 lg:px-8">
-      <div className="flex flex-col items-start gap-6 sm:flex-row sm:items-center">
+    <div>
+      <div className="h-32 bg-crimson-deep sm:h-40" style={{ backgroundImage: "radial-gradient(50rem 20rem at 85% -30%, rgba(166,9,61,0.7), transparent 70%), linear-gradient(135deg, #4E0119 0%, #7A0328 100%)" }} aria-hidden="true" />
+    <div className="mx-auto max-w-5xl px-4 pb-16 sm:px-6 lg:px-8">
+      <div className="card -mt-16 flex flex-col items-start gap-6 p-6 sm:flex-row sm:items-center">
         {!suspended && !synthetic && realProfile ? (
           // A ring when the member has moments you can see (only when Moments is switched on).
           <MomentRing username={profile.username} isOwn={isOwnProfile}>
-            <Avatar square src={profile.avatar} alt={profile.displayName} size={88} />
+            <Avatar square={isOrgAcct} src={profile.avatar} alt={profile.displayName} size={88} />
           </MomentRing>
         ) : (
           <Avatar
-            square
+            square={isOrgAcct}
             src={suspended ? SUSPENDED_AVATAR : profile.avatar}
             alt={profile.displayName}
             size={88}
@@ -492,6 +496,7 @@ export default function ProfilePageClient({ params }: { params: { username: stri
       )}
       <ScrollToHash />
       {badge && !suspended && <BadgeToast subjectUid={realProfile?.uid} />}
+    </div>
     </div>
   );
 }

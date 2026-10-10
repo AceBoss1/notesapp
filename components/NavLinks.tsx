@@ -11,7 +11,7 @@ export default function NavLinks({ links, appLinks }: { links: L[]; appLinks: L[
   return (
     <>
       {(app ? appLinks : links).map((item) => (
-        <Link key={item.href} href={item.href} className="hover:text-crimson transition-colors">{item.label}</Link>
+        <Link key={item.href} href={item.href} className="underline-offset-4 transition-colors hover:underline">{item.label}</Link>
       ))}
     </>
   );

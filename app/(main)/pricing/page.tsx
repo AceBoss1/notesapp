@@ -1,3 +1,4 @@
+import PageHero from "@/components/PageHero";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { TIERS, formatPercent, badgeIncluded, canSellViewOnly, BADGE_PRICE_KOBO } from "@/lib/tiers";
@@ -156,19 +157,16 @@ export default async function PricingPage() {
   // The admin-set limits; the built-in defaults if they can't be read.
   const L = await (async () => getLimitTable(getAdminDb()))().catch(() => limitTable());
   return (
-    <div className="mx-auto max-w-6xl px-4 py-16 sm:px-6 lg:px-8">
-      <span className="eyebrow">Pricing</span>
-      <h1 className="mt-4 font-display text-4xl text-ink sm:text-5xl">
-        One ladder, transparent at every rung
-      </h1>
-      <p className="mt-5 max-w-2xl text-lg text-slate">
+    <div>
+      <PageHero eyebrow="Pricing" title="One ladder, transparent at every rung">
+        <p>
         Reading, commenting, booking a session, unlocking a locked
         journal, and buying merch are always free to do. Publishing
         your own journal opens the ladder below — the more you commit
         to the platform, the less commission NotesApp takes on what
         you earn through it.
       </p>
-      <p className="mt-3 max-w-2xl text-sm text-slate">
+        <p className="small">
         Publishers set their own prices — sessions from ₦5,000 to
         ₦500,000, monthly journal subscriptions from ₦1,000 to
         ₦100,000. The commission below comes out of each paid session
@@ -176,8 +174,9 @@ export default async function PricingPage() {
         after the session (subscriptions after a 7-day dispute window).
         Nana AI helps with drafts, posts for LinkedIn and X, and messages on every plan, never as a paid-tier perk: connect your own AI account today, and once our own AI is switched on for everyone each member gets a small daily allowance (<Link href="/nana" className="text-crimson underline">about Nana</Link>).
       </p>
-
-      <div className="mt-12 overflow-x-auto">
+      </PageHero>
+    <div className="mx-auto max-w-6xl px-4 pb-16 pt-4 sm:px-6 lg:px-8">
+      <div className="mt-10 overflow-x-auto">
         <table className="w-full min-w-[900px] border-collapse text-left">
           <thead>
             <tr>
@@ -280,6 +279,7 @@ export default async function PricingPage() {
         </ul>
       </div>
 
+      </div>
     </div>
   );
 }

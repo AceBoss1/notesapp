@@ -11,6 +11,17 @@ export type Release = {
 
 export const CHANGELOG: Release[] = [
   {
+    version: "v0.15.0",
+    bump: "minor",
+    date: "2026-10-10",
+    changes: [
+      { kind: "changed", text: "A new look in #NotesApp crimson: the top bar, a crimson banner on the About, Pricing, Help and Track a parcel pages (Help shows Nana), a bolder challenge banner on the home page, and a call to action opening the footer on every page. Nana, boosts and adverts stay where they were." },
+      { kind: "changed", text: "Profiles now open with a header card on a crimson band. People's pictures are circles and organisations' pictures are rounded squares, on profiles, stores, item pages, messages, journals and the Moments row." },
+      { kind: "changed", text: "Messages on a wide screen: your conversations stay on the left while the open conversation (or Nana) is on the right. On a phone, each is its own page, as before." },
+      { kind: "changed", text: "Moments on a computer: a wide viewer with the people you follow on the left (tap to jump between them), the moment in the middle, and on the right who posted it, Follow and Message, quick reactions (❤️ 🔥 👏 😂 😮, which like the moment and send the emoji to their inbox) and details about the moment." },
+    ],
+  },
+  {
     version: "v0.14.0",
     bump: "minor",
     date: "2026-10-10",

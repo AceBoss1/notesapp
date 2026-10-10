@@ -43,7 +43,7 @@ function dayLabel(iso: string): string {
 }
 const GROUP_GAP_MS = 5 * 60_000; // messages from one person within five minutes share one name line
 
-type Person = { name: string; username: string; avatar: string; level: "verified" | "gold" | null; goldKind?: ReturnType<typeof goldKindOf>; team?: boolean };
+type Person = { name: string; username: string; avatar: string; level: "verified" | "gold" | null; goldKind?: ReturnType<typeof goldKindOf>; team?: boolean; isOrg?: boolean };
 type Who = { uid: string; username: string; displayName: string; avatar: string };
 
 // One conversation. `to` (a username) starts a new one; `id` opens an existing one. Replies to moments carry a small note:
@@ -92,7 +92,7 @@ export default function Thread({ id, to, embedded = false }: { id?: string; to?:
       if (!live) return;
       setPeople(Object.fromEntries(group.members.map((m, i) => {
         const p = profiles[i];
-        return [m.uid, p ? { name: p.displayName, username: p.username, avatar: p.avatar, level: badgeLevel(p), goldKind: goldKindOf(p), team: isTeamMember(p) } : { name: m.displayName, username: m.username, avatar: m.avatar, level: null }];
+        return [m.uid, p ? { name: p.displayName, username: p.username, avatar: p.avatar, level: badgeLevel(p), goldKind: goldKindOf(p), team: isTeamMember(p), isOrg: p.accountKind === "organisation" } : { name: m.displayName, username: m.username, avatar: m.avatar, level: null }];
       })));
     });
     return () => { live = false; };
@@ -104,7 +104,7 @@ export default function Thread({ id, to, embedded = false }: { id?: string; to?:
     Promise.all([getUserByUid(user.uid).catch(() => null), getUserByUid(who.uid).catch(() => null)]).then(([me, them]) => {
       if (!live) return;
       const make = (p: Awaited<ReturnType<typeof getUserByUid>>, fallback: { name: string; username: string; avatar: string }): Person =>
-        p ? { name: p.displayName, username: p.username, avatar: p.avatar, level: badgeLevel(p), goldKind: goldKindOf(p), team: isTeamMember(p) } : { ...fallback, level: null };
+        p ? { name: p.displayName, username: p.username, avatar: p.avatar, level: badgeLevel(p), goldKind: goldKindOf(p), team: isTeamMember(p), isOrg: p.accountKind === "organisation" } : { ...fallback, level: null };
       setPeople({
         [user.uid]: make(me, { name: user.displayName || "You", username: "", avatar: "" }),
         [who.uid]: make(them, { name: who.displayName, username: who.username, avatar: who.avatar }),
@@ -267,7 +267,7 @@ export default function Thread({ id, to, embedded = false }: { id?: string; to?:
                 </div>
               )}
               <div id={`m-${m.id}`} className={`flex items-start gap-2 ${mine ? "flex-row-reverse" : ""} ${newGroup ? "mt-4" : "mt-1"}`}>
-                <ProfileAvatar username={person?.username || (mine ? "" : who?.username ?? "")} src={person?.avatar ?? ""} alt={person?.name ?? ""} size={32} square from="chat" />
+                <ProfileAvatar username={person?.username || (mine ? "" : who?.username ?? "")} src={person?.avatar ?? ""} alt={person?.name ?? ""} size={32} square={!!person?.isOrg} from="chat" />
                 <div className={`flex min-w-0 max-w-[80%] flex-col ${mine ? "items-end" : "items-start"}`}>
                   {newGroup && (
                     <p className="mb-1 flex items-center gap-1.5 font-ui text-sm font-bold text-ink">

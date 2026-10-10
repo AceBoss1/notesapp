@@ -171,7 +171,7 @@ async function likedSet(db: Firestore, uid: string, ids: string[]): Promise<Set<
   return new Set(snaps.filter((s) => s.exists).map((s) => s.ref.parent.parent!.id));
 }
 
-export type MomentGroup = { ownerUid: string; ownerUsername: string; displayName: string; avatar: string; moments: MomentView[] };
+export type MomentGroup = { ownerUid: string; ownerUsername: string; displayName: string; avatar: string; isOrg?: boolean; moments: MomentView[] };
 
 // Moments from the people the viewer follows, plus the viewer's own. Expired ones are never returned.
 export async function listFeed(db: Firestore, viewer: { uid: string; username: string }, deps: MomentDeps, now = new Date()): Promise<MomentGroup[]> {
@@ -194,10 +194,10 @@ export async function listFeed(db: Firestore, viewer: { uid: string; username: s
   // Names and pictures for the tiles (one read for each member who has something up).
   const ownerIds = Array.from(new Set(visible.map((d) => d.m.ownerUid)));
   const owners = ownerIds.length ? await db.getAll(...ownerIds.map((u) => db.doc(`users/${u}`))) : [];
-  const who = new Map(owners.map((o) => [o.id, { displayName: String(o.data()?.displayName ?? ""), avatar: String(o.data()?.avatar ?? "") }]));
+  const who = new Map(owners.map((o) => [o.id, { displayName: String(o.data()?.displayName ?? ""), avatar: String(o.data()?.avatar ?? ""), isOrg: o.data()?.accountKind === "organisation" }]));
   const groups = new Map<string, MomentGroup>();
   for (const { id, m } of visible.sort((a, b) => (a.m.createdAt < b.m.createdAt ? -1 : 1))) {
-    const g = groups.get(m.ownerUid) ?? { ownerUid: m.ownerUid, ownerUsername: m.ownerUsername, displayName: who.get(m.ownerUid)?.displayName || m.ownerUsername, avatar: who.get(m.ownerUid)?.avatar ?? "", moments: [] };
+    const g = groups.get(m.ownerUid) ?? { ownerUid: m.ownerUid, ownerUsername: m.ownerUsername, displayName: who.get(m.ownerUid)?.displayName || m.ownerUsername, avatar: who.get(m.ownerUid)?.avatar ?? "", isOrg: who.get(m.ownerUid)?.isOrg ?? false, moments: [] };
     g.moments.push(toView(id, m, viewer.uid, liked.has(id), deps));
     groups.set(m.ownerUid, g);
   }

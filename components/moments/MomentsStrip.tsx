@@ -53,8 +53,8 @@ export default function MomentsStrip() {
           <div className="relative shrink-0">
             <button type="button" onClick={() => (mine ? setViewing(mine) : setComposing(true))} className={tile} aria-label={mine ? "View your moments" : "Add a moment"}>
               <Preview group={mine} />
-              <span className="absolute left-2 top-2 block rounded-2xl bg-white p-[2px] shadow">
-                <Avatar src={data.me.avatar} alt="" size={40} square />
+              <span className={`absolute left-2 top-2 block bg-white p-[2px] shadow ${mine?.isOrg ? "rounded-2xl" : "rounded-full"}`}>
+                <Avatar src={data.me.avatar} alt="" size={40} square={!!mine?.isOrg} />
               </span>
               <span className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/70 to-transparent px-2 pb-2 pt-6 text-xs font-bold text-white">My moments</span>
             </button>
@@ -63,8 +63,8 @@ export default function MomentsStrip() {
           {others.map((g) => (
             <button key={g.ownerUid} type="button" onClick={() => setViewing(g)} className={tile} aria-label={`View ${g.displayName}'s moments`}>
               <Preview group={g} />
-              <span className="absolute left-2 top-2 block rounded-2xl bg-gradient-to-tr from-crimson via-crimson-bright to-amber-400 p-[3px] shadow">
-                <span className="block rounded-2xl bg-white p-[2px]"><Avatar src={g.avatar} alt="" size={36} square /></span>
+              <span className={`absolute left-2 top-2 block bg-gradient-to-tr from-crimson via-crimson-bright to-amber-400 p-[3px] shadow ${g.isOrg ? "rounded-2xl" : "rounded-full"}`}>
+                <span className={`block bg-white p-[2px] ${g.isOrg ? "rounded-2xl" : "rounded-full"}`}><Avatar src={g.avatar} alt="" size={36} square={!!g.isOrg} /></span>
               </span>
               <span className="absolute inset-x-0 bottom-0 truncate bg-gradient-to-t from-black/70 to-transparent px-2 pb-2 pt-6 text-xs font-bold text-white">{g.displayName}</span>
             </button>
@@ -72,7 +72,7 @@ export default function MomentsStrip() {
           {!others.length && <p className="self-center pl-2 text-sm text-slate">When people you follow share a moment, it shows up here.</p>}
         </div>
       </div>
-      {viewing && <MomentViewer moments={viewing.moments} onClose={() => { setViewing(null); load(); }} onChanged={load} />}
+      {viewing && <MomentViewer key={viewing.ownerUid} moments={viewing.moments} groups={data.groups} onSelectGroup={(g) => setViewing(g)} onClose={() => { setViewing(null); load(); }} onChanged={load} />}
       {composing && <MomentComposer onClose={() => setComposing(false)} onPosted={load} />}
     </section>
   );

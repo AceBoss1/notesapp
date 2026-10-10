@@ -1,3 +1,4 @@
+import PageHero from "@/components/PageHero";
 import Image from "next/image";
 import { PartnersStrip, TrustedByStrip } from "@/components/PartnerMarquees";
 import Link from "next/link";
@@ -49,13 +50,12 @@ const FOUNDERS = [
 export default async function AboutPage() {
   const site = await getSiteSettingsCached();
   return (
-    <div className="mx-auto max-w-4xl px-4 py-16 sm:px-6 lg:px-8">
-      <span className="eyebrow">About</span>
-      <h1 className="mt-4 font-display text-4xl text-ink sm:text-5xl">
-        Why #NotesApp exists
-      </h1>
-
-      <div className="mt-10 overflow-hidden rounded-xl2 border border-rule">
+    <div>
+      <PageHero eyebrow="About" title="Why #NotesApp exists" max="max-w-4xl">
+        <p>A home where African creators, professionals, coaches, consultants, therapists and businesses publish, build an audience and get paid in Naira.</p>
+      </PageHero>
+    <div className="mx-auto max-w-4xl px-4 py-12 sm:px-6 lg:px-8">
+      <div className="overflow-hidden rounded-xl2 border border-rule">
         <Image
           src="/images/marketing/notesapp-showcase.png"
           alt="#NotesApp shown across laptop and phone — For You feed, Following, Trending, Bookmarks, and a profile with notes, followers, and following counts"
@@ -186,7 +186,7 @@ export default async function AboutPage() {
               href={`/u/${c.username}`}
               className="card flex items-center gap-4 p-6 hover:shadow-md"
             >
-              <Avatar src={c.avatar} alt={c.displayName} size={64} />
+              <Avatar src={c.avatar} alt={c.displayName} size={64} square />
               <div>
                 <p className="font-ui text-base font-bold text-ink">{c.displayName}</p>
                 <p className="font-mono text-xs uppercase tracking-eyebrow text-crimson-bright">
@@ -224,6 +224,7 @@ export default async function AboutPage() {
             Facebook
           </a>
         </div>
+      </div>
       </div>
     </div>
   );

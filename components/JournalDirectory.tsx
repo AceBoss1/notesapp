@@ -46,7 +46,7 @@ export default function JournalDirectory({
             : allNotes.filter((n) => isNoteBy(n as any, { username: entry.username, displayName: entry.displayName })).length;
         return (
           <div key={entry.username} className="card flex items-center gap-4 p-5">
-            <ProfileAvatar username={entry.username} src={entry.avatar} alt={entry.displayName} size={48} from="journal" />
+            <ProfileAvatar username={entry.username} src={entry.avatar} alt={entry.displayName} size={48} square={!!entry.organisation} from="journal" />
             <Link href={`/u/${entry.username}`} className="flex flex-1 items-center gap-4">
               <div>
                 <p className="flex items-center gap-1.5 font-ui text-sm font-bold text-ink">

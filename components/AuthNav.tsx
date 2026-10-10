@@ -10,7 +10,8 @@ import Avatar from "@/components/Avatar";
 import { MESSAGES_LIVE } from "@/lib/moments-rules";
 import { collection, onSnapshot, query, where } from "firebase/firestore";
 
-export default function AuthNav() {
+// `onDark`: the desktop masthead is crimson, so the links and buttons are drawn light there.
+export default function AuthNav({ onDark = false }: { onDark?: boolean }) {
   const [user, setUser] = useState<User | null | undefined>(undefined);
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [open, setOpen] = useState(false);
@@ -48,14 +49,14 @@ export default function AuthNav() {
   if (!user) {
     return (
       <div className="flex items-center gap-4">
-        <Link href="/login" className="text-ink hover:text-crimson-bright">
+        <Link href="/login" className={onDark ? "rounded-full border border-paper/50 px-4 py-1.5 text-paper hover:bg-paper/10" : "text-ink hover:text-crimson-bright"}>
           Sign In
         </Link>
         <Link
           href="/signup"
-          className="bg-ink text-paper px-4 py-1.5 hover:bg-crimson-deep transition-colors"
+          className={onDark ? "rounded-full bg-paper px-4 py-1.5 text-crimson-deep hover:opacity-90" : "bg-ink text-paper px-4 py-1.5 hover:bg-crimson-deep transition-colors"}
         >
-          Sign Up
+          {onDark ? "Create account" : "Sign Up"}
         </Link>
       </div>
     );
@@ -68,11 +69,11 @@ export default function AuthNav() {
       <NotificationBell user={user} />
       {profile && (
         <Link href={`/u/${profile.username}`} aria-label="My profile" title="My profile" className="flex">
-          <Avatar src={profile.avatar} alt={profile.displayName} size={28} />
+          <Avatar src={profile.avatar} alt={profile.displayName} size={28} square={profile.accountKind === "organisation"} />
         </Link>
       )}
       <div className="relative" ref={menuRef}>
-        <button onClick={() => setOpen((o) => !o)} aria-haspopup="menu" aria-expanded={open} className="font-mono text-crimson-bright">
+        <button onClick={() => setOpen((o) => !o)} aria-haspopup="menu" aria-expanded={open} className={`font-mono ${onDark ? "text-paper" : "text-crimson-bright"}`}>
           <span className="inline-block max-w-[10rem] truncate align-bottom">{profile ? `@${profile.username}` : "Account"}</span> ▾
         </button>
         {open && (
