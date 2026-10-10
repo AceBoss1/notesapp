@@ -11,6 +11,15 @@ export type Release = {
 
 export const CHANGELOG: Release[] = [
   {
+    version: "v0.13.2",
+    bump: "patch",
+    date: "2026-10-10",
+    changes: [
+      { kind: "added", text: "Roadmap: voice is planned. A Listen button on every journal, Nana reading her answers aloud, and voice notes and booked sessions turned into text. Not built yet, no date." },
+      { kind: "changed", text: "The status page now says why the Claude AI line is down (key rejected, rate limited, or not reachable) instead of only showing Down." },
+    ],
+  },
+  {
     version: "v0.13.1",
     bump: "patch",
     date: "2026-10-10",
