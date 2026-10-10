@@ -100,8 +100,8 @@ export default async function AboutPage() {
           ))}
         </div>
         <p className="mt-4 text-sm text-slate">
-          Still to come: WhatsApp reminders, iOS and Android apps, social
-          publishing, and Google and Meta ads
+          Still to come: WhatsApp reminders, iOS and Android apps, sharing
+          to more social networks (LinkedIn and X are live), and Google and Meta ads
           alongside our own — see the{" "}
           <Link href="/roadmap" className="text-crimson underline underline-offset-2">roadmap</Link>.
         </p>
@@ -110,9 +110,9 @@ export default async function AboutPage() {
       <TrustedByStrip className="mt-14" />
       <PartnersStrip className="mt-10" />
 
-      <div className="mt-14">
-        <p className="eyebrow">How we make money — in the open</p>
-        <div className="prose mt-4 max-w-none text-sm text-slate">
+      <div className="mt-14 rounded-2xl p-8 text-paper sm:p-10" style={{ backgroundImage: "linear-gradient(160deg, #1A1210 0%, #2a0a14 100%)" }}>
+        <p className="font-mono text-[11px] uppercase tracking-eyebrow text-pink-300">How we make money — in the open</p>
+        <div className="prose mt-4 max-w-none text-sm text-paper/85 [&_a]:!text-white [&_p]:text-paper/85">
           <p>
             Reading, commenting, booking, subscribing and buying merch are
             free to do. Publishers set their own prices; #NotesApp takes a
@@ -130,7 +130,7 @@ export default async function AboutPage() {
 
       <div className="mt-14">
         <p className="eyebrow">Trust &amp; safety</p>
-        <ul className="mt-4 list-disc space-y-2 pl-5 text-sm text-slate">
+        <ul className="card mt-4 list-disc space-y-2 p-6 pl-10 text-sm text-slate">
           <li>Payments are handled by Paystack — we never store card details.</li>
           <li>Publisher earnings are held until the session has happened (or a 7-day window for subscriptions and gifts) and paid to a verified bank account.</li>
           <li>One published cancellation and refund policy for every session.</li>

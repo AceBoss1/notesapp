@@ -11,6 +11,26 @@ export type Release = {
 
 export const CHANGELOG: Release[] = [
   {
+    version: "v0.16.1",
+    bump: "patch",
+    date: "2026-10-10",
+    changes: [
+      { kind: "changed", text: "Pricing: the comparison table has a crimson header with white bold plan names and prices, alternating white and ivory rows, and on a phone the Feature column stays in view while you scroll across the plans. The plans also show as five cards under the heading, and a dark band shows what #NotesApp takes on each rung." },
+      { kind: "changed", text: "About: the money section is now a dark band and the trust and safety list a card; the “still to come” line no longer lists social publishing, which is live for LinkedIn and X. Help ends with an Ask Nana or contact the team card. Messages on a phone sit in a card." },
+      { kind: "fixed", text: "On a phone, the journal page no longer scrolls sideways because of the date and views lines." },
+    ],
+  },
+  {
+    version: "v0.16.0",
+    bump: "minor",
+    date: "2026-10-10",
+    changes: [
+      { kind: "changed", text: "Moments on a phone now fill the screen: the picture or video runs edge to edge, with your progress bars, name and picture on top and your reply box on the bottom. Tap the left side to go back and anywhere else to go on. Quick reactions (❤️ 🔥 👏 😂 😮) sit above the reply box, and like, reshare and report are round pills." },
+      { kind: "changed", text: "Your own moments: on a computer you now see your views, likes and reshares as big numbers, a Who watched list that is already open, a list of your other moments to jump between, and a Delete button. On a phone, tap the 👁 pill for the same list." },
+      { kind: "changed", text: "Journal pages on a computer have a side column next to the article: a crimson Book a session card, the author with Follow and Message, a gift card and more journals from the same author. On a phone the same cards sit under the article." },
+    ],
+  },
+  {
     version: "v0.15.1",
     bump: "patch",
     date: "2026-10-10",

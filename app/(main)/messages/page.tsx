@@ -10,9 +10,11 @@ export default function MessagesPage() {
   if (!MESSAGES_LIVE) notFound();
   return (
     <>
-      <div className="mx-auto max-w-2xl px-4 py-16 sm:px-6 lg:hidden">
-        <h1 className="font-display text-4xl text-ink">Messages</h1>
-        <div className="mt-8"><MessagesBoundary><Inbox /></MessagesBoundary></div>
+      <div className="mx-auto max-w-2xl px-4 py-8 sm:px-6 lg:hidden">
+        <div className="card p-4">
+          <h1 className="font-display text-3xl text-ink">Messages</h1>
+          <div className="mt-4"><MessagesBoundary><Inbox /></MessagesBoundary></div>
+        </div>
       </div>
       <div className="hidden py-10 lg:block">
         <div className="card flex min-h-[24rem] flex-col items-center justify-center p-10 text-center">

@@ -20,6 +20,9 @@ import PremiumGate from "@/components/PremiumGate";
 import GiftButton from "@/components/GiftButton";
 import AdSlot from "@/components/AdSlot";
 import { UnverifiedOrgNotice } from "@/components/OrgNotice";
+import Avatar from "@/components/Avatar";
+import FollowButton from "@/components/FollowButton";
+import MessageButton from "@/components/messages/MessageButton";
 
 // The reading page for one note (same Firestore doc as precheks.com.ng/notes/{slug}). Used by /journals/<slug> and a member's own site.
 // `site` is set on a member's own site: "more notes" are then only theirs, links stay inside the site
@@ -60,10 +63,11 @@ export default async function JournalDetail({
     site ? <span className={className}>{children}</span> : <Link href={href} className={className}>{children}</Link>;
 
   return (
-    <article className="mx-auto max-w-3xl px-4 py-16 sm:px-6 lg:px-8">
+    <div className={site ? "mx-auto max-w-3xl px-4 py-16 sm:px-6 lg:px-8" : "mx-auto max-w-6xl px-4 py-12 sm:px-6 lg:grid lg:grid-cols-[minmax(0,1fr),20rem] lg:gap-12 lg:px-8"}>
+    <article className="min-w-0">
       <Link
         href={site ? notesBase || "/notes" : "/journals"}
-        className="font-ui text-xs font-semibold uppercase tracking-wideish text-crimson-bright"
+        className="block font-ui text-xs font-semibold uppercase tracking-wideish text-crimson-bright"
       >
         {site ? "← All notes" : "← All Journals"}
       </Link>
@@ -131,7 +135,7 @@ export default async function JournalDetail({
             </div>
           </div>
         )}
-        <p className="whitespace-nowrap font-mono text-xs text-slate">
+        <p className="font-mono text-xs text-slate sm:whitespace-nowrap">
           {note.date &&
             new Date(note.date).toLocaleDateString("en-NG", {
               year: "numeric",
@@ -209,7 +213,7 @@ export default async function JournalDetail({
       )}
 
       {authorProfile && (
-        <div className="card mt-10 flex flex-col items-start gap-4 p-7 sm:flex-row sm:items-center sm:justify-between">
+        <div className={`card mt-10 flex flex-col items-start gap-4 p-7 sm:flex-row sm:items-center sm:justify-between ${site ? "" : "lg:hidden"}`}>
           <div>
             <p className="font-ui text-base font-bold text-ink">
               Book a session with {note.author}
@@ -237,7 +241,7 @@ export default async function JournalDetail({
         />
         {!site && <SocialPublish noteId={note.id} authorUid={note.authorUid} />}
         {authorProfile && linkedUsername && (
-          <div className="mt-4">
+          <div className={`mt-4 ${site ? "" : "lg:hidden"}`}>
             <GiftButton username={linkedUsername} publisherUid={authorProfile.uid} noteId={note.id} label="🎁 Gift this post" />
           </div>
         )}
@@ -283,5 +287,48 @@ export default async function JournalDetail({
         shares={note.shareCount || 0}
       />
     </article>
+    {!site && authorProfile && (
+      <aside className="hidden space-y-5 lg:sticky lg:top-24 lg:block lg:self-start" aria-label="About the author">
+        <div className="rounded-xl2 p-6 text-paper shadow-lg" style={{ backgroundImage: "linear-gradient(160deg, #4E0119 0%, #7A0328 100%)" }}>
+          <p className="font-mono text-[11px] uppercase tracking-eyebrow text-paper/70">Book a 1:1 session</p>
+          <p className="mt-2 font-display text-2xl leading-snug">Book a session with {authorProfile.displayName}</p>
+          <p className="mt-2 text-sm text-paper/80">Native calendar, no redirect. Payment collects inline.</p>
+          <Link href={`/u/${authorProfile.username}`} className="mt-4 inline-block rounded-full bg-paper px-5 py-2.5 font-ui text-sm font-bold text-crimson-deep hover:opacity-90">View calendar</Link>
+        </div>
+        <div className="card p-5">
+          <div className="flex items-center gap-3">
+            <Avatar src={authorProfile.avatar || note.author_avatar} alt={authorProfile.displayName} size={48} square={authorProfile.accountKind === "organisation"} />
+            <div className="min-w-0">
+              <p className="truncate font-ui text-sm font-bold text-ink">{authorProfile.displayName}</p>
+              <p className="truncate font-mono text-[11px] uppercase tracking-wide text-slate">{roleLabelFor(authorProfile)}</p>
+            </div>
+          </div>
+          {linkedUsername && (
+            <div className="mt-4 flex flex-wrap gap-2">
+              <FollowButton username={linkedUsername} />
+              <MessageButton username={linkedUsername} profileUid={authorProfile.uid} />
+            </div>
+          )}
+        </div>
+        {linkedUsername && (
+          <div className="card p-5">
+            <p className="font-ui text-sm font-bold text-ink">Liked this?</p>
+            <p className="mt-1 text-xs text-slate">Say thanks with a gift. It goes to {authorProfile.displayName}&apos;s bank account.</p>
+            <div className="mt-3"><GiftButton username={linkedUsername} publisherUid={authorProfile.uid} noteId={note.id} label="🎁 Gift this post" /></div>
+          </div>
+        )}
+        {moreNotes.length > 0 && (
+          <div className="card p-5">
+            <p className="font-ui text-sm font-bold text-ink">More journals</p>
+            <ul className="mt-3 space-y-3">
+              {moreNotes.slice(0, 4).map((n) => (
+                <li key={n.slug}><Link href={`${notesBase}/${n.slug}`} className="block text-sm text-ink hover:text-crimson">{n.title}</Link></li>
+              ))}
+            </ul>
+          </div>
+        )}
+      </aside>
+    )}
+    </div>
   );
 }
