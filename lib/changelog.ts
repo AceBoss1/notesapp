@@ -11,6 +11,18 @@ export type Release = {
 
 export const CHANGELOG: Release[] = [
   {
+    version: "v0.14.0",
+    bump: "minor",
+    date: "2026-10-10",
+    changes: [
+      { kind: "added", text: "Store categories: sellers file each item under a category (Fashion & clothing, Shoes & bags, Beauty & care, Jewellery & accessories, Home & living, Food & drinks, Electronics, Books & courses, Art & crafts, Other), and shoppers can filter a store by category." },
+      { kind: "added", text: "Save items with the heart: tap ♡ on an item in any store or on its page to save it, and find your list under Saved items in your menu. Only you can see what you saved. Sellers see how many people saved each item." },
+      { kind: "added", text: "What buyers check more: each store shows its most viewed items, and the item page shows how many people have looked at it and saved it. Your own visits to your own items are not counted." },
+      { kind: "added", text: "Ships from: every physical item now says where it is sent from (for example Lekki, Lagos), on the store, on the item page and before you pay. Sellers are asked for it when they add or edit an item." },
+      { kind: "changed", text: "Redesigned store and item pages: a store header with the seller's picture (a circle for people, a rounded square for organisations), a featured item, category filters, bigger item photos and a clearer buying panel, with more items from the same store underneath." },
+    ],
+  },
+  {
     version: "v0.13.3",
     bump: "patch",
     date: "2026-10-10",

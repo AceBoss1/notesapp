@@ -12,9 +12,10 @@ import LessonsEditor from "@/components/LessonsEditor";
 import { canSellViewOnly } from "@/lib/tiers";
 import { effectiveTier } from "@/lib/users";
 import { DIGITAL_EXTENSIONS, DIGITAL_MAX_BYTES } from "@/lib/private-files-config";
+import { STORE_CATEGORIES, SHIPS_FROM_MAX, cleanShipsFrom, shipsFromOk } from "@/lib/store-meta";
 
 const field = "mt-1 w-full border border-rule bg-card px-3 py-2 font-body text-sm outline-none focus:border-gold";
-const EMPTY = { title: "", subtitle: "", badge: "", priceNaira: "", deliveryNaira: "0", stock: "" };
+const EMPTY = { title: "", subtitle: "", badge: "", priceNaira: "", deliveryNaira: "0", stock: "", category: "", shipsFrom: "" };
 // Size/colour entries the seller has ticked ✔ so far: one row per saved combination, with how many pieces of it they have.
 type VariantRow = { values: string[]; qty: number };
 const EMPTY_DRAFT = { values: ["", ""], qty: "" };
@@ -96,7 +97,7 @@ export default function StoreManager({
     }
     setForm(
       item
-        ? { title: item.title, subtitle: item.subtitle ?? "", badge: item.badge ?? "", priceNaira: String((item.priceKobo ?? 0) / 100), deliveryNaira: String((item.deliveryKobo ?? 0) / 100), stock: String(item.stock ?? 0) }
+        ? { title: item.title, subtitle: item.subtitle ?? "", badge: item.badge ?? "", priceNaira: String((item.priceKobo ?? 0) / 100), deliveryNaira: String((item.deliveryKobo ?? 0) / 100), stock: String(item.stock ?? 0), category: item.category ?? "", shipsFrom: item.shipsFrom ?? "" }
         : EMPTY
     );
     setError("");
@@ -130,6 +131,8 @@ export default function StoreManager({
     const withOptions = !digital && rows.length > 0;
     const stock = digital ? 0 : withOptions ? totalPieces : Number(form.stock);
     if (!form.title.trim()) return setError("Add a title.");
+    if (!form.category) return setError("Choose a category so buyers can find the item.");
+    if (!digital && !shipsFromOk(form.shipsFrom)) return setError("Say where this item ships from (for example Lekki, Lagos). Buyers see it before they pay.");
     if (!Number.isFinite(priceKobo) || priceKobo < STORE_ITEM_MIN_KOBO || priceKobo > STORE_ITEM_MAX_KOBO) return setError("Price must be between ₦100 and ₦5,000,000.");
     if (!digital && (!Number.isFinite(deliveryKobo) || deliveryKobo < 0 || deliveryKobo > STORE_DELIVERY_MAX_KOBO)) return setError("Delivery fee must be between ₦0 and ₦50,000.");
     if (!withOptions && !digital && (form.stock.trim() === "" || !Number.isInteger(stock) || stock < 0 || stock > 100000)) return setError("Enter how many you have in stock (a whole number; 0 means sold out).");
@@ -140,7 +143,7 @@ export default function StoreManager({
     if (digital && !viewOnly && !editing && !file) return setError("Choose the file buyers will download.");
     if (file && file.size > DIGITAL_MAX_BYTES) return setError(`The file is too big — the limit is ${DIGITAL_MAX_BYTES / 1024 / 1024} MB.`);
     const input = {
-      title: form.title, subtitle: form.subtitle, badge: form.badge, image: images[0] ?? "", images,
+      title: form.title, subtitle: form.subtitle, badge: form.badge, image: images[0] ?? "", images, category: form.category, ...(digital ? {} : { shipsFrom: cleanShipsFrom(form.shipsFrom) }),
       ...(withOptions ? { options, variantStock: Object.fromEntries(rows.map((r) => [variantKey(r.values), r.qty])) } : {}),
       price: `₦${(priceKobo / 100).toLocaleString("en-NG")}`, link: "", cta: digital ? (viewOnly ? "Buy & view" : "Buy & download") : "Buy now",
       sellable: true, priceKobo, deliveryKobo: digital ? 0 : deliveryKobo, stock,
@@ -303,6 +306,9 @@ export default function StoreManager({
               <label className="text-xs text-slate">Delivery fee (₦, yours)
                 <input type="number" min={0} step={50} value={form.deliveryNaira} onChange={set("deliveryNaira")} className={field} />
               </label>
+              <label className="text-xs text-slate">Ships from (city or area, so buyers know)
+                <input value={form.shipsFrom} maxLength={SHIPS_FROM_MAX} placeholder="Lekki, Lagos" onChange={set("shipsFrom")} className={field} required />
+              </label>
               {rows.length === 0 && (
                 <label className="text-xs text-slate">In stock
                   <input type="number" min={0} step={1} value={form.stock} onChange={set("stock")} className={field} required={rows.length === 0} />
@@ -367,6 +373,12 @@ export default function StoreManager({
               </span>
             </div>
           )}
+          <label className="text-xs text-slate">Category (buyers can filter by it)
+            <select value={form.category} onChange={(e) => setForm((f) => ({ ...f, category: e.target.value }))} className={field} required>
+              <option value="">Choose…</option>
+              {STORE_CATEGORIES.map((c) => <option key={c} value={c}>{c}</option>)}
+            </select>
+          </label>
           <label className="text-xs text-slate">Tag (optional, e.g. Best Seller)
             <input value={form.badge} onChange={set("badge")} maxLength={24} className={field} />
           </label>

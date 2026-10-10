@@ -250,6 +250,28 @@ test("store items: several photos and up to two options of up to twenty choices,
   await assertFails(setDoc(doc(as("pub"), "storeItems/v8"), { ...withOptions, kind: "digital", stock: 0, deliveryKobo: 0 })); // downloads have no options
 });
 
+test("store items: category from the list, ships-from 2 to 60 characters; saves and store numbers are server-only", async () => {
+  const item = { ownerUid: "pub", title: "Gown", price: "₦9,000", link: "https://www.notesapp.name.ng", image: "/a.png", cta: "Buy now", sellable: true, priceKobo: 900000, deliveryKobo: 0, stock: 3 };
+  await assertSucceeds(setDoc(doc(as("pub"), "storeItems/c1"), { ...item, category: "Fashion & clothing", shipsFrom: "Lekki, Lagos" }));
+  await assertFails(setDoc(doc(as("pub"), "storeItems/c2"), { ...item, category: "Stolen goods" })); // not on the list
+  await assertFails(setDoc(doc(as("pub"), "storeItems/c3"), { ...item, shipsFrom: "x" })); // too short
+  await assertFails(setDoc(doc(as("pub"), "storeItems/c4"), { ...item, shipsFrom: "x".repeat(61) })); // too long
+  // numbers: anyone reads, nobody writes
+  await env.withSecurityRulesDisabled(async (ctx) => {
+    const sdb = ctx.firestore();
+    await setDoc(doc(sdb, "storeStats/c1"), { ownerUid: "pub", views: 4, favs: 1 });
+    await setDoc(doc(sdb, "storeFavorites/alice_c1"), { uid: "alice", itemId: "c1", ownerUid: "pub", createdAt: "2026-10-10T00:00:00Z" });
+  });
+  await assertSucceeds(getDoc(doc(as("alice"), "storeStats/c1")));
+  await assertSucceeds(getDoc(doc(anon(), "storeStats/c1")));
+  await assertFails(setDoc(doc(as("pub"), "storeStats/c1"), { ownerUid: "pub", views: 999, favs: 999 }));
+  // saves: only the member's own, never written from a browser
+  await assertSucceeds(getDoc(doc(as("alice"), "storeFavorites/alice_c1")));
+  await assertFails(getDoc(doc(as("pub"), "storeFavorites/alice_c1"))); // not even the seller
+  await assertFails(setDoc(doc(as("alice"), "storeFavorites/alice_c9"), { uid: "alice", itemId: "c1", ownerUid: "pub", createdAt: "x" }));
+  await assertFails(deleteDoc(doc(as("alice"), "storeFavorites/alice_c1")));
+});
+
 test("digital store items: no delivery/stock, kind is fixed, files and purchases are server-only", async () => {
   const base = { ownerUid: "pub", title: "Guide", price: "₦2,000", link: "https://www.notesapp.name.ng", image: "/x.png", cta: "Buy & download", sellable: true, priceKobo: 200000, deliveryKobo: 0, stock: 0 };
   const digital = { ...base, kind: "digital", fileName: "guide.pdf", fileSize: 1234 };

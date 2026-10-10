@@ -1,6 +1,7 @@
 import { addDoc, collection, deleteDoc, doc, getDoc, getDocs, query, setDoc, where } from "firebase/firestore";
 import { db } from "./firebase";
 import { toMillis } from "./dates";
+import { cleanShipsFrom, isStoreCategory } from "./store-meta";
 
 // Demo catalogue for today — one array per username, hardcoded rather
 // than a Firestore read, so the store has real content in front of
@@ -22,6 +23,9 @@ export type StoreItem = {
   priceKobo?: number;
   deliveryKobo?: number;
   stock?: number; // optional; counts down per sale (for an item with options: the total across all combinations)
+  // Which shelf the item is filed under (see lib/store-meta.ts), and for physical items where it is sent from.
+  category?: string;
+  shipsFrom?: string;
   // Extra photos (the first is the main one, also kept in `image`): up to MAX_IMAGES.
   images?: string[];
   // Up to two options a buyer picks from (for example Size and Colour), each with up to twenty choices. Stock is then kept
@@ -187,6 +191,8 @@ function clean(input: StoreItemInput) {
     priceKobo: Math.round(Number(input.priceKobo)),
     deliveryKobo: digital ? 0 : Math.round(Number(input.deliveryKobo ?? 0)),
     stock,
+    ...(isStoreCategory(input.category) ? { category: input.category } : {}),
+    ...(!digital && cleanShipsFrom(input.shipsFrom) ? { shipsFrom: cleanShipsFrom(input.shipsFrom) } : {}),
     ...(options.length ? { options, variantStock } : {}),
     ...(images.length ? { images } : {}),
     title: input.title.trim(),
