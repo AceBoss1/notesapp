@@ -11,6 +11,15 @@ export type Release = {
 
 export const CHANGELOG: Release[] = [
   {
+    version: "v0.15.1",
+    bump: "patch",
+    date: "2026-10-10",
+    changes: [
+      { kind: "changed", text: "The home page opens with the #1MillionNairaNotesAppChallenge in full crimson: the title, the numbers (100k views, 10k followers, ₦1,000,000 giveaway), the campaign artwork and Nana. The first card in “Why we're different” is now a featured crimson card." },
+      { kind: "changed", text: "The app address (app.notesapp.name.ng) welcome screen: the challenge in crimson on the left, with a Welcome to NotesApp card on the right to create an account or sign in, and links to Explore, Pricing and Help." },
+    ],
+  },
+  {
     version: "v0.15.0",
     bump: "minor",
     date: "2026-10-10",
