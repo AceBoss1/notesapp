@@ -41,6 +41,20 @@ You will be asked to follow a few journals so your feed is not empty. Verify you
 You can also tell us, if you like, what you do, your role and where you work. It is optional and shows under your name on your profile; change it any time in [Edit profile](/profile/edit).
 
 Forgot your password? Use [Reset password](/forgot-password).`),
+    A("nana-ai", "Nana AI: your helper on #NotesApp", "Getting started", `
+Nana AI is our helper. Ask her anything about #NotesApp from the chat button on every page, from the conversation pinned at the top of your [Messages](/messages), or on her own page, [Nana AI](/nana). She answers in plain words with links to the right page, and if she cannot help she passes you to a person, who follows up by email.
+
+She can also help you write, when you ask: improve, shorten or expand a journal draft, write a post for LinkedIn or X, polish a message, or suggest a reply. In a conversation, if someone asks to book a session, her suggested reply can offer your next open times and your booking link. You always see the result first and decide whether to use it.
+
+If the AI is ever off or unavailable, Nana still answers from the [help centre](/help). To use the AI and writing help today, you can [connect your own AI account](/help/connect-your-own-ai).`),
+    A("connect-your-own-ai", "Connect your own AI account", "Getting started", `
+You can connect your own Anthropic (Claude) account so that Nana, the writing help in drafts, sharing and messages, and the team hub (for staff) use it. The AI cost goes to your account, and #NotesApp puts no daily limit on you.
+
+- Make an API key at console.anthropic.com (you can set a spending limit there). It starts with sk-ant-.
+- Open [Nana AI](/nana), find "Connect your own AI account", paste the key and connect. We check that it works, keep it encrypted, and show only its last four characters.
+- To remove it, disconnect on the same page. Deleting your account also deletes the key.
+
+If the key is rejected or out of credit, Nana tells you and answers from the help centre instead. Your text is sent to Anthropic only when the AI writes an answer or you ask for writing help; see the [Privacy Policy](/privacy).`),
     A("free-standard-and-publishing", "Free Standard, Free Basic and publishing", "Getting started", `
 Every new account is **Free Standard**: you can read, comment, follow, book sessions, subscribe, send gifts and buy, but not publish.
 

@@ -11,6 +11,15 @@ export type Release = {
 
 export const CHANGELOG: Release[] = [
   {
+    version: "v0.13.1",
+    bump: "patch",
+    date: "2026-10-10",
+    changes: [
+      { kind: "fixed", text: "Asking Nana how to connect your own AI account now gets the right answer; before, she pointed to the own-domain article. The help centre has new articles on Nana AI and on connecting your own AI account." },
+      { kind: "changed", text: "The Contact page now points to Nana AI and the help centre for quick questions, before the form." },
+    ],
+  },
+  {
     version: "v0.13.0",
     bump: "minor",
     date: "2026-10-09",

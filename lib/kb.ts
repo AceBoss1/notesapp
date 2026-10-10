@@ -78,7 +78,7 @@ export function sanitizeLinks(text: string, knownPaths: ReadonlySet<string>): st
 // ---- search
 // Questions rarely use the article's own words ("how much does it cost?" vs "Plans and prices"), so words are reduced to a rough stem and a few
 // everyday synonyms are folded together before matching.
-const STOP = new Set(["the", "a", "an", "and", "or", "of", "to", "in", "on", "for", "is", "are", "how", "do", "does", "did", "i", "my", "me", "can", "what", "it", "with", "at", "be", "you", "your", "much", "many", "get", "want", "need", "like", "about", "tell", "please", "there", "this", "that", "if", "when", "where", "who", "why", "would", "should", "could", "will", "have", "has", "am", "us", "we", "any", "some"]);
+const STOP = new Set(["the", "a", "an", "and", "or", "of", "to", "in", "on", "for", "is", "are", "how", "do", "does", "did", "i", "my", "me", "can", "what", "it", "with", "at", "be", "you", "your", "much", "many", "get", "want", "need", "like", "about", "tell", "please", "there", "this", "that", "if", "when", "where", "who", "why", "would", "should", "could", "will", "have", "has", "am", "us", "we", "any", "some", "own"]);
 const SYN: Record<string, string> = {
   cost: "price", costs: "price", pricing: "price", prices: "price", fee: "price", fees: "price", cheap: "price", expensive: "price", plan: "price", plans: "price", subscription: "subscribe", subscriptions: "subscribe", subscribing: "subscribe",
   pay: "payout", paid: "payout", payouts: "payout", withdraw: "payout", withdrawal: "payout", earn: "payout", earnings: "payout", earning: "payout", salary: "payout", bank: "payout",
