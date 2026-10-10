@@ -186,6 +186,22 @@ Payments run through Paystack's hosted checkout, so card and bank details never 
     A("your-data", "Downloading or deleting your data", "Safety and your data", `
 You can download a copy of your data or delete your account yourself from [Account settings](/profile/account). Deleting an account removes your profile, and payment and order records are kept only without your name, email, address or phone number, as the law requires. If you are in a group chat, you leave it; your connected LinkedIn or X access is removed. Read the [Privacy Policy](/privacy) for details.`),
     // ── Company
+    A("who-is-emmanuel-adams", "Who is Emmanuel Adams?", "Company", `
+Emmanuel Adams is the Founder and CEO of #NotesApp (NOTESAPP TECHNOLOGIES LTD, RC ${COMPANY_INFO.rcNumber}), and Business Development Lead at Precheks. He writes on careers, business and technology, and he publishes on #NotesApp under his own name.
+
+## Read his work
+- His journal and profile on #NotesApp: [@emmanuel](/u/emmanuel)
+- More about the company and its founders: [About #NotesApp](/about)
+- His other articles are on his own website and on Medium, linked below. Several of them are also published here on #NotesApp.
+
+## Sources
+- #NotesApp profile: [notesapp.name.ng/u/emmanuel](/u/emmanuel)
+- Website: [adams.com.ng](https://adams.com.ng)
+- Medium: [itsemmanueladams.medium.com](https://itsemmanueladams.medium.com)
+- LinkedIn: [Emmanuel Adams](https://www.linkedin.com/in/emmanuel-adams-27891354)
+- X: [@TweetsbyAdams](https://x.com/TweetsbyAdams)
+- Instagram: [@itsemmanueladams](https://instagram.com/itsemmanueladams)
+- Facebook: [Mr.EmmanuelAdams](https://facebook.com/Mr.EmmanuelAdams)`),
     A("contact-and-support", "Contacting #NotesApp", "Company", `
 Use the [contact form](/contact) and pick the topic (bookings, payments and refunds, store orders and parcels, advertising, organisations, the gold badge, reporting, partnerships, press, investment or anything else). It goes straight to our admins. For a parcel, include its ID. Nana AI can answer most how-to questions, and can pass you to a person when it cannot.`),
     A("about-and-status", "About #NotesApp, status and updates", "Company", `
