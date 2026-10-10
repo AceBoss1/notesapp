@@ -11,6 +11,55 @@ export type Release = {
 
 export const CHANGELOG: Release[] = [
   {
+    version: "v0.15.1",
+    bump: "patch",
+    date: "2026-10-10",
+    changes: [
+      { kind: "changed", text: "The home page opens with the #1MillionNairaNotesAppChallenge in full crimson: the title, the numbers (100k views, 10k followers, ₦1,000,000 giveaway), the campaign artwork and Nana. The first card in “Why we're different” is now a featured crimson card." },
+      { kind: "changed", text: "The app address (app.notesapp.name.ng) welcome screen: the challenge in crimson on the left, with a Welcome to NotesApp card on the right to create an account or sign in, and links to Explore, Pricing and Help." },
+    ],
+  },
+  {
+    version: "v0.15.0",
+    bump: "minor",
+    date: "2026-10-10",
+    changes: [
+      { kind: "changed", text: "A new look in #NotesApp crimson: the top bar, a crimson banner on the About, Pricing, Help and Track a parcel pages (Help shows Nana), a bolder challenge banner on the home page, and a call to action opening the footer on every page. Nana, boosts and adverts stay where they were." },
+      { kind: "changed", text: "Profiles now open with a header card on a crimson band. People's pictures are circles and organisations' pictures are rounded squares, on profiles, stores, item pages, messages, journals and the Moments row." },
+      { kind: "changed", text: "Messages on a wide screen: your conversations stay on the left while the open conversation (or Nana) is on the right. On a phone, each is its own page, as before." },
+      { kind: "changed", text: "Moments on a computer: a wide viewer with the people you follow on the left (tap to jump between them), the moment in the middle, and on the right who posted it, Follow and Message, quick reactions (❤️ 🔥 👏 😂 😮, which like the moment and send the emoji to their inbox) and details about the moment." },
+    ],
+  },
+  {
+    version: "v0.14.0",
+    bump: "minor",
+    date: "2026-10-10",
+    changes: [
+      { kind: "added", text: "Store categories: sellers file each item under a category (Fashion & clothing, Shoes & bags, Beauty & care, Jewellery & accessories, Home & living, Food & drinks, Electronics, Books & courses, Art & crafts, Other), and shoppers can filter a store by category." },
+      { kind: "added", text: "Save items with the heart: tap ♡ on an item in any store or on its page to save it, and find your list under Saved items in your menu. Only you can see what you saved. Sellers see how many people saved each item." },
+      { kind: "added", text: "What buyers check more: each store shows its most viewed items, and the item page shows how many people have looked at it and saved it. Your own visits to your own items are not counted." },
+      { kind: "added", text: "Ships from: every physical item now says where it is sent from (for example Lekki, Lagos), on the store, on the item page and before you pay. Sellers are asked for it when they add or edit an item." },
+      { kind: "changed", text: "Redesigned store and item pages: a store header with the seller's picture (a circle for people, a rounded square for organisations), a featured item, category filters, bigger item photos and a clearer buying panel, with more items from the same store underneath." },
+    ],
+  },
+  {
+    version: "v0.13.3",
+    bump: "patch",
+    date: "2026-10-10",
+    changes: [
+      { kind: "changed", text: "Adding sizes to a store item is now one entry at a time: type the size and how many pieces you have, tick ✔ to save it, and add the next (for example L: 2, then XL: 5). Saved entries are listed with the total in stock, and you can edit or remove any of them. You can add up to 60 entries, and a size or colour can have up to 20 choices instead of 5." },
+    ],
+  },
+  {
+    version: "v0.13.2",
+    bump: "patch",
+    date: "2026-10-10",
+    changes: [
+      { kind: "added", text: "Roadmap: voice is planned. A Listen button on every journal, Nana reading her answers aloud, and voice notes and booked sessions turned into text. Not built yet, no date." },
+      { kind: "changed", text: "The status page now says why the Claude AI line is down (key rejected, rate limited, or not reachable) instead of only showing Down." },
+    ],
+  },
+  {
     version: "v0.13.1",
     bump: "patch",
     date: "2026-10-10",

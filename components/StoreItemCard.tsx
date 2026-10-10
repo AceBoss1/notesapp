@@ -4,6 +4,8 @@ import Link from "next/link";
 import { digitalReady, isViewOnly, type StoreItem } from "@/lib/store";
 import NotifyWhenBack from "@/components/NotifyWhenBack";
 import { fmtSize } from "@/lib/store-files";
+import FavoriteButton from "@/components/FavoriteButton";
+import { categoryOf } from "@/lib/store-meta";
 
 // How much of the description a storefront card shows before "…  Learn more »".
 const BLURB_CHARS = 110;
@@ -15,7 +17,7 @@ const blurb = (text: string) => {
 
 // One item on a storefront: photo, title and price, a short piece of the description with "Learn more »" to the full
 // item page, and the Buy button. `shopBase` is where the item pages live ("/shop", or "/s/<username>/shop" on a preview).
-export default function ItemCard({ item, shopBase = "/shop" }: { item: StoreItem; shopBase?: string }) {
+export default function ItemCard({ item, shopBase = "/shop", saved, onToggleSave, favs }: { item: StoreItem; shopBase?: string; saved?: boolean; onToggleSave?: (itemId: string) => void; favs?: number }) {
   const digital = item.kind === "digital";
   const href = item.id ? `${shopBase}/${item.id}` : null;
   const b = item.subtitle ? blurb(item.subtitle) : null;
@@ -25,7 +27,10 @@ export default function ItemCard({ item, shopBase = "/shop" }: { item: StoreItem
   );
   return (
     <div className="card flex flex-col overflow-hidden">
-      {href ? <Link href={href} aria-label={item.title}>{image}</Link> : image}
+      <div className="relative">
+        {href ? <Link href={href} aria-label={item.title}>{image}</Link> : image}
+        {item.id && item.sellable && onToggleSave && <FavoriteButton saved={!!saved} onToggle={() => onToggleSave(item.id!)} label={item.title} className="absolute right-3 top-3" />}
+      </div>
       <div className="flex flex-1 flex-col p-5">
         {(item.badge || digital) && (
           <span className="mb-2 inline-block w-fit rounded-full bg-crimson/10 px-2.5 py-0.5 font-mono text-[10px] uppercase tracking-wideish text-crimson">
@@ -36,6 +41,11 @@ export default function ItemCard({ item, shopBase = "/shop" }: { item: StoreItem
           {href ? <Link href={href} className="hover:text-crimson">{item.title}</Link> : item.title}
         </h3>
         <p className="mt-1 font-mono text-sm text-crimson-bright">{item.price}</p>
+        <p className="mt-1 text-[11px] text-slate">
+          {categoryOf(item)}
+          {!digital && item.shipsFrom ? <> · Ships from {item.shipsFrom}</> : null}
+          {favs ? <> · ♥ {favs} saved</> : null}
+        </p>
         {b && b.text && (
           <p className="mt-2 flex-1 text-sm text-slate">
             {b.text}

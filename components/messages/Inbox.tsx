@@ -15,7 +15,7 @@ import TeamBadge from "@/components/TeamBadge";
 import { badgeLevel, goldKindOf, isTeamMember, type UserProfile } from "@/lib/users";
 import type { GoldBadgeKind } from "@/lib/badges";
 
-type Who = { uid: string; username: string; displayName: string; avatar: string; level?: "verified" | "gold" | null; goldKind?: GoldBadgeKind; team?: boolean };
+type Who = { uid: string; username: string; displayName: string; avatar: string; level?: "verified" | "gold" | null; goldKind?: GoldBadgeKind; team?: boolean; isOrg?: boolean };
 type Row = { id: string; lastText: string; lastAt: string; lastFromMe: boolean; unread: number; moment: boolean; with: Who; group?: { title: string; team: boolean; members: number; lastFrom: string } };
 
 // The inbox, live: new messages and unread counts appear as they arrive (it listens to the member's own conversations, which
@@ -38,7 +38,7 @@ export default function Inbox() {
         await Promise.all(others.filter((o) => !people.current.has(o)).map(async (o) => {
           // A profile that can't be read (or doesn't exist) shows as "Member" rather than breaking the list.
           const u = o ? await getDoc(doc(db, "users", o)).then((s) => s.data()).catch(() => undefined) : undefined;
-          people.current.set(o, { uid: o, username: u?.username ?? "", displayName: u?.displayName ?? "Member", avatar: u?.avatar ?? "", ...(u ? { level: badgeLevel(u as UserProfile), goldKind: goldKindOf(u as UserProfile), team: isTeamMember(u as UserProfile) } : {}) });
+          people.current.set(o, { uid: o, username: u?.username ?? "", displayName: u?.displayName ?? "Member", avatar: u?.avatar ?? "", isOrg: u?.accountKind === "organisation", ...(u ? { level: badgeLevel(u as UserProfile), goldKind: goldKindOf(u as UserProfile), team: isTeamMember(u as UserProfile) } : {}) });
         }));
         setRows(docs.map(({ id, c }) => {
           const isGroup = c.kind === "group";
@@ -73,7 +73,7 @@ export default function Inbox() {
           {rows.map((r) => (
             <li key={r.id}>
               <Link href={`/messages/${r.id}`} className="flex items-center gap-3 py-3 hover:bg-paper">
-                {r.group ? <GroupAvatar title={r.group.title} size={44} team={r.group.team} /> : <Avatar src={r.with.avatar} alt={r.with.displayName} size={44} />}
+                {r.group ? <GroupAvatar title={r.group.title} size={44} team={r.group.team} /> : <Avatar src={r.with.avatar} alt={r.with.displayName} size={44} square={!!r.with.isOrg} />}
                 <span className="min-w-0 flex-1">
                   {r.group ? (
                     <span className="block font-bold text-ink">{r.group.title} {r.group.team && <span className="rounded bg-amber-100 px-1.5 py-0.5 text-[10px] font-bold text-amber-900">TEAM</span>} <span className="font-normal text-slate">{r.group.members} members</span></span>

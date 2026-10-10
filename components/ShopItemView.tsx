@@ -16,6 +16,11 @@ import { fmtSize } from "@/lib/store-files";
 import NotifyWhenBack from "@/components/NotifyWhenBack";
 import BoostNudge from "@/components/BoostNudge";
 import { isMainHost } from "@/lib/host";
+import Avatar from "@/components/Avatar";
+import FavoriteButton from "@/components/FavoriteButton";
+import MessageButton from "@/components/messages/MessageButton";
+import { countView, useSavedItems } from "@/lib/store-social";
+import { categoryOf } from "@/lib/store-meta";
 
 const field = "mt-1 w-full border border-rule bg-card px-3 py-2 text-sm outline-none focus:border-crimson";
 
@@ -24,7 +29,10 @@ export default function ShopItemPage() {
   const push = useAppPush(); // a full page load on a member's own domain
   const [user, setUser] = useState<User | null | undefined>(undefined);
   const [item, setItem] = useState<(StoreItem & { ownerUid: string }) | null | undefined>(undefined);
-  const [seller, setSeller] = useState<{ username: string; displayName: string } | null>(null);
+  const [seller, setSeller] = useState<{ username: string; displayName: string; avatar: string; isOrg: boolean } | null>(null);
+  const [more, setMore] = useState<StoreItem[]>([]);
+  const [stat, setStat] = useState<{ views: number; favs: number } | null>(null);
+  const { saved, toggle } = useSavedItems(user);
   const [quantity, setQuantity] = useState(1);
   const [selection, setSelection] = useState<string[]>([]); // one choice per option (Size, Colour …); "" = not chosen yet
   const [shown, setShown] = useState(0); // which photo is large
@@ -62,10 +70,20 @@ export default function ShopItemPage() {
         setItem({ ...d, id: s.id });
         const u = await getDoc(doc(db, "users", d.ownerUid));
         const ud = u.data();
-        if (ud) setSeller({ username: ud.username, displayName: ud.displayName });
+        if (ud) setSeller({ username: ud.username, displayName: ud.displayName, avatar: ud.avatar || "", isOrg: ud.accountKind === "organisation" });
+        getDocs(query(collection(db, "storeItems"), where("ownerUid", "==", d.ownerUid), limit(12)))
+          .then((m) => setMore(m.docs.map((x) => ({ ...(x.data() as StoreItem), id: x.id })).filter((x) => x.id !== itemId && x.sellable && (x.kind === "digital" ? digitalReady(x) : (x.stock ?? 0) > 0)).slice(0, 4)))
+          .catch(() => {});
       })
       .catch(() => setItem(null));
   }, [itemId]);
+
+  // One look counted per browser per day, and the item's public numbers (views, saves).
+  useEffect(() => {
+    if (!item || user === undefined) return;
+    countView(itemId, user);
+    getDoc(doc(db, "storeStats", itemId)).then((s) => setStat(s.exists() ? { views: Number(s.data()?.views) || 0, favs: Number(s.data()?.favs) || 0 } : null)).catch(() => {});
+  }, [itemId, !!item, user?.uid]); // eslint-disable-line react-hooks/exhaustive-deps
 
   if (item === undefined || user === undefined) return <div className="px-6 py-24 text-center text-slate">Loading…</div>;
   if (!item) return <div className="px-6 py-24 text-center text-slate">This item isn&apos;t for sale here.</div>;
@@ -120,32 +138,54 @@ export default function ShopItemPage() {
   }
 
   return (
-    <section className="mx-auto max-w-2xl px-4 py-14 sm:px-6">
+    <section className="mx-auto max-w-5xl px-4 py-10 sm:px-6">
       {backTo && (
         <a href={`https://${backTo.host}/store`} className="mb-3 inline-block text-sm text-crimson underline">← Back to the store</a>
       )}
-      <span className="eyebrow">Store</span>
-      <h1 className="mt-3 font-display text-3xl text-ink">{item.title}</h1>
-      {seller && <p className="mt-1 text-sm text-slate">Sold by <Link href={`/u/${seller.username}/store`} className="text-crimson underline">{seller.displayName}</Link></p>}
-      <div className="mt-6">
-        {photos.length > 0 && (
-          <div>
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={photos[Math.min(shown, photos.length - 1)]} alt="" className="max-h-[28rem] w-full border border-rule object-contain" />
-            {photos.length > 1 && (
-              <div className="mt-2 flex gap-2">
-                {photos.map((src, i) => (
-                  <button key={src} type="button" onClick={() => setShown(i)} aria-label={`Photo ${i + 1}`} className={`border ${i === shown ? "border-crimson" : "border-rule"}`}>
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={src} alt="" className="h-16 w-14 object-cover" />
-                  </button>
-                ))}
+      <p className="text-sm text-slate">
+        {seller ? <><Link href={`/u/${seller.username}/store`} className="text-crimson underline">{seller.displayName}&apos;s store</Link> <span aria-hidden="true">/</span> </> : null}
+        {categoryOf(item)}
+      </p>
+      <div className="mt-5 grid gap-10 lg:grid-cols-2">
+        <div>
+          {photos.length > 0 && (
+            <div>
+              <div className="relative">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={photos[Math.min(shown, photos.length - 1)]} alt="" className="max-h-[36rem] w-full rounded-2xl border border-rule object-contain" />
+                {!digital && user !== undefined && <FavoriteButton saved={saved.has(itemId)} onToggle={() => (user ? toggle(itemId) : push("/login"))} label={item.title} className="absolute right-3 top-3" />}
               </div>
-            )}
-          </div>
-        )}
-        <p className="mt-4 text-sm text-slate">{item.subtitle}</p>
-      </div>
+              {photos.length > 1 && (
+                <div className="mt-3 flex gap-2">
+                  {photos.map((src, i) => (
+                    <button key={src} type="button" onClick={() => setShown(i)} aria-label={`Photo ${i + 1}`} className={`overflow-hidden rounded-lg border-2 ${i === shown ? "border-crimson" : "border-rule"}`}>
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={src} alt="" className="h-16 w-14 object-cover" />
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+        <div>
+          <span className="eyebrow">{digital ? (viewOnly ? "View only" : "Digital download") : "Physical item"}</span>
+          <h1 className="mt-2 font-display text-3xl text-ink sm:text-4xl">{item.title}</h1>
+          {seller && (
+            <div className="mt-3 flex flex-wrap items-center gap-3">
+              <Link href={`/u/${seller.username}/store`} className="flex items-center gap-2 text-sm text-ink">
+                <Avatar src={seller.avatar} alt={seller.displayName} size={36} square={seller.isOrg} />
+                <span>Sold by <span className="font-semibold text-crimson">{seller.displayName}</span></span>
+              </Link>
+              <MessageButton username={seller.username} profileUid={item.ownerUid} />
+            </div>
+          )}
+          <p className="mt-4 font-mono text-2xl text-crimson-bright">{formatNaira(unit)}</p>
+          <ul className="mt-3 space-y-1 text-sm text-slate">
+            {!digital && <li>📍 {item.shipsFrom ? <>Ships from <strong className="text-ink">{item.shipsFrom}</strong></> : "Ships from: the seller will confirm after your order"}</li>}
+            {!digital && <li>🚚 {delivery ? `${formatNaira(delivery)} delivery` : "Delivery arranged by the seller"}</li>}
+            {stat && (stat.views > 0 || stat.favs > 0) && <li>👀 {stat.views} view{stat.views === 1 ? "" : "s"}{stat.favs > 0 ? ` · ♥ ${stat.favs} saved` : ""}</li>}
+          </ul>
 
       {options.map((o, i) => (
         <div key={o.name} className="mt-6">
@@ -246,6 +286,39 @@ export default function ShopItemPage() {
         <button disabled={busy} className="btn-primary sm:col-span-2">{busy ? "Please wait…" : user ? `Pay ${formatNaira(total)}` : "Sign in to buy"}</button>
       </form>
       )}
+        </div>
+      </div>
+
+      {item.subtitle && (
+        <div className="card mt-10 p-6">
+          <h2 className="font-display text-xl text-ink">About this {digital ? "item" : "piece"}</h2>
+          <p className="mt-2 whitespace-pre-line text-sm text-slate">{item.subtitle}</p>
+        </div>
+      )}
+
+      {more.length > 0 && (
+        <div className="mt-12">
+          <div className="flex items-end justify-between">
+            <h2 className="font-display text-2xl text-ink">More from {seller?.displayName ?? "this store"}</h2>
+            {seller && <Link href={`/u/${seller.username}/store`} className="text-sm font-semibold text-crimson underline">Visit store →</Link>}
+          </div>
+          <div className="mt-4 grid grid-cols-2 gap-4 lg:grid-cols-4">
+            {more.map((m) => (
+              <Link key={m.id} href={`/shop/${m.id}`} className="card overflow-hidden hover:border-crimson">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={m.image} alt={m.title} className="aspect-[3/4] w-full object-cover" />
+                <span className="block p-3"><span className="block truncate font-ui text-sm font-bold text-ink">{m.title}</span><span className="block font-mono text-xs text-crimson-bright">{m.price}</span></span>
+              </Link>
+            ))}
+          </div>
+        </div>
+      )}
+
+      <div className="mt-12 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        {[["You pay here", "Through #NotesApp checkout, with Paystack."], ["Money is held", "The seller is paid only after you confirm delivery."], ["Parcel ID on every order", "Track it on the Track a parcel page."], ["Delivered by the seller", "See where it ships from, above."]].map(([h, t]) => (
+          <div key={h} className="card p-5"><p className="font-ui text-sm font-bold text-ink">{h}</p><p className="mt-1 text-xs text-slate">{t}</p></div>
+        ))}
+      </div>
       <BoostNudge itemId={itemId} title={item.title} author={seller?.displayName || "Your store"} image={item.image} authorUid={item.ownerUid} />
     </section>
   );

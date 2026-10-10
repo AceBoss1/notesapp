@@ -169,12 +169,12 @@ export default async function Home() {
           Neither assumes WhatsApp and Naira.
         </h2>
         <div className="mt-14 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
-          {FEATURES.map((f) => (
-            <div key={f.title} className="card p-7">
-              <h3 className="font-ui text-base font-bold text-ink">
+          {FEATURES.map((f, i) => (
+            <div key={f.title} className={i === 0 ? "rounded-xl2 bg-crimson-deep p-7 text-paper shadow-lg lg:row-span-2" : "card p-7"} style={i === 0 ? { backgroundImage: "linear-gradient(160deg, #4E0119 0%, #7A0328 100%)" } : undefined}>
+              <h3 className={`font-ui text-base font-bold ${i === 0 ? "text-paper lg:font-display lg:text-3xl lg:font-normal" : "text-ink"}`}>
                 {f.title}
               </h3>
-              <p className="mt-2 text-sm text-slate">{f.copy}</p>
+              <p className={`mt-2 text-sm ${i === 0 ? "text-paper/85 lg:mt-4 lg:text-base" : "text-slate"}`}>{f.copy}</p>
             </div>
           ))}
         </div>

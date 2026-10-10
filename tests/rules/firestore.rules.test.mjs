@@ -236,17 +236,40 @@ test("publishers manage only their own valid store items", async () => {
   await assertSucceeds(deleteDoc(doc(as("pub"), "storeItems/i1")));
 });
 
-test("store items: several photos and up to two options of up to five choices, stock per combination", async () => {
+test("store items: several photos and up to two options of up to twenty choices, stock per saved combination", async () => {
   const item = { ownerUid: "pub", title: "Gown", price: "₦9,000", link: "https://www.notesapp.name.ng", image: "/a.png", cta: "Buy now", sellable: true, priceKobo: 900000, deliveryKobo: 0, stock: 3 };
   const withOptions = { ...item, images: ["/a.png", "/b.png"], options: [{ name: "Size", choices: ["S", "M", "L"] }, { name: "Colour", choices: ["Red", "Blue"] }], variantStock: { "S|Red": 1, "S|Blue": 2 } };
   await assertSucceeds(setDoc(doc(as("pub"), "storeItems/v1"), withOptions));
   await assertSucceeds(setDoc(doc(as("pub"), "storeItems/v2"), { ...item, images: ["/a.png", "/b.png", "/c.png"] })); // photos only
   await assertFails(setDoc(doc(as("pub"), "storeItems/v3"), { ...item, images: ["1", "2", "3", "4", "5", "6"] })); // too many photos
   await assertFails(setDoc(doc(as("pub"), "storeItems/v4"), { ...withOptions, options: [...withOptions.options, { name: "Style", choices: ["A"] }] })); // three options
-  await assertFails(setDoc(doc(as("pub"), "storeItems/v5"), { ...withOptions, options: [{ name: "Size", choices: ["1", "2", "3", "4", "5", "6"] }] })); // six choices
+  await assertFails(setDoc(doc(as("pub"), "storeItems/v5"), { ...withOptions, options: [{ name: "Size", choices: Array.from({ length: 21 }, (_, n) => `S${n}`) }] })); // twenty-one choices
+  await assertSucceeds(setDoc(doc(as("pub"), "storeItems/v5b"), { ...withOptions, options: [{ name: "Size", choices: Array.from({ length: 12 }, (_, n) => `S${n}`) }], variantStock: Object.fromEntries(Array.from({ length: 12 }, (_, n) => [`S${n}`, 2])) })); // twelve sizes
   await assertFails(setDoc(doc(as("pub"), "storeItems/v6"), { ...item, options: withOptions.options })); // options need stock per combination
   await assertFails(setDoc(doc(as("pub"), "storeItems/v7"), { ...item, variantStock: { "S|Red": 1 } })); // stock per combination needs options
   await assertFails(setDoc(doc(as("pub"), "storeItems/v8"), { ...withOptions, kind: "digital", stock: 0, deliveryKobo: 0 })); // downloads have no options
+});
+
+test("store items: category from the list, ships-from 2 to 60 characters; saves and store numbers are server-only", async () => {
+  const item = { ownerUid: "pub", title: "Gown", price: "₦9,000", link: "https://www.notesapp.name.ng", image: "/a.png", cta: "Buy now", sellable: true, priceKobo: 900000, deliveryKobo: 0, stock: 3 };
+  await assertSucceeds(setDoc(doc(as("pub"), "storeItems/c1"), { ...item, category: "Fashion & clothing", shipsFrom: "Lekki, Lagos" }));
+  await assertFails(setDoc(doc(as("pub"), "storeItems/c2"), { ...item, category: "Stolen goods" })); // not on the list
+  await assertFails(setDoc(doc(as("pub"), "storeItems/c3"), { ...item, shipsFrom: "x" })); // too short
+  await assertFails(setDoc(doc(as("pub"), "storeItems/c4"), { ...item, shipsFrom: "x".repeat(61) })); // too long
+  // numbers: anyone reads, nobody writes
+  await env.withSecurityRulesDisabled(async (ctx) => {
+    const sdb = ctx.firestore();
+    await setDoc(doc(sdb, "storeStats/c1"), { ownerUid: "pub", views: 4, favs: 1 });
+    await setDoc(doc(sdb, "storeFavorites/alice_c1"), { uid: "alice", itemId: "c1", ownerUid: "pub", createdAt: "2026-10-10T00:00:00Z" });
+  });
+  await assertSucceeds(getDoc(doc(as("alice"), "storeStats/c1")));
+  await assertSucceeds(getDoc(doc(anon(), "storeStats/c1")));
+  await assertFails(setDoc(doc(as("pub"), "storeStats/c1"), { ownerUid: "pub", views: 999, favs: 999 }));
+  // saves: only the member's own, never written from a browser
+  await assertSucceeds(getDoc(doc(as("alice"), "storeFavorites/alice_c1")));
+  await assertFails(getDoc(doc(as("pub"), "storeFavorites/alice_c1"))); // not even the seller
+  await assertFails(setDoc(doc(as("alice"), "storeFavorites/alice_c9"), { uid: "alice", itemId: "c1", ownerUid: "pub", createdAt: "x" }));
+  await assertFails(deleteDoc(doc(as("alice"), "storeFavorites/alice_c1")));
 });
 
 test("digital store items: no delivery/stock, kind is fixed, files and purchases are server-only", async () => {

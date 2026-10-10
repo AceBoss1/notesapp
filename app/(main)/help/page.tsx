@@ -1,4 +1,6 @@
 import Link from "next/link";
+import Image from "next/image";
+import PageHero from "@/components/PageHero";
 import type { Metadata } from "next";
 import { getAdminDb } from "@/lib/firebase-admin";
 import { byCategory, searchArticles, summaryOf, articlePath, type KbArticle } from "@/lib/kb";
@@ -17,16 +19,15 @@ export default async function HelpPage({ searchParams }: { searchParams: { q?: s
   const q = (searchParams.q ?? "").slice(0, 100).trim();
   const found = q ? searchArticles(all, q) : [];
   return (
-    <div className="mx-auto max-w-4xl px-4 py-16 sm:px-6 lg:px-8">
-      <span className="eyebrow">Help centre</span>
-      <h1 className="mt-4 font-display text-4xl text-ink sm:text-5xl">How can we help?</h1>
-      <p className="mt-4 max-w-2xl text-lg text-slate">Straight answers about #NotesApp, with the links to do it. Can&apos;t find yours? Ask Nana, our AI helper, in the chat button at the bottom of the page, or <Link href="/contact" className="text-crimson underline">contact the team</Link>.</p>
-
-      <form action="/help" method="get" role="search" className="mt-8 flex gap-2">
-        <input name="q" defaultValue={q} placeholder="Search, for example “refund” or “payout”" aria-label="Search the help centre" className="min-w-0 flex-1 border border-rule bg-card px-4 py-3 text-sm outline-none focus:border-crimson" />
-        <button type="submit" className="btn-primary !px-5">Search</button>
+    <div>
+      <PageHero eyebrow="Help centre" title="How can we help?" max="max-w-5xl" art={<Image src="/images/nana/nana.webp" alt="Nana AI, the #NotesApp helper" width={220} height={220} className="h-48 w-48 object-contain drop-shadow-xl" />}>
+        <p>Straight answers about #NotesApp, with the links to do it. Can&apos;t find yours? Ask Nana, our AI helper, in the chat button at the bottom of the page, or <Link href="/contact" className="underline">contact the team</Link>.</p>
+        <form action="/help" method="get" role="search" className="mt-6 flex max-w-xl gap-2">
+        <input name="q" defaultValue={q} placeholder="Search, for example “refund” or “payout”" aria-label="Search the help centre" className="min-w-0 flex-1 border border-paper/30 bg-paper text-ink px-4 py-3 text-sm outline-none focus:border-crimson" />
+        <button type="submit" className="rounded-full bg-paper px-6 py-3 font-ui text-sm font-bold text-crimson-deep hover:opacity-90">Search</button>
       </form>
-
+      </PageHero>
+    <div className="mx-auto max-w-4xl px-4 pb-16 pt-10 sm:px-6 lg:px-8">
       {q ? (
         <section className="mt-10" aria-label="Search results">
           <h2 className="font-display text-2xl text-ink">{found.length ? `${found.length} result${found.length === 1 ? "" : "s"} for “${q}”` : `Nothing found for “${q}”`}</h2>
@@ -55,6 +56,7 @@ export default async function HelpPage({ searchParams }: { searchParams: { q?: s
           </section>
         ))
       )}
+      </div>
     </div>
   );
 }

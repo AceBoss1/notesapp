@@ -39,6 +39,7 @@ export async function collectExport(db: Firestore, uid: string, email: string) {
     earnings: await docs(db, "ledger", "publisherUid", uid),
     subscriptions: await docs(db, "subscriptions", "subscriberUid", uid),
     storeItems: await docs(db, "storeItems", "ownerUid", uid),
+    savedItems: await docs(db, "storeFavorites", "uid", uid), // items you saved with the heart
     storeOrdersAsBuyer: await docs(db, "storeOrders", "buyerUid", uid),
     storeOrdersAsSeller: strip(await docs(db, "storeOrders", "sellerUid", uid), ["address", "buyerEmail", "buyerUid"]),
     digitalPurchases: await docs(db, "digitalPurchases", "buyerUid", uid),
@@ -223,6 +224,9 @@ export async function eraseAccount(db: Firestore, uid: string, deleteFile: (key:
     ...(username ? await own("follows", "username", username) : []),
     ...(await own("notifications", "recipientUid", uid)),
     ...(await own("stockWatches", "uid", uid)),
+    ...(await own("storeFavorites", "uid", uid)), // what you saved
+    ...(await own("storeFavorites", "ownerUid", uid)), // saves of your own items
+    ...(await own("storeStats", "ownerUid", uid)), // views and save counts of your items
     ...(await own("orgMembers", "memberUid", uid)),
     ...(await own("orgInvites", "inviteeUid", uid)),
     ...(await own("apiKeys", "uid", uid)),

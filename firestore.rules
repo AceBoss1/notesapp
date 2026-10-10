@@ -529,7 +529,7 @@ service cloud.firestore {
     // Stores sell physical goods through #NotesApp checkout only (no link-outs):
     // every item carries a price, a delivery fee and a managed stock count.
     function validStoreItem(d) {
-      return d.keys().hasOnly(['ownerUid', 'title', 'subtitle', 'price', 'badge', 'link', 'image', 'cta', 'createdAt', 'updatedAt', 'sellable', 'priceKobo', 'deliveryKobo', 'stock', 'kind', 'fileName', 'fileSize', 'images', 'options', 'variantStock', 'access', 'lessons', 'lessonCount'])
+      return d.keys().hasOnly(['ownerUid', 'title', 'subtitle', 'price', 'badge', 'link', 'image', 'cta', 'createdAt', 'updatedAt', 'sellable', 'priceKobo', 'deliveryKobo', 'stock', 'kind', 'fileName', 'fileSize', 'images', 'options', 'variantStock', 'access', 'lessons', 'lessonCount', 'category', 'shipsFrom'])
         && d.keys().hasAll(['ownerUid', 'title', 'price', 'link', 'image', 'cta', 'sellable', 'priceKobo', 'deliveryKobo', 'stock'])
         && d.title is string && d.title.size() > 0 && d.title.size() <= 120
         && (!('subtitle' in d) || (d.subtitle is string && d.subtitle.size() <= 400))
@@ -542,17 +542,20 @@ service cloud.firestore {
         && d.priceKobo is int && d.priceKobo >= 10000 && d.priceKobo <= 500000000
         && d.deliveryKobo is int && d.deliveryKobo >= 0 && d.deliveryKobo <= 5000000
         && d.stock is int && d.stock >= 0 && d.stock <= 100000
-        // Extra photos (up to 5), and for physical items up to two options (e.g. Size, Colour) of up to five choices each,
-        // with the stock kept per combination (at most 5 x 5 = 25).
+        // Extra photos (up to 5), and for physical items up to two options (e.g. Size, Colour) of up to twenty choices each,
+        // with the stock kept per saved combination (at most 60).
         && (!('images' in d) || (d.images is list && d.images.size() >= 1 && d.images.size() <= 5))
+        // Which shelf it is filed under, and where a physical item ships from (shown to buyers before they pay).
+        && (!('category' in d) || d.category in ['Fashion & clothing', 'Shoes & bags', 'Beauty & care', 'Jewellery & accessories', 'Home & living', 'Food & drinks', 'Electronics', 'Books & courses', 'Art & crafts', 'Other'])
+        && (!('shipsFrom' in d) || (d.shipsFrom is string && d.shipsFrom.size() >= 2 && d.shipsFrom.size() <= 60))
         && (!('options' in d) || (
               d.options is list && d.options.size() >= 1 && d.options.size() <= 2
               && d.options[0] is map && d.options[0].name is string && d.options[0].name.size() > 0 && d.options[0].name.size() <= 20
-              && d.options[0].choices is list && d.options[0].choices.size() >= 1 && d.options[0].choices.size() <= 5
+              && d.options[0].choices is list && d.options[0].choices.size() >= 1 && d.options[0].choices.size() <= 20
               && (d.options.size() < 2 || (
                     d.options[1] is map && d.options[1].name is string && d.options[1].name.size() > 0 && d.options[1].name.size() <= 20
-                    && d.options[1].choices is list && d.options[1].choices.size() >= 1 && d.options[1].choices.size() <= 5))
-              && 'variantStock' in d && d.variantStock is map && d.variantStock.size() >= 1 && d.variantStock.size() <= 25))
+                    && d.options[1].choices is list && d.options[1].choices.size() >= 1 && d.options[1].choices.size() <= 20))
+              && 'variantStock' in d && d.variantStock is map && d.variantStock.size() >= 1 && d.variantStock.size() <= 60))
         && (!('variantStock' in d) || 'options' in d)
         // Digital downloads: no delivery fee or stock; the file name/size shown publicly are only
         // display text (the real file is attached by the server, see storeFiles). Physical items
@@ -601,6 +604,14 @@ service cloud.firestore {
       allow delete: if adminHasAny(['support', 'moderation'])
         || (isSignedIn() && resource.data.ownerUid == request.auth.uid)
         || orgStoreFlag(resource.data.ownerUid);
+    }
+
+    // Public store numbers (views and how many people saved an item), kept by the server (lib/store-stats-server.ts); anyone can read them.
+    // Who saved what is private: a member can read only their own saved items, and only the server writes them.
+    match /storeStats/{id} { allow read: if true; allow write: if false; }
+    match /storeFavorites/{id} {
+      allow read: if isSignedIn() && resource.data.uid == request.auth.uid;
+      allow write: if false;
     }
 
     // Recorded errors (lib/monitoring.ts) — written and read by the server only.

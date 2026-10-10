@@ -4,14 +4,22 @@ import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { api } from "@/lib/moments-client";
 import { timeLeftLabel } from "@/lib/moments-rules";
-import type { MomentView } from "@/lib/moments-server";
+import type { MomentGroup, MomentView } from "@/lib/moments-server";
+import Avatar from "@/components/Avatar";
+import FollowButton from "@/components/FollowButton";
+import MessageButton from "@/components/messages/MessageButton";
 import ReportDialog from "./ReportDialog";
 
 const STILL_MS = 6000; // how long an image or text moment stays before the next one
 
 // Full-screen viewer for one member's moments. Everything here disappears when its time is up; a reply goes to the
 // owner's inbox and stays there, with a note that the moment has expired once it has.
-export default function MomentViewer({ moments, onClose, onChanged }: { moments: MomentView[]; onClose: () => void; onChanged?: () => void }) {
+const REACTIONS = ["❤️", "🔥", "👏", "😂", "😮"];
+const ago = (iso: string) => { const min = Math.max(0, Math.round((Date.now() - new Date(iso).getTime()) / 60000)); return min < 60 ? `${min} min` : min < 1440 ? `${Math.round(min / 60)}h` : `${Math.round(min / 1440)}d`; };
+
+// On a wide screen the viewer also shows who else has moments up (to jump between people), who this is, quick reactions and details about the
+// moment; on a phone it is just the player. `groups` is everyone with moments up, in the order of the Moments row.
+export default function MomentViewer({ moments, onClose, onChanged, groups, onSelectGroup }: { moments: MomentView[]; onClose: () => void; onChanged?: () => void; groups?: MomentGroup[]; onSelectGroup?: (g: MomentGroup) => void }) {
   const [i, setI] = useState(0);
   const [items, setItems] = useState(moments);
   const [reply, setReply] = useState("");
@@ -27,13 +35,16 @@ export default function MomentViewer({ moments, onClose, onChanged }: { moments:
   const advances = useRef<number[]>([]); // when we last moved on: a runaway loop closes the viewer instead of hammering the device
   const advanced = useRef<string | null>(null); // the video moment already moved on from (timeupdate fires several times near the end)
   const m = items[i];
+  const gi = groups && m ? groups.findIndex((g) => g.ownerUid === m.ownerUid) : -1;
+  const nextGroup = groups && gi >= 0 ? groups[gi + 1] : undefined;
+  const prevGroup = groups && gi > 0 ? groups[gi - 1] : undefined;
 
   useEffect(() => { setShowViewers(false); setPaused(false); setFrac(0); }, [i]);
   const next = () => {
     const now = Date.now();
     advances.current = advances.current.filter((t) => now - t < 3000).concat(now);
     if (advances.current.length > 6) return onClose();
-    if (i + 1 < items.length) setI(i + 1); else onClose();
+    if (i + 1 < items.length) setI(i + 1); else if (nextGroup && onSelectGroup) onSelectGroup(nextGroup); else onClose();
   };
   // Stills advance by themselves; a video advances when it ends.
   useEffect(() => {
@@ -72,9 +83,42 @@ export default function MomentViewer({ moments, onClose, onChanged }: { moments:
     try { await fn(); } catch (e) { setNote(e instanceof Error ? e.message : "Something went wrong."); } finally { setBusy(false); }
   };
 
+  const owner = groups?.find((g) => g.ownerUid === m.ownerUid);
+  const react = (emoji: string) => act(async () => {
+    if (!m.liked) {
+      const r = await api<{ liked: boolean; likeCount: number }>(`/api/moments/${m.id}`, { body: { action: "like" } });
+      setItems(items.map((x) => (x.id === m.id ? { ...x, liked: r.liked, likeCount: r.likeCount } : x)));
+    }
+    await api(`/api/moments/${m.id}`, { body: { action: "reply", text: emoji } });
+    setNote(`Sent ${emoji} to @${m.ownerUsername}.`);
+  });
+  const card = "rounded-2xl border border-white/10 bg-white/5 p-5";
+  const length = m.kind === "video" ? (m.clipEnd != null ? m.clipEnd - (m.clipStart ?? 0) : m.durationSec) : undefined;
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/90" role="dialog" aria-modal="true" aria-label={`Moments from @${m.ownerUsername}`}>
-      <div className="relative flex h-full w-full max-w-md flex-col bg-ink text-white sm:h-[90vh] sm:rounded-xl">
+    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-[#12060a]" role="dialog" aria-modal="true" aria-label={`Moments from @${m.ownerUsername}`}>
+      {/* Left (wide screens): who else has moments up, and a short note on how they work. */}
+      {groups && groups.length > 0 && (
+        <aside className="mr-6 hidden h-[88vh] w-72 shrink-0 flex-col gap-4 text-white xl:flex">
+          <p className="font-mono text-[11px] uppercase tracking-eyebrow text-pink-300">Moments · from people you follow</p>
+          <ul className="flex-1 space-y-2 overflow-y-auto">
+            {groups.map((g) => (
+              <li key={g.ownerUid}>
+                <button type="button" onClick={() => (g.ownerUid === m.ownerUid ? undefined : onSelectGroup?.(g))} aria-current={g.ownerUid === m.ownerUid}
+                  className={`flex w-full items-center gap-3 rounded-2xl border p-2.5 text-left ${g.ownerUid === m.ownerUid ? "border-pink-400/50 bg-white/10" : "border-transparent hover:bg-white/5"}`}>
+                  <span className={`block bg-gradient-to-tr from-crimson via-crimson-bright to-amber-400 p-[2px] ${g.isOrg ? "rounded-2xl" : "rounded-full"}`}><span className={`block bg-[#12060a] p-[2px] ${g.isOrg ? "rounded-2xl" : "rounded-full"}`}><Avatar src={g.avatar} alt="" size={40} square={!!g.isOrg} /></span></span>
+                  <span className="min-w-0"><span className="block truncate text-sm font-bold">{g.displayName}</span><span className="block text-xs text-white/60">{g.moments.length} moment{g.moments.length === 1 ? "" : "s"} · {timeLeftLabel(g.moments[g.moments.length - 1].expiresAt)}</span></span>
+                </button>
+              </li>
+            ))}
+          </ul>
+          <div className={card}>
+            <p className="font-mono text-[11px] uppercase tracking-eyebrow text-pink-300">How moments work</p>
+            <p className="mt-2 text-xs text-white/70">A picture, a short video or text that stays on a profile for 24, 48 or 72 hours. Only the publisher sees who watched.</p>
+          </div>
+        </aside>
+      )}
+      {prevGroup && onSelectGroup && <button type="button" onClick={() => onSelectGroup(prevGroup)} aria-label={`Previous: ${prevGroup.displayName}`} className="mr-3 hidden h-10 w-10 shrink-0 items-center justify-center rounded-full text-2xl text-white/70 hover:bg-white/10 lg:flex">‹</button>}
+      <div className="relative flex h-full w-full max-w-md flex-col bg-ink text-white sm:h-[90vh] sm:rounded-xl lg:h-[88vh] lg:max-w-[24rem]">
         <div className="flex gap-1 p-2" aria-hidden>
           {/* One bar per moment: the maroon part is what has played, the rest is still to come. */}
           {items.map((x, k) => (
@@ -170,6 +214,38 @@ export default function MomentViewer({ moments, onClose, onChanged }: { moments:
           )}
         </div>
       </div>
+      {nextGroup && onSelectGroup && <button type="button" onClick={() => onSelectGroup(nextGroup)} aria-label={`Next: ${nextGroup.displayName}`} className="ml-3 hidden h-10 w-10 shrink-0 items-center justify-center rounded-full text-2xl text-white/70 hover:bg-white/10 lg:flex">›</button>}
+      {/* Right (wide screens): who this is, quick reactions and details about this moment. */}
+      <aside className="ml-6 hidden h-[88vh] w-72 shrink-0 flex-col gap-4 overflow-y-auto text-white lg:flex">
+        <div className={card}>
+          <div className="flex items-center gap-3">
+            <Avatar src={owner?.avatar ?? ""} alt="" size={48} square={!!owner?.isOrg} />
+            <div className="min-w-0"><p className="truncate font-bold">{owner?.displayName ?? `@${m.ownerUsername}`}</p><p className="truncate text-xs text-white/60">@{m.ownerUsername}</p></div>
+          </div>
+          {!m.mine && (
+            <>
+              <div className="mt-4 flex flex-wrap gap-2 [&_.btn-ghost]:!border-white/40 [&_.btn-ghost]:!bg-transparent [&_.btn-ghost]:!text-white [&_.btn-ghost:hover]:!bg-white/10"><FollowButton username={m.ownerUsername} /><MessageButton username={m.ownerUsername} profileUid={m.ownerUid} /></div>
+              <p className="mt-3 text-xs text-white/60">Your reply goes straight to @{m.ownerUsername}&apos;s inbox as a private message. Only they can see it.</p>
+            </>
+          )}
+        </div>
+        {!m.mine && (
+          <div className={card}>
+            <p className="font-mono text-[11px] uppercase tracking-eyebrow text-pink-300">Quick reactions</p>
+            <div className="mt-3 flex gap-2">
+              {REACTIONS.map((e) => <button key={e} type="button" disabled={busy} onClick={() => react(e)} aria-label={`React with ${e}`} className="flex h-10 w-10 items-center justify-center rounded-full bg-white/10 text-lg hover:bg-white/20 disabled:opacity-50">{e}</button>)}
+            </div>
+            <p className="mt-3 text-xs text-white/60">Sends a like with the emoji. One tap, no typing.</p>
+          </div>
+        )}
+        <div className={card}>
+          <p className="font-mono text-[11px] uppercase tracking-eyebrow text-pink-300">This moment</p>
+          <p className="mt-2 font-display text-2xl">{m.kind === "video" ? "Video" : m.kind === "image" ? "Picture" : "Text"}{length ? ` · ${Math.floor(length / 60)}:${String(Math.round(length % 60)).padStart(2, "0")}` : ""}</p>
+          <p className="mt-2 text-xs text-white/60">Posted {ago(m.createdAt)} ago · lasts {m.hours} hours · {timeLeftLabel(m.expiresAt)}</p>
+          {m.mine && <p className="mt-2 text-xs text-white/80">👁 {m.viewCount ?? 0} · ♥ {m.likeCount} · 🔁 {m.reshareCount}</p>}
+        </div>
+        {nextGroup && onSelectGroup && <p className="text-center text-xs text-white/50">Moves on to {nextGroup.displayName} next</p>}
+      </aside>
       {reporting && <ReportDialog kind="moment" targetId={m.id} onClose={() => setReporting(false)} />}
     </div>
   );

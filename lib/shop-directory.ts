@@ -11,6 +11,7 @@ export type DirectoryShop = {
   username: string;
   displayName: string;
   avatar: string;
+  isOrg?: boolean; // organisations get a rounded-square picture, people a circle
   itemCount: number;
   images: string[]; // up to 3
   href: string; // their own domain when they have an active one, else /u/<username>/store
@@ -56,6 +57,7 @@ async function build(includeHidden: boolean): Promise<DirectoryShop[]> {
         username: u.username,
         displayName: u.displayName || u.username,
         avatar: u.avatar || "",
+        isOrg: u.accountKind === "organisation",
         itemCount: items.length,
         images: sorted.slice(0, 3).map((i) => String(i.images?.[0] || i.image || "")).filter(Boolean),
         href: host ? `https://${host}` : `/u/${u.username}/store`,

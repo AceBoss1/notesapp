@@ -22,7 +22,7 @@ export default function MobileNav({ links, appLinks }: { links: { href: string; 
         onClick={() => setOpen((o) => !o)}
         aria-expanded={open}
         aria-controls="mobile-menu"
-        className="btn-primary flex items-center gap-2"
+        className="flex items-center gap-2 rounded-full bg-paper px-4 py-2 font-ui text-sm font-bold text-crimson-deep"
       >
         <span aria-hidden className="text-lg leading-none">{open ? "✕" : "☰"}</span> Menu
       </button>

@@ -33,6 +33,13 @@ const ITEMS: { title: string; tag: string; body: string; detail: string; link?: 
       "Part 1 — capture: connect a transcription notetaker (Otter.ai, Fireflies, Read AI) to your bookings. Realistically, this means calendar auto-join (the notetaker joins any meeting on your calendar with a video link — no per-meeting invite needed) plus a real Zoom/Google Meet link #NotesApp generates at booking time. Part 2 — draft: connect Claude, Gemini, or ChatGPT to your #NotesApp account via MCP (Model Context Protocol). Drop a raw idea, or hand it that meeting summary, and it reads your own past notes for context — your topics, structure, phrasing — and finishes the draft as if you'd researched and written it yourself, not in generic AI voice. Build order matters: ship the read-only tools (search_my_notes, get_note) well before the write tool (create_draft) — let people trust an AI reading their notes before handing out write access, with token scoping, rate limits, and revocation as day-one requirements for that write tool specifically. This is steps 7–9 of the Value Loop (Capture → Refine → Publish Again), automated end to end: session → transcript → draft, ready to review and publish.",
   },
   {
+    title: "Voice: listen to journals, Nana that speaks, voice transcripts",
+    tag: "AI",
+    body: "Planned: a Listen button on every journal that reads it aloud in a natural voice, so readers can listen while commuting or on a low-data connection (and visually impaired readers can follow along). After that, Nana reading her answers aloud, and voice notes and booked sessions turned into searchable text and drafts.",
+    detail:
+      "Why: most of our members are on phones with costly data, and many write and read in Nigerian English and Pidgin, so we will test voices and accents with real journals before switching it on for everyone. Listening would be a choice the reader makes, never automatic, and publishers could switch it off for their own posts. Transcripts would build on the voice notes in Messages and on the AI notetaker described above. Narrated lessons for paid courses come later. Not built yet, and no date.",
+  },
+  {
     title: "Client-driven session management",
     tag: "Booking",
     body: "Booking, Paystack payment, per-publisher rates, email reminders, client rescheduling (free, up to twice, 24 hours or more ahead), cancellation under a published refund policy, \"report a problem\" after a session, and automatic payouts 24 hours after a session ends are all live. What's left is WhatsApp reminders.",
@@ -158,6 +165,7 @@ export default function RoadmapPage() {
               <li>iOS and Android apps</li>
               <li>The team hub and team messaging for Business and Enterprise (our own team is using it now)</li>
               <li>AI notetaker and your own AI assistant through MCP</li>
+              <li>Voice: Listen to a journal, Nana that speaks, voice transcripts</li>
               <li>Publishing to Facebook, Instagram and TikTok; LinkedIn advertising from #NotesApp (under review)</li>
               <li>Google ads on the web and AdMob in the apps</li>
               <li>Audio and video meetings, meeting chat (under team discussion)</li>

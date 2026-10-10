@@ -1,6 +1,7 @@
 import { addDoc, collection, deleteDoc, doc, getDoc, getDocs, query, setDoc, where } from "firebase/firestore";
 import { db } from "./firebase";
 import { toMillis } from "./dates";
+import { cleanShipsFrom, isStoreCategory } from "./store-meta";
 
 // Demo catalogue for today — one array per username, hardcoded rather
 // than a Firestore read, so the store has real content in front of
@@ -22,9 +23,12 @@ export type StoreItem = {
   priceKobo?: number;
   deliveryKobo?: number;
   stock?: number; // optional; counts down per sale (for an item with options: the total across all combinations)
+  // Which shelf the item is filed under (see lib/store-meta.ts), and for physical items where it is sent from.
+  category?: string;
+  shipsFrom?: string;
   // Extra photos (the first is the main one, also kept in `image`): up to MAX_IMAGES.
   images?: string[];
-  // Up to two options a buyer picks from (for example Size and Colour), each with up to five choices. Stock is then kept
+  // Up to two options a buyer picks from (for example Size and Colour), each with up to twenty choices. Stock is then kept
   // per combination in `variantStock`, keyed like "XL|Red" (see variantKey).
   options?: StoreOption[];
   variantStock?: Record<string, number>;
@@ -52,7 +56,8 @@ export const isViewOnly = (i: Pick<StoreItem, "kind" | "access">) => i.kind === 
 export type StoreOption = { name: string; choices: string[] };
 export const MAX_IMAGES = 5;
 export const MAX_OPTIONS = 2;
-export const MAX_CHOICES = 5;
+export const MAX_CHOICES = 20;
+export const MAX_VARIANTS = 60; // saved size/colour entries per item
 
 // One combination of choices ("XL", "Red") ↔ the key it's stored under ("XL|Red").
 export const variantKey = (selection: string[]) => selection.join("|");
@@ -174,15 +179,20 @@ function clean(input: StoreItemInput) {
   const digital = input.kind === "digital";
   const images = [...new Set((input.images ?? []).map((u) => u.trim()).filter(Boolean))].slice(0, MAX_IMAGES);
   const options = digital ? [] : cleanOptions(input.options);
-  const combos = variantCombos(options).map(variantKey);
-  const variantStock = Object.fromEntries(combos.map((k) => [k, Math.max(0, Math.floor(Number(input.variantStock?.[k] ?? 0)))]));
-  const stock = digital ? 0 : options.length ? combos.reduce((n, k) => n + variantStock[k], 0) : Math.max(0, Math.floor(Number(input.stock ?? 0)));
+  // Only the entries the seller saved are kept (a size/colour they never added simply isn't offered), capped at MAX_VARIANTS.
+  const valid = new Set(variantCombos(options).map(variantKey));
+  const variantStock: Record<string, number> = Object.fromEntries(
+    Object.entries(input.variantStock ?? {}).filter(([k]) => valid.has(k)).slice(0, MAX_VARIANTS).map(([k, v]) => [k, Math.max(0, Math.floor(Number(v) || 0))])
+  );
+  const stock = digital ? 0 : options.length ? Object.values(variantStock).reduce((n, v) => n + v, 0) : Math.max(0, Math.floor(Number(input.stock ?? 0)));
   return {
     sellable: true as const,
     ...(digital ? { kind: "digital" as const, ...(input.access === "view" ? { access: "view" as const } : {}), ...(input.fileName ? { fileName: input.fileName, fileSize: input.fileSize ?? 0 } : {}) } : {}),
     priceKobo: Math.round(Number(input.priceKobo)),
     deliveryKobo: digital ? 0 : Math.round(Number(input.deliveryKobo ?? 0)),
     stock,
+    ...(isStoreCategory(input.category) ? { category: input.category } : {}),
+    ...(!digital && cleanShipsFrom(input.shipsFrom) ? { shipsFrom: cleanShipsFrom(input.shipsFrom) } : {}),
     ...(options.length ? { options, variantStock } : {}),
     ...(images.length ? { images } : {}),
     title: input.title.trim(),
