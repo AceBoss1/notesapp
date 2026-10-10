@@ -6,29 +6,29 @@ import { MESSAGES_LIVE, MOMENTS_LIVE } from "@/lib/moments-rules";
 export const metadata: Metadata = {
   title: "Roadmap",
   description:
-    "What's live and what's next for #NotesApp — moments and messages are live; social publishing, AI drafting, full white label, Paylony payments, calls and meetings, and the ad-share program are next. Decided and documented, or under discussion.",
+    "What's live and what's next for #NotesApp — moments, messages, Nana AI and publishing to LinkedIn and X are live; the team hub, AI notetaker, full white label, Paylony payments, calls and meetings, and more are next. Decided and documented, or under discussion.",
 };
 
 const ITEMS: { title: string; tag: string; body: string; detail: string; link?: { href: string; label: string } }[] = [
   {
-    title: "One-click social publishing",
+    title: "More networks for social publishing",
     tag: "Social",
-    body: "From your own post, connect LinkedIn and X once and publish an excerpt with a link back to the full journal on #NotesApp. You see and can change the words first, and nothing goes out until you press Post. Built, and switching on as soon as our LinkedIn and X apps are approved. Facebook, Instagram and TikTok follow, each on its own rules.",
+    body: "Live now: connect LinkedIn and X once and publish an excerpt from your own post, with a link back to the full journal on #NotesApp. You see and can change the words first (Nana can write them for you), and nothing goes out until you press Post. Facebook, Instagram and TikTok follow, each on its own rules.",
     detail:
-      "The sharing menu on every post (WhatsApp, X, Facebook, LinkedIn, copy link) already works without connecting anything; X now carries the title and an excerpt. Connected posting: LinkedIn (a link card with the post's picture) and X (the text and link). Facebook only lets apps post to Pages and reviews every app, Instagram needs a professional account linked to a Page, TikTok is mostly video and keeps posts private until it has audited the app, and WhatsApp has no posting service. LinkedIn connections last about 60 days before you reconnect.",
+      "The sharing menu on every post (WhatsApp, X, Facebook, LinkedIn, copy link) works without connecting anything. Connected posting: LinkedIn (a link card with the post's picture) and X (the text and link). Facebook only lets apps post to Pages and reviews every app, Instagram needs a professional account linked to a Page, TikTok is mostly video and keeps posts private until it has audited the app, and WhatsApp has no posting service. LinkedIn connections last about 60 days before you reconnect.",
   },
   {
     title: "Team hub and team messaging for Business and Enterprise",
     tag: "Teams",
-    body: "A shared workspace for your team: a work board with what is moving, stuck or waiting on a decision, milestones, a morning summary and weekly review, and a team room for meetings and chat. Our own team is using it first; it opens to Business and Enterprise accounts once our internal testing is done.",
+    body: "A shared workspace for your team: a work board with what is moving, stuck or waiting on a decision, milestones, a morning summary and weekly review, and a team room for meetings and chat. Our own team is using it first (work board, money ledger, staff roles, and an Ask Nana panel that knows your open items); it opens to Business and Enterprise accounts once our internal testing is done.",
     detail:
       "We are running it ourselves before anyone else relies on it, so we can fix what gets in the way. Business and Enterprise accounts will get it for their team seats (four on Business, as many as you need on Enterprise), with the people on your team seeing only what their role needs. It builds on group chats, which are already live. No date yet; we will announce it on this page, the changelog and by email when it opens.",
     link: { href: "/teams", label: "See the team hub page →" },
   },
   {
-    title: "AI content drafting, connected via MCP",
+    title: "AI notetaker and your own AI assistant (MCP)",
     tag: "AI",
-    body: "Already here: Nana AI helps with your drafts, posts for LinkedIn and X, and messages (connect your own AI account on the Nana page). Still to come, two AI jobs wired together into one loop: an AI notetaker that follows you into a booked session and writes it up, and your own AI assistant — connected straight to your #NotesApp data — that turns raw material into a finished draft in your voice.",
+    body: "Already here: Nana AI answers questions about #NotesApp and helps with your drafts, posts for LinkedIn and X, and messages (connect your own AI account on the Nana page). Still to come, two AI jobs wired together into one loop: an AI notetaker that follows you into a booked session and writes it up, and your own AI assistant — connected straight to your #NotesApp data — that turns raw material into a finished draft in your voice.",
     detail:
       "Part 1 — capture: connect a transcription notetaker (Otter.ai, Fireflies, Read AI) to your bookings. Realistically, this means calendar auto-join (the notetaker joins any meeting on your calendar with a video link — no per-meeting invite needed) plus a real Zoom/Google Meet link #NotesApp generates at booking time. Part 2 — draft: connect Claude, Gemini, or ChatGPT to your #NotesApp account via MCP (Model Context Protocol). Drop a raw idea, or hand it that meeting summary, and it reads your own past notes for context — your topics, structure, phrasing — and finishes the draft as if you'd researched and written it yourself, not in generic AI voice. Build order matters: ship the read-only tools (search_my_notes, get_note) well before the write tool (create_draft) — let people trust an AI reading their notes before handing out write access, with token scoping, rate limits, and revocation as day-one requirements for that write tool specifically. This is steps 7–9 of the Value Loop (Capture → Refine → Publish Again), automated end to end: session → transcript → draft, ready to review and publish.",
   },
@@ -102,7 +102,7 @@ const ITEMS: { title: string; tag: string; body: string; detail: string; link?: 
     tag: "Foundations",
     body: "The unglamorous pieces that real money needs: password reset and email verification, a bookings dashboard for both sides, a clear cancellation and refund policy, and terms and privacy consent before payment.",
     detail:
-      "Already in place: reports on moments and conversations reviewed by our team (anything marked nudity or violence within 24 hours), suspensions for a set time that lift on their own, with appeals, rate-limiting on payment and upload endpoints, admin access through Firebase custom claims, automated Firestore security-rules tests, a public status page, a custom media domain, and private storage for paid downloads. Still planned: account deletion and data export, and error monitoring.",
+      "Already in place: reports on moments and conversations reviewed by our team (anything marked nudity or violence within 24 hours), suspensions for a set time that lift on their own, with appeals, rate-limiting on payment and upload endpoints, admin access through Firebase custom claims, automated Firestore security-rules tests, a public status page, a custom media domain, and private storage for paid downloads. Also live: downloading your data or deleting your account yourself, and built-in error monitoring.",
   },
 ];
 
@@ -115,7 +115,7 @@ export default function RoadmapPage() {
       </h1>
       <p className="mt-5 max-w-2xl text-lg text-slate">
         The core loop — publish, book, get paid — is what's demoed
-        today. These are decided and documented, not yet built. Paid sessions (with rescheduling and automatic payouts), monthly subscriptions, publisher rates and payouts, post and item boosts, gifts, Pro / Business plans, organisation accounts, stores for physical goods and digital downloads, parcel tracking, and official merch are already live.
+        today. The ones marked on the right are decided and documented, not yet built. Nana AI and the help centre, publishing to LinkedIn and X, direct and group messages, paid sessions (with rescheduling and automatic payouts), monthly subscriptions, publisher rates and payouts, post and item boosts, gifts, Pro / Business plans, organisation accounts, stores for physical goods and digital downloads, parcel tracking, and official merch are already live. Last updated 10 October 2026.
       </p>
 
       {/* The honest status strip: what's built and working versus what's still planned. */}
@@ -135,6 +135,9 @@ export default function RoadmapPage() {
               <li>Video on posts — one MP4 or WebM per post (up to 3 minutes and 100 MB), played in our own data-friendly player, with a weekly allowance by plan</li>
               {MOMENTS_LIVE && <li>Moments: a picture, a video or text, with an optional voice-over, on your profile picture for 24, 48 or 72 hours. A video over 90 seconds is split into parts (as many as your plan&apos;s weekly video allowance covers); a bar at the top fills in maroon as each moment plays; followers can like, 🔁 re-share or 💬 reply from the Moments row on the Journals page, you can see who watched, you choose whether only your followers or everyone can see yours, and anyone can block or report</li>}
               {MESSAGES_LIVE && <li>Direct messages with a live inbox: bold, italic and underline, a ✔ when sent and a ✔✔ with the time when read, pictures, videos and documents attached (how big and how many depends on your plan), voice notes of up to 5 minutes and stickers. Notifications on your device (offered when you first use Messages, and on until you turn them off), email on Business and Enterprise (off until you switch it on, at most one an hour), and block and report tools</li>}
+              <li><Link href="/nana" className="text-crimson underline">Nana AI</Link> and the <Link href="/help" className="text-crimson underline">help centre</Link>: ask anything about #NotesApp, from every page and from a conversation pinned in Messages, and get writing help in drafts, shares and messages (with your own AI account connected, or ours when switched on)</li>
+              <li>Publishing a post to your connected LinkedIn and X from the post itself</li>
+              <li>Download your data or delete your account yourself, under Account → Your data</li>
               <li>Trending feed, a live <Link href="/status" className="text-crimson underline">status page</Link> and a public <Link href="/changelog" className="text-crimson underline">changelog</Link></li>
               <li>Verification badges: the maroon ✔ for accounts in good standing and the <strong className="text-ink">gold ✔ for endorsed accounts</strong>{GOLD_KIND_LIVE.identity ? " and identity-checked accounts" : ""} — see <Link href="/badges" className="text-crimson underline">Verification badges</Link></li>
               <li>Publisher payouts to a verified bank account, released automatically after the session</li>
@@ -153,7 +156,10 @@ export default function RoadmapPage() {
               <li>Paylony payments and Tap-to-Pay</li>
               <li><Link href="/challenge" className="text-crimson underline">#1MillionNairaNotesAppChallenge</Link> for influencers (coming soon)</li>
               <li>iOS and Android apps</li>
-              <li>AI drafting, social publishing, ad-share</li>
+              <li>The team hub and team messaging for Business and Enterprise (our own team is using it now)</li>
+              <li>AI notetaker and your own AI assistant through MCP</li>
+              <li>Publishing to Facebook, Instagram and TikTok; LinkedIn advertising from #NotesApp (under review)</li>
+              <li>Google ads on the web and AdMob in the apps</li>
               <li>Audio and video meetings, meeting chat (under team discussion)</li>
               {!MOMENTS_LIVE && <li>Moments: pictures, video and text on profile pictures for 24, 48 or 72 hours</li>}
               {!MESSAGES_LIVE && <li>Direct messages</li>}

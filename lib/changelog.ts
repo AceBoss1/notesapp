@@ -11,6 +11,17 @@ export type Release = {
 
 export const CHANGELOG: Release[] = [
   {
+    version: "v0.13.1",
+    bump: "patch",
+    date: "2026-10-10",
+    changes: [
+      { kind: "fixed", text: "Asking Nana how to connect your own AI account now gets the right answer; before, she pointed to the own-domain article. The help centre has new articles on Nana AI and on connecting your own AI account." },
+      { kind: "changed", text: "Help articles look better: the article sits on a card with a larger opening paragraph, section headings, and a Sources list that can link to other websites. A new article, Who is Emmanuel Adams?, cites his #NotesApp profile, his website and his social accounts as sources." },
+      { kind: "changed", text: "The roadmap is up to date: Nana AI and the help centre, publishing to LinkedIn and X, group chats and account data tools are marked live; what is still ahead (team hub for Business and Enterprise, AI notetaker, more networks, calls, apps) is listed separately. The About page now lists Emmanuel Adams as Founder, CEO & CTO." },
+      { kind: "changed", text: "The Contact page now points to Nana AI and the help centre for quick questions, before the form." },
+    ],
+  },
+  {
     version: "v0.13.0",
     bump: "minor",
     date: "2026-10-09",

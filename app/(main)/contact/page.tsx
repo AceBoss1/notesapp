@@ -5,7 +5,7 @@ import { FacebookIcon, LinkedInIcon, MailIcon, NotesAppIcon } from "@/components
 
 export const metadata: Metadata = {
   title: "Contact",
-  description: "Contact #NotesApp — bookings and payments help, store orders and parcels, advertising campaigns, organisation accounts and CAC verification, boosts and gifts, reporting a post or account, partnerships, press or investment.",
+  description: "Contact #NotesApp, or ask Nana AI and browse the help centre first — bookings and payments help, store orders and parcels, advertising campaigns, organisation accounts and CAC verification, boosts and gifts, reporting a post or account, partnerships, press or investment.",
 };
 
 export default async function ContactPage() {
@@ -25,6 +25,11 @@ export default async function ContactPage() {
         goes straight to admins, not a shared inbox someone has to remember to
         check. For a parcel, include its ID (it looks like NA-7K2M9QXD) — you
         can also <a href="/track" className="text-crimson underline">track it yourself</a>.
+      </p>
+      <p className="mt-4 rounded-lg border border-rule bg-paper p-4 text-sm text-slate">
+        Quick question? <a href="/nana" className="font-semibold text-crimson underline">Ask Nana AI</a>, our helper, from the chat button on any page, or browse
+        the <a href="/help" className="font-semibold text-crimson underline">help centre</a>. She links you to the right page and passes you to a person if she
+        can&apos;t help.
       </p>
       <div className="card mt-8 grid gap-5 p-7 sm:grid-cols-2">
         <div>

@@ -41,6 +41,20 @@ You will be asked to follow a few journals so your feed is not empty. Verify you
 You can also tell us, if you like, what you do, your role and where you work. It is optional and shows under your name on your profile; change it any time in [Edit profile](/profile/edit).
 
 Forgot your password? Use [Reset password](/forgot-password).`),
+    A("nana-ai", "Nana AI: your helper on #NotesApp", "Getting started", `
+Nana AI is our helper. Ask her anything about #NotesApp from the chat button on every page, from the conversation pinned at the top of your [Messages](/messages), or on her own page, [Nana AI](/nana). She answers in plain words with links to the right page, and if she cannot help she passes you to a person, who follows up by email.
+
+She can also help you write, when you ask: improve, shorten or expand a journal draft, write a post for LinkedIn or X, polish a message, or suggest a reply. In a conversation, if someone asks to book a session, her suggested reply can offer your next open times and your booking link. You always see the result first and decide whether to use it.
+
+If the AI is ever off or unavailable, Nana still answers from the [help centre](/help). To use the AI and writing help today, you can [connect your own AI account](/help/connect-your-own-ai).`),
+    A("connect-your-own-ai", "Connect your own AI account", "Getting started", `
+You can connect your own Anthropic (Claude) account so that Nana, the writing help in drafts, sharing and messages, and the team hub (for staff) use it. The AI cost goes to your account, and #NotesApp puts no daily limit on you.
+
+- Make an API key at console.anthropic.com (you can set a spending limit there). It starts with sk-ant-.
+- Open [Nana AI](/nana), find "Connect your own AI account", paste the key and connect. We check that it works, keep it encrypted, and show only its last four characters.
+- To remove it, disconnect on the same page. Deleting your account also deletes the key.
+
+If the key is rejected or out of credit, Nana tells you and answers from the help centre instead. Your text is sent to Anthropic only when the AI writes an answer or you ask for writing help; see the [Privacy Policy](/privacy).`),
     A("free-standard-and-publishing", "Free Standard, Free Basic and publishing", "Getting started", `
 Every new account is **Free Standard**: you can read, comment, follow, book sessions, subscribe, send gifts and buy, but not publish.
 
@@ -172,6 +186,34 @@ Payments run through Paystack's hosted checkout, so card and bank details never 
     A("your-data", "Downloading or deleting your data", "Safety and your data", `
 You can download a copy of your data or delete your account yourself from [Account settings](/profile/account). Deleting an account removes your profile, and payment and order records are kept only without your name, email, address or phone number, as the law requires. If you are in a group chat, you leave it; your connected LinkedIn or X access is removed. Read the [Privacy Policy](/privacy) for details.`),
     // ── Company
+    A("who-is-emmanuel-adams", "Who is Emmanuel Adams?", "Company", `
+Aside from being the Founder, CEO and CTO of NOTESAPP TECHNOLOGIES LTD (the company behind #NotesApp, RC ${COMPANY_INFO.rcNumber}), Emmanuel Adams is a successful business consultant, fintech consultant, entrepreneurship author and coach who is passionate about helping people recognise their potential and communicate it effectively to potential employers.
+
+## Affiliations
+- **Forbes BLK member.** He is a member of the Forbes BLK community, which recognises and empowers Black entrepreneurs, executives and innovators.
+- **SPSC UK Ambassador for the UN SDG Programme.** He serves as an ambassador for the Sustainable Peace and Security Centre (SPSC) UK's United Nations Sustainable Development Goals programme, supporting global efforts to achieve the SDGs.
+- **Ex-CEO of PLAAS.** He once led the blockchain-based platform transforming Africa's agricultural sector.
+- **Vice President, Abuja & North Central Region, Boxing Promoters Association of Nigeria (BPAN).** He plays a key role in promoting boxing and supporting boxing promoters in the region.
+- **Vice President, Abuja & North Central Region, Film and Creative Minds Association of Nigeria (FCMA).** He supports filmmakers and creative professionals in the region.
+- **Founder and CEO of Ace Boxing Promotions and Adams Global Services.** He has founded and led several companies.
+
+## Recognition
+- Awarded "Blockchain Personality of the Year" at the 2020 African Blockchain Leadership Conference.
+- Awarded the Young Entrepreneur Award 2024 by Time Africa Magazine.
+- Awarded Who's Who 2024-2025 by Time Africa Magazine, in collaboration with Marquis Who's Who.
+- Featured in notable media outlets, including SUN, Independent, Vanguard, This Day and other publications.
+
+His affiliations and recognition reflect his commitment to innovation, entrepreneurship and global sustainability. He publishes on #NotesApp under his own name, and several of his articles on careers and business are on his journal here.
+
+## Sources
+- #NotesApp profile and journal: [notesapp.name.ng/u/emmanuel](/u/emmanuel)
+- Website: [adams.com.ng](https://adams.com.ng)
+- Medium: [itsemmanueladams.medium.com](https://itsemmanueladams.medium.com)
+- LinkedIn: [Emmanuel Adams](https://www.linkedin.com/in/emmanuel-adams-27891354)
+- X: [@TweetsbyAdams](https://x.com/TweetsbyAdams)
+- Instagram: [@itsemmanueladams](https://instagram.com/itsemmanueladams)
+- Facebook: [Mr.EmmanuelAdams](https://facebook.com/Mr.EmmanuelAdams)
+- The company and its founders: [About #NotesApp](/about)`),
     A("contact-and-support", "Contacting #NotesApp", "Company", `
 Use the [contact form](/contact) and pick the topic (bookings, payments and refunds, store orders and parcels, advertising, organisations, the gold badge, reporting, partnerships, press, investment or anything else). It goes straight to our admins. For a parcel, include its ID. Nana AI can answer most how-to questions, and can pass you to a person when it cannot.`),
     A("about-and-status", "About #NotesApp, status and updates", "Company", `

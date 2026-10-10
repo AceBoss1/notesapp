@@ -25,7 +25,9 @@ export default async function HelpArticlePage({ params }: { params: { slug: stri
     <article className="mx-auto max-w-3xl px-4 py-16 sm:px-6 lg:px-8">
       <p className="font-ui text-sm"><Link href="/help" className="text-crimson underline">Help centre</Link> <span className="text-slate">/ {a.category}</span></p>
       <h1 className="mt-4 font-display text-4xl text-ink sm:text-5xl">{a.title}</h1>
-      <Markdownish text={a.body} className="mt-6 space-y-1 text-base leading-relaxed text-ink" />
+      <div className="card mt-8 p-6 sm:p-8">
+        <Markdownish text={a.body} external className="space-y-1 text-base leading-relaxed text-ink [&>p:first-child]:text-lg [&>p:first-child]:text-slate [&_ul]:marker:text-crimson" />
+      </div>
       {a.updatedAt && <p className="mt-6 font-mono text-xs text-slate">Updated {new Date(a.updatedAt).toLocaleDateString("en-NG", { day: "numeric", month: "long", year: "numeric" })}</p>}
 
       <div className="card mt-10 p-6">
