@@ -236,14 +236,15 @@ test("publishers manage only their own valid store items", async () => {
   await assertSucceeds(deleteDoc(doc(as("pub"), "storeItems/i1")));
 });
 
-test("store items: several photos and up to two options of up to five choices, stock per combination", async () => {
+test("store items: several photos and up to two options of up to twenty choices, stock per saved combination", async () => {
   const item = { ownerUid: "pub", title: "Gown", price: "₦9,000", link: "https://www.notesapp.name.ng", image: "/a.png", cta: "Buy now", sellable: true, priceKobo: 900000, deliveryKobo: 0, stock: 3 };
   const withOptions = { ...item, images: ["/a.png", "/b.png"], options: [{ name: "Size", choices: ["S", "M", "L"] }, { name: "Colour", choices: ["Red", "Blue"] }], variantStock: { "S|Red": 1, "S|Blue": 2 } };
   await assertSucceeds(setDoc(doc(as("pub"), "storeItems/v1"), withOptions));
   await assertSucceeds(setDoc(doc(as("pub"), "storeItems/v2"), { ...item, images: ["/a.png", "/b.png", "/c.png"] })); // photos only
   await assertFails(setDoc(doc(as("pub"), "storeItems/v3"), { ...item, images: ["1", "2", "3", "4", "5", "6"] })); // too many photos
   await assertFails(setDoc(doc(as("pub"), "storeItems/v4"), { ...withOptions, options: [...withOptions.options, { name: "Style", choices: ["A"] }] })); // three options
-  await assertFails(setDoc(doc(as("pub"), "storeItems/v5"), { ...withOptions, options: [{ name: "Size", choices: ["1", "2", "3", "4", "5", "6"] }] })); // six choices
+  await assertFails(setDoc(doc(as("pub"), "storeItems/v5"), { ...withOptions, options: [{ name: "Size", choices: Array.from({ length: 21 }, (_, n) => `S${n}`) }] })); // twenty-one choices
+  await assertSucceeds(setDoc(doc(as("pub"), "storeItems/v5b"), { ...withOptions, options: [{ name: "Size", choices: Array.from({ length: 12 }, (_, n) => `S${n}`) }], variantStock: Object.fromEntries(Array.from({ length: 12 }, (_, n) => [`S${n}`, 2])) })); // twelve sizes
   await assertFails(setDoc(doc(as("pub"), "storeItems/v6"), { ...item, options: withOptions.options })); // options need stock per combination
   await assertFails(setDoc(doc(as("pub"), "storeItems/v7"), { ...item, variantStock: { "S|Red": 1 } })); // stock per combination needs options
   await assertFails(setDoc(doc(as("pub"), "storeItems/v8"), { ...withOptions, kind: "digital", stock: 0, deliveryKobo: 0 })); // downloads have no options

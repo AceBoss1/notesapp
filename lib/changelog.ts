@@ -11,6 +11,14 @@ export type Release = {
 
 export const CHANGELOG: Release[] = [
   {
+    version: "v0.13.3",
+    bump: "patch",
+    date: "2026-10-10",
+    changes: [
+      { kind: "changed", text: "Adding sizes to a store item is now one entry at a time: type the size and how many pieces you have, tick ✔ to save it, and add the next (for example L: 2, then XL: 5). Saved entries are listed with the total in stock, and you can edit or remove any of them. You can add up to 60 entries, and a size or colour can have up to 20 choices instead of 5." },
+    ],
+  },
+  {
     version: "v0.13.2",
     bump: "patch",
     date: "2026-10-10",

@@ -1,12 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { UserProfile } from "@/lib/users";
 import { auth } from "@/lib/firebase";
 import { uploadToR2 } from "@/lib/upload";
 import { STORE_DELIVERY_MAX_KOBO, STORE_ITEM_MAX_KOBO, STORE_ITEM_MIN_KOBO } from "@/lib/orders";
 import Link from "next/link";
-import { addStoreItem, updateStoreItem, deleteStoreItem, StoreItem, MAX_CHOICES, MAX_IMAGES, MAX_OPTIONS, cleanOptions, variantCombos, variantKey, DEFAULT_STORE_IMAGE } from "@/lib/store";
+import { addStoreItem, updateStoreItem, deleteStoreItem, StoreItem, MAX_IMAGES, MAX_VARIANTS, cleanOptions, variantKey, DEFAULT_STORE_IMAGE } from "@/lib/store";
 import { attachDigitalFile, fmtSize } from "@/lib/store-files";
 import LessonsEditor from "@/components/LessonsEditor";
 import { canSellViewOnly } from "@/lib/tiers";
@@ -15,8 +15,10 @@ import { DIGITAL_EXTENSIONS, DIGITAL_MAX_BYTES } from "@/lib/private-files-confi
 
 const field = "mt-1 w-full border border-rule bg-card px-3 py-2 font-body text-sm outline-none focus:border-gold";
 const EMPTY = { title: "", subtitle: "", badge: "", priceNaira: "", deliveryNaira: "0", stock: "" };
-type OptionRow = { name: string; choices: string }; // choices typed as "S, M, L"
-const EMPTY_OPTIONS: OptionRow[] = [{ name: "", choices: "" }, { name: "", choices: "" }];
+// Size/colour entries the seller has ticked ✔ so far: one row per saved combination, with how many pieces of it they have.
+type VariantRow = { values: string[]; qty: number };
+const EMPTY_DRAFT = { values: ["", ""], qty: "" };
+const SIZE_HINTS = ["S", "M", "L", "XL", "2XL", "3XL"];
 
 // Panel on /u/<username>/store for the store's owner — or, for an organisation's store, a
 // team member the owner gave store access. Items are physical goods sold through
@@ -47,10 +49,34 @@ export default function StoreManager({
   const [progress, setProgress] = useState("");
   // Photos (the first is the main one), up to two options like Size/Colour, and stock per combination.
   const [images, setImages] = useState<string[]>([]);
-  const [optionRows, setOptionRows] = useState<OptionRow[]>(EMPTY_OPTIONS);
-  const [vstock, setVstock] = useState<Record<string, string>>({});
-  const options = cleanOptions(optionRows.map((r) => ({ name: r.name, choices: r.choices.split(",") })));
-  const combos = variantCombos(options);
+  const [optNames, setOptNames] = useState<[string, string]>(["Size", ""]);
+  const [rows, setRows] = useState<VariantRow[]>([]);
+  const [draft, setDraft] = useState(EMPTY_DRAFT);
+  const [variantNote, setVariantNote] = useState("");
+  const firstValue = useRef<HTMLInputElement>(null);
+  const resetVariants = () => { setOptNames(["Size", ""]); setRows([]); setDraft(EMPTY_DRAFT); setVariantNote(""); };
+  const nameCount = optNames[1].trim() ? 2 : 1;
+  // The options buyers see are built from the entries saved so far (in the order they were added).
+  const options = rows.length === 0 ? [] : cleanOptions(Array.from({ length: nameCount }, (_, i) => ({ name: optNames[i], choices: rows.map((r) => r.values[i]) })));
+  const totalPieces = rows.reduce((n, r) => n + r.qty, 0);
+  const draftHasText = draft.values.some((v) => v.trim()) || draft.qty.trim() !== "";
+
+  // The ✔: validates the entry being typed, adds it (or updates its quantity if that size/colour is already saved) and gets ready for the next.
+  function saveDraft() {
+    setError("");
+    const values = draft.values.slice(0, nameCount).map((v) => v.replace(/\|/g, " ").trim().slice(0, 24));
+    const qty = Number(draft.qty);
+    if (!optNames[0].trim()) return setVariantNote("Name the option first, for example Size.");
+    if (values.some((v) => !v)) return setVariantNote(`Fill in ${values.map((v, i) => (v ? "" : optNames[i].trim().toLowerCase())).filter(Boolean).join(" and ")}.`);
+    if (draft.qty.trim() === "" || !Number.isInteger(qty) || qty < 0 || qty > 100000) return setVariantNote("Enter how many pieces you have (a whole number; 0 means sold out).");
+    const key = variantKey(values);
+    const at = rows.findIndex((r) => variantKey(r.values) === key);
+    if (at < 0 && rows.length >= MAX_VARIANTS) return setVariantNote(`Up to ${MAX_VARIANTS} entries per item.`);
+    setRows((rs) => (at >= 0 ? rs.map((r, i) => (i === at ? { values, qty } : r)) : [...rs, { values, qty }]));
+    setVariantNote(at >= 0 ? `Updated ${values.join(" / ")} to ${qty}.` : `Saved ${values.join(" / ")}: ${qty}. Add the next one.`);
+    setDraft(EMPTY_DRAFT);
+    setTimeout(() => firstValue.current?.focus(), 0);
+  }
 
   const sellable = items.filter((i) => i.id && i.sellable);
   const legacy = items.filter((i) => i.id && !i.sellable);
@@ -63,10 +89,11 @@ export default function StoreManager({
     setFile(null);
     setProgress("");
     setImages(item ? (item.images?.length ? item.images : item.image && item.image !== DEFAULT_STORE_IMAGE ? [item.image] : []) : []);
-    setOptionRows(
-      EMPTY_OPTIONS.map((_, i) => ({ name: item?.options?.[i]?.name ?? "", choices: item?.options?.[i]?.choices.join(", ") ?? "" }))
-    );
-    setVstock(Object.fromEntries(Object.entries(item?.variantStock ?? {}).map(([k, v]) => [k, String(v)])));
+    resetVariants();
+    if (item?.options?.length) {
+      setOptNames([item.options[0].name, item.options[1]?.name ?? ""]);
+      setRows(Object.entries(item.variantStock ?? {}).map(([k, q]) => ({ values: k.split("|"), qty: Number(q) || 0 })));
+    }
     setForm(
       item
         ? { title: item.title, subtitle: item.subtitle ?? "", badge: item.badge ?? "", priceNaira: String((item.priceKobo ?? 0) / 100), deliveryNaira: String((item.deliveryKobo ?? 0) / 100), stock: String(item.stock ?? 0) }
@@ -100,15 +127,13 @@ export default function StoreManager({
     const priceKobo = Math.round(Number(form.priceNaira) * 100);
     const deliveryKobo = Math.round(Number(form.deliveryNaira || 0) * 100);
     const digital = kind === "digital";
-    const withOptions = !digital && options.length > 0;
-    const stocks = combos.map((c) => Number(vstock[variantKey(c)] ?? ""));
-    const stock = digital ? 0 : withOptions ? stocks.reduce((n, x) => n + (Number.isInteger(x) ? x : 0), 0) : Number(form.stock);
+    const withOptions = !digital && rows.length > 0;
+    const stock = digital ? 0 : withOptions ? totalPieces : Number(form.stock);
     if (!form.title.trim()) return setError("Add a title.");
     if (!Number.isFinite(priceKobo) || priceKobo < STORE_ITEM_MIN_KOBO || priceKobo > STORE_ITEM_MAX_KOBO) return setError("Price must be between ₦100 and ₦5,000,000.");
     if (!digital && (!Number.isFinite(deliveryKobo) || deliveryKobo < 0 || deliveryKobo > STORE_DELIVERY_MAX_KOBO)) return setError("Delivery fee must be between ₦0 and ₦50,000.");
     if (!withOptions && !digital && (form.stock.trim() === "" || !Number.isInteger(stock) || stock < 0 || stock > 100000)) return setError("Enter how many you have in stock (a whole number; 0 means sold out).");
-    if (withOptions && (combos.some((c) => (vstock[variantKey(c)] ?? "").trim() === "") || stocks.some((x) => !Number.isInteger(x) || x < 0 || x > 100000))) return setError("Enter the stock for every combination (a whole number; 0 means sold out).");
-    if (optionRows.some((r) => (r.name.trim() === "") !== (r.choices.trim() === ""))) return setError("Give each option both a name (like Size) and its choices (like S, M, L), or clear both.");
+    if (!digital && draftHasText) return setError("Tick ✔ to save the size you are typing, or clear it, before saving the item.");
     if (images.length > MAX_IMAGES) return setError(`Up to ${MAX_IMAGES} photos.`);
     const viewOnly = digital && access === "view";
     if (viewOnly && !editing && !viewOnlyOk) return setError("View-only items and courses are on the Pro plan and above.");
@@ -116,7 +141,7 @@ export default function StoreManager({
     if (file && file.size > DIGITAL_MAX_BYTES) return setError(`The file is too big — the limit is ${DIGITAL_MAX_BYTES / 1024 / 1024} MB.`);
     const input = {
       title: form.title, subtitle: form.subtitle, badge: form.badge, image: images[0] ?? "", images,
-      ...(withOptions ? { options, variantStock: Object.fromEntries(combos.map((c, i) => [variantKey(c), stocks[i]])) } : {}),
+      ...(withOptions ? { options, variantStock: Object.fromEntries(rows.map((r) => [variantKey(r.values), r.qty])) } : {}),
       price: `₦${(priceKobo / 100).toLocaleString("en-NG")}`, link: "", cta: digital ? (viewOnly ? "Buy & view" : "Buy & download") : "Buy now",
       sellable: true, priceKobo, deliveryKobo: digital ? 0 : deliveryKobo, stock,
       ...(digital ? { kind: "digital" as const, ...(viewOnly ? { access: "view" as const } : {}) } : {}),
@@ -126,7 +151,7 @@ export default function StoreManager({
       const previousStock = editing?.stock ?? 0;
       // Stock counts as edited when it, or the options it's kept under, changed — otherwise the live numbers in the database win.
       const sameOptions = JSON.stringify(options) === JSON.stringify(editing?.options ?? []);
-      const sameVariantStock = combos.every((c, i) => (editing?.variantStock?.[variantKey(c)] ?? -1) === stocks[i]);
+      const sameVariantStock = rows.length === Object.keys(editing?.variantStock ?? {}).length && rows.every((r) => (editing?.variantStock?.[variantKey(r.values)] ?? -1) === r.qty);
       const stockChanged = !editing || (withOptions ? !sameOptions || !sameVariantStock : stock !== previousStock || (editing.options?.length ?? 0) > 0);
       let id = editing?.id;
       if (editing?.id) await updateStoreItem(profile.uid, editing.id, input, stockChanged);
@@ -142,8 +167,7 @@ export default function StoreManager({
           setEditing(null);
           setForm(EMPTY);
           setImages([]);
-          setOptionRows(EMPTY_OPTIONS);
-          setVstock({});
+          resetVariants();
           setFile(null);
           setError((err instanceof Error ? err.message : "The file didn't upload.") + " The item is saved but hidden from buyers — use Edit to attach the file again.");
           onChanged();
@@ -162,8 +186,7 @@ export default function StoreManager({
       setEditing(null);
       setForm(EMPTY);
       setImages([]);
-      setOptionRows(EMPTY_OPTIONS);
-      setVstock({});
+      resetVariants();
       setFile(null);
       setMsg(viewOnly && id && !editing ? "Saved — now add its lessons below. Buyers can't see it until it has one." : "Saved.");
       if (viewOnly && id) setLessonsFor(id);
@@ -280,36 +303,55 @@ export default function StoreManager({
               <label className="text-xs text-slate">Delivery fee (₦, yours)
                 <input type="number" min={0} step={50} value={form.deliveryNaira} onChange={set("deliveryNaira")} className={field} />
               </label>
-              {options.length === 0 && (
+              {rows.length === 0 && (
                 <label className="text-xs text-slate">In stock
-                  <input type="number" min={0} step={1} value={form.stock} onChange={set("stock")} className={field} required />
+                  <input type="number" min={0} step={1} value={form.stock} onChange={set("stock")} className={field} required={rows.length === 0} />
                 </label>
               )}
               <div className="sm:col-span-2 text-xs text-slate">
-                Options buyers choose from (optional) — for example Size and Colour. Up to {MAX_OPTIONS} options, each with up to {MAX_CHOICES} choices separated by commas.
-                <div className="mt-1 grid gap-2 sm:grid-cols-2">
-                  {optionRows.map((r, i) => (
-                    <div key={i} className="grid grid-cols-[7rem_1fr] gap-2">
-                      <input value={r.name} maxLength={20} placeholder={i === 0 ? "Size" : "Colour"} onChange={(e) => setOptionRows((rows) => rows.map((x, j) => (j === i ? { ...x, name: e.target.value } : x)))} className={field} aria-label={`Option ${i + 1} name`} />
-                      <input value={r.choices} placeholder={i === 0 ? "S, M, L, XL" : "Red, Blue, Black"} onChange={(e) => setOptionRows((rows) => rows.map((x, j) => (j === i ? { ...x, choices: e.target.value } : x)))} className={field} aria-label={`Option ${i + 1} choices`} />
-                    </div>
-                  ))}
+                <p className="font-bold text-ink">Sizes or colours (optional)</p>
+                <p className="mt-0.5">Add one at a time: type the size and how many pieces you have, then tick ✔ to save it and add the next. Leave this empty if the item has no sizes.</p>
+                <div className="mt-2 grid gap-2 sm:grid-cols-2">
+                  <label>Option name
+                    <input value={optNames[0]} maxLength={20} placeholder="Size" onChange={(e) => setOptNames((n) => [e.target.value, n[1]])} className={field} />
+                  </label>
+                  <label>Second option, if any (for example Colour)
+                    <input value={optNames[1]} maxLength={20} placeholder="Colour" onChange={(e) => setOptNames((n) => [n[0], e.target.value])} className={field} />
+                  </label>
                 </div>
-                {optionRows.some((r) => r.choices.split(",").filter((c) => c.trim()).length > MAX_CHOICES) && <span className="mt-1 block text-crimson">Only the first {MAX_CHOICES} choices of an option are used.</span>}
-              </div>
-              {combos.length > 0 && (
-                <div className="sm:col-span-2 text-xs text-slate">
-                  In stock for each combination
-                  <div className="mt-1 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
-                    {combos.map((c) => (
-                      <label key={variantKey(c)} className="flex items-center justify-between gap-2 border border-rule bg-card px-3 py-1.5">
-                        <span className="truncate text-ink">{c.join(" / ")}</span>
-                        <input type="number" min={0} step={1} value={vstock[variantKey(c)] ?? ""} onChange={(e) => setVstock((v) => ({ ...v, [variantKey(c)]: e.target.value }))} className="w-20 border border-rule bg-paper px-2 py-1 text-right text-sm outline-none focus:border-gold" required />
-                      </label>
+                {rows.length > 0 && (
+                  <ul className="mt-3 divide-y divide-rule border border-rule bg-card">
+                    {rows.map((r, i) => (
+                      <li key={variantKey(r.values)} className="flex items-center justify-between gap-3 px-3 py-1.5">
+                        <span className="min-w-0 truncate text-ink"><span className="mr-1 text-moss">✔</span>{r.values.map((v, k) => `${optNames[k] || "Option"} ${v}`).join(" · ")}</span>
+                        <span className="flex shrink-0 items-center gap-3">
+                          <span className="font-mono text-ink">{r.qty} pc{r.qty === 1 ? "" : "s"}{r.qty === 0 ? " · sold out" : ""}</span>
+                          <button type="button" className="text-crimson" onClick={() => { setDraft({ values: [r.values[0] ?? "", r.values[1] ?? ""], qty: String(r.qty) }); setVariantNote(`Editing ${r.values.join(" / ")}: change the number and tick ✔.`); setTimeout(() => firstValue.current?.focus(), 0); }}>Edit</button>
+                          <button type="button" className="text-crimson" aria-label={`Remove ${r.values.join(" ")}`} onClick={() => setRows((rs) => rs.filter((_, k) => k !== i))}>Remove</button>
+                        </span>
+                      </li>
                     ))}
-                  </div>
+                    <li className="flex justify-between bg-paper px-3 py-1.5 font-bold text-ink"><span>Total in stock</span><span className="font-mono">{totalPieces}</span></li>
+                  </ul>
+                )}
+                <div className="mt-3 flex flex-wrap items-end gap-2" onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); saveDraft(); } }}>
+                  {Array.from({ length: nameCount }, (_, i) => (
+                    <label key={i} className="min-w-[6rem] flex-1">{optNames[i].trim() || (i === 0 ? "Size" : "Colour")}
+                      <input ref={i === 0 ? firstValue : undefined} value={draft.values[i]} maxLength={24} placeholder={i === 0 ? "e.g. L" : "e.g. Red"} onChange={(e) => setDraft((d) => ({ ...d, values: d.values.map((v, k) => (k === i ? e.target.value : v)) }))} className={field} />
+                    </label>
+                  ))}
+                  <label className="w-24">How many
+                    <input type="number" min={0} step={1} value={draft.qty} placeholder="5" onChange={(e) => setDraft((d) => ({ ...d, qty: e.target.value }))} className={field} />
+                  </label>
+                  <button type="button" onClick={saveDraft} aria-label="Save this entry" title="Save this entry" className="mb-0 h-[2.4rem] border border-moss bg-moss px-4 text-base font-bold text-white hover:opacity-90">✔</button>
                 </div>
-              )}
+                {optNames[0].trim().toLowerCase() === "size" && nameCount === 1 && (
+                  <p className="mt-2 flex flex-wrap items-center gap-1.5">Quick sizes:
+                    {SIZE_HINTS.map((h) => <button key={h} type="button" onClick={() => setDraft((d) => ({ ...d, values: [h, d.values[1]] }))} className="border border-rule bg-card px-2 py-0.5 text-ink hover:border-crimson">{h}</button>)}
+                  </p>
+                )}
+                {variantNote && <p className="mt-2 text-ink" role="status">{variantNote}</p>}
+              </div>
             </>
           ) : access === "view" ? (
             <div className="sm:col-span-2 text-xs text-slate">
