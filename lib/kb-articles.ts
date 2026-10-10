@@ -187,21 +187,33 @@ Payments run through Paystack's hosted checkout, so card and bank details never 
 You can download a copy of your data or delete your account yourself from [Account settings](/profile/account). Deleting an account removes your profile, and payment and order records are kept only without your name, email, address or phone number, as the law requires. If you are in a group chat, you leave it; your connected LinkedIn or X access is removed. Read the [Privacy Policy](/privacy) for details.`),
     // ── Company
     A("who-is-emmanuel-adams", "Who is Emmanuel Adams?", "Company", `
-Emmanuel Adams is the Founder and CEO of #NotesApp (NOTESAPP TECHNOLOGIES LTD, RC ${COMPANY_INFO.rcNumber}), and Business Development Lead at Precheks. He writes on careers, business and technology, and he publishes on #NotesApp under his own name.
+Aside from being the Founder, CEO and CTO of NOTESAPP TECHNOLOGIES LTD (the company behind #NotesApp, RC ${COMPANY_INFO.rcNumber}), Emmanuel Adams is a successful business consultant, fintech consultant, entrepreneurship author and coach who is passionate about helping people recognise their potential and communicate it effectively to potential employers.
 
-## Read his work
-- His journal and profile on #NotesApp: [@emmanuel](/u/emmanuel)
-- More about the company and its founders: [About #NotesApp](/about)
-- His other articles are on his own website and on Medium, linked below. Several of them are also published here on #NotesApp.
+## Affiliations
+- **Forbes BLK member.** He is a member of the Forbes BLK community, which recognises and empowers Black entrepreneurs, executives and innovators.
+- **SPSC UK Ambassador for the UN SDG Programme.** He serves as an ambassador for the Sustainable Peace and Security Centre (SPSC) UK's United Nations Sustainable Development Goals programme, supporting global efforts to achieve the SDGs.
+- **Ex-CEO of PLAAS.** He once led the blockchain-based platform transforming Africa's agricultural sector.
+- **Vice President, Abuja & North Central Region, Boxing Promoters Association of Nigeria (BPAN).** He plays a key role in promoting boxing and supporting boxing promoters in the region.
+- **Vice President, Abuja & North Central Region, Film and Creative Minds Association of Nigeria (FCMA).** He supports filmmakers and creative professionals in the region.
+- **Founder and CEO of Ace Boxing Promotions and Adams Global Services.** He has founded and led several companies.
+
+## Recognition
+- Awarded "Blockchain Personality of the Year" at the 2020 African Blockchain Leadership Conference.
+- Awarded the Young Entrepreneur Award 2024 by Time Africa Magazine.
+- Awarded Who's Who 2024-2025 by Time Africa Magazine, in collaboration with Marquis Who's Who.
+- Featured in notable media outlets, including SUN, Independent, Vanguard, This Day and other publications.
+
+His affiliations and recognition reflect his commitment to innovation, entrepreneurship and global sustainability. He publishes on #NotesApp under his own name, and several of his articles on careers and business are on his journal here.
 
 ## Sources
-- #NotesApp profile: [notesapp.name.ng/u/emmanuel](/u/emmanuel)
+- #NotesApp profile and journal: [notesapp.name.ng/u/emmanuel](/u/emmanuel)
 - Website: [adams.com.ng](https://adams.com.ng)
 - Medium: [itsemmanueladams.medium.com](https://itsemmanueladams.medium.com)
 - LinkedIn: [Emmanuel Adams](https://www.linkedin.com/in/emmanuel-adams-27891354)
 - X: [@TweetsbyAdams](https://x.com/TweetsbyAdams)
 - Instagram: [@itsemmanueladams](https://instagram.com/itsemmanueladams)
-- Facebook: [Mr.EmmanuelAdams](https://facebook.com/Mr.EmmanuelAdams)`),
+- Facebook: [Mr.EmmanuelAdams](https://facebook.com/Mr.EmmanuelAdams)
+- The company and its founders: [About #NotesApp](/about)`),
     A("contact-and-support", "Contacting #NotesApp", "Company", `
 Use the [contact form](/contact) and pick the topic (bookings, payments and refunds, store orders and parcels, advertising, organisations, the gold badge, reporting, partnerships, press, investment or anything else). It goes straight to our admins. For a parcel, include its ID. Nana AI can answer most how-to questions, and can pass you to a person when it cannot.`),
     A("about-and-status", "About #NotesApp, status and updates", "Company", `

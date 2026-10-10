@@ -42,7 +42,7 @@ const LIVE = [
 ];
 
 const FOUNDERS = [
-  { ...ADMIN_PROFILES["ezurukam@gmail.com"], role: "Founder & CEO" },
+  { ...ADMIN_PROFILES["ezurukam@gmail.com"], role: "Founder, CEO & CTO" },
   { ...ADMIN_PROFILES["precheks.info@gmail.com"], role: "Guest Writer" },
 ];
 

@@ -13,7 +13,7 @@ Firestore project and its own Cloudflare R2 bucket. Treat all
 architecture looks the way it does, not as the current state of
 Firestore access.
 
-## Where things stand (updated 5 Oct 2026)
+## Where things stand (updated 10 Oct 2026)
 
 **Read this section first.** Everything below it is a chronological build log; where an older passage says something is
 "not built", "demo" or "shared with Precheks", this section is the current truth.
@@ -30,14 +30,19 @@ Firestore access.
 | Plans & badges | Free Standard/Basic, Pro, Business (Paystack plans), Enterprise (custom); maroon ✔, gold ✔ (endorsed; identity-checked is built but **Dojah is still on the sandbox**) | "Pro / Business plans", "Verified badge", "Dojah webhook" |
 | **Enterprise** | Server-to-server API (`/api/v1`), Console, signed webhooks, `/docs`, own domain (subdomain or root) | "API, Console, Docs and custom domains" |
 | Trust & ops | `/security`, `/status` (+ incidents, response times, email subscribers), `/changelog`, account export/deletion, error monitoring, traction snapshot, admin by custom claims | "Where to look when something's wrong" below |
+| **Messaging** | Direct messages and group chats (up to 50), voice notes, stickers, moments, block/report, device and email notifications | "Where things stand" flags `NEXT_PUBLIC_MESSAGES_LIVE`, `NEXT_PUBLIC_MOMENTS_LIVE` |
+| **Nana AI and help centre** | Chat on every page, pinned in `/messages`, `/nana`, `/help` articles (built-in + staff, Admin → Help & Nana), writing help in drafts, sharing and messages, member-connected Anthropic key, Ask Nana in the team hub | "Nana AI and the help centre" |
+| **Social publishing** | Publish a post to a connected LinkedIn or X account (`LINKEDIN_*`, `X_*` variables) | "Publish to LinkedIn and X" in `/changelog` |
+| **Team hub (internal)** | Work board, milestones, daily/weekly summaries, money ledger (finance/product/owner rules), staff roles and departments, grouped admin menu. Opens to Business and Enterprise after internal testing (`/teams`) | "Money ledger", `lib/admin-access.ts` |
+| **Public site** | Home and About with the owner's description, Trusted by and Partners marquees (`lib/partners.ts`, partner cards link to `/status`, Anthropic/Claude included), `/pricing`, `/teams`, `/roadmap` | `lib/partners.ts` |
 | Company | NOTESAPP TECHNOLOGIES LTD (RC and TIN in `lib/site.ts`; SMEDAN number pending) | "Company identity" |
 
 ### Not built yet
 WhatsApp reminders (plan: Meta WhatsApp Cloud API directly; booking reminders + delivery updates; needs Meta Business
-verification and approved templates) · one-click social publishing · AI drafting via MCP + notetaker handoff · iOS/Android apps ·
+verification and approved templates) · publishing to Facebook, Instagram and TikTok (LinkedIn and X are built) · AI notetaker + MCP assistant ·
+team hub and team messaging for Business and Enterprise (internal only for now) · LinkedIn advertising (under review) · iOS/Android apps ·
 video transcoding/streaming (we cap size and length instead) · Dojah **live** mode (README "Going live with Dojah") ·
-webhook retries (one attempt, manual resend) · OAuth for third-party API apps · full sign-in on custom domains (they hop to
-the main site) · Sentry (we have built-in error monitoring instead).
+webhook retries (one attempt, manual resend) · OAuth for third-party API apps · checkout and bookings in a popup on custom domains, and a sending address on the member's own domain (sign-in and sign-up in the member's name are live) · Sentry (we have built-in error monitoring instead).
 
 ### Environment variables (Vercel → Settings → Environment Variables; redeploy after changing any)
 | Variable | Secret? | Purpose |
@@ -1229,6 +1234,13 @@ reply suggestions and polish in a conversation. Text is not stored. It needs an 
 per day, default 20); the knowledge base cannot write. Variables: `ANTHROPIC_API_KEY` (optional, Sensitive: without it Nana still works from the
 help centre and members can connect their own), `NANA_MODEL` (for example `claude-haiku-5-5` to spend less), `NANA_DAILY_LIMIT` (replies a day, default
 1500), `NANA_CHAT_PER_USER_DAILY` (default 100), `NANA_ASSIST_DAILY` (default 20). No voice: Nana is text only.
+**Limits only when we pay:** the per-person/per-day allowances and the hourly request limits (`/api/nana`, `/api/nana/assist`) apply only to #NotesApp's AI;
+a member with their own key connected is never limited by us. **Booking in replies:** for a suggested reply in a conversation, `lib/nana-booking.ts` adds the
+member's booking link and next open times (availability minus `slotLocks`) when they take paid sessions and have a payout account; otherwise Nana is told
+not to mention booking. **Status and partners:** `/status` has a "Claude AI (Anthropic)" line (lists models with our key; "Not enabled yet" without one) and
+`lib/partners.ts` has the Anthropic card (`public/images/partners/anthropic.png`). **Help article format:** `Markdownish` supports `## headings`; an
+article page passes `external` so a Sources list can link to https sites (Nana's own replies never can). Example: the built-in "Who is Emmanuel Adams?"
+(`who-is-emmanuel-adams`); a staff article with that slug replaces it.
 **Rules tests** — `npm run test:rules` (needs Java; starts the Firestore
 emulator): 11 tests covering profile-field lockdown, server-only money
 collections, booking/ledger/payout read scopes, subscriptions, claims and
