@@ -146,7 +146,19 @@ export async function checkServices(): Promise<ServiceStatus[]> {
   const claudeDesc = "Claude by Anthropic, the AI behind Nana AI's answers and writing help";
   checks.push(
     claudeKey
-      ? timed(async (signal) => (await fetch(`${(process.env.ANTHROPIC_BASE_URL || "https://api.anthropic.com").replace(/\/$/, "")}/v1/models?limit=1`, { headers: { "x-api-key": claudeKey, "anthropic-version": "2023-06-01" }, signal, cache: "no-store" })).ok).then((r) => toStatus("claude", "Claude AI (Anthropic)", claudeDesc, r))
+      ? (async () => {
+          let why = "";
+          const r = await timed(async (signal) => {
+            const res = await fetch(`${(process.env.ANTHROPIC_BASE_URL || "https://api.anthropic.com").replace(/\/$/, "")}/v1/models?limit=1`, { headers: { "x-api-key": claudeKey, "anthropic-version": "2023-06-01" }, signal, cache: "no-store" });
+            if (res.status === 401 || res.status === 403) why = " (Anthropic rejected our key: check ANTHROPIC_API_KEY in Vercel)";
+            else if (res.status === 429) why = " (rate limited by Anthropic)";
+            else if (res.status >= 500) why = " (Anthropic is having trouble)";
+            else if (!res.ok) why = ` (Anthropic answered ${res.status})`;
+            return res.ok;
+          });
+          if (!r.ok && !why) why = " (could not reach Anthropic in time)";
+          return toStatus("claude", "Claude AI (Anthropic)", claudeDesc + why, r);
+        })()
       : Promise.resolve(notConfigured("claude", "Claude AI (Anthropic)", `${claudeDesc} (not switched on; Nana answers from the help centre, and members can connect their own account)`))
   );
 
