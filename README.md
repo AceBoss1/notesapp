@@ -1972,6 +1972,40 @@ Gold-badge decisions: `POST /api/admin/badge-request` (used by Approve/Decline i
 
 Testing the webhook without a real check: `DOJAH_WEBHOOK_SECRET=… node scripts/dojah-test-event.mjs <uid> [pass|fail|abandoned]` sends a correctly signed fake event for a member who has a paid identity application, so you can confirm the signature check and the `/admin/users` display independently of Dojah's sandbox. Dojah sandbox values (only against `https://sandbox.dojah.io`): NIN 70123456789, BVN 22222222222, phone 09011111111, RC/CAC 1261103 or 14320749, TIN 18609323-0001.
 
+## Planned: public Live and private group sessions (decisions so far — not built)
+
+Internal planning notes (October 2026). Nothing here is built. The public `/roadmap` and `/challenge` pages only say live video is coming.
+
+**Product split**
+- **Public Live** (one to many): professional and educational, not entertainment. **Private group sessions** (booked, paid): Zoom-like, no public audience.
+- Provider: Daily (see the calls section below); price LiveKit as the fallback if the cost of many on stage worries us. Confirm Daily's stage and audience limits before promising numbers.
+
+**Public Live: decided**
+- Stage: the host plus up to **10 co-hosts**. The screen shows **4 live video tiles**; everyone else on stage is an avatar with audio. Viewers press **Request**, host or a moderator approves; the host can also invite; mute, remove and "back to audience" are one tap.
+- The host **appoints moderators** (remove comments, mute or remove people, approve requests, pin, slow mode; a moderator log).
+- The host's **last-used setup carries over** to the next Live (title, topic, chat rules, who may request, moderators, stage seats, recording consent), and named presets can be saved.
+- A **Book a session** button for the host's private sessions is visible **from the first second to the last**, not only at the end. Other tools: audience-upvoted Q&A, polls, pinned links (journal, store item), Nana notes, replay turned into a journal post with transcript and summary, audio-only low-data mode.
+- **Who may host:** verified publishers (the challenge's 100k views and 10k new followers stay the condition for the giveaway only; to be confirmed).
+- **Who pays:** #NotesApp pays for Live at the start (user-acquisition spend). Needs guard rails: a free minutes allowance per host per month, a stage-seat limit, an audience cap and a global monthly cap, set on the admin Pricing page, and each month's Daily bill entered as an expense in the money ledger.
+- **Audience is always free. No tickets.** Hosts use Live to promote their private sessions.
+- **Gifts exist** in Live. Gifts, subscriptions, engagement, purchases and reviews all count towards fan and follower ranking site-wide (formula below, to confirm).
+- **Leaderboards:** collect the real data from day one (attendance, watch time, questions, ratings, gifts, subscriptions, purchases, reviews as server-written stats, like `storeStats`); decide what to show once there is data.
+- **Participants** (not "learners"): an optional "top participants" board from attendance streaks and good questions.
+- **Recording** for safety review, with the host's consent (accepted when the host enables Live); everyone is told. Retention to confirm (proposal: 30 days, then deleted unless the host publishes the replay).
+- **Platforms:** web and mobile together. Web is built mobile-first now; the native apps (on the roadmap) reuse the same backend. Digital gifts inside the iOS and Android apps probably need the stores' in-app purchase, so gifts there would be bought with credit topped up on the web (as the top-up button already is).
+
+**Ranking proposal (to confirm)**
+- Two boards: **Hosts** (quality: unique viewers who stay, watch time, ratings, return rate, questions answered, reviews, subscriber growth) and **Fans and participants** (attendance, questions, reviews, plus support: gifts, subscriptions, purchases).
+- Money counts but is **capped** inside the fan score so a big spender cannot bury an active participant; per pair and per day caps and self-gifting checks stop gift-washing with extra accounts.
+- Showing on a public board is **opt-in** (or anonymous), for NDPA reasons and to avoid pressure to spend.
+
+**Private group sessions: decided**
+- **No guests:** everyone has an account, so account setup gets easier with **passwordless sign-in** (email code or link; phone code to consider). Join link opens a short "enter your email, type the code" step, creates the account if new, and lands in the waiting room.
+- Zoom-like: gallery and speaker views, waiting room, mute all, screen share, chat, hand raise, breakout rooms later, recording only with consent, transcript with Nana's summary.
+- Room is made when the booking is made; the host pays the per-minute call rate from NotesApp Credit (see below), to revisit for groups of ten or more.
+
+**Suggested order:** (1) passwordless sign-in, (2) private group sessions, (3) public Live with presets and moderators, (4) stats collection running from the first Live, (5) leaderboards when there is data, (6) replay to journal, (7) ten co-hosts and low-data mode. Also next week: trim the whole-collection Firestore reads.
+
 ## Planned: meetings, calls and direct messages (decisions so far — not built)
 
 Internal planning notes; the public `/roadmap` only says these are under team discussion.
