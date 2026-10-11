@@ -1985,22 +1985,22 @@ Internal planning notes (October 2026). Nothing here is built. The public `/road
 - The host **appoints moderators** (remove comments, mute or remove people, approve requests, pin, slow mode; a moderator log).
 - The host's **last-used setup carries over** to the next Live (title, topic, chat rules, who may request, moderators, stage seats, recording consent), and named presets can be saved.
 - A **Book a session** button for the host's private sessions is visible **from the first second to the last**, not only at the end. Other tools: audience-upvoted Q&A, polls, pinned links (journal, store item), Nana notes, replay turned into a journal post with transcript and summary, audio-only low-data mode.
-- **Who may host:** verified publishers (the challenge's 100k views and 10k new followers stay the condition for the giveaway only; to be confirmed).
-- **Who pays:** #NotesApp pays for Live at the start (user-acquisition spend). Needs guard rails: a free minutes allowance per host per month, a stage-seat limit, an audience cap and a global monthly cap, set on the admin Pricing page, and each month's Daily bill entered as an expense in the money ledger.
+- **Who may host:** verified publishers (confirmed). The challenge's 100k views and 10k new followers stay the condition for the ₦1,000,000 giveaway only. For now we don't want Live used heavily except as a user-acquisition tool, so allowances stay small.
+- **Who pays:** #NotesApp pays for Live at the start (confirmed): gamified Live and leaderboards are the cheapest user acquisition. A host who wins the challenge may get a different allowance (wording to confirm: higher, or the caps lifted). Needs guard rails: a free minutes allowance per host per month, a stage-seat limit, an audience cap and a global monthly cap, set on the admin Pricing page, and each month's Daily bill entered as an expense in the money ledger.
 - **Audience is always free. No tickets.** Hosts use Live to promote their private sessions.
-- **Gifts exist** in Live. Gifts, subscriptions, engagement, purchases and reviews all count towards fan and follower ranking site-wide (formula below, to confirm).
+- **Gifts exist** in Live (confirmed). Gifts, subscriptions, engagement, purchases and reviews all count towards fan and follower ranking site-wide, **with no cap on gifts** (confirmed).
 - **Leaderboards:** collect the real data from day one (attendance, watch time, questions, ratings, gifts, subscriptions, purchases, reviews as server-written stats, like `storeStats`); decide what to show once there is data.
 - **Participants** (not "learners"): an optional "top participants" board from attendance streaks and good questions.
-- **Recording** for safety review, with the host's consent (accepted when the host enables Live); everyone is told. Retention to confirm (proposal: 30 days, then deleted unless the host publishes the replay).
+- **Recording** for safety review, with the host's consent (accepted when the host enables Live); everyone is told. Kept **30 days**, then deleted unless the host publishes the replay (confirmed). Check wording with counsel (NDPA).
 - **Platforms:** web and mobile together. Web is built mobile-first now; the native apps (on the roadmap) reuse the same backend. Digital gifts inside the iOS and Android apps probably need the stores' in-app purchase, so gifts there would be bought with credit topped up on the web (as the top-up button already is).
 
-**Ranking proposal (to confirm)**
+**Ranking (decided)**
 - Two boards: **Hosts** (quality: unique viewers who stay, watch time, ratings, return rate, questions answered, reviews, subscriber growth) and **Fans and participants** (attendance, questions, reviews, plus support: gifts, subscriptions, purchases).
-- Money counts but is **capped** inside the fan score so a big spender cannot bury an active participant; per pair and per day caps and self-gifting checks stop gift-washing with extra accounts.
-- Showing on a public board is **opt-in** (or anonymous), for NDPA reasons and to avoid pressure to spend.
+- Money counts and **gifts are not capped** (decided). Because uncapped money can let a big spender outrank an active participant, keep self-gifting and linked-account checks so rank cannot be faked with extra accounts, and look at the real numbers before the boards go public.
+- Showing on a public board is **opt-in** or anonymous (confirmed), for NDPA reasons and to avoid pressure to spend.
 
 **Private group sessions: decided**
-- **No guests:** everyone has an account, so account setup gets easier with **passwordless sign-in** (email code or link; phone code to consider). Join link opens a short "enter your email, type the code" step, creates the account if new, and lands in the waiting room.
+- **No guests:** everyone has an account, so account setup gets easier with **passwordless sign-in**: an **email code first** (confirmed); a phone code later, since SMS in Nigeria costs money and can be unreliable. Join link opens a short "enter your email, type the code" step, creates the account if new, and lands in the waiting room.
 - Zoom-like: gallery and speaker views, waiting room, mute all, screen share, chat, hand raise, breakout rooms later, recording only with consent, transcript with Nana's summary.
 - Room is made when the booking is made; the host pays the per-minute call rate from NotesApp Credit (see below), to revisit for groups of ten or more.
 
