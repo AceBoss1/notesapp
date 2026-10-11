@@ -3,7 +3,7 @@ import { listStaff } from "./admin-access-server";
 import { notifyBell, sendEmail } from "./email";
 import { FinanceError } from "./finance";
 import { createEntry, type Caller } from "./finance-server";
-import { MAX_USAGE, cleanGrant, cleanUsage, dueReminders, daysLeft, kobo, reminderText, usd, type Grant, type GrantInput } from "./grants";
+import { MAX_USAGE, cleanGrant, cleanUsage, dueReminders, daysLeft, kobo, reminderText, usd, type Grant, type GrantInput, type GrantStatus } from "./grants";
 import { lagosDate } from "./team";
 
 // Server side of the grants and subscriptions tracker. Collection: grants (server-only in firestore.rules). Finance edits, product reads.
@@ -24,7 +24,8 @@ export async function saveGrant(db: Firestore, c: Caller, id: unknown, input: Gr
   const at = now.toISOString();
   if (!id) {
     const ref = db.collection(COL).doc();
-    const doc = { ...clean, status: "active", usage: [], remindedDays: [], createdAt: at, createdByEmail: c.email };
+    const { pending, ...fields } = clean;
+    const doc = { ...fields, status: (pending ? "pending" : "active") as GrantStatus, usage: [], remindedDays: [], createdAt: at, createdByEmail: c.email };
     await ref.set(doc);
     return toGrant(ref.id, doc);
   }
@@ -34,7 +35,9 @@ export async function saveGrant(db: Firestore, c: Caller, id: unknown, input: Gr
     need(s.exists, "That grant wasn't found.", 404);
     const old = toGrant(s.id, s.data()!);
     const datesMoved = old.endsOn !== clean.endsOn;
-    const next = { ...old, ...clean, updatedAt: at, ...(datesMoved ? { remindedDays: [] } : {}) };
+    const { pending, ...fields } = clean;
+    const status: GrantStatus = pending ? "pending" : old.status === "pending" ? "active" : old.status;
+    const next = { ...old, ...fields, status, updatedAt: at, ...(datesMoved || status !== old.status ? { remindedDays: [] } : {}) };
     const { id: _id, ...doc } = next;
     void _id;
     t.set(ref, doc);
@@ -71,6 +74,7 @@ export async function recordInLedger(db: Firestore, c: Caller, id: unknown, now 
   const s = await ref.get();
   need(s.exists, "That grant wasn't found.", 404);
   const g = toGrant(s.id, s.data()!);
+  need(g.status !== "pending" && g.valueCents > 0, "Wait until this grant is approved and has a value.", 400);
   need(!g.ledgerEntryId, "This grant is already in the ledger.", 400);
   need(g.fxNgn > 0, "Add the naira per US dollar rate to this grant first.", 400);
   const e = await createEntry(db, c, {
@@ -86,16 +90,16 @@ export type GrantDeps = {
   bell: (uid: string, message: string) => Promise<void>;
   recipients: () => Promise<{ uid: string; email: string }[]>;
 };
-const defaultDeps = (db: Firestore): GrantDeps => ({
-  email: async (to, m) => { await sendEmail({ to, subject: m.subject, text: m.text, action: { label: "Open grants", url: "https://www.notesapp.name.ng/admin/team/grants" } }); },
-  bell: async (uid, message) => notifyBell({ uid, type: "team", linkHref: "/admin/team/grants", message }),
+export const defaultGrantDeps = (db: Firestore, page = "/admin/team/grants"): GrantDeps => ({
+  email: async (to, m) => { await sendEmail({ to, subject: m.subject, text: m.text, action: { label: "Open", url: `https://www.notesapp.name.ng${page}` } }); },
+  bell: async (uid, message) => notifyBell({ uid, type: "team", linkHref: page, message }),
   // The owner, super admins and the finance team.
   recipients: async () => (await listStaff(db)).filter((p) => p.owner || p.role === "super" || p.depts.includes("finance")).map((p) => ({ uid: p.uid, email: p.email })),
 });
 
 // Cron: for each running grant, one message covering every threshold (30, 14, 7, 3, 1, 0 days) reached since the last one, then marks them so
 // nothing repeats. A grant past its end date is closed. Returns how many grants triggered a message.
-export async function sendGrantReminders(db: Firestore, now = new Date(), deps: GrantDeps = defaultDeps(db)): Promise<number> {
+export async function sendGrantReminders(db: Firestore, now = new Date(), deps: GrantDeps = defaultGrantDeps(db)): Promise<number> {
   const today = lagosDate(now);
   const snap = await db.collection(COL).where("status", "==", "active").get();
   let sent = 0;

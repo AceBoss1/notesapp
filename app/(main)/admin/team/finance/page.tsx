@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
+import DuesPanel from "@/components/DuesPanel";
 import { useAdminAuth } from "@/lib/useAdminAuth";
 import {
   BACKDATE_DAYS, CATEGORIES, CSV_HEADER, KIND_LABEL, MAX_RECEIPTS, RECEIPT_EXTENSIONS, RECEIPT_MAX_BYTES, categoryLabel, cleanEntry, csvCell, csvToInputs, isBackdated, naira,
@@ -163,7 +164,7 @@ export default function MoneyLedgerPage() {
 
   return (
     <div className="mx-auto max-w-5xl px-4 py-12">
-      <Link href="/admin/team" className="font-ui text-xs font-semibold text-crimson">← Team hub</Link>
+      <Link href="/admin/team" className="font-ui text-xs font-semibold text-crimson">← Team hub</Link> <Link href="/admin/team/grants" className="ml-3 font-ui text-xs font-semibold text-crimson">Grants &amp; subscriptions →</Link>
       <h1 className="mt-2 font-display text-4xl text-ink">Money ledger</h1>
       <p className="mt-2 max-w-3xl text-sm text-slate">
         What the company spends and receives, with receipts, next to what the platform earns by itself. Finance records entries; product reads them
@@ -171,6 +172,7 @@ export default function MoneyLedgerPage() {
       </p>
       {error && <p className="mt-4 whitespace-pre-line text-sm text-red-700" role="alert">{error}</p>}
       {note && <p className="mt-4 text-sm text-green-700" role="status">{note}</p>}
+      <DuesPanel user={user} onPaid={load} />
       {!data ? <p className="mt-8 text-slate">Loading…</p> : shown && (
         <>
           {/* ── Numbers ─────────────────────────────── */}

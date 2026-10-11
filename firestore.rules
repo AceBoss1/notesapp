@@ -408,6 +408,9 @@ service cloud.firestore {
       allow read, write: if false;
     }
     // Grants and subscriptions the company holds (credits, free plans, usage): server-only, finance and product read them through the API.
+    match /financeDues/{id} {
+      allow read, write: if false;
+    }
     match /grants/{id} {
       allow read, write: if false;
     }

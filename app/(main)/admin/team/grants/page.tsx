@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useAdminAuth } from "@/lib/useAdminAuth";
 import { naira } from "@/lib/finance";
-import { TEMPLATES, daysLeft, kobo, monthlyAfter, remainingCents, usd, usedCents, type Grant, type GrantInput } from "@/lib/grants";
+import { TEMPLATES, daysLeft, monthlyAfter, monthlyAfterKobo, remainingCents, usd, usedCents, worthKobo, type Grant, type GrantInput } from "@/lib/grants";
 
 type Data = { grants: Grant[]; today: string; canWrite: boolean };
 const field = "mt-1 block w-full rounded-lg border border-rule bg-card px-2 py-1.5 text-sm";
@@ -12,7 +12,7 @@ const btn = "rounded-full bg-crimson px-4 py-2 font-ui text-xs font-semibold tex
 const ghost = "rounded-full border border-rule px-3 py-1.5 font-ui text-xs font-semibold hover:border-crimson disabled:opacity-50";
 const dayLabel = (d: string) => new Date(`${d}T12:00:00Z`).toLocaleDateString("en-NG", { day: "numeric", month: "short", year: "numeric" });
 type Form = Record<string, string | boolean>;
-const blank: Form = { kind: "subscription", provider: "", title: "", seats: "", seatsUsed: "", rateCents: "", months: "", valueCents: "", fxNgn: "", startsOn: "", endsOn: "", becomesPaid: false, paidRateCents: "", notes: "" };
+const blank: Form = { kind: "subscription", provider: "", title: "", seats: "", seatsUsed: "", rateCents: "", months: "", valueCents: "", fxNgn: "", startsOn: "", endsOn: "", becomesPaid: false, paidRateCents: "", notes: "", pending: false };
 // Dollars in the form, cents on the wire.
 const toForm = (g: GrantInput): Form => {
   const f: Form = { ...blank };
@@ -29,8 +29,8 @@ const fromForm = (f: Form): GrantInput => {
 };
 
 function Chip({ left, status }: { left: number; status: string }) {
-  const tone = status !== "active" ? "bg-slate/15 text-slate" : left <= 7 ? "bg-crimson text-paper" : left <= 30 ? "bg-amber-100 text-amber-900" : "bg-emerald-100 text-emerald-900";
-  const text = status !== "active" ? status : left < 0 ? "ended" : left === 0 ? "ends today" : `${left} day${left === 1 ? "" : "s"} left`;
+  const tone = status === "pending" ? "bg-amber-100 text-amber-900" : status !== "active" ? "bg-slate/15 text-slate" : left <= 7 ? "bg-crimson text-paper" : left <= 30 ? "bg-amber-100 text-amber-900" : "bg-emerald-100 text-emerald-900";
+  const text = status === "pending" ? "waiting for approval" : status !== "active" ? status : left < 0 ? "ended" : left === 0 ? "ends today" : `${left} day${left === 1 ? "" : "s"} left`;
   return <span className={`rounded-full px-2.5 py-0.5 font-ui text-[11px] font-semibold ${tone}`}>{text}</span>;
 }
 
@@ -63,11 +63,20 @@ export default function GrantsPage() {
     try { await call(body); setNote(ok); await load(); return true; } catch (e) { setError((e as Error).message); return false; } finally { setBusy(false); }
   };
 
+  // Naira is what lands on the accounts and in Traction, so it leads; dollars are the provider's own figure. A grant with no rate entered
+  // counts in dollars only (and the card says so). Pending ones are not counted until approved.
   const totals = useMemo(() => {
     const live = (data?.grants ?? []).filter((g) => g.status === "active");
     const left = (g: Grant) => (g.kind === "credit" ? remainingCents(g) : g.valueCents);
+    const leftKobo = (g: Grant) => (g.fxNgn > 0 ? Math.round(left(g) * g.fxNgn) : 0);
     const next = live.filter((g) => daysLeft(g.endsOn, data!.today) >= 0)[0];
-    return { live: live.length, worth: live.reduce((s, g) => s + g.valueCents, 0), left: live.reduce((s, g) => s + left(g), 0), after: live.reduce((s, g) => s + monthlyAfter(g), 0), next };
+    return {
+      live: live.length, pending: (data?.grants ?? []).filter((g) => g.status === "pending").length,
+      worth: live.reduce((s, g) => s + g.valueCents, 0), worthKobo: live.reduce((s, g) => s + (worthKobo(g) ?? 0), 0),
+      left: live.reduce((s, g) => s + left(g), 0), leftKobo: live.reduce((s, g) => s + leftKobo(g), 0),
+      after: live.reduce((s, g) => s + monthlyAfter(g), 0), afterKobo: live.reduce((s, g) => s + (monthlyAfterKobo(g) ?? 0), 0),
+      noRate: live.filter((g) => !(g.fxNgn > 0)).length, next,
+    };
   }, [data]);
 
   if (loading) return <p className="p-8 text-slate">Loading…</p>;
@@ -80,7 +89,7 @@ export default function GrantsPage() {
       <Link href="/admin/team" className="font-ui text-xs font-semibold text-crimson">← Team hub</Link>
       <h1 className="mt-2 font-display text-4xl text-ink">Grants &amp; subscriptions</h1>
       <p className="mt-2 max-w-3xl text-sm text-slate">
-        Free credits and free-period plans we hold, what each is worth, how much has been used, when it ends and what it costs afterwards. Everyone in
+        Free credits and free-period plans we hold, what each is worth in naira (the rate is entered on each one), how much has been used, when it ends and what it costs afterwards. Everyone in
         finance and the owner get a reminder 30, 14, 7, 3 and 1 days before each ends, and on the day. Prices are list prices at the time of entry. Check them on the provider&apos;s invoice.
       </p>
       {error && <p className="mt-4 whitespace-pre-line text-sm text-red-700" role="alert">{error}</p>}
@@ -89,10 +98,10 @@ export default function GrantsPage() {
         <>
           <div className="mt-8 grid grid-cols-2 gap-4 lg:grid-cols-4">
             {[
-              ["Running", String(totals.live), totals.next ? `Next ends ${dayLabel(totals.next.endsOn)}` : "Nothing running"],
-              ["Total worth", usd(totals.worth), "Across running grants"],
-              ["Still to use", usd(totals.left), "Credit left, plus plans' full value"],
-              ["Costs after free", `${usd(totals.after)}/mo`, "If every plan turns paid"],
+              ["Running", String(totals.live), `${totals.next ? `Next ends ${dayLabel(totals.next.endsOn)}` : "Nothing running"}${totals.pending ? ` · ${totals.pending} waiting for approval` : ""}`],
+              ["Total worth", naira(totals.worthKobo), `${usd(totals.worth)} at the rates entered${totals.noRate ? ` · ${totals.noRate} still need a rate` : ""}`],
+              ["Still to use", naira(totals.leftKobo), `${usd(totals.left)} · credit left, plus plans' full value`],
+              ["Costs after free", `${naira(totals.afterKobo)}/mo`, `${usd(totals.after)}/mo if every plan turns paid`],
             ].map(([l, v, n]) => (
               <div key={l} className="card p-4"><p className="font-mono text-[10px] uppercase tracking-eyebrow text-slate">{l}</p><p className="mt-1 font-display text-2xl text-ink">{v}</p><p className="mt-1 text-xs text-slate">{n}</p></div>
             ))}
@@ -102,7 +111,7 @@ export default function GrantsPage() {
             <div className="mt-8 flex flex-wrap items-center gap-2">
               <span className="font-ui text-xs font-semibold text-slate">Add:</span>
               {TEMPLATES.map((t) => <button key={t.key} type="button" className={ghost} onClick={() => { setEditing(null); setForm(toForm({ ...t.input, startsOn: data.today })); }}>{t.label}</button>)}
-              <button type="button" className={ghost} onClick={() => { setEditing(null); setForm({ ...blank, startsOn: data.today }); }}>Something else</button>
+              <button type="button" className={ghost} onClick={() => { setEditing(null); setForm({ ...blank, startsOn: data.today }); }}>Add new offer</button>
             </div>
           )}
 
@@ -125,6 +134,7 @@ export default function GrantsPage() {
                 <label className="flex items-center gap-2 text-xs"><input type="checkbox" checked={!!form.becomesPaid} onChange={(e) => set("becomesPaid", e.target.checked)} /> Becomes paid when the free period ends</label>
                 {!!form.becomesPaid && <label className="text-xs">Price after, $ per seat per month <span className="text-slate">(blank = list price)</span><input className={field} inputMode="decimal" value={String(form.paidRateCents)} onChange={(e) => set("paidRateCents", e.target.value)} /></label>}
               </>}
+              <label className="flex items-center gap-2 text-xs sm:col-span-2"><input type="checkbox" checked={!!form.pending} onChange={(e) => set("pending", e.target.checked)} /> Still waiting for approval (nothing is counted or reminded until you untick this)</label>
               <label className="text-xs sm:col-span-2">Notes<textarea className={field} rows={2} value={String(form.notes)} onChange={(e) => set("notes", e.target.value)} /></label>
               <div className="flex gap-2 sm:col-span-2"><button className={btn} disabled={busy}>{editing ? "Save changes" : "Add"}</button><button type="button" className={ghost} onClick={() => { setForm(null); setEditing(null); }}>Cancel</button></div>
             </form>
@@ -143,11 +153,11 @@ export default function GrantsPage() {
                     <Chip left={left} status={g.status} />
                   </div>
                   <dl className="mt-3 grid grid-cols-2 gap-3 text-sm sm:grid-cols-4">
-                    <div><dt className="text-xs text-slate">Worth</dt><dd>{usd(g.valueCents)}{g.fxNgn > 0 && <span className="block text-xs text-slate">{naira(kobo(g.valueCents, g.fxNgn))}</span>}</dd></div>
+                    <div><dt className="text-xs text-slate">Worth</dt><dd>{g.status === "pending" && !g.valueCents ? "To be confirmed" : worthKobo(g) !== null ? <>{naira(worthKobo(g)!)}<span className="block text-xs text-slate">{usd(g.valueCents)} at ₦{g.fxNgn}/$</span></> : <>{usd(g.valueCents)}<span className="block text-xs text-amber-800">Add the ₦ rate to see naira</span></>}</dd></div>
                     {g.kind === "subscription" ? <>
                       <div><dt className="text-xs text-slate">Seats</dt><dd>{g.seatsUsed} of {g.seats} in use</dd></div>
                       <div><dt className="text-xs text-slate">Rate</dt><dd>{usd(g.rateCents)} per seat/month</dd></div>
-                      <div><dt className="text-xs text-slate">After free period</dt><dd>{g.becomesPaid ? `${usd(monthlyAfter(g))}/month` : "Stops"}</dd></div>
+                      <div><dt className="text-xs text-slate">After free period</dt><dd>{g.becomesPaid ? (monthlyAfterKobo(g) !== null ? `${naira(monthlyAfterKobo(g)!)}/month` : `${usd(monthlyAfter(g))}/month`) : "Stops"}</dd></div>
                     </> : <>
                       <div><dt className="text-xs text-slate">Used</dt><dd>{usd(used)} ({pct}%)</dd></div>
                       <div><dt className="text-xs text-slate">Left</dt><dd>{usd(remainingCents(g))}</dd></div>
@@ -161,8 +171,9 @@ export default function GrantsPage() {
                     <div className="mt-4 flex flex-wrap gap-2">
                       <button type="button" className={ghost} onClick={() => { setEditing(g.id); setForm(toForm(g)); }}>Edit</button>
                       {g.kind === "credit" && <button type="button" className={ghost} onClick={() => setUseFor(useFor === g.id ? null : g.id)}>Record usage</button>}
-                      {g.ledgerEntryId ? <Link className={ghost} href="/admin/team/finance">In the ledger</Link> : <button type="button" className={ghost} disabled={busy || g.fxNgn <= 0} title={g.fxNgn <= 0 ? "Add the naira per dollar rate first (Edit)" : ""} onClick={() => run({ action: "ledger", id: g.id }, "Added to the ledger as an in-kind grant.")}>Add to ledger</button>}
-                      {g.status === "active" ? <>
+                      {g.status === "pending" ? null : g.ledgerEntryId ? <Link className={ghost} href="/admin/team/finance">In the ledger</Link> : <button type="button" className={ghost} disabled={busy || g.fxNgn <= 0} title={g.fxNgn <= 0 ? "Add the naira per dollar rate first (Edit)" : ""} onClick={() => run({ action: "ledger", id: g.id }, "Added to the ledger as an in-kind grant.")}>Add to ledger</button>}
+                      {g.status === "pending" && <button type="button" className={btn} onClick={() => { setEditing(g.id); setForm({ ...toForm(g), pending: false }); }}>Approved: enter details</button>}
+                      {g.status === "pending" ? <button type="button" className={ghost} disabled={busy} onClick={() => run({ action: "status", id: g.id, status: "cancelled" }, "Marked as not approved.")}>Not approved</button> : g.status === "active" ? <>
                         <button type="button" className={ghost} disabled={busy} onClick={() => run({ action: "status", id: g.id, status: "cancelled" }, "Marked cancelled. No more reminders.")}>Mark cancelled</button>
                         <button type="button" className={ghost} disabled={busy} onClick={() => run({ action: "status", id: g.id, status: "ended" }, "Marked ended.")}>Mark ended</button>
                       </> : <button type="button" className={ghost} disabled={busy} onClick={() => run({ action: "status", id: g.id, status: "active" }, "Active again.")}>Reactivate</button>}
