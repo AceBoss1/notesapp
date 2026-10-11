@@ -415,6 +415,10 @@ service cloud.firestore {
     match /pricingLog/{id} {
       allow read, write: if false;
     }
+    // Granola (team hub): each staff member's encrypted tokens, one-time sign-in states and our registered client id. Server-only.
+    match /granolaConnections/{id} { allow read, write: if false; }
+    match /granolaStates/{id} { allow read, write: if false; }
+    match /integrationClients/{id} { allow read, write: if false; }
     match /financeDues/{id} {
       allow read, write: if false;
     }

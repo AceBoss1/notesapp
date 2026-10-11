@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useAdminAuth } from "@/lib/useAdminAuth";
 import NanaPanel from "@/components/NanaPanel";
 import DuesPanel from "@/components/DuesPanel";
+import GranolaPanel from "@/components/GranolaPanel";
 import { hasAnyDept } from "@/lib/admin-access";
 import { formatNaira } from "@/lib/booking-time";
 import {
@@ -272,6 +273,8 @@ export default function AdminTeamPage() {
         {g.blocked.length > 0 && <><p className="mt-4 font-ui text-sm font-bold text-ink">Blocked</p>{list(g.blocked)}</>}
         {g.overdue.filter((i) => i.status !== "blocked" && i.status !== "decision").length > 0 && <p className="mt-4 text-xs text-crimson">{g.overdue.length} item{g.overdue.length === 1 ? " is" : "s are"} overdue; they are at the top of Today.</p>}
       </section>
+
+      <GranolaPanel user={user} onAdd={async (titles) => { for (const title of titles) await send({ action: "createItem", title, horizon: "week", ownerUid: data.me, due: "" }); }} />
 
       {user && hasAnyDept(access, ["finance", "product"]) && <DuesPanel user={user} />}
 

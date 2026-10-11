@@ -11,6 +11,14 @@ export type Release = {
 
 export const CHANGELOG: Release[] = [
   {
+    version: "v0.22.0",
+    bump: "minor",
+    date: "2026-10-11",
+    changes: [
+      { kind: "added", text: "For the team: Granola is connected to the team hub. Each team member connects their own Granola account, lists their recent meetings, asks their meeting notes questions (answers keep Granola's links to the source notes), and ticks the follow-ups they want added to this week's work. We keep only an encrypted access key and read notes from Granola when asked, without storing them." },
+    ],
+  },
+  {
     version: "v0.21.0",
     bump: "minor",
     date: "2026-10-11",
