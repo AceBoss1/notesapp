@@ -6,6 +6,7 @@ import { onAuthStateChanged, signInWithEmailAndPassword } from "firebase/auth";
 import { auth } from "@/lib/firebase";
 import { ensureAdminProfile } from "@/lib/users";
 import { goBack } from "@/lib/return-to";
+import PageHero from "@/components/PageHero";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
@@ -39,9 +40,9 @@ export default function LoginPage() {
   }
 
   return (
-    <section className="mx-auto max-w-sm px-4 py-24">
-      <p className="eyebrow">Welcome Back</p>
-      <h1 className="font-display text-3xl mt-3">Sign in</h1>
+    <>
+      <PageHero compact max="max-w-sm" eyebrow="Welcome Back" title={<>Sign in</>} />
+      <section className="mx-auto max-w-sm px-4 py-10">
       <form onSubmit={handleSubmit} className="mt-8 grid gap-5">
         <label className="block">
           <span className="eyebrow">Email</span>
@@ -50,7 +51,7 @@ export default function LoginPage() {
             required
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            className="mt-2 w-full border border-rule bg-card px-4 py-3 font-body focus:border-crimson outline-none"
+            className="mt-2 w-full rounded-xl border border-rule bg-card px-4 py-3 font-body focus:border-crimson outline-none"
           />
         </label>
         <label className="block">
@@ -60,14 +61,14 @@ export default function LoginPage() {
             required
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            className="mt-2 w-full border border-rule bg-card px-4 py-3 font-body focus:border-crimson outline-none"
+            className="mt-2 w-full rounded-xl border border-rule bg-card px-4 py-3 font-body focus:border-crimson outline-none"
           />
         </label>
         {error && <p className="text-sm text-red-700">{error}</p>}
         <button
           type="submit"
           disabled={loading}
-          className="bg-crimson text-paper font-ui font-semibold px-6 py-3 hover:bg-crimson-deep hover:text-paper transition-colors disabled:opacity-50"
+          className="rounded-full bg-crimson text-paper font-ui font-semibold px-6 py-3 hover:bg-crimson-deep hover:text-paper transition-colors disabled:opacity-50"
         >
           {loading ? "Signing in…" : "Sign In"}
         </button>
@@ -84,5 +85,6 @@ export default function LoginPage() {
         </a>
       </p>
     </section>
+    </>
   );
 }

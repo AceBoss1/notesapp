@@ -613,6 +613,9 @@ service cloud.firestore {
     // Public store numbers (views and how many people saved an item), kept by the server (lib/store-stats-server.ts); anyone can read them.
     // Who saved what is private: a member can read only their own saved items, and only the server writes them.
     match /storeStats/{id} { allow read: if true; allow write: if false; }
+    // Reviews of store items and profile recommendations: server-only; pages read them through /api/store/reviews and /api/recommendations.
+    match /storeReviews/{id} { allow read, write: if false; }
+    match /recommendations/{id} { allow read, write: if false; }
     match /storeFavorites/{id} {
       allow read: if isSignedIn() && resource.data.uid == request.auth.uid;
       allow write: if false;

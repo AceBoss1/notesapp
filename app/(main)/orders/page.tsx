@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
+import PageHero from "@/components/PageHero";
 import { useRouter } from "next/navigation";
 import { onAuthStateChanged, User } from "firebase/auth";
 import { auth } from "@/lib/firebase";
@@ -204,11 +205,11 @@ export default function OrdersPage() {
   }
 
   return (
-    <section className="mx-auto max-w-3xl px-4 py-14 sm:px-6">
-      <h1 className="font-display text-3xl text-ink">Orders</h1>
-      <p className="mt-2 text-sm text-slate">
-        Track parcels with the <Link href="/track" className="text-crimson underline">parcel ID</Link>. Money for store orders is held until the buyer confirms delivery, or 7 days after it is marked delivered.
-      </p>
+    <>
+    <PageHero compact max="max-w-3xl" eyebrow="Store" title={<>Orders</>}>
+      <p>Track parcels with the <Link href="/track">parcel ID</Link>. Money for store orders is held until the buyer confirms delivery, or 7 days after it is marked delivered.</p>
+    </PageHero>
+    <section className="mx-auto max-w-3xl px-4 py-10 sm:px-6">
       <div className="mt-5 flex gap-3 text-sm">
         {(["buying", "selling"] as const).map((t) => (
           <button key={t} onClick={() => switchTab(t)} className={`rounded-full border px-4 py-1.5 ${tab === t ? "border-crimson bg-crimson text-paper" : "border-rule text-ink"}`}>{t === "buying" ? "My purchases" : "Sales from my store"}</button>
@@ -224,5 +225,6 @@ export default function OrdersPage() {
       {user && tab === "selling" && <DigitalPurchases user={user} as="seller" />}
       {user && tab === "buying" && <MerchPreorders uid={user.uid} />}
     </section>
+    </>
   );
 }

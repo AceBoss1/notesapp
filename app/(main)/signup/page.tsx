@@ -12,6 +12,7 @@ import Avatar from "@/components/Avatar";
 import WorkFields from "@/components/WorkFields";
 import type { Work } from "@/lib/profile-work";
 import { normalizeRc, ORG_TRIAL_DAYS } from "@/lib/org";
+import PageHero from "@/components/PageHero";
 
 const OPTIONAL_REQUIRED = 2; // "2 more of their choice" — total target is 3 mandatory + 2 = 5
 
@@ -176,14 +177,13 @@ export default function SignupPage() {
   if (step === "follow") {
     const totalFollowing = 3 + chosen.size;
     return (
-      <section className="mx-auto max-w-xl px-4 py-20">
-        <p className="eyebrow">Almost there</p>
-        <h1 className="font-display text-3xl mt-3">Follow 5 journals to continue</h1>
-        <p className="mt-2 text-sm text-slate">
-          You're following {totalFollowing} of 5. Your feed starts with
+      <>
+        <PageHero compact max="max-w-xl" eyebrow="Almost there" title={<>Follow 5 journals to continue</>}>
+          <p>You're following {totalFollowing} of 5. Your feed starts with
           the official #NotesApp journal and both founders — every new
-          member does.
-        </p>
+          member does.</p>
+        </PageHero>
+        <section className="mx-auto max-w-xl px-4 py-10">
 
         <div className="mt-6 grid gap-3">
           {MANDATORY_JOURNALS.map((j) => (
@@ -208,7 +208,7 @@ export default function SignupPage() {
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search journals by name or @username"
-            className="mt-3 w-full border border-rule bg-card px-4 py-3 font-body focus:border-crimson outline-none"
+            className="mt-3 w-full rounded-xl border border-rule bg-card px-4 py-3 font-body focus:border-crimson outline-none"
           />
 
           {candidates === null ? (
@@ -260,17 +260,16 @@ export default function SignupPage() {
           {finishing ? "Setting up your feed…" : "Continue"}
         </button>
       </section>
+      </>
     );
   }
 
   return (
-    <section className="mx-auto max-w-sm px-4 py-24">
-      <p className="eyebrow">Join #NotesApp</p>
-      <h1 className="font-display text-3xl mt-3">Create your account</h1>
-      <p className="mt-2 text-sm text-slate">
-        Comment on journals, like your favorites, and get your own
-        @username — the same account works on Precheks too.
-      </p>
+    <>
+    <PageHero compact max="max-w-sm" eyebrow="Join #NotesApp" title={<>Create your account</>}>
+      <p className="!text-base">Comment on journals, like your favorites, and get your own @username — the same account works on Precheks too.</p>
+    </PageHero>
+    <section className="mx-auto max-w-sm px-4 py-10">
       <form onSubmit={handleSubmit} className="mt-8 grid gap-5">
         <fieldset>
           <legend className="eyebrow">Account type</legend>
@@ -290,7 +289,7 @@ export default function SignupPage() {
             required
             value={displayName}
             onChange={(e) => setDisplayName(e.target.value)}
-            className="mt-2 w-full border border-rule bg-card px-4 py-3 font-body focus:border-crimson outline-none"
+            className="mt-2 w-full rounded-xl border border-rule bg-card px-4 py-3 font-body focus:border-crimson outline-none"
           />
         </label>
         {kind === "organisation" && (
@@ -301,7 +300,7 @@ export default function SignupPage() {
               value={rcNumber}
               onChange={(e) => setRcNumber(e.target.value)}
               placeholder="RC1234567"
-              className="mt-2 w-full border border-rule bg-card px-4 py-3 font-mono outline-none focus:border-crimson"
+              className="mt-2 w-full rounded-xl border border-rule bg-card px-4 py-3 font-mono outline-none focus:border-crimson"
             />
             <span className="mt-1 block text-xs text-slate">We check it against the CAC register. Until we do, your channel shows an &ldquo;unverified organisation&rdquo; notice. Use a work email you can verify.</span>
           </label>
@@ -325,7 +324,7 @@ export default function SignupPage() {
             required
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            className="mt-2 w-full border border-rule bg-card px-4 py-3 font-body focus:border-crimson outline-none"
+            className="mt-2 w-full rounded-xl border border-rule bg-card px-4 py-3 font-body focus:border-crimson outline-none"
           />
         </label>
         <label className="block">
@@ -336,10 +335,10 @@ export default function SignupPage() {
             minLength={6}
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            className="mt-2 w-full border border-rule bg-card px-4 py-3 font-body focus:border-crimson outline-none"
+            className="mt-2 w-full rounded-xl border border-rule bg-card px-4 py-3 font-body focus:border-crimson outline-none"
           />
         </label>
-        <WorkFields value={work} onChange={setWork} orgOnly={kind === "organisation"} inputClass="mt-1 w-full border border-rule bg-card px-4 py-3 font-body focus:border-crimson outline-none" />
+        <WorkFields value={work} onChange={setWork} orgOnly={kind === "organisation"} inputClass="mt-1 w-full rounded-xl border border-rule bg-card px-4 py-3 font-body focus:border-crimson outline-none" />
         <label className="flex items-start gap-3 text-sm text-slate">
           <input type="checkbox" checked={agreed} onChange={(e) => setAgreed(e.target.checked)} className="mt-1" />
           <span>
@@ -352,7 +351,7 @@ export default function SignupPage() {
         <button
           type="submit"
           disabled={loading}
-          className="bg-crimson text-paper font-ui font-semibold px-6 py-3 hover:bg-crimson-bright transition-colors disabled:opacity-50"
+          className="rounded-full bg-crimson text-paper font-ui font-semibold px-6 py-3 hover:bg-crimson-bright transition-colors disabled:opacity-50"
         >
           {loading ? "Creating account…" : "Sign Up"}
         </button>
@@ -364,5 +363,6 @@ export default function SignupPage() {
         </a>
       </p>
     </section>
+    </>
   );
 }
