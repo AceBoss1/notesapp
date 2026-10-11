@@ -11,6 +11,14 @@ export type Release = {
 
 export const CHANGELOG: Release[] = [
   {
+    version: "v0.19.1",
+    bump: "patch",
+    date: "2026-10-11",
+    changes: [
+      { kind: "changed", text: "The With thanks section on the home and About pages now shows what the programmes are worth together: up to $11,920 in credits and free plans, with how it adds up." },
+    ],
+  },
+  {
     version: "v0.19.0",
     bump: "minor",
     date: "2026-10-11",
