@@ -40,7 +40,7 @@ Firestore access.
 ### Not built yet
 WhatsApp reminders (plan: Meta WhatsApp Cloud API directly; booking reminders + delivery updates; needs Meta Business
 verification and approved templates) · publishing to Facebook, Instagram and TikTok (LinkedIn and X are built) · AI notetaker + MCP assistant ·
-team hub and team messaging for Business and Enterprise (internal only for now) · LinkedIn advertising (under review) · iOS/Android apps ·
+team hub and team messaging for Business and Enterprise (internal only for now) · LinkedIn advertising (Advertising API development tier approved; being built: advertisers boost a post on LinkedIn from their own ad account, plus our own LinkedIn campaign stats on the admin Traction page, planned next) · iOS/Android apps ·
 video transcoding/streaming (we cap size and length instead) · Dojah **live** mode (README "Going live with Dojah") ·
 webhook retries (one attempt, manual resend) · OAuth for third-party API apps · checkout and bookings in a popup on custom domains, and a sending address on the member's own domain (sign-in and sign-up in the member's name are live) · Sentry (we have built-in error monitoring instead).
 
