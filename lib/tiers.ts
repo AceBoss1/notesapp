@@ -165,7 +165,9 @@ export function adShareFor(tier: AccountTier, custom?: CustomRates): number {
 
 // Verified badge: included free on Business and Enterprise; every other
 // tier (Free Standard, Free Basic, Pro) can add it for ₦999/month.
-export const BADGE_PRICE_KOBO = 999 * 100;
+// A live binding: the admin pricing page can change it (see lib/pricing.ts), so read it where it is used, don't copy it at load.
+export let BADGE_PRICE_KOBO = 999 * 100;
+export const setBadgePriceKobo = (kobo: number) => { BADGE_PRICE_KOBO = kobo; };
 export function badgeIncluded(tier: AccountTier): boolean {
   return tier === "business" || tier === "enterprise";
 }

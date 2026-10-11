@@ -1,11 +1,13 @@
 import { getAdminDb } from "./firebase-admin";
 import type { PublisherSettings } from "./booking-time";
 import { commissionRateFor } from "./payments";
+import { ensurePricing } from "./pricing-server";
 import type { AccountTier } from "./users";
 
 // Server-only lookup used by checkout: who is this publisher, what do
 // they charge, and can they actually be paid.
 export async function loadPublisher(username: string) {
+  await ensurePricing();
   const db = getAdminDb();
   const reservation = await db.doc(`usernames/${username}`).get();
   const uid = reservation.data()?.uid as string | undefined;

@@ -2,6 +2,7 @@ import { getAdminDb } from "./firebase-admin";
 import { FieldValue } from "firebase-admin/firestore";
 import { createPlan, disableSubscription, verifyTransaction, pricePaidKobo } from "./paystack";
 import { TIERS, BADGE_PRICE_KOBO } from "./tiers";
+import { ensurePricing } from "./pricing-server";
 import { GOLD_PRICING, GoldTrack } from "./gold";
 import { sendEmail } from "./email";
 import { getUserEmail } from "./firebase-admin";
@@ -40,6 +41,7 @@ export function tierPrice(tier: string, interval: string): number | null {
 // the configured price ever changes (existing subscribers stay on the
 // plan they bought).
 export async function getTierPlanCode(tier: BillingTier, interval: Interval): Promise<{ planCode: string; amountKobo: number }> {
+  await ensurePricing();
   const amountKobo = tierPrice(tier, interval);
   if (!amountKobo) throw new Error("This plan isn't available.");
   const db = getAdminDb();
@@ -63,6 +65,7 @@ export type BadgeSubscription = {
 
 // The ₦999/month verified-badge add-on has its own plan.
 export async function getBadgePlanCode(): Promise<{ planCode: string; amountKobo: number }> {
+  await ensurePricing();
   const db = getAdminDb();
   const ref = db.doc("platformPlans/badge_monthly");
   const cur = (await ref.get()).data();
@@ -74,6 +77,7 @@ export async function getBadgePlanCode(): Promise<{ planCode: string; amountKobo
 
 // Gold badge monthly plan, one per track (same price on every tier).
 export async function getGoldPlanCode(track: GoldTrack): Promise<{ planCode: string; amountKobo: number }> {
+  await ensurePricing();
   const amountKobo = GOLD_PRICING[track].monthlyKobo;
   const ref = getAdminDb().doc(`platformPlans/gold_${track}_monthly`);
   const cur = (await ref.get()).data();

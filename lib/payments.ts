@@ -3,6 +3,7 @@ import { emitWebhook } from "./webhooks";
 import { getAdminDb, getUserEmail } from "./firebase-admin";
 import { slotLockId, verifyTransaction, pricePaidKobo } from "./paystack";
 import { commissionRateFor } from "./tiers";
+import { ensurePricing } from "./pricing-server";
 import { sessionEnd, sessionStart, formatSlot, formatNaira } from "./booking-time";
 import { notifyBell, sendEmail } from "./email";
 import type { AccountTier } from "./users";
@@ -147,6 +148,7 @@ async function giftShares(p: PaymentRecord): Promise<Share[]> {
 // the amount against what we recorded server-side, then writes
 // everything in one transaction.
 export async function fulfillPayment(reference: string): Promise<PaymentRecord> {
+  await ensurePricing();
   const db = getAdminDb();
   const payRef = db.doc(`payments/${reference}`);
   const snap = await payRef.get();
@@ -421,6 +423,7 @@ export async function fulfillRenewal(data: {
   const planCode = data.plan?.plan_code;
   const email = data.customer?.email;
   if (!planCode || !email) return;
+  await ensurePricing();
   const db = getAdminDb();
   if ((await db.doc(`ledger/${data.reference}`).get()).exists) return; // already processed
 

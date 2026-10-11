@@ -408,6 +408,13 @@ service cloud.firestore {
       allow read, write: if false;
     }
     // Grants and subscriptions the company holds (credits, free plans, usage): server-only, finance and product read them through the API.
+    // Prices and revenue rates an admin set (platformSettings/pricing) and the log of changes: server-only; the pages get the numbers from the server.
+    match /platformSettings/{id} {
+      allow read, write: if false;
+    }
+    match /pricingLog/{id} {
+      allow read, write: if false;
+    }
     match /financeDues/{id} {
       allow read, write: if false;
     }
