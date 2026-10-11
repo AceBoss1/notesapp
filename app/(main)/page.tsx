@@ -10,6 +10,7 @@ import { activeHostForUsername } from "@/lib/domains";
 import PartnerIcon from "@/components/PartnerIcon";
 import ProgramThanks from "@/components/ProgramThanks";
 import { MESSAGES_LIVE, MOMENTS_LIVE } from "@/lib/moments-rules";
+import { planRate } from "@/lib/pricing";
 
 // The reference customers' links point at their own sites once they have them; refreshed every few minutes.
 export const revalidate = 300;
@@ -31,7 +32,7 @@ const FEATURES = [
   { title: "Boost a post or a store item", copy: "Put a post or a product in front of more readers. You pay only for validated impressions, delivered over several days — undelivered ones are refunded." },
   { title: "Gifts", copy: "Readers can send you a gift on your profile or on any single post — from ₦200 up to ₦500,000, with a note if they like. Add your payout account and the 🎁 button switches on." },
   { title: "A real writing desk", copy: "Format with a toolbar, preview as you go, drop in images, add a short video, and never lose a draft — everything is saved as clean Markdown. Videos play in our own light player that only loads when you press play." },
-  { title: "Ad share, from day one", copy: "Pro publishers earn 25% and Business publishers 45% of the ad revenue on their pages — no follower or view thresholds to clear first. Ads are opt-in for paid plans, every one is labelled “Sponsored”, and your share is paid monthly after review. Brands can buy a banner campaign online." },
+  { title: "Ad share, from day one", get copy() { return `Pro publishers earn ${planRate("pro", "adShare")} and Business publishers ${planRate("business", "adShare")} of the ad revenue on their pages — no follower or view thresholds to clear first. Ads are opt-in for paid plans, every one is labelled “Sponsored”, and your share is paid monthly after review. Brands can buy a banner campaign online.`; } },
   { title: "Co-authoring", copy: "Pro and Business publishers can write a post with other members, agree each person's share of what it earns — gifts on it are split now — and share the byline. Everyone accepts before it's listed." },
   ...(MOMENTS_LIVE ? [{ title: "Moments", copy: "Share a picture, a video of up to 90 seconds (longer ones are split into parts) or a line of text, with an optional voice-over, on your profile picture for 24, 48 or 72 hours. Followers watch it play from the Moments row on their Journals page, like it, 🔁 re-share it or 💬 reply, and it disappears when its time is up. You choose who can see yours: your followers only, or everyone." }] : []),
   ...(MESSAGES_LIVE ? [{ title: "Messages & group chats", copy: "Talk one to one, or start a group of up to 50 people you follow or who follow you, with bold, italic and underline, a ✔ when your message is sent and ✔✔ when it is read, with the times, and attach pictures, videos and documents (how big and how many depends on your plan), record voice notes of up to 5 minutes and send stickers. Replies to your moments land here too. You can block or report anyone." }] : []),

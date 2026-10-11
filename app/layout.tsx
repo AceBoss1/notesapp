@@ -19,7 +19,7 @@ const savedPricing = unstable_cache(
     }
   },
   ["platform-pricing"],
-  { revalidate: 60 },
+  { revalidate: 60, tags: ["pricing"] },
 );
 
 const DEFAULT_TITLE = "#NotesApp — Publish. Book. Get Paid. One Workspace.";

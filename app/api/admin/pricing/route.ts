@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { revalidatePath } from "next/cache";
+import { revalidatePath, revalidateTag } from "next/cache";
 import { friendlyMessage } from "@/lib/api-errors";
 import { getAdminDb, verifyAdminAccess } from "@/lib/firebase-admin";
 import { isSuper } from "@/lib/admin-access";
@@ -39,6 +39,7 @@ export async function POST(req: NextRequest) {
     if (limited) return limited;
     const b = await req.json().catch(() => ({}));
     const r = await savePricing(getAdminDb(), c, b.config, b.reset === true);
+    revalidateTag("pricing"); // the layout's cached copy of the prices
     revalidatePath("/", "layout"); // pages built with the old numbers are rebuilt with the new ones
     return NextResponse.json(r);
   } catch (err) {

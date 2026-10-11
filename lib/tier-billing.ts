@@ -3,6 +3,7 @@ import { FieldValue } from "firebase-admin/firestore";
 import { createPlan, disableSubscription, verifyTransaction, pricePaidKobo } from "./paystack";
 import { TIERS, BADGE_PRICE_KOBO } from "./tiers";
 import { ensurePricing } from "./pricing-server";
+import { nairaText } from "./pricing";
 import { GOLD_PRICING, GoldTrack } from "./gold";
 import { sendEmail } from "./email";
 import { getUserEmail } from "./firebase-admin";
@@ -192,6 +193,7 @@ const TRIAL_REMINDER_DAYS = 5;
 // Free organisation trials: remind a few days before the end, then drop the
 // account to Free Basic unless it has paid for the plan in the meantime.
 export async function expireOrgTrials(): Promise<number> {
+  await ensurePricing();
   const db = getAdminDb();
   const site = process.env.NEXT_PUBLIC_SITE_URL || "https://www.notesapp.name.ng";
   const now = Date.now();
@@ -203,7 +205,7 @@ export async function expireOrgTrials(): Promise<number> {
     const email = await getUserEmail(d.id);
     if (end > now) {
       if (!u.trialReminderSent && email) {
-        await sendEmail({ to: email, bell: { uid: d.id, type: "plan", linkHref: "/pricing" }, subject: "Your #NotesApp free trial ends soon", text: `Your free Business trial for ${u.displayName} ends on ${new Date(end).toDateString()}. Keep Business (₦15,000/month) from ${site}/pricing, or your account moves to Free Basic — your journal, followers and earnings stay.\n\n#NotesApp` }).catch(() => {});
+        await sendEmail({ to: email, bell: { uid: d.id, type: "plan", linkHref: "/pricing" }, subject: "Your #NotesApp free trial ends soon", text: `Your free Business trial for ${u.displayName} ends on ${new Date(end).toDateString()}. Keep Business (${nairaText(TIERS.find((t) => t.tier === "business")!.monthlyKobo!)}/month) from ${site}/pricing, or your account moves to Free Basic — your journal, followers and earnings stay.\n\n#NotesApp` }).catch(() => {});
         await d.ref.update({ trialReminderSent: true });
       }
       continue;

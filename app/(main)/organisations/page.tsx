@@ -5,6 +5,7 @@ import { GOLD_PRICING } from "@/lib/gold";
 import { formatNaira } from "@/lib/booking-time";
 import { getTierConfig } from "@/lib/tiers";
 import PageHero from "@/components/PageHero";
+import { enterpriseFrom, planPrice, planRate, pct } from "@/lib/pricing";
 
 export const metadata: Metadata = {
   title: "Organisations",
@@ -41,8 +42,8 @@ export default function OrganisationsPage() {
       <div className="card mt-10 border-crimson p-7">
         <p className="font-ui text-base font-bold text-ink">{ORG_TRIAL_DAYS} days of Business, free</p>
         <p className="mt-2 text-sm text-slate">
-          New organisations get the Business plan free for {ORG_TRIAL_DAYS} days — 45% ad share, the lower 15% commission and the included ✔ once verified. Afterwards
-          it&apos;s ₦15,000/month, or the account moves to Free Basic and keeps everything it published. We email you before it ends. Larger bodies can ask about <a href="#enterprise" className="text-crimson underline">Enterprise</a>.
+          New organisations get the Business plan free for {ORG_TRIAL_DAYS} days — {planRate("business", "adShare")} ad share, the lower {planRate("business", "session")} commission and the included ✔ once verified. Afterwards
+          it&apos;s {planPrice("business")}/month, or the account moves to Free Basic and keeps everything it published. We email you before it ends. Larger bodies can ask about <a href="#enterprise" className="text-crimson underline">Enterprise</a>.
         </p>
         <Link href="/signup" className="btn-primary mt-4 inline-block">Create an organisation account</Link>
       </div>
@@ -65,7 +66,7 @@ export default function OrganisationsPage() {
           ))}
         </ul>
         <p className="mt-5 text-xs text-slate">
-          Enterprise starts at ₦55,000/month. Rates start at {((e.sessionAndUnlockCommissionFloor ?? 0.05) * 100).toFixed(0)}% commission on sessions, {+((e.physicalCommissionFloor ?? 0.01) * 100).toFixed(1)}% on store items and {+((e.digitalCommissionFloor ?? 0.015) * 100).toFixed(1)}% on downloads, with a {((e.adRevenueShare ?? 0.75) * 100).toFixed(0)}% ad share, and are confirmed with you before you start. API access and your domain are switched on for your account by us.
+          Enterprise starts at {enterpriseFrom()}/month. Rates start at {((e.sessionAndUnlockCommissionFloor ?? 0.05) * 100).toFixed(0)}% commission on sessions, {+((e.physicalCommissionFloor ?? 0.01) * 100).toFixed(1)}% on store items and {+((e.digitalCommissionFloor ?? 0.015) * 100).toFixed(1)}% on downloads, with a {((e.adRevenueShare ?? 0.75) * 100).toFixed(0)}% ad share, and are confirmed with you before you start. API access and your domain are switched on for your account by us.
         </p>
         <div className="mt-5 flex flex-wrap gap-3">
           <Link href="/contact?topic=api" className="btn-primary !px-5 !py-2 text-sm">Talk to us about Enterprise</Link>

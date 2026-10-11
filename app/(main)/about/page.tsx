@@ -11,6 +11,8 @@ import { CHANNEL_JOURNALS } from "@/lib/journals-directory";
 import { GOLD_KIND_LIVE } from "@/lib/badges";
 import GoldBadgeExplainer from "@/components/GoldBadgeExplainer";
 import { MESSAGES_LIVE, MOMENTS_LIVE } from "@/lib/moments-rules";
+import { planRate, pct } from "@/lib/pricing";
+import { getTierConfig } from "@/lib/tiers";
 
 export const metadata: Metadata = {
   title: "About",
@@ -119,8 +121,8 @@ export default async function AboutPage() {
             Reading, commenting, booking, subscribing and buying merch are
             free to do. Publishers set their own prices; #NotesApp takes a
             commission on paid sessions, subscriptions and gifts that
-            falls as you move up the tier ladder (from 35% on Free Basic
-            to 15% on Business, negotiable on Enterprise), and a smaller one on store sales: 6% of physical items and 9% of downloads on Free Basic, down to 2.5% and 4% on Business and from 1% and 1.5% on Enterprise. Boosts are
+            falls as you move up the tier ladder (from {planRate("basic", "session")} on Free Basic
+            to {planRate("business", "session")} on Business, negotiable on Enterprise), and a smaller one on store sales: {planRate("basic", "physical")} of physical items and {planRate("basic", "digital")} of downloads on Free Basic, down to {planRate("business", "physical")} and {planRate("business", "digital")} on Business and from {pct(getTierConfig("enterprise").physicalCommissionFloor ?? 0.01)} and {pct(getTierConfig("enterprise").digitalCommissionFloor ?? 0.015)} on Enterprise. Boosts are
             priced by validated impressions with no commission. Pro and
             Business are paid plans; verification badges, gold and our own
             merch are paid add-ons; and advertisers' banner campaigns (paid up front, reviewed before they run, refunded for anything undelivered) fund the ad share we pay opted-in

@@ -1,7 +1,7 @@
 import PageHero from "@/components/PageHero";
 import type { Metadata } from "next";
 import Link from "next/link";
-import { TIERS, formatPercent, badgeIncluded, canSellViewOnly, BADGE_PRICE_KOBO } from "@/lib/tiers";
+import { TIERS, formatPercent, badgeIncluded, canSellViewOnly, BADGE_PRICE_KOBO, getTierConfig } from "@/lib/tiers";
 import { VIDEO_MAX_BYTES, VIDEO_MAX_SECONDS, VIDEO_WEEKLY_LIMIT } from "@/lib/video-rules";
 import { GOLD_PRICING } from "@/lib/gold";
 import { BOOST_PACKAGES } from "@/lib/boost-config";
@@ -12,6 +12,7 @@ import { limitTable, type LimitTable } from "@/lib/limits";
 import { getAdminDb } from "@/lib/firebase-admin";
 import { getLimitTable } from "@/lib/limits-server";
 import { MESSAGES_LIVE, MOMENTS_LIVE } from "@/lib/moments-rules";
+import { enterpriseFrom, planPrice, planRate, pct, breakEven } from "@/lib/pricing";
 
 export const metadata: Metadata = {
   title: "Pricing",
@@ -250,19 +251,19 @@ export default async function PricingPage() {
           <p className="mt-2 text-sm text-slate">
             Free Standard → Free Basic is a self-serve application from
             your own profile (Rates &amp; payouts), reviewed by an admin — no payment
-            involved. Pro (₦5,000/month) and Business (₦15,000/month) are
+            involved. Pro ({planPrice("pro")}/month) and Business ({planPrice("business")}/month) are
             paid plans you can start right from this table — monthly or
             yearly (two months free), renewing automatically through
             Paystack. Cancel any time under Rates &amp; payouts: you keep the
             plan until the period you paid for ends, with no partial
-            refunds. Enterprise starts at ₦55,000/month with rates agreed with us —{" "}
+            refunds. Enterprise starts at {enterpriseFrom()}/month with rates agreed with us —{" "}
             <Link href="/contact" className="text-crimson underline underline-offset-2">
               contact us
             </Link>
             . As a rule of thumb, Pro pays for itself once
-            you earn about ₦50,000 a month through sessions, subscriptions
-            and gifts (its commission is 10 points lower than Free Basic's);
-            Business does at about ₦75,000 a month. On store sales the gap is wider still: Free Basic takes 6% of physical items and 9% of downloads, Pro 4% and 6%, Business 2.5% and 4%, Enterprise from 1% and 1.5%.
+            you earn about {breakEven("pro")} a month through sessions, subscriptions
+            and gifts (its commission is {+((getTierConfig("basic").sessionAndUnlockCommission as number) * 100 - (getTierConfig("pro").sessionAndUnlockCommission as number) * 100).toFixed(1)} points lower than Free Basic&apos;s);
+            Business does at about {breakEven("business")} a month. On store sales the gap is wider still: Free Basic takes {planRate("basic", "physical")} of physical items and {planRate("basic", "digital")} of downloads, Pro {planRate("pro", "physical")} and {planRate("pro", "digital")}, Business {planRate("business", "physical")} and {planRate("business", "digital")}, Enterprise from {pct(getTierConfig("enterprise").physicalCommissionFloor ?? 0.01)} and {pct(getTierConfig("enterprise").digitalCommissionFloor ?? 0.015)}.
           </p>
         </div>
         <div className="card p-6">

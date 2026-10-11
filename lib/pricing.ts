@@ -129,3 +129,19 @@ export function describeChanges(a: PricingConfig, b: PricingConfig): string[] {
   walk(a, b, "");
   return out;
 }
+
+// For wording on pages: read these when rendering (not at import), so an admin's change shows up.
+export const pct = (x: number) => `${+(x * 100).toFixed(1)}%`;
+export const planRate = (tierName: "basic" | "pro" | "business", kind: "session" | "physical" | "digital" | "adShare") => {
+  const t = TIERS.find((x) => x.tier === tierName)!;
+  const v = kind === "session" ? t.sessionAndUnlockCommission : kind === "physical" ? t.physicalCommission : kind === "digital" ? t.digitalCommission : t.adRevenueShare;
+  return pct(typeof v === "number" ? v : 0);
+};
+export const planPrice = (tierName: "pro" | "business") => nairaText(TIERS.find((x) => x.tier === tierName)!.monthlyKobo!);
+export const enterpriseFrom = () => nairaText(currentPricing().enterprise.fromMonthlyKobo);
+// Monthly earnings from sessions, subscriptions and gifts above which a paid plan costs less than the extra commission it saves.
+export const breakEven = (tierName: "pro" | "business") => {
+  const b = TIERS.find((x) => x.tier === "basic")!.sessionAndUnlockCommission as number, t = TIERS.find((x) => x.tier === tierName)!;
+  const saved = b - (t.sessionAndUnlockCommission as number);
+  return saved > 0 ? `₦${group(Math.round(t.monthlyKobo! / 100 / saved / 1000) * 1000)}` : "more than you would earn";
+};
