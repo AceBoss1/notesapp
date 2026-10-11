@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import { GIFT_PRESETS_NAIRA } from "@/lib/boost-config";
 import { formatNaira } from "@/lib/booking-time";
 import { TIERS, commissionRateFor } from "@/lib/tiers";
+import PageHero from "@/components/PageHero";
 
 export const metadata: Metadata = {
   title: "Gifts",
@@ -15,13 +16,12 @@ const EXAMPLE_KOBO = 5_000 * 100;
 export default function GiftsPage() {
   const publisherTiers = TIERS.filter((t) => t.canPublish && t.sessionAndUnlockCommission !== "custom");
   return (
-    <div className="mx-auto max-w-4xl px-4 py-16 sm:px-6 lg:px-8">
-      <span className="eyebrow">Product</span>
-      <h1 className="mt-4 font-display text-4xl text-ink sm:text-5xl">Say thanks. Send a gift.</h1>
-      <p className="mt-5 max-w-2xl text-lg text-slate">
-        A post helped you? A session changed something? Send the publisher a gift — on their profile, or on the exact post
-        that mattered. No subscription, no commitment.
-      </p>
+    <>
+      <PageHero eyebrow="Product" title={<>Say thanks. Send a gift.</>}>
+        <p>A post helped you? A session changed something? Send the publisher a gift — on their profile, or on the exact post
+        that mattered. No subscription, no commitment.</p>
+      </PageHero>
+      <div className="mx-auto max-w-4xl px-4 py-12 sm:px-6 lg:px-8">
 
       <div className="mt-8 flex flex-wrap gap-3">
         {GIFT_PRESETS_NAIRA.map((n) => (
@@ -106,5 +106,6 @@ export default function GiftsPage() {
         </p>
       </div>
     </div>
+    </>
   );
 }

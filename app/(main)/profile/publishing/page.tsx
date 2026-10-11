@@ -10,6 +10,7 @@ import { canPublish, getUserByUid, UserProfile } from "@/lib/users";
 import { LIMITS, WEEKDAYS, formatNaira, formatSlot, PublisherSettings } from "@/lib/booking-time";
 import type { LedgerEntry } from "@/lib/payments";
 import BecomePublisher from "@/components/BecomePublisher";
+import PageHero from "@/components/PageHero";
 
 const TIME_OPTIONS = Array.from({ length: 30 }, (_, i) => {
   const mins = 6 * 60 + i * 30; // 06:00 … 20:30
@@ -181,9 +182,9 @@ export default function PublishingSettingsPage() {
   const paid = ledger.filter((l) => l.status === "paid_out").reduce((n, l) => n + l.netKobo, 0);
 
   return (
-    <section className="mx-auto max-w-3xl px-4 py-14 sm:px-6 lg:px-8">
-      <p className="eyebrow">@{profile.username}</p>
-      <h1 className="mt-3 font-display text-4xl">Rates & payouts</h1>
+    <>
+      <PageHero compact max="max-w-3xl" eyebrow={`@${profile.username}`} title={<>Rates & payouts</>} />
+      <section className="mx-auto max-w-3xl px-4 py-10 sm:px-6 lg:px-8">
 
       {plan && plan.status !== "expired" && (
         <div className="card mt-8 p-6">
@@ -401,5 +402,6 @@ export default function PublishingSettingsPage() {
         <Link href="/profile/boosts" className="mt-3 inline-block text-xs font-semibold text-crimson underline">Full boost performance →</Link>
       </div>
     </section>
+    </>
   );
 }

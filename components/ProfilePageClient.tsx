@@ -32,6 +32,7 @@ import NotesAppPostRow from "@/components/NotesAppPostRow";
 import { getStoreItems, StoreItem } from "@/lib/store";
 import ItemCard from "@/components/StoreItemCard";
 import AdSlot from "@/components/AdSlot";
+import RecommendationsPanel from "@/components/RecommendationsPanel";
 import { OFFICIAL_NOTESAPP_PROFILE, NA_NOTESAPP_PROFILE, SYNTHETIC_USERNAMES, VERIFIED_USERNAMES } from "@/lib/journals-directory";
 import { NOTESAPP_POSTS } from "@/lib/notesapp-posts";
 
@@ -368,6 +369,8 @@ export default function ProfilePageClient({ params }: { params: { username: stri
       )}
 
       <AdSlot placement="profile" publisher={realProfile ?? undefined} publisherUid={realProfile?.uid} />
+
+      {!suspended && !synthetic && realProfile && <RecommendationsPanel subjectUid={realProfile.uid} subjectName={profile.displayName} user={viewer} />}
 
       {/* The store: a taste of it under the journal, or the whole shelf as the page's main content when they publish no journal. */}
       {storeItems.length > 0 && (

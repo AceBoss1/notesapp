@@ -81,15 +81,15 @@ export default function MoneyLedgerPage() {
     const cats = new Map<string, CategoryRow>();
     for (const e of data.entries) {
       if (e.status !== "active" || e.occurredOn.slice(0, 7) < from) continue;
-      const key = `${e.kind}:${e.category}`;
-      const c = cats.get(key) ?? { kind: e.kind, category: e.category, label: categoryLabel(e.kind, e.category), kobo: 0, count: 0 };
+      const key = `${e.kind}:${e.category}${e.inKind ? ":inkind" : ""}`;
+      const c = cats.get(key) ?? { kind: e.kind, category: e.category, label: categoryLabel(e.kind, e.category) + (e.inKind ? " (in-kind, not cash)" : ""), kobo: 0, count: 0 };
       c.kobo += e.amountKobo; c.count += 1; cats.set(key, c);
     }
     // People who can't see payroll lines still get the payroll total from the monthly numbers.
     let rows = [...cats.values()];
     if (!data.me.seesPayroll && sum("payrollKobo")) rows.push({ kind: "payroll", category: "payroll", label: "Payroll", kobo: sum("payrollKobo"), count: 0 });
     rows = rows.sort((a, b) => b.kobo - a.kobo);
-    return { from, months, platform: sum("platformKobo"), other: sum("otherIncomeKobo"), expense: sum("expenseKobo"), payroll: sum("payrollKobo"), net: sum("netKobo"), rows };
+    return { from, months, platform: sum("platformKobo"), other: sum("otherIncomeKobo"), inKind: sum("inKindKobo"), expense: sum("expenseKobo"), payroll: sum("payrollKobo"), net: sum("netKobo"), rows };
   }, [data, range, today]);
 
   const list = useMemo(() => {
@@ -177,9 +177,10 @@ export default function MoneyLedgerPage() {
           <div className="mt-8 flex flex-wrap items-center gap-2">
             {RANGES.map((r) => <button key={r.id} type="button" onClick={() => setRange(r.id)} aria-pressed={range === r.id} className={`border px-3 py-1.5 font-ui text-xs font-semibold ${range === r.id ? "border-ink bg-ink text-paper" : "border-rule hover:border-crimson"}`}>{r.label}</button>)}
           </div>
-          <div className="mt-4 grid grid-cols-2 gap-4 sm:grid-cols-5">
+          <div className="mt-4 grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-6">
             <Card label="Platform revenue" value={naira(shown.platform)} note="Automatic, from Revenue" />
             <Card label="Other money in" value={naira(shown.other)} />
+            <Card label="Grants (in-kind)" value={naira(shown.inKind)} note="Free credits and plans, not cash. See Grants & subscriptions" />
             <Card label="Expenses" value={naira(shown.expense)} />
             <Card label="Payroll" value={naira(shown.payroll)} />
             <Card label="Net" value={naira(shown.net)} tone={shown.net < 0 ? "bad" : "good"} note="Money in minus expenses and payroll" />
@@ -211,7 +212,7 @@ export default function MoneyLedgerPage() {
                 {shown.rows.map((r) => {
                   const max = Math.max(1, ...shown.rows.map((x) => x.kobo));
                   return (
-                    <li key={`${r.kind}:${r.category}`}>
+                    <li key={`${r.kind}:${r.category}:${r.label}`}>
                       <div className="flex justify-between gap-2"><span>{r.label} <span className="text-xs text-slate">· {KIND_LABEL[r.kind].toLowerCase()}</span></span><span>{naira(r.kobo)}</span></div>
                       <div className="mt-1 h-1.5 bg-rule"><div className={`h-1.5 ${r.kind === "income" ? "bg-emerald-700" : "bg-crimson"}`} style={{ width: `${(r.kobo / max) * 100}%` }} /></div>
                     </li>

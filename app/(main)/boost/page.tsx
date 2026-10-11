@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import { BOOST_PACKAGES } from "@/lib/boost-config";
 import { formatNaira } from "@/lib/booking-time";
 import BoostablePosts from "@/components/BoostablePosts";
+import PageHero from "@/components/PageHero";
 
 export const metadata: Metadata = {
   title: "Boost",
@@ -19,13 +20,12 @@ const STEPS = [
 
 export default function BoostPage() {
   return (
-    <div className="mx-auto max-w-5xl px-4 py-16 sm:px-6 lg:px-8">
-      <span className="eyebrow">Product</span>
-      <h1 className="mt-4 font-display text-4xl text-ink sm:text-5xl">Boost a post or a product. Pay for real attention.</h1>
-      <p className="mt-5 max-w-2xl text-lg text-slate">
-        Good writing still needs an audience. Boost puts your post in front of readers browsing #NotesApp — and you're
-        charged for <strong className="text-ink">validated impressions</strong>, not clicks-you-hope-for or hours on a clock.
-      </p>
+    <>
+      <PageHero eyebrow="Product" title={<>Boost a post or a product. Pay for real attention.</>}>
+        <p>Good writing still needs an audience. Boost puts your post in front of readers browsing #NotesApp — and you're
+        charged for <strong className="text-ink">validated impressions</strong>, not clicks-you-hope-for or hours on a clock.</p>
+      </PageHero>
+      <div className="mx-auto max-w-5xl px-4 py-12 sm:px-6 lg:px-8">
 
       <div className="mt-12 grid grid-cols-1 gap-6 sm:grid-cols-3">
         {BOOST_PACKAGES.map((p, i) => (
@@ -82,5 +82,6 @@ export default function BoostPage() {
 
       <BoostablePosts />
     </div>
+    </>
   );
 }

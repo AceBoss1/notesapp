@@ -1,6 +1,7 @@
 import Link from "next/link";
 import type { Metadata } from "next";
 import { COMPANY_INFO } from "@/lib/site";
+import PageHero from "@/components/PageHero";
 
 export const metadata: Metadata = {
   title: "Trust & Security",
@@ -69,13 +70,12 @@ const SECTIONS: { title: string; points: string[] }[] = [
 
 export default function SecurityPage() {
   return (
-    <div className="mx-auto max-w-3xl px-4 py-16 sm:px-6">
-      <span className="eyebrow">Trust &amp; Security</span>
-      <h1 className="mt-4 font-display text-4xl text-ink sm:text-5xl">How we protect people who buy, sell and publish here</h1>
-      <p className="mt-5 text-lg text-slate">
-        #NotesApp lets small sellers, professionals and organisations take real money from people they've never met. That only works if buyers can trust the seller and sellers can trust the platform.
-        This page says what we actually do, not what we hope to do.
-      </p>
+    <>
+      <PageHero eyebrow="Trust &amp; Security" title={<>How we protect people who buy, sell and publish here</>}>
+        <p>#NotesApp lets small sellers, professionals and organisations take real money from people they've never met. That only works if buyers can trust the seller and sellers can trust the platform.
+        This page says what we actually do, not what we hope to do.</p>
+      </PageHero>
+      <div className="mx-auto max-w-3xl px-4 py-12 sm:px-6">
 
       <div className="mt-10 space-y-6">
         {SECTIONS.map((s) => (
@@ -104,5 +104,6 @@ export default function SecurityPage() {
         <Link href="/status" className="text-crimson underline">live status</Link>.
       </p>
     </div>
+    </>
   );
 }

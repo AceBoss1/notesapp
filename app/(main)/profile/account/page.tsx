@@ -14,9 +14,10 @@ import {
 import { auth } from "@/lib/firebase";
 import { getUserByUid, UserProfile } from "@/lib/users";
 import AccountData from "@/components/AccountData";
+import PageHero from "@/components/PageHero";
 
-const input = "mt-2 w-full border border-rule bg-card px-4 py-3 font-body focus:border-gold outline-none";
-const btn = "bg-ink text-paper px-5 py-2 font-ui text-sm font-semibold hover:bg-crimson-deep transition-colors disabled:opacity-50";
+const input = "mt-2 w-full rounded-xl border border-rule bg-card px-4 py-3 font-body focus:border-gold outline-none";
+const btn = "rounded-full bg-ink text-paper px-5 py-2 font-ui text-sm font-semibold hover:bg-crimson-deep transition-colors disabled:opacity-50";
 
 function authMessage(err: unknown): string {
   const code = (err as { code?: string })?.code || "";
@@ -132,12 +133,11 @@ export default function AccountPage() {
   const note = (m: Msg) => m && <p className={`mt-3 text-sm ${m.ok ? "text-green-700" : "text-crimson"}`}>{m.text}</p>;
 
   return (
-    <section className="mx-auto max-w-2xl px-4 sm:px-6 lg:px-8 py-14">
-      <p className="eyebrow">{profile ? `@${profile.username}` : "Account"}</p>
-      <h1 className="font-display text-4xl mt-3">Account settings</h1>
-      <p className="mt-2 text-sm text-slate">
-        Name, bio and photo are on <Link href="/profile/edit" className="text-crimson">Edit profile</Link>.
-      </p>
+    <>
+      <PageHero compact max="max-w-2xl" eyebrow={profile ? `@${profile.username}` : "Account"} title={<>Account settings</>}>
+        <p>Name, bio and photo are on <Link href="/profile/edit" className="text-crimson">Edit profile</Link>.</p>
+      </PageHero>
+      <section className="mx-auto max-w-2xl px-4 sm:px-6 lg:px-8 py-10">
 
       <form onSubmit={changeUsername} className="card mt-8 p-6">
         <h2 className="font-display text-xl">Username</h2>
@@ -175,5 +175,6 @@ export default function AccountPage() {
 
       {user && profile && <AccountData user={user} username={profile.username} />}
     </section>
+    </>
   );
 }

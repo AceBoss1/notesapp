@@ -2,6 +2,7 @@ import { getSiteSettingsCached } from "@/lib/settings";
 import type { Metadata } from "next";
 import ContactForm from "@/components/ContactForm";
 import { FacebookIcon, LinkedInIcon, MailIcon, NotesAppIcon } from "@/components/ContactIcons";
+import PageHero from "@/components/PageHero";
 
 export const metadata: Metadata = {
   title: "Contact",
@@ -11,21 +12,18 @@ export const metadata: Metadata = {
 export default async function ContactPage() {
   const site = await getSiteSettingsCached();
   return (
-    <div className="mx-auto max-w-2xl px-4 py-16 sm:px-6 lg:px-8">
-      <span className="eyebrow">Contact</span>
-      <h1 className="mt-4 font-display text-4xl text-ink sm:text-5xl">
-        Talk to us
-      </h1>
-      <p className="mt-5 text-slate">
-        Help with a booking, payment, payout or refund; a store order, a
+    <>
+      <PageHero eyebrow="Contact" title={<>Talk to us</>}>
+        <p>Help with a booking, payment, payout or refund; a store order, a
         parcel or a delivery problem; an advertising campaign; setting up an
         organisation account, CAC verification or your team; boosts and gifts;
         the gold badge; reporting a post or account (a moment or a conversation can also be reported with the Report button in the app); partnerships, press,
         investment — or anything else. Pick the topic in the form below and it
         goes straight to admins, not a shared inbox someone has to remember to
         check. For a parcel, include its ID (it looks like NA-7K2M9QXD) — you
-        can also <a href="/track" className="text-crimson underline">track it yourself</a>.
-      </p>
+        can also <a href="/track" className="text-crimson underline">track it yourself</a>.</p>
+      </PageHero>
+      <div className="mx-auto max-w-2xl px-4 py-12 sm:px-6 lg:px-8">
       <p className="mt-4 rounded-lg border border-rule bg-paper p-4 text-sm text-slate">
         Quick question? <a href="/nana" className="font-semibold text-crimson underline">Ask Nana AI</a>, our helper, from the chat button on any page, or browse
         the <a href="/help" className="font-semibold text-crimson underline">help centre</a>. She links you to the right page and passes you to a person if she
@@ -72,6 +70,7 @@ export default async function ContactPage() {
 
       <ContactForm />
     </div>
+    </>
   );
 }
 

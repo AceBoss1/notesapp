@@ -27,7 +27,7 @@ export async function toggleFavorite(db: Firestore, uid: string, itemId: string,
       t.set(favRef, { uid, itemId, ownerUid, createdAt: now.toISOString() });
       favs += 1;
     }
-    t.set(statRef, { ownerUid, views, favs });
+    t.set(statRef, { ownerUid, views, favs }, { merge: true });
     return { saved: !fav.exists, favs };
   });
 }
@@ -41,7 +41,7 @@ export async function recordView(db: Firestore, itemId: string, viewerUid?: stri
     if (!item.exists || !sellable(item.data())) return false;
     const ownerUid = String(item.data()!.ownerUid);
     if (viewerUid && viewerUid === ownerUid) return false;
-    t.set(statRef, { ownerUid, views: (Number(stat.data()?.views) || 0) + 1, favs: Number(stat.data()?.favs) || 0 });
+    t.set(statRef, { ownerUid, views: (Number(stat.data()?.views) || 0) + 1, favs: Number(stat.data()?.favs) || 0 }, { merge: true });
     return true;
   });
 }

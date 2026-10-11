@@ -1,6 +1,7 @@
 import Link from "next/link";
 import type { Metadata } from "next";
 import { TIERS, formatPercent } from "@/lib/tiers";
+import PageHero from "@/components/PageHero";
 
 export const metadata: Metadata = {
   title: "Sell physical goods & digital downloads",
@@ -9,13 +10,12 @@ export const metadata: Metadata = {
 
 export default function StoreSellingPage() {
   return (
-    <div className="mx-auto max-w-3xl px-4 py-16 sm:px-6 lg:px-8">
-      <span className="eyebrow">Stores</span>
-      <h1 className="mt-4 font-display text-4xl text-ink sm:text-5xl">Sell physical goods and digital downloads from your store</h1>
-      <p className="mt-5 text-lg text-slate">
-        Your store at <code>/u/yourname/store</code> sells physical items through #NotesApp checkout — the buyer&apos;s money is held until the parcel arrives, and every
-        order gets a parcel ID anyone can track. (Stores don&apos;t link out to other shops; your profile link and the links in your posts are where you point people elsewhere.)
-      </p>
+    <>
+      <PageHero eyebrow="Stores" title={<>Sell physical goods and digital downloads from your store</>}>
+        <p>Your store at <code>/u/yourname/store</code> sells physical items through #NotesApp checkout — the buyer&apos;s money is held until the parcel arrives, and every
+        order gets a parcel ID anyone can track. (Stores don&apos;t link out to other shops; your profile link and the links in your posts are where you point people elsewhere.)</p>
+      </PageHero>
+      <div className="mx-auto max-w-3xl px-4 py-12 sm:px-6 lg:px-8">
 
       <h2 className="mt-12 font-display text-2xl text-ink">How a sale works</h2>
       <ol className="mt-4 space-y-3 text-sm text-slate">
@@ -73,5 +73,6 @@ export default function StoreSellingPage() {
       </p>
       <p className="mt-6 text-sm text-slate"><Link href="/track" className="text-crimson underline">Track a parcel</Link> · <Link href="/pricing" className="text-crimson underline">Pricing</Link></p>
     </div>
+    </>
   );
 }

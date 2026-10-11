@@ -40,6 +40,8 @@ export type NotificationType =
   | "org" // organisation verification and invitations
   | "message" // a new direct message
   | "moment" // a reply or reshare of a moment
+  | "review" // a review or a seller reply on a store item
+  | "recommendation" // someone wrote you a recommendation
   | "team"; // the team hub: a comment on your work, the morning summary
 
 export type AppNotification = {

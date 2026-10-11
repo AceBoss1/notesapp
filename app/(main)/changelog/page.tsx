@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { CHANGELOG, ChangeKind } from "@/lib/changelog";
+import PageHero from "@/components/PageHero";
 
 export const metadata: Metadata = {
   title: "Changelog",
@@ -16,12 +17,11 @@ const fmt = (iso: string) => new Date(`${iso}T00:00:00Z`).toLocaleDateString("en
 
 export default function ChangelogPage() {
   return (
-    <section className="mx-auto max-w-3xl px-4 py-14 sm:px-6">
-      <span className="eyebrow">What&apos;s new</span>
-      <h1 className="mt-3 font-display text-4xl text-ink sm:text-5xl">Changelog</h1>
-      <p className="mt-4 text-lg text-slate">
-        All notable changes to #NotesApp, newest first. Versions go up by <strong>major</strong> (something existing changed), <strong>minor</strong> (new features) or <strong>patch</strong> (fixes).
-      </p>
+    <>
+      <PageHero eyebrow="What&apos;s new" title={<>Changelog</>}>
+        <p>All notable changes to #NotesApp, newest first. Versions go up by <strong>major</strong> (something existing changed), <strong>minor</strong> (new features) or <strong>patch</strong> (fixes).</p>
+      </PageHero>
+      <section className="mx-auto max-w-3xl px-4 py-12 sm:px-6">
 
       <ol className="mt-12 space-y-12 border-l border-rule pl-6 sm:pl-8">
         {CHANGELOG.map((r) => (
@@ -45,5 +45,6 @@ export default function ChangelogPage() {
         ))}
       </ol>
     </section>
+    </>
   );
 }

@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { sendPasswordResetEmail } from "firebase/auth";
 import { auth } from "@/lib/firebase";
+import PageHero from "@/components/PageHero";
 
 export default function ForgotPasswordPage() {
   const [email, setEmail] = useState("");
@@ -36,9 +37,9 @@ export default function ForgotPasswordPage() {
   }
 
   return (
-    <section className="mx-auto max-w-sm px-4 py-24">
-      <p className="eyebrow">Account</p>
-      <h1 className="mt-3 font-display text-3xl">Reset your password</h1>
+    <>
+      <PageHero compact max="max-w-sm" eyebrow="Account" title={<>Reset your password</>} />
+      <section className="mx-auto max-w-sm px-4 py-10">
       {sent ? (
         <div className="mt-8 text-sm text-slate">
           <p>
@@ -58,7 +59,7 @@ export default function ForgotPasswordPage() {
               required
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="mt-2 w-full border border-rule bg-card px-4 py-3 font-body outline-none focus:border-crimson"
+              className="mt-2 w-full rounded-xl border border-rule bg-card px-4 py-3 font-body outline-none focus:border-crimson"
             />
           </label>
           {error && <p className="text-sm text-red-700">{error}</p>}
@@ -75,5 +76,6 @@ export default function ForgotPasswordPage() {
         </form>
       )}
     </section>
+    </>
   );
 }

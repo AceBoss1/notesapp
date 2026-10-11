@@ -9,6 +9,7 @@ import { auth, db } from "@/lib/firebase";
 import { formatNaira, formatSlot } from "@/lib/booking-time";
 import { PAYOUT_HOLD_HOURS, POLICY_TEXT, RESCHEDULE_MAX, canReschedule, refundFraction } from "@/lib/cancellation";
 import { sessionEnd } from "@/lib/booking-time";
+import PageHero from "@/components/PageHero";
 
 type Booking = {
   reference: string;
@@ -221,10 +222,11 @@ export default function BookingsPage() {
   }
 
   return (
-    <section className="mx-auto max-w-3xl px-4 py-14 sm:px-6">
-      <p className="eyebrow">Your sessions</p>
-      <h1 className="mt-3 font-display text-4xl">Bookings</h1>
-      <p className="mt-3 text-xs text-slate">{POLICY_TEXT}</p>
+    <>
+      <PageHero compact max="max-w-3xl" eyebrow="Your sessions" title={<>Bookings</>}>
+        <p>{POLICY_TEXT}</p>
+      </PageHero>
+      <section className="mx-auto max-w-3xl px-4 py-10 sm:px-6">
       {error && <p className="mt-4 text-sm text-crimson">{error}</p>}
 
       <h2 className="mt-10 font-display text-xl">Upcoming</h2>
@@ -241,5 +243,6 @@ export default function BookingsPage() {
         <ul className="mt-2 divide-y divide-rule">{rest.map((b) => <Row key={b.reference} b={b} canCancel={false} />)}</ul>
       )}
     </section>
+    </>
   );
 }

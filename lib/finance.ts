@@ -62,6 +62,7 @@ export type FinanceEntry = {
   status: "active" | "voided";
   backdated: boolean; // entered by the owner for a date outside the normal window
   seeded: boolean; // came in through a bulk import
+  inKind?: boolean; // a grant or free credit (value recorded, no cash received): shown as Grants, left out of net cash
   createdAt: string;
   createdByEmail: string;
   updatedAt?: string;
@@ -70,8 +71,8 @@ export type FinanceEntry = {
   voidReason?: string;
 };
 
-export type FinanceInput = { kind?: unknown; category?: unknown; amount?: unknown; amountKobo?: unknown; occurredOn?: unknown; party?: unknown; description?: unknown; period?: unknown };
-export type CleanInput = { kind: EntryKind; category: string; amountKobo: number; occurredOn: string; party: string; description: string; period?: string };
+export type FinanceInput = { inKind?: unknown; kind?: unknown; category?: unknown; amount?: unknown; amountKobo?: unknown; occurredOn?: unknown; party?: unknown; description?: unknown; period?: unknown };
+export type CleanInput = { inKind?: boolean; kind: EntryKind; category: string; amountKobo: number; occurredOn: string; party: string; description: string; period?: string };
 
 export class FinanceError extends Error {
   constructor(message: string, readonly status = 400) {
@@ -119,14 +120,16 @@ export function cleanEntry(input: FinanceInput, today: string): CleanInput {
     period = String(input.period || input.occurredOn.slice(0, 7));
     if (!isMonth(period)) throw new FinanceError("Enter the payroll month as YYYY-MM.");
   }
-  return { kind, category, amountKobo, occurredOn: input.occurredOn, party, description, ...(period ? { period } : {}) };
+  // In-kind is only for grants on the money-in side.
+  const inKind = input.inKind === true && kind === "income" && category === "grant";
+  return { kind, category, amountKobo, occurredOn: input.occurredOn, party, description, ...(period ? { period } : {}), ...(inKind ? { inKind: true } : {}) };
 }
 
 export type Viewer = { owner: boolean; finance: boolean };
 // Payroll lines are for finance and super admins only; Product sees only the total.
 export const seesPayroll = (v: Pick<Viewer, "finance">) => v.finance;
 
-export type Month = { month: string; platformKobo: number; otherIncomeKobo: number; expenseKobo: number; payrollKobo: number; netKobo: number };
+export type Month = { month: string; platformKobo: number; otherIncomeKobo: number; inKindKobo: number; expenseKobo: number; payrollKobo: number; netKobo: number };
 export type CategoryRow = { kind: EntryKind; category: string; label: string; kobo: number; count: number };
 
 // Sums active entries per month (and per category). Platform revenue comes from lib/revenue.ts and is added to the money-in side.
@@ -134,7 +137,7 @@ export function summarize(entries: FinanceEntry[], platformByMonth: Record<strin
   const by = new Map<string, Month>();
   const month = (m: string) => {
     let r = by.get(m);
-    if (!r) by.set(m, (r = { month: m, platformKobo: platformByMonth[m] ?? 0, otherIncomeKobo: 0, expenseKobo: 0, payrollKobo: 0, netKobo: 0 }));
+    if (!r) by.set(m, (r = { month: m, platformKobo: platformByMonth[m] ?? 0, otherIncomeKobo: 0, inKindKobo: 0, expenseKobo: 0, payrollKobo: 0, netKobo: 0 }));
     return r;
   };
   for (const m of Object.keys(platformByMonth)) month(m);
@@ -142,11 +145,12 @@ export function summarize(entries: FinanceEntry[], platformByMonth: Record<strin
   for (const e of entries) {
     if (e.status !== "active") continue;
     const r = month(e.occurredOn.slice(0, 7));
-    if (e.kind === "income") r.otherIncomeKobo += e.amountKobo;
+    if (e.kind === "income" && e.inKind) r.inKindKobo += e.amountKobo; // a grant: counted on its own, not as cash
+    else if (e.kind === "income") r.otherIncomeKobo += e.amountKobo;
     else if (e.kind === "expense") r.expenseKobo += e.amountKobo;
     else r.payrollKobo += e.amountKobo;
-    const ck = `${e.kind}:${e.category}`;
-    const c = cats.get(ck) ?? { kind: e.kind, category: e.category, label: categoryLabel(e.kind, e.category), kobo: 0, count: 0 };
+    const ck = `${e.kind}:${e.category}${e.inKind ? ":inkind" : ""}`;
+    const c = cats.get(ck) ?? { kind: e.kind, category: e.category, label: categoryLabel(e.kind, e.category) + (e.inKind ? " (in-kind, not cash)" : ""), kobo: 0, count: 0 };
     c.kobo += e.amountKobo;
     c.count += 1;
     cats.set(ck, c);

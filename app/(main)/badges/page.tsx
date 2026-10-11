@@ -8,6 +8,7 @@ import { GOLD_PRICING } from "@/lib/gold";
 import { GOLD_KIND_LIVE } from "@/lib/badges";
 import { BADGE_PRICE_KOBO, TIERS, badgeIncluded } from "@/lib/tiers";
 import { formatNaira } from "@/lib/booking-time";
+import PageHero from "@/components/PageHero";
 
 export const metadata: Metadata = {
   title: "Verification badges",
@@ -72,13 +73,12 @@ const FAQ = [
 
 export default function BadgesPage() {
   return (
-    <div className="mx-auto max-w-4xl px-4 py-16 sm:px-6 lg:px-8">
-      <span className="eyebrow">Product</span>
-      <h1 className="mt-4 font-display text-4xl text-ink sm:text-5xl">Verification badges</h1>
-      <p className="mt-5 max-w-2xl text-lg text-slate">
-        Three marks, three different meanings. Here's who has which, what each one does and doesn't tell you, and how to
-        get the one you can add today.
-      </p>
+    <>
+      <PageHero eyebrow="Product" title={<>Verification badges</>}>
+        <p>Three marks, three different meanings. Here's who has which, what each one does and doesn't tell you, and how to
+        get the one you can add today.</p>
+      </PageHero>
+      <div className="mx-auto max-w-4xl px-4 py-12 sm:px-6 lg:px-8">
 
       <div className="mt-12 grid grid-cols-1 gap-6 sm:grid-cols-3">
         <div className="card p-6">
@@ -175,5 +175,6 @@ export default function BadgesPage() {
         </dl>
       </div>
     </div>
+    </>
   );
 }

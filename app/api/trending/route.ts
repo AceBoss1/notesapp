@@ -101,8 +101,31 @@ export async function GET(req: NextRequest) {
       .sort((a, b) => b.views - a.views || b.posts - a.posts)
       .slice(0, limit);
 
+    // Store items: what buyers look at and save most (all time; store views aren't kept per day). Score = views + 5 per save.
+    const statSnap = await db.collection("storeStats").orderBy("views", "desc").limit(60).get();
+    const ranked = statSnap.docs
+      .map((d) => ({ id: d.id, views: Number(d.data().views) || 0, favs: Number(d.data().favs) || 0, ratingSum: Number(d.data().ratingSum) || 0, ratingCount: Number(d.data().ratingCount) || 0 }))
+      .map((x) => ({ ...x, score: x.views + 5 * x.favs }))
+      .filter((x) => x.score > 0)
+      .sort((a, b) => b.score - a.score)
+      .slice(0, 30);
+    const itemDocs = ranked.length ? await db.getAll(...ranked.map((x) => db.doc(`storeItems/${x.id}`))) : [];
+    const byUid = new Map(allUsers.map((u) => [u.uid, u]));
+    const items = ranked
+      .map((x, i) => ({ x, d: itemDocs[i]?.data() }))
+      .filter(({ d }) => !!d && d.sellable === true && byUid.get(String(d.ownerUid))?.suspended !== true)
+      .slice(0, limit)
+      .map(({ x, d }) => {
+        const owner = byUid.get(String(d!.ownerUid));
+        return {
+          id: x.id, title: String(d!.title ?? ""), price: String(d!.price ?? ""), image: String(d!.image ?? ""), digital: d!.kind === "digital",
+          seller: owner?.displayName ?? "", sellerUsername: owner?.username ?? "", sellerIsOrg: owner?.accountKind === "organisation",
+          views: x.views, favs: x.favs, rating: x.ratingCount ? Math.round((x.ratingSum / x.ratingCount) * 10) / 10 : 0, reviews: x.ratingCount,
+        };
+      });
+
     return NextResponse.json(
-      { basis: windowed ? `last ${days} days` : "all time", posts, publishers },
+      { basis: windowed ? `last ${days} days` : "all time", posts, publishers, items },
       { headers: { "Cache-Control": "public, s-maxage=900, stale-while-revalidate=1800" } }
     );
   } catch (err) {

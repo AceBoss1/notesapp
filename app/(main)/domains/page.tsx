@@ -1,6 +1,7 @@
 import Link from "next/link";
 import Image from "next/image";
 import type { Metadata } from "next";
+import PageHero from "@/components/PageHero";
 
 export const metadata: Metadata = {
   title: "Domains",
@@ -40,12 +41,11 @@ const FORMS = [
 
 export default function DomainsPage() {
   return (
-    <div className="mx-auto max-w-4xl px-4 py-16 sm:px-6 lg:px-8">
-      <span className="eyebrow">Coming Soon · Business and Enterprise</span>
-      <h1 className="mt-4 font-display text-4xl text-ink sm:text-5xl">Domains, inside #NotesApp</h1>
-      <p className="mt-5 max-w-2xl text-lg text-slate">
-        Find a name, register it, and manage its DNS without leaving your account. Your own domain already works on Business and Enterprise today: you add the records yourself. This will let us do the buying and the records for you.
-      </p>
+    <>
+      <PageHero eyebrow="Coming Soon · Business and Enterprise" title={<>Domains, inside #NotesApp</>}>
+        <p>Find a name, register it, and manage its DNS without leaving your account. Your own domain already works on Business and Enterprise today: you add the records yourself. This will let us do the buying and the records for you.</p>
+      </PageHero>
+      <div className="mx-auto max-w-4xl px-4 py-12 sm:px-6 lg:px-8">
 
       <section className="mt-10 card flex flex-col items-center gap-6 p-7 sm:flex-row" aria-labelledby="partner">
         <Image
@@ -109,5 +109,6 @@ export default function DomainsPage() {
         </p>
       </section>
     </div>
+    </>
   );
 }

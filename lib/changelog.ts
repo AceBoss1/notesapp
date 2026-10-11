@@ -11,6 +11,27 @@ export type Release = {
 
 export const CHANGELOG: Release[] = [
   {
+    version: "v0.19.0",
+    bump: "minor",
+    date: "2026-10-11",
+    changes: [
+      { kind: "added", text: "Store reviews: people who bought an item, and received it, can give it 1 to 5 stars and a few words. Reviews show on the item page marked Verified buyer, a store's page shows what buyers say across all its items, and sellers can reply once to each review. You can edit or remove your own review." },
+      { kind: "added", text: "Recommendations on profiles and organisations: write a few sentences about someone you have worked with, bought from or learned from. It shows on their profile only after they approve it, and they can hide it later." },
+      { kind: "added", text: "Trending has a third tab, Top store items, ranking items by what buyers look at and save, with ratings." },
+      { kind: "changed", text: "Sign in, Sign up, Reset password, Booking, Bookings, Orders, Edit profile, Account settings, Rates & payouts and Boosts now use the crimson banner and rounder buttons and fields." },
+    ],
+  },
+  {
+    version: "v0.18.0",
+    bump: "minor",
+    date: "2026-10-11",
+    changes: [
+      { kind: "added", text: "Behind the scenes, for the team: a Grants & subscriptions page tracks the free credits and plans we hold (what each is worth, how much is used, the rate per seat, when it ends and what it costs afterwards), and sends finance and the owner a reminder 30, 14, 7, 3 and 1 days before each ends, and on the day." },
+      { kind: "changed", text: "More pages now wear the crimson look from our new designs, with the same banner at the top: Security, Contact, Roadmap, Changelog, Badges, Brand, Gifts, Domains, Advertise, Boost, Organisations, Trending, Store selling, Challenge, Services, Teams, Docs, Status, Co-authoring, Merch, Terms and Privacy." },
+      { kind: "added", text: "The money ledger can now record a grant as in-kind: free credit or a free plan is counted on its own line, not as cash." },
+    ],
+  },
+  {
     version: "v0.17.0",
     bump: "minor",
     date: "2026-10-11",

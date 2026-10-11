@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import PageHero from "@/components/PageHero";
 import { POLICY_TEXT } from "@/lib/cancellation";
 import { LEGAL_CONTACT, LEGAL_VERSION } from "@/lib/legal";
 import { COMPANY_INFO } from "@/lib/site";
@@ -11,9 +12,9 @@ export default function TermsPage() {
     .map((t) => `${t.label}: ${formatPercent(t.sessionAndUnlockCommission, t.sessionAndUnlockCommissionFloor)}`)
     .join(" · ");
   return (
-    <article className="prose mx-auto max-w-3xl px-4 py-16 sm:px-6">
-      <p className="eyebrow">Version {LEGAL_VERSION}</p>
-      <h1>Terms of Service</h1>
+    <>
+      <PageHero eyebrow={`Version ${LEGAL_VERSION}`} title="Terms of Service" max="max-w-3xl" />
+      <article className="prose mx-auto max-w-3xl px-4 py-12 sm:px-6">
       <h2>1. Accounts</h2>
       <p>You must be 18 or older, give accurate details, keep your password secret, and verify your email. You are responsible for activity on your account. We may suspend accounts that break these terms, with a right of appeal from your profile.</p>
 
@@ -73,5 +74,6 @@ export default function TermsPage() {
       <h2>8. Contact</h2>
       <p>{COMPANY_INFO.legalName} (RC {COMPANY_INFO.rcNumber}) · {LEGAL_CONTACT}</p>
     </article>
+    </>
   );
 }

@@ -1,6 +1,7 @@
 import Link from "next/link";
 import type { Metadata } from "next";
 import { POLICY_TEXT } from "@/lib/cancellation";
+import PageHero from "@/components/PageHero";
 
 export const metadata: Metadata = {
   title: "Booking",
@@ -10,17 +11,14 @@ export const metadata: Metadata = {
 
 export default function BookingPage() {
   return (
-    <div className="mx-auto max-w-4xl px-4 py-16 sm:px-6 lg:px-8">
-      <span className="eyebrow">Product</span>
-      <h1 className="mt-4 font-display text-4xl text-ink sm:text-5xl">
-        Booking that lives where the content does
-      </h1>
-      <p className="mt-5 max-w-2xl text-slate">
-        On most platforms, a reader who wants to book you has to leave
+    <>
+      <PageHero compact max="max-w-4xl" eyebrow="Product" title={<>Booking that lives where the content does</>}>
+        <p>On most platforms, a reader who wants to book you has to leave
         your article, open Calendly, and log in again. On #NotesApp the
         calendar sits on the same profile page as your writing — so the
-        moment someone finishes reading is the moment they can book.
-      </p>
+        moment someone finishes reading is the moment they can book.</p>
+      </PageHero>
+      <div className="mx-auto max-w-4xl px-4 py-10 sm:px-6 lg:px-8">
 
       <div className="mt-12 grid grid-cols-1 gap-6 sm:grid-cols-3">
         {[
@@ -66,5 +64,6 @@ export default function BookingPage() {
         </p>
       </div>
     </div>
+    </>
   );
 }

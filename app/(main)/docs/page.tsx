@@ -1,6 +1,7 @@
 import Link from "next/link";
 import type { Metadata } from "next";
 import { ENDPOINTS, WEBHOOK_DOCS } from "@/lib/api-docs";
+import PageHero from "@/components/PageHero";
 
 export const metadata: Metadata = {
   title: "API Docs",
@@ -12,13 +13,12 @@ const METHOD: Record<string, string> = { GET: "bg-emerald-100 text-emerald-900",
 
 export default function DocsPage() {
   return (
-    <div className="mx-auto max-w-3xl px-4 py-14 sm:px-6">
-      <span className="eyebrow">Docs</span>
-      <h1 className="mt-3 font-display text-4xl text-ink sm:text-5xl">#NotesApp API</h1>
-      <p className="mt-4 text-lg text-slate">
-        Server-to-server access for Enterprise partners: publish posts, and read your own bookings, orders and earnings. Get access by contacting us, then create keys in the <Link href="/console" className="text-crimson underline">Console</Link>.
-        Changes are listed in the <Link href="/changelog" className="text-crimson underline">Changelog</Link>.
-      </p>
+    <>
+      <PageHero eyebrow="Docs" title={<>#NotesApp API</>}>
+        <p>Server-to-server access for Enterprise partners: publish posts, and read your own bookings, orders and earnings. Get access by contacting us, then create keys in the <Link href="/console" className="text-crimson underline">Console</Link>.
+        Changes are listed in the <Link href="/changelog" className="text-crimson underline">Changelog</Link>.</p>
+      </PageHero>
+      <div className="mx-auto max-w-3xl px-4 py-12 sm:px-6">
 
       <nav className="card mt-8 p-4 text-sm" aria-label="On this page">
         <ul className="grid gap-1 sm:grid-cols-2">
@@ -101,5 +101,6 @@ function verify(rawBody, header, secret) {
         Visitors browse, sign in, book sessions and buy right on your domain. Signing in briefly passes through www.notesapp.name.ng (where accounts live) and brings them straight back, already signed in; payments run on Paystack and return to your site.
       </p>
     </div>
+    </>
   );
 }

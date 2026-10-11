@@ -7,6 +7,7 @@ import { onAuthStateChanged } from "firebase/auth";
 import { collection, getDocs, query, where } from "firebase/firestore";
 import { auth, db } from "@/lib/firebase";
 import { formatNaira } from "@/lib/booking-time";
+import PageHero from "@/components/PageHero";
 
 type Boost = {
   reference: string;
@@ -114,12 +115,11 @@ export default function BoostPerformancePage() {
   };
 
   return (
-    <section className="mx-auto max-w-3xl px-4 py-14 sm:px-6">
-      <p className="eyebrow">Boosts</p>
-      <h1 className="mt-3 font-display text-4xl text-ink">Boost performance</h1>
-      <p className="mt-2 text-sm text-slate">
-        An impression counts once a real visitor has seen your boosted post. Undelivered impressions are refunded when a boost ends.
-      </p>
+    <>
+      <PageHero compact max="max-w-3xl" eyebrow="Boosts" title={<>Boost performance</>}>
+        <p>An impression counts once a real visitor has seen your boosted post. Undelivered impressions are refunded when a boost ends.</p>
+      </PageHero>
+      <section className="mx-auto max-w-3xl px-4 py-10 sm:px-6">
 
       <div className="mt-8 grid grid-cols-2 gap-4 sm:grid-cols-4">
         {[
@@ -152,5 +152,6 @@ export default function BoostPerformancePage() {
       )}
       <p className="mt-10"><Link href="/boost" className="btn-primary">Boost another post</Link></p>
     </section>
+    </>
   );
 }

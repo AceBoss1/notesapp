@@ -2,6 +2,7 @@ import Link from "next/link";
 import type { Metadata } from "next";
 import { AD_PACKAGES } from "@/lib/ad-packages";
 import { formatNaira } from "@/lib/booking-time";
+import PageHero from "@/components/PageHero";
 
 export const metadata: Metadata = {
   title: "Advertise",
@@ -11,16 +12,13 @@ export const metadata: Metadata = {
 
 export default function AdvertisePage() {
   return (
-    <div className="mx-auto max-w-3xl px-4 py-16 sm:px-6 lg:px-8">
-      <span className="eyebrow">Advertise</span>
-      <h1 className="mt-4 font-display text-4xl text-ink sm:text-5xl">
-        Advertise on #NotesApp
-      </h1>
-      <p className="mt-5 text-lg text-slate">
-        Ads on #NotesApp come with a revenue share built in from day
+    <>
+      <PageHero eyebrow="Advertise" title={<>Advertise on #NotesApp</>}>
+        <p>Ads on #NotesApp come with a revenue share built in from day
         one — not something a professional has to unlock, earn, or
-        wait for.
-      </p>
+        wait for.</p>
+      </PageHero>
+      <div className="mx-auto max-w-3xl px-4 py-12 sm:px-6 lg:px-8">
 
       <div className="card mt-10 border-crimson p-7">
         <p className="font-ui text-base font-bold text-ink">Buy a banner campaign</p>
@@ -147,5 +145,6 @@ export default function AdvertisePage() {
         <Link href="/contact" className="text-crimson underline underline-offset-2">Get in touch</Link>.
       </p>
     </div>
+    </>
   );
 }

@@ -9,6 +9,7 @@ import Link from "next/link";
 import { CoAuthorInvite, canAcceptCoAuthor } from "@/lib/coauthors";
 import { getUserByUid, UserProfile } from "@/lib/users";
 import { useMemberships } from "@/lib/useMemberships";
+import PageHero from "@/components/PageHero";
 
 // Co-author invitations addressed to the signed-in member.
 export default function InvitesPage() {
@@ -76,13 +77,12 @@ export default function InvitesPage() {
 
   if (invites === null) return <div className="px-6 py-24 text-center text-slate">Loading…</div>;
   return (
-    <section className="mx-auto max-w-2xl px-4 py-14 sm:px-6">
-      <p className="eyebrow">Co-authoring</p>
-      <h1 className="mt-3 font-display text-4xl text-ink">Co-author invites</h1>
-      <p className="mt-2 text-sm text-slate">
-        If you accept, you&apos;re listed as a co-author when the post is published and receive the share shown of what that post
-        earns. The split is locked at publishing.
-      </p>
+    <>
+      <PageHero eyebrow="Co-authoring" title={<>Co-author invites</>}>
+        <p>If you accept, you&apos;re listed as a co-author when the post is published and receive the share shown of what that post
+        earns. The split is locked at publishing.</p>
+      </PageHero>
+      <section className="mx-auto max-w-2xl px-4 py-12 sm:px-6">
       {profile && !canAcceptCoAuthor(profile) && (
         <p className="mt-4 border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-ink">
           You can see invites on any account, but to <strong>accept</strong> one you need a publishing account, because your share is paid out to a
@@ -134,5 +134,6 @@ export default function InvitesPage() {
         </ul>
       )}
     </section>
+    </>
   );
 }

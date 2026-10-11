@@ -1,6 +1,7 @@
 import Link from "next/link";
 import Image from "next/image";
 import type { Metadata } from "next";
+import PageHero from "@/components/PageHero";
 
 export const metadata: Metadata = {
   title: "#1MillionNairaNotesAppChallenge",
@@ -51,14 +52,11 @@ const PRIZES = [
 
 export default function ChallengePage() {
   return (
-    <div className="mx-auto max-w-4xl px-4 py-16 sm:px-6 lg:px-8">
-      <span className="eyebrow">Coming Soon · For influencers</span>
-      <h1 className="mt-4 font-display text-4xl text-ink sm:text-5xl">
-        #1MillionNairaNotesAppChallenge
-      </h1>
-      <p className="mt-5 max-w-2xl text-lg text-slate">
-        Bring your audience to #NotesApp, go live, and open a ₦1,000,000 giveaway — for you and for the followers who show up.
-      </p>
+    <>
+      <PageHero eyebrow="Coming Soon · For influencers" title={<>#1MillionNairaNotesAppChallenge</>}>
+        <p>Bring your audience to #NotesApp, go live, and open a ₦1,000,000 giveaway — for you and for the followers who show up.</p>
+      </PageHero>
+      <div className="mx-auto max-w-4xl px-4 py-12 sm:px-6 lg:px-8">
 
       <Image
         src="/images/challenge/challenge-banner.webp"
@@ -120,5 +118,6 @@ export default function ChallengePage() {
         </p>
       </section>
     </div>
+    </>
   );
 }

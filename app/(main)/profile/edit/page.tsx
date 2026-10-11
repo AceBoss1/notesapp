@@ -15,6 +15,7 @@ import { getUserByUid, updateProfile, UserProfile } from "@/lib/users";
 import { uploadToR2 } from "@/lib/upload";
 import { SocialLinks } from "@/lib/admin";
 import BadgeCard from "@/components/BadgeCard";
+import PageHero from "@/components/PageHero";
 
 const SOCIAL_FIELDS: { key: keyof SocialLinks; label: string }[] = [
   { key: "linkedin", label: "LinkedIn URL" },
@@ -98,14 +99,12 @@ export default function ProfileEditPage() {
   }
 
   return (
-    <section className="mx-auto max-w-2xl px-4 sm:px-6 lg:px-8 py-14">
-      <p className="eyebrow">@{profile.username}</p>
-      <h1 className="font-display text-4xl mt-3">Edit Profile</h1>
-
-      <p className="mt-2 text-sm text-slate">
-        Change your username, email or password in{" "}
-        <Link href="/profile/account" className="text-crimson">Account settings</Link>.
-      </p>
+    <>
+      <PageHero compact max="max-w-2xl" eyebrow={`@${profile.username}`} title={<>Edit Profile</>}>
+        <p>Change your username, email or password in{" "}
+        <Link href="/profile/account" className="text-crimson">Account settings</Link>.</p>
+      </PageHero>
+      <section className="mx-auto max-w-2xl px-4 sm:px-6 lg:px-8 py-10">
 
       <div className="mt-6">
         <BadgeCard />
@@ -117,7 +116,7 @@ export default function ProfileEditPage() {
           <input
             value={displayName}
             onChange={(e) => setDisplayName(e.target.value)}
-            className="mt-2 w-full border border-rule bg-card px-4 py-3 font-body focus:border-gold outline-none"
+            className="mt-2 w-full rounded-xl border border-rule bg-card px-4 py-3 font-body focus:border-gold outline-none"
           />
         </label>
 
@@ -127,11 +126,11 @@ export default function ProfileEditPage() {
             rows={3}
             value={bio}
             onChange={(e) => setBio(e.target.value)}
-            className="mt-2 w-full border border-rule bg-card px-4 py-3 font-body focus:border-gold outline-none"
+            className="mt-2 w-full rounded-xl border border-rule bg-card px-4 py-3 font-body focus:border-gold outline-none"
           />
         </label>
 
-        <WorkFields value={work} onChange={setWork} orgOnly={profile?.accountKind === "organisation"} inputClass="mt-1 w-full border border-rule bg-card px-4 py-3 font-body focus:border-gold outline-none" />
+        <WorkFields value={work} onChange={setWork} orgOnly={profile?.accountKind === "organisation"} inputClass="mt-1 w-full rounded-xl border border-rule bg-card px-4 py-3 font-body focus:border-gold outline-none" />
         {profile && profile.accountKind !== "organisation" && (
           <p className="text-sm text-slate">
             Is this account for a company, NGO, church, school or club?{" "}
@@ -195,5 +194,6 @@ export default function ProfileEditPage() {
       {canChooseSiteTheme(profile) && <SiteThemePicker current={profile.siteTheme} username={profile.username} />}
       <MomentSettings />
     </section>
+    </>
   );
 }

@@ -18,6 +18,7 @@ import BoostNudge from "@/components/BoostNudge";
 import { isMainHost } from "@/lib/host";
 import Avatar from "@/components/Avatar";
 import FavoriteButton from "@/components/FavoriteButton";
+import ReviewsPanel from "@/components/ReviewsPanel";
 import MessageButton from "@/components/messages/MessageButton";
 import { countView, useSavedItems } from "@/lib/store-social";
 import { categoryOf } from "@/lib/store-meta";
@@ -295,6 +296,8 @@ export default function ShopItemPage() {
           <p className="mt-2 whitespace-pre-line text-sm text-slate">{item.subtitle}</p>
         </div>
       )}
+
+      {!customHost && <ReviewsPanel itemId={itemId} user={user} sellerUid={item.ownerUid} title="Reviews of this item" />}
 
       {more.length > 0 && (
         <div className="mt-12">

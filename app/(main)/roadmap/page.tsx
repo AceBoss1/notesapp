@@ -2,6 +2,7 @@ import Link from "next/link";
 import type { Metadata } from "next";
 import { GOLD_KIND_LIVE } from "@/lib/badges";
 import { MESSAGES_LIVE, MOMENTS_LIVE } from "@/lib/moments-rules";
+import PageHero from "@/components/PageHero";
 
 export const metadata: Metadata = {
   title: "Roadmap",
@@ -115,15 +116,12 @@ const ITEMS: { title: string; tag: string; body: string; detail: string; link?: 
 
 export default function RoadmapPage() {
   return (
-    <div className="mx-auto max-w-4xl px-4 py-16 sm:px-6 lg:px-8">
-      <span className="eyebrow">Coming Soon</span>
-      <h1 className="mt-4 font-display text-4xl text-ink sm:text-5xl">
-        What's next for #NotesApp
-      </h1>
-      <p className="mt-5 max-w-2xl text-lg text-slate">
-        The core loop — publish, book, get paid — is what's demoed
-        today. The ones marked on the right are decided and documented, not yet built. Nana AI and the help centre, publishing to LinkedIn and X, direct and group messages, paid sessions (with rescheduling and automatic payouts), monthly subscriptions, publisher rates and payouts, post and item boosts, gifts, Pro / Business plans, organisation accounts, stores for physical goods and digital downloads, parcel tracking, and official merch are already live. Last updated 10 October 2026.
-      </p>
+    <>
+      <PageHero eyebrow="Coming Soon" title={<>What's next for #NotesApp</>}>
+        <p>The core loop — publish, book, get paid — is what's demoed
+        today. The ones marked on the right are decided and documented, not yet built. Nana AI and the help centre, publishing to LinkedIn and X, direct and group messages, paid sessions (with rescheduling and automatic payouts), monthly subscriptions, publisher rates and payouts, post and item boosts, gifts, Pro / Business plans, organisation accounts, stores for physical goods and digital downloads, parcel tracking, and official merch are already live. Last updated 10 October 2026.</p>
+      </PageHero>
+      <div className="mx-auto max-w-4xl px-4 py-12 sm:px-6 lg:px-8">
 
       {/* The honest status strip: what's built and working versus what's still planned. */}
       <section className="mt-12 border-y border-rule py-10" aria-labelledby="true-now">
@@ -268,5 +266,6 @@ export default function RoadmapPage() {
         .
       </p>
     </div>
+    </>
   );
 }

@@ -1,4 +1,5 @@
 import { FieldValue, type Firestore } from "firebase-admin/firestore";
+import { deleteReview } from "./reviews-server";
 import { removeDomain } from "./domains";
 
 // Server-only. A member's data rights under the Nigeria Data Protection Act: get a copy of what we
@@ -40,6 +41,9 @@ export async function collectExport(db: Firestore, uid: string, email: string) {
     subscriptions: await docs(db, "subscriptions", "subscriberUid", uid),
     storeItems: await docs(db, "storeItems", "ownerUid", uid),
     savedItems: await docs(db, "storeFavorites", "uid", uid), // items you saved with the heart
+    storeReviews: await docs(db, "storeReviews", "uid", uid), // reviews you wrote
+    recommendationsWritten: await docs(db, "recommendations", "authorUid", uid),
+    recommendationsReceived: await docs(db, "recommendations", "subjectUid", uid),
     storeOrdersAsBuyer: await docs(db, "storeOrders", "buyerUid", uid),
     storeOrdersAsSeller: strip(await docs(db, "storeOrders", "sellerUid", uid), ["address", "buyerEmail", "buyerUid"]),
     digitalPurchases: await docs(db, "digitalPurchases", "buyerUid", uid),
@@ -232,6 +236,8 @@ export async function eraseAccount(db: Firestore, uid: string, deleteFile: (key:
     ...(await own("apiKeys", "uid", uid)),
     ...(await own("webhookEndpoints", "uid", uid)),
     ...(await own("webhookDeliveries", "uid", uid)),
+    ...(await own("recommendations", "authorUid", uid)), // recommendations you wrote
+    ...(await own("recommendations", "subjectUid", uid)), // and the ones written about you
     ...(await own("customDomains", "uid", uid)),
     ...(await own("socialPosts", "uid", uid)), // what we posted to their LinkedIn / X
     ...(await own("socialStates", "uid", uid)),
@@ -239,6 +245,7 @@ export async function eraseAccount(db: Firestore, uid: string, deleteFile: (key:
     ...(await db.doc(`aiConnections/${uid}`).get().then((d) => (d.exists ? [d] : []))), // the encrypted key of a connected AI account
     ...(await Promise.all(["linkedin", "x"].map((p) => db.doc(`socialConnections/${uid}_${p}`).get()))).filter((d) => d.exists), // their saved access tokens
   ];
+  for (const r of await own("storeReviews", "uid", uid)) await deleteReview(db, uid, r.id).catch(() => {}); // takes the stars off the item totals too
   await deleteAll(db, toDelete.map((d) => d.ref));
   counts.relationships = toDelete.length;
   await deleteAll(db, ["badgeRequests", "suspensions", "tierSubscriptions", "badgeSubscriptions", "goldSubscriptions", "payoutAccounts", "publisherSettings"].map((c) => db.doc(`${c}/${uid}`)));
