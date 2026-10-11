@@ -124,6 +124,20 @@ export async function GET(req: NextRequest) {
         };
       });
 
+    // Fewer than ten have been looked at yet: fill the list with the newest items nobody has opened (shown after the ranked ones, marked as new).
+    if (items.length < limit) {
+      const have = new Set(items.map((i) => i.id));
+      const fresh = await db.collection("storeItems").where("sellable", "==", true).limit(300).get();
+      fresh.docs
+        .filter((d) => !have.has(d.id) && byUid.get(String(d.data().ownerUid))?.suspended !== true)
+        .sort((a, b) => String(b.data().createdAt ?? "").localeCompare(String(a.data().createdAt ?? "")))
+        .slice(0, limit - items.length)
+        .forEach((d) => {
+          const x = d.data(), owner = byUid.get(String(x.ownerUid));
+          items.push({ id: d.id, title: String(x.title ?? ""), price: String(x.price ?? ""), image: String(x.image ?? ""), digital: x.kind === "digital", seller: owner?.displayName ?? "", sellerUsername: owner?.username ?? "", sellerIsOrg: owner?.accountKind === "organisation", views: 0, favs: 0, rating: 0, reviews: 0 });
+        });
+    }
+
     return NextResponse.json(
       { basis: windowed ? `last ${days} days` : "all time", posts, publishers, items },
       { headers: { "Cache-Control": "public, s-maxage=900, stale-while-revalidate=1800" } }

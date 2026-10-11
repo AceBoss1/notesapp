@@ -83,7 +83,7 @@ export default function TrendingPage() {
       )}
       {data && tab === "items" && (
         <>
-          <p className="mt-4 text-xs text-slate">Ranked by what buyers look at and save (a save counts five looks), all time.</p>
+          <p className="mt-4 text-xs text-slate">Ranked by what buyers look at and save (a save counts five looks), all time. Items nobody has opened yet follow, newest first.</p>
           <ol className="mt-2 divide-y divide-rule">
             {(data.items ?? []).length === 0 && <li className="py-6 text-sm text-slate">No store items have been looked at yet.</li>}
             {(data.items ?? []).map((it, i) => (
@@ -96,7 +96,7 @@ export default function TrendingPage() {
                     <span className="block truncate font-ui text-sm font-bold text-ink">{it.title}</span>
                     <span className="block truncate font-mono text-xs text-slate">{it.seller}{it.digital ? " · digital" : ""} · {it.price}{it.reviews > 0 ? ` · ★ ${it.rating.toFixed(1)} (${it.reviews})` : ""}</span>
                   </span>
-                  <span className="text-right font-mono text-xs text-slate">👁 {it.views.toLocaleString()}<br />♥ {it.favs.toLocaleString()}</span>
+                  <span className="text-right font-mono text-xs text-slate">{it.views + it.favs > 0 ? <>👁 {it.views.toLocaleString()}<br />♥ {it.favs.toLocaleString()}</> : <span className="rounded-full bg-crimson/10 px-2 py-0.5 text-[10px] font-semibold uppercase text-crimson">New</span>}</span>
                 </Link>
               </li>
             ))}

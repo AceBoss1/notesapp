@@ -11,6 +11,14 @@ export type Release = {
 
 export const CHANGELOG: Release[] = [
   {
+    version: "v0.22.2",
+    bump: "patch",
+    date: "2026-10-11",
+    changes: [
+      { kind: "changed", text: "Trending, Top store items now always fills up to ten: items that have been looked at come first, then the newest items nobody has opened yet, marked New." },
+    ],
+  },
+  {
     version: "v0.22.1",
     bump: "patch",
     date: "2026-10-11",
