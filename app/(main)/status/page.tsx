@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import PageHero from "@/components/PageHero";
 
 type Service = { id: string; name: string; description: string; state: "operational" | "degraded" | "down" | "not_configured"; latencyMs?: number };
 type Incident = { id: string; startedAt: string; resolvedAt: string | null; services: string[]; worst: "degraded" | "down" };
@@ -114,9 +115,9 @@ export default function StatusPage() {
   }, []);
 
   return (
-    <section className="mx-auto max-w-2xl px-4 py-14 sm:px-6">
-      <span className="eyebrow">Status</span>
-      <h1 className="mt-3 font-display text-4xl text-ink">#NotesApp service status</h1>
+    <>
+      <PageHero eyebrow="Status" title={<>#NotesApp service status</>} />
+      <section className="mx-auto max-w-2xl px-4 py-12 sm:px-6">
 
       {error && !data && (
         <p className="mt-8 border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-900">
@@ -192,5 +193,6 @@ export default function StatusPage() {
         </>
       )}
     </section>
+    </>
   );
 }

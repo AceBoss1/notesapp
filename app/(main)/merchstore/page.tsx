@@ -14,6 +14,7 @@ import ShopDirectory from "@/components/ShopDirectory";
 import { getShopDirectory } from "@/lib/shop-directory";
 import Avatar from "@/components/Avatar";
 import Link from "next/link";
+import PageHero from "@/components/PageHero";
 
 // Order matters here — Emmanuel's shop renders before Chimdinma's,
 // per how this page was specced.
@@ -29,13 +30,9 @@ export default async function MerchStorePage() {
   const founderNames = SHOP_ORDER.map((p) => p.username);
   const shops = (await getShopDirectory()).filter((s) => !founderNames.includes(s.username));
   return (
-    <div className="mx-auto max-w-6xl px-4 py-16 sm:px-6 lg:px-8">
-      <span className="eyebrow">Merch Store</span>
-      <h1 className="mt-4 font-display text-4xl text-ink sm:text-5xl">
-        Official #NotesApp Merch
-      </h1>
-      <p className="mt-5 max-w-2xl text-slate">
-        T-shirts, caps, mugs, and more — every item can carry the core
+    <>
+      <PageHero eyebrow="Merch Store" title={<>Official #NotesApp Merch</>}>
+        <p>T-shirts, caps, mugs, and more — every item can carry the core
         mark or any of our seasonal logos from{" "}
         <Link href="/brand" className="text-crimson underline underline-offset-2">
           the Brand page
@@ -43,8 +40,9 @@ export default async function MerchStorePage() {
         . Pre-order now, pay with Paystack — we print after the batch
         closes ({MERCH_BATCH.label} closes {MERCH_BATCH.closesOn}) and deliver anywhere in Nigeria
         for a flat {formatNaira(MERCH_DELIVERY_KOBO)}. The pictures are previews with your chosen logo
-        superimposed; real product photography is coming.
-      </p>
+        superimposed; real product photography is coming.</p>
+      </PageHero>
+      <div className="mx-auto max-w-6xl px-4 py-12 sm:px-6 lg:px-8">
 
       <div className="mt-10 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
         {MERCH_ITEMS.map((item) => (
@@ -111,5 +109,6 @@ export default async function MerchStorePage() {
         <ShopDirectory shops={shops} />
       </div>
     </div>
+    </>
   );
 }

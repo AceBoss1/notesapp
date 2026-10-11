@@ -1,3 +1,4 @@
+import PageHero from "@/components/PageHero";
 export const metadata = { title: "Services — Precheks" };
 
 const CORE_SERVICES = [
@@ -44,14 +45,13 @@ const OTHER_SERVICES = [
 
 export default function ServicesPage() {
   return (
-    <section className="mx-auto max-w-4xl px-4 sm:px-6 lg:px-8 py-14">
-      <p className="eyebrow">Bespoke Education &amp; IT Consultancy</p>
-      <h1 className="font-display text-5xl mt-3">Our Services</h1>
-      <p className="mt-6 text-lg text-slate font-body">
-        Meticulously crafted to empower individuals and organizations —
+    <>
+      <PageHero eyebrow="Bespoke Education &amp; IT Consultancy" title={<>Our Services</>}>
+        <p>Meticulously crafted to empower individuals and organizations —
         whatever your learning objectives, our programs equip you with the
-        essential skills and knowledge for today&apos;s dynamic landscape.
-      </p>
+        essential skills and knowledge for today&apos;s dynamic landscape.</p>
+      </PageHero>
+      <section className="mx-auto max-w-4xl px-4 sm:px-6 lg:px-8 py-12">
 
       <div className="mt-12 divide-y divide-rule border-t-2 border-ink">
         {CORE_SERVICES.map((s) => (
@@ -85,5 +85,6 @@ export default function ServicesPage() {
         </ul>
       </div>
     </section>
+    </>
   );
 }

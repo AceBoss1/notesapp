@@ -16,6 +16,7 @@ export const CHANGELOG: Release[] = [
     date: "2026-10-11",
     changes: [
       { kind: "added", text: "Behind the scenes, for the team: a Grants & subscriptions page tracks the free credits and plans we hold (what each is worth, how much is used, the rate per seat, when it ends and what it costs afterwards), and sends finance and the owner a reminder 30, 14, 7, 3 and 1 days before each ends, and on the day." },
+      { kind: "changed", text: "More pages now wear the crimson look from our new designs, with the same banner at the top: Security, Contact, Roadmap, Changelog, Badges, Brand, Gifts, Domains, Advertise, Boost, Organisations, Trending, Store selling, Challenge, Services, Teams, Docs, Status, Co-authoring, Merch, Terms and Privacy." },
       { kind: "added", text: "The money ledger can now record a grant as in-kind: free credit or a free plan is counted on its own line, not as cash." },
     ],
   },

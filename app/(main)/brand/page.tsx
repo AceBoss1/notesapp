@@ -1,6 +1,7 @@
 import Image from "next/image";
 import type { Metadata } from "next";
 import { SEASONAL } from "@/lib/brand-marks";
+import PageHero from "@/components/PageHero";
 
 export const metadata: Metadata = {
   title: "Brand",
@@ -11,19 +12,16 @@ export const metadata: Metadata = {
 
 export default function BrandPage() {
   return (
-    <div className="mx-auto max-w-5xl px-4 py-16 sm:px-6 lg:px-8">
-      <span className="eyebrow">Company / Brand</span>
-      <h1 className="mt-4 font-display text-4xl text-ink sm:text-5xl">
-        The #NotesApp mark
-      </h1>
-      <p className="mt-5 max-w-2xl text-slate">
-        Our logo is the "na" monogram — a red, rounded square that reads
+    <>
+      <PageHero eyebrow="Company / Brand" title={<>The #NotesApp mark</>}>
+        <p>Our logo is the "na" monogram — a red, rounded square that reads
         as a notepad tab. It appears in two forms: the standalone icon
         (app tiles, favicons, avatars) and the full wordmark (site
         headers, decks, printed material). Below is every approved
         variant, including the seasonal marks we use across the
-        Nigerian calendar.
-      </p>
+        Nigerian calendar.</p>
+      </PageHero>
+      <div className="mx-auto max-w-5xl px-4 py-12 sm:px-6 lg:px-8">
 
       {/* Primary marks */}
       <div className="mt-14 grid grid-cols-1 gap-8 sm:grid-cols-2">
@@ -146,5 +144,6 @@ export default function BrandPage() {
         </ul>
       </div>
     </div>
+    </>
   );
 }

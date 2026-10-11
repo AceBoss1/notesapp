@@ -4,6 +4,7 @@ import { ORG_TRIAL_DAYS, ORG_SEATS } from "@/lib/org";
 import { GOLD_PRICING } from "@/lib/gold";
 import { formatNaira } from "@/lib/booking-time";
 import { getTierConfig } from "@/lib/tiers";
+import PageHero from "@/components/PageHero";
 
 export const metadata: Metadata = {
   title: "Organisations",
@@ -30,13 +31,12 @@ const ENTERPRISE = [
 export default function OrganisationsPage() {
   const e = getTierConfig("enterprise");
   return (
-    <div className="mx-auto max-w-3xl px-4 py-16 sm:px-6 lg:px-8">
-      <span className="eyebrow">Organisations</span>
-      <h1 className="mt-4 font-display text-4xl text-ink sm:text-5xl">A #channel for your organisation</h1>
-      <p className="mt-5 text-lg text-slate">
-        Companies, NGOs, churches, schools and clubs publish on #NotesApp the same way people do — with a registered-organisation
-        label, CAC verification and, soon, a team.
-      </p>
+    <>
+      <PageHero eyebrow="Organisations" title={<>A #channel for your organisation</>}>
+        <p>Companies, NGOs, churches, schools and clubs publish on #NotesApp the same way people do — with a registered-organisation
+        label, CAC verification and, soon, a team.</p>
+      </PageHero>
+      <div className="mx-auto max-w-3xl px-4 py-12 sm:px-6 lg:px-8">
 
       <div className="card mt-10 border-crimson p-7">
         <p className="font-ui text-base font-bold text-ink">{ORG_TRIAL_DAYS} days of Business, free</p>
@@ -117,5 +117,6 @@ export default function OrganisationsPage() {
         <Link href="/pricing" className="text-crimson underline">See pricing</Link> · <Link href="/contact" className="text-crimson underline">Talk to us about Enterprise</Link>
       </p>
     </div>
+    </>
   );
 }

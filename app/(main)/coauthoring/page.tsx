@@ -1,6 +1,7 @@
 import Link from "next/link";
 import type { Metadata } from "next";
 import { MAX_CO_AUTHORS, MIN_CO_PERCENT, MIN_LEAD_PERCENT } from "@/lib/coauthors";
+import PageHero from "@/components/PageHero";
 
 export const metadata: Metadata = {
   title: "Co-authoring",
@@ -27,13 +28,12 @@ const FAQ = [
 
 export default function CoauthoringPage() {
   return (
-    <div className="mx-auto max-w-4xl px-4 py-16 sm:px-6 lg:px-8">
-      <span className="eyebrow">Product</span>
-      <h1 className="mt-4 font-display text-4xl text-ink sm:text-5xl">Write together. Share the credit — and the earnings.</h1>
-      <p className="mt-5 max-w-2xl text-lg text-slate">
-        Pro and Business publishers can co-author a post with other members, agree up front who gets what share of what it earns, and
-        share the byline. Consent is built in: everyone accepts before they&apos;re listed, and the split locks when you publish.
-      </p>
+    <>
+      <PageHero eyebrow="Product" title={<>Write together. Share the credit — and the earnings.</>}>
+        <p>Pro and Business publishers can co-author a post with other members, agree up front who gets what share of what it earns, and
+        share the byline. Consent is built in: everyone accepts before they&apos;re listed, and the split locks when you publish.</p>
+      </PageHero>
+      <div className="mx-auto max-w-4xl px-4 py-12 sm:px-6 lg:px-8">
 
       <div className="mt-12 grid grid-cols-1 gap-6 sm:grid-cols-2">
         {STEPS.map((s, i) => (
@@ -70,5 +70,6 @@ export default function CoauthoringPage() {
         <Link href="/invites" className="btn-ghost">My co-author invites</Link>
       </div>
     </div>
+    </>
   );
 }

@@ -5,6 +5,7 @@ import Link from "next/link";
 import Avatar from "@/components/Avatar";
 import AdSlot from "@/components/AdSlot";
 import BadgeToast from "@/components/BadgeToast";
+import PageHero from "@/components/PageHero";
 
 type Post = { id: string; slug: string; title: string; author: string; authorUsername?: string; views: number; date: string };
 type Publisher = { username: string; displayName: string; avatar: string; views: number; posts: number };
@@ -32,12 +33,11 @@ export default function TrendingPage() {
   );
 
   return (
-    <section className="mx-auto max-w-3xl px-4 py-14 sm:px-6">
-      <span className="eyebrow">Trending</span>
-      <h1 className="mt-3 font-display text-4xl text-ink">Most visited on #NotesApp</h1>
-      <p className="mt-2 text-sm text-slate">
-        Ranked by visits{data ? ` (${data.basis})` : ""}. Refreshed every few minutes.
-      </p>
+    <>
+      <PageHero eyebrow="Trending" title={<>Most visited on #NotesApp</>}>
+        <p>Ranked by visits{data ? ` (${data.basis})` : ""}. Refreshed every few minutes.</p>
+      </PageHero>
+      <section className="mx-auto max-w-3xl px-4 py-12 sm:px-6">
       <div className="mt-6 flex gap-2">{tabBtn("publishers", "Top publishers")}{tabBtn("posts", "Top posts")}</div>
       <AdSlot placement="trending" />
 
@@ -82,5 +82,6 @@ export default function TrendingPage() {
       )}
       <BadgeToast />
     </section>
+    </>
   );
 }

@@ -1,5 +1,6 @@
 import Link from "next/link";
 import type { Metadata } from "next";
+import PageHero from "@/components/PageHero";
 
 export const metadata: Metadata = {
   title: "Team hub and team messaging",
@@ -19,12 +20,11 @@ const INSIDE = [
 
 export default function TeamsPage() {
   return (
-    <div className="mx-auto max-w-4xl px-4 py-16 sm:px-6 lg:px-8">
-      <span className="eyebrow">Coming Soon · Business and Enterprise</span>
-      <h1 className="mt-4 font-display text-4xl text-ink sm:text-5xl">Team hub and team messaging</h1>
-      <p className="mt-5 max-w-2xl text-lg text-slate">
-        A shared workspace for the people who run your channel with you: who is doing what, what needs a decision, and a place to talk about it, all next to the journals, bookings and store you already run on #NotesApp.
-      </p>
+    <>
+      <PageHero eyebrow="Coming Soon · Business and Enterprise" title={<>Team hub and team messaging</>}>
+        <p>A shared workspace for the people who run your channel with you: who is doing what, what needs a decision, and a place to talk about it, all next to the journals, bookings and store you already run on #NotesApp.</p>
+      </PageHero>
+      <div className="mx-auto max-w-4xl px-4 py-12 sm:px-6 lg:px-8">
 
       <section className="card mt-10 p-7" aria-labelledby="status">
         <h2 id="status" className="font-display text-2xl text-ink">Where it stands</h2>
@@ -58,5 +58,6 @@ export default function TeamsPage() {
         </div>
       </section>
     </div>
+    </>
   );
 }
