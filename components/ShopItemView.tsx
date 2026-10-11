@@ -185,7 +185,7 @@ export default function ShopItemPage() {
           <ul className="mt-3 space-y-1 text-sm text-slate">
             {!digital && <li>📍 {item.shipsFrom ? <>Ships from <strong className="text-ink">{item.shipsFrom}</strong></> : "Ships from: the seller will confirm after your order"}</li>}
             {!digital && <li>🚚 {delivery ? `${formatNaira(delivery)} delivery` : "Delivery arranged by the seller"}</li>}
-            {stat && (stat.views > 0 || stat.favs > 0) && <li>👀 {stat.views} view{stat.views === 1 ? "" : "s"}{stat.favs > 0 ? ` · ♥ ${stat.favs} saved` : ""}</li>}
+            {stat && (stat.views > 0 || stat.favs > 0) && <li>👁 {stat.views} view{stat.views === 1 ? "" : "s"}{stat.favs > 0 ? ` · ♥ ${stat.favs} saved` : ""}</li>}
           </ul>
 
       {options.map((o, i) => (

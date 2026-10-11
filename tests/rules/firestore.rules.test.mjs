@@ -231,6 +231,9 @@ test("publishers manage only their own valid store items", async () => {
   await assertFails(setDoc(doc(as("pub"), "storeItems/i3"), { ...item, ownerUid: "alice" }));
   await assertFails(setDoc(doc(as("pub"), "storeItems/i4"), { ...item, link: "javascript:alert(1)" }));
   await assertFails(setDoc(doc(as("pub"), "storeItems/i5"), { ...item, extra: "x" }));
+  await assertSucceeds(updateDoc(doc(as("pub"), "storeItems/i1"), { featured: true })); // the owner features an item
+  await assertFails(updateDoc(doc(as("pub"), "storeItems/i1"), { featured: "yes" }));
+  await assertFails(updateDoc(doc(as("alice"), "storeItems/i1"), { featured: true })); // not someone else
   await assertFails(updateDoc(doc(as("alice"), "storeItems/i1"), { title: "hijack" }));
   await assertFails(deleteDoc(doc(as("alice"), "storeItems/i1")));
   await assertSucceeds(deleteDoc(doc(as("pub"), "storeItems/i1")));
@@ -740,7 +743,7 @@ test("staff roles: each department reaches its own collections and not the other
     await assertFails(setDoc(doc(who, "financeEntries/e2"), { kind: "expense" }));
     await assertFails(getDoc(doc(who, "financeLog/l1")));
     // Nana AI's chats hold visitors' names and emails; the knowledge base and the daily counter are written by the server too.
-    for (const c of ["nanaChats", "kbArticles", "nanaUsage", "aiConnections", "grants", "financeDues", "platformSettings", "pricingLog", "storeReviews", "recommendations"]) {
+    for (const c of ["nanaChats", "kbArticles", "nanaUsage", "aiConnections", "grants", "financeDues", "granolaConnections", "granolaStates", "integrationClients", "platformSettings", "pricingLog", "storeReviews", "recommendations"]) {
       await assertFails(getDoc(doc(who, `${c}/x1`)));
       await assertFails(setDoc(doc(who, `${c}/x2`), { a: 1 }));
     }

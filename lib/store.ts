@@ -1,4 +1,4 @@
-import { addDoc, collection, deleteDoc, doc, getDoc, getDocs, query, setDoc, where } from "firebase/firestore";
+import { addDoc, collection, deleteDoc, deleteField, doc, getDoc, getDocs, query, setDoc, updateDoc, where } from "firebase/firestore";
 import { db } from "./firebase";
 import { toMillis } from "./dates";
 import { cleanShipsFrom, isStoreCategory } from "./store-meta";
@@ -44,6 +44,8 @@ export type StoreItem = {
   access?: "download" | "view";
   lessons?: PublicLesson[];
   lessonCount?: number;
+  // The owner's pick for the "Featured in this store" spot on their store page (at most one item; see setFeaturedItem).
+  featured?: boolean;
 };
 
 export type PublicLesson = { id: string; title: string; kind: "video" | "pdf"; durationSec?: number };
@@ -228,10 +230,20 @@ export async function updateStoreItem(uid: string, id: string, input: StoreItemI
     ...(!stockChanged && existing.data()?.variantStock && data.options ? { variantStock: existing.data()!.variantStock } : {}),
     // The lesson outline is kept by the server (see /api/store/lessons); a replace must not wipe it.
     ...(existing.data()?.lessons ? { lessons: existing.data()!.lessons, lessonCount: existing.data()!.lessonCount ?? 0 } : {}),
+    ...(existing.data()?.featured === true ? { featured: true } : {}),
     ownerUid: existing.data()?.ownerUid ?? uid,
     createdAt: existing.data()?.createdAt ?? new Date().toISOString(),
     updatedAt: new Date().toISOString(),
   });
+}
+
+// The owner picks the one item shown as "Featured in this store" (null clears it). Any item that was featured before loses the mark.
+export async function setFeaturedItem(ownerUid: string, itemId: string | null): Promise<void> {
+  const snap = await getDocs(query(collection(db, "storeItems"), where("ownerUid", "==", ownerUid)));
+  await Promise.all(snap.docs.map((d) => {
+    if (d.id === itemId) return d.data().featured === true ? Promise.resolve() : updateDoc(d.ref, { featured: true });
+    return d.data().featured === true ? updateDoc(d.ref, { featured: deleteField() }) : Promise.resolve();
+  }));
 }
 
 export async function deleteStoreItem(id: string): Promise<void> {
