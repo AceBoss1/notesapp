@@ -11,6 +11,15 @@ export type Release = {
 
 export const CHANGELOG: Release[] = [
   {
+    version: "v0.20.0",
+    bump: "minor",
+    date: "2026-10-11",
+    changes: [
+      { kind: "added", text: "For the team: Expenses due on the team hub and the money ledger. Bills, renewals and free plans about to turn paid are listed soonest first with what they cost in naira, reminders go out 14, 7, 3 and 1 days ahead, on the day, and once when overdue, and marking one paid records it as an expense in the ledger." },
+      { kind: "changed", text: "Grants & subscriptions now lead with naira values, at the rate entered on each grant, with the dollar figure beside them. Grants can be recorded as waiting for approval (ElevenLabs is there now) and switched on when they are approved." },
+    ],
+  },
+  {
     version: "v0.19.1",
     bump: "patch",
     date: "2026-10-11",

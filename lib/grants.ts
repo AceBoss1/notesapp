@@ -3,7 +3,8 @@ import { FinanceError } from "./finance";
 // Grants and subscriptions the company holds (free credits, free-period plans) in plain rules. Money here is USD cents because that is how
 // providers quote it; the ledger needs naira, so the person recording it enters the exchange rate (nothing is assumed).
 export type GrantKind = "credit" | "subscription";
-export type GrantStatus = "active" | "ended" | "cancelled";
+// "pending" = applied for, waiting for the provider to approve; nothing is counted or reminded until it is approved.
+export type GrantStatus = "pending" | "active" | "ended" | "cancelled";
 export type Usage = { on: string; cents: number; note: string };
 export type Grant = {
   id: string;
@@ -29,7 +30,7 @@ export type Grant = {
   createdByEmail: string;
   updatedAt?: string;
 };
-export type GrantInput = Partial<Record<keyof Grant, unknown>>;
+export type GrantInput = Partial<Record<keyof Grant | "pending", unknown>>;
 
 // Reminders go out when a grant is this many days from ending (one message covers every threshold crossed since the last one).
 export const REMIND_DAYS = [30, 14, 7, 3, 1, 0];
@@ -39,6 +40,7 @@ export const TEMPLATES: { key: string; label: string; input: GrantInput }[] = [
   { key: "claude-credit", label: "Claude API credit", input: { kind: "credit", provider: "Anthropic (Claude Startups)", title: "Claude API program credit", valueCents: 100000, notes: "$1,000 API credits, expire 180 days after the grant." } },
   { key: "claude-team", label: "Claude Team plan", input: { kind: "subscription", provider: "Anthropic (Claude Startups)", title: "Claude Team plan, 12 months", seats: 2, months: 12, rateCents: 3000, valueCents: 750000, becomesPaid: true, notes: "Offer: up to $625/month off for 12 months, 2-seat minimum. The $625/month is a cap on the whole account, not per seat, so $7,500 is the ceiling. The real saving is at most seats × price × 12, so edit the value to that once you know it." } },
   { key: "moda", label: "Moda Pro", input: { kind: "subscription", provider: "Moda", title: "Moda Pro, 3 months free", seats: 10, months: 3, rateCents: 3000, becomesPaid: true, notes: "10 members. Offer also includes up to $3k AI credits. List price $30/user/month, verify on moda.app/pricing." } },
+  { key: "elevenlabs", label: "ElevenLabs", input: { kind: "credit", provider: "ElevenLabs", title: "ElevenLabs grant", pending: true, notes: "Applied for the ElevenLabs grant (ElevenCreative, text to speech and speech to text). Waiting for approval: when it comes, press Approved, then enter the credits and dates." } },
   { key: "granola", label: "Granola Business", input: { kind: "subscription", provider: "Granola", title: "Granola Business, 3 months free", seats: 10, months: 3, rateCents: 1400, becomesPaid: true, notes: "10 seats. List price $14/user/month, verify on granola.ai/pricing." } },
 ];
 
@@ -52,9 +54,12 @@ export const remainingCents = (g: Pick<Grant, "usage" | "valueCents">) => Math.m
 export const kobo = (cents: number, fxNgn: number) => Math.round(cents * fxNgn);
 export const usd = (cents: number) => `$${(cents / 100).toLocaleString("en-US", { minimumFractionDigits: cents % 100 ? 2 : 0, maximumFractionDigits: 2 })}`;
 // What it costs per month once the free period is over (zero if it doesn't turn paid).
+// A grant's worth in naira (kobo) at the rate entered on it; null when no rate has been entered.
+export const worthKobo = (g: Pick<Grant, "valueCents" | "fxNgn">) => (g.fxNgn > 0 ? kobo(g.valueCents, g.fxNgn) : null);
+export const monthlyAfterKobo = (g: Pick<Grant, "becomesPaid" | "seats" | "paidRateCents" | "rateCents" | "fxNgn">) => (g.fxNgn > 0 ? kobo(monthlyAfter(g), g.fxNgn) : null);
 export const monthlyAfter = (g: Pick<Grant, "becomesPaid" | "seats" | "paidRateCents" | "rateCents">) => (g.becomesPaid ? g.seats * (g.paidRateCents || g.rateCents) : 0);
 
-export type CleanGrant = Omit<Grant, "id" | "usage" | "remindedDays" | "createdAt" | "createdByEmail" | "ledgerEntryId" | "updatedAt" | "status">;
+export type CleanGrant = Omit<Grant, "id" | "usage" | "remindedDays" | "createdAt" | "createdByEmail" | "ledgerEntryId" | "updatedAt" | "status"> & { pending: boolean };
 export function cleanGrant(input: GrantInput, today: string): CleanGrant {
   const kind: GrantKind = input.kind === "credit" ? "credit" : "subscription";
   const provider = String(input.provider ?? "").trim().slice(0, 80);
@@ -68,7 +73,8 @@ export function cleanGrant(input: GrantInput, today: string): CleanGrant {
   const rateCents = sub ? int(input.rateCents, 0, 10_000_000) : 0;
   let valueCents = int(input.valueCents, 0, 1_000_000_000);
   if (sub && !valueCents) valueCents = seats * rateCents * months;
-  if (!valueCents) throw new FinanceError("Enter what the grant is worth in US dollars.");
+  const pending = input.pending === true;
+  if (!valueCents && !pending) throw new FinanceError("Enter what the grant is worth in US dollars.");
   const endsOn = day(input.endsOn) || (sub ? addMonths(startsOn, months) : addDays(startsOn, 180));
   if (endsOn < startsOn) throw new FinanceError("The end date is before the start date.");
   const fx = Number(input.fxNgn);
@@ -76,7 +82,7 @@ export function cleanGrant(input: GrantInput, today: string): CleanGrant {
   const paidRateCents = sub ? int(input.paidRateCents, 0, 10_000_000) : 0;
   return {
     kind, provider, title, seats, seatsUsed: sub ? int(input.seatsUsed, 0, seats) : 0, rateCents, months, valueCents, fxNgn, startsOn, endsOn,
-    becomesPaid: sub && input.becomesPaid === true, paidRateCents, notes: String(input.notes ?? "").trim().slice(0, 600),
+    becomesPaid: sub && input.becomesPaid === true, paidRateCents, pending, notes: String(input.notes ?? "").trim().slice(0, 600),
   };
 }
 
