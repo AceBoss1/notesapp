@@ -11,6 +11,15 @@ export type Release = {
 
 export const CHANGELOG: Release[] = [
   {
+    version: "v0.18.0",
+    bump: "minor",
+    date: "2026-10-11",
+    changes: [
+      { kind: "added", text: "Behind the scenes, for the team: a Grants & subscriptions page tracks the free credits and plans we hold (what each is worth, how much is used, the rate per seat, when it ends and what it costs afterwards), and sends finance and the owner a reminder 30, 14, 7, 3 and 1 days before each ends, and on the day." },
+      { kind: "added", text: "The money ledger can now record a grant as in-kind: free credit or a free plan is counted on its own line, not as cash." },
+    ],
+  },
+  {
     version: "v0.17.0",
     bump: "minor",
     date: "2026-10-11",

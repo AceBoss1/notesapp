@@ -12,6 +12,7 @@ import { deleteObject, privateFilesConfigured } from "@/lib/private-files";
 import { sendReportsDigest, liftExpiredSuspensions } from "@/lib/reports-server";
 import { momentDeps } from "@/lib/moments-api";
 import { sendMorningSummaries } from "@/lib/team-server";
+import { sendGrantReminders } from "@/lib/grants-server";
 
 // Run every ~15 minutes by an external scheduler with
 //   Authorization: Bearer $CRON_SECRET
@@ -76,6 +77,8 @@ export async function GET(req: NextRequest) {
   await job("reportsDigest", async () => ((await sendReportsDigest(db)) ? 1 : 0));
   // From 07:00 Lagos time, once a day: the team's morning summary (their day, decisions, blockers, queues, milestones, meetings).
   await job("teamMorningSummary", () => sendMorningSummaries(db));
+  // Grants and free-period plans: 30, 14, 7, 3, 1 and 0 days before they end, to finance and the owner.
+  await job("grantReminders", () => sendGrantReminders(db));
   await job("reconcilePaylonyPayouts", () => reconcilePaylonyPayouts().then((r) => r.paid + r.failed));
   // Heartbeat read by /status ("Scheduled jobs"); server-only collection, no client rules.
   await db.collection("cronRuns").doc("reminders").set({ at: new Date().toISOString(), ok: failed.length === 0, failed }).catch((e) => console.error("cron heartbeat failed", e));

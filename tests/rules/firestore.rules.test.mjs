@@ -740,7 +740,7 @@ test("staff roles: each department reaches its own collections and not the other
     await assertFails(setDoc(doc(who, "financeEntries/e2"), { kind: "expense" }));
     await assertFails(getDoc(doc(who, "financeLog/l1")));
     // Nana AI's chats hold visitors' names and emails; the knowledge base and the daily counter are written by the server too.
-    for (const c of ["nanaChats", "kbArticles", "nanaUsage", "aiConnections"]) {
+    for (const c of ["nanaChats", "kbArticles", "nanaUsage", "aiConnections", "grants"]) {
       await assertFails(getDoc(doc(who, `${c}/x1`)));
       await assertFails(setDoc(doc(who, `${c}/x2`), { a: 1 }));
     }

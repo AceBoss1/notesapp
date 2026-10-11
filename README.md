@@ -1202,6 +1202,8 @@ on every admin API route, `isSuper()/adminHas()/adminHasAny()` in `firestore.rul
 in the browser. Note: a token already issued keeps its claims until it refreshes (up to an hour) for direct
 database reads; API routes check revocation on every call. Deploy with `firebase deploy --only firestore`.
 `POST /api/admin/set-admin` was removed.
+**Grants & subscriptions** — Admin → Team hub → Grants & subscriptions (`/admin/team/grants`, `/api/admin/grants`, rules in `lib/grants.ts`, server in `lib/grants-server.ts`, server-only `grants` collection). Tracks credits (usage is deducted) and free-period plans (seats, list rate, months, what they cost after), with templates for the Claude Startups credit, Claude Team, Moda Pro and Granola Business. Values are USD cents; the person enters the naira-per-dollar rate, and "Add to ledger" writes an in-kind `grant` income entry (counted separately from cash). The `grantReminders` cron job (in `/api/cron/reminders`) messages the owner, super admins and finance at 30, 14, 7, 3, 1 and 0 days, once per threshold, and closes grants past their end date. Finance edits, product reads. List prices in templates are prefilled from public pricing pages and must be checked against invoices.
+
 **Money ledger** — Admin → Team hub → Money ledger (`/admin/team/finance`, `/api/admin/finance`, `lib/finance.ts` for the rules,
 `lib/finance-server.ts` for the logic). Expenses, payroll and money in that isn't platform revenue (grants, sponsorships, direct
 transfers), with receipts and invoices (private R2 bucket, short-lived links, same bucket and CORS as message files), next to
