@@ -121,6 +121,7 @@ export type UserProfile = {
   shopHidden?: boolean;
   // Organisation accounts (server-written; see lib/org.ts). Absent = personal.
   accountKind?: AccountKind;
+  siteTheme?: string; // Business and Enterprise: the look of their own site (lib/site-themes.ts); written only by /api/site/theme
   org?: OrgInfo;
   trialUntil?: string; // free Business trial end
   trialTier?: AccountTier;

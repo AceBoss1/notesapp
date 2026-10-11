@@ -32,7 +32,7 @@ export default async function JournalDetail({
   site,
 }: {
   params: { slug: string };
-  site?: { uid: string; base: string };
+  site?: { uid: string; base: string; theme?: string };
 }) {
   const note = await getNoteBySlug(params.slug);
   if (!note) return notFound();
@@ -58,12 +58,14 @@ export default async function JournalDetail({
       : authorProfile?.username;
 
   const notesBase = site ? `${site.base}/notes` : "/journals";
+  // Wide layout with the author rail: the main site, and member sites that chose the Aurora theme.
+  const wide = !site || site.theme === "aurora";
   // Profile links go to #NotesApp, so inside a member's site they're plain text.
   const Who = ({ href, className, children }: { href: string; className?: string; children: React.ReactNode }) =>
     site ? <span className={className}>{children}</span> : <Link href={href} className={className}>{children}</Link>;
 
   return (
-    <div className={site ? "mx-auto max-w-3xl px-4 py-16 sm:px-6 lg:px-8" : "mx-auto max-w-6xl px-4 py-12 sm:px-6 lg:grid lg:grid-cols-[minmax(0,1fr),20rem] lg:gap-12 lg:px-8"}>
+    <div className={!wide ? "mx-auto max-w-3xl px-4 py-16 sm:px-6 lg:px-8" : "mx-auto max-w-6xl px-4 py-12 sm:px-6 lg:grid lg:grid-cols-[minmax(0,1fr),20rem] lg:gap-12 lg:px-8"}>
     <article className="min-w-0">
       <Link
         href={site ? notesBase || "/notes" : "/journals"}
@@ -213,7 +215,7 @@ export default async function JournalDetail({
       )}
 
       {authorProfile && (
-        <div className={`card mt-10 flex flex-col items-start gap-4 p-7 sm:flex-row sm:items-center sm:justify-between ${site ? "" : "lg:hidden"}`}>
+        <div className={`card mt-10 flex flex-col items-start gap-4 p-7 sm:flex-row sm:items-center sm:justify-between ${wide ? "lg:hidden" : ""}`}>
           <div>
             <p className="font-ui text-base font-bold text-ink">
               Book a session with {note.author}
@@ -241,7 +243,7 @@ export default async function JournalDetail({
         />
         {!site && <SocialPublish noteId={note.id} authorUid={note.authorUid} />}
         {authorProfile && linkedUsername && (
-          <div className={`mt-4 ${site ? "" : "lg:hidden"}`}>
+          <div className={`mt-4 ${wide ? "lg:hidden" : ""}`}>
             <GiftButton username={linkedUsername} publisherUid={authorProfile.uid} noteId={note.id} label="🎁 Gift this post" />
           </div>
         )}
@@ -287,13 +289,13 @@ export default async function JournalDetail({
         shares={note.shareCount || 0}
       />
     </article>
-    {!site && authorProfile && (
+    {wide && authorProfile && (
       <aside className="hidden space-y-5 lg:sticky lg:top-24 lg:block lg:self-start" aria-label="About the author">
         <div className="rounded-xl2 p-6 text-paper shadow-lg" style={{ backgroundImage: "linear-gradient(160deg, #4E0119 0%, #7A0328 100%)" }}>
           <p className="font-mono text-[11px] uppercase tracking-eyebrow text-paper/70">Book a 1:1 session</p>
           <p className="mt-2 font-display text-2xl leading-snug">Book a session with {authorProfile.displayName}</p>
           <p className="mt-2 text-sm text-paper/80">Native calendar, no redirect. Payment collects inline.</p>
-          <Link href={`/u/${authorProfile.username}`} className="mt-4 inline-block rounded-full bg-paper px-5 py-2.5 font-ui text-sm font-bold text-crimson-deep hover:opacity-90">View calendar</Link>
+          <Link href={site ? `${site.base || ""}/#book` : `/u/${authorProfile.username}`} className="mt-4 inline-block rounded-full bg-paper px-5 py-2.5 font-ui text-sm font-bold text-crimson-deep hover:opacity-90">View calendar</Link>
         </div>
         <div className="card p-5">
           <div className="flex items-center gap-3">
@@ -303,7 +305,7 @@ export default async function JournalDetail({
               <p className="truncate font-mono text-[11px] uppercase tracking-wide text-slate">{roleLabelFor(authorProfile)}</p>
             </div>
           </div>
-          {linkedUsername && (
+          {linkedUsername && !site && (
             <div className="mt-4 flex flex-wrap gap-2">
               <FollowButton username={linkedUsername} />
               <MessageButton username={linkedUsername} profileUid={authorProfile.uid} />

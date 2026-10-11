@@ -11,6 +11,17 @@ export type Release = {
 
 export const CHANGELOG: Release[] = [
   {
+    version: "v0.17.0",
+    bump: "minor",
+    date: "2026-10-11",
+    changes: [
+      { kind: "added", text: "Site themes for Business and Enterprise: choose how your own site looks under Edit profile → Your site's theme. Legacy is the original look and stays the default, so nothing changes unless you choose. Aurora is the new look: a deep crimson band with your profile on a card, a shop with categories and a featured item, notes with a crimson heading, and a reading page with your booking card, author card and gift card beside the article. You can switch back at any time, and preview your site before you decide." },
+      { kind: "added", text: "With thanks: a section on the About and home pages thanking the programmes that back us, with their logos: Claude Startups (12 months of Claude Team and $1,000 in API credits), Moda (3 months of Pro and up to $3,000 in AI credits) and Granola (3 months of Business for up to 10 seats)." },
+      { kind: "changed", text: "On your own site, people now get a circle picture and organisations a rounded square, as everywhere else." },
+      { kind: "fixed", text: "In Moments, the poster's picture and name now show at the top when you open someone's moments from their profile picture." },
+    ],
+  },
+  {
     version: "v0.16.1",
     bump: "patch",
     date: "2026-10-10",

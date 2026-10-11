@@ -12,6 +12,7 @@ import { useOwnNotes } from "./useOwnNotes";
 import { useOwnItems } from "./useOwnItems";
 import NoteCard from "./NoteCard";
 import SiteProfileHeader from "./SiteProfileHeader";
+import AuroraBand from "./AuroraBand";
 import ScrollToHash from "@/components/ScrollToHash";
 
 // Home: who they are, how to book them, and a taste of the notes and the shop.
@@ -52,6 +53,23 @@ export default function SiteHome() {
           </div>
         </section>
   );
+
+  // Aurora: the profile sits on a card over a crimson band.
+  if (site.theme === "aurora") {
+    return (
+      <div>
+        <AuroraBand />
+        <div className="mx-auto max-w-5xl px-4 pb-14 sm:px-6">
+          <div className="card relative z-10 -mt-16 p-6"><SiteProfileHeader /></div>
+          <div id="book" className="mt-8 scroll-mt-28">
+            <BookingCard username={site.username} publisherUid={site.uid} viewer={viewer} signInHref="/login" />
+          </div>
+          <ScrollToHash />
+          {shopFirst ? <>{itemsSection}{notesSection}</> : <>{notesSection}{itemsSection}</>}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="mx-auto max-w-5xl px-4 py-14 sm:px-6">
