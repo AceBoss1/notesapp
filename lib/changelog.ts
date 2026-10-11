@@ -11,6 +11,16 @@ export type Release = {
 
 export const CHANGELOG: Release[] = [
   {
+    version: "v0.22.1",
+    bump: "patch",
+    date: "2026-10-11",
+    changes: [
+      { kind: "added", text: "Store owners can now choose the item shown at the top of their store as Featured: under Your store, press ☆ Feature on an item (★ Featured to remove it). Without a pick, the most saved and viewed item is shown as before." },
+      { kind: "changed", text: "Item views in stores now use the same 👁 as Trending." },
+      { kind: "fixed", text: "A member's own site (Business and Enterprise) stopped loading its notes, and the More notes list, when the member had no profile picture. It now loads without one." },
+    ],
+  },
+  {
     version: "v0.22.0",
     bump: "minor",
     date: "2026-10-11",

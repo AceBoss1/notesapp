@@ -24,12 +24,13 @@ export async function generateMetadata({ params }: { params: { username: string 
   const p = await getUserByUsername(params.username).catch(() => null);
   if (!p || p.suspended) return { title: "Not found" };
   const description = p.bio || `${p.displayName} — notes, bookings and shop.`;
+  const images = p.avatar ? [p.avatar] : undefined; // an empty address would make a broken <link> and stop the page from loading
   return {
     title: { default: p.displayName, template: `%s — ${p.displayName}` },
     description,
-    icons: { icon: p.avatar }, // their logo is the tab icon
-    openGraph: { siteName: p.displayName, title: p.displayName, description, images: [p.avatar] },
-    twitter: { card: "summary_large_image", title: p.displayName, description, images: [p.avatar] },
+    ...(p.avatar ? { icons: { icon: p.avatar } } : {}), // their logo is the tab icon
+    openGraph: { siteName: p.displayName, title: p.displayName, description, images },
+    twitter: { card: "summary_large_image", title: p.displayName, description, images },
   };
 }
 

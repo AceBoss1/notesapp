@@ -81,7 +81,8 @@ export default function StorePageClient({ params }: { params: { username: string
   // The most looked-at items (only ones somebody has looked at), and a featured pick: most saved and viewed among what can be bought.
   const mostViewed = visible.filter((i) => i.id && (statOf(i)?.views ?? 0) > 0).sort((a, b) => (statOf(b)!.views - statOf(a)!.views)).slice(0, 4);
   const buyable = visible.filter((i) => i.id && i.sellable && (i.kind === "digital" || (i.stock ?? 0) > 0));
-  const featured = buyable.length >= 2 ? [...buyable].sort((a, b) => ((statOf(b)?.favs ?? 0) * 3 + (statOf(b)?.views ?? 0)) - ((statOf(a)?.favs ?? 0) * 3 + (statOf(a)?.views ?? 0)))[0] : null;
+  // The owner's own pick if they chose one (even for a single item); otherwise, with two or more items, the most saved and viewed.
+  const featured = buyable.find((i) => i.featured) ?? (buyable.length >= 2 ? [...buyable].sort((a, b) => ((statOf(b)?.favs ?? 0) * 3 + (statOf(b)?.views ?? 0)) - ((statOf(a)?.favs ?? 0) * 3 + (statOf(a)?.views ?? 0)))[0] : null);
 
   return (
     <div>
@@ -190,7 +191,7 @@ export default function StorePageClient({ params }: { params: { username: string
                       <span className="min-w-0">
                         <span className="block truncate font-ui text-sm font-bold text-ink">{i.title}</span>
                         <span className="block font-mono text-xs text-crimson-bright">{i.price}</span>
-                        <span className="block text-[11px] text-slate">{statOf(i)!.views} view{statOf(i)!.views === 1 ? "" : "s"}{(statOf(i)!.favs ?? 0) > 0 ? ` · ♥ ${statOf(i)!.favs}` : ""}</span>
+                        <span className="block text-[11px] text-slate">👁 {statOf(i)!.views} view{statOf(i)!.views === 1 ? "" : "s"}{(statOf(i)!.favs ?? 0) > 0 ? ` · ♥ ${statOf(i)!.favs}` : ""}</span>
                       </span>
                     </Link>
                   ))}

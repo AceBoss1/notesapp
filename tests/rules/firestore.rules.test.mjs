@@ -231,6 +231,9 @@ test("publishers manage only their own valid store items", async () => {
   await assertFails(setDoc(doc(as("pub"), "storeItems/i3"), { ...item, ownerUid: "alice" }));
   await assertFails(setDoc(doc(as("pub"), "storeItems/i4"), { ...item, link: "javascript:alert(1)" }));
   await assertFails(setDoc(doc(as("pub"), "storeItems/i5"), { ...item, extra: "x" }));
+  await assertSucceeds(updateDoc(doc(as("pub"), "storeItems/i1"), { featured: true })); // the owner features an item
+  await assertFails(updateDoc(doc(as("pub"), "storeItems/i1"), { featured: "yes" }));
+  await assertFails(updateDoc(doc(as("alice"), "storeItems/i1"), { featured: true })); // not someone else
   await assertFails(updateDoc(doc(as("alice"), "storeItems/i1"), { title: "hijack" }));
   await assertFails(deleteDoc(doc(as("alice"), "storeItems/i1")));
   await assertSucceeds(deleteDoc(doc(as("pub"), "storeItems/i1")));

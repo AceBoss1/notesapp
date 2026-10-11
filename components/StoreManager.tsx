@@ -6,7 +6,7 @@ import { auth } from "@/lib/firebase";
 import { uploadToR2 } from "@/lib/upload";
 import { STORE_DELIVERY_MAX_KOBO, STORE_ITEM_MAX_KOBO, STORE_ITEM_MIN_KOBO } from "@/lib/orders";
 import Link from "next/link";
-import { addStoreItem, updateStoreItem, deleteStoreItem, StoreItem, MAX_IMAGES, MAX_VARIANTS, cleanOptions, variantKey, DEFAULT_STORE_IMAGE } from "@/lib/store";
+import { addStoreItem, updateStoreItem, deleteStoreItem, setFeaturedItem, StoreItem, MAX_IMAGES, MAX_VARIANTS, cleanOptions, variantKey, DEFAULT_STORE_IMAGE } from "@/lib/store";
 import { attachDigitalFile, fmtSize } from "@/lib/store-files";
 import LessonsEditor from "@/components/LessonsEditor";
 import { canSellViewOnly } from "@/lib/tiers";
@@ -201,6 +201,18 @@ export default function StoreManager({
     }
   }
 
+  async function feature(id: string, already: boolean) {
+    setBusy(true);
+    try {
+      await setFeaturedItem(profile.uid, already ? null : id);
+      onChanged();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Couldn't change the featured item.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
   async function remove(id: string) {
     if (!confirm("Remove this item from the store?")) return;
     setBusy(true);
@@ -237,6 +249,7 @@ export default function StoreManager({
              <div className="flex items-center justify-between gap-3">
               <span className="truncate">{i.title} <span className="font-mono text-xs text-slate">· {i.price} · {i.kind === "digital" ? (i.access === "view" ? ((i.lessonCount ?? 0) > 0 ? `view only · ${i.lessonCount} lesson${i.lessonCount === 1 ? "" : "s"}` : "view only · NO LESSONS YET") : i.fileName ? `download · ${i.fileName}${i.fileSize ? ` (${fmtSize(i.fileSize)})` : ""}` : "download · NO FILE YET") : i.stock && i.stock > 0 ? `${i.stock} in stock${i.options?.length ? ` · ${i.options.map((o) => o.name).join(" × ")}` : ""}` : "sold out"}</span></span>
               <span className="flex shrink-0 gap-3 font-ui text-xs font-semibold">
+                <button onClick={() => feature(i.id!, i.featured === true)} className={i.featured ? "text-crimson" : "text-slate hover:text-crimson"} disabled={busy} title={i.featured ? "This is the item at the top of your store. Click to remove it." : "Show this item at the top of your store page"}>{i.featured ? "★ Featured" : "☆ Feature"}</button>
                 <Link href={`/boost/item/${i.id}`} className="text-crimson">Boost</Link>
                 {i.access === "view" && <button onClick={() => setLessonsFor(lessonsFor === i.id ? null : i.id!)} className="text-crimson">Lessons</button>}
                 <button onClick={() => startEdit(i)} className="text-crimson">{i.kind === "digital" ? (i.access === "view" ? "Edit" : "Edit / replace file") : "Edit / restock"}</button>
