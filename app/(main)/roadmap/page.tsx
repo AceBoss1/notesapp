@@ -64,9 +64,9 @@ const ITEMS: { title: string; tag: string; body: string; detail: string; link?: 
   {
     title: "Advertise on LinkedIn from #NotesApp",
     tag: "Ads",
-    body: "Under review: boost one of your posts on LinkedIn from inside #NotesApp, using your own LinkedIn ad account, and see what it earned next to your #NotesApp numbers. LinkedIn has approved our first access requests, and we are building and testing it before it opens, so there is no date yet.",
+    body: "Next up, for Business and Enterprise members only: boost one of your posts on LinkedIn from inside #NotesApp, using your own LinkedIn ad account, and see what it earned next to your #NotesApp numbers. LinkedIn has approved our access to its Advertising API (development tier), so we are now building and testing it, and it opens to members after LinkedIn's review of our app. No date yet.",
     detail:
-      "How it would work: you connect your LinkedIn ad account, pick a post, set a budget and audience, and LinkedIn bills you directly; #NotesApp never holds your ad money. Reporting comes back to your dashboard. Later steps, each its own approval and its own privacy review: sending sign-ups back to LinkedIn so campaigns can be measured, and bringing in LinkedIn leads. We would only list audiences you create from your own followers with your consent. LinkedIn ads cost more per click than most platforms, so this suits Business and Enterprise members selling to companies and professionals; our own boosts remain the lower-cost way to be seen on #NotesApp.",
+      "How it would work: you connect your LinkedIn ad account, pick a post, set a budget and audience, and LinkedIn bills you directly; #NotesApp never holds your ad money. Reporting comes back to your dashboard. Later steps, each its own approval and its own privacy review: sending sign-ups back to LinkedIn so campaigns can be measured, and bringing in LinkedIn leads. We would only list audiences you create from your own followers with your consent. It will be a Business and Enterprise feature, not on Free or Pro. LinkedIn ads cost more per click than most platforms, so it suits members selling to companies and professionals; our own boosts remain the lower-cost way to be seen on #NotesApp.",
   },
   {
     title: "Domain sales and DNS management",
@@ -119,7 +119,7 @@ export default function RoadmapPage() {
     <>
       <PageHero eyebrow="Coming Soon" title={<>What's next for #NotesApp</>}>
         <p>The core loop — publish, book, get paid — is what's demoed
-        today. The ones marked on the right are decided and documented, not yet built. Nana AI and the help centre, publishing to LinkedIn and X, direct and group messages, paid sessions (with rescheduling and automatic payouts), monthly subscriptions, publisher rates and payouts, post and item boosts, gifts, Pro / Business plans, organisation accounts, stores for physical goods and digital downloads, parcel tracking, and official merch are already live. Last updated 10 October 2026.</p>
+        today. The ones marked on the right are decided and documented, not yet built. Nana AI and the help centre, publishing to LinkedIn and X, direct and group messages, paid sessions (with rescheduling and automatic payouts), monthly subscriptions, publisher rates and payouts, post and item boosts, gifts, Pro / Business plans, organisation accounts, stores for physical goods and digital downloads, parcel tracking, and official merch are already live. Last updated 11 October 2026.</p>
       </PageHero>
       <div className="mx-auto max-w-4xl px-4 py-12 sm:px-6 lg:px-8">
 
@@ -164,7 +164,7 @@ export default function RoadmapPage() {
               <li>The team hub and team messaging for Business and Enterprise (our own team is using it now)</li>
               <li>AI notetaker and your own AI assistant through MCP</li>
               <li>Voice: Listen to a journal, Nana that speaks, voice transcripts</li>
-              <li>Publishing to Facebook, Instagram and TikTok; LinkedIn advertising from #NotesApp (under review)</li>
+              <li>Publishing to Facebook, Instagram and TikTok; LinkedIn advertising from #NotesApp, for Business and Enterprise (approved by LinkedIn, being built)</li>
               <li>Google ads on the web and AdMob in the apps</li>
               <li>Audio and video meetings, meeting chat (under team discussion)</li>
               {!MOMENTS_LIVE && <li>Moments: pictures, video and text on profile pictures for 24, 48 or 72 hours</li>}

@@ -2,6 +2,25 @@ import ErrorReporter from "@/components/ErrorReporter";
 import type { Metadata } from "next";
 import { SITE } from "@/lib/site";
 import "./globals.css";
+import { unstable_cache } from "next/cache";
+import PricingHydrator from "@/components/PricingHydrator";
+import { getAdminDb } from "@/lib/firebase-admin";
+import { applyPricing, cleanPricing, type PricingConfig } from "@/lib/pricing";
+
+// The prices an admin set on /admin/pricing, read at most once a minute (and refreshed when they save). Without any (or if the read fails)
+// the built-in defaults apply, so a Firestore hiccup can never take a page down.
+const savedPricing = unstable_cache(
+  async (): Promise<PricingConfig | null> => {
+    try {
+      const saved = (await getAdminDb().doc("platformSettings/pricing").get()).data()?.config;
+      return saved ? cleanPricing(saved) : null;
+    } catch {
+      return null;
+    }
+  },
+  ["platform-pricing"],
+  { revalidate: 60, tags: ["pricing"] },
+);
 
 const DEFAULT_TITLE = "#NotesApp — Publish. Book. Get Paid. One Workspace.";
 const DEFAULT_DESCRIPTION =
@@ -30,11 +49,13 @@ export const metadata: Metadata = {
   },
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  const pricing = await savedPricing();
+  if (pricing) applyPricing(pricing); // this server render's own copy (the client copy is set by PricingHydrator)
   return (
     <html lang="en">
       <head>
@@ -51,7 +72,7 @@ export default function RootLayout({
       </head>
       <body>
         <ErrorReporter />
-        {children}
+        <PricingHydrator config={pricing}>{children}</PricingHydrator>
       </body>
     </html>
   );

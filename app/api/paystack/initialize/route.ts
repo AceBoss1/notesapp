@@ -11,6 +11,7 @@ import { verifyAdminRequest } from "@/lib/firebase-admin";
 import { getTierPlanCode, getBadgePlanCode, getGoldPlanCode } from "@/lib/tier-billing";
 import { GOLD_PRICING, isGoldKind, isGoldTrack } from "@/lib/gold";
 import { getAdPackage } from "@/lib/ad-packages";
+import { ensurePricing } from "@/lib/pricing-server";
 import { isPlacement } from "@/lib/ads";
 import { r2PublicUrl } from "@/lib/r2";
 import { getMerchItem, LOGO_OPTIONS, MERCH_BATCH, MERCH_DELIVERY_KOBO, MERCH_MAX_QTY, merchBatchOpen, validateAddress } from "@/lib/merch";
@@ -26,6 +27,7 @@ import { callbackOrigin } from "@/lib/origin";
 // subscription. Price, slots and plan all come from the publisher's
 // server-side settings — the client only says who/what/when.
 export async function POST(req: NextRequest) {
+  await ensurePricing();
   try {
     const idToken = req.headers.get("authorization")?.replace(/^Bearer\s+/i, "");
     const user = await verifySignedInRequest(idToken).catch(() => null);

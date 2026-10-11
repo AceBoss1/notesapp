@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { User } from "firebase/auth";
 import { UserProfile } from "@/lib/users";
+import { planRate } from "@/lib/pricing";
 
 // Shown on Rates & payouts to accounts that can't publish yet (Free
 // Standard): apply for Free Basic (admin-reviewed) or pick a paid plan.
@@ -44,7 +45,7 @@ export default function BecomePublisher({ user, profile, onApplied }: { user: Us
 
       <div className="card mt-6 p-6">
         <p className="font-ui text-base font-bold text-ink">Free Basic — apply, reviewed by an admin</p>
-        <p className="mt-1 text-sm text-slate">No payment. NotesApp takes 35% of what you earn through sessions, subscriptions and gifts.</p>
+        <p className="mt-1 text-sm text-slate">No payment. NotesApp takes {planRate("basic", "session")} of what you earn through sessions, subscriptions and gifts.</p>
         {req?.status === "pending" ? (
           <p className="mt-4 border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-ink">
             Your application is waiting for review. You'll get a notification when it's decided.

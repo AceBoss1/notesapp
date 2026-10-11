@@ -11,6 +11,7 @@ import { LIMITS, WEEKDAYS, formatNaira, formatSlot, PublisherSettings } from "@/
 import type { LedgerEntry } from "@/lib/payments";
 import BecomePublisher from "@/components/BecomePublisher";
 import PageHero from "@/components/PageHero";
+import { planRate } from "@/lib/pricing";
 
 const TIME_OPTIONS = Array.from({ length: 30 }, (_, i) => {
   const mins = 6 * 60 + i * 30; // 06:00 … 20:30
@@ -338,7 +339,7 @@ export default function PublishingSettingsPage() {
                 <span className="eyebrow">Show ads on my journal (earn your plan&apos;s ad share)</span>
               </label>
               <p className="mt-2 text-xs text-slate">
-                Ads carry a “Sponsored” note. Pro earns 25% and Business 45% of the ad revenue from your pages, from day one of opting in.
+                Ads carry a “Sponsored” note. Pro earns {planRate("pro", "adShare")} and Business {planRate("business", "adShare")} of the ad revenue from your pages, from day one of opting in.
                 Your share is calculated monthly from the ad revenue received, reviewed, held 30 days, then paid to your bank — see <Link href="/advertise" className="text-crimson underline">Advertise</Link>.
               </p>
               {adStatements.length > 0 && (

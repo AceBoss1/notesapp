@@ -3,11 +3,12 @@ import type { Metadata } from "next";
 import { AD_PACKAGES } from "@/lib/ad-packages";
 import { formatNaira } from "@/lib/booking-time";
 import PageHero from "@/components/PageHero";
+import { planRate } from "@/lib/pricing";
 
 export const metadata: Metadata = {
   title: "Advertise",
   description:
-    "Buy a banner campaign on #NotesApp, paid online and priced by validated impressions. Ads come with a revenue share built in: Pro and Business publishers earn 25% and 45%.",
+    "Buy a banner campaign on #NotesApp, paid online and priced by validated impressions. Ads come with a revenue share built in: Pro and Business publishers earn a share of the ad revenue on their pages.",
 };
 
 export default function AdvertisePage() {
@@ -51,7 +52,7 @@ export default function AdvertisePage() {
           <p className="font-mono text-xs uppercase tracking-eyebrow text-crimson-bright">
             Pro tier
           </p>
-          <p className="mt-3 font-display text-2xl text-ink">25% ad share</p>
+          <p className="mt-3 font-display text-2xl text-ink">{planRate("pro", "adShare")} ad share</p>
           <p className="mt-2 text-sm text-slate">
             If you opt in to showing ads on your pages.
           </p>
@@ -60,7 +61,7 @@ export default function AdvertisePage() {
           <p className="font-mono text-xs uppercase tracking-eyebrow text-crimson-bright">
             Business tier
           </p>
-          <p className="mt-3 font-display text-2xl text-ink">45% ad share</p>
+          <p className="mt-3 font-display text-2xl text-ink">{planRate("business", "adShare")} ad share</p>
           <p className="mt-2 text-sm text-slate">
             If you opt in to showing ads on your pages.
           </p>
@@ -115,8 +116,8 @@ export default function AdvertisePage() {
         <p className="font-ui text-sm font-bold text-ink">How ad share is calculated and paid</p>
         <p className="mt-2 text-sm text-slate">
           Once a month we take the ad revenue we actually received and divide it by every valid impression served — that&apos;s the
-          revenue per impression. Your share is the impressions on <em>your</em> pages × that rate × your plan&apos;s share (Pro 25%,
-          Business 45%). You see a statement on Rates &amp; payouts; once it&apos;s reviewed and approved it&apos;s held for 30 days and then
+          revenue per impression. Your share is the impressions on <em>your</em> pages × that rate × your plan&apos;s share (Pro {planRate("pro", "adShare")},
+          Business {planRate("business", "adShare")}). You see a statement on Rates &amp; payouts; once it&apos;s reviewed and approved it&apos;s held for 30 days and then
           paid to your verified bank account. Amounts under ₦1,000 roll into the next month.
         </p>
       </div>

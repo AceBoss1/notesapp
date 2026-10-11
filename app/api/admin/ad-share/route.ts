@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { friendlyMessage } from "@/lib/api-errors";
 import { getAdminDb, verifyAdminRequest } from "@/lib/firebase-admin";
 import { adShareFor } from "@/lib/tiers";
+import { ensurePricing } from "@/lib/pricing-server";
 import { AD_SHARE_HOLD_DAYS, AD_SHARE_MIN_KOBO, AdRevenueEntry, AdShareStatement, adFlags, isMonth } from "@/lib/ad-share";
 
 export const dynamic = "force-dynamic";
@@ -13,6 +14,7 @@ const SOURCES = ["notesapp", "google", "meta", "admob"];
 // month's revenue entries, impression totals and statements.
 export async function GET(req: NextRequest) {
   try {
+    await ensurePricing();
     await verifyAdminRequest(req.headers.get("authorization")?.replace(/^Bearer\s+/i, ""), ["finance"]);
     const month = req.nextUrl.searchParams.get("month");
     if (!isMonth(month)) return NextResponse.json({ error: "Invalid month." }, { status: 400 });
@@ -36,6 +38,7 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   try {
+    await ensurePricing();
     const adminUid = await verifyAdminRequest(req.headers.get("authorization")?.replace(/^Bearer\s+/i, ""), ["finance"]);
     const body = await req.json().catch(() => ({}));
     const db = getAdminDb();

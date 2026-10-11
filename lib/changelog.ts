@@ -11,6 +11,14 @@ export type Release = {
 
 export const CHANGELOG: Release[] = [
   {
+    version: "v0.21.0",
+    bump: "minor",
+    date: "2026-10-11",
+    changes: [
+      { kind: "added", text: "For the team: a Pricing page in the admin area where the owner and super admins set the prices of Pro and Business, what we take from sessions, subscriptions, gifts and sales on each plan, what publishers earn from ads, the badge and gold prices, and the boost and ad packages. New prices show on every page and checkout straight away, people already subscribed keep the plan price they bought, and every change is logged." },
+    ],
+  },
+  {
     version: "v0.20.0",
     bump: "minor",
     date: "2026-10-11",

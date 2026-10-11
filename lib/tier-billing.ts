@@ -2,6 +2,8 @@ import { getAdminDb } from "./firebase-admin";
 import { FieldValue } from "firebase-admin/firestore";
 import { createPlan, disableSubscription, verifyTransaction, pricePaidKobo } from "./paystack";
 import { TIERS, BADGE_PRICE_KOBO } from "./tiers";
+import { ensurePricing } from "./pricing-server";
+import { nairaText } from "./pricing";
 import { GOLD_PRICING, GoldTrack } from "./gold";
 import { sendEmail } from "./email";
 import { getUserEmail } from "./firebase-admin";
@@ -40,6 +42,7 @@ export function tierPrice(tier: string, interval: string): number | null {
 // the configured price ever changes (existing subscribers stay on the
 // plan they bought).
 export async function getTierPlanCode(tier: BillingTier, interval: Interval): Promise<{ planCode: string; amountKobo: number }> {
+  await ensurePricing();
   const amountKobo = tierPrice(tier, interval);
   if (!amountKobo) throw new Error("This plan isn't available.");
   const db = getAdminDb();
@@ -63,6 +66,7 @@ export type BadgeSubscription = {
 
 // The ₦999/month verified-badge add-on has its own plan.
 export async function getBadgePlanCode(): Promise<{ planCode: string; amountKobo: number }> {
+  await ensurePricing();
   const db = getAdminDb();
   const ref = db.doc("platformPlans/badge_monthly");
   const cur = (await ref.get()).data();
@@ -74,6 +78,7 @@ export async function getBadgePlanCode(): Promise<{ planCode: string; amountKobo
 
 // Gold badge monthly plan, one per track (same price on every tier).
 export async function getGoldPlanCode(track: GoldTrack): Promise<{ planCode: string; amountKobo: number }> {
+  await ensurePricing();
   const amountKobo = GOLD_PRICING[track].monthlyKobo;
   const ref = getAdminDb().doc(`platformPlans/gold_${track}_monthly`);
   const cur = (await ref.get()).data();
@@ -188,6 +193,7 @@ const TRIAL_REMINDER_DAYS = 5;
 // Free organisation trials: remind a few days before the end, then drop the
 // account to Free Basic unless it has paid for the plan in the meantime.
 export async function expireOrgTrials(): Promise<number> {
+  await ensurePricing();
   const db = getAdminDb();
   const site = process.env.NEXT_PUBLIC_SITE_URL || "https://www.notesapp.name.ng";
   const now = Date.now();
@@ -199,7 +205,7 @@ export async function expireOrgTrials(): Promise<number> {
     const email = await getUserEmail(d.id);
     if (end > now) {
       if (!u.trialReminderSent && email) {
-        await sendEmail({ to: email, bell: { uid: d.id, type: "plan", linkHref: "/pricing" }, subject: "Your #NotesApp free trial ends soon", text: `Your free Business trial for ${u.displayName} ends on ${new Date(end).toDateString()}. Keep Business (₦15,000/month) from ${site}/pricing, or your account moves to Free Basic — your journal, followers and earnings stay.\n\n#NotesApp` }).catch(() => {});
+        await sendEmail({ to: email, bell: { uid: d.id, type: "plan", linkHref: "/pricing" }, subject: "Your #NotesApp free trial ends soon", text: `Your free Business trial for ${u.displayName} ends on ${new Date(end).toDateString()}. Keep Business (${nairaText(TIERS.find((t) => t.tier === "business")!.monthlyKobo!)}/month) from ${site}/pricing, or your account moves to Free Basic — your journal, followers and earnings stay.\n\n#NotesApp` }).catch(() => {});
         await d.ref.update({ trialReminderSent: true });
       }
       continue;
