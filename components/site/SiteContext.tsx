@@ -2,6 +2,7 @@
 
 import { createContext, useContext } from "react";
 import type { SocialLinks } from "@/lib/admin";
+import type { SiteThemeId } from "@/lib/site-themes";
 
 // What every page of a member's branded site needs to know. `base` is "" on their own domain and
 // "/s/<username>" when the same site is previewed on www.notesapp.name.ng.
@@ -14,6 +15,8 @@ export type SiteInfo = {
   bio: string;
   social: SocialLinks;
   home: "profile" | "store"; // which comes first on the Home page
+  theme: SiteThemeId; // the look they chose (lib/site-themes.ts)
+  isOrg: boolean; // organisations get a rounded-square picture, people a circle
 };
 
 const Ctx = createContext<SiteInfo | null>(null);

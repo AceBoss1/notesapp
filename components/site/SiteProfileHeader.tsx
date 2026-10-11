@@ -32,7 +32,7 @@ export default function SiteProfileHeader() {
   return (
     <section className="flex flex-col items-start gap-6 sm:flex-row sm:items-center">
       {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img src={site.avatar} alt={site.displayName} className="h-28 w-28 shrink-0 rounded-2xl border border-rule object-cover" />
+      <img src={site.avatar} alt={site.displayName} className={`h-28 w-28 shrink-0 border border-rule object-cover ${site.isOrg ? "rounded-2xl" : "rounded-full"}`} />
       <div className="min-w-0">
         <h1 className="flex flex-wrap items-center gap-2 font-display text-4xl text-ink">
           {site.displayName}

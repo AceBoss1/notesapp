@@ -19,16 +19,17 @@ function current(pathname: string): "home" | "notes" | "shop" {
 }
 
 export default function SiteNav({ footer = false }: { footer?: boolean }) {
-  const { base } = useSite();
+  const { base, theme } = useSite();
+  const dark = theme === "aurora" && !footer;
   const active = current(usePathname() || "/");
   return (
-    <nav className={`flex items-center font-ui text-sm font-semibold ${footer ? "gap-5 text-paper/75" : "gap-5 text-ink sm:gap-7"}`}>
+    <nav className={`flex items-center font-ui text-sm font-semibold ${footer ? "gap-5 text-paper/75" : dark ? "gap-5 text-paper sm:gap-7" : "gap-5 text-ink sm:gap-7"}`}>
       {LINKS.map((l) => (
         <Link
           key={l.key}
           href={`${base}${l.path}` || "/"}
           aria-current={!footer && active === l.key ? "page" : undefined}
-          className={footer ? "hover:text-paper" : `border-b-2 pb-0.5 transition-colors hover:text-crimson ${active === l.key ? "border-crimson text-crimson" : "border-transparent"}`}
+          className={footer ? "hover:text-paper" : `border-b-2 pb-0.5 transition-colors ${dark ? `hover:text-white ${active === l.key ? "border-paper text-white" : "border-transparent"}` : `hover:text-crimson ${active === l.key ? "border-crimson text-crimson" : "border-transparent"}`}`}
         >
           {l.label}
         </Link>

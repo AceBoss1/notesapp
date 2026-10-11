@@ -18,5 +18,5 @@ export default async function Page({ params }: { params: { username: string; slu
   const [owner, note] = await Promise.all([getUserByUsername(params.username).catch(() => null), getNoteBySlug(params.slug)]);
   if (!owner || !note || note.authorUid !== owner.uid) return notFound();
   const host = (headers().get("host") || "").toLowerCase().replace(/:\d+$/, "");
-  return <JournalDetail params={{ slug: params.slug }} site={{ uid: owner.uid, base: isMainHost(host) ? `/s/${owner.username}` : "" }} />;
+  return <JournalDetail params={{ slug: params.slug }} site={{ uid: owner.uid, base: isMainHost(host) ? `/s/${owner.username}` : "", theme: owner.siteTheme }} />;
 }

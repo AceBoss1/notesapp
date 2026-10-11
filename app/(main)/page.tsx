@@ -8,6 +8,7 @@ import ChallengeHero from "@/components/ChallengeHero";
 import AdSlot from "@/components/AdSlot";
 import { activeHostForUsername } from "@/lib/domains";
 import PartnerIcon from "@/components/PartnerIcon";
+import ProgramThanks from "@/components/ProgramThanks";
 import { MESSAGES_LIVE, MOMENTS_LIVE } from "@/lib/moments-rules";
 
 // The reference customers' links point at their own sites once they have them; refreshed every few minutes.
@@ -223,6 +224,7 @@ export default async function Home() {
       </section>
 
       <PartnersStrip className="border-t border-rule px-4 py-12" />
+      <div className="mx-auto max-w-5xl px-4 pb-14 sm:px-6 lg:px-8"><ProgramThanks compact /></div>
     </>
   );
 }

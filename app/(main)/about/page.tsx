@@ -1,4 +1,5 @@
 import PageHero from "@/components/PageHero";
+import ProgramThanks from "@/components/ProgramThanks";
 import Image from "next/image";
 import { PartnersStrip, TrustedByStrip } from "@/components/PartnerMarquees";
 import Link from "next/link";
@@ -109,6 +110,7 @@ export default async function AboutPage() {
 
       <TrustedByStrip className="mt-14" />
       <PartnersStrip className="mt-10" />
+      <ProgramThanks className="mt-14" />
 
       <div className="mt-14 rounded-2xl p-8 text-paper sm:p-10" style={{ backgroundImage: "linear-gradient(160deg, #1A1210 0%, #2a0a14 100%)" }}>
         <p className="font-mono text-[11px] uppercase tracking-eyebrow text-pink-300">How we make money — in the open</p>

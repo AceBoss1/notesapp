@@ -6,6 +6,7 @@ import { api } from "@/lib/moments-client";
 import { timeLeftLabel } from "@/lib/moments-rules";
 import type { MomentGroup, MomentView } from "@/lib/moments-server";
 import Avatar from "@/components/Avatar";
+import { getUserByUsername } from "@/lib/users";
 import FollowButton from "@/components/FollowButton";
 import MessageButton from "@/components/messages/MessageButton";
 import ReportDialog from "./ReportDialog";
@@ -85,6 +86,16 @@ export default function MomentViewer({ moments, onClose, onChanged, groups, onSe
     return () => { live = false; };
   }, [m?.id, m?.mine]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // Opened from a profile picture there is no list of people, so the owner's picture and name are fetched (the header and side card show them).
+  const [fetchedOwner, setFetchedOwner] = useState<{ avatar: string; displayName: string; isOrg: boolean } | null>(null);
+  const listedOwner = groups?.find((g) => g.ownerUid === m?.ownerUid);
+  useEffect(() => {
+    if (!m || listedOwner?.avatar) return;
+    let live = true;
+    getUserByUsername(m.ownerUsername).then((u) => { if (live && u) setFetchedOwner({ avatar: u.avatar, displayName: u.displayName, isOrg: u.accountKind === "organisation" }); }).catch(() => {});
+    return () => { live = false; };
+  }, [m?.ownerUsername, listedOwner?.avatar]); // eslint-disable-line react-hooks/exhaustive-deps
+
   if (!m) return null;
   const prev = () => { if (i > 0) setI(i - 1); else if (prevGroup && onSelectGroup) onSelectGroup(prevGroup); };
   // Tap the left third to go back, anywhere else to go on.
@@ -95,7 +106,7 @@ export default function MomentViewer({ moments, onClose, onChanged, groups, onSe
     try { await fn(); } catch (e) { setNote(e instanceof Error ? e.message : "Something went wrong."); } finally { setBusy(false); }
   };
 
-  const owner = groups?.find((g) => g.ownerUid === m.ownerUid);
+  const owner = listedOwner ?? fetchedOwner;
   const removeMoment = () => act(async () => {
     await api(`/api/moments/${m.id}`, { method: "DELETE" });
     const rest = items.filter((x) => x.id !== m.id);

@@ -3,6 +3,8 @@
 import WorkFields from "@/components/WorkFields";
 import { cleanWork, type Work } from "@/lib/profile-work";
 import MomentSettings from "@/components/moments/MomentSettings";
+import SiteThemePicker from "@/components/SiteThemePicker";
+import { canChooseSiteTheme } from "@/lib/site-themes";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
@@ -190,6 +192,7 @@ export default function ProfileEditPage() {
           )}
         </div>
       </form>
+      {canChooseSiteTheme(profile) && <SiteThemePicker current={profile.siteTheme} username={profile.username} />}
       <MomentSettings />
     </section>
   );
