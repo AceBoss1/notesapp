@@ -7,6 +7,7 @@ import { signUpProfile, isUsernameTaken } from "@/lib/users";
 import { followJournal } from "@/lib/follows";
 import { MANDATORY_JOURNALS, isReservedUsername } from "@/lib/journals-directory";
 import { useSite } from "./SiteContext";
+import PasswordInput from "@/components/PasswordInput";
 
 // Sign-in and sign-up on an Enterprise member's own domain (full white label): a window in the member's name and logo,
 // over their own site. It still says plainly that it is a NotesApp account, but nothing else about it is #NotesApp's: the
@@ -131,7 +132,7 @@ function AuthModal({ mode, setMode, onDone, onClose }: { mode: Mode; setMode: (m
         {!welcome && mode === "signin" && (
           <form onSubmit={signIn} className="mt-5 grid gap-4">
             <label className="block"><span className="eyebrow">Email</span><input type="email" required autoComplete="email" value={email} onChange={(e) => setEmail(e.target.value)} className={field} /></label>
-            <label className="block"><span className="eyebrow">Password</span><input type="password" required autoComplete="current-password" value={password} onChange={(e) => setPassword(e.target.value)} className={field} /></label>
+            <label className="block"><span className="eyebrow">Password</span><PasswordInput  required autoComplete="current-password" value={password} onChange={(e) => setPassword(e.target.value)} className={field} /></label>
             {error && <p className="text-sm text-red-700" role="alert">{error}</p>}
             <button disabled={busy} className="btn-primary disabled:opacity-50">{busy ? "Signing in…" : "Sign in"}</button>
             <p className="text-xs text-slate"><button type="button" onClick={() => switchTo("forgot")} className="underline">Forgot your password?</button> Signed up with Google? Choose that to set a password for your NotesApp account.</p>
@@ -146,7 +147,7 @@ function AuthModal({ mode, setMode, onDone, onClose }: { mode: Mode; setMode: (m
               <span className="mt-2 flex items-center border border-rule bg-card focus-within:border-crimson"><span className="pl-4 font-mono text-slate">@</span><input required value={username} onChange={(e) => setUsername(normalizeUsername(e.target.value))} className="w-full bg-transparent px-2 py-3 font-mono outline-none" /></span>
             </label>
             <label className="block"><span className="eyebrow">Email</span><input type="email" required autoComplete="email" value={email} onChange={(e) => setEmail(e.target.value)} className={field} /></label>
-            <label className="block"><span className="eyebrow">Password</span><input type="password" required minLength={6} autoComplete="new-password" value={password} onChange={(e) => setPassword(e.target.value)} className={field} /></label>
+            <label className="block"><span className="eyebrow">Password</span><PasswordInput  required minLength={6} autoComplete="new-password" value={password} onChange={(e) => setPassword(e.target.value)} className={field} /></label>
             <label className="flex items-start gap-3 text-xs text-slate">
               <input type="checkbox" checked={agreed} onChange={(e) => setAgreed(e.target.checked)} className="mt-0.5" />
               <span>I&apos;m 18 or older and agree to the <a href="/terms" target="_blank" className="underline">Terms</a> and <a href="/privacy" target="_blank" className="underline">Privacy Policy</a>.</span>

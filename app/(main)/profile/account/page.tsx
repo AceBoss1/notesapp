@@ -15,6 +15,7 @@ import { auth } from "@/lib/firebase";
 import { getUserByUid, UserProfile } from "@/lib/users";
 import AccountData from "@/components/AccountData";
 import PageHero from "@/components/PageHero";
+import PasswordInput from "@/components/PasswordInput";
 
 const input = "mt-2 w-full rounded-xl border border-rule bg-card px-4 py-3 font-body focus:border-gold outline-none";
 const btn = "rounded-full bg-ink text-paper px-5 py-2 font-ui text-sm font-semibold hover:bg-crimson-deep transition-colors disabled:opacity-50";
@@ -159,15 +160,15 @@ export default function AccountPage() {
           before switching. Your email is never shown publicly.
         </p>
         <input type="email" value={newEmail} onChange={(e) => setNewEmail(e.target.value)} placeholder="New email address" className={input} required />
-        <input type="password" value={emailPw} onChange={(e) => setEmailPw(e.target.value)} placeholder="Current password" className={input} required autoComplete="current-password" />
+        <PasswordInput  value={emailPw} onChange={(e) => setEmailPw(e.target.value)} placeholder="Current password" className={input} required autoComplete="current-password" />
         <button className={`${btn} mt-4`} disabled={busy === "email"}>{busy === "email" ? "Sending…" : "Send confirmation link"}</button>
         {note(emailMsg)}
       </form>
 
       <form onSubmit={changePassword} className="card mt-6 p-6">
         <h2 className="font-display text-xl">Password</h2>
-        <input type="password" value={curPw} onChange={(e) => setCurPw(e.target.value)} placeholder="Current password" className={input} required autoComplete="current-password" />
-        <input type="password" value={newPw} onChange={(e) => setNewPw(e.target.value)} placeholder="New password (6+ characters)" className={input} required minLength={6} autoComplete="new-password" />
+        <PasswordInput  value={curPw} onChange={(e) => setCurPw(e.target.value)} placeholder="Current password" className={input} required autoComplete="current-password" />
+        <PasswordInput  value={newPw} onChange={(e) => setNewPw(e.target.value)} placeholder="New password (6+ characters)" className={input} required minLength={6} autoComplete="new-password" />
         <button className={`${btn} mt-4`} disabled={busy === "pw"}>{busy === "pw" ? "Saving…" : "Change password"}</button>
         {note(pwMsg)}
         <p className="mt-3 text-xs text-slate">Forgot it? <Link href="/forgot-password" className="text-crimson">Reset by email</Link>.</p>

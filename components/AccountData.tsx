@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { EmailAuthProvider, reauthenticateWithCredential, signOut, User } from "firebase/auth";
 import { auth } from "@/lib/firebase";
+import PasswordInput from "@/components/PasswordInput";
 
 // "Your data" on /profile/account: download a copy, or delete the account (Nigeria Data Protection Act rights).
 export default function AccountData({ user, username }: { user: User; username: string }) {
@@ -99,7 +100,7 @@ export default function AccountData({ user, username }: { user: User; username: 
             <input value={confirm} onChange={(e) => setConfirm(e.target.value)} className="mt-1 w-full border border-rule bg-card px-3 py-2 text-sm" />
           </label>
           <label className="block text-xs text-slate">Your password
-            <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} className="mt-1 w-full border border-rule bg-card px-3 py-2 text-sm" autoComplete="current-password" />
+            <PasswordInput  value={password} onChange={(e) => setPassword(e.target.value)} className="mt-1 w-full border border-rule bg-card px-3 py-2 text-sm" autoComplete="current-password" />
           </label>
           <div className="flex gap-3">
             <button onClick={remove} disabled={!!busy || confirm.trim().toLowerCase() !== username.toLowerCase() || !password} className="rounded-full bg-crimson px-4 py-2 text-xs font-semibold text-paper disabled:opacity-50">{busy === "delete" ? "Deleting…" : "Delete my account for good"}</button>

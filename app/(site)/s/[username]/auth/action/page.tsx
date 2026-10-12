@@ -5,6 +5,7 @@ import { useSearchParams } from "next/navigation";
 import { applyActionCode, confirmPasswordReset, verifyPasswordResetCode } from "firebase/auth";
 import { auth } from "@/lib/firebase";
 import { useSite } from "@/components/site/SiteContext";
+import PasswordInput from "@/components/PasswordInput";
 
 // The page behind the links in the emails sent from a member's own domain (password reset, email confirmation): the whole thing
 // happens here, under the member's name.
@@ -53,7 +54,7 @@ function Action() {
           <p className="text-center font-display text-2xl text-ink">Choose a new password</p>
           <label className="mt-5 block">
             <span className="eyebrow">New password</span>
-            <input type="password" required minLength={6} value={password} onChange={(e) => setPassword(e.target.value)} className="mt-2 w-full border border-rule bg-card px-4 py-3 outline-none focus:border-crimson" />
+            <PasswordInput  required minLength={6} value={password} onChange={(e) => setPassword(e.target.value)} className="mt-2 w-full border border-rule bg-card px-4 py-3 outline-none focus:border-crimson" />
           </label>
           {error && <p className="mt-3 text-sm text-red-700" role="alert">{error}</p>}
           <button disabled={busy} className="btn-primary mt-5 w-full disabled:opacity-50">{busy ? "Saving…" : "Save password"}</button>
