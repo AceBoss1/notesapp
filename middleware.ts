@@ -32,8 +32,8 @@ async function resolve(host: string, check?: string): Promise<Resolved> {
 }
 
 const PASS = /^\/(_next\/|favicon|robots\.txt|sitemap|images\/|fonts\/|api\/(views|trending|boosts|ads|public|status|consent|booking\/slots|auth\/branded|paystack\/(initialize|verify))\b)/;
-// Pages the app domain doesn't carry: it sends them to www.notesapp.name.ng.
-const APP_TO_MAIN = /^\/(about|pricing|roadmap|status|docs|changelog|security|terms|privacy|brand|challenge|advertise|domains|organisations|store-selling|merchstore|contact|coauthoring|gifts|boost|badges|track)(\/|$)/;
+// Pages the app domain doesn't carry: it sends them to www.notesapp.name.ng. (Explore, Help, Terms and Privacy stay on the app domain.)
+const APP_TO_MAIN = /^\/(about|pricing|roadmap|status|docs|changelog|security|brand|challenge|advertise|domains|organisations|store-selling|merchstore|contact|coauthoring|gifts|boost|badges|track)(\/|$)/;
 const PUBLIC_FILE = /\.[a-z0-9]{2,5}$/i;
 
 export async function middleware(req: NextRequest) {
