@@ -2053,14 +2053,20 @@ Acquisition spend (₦10,000,000) · target registered users (100,000) · **badg
 - **Cohort revenue** month by month with churn, **12-month cumulative revenue against spend**, **payback month**, **break-even conversion**, LTV (net per payer ÷ churn) and LTV:CAC. **ARR is shown only as "if nobody leaves"**, never as a headline.
 - **Floor / planning / upside** side by side, and a one-line "what would have to be true" (break-even conversion, break-even CAC).
 
-### Planning case worked out (the calculator's starting defaults; a shareable copy is the Google-style doc "CAC Efficiency Analysis")
-Prices as set on the admin Pricing page on 12 October 2026: Pro ₦5,000, Business ₦25,000, badge ₦999 a month; commission Free Basic 35%, Pro 25%, Business 15%. Premium conversion **1%** = 1,000 users (800 Pro, 200 Business) plus 400 badge payers; the challenge badge is free for **1 month only** (2,000 × ₦999 = ₦1,998,000, counted in CAC); members earn **₦10,000 a month** through the platform on average; monthly churn 8%; payment fees about 1.5% plus ₦100 on charges of ₦2,500 and over.
-- **CAC** ₦119.98 ($0.09) per registered user; about ₦8,570 per paying user.
+### Planning case worked out (the calculator's starting defaults; a shareable copy with the logo is the Google-style doc "CAC Efficiency Analysis")
+Prices as set on the admin Pricing page on 12 October 2026: Pro ₦5,000, Business ₦25,000, badge ₦999 a month; commission Free Basic 35%, Pro 25%, Business 15%. Premium conversion **1%** = 1,000 users (800 Pro, 200 Business) plus 400 badge payers; the challenge badge is free for **1 month only** (2,000 × ₦999 = ₦1,998,000); a **₦2,000,000 marketing execution fund**; members earn **₦10,000 a month** through the platform on average; monthly churn 8%; payment fees about 1.5% plus ₦100 on charges of ₦2,500 and over.
+- **CAC** ₦119.98 per registered user before the execution fund, **₦139.98 ($0.105) all-in** (total outlay ₦13,998,000); about ₦9,999 per paying user.
 - Gross MRR ₦9,399,600 (Pro ₦4,000,000, Business ₦5,000,000, badges ₦399,600) → payment fees about ₦241,000 → commission given up about ₦1,200,000 → **net ₦7,958,600 a month** (about $5,970).
-- With churn the cohort earns about **₦62.9 million over 12 months** against ₦11,998,000 spent; **payback in month 2**.
-- **Break-even is about 0.19% conversion** over 12 months (about 0.35% if the real cost per signup were double). At 0.5% the cohort returns about ₦31.5 million; at 3% about ₦188.7 million; at 5% about ₦314.5 million.
-- Pro costs us money only for a member earning over about ₦50,000 a month through us; Business over about ₦125,000 at the ₦25,000 price (it was ₦75,000 at ₦15,000).
+- With churn the cohort earns about **₦62.9 million over 12 months** against ₦13,998,000 spent (+₦48.9M, 4.5×); **payback in month 2**.
+- **Break-even is about 0.22% conversion** over 12 months (about 0.38% if the real cost per signup were double). At 0.5% the cohort returns about ₦31.5 million; at 3% about ₦188.7 million; at 5% about ₦314.5 million.
+- Pro costs us money only for a member earning over about ₦50,000 a month through us; Business over about ₦125,000 at the ₦25,000 price.
 - The 5% case is the upside, not the plan: free-to-paid is usually a few percent at best, and sign-ups won through a game may convert and stay less well, which is why we measure by cohort.
+
+### Cash survival (re-budgeted; also the runway calculator's starting defaults)
+- **Cash bridge** ₦14,663,000 ($11,000 at ₦1,333) − campaign outlay ₦13,998,000 (acquisition ₦10,000,000 + badge incentive ₦1,998,000 + execution fund ₦2,000,000) = **₦665,000 reserve**.
+- **Post-launch monthly cash burn ₦1,142,600** = 30% of infrastructure after software grants (₦342,600) + local team admin ₦800,000. **Standalone runway 0.58 months** (about 18 days) with no revenue.
+- Software grants (₦13,050,000, "70% cover") are **non-cash**: they lower the infrastructure bill, they are not part of the cash above. They are the **ceiling** of the stated offers, not invoiced savings, and they lapse from January 2027 (Granola 9 Jan, Moda 12 Jan; Claude Team and credits later), when burn would rise to about ₦1,942,000 a month (₦342,600 is 30% of about ₦1,142,000). Check the ₦13,050,000 / $9,820 pairing: ₦13,050,000 is $9,790 at ₦1,333.
+- Net MRR in the planning case is about seven times the monthly burn, so the thin reserve matters mainly for the weeks before the first members pay.
 
 ### Wiring
 - **Actual vs projected:** real registered users, paid plans and badges from the traction snapshot, and acquisition spend from the ledger's *marketing* category, shown next to the projection so the sliders are calibrated by real data as it arrives.
