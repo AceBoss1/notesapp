@@ -24,7 +24,7 @@ export function personFor(input: { name?: string; email?: string; owner?: boolea
   return null;
 }
 
-export type Round = { name: string; on: boolean; raise: number; post: number; topup: number }; // US$ ; topup = % of the company added to the pool before the round
+export type Round = { name: string; on: boolean; raise: number; post: number; target: number }; // US$ ; target = pool size wanted after the round, % (0 = no top-up)
 export type Founders = { trackB: boolean; bridge: number; cPct: number; aPct: number; cCash: number; aCash: number };
 export type Company = { pool: number; poolAt: "formation" | "preA" | "none"; rounds: Round[]; dual: "never" | "last" | "all"; V: number; classB: [boolean, boolean, boolean] };
 export type Business = { users: number; conv: number; churn: number; burn: number; cash: number; fx: number };
@@ -45,6 +45,22 @@ export function startingSplit(f: Founders) {
   return { e, c: f.cPct, a: f.aPct, angel, febo };
 }
 
+// Per round: the share sold (raise / post-money) and the pool top-up needed to leave the pool at its target after the round (taken from existing holders, as
+// investors usually require). Depends only on the pool and the rounds, never on the founders' split.
+export function roundMath(c: Company): { p: number; t: number; poolAfter: number }[] {
+  let pool = c.poolAt === "formation" ? c.pool / 100 : 0;
+  let carved = c.poolAt !== "preA";
+  return c.rounds.map((r, i) => {
+    if (!r.on) return { p: 0, t: 0, poolAfter: pool };
+    if (i >= 2 && !carved && c.pool > 0) { pool = c.pool / 100; carved = true; }
+    const p = r.post > 0 ? r.raise / r.post : 0;
+    const T = r.target / 100;
+    const t = T > 0 && pool < 1 ? Math.min(Math.max(0, (T - pool * (1 - p)) / (1 - pool)), 1 - p) : 0;
+    pool = pool * (1 - p - t) + t;
+    return { p, t, poolAfter: pool };
+  });
+}
+
 export function runModel(f: Founders, c: Company): Result {
   const s = startingSplit(f);
   const cur = new Array<number>(N).fill(0);
@@ -56,11 +72,11 @@ export function runModel(f: Founders, c: Company): Result {
   if (c.poolAt === "formation" && pool > 0) carve();
   const raises = new Array<number>(N).fill(0);
   let finalValue = 0;
+  const rm = roundMath(c);
   c.rounds.forEach((r, i) => {
     if (!r.on) return;
     if (i >= 2 && c.poolAt === "preA" && !poolDone && pool > 0) carve();
-    const p = r.post > 0 ? r.raise / r.post : 0;
-    const t = r.topup / 100;
+    const { p, t } = rm[i];
     const keep = Math.max(0, 1 - p - t);
     for (let k = 0; k < N; k++) cur[k] *= keep;
     cur[5] += t;
@@ -84,10 +100,10 @@ export function runModel(f: Founders, c: Company): Result {
 export function optionPath(pctAtGrant: number, c: Company): { name: string; pct: number; post: number }[] {
   const out = [{ name: "Grant", pct: pctAtGrant / 100, post: 0 }];
   let cur = pctAtGrant / 100;
-  c.rounds.forEach((r) => {
+  const rm = roundMath(c);
+  c.rounds.forEach((r, i) => {
     if (!r.on) return;
-    const p = r.post > 0 ? r.raise / r.post : 0;
-    cur *= Math.max(0, 1 - p - r.topup / 100);
+    cur *= Math.max(0, 1 - rm[i].p - rm[i].t);
     out.push({ name: r.name, pct: cur, post: r.post });
   });
   return out;
@@ -110,7 +126,7 @@ export function runway(b: Business) {
 }
 
 export type Scenario = { key: "worst" | "base" | "vision"; label: string; note: string; company: Pick<Company, "pool" | "poolAt" | "rounds" | "dual" | "V">; business: Business };
-const R = (name: string, on: boolean, raise: number, post: number, topup = 0): Round => ({ name, on, raise, post, topup });
+const R = (name: string, on: boolean, raise: number, post: number, target = 0): Round => ({ name, on, raise, post, target });
 const noRound = (name: string) => R(name, false, 0, 0);
 export const SCENARIOS: Scenario[] = [
   {
