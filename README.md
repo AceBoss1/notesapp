@@ -42,7 +42,7 @@ WhatsApp reminders (plan: Meta WhatsApp Cloud API directly; booking reminders + 
 verification and approved templates) · publishing to Facebook, Instagram and TikTok (LinkedIn and X are built) · AI notetaker + MCP assistant ·
 team hub and team messaging for Business and Enterprise (internal only for now) · LinkedIn advertising (Advertising API development tier approved; being built: advertisers boost a post on LinkedIn from their own ad account (Business and Enterprise only), plus our own LinkedIn campaign stats on the admin Traction page, planned next) · iOS/Android apps ·
 video transcoding/streaming (we cap size and length instead) · Dojah **live** mode (README "Going live with Dojah") ·
-webhook retries (one attempt, manual resend) · OAuth for third-party API apps · checkout and bookings in a popup on custom domains, and a sending address on the member's own domain (sign-in and sign-up in the member's name are live) · online status and follow lists, Nana suggested replies, team hub tasks/payments/payroll/staff library, investor data room (all planned: see "Planned: team operations…") · Sentry (we have built-in error monitoring instead).
+webhook retries (one attempt, manual resend) · OAuth for third-party API apps · checkout and bookings in a popup on custom domains, and a sending address on the member's own domain (sign-in and sign-up in the member's name are live) · online status and follow lists, Nana suggested replies, team hub tasks/payments/payroll/staff library, investor data room (all planned: see "Planned: team operations…") · runway calculator, burn and revenue analytics, vesting and cap table (planned) · Sentry (we have built-in error monitoring instead).
 
 ### Environment variables (Vercel → Settings → Environment Variables; redeploy after changing any)
 | Variable | Secret? | Purpose |
@@ -2005,6 +2005,40 @@ Internal planning notes (12 October 2026). Nothing here is built; the public `/r
 
 ### Suggested order
 1. Follow lists and the @na-notesapp control (small, mostly screens), then online status. 2. Staff library and message hub, assignee and deadline on payments, Payroll page. 3. Data room (access page first, then viewer and watermark, then live figures). 4. Nana suggested replies. Also next week: trim the whole-collection Firestore reads.
+
+## Planned: runway calculator, burn and revenue analytics, vesting and cap table (scaffold — not built)
+
+Internal planning notes (12 October 2026). Nothing here is built. Only the owner and super admins (and finance for the runway and analytics) would see these pages; the cap table is owner and super admins only. Open questions are marked **(ask)**.
+
+### 1. Burn and revenue analytics (build first: it uses data we already have)
+- One admin page under Money, built from the **money ledger** (expenses, payroll, in-kind grants kept apart from cash), **Revenue** (what the platform really earns: commissions, plans, ad revenue, **not** the gross amount processed) and **Expenses due**.
+- Shows, by month: revenue by source, **gross burn** (all spending), **net burn** (spending minus cash revenue and other cash income), payroll share, cost by category, month-on-month growth, **burn multiple** once there is enough revenue, and a trend of runway. Export as CSV. Every figure carries an "as of" time.
+- Needs an **opening cash balance** (amount and date, set once by the owner, changed only with a logged reason) because the ledger starts late. **(ask: the balance and its date)**.
+
+### 2. Dynamic runway calculator
+- **Question it answers:** with the C-suite expansion, on what date does cash run out, and what changes it?
+- **Cash today** = opening balance + cash income − expenses − payroll (from the ledger), in naira.
+- **Monthly burn** = the trailing average of real spending, **plus the headcount plan**, **plus known payments coming up** (Expenses due), **plus planned items** such as the Live (Daily) bill.
+- **Software grants:** read straight from Grants & subscriptions. While a grant is running its software cost is **not** in the burn; on its end date a plan that becomes paid adds its monthly cost (so the chart shows a **step up on 12 January** for Moda, and so on). In-kind credits and USD values use the naira rate entered on each grant. API credits (Claude) are used up by usage, so they are modelled as a pool that runs out at the current spend rate or on the expiry date, whichever is first.
+- **Headcount plan:** a list of planned hires (role, start month, monthly cost, employer overhead % for pension and tax), with the C-suite roles; each can be switched on or off to see its effect. Founders' and executives' current pay comes from the Payroll page once that exists.
+- **Revenue assumption:** pick one: flat at the trailing average, a monthly growth rate, or a hand-entered line. Show **three scenarios** (cautious, base, ambitious) side by side.
+- **Outputs:** runway in months, **zero-cash date**, a chart of cash by month with markers for each hire and each grant cliff, gross and net burn, and the largest levers ("cutting X adds N months"). Sliders change everything live; **named scenarios can be saved and compared**, and "as of" and who saved them are recorded.
+- Vesting is **not cash**, so it does not change runway; it matters for the cap table.
+- Needs a **People plan** record and a saved-scenario record, both server-only; no change to the ledger.
+
+### 3. Vesting schedule (to be uploaded later)
+- A **3-year structure** (as stated). Import from CSV or Excel: holder, role, grant date, shares or percent, cliff, vesting period (36 months), frequency, and any acceleration terms. **(ask: cliff length, monthly or quarterly vesting after the cliff, acceleration on exit)**.
+- Computes per holder: vested to date, unvested, next vest dates and the fully-vested date, and a company timeline; feeds the cap table's fully-diluted view. Imports are checked row by row and nothing is saved if a row is wrong.
+
+### 4. Cap table
+- **Holders** (founders, option pool, investors, advisers) and **instruments** (common shares, options, preferred shares, SAFEs, convertible notes) as an **append-only list of events** (issue, transfer, cancel, exercise, convert); the table is always computed from the events, so history and a change log come free and past states can be shown "as of" a date.
+- Shows ownership %, **fully diluted** (including the option pool and unvested grants), and holdings by holder and class.
+- **Round modelling:** pre- and post-money, new money, price per share, option-pool top-up and SAFE or note conversion, with dilution per holder, before anything is agreed.
+- A **working record, not the legal register**: the company's register of members (and CAC filings) stays with the company secretary or counsel; this should be reconciled with it. **(ask: current share count, classes, any SAFEs or notes, the option pool size)**.
+- Access owner and super admins only; the data room can show an investor a **read-only view as of a date** with their name and email watermarked (see the data room plan above).
+
+### Suggested order
+1. Opening balance and the burn and revenue page. 2. People plan and the runway calculator with grant cliffs and saved scenarios. 3. Cap table (events and fully-diluted view). 4. Vesting import and its timeline. 5. Feeding these into the data room. Also next week: trim the whole-collection Firestore reads.
 
 ## Planned: public Live and private group sessions (decisions so far — not built)
 

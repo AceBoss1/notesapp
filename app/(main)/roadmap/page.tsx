@@ -83,6 +83,13 @@ const ITEMS: { title: string; tag: string; body: string; detail: string; link?: 
       "Our own team will use it first, as with the rest of the hub. Messages stay in the hub, and the ones marked for email are sent by email too. Policies can ask staff to confirm they have read them. Payroll stays visible only to finance and the owner. No date yet.",
   },
   {
+    title: "Company finance tools: runway, burn and cap table",
+    tag: "Company",
+    body: "Planned, for our own team: a runway calculator that shows how long our cash lasts as we hire, counting the free software plans and credits we have been given; burn and revenue analytics; and a record of who owns what, with vesting schedules.",
+    detail:
+      "These sit in the team hub next to the money ledger, and only the owner and senior admins can open the ownership records. The figures can also feed the investor data room. We build the analytics first because the ledger already holds the numbers. Not built yet, no date.",
+  },
+  {
     title: "Investor and partner data room",
     tag: "Company",
     body: "Planned: a private data room for investors and partners, with separate logins by category. Files open in a viewer that shows each person's name and email across the pages, and they can't be downloaded. Live traction and revenue figures come straight from our own dashboards.",
@@ -194,7 +201,7 @@ export default function RoadmapPage() {
               <li>Voice: Listen to a journal, Nana that speaks, voice transcripts</li>
               <li>Publishing to Facebook, Instagram and TikTok; LinkedIn advertising from #NotesApp, for Business and Enterprise (approved by LinkedIn, being built)</li>
               <li>Google ads on the web and AdMob in the apps</li>
-              <li>Online status and followers lists · Nana suggests replies · more for the team hub (tasks, payments, payroll, staff library) · an investor and partner data room</li>
+              <li>Online status and followers lists · Nana suggests replies · more for the team hub (tasks, payments, payroll, staff library) · an investor and partner data room · company finance tools (runway, burn, cap table)</li>
               <li>Audio and video meetings, meeting chat (under team discussion)</li>
               {!MOMENTS_LIVE && <li>Moments: pictures, video and text on profile pictures for 24, 48 or 72 hours</li>}
               {!MESSAGES_LIVE && <li>Direct messages</li>}
