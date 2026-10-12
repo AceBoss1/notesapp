@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { randomBytes } from "crypto";
 import { friendlyMessage } from "@/lib/api-errors";
 import { getAdminDb, verifySignedInRequest } from "@/lib/firebase-admin";
-import { canActForSeller } from "@/lib/orders-server";
+import { canManageItems } from "@/lib/orders-server";
 import { cleanText } from "@/lib/orders";
 import { deleteObject, headObject, presignUpload, privateFilesConfigured, safeFileName } from "@/lib/private-files";
 import { DIGITAL_MAX_BYTES } from "@/lib/private-files-config";
@@ -36,7 +36,7 @@ export async function POST(req: NextRequest) {
     const itemRef = db.doc(`storeItems/${String(body.itemId || "")}`);
     const item = (await itemRef.get()).data();
     if (!item || item.kind !== "digital") throw new Fail("Digital item not found.", 404);
-    if (!(await canActForSeller(user.uid, String(item.ownerUid)))) throw new Fail("Not your store.", 403);
+    if (!(await canManageItems(user.uid, String(item.ownerUid)))) throw new Fail("Not your store.", 403);
     if (item.access !== "view") throw new Fail("This item is a plain download. Add a new item and choose “View only” to sell lessons.", 409);
     if (item.fileName) throw new Fail("This item already has a downloadable file.", 409);
     const owner = (await db.doc(`users/${item.ownerUid}`).get()).data();

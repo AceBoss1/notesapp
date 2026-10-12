@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { friendlyMessage } from "@/lib/api-errors";
 import { getAdminDb, verifySignedInRequest } from "@/lib/firebase-admin";
-import { canActForSeller } from "@/lib/orders-server";
+import { canManageItems } from "@/lib/orders-server";
 import { cleanText } from "@/lib/orders";
 import { DIGITAL_EXTENSIONS, deleteObject, extOf, headObject, privateFilesConfigured } from "@/lib/private-files";
 import { rateLimit } from "@/lib/rate-limit";
@@ -27,7 +27,7 @@ export async function POST(req: NextRequest) {
     const itemRef = db.doc(`storeItems/${itemId}`);
     const item = (await itemRef.get()).data();
     if (!item || item.kind !== "digital") return NextResponse.json({ error: "Digital item not found." }, { status: 404 });
-    if (!(await canActForSeller(user.uid, String(item.ownerUid)))) return NextResponse.json({ error: "Not your store." }, { status: 403 });
+    if (!(await canManageItems(user.uid, String(item.ownerUid)))) return NextResponse.json({ error: "Not your store." }, { status: 403 });
     if (!key.startsWith(`digital/${itemId}/`) || !DIGITAL_EXTENSIONS.includes(extOf(filename))) return NextResponse.json({ error: "That upload doesn't match this item." }, { status: 400 });
     const head = await headObject(key);
     if (!head || head.size <= 0 || (Number.isInteger(size) && head.size !== size)) {
