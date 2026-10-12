@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useAdminAuth } from "@/lib/useAdminAuth";
 import {
-  HOLDERS, PERSON_LABEL, ROUND_NAMES, SCENARIOS, fmtNgn, fmtPct, fmtUsd, optionPath, roundMath, runModel, runway, startingSplit,
+  AFRICA_MOBILE_USERS, GATES, GATE_NOTE, HOLDERS, PERSON_LABEL, ROUND_NAMES, SCENARIOS, applyGates, fmtNgn, fmtPct, fmtUsd, fmtUsers, optionPath, posFromUsers, roundMath, roundStats, runModel, runway, startingSplit, usersFromPos,
   type Business, type Company, type Founders, type PersonKey, type Round,
 } from "@/lib/vision";
 
@@ -36,6 +36,7 @@ export default function VisionPage() {
   const [data, setData] = useState<Payload | null>(null);
   const [error, setError] = useState("");
   const [preset, setPreset] = useState<string>("base");
+  const [gates, setGates] = useState(true); // rounds stay locked until the users slider reaches their gate
   const [hold, setHold] = useState<"stake" | "valuation">("stake"); // what stays put when the raise changes
   const [{ company, business }, setM] = useState(() => fresh("base"));
   const [fnd, setFnd] = useState<Founders | null>(null);
@@ -59,10 +60,11 @@ export default function VisionPage() {
   const setF = (p: Partial<Founders>) => { setPreset("custom"); setFnd((f) => (f ? { ...f, ...p } : f)); };
 
   const me = data?.viewer;
-  const model = useMemo(() => (fnd ? runModel(fnd, company) : null), [fnd, company]);
-  const opt = useMemo(() => (data?.option ? optionPath(data.option.pct, company) : null), [data, company]);
+  const gated = useMemo(() => applyGates(company, business.users, gates), [company, business.users, gates]);
+  const model = useMemo(() => (fnd ? runModel(fnd, gated.company) : null), [fnd, gated]);
+  const opt = useMemo(() => (data?.option ? optionPath(data.option.pct, gated.company) : null), [data, gated]);
   const rw = useMemo(() => runway(business), [business]);
-  const rmath = useMemo(() => roundMath(company), [company]);
+  const rmath = useMemo(() => roundMath(gated.company), [gated]);
 
   if (loading) return <p className="p-8 text-slate">Loading…</p>;
   if (!user) return <p className="p-8 text-slate">Admins only.</p>;
@@ -86,6 +88,9 @@ export default function VisionPage() {
     if (company.poolAt === "preA") notes.push({ tone: "text-amber-700", text: "The pool is set to appear just before Series A, but Nora's grant and the Plan assume it exists at formation. Choose “At formation” to match the documents." });
     if (!model.last.v.slice(6).some((x) => x > 0)) notes.push({ tone: "text-amber-700", text: "No outside round is switched on, so ownership only changes through the pool." });
   }
+  const nextGate = company.rounds.find((r, i) => gated.locked[i]);
+  if (nextGate) notes.push({ tone: "text-amber-700", text: `${nextGate.name} is locked: it needs ${fmtUsers(nextGate.users)} verified users and the business case has ${fmtUsers(business.users)}. Move the users slider or press a gate button to unlock it.` });
+  company.rounds.forEach((r, i) => { const st = roundStats(r, business.conv, fx); if (r.on && !gated.locked[i] && st && st.multiple > 60 && Number.isFinite(st.multiple)) notes.push({ tone: "text-amber-700", text: `${r.name} at ${fmtUsd(r.post)} on ${fmtUsers(r.users)} users is ${Math.round(st.multiple)}× the net revenue those users bring at ${business.conv}% conversion (${fmtUsd(st.perUser)} a user). Investors will ask what justifies it.` }); });
   if (rw.surplus < 0) notes.push({ tone: "text-red-700", text: `Revenue does not cover the monthly burn at this conversion. Cash lasts ${Number.isFinite(rw.monthsWithRevenue) ? rw.monthsWithRevenue.toFixed(1) : "-"} months unless a round closes.` });
   else notes.push({ tone: "text-green-700", text: "Revenue covers the monthly burn at this conversion." });
   if (finalValue >= 1e9) notes.push({ tone: "text-amber-700", text: `A ${fmtUsd(finalValue)} (${ngn(finalValue)}) valuation is a vision case. Paper value ignores liquidation preferences and tax. Do not quote it to investors, staff or the public.` });
@@ -98,6 +103,11 @@ export default function VisionPage() {
         Move the sliders to see how funding rounds, the staff pool and a possible dual-class vote change what is owned and what it is worth on paper, and how long cash lasts. A planning tool for the founders and the C-suite. Not a
         forecast and not an offer of securities.
       </p>
+      <div className="card mt-6 max-w-4xl p-4 text-sm text-slate">
+        <p className="font-mono text-[10px] uppercase tracking-eyebrow">Why Africa, why now</p>
+        <p className="mt-2">Youth drive Africa&apos;s booming mobile landscape, serving as the primary catalyst for a continent with over 650 million mobile users. That adoption surpasses the mobile user bases of both the United States and Europe. With nearly 60% of Africa&apos;s population under 25, the smartphone has become the all-in-one tool for survival, communication, creativity and income.</p>
+        <p className="mt-2 text-xs">Founders&apos; figures. Source them (for example GSMA and the UN) before using them outside the company. Rounds open only at user gates: Seed at {fmtUsers(GATES.seed)} users, Series A at {fmtUsers(GATES.seriesA)}, Series B at {fmtUsers(GATES.seriesB)} (cross-country), Series C at {fmtUsers(GATES.seriesC)} (cross-continent). The last gate is {Math.round((GATES.seriesC / AFRICA_MOBILE_USERS) * 100)}% of every mobile user in Africa today.</p>
+      </div>
       {error && <p className="mt-4 text-sm text-red-700" role="alert">{error}</p>}
       {data && (
         <>
@@ -157,7 +167,11 @@ export default function VisionPage() {
                 </div>
               </>}
               <p className="font-mono text-[10px] uppercase tracking-eyebrow text-slate">Business case</p>
-              <Slider label="Registered users" value={business.users} min={5000} max={2000000} step={5000} show={business.users.toLocaleString("en-US")} onChange={(n) => setBiz({ users: n })} />
+              <Slider label="Verified registered users" value={posFromUsers(business.users)} min={0} max={100} step={0.5} show={business.users.toLocaleString("en-US")} onChange={(n) => setBiz({ users: usersFromPos(n) })} />
+              <div className="flex flex-wrap gap-1.5">
+                {([["Seed", GATES.seed], ["A", GATES.seriesA], ["B", GATES.seriesB], ["C", GATES.seriesC]] as const).map(([l, u]) => <button key={l} type="button" className={chip(business.users >= u)} onClick={() => setBiz({ users: u })}>{l} · {fmtUsers(u)}</button>)}
+              </div>
+              <label className="flex items-center gap-2 text-xs"><input type="checkbox" checked={gates} onChange={(e) => setGates(e.target.checked)} /> Lock rounds until their user gate is reached</label>
               <Slider label="Paying conversion" value={business.conv} min={0.1} max={3} step={0.05} show={`${business.conv.toFixed(2)}%`} onChange={(n) => setBiz({ conv: n })} />
               <Slider label="Monthly churn" value={business.churn} min={2} max={20} step={1} show={`${business.churn}%`} onChange={(n) => setBiz({ churn: n })} />
               <label className="block text-xs text-slate">Monthly burn at 100,000 users (₦)<input className={field} inputMode="numeric" value={business.burn} onChange={(e) => setBiz({ burn: Number(e.target.value) || 0 })} /></label>
@@ -176,16 +190,17 @@ export default function VisionPage() {
                   </label>
                 </div>
                 <table className="mt-2 w-full text-xs">
-                  <thead><tr className="text-left text-slate"><th className="py-1">Round</th><th>On</th><th>Raise (US$)</th><th>Share sold %</th><th>Post-money (US$)</th><th>Pool target after round %</th></tr></thead>
+                  <thead><tr className="text-left text-slate"><th className="py-1">Round</th><th>On</th><th>Raise (US$)</th><th>Share sold %</th><th>Post-money (US$)</th><th>Pool target after round %</th><th>Needs users</th></tr></thead>
                   <tbody>
                     {company.rounds.map((r, i) => (
                       <tr key={i} className="border-t border-rule">
-                        <td className="py-1.5 pr-2">{i === 5 ? <input aria-label="Exit name" className={`${field} !mt-0 w-32`} value={r.name} onChange={(e) => setRound(i, { name: e.target.value })} /> : ROUND_NAMES[i]}</td>
+                        <td className="py-1.5 pr-2">{i === 5 ? <input aria-label="Exit name" className={`${field} !mt-0 w-32`} value={r.name} onChange={(e) => setRound(i, { name: e.target.value })} /> : ROUND_NAMES[i]}{r.on && gated.locked[i] ? <div className="text-[10px] font-semibold text-amber-700">locked</div> : r.users > 0 && r.on ? <div className="text-[10px] font-semibold text-green-700">open</div> : null}</td>
                         <td><input type="checkbox" aria-label={`${ROUND_NAMES[i]} on`} checked={r.on} onChange={(e) => setRound(i, { on: e.target.checked })} /></td>
                         <td className="pr-2"><input aria-label={`${ROUND_NAMES[i]} raise`} className={`${field} !mt-0 w-28`} inputMode="numeric" value={r.raise} onChange={(e) => editRaise(i, Number(e.target.value) || 0)} /><div className="font-mono text-[10px] text-slate">{ngn(r.raise)}</div></td>
                         <td className="pr-2"><input aria-label={`${ROUND_NAMES[i]} share sold`} className={`${field} !mt-0 w-20`} type="number" step="any" min="0" disabled={!r.on} value={r.on && r.post > 0 ? Number(((r.raise / r.post) * 100).toFixed(2)) : 0} onChange={(e) => editStake(i, Number(e.target.value) || 0)} /></td>
                         <td className="pr-2"><input aria-label={`${ROUND_NAMES[i]} post-money`} className={`${field} !mt-0 w-32`} inputMode="numeric" value={r.post} onChange={(e) => setRound(i, { post: Number(e.target.value) || 0 })} /><div className="font-mono text-[10px] text-slate">{ngn(r.post)}</div></td>
                         <td><input aria-label={`${ROUND_NAMES[i]} pool target`} className={`${field} !mt-0 w-16`} inputMode="numeric" value={r.target} onChange={(e) => setRound(i, { target: Number(e.target.value) || 0 })} /><div className="font-mono text-[10px] text-slate">{r.on && rmath[i].t > 0 ? `top-up ${(rmath[i].t * 100).toFixed(2)}%` : "no top-up"}</div></td>
+                        <td><input aria-label={`${ROUND_NAMES[i]} users needed`} className={`${field} !mt-0 w-28`} inputMode="numeric" value={r.users} onChange={(e) => setRound(i, { users: Number(e.target.value) || 0 })} />{(() => { const st = roundStats(r, business.conv, fx); return <div className="font-mono text-[10px] text-slate">{r.users > 0 ? `${GATE_NOTE[[GATES.seed, GATES.seriesA, GATES.seriesB, GATES.seriesC].indexOf(r.users) + 1] || "gate"}${st ? ` · $${st.perUser < 10 ? st.perUser.toFixed(2) : Math.round(st.perUser)}/user` : ""}` : "no gate"}</div>; })()}</td>
                       </tr>
                     ))}
                   </tbody>

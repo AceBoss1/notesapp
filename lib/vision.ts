@@ -24,7 +24,7 @@ export function personFor(input: { name?: string; email?: string; owner?: boolea
   return null;
 }
 
-export type Round = { name: string; on: boolean; raise: number; post: number; target: number }; // US$ ; target = pool size wanted after the round, % (0 = no top-up)
+export type Round = { name: string; on: boolean; raise: number; post: number; target: number; users: number }; // US$ ; target = pool size wanted after the round, % (0 = no top-up) ; users = verified registered users needed before the round opens (0 = no gate)
 export type Founders = { trackB: boolean; bridge: number; cPct: number; aPct: number; cCash: number; aCash: number };
 export type Company = { pool: number; poolAt: "formation" | "preA" | "none"; rounds: Round[]; dual: "never" | "last" | "all"; V: number; classB: [boolean, boolean, boolean] };
 export type Business = { users: number; conv: number; churn: number; burn: number; burnVar: number; cash: number; fx: number }; // burn = monthly cost at 100,000 users; burnVar = % of it that grows with users
@@ -131,24 +131,45 @@ export function runway(b: Business) {
   };
 }
 
+// The user gates: a round opens only when the platform has this many verified registered users. Board policy for planning, not a promise to investors or staff.
+export const GATES = { seed: 1_000_000, seriesA: 10_000_000, seriesB: 50_000_000, seriesC: 200_000_000 };
+export const GATE_NOTE = ["", "Seed gate", "Series A gate", "Series B gate (cross-country)", "Series C gate (cross-continent)"];
+export const AFRICA_MOBILE_USERS = 650_000_000; // the founders' figure; source it (GSMA, UN) before using it outside the company
+
+// Rounds whose user gate has not been reached cannot close: they drop out of the cap table until the users slider reaches the gate.
+export function applyGates(c: Company, users: number, enforce: boolean): { company: Company; locked: boolean[] } {
+  const locked = c.rounds.map((r) => enforce && r.on && r.users > users);
+  return { company: { ...c, rounds: c.rounds.map((r, i) => (locked[i] ? { ...r, on: false } : r)) }, locked };
+}
+// What a round's valuation implies at the users it needs: dollars per user, and a multiple of the annualised net revenue those users give at this conversion.
+export function roundStats(r: Round, conv: number, fx: number) {
+  if (r.users <= 0 || r.post <= 0) return null;
+  const annualUsd = (r.users * conv * NET_PER_USER_PER_PCT * 12) / (fx || 1333);
+  return { perUser: r.post / r.users, multiple: annualUsd > 0 ? r.post / annualUsd : Infinity, shareOfAfrica: r.users / AFRICA_MOBILE_USERS };
+}
+// Users on a log scale for the slider (1,000 to about 316 million).
+export const usersFromPos = (pos: number) => Math.round(Math.pow(10, 3 + (pos / 100) * 5.5) / 1000) * 1000;
+export const posFromUsers = (u: number) => Math.min(100, Math.max(0, ((Math.log10(Math.max(1000, u)) - 3) / 5.5) * 100));
+export const fmtUsers = (n: number) => (n >= 1e9 ? `${(n / 1e9).toFixed(2)}B` : n >= 1e6 ? `${+(n / 1e6).toFixed(n >= 1e7 ? 0 : 1)}M` : n >= 1e3 ? `${+(n / 1e3).toFixed(0)}K` : String(n));
+
 export type Scenario = { key: "worst" | "base" | "vision"; label: string; note: string; company: Pick<Company, "pool" | "poolAt" | "rounds" | "dual" | "V">; business: Business };
-const R = (name: string, on: boolean, raise: number, post: number, target = 0): Round => ({ name, on, raise, post, target });
-const noRound = (name: string) => R(name, false, 0, 0);
+const R = (name: string, on: boolean, raise: number, post: number, users = 0, target = 0): Round => ({ name, on, raise, post, target, users });
+const noRound = (name: string, users = 0) => R(name, false, 0, 0, users);
 export const SCENARIOS: Scenario[] = [
   {
-    key: "worst", label: "Worst case", note: "Bridge and a small Pre-Seed only, then a modest sale.",
-    company: { pool: 15, poolAt: "formation", dual: "never", V: 10, rounds: [R("Pre-Seed", true, 100_000, 1_000_000), R("Seed", false, 1_000_000, 6_000_000), R("Series A", false, 8_000_000, 40_000_000), noRound("Series B"), noRound("Series C"), R("Exit (small sale)", true, 0, 3_000_000)] },
+    key: "worst", label: "Worst case", note: "Growth stalls at 25,000 users: bridge and a small Pre-Seed, then a modest sale. No gate beyond Pre-Seed opens.",
+    company: { pool: 15, poolAt: "formation", dual: "never", V: 10, rounds: [R("Pre-Seed", true, 100_000, 1_000_000), R("Seed", true, 1_000_000, 6_000_000, GATES.seed), R("Series A", true, 8_000_000, 40_000_000, GATES.seriesA), noRound("Series B", GATES.seriesB), noRound("Series C", GATES.seriesC), R("Exit (small sale)", true, 0, 3_000_000)] },
     business: { users: 25_000, conv: 0.25, churn: 12, burn: 1_142_600, burnVar: 70, cash: 665_000, fx: 1333 },
   },
   {
-    key: "base", label: "Baseline", note: "Pre-Seed and Seed as planned, a Series A, then a sale.",
-    company: { pool: 15, poolAt: "formation", dual: "never", V: 10, rounds: [R("Pre-Seed", true, 250_000, 3_571_429), R("Seed", true, 1_000_000, 14_285_714), R("Series A", true, 8_000_000, 40_000_000), noRound("Series B"), noRound("Series C"), R("Exit (sale)", true, 0, 150_000_000)] },
-    business: { users: 100_000, conv: 1, churn: 8, burn: 1_142_600, burnVar: 70, cash: 665_000, fx: 1333 },
+    key: "base", label: "Baseline", note: "10 million users: the Seed and Series A gates open; Series B and C stay locked. Then a sale.",
+    company: { pool: 15, poolAt: "formation", dual: "never", V: 10, rounds: [R("Pre-Seed", true, 250_000, 3_571_429), R("Seed", true, 1_000_000, 14_285_714, GATES.seed), R("Series A", true, 8_000_000, 40_000_000, GATES.seriesA), noRound("Series B", GATES.seriesB), noRound("Series C", GATES.seriesC), R("Exit (sale)", true, 0, 60_000_000)] },
+    business: { users: 10_000_000, conv: 1, churn: 8, burn: 1_142_600, burnVar: 70, cash: 665_000, fx: 1333 },
   },
   {
-    key: "vision", label: "Vision", note: "Every round to a US$7.5B listing. Aspirational: paper value only.",
-    company: { pool: 15, poolAt: "preA", dual: "last", V: 10, rounds: [R("Pre-Seed", true, 250_000, 3_571_429), R("Seed", true, 1_000_000, 14_285_714), R("Series A", true, 150_000_000, 1_000_000_000), R("Series B", true, 250_000_000, 2_500_000_000), R("Series C", true, 500_000_000, 5_000_000_000), R("IPO", true, 750_000_000, 7_500_000_000)] },
-    business: { users: 250_000, conv: 2, churn: 6, burn: 1_142_600, burnVar: 70, cash: 14_663_000, fx: 1333 },
+    key: "vision", label: "Vision", note: "All four gates reached (200 million users) and every round to a US$7.5B listing. Aspirational: paper value only.",
+    company: { pool: 15, poolAt: "preA", dual: "last", V: 10, rounds: [R("Pre-Seed", true, 250_000, 3_571_429), R("Seed", true, 1_000_000, 14_285_714, GATES.seed), R("Series A", true, 150_000_000, 1_000_000_000, GATES.seriesA), R("Series B", true, 250_000_000, 2_500_000_000, GATES.seriesB), R("Series C", true, 500_000_000, 5_000_000_000, GATES.seriesC), R("IPO", true, 750_000_000, 7_500_000_000)] },
+    business: { users: 200_000_000, conv: 2, churn: 6, burn: 1_142_600, burnVar: 70, cash: 14_663_000, fx: 1333 },
   },
 ];
 
