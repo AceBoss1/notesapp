@@ -131,4 +131,5 @@ export const SCENARIOS: Scenario[] = [
 ];
 
 export const fmtUsd = (n: number) => { const a = Math.abs(n); return a >= 1e9 ? `$${(n / 1e9).toFixed(2)}B` : a >= 1e6 ? `$${(n / 1e6).toFixed(2)}M` : a >= 1e3 ? `$${(n / 1e3).toFixed(1)}K` : `$${Math.round(n)}`; };
+export const fmtNgn = (n: number) => { const a = Math.abs(n); return a >= 1e12 ? `₦${(n / 1e12).toFixed(2)}T` : a >= 1e9 ? `₦${(n / 1e9).toFixed(2)}B` : a >= 1e6 ? `₦${(n / 1e6).toFixed(2)}M` : `₦${Math.round(n).toLocaleString("en-NG")}`; };
 export const fmtPct = (x: number) => `${(x * 100).toFixed(2)}%`;

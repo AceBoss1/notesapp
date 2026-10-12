@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useAdminAuth } from "@/lib/useAdminAuth";
 import {
-  HOLDERS, PERSON_LABEL, ROUND_NAMES, SCENARIOS, fmtPct, fmtUsd, optionPath, runModel, runway, startingSplit,
+  HOLDERS, PERSON_LABEL, ROUND_NAMES, SCENARIOS, fmtNgn, fmtPct, fmtUsd, optionPath, runModel, runway, startingSplit,
   type Business, type Company, type Founders, type PersonKey, type Round,
 } from "@/lib/vision";
 
@@ -24,8 +24,8 @@ function Slider({ label, value, min, max, step, show, onChange, disabled }: { la
     </label>
   );
 }
-const Tile = ({ label, value, note }: { label: string; value: string; note?: string }) => (
-  <div className="card p-3"><p className="font-mono text-[10px] uppercase tracking-eyebrow text-slate">{label}</p><p className="mt-1 font-display text-2xl text-ink">{value}</p>{note && <p className="mt-1 text-xs text-slate">{note}</p>}</div>
+const Tile = ({ label, value, note, ngn }: { label: string; value: string; note?: string; ngn?: string }) => (
+  <div className="card p-3"><p className="font-mono text-[10px] uppercase tracking-eyebrow text-slate">{label}</p><p className="mt-1 font-display text-2xl text-ink">{value}</p>{ngn && <p className="font-mono text-xs text-slate">{ngn}</p>}{note && <p className="mt-1 text-xs text-slate">{note}</p>}</div>
 );
 
 // The founders' and C-suite's slider model of the company's future. It opens focused on whoever is signed in: a founder sees their own stake, value, vote
@@ -61,6 +61,10 @@ export default function VisionPage() {
   if (loading) return <p className="p-8 text-slate">Loading…</p>;
   if (!user) return <p className="p-8 text-slate">Admins only.</p>;
 
+  const fx = business.fx || 1333;
+  const ngn = (usd: number) => fmtNgn(usd * fx);
+  // Dollar amounts with the naira under them, in a table cell.
+  const money = (usd: number) => <><div>{fmtUsd(usd)}</div><div className="text-[10px] font-normal text-slate">{ngn(usd)}</div></>;
   const mine = me ? ROW[me] : undefined;
   const lastStage = model?.last;
   const finalValue = model?.finalValue ?? opt?.[opt.length - 1]?.post ?? 0;
@@ -78,7 +82,7 @@ export default function VisionPage() {
   }
   if (rw.surplus < 0) notes.push({ tone: "text-red-700", text: `Revenue does not cover the monthly burn at this conversion. Cash lasts ${Number.isFinite(rw.monthsWithRevenue) ? rw.monthsWithRevenue.toFixed(1) : "-"} months unless a round closes.` });
   else notes.push({ tone: "text-green-700", text: "Revenue covers the monthly burn at this conversion." });
-  if (finalValue >= 1e9) notes.push({ tone: "text-amber-700", text: `A ${fmtUsd(finalValue)} valuation is a vision case. Paper value ignores liquidation preferences and tax. Do not quote it to investors, staff or the public.` });
+  if (finalValue >= 1e9) notes.push({ tone: "text-amber-700", text: `A ${fmtUsd(finalValue)} (${ngn(finalValue)}) valuation is a vision case. Paper value ignores liquidation preferences and tax. Do not quote it to investors, staff or the public.` });
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-12">
@@ -109,19 +113,19 @@ export default function VisionPage() {
             {model && lastStage && me && (<>
               {me === "emmanuel" ? <>
                 <Tile label="You own" value={fmtPct(lastStage.v[0])} note={`of the company at the last stage (starts at ${fmtPct(model.snaps[0].v[0])})`} />
-                <Tile label="Your paper value" value={fmtUsd(lastStage.v[0] * model.finalValue)} note="stake × last post-money" />
+                <Tile label="Your paper value" value={fmtUsd(lastStage.v[0] * model.finalValue)} ngn={ngn(lastStage.v[0] * model.finalValue)} note="stake × last post-money" />
                 <Tile label="Your voting power" value={fmtPct(lastStage.vote[0])} note="reserves carry no votes" />
                 <Tile label="The three founders own" value={fmtPct(lastStage.v[0] + lastStage.v[1] + lastStage.v[2])} note={`votes ${fmtPct(lastStage.vote[0] + lastStage.vote[1] + lastStage.vote[2])}`} />
               </> : <>
                 <Tile label="You own" value={fmtPct(lastStage.v[mine!])} note={`at the last stage (starts at ${fmtPct(model.snaps[0].v[mine!])})`} />
-                <Tile label="Your paper value" value={fmtUsd(lastStage.v[mine!] * model.finalValue)} note={cashIn ? `on US$${cashIn.toLocaleString("en-US")} paid in plus work: ${(lastStage.v[mine!] * model.finalValue / cashIn).toLocaleString("en-US", { maximumFractionDigits: 0 })}x` : "stake × last post-money"} />
+                <Tile label="Your paper value" value={fmtUsd(lastStage.v[mine!] * model.finalValue)} ngn={ngn(lastStage.v[mine!] * model.finalValue)} note={cashIn ? `on US$${cashIn.toLocaleString("en-US")} paid in plus work: ${(lastStage.v[mine!] * model.finalValue / cashIn).toLocaleString("en-US", { maximumFractionDigits: 0 })}x` : "stake × last post-money"} />
                 <Tile label="Your voting power" value={fmtPct(lastStage.vote[mine!])} note={company.dual !== "never" && company.classB[mine!] ? `${company.V} votes a share` : "one vote a share"} />
                 <Tile label="Emmanuel's voting power" value={fmtPct(lastStage.vote[0])} note="the CEO's seat" />
               </>}
             </>)}
             {opt && data.option && (<>
               <Tile label="Your option" value={fmtPct(opt[opt.length - 1].pct)} note={`of the company at the last stage (starts at ${data.option.pct.toFixed(2)}%)`} />
-              <Tile label="Your option, paper value" value={fmtUsd(opt[opt.length - 1].pct * finalValue)} note="before the exercise price and tax" />
+              <Tile label="Your option, paper value" value={fmtUsd(opt[opt.length - 1].pct * finalValue)} ngn={ngn(opt[opt.length - 1].pct * finalValue)} note="before the exercise price and tax" />
               <Tile label="Shares at grant" value={data.option.shares.toLocaleString("en-US")} note={`of ${data.option.fullyDiluted.toLocaleString("en-US")} fully diluted`} />
               <Tile label="How it vests" value="90-day cliff" note="then monthly over 36 months, plus milestone tranches" />
             </>)}
@@ -135,7 +139,7 @@ export default function VisionPage() {
               {fnd && <>
                 <p className="font-mono text-[10px] uppercase tracking-eyebrow text-slate">Founders and bridge</p>
                 <label className="flex items-center gap-2 text-xs"><input type="checkbox" checked={fnd.trackB} onChange={(e) => setF({ trackB: e.target.checked })} /> Bridge: angels and FEBO reserve</label>
-                <Slider label="Angel bridge raised" value={fnd.bridge} min={0} max={30000} step={1000} show={fmtUsd(fnd.bridge)} onChange={(n) => setF({ bridge: n })} disabled={!fnd.trackB} />
+                <Slider label="Angel bridge raised" value={fnd.bridge} min={0} max={30000} step={1000} show={`${fmtUsd(fnd.bridge)} · ${ngn(fnd.bridge)}`} onChange={(n) => setF({ bridge: n })} disabled={!fnd.trackB} />
                 <Slider label="Chimdinma, % of founders' stock" value={fnd.cPct} min={2} max={25} step={0.5} show={`${fnd.cPct}%`} onChange={(n) => setF({ cPct: n })} />
                 <Slider label="Akujuobi, % of founders' stock" value={fnd.aPct} min={2} max={25} step={0.5} show={`${fnd.aPct}%`} onChange={(n) => setF({ aPct: n })} />
                 <p className="text-xs text-slate">Emmanuel holds the remainder: <span className="font-mono text-ink">{startingSplit(fnd).e.toFixed(1)}%</span></p>
@@ -165,8 +169,8 @@ export default function VisionPage() {
                       <tr key={i} className="border-t border-rule">
                         <td className="py-1.5 pr-2">{i === 5 ? <input aria-label="Exit name" className={`${field} !mt-0 w-32`} value={r.name} onChange={(e) => setRound(i, { name: e.target.value })} /> : ROUND_NAMES[i]}</td>
                         <td><input type="checkbox" aria-label={`${ROUND_NAMES[i]} on`} checked={r.on} onChange={(e) => setRound(i, { on: e.target.checked })} /></td>
-                        <td className="pr-2"><input aria-label={`${ROUND_NAMES[i]} raise`} className={`${field} !mt-0 w-28`} inputMode="numeric" value={r.raise} onChange={(e) => setRound(i, { raise: Number(e.target.value) || 0 })} /></td>
-                        <td className="pr-2"><input aria-label={`${ROUND_NAMES[i]} post-money`} className={`${field} !mt-0 w-32`} inputMode="numeric" value={r.post} onChange={(e) => setRound(i, { post: Number(e.target.value) || 0 })} /></td>
+                        <td className="pr-2"><input aria-label={`${ROUND_NAMES[i]} raise`} className={`${field} !mt-0 w-28`} inputMode="numeric" value={r.raise} onChange={(e) => setRound(i, { raise: Number(e.target.value) || 0 })} /><div className="font-mono text-[10px] text-slate">{ngn(r.raise)}</div></td>
+                        <td className="pr-2"><input aria-label={`${ROUND_NAMES[i]} post-money`} className={`${field} !mt-0 w-32`} inputMode="numeric" value={r.post} onChange={(e) => setRound(i, { post: Number(e.target.value) || 0 })} /><div className="font-mono text-[10px] text-slate">{ngn(r.post)}</div></td>
                         <td className="pr-2 font-mono">{r.on && r.post > 0 ? `${((r.raise / r.post) * 100).toFixed(2)}%` : "off"}</td>
                         <td><input aria-label={`${ROUND_NAMES[i]} pool top-up`} className={`${field} !mt-0 w-16`} inputMode="numeric" value={r.topup} onChange={(e) => setRound(i, { topup: Number(e.target.value) || 0 })} /></td>
                       </tr>
@@ -189,13 +193,13 @@ export default function VisionPage() {
                           <tr key={k} className={`border-t border-rule text-right ${own ? "bg-crimson/10 font-bold text-crimson" : ""}`}>
                             <td className="whitespace-nowrap py-1.5 text-left font-ui">{own ? `${h} (you)` : h}</td>
                             {model.snaps.map((s, i) => <td key={i} className="px-2">{fmtPct(s.v[k])}</td>)}
-                            <td className="px-2">{model.finalValue ? fmtUsd(model.last.v[k] * model.finalValue) : "-"}</td>
+                            <td className="px-2">{model.finalValue ? money(model.last.v[k] * model.finalValue) : "-"}</td>
                           </tr>
                         );
                       })}
                       <tr className="border-t-2 border-rule text-right"><td className="py-1.5 text-left font-ui">{me === "emmanuel" || mine === undefined ? "Emmanuel's voting power" : "Your voting power"}</td>{model.snaps.map((s, i) => <td key={i} className="px-2">{fmtPct(s.vote[mine ?? 0])}</td>)}<td /></tr>
                       <tr className="text-right"><td className="py-1.5 text-left font-ui">Three founders' voting power</td>{model.snaps.map((s, i) => <td key={i} className="px-2">{fmtPct(s.vote[0] + s.vote[1] + s.vote[2])}</td>)}<td /></tr>
-                      <tr className="text-right"><td className="py-1.5 text-left font-ui">Post-money</td>{model.snaps.map((s, i) => <td key={i} className="px-2">{s.post ? fmtUsd(s.post) : "-"}</td>)}<td /></tr>
+                      <tr className="text-right"><td className="py-1.5 text-left font-ui">Post-money</td>{model.snaps.map((s, i) => <td key={i} className="px-2">{s.post ? money(s.post) : "-"}</td>)}<td /></tr>
                     </tbody>
                   </table>
                   <p className="mt-2 text-xs text-slate">Paper value is stake × the last post-money. It ignores liquidation preferences, tax and shares not yet granted, so it is not what anyone would receive.</p>
@@ -209,7 +213,7 @@ export default function VisionPage() {
                     <thead><tr className="text-right text-slate"><th className="py-1 text-left">&nbsp;</th>{opt.map((s, i) => <th key={i} className="px-2">{s.name}</th>)}</tr></thead>
                     <tbody className="font-mono">
                       <tr className="text-right"><td className="py-1.5 text-left font-ui">Your share of the company</td>{opt.map((s, i) => <td key={i} className="px-2">{fmtPct(s.pct)}</td>)}</tr>
-                      <tr className="text-right"><td className="py-1.5 text-left font-ui">Paper value, before exercise price</td>{opt.map((s, i) => <td key={i} className="px-2">{s.post ? fmtUsd(s.pct * s.post) : "-"}</td>)}</tr>
+                      <tr className="text-right"><td className="py-1.5 text-left font-ui">Paper value, before exercise price</td>{opt.map((s, i) => <td key={i} className="px-2">{s.post ? money(s.pct * s.post) : "-"}</td>)}</tr>
                     </tbody>
                   </table>
                   <p className="mt-2 text-xs text-slate">Each round shrinks every holder&apos;s share by the share it sells and any pool top-up; the number of shares in your grant does not change. Only vested options can be exercised, and the exercise price is set from an independent valuation.</p>
