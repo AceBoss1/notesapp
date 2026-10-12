@@ -238,6 +238,7 @@ export default function AdminTeamPage() {
         <span className="flex flex-wrap items-center gap-3 text-sm text-slate">
           <button type="button" onClick={() => setNana((v) => !v)} aria-expanded={nana} className="btn-ghost !px-4 !py-2 text-xs">{nana ? "Close Nana" : "Ask Nana ✨"}</button>
           <Link href="/admin/team/review" className="btn-ghost !px-4 !py-2 text-xs">Weekly review →</Link>
+          <Link href="/admin/team/vision" className="btn-ghost !px-4 !py-2 text-xs">Vision model →</Link>
           {hasAnyDept(access, ["finance", "product"]) && <Link href="/admin/team/finance" className="btn-ghost !px-4 !py-2 text-xs">Money ledger →</Link>}
           <label className="flex items-center gap-2"><input type="checkbox" checked={mineOnly} onChange={(e) => setMineOnly(e.target.checked)} /> Only mine</label>
         </span>
