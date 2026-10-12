@@ -2045,7 +2045,7 @@ Internal planning notes (12 October 2026). Nothing here is built. Only the owner
 Internal planning notes (12 October 2026). The inputs become sliders; the defaults below are the **planning case with the least downside** (cautious on everything except cost per signup, which we keep at ₦100 because acquisition is by a gamified concept). Prices are read from the admin Pricing page, not typed in.
 
 ### Inputs (sliders, saved as named scenarios shared with the runway calculator)
-Acquisition spend (₦10,000,000) · target registered users (100,000) · **badge incentive cost** (badges given × ₦999 × months; planning case 2,000 × 1 month = ₦1,998,000) · naira per dollar (₦1,333) · **conversion to premium tiers** (planning 1%) · Pro to Business mix (4 : 1) · badge payers per premium user (0.4) · share on yearly plans and the yearly discount · **monthly churn** (planning 8%) · **average monthly earnings through the platform per paid member** (planning ₦20,000, used for commission given up) · payment fees (Paystack, about 1.5% plus ₦100 on charges of ₦2,500 and over; check the real rate) · horizon (12 months).
+Acquisition spend (₦10,000,000) · target registered users (100,000) · **badge incentive cost** (badges given × ₦999 × months; planning case 2,000 × 1 month = ₦1,998,000) · naira per dollar (₦1,333) · **conversion to premium tiers** (planning 1%) · Pro to Business mix (4 : 1) · badge payers per premium user (0.4) · share on yearly plans and the yearly discount · **monthly churn** (planning 8%) · **average monthly earnings through the platform per paid member** (planning ₦10,000, used for commission given up) · payment fees (Paystack, about 1.5% plus ₦100 on charges of ₦2,500 and over; check the real rate) · horizon (12 months).
 
 ### Outputs
 - **Blended CAC** = (spend + badge cost) ÷ users: ₦119.98 ($0.09). **Cost per paying user** at the chosen conversion.
@@ -2053,11 +2053,13 @@ Acquisition spend (₦10,000,000) · target registered users (100,000) · **badg
 - **Cohort revenue** month by month with churn, **12-month cumulative revenue against spend**, **payback month**, **break-even conversion**, LTV (net per payer ÷ churn) and LTV:CAC. **ARR is shown only as "if nobody leaves"**, never as a headline.
 - **Floor / planning / upside** side by side, and a one-line "what would have to be true" (break-even conversion, break-even CAC).
 
-### Planning case worked out (illustrative; the calculator replaces this)
-Premium conversion 1% = 1,000 users (800 Pro, 200 Business) plus 400 badge payers.
-- Gross MRR ₦7,399,600 (Pro ₦4,000,000, Business ₦3,000,000, badges ₦399,600) → fees about ₦211,000 → commission given up about ₦2,400,000 → **net ₦4,788,600 a month** (about $3,600).
-- With 8% monthly churn the cohort earns about **₦37.8 million over 12 months** against ₦11,998,000 spent; **payback about 3 months**; cost per paying user about ₦8,570.
-- **Break-even is about 0.32% conversion** over 12 months (about 0.58% if the real cost per signup were double). At 0.5% the cohort returns about ₦18.9 million; at 3% about ₦113.5 million; at 5% about ₦189 million.
+### Planning case worked out (the calculator's starting defaults; a shareable copy is the Google-style doc "CAC Efficiency Analysis")
+Prices as set on the admin Pricing page on 12 October 2026: Pro ₦5,000, Business ₦25,000, badge ₦999 a month; commission Free Basic 35%, Pro 25%, Business 15%. Premium conversion **1%** = 1,000 users (800 Pro, 200 Business) plus 400 badge payers; the challenge badge is free for **1 month only** (2,000 × ₦999 = ₦1,998,000, counted in CAC); members earn **₦10,000 a month** through the platform on average; monthly churn 8%; payment fees about 1.5% plus ₦100 on charges of ₦2,500 and over.
+- **CAC** ₦119.98 ($0.09) per registered user; about ₦8,570 per paying user.
+- Gross MRR ₦9,399,600 (Pro ₦4,000,000, Business ₦5,000,000, badges ₦399,600) → payment fees about ₦241,000 → commission given up about ₦1,200,000 → **net ₦7,958,600 a month** (about $5,970).
+- With churn the cohort earns about **₦62.9 million over 12 months** against ₦11,998,000 spent; **payback in month 2**.
+- **Break-even is about 0.19% conversion** over 12 months (about 0.35% if the real cost per signup were double). At 0.5% the cohort returns about ₦31.5 million; at 3% about ₦188.7 million; at 5% about ₦314.5 million.
+- Pro costs us money only for a member earning over about ₦50,000 a month through us; Business over about ₦125,000 at the ₦25,000 price (it was ₦75,000 at ₦15,000).
 - The 5% case is the upside, not the plan: free-to-paid is usually a few percent at best, and sign-ups won through a game may convert and stay less well, which is why we measure by cohort.
 
 ### Wiring
