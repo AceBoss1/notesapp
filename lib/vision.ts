@@ -3,19 +3,25 @@
 // Planning only: not a forecast and not an offer of securities. Paper value = stake x the last post-money; it ignores liquidation preferences and tax.
 
 export type PersonKey = "emmanuel" | "chimdinma" | "akujuobi" | "nora";
-export const PERSON_LABEL: Record<PersonKey, string> = { emmanuel: "Emmanuel Adams", chimdinma: "Chimdinma Onwuegbu", akujuobi: "Akujuobi Ifeyinwa Maureen", nora: "Nora Bawa" };
+export const PERSON_LABEL: Record<PersonKey, string> = { emmanuel: "Emmanuel Adams", chimdinma: "Chimdinma Onwuegbu", akujuobi: "Ifeyinwa Akujuobi", nora: "Nora Bawa" };
+// The short name shown on chips and slider labels. Ifeyinwa is the name she uses on #NotesApp (@ify); the legal documents keep her registered name.
+export const PERSON_SHORT: Record<PersonKey, string> = { emmanuel: "Emmanuel", chimdinma: "Chimdinma", akujuobi: "Ifeyinwa", nora: "Nora" };
+// Sign-in by username: @ify is Ifeyinwa Akujuobi (the "akujuobi" key is the internal id of the second co-founder).
+export const USERNAME_TO_PERSON: Record<string, PersonKey> = { ify: "akujuobi", chimdinma: "chimdinma" };
 export const FOUNDERS: PersonKey[] = ["emmanuel", "chimdinma", "akujuobi"];
 export const isFounder = (p: PersonKey | null | undefined) => !!p && FOUNDERS.includes(p);
 
 // Who is signed in, as a team member. An explicit email list (VISION_PEOPLE="chimdinma=a@x.com,akujuobi=b@y.com,nora=c@z.com") wins; otherwise the
-// owner is Emmanuel and everyone else is recognised by the name on their account. null = not one of the four (they don't get the model).
-export function personFor(input: { name?: string; email?: string; owner?: boolean }, map?: string): PersonKey | null {
+// owner is Emmanuel, then the username (@ify is Ifeyinwa Akujuobi), then the name on the account. null = not one of the four (they don't get the model).
+export function personFor(input: { name?: string; email?: string; owner?: boolean; username?: string }, map?: string): PersonKey | null {
   const email = (input.email || "").trim().toLowerCase();
   for (const part of (map || "").split(",")) {
     const [k, e] = part.split("=").map((s) => s.trim().toLowerCase());
     if (k && e && e === email && k in PERSON_LABEL) return k as PersonKey;
   }
   if (input.owner) return "emmanuel";
+  const u = (input.username || "").trim().toLowerCase().replace(/^@/, "");
+  if (u && USERNAME_TO_PERSON[u]) return USERNAME_TO_PERSON[u];
   const n = (input.name || "").toLowerCase();
   if (/chimdinma|onwuegbu/.test(n)) return "chimdinma";
   if (/akujuobi|ifeyinwa/.test(n)) return "akujuobi";
@@ -27,10 +33,10 @@ export function personFor(input: { name?: string; email?: string; owner?: boolea
 export type Round = { name: string; on: boolean; raise: number; post: number; target: number; users: number }; // US$ ; target = pool size wanted after the round, % (0 = no top-up) ; users = verified registered users needed before the round opens (0 = no gate)
 export type Founders = { trackB: boolean; bridge: number; cPct: number; aPct: number; cCash: number; aCash: number };
 export type Company = { pool: number; poolAt: "formation" | "preA" | "none"; rounds: Round[]; dual: "never" | "last" | "all"; V: number; classB: [boolean, boolean, boolean] };
-export type Business = { users: number; conv: number; churn: number; burn: number; burnVar: number; burnExp: number; expansion: number; cash: number; fx: number }; // burn = monthly cost at 100,000 users; burnVar = % of it that grows with users; burnExp = how fast that part grows (0 fixed, 1 in step with users); expansion = one-time spend to open new countries or continents, N
+export type Business = { users: number; conv: number; churn: number; burn: number; burnVar: number; burnExp: number; expansion: number; growth: number; cash: number; fx: number }; // burn = monthly cost at 100,000 users; burnVar = % of it that grows with users; burnExp = how fast that part grows (0 fixed, 1 in step with users); expansion = one-time spend to open new countries or continents, N; growth = new registered users each month, % of today's users
 
 // 0 Emmanuel 1 Chimdinma 2 Akujuobi 3 angels 4 FEBO reserve 5 option pool 6.. one investor per round
-export const HOLDERS = ["Emmanuel Adams", "Chimdinma Onwuegbu", "Akujuobi Ifeyinwa Maureen", "Angels (bridge)", "FEBO reserve", "Option pool"];
+export const HOLDERS = ["Emmanuel Adams", "Chimdinma Onwuegbu", "Ifeyinwa Akujuobi", "Angels (bridge)", "FEBO reserve", "Option pool"];
 export const ROUND_NAMES = ["Pre-Seed", "Seed", "Series A", "Series B", "Series C", "Exit / IPO"];
 const N = 12;
 
@@ -140,18 +146,29 @@ export function runway(b: Business) {
   const burn = burnAt(b);
   const mrr = b.users * b.conv * NET_PER_USER_PER_PCT;
   const ch = b.churn / 100;
-  const cum = ch > 0 ? (mrr * (1 - Math.pow(1 - ch, 12))) / ch : mrr * 12;
-  // Month by month: the payers won in month 1 leave at the churn rate and no new payers are added, so revenue falls while burn stays. Find the first month
-  // the cash goes below zero (within 36 months), after the one-time expansion spend.
+  // New registered users keep arriving: each month b.growth % of today's users join, and a share of them (the paying conversion) become payers who then leave
+  // at the churn rate like everyone else. Growth equal to churn holds net revenue steady. Burn follows the user count as it grows.
+  const newMrr = b.users * (b.growth / 100) * b.conv * NET_PER_USER_PER_PCT;
   let cashNow = b.cash - b.expansion;
   let cashOutMonth: number | null = cashNow < 0 ? 0 : null;
-  for (let m = 1; m <= 36 && cashOutMonth === null; m++) { cashNow += mrr * Math.pow(1 - ch, m - 1) - burn; if (cashNow < 0) cashOutMonth = m; }
+  let cum12 = 0, cashAfter12 = 0, rev12 = 0, burn12 = burn, users12 = b.users;
+  let rev = mrr;
+  for (let m = 1; m <= 36; m++) {
+    if (m > 1) rev = rev * (1 - ch) + newMrr;
+    const users = b.users * (1 + (b.growth / 100) * (m - 1));
+    const burnM = burnAt({ ...b, users });
+    cashNow += rev - burnM;
+    if (cashNow < 0 && cashOutMonth === null) cashOutMonth = m;
+    if (m <= 12) cum12 += rev;
+    if (m === 12) { cashAfter12 = cashNow; rev12 = rev; burn12 = burnM; users12 = users; }
+  }
   return {
-    mrr, burn, cashOutMonth, revMonth12: mrr * Math.pow(1 - ch, 11), surplus: mrr - burn,
+    mrr, burn, cashOutMonth, revMonth12: rev12, burnMonth12: burn12, users12, surplus: mrr - burn,
     breakEvenConv: b.users > 0 ? burn / (b.users * NET_PER_USER_PER_PCT) : 0,
-    cum12: cum, cashAfter12: b.cash + cum - 12 * burn - b.expansion,
+    cum12, cashAfter12,
     monthsOnCash: burn > 0 ? b.cash / burn : Infinity,
     monthsWithRevenue: burn > mrr ? b.cash / (burn - mrr) : Infinity,
+    steadyGrowth: b.churn, // monthly growth in users that holds net recurring revenue flat
   };
 }
 
@@ -185,17 +202,17 @@ export const SCENARIOS: Scenario[] = [
   {
     key: "worst", label: "Worst case", note: "Growth stalls at 25,000 users: bridge and a small Pre-Seed, then a modest sale. No gate beyond Pre-Seed opens.",
     company: { pool: 15, poolAt: "formation", dual: "never", V: 10, rounds: [R("Pre-Seed", true, 100_000, 1_000_000), R("Seed", true, 1_000_000, 6_000_000, GATES.seed), R("Series A", true, 8_000_000, 40_000_000, GATES.seriesA), noRound("Series B", GATES.seriesB), noRound("Series C", GATES.seriesC), R("Exit (small sale)", true, 0, 3_000_000)] },
-    business: { users: 25_000, conv: 0.25, churn: 12, burn: 1_142_600, burnVar: 70, burnExp: 0.75, expansion: 0, cash: 665_000, fx: 1333 },
+    business: { users: 25_000, conv: 0.25, churn: 12, burn: 1_142_600, burnVar: 70, burnExp: 0.75, expansion: 0, growth: 0, cash: 665_000, fx: 1333 },
   },
   {
     key: "base", label: "Baseline", note: "10 million users: the Seed and Series A gates open; Series B and C stay locked. Then a sale.",
     company: { pool: 15, poolAt: "formation", dual: "never", V: 10, rounds: [R("Pre-Seed", true, 250_000, 3_571_429), R("Seed", true, 1_000_000, 14_285_714, GATES.seed), R("Series A", true, 8_000_000, 40_000_000, GATES.seriesA), noRound("Series B", GATES.seriesB), noRound("Series C", GATES.seriesC), R("Exit (sale)", true, 0, 60_000_000)] },
-    business: { users: 10_000_000, conv: 1, churn: 8, burn: 1_142_600, burnVar: 70, burnExp: 0.75, expansion: 0, cash: 665_000, fx: 1333 },
+    business: { users: 10_000_000, conv: 1, churn: 8, burn: 1_142_600, burnVar: 70, burnExp: 0.75, expansion: 0, growth: 2, cash: 665_000, fx: 1333 },
   },
   {
     key: "vision", label: "Vision", note: "All four gates reached (200 million users) and every round to a US$7.5B listing. Aspirational: paper value only.",
     company: { pool: 15, poolAt: "preA", dual: "last", V: 10, rounds: [R("Pre-Seed", true, 250_000, 3_571_429), R("Seed", true, 1_000_000, 14_285_714, GATES.seed), R("Series A", true, 150_000_000, 1_000_000_000, GATES.seriesA), R("Series B", true, 250_000_000, 2_500_000_000, GATES.seriesB), R("Series C", true, 500_000_000, 5_000_000_000, GATES.seriesC), R("IPO", true, 750_000_000, 7_500_000_000)] },
-    business: { users: 200_000_000, conv: 2, churn: 6, burn: 1_142_600, burnVar: 70, burnExp: 0.75, expansion: 0, cash: 14_663_000, fx: 1333 },
+    business: { users: 200_000_000, conv: 2, churn: 6, burn: 1_142_600, burnVar: 70, burnExp: 0.75, expansion: 0, growth: 5, cash: 14_663_000, fx: 1333 },
   },
 ];
 

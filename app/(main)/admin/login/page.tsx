@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { signInWithEmailAndPassword } from "firebase/auth";
 import { auth } from "@/lib/firebase";
 import { ensureAdminProfile } from "@/lib/users";
+import PasswordInput from "@/components/PasswordInput";
 
 export default function AdminLoginPage() {
   const [email, setEmail] = useState("");
@@ -45,8 +46,7 @@ export default function AdminLoginPage() {
         </label>
         <label className="block">
           <span className="eyebrow">Password</span>
-          <input
-            type="password"
+          <PasswordInput
             required
             value={password}
             onChange={(e) => setPassword(e.target.value)}

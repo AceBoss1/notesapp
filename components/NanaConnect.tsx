@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { onAuthStateChanged, type User } from "firebase/auth";
 import { auth } from "@/lib/firebase";
+import PasswordInput from "@/components/PasswordInput";
 
 // Connect your own AI account: paste an Anthropic API key. It is checked, kept encrypted and used only for Nana, the writing help in drafts,
 // sharing and messages, and the team hub, so the cost lands on the member's own account. The key is never shown again, only its last four characters.
@@ -49,7 +50,7 @@ export default function NanaConnect() {
       ) : (
         <form onSubmit={(e) => { e.preventDefault(); run(() => call("POST", { key }), "Connected. Nana will use your AI account now."); }}>
           <label className="block text-xs text-slate">Your Anthropic API key
-            <input type="password" value={key} onChange={(e) => setKey(e.target.value)} autoComplete="off" spellCheck={false} placeholder="sk-ant-…" className="mt-1 w-full border border-rule bg-card px-3 py-2 font-mono text-sm text-ink outline-none focus:border-crimson" />
+            <PasswordInput what="API key" value={key} onChange={(e) => setKey(e.target.value)} autoComplete="off" spellCheck={false} placeholder="sk-ant-…" className="mt-1 w-full border border-rule bg-card px-3 py-2 font-mono text-sm text-ink outline-none focus:border-crimson" />
           </label>
           <p className="mt-2 text-xs text-slate">Make one at <a href="https://console.anthropic.com/settings/keys" target="_blank" rel="noopener noreferrer" className="underline">console.anthropic.com</a> (you can set a spending limit there). We check that it works, keep it encrypted, and use it only for the things above. Remove it any time.</p>
           <button type="submit" disabled={busy || key.trim().length < 20} className="btn-primary mt-3 disabled:opacity-50">{busy ? "Checking…" : "Connect"}</button>

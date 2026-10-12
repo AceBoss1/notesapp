@@ -13,6 +13,7 @@ import WorkFields from "@/components/WorkFields";
 import type { Work } from "@/lib/profile-work";
 import { normalizeRc, ORG_TRIAL_DAYS } from "@/lib/org";
 import PageHero from "@/components/PageHero";
+import PasswordInput from "@/components/PasswordInput";
 
 const OPTIONAL_REQUIRED = 2; // "2 more of their choice" — total target is 3 mandatory + 2 = 5
 
@@ -329,8 +330,7 @@ export default function SignupPage() {
         </label>
         <label className="block">
           <span className="eyebrow">Password</span>
-          <input
-            type="password"
+          <PasswordInput
             required
             minLength={6}
             value={password}

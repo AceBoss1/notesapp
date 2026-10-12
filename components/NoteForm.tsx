@@ -11,6 +11,7 @@ import { Note, slugify, createNote, updateNote, slugTaken } from "@/lib/firestor
 import { deleteField } from "firebase/firestore";
 import VideoUploader, { VideoValue, videoFromNote } from "@/components/VideoUploader";
 import { uploadToR2 } from "@/lib/upload";
+import { DROP_RING, useFileDrop } from "@/lib/useFileDrop";
 import RichTextEditor from "@/components/RichTextEditor";
 import { roleLabelFor, type UserProfile } from "@/lib/users";
 
@@ -86,6 +87,7 @@ export default function NoteForm({ noteId, initial, self, org }: Props) {
   const [boostAfter, setBoostAfter] = useState(false);
   const [coOpen, setCoOpen] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const featuredDrop = useFileDrop((fs) => { const f = fs.find((x) => x.type.startsWith("image/")); if (f) void uploadFeatured(f); }, true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
 
@@ -96,7 +98,10 @@ export default function NoteForm({ noteId, initial, self, org }: Props) {
 
   async function handleImageUpload(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
-    if (!file) return;
+    e.target.value = "";
+    if (file) await uploadFeatured(file);
+  }
+  async function uploadFeatured(file: File) {
     setUploading(true);
     setError("");
     try {
@@ -259,8 +264,9 @@ export default function NoteForm({ noteId, initial, self, org }: Props) {
       </label>
       )}
 
-      <label className="block">
-        <span className="eyebrow">Featured Image</span>
+      <label className={`relative block ${featuredDrop.dragging ? DROP_RING : ""}`} {...featuredDrop.bind}>
+        {featuredDrop.dragging && <div className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center rounded bg-paper/80 font-ui text-sm font-bold text-crimson">Drop the image</div>}
+        <span className="eyebrow">Featured Image</span> <span className="text-[11px] text-slate">choose, drag a picture here, or paste a screenshot while this is selected</span>
         <input
           type="file"
           accept="image/*"

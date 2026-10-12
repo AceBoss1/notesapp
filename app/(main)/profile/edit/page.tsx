@@ -16,6 +16,7 @@ import { uploadToR2 } from "@/lib/upload";
 import { SocialLinks } from "@/lib/admin";
 import BadgeCard from "@/components/BadgeCard";
 import PageHero from "@/components/PageHero";
+import { DROP_RING, useFileDrop } from "@/lib/useFileDrop";
 
 const SOCIAL_FIELDS: { key: keyof SocialLinks; label: string }[] = [
   { key: "linkedin", label: "LinkedIn URL" },
@@ -38,6 +39,8 @@ export default function ProfileEditPage() {
   const [social, setSocial] = useState<SocialLinks>({});
   const [work, setWork] = useState<Work>({});
   const [uploading, setUploading] = useState(false);
+  // A picture dropped on the form, or pasted into it, becomes the profile picture.
+  const avatarDrop = useFileDrop((fs) => { const f = fs.find((x) => x.type.startsWith("image/")); if (f) void uploadAvatar(f); }, true);
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
@@ -63,7 +66,10 @@ export default function ProfileEditPage() {
 
   async function handleAvatarUpload(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
-    if (!file) return;
+    e.target.value = "";
+    if (file) await uploadAvatar(file);
+  }
+  async function uploadAvatar(file: File) {
     setUploading(true);
     setUploadError(null);
     try {
@@ -110,7 +116,8 @@ export default function ProfileEditPage() {
         <BadgeCard />
       </div>
 
-      <form onSubmit={handleSubmit} className="mt-8 grid gap-6">
+      <form onSubmit={handleSubmit} className={`relative mt-8 grid gap-6 ${avatarDrop.dragging ? DROP_RING : ""}`} {...avatarDrop.bind}>
+        {avatarDrop.dragging && <div className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center rounded bg-paper/80 font-ui text-sm font-bold text-crimson">Drop to use as your profile picture</div>}
         <label className="block">
           <span className="eyebrow">Display Name</span>
           <input
@@ -151,6 +158,7 @@ export default function ProfileEditPage() {
               />
             )}
             <input type="file" accept="image/*" onChange={handleAvatarUpload} />
+            <span className="text-[11px] text-slate">or drag a picture onto this page, or paste one</span>
           </div>
           {uploading && <p className="text-xs text-slate mt-1">Uploading…</p>}
           {uploadError && <p className="text-xs text-crimson mt-1">{uploadError}</p>}

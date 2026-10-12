@@ -1,5 +1,6 @@
 "use client";
 
+import { DROP_RING, useFileDrop } from "@/lib/useFileDrop";
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -25,6 +26,7 @@ export default function NewCampaignPage() {
   const [placements, setPlacements] = useState<AdPlacement[]>(["home", "journals", "trending"]);
   const [agreed, setAgreed] = useState(false);
   const [busy, setBusy] = useState(false);
+  const bannerDrop = useFileDrop((fs) => { const f = fs.find((x) => x.type.startsWith("image/")); if (f) void uploadBanner(f); }, true);
   const [error, setError] = useState("");
 
   useEffect(() => onAuthStateChanged(auth, (u) => (u ? setUser(u) : router.replace("/login"))), [router]);
@@ -33,7 +35,11 @@ export default function NewCampaignPage() {
 
   async function upload(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
-    if (!file || !user) return;
+    e.target.value = "";
+    if (file) await uploadBanner(file);
+  }
+  async function uploadBanner(file: File) {
+    if (!user) return;
     setBusy(true);
     setError("");
     try {
@@ -78,7 +84,8 @@ export default function NewCampaignPage() {
         <Link href="/advertise/campaigns" className="text-crimson underline">My campaigns</Link>
       </p>
 
-      <form onSubmit={submit} className="mt-8 space-y-6">
+      <form onSubmit={submit} className={`relative mt-8 space-y-6 ${bannerDrop.dragging ? DROP_RING : ""}`} {...bannerDrop.bind}>
+        {bannerDrop.dragging && <div className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center rounded bg-paper/80 font-ui text-sm font-bold text-crimson">Drop to use as the banner</div>}
         <fieldset>
           <legend className="font-ui text-sm font-bold text-ink">1. Package</legend>
           <div className="mt-2 grid gap-3 sm:grid-cols-3">
@@ -114,6 +121,7 @@ export default function NewCampaignPage() {
                 <img src={image} alt="" className="h-14 w-24 object-cover" />
               )}
               <input type="file" accept="image/*" onChange={upload} />
+              <span className="text-[11px] text-slate">or drag a picture onto the form, or paste one</span>
             </div>
           </div>
         </fieldset>

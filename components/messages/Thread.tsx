@@ -1,6 +1,7 @@
 "use client";
 
 import NanaAssist from "@/components/NanaAssist";
+import { DROP_RING, useFileDrop } from "@/lib/useFileDrop";
 import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { onAuthStateChanged, type User } from "firebase/auth";
@@ -60,6 +61,7 @@ export default function Thread({ id, to, embedded = false }: { id?: string; to?:
   const [allowed, setAllowed] = useState<{ maxBytes: number; maxCount: number; maxVoiceSeconds: number } | null>(null);
   const box = useRef<HTMLTextAreaElement>(null);
   const picker = useRef<HTMLInputElement>(null);
+  const { dragging, bind } = useFileDrop((f) => pick(f), true);
   const voiceLength = useRef(new WeakMap<File, number>()); // how long each recorded voice note is
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -136,7 +138,7 @@ export default function Thread({ id, to, embedded = false }: { id?: string; to?:
   // returning it made React call it as a clean-up ("destroy is not a function"), which crashed the page.
   useEffect(() => { end.current?.scrollIntoView({ block: "end" }); }, [messages.length]);
 
-  function pick(list: FileList | null) {
+  function pick(list: FileList | File[] | null) {
     if (!list) return;
     setError(null);
     const next = [...files];
@@ -222,7 +224,8 @@ export default function Thread({ id, to, embedded = false }: { id?: string; to?:
 
   if (user === null) return <p className="text-slate"><Link href="/login" className="text-crimson underline">Sign in</Link> to message.</p>;
   return (
-    <div className="flex flex-col">
+    <div className={`relative flex flex-col ${dragging ? DROP_RING : ""}`} {...bind}>
+      {dragging && <div className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center rounded bg-paper/80 font-ui text-sm font-bold text-crimson">Drop to attach</div>}
       {group ? (
         <div className="mb-4 flex flex-wrap items-center gap-3 text-sm text-slate">
           {!embedded && <Link href="/messages" className="text-crimson underline">← Messages</Link>}
