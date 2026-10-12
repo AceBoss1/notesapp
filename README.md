@@ -42,7 +42,7 @@ WhatsApp reminders (plan: Meta WhatsApp Cloud API directly; booking reminders + 
 verification and approved templates) · publishing to Facebook, Instagram and TikTok (LinkedIn and X are built) · AI notetaker + MCP assistant ·
 team hub and team messaging for Business and Enterprise (internal only for now) · LinkedIn advertising (Advertising API development tier approved; being built: advertisers boost a post on LinkedIn from their own ad account (Business and Enterprise only), plus our own LinkedIn campaign stats on the admin Traction page, planned next) · iOS/Android apps ·
 video transcoding/streaming (we cap size and length instead) · Dojah **live** mode (README "Going live with Dojah") ·
-webhook retries (one attempt, manual resend) · OAuth for third-party API apps · checkout and bookings in a popup on custom domains, and a sending address on the member's own domain (sign-in and sign-up in the member's name are live) · online status and follow lists, Nana suggested replies, team hub tasks/payments/payroll/staff library, investor data room (all planned: see "Planned: team operations…") · runway calculator, burn and revenue analytics, vesting and cap table (planned) · Sentry (we have built-in error monitoring instead).
+webhook retries (one attempt, manual resend) · OAuth for third-party API apps · checkout and bookings in a popup on custom domains, and a sending address on the member's own domain (sign-in and sign-up in the member's name are live) · online status and follow lists, Nana suggested replies, team hub tasks/payments/payroll/staff library, investor data room (all planned: see "Planned: team operations…") · runway calculator, CAC and MRR calculator, burn and revenue analytics, vesting and cap table (planned) · Sentry (we have built-in error monitoring instead).
 
 ### Environment variables (Vercel → Settings → Environment Variables; redeploy after changing any)
 | Variable | Secret? | Purpose |
@@ -2039,6 +2039,31 @@ Internal planning notes (12 October 2026). Nothing here is built. Only the owner
 
 ### Suggested order
 1. Opening balance and the burn and revenue page. 2. People plan and the runway calculator with grant cliffs and saved scenarios. 3. Cap table (events and fully-diluted view). 4. Vesting import and its timeline. 5. Feeding these into the data room. Also next week: trim the whole-collection Firestore reads.
+
+## Planned: CAC and MRR calculator (scaffold — not built; sits beside the runway calculator)
+
+Internal planning notes (12 October 2026). The inputs become sliders; the defaults below are the **planning case with the least downside** (cautious on everything except cost per signup, which we keep at ₦100 because acquisition is by a gamified concept). Prices are read from the admin Pricing page, not typed in.
+
+### Inputs (sliders, saved as named scenarios shared with the runway calculator)
+Acquisition spend (₦10,000,000) · target registered users (100,000) · **badge incentive cost** (badges given × ₦999 × months; planning case 2,000 × 1 month = ₦1,998,000) · naira per dollar (₦1,333) · **conversion to premium tiers** (planning 1%) · Pro to Business mix (4 : 1) · badge payers per premium user (0.4) · share on yearly plans and the yearly discount · **monthly churn** (planning 8%) · **average monthly earnings through the platform per paid member** (planning ₦20,000, used for commission given up) · payment fees (Paystack, about 1.5% plus ₦100 on charges of ₦2,500 and over; check the real rate) · horizon (12 months).
+
+### Outputs
+- **Blended CAC** = (spend + badge cost) ÷ users: ₦119.98 ($0.09). **Cost per paying user** at the chosen conversion.
+- **MRR bridge:** gross subscription MRR → minus payment fees → minus **commission given up** (a member who moves up a tier pays us a lower cut on what they earn: Free Basic 35% to Pro 25% to Business 15% on sessions, subscriptions and gifts) → **net MRR**. Pro pays for itself for the member above about ₦50,000 a month earned (Business ₦75,000), so for the heaviest earners a Pro upgrade *loses* us money; the calculator shows it.
+- **Cohort revenue** month by month with churn, **12-month cumulative revenue against spend**, **payback month**, **break-even conversion**, LTV (net per payer ÷ churn) and LTV:CAC. **ARR is shown only as "if nobody leaves"**, never as a headline.
+- **Floor / planning / upside** side by side, and a one-line "what would have to be true" (break-even conversion, break-even CAC).
+
+### Planning case worked out (illustrative; the calculator replaces this)
+Premium conversion 1% = 1,000 users (800 Pro, 200 Business) plus 400 badge payers.
+- Gross MRR ₦7,399,600 (Pro ₦4,000,000, Business ₦3,000,000, badges ₦399,600) → fees about ₦211,000 → commission given up about ₦2,400,000 → **net ₦4,788,600 a month** (about $3,600).
+- With 8% monthly churn the cohort earns about **₦37.8 million over 12 months** against ₦11,998,000 spent; **payback about 3 months**; cost per paying user about ₦8,570.
+- **Break-even is about 0.32% conversion** over 12 months (about 0.58% if the real cost per signup were double). At 0.5% the cohort returns about ₦18.9 million; at 3% about ₦113.5 million; at 5% about ₦189 million.
+- The 5% case is the upside, not the plan: free-to-paid is usually a few percent at best, and sign-ups won through a game may convert and stay less well, which is why we measure by cohort.
+
+### Wiring
+- **Actual vs projected:** real registered users, paid plans and badges from the traction snapshot, and acquisition spend from the ledger's *marketing* category, shown next to the projection so the sliders are calibrated by real data as it arrives.
+- **Into the runway calculator:** planned acquisition spend as burn and net MRR (not gross) as the revenue line.
+- Access: finance and super admins; CSV export; "as of" stamps. Data room feed later.
 
 ## Planned: public Live and private group sessions (decisions so far — not built)
 
