@@ -3,19 +3,25 @@
 // Planning only: not a forecast and not an offer of securities. Paper value = stake x the last post-money; it ignores liquidation preferences and tax.
 
 export type PersonKey = "emmanuel" | "chimdinma" | "akujuobi" | "nora";
-export const PERSON_LABEL: Record<PersonKey, string> = { emmanuel: "Emmanuel Adams", chimdinma: "Chimdinma Onwuegbu", akujuobi: "Akujuobi Ifeyinwa Maureen", nora: "Nora Bawa" };
+export const PERSON_LABEL: Record<PersonKey, string> = { emmanuel: "Emmanuel Adams", chimdinma: "Chimdinma Onwuegbu", akujuobi: "Ifeyinwa Maureen", nora: "Nora Bawa" };
+// The short name shown on chips and slider labels. Ifeyinwa Maureen is the name she uses on #NotesApp (@ify); the legal documents keep her registered name.
+export const PERSON_SHORT: Record<PersonKey, string> = { emmanuel: "Emmanuel", chimdinma: "Chimdinma", akujuobi: "Ifeyinwa", nora: "Nora" };
+// Sign-in by username: @ify is Ifeyinwa Maureen (the "akujuobi" key is the internal id of the second co-founder).
+export const USERNAME_TO_PERSON: Record<string, PersonKey> = { ify: "akujuobi", chimdinma: "chimdinma" };
 export const FOUNDERS: PersonKey[] = ["emmanuel", "chimdinma", "akujuobi"];
 export const isFounder = (p: PersonKey | null | undefined) => !!p && FOUNDERS.includes(p);
 
 // Who is signed in, as a team member. An explicit email list (VISION_PEOPLE="chimdinma=a@x.com,akujuobi=b@y.com,nora=c@z.com") wins; otherwise the
-// owner is Emmanuel and everyone else is recognised by the name on their account. null = not one of the four (they don't get the model).
-export function personFor(input: { name?: string; email?: string; owner?: boolean }, map?: string): PersonKey | null {
+// owner is Emmanuel, then the username (@ify is Ifeyinwa Maureen), then the name on the account. null = not one of the four (they don't get the model).
+export function personFor(input: { name?: string; email?: string; owner?: boolean; username?: string }, map?: string): PersonKey | null {
   const email = (input.email || "").trim().toLowerCase();
   for (const part of (map || "").split(",")) {
     const [k, e] = part.split("=").map((s) => s.trim().toLowerCase());
     if (k && e && e === email && k in PERSON_LABEL) return k as PersonKey;
   }
   if (input.owner) return "emmanuel";
+  const u = (input.username || "").trim().toLowerCase().replace(/^@/, "");
+  if (u && USERNAME_TO_PERSON[u]) return USERNAME_TO_PERSON[u];
   const n = (input.name || "").toLowerCase();
   if (/chimdinma|onwuegbu/.test(n)) return "chimdinma";
   if (/akujuobi|ifeyinwa/.test(n)) return "akujuobi";
@@ -30,7 +36,7 @@ export type Company = { pool: number; poolAt: "formation" | "preA" | "none"; rou
 export type Business = { users: number; conv: number; churn: number; burn: number; burnVar: number; burnExp: number; expansion: number; growth: number; cash: number; fx: number }; // burn = monthly cost at 100,000 users; burnVar = % of it that grows with users; burnExp = how fast that part grows (0 fixed, 1 in step with users); expansion = one-time spend to open new countries or continents, N; growth = new registered users each month, % of today's users
 
 // 0 Emmanuel 1 Chimdinma 2 Akujuobi 3 angels 4 FEBO reserve 5 option pool 6.. one investor per round
-export const HOLDERS = ["Emmanuel Adams", "Chimdinma Onwuegbu", "Akujuobi Ifeyinwa Maureen", "Angels (bridge)", "FEBO reserve", "Option pool"];
+export const HOLDERS = ["Emmanuel Adams", "Chimdinma Onwuegbu", "Ifeyinwa Maureen", "Angels (bridge)", "FEBO reserve", "Option pool"];
 export const ROUND_NAMES = ["Pre-Seed", "Seed", "Series A", "Series B", "Series C", "Exit / IPO"];
 const N = 12;
 

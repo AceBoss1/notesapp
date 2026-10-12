@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useAdminAuth } from "@/lib/useAdminAuth";
 import {
-  AFRICA_MOBILE_USERS, COFOUNDER_MAX, COFOUNDER_MIN, EMMANUEL_MIN, GATES, GATE_NOTE, HOLDERS, PERSON_LABEL, ROUND_NAMES, SCENARIOS, applyGates, fmtNgn, fmtPct, fmtUsd, balanceFounders, fmtUsers, optionPath, posFromUsers, roundMath, roundStats, runModel, runway, startingSplit, usersFromPos,
+  AFRICA_MOBILE_USERS, COFOUNDER_MAX, COFOUNDER_MIN, EMMANUEL_MIN, GATES, GATE_NOTE, HOLDERS, PERSON_LABEL, PERSON_SHORT, ROUND_NAMES, SCENARIOS, applyGates, fmtNgn, fmtPct, fmtUsd, balanceFounders, fmtUsers, optionPath, posFromUsers, roundMath, roundStats, runModel, runway, startingSplit, usersFromPos,
   type Business, type Company, type Founders, type PersonKey, type Round,
 } from "@/lib/vision";
 
@@ -116,7 +116,7 @@ export default function VisionPage() {
             <span className="rounded-full bg-crimson/10 px-3 py-1 font-ui text-xs font-semibold text-crimson">{PERSON_LABEL[data.viewer]}</span>
             {data.canSwitch && <>
               <span className="ml-2 font-ui text-xs text-slate">View as:</span>
-              {data.people.map((p) => <button key={p} type="button" className={chip(data.viewer === p)} onClick={() => setAs(p === data.real ? null : p)}>{PERSON_LABEL[p].split(" ")[0]}</button>)}
+              {data.people.map((p) => <button key={p} type="button" className={chip(data.viewer === p)} onClick={() => setAs(p === data.real ? null : p)}>{PERSON_SHORT[p]}</button>)}
             </>}
           </div>
           <div className="mt-4 flex flex-wrap items-center gap-2">
@@ -157,13 +157,13 @@ export default function VisionPage() {
                 <label className="flex items-center gap-2 text-xs"><input type="checkbox" checked={fnd.trackB} onChange={(e) => setF({ trackB: e.target.checked })} /> Bridge: angels and FEBO reserve</label>
                 <Slider label="Angel bridge raised" value={fnd.bridge} min={0} max={30000} step={1000} show={`${fmtUsd(fnd.bridge)} · ${ngn(fnd.bridge)}`} onChange={(n) => setF({ bridge: n })} disabled={!fnd.trackB} />
                 <Slider label="Chimdinma, % of founders' stock" value={fnd.cPct} min={COFOUNDER_MIN} max={COFOUNDER_MAX} step={0.5} show={`${fnd.cPct}%`} onChange={(n) => setF({ cPct: n }, "c")} />
-                <Slider label="Akujuobi, % of founders' stock" value={fnd.aPct} min={COFOUNDER_MIN} max={COFOUNDER_MAX} step={0.5} show={`${fnd.aPct}%`} onChange={(n) => setF({ aPct: n }, "a")} />
+                <Slider label="Ifeyinwa, % of founders' stock" value={fnd.aPct} min={COFOUNDER_MIN} max={COFOUNDER_MAX} step={0.5} show={`${fnd.aPct}%`} onChange={(n) => setF({ aPct: n }, "a")} />
                 <p className="text-xs text-slate">Emmanuel holds the remainder: <span className="font-mono text-ink">{startingSplit(fnd).e.toFixed(1)}%</span>. He keeps at least {EMMANUEL_MIN}%; if one co-founder goes up with no room left, the other comes down.</p>
                 <p className="font-mono text-[10px] uppercase tracking-eyebrow text-slate">Voting</p>
                 <label className="block text-xs text-slate">Dual-class stock in effect<select className={field} value={company.dual} onChange={(e) => setCo({ dual: e.target.value as Company["dual"] })}><option value="never">Never</option><option value="last">Only at the last stage</option><option value="all">All stages</option></select></label>
                 <Slider label="Class B votes per share" value={company.V} min={2} max={20} step={1} show={`${company.V}x`} onChange={(n) => setCo({ V: n })} />
                 <div className="flex flex-wrap gap-3 text-xs">
-                  {(["Emmanuel", "Chimdinma", "Akujuobi"] as const).map((n, i) => <label key={n} className="flex items-center gap-1.5"><input type="checkbox" checked={company.classB[i]} onChange={(e) => { const b = [...company.classB] as Company["classB"]; b[i] = e.target.checked; setCo({ classB: b }); }} /> {n} holds Class B</label>)}
+                  {(["Emmanuel", "Chimdinma", "Ifeyinwa"] as const).map((n, i) => <label key={n} className="flex items-center gap-1.5"><input type="checkbox" checked={company.classB[i]} onChange={(e) => { const b = [...company.classB] as Company["classB"]; b[i] = e.target.checked; setCo({ classB: b }); }} /> {n} holds Class B</label>)}
                 </div>
               </>}
               <p className="font-mono text-[10px] uppercase tracking-eyebrow text-slate">Business case</p>

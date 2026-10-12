@@ -19,7 +19,7 @@ export type VisionPayload = {
 export async function whoIs(db: Firestore, c: Caller): Promise<PersonKey | null> {
   const doc = await db.doc(`users/${c.uid}`).get();
   const name = String(doc.data()?.displayName || ADMIN_PROFILES[c.email.toLowerCase()]?.displayName || "");
-  return personFor({ name, email: c.email, owner: c.owner }, process.env.VISION_PEOPLE);
+  return personFor({ name, email: c.email, owner: c.owner, username: String(doc.data()?.username || "") }, process.env.VISION_PEOPLE);
 }
 
 // `as` lets the owner look at the model as another person to check what they see; anyone else's `as` is ignored.

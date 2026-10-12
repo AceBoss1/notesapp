@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { remark } from "remark";
 import html from "remark-html";
 import { uploadToR2 } from "@/lib/upload";
+import { DROP_RING, useFileDrop } from "@/lib/useFileDrop";
 
 // Formatting toolbar + live preview over plain Markdown. Content is
 // still stored as Markdown, so every existing journal, the journal
@@ -21,6 +22,8 @@ export default function RichTextEditor({ value, onChange, draftKey }: Props) {
   const [tab, setTab] = useState<"write" | "preview">("write");
   const [preview, setPreview] = useState("");
   const [uploading, setUploading] = useState(false);
+  // Pictures dropped on the editor, or pasted (a screenshot, or a copied image), are uploaded and inserted at the cursor.
+  const drop = useFileDrop(async (fs) => { for (const f of fs.filter((x) => x.type.startsWith("image/"))) await insertImage(f); }, true);
   const [error, setError] = useState("");
   const [restorable, setRestorable] = useState<string | null>(null);
   const [savedAt, setSavedAt] = useState<string | null>(null);
@@ -145,7 +148,8 @@ export default function RichTextEditor({ value, onChange, draftKey }: Props) {
   const btn = "border border-rule bg-card px-2.5 py-1 font-ui text-xs text-ink hover:border-crimson hover:text-crimson disabled:opacity-40";
 
   return (
-    <div>
+    <div className={`relative ${drop.dragging ? DROP_RING : ""}`} {...drop.bind}>
+      {drop.dragging && <div className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center rounded bg-paper/80 font-ui text-sm font-bold text-crimson">Drop the image</div>}
       <div className="flex flex-wrap items-center gap-1.5">
         {actions.map((a) => (
           <button key={a.label} type="button" title={a.title} onClick={a.run} disabled={tab === "preview"} className={btn}>
