@@ -157,10 +157,12 @@ export default function VisionPage() {
                 </div>
               </>}
               <p className="font-mono text-[10px] uppercase tracking-eyebrow text-slate">Business case</p>
-              <Slider label="Registered users" value={business.users} min={5000} max={500000} step={5000} show={business.users.toLocaleString("en-US")} onChange={(n) => setBiz({ users: n })} />
+              <Slider label="Registered users" value={business.users} min={5000} max={2000000} step={5000} show={business.users.toLocaleString("en-US")} onChange={(n) => setBiz({ users: n })} />
               <Slider label="Paying conversion" value={business.conv} min={0.1} max={3} step={0.05} show={`${business.conv.toFixed(2)}%`} onChange={(n) => setBiz({ conv: n })} />
               <Slider label="Monthly churn" value={business.churn} min={2} max={20} step={1} show={`${business.churn}%`} onChange={(n) => setBiz({ churn: n })} />
-              <label className="block text-xs text-slate">Monthly burn (₦)<input className={field} inputMode="numeric" value={business.burn} onChange={(e) => setBiz({ burn: Number(e.target.value) || 0 })} /></label>
+              <label className="block text-xs text-slate">Monthly burn at 100,000 users (₦)<input className={field} inputMode="numeric" value={business.burn} onChange={(e) => setBiz({ burn: Number(e.target.value) || 0 })} /></label>
+              <Slider label="Share of burn that grows with users" value={business.burnVar} min={0} max={100} step={5} show={`${business.burnVar}%`} onChange={(n) => setBiz({ burnVar: n })} />
+              <p className="text-xs text-slate">Burn at {business.users.toLocaleString("en-US")} users: <span className="font-mono text-ink">{naira(rw.burn)}</span> a month ({fmtUsd(rw.burn / fx)}). It never falls below the 100,000-user figure.</p>
               <label className="block text-xs text-slate">Cash on hand (₦)<input className={field} inputMode="numeric" value={business.cash} onChange={(e) => setBiz({ cash: Number(e.target.value) || 0 })} /></label>
               <label className="block text-xs text-slate">₦ per US$<input className={field} inputMode="numeric" value={business.fx} onChange={(e) => setBiz({ fx: Number(e.target.value) || 0 })} /></label>
             </div>
@@ -235,6 +237,7 @@ export default function VisionPage() {
                 <p className="font-mono text-[10px] uppercase tracking-eyebrow text-slate">Cash and runway</p>
                 <div className="mt-3 grid gap-3 sm:grid-cols-3">
                   <Tile label="Net revenue a month" value={naira(rw.mrr)} note={`about ${fmtUsd(rw.mrr / (business.fx || 1333))}`} />
+                  <Tile label="Monthly burn at this size" value={naira(rw.burn)} note={`about ${fmtUsd(rw.burn / fx)}`} />
                   <Tile label="Left after burn, a month" value={`${rw.surplus < 0 ? "-" : ""}${naira(Math.abs(rw.surplus))}`} />
                   <Tile label="Break-even conversion" value={`${rw.breakEvenConv.toFixed(2)}%`} />
                   <Tile label="Net revenue, first 12 months" value={naira(rw.cum12)} note={`about ${fmtUsd(rw.cum12 / (business.fx || 1333))}`} />

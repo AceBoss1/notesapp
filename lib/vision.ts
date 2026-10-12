@@ -27,7 +27,7 @@ export function personFor(input: { name?: string; email?: string; owner?: boolea
 export type Round = { name: string; on: boolean; raise: number; post: number; target: number }; // US$ ; target = pool size wanted after the round, % (0 = no top-up)
 export type Founders = { trackB: boolean; bridge: number; cPct: number; aPct: number; cCash: number; aCash: number };
 export type Company = { pool: number; poolAt: "formation" | "preA" | "none"; rounds: Round[]; dual: "never" | "last" | "all"; V: number; classB: [boolean, boolean, boolean] };
-export type Business = { users: number; conv: number; churn: number; burn: number; cash: number; fx: number };
+export type Business = { users: number; conv: number; churn: number; burn: number; burnVar: number; cash: number; fx: number }; // burn = monthly cost at 100,000 users; burnVar = % of it that grows with users
 
 // 0 Emmanuel 1 Chimdinma 2 Akujuobi 3 angels 4 FEBO reserve 5 option pool 6.. one investor per round
 export const HOLDERS = ["Emmanuel Adams", "Chimdinma Onwuegbu", "Akujuobi Ifeyinwa Maureen", "Angels (bridge)", "FEBO reserve", "Option pool"];
@@ -112,16 +112,22 @@ export function optionPath(pctAtGrant: number, c: Company): { name: string; pct:
 // Planning case from the CAC model: N 79.586 of net recurring revenue per registered user for each 1% of paying conversion, after gateway fees and the
 // commission given up (100,000 users at 1% = N7,958,600 a month). Churn is applied after the first month, as in the 12-month figure (about N62.9M).
 export const NET_PER_USER_PER_PCT = 79.586;
+export const BURN_BASE_USERS = 100_000;
+// Monthly burn grows with users: the part that does not (tools, core team) stays; the part that does (hosting and reads, support, moderation, payments
+// handling) scales with users above 100,000 and never falls below the 100,000-user figure. Default: 70% of the N1,142,600 is the part that grows
+// (the N800,000 team and operations part; the other N342,600 is tools).
+export const burnAt = (b: Pick<Business, "burn" | "burnVar" | "users">) => b.burn * (1 - b.burnVar / 100) + b.burn * (b.burnVar / 100) * Math.max(1, b.users / BURN_BASE_USERS);
 export function runway(b: Business) {
+  const burn = burnAt(b);
   const mrr = b.users * b.conv * NET_PER_USER_PER_PCT;
   const ch = b.churn / 100;
   const cum = ch > 0 ? (mrr * (1 - Math.pow(1 - ch, 12))) / ch : mrr * 12;
   return {
-    mrr, surplus: mrr - b.burn,
-    breakEvenConv: b.users > 0 ? b.burn / (b.users * NET_PER_USER_PER_PCT) : 0,
-    cum12: cum, cashAfter12: b.cash + cum - 12 * b.burn,
-    monthsOnCash: b.burn > 0 ? b.cash / b.burn : Infinity,
-    monthsWithRevenue: b.burn > mrr ? b.cash / (b.burn - mrr) : Infinity,
+    mrr, burn, surplus: mrr - burn,
+    breakEvenConv: b.users > 0 ? burn / (b.users * NET_PER_USER_PER_PCT) : 0,
+    cum12: cum, cashAfter12: b.cash + cum - 12 * burn,
+    monthsOnCash: burn > 0 ? b.cash / burn : Infinity,
+    monthsWithRevenue: burn > mrr ? b.cash / (burn - mrr) : Infinity,
   };
 }
 
@@ -132,17 +138,17 @@ export const SCENARIOS: Scenario[] = [
   {
     key: "worst", label: "Worst case", note: "Bridge and a small Pre-Seed only, then a modest sale.",
     company: { pool: 15, poolAt: "formation", dual: "never", V: 10, rounds: [R("Pre-Seed", true, 100_000, 1_000_000), R("Seed", false, 1_000_000, 6_000_000), R("Series A", false, 8_000_000, 40_000_000), noRound("Series B"), noRound("Series C"), R("Exit (small sale)", true, 0, 3_000_000)] },
-    business: { users: 25_000, conv: 0.25, churn: 12, burn: 1_142_600, cash: 665_000, fx: 1333 },
+    business: { users: 25_000, conv: 0.25, churn: 12, burn: 1_142_600, burnVar: 70, cash: 665_000, fx: 1333 },
   },
   {
     key: "base", label: "Baseline", note: "Pre-Seed and Seed as planned, a Series A, then a sale.",
     company: { pool: 15, poolAt: "formation", dual: "never", V: 10, rounds: [R("Pre-Seed", true, 250_000, 3_571_429), R("Seed", true, 1_000_000, 14_285_714), R("Series A", true, 8_000_000, 40_000_000), noRound("Series B"), noRound("Series C"), R("Exit (sale)", true, 0, 150_000_000)] },
-    business: { users: 100_000, conv: 1, churn: 8, burn: 1_142_600, cash: 665_000, fx: 1333 },
+    business: { users: 100_000, conv: 1, churn: 8, burn: 1_142_600, burnVar: 70, cash: 665_000, fx: 1333 },
   },
   {
     key: "vision", label: "Vision", note: "Every round to a US$7.5B listing. Aspirational: paper value only.",
     company: { pool: 15, poolAt: "preA", dual: "last", V: 10, rounds: [R("Pre-Seed", true, 250_000, 3_571_429), R("Seed", true, 1_000_000, 14_285_714), R("Series A", true, 150_000_000, 1_000_000_000), R("Series B", true, 250_000_000, 2_500_000_000), R("Series C", true, 500_000_000, 5_000_000_000), R("IPO", true, 750_000_000, 7_500_000_000)] },
-    business: { users: 250_000, conv: 2, churn: 6, burn: 1_142_600, cash: 14_663_000, fx: 1333 },
+    business: { users: 250_000, conv: 2, churn: 6, burn: 1_142_600, burnVar: 70, cash: 14_663_000, fx: 1333 },
   },
 ];
 
