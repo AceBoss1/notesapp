@@ -42,7 +42,7 @@ WhatsApp reminders (plan: Meta WhatsApp Cloud API directly; booking reminders + 
 verification and approved templates) · publishing to Facebook, Instagram and TikTok (LinkedIn and X are built) · AI notetaker + MCP assistant ·
 team hub and team messaging for Business and Enterprise (internal only for now) · LinkedIn advertising (Advertising API development tier approved; being built: advertisers boost a post on LinkedIn from their own ad account (Business and Enterprise only), plus our own LinkedIn campaign stats on the admin Traction page, planned next) · iOS/Android apps ·
 video transcoding/streaming (we cap size and length instead) · Dojah **live** mode (README "Going live with Dojah") ·
-webhook retries (one attempt, manual resend) · OAuth for third-party API apps · checkout and bookings in a popup on custom domains, and a sending address on the member's own domain (sign-in and sign-up in the member's name are live) · Sentry (we have built-in error monitoring instead).
+webhook retries (one attempt, manual resend) · OAuth for third-party API apps · checkout and bookings in a popup on custom domains, and a sending address on the member's own domain (sign-in and sign-up in the member's name are live) · online status and follow lists, Nana suggested replies, team hub tasks/payments/payroll/staff library, investor data room (all planned: see "Planned: team operations…") · runway calculator, CAC and MRR calculator, burn and revenue analytics, vesting and cap table (planned) · Sentry (we have built-in error monitoring instead).
 
 ### Environment variables (Vercel → Settings → Environment Variables; redeploy after changing any)
 | Variable | Secret? | Purpose |
@@ -1972,6 +1972,107 @@ Gold-badge decisions: `POST /api/admin/badge-request` (used by Approve/Decline i
 
 Testing the webhook without a real check: `DOJAH_WEBHOOK_SECRET=… node scripts/dojah-test-event.mjs <uid> [pass|fail|abandoned]` sends a correctly signed fake event for a member who has a paid identity application, so you can confirm the signature check and the `/admin/users` display independently of Dojah's sandbox. Dojah sandbox values (only against `https://sandbox.dojah.io`): NIN 70123456789, BVN 22222222222, phone 09011111111, RC/CAC 1261103 or 14320749, TIN 18609323-0001.
 
+## Planned: team operations, data room, online status and follow lists (scaffold — not built)
+
+Internal planning notes (12 October 2026). Nothing here is built; the public `/roadmap` lists the member-facing parts in plain words. Open questions are marked **(ask)**.
+
+### 1. Nana: suggested replies to posts
+- Extend the writing help (drafts, sharing, messages are live) to **suggest replies**: to comments on your own posts, and a response to a post you are reading, in your voice (from your past notes). Always a suggestion you edit and send yourself; nothing posts on its own.
+- Same rules as today: knowledge base first, your own connected AI account or the platform key with the daily limit, and the person's text sent to the AI only when they press the button.
+
+### 2. Team hub: work, payments, payroll, library, messages
+- **Work still to do, who has it, by when:** the work board already has owner and due date, morning summary and overdue handling. Gaps: a per-person view ("assigned to me / to Chimdinma"), a deadline reminder to the assignee (bell and email) before and on the date, and a company-wide "overdue" strip. **No new data model needed.**
+- **Payments to be made, assigned, with a deadline:** extend **Expenses due** (built: amount, date, reminders to finance and the owner) with an **assignee** (who must make the payment) and a **deadline** the assignee is reminded about; "Mark paid" already writes the ledger expense. Add an optional approver for larger amounts **(ask)**.
+- **Payroll under Accounts in admin:** a **Payroll** page next to the Money ledger: staff list (name, role, pay, pay day, bank details held encrypted like the publisher payouts), a monthly run that creates the *payroll* ledger entries and due items, and "paid" marking. Payroll lines stay visible to finance and super admins only (decided earlier). Actual bank transfers stay manual at first; Paylony payouts later **(ask)**.
+- **Staff library** (SOPs, employee handbook, templates, every staff material): documents and files in the hub with a category, version and an acknowledgement ("I have read this") for the handbook and policies. Visibility: **everyone on staff**, a **department**, or **personal**. A **personal** document is simply a message to one person: add the staff member as a **receiver (To), not Cc**, and the attachment is visible only to them; everyone on the list gets the same file individually.
+- **Message hub:** internal messages (To, optional Cc, attachments) live in the hub inbox; ones marked **Also send by email** are emailed as well (the hub copy always stays). Per-person read state. Reuses the file storage and the email sender already in use.
+- Storage: private bucket with short-lived links (as for receipts and message files), collections server-only, access by role and department.
+
+### 3. Investor and partner data room
+- **Separate logins by category** (for example Investors, Partners, Advisers, Legal); each category has its own set of folders and files. Own sign-in (email code), not a #NotesApp member account.
+- **View only, never download:** files open in a viewer that draws pages in the browser (no file download link, print and save disabled, short-lived tokens, device limit like our view-only courses in `lib/view-access.ts`). Every page carries a **watermark with the viewer's name and email**. Honest limit: nothing stops a photo of the screen, so the watermark, the access log and a click-through NDA are the real deterrents.
+- **Access page in admin** (owner and super admins): **add** a person directly, or **approve / decline applications** from a public "Request access" form (name, email, organisation, category wanted, reason); set category, expiry, revoke; see who opened what and when (audit log).
+- **Live numbers:** traction, revenue and other key figures flow from the team hub and the admin pages into the data room as live pages, with a "figures as of" stamp (no copying by hand). Choose per figure whether it appears and for which category **(ask)**.
+- Needs counsel's wording for the NDA and data-protection notice; first build on the stack we already have (Firestore server-only collections, private bucket, email sender).
+
+### 4. Online status, last seen and follow lists
+- **Online now / last seen** shows on **Messages and on the profile**, only between people who **follow each other**.
+- **Reciprocity:** a person who turns **online visibility off** stops appearing to others **and can no longer see anyone else's** status while it is off.
+- Cost note: do not write "last seen" to Firestore on a heartbeat (Blaze bills per write). Use presence from a lightweight realtime service (Firebase Realtime Database `onDisconnect`) or write at most every few minutes **(ask)**.
+- **Followers and following lists on every profile.** Visible to others only when that person has made their list **public**; a person who hides their own lists **cannot see other people's lists** either. One toggle for the lists, one for online status, both in privacy settings; default on or off **(ask)**.
+- **@na-notesapp follows people.** Today it follows no one and is not in the following list. Add an **owner-only control** (admin, under Settings) to make @na-notesapp follow the founders and the founders' business channels, and to **undo** any of them; the list is stored in a server-only setting because the channel has no member account, and shows as its "Following" list on its profile. Only the owner's account can change it.
+- Existing data: follows are stored as `follows/{followerUid}_{username}` (public read, so counts show). Mutual follow means each follows the other's username; the lists above need the privacy flags enforced on the server (a small API), not only hidden in the page, once lists can be hidden.
+
+### Suggested order
+1. Follow lists and the @na-notesapp control (small, mostly screens), then online status. 2. Staff library and message hub, assignee and deadline on payments, Payroll page. 3. Data room (access page first, then viewer and watermark, then live figures). 4. Nana suggested replies. Also next week: trim the whole-collection Firestore reads.
+
+## Planned: runway calculator, burn and revenue analytics, vesting and cap table (scaffold — not built)
+
+Internal planning notes (12 October 2026). Nothing here is built. Only the owner and super admins (and finance for the runway and analytics) would see these pages; the cap table is owner and super admins only. Open questions are marked **(ask)**.
+
+### 1. Burn and revenue analytics (build first: it uses data we already have)
+- One admin page under Money, built from the **money ledger** (expenses, payroll, in-kind grants kept apart from cash), **Revenue** (what the platform really earns: commissions, plans, ad revenue, **not** the gross amount processed) and **Expenses due**.
+- Shows, by month: revenue by source, **gross burn** (all spending), **net burn** (spending minus cash revenue and other cash income), payroll share, cost by category, month-on-month growth, **burn multiple** once there is enough revenue, and a trend of runway. Export as CSV. Every figure carries an "as of" time.
+- Needs an **opening cash balance** (amount and date, set once by the owner, changed only with a logged reason) because the ledger starts late. **(ask: the balance and its date)**.
+
+### 2. Dynamic runway calculator
+- **Question it answers:** with the C-suite expansion, on what date does cash run out, and what changes it?
+- **Cash today** = opening balance + cash income − expenses − payroll (from the ledger), in naira.
+- **Monthly burn** = the trailing average of real spending, **plus the headcount plan**, **plus known payments coming up** (Expenses due), **plus planned items** such as the Live (Daily) bill.
+- **Software grants:** read straight from Grants & subscriptions. While a grant is running its software cost is **not** in the burn; on its end date a plan that becomes paid adds its monthly cost (so the chart shows a **step up on 12 January** for Moda, and so on). In-kind credits and USD values use the naira rate entered on each grant. API credits (Claude) are used up by usage, so they are modelled as a pool that runs out at the current spend rate or on the expiry date, whichever is first.
+- **Headcount plan:** a list of planned hires (role, start month, monthly cost, employer overhead % for pension and tax), with the C-suite roles; each can be switched on or off to see its effect. Founders' and executives' current pay comes from the Payroll page once that exists.
+- **Revenue assumption:** pick one: flat at the trailing average, a monthly growth rate, or a hand-entered line. Show **three scenarios** (cautious, base, ambitious) side by side.
+- **Outputs:** runway in months, **zero-cash date**, a chart of cash by month with markers for each hire and each grant cliff, gross and net burn, and the largest levers ("cutting X adds N months"). Sliders change everything live; **named scenarios can be saved and compared**, and "as of" and who saved them are recorded.
+- Vesting is **not cash**, so it does not change runway; it matters for the cap table.
+- Needs a **People plan** record and a saved-scenario record, both server-only; no change to the ledger.
+
+### 3. Vesting schedule (to be uploaded later)
+- A **3-year structure** (as stated). Import from CSV or Excel: holder, role, grant date, shares or percent, cliff, vesting period (36 months), frequency, and any acceleration terms. **(ask: cliff length, monthly or quarterly vesting after the cliff, acceleration on exit)**.
+- Computes per holder: vested to date, unvested, next vest dates and the fully-vested date, and a company timeline; feeds the cap table's fully-diluted view. Imports are checked row by row and nothing is saved if a row is wrong.
+
+### 4. Cap table
+- **Holders** (founders, option pool, investors, advisers) and **instruments** (common shares, options, preferred shares, SAFEs, convertible notes) as an **append-only list of events** (issue, transfer, cancel, exercise, convert); the table is always computed from the events, so history and a change log come free and past states can be shown "as of" a date.
+- Shows ownership %, **fully diluted** (including the option pool and unvested grants), and holdings by holder and class.
+- **Round modelling:** pre- and post-money, new money, price per share, option-pool top-up and SAFE or note conversion, with dilution per holder, before anything is agreed.
+- A **working record, not the legal register**: the company's register of members (and CAC filings) stays with the company secretary or counsel; this should be reconciled with it. **(ask: current share count, classes, any SAFEs or notes, the option pool size)**.
+- Access owner and super admins only; the data room can show an investor a **read-only view as of a date** with their name and email watermarked (see the data room plan above).
+
+### Suggested order
+1. Opening balance and the burn and revenue page. 2. People plan and the runway calculator with grant cliffs and saved scenarios. 3. Cap table (events and fully-diluted view). 4. Vesting import and its timeline. 5. Feeding these into the data room. Also next week: trim the whole-collection Firestore reads.
+
+## Planned: CAC and MRR calculator (scaffold — not built; sits beside the runway calculator)
+
+Internal planning notes (12 October 2026). The inputs become sliders; the defaults below are the **planning case with the least downside** (cautious on everything except cost per signup, which we keep at ₦100 because acquisition is by a gamified concept). Prices are read from the admin Pricing page, not typed in.
+
+### Inputs (sliders, saved as named scenarios shared with the runway calculator)
+Acquisition spend (₦10,000,000) · target registered users (100,000) · **badge incentive cost** (badges given × ₦999 × months; planning case 2,000 × 1 month = ₦1,998,000) · naira per dollar (₦1,333) · **conversion to premium tiers** (planning 1%) · Pro to Business mix (4 : 1) · badge payers per premium user (0.4) · share on yearly plans and the yearly discount · **monthly churn** (planning 8%) · **average monthly earnings through the platform per paid member** (planning ₦10,000, used for commission given up) · payment fees (Paystack, about 1.5% plus ₦100 on charges of ₦2,500 and over; check the real rate) · horizon (12 months).
+
+### Outputs
+- **Blended CAC** = (spend + badge cost) ÷ users: ₦119.98 ($0.09). **Cost per paying user** at the chosen conversion.
+- **MRR bridge:** gross subscription MRR → minus payment fees → minus **commission given up** (a member who moves up a tier pays us a lower cut on what they earn: Free Basic 35% to Pro 25% to Business 15% on sessions, subscriptions and gifts) → **net MRR**. Pro pays for itself for the member above about ₦50,000 a month earned (Business ₦75,000), so for the heaviest earners a Pro upgrade *loses* us money; the calculator shows it.
+- **Cohort revenue** month by month with churn, **12-month cumulative revenue against spend**, **payback month**, **break-even conversion**, LTV (net per payer ÷ churn) and LTV:CAC. **ARR is shown only as "if nobody leaves"**, never as a headline.
+- **Floor / planning / upside** side by side, and a one-line "what would have to be true" (break-even conversion, break-even CAC).
+
+### Planning case worked out (the calculator's starting defaults; a shareable copy with the logo is the Google-style doc "CAC Efficiency Analysis")
+Prices as set on the admin Pricing page on 12 October 2026: Pro ₦5,000, Business ₦25,000, badge ₦999 a month; commission Free Basic 35%, Pro 25%, Business 15%. Premium conversion **1%** = 1,000 users (800 Pro, 200 Business) plus 400 badge payers; the challenge badge is free for **1 month only** (2,000 × ₦999 = ₦1,998,000); a **₦2,000,000 marketing execution fund**; members earn **₦10,000 a month** through the platform on average; monthly churn 8%; payment fees about 1.5% plus ₦100 on charges of ₦2,500 and over.
+- **CAC** ₦119.98 per registered user before the execution fund, **₦139.98 ($0.105) all-in** (total outlay ₦13,998,000); about ₦9,999 per paying user.
+- Gross MRR ₦9,399,600 (Pro ₦4,000,000, Business ₦5,000,000, badges ₦399,600) → payment fees about ₦241,000 → commission given up about ₦1,200,000 → **net ₦7,958,600 a month** (about $5,970).
+- With churn the cohort earns about **₦62.9 million over 12 months** against ₦13,998,000 spent (+₦48.9M, 4.5×); **payback in month 2**.
+- **Break-even is about 0.22% conversion** over 12 months (about 0.38% if the real cost per signup were double). At 0.5% the cohort returns about ₦31.5 million; at 3% about ₦188.7 million; at 5% about ₦314.5 million.
+- Pro costs us money only for a member earning over about ₦50,000 a month through us; Business over about ₦125,000 at the ₦25,000 price.
+- The 5% case is the upside, not the plan: free-to-paid is usually a few percent at best, and sign-ups won through a game may convert and stay less well, which is why we measure by cohort.
+
+### Cash survival (re-budgeted; also the runway calculator's starting defaults)
+- **Cash bridge** ₦14,663,000 ($11,000 at ₦1,333) − campaign outlay ₦13,998,000 (acquisition ₦10,000,000 + badge incentive ₦1,998,000 + execution fund ₦2,000,000) = **₦665,000 reserve**.
+- **Post-launch monthly cash burn ₦1,142,600** = 30% of infrastructure after software grants (₦342,600) + local team admin ₦800,000. **Standalone runway 0.58 months** (about 18 days) with no revenue.
+- Software grants ($9,820 = ₦13,090,060 at ₦1,333, "70% cover") are **non-cash**: they lower the infrastructure bill, they are not part of the cash above. They are the **ceiling** of the stated offers, not invoiced savings, and they lapse from January 2027 (Granola 9 Jan, Moda 12 Jan; Claude Team and credits later), when burn would rise to about ₦1,942,000 a month (₦342,600 is 30% of about ₦1,142,000).
+- Net MRR in the planning case is about seven times the monthly burn, so the thin reserve matters mainly for the weeks before the first members pay.
+
+### Wiring
+- **Actual vs projected:** real registered users, paid plans and badges from the traction snapshot, and acquisition spend from the ledger's *marketing* category, shown next to the projection so the sliders are calibrated by real data as it arrives.
+- **Into the runway calculator:** planned acquisition spend as burn and net MRR (not gross) as the revenue line.
+- Access: finance and super admins; CSV export; "as of" stamps. Data room feed later.
+
 ## Planned: public Live and private group sessions (decisions so far — not built)
 
 Internal planning notes (October 2026). Nothing here is built. The public `/roadmap` and `/challenge` pages only say live video is coming.
@@ -2257,7 +2358,8 @@ Where the team sees what is moving, what is stuck and what needs a decision, pla
 - **Comments (built):** every item has a Comments button (`teamItems/<id>/discussion`, a count on the item; not called `comments` because a subcollection with that name is world-readable through the collection-group rule for journal comments). The owner and the person who created the item get a bell (type `team`) unless they wrote the comment; you can delete only your own.
 - **Morning summary (built):** the reminders cron (`/api/cron/reminders`, job `teamMorningSummary`) sends, from 07:00 Lagos time and once a day (`teamDigests/<date>` makes it safe to run every 15 minutes), each team member their day (their own items, overdue first), today's meetings, decisions and blockers waiting on the team, the review queues, running milestones and what the team finished yesterday. By email and/or the bell; each person chooses on the hub (both on by default, `userPrefs.teamMorningEmail` / `teamMorningBell`). Nothing is sent to someone with nothing to read. Built by `buildMorningSummary` in `lib/team.ts`.
 - **Weekly review (built):** `/admin/team/review` (weeks run Monday to Sunday, Lagos dates; earlier and later weeks). It shows new members, payments and money processed against last week with six-week bars (counted from `users.createdAt` and `payments.paidAt`), the week's work (done, added, carried over, overdue, still blocked or waiting for a decision), the milestones that ran and the meetings held, and a form for what went well, what was learnt and next week's focus (`teamReviews/<Monday>`). "Add the focus lines to the board" turns each line into a work item for the week; "Copy the review" gives plain text; "Hold the review as a meeting" creates a meeting with the review as its agenda. Rules in `lib/team.ts`, storage in `lib/team-server.ts`.
-- **Not built yet:** per-person views, @mentions in comments, a Monday-morning weekly digest by email.
+- **Vision model (built):** `/admin/team/vision` (`lib/vision.ts` for the maths, `lib/vision-server.ts`, `/api/admin/vision`). A slider model of rounds, the staff pool, an optional dual-class vote, paper value and runway, with Worst case, Baseline and Vision presets. It opens **focused on whoever is signed in**: Emmanuel (the owner) sees his stake, vote and the founders' control; Chimdinma and Akujuobi see their own stake, value, vote and cash multiple with their row highlighted; Nora Bawa sees only her own option (1.50%, 150,000 of 10,000,000 shares) and the company's rounds, never the founders' split. Nobody else gets it (403). The starting split is served by the API to the people it concerns, not shipped in the page's code. The owner has a "View as" switch to check each person's view. Who is who: the owner is Emmanuel, others are recognised by the name on their account, or set `VISION_PEOPLE="chimdinma=a@x.com,akujuobi=b@y.com,nora=c@z.com"`. Nothing is saved; it is a planning tool, not a forecast. Paper value = stake × last post-money, with no liquidation preferences or tax.
+- **Not built yet:** per-person views of work items, @mentions in comments, a Monday-morning weekly digest by email.
 
 ## Group chats (built 9 October; the team room first)
 

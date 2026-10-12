@@ -62,6 +62,41 @@ const ITEMS: { title: string; tag: string; body: string; detail: string; link?: 
       "Today: Google sign-in isn't offered in the window (someone who signed up with Google chooses “Forgot your password” to set one), and the sender address on those emails is still ours, with the member's name on it. Checkout: Paystack's inline popup instead of a redirect — the popup still shows #NotesApp's name, which we'll confirm with Paystack before promising otherwise. Email: each Enterprise domain becomes a verified sending domain (SPF and DKIM records the member adds), so emails come from, for example, bookings@theirbrand.com. A sweep of error pages and leftover #NotesApp wording follows. The rest of the Enterprise plan is also still to come: unlimited team seats provisioned per account, a dedicated support channel with a service-level agreement, field-team Tap-to-Pay, and syncing sales into accounting tools such as QuickBooks and Xero.",
   },
   {
+    title: "Online status and followers lists",
+    tag: "Social",
+    body: "Planned: see who is online, and when someone was last online, on Messages and on profiles, between people who follow each other. Every profile will also show who follows them and who they follow.",
+    detail:
+      "It works both ways: if you turn your online visibility off, you stop appearing to others and you can't see anyone else's either. The same goes for the lists: people can open a followers or following list only if they have made their own public, and anyone who hides theirs can't see others'. Both are switches in your privacy settings. Nothing is built yet.",
+  },
+  {
+    title: "Nana helps you reply",
+    tag: "AI",
+    body: "Planned: Nana suggests a reply to a comment on your post, or a response to a post you are reading, in your own voice. You edit it and press send yourself; nothing is posted for you.",
+    detail:
+      "Nana already helps with drafts, posts for LinkedIn and X, and messages. This adds replies, using your own past posts to match how you write. As with the rest of Nana, your text is sent to the AI only when you press the button, and you can connect your own AI account on the Nana page.",
+  },
+  {
+    title: "More for the team hub: tasks, payments, payroll and a staff library",
+    tag: "Teams",
+    body: "Planned: see what is still to do and who has it, with deadlines and reminders; payments to be made with who must make them and by when; payroll under Accounts; and one place for the handbook, SOPs and staff materials, with personal documents sent to one person like a message.",
+    detail:
+      "Our own team will use it first, as with the rest of the hub. Messages stay in the hub, and the ones marked for email are sent by email too. Policies can ask staff to confirm they have read them. Payroll stays visible only to finance and the owner. No date yet.",
+  },
+  {
+    title: "Company finance tools: runway, acquisition cost, burn and cap table",
+    tag: "Company",
+    body: "Planned, for our own team: a runway calculator that shows how long our cash lasts as we hire, counting the free software plans and credits we have been given; a calculator for what it costs to win a member and what they pay back; burn and revenue analytics; and a record of who owns what, with vesting schedules.",
+    detail:
+      "These sit in the team hub next to the money ledger, and only the owner and senior admins can open the ownership records. The figures can also feed the investor data room. We build the analytics first because the ledger already holds the numbers. Not built yet, no date.",
+  },
+  {
+    title: "Investor and partner data room",
+    tag: "Company",
+    body: "Planned: a private data room for investors and partners, with separate logins by category. Files open in a viewer that shows each person's name and email across the pages, and they can't be downloaded. Live traction and revenue figures come straight from our own dashboards.",
+    detail:
+      "People ask for access with a short form, and we approve or add them. Every opening is logged. A watermark and a signed NDA deter sharing; we can't stop someone photographing a screen, and we say so. Not built yet.",
+  },
+  {
     title: "Advertise on LinkedIn from #NotesApp",
     tag: "Ads",
     body: "Next up, for Business and Enterprise members only: boost one of your posts on LinkedIn from inside #NotesApp, using your own LinkedIn ad account, and see what it earned next to your #NotesApp numbers. LinkedIn has approved our access to its Advertising API (development tier), so we are now building and testing it, and it opens to members after LinkedIn's review of our app. No date yet.",
@@ -119,7 +154,7 @@ export default function RoadmapPage() {
     <>
       <PageHero eyebrow="Coming Soon" title={<>What's next for #NotesApp</>}>
         <p>The core loop — publish, book, get paid — is what's demoed
-        today. The ones marked on the right are decided and documented, not yet built. Nana AI and the help centre, publishing to LinkedIn and X, direct and group messages, paid sessions (with rescheduling and automatic payouts), monthly subscriptions, publisher rates and payouts, post and item boosts, gifts, Pro / Business plans, organisation accounts, stores for physical goods and digital downloads, parcel tracking, and official merch are already live. Last updated 11 October 2026.</p>
+        today. The ones marked on the right are decided and documented, not yet built. Nana AI and the help centre, publishing to LinkedIn and X, direct and group messages, paid sessions (with rescheduling and automatic payouts), monthly subscriptions, publisher rates and payouts, post and item boosts, gifts, Pro / Business plans, organisation accounts, stores for physical goods and digital downloads, parcel tracking, and official merch are already live. Last updated 12 October 2026.</p>
       </PageHero>
       <div className="mx-auto max-w-4xl px-4 py-12 sm:px-6 lg:px-8">
 
@@ -166,6 +201,7 @@ export default function RoadmapPage() {
               <li>Voice: Listen to a journal, Nana that speaks, voice transcripts</li>
               <li>Publishing to Facebook, Instagram and TikTok; LinkedIn advertising from #NotesApp, for Business and Enterprise (approved by LinkedIn, being built)</li>
               <li>Google ads on the web and AdMob in the apps</li>
+              <li>Online status and followers lists · Nana suggests replies · more for the team hub (tasks, payments, payroll, staff library) · an investor and partner data room · company finance tools (runway, acquisition cost, burn, cap table)</li>
               <li>Audio and video meetings, meeting chat (under team discussion)</li>
               {!MOMENTS_LIVE && <li>Moments: pictures, video and text on profile pictures for 24, 48 or 72 hours</li>}
               {!MESSAGES_LIVE && <li>Direct messages</li>}
