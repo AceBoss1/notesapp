@@ -2065,7 +2065,7 @@ Prices as set on the admin Pricing page on 12 October 2026: Pro ₦5,000, Busine
 ### Cash survival (re-budgeted; also the runway calculator's starting defaults)
 - **Cash bridge** ₦14,663,000 ($11,000 at ₦1,333) − campaign outlay ₦13,998,000 (acquisition ₦10,000,000 + badge incentive ₦1,998,000 + execution fund ₦2,000,000) = **₦665,000 reserve**.
 - **Post-launch monthly cash burn ₦1,142,600** = 30% of infrastructure after software grants (₦342,600) + local team admin ₦800,000. **Standalone runway 0.58 months** (about 18 days) with no revenue.
-- Software grants (₦13,050,000, "70% cover") are **non-cash**: they lower the infrastructure bill, they are not part of the cash above. They are the **ceiling** of the stated offers, not invoiced savings, and they lapse from January 2027 (Granola 9 Jan, Moda 12 Jan; Claude Team and credits later), when burn would rise to about ₦1,942,000 a month (₦342,600 is 30% of about ₦1,142,000). Check the ₦13,050,000 / $9,820 pairing: ₦13,050,000 is $9,790 at ₦1,333.
+- Software grants ($9,820 = ₦13,090,060 at ₦1,333, "70% cover") are **non-cash**: they lower the infrastructure bill, they are not part of the cash above. They are the **ceiling** of the stated offers, not invoiced savings, and they lapse from January 2027 (Granola 9 Jan, Moda 12 Jan; Claude Team and credits later), when burn would rise to about ₦1,942,000 a month (₦342,600 is 30% of about ₦1,142,000).
 - Net MRR in the planning case is about seven times the monthly burn, so the thin reserve matters mainly for the weeks before the first members pay.
 
 ### Wiring
