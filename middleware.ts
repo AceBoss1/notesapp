@@ -43,6 +43,15 @@ export async function middleware(req: NextRequest) {
     // the marketing and company pages live on the main site.
     const { pathname, search } = req.nextUrl;
     if (pathname === "/") return NextResponse.rewrite(new URL("/welcome", req.url));
+    // Signing in and up happen right here, on the welcome screen's own forms (not on a separate page and not on the main site). /login, /signup and
+    // /forgot-password land there too (unless someone is being sent over from a member's own domain, which still uses the main login page).
+    if ((pathname === "/login" || pathname === "/signup" || pathname === "/forgot-password") && !req.nextUrl.searchParams.has("from")) {
+      const u = new URL("/welcome", req.url);
+      u.searchParams.set("auth", pathname === "/signup" ? "signup" : pathname === "/forgot-password" ? "forgot" : "signin");
+      const next = req.nextUrl.searchParams.get("next");
+      if (next) u.searchParams.set("next", next);
+      return NextResponse.rewrite(u);
+    }
     if (APP_TO_MAIN.test(pathname)) return NextResponse.redirect(`https://${MAIN_HOST}${pathname}${search}`, 307);
     return NextResponse.next();
   }

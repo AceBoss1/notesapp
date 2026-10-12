@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { friendlyMessage } from "@/lib/api-errors";
 import { getAdminDb, verifySignedInRequest } from "@/lib/firebase-admin";
-import { canActForSeller } from "@/lib/orders-server";
+import { canManageItems } from "@/lib/orders-server";
 import { DIGITAL_EXTENSIONS, DIGITAL_MAX_BYTES, digitalKey, extOf, presignUpload, privateFilesConfigured } from "@/lib/private-files";
 import { rateLimit } from "@/lib/rate-limit";
 
@@ -22,7 +22,7 @@ export async function POST(req: NextRequest) {
     if (typeof itemId !== "string" || typeof filename !== "string") return NextResponse.json({ error: "Missing details." }, { status: 400 });
     const item = (await getAdminDb().doc(`storeItems/${itemId}`).get()).data();
     if (!item || item.kind !== "digital") return NextResponse.json({ error: "Digital item not found." }, { status: 404 });
-    if (!(await canActForSeller(user.uid, String(item.ownerUid)))) return NextResponse.json({ error: "Not your store." }, { status: 403 });
+    if (!(await canManageItems(user.uid, String(item.ownerUid)))) return NextResponse.json({ error: "Not your store." }, { status: 403 });
     if (!DIGITAL_EXTENSIONS.includes(extOf(filename))) {
       return NextResponse.json({ error: `That file type isn't allowed. Use ${DIGITAL_EXTENSIONS.join(", ")}.` }, { status: 400 });
     }

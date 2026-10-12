@@ -1,5 +1,5 @@
 import ErrorReporter from "@/components/ErrorReporter";
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { SITE } from "@/lib/site";
 import "./globals.css";
 import { unstable_cache } from "next/cache";
@@ -26,6 +26,8 @@ const DEFAULT_TITLE = "#NotesApp — Publish. Book. Get Paid. One Workspace.";
 const DEFAULT_DESCRIPTION =
   "#NotesApp is where African creators, professionals, coaches, consultants, therapists and businesses publish their work, build an audience they can talk to directly, and get paid in Naira. Write journals, take bookings for private sessions, sell products, PDF/video courses and other digital downloads, earn subscriptions and gifts, and run it all under your own name or your own domain, in one place.";
 
+export const viewport: Viewport = { themeColor: "#7A0328" };
+
 export const metadata: Metadata = {
   metadataBase: new URL(SITE.url),
   title: {
@@ -33,7 +35,8 @@ export const metadata: Metadata = {
     template: "%s — #NotesApp",
   },
   description: DEFAULT_DESCRIPTION,
-  icons: { icon: "/images/brand/notesapp-icon.webp" },
+  icons: { icon: "/images/brand/notesapp-icon.webp", apple: "/images/brand/apple-touch-icon.png" },
+  appleWebApp: { capable: true, title: "NotesApp", statusBarStyle: "default" },
   openGraph: {
     siteName: "#NotesApp",
     type: "website",

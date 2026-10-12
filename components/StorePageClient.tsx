@@ -65,7 +65,7 @@ export default function StorePageClient({ params }: { params: { username: string
 
   const isOwner = !!viewer && viewer.uid === profile.uid;
   // An organisation's owner can give team members store access; funds and liability stay with the organisation.
-  const teamAccess = !!viewer && !isOwner && (orgs || []).some((o) => o.uid === profile.uid && o.store && o.canPublish);
+  const teamAccess = !!viewer && !isOwner && (orgs || []).some((o) => o.uid === profile.uid && (o.items ?? o.store) && o.canPublish);
   const ownerCanEdit = (isOwner && canPublish(profile)) || teamAccess;
   const isOrg = profile.accountKind === "organisation";
   // Publisher listings are on-platform physical goods only; legacy link-out listings stay hidden.

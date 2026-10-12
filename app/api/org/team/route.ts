@@ -54,7 +54,7 @@ export async function GET(req: NextRequest) {
             const m = d.data() as OrgMember;
             const o = (await db.doc(`users/${m.orgUid}`).get()).data();
             if (!o || o.suspended === true) return null;
-            return { uid: m.orgUid, username: o.username, displayName: o.displayName, avatar: o.avatar, accountTier: o.accountTier, role: m.role, canPublish: canHaveTeam(o.accountTier), store: m.store === true };
+            return { uid: m.orgUid, username: o.username, displayName: o.displayName, avatar: o.avatar, accountTier: o.accountTier, role: m.role, canPublish: canHaveTeam(o.accountTier), store: m.store === true, items: m.role === "admin" || m.store === true };
           })
         )
       ).filter(Boolean);

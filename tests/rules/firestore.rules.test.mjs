@@ -509,6 +509,8 @@ test("an organisation's store can be run by team members the owner permitted", a
     await setDoc(doc(d, "users/plain"), { ...base, uid: "plain", username: "plain", displayName: "P", accountTier: "standard" });
     await setDoc(doc(d, "orgMembers/orgs_seller"), { orgUid: "orgs", memberUid: "seller", role: "writer", store: true });
     await setDoc(doc(d, "orgMembers/orgs_plain"), { orgUid: "orgs", memberUid: "plain", role: "admin" });
+    await setDoc(doc(d, "users/wr"), { ...base, uid: "wr", username: "wr", displayName: "W", accountTier: "standard" });
+    await setDoc(doc(d, "orgMembers/orgs_wr"), { orgUid: "orgs", memberUid: "wr", role: "writer" });
     await setDoc(doc(d, "orgMembers/orgb_seller"), { orgUid: "orgb", memberUid: "seller", role: "writer", store: true });
     await setDoc(doc(d, "storeItems/orgitem"), { ownerUid: "orgs", title: "t", price: "p", link: "https://www.notesapp.name.ng", image: "x", cta: "Buy now", sellable: true, priceKobo: 100000, deliveryKobo: 0, stock: 3 });
   });
@@ -518,8 +520,13 @@ test("an organisation's store can be run by team members the owner permitted", a
   await assertSucceeds(updateDoc(doc(as("seller"), "storeItems/orgitem"), { stock: 9 }));
   await assertFails(updateDoc(doc(as("seller"), "storeItems/orgitem"), { ownerUid: "seller" }));
   await assertSucceeds(deleteDoc(doc(as("seller"), "storeItems/o1")));
-  // an admin-role member WITHOUT store access, or a stranger, can't
-  await assertFails(setDoc(doc(as("plain"), "storeItems/o2"), item("orgs")));
+  // an organisation admin (no separate store switch) can add and edit items to help the owner, but not delete them
+  await assertSucceeds(setDoc(doc(as("plain"), "storeItems/o2"), item("orgs")));
+  await assertSucceeds(updateDoc(doc(as("plain"), "storeItems/o2"), { stock: 5 }));
+  await assertFails(updateDoc(doc(as("plain"), "storeItems/o2"), { ownerUid: "plain" }));
+  await assertFails(deleteDoc(doc(as("plain"), "storeItems/o2")));
+  // a plain writer without store access, or a stranger, can't
+  await assertFails(setDoc(doc(as("wr"), "storeItems/o2w"), item("orgs")));
   await assertFails(setDoc(doc(as("pub"), "storeItems/o3"), item("orgs")));
   // the organisation has to be on a team plan
   await assertFails(setDoc(doc(as("seller"), "storeItems/o4"), item("orgb")));

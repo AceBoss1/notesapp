@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { friendlyMessage } from "@/lib/api-errors";
 import { getAdminDb, verifySignedInRequest } from "@/lib/firebase-admin";
-import { canActForSeller, notifyBackInStock } from "@/lib/orders-server";
+import { canManageItems, notifyBackInStock } from "@/lib/orders-server";
 
 export const dynamic = "force-dynamic";
 
@@ -14,7 +14,7 @@ export async function POST(req: NextRequest) {
     const { itemId } = await req.json();
     const item = (await getAdminDb().doc(`storeItems/${String(itemId)}`).get()).data();
     if (!item) return NextResponse.json({ error: "Item not found." }, { status: 404 });
-    if (!(await canActForSeller(me.uid, item.ownerUid))) return NextResponse.json({ error: "Not your item." }, { status: 403 });
+    if (!(await canManageItems(me.uid, item.ownerUid))) return NextResponse.json({ error: "Not your item." }, { status: 403 });
     const notified = await notifyBackInStock(String(itemId));
     return NextResponse.json({ ok: true, notified });
   } catch (err) {

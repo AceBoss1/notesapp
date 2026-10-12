@@ -184,6 +184,17 @@ export async function canActForSeller(uid: string, sellerUid: string): Promise<b
   return !!org && org.suspended !== true && ["business", "enterprise"].includes(org.accountTier);
 }
 
+// Who may add and edit an organisation's store items: whoever may run its store (above), and also the organisation's admins, so an admin can help the owner
+// stock the store (items, files, lessons, restocks). Orders, boosts and money stay with canActForSeller.
+export async function canManageItems(uid: string, sellerUid: string): Promise<boolean> {
+  if (await canActForSeller(uid, sellerUid)) return true;
+  const db = getAdminDb();
+  const m = (await db.doc(`orgMembers/${sellerUid}_${uid}`).get()).data();
+  if (!m || m.role !== "admin") return false;
+  const org = (await db.doc(`users/${sellerUid}`).get()).data();
+  return !!org && org.suspended !== true && ["business", "enterprise"].includes(org.accountTier);
+}
+
 // Parcel stage mirrored from a merch order (the public /track page reads the parcel).
 export const parcelStatusForMerch = (s: MerchOrder["status"]) =>
   s === "shipped" ? "dispatched" : s === "delivered" ? "delivered" : s === "refunded" ? "refunded" : "paid";

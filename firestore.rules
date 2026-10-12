@@ -604,19 +604,25 @@ service cloud.firestore {
         && get(/databases/$(database)/documents/orgMembers/$(orgUid + '_' + request.auth.uid)).data.get('store', false) == true;
     }
 
+    // An organisation's admins (team members the owner made admin) can add and edit its store items without a separate store-access switch, so they can
+    // help the owner stock the store. Deleting items, orders and money stay with the owner and members given store access.
+    function orgItemsRole(orgUid) {
+      return orgStoreFlag(orgUid) || orgRole(orgUid) == 'admin';
+    }
+
     match /storeItems/{itemId} {
       allow read: if true;
       allow create: if adminHasAny(['support', 'moderation'])
         || (isPublisher() && request.resource.data.ownerUid == request.auth.uid
             && validStoreItem(request.resource.data))
-        || (orgStoreFlag(request.resource.data.ownerUid) && orgCanPublish(request.resource.data.ownerUid)
+        || (orgItemsRole(request.resource.data.ownerUid) && orgCanPublish(request.resource.data.ownerUid)
             && validStoreItem(request.resource.data));
       allow update: if adminHasAny(['support', 'moderation'])
         || (isPublisher() && resource.data.ownerUid == request.auth.uid
             && request.resource.data.ownerUid == request.auth.uid
             && sameKind(request.resource.data, resource.data)
             && validStoreItem(request.resource.data))
-        || (orgStoreFlag(resource.data.ownerUid) && orgCanPublish(resource.data.ownerUid)
+        || (orgItemsRole(resource.data.ownerUid) && orgCanPublish(resource.data.ownerUid)
             && request.resource.data.ownerUid == resource.data.ownerUid
             && sameKind(request.resource.data, resource.data)
             && validStoreItem(request.resource.data));
