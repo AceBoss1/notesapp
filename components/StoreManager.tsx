@@ -8,6 +8,7 @@ import { STORE_DELIVERY_MAX_KOBO, STORE_ITEM_MAX_KOBO, STORE_ITEM_MIN_KOBO } fro
 import Link from "next/link";
 import { addStoreItem, updateStoreItem, deleteStoreItem, setFeaturedItem, StoreItem, MAX_IMAGES, MAX_VARIANTS, SUBTITLE_MAX, cleanOptions, variantKey, DEFAULT_STORE_IMAGE } from "@/lib/store";
 import { attachDigitalFile, fmtSize } from "@/lib/store-files";
+import { DROP_RING, useFileDrop } from "@/lib/useFileDrop";
 import LessonsEditor from "@/components/LessonsEditor";
 import { canSellViewOnly } from "@/lib/tiers";
 import { effectiveTier } from "@/lib/users";
@@ -43,6 +44,15 @@ export default function StoreManager({
   // Physical or digital — chosen when the item is added, fixed afterwards.
   const [kind, setKind] = useState<"physical" | "digital">("physical");
   const [file, setFile] = useState<File | null>(null);
+  // Drop or paste pictures onto the photos area (screenshots included); for a downloadable item, a dropped document goes to the file to sell.
+  const drop = useFileDrop((dropped) => {
+    void addImages(dropped);
+    const doc = dropped.find((f) => !f.type.startsWith("image/"));
+    if (doc && kind === "digital" && access === "download") {
+      if (!DIGITAL_EXTENSIONS.includes((doc.name.split(".").pop() ?? "").toLowerCase() as never)) setError(`${doc.name}: use ${DIGITAL_EXTENSIONS.join(", ")}.`);
+      else setFile(doc);
+    }
+  }, true);
   // Digital only: a file to download, or view-only lessons (Pro and above), chosen when the item is added.
   const [access, setAccess] = useState<"download" | "view">("download");
   const [lessonsFor, setLessonsFor] = useState<string | null>(null);
@@ -106,8 +116,12 @@ export default function StoreManager({
   }
 
   async function upload(e: React.ChangeEvent<HTMLInputElement>) {
-    const files = Array.from(e.target.files ?? []).slice(0, Math.max(0, MAX_IMAGES - images.length));
+    const chosen = Array.from(e.target.files ?? []);
     e.target.value = "";
+    await addImages(chosen);
+  }
+  async function addImages(list: File[]) {
+    const files = list.filter((f) => f.type.startsWith("image/")).slice(0, Math.max(0, MAX_IMAGES - images.length));
     if (files.length === 0) return;
     setBusy(true);
     setError("");
@@ -396,7 +410,8 @@ export default function StoreManager({
           <label className="text-xs text-slate">Tag (optional, e.g. Best Seller)
             <input value={form.badge} onChange={set("badge")} maxLength={24} className={field} />
           </label>
-          <div className="sm:col-span-2 text-xs text-slate">
+          <div className={`relative sm:col-span-2 text-xs text-slate ${drop.dragging ? DROP_RING : ""}`} {...drop.bind}>
+            {drop.dragging && <div className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center rounded bg-paper/80 font-ui text-sm font-bold text-crimson">Drop to add</div>}
             {kind === "digital" ? <>Images (up to {MAX_IMAGES}; the first is the main one — for a book, add the front and back cover)</> : <>Photos (up to {MAX_IMAGES}; the first is the main one — 2 or 3 show your item best)</>}
             <div className="mt-1 flex flex-wrap items-center gap-3">
               {images.map((src, i) => (
@@ -408,7 +423,7 @@ export default function StoreManager({
                   {i > 0 && <button type="button" onClick={() => setImages((cur) => [cur[i], ...cur.filter((_, j) => j !== i)])} className="absolute bottom-0 right-0 bg-paper/90 px-1 text-[10px] text-crimson">Make main</button>}
                 </span>
               ))}
-              {images.length < MAX_IMAGES && <input type="file" accept="image/*" multiple onChange={upload} />}
+              {images.length < MAX_IMAGES && <><input type="file" accept="image/*" multiple onChange={upload} /><span className="text-[11px] text-slate">or drag pictures here, or paste a screenshot</span></>}
             </div>
           </div>
           {error && <p className="sm:col-span-2 text-sm text-crimson">{error}</p>}

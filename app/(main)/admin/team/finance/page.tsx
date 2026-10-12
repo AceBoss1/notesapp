@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import DuesPanel from "@/components/DuesPanel";
 import { useAdminAuth } from "@/lib/useAdminAuth";
+import { DROP_RING, useFileDrop } from "@/lib/useFileDrop";
 import {
   BACKDATE_DAYS, CATEGORIES, CSV_HEADER, KIND_LABEL, MAX_RECEIPTS, RECEIPT_EXTENSIONS, RECEIPT_MAX_BYTES, categoryLabel, cleanEntry, csvCell, csvToInputs, isBackdated, naira,
   type CategoryRow, type EntryKind, type FinanceEntry, type FinanceInput, type Month,
@@ -51,6 +52,18 @@ export default function MoneyLedgerPage() {
   const [showVoided, setShowVoided] = useState(false);
   const [form, setForm] = useState<FinanceInput>(blank(""));
   const [files, setFiles] = useState<File[]>([]);
+  // Receipts can be dropped on the entry form or pasted (a screenshot of an invoice, for example); the same limits as choosing them apply.
+  const receiptDrop = useFileDrop((dropped) => {
+    const ok: File[] = []; let bad = "";
+    for (const f of dropped) {
+      const ext = f.name.split(".").pop()?.toLowerCase() ?? "";
+      if (!RECEIPT_EXTENSIONS.includes(ext as never)) bad = `${f.name}: use ${RECEIPT_EXTENSIONS.join(", ")}.`;
+      else if (f.size > RECEIPT_MAX_BYTES) bad = `${f.name} is over ${RECEIPT_MAX_BYTES / 1024 / 1024} MB.`;
+      else ok.push(f);
+    }
+    if (ok.length) setFiles((cur) => [...cur, ...ok].slice(0, MAX_RECEIPTS));
+    setError(bad);
+  }, true);
   const [editing, setEditing] = useState<string | null>(null);
   const [voiding, setVoiding] = useState<string | null>(null);
   const [reason, setReason] = useState("");
@@ -234,7 +247,8 @@ export default function MoneyLedgerPage() {
                   <label key={k}><input type="radio" name="kind" checked={kind === k} onChange={() => setForm({ ...form, kind: k, category: CATEGORIES[k][0].key })} /> {KIND_LABEL[k]}</label>
                 ))}
               </div>
-              <div className="mt-3 grid gap-3 sm:grid-cols-2">
+              <div className={`relative mt-3 grid gap-3 sm:grid-cols-2 ${!editing && receiptDrop.dragging ? DROP_RING : ""}`} {...(editing ? {} : receiptDrop.bind)}>
+                {!editing && receiptDrop.dragging && <div className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center rounded bg-paper/80 font-ui text-sm font-bold text-crimson sm:col-span-2">Drop to attach as receipts</div>}
                 <label className="text-xs text-slate">Date the money moved
                   <input type="date" value={String(form.occurredOn ?? "")} min={owner ? undefined : data.window.start} max={today} onChange={(e) => setForm({ ...form, occurredOn: e.target.value })} className={field} />
                 </label>
@@ -256,7 +270,7 @@ export default function MoneyLedgerPage() {
                   <input value={String(form.description ?? "")} onChange={(e) => setForm({ ...form, description: e.target.value })} maxLength={500} className={field} />
                 </label>
                 {!editing && (
-                  <label className="text-xs text-slate sm:col-span-2">Receipts or invoices (up to {MAX_RECEIPTS}; {RECEIPT_EXTENSIONS.join(", ")}; {RECEIPT_MAX_BYTES / 1024 / 1024} MB each)
+                  <label className="text-xs text-slate sm:col-span-2">Receipts or invoices (drag files here, paste a screenshot, or choose; up to {MAX_RECEIPTS}; {RECEIPT_EXTENSIONS.join(", ")}; {RECEIPT_MAX_BYTES / 1024 / 1024} MB each)
                     <input ref={fileRef} type="file" multiple accept={RECEIPT_EXTENSIONS.map((x) => `.${x}`).join(",")} onChange={(e) => setFiles([...(e.target.files ?? [])].slice(0, MAX_RECEIPTS))} className="mt-1 block w-full text-sm" />
                   </label>
                 )}

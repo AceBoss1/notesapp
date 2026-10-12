@@ -1,6 +1,7 @@
 // The team hub: shared work items and milestones for #NotesApp staff. Pure functions (validation, grouping, progress), so the maths is
 // testable without a database; lib/team-server.ts keeps the documents.
 import type { Traction } from "./traction";
+import { DEPARTMENTS } from "./admin-access";
 
 export const STATUSES = ["todo", "doing", "blocked", "decision", "done"] as const;
 export type Status = (typeof STATUSES)[number];
@@ -201,6 +202,8 @@ export type MeetingStatus = (typeof MEETING_STATUSES)[number];
 export type MeetingDecision = { text: string; at: string; byUid: string };
 export type Meeting = {
   id: string;
+  team?: string; // who it was set up for: "all", a department key or "custom" (older meetings have none and are open to the whole team)
+  memberUids?: string[]; // the people invited (the room's members); older meetings have none
   title: string;
   startsAt: string; // ISO time
   agenda: string;
@@ -222,10 +225,20 @@ export function lagosToIso(date: string, time: string): string {
 }
 export const lagosParts = (iso: string) => ({ date: lagosDate(new Date(iso)), time: new Date(Date.parse(iso) + 3_600_000).toISOString().slice(11, 16) });
 
+// Who a meeting is for. A department is only the starting point: the person scheduling ticks who is actually invited, so a Growth meeting does not
+// have to include Finance, and anyone can be added by hand.
+export const MEETING_TEAMS: { key: string; label: string }[] = [{ key: "all", label: "Everyone" }, ...DEPARTMENTS.map((d) => ({ key: d.key as string, label: d.label as string })), { key: "custom", label: "Choose people" }];
+export const isMeetingTeam = (t: unknown): t is string => typeof t === "string" && MEETING_TEAMS.some((x) => x.key === t);
+export const meetingTeamLabel = (t: string | undefined) => MEETING_TEAMS.find((x) => x.key === t)?.label ?? "Everyone";
+type PersonLike = { uid: string; depts?: readonly string[] };
+export const defaultMembers = (team: string, people: PersonLike[]) => (team === "all" ? people.map((p) => p.uid) : team === "custom" ? [] : people.filter((p) => p.depts?.includes(team)).map((p) => p.uid));
+// Older meetings have no member list and stay open to the whole team; the owner can always see every meeting.
+export const canSeeMeeting = (m: { memberUids?: string[] }, uid: string, owner = false) => owner || !m.memberUids || m.memberUids.includes(uid);
+
 export function cleanMeeting(body: Record<string, unknown>) {
   const title = clip(body.title, 100);
   if (!title) throw new TeamError("Give the meeting a title.");
-  return { title, startsAt: lagosToIso(clip(body.date, 10), clip(body.time, 5)), agenda: clip(body.agenda, 2000) };
+  return { title, startsAt: lagosToIso(clip(body.date, 10), clip(body.time, 5)), agenda: clip(body.agenda, 2000), team: isMeetingTeam(body.team) ? body.team : "all" };
 }
 
 // A plain-text recap to paste anywhere: when, what was decided, what was agreed and who owns it.

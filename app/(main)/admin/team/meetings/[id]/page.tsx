@@ -1,11 +1,11 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useAdminAuth } from "@/lib/useAdminAuth";
 import Thread from "@/components/messages/Thread";
 import MessagesBoundary from "@/components/messages/MessagesBoundary";
-import { lagosParts, meetingSummary, type Meeting, type TeamItem } from "@/lib/team";
+import { lagosParts, meetingSummary, meetingTeamLabel, type Meeting, type TeamItem } from "@/lib/team";
 
 type Person = { uid: string; name: string; email: string };
 type Data = { me: string; meeting: Meeting; actions: TeamItem[]; people: Person[] };
@@ -22,6 +22,15 @@ export default function MeetingPage({ params }: { params: { id: string } }) {
   const [agenda, setAgenda] = useState<string | null>(null);
   const [notes, setNotes] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
+  // Decisions and actions suggested from the meeting chat (Nana) or the person's Granola notes; nothing is saved until they are ticked and added.
+  type Sug = { decisions: string[]; actions: { title: string; ownerUid: string; due: string }[]; via: string };
+  const [sug, setSug] = useState<Sug | null>(null);
+  const [pickD, setPickD] = useState<Set<number>>(new Set());
+  const [pickA, setPickA] = useState<Set<number>>(new Set());
+  const [sugBusy, setSugBusy] = useState(false);
+  const [sugMsg, setSugMsg] = useState("");
+  const [auto, setAuto] = useState(false);
+  const busyRef = useRef(false);
 
   const call = useCallback(async (body?: Record<string, unknown>) => {
     const token = await user!.getIdToken();
@@ -33,6 +42,35 @@ export default function MeetingPage({ params }: { params: { id: string } }) {
   const load = useCallback(async () => { try { setData(await call()); setError(""); } catch (e) { setError(e instanceof Error ? e.message : "Couldn't load"); } }, [call]);
   useEffect(() => { if (user) void load(); }, [user, load]);
   const send = async (body: Record<string, unknown>) => { try { await call({ ...body, id: params.id }); await load(); } catch (e) { setError(e instanceof Error ? e.message : "Couldn't save"); } };
+
+  const suggest = useCallback(async (kind: "suggestFromChat" | "suggestFromGranola", quiet = false) => {
+    if (busyRef.current) return;
+    busyRef.current = true; setSugBusy(true); if (!quiet) { setSugMsg(""); setError(""); }
+    try {
+      const r: Sug = await call({ action: kind, id: params.id });
+      setSug(r);
+      setPickD(new Set(r.decisions.map((_, i) => i))); setPickA(new Set(r.actions.map((_, i) => i)));
+      if (!quiet) setSugMsg(r.decisions.length + r.actions.length ? "" : kind === "suggestFromGranola" ? "Granola's notes have no new decisions or actions for this meeting." : "Nothing new to suggest yet.");
+    } catch (e) { if (!quiet) setError(e instanceof Error ? e.message : "Couldn't pick them out"); }
+    finally { busyRef.current = false; setSugBusy(false); }
+  }, [call, params.id]);
+  const meetingLive = data?.meeting.status === "live";
+  // While the meeting is live and "keep looking" is on, Nana re-reads the chat every four minutes and offers anything new.
+  useEffect(() => {
+    if (!auto || !meetingLive) return;
+    const t = setInterval(() => { void suggest("suggestFromChat", true); }, 240_000);
+    return () => clearInterval(t);
+  }, [auto, meetingLive, suggest]);
+  const addPicked = async () => {
+    if (!sug) return;
+    setSugBusy(true);
+    try {
+      for (const i of pickD) await call({ action: "addDecision", id: params.id, text: sug.decisions[i] });
+      for (const i of pickA) { const a = sug.actions[i]; await call({ action: "addMeetingAction", id: params.id, title: a.title, ownerUid: a.ownerUid, due: a.due }); }
+      setSug(null); setSugMsg("Added."); await load();
+    } catch (e) { setError(e instanceof Error ? e.message : "Couldn't add them"); }
+    finally { setSugBusy(false); }
+  };
 
   if (loading || !user) return <div className="px-6 py-24 text-center text-slate">Loading…</div>;
   if (!data) return <div className="px-6 py-24 text-center text-slate">{error ? <span className="text-crimson">{error}</span> : "Loading the meeting…"}</div>;
@@ -48,6 +86,7 @@ export default function MeetingPage({ params }: { params: { id: string } }) {
         <div>
           <h1 className="font-display text-3xl">{m.title}</h1>
           <p className="mt-1 text-sm text-slate">{dayLabel(when.date)}, {when.time} (Lagos time) · {m.status === "live" ? "Live now" : m.status === "done" ? "Done" : "Scheduled"}</p>
+          {m.memberUids && <p className="mt-1 text-xs text-slate">{meetingTeamLabel(m.team)} · invited: {m.memberUids.map((u) => nameOf(u)).join(", ")}</p>}
         </div>
         <span className="flex flex-wrap gap-2">
           {m.status === "scheduled" && <button onClick={() => send({ action: "updateMeeting", status: "live" })} className="btn-primary !px-4 !py-2 text-xs">Start the meeting</button>}
@@ -75,6 +114,26 @@ export default function MeetingPage({ params }: { params: { id: string } }) {
                 <textarea value={agenda} onChange={(e) => setAgenda(e.target.value)} rows={4} className={input} />
                 <span className="mt-2 flex gap-2"><button className="btn-primary !px-3 !py-1.5 text-xs">Save</button><button type="button" onClick={() => setAgenda(null)} className={btn}>Cancel</button></span>
               </form>
+            )}
+          </section>
+
+          <section className="card p-4">
+            <h2 className="font-display text-xl">Pick out decisions and actions</h2>
+            <p className="mt-1 text-xs text-slate">Nana reads this meeting&apos;s chat and suggests what was decided and what was agreed, or pull them from your Granola notes after the meeting. You tick what is right before anything is added.</p>
+            <span className="mt-2 flex flex-wrap gap-2">
+              <button type="button" disabled={sugBusy} onClick={() => suggest("suggestFromChat")} className={btn}>Nana: from the chat</button>
+              <button type="button" disabled={sugBusy} onClick={() => suggest("suggestFromGranola")} className={btn}>From my Granola notes</button>
+            </span>
+            {m.status === "live" && <label className="mt-2 flex items-center gap-2 text-xs text-slate"><input type="checkbox" checked={auto} onChange={(e) => setAuto(e.target.checked)} /> Keep looking while the meeting is live (every 4 minutes, uses AI each time)</label>}
+            {sugBusy && <p className="mt-2 text-xs text-slate">Working…</p>}
+            {sugMsg && <p className="mt-2 text-xs text-slate" role="status">{sugMsg}</p>}
+            {sug && (sug.decisions.length > 0 || sug.actions.length > 0) && (
+              <div className="mt-3 space-y-3">
+                {sug.decisions.length > 0 && <div><p className="font-ui text-xs font-bold text-ink">Decisions</p><ul className="mt-1 space-y-1">{sug.decisions.map((d, i) => <li key={i}><label className="flex items-start gap-2 text-sm"><input type="checkbox" className="mt-1" checked={pickD.has(i)} onChange={(e) => setPickD((p) => { const n = new Set(p); if (e.target.checked) n.add(i); else n.delete(i); return n; })} /> {d}</label></li>)}</ul></div>}
+                {sug.actions.length > 0 && <div><p className="font-ui text-xs font-bold text-ink">Actions</p><ul className="mt-1 space-y-1">{sug.actions.map((a, i) => <li key={i}><label className="flex items-start gap-2 text-sm"><input type="checkbox" className="mt-1" checked={pickA.has(i)} onChange={(e) => setPickA((p) => { const n = new Set(p); if (e.target.checked) n.add(i); else n.delete(i); return n; })} /> <span>{a.title} <span className="text-[11px] text-slate">{a.ownerUid ? nameOf(a.ownerUid) : "no owner"}{a.due ? ` · due ${a.due}` : ""}</span></span></label></li>)}</ul></div>}
+                <button type="button" disabled={sugBusy || pickD.size + pickA.size === 0} onClick={addPicked} className="btn-primary !px-3 !py-1.5 text-xs">Add the ticked ones</button>
+                <p className="text-[11px] text-slate">Suggested by {sug.via === "granola" ? "your Granola notes" : "Nana"}. Check them before adding.</p>
+              </div>
             )}
           </section>
 

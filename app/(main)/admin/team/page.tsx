@@ -9,11 +9,11 @@ import GranolaPanel from "@/components/GranolaPanel";
 import { hasAnyDept } from "@/lib/admin-access";
 import { formatNaira } from "@/lib/booking-time";
 import {
-  HORIZONS, HORIZON_LABEL, METRICS, STATUS_LABEL, addDays, groupItems, isOverdue, lagosParts,
+  HORIZONS, HORIZON_LABEL, MEETING_TEAMS, METRICS, STATUS_LABEL, addDays, defaultMembers, meetingTeamLabel, groupItems, isOverdue, lagosParts,
   type Horizon, type Meeting, type MetricKey, type Milestone, type Progress, type Status, type TeamComment, type TeamItem,
 } from "@/lib/team";
 
-type Person = { uid: string; name: string; email: string };
+type Person = { uid: string; name: string; email: string; depts?: string[] };
 type Signal = { id: string; label: string; count: number; href: string; urgent?: boolean };
 type MilestoneRow = Milestone & { progress: Progress };
 type Data = {
@@ -190,7 +190,8 @@ export default function AdminTeamPage() {
   const [prefs, setPrefs] = useState({ morningEmail: true, morningBell: true }); // shown at once, saved in the background
   useEffect(() => { if (data) setPrefs(data.prefs); }, [data]);
   const [showMeet, setShowMeet] = useState(false);
-  const [meet, setMeet] = useState({ title: "", date: "", time: "10:00", agenda: "" });
+  const [meet, setMeet] = useState({ title: "", date: "", time: "10:00", agenda: "", team: "all", memberUids: [] as string[] });
+  const everyone = () => data?.people.map((p) => p.uid) ?? [];
 
   const call = useCallback(async (init?: { body: Record<string, unknown> }, qs = "") => {
     const token = await user!.getIdToken();
@@ -313,22 +314,35 @@ export default function AdminTeamPage() {
           <h2 id="meet" className="font-display text-2xl text-ink">Meetings</h2>
           <span className="flex flex-wrap gap-2">
             <Link href={`/messages/${data.teamRoomId}`} className="btn-ghost !px-4 !py-2 text-xs">Open the Team room</Link>
-            <button onClick={() => { setMeet({ ...meet, date: meet.date || today }); setShowMeet((x) => !x); }} className="btn-primary !px-4 !py-2 text-xs">{showMeet ? "Close" : "Schedule a meeting"}</button>
+            <button onClick={() => { setMeet({ ...meet, date: meet.date || today, memberUids: meet.memberUids.length ? meet.memberUids : everyone() }); setShowMeet((x) => !x); }} className="btn-primary !px-4 !py-2 text-xs">{showMeet ? "Close" : "Schedule a meeting"}</button>
           </span>
         </div>
-        <p className="mt-1 text-xs text-slate">Each meeting gets its own room in the group chat with the whole team in it. Decisions and actions are written down beside the chat, and actions land on the board above.</p>
+        <p className="mt-1 text-xs text-slate">Each meeting gets its own room in the group chat with the people you invite, and only they (and the owner) see it. Decisions and actions are written down beside the chat, and actions land on the board above.</p>
         {showMeet && (
           <form className="card mt-3 grid gap-2 p-4 sm:grid-cols-2" onSubmit={async (e) => {
             e.preventDefault();
             await send({ action: "createMeeting", ...meet });
             setShowMeet(false);
-            setMeet({ title: "", date: "", time: "10:00", agenda: "" });
+            setMeet({ title: "", date: "", time: "10:00", agenda: "", team: "all", memberUids: everyone() });
           }}>
             <label className="text-[11px] text-slate sm:col-span-2">Title<input value={meet.title} onChange={(e) => setMeet({ ...meet, title: e.target.value })} placeholder="e.g. Weekly review" className={input} /></label>
             <label className="text-[11px] text-slate">Date<input type="date" value={meet.date} onChange={(e) => setMeet({ ...meet, date: e.target.value })} className={input} /></label>
             <label className="text-[11px] text-slate">Time (Lagos)<input type="time" value={meet.time} onChange={(e) => setMeet({ ...meet, time: e.target.value })} className={input} /></label>
+            <label className="text-[11px] text-slate sm:col-span-2">Team
+              <select value={meet.team} onChange={(e) => setMeet({ ...meet, team: e.target.value, memberUids: defaultMembers(e.target.value, data.people) })} className={input}>{MEETING_TEAMS.map((t) => <option key={t.key} value={t.key}>{t.label}</option>)}</select>
+            </label>
+            <fieldset className="sm:col-span-2">
+              <legend className="text-[11px] text-slate">Who is invited ({meet.memberUids.length + (meet.memberUids.includes(data.me) ? 0 : 1)} including you). Picking a team ticks its people; tick or untick anyone.</legend>
+              <div className="mt-1 flex flex-wrap gap-x-4 gap-y-1">
+                {data.people.map((p) => (
+                  <label key={p.uid} className="flex items-center gap-1.5 text-xs text-ink">
+                    <input type="checkbox" disabled={p.uid === data.me} checked={p.uid === data.me || meet.memberUids.includes(p.uid)} onChange={(e) => setMeet({ ...meet, memberUids: e.target.checked ? [...meet.memberUids, p.uid] : meet.memberUids.filter((u) => u !== p.uid) })} /> {p.name}{p.uid === data.me ? " (you)" : ""}
+                  </label>
+                ))}
+              </div>
+            </fieldset>
             <label className="text-[11px] text-slate sm:col-span-2">Agenda<textarea value={meet.agenda} onChange={(e) => setMeet({ ...meet, agenda: e.target.value })} rows={3} className={input} /></label>
-            <div className="sm:col-span-2"><button disabled={!meet.title.trim() || !meet.date} className="btn-primary !px-4 !py-2 text-xs">Schedule and invite the team</button></div>
+            <div className="sm:col-span-2"><button disabled={!meet.title.trim() || !meet.date || meet.memberUids.filter((u) => u !== data.me).length === 0} className="btn-primary !px-4 !py-2 text-xs">Schedule and invite {meet.memberUids.filter((u) => u !== data.me).length} {meet.memberUids.filter((u) => u !== data.me).length === 1 ? "person" : "people"}</button></div>
           </form>
         )}
         {data.meetings.length ? (
@@ -338,7 +352,7 @@ export default function AdminTeamPage() {
               return (
                 <li key={x.id}>
                   <Link href={`/admin/team/meetings/${x.id}`} className="card flex flex-wrap items-center justify-between gap-2 p-3 hover:border-crimson">
-                    <span><span className="font-ui text-sm font-bold text-ink">{x.title}</span> <span className="text-xs text-slate">{dayLabel(w.date)}, {w.time}</span></span>
+                    <span><span className="font-ui text-sm font-bold text-ink">{x.title}</span> <span className="text-xs text-slate">{dayLabel(w.date)}, {w.time}</span> <span className="rounded bg-card px-1.5 py-0.5 text-[10px] text-slate ring-1 ring-rule">{meetingTeamLabel(x.team)}{x.memberUids ? ` · ${x.memberUids.length}` : ""}</span></span>
                     <span className="flex items-center gap-2 text-[11px]">
                       {x.decisions.length > 0 && <span className="text-slate">{x.decisions.length} decision{x.decisions.length === 1 ? "" : "s"}</span>}
                       <span className={`rounded px-2 py-0.5 font-semibold ${x.status === "live" ? "bg-crimson text-white" : x.status === "done" ? "bg-card text-slate ring-1 ring-rule" : "bg-amber-100 text-amber-900"}`}>{x.status === "live" ? "Live now" : x.status === "done" ? "Done" : w.date === today ? "Today" : "Scheduled"}</span>

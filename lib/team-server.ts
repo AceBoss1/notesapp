@@ -7,7 +7,7 @@ import { gatherTraction } from "./traction-server";
 import type { Traction } from "./traction";
 import { createGroup, sendGroupMessage, syncMembers, syncTeamRoom, type GroupDeps } from "./groups-server";
 import {
-  TeamError, cleanItem, cleanMeeting, cleanComment, cleanReview, focusLines, buildMorningSummary, bucketWeeks, weekStart, weekEnd, lagosDay, lagosParts, type Review, type TeamComment, type WeekNumbers, MEETING_STATUSES, type Meeting, type MeetingStatus, cleanMilestone, metricValue, statusEffects, lagosDate, addDays,
+  TeamError, canSeeMeeting, cleanItem, cleanMeeting, cleanComment, cleanReview, focusLines, buildMorningSummary, bucketWeeks, weekStart, weekEnd, lagosDay, lagosParts, type Review, type TeamComment, type WeekNumbers, MEETING_STATUSES, type Meeting, type MeetingStatus, cleanMilestone, metricValue, statusEffects, lagosDate, addDays,
   milestoneProgress, type Milestone, type TeamItem, type Status,
 } from "./team";
 
@@ -15,12 +15,12 @@ import {
 // them, through /api/admin/team.
 const ITEMS = "teamItems", MILESTONES = "teamMilestones", MEETINGS = "teamMeetings";
 
-export type Person = { uid: string; name: string; email: string };
+export type Person = { uid: string; name: string; email: string; depts?: string[] };
 export type Signal = { id: string; label: string; count: number; href: string; urgent?: boolean };
 
 // Everyone with staff access (any role), with a readable name. Read from the accounts and cached for a minute (lib/admin-access-server.ts).
 export async function listTeamPeople(db: Firestore): Promise<Person[]> {
-  return (await listStaff(db)).map((p) => ({ uid: p.uid, name: p.name, email: p.email }));
+  return (await listStaff(db)).map((p) => ({ uid: p.uid, name: p.name, email: p.email, depts: p.depts }));
 }
 
 // Short-lived copy of the platform numbers: the page and every edit ask for them, and counting is heavy.
@@ -120,9 +120,13 @@ export async function meetingActions(db: Firestore, meetingId: string): Promise<
 // Schedules a meeting: its own room in the group chat (every team member in it, the agenda as the first message, which also rings their bell).
 export async function createMeeting(db: Firestore, adminUid: string, body: Record<string, unknown>, teamUids: string[], now = new Date(), deps?: GroupDeps) {
   const c = cleanMeeting(body);
+  // Only the people ticked are invited (and only staff). Without a list the whole team is invited, as before.
+  const chosen = Array.isArray(body.memberUids) ? (body.memberUids as unknown[]).map(String).filter((u) => teamUids.includes(u)) : teamUids;
+  const memberUids = Array.from(new Set([adminUid, ...chosen]));
+  if (memberUids.length < 2) throw new TeamError("Choose at least one other person to invite.");
   const ref = db.collection(MEETINGS).doc();
-  const room = await createGroup(db, adminUid, { title: c.title, memberUids: teamUids.filter((u) => u !== adminUid), scope: "team", id: `meeting_${ref.id}`, meetingId: ref.id }, now, deps);
-  const meeting: Omit<Meeting, "id"> = { ...c, conversationId: room.id, status: "scheduled", notes: "", decisions: [], createdByUid: adminUid, createdAt: now.toISOString(), endedAt: "" };
+  const room = await createGroup(db, adminUid, { title: c.title, memberUids: memberUids.filter((u) => u !== adminUid), scope: "team", id: `meeting_${ref.id}`, meetingId: ref.id }, now, deps);
+  const meeting: Omit<Meeting, "id"> = { ...c, memberUids, conversationId: room.id, status: "scheduled", notes: "", decisions: [], createdByUid: adminUid, createdAt: now.toISOString(), endedAt: "" };
   await ref.set(meeting);
   const when = new Date(c.startsAt).toLocaleString("en-NG", { timeZone: "Africa/Lagos", weekday: "short", day: "numeric", month: "short", hour: "numeric", minute: "2-digit" });
   await sendGroupMessage(db, adminUid, room.id, { text: `Meeting: ${c.title}\n${when} (Lagos time)${c.agenda ? `\n\nAgenda:\n${c.agenda}` : ""}` }, now, undefined, deps).catch(() => {});
@@ -164,7 +168,8 @@ export async function addMeetingAction(db: Firestore, adminUid: string, meetingI
 export async function syncTeamRooms(db: Firestore, me: string, teamUids: string[], deps?: GroupDeps) {
   await syncTeamRoom(db, me, teamUids, new Date(), deps);
   const open = (await listMeetings(db)).filter((m) => m.status !== "done");
-  await Promise.all(open.map((m) => syncMembers(db, m.conversationId, teamUids)));
+  // A meeting keeps its own invited people (those who are still on the team); older meetings follow the whole team.
+  await Promise.all(open.map((m) => syncMembers(db, m.conversationId, m.memberUids ? m.memberUids.filter((u) => teamUids.includes(u)) : teamUids)));
 }
 
 // ---- Comments on items (stored under `discussion`: a subcollection named `comments` would be world-readable through the collection-group rule for journal comments) ---------------------------------------------------------------------------------------------------------------
@@ -234,12 +239,12 @@ export async function sendMorningSummaries(db: Firestore, now = new Date(), deps
   try { await mark.create({ startedAt: now.toISOString() }); } catch { return 0; } // already sent (or being sent) today
   const [people, { items, milestones }, signals, meetings, t] = await Promise.all([deps.people(), listTeam(db), teamSignals(db), listMeetings(db), cachedTraction(db)]);
   const progress = milestones.filter((m) => m.startsOn <= today && m.endsOn >= today).map((m) => ({ title: m.title, ...(({ pct, state }) => ({ pct, state }))(milestoneProgress(m, metricValue(t, m.metric), today)) }));
-  const meetingsToday = meetings.filter((m) => m.status !== "done" && lagosParts(m.startsAt).date === today).map((m) => ({ title: m.title, time: lagosParts(m.startsAt).time }));
+  const meetingsOf = (uid: string) => meetings.filter((m) => m.status !== "done" && lagosParts(m.startsAt).date === today && canSeeMeeting(m, uid)).map((m) => ({ title: m.title, time: lagosParts(m.startsAt).time }));
   let sent = 0;
   for (const p of people) {
     const prefs = await getTeamPrefs(db, p.uid);
     if (!prefs.morningEmail && !prefs.morningBell) continue;
-    const d = buildMorningSummary({ name: p.name, uid: p.uid, today, items, signals, milestones: progress, meetingsToday, nameOf: (u) => nameIn(people, u), link: `${siteUrl()}/admin/team` });
+    const d = buildMorningSummary({ name: p.name, uid: p.uid, today, items, signals, milestones: progress, meetingsToday: meetingsOf(p.uid), nameOf: (u) => nameIn(people, u), link: `${siteUrl()}/admin/team` });
     if (d.empty) continue;
     if (prefs.morningBell) await deps.bell(p.uid, d.bell).catch(() => {});
     if (prefs.morningEmail) {
