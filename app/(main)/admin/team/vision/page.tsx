@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useAdminAuth } from "@/lib/useAdminAuth";
 import {
-  HOLDERS, PERSON_LABEL, ROUND_NAMES, SCENARIOS, fmtNgn, fmtPct, fmtUsd, optionPath, roundMath, runModel, runway, startingSplit,
+  AFRICA_MOBILE_USERS, COFOUNDER_MAX, COFOUNDER_MIN, EMMANUEL_MIN, GATES, GATE_NOTE, HOLDERS, PERSON_LABEL, ROUND_NAMES, SCENARIOS, applyGates, fmtNgn, fmtPct, fmtUsd, balanceFounders, fmtUsers, optionPath, posFromUsers, roundMath, roundStats, runModel, runway, startingSplit, usersFromPos,
   type Business, type Company, type Founders, type PersonKey, type Round,
 } from "@/lib/vision";
 
@@ -36,6 +36,7 @@ export default function VisionPage() {
   const [data, setData] = useState<Payload | null>(null);
   const [error, setError] = useState("");
   const [preset, setPreset] = useState<string>("base");
+  const [gates, setGates] = useState(true); // rounds stay locked until the users slider reaches their gate
   const [hold, setHold] = useState<"stake" | "valuation">("stake"); // what stays put when the raise changes
   const [{ company, business }, setM] = useState(() => fresh("base"));
   const [fnd, setFnd] = useState<Founders | null>(null);
@@ -56,13 +57,14 @@ export default function VisionPage() {
   // changing the share sold recalculates the post-money; changing the post-money recalculates the share sold.
   const editRaise = (i: number, raise: number) => { const r = company.rounds[i]; setRound(i, hold === "stake" && r.raise > 0 && r.post > 0 ? { raise, post: Math.round((raise * r.post) / r.raise) } : { raise }); };
   const editStake = (i: number, pct: number) => { const r = company.rounds[i]; if (pct > 0 && r.raise > 0) setRound(i, { post: Math.round((r.raise * 100) / pct) }); };
-  const setF = (p: Partial<Founders>) => { setPreset("custom"); setFnd((f) => (f ? { ...f, ...p } : f)); };
+  const setF = (p: Partial<Founders>, moved: "c" | "a" | "bridge" = "c") => { setPreset("custom"); setFnd((f) => (f ? balanceFounders({ ...f, ...p }, moved) : f)); };
 
   const me = data?.viewer;
-  const model = useMemo(() => (fnd ? runModel(fnd, company) : null), [fnd, company]);
-  const opt = useMemo(() => (data?.option ? optionPath(data.option.pct, company) : null), [data, company]);
+  const gated = useMemo(() => applyGates(company, business.users, gates), [company, business.users, gates]);
+  const model = useMemo(() => (fnd ? runModel(fnd, gated.company) : null), [fnd, gated]);
+  const opt = useMemo(() => (data?.option ? optionPath(data.option.pct, gated.company) : null), [data, gated]);
   const rw = useMemo(() => runway(business), [business]);
-  const rmath = useMemo(() => roundMath(company), [company]);
+  const rmath = useMemo(() => roundMath(gated.company), [gated]);
 
   if (loading) return <p className="p-8 text-slate">Loading…</p>;
   if (!user) return <p className="p-8 text-slate">Admins only.</p>;
@@ -86,6 +88,9 @@ export default function VisionPage() {
     if (company.poolAt === "preA") notes.push({ tone: "text-amber-700", text: "The pool is set to appear just before Series A, but Nora's grant and the Plan assume it exists at formation. Choose “At formation” to match the documents." });
     if (!model.last.v.slice(6).some((x) => x > 0)) notes.push({ tone: "text-amber-700", text: "No outside round is switched on, so ownership only changes through the pool." });
   }
+  const nextGate = company.rounds.find((r, i) => gated.locked[i]);
+  if (nextGate) notes.push({ tone: "text-amber-700", text: `${nextGate.name} is locked: it needs ${fmtUsers(nextGate.users)} verified users and the business case has ${fmtUsers(business.users)}. Move the users slider or press a gate button to unlock it.` });
+  company.rounds.forEach((r, i) => { const st = roundStats(r, business.conv, fx); if (r.on && !gated.locked[i] && st && st.multiple > 60 && Number.isFinite(st.multiple)) notes.push({ tone: "text-amber-700", text: `${r.name} at ${fmtUsd(r.post)} on ${fmtUsers(r.users)} users is ${Math.round(st.multiple)}× the net revenue those users bring at ${business.conv}% conversion (${fmtUsd(st.perUser)} a user). Investors will ask what justifies it.` }); });
   if (rw.surplus < 0) notes.push({ tone: "text-red-700", text: `Revenue does not cover the monthly burn at this conversion. Cash lasts ${Number.isFinite(rw.monthsWithRevenue) ? rw.monthsWithRevenue.toFixed(1) : "-"} months unless a round closes.` });
   else notes.push({ tone: "text-green-700", text: "Revenue covers the monthly burn at this conversion." });
   if (finalValue >= 1e9) notes.push({ tone: "text-amber-700", text: `A ${fmtUsd(finalValue)} (${ngn(finalValue)}) valuation is a vision case. Paper value ignores liquidation preferences and tax. Do not quote it to investors, staff or the public.` });
@@ -98,6 +103,11 @@ export default function VisionPage() {
         Move the sliders to see how funding rounds, the staff pool and a possible dual-class vote change what is owned and what it is worth on paper, and how long cash lasts. A planning tool for the founders and the C-suite. Not a
         forecast and not an offer of securities.
       </p>
+      <div className="card mt-6 max-w-4xl p-4 text-sm text-slate">
+        <p className="font-mono text-[10px] uppercase tracking-eyebrow">Why Africa, why now</p>
+        <p className="mt-2">Youth drive Africa&apos;s booming mobile landscape, serving as the primary catalyst for a continent with over 650 million mobile users. That adoption surpasses the mobile user bases of both the United States and Europe. With nearly 60% of Africa&apos;s population under 25, the smartphone has become the all-in-one tool for survival, communication, creativity and income.</p>
+        <p className="mt-2 text-xs">Founders&apos; figures. Source them (for example GSMA and the UN) before using them outside the company. Rounds open only at user gates: Seed at {fmtUsers(GATES.seed)} users, Series A at {fmtUsers(GATES.seriesA)}, Series B at {fmtUsers(GATES.seriesB)} (cross-country), Series C at {fmtUsers(GATES.seriesC)} (cross-continent). Series B is {Math.round((GATES.seriesB / AFRICA_MOBILE_USERS) * 100)}% of Africa&apos;s mobile users today. Series C is cross-continent (Africa, South America and Asia), so it is not measured against Africa alone.</p>
+      </div>
       {error && <p className="mt-4 text-sm text-red-700" role="alert">{error}</p>}
       {data && (
         <>
@@ -146,9 +156,9 @@ export default function VisionPage() {
                 <p className="font-mono text-[10px] uppercase tracking-eyebrow text-slate">Founders and bridge</p>
                 <label className="flex items-center gap-2 text-xs"><input type="checkbox" checked={fnd.trackB} onChange={(e) => setF({ trackB: e.target.checked })} /> Bridge: angels and FEBO reserve</label>
                 <Slider label="Angel bridge raised" value={fnd.bridge} min={0} max={30000} step={1000} show={`${fmtUsd(fnd.bridge)} · ${ngn(fnd.bridge)}`} onChange={(n) => setF({ bridge: n })} disabled={!fnd.trackB} />
-                <Slider label="Chimdinma, % of founders' stock" value={fnd.cPct} min={2} max={25} step={0.5} show={`${fnd.cPct}%`} onChange={(n) => setF({ cPct: n })} />
-                <Slider label="Akujuobi, % of founders' stock" value={fnd.aPct} min={2} max={25} step={0.5} show={`${fnd.aPct}%`} onChange={(n) => setF({ aPct: n })} />
-                <p className="text-xs text-slate">Emmanuel holds the remainder: <span className="font-mono text-ink">{startingSplit(fnd).e.toFixed(1)}%</span></p>
+                <Slider label="Chimdinma, % of founders' stock" value={fnd.cPct} min={COFOUNDER_MIN} max={COFOUNDER_MAX} step={0.5} show={`${fnd.cPct}%`} onChange={(n) => setF({ cPct: n }, "c")} />
+                <Slider label="Akujuobi, % of founders' stock" value={fnd.aPct} min={COFOUNDER_MIN} max={COFOUNDER_MAX} step={0.5} show={`${fnd.aPct}%`} onChange={(n) => setF({ aPct: n }, "a")} />
+                <p className="text-xs text-slate">Emmanuel holds the remainder: <span className="font-mono text-ink">{startingSplit(fnd).e.toFixed(1)}%</span>. He keeps at least {EMMANUEL_MIN}%; if one co-founder goes up with no room left, the other comes down.</p>
                 <p className="font-mono text-[10px] uppercase tracking-eyebrow text-slate">Voting</p>
                 <label className="block text-xs text-slate">Dual-class stock in effect<select className={field} value={company.dual} onChange={(e) => setCo({ dual: e.target.value as Company["dual"] })}><option value="never">Never</option><option value="last">Only at the last stage</option><option value="all">All stages</option></select></label>
                 <Slider label="Class B votes per share" value={company.V} min={2} max={20} step={1} show={`${company.V}x`} onChange={(n) => setCo({ V: n })} />
@@ -157,12 +167,18 @@ export default function VisionPage() {
                 </div>
               </>}
               <p className="font-mono text-[10px] uppercase tracking-eyebrow text-slate">Business case</p>
-              <Slider label="Registered users" value={business.users} min={5000} max={2000000} step={5000} show={business.users.toLocaleString("en-US")} onChange={(n) => setBiz({ users: n })} />
+              <Slider label="Verified registered users" value={posFromUsers(business.users)} min={0} max={100} step={0.5} show={business.users.toLocaleString("en-US")} onChange={(n) => setBiz({ users: usersFromPos(n) })} />
+              <div className="flex flex-wrap gap-1.5">
+                {([["Seed", GATES.seed], ["A", GATES.seriesA], ["B", GATES.seriesB], ["C", GATES.seriesC]] as const).map(([l, u]) => <button key={l} type="button" className={chip(business.users >= u)} onClick={() => setBiz({ users: u })}>{l} · {fmtUsers(u)}</button>)}
+              </div>
+              <label className="flex items-center gap-2 text-xs"><input type="checkbox" checked={gates} onChange={(e) => setGates(e.target.checked)} /> Lock rounds until their user gate is reached</label>
               <Slider label="Paying conversion" value={business.conv} min={0.1} max={3} step={0.05} show={`${business.conv.toFixed(2)}%`} onChange={(n) => setBiz({ conv: n })} />
               <Slider label="Monthly churn" value={business.churn} min={2} max={20} step={1} show={`${business.churn}%`} onChange={(n) => setBiz({ churn: n })} />
               <label className="block text-xs text-slate">Monthly burn at 100,000 users (₦)<input className={field} inputMode="numeric" value={business.burn} onChange={(e) => setBiz({ burn: Number(e.target.value) || 0 })} /></label>
               <Slider label="Share of burn that grows with users" value={business.burnVar} min={0} max={100} step={5} show={`${business.burnVar}%`} onChange={(n) => setBiz({ burnVar: n })} />
-              <p className="text-xs text-slate">Burn at {business.users.toLocaleString("en-US")} users: <span className="font-mono text-ink">{naira(rw.burn)}</span> a month ({fmtUsd(rw.burn / fx)}). It never falls below the 100,000-user figure.</p>
+              <Slider label="How fast it grows (0 fixed, 1 in step with users)" value={business.burnExp} min={0} max={1} step={0.05} show={business.burnExp.toFixed(2)} onChange={(n) => setBiz({ burnExp: n })} />
+              <label className="block text-xs text-slate">One-time expansion spend (₦)<input className={field} inputMode="numeric" value={business.expansion} onChange={(e) => setBiz({ expansion: Number(e.target.value) || 0 })} /></label>
+              <p className="text-xs text-slate">Burn at {business.users.toLocaleString("en-US")} users: <span className="font-mono text-ink">{naira(rw.burn)}</span> a month ({fmtUsd(rw.burn / fx)}). It never falls below the 100,000-user figure. One-time expansion spend is taken once from the 12-month cash, not every month.</p>
               <label className="block text-xs text-slate">Cash on hand (₦)<input className={field} inputMode="numeric" value={business.cash} onChange={(e) => setBiz({ cash: Number(e.target.value) || 0 })} /></label>
               <label className="block text-xs text-slate">₦ per US$<input className={field} inputMode="numeric" value={business.fx} onChange={(e) => setBiz({ fx: Number(e.target.value) || 0 })} /></label>
             </div>
@@ -176,16 +192,17 @@ export default function VisionPage() {
                   </label>
                 </div>
                 <table className="mt-2 w-full text-xs">
-                  <thead><tr className="text-left text-slate"><th className="py-1">Round</th><th>On</th><th>Raise (US$)</th><th>Share sold %</th><th>Post-money (US$)</th><th>Pool target after round %</th></tr></thead>
+                  <thead><tr className="text-left text-slate"><th className="py-1">Round</th><th>On</th><th>Raise (US$)</th><th>Share sold %</th><th>Post-money (US$)</th><th>Pool target after round %</th><th>Needs users</th></tr></thead>
                   <tbody>
                     {company.rounds.map((r, i) => (
                       <tr key={i} className="border-t border-rule">
-                        <td className="py-1.5 pr-2">{i === 5 ? <input aria-label="Exit name" className={`${field} !mt-0 w-32`} value={r.name} onChange={(e) => setRound(i, { name: e.target.value })} /> : ROUND_NAMES[i]}</td>
+                        <td className="py-1.5 pr-2">{i === 5 ? <input aria-label="Exit name" className={`${field} !mt-0 w-32`} value={r.name} onChange={(e) => setRound(i, { name: e.target.value })} /> : ROUND_NAMES[i]}{r.on && gated.locked[i] ? <div className="text-[10px] font-semibold text-amber-700">locked</div> : r.users > 0 && r.on ? <div className="text-[10px] font-semibold text-green-700">open</div> : null}</td>
                         <td><input type="checkbox" aria-label={`${ROUND_NAMES[i]} on`} checked={r.on} onChange={(e) => setRound(i, { on: e.target.checked })} /></td>
                         <td className="pr-2"><input aria-label={`${ROUND_NAMES[i]} raise`} className={`${field} !mt-0 w-28`} inputMode="numeric" value={r.raise} onChange={(e) => editRaise(i, Number(e.target.value) || 0)} /><div className="font-mono text-[10px] text-slate">{ngn(r.raise)}</div></td>
                         <td className="pr-2"><input aria-label={`${ROUND_NAMES[i]} share sold`} className={`${field} !mt-0 w-20`} type="number" step="any" min="0" disabled={!r.on} value={r.on && r.post > 0 ? Number(((r.raise / r.post) * 100).toFixed(2)) : 0} onChange={(e) => editStake(i, Number(e.target.value) || 0)} /></td>
                         <td className="pr-2"><input aria-label={`${ROUND_NAMES[i]} post-money`} className={`${field} !mt-0 w-32`} inputMode="numeric" value={r.post} onChange={(e) => setRound(i, { post: Number(e.target.value) || 0 })} /><div className="font-mono text-[10px] text-slate">{ngn(r.post)}</div></td>
                         <td><input aria-label={`${ROUND_NAMES[i]} pool target`} className={`${field} !mt-0 w-16`} inputMode="numeric" value={r.target} onChange={(e) => setRound(i, { target: Number(e.target.value) || 0 })} /><div className="font-mono text-[10px] text-slate">{r.on && rmath[i].t > 0 ? `top-up ${(rmath[i].t * 100).toFixed(2)}%` : "no top-up"}</div></td>
+                        <td><input aria-label={`${ROUND_NAMES[i]} users needed`} className={`${field} !mt-0 w-28`} inputMode="numeric" value={r.users} onChange={(e) => setRound(i, { users: Number(e.target.value) || 0 })} />{(() => { const st = roundStats(r, business.conv, fx); return <div className="font-mono text-[10px] text-slate">{r.users > 0 ? `${GATE_NOTE[[GATES.seed, GATES.seriesA, GATES.seriesB, GATES.seriesC].indexOf(r.users) + 1] || "gate"}${st ? ` · $${st.perUser < 10 ? st.perUser.toFixed(2) : Math.round(st.perUser)}/user` : ""}` : "no gate"}</div>; })()}</td>
                       </tr>
                     ))}
                   </tbody>
@@ -238,13 +255,14 @@ export default function VisionPage() {
                 <div className="mt-3 grid gap-3 sm:grid-cols-3">
                   <Tile label="Net revenue a month" value={naira(rw.mrr)} note={`about ${fmtUsd(rw.mrr / (business.fx || 1333))}`} />
                   <Tile label="Monthly burn at this size" value={naira(rw.burn)} note={`about ${fmtUsd(rw.burn / fx)}`} />
-                  <Tile label="Left after burn, a month" value={`${rw.surplus < 0 ? "-" : ""}${naira(Math.abs(rw.surplus))}`} />
+                  <Tile label="Left after burn, month 1" value={`${rw.surplus < 0 ? "-" : ""}${naira(Math.abs(rw.surplus))}`} note={`month 12 revenue ${naira(rw.revMonth12)}`} />
                   <Tile label="Break-even conversion" value={`${rw.breakEvenConv.toFixed(2)}%`} />
                   <Tile label="Net revenue, first 12 months" value={naira(rw.cum12)} note={`about ${fmtUsd(rw.cum12 / (business.fx || 1333))}`} />
+                  <Tile label="Cash runs out" value={rw.cashOutMonth === null ? "not in 36 months" : rw.cashOutMonth === 0 ? "already" : `month ${rw.cashOutMonth}`} note="payers lost to churn, none added" />
                   <Tile label="Cash after 12 months" value={`${rw.cashAfter12 < 0 ? "-" : ""}${naira(Math.abs(rw.cashAfter12))}`} />
                   <Tile label="Runway on cash alone" value={Number.isFinite(rw.monthsOnCash) ? `${rw.monthsOnCash.toFixed(1)} months` : "-"} />
                 </div>
-                <p className="mt-3 text-xs text-slate">Planning case: ₦79.59 of net recurring revenue per user for each 1% of conversion, after gateway fees and the commission given up; churn applies after the first month (100,000 users at 1% is ₦7,958,600 a month).</p>
+                <p className="mt-3 text-xs text-slate">Planning case: ₦79.59 of net recurring revenue per user for each 1% of conversion, after gateway fees and the commission given up (100,000 users at 1% is ₦7,958,600 a month in month 1). Churn then removes payers every month and no new payers are added, while burn stays, so a month 1 surplus can still end in negative cash after 12 months. Real growth keeps adding payers, so read this as a cautious case.</p>
               </div>
 
               <div className="card p-4">
