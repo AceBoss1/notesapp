@@ -42,7 +42,7 @@ WhatsApp reminders (plan: Meta WhatsApp Cloud API directly; booking reminders + 
 verification and approved templates) · publishing to Facebook, Instagram and TikTok (LinkedIn and X are built) · AI notetaker + MCP assistant ·
 team hub and team messaging for Business and Enterprise (internal only for now) · LinkedIn advertising (Advertising API development tier approved; being built: advertisers boost a post on LinkedIn from their own ad account (Business and Enterprise only), plus our own LinkedIn campaign stats on the admin Traction page, planned next) · iOS/Android apps ·
 video transcoding/streaming (we cap size and length instead) · Dojah **live** mode (README "Going live with Dojah") ·
-webhook retries (one attempt, manual resend) · OAuth for third-party API apps · checkout and bookings in a popup on custom domains, and a sending address on the member's own domain (sign-in and sign-up in the member's name are live) · Sentry (we have built-in error monitoring instead).
+webhook retries (one attempt, manual resend) · OAuth for third-party API apps · checkout and bookings in a popup on custom domains, and a sending address on the member's own domain (sign-in and sign-up in the member's name are live) · online status and follow lists, Nana suggested replies, team hub tasks/payments/payroll/staff library, investor data room (all planned: see "Planned: team operations…") · Sentry (we have built-in error monitoring instead).
 
 ### Environment variables (Vercel → Settings → Environment Variables; redeploy after changing any)
 | Variable | Secret? | Purpose |
@@ -1971,6 +1971,40 @@ Dojah's file links expire after about an hour and we ignore them. Duplicate or o
 Gold-badge decisions: `POST /api/admin/badge-request` (used by Approve/Decline in `/admin/users`) records the decision, sends the applicant a bell notification (type `badge`) and an email, and stores an optional decline reason.
 
 Testing the webhook without a real check: `DOJAH_WEBHOOK_SECRET=… node scripts/dojah-test-event.mjs <uid> [pass|fail|abandoned]` sends a correctly signed fake event for a member who has a paid identity application, so you can confirm the signature check and the `/admin/users` display independently of Dojah's sandbox. Dojah sandbox values (only against `https://sandbox.dojah.io`): NIN 70123456789, BVN 22222222222, phone 09011111111, RC/CAC 1261103 or 14320749, TIN 18609323-0001.
+
+## Planned: team operations, data room, online status and follow lists (scaffold — not built)
+
+Internal planning notes (12 October 2026). Nothing here is built; the public `/roadmap` lists the member-facing parts in plain words. Open questions are marked **(ask)**.
+
+### 1. Nana: suggested replies to posts
+- Extend the writing help (drafts, sharing, messages are live) to **suggest replies**: to comments on your own posts, and a response to a post you are reading, in your voice (from your past notes). Always a suggestion you edit and send yourself; nothing posts on its own.
+- Same rules as today: knowledge base first, your own connected AI account or the platform key with the daily limit, and the person's text sent to the AI only when they press the button.
+
+### 2. Team hub: work, payments, payroll, library, messages
+- **Work still to do, who has it, by when:** the work board already has owner and due date, morning summary and overdue handling. Gaps: a per-person view ("assigned to me / to Chimdinma"), a deadline reminder to the assignee (bell and email) before and on the date, and a company-wide "overdue" strip. **No new data model needed.**
+- **Payments to be made, assigned, with a deadline:** extend **Expenses due** (built: amount, date, reminders to finance and the owner) with an **assignee** (who must make the payment) and a **deadline** the assignee is reminded about; "Mark paid" already writes the ledger expense. Add an optional approver for larger amounts **(ask)**.
+- **Payroll under Accounts in admin:** a **Payroll** page next to the Money ledger: staff list (name, role, pay, pay day, bank details held encrypted like the publisher payouts), a monthly run that creates the *payroll* ledger entries and due items, and "paid" marking. Payroll lines stay visible to finance and super admins only (decided earlier). Actual bank transfers stay manual at first; Paylony payouts later **(ask)**.
+- **Staff library** (SOPs, employee handbook, templates, every staff material): documents and files in the hub with a category, version and an acknowledgement ("I have read this") for the handbook and policies. Visibility: **everyone on staff**, a **department**, or **personal**. A **personal** document is simply a message to one person: add the staff member as a **receiver (To), not Cc**, and the attachment is visible only to them; everyone on the list gets the same file individually.
+- **Message hub:** internal messages (To, optional Cc, attachments) live in the hub inbox; ones marked **Also send by email** are emailed as well (the hub copy always stays). Per-person read state. Reuses the file storage and the email sender already in use.
+- Storage: private bucket with short-lived links (as for receipts and message files), collections server-only, access by role and department.
+
+### 3. Investor and partner data room
+- **Separate logins by category** (for example Investors, Partners, Advisers, Legal); each category has its own set of folders and files. Own sign-in (email code), not a #NotesApp member account.
+- **View only, never download:** files open in a viewer that draws pages in the browser (no file download link, print and save disabled, short-lived tokens, device limit like our view-only courses in `lib/view-access.ts`). Every page carries a **watermark with the viewer's name and email**. Honest limit: nothing stops a photo of the screen, so the watermark, the access log and a click-through NDA are the real deterrents.
+- **Access page in admin** (owner and super admins): **add** a person directly, or **approve / decline applications** from a public "Request access" form (name, email, organisation, category wanted, reason); set category, expiry, revoke; see who opened what and when (audit log).
+- **Live numbers:** traction, revenue and other key figures flow from the team hub and the admin pages into the data room as live pages, with a "figures as of" stamp (no copying by hand). Choose per figure whether it appears and for which category **(ask)**.
+- Needs counsel's wording for the NDA and data-protection notice; first build on the stack we already have (Firestore server-only collections, private bucket, email sender).
+
+### 4. Online status, last seen and follow lists
+- **Online now / last seen** shows on **Messages and on the profile**, only between people who **follow each other**.
+- **Reciprocity:** a person who turns **online visibility off** stops appearing to others **and can no longer see anyone else's** status while it is off.
+- Cost note: do not write "last seen" to Firestore on a heartbeat (Blaze bills per write). Use presence from a lightweight realtime service (Firebase Realtime Database `onDisconnect`) or write at most every few minutes **(ask)**.
+- **Followers and following lists on every profile.** Visible to others only when that person has made their list **public**; a person who hides their own lists **cannot see other people's lists** either. One toggle for the lists, one for online status, both in privacy settings; default on or off **(ask)**.
+- **@na-notesapp follows people.** Today it follows no one and is not in the following list. Add an **owner-only control** (admin, under Settings) to make @na-notesapp follow the founders and the founders' business channels, and to **undo** any of them; the list is stored in a server-only setting because the channel has no member account, and shows as its "Following" list on its profile. Only the owner's account can change it.
+- Existing data: follows are stored as `follows/{followerUid}_{username}` (public read, so counts show). Mutual follow means each follows the other's username; the lists above need the privacy flags enforced on the server (a small API), not only hidden in the page, once lists can be hidden.
+
+### Suggested order
+1. Follow lists and the @na-notesapp control (small, mostly screens), then online status. 2. Staff library and message hub, assignee and deadline on payments, Payroll page. 3. Data room (access page first, then viewer and watermark, then live figures). 4. Nana suggested replies. Also next week: trim the whole-collection Firestore reads.
 
 ## Planned: public Live and private group sessions (decisions so far — not built)
 
