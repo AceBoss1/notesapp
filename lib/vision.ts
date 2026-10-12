@@ -27,7 +27,7 @@ export function personFor(input: { name?: string; email?: string; owner?: boolea
 export type Round = { name: string; on: boolean; raise: number; post: number; target: number; users: number }; // US$ ; target = pool size wanted after the round, % (0 = no top-up) ; users = verified registered users needed before the round opens (0 = no gate)
 export type Founders = { trackB: boolean; bridge: number; cPct: number; aPct: number; cCash: number; aCash: number };
 export type Company = { pool: number; poolAt: "formation" | "preA" | "none"; rounds: Round[]; dual: "never" | "last" | "all"; V: number; classB: [boolean, boolean, boolean] };
-export type Business = { users: number; conv: number; churn: number; burn: number; burnVar: number; cash: number; fx: number }; // burn = monthly cost at 100,000 users; burnVar = % of it that grows with users
+export type Business = { users: number; conv: number; churn: number; burn: number; burnVar: number; burnExp: number; expansion: number; cash: number; fx: number }; // burn = monthly cost at 100,000 users; burnVar = % of it that grows with users; burnExp = how fast that part grows (0 fixed, 1 in step with users); expansion = one-time spend to open new countries or continents, N
 
 // 0 Emmanuel 1 Chimdinma 2 Akujuobi 3 angels 4 FEBO reserve 5 option pool 6.. one investor per round
 export const HOLDERS = ["Emmanuel Adams", "Chimdinma Onwuegbu", "Akujuobi Ifeyinwa Maureen", "Angels (bridge)", "FEBO reserve", "Option pool"];
@@ -43,6 +43,24 @@ export function startingSplit(f: Founders) {
   const febo = f.trackB ? 15 - angel : 0;
   const e = 100 - f.cPct - f.aPct - (f.trackB ? 15 : 0);
   return { e, c: f.cPct, a: f.aPct, angel, febo };
+}
+
+// The founders' sliders cannot all be pushed up at once: Emmanuel keeps at least EMMANUEL_MIN% of the founders' stock (after the angel block, if any), each
+// co-founder holds between COFOUNDER_MIN% and COFOUNDER_MAX%. When one slider goes up and there is no room, the other co-founder comes down first; if that
+// still is not enough (the other is already at the minimum), the slider you are moving stops where the limit is.
+export const EMMANUEL_MIN = 50;
+export const COFOUNDER_MIN = 2;
+export const COFOUNDER_MAX = 25;
+export function balanceFounders(f: Founders, moved: "c" | "a" | "bridge" = "c"): Founders {
+  const block = f.trackB ? 15 : 0;
+  const room = 100 - block - EMMANUEL_MIN; // what the two co-founders can hold between them
+  let c = Math.min(COFOUNDER_MAX, Math.max(COFOUNDER_MIN, f.cPct));
+  let a = Math.min(COFOUNDER_MAX, Math.max(COFOUNDER_MIN, f.aPct));
+  if (c + a > room) {
+    if (moved === "a") { c = Math.max(COFOUNDER_MIN, room - a); a = Math.min(a, room - c); }
+    else { a = Math.max(COFOUNDER_MIN, room - c); c = Math.min(c, room - a); }
+  }
+  return { ...f, cPct: c, aPct: a };
 }
 
 // Per round: the share sold (raise / post-money) and the pool top-up needed to leave the pool at its target after the round (taken from existing holders, as
@@ -113,19 +131,25 @@ export function optionPath(pctAtGrant: number, c: Company): { name: string; pct:
 // commission given up (100,000 users at 1% = N7,958,600 a month). Churn is applied after the first month, as in the 12-month figure (about N62.9M).
 export const NET_PER_USER_PER_PCT = 79.586;
 export const BURN_BASE_USERS = 100_000;
-// Monthly burn grows with users: the part that does not (tools, core team) stays; the part that does (hosting and reads, support, moderation, payments
-// handling) scales with users above 100,000 and never falls below the 100,000-user figure. Default: 70% of the N1,142,600 is the part that grows
-// (the N800,000 team and operations part; the other N342,600 is tools).
-export const burnAt = (b: Pick<Business, "burn" | "burnVar" | "users">) => b.burn * (1 - b.burnVar / 100) + b.burn * (b.burnVar / 100) * Math.max(1, b.users / BURN_BASE_USERS);
+// Monthly burn grows with users, but slower than users: unit costs fall at scale (hosting, support tooling, payments) and revenue per user pays for it.
+// The part that does not grow (tools, core team) stays; the part that does grows as (users / 100,000) raised to burnExp, never below the 100,000-user
+// figure. Default: 70% of the N1,142,600 grows, with exponent 0.75: about N4.8M at 1M users, N85M at 50M and N240M (about US$180,000) at 200M.
+// One-time expansion spend (new countries, a new continent) is separate: it is entered once and does not repeat every month.
+export const burnAt = (b: Pick<Business, "burn" | "burnVar" | "burnExp" | "users">) => b.burn * (1 - b.burnVar / 100) + b.burn * (b.burnVar / 100) * Math.pow(Math.max(1, b.users / BURN_BASE_USERS), b.burnExp);
 export function runway(b: Business) {
   const burn = burnAt(b);
   const mrr = b.users * b.conv * NET_PER_USER_PER_PCT;
   const ch = b.churn / 100;
   const cum = ch > 0 ? (mrr * (1 - Math.pow(1 - ch, 12))) / ch : mrr * 12;
+  // Month by month: the payers won in month 1 leave at the churn rate and no new payers are added, so revenue falls while burn stays. Find the first month
+  // the cash goes below zero (within 36 months), after the one-time expansion spend.
+  let cashNow = b.cash - b.expansion;
+  let cashOutMonth: number | null = cashNow < 0 ? 0 : null;
+  for (let m = 1; m <= 36 && cashOutMonth === null; m++) { cashNow += mrr * Math.pow(1 - ch, m - 1) - burn; if (cashNow < 0) cashOutMonth = m; }
   return {
-    mrr, burn, surplus: mrr - burn,
+    mrr, burn, cashOutMonth, revMonth12: mrr * Math.pow(1 - ch, 11), surplus: mrr - burn,
     breakEvenConv: b.users > 0 ? burn / (b.users * NET_PER_USER_PER_PCT) : 0,
-    cum12: cum, cashAfter12: b.cash + cum - 12 * burn,
+    cum12: cum, cashAfter12: b.cash + cum - 12 * burn - b.expansion,
     monthsOnCash: burn > 0 ? b.cash / burn : Infinity,
     monthsWithRevenue: burn > mrr ? b.cash / (burn - mrr) : Infinity,
   };
@@ -147,9 +171,11 @@ export function roundStats(r: Round, conv: number, fx: number) {
   const annualUsd = (r.users * conv * NET_PER_USER_PER_PCT * 12) / (fx || 1333);
   return { perUser: r.post / r.users, multiple: annualUsd > 0 ? r.post / annualUsd : Infinity, shareOfAfrica: r.users / AFRICA_MOBILE_USERS };
 }
-// Users on a log scale for the slider (1,000 to about 316 million).
-export const usersFromPos = (pos: number) => Math.round(Math.pow(10, 3 + (pos / 100) * 5.5) / 1000) * 1000;
-export const posFromUsers = (u: number) => Math.min(100, Math.max(0, ((Math.log10(Math.max(1000, u)) - 3) / 5.5) * 100));
+// Users on a log scale for the slider: 1,000 up to USERS_MAX (250 million, past the 200 million Series C gate).
+export const USERS_MAX = 250_000_000;
+const USERS_SPAN = Math.log10(USERS_MAX) - 3;
+export const usersFromPos = (pos: number) => (pos >= 100 ? USERS_MAX : Math.round(Math.pow(10, 3 + (pos / 100) * USERS_SPAN) / 1000) * 1000);
+export const posFromUsers = (u: number) => Math.min(100, Math.max(0, ((Math.log10(Math.max(1000, u)) - 3) / USERS_SPAN) * 100));
 export const fmtUsers = (n: number) => (n >= 1e9 ? `${(n / 1e9).toFixed(2)}B` : n >= 1e6 ? `${+(n / 1e6).toFixed(n >= 1e7 ? 0 : 1)}M` : n >= 1e3 ? `${+(n / 1e3).toFixed(0)}K` : String(n));
 
 export type Scenario = { key: "worst" | "base" | "vision"; label: string; note: string; company: Pick<Company, "pool" | "poolAt" | "rounds" | "dual" | "V">; business: Business };
@@ -159,17 +185,17 @@ export const SCENARIOS: Scenario[] = [
   {
     key: "worst", label: "Worst case", note: "Growth stalls at 25,000 users: bridge and a small Pre-Seed, then a modest sale. No gate beyond Pre-Seed opens.",
     company: { pool: 15, poolAt: "formation", dual: "never", V: 10, rounds: [R("Pre-Seed", true, 100_000, 1_000_000), R("Seed", true, 1_000_000, 6_000_000, GATES.seed), R("Series A", true, 8_000_000, 40_000_000, GATES.seriesA), noRound("Series B", GATES.seriesB), noRound("Series C", GATES.seriesC), R("Exit (small sale)", true, 0, 3_000_000)] },
-    business: { users: 25_000, conv: 0.25, churn: 12, burn: 1_142_600, burnVar: 70, cash: 665_000, fx: 1333 },
+    business: { users: 25_000, conv: 0.25, churn: 12, burn: 1_142_600, burnVar: 70, burnExp: 0.75, expansion: 0, cash: 665_000, fx: 1333 },
   },
   {
     key: "base", label: "Baseline", note: "10 million users: the Seed and Series A gates open; Series B and C stay locked. Then a sale.",
     company: { pool: 15, poolAt: "formation", dual: "never", V: 10, rounds: [R("Pre-Seed", true, 250_000, 3_571_429), R("Seed", true, 1_000_000, 14_285_714, GATES.seed), R("Series A", true, 8_000_000, 40_000_000, GATES.seriesA), noRound("Series B", GATES.seriesB), noRound("Series C", GATES.seriesC), R("Exit (sale)", true, 0, 60_000_000)] },
-    business: { users: 10_000_000, conv: 1, churn: 8, burn: 1_142_600, burnVar: 70, cash: 665_000, fx: 1333 },
+    business: { users: 10_000_000, conv: 1, churn: 8, burn: 1_142_600, burnVar: 70, burnExp: 0.75, expansion: 0, cash: 665_000, fx: 1333 },
   },
   {
     key: "vision", label: "Vision", note: "All four gates reached (200 million users) and every round to a US$7.5B listing. Aspirational: paper value only.",
     company: { pool: 15, poolAt: "preA", dual: "last", V: 10, rounds: [R("Pre-Seed", true, 250_000, 3_571_429), R("Seed", true, 1_000_000, 14_285_714, GATES.seed), R("Series A", true, 150_000_000, 1_000_000_000, GATES.seriesA), R("Series B", true, 250_000_000, 2_500_000_000, GATES.seriesB), R("Series C", true, 500_000_000, 5_000_000_000, GATES.seriesC), R("IPO", true, 750_000_000, 7_500_000_000)] },
-    business: { users: 200_000_000, conv: 2, churn: 6, burn: 1_142_600, burnVar: 70, cash: 14_663_000, fx: 1333 },
+    business: { users: 200_000_000, conv: 2, churn: 6, burn: 1_142_600, burnVar: 70, burnExp: 0.75, expansion: 0, cash: 14_663_000, fx: 1333 },
   },
 ];
 
