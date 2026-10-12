@@ -57,6 +57,7 @@ export const isViewOnly = (i: Pick<StoreItem, "kind" | "access">) => i.kind === 
 
 export type StoreOption = { name: string; choices: string[] };
 export const MAX_IMAGES = 5;
+export const SUBTITLE_MAX = 1200; // the item description; the same limit is in firestore.rules (validStoreItem)
 export const MAX_OPTIONS = 2;
 export const MAX_CHOICES = 20;
 export const MAX_VARIANTS = 60; // saved size/colour entries per item

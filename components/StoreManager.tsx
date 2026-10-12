@@ -6,7 +6,7 @@ import { auth } from "@/lib/firebase";
 import { uploadToR2 } from "@/lib/upload";
 import { STORE_DELIVERY_MAX_KOBO, STORE_ITEM_MAX_KOBO, STORE_ITEM_MIN_KOBO } from "@/lib/orders";
 import Link from "next/link";
-import { addStoreItem, updateStoreItem, deleteStoreItem, setFeaturedItem, StoreItem, MAX_IMAGES, MAX_VARIANTS, cleanOptions, variantKey, DEFAULT_STORE_IMAGE } from "@/lib/store";
+import { addStoreItem, updateStoreItem, deleteStoreItem, setFeaturedItem, StoreItem, MAX_IMAGES, MAX_VARIANTS, SUBTITLE_MAX, cleanOptions, variantKey, DEFAULT_STORE_IMAGE } from "@/lib/store";
 import { attachDigitalFile, fmtSize } from "@/lib/store-files";
 import LessonsEditor from "@/components/LessonsEditor";
 import { canSellViewOnly } from "@/lib/tiers";
@@ -309,7 +309,8 @@ export default function StoreManager({
             <input value={form.title} onChange={set("title")} maxLength={120} className={field} required />
           </label>
           <label className="sm:col-span-2 text-xs text-slate">Description (optional)
-            <textarea value={form.subtitle} onChange={set("subtitle")} maxLength={400} rows={3} className={field} />
+            <textarea value={form.subtitle} onChange={set("subtitle")} maxLength={SUBTITLE_MAX} rows={6} className={field} />
+            <span className="mt-1 block text-right text-[11px] text-slate">{form.subtitle.length}/{SUBTITLE_MAX}</span>
           </label>
           <label className="text-xs text-slate">Price (₦)
             <input type="number" min={100} step={50} value={form.priceNaira} onChange={set("priceNaira")} className={field} required />

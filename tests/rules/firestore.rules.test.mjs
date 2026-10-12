@@ -259,6 +259,8 @@ test("store items: category from the list, ships-from 2 to 60 characters; saves 
   await assertFails(setDoc(doc(as("pub"), "storeItems/c2"), { ...item, category: "Stolen goods" })); // not on the list
   await assertFails(setDoc(doc(as("pub"), "storeItems/c3"), { ...item, shipsFrom: "x" })); // too short
   await assertFails(setDoc(doc(as("pub"), "storeItems/c4"), { ...item, shipsFrom: "x".repeat(61) })); // too long
+  await assertSucceeds(setDoc(doc(as("pub"), "storeItems/c5"), { ...item, subtitle: "x".repeat(1200) })); // description: up to 1,200 characters
+  await assertFails(setDoc(doc(as("pub"), "storeItems/c6"), { ...item, subtitle: "x".repeat(1201) }));
   // numbers: anyone reads, nobody writes
   await env.withSecurityRulesDisabled(async (ctx) => {
     const sdb = ctx.firestore();

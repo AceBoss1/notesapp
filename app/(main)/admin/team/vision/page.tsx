@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useAdminAuth } from "@/lib/useAdminAuth";
 import {
-  HOLDERS, PERSON_LABEL, ROUND_NAMES, SCENARIOS, fmtNgn, fmtPct, fmtUsd, optionPath, runModel, runway, startingSplit,
+  HOLDERS, PERSON_LABEL, ROUND_NAMES, SCENARIOS, fmtNgn, fmtPct, fmtUsd, optionPath, roundMath, runModel, runway, startingSplit,
   type Business, type Company, type Founders, type PersonKey, type Round,
 } from "@/lib/vision";
 
@@ -36,6 +36,7 @@ export default function VisionPage() {
   const [data, setData] = useState<Payload | null>(null);
   const [error, setError] = useState("");
   const [preset, setPreset] = useState<string>("base");
+  const [hold, setHold] = useState<"stake" | "valuation">("stake"); // what stays put when the raise changes
   const [{ company, business }, setM] = useState(() => fresh("base"));
   const [fnd, setFnd] = useState<Founders | null>(null);
 
@@ -51,12 +52,17 @@ export default function VisionPage() {
   const setCo = (p: Partial<Company>) => { setPreset("custom"); setM((m) => ({ ...m, company: { ...m.company, ...p } })); };
   const setBiz = (p: Partial<Business>) => { setPreset("custom"); setM((m) => ({ ...m, business: { ...m.business, ...p } })); };
   const setRound = (i: number, p: Partial<Round>) => setCo({ rounds: company.rounds.map((r, k) => (k === i ? { ...r, ...p } : r)) });
+  // Raise, share sold and post-money are linked: post-money = raise / share sold. Changing the raise keeps the share sold (or the valuation, as chosen above);
+  // changing the share sold recalculates the post-money; changing the post-money recalculates the share sold.
+  const editRaise = (i: number, raise: number) => { const r = company.rounds[i]; setRound(i, hold === "stake" && r.raise > 0 && r.post > 0 ? { raise, post: Math.round((raise * r.post) / r.raise) } : { raise }); };
+  const editStake = (i: number, pct: number) => { const r = company.rounds[i]; if (pct > 0 && r.raise > 0) setRound(i, { post: Math.round((r.raise * 100) / pct) }); };
   const setF = (p: Partial<Founders>) => { setPreset("custom"); setFnd((f) => (f ? { ...f, ...p } : f)); };
 
   const me = data?.viewer;
   const model = useMemo(() => (fnd ? runModel(fnd, company) : null), [fnd, company]);
   const opt = useMemo(() => (data?.option ? optionPath(data.option.pct, company) : null), [data, company]);
   const rw = useMemo(() => runway(business), [business]);
+  const rmath = useMemo(() => roundMath(company), [company]);
 
   if (loading) return <p className="p-8 text-slate">Loading…</p>;
   if (!user) return <p className="p-8 text-slate">Admins only.</p>;
@@ -151,33 +157,40 @@ export default function VisionPage() {
                 </div>
               </>}
               <p className="font-mono text-[10px] uppercase tracking-eyebrow text-slate">Business case</p>
-              <Slider label="Registered users" value={business.users} min={5000} max={500000} step={5000} show={business.users.toLocaleString("en-US")} onChange={(n) => setBiz({ users: n })} />
+              <Slider label="Registered users" value={business.users} min={5000} max={2000000} step={5000} show={business.users.toLocaleString("en-US")} onChange={(n) => setBiz({ users: n })} />
               <Slider label="Paying conversion" value={business.conv} min={0.1} max={3} step={0.05} show={`${business.conv.toFixed(2)}%`} onChange={(n) => setBiz({ conv: n })} />
               <Slider label="Monthly churn" value={business.churn} min={2} max={20} step={1} show={`${business.churn}%`} onChange={(n) => setBiz({ churn: n })} />
-              <label className="block text-xs text-slate">Monthly burn (₦)<input className={field} inputMode="numeric" value={business.burn} onChange={(e) => setBiz({ burn: Number(e.target.value) || 0 })} /></label>
+              <label className="block text-xs text-slate">Monthly burn at 100,000 users (₦)<input className={field} inputMode="numeric" value={business.burn} onChange={(e) => setBiz({ burn: Number(e.target.value) || 0 })} /></label>
+              <Slider label="Share of burn that grows with users" value={business.burnVar} min={0} max={100} step={5} show={`${business.burnVar}%`} onChange={(n) => setBiz({ burnVar: n })} />
+              <p className="text-xs text-slate">Burn at {business.users.toLocaleString("en-US")} users: <span className="font-mono text-ink">{naira(rw.burn)}</span> a month ({fmtUsd(rw.burn / fx)}). It never falls below the 100,000-user figure.</p>
               <label className="block text-xs text-slate">Cash on hand (₦)<input className={field} inputMode="numeric" value={business.cash} onChange={(e) => setBiz({ cash: Number(e.target.value) || 0 })} /></label>
               <label className="block text-xs text-slate">₦ per US$<input className={field} inputMode="numeric" value={business.fx} onChange={(e) => setBiz({ fx: Number(e.target.value) || 0 })} /></label>
             </div>
 
             <div className="min-w-0 space-y-6">
               <div className="card overflow-x-auto p-4">
-                <p className="font-mono text-[10px] uppercase tracking-eyebrow text-slate">Funding rounds (edit any value)</p>
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <p className="font-mono text-[10px] uppercase tracking-eyebrow text-slate">Funding rounds (edit any value)</p>
+                  <label className="flex items-center gap-2 text-xs text-slate">When I change a raise, keep
+                    <select className="rounded border border-rule bg-card px-1.5 py-1 text-xs" value={hold} onChange={(e) => setHold(e.target.value as "stake" | "valuation")}><option value="stake">the share sold (post-money follows)</option><option value="valuation">the post-money</option></select>
+                  </label>
+                </div>
                 <table className="mt-2 w-full text-xs">
-                  <thead><tr className="text-left text-slate"><th className="py-1">Round</th><th>On</th><th>Raise (US$)</th><th>Post-money (US$)</th><th>Sold</th><th>Pool top-up %</th></tr></thead>
+                  <thead><tr className="text-left text-slate"><th className="py-1">Round</th><th>On</th><th>Raise (US$)</th><th>Share sold %</th><th>Post-money (US$)</th><th>Pool target after round %</th></tr></thead>
                   <tbody>
                     {company.rounds.map((r, i) => (
                       <tr key={i} className="border-t border-rule">
                         <td className="py-1.5 pr-2">{i === 5 ? <input aria-label="Exit name" className={`${field} !mt-0 w-32`} value={r.name} onChange={(e) => setRound(i, { name: e.target.value })} /> : ROUND_NAMES[i]}</td>
                         <td><input type="checkbox" aria-label={`${ROUND_NAMES[i]} on`} checked={r.on} onChange={(e) => setRound(i, { on: e.target.checked })} /></td>
-                        <td className="pr-2"><input aria-label={`${ROUND_NAMES[i]} raise`} className={`${field} !mt-0 w-28`} inputMode="numeric" value={r.raise} onChange={(e) => setRound(i, { raise: Number(e.target.value) || 0 })} /><div className="font-mono text-[10px] text-slate">{ngn(r.raise)}</div></td>
+                        <td className="pr-2"><input aria-label={`${ROUND_NAMES[i]} raise`} className={`${field} !mt-0 w-28`} inputMode="numeric" value={r.raise} onChange={(e) => editRaise(i, Number(e.target.value) || 0)} /><div className="font-mono text-[10px] text-slate">{ngn(r.raise)}</div></td>
+                        <td className="pr-2"><input aria-label={`${ROUND_NAMES[i]} share sold`} className={`${field} !mt-0 w-20`} type="number" step="any" min="0" disabled={!r.on} value={r.on && r.post > 0 ? Number(((r.raise / r.post) * 100).toFixed(2)) : 0} onChange={(e) => editStake(i, Number(e.target.value) || 0)} /></td>
                         <td className="pr-2"><input aria-label={`${ROUND_NAMES[i]} post-money`} className={`${field} !mt-0 w-32`} inputMode="numeric" value={r.post} onChange={(e) => setRound(i, { post: Number(e.target.value) || 0 })} /><div className="font-mono text-[10px] text-slate">{ngn(r.post)}</div></td>
-                        <td className="pr-2 font-mono">{r.on && r.post > 0 ? `${((r.raise / r.post) * 100).toFixed(2)}%` : "off"}</td>
-                        <td><input aria-label={`${ROUND_NAMES[i]} pool top-up`} className={`${field} !mt-0 w-16`} inputMode="numeric" value={r.topup} onChange={(e) => setRound(i, { topup: Number(e.target.value) || 0 })} /></td>
+                        <td><input aria-label={`${ROUND_NAMES[i]} pool target`} className={`${field} !mt-0 w-16`} inputMode="numeric" value={r.target} onChange={(e) => setRound(i, { target: Number(e.target.value) || 0 })} /><div className="font-mono text-[10px] text-slate">{r.on && rmath[i].t > 0 ? `top-up ${(rmath[i].t * 100).toFixed(2)}%` : "no top-up"}</div></td>
                       </tr>
                     ))}
                   </tbody>
                 </table>
-                <p className="mt-2 text-xs text-slate">The last row is the exit or listing: for an IPO the raise is what the public buys; for a sale set the raise to 0 and the post-money to the price.</p>
+                <p className="mt-2 text-xs text-slate">The last row is the exit or listing: for an IPO the raise is what the public buys; for a sale set the raise to 0 and the post-money to the price. Pool target: leave 0 for no top-up; set it (for example 15) and the model adds the shares needed to bring the pool back to that size after the round, taken from existing holders.</p>
               </div>
 
               {model && (
@@ -224,6 +237,7 @@ export default function VisionPage() {
                 <p className="font-mono text-[10px] uppercase tracking-eyebrow text-slate">Cash and runway</p>
                 <div className="mt-3 grid gap-3 sm:grid-cols-3">
                   <Tile label="Net revenue a month" value={naira(rw.mrr)} note={`about ${fmtUsd(rw.mrr / (business.fx || 1333))}`} />
+                  <Tile label="Monthly burn at this size" value={naira(rw.burn)} note={`about ${fmtUsd(rw.burn / fx)}`} />
                   <Tile label="Left after burn, a month" value={`${rw.surplus < 0 ? "-" : ""}${naira(Math.abs(rw.surplus))}`} />
                   <Tile label="Break-even conversion" value={`${rw.breakEvenConv.toFixed(2)}%`} />
                   <Tile label="Net revenue, first 12 months" value={naira(rw.cum12)} note={`about ${fmtUsd(rw.cum12 / (business.fx || 1333))}`} />
