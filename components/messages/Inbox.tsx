@@ -18,7 +18,7 @@ import { badgeLevel, goldKindOf, isTeamMember, type UserProfile } from "@/lib/us
 import type { GoldBadgeKind } from "@/lib/badges";
 
 type Who = { uid: string; username: string; displayName: string; avatar: string; level?: "verified" | "gold" | null; goldKind?: GoldBadgeKind; team?: boolean; isOrg?: boolean };
-type Row = { id: string; lastText: string; lastAt: string; lastFromMe: boolean; unread: number; moment: boolean; with: Who; group?: { title: string; team: boolean; members: number; lastFrom: string } };
+type Row = { id: string; lastText: string; lastAt: string; lastFromMe: boolean; unread: number; moment: boolean; with: Who; group?: { title: string; team: boolean; members: number; lastFrom: string; avatar?: string } };
 
 // The inbox, live: new messages and unread counts appear as they arrive (it listens to the member's own conversations, which
 // firestore.rules let only the two people in each one read).
@@ -48,7 +48,7 @@ export default function Inbox() {
           const o = isGroup ? "" : (c.participants as string[]).find((p) => p !== uid) ?? uid;
           return {
             id, with: people.current.get(o) ?? { uid: o, username: "", displayName: "Member", avatar: "" },
-            ...(isGroup ? { group: { title: String(c.title ?? "Group"), team: c.scope === "team", members: (c.participants as string[]).length, lastFrom: String(c.lastMessage?.fromName ?? "").split(" ")[0] } } : {}), lastText: c.lastMessage?.text ?? "", lastAt: c.lastMessageAt ?? c.createdAt ?? "",
+            ...(isGroup ? { group: { title: String(c.title ?? "Group"), avatar: c.avatar ? String(c.avatar) : undefined, team: c.scope === "team", members: (c.participants as string[]).length, lastFrom: String(c.lastMessage?.fromName ?? "").split(" ")[0] } } : {}), lastText: c.lastMessage?.text ?? "", lastAt: c.lastMessageAt ?? c.createdAt ?? "",
             lastFromMe: c.lastMessage?.from === uid, unread: (c.unread?.[uid] as number | undefined) ?? 0, moment: c.lastMessage?.moment === true,
           };
         }).sort((a, b) => (a.lastAt < b.lastAt ? 1 : -1)));
@@ -76,7 +76,7 @@ export default function Inbox() {
           {rows.map((r) => (
             <li key={r.id}>
               <Link href={`/messages/${r.id}`} className="flex items-center gap-3 py-3 hover:bg-paper">
-                {r.group ? <GroupAvatar title={r.group.title} size={44} team={r.group.team} /> : <Avatar src={r.with.avatar} alt={r.with.displayName} size={44} square={!!r.with.isOrg} />}
+                {r.group ? <GroupAvatar title={r.group.title} size={44} team={r.group.team} src={r.group.avatar} /> : <Avatar src={r.with.avatar} alt={r.with.displayName} size={44} square={!!r.with.isOrg} />}
                 <span className="min-w-0 flex-1">
                   {r.group ? (
                     <span className="block font-bold text-ink">{r.group.title} {r.group.team && <span className="rounded bg-amber-100 px-1.5 py-0.5 text-[10px] font-bold text-amber-900">TEAM</span>} <span className="font-normal text-slate">{r.group.members} members</span></span>

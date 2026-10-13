@@ -23,6 +23,11 @@ import { stickerById } from "@/lib/stickers";
 import { isMomentExpired } from "@/lib/moments-rules";
 import ReportDialog from "@/components/moments/ReportDialog";
 import GroupAvatar from "./GroupAvatar";
+import ThreadHeader from "./ThreadHeader";
+import Avatar from "@/components/Avatar";
+import MomentViewer from "@/components/moments/MomentViewer";
+import { MOMENTS_LIVE } from "@/lib/moments-rules";
+import type { MomentView } from "@/lib/moments-server";
 import GroupMembers, { type GroupMember } from "./GroupMembers";
 import { isGroupId, type GroupInfo } from "@/lib/messages-rules";
 import PresenceText from "@/components/PresenceText";
@@ -57,6 +62,9 @@ export default function Thread({ id, to, embedded = false }: { id?: string; to?:
   const [who, setWho] = useState<Who | null>(null);
   const [group, setGroup] = useState<(GroupInfo & { members: GroupMember[] }) | null>(null); // set when this is a group chat
   const [showMembers, setShowMembers] = useState(false);
+  const [banned, setBanned] = useState<GroupMember[]>([]);
+  const [muted, setMuted] = useState(false);
+  const [moments, setMoments] = useState<MomentView[] | null>(null);
   const [messages, setMessages] = useState<ThreadMessage[]>([]);
   const [text, setText] = useState("");
   const [files, setFiles] = useState<File[]>([]);
@@ -81,8 +89,9 @@ export default function Thread({ id, to, embedded = false }: { id?: string; to?:
   // Who it's with, and whether you've blocked them (this also marks the conversation read).
   const loadMeta = useCallback(() => {
     if (!user || !cid) return;
-    api<{ kind: "direct" | "group"; with?: Who; blockedByMe?: boolean; group?: GroupInfo; members?: GroupMember[] }>(`/api/messages/${cid}`).then((r) => {
-      if (r.kind === "group" && r.group) { setGroup({ ...r.group, members: r.members ?? [] }); return; }
+    api<{ kind: "direct" | "group"; with?: Who; blockedByMe?: boolean; muted?: boolean; group?: GroupInfo; members?: GroupMember[]; banned?: GroupMember[] }>(`/api/messages/${cid}`).then((r) => {
+      setMuted(r.muted === true);
+      if (r.kind === "group" && r.group) { setGroup({ ...r.group, members: r.members ?? [] }); setBanned(r.banned ?? []); return; }
       if (r.with) { setWho(r.with); setBlockedByMe(r.blockedByMe === true); }
     }).catch((e) => setError(e.message));
   }, [user, cid]);
@@ -230,28 +239,56 @@ export default function Thread({ id, to, embedded = false }: { id?: string; to?:
     catch (e) { setError(e instanceof Error ? e.message : "Couldn't update the block."); }
   }
 
+  async function toggleMute() {
+    if (!cid) return;
+    try { await api(`/api/messages/${cid}`, { body: { action: "mute", muted: !muted } }); setMuted(!muted); }
+    catch (e) { setError(e instanceof Error ? e.message : "Couldn't change that."); }
+  }
+  async function viewMoments() {
+    if (!who) return;
+    try {
+      const r = await api<{ moments: MomentView[] }>(`/api/moments?username=${encodeURIComponent(who.username)}`);
+      if (r.moments.length) setMoments(r.moments); else setError(`${who.displayName} has no moments you can see right now.`);
+    } catch (e) { setError(e instanceof Error ? e.message : "Couldn't open their moments."); }
+  }
+
   if (user === null) return <p className="text-slate"><Link href="/login" className="text-crimson underline">Sign in</Link> to message.</p>;
   return (
     <div className={`relative flex flex-col ${embedded ? "" : "lg:sticky lg:top-24 lg:h-[calc(100vh-8rem)]"} ${dragging ? DROP_RING : ""}`} {...bind}>
       {dragging && <div className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center rounded bg-paper/80 font-ui text-sm font-bold text-crimson">Drop to attach</div>}
       {group ? (
-        <div className="mb-4 flex flex-wrap items-center gap-3 text-sm text-slate">
-          {!embedded && <Link href="/messages" className="text-crimson underline">← Messages</Link>}
-          <GroupAvatar title={group.title} size={36} team={group.scope === "team"} />
-          <span className="font-bold text-ink">{group.title}</span>
-          {group.scope === "team" && <span className="rounded bg-amber-100 px-1.5 py-0.5 text-[10px] font-bold text-amber-900">TEAM</span>}
-          <button type="button" onClick={() => setShowMembers((s) => !s)} aria-expanded={showMembers} className="underline">{group.members.length} members {showMembers ? "▲" : "▼"}</button>
-        </div>
+        <ThreadHeader
+          back={!embedded ? <Link href="/messages" className="text-crimson underline">← Messages</Link> : undefined}
+          avatar={<GroupAvatar title={group.title} size={48} team={group.scope === "team"} src={group.avatar} />}
+          title={<>{group.title}{group.scope === "team" && <span className="rounded bg-amber-100 px-1.5 py-0.5 text-[10px] font-bold text-amber-900">TEAM</span>}</>}
+          subtitle={<>{group.scope === "team" ? "Team room" : "Group"} · {group.members.length.toLocaleString("en-NG")} member{group.members.length === 1 ? "" : "s"}{group.sendLocked ? " · only admins can send" : ""}</>}
+          items={[
+            { label: "Members", icon: "👥", onClick: () => setShowMembers(true) },
+            { label: group.adminUids.includes(user?.uid ?? "") && group.scope !== "team" ? "Group settings" : "", icon: "⚙️", onClick: () => setShowMembers(true), hidden: !(group.adminUids.includes(user?.uid ?? "") && group.scope !== "team") },
+            { label: "Create group", icon: "➕", href: "/messages/new-group", divider: true },
+            { label: muted ? "Unmute notifications" : "Mute notifications", icon: muted ? "🔔" : "🔕", onClick: toggleMute },
+            { label: "Leave group", icon: "↪", danger: true, hidden: group.scope === "team", onClick: () => { if (confirm("Leave this group? You won't see its messages any more.")) api(`/api/messages/groups/${cid}`, { body: { action: "leave" } }).then(() => { window.location.href = "/messages"; }).catch((e) => setError(e.message)); } },
+          ]}
+        />
+      ) : who ? (
+        <ThreadHeader
+          back={!embedded ? <Link href="/messages" className="text-crimson underline">← Messages</Link> : undefined}
+          avatar={<Link href={`/u/${who.username}`}><Avatar src={who.avatar} alt={who.displayName} size={48} square={!!people[who.uid]?.isOrg} /></Link>}
+          title={<><Link href={`/u/${who.username}`} className="hover:underline">{people[who.uid]?.name || who.displayName}</Link>{people[who.uid]?.level && <VerifiedBadge size={16} level={people[who.uid]!.level} goldKind={people[who.uid]!.goldKind} />}{people[who.uid]?.team && <TeamBadge size={16} />}</>}
+          subtitle={presence.statuses[who.uid] ? <PresenceText status={presence.statuses[who.uid]} /> : <span>@{who.username}</span>}
+          items={[
+            { label: "View profile", icon: "👤", href: `/u/${who.username}` },
+            { label: "View moments", icon: "✨", onClick: viewMoments, hidden: !MOMENTS_LIVE },
+            { label: "Create group", icon: "➕", href: "/messages/new-group", divider: true },
+            { label: muted ? "Unmute notifications" : "Mute notifications", icon: muted ? "🔔" : "🔕", onClick: toggleMute },
+            { label: blockedByMe ? "Unblock" : "Block", icon: "⛔", onClick: toggleBlock, danger: !blockedByMe },
+            { label: "Report", icon: "⚑", onClick: () => setReporting(true), danger: true },
+          ]}
+        />
       ) : (
-        <p className="mb-4 text-sm text-slate"><Link href="/messages" className="text-crimson underline">← Messages</Link>{who ? <> · <Link href={`/u/${who.username}`} className="font-bold text-ink">{who.displayName}</Link>{!group && presence.statuses[who.uid] && <> · <PresenceText status={presence.statuses[who.uid]} /></>}</> : to ? ` · @${to}` : ""}</p>
+        <p className="mb-4 text-sm text-slate"><Link href="/messages" className="text-crimson underline">← Messages</Link>{to ? ` · @${to}` : ""}</p>
       )}
-      {group && showMembers && cid && user && <GroupMembers cid={cid} group={group} members={group.members} meUid={user.uid} onChanged={loadMeta} onLeft={() => { window.location.href = "/messages"; }} />}
-      {cid && who && !group && (
-        <p className="-mt-2 mb-4 flex gap-4 text-xs">
-          <button onClick={toggleBlock} className="text-slate underline">{blockedByMe ? "Unblock" : "Block"}</button>
-          <button onClick={() => setReporting(true)} className="text-slate underline">Report</button>
-        </p>
-      )}
+      {group && showMembers && cid && user && <GroupMembers cid={cid} group={group} members={group.members} banned={banned} meUid={user.uid} onChanged={loadMeta} onLeft={() => { window.location.href = "/messages"; }} />}
       <div className={`min-h-[40vh] space-y-1 ${embedded ? "" : "lg:min-h-0 lg:flex-1 lg:overflow-y-auto lg:pr-2"}`}>
         {messages.map((m, idx) => {
           const mine = m.from === user?.uid;
@@ -334,9 +371,13 @@ export default function Thread({ id, to, embedded = false }: { id?: string; to?:
       </div>
       {error && <p className="mt-2 text-sm text-red-700" role="alert">{error}</p>}
       {blockedByMe && <p className="mt-3 text-sm text-slate">You&apos;ve blocked this member. Unblock them to send a message.</p>}
+      {moments && <MomentViewer moments={moments} onClose={() => setMoments(null)} onChanged={() => {}} />}
       {reporting && cid && <ReportDialog kind="conversation" targetId={cid} onClose={() => setReporting(false)} />}
       {reportingMsg && cid && <ReportDialog kind="conversation" targetId={cid} messageId={reportingMsg} onClose={() => setReportingMsg(null)} />}
-      <form className="mt-4" onSubmit={(e) => { e.preventDefault(); if ((text.trim() || files.length) && !busy && !blockedByMe) send(); }}>
+      {group?.sendLocked && (group.adminUids.includes(user?.uid ?? "")
+        ? <p className="mt-3 rounded-lg bg-amber-50 p-2 text-xs text-ink">Sending is limited to admins in this group. You can still write because you are an admin.</p>
+        : <p className="mt-4 rounded-lg border border-rule bg-paper p-3 text-center text-sm text-slate">Only group admins can send messages in this group. You can still read it.</p>)}
+      <form className={group?.sendLocked && !group.adminUids.includes(user?.uid ?? "") ? "hidden" : "mt-4"} onSubmit={(e) => { e.preventDefault(); if ((text.trim() || files.length) && !busy && !blockedByMe) send(); }}>
         <div className="mb-1 flex flex-wrap items-center gap-1 text-sm">
           <EmojiPicker onPick={insertEmoji} disabled={blockedByMe} />
           <button type="button" onClick={() => format("**")} aria-label="Bold" title="Bold (Ctrl+B)" className="w-8 rounded border border-rule py-1 font-bold">B</button>

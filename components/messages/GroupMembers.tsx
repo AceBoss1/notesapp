@@ -4,12 +4,14 @@ import { useState } from "react";
 import { api } from "@/lib/moments-client";
 import Avatar from "@/components/Avatar";
 import { GROUP_MEMBERS_MAX, type GroupInfo } from "@/lib/messages-rules";
+import { uploadToR2 } from "@/lib/upload";
+import GroupAvatar from "./GroupAvatar";
 
 export type GroupMember = { uid: string; username: string; displayName: string; avatar: string; admin: boolean };
 
 // Who is in a group, and the controls the viewer is allowed: an admin renames the group, adds people (usernames), removes people and makes
 // others admins; anyone can leave. Team rooms follow the team automatically, so they only list who is in.
-export default function GroupMembers({ cid, group, members, meUid, onChanged, onLeft }: { cid: string; group: GroupInfo; members: GroupMember[]; meUid: string; onChanged: () => void; onLeft: () => void }) {
+export default function GroupMembers({ cid, group, members, banned = [], meUid, onChanged, onLeft }: { cid: string; group: GroupInfo; members: GroupMember[]; banned?: GroupMember[]; meUid: string; onChanged: () => void; onLeft: () => void }) {
   const isAdmin = group.adminUids.includes(meUid);
   const team = group.scope === "team";
   const [title, setTitle] = useState(group.title);
@@ -37,12 +39,43 @@ export default function GroupMembers({ cid, group, members, meUid, onChanged, on
               <span className="flex gap-1">
                 <button disabled={busy} onClick={() => act({ action: "admin", uid: m.uid, admin: !m.admin })} className={small}>{m.admin ? "Remove admin" : "Make admin"}</button>
                 <button disabled={busy} onClick={() => { if (confirm(`Remove ${m.displayName} from the group?`)) void act({ action: "remove", uid: m.uid }); }} className={small}>Remove</button>
+                {!m.admin && <button disabled={busy} onClick={() => { if (confirm(`Ban ${m.displayName}? They are removed and can't be added back until you unban them.`)) void act({ action: "ban", uid: m.uid, ban: true }); }} className={`${small} text-red-700`}>Ban</button>}
               </span>
             )}
           </li>
         ))}
       </ul>
       {error && <p className="mt-2 text-xs text-red-700" role="alert">{error}</p>}
+      {isAdmin && !team && (
+        <div className="mt-3 grid gap-3 border-t border-rule pt-3 sm:grid-cols-2">
+          <div className="flex items-center gap-3">
+            <GroupAvatar title={group.title} size={48} src={group.avatar} />
+            <div className="text-[11px] text-slate">
+              <label className="block cursor-pointer font-semibold text-crimson underline">Change group picture
+                <input type="file" accept="image/png,image/jpeg,image/webp" className="hidden" disabled={busy} onChange={async (e) => {
+                  const f = e.target.files?.[0]; e.target.value = "";
+                  if (!f) return;
+                  setBusy(true); setError("");
+                  try { const url = await uploadToR2(f, "avatar"); await api(`/api/messages/groups/${cid}`, { body: { action: "avatar", url } }); onChanged(); }
+                  catch (err) { setError(err instanceof Error ? err.message : "Couldn't use that picture."); }
+                  finally { setBusy(false); }
+                }} />
+              </label>
+              {group.avatar && <button type="button" disabled={busy} onClick={() => void act({ action: "avatar", url: "" })} className="mt-1 underline">Remove picture</button>}
+            </div>
+          </div>
+          <label className="flex items-start gap-2 text-xs text-ink">
+            <input type="checkbox" className="mt-0.5" checked={group.sendLocked === true} disabled={busy} onChange={(e) => void act({ action: "lock", locked: e.target.checked })} />
+            <span>Only admins can send messages<span className="block text-[11px] text-slate">Everyone can still read. Switch it off to let all members write again.</span></span>
+          </label>
+        </div>
+      )}
+      {isAdmin && !team && banned.length > 0 && (
+        <div className="mt-3 border-t border-rule pt-3 text-xs">
+          <p className="font-semibold text-ink">Banned ({banned.length})</p>
+          <ul className="mt-1 divide-y divide-rule">{banned.map((b) => <li key={b.uid} className="flex items-center gap-2 py-1.5"><span className="flex-1 text-slate">{b.displayName} @{b.username}</span><button disabled={busy} onClick={() => void act({ action: "ban", uid: b.uid, ban: false })} className={small}>Unban</button></li>)}</ul>
+        </div>
+      )}
       {isAdmin && !team && (
         <div className="mt-3 grid gap-3 sm:grid-cols-2">
           <form onSubmit={(e) => { e.preventDefault(); if (title.trim()) void act({ action: "rename", title }); }} className="flex items-end gap-2">

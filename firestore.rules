@@ -430,6 +430,8 @@ service cloud.firestore {
     // Staff library and message hub (through /api/admin/staff-library and /api/admin/hub): server-only.
     match /staffDocs/{id} { allow read, write: if false; }
     match /hubMessages/{id} { allow read, write: if false; }
+    // Muted conversations (a bell/push/email switch per person and conversation): server-only.
+    match /convMutes/{id} { allow read, write: if false; }
     match /financeDues/{id} {
       allow read, write: if false;
     }

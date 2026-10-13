@@ -3,9 +3,10 @@ import { FieldValue } from "firebase-admin/firestore";
 import { getAuth } from "firebase-admin/auth";
 import { randomBytes } from "crypto";
 import { GROUP_MEMBERS_MAX, GROUP_TITLE_MAX, MESSAGE_MAX, attachmentLabel, newGroupId, type GroupInfo, type GroupScope } from "./messages-rules";
-import { MessageError, claimAttachments, groupInfoOf, quoteOf, type FileDeps, type Notify, type SendInput } from "./messages-server";
+import { MessageError, claimAttachments, groupInfoOf, mutedAmong, quoteOf, type FileDeps, type Notify, type SendInput } from "./messages-server";
 import { notifyBell } from "./email";
 import { getAdminApp, getAdminDb } from "./firebase-admin";
+import { r2PublicUrl } from "./r2";
 import { sendPush, type PushPayload } from "./push-server";
 import { stickerById } from "./stickers";
 
@@ -100,6 +101,7 @@ export async function sendGroupMessage(
   if (text.length > MESSAGE_MAX) throw new MessageError(413, `Messages can be up to ${MESSAGE_MAX} characters.`);
   const me = await userOf(db, fromUid);
   const { ref, c, info } = await groupOf(db, cid, fromUid);
+  if (info.sendLocked && !info.adminUids.includes(fromUid)) throw new MessageError(403, "Only group admins can send messages in this group right now.");
 
   const attachments = ids.length ? await claimAttachments(db, fromUid, ids, files) : [];
   const preview = (text || (attachments.length ? attachmentLabel(attachments) : "🖼 Sticker")).slice(0, 120);
@@ -112,6 +114,7 @@ export async function sendGroupMessage(
   await db.runTransaction(async (t) => {
     const fresh = (await t.get(ref)).data();
     if (!fresh || !(fresh.participants as string[]).includes(fromUid)) throw new MessageError(404, "That group wasn't found.");
+    if (fresh.sendLocked === true && !((fresh.adminUids as string[] | undefined) ?? []).includes(fromUid)) throw new MessageError(403, "Only group admins can send messages in this group right now.");
     for (const u of fresh.participants as string[]) if (u !== fromUid && ((fresh.unread?.[u] as number | undefined) ?? 0) === 0) wasQuiet.push(u);
     t.set(ref.collection("messages").doc(messageId), { from: fromUid, text, createdAt, ...(attachments.length ? { attachments } : {}), ...(sticker ? { sticker } : {}), ...(replyTo ? { replyTo } : {}) });
     const patch: Record<string, unknown> = { lastMessage: { from: fromUid, fromName: me.displayName, text: preview, at: createdAt }, lastMessageAt: createdAt, [`unread.${fromUid}`]: 0 };
@@ -120,14 +123,57 @@ export async function sendGroupMessage(
   });
   for (const id of ids) await db.doc(`messageUploads/${id}`).update({ used: true }).catch(() => {});
   // One bell and one push per member when a burst starts, never carrying what was written.
-  await Promise.all(wasQuiet.map(async (u) => {
+  const muted = await mutedAmong(db, wasQuiet, cid);
+  await Promise.all(wasQuiet.filter((u) => !muted.has(u)).map(async (u) => {
     await notify({ uid: u, type: "message", linkHref: `/messages/${cid}`, message: `${me.displayName} in ${info.title}` }).catch(() => {});
     await deps.push(u, { title: info.title, body: me.displayName, url: `/messages/${cid}` }).catch(() => 0);
   }));
   return { conversationId: cid, messageId };
 }
 
+// ---- group picture, who may send, and bans (public groups; admins only) ----
+
+// The picture is uploaded the usual way (the avatar upload) and the address handed here; it must be one of the admin's own uploads.
+export async function setGroupAvatar(db: Firestore, uid: string, cid: string, url: unknown): Promise<void> {
+  const { ref, info } = await groupOf(db, cid, uid);
+  requireAdmin(info, uid);
+  if (info.scope === "team") throw new MessageError(400, "The team room keeps the #NotesApp look.");
+  const u = String(url ?? "");
+  if (!u) { await ref.update({ avatar: FieldValue.delete() }); return; }
+  if (!u.startsWith(r2PublicUrl(`avatars/${uid}/`)) || u.length > 400) throw new MessageError(400, "Upload the picture first, then save it.");
+  await ref.update({ avatar: u });
+}
+
+// Off: only admins can write; everyone else can still read. On: anyone in the group can write.
+export async function setSendLocked(db: Firestore, uid: string, cid: string, locked: boolean): Promise<void> {
+  const { ref, info } = await groupOf(db, cid, uid);
+  requireAdmin(info, uid);
+  if (info.scope === "team") throw new MessageError(400, "The team room is always open to the team.");
+  await ref.update({ sendLocked: locked });
+}
+
+// Ban removes someone and stops them being added again; unban only lifts that (they have to be added back). Admins can't be banned (make them a member first).
+export async function banGroupMember(db: Firestore, uid: string, cid: string, targetUid: string, ban: boolean): Promise<void> {
+  const { ref, info } = await groupOf(db, cid, uid);
+  requireAdmin(info, uid);
+  if (info.scope === "team") throw new MessageError(400, "The team room follows the team automatically.");
+  if (targetUid === uid) throw new MessageError(400, "You can't ban yourself.");
+  if (!ban) { await ref.update({ bannedUids: FieldValue.arrayRemove(targetUid) }); return; }
+  if (info.adminUids.includes(targetUid)) throw new MessageError(400, "Remove their admin role first, then ban them.");
+  const left = info.memberUids.filter((u) => u !== targetUid);
+  await ref.update({
+    bannedUids: FieldValue.arrayUnion(targetUid), participants: left, [`unread.${targetUid}`]: FieldValue.delete(), [`readMarker.${targetUid}`]: FieldValue.delete(),
+  });
+}
+
 export type MemberInfo = { uid: string; username: string; displayName: string; avatar: string; admin: boolean };
+export async function bannedMembers(db: Firestore, info: GroupInfo): Promise<MemberInfo[]> {
+  const ids = info.bannedUids ?? [];
+  if (!ids.length) return [];
+  const docs = await db.getAll(...ids.map((u) => db.doc(`users/${u}`)));
+  return docs.map((d) => ({ uid: d.id, username: d.data()?.username ?? "", displayName: d.data()?.displayName ?? "Member", avatar: d.data()?.avatar ?? "", admin: false }));
+}
+
 export async function groupMembers(db: Firestore, info: GroupInfo): Promise<MemberInfo[]> {
   const docs = await db.getAll(...info.memberUids.map((u) => db.doc(`users/${u}`)));
   return docs.map((d) => ({ uid: d.id, username: d.data()?.username ?? "", displayName: d.data()?.displayName ?? "Member", avatar: d.data()?.avatar ?? "", admin: info.adminUids.includes(d.id) }));
@@ -145,6 +191,7 @@ export async function addGroupMembers(db: Firestore, uid: string, cid: string, n
   requireAdmin(info, uid);
   if (info.scope === "team") throw new MessageError(400, "The team room is kept in step with the team automatically.");
   const add = Array.from(new Set((Array.isArray(newUids) ? newUids : []).map(String).filter((u) => u && !info.memberUids.includes(u))));
+  if (add.some((u) => (info.bannedUids ?? []).includes(u))) throw new MessageError(403, "Someone you're adding is banned from this group. Unban them first.");
   if (!add.length) return;
   if (info.memberUids.length + add.length > GROUP_MEMBERS_MAX) throw new MessageError(413, `A group can have up to ${GROUP_MEMBERS_MAX} members.`);
   await checkAddable(db, await userOf(db, uid), add);

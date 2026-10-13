@@ -802,7 +802,7 @@ test("follow records: you can read your own, nobody can list someone else's or a
 });
 
 test("payroll, staff library and message hub collections are server-only", async () => {
-  for (const path of ["payrollStaff/x", "payrollRuns/2026-10", "payrollSecrets/x", "staffDocs/x", "hubMessages/x"]) {
+  for (const path of ["payrollStaff/x", "payrollRuns/2026-10", "payrollSecrets/x", "staffDocs/x", "hubMessages/x", "convMutes/a_b"]) {
     await assertFails(getDoc(doc(as("alice", { admin: true }), path)));
     await assertFails(setDoc(doc(as("alice", { admin: true }), path), { a: 1 }));
     await assertFails(getDoc(doc(anon(), path)));
