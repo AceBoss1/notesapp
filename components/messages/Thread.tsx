@@ -8,7 +8,7 @@ import { onAuthStateChanged, type User } from "firebase/auth";
 import { collection, limit, onSnapshot, orderBy, query } from "firebase/firestore";
 import { auth, db } from "@/lib/firebase";
 import { api } from "@/lib/moments-client";
-import { ATTACHMENT_ACCEPT, MESSAGE_MAX, attachmentTypeOf, formatBytes, type ThreadMessage } from "@/lib/messages-rules";
+import { ATTACHMENT_ACCEPT, MESSAGE_MAX, REMOVED_TEXT, attachmentTypeOf, formatBytes, type ThreadMessage } from "@/lib/messages-rules";
 import { wrapSelection } from "@/lib/message-format";
 import FormattedText from "./FormattedText";
 import MessageAttachments from "./MessageAttachments";
@@ -140,7 +140,7 @@ export default function Thread({ id, to, embedded = false }: { id?: string; to?:
         const rows: ThreadMessage[] = snap.docs.reverse().map((d) => {
           const m = d.data();
           // A reply to a moment says whether the moment has expired; the moment itself is never in the message.
-          return { id: d.id, from: m.from, text: m.text, createdAt: m.createdAt, ...(m.readAt ? { readAt: m.readAt } : {}), ...(m.call ? { call: m.call } : {}), ...(m.sticker ? { sticker: m.sticker } : {}), ...(m.replyTo ? { replyTo: m.replyTo } : {}), ...(m.attachments ? { attachments: (m.attachments as { name: string; size: number; type: string; kind: "image" | "video" | "document" | "audio"; durationSec?: number }[]).map(({ name, size, type, kind, durationSec }) => ({ name, size, type, kind, ...(durationSec ? { durationSec } : {}) })) } : {}), ...(m.momentRef ? { moment: { momentId: m.momentRef.momentId, expired: isMomentExpired(m.momentRef.expiresAt) } } : {}) };
+          return { id: d.id, from: m.from, text: m.text, createdAt: m.createdAt, ...(m.readAt ? { readAt: m.readAt } : {}), ...(m.call ? { call: m.call } : {}), ...(m.removed ? { removed: m.removed } : {}), ...(m.sticker ? { sticker: m.sticker } : {}), ...(m.replyTo ? { replyTo: m.replyTo } : {}), ...(m.attachments ? { attachments: (m.attachments as { name: string; size: number; type: string; kind: "image" | "video" | "document" | "audio"; durationSec?: number }[]).map(({ name, size, type, kind, durationSec }) => ({ name, size, type, kind, ...(durationSec ? { durationSec } : {}) })) } : {}), ...(m.momentRef ? { moment: { momentId: m.momentRef.momentId, expired: isMomentExpired(m.momentRef.expiresAt) } } : {}) };
         });
         setMessages(rows);
         // Something new from them while this is open: it's read.
@@ -247,6 +247,12 @@ export default function Thread({ id, to, embedded = false }: { id?: string; to?:
     try { await api(`/api/messages/${cid}`, { body: { action: "mute", muted: !muted } }); setMuted(!muted); }
     catch (e) { setError(e instanceof Error ? e.message : "Couldn't change that."); }
   }
+  async function removeMessage(msg: ThreadMessage) {
+    if (!cid || !confirm("Remove this message from the group? Everyone will see \"Message removed by a group admin\" in its place, and any files in it are deleted.")) return;
+    try { await api(`/api/messages/groups/${cid}`, { body: { action: "remove_message", messageId: msg.id } }); }
+    catch (e) { setError(e instanceof Error ? e.message : "Couldn't remove the message."); }
+  }
+
   async function viewMoments() {
     if (!who) return;
     try {
@@ -265,6 +271,9 @@ export default function Thread({ id, to, embedded = false }: { id?: string; to?:
           avatar={<GroupAvatar title={group.title} size={48} team={group.scope === "team"} src={group.avatar} />}
           title={<>{group.title}{group.scope === "team" && <span className="rounded bg-amber-100 px-1.5 py-0.5 text-[10px] font-bold text-amber-900">TEAM</span>}</>}
           subtitle={<>{group.scope === "team" ? "Team room" : "Group"} · {group.members.length.toLocaleString("en-NG")} member{group.members.length === 1 ? "" : "s"}{group.sendLocked ? " · only admins can send" : ""}</>}
+          actions={group.adminUids.includes(user?.uid ?? "") && group.scope !== "team" ? (
+            <button type="button" onClick={() => setShowMembers(true)} title="Manage the group: members, admins, bans, who can send, picture" className="rounded-full border border-crimson/40 px-3 py-1.5 font-ui text-xs font-semibold text-crimson hover:bg-crimson/5">⚙️ Manage</button>
+          ) : undefined}
           items={[
             { label: "Members", icon: "👥", onClick: () => setShowMembers(true) },
             { label: group.adminUids.includes(user?.uid ?? "") && group.scope !== "team" ? "Group settings" : "", icon: "⚙️", onClick: () => setShowMembers(true), hidden: !(group.adminUids.includes(user?.uid ?? "") && group.scope !== "team") },
@@ -318,6 +327,16 @@ export default function Thread({ id, to, embedded = false }: { id?: string; to?:
             <button type="button" onClick={() => setReportingMsg(msg.id)} className="opacity-80 hover:opacity-100" aria-label="Report this message">Report</button>
           );
           const firstName = (p?: Person) => (p?.name || "").split(" ")[0] || "Member";
+          // Group admins can take any message out of the group (it is replaced by "Message removed by a group admin").
+          const amGroupAdmin = !!group && group.adminUids.includes(user?.uid ?? "");
+          const removeButton = (msg: ThreadMessage) => amGroupAdmin && !msg.removed && (
+            <button type="button" onClick={() => removeMessage(msg)} className="opacity-80 hover:opacity-100" aria-label="Remove this message from the group">Remove</button>
+          );
+          if (m.removed) return (
+            <div key={m.id} id={`m-${m.id}`} className={`my-2 flex ${mine ? "justify-end" : "justify-start"}`}>
+              <span className="rounded-lg border border-dashed border-rule px-3 py-1.5 text-xs italic text-slate">🚫 {REMOVED_TEXT[m.removed.by]}{!mine && person?.name ? ` (was from ${firstName(person)})` : ""} · {stamp(m.createdAt)}</span>
+            </div>
+          );
           if (m.call) {
             const callCls = `rounded-full border px-3 py-1 text-xs ${m.call.outcome === "missed" && !mine ? "border-crimson/40 bg-crimson/5 text-crimson" : "border-rule bg-paper text-slate"}`;
             const callLine = <>📞 {m.call.outcome === "missed" && mine ? `${m.call.kind === "video" ? "Video" : "Voice"} call · no answer` : callLogText(m.call)} · {stamp(m.createdAt)}</>;
@@ -362,6 +381,7 @@ export default function Thread({ id, to, embedded = false }: { id?: string; to?:
                         {mine && m.readAt && <span><span aria-label="Read">✔✔ </span>{stamp(m.readAt)}</span>}
                         {replyButton(m)}
                         {reportButton(m)}
+                        {removeButton(m)}
                       </p>
                     </div>
                   ) : (
@@ -388,6 +408,7 @@ export default function Thread({ id, to, embedded = false }: { id?: string; to?:
                         {mine && m.readAt && <span><span aria-label="Read">✔✔ </span>{stamp(m.readAt)}</span>}
                         {replyButton(m)}
                         {reportButton(m)}
+                        {removeButton(m)}
                       </p>
                     </div>
                   )}

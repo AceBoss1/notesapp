@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { onAuthStateChanged, type User } from "firebase/auth";
@@ -15,6 +15,7 @@ export default function NewGroup() {
   const [title, setTitle] = useState("");
   const [names, setNames] = useState("");
   const [busy, setBusy] = useState(false);
+  const sending = useRef(false); // set at once, so a double tap can't start the group twice before the button greys out
   const [error, setError] = useState<string | null>(null);
   useEffect(() => onAuthStateChanged(auth, setUser), []);
 
@@ -25,10 +26,10 @@ export default function NewGroup() {
       className="space-y-4"
       onSubmit={async (e) => {
         e.preventDefault();
-        if (busy || !title.trim() || !usernames.length) return;
-        setBusy(true); setError(null);
+        if (sending.current || busy || !title.trim() || !usernames.length) return;
+        sending.current = true; setBusy(true); setError(null);
         try { const r = await api<{ id: string }>("/api/messages/groups", { body: { title, usernames } }); router.push(`/messages/${r.id}`); }
-        catch (err) { setError(err instanceof Error ? err.message : "Couldn't start the group."); setBusy(false); }
+        catch (err) { setError(err instanceof Error ? err.message : "Couldn't start the group."); setBusy(false); sending.current = false; }
       }}
     >
       <p className="text-sm text-slate"><Link href="/messages" className="text-crimson underline">← Messages</Link></p>

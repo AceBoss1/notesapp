@@ -46,6 +46,11 @@ export default function GroupMembers({ cid, group, members, banned = [], meUid, 
         ))}
       </ul>
       {error && <p className="mt-2 text-xs text-red-700" role="alert">{error}</p>}
+      {!isAdmin && !team && (
+        <p className="mt-3 border-t border-rule pt-3 text-[11px] text-slate">
+          Only the group&apos;s admin{group.adminUids.length === 1 ? "" : "s"} ({members.filter((m) => m.admin).map((m) => m.displayName).join(", ") || "none yet"}) can add or remove people, ban members, remove messages, change the picture or switch member messages off. To flag a message to #NotesApp, use Report on it.
+        </p>
+      )}
       {isAdmin && !team && (
         <div className="mt-3 grid gap-3 border-t border-rule pt-3 sm:grid-cols-2">
           <div className="flex items-center gap-3">

@@ -53,6 +53,8 @@ async function userOf(db: Firestore, uid: string) {
   return { uid, username: String(u.username ?? ""), displayName: String(u.displayName ?? "A member") };
 }
 
+const GROUP_REPEAT_MS = 2 * 60_000;
+
 export async function createGroup(
   db: Firestore, creatorUid: string, input: { title: unknown; memberUids: unknown; scope?: GroupScope; meetingId?: string; id?: string },
   now = new Date(), deps: GroupDeps = defaultDeps(),
@@ -68,15 +70,25 @@ export async function createGroup(
     if (!members.length) throw new MessageError(400, "Add at least one person.");
     await checkAddable(db, me, members);
   }
-  const id = input.id ?? newGroupId(randomBytes(8).toString("hex"));
   const createdAt = now.toISOString();
   const everyone = [creatorUid, ...members];
-  await db.doc(`conversations/${id}`).set({
+  const doc = (id: string) => ({
     kind: "group", scope, title, participants: everyone, adminUids: [creatorUid], createdBy: creatorUid, createdAt, lastMessageAt: createdAt,
     unread: Object.fromEntries(everyone.map((u) => [u, 0])),
     ...(input.meetingId ? { meetingId: input.meetingId } : {}),
   });
-  return { id };
+  if (input.id) { await db.doc(`conversations/${input.id}`).set(doc(input.id)); return { id: input.id }; }
+  // The same group asked for twice within two minutes (a double tap, or a slow connection sending it again) opens the first one.
+  const key = `${title.toLowerCase()}|${[...members].sort().join(",")}`;
+  const lastRef = db.doc(`groupCreates/${creatorUid}`);
+  return db.runTransaction(async (t) => {
+    const last = (await t.get(lastRef)).data();
+    if (last && last.key === key && now.getTime() - Date.parse(String(last.at)) < GROUP_REPEAT_MS) return { id: String(last.id) };
+    const id = newGroupId(randomBytes(8).toString("hex"));
+    t.set(db.doc(`conversations/${id}`), doc(id));
+    t.set(lastRef, { key, id, at: createdAt });
+    return { id };
+  });
 }
 
 async function groupOf(db: Firestore, cid: string, uid: string) {
@@ -164,6 +176,34 @@ export async function banGroupMember(db: Firestore, uid: string, cid: string, ta
   await ref.update({
     bannedUids: FieldValue.arrayUnion(targetUid), participants: left, [`unread.${targetUid}`]: FieldValue.delete(), [`readMarker.${targetUid}`]: FieldValue.delete(),
   });
+}
+
+// Takes one message out of a conversation: its text, files and sticker go, and a "removed" line stays in its place (so the thread still
+// reads in order). Quotes of it in replies, and the inbox preview if it was the last message, are updated too. Used by group admins and
+// by #NotesApp staff acting on a report.
+export async function wipeMessage(db: Firestore, cid: string, messageId: string, by: "admin" | "notesapp", deleteFile: (key: string) => Promise<void> = async () => {}, now = new Date()): Promise<boolean> {
+  if (!messageId || messageId.includes("/")) throw new MessageError(400, "Choose a message.");
+  const convRef = db.doc(`conversations/${cid}`);
+  const ref = convRef.collection("messages").doc(messageId);
+  const m = (await ref.get()).data();
+  if (!m) throw new MessageError(404, "That message wasn't found.");
+  if (m.removed || m.call) return false;
+  for (const f of (m.attachments as { key: string }[] | undefined) ?? []) await deleteFile(String(f.key)).catch(() => {});
+  const at = now.toISOString();
+  await ref.update({ text: "", removed: { by, at }, attachments: FieldValue.delete(), sticker: FieldValue.delete(), momentRef: FieldValue.delete(), replyTo: FieldValue.delete() });
+  const label = by === "admin" ? "Message removed by a group admin" : "Message removed by #NotesApp";
+  const quotes = await convRef.collection("messages").where("replyTo.id", "==", messageId).get();
+  for (const q of quotes.docs) await q.ref.update({ "replyTo.text": label }).catch(() => {});
+  const conv = (await convRef.get()).data();
+  if (conv?.lastMessage && conv.lastMessage.at === m.createdAt && conv.lastMessage.from === m.from) await convRef.update({ "lastMessage.text": `🚫 ${label}` });
+  return true;
+}
+
+// A group admin removes a message (anyone's, their own included).
+export async function removeGroupMessage(db: Firestore, uid: string, cid: string, messageId: string, deleteFile?: (key: string) => Promise<void>, now = new Date()): Promise<void> {
+  const { info } = await groupOf(db, cid, uid);
+  requireAdmin(info, uid);
+  await wipeMessage(db, cid, messageId, "admin", deleteFile, now);
 }
 
 export type MemberInfo = { uid: string; username: string; displayName: string; avatar: string; admin: boolean };

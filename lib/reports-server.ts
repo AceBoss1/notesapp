@@ -4,6 +4,8 @@ import { isMomentExpired, isReportReason, REPORT_NOTE_MAX, REPORT_REASON_LABEL, 
 import { sendEmail } from "./email";
 import { isSuspensionLength, suspensionEnd, describeUntil } from "./suspension-length";
 import { MomentError, adminRemoveMoment, type MomentDeps } from "./moments-server";
+import { wipeMessage } from "./groups-server";
+import { deleteObject, privateFilesConfigured } from "./private-files";
 
 // Reports on moments and conversations. Because moments disappear and messages can be deleted, a report keeps a copy of
 // what was reported (and, for a moment, its files) until someone at #NotesApp has looked at it; resolving the report then
@@ -146,6 +148,9 @@ export async function resolveReport(db: Firestore, adminUid: string, id: string,
     // Files kept as evidence go unless another open report needs them, or the moment is still live and will clean up by itself.
     if (!live || outcome === "actioned") for (const k of (r.evidenceKeys as string[]) ?? []) if (!stillNeeded.has(k)) await deps.remove(k).catch(() => {});
   }
+  // Actioning a report of a group message takes that message out of the group ("Message removed by #NotesApp").
+  const reportedMessageId = r.kind === "conversation" ? String(r.evidence?.reportedMessageId ?? "") : "";
+  if (outcome === "actioned" && reportedMessageId) await wipeMessage(db, String(r.targetId), reportedMessageId, "notesapp", privateFilesConfigured() ? deleteObject : undefined, now).catch(() => {});
   await ref.update({ status: "resolved", outcome, resolvedBy: adminUid, resolvedAt: now.toISOString(), resolutionNote: trimNote(note), evidence: FieldValue.delete(), evidenceKeys: [] });
 }
 
