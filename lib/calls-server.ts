@@ -18,20 +18,35 @@ export async function iceServers(fetcher: typeof fetch = fetch): Promise<RTCIceS
     list.push({ urls, username: process.env.TURN_USERNAME, credential: process.env.TURN_CREDENTIAL });
     return list;
   }
-  const keyId = process.env.CLOUDFLARE_TURN_KEY_ID, token = process.env.CLOUDFLARE_TURN_API_TOKEN;
-  if (keyId && token) {
-    try {
-      const r = await fetcher(`https://rtc.live.cloudflare.com/v1/turn/keys/${keyId}/credentials/generate`, {
-        method: "POST", headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" }, body: JSON.stringify({ ttl: 3600 }),
-      });
-      const j = await r.json().catch(() => ({}));
-      const s = j?.iceServers;
-      if (r.ok && s?.urls && s.username && s.credential) list.push({ urls: s.urls, username: s.username, credential: s.credential });
-    } catch { /* calls still work on networks that allow direct connections */ }
-  }
+  const turn = await cloudflareTurn(fetcher);
+  if (turn.server) list.push(turn.server);
   return list;
 }
 export type RTCIceServerLike = { urls: string | string[]; username?: string; credential?: string };
+
+export const cloudflareTurnConfigured = () => !!((process.env.CLOUDFLARE_TURN_KEY_ID || "").trim() && (process.env.CLOUDFLARE_TURN_API_TOKEN || "").trim());
+
+// Asks Cloudflare for short-lived TURN credentials (free; only relayed traffic is billed). On failure, why says what to fix in
+// plain words for /status, never the key or token.
+export async function cloudflareTurn(fetcher: typeof fetch = fetch, signal?: AbortSignal): Promise<{ server?: RTCIceServerLike; why?: string }> {
+  const keyId = (process.env.CLOUDFLARE_TURN_KEY_ID || "").trim(), token = (process.env.CLOUDFLARE_TURN_API_TOKEN || "").trim();
+  if (!keyId || !token) return { why: "not set up" };
+  try {
+    const r = await fetcher(`https://rtc.live.cloudflare.com/v1/turn/keys/${encodeURIComponent(keyId)}/credentials/generate`, {
+      method: "POST", headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" }, body: JSON.stringify({ ttl: 3600 }), signal, cache: "no-store",
+    });
+    const j = await r.json().catch(() => ({}));
+    const s = j?.iceServers;
+    if (r.ok && s?.urls && s.username && s.credential) return { server: { urls: s.urls, username: s.username, credential: s.credential } };
+    const msg = String(j?.error ?? "").toLowerCase();
+    if (msg.includes("cannot find") || r.status === 404) return { why: "Cloudflare can't find that TURN key: CLOUDFLARE_TURN_KEY_ID must be the Turn Token ID from Realtime → TURN Server" };
+    if (r.status === 401 || r.status === 403) return { why: "Cloudflare refused the token: CLOUDFLARE_TURN_API_TOKEN must be the API token made with that same TURN key" };
+    if (r.status >= 500) return { why: "Cloudflare's TURN service is having trouble" };
+    return { why: `Cloudflare answered ${r.status}` };
+  } catch {
+    return { why: "could not reach Cloudflare in time" };
+  }
+}
 
 async function person(db: Firestore, uid: string) {
   const u = (await db.doc(`users/${uid}`).get()).data();

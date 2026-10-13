@@ -12,6 +12,7 @@ export default function FollowButton({ username }: { username: string }) {
   const [user, setUser] = useState<User | null | undefined>(undefined);
   const [following, setFollowing] = useState<boolean | null>(null);
   const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const mandatory = MANDATORY_USERNAMES.includes(username);
 
@@ -22,7 +23,8 @@ export default function FollowButton({ username }: { username: string }) {
       setFollowing(null);
       return;
     }
-    isFollowing(user.uid, username).then(setFollowing);
+    // If the check fails, show the button anyway (as "Follow") instead of a loading bar that never ends.
+    isFollowing(user.uid, username).then(setFollowing).catch((e) => { console.warn("[follow] check failed", e); setFollowing(false); });
   }, [user, username]);
 
   if (user === undefined || (user && following === null)) {
@@ -51,6 +53,7 @@ export default function FollowButton({ username }: { username: string }) {
   async function toggle() {
     if (!user) return;
     setBusy(true);
+    setError(null);
     try {
       if (following) {
         await unfollowJournal(user.uid, username);
@@ -59,12 +62,18 @@ export default function FollowButton({ username }: { username: string }) {
         await followJournal(user.uid, username, false);
         setFollowing(true);
       }
+    } catch (e) {
+      // Say so instead of failing silently; the code (e.g. permission-denied) tells us where to look.
+      const code = (e as { code?: string })?.code;
+      console.warn("[follow] failed", e);
+      setError(e instanceof Error && !code ? e.message : `Couldn't ${following ? "unfollow" : "follow"} right now${code ? ` (${code})` : ""}. Please try again.`);
     } finally {
       setBusy(false);
     }
   }
 
   return (
+    <span className="inline-flex flex-col items-start gap-1">
     <button
       onClick={toggle}
       disabled={busy}
@@ -76,5 +85,7 @@ export default function FollowButton({ username }: { username: string }) {
     >
       {busy ? "…" : following ? "Following" : "Follow"}
     </button>
+    {error && <span role="alert" className="max-w-[16rem] text-[11px] text-crimson">{error}</span>}
+    </span>
   );
 }

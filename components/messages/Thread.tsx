@@ -318,13 +318,22 @@ export default function Thread({ id, to, embedded = false }: { id?: string; to?:
             <button type="button" onClick={() => setReportingMsg(msg.id)} className="opacity-80 hover:opacity-100" aria-label="Report this message">Report</button>
           );
           const firstName = (p?: Person) => (p?.name || "").split(" ")[0] || "Member";
-          if (m.call) return (
-            <div key={m.id} className="my-3 flex justify-center">
-              <span className={`rounded-full border px-3 py-1 text-xs ${m.call.outcome === "missed" && !mine ? "border-crimson/40 bg-crimson/5 text-crimson" : "border-rule bg-paper text-slate"}`}>
-                📞 {m.call.outcome === "missed" && mine ? `${m.call.kind === "video" ? "Video" : "Voice"} call · no answer` : callLogText(m.call)} · {stamp(m.createdAt)}
-              </span>
-            </div>
-          );
+          if (m.call) {
+            const callCls = `rounded-full border px-3 py-1 text-xs ${m.call.outcome === "missed" && !mine ? "border-crimson/40 bg-crimson/5 text-crimson" : "border-rule bg-paper text-slate"}`;
+            const callLine = <>📞 {m.call.outcome === "missed" && mine ? `${m.call.kind === "video" ? "Video" : "Voice"} call · no answer` : callLogText(m.call)} · {stamp(m.createdAt)}</>;
+            // In a one-to-one chat, tapping a call line calls back, the same kind of call (voice or video).
+            const kind = m.call.kind;
+            const canRedial = CALLS_LIVE && !blockedByMe && !isGroup && !!who;
+            return (
+              <div key={m.id} className="my-3 flex justify-center">
+                {canRedial ? (
+                  <button type="button" onClick={() => placeCall({ toUid: who!.uid, kind, name: people[who!.uid]?.name || who!.displayName, avatar: who!.avatar })} title={`Tap to ${kind === "video" ? "video" : "voice"} call back`} aria-label={`${kind === "video" ? "Video" : "Voice"} call ${who!.displayName} back`} className={`${callCls} hover:border-crimson hover:text-crimson`}>
+                    {callLine} · <span className="font-semibold underline">Call back</span>
+                  </button>
+                ) : <span className={callCls}>{callLine}</span>}
+              </div>
+            );
+          }
           return (
             <div key={m.id}>
               {newDay && (
