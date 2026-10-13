@@ -9,6 +9,7 @@ import WorkPrompt from "@/components/WorkPrompt";
 import NanaChat from "@/components/NanaChat";
 import FooterCta from "@/components/FooterCta";
 import PushPrompt from "@/components/messages/PushPrompt";
+import PresenceBeat from "@/components/PresenceBeat";
 import SearchBar from "@/components/SearchBar";
 import CelebrationBanner from "@/components/CelebrationBanner";
 import ChallengeBanner from "@/components/ChallengeBanner";
@@ -72,6 +73,7 @@ const site = await getSiteSettingsCached();
         <VerifyEmailBanner />
         <WorkPrompt />
         <PushPrompt />
+        <PresenceBeat />
         {/* Masthead */}
         <header className="sticky top-0 z-40 bg-crimson-deep text-paper shadow-md" style={{ backgroundImage: "linear-gradient(100deg, #4E0119 0%, #7A0328 60%, #A6093D 100%)" }}>
           <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 py-4 sm:px-6 lg:px-8">

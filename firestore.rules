@@ -342,9 +342,13 @@ service cloud.firestore {
                 'social',
                 'industry',
                 'jobTitle',
-                'workplace'
+                'workplace',
+                'showOnline',
+                'showLists'
               ])
           && workOk(request.resource.data)
+          && (!('showOnline' in request.resource.data) || request.resource.data.showOnline is bool)
+          && (!('showLists' in request.resource.data) || request.resource.data.showLists is bool)
         );
 
       // User deletion is disabled.
@@ -740,8 +744,10 @@ service cloud.firestore {
 
     match /follows/{followId} {
 
-      // Public because follower counts are displayed publicly.
-      allow read: if true;
+      // Counts are public through /api/public/journal-stats and the lists through /api/follows (which apply each
+      // member's privacy switches). Browsers may read only their own follows.
+      allow get: if isSignedIn() && followId.matches(request.auth.uid + '_.*');
+      allow list: if isSignedIn() && resource.data.followerUid == request.auth.uid;
 
       // A user can create a follow only for themselves.
       allow create: if isSignedIn()
@@ -754,6 +760,17 @@ service cloud.firestore {
       allow delete: if isSignedIn()
         && resource.data.followerUid == request.auth.uid
         && resource.data.mandatory != true;
+    }
+
+
+    // Presence: the member's own "I'm here" heartbeat. Nobody reads it from the client; /api/presence answers who may see what.
+    match /presence/{uid} {
+      allow read: if false;
+      allow create, update: if isSignedIn()
+        && request.auth.uid == uid
+        && request.resource.data.keys().hasOnly(['lastSeen'])
+        && request.resource.data.lastSeen == request.time;
+      allow delete: if isSignedIn() && request.auth.uid == uid;
     }
 
 

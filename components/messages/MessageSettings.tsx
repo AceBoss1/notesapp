@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { api } from "@/lib/moments-client";
+import VisibilitySettings from "@/components/VisibilitySettings";
 import { currentSubscription, disablePush, enablePush, pushSupported, setPushChoice } from "@/lib/push-client";
 
 // How you hear about new messages: a bell (always), an email (off until you switch it on; Business and Enterprise only, at most one an hour) and,
@@ -41,6 +42,7 @@ export default function MessageSettings() {
         <p><button onClick={togglePush} className="rounded border border-rule px-3 py-1.5">{pushOn ? "🔕 Turn off notifications on this device" : "🔔 Turn on notifications on this device"}</button></p>
       )}
       {error && <p className="text-red-700" role="alert">{error}</p>}
+      <div className="border-t border-rule pt-3"><VisibilitySettings /></div>
     </div>
   );
 }

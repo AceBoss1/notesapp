@@ -72,9 +72,9 @@ const ITEMS: { title: string; tag: string; body: string; detail: string; link?: 
   {
     title: "Online status and followers lists",
     tag: "Social",
-    body: "Planned: see who is online, and when someone was last online, on Messages and on profiles, between people who follow each other. Every profile will also show who follows them and who they follow.",
+    body: "Live now: see who is online, and when someone was last online, on Messages and on profiles, between people who follow each other. Every profile shows who follows them and who they follow.",
     detail:
-      "It works both ways: if you turn your online visibility off, you stop appearing to others and you can't see anyone else's either. The same goes for the lists: people can open a followers or following list only if they have made their own public, and anyone who hides theirs can't see others'. Both are switches in your privacy settings. Nothing is built yet.",
+      "It works both ways: if you turn your online visibility off, you stop appearing to others and you can't see anyone else's either. The same goes for the lists: people can open a followers or following list only if they have made their own public, and anyone who hides theirs can't see others'. Both are switches in your privacy settings (Profile, Account) and in your message settings, and both start on. Online status updates about every three minutes.",
   },
   {
     title: "Nana helps you reply",
@@ -209,7 +209,7 @@ export default function RoadmapPage() {
               <li>Voice: Listen to a journal, Nana that speaks, voice transcripts</li>
               <li>Publishing to Facebook, Instagram and TikTok; LinkedIn advertising from #NotesApp, for Business and Enterprise (approved by LinkedIn, being built)</li>
               <li>Google ads on the web and AdMob in the apps</li>
-              <li>Online status and followers lists · Nana suggests replies · more for the team hub (tasks, payments, payroll, staff library) · an investor and partner data room · company finance tools (runway, acquisition cost, burn, cap table)</li>
+              <li>Nana suggests replies · more for the team hub (tasks, payments, payroll, staff library) · an investor and partner data room · company finance tools (runway, acquisition cost, burn, cap table)</li>
               <li>Audio and video meetings, meeting chat (under team discussion)</li>
               {!MOMENTS_LIVE && <li>Moments: pictures, video and text on profile pictures for 24, 48 or 72 hours</li>}
               {!MESSAGES_LIVE && <li>Direct messages</li>}

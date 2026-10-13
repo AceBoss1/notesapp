@@ -130,44 +130,7 @@ export async function notifyReply(
   });
 }
 
-// Fan-out to everyone following OR subscribed to the author — only
-// needs the author's username (resolveAuthorUsername(), no Firestore
-// round trip), not a uid, which is why this works for @na-notesapp
-// even though it has no real Firebase Auth account behind it. Likes/
-// comments/replies on na-notesapp's notes have nowhere to deliver a
-// notification (no uid to notify), so those stay silent for it — new
-// posts are the one notification type na-notesapp can trigger.
-export async function notifyNewPost(note: NoteRef): Promise<void> {
-  const authorUsername = resolveAuthorUsername(note.author);
-  if (!authorUsername) return; // unmapped author — nobody to fan out to
-
-  const [followSnap, subSnap] = await Promise.all([
-    getDocs(query(collection(db, "follows"), where("username", "==", authorUsername))),
-    getDocs(query(collection(db, "subscriptions"), where("username", "==", authorUsername))),
-  ]);
-
-  const recipientUids = new Set<string>([
-    ...followSnap.docs.map((d) => d.data().followerUid as string),
-    ...subSnap.docs.map((d) => d.data().subscriberUid as string),
-  ]);
-  if (recipientUids.size === 0) return;
-
-  const batch = writeBatch(db);
-  recipientUids.forEach((uid) => {
-    const ref = doc(collection(db, NOTIFICATIONS));
-    batch.set(ref, {
-      recipientUid: uid,
-      type: "new_post",
-      message: `${note.author} published "${note.title}"`,
-      actorUsername: authorUsername,
-      actorDisplayName: note.author,
-      linkHref: `/journals/${note.slug}`,
-      read: false,
-      createdAt: new Date().toISOString(),
-    });
-  });
-  await batch.commit();
-}
+// New-post fan-out lives on the server now (lib/new-post-notify.ts, POST /api/notify/new-post), because follow records are not readable from browsers.
 
 export async function notifySuspended(uid: string, username: string, reason: string, until?: string): Promise<void> {
   await createNotification({
