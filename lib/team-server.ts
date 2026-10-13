@@ -8,7 +8,7 @@ import type { Traction } from "./traction";
 import { createGroup, sendGroupMessage, syncMembers, syncTeamRoom, type GroupDeps } from "./groups-server";
 import {
   TeamError, canSeeMeeting, cleanItem, cleanMeeting, cleanComment, cleanReview, focusLines, buildMorningSummary, bucketWeeks, weekStart, weekEnd, lagosDay, lagosParts, type Review, type TeamComment, type WeekNumbers, MEETING_STATUSES, type Meeting, type MeetingStatus, cleanMilestone, metricValue, statusEffects, lagosDate, addDays,
-  milestoneProgress, type Milestone, type TeamItem, type Status,
+  milestoneProgress, type Milestone, type TeamItem, type Status, workReminders, workReminderLine,
 } from "./team";
 
 // Server side of the team hub. Everything lives in two server-only collections (teamItems, teamMilestones); only signed-in admins reach
@@ -59,6 +59,13 @@ export async function listTeam(db: Firestore) {
 
 const DEFAULTS = { detail: "", ownerUid: "", status: "todo", horizon: "week", due: "", blockedReason: "", decisionQuestion: "", decidedNote: "" } as const;
 
+// Tells someone they have been given a work item (never the person who did it).
+async function tellAssignee(db: Firestore, actorUid: string, ownerUid: string, title: string, due: string) {
+  if (!ownerUid || ownerUid === actorUid) return;
+  const people = await listTeamPeople(db).catch(() => [] as Person[]);
+  await notifyBell({ uid: ownerUid, type: "team", linkHref: "/admin/team", message: `${nameIn(people, actorUid)} assigned you “${title}”${due ? ` (due ${due})` : ""}.` }).catch(() => {});
+}
+
 export async function createItem(db: Firestore, adminUid: string, body: Record<string, unknown>) {
   const now = new Date().toISOString();
   const c = cleanItem(body, false);
@@ -67,10 +74,11 @@ export async function createItem(db: Firestore, adminUid: string, body: Record<s
   const item = { ...DEFAULTS, ...c, status, createdByUid: adminUid, createdAt: now, updatedAt: now, doneAt: status === "done" ? now : "" };
   if (status === "decision" && !item.decisionQuestion) item.decisionQuestion = item.title ?? "";
   const ref = await db.collection(ITEMS).add(item);
+  await tellAssignee(db, adminUid, String(item.ownerUid ?? ""), String(item.title ?? ""), String(item.due ?? ""));
   return { id: ref.id };
 }
 
-export async function updateItem(db: Firestore, id: string, body: Record<string, unknown>) {
+export async function updateItem(db: Firestore, id: string, body: Record<string, unknown>, actorUid = "") {
   const ref = db.doc(`${ITEMS}/${id}`);
   const snap = await ref.get();
   if (!snap.exists) throw new TeamError("That item no longer exists.", 404);
@@ -81,8 +89,11 @@ export async function updateItem(db: Firestore, id: string, body: Record<string,
   if (next.status === "blocked" && !next.blockedReason) throw new TeamError("Say what it is blocked on.");
   if (next.status === "decision" && !next.decisionQuestion) next.decisionQuestion = next.title;
   if (c.status && c.status !== "blocked" && !("blockedReason" in body)) next.blockedReason = c.status === "done" ? next.blockedReason : "";
-  const patch = { ...c, ...(next.decisionQuestion !== prev.decisionQuestion ? { decisionQuestion: next.decisionQuestion } : {}), blockedReason: next.blockedReason, ...statusEffects(next.status, prev.status, now), updatedAt: now };
+  // A new date or a new owner starts the deadline reminders afresh.
+  const fresh = ("due" in c && c.due !== prev.due) || ("ownerUid" in c && c.ownerUid !== prev.ownerUid);
+  const patch = { ...c, ...(next.decisionQuestion !== prev.decisionQuestion ? { decisionQuestion: next.decisionQuestion } : {}), blockedReason: next.blockedReason, ...statusEffects(next.status, prev.status, now), ...(fresh ? { remindedDays: [] } : {}), updatedAt: now };
   await ref.update(patch);
+  if ("ownerUid" in c && c.ownerUid && c.ownerUid !== prev.ownerUid) await tellAssignee(db, actorUid, String(c.ownerUid), next.title, next.due);
 }
 
 export async function deleteItem(db: Firestore, id: string) {
@@ -229,6 +240,35 @@ const defaultDigestDeps = (db: Firestore): DigestDeps => ({
   emailOf: getUserEmail,
   people: () => listTeamPeople(db),
 });
+
+// Cron: deadline reminders for work items. Each owner gets one bell (and, for due tomorrow, today or overdue, one email) listing the items that
+// reached a threshold this run: 3 days and 1 day before, on the day, then once when overdue. Unassigned items are left to the morning summary.
+export async function sendWorkReminders(db: Firestore, now = new Date(), deps: DigestDeps = defaultDigestDeps(db)): Promise<number> {
+  const today = lagosDate(now);
+  const snap = await db.collection(ITEMS).where("due", ">=", addDays(today, -60)).get();
+  const byOwner = new Map<string, { lines: string[]; urgent: boolean }>();
+  for (const d of snap.docs) {
+    const item = { ...(d.data() as Omit<TeamItem, "id">), id: d.id };
+    const due = workReminders(item, today);
+    if (!due.length) continue;
+    await d.ref.update({ remindedDays: [...(item.remindedDays ?? []), ...due] }); // marked first, so a failed send can't repeat every run
+    const o = byOwner.get(item.ownerUid) ?? { lines: [], urgent: false };
+    o.lines.push(`- ${workReminderLine(item, today)}`);
+    o.urgent ||= due.some((n) => n <= 1);
+    byOwner.set(item.ownerUid, o);
+  }
+  let sent = 0;
+  for (const [uid, o] of Array.from(byOwner.entries())) {
+    const head = o.lines.length === 1 ? "A deadline on your work:" : `${o.lines.length} deadlines on your work:`;
+    await deps.bell(uid, `${head} ${o.lines.map((l) => l.slice(2)).join("; ")}`.slice(0, 280)).catch(() => {});
+    if (o.urgent) {
+      const to = await deps.emailOf(uid).catch(() => null);
+      if (to) await deps.email(to, { subject: o.lines.length === 1 ? `Deadline: ${o.lines[0].slice(2)}` : `${o.lines.length} work deadlines`, text: `${head}\n\n${o.lines.join("\n")}\n\nOpen the team hub to update them.`, label: "Open the team hub", url: `${siteUrl()}/admin/team` }).catch(() => {});
+    }
+    sent++;
+  }
+  return sent;
+}
 
 // From 07:00 Lagos time, once a day: every team member gets one summary (email and/or bell, as they chose) of their day, the decisions and blockers
 // waiting on the team, the review queues, milestones and today's meetings. Nothing is sent to someone with nothing to read. Returns how many went.
