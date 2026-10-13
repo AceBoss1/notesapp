@@ -11,6 +11,20 @@ export type Release = {
 
 export const CHANGELOG: Release[] = [
   {
+    version: "v0.23.0",
+    bump: "minor",
+    date: "2026-10-12",
+    changes: [
+      { kind: "added", text: "The app address (app.notesapp.name.ng) now signs you in and creates your account right on its welcome screen, with no pop-up and no trip to another site, and stays on the app address for Explore, Help, Terms and Privacy." },
+      { kind: "added", text: "A Download button on the welcome screen that knows your device: Download on mobile on a phone or tablet, Download on PC on Windows, Download on Mac on a Mac. It opens /install with the steps for your phone, tablet or computer and your browser, and a one-click install where your browser offers it." },
+      { kind: "added", text: "Drag and drop, and paste, for pictures and files: in messages, store item photos and files, journal and note editors, your profile picture and ads." },
+      { kind: "added", text: "An eye button on every password field (sign up, sign in, changing your password) to show or hide what you typed." },
+      { kind: "added", text: "An organisation's admins can add and edit the organisation's store items to help the owner. Deleting items, orders and money stay with the owner and members given store access." },
+      { kind: "changed", text: "Store item descriptions can now be up to 1,200 characters (they were 400). Store pages show a short preview and the item page shows all of it." },
+      { kind: "added", text: "For the team: meetings can be set up for a team or chosen people (only they see it), Nana and Granola can suggest the decisions and actions from a meeting for you to approve, and a team member gets the #NotesApp team badge as soon as they are added." },
+    ],
+  },
+  {
     version: "v0.22.2",
     bump: "patch",
     date: "2026-10-11",

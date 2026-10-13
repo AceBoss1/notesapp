@@ -12,6 +12,14 @@ export const metadata: Metadata = {
 
 const ITEMS: { title: string; tag: string; body: string; detail: string; link?: { href: string; label: string } }[] = [
   {
+    title: "Install NotesApp on your phone or computer",
+    tag: "App",
+    body: "Live now: the app address (app.notesapp.name.ng) has its own welcome screen with sign-in and sign-up built in, and a Download button that says Download on mobile, PC or Mac and opens the steps for your device. Next: working offline for reading, and push notifications on installed apps.",
+    detail:
+      "NotesApp installs from your browser: Add to Home Screen on iPhone and Android, Install in Chrome or Edge on a computer, Add to Dock in Safari on a Mac. No store and nothing extra to download. The install page at /install shows the steps for the device and browser you are using.",
+    link: { href: "/install", label: "How to install →" },
+  },
+  {
     title: "More networks for social publishing",
     tag: "Social",
     body: "Live now: connect LinkedIn and X once and publish an excerpt from your own post, with a link back to the full journal on #NotesApp. You see and can change the words first (Nana can write them for you), and nothing goes out until you press Post. Facebook, Instagram and TikTok follow, each on its own rules.",
@@ -251,7 +259,7 @@ export default function RoadmapPage() {
         <p className="mt-3 text-slate">
           Live: stores sell through #NotesApp checkout only — buyers pay here, the money is held until they confirm delivery (or 7 days after it&apos;s marked delivered),
           stock is managed (reserved while a buyer pays, sold-out items can&apos;t be ordered, &ldquo;Notify me&rdquo; alerts land in the bell), every parcel gets a tracking ID with courier
-          details or a bike/bus/park hand-off log, and an organisation&apos;s owner can give team members store access. Next: courier tracking pulled in automatically.
+          details or a bike/bus/park hand-off log, and an organisation&apos;s owner can give team members store access (admins can add and edit items without it). Next: courier tracking pulled in automatically.
         </p>
         <Link href="/store-selling" className="mt-4 inline-block text-sm text-crimson underline underline-offset-2">
           How selling works →

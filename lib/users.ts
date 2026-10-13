@@ -127,6 +127,7 @@ export type UserProfile = {
   trialTier?: AccountTier;
   trialUsedAt?: string;
   usernameChangedAt?: string; // set by /api/account/username
+  roleFromAccess?: boolean; // the staff role (and so the team badge) came from team access; removing access takes it back (lib/admin-access-server.ts)
   previousUsername?: string;
 };
 

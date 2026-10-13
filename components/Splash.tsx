@@ -11,6 +11,9 @@ import { challengePromoActive } from "@/lib/challenge-promo";
 import ChallengePanel from "@/components/ChallengePanel";
 import LoginForm from "@/components/LoginForm";
 import SignupFlow from "@/components/SignupFlow";
+import { COMPANY_INFO } from "@/lib/site";
+import { useDevice } from "@/lib/use-device";
+import { downloadIcon, downloadLabel, isMobile } from "@/lib/visitor-device";
 
 const MAIN = `https://${MAIN_HOST}`;
 
@@ -23,6 +26,7 @@ export default function Splash() {
   const [view, setView] = useState<"signin" | "signup">("signin");
   const [onboarding, setOnboarding] = useState(false); // the account is being made: don't redirect until the follow step is done
   const hold = useRef(false);
+  const device = useDevice(); // wording of the download button: mobile, PC or Mac
   const [promo, setPromo] = useState<boolean | null>(null); // decided in an effect so server and browser render the same first
   useEffect(() => setPromo(challengePromoActive()), []);
 
@@ -48,11 +52,19 @@ export default function Splash() {
         <span className="font-ui text-xl font-extrabold tracking-tight text-paper">Notes<span className="text-[#FFB3C6]">App</span></span>
       </span>
       <nav className="flex items-center gap-5 font-ui text-sm font-semibold text-paper/90" aria-label="More about #NotesApp">
-        <Link href="/install" className="rounded-full border border-paper/50 px-3.5 py-1.5 hover:bg-paper/10">📱 Download on mobile</Link>
-        <a href={`${MAIN}/journals`} className="hover:underline">Explore</a>
+        <Link href="/install" className="rounded-full border border-paper/50 px-3.5 py-1.5 hover:bg-paper/10">{downloadIcon(device)} {downloadLabel(device)}</Link>
+        <Link href="/journals" className="hover:underline">Explore</Link>
         <a href={`${MAIN}/pricing`} className="hover:underline">Pricing</a>
-        <a href={`${MAIN}/help`} className="hover:underline">Help</a>
+        <Link href="/help" className="hover:underline">Help</Link>
       </nav>
+    </div>
+  );
+
+  // Bottom left of the screen: copyright and the company's registration details (the same lines as the main site's footer).
+  const legal = (
+    <div className="relative px-6 pb-5 pt-2 text-left font-mono text-[11px] leading-relaxed text-paper/70 lg:px-8">
+      <p>© {new Date().getFullYear()} #NotesApp. All rights reserved.</p>
+      <p className="mt-0.5">{COMPANY_INFO.legalName} · RC {COMPANY_INFO.rcNumber} · TIN {COMPANY_INFO.tin}</p>
     </div>
   );
 
@@ -60,7 +72,7 @@ export default function Splash() {
     <div className="md:grid md:min-h-screen md:grid-cols-2">
       <aside className="hidden md:block">
         {promo === true ? (
-          <ChallengePanel variant="panel" base={MAIN}>{top}</ChallengePanel>
+          <ChallengePanel variant="panel" base={MAIN} footer={legal}>{top}</ChallengePanel>
         ) : (
           <div className="flex min-h-screen flex-col text-paper" style={{ backgroundImage: "linear-gradient(135deg, #4E0119 0%, #7A0328 100%)" }}>
             {top}
@@ -68,6 +80,7 @@ export default function Splash() {
               <p className="font-display text-5xl">Publish. Book. Get paid.</p>
               <p className="mx-auto mt-4 max-w-sm text-lg text-paper/85">A home for African creators, professionals and businesses, in Naira.</p>
             </div>
+            {legal}
           </div>
         )}
       </aside>
@@ -96,10 +109,14 @@ export default function Splash() {
           </div>
           <p className="mt-6 text-xs text-slate">
             By continuing you agree to the{" "}
-            <a href={`${MAIN}/terms`} className="underline">Terms</a> and{" "}
-            <a href={`${MAIN}/privacy`} className="underline">Privacy Policy</a>.
+            <Link href="/terms" className="underline">Terms</Link> and{" "}
+            <Link href="/privacy" className="underline">Privacy Policy</Link>.
           </p>
-          <p className="mt-3 text-xs md:hidden"><Link href="/install" className="font-semibold text-crimson underline">Install NotesApp on your phone</Link></p>
+          <div className="mt-6 text-[11px] leading-relaxed text-slate md:hidden">
+            <p>© {new Date().getFullYear()} #NotesApp. All rights reserved.</p>
+            <p>{COMPANY_INFO.legalName} · RC {COMPANY_INFO.rcNumber} · TIN {COMPANY_INFO.tin}</p>
+          </div>
+          <p className="mt-3 text-xs md:hidden"><Link href="/install" className="font-semibold text-crimson underline">{device && !isMobile(device) ? "Install NotesApp on your computer" : "Install NotesApp on your phone"}</Link></p>
         </div>
       </main>
     </div>

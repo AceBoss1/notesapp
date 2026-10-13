@@ -5,7 +5,7 @@ import { CHALLENGE_PROMO } from "@/lib/challenge-promo";
 // The #1MillionNairaNotesAppChallenge announcement, in crimson: the words and numbers on the left, the campaign artwork and Nana on the
 // right, with a giant faded ₦10m behind. Used as the home-page hero ("hero") and as the left half of the app welcome screen ("panel").
 // `base` is put in front of the links (the app address links to the main site).
-export default function ChallengePanel({ variant = "hero", base = "", children }: { variant?: "hero" | "panel"; base?: string; children?: React.ReactNode }) {
+export default function ChallengePanel({ variant = "hero", base = "", children, footer }: { variant?: "hero" | "panel"; base?: string; children?: React.ReactNode; footer?: React.ReactNode }) {
   const href = `${base}${CHALLENGE_PROMO.href}`;
   const panel = variant === "panel";
   return (
@@ -32,6 +32,7 @@ export default function ChallengePanel({ variant = "hero", base = "", children }
           {!panel && <Image src="/images/nana/nana.webp" alt="" aria-hidden width={320} height={320} className="relative z-0 mx-auto -mt-10 h-52 w-52 object-contain drop-shadow-2xl sm:h-64 sm:w-64" />}
         </a>
       </div>
+      {footer}
     </section>
   );
 }

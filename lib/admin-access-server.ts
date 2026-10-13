@@ -1,5 +1,5 @@
 import { getAuth } from "firebase-admin/auth";
-import type { Firestore } from "firebase-admin/firestore";
+import { FieldValue, type Firestore } from "firebase-admin/firestore";
 import { getAdminApp, isOwnerEmail } from "./firebase-admin";
 import { notifyBell } from "./email";
 import { ADMIN_PROFILES } from "./admin";
@@ -11,6 +11,10 @@ import { DEPT_LABEL, accessFromClaims, isDept, type Access, type Dept } from "./
 //   - Nobody can change the owner's access, and nobody can change their own.
 //   - The person must already have a #NotesApp account (they sign up first, then are appointed by their email).
 // The role lives in the account's custom claims (see lib/admin-access.ts), so the API routes and the Firestore rules can both read it.
+
+// The #NotesApp team badge and the ✔ come from an internal role on the profile (lib/users.ts isVerifiedProfile). Adding someone to the team gives them the "staff"
+// role at once (unless they already have an internal role), marked roleFromAccess so that removing their access takes the badge away again.
+const INTERNAL_ROLES = ["admin", "staff", "volunteer"];
 
 export class AccessChangeError extends Error {
   constructor(public status: number, message: string) { super(message); }
@@ -41,6 +45,8 @@ export async function staffAccounts(): Promise<{ uid: string; email: string; acc
 export async function listStaff(db: Firestore): Promise<StaffPerson[]> {
   const rows = await staffAccounts();
   const docs = rows.length ? await db.getAll(...rows.map((r) => db.doc(`users/${r.uid}`))) : [];
+  // Anyone already on the team without an internal role (added before the badge followed access) gets it now, once.
+  docs.forEach((d) => { const role = d.data()?.role; if (d.exists && role && !INTERNAL_ROLES.includes(String(role))) void d.ref.set({ role: "staff", roleFromAccess: true }, { merge: true }).catch(() => {}); });
   return rows
     .map((r, i) => {
       const d = docs[i].data();
@@ -82,7 +88,14 @@ export async function changeAccess(db: Firestore, caller: Caller, input: Change,
   // Taking access away (or narrowing it) ends their sessions, so it applies on the next request instead of when their token runs out.
   const narrowed = role === "none" || (current?.role === "super" && role === "admin") || (current?.role === "admin" && role === "admin" && current.depts.some((d) => !depts.includes(d)));
   if (narrowed) await auth.revokeRefreshTokens(target.uid).catch(() => {});
-  if (role !== "none") await db.doc(`users/${target.uid}`).set({ accountTier: "business" }, { merge: true }).catch(() => {}); // staff can publish
+  const userRef = db.doc(`users/${target.uid}`);
+  const ud = (await userRef.get().catch(() => null))?.data();
+  if (role !== "none") {
+    // staff can publish, and wear the team badge from now on
+    await userRef.set({ accountTier: "business", ...(INTERNAL_ROLES.includes(String(ud?.role)) ? {} : { role: "staff", roleFromAccess: true }) }, { merge: true }).catch(() => {});
+  } else if (ud?.roleFromAccess === true) {
+    await userRef.set({ role: "reader", roleFromAccess: FieldValue.delete() }, { merge: true }).catch(() => {});
+  }
   clearStaffCache();
 
   const before = current ? describe(current.role, current.depts) : "no access", after = describe(role, depts);
