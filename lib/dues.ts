@@ -16,14 +16,18 @@ export type Due = {
   source: "manual" | "grant";
   grantId?: string;
   paidEntryId?: string;
+  assigneeUid?: string; // the staff member who must make the payment
+  assigneeName?: string;
+  assigneeEmail?: string;
+  payBy?: string; // the assignee's own deadline (on or before dueOn); reminders follow this date when it is set
   remindedDays: number[]; // thresholds already sent; -1 = the overdue notice
   createdAt: string;
   createdByEmail: string;
 };
 export const DUE_REMIND_DAYS = [14, 7, 3, 1, 0];
-export type DueInput = { title?: unknown; party?: unknown; amount?: unknown; dueOn?: unknown; category?: unknown; note?: unknown };
+export type DueInput = { assigneeUid?: unknown; payBy?: unknown; title?: unknown; party?: unknown; amount?: unknown; dueOn?: unknown; category?: unknown; note?: unknown };
 
-export function cleanDue(input: DueInput, today: string): Pick<Due, "title" | "party" | "amountKobo" | "dueOn" | "category" | "note"> {
+export function cleanDue(input: DueInput, today: string): Pick<Due, "title" | "party" | "amountKobo" | "dueOn" | "category" | "note"> & { payBy?: string } {
   const title = String(input.title ?? "").trim().slice(0, 120);
   if (!title) throw new FinanceError("Say what is due.");
   const dueOn = /^\d{4}-\d{2}-\d{2}$/.test(String(input.dueOn ?? "")) && !Number.isNaN(Date.parse(`${input.dueOn}T12:00:00Z`)) ? String(input.dueOn) : "";
@@ -33,21 +37,32 @@ export function cleanDue(input: DueInput, today: string): Pick<Due, "title" | "p
   if (raw && amountKobo <= 0) throw new FinanceError("Enter the amount in naira, for example 12500, or leave it empty if you don't know it yet.");
   if (amountKobo > MAX_AMOUNT_KOBO) throw new FinanceError("That amount looks too large. Check for an extra zero.");
   const category = CATEGORIES.expense.some((c) => c.key === input.category) ? String(input.category) : "other_expense";
-  void today;
-  return { title, party: String(input.party ?? "").trim().slice(0, 80), amountKobo, dueOn, category, note: String(input.note ?? "").trim().slice(0, 300) };
+  const rawBy = String(input.payBy ?? "").trim();
+  let payBy: string | undefined;
+  if (rawBy) {
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(rawBy) || Number.isNaN(Date.parse(`${rawBy}T12:00:00Z`))) throw new FinanceError("Pick a valid pay-by date.");
+    if (rawBy > dueOn) throw new FinanceError("The pay-by date can't be after the date it is due.");
+    if (rawBy < today) throw new FinanceError("The pay-by date can't be in the past.");
+    payBy = rawBy;
+  }
+  return { title, party: String(input.party ?? "").trim().slice(0, 80), amountKobo, dueOn, category, note: String(input.note ?? "").trim().slice(0, 300), ...(payBy ? { payBy } : {}) };
 }
 
 // Thresholds newly reached (or -1 once it is overdue) for an open item.
-export function dueReminders(d: Pick<Due, "status" | "dueOn" | "remindedDays">, today: string): number[] {
+// The date reminders count down to: the assignee's pay-by date when there is one, otherwise the date it is due.
+export const deadlineOf = (d: Pick<Due, "dueOn" | "payBy">) => d.payBy || d.dueOn;
+
+export function dueReminders(d: Pick<Due, "status" | "dueOn" | "remindedDays"> & { payBy?: string }, today: string): number[] {
   if (d.status !== "open") return [];
-  const left = daysLeft(d.dueOn, today);
+  const left = daysLeft(deadlineOf(d), today);
   if (left < 0) return d.remindedDays.includes(-1) ? [] : [-1];
   return DUE_REMIND_DAYS.filter((n) => left <= n && !d.remindedDays.includes(n));
 }
 
-export function dueText(d: Pick<Due, "title" | "party" | "dueOn" | "amountKobo">, left: number, money: (k: number) => string): string {
+export function dueText(d: Pick<Due, "title" | "party" | "dueOn" | "amountKobo"> & { payBy?: string }, left: number, money: (k: number) => string): string {
   const amt = d.amountKobo ? ` (${money(d.amountKobo)})` : "";
-  const when = left < 0 ? `was due on ${d.dueOn}` : left === 0 ? "is due today" : left === 1 ? "is due tomorrow" : `is due in ${left} days (${d.dueOn})`;
+  const day = deadlineOf(d);
+  const when = left < 0 ? `was due on ${day}` : left === 0 ? "is due today" : left === 1 ? "is due tomorrow" : `is due in ${left} days (${day})`;
   return `${d.title}${d.party ? ` to ${d.party}` : ""}${amt} ${when}.`;
 }
 

@@ -11,6 +11,16 @@ export type Release = {
 
 export const CHANGELOG: Release[] = [
   {
+    version: "v0.25.0",
+    bump: "minor",
+    date: "2026-10-13",
+    changes: [
+      { kind: "added", text: "Messages: each open conversation now starts with the person's picture, their name with badges beside it, and their online status below. A small arrow opens a menu: view profile, view moments, create a group, mute notifications, block and report. Mute turns off the bell, push and email for that one conversation." },
+      { kind: "added", text: "Groups look like a channel at the top, with the group picture and the number of members. Group admins can set the group picture, switch member messages off (only admins can write) and on again, and ban people who misbehave, then unban them later." },
+      { kind: "added", text: "For the team: a staff library (SOPs, the employee handbook, policies and templates, with \"I have read this\" confirmations), a message hub for staff messages with To, Cc, files and an optional email copy, an assignee and pay-by date on every payment due, and a Payroll page for finance." },
+    ],
+  },
+  {
     version: "v0.24.0",
     bump: "minor",
     date: "2026-10-13",

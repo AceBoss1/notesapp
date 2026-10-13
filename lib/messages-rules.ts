@@ -10,7 +10,7 @@ export const conversationId = (a: string, b: string) => [a, b].sort().join("_");
 export const GROUP_TITLE_MAX = 60;
 export const GROUP_MEMBERS_MAX = 50;
 export type GroupScope = "public" | "team";
-export type GroupInfo = { title: string; scope: GroupScope; memberUids: string[]; adminUids: string[]; createdBy: string; meetingId?: string };
+export type GroupInfo = { title: string; scope: GroupScope; memberUids: string[]; adminUids: string[]; createdBy: string; meetingId?: string; avatar?: string; sendLocked?: boolean; bannedUids?: string[] };
 // A group's id never looks like the two-uids id of a direct conversation.
 export const newGroupId = (rand: string) => `g_${rand}`;
 export const isGroupId = (id: string) => id.startsWith("g_") || id.startsWith("meeting_") || id === "team_room";

@@ -2,13 +2,13 @@ import { NextRequest, NextResponse } from "next/server";
 import { getAdminDb } from "@/lib/firebase-admin";
 import { rateLimit } from "@/lib/rate-limit";
 import { MessageError } from "@/lib/messages-server";
-import { addGroupMembers, removeGroupMember, renameGroup, setGroupAdmin } from "@/lib/groups-server";
+import { addGroupMembers, banGroupMember, removeGroupMember, renameGroup, setGroupAdmin, setGroupAvatar, setSendLocked } from "@/lib/groups-server";
 import { authed, fail } from "@/lib/moments-api";
 
 export const dynamic = "force-dynamic";
 
 // POST { action: "rename", title } | { action: "add", usernames } | { action: "remove", uid } (an admin removes someone) | { action: "leave" } |
-// { action: "admin", uid, admin: boolean }
+// { action: "admin", uid, admin: boolean } | { action: "avatar", url } | { action: "lock", locked } (only admins can write) | { action: "ban", uid, ban }
 export async function POST(req: NextRequest, { params }: { params: { id: string } }) {
   try {
     const me = await authed(req, "messages", true);
@@ -28,6 +28,9 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
       case "remove": await removeGroupMember(db, me.uid, params.id, String(body.uid ?? "")); break;
       case "leave": await removeGroupMember(db, me.uid, params.id, me.uid); break;
       case "admin": await setGroupAdmin(db, me.uid, params.id, String(body.uid ?? ""), body.admin === true); break;
+      case "avatar": await setGroupAvatar(db, me.uid, params.id, body.url); break;
+      case "lock": await setSendLocked(db, me.uid, params.id, body.locked === true); break;
+      case "ban": await banGroupMember(db, me.uid, params.id, String(body.uid ?? ""), body.ban !== false); break;
       default: throw new MessageError(400, "Unknown action.");
     }
     return NextResponse.json({ ok: true });

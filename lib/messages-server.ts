@@ -22,6 +22,22 @@ export class MessageError extends Error {
 }
 
 // What happens besides the bell when a burst of messages starts. Injected so it can be tested.
+// Muting one conversation: no bell, push or email for new messages in it. Server-only (convMutes/{uid}_{cid}).
+export async function setMute(db: Firestore, uid: string, cid: string, muted: boolean): Promise<void> {
+  const conv = (await db.doc(`conversations/${cid}`).get()).data();
+  if (!conv || !(conv.participants as string[]).includes(uid)) throw new MessageError(404, "That conversation wasn't found.");
+  const ref = db.doc(`convMutes/${uid}_${cid}`);
+  if (muted) await ref.set({ uid, cid, at: new Date().toISOString() }); else await ref.delete();
+}
+export async function isMuted(db: Firestore, uid: string, cid: string): Promise<boolean> {
+  return (await db.doc(`convMutes/${uid}_${cid}`).get()).exists;
+}
+export async function mutedAmong(db: Firestore, uids: string[], cid: string): Promise<Set<string>> {
+  if (!uids.length) return new Set();
+  const snaps = await db.getAll(...uids.map((u) => db.doc(`convMutes/${u}_${cid}`)));
+  return new Set(snaps.filter((s) => s.exists).map((s) => String(s.data()?.uid)));
+}
+
 export type Alerts = {
   email: (toUid: string, mail: { subject: string; text: string; label: string; url: string }) => Promise<void>;
   push: (toUid: string, payload: PushPayload) => Promise<number>;
@@ -157,7 +173,7 @@ export async function sendMessage(db: Firestore, fromUid: string, toUid: string,
   for (const id of ids) await db.doc(`messageUploads/${id}`).update({ used: true }).catch(() => {});
   // One bell, one push and (at most hourly, unless switched off) one email per burst: nothing new while the last message is still
   // unread. None of them carries what was written, only who it's from.
-  if (prevUnread === 0) {
+  if (prevUnread === 0 && !(await isMuted(db, toUid, cid))) {
     const name = String(from.data()?.displayName ?? "A member");
     const what = input.moment ? `${name} replied to your moment` : `New message from ${name}`;
     await notify({ uid: toUid, type: input.moment ? "moment" : "message", linkHref: `/messages/${cid}`, message: what }).catch(() => {});
@@ -226,7 +242,7 @@ export async function getThread(db: Firestore, uid: string, cid: string, now = n
 }
 
 export function groupInfoOf(conv: FirebaseFirestore.DocumentData): GroupInfo {
-  return { title: String(conv.title ?? "Group"), scope: conv.scope === "team" ? "team" : "public", memberUids: conv.participants as string[], adminUids: (conv.adminUids as string[] | undefined) ?? [], createdBy: String(conv.createdBy ?? ""), ...(conv.meetingId ? { meetingId: String(conv.meetingId) } : {}) };
+  return { title: String(conv.title ?? "Group"), scope: conv.scope === "team" ? "team" : "public", memberUids: conv.participants as string[], adminUids: (conv.adminUids as string[] | undefined) ?? [], createdBy: String(conv.createdBy ?? ""), ...(conv.meetingId ? { meetingId: String(conv.meetingId) } : {}), ...(conv.avatar ? { avatar: String(conv.avatar) } : {}), ...(conv.sendLocked === true ? { sendLocked: true } : {}), bannedUids: (conv.bannedUids as string[] | undefined) ?? [] };
 }
 
 // Total unread across conversations (the number beside "Messages" in the menu).
