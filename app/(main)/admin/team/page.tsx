@@ -182,7 +182,7 @@ export default function AdminTeamPage() {
   const [nana, setNana] = useState(false); // the Ask Nana panel
   const [data, setData] = useState<Data | null>(null);
   const [error, setError] = useState("");
-  const [mineOnly, setMineOnly] = useState(false);
+  const [whose, setWhose] = useState(""); // "" = everyone, otherwise a person's uid (yours = "Assigned to me")
   const [quick, setQuick] = useState({ title: "", horizon: "today" as Horizon, ownerUid: "" });
   const [showMs, setShowMs] = useState(false);
   const [ms, setMs] = useState({ title: "", metric: "registered" as MetricKey, mode: "gain", target: "", startsOn: "", endsOn: "", ownerUid: "", note: "" });
@@ -211,7 +211,8 @@ export default function AdminTeamPage() {
   }, [call, load]);
 
   const fetchComments = useCallback(async (id: string) => (await call(undefined, `?comments=${encodeURIComponent(id)}`)).comments as TeamComment[], [call]);
-  const visible = useMemo(() => (data ? data.items.filter((i) => !mineOnly || i.ownerUid === data.me) : []), [data, mineOnly]);
+  const visible = useMemo(() => (data ? data.items.filter((i) => !whose || (whose === "none" ? !i.ownerUid : i.ownerUid === whose)) : []), [data, whose]);
+  const allOverdue = useMemo(() => (data ? groupItems(data.items, data.today).overdue : []), [data]);
   const g = useMemo(() => (data ? groupItems(visible, data.today) : null), [data, visible]);
 
   if (loading || !user) return <div className="px-6 py-24 text-center text-slate">Loading…</div>;
@@ -244,10 +245,28 @@ export default function AdminTeamPage() {
           <Link href="/admin/team/library" className="btn-ghost !px-4 !py-2 text-xs">Staff library →</Link>
           {hasAnyDept(access, ["finance"]) && <Link href="/admin/team/payroll" className="btn-ghost !px-4 !py-2 text-xs">Payroll →</Link>}
           {hasAnyDept(access, ["finance", "product"]) && <Link href="/admin/team/finance" className="btn-ghost !px-4 !py-2 text-xs">Money ledger →</Link>}
-          <label className="flex items-center gap-2"><input type="checkbox" checked={mineOnly} onChange={(e) => setMineOnly(e.target.checked)} /> Only mine</label>
+          <label className="flex items-center gap-2">Show
+            <select value={whose} onChange={(e) => setWhose(e.target.value)} className="rounded-lg border border-rule bg-card px-2 py-1 text-xs text-ink">
+              <option value="">Everyone&apos;s work</option>
+              <option value={data.me}>Assigned to me</option>
+              {people.filter((p) => p.uid !== data.me).map((p) => <option key={p.uid} value={p.uid}>Assigned to {p.name.split(" ")[0]}</option>)}
+              <option value="none">Not assigned</option>
+            </select>
+          </label>
         </span>
       </div>
       {error && <p className="mt-3 text-sm text-crimson">{error}</p>}
+      {allOverdue.length > 0 && (
+        <div className="mt-4 flex flex-wrap items-center gap-2 rounded-xl border border-crimson/30 bg-crimson/5 p-3 text-xs" role="status">
+          <span className="font-semibold text-crimson">{allOverdue.length} overdue across the team:</span>
+          {Array.from(allOverdue.reduce((m, i) => m.set(i.ownerUid, (m.get(i.ownerUid) ?? 0) + 1), new Map<string, number>())).map(([uid, n]) => (
+            <button key={uid || "none"} type="button" onClick={() => setWhose(uid || "none")} className={`rounded-full border px-2.5 py-0.5 font-semibold ${whose === (uid || "none") ? "border-crimson bg-crimson text-paper" : "border-crimson/40 text-crimson hover:bg-crimson/10"}`}>
+              {uid ? (uid === data.me ? "You" : people.find((p) => p.uid === uid)?.name.split(" ")[0] ?? "Someone") : "Not assigned"} · {n}
+            </button>
+          ))}
+          {whose && <button type="button" onClick={() => setWhose("")} className="ml-auto text-slate underline">Show everyone</button>}
+        </div>
+      )}
       {nana && (
         <div className="mt-5 overflow-hidden rounded-xl border border-rule" role="region" aria-label="Ask Nana">
           <NanaPanel context="hub" onClose={() => setNana(false)} className="h-[520px]" />

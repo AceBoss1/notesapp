@@ -24,6 +24,9 @@ import { isMomentExpired } from "@/lib/moments-rules";
 import ReportDialog from "@/components/moments/ReportDialog";
 import GroupAvatar from "./GroupAvatar";
 import ThreadHeader from "./ThreadHeader";
+import { placeCall } from "@/components/calls/CallManager";
+import { CALLS_LIVE } from "@/lib/moments-rules";
+import { callLogText } from "@/lib/calls";
 import Avatar from "@/components/Avatar";
 import MomentViewer from "@/components/moments/MomentViewer";
 import { MOMENTS_LIVE } from "@/lib/moments-rules";
@@ -137,7 +140,7 @@ export default function Thread({ id, to, embedded = false }: { id?: string; to?:
         const rows: ThreadMessage[] = snap.docs.reverse().map((d) => {
           const m = d.data();
           // A reply to a moment says whether the moment has expired; the moment itself is never in the message.
-          return { id: d.id, from: m.from, text: m.text, createdAt: m.createdAt, ...(m.readAt ? { readAt: m.readAt } : {}), ...(m.sticker ? { sticker: m.sticker } : {}), ...(m.replyTo ? { replyTo: m.replyTo } : {}), ...(m.attachments ? { attachments: (m.attachments as { name: string; size: number; type: string; kind: "image" | "video" | "document" | "audio"; durationSec?: number }[]).map(({ name, size, type, kind, durationSec }) => ({ name, size, type, kind, ...(durationSec ? { durationSec } : {}) })) } : {}), ...(m.momentRef ? { moment: { momentId: m.momentRef.momentId, expired: isMomentExpired(m.momentRef.expiresAt) } } : {}) };
+          return { id: d.id, from: m.from, text: m.text, createdAt: m.createdAt, ...(m.readAt ? { readAt: m.readAt } : {}), ...(m.call ? { call: m.call } : {}), ...(m.sticker ? { sticker: m.sticker } : {}), ...(m.replyTo ? { replyTo: m.replyTo } : {}), ...(m.attachments ? { attachments: (m.attachments as { name: string; size: number; type: string; kind: "image" | "video" | "document" | "audio"; durationSec?: number }[]).map(({ name, size, type, kind, durationSec }) => ({ name, size, type, kind, ...(durationSec ? { durationSec } : {}) })) } : {}), ...(m.momentRef ? { moment: { momentId: m.momentRef.momentId, expired: isMomentExpired(m.momentRef.expiresAt) } } : {}) };
         });
         setMessages(rows);
         // Something new from them while this is open: it's read.
@@ -276,6 +279,16 @@ export default function Thread({ id, to, embedded = false }: { id?: string; to?:
           avatar={<Link href={`/u/${who.username}`}><Avatar src={who.avatar} alt={who.displayName} size={48} square={!!people[who.uid]?.isOrg} /></Link>}
           title={<><Link href={`/u/${who.username}`} className="hover:underline">{people[who.uid]?.name || who.displayName}</Link>{people[who.uid]?.level && <VerifiedBadge size={16} level={people[who.uid]!.level} goldKind={people[who.uid]!.goldKind} />}{people[who.uid]?.team && <TeamBadge size={16} />}</>}
           subtitle={presence.statuses[who.uid] ? <PresenceText status={presence.statuses[who.uid]} /> : <span>@{who.username}</span>}
+          actions={CALLS_LIVE && !blockedByMe ? (
+            <span className="flex items-center gap-1">
+              <button type="button" onClick={() => placeCall({ toUid: who.uid, kind: "audio", name: people[who.uid]?.name || who.displayName, avatar: who.avatar })} aria-label={`Voice call ${who.displayName}`} title="Voice call (free)" className="flex h-9 w-9 items-center justify-center rounded-full text-crimson hover:bg-paper">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M6.6 10.8a15.1 15.1 0 006.6 6.6l2.2-2.2a1 1 0 011-.25 11.4 11.4 0 003.6.57 1 1 0 011 1V20a1 1 0 01-1 1A17 17 0 013 4a1 1 0 011-1h3.5a1 1 0 011 1c0 1.25.2 2.45.57 3.57a1 1 0 01-.25 1z" /></svg>
+              </button>
+              <button type="button" onClick={() => placeCall({ toUid: who.uid, kind: "video", name: people[who.uid]?.name || who.displayName, avatar: who.avatar })} aria-label={`Video call ${who.displayName}`} title="Video call (free)" className="flex h-9 w-9 items-center justify-center rounded-full text-crimson hover:bg-paper">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M4 6h11a2 2 0 012 2v1.6l3.4-2.3A1 1 0 0122 8.1v7.8a1 1 0 01-1.6.8L17 14.4V16a2 2 0 01-2 2H4a2 2 0 01-2-2V8a2 2 0 012-2z" /></svg>
+              </button>
+            </span>
+          ) : undefined}
           items={[
             { label: "View profile", icon: "👤", href: `/u/${who.username}` },
             { label: "View moments", icon: "✨", onClick: viewMoments, hidden: !MOMENTS_LIVE },
@@ -305,6 +318,13 @@ export default function Thread({ id, to, embedded = false }: { id?: string; to?:
             <button type="button" onClick={() => setReportingMsg(msg.id)} className="opacity-80 hover:opacity-100" aria-label="Report this message">Report</button>
           );
           const firstName = (p?: Person) => (p?.name || "").split(" ")[0] || "Member";
+          if (m.call) return (
+            <div key={m.id} className="my-3 flex justify-center">
+              <span className={`rounded-full border px-3 py-1 text-xs ${m.call.outcome === "missed" && !mine ? "border-crimson/40 bg-crimson/5 text-crimson" : "border-rule bg-paper text-slate"}`}>
+                📞 {m.call.outcome === "missed" && mine ? `${m.call.kind === "video" ? "Video" : "Voice"} call · no answer` : callLogText(m.call)} · {stamp(m.createdAt)}
+              </span>
+            </div>
+          );
           return (
             <div key={m.id}>
               {newDay && (

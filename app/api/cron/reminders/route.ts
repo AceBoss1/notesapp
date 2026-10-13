@@ -11,7 +11,7 @@ import { sweepMessageUploads } from "@/lib/messages-server";
 import { deleteObject, privateFilesConfigured } from "@/lib/private-files";
 import { sendReportsDigest, liftExpiredSuspensions } from "@/lib/reports-server";
 import { momentDeps } from "@/lib/moments-api";
-import { sendMorningSummaries } from "@/lib/team-server";
+import { sendMorningSummaries, sendWorkReminders } from "@/lib/team-server";
 import { sendGrantReminders } from "@/lib/grants-server";
 import { sendDueReminders } from "@/lib/dues-server";
 
@@ -82,6 +82,8 @@ export async function GET(req: NextRequest) {
   await job("grantReminders", () => sendGrantReminders(db));
   // Expenses due (bills and renewals entered by finance): 14, 7, 3, 1 and 0 days ahead, and once when overdue.
   await job("dueReminders", () => sendDueReminders(db));
+  // Work board deadlines: to each item's owner 3 days and 1 day before, on the day, and once when overdue.
+  await job("workReminders", () => sendWorkReminders(db));
   await job("reconcilePaylonyPayouts", () => reconcilePaylonyPayouts().then((r) => r.paid + r.failed));
   // Heartbeat read by /status ("Scheduled jobs"); server-only collection, no client rules.
   await db.collection("cronRuns").doc("reminders").set({ at: new Date().toISOString(), ok: failed.length === 0, failed }).catch((e) => console.error("cron heartbeat failed", e));

@@ -71,7 +71,7 @@ export async function POST(req: NextRequest) {
     if (["updateMeeting", "addDecision", "removeDecision", "addMeetingAction", "suggestFromChat", "suggestFromGranola"].includes(String(body.action)) && !canSeeMeeting(await getMeeting(db, id), me, acc.owner)) throw new TeamError("That meeting wasn't found.", 404);
     switch (body.action) {
       case "createItem": return NextResponse.json(await createItem(db, me, body));
-      case "updateItem": await updateItem(db, id, body); break;
+      case "updateItem": await updateItem(db, id, body, me); break;
       case "deleteItem": await deleteItem(db, id); break;
       case "createMilestone": return NextResponse.json(await createMilestone(db, me, body));
       case "deleteMilestone": await deleteMilestone(db, id); break;

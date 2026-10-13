@@ -1,4 +1,5 @@
 import PageHero from "@/components/PageHero";
+import NotesLifeCard from "@/components/NotesLifeCard";
 import ProgramThanks from "@/components/ProgramThanks";
 import Image from "next/image";
 import { PartnersStrip, TrustedByStrip } from "@/components/PartnerMarquees";
@@ -67,6 +68,7 @@ export default async function AboutPage() {
           className="h-auto w-full"
         />
       </div>
+      <NotesLifeCard className="mt-10" />
 
       <div className="prose prose-lg mt-10 max-w-none font-body text-ink">
         <p>

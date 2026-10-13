@@ -26,6 +26,7 @@ export type TeamItem = {
   updatedAt: string;
   doneAt: string;
   meetingId?: string; // the meeting it came out of, if any
+  remindedDays?: number[]; // deadline reminders already sent to the owner for the current due date (-1 = the overdue one)
   commentCount?: number;
 };
 
@@ -90,6 +91,22 @@ export function statusEffects(next: Status, prev: Status | null, now: string): P
 
 export const isOpen = (i: TeamItem) => i.status !== "done";
 export const isOverdue = (i: TeamItem, today: string) => isOpen(i) && !!i.due && i.due < today;
+
+// Deadline reminders to the person a work item is assigned to: 3 days and 1 day before, on the day, then once when it is overdue.
+export const WORK_REMIND_DAYS = [3, 1, 0];
+const dayDiff = (from: string, to: string) => Math.round((Date.parse(`${to}T12:00:00Z`) - Date.parse(`${from}T12:00:00Z`)) / 86_400_000);
+export function workReminders(i: Pick<TeamItem, "status" | "due" | "ownerUid" | "remindedDays">, today: string): number[] {
+  if (i.status === "done" || !i.due || !i.ownerUid) return [];
+  const sent = i.remindedDays ?? [];
+  const left = dayDiff(today, i.due);
+  if (left < 0) return sent.includes(-1) ? [] : [-1];
+  const due = WORK_REMIND_DAYS.filter((n) => left <= n && !sent.includes(n));
+  return due.length ? due : [];
+}
+export function workReminderLine(i: Pick<TeamItem, "title" | "due">, today: string): string {
+  const left = dayDiff(today, i.due);
+  return `${i.title}: ${left < 0 ? `overdue since ${i.due}` : left === 0 ? "due today" : left === 1 ? "due tomorrow" : `due in ${left} days (${i.due})`}`;
+}
 
 export type Grouped = {
   decisions: TeamItem[]; // waiting for someone to decide

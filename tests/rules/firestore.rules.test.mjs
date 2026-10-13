@@ -2,7 +2,7 @@
 import { test, before, after, beforeEach } from "node:test";
 import { readFileSync } from "node:fs";
 import { initializeTestEnvironment, assertFails, assertSucceeds } from "@firebase/rules-unit-testing";
-import { doc, getDoc, getDocs, setDoc, updateDoc, deleteDoc, deleteField, collection, query, where, orderBy, limit, serverTimestamp } from "firebase/firestore";
+import { doc, getDoc, getDocs, setDoc, addDoc, updateDoc, deleteDoc, deleteField, collection, query, where, orderBy, limit, serverTimestamp } from "firebase/firestore";
 
 let env;
 before(async () => {
@@ -807,4 +807,26 @@ test("payroll, staff library and message hub collections are server-only", async
     await assertFails(setDoc(doc(as("alice", { admin: true }), path), { a: 1 }));
     await assertFails(getDoc(doc(anon(), path)));
   }
+});
+
+test("calls: only the two people read it; caller writes the offer, callee answers; nobody else", async () => {
+  await env.withSecurityRulesDisabled(async (ctx) => {
+    await setDoc(doc(ctx.firestore(), "calls/c1"), { callerUid: "alice", calleeUid: "pub", kind: "audio", status: "ringing", cid: "alice_pub", createdAt: "x" });
+  });
+  const a = as("alice"), p = as("pub"), x = as("stranger");
+  await assertSucceeds(getDoc(doc(a, "calls/c1")));
+  await assertSucceeds(getDocs(query(collection(p, "calls"), where("calleeUid", "==", "pub"), where("status", "==", "ringing"))));
+  await assertFails(getDoc(doc(x, "calls/c1")));
+  await assertFails(setDoc(doc(a, "calls/c2"), { callerUid: "alice", calleeUid: "pub", status: "ringing" })); // only the server starts calls
+  await assertSucceeds(updateDoc(doc(a, "calls/c1"), { offer: { type: "offer", sdp: "v=0" } }));
+  await assertFails(updateDoc(doc(a, "calls/c1"), { status: "ended" })); // ending goes through the server
+  await assertFails(updateDoc(doc(p, "calls/c1"), { offer: { type: "offer", sdp: "x" } }));
+  await assertFails(updateDoc(doc(x, "calls/c1"), { answer: { type: "answer", sdp: "x" }, status: "accepted", acceptedAt: "t" }));
+  await assertSucceeds(addDoc(collection(a, "calls/c1/callerCandidates"), { candidate: "c" }));
+  await assertFails(addDoc(collection(p, "calls/c1/callerCandidates"), { candidate: "c" }));
+  await assertSucceeds(updateDoc(doc(p, "calls/c1"), { answer: { type: "answer", sdp: "v=0" }, status: "accepted", acceptedAt: "2026-10-13T10:00:00Z" }));
+  await assertSucceeds(addDoc(collection(p, "calls/c1/calleeCandidates"), { candidate: "c" }));
+  await assertFails(getDocs(collection(x, "calls/c1/calleeCandidates")));
+  await env.withSecurityRulesDisabled(async (ctx) => updateDoc(doc(ctx.firestore(), "calls/c1"), { status: "ended" }));
+  await assertFails(addDoc(collection(a, "calls/c1/callerCandidates"), { candidate: "late" })); // nothing after it ends
 });
