@@ -69,8 +69,8 @@ export default function Splash() {
   );
 
   return (
-    <div className="md:grid md:min-h-screen md:grid-cols-2">
-      <aside className="hidden md:block">
+    <div className="md:grid md:h-screen md:grid-cols-2 md:overflow-hidden">
+      <aside className="hidden md:block md:h-screen md:overflow-y-auto">
         {promo === true ? (
           <ChallengePanel variant="panel" base={MAIN} footer={legal}>{top}</ChallengePanel>
         ) : (
@@ -84,8 +84,8 @@ export default function Splash() {
           </div>
         )}
       </aside>
-      <main className="flex min-h-screen flex-col items-center justify-center bg-paper px-6 text-center md:min-h-0">
-        <div className={`card w-full p-8 md:shadow-[0_30px_60px_-30px_rgba(122,3,40,0.35)] ${view === "signup" ? "max-w-md" : "max-w-sm"}`}>
+      <main className="flex min-h-screen flex-col items-center justify-center bg-paper px-6 text-center md:h-screen md:min-h-0 md:justify-start md:overflow-y-auto md:py-8">
+        <div className={`card w-full p-8 md:my-auto md:shadow-[0_30px_60px_-30px_rgba(122,3,40,0.35)] ${view === "signup" ? "max-w-md" : "max-w-sm"}`}>
           <Image src="/images/brand/notesapp-icon.webp" alt="#NotesApp" width={72} height={72} priority className="mx-auto h-[72px] w-[72px] rounded-2xl" />
           <h1 className="mt-5 font-display text-3xl text-ink">Welcome to <span className="text-crimson">NotesApp</span></h1>
           <p className="mt-2 text-sm text-slate">Publish a note, take a booking, get paid in Naira.</p>
