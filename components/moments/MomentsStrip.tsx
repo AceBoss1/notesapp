@@ -9,6 +9,7 @@ import type { MomentGroup } from "@/lib/moments-server";
 import Avatar from "@/components/Avatar";
 import MomentViewer from "./MomentViewer";
 import MomentComposer from "./MomentComposer";
+import OwnPictureMenu from "./OwnPictureMenu";
 
 type Me = { uid: string; username: string; displayName: string; avatar: string };
 
@@ -29,6 +30,7 @@ export default function MomentsStrip() {
   const [data, setData] = useState<{ groups: MomentGroup[]; me: Me } | null>(null);
   const [viewing, setViewing] = useState<MomentGroup | null>(null);
   const [composing, setComposing] = useState(false);
+  const [menu, setMenu] = useState(false);
   useEffect(() => (MOMENTS_LIVE ? onAuthStateChanged(auth, setUser) : undefined), []);
   const load = useCallback(() => {
     if (!user) return;
@@ -58,7 +60,7 @@ export default function MomentsStrip() {
               </span>
               <span className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/70 to-transparent px-2 pb-2 pt-6 text-xs font-bold text-white">My moments</span>
             </button>
-            <button type="button" onClick={() => setComposing(true)} aria-label="Add a moment" className="absolute left-[34px] top-[34px] flex h-6 w-6 items-center justify-center rounded-full border-2 border-white bg-crimson text-base font-bold leading-none text-white shadow">+</button>
+            <button type="button" onClick={() => setMenu(true)} aria-label="Your profile picture and moments" className="absolute left-[34px] top-[34px] flex h-6 w-6 items-center justify-center rounded-full border-2 border-white bg-crimson text-base font-bold leading-none text-white shadow">+</button>
           </div>
           {others.map((g) => (
             <button key={g.ownerUid} type="button" onClick={() => setViewing(g)} className={tile} aria-label={`View ${g.displayName}'s moments`}>
@@ -73,6 +75,7 @@ export default function MomentsStrip() {
         </div>
       </div>
       {viewing && <MomentViewer key={viewing.ownerUid} moments={viewing.moments} groups={data.groups} onSelectGroup={(g) => setViewing(g)} onClose={() => { setViewing(null); load(); }} onChanged={load} />}
+      {menu && <OwnPictureMenu avatar={data.me.avatar} square={!!mine?.isOrg} hasMoments={!!mine} onViewMoments={() => mine && setViewing(mine)} onAddMoment={() => setComposing(true)} onAvatarChanged={(url) => setData((d) => d && { ...d, me: { ...d.me, avatar: url } })} onClose={() => setMenu(false)} />}
       {composing && <MomentComposer onClose={() => setComposing(false)} onPosted={load} />}
     </section>
   );

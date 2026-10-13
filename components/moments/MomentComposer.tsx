@@ -131,6 +131,7 @@ export default function MomentComposer({ onClose, onPosted }: { onClose: () => v
           <h2 className="font-display text-2xl text-ink">New moment</h2>
           <button onClick={onClose} aria-label="Close" className="px-2 text-2xl leading-none text-slate">×</button>
         </div>
+        <p className="mt-3 rounded-lg border border-amber-300 bg-amber-50 p-3 text-xs text-ink">This shares a <strong>moment</strong>: it shows on your picture for 24 to 72 hours, then disappears. It does <strong>not</strong> change your profile picture. To change that, go to <a href="/profile/edit" className="font-semibold text-crimson underline">Edit profile</a>, or tap + on your picture and choose <em>Update profile picture</em>.</p>
         <div className="mt-4 flex gap-2">{tab("text", "Text")}{tab("image", "Picture")}{tab("video", "Video")}</div>
         {kind !== "text" && (
           <div className="mt-4">
