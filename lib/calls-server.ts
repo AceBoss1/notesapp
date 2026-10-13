@@ -86,11 +86,13 @@ export async function endCall(db: Firestore, uid: string, id: unknown, asked: un
     if (c.status !== "ringing" && c.status !== "accepted") return null; // already over
     const outcome = settleEnd(c.status, (asked === "declined" || asked === "failed" || asked === "missed" ? asked : "ended") as CallEnd, uid === c.calleeUid);
     const seconds = c.status === "accepted" && c.acceptedAt ? Math.max(0, Math.round((now.getTime() - Date.parse(c.acceptedAt)) / 1000)) : 0;
-    t.update(ref, { status: outcome, endedAt: now.toISOString(), endedBy: uid, seconds });
+    // The connection details the two devices swapped (they include network addresses) are only needed while the call is set up.
+    t.update(ref, { status: outcome, endedAt: now.toISOString(), endedBy: uid, seconds, offer: FieldValue.delete(), answer: FieldValue.delete() });
     return { c, outcome, seconds };
   });
   if (!res) return { outcome: null };
   const { c, outcome, seconds } = res;
+  await clearCandidates(db, ref.id).catch(() => {});
   // The call line in the conversation (created if these two have never written to each other).
   const convRef = db.doc(`conversations/${c.cid}`);
   const text = `📞 ${callLogText({ kind: c.kind, outcome, seconds })}`;
@@ -108,6 +110,17 @@ export async function endCall(db: Firestore, uid: string, id: unknown, asked: un
     await deps.push(c.calleeUid, { title: "Missed call", body: c.callerName, url: `/messages/${c.cid}` }).catch(() => 0);
   }
   return { outcome };
+}
+
+// Removes both sides' connection candidates of a finished call (the rules stop new ones once it is over).
+export async function clearCandidates(db: Firestore, id: string) {
+  for (const sub of ["callerCandidates", "calleeCandidates"]) {
+    const snap = await db.collection(`calls/${id}/${sub}`).limit(400).get();
+    if (snap.empty) continue;
+    const b = db.batch();
+    snap.docs.forEach((d) => b.delete(d.ref));
+    await b.commit();
+  }
 }
 
 export type { CallKind };

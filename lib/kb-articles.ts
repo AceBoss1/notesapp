@@ -6,7 +6,7 @@ import { POLICY_TEXT } from "./cancellation";
 import { MAX_CO_AUTHORS, MIN_CO_PERCENT, MIN_LEAD_PERCENT } from "./coauthors";
 import { GOLD_PRICING } from "./gold";
 import { MERCH_DELIVERY_KOBO } from "./merch";
-import { MESSAGES_LIVE, MOMENTS_LIVE } from "./moments-rules";
+import { CALLS_LIVE, MESSAGES_LIVE, MOMENTS_LIVE } from "./moments-rules";
 import { ORG_TRIAL_DAYS } from "./org";
 import { COMPANY_INFO } from "./site";
 import { BADGE_PRICE_KOBO, TIERS, formatPercent } from "./tiers";
@@ -141,11 +141,34 @@ Every ad is reviewed; if we cannot run it you are refunded in full, and impressi
       ? [A("messages-moments-groups", "Messages, group chats and moments", "Publishing and earning", `
 ${MESSAGES_LIVE ? `**Messages:** talk one to one, with bold, italic and underline, sent and read ticks, pictures, videos and documents (how big and how many depends on your plan), voice notes of up to 5 minutes and stickers. You can also drag pictures and files into a conversation, or paste them. You can block or report anyone. Open [Messages](/messages).
 
-At the top of every conversation is the person's picture, their name with any badge, and whether they are online (see [Followers, following and online status](/help/followers-and-online-status)). The phone and camera buttons start a **free voice or video call** with anyone you follow who follows you back (it rings on their phone or computer; calls go straight between the two of you and aren't recorded). Every call leaves a line in the conversation, and a missed call sends a notification. Tap any call line (**Call back**) to call that person again, the same kind of call. Allow your microphone, and camera for video, when your browser asks. The small arrow beside it opens a menu: **View profile**, **View moments**, **Create group**, **Mute notifications** (no bell, push or email for that one conversation until you unmute it), **Block** and **Report**.
+At the top of every conversation is the person's picture, their name with any badge, and whether they are online (see [Followers, following and online status](/help/followers-and-online-status)). ${CALLS_LIVE ? "The phone and camera buttons start a **free voice or video call** with anyone you follow who follows you back; tap **Call back** on any call line to call again (see [Voice and video calls](/help/voice-and-video-calls)). " : ""}The small arrow beside it opens a menu: **View profile**, **View moments**, **Create group**, **Mute notifications** (no bell, push or email for that one conversation until you unmute it), **Block** and **Report**.
 
-**Group chats:** start a group from Messages with up to 50 people you follow or who follow you. The top of a group shows its picture and how many members it has. Group admins can rename it, set the group picture, add and remove people, make others admin, **switch member messages off** (then only admins can write and everyone else can still read) and back on, and **ban** someone who misbehaves: they are removed and can't be added back until an admin unbans them. Anyone can leave or mute a group, and any message from someone else can be reported.` : ""}
+**Group chats:** start a group from Messages with up to 50 people you follow or who follow you. The top of a group shows its picture and how many members it has. Group admins see a **⚙️ Manage** button at the top of the group. From there they can rename it, set the group picture, add and remove people, make others admin, **switch member messages off** (then only admins can write and everyone else can still read) and back on, and **ban** someone who misbehaves: they are removed and can't be added back until an admin unbans them. Admins can also tap **Remove** under any message to take it out of the group: everyone then sees "Message removed by a group admin" in its place, and any files in it are deleted. If you don't see these options, you aren't an admin of that group: the members list marks who is. Anyone can leave or mute a group, and any message from someone else can be reported to #NotesApp; if we act on a report, the message is removed ("Message removed by #NotesApp").` : ""}
 
 ${MOMENTS_LIVE ? `**Moments:** share a picture, a video of up to 90 seconds or a line of text on your profile picture for 24, 48 or 72 hours. Followers see them in the Moments row on [Journals](/journals); you choose whether only followers, or everyone, can see yours. A moment is not your profile picture: to change your picture, tap + on your own picture and choose **Update profile picture**, or go to [Edit profile](/profile/edit).` : ""}`)]
+      : []),
+    ...(CALLS_LIVE
+      ? [A("voice-and-video-calls", "Voice and video calls", "Publishing and earning", `
+**Free voice and video calls** in [Messages](/messages), with anyone you follow who follows you back. No minute limit, on every plan.
+
+**Make a call:** open the conversation and tap the **phone** (voice) or **camera** (video) at the top. It rings on the other person's phone or computer wherever they are on #NotesApp, for up to 45 seconds. During a call you can mute, turn your camera off and on, and end the call.
+
+**Answer:** an incoming call shows a card with **Answer** and **Decline**, with a soft ringtone. If you don't answer, it becomes a missed call.
+
+**Missed calls and Call back:** every call leaves a line in the conversation (for example "Voice call · 3:12", "Missed video call", "Declined voice call"). A missed call also sends a bell and, if you turned them on, a notification on your device. Tap **Call back** on any call line to call that person again, the same kind of call (voice or video). Call back isn't offered in group chats or to someone you've blocked.
+
+**Who you can call:** only people you follow who also follow you, and who haven't blocked you. If you can't call someone, check that you follow each other. Group calls aren't available yet.
+
+**Privacy:** calls go straight between your two devices and are encrypted. On networks that block a direct connection, the call passes through Cloudflare's relay, which can't listen. We never record calls. We keep only a short record (who, voice or video, when, how long, answered or missed), which is deleted with your account. See [Privacy](/privacy).
+
+**If a call won't work:**
+- Allow the **microphone** (and the **camera** for video) when your browser asks. If you said no before, allow it in your browser's site settings or your phone's settings, then try again.
+- "Calls are for people who follow each other": follow each other first.
+- The call rings but doesn't connect, or drops: try another network (Wi-Fi or mobile data), and close other apps using the camera or microphone. Our [Status](/status) page shows whether calls and the relay are working.
+- On iPhone, use Safari or the installed #NotesApp app; on Android, Chrome works best.
+- Calls can't reach emergency services.
+
+Calls are free. Planned: paid calls inside Notes Life (₦5 a minute voice, ₦10 a minute video, from NotesApp Credit), always with the rate shown first. Booked sessions and meetings use a separate video service.`)]
       : []),
     A("followers-and-online-status", "Followers, following and online status", "Publishing and earning", `
 **Followers and following:** under the follower count on every profile are **Followers** and **Following**. Open either to see the people and organisations, 30 at a time. You must be signed in. You can see someone's lists only if they have made their lists visible **and** you have yours visible too; your own lists are always visible to you. Follower counts stay public.

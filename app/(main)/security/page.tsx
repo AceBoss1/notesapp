@@ -28,6 +28,7 @@ const SECTIONS: { title: string; points: string[] }[] = [
       "Uploads are limited by file type and size, and the size is built into the upload link so it can't be exceeded. Executable files are not accepted.",
       "Drafts are private to their author; suspension records and appeals are private to the account and to admins.",
       "Messages can be read only by the two people in the conversation. Pictures, videos, voice notes and documents sent in messages sit in private storage and open only through short-lived links given to those two people.",
+      "Voice and video calls go straight between the two devices and are encrypted on the way (WebRTC, which encrypts every call). On networks that block a direct connection the call passes through Cloudflare's relay, which forwards the encrypted audio and video without being able to listen. We never record calls, and the connection details the two devices exchange are removed when the call ends.",
       "Moments are seen only by the people you allow: your followers by default, or everyone if you choose that in Moments privacy. Blocking someone hides your moments from them, and moments are deleted when their time is up.",
     ],
   },

@@ -242,6 +242,9 @@ export async function eraseAccount(db: Firestore, uid: string, deleteFile: (key:
     ...(await own("socialPosts", "uid", uid)), // what we posted to their LinkedIn / X
     ...(await own("socialStates", "uid", uid)),
     ...(await own("nanaChats", "uid", uid)), // chats with Nana AI while signed in
+    ...(await own("calls", "callerUid", uid)), // call records (who, voice or video, when, how long); the line in the conversation goes with the messages
+    ...(await own("calls", "calleeUid", uid)),
+    ...(await db.doc(`groupCreates/${uid}`).get().then((d) => (d.exists ? [d] : []))), // the last group they started (stops a double tap making two)
     ...(await db.doc(`granolaConnections/${uid}`).get().then((d) => (d.exists ? [d] : []))), // a connected Granola account (encrypted tokens)
     ...(await db.doc(`aiConnections/${uid}`).get().then((d) => (d.exists ? [d] : []))), // the encrypted key of a connected AI account
     ...(await Promise.all(["linkedin", "x"].map((p) => db.doc(`socialConnections/${uid}_${p}`).get()))).filter((d) => d.exists), // their saved access tokens

@@ -11,7 +11,7 @@ import { LIMITS, formatNaira } from "@/lib/booking-time";
 import { limitTable, type LimitTable } from "@/lib/limits";
 import { getAdminDb } from "@/lib/firebase-admin";
 import { getLimitTable } from "@/lib/limits-server";
-import { MESSAGES_LIVE, MOMENTS_LIVE } from "@/lib/moments-rules";
+import { CALLS_LIVE, MESSAGES_LIVE, MOMENTS_LIVE } from "@/lib/moments-rules";
 import { enterpriseFrom, planPrice, planRate, pct, breakEven } from "@/lib/pricing";
 
 export const metadata: Metadata = {
@@ -135,6 +135,11 @@ const ROWS: Row[] = [
     label: "Voice notes",
     show: MESSAGES_LIVE,
     render: (t, L) => `Record and send voice notes of up to ${mins(L.messageVoiceNoteSeconds[t.tier])}`,
+  },
+  {
+    label: "Voice and video calls",
+    show: CALLS_LIVE,
+    render: () => "Free, with no minute limit, to anyone you follow who follows you back",
   },
   {
     label: "Moments",

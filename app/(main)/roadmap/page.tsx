@@ -2,13 +2,13 @@ import Link from "next/link";
 import NotesLifeCard from "@/components/NotesLifeCard";
 import type { Metadata } from "next";
 import { GOLD_KIND_LIVE } from "@/lib/badges";
-import { MESSAGES_LIVE, MOMENTS_LIVE } from "@/lib/moments-rules";
+import { CALLS_LIVE, MESSAGES_LIVE, MOMENTS_LIVE } from "@/lib/moments-rules";
 import PageHero from "@/components/PageHero";
 
 export const metadata: Metadata = {
   title: "Roadmap",
   description:
-    "What's live and what's next for #NotesApp — moments, messages, Nana AI and publishing to LinkedIn and X are live; the team hub, AI notetaker, full white label, Paylony payments, calls and meetings, and more are next. Decided and documented, or under discussion.",
+    "What's live and what's next for #NotesApp — moments, messages, free voice and video calls, Nana AI and publishing to LinkedIn and X are live; the team hub, AI notetaker, full white label, Paylony payments, meetings, and more are next. Decided and documented, or under discussion.",
 };
 
 const ITEMS: { title: string; tag: string; body: string; detail: string; link?: { href: string; label: string } }[] = [
@@ -193,6 +193,7 @@ export default function RoadmapPage() {
               <li>Video on posts — one MP4 or WebM per post (up to 3 minutes and 100 MB), played in our own data-friendly player, with a weekly allowance by plan</li>
               {MOMENTS_LIVE && <li>Moments: a picture, a video or text, with an optional voice-over, on your profile picture for 24, 48 or 72 hours. A video over 90 seconds is split into parts (as many as your plan&apos;s weekly video allowance covers); a bar at the top fills in maroon as each moment plays; followers can like, 🔁 re-share or 💬 reply from the Moments row on the Journals page, you can see who watched, you choose whether only your followers or everyone can see yours, and anyone can block or report</li>}
               {MESSAGES_LIVE && <li>Direct messages with a live inbox: bold, italic and underline, a ✔ when sent and a ✔✔ with the time when read, pictures, videos and documents attached (how big and how many depends on your plan), voice notes of up to 5 minutes and stickers. Notifications on your device (offered when you first use Messages, and on until you turn them off), email on Business and Enterprise (off until you switch it on, at most one an hour), and block and report tools</li>}
+              {CALLS_LIVE && <li>Free voice and video calls in Messages with anyone you follow who follows you back: straight between your two devices, encrypted and never recorded, with a line in the conversation for every call, a notification for a missed one, and Call back on any call line</li>}
               <li><Link href="/nana" className="text-crimson underline">Nana AI</Link> and the <Link href="/help" className="text-crimson underline">help centre</Link>: ask anything about #NotesApp, from every page and from a conversation pinned in Messages, and get writing help in drafts, shares and messages (with your own AI account connected, or ours when switched on)</li>
               <li>Publishing a post to your connected LinkedIn and X from the post itself</li>
               <li>Download your data or delete your account yourself, under Account → Your data</li>
@@ -223,7 +224,7 @@ export default function RoadmapPage() {
               <li>Audio and video meetings, meeting chat (under team discussion)</li>
               {!MOMENTS_LIVE && <li>Moments: pictures, video and text on profile pictures for 24, 48 or 72 hours</li>}
               {!MESSAGES_LIVE && <li>Direct messages</li>}
-              <li>Audio and video calls inside messages (under team discussion)</li>
+              {!CALLS_LIVE && <li>Audio and video calls inside messages</li>}
             </ul>
           </div>
         </div>
@@ -247,17 +248,17 @@ export default function RoadmapPage() {
         <span className="font-mono text-[11px] uppercase tracking-eyebrow text-crimson-bright">
           Under discussion
         </span>
-        <h2 className="mt-2 font-display text-2xl text-ink">Audio and video meetings and calls</h2>
+        <h2 className="mt-2 font-display text-2xl text-ink">Audio and video meetings</h2>
         <p className="mt-3 text-slate">
-          Nothing here is built or decided yet — this is what we&apos;re weighing. The idea is that a booked session can happen inside #NotesApp, and that publishers
-          and organisations can be reached directly from their profiles (direct messages are already live; calls inside them are what&apos;s still being weighed).
+          Nothing here is built or decided yet — this is what we&apos;re weighing. The idea is that a booked session can happen inside #NotesApp.
+          {CALLS_LIVE ? " One-to-one voice and video calls in Messages are already live and free." : ""}
         </p>
         <ul className="mt-4 list-disc space-y-2 pl-5 text-sm text-slate">
           <li><strong className="text-ink">Meetings.</strong> Audio and video sessions powered by Daily, started from a booking: one link, no separate meeting app. Daily&apos;s ready-made call screen already covers the basics below, which we&apos;d confirm before building.</li>
           <li><strong className="text-ink">Transcripts and AI notes.</strong> Optional transcription, with an AI note-taker that joins, writes up the session and reports back to the publisher (and, if they choose, the client). This would work alongside the notetaker connections already described above, not replace them.</li>
           <li><strong className="text-ink">Screen sharing and files.</strong> Screen sharing for presentations, and sharing files in the meeting.</li>
           <li><strong className="text-ink">Meeting chat.</strong> Chat during a meeting, in a group or one-to-one.</li>
-          <li><strong className="text-ink">Calls in messages.</strong> Audio and video calls inside direct message conversations.</li>
+          {!CALLS_LIVE && <li><strong className="text-ink">Calls in messages.</strong> Audio and video calls inside direct message conversations.</li>}
         </ul>
       </div>
 

@@ -28,7 +28,10 @@ export type ThreadMessage = {
   readAt?: string; // when the other person opened it (shown to the sender as a double tick)
   attachments?: AttachmentInfo[];
   call?: { kind: "audio" | "video"; outcome: "declined" | "missed" | "ended" | "failed"; seconds: number }; // a line recording a call (lib/calls.ts)
+  removed?: { by: "admin" | "notesapp"; at: string }; // taken out by a group admin or by #NotesApp after a report: text and files are gone
 };
+
+export const REMOVED_TEXT = { admin: "Message removed by a group admin", notesapp: "Message removed by #NotesApp" } as const;
 
 // ---- Files in messages (images, video, documents). Kept in the private bucket and only handed out, as short-lived links, to the two
 // people in the conversation. How big and how many depends on the plan (lib/limits.ts, set by admins in /admin/limits).

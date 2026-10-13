@@ -9,11 +9,11 @@ import { REPORT_REASON_LABEL, REPORT_URGENT_HOURS, URGENT_REASONS, type ReportRe
 type Report = {
   id: string; kind: "moment" | "conversation"; reason: ReportReason; note: string; createdAt: string; status: string;
   reporter: string; target: string; outcome?: string; mediaUrls: string[];
-  evidence?: { text?: string | null; kind?: string; ownerUsername?: string; hasVoiceOver?: boolean; messages?: { from: string; text: string; createdAt: string }[] };
+  evidence?: { text?: string | null; kind?: string; ownerUsername?: string; hasVoiceOver?: boolean; group?: string; reportedMessageId?: string; messages?: { from: string; text: string; createdAt: string }[] };
 };
 
 // Reports on moments and conversations. Each open report holds a copy of what was reported (and a moment's files) until you
-// resolve it; resolving deletes that copy. "Actioned" also removes a reported moment that is still live.
+// resolve it; resolving deletes that copy. "Actioned" also removes a reported moment that is still live, or the reported message from a group.
 export default function AdminReportsPage() {
   const { user, loading } = useAdminAuth();
   const [status, setStatus] = useState<"open" | "resolved">("open");
@@ -46,7 +46,7 @@ export default function AdminReportsPage() {
 
   async function suspend(r: Report) {
     const len = length[r.id] ?? "1w";
-    if (!window.confirm(`Suspend @${r.target} for ${SUSPENSION_LENGTHS.find((l) => l.id === len)?.label.toLowerCase()}? They are told why (your note, or the report reason), and this report is marked actioned${r.kind === "moment" ? " and the moment removed" : ""}. You can unsuspend them on the Users page.`)) return;
+    if (!window.confirm(`Suspend @${r.target} for ${SUSPENSION_LENGTHS.find((l) => l.id === len)?.label.toLowerCase()}? They are told why (your note, or the report reason), and this report is marked actioned${r.kind === "moment" ? " and the moment removed" : r.evidence?.reportedMessageId ? " and the message removed from the group" : ""}. You can unsuspend them on the Users page.`)) return;
     setError("");
     try { await call("/api/admin/reports", { method: "POST", body: JSON.stringify({ id: r.id, suspend: true, length: len, note: note[r.id] ?? "" }) }); load(); }
     catch (e) { setError(e instanceof Error ? e.message : "Something went wrong"); }
@@ -101,7 +101,7 @@ export default function AdminReportsPage() {
                   {SUSPENSION_LENGTHS.map((l) => <option key={l.id} value={l.id}>{l.label}</option>)}
                 </select>
                 <button onClick={() => suspend(r)} className="rounded border border-red-700 px-3 py-1.5 text-sm font-semibold text-red-700">Suspend @{r.target}</button>
-                <button onClick={() => resolve(r.id, "actioned")} className="btn-primary">Actioned{r.kind === "moment" ? " (removes the moment)" : ""}</button>
+                <button onClick={() => resolve(r.id, "actioned")} className="btn-primary">Actioned{r.kind === "moment" ? " (removes the moment)" : r.evidence?.reportedMessageId ? " (removes the message from the group)" : ""}</button>
               </div>
             ) : <p className="mt-2 text-sm text-slate">Resolved: {r.outcome}</p>}
           </li>

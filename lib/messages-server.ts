@@ -231,6 +231,7 @@ export async function getThread(db: Firestore, uid: string, cid: string, now = n
     const ref = m.momentRef as MomentRef | undefined;
     return {
       id: d.id, from: m.from, text: m.text, createdAt: m.createdAt, ...(m.readAt ? { readAt: m.readAt } : {}), ...(m.sticker ? { sticker: m.sticker } : {}), ...(m.replyTo ? { replyTo: m.replyTo } : {}),
+      ...(m.removed ? { removed: m.removed } : {}), ...(m.call ? { call: m.call } : {}),
       ...(m.attachments ? { attachments: (m.attachments as MessageAttachment[]).map(({ key: _k, ...info }) => info) } : {}),
       // Only whether it has expired — never the moment's content.
       ...(ref ? { moment: { momentId: ref.momentId, expired: isMomentExpired(ref.expiresAt, now) } } : {}),

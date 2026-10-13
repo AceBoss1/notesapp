@@ -2,13 +2,15 @@ import { NextRequest, NextResponse } from "next/server";
 import { getAdminDb } from "@/lib/firebase-admin";
 import { rateLimit } from "@/lib/rate-limit";
 import { MessageError } from "@/lib/messages-server";
-import { addGroupMembers, banGroupMember, removeGroupMember, renameGroup, setGroupAdmin, setGroupAvatar, setSendLocked } from "@/lib/groups-server";
+import { addGroupMembers, banGroupMember, removeGroupMember, removeGroupMessage, renameGroup, setGroupAdmin, setGroupAvatar, setSendLocked } from "@/lib/groups-server";
 import { authed, fail } from "@/lib/moments-api";
+import { deleteObject, privateFilesConfigured } from "@/lib/private-files";
 
 export const dynamic = "force-dynamic";
 
 // POST { action: "rename", title } | { action: "add", usernames } | { action: "remove", uid } (an admin removes someone) | { action: "leave" } |
-// { action: "admin", uid, admin: boolean } | { action: "avatar", url } | { action: "lock", locked } (only admins can write) | { action: "ban", uid, ban }
+// { action: "admin", uid, admin: boolean } | { action: "avatar", url } | { action: "lock", locked } (only admins can write) | { action: "ban", uid, ban } |
+// { action: "remove_message", messageId } (an admin takes a message out)
 export async function POST(req: NextRequest, { params }: { params: { id: string } }) {
   try {
     const me = await authed(req, "messages", true);
@@ -31,6 +33,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
       case "avatar": await setGroupAvatar(db, me.uid, params.id, body.url); break;
       case "lock": await setSendLocked(db, me.uid, params.id, body.locked === true); break;
       case "ban": await banGroupMember(db, me.uid, params.id, String(body.uid ?? ""), body.ban !== false); break;
+      case "remove_message": await removeGroupMessage(db, me.uid, params.id, String(body.messageId ?? ""), privateFilesConfigured() ? deleteObject : undefined); break;
       default: throw new MessageError(400, "Unknown action.");
     }
     return NextResponse.json({ ok: true });

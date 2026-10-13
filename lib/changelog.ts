@@ -11,6 +11,20 @@ export type Release = {
 
 export const CHANGELOG: Release[] = [
   {
+    version: "v0.26.0",
+    bump: "minor",
+    date: "2026-10-14",
+    changes: [
+      { kind: "added", text: "Call back: tap any call line in a one-to-one conversation (missed, declined or finished) to call that person again, the same kind of call." },
+      { kind: "added", text: "Calls are now on the Status page, which shows whether calls and the relay that carries them on strict networks are working." },
+      { kind: "added", text: "A help article on voice and video calls: making and answering calls, missed calls, who you can call, privacy, and what to try when a call won't connect. Calls are also described on the home, About, Pricing, Roadmap, Privacy, Terms and Security pages." },
+      { kind: "changed", text: "When a call ends, the connection details the two devices exchanged are removed, and deleting your account now also deletes your call records." },
+      { kind: "added", text: "Group moderation: group admins have a Manage button at the top of the group, and can remove any message (everyone sees \"Message removed by a group admin\" in its place, and its files are deleted). Members who aren't admins are told who the admins are. When #NotesApp acts on a reported group message, it is removed the same way." },
+      { kind: "fixed", text: "Tapping Start the group twice, or a slow connection sending it again, no longer creates the same group twice." },
+      { kind: "fixed", text: "If a follow or unfollow doesn't go through, the button now says so instead of doing nothing, and the Follow button no longer stays on a loading bar when the check fails." },
+    ],
+  },
+  {
     version: "v0.25.0",
     bump: "minor",
     date: "2026-10-13",
