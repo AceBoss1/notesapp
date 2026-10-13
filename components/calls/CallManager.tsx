@@ -210,7 +210,9 @@ function CallScreen({ active, onDone }: { active: Active; onDone: () => void }) 
           await updateDoc(doc(db, "calls", id), { answer: { type: answer.type, sdp: answer.sdp ?? "" }, status: "accepted", acceptedAt: new Date().toISOString() });
         }
       } catch (e) {
-        end("failed", e instanceof Error ? e.message : "The call couldn't connect.");
+        // permission-denied here means the database's call rules aren't live yet (firestore.rules not deployed), not the mic.
+        const denied = (e as { code?: string })?.code === "permission-denied";
+        end("failed", denied ? "Calls aren't switched on in the database yet. Please try again later." : e instanceof Error ? e.message : "The call couldn't connect.");
       }
     })();
     return () => { if (!over) end("ended"); };
