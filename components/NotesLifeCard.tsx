@@ -13,7 +13,7 @@ export default function NotesLifeCard({ className = "" }: { className?: string }
           <span className="mt-4 inline-flex items-center gap-2 rounded-full bg-ink px-5 py-2.5 font-ui text-sm font-bold text-paper group-hover:bg-crimson">See Notes Life →</span>
         </div>
         <div className="relative h-56 sm:h-full sm:min-h-[16rem]">
-          <Image src="/images/life/room-desktop.webp" alt="An early mockup of Notes Life: a small room in Lagos with a bed, a sofa, a stove and a water drum" fill sizes="(min-width: 640px) 40vw, 100vw" className="object-cover" />
+          <Image src="/images/life/room-desktop.webp" alt="An early mockup of Notes Life: a small room in Abuja with a bed, a sofa, a stove and a water drum" fill sizes="(min-width: 640px) 40vw, 100vw" className="object-cover" />
         </div>
       </div>
     </Link>
