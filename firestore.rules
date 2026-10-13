@@ -423,6 +423,13 @@ service cloud.firestore {
     match /granolaConnections/{id} { allow read, write: if false; }
     match /granolaStates/{id} { allow read, write: if false; }
     match /integrationClients/{id} { allow read, write: if false; }
+    // Payroll (finance only, through /api/admin/payroll): staff pay details, monthly runs and the encrypted account numbers.
+    match /payrollStaff/{id} { allow read, write: if false; }
+    match /payrollRuns/{id} { allow read, write: if false; }
+    match /payrollSecrets/{id} { allow read, write: if false; }
+    // Staff library and message hub (through /api/admin/staff-library and /api/admin/hub): server-only.
+    match /staffDocs/{id} { allow read, write: if false; }
+    match /hubMessages/{id} { allow read, write: if false; }
     match /financeDues/{id} {
       allow read, write: if false;
     }

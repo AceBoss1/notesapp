@@ -11,6 +11,14 @@ export type Release = {
 
 export const CHANGELOG: Release[] = [
   {
+    version: "v0.25.0",
+    bump: "minor",
+    date: "2026-10-13",
+    changes: [
+      { kind: "added", text: "For the team: a staff library (SOPs, the employee handbook, policies and templates, with \"I have read this\" confirmations), a message hub for staff messages with To, Cc, files and an optional email copy, an assignee and pay-by date on every payment due, and a Payroll page for finance." },
+    ],
+  },
+  {
     version: "v0.24.0",
     bump: "minor",
     date: "2026-10-13",

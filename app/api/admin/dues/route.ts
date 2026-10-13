@@ -4,7 +4,8 @@ import { getAdminDb, verifyAdminAccess } from "@/lib/firebase-admin";
 import { hasDept } from "@/lib/admin-access";
 import { FinanceError } from "@/lib/finance";
 import type { Caller } from "@/lib/finance-server";
-import { addDue, cancelDue, listDues, markPaid } from "@/lib/dues-server";
+import { addDue, assignDue, cancelDue, listDues, markPaid } from "@/lib/dues-server";
+import { listTeamPeople } from "@/lib/team-server";
 import { rateLimit } from "@/lib/rate-limit";
 import { lagosDate } from "@/lib/team";
 
@@ -13,9 +14,8 @@ const bearer = (req: NextRequest) => req.headers.get("authorization")?.replace(/
 
 async function caller(req: NextRequest): Promise<Caller> {
   const me = await verifyAdminAccess(bearer(req));
-  const c = { uid: me.uid, email: me.email, owner: me.owner, finance: hasDept(me.access, "finance"), product: hasDept(me.access, "product") };
-  if (!c.finance && !c.product) throw new FinanceError("Expenses due are for the finance and product teams.", 403);
-  return c;
+  // Any staff member may ask; those outside finance and product see only the payments assigned to them (lib/dues-server.ts).
+  return { uid: me.uid, email: me.email, owner: me.owner, finance: hasDept(me.access, "finance"), product: hasDept(me.access, "product") };
 }
 const fail = (err: unknown, fallback: string) => {
   if (err instanceof FinanceError) return NextResponse.json({ error: err.message }, { status: err.status });
@@ -27,7 +27,7 @@ const fail = (err: unknown, fallback: string) => {
 export async function GET(req: NextRequest) {
   try {
     const c = await caller(req);
-    return NextResponse.json({ dues: await listDues(getAdminDb(), c), today: lagosDate(), canWrite: c.finance }, { headers: { "Cache-Control": "no-store" } });
+    return NextResponse.json({ dues: await listDues(getAdminDb(), c), today: lagosDate(), canWrite: c.finance, viewAll: c.finance || c.product, meUid: c.uid, people: c.finance ? (await listTeamPeople(getAdminDb())).map((p) => ({ uid: p.uid, name: p.name })) : [] }, { headers: { "Cache-Control": "no-store" } });
   } catch (err) {
     return fail(err, "Couldn't load expenses due");
   }
@@ -43,6 +43,7 @@ export async function POST(req: NextRequest) {
     switch (b.action) {
       case "add": return NextResponse.json({ due: await addDue(db, c, b.due ?? {}) });
       case "paid": return NextResponse.json(await markPaid(db, c, b.id, b.amount));
+      case "assign": await assignDue(db, c, b.id, { assigneeUid: b.assigneeUid, payBy: b.payBy }); return NextResponse.json({ ok: true });
       case "cancel": await cancelDue(db, c, b.id); return NextResponse.json({ ok: true });
       default: throw new FinanceError("Unknown action.");
     }

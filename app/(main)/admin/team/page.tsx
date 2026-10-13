@@ -240,6 +240,9 @@ export default function AdminTeamPage() {
           <button type="button" onClick={() => setNana((v) => !v)} aria-expanded={nana} className="btn-ghost !px-4 !py-2 text-xs">{nana ? "Close Nana" : "Ask Nana ✨"}</button>
           <Link href="/admin/team/review" className="btn-ghost !px-4 !py-2 text-xs">Weekly review →</Link>
           <Link href="/admin/team/vision" className="btn-ghost !px-4 !py-2 text-xs">Vision model →</Link>
+          <Link href="/admin/team/messages" className="btn-ghost !px-4 !py-2 text-xs">Message hub →</Link>
+          <Link href="/admin/team/library" className="btn-ghost !px-4 !py-2 text-xs">Staff library →</Link>
+          {hasAnyDept(access, ["finance"]) && <Link href="/admin/team/payroll" className="btn-ghost !px-4 !py-2 text-xs">Payroll →</Link>}
           {hasAnyDept(access, ["finance", "product"]) && <Link href="/admin/team/finance" className="btn-ghost !px-4 !py-2 text-xs">Money ledger →</Link>}
           <label className="flex items-center gap-2"><input type="checkbox" checked={mineOnly} onChange={(e) => setMineOnly(e.target.checked)} /> Only mine</label>
         </span>
@@ -278,7 +281,7 @@ export default function AdminTeamPage() {
 
       <GranolaPanel user={user} onAdd={async (titles) => { for (const title of titles) await send({ action: "createItem", title, horizon: "week", ownerUid: data.me, due: "" }); }} />
 
-      {user && hasAnyDept(access, ["finance", "product"]) && <DuesPanel user={user} />}
+      {user && <DuesPanel user={user} />}
 
       <form className="card mt-6 flex flex-wrap items-end gap-2 p-4" onSubmit={async (e) => {
         e.preventDefault();
