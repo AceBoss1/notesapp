@@ -32,7 +32,12 @@ export default function AdminPaymentsPage() {
     if (user) load().catch((e) => setError(e.message));
   }, [user]);
 
-  async function act(action: "release" | "refund" | "dispute" | "refund_boost" | "confirm_order", reference: string) {
+  async function act(action: "release" | "refund" | "dispute" | "refund_boost" | "confirm_order" | "cancel_boost", reference: string) {
+    let reason = "";
+    if (action === "cancel_boost") {
+      reason = (prompt("Why is this boost being cancelled? The member sees this. The whole undelivered share is refunded.") ?? "").trim();
+      if (reason.length < 3) return;
+    }
     if (action === "refund_boost" && !confirm("Refund the undelivered impressions share of this boost?")) return;
     if (action === "refund" && !confirm("Refund this payment to the payer?")) return;
     if (action === "release" && !confirm("Send this payout to the publisher's bank now?")) return;
@@ -42,7 +47,7 @@ export default function AdminPaymentsPage() {
       const res = await fetch("/api/admin/payments", {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${await user!.getIdToken()}` },
-        body: JSON.stringify({ action, reference }),
+        body: JSON.stringify({ action, reference, reason }),
       });
       const json = await res.json();
       if (!res.ok) throw new Error(json.error || "Failed");
@@ -153,7 +158,9 @@ export default function AdminPaymentsPage() {
                   <td>{b.clicks}</td>
                   <td>{String(b.endsAt).slice(0, 10)}</td>
                   <td>{b.status}{b.refundedKobo ? ` · refunded ${formatNaira(b.refundedKobo)}` : ""}</td>
-                  <td>{ended && b.status !== "closed" && (
+                  <td className="space-x-2">{!ended && b.status === "active" && (
+                    <button className={btn} disabled={!!busy} onClick={() => act("cancel_boost", b.reference)}>Cancel and refund</button>
+                  )}{ended && b.status !== "closed" && (
                     <button className={btn} disabled={!!busy} onClick={() => act("refund_boost", b.reference)}>
                       {shortfall > 0 ? "Refund undelivered" : "Close"}
                     </button>

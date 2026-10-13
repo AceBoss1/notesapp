@@ -4,6 +4,7 @@ import { getAdminDb, verifyAdminRequest } from "@/lib/firebase-admin";
 import { refundTransaction, slotLockId } from "@/lib/paystack";
 import { releaseLedgerEntry } from "@/lib/payouts";
 import type { LedgerEntry } from "@/lib/payments";
+import { BoostCancelError, cancelBoost } from "@/lib/boost-cancel";
 import { confirmOrder, notifyBackInStock, returnStock } from "@/lib/orders-server";
 
 // Admin-only money actions on a payment reference:
@@ -15,7 +16,7 @@ export async function POST(req: NextRequest) {
   try {
     const idToken = req.headers.get("authorization")?.replace(/^Bearer\s+/i, "");
     await verifyAdminRequest(idToken, ["finance"]);
-    const { action, reference } = await req.json();
+    const { action, reference, reason } = await req.json();
     if (typeof reference !== "string") return NextResponse.json({ error: "Missing reference" }, { status: 400 });
 
     const db = getAdminDb();
@@ -30,6 +31,12 @@ export async function POST(req: NextRequest) {
     if (!paySnap.exists && !isAdShare) return NextResponse.json({ error: "Unknown payment" }, { status: 404 });
     if (isAdShare && action === "refund") {
       return NextResponse.json({ error: "Ad share isn't refunded — withhold or dispute it instead." }, { status: 409 });
+    }
+
+    // Cancel a running boost: the whole undelivered share goes back, with a reason the member is told.
+    if (action === "cancel_boost") {
+      try { return NextResponse.json({ ok: true, ...(await cancelBoost(db, reference, "admin", { reason })) }); }
+      catch (e) { if (e instanceof BoostCancelError) return NextResponse.json({ error: e.message }, { status: e.status }); throw e; }
     }
 
     // Boost that ended with impressions undelivered → refund the undelivered share.

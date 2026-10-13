@@ -18,6 +18,7 @@ export const CHANGELOG: Release[] = [
       { kind: "added", text: "Followers and Following lists on every profile. Open either one to see the people and organisations, 30 at a time." },
       { kind: "added", text: "Online now and last seen, on Messages, in a conversation and on profiles. You see it only for people who follow you and whom you follow back." },
       { kind: "added", text: "Two privacy switches, both on to start with: show when you're online, and let signed-in members see your followers and following. If you switch one off, you can't see other people's either. Find them under Profile, Account and in your message settings." },
+      { kind: "added", text: "You can cancel a running boost from Boost performance. Impressions already delivered are spent; you get half of the undelivered share back and forfeit the other half. If #NotesApp cancels a boost, the whole undelivered share is refunded and you are told why." },
       { kind: "added", text: "For the team: the owner can make @na-notesapp follow, or stop following, the founders and their business channels from the profile page, and the list shows on @na-notesapp's profile." },
     ],
   },

@@ -53,6 +53,8 @@ function Daily({ daily }: { daily?: Record<string, number> }) {
 export default function BoostPerformancePage() {
   const router = useRouter();
   const [boosts, setBoosts] = useState<Boost[] | null>(null);
+  const [busy, setBusy] = useState<string | null>(null);
+  const [msg, setMsg] = useState("");
 
   useEffect(
     () =>
@@ -77,6 +79,23 @@ export default function BoostPerformancePage() {
       active: list.filter(isLive).length,
     };
   }, [boosts]);
+
+  async function cancel(b: Boost) {
+    const shortfall = Math.max(0, b.impressionsPurchased - b.impressionsDelivered);
+    const undelivered = Math.floor((b.amountKobo * shortfall) / Math.max(1, b.impressionsPurchased));
+    const back = Math.floor(undelivered / 2);
+    if (!confirm(`Cancel this boost? ${b.impressionsDelivered.toLocaleString()} impressions are already delivered and can't be refunded. Of the undelivered share (${formatNaira(undelivered)}) you get half back, ${formatNaira(back)}, and forfeit the other ${formatNaira(undelivered - back)}.`)) return;
+    setBusy(b.reference); setMsg("");
+    try {
+      const t = await auth.currentUser!.getIdToken();
+      const res = await fetch("/api/boosts/cancel", { method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${t}` }, body: JSON.stringify({ reference: b.reference }) });
+      const j = await res.json();
+      if (!res.ok) throw new Error(j.error || "Couldn't cancel that boost.");
+      setBoosts((list) => (list ?? []).map((x) => (x.reference === b.reference ? { ...x, status: "closed", refundedKobo: j.refundKobo } : x)));
+      setMsg(`Boost cancelled. ${formatNaira(j.refundKobo)} is on its way back to you.`);
+    } catch (e) { setMsg(e instanceof Error ? e.message : "Couldn't cancel that boost."); }
+    finally { setBusy(null); }
+  }
 
   if (boosts === null) return <div className="px-6 py-24 text-center text-slate">Loading…</div>;
   const active = boosts.filter(isLive);
@@ -109,6 +128,7 @@ export default function BoostPerformancePage() {
           <p><span className="block font-mono text-[10px] uppercase text-slate">Refunded</span>{b.refundedKobo ? formatNaira(b.refundedKobo) : "—"}</p>
         </div>
         <Daily daily={b.daily} />
+        {live && <button type="button" onClick={() => cancel(b)} disabled={busy === b.reference} className="mt-3 mr-4 text-xs text-slate underline hover:text-crimson disabled:opacity-50">{busy === b.reference ? "Cancelling…" : "Cancel this boost (50% of the undelivered share is forfeited)"}</button>}
         {b.itemId ? <Link href={`/shop/${b.itemId}`} className="mt-3 inline-block text-xs text-crimson underline">View item</Link> : b.slug && <Link href={`/journals/${b.slug}`} className="mt-3 inline-block text-xs text-crimson underline">View post</Link>}
       </li>
     );
@@ -117,10 +137,11 @@ export default function BoostPerformancePage() {
   return (
     <>
       <PageHero compact max="max-w-3xl" eyebrow="Boosts" title={<>Boost performance</>}>
-        <p>An impression counts once a real visitor has seen your boosted post. Undelivered impressions are refunded when a boost ends.</p>
+        <p>An impression counts once a real visitor has seen your boosted post. Undelivered impressions are refunded when a boost ends. If you cancel early, you get half of the undelivered share back.</p>
       </PageHero>
       <section className="mx-auto max-w-3xl px-4 py-10 sm:px-6">
 
+      {msg && <p className="mt-6 rounded-xl border border-rule bg-card p-4 text-sm text-ink" role="status">{msg}</p>}
       <div className="mt-8 grid grid-cols-2 gap-4 sm:grid-cols-4">
         {[
           ["Active now", String(totals.active)],
