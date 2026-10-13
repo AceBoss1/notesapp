@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { MAIN_HOST, isMainHost, isAppHost } from "@/lib/host";
+import { MAIN_HOST, isMainHost, isAppHost, isLifeHost } from "@/lib/host";
 
 // Custom domains (Enterprise). On our own hosts this does nothing. On a member's domain it serves their branded site
 // (app/(site)/s/[username]: header with their name, Home, Notes, Shop, "Powered by #NotesApp" footer) and sends everything
@@ -38,6 +38,13 @@ const PUBLIC_FILE = /\.[a-z0-9]{2,5}$/i;
 
 export async function middleware(req: NextRequest) {
   const host = (req.headers.get("host") || "").toLowerCase().replace(/:\d+$/, "");
+  // life.notesapp.name.ng: the Notes Life page (coming soon) at its root; its pictures and the app's own files load as usual; anything else goes to the main site.
+  if (host && isLifeHost(host)) {
+    const { pathname, search } = req.nextUrl;
+    if (pathname === "/" ) return NextResponse.rewrite(new URL("/life", req.url));
+    if (pathname === "/life" || pathname.startsWith("/_next") || pathname.startsWith("/api/") || PUBLIC_FILE.test(pathname)) return NextResponse.next();
+    return NextResponse.redirect(`https://${MAIN_HOST}${pathname}${search}`, 307);
+  }
   if (host && isAppHost(host)) {
     // The app domain (notesapp.ng): the home page is a splash to sign up or sign in (a signed-in member goes straight to the journal);
     // the marketing and company pages live on the main site.

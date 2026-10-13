@@ -5,7 +5,10 @@ export const APP_HOSTS = ["app.notesapp.name.ng", "notesapp.ng", "www.notesapp.n
 export function isAppHost(hostname: string): boolean {
   return APP_HOSTS.includes(hostname.toLowerCase().replace(/:\d+$/, ""));
 }
-const MAIN_HOSTS = ["www.notesapp.name.ng", "notesapp.name.ng", ...APP_HOSTS];
+// Notes Life, the coming game: its own address, served from /life on the same app (middleware.ts).
+export const LIFE_HOST = "life.notesapp.name.ng";
+export const isLifeHost = (hostname: string) => hostname.toLowerCase().replace(/:\d+$/, "") === LIFE_HOST;
+const MAIN_HOSTS = ["www.notesapp.name.ng", "notesapp.name.ng", LIFE_HOST, ...APP_HOSTS];
 
 // True for our own hosts, local development and Vercel preview deployments — everything else is a
 // member's custom domain.

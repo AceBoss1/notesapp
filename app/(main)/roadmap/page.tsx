@@ -1,4 +1,5 @@
 import Link from "next/link";
+import NotesLifeCard from "@/components/NotesLifeCard";
 import type { Metadata } from "next";
 import { GOLD_KIND_LIVE } from "@/lib/badges";
 import { MESSAGES_LIVE, MOMENTS_LIVE } from "@/lib/moments-rules";
@@ -16,6 +17,7 @@ const ITEMS: { title: string; tag: string; body: string; detail: string; link?: 
     tag: "Social",
     body: "Planned: a browser game at life.notesapp.name.ng that you play with your NotesApp sign-in. Start in a face-me-I-face-you room in your own city, get a job, decorate, visit and call your friends, and climb the Billionaires List.",
     detail: "Your NotesApp profile picture is your portrait in the game. You earn game money from jobs and quests, and some quests give Bonus Credits you can use on NotesApp. The market street has real NotesApp stores, and real ads run on the billboards. Game money is for fun only and can't be cashed out. No date yet; we will announce it here first.",
+    link: { href: "/life", label: "See Notes Life →" },
   },
   {
     title: "Install NotesApp on your phone or computer",
@@ -171,6 +173,8 @@ export default function RoadmapPage() {
         today. The ones marked on the right are decided and documented, not yet built. Nana AI and the help centre, publishing to LinkedIn and X, direct and group messages, paid sessions (with rescheduling and automatic payouts), monthly subscriptions, publisher rates and payouts, post and item boosts, gifts, Pro / Business plans, organisation accounts, stores for physical goods and digital downloads, parcel tracking, and official merch are already live. Last updated 12 October 2026.</p>
       </PageHero>
       <div className="mx-auto max-w-4xl px-4 py-12 sm:px-6 lg:px-8">
+
+      <NotesLifeCard className="mt-10" />
 
       {/* The honest status strip: what's built and working versus what's still planned. */}
       <section className="mt-12 border-y border-rule py-10" aria-labelledby="true-now">

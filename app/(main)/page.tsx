@@ -1,4 +1,5 @@
 import Link from "next/link";
+import NotesLifeCard from "@/components/NotesLifeCard";
 import { PartnersStrip, TrustedByStrip } from "@/components/PartnerMarquees";
 import Image from "next/image";
 import BoostedStrip from "@/components/BoostedStrip";
@@ -138,6 +139,8 @@ export default async function Home() {
           <GoldBadgeExplainer />
         </div>
       </section>
+
+      <section className="mx-auto max-w-5xl px-4 py-12 sm:px-6 lg:px-8"><NotesLifeCard /></section>
 
       {/* The loop */}
       <section className="border-y border-rule bg-ink py-20 text-paper">
