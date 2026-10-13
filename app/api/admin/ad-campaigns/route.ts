@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { friendlyMessage } from "@/lib/api-errors";
 import { getAdminDb, verifyAdminRequest } from "@/lib/firebase-admin";
-import { refundTransaction } from "@/lib/paystack";
+import { refundPayment } from "@/lib/refunds";
 import { sendEmail } from "@/lib/email";
 import { formatNaira } from "@/lib/booking-time";
 import { deliveredByAd } from "@/lib/ads-server";
@@ -50,7 +50,7 @@ export async function POST(req: NextRequest) {
       if (c.status !== "in_review") return NextResponse.json({ error: `This campaign is ${c.status}.` }, { status: 409 });
       const why = String(reason || "").trim().slice(0, 300);
       if (!why) return NextResponse.json({ error: "Give a reason — it's sent to the advertiser." }, { status: 400 });
-      await refundTransaction(c.id);
+      await refundPayment(c.id);
       const batch = db.batch();
       batch.update(ref, { status: "rejected", rejectedReason: why, refundedKobo: c.amountKobo });
       batch.update(db.doc(`payments/${c.id}`), { status: "refunded" });
@@ -68,7 +68,7 @@ export async function POST(req: NextRequest) {
       const refundKobo = Math.floor((c.amountKobo * shortfall) / c.impressionsBudget);
       const batch = db.batch();
       if (refundKobo > 0) {
-        await refundTransaction(c.id, refundKobo);
+        await refundPayment(c.id, refundKobo);
         // Keep the revenue books honest: a negative entry for the refunded part.
         batch.set(db.doc(`adRevenue/refund_${c.id}`), {
           month: lagosMonth(), source: "notesapp", label: `Refund (undelivered): ${c.advertiserName}`, amountKobo: -refundKobo,

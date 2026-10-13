@@ -11,6 +11,7 @@ import { getBoostPackage } from "./boost-config";
 import { periodEndFrom, cancelBadgeIfCovered } from "./tier-billing";
 import { ESCROW_PLACEHOLDER_DAYS, newParcelId, phoneLast4 } from "./orders";
 import { merchParcelDoc } from "./orders-server";
+import { creditTopup } from "./wallet-server";
 
 // Server-only. All money-state changes happen here, via the Admin SDK
 // (Firestore rules make payments/bookings/ledger/subscriptions
@@ -18,7 +19,7 @@ import { merchParcelDoc } from "./orders-server";
 
 export type PaymentRecord = {
   reference: string;
-  kind: "booking" | "subscription" | "boost" | "gift" | "tier" | "badge" | "gold_deposit" | "gold" | "merch" | "ad" | "store" | "digital";
+  kind: "booking" | "subscription" | "boost" | "gift" | "tier" | "badge" | "gold_deposit" | "gold" | "merch" | "ad" | "store" | "digital" | "wallet_topup";
   uid: string; // the payer
   email: string;
   amountKobo: number;
@@ -65,6 +66,13 @@ export type PaymentRecord = {
   reservationReleased?: boolean;
   createdAt: string;
   paidAt?: string;
+  // Paid from the NotesApp Credit wallet instead of Paystack (lib/wallet-server.ts): what was taken, and how much has gone back.
+  payWith?: "wallet";
+  walletDebit?: { creditKobo: number; bonusKobo: number };
+  walletRefundedKobo?: number;
+  // A wallet top-up: the Bonus Credits it adds (fixed at checkout), and how much of it was later refunded to the card.
+  topup?: { bonusKobo: number };
+  topupReversedKobo?: number;
 };
 
 // held      = collected, waiting for releaseAfter (session end / dispute window)
@@ -156,9 +164,10 @@ export async function fulfillPayment(reference: string): Promise<PaymentRecord> 
   const payment = snap.data() as PaymentRecord;
   if (payment.status !== "pending") return payment;
 
-  const tx = await verifyTransaction(reference);
-  if (tx.status !== "success") throw new Error(`Payment not successful (${tx.status})`);
-  if (pricePaidKobo(tx) !== payment.amountKobo || tx.currency !== "NGN") {
+  // A wallet payment was taken from the wallet when it was started (payFromWallet), so there is nothing to ask Paystack.
+  const tx = payment.payWith === "wallet" ? null : await verifyTransaction(reference);
+  if (tx && tx.status !== "success") throw new Error(`Payment not successful (${tx.status})`);
+  if (tx && (pricePaidKobo(tx) !== payment.amountKobo || tx.currency !== "NGN")) {
     // Keep the evidence (a plan-based charge uses the PLAN's amount, so a stale
     // plan shows up here) and say exactly what differed.
     const detail = { kind: payment.kind, expectedKobo: payment.amountKobo, paidKobo: tx.amount, requestedKobo: tx.requested_amount ?? null, feesKobo: tx.fees ?? null, currency: tx.currency };
@@ -299,6 +308,8 @@ export async function fulfillPayment(reference: string): Promise<PaymentRecord> 
         subscribedAt: now,
         currentPeriodEnd: periodEndFrom(Date.now(), tr.interval),
       });
+    } else if (current.kind === "wallet_topup") {
+      await creditTopup(t, db, current, new Date(now));
     } else if (current.kind === "badge" && current.badge) {
       const end = periodEndFrom(Date.now(), "monthly");
       t.set(db.doc(`users/${current.uid}`), { badgeUntil: end }, { merge: true });
@@ -306,9 +317,12 @@ export async function fulfillPayment(reference: string): Promise<PaymentRecord> 
         uid: current.uid,
         email: current.email,
         planCode: current.badge.planCode,
-        status: "active",
+        // Paid from the wallet: one month with no Paystack plan behind it, so it can't renew. It reads as "auto-renewal off" (the
+        // badge card shows when it ends and offers no Cancel, which would look for a Paystack plan).
+        status: current.payWith === "wallet" ? "cancelled" : "active",
         subscribedAt: now,
         currentPeriodEnd: end,
+        ...(current.payWith === "wallet" ? { paidFromWallet: true } : {}),
       });
     } else if (current.kind === "merch" && current.merch) {
       // Official merch is platform revenue (no ledger). One order per payment,
@@ -496,6 +510,10 @@ async function emitSaleWebhooks(p: PaymentRecord): Promise<void> {
 
 async function notifyPaid(p: PaymentRecord) {
   if (p.kind === "gift" && p.gift) return notifyGift(p);
+  if (p.kind === "wallet_topup") {
+    await notifyBell({ uid: p.uid, type: "plan", linkHref: "/profile/wallet", message: `${formatNaira(p.amountKobo)} added to your wallet${p.topup?.bonusKobo ? `, plus ${formatNaira(p.topup.bonusKobo)} in Bonus Credits` : ""}.` });
+    return;
+  }
   if (p.kind === "boost") {
     // No email for boosts — the bell is the receipt.
     await notifyBell({ uid: p.uid, type: "plan", linkHref: "/profile/boosts", message: `Your boost is live (${formatNaira(p.amountKobo)}). Track it under Boost performance.` });
@@ -532,7 +550,9 @@ async function notifyPaid(p: PaymentRecord) {
       to: p.email,
       subject: "Your #NotesApp verified badge is active",
       bell: { uid: p.uid, type: "badge", linkHref: "/badges" },
-      text: `The ✔ now shows next to your name (${formatNaira(p.amountKobo)}/month, renews automatically). Cancel any time under Edit profile — you keep the badge until the period ends.\nReference: ${p.reference}\n\n#NotesApp`,
+      text: p.payWith === "wallet"
+        ? `The ✔ now shows next to your name for one month (${formatNaira(p.amountKobo)}, paid from your wallet). It doesn't renew by itself: when it ends, add it again from the verification badges page.\nReference: ${p.reference}\n\n#NotesApp`
+        : `The ✔ now shows next to your name (${formatNaira(p.amountKobo)}/month, renews automatically). Cancel any time under Edit profile — you keep the badge until the period ends.\nReference: ${p.reference}\n\n#NotesApp`,
     });
     return;
   }

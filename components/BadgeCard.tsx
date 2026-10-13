@@ -38,7 +38,7 @@ export default function BadgeCard({ pitch = false }: { pitch?: boolean }) {
     setBusy(true);
     setMsg(null);
     try {
-      await startCheckout(user, { kind: "badge" });
+      await startCheckout(user, { kind: "badge" }, { amountKobo: BADGE_PRICE_KOBO });
     } catch (e) {
       setMsg(e instanceof Error ? e.message : "Couldn't start payment.");
       setBusy(false);

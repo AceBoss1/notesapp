@@ -6,12 +6,15 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { onAuthStateChanged } from "firebase/auth";
 import { auth } from "@/lib/firebase";
-import { formatSlot } from "@/lib/booking-time";
+import { formatNaira, formatSlot } from "@/lib/booking-time";
 import { forgetReturnHost, rememberedReturnHost } from "@/lib/return-to";
 
 type Result = {
   status: string;
-  kind: "booking" | "subscription" | "boost" | "gift" | "tier" | "badge" | "gold" | "gold_deposit" | "merch" | "ad" | "store" | "digital";
+  kind: "booking" | "subscription" | "boost" | "gift" | "tier" | "badge" | "gold" | "gold_deposit" | "merch" | "ad" | "store" | "digital" | "wallet_topup";
+  amountKobo?: number;
+  payWith?: "wallet";
+  topup?: { bonusKobo: number };
   tier?: { tier: string; interval: string };
   boost?: { noteId: string };
   gift?: { username: string; noteSlug?: string };
@@ -57,6 +60,14 @@ function Confirm() {
         </>
       ) : !result ? (
         <p className="text-sm text-slate">Confirming your payment…</p>
+      ) : result.status === "paid" && result.kind === "wallet_topup" ? (
+        <>
+          <p className="font-display text-2xl text-ink">Added to your wallet ✓</p>
+          <p className="mt-3 text-sm text-slate">
+            {formatNaira(result.amountKobo ?? 0)} of NotesApp Credit{result.topup?.bonusKobo ? <>, plus {formatNaira(result.topup.bonusKobo)} in Bonus Credits</> : null}. Use it to pay for boosts, badges, adverts, gifts, shop items and sessions.
+          </p>
+          <AppLink href="/profile/wallet" className="btn-primary mt-6 inline-block !px-5 !py-2 text-xs">Open your wallet</AppLink>
+        </>
       ) : result.status === "paid" && result.kind === "subscription" && result.subscription ? (
         <>
           <p className="font-display text-2xl text-ink">You're subscribed ✓</p>
@@ -159,17 +170,18 @@ function Confirm() {
         <>
           <p className="font-display text-2xl text-ink">That item sold out</p>
           <p className="mt-3 text-sm text-slate">
-            Your payment went through after the last one was taken. We&apos;ll refund you in full — contact us with reference {reference} if it doesn&apos;t arrive.
+            Your payment went through after the last one was taken. {result.payWith === "wallet" ? "We'll put it back in your wallet" : "We'll refund you in full"} — contact us with reference {reference} if it doesn&apos;t arrive.
           </p>
         </>
       ) : (
         <>
           <p className="font-display text-2xl text-ink">Slot no longer available</p>
           <p className="mt-3 text-sm text-slate">
-            Your payment went through but someone booked that time first. We'll refund you — contact us with reference {reference}.
+            Your payment went through but someone booked that time first. {result.payWith === "wallet" ? "We'll put it back in your wallet" : "We'll refund you"} — contact us with reference {reference}.
           </p>
         </>
       )}
+      {result?.status === "paid" && result.payWith === "wallet" && <p className="mt-4 text-xs text-slate">Paid from your <AppLink href="/profile/wallet" className="text-crimson underline">wallet</AppLink>.</p>}
       {backHost && (error || result) && (
         <p className="mt-10">
           <a

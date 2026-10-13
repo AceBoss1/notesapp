@@ -799,6 +799,20 @@ service cloud.firestore {
     }
 
 
+    // NotesApp Credit wallet: the balance and the statement. A member reads only their own; every change is made by the server
+    // (lib/wallet-server.ts), so nothing here is writable from a browser.
+    match /wallets/{uid} {
+      allow get: if isSignedIn() && request.auth.uid == uid;
+      allow list, write: if false;
+    }
+    match /walletTx/{id} {
+      allow get, list: if isSignedIn() && resource.data.uid == request.auth.uid;
+      allow write: if false;
+    }
+    match /groupCreates/{uid} {
+      allow read, write: if false;
+    }
+
     // Presence: the member's own "I'm here" heartbeat. Nobody reads it from the client; /api/presence answers who may see what.
     match /presence/{uid} {
       allow read: if false;

@@ -22,6 +22,9 @@ import { RESERVATION_MINUTES, StockError, canActForSeller, releaseExpiredReserva
 import type { AccountTier } from "@/lib/users";
 import { rateLimit } from "@/lib/rate-limit";
 import { callbackOrigin } from "@/lib/origin";
+import { fulfillPayment } from "@/lib/payments";
+import { TOPUP_MAX_KOBO, TOPUP_MIN_KOBO, WALLET_LIVE, bonusFor, isWalletKind } from "@/lib/wallet";
+import { WalletError, payFromWallet } from "@/lib/wallet-server";
 
 // Starts a Paystack checkout for a 1:1 session or a monthly journal
 // subscription. Price, slots and plan all come from the publisher's
@@ -55,6 +58,44 @@ export async function POST(req: NextRequest) {
     const { kind, username } = body;
     const db = getAdminDb();
 
+    // Pay from the NotesApp Credit wallet instead of Paystack: every check below runs exactly the same; only the money comes from
+    // the wallet (taken together with the payment record), and the purchase is completed straight away.
+    const payWith = body.payWith === "wallet" ? "wallet" : "card";
+    if (payWith === "wallet" && (!WALLET_LIVE || !isWalletKind(kind))) {
+      return NextResponse.json({ error: "This can't be paid from your wallet yet. Pay by card instead." }, { status: 400 });
+    }
+    const initTx: typeof initializeTransaction = payWith === "wallet"
+      ? async (a) => ({ authorization_url: `${a.callbackUrl}?reference=${encodeURIComponent(a.reference)}&wallet=1`, reference: a.reference })
+      : initializeTransaction;
+    const savePayment = async (record: PaymentRecord) => {
+      if (payWith !== "wallet") { await db.doc(`payments/${record.reference}`).set(record); return; }
+      await payFromWallet(db, record);
+      // If this fails for a moment, the confirmation page the buyer lands on finishes it (the money is already set aside).
+      await fulfillPayment(record.reference).catch((e) => console.error("wallet payment: fulfil will be retried", record.reference, e));
+    };
+
+    // ---- NotesApp Credit top-up (Paystack only) ----
+    if (kind === "wallet_topup") {
+      if (!WALLET_LIVE) return NextResponse.json({ error: "The wallet isn't open yet." }, { status: 409 });
+      if (payWith === "wallet") return NextResponse.json({ error: "Top up by card or bank." }, { status: 400 });
+      const naira = Number(body.amountNaira);
+      const amountKobo = Math.round(naira * 100);
+      if (!Number.isInteger(naira) || amountKobo < TOPUP_MIN_KOBO || amountKobo > TOPUP_MAX_KOBO) {
+        return NextResponse.json({ error: "Top up a whole amount from ₦1,000 to ₦500,000." }, { status: 400 });
+      }
+      const reference = newReference();
+      const origin = await callbackOrigin(req);
+      const tx = await initializeTransaction({
+        email: user.email, amountKobo, reference, callbackUrl: `${origin}/booking/confirm`, metadata: { kind, uid: user.uid },
+      });
+      const record: PaymentRecord = {
+        reference, kind: "wallet_topup", uid: user.uid, email: user.email, amountKobo, status: "pending",
+        publisherUid: user.uid, publisherUsername: "", commissionRate: 0, topup: { bonusKobo: bonusFor(amountKobo) }, createdAt: new Date().toISOString(),
+      };
+      await db.doc(`payments/${reference}`).set(record);
+      return NextResponse.json({ authorizationUrl: tx.authorization_url, reference });
+    }
+
     // ---- verified badge add-on (₦999/month) ----
     if (kind === "badge") {
       const me = (await db.doc(`users/${user.uid}`).get()).data();
@@ -69,7 +110,7 @@ export async function POST(req: NextRequest) {
       const { planCode, amountKobo } = await getBadgePlanCode();
       const reference = newReference();
       const origin = await callbackOrigin(req);
-      const tx = await initializeTransaction({
+      const tx = await initTx({
         plan: planCode, email: user.email, amountKobo, reference,
         callbackUrl: `${origin}/booking/confirm`,
         metadata: { kind, uid: user.uid },
@@ -79,7 +120,7 @@ export async function POST(req: NextRequest) {
         status: "pending", publisherUid: user.uid, publisherUsername: "", commissionRate: 0,
         badge: { planCode }, createdAt: new Date().toISOString(),
       };
-      await db.doc(`payments/${reference}`).set(record);
+      await savePayment(record);
       return NextResponse.json({ authorizationUrl: tx.authorization_url, reference });
     }
 
@@ -102,7 +143,7 @@ export async function POST(req: NextRequest) {
       if (body.agreed !== true) return NextResponse.json({ error: "Please confirm you've read the advertising rules." }, { status: 400 });
       const reference = newReference();
       const origin = await callbackOrigin(req);
-      const tx = await initializeTransaction({
+      const tx = await initTx({
         email: user.email, amountKobo: pk.priceKobo, reference, callbackUrl: `${origin}/booking/confirm`,
         metadata: { kind, packageId: pk.id, uid: user.uid },
       });
@@ -117,7 +158,7 @@ export async function POST(req: NextRequest) {
         status: "pending", publisherUid: user.uid, publisherUsername: "", commissionRate: 0,
         ad: { campaignId: reference, packageId: pk.id }, createdAt: now,
       };
-      await db.doc(`payments/${reference}`).set(record);
+      await savePayment(record);
       return NextResponse.json({ authorizationUrl: tx.authorization_url, reference });
     }
 
@@ -177,7 +218,7 @@ export async function POST(req: NextRequest) {
       }
       let tx;
       try {
-        tx = await initializeTransaction({
+        tx = await initTx({
           email: user.email, amountKobo, reference, callbackUrl: `${origin}/booking/confirm`,
           metadata: { kind, itemId: itemSnap.id, uid: user.uid },
         });
@@ -198,7 +239,7 @@ export async function POST(req: NextRequest) {
         createdAt: new Date().toISOString(),
       };
       try {
-        await db.doc(`payments/${reference}`).set(record);
+        await savePayment(record);
       } catch (e) {
         await returnStock(itemSnap.id, quantity, variant).catch(() => {});
         throw e;
@@ -227,7 +268,7 @@ export async function POST(req: NextRequest) {
       if (!payout?.recipientCode) return NextResponse.json({ error: "This seller hasn't set up payouts yet, so they can't take orders." }, { status: 409 });
       const reference = newReference();
       const origin = await callbackOrigin(req);
-      const tx = await initializeTransaction({
+      const tx = await initTx({
         email: user.email, amountKobo: item.priceKobo, reference, callbackUrl: `${origin}/booking/confirm`,
         metadata: { kind, itemId: itemSnap.id, uid: user.uid },
       });
@@ -238,7 +279,7 @@ export async function POST(req: NextRequest) {
         digital: { itemId: itemSnap.id, itemTitle: String(item.title), itemImage: String(item.image || "") },
         createdAt: new Date().toISOString(),
       };
-      await db.doc(`payments/${reference}`).set(record);
+      await savePayment(record);
       return NextResponse.json({ authorizationUrl: tx.authorization_url, reference });
     }
 
@@ -266,7 +307,7 @@ export async function POST(req: NextRequest) {
       const amountKobo = item.priceKobo * quantity + MERCH_DELIVERY_KOBO;
       const reference = newReference();
       const origin = await callbackOrigin(req);
-      const tx = await initializeTransaction({
+      const tx = await initTx({
         email: user.email, amountKobo, reference, callbackUrl: `${origin}/booking/confirm`,
         metadata: { kind, itemId: item.id, uid: user.uid },
       });
@@ -280,7 +321,7 @@ export async function POST(req: NextRequest) {
         },
         createdAt: new Date().toISOString(),
       };
-      await db.doc(`payments/${reference}`).set(record);
+      await savePayment(record);
       return NextResponse.json({ authorizationUrl: tx.authorization_url, reference });
     }
 
@@ -300,7 +341,7 @@ export async function POST(req: NextRequest) {
           return NextResponse.json({ error: "No deposit is due for your application." }, { status: 409 });
         }
         const amountKobo = GOLD_PRICING[track as "personal" | "corporate"].identityDepositKobo;
-        const tx = await initializeTransaction({
+        const tx = await initTx({
           email: user.email, amountKobo, reference, callbackUrl: `${origin}/booking/confirm`,
           metadata: { kind, uid: user.uid },
         });
@@ -309,7 +350,7 @@ export async function POST(req: NextRequest) {
           status: "pending", publisherUid: user.uid, publisherUsername: "", commissionRate: 0,
           gold: { kind: gKind, track }, createdAt: new Date().toISOString(),
         };
-        await db.doc(`payments/${reference}`).set(record);
+        await savePayment(record);
         return NextResponse.json({ authorizationUrl: tx.authorization_url, reference });
       }
       if (req0.status !== "approved" && req0.status !== "active") {
@@ -320,7 +361,7 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ error: "Your gold badge is already active." }, { status: 409 });
       }
       const { planCode, amountKobo } = await getGoldPlanCode(track);
-      const tx = await initializeTransaction({
+      const tx = await initTx({
         plan: planCode, email: user.email, amountKobo, reference, callbackUrl: `${origin}/booking/confirm`,
         metadata: { kind, uid: user.uid },
       });
@@ -329,7 +370,7 @@ export async function POST(req: NextRequest) {
         status: "pending", publisherUid: user.uid, publisherUsername: "", commissionRate: 0,
         gold: { kind: gKind, track, planCode }, createdAt: new Date().toISOString(),
       };
-      await db.doc(`payments/${reference}`).set(record);
+      await savePayment(record);
       return NextResponse.json({ authorizationUrl: tx.authorization_url, reference });
     }
 
@@ -358,7 +399,7 @@ export async function POST(req: NextRequest) {
       const { planCode, amountKobo } = await getTierPlanCode(tier, interval);
       const reference = newReference();
       const origin = await callbackOrigin(req);
-      const tx = await initializeTransaction({
+      const tx = await initTx({
         plan: planCode, email: user.email, amountKobo, reference,
         callbackUrl: `${origin}/booking/confirm`,
         metadata: { kind, tier, interval, uid: user.uid },
@@ -368,7 +409,7 @@ export async function POST(req: NextRequest) {
         status: "pending", publisherUid: user.uid, publisherUsername: "", commissionRate: 0,
         tier: { tier, interval, planCode }, createdAt: new Date().toISOString(),
       };
-      await db.doc(`payments/${reference}`).set(record);
+      await savePayment(record);
       return NextResponse.json({ authorizationUrl: tx.authorization_url, reference });
     }
 
@@ -405,7 +446,7 @@ export async function POST(req: NextRequest) {
       }
       const reference = newReference();
       const origin = await callbackOrigin(req);
-      const tx = await initializeTransaction({
+      const tx = await initTx({
         email: user.email, amountKobo: pk.priceKobo, reference,
         callbackUrl: `${origin}/booking/confirm`,
         metadata: { kind, ...(itemId ? { itemId } : { noteId }), packageId: pk.id, uid: user.uid },
@@ -415,7 +456,7 @@ export async function POST(req: NextRequest) {
         status: "pending", publisherUid: user.uid, publisherUsername: "", commissionRate: 0,
         boost: { ...(itemId ? { itemId } : { noteId }), packageId: pk.id }, createdAt: new Date().toISOString(),
       };
-      await db.doc(`payments/${reference}`).set(record);
+      await savePayment(record);
       return NextResponse.json({ authorizationUrl: tx.authorization_url, reference });
     }
 
@@ -499,7 +540,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Unknown payment type." }, { status: 400 });
     }
 
-    const tx = await initializeTransaction({
+    const tx = await initTx({
       plan,
       email: user.email,
       amountKobo: record.amountKobo,
@@ -507,9 +548,10 @@ export async function POST(req: NextRequest) {
       callbackUrl: `${origin}/booking/confirm`,
       metadata: { kind, username, uid: user.uid },
     });
-    await db.doc(`payments/${reference}`).set(record);
+    await savePayment(record);
     return NextResponse.json({ authorizationUrl: tx.authorization_url, reference });
   } catch (err) {
+    if (err instanceof WalletError) return NextResponse.json({ error: err.message }, { status: err.status });
     console.error("Paystack initialize failed:", err);
     { const f = friendlyMessage(err, "Couldn't start payment"); return NextResponse.json({ error: f.message }, { status: f.status }); }
   }

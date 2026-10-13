@@ -3,6 +3,7 @@ import NotesLifeCard from "@/components/NotesLifeCard";
 import type { Metadata } from "next";
 import { GOLD_KIND_LIVE } from "@/lib/badges";
 import { CALLS_LIVE, MESSAGES_LIVE, MOMENTS_LIVE } from "@/lib/moments-rules";
+import { WALLET_LIVE } from "@/lib/wallet";
 import PageHero from "@/components/PageHero";
 
 export const metadata: Metadata = {
@@ -129,10 +130,11 @@ const ITEMS: { title: string; tag: string; body: string; detail: string; link?: 
   },
   {
     title: "NotesApp Credit and Bonus Credits",
-    tag: "Payments",
-    body: "A prepaid balance you top up once and spend across #NotesApp, so you don't have to enter card details every time. Planned uses: audio and video calls, boosts, verification badges, ad campaigns, and items and sessions in other members' shops.",
+    tag: "Live · Payments",
+    body: "Live: a prepaid wallet you top up once and spend across #NotesApp, so you don't have to enter card details every time. Use it for boosts, the verification badge, ad campaigns, gifts, and items and sessions in other members' shops. Next: paid calls and Notesville Naira in Notes Life.",
     detail:
-      "Top up from ₦1,000 on the web. Larger top-ups will earn Bonus Credits, extra credit that is spent first, and only on calls, advert banner payments, boosts and badges. NotesApp Credit can't be sent to other members and can't be cashed out; sellers and publishers are still paid to their bank accounts, never into a balance. Paying for a shop item or session with NotesApp Credit works like paying by card: your money is held until the item is delivered or the session has happened, then the seller is paid. Premium calls will be billed from NotesApp Credit, with the rate shown before you start. Rates and bonus amounts can change, and are always shown before you pay.",
+      "Top up from ₦1,000 to ₦500,000 through Paystack. Top-ups of ₦5,000 and more add Bonus Credits (₦250 on ₦5,000, ₦700 on ₦10,000, ₦2,000 on ₦20,000, ₦6,000 on ₦50,000 or more), which last 90 days, are spent first, and only on boosts, badges and advert banners (and paid calls, when they come). NotesApp Credit can't be sent to other members and can't be cashed out; sellers and publishers are still paid to their bank accounts, never into a balance. Paying for a shop item or session from the wallet works like paying by card: your money is held until the item is delivered or the session has happened, then the seller is paid, and refunds go back to your wallet. Bonus amounts can change, and are always shown before you pay.",
+    link: { href: "/profile/wallet", label: "Open your wallet →" },
   },
   {
     title: "Paylony payments and Tap-to-Pay",
@@ -193,6 +195,7 @@ export default function RoadmapPage() {
               <li>Video on posts — one MP4 or WebM per post (up to 3 minutes and 100 MB), played in our own data-friendly player, with a weekly allowance by plan</li>
               {MOMENTS_LIVE && <li>Moments: a picture, a video or text, with an optional voice-over, on your profile picture for 24, 48 or 72 hours. A video over 90 seconds is split into parts (as many as your plan&apos;s weekly video allowance covers); a bar at the top fills in maroon as each moment plays; followers can like, 🔁 re-share or 💬 reply from the Moments row on the Journals page, you can see who watched, you choose whether only your followers or everyone can see yours, and anyone can block or report</li>}
               {MESSAGES_LIVE && <li>Direct messages with a live inbox: bold, italic and underline, a ✔ when sent and a ✔✔ with the time when read, pictures, videos and documents attached (how big and how many depends on your plan), voice notes of up to 5 minutes and stickers. Notifications on your device (offered when you first use Messages, and on until you turn them off), email on Business and Enterprise (off until you switch it on, at most one an hour), and block and report tools</li>}
+              {WALLET_LIVE && <li>The NotesApp Credit <Link href="/profile/wallet" className="text-crimson underline">wallet</Link>: top up once (Bonus Credits on ₦5,000 and more) and pay for boosts, badges, adverts, gifts, shop items and sessions without your card each time</li>}
               {CALLS_LIVE && <li>Free voice and video calls in Messages with anyone you follow who follows you back: straight between your two devices, encrypted and never recorded, with a line in the conversation for every call, a notification for a missed one, and Call back on any call line</li>}
               <li><Link href="/nana" className="text-crimson underline">Nana AI</Link> and the <Link href="/help" className="text-crimson underline">help centre</Link>: ask anything about #NotesApp, from every page and from a conversation pinned in Messages, and get writing help in drafts, shares and messages (with your own AI account connected, or ours when switched on)</li>
               <li>Publishing a post to your connected LinkedIn and X from the post itself</li>

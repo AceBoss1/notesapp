@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { friendlyMessage } from "@/lib/api-errors";
 import { getAdminDb, verifyAdminRequest } from "@/lib/firebase-admin";
-import { refundTransaction, slotLockId } from "@/lib/paystack";
+import { slotLockId } from "@/lib/paystack";
+import { refundPayment } from "@/lib/refunds";
 import { releaseLedgerEntry } from "@/lib/payouts";
 import type { LedgerEntry } from "@/lib/payments";
 import { BoostCancelError, cancelBoost } from "@/lib/boost-cancel";
@@ -49,7 +50,7 @@ export async function POST(req: NextRequest) {
       if (!ended) return NextResponse.json({ error: "Boost is still running." }, { status: 409 });
       const shortfall = Math.max(0, b.impressionsPurchased - b.impressionsDelivered);
       const refundKobo = Math.floor((b.amountKobo * shortfall) / b.impressionsPurchased);
-      if (refundKobo > 0) await refundTransaction(reference, refundKobo);
+      if (refundKobo > 0) await refundPayment(reference, refundKobo);
       await boostRef.update({ status: "closed", refundedKobo: refundKobo, closedAt: new Date().toISOString() });
       return NextResponse.json({ ok: true, refundKobo });
     }
@@ -85,7 +86,7 @@ export async function POST(req: NextRequest) {
           return NextResponse.json({ error: `This order is already ${o.status} — refund in Paystack manually if needed.` }, { status: 409 });
         }
       }
-      await refundTransaction(paymentRef);
+      await refundPayment(paymentRef);
       const batch = db.batch();
       batch.update(payRef, { status: "refunded" });
       existing.forEach((e) => batch.update(e.ref, { status: "refunded" }));

@@ -12,6 +12,7 @@ import { limitTable, type LimitTable } from "@/lib/limits";
 import { getAdminDb } from "@/lib/firebase-admin";
 import { getLimitTable } from "@/lib/limits-server";
 import { CALLS_LIVE, MESSAGES_LIVE, MOMENTS_LIVE } from "@/lib/moments-rules";
+import { WALLET_LIVE } from "@/lib/wallet";
 import { enterpriseFrom, planPrice, planRate, pct, breakEven } from "@/lib/pricing";
 
 export const metadata: Metadata = {
@@ -172,7 +173,12 @@ export default async function PricingPage() {
         to the platform, the less commission NotesApp takes on what
         you earn through it.
       </p>
-        <p className="small">
+        {WALLET_LIVE && (
+        <p className="mt-4 text-sm text-slate">
+          Pay without entering your card each time: top up your <Link href="/profile/wallet" className="text-crimson underline">NotesApp Credit wallet</Link> from ₦1,000 (₦5,000 and more adds Bonus Credits) and use it for boosts, the verification badge, adverts, gifts, shop items and sessions. Credit can&apos;t be cashed out.
+        </p>
+      )}
+      <p className="small">
         Publishers set their own prices — sessions from ₦5,000 to
         ₦500,000, monthly journal subscriptions from ₦1,000 to
         ₦100,000. The commission below comes out of each paid session

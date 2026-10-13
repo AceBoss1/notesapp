@@ -11,6 +11,17 @@ export type Release = {
 
 export const CHANGELOG: Release[] = [
   {
+    version: "v0.27.0",
+    bump: "minor",
+    date: "2026-10-14",
+    changes: [
+      { kind: "added", text: "NotesApp Credit wallet: top up from ₦1,000 to ₦500,000 through Paystack and pay for boosts, the verification badge, ad campaigns, gifts, shop items, downloads and paid sessions without entering your card each time. Find it under your name → Wallet." },
+      { kind: "added", text: "Bonus Credits on larger top-ups (₦250 on ₦5,000, ₦700 on ₦10,000, ₦2,000 on ₦20,000, ₦6,000 on ₦50,000 or more). They last 90 days, are spent first, and work on boosts, badges and advert banners." },
+      { kind: "added", text: "When you pay and have something in your wallet, you choose Wallet or Card, with the total and how it splits between bonus and credit. Shop items and sessions paid from the wallet are held until delivered or held, like card payments, and refunds go back to your wallet." },
+      { kind: "added", text: "A wallet statement with filters (Top-ups, Spent, Bonus, Held, Refunds), a help article, and the wallet in your data download." },
+    ],
+  },
+  {
     version: "v0.26.0",
     bump: "minor",
     date: "2026-10-14",

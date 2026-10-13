@@ -63,7 +63,7 @@ export default function BookingCard({
     if (!date || !slot) return setError("Pick a date and a time.");
     setBusy(true);
     try {
-      await startCheckout(viewer, { kind: "booking", username, date, slot });
+      await startCheckout(viewer, { kind: "booking", username, date, slot }, { amountKobo: offered?.priceKobo });
     } catch (e) {
       setError(e instanceof Error ? e.message : "Couldn't start payment.");
       setBusy(false);
