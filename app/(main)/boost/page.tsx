@@ -68,7 +68,7 @@ export default function BoostPage() {
           <p className="font-ui text-sm font-bold text-ink">Fair by design</p>
           <p className="mt-2 text-sm text-slate">
             Boost revenue has no commission — the price is the price. If a boost ends with impressions undelivered, the
-            undelivered share is refunded to your card. One active boost per post; boosted posts are labelled “Boosted”.
+            undelivered share is refunded to your card. You can cancel a running boost any time under Boost performance: delivered impressions are spent, and you get half of the undelivered share back (the other half is forfeited). One active boost per post; boosted posts are labelled “Boosted”.
           </p>
         </div>
         <div className="card p-6">
