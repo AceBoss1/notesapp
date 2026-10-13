@@ -7,7 +7,7 @@ export type MenuItem = { label: string; icon?: string; href?: string; onClick?: 
 
 // The top of an open conversation: the picture, the name (with badges beside it), a line under it (online status, or "Group · 12 members"), and a
 // chevron that opens a menu of what you can do with this conversation.
-export default function ThreadHeader({ back, avatar, title, subtitle, items }: { back?: ReactNode; avatar: ReactNode; title: ReactNode; subtitle?: ReactNode; items: MenuItem[] }) {
+export default function ThreadHeader({ back, avatar, title, subtitle, items, actions }: { back?: ReactNode; avatar: ReactNode; title: ReactNode; subtitle?: ReactNode; items: MenuItem[]; actions?: ReactNode }) {
   const [open, setOpen] = useState(false);
   const box = useRef<HTMLDivElement>(null);
   useEffect(() => {
@@ -29,6 +29,7 @@ export default function ThreadHeader({ back, avatar, title, subtitle, items }: {
           <p className="flex flex-wrap items-center gap-1.5 font-ui text-lg font-bold leading-tight text-ink">{title}</p>
           {subtitle && <div className="mt-0.5 text-xs text-slate">{subtitle}</div>}
         </div>
+        {actions}
         <button type="button" onClick={() => setOpen((o) => !o)} aria-haspopup="menu" aria-expanded={open} aria-label="Conversation options" className="flex h-9 w-9 items-center justify-center rounded-full text-crimson hover:bg-paper">
           <svg width="16" height="16" viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="M5 8l5 5 5-5" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" /></svg>
         </button>

@@ -12,6 +12,12 @@ export const metadata: Metadata = {
 
 const ITEMS: { title: string; tag: string; body: string; detail: string; link?: { href: string; label: string } }[] = [
   {
+    title: "Notes Life: a life game on NotesApp",
+    tag: "Social",
+    body: "Planned: a browser game at life.notesapp.name.ng that you play with your NotesApp sign-in. Start in a face-me-I-face-you room in your own city, get a job, decorate, visit and call your friends, and climb the Billionaires List.",
+    detail: "Your NotesApp profile picture is your portrait in the game. You earn game money from jobs and quests, and some quests give Bonus Credits you can use on NotesApp. The market street has real NotesApp stores, and real ads run on the billboards. Game money is for fun only and can't be cashed out. No date yet; we will announce it here first.",
+  },
+  {
     title: "Install NotesApp on your phone or computer",
     tag: "App",
     body: "Live now: the app address (app.notesapp.name.ng) has its own welcome screen with sign-in and sign-up built in, and a Download button that says Download on mobile, PC or Mac and opens the steps for your device. Next: working offline for reading, and push notifications on installed apps.",

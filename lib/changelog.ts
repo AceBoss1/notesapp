@@ -15,6 +15,7 @@ export const CHANGELOG: Release[] = [
     bump: "minor",
     date: "2026-10-13",
     changes: [
+      { kind: "added", text: "Free voice and video calls in Messages, between people who follow each other. Tap the phone or camera at the top of a conversation. Calls go straight between your phones; every call leaves a line in the conversation, and a missed call sends you a notification." },
       { kind: "added", text: "Messages: each open conversation now starts with the person's picture, their name with badges beside it, and their online status below. A small arrow opens a menu: view profile, view moments, create a group, mute notifications, block and report. Mute turns off the bell, push and email for that one conversation." },
       { kind: "added", text: "Groups look like a channel at the top, with the group picture and the number of members. Group admins can set the group picture, switch member messages off (only admins can write) and on again, and ban people who misbehave, then unban them later." },
       { kind: "added", text: "For the team: the work board can show everyone's work, what is assigned to you or to one person, or what is not assigned; a strip shows what is overdue across the team; people are told when they are given an item, and reminded 3 days and 1 day before it is due, on the day and when it is overdue." },

@@ -9,6 +9,8 @@ const flag = (v: string | undefined) => v === "true";
 export const MOMENTS_LIVE = flag(process.env.NEXT_PUBLIC_MOMENTS_LIVE);
 // Moments need direct messages (replies go to the inbox), so turning moments on turns messages on too.
 export const MESSAGES_LIVE = flag(process.env.NEXT_PUBLIC_MESSAGES_LIVE) || MOMENTS_LIVE;
+// Free one-to-one voice and video calls in Messages (lib/calls.ts). On wherever Messages is, unless NEXT_PUBLIC_CALLS_LIVE is "false".
+export const CALLS_LIVE = MESSAGES_LIVE && process.env.NEXT_PUBLIC_CALLS_LIVE !== "false";
 
 export const MOMENT_HOURS = [24, 48, 72] as const;
 export type MomentHours = (typeof MOMENT_HOURS)[number];

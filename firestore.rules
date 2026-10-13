@@ -705,6 +705,33 @@ service cloud.firestore {
     match /serverConfig/{id} { allow read, write: if false; } // admin-set limits: read and written by the server only
     match /messageUploads/{id} { allow read, write: if false; }
     match /dmBlocks/{id} { allow read, write: if false; }
+    // One-to-one calls (lib/calls.ts). The server creates and ends them; the two people only hand each other the connection details:
+    // the caller writes the offer while it rings, the person called writes the answer when they pick up. Candidates go in a list per side.
+    match /calls/{callId} {
+      allow read: if isSignedIn() && (resource.data.callerUid == request.auth.uid || resource.data.calleeUid == request.auth.uid);
+      allow create, delete: if false;
+      allow update: if isSignedIn() && (
+        (request.auth.uid == resource.data.callerUid && resource.data.status == 'ringing'
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['offer']))
+        || (request.auth.uid == resource.data.calleeUid && resource.data.status == 'ringing'
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['answer', 'status', 'acceptedAt'])
+          && request.resource.data.status == 'accepted' && request.resource.data.acceptedAt is string)
+      );
+      function callOf() { return get(/databases/$(database)/documents/calls/$(callId)).data; }
+      function inCall() { return isSignedIn() && (callOf().callerUid == request.auth.uid || callOf().calleeUid == request.auth.uid); }
+      function live() { return callOf().status in ['ringing', 'accepted']; }
+      match /callerCandidates/{c} {
+        allow read: if inCall();
+        allow create: if isSignedIn() && callOf().callerUid == request.auth.uid && live();
+        allow update, delete: if false;
+      }
+      match /calleeCandidates/{c} {
+        allow read: if inCall();
+        allow create: if isSignedIn() && callOf().calleeUid == request.auth.uid && live();
+        allow update, delete: if false;
+      }
+    }
+
     match /conversations/{cid} {
       allow read: if isSignedIn() && request.auth.uid in resource.data.participants;
       allow write: if false;
