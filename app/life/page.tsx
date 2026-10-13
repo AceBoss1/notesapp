@@ -11,7 +11,7 @@ export const metadata: Metadata = {
 
 const APP = "https://app.notesapp.name.ng";
 const shots: { src: string; title: string; text: string }[] = [
-  { src: "/images/life/cities-phone.webp", title: "Choose your city", text: "Start in Abuja, Lagos, Port Harcourt, Kano, Ibadan, Enugu, Benin City, Kaduna, Jos or Calabar. Move later, and own homes in more than one." },
+  { src: "/images/life/cities-phone.webp", title: "Choose your city", text: "Start in Abuja, Lagos or Port Harcourt, with more cities to come. Move later, and own homes in more than one." },
   { src: "/images/life/room-phone.webp", title: "Your room, your city", text: "Start in a face-me-I-face-you room. Your NotesApp photo is your portrait. Keep your food, energy, fun and social bars up, and pick how hard you want life to be." },
   { src: "/images/life/blackout-phone.webp", title: "NEPA has taken light", text: "Power cuts hit everyone at the same moment. Buy an “I Better Pass My Neighbour”, go solar, or stay in the dark till light returns." },
   { src: "/images/life/night-phone.webp", title: "UP NEPA!", text: "Generators roar, a few windows glow, the solar estate never notices. When light returns, the whole street hears it." },
@@ -39,7 +39,7 @@ export default function LifePage() {
           <div>
             <p className="inline-flex items-center gap-2 rounded-full bg-white/80 px-3 py-1 font-mono text-[11px] uppercase tracking-widest text-emerald-700 shadow-sm"><span className="h-2 w-2 animate-pulse rounded-full bg-amber-400" aria-hidden="true" />Coming soon</p>
             <h1 className="mt-4 font-display text-5xl leading-[1.05] sm:text-6xl">Start small.<br />Hustle.<br /><span className="text-emerald-600">Ball out.</span></h1>
-            <p className="mt-4 max-w-lg text-lg text-slate">Notes Life is a free life game in your browser. Begin in a face-me-I-face-you room in your own city (Abuja, Lagos, Port Harcourt, Kano and more), choose any work, write, take bookings, run a shop, decorate, visit and call your friends, and work your way to towers, jets and yachts. You play with your NotesApp account.</p>
+            <p className="mt-4 max-w-lg text-lg text-slate">Notes Life is a free life game in your browser. Begin in a face-me-I-face-you room in your own city (Abuja, Lagos or Port Harcourt to start), choose any work, write, take bookings, run a shop, decorate, visit and call your friends, and work your way to towers, jets and yachts. You play with your NotesApp account.</p>
             <div className="mt-6 flex flex-wrap gap-3">
               <a href={`${APP}/signup`} className="rounded-full bg-ink px-6 py-3 font-ui text-sm font-bold text-paper shadow hover:bg-emerald-700">Get your NotesApp account ready</a>
               <a href="https://www.notesapp.name.ng/u/na-notesapp" className="rounded-full bg-white px-6 py-3 font-ui text-sm font-bold text-ink shadow-sm hover:bg-white/80">Follow for launch news</a>
