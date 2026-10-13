@@ -139,7 +139,12 @@ export default function Thread({ id, to, embedded = false }: { id?: string; to?:
   }, [user, cid]);
   // Braces matter: an effect must return nothing or a clean-up function. Some browsers' scrollIntoView() now returns a Promise, and
   // returning it made React call it as a clean-up ("destroy is not a function"), which crashed the page.
-  useEffect(() => { end.current?.scrollIntoView({ block: "end" }); }, [messages.length]);
+  useEffect(() => {
+    // On a wide screen the messages scroll inside their own box: move that box to the newest message and leave the page where it is.
+    const box = end.current?.parentElement;
+    if (box && getComputedStyle(box).overflowY === "auto") box.scrollTop = box.scrollHeight;
+    else end.current?.scrollIntoView({ block: "end" });
+  }, [messages.length]);
 
   function pick(list: FileList | File[] | null) {
     if (!list) return;
@@ -227,7 +232,7 @@ export default function Thread({ id, to, embedded = false }: { id?: string; to?:
 
   if (user === null) return <p className="text-slate"><Link href="/login" className="text-crimson underline">Sign in</Link> to message.</p>;
   return (
-    <div className={`relative flex flex-col ${dragging ? DROP_RING : ""}`} {...bind}>
+    <div className={`relative flex flex-col ${embedded ? "" : "lg:sticky lg:top-24 lg:h-[calc(100vh-8rem)]"} ${dragging ? DROP_RING : ""}`} {...bind}>
       {dragging && <div className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center rounded bg-paper/80 font-ui text-sm font-bold text-crimson">Drop to attach</div>}
       {group ? (
         <div className="mb-4 flex flex-wrap items-center gap-3 text-sm text-slate">
@@ -247,7 +252,7 @@ export default function Thread({ id, to, embedded = false }: { id?: string; to?:
           <button onClick={() => setReporting(true)} className="text-slate underline">Report</button>
         </p>
       )}
-      <div className="min-h-[40vh] space-y-1">
+      <div className={`min-h-[40vh] space-y-1 ${embedded ? "" : "lg:min-h-0 lg:flex-1 lg:overflow-y-auto lg:pr-2"}`}>
         {messages.map((m, idx) => {
           const mine = m.from === user?.uid;
           const person = people[m.from];

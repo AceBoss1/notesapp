@@ -1521,12 +1521,12 @@ way. Served in "Boosted posts" strips on the home and Journals pages
 (`GET /api/boosts/active`, fair rotation by least-delivered). When a boost
 ends with impressions left, admin clicks **Refund undelivered** in
 `/admin/payments → Boosts` (partial Paystack refund, pro-rata). One active
-boost per post; only the post's author or an admin can boost it. Boost
+boost per post; only the post's author or an admin can boost it. **Cancelling a running boost** (`lib/boost-cancel.ts`): the member does it from `/profile/boosts` (`POST /api/boosts/cancel`) and gets **half of the undelivered share** back, the other half is forfeited (`MEMBER_FORFEIT`); an admin does it from `/admin/payments → Boosts` (**Cancel and refund**, a reason is required and shown to the member) and the **whole** undelivered share is refunded. Delivered impressions are never refunded. The boost is claimed first (status `cancelling`, so impressions stop and a double click can't refund twice); if the Paystack refund fails it goes back to `active`; on success it is `closed` with `cancelledBy`, `refundedKobo` and, for members, `forfeitedKobo` (or the admin's `cancelReason`). The member gets a bell notice. The Terms, `/boost` page and the help article describe the 50% forfeit. Boost
 revenue is 100% platform (no ledger entry). **Housekeeping:** add a
 Firestore TTL policy on collection group `seen`, field `expireAt`, so
 de-dup docs clean themselves up.
 **Not built yet:** in-app "Sponsored" disclosure beyond the label,
-per-boost analytics charts, self-serve boost refunds, public supporter counts.
+per-boost analytics charts, public supporter counts.
 
 ### Boost as its own product page
 `/boost` is now a standalone marketing + entry page (packages, how
