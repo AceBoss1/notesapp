@@ -66,6 +66,23 @@ export default function LifePage() {
           </ul>
         </section>
 
+        <section className="mx-auto max-w-6xl px-4 pb-16 sm:px-6" aria-labelledby="nepa">
+          <div className="grid items-center gap-8 overflow-hidden rounded-3xl bg-[#0d1630] p-6 text-white shadow-xl sm:p-10 lg:grid-cols-[0.8fr,1.2fr]">
+            <div className="relative mx-auto aspect-[390/844] w-[70%] max-w-[18rem] overflow-hidden rounded-[2rem] border-[8px] border-black">
+              <Image src="/images/life/blackout-phone.webp" alt="Notes Life mockup: NEPA has taken light. Choose the I Better Pass My Neighbour 950W generator, a big 3.5kVA generator, solar and an inverter, or stay in darkness till light returns" fill sizes="(min-width: 1024px) 18rem, 70vw" className="object-cover object-top" />
+            </div>
+            <div>
+              <p className="font-mono text-[11px] uppercase tracking-widest text-amber-300">⚡ Power cut · same moment, everywhere</p>
+              <h2 id="nepa" className="mt-2 font-display text-4xl">NEPA has taken light.</h2>
+              <p className="mt-3 text-white/85">When the light goes, it goes for every player at once. The street murmurs, then you choose: the little “I Better Pass My Neighbour”, a big generator, solar that NEPA can never touch, or darkness till light returns.</p>
+              <p className="mt-3 text-white/85">Generators roar one by one and only some windows glow. Then: <i>nwiiiiiii</i>, children shouting <b>“UP NEPA!”</b>, and someone saying “Shhhh! Before dem hear!”</p>
+              <div className="mt-5 overflow-hidden rounded-2xl border border-white/20">
+                <Image src="/images/life/night-desktop.webp" alt="Notes Life mockup: a street at night during a power cut, with a few windows lit by generators and a solar estate fully lit" width={1440} height={900} className="h-auto w-full" />
+              </div>
+            </div>
+          </div>
+        </section>
+
         <section className="mx-auto max-w-6xl px-4 pb-16 sm:px-6">
           <div className="overflow-hidden rounded-3xl border-4 border-white shadow-xl">
             <Image src="/images/life/market-desktop.webp" alt="Notes Life mockup: the market street with real NotesApp stores and a billboard" width={1440} height={900} className="h-auto w-full" />
