@@ -744,8 +744,10 @@ service cloud.firestore {
 
     match /follows/{followId} {
 
-      // Public because follower counts are displayed publicly.
-      allow read: if true;
+      // Counts are public through /api/public/journal-stats and the lists through /api/follows (which apply each
+      // member's privacy switches). Browsers may read only their own follows.
+      allow get: if isSignedIn() && followId.matches(request.auth.uid + '_.*');
+      allow list: if isSignedIn() && resource.data.followerUid == request.auth.uid;
 
       // A user can create a follow only for themselves.
       allow create: if isSignedIn()

@@ -12,7 +12,7 @@ import {
   Timestamp,
 } from "firebase/firestore";
 import { db, auth } from "./firebase";
-import { notifyNewPost } from "./notifications";
+import { api } from "./moments-client";
 
 export type Note = {
   id: string;
@@ -211,8 +211,9 @@ export async function createNote(
     // publishing a draft later via updateNote — a known gap, not
     // worth the added complexity of diffing old/new status there for
     // how rarely that path is used today.
-    notifyNewPost({ slug: data.slug, title: data.title, author: data.author }).catch((err) =>
-      console.warn("notifyNewPost failed:", err)
+    // The server does the fan-out (follow records aren't readable from browsers); only admin-picked authors map to followers.
+    api("/api/notify/new-post", { body: { noteId: ref.id } }).catch((err) =>
+      console.warn("new-post notification failed:", err)
     );
   }
   return ref.id;

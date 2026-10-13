@@ -785,3 +785,18 @@ test("follows made in @na-notesapp's name can't be made or removed from a client
   await env.withSecurityRulesDisabled(async (ctx) => setDoc(doc(ctx.firestore(), "follows/na-notesapp_pub"), { followerUid: "na-notesapp", username: "pub", followedAt: "x", mandatory: false }));
   await assertFails(deleteDoc(doc(as("alice"), "follows/na-notesapp_pub")));
 });
+
+test("follow records: you can read your own, nobody can list someone else's or a journal's followers", async () => {
+  await env.withSecurityRulesDisabled(async (ctx) => {
+    const adb = ctx.firestore();
+    await setDoc(doc(adb, "follows/alice_pub"), { followerUid: "alice", username: "pub", followedAt: "x", mandatory: false });
+    await setDoc(doc(adb, "follows/pub_alice"), { followerUid: "pub", username: "alice", followedAt: "x", mandatory: false });
+  });
+  const a = as("alice");
+  await assertSucceeds(getDoc(doc(a, "follows/alice_pub")));
+  await assertSucceeds(getDocs(query(collection(a, "follows"), where("followerUid", "==", "alice"))));
+  await assertFails(getDoc(doc(a, "follows/pub_alice")));
+  await assertFails(getDocs(query(collection(a, "follows"), where("username", "==", "pub"))));
+  await assertFails(getDocs(query(collection(a, "follows"), where("followerUid", "==", "pub"))));
+  await assertFails(getDocs(query(collection(anon(), "follows"), where("followerUid", "==", "alice"))));
+});
