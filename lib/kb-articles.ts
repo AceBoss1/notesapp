@@ -40,7 +40,17 @@ You will be asked to follow a few journals so your feed is not empty. Verify you
 
 You can also tell us, if you like, what you do, your role and where you work. It is optional and shows under your name on your profile; change it any time in [Edit profile](/profile/edit).
 
+Every password box has an eye button to show or hide what you typed, so you can check it before you continue. On the app address, [app.notesapp.name.ng](https://app.notesapp.name.ng), you sign in or create your account right on the welcome screen.
+
 Forgot your password? Use [Reset password](/forgot-password).`),
+    A("install-notesapp", "Installing NotesApp on your phone or computer", "Getting started", `
+NotesApp installs straight from your browser: no app store and nothing to download by hand. Open [app.notesapp.name.ng](https://app.notesapp.name.ng) and press the Download button on the welcome screen. It says **Download on mobile** on a phone or tablet, **Download on PC** on Windows and **Download on Mac** on a Mac, and opens [the install page](/install) with the steps for your device and browser.
+
+- **iPhone or iPad:** open NotesApp in Safari, tap Share, then **Add to Home Screen**.
+- **Android:** open it in Chrome, tap the ⋮ menu, then **Install app** (or Add to Home screen).
+- **Windows, Mac or Linux:** in Chrome or Edge, click the install icon at the right of the address bar. In Safari on a Mac (macOS Sonoma or newer), choose File, then **Add to Dock**. Firefox on a computer can't install web apps; use Chrome or Edge.
+
+If your browser offers it, the install page shows a one-click **Install NotesApp** button. Inside another app's browser (for example a link opened from Instagram or WhatsApp) installing isn't possible: copy the address and open it in Safari or Chrome. Once installed, NotesApp has its own icon, opens in its own window and keeps you signed in.`),
     A("nana-ai", "Nana AI: your helper on #NotesApp", "Getting started", `
 Nana AI is our helper. Ask her anything about #NotesApp from the chat button on every page, from the conversation pinned at the top of your [Messages](/messages), or on her own page, [Nana AI](/nana). She answers in plain words with links to the right page, and if she cannot help she passes you to a person, who follows up by email.
 
@@ -129,12 +139,20 @@ Every ad is reviewed; if we cannot run it you are refunded in full, and impressi
 **Ad share for publishers:** Pro publishers earn ${formatPercent(t("pro").adRevenueShare!)} and Business publishers ${formatPercent(t("business").adRevenueShare!)} of the ad revenue on their pages if they opt in, with no follower or view threshold. Free journals always show ads and have no share. Shares are calculated monthly, reviewed, held for 30 days and paid to your verified bank account; amounts under ₦1,000 roll into the next month.`),
     ...(MESSAGES_LIVE || MOMENTS_LIVE
       ? [A("messages-moments-groups", "Messages, group chats and moments", "Publishing and earning", `
-${MESSAGES_LIVE ? `**Messages:** talk one to one, with bold, italic and underline, sent and read ticks, pictures, videos and documents (how big and how many depends on your plan), voice notes of up to 5 minutes and stickers. You can block or report anyone. Open [Messages](/messages).
+${MESSAGES_LIVE ? `**Messages:** talk one to one, with bold, italic and underline, sent and read ticks, pictures, videos and documents (how big and how many depends on your plan), voice notes of up to 5 minutes and stickers. You can also drag pictures and files into a conversation, or paste them. You can block or report anyone. Open [Messages](/messages).
 
-**Group chats:** start a group from Messages with up to 50 people you follow or who follow you. Group admins can rename it, add and remove people and make others admin; anyone can leave, and any message from someone else can be reported.` : ""}
+At the top of every conversation is the person's picture, their name with any badge, and whether they are online (see [Followers, following and online status](/help/followers-and-online-status)). The small arrow beside it opens a menu: **View profile**, **View moments**, **Create group**, **Mute notifications** (no bell, push or email for that one conversation until you unmute it), **Block** and **Report**.
 
-${MOMENTS_LIVE ? `**Moments:** share a picture, a video of up to 90 seconds or a line of text on your profile picture for 24, 48 or 72 hours. Followers see them in the Moments row on [Journals](/journals); you choose whether only followers, or everyone, can see yours.` : ""}`)]
+**Group chats:** start a group from Messages with up to 50 people you follow or who follow you. The top of a group shows its picture and how many members it has. Group admins can rename it, set the group picture, add and remove people, make others admin, **switch member messages off** (then only admins can write and everyone else can still read) and back on, and **ban** someone who misbehaves: they are removed and can't be added back until an admin unbans them. Anyone can leave or mute a group, and any message from someone else can be reported.` : ""}
+
+${MOMENTS_LIVE ? `**Moments:** share a picture, a video of up to 90 seconds or a line of text on your profile picture for 24, 48 or 72 hours. Followers see them in the Moments row on [Journals](/journals); you choose whether only followers, or everyone, can see yours. A moment is not your profile picture: to change your picture, tap + on your own picture and choose **Update profile picture**, or go to [Edit profile](/profile/edit).` : ""}`)]
       : []),
+    A("followers-and-online-status", "Followers, following and online status", "Publishing and earning", `
+**Followers and following:** under the follower count on every profile are **Followers** and **Following**. Open either to see the people and organisations, 30 at a time. You must be signed in. You can see someone's lists only if they have made their lists visible **and** you have yours visible too; your own lists are always visible to you. Follower counts stay public.
+
+**Online and last seen:** on Messages, in a conversation and on profiles you can see whether someone is **Online** now or when they were **last seen**, but only for people who follow you and whom you follow back. It updates about every three minutes. "Last seen: not recorded yet" means they haven't opened NotesApp since this was switched on.
+
+**Your two switches** (both on to start with) are under [Account settings](/profile/account) and in your message settings on [Messages](/messages): *Show when I'm online and when I was last seen*, and *Let signed-in members see who follows me and who I follow*. The rule is the same for both: if you switch yours off, you can't see other people's either.`),
     A("social-sharing", "Sharing posts to social media", "Publishing and earning", `
 Every post has a share menu (WhatsApp, X, Facebook, LinkedIn, copy link) that works without connecting anything. Connected publishing, where you connect LinkedIn and X once and publish an excerpt with a link back to your journal, is built and is being switched on; see the [roadmap](/roadmap) for the latest. You always see and can edit the words before anything is posted.`),
     // ── Selling
@@ -167,7 +185,7 @@ Companies, NGOs, churches, schools and clubs can run a verified channel. Sign up
 
 Already have a personal account? You do not need a new one: open [Make an organisation](/organisation), enter the CAC number, and the same account (with its username, posts and followers) becomes an organisation. If the account is more than a day old, an admin approves the change first.
 
-You can invite writers and admins by username or email; they publish under your channel's name and earnings go to one payout account. Business includes four seats (the owner plus three); Enterprise has as many as you need. See [Organisations](/organisations).`),
+You can invite writers and admins by username or email; they publish under your channel's name and earnings go to one payout account. Your organisation's admins can also add and edit items in the organisation's store to help you; deleting items, orders and money stay with the owner and anyone given store access. Business includes four seats (the owner plus three); Enterprise has as many as you need. See [Organisations](/organisations).`),
     A("your-own-domain", "Your own domain", "Teams and organisations", `
 Business and Enterprise accounts can serve their page, journals and store on their own domain (for example notes.yourbrand.com or yourbrand.com), with Home, Notes and Shop pages, and visitors who sign in, book and pay without leaving the site. Business is semi white-label (the footer says "powered by #NotesApp"); Enterprise adds fully branded sign-in and sign-up in your name.
 
@@ -178,7 +196,7 @@ Enterprise accounts can use a server-to-server API (switched on per account by o
 A shared workspace for your team, with a work board, milestones, a morning summary, a weekly review, meetings and a team room, is coming to Business and Enterprise accounts after our own team finishes testing it. It is not available yet and there is no date. See the [Team hub page](/teams) and the [roadmap](/roadmap).`),
     // ── Safety and your data
     A("reports-blocking-appeals", "Reporting, blocking, suspensions and appeals", "Safety and your data", `
-You can block anyone in Messages, and report a post, account, moment or conversation with the Report button, or through the [contact form](/contact). Our team reviews reports; anything marked as nudity or violence is reviewed within 24 hours.
+You can block anyone in Messages (from the menu at the top of the conversation), mute a conversation you don't want alerts from, and report a post, account, moment or conversation with the Report button, or through the [contact form](/contact). Our team reviews reports; anything marked as nudity or violence is reviewed within 24 hours. In a group, admins can also ban a member who misbehaves.
 
 Accounts can be suspended for a set time or until lifted. A suspended member sees the reason and can submit an appeal, which an admin reviews. For a problem with a payment, gift or order, contact us with the details and an admin will review it.`),
     A("payment-safety", "How your money is kept safe", "Safety and your data", `
@@ -236,7 +254,17 @@ Open [Team hub](/admin/team). Every item has a status (To do, Doing, Blocked, Ne
 
 The morning summary (email and bell, switch either off on the hub) lists what is due, blocked or waiting on you. The [weekly review](/admin/team/review) shows the week in numbers and work, with a place for wins, lessons and next week's focus; focus lines can become next week's items. Meetings get their own chat room, decisions and actions, and the team room is the everyday group chat for staff.`),
     A("hub-money-ledger", "Recording money in the ledger", `
-The [Money ledger](/admin/team/finance) holds expenses, payroll and money in that is not platform revenue (grants, sponsorships, direct transfers), with receipts, next to platform revenue. Finance records entries dated today or up to 3 days back, adds receipts to any entry and can void recent ones with a reason. Product can read everything except payroll lines. Only the owner can enter older dates, edit an entry, void old history and import a CSV. Nothing is ever deleted: a voided entry stays with who voided it and why.`),
+The [Money ledger](/admin/team/finance) holds expenses, payroll and money in that is not platform revenue (grants, sponsorships, direct transfers), with receipts, next to platform revenue. Finance records entries dated today or up to 3 days back, adds receipts to any entry and can void recent ones with a reason. Product can read everything except payroll lines. Only the owner can enter older dates, edit an entry, void old history and import a CSV. Nothing is ever deleted: a voided entry stays with who voided it and why. Salaries are paid from [Payroll](/admin/team/payroll), which writes its own Payroll entries here.`),
+    A("hub-expenses-due", "Expenses due: who pays, and by when", `
+**Expenses due** on the team hub and the [Money ledger](/admin/team/finance) lists bills, renewals and free plans turning paid, soonest first. Finance adds an item, and can **Assign** it to a staff member with a **pay-by** date (on or before the due date). The person assigned gets a bell, and reminders (14, 7, 3 and 1 days before, on the day, then once when overdue) count down to the pay-by date and go to finance and to them. Anyone on staff sees the items assigned to them; tick **Assigned to me** to filter. Only finance marks an item paid, which records the expense in the ledger.`),
+    A("hub-payroll", "Payroll", `
+[Payroll](/admin/team/payroll) (menu: Money) is for finance and super admins only. Add each person once: name, role, monthly pay, pay day (1 to 28), start date and bank details. Account numbers are stored encrypted and the page shows only the last four digits; **Show account** reveals the full number when you need it to pay, and each time is logged.
+
+Each month, **Start the run** for that month: it lists everyone active who had started by then. You can **Adjust** a line (a deduction or extra, with a reason, never more than the monthly pay) or **Remove** someone from that month. **Mark paid** one person at a time once you have made the transfer: it records a Payroll (Salary) entry in the money ledger for that month. Transfers are made by hand for now. **Take off payroll** stops someone appearing in future runs; past runs don't change.`),
+    A("hub-staff-library", "The staff library", `
+The [Staff library](/admin/team/library) holds SOPs, the employee handbook, policies, templates and other staff material. Each document has a kind, a version and up to 10 files. It can be open to **everyone on staff**, **one department** or **named people** (personal: only they and whoever added it can open it). Documents that ask for it have an **I have read this** button; please press it once you have read them. Super admins, customer care and product maintain the library: **New version** clears the confirmations and asks everyone again, **Who has read it** shows who still has to, and old documents are archived rather than deleted. For something meant for one person, send it in the message hub with them in To.`),
+    A("hub-message-hub", "The message hub", `
+The [Message hub](/admin/team/messages) is for messages between staff: **To**, optional **Cc**, a subject, the message and up to 10 files. Messages always stay in the hub; tick **Also send by email** to email everyone as well. Files go only to the people in **To** (and the sender): people in Cc get the message and are told the files went to To, which is how personal material stays personal. Inbox, Copied to me and Sent are separate tabs, with unread dots and Reply. Everyday group conversation stays in the Team room in Messages.`),
     A("hub-roles", "Staff roles and departments", `
 Staff are either a **super admin** (sees everything) or an **admin** with one or more departments: Customer care, Trust & safety, Finance, Growth & partnerships, Editorial, Product & tech. An admin sees only the pages of their departments. At [Team access](/admin/access) the owner appoints and removes super admins, and other super admins appoint and remove admins and choose their departments. The person needs a #NotesApp account first. Nobody can change their own access or the owner's.`),
     A("hub-help-admin", "Writing help articles and reading Nana's chats", `

@@ -8,10 +8,12 @@ import { MOMENTS_LIVE } from "@/lib/moments-rules";
 import type { MomentView } from "@/lib/moments-server";
 import MomentViewer from "./MomentViewer";
 import MomentComposer from "./MomentComposer";
+import OwnPictureMenu from "./OwnPictureMenu";
 
 // Wraps a profile picture. When the member has moments you're allowed to see, the picture gets a ring and opens the viewer;
 // on your own profile there is also an add button. With the feature switched off this renders the picture and nothing else.
-export default function MomentRing({ username, isOwn, children }: { username: string; isOwn: boolean; children: ReactNode }) {
+export default function MomentRing({ username, isOwn, children, avatar = "", square = false }: { username: string; isOwn: boolean; children: ReactNode; avatar?: string; square?: boolean }) {
+  const [menu, setMenu] = useState(false);
   const [user, setUser] = useState<User | null | undefined>(undefined);
   const [moments, setMoments] = useState<MomentView[]>([]);
   const [viewing, setViewing] = useState(false);
@@ -39,10 +41,11 @@ export default function MomentRing({ username, isOwn, children }: { username: st
           <span className="block rounded-2xl bg-white p-[2px]">{children}</span>
         </button>
         {isOwn && (
-          <button type="button" onClick={() => setComposing(true)} aria-label="Add a moment" className="absolute -bottom-1 -right-1 flex h-7 w-7 items-center justify-center rounded-full bg-crimson text-lg font-bold leading-none text-white shadow">+</button>
+          <button type="button" onClick={() => setMenu(true)} aria-label="Your profile picture and moments" className="absolute -bottom-1 -right-1 flex h-7 w-7 items-center justify-center rounded-full bg-crimson text-lg font-bold leading-none text-white shadow">+</button>
         )}
       </div>
       {viewing && has && <MomentViewer moments={moments} onClose={() => { setViewing(false); load(); }} onChanged={load} />}
+      {menu && <OwnPictureMenu avatar={avatar} square={square} hasMoments={has} onViewMoments={() => setViewing(true)} onAddMoment={() => setComposing(true)} onAvatarChanged={() => window.location.reload()} onClose={() => setMenu(false)} />}
       {composing && <MomentComposer onClose={() => setComposing(false)} onPosted={load} />}
     </>
   );
