@@ -6,11 +6,12 @@ import { GOLD_KIND_LIVE } from "./badges";
 import { privateBucket, privateFilesConfigured } from "./private-files";
 import { paylonyConfigured, walletBalance } from "./paylony";
 import { pushConfigured, pushProblem } from "./push-server";
-import { MESSAGES_LIVE, MOMENTS_LIVE } from "./moments-rules";
+import { CALLS_LIVE, MESSAGES_LIVE, MOMENTS_LIVE } from "./moments-rules";
 import { pingVercel, vercelConfigured } from "./domains";
 import { whogohostConfigured, wgCredits } from "./whogohost";
 import { PROVIDERS, providerConfigured } from "./social-server";
 import { nanaConfigured } from "./nana-config";
+import { cloudflareTurn, cloudflareTurnConfigured } from "./calls-server";
 
 // Server-only service health checks behind /status. Reports only
 // up/slow/down + latency — never error details or config.
@@ -194,6 +195,27 @@ export async function checkServices(): Promise<ServiceStatus[]> {
     MESSAGES_LIVE
       ? timed(async () => { await getAdminDb().collection("conversations").limit(1).get(); return true; }).then((r) => toStatus("messages", MOMENTS_LIVE ? "Messages & moments" : "Messages", "Direct messages, moments, their live updates and read ticks", r))
       : Promise.resolve(notConfigured("messages", "Messages & moments", "Direct messages, moments, their live updates and read ticks"))
+  );
+  // Free voice and video calls in Messages. The relay (TURN) carries calls on networks that block direct connections; this asks
+  // Cloudflare for credentials exactly as a call does, so a wrong key shows here instead of in a failed call.
+  const callsName = "Calls (voice and video)";
+  const callsDesc = "Free one-to-one calls in Messages, with the Cloudflare relay for networks that block direct connections";
+  const ownTurn = !!((process.env.TURN_URLS || "").trim() && process.env.TURN_USERNAME && process.env.TURN_CREDENTIAL);
+  checks.push(
+    !CALLS_LIVE
+      ? Promise.resolve(notConfigured("calls", callsName, callsDesc))
+      : ownTurn
+        ? Promise.resolve({ id: "calls", name: callsName, description: `${callsDesc} (using the TURN_URLS relay)`, state: "operational" } as ServiceStatus)
+        : !cloudflareTurnConfigured()
+          // Calls still connect on most home and office networks without a relay, so this is "slow", not "down".
+          ? Promise.resolve({ id: "calls", name: callsName, description: `${callsDesc} (relay not set up: add CLOUDFLARE_TURN_KEY_ID and CLOUDFLARE_TURN_API_TOKEN in Vercel; some mobile networks can't connect without it)`, state: "degraded" } as ServiceStatus)
+          : (async () => {
+              let why = "";
+              const r = await timed(async (signal) => { const t = await cloudflareTurn(fetch, signal); why = t.why ?? ""; return !!t.server; });
+              // A relay problem is "slow", not "down": calls still connect directly on most networks.
+              const st = toStatus("calls", callsName, why ? `${callsDesc} (${why})` : `${callsDesc} (relay ready)`, r);
+              return st.state === "down" ? { ...st, state: "degraded" as ServiceState } : st;
+            })()
   );
   // Device notifications need the three VAPID settings; this only confirms they are present.
   checks.push(
