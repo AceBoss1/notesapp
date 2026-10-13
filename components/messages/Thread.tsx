@@ -25,6 +25,8 @@ import ReportDialog from "@/components/moments/ReportDialog";
 import GroupAvatar from "./GroupAvatar";
 import GroupMembers, { type GroupMember } from "./GroupMembers";
 import { isGroupId, type GroupInfo } from "@/lib/messages-rules";
+import PresenceText from "@/components/PresenceText";
+import { usePresence } from "@/lib/presence-client";
 
 // "2:05 PM" today, "12 Oct, 2:05 PM" on another day.
 const stamp = (iso: string) => {
@@ -71,6 +73,7 @@ export default function Thread({ id, to, embedded = false }: { id?: string; to?:
   const [people, setPeople] = useState<Record<string, Person>>({});
   const [replyingTo, setReplyingTo] = useState<ThreadMessage | null>(null);
   const end = useRef<HTMLDivElement>(null);
+  const presence = usePresence(who && !group && who.uid && who.uid !== user?.uid ? [who.uid] : []);
   const isGroup = !!group || (!!cid && isGroupId(cid)); // known from the id, so a message sent before the details arrive still goes to the group
   useEffect(() => onAuthStateChanged(auth, setUser), []);
   useEffect(() => { if (user) api<{ maxBytes: number; maxCount: number; maxVoiceSeconds: number }>("/api/messages/attachments").then(setAllowed).catch(() => {}); }, [user]);
@@ -235,7 +238,7 @@ export default function Thread({ id, to, embedded = false }: { id?: string; to?:
           <button type="button" onClick={() => setShowMembers((s) => !s)} aria-expanded={showMembers} className="underline">{group.members.length} members {showMembers ? "▲" : "▼"}</button>
         </div>
       ) : (
-        <p className="mb-4 text-sm text-slate"><Link href="/messages" className="text-crimson underline">← Messages</Link>{who ? <> · <Link href={`/u/${who.username}`} className="font-bold text-ink">{who.displayName}</Link></> : to ? ` · @${to}` : ""}</p>
+        <p className="mb-4 text-sm text-slate"><Link href="/messages" className="text-crimson underline">← Messages</Link>{who ? <> · <Link href={`/u/${who.username}`} className="font-bold text-ink">{who.displayName}</Link>{!group && presence.statuses[who.uid] && <> · <PresenceText status={presence.statuses[who.uid]} /></>}</> : to ? ` · @${to}` : ""}</p>
       )}
       {group && showMembers && cid && user && <GroupMembers cid={cid} group={group} members={group.members} meUid={user.uid} onChanged={loadMeta} onLeft={() => { window.location.href = "/messages"; }} />}
       {cid && who && !group && (

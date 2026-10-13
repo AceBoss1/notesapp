@@ -2,7 +2,7 @@
 import { test, before, after, beforeEach } from "node:test";
 import { readFileSync } from "node:fs";
 import { initializeTestEnvironment, assertFails, assertSucceeds } from "@firebase/rules-unit-testing";
-import { doc, getDoc, getDocs, setDoc, updateDoc, deleteDoc, deleteField, collection, query, where, orderBy, limit } from "firebase/firestore";
+import { doc, getDoc, getDocs, setDoc, updateDoc, deleteDoc, deleteField, collection, query, where, orderBy, limit, serverTimestamp } from "firebase/firestore";
 
 let env;
 before(async () => {
@@ -760,4 +760,28 @@ test("staff roles: each department reaches its own collections and not the other
   }
   // Nobody gives themselves staff access from the browser.
   await assertFails(setDoc(doc(as("alice"), "adminAccessLog/x"), { at: "x" }));
+});
+
+test("online visibility and list privacy: your own switches only, true or false", async () => {
+  await assertSucceeds(updateDoc(doc(as("alice"), "users/alice"), { showOnline: false, showLists: false }));
+  await assertSucceeds(updateDoc(doc(as("alice"), "users/alice"), { showOnline: true }));
+  await assertFails(updateDoc(doc(as("alice"), "users/alice"), { showOnline: "no" }));
+  await assertFails(updateDoc(doc(as("pub"), "users/alice"), { showOnline: false })); // not someone else's
+});
+
+test("presence: write only your own heartbeat, nobody reads it from the client", async () => {
+  await assertSucceeds(setDoc(doc(as("alice"), "presence/alice"), { lastSeen: serverTimestamp() }));
+  await assertFails(setDoc(doc(as("alice"), "presence/pub"), { lastSeen: serverTimestamp() })); // not as someone else
+  await assertFails(setDoc(doc(as("alice"), "presence/alice"), { lastSeen: new Date("2020-01-01") })); // the clock is the server's
+  await assertFails(setDoc(doc(as("alice"), "presence/alice"), { lastSeen: serverTimestamp(), extra: 1 }));
+  await assertFails(getDoc(doc(as("alice"), "presence/alice")));
+  await assertFails(getDoc(doc(anon(), "presence/alice")));
+  await assertSucceeds(deleteDoc(doc(as("alice"), "presence/alice"))); // switching online visibility off removes it
+  await assertFails(deleteDoc(doc(as("pub"), "presence/alice")));
+});
+
+test("follows made in @na-notesapp's name can't be made or removed from a client", async () => {
+  await assertFails(setDoc(doc(as("alice"), "follows/na-notesapp_pub"), { followerUid: "na-notesapp", username: "pub", followedAt: "x", mandatory: false }));
+  await env.withSecurityRulesDisabled(async (ctx) => setDoc(doc(ctx.firestore(), "follows/na-notesapp_pub"), { followerUid: "na-notesapp", username: "pub", followedAt: "x", mandatory: false }));
+  await assertFails(deleteDoc(doc(as("alice"), "follows/na-notesapp_pub")));
 });

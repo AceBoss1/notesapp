@@ -18,6 +18,11 @@ import { describeUntil } from "@/lib/suspension-length";
 import { submitAppeal, getSuspension } from "@/lib/moderation";
 import Avatar from "@/components/Avatar";
 import FollowButton from "@/components/FollowButton";
+import { ADMIN_PROFILES } from "@/lib/admin";
+import FollowLists from "@/components/FollowLists";
+import OfficialFollowControl from "@/components/OfficialFollowControl";
+import PresenceText from "@/components/PresenceText";
+import { usePresence } from "@/lib/presence-client";
 import MomentRing from "@/components/moments/MomentRing";
 import MessageButton from "@/components/messages/MessageButton";
 import SubscribeButton from "@/components/SubscribeButton";
@@ -202,6 +207,9 @@ export default function ProfilePageClient({ params }: { params: { username: stri
     }
   }, [notes, isOfficial, isSocialChannel, realProfile]);
 
+  // The status line under the name, for people you follow and who follow you back (the server decides).
+  const presence = usePresence(viewer && realProfile && viewer.uid !== realProfile.uid ? [realProfile.uid] : []);
+
   if (profile === undefined) {
     return <div className="py-24 text-center text-sm text-slate">Loading…</div>;
   }
@@ -236,6 +244,8 @@ export default function ProfilePageClient({ params }: { params: { username: stri
       setSubmittingAppeal(false);
     }
   }
+
+  const isOwnerViewer = !!viewer?.email && Object.keys(ADMIN_PROFILES)[0]?.toLowerCase() === viewer.email.toLowerCase();
 
   // People get a circle, organisations a rounded square.
   const isOrgAcct = realProfile?.accountKind === "organisation";
@@ -296,9 +306,12 @@ export default function ProfilePageClient({ params }: { params: { username: stri
               {joined && <> · Joined {joined}</>}
             </p>
           )}
+          {viewer && !suspended && <FollowLists username={profile.username} owner={isOwnerViewer} followerCount={followerCountUnavailable ? null : followerCount} />}
+          {viewer && realProfile && viewer.uid !== realProfile.uid && <PresenceText status={presence.statuses[realProfile.uid]} className="mt-1" />}
         </div>
         <div className="ml-0 flex shrink-0 flex-wrap gap-3 sm:ml-auto">
           <FollowButton username={profile.username} />
+          {viewer && !suspended && <OfficialFollowControl username={profile.username} />}
           {!synthetic && !suspended && <MessageButton username={profile.username} profileUid={realProfile?.uid} />}
           {!synthetic && <GiftButton username={profile.username} publisherUid={realProfile?.uid} />}
           {hasPremium && (

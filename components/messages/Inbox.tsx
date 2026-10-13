@@ -10,6 +10,8 @@ import Avatar from "@/components/Avatar";
 import GroupAvatar from "./GroupAvatar";
 import { stripFormat } from "@/lib/message-format";
 import MessageSettings from "./MessageSettings";
+import PresenceText from "@/components/PresenceText";
+import { usePresence } from "@/lib/presence-client";
 import VerifiedBadge from "@/components/VerifiedBadge";
 import TeamBadge from "@/components/TeamBadge";
 import { badgeLevel, goldKindOf, isTeamMember, type UserProfile } from "@/lib/users";
@@ -26,6 +28,7 @@ export default function Inbox() {
   const [error, setError] = useState<string | null>(null);
   const people = useRef(new Map<string, Who>());
   useEffect(() => onAuthStateChanged(auth, setUser), []);
+  const presence = usePresence((rows ?? []).filter((r) => !r.group && r.with.uid && r.with.uid !== user?.uid).map((r) => r.with.uid));
 
   useEffect(() => {
     if (!user) return;
@@ -80,6 +83,7 @@ export default function Inbox() {
                   ) : (
                     <span className="block font-bold text-ink">{r.with.displayName} {r.with.level && <VerifiedBadge size={14} level={r.with.level} goldKind={r.with.goldKind} />}{r.with.team && <TeamBadge size={14} />} <span className="font-normal text-slate">@{r.with.username}</span></span>
                   )}
+                  {!r.group && <PresenceText status={presence.statuses[r.with.uid]} className="block" />}
                   <span className="block truncate text-sm text-slate">{r.moment ? "↩ Moment reply · " : ""}{r.lastFromMe ? "You: " : r.group && r.group.lastFrom ? `${r.group.lastFrom}: ` : ""}{stripFormat(r.lastText)}</span>
                 </span>
                 {r.unread > 0 && <span className="rounded-full bg-crimson px-2 py-0.5 text-xs font-bold text-white">{r.unread}</span>}

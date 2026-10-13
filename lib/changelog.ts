@@ -11,6 +11,17 @@ export type Release = {
 
 export const CHANGELOG: Release[] = [
   {
+    version: "v0.24.0",
+    bump: "minor",
+    date: "2026-10-13",
+    changes: [
+      { kind: "added", text: "Followers and Following lists on every profile. Open either one to see the people and organisations, 30 at a time." },
+      { kind: "added", text: "Online now and last seen, on Messages, in a conversation and on profiles. You see it only for people who follow you and whom you follow back." },
+      { kind: "added", text: "Two privacy switches, both on to start with: show when you're online, and let signed-in members see your followers and following. If you switch one off, you can't see other people's either. Find them under Profile, Account and in your message settings." },
+      { kind: "added", text: "For the team: the owner can make @na-notesapp follow, or stop following, the founders and their business channels from the profile page, and the list shows on @na-notesapp's profile." },
+    ],
+  },
+  {
     version: "v0.23.0",
     bump: "minor",
     date: "2026-10-12",

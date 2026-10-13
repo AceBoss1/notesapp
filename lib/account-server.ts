@@ -249,7 +249,7 @@ export async function eraseAccount(db: Firestore, uid: string, deleteFile: (key:
   for (const r of await own("storeReviews", "uid", uid)) await deleteReview(db, uid, r.id).catch(() => {}); // takes the stars off the item totals too
   await deleteAll(db, toDelete.map((d) => d.ref));
   counts.relationships = toDelete.length;
-  await deleteAll(db, ["badgeRequests", "suspensions", "tierSubscriptions", "badgeSubscriptions", "goldSubscriptions", "payoutAccounts", "publisherSettings"].map((c) => db.doc(`${c}/${uid}`)));
+  await deleteAll(db, ["badgeRequests", "suspensions", "tierSubscriptions", "badgeSubscriptions", "goldSubscriptions", "payoutAccounts", "publisherSettings", "presence"].map((c) => db.doc(`${c}/${uid}`)));
 
   // --- money and order records: kept for tax and disputes, with the personal details removed ---
   await updateAll(db, await own("payments", "uid", uid), { email: GONE });

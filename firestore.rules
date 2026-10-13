@@ -342,9 +342,13 @@ service cloud.firestore {
                 'social',
                 'industry',
                 'jobTitle',
-                'workplace'
+                'workplace',
+                'showOnline',
+                'showLists'
               ])
           && workOk(request.resource.data)
+          && (!('showOnline' in request.resource.data) || request.resource.data.showOnline is bool)
+          && (!('showLists' in request.resource.data) || request.resource.data.showLists is bool)
         );
 
       // User deletion is disabled.
@@ -754,6 +758,17 @@ service cloud.firestore {
       allow delete: if isSignedIn()
         && resource.data.followerUid == request.auth.uid
         && resource.data.mandatory != true;
+    }
+
+
+    // Presence: the member's own "I'm here" heartbeat. Nobody reads it from the client; /api/presence answers who may see what.
+    match /presence/{uid} {
+      allow read: if false;
+      allow create, update: if isSignedIn()
+        && request.auth.uid == uid
+        && request.resource.data.keys().hasOnly(['lastSeen'])
+        && request.resource.data.lastSeen == request.time;
+      allow delete: if isSignedIn() && request.auth.uid == uid;
     }
 
 
