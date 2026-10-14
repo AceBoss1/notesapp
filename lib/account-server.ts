@@ -34,6 +34,7 @@ export async function collectExport(db: Firestore, uid: string, email: string) {
     following: await docs(db, "follows", "followerUid", uid),
     wallet: (await db.doc(`wallets/${uid}`).get()).data() ?? null,
     walletActivity: await docs(db, "walletTx", "uid", uid),
+    notesLife: { player: (await db.doc(`lifePlayers/${uid}`).get()).data() ?? null, save: (await db.doc(`lifeSaves/${uid}`).get()).data() ?? null, statement: await docs(db, "lifeTx", "uid", uid) },
     followers: username ? strip(await docs(db, "follows", "username", username), ["followerUid"]).length : 0,
     notifications: await docs(db, "notifications", "recipientUid", uid, 500),
     bookingsAsClient: await docs(db, "bookings", "clientUid", uid),
@@ -246,7 +247,10 @@ export async function eraseAccount(db: Firestore, uid: string, deleteFile: (key:
     ...(await own("socialPosts", "uid", uid)), // what we posted to their LinkedIn / X
     ...(await own("socialStates", "uid", uid)),
     ...(await own("nanaChats", "uid", uid)), // chats with Nana AI while signed in
-    ...(await own("walletTx", "uid", uid)), // their wallet statement (the payments behind it are kept, anonymised, below)
+    ...(await own("walletTx", "uid", uid)),
+    ...(await own("lifeTx", "uid", uid)), // Notes Life: the Notesville Naira statement, the player, the save and its restore points
+    ...(await own("lifeSavePoints", "uid", uid)),
+    ...(await Promise.all([`lifePlayers/${uid}`, `lifeSaves/${uid}`].map((x) => db.doc(x).get()))).filter((d) => d.exists), // their wallet statement (the payments behind it are kept, anonymised, below)
     ...(await db.doc(`wallets/${uid}`).get().then((d) => (d.exists ? [d] : []))), // the wallet itself (empty by now: see deletionBlockers)
     ...(await own("calls", "callerUid", uid)), // call records (who, voice or video, when, how long); the line in the conversation goes with the messages
     ...(await own("calls", "calleeUid", uid)),

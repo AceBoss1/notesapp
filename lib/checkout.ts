@@ -40,7 +40,8 @@ export async function startCheckout(
     | { kind: "store"; itemId: string; quantity: number; variant?: string[]; address: import("./merch").DeliveryAddress }
     | { kind: "merch"; itemId: string; logoId: string; size?: string; quantity: number; address: import("./merch").DeliveryAddress }
     | { kind: "gift"; username: string; amountNaira: number; noteId?: string; message?: string; anonymous?: boolean }
-    | { kind: "wallet_topup"; amountNaira: number },
+    | { kind: "wallet_topup"; amountNaira: number }
+    | { kind: "life_naira"; amountNaira: number },
   opts: { amountKobo?: number } = {},
 ): Promise<void> {
   const how = await choosePayment(user, body.kind, opts.amountKobo);

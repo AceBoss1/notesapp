@@ -8,6 +8,8 @@ import { refundToWallet, restoreTopup, reverseTopup } from "./wallet-server";
 export async function refundPayment(reference: string, amountKobo?: number): Promise<void> {
   const db = getAdminDb();
   const p = (await db.doc(`payments/${reference}`).get()).data();
+  // Notesville Naira has already been spent in the game, maybe; it is game money and final (Terms, Notes Life).
+  if (p?.kind === "life_naira") throw new Error("Notesville Naira purchases are final and can't be refunded here.");
   if (p?.payWith === "wallet") { await refundToWallet(db, reference, amountKobo); return; }
   if (p?.kind === "wallet_topup") {
     const taken = await reverseTopup(db, reference, amountKobo);

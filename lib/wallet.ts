@@ -27,7 +27,7 @@ export function bonusFor(topupKobo: number): number {
 }
 
 // What can be paid from the wallet, and which of those may use Bonus Credits.
-export const WALLET_KINDS = ["boost", "ad", "badge", "gift", "store", "digital", "booking"] as const;
+export const WALLET_KINDS = ["boost", "ad", "badge", "gift", "store", "digital", "booking", "life_naira"] as const;
 export type WalletKind = (typeof WALLET_KINDS)[number];
 export const BONUS_KINDS: readonly string[] = ["boost", "ad", "badge"];
 export const isWalletKind = (k: unknown): k is WalletKind => typeof k === "string" && (WALLET_KINDS as readonly string[]).includes(k);
