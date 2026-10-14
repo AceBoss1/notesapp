@@ -33,7 +33,7 @@ export default function BoostPage() {
     setBusy(packageId);
     setError("");
     try {
-      await startCheckout(user, { kind: "boost", noteId, packageId });
+      await startCheckout(user, { kind: "boost", noteId, packageId }, { amountKobo: BOOST_PACKAGES.find((p) => p.id === packageId)?.priceKobo });
     } catch (e) {
       setError(e instanceof Error ? e.message : "Couldn't start payment.");
       setBusy(null);

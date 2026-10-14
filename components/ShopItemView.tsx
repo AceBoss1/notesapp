@@ -114,7 +114,7 @@ export default function ShopItemPage() {
     if (!agreed) return setError("Tick the box to confirm you understand a download is final.");
     setBusy(true);
     try {
-      await startCheckout(user, { kind: "digital", itemId, acceptFinal: true });
+      await startCheckout(user, { kind: "digital", itemId, acceptFinal: true }, { amountKobo: item?.priceKobo ?? undefined });
     } catch (err) {
       setError(err instanceof Error ? err.message : "Couldn't start payment.");
       setBusy(false);
@@ -131,7 +131,7 @@ export default function ShopItemPage() {
     if (problem) return setError(problem);
     setBusy(true);
     try {
-      await startCheckout(user, { kind: "store", itemId, quantity: qty, ...(options.length ? { variant: selection } : {}), address: addr });
+      await startCheckout(user, { kind: "store", itemId, quantity: qty, ...(options.length ? { variant: selection } : {}), address: addr }, { amountKobo: unit * qty + delivery });
     } catch (err) {
       setError(err instanceof Error ? err.message : "Couldn't start payment.");
       setBusy(false);

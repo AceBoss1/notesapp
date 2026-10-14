@@ -33,6 +33,9 @@ export async function GET(req: NextRequest) {
       boost: payment.boost,
       tier: payment.tier && { tier: payment.tier.tier, interval: payment.tier.interval },
       gift: payment.gift && { username: payment.gift.username, noteSlug: payment.gift.noteSlug },
+      amountKobo: payment.amountKobo,
+      ...(payment.payWith === "wallet" ? { payWith: "wallet" } : {}),
+      ...(payment.topup ? { topup: payment.topup } : {}),
     });
   } catch (err) {
     console.error("Paystack verify failed:", err);

@@ -7,6 +7,7 @@ import { MAX_CO_AUTHORS, MIN_CO_PERCENT, MIN_LEAD_PERCENT } from "./coauthors";
 import { GOLD_PRICING } from "./gold";
 import { MERCH_DELIVERY_KOBO } from "./merch";
 import { CALLS_LIVE, MESSAGES_LIVE, MOMENTS_LIVE } from "./moments-rules";
+import { BONUS_DAYS, BONUS_STEPS, TOPUP_MAX_KOBO, TOPUP_MIN_KOBO, WALLET_LIVE } from "./wallet";
 import { ORG_TRIAL_DAYS } from "./org";
 import { COMPANY_INFO } from "./site";
 import { BADGE_PRICE_KOBO, TIERS, formatPercent } from "./tiers";
@@ -80,6 +81,27 @@ Your publishing tier shows under your name on your profile, for example "Pro Pub
 - **Enterprise**: ${t("enterprise").price}. Rates and seats are agreed with us; [contact us](/contact).
 
 Paid plans renew automatically through Paystack, monthly or yearly. Cancel any time under Rates & payouts and you keep the plan until the period you paid for ends; there are no partial refunds. Every price and difference is on the [pricing page](/pricing).`),
+    ...(WALLET_LIVE
+      ? [A("notesapp-credit-wallet", "NotesApp Credit: your wallet", "Plans and pricing", `
+**NotesApp Credit** is a prepaid balance. Top up once in your [Wallet](/profile/wallet) and pay across #NotesApp without entering your card each time.
+
+**Top up:** from ${money(TOPUP_MIN_KOBO)} to ${money(TOPUP_MAX_KOBO)} at a time, through Paystack (card, bank transfer or USSD). Open the menu under your name → **Wallet** → **Top up**.
+
+**Bonus Credits** come with larger top-ups:
+${BONUS_STEPS.map((b) => `- ${money(b.fromKobo)} or more: **+${money(b.bonusKobo)}**`).join("\n")}
+They last ${BONUS_DAYS} days, are spent before your own credit (soonest-ending first), and can be used only for boosts, the verification badge and advert banners (and paid calls, when those arrive). Bonus amounts can change and are always shown before you pay.
+
+**Paying from your wallet:** when you pay for a boost, the maroon ✔ badge, an ad campaign, a gift, a shop item, a download or a paid session, and you have something in your wallet, you're asked **Wallet** or **Card, bank transfer or USSD**. The same prices and rules apply as paying by card:
+- Shop items are **held** until you confirm delivery, and sessions until they have happened; then the seller is paid.
+- A badge paid from the wallet lasts one month and doesn't renew by itself; add it again when it ends.
+- Gifts, shop items, downloads and sessions use your credit only, not Bonus Credits.
+
+**Refunds** of a wallet payment (a cancelled boost, a cancelled session, an order that never arrived) go back to your wallet. Any Bonus Credits you used come back as Bonus Credits for another ${BONUS_DAYS} days.
+
+**What you can't do:** NotesApp Credit can't be withdrawn, cashed out, sent or sold to another member. Sellers and publishers are always paid to their bank accounts, never into a wallet. Plans (Pro, Business), journal subscriptions, the gold badge and merch are paid by card for now.
+
+**Your statement:** the Wallet page lists every top-up, payment, refund and expired bonus, with filters (Top-ups, Spent, Bonus, Held, Refunds). Closing your account? Spend your credit first, or [contact us](/contact) to refund unspent top-ups to your card (Bonus Credits aren't refunded).`)]
+      : []),
     A("commission-rates", "What #NotesApp takes (commission) on each plan", "Plans and pricing", `
 On paid sessions, journal subscriptions and gifts, #NotesApp takes a commission that falls as you move up:
 - Free Basic: ${pct("basic", "sessionAndUnlockCommission", "sessionAndUnlockCommissionFloor")}
@@ -260,7 +282,7 @@ Use the [contact form](/contact) and pick the topic (bookings, payments and refu
     A("about-and-status", "About #NotesApp, status and updates", "Company", `
 #NotesApp is run by ${COMPANY_INFO.legalName} (RC ${COMPANY_INFO.rcNumber}), a private company limited by shares registered in Nigeria. Read [About](/about), see live service health on [Status](/status), what changed on the [Changelog](/changelog) and what is coming on the [roadmap](/roadmap). Our domain partner is Whogohost (go54), and we connect to services such as Paystack, Paylony, Cloudflare, Firebase, Vercel, Resend and Dojah.`),
     A("roadmap-whats-coming", "What is coming next", "Company", `
-Not live yet, with no promised dates: connected publishing to LinkedIn and X, AI drafting from your past notes, domain sales and DNS management inside #NotesApp, the team hub and team messaging for Business and Enterprise, NotesApp Credit and Bonus Credits, Paylony payments and Tap-to-Pay, WhatsApp reminders, fuller identity checks, and iOS and Android apps. Details and the latest are on the [roadmap](/roadmap).`),
+Not live yet, with no promised dates: connected publishing to LinkedIn and X, AI drafting from your past notes, domain sales and DNS management inside #NotesApp, the team hub and team messaging for Business and Enterprise, ${WALLET_LIVE ? "paid calls and Notesville Naira in Notes Life (the NotesApp Credit wallet itself is live)" : "NotesApp Credit and Bonus Credits"}, Paylony payments and Tap-to-Pay, WhatsApp reminders, fuller identity checks, and iOS and Android apps. Details and the latest are on the [roadmap](/roadmap).`),
     A("million-naira-challenge", "The #1MillionNairaNotesAppChallenge", "Company", `
 A coming-soon challenge for influencers: reach 100,000 views and 10,000 new followers to unlock live video, then reach 2,000 registered members watching one live for at least 5 minutes to open a ₦1,000,000 giveaway (₦250,000 in Bonus Credits for followers you choose, ₦250,000 in NotesApp Credit for you, and ₦500,000 cash). The first ten influencers to qualify each month are paid, each influencer can win once, and fake accounts and bots are disqualified. It is not live yet; see [the challenge page](/challenge).`),
   ];

@@ -830,3 +830,20 @@ test("calls: only the two people read it; caller writes the offer, callee answer
   await env.withSecurityRulesDisabled(async (ctx) => updateDoc(doc(ctx.firestore(), "calls/c1"), { status: "ended" }));
   await assertFails(addDoc(collection(a, "calls/c1/callerCandidates"), { candidate: "late" })); // nothing after it ends
 });
+
+test("wallet: a member reads only their own balance and statement; nobody writes from a browser", async () => {
+  await env.withSecurityRulesDisabled(async (ctx) => {
+    const f = ctx.firestore();
+    await setDoc(doc(f, "wallets/alice"), { creditKobo: 100000, bonusLots: [] });
+    await setDoc(doc(f, "walletTx/t1"), { uid: "alice", type: "topup", creditKobo: 100000, bonusKobo: 0, label: "Top-up", at: "2026-10-14T00:00:00Z" });
+  });
+  const a = as("alice"), x = as("stranger");
+  await assertSucceeds(getDoc(doc(a, "wallets/alice")));
+  await assertFails(getDoc(doc(x, "wallets/alice")));
+  await assertFails(setDoc(doc(a, "wallets/alice"), { creditKobo: 99999999, bonusLots: [] }));
+  await assertFails(updateDoc(doc(a, "wallets/alice"), { creditKobo: 99999999 }));
+  await assertSucceeds(getDocs(query(collection(a, "walletTx"), where("uid", "==", "alice"))));
+  await assertFails(getDocs(query(collection(x, "walletTx"), where("uid", "==", "alice"))));
+  await assertFails(setDoc(doc(a, "walletTx/t2"), { uid: "alice", type: "topup", creditKobo: 5, bonusKobo: 0, label: "x", at: "x" }));
+  await assertFails(getDoc(doc(a, "groupCreates/alice")));
+});

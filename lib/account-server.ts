@@ -32,6 +32,8 @@ export async function collectExport(db: Firestore, uid: string, email: string) {
     notes: await docs(db, "notes", "authorUid", uid),
     comments: comments.docs.map((d) => ({ id: d.id, ...clean(d.data()) })),
     following: await docs(db, "follows", "followerUid", uid),
+    wallet: (await db.doc(`wallets/${uid}`).get()).data() ?? null,
+    walletActivity: await docs(db, "walletTx", "uid", uid),
     followers: username ? strip(await docs(db, "follows", "username", username), ["followerUid"]).length : 0,
     notifications: await docs(db, "notifications", "recipientUid", uid, 500),
     bookingsAsClient: await docs(db, "bookings", "clientUid", uid),
@@ -119,6 +121,8 @@ export async function deletionBlockers(db: Firestore, uid: string, opts: { isAdm
   const activeSubs = (await docs(db, "subscriptions", "subscriberUid", uid)).filter((s) => s.status === "active");
   if (activePlans.length || activeSubs.length) out.push("You have active paid plans or subscriptions — cancel them first so you're not billed again.");
 
+  const wallet = (await db.doc(`wallets/${uid}`).get()).data();
+  if (Number(wallet?.creditKobo) > 0) out.push(`You have ₦${(Number(wallet!.creditKobo) / 100).toLocaleString("en-NG")} of NotesApp Credit left. Spend it first, or contact us to have unspent top-ups refunded to your card (Bonus Credits can't be refunded).`);
   const ads = (await docs(db, "adCampaigns", "uid", uid)).filter((c) => ["in_review", "live"].includes(String(c.status)));
   if (ads.length) out.push("An ad campaign is still running or in review.");
   const boosts = (await docs(db, "boosts", "publisherUid", uid)).filter((b) => b.status === "active" && new Date(String(b.endsAt)).getTime() > now);
@@ -242,6 +246,8 @@ export async function eraseAccount(db: Firestore, uid: string, deleteFile: (key:
     ...(await own("socialPosts", "uid", uid)), // what we posted to their LinkedIn / X
     ...(await own("socialStates", "uid", uid)),
     ...(await own("nanaChats", "uid", uid)), // chats with Nana AI while signed in
+    ...(await own("walletTx", "uid", uid)), // their wallet statement (the payments behind it are kept, anonymised, below)
+    ...(await db.doc(`wallets/${uid}`).get().then((d) => (d.exists ? [d] : []))), // the wallet itself (empty by now: see deletionBlockers)
     ...(await own("calls", "callerUid", uid)), // call records (who, voice or video, when, how long); the line in the conversation goes with the messages
     ...(await own("calls", "calleeUid", uid)),
     ...(await db.doc(`groupCreates/${uid}`).get().then((d) => (d.exists ? [d] : []))), // the last group they started (stops a double tap making two)

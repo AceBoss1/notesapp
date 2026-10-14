@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { friendlyMessage } from "@/lib/api-errors";
 import { getAdminDb, getUserEmail, verifySignedInRequest } from "@/lib/firebase-admin";
-import { refundTransaction, slotLockId } from "@/lib/paystack";
+import { slotLockId } from "@/lib/paystack";
+import { refundPayment } from "@/lib/refunds";
 import { refundFraction } from "@/lib/cancellation";
 import { sendEmail } from "@/lib/email";
 import { formatNaira, formatSlot } from "@/lib/booking-time";
@@ -55,7 +56,7 @@ export async function POST(req: NextRequest) {
     const refundKobo = Math.floor(b.amountKobo * fraction);
 
     try {
-      if (refundKobo > 0) await refundTransaction(reference, refundKobo === b.amountKobo ? undefined : refundKobo);
+      if (refundKobo > 0) await refundPayment(reference, refundKobo === b.amountKobo ? undefined : refundKobo);
     } catch (err) {
       await bRef.update({ status: "confirmed" });
       throw err;

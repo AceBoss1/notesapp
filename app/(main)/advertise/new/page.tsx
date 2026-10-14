@@ -66,7 +66,7 @@ export default function NewCampaignPage() {
       await startCheckout(user, {
         kind: "ad", packageId, advertiserName: advertiserName.trim(), title: title.trim(), text: text.trim(),
         image, href: href.trim(), placements, agreed,
-      });
+      }, { amountKobo: pkg.priceKobo });
     } catch (err) {
       setError(err instanceof Error ? err.message : "Couldn't start payment.");
       setBusy(false);

@@ -1,5 +1,5 @@
 import type { Firestore } from "firebase-admin/firestore";
-import { refundTransaction } from "./paystack";
+import { refundPayment } from "./refunds";
 import { notifyBell } from "./email";
 import { formatNaira } from "./booking-time";
 
@@ -18,7 +18,7 @@ export function refundFor(b: { amountKobo: number; impressionsPurchased: number;
   return { undeliveredKobo, refundKobo: by === "member" ? Math.floor(undeliveredKobo * (1 - MEMBER_FORFEIT)) : undeliveredKobo };
 }
 
-export async function cancelBoost(db: Firestore, reference: string, by: "member" | "admin", opts: { uid?: string; reason?: string; refund?: typeof refundTransaction } = {}): Promise<{ refundKobo: number; forfeitedKobo: number }> {
+export async function cancelBoost(db: Firestore, reference: string, by: "member" | "admin", opts: { uid?: string; reason?: string; refund?: typeof refundPayment } = {}): Promise<{ refundKobo: number; forfeitedKobo: number }> {
   const ref = db.doc(`boosts/${reference}`);
   const reason = (opts.reason ?? "").trim().slice(0, 300);
   if (by === "admin" && reason.length < 3) throw new BoostCancelError(400, "Give a reason; the member is told what it was.");
@@ -35,7 +35,7 @@ export async function cancelBoost(db: Firestore, reference: string, by: "member"
 
   const { undeliveredKobo, refundKobo } = refundFor(b as never, by);
   try {
-    if (refundKobo > 0) await (opts.refund ?? refundTransaction)(reference, refundKobo);
+    if (refundKobo > 0) await (opts.refund ?? refundPayment)(reference, refundKobo);
   } catch (e) {
     await ref.update({ status: "active" }); // nothing was refunded; leave it running
     throw e;

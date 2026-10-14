@@ -1,5 +1,6 @@
 "use client";
 
+import { WALLET_LIVE } from "@/lib/wallet";
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { onAuthStateChanged, signOut, User } from "firebase/auth";
@@ -90,6 +91,7 @@ export default function AuthNav({ onDark = false }: { onDark?: boolean }) {
             {MESSAGES_LIVE && <Link href="/messages" className={item}>💬 Messages{unreadDms > 0 && <span className="ml-2 rounded-full bg-crimson px-1.5 py-0.5 text-[10px] font-bold text-white">{unreadDms}</span>}</Link>}
             <Link href="/bookings" className={item}>Bookings</Link>
             <Link href="/orders" className={item}>Orders &amp; parcels</Link>
+            {WALLET_LIVE && <Link href="/profile/wallet" className={item}>💳 Wallet</Link>}
             <Link href="/saved" className={item}>♥ Saved items</Link>
             <Link href="/boost" className={item}>Boost a post</Link>
             <Link href="/profile/boosts" className={item}>Boost performance</Link>

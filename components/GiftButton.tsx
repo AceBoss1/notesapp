@@ -67,7 +67,7 @@ export default function GiftButton({
     }
     setBusy(true);
     try {
-      await startCheckout(user, { kind: "gift", username, amountNaira: naira, noteId, message, anonymous });
+      await startCheckout(user, { kind: "gift", username, amountNaira: naira, noteId, message, anonymous }, { amountKobo: Math.round(naira * 100) });
     } catch (e) {
       setError(e instanceof Error ? e.message : "Couldn't start payment.");
       setBusy(false);

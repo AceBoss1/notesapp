@@ -1,4 +1,5 @@
 import PageHero from "@/components/PageHero";
+import { WALLET_LIVE } from "@/lib/wallet";
 import NotesLifeCard from "@/components/NotesLifeCard";
 import ProgramThanks from "@/components/ProgramThanks";
 import Image from "next/image";
@@ -29,6 +30,7 @@ const LIVE = [
   { href: "/booking", title: "Paid 1:1 sessions", copy: "Your own price and weekly availability, Paystack checkout, reminders and a clear cancellation policy." },
   { href: "/journals", title: "Monthly subscriptions", copy: "Readers subscribe to unlock your premium entries; renewals are automatic." },
   { href: "/gifts", title: "Gifts", copy: "Readers can send you a gift on your profile or on any post." },
+  ...(WALLET_LIVE ? [{ href: "/profile/wallet", title: "NotesApp Credit wallet", copy: "Top up once and pay for boosts, badges, adverts, gifts, shop items and sessions without entering your card each time. Top-ups of ₦5,000 and more add Bonus Credits. Credit can't be cashed out; sellers are still paid to their banks." }] : []),
   { href: "/coauthoring", title: "Co-authoring", copy: "Write a post with other members, agree each person's share of its earnings, and share the byline." },
   { href: "/boost", title: "Boost", copy: "Promote a post or a store item and pay only for validated impressions." },
   { href: "/badges", title: "Verification badges", copy: "A verified ✔ for accounts in good standing, and a gold ✔ for accounts we endorse or identity-check." },
