@@ -1,7 +1,7 @@
 import type { Firestore } from "firebase-admin/firestore";
 import {
   CITY, DEALS, FOOD, FOOD_MODES, GAME_DAY_MS, GAME_HOUR_MS, HOTEL_OF, ITEM, JOB, MONTH_DAYS, NEGOTIATE_CHANCE, ORDER_MAX_ITEMS, RECIPE, RENT_NAIRA,
-  SHIFT_MS, START_NAIRA, STARTER_ITEMS, TRANSPORT_OF, bestOwned, cookingSkill, fmtN, jobBlocker, netWorth, shiftPay, type FoodMode,
+  SHIFT_MS, START_NAIRA, STARTER_ITEMS, TRANSPORT_OF, bestOwned, cookingSkill, fmtN, jobBlocker, netWorth, shiftPay, FUEL_NAIRA, RESIDENTS, nepaAt, type FoodMode,
 } from "./catalog";
 
 // Server-only. Notes Life money and ownership: lifePlayers/{uid} (the player, read by the owner, written only here) and lifeTx/{id}
@@ -101,7 +101,8 @@ export type Action =
   | { action: "shift_cancel" }
   | { action: "deal_ring" }
   | { action: "deal_answer"; answer: "accept" | "negotiate" | "decline" }
-  | { action: "deal_collect" };
+  | { action: "deal_collect" }
+  | { action: "fuel"; litres: number };
 
 export async function act(db: Firestore, uid: string, a: Action, now = Date.now(), rand: () => number = Math.random) {
   return mutate(db, uid, (p, lines) => {
@@ -109,7 +110,9 @@ export async function act(db: Firestore, uid: string, a: Action, now = Date.now(
       case "buy": {
         const it = ITEM(String(a.item));
         if (!it || it.starter) throw new LifeError(400, "That isn't for sale.");
+        if (it.soon) throw new LifeError(409, `${it.name} is coming soon.`);
         if (p.owned.includes(it.id)) throw new LifeError(409, "You already own that.");
+        if (it.needs && !p.owned.includes(it.needs)) throw new LifeError(409, `Get the ${ITEM(it.needs)?.name ?? "base item"} first: this plugs into it.`);
         debit(p, lines, it.price, it.name, "buy");
         p.owned.push(it.id);
         return { message: `${it.name} is yours.` };
@@ -162,10 +165,22 @@ export async function act(db: Firestore, uid: string, a: Action, now = Date.now(
         p.jobId = null;
         return { message: "You've left your job." };
       }
+      case "fuel": {
+        const gen = ["gen_big", "gen_small"].map(ITEM).find((g) => g && p.owned.includes(g.id));
+        if (!gen) throw new LifeError(409, "You don't have a generator.");
+        const litres = Math.floor(Number(a.litres));
+        if (!Number.isInteger(litres) || litres < 1 || litres > (gen.tank ?? 5)) throw new LifeError(400, `Buy 1 to ${gen.tank ?? 5} litres (your tank's size).`);
+        debit(p, lines, litres * FUEL_NAIRA, `Petrol: ${litres} L`, "fuel");
+        return { litres, tank: gen.tank ?? 5 };
+      }
       case "shift_start": {
         const j = p.jobId ? JOB(p.jobId) : undefined;
         if (!j) throw new LifeError(409, "Get a job first (Phone → Jobs).");
         if (p.shift) throw new LifeError(409, "You're already on a shift.");
+        // NEPA: the old desktop needs power. A laptop runs on its own battery; a Power GO or a generator keeps the desktop going.
+        const backup = ["power_go", "gen_small", "gen_big", "home_kit"].some((i) => p.owned.includes(i));
+        if (j.place === "home" && nepaAt(now).out && !backup && !p.owned.includes("pc_laptop") && !p.owned.includes("pc_aio"))
+          throw new LifeError(409, "NEPA has taken light and your old desktop needs power. Get a Power GO Pro at itel Energy or a generator, or wait for light.");
         p.shift = { jobId: j.id, startedAt: now, endsAt: now + SHIFT_MS, pay: shiftPay(j, p.owned, !!a.needsLow) };
         return { endsAt: p.shift.endsAt, pay: p.shift.pay };
       }
@@ -227,18 +242,21 @@ export async function act(db: Firestore, uid: string, a: Action, now = Date.now(
 }
 
 // The Billionaires List: the top players by net worth (Notesville Naira plus what they own), and where you stand.
-export async function richList(db: Firestore, uid: string, limit = 20) {
+// The Billionaires List: real players, and (unless realOnly) the residents with a fortune, marked npc so the screen shows 🤖.
+// `rank` counts everyone shown; `realRank` counts real players only.
+export async function richList(db: Firestore, uid: string, limit = 20, realOnly = false) {
   const top = await db.collection("lifePlayers").orderBy("netWorth", "desc").limit(limit).get();
   const me = (await ref(db, uid).get()).data();
-  let myRank: number | null = null;
-  if (me) myRank = (await db.collection("lifePlayers").where("netWorth", ">", num(me.netWorth)).count().get()).data().count + 1;
-  return {
-    rows: top.docs.map((d, i) => { const x = d.data(); return { rank: i + 1, uid: d.id, username: String(x.username ?? ""), name: String(x.name ?? ""), avatar: String(x.avatar ?? ""), city: String(x.city ?? CITY.id), netWorth: num(x.netWorth), owned: (x.owned as string[] | undefined)?.filter((i) => (ITEM(i)?.price ?? 0) >= 100_000) ?? [] }; }),
-    me: me ? { rank: myRank, netWorth: num(me.netWorth) } : null,
-  };
+  let realRank: number | null = null;
+  if (me) realRank = (await db.collection("lifePlayers").where("netWorth", ">", num(me.netWorth)).count().get()).data().count + 1;
+  type Row = { rank: number; uid: string; username: string; name: string; avatar: string; city: string; netWorth: number; owned: string[]; npc?: { role: string; area: string; icons: string } };
+  const real: Row[] = top.docs.map((d) => { const x = d.data(); return { rank: 0, uid: d.id, username: String(x.username ?? ""), name: String(x.name ?? ""), avatar: String(x.avatar ?? ""), city: String(x.city ?? CITY.id), netWorth: num(x.netWorth), owned: (x.owned as string[] | undefined)?.filter((i) => (ITEM(i)?.price ?? 0) >= 100_000) ?? [] }; });
+  const npcs: Row[] = realOnly ? [] : RESIDENTS.filter((r) => r.netWorth).map((r) => ({ rank: 0, uid: `npc:${r.id}`, username: "", name: r.name, avatar: "", city: CITY.id, netWorth: r.netWorth!, owned: [], npc: { role: r.role, area: r.area, icons: r.owned ?? "" } }));
+  const rows = [...real, ...npcs].sort((a, b) => b.netWorth - a.netWorth).slice(0, limit).map((r, i) => ({ ...r, rank: i + 1 }));
+  const npcAbove = me ? npcs.filter((n) => n.netWorth > num(me.netWorth)).length : 0;
+  return { rows, me: me ? { rank: realRank === null ? null : realRank + npcAbove, realRank, netWorth: num(me.netWorth) } : null };
 }
 
-// Friends in the game: people on NotesApp you follow who follow you back, and whether they play.
 // The friends who joined Notes Life from your invite link, newest first, and whether the bonus was paid.
 export type InviteRow = { uid: string; username: string; name: string; avatar: string; joinedAt: number; status: "paid" | "shift" | "verify" | "limit" };
 export async function invites(db: Firestore, uid: string): Promise<{ invites: InviteRow[]; paid: number }> {
@@ -251,6 +269,7 @@ export async function invites(db: Firestore, uid: string): Promise<{ invites: In
   return { invites: rows.slice(0, 100), paid: rows.filter((r) => r.status === "paid").length };
 }
 
+// Friends in the game: people on NotesApp you follow who follow you back, and whether they play.
 export async function friends(db: Firestore, uid: string) {
   const me = (await db.doc(`users/${uid}`).get()).data();
   const myName = String(me?.username ?? "");

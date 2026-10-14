@@ -873,3 +873,15 @@ test("Notes Life: the player, statement and bonus cap are server-only; saves and
   await assertSucceeds(getDocs(query(collection(as("alice"), "lifeSavePoints"), where("uid", "==", "alice"))));
   await assertFails(deleteDoc(doc(as("alice"), "lifeSavePoints/alice_h7")));
 });
+
+test("Notes Life presence: you write only your own place, outfit and time; signed-in players can read it", async () => {
+  const pres = { place: "chef", outfit: "#f59e0b", at: Date.now() };
+  await assertSucceeds(setDoc(doc(as("alice"), "lifePresence/alice"), pres));
+  await assertFails(setDoc(doc(as("alice"), "lifePresence/pub"), pres));
+  await assertFails(setDoc(doc(as("alice"), "lifePresence/alice"), { ...pres, username: "pub" }));
+  await assertFails(setDoc(doc(as("alice"), "lifePresence/alice"), { ...pres, place: "moon" }));
+  await assertSucceeds(getDoc(doc(as("pub"), "lifePresence/alice")));
+  await assertFails(getDoc(doc(anon(), "lifePresence/alice")));
+  await assertFails(deleteDoc(doc(as("pub"), "lifePresence/alice")));
+  await assertSucceeds(deleteDoc(doc(as("alice"), "lifePresence/alice")));
+});

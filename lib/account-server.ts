@@ -250,7 +250,7 @@ export async function eraseAccount(db: Firestore, uid: string, deleteFile: (key:
     ...(await own("walletTx", "uid", uid)),
     ...(await own("lifeTx", "uid", uid)), // Notes Life: the Notesville Naira statement, the player, the save and its restore points
     ...(await own("lifeSavePoints", "uid", uid)),
-    ...(await Promise.all([`lifePlayers/${uid}`, `lifeSaves/${uid}`].map((x) => db.doc(x).get()))).filter((d) => d.exists), // their wallet statement (the payments behind it are kept, anonymised, below)
+    ...(await Promise.all([`lifePlayers/${uid}`, `lifeSaves/${uid}`, `lifePresence/${uid}`].map((x) => db.doc(x).get()))).filter((d) => d.exists), // their wallet statement (the payments behind it are kept, anonymised, below)
     ...(await db.doc(`wallets/${uid}`).get().then((d) => (d.exists ? [d] : []))), // the wallet itself (empty by now: see deletionBlockers)
     ...(await own("calls", "callerUid", uid)), // call records (who, voice or video, when, how long); the line in the conversation goes with the messages
     ...(await own("calls", "calleeUid", uid)),
