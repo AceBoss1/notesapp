@@ -20,6 +20,7 @@ export const CHANGELOG: Release[] = [
       { kind: "added", text: "Invite friends from your phone's contacts by WhatsApp or SMS: when a friend joins from your link and finishes their first shift, you each get ₦250 in NotesApp Bonus Credit. Share your wins on WhatsApp." },
       { kind: "added", text: "Buy Notesville Naira with your NotesApp Credit wallet or a card (₦1 = N$ 100). Your money and what you own are kept on our servers; your progress saves on your device and to your account, with restore points from the last day and week." },
       { kind: "added", text: "A help article, How Notes Life works, and a Notes Life section in the Terms and the Privacy Policy." },
+      { kind: "changed", text: "The Terms and the calls help article now say plainly that calls go over your internet connection: NotesApp doesn't charge for them, but your mobile network charges its usual data rates." },
     ],
   },
   {
