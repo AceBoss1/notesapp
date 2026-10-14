@@ -6,6 +6,7 @@ import { POLICY_TEXT } from "./cancellation";
 import { MAX_CO_AUTHORS, MIN_CO_PERCENT, MIN_LEAD_PERCENT } from "./coauthors";
 import { GOLD_PRICING } from "./gold";
 import { MERCH_DELIVERY_KOBO } from "./merch";
+import { LIFE_LIVE } from "./life/catalog";
 import { CALLS_LIVE, MESSAGES_LIVE, MOMENTS_LIVE } from "./moments-rules";
 import { BONUS_DAYS, BONUS_STEPS, TOPUP_MAX_KOBO, TOPUP_MIN_KOBO, WALLET_LIVE } from "./wallet";
 import { ORG_TRIAL_DAYS } from "./org";
@@ -190,7 +191,41 @@ ${MOMENTS_LIVE ? `**Moments:** share a picture, a video of up to 90 seconds or a
 - On iPhone, use Safari or the installed #NotesApp app; on Android, Chrome works best.
 - Calls can't reach emergency services.
 
+**Data:** calls go over the internet (Wi-Fi or mobile data), not the phone network. #NotesApp doesn't charge for them, but your mobile network charges its usual data rates for the data a call uses; a video call uses much more data than a voice call, so use Wi-Fi when you can.
+
 Calls are free. Planned: paid calls inside Notes Life (₦5 a minute voice, ₦10 a minute video, from NotesApp Credit), always with the rate shown first. Booked sessions and meetings use a separate video service.`)]
+      : []),
+    ...(LIFE_LIVE
+      ? [A("notes-life", "Notes Life: the NotesApp life game", "Publishing and earning", `
+**Notes Life** is a free life game you play in your browser with your NotesApp account, at [life.notesapp.name.ng](https://life.notesapp.name.ng) or [Play Notes Life](/life/play). The first playable version is set in **Wuse, Abuja**. Lagos and Port Harcourt come later.
+
+**Starting out:** you begin on day 1 with **N$ 100,000** (Notesville Naira) in a room with sage walls: a bed, a bedside lamp and a deal phone, a wardrobe, a WC and bath, a desk with an old big desktop, a standing fan, a bicycle and the maroon NotesApp rug. Rent is **N$ 60,000 every 30 game days**, paid to your landlord, Alhaji Bello. It is taken automatically when it falls due; if you can't pay, it waits as rent owed until you can.
+
+**Time:** the game clock is the same for every player. A game day lasts 48 real minutes (a game hour is 2 minutes), so a game month of 30 days is one real day.
+
+**Your six needs:** Hunger, Energy, Fun, Social, Hygiene and Bladder go down as time passes (only while the game is open), faster on **Hard** and slower on **Easy**; change difficulty any time in Settings. Eat, sleep, read at your desk, message a friend, bathe and use the WC to fill them. When any need is below 40% it turns amber and work pays 20% less.
+
+**Jobs:** apply from the phone or the Jobs menu. A shift takes 4 game hours (8 real minutes) and pays when it ends, even if you close the game. General jobs include Junior writer (N$ 6,000 a shift from your desk, faster on a laptop or all-in-one PC), Delivery rider (twice the deliveries on an e-bike), Maths tutor and Tech freelancer (needs a laptop or all-in-one). **Chef Adams** offers Kiosk attendant, Line cook (cooking skill 3), Delivery rider and, after 10 Chef Adams shifts, Outlet supervisor; **Become a Partner** shows what a Chef Adams kiosk or shop would cost.
+
+**Deal calls:** the bedside phone rings with deals: accept (you pay the cost, you are paid more when the deal is done), negotiate (a better price, but they might walk away) or decline. A smartphone deal line rings more often with bigger deals.
+
+**Food:** order from **@chef_adams** by delivery (to your room, N$ 300 fee), takeaway or dine-in (a little Fun and Social too), or buy the small cooker and cook at home: cheaper, takes time, and raises your cooking skill. Craving it for real? [@chef_adams](/u/chef_adams) is on NotesApp.
+
+**Upgrades:** the shop sells better rugs, a refurbished laptop or an all-in-one PC, an inverter AC (deeper sleep), the cooker, an LED lamp, a smartphone deal line, a Green Wheels e-bike and an electric car. Things are eco-friendly where they can be (refurbished, low power, induction, zero fuel).
+
+**Getting around:** ride your bicycle (free, costs energy), take the metro bus, a keke or a taxi. After a few bike rides the game suggests an e-bike.
+
+**Candellux Imperial, Garki:** for players doing well, the partner hotel has a luxury suite, a 24-hour restaurant, the pool, the VIP bar, a gym, a barbing saloon and laundry. Each panel also shows how to book the real Candellux on WhatsApp.
+
+**The Billionaires List:** your net worth (your N$ plus what you own) ranks you against every player. It shows your NotesApp username, picture and city. Brag on WhatsApp from the list.
+
+**Buying Notesville Naira:** in the Bank, buy N$ with your NotesApp Credit wallet or a card, ₦100 to ₦100,000 at a time. **₦1 buys N$ 100.** Notesville Naira is game money: it can't be cashed out, sent to another player or turned back into credit, and buying it is final.
+
+**Inviting friends:** the Invite panel lets you pick people from your phone's contacts (where your browser allows it) and send your link by WhatsApp or SMS, or share or copy it. When a friend joins from your link and **finishes their first shift**, you each get **₦250 NotesApp Bonus Credit** in your wallet. Your friend needs a verified email, someone can only be invited once (when they first start playing), and you can earn for up to 20 friends a month. Bonus Credit lasts 90 days and pays for boosts, ads and badges. Big moments in the game (a new job, your first shift, a deal, a suite night, a purchase) offer a **Share on WhatsApp** button.
+
+**Your progress:** money, what you own, your job and deals are kept on our servers, so they can't be lost. Your needs, where you are and your outfit are saved on your device every few seconds and to your account every 30 seconds, so you can carry on from another phone or computer. Settings → **Restore points** keeps one save for each of the last 24 hours and 7 days, in case something goes wrong. Your Notes Life data is included in your data download and deleted with your account.
+
+**Partners:** Chef Adams and Candellux Imperial are real businesses that partner with Notes Life. Their in-game prices are game prices; real orders and bookings are made with them directly.`)]
       : []),
     A("followers-and-online-status", "Followers, following and online status", "Publishing and earning", `
 **Followers and following:** under the follower count on every profile are **Followers** and **Following**. Open either to see the people and organisations, 30 at a time. You must be signed in. You can see someone's lists only if they have made their lists visible **and** you have yours visible too; your own lists are always visible to you. Follower counts stay public.

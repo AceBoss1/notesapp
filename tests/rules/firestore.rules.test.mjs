@@ -847,3 +847,29 @@ test("wallet: a member reads only their own balance and statement; nobody writes
   await assertFails(setDoc(doc(a, "walletTx/t2"), { uid: "alice", type: "topup", creditKobo: 5, bonusKobo: 0, label: "x", at: "x" }));
   await assertFails(getDoc(doc(a, "groupCreates/alice")));
 });
+
+test("Notes Life: the player, statement and bonus cap are server-only; saves and restore points are the player's own", async () => {
+  await env.withSecurityRulesDisabled(async (ctx) => {
+    const db = ctx.firestore();
+    await setDoc(doc(db, "lifePlayers/alice"), { naira: 100000 });
+    await setDoc(doc(db, "lifeTx/t1"), { uid: "alice", n: 1 });
+    await setDoc(doc(db, "lifeBonus/2026-10"), { kobo: 50000 });
+  });
+  await assertSucceeds(getDoc(doc(as("alice"), "lifePlayers/alice")));
+  await assertFails(getDoc(doc(as("pub"), "lifePlayers/alice")));
+  await assertFails(setDoc(doc(as("alice"), "lifePlayers/alice"), { naira: 9e12 }));
+  await assertSucceeds(getDocs(query(collection(as("alice"), "lifeTx"), where("uid", "==", "alice"))));
+  await assertFails(getDocs(query(collection(as("pub"), "lifeTx"), where("uid", "==", "alice"))));
+  await assertFails(getDoc(doc(as("alice"), "lifeBonus/2026-10")));
+  await assertFails(setDoc(doc(as("alice"), "lifeBonus/2026-10"), { kobo: 0 }));
+  const save = { state: "{}", v: 1, savedAt: Date.now() };
+  await assertSucceeds(setDoc(doc(as("alice"), "lifeSaves/alice"), save));
+  await assertFails(setDoc(doc(as("alice"), "lifeSaves/alice"), { ...save, naira: 1 }));
+  await assertFails(setDoc(doc(as("pub"), "lifeSaves/alice"), save));
+  await assertFails(getDoc(doc(as("pub"), "lifeSaves/alice")));
+  await assertSucceeds(setDoc(doc(as("alice"), "lifeSavePoints/alice_h7"), { uid: "alice", ...save, slot: "h7" }));
+  await assertFails(setDoc(doc(as("alice"), "lifeSavePoints/pub_h7"), { uid: "alice", ...save, slot: "h7" }));
+  await assertFails(setDoc(doc(as("alice"), "lifeSavePoints/alice_x1"), { uid: "alice", ...save, slot: "x1" }));
+  await assertSucceeds(getDocs(query(collection(as("alice"), "lifeSavePoints"), where("uid", "==", "alice"))));
+  await assertFails(deleteDoc(doc(as("alice"), "lifeSavePoints/alice_h7")));
+});

@@ -38,10 +38,12 @@ const PUBLIC_FILE = /\.[a-z0-9]{2,5}$/i;
 
 export async function middleware(req: NextRequest) {
   const host = (req.headers.get("host") || "").toLowerCase().replace(/:\d+$/, "");
-  // life.notesapp.name.ng: the Notes Life page (coming soon) at its root; its pictures and the app's own files load as usual; anything else goes to the main site.
+  // life.notesapp.name.ng: the Notes Life page at its root (an invite's ?ref= kept); /play opens the game on the main site, where the
+  // NotesApp sign-in lives; its pictures and the app's own files load as usual; anything else goes to the main site.
   if (host && isLifeHost(host)) {
     const { pathname, search } = req.nextUrl;
-    if (pathname === "/" ) return NextResponse.rewrite(new URL("/life", req.url));
+    if (pathname === "/") return NextResponse.rewrite(new URL(`/life${search}`, req.url));
+    if (pathname === "/play" || pathname === "/life/play") return NextResponse.redirect(`https://${MAIN_HOST}/life/play${search}`, 307);
     if (pathname === "/life" || pathname.startsWith("/_next") || pathname.startsWith("/api/") || PUBLIC_FILE.test(pathname)) return NextResponse.next();
     return NextResponse.redirect(`https://${MAIN_HOST}${pathname}${search}`, 307);
   }

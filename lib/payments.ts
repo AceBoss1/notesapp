@@ -19,7 +19,7 @@ import { creditTopup } from "./wallet-server";
 
 export type PaymentRecord = {
   reference: string;
-  kind: "booking" | "subscription" | "boost" | "gift" | "tier" | "badge" | "gold_deposit" | "gold" | "merch" | "ad" | "store" | "digital" | "wallet_topup";
+  kind: "booking" | "subscription" | "boost" | "gift" | "tier" | "badge" | "gold_deposit" | "gold" | "merch" | "ad" | "store" | "digital" | "wallet_topup" | "life_naira";
   uid: string; // the payer
   email: string;
   amountKobo: number;
@@ -310,6 +310,11 @@ export async function fulfillPayment(reference: string): Promise<PaymentRecord> 
       });
     } else if (current.kind === "wallet_topup") {
       await creditTopup(t, db, current, new Date(now));
+    } else if (current.kind === "life_naira") {
+      // Notesville Naira for Notes Life: 1 kobo of NotesApp Credit (or card) = N$ 1. Game money only; it never converts back.
+      const at = Date.now();
+      t.set(db.doc(`lifePlayers/${current.uid}`), { naira: FieldValue.increment(current.amountKobo), netWorth: FieldValue.increment(current.amountKobo), updatedAt: at }, { merge: true });
+      t.set(db.doc(`lifeTx/${current.uid}_${reference}`), { uid: current.uid, amount: current.amountKobo, label: current.payWith === "wallet" ? "Bought with NotesApp Credit" : "Bought by card", kind: "buy_naira", at });
     } else if (current.kind === "badge" && current.badge) {
       const end = periodEndFrom(Date.now(), "monthly");
       t.set(db.doc(`users/${current.uid}`), { badgeUntil: end }, { merge: true });
@@ -510,6 +515,10 @@ async function emitSaleWebhooks(p: PaymentRecord): Promise<void> {
 
 async function notifyPaid(p: PaymentRecord) {
   if (p.kind === "gift" && p.gift) return notifyGift(p);
+  if (p.kind === "life_naira") {
+    await notifyBell({ uid: p.uid, type: "plan", linkHref: "/life/play", message: `N$ ${p.amountKobo.toLocaleString("en-NG")} added to Notes Life.` });
+    return;
+  }
   if (p.kind === "wallet_topup") {
     await notifyBell({ uid: p.uid, type: "plan", linkHref: "/profile/wallet", message: `${formatNaira(p.amountKobo)} added to your wallet${p.topup?.bonusKobo ? `, plus ${formatNaira(p.topup.bonusKobo)} in Bonus Credits` : ""}.` });
     return;

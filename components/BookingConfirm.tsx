@@ -11,7 +11,7 @@ import { forgetReturnHost, rememberedReturnHost } from "@/lib/return-to";
 
 type Result = {
   status: string;
-  kind: "booking" | "subscription" | "boost" | "gift" | "tier" | "badge" | "gold" | "gold_deposit" | "merch" | "ad" | "store" | "digital" | "wallet_topup";
+  kind: "booking" | "subscription" | "boost" | "gift" | "tier" | "badge" | "gold" | "gold_deposit" | "merch" | "ad" | "store" | "digital" | "wallet_topup" | "life_naira";
   amountKobo?: number;
   payWith?: "wallet";
   topup?: { bonusKobo: number };
@@ -60,6 +60,12 @@ function Confirm() {
         </>
       ) : !result ? (
         <p className="text-sm text-slate">Confirming your payment…</p>
+      ) : result.status === "paid" && result.kind === "life_naira" ? (
+        <>
+          <p className="font-display text-2xl text-ink">Notesville Naira added ✓</p>
+          <p className="mt-3 text-sm text-slate">N$ {(result.amountKobo ?? 0).toLocaleString("en-NG")} is in your Notes Life bank. Game money: it can&apos;t be turned back into naira.</p>
+          <AppLink href="/life/play" className="btn-primary mt-6 inline-block !px-5 !py-2 text-xs">Back to Notes Life</AppLink>
+        </>
       ) : result.status === "paid" && result.kind === "wallet_topup" ? (
         <>
           <p className="font-display text-2xl text-ink">Added to your wallet ✓</p>

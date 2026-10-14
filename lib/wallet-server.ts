@@ -34,6 +34,7 @@ export function paymentLabel(p: Pick<PaymentRecord, "kind" | "publisherUsername"
     case "gift": return `Gift to @${p.gift?.username ?? p.publisherUsername}`;
     case "store": return `${p.store?.itemTitle ?? "Shop item"} · @${p.publisherUsername}`;
     case "digital": return `${p.digital?.itemTitle ?? "Download"} · @${p.publisherUsername}`;
+    case "life_naira": return "Notesville Naira for Notes Life";
     case "booking": return `Session with @${p.booking?.username ?? p.publisherUsername}${p.booking ? ` · ${p.booking.date} ${p.booking.slot}` : ""}`;
     default: return "Payment";
   }
@@ -103,6 +104,16 @@ export async function refundToWallet(db: Firestore, reference: string, amountKob
     } satisfies WalletTx);
     return total;
   });
+}
+
+// Adds Bonus Credits to a wallet inside the caller's transaction (Notes Life invites). Pass the wallet as read in that transaction.
+export function grantBonus(t: Transaction, db: Firestore, uid: string, walletData: FirebaseFirestore.DocumentData | undefined, kobo: number, label: string, id: string, now = new Date()) {
+  const w = walletOf(walletData);
+  expiredLine(t, db, uid, w, now);
+  const lots = liveLots(w, now);
+  lots.push({ id, kobo, expiresAt: new Date(now.getTime() + BONUS_DAYS * 86_400_000).toISOString(), source: "adjust" });
+  t.set(walletDoc(db, uid), { creditKobo: w.creditKobo, bonusLots: lots, updatedAt: now.toISOString() });
+  t.set(db.doc(`walletTx/${id}`), { uid, type: "bonus", creditKobo: 0, bonusKobo: kobo, label, kind: "life_referral", at: now.toISOString() } satisfies WalletTx);
 }
 
 // Taking a top-up back out (an admin refunding it to the card): only the unspent part of it, and its bonus goes with it.

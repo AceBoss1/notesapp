@@ -35,3 +35,8 @@
     @apply rounded-xl2 border border-rule bg-card;
   }
 }
+
+/* Notes Life (components/life/LifeGame.tsx): the HUD's frosted pills and the needs bars. */
+.life-game .pill { background: rgba(255, 255, 255, 0.93); border-radius: 9999px; box-shadow: 0 4px 14px rgba(0, 0, 0, 0.08); }
+.life-game .bar { height: 8px; border-radius: 9999px; background: #e5e7eb; overflow: hidden; }
+.life-game .bar > i { display: block; height: 100%; border-radius: 9999px; transition: width 0.6s; }

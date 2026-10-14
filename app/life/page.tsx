@@ -3,13 +3,14 @@ import Image from "next/image";
 import { COMPANY_INFO } from "@/lib/site";
 
 export const metadata: Metadata = {
-  title: "Notes Life · coming soon",
+  title: "Notes Life · play free in Abuja",
   description: "Notes Life is a free browser life game from NotesApp. Start in a face-me-I-face-you room in your city, hustle, build and climb the Billionaires List with your NotesApp account.",
   alternates: { canonical: "https://life.notesapp.name.ng" },
-  openGraph: { title: "Notes Life · coming soon", description: "Start small. Hustle. Ball out (in game money). A NotesApp game.", images: ["/images/life/room-desktop.webp"] },
+  openGraph: { title: "Notes Life · play free in Abuja", description: "Start small. Hustle. Ball out (in game money). A NotesApp game.", images: ["/images/life/room-desktop.webp"] },
 };
 
 const APP = "https://app.notesapp.name.ng";
+const PLAY = "https://www.notesapp.name.ng/life/play";
 const shots: { src: string; title: string; text: string }[] = [
   { src: "/images/life/cities-phone.webp", title: "Choose your city", text: "Start in Abuja, Lagos or Port Harcourt, with more cities to come. Move later, and own homes in more than one." },
   { src: "/images/life/room-phone.webp", title: "Your room, your city", text: "Start in a face-me-I-face-you room. Your NotesApp photo is your portrait. Keep your food, energy, fun and social bars up, and pick how hard you want life to be." },
@@ -23,8 +24,11 @@ const shots: { src: string; title: string; text: string }[] = [
   { src: "/images/life/bank-phone.webp", title: "The Central Bank of Notesville", text: "Notesville Naira is game money, just for fun, and never turns into cash. Quests can earn Bonus Credits you can use on NotesApp." },
 ];
 
-// Notes Life, coming soon: served at life.notesapp.name.ng (middleware.ts) and at /life. Its own look, the NotesApp sign-in.
-export default function LifePage() {
+// Notes Life: served at life.notesapp.name.ng (middleware.ts) and at /life. Its own look, the NotesApp sign-in. An invite link
+// (?ref=username) is passed on to the game, so the friend who invited you gets their bonus when you finish your first shift.
+export default function LifePage({ searchParams }: { searchParams?: { ref?: string } }) {
+  const ref = typeof searchParams?.ref === "string" && /^[a-z0-9_.-]{1,40}$/i.test(searchParams.ref) ? searchParams.ref : "";
+  const play = ref ? `${PLAY}?ref=${encodeURIComponent(ref)}` : PLAY;
   return (
     <div className="min-h-screen bg-gradient-to-b from-sky-200 via-sky-50 to-amber-50 text-ink">
       <header className="mx-auto flex max-w-6xl items-center justify-between px-4 py-5 sm:px-6">
@@ -37,14 +41,14 @@ export default function LifePage() {
       <main>
         <section className="mx-auto grid max-w-6xl items-center gap-10 px-4 pb-12 pt-4 sm:px-6 lg:grid-cols-[0.9fr,1.1fr]">
           <div>
-            <p className="inline-flex items-center gap-2 rounded-full bg-white/80 px-3 py-1 font-mono text-[11px] uppercase tracking-widest text-emerald-700 shadow-sm"><span className="h-2 w-2 animate-pulse rounded-full bg-amber-400" aria-hidden="true" />Coming soon</p>
+            <p className="inline-flex items-center gap-2 rounded-full bg-white/80 px-3 py-1 font-mono text-[11px] uppercase tracking-widest text-emerald-700 shadow-sm"><span className="h-2 w-2 animate-pulse rounded-full bg-emerald-500" aria-hidden="true" />First playable · Abuja</p>
             <h1 className="mt-4 font-display text-5xl leading-[1.05] sm:text-6xl">Start small.<br />Hustle.<br /><span className="text-emerald-600">Ball out.</span></h1>
             <p className="mt-4 max-w-lg text-lg text-slate">Notes Life is a free life game in your browser. Begin in a face-me-I-face-you room in your own city (Abuja, Lagos or Port Harcourt to start), choose any work, write, take bookings, run a shop, decorate, visit and call your friends, and work your way to towers, jets and yachts. You play with your NotesApp account.</p>
             <div className="mt-6 flex flex-wrap gap-3">
-              <a href={`${APP}/signup`} className="rounded-full bg-ink px-6 py-3 font-ui text-sm font-bold text-paper shadow hover:bg-emerald-700">Get your NotesApp account ready</a>
-              <a href="https://www.notesapp.name.ng/u/na-notesapp" className="rounded-full bg-white px-6 py-3 font-ui text-sm font-bold text-ink shadow-sm hover:bg-white/80">Follow for launch news</a>
+              <a href={play} className="rounded-full bg-emerald-600 px-6 py-3 font-ui text-sm font-bold text-white shadow hover:bg-emerald-700">▶ Play now, free</a>
+              <a href={`${APP}/signup`} className="rounded-full bg-white px-6 py-3 font-ui text-sm font-bold text-ink shadow-sm hover:bg-white/80">Get a NotesApp account</a>
             </div>
-            <p className="mt-3 text-xs text-slate">Already on NotesApp? You are in. We will tell you the day it opens.</p>
+            <p className="mt-3 text-xs text-slate">{ref ? <>@{ref} invited you. Finish your first shift and you both get ₦250 NotesApp Bonus Credit.</> : <>Abuja is open now: a room in Wuse, N$ 100,000, jobs, Chef Adams and the Billionaires List. Lagos and Port Harcourt are next.</>}</p>
           </div>
           <div className="overflow-hidden rounded-3xl border-4 border-white shadow-2xl">
             <Image src="/images/life/room-desktop.webp" alt="Notes Life mockup: your room in Abuja, with the time, difficulty level, game money, a daily quest, your needs and the menu" width={1440} height={900} priority className="h-auto w-full" />
@@ -96,7 +100,8 @@ export default function LifePage() {
               ["Is it free?", "Yes, free to play in your browser on your phone or computer. Nothing to download."],
               ["Do I need an account?", "You play with your NotesApp account, so your friends, your photo and your progress go with you."],
               ["Is the money real?", "Notesville Naira is game money, just for fun. It can't be cashed out. Some quests give Bonus Credits you can use on NotesApp."],
-              ["When does it open?", "Soon. Follow @na-notesapp on NotesApp and we will announce it there first."],
+              ["Can I play now?", "Yes. The first playable version is open in Abuja. Lagos, Port Harcourt, NEPA, the market and calls from your game phone come in later updates. Follow @na-notesapp for news."],
+              ["What do I get for inviting friends?", "When a friend joins from your invite link and finishes their first shift, you both get ₦250 NotesApp Bonus Credit (up to 20 friends a month). Bonus Credit lasts 90 days and pays for boosts, ads and badges."],
             ].map(([q, a]) => (
               <div key={q} className="py-4"><dt className="font-ui font-bold">{q}</dt><dd className="mt-1 text-sm text-slate">{a}</dd></div>
             ))}

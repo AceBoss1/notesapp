@@ -809,6 +809,37 @@ service cloud.firestore {
       allow get, list: if isSignedIn() && resource.data.uid == request.auth.uid;
       allow write: if false;
     }
+    // Notes Life. The player (money, what they own, job, deals) and their Notesville Naira statement are written only by the server
+    // (lib/life/server.ts) and read only by the player. The save (needs, place, outfit) is the player's own: small, one string.
+    match /lifePlayers/{uid} {
+      allow get: if isSignedIn() && request.auth.uid == uid;
+      allow list, write: if false;
+    }
+    match /lifeTx/{id} {
+      allow get, list: if isSignedIn() && resource.data.uid == request.auth.uid;
+      allow write: if false;
+    }
+    match /lifeBonus/{month} {
+      allow read, write: if false;
+    }
+    match /lifeSaves/{uid} {
+      allow read: if isSignedIn() && request.auth.uid == uid;
+      allow create, update: if isSignedIn() && request.auth.uid == uid
+        && request.resource.data.keys().hasOnly(['state', 'v', 'savedAt'])
+        && request.resource.data.state is string && request.resource.data.state.size() < 40000
+        && request.resource.data.v is int && request.resource.data.savedAt is int;
+      allow delete: if isSignedIn() && request.auth.uid == uid;
+    }
+    // Restore points: hourly (h0–h23) and daily (d0–d6) slots, overwritten as they come round.
+    match /lifeSavePoints/{id} {
+      allow read: if isSignedIn() && resource.data.uid == request.auth.uid;
+      allow create, update: if isSignedIn() && id.matches(request.auth.uid + '_[hd][0-9]{1,2}')
+        && request.resource.data.uid == request.auth.uid
+        && request.resource.data.keys().hasOnly(['uid', 'state', 'v', 'savedAt', 'slot'])
+        && request.resource.data.state is string && request.resource.data.state.size() < 40000
+        && request.resource.data.savedAt is int && request.resource.data.slot is string;
+      allow delete: if false;
+    }
     match /groupCreates/{uid} {
       allow read, write: if false;
     }

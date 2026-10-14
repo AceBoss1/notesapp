@@ -25,6 +25,7 @@ import { callbackOrigin } from "@/lib/origin";
 import { fulfillPayment } from "@/lib/payments";
 import { TOPUP_MAX_KOBO, TOPUP_MIN_KOBO, WALLET_LIVE, bonusFor, isWalletKind } from "@/lib/wallet";
 import { WalletError, payFromWallet } from "@/lib/wallet-server";
+import { BUY_NAIRA_MAX, BUY_NAIRA_MIN, LIFE_LIVE } from "@/lib/life/catalog";
 
 // Starts a Paystack checkout for a 1:1 session or a monthly journal
 // subscription. Price, slots and plan all come from the publisher's
@@ -94,6 +95,24 @@ export async function POST(req: NextRequest) {
       };
       await db.doc(`payments/${reference}`).set(record);
       return NextResponse.json({ authorizationUrl: tx.authorization_url, reference });
+    }
+
+    // ---- Notesville Naira for Notes Life (₦1 = N$ 100), from the wallet or by card ----
+    if (kind === "life_naira") {
+      if (!LIFE_LIVE) return NextResponse.json({ error: "Notes Life isn't open yet." }, { status: 409 });
+      const naira = Number(body.amountNaira);
+      if (!Number.isInteger(naira) || naira < BUY_NAIRA_MIN || naira > BUY_NAIRA_MAX) {
+        return NextResponse.json({ error: `Buy from ₦${BUY_NAIRA_MIN.toLocaleString("en-NG")} to ₦${BUY_NAIRA_MAX.toLocaleString("en-NG")} at a time.` }, { status: 400 });
+      }
+      const reference = newReference();
+      const origin = await callbackOrigin(req);
+      const tx = await initTx({ email: user.email, amountKobo: naira * 100, reference, callbackUrl: `${origin}/booking/confirm`, metadata: { kind, uid: user.uid } });
+      const record: PaymentRecord = {
+        reference, kind: "life_naira", uid: user.uid, email: user.email, amountKobo: naira * 100, status: "pending",
+        publisherUid: user.uid, publisherUsername: "", commissionRate: 0, createdAt: new Date().toISOString(),
+      };
+      await savePayment(record);
+      return NextResponse.json({ authorizationUrl: tx.authorization_url, reference, paid: payWith === "wallet" });
     }
 
     // ---- verified badge add-on (₦999/month) ----
