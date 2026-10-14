@@ -7,13 +7,14 @@ import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
 import { RESIDENT, RESIDENTS_AT } from "@/lib/life/catalog";
 
 // Power in your room: from NEPA (grid), none (a blackout), the Power GO, or a generator.
-export type Power = "grid" | "out" | "go" | "gen";
+export type Power = "grid" | "out" | "go" | "gen" | "tank";
+export type Mine = { kind: string; owner: string };
 export type Other = { uid: string; outfit: string };
 export type SceneSpec =
   | { id: "room"; owned: string[]; rug: string; outfit: string; night: boolean; ringing: boolean; at: RoomSpot; sleeping: boolean; power: Power }
-  | { id: "itel"; outfit: string; night: boolean; others: Other[] }
+  | { id: "itel"; outfit: string; night: boolean; others: Other[]; mine?: Mine[] }
   | { id: "street"; outfit: string; night: boolean; riding: string | null; others: Other[] }
-  | { id: "chef"; outfit: string; night: boolean; others: Other[] }
+  | { id: "chef"; outfit: string; night: boolean; others: Other[]; mine?: Mine[] }
   | { id: "hotel"; outfit: string; others: Other[] }
   | { id: "pool"; outfit: string };
 export type RoomSpot = "rug" | "bed" | "desk" | "bath" | "wc" | "wardrobe" | "cooker" | "phone";
@@ -68,6 +69,19 @@ export function createWorld(canvas: HTMLCanvasElement) {
     add(new THREE.BoxGeometry(0.2, 0.08, 0.32), "#f8fafc", -0.13, 0.04, 0.04); add(new THREE.BoxGeometry(0.2, 0.08, 0.32), "#f8fafc", 0.13, 0.04, 0.04);
     g.position.set(x, y, z); g.rotation.y = rot; scene.add(g); return g;
   }
+  // A roadside billboard: two posts, a dark frame, the advert lit like a backlit board (a tag sits on it so it can be tapped).
+  async function billboard(key: string, src: string, x: number, z: number, w: number, h: number, ry = 0, up = 2.2) {
+    const im = await loadImg(src);
+    const g = new THREE.Group(); g.position.set(x, 0.14, z); g.rotation.y = ry; scene.add(g);
+    const part = (geo: THREE.BufferGeometry, m: THREE.Material, px: number, py: number, pz: number) => { const o = new THREE.Mesh(geo, m); o.position.set(px, py, pz); o.castShadow = true; g.add(o); };
+    for (const dx of [-w * 0.3, w * 0.3]) part(new THREE.BoxGeometry(0.16, up, 0.16), mat("#374151"), dx, up / 2, -0.12);
+    part(new THREE.BoxGeometry(w + 0.24, h + 0.24, 0.18), mat("#111827"), 0, up + h / 2, -0.12);
+    if (im) { const tex = canvasTex(Math.round(im.width), Math.round(im.height), (c) => c.drawImage(im, 0, 0)); part(new THREE.PlaneGeometry(w, h), new THREE.MeshBasicMaterial({ map: tex }), 0, up + h / 2, 0); }
+    part(new THREE.BoxGeometry(w + 0.3, 0.08, 0.5), mat("#4b5563"), 0, up - 0.05, 0.1);
+    const v = new THREE.Vector3(0, up + h + 0.35, 0).applyAxisAngle(new THREE.Vector3(0, 1, 0), ry); tag(key, x + v.x, v.y + 0.14, z + v.z);
+  }
+  const BB = { itelSun: "billboards/itel-sun-is-free.webp", itelTank: "billboards/itel-power-tank-fridge.webp", itelInverter: "billboards/itel-inverter-power-tank.webp", chef: "billboards/chef-adams-menu.webp" };
+  const CHALLENGE = "/images/challenge/challenge-banner.webp";
   function chefMan(x: number, z: number, rot = 0) { const g = person(x, z, "#ffffff", rot); const hat = new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.16, 0.32, 16), mat("#ffffff")); hat.position.set(0, 2.12, 0); g.add(hat); return g; }
   // Residents (computer players): their look from the catalogue, a tag the page draws as their name with 🤖.
   function npc(id: string, x: number, z: number, rot = 0, y = 0) { const r = RESIDENT(id); if (!r) return; const [sh, sk, lg, dr] = r.look; person(x, z, sh, rot, y, sk, lg, dr); tag("npc:" + id, x, y + 2.35, z); }
@@ -107,7 +121,7 @@ export function createWorld(canvas: HTMLCanvasElement) {
 
   async function room(s: Extract<SceneSpec, { id: "room" }>) {
     const has = (id: string) => s.owned.includes(id);
-    const out = s.power !== "grid", backup = s.power === "go" || s.power === "gen", dark = out && s.night; // by day the sun still shines
+    const out = s.power !== "grid", backup = s.power === "go" || s.power === "gen" || s.power === "tank", dark = out && s.night; // by day the sun still shines
     scene.background = new THREE.Color(dark ? "#0b1020" : s.night ? "#1b2440" : "#cfe8f3");
     lights(dark ? 0.13 : s.night ? 0.35 : 1);
     for (let i = -5; i < 5; i += 0.5) { const t = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.1, 10), mat(Math.round(i * 2) % 2 ? "#e4cda6" : "#d8bf96")); t.position.set(i + 0.25, -0.05, 0); t.receiveShadow = true; scene.add(t); }
@@ -177,6 +191,23 @@ export function createWorld(canvas: HTMLCanvasElement) {
       box(1.15, 0.85, 0.55, "#f8fafc", 3.85, 0, -1.84); box(1.15, 0.04, 0.58, "#a0714f", 3.85, 0.85, -1.84); box(0.62, 0.02, 0.38, "#111827", 3.7, 0.89, -1.84);
       cyl(0.14, 0.18, "#cbd5e1", 3.55, 0.91, -1.84); tag("cooker", 3.85, 1.45, -1.84);
     }
+    if (has("fridge") || has("microwave")) { // the kitchen corner: fridge, microwave on top (or on a small stand), by the cooker
+      const FX = 4.55, FZ = -0.55;
+      if (has("fridge")) {
+        box(0.75, 1.75, 0.7, "#e5e7eb", FX, 0, FZ); box(0.02, 0.5, 0.04, "#94a3b8", FX - 0.39, 1.0, FZ - 0.2); box(0.02, 0.3, 0.04, "#94a3b8", FX - 0.39, 1.4, FZ - 0.2); box(0.77, 0.02, 0.72, "#cbd5e1", FX, 1.2, FZ);
+        tag("fridge", FX, 2.4, FZ);
+      } else { box(0.7, 0.8, 0.6, "#a0714f", FX, 0, FZ); tag("fridge", FX, 1.6, FZ); }
+      if (has("microwave")) { const y = has("fridge") ? 1.75 : 0.8; box(0.6, 0.34, 0.45, "#1f2937", FX, y, FZ); const w = new THREE.Mesh(new THREE.PlaneGeometry(0.34, 0.22), new THREE.MeshStandardMaterial({ color: "#0f172a", emissive: "#f59e0b", emissiveIntensity: out && !backup ? 0 : 0.25 })); w.position.set(FX - 0.31, y + 0.17, FZ - 0.05); w.rotation.y = -Math.PI / 2; scene.add(w); }
+    }
+    if (has("power_tank")) { // the itel Power Tank 1000: a white cube with a round blue screen, by the fridge
+      const TX = 4.55, TZ = 0.45;
+      box(0.62, 0.62, 0.5, "#f8fafc", TX, 0, TZ); box(0.64, 0.06, 0.52, "#111827", TX, 0.62, TZ);
+      const scr = new THREE.Mesh(new THREE.CircleGeometry(0.1, 24), new THREE.MeshBasicMaterial({ color: s.power === "tank" ? "#38bdf8" : "#1e3a8a" })); scr.rotation.y = -Math.PI / 2; scr.position.set(TX - 0.32, 0.42, TZ); scene.add(scr);
+      const lg = new THREE.Mesh(new THREE.CircleGeometry(0.035, 16), new THREE.MeshBasicMaterial({ color: "#e8173f" })); lg.rotation.y = -Math.PI / 2; lg.position.set(TX - 0.32, 0.18, TZ); scene.add(lg);
+      if (s.power === "tank") { const glow = new THREE.PointLight("#7dd3fc", 1.2, 1.8); glow.position.set(TX - 0.5, 0.7, TZ); scene.add(glow); }
+      for (const [k, x] of [["solar_650", -1.4], ["solar_650b", -2.9]] as const) if (has(k)) { const pn = box(1.3, 0.04, 0.8, "#1e3a8a", x, 2.95, -5.25); pn.rotation.x = 0.55; }
+      tag("tank", TX, 1.25, TZ);
+    }
     plant(-0.95, -4.55); plant(-3.9, 3.0);
     const [px, pz, pr] = s.sleeping ? [-3.8, -2.2, 0] : ROOM_SPOTS[s.at] ?? ROOM_SPOTS.rug;
     player = person(px, pz, s.outfit, pr);
@@ -206,6 +237,7 @@ export function createWorld(canvas: HTMLCanvasElement) {
     box(4, 3, 2, "#f1f5f9", 16.5, 0.14, -4.0); sign("Green Wheels\nE-bikes · EVs", "#065f46", "#ffffff", 3.6, 1.0, 16.5, 2.6, -2.98, 92);
     for (const x of [-12, -3, 6, 15]) { cyl(0.06, 4, "#475569", x, 0.14, -0.1); const p = box(0.8, 0.05, 0.5, "#1d4ed8", x, 4.15, -0.1); p.rotation.x = 0.35; }
     [-14, -9.5, -4, 4, 8.5, 20, -22, -17, 12, 25].forEach((x, i) => tree(x, i > 5 ? -7 : -4.4, i > 5 ? 1.4 : 1.1));
+    await Promise.all([billboard("bb:challenge", CHALLENGE, -6.5, -8.2, 5.0, 2.81, 0, 1.4), billboard("bb:itel", IMG(BB.itelSun), 1.2, -8.6, 2.3, 2.88, 0, 1.4), billboard("bb:chef", IMG(BB.chef), 8.8, -8.2, 5.0, 2.8, 0, 1.4)]);
     const phone = innerWidth < 700;
     cam.position.set(...(phone ? [0, 8, 22] : [2, 12, 24]) as [number, number, number]); controls.target.set(phone ? 0 : 2, phone ? 1.2 : 0.5, -0.5);
     controls.minDistance = 10; controls.maxDistance = 45;
@@ -250,7 +282,25 @@ export function createWorld(canvas: HTMLCanvasElement) {
     const RX = -3.6, RZ = 1.9; bicycle(RX, RZ, "#111827", true);
     const bag = new THREE.Mesh(new THREE.BoxGeometry(0.62, 0.6, 0.6), new THREE.MeshStandardMaterial({ map: canvasTex(400, 400, (g, w, h) => { g.fillStyle = BR.red; g.fillRect(0, 0, w, h); fit(g, lockup, 24, 24, w - 48, h - 48); }) })); bag.position.set(RX - 0.75, 1.35, RZ); bag.castShadow = true; scene.add(bag);
     person(RX - 0.1, RZ, BR.red, Math.PI / 2, 0.32);
-    [-16, -11.5, 9, 13.5, 19].forEach((x) => tree(x, -5.5, 1.15));
+    [-16, 13.5, 19].forEach((x) => tree(x, -5.5, 1.15));
+    await billboard("bb:chef", IMG(BB.chef), -11.5, -7.2, 5.2, 2.92, 0.15);
+    for (const m of s.mine ?? []) { // the player's own outlets, staffed by residents, with their name on the sign
+      const owner = m.owner.toUpperCase().slice(0, 18);
+      if (m.kind === "chef_kiosk") {
+        const MX = 7.7, MZ = -2.4;
+        box(2.3, 1.05, 1.4, BR.red, MX, 0.14, MZ); box(2.36, 0.08, 1.46, BR.cream, MX, 1.19, MZ);
+        for (const [a, b] of [[-1.05, -0.6], [1.05, -0.6], [-1.05, 0.6], [1.05, 0.6]]) box(0.08, 1.4, 0.08, BR.char, MX + a, 1.27, MZ + b);
+        box(2.6, 0.25, 1.75, BR.char, MX, 2.67, MZ); box(2.62, 0.05, 1.77, BR.gold, MX, 2.62, MZ);
+        plane(2.2, 0.75, canvasTex(900, 300, (g, w, h) => { g.fillStyle = BR.char; g.fillRect(0, 0, w, h); fit(g, emblem, 10, 10, 280, 280); g.fillStyle = BR.gold; g.font = "bold 64px sans-serif"; g.fillText(`${owner}'S`, 300, 120, w - 310); g.fillStyle = "#ffffff"; g.font = "bold 70px sans-serif"; g.fillText("CHEF ADAMS", 300, 210, w - 310); }), MX, 3.35, MZ + 0.4, 0, 0, true);
+        person(MX + 0.4, MZ - 0.2, BR.red, 0.1, 0.14); tag("mine:chef_kiosk", MX, 4.0, MZ + 0.4);
+      }
+      if (m.kind === "chef_shop") {
+        const SX = 13.2, SZ = -6.0;
+        box(5.2, 3.2, 3.2, BR.char, SX, 0.14, SZ); box(5.6, 0.14, 1.1, BR.red, SX, 2.4, SZ + 2.0); box(4.4, 1.7, 0.06, "#dbeafe", SX, 0.6, SZ + 1.62);
+        plane(5.0, 0.95, canvasTex(1300, 250, (g, w, h) => { g.fillStyle = BR.char; g.fillRect(0, 0, w, h); fit(g, emblem, 10, 10, 230, 230); g.fillStyle = "#ffffff"; g.font = "bold 82px sans-serif"; g.fillText("CHEF ADAMS DINE-IN", 260, 120, w - 270); g.fillStyle = BR.gold; g.font = "bold 58px sans-serif"; g.fillText(`by ${owner}`, 260, 205, w - 270); }), SX, 2.85, SZ + 1.62, 0, 0, true);
+        person(SX - 1.2, SZ + 2.3, "#ffffff", Math.PI, 0.14); tag("mine:chef_shop", SX, 4.0, SZ + 1.6);
+      }
+    }
     const phone = innerWidth < 700;
     cam.position.set(...(phone ? [0.3, 13.5, 28.5] : [-0.5, 7.5, 17.5]) as [number, number, number]); controls.target.set(phone ? 0.3 : -0.5, phone ? 1 : 1.7, phone ? -1.6 : -2.6);
     controls.minDistance = 8; controls.maxDistance = 40;
@@ -259,7 +309,7 @@ export function createWorld(canvas: HTMLCanvasElement) {
 
   // ---------- itel Energy (partner): a solar shop on the Wuse street ----------
   async function itel(s: Extract<SceneSpec, { id: "itel" }>) {
-    const go = await loadImg(IMG("partners/itel-powergo.webp"));
+    const [go, logoSvg] = await Promise.all([loadImg(IMG("partners/itel-powergo.webp")), loadImg(IMG("partners/itel-logo.svg"))]);
     const RED = "#e8173f";
     scene.background = new THREE.Color(s.night ? "#16203a" : "#bfe3f5"); lights(s.night ? 0.45 : 1);
     const ground = new THREE.Mesh(new THREE.PlaneGeometry(90, 90), mat("#9ccc65")); ground.rotation.x = -Math.PI / 2; ground.receiveShadow = true; scene.add(ground);
@@ -272,7 +322,7 @@ export function createWorld(canvas: HTMLCanvasElement) {
     box(8.6, 0.6, 0.06, "#e8173f", X, 2.9, Z - 1.66); // red band inside, like the booth
     const inner = new THREE.PointLight("#ffffff", 3, 9); inner.position.set(X, 3.2, Z); scene.add(inner);
     box(9.2, 0.9, 0.5, RED, X, 3.0, FZ + 0.1); // red fascia
-    plane(4.2, 0.72, canvasTex(1300, 223, (g, w, h) => { g.fillStyle = RED; g.fillRect(0, 0, w, h); g.fillStyle = "#ffffff"; g.font = "bold 150px sans-serif"; g.textBaseline = "middle"; g.textAlign = "center"; g.beginPath(); g.ellipse(250, h / 2, 210, 96, -0.12, 0, Math.PI * 2); g.fill(); g.fillStyle = RED; g.font = "italic bold 130px sans-serif"; g.fillText("itel", 250, h / 2 + 6); g.fillStyle = "#ffffff"; g.font = "italic bold 150px sans-serif"; g.fillText("Energy", 820, h / 2 + 8); }), X, 3.45, FZ + 0.36, 0, 0, true);
+    plane(4.2, 0.72, canvasTex(1300, 223, (g, w, h) => { g.fillStyle = RED; g.fillRect(0, 0, w, h); g.fillStyle = "#ffffff"; g.font = "bold 150px sans-serif"; g.textBaseline = "middle"; g.textAlign = "center"; g.beginPath(); g.ellipse(250, h / 2, 222, 104, -0.12, 0, Math.PI * 2); g.fill(); if (logoSvg) fit(g, logoSvg, 30, 6, 440, 211); else { g.fillStyle = RED; g.font = "italic bold 130px sans-serif"; g.fillText("itel", 250, h / 2 + 6); } g.fillStyle = "#ffffff"; g.font = "italic bold 150px sans-serif"; g.fillText("Energy", 820, h / 2 + 8); }), X, 3.45, FZ + 0.36, 0, 0, true);
     // glass front with products on display
     const glass = new THREE.Mesh(new THREE.PlaneGeometry(7.6, 2.2), new THREE.MeshStandardMaterial({ color: "#dbeafe", transparent: true, opacity: 0.35, roughness: 0.05 })); glass.position.set(X, 1.35, FZ + 0.02); scene.add(glass);
     box(7.8, 0.12, 0.2, "#d4d4d8", X, 0.14, FZ + 0.05); box(7.8, 0.1, 0.2, "#d4d4d8", X, 2.46, FZ + 0.05);
@@ -302,7 +352,18 @@ export function createWorld(canvas: HTMLCanvasElement) {
     residents("itel", [[X + 0.6, FZ - 1.6, 0.2, 0.14], [X + 2.8, FZ + 0.9, Math.PI + 0.3, 0.14], [SX - 0.4, SZ + 1.2, Math.PI - 0.5, 0.14]]); // Mr Dauda (staff), Aisha, Chinedu
     others(s.others, [[X - 2.6, FZ + 1.3, Math.PI, 0.14], [X + 4.6, FZ + 1.6, Math.PI, 0.14]]);
     player = person(X - 1.2, FZ + 1.4, s.outfit, Math.PI, 0.14);
-    [-16, -11.5, 10, 14.5, 19].forEach((x) => tree(x, -5.5, 1.15));
+    [-16, 19].forEach((x) => tree(x, -5.5, 1.15));
+    await Promise.all([billboard("bb:itel", IMG(BB.itelTank), -9.6, -6.6, 2.5, 3.12, 0.2), billboard("bb:itel2", IMG(BB.itelInverter), 13.6, -6.8, 2.5, 3.12, -0.2)]);
+    const logo = logoSvg;
+    for (const m of s.mine ?? []) {
+      const owner = m.owner.toUpperCase().slice(0, 18), mall = m.kind === "itel_mall";
+      if (m.kind !== "itel_home" && !mall) continue;
+      const HX = mall ? -13.5 : 9.4, HZ = mall ? -2.4 : -2.0, W = mall ? 4.4 : 2.8;
+      box(W, mall ? 3.0 : 2.3, 2.0, "#f4f4f5", HX, 0.14, HZ - 1.0); box(W + 0.2, 0.55, 0.3, RED, HX, mall ? 2.6 : 1.9, HZ + 0.05);
+      box(W - 0.5, mall ? 1.6 : 1.3, 0.05, "#dbeafe", HX, 0.4, HZ + 0.02);
+      plane(W, 0.5, canvasTex(1000, 125, (g, w, h) => { g.fillStyle = RED; g.fillRect(0, 0, w, h); fit(g, logo, 8, 6, 230, 113); g.fillStyle = "#ffffff"; g.font = "bold 50px sans-serif"; g.textBaseline = "middle"; g.fillText(`${mall ? "Mall Store" : "Home Store"} · ${owner}`, 250, h / 2, w - 260); }), HX, mall ? 2.88 : 2.18, HZ + 0.21, 0, 0, true);
+      person(HX + 0.5, HZ + 0.6, RED, Math.PI, 0.14); tag(`mine:${m.kind}`, HX, mall ? 3.8 : 3.0, HZ);
+    }
     const phone = innerWidth < 700;
     cam.position.set(...(phone ? [2.2, 7.5, 21] : [0.5, 7.5, 17.5]) as [number, number, number]); controls.target.set(phone ? 1.6 : 0.5, phone ? 1.6 : 1.7, phone ? -3.2 : -2.6);
     controls.minDistance = 8; controls.maxDistance = 40;

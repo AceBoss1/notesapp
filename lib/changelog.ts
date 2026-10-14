@@ -11,6 +11,19 @@ export type Release = {
 
 export const CHANGELOG: Release[] = [
   {
+    version: "v0.32.0",
+    bump: "minor",
+    date: "2026-10-14",
+    changes: [
+      { kind: "added", text: "Notes Life: Become a Partner. Own a Chef Adams Takeaway Kiosk (from N$ 2.5m) or Mini Dine-In Shop (from N$ 8.0m), or an itel Home Store (from N$ 1.5m) or Mall Store (from N$ 7.0m), in Wuse or Garki. Residents run it while you're away, it stands in Notesville with your name on it, and you collect the takings at the outlet or in Phone → Businesses." },
+      { kind: "added", text: "New jobs at itel Energy (sales attendant with a Power GO bonus, CarlCare technician, solar installer, store supervisor) and Candellux (front desk, waiter with tips, housekeeping with a staff meal, lifeguard, cook, duty manager), with staff perks: 20% off itel products, half price at the Candellux pool, gym and VIP bar." },
+      { kind: "added", text: "A fridge and a microwave. Keep takeaway and cooked plates for later: without a cold fridge they spoil after 8 game hours. The itel Power Tank 1000 keeps the fridge cold about 5 game hours in a blackout, charged by 650W bifacial solar panels." },
+      { kind: "added", text: "Billboards on the roads for Chef Adams, itel Energy and the #1MillionNairaNotesAppChallenge. Tap one to open it." },
+      { kind: "added", text: "Become a real partner: the Partner tabs link to the Chef Adams franchise and itel Home pages." },
+      { kind: "changed", text: "Chef Adams, itel Energy and Candellux each have Jobs tabs, and the Jobs list is grouped by employer. The itel shop uses the official itel logo." },
+    ],
+  },
+  {
     version: "v0.31.0",
     bump: "minor",
     date: "2026-10-14",

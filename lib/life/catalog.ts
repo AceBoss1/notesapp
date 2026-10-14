@@ -59,6 +59,8 @@ export const ITEMS: Item[] = [
   { id: "fan", cat: "cooling", name: "Standing fan", note: "Sleep is lighter on hot nights", price: 0, icon: "🌀", starter: true, sleepPerHour: 12 },
   { id: "ac", cat: "cooling", name: "Inverter split AC", note: "Deep sleep · solar-ready", price: 450_000, icon: "❄️", eco: "Inverter", sleepPerHour: 16 },
   { id: "cooker", cat: "kitchen", name: "Small cooker (2-plate induction)", note: "Cook at home: cheaper meals, takes time", price: 65_000, icon: "🍳", eco: "Induction" },
+  { id: "fridge", cat: "kitchen", name: "Fridge", note: "Keeps cooked plates and takeaway fresh while it has power. Without one, food spoils after 8 game hours", price: 160_000, icon: "🧊", eco: "Inverter" },
+  { id: "microwave", cat: "kitchen", name: "Microwave", note: "Warm stored food in 2 game minutes: full Hunger instead of cold leftovers", price: 45_000, icon: "♨️" },
   { id: "lamp", cat: "lights", name: "Bedside lamp", note: "A warm light for reading", price: 0, icon: "💡", starter: true },
   { id: "lamp_led", cat: "lights", name: "LED lamp", note: "Brighter, a tenth of the power", price: 9_000, icon: "💡", eco: "LED" },
   { id: "phone_basic", cat: "phone", name: "Bedside deal phone", note: "A deal call about every 8 game hours", price: 0, icon: "☎️", starter: true, dealEveryHours: 8 },
@@ -66,6 +68,9 @@ export const ITEMS: Item[] = [
   // Power for NEPA's blackouts. itel Energy (partner) via @clickam, the itel distributor on NotesApp; generators from the market.
   { id: "power_go", cat: "power", name: "itel Power GO Pro", note: "320Wh · 200W · lamp, fan and laptop through a blackout · silent", price: 150_000, icon: "🔋", eco: "No fuel", brand: "itel" },
   { id: "solar_panel", cat: "power", name: "itel 100W solar panel", note: "Charges your Power GO by day, even when NEPA is off", price: 55_000, icon: "☀️", eco: "Solar", brand: "itel", needs: "power_go" },
+  { id: "power_tank", cat: "power", name: "itel Power Tank 1000", note: "1000W AC output · keeps your fridge cold about 5 game hours in a blackout, and the lights on", price: 400_000, icon: "🔋", eco: "No fuel", brand: "itel" },
+  { id: "solar_650", cat: "power", name: "itel 650W bifacial solar panel", note: "Charges your Power Tank by day, even when NEPA is off · it takes two", price: 110_000, icon: "☀️", eco: "Solar", brand: "itel", needs: "power_tank" },
+  { id: "solar_650b", cat: "power", name: "itel 650W bifacial panel (second)", note: "Two panels fill the Power Tank twice as fast", price: 110_000, icon: "☀️", eco: "Solar", brand: "itel", needs: "solar_650" },
   { id: "home_kit", cat: "power", name: "itel small home solar kit", note: "IP66 inverter, battery and 4 panels: the whole room, never off again", price: 2_400_000, icon: "🏠", eco: "Solar", brand: "itel", soon: true },
   { id: "gen_small", cat: "power", name: "“I Better Pass My Neighbour” 950W", note: "Bulb, fan and charging · loud · 0.4 L of petrol a game hour", price: 65_000, icon: "⛽", litresPerHour: 0.4, tank: 5 },
   { id: "gen_big", cat: "power", name: "Big generator 3.5kVA", note: "Runs everything, AC too · very loud · 1.1 L a game hour", price: 420_000, icon: "🛢️", litresPerHour: 1.1, tank: 12 },
@@ -107,10 +112,13 @@ export const PLACES: { id: PlaceId; name: string; area: string; icon: string }[]
 ];
 
 // ---- Jobs (they mirror NotesApp careers; Chef Adams is a partner brand) ----
+export type Brand = "chef_adams" | "itel" | "candellux";
 export type Job = {
-  id: string; title: string; employer: string; icon: string; pay: number; place: "home" | "work" | "chef";
-  ladder?: string; needItem?: string[]; needCooking?: number; needChefShifts?: number; needReputation?: number; needHygiene?: number;
-  brand?: "chef_adams"; usesBike?: boolean; soon?: boolean;
+  id: string; title: string; employer: string; icon: string; pay: number; place: "home" | "work" | "chef" | "itel" | "hotel";
+  ladder?: string; needItem?: string[]; needCooking?: number; needBrandShifts?: number; needReputation?: number; needHygiene?: number; needFitness?: boolean;
+  brand?: Brand; usesBike?: boolean; soon?: boolean;
+  extra?: { label: string; min: number; max: number; step: number }; // paid on top when the shift ends: tips, a bonus on what you sold
+  meal?: number; // a free staff meal at the end of the shift (Hunger)
 };
 export const SHIFT_HOURS = 4;
 export const SHIFT_MS = SHIFT_HOURS * GAME_HOUR_MS; // 8 real minutes
@@ -123,8 +131,24 @@ export const JOBS: Job[] = [
   { id: "chef_kiosk", title: "Kiosk attendant", employer: "Chef Adams · takeaway kiosk, Wuse", icon: "🥡", pay: 4_000, place: "chef", brand: "chef_adams", needHygiene: 60 },
   { id: "chef_cook", title: "Line cook", employer: "Chef Adams · trained on the house recipes", icon: "🍳", pay: 5_500, place: "chef", brand: "chef_adams", needCooking: 3, ladder: "Cook → Supervisor → Partner" },
   { id: "chef_rider", title: "Delivery rider", employer: "Chef Adams · red bag provided", icon: "🛵", pay: 4_500, place: "chef", brand: "chef_adams", usesBike: true, needItem: ["bicycle", "ebike"] },
-  { id: "chef_super", title: "Outlet supervisor", employer: "Chef Adams · run a shift, train staff", icon: "⭐", pay: 9_000, place: "chef", brand: "chef_adams", needChefShifts: 10, needReputation: 4 },
+  { id: "chef_super", title: "Outlet supervisor", employer: "Chef Adams · run a shift, train staff", icon: "⭐", pay: 9_000, place: "chef", brand: "chef_adams", needBrandShifts: 10, needReputation: 4 },
+  // itel Energy (partner), Wuse market road
+  { id: "itel_sales", title: "Sales attendant", employer: "itel Energy · Wuse shop · a bonus on every Power GO you sell", icon: "🛍", pay: 5_000, place: "itel", brand: "itel", ladder: "Attendant → Supervisor → Partner", extra: { label: "Power GO sales bonus", min: 0, max: 1_500, step: 500 } },
+  { id: "itel_carlcare", title: "CarlCare technician", employer: "itel Energy · repairs and warranty swaps", icon: "🔧", pay: 8_000, place: "itel", brand: "itel", needItem: ["pc_laptop", "pc_aio"] },
+  { id: "itel_installer", title: "Solar installer", employer: "itel Energy · ride out to homes and fit panels", icon: "☀️", pay: 9_000, place: "itel", brand: "itel", usesBike: true, needItem: ["bicycle", "ebike"], ladder: "E-bike: 2× more installs" },
+  { id: "itel_super", title: "Store supervisor", employer: "itel Energy · run the shop, train staff", icon: "⭐", pay: 12_000, place: "itel", brand: "itel", needBrandShifts: 10 },
+  // Candellux Imperial Hotel & Suites (partner), Garki
+  { id: "hotel_desk", title: "Front desk", employer: "Candellux · check guests in, answer the phone", icon: "🛎", pay: 6_000, place: "hotel", brand: "candellux", needHygiene: 70 },
+  { id: "hotel_waiter", title: "Restaurant waiter", employer: "Candellux · 24-hour restaurant · tips from guests", icon: "🍽", pay: 5_000, place: "hotel", brand: "candellux", extra: { label: "Tips", min: 500, max: 3_000, step: 100 } },
+  { id: "hotel_house", title: "Housekeeping", employer: "Candellux · suites and laundry · a free staff meal", icon: "🧺", pay: 4_500, place: "hotel", brand: "candellux", meal: 40 },
+  { id: "hotel_guard", title: "Pool lifeguard", employer: "Candellux · keep swimmers safe", icon: "🏊", pay: 6_500, place: "hotel", brand: "candellux", needFitness: true },
+  { id: "hotel_cook", title: "Restaurant cook", employer: "Candellux · the 24-hour kitchen", icon: "👨‍🍳", pay: 7_500, place: "hotel", brand: "candellux", needCooking: 4 },
+  { id: "hotel_manager", title: "Duty manager", employer: "Candellux · run the hotel for a shift", icon: "👑", pay: 15_000, place: "hotel", brand: "candellux", needBrandShifts: 15, needReputation: 4, ladder: "Front desk → Supervisor → Manager" },
 ];
+export const BRAND_NAME: Record<Brand, string> = { chef_adams: "Chef Adams", itel: "itel Energy", candellux: "Candellux" };
+// Real players work shifts at the brands' own outlets; outlets players own are staffed by residents (🤖) only, for now.
+export const STAFF_PERKS = { itelDiscount: 0.2, hotelHalf: ["pool", "gym", "vipbar"] }; // itel staff: 20% off itel products; Candellux staff: half price
+export const isStaff = (jobId: string | null, brand: Brand) => !!jobId && JOB(jobId)?.brand === brand;
 export const JOB = (id: string) => JOBS.find((j) => j.id === id);
 // What a shift pays, decided when it starts: desk work goes faster on a better computer, riders twice as fast on an e-bike, and low needs cut pay.
 export function shiftPay(job: Job, owned: string[], needsLow: boolean): number {
@@ -134,15 +158,89 @@ export function shiftPay(job: Job, owned: string[], needsLow: boolean): number {
   if (needsLow) pay *= LOW_PAY_FACTOR;
   return Math.round(pay);
 }
-export function jobBlocker(job: Job, p: { owned: string[]; cooking: number; chefShifts: number; reputation: number }): string | null {
+export type JobCheck = { owned: string[]; cooking: number; chefShifts: number; itelShifts?: number; hotelShifts?: number; reputation: number; fit?: boolean };
+export const brandShifts = (p: Pick<JobCheck, "chefShifts" | "itelShifts" | "hotelShifts">, b: Brand) => (b === "chef_adams" ? p.chefShifts : b === "itel" ? p.itelShifts ?? 0 : p.hotelShifts ?? 0);
+export function jobBlocker(job: Job, p: JobCheck): string | null {
   if (job.soon) return "Coming soon";
   if (job.needItem && !job.needItem.some((i) => p.owned.includes(i))) return `Needs ${job.needItem.map((i) => ITEM(i)?.name.toLowerCase()).join(" or ")}`;
   if (job.needCooking && p.cooking < job.needCooking) return `Needs cooking skill ${job.needCooking} (you have ${p.cooking})`;
-  if (job.needChefShifts && p.chefShifts < job.needChefShifts) return `After ${job.needChefShifts} Chef Adams shifts (you have ${p.chefShifts})`;
+  if (job.needBrandShifts && job.brand && brandShifts(p, job.brand) < job.needBrandShifts) return `After ${job.needBrandShifts} ${BRAND_NAME[job.brand]} shifts (you have ${brandShifts(p, job.brand)})`;
   if (job.needReputation && p.reputation < job.needReputation) return `Needs reputation ${job.needReputation}★`;
+  if (job.needFitness && !p.fit) return "Needs fitness: train at the Candellux gym first";
   return null;
 }
-export const CHEF_PARTNER = { kiosk: 2_500_000, shop: 8_000_000 }; // shown now, buying an outlet comes later
+// The extra on top of a shift (tips, a sales bonus), rolled when it ends.
+export const shiftExtra = (job: Job, rand: () => number) => (job.extra ? job.extra.min + Math.floor(rand() * ((job.extra.max - job.extra.min) / job.extra.step + 1)) * job.extra.step : 0);
+
+// ---- Partner outlets: own a Chef Adams or itel outlet. It sells while you're away, staffed by residents (🤖); you collect the takings.
+// Takings wait up to 30 game days (about a real day); after that the outlet stops selling until you collect. Without backup power it
+// sells half during NEPA's blackouts, and quality slips while takings sit uncollected. Agreed 14 October 2026: Chef Adams keeps 8% of
+// sales as the brand fee; itel earns from the stock you buy at partner prices. ----
+export type OutletKind = "chef_kiosk" | "chef_shop" | "itel_home" | "itel_mall";
+export type OutletType = {
+  id: OutletKind; brand: "chef_adams" | "itel"; name: string; short: string; icon: string; price: number; salesPerDay: number;
+  feeRate: number; stockRate: number; staff: number; wage: number; ticket: number; staffRole: string;
+  needs: { brandShifts?: number; reputation?: number; item?: string; outlet?: OutletKind; outletDays?: number; quality?: number };
+};
+export const OUTLETS: OutletType[] = [
+  { id: "chef_kiosk", brand: "chef_adams", name: "Chef Adams Takeaway Kiosk", short: "Takeaway Kiosk", icon: "🥡", price: 2_500_000, salesPerDay: 110_000, feeRate: 0.08, stockRate: 0.2, staff: 2, wage: 3_500, ticket: 1_800, staffRole: "kiosk attendant", needs: { brandShifts: 10, reputation: 3 } },
+  { id: "chef_shop", brand: "chef_adams", name: "Chef Adams Mini Dine-In Shop", short: "Mini Dine-In Shop", icon: "🍽", price: 8_000_000, salesPerDay: 330_000, feeRate: 0.08, stockRate: 0.2, staff: 6, wage: 4_000, ticket: 2_600, staffRole: "cook or waiter", needs: { outlet: "chef_kiosk", outletDays: 7, quality: 80, reputation: 4 } },
+  { id: "itel_home", brand: "itel", name: "itel Home Store", short: "Home Store", icon: "🏪", price: 1_500_000, salesPerDay: 150_000, feeRate: 0, stockRate: 0.66, staff: 1, wage: 4_000, ticket: 30_000, staffRole: "sales attendant", needs: { brandShifts: 5, item: "power_go" } },
+  { id: "itel_mall", brand: "itel", name: "itel Mall Store", short: "Mall Store", icon: "🏬", price: 7_000_000, salesPerDay: 560_000, feeRate: 0, stockRate: 0.64, staff: 4, wage: 5_000, ticket: 45_000, staffRole: "sales or CarlCare", needs: { outlet: "itel_home", outletDays: 7, reputation: 4 } },
+];
+export const OUTLET = (id: string) => OUTLETS.find((o) => o.id === id);
+export type OutletArea = "wuse" | "garki";
+export const OUTLET_AREAS: Record<OutletArea, { name: string; k: number }> = { wuse: { name: "Wuse market", k: 1 }, garki: { name: "Garki Area 1", k: 1.12 } };
+export const OUTLET_HOLD_DAYS = 30;
+export const OUTLET_BACKUP = { price: 620_000, name: "itel Power Tank 1000 and two 650W bifacial panels" };
+export const OUTLET_STAFF = ["Emeka", "Halima", "Tunde", "Aisha", "Chinedu", "Ngozi", "Musa", "Ifeoma"];
+export const REAL_PARTNER: Record<"chef_adams" | "itel", string> = {
+  chef_adams: "https://www.notesapp.name.ng/journals/own-a-chef-adams-franchise-in-your-choice-location",
+  itel: "https://www.itel-life.com/ng/itel-home/about-itel-home",
+};
+export type Outlet = { kind: OutletKind; area: OutletArea; openedAt: number; lastCollectAt: number; earned: number; backup: boolean };
+export const outletPrice = (t: OutletType, area: OutletArea) => Math.round((t.price * OUTLET_AREAS[area].k) / 10_000) * 10_000;
+export const outletValue = (o: Outlet) => { const t = OUTLET(o.kind); return t ? Math.round(outletPrice(t, o.area) * 0.96) : 0; };
+// Quality: 96% with backup power, 88% without, and 2 points lower for every game day takings sit uncollected after the third.
+export const outletQuality = (o: Outlet, at: number) => Math.max(60, (o.backup ? 96 : 88) - 2 * Math.max(0, (at - o.lastCollectAt) / GAME_DAY_MS - 3));
+export function outletProfitPerDay(t: OutletType, area: OutletArea, quality = 100) {
+  return Math.round(t.salesPerDay * OUTLET_AREAS[area].k * (quality / 100) * (1 - t.feeRate - t.stockRate) - t.staff * t.wage);
+}
+// What's waiting to be collected now: day by day since the last collection (at most 30 game days), sales at that day's quality, half
+// sales in blackout hours without backup power, less the brand fee or stock, and the staff's wages.
+export function outletTakings(o: Outlet, now: number): { takings: number; days: number; quality: number; capped: boolean; customers: number } {
+  const t = OUTLET(o.kind);
+  if (!t) return { takings: 0, days: 0, quality: 0, capped: false, customers: 0 };
+  const end = Math.min(now, o.lastCollectAt + OUTLET_HOLD_DAYS * GAME_DAY_MS);
+  const k = OUTLET_AREAS[o.area]?.k ?? 1, perMs = (t.salesPerDay * k) / GAME_DAY_MS, margin = 1 - t.feeRate - t.stockRate;
+  let gross = 0;
+  for (let a = o.lastCollectAt; a < end; a += GAME_DAY_MS) {
+    const b = Math.min(end, a + GAME_DAY_MS);
+    let outMs = 0;
+    if (!o.backup) { const d0 = Math.floor((a - WORLD_EPOCH) / GAME_DAY_MS); for (let d = d0 - 1; d <= d0 + 1; d++) for (const x of outagesOfDay(d)) outMs += Math.max(0, Math.min(b, x.to) - Math.max(a, x.from)); }
+    gross += perMs * (b - a - outMs * 0.5) * (outletQuality(o, (a + b) / 2) / 100);
+  }
+  const days = Math.max(0, end - o.lastCollectAt) / GAME_DAY_MS;
+  const quality = outletQuality(o, now);
+  return { takings: Math.max(0, Math.round(gross * margin - t.staff * t.wage * days)), days, quality, capped: now >= o.lastCollectAt + OUTLET_HOLD_DAYS * GAME_DAY_MS, customers: Math.round((t.salesPerDay * k * quality) / 100 / t.ticket) };
+}
+export type OutletCheck = { owned: string[]; chefShifts: number; itelShifts: number; reputation: number; outlets: Outlet[] };
+export function outletBlocker(t: OutletType, p: OutletCheck, now: number): string | null {
+  const n = t.needs;
+  if (p.outlets.some((o) => o.kind === t.id)) return "You already own one";
+  const shifts = t.brand === "chef_adams" ? p.chefShifts : p.itelShifts;
+  if (n.brandShifts && shifts < n.brandShifts) return `After ${n.brandShifts} ${BRAND_NAME[t.brand]} shifts (you have ${shifts})`;
+  if (n.item && !p.owned.includes(n.item)) return `Own a ${ITEM(n.item)?.name ?? n.item} first`;
+  if (n.outlet) {
+    const base = p.outlets.find((o) => o.kind === n.outlet), bt = OUTLET(n.outlet)!;
+    if (!base) return `Run a ${bt.short} first`;
+    const days = Math.floor((now - base.openedAt) / GAME_DAY_MS);
+    if (n.outletDays && days < n.outletDays) return `Run your ${bt.short} for ${n.outletDays} game days (${days} so far)`;
+    if (n.quality && outletQuality(base, now) < n.quality) return `Keep your ${bt.short} at quality ${n.quality}%+`;
+  }
+  if (n.reputation && p.reputation < n.reputation) return `Needs reputation ${n.reputation}★ (you have ${p.reputation.toFixed(1)})`;
+  return null;
+}
 
 // ---- Food: Chef Adams (partner) and cooking at home ----
 export type Food = { id: string; name: string; group: "combo" | "rice" | "protein" | "side"; price: number; hunger: number };
@@ -214,8 +312,8 @@ export const PLAY_URL = "https://life.notesapp.name.ng";
 export const inviteLink = (username: string) => `${PLAY_URL}/?ref=${encodeURIComponent(username)}`;
 
 // ---- Net worth and the Billionaires List ----
-export function netWorth(naira: number, owned: string[]): number {
-  return naira + owned.reduce((n, id) => n + (ITEM(id)?.price ?? 0), 0);
+export function netWorth(naira: number, owned: string[], outlets: Outlet[] = []): number {
+  return naira + owned.reduce((n, id) => n + (ITEM(id)?.price ?? 0), 0) + outlets.reduce((n, o) => n + outletValue(o), 0);
 }
 export const RICH_TITLE = "Billionaires List";
 export const RICH_SUBTITLE = "NotesVille Fat Wallet Index";
@@ -236,6 +334,8 @@ export const fmtShort = (n: number) => (n >= 1e9 ? `N$ ${(n / 1e9).toFixed(2)}bn
 // ---- itel Energy (partner, through @clickam, the itel distributor on NotesApp) ----
 export const ITEL = { name: "itel Energy", seller: "clickam", sellerUrl: "https://www.notesapp.name.ng/u/clickam", note: "Solar shop, Wuse market road · products from @clickam on NotesApp" };
 export const POWER_GO = { wh: 320, maxW: 200, chargeW: 100, solarW: 55 }; // battery size, mains charging, the 100W panel's average by day
+export const POWER_TANK = { wh: 1000, chargeW: 250, fridgeW: 200, panelW: 300 }; // 1000Wh: the fridge alone for 5 game hours; each 650W panel averages ~300W by day
+export const FOOD_SPOIL_HOURS = 8; // stored food without a cold fridge spoils after this many game hours
 // What runs on backup power, in watts: the lamp and fan always, the laptop while you work at the desk, the AC only on the big generator.
 export const LOADS = { lamp: 10, fan: 16, laptop: 65, ac: 900 };
 export const FUEL_NAIRA = 1_100; // a litre of petrol

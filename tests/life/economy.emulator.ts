@@ -2,8 +2,8 @@ import assert from "node:assert/strict";
 import { initializeApp } from "firebase-admin/app";
 import { FieldValue, getFirestore } from "firebase-admin/firestore";
 import { act, mutate, richList, friends, statement, invites } from "../../lib/life/server";
-import { GAME_DAY_MS, GAME_HOUR_MS, SHIFT_MS, START_NAIRA, WORLD_EPOCH, worldTime, shiftPay, JOB, nepaAt, outagesOfDay } from "../../lib/life/catalog";
-import { advance, freshSave, sanitize, powerStep, powerSource } from "../../lib/life/play";
+import { GAME_DAY_MS, GAME_HOUR_MS, SHIFT_MS, START_NAIRA, WORLD_EPOCH, worldTime, shiftPay, JOB, nepaAt, outagesOfDay, OUTLET, OUTLETS, outletTakings, outletProfitPerDay, outletPrice, jobBlocker, type Outlet } from "../../lib/life/catalog";
+import { advance, freshSave, sanitize, powerStep, powerSource, fridgeCold } from "../../lib/life/play";
 import { payFromWallet, creditTopup } from "../../lib/wallet-server";
 import { fulfillPayment, type PaymentRecord } from "../../lib/payments";
 import { awardReferral } from "../../lib/life/referral";
@@ -30,6 +30,32 @@ const rej = async (p: Promise<unknown>, re: RegExp) => { await assert.rejects(p,
   const g1 = powerStep({ ...ps, genOn: true, fuel: 0.3 }, GAME_HOUR_MS, { out: true, owned: ["gen_small"], night: true, deskWork: false }); assert.equal(g1.fuel, 0); assert.equal(g1.genOn, false);
   assert.equal(powerSource({ genOn: false, fuel: 0, battery: 0 }, true, ["power_go"]), "none");
   assert.equal(powerStep({ ...ps, battery: 0 }, GAME_HOUR_MS, { out: true, owned: ["power_go", "solar_panel"], night: false, deskWork: false }).battery, 55, "empty: solar fills it, nothing runs yet");
+  // Power Tank and the fridge: 5 game hours of fridge on a full tank; food spoils after 8 game hours without cold, never in a cold fridge
+  const ft = { ...freshSave(0), plates: 3 };
+  let x1 = ft; for (let i = 0; i < 5; i++) x1 = powerStep(x1, GAME_HOUR_MS, { out: true, owned: ["power_tank", "fridge", "ac"], night: false, deskWork: false });
+  assert.ok(x1.tank < 1, "fridge empties the tank in 5 h: " + x1.tank); assert.equal(x1.plates, 3); assert.equal(fridgeCold(x1, true, ["power_tank", "fridge"]), false);
+  for (let i = 0; i < 8; i++) x1 = powerStep(x1, GAME_HOUR_MS, { out: true, owned: ["power_tank", "fridge", "ac"], night: true, deskWork: false });
+  assert.equal(x1.plates, 0, "spoiled after 8 warm hours"); assert.ok(x1.spoiledAt > 0);
+  let x2 = ft; for (let i = 0; i < 12; i++) x2 = powerStep(x2, GAME_HOUR_MS, { out: false, owned: ["fridge"], night: false, deskWork: false });
+  assert.equal(x2.plates, 3, "a fridge with NEPA light keeps food");
+  let x3 = ft; for (let i = 0; i < 8; i++) x3 = powerStep(x3, GAME_HOUR_MS, { out: false, owned: [], night: false, deskWork: false });
+  assert.equal(x3.plates, 0, "no fridge: spoiled in 8 h");
+  assert.equal(powerStep({ ...ft, tank: 0 }, GAME_HOUR_MS, { out: true, owned: ["power_tank", "solar_650", "solar_650b"], night: false, deskWork: false }).tank, 600, "two 650W panels by day");
+  assert.equal(powerSource({ genOn: false, fuel: 0, battery: 0, tank: 500 }, true, ["power_tank"]), "tank");
+  assert.equal(sanitize({ tank: 9999 }).tank, 1000);
+  advance({ ...ft, delivery: { at: 10, hunger: 50, keep: 2 } }, 20).s.plates === 5 || assert.fail("delivery kept for later");
+  // outlets: profit a game day near the agreed figures, half sales in blackouts without backup, takings held 30 game days at most
+  assert.deepEqual(OUTLETS.map((t) => outletProfitPerDay(t, "wuse")), [72200, 213600, 47000, 181600]);
+  assert.equal(outletPrice(OUTLET("chef_kiosk")!, "garki"), 2_800_000);
+  const k0: Outlet = { kind: "chef_kiosk", area: "wuse", openedAt: WORLD_EPOCH, lastCollectAt: WORLD_EPOCH, earned: 0, backup: true };
+  assert.ok(Math.abs(outletTakings(k0, WORLD_EPOCH + GAME_DAY_MS).takings - Math.round(110000 * 0.96 * 0.72 - 7000)) < 2);
+  assert.ok(outletTakings({ ...k0, backup: false }, WORLD_EPOCH + GAME_DAY_MS).takings < outletTakings(k0, WORLD_EPOCH + GAME_DAY_MS).takings, "blackouts cost sales");
+  assert.equal(outletTakings(k0, WORLD_EPOCH + 40 * GAME_DAY_MS).takings, outletTakings(k0, WORLD_EPOCH + 30 * GAME_DAY_MS).takings, "held 30 days at most");
+  assert.equal(outletTakings(k0, WORLD_EPOCH + 31 * GAME_DAY_MS).capped, true);
+  // jobs: brand shifts, fitness
+  assert.match(jobBlocker(JOB("itel_super")!, { owned: [], cooking: 1, chefShifts: 0, itelShifts: 3, reputation: 0 }) ?? "", /10 itel Energy shifts \(you have 3\)/);
+  assert.match(jobBlocker(JOB("hotel_guard")!, { owned: [], cooking: 1, chefShifts: 0, reputation: 0 }) ?? "", /fitness/);
+  assert.equal(jobBlocker(JOB("hotel_guard")!, { owned: [], cooking: 1, chefShifts: 0, reputation: 0, fit: true }), null);
   console.log("pure ok");
 
   for (const [u, n] of [["p1", "ada"], ["p2", "bola"], ["p3", "chi"]]) await db.doc(`users/${u}`).set({ username: n, displayName: n.toUpperCase() });
@@ -136,5 +162,31 @@ const rej = async (p: Promise<unknown>, re: RegExp) => { await assert.rejects(p,
   r = await act(db, "p4", { action: "shift_start", needsLow: false }, T0 + 2 * SHIFT_MS);
   r = await act(db, "p4", { action: "shift_finish" }, T0 + 3 * SHIFT_MS); assert.equal((r.result as { referral: string | null }).referral, null, "never again once paid");
   console.log("referral ok");
+  // partner outlets on the server: qualify, open, collect, backup; itel staff price; Candellux tips and staff half price
+  await db.doc("users/p7").set({ username: "gogo" });
+  const T7 = T0 + 50 * GAME_DAY_MS;
+  await mutate(db, "p7", () => null, T7);
+  await db.doc("lifePlayers/p7").update({ naira: 12_000_000, owned: FieldValue.arrayUnion("power_go") });
+  await rej(act(db, "p7", { action: "outlet_open", outlet: "chef_kiosk" }, T7), /10 Chef Adams shifts/);
+  await rej(act(db, "p7", { action: "outlet_open", outlet: "itel_home" }, T7), /5 itel Energy shifts/);
+  await db.doc("lifePlayers/p7").update({ chefShifts: 10, reputation: 3, itelShifts: 5 });
+  r = await act(db, "p7", { action: "outlet_open", outlet: "chef_kiosk", area: "garki" }, T7); assert.equal(r.player.naira, 12_000_000 - 2_800_000);
+  await rej(act(db, "p7", { action: "outlet_open", outlet: "chef_kiosk" }, T7), /already own/);
+  await rej(act(db, "p7", { action: "outlet_open", outlet: "chef_shop" }, T7 + GAME_DAY_MS), /7 game days/);
+  assert.equal(r.player.netWorth, r.player.naira + 150000 + Math.round(2_800_000 * 0.96));
+  const n7 = r.player.naira;
+  r = await act(db, "p7", { action: "outlet_collect" }, T7 + 2 * GAME_DAY_MS); const got = (r.result as { total: number }).total;
+  assert.ok(got > 100_000 && got < 2 * 81_000, "two days of takings: " + got); assert.equal(r.player.naira, n7 + got); assert.equal(r.player.outlets[0].earned, got);
+  r = await act(db, "p7", { action: "outlet_backup", outlet: "chef_kiosk" }, T7 + 3 * GAME_DAY_MS); assert.equal(r.player.outlets[0].backup, true);
+  r = await act(db, "p7", { action: "outlet_open", outlet: "itel_home" }, T7 + 3 * GAME_DAY_MS); assert.equal(r.player.outlets.length, 2);
+  await rej(act(db, "p7", { action: "outlet_backup", outlet: "chef_kiosk" }, T7 + 3 * GAME_DAY_MS), /already/);
+  await act(db, "p7", { action: "job_apply", job: "itel_sales" }, T7 + 3 * GAME_DAY_MS);
+  r = await act(db, "p7", { action: "buy", item: "power_tank" }, T7 + 3 * GAME_DAY_MS); assert.match((r.result as { message: string }).message, /staff price, N\$ 320,000/);
+  await act(db, "p7", { action: "shift_start", needsLow: false }, T7 + 3 * GAME_DAY_MS);
+  r = await act(db, "p7", { action: "shift_finish" }, T7 + 3 * GAME_DAY_MS + SHIFT_MS, () => 0.99); assert.equal((r.result as { extra: number }).extra, 1500); assert.equal(r.player.itelShifts, 6);
+  await act(db, "p7", { action: "job_apply", job: "hotel_house" }, T7 + 4 * GAME_DAY_MS);
+  const b7 = (await db.doc("lifePlayers/p7").get()).data()!.naira;
+  r = await act(db, "p7", { action: "hotel", service: "pool" }, T7 + 4 * GAME_DAY_MS); assert.equal(r.player.naira, b7 - 12_500, "Candellux staff: half price pool");
+  console.log("outlets ok");
   console.log("ALL OK");
 })().catch((e) => { console.log("FAIL", e); process.exit(1); });
