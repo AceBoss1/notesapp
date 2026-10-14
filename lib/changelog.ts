@@ -11,6 +11,18 @@ export type Release = {
 
 export const CHANGELOG: Release[] = [
   {
+    version: "v0.28.0",
+    bump: "minor",
+    date: "2026-10-14",
+    changes: [
+      { kind: "added", text: "Notes Life, first playable: a free life game you play with your NotesApp account at life.notesapp.name.ng. Start in a room in Wuse, Abuja with N$ 100,000, keep six needs up, work general and Chef Adams jobs, take deal calls on your bedside phone, pay rent to Alhaji Bello and climb the Billionaires List." },
+      { kind: "added", text: "In the game: eat from @chef_adams by delivery, takeaway or dine-in, or buy a cooker and cook; upgrade to a laptop or all-in-one PC, an inverter AC, a smartphone deal line, an e-bike or an electric car; get around by bicycle, bus, keke or taxi; and treat yourself at Candellux Imperial in Garki." },
+      { kind: "added", text: "Invite friends from your phone's contacts by WhatsApp or SMS: when a friend joins from your link and finishes their first shift, you each get ₦250 in NotesApp Bonus Credit. Share your wins on WhatsApp." },
+      { kind: "added", text: "Buy Notesville Naira with your NotesApp Credit wallet or a card (₦1 = N$ 100). Your money and what you own are kept on our servers; your progress saves on your device and to your account, with restore points from the last day and week." },
+      { kind: "added", text: "A help article, How Notes Life works, and a Notes Life section in the Terms and the Privacy Policy." },
+    ],
+  },
+  {
     version: "v0.27.0",
     bump: "minor",
     date: "2026-10-14",

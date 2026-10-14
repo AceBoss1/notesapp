@@ -197,6 +197,14 @@ export const DEALS: DealTemplate[] = [
 ];
 export const NEGOTIATE_CHANCE = 0.6;
 
+// ---- Inviting friends: both of you get Bonus Credits (NotesApp wallet) once your friend finishes their first shift ----
+export const REFERRAL_BONUS_KOBO = 25_000; // ₦250 of Bonus Credits each, for the inviter and the friend who joins
+export const REFERRAL_MAX_PER_MONTH = 20; // rewarded invites per inviter per calendar month
+// The game never hands out more than this in Bonus Credits in a calendar month (all players together); override with LIFE_BONUS_MONTHLY_CAP_NAIRA.
+export const BONUS_MONTHLY_CAP_KOBO = Math.max(0, Number(process.env.LIFE_BONUS_MONTHLY_CAP_NAIRA || 500_000)) * 100;
+export const PLAY_URL = "https://life.notesapp.name.ng";
+export const inviteLink = (username: string) => `${PLAY_URL}/?ref=${encodeURIComponent(username)}`;
+
 // ---- Net worth and the Billionaires List ----
 export function netWorth(naira: number, owned: string[]): number {
   return naira + owned.reduce((n, id) => n + (ITEM(id)?.price ?? 0), 0);

@@ -4,6 +4,7 @@ import { friendlyMessage } from "@/lib/api-errors";
 import { rateLimit } from "@/lib/rate-limit";
 import { LIFE_LIVE } from "@/lib/life/catalog";
 import { LifeError, act, friends, mutate, richList, statement, view, type Action } from "@/lib/life/server";
+import { awardReferral } from "@/lib/life/referral";
 
 export const dynamic = "force-dynamic";
 
@@ -31,7 +32,11 @@ export async function GET(req: NextRequest) {
     if (v === "rich") return NextResponse.json(await richList(db, me.uid));
     if (v === "friends") return NextResponse.json(await friends(db, me.uid));
     if (v === "tx") return NextResponse.json(await statement(db, me.uid));
-    const { player } = await mutate(db, me.uid, () => null);
+    // ?ref=<username>: the friend who invited you, kept only if this is your first time and they play Notes Life themselves.
+    const ref = (req.nextUrl.searchParams.get("ref") || "").trim().toLowerCase().replace(/^@/, "");
+    let inviter = /^[a-z0-9_.-]{2,30}$/.test(ref) ? String((await db.doc(`usernames/${ref}`).get()).data()?.uid ?? "") || null : null;
+    if (inviter && !(await db.doc(`lifePlayers/${inviter}`).get()).exists) inviter = null;
+    const { player } = await mutate(db, me.uid, () => null, Date.now(), inviter);
     return NextResponse.json({ player: view(player) });
   } catch (err) {
     return fail(err);
@@ -44,8 +49,12 @@ export async function POST(req: NextRequest) {
     const limited = rateLimit(req, "life-act", me.uid, 90, 60);
     if (limited) return limited;
     const body = (await req.json().catch(() => ({}))) as Action;
-    const { player, result } = await act(getAdminDb(), me.uid, body);
-    return NextResponse.json({ player: view(player), result });
+    const db = getAdminDb();
+    const { player, result } = await act(db, me.uid, body);
+    const r = result as { referral?: string | null };
+    let referral: string | null = null;
+    if (r?.referral) referral = await awardReferral(db, me.uid, r.referral).catch((e) => { console.error("referral bonus failed", e); return null; });
+    return NextResponse.json({ player: view(player), result: referral ? { ...result, referralBonus: referral } : result });
   } catch (err) {
     return fail(err);
   }

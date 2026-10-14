@@ -18,6 +18,7 @@ export type LifePlayer = {
   jobId: string | null; shift: { jobId: string; startedAt: number; endsAt: number; pay: number } | null;
   deal: Deal | null; lastDealAt: number; rentMonths: number; rentOwed: number; barberUntil: number; gymUntil: number;
   netWorth: number; updatedAt: number; createdAt: number;
+  referredBy: string | null; referralPaid: boolean; invitesDone: number;
 };
 type Line = { amount: number; label: string; kind: string };
 
@@ -36,6 +37,7 @@ function fromDoc(uid: string, d: FirebaseFirestore.DocumentData | undefined, pro
     jobId: typeof d?.jobId === "string" ? d.jobId : null, shift: d?.shift ?? null, deal: d?.deal ?? null, lastDealAt: num(d?.lastDealAt, now),
     rentMonths: num(d?.rentMonths), rentOwed: num(d?.rentOwed), barberUntil: num(d?.barberUntil), gymUntil: num(d?.gymUntil),
     netWorth: 0, updatedAt: now, createdAt: fresh ? now : num(d?.createdAt, now),
+    referredBy: typeof d?.referredBy === "string" ? d.referredBy : null, referralPaid: d?.referralPaid === true, invitesDone: num(d?.invitesDone),
   };
   return { p, fresh };
 }
@@ -59,13 +61,15 @@ async function profileOf(db: Firestore, uid: string) {
 }
 
 // Reads the player (creating them on first play), settles rent, runs `fn`, and writes the player and their statement lines together.
-export async function mutate<T>(db: Firestore, uid: string, fn: (p: LifePlayer, lines: Line[], now: number) => T, now = Date.now()): Promise<{ player: LifePlayer; result: T }> {
+export async function mutate<T>(db: Firestore, uid: string, fn: (p: LifePlayer, lines: Line[], now: number) => T, now = Date.now(), invitedBy?: string | null): Promise<{ player: LifePlayer; result: T }> {
   const profile = await profileOf(db, uid);
   return db.runTransaction(async (t) => {
     const snap = await t.get(ref(db, uid));
     const { p, fresh } = fromDoc(uid, snap.data(), profile, now);
     const lines: Line[] = [];
     if (fresh) lines.push({ amount: START_NAIRA, label: "Welcome to Notes Life", kind: "start" });
+    // Who invited you is recorded only when you first start (and never yourself).
+    if (fresh && invitedBy && invitedBy !== uid && !p.referredBy) p.referredBy = invitedBy;
     settleRent(p, now, lines);
     const result = fn(p, lines, now);
     settleRent(p, now, lines); // money that just came in pays rent that was owed
@@ -174,7 +178,8 @@ export async function act(db: Firestore, uid: string, a: Action, now = Date.now(
         if (j?.brand === "chef_adams") p.chefShifts += 1;
         const pay = p.shift.pay;
         p.shift = null;
-        return { pay };
+        // Your first finished shift is when an invite counts: lib/life/referral.ts pays the Bonus Credits after this.
+        return { pay, firstShift: p.shifts === 1, referral: p.shifts === 1 && p.referredBy && !p.referralPaid ? p.referredBy : null };
       }
       case "shift_cancel": {
         p.shift = null;

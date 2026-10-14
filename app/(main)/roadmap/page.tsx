@@ -16,9 +16,9 @@ const ITEMS: { title: string; tag: string; body: string; detail: string; link?: 
   {
     title: "Notes Life: a life game on NotesApp",
     tag: "Social",
-    body: "Planned: a browser game at life.notesapp.name.ng that you play with your NotesApp sign-in. Start in a face-me-I-face-you room in your own city, get a job, decorate, visit and call your friends, and climb the Billionaires List.",
-    detail: "Your NotesApp profile picture is your portrait in the game. You earn game money from jobs and quests, and some quests give Bonus Credits you can use on NotesApp. The market street has real NotesApp stores, and real ads run on the billboards. Game money is for fun only and can't be cashed out. No date yet; we will announce it here first.",
-    link: { href: "/life", label: "See Notes Life →" },
+    body: "Live now, first playable: a browser game at life.notesapp.name.ng that you play with your NotesApp sign-in. Start in a room in Wuse, Abuja with N$ 100,000, keep your needs up, work general and Chef Adams jobs, take deal calls, eat at Chef Adams, relax at Candellux Imperial, invite friends for Bonus Credits and climb the Billionaires List. Next: Lagos and Port Harcourt, NEPA power cuts, the market street with real NotesApp stores, billboards, and calling friends from your game phone.",
+    detail: "Your NotesApp profile picture is your portrait in the game. Notesville Naira is game money: earn it from jobs and deals, or buy it with NotesApp Credit (₦1 = N$ 100). It can't be cashed out. Inviting a friend who finishes their first shift gives you both ₦250 in Bonus Credits. Planned later: your own shop stall, a Chef Adams partner outlet, events at the Candellux conference hall, and paid calls from NotesApp Credit.",
+    link: { href: "/life", label: "Play Notes Life →" },
   },
   {
     title: "Install NotesApp on your phone or computer",

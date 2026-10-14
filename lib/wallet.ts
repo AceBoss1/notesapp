@@ -78,7 +78,7 @@ export function refundSplit(debit: { creditKobo: number; bonusKobo: number }, al
   return { creditKobo: amt - bonusKobo, bonusKobo };
 }
 
-export type WalletTxType = "topup" | "spend" | "refund" | "bonus_expired" | "topup_refund";
+export type WalletTxType = "topup" | "spend" | "refund" | "bonus_expired" | "topup_refund" | "bonus";
 export type WalletTx = {
   uid: string; type: WalletTxType; creditKobo: number; bonusKobo: number; // signed: + into the wallet, − out of it
   label: string; reference?: string; kind?: string; held?: boolean; at: string;

@@ -819,6 +819,9 @@ service cloud.firestore {
       allow get, list: if isSignedIn() && resource.data.uid == request.auth.uid;
       allow write: if false;
     }
+    match /lifeBonus/{month} {
+      allow read, write: if false;
+    }
     match /lifeSaves/{uid} {
       allow read: if isSignedIn() && request.auth.uid == uid;
       allow create, update: if isSignedIn() && request.auth.uid == uid

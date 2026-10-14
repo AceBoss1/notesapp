@@ -6,6 +6,7 @@ import { GAME_DAY_MS, GAME_HOUR_MS, SHIFT_MS, START_NAIRA, worldTime, shiftPay, 
 import { advance, freshSave, sanitize } from "../../lib/life/play";
 import { payFromWallet, creditTopup } from "../../lib/wallet-server";
 import { fulfillPayment, type PaymentRecord } from "../../lib/payments";
+import { awardReferral } from "../../lib/life/referral";
 initializeApp({ projectId: "demo-notesapp" });
 const db = getFirestore();
 const rej = async (p: Promise<unknown>, re: RegExp) => { await assert.rejects(p, re); };
@@ -78,5 +79,29 @@ const rej = async (p: Promise<unknown>, re: RegExp) => { await assert.rejects(p,
   await db.doc("follows/p1_bola").set({ followerUid: "p1", username: "bola" }); await db.doc("follows/p2_ada").set({ followerUid: "p2", username: "ada" }); await db.doc("follows/p3_ada").set({ followerUid: "p3", username: "ada" });
   const fr = await friends(db, "p1"); assert.deepEqual(fr.friends.map((f) => f.username), ["bola"]); assert.equal(fr.friends[0].plays, true);
   const st = await statement(db, "p2"); assert.ok(st.lines.some((l) => l.kind === "buy_naira"));
+  // invites: the friend's first finished shift pays both of them once, only with a verified email, never to yourself
+  await db.doc("users/p4").set({ username: "dee", displayName: "DEE" });
+  ({ player } = await mutate(db, "p4", () => null, T0, "p1")); assert.equal(player.referredBy, "p1");
+  ({ player } = await mutate(db, "p4", () => null, T0, "p2")); assert.equal(player.referredBy, "p1", "an invite only counts when you start");
+  ({ player } = await mutate(db, "p1", () => null, T0, "p4")); assert.equal(player.referredBy, null, "an existing player can't be invited");
+  await act(db, "p4", { action: "job_apply", job: "writer" }, T0); await act(db, "p4", { action: "shift_start", needsLow: false }, T0);
+  r = await act(db, "p4", { action: "shift_finish" }, T0 + SHIFT_MS); assert.equal((r.result as { referral: string | null }).referral, "p1");
+  const at = new Date(T0);
+  assert.equal(await awardReferral(db, "p4", "p1", at, { verified: async () => false }), "skipped");
+  assert.equal(await awardReferral(db, "p4", "p4", at, { verified: async () => true }), "skipped");
+  assert.equal(await awardReferral(db, "p4", "p2", at, { verified: async () => true }), "skipped", "only the one who invited you");
+  assert.equal(await awardReferral(db, "p4", "p1", at, { verified: async () => true }), "paid");
+  assert.equal(await awardReferral(db, "p4", "p1", at, { verified: async () => true }), "skipped", "paid once");
+  const bonusOf = async (u: string) => ((await db.doc(`wallets/${u}`).get()).data()?.bonusLots as { kobo: number }[]).reduce((t, l) => t + l.kobo, 0);
+  assert.equal(await bonusOf("p4"), 25_000); assert.equal(await bonusOf("p1"), 25_000);
+  assert.equal((await db.doc("lifePlayers/p1").get()).data()!.invitesDone, 1);
+  assert.equal((await db.doc(`lifeBonus/${at.toISOString().slice(0, 7)}`).get()).data()!.kobo, 50_000);
+  // the inviter's monthly limit: a 21st friend that month is marked done without a bonus
+  await db.doc("lifePlayers/p1").update({ [`invitesByMonth.${at.toISOString().slice(0, 7)}`]: 20 });
+  await db.doc("users/p5").set({ username: "eze" }); await mutate(db, "p5", () => null, T0, "p1");
+  assert.equal(await awardReferral(db, "p5", "p1", at, { verified: async () => true }), "skipped");
+  assert.equal((await db.doc("lifePlayers/p5").get()).data()!.referralPaid, true);
+  assert.equal(await bonusOf("p1"), 25_000);
+  console.log("referral ok");
   console.log("ALL OK");
 })().catch((e) => { console.log("FAIL", e); process.exit(1); });
