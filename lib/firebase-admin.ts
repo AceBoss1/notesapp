@@ -123,7 +123,11 @@ export async function verifySignedInRequest(
 ): Promise<{ uid: string; email: string; emailVerified: boolean }> {
   if (!idToken) throw new Error("Missing auth token");
   const decoded = await getAuth(getAdminApp()).verifyIdToken(idToken);
-  return { uid: decoded.uid, email: decoded.email || "", emailVerified: decoded.email_verified === true };
+  // A token is issued for up to an hour, so it can still say "not verified" just after someone clicks the link in their email:
+  // only then, ask Firebase for the account as it is now.
+  let emailVerified = decoded.email_verified === true;
+  if (!emailVerified && decoded.email) emailVerified = await getAuth(getAdminApp()).getUser(decoded.uid).then((u) => u.emailVerified === true).catch(() => false);
+  return { uid: decoded.uid, email: decoded.email || "", emailVerified };
 }
 
 // Avatars: any signed-in, non-suspended account may upload their own

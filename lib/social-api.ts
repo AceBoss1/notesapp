@@ -7,7 +7,7 @@ import { SocialError } from "./social-server";
 // turned into responses.
 export async function socialAuthed(req: NextRequest, write = false): Promise<{ uid: string }> {
   const me = await verifySignedInRequest(req.headers.get("authorization")?.replace(/^Bearer\s+/i, ""));
-  if (write && !me.emailVerified) throw new SocialError(403, "Verify your email first.");
+  if (write && !me.emailVerified) throw new SocialError(403, "Verify your email first: open the link we sent to your inbox (check spam), or tap Resend link in the yellow bar at the top of the page.");
   const user = (await getAdminDb().doc(`users/${me.uid}`).get()).data();
   if (!user || user.suspended === true) throw new SocialError(403, "Your account can't do that right now.");
   return { uid: me.uid };

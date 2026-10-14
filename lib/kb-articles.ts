@@ -187,6 +187,7 @@ ${MOMENTS_LIVE ? `**Moments:** share a picture, a video of up to 90 seconds or a
 **If a call won't work:**
 - Allow the **microphone** (and the **camera** for video) when your browser asks. If you said no before, allow it in your browser's site settings or your phone's settings, then try again.
 - "Calls are for people who follow each other": follow each other first.
+- "Verify your email first": starting a call or sending a message needs a verified email. Open the link we emailed you when you joined (check spam), or tap **Resend link** in the yellow bar at the top of the page. It works straight away once you have clicked the link. Answering, declining and ending a call never need it.
 - The call rings but doesn't connect, or drops: try another network (Wi-Fi or mobile data), and close other apps using the camera or microphone. Our [Status](/status) page shows whether calls and the relay are working.
 - On iPhone, use Safari or the installed #NotesApp app; on Android, Chrome works best.
 - Calls can't reach emergency services.

@@ -5,8 +5,8 @@ import { onAuthStateChanged, sendEmailVerification, User } from "firebase/auth";
 import { auth } from "@/lib/firebase";
 
 // Shown site-wide to signed-in accounts whose email isn't verified.
-// Payments are blocked server-side until it is (app/api/paystack/
-// initialize), so this is where people find out why and fix it.
+// Payments, sending messages and starting calls are blocked server-side
+// until it is, so this is where people find out why and fix it.
 export default function VerifyEmailBanner() {
   const [user, setUser] = useState<User | null>(null);
   const [msg, setMsg] = useState("");
@@ -54,7 +54,7 @@ export default function VerifyEmailBanner() {
 
   return (
     <div className="border-b border-rule bg-amber-50 px-4 py-2 text-center text-xs text-ink">
-      <span>Verify your email to pay for sessions and subscriptions. </span>
+      <span>Verify your email to send messages, make calls and pay on #NotesApp. </span>
       <button onClick={resend} disabled={busy || cooldown > 0} className="font-semibold text-crimson underline disabled:opacity-50">
         {cooldown > 0 ? `Resend in ${cooldown}s` : "Resend link"}
       </button>

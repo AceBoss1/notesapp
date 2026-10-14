@@ -23,8 +23,9 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
   try {
     if (!CALLS_LIVE) throw new MessageError(404, "Not found.");
-    const me = await authed(req, "messages", true);
     const body = await req.json().catch(() => ({}));
+    // Starting a call needs a verified email (like sending a message); ending, declining or missing one never does.
+    const me = await authed(req, "messages", body.action === "start");
     const db = getAdminDb();
     if (body.action === "start") {
       const limited = rateLimit(req, "call-start", me.uid, 30, 3600);

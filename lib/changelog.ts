@@ -11,6 +11,16 @@ export type Release = {
 
 export const CHANGELOG: Release[] = [
   {
+    version: "v0.28.1",
+    bump: "patch",
+    date: "2026-10-14",
+    changes: [
+      { kind: "fixed", text: "Right after you verify your email, sending messages and starting calls work straight away, instead of still saying \"Verify your email first\" for up to an hour." },
+      { kind: "fixed", text: "Ending, declining or missing a call no longer needs a verified email, so the call is always closed properly." },
+      { kind: "changed", text: "The verify-email message now says where to find the link and how to resend it, and the yellow bar says that messages and calls need a verified email too." },
+    ],
+  },
+  {
     version: "v0.28.0",
     bump: "minor",
     date: "2026-10-14",
