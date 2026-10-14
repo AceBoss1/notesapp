@@ -53,12 +53,14 @@ export async function removeSubscription(db: Firestore, uid: string, endpoint: s
   if ((await ref.get()).data()?.uid === uid) await ref.delete();
 }
 
-export type PushPayload = { title: string; body: string; url: string };
-export type Sender = (sub: PushSubscriptionInput, payload: string) => Promise<void>;
+// A call push (kind "call") rings on the device even when #NotesApp isn't open: high urgency, short life, Answer and Decline (public/sw.js).
+// "call_end" closes that ringing notification when the call stops.
+export type PushPayload = { title: string; body: string; url: string; kind?: "call" | "call_end"; callId?: string; token?: string; ttl?: number; urgency?: "high" | "normal" };
+export type Sender = (sub: PushSubscriptionInput, payload: string, opts?: { TTL: number; urgency: "high" | "normal" }) => Promise<void>;
 
-const realSender: Sender = async (sub, payload) => {
+const realSender: Sender = async (sub, payload, opts) => {
   webpush.setVapidDetails(vapidSubject(), vapidPublicKey()!, vapidPrivateKey()!);
-  await webpush.sendNotification(sub, payload, { TTL: 24 * 3600 });
+  await webpush.sendNotification(sub, payload, { TTL: opts?.TTL ?? 24 * 3600, urgency: opts?.urgency ?? "normal" });
 };
 
 // Sends to every device the member turned notifications on for. A device that has gone away (404 or 410) is forgotten.
@@ -68,7 +70,7 @@ export async function sendPush(db: Firestore, uid: string, payload: PushPayload,
   let sent = 0;
   for (const d of subs.docs) {
     const s = d.data() as PushSubscriptionInput;
-    try { await send({ endpoint: s.endpoint, keys: s.keys }, JSON.stringify(payload)); sent++; }
+    try { await send({ endpoint: s.endpoint, keys: s.keys }, JSON.stringify(payload), { TTL: payload.ttl ?? 24 * 3600, urgency: payload.urgency ?? "normal" }); sent++; }
     catch (err) {
       const code = (err as { statusCode?: number }).statusCode;
       if (code === 404 || code === 410) await d.ref.delete().catch(() => {});

@@ -29,6 +29,7 @@ export type StaffFile = { key: string; name: string; type: string; size: number 
 export type StaffDoc = {
   id: string; title: string; category: DocCategory; description: string; version: number; scope: DocScope; dept?: Dept; receivers: string[];
   files: StaffFile[]; requiresAck: boolean; ackedBy: Record<string, string>; archived: boolean;
+  openedBy?: Record<string, string>; // who opened one of its files, and when they last did (the 👁 list)
   createdAt: string; createdByUid: string; createdByName: string; updatedAt: string;
 };
 
@@ -53,7 +54,7 @@ export function canSeeDoc(d: Pick<StaffDoc, "scope" | "dept" | "receivers" | "cr
   if (d.scope === "dept") return isSuper(v.access) || (!!d.dept && hasDept(v.access, d.dept));
   return d.receivers.includes(v.uid) || d.createdByUid === v.uid;
 }
-export const canEditDocs = (a: Access | null) => isSuper(a) || hasDept(a, "support") || hasDept(a, "product"); // super admins, customer care and product maintain the library
+export const canEditDocs = (a: Access | null) => isSuper(a) || hasDept(a, "support") || hasDept(a, "product") || hasDept(a, "legal"); // super admins, customer care and product maintain the library
 
 export const pendingAck = (d: Pick<StaffDoc, "requiresAck" | "ackedBy" | "archived">, uid: string) => d.requiresAck && !d.archived && !d.ackedBy[uid];
 

@@ -74,7 +74,7 @@ export default function AdminReportsPage() {
                 ? <p className="mb-2 inline-block rounded bg-red-700 px-2 py-0.5 text-xs font-bold text-white">OVERDUE · {Math.floor(hrs)}h old, our promise is {REPORT_URGENT_HOURS}h</p>
                 : <p className="mb-2 inline-block rounded bg-amber-500 px-2 py-0.5 text-xs font-bold text-ink">URGENT · review within {REPORT_URGENT_HOURS}h ({Math.max(0, Math.ceil(REPORT_URGENT_HOURS - hrs))}h left)</p>;
             })()}
-            <p className="text-sm"><strong className="text-ink">{r.kind === "moment" ? "Moment" : "Conversation"}</strong> reported by @{r.reporter} against @{r.target} · {REPORT_REASON_LABEL[r.reason] ?? r.reason} · {new Date(r.createdAt).toLocaleString()}</p>
+            <p className="text-sm"><strong className="text-ink">{r.kind === "moment" ? "Moment" : "Conversation"}</strong> reported by @{r.reporter} against @{r.target} · {REPORT_REASON_LABEL[r.reason] ?? r.reason} · {new Date(r.createdAt).toLocaleString("en-NG", { hour12: true })}</p>
             {r.note && <p className="mt-2 text-sm text-slate">“{r.note}”</p>}
             {r.status === "open" && r.evidence && (
               <div className="mt-3 rounded border border-rule p-3 text-sm">

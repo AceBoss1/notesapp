@@ -7,7 +7,7 @@ import { putFile, useAdminCall } from "@/lib/useAdminCall";
 import { DEPARTMENTS } from "@/lib/admin-access";
 import { DOC_CATEGORIES, FILE_MAX_BYTES, type StaffDoc } from "@/lib/staff-ops";
 
-type Doc = StaffDoc & { acked: boolean; ackCount: number };
+type Doc = StaffDoc & { acked: boolean; ackCount: number; openCount: number };
 type Data = { docs: Doc[]; canEdit: boolean; people: { uid: string; name: string }[]; names: Record<string, string>; filesReady: boolean };
 const field = "mt-1 block w-full rounded-lg border border-rule bg-card px-2 py-1.5 text-sm";
 const btn = "rounded-full bg-crimson px-4 py-2 font-ui text-xs font-semibold text-paper hover:bg-crimson-bright disabled:opacity-50";
@@ -18,7 +18,8 @@ const size = (n: number) => (n > 1024 * 1024 ? `${(n / 1024 / 1024).toFixed(1)} 
 
 // The staff library: SOPs, the employee handbook, policies, templates and other staff material. Open to everyone on staff, one department, or named
 // people (a personal document goes to receivers in To, not copied). Handbook and policies can ask everyone to confirm they have read them; a new
-// version clears the confirmations. Super admins, customer care and product maintain it.
+// version clears the confirmations. Super admins, customer care, product and legal maintain it: files are uploaded while adding a document
+// (or later with Upload a file), and 👁 shows who has opened it and who hasn't.
 export default function LibraryPage() {
   const { user, loading } = useAdminAuth();
   const call = useAdminCall(user, "/api/admin/staff-library");
@@ -28,7 +29,8 @@ export default function LibraryPage() {
   const [busy, setBusy] = useState(false);
   const [cat, setCat] = useState("");
   const [form, setForm] = useState<(typeof blank & { id?: string }) | null>(null);
-  const [acks, setAcks] = useState<{ id: string; read: { uid: string; name: string; at: string }[]; waiting: { uid: string; name: string }[] } | null>(null);
+  const [acks, setAcks] = useState<{ id: string; read: { uid: string; name: string; at: string }[]; waiting: { uid: string; name: string }[]; opened: { uid: string; name: string; at: string }[]; notOpened: { uid: string; name: string }[] } | null>(null);
+  const [newFiles, setNewFiles] = useState<File[]>([]); // chosen while adding a document; uploaded once it exists
   const pickRef = useRef<HTMLInputElement>(null);
   const [uploadFor, setUploadFor] = useState<string | null>(null);
 
@@ -41,7 +43,7 @@ export default function LibraryPage() {
   const open = async (id: string, i: number) => {
     try { const r = await call(undefined, `?file=${encodeURIComponent(id)}&i=${i}`); window.open(r.url, "_blank", "noopener"); } catch (e) { setError((e as Error).message); }
   };
-  async function upload(id: string, files: FileList | null) {
+  async function upload(id: string, files: FileList | File[] | null) {
     if (!files?.length) return;
     setBusy(true); setError(""); setNote("");
     try {
@@ -80,7 +82,8 @@ export default function LibraryPage() {
             <form className="mt-4 grid gap-3 rounded-xl bg-paper p-4 sm:grid-cols-2" onSubmit={async (e) => {
               e.preventDefault();
               const { id, ...doc } = form;
-              if (await run(id ? { action: "update", id, doc } : { action: "create", doc }, id ? "Saved." : "Added. Open it to attach files.")) setForm(null);
+              const r = await run(id ? { action: "update", id, doc } : { action: "create", doc }, id ? "Saved." : newFiles.length ? "Added. Uploading…" : "Added.");
+              if (r) { setForm(null); if (!id && newFiles.length && r.doc?.id) { await upload(r.doc.id, newFiles); } setNewFiles([]); }
             }}>
               <label className="text-xs sm:col-span-2">Title<input className={field} required value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} /></label>
               <label className="text-xs">Kind<select className={field} value={form.category} onChange={(e) => setForm({ ...form, category: e.target.value })}>{DOC_CATEGORIES.map((c) => <option key={c.key} value={c.key}>{c.label}</option>)}</select></label>
@@ -92,6 +95,13 @@ export default function LibraryPage() {
                 </fieldset>
               )}
               <label className="text-xs sm:col-span-2">Short description<input className={field} value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} /></label>
+              {!form.id && (
+                <label className="text-xs sm:col-span-2">Files (PDF, Word, Excel, PowerPoint, pictures; up to {FILE_MAX_BYTES / 1024 / 1024} MB each)
+                  <input type="file" multiple disabled={!data.filesReady} onChange={(e) => setNewFiles(Array.from(e.target.files ?? []))} className="mt-1 block w-full rounded-lg border border-dashed border-rule bg-card px-2 py-3 text-sm file:mr-3 file:rounded-full file:border-0 file:bg-crimson file:px-3 file:py-1.5 file:font-ui file:text-xs file:font-semibold file:text-paper" />
+                  {!data.filesReady && <span className="mt-1 block text-red-700">File storage isn&apos;t set up yet, so files can&apos;t be uploaded.</span>}
+                  {newFiles.length > 0 && <span className="mt-1 block text-slate">{newFiles.map((f) => `${f.name} (${size(f.size)})`).join(", ")}</span>}
+                </label>
+              )}
               <label className="inline-flex items-center gap-2 text-xs sm:col-span-2"><input type="checkbox" checked={form.requiresAck} onChange={(e) => setForm({ ...form, requiresAck: e.target.checked })} /> Ask people to confirm they have read it</label>
               <div className="flex gap-2 sm:col-span-2"><button className={btn} disabled={busy}>{form.id ? "Save" : "Add"}</button><button type="button" className={ghost} onClick={() => setForm(null)}>Cancel</button></div>
             </form>
@@ -120,18 +130,22 @@ export default function LibraryPage() {
                   {d.requiresAck && !d.acked && <button className={btn} disabled={busy} onClick={() => run({ action: "ack", id: d.id }, "Thank you. Your confirmation is recorded.")}>I have read this</button>}
                   {data.canEdit && (
                     <>
-                      <button className={ghost} disabled={busy || !data.filesReady} title={data.filesReady ? "" : "File storage isn't set up yet"} onClick={() => { setUploadFor(d.id); pickRef.current?.click(); }}>Add a file</button>
+                      <button className={btn} disabled={busy || !data.filesReady} title={data.filesReady ? "" : "File storage isn't set up yet"} onClick={() => { setUploadFor(d.id); pickRef.current?.click(); }}>⬆ Upload a file</button>
                       <button className={ghost} onClick={() => setForm({ id: d.id, title: d.title, category: d.category, description: d.description, scope: d.scope, dept: d.dept ?? "support", receivers: d.receivers, requiresAck: d.requiresAck })}>Edit</button>
                       <button className={ghost} disabled={busy} onClick={() => { if (confirm(`Publish v${d.version + 1}? ${d.requiresAck ? "Everyone will be asked to confirm again." : ""}`)) run({ action: "update", id: d.id, doc: { newVersion: true } }, `Version ${d.version + 1} is live.`); }}>New version</button>
-                      {d.requiresAck && <button className={ghost} onClick={async () => { try { setAcks({ id: d.id, ...(await call(undefined, `?acks=${d.id}`)) }); } catch (e) { setError((e as Error).message); } }}>Who has read it ({d.ackCount})</button>}
+                      <button className={ghost} onClick={async () => { if (acks?.id === d.id) return setAcks(null); try { setAcks({ id: d.id, ...(await call(undefined, `?acks=${d.id}`)) }); } catch (e) { setError((e as Error).message); } }}>👁 Who has read it ({d.requiresAck ? `${d.ackCount} confirmed · ` : ""}{d.openCount} opened)</button>
                       <button className={ghost} disabled={busy} onClick={() => run({ action: "update", id: d.id, doc: { archived: true } }, "Archived.")}>Archive</button>
                     </>
                   )}
                 </div>
                 {acks?.id === d.id && (
-                  <div className="mt-3 rounded-lg bg-paper p-3 text-xs">
-                    <p><span className="font-semibold">Confirmed ({acks.read.length}):</span> {acks.read.map((p) => p.name).join(", ") || "no one yet"}</p>
-                    <p className="mt-1"><span className="font-semibold">Still to confirm ({acks.waiting.length}):</span> {acks.waiting.map((p) => p.name).join(", ") || "no one"}</p>
+                  <div className="mt-3 space-y-1 rounded-lg bg-paper p-3 text-xs">
+                    <p><span className="font-semibold">👁 Opened ({acks.opened.length}):</span> {acks.opened.map((p) => `${p.name} (${new Date(p.at).toLocaleString("en-NG", { day: "numeric", month: "short", hour: "numeric", minute: "2-digit", hour12: true })})`).join(", ") || "no one yet"}</p>
+                    <p><span className="font-semibold">Not opened yet ({acks.notOpened.length}):</span> {acks.notOpened.map((p) => p.name).join(", ") || "no one"}</p>
+                    {d.requiresAck && <>
+                      <p><span className="font-semibold">✔ Confirmed ({acks.read.length}):</span> {acks.read.map((p) => p.name).join(", ") || "no one yet"}</p>
+                      <p><span className="font-semibold">Still to confirm ({acks.waiting.length}):</span> {acks.waiting.map((p) => p.name).join(", ") || "no one"}</p>
+                    </>}
                   </div>
                 )}
               </li>

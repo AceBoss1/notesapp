@@ -12,7 +12,7 @@ type Summary = { creditKobo: number; bonusKobo: number; bonusLots: BonusLot[]; a
 const FILTERS = [["all", "All"], ["topup", "Top-ups"], ["spend", "Spent"], ["bonus", "Bonus"], ["held", "Held"], ["refund", "Refunds"]] as const;
 type Filter = (typeof FILTERS)[number][0];
 
-const when = (iso: string) => new Date(iso).toLocaleString("en-NG", { day: "numeric", month: "short", hour: "numeric", minute: "2-digit" });
+const when = (iso: string) => new Date(iso).toLocaleString("en-NG", { day: "numeric", month: "short", hour: "numeric", hour12: true, minute: "2-digit" });
 const day = (iso: string) => new Date(iso).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
 const signed = (kobo: number) => (kobo > 0 ? `+${nairaOf(kobo)}` : kobo < 0 ? `−${nairaOf(-kobo)}` : nairaOf(0));
 

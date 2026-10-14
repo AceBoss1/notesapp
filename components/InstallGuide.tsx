@@ -118,6 +118,7 @@ export default function InstallGuide() {
           {onComputer
             ? "NotesApp installs straight from your browser, with no store and nothing to download by hand. It gets its own icon and its own window, and keeps you signed in."
             : "NotesApp installs straight from your phone's browser, with no app store. It gets its own icon on your home screen, opens full screen and keeps you signed in."}
+          {" Allow notifications when it asks, and calls ring on your device even when NotesApp isn't open on your screen."}
         </p>
 
         {device?.inApp && (

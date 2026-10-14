@@ -29,6 +29,9 @@ export type ThreadMessage = {
   attachments?: AttachmentInfo[];
   call?: { kind: "audio" | "video"; outcome: "declined" | "missed" | "ended" | "failed"; seconds: number }; // a line recording a call (lib/calls.ts)
   removed?: { by: "admin" | "notesapp"; at: string }; // taken out by a group admin or by #NotesApp after a report: text and files are gone
+  editedAt?: string; // changed by its sender (lib/message-edits.ts)
+  deleted?: { at: string }; // deleted by its sender
+  pendingRequest?: { id: string; kind: "edit" | "delete"; text?: string; readers: string[]; approved: string[]; expiresAt: string }; // waiting for the readers to agree
 };
 
 export const REMOVED_TEXT = { admin: "Message removed by a group admin", notesapp: "Message removed by #NotesApp" } as const;

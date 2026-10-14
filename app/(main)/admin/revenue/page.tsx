@@ -132,7 +132,7 @@ export default function AdminRevenuePage() {
               </p>
             )}
           </div>
-          <p className="mt-4 text-xs text-slate">Updated {asOf ? new Date(asOf).toLocaleTimeString("en-NG") : ""} · refreshed every ~2 minutes.</p>
+          <p className="mt-4 text-xs text-slate">Updated {asOf ? new Date(asOf).toLocaleTimeString("en-NG", { hour: "numeric", minute: "2-digit", hour12: true }) : ""} · refreshed every ~2 minutes.</p>
         </>
       )}
     </section>

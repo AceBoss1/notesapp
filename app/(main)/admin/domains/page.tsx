@@ -93,7 +93,7 @@ export default function AdminDomainSalesPage() {
       )}
       <div className="mt-3 flex items-center gap-3">
         <button onClick={scan} disabled={busy} className="btn-ghost !px-4 !py-2 text-xs">{busy ? "Scanning…" : "Scan now"}</button>
-        {scannedAt && <span className="font-mono text-[11px] text-slate">Last scan {scannedAt.toLocaleTimeString("en-NG")}</span>}
+        {scannedAt && <span className="font-mono text-[11px] text-slate">Last scan {scannedAt.toLocaleTimeString("en-NG", { hour: "numeric", minute: "2-digit", hour12: true })}</span>}
       </div>
       <h2 className="mt-10 font-display text-2xl">Check a name</h2>
       <p className="mt-2 text-sm text-slate">Whogohost has no lookup call, so availability comes from the registry (RDAP). Try names you know are taken and free, and compare. Shows the registry&apos;s answer and Whogohost&apos;s price call, exactly as received.</p>

@@ -113,7 +113,7 @@ function SellerCard({ o, user, onDone }: { o: Order; user: User; onDone: () => v
         <ul className="mt-2 space-y-1 text-xs text-ink">
           {track.custody.map((c) => (
             <li key={c.id}>
-              {HOLDER_LABEL[c.holderType]}: {c.holderName}{c.holderPhone ? ` (${c.holderPhone})` : ""} — {c.location} <span className="text-slate">· {c.status === "pending" ? "waiting for them to confirm" : new Date(c.at).toLocaleString()}</span>
+              {HOLDER_LABEL[c.holderType]}: {c.holderName}{c.holderPhone ? ` (${c.holderPhone})` : ""} — {c.location} <span className="text-slate">· {c.status === "pending" ? "waiting for them to confirm" : new Date(c.at).toLocaleString("en-NG", { hour12: true })}</span>
               {open && o.mode === "handoff" && (
                 <button disabled={busy} onClick={() => run({ action: "holder_link", entryId: c.id }, (j) => setLink(j.url))} className="ml-2 font-semibold text-crimson">Get their update link</button>
               )}

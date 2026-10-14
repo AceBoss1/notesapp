@@ -19,7 +19,7 @@ const SCOPES: [string, string][] = [
   ["read:orders", "Read orders & download sales"], ["read:earnings", "Read earnings"],
 ];
 const field = "mt-1 w-full border border-rule bg-card px-3 py-2 text-sm outline-none focus:border-crimson";
-const when = (iso: string | null) => (iso ? new Date(iso).toLocaleString("en-NG", { dateStyle: "medium", timeStyle: "short" }) : "—");
+const when = (iso: string | null) => (iso ? new Date(iso).toLocaleString("en-NG", { dateStyle: "medium", timeStyle: "short", hour12: true }) : "—");
 
 async function call(user: User, url: string, init: RequestInit = {}) {
   const token = await user.getIdToken();

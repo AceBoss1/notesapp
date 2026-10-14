@@ -105,7 +105,7 @@ export default function TrackParcelPage() {
           {latest ? (
             <>
               <p className="font-ui font-bold text-ink">Right now: {HOLDER_LABEL[latest.holderType]} — {latest.holderName}</p>
-              <p className="mt-1 text-slate">{latest.location} · updated {new Date(latest.at).toLocaleString()}</p>
+              <p className="mt-1 text-slate">{latest.location} · updated {new Date(latest.at).toLocaleString("en-NG", { hour12: true })}</p>
               {latest.holderPhone && <p className="mt-1 text-ink">Call: <a href={`tel:${latest.holderPhone}`} className="font-mono text-crimson">{latest.holderPhone}</a></p>}
             </>
           ) : (
@@ -131,7 +131,7 @@ export default function TrackParcelPage() {
             <ol className="mt-4 space-y-2 border-t border-rule pt-4 text-xs text-slate">
               {[...view.custody].reverse().map((c) => (
                 <li key={c.id}>
-                  <span className="text-ink">{HOLDER_LABEL[c.holderType]} — {c.holderName}</span>{c.holderPhone ? ` · ${c.holderPhone}` : ""} · {c.location} · {c.status === "pending" ? "handed on, not yet confirmed" : new Date(c.at).toLocaleString()}
+                  <span className="text-ink">{HOLDER_LABEL[c.holderType]} — {c.holderName}</span>{c.holderPhone ? ` · ${c.holderPhone}` : ""} · {c.location} · {c.status === "pending" ? "handed on, not yet confirmed" : new Date(c.at).toLocaleString("en-NG", { hour12: true })}
                 </li>
               ))}
             </ol>

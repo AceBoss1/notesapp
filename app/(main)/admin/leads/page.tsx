@@ -83,7 +83,7 @@ export default function AdminLeadsPage() {
                     <span className="rounded-full bg-crimson/10 px-2 py-0.5 text-crimson-bright">
                       {CATEGORY_LABEL[l.category] || l.category}
                     </span>
-                    {new Date(l.createdAt).toLocaleString("en-NG")}
+                    {new Date(l.createdAt).toLocaleString("en-NG", { hour12: true })}
                   </p>
                 </div>
                 <div className="flex gap-2">

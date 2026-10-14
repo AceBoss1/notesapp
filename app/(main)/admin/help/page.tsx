@@ -15,7 +15,7 @@ type Draft = { slug: string; title: string; category: Cat; body: string; publish
 const field = "mt-1 block w-full border border-rule bg-card px-3 py-2 text-sm";
 const btn = "bg-crimson px-4 py-2 font-ui text-xs font-semibold text-paper hover:bg-crimson-bright disabled:opacity-50";
 const ghost = "border border-rule px-3 py-1.5 font-ui text-xs font-semibold hover:border-crimson disabled:opacity-50";
-const when = (iso: string) => new Date(iso).toLocaleString("en-NG", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
+const when = (iso: string) => new Date(iso).toLocaleString("en-NG", { day: "numeric", month: "short", hour: "2-digit", hour12: true, minute: "2-digit" });
 
 // The help centre and Nana's brain. Articles here are what visitors read at /help and what Nana answers from. A staff article with the
 // same address (slug) as a built-in one replaces it; take it down and the built-in text returns. Chats are what people asked Nana.

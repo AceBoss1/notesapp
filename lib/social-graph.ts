@@ -41,7 +41,7 @@ export function lastSeenLabel(s: PresenceStatus | undefined, now = new Date()): 
   if (s.online) return "Online";
   if (!s.lastSeen) return "Last seen: not recorded yet"; // they haven't opened #NotesApp since last seen was switched on
   const d = new Date(s.lastSeen);
-  const time = d.toLocaleTimeString("en-NG", { hour: "numeric", minute: "2-digit" });
+  const time = d.toLocaleTimeString("en-NG", { hour: "numeric", hour12: true, minute: "2-digit" });
   if (d.toDateString() === now.toDateString()) return `Last seen ${time}`;
   const y = new Date(now); y.setDate(now.getDate() - 1);
   if (d.toDateString() === y.toDateString()) return `Last seen yesterday, ${time}`;

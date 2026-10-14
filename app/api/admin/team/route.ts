@@ -8,6 +8,7 @@ import { GranolaError, askGranola } from "@/lib/granola";
 import { granolaQuestion, onlyNew, parseGranolaSections, suggestFromChat } from "@/lib/meeting-extract";
 import { NanaError } from "@/lib/nana";
 import { rateLimit } from "@/lib/rate-limit";
+import { ENGINEERING_BACKLOG, seedOnce } from "@/lib/team-seed";
 
 export const dynamic = "force-dynamic";
 const bearer = (req: NextRequest) => req.headers.get("authorization")?.replace(/^Bearer\s+/i, "");
@@ -45,6 +46,8 @@ export async function GET(req: NextRequest) {
         milestones: milestones.filter((m) => m.startsOn <= end && m.endsOn >= start).map((m) => ({ ...m, progress: milestoneProgress(m, metricValue(t, m.metric), today) })),
       }, { headers: { "Cache-Control": "no-store" } });
     }
+    // The engineering backlog the founder asked for: added once, the first time a super admin opens the hub (lib/team-seed.ts).
+    if (acc.access.role === "super") await seedOnce(db, "engineering-backlog-2026-10", ENGINEERING_BACKLOG, me).catch(() => 0);
     const people0 = await listTeamPeople(db);
     await syncTeamRooms(db, me, people0.map((p) => p.uid)).catch(() => {}); // the Team room and upcoming meetings follow who is on the team
     const [{ items, milestones }, meetings, signals, t] = await Promise.all([listTeam(db), listMeetings(db), teamSignals(db), cachedTraction(db)]);

@@ -111,7 +111,7 @@ export default function AdminAccessPage() {
         <section className="mt-8">
           <h2 className="font-display text-xl text-ink">Recent changes</h2>
           <ul className="mt-3 space-y-1 text-sm text-slate">
-            {data.log.map((l) => <li key={l.id}>{new Date(l.at).toLocaleString()} — {l.byEmail} changed {l.targetEmail}: {l.before} → {l.after}</li>)}
+            {data.log.map((l) => <li key={l.id}>{new Date(l.at).toLocaleString("en-NG", { hour12: true })} — {l.byEmail} changed {l.targetEmail}: {l.before} → {l.after}</li>)}
           </ul>
         </section>
       )}

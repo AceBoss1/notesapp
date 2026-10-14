@@ -885,3 +885,21 @@ test("Notes Life presence: you write only your own place, outfit and time; signe
   await assertFails(deleteDoc(doc(as("pub"), "lifePresence/alice")));
   await assertSucceeds(deleteDoc(doc(as("alice"), "lifePresence/alice")));
 });
+
+test("Messages: typing is written only by yourself in your own conversations; chat pins are yours to read and only the server writes them", async () => {
+  await env.withSecurityRulesDisabled(async (ctx) => {
+    const db = ctx.firestore();
+    await setDoc(doc(db, "conversations/alice_pub"), { participants: ["alice", "pub"] });
+    await setDoc(doc(db, "chatPins/alice"), { uid: "alice", list: ["alice_pub"] });
+  });
+  await assertSucceeds(setDoc(doc(as("alice"), "conversations/alice_pub/typing/alice"), { at: Date.now() }));
+  await assertFails(setDoc(doc(as("alice"), "conversations/alice_pub/typing/pub"), { at: Date.now() }));
+  await assertFails(setDoc(doc(as("alice"), "conversations/alice_pub/typing/alice"), { at: Date.now(), text: "secret" }));
+  await assertFails(setDoc(doc(as("bob"), "conversations/alice_pub/typing/bob"), { at: Date.now() }));
+  await assertSucceeds(getDocs(collection(as("pub"), "conversations/alice_pub/typing")));
+  await assertFails(getDocs(collection(as("bob"), "conversations/alice_pub/typing")));
+  await assertSucceeds(deleteDoc(doc(as("alice"), "conversations/alice_pub/typing/alice")));
+  await assertSucceeds(getDoc(doc(as("alice"), "chatPins/alice")));
+  await assertFails(getDoc(doc(as("pub"), "chatPins/alice")));
+  await assertFails(setDoc(doc(as("alice"), "chatPins/alice"), { list: [] }));
+});

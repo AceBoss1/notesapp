@@ -139,7 +139,7 @@ export async function createMeeting(db: Firestore, adminUid: string, body: Recor
   const room = await createGroup(db, adminUid, { title: c.title, memberUids: memberUids.filter((u) => u !== adminUid), scope: "team", id: `meeting_${ref.id}`, meetingId: ref.id }, now, deps);
   const meeting: Omit<Meeting, "id"> = { ...c, memberUids, conversationId: room.id, status: "scheduled", notes: "", decisions: [], createdByUid: adminUid, createdAt: now.toISOString(), endedAt: "" };
   await ref.set(meeting);
-  const when = new Date(c.startsAt).toLocaleString("en-NG", { timeZone: "Africa/Lagos", weekday: "short", day: "numeric", month: "short", hour: "numeric", minute: "2-digit" });
+  const when = new Date(c.startsAt).toLocaleString("en-NG", { timeZone: "Africa/Lagos", weekday: "short", day: "numeric", month: "short", hour: "numeric", hour12: true, minute: "2-digit" });
   await sendGroupMessage(db, adminUid, room.id, { text: `Meeting: ${c.title}\n${when} (Lagos time)${c.agenda ? `\n\nAgenda:\n${c.agenda}` : ""}` }, now, undefined, deps).catch(() => {});
   return { id: ref.id, conversationId: room.id };
 }

@@ -367,11 +367,11 @@ export default function MoneyLedgerPage() {
             <section className="mt-10">
               <h2 className="font-display text-xl text-ink">Recent activity</h2>
               <ul className="mt-3 space-y-1 text-sm text-slate">
-                {data.log.map((l) => <li key={l.id}>{new Date(l.at).toLocaleString("en-NG")} · {l.byEmail} · {l.action}{l.detail ? `: ${l.detail}` : ""}</li>)}
+                {data.log.map((l) => <li key={l.id}>{new Date(l.at).toLocaleString("en-NG", { hour12: true })} · {l.byEmail} · {l.action}{l.detail ? `: ${l.detail}` : ""}</li>)}
               </ul>
             </section>
           )}
-          <p className="mt-8 text-xs text-slate">Platform revenue as of {new Date(data.asOf).toLocaleTimeString("en-NG")}; see <Link href="/admin/revenue" className="underline">Revenue</Link> for the stream-by-stream view.</p>
+          <p className="mt-8 text-xs text-slate">Platform revenue as of {new Date(data.asOf).toLocaleTimeString("en-NG", { hour: "numeric", minute: "2-digit", hour12: true })}; see <Link href="/admin/revenue" className="underline">Revenue</Link> for the stream-by-stream view.</p>
         </>
       )}
     </div>

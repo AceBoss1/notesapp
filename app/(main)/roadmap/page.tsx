@@ -38,7 +38,7 @@ const ITEMS: { title: string; tag: string; body: string; detail: string; link?: 
   {
     title: "Team hub and team messaging for Business and Enterprise",
     tag: "Teams",
-    body: "A shared workspace for your team: a work board with what is moving, stuck or waiting on a decision, milestones, a morning summary and weekly review, and a team room for meetings and chat. Our own team is using it first (work board, money ledger, staff roles, and an Ask Nana panel that knows your open items); it opens to Business and Enterprise accounts once our internal testing is done.",
+    body: "A shared workspace for your team: a work board with what is moving, stuck or waiting on a decision, milestones, a morning summary and weekly review, and a team room for meetings and chat. Our own team is using it first (work board with items by department, money ledger, staff roles including legal and engineering, a staff library, a message hub, payroll, and an Ask Nana panel that knows your open items); it opens to Business and Enterprise accounts once our internal testing is done.",
     detail:
       "We are running it ourselves before anyone else relies on it, so we can fix what gets in the way. Business and Enterprise accounts will get it for their team seats (four on Business, as many as you need on Enterprise), with the people on your team seeing only what their role needs. It builds on group chats, which are already live. No date yet; we will announce it on this page, the changelog and by email when it opens.",
     link: { href: "/teams", label: "See the team hub page →" },
@@ -95,9 +95,9 @@ const ITEMS: { title: string; tag: string; body: string; detail: string; link?: 
   {
     title: "More for the team hub: tasks, payments, payroll and a staff library",
     tag: "Teams",
-    body: "Planned: see what is still to do and who has it, with deadlines and reminders; payments to be made with who must make them and by when; payroll under Accounts; and one place for the handbook, SOPs and staff materials, with personal documents sent to one person like a message.",
+    body: "Live for our own team: payments to be made with who must make them and by when; payroll under Accounts; a message hub; and a staff library for the handbook, SOPs and staff materials, where you upload files and see who has opened and who has confirmed each document (👁). Work items have owners, due dates and reminders, and can be given to departments, such as engineering and product.",
     detail:
-      "Our own team will use it first, as with the rest of the hub. Messages stay in the hub, and the ones marked for email are sent by email too. Policies can ask staff to confirm they have read them. Payroll stays visible only to finance and the owner. No date yet.",
+      "Our own team uses it first, as with the rest of the hub. Messages stay in the hub, and the ones marked for email are sent by email too. Policies can ask staff to confirm they have read them. Payroll stays visible only to finance and the owner. The legal team can now be given access and maintains the library with care and product.",
   },
   {
     title: "Company finance tools: runway, acquisition cost, burn and cap table",
@@ -172,7 +172,7 @@ export default function RoadmapPage() {
     <>
       <PageHero eyebrow="Coming Soon" title={<>What's next for #NotesApp</>}>
         <p>The core loop — publish, book, get paid — is what's demoed
-        today. The ones marked on the right are decided and documented, not yet built. Nana AI and the help centre, publishing to LinkedIn and X, direct and group messages, paid sessions (with rescheduling and automatic payouts), monthly subscriptions, publisher rates and payouts, post and item boosts, gifts, Pro / Business plans, organisation accounts, stores for physical goods and digital downloads, parcel tracking, and official merch are already live. Last updated 12 October 2026.</p>
+        today. The ones marked on the right are decided and documented, not yet built. Nana AI and the help centre, publishing to LinkedIn and X, direct and group messages, paid sessions (with rescheduling and automatic payouts), monthly subscriptions, publisher rates and payouts, post and item boosts, gifts, Pro / Business plans, organisation accounts, stores for physical goods and digital downloads, parcel tracking, and official merch are already live. Last updated 14 October 2026.</p>
       </PageHero>
       <div className="mx-auto max-w-4xl px-4 py-12 sm:px-6 lg:px-8">
 
@@ -194,9 +194,9 @@ export default function RoadmapPage() {
               <li>Your own domain (Business and Enterprise) and, on Enterprise, the server-to-server API, Console keys and webhooks — see the <Link href="/docs" className="text-crimson underline">API Docs</Link></li>
               <li>Video on posts — one MP4 or WebM per post (up to 3 minutes and 100 MB), played in our own data-friendly player, with a weekly allowance by plan</li>
               {MOMENTS_LIVE && <li>Moments: a picture, a video or text, with an optional voice-over, on your profile picture for 24, 48 or 72 hours. A video over 90 seconds is split into parts (as many as your plan&apos;s weekly video allowance covers); a bar at the top fills in maroon as each moment plays; followers can like, 🔁 re-share or 💬 reply from the Moments row on the Journals page, you can see who watched, you choose whether only your followers or everyone can see yours, and anyone can block or report</li>}
-              {MESSAGES_LIVE && <li>Direct messages with a live inbox: bold, italic and underline, a ✔ when sent and a ✔✔ with the time when read, pictures, videos and documents attached (how big and how many depends on your plan), voice notes of up to 5 minutes and stickers. Notifications on your device (offered when you first use Messages, and on until you turn them off), email on Business and Enterprise (off until you switch it on, at most one an hour), and block and report tools</li>}
+              {MESSAGES_LIVE && <li>Direct messages with a live inbox: bold, italic and underline, a ✔ when sent and a ✔✔ with the time when read, pictures, videos and documents attached (how big and how many depends on your plan), voice notes of up to 5 minutes and stickers. Pin up to 3 messages in a chat and up to 3 chats in your inbox, see when someone is typing, and edit or delete your own messages (once a message has been read, the reader is asked first). Notifications on your device (offered when you first use Messages, and on until you turn them off), email on Business and Enterprise (off until you switch it on, at most one an hour), and block and report tools</li>}
               {WALLET_LIVE && <li>The NotesApp Credit <Link href="/profile/wallet" className="text-crimson underline">wallet</Link>: top up once (Bonus Credits on ₦5,000 and more) and pay for boosts, badges, adverts, gifts, shop items and sessions without your card each time</li>}
-              {CALLS_LIVE && <li>Free voice and video calls in Messages with anyone you follow who follows you back: straight between your two devices, encrypted and never recorded, with a line in the conversation for every call, a notification for a missed one, and Call back on any call line</li>}
+              {CALLS_LIVE && <li>Free voice and video calls in Messages with anyone you follow who follows you back: straight between your two devices, encrypted and never recorded, with a line in the conversation for every call, a notification for a missed one, and Call back on any call line. In a video call you can move or swap your own picture and switch between front and back camera, and calls ring on the installed app even when it isn't open on your screen</li>}
               <li><Link href="/nana" className="text-crimson underline">Nana AI</Link> and the <Link href="/help" className="text-crimson underline">help centre</Link>: ask anything about #NotesApp, from every page and from a conversation pinned in Messages, and get writing help in drafts, shares and messages (with your own AI account connected, or ours when switched on)</li>
               <li>Publishing a post to your connected LinkedIn and X from the post itself</li>
               <li>Download your data or delete your account yourself, under Account → Your data</li>
@@ -223,7 +223,7 @@ export default function RoadmapPage() {
               <li>Voice: Listen to a journal, Nana that speaks, voice transcripts</li>
               <li>Publishing to Facebook, Instagram and TikTok; LinkedIn advertising from #NotesApp, for Business and Enterprise (approved by LinkedIn, being built)</li>
               <li>Google ads on the web and AdMob in the apps</li>
-              <li>Nana suggests replies · more for the team hub (tasks, payments, payroll, staff library) · an investor and partner data room · company finance tools (runway, acquisition cost, burn, cap table)</li>
+              <li>Nana suggests replies · an investor and partner data room · company finance tools (runway, acquisition cost, burn, cap table)</li>
               <li>Audio and video meetings, meeting chat (under team discussion)</li>
               {!MOMENTS_LIVE && <li>Moments: pictures, video and text on profile pictures for 24, 48 or 72 hours</li>}
               {!MESSAGES_LIVE && <li>Direct messages</li>}

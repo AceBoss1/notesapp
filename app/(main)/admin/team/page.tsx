@@ -6,7 +6,7 @@ import { useAdminAuth } from "@/lib/useAdminAuth";
 import NanaPanel from "@/components/NanaPanel";
 import DuesPanel from "@/components/DuesPanel";
 import GranolaPanel from "@/components/GranolaPanel";
-import { hasAnyDept } from "@/lib/admin-access";
+import { DEPARTMENTS, DEPT_LABEL, hasAnyDept, type Dept } from "@/lib/admin-access";
 import { formatNaira } from "@/lib/booking-time";
 import {
   HORIZONS, HORIZON_LABEL, MEETING_TEAMS, METRICS, STATUS_LABEL, addDays, defaultMembers, meetingTeamLabel, groupItems, isOverdue, lagosParts,
@@ -56,7 +56,8 @@ function ItemCard({ item, people, today, me, send, fetchComments }: { item: Team
       <div className="flex flex-wrap items-start justify-between gap-2">
         <p className={`font-ui text-sm font-bold ${item.status === "done" ? "text-slate line-through" : "text-ink"}`}>{item.title}</p>
         <span className="flex flex-wrap items-center gap-1.5 text-[11px] text-slate">
-          {owner ? <span className="rounded bg-card px-1.5 py-0.5 ring-1 ring-rule">{owner}</span> : <span className="italic">unassigned</span>}
+          {(item.depts ?? []).map((d) => <span key={d} className="rounded bg-crimson/10 px-1.5 py-0.5 font-semibold text-crimson">{DEPT_LABEL[d as Dept] ?? d}</span>)}
+          {owner ? <span className="rounded bg-card px-1.5 py-0.5 ring-1 ring-rule">{owner}</span> : <span className="italic">{item.depts?.length ? "no one named yet" : "unassigned"}</span>}
           {item.due && <span className={overdue ? "font-bold text-crimson" : ""}>{overdue ? "overdue · " : "due "}{dayLabel(item.due)}</span>}
         </span>
       </div>
@@ -84,7 +85,7 @@ function ItemCard({ item, people, today, me, send, fetchComments }: { item: Team
             <ul className="space-y-1.5">
               {comments.map((c) => (
                 <li key={c.id} className="flex items-start justify-between gap-2 text-xs">
-                  <span className="text-ink"><strong>{people.find((p) => p.uid === c.byUid)?.name ?? "Someone"}:</strong> <span className="whitespace-pre-line">{c.text}</span> <span className="text-slate">· {new Date(c.createdAt).toLocaleString("en-NG", { day: "numeric", month: "short", hour: "numeric", minute: "2-digit" })}</span></span>
+                  <span className="text-ink"><strong>{people.find((p) => p.uid === c.byUid)?.name ?? "Someone"}:</strong> <span className="whitespace-pre-line">{c.text}</span> <span className="text-slate">· {new Date(c.createdAt).toLocaleString("en-NG", { day: "numeric", month: "short", hour: "numeric", hour12: true, minute: "2-digit" })}</span></span>
                   {c.byUid === me && <button aria-label="Delete this comment" onClick={async () => { await send({ action: "deleteComment", id: item.id, commentId: c.id }); loadC(); }} className="text-slate">×</button>}
                 </li>
               ))}
@@ -116,7 +117,7 @@ function ItemCard({ item, people, today, me, send, fetchComments }: { item: Team
       {mode === "edit" && (
         <form className="mt-2 grid gap-2 sm:grid-cols-2" onSubmit={(e) => {
           e.preventDefault();
-          void act({ title: draft.title, detail: draft.detail, ownerUid: draft.ownerUid, horizon: draft.horizon, due: draft.due, status: draft.status, blockedReason: draft.blockedReason, decisionQuestion: draft.decisionQuestion });
+          void act({ title: draft.title, detail: draft.detail, ownerUid: draft.ownerUid, depts: draft.depts ?? [], horizon: draft.horizon, due: draft.due, status: draft.status, blockedReason: draft.blockedReason, decisionQuestion: draft.decisionQuestion });
         }}>
           <label className="text-[11px] text-slate sm:col-span-2">Title<input value={draft.title} onChange={(e) => setDraft({ ...draft, title: e.target.value })} className={input} /></label>
           <label className="text-[11px] text-slate sm:col-span-2">Details<textarea value={draft.detail} onChange={(e) => setDraft({ ...draft, detail: e.target.value })} rows={2} className={input} /></label>
@@ -126,6 +127,9 @@ function ItemCard({ item, people, today, me, send, fetchComments }: { item: Team
               {people.map((p) => <option key={p.uid} value={p.uid}>{p.name}</option>)}
             </select>
           </label>
+          <fieldset className="text-[11px] text-slate sm:col-span-2"><legend>Departments</legend>
+            <span className="mt-1 flex flex-wrap gap-x-3 gap-y-1">{DEPARTMENTS.map((d) => <label key={d.key} className="inline-flex items-center gap-1 text-ink"><input type="checkbox" checked={(draft.depts ?? []).includes(d.key)} onChange={(e) => setDraft({ ...draft, depts: e.target.checked ? [...(draft.depts ?? []), d.key] : (draft.depts ?? []).filter((x) => x !== d.key) })} />{d.label}</label>)}</span>
+          </fieldset>
           <label className="text-[11px] text-slate">Status
             <select value={draft.status} onChange={(e) => setDraft({ ...draft, status: e.target.value as Status })} className={input}>
               {(Object.keys(STATUS_LABEL) as Status[]).map((s) => <option key={s} value={s}>{STATUS_LABEL[s]}</option>)}
@@ -211,7 +215,7 @@ export default function AdminTeamPage() {
   }, [call, load]);
 
   const fetchComments = useCallback(async (id: string) => (await call(undefined, `?comments=${encodeURIComponent(id)}`)).comments as TeamComment[], [call]);
-  const visible = useMemo(() => (data ? data.items.filter((i) => !whose || (whose === "none" ? !i.ownerUid : i.ownerUid === whose)) : []), [data, whose]);
+  const visible = useMemo(() => (data ? data.items.filter((i) => !whose || (whose === "none" ? !i.ownerUid : whose.startsWith("dept:") ? (i.depts ?? []).includes(whose.slice(5)) : i.ownerUid === whose)) : []), [data, whose]);
   const allOverdue = useMemo(() => (data ? groupItems(data.items, data.today).overdue : []), [data]);
   const g = useMemo(() => (data ? groupItems(visible, data.today) : null), [data, visible]);
 
@@ -251,6 +255,7 @@ export default function AdminTeamPage() {
               <option value={data.me}>Assigned to me</option>
               {people.filter((p) => p.uid !== data.me).map((p) => <option key={p.uid} value={p.uid}>Assigned to {p.name.split(" ")[0]}</option>)}
               <option value="none">Not assigned</option>
+              {DEPARTMENTS.map((d) => <option key={d.key} value={`dept:${d.key}`}>{d.label}</option>)}
             </select>
           </label>
         </span>
@@ -281,7 +286,7 @@ export default function AdminTeamPage() {
         <Tile label="Processed, 30 days" value={formatNaira(data.snapshot.processedLast30DaysKobo)} />
         <Tile label="Held in escrow" value={formatNaira(data.snapshot.inEscrowKobo)} />
       </div>
-      <p className="mt-1 text-right text-[11px] text-slate">Platform numbers, as of {new Date(data.snapshot.generatedAt).toLocaleTimeString("en-NG")} · <Link href="/admin/traction" className="text-crimson underline">full traction</Link></p>
+      <p className="mt-1 text-right text-[11px] text-slate">Platform numbers, as of {new Date(data.snapshot.generatedAt).toLocaleTimeString("en-NG", { hour: "numeric", minute: "2-digit", hour12: true })} · <Link href="/admin/traction" className="text-crimson underline">full traction</Link></p>
 
       <section className="card mt-6 border-crimson p-5" aria-labelledby="needs">
         <h2 id="needs" className="font-display text-2xl text-ink">Needs you {needs > 0 && <span className="font-ui text-sm font-normal text-slate">({needs})</span>}</h2>
