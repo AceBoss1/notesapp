@@ -57,7 +57,7 @@ export default function LifePage({ searchParams }: { searchParams?: { ref?: stri
 
         <section className="mx-auto max-w-6xl px-4 pb-16 sm:px-6" aria-labelledby="look">
           <h2 id="look" className="font-display text-3xl sm:text-4xl">A first look</h2>
-          <p className="mt-1 text-sm text-slate">Early mockups. The art, names and numbers will change before launch.</p>
+          <p className="mt-1 text-sm text-slate">From our design mockups. The game itself has moved on: play it to see today&apos;s Wuse.</p>
           <ul className="mt-6 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
             {shots.map((s) => (
               <li key={s.src} className="overflow-hidden rounded-3xl bg-white shadow-sm">
@@ -83,6 +83,23 @@ export default function LifePage({ searchParams }: { searchParams?: { ref?: stri
               <div className="mt-5 overflow-hidden rounded-2xl border border-white/20">
                 <Image src="/images/life/night-desktop.webp" alt="Notes Life mockup: a street at night during a power cut, with a few windows lit by generators and a solar estate fully lit" width={1440} height={900} className="h-auto w-full" />
               </div>
+            </div>
+          </div>
+        </section>
+
+        <section className="mx-auto max-w-6xl px-4 pb-16 sm:px-6" aria-labelledby="partner">
+          <div className="grid items-center gap-8 overflow-hidden rounded-3xl bg-[#292929] p-6 text-white shadow-xl sm:p-10 lg:grid-cols-[1.1fr,0.9fr]">
+            <div>
+              <p className="font-mono text-[11px] uppercase tracking-widest text-[#F2B544]">🤝 Become a Partner</p>
+              <h2 id="partner" className="mt-2 font-display text-4xl">Work there. Then own one.</h2>
+              <p className="mt-3 text-white/85">Take shifts at Chef Adams, itel Energy or the Candellux Imperial: kiosk attendant, solar installer, CarlCare technician, front desk, waiter with tips, duty manager. Staff get perks, like 20% off itel products.</p>
+              <p className="mt-3 text-white/85">Earn your way to your own outlet: a Chef Adams <b>Takeaway Kiosk</b> from N$ 2.5m or <b>Mini Dine-In Shop</b> from N$ 8.0m, an itel <b>Home Store</b> from N$ 1.5m or <b>Mall Store</b> from N$ 7.0m. Residents run it while you&apos;re away, your name goes on the sign, and you collect the takings. Keep a Power Tank on it, because NEPA will take light.</p>
+              <p className="mt-3 text-sm text-white/70">Want the real thing? <a href="https://www.notesapp.name.ng/journals/own-a-chef-adams-franchise-in-your-choice-location" className="font-bold text-[#F2B544] underline">Own a Chef Adams franchise</a> · <a href="https://www.itel-life.com/ng/itel-home/about-itel-home" target="_blank" rel="noreferrer" className="font-bold text-[#ff6b86] underline">itel Home</a></p>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <Image src="/images/life/billboards/itel-sun-is-free.webp" alt="itel Energy billboard in Notes Life: The Sun is Free. Why Not Use It?" width={720} height={900} className="h-auto w-full rounded-2xl" />
+              <Image src="/images/life/billboards/itel-power-tank-fridge.webp" alt="itel Energy billboard in Notes Life: the Power Tank 1000 keeps the fridge on" width={720} height={900} className="h-auto w-full rounded-2xl" />
+              <Image src="/images/life/billboards/chef-adams-menu.webp" alt="Chef Adams billboard in Notes Life: order now" width={960} height={538} className="col-span-2 h-auto w-full rounded-2xl" />
             </div>
           </div>
         </section>
