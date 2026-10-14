@@ -11,17 +11,20 @@ export const metadata: Metadata = {
 
 const APP = "https://app.notesapp.name.ng";
 const PLAY = "https://www.notesapp.name.ng/life/play";
+// Screenshots from the game itself (public/images/life/shots/), phone size.
 const shots: { src: string; title: string; text: string }[] = [
-  { src: "/images/life/cities-phone.webp", title: "Choose your city", text: "Start in Abuja, Lagos or Port Harcourt, with more cities to come. Move later, and own homes in more than one." },
-  { src: "/images/life/room-phone.webp", title: "Your room, your city", text: "Start in a face-me-I-face-you room. Your NotesApp photo is your portrait. Keep your food, energy, fun and social bars up, and pick how hard you want life to be." },
-  { src: "/images/life/blackout-phone.webp", title: "NEPA has taken light", text: "Power cuts hit everyone at the same moment. Buy an “I Better Pass My Neighbour”, go solar, or stay in the dark till light returns." },
-  { src: "/images/life/night-phone.webp", title: "UP NEPA!", text: "Generators roar, a few windows glow, the solar estate never notices. When light returns, the whole street hears it." },
-  { src: "/images/life/market-phone.webp", title: "A market with real shops", text: "Every stall on the market street is a real NotesApp store. Tap an item and buy it on NotesApp." },
-  { src: "/images/life/ad-phone.webp", title: "Billboards you can tap", text: "Real offers on the billboards. Visit, or ask about the promotion in one tap." },
-  { src: "/images/life/phone-phone.webp", title: "Call your friends", text: "Voice and video calls with friends who follow you back, right from your in-game phone." },
-  { src: "/images/life/rich-pop-phone.webp", title: "The Billionaires List", text: "Buy cars, towers, a private jet or a yacht, host events, and climb the NotesVille Fat Wallet Index." },
-  { src: "/images/life/brag-phone.webp", title: "Brag a little", text: "Share your wins with a card your friends can tap to join you." },
-  { src: "/images/life/bank-phone.webp", title: "The Central Bank of Notesville", text: "Notesville Naira is game money, just for fun, and never turns into cash. Quests can earn Bonus Credits you can use on NotesApp." },
+  { src: "/images/life/shots/welcome.webp", title: "Start in Abuja", text: "Abuja is open: a room in Wuse and N$ 100,000 to start. Lagos and Port Harcourt are coming." },
+  { src: "/images/life/shots/room.webp", title: "Your room in Wuse", text: "Bed, desk, wardrobe, WC and bath. Your NotesApp photo is your portrait. Keep your six needs up, and pick how hard you want life to be." },
+  { src: "/images/life/shots/nepa.webp", title: "NEPA has taken light", text: "Power cuts hit everyone at the same moment. Buy an “I Better Pass My Neighbour”, go solar with itel, or stay in the dark till light returns." },
+  { src: "/images/life/shots/power.webp", title: "Power through it", text: "The Power GO keeps your lamp, fan and laptop on; the Power Tank keeps the fridge cold. When light returns, the whole street shouts “UP NEPA!”" },
+  { src: "/images/life/shots/itel.webp", title: "Real brands, real products", text: "Shop at itel Energy, eat at Chef Adams, relax at the Candellux Imperial. Each one links to the real thing." },
+  { src: "/images/life/shots/billboards.webp", title: "Billboards you can tap", text: "Partner adverts and the #1MillionNairaNotesAppChallenge line the roads. Tap one to open it." },
+  { src: "/images/life/shots/jobs.webp", title: "Work for real brands", text: "Take shifts at Chef Adams, itel Energy and the Candellux Imperial, with tips, sales bonuses and staff perks." },
+  { src: "/images/life/shots/partner.webp", title: "Own a partner outlet", text: "Earn your way to your own Chef Adams kiosk or itel store. Residents run it, your name goes on the sign, you collect the takings." },
+  { src: "/images/life/shots/friends.webp", title: "Friends who play", text: "See friends who follow you back, message them on NotesApp, and meet real players at the same place. Calls are coming." },
+  { src: "/images/life/shots/rich.webp", title: "The Billionaires List", text: "Climb the NotesVille Fat Wallet Index against real players and the richest residents 🤖." },
+  { src: "/images/life/shots/invite.webp", title: "Invite friends, both get ₦250", text: "When a friend joins from your link and finishes a shift, you each get ₦250 in NotesApp Bonus Credit." },
+  { src: "/images/life/shots/bank.webp", title: "The Central Bank of Notesville", text: "Notesville Naira is game money, just for fun, and never turns into cash. Buy it with NotesApp Credit: ₦1 = N$ 100." },
 ];
 
 // Notes Life: served at life.notesapp.name.ng (middleware.ts) and at /life. Its own look, the NotesApp sign-in. An invite link
@@ -33,9 +36,12 @@ export default function LifePage({ searchParams }: { searchParams?: { ref?: stri
     <div className="min-h-screen bg-gradient-to-b from-sky-200 via-sky-50 to-amber-50 text-ink">
       <header className="mx-auto flex max-w-6xl items-center justify-between px-4 py-5 sm:px-6">
         <p className="font-ui text-xl font-extrabold tracking-tight">Notes <span className="text-emerald-600">Life</span></p>
-        <a href={APP} className="flex items-center gap-2 rounded-full bg-white/80 px-3 py-1.5 font-ui text-xs font-semibold shadow-sm">
-          <Image src="/images/brand/icon-192.png" alt="" width={20} height={20} className="rounded" /> by NotesApp
-        </a>
+        <div className="flex items-center gap-2">
+          <a href="/life/partners" className="rounded-full bg-white/80 px-3 py-1.5 font-ui text-xs font-semibold shadow-sm">🤝 Partner with us</a>
+          <a href={APP} className="flex items-center gap-2 rounded-full bg-white/80 px-3 py-1.5 font-ui text-xs font-semibold shadow-sm">
+            <Image src="/images/brand/icon-192.png" alt="" width={20} height={20} className="rounded" /> by NotesApp
+          </a>
+        </div>
       </header>
 
       <main>
@@ -57,12 +63,12 @@ export default function LifePage({ searchParams }: { searchParams?: { ref?: stri
 
         <section className="mx-auto max-w-6xl px-4 pb-16 sm:px-6" aria-labelledby="look">
           <h2 id="look" className="font-display text-3xl sm:text-4xl">A first look</h2>
-          <p className="mt-1 text-sm text-slate">From our design mockups. The game itself has moved on: play it to see today&apos;s Wuse.</p>
+          <p className="mt-1 text-sm text-slate">Screenshots from the game as it is today.</p>
           <ul className="mt-6 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
             {shots.map((s) => (
               <li key={s.src} className="overflow-hidden rounded-3xl bg-white shadow-sm">
                 <div className="relative mx-auto mt-5 aspect-[390/844] w-[60%] overflow-hidden rounded-[1.6rem] border-[6px] border-ink">
-                  <Image src={s.src} alt={`Notes Life mockup: ${s.title}`} fill sizes="(min-width: 1024px) 20vw, (min-width: 640px) 30vw, 60vw" className="object-cover object-top" />
+                  <Image src={s.src} alt={`Notes Life, the real game: ${s.title}`} fill sizes="(min-width: 1024px) 20vw, (min-width: 640px) 30vw, 60vw" className="object-cover object-top" />
                 </div>
                 <div className="p-5"><h3 className="font-ui text-lg font-bold">{s.title}</h3><p className="mt-1 text-sm text-slate">{s.text}</p></div>
               </li>
@@ -73,7 +79,7 @@ export default function LifePage({ searchParams }: { searchParams?: { ref?: stri
         <section className="mx-auto max-w-6xl px-4 pb-16 sm:px-6" aria-labelledby="nepa">
           <div className="grid items-center gap-8 overflow-hidden rounded-3xl bg-[#0d1630] p-6 text-white shadow-xl sm:p-10 lg:grid-cols-[0.8fr,1.2fr]">
             <div className="relative mx-auto aspect-[390/844] w-[70%] max-w-[18rem] overflow-hidden rounded-[2rem] border-[8px] border-black">
-              <Image src="/images/life/blackout-phone.webp" alt="Notes Life mockup: NEPA has taken light. Choose the I Better Pass My Neighbour 950W generator, a big 3.5kVA generator, solar and an inverter, or stay in darkness till light returns" fill sizes="(min-width: 1024px) 18rem, 70vw" className="object-cover object-top" />
+              <Image src="/images/life/shots/nepa.webp" alt="Notes Life, the real game: NEPA has taken light. Get a Power GO Pro or Power Tank at itel Energy, start the generator, or stay in the dark till light returns" fill sizes="(min-width: 1024px) 18rem, 70vw" className="object-cover object-top" />
             </div>
             <div>
               <p className="font-mono text-[11px] uppercase tracking-widest text-amber-300">⚡ Power cut · same moment, everywhere</p>
@@ -81,7 +87,7 @@ export default function LifePage({ searchParams }: { searchParams?: { ref?: stri
               <p className="mt-3 text-white/85">When the light goes, it goes for every player at once. The street murmurs, then you choose: the little “I Better Pass My Neighbour”, a big generator, solar that NEPA can never touch, or darkness till light returns.</p>
               <p className="mt-3 text-white/85">Generators roar one by one and only some windows glow. Then: <i>nwiiiiiii</i>, children shouting <b>“UP NEPA!”</b>, and someone saying “Shhhh! Before dem hear!”</p>
               <div className="mt-5 overflow-hidden rounded-2xl border border-white/20">
-                <Image src="/images/life/night-desktop.webp" alt="Notes Life mockup: a street at night during a power cut, with a few windows lit by generators and a solar estate fully lit" width={1440} height={900} className="h-auto w-full" />
+                <Image src="/images/life/shots/blackout-desktop.webp" alt="Notes Life, the real game: your room in a blackout, running on the Power GO and the Power Tank" width={1440} height={900} className="h-auto w-full" />
               </div>
             </div>
           </div>
@@ -94,7 +100,7 @@ export default function LifePage({ searchParams }: { searchParams?: { ref?: stri
               <h2 id="partner" className="mt-2 font-display text-4xl">Work there. Then own one.</h2>
               <p className="mt-3 text-white/85">Take shifts at Chef Adams, itel Energy or the Candellux Imperial: kiosk attendant, solar installer, CarlCare technician, front desk, waiter with tips, duty manager. Staff get perks, like 20% off itel products.</p>
               <p className="mt-3 text-white/85">Earn your way to your own outlet: a Chef Adams <b>Takeaway Kiosk</b> from N$ 2.5m or <b>Mini Dine-In Shop</b> from N$ 8.0m, an itel <b>Home Store</b> from N$ 1.5m or <b>Mall Store</b> from N$ 7.0m. Residents run it while you&apos;re away, your name goes on the sign, and you collect the takings. Keep a Power Tank on it, because NEPA will take light.</p>
-              <p className="mt-3 text-sm text-white/70">Want the real thing? <a href="https://www.notesapp.name.ng/journals/own-a-chef-adams-franchise-in-your-choice-location" className="font-bold text-[#F2B544] underline">Own a Chef Adams franchise</a> · <a href="https://www.itel-life.com/ng/itel-home/about-itel-home" target="_blank" rel="noreferrer" className="font-bold text-[#ff6b86] underline">itel Home</a></p>
+              <p className="mt-3 text-sm text-white/70"><a href="/life/partners" className="font-bold text-white underline">See our partners</a> · Want the real thing? <a href="https://www.notesapp.name.ng/journals/own-a-chef-adams-franchise-in-your-choice-location" className="font-bold text-[#F2B544] underline">Own a Chef Adams franchise</a> · <a href="https://www.itel-life.com/ng/itel-home/about-itel-home" target="_blank" rel="noreferrer" className="font-bold text-[#ff6b86] underline">itel Home</a></p>
             </div>
             <div className="grid grid-cols-2 gap-3">
               <Image src="/images/life/billboards/itel-sun-is-free.webp" alt="itel Energy billboard in Notes Life: The Sun is Free. Why Not Use It?" width={720} height={900} className="h-auto w-full rounded-2xl" />
@@ -106,8 +112,9 @@ export default function LifePage({ searchParams }: { searchParams?: { ref?: stri
 
         <section className="mx-auto max-w-6xl px-4 pb-16 sm:px-6">
           <div className="overflow-hidden rounded-3xl border-4 border-white shadow-xl">
-            <Image src="/images/life/market-desktop.webp" alt="Notes Life mockup: the market street with real NotesApp stores and a billboard" width={1440} height={900} className="h-auto w-full" />
+            <Image src="/images/life/shots/street-desktop.webp" alt="Notes Life, the real game: the Wuse street with billboards for the #1MillionNairaNotesAppChallenge, itel Energy and Chef Adams" width={1440} height={900} className="h-auto w-full" />
           </div>
+          <p className="mt-3 text-center text-sm text-slate">Own a business? <a href="/life/partners" className="font-bold text-emerald-700 underline">Partner with Notes Life</a>: a place in the game, jobs, outlets players can own and billboards like these.</p>
         </section>
 
         <section className="mx-auto max-w-3xl px-4 pb-20 sm:px-6" aria-labelledby="faq">

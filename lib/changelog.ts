@@ -21,7 +21,8 @@ export const CHANGELOG: Release[] = [
       { kind: "added", text: "Billboards on the roads for Chef Adams, itel Energy and the #1MillionNairaNotesAppChallenge. Tap one to open it." },
       { kind: "added", text: "Become a real partner: the Partner tabs link to the Chef Adams franchise and itel Home pages." },
       { kind: "changed", text: "Chef Adams, itel Energy and Candellux each have Jobs tabs, and the Jobs list is grouped by employer. The itel shop uses the official itel logo." },
-      { kind: "changed", text: "The Terms and the Privacy Policy cover partner outlets: they are game features paid in Notesville Naira and give no right in the real business, and your outlet's sign shows your first name to players nearby. The Notes Life page has a Become a Partner section." },
+      { kind: "changed", text: "The Terms and the Privacy Policy cover partner outlets: they are game features paid in Notesville Naira and give no right in the real business, and your outlet's sign shows your first name to players nearby. The Notes Life page has a Become a Partner section, real screenshots from the game and two more cards." },
+      { kind: "added", text: "Partner with Notes Life (life.notesapp.name.ng/partners): what businesses get in the game, our partners (Chef Adams, itel Energy, Candellux Imperial), and a button that opens the contact form on Partnership with a message ready to fill in." },
     ],
   },
   {

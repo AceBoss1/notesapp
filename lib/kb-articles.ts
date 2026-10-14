@@ -250,7 +250,7 @@ Calls are free. Planned: paid calls inside Notes Life (₦5 a minute voice, ₦1
 
 **Leaving:** Phone → **NotesApp**, or **Back to NotesApp** in Settings, saves your game and takes you to your journal feed on [app.notesapp.name.ng](https://app.notesapp.name.ng/journals).
 
-**Partners:** Chef Adams, itel Energy and Candellux Imperial are real businesses that partner with Notes Life. Their in-game prices are game prices; real orders and bookings are made with them directly.`)]
+**Partners:** Chef Adams, itel Energy and Candellux Imperial are real businesses that partner with Notes Life (see [Partner with Notes Life](/life/partners), where businesses can ask to join). Their in-game prices are game prices; real orders and bookings are made with them directly.`)]
       : []),
     A("followers-and-online-status", "Followers, following and online status", "Publishing and earning", `
 **Followers and following:** under the follower count on every profile are **Followers** and **Following**. Open either to see the people and organisations, 30 at a time. You must be signed in. You can see someone's lists only if they have made their lists visible **and** you have yours visible too; your own lists are always visible to you. Follower counts stay public.

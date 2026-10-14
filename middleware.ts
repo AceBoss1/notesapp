@@ -43,6 +43,7 @@ export async function middleware(req: NextRequest) {
   if (host && isLifeHost(host)) {
     const { pathname, search } = req.nextUrl;
     if (pathname === "/") return NextResponse.rewrite(new URL(`/life${search}`, req.url));
+    if (pathname === "/partners") return NextResponse.rewrite(new URL(`/life/partners${search}`, req.url));
     if (pathname === "/play" || pathname === "/life/play") return NextResponse.redirect(`https://${MAIN_HOST}/life/play${search}`, 307);
     if (pathname === "/life" || pathname.startsWith("/_next") || pathname.startsWith("/api/") || PUBLIC_FILE.test(pathname)) return NextResponse.next();
     return NextResponse.redirect(`https://${MAIN_HOST}${pathname}${search}`, 307);
