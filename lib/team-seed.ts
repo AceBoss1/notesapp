@@ -22,6 +22,16 @@ export const ENGINEERING_BACKLOG: Seed[] = [
   { key: "eng-team-legal-library", title: "Team access: Legal & compliance; Staff library upload while adding + 👁 who opened it", detail: "Shipped.", status: "done", horizon: "later" },
 ];
 
+// Seeded once more after the Notes Life partner batch (v0.32.0).
+export const LIFE_PARTNER_BACKLOG: Seed[] = [
+  { key: "eng-life-outlets", title: "Notes Life: Become a Partner (Chef Adams kiosk and dine-in, itel Home and Mall Store)", detail: "Shipped in v0.32.0. Resident staff, takings held 30 game days, backup power, quality, value on the Billionaires List, owner's name on the sign.", status: "done", horizon: "later" },
+  { key: "eng-life-partner-jobs", title: "Notes Life: itel Energy and Candellux jobs, staff perks, brand Jobs/Partner tabs", detail: "Shipped in v0.32.0, with real partner links (Chef Adams franchise, itel Home).", status: "done", horizon: "later" },
+  { key: "eng-life-kitchen", title: "Notes Life: fridge, microwave, food spoilage, itel Power Tank 1000 and 650W panels", detail: "Shipped in v0.32.0. Food spoils after 8 game hours without a cold fridge; the Power Tank runs the fridge ~5 game hours.", status: "done", horizon: "later" },
+  { key: "eng-life-billboards", title: "Notes Life: roadside billboards (itel, Chef Adams, 1M challenge)", detail: "Shipped in v0.32.0. Add new partner posters to public/images/life/billboards/.", status: "done", horizon: "later" },
+  { key: "eng-life-mixed-staff", title: "Notes Life: real players working shifts at outlets other players own", detail: "Next. Today player-owned outlets are staffed by residents only; real players work at the brands' own outlets. Needs wages paid owner → player, hiring and quitting.", status: "todo", horizon: "later" },
+  { key: "prod-life-partner-signoff", title: "Partners: confirm the 8% Chef Adams brand fee and itel stock pricing, and new billboard art", detail: "Agreed in the game on 14 Oct 2026; confirm with Chef Adams and itel (@clickam) and collect new poster artwork.", status: "todo", horizon: "week" },
+];
+
 export async function seedOnce(db: Firestore, name: string, items: Seed[], byUid: string, now = new Date()): Promise<number> {
   const mark = db.doc(`teamSeeds/${name}`);
   if ((await mark.get()).exists) return 0;

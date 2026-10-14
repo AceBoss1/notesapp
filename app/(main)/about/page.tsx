@@ -1,4 +1,5 @@
 import PageHero from "@/components/PageHero";
+import FeatureMosaic from "@/components/FeatureMosaic";
 import { WALLET_LIVE } from "@/lib/wallet";
 import NotesLifeCard from "@/components/NotesLifeCard";
 import ProgramThanks from "@/components/ProgramThanks";
@@ -98,14 +99,7 @@ export default async function AboutPage() {
 
       <div className="mt-14">
         <p className="eyebrow">What you can do today</p>
-        <div className="mt-5 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
-          {LIVE.map((f) => (
-            <Link key={f.title} href={f.href} className="card p-6 hover:shadow-md">
-              <p className="font-ui text-base font-bold text-ink">{f.title}</p>
-              <p className="mt-2 text-sm text-slate">{f.copy}</p>
-            </Link>
-          ))}
-        </div>
+        <FeatureMosaic className="mt-5" items={LIVE} />
         <p className="mt-4 text-sm text-slate">
           Still to come: WhatsApp reminders, iOS and Android apps, sharing
           to more social networks (LinkedIn and X are live), and Google and Meta ads

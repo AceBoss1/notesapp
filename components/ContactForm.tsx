@@ -14,12 +14,14 @@ export default function ContactForm() {
   const [error, setError] = useState("");
 
   // /contact?topic=api (linked from the API Docs and Console) opens the form on the right topic with a starter message.
+  // ?message= fills in a starter message too (the Notes Life partner page uses it); the visitor can edit it before sending.
   useEffect(() => {
-    const topic = new URLSearchParams(window.location.search).get("topic");
-    const match = LEAD_CATEGORIES.find((c) => c.value === topic);
-    if (!match) return;
-    setCategory(match.value);
-    if (match.value === "api") setMessage((m) => m || "Please switch on API access for my account.\n\nUsername: @\nWhat we want to build: ");
+    const q = new URLSearchParams(window.location.search);
+    const match = LEAD_CATEGORIES.find((c) => c.value === q.get("topic"));
+    if (match) setCategory(match.value);
+    const starter = (q.get("message") ?? "").slice(0, 1500);
+    if (starter) setMessage((m) => m || starter);
+    else if (match?.value === "api") setMessage((m) => m || "Please switch on API access for my account.\n\nUsername: @\nWhat we want to build: ");
   }, []);
 
   async function handleSubmit(e: React.FormEvent) {

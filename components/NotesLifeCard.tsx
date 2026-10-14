@@ -9,7 +9,7 @@ export default function NotesLifeCard({ className = "" }: { className?: string }
         <div className="p-6 sm:p-8">
           <p className="font-mono text-[11px] uppercase tracking-eyebrow text-emerald-700"><span className="mr-2 inline-block h-2 w-2 rounded-full bg-emerald-500" aria-hidden="true" />Play free · a NotesApp game</p>
           <h2 className="mt-2 font-display text-3xl text-ink sm:text-4xl">Notes Life</h2>
-          <p className="mt-2 max-w-md text-sm text-slate">Start in a room in Wuse, Abuja with N$ 100,000. Get a job, eat at Chef Adams, upgrade your room, invite your friends and climb the Billionaires List, with your NotesApp account.</p>
+          <p className="mt-2 max-w-md text-sm text-slate">Start in a room in Wuse, Abuja with N$ 100,000. Work at Chef Adams, itel Energy or Candellux, survive NEPA's blackouts, own your own Chef Adams or itel outlet, invite your friends and climb the Billionaires List, with your NotesApp account.</p>
           <span className="mt-4 inline-flex items-center gap-2 rounded-full bg-ink px-5 py-2.5 font-ui text-sm font-bold text-paper group-hover:bg-crimson">Play Notes Life →</span>
         </div>
         <div className="relative h-56 sm:h-full sm:min-h-[16rem]">

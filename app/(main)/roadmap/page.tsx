@@ -131,7 +131,7 @@ const ITEMS: { title: string; tag: string; body: string; detail: string; link?: 
   {
     title: "NotesApp Credit and Bonus Credits",
     tag: "Live · Payments",
-    body: "Live: a prepaid wallet you top up once and spend across #NotesApp, so you don't have to enter card details every time. Use it for boosts, the verification badge, ad campaigns, gifts, and items and sessions in other members' shops. Next: paid calls and Notesville Naira in Notes Life.",
+    body: "Live: a prepaid wallet you top up once and spend across #NotesApp, so you don't have to enter card details every time. Use it for boosts, the verification badge, ad campaigns, gifts, and items and sessions in other members' shops. Notesville Naira in Notes Life can be bought from it too. Next: paid calls.",
     detail:
       "Top up from ₦1,000 to ₦500,000 through Paystack. Top-ups of ₦5,000 and more add Bonus Credits (₦250 on ₦5,000, ₦700 on ₦10,000, ₦2,000 on ₦20,000, ₦6,000 on ₦50,000 or more), which last 90 days, are spent first, and only on boosts, badges and advert banners (and paid calls, when they come). NotesApp Credit can't be sent to other members and can't be cashed out; sellers and publishers are still paid to their bank accounts, never into a balance. Paying for a shop item or session from the wallet works like paying by card: your money is held until the item is delivered or the session has happened, then the seller is paid, and refunds go back to your wallet. Bonus amounts can change, and are always shown before you pay.",
     link: { href: "/profile/wallet", label: "Open your wallet →" },
