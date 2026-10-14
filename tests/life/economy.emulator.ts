@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { initializeApp } from "firebase-admin/app";
 import { getFirestore } from "firebase-admin/firestore";
-import { act, mutate, richList, friends, statement } from "../../lib/life/server";
+import { act, mutate, richList, friends, statement, invites } from "../../lib/life/server";
 import { GAME_DAY_MS, GAME_HOUR_MS, SHIFT_MS, START_NAIRA, worldTime, shiftPay, JOB } from "../../lib/life/catalog";
 import { advance, freshSave, sanitize } from "../../lib/life/play";
 import { payFromWallet, creditTopup } from "../../lib/wallet-server";
@@ -88,6 +88,9 @@ const rej = async (p: Promise<unknown>, re: RegExp) => { await assert.rejects(p,
   r = await act(db, "p4", { action: "shift_finish" }, T0 + SHIFT_MS); assert.equal((r.result as { referral: string | null }).referral, "p1");
   const at = new Date(T0);
   assert.equal(await awardReferral(db, "p4", "p1", at, { verified: async () => false }), "skipped");
+  assert.equal((await invites(db, "p1")).invites[0].status, "verify");
+  await act(db, "p4", { action: "shift_start", needsLow: false }, T0 + SHIFT_MS);
+  r = await act(db, "p4", { action: "shift_finish" }, T0 + 2 * SHIFT_MS); assert.equal((r.result as { referral: string | null }).referral, "p1", "asked again after a later shift");
   assert.equal(await awardReferral(db, "p4", "p4", at, { verified: async () => true }), "skipped");
   assert.equal(await awardReferral(db, "p4", "p2", at, { verified: async () => true }), "skipped", "only the one who invited you");
   assert.equal(await awardReferral(db, "p4", "p1", at, { verified: async () => true }), "paid");
@@ -102,6 +105,10 @@ const rej = async (p: Promise<unknown>, re: RegExp) => { await assert.rejects(p,
   assert.equal(await awardReferral(db, "p5", "p1", at, { verified: async () => true }), "skipped");
   assert.equal((await db.doc("lifePlayers/p5").get()).data()!.referralPaid, true);
   assert.equal(await bonusOf("p1"), 25_000);
+  const inv = await invites(db, "p1");
+  assert.deepEqual(inv.invites.map((x) => [x.username, x.status]).sort(), [["dee", "paid"], ["eze", "limit"]]); assert.equal(inv.paid, 1);
+  r = await act(db, "p4", { action: "shift_start", needsLow: false }, T0 + 2 * SHIFT_MS);
+  r = await act(db, "p4", { action: "shift_finish" }, T0 + 3 * SHIFT_MS); assert.equal((r.result as { referral: string | null }).referral, null, "never again once paid");
   console.log("referral ok");
   console.log("ALL OK");
 })().catch((e) => { console.log("FAIL", e); process.exit(1); });

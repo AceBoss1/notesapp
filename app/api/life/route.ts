@@ -3,7 +3,7 @@ import { getAdminDb, verifySignedInRequest } from "@/lib/firebase-admin";
 import { friendlyMessage } from "@/lib/api-errors";
 import { rateLimit } from "@/lib/rate-limit";
 import { LIFE_LIVE } from "@/lib/life/catalog";
-import { LifeError, act, friends, mutate, richList, statement, view, type Action } from "@/lib/life/server";
+import { LifeError, act, friends, invites, mutate, richList, statement, view, type Action } from "@/lib/life/server";
 import { awardReferral } from "@/lib/life/referral";
 
 export const dynamic = "force-dynamic";
@@ -32,6 +32,7 @@ export async function GET(req: NextRequest) {
     if (v === "rich") return NextResponse.json(await richList(db, me.uid));
     if (v === "friends") return NextResponse.json(await friends(db, me.uid));
     if (v === "tx") return NextResponse.json(await statement(db, me.uid));
+    if (v === "invites") return NextResponse.json(await invites(db, me.uid));
     // ?ref=<username>: the friend who invited you, kept only if this is your first time and they play Notes Life themselves.
     const ref = (req.nextUrl.searchParams.get("ref") || "").trim().toLowerCase().replace(/^@/, "");
     let inviter = /^[a-z0-9_.-]{2,30}$/.test(ref) ? String((await db.doc(`usernames/${ref}`).get()).data()?.uid ?? "") || null : null;
