@@ -178,8 +178,9 @@ export async function act(db: Firestore, uid: string, a: Action, now = Date.now(
         if (j?.brand === "chef_adams") p.chefShifts += 1;
         const pay = p.shift.pay;
         p.shift = null;
-        // Your first finished shift is when an invite counts: lib/life/referral.ts pays the Bonus Credits after this.
-        return { pay, firstShift: p.shifts === 1, referral: p.shifts === 1 && p.referredBy && !p.referralPaid ? p.referredBy : null };
+        // A finished shift is when an invite counts: lib/life/referral.ts pays the Bonus Credits after this (once; a friend whose email
+        // wasn't verified at their first shift gets it after a later one).
+        return { pay, firstShift: p.shifts === 1, referral: p.referredBy && !p.referralPaid ? p.referredBy : null };
       }
       case "shift_cancel": {
         p.shift = null;
@@ -238,6 +239,18 @@ export async function richList(db: Firestore, uid: string, limit = 20) {
 }
 
 // Friends in the game: people on NotesApp you follow who follow you back, and whether they play.
+// The friends who joined Notes Life from your invite link, newest first, and whether the bonus was paid.
+export type InviteRow = { uid: string; username: string; name: string; avatar: string; joinedAt: number; status: "paid" | "shift" | "verify" | "limit" };
+export async function invites(db: Firestore, uid: string): Promise<{ invites: InviteRow[]; paid: number }> {
+  const snap = await db.collection("lifePlayers").where("referredBy", "==", uid).limit(200).get();
+  const rows: InviteRow[] = snap.docs.map((d) => {
+    const x = d.data();
+    const status: InviteRow["status"] = x.referralPaid === true ? (x.referralNote ? "limit" : "paid") : num(x.shifts) > 0 ? "verify" : "shift";
+    return { uid: d.id, username: String(x.username ?? ""), name: String(x.name ?? x.username ?? ""), avatar: String(x.avatar ?? ""), joinedAt: num(x.startedAt), status };
+  }).sort((a, b) => b.joinedAt - a.joinedAt);
+  return { invites: rows.slice(0, 100), paid: rows.filter((r) => r.status === "paid").length };
+}
+
 export async function friends(db: Firestore, uid: string) {
   const me = (await db.doc(`users/${uid}`).get()).data();
   const myName = String(me?.username ?? "");

@@ -5,10 +5,11 @@ import { onAuthStateChanged, type User } from "firebase/auth";
 import { auth } from "@/lib/firebase";
 import { startCheckout } from "@/lib/checkout";
 import * as C from "@/lib/life/catalog";
-import type { LifePlayer } from "@/lib/life/server";
+import type { InviteRow, LifePlayer } from "@/lib/life/server";
 import { advance, applyNeeds, mood, needsLow, type Activity, type SaveState } from "@/lib/life/play";
 import { loadSave, restorePoint, restorePoints, saveCloud, saveLocal, type RestorePoint } from "./save";
 import { createWorld, type RoomSpot, type SceneSpec, type Tag, type World } from "./world";
+import { Sound, loadSoundPrefs, saveSoundPrefs, type Ambience, type Sfx, type SoundPrefs } from "./sound";
 
 type Player = LifePlayer & { cooking: number; serverNow: number };
 type Panel =
@@ -19,6 +20,7 @@ type Friend = { uid: string; username: string; name: string; avatar: string; pla
 type RichRow = { rank: number; uid: string; username: string; name: string; avatar: string; city: string; netWorth: number; owned: string[] };
 
 const OUTFITS = ["#f59e0b", "#e53935", "#2563eb", "#16a34a", "#7c3aed", "#0f766e", "#111827", "#f472b6"];
+const NOTESAPP_HOME = "https://app.notesapp.name.ng/journals"; // "Back to NotesApp": the app's journal feed
 const WA = (text: string, phone?: string) => `https://wa.me/${phone ?? ""}?text=${encodeURIComponent(text)}`;
 const ngPhone = (tel: string) => { const d = tel.replace(/\D/g, ""); return d.startsWith("0") && d.length === 11 ? `234${d.slice(1)}` : d; };
 
@@ -48,6 +50,7 @@ export default function LifeGame() {
   const [cart, setCart] = useState<Record<string, number>>({ combo: 1 });
   const [friendList, setFriendList] = useState<Friend[] | null>(null);
   const [picked, setPicked] = useState<{ name: string; tel: string }[]>([]);
+  const [inviteList, setInviteList] = useState<{ invites: InviteRow[]; paid: number } | null>(null);
   const [bankLines, setBankLines] = useState<{ id: string; amount: number; label: string; at: number }[] | null>(null);
   const [buyAmt, setBuyAmt] = useState(1_000);
   const [rich, setRich] = useState<{ rows: RichRow[]; me: { rank: number | null; netWorth: number } | null } | null>(null);
@@ -58,7 +61,7 @@ export default function LifeGame() {
     if (!user || !panelKey) return;
     if (panelKey === "go") setGoTo(null);
     if (panelKey === "food") { setFoodMode(saveRef.current?.place === "chef" ? "dinein" : "delivery"); setCart({ combo: 1 }); }
-    if (panelKey === "invite") setPicked([]);
+    if (panelKey === "invite") { setPicked([]); setInviteList(null); call<{ invites: InviteRow[]; paid: number }>(user, "GET", undefined, "?view=invites").then(setInviteList).catch(() => setInviteList({ invites: [], paid: 0 })); }
     if (panelKey === "friends") { setFriendList(null); call<{ friends: Friend[] }>(user, "GET", undefined, "?view=friends").then((r) => setFriendList(r.friends)).catch(() => setFriendList([])); }
     if (panelKey === "bank") { setBankLines(null); call<{ lines: { id: string; amount: number; label: string; at: number }[] }>(user, "GET", undefined, "?view=tx").then((r) => setBankLines(r.lines)).catch(() => setBankLines([])); }
     if (panelKey === "rich") { setRich(null); setRichPop(!saveRef.current?.seenRich); call<{ rows: RichRow[]; me: { rank: number | null; netWorth: number } }>(user, "GET", undefined, "?view=rich").then(setRich).catch(() => setRich({ rows: [], me: null })); }
@@ -72,9 +75,26 @@ export default function LifeGame() {
   const lastCloud = useRef(0);
   saveRef.current = save; playerRef.current = player;
 
-  const say = useCallback((text: string, share?: string, tone: "ok" | "warn" = "ok") => { setToast({ text, share, tone }); window.setTimeout(() => setToast((t) => (t?.text === text ? null : t)), share ? 9000 : 4500); }, []);
+  // ---- sound (components/life/sound.ts): made in the browser, volumes kept on this device ----
+  const snd = useRef<Sound | null>(null);
+  const [soundPrefs, setSoundPrefs] = useState<SoundPrefs>(() => loadSoundPrefs());
+  if (!snd.current && typeof window !== "undefined") snd.current = new Sound(soundPrefs);
+  const sfx = (n: Sfx) => snd.current?.play(n);
+  useEffect(() => () => { snd.current?.dispose(); snd.current = null; }, []);
+  useEffect(() => { snd.current?.setPrefs(soundPrefs); saveSoundPrefs(soundPrefs); }, [soundPrefs]);
+  useEffect(() => {
+    const vis = () => (document.visibilityState === "hidden" ? snd.current?.pause() : snd.current?.resume());
+    document.addEventListener("visibilitychange", vis);
+    return () => document.removeEventListener("visibilitychange", vis);
+  }, []);
+
+  const say = useCallback((text: string, share?: string, tone: "ok" | "warn" = "ok") => { if (tone === "warn") snd.current?.play("warn"); setToast({ text, share, tone }); window.setTimeout(() => setToast((t) => (t?.text === text ? null : t)), share ? 9000 : 4500); }, []);
   const shareText = useCallback((text: string) => (player ? `${text} Play Notes Life with me: ${C.inviteLink(player.username)}` : text), [player]);
-  const gotPlayer = (p: Player) => { offset.current = p.serverNow - Date.now(); setPlayer(p); };
+  const gotPlayer = (p: Player) => {
+    const prev = playerRef.current;
+    if (prev && p.naira > prev.naira) sfx("coin"); else if (prev && p.naira < prev.naira) sfx("pay");
+    offset.current = p.serverNow - Date.now(); setPlayer(p);
+  };
   const update = (f: (s: SaveState) => SaveState) => setSave((s) => (s ? f(s) : s));
 
   // ---- sign-in, load ----
@@ -124,6 +144,11 @@ export default function LifeGame() {
     return { id: "room", owned: player.owned, rug: save.rug, outfit: save.outfit, night, ringing: player.deal?.state === "offered", at: spot, sleeping: a?.kind === "sleep" };
   }, [save?.place, save?.activity?.kind, save?.activity?.label, save?.outfit, save?.rug, player?.owned.join(), player?.deal?.state, night, spot]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => { if (spec && world.current) void world.current.show(spec); }, [spec]);
+  // What you hear around you, and the bedside phone while a deal call waits.
+  const ambience: Ambience = !spec ? "none" : spec.id === "room" ? (night ? "room-night" : "room") : spec.id === "street" || spec.id === "chef" ? (night ? "street-night" : "street") : spec.id === "hotel" ? "hotel" : "pool";
+  useEffect(() => { snd.current?.ambience(ambience); }, [ambience]);
+  const ringing = player?.deal?.state === "offered" && save?.place === "home";
+  useEffect(() => { snd.current?.ringing(!!ringing); }, [ringing]);
 
   // ---- the game loop: every second ----
   const finishShift = useCallback(async () => {
@@ -131,8 +156,10 @@ export default function LifeGame() {
     try {
       const r = await call<{ player: Player; result: { pay: number; firstShift?: boolean; referralBonus?: string } }>(user, "POST", { action: "shift_finish" });
       gotPlayer(r.player);
+      sfx("success");
       if (r.result.firstShift) say(`First shift done: ${C.fmtN(r.result.pay)} earned!`, shareText(`I just finished my first shift in Notes Life and earned ${C.fmtN(r.result.pay)} 💼`));
       else say(`Shift done: ${C.fmtN(r.result.pay)} paid.`);
+      if (r.result.referralBonus === "paid") window.setTimeout(() => sfx("bonus"), 4600);
       if (r.result.referralBonus === "paid") window.setTimeout(() => say("🎁 Welcome bonus: Bonus Credits added to your NotesApp wallet, and to your friend's."), 4600);
     } catch (e) { say(e instanceof Error ? e.message : "Couldn't finish the shift.", undefined, "warn"); }
   }, [user, say, shareText]);
@@ -144,9 +171,11 @@ export default function LifeGame() {
       const now = Date.now();
       const r = advance(s, now, true);
       setSave(r.s); setNow(now);
+      if (r.delivered) sfx("door");
       if (r.delivered) say(`🛵 Your Chef Adams order arrived. Hunger +${r.delivered}.`);
       const f = r.finished;
       if (f) {
+        if (f.kind !== "shift") sfx("done");
         if (f.kind === "shift") void finishShift();
         else if (f.kind === "travel") {
           say(`You've arrived: ${C.PLACES.find((p) => p.id === f.to)?.name ?? "there"}.`);
@@ -162,6 +191,12 @@ export default function LifeGame() {
     document.addEventListener("visibilitychange", hide);
     return () => { window.clearInterval(t); document.removeEventListener("visibilitychange", hide); };
   }, [save !== null, user, finishShift, say]); // eslint-disable-line react-hooks/exhaustive-deps
+  // Back to NotesApp: save first (the device save at once, the account save for up to 1.5 s), then go.
+  const leave = useCallback(async () => {
+    const s = saveRef.current;
+    if (user && s) { saveLocal(user.uid, s); await Promise.race([saveCloud(user.uid, s).catch(() => {}), new Promise((r) => setTimeout(r, 1500))]); }
+    window.location.assign(NOTESAPP_HOME);
+  }, [user]);
   // Saves right after the change that asked for it has rendered (saveRef only has the new state from then).
   const saveNow = useCallback(() => { window.setTimeout(() => { const s = saveRef.current; if (user && s) { saveLocal(user.uid, s); lastCloud.current = Date.now(); saveCloud(user.uid, s).then(() => setSavedAt(Date.now())).catch(() => {}); } }, 0); }, [user]);
 
@@ -196,6 +231,8 @@ export default function LifeGame() {
     const now = Date.now();
     update((x) => ({ ...x, activity: { ...a, startedAt: now, endsAt: now + C.gameMinutesToMs(minutes) } }));
     setPanel(null);
+    const k = a.kind;
+    sfx(k === "bath" || k === "wc" ? "water" : k === "eat" || k === "dinein" ? "eat" : k === "cook" ? "sizzle" : k === "sleep" ? "sleep" : k === "read" ? "page" : k === "hotel" ? "door" : k === "travel" ? (a.icon === "🚲" ? "bell" : a.icon === "🛵" || a.icon === "🚙" ? "whoosh" : "horn") : "tap");
     return true;
   }
   function stop() {
@@ -267,7 +304,12 @@ export default function LifeGame() {
   }
   async function buyNaira(naira: number, how: "wallet" | "card") {
     if (!user) return;
-    if (how === "card") { try { await startCheckout(user, { kind: "life_naira", amountNaira: naira }, { amountKobo: naira * 100 }); } catch (e) { if (e instanceof Error && e.message) setErr(e.message); } return; }
+    if (how === "card") {
+      setBusy(true); setErr(null); saveNow();
+      try { await startCheckout(user, { kind: "life_naira", amountNaira: naira }, { amountKobo: naira * 100, payWith: "card" }); }
+      catch (e) { if (e instanceof Error && e.message) setErr(e.message); setBusy(false); }
+      return; // on success the page goes to Paystack, and comes back to the game from the payment screen
+    }
     setBusy(true); setErr(null);
     try {
       const r = await fetch("/api/paystack/initialize", { method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${await user.getIdToken()}` }, body: JSON.stringify({ kind: "life_naira", amountNaira: naira, payWith: "wallet" }) });
@@ -332,7 +374,7 @@ export default function LifeGame() {
   const diff = C.DIFFICULTY[save.difficulty];
 
   return (
-    <div className="life-game fixed inset-0 overflow-hidden bg-sky-100 font-ui text-ink">
+    <div className="life-game fixed inset-0 overflow-hidden bg-sky-100 font-ui text-ink" onClickCapture={(e) => { const was = snd.current?.ready; snd.current?.unlock(); if (was && (e.target as HTMLElement).closest("button")) sfx("tap"); }}>
       <canvas ref={canvas} className="absolute inset-0 h-full w-full touch-none" />
       {/* tappable labels over the scene */}
       <div className="pointer-events-none absolute inset-0 z-[5]">
@@ -345,13 +387,15 @@ export default function LifeGame() {
       <div className="pointer-events-none absolute inset-0 z-[6] flex flex-col p-3 lg:p-5">
         <div className="mx-auto flex w-full max-w-md items-center gap-2 lg:max-w-2xl">
           <button onClick={() => setPanel("settings")} className="pill pointer-events-auto flex flex-1 items-center gap-2 px-3 py-2 text-sm">
-            <span>{wt.night ? "🌙" : "☀️"}</span><b>{wt.label}</b><span className="text-slate">·</span><span title="Difficulty">{diff.icon}</span><span className="hidden text-[11px] text-slate sm:inline">{diff.label}</span><span className="ml-auto font-mono text-[11px] text-slate">{save.place === "hotel" ? "Garki" : "Wuse"}, Abuja</span>
+            <span>{wt.night ? "🌙" : "☀️"}</span><b className="whitespace-nowrap">{wt.label}</b><span className="text-slate">·</span><span title="Difficulty">{diff.icon}</span><span className="hidden text-[11px] text-slate sm:inline">{diff.label}</span><span className="ml-auto truncate font-mono text-[11px] text-slate">{save.place === "hotel" ? "Garki" : "Wuse"}<span className="hidden sm:inline">, Abuja</span></span>
           </button>
           <button onClick={() => setPanel("bank")} className="pill pointer-events-auto flex items-center gap-2 py-1 pl-3 pr-1 text-sm"><b>{window.innerWidth < 700 ? C.fmtShort(player.naira) : C.fmtN(player.naira)}</b><span className="flex h-7 w-7 items-center justify-center rounded-full bg-emerald-500 font-bold text-white">+</span></button>
+          <button onClick={() => setSoundPrefs((p) => ({ ...p, on: !p.on }))} className="pill pointer-events-auto flex h-10 w-10 shrink-0 items-center justify-center text-lg" aria-label={soundPrefs.on ? "Mute sound" : "Turn sound on"} title={soundPrefs.on ? "Mute" : "Sound on"}>{soundPrefs.on ? "🔊" : "🔇"}</button>
         </div>
         <div className="mx-auto mt-2 flex flex-wrap justify-center gap-2 text-[11px]">
           <span className="pill px-3 py-1">☁️ {savedAt ? `Saved ${Math.max(1, Math.round((Date.now() - savedAt) / 1000))}s ago` : "Saved on this device"}</span>
           <span className="pill px-3 py-1">📅 Day {day}{player.rentOwed ? <b className="text-crimson"> · rent owed {C.fmtN(player.rentOwed)}</b> : ` · rent day ${(Math.floor((day - 1) / C.MONTH_DAYS) + 1) * C.MONTH_DAYS + 1}`}</span>
+          <button onClick={() => setPanel("invite")} className="pill pointer-events-auto px-3 py-1 font-bold text-pink-600">🎁 Invite · {`₦${C.REFERRAL_BONUS_KOBO / 100}`} each</button>
           {save.delivery && <span className="pill px-3 py-1">🛵 Food in {Math.max(1, Math.ceil((save.delivery.at - Date.now()) / C.GAME_MIN_MS))} min</span>}
           {deal?.state === "active" && <button onClick={() => dealReady && collectDeal()} className={`pill pointer-events-auto px-3 py-1 ${dealReady ? "!bg-emerald-500 font-bold text-white" : ""}`}>📦 {deal.who}: {dealReady ? `deliver · ${C.fmtN(deal.pay)}` : `ready in ${Math.max(1, Math.ceil(((deal.dueAt ?? 0) - Date.now() - offset.current) / C.GAME_HOUR_MS))} h`}</button>}
         </div>
@@ -511,7 +555,7 @@ export default function LifeGame() {
       <p className="mt-2 text-center text-[10px] text-slate">Candellux Imperial is a Notes Life partner.</p></div>);
 
     if (panel === "phone") return (<div>{close}<p className="text-lg font-extrabold">📱 Phone</p>
-      <div className="mt-3 grid grid-cols-4 gap-3 text-center text-[11px] font-semibold">{([["💼", "Jobs", "bg-emerald-500", () => setPanel("jobs")], ["👥", "Friends", "bg-crimson", () => setPanel("friends")], ["🎁", "Invite", "bg-pink-500", () => setPanel("invite")], ["☎️", "Deals", "bg-sky-500", () => setPanel("deal")], ["🏦", "Bank", "bg-amber-500", () => setPanel("bank")], ["🛺", "Go", "bg-teal-600", () => setPanel("go")], ["CHEF", "Chef Adams", "bg-[#292929]", () => setPanel("food")], ["👑", "Candellux", "bg-[#262b6b]", () => setPanel("hotel")], ["👑", "Rich list", "bg-slate-800", () => setPanel("rich")], ["🛋", "Shop", "bg-orange-500", () => setPanel({ shop: "rug" })], ["📰", "NotesApp", "bg-[#7A0328]", () => window.open("/journals", "_blank")], ["⚙️", "Settings", "bg-slate-400", () => setPanel("settings")]] as [string, string, string, () => void][]).map(([i, n, c, f]) => (
+      <div className="mt-3 grid grid-cols-4 gap-3 text-center text-[11px] font-semibold">{([["💼", "Jobs", "bg-emerald-500", () => setPanel("jobs")], ["👥", "Friends", "bg-crimson", () => setPanel("friends")], ["🎁", "Invite", "bg-pink-500", () => setPanel("invite")], ["☎️", "Deals", "bg-sky-500", () => setPanel("deal")], ["🏦", "Bank", "bg-amber-500", () => setPanel("bank")], ["🛺", "Go", "bg-teal-600", () => setPanel("go")], ["CHEF", "Chef Adams", "bg-[#292929]", () => setPanel("food")], ["👑", "Candellux", "bg-[#262b6b]", () => setPanel("hotel")], ["👑", "Rich list", "bg-slate-800", () => setPanel("rich")], ["🛋", "Shop", "bg-orange-500", () => setPanel({ shop: "rug" })], ["📰", "NotesApp", "bg-[#7A0328]", () => void leave()], ["⚙️", "Settings", "bg-slate-400", () => setPanel("settings")]] as [string, string, string, () => void][]).map(([i, n, c, f]) => (
         <button key={n + i} onClick={f}><span className={`mx-auto flex h-14 w-14 items-center justify-center overflow-hidden rounded-2xl ${c} text-2xl text-white shadow`}>{i === "CHEF" ? <img src="/images/life/partners/chef-emblem.webp" alt="" className="h-12 w-12 object-contain" /> : i}</span><span className="mt-1 block">{n}</span></button>
       ))}</div></div>);
 
@@ -586,6 +630,7 @@ export default function LifeGame() {
       const pick = async () => { try { const c = await nav!.contacts!.select(["name", "tel"], { multiple: true }); setPicked(c.filter((x) => x.tel?.[0]).map((x) => ({ name: x.name?.[0] ?? x.tel![0], tel: x.tel![0] }))); } catch { /* cancelled */ } };
       const shareSheet = async () => { try { await navigator.share({ title: "Notes Life", text, url: link }); } catch { /* cancelled */ } };
       const bonus = `₦${(C.REFERRAL_BONUS_KOBO / 100).toLocaleString("en-NG")}`;
+      const bonusOf = (n: number) => `₦${((n * C.REFERRAL_BONUS_KOBO) / 100).toLocaleString("en-NG")}`;
       return (<div>{close}<p className="text-[11px] font-bold uppercase tracking-widest text-pink-600">🎁 Invite friends</p><h2 className="text-xl font-extrabold">Play together, both get {bonus}</h2>
         <p className="mt-1 text-sm text-slate">When a friend joins with your link and finishes their first shift, you each get <b>{bonus} in Bonus Credits</b> in your NotesApp wallet (for boosts, badges and adverts). Up to {C.REFERRAL_MAX_PER_MONTH} friends a month. Invited so far: <b>{p.invitesDone}</b>.</p>
         <div className="mt-3 grid gap-2">
@@ -596,7 +641,14 @@ export default function LifeGame() {
         </div>
         {picked.length > 0 && <ul className="mt-3 divide-y rounded-2xl border text-sm">{picked.map((c) => <li key={c.tel} className="flex items-center gap-2 px-3 py-2"><span className="min-w-0 flex-1"><b className="block truncate">{c.name}</b><span className="text-[10px] text-slate">{c.tel}</span></span><a href={WA(text, ngPhone(c.tel))} target="_blank" rel="noreferrer" className="rounded-full bg-[#25D366] px-2.5 py-1 text-xs font-bold text-white">WhatsApp</a><a href={`sms:${c.tel}?body=${encodeURIComponent(text)}`} className="rounded-full border px-2.5 py-1 text-xs font-bold">SMS</a></li>)}</ul>}
         <p className="mt-2 break-all text-center font-mono text-[10px] text-slate">{link}</p>
-        {!canPick && <p className="mt-1 text-center text-[10px] text-slate">Picking from your contacts works in Chrome on Android; on other phones, share on WhatsApp and choose your friends there.</p>}</div>);
+        {!canPick && <p className="mt-1 text-center text-[10px] text-slate">Picking from your contacts works in Chrome on Android; on other phones, share on WhatsApp and choose your friends there.</p>}
+        <div className="mt-4 flex items-baseline justify-between"><p className="text-[11px] font-bold uppercase tracking-wider text-slate">Your invites</p>{inviteList && <span className="text-[11px] text-slate">{inviteList.invites.length} joined · {inviteList.paid} paid · you earned <b className="text-emerald-700">{bonusOf(inviteList.paid)}</b></span>}</div>
+        {!inviteList ? <p className="text-sm text-slate">Loading…</p> : inviteList.invites.length === 0 ? <p className="mt-1 rounded-2xl bg-slate-50 px-3 py-3 text-center text-xs text-slate">Nobody has joined from your link yet. Friends show up here as soon as they open Notes Life from it.</p> : (
+          <ul className="mt-1 divide-y rounded-2xl border text-sm">{inviteList.invites.map((f) => (
+            <li key={f.uid} className="flex items-center gap-2.5 px-3 py-2">{f.avatar ? <img src={f.avatar} alt="" className="h-9 w-9 rounded-full object-cover" /> : <span className="flex h-9 w-9 items-center justify-center rounded-full bg-slate-200 text-xs font-bold">{(f.name || f.username || "?")[0]}</span>}
+              <span className="min-w-0 flex-1"><b className="block truncate leading-tight">{f.name || f.username}</b><span className="text-[10px] text-slate">@{f.username} · joined {f.joinedAt ? new Date(f.joinedAt).toLocaleDateString("en-NG", { day: "numeric", month: "short" }) : ""}</span></span>
+              <span className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-bold ${f.status === "paid" ? "bg-emerald-100 text-emerald-800" : f.status === "limit" ? "bg-slate-100 text-slate" : "bg-amber-100 text-amber-900"}`}>{f.status === "paid" ? `✓ ${bonus} each` : f.status === "shift" ? "Needs a first shift" : f.status === "verify" ? "Needs a verified email" : "Over the monthly limit"}</span></li>))}</ul>)}
+        <p className="mt-2 text-[10px] text-slate">Bonus Credits show in your <a href="/profile/wallet" target="_blank" rel="noreferrer" className="font-semibold text-crimson underline">NotesApp wallet ↗</a> as “Invite bonus”. A friend who hasn&apos;t verified their email yet gets it, and so do you, after their next shift once they have.</p></div>);
     }
     function bankPanel(close: ReactNode) {
       const lines = bankLines, naira = buyAmt, setNaira = setBuyAmt;
@@ -624,10 +676,19 @@ export default function LifeGame() {
         <p className="mt-3 text-[11px] font-bold uppercase tracking-wider text-slate">Difficulty</p>
         <div className="mt-1 grid grid-cols-3 gap-2">{(Object.keys(C.DIFFICULTY) as C.Difficulty[]).map((d) => <button key={d} onClick={() => update((x) => ({ ...x, difficulty: d }))} className={`rounded-2xl border-2 p-2 text-sm font-bold ${s.difficulty === d ? "border-ink" : "border-slate-200"}`}>{C.DIFFICULTY[d].icon} {C.DIFFICULTY[d].label}</button>)}</div>
         <p className="mt-1 text-[10px] text-slate">Harder means needs drop faster.</p>
+        <div className="mt-3 flex items-center justify-between"><p className="text-[11px] font-bold uppercase tracking-wider text-slate">Sound</p>
+          <button onClick={() => setSoundPrefs((x) => ({ ...x, on: !x.on }))} className={`rounded-full px-3 py-1 text-xs font-bold ${soundPrefs.on ? "bg-emerald-500 text-white" : "border"}`}>{soundPrefs.on ? "🔊 On" : "🔇 Off"}</button></div>
+        <div className={`mt-1 grid gap-1.5 rounded-2xl border p-3 text-xs ${soundPrefs.on ? "" : "opacity-50"}`}>
+          {([["master", "🔈 Volume"], ["sfx", "🔔 Effects"], ["amb", "🌿 Surroundings and music"]] as [keyof Omit<SoundPrefs, "on">, string][]).map(([k, l]) => (
+            <label key={k} className="flex items-center gap-3"><span className="w-40 shrink-0 font-semibold">{l}</span>
+              <input type="range" min={0} max={100} value={Math.round(soundPrefs[k] * 100)} disabled={!soundPrefs.on} onChange={(e) => setSoundPrefs((x) => ({ ...x, [k]: Number(e.target.value) / 100 }))} onPointerUp={() => sfx(k === "amb" ? "bell" : "coin")} className="w-full accent-emerald-600" aria-label={l} />
+              <b className="w-8 text-right">{Math.round(soundPrefs[k] * 100)}</b></label>))}
+          <p className="text-[10px] text-slate">Birds by day, crickets at night, traffic on the street, lounge music at Candellux. Saved on this device.</p>
+        </div>
         <p className="mt-3 text-[11px] font-bold uppercase tracking-wider text-slate">Restore points</p>
         {!points ? <p className="text-sm text-slate">Loading…</p> : points.length === 0 ? <p className="text-sm text-slate">None yet: one is kept each hour and each day you play.</p> : <ul className="mt-1 divide-y rounded-2xl border text-sm">{points.slice(0, 8).map((pt) => <li key={pt.slot} className="flex items-center justify-between px-3 py-2"><span><b className="block">{new Date(pt.savedAt).toLocaleString("en-NG", { weekday: "short", hour: "numeric", minute: "2-digit" })}</b><span className="text-[11px] text-slate">{pt.kind}</span></span><button onClick={() => restore(pt.slot)} className="rounded-full border px-3 py-1 text-xs font-semibold">Restore</button></li>)}</ul>}
         <p className="mt-3 rounded-xl bg-slate-100 px-3 py-2 text-[11px] text-slate">🔒 Your Notesville Naira, anything you bought and your rank are kept on our servers. A restore never takes them away or doubles them.</p>
-        <p className="mt-3 text-center text-[11px]"><a href="/help/notes-life" target="_blank" rel="noreferrer" className="text-crimson underline">How Notes Life works</a> · <a href="/journals" className="text-crimson underline">Back to NotesApp</a></p></div>);
+        <p className="mt-3 text-center text-[11px]"><a href="/help/notes-life" target="_blank" rel="noreferrer" className="text-crimson underline">How Notes Life works</a> · <button onClick={() => void leave()} className="text-crimson underline">Back to NotesApp</button></p></div>);
     }
   }
 }

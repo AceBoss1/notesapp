@@ -42,9 +42,10 @@ export async function startCheckout(
     | { kind: "gift"; username: string; amountNaira: number; noteId?: string; message?: string; anonymous?: boolean }
     | { kind: "wallet_topup"; amountNaira: number }
     | { kind: "life_naira"; amountNaira: number },
-  opts: { amountKobo?: number } = {},
+  // payWith: the buyer already chose (Notes Life has its own Wallet and Card buttons, and no chooser on its page).
+  opts: { amountKobo?: number; payWith?: "wallet" | "card" } = {},
 ): Promise<void> {
-  const how = await choosePayment(user, body.kind, opts.amountKobo);
+  const how = opts.payWith ?? (await choosePayment(user, body.kind, opts.amountKobo));
   if (!how) throw new Error(""); // closed the chooser: nothing to show
   const sent: object = how === "wallet" ? { ...body, payWith: "wallet" } : body;
   let { res, json } = await post(user, sent);
