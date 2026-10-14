@@ -76,7 +76,7 @@ export default function PricingPage() {
       {note && <p className="mt-4 text-sm text-green-700" role="status">{note}</p>}
       {!data || !form ? <p className="mt-8 text-slate">Loading…</p> : (
         <>
-          <p className="mt-3 text-xs text-slate">{data.customised ? `Customised${data.updatedBy ? ` by ${data.updatedBy}` : ""}${data.updatedAt ? ` on ${new Date(data.updatedAt).toLocaleString("en-NG")}` : ""}.` : "Using the built-in prices."}</p>
+          <p className="mt-3 text-xs text-slate">{data.customised ? `Customised${data.updatedBy ? ` by ${data.updatedBy}` : ""}${data.updatedAt ? ` on ${new Date(data.updatedAt).toLocaleString("en-NG", { hour12: true })}` : ""}.` : "Using the built-in prices."}</p>
 
           <section className="card mt-6 p-5">
             <h2 className="font-display text-2xl text-ink">Subscription plans</h2>
@@ -157,7 +157,7 @@ export default function PricingPage() {
             {data.log.length === 0 ? <p className="mt-2 text-sm text-slate">No changes yet.</p> : (
               <ul className="mt-3 space-y-3">
                 {data.log.map((l) => (
-                  <li key={l.id} className="card p-4 text-sm"><p className="font-ui text-xs font-semibold text-slate">{new Date(l.at).toLocaleString("en-NG")} · {l.byEmail}{l.reset ? " · reset to built-in" : ""}</p>
+                  <li key={l.id} className="card p-4 text-sm"><p className="font-ui text-xs font-semibold text-slate">{new Date(l.at).toLocaleString("en-NG", { hour12: true })} · {l.byEmail}{l.reset ? " · reset to built-in" : ""}</p>
                     <ul className="mt-1 list-disc pl-5 font-mono text-xs text-slate">{l.changes.map((c) => <li key={c}>{c.replace(/Kobo/g, " (kobo)")}</li>)}</ul></li>
                 ))}
               </ul>

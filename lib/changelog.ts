@@ -11,6 +11,21 @@ export type Release = {
 
 export const CHANGELOG: Release[] = [
   {
+    version: "v0.31.0",
+    bump: "minor",
+    date: "2026-10-14",
+    changes: [
+      { kind: "added", text: "Pin up to 3 messages in a conversation (any member in a one-to-one chat, admins in a group). Pinned messages sit in a bar at the top of the chat; tap one to jump to it." },
+      { kind: "added", text: "Pin up to 3 chats, with a person or an organisation, to the top of your Messages inbox with 📌. Only you see your pinned chats." },
+      { kind: "added", text: "See when someone is writing: “…typing” in a one-to-one chat, and who is typing in a group." },
+      { kind: "added", text: "Edit or delete your own messages from the ⋯ menu. While nobody has read a message it changes straight away; once it has been read, everyone who read it is asked to allow the change first. Changed messages say “edited”, and deleted ones show “This message was deleted”. Requests nobody answers are wiped after 30 days." },
+      { kind: "added", text: "Video calls: drag your own picture to any corner, tap it to swap it with the other person's, and switch between your front and back camera with 🔄." },
+      { kind: "added", text: "Calls ring on the installed #NotesApp app even when it isn't open on your screen: the notification keeps buzzing and sounding for the length of the call, with Answer and Decline." },
+      { kind: "changed", text: "Times across #NotesApp now use the 12-hour clock (for example 3:05 pm)." },
+      { kind: "fixed", text: "Notes Life sounds were too quiet to hear on many phones, and sometimes didn't start at all. They are louder and clearer now, play even when your phone is on silent mode where the phone allows it, and Settings has a ▶ Test sound button." },
+    ],
+  },
+  {
     version: "v0.30.0",
     bump: "minor",
     date: "2026-10-14",

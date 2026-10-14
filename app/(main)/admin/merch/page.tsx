@@ -196,7 +196,7 @@ export default function AdminMerchPage() {
                   <ul className="mt-1 space-y-1 text-xs text-ink">
                     {custody[o.reference]?.map((c) => (
                       <li key={c.id}>
-                        {HOLDER_LABEL[c.holderType]}: {c.holderName}{c.holderPhone ? ` (${c.holderPhone})` : ""} — {c.location} <span className="text-slate">· {c.status === "pending" ? "waiting for them to confirm" : new Date(c.at).toLocaleString()}</span>
+                        {HOLDER_LABEL[c.holderType]}: {c.holderName}{c.holderPhone ? ` (${c.holderPhone})` : ""} — {c.location} <span className="text-slate">· {c.status === "pending" ? "waiting for them to confirm" : new Date(c.at).toLocaleString("en-NG", { hour12: true })}</span>
                         <button onClick={() => riderLink(o, c.id)} className="ml-2 font-semibold text-crimson">Get their update link</button>
                         {riderLinks[c.id] && (
                           <span className="mt-1 block break-all">

@@ -6,6 +6,7 @@ import Link from "next/link";
 import { onAuthStateChanged, type User } from "firebase/auth";
 import { collection, doc, getDoc, onSnapshot, query, where } from "firebase/firestore";
 import { auth, db } from "@/lib/firebase";
+import { api } from "@/lib/moments-client";
 import Avatar from "@/components/Avatar";
 import GroupAvatar from "./GroupAvatar";
 import { stripFormat } from "@/lib/message-format";
@@ -27,6 +28,13 @@ export default function Inbox() {
   const [rows, setRows] = useState<Row[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const people = useRef(new Map<string, Who>());
+  const [pins, setPins] = useState<string[]>([]); // your pinned chats (chatPins/{uid}, 3 at most)
+  useEffect(() => { if (!user) return; return onSnapshot(doc(db, "chatPins", user.uid), (d) => setPins((d.data()?.list as string[] | undefined) ?? []), () => {}); }, [user]);
+  async function togglePin(id: string, pin: boolean) {
+    setError(null);
+    try { await api(`/api/messages/${id}`, { body: { action: "pin_chat", pin } }); }
+    catch (e) { alert(e instanceof Error ? e.message : "Couldn't pin that chat."); }
+  }
   useEffect(() => onAuthStateChanged(auth, setUser), []);
   const presence = usePresence((rows ?? []).filter((r) => !r.group && r.with.uid && r.with.uid !== user?.uid).map((r) => r.with.uid));
 
@@ -73,9 +81,9 @@ export default function Inbox() {
               </span>
             </Link>
           </li>
-          {rows.map((r) => (
-            <li key={r.id}>
-              <Link href={`/messages/${r.id}`} className="flex items-center gap-3 py-3 hover:bg-paper">
+          {[...rows].sort((a, b) => Number(pins.includes(b.id)) - Number(pins.includes(a.id)) || (pins.includes(a.id) ? pins.indexOf(a.id) - pins.indexOf(b.id) : 0)).map((r) => (
+            <li key={r.id} className={`flex items-center ${pins.includes(r.id) ? "bg-paper/60" : ""}`}>
+              <Link href={`/messages/${r.id}`} className="flex min-w-0 flex-1 items-center gap-3 py-3 hover:bg-paper">
                 {r.group ? <GroupAvatar title={r.group.title} size={44} team={r.group.team} src={r.group.avatar} /> : <Avatar src={r.with.avatar} alt={r.with.displayName} size={44} square={!!r.with.isOrg} />}
                 <span className="min-w-0 flex-1">
                   {r.group ? (
@@ -88,6 +96,7 @@ export default function Inbox() {
                 </span>
                 {r.unread > 0 && <span className="rounded-full bg-crimson px-2 py-0.5 text-xs font-bold text-white">{r.unread}</span>}
               </Link>
+              <button type="button" onClick={() => togglePin(r.id, !pins.includes(r.id))} title={pins.includes(r.id) ? "Unpin this chat" : "Pin this chat to the top (up to 3)"} aria-label={pins.includes(r.id) ? "Unpin chat" : "Pin chat"} className={`ml-1 shrink-0 rounded-full px-2 py-1 text-sm ${pins.includes(r.id) ? "" : "opacity-30 hover:opacity-80"}`}>📌</button>
             </li>
           ))}
         </ul>

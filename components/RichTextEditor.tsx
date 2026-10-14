@@ -43,7 +43,7 @@ export default function RichTextEditor({ value, onChange, draftKey }: Props) {
     const t = setTimeout(() => {
       try {
         localStorage.setItem(storageKey, value);
-        setSavedAt(new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }));
+        setSavedAt(new Date().toLocaleTimeString("en-NG", { hour: "numeric", minute: "2-digit", hour12: true }));
       } catch {}
     }, 1000);
     return () => clearTimeout(t);

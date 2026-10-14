@@ -11,7 +11,7 @@ type Data = { messages: Msg[]; people: { uid: string; name: string }[]; names: R
 const field = "mt-1 block w-full rounded-lg border border-rule bg-card px-2 py-1.5 text-sm";
 const btn = "rounded-full bg-crimson px-4 py-2 font-ui text-xs font-semibold text-paper hover:bg-crimson-bright disabled:opacity-50";
 const ghost = "rounded-full border border-rule px-3 py-1.5 font-ui text-xs font-semibold hover:border-crimson disabled:opacity-50";
-const when = (iso: string) => new Date(iso).toLocaleString("en-NG", { day: "numeric", month: "short", hour: "numeric", minute: "2-digit" });
+const when = (iso: string) => new Date(iso).toLocaleString("en-NG", { day: "numeric", month: "short", hour: "numeric", hour12: true, minute: "2-digit" });
 const blank = { to: [] as string[], cc: [] as string[], subject: "", body: "", alsoEmail: false };
 const BOXES = [["inbox", "Inbox"], ["cc", "Copied to me"], ["sent", "Sent"]] as const;
 

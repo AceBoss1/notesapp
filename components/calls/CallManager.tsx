@@ -40,12 +40,20 @@ export default function CallManager() {
     return () => window.removeEventListener(CALL_EVENT, onStart);
   }, []);
 
+  const accept = useCallback((c: CallDoc & { id: string }) => { setActive({ role: "callee", id: c.id, kind: c.kind, name: c.callerName, avatar: c.callerAvatar }); setRinging(null); }, []);
+  // Opened from the ringing notification's Answer (…?answer=<call id>): answer straight away.
+  useEffect(() => {
+    if (!ringing || activeRef.current) return;
+    const p = new URLSearchParams(window.location.search);
+    if (p.get("answer") === ringing.id) { p.delete("answer"); window.history.replaceState(null, "", window.location.pathname + (p.toString() ? `?${p}` : "")); accept(ringing); }
+  }, [ringing, accept]);
+
   if (!CALLS_LIVE || !uid) return null;
   return (
     <>
       {ringing && !active && (
         <Incoming call={ringing}
-          onAccept={() => { setActive({ role: "callee", id: ringing.id, kind: ringing.kind, name: ringing.callerName, avatar: ringing.callerAvatar }); setRinging(null); }}
+          onAccept={() => accept(ringing)}
           onDecline={() => { api("/api/calls", { body: { action: "end", id: ringing.id, reason: "declined" } }).catch(() => {}); setRinging(null); }} />
       )}
       {active && <CallScreen active={active} onDone={() => setActive(null)} />}
@@ -102,6 +110,12 @@ function CallScreen({ active, onDone }: { active: Active; onDone: () => void }) 
   const remoteAudio = useRef<HTMLAudioElement>(null);
   const localVideo = useRef<HTMLVideoElement>(null);
   const local = useRef<MediaStream | null>(null);
+  const pcRef = useRef<RTCPeerConnection | null>(null);
+  const [facing, setFacing] = useState<"user" | "environment">("user");
+  const [cams, setCams] = useState(0); // how many cameras this device has (the switch shows when there's more than one)
+  const [swapped, setSwapped] = useState(false); // you big, them small
+  const [pos, setPos] = useState<{ x: number; y: number } | null>(null); // where the small picture was dragged to
+  const drag = useRef<{ dx: number; dy: number; moved: boolean } | null>(null);
   const endRef = useRef<(reason: "ended" | "missed" | "failed") => void>(() => {});
   useRingtone(phase === "ringing" && active.role === "caller");
 
@@ -142,6 +156,7 @@ function CallScreen({ active, onDone }: { active: Active; onDone: () => void }) 
 
     const wire = (ice: Ice, mine: "callerCandidates" | "calleeCandidates", theirs: "callerCandidates" | "calleeCandidates") => {
       pc = new RTCPeerConnection({ iceServers: ice });
+      pcRef.current = pc;
       local.current!.getTracks().forEach((t) => pc!.addTrack(t, local.current!));
       pc.ontrack = (e) => {
         const s = e.streams[0];
@@ -178,6 +193,7 @@ function CallScreen({ active, onDone }: { active: Active; onDone: () => void }) 
       try {
         local.current = await navigator.mediaDevices.getUserMedia({ audio: true, video: kind === "video" ? { facingMode: "user", width: { ideal: 640 }, height: { ideal: 480 } } : false });
         if (localVideo.current && kind === "video") localVideo.current.srcObject = local.current;
+        if (kind === "video") navigator.mediaDevices.enumerateDevices().then((d) => setCams(d.filter((x) => x.kind === "videoinput").length)).catch(() => {});
       } catch {
         if (active.role === "callee") end("failed");
         stop(kind === "video" ? "Allow the camera and microphone to make video calls." : "Allow the microphone to make calls.");
@@ -222,11 +238,48 @@ function CallScreen({ active, onDone }: { active: Active; onDone: () => void }) 
 
   const toggleMute = useCallback(() => { const m = !muted; local.current?.getAudioTracks().forEach((t) => { t.enabled = !m; }); setMuted(m); }, [muted]);
   const toggleCam = useCallback(() => { const c = !camOff; local.current?.getVideoTracks().forEach((t) => { t.enabled = !c; }); setCamOff(c); }, [camOff]);
+  // Front ↔ back camera during a call: a new video track replaces the old one in the call, without reconnecting.
+  const flipCam = useCallback(async () => {
+    const next = facing === "user" ? "environment" : "user";
+    try {
+      const s = await navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: next }, width: { ideal: 640 }, height: { ideal: 480 } } });
+      const track = s.getVideoTracks()[0];
+      if (!track) return;
+      track.enabled = !camOff;
+      const sender = pcRef.current?.getSenders().find((x) => x.track?.kind === "video");
+      await sender?.replaceTrack(track);
+      local.current?.getVideoTracks().forEach((t) => { t.stop(); local.current?.removeTrack(t); });
+      local.current?.addTrack(track);
+      if (localVideo.current) localVideo.current.srcObject = local.current;
+      setFacing(next);
+    } catch { /* this device has one camera, or it's busy */ }
+  }, [facing, camOff]);
+  // The small picture: drag it anywhere; a tap (no drag) swaps which picture is big.
+  const onDown = (e: React.PointerEvent<HTMLVideoElement>) => { const r = e.currentTarget.getBoundingClientRect(); drag.current = { dx: e.clientX - r.left, dy: e.clientY - r.top, moved: false }; e.currentTarget.setPointerCapture(e.pointerId); };
+  const onMove = (e: React.PointerEvent<HTMLVideoElement>) => {
+    const d = drag.current; if (!d) return;
+    const w = e.currentTarget.offsetWidth, h = e.currentTarget.offsetHeight;
+    const x = Math.min(window.innerWidth - w - 8, Math.max(8, e.clientX - d.dx)), y = Math.min(window.innerHeight - h - 8, Math.max(8, e.clientY - d.dy));
+    if (!d.moved && pos && Math.abs(x - pos.x) + Math.abs(y - pos.y) < 6) return;
+    d.moved = true; setPos({ x, y });
+  };
+  const onUp = () => { const d = drag.current; drag.current = null; if (d && !d.moved) setSwapped((v) => !v); };
   const status = phase === "starting" ? "Starting…" : phase === "ringing" ? "Ringing…" : phase === "connecting" ? "Connecting…" : phase === "live" ? duration(secs) : note || "Call ended";
 
   return (
     <div className="fixed inset-0 z-[130] flex flex-col bg-ink text-paper" role="dialog" aria-modal="true" aria-label={`${kind === "video" ? "Video" : "Voice"} call with ${name}`}>
-      {kind === "video" && <video ref={remoteVideo} autoPlay playsInline className="absolute inset-0 h-full w-full object-cover" />}
+      {kind === "video" && (() => {
+        // Two pictures: one fills the screen, the other is small (draggable; tap to swap). Your own picture is mirrored when it's the front camera.
+        const big = "absolute inset-0 h-full w-full object-cover";
+        const small = `absolute z-20 h-36 w-24 touch-none cursor-grab rounded-xl border border-paper/30 object-cover shadow-xl ${pos ? "" : "bottom-28 right-4"}`;
+        const smallStyle = pos ? { left: pos.x, top: pos.y } : undefined;
+        const mirror = facing === "user" ? { transform: "scaleX(-1)" } : undefined;
+        const handlers = { onPointerDown: onDown, onPointerMove: onMove, onPointerUp: onUp, title: "Drag to move · tap to swap" };
+        return <>
+          <video ref={remoteVideo} autoPlay playsInline className={swapped ? small : big} style={swapped ? smallStyle : undefined} {...(swapped ? handlers : {})} />
+          <video ref={localVideo} autoPlay playsInline muted className={`${swapped ? big : small} ${camOff ? "opacity-30" : ""}`} style={{ ...(swapped ? {} : smallStyle), ...mirror }} {...(swapped ? {} : handlers)} />
+        </>;
+      })()}
       <audio ref={remoteAudio} autoPlay className="hidden" />
       <div className="relative z-10 flex flex-1 flex-col items-center justify-center gap-3 p-6 text-center">
         {(kind === "audio" || phase !== "live") && <Avatar src={avatar} alt="" size={112} />}
@@ -234,9 +287,10 @@ function CallScreen({ active, onDone }: { active: Active; onDone: () => void }) 
         <p className="font-mono text-sm text-paper/80 drop-shadow" aria-live="polite">{status}</p>
         {kind === "audio" && phase === "live" && <p className="text-xs text-paper/60">Free call · phone to phone</p>}
       </div>
-      {kind === "video" && <video ref={localVideo} autoPlay playsInline muted className={`absolute bottom-28 right-4 z-10 h-36 w-24 rounded-xl border border-paper/30 object-cover ${camOff ? "opacity-30" : ""}`} />}
+
       <div className="relative z-10 flex items-center justify-center gap-5 pb-10">
         <button type="button" onClick={toggleMute} disabled={phase === "over"} aria-pressed={muted} className={`h-14 w-14 rounded-full text-xl ${muted ? "bg-paper text-ink" : "bg-paper/15"}`} aria-label={muted ? "Unmute" : "Mute"}>{muted ? "🔇" : "🎙"}</button>
+        {kind === "video" && cams !== 1 && <button type="button" onClick={flipCam} disabled={phase === "over" || camOff} className="h-14 w-14 rounded-full bg-paper/15 text-xl" aria-label={facing === "user" ? "Switch to the back camera" : "Switch to the front camera"} title="Switch camera">🔄</button>}
         {kind === "video" && <button type="button" onClick={toggleCam} disabled={phase === "over"} aria-pressed={camOff} className={`h-14 w-14 rounded-full text-xl ${camOff ? "bg-paper text-ink" : "bg-paper/15"}`} aria-label={camOff ? "Turn camera on" : "Turn camera off"}>{camOff ? "🚫" : "📷"}</button>}
         <button type="button" onClick={() => endRef.current(phase === "ringing" || phase === "starting" ? "missed" : "ended")} disabled={phase === "over"} className="h-16 w-16 rounded-full bg-red-600 text-2xl" aria-label="End call">✕</button>
       </div>

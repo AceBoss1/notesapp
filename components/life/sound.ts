@@ -40,7 +40,11 @@ export class Sound {
       if (!AC) return;
       const c = new AC();
       this.ctx = c;
-      this.master = c.createGain(); this.master.connect(c.destination);
+      // Phones play sound through small speakers: a compressor lifts quiet sounds so they can be heard, and nothing below ~250 Hz is
+      // relied on (a phone speaker can't play it).
+      const comp = c.createDynamicsCompressor(); comp.threshold.value = -24; comp.knee.value = 20; comp.ratio.value = 4; comp.connect(c.destination);
+      this.master = c.createGain(); this.master.connect(comp);
+      try { const as = (navigator as unknown as { audioSession?: { type: string } }).audioSession; if (as) as.type = "playback"; } catch { /* iPhone: play even with the silent switch on, where supported */ }
       this.sfxBus = c.createGain(); this.sfxBus.connect(this.master);
       this.ambBus = c.createGain(); this.ambBus.connect(this.master);
       const n = c.createBuffer(1, c.sampleRate * 2, c.sampleRate), d = n.getChannelData(0);
@@ -58,7 +62,7 @@ export class Sound {
   private apply() {
     if (!this.ctx) return;
     const t = this.ctx.currentTime;
-    this.master.gain.setTargetAtTime(this.prefs.on ? this.prefs.master : 0, t, 0.05);
+    this.master.gain.setTargetAtTime(this.prefs.on ? this.prefs.master * 1.8 : 0, t, 0.05);
     this.sfxBus.gain.setTargetAtTime(this.prefs.sfx, t, 0.05);
     this.ambBus.gain.setTargetAtTime(this.prefs.amb, t, 0.2);
   }
@@ -89,7 +93,8 @@ export class Sound {
 
   // ---- effects ----
   play(name: Sfx) {
-    if (!this.ctx || !this.prefs.on || this.ctx.state !== "running") return;
+    if (!this.ctx || !this.prefs.on) return;
+    if (this.ctx.state !== "running") { void this.ctx.resume().then(() => this.play(name)).catch(() => {}); return; }
     const t = this.ctx.currentTime + 0.01;
     switch (name) {
       case "tap": this.tone(880, t, 0.05, { gain: 0.06, type: "triangle" }); break;
@@ -109,11 +114,11 @@ export class Sound {
       case "whoosh": this.hiss(t, 1.1, { freq: 300, to: 1800, q: 1.2, gain: 0.15, attack: 0.3 }); break;
       case "bell": this.tone(2637, t, 0.5, { gain: 0.1 }); this.tone(2637, t + 0.18, 0.7, { gain: 0.1 }); break;
       case "horn": this.horn(t, 0.14); break;
-      case "nepa_off": this.tone(420, t, 0.9, { gain: 0.16, type: "sawtooth", to: 45 }); this.hiss(t, 0.12, { type: "highpass", freq: 3000, gain: 0.12 }); break; // everything winds down
+      case "nepa_off": this.tone(520, t, 1.0, { gain: 0.25, type: "sawtooth", to: 90 }); this.hiss(t, 0.12, { type: "highpass", freq: 3000, gain: 0.12 }); break; // everything winds down
       case "pull": for (let i = 0; i < 3; i++) this.hiss(t + i * 0.32, 0.22, { freq: 600, to: 1800, q: 2, gain: 0.12 }); break; // pulling the generator cord
       case "up_nepa": { // nwiiiiii: every appliance at once, then children shouting UP NEPA!
-        this.tone(180, t, 1.4, { gain: 0.1, type: "sawtooth", to: 1400, attack: 0.3 }); this.tone(240, t, 1.4, { gain: 0.06, type: "square", to: 1700, attack: 0.3 });
-        for (let i = 0; i < 9; i++) this.hiss(t + 1.2 + i * 0.09 + Math.random() * 0.05, 0.25, { freq: 900 + Math.random() * 900, q: 3, gain: 0.08 });
+        this.tone(300, t, 1.5, { gain: 0.2, type: "sawtooth", to: 1600, attack: 0.3 }); this.tone(400, t, 1.5, { gain: 0.12, type: "square", to: 2000, attack: 0.3 });
+        for (const k of [0, 0.55]) for (let i = 0; i < 9; i++) this.hiss(t + 1.4 + k + i * 0.05 + Math.random() * 0.04, 0.3, { freq: 900 + Math.random() * 1100, q: 2.5, gain: 0.16 }); // "UP NEPA!" twice
         break;
       }
     }
@@ -138,13 +143,13 @@ export class Sound {
     const hum = (hz: number, gain: number, cut: number) => {
       const c = this.ctx!, t = c.currentTime, o = c.createOscillator(), f = c.createBiquadFilter(), g = c.createGain(), lfo = c.createOscillator(), lg = c.createGain();
       o.type = "sawtooth"; o.frequency.value = hz; f.type = "lowpass"; f.frequency.value = cut; g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(gain, t + 0.8);
-      lfo.frequency.value = 7 + Math.random() * 3; lg.gain.value = gain * 0.35; lfo.connect(lg); lg.connect(g.gain);
+      lfo.frequency.value = 9 + Math.random() * 3; lg.gain.value = gain * 0.7; lfo.connect(lg); lg.connect(g.gain); // the engine's putt-putt
       o.connect(f); f.connect(g); g.connect(this.ambBus); o.start(); lfo.start();
-      const n = this.hiss(t, 1, { type: "lowpass", freq: cut * 1.6, gain: gain * 0.6, bus: this.ambBus, attack: 0.8, loop: true });
+      const n = this.hiss(t, 1, { freq: 1100, q: 0.7, gain: gain * 0.7, bus: this.ambBus, attack: 0.8, loop: true });
       return () => { const t2 = c.currentTime; g.gain.cancelScheduledValues(t2); g.gain.setTargetAtTime(0.0001, t2, 0.25); o.stop(t2 + 1.2); lfo.stop(t2 + 1.2); n.stop(); };
     };
-    if (mine) this.gens.mine = hum(mine === "big" ? 38 : 52, mine === "big" ? 0.16 : 0.12, mine === "big" ? 260 : 340);
-    if (neighbours) this.gens.near = hum(47, 0.04, 220);
+    if (mine) this.gens.mine = hum(mine === "big" ? 70 : 95, mine === "big" ? 0.3 : 0.24, 1600);
+    if (neighbours) this.gens.near = hum(80, 0.09, 900);
   }
 
   // The bedside phone keeps ringing while a deal call is waiting.
@@ -166,9 +171,9 @@ export class Sound {
     if (next === "none") return;
     const c = this.ctx, bus = this.ambBus, now = c.currentTime;
     if (next === "street" || next === "street-night") { // the road: a low rumble of traffic
-      this.ambStop.push(this.hiss(now, 1, { type: "lowpass", freq: 380, gain: next === "street" ? 0.22 : 0.1, bus, attack: 1, loop: true }).stop);
+      this.ambStop.push(this.hiss(now, 1, { type: "lowpass", freq: 900, gain: next === "street" ? 0.2 : 0.09, bus, attack: 1, loop: true }).stop);
     }
-    if (next === "room") this.ambStop.push(this.hiss(now, 1, { type: "lowpass", freq: 250, gain: 0.05, bus, attack: 1, loop: true }).stop); // the fan
+    if (next === "room") this.ambStop.push(this.hiss(now, 1, { type: "lowpass", freq: 700, gain: 0.04, bus, attack: 1, loop: true }).stop); // the fan
     if (next === "pool") this.ambStop.push(this.hiss(now, 1, { freq: 700, q: 0.4, gain: 0.12, bus, attack: 1, loop: true }).stop); // water
     if (next === "hotel") this.lounge();
     this.ambNext = 0;
@@ -187,7 +192,7 @@ export class Sound {
         if (next === "street-night" && r < 0.03) this.horn(t + 0.2, 0.04, bus);
       } else if (next === "street") { // keke and car horns now and then
         if (r < 0.5) this.horn(t, 0.05 + Math.random() * 0.04, bus);
-        else this.hiss(t, 2.5, { type: "lowpass", freq: 200, to: 900, gain: 0.12, bus, attack: 1 }); // a car going past
+        else this.hiss(t, 2.5, { type: "lowpass", freq: 500, to: 1800, gain: 0.16, bus, attack: 1 }); // a car going past
         this.ambNext = t + 4 + Math.random() * 8;
       }
     }, 200);
@@ -205,6 +210,14 @@ export class Sound {
     };
     playChord();
     this.music = window.setInterval(playChord, 4000);
+  }
+
+  // Settings → Test sound: a chime, then a generator for two seconds.
+  test() {
+    this.unlock(); this.play("success");
+    if (!this.ctx) return;
+    const was = this.gens.kind;
+    window.setTimeout(() => { this.gens.started = false; this.generators("small", false); window.setTimeout(() => { this.gens.started = false; const g = was.split("|"); this.gens.kind = ""; this.generators(g[0] && g[0] !== "null" ? (g[0] as "small" | "big") : null, g[1] === "true"); }, 2000); }, 600);
   }
 
   dispose() {

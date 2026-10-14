@@ -95,7 +95,7 @@ export default function AdminPaylonyPage() {
 
       <h2 className="mt-10 font-display text-2xl">Tools</h2>
       <p className="mt-2 text-sm text-slate">For learning how Paylony answers. The signature test and the test virtual account only run with a TEST key (sk_test_…), where no real money moves.</p>
-      <p className="mt-2 font-mono text-xs text-slate">Payout signing format: {config.signFormat ? `${config.signFormat} (verified ${config.verifiedAt ? new Date(config.verifiedAt).toLocaleString("en-NG") : ""})` : "not verified yet"}</p>
+      <p className="mt-2 font-mono text-xs text-slate">Payout signing format: {config.signFormat ? `${config.signFormat} (verified ${config.verifiedAt ? new Date(config.verifiedAt).toLocaleString("en-NG", { hour12: true }) : ""})` : "not verified yet"}</p>
       <div className="mt-3 flex flex-wrap gap-2">
         <button onClick={() => run("banks")} disabled={!!tool} className="btn-ghost !px-4 !py-2 text-xs">Bank list</button>
         <button onClick={() => run("signature_test")} disabled={!!tool} className="btn-ghost !px-4 !py-2 text-xs">{tool === "signature_test" ? "Testing…" : "Signature test (test key)"}</button>
@@ -115,7 +115,7 @@ export default function AdminPaylonyPage() {
           {events.map((e) => (
             <li key={e.id} className="flex flex-wrap items-center justify-between gap-2 px-4 py-2">
               <span><strong className="text-ink">{e.event}</strong> · ₦{Number(e.amount || 0).toLocaleString("en-NG")} · status {e.status} <span className="font-mono text-xs text-slate">· {e.reference || e.trx}</span></span>
-              <span className="font-mono text-[11px] text-slate">{new Date(e.receivedAt).toLocaleString("en-NG")}{e.handled ? "" : " · not acted on"}</span>
+              <span className="font-mono text-[11px] text-slate">{new Date(e.receivedAt).toLocaleString("en-NG", { hour12: true })}{e.handled ? "" : " · not acted on"}</span>
             </li>
           ))}
         </ul>

@@ -29,20 +29,20 @@ async function nameMap(db: Firestore): Promise<Record<string, string>> {
 
 // ------------------------------------------------------------------ library
 
-export async function listDocs(db: Firestore, me: Me, includeArchived = false): Promise<{ docs: (StaffDoc & { acked: boolean; ackCount: number })[]; canEdit: boolean; people: { uid: string; name: string }[]; names: Record<string, string> }> {
+export async function listDocs(db: Firestore, me: Me, includeArchived = false): Promise<{ docs: (StaffDoc & { acked: boolean; ackCount: number; openCount: number })[]; canEdit: boolean; people: { uid: string; name: string }[]; names: Record<string, string> }> {
   need(!!me.access, "The staff library is for staff.");
   const snap = await db.collection(DOCS).get();
   const docs = snap.docs.map((d) => toDoc(d.id, d.data()))
     .filter((d) => canSeeDoc(d, me) && (includeArchived || !d.archived))
     .sort((a, b) => a.title.localeCompare(b.title))
     // Everyone sees whether they have confirmed; who else has is for the people who maintain the library (ackStatus).
-    .map((d) => ({ ...d, acked: !!d.ackedBy[me.uid], ackCount: Object.keys(d.ackedBy).length, ackedBy: {} }));
+    .map((d) => ({ ...d, acked: !!d.ackedBy[me.uid], ackCount: Object.keys(d.ackedBy).length, ackedBy: {}, openCount: Object.keys(d.openedBy ?? {}).length, openedBy: {} }));
   const names = await nameMap(db);
   return { docs, canEdit: canEditDocs(me.access), people: Object.entries(names).map(([uid, name]) => ({ uid, name })), names };
 }
 
 export async function createDoc(db: Firestore, me: Me, input: DocInput, now = new Date()): Promise<StaffDoc> {
-  need(canEditDocs(me.access), "Only super admins, customer care and product can add to the library.");
+  need(canEditDocs(me.access), "Only super admins, customer care, product and legal can add to the library.");
   const clean = cleanDoc(input);
   await assertStaff(db, clean.receivers);
   const ref = db.collection(DOCS).doc();
@@ -54,7 +54,7 @@ export async function createDoc(db: Firestore, me: Me, input: DocInput, now = ne
 
 // Edits the details. `newVersion: true` bumps the version and clears the acknowledgements, so everyone reads the new one.
 export async function updateDoc(db: Firestore, me: Me, id: unknown, input: DocInput & { newVersion?: unknown; archived?: unknown }, now = new Date()): Promise<void> {
-  need(canEditDocs(me.access), "Only super admins, customer care and product can change the library.");
+  need(canEditDocs(me.access), "Only super admins, customer care, product and legal can change the library.");
   const ref = db.collection(DOCS).doc(String(id));
   const s = await ref.get();
   need(s.exists, "That document wasn't found.", 404);
@@ -78,7 +78,8 @@ export async function acknowledge(db: Firestore, me: Me, id: unknown, now = new 
 }
 
 // People who still haven't confirmed a document: for the people who maintain the library.
-export async function ackStatus(db: Firestore, me: Me, id: unknown): Promise<{ read: { uid: string; name: string; at: string }[]; waiting: { uid: string; name: string }[] }> {
+// Who has read it: who confirmed (when it asks), and 👁 who has opened it and who hasn't yet, among the people it is for.
+export async function ackStatus(db: Firestore, me: Me, id: unknown): Promise<{ read: { uid: string; name: string; at: string }[]; waiting: { uid: string; name: string }[]; opened: { uid: string; name: string; at: string }[]; notOpened: { uid: string; name: string }[] }> {
   need(canEditDocs(me.access), "Only the people who maintain the library can see who has confirmed.");
   const s = await db.collection(DOCS).doc(String(id)).get();
   need(s.exists, "That document wasn't found.", 404);
@@ -88,6 +89,8 @@ export async function ackStatus(db: Firestore, me: Me, id: unknown): Promise<{ r
   return {
     read: audience.filter((p) => d.ackedBy[p.uid]).map((p) => ({ uid: p.uid, name: p.name, at: d.ackedBy[p.uid] })),
     waiting: audience.filter((p) => !d.ackedBy[p.uid]).map((p) => ({ uid: p.uid, name: p.name })),
+    opened: audience.filter((p) => d.openedBy?.[p.uid]).map((p) => ({ uid: p.uid, name: p.name, at: d.openedBy![p.uid] })).sort((a, b) => b.at.localeCompare(a.at)),
+    notOpened: audience.filter((p) => !d.openedBy?.[p.uid]).map((p) => ({ uid: p.uid, name: p.name })),
   };
 }
 // Enough of an Access to test a department or "everyone": listTeamPeople gives departments; a person without any is an admin with none.
@@ -130,6 +133,7 @@ export async function docFileLink(db: Firestore, me: Me, id: string, index: numb
   need(canSeeDoc(d, me), "You can't open that document.");
   const f = d.files[index];
   need(!!f, "That file wasn't found.", 404);
+  await s.ref.update({ [`openedBy.${me.uid}`]: new Date().toISOString() }).catch(() => {}); // for the 👁 list
   return { url: await sign(f.key, f.name), name: f.name };
 }
 

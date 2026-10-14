@@ -8,6 +8,7 @@ import { autoReleasePayouts } from "@/lib/payouts";
 import { reconcilePaylonyPayouts } from "@/lib/paylony-payouts";
 import { sweepExpiredMoments, sweepStaleAudio } from "@/lib/moments-server";
 import { sweepMessageUploads } from "@/lib/messages-server";
+import { sweepMessageRequests } from "@/lib/message-edits";
 import { deleteObject, privateFilesConfigured } from "@/lib/private-files";
 import { sendReportsDigest, liftExpiredSuspensions } from "@/lib/reports-server";
 import { momentDeps } from "@/lib/moments-api";
@@ -73,6 +74,7 @@ export async function GET(req: NextRequest) {
   // Moments past their 24, 48 or 72 hours are deleted with their files (reads already refuse them).
   await job("sweepExpiredMoments", async () => (await sweepExpiredMoments(db, momentDeps)) + (await sweepStaleAudio(db, momentDeps)));
   // One email a day to the team about open reports (nothing when there are none).
+  await job("sweepMessageRequests", () => sweepMessageRequests(db));
   await job("sweepMessageUploads", () => (privateFilesConfigured() ? sweepMessageUploads(db, deleteObject) : Promise.resolve(0)));
   await job("liftExpiredSuspensions", () => liftExpiredSuspensions(db));
   await job("reportsDigest", async () => ((await sendReportsDigest(db)) ? 1 : 0));

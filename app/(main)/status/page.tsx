@@ -147,7 +147,7 @@ export default function StatusPage() {
             ))}
           </ul>
           <p className="mt-4 text-xs text-slate">
-            Live checks, refreshed every minute · last checked {new Date(data.checkedAt).toLocaleTimeString()}.
+            Live checks, refreshed every minute · last checked {new Date(data.checkedAt).toLocaleTimeString("en-NG", { hour: "numeric", minute: "2-digit", hour12: true })}.
             Problems? Email hello@notesapp.name.ng.
           </p>
 
@@ -178,7 +178,7 @@ export default function StatusPage() {
                       {i.resolvedAt ? `Resolved after ${fmtDuration(i.startedAt, i.resolvedAt)}` : "Ongoing"}
                     </span>
                   </div>
-                  <p className="mt-1 text-xs text-slate">{new Date(i.startedAt).toLocaleString()}</p>
+                  <p className="mt-1 text-xs text-slate">{new Date(i.startedAt).toLocaleString("en-NG", { hour12: true })}</p>
                 </li>
               ))}
             </ul>

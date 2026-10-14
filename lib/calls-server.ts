@@ -1,5 +1,5 @@
 import { FieldValue, type Firestore } from "firebase-admin/firestore";
-import { randomBytes } from "crypto";
+import { createHmac, randomBytes, timingSafeEqual } from "crypto";
 import { conversationId } from "./messages-rules";
 import { MessageError } from "./messages-server";
 import { notifyBell } from "./email";
@@ -72,7 +72,7 @@ export async function startCall(db: Firestore, callerUid: string, toUid: unknown
   const cid = conversationId(callerUid, callee);
   const doc: CallDoc = { callerUid, calleeUid: callee, kind, status: "ringing", cid, callerName: me.name, callerAvatar: me.avatar, calleeName: them.name, calleeAvatar: them.avatar, createdAt: now.toISOString() };
   await db.doc(`calls/${id}`).set(doc);
-  await deps.push(callee, { title: kind === "video" ? "Incoming video call" : "Incoming voice call", body: me.name, url: `/messages/${cid}` }).catch(() => 0);
+  await deps.push(callee, { title: kind === "video" ? "Incoming video call" : "Incoming voice call", body: me.name, url: `/messages/${cid}?answer=${id}`, kind: "call", callId: id, token: ringToken(id), ttl: 45, urgency: "high" }).catch(() => 0);
   return { id, cid };
 }
 
@@ -92,6 +92,7 @@ export async function endCall(db: Firestore, uid: string, id: unknown, asked: un
   });
   if (!res) return { outcome: null };
   const { c, outcome, seconds } = res;
+  if (res.c.status === "ringing") await deps.push(c.calleeUid, { title: "", body: "", url: "", kind: "call_end", callId: ref.id, ttl: 60, urgency: "high" }).catch(() => 0); // stops the ringing on their devices
   await clearCandidates(db, ref.id).catch(() => {});
   // The call line in the conversation (created if these two have never written to each other).
   const convRef = db.doc(`conversations/${c.cid}`);
@@ -111,6 +112,14 @@ export async function endCall(db: Firestore, uid: string, id: unknown, asked: un
   }
   return { outcome };
 }
+
+// The service worker answers a ringing notification's Decline (and checks whether it's still ringing) without a sign-in: it proves it got
+// the push with this token, made from the call id and a server secret.
+export function ringToken(id: string): string {
+  const secret = process.env.CALL_PUSH_SECRET || process.env.VAPID_PRIVATE_KEY || "notesapp-call";
+  return createHmac("sha256", secret).update(`ring:${id}`).digest("hex").slice(0, 32);
+}
+export const ringTokenOk = (id: string, token: unknown) => typeof token === "string" && token.length === 32 && timingSafeEqual(Buffer.from(token), Buffer.from(ringToken(id)));
 
 // Removes both sides' connection candidates of a finished call (the rules stop new ones once it is over).
 export async function clearCandidates(db: Firestore, id: string) {

@@ -689,6 +689,7 @@ service cloud.firestore {
     match /momentUsage/{id} { allow read, write: if false; }
     match /momentAudio/{id} { allow read, write: if false; }
     match /userPrefs/{id} { allow read, write: if false; }
+    match /chatPins/{uid} { allow read: if isSignedIn() && request.auth.uid == uid; allow write: if false; } // pinned chats (lib/message-edits.ts)
     match /pushSubscriptions/{id} { allow read, write: if false; }
     match /contentReports/{id} { allow read, write: if false; }
     match /teamItems/{id} { // team hub: read and written by the server only (/api/admin/team); comments are under each item
@@ -739,6 +740,15 @@ service cloud.firestore {
         allow read: if isSignedIn()
           && request.auth.uid in get(/databases/$(database)/documents/conversations/$(cid)).data.participants;
         allow write: if false;
+      }
+      // "…typing": each member writes only their own { at } (a time in ms); the others in the conversation read it.
+      match /typing/{uid} {
+        allow read: if isSignedIn()
+          && request.auth.uid in get(/databases/$(database)/documents/conversations/$(cid)).data.participants;
+        allow create, update: if isSignedIn() && request.auth.uid == uid
+          && request.auth.uid in get(/databases/$(database)/documents/conversations/$(cid)).data.participants
+          && request.resource.data.keys().hasOnly(['at']) && request.resource.data.at is int;
+        allow delete: if isSignedIn() && request.auth.uid == uid;
       }
     }
 

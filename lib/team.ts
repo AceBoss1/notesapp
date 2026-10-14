@@ -15,6 +15,8 @@ export type TeamItem = {
   title: string;
   detail: string;
   ownerUid: string; // "" = unassigned
+  depts?: string[]; // the departments it's assigned to (lib/admin-access.ts DEPARTMENTS)
+  seedKey?: string; // set on items added by a seed (lib/team-seed.ts), so a seed never adds the same item twice
   status: Status;
   horizon: Horizon;
   due: string; // YYYY-MM-DD (Lagos date) or ""
@@ -61,6 +63,7 @@ export function cleanItem(body: Record<string, unknown>, partial: boolean): Part
   }
   if (has("detail")) out.detail = clip(body.detail, 2000);
   if (has("ownerUid")) out.ownerUid = clip(body.ownerUid, 128);
+  if (has("depts")) out.depts = Array.isArray(body.depts) ? Array.from(new Set(body.depts.filter((d): d is string => typeof d === "string" && DEPARTMENTS.some((x) => x.key === d)))) : [];
   if (has("status")) {
     const s = body.status ?? "todo";
     if (!STATUSES.includes(s as Status)) throw new TeamError("Unknown status.");
