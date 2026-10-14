@@ -2,6 +2,7 @@ import type { Firestore } from "firebase-admin/firestore";
 import {
   CITY, DEALS, FOOD, FOOD_MODES, GAME_DAY_MS, GAME_HOUR_MS, HOTEL_OF, ITEM, JOB, MONTH_DAYS, NEGOTIATE_CHANCE, ORDER_MAX_ITEMS, RECIPE, RENT_NAIRA,
   SHIFT_MS, START_NAIRA, STARTER_ITEMS, TRANSPORT_OF, bestOwned, cookingSkill, fmtN, jobBlocker, netWorth, shiftPay, FUEL_NAIRA, RESIDENTS, nepaAt, type FoodMode,
+  OUTLET, OUTLET_AREAS, OUTLET_BACKUP, STAFF_PERKS, isStaff, outletBlocker, outletPrice, outletTakings, shiftExtra, type Outlet, type OutletArea,
 } from "./catalog";
 
 // Server-only. Notes Life money and ownership: lifePlayers/{uid} (the player, read by the owner, written only here) and lifeTx/{id}
@@ -14,7 +15,8 @@ export class LifeError extends Error {
 export type Deal = { who: string; from: string; ask: string; cost: number; pay: number; hours: number; state: "offered" | "active"; offeredAt: number; dueAt?: number };
 export type LifePlayer = {
   uid: string; username: string; name: string; avatar: string; city: string; startedAt: number;
-  naira: number; owned: string[]; cooks: number; reputation: number; dealsDone: number; shifts: number; chefShifts: number;
+  naira: number; owned: string[]; cooks: number; reputation: number; dealsDone: number; shifts: number; chefShifts: number; itelShifts: number; hotelShifts: number;
+  outlets: Outlet[];
   jobId: string | null; shift: { jobId: string; startedAt: number; endsAt: number; pay: number } | null;
   deal: Deal | null; lastDealAt: number; rentMonths: number; rentOwed: number; barberUntil: number; gymUntil: number;
   netWorth: number; updatedAt: number; createdAt: number;
@@ -24,6 +26,10 @@ type Line = { amount: number; label: string; kind: string };
 
 const ref = (db: Firestore, uid: string) => db.doc(`lifePlayers/${uid}`);
 const num = (v: unknown, d = 0) => (typeof v === "number" && isFinite(v) ? v : d);
+function outletsOf(v: unknown): Outlet[] {
+  if (!Array.isArray(v)) return [];
+  return v.filter((o) => o && OUTLET(String(o.kind))).map((o) => ({ kind: o.kind, area: o.area === "garki" ? "garki" : "wuse", openedAt: num(o.openedAt), lastCollectAt: num(o.lastCollectAt), earned: num(o.earned), backup: o.backup === true }));
+}
 
 function fromDoc(uid: string, d: FirebaseFirestore.DocumentData | undefined, profile: { username: string; name: string; avatar: string }, now: number): { p: LifePlayer; fresh: boolean } {
   // A player who bought Notesville Naira before ever playing has a doc with only `naira`: they start now, with that on top.
@@ -34,6 +40,7 @@ function fromDoc(uid: string, d: FirebaseFirestore.DocumentData | undefined, pro
     uid, username: profile.username, name: profile.name, avatar: profile.avatar, city: String(d?.city ?? CITY.id),
     startedAt: fresh ? now : num(d!.startedAt), naira: fresh ? START_NAIRA + num(d?.naira) : num(d!.naira), owned,
     cooks: num(d?.cooks), reputation: num(d?.reputation), dealsDone: num(d?.dealsDone), shifts: num(d?.shifts), chefShifts: num(d?.chefShifts),
+    itelShifts: num(d?.itelShifts), hotelShifts: num(d?.hotelShifts), outlets: outletsOf(d?.outlets),
     jobId: typeof d?.jobId === "string" ? d.jobId : null, shift: d?.shift ?? null, deal: d?.deal ?? null, lastDealAt: num(d?.lastDealAt, now),
     rentMonths: num(d?.rentMonths), rentOwed: num(d?.rentOwed), barberUntil: num(d?.barberUntil), gymUntil: num(d?.gymUntil),
     netWorth: 0, updatedAt: now, createdAt: fresh ? now : num(d?.createdAt, now),
@@ -73,7 +80,7 @@ export async function mutate<T>(db: Firestore, uid: string, fn: (p: LifePlayer, 
     settleRent(p, now, lines);
     const result = fn(p, lines, now);
     settleRent(p, now, lines); // money that just came in pays rent that was owed
-    p.netWorth = netWorth(p.naira, p.owned);
+    p.netWorth = netWorth(p.naira, p.owned, p.outlets);
     p.updatedAt = now;
     t.set(ref(db, uid), p);
     lines.forEach((l, i) => t.set(db.doc(`lifeTx/${uid}_${now}_${i}`), { uid, ...l, at: now }));
@@ -102,7 +109,10 @@ export type Action =
   | { action: "deal_ring" }
   | { action: "deal_answer"; answer: "accept" | "negotiate" | "decline" }
   | { action: "deal_collect" }
-  | { action: "fuel"; litres: number };
+  | { action: "fuel"; litres: number }
+  | { action: "outlet_open"; outlet: string; area?: string }
+  | { action: "outlet_collect"; outlet?: string }
+  | { action: "outlet_backup"; outlet: string };
 
 export async function act(db: Firestore, uid: string, a: Action, now = Date.now(), rand: () => number = Math.random) {
   return mutate(db, uid, (p, lines) => {
@@ -113,9 +123,11 @@ export async function act(db: Firestore, uid: string, a: Action, now = Date.now(
         if (it.soon) throw new LifeError(409, `${it.name} is coming soon.`);
         if (p.owned.includes(it.id)) throw new LifeError(409, "You already own that.");
         if (it.needs && !p.owned.includes(it.needs)) throw new LifeError(409, `Get the ${ITEM(it.needs)?.name ?? "base item"} first: this plugs into it.`);
-        debit(p, lines, it.price, it.name, "buy");
+        const staff = it.brand === "itel" && isStaff(p.jobId, "itel");
+        const price = staff ? Math.round(it.price * (1 - STAFF_PERKS.itelDiscount)) : it.price;
+        debit(p, lines, price, staff ? `${it.name} (itel staff price)` : it.name, "buy");
         p.owned.push(it.id);
-        return { message: `${it.name} is yours.` };
+        return { message: `${it.name} is yours${staff ? ` at the staff price, ${fmtN(price)}` : ""}.`, price };
       }
       case "food": {
         const mode = FOOD_MODES[a.mode];
@@ -146,7 +158,8 @@ export async function act(db: Firestore, uid: string, a: Action, now = Date.now(
       case "hotel": {
         const h = HOTEL_OF(String(a.service));
         if (!h || h.soon) throw new LifeError(400, "That isn't open yet.");
-        debit(p, lines, h.price, `Candellux · ${h.name}`, "hotel");
+        const half = isStaff(p.jobId, "candellux") && STAFF_PERKS.hotelHalf.includes(h.id);
+        debit(p, lines, half ? Math.round(h.price / 2) : h.price, `Candellux · ${h.name}${half ? " (staff, half price)" : ""}`, "hotel");
         if (h.boost === "barber") p.barberUntil = now + GAME_DAY_MS;
         if (h.boost === "gym") p.gymUntil = now + GAME_DAY_MS;
         return { minutes: h.minutes, effect: h.effect, set: h.set ?? null, boost: h.boost ?? null };
@@ -155,7 +168,7 @@ export async function act(db: Firestore, uid: string, a: Action, now = Date.now(
         const j = JOB(String(a.job));
         if (!j) throw new LifeError(400, "That job doesn't exist.");
         if (p.shift) throw new LifeError(409, "Finish your shift first.");
-        const block = jobBlocker(j, { owned: p.owned, cooking: cookingSkill(p.cooks), chefShifts: p.chefShifts, reputation: p.reputation });
+        const block = jobBlocker(j, { owned: p.owned, cooking: cookingSkill(p.cooks), chefShifts: p.chefShifts, itelShifts: p.itelShifts, hotelShifts: p.hotelShifts, reputation: p.reputation, fit: p.gymUntil > now });
         if (block) throw new LifeError(403, block);
         p.jobId = j.id;
         return { message: `You're hired: ${j.title}, ${j.employer.split(" · ")[0]}.` };
@@ -178,9 +191,9 @@ export async function act(db: Firestore, uid: string, a: Action, now = Date.now(
         if (!j) throw new LifeError(409, "Get a job first (Phone → Jobs).");
         if (p.shift) throw new LifeError(409, "You're already on a shift.");
         // NEPA: the old desktop needs power. A laptop runs on its own battery; a Power GO or a generator keeps the desktop going.
-        const backup = ["power_go", "gen_small", "gen_big", "home_kit"].some((i) => p.owned.includes(i));
+        const backup = ["power_go", "power_tank", "gen_small", "gen_big", "home_kit"].some((i) => p.owned.includes(i));
         if (j.place === "home" && nepaAt(now).out && !backup && !p.owned.includes("pc_laptop") && !p.owned.includes("pc_aio"))
-          throw new LifeError(409, "NEPA has taken light and your old desktop needs power. Get a Power GO Pro at itel Energy or a generator, or wait for light.");
+          throw new LifeError(409, "NEPA has taken light and your old desktop needs power. Get a Power GO Pro or Power Tank at itel Energy, or a generator, or wait for light.");
         p.shift = { jobId: j.id, startedAt: now, endsAt: now + SHIFT_MS, pay: shiftPay(j, p.owned, !!a.needsLow) };
         return { endsAt: p.shift.endsAt, pay: p.shift.pay };
       }
@@ -189,13 +202,17 @@ export async function act(db: Firestore, uid: string, a: Action, now = Date.now(
         if (now < p.shift.endsAt - 3_000) throw new LifeError(409, "The shift isn't over yet.");
         const j = JOB(p.shift.jobId);
         credit(p, lines, p.shift.pay, `Shift: ${j?.title ?? "work"}`, "pay");
+        const extra = j ? shiftExtra(j, rand) : 0;
+        if (extra > 0) credit(p, lines, extra, `${j!.extra!.label}: ${j!.title}`, "pay");
         p.shifts += 1;
         if (j?.brand === "chef_adams") p.chefShifts += 1;
-        const pay = p.shift.pay;
+        if (j?.brand === "itel") p.itelShifts += 1;
+        if (j?.brand === "candellux") p.hotelShifts += 1;
+        const pay = p.shift.pay + extra;
         p.shift = null;
         // A finished shift is when an invite counts: lib/life/referral.ts pays the Bonus Credits after this (once; a friend whose email
         // wasn't verified at their first shift gets it after a later one).
-        return { pay, firstShift: p.shifts === 1, referral: p.referredBy && !p.referralPaid ? p.referredBy : null };
+        return { pay, extra, extraLabel: j?.extra?.label ?? null, meal: j?.meal ?? 0, firstShift: p.shifts === 1, referral: p.referredBy && !p.referralPaid ? p.referredBy : null };
       }
       case "shift_cancel": {
         p.shift = null;
@@ -234,6 +251,40 @@ export async function act(db: Firestore, uid: string, a: Action, now = Date.now(
         p.deal = null;
         p.lastDealAt = now;
         return { pay };
+      }
+      case "outlet_open": {
+        const t = OUTLET(String(a.outlet));
+        if (!t) throw new LifeError(400, "Choose an outlet.");
+        const area: OutletArea = a.area === "garki" ? "garki" : "wuse";
+        const block = outletBlocker(t, p, now);
+        if (block) throw new LifeError(403, block);
+        const price = outletPrice(t, area);
+        debit(p, lines, price, `${t.name}, ${OUTLET_AREAS[area].name}`, "outlet");
+        p.outlets.push({ kind: t.id, area, openedAt: now, lastCollectAt: now, earned: 0, backup: false });
+        return { message: `Your ${t.name} in ${OUTLET_AREAS[area].name} is open. Residents run it while you're away.` };
+      }
+      case "outlet_collect": {
+        let total = 0;
+        for (const o of p.outlets) {
+          if (a.outlet && o.kind !== a.outlet) continue;
+          const { takings } = outletTakings(o, now);
+          if (takings > 0) credit(p, lines, takings, `Takings: ${OUTLET(o.kind)!.name}`, "outlet");
+          o.earned += takings; o.lastCollectAt = now; total += takings;
+        }
+        if (a.outlet && !p.outlets.some((o) => o.kind === a.outlet)) throw new LifeError(404, "You don't own that outlet.");
+        return { total };
+      }
+      case "outlet_backup": {
+        const o = p.outlets.find((x) => x.kind === a.outlet);
+        if (!o) throw new LifeError(404, "You don't own that outlet.");
+        if (o.backup) throw new LifeError(409, "It already has backup power.");
+        // Takings so far are collected first, so the backup counts only from now.
+        const { takings } = outletTakings(o, now);
+        if (takings > 0) { credit(p, lines, takings, `Takings: ${OUTLET(o.kind)!.name}`, "outlet"); o.earned += takings; }
+        o.lastCollectAt = now;
+        debit(p, lines, OUTLET_BACKUP.price, `Backup power: ${OUTLET(o.kind)!.short}`, "outlet");
+        o.backup = true;
+        return { message: "Backup power fitted: it sells through every blackout now.", total: takings };
       }
       default:
         throw new LifeError(400, "Unknown action.");

@@ -6,7 +6,7 @@ import { auth } from "@/lib/firebase";
 import { startCheckout } from "@/lib/checkout";
 import * as C from "@/lib/life/catalog";
 import type { InviteRow, LifePlayer } from "@/lib/life/server";
-import { advance, applyNeeds, mood, needsLow, powerSource, powerStep, type Activity, type SaveState } from "@/lib/life/play";
+import { advance, applyNeeds, fridgeCold, mood, needsLow, powerSource, powerStep, type Activity, type SaveState } from "@/lib/life/play";
 import { loadSave, restorePoint, restorePoints, saveCloud, saveLocal, type RestorePoint } from "./save";
 import { createWorld, type Power, type RoomSpot, type SceneSpec, type Tag, type World } from "./world";
 import { announce, hide, setShowMe, showMe, whoIsHere, type Present, type PresencePlace } from "./presence";
@@ -16,7 +16,8 @@ import { Sound, loadSoundPrefs, saveSoundPrefs, type Ambience, type Sfx, type So
 type Player = LifePlayer & { cooking: number; serverNow: number };
 type Panel =
   | "welcome" | "needs" | "sleep" | "desk" | "outfit" | "cook" | "deal" | "go" | "food" | "hotel" | "phone" | "jobs" | "friends"
-  | "invite" | "bank" | "rich" | "settings" | "ebike" | "nepa" | "power" | "itel" | "product" | { shop: C.ItemCat } | { chat: string } | { player: Present } | null;
+  | "invite" | "bank" | "rich" | "settings" | "ebike" | "nepa" | "power" | "itel" | "product" | "business" | "kitchen" | { shop: C.ItemCat } | { chat: string } | { player: Present }
+  | { jobs: C.Brand } | { partner: "chef_adams" | "itel" } | { outlet: C.OutletKind } | null;
 type Toast = { text: string; share?: string; tone?: "ok" | "warn" } | null;
 type Friend = { uid: string; username: string; name: string; avatar: string; plays: boolean; netWorth: number };
 type RichRow = { rank: number; uid: string; username: string; name: string; avatar: string; city: string; netWorth: number; owned: string[]; npc?: { role: string; area: string; icons: string } };
@@ -63,6 +64,8 @@ export default function LifeGame() {
   const [showMeOn, setShowMeOn] = useState(true);
   const [richPop, setRichPop] = useState(false);
   const [points, setPoints] = useState<RestorePoint[] | null>(null);
+  const [outletArea, setOutletArea] = useState<C.OutletArea>("wuse");
+  const [keepFood, setKeepFood] = useState(false);
   const panelKey = typeof panel === "string" ? panel : null;
   useEffect(() => {
     if (!user || !panelKey) return;
@@ -149,7 +152,9 @@ export default function LifeGame() {
   // NEPA: the same blackout for everyone (lib/life/catalog.ts nepaAt), and what powers your room through it.
   const nepa = C.nepaAt(Date.now() + offset.current);
   const src = save && player ? powerSource(save, nepa.out, player.owned) : "grid";
-  const roomPower: Power = src === "grid" ? "grid" : src === "gen" ? "gen" : src === "go" ? "go" : "out";
+  const roomPower: Power = src === "grid" ? "grid" : src === "gen" ? "gen" : src === "go" ? "go" : src === "tank" ? "tank" : "out";
+  const mine = (player?.outlets ?? []).map((o) => ({ kind: o.kind, owner: player!.name.split(" ")[0] }));
+  const mineKey = mine.map((m) => m.kind).join();
   const othersKey = others.map((o) => o.uid + o.outfit).join();
   const spec: SceneSpec | null = useMemo(() => {
     if (!save || !player) return null;
@@ -157,12 +162,12 @@ export default function LifeGame() {
     const o = others.map((x) => ({ uid: x.uid, outfit: x.outfit }));
     if (a?.kind === "travel") return { id: "street", outfit: save.outfit, night, riding: a.icon === "🛵" ? "ebike" : null, others: o };
     if (a?.kind === "hotel" && a.label.includes("pool")) return { id: "pool", outfit: save.outfit };
-    if (save.place === "chef") return { id: "chef", outfit: save.outfit, night, others: o };
-    if (save.place === "itel") return { id: "itel", outfit: save.outfit, night, others: o };
+    if (save.place === "chef") return { id: "chef", outfit: save.outfit, night, others: o, mine };
+    if (save.place === "itel") return { id: "itel", outfit: save.outfit, night, others: o, mine };
     if (save.place === "hotel") return { id: "hotel", outfit: save.outfit, others: o };
     if (save.place === "work") return { id: "street", outfit: save.outfit, night, riding: player.owned.includes("ebike") ? "ebike" : null, others: o };
     return { id: "room", owned: player.owned, rug: save.rug, outfit: save.outfit, night, ringing: player.deal?.state === "offered", at: spot, sleeping: a?.kind === "sleep", power: roomPower };
-  }, [save?.place, save?.activity?.kind, save?.activity?.label, save?.outfit, save?.rug, player?.owned.join(), player?.deal?.state, night, spot, roomPower, othersKey]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [save?.place, save?.activity?.kind, save?.activity?.label, save?.outfit, save?.rug, player?.owned.join(), player?.deal?.state, night, spot, roomPower, othersKey, mineKey]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Where you are, for other players (lifePresence), and who else is here: every 45 s, and when you move.
   const presencePlace: PresencePlace | null = !save ? null : save.activity?.kind === "travel" ? "ride" : (save.place as PresencePlace);
@@ -190,10 +195,13 @@ export default function LifeGame() {
   const finishShift = useCallback(async () => {
     if (!user) return;
     try {
-      const r = await call<{ player: Player; result: { pay: number; firstShift?: boolean; referralBonus?: string } }>(user, "POST", { action: "shift_finish" });
+      const r = await call<{ player: Player; result: { pay: number; extra?: number; extraLabel?: string | null; meal?: number; firstShift?: boolean; referralBonus?: string } }>(user, "POST", { action: "shift_finish" });
       gotPlayer(r.player);
       sfx("success");
-      if (r.result.firstShift) say(`First shift done: ${C.fmtN(r.result.pay)} earned!`, shareText(`I just finished my first shift in Notes Life and earned ${C.fmtN(r.result.pay)} 💼`));
+      if (r.result.meal) setSave((x) => (x ? { ...x, needs: applyNeeds(x.needs, { hunger: r.result.meal }) } : x));
+      if (r.result.extra) say(`Shift done: ${C.fmtN(r.result.pay)} paid, with ${C.fmtN(r.result.extra)} in ${(r.result.extraLabel ?? "extras").toLowerCase()}.${r.result.meal ? ` Staff meal: Hunger +${r.result.meal}.` : ""}`);
+      else if (r.result.meal) say(`Shift done: ${C.fmtN(r.result.pay)} paid. Staff meal: Hunger +${r.result.meal}.`);
+      else if (r.result.firstShift) say(`First shift done: ${C.fmtN(r.result.pay)} earned!`, shareText(`I just finished my first shift in Notes Life and earned ${C.fmtN(r.result.pay)} 💼`));
       else say(`Shift done: ${C.fmtN(r.result.pay)} paid.`);
       if (r.result.referralBonus === "paid") window.setTimeout(() => sfx("bonus"), 4600);
       if (r.result.referralBonus === "paid") window.setTimeout(() => say("🎁 Welcome bonus: Bonus Credits added to your NotesApp wallet, and to your friend's."), 4600);
@@ -222,9 +230,11 @@ export default function LifeGame() {
         if (wasOut.current && !n0.out) { sfx("up_nepa"); say("💡 Nwiiiii… UP NEPA! Light has returned. “Shhhh! Before dem hear and take am again!”"); r.s = { ...r.s, genOn: false }; }
         wasOut.current = n0.out;
       }
+      if (r.s.spoiledAt > s.spoiledAt) say(r.s.plates === 0 && !p0?.owned.includes("fridge") ? "🤢 Your stored food spoiled: 8 game hours without a fridge. A fridge keeps it fresh." : "🤢 Your stored food spoiled: the fridge was off for 8 game hours. A Power Tank 1000 keeps it cold through a blackout.", undefined, "warn");
       setSave(r.s); setNow(now);
       if (r.delivered) sfx("door");
-      if (r.delivered) say(`🛵 Your Chef Adams order arrived. Hunger +${r.delivered}.`);
+      if (r.delivered > 0) say(`🛵 Your Chef Adams order arrived. Hunger +${r.delivered}.`);
+      if (r.delivered < 0) say(`🛵 Your Chef Adams order arrived: ${-r.delivered} plate${r.delivered === -1 ? "" : "s"} put away for later.`);
       const f = r.finished;
       if (f) {
         if (f.kind !== "shift") sfx("done");
@@ -311,11 +321,15 @@ export default function LifeGame() {
     update((x) => ({ ...x, bikeRides: x.bikeRides + (mode === "bicycle" ? 1 : 0), needs: applyNeeds(x.needs, { energy: r.energy }) }));
     start({ kind: "travel", label: `${tr.name.replace(/^Your /, "")} to ${C.PLACES.find((p) => p.id === to)?.name}`, icon: tr.icon, to }, r.minutes);
   }
-  async function order(mode: C.FoodMode, items: Record<string, number>) {
+  async function order(mode: C.FoodMode, items: Record<string, number>, keep = false) {
     const list = Object.entries(items).filter(([, q]) => q > 0).map(([id, qty]) => ({ id, qty }));
     if (!list.length) return setErr("Add something to your order.");
     const r = await act<{ hunger: number; minutes: number; fun: number; social: number; total: number }>({ action: "food", mode, items: list });
     if (!r) return;
+    // Kept for later: stored as plates (about 50 Hunger each), fresh in a cold fridge, spoiled after 8 game hours without one.
+    const plates = Math.max(1, Math.round(list.reduce((n, i) => n + (C.FOOD(i.id)?.hunger ?? 0) * i.qty, 0) / 50));
+    if (keep && mode === "delivery") { update((x) => ({ ...x, delivery: { at: Date.now() + C.gameMinutesToMs(r.minutes), hunger: r.hunger, keep: plates } })); setPanel(null); say(`🛵 Order placed: ${plates} plate${plates === 1 ? "" : "s"} to keep for later, in ${r.minutes} game minutes.`); return; }
+    if (keep && mode === "takeaway") { update((x) => ({ ...x, plates: Math.min(30, x.plates + plates) })); setPanel(null); say(`🥡 ${plates} plate${plates === 1 ? "" : "s"} packed to take home.${playerRef.current?.owned.includes("fridge") ? " Into the fridge with them." : " No fridge: eat within 8 game hours."}`); saveNow(); return; }
     if (mode === "delivery") { update((x) => ({ ...x, delivery: { at: Date.now() + C.gameMinutesToMs(r.minutes), hunger: r.hunger } })); setPanel(null); say(`🛵 Order placed: a rider brings it in ${r.minutes} game minutes.`); }
     else start({ kind: mode === "dinein" ? "dinein" : "eat", label: mode === "dinein" ? "Eating in at Chef Adams" : "Eating your takeaway", icon: mode === "dinein" ? "🍽" : "🥡", end: { hunger: r.hunger, fun: r.fun, social: r.social } }, r.minutes);
   }
@@ -337,7 +351,7 @@ export default function LifeGame() {
     const j = C.JOB(p.jobId)!;
     if (j.place === "home" && s.place !== "home") return setErr("This job is at your desk at home. Go home first.");
     if (j.place === "work" && s.place !== "work") { setPanel("go"); return setErr("Get to work first: choose how to go."); }
-    if (j.place === "chef" && s.place !== "chef") { setPanel("go"); return setErr("Your job is at Chef Adams in Wuse. Go there first."); }
+    if ((j.place === "chef" || j.place === "itel" || j.place === "hotel") && s.place !== j.place) { setPanel("go"); return setErr(`Your job is at ${C.PLACES.find((x) => x.id === j.place)?.name} in ${C.PLACES.find((x) => x.id === j.place)?.area}. Go there first.`); }
     if (s.activity) return setErr(`Finish what you're doing first: ${s.activity.label}`);
     const r = await act<{ endsAt: number; pay: number }>({ action: "shift_start", needsLow: needsLow(s.needs) });
     if (!r) return;
@@ -359,6 +373,28 @@ export default function LifeGame() {
   async function buyFuel(litres: number) {
     const r = await act<{ litres: number; tank: number }>({ action: "fuel", litres });
     if (r) { update((x) => ({ ...x, fuel: Math.min(r.tank, x.fuel + r.litres) })); say(`⛽ ${r.litres} L of petrol in the tank.`); saveNow(); }
+  }
+  // A stored plate: hot from the microwave (Hunger +50) when there's power for it, otherwise eaten cold (+40).
+  function eatPlate() {
+    const s0 = saveRef.current, pl = playerRef.current; if (!s0 || !pl || s0.plates < 1) return;
+    const hot = pl.owned.includes("microwave") && powerSource(s0, C.nepaAt(Date.now() + offset.current).out, pl.owned) !== "none";
+    update((x) => ({ ...x, plates: x.plates - 1 }));
+    start({ kind: "eat", label: hot ? "Eating a hot plate" : "Eating leftovers cold", icon: hot ? "♨️" : "🍽", end: { hunger: hot ? 50 : 40 } }, hot ? 12 : 15);
+  }
+  async function openOutlet(kind: C.OutletKind, area: C.OutletArea) {
+    const t = C.OUTLET(kind)!;
+    if (!confirm(`Open a ${t.name} in ${C.OUTLET_AREAS[area].name} for ${C.fmtN(C.outletPrice(t, area))}?`)) return;
+    const r = await act<{ message: string }>({ action: "outlet_open", outlet: kind, area });
+    if (r) { sfx("bonus"); say(`${t.icon} ${r.message}`, shareText(`I just opened my own ${t.name} in Notes Life ${t.icon}`)); setPanel({ outlet: kind }); }
+  }
+  async function collect(kind?: C.OutletKind) {
+    const r = await act<{ total: number }>({ action: "outlet_collect", ...(kind ? { outlet: kind } : {}) });
+    if (r) say(r.total > 0 ? `💼 ${C.fmtN(r.total)} in takings collected.` : "Nothing to collect yet.");
+  }
+  async function outletBackup(kind: C.OutletKind) {
+    if (!confirm(`Fit ${C.OUTLET_BACKUP.name} for ${C.fmtN(C.OUTLET_BACKUP.price)}? Takings so far are collected first.`)) return;
+    const r = await act<{ message: string }>({ action: "outlet_backup", outlet: kind });
+    if (r) say(`🔋 ${r.message}`);
   }
   function genSwitch(on: boolean) {
     const s = saveRef.current, p = playerRef.current; if (!s || !p) return;
@@ -397,6 +433,10 @@ export default function LifeGame() {
   const tagInfo = (key: string): { label: string; up?: boolean; go: () => void } | null => {
     if (!player || !save) return null;
     if (key.startsWith("npc:")) { const r = C.RESIDENT(key.slice(4)); return r ? { label: `${r.name} 🤖`, go: () => setPanel({ chat: r.id }) } : null; }
+    if (key === "bb:challenge") return { label: "📣 #1MillionNairaNotesAppChallenge", up: true, go: () => { window.open("https://www.notesapp.name.ng/challenge", "_blank"); } };
+    if (key === "bb:itel" || key === "bb:itel2") return { label: "⚡ itel Energy · Go solar", go: () => setPanel("itel") };
+    if (key === "bb:chef") return { label: "🍽 Chef Adams · Order now", go: () => setPanel("food") };
+    if (key.startsWith("mine:")) { const t = C.OUTLET(key.slice(5)); const o = player.outlets.find((x) => x.kind === t?.id); return t && o ? { label: `${t.icon} Your ${t.short} · ${C.fmtShort(C.outletTakings(o, Date.now() + offset.current).takings)}`, up: true, go: () => setPanel({ outlet: t.id }) } : null; }
     if (key.startsWith("player:")) { const o = others.find((x) => x.uid === key.slice(7)); return o ? { label: `👤 ${o.name.split(" ")[0]}`, up: true, go: () => setPanel({ player: o }) } : null; }
     const has = (id: string) => player.owned.includes(id);
     const pc = C.bestOwned(player.owned, "computer");
@@ -414,6 +454,8 @@ export default function LifeGame() {
         case "cooker": return { label: save.plates ? `🍳 Eat (${save.plates} ready)` : "🍳 Cook", go: () => { walk("cooker"); setPanel("cook"); } };
         case "door": return { label: "🚪 Go out", go: () => setPanel("go") };
         case "powergo": return { label: `🔋 Power GO ${Math.round((save.battery / C.POWER_GO.wh) * 100)}%`, up: src === "go", go: () => setPanel("power") };
+        case "fridge": return { label: player.owned.includes("fridge") ? `🧊 Fridge${save.plates ? ` · ${save.plates} plate${save.plates === 1 ? "" : "s"}` : ""}` : `♨️ Microwave${save.plates ? ` · ${save.plates} plate${save.plates === 1 ? "" : "s"}` : ""}`, go: () => setPanel("kitchen") };
+        case "tank": return { label: `🔋 Power Tank ${Math.round((save.tank / C.POWER_TANK.wh) * 100)}%`, up: src === "tank", go: () => setPanel("power") };
         case "gen": return { label: src === "gen" ? `⛽ Generator ON · ${save.fuel.toFixed(1)} L` : `⛽ Generator · ${save.fuel.toFixed(1)} L`, up: src === "gen", go: () => setPanel("power") };
       }
     }
@@ -455,6 +497,7 @@ export default function LifeGame() {
   const dealReady = deal?.state === "active" && Date.now() + offset.current >= (deal.dueAt ?? 0) - 3000;
   const job = player.jobId ? C.JOB(player.jobId) : null;
   const diff = C.DIFFICULTY[save.difficulty];
+  const takingsAll = player.outlets.reduce((n, o) => n + C.outletTakings(o, Date.now() + offset.current).takings, 0);
 
   return (
     <div className="life-game fixed inset-0 overflow-hidden bg-sky-100 font-ui text-ink" onClickCapture={(e) => { const was = snd.current?.ready; snd.current?.unlock(); if (was && (e.target as HTMLElement).closest("button")) sfx("tap"); }}>
@@ -478,8 +521,9 @@ export default function LifeGame() {
         <div className="mx-auto mt-2 flex flex-wrap justify-center gap-2 text-[11px]">
           <span className="pill px-3 py-1">☁️ {savedAt ? `Saved ${Math.max(1, Math.round((Date.now() - savedAt) / 1000))}s ago` : "Saved on this device"}</span>
           <span className="pill px-3 py-1">📅 Day {day}{player.rentOwed ? <b className="text-crimson"> · rent owed {C.fmtN(player.rentOwed)}</b> : ` · rent day ${(Math.floor((day - 1) / C.MONTH_DAYS) + 1) * C.MONTH_DAYS + 1}`}</span>
-          {nepa.out && <button onClick={() => setPanel(save.place === "home" ? "power" : "nepa")} className={`pill pointer-events-auto px-3 py-1 font-bold ${src === "none" ? "text-red-700" : "text-amber-700"}`}>⚡ NEPA off{src === "go" ? ` · 🔋 Power GO ${Math.round((save.battery / C.POWER_GO.wh) * 100)}%` : src === "gen" ? ` · ⛽ ${save.fuel.toFixed(1)} L` : ""}</button>}
+          {nepa.out && <button onClick={() => setPanel(save.place === "home" ? "power" : "nepa")} className={`pill pointer-events-auto px-3 py-1 font-bold ${src === "none" ? "text-red-700" : "text-amber-700"}`}>⚡ NEPA off{src === "go" ? ` · 🔋 Power GO ${Math.round((save.battery / C.POWER_GO.wh) * 100)}%` : src === "tank" ? ` · 🔋 Power Tank ${Math.round((save.tank / C.POWER_TANK.wh) * 100)}%` : src === "gen" ? ` · ⛽ ${save.fuel.toFixed(1)} L` : ""}</button>}
           <button onClick={() => setPanel("invite")} className="pill pointer-events-auto px-3 py-1 font-bold text-pink-600">🎁 Invite · {`₦${C.REFERRAL_BONUS_KOBO / 100}`} each</button>
+          {takingsAll >= 1_000 && <button onClick={() => setPanel("business")} className="pill pointer-events-auto px-3 py-1 font-bold text-amber-700">💼 {C.fmtShort(takingsAll)} to collect</button>}
           {save.delivery && <span className="pill px-3 py-1">🛵 Food in {Math.max(1, Math.ceil((save.delivery.at - Date.now()) / C.GAME_MIN_MS))} min</span>}
           {deal?.state === "active" && <button onClick={() => dealReady && collectDeal()} className={`pill pointer-events-auto px-3 py-1 ${dealReady ? "!bg-emerald-500 font-bold text-white" : ""}`}>📦 {deal.who}: {dealReady ? `deliver · ${C.fmtN(deal.pay)}` : `ready in ${Math.max(1, Math.ceil(((deal.dueAt ?? 0) - Date.now() - offset.current) / C.GAME_HOUR_MS))} h`}</button>}
         </div>
@@ -509,7 +553,7 @@ export default function LifeGame() {
           </div>
           <nav className="pill pointer-events-auto mx-auto grid max-w-md grid-cols-5 gap-1 rounded-3xl p-1.5 text-center text-[11px] font-semibold lg:max-w-xl">
             {[["🏠", "Home", () => (save.place === "home" ? setPanel(null) : setPanel("go"))], ["🛋", "Shop", () => setPanel({ shop: "rug" })], ["🗺", "Go", () => setPanel("go")], ["📱", "Phone", () => setPanel("phone")], ["👑", "Rich list", () => setPanel("rich")]].map(([i, l, f]) => (
-              <button key={l as string} onClick={f as () => void} className={`rounded-2xl py-2 ${(l === "Home" && !panel) || (l === "Phone" && ["phone", "jobs", "friends", "bank", "invite", "food", "deal"].includes(String(panel))) || (l === "Go" && panel === "go") || (l === "Rich list" && panel === "rich") || (l === "Shop" && typeof panel === "object" && !!panel && "shop" in panel) ? "bg-ink text-white" : ""}`}>{i as string}<br />{l as string}</button>
+              <button key={l as string} onClick={f as () => void} className={`rounded-2xl py-2 ${(l === "Home" && !panel) || (l === "Phone" && ["phone", "jobs", "friends", "bank", "invite", "food", "deal", "business"].includes(String(panel))) || (l === "Go" && panel === "go") || (l === "Rich list" && panel === "rich") || (l === "Shop" && typeof panel === "object" && !!panel && "shop" in panel) ? "bg-ink text-white" : ""}`}>{i as string}<br />{l as string}</button>
             ))}
           </nav>
         </div>
@@ -585,7 +629,7 @@ export default function LifeGame() {
     if (panel === "cook") return (<div>{close}
       <p className="text-[11px] font-bold uppercase tracking-widest text-emerald-700">🍳 Cook at home</p><h2 className="text-xl font-extrabold">What are you cooking?</h2>
       <p className="text-xs text-slate">Cheaper than eating out, but it takes time. Cooking skill: <b>{p.cooking} of 10</b> (skill 3 qualifies you as a Chef Adams line cook).</p>
-      {s.plates > 0 && <div className="mt-3"><Row icon="🍽" title={`Eat a plate (${s.plates} ready)`} note="Hunger +50" pick onClick={() => { update((x) => ({ ...x, plates: x.plates - 1 })); start({ kind: "eat", label: "Eating", icon: "🍽", end: { hunger: 50 } }, 15); }} /></div>}
+      {s.plates > 0 && <div className="mt-3"><Row icon="🍽" title={`Eat a plate (${s.plates} ready)`} note={p.owned.includes("microwave") ? "Warmed in the microwave: Hunger +50" : "Hunger +40 cold · a microwave warms it: +50"} pick onClick={eatPlate} />{!p.owned.includes("fridge") && <p className="mt-1 text-[10px] text-amber-800">No fridge: plates spoil after {C.FOOD_SPOIL_HOURS} game hours ({Math.max(0, Math.ceil(C.FOOD_SPOIL_HOURS - s.plateWarm))} h left).</p>}</div>}
       <div className="mt-3 grid gap-2">{C.RECIPES.map((r) => <Row key={r.id} icon={r.icon} title={r.name} note={`Ingredients ${C.fmtN(r.cost)} · ${r.minutes} game min · 🍲 +${r.hunger} a plate`} right={<b>{C.fmtN(Math.round(r.cost / r.plates))}/plate</b>} onClick={() => cook(r)} />)}</div></div>);
 
     if (panel === "deal") {
@@ -634,24 +678,45 @@ export default function LifeGame() {
 
     if (panel === "food") return foodPanel(close);
     if (panel === "hotel") return (<div>{close}
-      <div className="flex items-center gap-3"><img src="/images/life/partners/candellux-logo.webp" alt="" className="h-12 w-12 rounded-full object-cover" /><div><p className="font-serif text-xl font-bold italic leading-tight text-[#262b6b]">Candellux</p><p className="text-[11px] font-bold tracking-wider text-[#262b6b]">IMPERIAL HOTEL &amp; SUITES <span className="rounded-full bg-[#e3b23c]/20 px-1.5 py-0.5 text-[9px] text-[#8a6a12]">PARTNER</span></p><p className="text-[10px] text-slate">Garki, Abuja · {C.CANDELLUX.tagline}</p></div></div>
+      {brandHead("candellux")}{brandTabs("candellux", "main")}
       {s.place !== "hotel" && <p className="mt-3 rounded-xl bg-amber-50 px-3 py-2 text-xs text-amber-900">You&apos;re not at the hotel. <button className="font-bold underline" onClick={() => setPanel("go")}>Go to Garki</button></p>}
-      <div className="mt-3 grid gap-1.5">{C.HOTEL.map((h) => <Row key={h.id} icon={h.icon} title={h.name} note={h.note} right={h.soon ? <span className="text-slate">Soon</span> : <button disabled={busy || s.place !== "hotel"} onClick={() => hotel(h)} className="rounded-full bg-[#262b6b] px-3 py-1 font-bold text-white disabled:opacity-40">{C.fmtN(h.price)}</button>} />)}</div>
+      <div className="mt-3 grid gap-1.5">{C.HOTEL.map((h) => { const half = C.isStaff(p.jobId, "candellux") && C.STAFF_PERKS.hotelHalf.includes(h.id); return <Row key={h.id} icon={h.icon} title={h.name} note={<>{h.note}{half && <b className="block text-emerald-700">Staff: half price</b>}</>} right={h.soon ? <span className="text-slate">Soon</span> : <button disabled={busy || s.place !== "hotel"} onClick={() => hotel(h)} className="rounded-full bg-[#262b6b] px-3 py-1 font-bold text-white disabled:opacity-40">{C.fmtN(half ? Math.round(h.price / 2) : h.price)}</button>} />; })}</div>
       <div className="mt-3 flex gap-3 rounded-2xl border border-[#e3b23c] bg-[#fffbeb] p-2.5"><img src="/images/life/partners/candellux-pool.webp" alt="" className="h-16 w-20 shrink-0 rounded-xl object-cover" /><div className="min-w-0 text-[11px]"><b className="block text-[12px]">Stay at the real Candellux</b>{C.CANDELLUX.address} · WhatsApp {C.CANDELLUX.whatsappLabel}<a href={WA("Hello Candellux, I'd like to book a room (I found you on Notes Life).", C.CANDELLUX.whatsapp)} target="_blank" rel="noreferrer" className="mt-1 block font-bold text-[#262b6b] underline">Book a real room ↗</a></div></div>
       <p className="mt-2 text-center text-[10px] text-slate">Candellux Imperial is a Notes Life partner.</p></div>);
 
     if (panel === "phone") return (<div>{close}<p className="text-lg font-extrabold">📱 Phone</p>
-      <div className="mt-3 grid grid-cols-4 gap-3 text-center text-[11px] font-semibold">{([["💼", "Jobs", "bg-emerald-500", () => setPanel("jobs")], ["👥", "Friends", "bg-crimson", () => setPanel("friends")], ["🎁", "Invite", "bg-pink-500", () => setPanel("invite")], ["☎️", "Deals", "bg-sky-500", () => setPanel("deal")], ["🏦", "Bank", "bg-amber-500", () => setPanel("bank")], ["🛺", "Go", "bg-teal-600", () => setPanel("go")], ["CHEF", "Chef Adams", "bg-[#292929]", () => setPanel("food")], ["👑", "Candellux", "bg-[#262b6b]", () => setPanel("hotel")], ["⚡", "itel Energy", "bg-[#e8173f]", () => setPanel("itel")], ["👑", "Rich list", "bg-slate-800", () => setPanel("rich")], ["🛋", "Shop", "bg-orange-500", () => setPanel({ shop: "rug" })], ["📰", "NotesApp", "bg-[#7A0328]", () => void leave()], ["⚙️", "Settings", "bg-slate-400", () => setPanel("settings")]] as [string, string, string, () => void][]).map(([i, n, c, f]) => (
+      <div className="mt-3 grid grid-cols-4 gap-3 text-center text-[11px] font-semibold">{([["💼", "Jobs", "bg-emerald-500", () => setPanel("jobs")], ["👥", "Friends", "bg-crimson", () => setPanel("friends")], ["🎁", "Invite", "bg-pink-500", () => setPanel("invite")], ["☎️", "Deals", "bg-sky-500", () => setPanel("deal")], ["🏦", "Bank", "bg-amber-500", () => setPanel("bank")], ["🛺", "Go", "bg-teal-600", () => setPanel("go")], ["CHEF", "Chef Adams", "bg-[#292929]", () => setPanel("food")], ["👑", "Candellux", "bg-[#262b6b]", () => setPanel("hotel")], ["⚡", "itel Energy", "bg-[#e8173f]", () => setPanel("itel")], ["🏪", "Businesses", "bg-[#F2B544]", () => setPanel("business")], ["👑", "Rich list", "bg-slate-800", () => setPanel("rich")], ["🛋", "Shop", "bg-orange-500", () => setPanel({ shop: "rug" })], ["📰", "NotesApp", "bg-[#7A0328]", () => void leave()], ["⚙️", "Settings", "bg-slate-400", () => setPanel("settings")]] as [string, string, string, () => void][]).map(([i, n, c, f]) => (
         <button key={n + i} onClick={f}><span className={`mx-auto flex h-14 w-14 items-center justify-center overflow-hidden rounded-2xl ${c} text-2xl text-white shadow`}>{i === "CHEF" ? <img src="/images/life/partners/chef-emblem.webp" alt="" className="h-12 w-12 object-contain" /> : i}</span><span className="mt-1 block">{n}</span></button>
       ))}</div></div>);
 
     if (panel === "jobs") return (<div>{close}<p className="text-lg font-extrabold">💼 Jobs in Abuja</p><p className="text-[11px] text-slate">Real NotesApp careers. Better gear, better pay. One shift is {C.SHIFT_HOURS} game hours ({C.SHIFT_MS / 60_000} real minutes).</p>
       {job && <div className="mt-3 rounded-2xl border-2 border-emerald-400 bg-emerald-50 p-3"><b className="block">{job.icon} Your job: {job.title}</b><span className="text-[11px] text-slate">{job.employer} · {C.fmtN(C.shiftPay(job, p.owned, needsLow(s.needs)))} a shift{needsLow(s.needs) ? " (a need is low)" : ""} · {p.shifts} shifts done</span>
         <div className="mt-2 flex gap-2">{p.shift ? <span className="text-xs font-semibold">On shift now</span> : <><Btn tone="green" onClick={startShift}>Start a shift</Btn><Btn tone="ghost" onClick={() => act({ action: "job_quit" })}>Quit</Btn></>}</div></div>}
-      <div className="mt-3 grid gap-1.5">{C.JOBS.filter((j) => j.id !== job?.id).map((j) => { const block = C.jobBlocker(j, { owned: p.owned, cooking: p.cooking, chefShifts: p.chefShifts, reputation: p.reputation }); return (
-        <Row key={j.id} icon={j.brand ? <img src="/images/life/partners/chef-emblem.webp" alt="" className="h-9 w-9 object-contain" /> : j.icon} title={<>{j.title}</>} note={<>{j.employer}{block ? <b className="block text-crimson">🔒 {block}</b> : j.ladder ? <span className="block">{j.ladder}</span> : null}</>}
-          right={<><b className="block text-emerald-700">{j.pay ? `${C.fmtN(j.pay)}/shift` : ""}</b>{!block && !p.shift && <button disabled={busy} onClick={async () => { const r = await act<{ message: string }>({ action: "job_apply", job: j.id }); if (r) say(r.message, shareText(`I just got a job as ${j.title} in Notes Life 💼`)); }} className="mt-1 rounded-full bg-ink px-2.5 py-1 text-[11px] font-bold text-white">Take it</button>}</>} />); })}</div>
-      <div className="mt-3 rounded-2xl border-2 border-[#F2B544] bg-[#292929] p-3 text-white"><p className="text-[10px] font-bold uppercase tracking-widest text-[#F2B544]">🤝 Become a Partner</p><p className="text-[13px] font-bold">Own a Chef Adams outlet</p><div className="mt-1.5 grid grid-cols-2 gap-1.5 text-[10px]"><span className="rounded-xl bg-white/10 p-2"><b className="block text-[12px]">Takeaway Kiosk</b>from {C.fmtShort(C.CHEF_PARTNER.kiosk)}</span><span className="rounded-xl bg-white/10 p-2"><b className="block text-[12px]">Mini Dine-In Shop</b>from {C.fmtShort(C.CHEF_PARTNER.shop)}</span></div><p className="mt-1.5 text-[10px] opacity-80">One brand. Standardised recipes, training and quality control in every outlet. Coming soon in the game.</p></div></div>);
+      {([[undefined, "Around town"], ["chef_adams", "Chef Adams"], ["itel", "itel Energy"], ["candellux", "Candellux"]] as [C.Brand | undefined, string][]).map(([b, title]) => <div key={title}><p className="mt-3 text-[10px] font-bold uppercase tracking-wider text-slate">{title}</p><div className="mt-1 grid gap-1.5">{C.JOBS.filter((j) => j.id !== job?.id && j.brand === b).map(jobRow)}</div></div>)}
+      <div className="mt-3 grid grid-cols-2 gap-2">{partnerCard("chef_adams")}{partnerCard("itel")}</div></div>);
+
+    if (typeof panel === "object" && panel && "jobs" in panel) {
+      const b = panel.jobs;
+      return (<div>{close}{brandHead(b)}{brandTabs(b, "jobs")}
+        {job?.brand === b && <p className="mt-3 rounded-2xl border-2 border-emerald-400 bg-emerald-50 px-3 py-2 text-xs"><b>{job.icon} You work here: {job.title}.</b> {p.shift ? "On shift now." : <button className="font-bold underline" onClick={startShift}>Start a shift</button>}</p>}
+        <div className="mt-3 grid gap-1.5">{C.JOBS.filter((j) => j.brand === b && j.id !== job?.id).map(jobRow)}</div>
+        <p className="mt-3 rounded-xl bg-slate-50 px-3 py-2 text-[11px] text-slate">{b === "itel" ? `💡 itel staff get ${Math.round(C.STAFF_PERKS.itelDiscount * 100)}% off itel products. ` : b === "candellux" ? "⭐ Staff perk: half price at the pool, gym and VIP bar. " : "🍲 Line cooks train on the house recipes. "}You've done {C.brandShifts(p, b)} shift{C.brandShifts(p, b) === 1 ? "" : "s"} here. Shifts are {C.SHIFT_HOURS} game hours.</p></div>);
+    }
+    if (typeof panel === "object" && panel && "partner" in panel) return partnerPanel(close, panel.partner);
+    if (typeof panel === "object" && panel && "outlet" in panel) return outletPanel(close, panel.outlet);
+    if (panel === "business") return businessPanel(close);
+    if (panel === "kitchen") {
+      const fr = p.owned.includes("fridge"), mw = p.owned.includes("microwave"), cold = fridgeCold(s, nepa.out, p.owned);
+      return (<div>{close}<p className="text-[11px] font-bold uppercase tracking-widest text-emerald-700">🧊 Kitchen</p><h2 className="text-xl font-extrabold">{s.plates ? `${s.plates} plate${s.plates === 1 ? "" : "s"} stored` : "Nothing stored"}</h2>
+        <p className="text-xs text-slate">{fr ? (cold ? "The fridge is cold: food keeps." : `The fridge has no power: food spoils after ${C.FOOD_SPOIL_HOURS} game hours without cold (${Math.max(0, Math.ceil(C.FOOD_SPOIL_HOURS - s.plateWarm))} h left).`) : `No fridge: stored food spoils after ${C.FOOD_SPOIL_HOURS} game hours.`}</p>
+        <div className="mt-3 grid gap-2">
+          {s.plates > 0 && <Row icon={mw ? "♨️" : "🍽"} title="Eat a plate" note={mw ? "Warmed in the microwave: Hunger +50" : "Eaten cold: Hunger +40"} pick onClick={eatPlate} />}
+          <Row icon="🥡" title="Get takeaway or delivery to keep" note="Tick “Keep for later” when you order from Chef Adams" onClick={() => setPanel("food")} />
+          {!fr && <Row icon="🧊" title="Buy a fridge" note="Keeps food fresh while it has power" right={<b>{C.fmtShort(C.ITEM("fridge")!.price)}</b>} onClick={() => setPanel({ shop: "kitchen" })} />}
+          {!mw && <Row icon="♨️" title="Buy a microwave" note="Hot food: Hunger +50 instead of +40" right={<b>{C.fmtShort(C.ITEM("microwave")!.price)}</b>} onClick={() => setPanel({ shop: "kitchen" })} />}
+          {fr && !p.owned.includes("power_tank") && <Row icon="🔋" title="itel Power Tank 1000" note="Keeps the fridge cold about 5 game hours in a blackout" right={<b className="text-[#e8173f]">{C.fmtShort(C.ITEM("power_tank")!.price)}</b>} onClick={() => setPanel("itel")} />}
+        </div></div>);
+    }
 
 
     if (panel === "nepa") {
@@ -663,6 +728,9 @@ export default function LifeGame() {
             : <Row icon={<img src="/images/life/partners/itel-powergo.webp" alt="" className="h-10 w-10 object-contain" />} title="Get a Power GO Pro at itel Energy" note="Lamp, fan and laptop keep going · silent, no fuel" right={<b className="text-[#e8173f]">{C.fmtShort(C.ITEM("power_go")!.price)}</b>} pick onClick={() => setPanel("itel")} />}
           {gen ? <Row icon={C.ITEM(gen)!.icon} title={src === "gen" ? `${C.ITEM(gen)!.name} is ON` : `Start ${C.ITEM(gen)!.name}`} note={`${s.fuel.toFixed(1)} L of petrol · ${C.ITEM(gen)!.litresPerHour} L a game hour`} pick={src === "gen"} onClick={() => setPanel("power")} />
             : <Row icon="⛽" title="Buy “I Better Pass My Neighbour”" note="950W generator from the market · loud · needs petrol" right={<b>{C.fmtShort(C.ITEM("gen_small")!.price)}</b>} onClick={() => setPanel({ shop: "power" })} />}
+          {p.owned.includes("power_tank") ? <Row icon="🔋" title={`itel Power Tank 1000 · ${Math.round((s.tank / C.POWER_TANK.wh) * 100)}%`} note={p.owned.includes("fridge") ? "Keeps your fridge cold through the blackout" : "Runs the lights when the Power GO is empty"} pick={src === "tank"} onClick={() => setPanel("power")} />
+            : <Row icon="🔋" title="itel Power Tank 1000" note="1000W AC: your fridge keeps food fresh about 5 game hours" right={<b className="text-[#e8173f]">{C.fmtShort(C.ITEM("power_tank")!.price)}</b>} onClick={() => setPanel("itel")} />}
+          {s.plates > 0 && !fridgeCold(s, nepa.out, p.owned) && <p className="rounded-xl bg-red-50 px-3 py-2 text-[11px] text-red-800">🤢 Your {s.plates} stored plate{s.plates === 1 ? "" : "s"} spoil{s.plates === 1 ? "s" : ""} in {Math.max(0, Math.ceil(C.FOOD_SPOIL_HOURS - s.plateWarm))} game hours without a cold fridge.</p>}
           <Row icon="☀️" title="Small home solar kit" note="Never affected again (coming soon)" right={<span className="text-slate">soon</span>} />
           <Row icon="🔦" title="Stay in the dark till light returns" note="No reading at night, an old desktop can't work, and you sleep hot" onClick={() => setPanel(null)} />
         </div>
@@ -675,6 +743,8 @@ export default function LifeGame() {
         {p.owned.includes("power_go") ? <div className="mt-3 rounded-2xl border p-3"><div className="flex items-center gap-3"><img src="/images/life/partners/itel-powergo.webp" alt="" className="h-12 w-10 object-contain" /><div className="flex-1"><b className="text-sm">itel Power GO Pro · {pct}%</b><span className="bar mt-1 block"><i style={{ width: `${pct}%`, background: pct < 20 ? "#ef4444" : "#a855f7" }} /></span><span className="mt-1 block text-[11px] text-slate">{nepa.out ? "Lamp, fan and laptop on the battery when the generator is off." : "Charging from NEPA."}{p.owned.includes("solar_panel") ? " ☀️ Solar panel: charges by day." : ""}</span></div></div>
           {!p.owned.includes("solar_panel") && <button onClick={() => setPanel("itel")} className="mt-2 text-[11px] font-bold text-[#e8173f] underline">Add the 100W solar panel ({C.fmtShort(C.ITEM("solar_panel")!.price)})</button>}</div>
           : <div className="mt-3"><Row icon="🔋" title="No Power GO yet" note="itel Energy, Wuse market road" right={<b className="text-[#e8173f]">{C.fmtShort(C.ITEM("power_go")!.price)}</b>} onClick={() => setPanel("itel")} /></div>}
+        {p.owned.includes("power_tank") && (() => { const tp = Math.round((s.tank / C.POWER_TANK.wh) * 100); const panels = (p.owned.includes("solar_650") ? 1 : 0) + (p.owned.includes("solar_650b") ? 1 : 0); return <div className="mt-3 rounded-2xl border p-3"><div className="flex items-center gap-3"><span className="flex h-12 w-10 items-center justify-center text-2xl">🔋</span><div className="flex-1"><b className="text-sm">itel Power Tank 1000 · {tp}%</b><span className="bar mt-1 block"><i style={{ width: `${tp}%`, background: tp < 20 ? "#ef4444" : "#0ea5e9" }} /></span><span className="mt-1 block text-[11px] text-slate">{nepa.out ? (p.owned.includes("fridge") ? `Fridge on the Power Tank: about ${Math.max(0, (s.tank / C.POWER_TANK.fridgeW)).toFixed(1)} game hours left.` : "Ready for the lights when the Power GO is empty.") : "Charging from NEPA."}{panels ? ` ☀️ ${panels} × 650W panel${panels === 1 ? "" : "s"}: charges by day.` : ""}</span></div></div>
+          {panels < 2 && <button onClick={() => setPanel("itel")} className="mt-2 text-[11px] font-bold text-[#e8173f] underline">Add a 650W bifacial panel ({C.fmtShort(C.ITEM("solar_650")!.price)} each, it takes two)</button>}</div>; })()}
         {gen ? <div className="mt-3 rounded-2xl border p-3"><div className="flex items-center justify-between"><b className="text-sm">{gen.icon} {gen.name}</b><b className="text-xs">{s.fuel.toFixed(1)} / {gen.tank} L</b></div><span className="bar mt-1 block"><i style={{ width: `${(s.fuel / (gen.tank ?? 5)) * 100}%`, background: "#f59e0b" }} /></span>
           <div className="mt-2 flex flex-wrap gap-2">{src === "gen" ? <Btn tone="ghost" onClick={() => genSwitch(false)}>Switch off</Btn> : <Btn tone="green" onClick={() => genSwitch(true)} disabled={!nepa.out || s.fuel <= 0}>Pull the cord</Btn>}
             {[1, 3, gen.tank ?? 5].map((l) => <Btn key={l} tone="ghost" onClick={() => buyFuel(Math.min(l, Math.floor((gen.tank ?? 5) - s.fuel) || 1))}>⛽ {l} L · {C.fmtShort(l * C.FUEL_NAIRA)}</Btn>)}</div>
@@ -686,15 +756,15 @@ export default function LifeGame() {
       const items = C.ITEMS.filter((i) => i.brand === "itel");
       const goItem = C.ITEM("power_go")!;
       const real = <a href={C.ITEL.sellerUrl} target="_blank" rel="noreferrer" className="mt-3 flex gap-3 rounded-2xl border border-[#e8173f]/30 bg-[#fff1f3] p-2.5"><img src="/images/life/partners/itel-powergo.webp" alt="" className="h-16 w-14 shrink-0 object-contain" /><span className="min-w-0 text-[11px]"><b className="block text-[12px]">Get the real Power GO Pro</b>From @{C.ITEL.seller}, the itel distributor on NotesApp. CarlCare after-sales with replacement warranty.<span className="mt-1 block font-bold text-[#e8173f] underline">Shop @{C.ITEL.seller} on NotesApp ↗</span></span></a>;
-      const head = <div className="flex items-center gap-3"><img src="/images/life/partners/itel-logo.webp" alt="itel Energy" className="h-7" /><span className="rounded-full bg-[#e8173f]/10 px-2 py-0.5 text-[10px] font-bold text-[#e8173f]">PARTNER</span></div>;
-      if (panel === "product") return (<div>{close}<div className="flex gap-4"><img src="/images/life/partners/itel-powergo.webp" alt="" className="h-32 w-24 shrink-0 object-contain" /><div><img src="/images/life/partners/itel-logo.webp" alt="itel Energy" className="h-5" /><h2 className="mt-1 text-2xl font-extrabold leading-tight">Power GO Pro</h2><p className="text-xs text-slate">320Wh · 200W max output · 100% grade A cells</p><p className="mt-2 text-xl font-extrabold">{C.fmtN(goItem.price)}</p></div></div>
+      const staff = C.isStaff(p.jobId, "itel"), cost = (i: C.Item) => (staff ? Math.round(i.price * (1 - C.STAFF_PERKS.itelDiscount)) : i.price);
+      if (panel === "product") return (<div>{close}<div className="flex gap-4"><img src="/images/life/partners/itel-powergo.webp" alt="" className="h-32 w-24 shrink-0 object-contain" /><div><img src="/images/life/partners/itel-logo.svg" alt="itel" className="h-7" /><h2 className="mt-1 text-2xl font-extrabold leading-tight">Power GO Pro</h2><p className="text-xs text-slate">320Wh · 200W max output · 100% grade A cells</p><p className="mt-2 text-xl font-extrabold">{C.fmtN(goItem.price)}</p></div></div>
         <p className="mt-3 text-[11px] font-bold uppercase tracking-wider text-slate">In a power cut it runs</p>
         <div className="mt-1 grid grid-cols-3 gap-1.5 text-center text-[11px]">{C.RUNTIMES.map(([i, a, b]) => <div key={b} className="rounded-2xl bg-[#7a0f1f] p-2 text-white"><span className="text-lg">{i}</span><b className="block text-sm">{a}</b><span className="opacity-80">{b}</span></div>)}</div>
         <p className="mt-3 text-[11px] text-slate">In the game: when NEPA takes light, your lamp, fan and laptop stay on and desk work keeps paying. The battery goes down as you use it and fills again when light returns, or by day with the solar panel.</p>
-        <div className="mt-3 grid grid-cols-2 gap-2">{p.owned.includes("power_go") ? <Btn tone="ghost" onClick={() => setPanel("power")}>✓ Owned · see power</Btn> : <Btn tone="red" onClick={() => buy(goItem)}>Buy · {C.fmtShort(goItem.price)}</Btn>}<Btn tone="ghost" onClick={() => setPanel("itel")}>All itel products</Btn></div>{real}</div>);
-      return (<div>{close}{head}<p className="mt-0.5 text-[10px] text-slate">{C.ITEL.note}</p><h2 className="mt-2 text-xl font-extrabold">Power when NEPA takes light</h2><p className="text-xs text-slate">Keep your lamp, fan and laptop going through a power cut. Silent, no fuel, no fumes.</p>
+        <div className="mt-3 grid grid-cols-2 gap-2">{p.owned.includes("power_go") ? <Btn tone="ghost" onClick={() => setPanel("power")}>✓ Owned · see power</Btn> : <Btn tone="red" onClick={() => buy(goItem)}>Buy · {C.fmtShort(cost(goItem))}</Btn>}<Btn tone="ghost" onClick={() => setPanel("itel")}>All itel products</Btn></div>{real}</div>);
+      return (<div>{close}{brandHead("itel")}{brandTabs("itel", "main")}<h2 className="mt-3 text-xl font-extrabold">The sun is free. Why not use it?</h2><p className="text-xs text-slate">Keep your lamp, fan, laptop and fridge going through a power cut. Silent, no fuel, no fumes.{staff ? ` Staff price: ${Math.round(C.STAFF_PERKS.itelDiscount * 100)}% off.` : ""}</p>
         <div className="mt-3 grid gap-2">{items.map((i) => { const own = p.owned.includes(i.id); return <Row key={i.id} icon={i.id === "power_go" ? <img src="/images/life/partners/itel-powergo.webp" alt="" className="h-10 w-10 object-contain" /> : i.icon} title={<>{i.name.replace(/^itel (.)/, (_, c: string) => c.toUpperCase())}{eco(i.eco)}</>} note={i.note} pick={i.id === "power_go" && !own} onClick={i.id === "power_go" ? () => setPanel("product") : undefined}
-          right={own ? <span className="rounded-full bg-slate-200 px-2 py-0.5 font-bold">Owned</span> : i.soon ? <span className="text-slate"><b className="block">{C.fmtShort(i.price)}</b>soon</span> : <button disabled={busy} onClick={(e) => { e.stopPropagation(); void buy(i); }} className="rounded-full bg-[#e8173f] px-3 py-1 font-bold text-white disabled:opacity-40">{C.fmtShort(i.price)}</button>} />; })}</div>
+          right={own ? <span className="rounded-full bg-slate-200 px-2 py-0.5 font-bold">Owned</span> : i.soon ? <span className="text-slate"><b className="block">{C.fmtShort(i.price)}</b>soon</span> : <button disabled={busy} onClick={(e) => { e.stopPropagation(); void buy(i); }} className="rounded-full bg-[#e8173f] px-3 py-1 font-bold text-white disabled:opacity-40">{C.fmtShort(cost(i))}</button>} />; })}</div>
         {nepa.out && <p className="mt-3 rounded-xl bg-amber-50 px-3 py-2 text-[11px] text-amber-900">⚡ NEPA has taken light right now. Solar homes never noticed.</p>}{real}</div>);
     }
     if (chatId) {
@@ -719,6 +789,95 @@ export default function LifeGame() {
     if (panel === "settings") return settingsPanel(close);
     return null;
 
+    // --- brands: a header and tabs (Eat or Shop or Services · Jobs · Partner), job rows, partner outlets ---
+    function brandHead(b: C.Brand) {
+      if (b === "chef_adams") return <div className="flex items-center gap-2"><img src="/images/life/partners/chef-emblem.webp" alt="" className="h-12 w-12 object-contain" /><div><img src="/images/life/partners/chef-wordmark.webp" alt="Chef Adams" className="h-7 object-contain" /><span className="block text-[10px] text-slate">@chef_adams · Wuse, Abuja · <span className="font-bold">PARTNER</span></span></div></div>;
+      if (b === "itel") return <div><div className="flex items-center gap-3"><img src="/images/life/partners/itel-logo.svg" alt="itel" className="h-9" /><span className="rounded-full bg-[#FF073C]/10 px-2 py-0.5 text-[10px] font-bold text-[#FF073C]">PARTNER</span></div><p className="mt-0.5 text-[10px] text-slate">{C.ITEL.note}</p></div>;
+      return <div className="flex items-center gap-3"><img src="/images/life/partners/candellux-logo.webp" alt="" className="h-12 w-12 rounded-full object-cover" /><div><p className="font-serif text-xl font-bold italic leading-tight text-[#262b6b]">Candellux</p><p className="text-[11px] font-bold tracking-wider text-[#262b6b]">IMPERIAL HOTEL &amp; SUITES <span className="rounded-full bg-[#e3b23c]/20 px-1.5 py-0.5 text-[9px] text-[#8a6a12]">PARTNER</span></p><p className="text-[10px] text-slate">Garki, Abuja · {C.CANDELLUX.tagline}</p></div></div>;
+    }
+    function brandTabs(b: C.Brand, on: "main" | "jobs" | "partner") {
+      const col = b === "chef_adams" ? "#292929" : b === "itel" ? "#FF073C" : "#262b6b";
+      const main: Panel = b === "chef_adams" ? "food" : b === "itel" ? "itel" : "hotel";
+      const tabs: [string, "main" | "jobs" | "partner", Panel][] = [[b === "chef_adams" ? "Eat" : b === "itel" ? "Shop" : "Services", "main", main], ["Jobs", "jobs", { jobs: b }], ...(b === "candellux" ? [] : [["Partner", "partner", { partner: b }] as [string, "partner", Panel]])];
+      return <div className="mt-3 grid gap-1 rounded-full bg-slate-100 p-1 text-center text-xs font-bold" style={{ gridTemplateColumns: `repeat(${tabs.length},1fr)` }}>{tabs.map(([l, k, to]) => <button key={k} onClick={() => setPanel(to)} className="rounded-full py-1.5" style={k === on ? { background: col, color: "#fff" } : undefined}>{l}</button>)}</div>;
+    }
+    function jobRow(j: C.Job) {
+      const block = C.jobBlocker(j, { owned: p.owned, cooking: p.cooking, chefShifts: p.chefShifts, itelShifts: p.itelShifts, hotelShifts: p.hotelShifts, reputation: p.reputation, fit: p.gymUntil > Date.now() + offset.current });
+      const icon = j.brand === "chef_adams" ? <img src="/images/life/partners/chef-emblem.webp" alt="" className="h-9 w-9 object-contain" /> : j.icon;
+      return <Row key={j.id} icon={icon} title={<>{j.title}</>} note={<>{j.employer}{block ? <b className="block text-crimson">🔒 {block}</b> : j.ladder ? <span className="block">{j.ladder}</span> : null}</>}
+        right={<><b className="block text-emerald-700">{j.pay ? `${C.fmtN(j.pay)}/shift` : ""}</b>{j.extra && <span className="block text-[10px] text-slate">+ {j.extra.label.toLowerCase()}</span>}{!block && !p.shift && <button disabled={busy} onClick={async () => { const r = await act<{ message: string }>({ action: "job_apply", job: j.id }); if (r) say(r.message, shareText(`I just got a job as ${j.title} in Notes Life 💼`)); }} className="mt-1 rounded-full bg-ink px-2.5 py-1 text-[11px] font-bold text-white">Take it</button>}</>} />;
+    }
+    function partnerCard(b: "chef_adams" | "itel") {
+      const list = C.OUTLETS.filter((o) => o.brand === b);
+      return <button onClick={() => setPanel({ partner: b })} className={`rounded-2xl border-2 p-2.5 text-left text-white ${b === "chef_adams" ? "border-[#F2B544] bg-[#292929]" : "border-[#FF073C] bg-[#1a0a0e]"}`}><p className={`text-[9px] font-bold uppercase tracking-widest ${b === "chef_adams" ? "text-[#F2B544]" : "text-[#ff6b86]"}`}>🤝 Become a Partner</p><b className="block text-[12px] leading-tight">Own {b === "chef_adams" ? "a Chef Adams" : "an itel"} outlet</b>{list.map((o) => <span key={o.id} className="block text-[10px] opacity-80">{o.short} from {C.fmtShort(o.price)}</span>)}</button>;
+    }
+    function partnerPanel(close: ReactNode, b: "chef_adams" | "itel") {
+      const now = Date.now() + offset.current, chef = b === "chef_adams";
+      const gold = chef ? "#F2B544" : "#ff6b86";
+      const check: C.OutletCheck = { owned: p.owned, chefShifts: p.chefShifts, itelShifts: p.itelShifts, reputation: p.reputation, outlets: p.outlets };
+      const list = C.OUTLETS.filter((o) => o.brand === b);
+      const open = list.find((t) => !C.outletBlocker(t, check, now));
+      return (<div>{close}{brandHead(b)}{brandTabs(b, "partner")}
+        <div className={`mt-3 rounded-2xl border-2 p-3 text-white ${chef ? "border-[#F2B544] bg-[#292929]" : "border-[#FF073C] bg-[#1a0a0e]"}`}>
+          <p className="text-[10px] font-bold uppercase tracking-widest" style={{ color: gold }}>🤝 Become a Partner</p><p className="text-[15px] font-bold">{chef ? "Own a Chef Adams outlet" : "Own an itel retail outlet"}</p>
+          <p className="mt-1 text-[11px] opacity-80">{chef ? "One brand. Standardised recipes, training and quality control in every outlet." : "Sell itel phones, Power GO, Power Tank and solar. Stock from itel at partner prices, CarlCare after-sales behind you."}</p>
+          <div className="mt-2 grid grid-cols-2 gap-1 rounded-full bg-white/10 p-1 text-center text-[11px] font-bold">{(Object.keys(C.OUTLET_AREAS) as C.OutletArea[]).map((a) => <button key={a} onClick={() => setOutletArea(a)} className="rounded-full py-1" style={outletArea === a ? { background: gold, color: "#111" } : undefined}>{C.OUTLET_AREAS[a].name}</button>)}</div>
+          <div className="mt-2 grid gap-2">{list.map((t) => {
+            const own = p.outlets.find((o) => o.kind === t.id), block = own ? null : C.outletBlocker(t, check, now);
+            const n = t.needs, ok = (b2: boolean, txt: string) => <span key={txt} className={b2 ? "text-emerald-300" : "text-amber-200"}>{b2 ? "✔" : "🔒"} {txt}</span>;
+            const reqs = [
+              n.brandShifts ? ok(C.brandShifts(p, t.brand) >= n.brandShifts, `${n.brandShifts} ${C.BRAND_NAME[t.brand]} shifts (${C.brandShifts(p, t.brand)})`) : null,
+              n.item ? ok(p.owned.includes(n.item), `own a ${C.ITEM(n.item)?.name.replace(/^itel /, "")}`) : null,
+              n.outlet ? ok(!!p.outlets.find((o) => o.kind === n.outlet && now - o.openedAt >= (n.outletDays ?? 0) * C.GAME_DAY_MS), `run a ${C.OUTLET(n.outlet)!.short} ${n.outletDays} game days${n.quality ? ` at ${n.quality}%+` : ""}`) : null,
+              n.reputation ? ok(p.reputation >= n.reputation, `reputation ${n.reputation}★`) : null,
+            ].filter(Boolean);
+            return <div key={t.id} className="rounded-2xl bg-white/10 p-2.5"><div className="flex items-center justify-between"><b className="text-[13px]">{t.icon} {t.short}</b><b style={{ color: gold }}>{own ? "Yours ✓" : C.fmtShort(C.outletPrice(t, outletArea))}</b></div>
+              <div className="mt-1.5 grid grid-cols-3 gap-1 text-center text-[10px]"><span className="rounded-xl bg-white/10 p-1.5"><b className="block text-[12px]">~{C.fmtShort(C.outletProfitPerDay(t, outletArea, 90))}</b>profit a game day</span><span className="rounded-xl bg-white/10 p-1.5"><b className="block text-[12px]">{t.staff} staff</b>residents 🤖</span><span className="rounded-xl bg-white/10 p-1.5"><b className="block text-[12px]">~{Math.round(C.outletPrice(t, outletArea) / C.outletProfitPerDay(t, outletArea, 90))} days</b>to pay back</span></div>
+              <p className="mt-1.5 flex flex-wrap gap-x-2 text-[10px]">{reqs}</p>
+              {own ? <button onClick={() => setPanel({ outlet: t.id })} className="mt-2 w-full rounded-full bg-white py-1.5 text-xs font-extrabold text-ink">Manage your {t.short} →</button>
+                : !block && <button disabled={busy} onClick={() => openOutlet(t.id, outletArea)} className="mt-2 w-full rounded-full py-2 text-sm font-extrabold disabled:opacity-40" style={{ background: gold, color: "#111" }}>Open · {C.fmtN(C.outletPrice(t, outletArea))}</button>}</div>;
+          })}</div>
+          {!open && !list.some((t) => p.outlets.find((o) => o.kind === t.id)) && <p className="mt-2 text-[10px] opacity-80">Work shifts at {C.BRAND_NAME[b]} to qualify: <button className="font-bold underline" onClick={() => setPanel({ jobs: b })}>see the jobs</button>.</p>}
+          <p className="mt-2 text-[10px] opacity-80">{chef ? `Chef Adams keeps ${Math.round(C.OUTLETS[0].feeRate * 100)}% of sales as the brand fee.` : "itel earns from the stock you buy at partner prices."} Takings wait up to {C.OUTLET_HOLD_DAYS} game days (about a real day). Without backup power an outlet sells half in a blackout.</p>
+        </div>
+        <a href={C.REAL_PARTNER[b]} target="_blank" rel="noreferrer" className={`mt-3 flex items-center justify-between rounded-2xl border p-3 text-[12px] ${chef ? "border-[#F2B544] bg-[#fffbeb]" : "border-[#FF073C]/30 bg-[#fff1f3]"}`}><span><b className="block">Become a real partner ↗</b>{chef ? "Own a Chef Adams franchise in your choice location" : "Open a real itel Home store"}</span><span className="text-lg">🤝</span></a>
+        <p className="mt-2 text-center text-[10px] text-slate">Your outlet appears in Notesville with your name on it, and its value counts on the Billionaires List.</p></div>);
+    }
+    function outletPanel(close: ReactNode, kind: C.OutletKind) {
+      const t = C.OUTLET(kind)!, o = p.outlets.find((x) => x.kind === kind);
+      if (!o) return partnerPanel(close, t.brand);
+      const now = Date.now() + offset.current, r = C.outletTakings(o, now), chef = t.brand === "chef_adams";
+      const day = Math.floor((now - o.openedAt) / C.GAME_DAY_MS) + 1, nextInspect = 7 - ((day - 1) % 7);
+      const up = C.OUTLETS.find((x) => x.needs.outlet === kind);
+      const staff = Array.from({ length: t.staff }, (_, i) => C.OUTLET_STAFF[(i + (chef ? 0 : 3)) % C.OUTLET_STAFF.length]);
+      return (<div>{close}<div className="flex items-center gap-3">{chef ? <img src="/images/life/partners/chef-emblem.webp" alt="" className="h-11 w-11 object-contain" /> : <img src="/images/life/partners/itel-logo.svg" alt="itel" className="h-8" />}<div><p className="text-[10px] font-bold uppercase tracking-widest" style={{ color: chef ? "#E53935" : "#FF073C" }}>Your outlet · day {day}</p><h2 className="text-xl font-extrabold leading-tight">{p.name.split(" ")[0]}&apos;s {t.short} · {C.OUTLET_AREAS[o.area].name}</h2></div></div>
+        <div className={`mt-3 rounded-2xl p-3 text-white ${chef ? "bg-[#292929]" : "bg-[#1a0a0e]"}`}><div className="flex items-end justify-between gap-2"><div><span className="text-[10px] opacity-75">Takings waiting</span><b className="block text-2xl">{C.fmtN(r.takings)}</b><span className="text-[10px] opacity-75">{r.capped ? `Held ${C.OUTLET_HOLD_DAYS} game days: it stopped selling until you collect` : `${r.days.toFixed(1)} game days · after ${chef ? "the brand fee, stock" : "itel stock"} and wages`}</span></div><button disabled={busy || r.takings <= 0} onClick={() => collect(kind)} className="rounded-full px-4 py-2 text-sm font-extrabold text-ink disabled:opacity-40" style={{ background: chef ? "#F2B544" : "#ff6b86" }}>Collect</button></div>
+          <div className="mt-2 grid grid-cols-4 gap-1 text-center text-[10px]">{[[String(r.customers), "customers a day"], [`${Math.round(r.quality)}%`, "quality"], [C.fmtShort(C.outletValue(o)), "value"], [C.fmtShort(o.earned), "earned"]].map(([a2, b2]) => <span key={b2} className="rounded-xl bg-white/10 p-1.5"><b className="block text-[12px]">{a2}</b>{b2}</span>)}</div></div>
+        {r.quality < 80 && <p className="mt-2 rounded-xl bg-red-50 px-3 py-2 text-[11px] text-red-800">Quality is slipping: takings have sat uncollected too long. Collect to bring it back up.</p>}
+        <p className="mt-3 text-[11px] font-bold uppercase tracking-wider text-slate">Staff · {t.staff} residents 🤖</p>
+        <div className="mt-1 flex flex-wrap gap-1.5 text-[11px]">{staff.map((n, i) => <span key={i} className="rounded-full bg-slate-100 px-2.5 py-1">{n} 🤖 · {t.staffRole} · {C.fmtN(t.wage)}/day</span>)}</div>
+        <p className="mt-3 text-[11px] font-bold uppercase tracking-wider text-slate">Power</p>
+        <div className="mt-1">{o.backup ? <Row icon="🔋" title="Backup power fitted" note={`${C.OUTLET_BACKUP.name}: sells through every blackout`} right={<b className="text-emerald-700">OK</b>} />
+          : <Row icon="⚡" title={nepa.out ? "NEPA has taken light: selling half" : "No backup power"} note={`Fit ${C.OUTLET_BACKUP.name}: full sales in blackouts, quality up`} right={<button disabled={busy} onClick={() => outletBackup(kind)} className="rounded-full bg-[#FF073C] px-3 py-1 font-bold text-white disabled:opacity-40">{C.fmtShort(C.OUTLET_BACKUP.price)}</button>} pick={nepa.out} />}</div>
+        <p className="mt-3 rounded-xl bg-slate-50 px-3 py-2 text-[11px] text-slate">🔍 {C.BRAND_NAME[t.brand]} inspection in {nextInspect} game day{nextInspect === 1 ? "" : "s"}: {chef ? "standard recipes, hygiene and stock" : "stock, displays and CarlCare service"}. Keep quality at 80% or more.</p>
+        {up && !p.outlets.some((x) => x.kind === up.id) && <div className="mt-3 rounded-2xl border-2 border-dashed p-2.5 text-[11px]" style={{ borderColor: chef ? "#F2B544" : "#FF073C" }}><b>Next: {up.icon} {up.short} · from {C.fmtShort(up.price)}.</b> {C.outletBlocker(up, { owned: p.owned, chefShifts: p.chefShifts, itelShifts: p.itelShifts, reputation: p.reputation, outlets: p.outlets }, now) ?? "You qualify now."} <button className="font-bold underline" onClick={() => setPanel({ partner: t.brand })}>See it</button></div>}
+      </div>);
+    }
+    function businessPanel(close: ReactNode) {
+      const now = Date.now() + offset.current;
+      const rows = p.outlets.map((o) => ({ o, t: C.OUTLET(o.kind)!, r: C.outletTakings(o, now) }));
+      const total = rows.reduce((n, x) => n + x.r.takings, 0);
+      return (<div>{close}<p className="text-[11px] font-bold uppercase tracking-widest text-amber-600">🏪 My businesses</p><h2 className="text-2xl font-extrabold">{rows.length ? `${C.fmtN(total)} to collect` : "No outlets yet"}</h2>
+        <p className="text-xs text-slate">Takings wait up to {C.OUTLET_HOLD_DAYS} game days (about a real day). After that an outlet stops selling until you collect.</p>
+        <div className="mt-3 grid gap-2">{rows.map(({ o, t, r }) => <Row key={o.kind} icon={t.brand === "chef_adams" ? <img src="/images/life/partners/chef-emblem.webp" alt="" className="h-9 w-9 object-contain" /> : <img src="/images/life/partners/itel-logo.svg" alt="itel" className="h-6" />} title={`${t.name} · ${C.OUTLET_AREAS[o.area].name}`} note={`Quality ${Math.round(r.quality)}% · ${r.customers} customers a day${o.backup ? " · 🔋 backup" : ""}`} pick={r.takings > 0} onClick={() => setPanel({ outlet: o.kind })}
+          right={<b className="block">{C.fmtShort(r.takings)}</b>} />)}
+          {C.OUTLETS.filter((t) => !t.needs.outlet && !p.outlets.some((o) => o.kind === t.id)).map((t) => <Row key={t.id} icon={t.icon} title={`${t.name}`} note={C.outletBlocker(t, { owned: p.owned, chefShifts: p.chefShifts, itelShifts: p.itelShifts, reputation: p.reputation, outlets: p.outlets }, now) ?? "You qualify: open one"} right={<b className="text-slate">{C.fmtShort(t.price)}</b>} onClick={() => setPanel({ partner: t.brand as "chef_adams" | "itel" })} />)}
+        </div>
+        {rows.length > 0 && <div className="mt-3"><Btn tone="green" disabled={total <= 0} onClick={() => collect()}>Collect everything · {C.fmtN(total)}</Btn></div>}
+        <div className="mt-3 grid grid-cols-3 gap-1.5 text-center text-[10px]">{[[C.fmtShort(p.outlets.reduce((n, o) => n + C.outletValue(o), 0)), "outlets' value"], [C.fmtShort(p.outlets.reduce((n, o) => n + o.earned, 0)), "earned so far"], [String(p.outlets.length), `outlet${p.outlets.length === 1 ? "" : "s"}`]].map(([a2, b2]) => <span key={b2} className="rounded-2xl bg-slate-50 p-2"><b className="block text-[13px]">{a2}</b>{b2}</span>)}</div>
+        <p className="mt-2 text-[10px] text-slate">Outlets are staffed by residents 🤖. Real players work shifts at the brands&apos; own outlets.</p></div>);
+    }
+
     // --- bigger panels (their state is held at the top of the game) ---
     function goPanel(close: ReactNode, dests: typeof C.PLACES) {
       const to: C.PlaceId = goTo && dests.some((d) => d.id === goTo) ? goTo : dests[0]?.id ?? "home";
@@ -736,7 +895,7 @@ export default function LifeGame() {
       const total = Object.entries(cart).reduce((n, [id, q]) => n + (C.FOOD(id)?.price ?? 0) * q, 0) + fm.fee;
       const groups: [string, C.Food["group"]][] = [["Chef's combo", "combo"], ["Rice & noodles", "rice"], ["Protein", "protein"], ["Sides", "side"]];
       return (<div>{close}
-        <div className="flex items-center gap-2"><img src="/images/life/partners/chef-emblem.webp" alt="" className="h-12 w-12 object-contain" /><div><img src="/images/life/partners/chef-wordmark.webp" alt="Chef Adams" className="h-7 object-contain" /><span className="block text-[10px] text-slate">@chef_adams · Wuse, Abuja · <span className="font-bold">PARTNER</span></span></div></div>
+        {brandHead("chef_adams")}{brandTabs("chef_adams", "main")}
         <div className="mt-3 grid grid-cols-3 gap-1 rounded-full bg-slate-100 p-1 text-center text-[11px] font-bold">{(Object.keys(C.FOOD_MODES) as C.FoodMode[]).map((k) => <button key={k} onClick={() => setMode(k)} className={`rounded-full py-1.5 ${k === mode ? "bg-[#E53935] text-white" : ""}`}>{C.FOOD_MODES[k].icon} {C.FOOD_MODES[k].label}</button>)}</div>
         <p className="mt-2 text-[11px] text-slate">{fm.where} · {fm.minutes} game min{fm.fee ? ` · ${C.fmtN(fm.fee)} delivery` : ""}{mode === "dinein" ? " · Fun +10 · Social +5" : ""}</p>
         {mode !== "delivery" && !atChef ? <p className="mt-3 rounded-xl bg-amber-50 px-3 py-2 text-xs text-amber-900">You&apos;re not at Chef Adams. <button className="font-bold underline" onClick={() => setPanel("go")}>Go there</button>, or order delivery.</p> : (
@@ -745,7 +904,9 @@ export default function LifeGame() {
               <div key={f.id} className="flex items-center gap-2 rounded-xl border border-slate-200 px-2 py-1.5 text-[12px]"><span className="min-w-0 flex-1"><b className="block leading-tight">{f.name}</b><span className="text-[10px] text-emerald-700">🍲 +{f.hunger}</span></span><b className="text-[11px]">{C.fmtN(f.price)}</b>
                 <button onClick={() => setCart((c) => ({ ...c, [f.id]: Math.max(0, (c[f.id] || 0) - 1) }))} className="h-6 w-6 rounded-full border font-bold">−</button><b className="w-4 text-center">{cart[f.id] || 0}</b><button onClick={() => setCart((c) => ({ ...c, [f.id]: (c[f.id] || 0) + 1 }))} className="h-6 w-6 rounded-full bg-[#E53935] font-bold text-white">+</button></div>
             ))}</div></div>)}
-            <div className="mt-3 rounded-2xl bg-[#292929] p-3 text-white"><button disabled={busy} onClick={() => order(mode, cart)} className="block w-full rounded-full bg-[#E53935] py-2 text-center text-sm font-bold disabled:opacity-40">Order · {C.fmtN(total)}</button></div>
+            <div className="mt-3 rounded-2xl bg-[#292929] p-3 text-white">
+              {mode !== "dinein" && <label className="mb-2 flex items-center gap-2 text-[11px]"><input type="checkbox" checked={keepFood} onChange={(e) => setKeepFood(e.target.checked)} className="h-4 w-4 accent-[#F2B544]" /><span><b>🧊 Keep for later</b> · {p.owned.includes("fridge") ? "into your fridge" : `no fridge: eat within ${C.FOOD_SPOIL_HOURS} game hours`}</span></label>}
+              <button disabled={busy} onClick={() => order(mode, cart, keepFood && mode !== "dinein")} className="block w-full rounded-full bg-[#E53935] py-2 text-center text-sm font-bold disabled:opacity-40">Order · {C.fmtN(total)}</button></div>
           </>
         )}
         <p className="mt-2 text-center text-[10px] text-slate">Craving it for real? <a href="/u/chef_adams" target="_blank" rel="noreferrer" className="font-bold text-[#E53935]">@chef_adams</a> is on NotesApp ↗ · Satisfaction in every bite.</p></div>);

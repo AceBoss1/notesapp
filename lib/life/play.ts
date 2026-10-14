@@ -1,6 +1,6 @@
 // Notes Life: what runs on the player's device. Needs, mood and timed activities live in the save (lib/life/save.ts); anything of
 // value (Notesville Naira, what you own, your job, deals, rank) lives on the server (lib/life/server.ts) and is never trusted from here.
-import { DIFFICULTY, GAME_HOUR_MS, LOW_NEED, NEEDS, type Difficulty, type Need, type PlaceId } from "./catalog";
+import { DIFFICULTY, FOOD_SPOIL_HOURS, GAME_HOUR_MS, LOW_NEED, NEEDS, POWER_TANK, type Difficulty, type Need, type PlaceId } from "./catalog";
 
 export type Needs = Record<Need, number>;
 export const START_NEEDS: Needs = { hunger: 70, energy: 90, fun: 65, social: 60, hygiene: 85, bladder: 80 };
@@ -25,7 +25,7 @@ export type SaveState = {
   place: PlaceId;
   plates: number; // cooked plates waiting
   activity: Activity | null;
-  delivery: { at: number; hunger: number } | null; // food on its way to your room
+  delivery: { at: number; hunger: number; keep?: number } | null; // food on its way to your room (keep: plates to store instead of eating)
   bikeRides: number;
   ebikeAskedAt: number;
   seenWelcome: boolean;
@@ -36,10 +36,13 @@ export type SaveState = {
   fuel: number; // generator petrol, litres
   genOn: boolean; // the generator is running (only during a blackout)
   nepaSeen: string | null; // the blackout whose "NEPA has taken light" prompt you've seen
+  tank: number; // itel Power Tank 1000 charge, Wh (0 to 1000)
+  plateWarm: number; // game hours your stored plates have been out of a cold fridge (they spoil at 8)
+  spoiledAt: number; // when stored food last spoiled
 };
 
 export function freshSave(now = Date.now()): SaveState {
-  return { v: 1, needs: { ...START_NEEDS }, tickAt: now, difficulty: "normal", outfit: "#f59e0b", rug: "rug_notesapp", place: "home", plates: 0, activity: null, delivery: null, bikeRides: 0, ebikeAskedAt: 0, seenWelcome: false, seenRich: false, socialAt: 0, gymUntil: 0, battery: 320, fuel: 0, genOn: false, nepaSeen: null };
+  return { v: 1, needs: { ...START_NEEDS }, tickAt: now, difficulty: "normal", outfit: "#f59e0b", rug: "rug_notesapp", place: "home", plates: 0, activity: null, delivery: null, bikeRides: 0, ebikeAskedAt: 0, seenWelcome: false, seenRich: false, socialAt: 0, gymUntil: 0, battery: 320, fuel: 0, genOn: false, nepaSeen: null, tank: POWER_TANK.wh, plateWarm: 0, spoiledAt: 0 };
 }
 
 const clamp = (n: number) => Math.max(0, Math.min(100, Math.round(n * 10) / 10));
@@ -91,7 +94,11 @@ export function advance(s: SaveState, now = Date.now(), open = true): { s: SaveS
     if (open && now > a.endsAt) next.needs = decayNeeds(next.needs, now - a.endsAt, next, now);
   }
   let delivered = 0;
-  if (next.delivery && now >= next.delivery.at) { delivered = next.delivery.hunger; next.needs = applyNeeds(next.needs, { hunger: delivered }); next.delivery = null; }
+  if (next.delivery && now >= next.delivery.at) {
+    if (next.delivery.keep) { next.plates = Math.min(30, next.plates + next.delivery.keep); delivered = -next.delivery.keep; }
+    else { delivered = next.delivery.hunger; next.needs = applyNeeds(next.needs, { hunger: delivered }); }
+    next.delivery = null;
+  }
   next.tickAt = now;
   return { s: next, finished, delivered };
 }
@@ -122,6 +129,7 @@ export function sanitize(raw: unknown, now = Date.now()): SaveState {
     plates: Math.max(0, Math.min(30, Math.floor(num(r.plates, 0)))),
     activity: r.activity && typeof r.activity === "object" && typeof r.activity.endsAt === "number" ? r.activity : null,
     delivery: r.delivery && typeof r.delivery.at === "number" ? r.delivery : null,
+    tank: Math.max(0, Math.min(POWER_TANK.wh, num(r.tank, POWER_TANK.wh))), plateWarm: Math.max(0, num(r.plateWarm, 0)), spoiledAt: num(r.spoiledAt, 0),
     bikeRides: num(r.bikeRides, 0), ebikeAskedAt: num(r.ebikeAskedAt, 0), seenWelcome: !!r.seenWelcome, seenRich: !!r.seenRich,
     socialAt: num(r.socialAt, 0), gymUntil: num(r.gymUntil, 0),
     battery: Math.max(0, Math.min(320, num(r.battery, 320))), fuel: Math.max(0, Math.min(12, num(r.fuel, 0))), genOn: r.genOn === true,
@@ -133,24 +141,38 @@ export function sanitize(raw: unknown, now = Date.now()): SaveState {
 // Light on: the Power GO charges. Light off: a running generator burns petrol (and stops when the tank is empty), otherwise the Power GO
 // runs the lamp at night, the fan (not needed with AC) and the laptop while you work at the desk. The solar panel charges it by day,
 // light or no light. Asleep in a blackout with nothing running, the room is hot: energy fills more slowly.
-export type PowerSource = "grid" | "gen" | "go" | "none";
-export function powerSource(s: Pick<SaveState, "genOn" | "fuel" | "battery">, out: boolean, owned: string[]): PowerSource {
+export type PowerSource = "grid" | "gen" | "go" | "tank" | "none";
+export function powerSource(s: Pick<SaveState, "genOn" | "fuel" | "battery"> & { tank?: number }, out: boolean, owned: string[]): PowerSource {
   if (!out) return "grid";
   if (s.genOn && s.fuel > 0 && (owned.includes("gen_small") || owned.includes("gen_big"))) return "gen";
   if (owned.includes("power_go") && s.battery > 0.5) return "go";
+  if (owned.includes("power_tank") && (s.tank ?? 0) > 0.5) return "tank";
   return "none";
 }
+// The fridge is cold while it has power: NEPA, a running generator, or the Power Tank (which runs it alone for about 5 game hours).
+export const fridgeCold = (s: Pick<SaveState, "genOn" | "fuel"> & { tank?: number }, out: boolean, owned: string[]) =>
+  owned.includes("fridge") && (!out || (s.genOn && s.fuel > 0 && (owned.includes("gen_small") || owned.includes("gen_big"))) || (owned.includes("power_tank") && (s.tank ?? 0) > 0.5));
 export function powerStep(s: SaveState, ms: number, o: { out: boolean; owned: string[]; night: boolean; deskWork: boolean }): SaveState {
   const h = Math.max(0, ms) / GAME_HOUR_MS;
   if (!h) return s;
   const n = { ...s };
   const src = powerSource(n, o.out, o.owned);
   const gen = o.owned.includes("gen_big") ? 1.1 : o.owned.includes("gen_small") ? 0.4 : 0;
-  if (src === "grid") { n.battery += 100 * h; n.genOn = false; }
+  const room = ((o.night ? 10 : 0) + (o.owned.includes("ac") ? 0 : 16) + (o.deskWork ? 65 : 0)) * h;
+  const tankOwned = o.owned.includes("power_tank");
+  // stored food: cold in a powered fridge, otherwise it warms up and spoils after 8 game hours (checked before this hour's drain)
+  const cold = fridgeCold(n, o.out, o.owned);
+  if (src === "grid") { n.battery += 100 * h; n.genOn = false; if (tankOwned) n.tank += POWER_TANK.chargeW * h; }
   else if (src === "gen") { n.fuel = Math.max(0, n.fuel - gen * h); if (n.fuel <= 0) n.genOn = false; }
-  else if (src === "go") n.battery -= ((o.night ? 10 : 0) + (o.owned.includes("ac") ? 0 : 16) + (o.deskWork ? 65 : 0)) * h;
+  else if (src === "go") n.battery -= room;
+  else if (src === "tank") n.tank -= room;
+  if (o.out && src !== "gen" && tankOwned && o.owned.includes("fridge")) n.tank -= POWER_TANK.fridgeW * h;
   if (o.owned.includes("solar_panel") && !o.night) n.battery += 55 * h;
+  if (tankOwned && !o.night) n.tank += POWER_TANK.panelW * h * ((o.owned.includes("solar_650") ? 1 : 0) + (o.owned.includes("solar_650b") ? 1 : 0));
   n.battery = Math.max(0, Math.min(320, n.battery));
+  n.tank = Math.max(0, Math.min(POWER_TANK.wh, n.tank ?? 0));
+  if (n.plates > 0 && !cold) { n.plateWarm = (n.plateWarm ?? 0) + h; if (n.plateWarm >= FOOD_SPOIL_HOURS) { n.plates = 0; n.plateWarm = 0; n.spoiledAt = Date.now(); } }
+  else if (n.plates === 0) n.plateWarm = 0;
   if (src === "none" && o.out && n.activity?.kind === "sleep") n.needs = applyNeeds(n.needs, { energy: -3 * h });
   return n;
 }

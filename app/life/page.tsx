@@ -48,7 +48,7 @@ export default function LifePage({ searchParams }: { searchParams?: { ref?: stri
               <a href={play} className="rounded-full bg-emerald-600 px-6 py-3 font-ui text-sm font-bold text-white shadow hover:bg-emerald-700">▶ Play now, free</a>
               <a href={`${APP}/signup`} className="rounded-full bg-white px-6 py-3 font-ui text-sm font-bold text-ink shadow-sm hover:bg-white/80">Get a NotesApp account</a>
             </div>
-            <p className="mt-3 text-xs text-slate">{ref ? <>@{ref} invited you. Finish your first shift and you both get ₦250 NotesApp Bonus Credit.</> : <>Abuja is open now: a room in Wuse, N$ 100,000, jobs, Chef Adams and the Billionaires List. Lagos and Port Harcourt are next.</>}</p>
+            <p className="mt-3 text-xs text-slate">{ref ? <>@{ref} invited you. Finish your first shift and you both get ₦250 NotesApp Bonus Credit.</> : <>Abuja is open now: a room in Wuse, N$ 100,000, jobs at Chef Adams, itel Energy and Candellux, your own partner outlet and the Billionaires List. Lagos and Port Harcourt are next.</>}</p>
           </div>
           <div className="overflow-hidden rounded-3xl border-4 border-white shadow-2xl">
             <Image src="/images/life/game-room.webp" alt="Notes Life, the real game: your room in Wuse, Abuja, with the time, difficulty, game money, the Invite button, your needs and the menu" width={1440} height={900} priority className="h-auto w-full" />
@@ -100,7 +100,7 @@ export default function LifePage({ searchParams }: { searchParams?: { ref?: stri
               ["Is it free?", "Yes, free to play in your browser on your phone or computer. Nothing to download."],
               ["Do I need an account?", "You play with your NotesApp account, so your friends, your photo and your progress go with you."],
               ["Is the money real?", "Notesville Naira is game money, just for fun. It can't be cashed out. Some quests give Bonus Credits you can use on NotesApp."],
-              ["Can I play now?", "Yes. The first playable version is open in Abuja. Lagos, Port Harcourt, NEPA, the market and calls from your game phone come in later updates. Follow @na-notesapp for news."],
+              ["Can I play now?", "Yes. Abuja is open, with NEPA power cuts, partner jobs and outlets you can own. Lagos, Port Harcourt, the market and calls from your game phone come in later updates. Follow @na-notesapp for news."],
               ["What do I get for inviting friends?", "When a friend joins from your invite link and finishes their first shift, you both get ₦250 NotesApp Bonus Credit (up to 20 friends a month). Bonus Credit lasts 90 days and pays for boosts, ads and badges."],
             ].map(([q, a]) => (
               <div key={q} className="py-4"><dt className="font-ui font-bold">{q}</dt><dd className="mt-1 text-sm text-slate">{a}</dd></div>
