@@ -43,10 +43,11 @@ export const DIFFICULTY: Record<Difficulty, { label: string; icon: string; decay
 };
 
 // ---- Things you own ----
-export type ItemCat = "rug" | "computer" | "cooling" | "kitchen" | "lights" | "phone" | "transport";
+export type ItemCat = "rug" | "computer" | "cooling" | "kitchen" | "lights" | "phone" | "transport" | "power";
 export type Item = {
   id: string; cat: ItemCat; name: string; note: string; price: number; icon: string; eco?: string; starter?: boolean;
   workSpeed?: number; sleepPerHour?: number; dealEveryHours?: number; dealBoost?: number; commute?: TransportId; desk?: boolean;
+  needs?: string; soon?: boolean; brand?: "itel"; litresPerHour?: number; tank?: number;
 };
 export const ITEMS: Item[] = [
   { id: "rug_notesapp", cat: "rug", name: "Maroon NotesApp rug", note: "Your starter rug, with the na icon", price: 0, icon: "🟥", starter: true },
@@ -62,6 +63,12 @@ export const ITEMS: Item[] = [
   { id: "lamp_led", cat: "lights", name: "LED lamp", note: "Brighter, a tenth of the power", price: 9_000, icon: "💡", eco: "LED" },
   { id: "phone_basic", cat: "phone", name: "Bedside deal phone", note: "A deal call about every 8 game hours", price: 0, icon: "☎️", starter: true, dealEveryHours: 8 },
   { id: "phone_smart", cat: "phone", name: "Smartphone deal line", note: "Deals every 4 game hours, bigger ones", price: 90_000, icon: "📱", dealEveryHours: 4, dealBoost: 1.3 },
+  // Power for NEPA's blackouts. itel Energy (partner) via @clickam, the itel distributor on NotesApp; generators from the market.
+  { id: "power_go", cat: "power", name: "itel Power GO Pro", note: "320Wh · 200W · lamp, fan and laptop through a blackout · silent", price: 150_000, icon: "🔋", eco: "No fuel", brand: "itel" },
+  { id: "solar_panel", cat: "power", name: "itel 100W solar panel", note: "Charges your Power GO by day, even when NEPA is off", price: 55_000, icon: "☀️", eco: "Solar", brand: "itel", needs: "power_go" },
+  { id: "home_kit", cat: "power", name: "itel small home solar kit", note: "IP66 inverter, battery and 4 panels: the whole room, never off again", price: 2_400_000, icon: "🏠", eco: "Solar", brand: "itel", soon: true },
+  { id: "gen_small", cat: "power", name: "“I Better Pass My Neighbour” 950W", note: "Bulb, fan and charging · loud · 0.4 L of petrol a game hour", price: 65_000, icon: "⛽", litresPerHour: 0.4, tank: 5 },
+  { id: "gen_big", cat: "power", name: "Big generator 3.5kVA", note: "Runs everything, AC too · very loud · 1.1 L a game hour", price: 420_000, icon: "🛢️", litresPerHour: 1.1, tank: 12 },
   { id: "bicycle", cat: "transport", name: "Bicycle", note: "Free, healthy, a bit slow", price: 0, icon: "🚲", starter: true, commute: "bicycle" },
   { id: "ebike", cat: "transport", name: "Green Wheels e-bike", note: "12 min to Garki · 2× deliveries", price: 450_000, icon: "🛵", eco: "Zero fuel", commute: "ebike" },
   { id: "ev", cat: "transport", name: "Electric car", note: "Comfort and status · charges at EV points", price: 18_000_000, icon: "🚙", eco: "Electric", commute: "ev" },
@@ -70,7 +77,7 @@ export const ITEM = (id: string) => ITEMS.find((i) => i.id === id);
 export const STARTER_ITEMS = ITEMS.filter((i) => i.starter).map((i) => i.id);
 export const SHOP_CATS: { id: ItemCat; label: string }[] = [
   { id: "rug", label: "Rugs" }, { id: "computer", label: "Computer" }, { id: "cooling", label: "Cooling" }, { id: "kitchen", label: "Kitchen" },
-  { id: "lights", label: "Lights" }, { id: "phone", label: "Phone" }, { id: "transport", label: "Transport" },
+  { id: "lights", label: "Lights" }, { id: "phone", label: "Phone" }, { id: "power", label: "Power" }, { id: "transport", label: "Transport" },
 ];
 // The best owned item in a category (by price), which is the one that counts for speed, sleep or deals.
 export function bestOwned(owned: string[], cat: ItemCat): Item | undefined {
@@ -90,11 +97,12 @@ export const TRANSPORT: { id: TransportId; name: string; icon: string; minutes: 
 export const TRANSPORT_OF = (id: string) => TRANSPORT.find((t) => t.id === id);
 export const EBIKE_PROMPT_AFTER = 3; // after this many bicycle rides, suggest an e-bike
 
-export type PlaceId = "home" | "work" | "chef" | "hotel";
+export type PlaceId = "home" | "work" | "chef" | "hotel" | "itel";
 export const PLACES: { id: PlaceId; name: string; area: string; icon: string }[] = [
   { id: "home", name: "Home", area: "Wuse", icon: "🏠" },
   { id: "chef", name: "Chef Adams", area: "Wuse", icon: "🍽" },
   { id: "hotel", name: "Candellux Imperial", area: "Garki", icon: "👑" },
+  { id: "itel", name: "itel Energy", area: "Wuse", icon: "⚡" },
   { id: "work", name: "Work", area: "Garki", icon: "💼" },
 ];
 
@@ -224,3 +232,59 @@ export const lifeDay = (startedAt: number, now = Date.now()) => Math.max(1, Math
 export const gameMinutesToMs = (m: number) => m * GAME_MIN_MS;
 export const fmtN = (n: number) => `N$ ${Math.round(n).toLocaleString("en-NG")}`;
 export const fmtShort = (n: number) => (n >= 1e9 ? `N$ ${(n / 1e9).toFixed(2)}bn` : n >= 1e6 ? `N$ ${(n / 1e6).toFixed(1)}m` : fmtN(n));
+
+// ---- itel Energy (partner, through @clickam, the itel distributor on NotesApp) ----
+export const ITEL = { name: "itel Energy", seller: "clickam", sellerUrl: "https://www.notesapp.name.ng/u/clickam", note: "Solar shop, Wuse market road · products from @clickam on NotesApp" };
+export const POWER_GO = { wh: 320, maxW: 200, chargeW: 100, solarW: 55 }; // battery size, mains charging, the 100W panel's average by day
+// What runs on backup power, in watts: the lamp and fan always, the laptop while you work at the desk, the AC only on the big generator.
+export const LOADS = { lamp: 10, fan: 16, laptop: 65, ac: 900 };
+export const FUEL_NAIRA = 1_100; // a litre of petrol
+export const RUNTIMES = [["💻", "6.8 h", "laptop"], ["🌀", "20 h", "DC fan"], ["💡", "32 h", "bulb"], ["🔊", "53 h", "speaker"], ["📺", "21 h", "LED TV"], ["📱", "14", "phone charges"]] as const;
+
+// ---- NEPA: power cuts at the same moment for every player, 2 or 3 a game day, 2 to 6 game hours each ----
+function seeded(n: number) { let t = (n * 2654435761) >>> 0; return () => { t = (t + 0x6d2b79f5) >>> 0; let r = Math.imul(t ^ (t >>> 15), 1 | t); r ^= r + Math.imul(r ^ (r >>> 7), 61 | r); return ((r ^ (r >>> 14)) >>> 0) / 4294967296; }; }
+export function outagesOfDay(day: number): { id: string; from: number; to: number }[] {
+  const rnd = seeded(day + 77), start = WORLD_EPOCH + day * GAME_DAY_MS, n = 2 + (rnd() < 0.5 ? 1 : 0), out: { id: string; from: number; to: number }[] = [];
+  let at = start + rnd() * 3 * GAME_HOUR_MS;
+  for (let i = 0; i < n; i++) {
+    const len = (2 + rnd() * 4) * GAME_HOUR_MS;
+    out.push({ id: `${day}-${i}`, from: at, to: at + len });
+    at += len + (2 + rnd() * 5) * GAME_HOUR_MS;
+  }
+  return out;
+}
+export function nepaAt(now = Date.now()): { out: boolean; id: string | null; until: number; next: number } {
+  const day = Math.floor((now - WORLD_EPOCH) / GAME_DAY_MS);
+  const all = [...outagesOfDay(day - 1), ...outagesOfDay(day), ...outagesOfDay(day + 1)];
+  const cur = all.find((o) => now >= o.from && now < o.to);
+  const next = all.find((o) => o.from > now)?.from ?? now + GAME_DAY_MS;
+  return { out: !!cur, id: cur?.id ?? null, until: cur?.to ?? 0, next };
+}
+
+// ---- Residents: computer players of Notesville, always marked 🤖. They live in the scenes, chat (kept on your device only), and a few
+// sit on the Billionaires List so new players have someone to chase. ----
+export type Resident = { id: string; name: string; role: string; area: string; look: [string, string, string, boolean]; netWorth?: number; owned?: string; lines: Record<"greet" | "food" | "work" | "nepa" | "money", string[]> };
+const L = (greet: string[], food: string[], work: string[], nepa: string[], money: string[]) => ({ greet, food, work, nepa, money });
+export const RESIDENTS: Resident[] = [
+  { id: "nkechi", name: "Mama Nkechi", role: "Your neighbour · pepper soup seller", area: "Wuse", look: ["#7c3aed", "#5b3520", "#1f2937", true], netWorth: 230_000,
+    lines: L(["My pikin! How body? You don chop today?", "Good morning o! This Abuja sun no be here."], ["Chef Adams native rice sweet die. Go before rush hour.", "Cook for house, e cheaper. Buy that small cooker."], ["Delivery riders dey make money for Wuse. Get bicycle first.", "Chef Adams dey find people for kiosk. Bathe well before you go!"], ["NEPA don take light again o! My son buy Power GO from itel shop, NEPA no fit embarrass am again.", "If you get generator, fuel am before night."], ["Small small, you go reach. Rent first, enjoyment later.", "Save am for bank, no spend am anyhow."]) },
+  { id: "chinedu", name: "Chinedu Eze", role: "Phone shop owner, Jabi", area: "Jabi", look: ["#0ea5e9", "#6b3f22", "#334155", false], netWorth: 640_000, owned: "📱 🛵",
+    lines: L(["Bros! Wetin dey happen?", "My guy, you look sharp today."], ["I dey chop for Chef Adams every Friday. Their combo na correct."], ["Answer your deal phone. Deals na where money dey.", "Get laptop. Tech freelance pay pass desktop work."], ["I get Power GO for shop. Customers dey charge phone, I dey collect money.", "Solar panel + Power GO = no more NEPA wahala."], ["Buy low, sell high. That's the whole business."]) },
+  { id: "halima", name: "Halima Sule", role: "Tailor, Wuse market", area: "Wuse", look: ["#db2777", "#7a4a2c", "#1f2937", true], netWorth: 410_000,
+    lines: L(["Sannu! How family?", "You need new outfit? Check your wardrobe."], ["I like their fried rice. Small plantain on top."], ["If you get hand work, people go pay. Reputation matters."], ["When NEPA take light, my machine stop. I dey save for solar kit."], ["My shop pay me better than any office."]) },
+  { id: "tunde", name: "Tunde", role: "Keke rider", area: "Wuse", look: ["#f97316", "#4e2c17", "#1e3a8a", false], netWorth: 95_000,
+    lines: L(["Oga! Where you dey go? I fit carry you.", "Wuse to Garki, N$ 400, I go reach am fast."], ["Takeaway from the Chef Adams kiosk na the fastest."], ["Rider work no easy but money dey."], ["Traffic light no dey work when NEPA take light. Wahala!"], ["Keke na my bank. Every trip na deposit."]) },
+  { id: "emeka", name: "Emeka", role: "Chef Adams delivery rider", area: "Wuse", look: ["#e53935", "#5b3520", "#111827", false], netWorth: 120_000,
+    lines: L(["How far! I dey rush delivery o."], ["Order delivery, I go bring am hot hot."], ["E-bike double my deliveries. Green Wheels get am."], ["At night when NEPA take light, every house dey order food."], ["Tips na my best friend."]) },
+  { id: "dauda", name: "Mr Dauda", role: "itel Energy staff", area: "Wuse", look: ["#e8173f", "#6b3f22", "#111827", false],
+    lines: L(["Welcome to itel Energy! How can I help you?"], ["Our Power GO can even run a small blender for a while."], ["We're always looking for solar installers."], ["Power GO Pro: 320Wh, silent, no fuel. Your lamp, fan and laptop stay on. Add the solar panel and charge it by day.", "Generators are loud and need petrol. Solar is quiet and free after you buy."], ["Pay once, enjoy light every night."]) },
+  { id: "musa", name: "Alhaji Musa Bello", role: "Real estate, Maitama", area: "Maitama", look: ["#f5f5f4", "#6b3f22", "#f5f5f4", false], netWorth: 4_800_000_000, owned: "🏢 🚙 ✈️",
+    lines: L(["Young man, young woman. Hard work pays.", "Assalamu alaikum."], ["Candellux restaurant is where I hold my meetings."], ["Start small. My first business was one shop in Wuse."], ["All my buildings run on solar. NEPA is not my business."], ["Property. Always property."]) },
+  { id: "ifeoma", name: "Dr Ifeoma Obi", role: "Clinics, Asokoro", area: "Asokoro", look: ["#0f766e", "#7a4a2c", "#1f2937", true], netWorth: 2_100_000_000, owned: "🏥 🚙",
+    lines: L(["Good day. Are you keeping well?", "Remember to sleep. Energy matters."], ["Eat well. Hunger lowers your pay, you know."], ["Skills first. Then money follows."], ["My clinics can't stop for NEPA. Inverters and batteries everywhere."], ["Invest in what you know."]) },
+  { id: "aisha", name: "Aisha", role: "Student", area: "Wuse", look: ["#16a34a", "#8a5a3b", "#1f2937", true],
+    lines: L(["Hi! Exams soon, I'm reading every night."], ["Noodles and egg is my survival meal."], ["Tutoring pays well if your needs are green."], ["I bought Power GO to read at night. Best decision."], ["I'm saving for a laptop."]) },
+];
+export const RESIDENT = (id: string) => RESIDENTS.find((r) => r.id === id);
+// Which residents you meet where.
+export const RESIDENTS_AT: Partial<Record<PlaceId | "street", string[]>> = { street: ["nkechi", "tunde", "halima", "emeka"], chef: ["halima", "emeka"], itel: ["dauda", "aisha", "chinedu"], hotel: ["musa", "ifeoma"], home: ["nkechi"] };

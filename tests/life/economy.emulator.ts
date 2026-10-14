@@ -1,9 +1,9 @@
 import assert from "node:assert/strict";
 import { initializeApp } from "firebase-admin/app";
-import { getFirestore } from "firebase-admin/firestore";
+import { FieldValue, getFirestore } from "firebase-admin/firestore";
 import { act, mutate, richList, friends, statement, invites } from "../../lib/life/server";
-import { GAME_DAY_MS, GAME_HOUR_MS, SHIFT_MS, START_NAIRA, worldTime, shiftPay, JOB } from "../../lib/life/catalog";
-import { advance, freshSave, sanitize } from "../../lib/life/play";
+import { GAME_DAY_MS, GAME_HOUR_MS, SHIFT_MS, START_NAIRA, WORLD_EPOCH, worldTime, shiftPay, JOB, nepaAt, outagesOfDay } from "../../lib/life/catalog";
+import { advance, freshSave, sanitize, powerStep, powerSource } from "../../lib/life/play";
 import { payFromWallet, creditTopup } from "../../lib/wallet-server";
 import { fulfillPayment, type PaymentRecord } from "../../lib/payments";
 import { awardReferral } from "../../lib/life/referral";
@@ -20,12 +20,23 @@ const rej = async (p: Promise<unknown>, re: RegExp) => { await assert.rejects(p,
   assert.equal(slept.finished?.kind, "sleep"); assert.equal(slept.s.needs.energy, 97.5);
   assert.equal(sanitize({ needs: { hunger: 500 }, outfit: "red", place: "moon" }).needs.hunger, 100);
   assert.equal(shiftPay(JOB("writer")!, ["pc_aio"], false), 15000); assert.equal(shiftPay(JOB("rider")!, ["ebike"], true), 7200);
+  // NEPA: 2 or 3 outages a game day, 2 to 6 game hours, the same for everyone
+  for (let d = 0; d < 40; d++) { const o = outagesOfDay(d); assert.ok(o.length >= 2 && o.length <= 3); for (const x of o) { const h = (x.to - x.from) / GAME_HOUR_MS; assert.ok(h >= 2 && h <= 6, "length " + h); } }
+  const o0 = outagesOfDay(3)[0]; assert.equal(nepaAt(o0.from + 1000).out, true); assert.equal(nepaAt(o0.from + 1000).id, o0.id); assert.equal(nepaAt(o0.from - 1000).out, false);
+  // power: the Power GO drains in a blackout and charges with light; the generator burns petrol and stops when empty
+  const ps = { ...freshSave(0), battery: 320 };
+  const go = powerStep(ps, GAME_HOUR_MS, { out: true, owned: ["power_go", "fan"], night: true, deskWork: true }); assert.equal(go.battery, 320 - 91);
+  assert.equal(powerStep({ ...go }, GAME_HOUR_MS, { out: false, owned: ["power_go"], night: true, deskWork: false }).battery, 320);
+  const g1 = powerStep({ ...ps, genOn: true, fuel: 0.3 }, GAME_HOUR_MS, { out: true, owned: ["gen_small"], night: true, deskWork: false }); assert.equal(g1.fuel, 0); assert.equal(g1.genOn, false);
+  assert.equal(powerSource({ genOn: false, fuel: 0, battery: 0 }, true, ["power_go"]), "none");
+  assert.equal(powerStep({ ...ps, battery: 0 }, GAME_HOUR_MS, { out: true, owned: ["power_go", "solar_panel"], night: false, deskWork: false }).battery, 55, "empty: solar fills it, nothing runs yet");
   console.log("pure ok");
 
   for (const [u, n] of [["p1", "ada"], ["p2", "bola"], ["p3", "chi"]]) await db.doc(`users/${u}`).set({ username: n, displayName: n.toUpperCase() });
   const T0 = Date.UTC(2026, 9, 14, 8);
   let { player } = await mutate(db, "p1", () => null, T0);
   assert.equal(player.naira, START_NAIRA); assert.ok(player.owned.includes("rug_notesapp"));
+  await db.doc("lifePlayers/p1").update({ owned: FieldValue.arrayUnion("power_go") }); // desk shifts below shouldn't depend on NEPA's schedule
   await rej(act(db, "p1", { action: "buy", item: "ac" }, T0), /Not enough/);
   ({ player } = await act(db, "p1", { action: "buy", item: "cooker" }, T0)); assert.equal(player.naira, 35000);
   await rej(act(db, "p1", { action: "buy", item: "cooker" }, T0), /already own/);
@@ -74,14 +85,29 @@ const rej = async (p: Promise<unknown>, re: RegExp) => { await assert.rejects(p,
   await payFromWallet(db, { ...buy, reference: "lifeN2", uid: "p3" }).catch((e) => assert.match(String(e), /Not enough/));
   await db.doc("lifePlayers/p3").set({ naira: 5000 }, { merge: true });
   ({ player } = await mutate(db, "p3", () => null, T0)); assert.equal(player.naira, 105000);
+  // power shop, petrol and NEPA at the desk
+  await db.doc("users/p6").set({ username: "fola" });
+  const outT = outagesOfDay(Math.floor((T0 - WORLD_EPOCH) / GAME_DAY_MS) + 1)[0].from + 60_000; // inside a blackout
+  await mutate(db, "p6", () => null, outT);
+  await rej(act(db, "p6", { action: "buy", item: "solar_panel" }, outT), /first/);
+  await rej(act(db, "p6", { action: "buy", item: "home_kit" }, outT), /coming soon/);
+  await rej(act(db, "p6", { action: "fuel", litres: 2 }, outT), /generator/);
+  await act(db, "p6", { action: "job_apply", job: "writer" }, outT);
+  await rej(act(db, "p6", { action: "shift_start", needsLow: false }, outT), /NEPA/);
+  r = await act(db, "p6", { action: "buy", item: "gen_small" }, outT); assert.equal(r.player.naira, 100000 - 65000);
+  await rej(act(db, "p6", { action: "fuel", litres: 9 }, outT), /1 to 5/);
+  r = await act(db, "p6", { action: "fuel", litres: 3 }, outT); assert.equal(r.player.naira, 35000 - 3300);
+  r = await act(db, "p6", { action: "shift_start", needsLow: false }, outT); assert.ok((r.result as { pay: number }).pay > 0);
   // rich list and friends
-  const rl = await richList(db, "p2"); assert.equal(rl.rows[0].uid, "p2"); assert.equal(rl.me?.rank, 1);
+  const rl = await richList(db, "p2", 20, true); assert.equal(rl.rows[0].uid, "p2"); assert.equal(rl.me?.rank, 1);
+  const rlAll = await richList(db, "p2"); assert.equal(rlAll.rows[0].uid, "npc:musa"); assert.ok(rlAll.rows.some((x) => x.uid === "p2" && !x.npc)); assert.equal(rlAll.me?.realRank, 1); assert.ok((rlAll.me?.rank ?? 0) > 1);
   await db.doc("follows/p1_bola").set({ followerUid: "p1", username: "bola" }); await db.doc("follows/p2_ada").set({ followerUid: "p2", username: "ada" }); await db.doc("follows/p3_ada").set({ followerUid: "p3", username: "ada" });
   const fr = await friends(db, "p1"); assert.deepEqual(fr.friends.map((f) => f.username), ["bola"]); assert.equal(fr.friends[0].plays, true);
   const st = await statement(db, "p2"); assert.ok(st.lines.some((l) => l.kind === "buy_naira"));
   // invites: the friend's first finished shift pays both of them once, only with a verified email, never to yourself
   await db.doc("users/p4").set({ username: "dee", displayName: "DEE" });
   ({ player } = await mutate(db, "p4", () => null, T0, "p1")); assert.equal(player.referredBy, "p1");
+  await db.doc("lifePlayers/p4").update({ owned: FieldValue.arrayUnion("power_go") });
   ({ player } = await mutate(db, "p4", () => null, T0, "p2")); assert.equal(player.referredBy, "p1", "an invite only counts when you start");
   ({ player } = await mutate(db, "p1", () => null, T0, "p4")); assert.equal(player.referredBy, null, "an existing player can't be invited");
   await act(db, "p4", { action: "job_apply", job: "writer" }, T0); await act(db, "p4", { action: "shift_start", needsLow: false }, T0);

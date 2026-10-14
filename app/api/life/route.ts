@@ -29,7 +29,7 @@ export async function GET(req: NextRequest) {
     if (limited) return limited;
     const db = getAdminDb();
     const v = req.nextUrl.searchParams.get("view");
-    if (v === "rich") return NextResponse.json(await richList(db, me.uid));
+    if (v === "rich") return NextResponse.json(await richList(db, me.uid, 20, req.nextUrl.searchParams.get("real") === "1"));
     if (v === "friends") return NextResponse.json(await friends(db, me.uid));
     if (v === "tx") return NextResponse.json(await statement(db, me.uid));
     if (v === "invites") return NextResponse.json(await invites(db, me.uid));

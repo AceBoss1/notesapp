@@ -6,18 +6,21 @@ import { auth } from "@/lib/firebase";
 import { startCheckout } from "@/lib/checkout";
 import * as C from "@/lib/life/catalog";
 import type { InviteRow, LifePlayer } from "@/lib/life/server";
-import { advance, applyNeeds, mood, needsLow, type Activity, type SaveState } from "@/lib/life/play";
+import { advance, applyNeeds, mood, needsLow, powerSource, powerStep, type Activity, type SaveState } from "@/lib/life/play";
 import { loadSave, restorePoint, restorePoints, saveCloud, saveLocal, type RestorePoint } from "./save";
-import { createWorld, type RoomSpot, type SceneSpec, type Tag, type World } from "./world";
+import { createWorld, type Power, type RoomSpot, type SceneSpec, type Tag, type World } from "./world";
+import { announce, hide, setShowMe, showMe, whoIsHere, type Present, type PresencePlace } from "./presence";
+import { TOPICS, chatWith, say as chatSay, type Line as ChatLine, type Topic } from "./chats";
 import { Sound, loadSoundPrefs, saveSoundPrefs, type Ambience, type Sfx, type SoundPrefs } from "./sound";
 
 type Player = LifePlayer & { cooking: number; serverNow: number };
 type Panel =
   | "welcome" | "needs" | "sleep" | "desk" | "outfit" | "cook" | "deal" | "go" | "food" | "hotel" | "phone" | "jobs" | "friends"
-  | "invite" | "bank" | "rich" | "settings" | "ebike" | { shop: C.ItemCat } | null;
+  | "invite" | "bank" | "rich" | "settings" | "ebike" | "nepa" | "power" | "itel" | "product" | { shop: C.ItemCat } | { chat: string } | { player: Present } | null;
 type Toast = { text: string; share?: string; tone?: "ok" | "warn" } | null;
 type Friend = { uid: string; username: string; name: string; avatar: string; plays: boolean; netWorth: number };
-type RichRow = { rank: number; uid: string; username: string; name: string; avatar: string; city: string; netWorth: number; owned: string[] };
+type RichRow = { rank: number; uid: string; username: string; name: string; avatar: string; city: string; netWorth: number; owned: string[]; npc?: { role: string; area: string; icons: string } };
+type RichData = { rows: RichRow[]; me: { rank: number | null; realRank?: number | null; netWorth: number } | null };
 
 const OUTFITS = ["#f59e0b", "#e53935", "#2563eb", "#16a34a", "#7c3aed", "#0f766e", "#111827", "#f472b6"];
 const NOTESAPP_HOME = "https://app.notesapp.name.ng/journals"; // "Back to NotesApp": the app's journal feed
@@ -53,7 +56,11 @@ export default function LifeGame() {
   const [inviteList, setInviteList] = useState<{ invites: InviteRow[]; paid: number } | null>(null);
   const [bankLines, setBankLines] = useState<{ id: string; amount: number; label: string; at: number }[] | null>(null);
   const [buyAmt, setBuyAmt] = useState(1_000);
-  const [rich, setRich] = useState<{ rows: RichRow[]; me: { rank: number | null; netWorth: number } | null } | null>(null);
+  const [rich, setRich] = useState<RichData | null>(null);
+  const [richReal, setRichReal] = useState(false);
+  const [others, setOthers] = useState<Present[]>([]);
+  const [chat, setChat] = useState<ChatLine[]>([]);
+  const [showMeOn, setShowMeOn] = useState(true);
   const [richPop, setRichPop] = useState(false);
   const [points, setPoints] = useState<RestorePoint[] | null>(null);
   const panelKey = typeof panel === "string" ? panel : null;
@@ -64,15 +71,21 @@ export default function LifeGame() {
     if (panelKey === "invite") { setPicked([]); setInviteList(null); call<{ invites: InviteRow[]; paid: number }>(user, "GET", undefined, "?view=invites").then(setInviteList).catch(() => setInviteList({ invites: [], paid: 0 })); }
     if (panelKey === "friends") { setFriendList(null); call<{ friends: Friend[] }>(user, "GET", undefined, "?view=friends").then((r) => setFriendList(r.friends)).catch(() => setFriendList([])); }
     if (panelKey === "bank") { setBankLines(null); call<{ lines: { id: string; amount: number; label: string; at: number }[] }>(user, "GET", undefined, "?view=tx").then((r) => setBankLines(r.lines)).catch(() => setBankLines([])); }
-    if (panelKey === "rich") { setRich(null); setRichPop(!saveRef.current?.seenRich); call<{ rows: RichRow[]; me: { rank: number | null; netWorth: number } }>(user, "GET", undefined, "?view=rich").then(setRich).catch(() => setRich({ rows: [], me: null })); }
+    if (panelKey === "rich") { setRich(null); setRichPop(!saveRef.current?.seenRich); call<RichData>(user, "GET", undefined, `?view=rich${richReal ? "&real=1" : ""}`).then(setRich).catch(() => setRich({ rows: [], me: null })); }
     if (panelKey === "settings") { setPoints(null); restorePoints(user.uid).then(setPoints).catch(() => setPoints([])); }
-  }, [panelKey, user]);
+  }, [panelKey, user, richReal]);
+  const chatId = panel && typeof panel === "object" && "chat" in panel ? panel.chat : null;
+  useEffect(() => { if (user && chatId) setChat(chatWith(user.uid, chatId)); }, [user, chatId]);
+  useEffect(() => { setShowMeOn(showMe()); }, []);
+  useEffect(() => { const k = (e: KeyboardEvent) => { if (e.key === "Escape") setPanel(null); }; window.addEventListener("keydown", k); return () => window.removeEventListener("keydown", k); }, []);
   const canvas = useRef<HTMLCanvasElement>(null);
   const world = useRef<World | null>(null);
   const saveRef = useRef<SaveState | null>(null);
   const playerRef = useRef<Player | null>(null);
   const offset = useRef(0); // server clock minus this device's clock
   const lastCloud = useRef(0);
+  const lastPowerAt = useRef(0);
+  const wasOut = useRef<boolean | null>(null);
   saveRef.current = save; playerRef.current = player;
 
   // ---- sound (components/life/sound.ts): made in the browser, volumes kept on this device ----
@@ -133,20 +146,43 @@ export default function LifeGame() {
   }, [save !== null]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const night = C.worldTime(Date.now() + offset.current).night;
+  // NEPA: the same blackout for everyone (lib/life/catalog.ts nepaAt), and what powers your room through it.
+  const nepa = C.nepaAt(Date.now() + offset.current);
+  const src = save && player ? powerSource(save, nepa.out, player.owned) : "grid";
+  const roomPower: Power = src === "grid" ? "grid" : src === "gen" ? "gen" : src === "go" ? "go" : "out";
+  const othersKey = others.map((o) => o.uid + o.outfit).join();
   const spec: SceneSpec | null = useMemo(() => {
     if (!save || !player) return null;
     const a = save.activity;
-    if (a?.kind === "travel") return { id: "street", outfit: save.outfit, night, riding: a.icon === "🛵" ? "ebike" : null };
+    const o = others.map((x) => ({ uid: x.uid, outfit: x.outfit }));
+    if (a?.kind === "travel") return { id: "street", outfit: save.outfit, night, riding: a.icon === "🛵" ? "ebike" : null, others: o };
     if (a?.kind === "hotel" && a.label.includes("pool")) return { id: "pool", outfit: save.outfit };
-    if (save.place === "chef") return { id: "chef", outfit: save.outfit, night };
-    if (save.place === "hotel") return { id: "hotel", outfit: save.outfit };
-    if (save.place === "work") return { id: "street", outfit: save.outfit, night, riding: player.owned.includes("ebike") ? "ebike" : null };
-    return { id: "room", owned: player.owned, rug: save.rug, outfit: save.outfit, night, ringing: player.deal?.state === "offered", at: spot, sleeping: a?.kind === "sleep" };
-  }, [save?.place, save?.activity?.kind, save?.activity?.label, save?.outfit, save?.rug, player?.owned.join(), player?.deal?.state, night, spot]); // eslint-disable-line react-hooks/exhaustive-deps
+    if (save.place === "chef") return { id: "chef", outfit: save.outfit, night, others: o };
+    if (save.place === "itel") return { id: "itel", outfit: save.outfit, night, others: o };
+    if (save.place === "hotel") return { id: "hotel", outfit: save.outfit, others: o };
+    if (save.place === "work") return { id: "street", outfit: save.outfit, night, riding: player.owned.includes("ebike") ? "ebike" : null, others: o };
+    return { id: "room", owned: player.owned, rug: save.rug, outfit: save.outfit, night, ringing: player.deal?.state === "offered", at: spot, sleeping: a?.kind === "sleep", power: roomPower };
+  }, [save?.place, save?.activity?.kind, save?.activity?.label, save?.outfit, save?.rug, player?.owned.join(), player?.deal?.state, night, spot, roomPower, othersKey]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Where you are, for other players (lifePresence), and who else is here: every 45 s, and when you move.
+  const presencePlace: PresencePlace | null = !save ? null : save.activity?.kind === "travel" ? "ride" : (save.place as PresencePlace);
+  useEffect(() => {
+    if (!user || !presencePlace) return;
+    let alive = true;
+    const tick = async () => {
+      void announce(user.uid, presencePlace, saveRef.current?.outfit ?? "#64748b");
+      const list = await whoIsHere(user.uid, presencePlace);
+      if (alive) setOthers(list);
+    };
+    void tick();
+    const t = window.setInterval(tick, 45_000);
+    return () => { alive = false; window.clearInterval(t); };
+  }, [user, presencePlace, showMeOn]);
   useEffect(() => { if (spec && world.current) void world.current.show(spec); }, [spec]);
   // What you hear around you, and the bedside phone while a deal call waits.
   const ambience: Ambience = !spec ? "none" : spec.id === "room" ? (night ? "room-night" : "room") : spec.id === "street" || spec.id === "chef" ? (night ? "street-night" : "street") : spec.id === "hotel" ? "hotel" : "pool";
   useEffect(() => { snd.current?.ambience(ambience); }, [ambience]);
+  useEffect(() => { snd.current?.generators(src === "gen" && save?.place === "home" ? (player?.owned.includes("gen_big") ? "big" : "small") : null, nepa.out); }, [src, save?.place, nepa.out, player?.owned]); // eslint-disable-line react-hooks/exhaustive-deps
   const ringing = player?.deal?.state === "offered" && save?.place === "home";
   useEffect(() => { snd.current?.ringing(!!ringing); }, [ringing]);
 
@@ -170,6 +206,22 @@ export default function LifeGame() {
       const s = saveRef.current; if (!s) return;
       const now = Date.now();
       const r = advance(s, now, true);
+      // Power through blackouts, and NEPA's comings and goings.
+      const p0 = playerRef.current;
+      if (p0) {
+        const n0 = C.nepaAt(now + offset.current);
+        const deskWork = r.s.activity?.kind === "shift" && C.JOB(p0.jobId ?? "")?.place === "home";
+        r.s = powerStep(r.s, now - (lastPowerAt.current || now), { out: n0.out, owned: p0.owned, night: C.worldTime(now + offset.current).night, deskWork });
+        lastPowerAt.current = now;
+        if (n0.out && r.s.nepaSeen !== n0.id) {
+          r.s = { ...r.s, nepaSeen: n0.id };
+          sfx("nepa_off");
+          say("⚡ NEPA has taken light! Mama Nkechi: “Ah! NEPA don take light again o!”", undefined, "warn");
+          setPanel((cur) => cur ?? "nepa");
+        }
+        if (wasOut.current && !n0.out) { sfx("up_nepa"); say("💡 Nwiiiii… UP NEPA! Light has returned. “Shhhh! Before dem hear and take am again!”"); r.s = { ...r.s, genOn: false }; }
+        wasOut.current = n0.out;
+      }
       setSave(r.s); setNow(now);
       if (r.delivered) sfx("door");
       if (r.delivered) say(`🛵 Your Chef Adams order arrived. Hunger +${r.delivered}.`);
@@ -228,6 +280,8 @@ export default function LifeGame() {
   function start(a: Omit<Activity, "startedAt" | "endsAt">, minutes: number) {
     const s = saveRef.current; if (!s) return false;
     if (s.activity) { say(`Finish what you're doing first: ${s.activity.label}`, undefined, "warn"); return false; }
+    const pl = playerRef.current, n0 = C.nepaAt(Date.now() + offset.current);
+    if (a.kind === "read" && pl && n0.out && C.worldTime(Date.now() + offset.current).night && powerSource(s, true, pl.owned) === "none") { say("It's too dark: NEPA has taken light. Use a Power GO or a generator, or wait for light.", undefined, "warn"); setPanel("nepa"); return false; }
     const now = Date.now();
     update((x) => ({ ...x, activity: { ...a, startedAt: now, endsAt: now + C.gameMinutesToMs(minutes) } }));
     setPanel(null);
@@ -302,6 +356,25 @@ export default function LifeGame() {
     const r = await act<{ pay: number }>({ action: "deal_collect" });
     if (r) say(`📦 Deal delivered: ${C.fmtN(r.pay)} from ${who}.`, shareText(`Just closed a ${C.fmtN(r.pay)} deal in Notes Life 📦`));
   }
+  async function buyFuel(litres: number) {
+    const r = await act<{ litres: number; tank: number }>({ action: "fuel", litres });
+    if (r) { update((x) => ({ ...x, fuel: Math.min(r.tank, x.fuel + r.litres) })); say(`⛽ ${r.litres} L of petrol in the tank.`); saveNow(); }
+  }
+  function genSwitch(on: boolean) {
+    const s = saveRef.current, p = playerRef.current; if (!s || !p) return;
+    if (on && !(p.owned.includes("gen_small") || p.owned.includes("gen_big"))) return setPanel({ shop: "power" });
+    if (on && s.fuel <= 0) return setErr("The tank is empty: buy petrol first.");
+    if (on && !C.nepaAt(Date.now() + offset.current).out) return say("NEPA has light now: no need for the generator.");
+    if (on) { sfx("pull"); window.setTimeout(() => say(p.owned.includes("gen_big") ? "🛢️ Vroom! The big generator is on: everything works, AC too." : "⛽ “I Better Pass My Neighbour” is on! Loud, but there is light."), 900); }
+    update((x) => ({ ...x, genOn: on }));
+  }
+  function askResident(id: string, topic: Topic) {
+    if (!user) return;
+    setChat(chatSay(user.uid, id, topic));
+    const k = `notesLife:social:${id}`, now = Date.now();
+    let last = 0; try { last = Number(localStorage.getItem(k)) || 0; } catch { /* fine */ }
+    if (now - last > C.GAME_HOUR_MS) { try { localStorage.setItem(k, String(now)); } catch { /* fine */ } update((x) => ({ ...x, needs: applyNeeds(x.needs, { social: 8 }) })); say("💬 Social +8"); }
+  }
   async function buyNaira(naira: number, how: "wallet" | "card") {
     if (!user) return;
     if (how === "card") {
@@ -323,6 +396,8 @@ export default function LifeGame() {
   // ---- what each tag in the scene says and does ----
   const tagInfo = (key: string): { label: string; up?: boolean; go: () => void } | null => {
     if (!player || !save) return null;
+    if (key.startsWith("npc:")) { const r = C.RESIDENT(key.slice(4)); return r ? { label: `${r.name} 🤖`, go: () => setPanel({ chat: r.id }) } : null; }
+    if (key.startsWith("player:")) { const o = others.find((x) => x.uid === key.slice(7)); return o ? { label: `👤 ${o.name.split(" ")[0]}`, up: true, go: () => setPanel({ player: o }) } : null; }
     const has = (id: string) => player.owned.includes(id);
     const pc = C.bestOwned(player.owned, "computer");
     if (spec?.id === "room") {
@@ -338,6 +413,8 @@ export default function LifeGame() {
         case "rug": return { label: `${C.ITEM(save.rug)?.name.replace(/ rug$/, "") ?? "Rug"} rug ⬆`, up: true, go: () => setPanel({ shop: "rug" }) };
         case "cooker": return { label: save.plates ? `🍳 Eat (${save.plates} ready)` : "🍳 Cook", go: () => { walk("cooker"); setPanel("cook"); } };
         case "door": return { label: "🚪 Go out", go: () => setPanel("go") };
+        case "powergo": return { label: `🔋 Power GO ${Math.round((save.battery / C.POWER_GO.wh) * 100)}%`, up: src === "go", go: () => setPanel("power") };
+        case "gen": return { label: src === "gen" ? `⛽ Generator ON · ${save.fuel.toFixed(1)} L` : `⛽ Generator · ${save.fuel.toFixed(1)} L`, up: src === "gen", go: () => setPanel("power") };
       }
     }
     if (spec?.id === "chef") {
@@ -349,6 +426,12 @@ export default function LifeGame() {
     if (spec?.id === "hotel") {
       if (key === "sign" || key === "gate") return { label: key === "gate" ? "👑 Enter Candellux" : "Facilities", up: key === "gate", go: () => setPanel("hotel") };
       if (key === "pool") return { label: "🏊 Pool", go: () => setPanel("hotel") };
+    }
+    if (spec?.id === "itel") {
+      if (key === "shop") return { label: "⚡ itel Energy · Solar shop", up: true, go: () => setPanel("itel") };
+      if (key === "go") return { label: "🔋 Power GO Pro", go: () => setPanel("product") };
+      if (key === "kit") return { label: "☀️ Small home solar kit", go: () => say("☀️ The small home solar kit (IP66 inverter, battery and 4 panels) is coming soon.") };
+      if (key === "inverter") return { label: "IP66 inverters", go: () => say("IP66: dust-tight and waterproof, made for Nigerian weather. Coming with the home kit.") };
     }
     if (spec?.id === "pool") return { label: ({ pool: "🏊 Pool", bar: "🍸 VIP bar", gym: "🏋 Gym", suites: "🛏 Suites", front: "↩ Front" } as Record<string, string>)[key] ?? key, go: () => setPanel("hotel") };
     if (spec?.id === "street") {
@@ -395,6 +478,7 @@ export default function LifeGame() {
         <div className="mx-auto mt-2 flex flex-wrap justify-center gap-2 text-[11px]">
           <span className="pill px-3 py-1">☁️ {savedAt ? `Saved ${Math.max(1, Math.round((Date.now() - savedAt) / 1000))}s ago` : "Saved on this device"}</span>
           <span className="pill px-3 py-1">📅 Day {day}{player.rentOwed ? <b className="text-crimson"> · rent owed {C.fmtN(player.rentOwed)}</b> : ` · rent day ${(Math.floor((day - 1) / C.MONTH_DAYS) + 1) * C.MONTH_DAYS + 1}`}</span>
+          {nepa.out && <button onClick={() => setPanel(save.place === "home" ? "power" : "nepa")} className={`pill pointer-events-auto px-3 py-1 font-bold ${src === "none" ? "text-red-700" : "text-amber-700"}`}>⚡ NEPA off{src === "go" ? ` · 🔋 Power GO ${Math.round((save.battery / C.POWER_GO.wh) * 100)}%` : src === "gen" ? ` · ⛽ ${save.fuel.toFixed(1)} L` : ""}</button>}
           <button onClick={() => setPanel("invite")} className="pill pointer-events-auto px-3 py-1 font-bold text-pink-600">🎁 Invite · {`₦${C.REFERRAL_BONUS_KOBO / 100}`} each</button>
           {save.delivery && <span className="pill px-3 py-1">🛵 Food in {Math.max(1, Math.ceil((save.delivery.at - Date.now()) / C.GAME_MIN_MS))} min</span>}
           {deal?.state === "active" && <button onClick={() => dealReady && collectDeal()} className={`pill pointer-events-auto px-3 py-1 ${dealReady ? "!bg-emerald-500 font-bold text-white" : ""}`}>📦 {deal.who}: {dealReady ? `deliver · ${C.fmtN(deal.pay)}` : `ready in ${Math.max(1, Math.ceil(((deal.dueAt ?? 0) - Date.now() - offset.current) / C.GAME_HOUR_MS))} h`}</button>}
@@ -425,7 +509,7 @@ export default function LifeGame() {
           </div>
           <nav className="pill pointer-events-auto mx-auto grid max-w-md grid-cols-5 gap-1 rounded-3xl p-1.5 text-center text-[11px] font-semibold lg:max-w-xl">
             {[["🏠", "Home", () => (save.place === "home" ? setPanel(null) : setPanel("go"))], ["🛋", "Shop", () => setPanel({ shop: "rug" })], ["🗺", "Go", () => setPanel("go")], ["📱", "Phone", () => setPanel("phone")], ["👑", "Rich list", () => setPanel("rich")]].map(([i, l, f]) => (
-              <button key={l as string} onClick={f as () => void} className={`rounded-2xl py-2 ${(l === "Home" && !panel) || (l === "Phone" && ["phone", "jobs", "friends", "bank", "invite", "food", "deal"].includes(String(panel))) || (l === "Go" && panel === "go") || (l === "Rich list" && panel === "rich") || (l === "Shop" && typeof panel === "object" && panel) ? "bg-ink text-white" : ""}`}>{i as string}<br />{l as string}</button>
+              <button key={l as string} onClick={f as () => void} className={`rounded-2xl py-2 ${(l === "Home" && !panel) || (l === "Phone" && ["phone", "jobs", "friends", "bank", "invite", "food", "deal"].includes(String(panel))) || (l === "Go" && panel === "go") || (l === "Rich list" && panel === "rich") || (l === "Shop" && typeof panel === "object" && !!panel && "shop" in panel) ? "bg-ink text-white" : ""}`}>{i as string}<br />{l as string}</button>
             ))}
           </nav>
         </div>
@@ -526,8 +610,10 @@ export default function LifeGame() {
           const own = p.owned.includes(i.id);
           return <Row key={i.id} icon={i.icon} title={<>{i.name}{eco(i.eco)}</>} note={i.note} pick={cat === "rug" && s.rug === i.id}
             right={own ? (cat === "rug" ? (s.rug === i.id ? <span className="rounded-full bg-slate-200 px-2 py-0.5 font-bold">In use</span> : <button className="rounded-full border px-2 py-0.5 font-bold" onClick={() => update((x) => ({ ...x, rug: i.id }))}>Put down</button>) : <span className="rounded-full bg-slate-200 px-2 py-0.5 font-bold">Owned</span>)
+              : i.soon ? <span className="text-slate"><b className="block">{C.fmtShort(i.price)}</b>soon</span>
               : <button disabled={busy} onClick={() => buy(i)} className="rounded-full bg-emerald-500 px-3 py-1 font-bold text-white disabled:opacity-40">{C.fmtN(i.price)}</button>} />;
         })}</div>
+        {cat === "power" && <p className="mt-3 rounded-xl bg-[#fff1f3] px-3 py-2 text-[11px]">⚡ itel products come from the <button className="font-bold text-[#e8173f] underline" onClick={() => setPanel("itel")}>itel Energy shop</button> in Wuse. Generators are from the market: loud, and they need petrol.</p>}
         <p className="mt-3 text-center text-[11px] text-slate">Prices in Notesville Naira, earned from jobs and deals. Short? <button className="underline" onClick={() => setPanel("bank")}>Buy N$ with NotesApp Credit</button>.</p></div>);
     }
 
@@ -555,7 +641,7 @@ export default function LifeGame() {
       <p className="mt-2 text-center text-[10px] text-slate">Candellux Imperial is a Notes Life partner.</p></div>);
 
     if (panel === "phone") return (<div>{close}<p className="text-lg font-extrabold">📱 Phone</p>
-      <div className="mt-3 grid grid-cols-4 gap-3 text-center text-[11px] font-semibold">{([["💼", "Jobs", "bg-emerald-500", () => setPanel("jobs")], ["👥", "Friends", "bg-crimson", () => setPanel("friends")], ["🎁", "Invite", "bg-pink-500", () => setPanel("invite")], ["☎️", "Deals", "bg-sky-500", () => setPanel("deal")], ["🏦", "Bank", "bg-amber-500", () => setPanel("bank")], ["🛺", "Go", "bg-teal-600", () => setPanel("go")], ["CHEF", "Chef Adams", "bg-[#292929]", () => setPanel("food")], ["👑", "Candellux", "bg-[#262b6b]", () => setPanel("hotel")], ["👑", "Rich list", "bg-slate-800", () => setPanel("rich")], ["🛋", "Shop", "bg-orange-500", () => setPanel({ shop: "rug" })], ["📰", "NotesApp", "bg-[#7A0328]", () => void leave()], ["⚙️", "Settings", "bg-slate-400", () => setPanel("settings")]] as [string, string, string, () => void][]).map(([i, n, c, f]) => (
+      <div className="mt-3 grid grid-cols-4 gap-3 text-center text-[11px] font-semibold">{([["💼", "Jobs", "bg-emerald-500", () => setPanel("jobs")], ["👥", "Friends", "bg-crimson", () => setPanel("friends")], ["🎁", "Invite", "bg-pink-500", () => setPanel("invite")], ["☎️", "Deals", "bg-sky-500", () => setPanel("deal")], ["🏦", "Bank", "bg-amber-500", () => setPanel("bank")], ["🛺", "Go", "bg-teal-600", () => setPanel("go")], ["CHEF", "Chef Adams", "bg-[#292929]", () => setPanel("food")], ["👑", "Candellux", "bg-[#262b6b]", () => setPanel("hotel")], ["⚡", "itel Energy", "bg-[#e8173f]", () => setPanel("itel")], ["👑", "Rich list", "bg-slate-800", () => setPanel("rich")], ["🛋", "Shop", "bg-orange-500", () => setPanel({ shop: "rug" })], ["📰", "NotesApp", "bg-[#7A0328]", () => void leave()], ["⚙️", "Settings", "bg-slate-400", () => setPanel("settings")]] as [string, string, string, () => void][]).map(([i, n, c, f]) => (
         <button key={n + i} onClick={f}><span className={`mx-auto flex h-14 w-14 items-center justify-center overflow-hidden rounded-2xl ${c} text-2xl text-white shadow`}>{i === "CHEF" ? <img src="/images/life/partners/chef-emblem.webp" alt="" className="h-12 w-12 object-contain" /> : i}</span><span className="mt-1 block">{n}</span></button>
       ))}</div></div>);
 
@@ -567,6 +653,65 @@ export default function LifeGame() {
           right={<><b className="block text-emerald-700">{j.pay ? `${C.fmtN(j.pay)}/shift` : ""}</b>{!block && !p.shift && <button disabled={busy} onClick={async () => { const r = await act<{ message: string }>({ action: "job_apply", job: j.id }); if (r) say(r.message, shareText(`I just got a job as ${j.title} in Notes Life 💼`)); }} className="mt-1 rounded-full bg-ink px-2.5 py-1 text-[11px] font-bold text-white">Take it</button>}</>} />); })}</div>
       <div className="mt-3 rounded-2xl border-2 border-[#F2B544] bg-[#292929] p-3 text-white"><p className="text-[10px] font-bold uppercase tracking-widest text-[#F2B544]">🤝 Become a Partner</p><p className="text-[13px] font-bold">Own a Chef Adams outlet</p><div className="mt-1.5 grid grid-cols-2 gap-1.5 text-[10px]"><span className="rounded-xl bg-white/10 p-2"><b className="block text-[12px]">Takeaway Kiosk</b>from {C.fmtShort(C.CHEF_PARTNER.kiosk)}</span><span className="rounded-xl bg-white/10 p-2"><b className="block text-[12px]">Mini Dine-In Shop</b>from {C.fmtShort(C.CHEF_PARTNER.shop)}</span></div><p className="mt-1.5 text-[10px] opacity-80">One brand. Standardised recipes, training and quality control in every outlet. Coming soon in the game.</p></div></div>);
 
+
+    if (panel === "nepa") {
+      const hasGo = p.owned.includes("power_go"), gen = p.owned.includes("gen_big") ? "gen_big" : p.owned.includes("gen_small") ? "gen_small" : null;
+      return (<div>{close}<div className="text-center"><p className="text-[11px] font-bold uppercase tracking-widest text-amber-600">⚡ Power cut · everyone in Abuja</p><h2 className="text-2xl font-extrabold">{nepa.out ? "NEPA has taken light!" : "NEPA has light"}</h2>
+        <p className="mt-1 text-sm text-slate">{nepa.out ? "“Ah! NEPA don take light again o!” Mama Nkechi shouts next door. Generators start roaring one by one down the street." : "Light is on for now. Nobody knows when it will go."}</p></div>
+        <div className="mt-3 grid gap-2">
+          {hasGo ? <Row icon={<img src="/images/life/partners/itel-powergo.webp" alt="" className="h-10 w-10 object-contain" />} title={`Power GO Pro · ${Math.round((s.battery / C.POWER_GO.wh) * 100)}%`} note={src === "go" ? "Running your lamp, fan and laptop. Silent." : s.battery <= 0.5 ? "Empty: it charges when light returns, or by day with the solar panel." : "Ready."} pick={src === "go"} onClick={() => setPanel("power")} />
+            : <Row icon={<img src="/images/life/partners/itel-powergo.webp" alt="" className="h-10 w-10 object-contain" />} title="Get a Power GO Pro at itel Energy" note="Lamp, fan and laptop keep going · silent, no fuel" right={<b className="text-[#e8173f]">{C.fmtShort(C.ITEM("power_go")!.price)}</b>} pick onClick={() => setPanel("itel")} />}
+          {gen ? <Row icon={C.ITEM(gen)!.icon} title={src === "gen" ? `${C.ITEM(gen)!.name} is ON` : `Start ${C.ITEM(gen)!.name}`} note={`${s.fuel.toFixed(1)} L of petrol · ${C.ITEM(gen)!.litresPerHour} L a game hour`} pick={src === "gen"} onClick={() => setPanel("power")} />
+            : <Row icon="⛽" title="Buy “I Better Pass My Neighbour”" note="950W generator from the market · loud · needs petrol" right={<b>{C.fmtShort(C.ITEM("gen_small")!.price)}</b>} onClick={() => setPanel({ shop: "power" })} />}
+          <Row icon="☀️" title="Small home solar kit" note="Never affected again (coming soon)" right={<span className="text-slate">soon</span>} />
+          <Row icon="🔦" title="Stay in the dark till light returns" note="No reading at night, an old desktop can't work, and you sleep hot" onClick={() => setPanel(null)} />
+        </div>
+        <p className="mt-2 text-center text-[11px] text-slate">Light usually returns in 2 to 6 game hours.</p></div>);
+    }
+    if (panel === "power") {
+      const gen = p.owned.includes("gen_big") ? C.ITEM("gen_big")! : p.owned.includes("gen_small") ? C.ITEM("gen_small")! : null;
+      const pct = Math.round((s.battery / C.POWER_GO.wh) * 100);
+      return (<div>{close}<p className="text-[11px] font-bold uppercase tracking-widest text-amber-600">⚡ Power</p><h2 className="text-xl font-extrabold">{!nepa.out ? "NEPA has light" : src === "none" ? "Dark: NEPA has taken light" : src === "go" ? "Running on Power GO" : "Running on the generator"}</h2>
+        {p.owned.includes("power_go") ? <div className="mt-3 rounded-2xl border p-3"><div className="flex items-center gap-3"><img src="/images/life/partners/itel-powergo.webp" alt="" className="h-12 w-10 object-contain" /><div className="flex-1"><b className="text-sm">itel Power GO Pro · {pct}%</b><span className="bar mt-1 block"><i style={{ width: `${pct}%`, background: pct < 20 ? "#ef4444" : "#a855f7" }} /></span><span className="mt-1 block text-[11px] text-slate">{nepa.out ? "Lamp, fan and laptop on the battery when the generator is off." : "Charging from NEPA."}{p.owned.includes("solar_panel") ? " ☀️ Solar panel: charges by day." : ""}</span></div></div>
+          {!p.owned.includes("solar_panel") && <button onClick={() => setPanel("itel")} className="mt-2 text-[11px] font-bold text-[#e8173f] underline">Add the 100W solar panel ({C.fmtShort(C.ITEM("solar_panel")!.price)})</button>}</div>
+          : <div className="mt-3"><Row icon="🔋" title="No Power GO yet" note="itel Energy, Wuse market road" right={<b className="text-[#e8173f]">{C.fmtShort(C.ITEM("power_go")!.price)}</b>} onClick={() => setPanel("itel")} /></div>}
+        {gen ? <div className="mt-3 rounded-2xl border p-3"><div className="flex items-center justify-between"><b className="text-sm">{gen.icon} {gen.name}</b><b className="text-xs">{s.fuel.toFixed(1)} / {gen.tank} L</b></div><span className="bar mt-1 block"><i style={{ width: `${(s.fuel / (gen.tank ?? 5)) * 100}%`, background: "#f59e0b" }} /></span>
+          <div className="mt-2 flex flex-wrap gap-2">{src === "gen" ? <Btn tone="ghost" onClick={() => genSwitch(false)}>Switch off</Btn> : <Btn tone="green" onClick={() => genSwitch(true)} disabled={!nepa.out || s.fuel <= 0}>Pull the cord</Btn>}
+            {[1, 3, gen.tank ?? 5].map((l) => <Btn key={l} tone="ghost" onClick={() => buyFuel(Math.min(l, Math.floor((gen.tank ?? 5) - s.fuel) || 1))}>⛽ {l} L · {C.fmtShort(l * C.FUEL_NAIRA)}</Btn>)}</div>
+          <p className="mt-1 text-[10px] text-slate">Petrol {C.fmtN(C.FUEL_NAIRA)} a litre. Loud: the neighbours hear it.</p></div>
+          : <div className="mt-3"><Row icon="⛽" title="No generator" note="“I Better Pass My Neighbour” from the market" right={<b>{C.fmtShort(C.ITEM("gen_small")!.price)}</b>} onClick={() => setPanel({ shop: "power" })} /></div>}
+      </div>);
+    }
+    if (panel === "itel" || panel === "product") {
+      const items = C.ITEMS.filter((i) => i.brand === "itel");
+      const goItem = C.ITEM("power_go")!;
+      const real = <a href={C.ITEL.sellerUrl} target="_blank" rel="noreferrer" className="mt-3 flex gap-3 rounded-2xl border border-[#e8173f]/30 bg-[#fff1f3] p-2.5"><img src="/images/life/partners/itel-powergo.webp" alt="" className="h-16 w-14 shrink-0 object-contain" /><span className="min-w-0 text-[11px]"><b className="block text-[12px]">Get the real Power GO Pro</b>From @{C.ITEL.seller}, the itel distributor on NotesApp. CarlCare after-sales with replacement warranty.<span className="mt-1 block font-bold text-[#e8173f] underline">Shop @{C.ITEL.seller} on NotesApp ↗</span></span></a>;
+      const head = <div className="flex items-center gap-3"><img src="/images/life/partners/itel-logo.webp" alt="itel Energy" className="h-7" /><span className="rounded-full bg-[#e8173f]/10 px-2 py-0.5 text-[10px] font-bold text-[#e8173f]">PARTNER</span></div>;
+      if (panel === "product") return (<div>{close}<div className="flex gap-4"><img src="/images/life/partners/itel-powergo.webp" alt="" className="h-32 w-24 shrink-0 object-contain" /><div><img src="/images/life/partners/itel-logo.webp" alt="itel Energy" className="h-5" /><h2 className="mt-1 text-2xl font-extrabold leading-tight">Power GO Pro</h2><p className="text-xs text-slate">320Wh · 200W max output · 100% grade A cells</p><p className="mt-2 text-xl font-extrabold">{C.fmtN(goItem.price)}</p></div></div>
+        <p className="mt-3 text-[11px] font-bold uppercase tracking-wider text-slate">In a power cut it runs</p>
+        <div className="mt-1 grid grid-cols-3 gap-1.5 text-center text-[11px]">{C.RUNTIMES.map(([i, a, b]) => <div key={b} className="rounded-2xl bg-[#7a0f1f] p-2 text-white"><span className="text-lg">{i}</span><b className="block text-sm">{a}</b><span className="opacity-80">{b}</span></div>)}</div>
+        <p className="mt-3 text-[11px] text-slate">In the game: when NEPA takes light, your lamp, fan and laptop stay on and desk work keeps paying. The battery goes down as you use it and fills again when light returns, or by day with the solar panel.</p>
+        <div className="mt-3 grid grid-cols-2 gap-2">{p.owned.includes("power_go") ? <Btn tone="ghost" onClick={() => setPanel("power")}>✓ Owned · see power</Btn> : <Btn tone="red" onClick={() => buy(goItem)}>Buy · {C.fmtShort(goItem.price)}</Btn>}<Btn tone="ghost" onClick={() => setPanel("itel")}>All itel products</Btn></div>{real}</div>);
+      return (<div>{close}{head}<p className="mt-0.5 text-[10px] text-slate">{C.ITEL.note}</p><h2 className="mt-2 text-xl font-extrabold">Power when NEPA takes light</h2><p className="text-xs text-slate">Keep your lamp, fan and laptop going through a power cut. Silent, no fuel, no fumes.</p>
+        <div className="mt-3 grid gap-2">{items.map((i) => { const own = p.owned.includes(i.id); return <Row key={i.id} icon={i.id === "power_go" ? <img src="/images/life/partners/itel-powergo.webp" alt="" className="h-10 w-10 object-contain" /> : i.icon} title={<>{i.name.replace(/^itel (.)/, (_, c: string) => c.toUpperCase())}{eco(i.eco)}</>} note={i.note} pick={i.id === "power_go" && !own} onClick={i.id === "power_go" ? () => setPanel("product") : undefined}
+          right={own ? <span className="rounded-full bg-slate-200 px-2 py-0.5 font-bold">Owned</span> : i.soon ? <span className="text-slate"><b className="block">{C.fmtShort(i.price)}</b>soon</span> : <button disabled={busy} onClick={(e) => { e.stopPropagation(); void buy(i); }} className="rounded-full bg-[#e8173f] px-3 py-1 font-bold text-white disabled:opacity-40">{C.fmtShort(i.price)}</button>} />; })}</div>
+        {nepa.out && <p className="mt-3 rounded-xl bg-amber-50 px-3 py-2 text-[11px] text-amber-900">⚡ NEPA has taken light right now. Solar homes never noticed.</p>}{real}</div>);
+    }
+    if (chatId) {
+      const r = C.RESIDENT(chatId);
+      if (!r) return null;
+      return (<div>{close}<div className="flex items-center gap-3"><span className="flex h-14 w-14 items-center justify-center rounded-full text-lg font-bold text-white" style={{ background: r.look[0] }}>{r.name.split(" ").map((w) => w[0]).slice(0, 2).join("")}</span><div><b className="block text-lg leading-tight">{r.name}</b><span className="text-[11px] text-slate">🤖 Resident · {r.role}</span></div></div>
+        <div className="mt-3 max-h-64 space-y-2 overflow-y-auto text-sm">{chat.length === 0 ? <p className="max-w-[85%] rounded-2xl rounded-tl-sm bg-slate-100 px-3 py-2">{r.lines.greet[0]}</p> : chat.map((l, i) => <p key={i} className={`max-w-[85%] rounded-2xl px-3 py-2 ${l.me ? "ml-auto rounded-tr-sm bg-emerald-500 text-white" : "rounded-tl-sm bg-slate-100"}`}>{l.text}</p>)}</div>
+        <div className="mt-3 flex flex-wrap gap-2 text-xs font-bold">{TOPICS.map((t) => <button key={t.id} onClick={() => askResident(r.id, t.id)} className="rounded-full border px-3 py-1.5">{t.label}</button>)}</div>
+        <p className="mt-2 text-[10px] text-slate">Residents are computer players, marked 🤖. Chats with them stay on this device only.</p></div>);
+    }
+    if (panel && typeof panel === "object" && "player" in panel) {
+      const o = panel.player;
+      return (<div>{close}<div className="flex items-center gap-3">{o.avatar ? <img src={o.avatar} alt="" className="h-14 w-14 rounded-full object-cover" /> : <span className="flex h-14 w-14 items-center justify-center rounded-full bg-emerald-100 text-lg font-bold">{o.name[0]}</span>}<div><b className="block text-lg leading-tight">{o.name}</b><span className="text-[11px] text-slate">👤 Real player · @{o.username} · here now</span></div></div>
+        <p className="mt-3 text-sm text-slate">{o.name.split(" ")[0]} is at the same place as you. Say hello: it opens a real NotesApp chat.</p>
+        <div className="mt-3 grid grid-cols-2 gap-2"><a href={`/messages/new?to=${encodeURIComponent(o.username)}`} target="_blank" rel="noreferrer" className="rounded-full bg-ink py-2.5 text-center text-sm font-bold text-white">💬 Message</a><a href={`/u/${encodeURIComponent(o.username)}`} target="_blank" rel="noreferrer" className="rounded-full border py-2.5 text-center text-sm font-bold">View profile</a></div>
+        <p className="mt-2 text-[10px] text-slate">Messages follow the usual NotesApp rules: anyone can block or report.</p></div>);
+    }
     if (panel === "friends") return friendsPanel(close);
     if (panel === "invite") return invitePanel(close);
     if (panel === "bank") return bankPanel(close);
@@ -664,9 +809,10 @@ export default function LifeGame() {
       const data = rich, pop = richPop, setPop = setRichPop;
       const brag = data?.me?.rank ? `I'm #${data.me.rank} on the Notes Life Billionaires List with ${C.fmtShort(data.me.netWorth)} 😎` : "I'm climbing the Notes Life Billionaires List 😎";
       if (pop) return (<div className="text-center"><div className="text-5xl">🧑‍⚖️</div><h3 className="mt-2 text-xl font-extrabold">Welcome to the official <span className="rounded bg-ink px-1.5 text-white">[REDACTED BY LAWYERS]</span> Rich List!</h3><p className="mt-2 text-sm text-slate">Our lawyers asked us to call it the {C.RICH_TITLE}. Net worth = your Notesville Naira plus everything you own.</p><div className="mt-4"><Btn onClick={() => { setPop(false); update((x) => ({ ...x, seenRich: true })); }}>Show me the money</Btn></div></div>);
-      return (<div>{close}<p className="text-[11px] font-bold uppercase tracking-widest text-amber-600">👑 {C.RICH_TITLE}</p><h2 className="text-2xl font-extrabold">{C.RICH_SUBTITLE}</h2><p className="text-xs text-slate">Net worth = Notesville Naira + what you own.</p>
-        {!data ? <p className="mt-3 text-sm text-slate">Loading…</p> : <ol className="mt-3 divide-y">{data.rows.map((r) => <li key={r.uid} className={`flex items-center gap-2.5 py-2 ${r.uid === p.uid ? "rounded-xl bg-amber-50 px-2" : ""}`}><b className={`w-6 text-center ${r.rank <= 3 ? "text-amber-600" : ""}`}>{r.rank}</b>{r.avatar ? <img src={r.avatar} alt="" className="h-9 w-9 rounded-full object-cover" /> : <span className="flex h-9 w-9 items-center justify-center rounded-full bg-slate-200 text-xs font-bold">{r.name[0]}</span>}<span className="min-w-0 flex-1"><b className="block truncate text-sm">{r.name}</b><span className="text-[10px] text-slate">@{r.username} · Abuja {r.owned.map((o) => C.ITEM(o)?.icon).join(" ")}</span></span><b className="text-sm">{C.fmtShort(r.netWorth)}</b></li>)}</ol>}
-        {data?.me && <p className="mt-2 text-center text-xs">You: <b>#{data.me.rank}</b> · {C.fmtShort(data.me.netWorth)}</p>}
+      return (<div>{close}<p className="text-[11px] font-bold uppercase tracking-widest text-amber-600">👑 {C.RICH_TITLE}</p><h2 className="text-2xl font-extrabold">{C.RICH_SUBTITLE}</h2><p className="text-xs text-slate">Net worth = Notesville Naira + what you own. 🤖 = resident (computer player).</p>
+        <div className="mt-2 grid grid-cols-2 gap-1 rounded-full bg-slate-100 p-1 text-center text-[11px] font-bold">{[[false, "Everyone"], [true, "Real players only"]].map(([v, l]) => <button key={String(v)} onClick={() => setRichReal(v as boolean)} className={`rounded-full py-1.5 ${richReal === v ? "bg-ink text-white" : ""}`}>{l as string}</button>)}</div>
+        {!data ? <p className="mt-3 text-sm text-slate">Loading…</p> : <ol className="mt-2 divide-y">{data.rows.map((r) => <li key={r.uid} className={`flex items-center gap-2.5 py-2 ${r.uid === p.uid ? "rounded-xl bg-amber-50 px-2" : ""}`}><b className={`w-6 text-center ${r.rank <= 3 ? "text-amber-600" : ""}`}>{r.rank}</b>{r.npc ? <span className="flex h-9 w-9 items-center justify-center rounded-full bg-slate-200">🤖</span> : r.avatar ? <img src={r.avatar} alt="" className="h-9 w-9 rounded-full object-cover" /> : <span className="flex h-9 w-9 items-center justify-center rounded-full bg-emerald-100 text-xs font-bold">{r.name[0]}</span>}<span className="min-w-0 flex-1"><b className="block truncate text-sm">{r.name}</b><span className="text-[10px] text-slate">{r.npc ? `🤖 Resident · ${r.npc.role} ${r.npc.icons}` : `@${r.username} · Abuja ${r.owned.map((o) => C.ITEM(o)?.icon).join(" ")}`}</span></span><b className="text-sm">{C.fmtShort(r.netWorth)}</b></li>)}</ol>}
+        {data?.me && <p className="mt-2 text-center text-xs">You: <b>#{data.me.rank}</b>{!richReal && data.me.realRank ? <> · <b>#{data.me.realRank}</b> of real players</> : null} · {C.fmtShort(data.me.netWorth)}</p>}
         <a href={WA(shareText(brag))} target="_blank" rel="noreferrer" className="mt-3 block rounded-full bg-amber-500 py-3 text-center font-bold text-white">😎 Brag on WhatsApp</a></div>);
     }
     function settingsPanel(close: ReactNode) {
@@ -685,6 +831,8 @@ export default function LifeGame() {
               <b className="w-8 text-right">{Math.round(soundPrefs[k] * 100)}</b></label>))}
           <p className="text-[10px] text-slate">Birds by day, crickets at night, traffic on the street, lounge music at Candellux. Saved on this device.</p>
         </div>
+        <label className="mt-3 flex items-center justify-between gap-3 rounded-2xl border p-3 text-xs"><span><b className="block text-sm">Show me to other players</b>Players at the same place see your name and outfit, and can message you on NotesApp.</span>
+          <input type="checkbox" checked={showMeOn} onChange={(e) => { setShowMe(e.target.checked); setShowMeOn(e.target.checked); if (!e.target.checked && user) void hide(user.uid); }} className="h-5 w-5 accent-emerald-600" /></label>
         <p className="mt-3 text-[11px] font-bold uppercase tracking-wider text-slate">Restore points</p>
         {!points ? <p className="text-sm text-slate">Loading…</p> : points.length === 0 ? <p className="text-sm text-slate">None yet: one is kept each hour and each day you play.</p> : <ul className="mt-1 divide-y rounded-2xl border text-sm">{points.slice(0, 8).map((pt) => <li key={pt.slot} className="flex items-center justify-between px-3 py-2"><span><b className="block">{new Date(pt.savedAt).toLocaleString("en-NG", { weekday: "short", hour: "numeric", minute: "2-digit" })}</b><span className="text-[11px] text-slate">{pt.kind}</span></span><button onClick={() => restore(pt.slot)} className="rounded-full border px-3 py-1 text-xs font-semibold">Restore</button></li>)}</ul>}
         <p className="mt-3 rounded-xl bg-slate-100 px-3 py-2 text-[11px] text-slate">🔒 Your Notesville Naira, anything you bought and your rank are kept on our servers. A restore never takes them away or doubles them.</p>

@@ -1,14 +1,20 @@
 // Notes Life: the 3D world (three.js, low-poly). One renderer and camera; show() swaps the scene: your room (built from what you own),
-// the street (getting around), Chef Adams, and Candellux (front and pool). Tags (points of interest) are projected to the screen every
+// the street (getting around), Chef Adams, itel Energy, and Candellux (front and pool). Residents (computer players) stand around each
+// place, and real players who are at the same place right now (`others`) appear too. Tags (points of interest) are projected to the screen every
 // frame so the page can draw tappable labels over them. Built from the approved mockups.
 import * as THREE from "three";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
+import { RESIDENT, RESIDENTS_AT } from "@/lib/life/catalog";
 
+// Power in your room: from NEPA (grid), none (a blackout), the Power GO, or a generator.
+export type Power = "grid" | "out" | "go" | "gen";
+export type Other = { uid: string; outfit: string };
 export type SceneSpec =
-  | { id: "room"; owned: string[]; rug: string; outfit: string; night: boolean; ringing: boolean; at: RoomSpot; sleeping: boolean }
-  | { id: "street"; outfit: string; night: boolean; riding: string | null }
-  | { id: "chef"; outfit: string; night: boolean }
-  | { id: "hotel"; outfit: string }
+  | { id: "room"; owned: string[]; rug: string; outfit: string; night: boolean; ringing: boolean; at: RoomSpot; sleeping: boolean; power: Power }
+  | { id: "itel"; outfit: string; night: boolean; others: Other[] }
+  | { id: "street"; outfit: string; night: boolean; riding: string | null; others: Other[] }
+  | { id: "chef"; outfit: string; night: boolean; others: Other[] }
+  | { id: "hotel"; outfit: string; others: Other[] }
   | { id: "pool"; outfit: string };
 export type RoomSpot = "rug" | "bed" | "desk" | "bath" | "wc" | "wardrobe" | "cooker" | "phone";
 export type Tag = { key: string; x: number; y: number; visible: boolean };
@@ -50,17 +56,24 @@ export function createWorld(canvas: HTMLCanvasElement) {
     const sun = new THREE.DirectionalLight("#fff4e0", 1.5 * day); sun.position.set(7, 14, 8); sun.castShadow = true; sun.shadow.mapSize.set(1024, 1024);
     Object.assign(sun.shadow.camera, { left: -16, right: 16, top: 16, bottom: -16 }); scene.add(sun);
   }
-  function person(x: number, z: number, shirt: string, rot = 0, y = 0) {
+  function person(x: number, z: number, shirt: string, rot = 0, y = 0, skin = "#6b3f22", legs = "#1f2937", dress = false, hair = "#111") {
     const g = new THREE.Group();
     const add = (geo: THREE.BufferGeometry, c: string, px: number, py: number, pz: number) => { const m = new THREE.Mesh(geo, mat(c)); m.position.set(px, py, pz); m.castShadow = true; g.add(m); };
-    add(new THREE.CylinderGeometry(0.11, 0.1, 0.8, 10), "#1f2937", -0.13, 0.4, 0); add(new THREE.CylinderGeometry(0.11, 0.1, 0.8, 10), "#1f2937", 0.13, 0.4, 0);
+    if (dress) { add(new THREE.CylinderGeometry(0.22, 0.38, 0.85, 14), shirt, 0, 0.45, 0); add(new THREE.CylinderGeometry(0.06, 0.06, 0.1, 8), skin, -0.12, 0.03, 0); add(new THREE.CylinderGeometry(0.06, 0.06, 0.1, 8), skin, 0.12, 0.03, 0); }
+    else { add(new THREE.CylinderGeometry(0.11, 0.1, 0.8, 10), legs, -0.13, 0.4, 0); add(new THREE.CylinderGeometry(0.11, 0.1, 0.8, 10), legs, 0.13, 0.4, 0); }
     add(new THREE.BoxGeometry(0.55, 0.7, 0.3), shirt, 0, 1.15, 0);
-    add(new THREE.CylinderGeometry(0.07, 0.07, 0.6, 8), "#6b3f22", -0.36, 1.12, 0); add(new THREE.CylinderGeometry(0.07, 0.07, 0.6, 8), "#6b3f22", 0.36, 1.12, 0);
-    add(new THREE.SphereGeometry(0.24, 20, 14), "#6b3f22", 0, 1.75, 0); add(new THREE.SphereGeometry(0.245, 20, 14, 0, Math.PI * 2, 0, 1.2), "#111", 0, 1.78, 0);
+    add(new THREE.CylinderGeometry(0.07, 0.07, 0.6, 8), skin, -0.36, 1.12, 0); add(new THREE.CylinderGeometry(0.07, 0.07, 0.6, 8), skin, 0.36, 1.12, 0);
+    add(new THREE.SphereGeometry(0.24, 20, 14), skin, 0, 1.75, 0); add(new THREE.SphereGeometry(0.245, 20, 14, 0, Math.PI * 2, 0, 1.2), hair, 0, 1.78, 0);
+    if (dress) { const gele = new THREE.Mesh(new THREE.TorusGeometry(0.2, 0.09, 8, 16), mat(shirt === "#ffffff" ? "#e53935" : shirt)); gele.rotation.x = Math.PI / 2.4; gele.position.set(0, 1.98, -0.02); g.add(gele); }
     add(new THREE.BoxGeometry(0.2, 0.08, 0.32), "#f8fafc", -0.13, 0.04, 0.04); add(new THREE.BoxGeometry(0.2, 0.08, 0.32), "#f8fafc", 0.13, 0.04, 0.04);
     g.position.set(x, y, z); g.rotation.y = rot; scene.add(g); return g;
   }
   function chefMan(x: number, z: number, rot = 0) { const g = person(x, z, "#ffffff", rot); const hat = new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.16, 0.32, 16), mat("#ffffff")); hat.position.set(0, 2.12, 0); g.add(hat); return g; }
+  // Residents (computer players): their look from the catalogue, a tag the page draws as their name with 🤖.
+  function npc(id: string, x: number, z: number, rot = 0, y = 0) { const r = RESIDENT(id); if (!r) return; const [sh, sk, lg, dr] = r.look; person(x, z, sh, rot, y, sk, lg, dr); tag("npc:" + id, x, y + 2.35, z); }
+  function residents(where: keyof typeof RESIDENTS_AT, spots: [number, number, number, number][]) { (RESIDENTS_AT[where] ?? []).forEach((id, i) => { const p = spots[i]; if (p) npc(id, p[0], p[1], p[2], p[3]); }); }
+  // Real players here now: their outfit, a tag the page draws with their name.
+  function others(list: Other[], spots: [number, number, number, number][]) { list.slice(0, spots.length).forEach((o, i) => { const [x, z, rot, y] = spots[i]; person(x, z, /^#[0-9a-f]{6}$/i.test(o.outfit) ? o.outfit : "#64748b", rot, y); tag("player:" + o.uid, x, y + 2.35, z); }); }
   function tree(x: number, z: number, s = 1) { cyl(0.12 * s, 1.2 * s, "#6d4c41", x, 0, z); const c = new THREE.Mesh(new THREE.SphereGeometry(0.75 * s, 14, 10), mat("#3f8f4f")); c.position.set(x, 1.7 * s, z); c.castShadow = true; scene.add(c); }
   function plant(x: number, z: number) { cyl(0.2, 0.35, "#b45309", x, 0, z, 0.15); const c = new THREE.Mesh(new THREE.IcosahedronGeometry(0.33, 0), mat("#2f855a")); c.position.set(x, 0.65, z); c.castShadow = true; scene.add(c); }
   function wheel(x: number, y: number, z: number, rad = 0.33) { const t = new THREE.Mesh(new THREE.TorusGeometry(rad, 0.045, 8, 24), mat("#111827")); t.position.set(x, y, z); t.castShadow = true; scene.add(t); }
@@ -94,13 +107,14 @@ export function createWorld(canvas: HTMLCanvasElement) {
 
   async function room(s: Extract<SceneSpec, { id: "room" }>) {
     const has = (id: string) => s.owned.includes(id);
-    scene.background = new THREE.Color(s.night ? "#1b2440" : "#cfe8f3");
-    lights(s.night ? 0.35 : 1);
+    const out = s.power !== "grid", backup = s.power === "go" || s.power === "gen", dark = out && s.night; // by day the sun still shines
+    scene.background = new THREE.Color(dark ? "#0b1020" : s.night ? "#1b2440" : "#cfe8f3");
+    lights(dark ? 0.13 : s.night ? 0.35 : 1);
     for (let i = -5; i < 5; i += 0.5) { const t = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.1, 10), mat(Math.round(i * 2) % 2 ? "#e4cda6" : "#d8bf96")); t.position.set(i + 0.25, -0.05, 0); t.receiveShadow = true; scene.add(t); }
     box(10, 3, 0.2, "#a7c4a0", 0, 0, -5.1); box(0.2, 3, 10, "#97b690", -5.1, 0, 0); box(10, 0.18, 0.06, "#fafafa", 0, 0, -4.98); box(0.06, 0.18, 10, "#fafafa", -4.98, 0, 0);
     box(0.08, 2.15, 0.95, "#7c4a2a", -4.98, 0, 3.9);
     box(2.0, 1.35, 0.06, "#fafafa", 0.7, 1.15, -4.97);
-    const glass = new THREE.Mesh(new THREE.PlaneGeometry(1.8, 1.15), new THREE.MeshStandardMaterial({ color: s.night ? "#1e2a4a" : "#9fd3f0", emissive: s.night ? "#0b1530" : "#8fd0f5", emissiveIntensity: 0.55 })); glass.position.set(0.7, 1.825, -4.93); scene.add(glass);
+    const glass = new THREE.Mesh(new THREE.PlaneGeometry(1.8, 1.15), new THREE.MeshStandardMaterial({ color: dark ? "#0b1222" : s.night ? "#1e2a4a" : "#9fd3f0", emissive: dark ? "#050a18" : s.night ? "#0b1530" : "#8fd0f5", emissiveIntensity: 0.55 })); glass.position.set(0.7, 1.825, -4.93); scene.add(glass);
     box(0.05, 1.15, 0.04, "#fafafa", 0.7, 1.25, -4.92); box(1.8, 0.05, 0.04, "#fafafa", 0.7, 1.8, -4.92); box(2.2, 0.06, 0.22, "#fafafa", 0.7, 1.12, -4.88);
     box(0.4, 1.9, 0.06, "#f1c27d", -0.55, 0.85, -4.9); box(0.4, 1.9, 0.06, "#f1c27d", 1.95, 0.85, -4.9); box(2.9, 0.06, 0.06, "#8d6e63", 0.7, 2.75, -4.9);
     const rugId = has(s.rug) ? s.rug : "rug_notesapp";
@@ -111,9 +125,31 @@ export function createWorld(canvas: HTMLCanvasElement) {
     box(1.45, 0.08, 1.6, has("ac") ? "#0f766e" : "#2563eb", -3.6, 0.6, -2.2); box(0.42, 0.14, 1.2, "#ffffff", -4.6, 0.62, -2.2);
     for (const z of [-3.4, -1.0]) box(0.52, 0.55, 0.52, "#a0714f", -4.62, 0, z);
     cyl(0.11, 0.05, "#d6d3d1", -4.62, 0.55, -3.4); cyl(0.025, 0.42, "#a8a29e", -4.62, 0.6, -3.4);
-    const shade = cyl(0.13, 0.26, has("lamp_led") ? "#fef9c3" : "#fde68a", -4.62, 1.0, -3.4, 0.22); shade.material.emissive = new THREE.Color("#fde68a"); shade.material.emissiveIntensity = s.night ? 1 : 0.5;
-    const lamp = new THREE.PointLight("#ffd27a", s.night ? 4 : 1.2, s.night ? 7 : 4); lamp.position.set(-4.5, 1.1, -3.3); scene.add(lamp);
-    if (s.night) { const ceil = new THREE.PointLight("#fff1d6", 3, 14); ceil.position.set(0, 2.8, 0); scene.add(ceil); }
+    const lit = !out || backup;
+    const shade = cyl(0.13, 0.26, has("lamp_led") ? "#fef9c3" : "#fde68a", -4.62, 1.0, -3.4, 0.22); shade.material.emissive = new THREE.Color("#fde68a"); shade.material.emissiveIntensity = !lit ? 0 : s.night ? 1 : 0.5;
+    if (lit) { const lamp = new THREE.PointLight("#ffd27a", out ? 6 : s.night ? 4 : 1.2, out ? 8 : s.night ? 7 : 4); lamp.position.set(-4.5, 1.1, -3.3); scene.add(lamp); }
+    if (s.night && !out) { const ceil = new THREE.PointLight("#fff1d6", 3, 14); ceil.position.set(0, 2.8, 0); scene.add(ceil); }
+    if (dark) { const moon = new THREE.PointLight("#7aa2ff", 1.4, 6); moon.position.set(0.7, 2, -4.2); scene.add(moon); }
+    if (has("power_go")) { // the Power GO Pro beside the desk; in a blackout its ring glows and it runs the lamp, the fan and the laptop
+      const PX = 1.95, PZ = -3.75;
+      box(0.42, 0.56, 0.26, "#f8fafc", PX, 0, PZ); box(0.4, 0.05, 0.22, "#1f2937", PX, 0.56, PZ);
+      const h = new THREE.Mesh(new THREE.TorusGeometry(0.17, 0.025, 8, 20, Math.PI), mat("#c9a26b")); h.position.set(PX, 0.6, PZ); scene.add(h);
+      const ring = new THREE.Mesh(new THREE.TorusGeometry(0.04, 0.012, 8, 16), new THREE.MeshBasicMaterial({ color: s.power === "go" ? "#a855f7" : "#64748b" })); ring.rotation.x = -Math.PI / 2; ring.position.set(PX + 0.12, 0.62, PZ); scene.add(ring);
+      const dot = new THREE.Mesh(new THREE.CircleGeometry(0.05, 16), mat("#e11d48")); dot.position.set(PX, 0.25, PZ + 0.135); scene.add(dot);
+      if (s.power === "go") { const glow = new THREE.PointLight("#c084fc", 1.2, 1.6); glow.position.set(PX, 0.8, PZ + 0.2); scene.add(glow); }
+      if (has("solar_panel")) { const pn = box(0.9, 0.04, 0.6, "#1e3a8a", 0.7, 1.85, -5.0); pn.rotation.x = 0.5; } // on the window ledge outside
+      rod(new THREE.Vector3(PX - 0.2, 0.15, PZ), new THREE.Vector3(1.0, 0.05, -4.2), "#111827", 0.012);
+      tag("powergo", PX, 1.15, PZ);
+    }
+    if (dark && backup) { const scr = new THREE.PointLight("#9bd4ff", 1.6, 2.5); scr.position.set(0.7, 1.4, -4.0); scene.add(scr); }
+    const gen = has("gen_big") ? "gen_big" : has("gen_small") ? "gen_small" : null;
+    if (gen) { // the generator by the door: red and small, or yellow and big; it shakes a little light out when it runs
+      const big = gen === "gen_big", GX = -2.5, GZ = 4.3;
+      box(big ? 0.9 : 0.6, big ? 0.6 : 0.42, big ? 0.6 : 0.4, big ? "#eab308" : "#dc2626", GX, 0, GZ); box(big ? 0.94 : 0.64, 0.06, big ? 0.64 : 0.44, "#111827", GX, big ? 0.6 : 0.42, GZ);
+      cyl(0.04, 0.12, "#6b7280", GX + 0.2, big ? 0.66 : 0.48, GZ - 0.1);
+      if (s.power === "gen") { const g = new THREE.PointLight("#fde68a", 0.8, 1.5); g.position.set(GX, 0.8, GZ); scene.add(g); }
+      tag("gen", GX, big ? 1.2 : 1.0, GZ);
+    }
     box(0.34, 0.08, 0.24, "#111827", -4.62, 0.55, -1.0); box(0.3, 0.07, 0.09, s.ringing ? "#dc2626" : has("phone_smart") ? "#2563eb" : "#1f2937", -4.62, 0.63, -1.06);
     if (s.ringing) { const g = new THREE.PointLight("#ef4444", 2.5, 2.2); g.position.set(-4.4, 0.9, -1.0); scene.add(g); }
     box(0.7, 2.25, 1.55, "#9a6a46", -4.62, 0, 1.6); box(0.02, 2.0, 0.02, "#5d4037", -4.26, 0.12, 1.6); box(0.03, 0.2, 0.04, "#d4af37", -4.25, 1.05, 1.5); box(0.03, 0.2, 0.04, "#d4af37", -4.25, 1.05, 1.7); box(0.74, 0.08, 1.6, "#7c4a2a", -4.62, 2.25, 1.6);
@@ -171,8 +207,10 @@ export function createWorld(canvas: HTMLCanvasElement) {
     for (const x of [-12, -3, 6, 15]) { cyl(0.06, 4, "#475569", x, 0.14, -0.1); const p = box(0.8, 0.05, 0.5, "#1d4ed8", x, 4.15, -0.1); p.rotation.x = 0.35; }
     [-14, -9.5, -4, 4, 8.5, 20, -22, -17, 12, 25].forEach((x, i) => tree(x, i > 5 ? -7 : -4.4, i > 5 ? 1.4 : 1.1));
     const phone = innerWidth < 700;
-    cam.position.set(...(phone ? [2, 15, 31] : [2, 12, 24]) as [number, number, number]); controls.target.set(2, phone ? 0 : 0.5, phone ? 6 : -0.5);
+    cam.position.set(...(phone ? [0, 8, 22] : [2, 12, 24]) as [number, number, number]); controls.target.set(phone ? 0 : 2, phone ? 1.2 : 0.5, -0.5);
     controls.minDistance = 10; controls.maxDistance = 45;
+    residents("street", [[-8.2, -1.6, 0.3, 0.14], [3.8, -1.4, -0.4, 0.14], [-1.6, -2.0, 0.2, 0.14], [8.6, -1.3, -0.8, 0.14]]);
+    others(s.others, [[-3.2, -1.5, 0.2, 0.14], [5.4, -2.0, -0.3, 0.14], [-10, -1.4, 0.4, 0.14]]);
     tag("bike", 1.2, 1.6, -0.6); tag("bus", -4.5, 2.6, 3.2); tag("keke", 6.2, 2.0, 3.0); tag("ev", 11.8, 1.9, 0.3); tag("shop", 16.5, 3.4, -3.0); tag("stop", -7, 2.9, -2.3);
   }
 
@@ -199,6 +237,8 @@ export function createWorld(canvas: HTMLCanvasElement) {
     for (const sx of [X - 2.9, X - 2.1, X - 1.3]) { cyl(0.03, 0.75, "#1f2937", sx, 0.14, FZ + 1.05); cyl(0.2, 0.06, "#111827", sx, 0.89, FZ + 1.05); }
     for (const px of [X - 4.3, X + 4.3]) { cyl(0.32, 0.7, "#9ca3af", px, 0.14, FZ + 0.6, 0.25); const c = new THREE.Mesh(new THREE.IcosahedronGeometry(0.55, 0), mat("#2f855a")); c.position.set(px, 1.35, FZ + 0.6); scene.add(c); }
     chefMan(X + 1.6, FZ - 0.35, 0);
+    residents("chef", [[X - 2.1, FZ + 1.3, Math.PI, 0.14], [4.3 + 0.2, -1.0, Math.PI - 0.4, 0.14]]);
+    others(s.others, [[X + 0.9, FZ + 1.4, Math.PI, 0.14], [X - 3.3, FZ + 1.5, Math.PI + 0.3, 0.14], [2.8, -0.9, Math.PI, 0.14]]);
     player = person(X - 0.4, FZ + 1.3, s.outfit, Math.PI, 0.14);
     const KX = 4.3, KZ = -2.6;
     box(2.3, 1.05, 1.4, BR.red, KX, 0.14, KZ); box(2.36, 0.08, 1.46, BR.cream, KX, 1.19, KZ);
@@ -215,6 +255,58 @@ export function createWorld(canvas: HTMLCanvasElement) {
     cam.position.set(...(phone ? [0.3, 13.5, 28.5] : [-0.5, 7.5, 17.5]) as [number, number, number]); controls.target.set(phone ? 0.3 : -0.5, phone ? 1 : 1.7, phone ? -1.6 : -2.6);
     controls.minDistance = 8; controls.maxDistance = 40;
     tag("dinein", X, 4.25, FZ); tag("kiosk", KX, 4.35, KZ + 0.4); tag("rider", RX - 0.5, 2.25, RZ); tag("home", -10, 1.5, 1.0);
+  }
+
+  // ---------- itel Energy (partner): a solar shop on the Wuse street ----------
+  async function itel(s: Extract<SceneSpec, { id: "itel" }>) {
+    const go = await loadImg(IMG("partners/itel-powergo.webp"));
+    const RED = "#e8173f";
+    scene.background = new THREE.Color(s.night ? "#16203a" : "#bfe3f5"); lights(s.night ? 0.45 : 1);
+    const ground = new THREE.Mesh(new THREE.PlaneGeometry(90, 90), mat("#9ccc65")); ground.rotation.x = -Math.PI / 2; ground.receiveShadow = true; scene.add(ground);
+    box(70, 0.02, 5, "#4b5563", 0, 0, 2.6); for (let i = -8; i < 9; i++) box(1.3, 0.03, 0.14, "#f9fafb", i * 4, 0.01, 2.6);
+    box(70, 0.14, 3.6, "#d6d3d1", 0, 0, -1.9); box(70, 0.03, 0.9, "#16a34a", 0, 0.14, -0.4);
+    const X = -1.5, Z = -6.2, FZ = -4.3;
+    // an open shop front: back and side walls, roof, a light floor, so you see inside through the glass
+    box(9, 3.6, 0.25, "#f4f4f5", X, 0.14, Z - 1.8); for (const dx of [-4.4, 4.4]) box(0.25, 3.6, 3.8, "#ececee", X + dx, 0.14, Z);
+    box(9.2, 0.3, 4.0, "#e4e4e7", X, 3.74, Z); box(8.6, 0.04, 3.6, "#fafafa", X, 0.14, Z);
+    box(8.6, 0.6, 0.06, "#e8173f", X, 2.9, Z - 1.66); // red band inside, like the booth
+    const inner = new THREE.PointLight("#ffffff", 3, 9); inner.position.set(X, 3.2, Z); scene.add(inner);
+    box(9.2, 0.9, 0.5, RED, X, 3.0, FZ + 0.1); // red fascia
+    plane(4.2, 0.72, canvasTex(1300, 223, (g, w, h) => { g.fillStyle = RED; g.fillRect(0, 0, w, h); g.fillStyle = "#ffffff"; g.font = "bold 150px sans-serif"; g.textBaseline = "middle"; g.textAlign = "center"; g.beginPath(); g.ellipse(250, h / 2, 210, 96, -0.12, 0, Math.PI * 2); g.fill(); g.fillStyle = RED; g.font = "italic bold 130px sans-serif"; g.fillText("itel", 250, h / 2 + 6); g.fillStyle = "#ffffff"; g.font = "italic bold 150px sans-serif"; g.fillText("Energy", 820, h / 2 + 8); }), X, 3.45, FZ + 0.36, 0, 0, true);
+    // glass front with products on display
+    const glass = new THREE.Mesh(new THREE.PlaneGeometry(7.6, 2.2), new THREE.MeshStandardMaterial({ color: "#dbeafe", transparent: true, opacity: 0.35, roughness: 0.05 })); glass.position.set(X, 1.35, FZ + 0.02); scene.add(glass);
+    box(7.8, 0.12, 0.2, "#d4d4d8", X, 0.14, FZ + 0.05); box(7.8, 0.1, 0.2, "#d4d4d8", X, 2.46, FZ + 0.05);
+    for (const dx of [-2.6, 2.6]) box(0.12, 2.4, 0.22, "#d4d4d8", X + dx, 0.14, FZ + 0.05);
+    for (let i = 0; i < 3; i++) { // wall inverters (IP66 series) on the back wall
+      const ix = X - 3.0 + i * 1.05; box(0.7, 0.95, 0.18, "#fafafa", ix, 1.25, Z - 1.6); const sc = new THREE.Mesh(new THREE.PlaneGeometry(0.34, 0.2), new THREE.MeshBasicMaterial({ color: "#1f2937" })); sc.position.set(ix, 1.95, Z - 1.5); scene.add(sc);
+      const lg = new THREE.Mesh(new THREE.CircleGeometry(0.06, 16), new THREE.MeshBasicMaterial({ color: RED })); lg.position.set(ix, 1.55, Z - 1.5); scene.add(lg);
+      box(0.6, 0.7, 0.45, "#f5f5f5", ix, 0.14, Z - 1.3);
+    }
+    sign("IP66 SERIES", "#ffffff", "#9ca3af", 2.6, 0.3, X - 2.0, 2.45, Z - 1.66, 120);
+    box(2.6, 0.75, 1.0, "#fafafa", X + 2.2, 0.14, FZ - 1.0); box(2.62, 0.08, 1.02, RED, X + 2.2, 0.82, FZ - 1.0); // display counter with Power GO units
+    const goTex = canvasTex(256, 360, (g, w, h) => { g.fillStyle = "#ffffff"; g.fillRect(0, 0, w, h); fit(g, go, 0, 0, w, h); });
+    for (const dx of [-0.8, 0, 0.8]) {
+      const u = new THREE.Mesh(new THREE.BoxGeometry(0.42, 0.56, 0.26), [mat("#f8fafc"), mat("#f8fafc"), mat("#1f2937"), mat("#f8fafc"), new THREE.MeshStandardMaterial({ map: goTex }), mat("#f8fafc")]);
+      u.position.set(X + 2.2 + dx, 0.9 + 0.28, FZ - 1.0); u.castShadow = true; scene.add(u);
+      const hd = new THREE.Mesh(new THREE.TorusGeometry(0.17, 0.025, 8, 20, Math.PI), mat("#c9a26b")); hd.position.set(X + 2.2 + dx, 1.47, FZ - 1.0); scene.add(hd);
+    }
+    // outside: a small-home solar kit on a stand
+    const panelTex = canvasTex(256, 384, (g, w, h) => { g.fillStyle = "#1e3a8a"; g.fillRect(0, 0, w, h); g.strokeStyle = "#93c5fd"; g.lineWidth = 3; for (let x = 0; x <= w; x += 42) { g.beginPath(); g.moveTo(x, 0); g.lineTo(x, h); g.stroke(); } for (let y = 0; y <= h; y += 42) { g.beginPath(); g.moveTo(0, y); g.lineTo(w, y); g.stroke(); } });
+    const SX = X + 5.6, SZ = -2.7;
+    for (const dx of [-0.6, 0.6]) { const pnl = new THREE.Mesh(new THREE.BoxGeometry(1.1, 0.05, 1.6), [mat("#cbd5e1"), mat("#cbd5e1"), new THREE.MeshStandardMaterial({ map: panelTex, roughness: 0.3, metalness: 0.3 }), mat("#cbd5e1"), mat("#cbd5e1"), mat("#cbd5e1")]); pnl.position.set(SX + dx, 1.4, SZ); pnl.rotation.x = 0.6; pnl.castShadow = true; scene.add(pnl); }
+    for (const dx of [-1.1, 1.1]) box(0.06, 1.2, 0.06, "#94a3b8", SX + dx, 0.14, SZ + 0.3);
+    box(0.7, 0.9, 0.3, "#fafafa", SX, 0.14, SZ - 0.9); box(0.8, 0.5, 0.5, "#e5e7eb", SX + 1.0, 0.14, SZ - 0.9);
+    sign("SMALL HOME\nSOLAR KIT", RED, "#ffffff", 1.6, 0.6, SX, 2.6, SZ - 0.2, 110);
+    // the roof: panels that power the shop itself
+    for (let i = 0; i < 5; i++) { const pnl = new THREE.Mesh(new THREE.BoxGeometry(1.4, 0.05, 1.0), [mat("#cbd5e1"), mat("#cbd5e1"), new THREE.MeshStandardMaterial({ map: panelTex, roughness: 0.3, metalness: 0.3 }), mat("#cbd5e1"), mat("#cbd5e1"), mat("#cbd5e1")]); pnl.position.set(X - 3.2 + i * 1.6, 3.95, Z - 0.5); pnl.rotation.x = -0.35; scene.add(pnl); }
+    residents("itel", [[X + 0.6, FZ - 1.6, 0.2, 0.14], [X + 2.8, FZ + 0.9, Math.PI + 0.3, 0.14], [SX - 0.4, SZ + 1.2, Math.PI - 0.5, 0.14]]); // Mr Dauda (staff), Aisha, Chinedu
+    others(s.others, [[X - 2.6, FZ + 1.3, Math.PI, 0.14], [X + 4.6, FZ + 1.6, Math.PI, 0.14]]);
+    player = person(X - 1.2, FZ + 1.4, s.outfit, Math.PI, 0.14);
+    [-16, -11.5, 10, 14.5, 19].forEach((x) => tree(x, -5.5, 1.15));
+    const phone = innerWidth < 700;
+    cam.position.set(...(phone ? [2.2, 7.5, 21] : [0.5, 7.5, 17.5]) as [number, number, number]); controls.target.set(phone ? 1.6 : 0.5, phone ? 1.6 : 1.7, phone ? -3.2 : -2.6);
+    controls.minDistance = 8; controls.maxDistance = 40;
+    tag("shop", X, 4.3, FZ); tag("go", X + 2.2, 1.95, FZ - 1.0); tag("kit", SX, 3.1, SZ - 0.2); tag("inverter", X - 2.0, 2.9, Z - 1.6);
   }
 
   // ---------- Candellux Imperial (partner) ----------
@@ -253,6 +345,8 @@ export function createWorld(canvas: HTMLCanvasElement) {
     box(0.3, 0.8, 0.3, "#111", -6.2, 0, 1.6);
     box(4, 0.7, 1.8, "#11574d", -3.5, 0.25, -5.0); box(2.2, 0.6, 1.7, "#0e4a41", -3.6, 0.95, -5.0); wheelsAt([[-4.8, -5.95], [-2.2, -5.95], [-4.8, -4.05], [-2.2, -4.05]], 0.32);
     player = person(-0.9, 0.6, s.outfit, Math.PI);
+    residents("hotel", [[2.6, 0.2, Math.PI - 0.3, 0], [4.0, 0.9, Math.PI + 0.4, 0]]);
+    others(s.others, [[-2.6, 0.9, Math.PI, 0], [0.9, 1.4, Math.PI, 0]]);
     const phone = innerWidth < 700;
     cam.position.set(...(phone ? [-9, 6, 30] : [-15, 5.2, 21]) as [number, number, number]); controls.target.set(phone ? -0.5 : 0, phone ? 4.2 : 4.4, -4);
     controls.minDistance = 10; controls.maxDistance = 45;
@@ -297,7 +391,7 @@ export function createWorld(canvas: HTMLCanvasElement) {
     if (key === current) { if (s.id === "room" && at && !s.sleeping) walkTo(at); return; }
     current = key;
     clear();
-    if (s.id === "room") await room(s); else if (s.id === "street") await street(s); else if (s.id === "chef") await chef(s); else if (s.id === "hotel") await hotel(s); else await pool(s);
+    if (s.id === "room") await room(s); else if (s.id === "itel") await itel(s); else if (s.id === "street") await street(s); else if (s.id === "chef") await chef(s); else if (s.id === "hotel") await hotel(s); else await pool(s);
     controls.update(); resize();
   }
   function walkTo(spot: RoomSpot) { if (!player) return; const [x, z, rot] = ROOM_SPOTS[spot]; const to = new THREE.Vector3(x, player.position.y, z); if (to.distanceTo(player.position) < 0.05) return; tween = { from: player.position.clone(), to, rot, t0: performance.now(), ms: 550 }; }

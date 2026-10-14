@@ -17,7 +17,7 @@ export function loadSoundPrefs(): SoundPrefs {
 }
 export function saveSoundPrefs(p: SoundPrefs) { try { localStorage.setItem(KEY, JSON.stringify(p)); } catch { /* private mode: this visit only */ } }
 
-export type Sfx = "tap" | "coin" | "pay" | "ring" | "door" | "water" | "eat" | "sizzle" | "done" | "success" | "warn" | "sleep" | "whoosh" | "bell" | "horn" | "bonus" | "page";
+export type Sfx = "tap" | "coin" | "pay" | "ring" | "door" | "water" | "eat" | "sizzle" | "done" | "success" | "warn" | "sleep" | "whoosh" | "bell" | "horn" | "bonus" | "page" | "nepa_off" | "up_nepa" | "pull";
 export type Ambience = "none" | "room" | "room-night" | "street" | "street-night" | "hotel" | "pool";
 
 type Ctx = AudioContext;
@@ -48,6 +48,7 @@ export class Sound {
       this.noise = n;
       this.apply();
       const want = this.amb; this.amb = "none"; this.ambience(want);
+      const g = this.gens.kind.split("|"); if (g.length === 2) this.generators(g[0] === "null" ? null : (g[0] as "small" | "big"), g[1] === "true");
     }
     if (this.ctx.state === "suspended") void this.ctx.resume().catch(() => {});
   }
@@ -108,6 +109,13 @@ export class Sound {
       case "whoosh": this.hiss(t, 1.1, { freq: 300, to: 1800, q: 1.2, gain: 0.15, attack: 0.3 }); break;
       case "bell": this.tone(2637, t, 0.5, { gain: 0.1 }); this.tone(2637, t + 0.18, 0.7, { gain: 0.1 }); break;
       case "horn": this.horn(t, 0.14); break;
+      case "nepa_off": this.tone(420, t, 0.9, { gain: 0.16, type: "sawtooth", to: 45 }); this.hiss(t, 0.12, { type: "highpass", freq: 3000, gain: 0.12 }); break; // everything winds down
+      case "pull": for (let i = 0; i < 3; i++) this.hiss(t + i * 0.32, 0.22, { freq: 600, to: 1800, q: 2, gain: 0.12 }); break; // pulling the generator cord
+      case "up_nepa": { // nwiiiiii: every appliance at once, then children shouting UP NEPA!
+        this.tone(180, t, 1.4, { gain: 0.1, type: "sawtooth", to: 1400, attack: 0.3 }); this.tone(240, t, 1.4, { gain: 0.06, type: "square", to: 1700, attack: 0.3 });
+        for (let i = 0; i < 9; i++) this.hiss(t + 1.2 + i * 0.09 + Math.random() * 0.05, 0.25, { freq: 900 + Math.random() * 900, q: 3, gain: 0.08 });
+        break;
+      }
     }
   }
   private horn(t: number, gain: number, bus?: GainNode) {
@@ -117,6 +125,26 @@ export class Sound {
       g.gain.setValueAtTime(0.0001, t + start); g.gain.exponentialRampToValueAtTime(gain, t + start + 0.02); g.gain.exponentialRampToValueAtTime(0.0001, t + start + d);
       o.connect(g); g.connect(f); o.start(t + start); o.stop(t + start + d + 0.02);
     }
+  }
+
+  // Generators: yours by the door (small or big), and the neighbours' in the distance during every blackout.
+  private gens: { mine: (() => void) | null; near: (() => void) | null; kind: string; started: boolean } = { mine: null, near: null, kind: "", started: false };
+  generators(mine: "small" | "big" | null, neighbours: boolean) {
+    const key = `${mine}|${neighbours}`;
+    if (!this.ctx) { this.gens.kind = key; return; } // played on unlock()
+    if (key === this.gens.kind && this.gens.started) return;
+    this.gens.kind = key; this.gens.started = true;
+    this.gens.mine?.(); this.gens.near?.(); this.gens.mine = this.gens.near = null;
+    const hum = (hz: number, gain: number, cut: number) => {
+      const c = this.ctx!, t = c.currentTime, o = c.createOscillator(), f = c.createBiquadFilter(), g = c.createGain(), lfo = c.createOscillator(), lg = c.createGain();
+      o.type = "sawtooth"; o.frequency.value = hz; f.type = "lowpass"; f.frequency.value = cut; g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(gain, t + 0.8);
+      lfo.frequency.value = 7 + Math.random() * 3; lg.gain.value = gain * 0.35; lfo.connect(lg); lg.connect(g.gain);
+      o.connect(f); f.connect(g); g.connect(this.ambBus); o.start(); lfo.start();
+      const n = this.hiss(t, 1, { type: "lowpass", freq: cut * 1.6, gain: gain * 0.6, bus: this.ambBus, attack: 0.8, loop: true });
+      return () => { const t2 = c.currentTime; g.gain.cancelScheduledValues(t2); g.gain.setTargetAtTime(0.0001, t2, 0.25); o.stop(t2 + 1.2); lfo.stop(t2 + 1.2); n.stop(); };
+    };
+    if (mine) this.gens.mine = hum(mine === "big" ? 38 : 52, mine === "big" ? 0.16 : 0.12, mine === "big" ? 260 : 340);
+    if (neighbours) this.gens.near = hum(47, 0.04, 220);
   }
 
   // The bedside phone keeps ringing while a deal call is waiting.
@@ -181,6 +209,7 @@ export class Sound {
 
   dispose() {
     this.ringing(false);
+    this.gens.mine?.(); this.gens.near?.();
     this.ambience("none");
     void this.ctx?.close().catch(() => {});
     this.ctx = null;

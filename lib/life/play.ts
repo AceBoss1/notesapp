@@ -32,10 +32,14 @@ export type SaveState = {
   seenRich: boolean;
   socialAt: number; // last time a message to a friend counted for Social
   gymUntil: number; // energy lasts longer (from the hotel gym)
+  battery: number; // Power GO charge, Wh (0 to 320)
+  fuel: number; // generator petrol, litres
+  genOn: boolean; // the generator is running (only during a blackout)
+  nepaSeen: string | null; // the blackout whose "NEPA has taken light" prompt you've seen
 };
 
 export function freshSave(now = Date.now()): SaveState {
-  return { v: 1, needs: { ...START_NEEDS }, tickAt: now, difficulty: "normal", outfit: "#f59e0b", rug: "rug_notesapp", place: "home", plates: 0, activity: null, delivery: null, bikeRides: 0, ebikeAskedAt: 0, seenWelcome: false, seenRich: false, socialAt: 0, gymUntil: 0 };
+  return { v: 1, needs: { ...START_NEEDS }, tickAt: now, difficulty: "normal", outfit: "#f59e0b", rug: "rug_notesapp", place: "home", plates: 0, activity: null, delivery: null, bikeRides: 0, ebikeAskedAt: 0, seenWelcome: false, seenRich: false, socialAt: 0, gymUntil: 0, battery: 320, fuel: 0, genOn: false, nepaSeen: null };
 }
 
 const clamp = (n: number) => Math.max(0, Math.min(100, Math.round(n * 10) / 10));
@@ -109,7 +113,7 @@ export function sanitize(raw: unknown, now = Date.now()): SaveState {
   const needs = { ...f.needs };
   for (const x of NEEDS) { const v = (r.needs as Needs | undefined)?.[x.id]; if (typeof v === "number" && isFinite(v)) needs[x.id] = clamp(v); }
   const num = (v: unknown, d: number) => (typeof v === "number" && isFinite(v) ? v : d);
-  const places: PlaceId[] = ["home", "work", "chef", "hotel"];
+  const places: PlaceId[] = ["home", "work", "chef", "hotel", "itel"];
   return {
     ...f, needs,
     tickAt: num(r.tickAt, now), difficulty: r.difficulty && r.difficulty in DIFFICULTY ? r.difficulty : "normal",
@@ -120,5 +124,33 @@ export function sanitize(raw: unknown, now = Date.now()): SaveState {
     delivery: r.delivery && typeof r.delivery.at === "number" ? r.delivery : null,
     bikeRides: num(r.bikeRides, 0), ebikeAskedAt: num(r.ebikeAskedAt, 0), seenWelcome: !!r.seenWelcome, seenRich: !!r.seenRich,
     socialAt: num(r.socialAt, 0), gymUntil: num(r.gymUntil, 0),
+    battery: Math.max(0, Math.min(320, num(r.battery, 320))), fuel: Math.max(0, Math.min(12, num(r.fuel, 0))), genOn: r.genOn === true,
+    nepaSeen: typeof r.nepaSeen === "string" ? r.nepaSeen.slice(0, 20) : null,
   };
+}
+
+// ---- Power through NEPA's blackouts (runs every second while the game is open) ----
+// Light on: the Power GO charges. Light off: a running generator burns petrol (and stops when the tank is empty), otherwise the Power GO
+// runs the lamp at night, the fan (not needed with AC) and the laptop while you work at the desk. The solar panel charges it by day,
+// light or no light. Asleep in a blackout with nothing running, the room is hot: energy fills more slowly.
+export type PowerSource = "grid" | "gen" | "go" | "none";
+export function powerSource(s: Pick<SaveState, "genOn" | "fuel" | "battery">, out: boolean, owned: string[]): PowerSource {
+  if (!out) return "grid";
+  if (s.genOn && s.fuel > 0 && (owned.includes("gen_small") || owned.includes("gen_big"))) return "gen";
+  if (owned.includes("power_go") && s.battery > 0.5) return "go";
+  return "none";
+}
+export function powerStep(s: SaveState, ms: number, o: { out: boolean; owned: string[]; night: boolean; deskWork: boolean }): SaveState {
+  const h = Math.max(0, ms) / GAME_HOUR_MS;
+  if (!h) return s;
+  const n = { ...s };
+  const src = powerSource(n, o.out, o.owned);
+  const gen = o.owned.includes("gen_big") ? 1.1 : o.owned.includes("gen_small") ? 0.4 : 0;
+  if (src === "grid") { n.battery += 100 * h; n.genOn = false; }
+  else if (src === "gen") { n.fuel = Math.max(0, n.fuel - gen * h); if (n.fuel <= 0) n.genOn = false; }
+  else if (src === "go") n.battery -= ((o.night ? 10 : 0) + (o.owned.includes("ac") ? 0 : 16) + (o.deskWork ? 65 : 0)) * h;
+  if (o.owned.includes("solar_panel") && !o.night) n.battery += 55 * h;
+  n.battery = Math.max(0, Math.min(320, n.battery));
+  if (src === "none" && o.out && n.activity?.kind === "sleep") n.needs = applyNeeds(n.needs, { energy: -3 * h });
+  return n;
 }

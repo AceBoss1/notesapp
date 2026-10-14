@@ -11,6 +11,18 @@ export type Release = {
 
 export const CHANGELOG: Release[] = [
   {
+    version: "v0.30.0",
+    bump: "minor",
+    date: "2026-10-14",
+    changes: [
+      { kind: "added", text: "Notes Life: NEPA takes light. Power cuts hit every player at the same moment, a few times a game day: no lamp, no fan, no desk work on an old desktop, hot nights. Generators roar down the street, and when light returns: UP NEPA!" },
+      { kind: "added", text: "itel Energy, a new partner shop on the Wuse market road: the Power GO Pro (lamp, fan and laptop through a blackout, silent) and a 100W solar panel that charges it by day, with the small home kit coming. The real Power GO Pro is on NotesApp from @clickam." },
+      { kind: "added", text: "Generators from the market: “I Better Pass My Neighbour” 950W and a big 3.5kVA that runs the AC too. Buy petrol, pull the cord, and the neighbours hear it." },
+      { kind: "added", text: "Residents: computer players, marked 🤖, around Wuse, Chef Adams, itel Energy and Candellux. Chat with them for Social (kept on your device). The richest are on the Billionaires List, with a Real players only switch." },
+      { kind: "added", text: "See real players at the same place (Chef Adams, Candellux, itel Energy, the street, a ride) and tap to message them on NotesApp. You can hide yourself in Settings." },
+    ],
+  },
+  {
     version: "v0.29.0",
     bump: "minor",
     date: "2026-10-14",
