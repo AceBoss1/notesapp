@@ -6,7 +6,7 @@ export const metadata: Metadata = {
   title: "Notes Life · play free in Abuja",
   description: "Notes Life is a free browser life game from NotesApp. Start in a face-me-I-face-you room in your city, hustle, build and climb the Billionaires List with your NotesApp account.",
   alternates: { canonical: "https://life.notesapp.name.ng" },
-  openGraph: { title: "Notes Life · play free in Abuja", description: "Start small. Hustle. Ball out (in game money). A NotesApp game.", images: ["/images/life/room-desktop.webp"] },
+  openGraph: { title: "Notes Life · play free in Abuja", description: "Start small. Hustle. Ball out (in game money). A NotesApp game.", images: ["/images/life/game-room.webp"] },
 };
 
 const APP = "https://app.notesapp.name.ng";
@@ -51,7 +51,7 @@ export default function LifePage({ searchParams }: { searchParams?: { ref?: stri
             <p className="mt-3 text-xs text-slate">{ref ? <>@{ref} invited you. Finish your first shift and you both get ₦250 NotesApp Bonus Credit.</> : <>Abuja is open now: a room in Wuse, N$ 100,000, jobs, Chef Adams and the Billionaires List. Lagos and Port Harcourt are next.</>}</p>
           </div>
           <div className="overflow-hidden rounded-3xl border-4 border-white shadow-2xl">
-            <Image src="/images/life/room-desktop.webp" alt="Notes Life mockup: your room in Abuja, with the time, difficulty level, game money, a daily quest, your needs and the menu" width={1440} height={900} priority className="h-auto w-full" />
+            <Image src="/images/life/game-room.webp" alt="Notes Life, the real game: your room in Wuse, Abuja, with the time, difficulty, game money, the Invite button, your needs and the menu" width={1440} height={900} priority className="h-auto w-full" />
           </div>
         </section>
 
