@@ -31,17 +31,19 @@ export default function AdminTractionPage() {
   const [data, setData] = useState<Data | null>(null);
   const [error, setError] = useState("");
   const [copied, setCopied] = useState(false);
+  const [fresh, setFresh] = useState(0);
 
   useEffect(() => {
     if (!user) return;
-    user.getIdToken().then((t) => fetch("/api/admin/traction", { headers: { Authorization: `Bearer ${t}` } }))
+    if (fresh) setData(null);
+    user.getIdToken().then((t) => fetch(`/api/admin/traction${fresh ? "?fresh=1" : ""}`, { headers: { Authorization: `Bearer ${t}` } }))
       .then(async (r) => {
         const j = await r.json();
         if (!r.ok) throw new Error(j.error || "Couldn't load");
         setData(j);
       })
       .catch((e) => setError(e instanceof Error ? e.message : "Couldn't load"));
-  }, [user]);
+  }, [user, fresh]);
 
   if (loading || !user) return <div className="px-6 py-24 text-center text-slate">Loading…</div>;
   const t = data?.traction;
@@ -60,7 +62,7 @@ export default function AdminTractionPage() {
   return (
     <section className="mx-auto max-w-5xl px-4 py-14">
       <h1 className="font-display text-4xl">Traction snapshot</h1>
-      <p className="mt-2 text-sm text-slate">Live numbers for pitch decks and applications. Only counts and totals — nothing personal. Refunded payments are excluded from &ldquo;processed&rdquo;.</p>
+      <p className="mt-2 text-sm text-slate">Numbers for pitch decks and applications, counted at most once an hour. Only counts and totals — nothing personal. Refunded payments are excluded from &ldquo;processed&rdquo;.</p>
       {error && <p className="mt-4 text-sm text-crimson">{error}</p>}
       {!t ? (
         !error && <p className="mt-8 text-sm text-slate">Counting…</p>
@@ -69,6 +71,8 @@ export default function AdminTractionPage() {
           <div className="mt-6 flex flex-wrap gap-3">
             <button onClick={() => navigator.clipboard?.writeText(data!.summary).then(() => { setCopied(true); setTimeout(() => setCopied(false), 2000); })} className="btn-primary !px-4 !py-2 text-xs">{copied ? "Copied ✓" : "Copy summary for a deck"}</button>
             <button onClick={download} className="btn-ghost !px-4 !py-2 text-xs">Download CSV</button>
+            <button onClick={() => setFresh((n) => n + 1)} className="btn-ghost !px-4 !py-2 text-xs">Refresh now</button>
+            <span className="self-center text-xs text-slate">Counted {new Date(t.generatedAt).toLocaleString("en-NG", { day: "numeric", month: "short", hour: "numeric", minute: "2-digit", hour12: true })}</span>
           </div>
           <pre className="card mt-4 whitespace-pre-wrap p-4 font-body text-sm text-ink">{data!.summary}</pre>
 

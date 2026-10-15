@@ -19,13 +19,14 @@ export default function AdminRevenuePage() {
   const [report, setReport] = useState<RevenueReport | null>(null);
   const [asOf, setAsOf] = useState("");
   const [error, setError] = useState("");
+  const [fresh, setFresh] = useState(0);
 
   useEffect(() => {
     if (!user) return;
     setReport(null);
     setError("");
     user.getIdToken().then((t) =>
-      fetch(`/api/admin/revenue?days=${days}`, { headers: { Authorization: `Bearer ${t}` } })
+      fetch(`/api/admin/revenue?days=${days}${fresh ? "&fresh=1" : ""}`, { headers: { Authorization: `Bearer ${t}` } })
         .then(async (r) => {
           const j = await r.json();
           if (!r.ok) throw new Error(j.error || "Failed");
@@ -34,7 +35,7 @@ export default function AdminRevenuePage() {
         })
         .catch((e) => setError(e.message))
     );
-  }, [user, days]);
+  }, [user, days, fresh]);
 
   if (loading || !user) return <div className="px-6 py-24 text-center text-slate">Loading…</div>;
 
@@ -132,7 +133,7 @@ export default function AdminRevenuePage() {
               </p>
             )}
           </div>
-          <p className="mt-4 text-xs text-slate">Updated {asOf ? new Date(asOf).toLocaleTimeString("en-NG", { hour: "numeric", minute: "2-digit", hour12: true }) : ""} · refreshed every ~2 minutes.</p>
+          <p className="mt-4 text-xs text-slate">Updated {asOf ? new Date(asOf).toLocaleTimeString("en-NG", { hour: "numeric", minute: "2-digit", hour12: true }) : ""} · rebuilt every 15 minutes. <button type="button" onClick={() => setFresh((n) => n + 1)} className="font-bold text-crimson underline">Refresh now</button></p>
         </>
       )}
     </section>
