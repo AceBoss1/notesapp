@@ -21,6 +21,12 @@ export const WORLD_EPOCH = Date.UTC(2026, 9, 1, 5, 0, 0); // a game day starts a
 
 export const CITY = { id: "abuja", name: "Abuja", area: "Wuse" } as const;
 export const COMING_CITIES = ["Lagos", "Port Harcourt"];
+// The city picker: our own drawings of each city's landmark (public/images/life/cities/).
+export const CITY_CARDS = [
+  { id: "abuja", name: "Abuja", landmark: "City Gate · “You are welcome” · Wuse, Garki, Maitama", icon: "/images/life/cities/abuja.svg" },
+  { id: "lagos", name: "Lagos", landmark: "Wole Soyinka Centre for Culture and Creative Arts (National Theatre), Iganmu", icon: "/images/life/cities/lagos.svg" },
+  { id: "port_harcourt", name: "Port Harcourt", landmark: "Isaac Boro Park · the Garden City", icon: "/images/life/cities/port-harcourt.svg" },
+];
 
 // ---- Needs ----
 export type Need = "hunger" | "energy" | "fun" | "social" | "hygiene" | "bladder";
@@ -118,6 +124,7 @@ export type Job = {
   ladder?: string; needItem?: string[]; needCooking?: number; needBrandShifts?: number; needReputation?: number; needHygiene?: number; needFitness?: boolean;
   brand?: Brand; usesBike?: boolean; soon?: boolean;
   extra?: { label: string; min: number; max: number; step: number }; // paid on top when the shift ends: tips, a bonus on what you sold
+  needSwim?: number; needGymSessions?: number; // swimming skill (lessons and swims at Candellux), gym sessions done
   meal?: number; // a free staff meal at the end of the shift (Hunger)
 };
 export const SHIFT_HOURS = 4;
@@ -141,13 +148,15 @@ export const JOBS: Job[] = [
   { id: "hotel_desk", title: "Front desk", employer: "Candellux · check guests in, answer the phone", icon: "🛎", pay: 6_000, place: "hotel", brand: "candellux", needHygiene: 70 },
   { id: "hotel_waiter", title: "Restaurant waiter", employer: "Candellux · 24-hour restaurant · tips from guests", icon: "🍽", pay: 5_000, place: "hotel", brand: "candellux", extra: { label: "Tips", min: 500, max: 3_000, step: 100 } },
   { id: "hotel_house", title: "Housekeeping", employer: "Candellux · suites and laundry · a free staff meal", icon: "🧺", pay: 4_500, place: "hotel", brand: "candellux", meal: 40 },
-  { id: "hotel_guard", title: "Pool lifeguard", employer: "Candellux · keep swimmers safe", icon: "🏊", pay: 6_500, place: "hotel", brand: "candellux", needFitness: true },
+  { id: "hotel_guard", title: "Pool lifeguard", employer: "Candellux · sit in the high chair; rescue a swimmer in trouble for a bonus", icon: "🏊", pay: 6_500, place: "hotel", brand: "candellux", needFitness: true, extra: { label: "Rescue bonus", min: 0, max: 1_500, step: 500 } },
+  { id: "hotel_swim", title: "Swimming instructor", employer: "Candellux · teach residents and players to swim", icon: "🎓", pay: 8_000, place: "hotel", brand: "candellux", needSwim: 5, extra: { label: "Lesson bonus", min: 500, max: 2_000, step: 500 } },
+  { id: "hotel_gym", title: "Gym instructor", employer: "Candellux · classes and personal training", icon: "🏋", pay: 8_500, place: "hotel", brand: "candellux", needGymSessions: 10 },
   { id: "hotel_cook", title: "Restaurant cook", employer: "Candellux · the 24-hour kitchen", icon: "👨‍🍳", pay: 7_500, place: "hotel", brand: "candellux", needCooking: 4 },
   { id: "hotel_manager", title: "Duty manager", employer: "Candellux · run the hotel for a shift", icon: "👑", pay: 15_000, place: "hotel", brand: "candellux", needBrandShifts: 15, needReputation: 4, ladder: "Front desk → Supervisor → Manager" },
 ];
 export const BRAND_NAME: Record<Brand, string> = { chef_adams: "Chef Adams", itel: "itel Energy", candellux: "Candellux" };
 // Real players work shifts at the brands' own outlets; outlets players own are staffed by residents (🤖) only, for now.
-export const STAFF_PERKS = { itelDiscount: 0.2, hotelHalf: ["pool", "gym", "vipbar"] }; // itel staff: 20% off itel products; Candellux staff: half price
+export const STAFF_PERKS = { itelDiscount: 0.2, hotelHalf: ["pool", "gym", "vipbar", "poolbar"] }; // itel staff: 20% off itel products; Candellux staff: half price
 export const isStaff = (jobId: string | null, brand: Brand) => !!jobId && JOB(jobId)?.brand === brand;
 export const JOB = (id: string) => JOBS.find((j) => j.id === id);
 // What a shift pays, decided when it starts: desk work goes faster on a better computer, riders twice as fast on an e-bike, and low needs cut pay.
@@ -158,7 +167,7 @@ export function shiftPay(job: Job, owned: string[], needsLow: boolean): number {
   if (needsLow) pay *= LOW_PAY_FACTOR;
   return Math.round(pay);
 }
-export type JobCheck = { owned: string[]; cooking: number; chefShifts: number; itelShifts?: number; hotelShifts?: number; reputation: number; fit?: boolean };
+export type JobCheck = { owned: string[]; cooking: number; chefShifts: number; itelShifts?: number; hotelShifts?: number; reputation: number; fit?: boolean; swim?: number; gymSessions?: number };
 export const brandShifts = (p: Pick<JobCheck, "chefShifts" | "itelShifts" | "hotelShifts">, b: Brand) => (b === "chef_adams" ? p.chefShifts : b === "itel" ? p.itelShifts ?? 0 : p.hotelShifts ?? 0);
 export function jobBlocker(job: Job, p: JobCheck): string | null {
   if (job.soon) return "Coming soon";
@@ -167,6 +176,8 @@ export function jobBlocker(job: Job, p: JobCheck): string | null {
   if (job.needBrandShifts && job.brand && brandShifts(p, job.brand) < job.needBrandShifts) return `After ${job.needBrandShifts} ${BRAND_NAME[job.brand]} shifts (you have ${brandShifts(p, job.brand)})`;
   if (job.needReputation && p.reputation < job.needReputation) return `Needs reputation ${job.needReputation}★`;
   if (job.needFitness && !p.fit) return "Needs fitness: train at the Candellux gym first";
+  if (job.needSwim && (p.swim ?? 0) < job.needSwim) return `Needs swimming skill ${job.needSwim} (you have ${p.swim ?? 0})`;
+  if (job.needGymSessions && (p.gymSessions ?? 0) < job.needGymSessions) return `After ${job.needGymSessions} gym sessions (${p.gymSessions ?? 0} so far)`;
   return null;
 }
 // The extra on top of a shift (tips, a sales bonus), rolled when it ends.
@@ -243,7 +254,7 @@ export function outletBlocker(t: OutletType, p: OutletCheck, now: number): strin
 }
 
 // ---- Food: Chef Adams (partner) and cooking at home ----
-export type Food = { id: string; name: string; group: "combo" | "rice" | "protein" | "side"; price: number; hunger: number };
+export type Food = { id: string; name: string; group: "combo" | "rice" | "protein" | "side" | "fast" | "fresh"; price: number; hunger: number };
 export const FOODS: Food[] = [
   { id: "combo", name: "Chef's combo: jollof rice, chicken and plantain", group: "combo", price: 2_400, hunger: 50 },
   { id: "jollof", name: "Jollof rice", group: "rice", price: 1_200, hunger: 30 },
@@ -258,6 +269,12 @@ export const FOODS: Food[] = [
   { id: "coleslaw", name: "Coleslaw", group: "side", price: 300, hunger: 5 },
   { id: "salad", name: "Salad", group: "side", price: 400, hunger: 6 },
   { id: "moimoi", name: "Moi moi", group: "side", price: 500, hunger: 10 },
+  // from the real Chef Adams menu: shawarma and pizza, and the "Sum Ting Fresh" range
+  { id: "shawarma", name: "Chicken shawarma", group: "fast", price: 3_500, hunger: 45 },
+  { id: "pizza", name: "Pizza to share", group: "fast", price: 6_000, hunger: 70 },
+  { id: "smoothie", name: "Banana smoothie", group: "fresh", price: 1_800, hunger: 15 },
+  { id: "juice", name: "Cold-pressed juice", group: "fresh", price: 1_500, hunger: 10 },
+  { id: "parfait", name: "Yoghurt parfait", group: "fresh", price: 2_000, hunger: 20 },
 ];
 export const FOOD = (id: string) => FOODS.find((f) => f.id === id);
 export type FoodMode = "delivery" | "takeaway" | "dinein";
@@ -277,18 +294,32 @@ export const RECIPE = (id: string) => RECIPES.find((r) => r.id === id);
 export const cookingSkill = (cooks: number) => Math.min(10, 1 + Math.floor(cooks / 2));
 
 // ---- Candellux Imperial Hotel & Suites (partner), Garki ----
-export type HotelService = { id: string; name: string; icon: string; price: number; minutes: number; effect: Partial<Record<Need, number>>; set?: Partial<Record<Need, number>>; note: string; boost?: "barber" | "gym"; soon?: boolean };
+export type HotelService = { id: string; name: string; icon: string; price: number; minutes: number; effect: Partial<Record<Need, number>>; set?: Partial<Record<Need, number>>; note: string; boost?: "barber" | "gym"; soon?: boolean; tab?: "pool" };
 export const HOTEL: HotelService[] = [
   { id: "suite", name: "Luxury suite (a night)", icon: "🛏", price: 180_000, minutes: 8 * 60, effect: { fun: 20 }, set: { energy: 100, hygiene: 100 }, note: "Energy and hygiene to 100% · mood: great" },
   { id: "restaurant", name: "24-hour restaurant", icon: "🍽", price: 6_500, minutes: 40, effect: { hunger: 70, fun: 10 }, note: "Hunger +70 · Fun +10" },
-  { id: "pool", name: "Swimming pool (day pass)", icon: "🏊", price: 25_000, minutes: 60, effect: { fun: 30, energy: 10, hygiene: 5 }, note: "Fun +30 · Energy +10" },
-  { id: "vipbar", name: "VIP bar", icon: "🍸", price: 12_000, minutes: 45, effect: { social: 40, fun: 10 }, note: "Social +40 · meet top players" },
-  { id: "gym", name: "Gym", icon: "🏋", price: 10_000, minutes: 60, effect: { energy: -10, fun: 5 }, note: "Fitness: energy lasts longer for a game day", boost: "gym" },
+  { id: "pool", name: "Swim · day pass", icon: "🏊", price: 25_000, minutes: 60, effect: { fun: 30, energy: 10, hygiene: 5 }, note: "Swim with residents and players. Fun +30 · Energy +10", tab: "pool" },
+  { id: "lesson", name: "Swimming lesson", icon: "🎓", price: 15_000, minutes: 45, effect: { fun: 10, energy: -8 }, note: "With Coach Femi 🤖 · swimming skill +2 · after 3 you can swim in the deep end", tab: "pool" },
+  { id: "gym", name: "Gym session", icon: "🏋", price: 10_000, minutes: 60, effect: { energy: -10, fun: 5 }, note: "With a gym instructor · fitness: energy lasts longer for a game day (needed for lifeguard)", boost: "gym", tab: "pool" },
+  { id: "poolbar", name: "Pool bar", icon: "🍹", price: 10_000, minutes: 30, effect: { social: 25, fun: 10 }, note: "Drinks and small chops on the grass · Social +25 · Fun +10", tab: "pool" },
+  { id: "vipbar", name: "VIP bar", icon: "👑", price: 11_500, minutes: 45, effect: { social: 40, fun: 10 }, note: "15% more than the pool bar · Social +40 · meet the VIPs, the richest on the Billionaires List", tab: "pool" },
   { id: "barber", name: "Barbing saloon", icon: "💈", price: 8_000, minutes: 30, effect: { hygiene: 10 }, note: "Look sharp: deals +10% for a game day", boost: "barber" },
   { id: "laundry", name: "Laundry", icon: "🧺", price: 3_000, minutes: 20, effect: { hygiene: 15 }, note: "Fresh outfits for the week" },
   { id: "conference", name: "Conference hall", icon: "🎤", price: 400_000, minutes: 0, effect: {}, note: "Host an event, sell tickets (coming soon)", soon: true },
 ];
 export const HOTEL_OF = (id: string) => HOTEL.find((h) => h.id === id);
+// Swimming: lessons (+2 each) and swims (+1 every 2) raise your skill; after 3 lessons you swim in the deep end.
+export const SWIM_DEEP_LESSONS = 3;
+export const swimSkill = (lessons: number, swims: number) => Math.min(10, lessons * 2 + Math.floor(swims / 2));
+// The VIP bar: who's in changes every 4 game hours, two at a time from the richest residents on the Billionaires List (real players later).
+export const VIP_EVERY_HOURS = 4;
+export function vipsAt(now = Date.now()): { in: string[]; next: string | null; nextAt: number } {
+  const top = RESIDENTS.filter((r) => r.netWorth).sort((a, b) => (b.netWorth ?? 0) - (a.netWorth ?? 0)).slice(0, 4).map((r) => r.id);
+  if (!top.length) return { in: [], next: null, nextAt: now };
+  const span = VIP_EVERY_HOURS * GAME_HOUR_MS, slot = Math.floor((now - WORLD_EPOCH) / span);
+  const at = (k: number) => top[((k % top.length) + top.length) % top.length];
+  return { in: Array.from(new Set([at(slot), at(slot + 1)])), next: at(slot + 2), nextAt: WORLD_EPOCH + (slot + 1) * span };
+}
 export const CANDELLUX = { name: "Candellux Imperial Hotel & Suites", tagline: "…We Strive for the Best", address: "Area 1, No. 5 Sir Anebo Okekenta Street, Garki, Abuja", whatsapp: "2349160049435", whatsappLabel: "+234 916 004 9435" };
 
 // ---- Deal calls on the bedside phone ----

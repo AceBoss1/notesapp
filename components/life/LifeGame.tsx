@@ -13,10 +13,10 @@ import { announce, hide, setShowMe, showMe, whoIsHere, type Present, type Presen
 import { TOPICS, chatWith, say as chatSay, type Line as ChatLine, type Topic } from "./chats";
 import { Sound, loadSoundPrefs, saveSoundPrefs, type Ambience, type Sfx, type SoundPrefs } from "./sound";
 
-type Player = LifePlayer & { cooking: number; serverNow: number };
+type Player = LifePlayer & { cooking: number; swimming: number; serverNow: number };
 type Panel =
   | "welcome" | "needs" | "sleep" | "desk" | "outfit" | "cook" | "deal" | "go" | "food" | "hotel" | "phone" | "jobs" | "friends"
-  | "invite" | "bank" | "rich" | "settings" | "ebike" | "nepa" | "power" | "itel" | "product" | "business" | "kitchen" | { shop: C.ItemCat } | { chat: string } | { player: Present }
+  | "invite" | "bank" | "rich" | "settings" | "ebike" | "nepa" | "power" | "itel" | "product" | "business" | "kitchen" | "arrive" | "hotelpool" | "vip" | { shop: C.ItemCat } | { chat: string } | { player: Present }
   | { jobs: C.Brand } | { partner: "chef_adams" | "itel" } | { outlet: C.OutletKind } | null;
 type Toast = { text: string; share?: string; tone?: "ok" | "warn" } | null;
 type Friend = { uid: string; username: string; name: string; avatar: string; plays: boolean; netWorth: number };
@@ -155,19 +155,21 @@ export default function LifeGame() {
   const roomPower: Power = src === "grid" ? "grid" : src === "gen" ? "gen" : src === "go" ? "go" : src === "tank" ? "tank" : "out";
   const mine = (player?.outlets ?? []).map((o) => ({ kind: o.kind, owner: player!.name.split(" ")[0] }));
   const mineKey = mine.map((m) => m.kind).join();
+  const vipKey = C.vipsAt(Date.now() + offset.current).in.join();
   const othersKey = others.map((o) => o.uid + o.outfit).join();
   const spec: SceneSpec | null = useMemo(() => {
     if (!save || !player) return null;
     const a = save.activity;
     const o = others.map((x) => ({ uid: x.uid, outfit: x.outfit }));
     if (a?.kind === "travel") return { id: "street", outfit: save.outfit, night, riding: a.icon === "🛵" ? "ebike" : null, others: o };
-    if (a?.kind === "hotel" && a.label.includes("pool")) return { id: "pool", outfit: save.outfit };
+    const vips = C.vipsAt(Date.now() + offset.current).in;
+    if (a?.kind === "hotel" && /Swimming|lesson|Pool bar|VIP bar|Gym/.test(a.label)) return { id: "hotel", outfit: save.outfit, others: o, night, view: "pool", swim: /Swimming|lesson/.test(a.label), vips };
     if (save.place === "chef") return { id: "chef", outfit: save.outfit, night, others: o, mine };
     if (save.place === "itel") return { id: "itel", outfit: save.outfit, night, others: o, mine };
-    if (save.place === "hotel") return { id: "hotel", outfit: save.outfit, others: o };
+    if (save.place === "hotel") return { id: "hotel", outfit: save.outfit, others: o, night, vips: C.vipsAt(Date.now() + offset.current).in };
     if (save.place === "work") return { id: "street", outfit: save.outfit, night, riding: player.owned.includes("ebike") ? "ebike" : null, others: o };
     return { id: "room", owned: player.owned, rug: save.rug, outfit: save.outfit, night, ringing: player.deal?.state === "offered", at: spot, sleeping: a?.kind === "sleep", power: roomPower };
-  }, [save?.place, save?.activity?.kind, save?.activity?.label, save?.outfit, save?.rug, player?.owned.join(), player?.deal?.state, night, spot, roomPower, othersKey, mineKey]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [save?.place, save?.activity?.kind, save?.activity?.label, save?.outfit, save?.rug, player?.owned.join(), player?.deal?.state, night, spot, roomPower, othersKey, mineKey, vipKey]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Where you are, for other players (lifePresence), and who else is here: every 45 s, and when you move.
   const presencePlace: PresencePlace | null = !save ? null : save.activity?.kind === "travel" ? "ride" : (save.place as PresencePlace);
@@ -185,7 +187,7 @@ export default function LifeGame() {
   }, [user, presencePlace, showMeOn]);
   useEffect(() => { if (spec && world.current) void world.current.show(spec); }, [spec]);
   // What you hear around you, and the bedside phone while a deal call waits.
-  const ambience: Ambience = !spec ? "none" : spec.id === "room" ? (night ? "room-night" : "room") : spec.id === "street" || spec.id === "chef" ? (night ? "street-night" : "street") : spec.id === "hotel" ? "hotel" : "pool";
+  const ambience: Ambience = !spec ? "none" : spec.id === "room" ? (night ? "room-night" : "room") : spec.id === "street" || spec.id === "chef" ? (night ? "street-night" : "street") : spec.id === "hotel" ? (spec.view === "pool" ? "pool" : "hotel") : "pool";
   useEffect(() => { snd.current?.ambience(ambience); }, [ambience]);
   useEffect(() => { snd.current?.generators(src === "gen" && save?.place === "home" ? (player?.owned.includes("gen_big") ? "big" : "small") : null, nepa.out); }, [src, save?.place, nepa.out, player?.owned]); // eslint-disable-line react-hooks/exhaustive-deps
   const ringing = player?.deal?.state === "offered" && save?.place === "home";
@@ -337,7 +339,8 @@ export default function LifeGame() {
     const r = await act<{ minutes: number; effect: Partial<Record<C.Need, number>>; set: Partial<Record<C.Need, number>> | null; boost: string | null }>({ action: "hotel", service: h.id });
     if (!r) return;
     if (r.boost === "gym") update((x) => ({ ...x, gymUntil: Date.now() + C.GAME_DAY_MS }));
-    start({ kind: "hotel", label: h.id === "pool" ? "Relaxing by the pool" : h.name, icon: h.icon, end: r.effect, set: r.set ?? undefined }, r.minutes);
+    const swimLabel = h.id === "pool" ? `Swimming${(playerRef.current?.swimLessons ?? 0) >= C.SWIM_DEEP_LESSONS ? "" : " · shallow end"}` : h.id === "lesson" ? "Swimming lesson with Coach Femi" : h.name;
+    start({ kind: "hotel", label: swimLabel, icon: h.icon, end: r.effect, set: r.set ?? undefined }, r.minutes);
     if (h.id === "suite") say("👑 Checked in to the Imperial Suite.", shareText("Living large at the Candellux Imperial in Notes Life 👑"));
   }
   async function cook(rcp: C.Recipe) {
@@ -435,7 +438,7 @@ export default function LifeGame() {
     if (key.startsWith("npc:")) { const r = C.RESIDENT(key.slice(4)); return r ? { label: `${r.name} 🤖`, go: () => setPanel({ chat: r.id }) } : null; }
     if (key === "bb:challenge") return { label: "📣 #1MillionNairaNotesAppChallenge", up: true, go: () => { window.open("https://www.notesapp.name.ng/challenge", "_blank"); } };
     if (key === "bb:itel" || key === "bb:itel2") return { label: "⚡ itel Energy · Go solar", go: () => setPanel("itel") };
-    if (key === "bb:chef") return { label: "🍽 Chef Adams · Order now", go: () => setPanel("food") };
+    if (key.startsWith("bb:chef")) return { label: ({ "bb:chef2": "🌯 Shawarma · Order now", "bb:chef3": "🍕 Chef Adams pizza", "bb:chef4": "🍌 Sum Ting Fresh" } as Record<string, string>)[key] ?? "🍽 Chef Adams · Order now", go: () => setPanel("food") };
     if (key.startsWith("mine:")) { const t = C.OUTLET(key.slice(5)); const o = player.outlets.find((x) => x.kind === t?.id); return t && o ? { label: `${t.icon} Your ${t.short} · ${C.fmtShort(C.outletTakings(o, Date.now() + offset.current).takings)}`, up: true, go: () => setPanel({ outlet: t.id }) } : null; }
     if (key.startsWith("player:")) { const o = others.find((x) => x.uid === key.slice(7)); return o ? { label: `👤 ${o.name.split(" ")[0]}`, up: true, go: () => setPanel({ player: o }) } : null; }
     const has = (id: string) => player.owned.includes(id);
@@ -467,7 +470,12 @@ export default function LifeGame() {
     }
     if (spec?.id === "hotel") {
       if (key === "sign" || key === "gate") return { label: key === "gate" ? "👑 Enter Candellux" : "Facilities", up: key === "gate", go: () => setPanel("hotel") };
-      if (key === "pool") return { label: "🏊 Pool", go: () => setPanel("hotel") };
+      if (key === "pool") return { label: save.activity?.label.startsWith("Swimming") ? "🏊 You're swimming" : "🏊 Swim", up: true, go: () => setPanel("hotelpool") };
+      if (key === "roof") return { label: "👑 Candellux Imperial · Garki", go: () => setPanel("hotel") };
+      if (key === "guard") return { label: player.jobId === "hotel_guard" ? "🏊 Your lifeguard chair" : "Lifeguard 🤖", go: () => setPanel({ jobs: "candellux" }) };
+      if (key === "gym") return { label: "🏋 Gym", go: () => setPanel("hotelpool") };
+      if (key === "bar") return { label: "🍹 Pool bar", go: () => setPanel("hotelpool") };
+      if (key === "vip") return { label: `👑 VIP bar · ${C.vipsAt(Date.now() + offset.current).in.length} VIPs in`, up: true, go: () => setPanel("vip") };
     }
     if (spec?.id === "itel") {
       if (key === "shop") return { label: "⚡ itel Energy · Solar shop", up: true, go: () => setPanel("itel") };
@@ -475,7 +483,6 @@ export default function LifeGame() {
       if (key === "kit") return { label: "☀️ Small home solar kit", go: () => say("☀️ The small home solar kit (IP66 inverter, battery and 4 panels) is coming soon.") };
       if (key === "inverter") return { label: "IP66 inverters", go: () => say("IP66: dust-tight and waterproof, made for Nigerian weather. Coming with the home kit.") };
     }
-    if (spec?.id === "pool") return { label: ({ pool: "🏊 Pool", bar: "🍸 VIP bar", gym: "🏋 Gym", suites: "🛏 Suites", front: "↩ Front" } as Record<string, string>)[key] ?? key, go: () => setPanel("hotel") };
     if (spec?.id === "street") {
       if (key === "shop") return { label: "🛵 Green Wheels", up: true, go: () => setPanel({ shop: "transport" }) };
       if (key === "bike" && save.place === "work") return { label: save.activity?.kind === "shift" ? "💼 At work" : "💼 Work", up: true, go: () => setPanel("jobs") };
@@ -578,17 +585,28 @@ export default function LifeGame() {
     const eco = (t?: string) => (t ? <span className="ml-1 rounded-full bg-emerald-100 px-1.5 py-0.5 text-[10px] font-bold text-emerald-800">🌿 {t}</span> : null);
 
     if (panel === "welcome") return (
-      <div className="text-center">
-        {p.avatar ? <img src={p.avatar} alt="" className="mx-auto h-20 w-20 rounded-full border-4 border-emerald-400 object-cover" /> : null}
-        <p className="mt-2 text-[11px] font-bold uppercase tracking-widest text-emerald-700">Welcome to Notes Life</p>
-        <h2 className="text-2xl font-extrabold">Start small. Hustle. Ball out.</h2>
-        <p className="mt-1 text-sm text-slate">Hi {p.name.split(" ")[0]}. You start on day 1 with {C.fmtN(C.START_NAIRA)}, a room in Wuse, a bicycle and a deal phone. Rent is {C.fmtN(C.RENT_NAIRA)} every 30 game days (one real day). One game day is 48 real minutes.</p>
-        <div className="mt-3 grid gap-2 text-left text-sm">
-          <Row icon="🏙" title="Abuja" note="Home of NotesApp · Wuse, Garki, Maitama" right={<b className="text-emerald-700">✓</b>} pick />
-          {C.COMING_CITIES.map((c) => <Row key={c} icon="🔒" title={c} note="Coming soon" />)}
+      <div>
+        <p className="text-center text-[11px] font-bold uppercase tracking-widest text-emerald-700">Welcome to Notes Life</p>
+        <h2 className="text-center text-2xl font-extrabold">Choose your city</h2>
+        <p className="mt-1 text-center text-sm text-slate">Hi {p.name.split(" ")[0]}. Start in a room with {C.fmtN(C.START_NAIRA)}. Rent is {C.fmtN(C.RENT_NAIRA)} every 30 game days (one real day); a game day is 48 real minutes.</p>
+        <div className="mt-4 grid gap-3">
+          {C.CITY_CARDS.map((c) => { const open = c.id === "abuja", asked = p.cityNotify?.includes(c.id); return (
+            <div key={c.id} className={`overflow-hidden rounded-2xl ${open ? "border-2 border-emerald-500 shadow" : "border border-slate-200"}`}>
+              <div className="relative h-28 bg-white"><img src={c.icon} alt={c.landmark} className={`h-full w-full object-cover ${open ? "" : "opacity-90"}`} /><span className={`absolute right-2 top-2 rounded-full px-2 py-0.5 text-[10px] font-bold text-white ${open ? "bg-emerald-500" : "bg-slate-800"}`}>{open ? "OPEN" : "🔒 SOON"}</span></div>
+              <div className="p-3"><b className="block text-lg">{c.name}</b><span className="text-[11px] text-slate">{c.landmark}</span>
+                {open ? <div className="mt-2"><Btn tone="green" onClick={() => { update((x) => ({ ...x, seenWelcome: true })); setPanel("arrive"); saveNow(); }}>Start in Abuja</Btn></div>
+                  : <button disabled={busy || asked} onClick={async () => { const r = await act<{ message: string }>({ action: "city_notify", city: c.id }); if (r) say(`🔔 ${r.message}`); }} className="mt-2 w-full rounded-full border py-2 text-sm font-bold disabled:opacity-60">{asked ? "✓ We'll tell you when it opens" : "🔔 Tell me when it opens"}</button>}</div>
+            </div>); })}
         </div>
-        <p className="mt-3 text-[11px] text-slate">Notesville Naira (N$) is game money: it can&apos;t be cashed out. Your progress saves on this device and in your NotesApp account.</p>
-        <div className="mt-4"><Btn tone="green" onClick={() => { update((x) => ({ ...x, seenWelcome: true })); setPanel(null); saveNow(); }}>Start in Abuja</Btn></div>
+        <p className="mt-3 text-center text-[11px] text-slate">Notesville Naira (N$) is game money: it can&apos;t be cashed out. Your progress saves on this device and in your NotesApp account.</p>
+      </div>
+    );
+    if (panel === "arrive") return (
+      <div className="-m-5 overflow-hidden text-center">
+        <div className="bg-[#020617] pt-5"><p className="text-[11px] font-bold uppercase tracking-[0.3em] text-emerald-300">Federal Capital Territory</p><h2 className="mt-1 font-serif text-4xl font-bold text-white">Welcome to Abuja</h2><img src="/images/life/cities/abuja-night.svg" alt="The Abuja City Gate at night: You are welcome" className="mt-1 h-56 w-full object-cover" /></div>
+        <div className="p-5"><p className="text-sm text-slate">You drive in through the City Gate. Your room is waiting in Wuse, with {C.fmtN(C.START_NAIRA)}, a bicycle and a deal phone.</p>
+          <div className="mt-3 flex justify-center gap-2 text-[11px] font-bold"><span className="rounded-full bg-emerald-50 px-3 py-1 text-emerald-800">🏠 Wuse</span><span className="rounded-full bg-emerald-50 px-3 py-1 text-emerald-800">👑 Garki</span><span className="rounded-full bg-emerald-50 px-3 py-1 text-emerald-800">🏙 Maitama</span></div>
+          <div className="mt-4"><Btn tone="green" onClick={() => setPanel(null)}>Go to my room →</Btn></div></div>
       </div>
     );
 
@@ -677,12 +695,32 @@ export default function LifeGame() {
       <p className="mt-2 text-[10px] text-slate">₦1 of NotesApp Credit = N$ 100 · Electric cars from N$ 18m · Everything here is eco-friendly 🌿</p></div>);
 
     if (panel === "food") return foodPanel(close);
-    if (panel === "hotel") return (<div>{close}
-      {brandHead("candellux")}{brandTabs("candellux", "main")}
+    if (panel === "hotel" || panel === "hotelpool") {
+      const poolTab = panel === "hotelpool";
+      const hotelRow = (h: C.HotelService) => { const half = C.isStaff(p.jobId, "candellux") && C.STAFF_PERKS.hotelHalf.includes(h.id); return <Row key={h.id} icon={h.icon} title={h.id === "lesson" ? `${h.name} · ${Math.min(p.swimLessons + 1, C.SWIM_DEEP_LESSONS)} of ${C.SWIM_DEEP_LESSONS}` : h.name} note={<>{h.note}{h.id === "pool" && p.swimLessons < C.SWIM_DEEP_LESSONS && <b className="block text-sky-700">Shallow end until you&apos;ve had {C.SWIM_DEEP_LESSONS} lessons</b>}{half && <b className="block text-emerald-700">Staff: half price</b>}</>} pick={h.id === "pool"} right={h.soon ? <span className="text-slate">Soon</span> : <button disabled={busy || s.place !== "hotel"} onClick={() => hotel(h)} className="rounded-full bg-[#262b6b] px-3 py-1 font-bold text-white disabled:opacity-40">{C.fmtN(half ? Math.round(h.price / 2) : h.price)}</button>} />; };
+      const vipIn = C.vipsAt(Date.now() + offset.current).in.map((id) => C.RESIDENT(id)?.name).filter(Boolean);
+      return (<div>{close}
+      {brandHead("candellux")}{brandTabs("candellux", poolTab ? "pool" : "main")}
       {s.place !== "hotel" && <p className="mt-3 rounded-xl bg-amber-50 px-3 py-2 text-xs text-amber-900">You&apos;re not at the hotel. <button className="font-bold underline" onClick={() => setPanel("go")}>Go to Garki</button></p>}
-      <div className="mt-3 grid gap-1.5">{C.HOTEL.map((h) => { const half = C.isStaff(p.jobId, "candellux") && C.STAFF_PERKS.hotelHalf.includes(h.id); return <Row key={h.id} icon={h.icon} title={h.name} note={<>{h.note}{half && <b className="block text-emerald-700">Staff: half price</b>}</>} right={h.soon ? <span className="text-slate">Soon</span> : <button disabled={busy || s.place !== "hotel"} onClick={() => hotel(h)} className="rounded-full bg-[#262b6b] px-3 py-1 font-bold text-white disabled:opacity-40">{C.fmtN(half ? Math.round(h.price / 2) : h.price)}</button>} />; })}</div>
-      <div className="mt-3 flex gap-3 rounded-2xl border border-[#e3b23c] bg-[#fffbeb] p-2.5"><img src="/images/life/partners/candellux-pool.webp" alt="" className="h-16 w-20 shrink-0 rounded-xl object-cover" /><div className="min-w-0 text-[11px]"><b className="block text-[12px]">Stay at the real Candellux</b>{C.CANDELLUX.address} · WhatsApp {C.CANDELLUX.whatsappLabel}<a href={WA("Hello Candellux, I'd like to book a room (I found you on Notes Life).", C.CANDELLUX.whatsapp)} target="_blank" rel="noreferrer" className="mt-1 block font-bold text-[#262b6b] underline">Book a real room ↗</a></div></div>
-      <p className="mt-2 text-center text-[10px] text-slate">Candellux Imperial is a Notes Life partner.</p></div>);
+      {!poolTab && <div className="mt-3 grid grid-cols-3 gap-1.5"><img src="/images/life/partners/candellux-night.webp" alt="Candellux Imperial Hotel & Suites at night" className="col-span-2 row-span-2 h-full w-full rounded-xl object-cover" /><img src="/images/life/partners/candellux-sign.webp" alt="The Candellux services sign" className="h-20 w-full rounded-xl object-cover" /><img src="/images/life/partners/candellux-gate-day.webp" alt="The Candellux gate by day" className="h-20 w-full rounded-xl object-cover" /></div>}
+      <div className="mt-3 grid gap-1.5">{C.HOTEL.filter((h) => (h.tab === "pool") === poolTab).map(hotelRow)}</div>
+      {poolTab && <>
+        <button onClick={() => setPanel("vip")} className="mt-3 flex w-full items-center gap-3 rounded-2xl bg-[#1c2030] p-3 text-left text-white"><span className="text-2xl">👑</span><span className="min-w-0 flex-1 text-[11px]"><b className="block text-[13px] text-[#e3b23c]">In the VIP bar now</b>{vipIn.join(" and ")} 🤖</span><span className="text-xs font-bold">See →</span></button>
+        <div className="mt-3 rounded-2xl bg-sky-50 p-3 text-[11px]"><b>Your swimming skill: {p.swimming} of 10.</b> <span className="text-slate">Lessons (+2) and swims raise it. Skill 5 qualifies you as a swimming instructor.</span><span className="bar mt-1.5 block"><i style={{ width: `${p.swimming * 10}%`, background: "#0ea5e9" }} /></span></div>
+      </>}
+      {!poolTab && <div className="mt-3 flex gap-3 rounded-2xl border border-[#e3b23c] bg-[#fffbeb] p-2.5"><img src="/images/life/partners/candellux-pool.webp" alt="" className="h-16 w-20 shrink-0 rounded-xl object-cover" /><div className="min-w-0 text-[11px]"><b className="block text-[12px]">Stay at the real Candellux</b>{C.CANDELLUX.address} · WhatsApp {C.CANDELLUX.whatsappLabel}<a href={WA("Hello Candellux, I'd like to book a room (I found you on Notes Life).", C.CANDELLUX.whatsapp)} target="_blank" rel="noreferrer" className="mt-1 block font-bold text-[#262b6b] underline">Book a real room ↗</a></div></div>}
+      <p className="mt-2 text-center text-[10px] text-slate">Candellux Imperial is a Notes Life partner. Turn the camera round at the hotel: the pool is at the back.</p></div>);
+    }
+    if (panel === "vip") {
+      const v = C.vipsAt(Date.now() + offset.current), vip = C.HOTEL_OF("vipbar")!, bar = C.HOTEL_OF("poolbar")!;
+      const nx = v.next ? C.RESIDENT(v.next) : null, rank = (id: string) => C.RESIDENTS.filter((r) => r.netWorth).sort((a2, b2) => (b2.netWorth ?? 0) - (a2.netWorth ?? 0)).findIndex((r) => r.id === id) + 1;
+      return (<div>{close}<p className="text-[11px] font-bold uppercase tracking-widest text-[#8a6a12]">👑 VIP bar · Candellux</p><h2 className="text-xl font-extrabold">Who&apos;s in {night ? "tonight" : "now"}</h2>
+        <p className="text-xs text-slate">Where the top of the Billionaires List drinks. 15% more than the pool bar. Who&apos;s in changes every {C.VIP_EVERY_HOURS} game hours.</p>
+        <div className="mt-3 grid gap-2">{v.in.map((id, i) => { const r = C.RESIDENT(id)!; return <Row key={id} pick={i === 0} icon={<span className="flex h-10 w-10 items-center justify-center rounded-full text-sm font-bold text-white" style={{ background: r.look[0] === "#f5f5f4" ? "#78716c" : r.look[0] }}>{r.name.split(" ").filter((w) => w[0] === w[0].toUpperCase()).map((w) => w[0]).slice(-2).join("")}</span>} title={`${r.name} 🤖 · #${rank(id)}`} note={`${r.role} · ${C.fmtShort(r.netWorth ?? 0)} · “${r.lines.money[0]}”`} right={<button onClick={() => setPanel({ chat: id })} className="rounded-full bg-[#262b6b] px-3 py-1 font-bold text-white">Say hello</button>} />; })}
+          {nx && <Row icon="🔒" title={`Next in: ${nx.name} 🤖`} note={`${nx.role} · arrives at ${C.worldTime(v.nextAt).label}`} />}</div>
+        <div className="mt-3 grid grid-cols-2 gap-2"><Btn tone="navy" disabled={s.place !== "hotel"} onClick={() => hotel(vip)}>👑 Order · {C.fmtN(vip.price)}</Btn><Btn tone="ghost" disabled={s.place !== "hotel"} onClick={() => hotel(bar)}>🍹 Pool bar · {C.fmtN(bar.price)}</Btn></div>
+        <p className="mt-2 text-[10px] text-slate">VIPs are residents 🤖 for now. When real players reach the top of the list, they&apos;ll take turns here too.</p></div>);
+    }
 
     if (panel === "phone") return (<div>{close}<p className="text-lg font-extrabold">📱 Phone</p>
       <div className="mt-3 grid grid-cols-4 gap-3 text-center text-[11px] font-semibold">{([["💼", "Jobs", "bg-emerald-500", () => setPanel("jobs")], ["👥", "Friends", "bg-crimson", () => setPanel("friends")], ["🎁", "Invite", "bg-pink-500", () => setPanel("invite")], ["☎️", "Deals", "bg-sky-500", () => setPanel("deal")], ["🏦", "Bank", "bg-amber-500", () => setPanel("bank")], ["🛺", "Go", "bg-teal-600", () => setPanel("go")], ["CHEF", "Chef Adams", "bg-[#292929]", () => setPanel("food")], ["👑", "Candellux", "bg-[#262b6b]", () => setPanel("hotel")], ["⚡", "itel Energy", "bg-[#e8173f]", () => setPanel("itel")], ["🏪", "Businesses", "bg-[#F2B544]", () => setPanel("business")], ["👑", "Rich list", "bg-slate-800", () => setPanel("rich")], ["🛋", "Shop", "bg-orange-500", () => setPanel({ shop: "rug" })], ["📰", "NotesApp", "bg-[#7A0328]", () => void leave()], ["⚙️", "Settings", "bg-slate-400", () => setPanel("settings")]] as [string, string, string, () => void][]).map(([i, n, c, f]) => (
@@ -795,14 +833,14 @@ export default function LifeGame() {
       if (b === "itel") return <div><div className="flex items-center gap-3"><img src="/images/life/partners/itel-logo.svg" alt="itel" className="h-9" /><span className="rounded-full bg-[#FF073C]/10 px-2 py-0.5 text-[10px] font-bold text-[#FF073C]">PARTNER</span></div><p className="mt-0.5 text-[10px] text-slate">{C.ITEL.note}</p></div>;
       return <div className="flex items-center gap-3"><img src="/images/life/partners/candellux-logo.webp" alt="" className="h-12 w-12 rounded-full object-cover" /><div><p className="font-serif text-xl font-bold italic leading-tight text-[#262b6b]">Candellux</p><p className="text-[11px] font-bold tracking-wider text-[#262b6b]">IMPERIAL HOTEL &amp; SUITES <span className="rounded-full bg-[#e3b23c]/20 px-1.5 py-0.5 text-[9px] text-[#8a6a12]">PARTNER</span></p><p className="text-[10px] text-slate">Garki, Abuja · {C.CANDELLUX.tagline}</p></div></div>;
     }
-    function brandTabs(b: C.Brand, on: "main" | "jobs" | "partner") {
+    function brandTabs(b: C.Brand, on: "main" | "jobs" | "partner" | "pool") {
       const col = b === "chef_adams" ? "#292929" : b === "itel" ? "#FF073C" : "#262b6b";
       const main: Panel = b === "chef_adams" ? "food" : b === "itel" ? "itel" : "hotel";
-      const tabs: [string, "main" | "jobs" | "partner", Panel][] = [[b === "chef_adams" ? "Eat" : b === "itel" ? "Shop" : "Services", "main", main], ["Jobs", "jobs", { jobs: b }], ...(b === "candellux" ? [] : [["Partner", "partner", { partner: b }] as [string, "partner", Panel]])];
+      const tabs: [string, "main" | "jobs" | "partner" | "pool", Panel][] = [[b === "chef_adams" ? "Eat" : b === "itel" ? "Shop" : "Services", "main", main], ...(b === "candellux" ? [["Pool", "pool", "hotelpool"] as [string, "pool", Panel]] : []), ["Jobs", "jobs", { jobs: b }], ...(b === "candellux" ? [] : [["Partner", "partner", { partner: b }] as [string, "partner", Panel]])];
       return <div className="mt-3 grid gap-1 rounded-full bg-slate-100 p-1 text-center text-xs font-bold" style={{ gridTemplateColumns: `repeat(${tabs.length},1fr)` }}>{tabs.map(([l, k, to]) => <button key={k} onClick={() => setPanel(to)} className="rounded-full py-1.5" style={k === on ? { background: col, color: "#fff" } : undefined}>{l}</button>)}</div>;
     }
     function jobRow(j: C.Job) {
-      const block = C.jobBlocker(j, { owned: p.owned, cooking: p.cooking, chefShifts: p.chefShifts, itelShifts: p.itelShifts, hotelShifts: p.hotelShifts, reputation: p.reputation, fit: p.gymUntil > Date.now() + offset.current });
+      const block = C.jobBlocker(j, { owned: p.owned, cooking: p.cooking, chefShifts: p.chefShifts, itelShifts: p.itelShifts, hotelShifts: p.hotelShifts, reputation: p.reputation, fit: p.gymUntil > Date.now() + offset.current, swim: p.swimming, gymSessions: p.gymSessions });
       const icon = j.brand === "chef_adams" ? <img src="/images/life/partners/chef-emblem.webp" alt="" className="h-9 w-9 object-contain" /> : j.icon;
       return <Row key={j.id} icon={icon} title={<>{j.title}</>} note={<>{j.employer}{block ? <b className="block text-crimson">🔒 {block}</b> : j.ladder ? <span className="block">{j.ladder}</span> : null}</>}
         right={<><b className="block text-emerald-700">{j.pay ? `${C.fmtN(j.pay)}/shift` : ""}</b>{j.extra && <span className="block text-[10px] text-slate">+ {j.extra.label.toLowerCase()}</span>}{!block && !p.shift && <button disabled={busy} onClick={async () => { const r = await act<{ message: string }>({ action: "job_apply", job: j.id }); if (r) say(r.message, shareText(`I just got a job as ${j.title} in Notes Life 💼`)); }} className="mt-1 rounded-full bg-ink px-2.5 py-1 text-[11px] font-bold text-white">Take it</button>}</>} />;
@@ -893,7 +931,7 @@ export default function LifeGame() {
       const mode = foodMode, setMode = setFoodMode;
       const fm = C.FOOD_MODES[mode];
       const total = Object.entries(cart).reduce((n, [id, q]) => n + (C.FOOD(id)?.price ?? 0) * q, 0) + fm.fee;
-      const groups: [string, C.Food["group"]][] = [["Chef's combo", "combo"], ["Rice & noodles", "rice"], ["Protein", "protein"], ["Sides", "side"]];
+      const groups: [string, C.Food["group"]][] = [["Chef's combo", "combo"], ["Rice & noodles", "rice"], ["Protein", "protein"], ["Sides", "side"], ["Shawarma & pizza", "fast"], ["Sum Ting Fresh 🍌", "fresh"]];
       return (<div>{close}
         {brandHead("chef_adams")}{brandTabs("chef_adams", "main")}
         <div className="mt-3 grid grid-cols-3 gap-1 rounded-full bg-slate-100 p-1 text-center text-[11px] font-bold">{(Object.keys(C.FOOD_MODES) as C.FoodMode[]).map((k) => <button key={k} onClick={() => setMode(k)} className={`rounded-full py-1.5 ${k === mode ? "bg-[#E53935] text-white" : ""}`}>{C.FOOD_MODES[k].icon} {C.FOOD_MODES[k].label}</button>)}</div>

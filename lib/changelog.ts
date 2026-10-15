@@ -11,6 +11,21 @@ export type Release = {
 
 export const CHANGELOG: Release[] = [
   {
+    version: "v0.33.0",
+    bump: "minor",
+    date: "2026-10-15",
+    changes: [
+      { kind: "added", text: "Notes Life: choose your city when you start. Abuja is open, with the City Gate; Lagos (the National Theatre) and Port Harcourt (Isaac Boro Park) are coming soon, and “Tell me when it opens” lets you know first. New players arrive with a Welcome to Abuja screen at the City Gate by night." },
+      { kind: "added", text: "A new Candellux Imperial, built from the real hotel: the glass and stone wings, the tower with its roof sign, the gate, walls and palms, by day and by night. Turn round the back to the pool: green turf, the blue mosaic pool, the pergola and rattan sofas, the pool bar, the VIP bar and the gym tower." },
+      { kind: "added", text: "Swimming: get in the pool with other players and residents. Swimming lessons with Coach Femi (N$ 15,000) build your swimming skill, and after 3 lessons you can use the deep end. A day pass is N$ 25,000." },
+      { kind: "added", text: "The pool bar (N$ 10,000) and the VIP bar (N$ 11,500), where you meet the richest residents on the Billionaires List. Who's in changes every 4 game hours; say hello to chat." },
+      { kind: "added", text: "New Candellux jobs: swimming instructor (N$ 8,000 a shift plus a lesson bonus, needs swimming skill 5) and gym instructor (N$ 8,500, after 10 gym sessions). Lifeguards earn a rescue bonus of up to N$ 1,500, and staff pay half price at the pool bar too." },
+      { kind: "added", text: "More from the real Chef Adams menu: chicken shawarma (N$ 3,500), pizza to share (N$ 6,000), and Sum Ting Fresh banana smoothies, cold-pressed juice and yoghurt parfait, with new Chef Adams billboards on the street." },
+      { kind: "changed", text: "Solar panels on the roofs of Candellux, its gym, itel Energy and Chef Adams. Candellux's services panel has Services, Pool and Jobs tabs with photos of the real hotel." },
+      { kind: "fixed", text: "The Chef Adams mascot was cut off on the shop sign." },
+    ],
+  },
+  {
     version: "v0.32.0",
     bump: "minor",
     date: "2026-10-14",

@@ -17,7 +17,7 @@ const shots: { src: string; title: string; text: string }[] = [
   { src: "/images/life/shots/room.webp", title: "Your room in Wuse", text: "Bed, desk, wardrobe, WC and bath. Your NotesApp photo is your portrait. Keep your six needs up, and pick how hard you want life to be." },
   { src: "/images/life/shots/nepa.webp", title: "NEPA has taken light", text: "Power cuts hit everyone at the same moment. Buy an “I Better Pass My Neighbour”, go solar with itel, or stay in the dark till light returns." },
   { src: "/images/life/shots/power.webp", title: "Power through it", text: "The Power GO keeps your lamp, fan and laptop on; the Power Tank keeps the fridge cold. When light returns, the whole street shouts “UP NEPA!”" },
-  { src: "/images/life/shots/itel.webp", title: "Real brands, real products", text: "Shop at itel Energy, eat at Chef Adams, relax at the Candellux Imperial. Each one links to the real thing." },
+  { src: "/images/life/shots/itel.webp", title: "Real brands, real products", text: "Shop at itel Energy, eat at Chef Adams, swim and meet VIPs at the Candellux Imperial. Each one links to the real thing." },
   { src: "/images/life/shots/billboards.webp", title: "Billboards you can tap", text: "Partner adverts and the #1MillionNairaNotesAppChallenge line the roads. Tap one to open it." },
   { src: "/images/life/shots/jobs.webp", title: "Work for real brands", text: "Take shifts at Chef Adams, itel Energy and the Candellux Imperial, with tips, sales bonuses and staff perks." },
   { src: "/images/life/shots/partner.webp", title: "Own a partner outlet", text: "Earn your way to your own Chef Adams kiosk or itel store. Residents run it, your name goes on the sign, you collect the takings." },

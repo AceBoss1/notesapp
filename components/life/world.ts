@@ -15,8 +15,7 @@ export type SceneSpec =
   | { id: "itel"; outfit: string; night: boolean; others: Other[]; mine?: Mine[] }
   | { id: "street"; outfit: string; night: boolean; riding: string | null; others: Other[] }
   | { id: "chef"; outfit: string; night: boolean; others: Other[]; mine?: Mine[] }
-  | { id: "hotel"; outfit: string; others: Other[] }
-  | { id: "pool"; outfit: string };
+  | { id: "hotel"; outfit: string; others: Other[]; night?: boolean; view?: "front" | "pool" | "aerial"; swim?: boolean; vips?: string[] };
 export type RoomSpot = "rug" | "bed" | "desk" | "bath" | "wc" | "wardrobe" | "cooker" | "phone";
 export type Tag = { key: string; x: number; y: number; visible: boolean };
 
@@ -80,7 +79,7 @@ export function createWorld(canvas: HTMLCanvasElement) {
     part(new THREE.BoxGeometry(w + 0.3, 0.08, 0.5), mat("#4b5563"), 0, up - 0.05, 0.1);
     const v = new THREE.Vector3(0, up + h + 0.35, 0).applyAxisAngle(new THREE.Vector3(0, 1, 0), ry); tag(key, x + v.x, v.y + 0.14, z + v.z);
   }
-  const BB = { itelSun: "billboards/itel-sun-is-free.webp", itelTank: "billboards/itel-power-tank-fridge.webp", itelInverter: "billboards/itel-inverter-power-tank.webp", chef: "billboards/chef-adams-menu.webp" };
+  const BB = { itelSun: "billboards/itel-sun-is-free.webp", itelTank: "billboards/itel-power-tank-fridge.webp", itelInverter: "billboards/itel-inverter-power-tank.webp", chef: "billboards/chef-adams-menu.webp", shawarma: "billboards/chef-shawarma.webp", pizza: "billboards/chef-pizza.webp", fresh: "billboards/chef-sumting-fresh.webp" };
   const CHALLENGE = "/images/challenge/challenge-banner.webp";
   function chefMan(x: number, z: number, rot = 0) { const g = person(x, z, "#ffffff", rot); const hat = new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.16, 0.32, 16), mat("#ffffff")); hat.position.set(0, 2.12, 0); g.add(hat); return g; }
   // Residents (computer players): their look from the catalogue, a tag the page draws as their name with 🤖.
@@ -100,6 +99,17 @@ export function createWorld(canvas: HTMLCanvasElement) {
     if (battery) box(0.34, 0.16, 0.12, "#16a34a", x - 0.05, 0.55, z);
   }
   function wheelsAt(pts: [number, number][], r0 = 0.3) { for (const [x, z] of pts) { const w = new THREE.Mesh(new THREE.CylinderGeometry(r0, r0, 0.18, 16), mat("#111827")); w.rotation.x = Math.PI / 2; w.position.set(x, r0, z); w.castShadow = true; scene.add(w); } }
+  // A field of solar panels on a roof: cols × rows, tilted to the sun on short frames (Candellux, the gym, itel Energy, Chef Adams).
+  const solarTex = () => canvasTex(256, 192, (g, w, h) => { g.fillStyle = "#1e3a8a"; g.fillRect(0, 0, w, h); g.strokeStyle = "#93c5fd"; g.lineWidth = 3; for (let x = 0; x <= w; x += 42) { g.beginPath(); g.moveTo(x, 0); g.lineTo(x, h); g.stroke(); } for (let y = 0; y <= h; y += 48) { g.beginPath(); g.moveTo(0, y); g.lineTo(w, y); g.stroke(); } });
+  function solar(x0: number, y: number, z0: number, cols: number, rows: number, ry = 0, w = 1.3, d = 0.9) {
+    const face = new THREE.MeshStandardMaterial({ map: solarTex(), roughness: 0.3, metalness: 0.4 }), side = mat("#cbd5e1");
+    const g = new THREE.Group(); g.position.set(x0, y, z0); g.rotation.y = ry; scene.add(g);
+    for (let r = 0; r < rows; r++) for (let c = 0; c < cols; c++) {
+      const px = (c - (cols - 1) / 2) * (w + 0.12), pz = (r - (rows - 1) / 2) * (d + 0.3);
+      const p = new THREE.Mesh(new THREE.BoxGeometry(w, 0.05, d), [side, side, face, side, side, side]); p.position.set(px, 0.28, pz); p.rotation.x = 0.35; p.castShadow = true; g.add(p);
+      const leg = new THREE.Mesh(new THREE.BoxGeometry(0.05, 0.3, 0.05), side); leg.position.set(px, 0.13, pz - d / 2 + 0.12); g.add(leg);
+    }
+  }
   const sign = (txt: string, bg: string, fg: string, w: number, h: number, x: number, y: number, z: number, size = 90) => plane(w, h, canvasTex(1024, Math.round(1024 * h / w), (g, cw, ch) => { g.fillStyle = bg; g.fillRect(0, 0, cw, ch); g.fillStyle = fg; g.font = `bold ${size}px sans-serif`; g.textAlign = "center"; g.textBaseline = "middle"; txt.split("\n").forEach((l, i, a) => g.fillText(l, cw / 2, ch / 2 + (i - (a.length - 1) / 2) * size * 1.15)); }), x, y, z, 0, 0, true);
 
   // ---------- the room ----------
@@ -237,7 +247,7 @@ export function createWorld(canvas: HTMLCanvasElement) {
     box(4, 3, 2, "#f1f5f9", 16.5, 0.14, -4.0); sign("Green Wheels\nE-bikes · EVs", "#065f46", "#ffffff", 3.6, 1.0, 16.5, 2.6, -2.98, 92);
     for (const x of [-12, -3, 6, 15]) { cyl(0.06, 4, "#475569", x, 0.14, -0.1); const p = box(0.8, 0.05, 0.5, "#1d4ed8", x, 4.15, -0.1); p.rotation.x = 0.35; }
     [-14, -9.5, -4, 4, 8.5, 20, -22, -17, 12, 25].forEach((x, i) => tree(x, i > 5 ? -7 : -4.4, i > 5 ? 1.4 : 1.1));
-    await Promise.all([billboard("bb:challenge", CHALLENGE, -6.5, -8.2, 5.0, 2.81, 0, 1.4), billboard("bb:itel", IMG(BB.itelSun), 1.2, -8.6, 2.3, 2.88, 0, 1.4), billboard("bb:chef", IMG(BB.chef), 8.8, -8.2, 5.0, 2.8, 0, 1.4)]);
+    await Promise.all([billboard("bb:challenge", CHALLENGE, -6.5, -8.2, 5.0, 2.81, 0, 1.4), billboard("bb:itel", IMG(BB.itelSun), 1.2, -8.6, 2.3, 2.88, 0, 1.4), billboard("bb:chef", IMG(BB.chef), 8.8, -8.2, 5.0, 2.8, 0, 1.4), billboard("bb:chef3", IMG(BB.pizza), -13.6, -8.4, 2.8, 2.8, 0.1, 1.4), billboard("bb:chef4", IMG(BB.fresh), 14.4, -8.8, 2.8, 2.8, -0.1, 1.4)]);
     const phone = innerWidth < 700;
     cam.position.set(...(phone ? [0, 8, 22] : [2, 12, 24]) as [number, number, number]); controls.target.set(phone ? 0 : 2, phone ? 1.2 : 0.5, -0.5);
     controls.minDistance = 10; controls.maxDistance = 45;
@@ -254,8 +264,8 @@ export function createWorld(canvas: HTMLCanvasElement) {
     box(70, 0.02, 5, "#4b5563", 0, 0, 2.6); for (let i = -8; i < 9; i++) box(1.3, 0.03, 0.14, "#f9fafb", i * 4, 0.01, 2.6);
     box(70, 0.14, 3.6, "#d6d3d1", 0, 0, -1.9); box(70, 0.03, 0.9, "#16a34a", 0, 0.14, -0.4);
     const X = -2.2, Z = -6.0, FZ = -4.2;
-    box(7.6, 3.8, 3.6, BR.char, X, 0.14, Z);
-    plane(7.4, 1.25, canvasTex(1536, 260, (g, w, h) => { g.fillStyle = BR.char; g.fillRect(0, 0, w, h); fit(g, emblem, 30, 8, 250, 244); fit(g, word, 320, 22, w - 360, h - 44); }), X, 3.32, FZ + 0.01, 0, 0, true);
+    box(7.6, 3.8, 3.6, BR.char, X, 0.14, Z); solar(X, 3.94, Z, 5, 2, 0, 1.2, 0.85);
+    plane(7.4, 1.25, canvasTex(1536, 260, (g, w, h) => { g.fillStyle = BR.char; g.fillRect(0, 0, w, h); fit(g, emblem, 130, 8, 250, 244); fit(g, word, 410, 22, w - 540, h - 44); }), X, 3.32, FZ + 0.01, 0, 0, true);
     box(8.0, 0.14, 1.3, BR.red, X, 2.55, FZ + 0.6); box(8.04, 0.07, 0.07, BR.gold, X, 2.55, FZ + 1.25);
     plane(6.2, 1.4, canvasTex(1400, 316, (g, w, h) => {
       g.fillStyle = "#3b2f2a"; g.fillRect(0, 0, w, h);
@@ -283,7 +293,7 @@ export function createWorld(canvas: HTMLCanvasElement) {
     const bag = new THREE.Mesh(new THREE.BoxGeometry(0.62, 0.6, 0.6), new THREE.MeshStandardMaterial({ map: canvasTex(400, 400, (g, w, h) => { g.fillStyle = BR.red; g.fillRect(0, 0, w, h); fit(g, lockup, 24, 24, w - 48, h - 48); }) })); bag.position.set(RX - 0.75, 1.35, RZ); bag.castShadow = true; scene.add(bag);
     person(RX - 0.1, RZ, BR.red, Math.PI / 2, 0.32);
     [-16, 13.5, 19].forEach((x) => tree(x, -5.5, 1.15));
-    await billboard("bb:chef", IMG(BB.chef), -11.5, -7.2, 5.2, 2.92, 0.15);
+    await Promise.all([billboard("bb:chef", IMG(BB.chef), -11.5, -7.2, 5.2, 2.92, 0.15), billboard("bb:chef2", IMG(BB.shawarma), 10.2, -7.6, 2.4, 3.0, -0.12)]);
     for (const m of s.mine ?? []) { // the player's own outlets, staffed by residents, with their name on the sign
       const owner = m.owner.toUpperCase().slice(0, 18);
       if (m.kind === "chef_kiosk") {
@@ -347,7 +357,8 @@ export function createWorld(canvas: HTMLCanvasElement) {
     for (const dx of [-1.1, 1.1]) box(0.06, 1.2, 0.06, "#94a3b8", SX + dx, 0.14, SZ + 0.3);
     box(0.7, 0.9, 0.3, "#fafafa", SX, 0.14, SZ - 0.9); box(0.8, 0.5, 0.5, "#e5e7eb", SX + 1.0, 0.14, SZ - 0.9);
     sign("SMALL HOME\nSOLAR KIT", RED, "#ffffff", 1.6, 0.6, SX, 2.6, SZ - 0.2, 110);
-    // the roof: panels that power the shop itself
+    // the roof: panels that power the shop itself, two rows
+    solar(X, 3.9, Z + 1.0, 5, 1, 0, 1.4, 1.0);
     for (let i = 0; i < 5; i++) { const pnl = new THREE.Mesh(new THREE.BoxGeometry(1.4, 0.05, 1.0), [mat("#cbd5e1"), mat("#cbd5e1"), new THREE.MeshStandardMaterial({ map: panelTex, roughness: 0.3, metalness: 0.3 }), mat("#cbd5e1"), mat("#cbd5e1"), mat("#cbd5e1")]); pnl.position.set(X - 3.2 + i * 1.6, 3.95, Z - 0.5); pnl.rotation.x = -0.35; scene.add(pnl); }
     residents("itel", [[X + 0.6, FZ - 1.6, 0.2, 0.14], [X + 2.8, FZ + 0.9, Math.PI + 0.3, 0.14], [SX - 0.4, SZ + 1.2, Math.PI - 0.5, 0.14]]); // Mr Dauda (staff), Aisha, Chinedu
     others(s.others, [[X - 2.6, FZ + 1.3, Math.PI, 0.14], [X + 4.6, FZ + 1.6, Math.PI, 0.14]]);
@@ -377,24 +388,78 @@ export function createWorld(canvas: HTMLCanvasElement) {
     g.beginPath(); g.moveTo(-r0 * 0.75, r0 * 0.45); g.lineTo(-r0 * 0.85, -r0 * 0.45); g.lineTo(-r0 * 0.4, -r0 * 0.05); g.lineTo(0, -r0 * 0.6); g.lineTo(r0 * 0.4, -r0 * 0.05); g.lineTo(r0 * 0.85, -r0 * 0.45); g.lineTo(r0 * 0.75, r0 * 0.45); g.closePath(); g.fill(); g.fillRect(-r0 * 0.8, r0 * 0.55, r0 * 1.6, r0 * 0.22); g.restore();
   }
   const stoneTex = (c1: string, c2: string, rows: number, cols: number) => canvasTex(256, 256, (g, w, h) => { g.fillStyle = c2; g.fillRect(0, 0, w, h); const rh = h / rows; for (let r0 = 0; r0 < rows; r0++) { const off = r0 % 2 ? w / cols / 2 : 0; for (let c = -1; c < cols + 1; c++) { const v = (r0 * 7 + c * 13) % 5; g.fillStyle = v < 2 ? c1 : v < 4 ? "#cdc4b1" : "#e1d9c9"; g.fillRect(off + c * (w / cols) + 2, r0 * rh + 2, w / cols - 4, rh - 4); } } });
+  // Candellux Imperial, Garki (partner), built from their photos: a dark glossy left wing, a dark stone right wing, a light grey central
+  // tower with the roof sign on a frame, a sandstone ground floor, the curved stone canopy with the crown, and in front the stone wall
+  // with lamp-topped pillars, black railings, gates and a boom barrier, globe lamps, palms and the tall services sign. Turn the camera
+  // round the back for the pool deck: residents swimming, loungers, a lifeguard's chair and the glass-fronted gym.
   async function hotel(s: Extract<SceneSpec, { id: "hotel" }>) {
-    scene.background = new THREE.Color("#3e5f8f"); lights(0.35);
-    const ground = new THREE.Mesh(new THREE.PlaneGeometry(90, 90), mat("#59616c", { roughness: 0.35, metalness: 0.2 })); ground.rotation.x = -Math.PI / 2; ground.receiveShadow = true; scene.add(ground);
-    box(60, 0.02, 5, "#2f343b", 0, 0, 6.5); box(20, 0.12, 1.2, "#3f8f3f", 3.5, 0, -1.6);
-    const dark = stoneTex("#4a4f5a", "#3a3e47", 10, 8); dark.wrapS = dark.wrapT = THREE.RepeatWrapping; dark.repeat.set(4, 3);
-    const bm = new THREE.Mesh(new THREE.BoxGeometry(18, 9.5, 7), new THREE.MeshStandardMaterial({ map: dark, roughness: 0.9 })); bm.position.set(1, 4.75, -10); bm.castShadow = bm.receiveShadow = true; scene.add(bm);
-    box(18.2, 0.5, 7.2, "#9aa0aa", 1, 9.5, -10);
-    for (let f = 0; f < 3; f++) for (let k = 0; k < 8; k++) { const lit = (f * 3 + k) % 4 === 0; const wv = new THREE.Mesh(new THREE.PlaneGeometry(0.8, 1.1), new THREE.MeshBasicMaterial({ color: lit ? "#ffd58a" : "#1f2430" })); wv.position.set(-6.5 + k * 2.1, 3.3 + f * 2.4, -6.48); scene.add(wv); }
-    box(8, 5, 4.5, "#353a44", 4.5, 0, -5.6);
-    plane(6.5, 1.1, canvasTex(1040, 176, (g, w, h) => { g.fillStyle = "#1c2030"; g.fillRect(0, 0, w, h); g.fillStyle = "#f8fafc"; g.font = "italic bold 78px serif"; g.textAlign = "center"; g.fillText("Candellux", w / 2, 86); g.font = "bold 42px sans-serif"; g.fillText("IMPERIAL HOTEL AND SUITES", w / 2, 152); }), 1.5, 11.0, -7.0, 0, 0, true);
-    const st = stoneTex("#d8d0bf", "#c4bba7", 8, 6); st.wrapS = st.wrapT = THREE.RepeatWrapping; st.repeat.set(3, 1);
-    const lamps: number[] = [];
-    for (const [x0, x1] of [[-8, -2.4], [0.6, 11]]) {
-      const len = x1 - x0; const wm = new THREE.Mesh(new THREE.BoxGeometry(len, 1.7, 0.5), new THREE.MeshStandardMaterial({ map: st, roughness: 0.9 })); wm.position.set((x0 + x1) / 2, 0.85, -2.6); wm.castShadow = wm.receiveShadow = true; scene.add(wm);
-      for (let x = x0; x <= x1 + 0.01; x += len / Math.max(1, Math.round(len / 2.6))) { box(0.8, 2.3, 0.8, "#ddd5c4", x, 0, -2.6); box(0.95, 0.15, 0.95, "#5b616b", x, 2.3, -2.6); lamps.push(x); }
+    const night = !!s.night;
+    scene.background = new THREE.Color(night ? "#0b1222" : "#c7d7e6"); lights(night ? 0.32 : 1.05);
+    const pave = canvasTex(256, 256, (g, w, h) => { g.fillStyle = night ? "#59606b" : "#d8cfc0"; g.fillRect(0, 0, w, h); g.strokeStyle = night ? "#4a5059" : "#c7bca9"; g.lineWidth = 3; for (let i = 0; i <= w; i += 32) { g.beginPath(); g.moveTo(i, 0); g.lineTo(i, h); g.stroke(); g.beginPath(); g.moveTo(0, i); g.lineTo(w, i); g.stroke(); } });
+    pave.wrapS = pave.wrapT = THREE.RepeatWrapping; pave.repeat.set(18, 18);
+    const ground = new THREE.Mesh(new THREE.PlaneGeometry(90, 90), new THREE.MeshStandardMaterial({ map: pave, roughness: night ? 0.35 : 0.9, metalness: night ? 0.25 : 0 })); ground.rotation.x = -Math.PI / 2; ground.receiveShadow = true; scene.add(ground);
+    box(70, 0.02, 4.5, "#2f343b", 0, 0, 7.5); box(70, 0.12, 0.35, "#e5e7eb", 0, 0, 5.1); box(70, 0.13, 0.35, "#111827", 0, 0, 5.45);
+    // the circle mosaic in the forecourt
+    plane(3.6, 3.6, canvasTex(512, 512, (g, w) => { [["#f59e0b", 250], ["#e5e7eb", 205], ["#9a3412", 165], ["#d6d3d1", 120], ["#ea580c", 75], ["#e7e5e4", 32]].forEach(([c, r]) => { g.fillStyle = c as string; g.beginPath(); g.arc(w / 2, w / 2, r as number, 0, Math.PI * 2); g.fill(); }); }), -0.2, 0.02, 2.2, -Math.PI / 2);
+
+    const lit = () => new THREE.MeshBasicMaterial({ color: night ? "#e9b872" : "#cfe3f3" });
+    const darkWin = new THREE.MeshBasicMaterial({ color: night ? "#151a26" : "#2b3442" });
+    const win = (x: number, y: number, z: number, w: number, h: number, ry = 0, on = false) => { const g = new THREE.Group(); g.position.set(x, y, z); g.rotation.y = ry; scene.add(g); const fr = new THREE.Mesh(new THREE.BoxGeometry(w + 0.22, h + 0.22, 0.12), mat("#f4f4f5")); g.add(fr); const gl = new THREE.Mesh(new THREE.PlaneGeometry(w, h), on ? lit() : darkWin); gl.position.z = 0.07; g.add(gl); };
+    const sand = stoneTex("#ded3bd", "#c9bda4", 7, 5); sand.wrapS = sand.wrapT = THREE.RepeatWrapping; sand.repeat.set(5, 1.2);
+    const slate = canvasTex(256, 256, (g, w, h) => { g.fillStyle = "#222a3a"; g.fillRect(0, 0, w, h); g.strokeStyle = "#323c52"; g.lineWidth = 2; for (let y = 0; y < h; y += 42) { g.beginPath(); g.moveTo(0, y); g.lineTo(w, y); g.stroke(); } for (let x = 0; x < w; x += 64) { g.beginPath(); g.moveTo(x, 0); g.lineTo(x, h); g.stroke(); } });
+    slate.wrapS = slate.wrapT = THREE.RepeatWrapping; slate.repeat.set(3, 3);
+    const rock = stoneTex("#363b44", "#30353d", 18, 14); rock.wrapS = rock.wrapT = THREE.RepeatWrapping; rock.repeat.set(3, 3);
+    const BZ = -11; // building centre line
+    const wing = (x: number, ry: number, tex: THREE.Texture, glossy: boolean) => { const m = new THREE.Mesh(new THREE.BoxGeometry(10, 8.6, 7), new THREE.MeshStandardMaterial({ map: tex, roughness: glossy ? 0.25 : 0.95, metalness: glossy ? 0.35 : 0 })); m.position.set(x, 2.4 + 4.3, BZ); m.rotation.y = ry; m.castShadow = m.receiveShadow = true; scene.add(m); box(10.2, 0.25, 7.2, "#cbd5e1", x, 11.0, BZ).rotation.y = ry; return m; };
+    wing(-8.2, 0.14, slate, true); wing(8.2, -0.14, rock, false);
+    solar(-8.2, 11.1, BZ, 6, 4, 0.14); solar(8.2, 11.1, BZ, 6, 4, -0.14);
+    // ground floor: sandstone all round, with big lobby and restaurant windows
+    const base = new THREE.Mesh(new THREE.BoxGeometry(26, 2.4, 7.4), new THREE.MeshStandardMaterial({ map: sand, roughness: 0.95 })); base.position.set(0, 1.2, BZ); base.castShadow = base.receiveShadow = true; scene.add(base);
+    for (const x of [-11, -8, 8, 11]) win(x, 1.25, BZ + 3.72, 2.0, 1.5, 0, night);
+    // the wings' white-framed windows: four floors
+    const fz = (x: number, ry: number) => BZ + 3.55 + Math.sin(-ry) * 0 - (x > 0 ? 1 : -1) * 0;
+    for (let f = 0; f < 4; f++) {
+      for (const k of [0, 1, 2]) { const on = night && (f + k) % 2 === 0; win(-11.4 + k * 2.9, 3.6 + f * 2.0, fz(-1, 0.14) + 0.2 + (k - 1) * 0.42, 0.6, 0.85, 0.14, on); win(5.4 + k * 2.9, 3.6 + f * 2.0, fz(1, -0.14) + 0.2 - (k - 1) * 0.42, 0.6, 0.9, -0.14, night && (f + k) % 3 === 0); }
     }
-    for (let i = 0; i < 9; i++) box(0.06, 2.0, 0.06, "#1f2937", -2.2 + i * 0.33, 0, -2.6);
-    for (const x of lamps) { const l = box(0.22, 0.28, 0.12, "#fff7d6", x, 1.15, -2.17); l.material.emissive = new THREE.Color("#ffcf7a"); l.material.emissiveIntensity = 1.2; const pl = new THREE.PointLight("#ffbf5e", 3, 4.5); pl.position.set(x, 1.3, -1.8); scene.add(pl); }
+    // central tower, light grey, bigger windows, the roof sign on its frame
+    box(6.2, 10.4, 6.6, "#9aa0a8", 0, 0, BZ + 0.9);
+    for (let f = 0; f < 4; f++) for (const k of [-1, 1]) win(k * 1.35, 3.7 + f * 2.05, BZ + 4.25, 1.3, 1.05, 0, night && f % 2 === 1);
+    for (const dx of [-3.4, -1.1, 1.1, 3.4]) box(0.06, 1.7, 0.06, "#64748b", dx, 10.4, BZ + 3.4);
+    box(7.0, 0.06, 0.06, "#64748b", 0, 12.05, BZ + 3.4); box(7.0, 0.06, 0.06, "#64748b", 0, 10.5, BZ + 3.4);
+    const signTex = canvasTex(1400, 300, (g, w) => { g.textAlign = "center"; g.shadowColor = night ? "#ffffff" : "transparent"; g.shadowBlur = night ? 22 : 0; g.fillStyle = night ? "#ffffff" : "#d4a72c"; g.strokeStyle = "#3b2f12"; g.lineWidth = night ? 0 : 6; g.font = "italic bold 150px serif"; if (!night) g.strokeText("Candellux", w / 2, 150); g.fillText("Candellux", w / 2, 150); g.font = "bold 74px serif"; if (!night) g.strokeText("IMPERIAL HOTEL AND SUITES", w / 2, 255); g.fillText("IMPERIAL HOTEL AND SUITES", w / 2, 255); });
+    const sgn = new THREE.Mesh(new THREE.PlaneGeometry(7.0, 1.5), new THREE.MeshBasicMaterial({ map: signTex, transparent: true })); sgn.position.set(0, 11.3, BZ + 3.45); scene.add(sgn);
+    // the curved stone canopy with the crown, the glass entrance, wall lamps
+    const can = new THREE.Mesh(new THREE.CylinderGeometry(3.6, 3.6, 1.3, 32, 1, false, -Math.PI / 2, Math.PI), new THREE.MeshStandardMaterial({ map: sand, roughness: 0.9 })); can.position.set(0, 3.25, BZ + 3.7); can.castShadow = true; scene.add(can);
+    const capTop = new THREE.Mesh(new THREE.CylinderGeometry(3.7, 3.7, 0.12, 32, 1, false, -Math.PI / 2, Math.PI), mat("#cfc4ad")); capTop.position.set(0, 3.95, BZ + 3.7); scene.add(capTop);
+    box(0.7, 2.6, 0.7, "#cfc4ad", -2.6, 0, BZ + 6.6); box(0.7, 2.6, 0.7, "#cfc4ad", 2.6, 0, BZ + 6.6);
+    const crownTex = canvasTex(256, 256, (g, w) => { g.fillStyle = night ? "#fde68a" : "#f8fafc"; g.beginPath(); g.arc(w / 2, w / 2, 120, 0, Math.PI * 2); g.fill(); g.fillStyle = night ? "#f59e0b" : "#c9a227"; g.beginPath(); g.arc(w / 2, w / 2, 104, 0, Math.PI * 2); g.fill(); crown(g, w / 2, w / 2 + 22, 54); });
+    const cr = new THREE.Mesh(new THREE.CircleGeometry(0.42, 32), new THREE.MeshBasicMaterial({ map: crownTex })); cr.position.set(0, 3.3, BZ + 7.32); scene.add(cr);
+    const door = new THREE.Mesh(new THREE.PlaneGeometry(3.0, 2.3), new THREE.MeshBasicMaterial({ color: night ? "#fbbf24" : "#7c8a99" })); door.position.set(0, 1.2, BZ + 3.72); scene.add(door);
+    for (let i = 0; i < 4; i++) box(0.05, 2.3, 0.05, "#d4af37", -1.5 + i * 1.0, 0, BZ + 3.75);
+    for (const dx of [-1.9, 1.9]) { const l = box(0.18, 0.32, 0.14, "#14532d", dx, 1.6, BZ + 3.8); if (night) { l.material.emissive = new THREE.Color("#22c55e"); l.material.emissiveIntensity = 1.3; } }
+    if (night) { const lob = new THREE.PointLight("#ffcf7a", 9, 9); lob.position.set(0, 1.8, BZ + 5.5); scene.add(lob); const cl = new THREE.PointLight("#fde68a", 3, 4); cl.position.set(0, 3.3, BZ + 8); scene.add(cl); }
+    // AC units along the base
+    for (const x of [-12, -10.6, -6.6, 6.6, 9.4, 12]) { box(0.85, 0.6, 0.45, "#e5e7eb", x, 0, BZ + 4.05); }
+    // the front wall: sandstone with dark-capped pillars and a warm lamp on each, black railings, the gate and the boom barrier
+    const WZ = -1.6, wallSand = stoneTex("#d9cfb9", "#c4b89f", 5, 6); wallSand.wrapS = wallSand.wrapT = THREE.RepeatWrapping; wallSand.repeat.set(4, 1);
+    for (const [x0, x1] of [[-16, -3.2], [3.2, 16]]) {
+      const len = x1 - x0, wm = new THREE.Mesh(new THREE.BoxGeometry(len, 1.25, 0.45), new THREE.MeshStandardMaterial({ map: wallSand, roughness: 0.9 })); wm.position.set((x0 + x1) / 2, 0.62, WZ); wm.castShadow = wm.receiveShadow = true; scene.add(wm);
+      box(len, 0.1, 0.5, "#1f2937", (x0 + x1) / 2, 1.25, WZ); for (let i = 0; i < len / 0.35; i++) box(0.04, 0.9, 0.04, "#111827", x0 + i * 0.35, 1.3, WZ);
+      for (let x = x0; x <= x1 + 0.01; x += len / Math.round(len / 3.1)) {
+        box(0.9, 2.55, 0.9, "#d6ccb6", x, 0, WZ); box(1.05, 0.22, 1.05, "#1f2937", x, 2.55, WZ);
+        const l = box(0.22, 0.26, 0.1, "#fff7d6", x, 1.5, WZ + 0.48); if (night) { l.material.emissive = new THREE.Color("#ffbf5e"); l.material.emissiveIntensity = 1.4; }
+      }
+    }
+    if (night) for (const x of [-12, -6, 6, 12]) { const pl = new THREE.PointLight("#ffbf5e", 3.2, 5); pl.position.set(x, 1.6, WZ + 1.1); scene.add(pl); }
+    for (const x of [-3.2, 3.2]) { box(1.1, 2.9, 1.1, "#d6ccb6", x, 0, WZ); box(1.25, 0.25, 1.25, "#1f2937", x, 2.9, WZ); }
+    for (let i = 0; i < 9; i++) box(0.05, 2.0, 0.05, "#111827", 3.9 + i * 0.3, 0, WZ - 0.6); // the side gate, half open
+    for (let i = 0; i < 8; i++) { const b = box(0.55, 0.12, 0.12, i % 2 ? "#ef4444" : "#f8fafc", -2.2 + i * 0.55, 0.95, WZ + 0.2); b.castShadow = false; } box(0.3, 1.0, 0.3, "#9ca3af", -2.6, 0, WZ + 0.2);
+    // white three-globe lamp posts, palms, a solar street light
+    for (const x of [-10.5, -5.5]) { cyl(0.07, 2.6, "#e5e7eb", x, 1.25, WZ - 0.5); for (const [dx, dy] of [[-0.3, 0], [0.3, 0], [0, 0.32]]) { const gl = new THREE.Mesh(new THREE.SphereGeometry(0.2, 14, 10), new THREE.MeshStandardMaterial({ color: "#f8fafc", emissive: night ? "#fff5d6" : "#000000", emissiveIntensity: night ? 1 : 0 })); gl.position.set(x + dx, 3.95 + dy, WZ - 0.5); scene.add(gl); } }
+    const palm = (x: number, z: number) => { cyl(0.1, 1.4, "#7c5a3a", x, 0, z, 0.14); for (let i = 0; i < 7; i++) { const lf = new THREE.Mesh(new THREE.ConeGeometry(0.16, 1.3, 5), mat("#2f855a")); lf.position.set(x + Math.cos(i) * 0.45, 1.55, z + Math.sin(i) * 0.45); lf.rotation.set(Math.sin(i) * 1.1, 0, -Math.cos(i) * 1.1); scene.add(lf); } };
+    for (const x of [-14, -8.5, -1.2, 9, 14.5]) palm(x, WZ + 0.9);
+    cyl(0.07, 6.5, "#9ca3af", 18, 0, 3.5); const sp = box(1.6, 0.08, 0.6, "#1e3a8a", 17.5, 6.4, 3.5); sp.rotation.z = 0.25; if (night) { const sl = new THREE.PointLight("#e0f2fe", 4, 9); sl.position.set(17.2, 6.1, 3.5); scene.add(sl); }
+    // the tall services sign at the gate
     const face = new THREE.MeshBasicMaterial({ map: canvasTex(480, 920, (g, w, h) => {
       g.fillStyle = "#1c2030"; g.fillRect(0, 0, w, h); g.fillStyle = "#22c55e"; g.fillRect(0, 0, 10, h); crown(g, w / 2, 120, 56);
       g.textAlign = "center"; g.fillStyle = CL.gold; g.font = "italic bold 74px serif"; g.fillText("Candellux", w / 2, 264);
@@ -402,43 +467,70 @@ export function createWorld(canvas: HTMLCanvasElement) {
       ["LUXURY ACCOMMODATION", "24HOURS RESTAURANT", "CONFERENCE FACILITIES", "SWIMMING POOL", "VIP BAR", "GYM", "LAUNDRY", "BARBING SALOON", "BUSINESS CENTRE"].forEach((t, i) => { g.fillStyle = i % 2 ? CL.gold : "#fff"; g.font = "bold 27px sans-serif"; g.fillText(t, w / 2, 456 + i * 51); });
     }) });
     const dk = mat("#1c2030");
-    const sg = new THREE.Mesh(new THREE.BoxGeometry(2.4, 4.6, 0.3), [dk, dk, dk, dk, face, dk]); sg.position.set(-6.2, 3.0, 1.6); sg.rotation.y = 0.35; sg.castShadow = true; scene.add(sg);
-    box(0.3, 0.8, 0.3, "#111", -6.2, 0, 1.6);
-    box(4, 0.7, 1.8, "#11574d", -3.5, 0.25, -5.0); box(2.2, 0.6, 1.7, "#0e4a41", -3.6, 0.95, -5.0); wheelsAt([[-4.8, -5.95], [-2.2, -5.95], [-4.8, -4.05], [-2.2, -4.05]], 0.32);
-    player = person(-0.9, 0.6, s.outfit, Math.PI);
-    residents("hotel", [[2.6, 0.2, Math.PI - 0.3, 0], [4.0, 0.9, Math.PI + 0.4, 0]]);
-    others(s.others, [[-2.6, 0.9, Math.PI, 0], [0.9, 1.4, Math.PI, 0]]);
-    const phone = innerWidth < 700;
-    cam.position.set(...(phone ? [-9, 6, 30] : [-15, 5.2, 21]) as [number, number, number]); controls.target.set(phone ? -0.5 : 0, phone ? 4.2 : 4.4, -4);
-    controls.minDistance = 10; controls.maxDistance = 45;
-    tag("sign", -6.2, 5.6, 1.6); tag("gate", -0.9, 2.5, -2.6); tag("pool", 6, 2.6, -3.5);
-  }
-  async function pool(s: Extract<SceneSpec, { id: "pool" }>) {
-    scene.background = new THREE.Color("#e8f1f8"); lights(1);
-    const turf = new THREE.Mesh(new THREE.PlaneGeometry(60, 60), mat("#3fae3f")); turf.rotation.x = -Math.PI / 2; turf.receiveShadow = true; scene.add(turf);
-    const st = stoneTex("#d9d0bd", "#bfb5a0", 12, 10); st.wrapS = st.wrapT = THREE.RepeatWrapping; st.repeat.set(3, 2);
-    const wing = new THREE.Mesh(new THREE.BoxGeometry(18, 9, 2), new THREE.MeshStandardMaterial({ map: st, roughness: 0.95 })); wing.position.set(0, 4.5, -7); wing.castShadow = wing.receiveShadow = true; scene.add(wing);
-    for (let f = 0; f < 2; f++) for (let k = 0; k < 5; k++) { const x = -6.5 + k * 3.2, y = 4.2 + f * 2.6; box(1.1, 1.7, 0.08, "#e5e7eb", x, y, -5.97); box(0.75, 0.45, 0.35, "#f1f5f9", x + 1.2, y + 0.9, -5.8); }
-    for (let k = 0; k < 5; k++) box(0.9, 2.0, 0.08, k % 2 ? "#8a5a3b" : "#2b2f36", -6.5 + k * 3.2, 0, -5.97);
-    for (let i = 0; i <= 30; i++) box(0.04, 1.0, 0.04, "#cbd5e1", -8.5 + i * 0.57, 0, -4.9);
-    box(10.4, 0.12, 5.4, "#f3efe6", -0.6, 0, -0.3);
-    const mosaic = canvasTex(256, 128, (g, w, h) => { const cols = ["#1d4ed8", "#2563eb", "#1e40af", "#3b82f6"]; for (let y = 0; y < h; y += 8) for (let x = 0; x < w; x += 8) { g.fillStyle = cols[((x * 7 + y * 3) / 8) % 4 | 0]; g.fillRect(x + 0.5, y + 0.5, 7, 7); } });
-    plane(9.6, 4.6, mosaic, -0.6, 0.125, -0.3, -Math.PI / 2);
-    const water = new THREE.Mesh(new THREE.PlaneGeometry(9.6, 4.6), new THREE.MeshStandardMaterial({ color: "#38bdf8", transparent: true, opacity: 0.45, roughness: 0.05 })); water.rotation.x = -Math.PI / 2; water.position.set(-0.6, 0.14, -0.3); scene.add(water);
-    for (let i = 0; i < 4; i++) box(0.8, 2.6, 0.8, "#2f7d32", 8.3, 0, -4 + i * 2.6);
-    box(4.5, 0.12, 2.4, "#0f766e", -8.6, 2.7, -3.6); for (const [a, b] of [[-10.6, -4.6], [-6.6, -4.6], [-10.6, -2.6], [-6.6, -2.6]]) box(0.1, 2.7, 0.1, "#0f766e", a, 0, b);
-    box(2.4, 0.5, 1.0, "#1f2937", -8.4, 0, 3.0); box(2.4, 0.6, 0.25, "#1f2937", -8.4, 0.5, 3.4);
-    for (const x of [5.6, 7.0]) { box(0.75, 0.25, 2.0, "#f8fafc", x, 0.3, 3.3); const back = box(0.75, 0.6, 0.12, "#f8fafc", x, 0.5, 2.35); back.rotation.x = -0.6; }
-    cyl(0.04, 2.4, "#78716c", 6.3, 0, 1.6); const umb = new THREE.Mesh(new THREE.ConeGeometry(1.6, 0.6, 16), mat("#e3b23c")); umb.position.set(6.3, 2.5, 1.6); umb.castShadow = true; scene.add(umb);
-    player = person(5.6, 3.1, s.outfit, 0); player.rotation.set(-Math.PI / 2, 0, 0); player.position.set(5.6, 0.72, 2.45);
-    person(7.0, 2.0, "#26a69a", -0.6); person(-2.5, 3.4, "#ec4899", 0.4);
-    box(1.6, 1.1, 0.7, "#3b2a20", -4.5, 0, -4.2); box(1.7, 0.06, 0.8, CL.gold, -4.5, 1.1, -4.2);
-    const phone = innerWidth < 700;
-    cam.position.set(...(phone ? [2, 17, 27] : [4, 12.5, 23]) as [number, number, number]); controls.target.set(-0.5, phone ? 0.5 : 2, phone ? -1 : -1.5);
-    controls.minDistance = 10; controls.maxDistance = 40;
-    tag("pool", -0.6, 1.0, -0.3); tag("bar", -4.5, 2.2, -4.2); tag("suites", -3.3, 8.2, -6); tag("gym", 3.1, 2.6, -6); tag("front", -8.4, 1.6, 3.0);
-  }
+    const sg = new THREE.Mesh(new THREE.BoxGeometry(2.4, 4.6, 0.3), [dk, dk, dk, dk, face, dk]); sg.position.set(-6.6, 3.0, 2.6); sg.rotation.y = 0.35; sg.castShadow = true; scene.add(sg);
+    box(0.3, 0.8, 0.3, "#111", -6.6, 0, 2.6);
+    if (night) { const sgl = new THREE.PointLight("#fbbf24", 2.5, 5); sgl.position.set(-6, 3, 4); scene.add(sgl); }
 
+    // ---- round the back: the pool, from their photo: green artificial grass, the blue mosaic pool with white edging and steel
+    // ladders, stainless railings along the sandstone ground floor, a green-roofed pergola with vines, hedge columns on the right, black
+    // rattan sofas; the pool bar in the middle of the building, the gym in the extension on the far right, the VIP bar on the left ----
+    const PZ = -22, back = BZ - 3.75;
+    const turf = canvasTex(256, 256, (g, w, h) => { g.fillStyle = "#2f9e44"; g.fillRect(0, 0, w, h); for (let i = 0; i < 2500; i++) { g.fillStyle = Math.random() < 0.5 ? "#37b24d" : "#2b8a3e"; g.fillRect(Math.random() * w, Math.random() * h, 1.5, 3); } });
+    turf.wrapS = turf.wrapT = THREE.RepeatWrapping; turf.repeat.set(8, 4);
+    const lawn = new THREE.Mesh(new THREE.BoxGeometry(34, 0.1, 15), new THREE.MeshStandardMaterial({ map: turf, roughness: 1 })); lawn.position.set(0, 0.05, back - 8.6); lawn.receiveShadow = true; scene.add(lawn);
+    const mosaic = canvasTex(256, 128, (g, w, h) => { const cols = ["#1d4ed8", "#2563eb", "#1e40af", "#3b82f6"]; for (let y = 0; y < h; y += 8) for (let x = 0; x < w; x += 8) { g.fillStyle = cols[((x * 7 + y * 3) / 8) % 4 | 0]; g.fillRect(x + 0.5, y + 0.5, 7, 7); } g.fillStyle = "#93c5fd"; for (let x = 0; x < w; x += 16) g.fillRect(x, 0, 8, 6); });
+    plane(11, 4.6, mosaic, -1, 0.115, PZ, -Math.PI / 2);
+    const water = new THREE.Mesh(new THREE.PlaneGeometry(11, 4.6), new THREE.MeshStandardMaterial({ color: night ? "#22d3ee" : "#60a5fa", transparent: true, opacity: 0.45, roughness: 0.05, emissive: night ? "#0891b2" : "#000000", emissiveIntensity: night ? 0.5 : 0 })); water.rotation.x = -Math.PI / 2; water.position.set(-1, 0.13, PZ); scene.add(water);
+    for (const [w0, d0, x0, z0] of [[11.8, 0.4, -1, PZ - 2.5], [11.8, 0.4, -1, PZ + 2.5], [0.4, 5.4, -6.7, PZ], [0.4, 5.4, 4.7, PZ]] as [number, number, number, number][]) box(w0, 0.16, d0, "#f5f5f0", x0, 0.04, z0);
+    for (const [x, z] of [[3.4, PZ - 2.5], [-5.2, PZ + 2.5]] as [number, number][]) { for (const dx of [-0.25, 0.25]) { rod(new THREE.Vector3(x + dx, 0.2, z), new THREE.Vector3(x + dx, 1.1, z), "#d1d5db", 0.03); rod(new THREE.Vector3(x + dx, 1.1, z), new THREE.Vector3(x + dx, 0.6, z + (z < PZ ? 0.5 : -0.5)), "#d1d5db", 0.03); } }
+    if (night) { const pl = new THREE.PointLight("#67e8f9", 6, 10); pl.position.set(-1, 1.5, PZ); scene.add(pl); }
+    // stainless railings along the building, with gaps for the doors
+    for (const [x0, x1] of [[-15, -3], [2, 14]]) { const zz = back - 1.4; rod(new THREE.Vector3(x0, 1.0, zz), new THREE.Vector3(x1, 1.0, zz), "#e5e7eb", 0.035); rod(new THREE.Vector3(x0, 0.6, zz), new THREE.Vector3(x1, 0.6, zz), "#e5e7eb", 0.02); for (let x = x0; x <= x1; x += 1.5) rod(new THREE.Vector3(x, 0.1, zz), new THREE.Vector3(x, 1.0, zz), "#e5e7eb", 0.03); }
+    for (const x of [-9, -4, 5, 9]) box(1.1, 2.0, 0.08, "#7c4a2a", x, 0, back - 0.05);
+    for (const x of [-11, -6.5, 1.5, 3.2, 7]) box(0.8, 0.5, 0.4, "#e5e7eb", x, 2.6, back - 0.25);
+    // swimmers (residents and players): head and shoulders above the water, one doing laps
+    const swim = (x: number, z: number, shirt: string, rot = 0, flat = false) => { const p = person(x, z, shirt, rot, flat ? 0.2 : -1.1); if (flat) { p.rotation.set(-Math.PI / 2, 0, rot); p.position.set(x, 0.22, z); } return p; };
+    swim(-4.6, PZ + 1, "#ec4899", 0.4); swim(-2.2, PZ - 1.2, "#2563eb", -0.3); swim(2.2, PZ + 0.8, "#14b8a6", 2.6, true); swim(0.5, PZ + 1.5, "#f59e0b", 3.1);
+    if (s.swim) player = swim(-3.2, PZ - 0.2, s.outfit, Math.PI / 2, true);
+    // the lifeguard's high chair by the deep end
+    for (const [a, b] of [[-0.35, -0.35], [0.35, -0.35], [-0.35, 0.35], [0.35, 0.35]]) box(0.07, 1.9, 0.07, "#f8fafc", 6.2 + a, 0.1, PZ + b); box(0.9, 0.1, 0.9, "#ef4444", 6.2, 2.0, PZ);
+    person(6.2, PZ, "#ef4444", -Math.PI / 2, 2.1);
+    // black rattan sofa set, bottom left
+    for (const [x, z, r] of [[11.5, PZ + 4.6, 0], [9.6, PZ + 5.6, Math.PI / 2]] as [number, number, number][]) { const g = new THREE.Group(); g.position.set(x, 0.1, z); g.rotation.y = r; scene.add(g); const seat = new THREE.Mesh(new THREE.BoxGeometry(2.2, 0.5, 0.9), mat("#111827")); seat.position.y = 0.25; g.add(seat); const bk = new THREE.Mesh(new THREE.BoxGeometry(2.2, 0.6, 0.2), mat("#0b0f19")); bk.position.set(0, 0.75, -0.35); g.add(bk); }
+    box(1.0, 0.4, 0.7, "#111827", 10, 0.1, PZ + 4.2);
+    // green-roofed pergola with vines (left) and hedge columns down the right
+    for (const [a, b] of [[13.5, PZ - 6], [8.5, PZ - 6], [13.5, PZ - 3], [8.5, PZ - 3]]) cyl(0.08, 2.9, "#e5e7eb", a, 0.1, b);
+    const roof = box(6, 0.12, 3.8, "#14b8a6", 11, 3.0, PZ - 4.5); roof.material.transparent = true; roof.material.opacity = 0.75;
+    for (let i = 0; i < 16; i++) { const v = new THREE.Mesh(new THREE.SphereGeometry(0.35 + (i % 3) * 0.1, 10, 8), mat(i % 2 ? "#2f855a" : "#38a169")); v.position.set(8.3 + (i % 8) * 0.75, 2.75 - (i % 3) * 0.25, PZ - 6.1 + (i > 7 ? 3.1 : 0)); scene.add(v); }
+    for (let i = 0; i < 6; i++) { const z = back - 2.5 - i * 2.2; box(0.75, 0.35, 0.75, "#374151", -14.5, 0.1, z); box(0.6, 2.4, 0.6, "#2f9e44", -14.5, 0.45, z); }
+    // the pool bar in the middle of the building, the VIP bar on the left (15% dearer, where the richest players meet), the gym extension on the right
+    box(4.2, 1.1, 0.9, "#3b2a20", 0, 0.1, back - 1.0); box(4.3, 0.07, 1.0, "#e5e7eb", 0, 1.2, back - 1.0);
+    for (const dx of [-1.3, 0, 1.3]) { cyl(0.04, 0.75, "#111827", dx, 0.1, back - 1.9); cyl(0.2, 0.06, "#111827", dx, 0.85, back - 1.9); }
+    sign("POOL BAR", "#0f766e", "#ffffff", 2.4, 0.5, 0, 2.2, back - 0.05, 120).rotation.y = Math.PI;
+    box(5, 2.3, 0.08, "#1c2030", 8.6, 0.1, back - 0.06); sign("VIP BAR", "#1c2030", CL.gold, 2.4, 0.55, 8.6, 2.65, back - 0.12, 120).rotation.y = Math.PI;
+    box(3.6, 1.1, 0.9, "#1c2030", 8.6, 0.1, back - 2.0); box(3.7, 0.07, 1.0, CL.gold, 8.6, 1.2, back - 2.0);
+    if (night) { const vl = new THREE.PointLight("#fbbf24", 3, 5); vl.position.set(8.6, 2.2, back - 2.5); scene.add(vl); }
+    const vips = s.vips ?? [];
+    vips.slice(0, 2).forEach((id, i) => npc(id, i ? 7.5 : 9.6, back - 2.9, Math.PI, 0.1)); // who's in the VIP bar now (the richest residents, in turn)
+    const GX = -15.6, GZ = back + 0.8;
+    const gymBlock = new THREE.Mesh(new THREE.BoxGeometry(4.4, 11, 5), new THREE.MeshStandardMaterial({ map: rock, roughness: 0.95 })); gymBlock.position.set(GX, 5.5, GZ - 0.6); gymBlock.castShadow = gymBlock.receiveShadow = true; scene.add(gymBlock);
+    box(4.6, 0.22, 5.2, "#cbd5e1", GX, 11, GZ - 0.6); solar(GX, 11.15, GZ - 0.6, 3, 3, 0, 1.1, 0.85);
+    for (let f = 0; f < 4; f++) for (const dx of [-1, 1]) win(GX + dx, 4.2 + f * 1.8, GZ - 3.14, 0.9, 1.1, Math.PI, night && (f + dx) % 2 === 0);
+    box(0.9, 0.5, 0.45, "#e5e7eb", GX + 1.2, 3.1, GZ - 3.3);
+    const gymGlass = new THREE.Mesh(new THREE.PlaneGeometry(3.8, 2.2), new THREE.MeshStandardMaterial({ color: night ? "#fde68a" : "#bfdbfe", emissive: night ? "#f59e0b" : "#000000", emissiveIntensity: night ? 0.35 : 0, transparent: true, opacity: 0.85 })); gymGlass.position.set(GX, 1.3, GZ - 3.12); gymGlass.rotation.y = Math.PI; scene.add(gymGlass);
+    sign("GYM", "#1c2030", "#ffffff", 1.4, 0.45, GX, 2.75, GZ - 3.14, 120).rotation.y = Math.PI;
+    for (let f = 0; f < 4; f++) for (let k = 0; k < 6; k++) win(-10 + k * 4, 3.6 + f * 2.0, back - 0.08, 0.75, 1.0, Math.PI, night && (f * 2 + k) % 3 === 0);
+
+    if (!s.swim) player = person(-0.6, 0.6, s.outfit, Math.PI);
+    (RESIDENTS_AT.hotel ?? []).filter((id) => !vips.includes(id)).forEach((id, i) => { const p = [[2.6, 0.2, Math.PI - 0.3], [4.0, 0.9, Math.PI + 0.4]][i]; if (p) npc(id, p[0], p[1], p[2], 0); });
+    others(s.others, [[-2.6, 0.9, Math.PI, 0], [1.2, 1.4, Math.PI, 0]]);
+    const phone = innerWidth < 700;
+    if (s.view === "aerial") { cam.position.set(...(phone ? [-14, 42, 22] : [-22, 30, 18]) as [number, number, number]); controls.target.set(0, 6, -13); }
+    else if (s.view === "pool") { cam.position.set(...(phone ? [4, 24, -56] : [9, 17, -50]) as [number, number, number]); controls.target.set(-0.5, phone ? 0.5 : 1.5, PZ - 1); }
+    else { cam.position.set(...(phone ? [-7, 7, 33] : [-13, 5.8, 25]) as [number, number, number]); controls.target.set(phone ? -0.5 : 0, phone ? 5 : 5, -5); }
+    controls.minDistance = 10; controls.maxDistance = 55;
+    tag("sign", -6.6, 5.6, 2.6); tag("gate", -0.2, 2.6, WZ); tag("roof", 0, 12.6, BZ + 3.4); tag("pool", -1, 1.2, PZ); tag("guard", 6.2, 4.4, PZ); tag("gym", -15.6, 3.8, back - 2.4); tag("bar", 0, 2.9, back - 1.0); tag("vip", 8.6, 3.4, back - 1.5);
+  }
   // ---------- running it ----------
   function clear() {
     scene.traverse((o) => { const m = o as THREE.Mesh; if (m.geometry) m.geometry.dispose(); const mm = m.material as THREE.Material | THREE.Material[] | undefined; (Array.isArray(mm) ? mm : mm ? [mm] : []).forEach((x) => { (x as THREE.MeshStandardMaterial).map?.dispose(); x.dispose(); }); });
@@ -452,7 +544,7 @@ export function createWorld(canvas: HTMLCanvasElement) {
     if (key === current) { if (s.id === "room" && at && !s.sleeping) walkTo(at); return; }
     current = key;
     clear();
-    if (s.id === "room") await room(s); else if (s.id === "itel") await itel(s); else if (s.id === "street") await street(s); else if (s.id === "chef") await chef(s); else if (s.id === "hotel") await hotel(s); else await pool(s);
+    if (s.id === "room") await room(s); else if (s.id === "itel") await itel(s); else if (s.id === "street") await street(s); else if (s.id === "chef") await chef(s); else await hotel(s);
     controls.update(); resize();
   }
   function walkTo(spot: RoomSpot) { if (!player) return; const [x, z, rot] = ROOM_SPOTS[spot]; const to = new THREE.Vector3(x, player.position.y, z); if (to.distanceTo(player.position) < 0.05) return; tween = { from: player.position.clone(), to, rot, t0: performance.now(), ms: 550 }; }

@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { initializeApp } from "firebase-admin/app";
 import { FieldValue, getFirestore } from "firebase-admin/firestore";
 import { act, mutate, richList, friends, statement, invites } from "../../lib/life/server";
-import { GAME_DAY_MS, GAME_HOUR_MS, SHIFT_MS, START_NAIRA, WORLD_EPOCH, worldTime, shiftPay, JOB, nepaAt, outagesOfDay, OUTLET, OUTLETS, outletTakings, outletProfitPerDay, outletPrice, jobBlocker, type Outlet } from "../../lib/life/catalog";
+import { GAME_DAY_MS, GAME_HOUR_MS, SHIFT_MS, START_NAIRA, WORLD_EPOCH, worldTime, shiftPay, JOB, nepaAt, outagesOfDay, OUTLET, OUTLETS, outletTakings, outletProfitPerDay, outletPrice, jobBlocker, swimSkill, vipsAt, HOTEL, FOODS, type Outlet } from "../../lib/life/catalog";
 import { advance, freshSave, sanitize, powerStep, powerSource, fridgeCold } from "../../lib/life/play";
 import { payFromWallet, creditTopup } from "../../lib/wallet-server";
 import { fulfillPayment, type PaymentRecord } from "../../lib/payments";
@@ -56,6 +56,15 @@ const rej = async (p: Promise<unknown>, re: RegExp) => { await assert.rejects(p,
   assert.match(jobBlocker(JOB("itel_super")!, { owned: [], cooking: 1, chefShifts: 0, itelShifts: 3, reputation: 0 }) ?? "", /10 itel Energy shifts \(you have 3\)/);
   assert.match(jobBlocker(JOB("hotel_guard")!, { owned: [], cooking: 1, chefShifts: 0, reputation: 0 }) ?? "", /fitness/);
   assert.equal(jobBlocker(JOB("hotel_guard")!, { owned: [], cooking: 1, chefShifts: 0, reputation: 0, fit: true }), null);
+  // swimming, gym and VIP rules
+  assert.equal(swimSkill(0, 0), 0); assert.equal(swimSkill(3, 4), 8); assert.equal(swimSkill(9, 9), 10);
+  assert.match(jobBlocker(JOB("hotel_swim")!, { owned: [], cooking: 1, chefShifts: 0, reputation: 0, swim: 2 }) ?? "", /swimming skill 5 \(you have 2\)/);
+  assert.equal(jobBlocker(JOB("hotel_swim")!, { owned: [], cooking: 1, chefShifts: 0, reputation: 0, swim: 6 }), null);
+  assert.match(jobBlocker(JOB("hotel_gym")!, { owned: [], cooking: 1, chefShifts: 0, reputation: 0, gymSessions: 4 }) ?? "", /10 gym sessions \(4 so far\)/);
+  assert.equal(HOTEL.find((h) => h.id === "vipbar")!.price, 11_500); assert.equal(HOTEL.find((h) => h.id === "poolbar")!.price, 10_000); assert.equal(HOTEL.find((h) => h.id === "lesson")!.price, 15_000);
+  const v = vipsAt(WORLD_EPOCH + 5 * GAME_HOUR_MS); assert.equal(v.in.length, 2); assert.ok(v.next); assert.ok(v.nextAt > WORLD_EPOCH + 5 * GAME_HOUR_MS);
+  assert.notDeepEqual(vipsAt(WORLD_EPOCH).in, vipsAt(WORLD_EPOCH + 4 * GAME_HOUR_MS).in, "VIPs rotate every 4 game hours");
+  for (const [id, price] of [["shawarma", 3500], ["pizza", 6000], ["smoothie", 1800]] as const) assert.equal(FOODS.find((f) => f.id === id)?.price, price);
   console.log("pure ok");
 
   for (const [u, n] of [["p1", "ada"], ["p2", "bola"], ["p3", "chi"]]) await db.doc(`users/${u}`).set({ username: n, displayName: n.toUpperCase() });
@@ -188,5 +197,18 @@ const rej = async (p: Promise<unknown>, re: RegExp) => { await assert.rejects(p,
   const b7 = (await db.doc("lifePlayers/p7").get()).data()!.naira;
   r = await act(db, "p7", { action: "hotel", service: "pool" }, T7 + 4 * GAME_DAY_MS); assert.equal(r.player.naira, b7 - 12_500, "Candellux staff: half price pool");
   console.log("outlets ok");
+
+  await db.doc("users/p8").set({ username: "femi", displayName: "FEMI" });
+  const T8 = T0 + 30 * GAME_DAY_MS;
+  await mutate(db, "p8", () => null, T8);
+  await db.doc("lifePlayers/p8").update({ naira: 500_000 });
+  for (let i = 0; i < 3; i++) await act(db, "p8", { action: "hotel", service: "lesson" }, T8 + i * GAME_DAY_MS);
+  r = await act(db, "p8", { action: "hotel", service: "gym" }, T8 + 3 * GAME_DAY_MS);
+  assert.equal(r.player.swimLessons, 3); assert.equal(r.player.gymSessions, 1); assert.equal(swimSkill(r.player.swimLessons, r.player.swims), 6);
+  r = await act(db, "p8", { action: "job_apply", job: "hotel_swim" }, T8 + 3 * GAME_DAY_MS); assert.equal(r.player.jobId, "hotel_swim");
+  await rej(act(db, "p8", { action: "job_apply", job: "hotel_gym" }, T8 + 3 * GAME_DAY_MS), /gym sessions/);
+  r = await act(db, "p8", { action: "city_notify", city: "lagos" }, T8); assert.deepEqual(r.player.cityNotify, ["lagos"]);
+  await rej(act(db, "p8", { action: "city_notify", city: "kano" }, T8), /isn't coming/);
+  console.log("swim ok");
   console.log("ALL OK");
 })().catch((e) => { console.log("FAIL", e); process.exit(1); });
