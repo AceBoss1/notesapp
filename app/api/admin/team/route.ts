@@ -8,7 +8,7 @@ import { GranolaError, askGranola } from "@/lib/granola";
 import { granolaQuestion, onlyNew, parseGranolaSections, suggestFromChat } from "@/lib/meeting-extract";
 import { NanaError } from "@/lib/nana";
 import { rateLimit } from "@/lib/rate-limit";
-import { ENGINEERING_BACKLOG, LIFE_PARTNER_BACKLOG, seedOnce } from "@/lib/team-seed";
+import { AGENT_LAYER_BACKLOG, AGENT_SCOPE_DOC, ENGINEERING_BACKLOG, LIFE_PARTNER_BACKLOG, seedDocOnce, seedOnce } from "@/lib/team-seed";
 
 export const dynamic = "force-dynamic";
 const bearer = (req: NextRequest) => req.headers.get("authorization")?.replace(/^Bearer\s+/i, "");
@@ -50,6 +50,8 @@ export async function GET(req: NextRequest) {
     if (acc.access.role === "super") {
       await seedOnce(db, "engineering-backlog-2026-10", ENGINEERING_BACKLOG, me).catch(() => 0);
       await seedOnce(db, "life-partner-backlog-2026-10", LIFE_PARTNER_BACKLOG, me).catch(() => 0);
+      await seedOnce(db, "agent-layer-backlog-2026-10", AGENT_LAYER_BACKLOG, me).catch(() => 0);
+      await seedDocOnce(db, "agent-layer-scope-doc-2026-10", AGENT_SCOPE_DOC, me).catch(() => false);
     }
     const people0 = await listTeamPeople(db);
     await syncTeamRooms(db, me, people0.map((p) => p.uid)).catch(() => {}); // the Team room and upcoming meetings follow who is on the team

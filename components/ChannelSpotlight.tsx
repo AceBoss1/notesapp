@@ -16,7 +16,7 @@ import { NOTESAPP_POSTS } from "@/lib/notesapp-posts";
 // Subscribe card here instead: subscribing to the channel is the
 // analogous action for a brand journal.
 export default function ChannelSpotlight() {
-  // journalCount is the 5 hardcoded posts (lib/notesapp-posts.ts) —
+  // journalCount is the hardcoded posts (lib/notesapp-posts.ts) —
   // @notesapp has no entries in the shared /notes collection at all,
   // by design (see lib/journals-directory.ts), so there's nothing to
   // filter allNotes for here.
