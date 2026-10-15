@@ -1,8 +1,8 @@
 // @notesapp has no real Firestore notes — it's a synthetic profile
-// (see lib/journals-directory.ts). These 5 posts are its "journal":
+// (see lib/journals-directory.ts). These posts are its "journal":
 // hardcoded here, rendered by the UI, not stored in the `notes`
 // collection. Each corresponds to one of the pitch-deck explainer
-// images in public/images/pitch/.
+// images in public/images/pitch/. Newest explainers go last.
 
 export type NotesAppPost = {
   slug: string;
@@ -84,6 +84,23 @@ export const NOTESAPP_POSTS: NotesAppPost[] = [
     body: [
       "Today, a professional's workflow is scattered across Notion or Google Docs for content, WordPress or Substack to publish, WhatsApp and Instagram DMs to manage inquiries, Calendly to schedule, Paystack or bank transfer to collect payment, Zoom to hold the session, Notion or pen and paper to take notes, and email or WhatsApp to follow up.",
       "The result is measurable: 10–15+ hours wasted weekly, lower conversion and bookings from slow, inconsistent follow-up, revenue leakage from missed payments and manual errors, mental overload from managing too many disconnected things, and a business that can't scale on a fragmented system. Professionals deserve better — that's why #NotesApp exists.",
+    ],
+  },
+  {
+    slug: "where-ai-agents-meet-notesapp",
+    title: "Where AI Agents Meet #NotesApp",
+    category: "What's next",
+    image: "/images/pitch/06-agent-layer.webp",
+    imageWidth: 1536,
+    imageHeight: 1024,
+    excerpt:
+      "Agents do the work. #NotesApp is where that work becomes Naira, safely, for African creators. Here's how we're opening NotesApp to AI agents, and why your money, your audience and your work stay yours.",
+    body: [
+      "Software is changing. More and more of the routine work (writing a first draft, answering a booking request, checking what sold this week) is being done by AI agents such as Claude and ChatGPT, not by clicking through apps. We think that's good news for creators, as long as the agent works for you and the money, the audience and the work stay yours.",
+      "That's the part #NotesApp already holds for African creators: Naira payments and payouts, funds held until delivery, a trusted audience with verified reviews, and every journal, booking and order you've built. An agent can draft a course outline; it still needs somewhere that can take the payment, deliver it and pay you. That place is NotesApp.",
+      "So we're building the agent layer. First, a NotesApp MCP server: one door through which the agents you already use can work your NotesApp business with your permission (draft a journal, check sales and earnings, answer a booking request), and through which readers' agents can find coaches, therapists and shops and book or buy on NotesApp. Second, Nana as an operator: our own assistant moves from suggesting to preparing your week's work, with a Monday summary, booking and message replies in your voice, and journal drafts, all waiting for your one-tap approval.",
+      "The rules are simple. You choose what each agent can do, and you can disconnect it at any time. Anything that matters waits for you. Money never moves through an agent: refunds, payouts and bank details stay with you. Buyers' contact details are never shared with agents. Every action is logged where you can see it, and it all runs on the same rules as the website.",
+      "We'll start with a small pilot group of creators who take bookings or sell every week, and open it up from there. If you'd like to be in the pilot, tell us through the contact form. Agents do the work; NotesApp is where it becomes Naira.",
     ],
   },
 ];
