@@ -15,13 +15,16 @@ const APP = "https://app.notesapp.name.ng";
 const PLAY = "https://www.notesapp.name.ng/life/play";
 // Screenshots from the game itself (public/images/life/shots/), phone size.
 const shots: { src: string; title: string; text: string }[] = [
-  { src: "/images/life/shots/welcome.webp", title: "Start in Abuja", text: "Abuja is open: a room in Wuse and N$ 100,000 to start. Lagos and Port Harcourt are coming." },
+  { src: "/images/life/shots/welcome.webp", title: "Choose your city", text: "Abuja is open, with the City Gate. Lagos (the National Theatre) and Port Harcourt (Isaac Boro Park) are coming: tap to be told first." },
+  { src: "/images/life/shots/arrive.webp", title: "Welcome to Abuja", text: "Drive in through the City Gate at night. A room in Wuse is waiting, with N$ 100,000, a bicycle and a deal phone." },
   { src: "/images/life/shots/room.webp", title: "Your room in Wuse", text: "Bed, desk, wardrobe, WC and bath. Your NotesApp photo is your portrait. Keep your six needs up, and pick how hard you want life to be." },
   { src: "/images/life/shots/nepa.webp", title: "NEPA has taken light", text: "Power cuts hit everyone at the same moment. Buy an “I Better Pass My Neighbour”, go solar with itel, or stay in the dark till light returns." },
   { src: "/images/life/shots/power.webp", title: "Power through it", text: "The Power GO keeps your lamp, fan and laptop on; the Power Tank keeps the fridge cold. When light returns, the whole street shouts “UP NEPA!”" },
   { src: "/images/life/shots/itel.webp", title: "Real brands, real products", text: "Shop at itel Energy, eat at Chef Adams, swim and meet VIPs at the Candellux Imperial. Each one links to the real thing." },
-  { src: "/images/life/shots/billboards.webp", title: "Billboards you can tap", text: "Partner adverts and the #1MillionNairaNotesAppChallenge line the roads. Tap one to open it." },
-  { src: "/images/life/shots/jobs.webp", title: "Work for real brands", text: "Take shifts at Chef Adams, itel Energy and the Candellux Imperial, with tips, sales bonuses and staff perks." },
+  { src: "/images/life/shots/pool.webp", title: "Swim at the Candellux", text: "Round the back of the hotel: the pool, with other players and residents in it. Take lessons with Coach Femi and the deep end opens after three." },
+  { src: "/images/life/shots/vip.webp", title: "Meet the VIPs", text: "The VIP bar is where the top of the Billionaires List drinks. Who's in changes every 4 game hours; say hello and chat." },
+  { src: "/images/life/shots/billboards.webp", title: "Billboards you can tap", text: "Chef Adams shawarma, pizza and Sum Ting Fresh, itel Energy and the #1MillionNairaNotesAppChallenge line the roads. Tap one to open it." },
+  { src: "/images/life/shots/jobs.webp", title: "Work for real brands", text: "Take shifts at Chef Adams, itel Energy and the Candellux Imperial: lifeguard, swimming or gym instructor, with tips, bonuses and staff perks." },
   { src: "/images/life/shots/partner.webp", title: "Own a partner outlet", text: "Earn your way to your own Chef Adams kiosk or itel store. Residents run it, your name goes on the sign, you collect the takings." },
   { src: "/images/life/shots/friends.webp", title: "Friends who play", text: "See friends who follow you back, message them on NotesApp, and meet real players at the same place. Calls are coming." },
   { src: "/images/life/shots/rich.webp", title: "The Billionaires List", text: "Climb the NotesVille Fat Wallet Index against real players and the richest residents 🤖." },
@@ -89,6 +92,23 @@ export default function LifePage() {
               <div className="mt-5 overflow-hidden rounded-2xl border border-white/20">
                 <Image src="/images/life/shots/blackout-desktop.webp" alt="Notes Life, the real game: your room in a blackout, running on the Power GO and the Power Tank" width={1440} height={900} className="h-auto w-full" />
               </div>
+            </div>
+          </div>
+        </section>
+
+        <section className="mx-auto max-w-6xl px-4 pb-16 sm:px-6" aria-labelledby="hotel">
+          <div className="grid items-center gap-8 overflow-hidden rounded-3xl bg-[#1c2030] p-6 text-white shadow-xl sm:p-10 lg:grid-cols-[1.2fr,0.8fr]">
+            <div>
+              <p className="font-mono text-[11px] uppercase tracking-widest text-[#e3b23c]">👑 Candellux Imperial · Garki</p>
+              <h2 id="hotel" className="mt-2 font-display text-4xl">Turn round. The pool is at the back.</h2>
+              <p className="mt-3 text-white/85">The hotel is built from the real Candellux: the glass and stone wings, the tower with its sign, the gate and the palms, by day and lit up at night. Spin the camera and you&apos;re at the pool: green turf, blue mosaic, the pergola, the pool bar, the VIP bar and the gym tower, with solar panels on the roofs.</p>
+              <p className="mt-3 text-white/85">A day pass is N$ 25,000. Swimming lessons (N$ 15,000) build your swimming skill, and skill 5 gets you a job as a swimming instructor.</p>
+              <div className="mt-5 overflow-hidden rounded-2xl border border-white/20">
+                <Image src="/images/life/shots/hotel-desktop.webp" alt="Notes Life, the real game: the Candellux Imperial Hotel & Suites, with its tower, gate and solar roofs" width={1440} height={900} className="h-auto w-full" />
+              </div>
+            </div>
+            <div className="relative mx-auto aspect-[390/844] w-[70%] max-w-[18rem] overflow-hidden rounded-[2rem] border-[8px] border-black">
+              <Image src="/images/life/shots/pool.webp" alt="Notes Life, the real game: swimming in the Candellux pool with other players and residents" fill sizes="18rem" className="object-cover" />
             </div>
           </div>
         </section>
