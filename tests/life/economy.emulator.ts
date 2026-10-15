@@ -3,7 +3,7 @@ import { initializeApp } from "firebase-admin/app";
 import { FieldValue, getFirestore } from "firebase-admin/firestore";
 import { act, mutate, richList, friends, statement, invites } from "../../lib/life/server";
 import { GAME_DAY_MS, GAME_HOUR_MS, SHIFT_MS, START_NAIRA, WORLD_EPOCH, worldTime, shiftPay, JOB, nepaAt, outagesOfDay, OUTLET, OUTLETS, outletTakings, outletProfitPerDay, outletPrice, jobBlocker, swimSkill, vipsAt, HOTEL, FOODS, type Outlet } from "../../lib/life/catalog";
-import { advance, freshSave, sanitize, powerStep, powerSource, fridgeCold } from "../../lib/life/play";
+import { advance, freshSave, sanitize, powerStep, powerSource, fridgeCold, chatSocial, CHAT_SOCIAL } from "../../lib/life/play";
 import { payFromWallet, creditTopup } from "../../lib/wallet-server";
 import { fulfillPayment, type PaymentRecord } from "../../lib/payments";
 import { awardReferral } from "../../lib/life/referral";
@@ -65,6 +65,16 @@ const rej = async (p: Promise<unknown>, re: RegExp) => { await assert.rejects(p,
   const v = vipsAt(WORLD_EPOCH + 5 * GAME_HOUR_MS); assert.equal(v.in.length, 2); assert.ok(v.next); assert.ok(v.nextAt > WORLD_EPOCH + 5 * GAME_HOUR_MS);
   assert.notDeepEqual(vipsAt(WORLD_EPOCH).in, vipsAt(WORLD_EPOCH + 4 * GAME_HOUR_MS).in, "VIPs rotate every 4 game hours");
   for (const [id, price] of [["shawarma", 3500], ["pizza", 6000], ["smoothie", 1800]] as const) assert.equal(FOODS.find((f) => f.id === id)?.price, price);
+  // chatting with friends: +8 a message, +12 at the same place, +4 a reply, 40 an hour at most, new allowance each hour
+  const H = 3_600_000 * 500_000;
+  let cs = { ...freshSave(H), needs: { ...freshSave(H).needs, social: 10 } };
+  let g = chatSocial(cs, "send", H); assert.equal(g.gain, CHAT_SOCIAL.send); assert.equal(g.save.needs.social, 18); cs = g.save;
+  g = chatSocial(cs, "here", H + 1000); assert.equal(g.gain, 12); cs = g.save;
+  g = chatSocial(cs, "reply", H + 2000); assert.equal(g.gain, 4); cs = g.save;
+  for (let i = 0; i < 5; i++) cs = chatSocial(cs, "here", H + 3000 + i).save;
+  assert.equal(cs.chatGained, 40, "capped at 40 an hour"); assert.equal(chatSocial(cs, "send", H + 9000).gain, 0);
+  assert.equal(chatSocial(cs, "send", H + 3_600_000).gain, 8, "a new hour, a new allowance");
+  assert.equal(sanitize({ chatHour: 5, chatGained: 12 }).chatGained, 12);
   console.log("pure ok");
 
   for (const [u, n] of [["p1", "ada"], ["p2", "bola"], ["p3", "chi"]]) await db.doc(`users/${u}`).set({ username: n, displayName: n.toUpperCase() });
