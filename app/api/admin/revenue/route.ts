@@ -10,7 +10,7 @@ export async function GET(req: NextRequest) {
   try {
     await verifyAdminRequest(req.headers.get("authorization")?.replace(/^Bearer\s+/i, ""), ["finance"]);
     const days = [7, 30, 90, 365, 0].includes(Number(req.nextUrl.searchParams.get("days"))) ? Number(req.nextUrl.searchParams.get("days")) : 30;
-    return NextResponse.json(await loadRevenue(getAdminDb(), days));
+    return NextResponse.json(await loadRevenue(getAdminDb(), days, req.nextUrl.searchParams.get("fresh") === "1"));
   } catch (err) {
     const f = friendlyMessage(err, "Couldn't load revenue");
     return NextResponse.json({ error: f.message }, { status: f.status });

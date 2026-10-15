@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { friendlyMessage } from "@/lib/api-errors";
 import { getAdminDb, verifyAdminRequest } from "@/lib/firebase-admin";
 import { summaryText, tractionCsv } from "@/lib/traction";
-import { gatherTraction } from "@/lib/traction-server";
+import { storedTraction } from "@/lib/traction-server";
 import { complianceSummary } from "@/lib/compliance";
 
 export const dynamic = "force-dynamic";
@@ -11,7 +11,8 @@ export const dynamic = "force-dynamic";
 export async function GET(req: NextRequest) {
   try {
     await verifyAdminRequest(req.headers.get("authorization")?.replace(/^Bearer\s+/i, ""), ["growth", "finance"]);
-    const t = await gatherTraction(getAdminDb());
+    // Counted at most once an hour (lib/stat-cache.ts); ?fresh=1 is the page's "Refresh now".
+    const t = await storedTraction(getAdminDb(), req.nextUrl.searchParams.get("fresh") === "1");
     return NextResponse.json({ traction: t, summary: `${summaryText(t)}\n\n${complianceSummary()}`, csv: tractionCsv(t) }, { headers: { "Cache-Control": "no-store" } });
   } catch (err) {
     const f = friendlyMessage(err, "Couldn't build the snapshot");

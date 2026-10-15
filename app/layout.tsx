@@ -1,6 +1,6 @@
 import ErrorReporter from "@/components/ErrorReporter";
 import type { Metadata, Viewport } from "next";
-import { SITE } from "@/lib/site";
+import { SITE, WHAT_IS_NOTESAPP } from "@/lib/site";
 import "./globals.css";
 import { unstable_cache } from "next/cache";
 import PricingHydrator from "@/components/PricingHydrator";
@@ -23,8 +23,7 @@ const savedPricing = unstable_cache(
 );
 
 const DEFAULT_TITLE = "#NotesApp — Publish. Book. Get Paid. One Workspace.";
-const DEFAULT_DESCRIPTION =
-  "#NotesApp is where African creators, professionals, coaches, consultants, therapists and businesses publish their work, build an audience they can talk to directly, and get paid in Naira. Write journals, take bookings for private sessions, sell products, PDF/video courses and other digital downloads, earn subscriptions and gifts, and run it all under your own name or your own domain, in one place.";
+const DEFAULT_DESCRIPTION = WHAT_IS_NOTESAPP;
 
 export const viewport: Viewport = { themeColor: "#7A0328" };
 

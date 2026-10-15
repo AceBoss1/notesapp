@@ -27,3 +27,21 @@ export const SITE = {
   linkedin: "https://www.linkedin.com/company/na-notesapp",
   facebook: "https://web.facebook.com/na-notesapp",
 };
+
+// The standard "what is #NotesApp" description: the site's meta description, the app manifest, the About intro,
+// the help centre's "What is #NotesApp?" article and Nana's answer all use these words. Change them here.
+export const WHAT_IS_INTRO =
+  "#NotesApp is where African creators, professionals, coaches, consultants, therapists and businesses publish their work, build an audience they can talk to directly, and get paid in Naira.";
+export const WHAT_YOU_CAN_DO = [
+  "Write journals and share them with readers who follow you",
+  "Take bookings for private 1:1 sessions",
+  "Sell physical goods, digital downloads, PDFs and video courses",
+  "Earn from journal subscriptions and gifts",
+  "Run it all under your own name, or your own domain on Business and Enterprise plans",
+  "Play Notes Life, our free life game",
+];
+export const WHAT_IS_FREE = "Anyone can read, comment, book a session or buy from a shop for free.";
+export const WHAT_IS_TIERS = "To publish and earn, you start on the free Basic tier and can move up to Pro, Business or Enterprise as you grow.";
+const lower = (t: string) => t.charAt(0).toLowerCase() + t.slice(1);
+// One paragraph, for meta descriptions, the manifest and Nana.
+export const WHAT_IS_NOTESAPP = `${WHAT_IS_INTRO} On #NotesApp you can ${WHAT_YOU_CAN_DO.slice(0, -1).map(lower).join("; ")}; and ${lower(WHAT_YOU_CAN_DO[WHAT_YOU_CAN_DO.length - 1])}. ${WHAT_IS_FREE} ${WHAT_IS_TIERS}`;

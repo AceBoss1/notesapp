@@ -1,39 +1,46 @@
 import type { Firestore } from "firebase-admin/firestore";
 import { computeRevenue, type RevenueReport } from "./revenue";
 
-// Reads payments, ledger, boosts and renewal charges once and caches the raw data for 2 minutes, so flipping the date range on a page
-// (or opening the money ledger) doesn't re-read everything from Firestore. Shared by /admin/revenue and the team hub's money ledger so
-// both show the same platform revenue.
-let raw: { at: number; data: Parameters<typeof computeRevenue>[0] } | null = null;
+import { storedSnapshot } from "./stat-cache";
 
-export async function loadRevenue(db: Firestore, days: number): Promise<{ report: RevenueReport; asOf: string }> {
-  if (!raw || Date.now() - raw.at > 120_000) {
-    const [pay, led, boosts, charges, adRev, adSh] = await Promise.all([
-      db.collection("payments").get(),
-      db.collection("ledger").get(),
-      db.collection("boosts").get(),
-      db.collection("tierCharges").get(),
-      db.collection("adRevenue").get(),
-      db.collection("adShareStatements").get(),
-    ]);
-    raw = {
-      at: Date.now(),
-      data: {
-        days: 30,
-        payments: pay.docs.map((d) => {
-          const p = d.data();
-          return { reference: d.id, kind: p.kind, status: p.status, amountKobo: p.amountKobo, paidAt: p.paidAt, createdAt: p.createdAt };
-        }),
-        commissionByRef: Object.fromEntries(led.docs.map((d) => [d.id, Number(d.data().commissionKobo) || 0])),
-        boostRefundByRef: Object.fromEntries(boosts.docs.map((d) => [d.id, Number(d.data().refundedKobo) || 0])),
-        adRevenue: adRev.docs.map((d) => ({ month: String(d.data().month), amountKobo: Number(d.data().amountKobo) || 0 })),
-        adShares: adSh.docs.map((d) => ({ month: String(d.data().month), shareKobo: Number(d.data().shareKobo) || 0, status: String(d.data().status) })),
-        charges: charges.docs.map((d) => {
-          const c = d.data();
-          return { reference: d.id, kind: c.kind, amountKobo: Number(c.amountKobo) || 0, at: c.at };
-        }),
-      },
-    };
-  }
-  return { report: computeRevenue({ ...raw.data, days }), asOf: new Date(raw.at).toISOString() };
+// How old a stored revenue report may be before it's built again (see lib/stat-cache.ts).
+export const REVENUE_MAX_AGE_MS = 15 * 60_000;
+
+// Reads payments, ledger, boosts, renewal charges and ad money (only the fields the report uses) and builds the report.
+async function readRevenueInput(db: Firestore): Promise<Parameters<typeof computeRevenue>[0]> {
+  const [pay, led, boosts, charges, adRev, adSh] = await Promise.all([
+    db.collection("payments").select("kind", "status", "amountKobo", "paidAt", "createdAt").get(),
+    db.collection("ledger").select("commissionKobo").get(),
+    db.collection("boosts").select("refundedKobo").get(),
+    db.collection("tierCharges").select("kind", "amountKobo", "at").get(),
+    db.collection("adRevenue").select("month", "amountKobo").get(),
+    db.collection("adShareStatements").select("month", "shareKobo", "status").get(),
+  ]);
+  return {
+    days: 30,
+    payments: pay.docs.map((d) => {
+      const p = d.data();
+      return { reference: d.id, kind: p.kind, status: p.status, amountKobo: p.amountKobo, paidAt: p.paidAt, createdAt: p.createdAt };
+    }),
+    commissionByRef: Object.fromEntries(led.docs.map((d) => [d.id, Number(d.data().commissionKobo) || 0])),
+    boostRefundByRef: Object.fromEntries(boosts.docs.map((d) => [d.id, Number(d.data().refundedKobo) || 0])),
+    adRevenue: adRev.docs.map((d) => ({ month: String(d.data().month), amountKobo: Number(d.data().amountKobo) || 0 })),
+    adShares: adSh.docs.map((d) => ({ month: String(d.data().month), shareKobo: Number(d.data().shareKobo) || 0, status: String(d.data().status) })),
+    charges: charges.docs.map((d) => {
+      const c = d.data();
+      return { reference: d.id, kind: c.kind, amountKobo: Number(c.amountKobo) || 0, at: c.at };
+    }),
+  };
+}
+
+// One stored report per date range (7, 30, 90, 365 days or all time), rebuilt at most every 15 minutes across every server
+// instance, or now with fresh ("Refresh now"). A rebuild reads the collections once and refreshes every range together, so
+// flipping the range afterwards costs one read. Shared by /admin/revenue and the team hub's money ledger.
+export const REVENUE_RANGES = [7, 30, 90, 365, 0] as const;
+export async function loadRevenue(db: Firestore, days: number, fresh = false): Promise<{ report: RevenueReport; asOf: string }> {
+  const all = await storedSnapshot(db, "revenue", REVENUE_MAX_AGE_MS, async () => {
+    const input = await readRevenueInput(db);
+    return Object.fromEntries(REVENUE_RANGES.map((r) => [String(r), computeRevenue({ ...input, days: r })])) as Record<string, RevenueReport>;
+  }, { fresh });
+  return { report: all.data[String(days)] ?? all.data["30"], asOf: all.asOf };
 }

@@ -1,4 +1,5 @@
 import { AD_PACKAGES } from "./ad-packages";
+import { WHAT_IS_INTRO, WHAT_YOU_CAN_DO, WHAT_IS_FREE, WHAT_IS_TIERS } from "./site";
 import { BOOST_PACKAGES, GIFT_MAX_KOBO, GIFT_MIN_KOBO } from "./boost-config";
 import { LIMITS, formatNaira } from "./booking-time";
 import { GOLD_KIND_LIVE } from "./badges";
@@ -30,9 +31,14 @@ export function builtInArticles(): KbArticle[] {
   const list: KbArticle[] = [
     // ── Getting started
     A("what-is-notesapp", "What is #NotesApp?", "Getting started", `
-#NotesApp is where African creators, professionals, coaches, consultants, therapists and businesses publish their work, build an audience they can talk to directly, and get paid in Naira. You can write journals, take bookings for private sessions, sell products, PDF and video courses and other digital downloads, earn subscriptions and gifts, and run it all under your own name or your own domain, in one place.
+${WHAT_IS_INTRO}
 
-Anyone can read, comment, book a session, subscribe, send a gift or buy from a shop for free. To publish and earn, you move up the plan ladder (see [Plans and prices](/help/plans-and-prices)).
+On #NotesApp you can:
+${WHAT_YOU_CAN_DO.map((x) => `- ${x}`).join("\n")}
+
+${WHAT_IS_FREE}
+
+${WHAT_IS_TIERS} See [Plans and prices](/help/plans-and-prices). [Notes Life](/help/notes-life) has its own guide.
 
 Start at [Journals](/journals) to look around, or [create a free account](/signup). The [About page](/about) has the longer story.`),
     A("create-an-account", "Creating an account", "Getting started", `

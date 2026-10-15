@@ -21,7 +21,9 @@ export default function ThreadHeader({ back, avatar, title, subtitle, items, act
   const shown = items.filter((i) => !i.hidden);
   const row = "flex w-full items-center gap-3 px-4 py-2.5 text-left text-sm hover:bg-paper";
   return (
-    <header className="relative mb-4 shrink-0 border-b border-rule pb-3" ref={box}>
+    // On phones and tablets the page itself scrolls, so the header sticks under the site's top bar (68px there) and the
+    // name, calls and menu stay in reach. On desktop the conversation scrolls inside its own box, so it stays put anyway.
+    <header className="sticky top-[68px] z-30 -mx-4 mb-4 shrink-0 border-b border-rule bg-paper px-4 pb-3 pt-3 sm:-mx-6 sm:px-6 lg:relative lg:top-auto lg:mx-0 lg:px-0 lg:pt-0" ref={box}>
       {back && <p className="mb-2 text-xs">{back}</p>}
       <div className="flex items-center gap-3">
         {avatar}

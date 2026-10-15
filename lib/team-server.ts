@@ -3,7 +3,7 @@ import { getUserEmail } from "./firebase-admin";
 import { listStaff } from "./admin-access-server";
 import { notifyBell, sendEmail } from "./email";
 import { reportCounts } from "./reports-server";
-import { gatherTraction } from "./traction-server";
+import { storedTraction } from "./traction-server";
 import type { Traction } from "./traction";
 import { createGroup, sendGroupMessage, syncMembers, syncTeamRoom, type GroupDeps } from "./groups-server";
 import {
@@ -23,11 +23,9 @@ export async function listTeamPeople(db: Firestore): Promise<Person[]> {
   return (await listStaff(db)).map((p) => ({ uid: p.uid, name: p.name, email: p.email, depts: p.depts }));
 }
 
-// Short-lived copy of the platform numbers: the page and every edit ask for them, and counting is heavy.
-let tractionCache: { at: number; t: Traction } | null = null;
+// The platform numbers, from the stored snapshot that /admin/traction also uses (counted at most once an hour).
 export async function cachedTraction(db: Firestore): Promise<Traction> {
-  if (!tractionCache || Date.now() - tractionCache.at > 60_000) tractionCache = { at: Date.now(), t: await gatherTraction(db) };
-  return tractionCache.t;
+  return storedTraction(db);
 }
 
 // What is waiting for the team in the queues that already exist. Each count is read on its own, so one failing never hides the rest.

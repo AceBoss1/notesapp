@@ -18,12 +18,17 @@ export default function AdminPaymentsPage() {
   const [error, setError] = useState("");
 
   async function load() {
-    const [l, c] = await Promise.all([
-      getDocs(query(collection(db, "ledger"), orderBy("createdAt", "desc"))),
+    // Every entry that can still be acted on (held, disputed, transferring), plus the newest 300 of the rest: the whole ledger
+    // used to be read on every visit.
+    const [open, recent, c] = await Promise.all([
+      getDocs(query(collection(db, "ledger"), where("status", "in", ["held", "disputed", "transferring"]))),
+      getDocs(query(collection(db, "ledger"), orderBy("createdAt", "desc"), limit(300))),
       getDocs(query(collection(db, "payments"), where("status", "==", "paid_slot_conflict"))),
     ]);
-    setLedger(l.docs.map((d) => d.data() as LedgerEntry));
-    getDocs(query(collection(db, "boosts"), orderBy("createdAt", "desc"))).then((b) => setBoosts(b.docs.map((d) => d.data()))).catch(() => {});
+    const byRef = new Map<string, LedgerEntry>();
+    for (const d of [...open.docs, ...recent.docs]) byRef.set(d.id, d.data() as LedgerEntry);
+    setLedger([...byRef.values()].sort((a, b) => String(b.createdAt ?? "").localeCompare(String(a.createdAt ?? ""))));
+    getDocs(query(collection(db, "boosts"), orderBy("createdAt", "desc"), limit(300))).then((b) => setBoosts(b.docs.map((d) => d.data()))).catch(() => {});
     setConflicts(c.docs.map((d) => d.data() as PaymentRecord));
     getDocs(query(collection(db, "payments"), orderBy("createdAt", "desc"), limit(300))).then((p) => setAll(p.docs.map((d) => d.data() as PaymentRecord))).catch(() => setAll([]));
   }
