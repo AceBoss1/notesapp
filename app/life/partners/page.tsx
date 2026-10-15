@@ -36,7 +36,7 @@ const perks: [string, string, string][] = [
 const partners: { name: string; logo: string; logoClass: string; shot: string; where: string; what: string[]; real: { href: string; label: string }[]; tone: string }[] = [
   {
     name: "Chef Adams", logo: "/images/life/partners/chef-emblem.webp", logoClass: "h-14 w-14 object-contain", shot: "/images/life/shots/chef-desktop.webp", where: "Food · Wuse, Abuja", tone: "#292929",
-    what: ["Delivery, takeaway and dine-in, with the real Chef Adams menu", "Jobs: kiosk attendant, line cook, delivery rider, outlet supervisor", "Become a Partner: a Takeaway Kiosk from N$ 2.5m or a Mini Dine-In Shop from N$ 8.0m", "Billboards on the street"],
+    what: ["Delivery, takeaway and dine-in, with the real Chef Adams menu: rice, shawarma, pizza and Sum Ting Fresh smoothies", "Jobs: kiosk attendant, line cook, delivery rider, outlet supervisor", "Become a Partner: a Takeaway Kiosk from N$ 2.5m or a Mini Dine-In Shop from N$ 8.0m", "Billboards on the street"],
     real: [{ href: "https://www.notesapp.name.ng/u/chef_adams", label: "@chef_adams on NotesApp" }, { href: REAL_PARTNER.chef_adams, label: "Own a Chef Adams franchise" }],
   },
   {
@@ -45,8 +45,8 @@ const partners: { name: string; logo: string; logoClass: string; shot: string; w
     real: [{ href: ITEL.sellerUrl, label: `Shop @${ITEL.seller}, the itel distributor` }, { href: REAL_PARTNER.itel, label: "itel Home" }],
   },
   {
-    name: "Candellux Imperial Hotel & Suites", logo: "/images/life/partners/candellux-logo.webp", logoClass: "h-14 w-14 rounded-full object-cover", shot: "/images/life/shots/hotel-desktop.webp", where: "Hotel · Garki, Abuja", tone: "#262b6b",
-    what: ["Suites, the 24-hour restaurant, pool, VIP bar, gym, barbing saloon and laundry", "Jobs: front desk, waiter, housekeeping, lifeguard, cook, duty manager", "Staff perks: half price at the pool, gym and VIP bar"],
+    name: "Candellux Imperial Hotel & Suites", logo: "/images/life/partners/candellux-logo.webp", logoClass: "h-14 w-14 rounded-full object-cover", shot: "/images/life/shots/hotel-night-desktop.webp", where: "Hotel · Garki, Abuja", tone: "#262b6b",
+    what: ["The hotel built from the real Candellux, by day and by night, with the pool, pool bar, VIP bar and gym at the back", "Swimming with other players, and swimming lessons that open the deep end", "Suites, the 24-hour restaurant, barbing saloon and laundry", "Jobs: front desk, waiter, housekeeping, lifeguard, swimming instructor, gym instructor, cook, duty manager", "Staff perks: half price at the pool, gym, pool bar and VIP bar"],
     real: [{ href: `https://wa.me/${CANDELLUX.whatsapp}?text=${encodeURIComponent("Hello Candellux, I'd like to book a room (I found you on Notes Life).")}`, label: `Book on WhatsApp · ${CANDELLUX.whatsappLabel}` }],
   },
 ];
