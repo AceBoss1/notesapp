@@ -11,6 +11,16 @@ export type Release = {
 
 export const CHANGELOG: Release[] = [
   {
+    version: "v0.34.0",
+    bump: "minor",
+    date: "2026-10-15",
+    changes: [
+      { kind: "added", text: "Notes Life: chat with your friends inside the game. Players who follow each other on NotesApp can chat from Phone → Friends, or by tapping a friend at the same place. It's the same chat as your NotesApp Messages. Each message you send gives +8 Social (+12 when you're at the same place) and each reply +4, up to +40 an hour." },
+      { kind: "added", text: "Unread messages from friends show on the Phone button and the Friends tile in the game. On desktop the chat sits on the right while the game keeps running." },
+      { kind: "changed", text: "The platform numbers and the revenue report for the team are counted at most once an hour and every 15 minutes, with a Refresh now button, instead of being read in full every time. The help centre, About page, app description and Nana now use one standard description of #NotesApp. On phones, the conversation header in Messages stays at the top while you scroll." },
+    ],
+  },
+  {
     version: "v0.33.0",
     bump: "minor",
     date: "2026-10-15",

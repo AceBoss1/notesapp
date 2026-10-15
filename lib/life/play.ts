@@ -31,6 +31,8 @@ export type SaveState = {
   seenWelcome: boolean;
   seenRich: boolean;
   socialAt: number; // last time a message to a friend counted for Social
+  chatHour: number; // the real hour (ms / 3,600,000) that chatGained counts for
+  chatGained: number; // Social already earned from friend chats in that hour (CHAT_SOCIAL.perHour at most)
   gymUntil: number; // energy lasts longer (from the hotel gym)
   battery: number; // Power GO charge, Wh (0 to 320)
   fuel: number; // generator petrol, litres
@@ -42,7 +44,7 @@ export type SaveState = {
 };
 
 export function freshSave(now = Date.now()): SaveState {
-  return { v: 1, needs: { ...START_NEEDS }, tickAt: now, difficulty: "normal", outfit: "#f59e0b", rug: "rug_notesapp", place: "home", plates: 0, activity: null, delivery: null, bikeRides: 0, ebikeAskedAt: 0, seenWelcome: false, seenRich: false, socialAt: 0, gymUntil: 0, battery: 320, fuel: 0, genOn: false, nepaSeen: null, tank: POWER_TANK.wh, plateWarm: 0, spoiledAt: 0 };
+  return { v: 1, needs: { ...START_NEEDS }, tickAt: now, difficulty: "normal", outfit: "#f59e0b", rug: "rug_notesapp", place: "home", plates: 0, activity: null, delivery: null, bikeRides: 0, ebikeAskedAt: 0, seenWelcome: false, seenRich: false, socialAt: 0, chatHour: 0, chatGained: 0, gymUntil: 0, battery: 320, fuel: 0, genOn: false, nepaSeen: null, tank: POWER_TANK.wh, plateWarm: 0, spoiledAt: 0 };
 }
 
 const clamp = (n: number) => Math.max(0, Math.min(100, Math.round(n * 10) / 10));
@@ -131,10 +133,22 @@ export function sanitize(raw: unknown, now = Date.now()): SaveState {
     delivery: r.delivery && typeof r.delivery.at === "number" ? r.delivery : null,
     tank: Math.max(0, Math.min(POWER_TANK.wh, num(r.tank, POWER_TANK.wh))), plateWarm: Math.max(0, num(r.plateWarm, 0)), spoiledAt: num(r.spoiledAt, 0),
     bikeRides: num(r.bikeRides, 0), ebikeAskedAt: num(r.ebikeAskedAt, 0), seenWelcome: !!r.seenWelcome, seenRich: !!r.seenRich,
-    socialAt: num(r.socialAt, 0), gymUntil: num(r.gymUntil, 0),
+    socialAt: num(r.socialAt, 0), chatHour: num(r.chatHour, 0), chatGained: Math.max(0, num(r.chatGained, 0)), gymUntil: num(r.gymUntil, 0),
     battery: Math.max(0, Math.min(320, num(r.battery, 320))), fuel: Math.max(0, Math.min(12, num(r.fuel, 0))), genOn: r.genOn === true,
     nepaSeen: typeof r.nepaSeen === "string" ? r.nepaSeen.slice(0, 20) : null,
   };
+}
+
+// ---- Chatting with friends in the game (players who follow each other on NotesApp) ----
+// Social for each message you send (more when you're at the same place) and for each reply, at most perHour in a real hour, so a
+// flood of messages can't max the need. Social decays about 45 a real hour, so steady chatting roughly keeps it up.
+export const CHAT_SOCIAL = { send: 8, here: 12, reply: 4, perHour: 40 } as const;
+export function chatSocial(s: SaveState, kind: "send" | "here" | "reply", now = Date.now()): { save: SaveState; gain: number; left: number } {
+  const hour = Math.floor(now / 3_600_000);
+  const used = s.chatHour === hour ? s.chatGained : 0;
+  const gain = Math.max(0, Math.min(CHAT_SOCIAL[kind], CHAT_SOCIAL.perHour - used));
+  const save = { ...s, chatHour: hour, chatGained: used + gain, needs: gain ? applyNeeds(s.needs, { social: gain }) : s.needs };
+  return { save, gain, left: CHAT_SOCIAL.perHour - used - gain };
 }
 
 // ---- Power through NEPA's blackouts (runs every second while the game is open) ----

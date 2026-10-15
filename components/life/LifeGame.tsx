@@ -2,15 +2,17 @@
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { onAuthStateChanged, type User } from "firebase/auth";
-import { auth } from "@/lib/firebase";
+import { auth, db } from "@/lib/firebase";
+import { collection, onSnapshot, query, where } from "firebase/firestore";
 import { startCheckout } from "@/lib/checkout";
 import * as C from "@/lib/life/catalog";
 import type { InviteRow, LifePlayer } from "@/lib/life/server";
-import { advance, applyNeeds, fridgeCold, mood, needsLow, powerSource, powerStep, type Activity, type SaveState } from "@/lib/life/play";
+import { CHAT_SOCIAL, advance, applyNeeds, chatSocial, fridgeCold, mood, needsLow, powerSource, powerStep, type Activity, type SaveState } from "@/lib/life/play";
 import { loadSave, restorePoint, restorePoints, saveCloud, saveLocal, type RestorePoint } from "./save";
 import { createWorld, type Power, type RoomSpot, type SceneSpec, type Tag, type World } from "./world";
 import { announce, hide, setShowMe, showMe, whoIsHere, type Present, type PresencePlace } from "./presence";
 import { TOPICS, chatWith, say as chatSay, type Line as ChatLine, type Topic } from "./chats";
+import FriendChat, { type ChatFriend } from "./FriendChat";
 import { Sound, loadSoundPrefs, saveSoundPrefs, type Ambience, type Sfx, type SoundPrefs } from "./sound";
 
 type Player = LifePlayer & { cooking: number; swimming: number; serverNow: number };
@@ -53,6 +55,10 @@ export default function LifeGame() {
   const [foodMode, setFoodMode] = useState<C.FoodMode>("delivery");
   const [cart, setCart] = useState<Record<string, number>>({ combo: 1 });
   const [friendList, setFriendList] = useState<Friend[] | null>(null);
+  // Chatting with a friend inside the game (components/life/FriendChat.tsx), and what each friend has sent that you haven't read.
+  const [fchat, setFchat] = useState<ChatFriend | null>(null);
+  const [chatGains, setChatGains] = useState<{ after: string; text: string }[]>([]);
+  const [unreadBy, setUnreadBy] = useState<Record<string, number>>({});
   const [picked, setPicked] = useState<{ name: string; tel: string }[]>([]);
   const [inviteList, setInviteList] = useState<{ invites: InviteRow[]; paid: number } | null>(null);
   const [bankLines, setBankLines] = useState<{ id: string; amount: number; label: string; at: number }[] | null>(null);
@@ -112,6 +118,49 @@ export default function LifeGame() {
     offset.current = p.serverNow - Date.now(); setPlayer(p);
   };
   const update = (f: (s: SaveState) => SaveState) => setSave((s) => (s ? f(s) : s));
+
+  // ---- friends: who follows each other (loaded once at the start, again when the Friends panel opens) and their unread messages ----
+  const friendsRef = useRef<Map<string, Friend>>(new Map());
+  useEffect(() => { friendsRef.current = new Map((friendList ?? []).map((f) => [f.uid, f])); }, [friendList]);
+  useEffect(() => {
+    if (!user) return;
+    call<{ friends: Friend[] }>(user, "GET", undefined, "?view=friends").then((r) => setFriendList((cur) => cur ?? r.friends)).catch(() => {});
+  }, [user]);
+  // Your conversations, live (the same listener as the site menu's unread count). A friend's unread going up means they wrote: Social +4.
+  useEffect(() => {
+    if (!user || !C.LIFE_LIVE) return;
+    const uid = user.uid;
+    let prev: Record<string, number> | null = null;
+    return onSnapshot(query(collection(db, "conversations"), where("participants", "array-contains", uid)), (snap) => {
+      const next: Record<string, number> = {};
+      for (const d of snap.docs) {
+        const c = d.data();
+        if (c.kind === "group") continue;
+        const other = (c.participants as string[]).find((x) => x !== uid);
+        if (other) next[other] = Number(c.unread?.[uid] ?? 0);
+      }
+      if (prev) for (const [other, n] of Object.entries(next)) {
+        const f = friendsRef.current.get(other);
+        if (f && n > (prev[other] ?? 0)) chatGain("reply", f.name.split(" ")[0]);
+      }
+      prev = next;
+      setUnreadBy(next);
+    }, () => {});
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user]);
+  function chatGain(kind: "send" | "here" | "reply", first: string, after?: string) {
+    const cur = saveRef.current;
+    if (!cur) return;
+    const r = chatSocial(cur, kind);
+    update((x) => chatSocial(x, kind).save);
+    const label = kind === "reply" ? `${first} replied` : kind === "here" ? "same place" : "";
+    const text = r.gain ? `💬 +${r.gain} Social${label ? ` · ${label}` : ""}` : `💬 Social maxed for this hour (${CHAT_SOCIAL.perHour})`;
+    if (after) setChatGains((g) => [...g.slice(-20), { after, text }]);
+    if (kind === "reply") say(r.gain ? `💬 ${first} sent you a message · Social +${r.gain}` : `💬 ${first} sent you a message`);
+    else if (r.gain) say(`💬 Social +${r.gain}`);
+  }
+  const friendUnread = (friendList ?? []).reduce((n, f) => n + (unreadBy[f.uid] ?? 0), 0);
+  const openChat = (f: ChatFriend) => { setPanel(null); setChatGains([]); setFchat(f); };
 
   // ---- sign-in, load ----
   useEffect(() => {
@@ -560,7 +609,7 @@ export default function LifeGame() {
           </div>
           <nav className="pill pointer-events-auto mx-auto grid max-w-md grid-cols-5 gap-1 rounded-3xl p-1.5 text-center text-[11px] font-semibold lg:max-w-xl">
             {[["🏠", "Home", () => (save.place === "home" ? setPanel(null) : setPanel("go"))], ["🛋", "Shop", () => setPanel({ shop: "rug" })], ["🗺", "Go", () => setPanel("go")], ["📱", "Phone", () => setPanel("phone")], ["👑", "Rich list", () => setPanel("rich")]].map(([i, l, f]) => (
-              <button key={l as string} onClick={f as () => void} className={`rounded-2xl py-2 ${(l === "Home" && !panel) || (l === "Phone" && ["phone", "jobs", "friends", "bank", "invite", "food", "deal", "business"].includes(String(panel))) || (l === "Go" && panel === "go") || (l === "Rich list" && panel === "rich") || (l === "Shop" && typeof panel === "object" && !!panel && "shop" in panel) ? "bg-ink text-white" : ""}`}>{i as string}<br />{l as string}</button>
+              <button key={l as string} onClick={f as () => void} className={`rounded-2xl py-2 ${(l === "Home" && !panel) || (l === "Phone" && ["phone", "jobs", "friends", "bank", "invite", "food", "deal", "business"].includes(String(panel))) || (l === "Go" && panel === "go") || (l === "Rich list" && panel === "rich") || (l === "Shop" && typeof panel === "object" && !!panel && "shop" in panel) ? "bg-ink text-white" : ""} relative`}>{i as string}<br />{l as string}{l === "Phone" && friendUnread > 0 && <span className="absolute right-2 top-0.5 rounded-full bg-rose-600 px-1.5 text-[10px] font-extrabold text-white" aria-label={`${friendUnread} unread from friends`}>{friendUnread}</span>}</button>
             ))}
           </nav>
         </div>
@@ -573,6 +622,12 @@ export default function LifeGame() {
             <BusyCtx.Provider value={busy}>{renderPanels()}</BusyCtx.Provider>
           </div>
         </div>
+      )}
+      {fchat && user && save && (
+        <FriendChat user={user} friend={fchat} here={others.some((o) => o.uid === fchat.uid)} where={C.PLACES.find((x) => x.id === save.place)?.name ?? "Abuja"}
+          social={save.needs.social} gains={chatGains}
+          onSent={(id) => chatGain(others.some((o) => o.uid === fchat.uid) ? "here" : "send", fchat.name.split(" ")[0], id)}
+          onClose={() => setFchat(null)} />
       )}
     </div>
   );
@@ -724,7 +779,7 @@ export default function LifeGame() {
 
     if (panel === "phone") return (<div>{close}<p className="text-lg font-extrabold">📱 Phone</p>
       <div className="mt-3 grid grid-cols-4 gap-3 text-center text-[11px] font-semibold">{([["💼", "Jobs", "bg-emerald-500", () => setPanel("jobs")], ["👥", "Friends", "bg-crimson", () => setPanel("friends")], ["🎁", "Invite", "bg-pink-500", () => setPanel("invite")], ["☎️", "Deals", "bg-sky-500", () => setPanel("deal")], ["🏦", "Bank", "bg-amber-500", () => setPanel("bank")], ["🛺", "Go", "bg-teal-600", () => setPanel("go")], ["CHEF", "Chef Adams", "bg-[#292929]", () => setPanel("food")], ["👑", "Candellux", "bg-[#262b6b]", () => setPanel("hotel")], ["⚡", "itel Energy", "bg-[#e8173f]", () => setPanel("itel")], ["🏪", "Businesses", "bg-[#F2B544]", () => setPanel("business")], ["👑", "Rich list", "bg-slate-800", () => setPanel("rich")], ["🛋", "Shop", "bg-orange-500", () => setPanel({ shop: "rug" })], ["📰", "NotesApp", "bg-[#7A0328]", () => void leave()], ["⚙️", "Settings", "bg-slate-400", () => setPanel("settings")]] as [string, string, string, () => void][]).map(([i, n, c, f]) => (
-        <button key={n + i} onClick={f}><span className={`mx-auto flex h-14 w-14 items-center justify-center overflow-hidden rounded-2xl ${c} text-2xl text-white shadow`}>{i === "CHEF" ? <img src="/images/life/partners/chef-emblem.webp" alt="" className="h-12 w-12 object-contain" /> : i}</span><span className="mt-1 block">{n}</span></button>
+        <button key={n + i} onClick={f} className="relative">{n === "Friends" && friendUnread > 0 && <span className="absolute right-1 top-0 z-10 rounded-full bg-rose-600 px-1.5 text-[10px] font-extrabold text-white">{friendUnread}</span>}<span className={`mx-auto flex h-14 w-14 items-center justify-center overflow-hidden rounded-2xl ${c} text-2xl text-white shadow`}>{i === "CHEF" ? <img src="/images/life/partners/chef-emblem.webp" alt="" className="h-12 w-12 object-contain" /> : i}</span><span className="mt-1 block">{n}</span></button>
       ))}</div></div>);
 
     if (panel === "jobs") return (<div>{close}<p className="text-lg font-extrabold">💼 Jobs in Abuja</p><p className="text-[11px] text-slate">Real NotesApp careers. Better gear, better pay. One shift is {C.SHIFT_HOURS} game hours ({C.SHIFT_MS / 60_000} real minutes).</p>
@@ -816,8 +871,10 @@ export default function LifeGame() {
     if (panel && typeof panel === "object" && "player" in panel) {
       const o = panel.player;
       return (<div>{close}<div className="flex items-center gap-3">{o.avatar ? <img src={o.avatar} alt="" className="h-14 w-14 rounded-full object-cover" /> : <span className="flex h-14 w-14 items-center justify-center rounded-full bg-emerald-100 text-lg font-bold">{o.name[0]}</span>}<div><b className="block text-lg leading-tight">{o.name}</b><span className="text-[11px] text-slate">👤 Real player · @{o.username} · here now</span></div></div>
-        <p className="mt-3 text-sm text-slate">{o.name.split(" ")[0]} is at the same place as you. Say hello: it opens a real NotesApp chat.</p>
-        <div className="mt-3 grid grid-cols-2 gap-2"><a href={`/messages/new?to=${encodeURIComponent(o.username)}`} target="_blank" rel="noreferrer" className="rounded-full bg-ink py-2.5 text-center text-sm font-bold text-white">💬 Message</a><a href={`/u/${encodeURIComponent(o.username)}`} target="_blank" rel="noreferrer" className="rounded-full border py-2.5 text-center text-sm font-bold">View profile</a></div>
+        <p className="mt-3 text-sm text-slate">{o.name.split(" ")[0]} is at the same place as you. {friendsRef.current.has(o.uid) ? "You follow each other, so you can chat right here in the game." : "Say hello: it opens a real NotesApp chat. Follow each other on NotesApp to chat in the game for Social."}</p>
+        <div className="mt-3 grid grid-cols-2 gap-2">{friendsRef.current.has(o.uid)
+          ? <button onClick={() => openChat({ uid: o.uid, username: o.username, name: o.name, avatar: o.avatar })} className="rounded-full bg-ink py-2.5 text-center text-sm font-bold text-white">💬 Chat here · +{CHAT_SOCIAL.here} Social</button>
+          : <a href={`/messages/new?to=${encodeURIComponent(o.username)}`} target="_blank" rel="noreferrer" className="rounded-full bg-ink py-2.5 text-center text-sm font-bold text-white">💬 Message</a>}<a href={`/u/${encodeURIComponent(o.username)}`} target="_blank" rel="noreferrer" className="rounded-full border py-2.5 text-center text-sm font-bold">View profile</a></div>
         <p className="mt-2 text-[10px] text-slate">Messages follow the usual NotesApp rules: anyone can block or report.</p></div>);
     }
     if (panel === "friends") return friendsPanel(close);
@@ -951,16 +1008,14 @@ export default function LifeGame() {
     }
     function friendsPanel(close: ReactNode) {
       const list = friendList;
-      const message = (f: Friend) => {
-        window.open(`/messages/new?to=${encodeURIComponent(f.username)}`, "_blank");
-        const now = Date.now();
-        if (now - s.socialAt > C.GAME_HOUR_MS) { update((x) => ({ ...x, socialAt: now, needs: applyNeeds(x.needs, { social: 10 }) })); say("💬 Social +10"); }
-      };
-      return (<div>{close}<p className="text-lg font-extrabold">👥 Friends</p><p className="text-[11px] text-slate">People on NotesApp you follow who follow you back</p>
+      const message = (f: Friend) => openChat({ uid: f.uid, username: f.username, name: f.name, avatar: f.avatar });
+      const hereNow = new Set(others.map((o) => o.uid));
+      return (<div>{close}<p className="text-lg font-extrabold">👥 Friends</p><p className="text-[11px] text-slate">People on NotesApp you follow who follow you back. Chat right here: +{CHAT_SOCIAL.send} Social a message, +{CHAT_SOCIAL.reply} when they reply, +{CHAT_SOCIAL.here} at the same place (up to +{CHAT_SOCIAL.perHour} an hour).</p>
         {!list ? <p className="mt-3 text-sm text-slate">Loading…</p> : list.length === 0 ? <p className="mt-3 text-sm text-slate">No friends here yet. Invite people, and follow each other on NotesApp.</p> : (
           <ul className="mt-2 divide-y text-sm">{list.map((f) => <li key={f.uid} className="flex items-center gap-2.5 py-2.5">{f.avatar ? <img src={f.avatar} alt="" className="h-10 w-10 rounded-full object-cover" /> : <span className="flex h-10 w-10 items-center justify-center rounded-full bg-slate-200 font-bold">{f.name[0]}</span>}
-            <span className="min-w-0 flex-1"><b className="block leading-tight">{f.name}</b><span className="text-[10px] text-slate">@{f.username} · {f.plays ? `plays · ${C.fmtShort(f.netWorth)}` : "not playing yet"}</span></span>
-            <button onClick={() => message(f)} className="flex h-8 w-8 items-center justify-center rounded-full bg-indigo-100" title="Message on NotesApp">💬</button>
+            <span className="min-w-0 flex-1"><b className="block leading-tight">{f.name}</b><span className="text-[10px] text-slate">@{f.username} · {hereNow.has(f.uid) ? "🟢 here with you" : f.plays ? `plays · ${C.fmtShort(f.netWorth)}` : "not playing yet"}</span></span>
+            {(unreadBy[f.uid] ?? 0) > 0 && <span className="rounded-full bg-rose-600 px-2 py-0.5 text-[10px] font-extrabold text-white">{unreadBy[f.uid]} new</span>}
+            <button onClick={() => message(f)} className="rounded-full bg-indigo-900 px-3 py-1.5 text-[11px] font-bold text-white" title="Chat here in the game">💬 Chat</button>
             {!f.plays && <a href={WA(`Join me on Notes Life, the NotesApp game! ${C.inviteLink(p.username)}`)} target="_blank" rel="noreferrer" className="flex h-8 w-8 items-center justify-center rounded-full bg-emerald-100" title="Invite on WhatsApp">🎁</a>}</li>)}</ul>
         )}
         <p className="mt-2 text-[10px] text-slate">📞 Calls in the game (voice ₦5/min, video ₦10/min) are coming. Visiting rooms is coming too.</p>
