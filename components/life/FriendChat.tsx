@@ -32,9 +32,12 @@ export default function FriendChat({ user, friend, here, where, social, gains, o
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const box = useRef<HTMLDivElement>(null);
+  // Before the first message the conversation doesn't exist, so the live read is refused and stops; it starts again after a send.
+  const [listen, setListen] = useState(0);
+  const waiting = useRef(false);
 
   useEffect(() => {
-    setLines(null);
+    waiting.current = false;
     return onSnapshot(
       query(collection(db, `conversations/${cid}/messages`), orderBy("createdAt", "desc"), limit(40)),
       (snap) => {
@@ -43,10 +46,10 @@ export default function FriendChat({ user, friend, here, where, social, gains, o
         if (snap.docChanges().some((c) => c.type === "added" && c.doc.data().from !== user.uid && !c.doc.metadata.hasPendingWrites)) markRead();
       },
       // A conversation that doesn't exist yet can't be read: it starts with the first message.
-      () => setLines([]),
+      () => { waiting.current = true; setLines((cur) => cur ?? []); },
     );
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [cid]);
+  }, [cid, listen]);
   useEffect(() => { box.current?.scrollTo({ top: box.current.scrollHeight }); }, [lines, gains]);
 
   async function markRead() {
@@ -61,6 +64,7 @@ export default function FriendChat({ user, friend, here, where, social, gains, o
       const j = await r.json().catch(() => ({}));
       if (!r.ok) throw new Error(j.error || "Couldn't send the message.");
       setText("");
+      if (waiting.current) setListen((n) => n + 1);
       onSent(String(j.messageId ?? ""));
     } catch (e) {
       setError(e instanceof Error ? e.message : "Couldn't send the message.");
