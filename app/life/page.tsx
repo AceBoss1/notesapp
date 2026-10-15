@@ -104,7 +104,7 @@ export default function LifePage() {
               <p className="mt-3 text-white/85">The hotel is built from the real Candellux: the glass and stone wings, the tower with its sign, the gate and the palms, by day and lit up at night. Spin the camera and you&apos;re at the pool: green turf, blue mosaic, the pergola, the pool bar, the VIP bar and the gym tower, with solar panels on the roofs.</p>
               <p className="mt-3 text-white/85">A day pass is N$ 25,000. Swimming lessons (N$ 15,000) build your swimming skill, and skill 5 gets you a job as a swimming instructor.</p>
               <div className="mt-5 overflow-hidden rounded-2xl border border-white/20">
-                <Image src="/images/life/shots/hotel-night-desktop.webp" alt="Notes Life, the real game: the Candellux Imperial Hotel & Suites at night" width={1440} height={900} className="h-auto w-full" />
+                <Image src="/images/life/shots/hotel-desktop.webp" alt="Notes Life, the real game: the Candellux Imperial Hotel & Suites, with its tower, gate and solar roofs" width={1440} height={900} className="h-auto w-full" />
               </div>
             </div>
             <div className="relative mx-auto aspect-[390/844] w-[70%] max-w-[18rem] overflow-hidden rounded-[2rem] border-[8px] border-black">

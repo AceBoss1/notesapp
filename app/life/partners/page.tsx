@@ -45,7 +45,7 @@ const partners: { name: string; logo: string; logoClass: string; shot: string; w
     real: [{ href: ITEL.sellerUrl, label: `Shop @${ITEL.seller}, the itel distributor` }, { href: REAL_PARTNER.itel, label: "itel Home" }],
   },
   {
-    name: "Candellux Imperial Hotel & Suites", logo: "/images/life/partners/candellux-logo.webp", logoClass: "h-14 w-14 rounded-full object-cover", shot: "/images/life/shots/hotel-night-desktop.webp", where: "Hotel · Garki, Abuja", tone: "#262b6b",
+    name: "Candellux Imperial Hotel & Suites", logo: "/images/life/partners/candellux-logo.webp", logoClass: "h-14 w-14 rounded-full object-cover", shot: "/images/life/shots/hotel-desktop.webp", where: "Hotel · Garki, Abuja", tone: "#262b6b",
     what: ["The hotel built from the real Candellux, by day and by night, with the pool, pool bar, VIP bar and gym at the back", "Swimming with other players, and swimming lessons that open the deep end", "Suites, the 24-hour restaurant, barbing saloon and laundry", "Jobs: front desk, waiter, housekeeping, lifeguard, swimming instructor, gym instructor, cook, duty manager", "Staff perks: half price at the pool, gym, pool bar and VIP bar"],
     real: [{ href: `https://wa.me/${CANDELLUX.whatsapp}?text=${encodeURIComponent("Hello Candellux, I'd like to book a room (I found you on Notes Life).")}`, label: `Book on WhatsApp · ${CANDELLUX.whatsappLabel}` }],
   },
