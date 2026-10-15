@@ -1,4 +1,5 @@
 import type { MetadataRoute } from "next";
+import { WHAT_IS_NOTESAPP } from "@/lib/site";
 
 // What lets #NotesApp be installed from a phone's browser (Add to Home Screen / Install app): its name, icon and colours, and that it opens full screen.
 // Served on every host; on the app address (app.notesapp.name.ng) the start page is the welcome screen, or straight to the journal when signed in.
@@ -7,7 +8,7 @@ export default function manifest(): MetadataRoute.Manifest {
     id: "/",
     name: "#NotesApp",
     short_name: "NotesApp",
-    description: "Publish a note, take a booking, get paid in Naira.",
+    description: WHAT_IS_NOTESAPP,
     start_url: "/",
     scope: "/",
     display: "standalone",

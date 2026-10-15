@@ -1,4 +1,5 @@
 import PageHero from "@/components/PageHero";
+import { WHAT_IS_INTRO, WHAT_IS_NOTESAPP, WHAT_YOU_CAN_DO, WHAT_IS_FREE, WHAT_IS_TIERS } from "@/lib/site";
 import FeatureMosaic from "@/components/FeatureMosaic";
 import { WALLET_LIVE } from "@/lib/wallet";
 import NotesLifeCard from "@/components/NotesLifeCard";
@@ -20,7 +21,7 @@ import { getTierConfig } from "@/lib/tiers";
 export const metadata: Metadata = {
   title: "About",
   description:
-    "Why #NotesApp exists — one home for African creators, professionals and businesses to publish, get booked, sell, share moments, message their audience and get paid in Naira — and what you can do on it today.",
+    WHAT_IS_NOTESAPP,
   openGraph: { images: ["/images/marketing/notesapp-showcase.png"] },
 };
 
@@ -59,7 +60,10 @@ export default async function AboutPage() {
   return (
     <div>
       <PageHero eyebrow="About" title="Why #NotesApp exists" max="max-w-4xl">
-        <p>A home where African creators, professionals, coaches, consultants, therapists and businesses publish, build an audience and get paid in Naira.</p>
+        <p>{WHAT_IS_INTRO}</p>
+        <p>On #NotesApp you can:</p>
+        <ul className="list-disc space-y-1 pl-6 text-base">{WHAT_YOU_CAN_DO.map((x) => <li key={x}>{x}</li>)}</ul>
+        <p className="text-base">{WHAT_IS_FREE} {WHAT_IS_TIERS}</p>
       </PageHero>
     <div className="mx-auto max-w-4xl px-4 py-12 sm:px-6 lg:px-8">
       <div className="overflow-hidden rounded-xl2 border border-rule">
