@@ -1,8 +1,9 @@
 import type { Firestore } from "firebase-admin/firestore";
+const COMING_CITY_IDS = ["lagos", "port_harcourt"];
 import {
   CITY, DEALS, FOOD, FOOD_MODES, GAME_DAY_MS, GAME_HOUR_MS, HOTEL_OF, ITEM, JOB, MONTH_DAYS, NEGOTIATE_CHANCE, ORDER_MAX_ITEMS, RECIPE, RENT_NAIRA,
   SHIFT_MS, START_NAIRA, STARTER_ITEMS, TRANSPORT_OF, bestOwned, cookingSkill, fmtN, jobBlocker, netWorth, shiftPay, FUEL_NAIRA, RESIDENTS, nepaAt, type FoodMode,
-  OUTLET, OUTLET_AREAS, OUTLET_BACKUP, STAFF_PERKS, isStaff, outletBlocker, outletPrice, outletTakings, shiftExtra, type Outlet, type OutletArea,
+  swimSkill, OUTLET, OUTLET_AREAS, OUTLET_BACKUP, STAFF_PERKS, isStaff, outletBlocker, outletPrice, outletTakings, shiftExtra, type Outlet, type OutletArea,
 } from "./catalog";
 
 // Server-only. Notes Life money and ownership: lifePlayers/{uid} (the player, read by the owner, written only here) and lifeTx/{id}
@@ -16,7 +17,7 @@ export type Deal = { who: string; from: string; ask: string; cost: number; pay: 
 export type LifePlayer = {
   uid: string; username: string; name: string; avatar: string; city: string; startedAt: number;
   naira: number; owned: string[]; cooks: number; reputation: number; dealsDone: number; shifts: number; chefShifts: number; itelShifts: number; hotelShifts: number;
-  outlets: Outlet[];
+  outlets: Outlet[]; swimLessons: number; swims: number; gymSessions: number; cityNotify: string[];
   jobId: string | null; shift: { jobId: string; startedAt: number; endsAt: number; pay: number } | null;
   deal: Deal | null; lastDealAt: number; rentMonths: number; rentOwed: number; barberUntil: number; gymUntil: number;
   netWorth: number; updatedAt: number; createdAt: number;
@@ -41,6 +42,7 @@ function fromDoc(uid: string, d: FirebaseFirestore.DocumentData | undefined, pro
     startedAt: fresh ? now : num(d!.startedAt), naira: fresh ? START_NAIRA + num(d?.naira) : num(d!.naira), owned,
     cooks: num(d?.cooks), reputation: num(d?.reputation), dealsDone: num(d?.dealsDone), shifts: num(d?.shifts), chefShifts: num(d?.chefShifts),
     itelShifts: num(d?.itelShifts), hotelShifts: num(d?.hotelShifts), outlets: outletsOf(d?.outlets),
+    swimLessons: num(d?.swimLessons), swims: num(d?.swims), gymSessions: num(d?.gymSessions), cityNotify: Array.isArray(d?.cityNotify) ? (d!.cityNotify as string[]).filter((c) => COMING_CITY_IDS.includes(c)) : [],
     jobId: typeof d?.jobId === "string" ? d.jobId : null, shift: d?.shift ?? null, deal: d?.deal ?? null, lastDealAt: num(d?.lastDealAt, now),
     rentMonths: num(d?.rentMonths), rentOwed: num(d?.rentOwed), barberUntil: num(d?.barberUntil), gymUntil: num(d?.gymUntil),
     netWorth: 0, updatedAt: now, createdAt: fresh ? now : num(d?.createdAt, now),
@@ -57,7 +59,7 @@ function settleRent(p: LifePlayer, now: number, lines: Line[]) {
 }
 
 export function view(p: LifePlayer, now = Date.now()) {
-  return { ...p, cooking: cookingSkill(p.cooks), serverNow: now };
+  return { ...p, cooking: cookingSkill(p.cooks), swimming: swimSkill(p.swimLessons, p.swims), serverNow: now };
 }
 
 async function profileOf(db: Firestore, uid: string) {
@@ -112,7 +114,8 @@ export type Action =
   | { action: "fuel"; litres: number }
   | { action: "outlet_open"; outlet: string; area?: string }
   | { action: "outlet_collect"; outlet?: string }
-  | { action: "outlet_backup"; outlet: string };
+  | { action: "outlet_backup"; outlet: string }
+  | { action: "city_notify"; city: string };
 
 export async function act(db: Firestore, uid: string, a: Action, now = Date.now(), rand: () => number = Math.random) {
   return mutate(db, uid, (p, lines) => {
@@ -161,14 +164,16 @@ export async function act(db: Firestore, uid: string, a: Action, now = Date.now(
         const half = isStaff(p.jobId, "candellux") && STAFF_PERKS.hotelHalf.includes(h.id);
         debit(p, lines, half ? Math.round(h.price / 2) : h.price, `Candellux · ${h.name}${half ? " (staff, half price)" : ""}`, "hotel");
         if (h.boost === "barber") p.barberUntil = now + GAME_DAY_MS;
-        if (h.boost === "gym") p.gymUntil = now + GAME_DAY_MS;
+        if (h.boost === "gym") { p.gymUntil = now + GAME_DAY_MS; p.gymSessions += 1; }
+        if (h.id === "lesson") p.swimLessons += 1;
+        if (h.id === "pool") p.swims += 1;
         return { minutes: h.minutes, effect: h.effect, set: h.set ?? null, boost: h.boost ?? null };
       }
       case "job_apply": {
         const j = JOB(String(a.job));
         if (!j) throw new LifeError(400, "That job doesn't exist.");
         if (p.shift) throw new LifeError(409, "Finish your shift first.");
-        const block = jobBlocker(j, { owned: p.owned, cooking: cookingSkill(p.cooks), chefShifts: p.chefShifts, itelShifts: p.itelShifts, hotelShifts: p.hotelShifts, reputation: p.reputation, fit: p.gymUntil > now });
+        const block = jobBlocker(j, { owned: p.owned, cooking: cookingSkill(p.cooks), chefShifts: p.chefShifts, itelShifts: p.itelShifts, hotelShifts: p.hotelShifts, reputation: p.reputation, fit: p.gymUntil > now, swim: swimSkill(p.swimLessons, p.swims), gymSessions: p.gymSessions });
         if (block) throw new LifeError(403, block);
         p.jobId = j.id;
         return { message: `You're hired: ${j.title}, ${j.employer.split(" · ")[0]}.` };
@@ -285,6 +290,12 @@ export async function act(db: Firestore, uid: string, a: Action, now = Date.now(
         debit(p, lines, OUTLET_BACKUP.price, `Backup power: ${OUTLET(o.kind)!.short}`, "outlet");
         o.backup = true;
         return { message: "Backup power fitted: it sells through every blackout now.", total: takings };
+      }
+      case "city_notify": {
+        const c = String(a.city);
+        if (!COMING_CITY_IDS.includes(c)) throw new LifeError(400, "That city isn't coming yet.");
+        if (!p.cityNotify.includes(c)) p.cityNotify.push(c);
+        return { message: "We'll tell you when it opens." };
       }
       default:
         throw new LifeError(400, "Unknown action.");
