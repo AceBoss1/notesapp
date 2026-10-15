@@ -3,6 +3,13 @@ import { getUserByUsername } from "@/lib/users";
 import { OFFICIAL_NOTESAPP_PROFILE, NA_NOTESAPP_PROFILE } from "@/lib/journals-directory";
 import ProfilePageClient from "@/components/ProfilePageClient";
 
+// Rendered on the first visit to each address, then served from Vercel's cache and refreshed in the background
+// (see `revalidate`), instead of running a function on every view.
+export const revalidate = 300;
+export async function generateStaticParams() {
+  return [];
+}
+
 export async function generateMetadata({
   params,
 }: {

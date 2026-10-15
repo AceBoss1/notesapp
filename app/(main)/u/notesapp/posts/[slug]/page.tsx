@@ -4,6 +4,10 @@ import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import { NOTESAPP_POSTS } from "@/lib/notesapp-posts";
 
+export function generateStaticParams() {
+  return NOTESAPP_POSTS.map((p) => ({ slug: p.slug }));
+}
+
 export function generateMetadata({ params }: { params: { slug: string } }): Metadata {
   const post = NOTESAPP_POSTS.find((p) => p.slug === params.slug);
   if (!post) return { title: "Post Not Found" };

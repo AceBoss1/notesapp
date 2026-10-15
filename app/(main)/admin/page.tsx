@@ -152,7 +152,8 @@ export default function AdminDashboard() {
 
   // Per-note comment counts, fetched once notes are in — powers "Most
   // Commented" and feeds into the engagement rate calculation.
-  // Open reports on moments and conversations (the card below). Refreshed every minute while this page is open.
+  // Open reports on moments and conversations (the card below). Refreshed every 5 minutes while this tab is on screen, and when you
+  // come back to it; a tab left in the background doesn't call the server at all.
   useEffect(() => {
     if (!user || !hasDept(access, "moderation")) return;
     let live = true;
@@ -163,8 +164,10 @@ export default function AdminDashboard() {
       } catch { /* the card just stays blank */ }
     };
     get();
-    const t = setInterval(get, 60_000);
-    return () => { live = false; clearInterval(t); };
+    const t = setInterval(() => { if (document.visibilityState === "visible") get(); }, 300_000);
+    const onVisible = () => { if (document.visibilityState === "visible") get(); };
+    document.addEventListener("visibilitychange", onVisible);
+    return () => { live = false; clearInterval(t); document.removeEventListener("visibilitychange", onVisible); };
   }, [user, access]);
 
   useEffect(() => {

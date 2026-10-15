@@ -9,7 +9,7 @@ export const metadata: Metadata = {
   title: "Nana AI",
   description: "Meet Nana, #NotesApp's helper: ask her anything about the platform and get answers with links, get writing help for drafts, sharing and messages, and connect your own AI account.",
 };
-export const dynamic = "force-dynamic";
+export const revalidate = 3600; // static text; nanaConfigured() is checked again each hour
 
 const DOES = [
   { title: "Answers, with links", body: "Ask about plans and prices, payouts, bookings and refunds, selling, badges, organisations. She answers in plain words and links you to the right page. Her answers come from our help centre, which our team writes and keeps right." },

@@ -8,6 +8,10 @@ import { builtInArticles } from "@/lib/kb-articles";
 import { getArticles } from "@/lib/kb-server";
 
 export const revalidate = 60;
+// Each article is rendered on its first visit, then cached (see above).
+export async function generateStaticParams() {
+  return [];
+}
 
 const load = async (): Promise<KbArticle[]> => getArticles(getAdminDb()).catch(() => builtInArticles());
 
