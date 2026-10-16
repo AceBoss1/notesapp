@@ -33,7 +33,7 @@ const perks: [string, string, string][] = [
   ["🤖", "Residents who talk about you", "The game's residents mention your products in their chats: food tips, NEPA tips, work tips."],
 ];
 
-const partners: { name: string; logo: string; logoClass: string; shot: string; where: string; what: string[]; real: { href: string; label: string }[]; tone: string }[] = [
+const partners: { name: string; logo: string; logoClass: string; shot: string; where: string; what: string[]; real: { href: string; label: string }[]; tone: string; feature?: { bg: string; photo: string; person: string } }[] = [
   {
     name: "Chef Adams", logo: "/images/life/partners/chef-emblem.webp", logoClass: "h-14 w-14 object-contain", shot: "/images/life/shots/chef-desktop.webp", where: "Food · Wuse, Abuja", tone: "#292929",
     what: ["Delivery, takeaway and dine-in, with the real Chef Adams menu: rice, shawarma, pizza and Sum Ting Fresh smoothies", "Jobs: kiosk attendant, line cook, delivery rider, outlet supervisor", "Become a Partner: a Takeaway Kiosk from N$ 2.5m or a Mini Dine-In Shop from N$ 8.0m", "Billboards on the street"],
@@ -51,6 +51,7 @@ const partners: { name: string; logo: string; logoClass: string; shot: string; w
   },
   {
     name: "Digital Witch", logo: "/images/life/partners/digitalwitch-logo.webp", logoClass: "h-14 w-14 rounded-xl object-cover", shot: "/images/life/billboards/digitalwitch.webp", where: "EdTech · Skyscraper Plaza, CBD", tone: "#0b1442",
+    feature: { bg: "/images/life/partners/digitalwitch-hub.webp", photo: "/images/life/partners/cynthia-okeh-full.webp", person: "Ekwutosi Cynthia Okeh, founder of Digital Witch" },
     what: ["Ekwutosi Cynthia Okeh, the founder, is in the game as #1 on the Billionaires List: at the training hub by day and the Candellux VIP bar in the evening", "Courses at the Digital Witch hub: Virtual Assistant, Customer Support, Social Media, Project Management, Data Analysis, UI/UX", "Digital Witch certificates open the tech jobs, from remote virtual assistant to UI/UX designer", "Saturday-night giveaways of N$ 500,000 and N$ 1,000,000 for graduates doing well, and adverts at the Wuse bus stand"],
     real: [{ href: DIGITAL_WITCH.site, label: "digitalwitchng.com" }, { href: `https://wa.me/${DIGITAL_WITCH.whatsapp}?text=${encodeURIComponent("Hello Digital Witch, I'd like to learn a tech skill (I found you on Notes Life).")}`, label: `WhatsApp · ${DIGITAL_WITCH.whatsappLabel}` }],
   },
@@ -95,7 +96,21 @@ export default function LifePartnersPage() {
           <h2 id="ours" className="font-display text-3xl sm:text-4xl">Our partners</h2>
           <p className="mt-1 text-sm text-slate">Real businesses, in the game today. In-game prices are game prices; real orders and bookings are made with them directly.</p>
           <div className="mt-6 grid gap-6">
-            {partners.map((p) => (
+            {partners.map((p) => p.feature ? (
+              // A landscape card: the partner's place in the game behind, the text in white on their blue at the right, and
+              // the founder's picture floating right in it.
+              <article key={p.name} className="relative overflow-hidden rounded-3xl shadow-sm">
+                <Image src={p.feature.bg} alt={`${p.name} in Notes Life, the real game`} fill sizes="100vw" className="object-cover object-left" />
+                <div className="relative flex min-h-[30rem] flex-col justify-end pt-48 lg:flex-row lg:items-stretch lg:pt-0">
+                  <div className="p-6 text-white sm:p-8 lg:ml-auto lg:w-[58%] lg:rounded-l-[2rem]" style={{ background: `${p.tone}f2` }}>
+                    <Image src={p.feature.photo} alt={p.feature.person} width={600} height={600} className="float-right mb-3 ml-4 w-32 rounded-2xl border-4 border-white object-cover shadow-2xl sm:w-44 lg:-mt-2 lg:w-52 lg:rotate-2" />
+                    <div className="flex items-center gap-3"><Image src={p.logo} alt="" width={120} height={60} className={`${p.logoClass} ring-2 ring-white/30`} /><div><h3 className="font-ui text-xl font-extrabold">{p.name}</h3><p className="text-xs text-white/70">{p.where} · <span className="font-bold text-white">PARTNER</span></p></div></div>
+                    <ul className="mt-4 space-y-1.5 text-sm">{p.what.map((w) => <li key={w} className="flex gap-2"><span className="text-sky-300">✓</span><span>{w}</span></li>)}</ul>
+                    <div className="clear-both flex flex-wrap gap-2 pt-4">{p.real.map((r) => <a key={r.href} href={r.href} target="_blank" rel="noreferrer" className="rounded-full border border-white px-3 py-1.5 font-ui text-xs font-bold text-white hover:bg-white hover:text-ink">{r.label} ↗</a>)}</div>
+                  </div>
+                </div>
+              </article>
+            ) : (
               <article key={p.name} className="grid overflow-hidden rounded-3xl bg-white shadow-sm lg:grid-cols-[1fr,1.1fr]">
                 <div className="p-6 sm:p-8">
                   <div className="flex items-center gap-3"><Image src={p.logo} alt="" width={120} height={60} className={p.logoClass} /><div><h3 className="font-ui text-xl font-extrabold" style={{ color: p.tone }}>{p.name}</h3><p className="text-xs text-slate">{p.where} · <span className="font-bold">PARTNER</span></p></div></div>
