@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import ContactForm from "@/components/ContactForm";
 import { FacebookIcon, LinkedInIcon, MailIcon, NotesAppIcon } from "@/components/ContactIcons";
 import PageHero from "@/components/PageHero";
+import { ROOT_DOMAIN } from "@/lib/host";
 
 export const metadata: Metadata = {
   title: "Contact",
@@ -55,7 +56,7 @@ export default async function ContactPage() {
         <div>
           <p className="font-ui text-sm font-semibold text-ink">#NotesApp on #NotesApp</p>
           <a href="/u/na-notesapp" className="inline-flex items-center gap-2 text-crimson">
-            <NotesAppIcon /> notesapp.name.ng/u/na-notesapp
+            <NotesAppIcon /> {ROOT_DOMAIN}/u/na-notesapp
           </a>
         </div>
         {site.whatsapp && (

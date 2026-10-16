@@ -20,6 +20,7 @@ import { getSiteSettingsCached } from "@/lib/settings";
 import { COMPANY_INFO } from "@/lib/site";
 import { FacebookIcon, LinkedInIcon, MailIcon, NotesAppIcon } from "@/components/ContactIcons";
 import PartnerIcon from "@/components/PartnerIcon";
+import { ROOT_DOMAIN } from "@/lib/host";
 
 const NAV = [
   { href: "/journals", label: "Journals" },
@@ -203,7 +204,7 @@ const site = await getSiteSettingsCached();
                 )}
                 <li>
                   <Link href="/u/na-notesapp" className="inline-flex items-center gap-2 hover:text-paper">
-                    <NotesAppIcon /> notesapp.name.ng/u/na-notesapp
+                    <NotesAppIcon /> {ROOT_DOMAIN}/u/na-notesapp
                   </Link>
                 </li>
                 {social.filter((l) => !["LinkedIn", "Facebook"].includes(l.label)).map((l) => (

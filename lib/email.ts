@@ -1,5 +1,6 @@
 import { getAdminDb } from "./firebase-admin";
 import type { NotificationType } from "./notifications";
+import { SITE_URL } from "@/lib/host";
 
 // Server-only transactional email via Resend's HTTP API (no SDK needed).
 // Without RESEND_API_KEY this logs and no-ops, so booking/payment
@@ -50,7 +51,7 @@ export async function notifyBell(note: BellNote & { message: string }): Promise<
 export type EmailBrand = { name: string; logoUrl: string; siteUrl: string };
 
 export function renderEmailHtml(text: string, action?: EmailAction, brand?: EmailBrand): string {
-  const site = (brand?.siteUrl || process.env.NEXT_PUBLIC_SITE_URL || "https://www.notesapp.name.ng").replace(/\/$/, "");
+  const site = (brand?.siteUrl || SITE_URL).replace(/\/$/, "");
   // The footer carries the #NotesApp sign-off, so drop a trailing one from the body.
   const body = text.replace(/\s*#NotesApp\s*$/, "").trim();
   const paragraphs = body

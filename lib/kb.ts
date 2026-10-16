@@ -1,3 +1,4 @@
+import { KNOWN_ROOTS } from "@/lib/host";
 // The #NotesApp knowledge base: help articles that the public Help centre shows and Nana AI answers from. Pure and client-safe.
 // Built-in articles live in lib/kb-articles.ts (they read the real prices and limits from code, so they cannot drift); staff add or
 // override articles at Admin → Help & Nana, stored in Firestore (lib/kb-server.ts).
@@ -53,7 +54,7 @@ export function cleanArticle(input: { slug?: unknown; title?: unknown; category?
 
 // ---- links
 // Where a link may point: our own pages (a path starting with a single slash), or an https address on one of our hosts.
-const OWN_HOSTS = ["notesapp.name.ng", "www.notesapp.name.ng", "notesapp.ng", "www.notesapp.ng", "app.notesapp.name.ng"];
+const OWN_HOSTS = [...KNOWN_ROOTS.flatMap((r) => [r, `www.${r}`, `app.${r}`]), "notesapp.ng", "www.notesapp.ng"];
 export function safeHref(href: string): string | null {
   const h = href.trim();
   if (/^\/(?!\/)[A-Za-z0-9\-._~/%?=&#]*$/.test(h)) return h;

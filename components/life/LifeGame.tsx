@@ -17,6 +17,7 @@ import VipPano from "./VipPano";
 const SUITE_LABEL = "In your Imperial Suite";
 import FriendChat, { type ChatFriend } from "./FriendChat";
 import { Sound, loadSoundPrefs, saveSoundPrefs, type Ambience, type Sfx, type SoundPrefs } from "./sound";
+import { SITE_URL, APP_URL } from "@/lib/host";
 
 type Player = LifePlayer & { cooking: number; swimming: number; serverNow: number };
 type Panel =
@@ -29,7 +30,7 @@ type RichRow = { rank: number; uid: string; username: string; name: string; avat
 type RichData = { rows: RichRow[]; me: { rank: number | null; realRank?: number | null; netWorth: number } | null };
 
 const OUTFITS = ["#f59e0b", "#e53935", "#2563eb", "#16a34a", "#7c3aed", "#0f766e", "#111827", "#f472b6"];
-const NOTESAPP_HOME = "https://app.notesapp.name.ng/journals"; // "Back to NotesApp": the app's journal feed
+const NOTESAPP_HOME = `${APP_URL}/journals`; // "Back to NotesApp": the app's journal feed
 const WA = (text: string, phone?: string) => `https://wa.me/${phone ?? ""}?text=${encodeURIComponent(text)}`;
 const ngPhone = (tel: string) => { const d = tel.replace(/\D/g, ""); return d.startsWith("0") && d.length === 11 ? `234${d.slice(1)}` : d; };
 
@@ -530,7 +531,7 @@ export default function LifeGame() {
       if (key === "tower") return { label: "🏙 Skyscraper Plaza · CBD", go: () => setPanel("dw") };
       if (key === "fountain") return { label: "⛲ Plaza", go: () => say("The Skyscraper Plaza fountain. Learners meet here between classes.") };
     }
-    if (key === "bb:challenge") return { label: "📣 #1MillionNairaNotesAppChallenge", up: true, go: () => { window.open("https://www.notesapp.name.ng/challenge", "_blank"); } };
+    if (key === "bb:challenge") return { label: "📣 #1MillionNairaNotesAppChallenge", up: true, go: () => { window.open(`${SITE_URL}/challenge`, "_blank"); } };
     if (key === "bb:itel" || key === "bb:itel2") return { label: "⚡ itel Energy · Go solar", go: () => setPanel("itel") };
     if (key.startsWith("bb:chef")) return { label: ({ "bb:chef2": "🌯 Shawarma · Order now", "bb:chef3": "🍕 Chef Adams pizza", "bb:chef4": "🍌 Sum Ting Fresh" } as Record<string, string>)[key] ?? "🍽 Chef Adams · Order now", go: () => setPanel("food") };
     if (key.startsWith("mine:")) { const t = C.OUTLET(key.slice(5)); const o = player.outlets.find((x) => x.kind === t?.id); return t && o ? { label: `${t.icon} Your ${t.short} · ${C.fmtShort(C.outletTakings(o, Date.now() + offset.current).takings)}`, up: true, go: () => setPanel({ outlet: t.id }) } : null; }

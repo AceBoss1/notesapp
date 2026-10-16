@@ -4,6 +4,7 @@ import { createHash, randomBytes, timingSafeEqual } from "crypto";
 import { NextRequest, NextResponse } from "next/server";
 import { getAdminDb } from "./firebase-admin";
 import { rateLimit } from "./rate-limit";
+import { SITE_URL } from "@/lib/host";
 
 // API keys for Enterprise server-to-server access. A key looks like `nak_<id>.<secret>`; only a SHA-256 of
 // the secret is stored (`apiKeys/{id}`, server-only), so a leaked database can't be replayed. The secret is
@@ -52,7 +53,7 @@ export async function authenticateApiKey(req: NextRequest, scope: ApiScope | "an
   if (limited) return { fail: NextResponse.json({ error: { code: "rate_limited", message: "Too many requests — slow down." } }, { status: 429, headers: { "Retry-After": limited.headers.get("Retry-After") || "30" } }) };
   const user = (await db.doc(`users/${key.uid}`).get()).data();
   if (!user || user.suspended) return fail({ status: 403, code: "account_unavailable", message: "This account can't use the API right now." });
-  if (user.apiAccess !== true || !getTierConfig(effectiveTier(user as never)).apiAccess) return fail({ status: 403, code: "api_not_enabled", message: "API access isn't enabled for this account. Request it at https://www.notesapp.name.ng/contact?topic=api." });
+  if (user.apiAccess !== true || !getTierConfig(effectiveTier(user as never)).apiAccess) return fail({ status: 403, code: "api_not_enabled", message: `API access isn't enabled for this account. Request it at ${SITE_URL}/contact?topic=api.` });
   if (scope !== "any" && !key.scopes.includes(scope)) return fail({ status: 403, code: "missing_scope", message: `This key doesn't have the \`${scope}\` scope.` });
   if (!key.lastUsedAt || Date.now() - new Date(key.lastUsedAt).getTime() > 60_000) {
     snap.ref.update({ lastUsedAt: new Date().toISOString() }).catch(() => {});

@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { friendlyMessage } from "./api-errors";
 import { ApiAuth, ApiScope, apiError, authenticateApiKey } from "./api-keys";
+import { SITE_URL as MAIN_SITE_URL } from "@/lib/host";
 
-export const SITE_URL = () => (process.env.NEXT_PUBLIC_SITE_URL || "https://www.notesapp.name.ng").replace(/\/$/, "");
+export const SITE_URL = () => MAIN_SITE_URL;
 
 type Ctx = { params: Record<string, string> };
 type Handler = (req: NextRequest, auth: ApiAuth, ctx: Ctx) => Promise<NextResponse>;

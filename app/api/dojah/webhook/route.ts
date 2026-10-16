@@ -2,9 +2,10 @@ import { NextRequest, NextResponse } from "next/server";
 import { getAdminDb, getUserEmail } from "@/lib/firebase-admin";
 import { sendEmail } from "@/lib/email";
 import { summarizeDojahEvent, verifyDojahSignature } from "@/lib/dojah";
+import { SITE_URL } from "@/lib/host";
 
 export const dynamic = "force-dynamic";
-const site = () => process.env.NEXT_PUBLIC_SITE_URL || "https://www.notesapp.name.ng";
+const site = () => SITE_URL;
 
 // Dojah → us: the result of a hosted identity check (kyc_widget). We verify the signature on
 // the RAW body, find the application from reference_id (we launch the widget with `na_<uid>`),

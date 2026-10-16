@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import PageHero from "@/components/PageHero";
+import { CONTACT_EMAIL } from "@/lib/host";
 
 type Service = { id: string; name: string; description: string; state: "operational" | "degraded" | "down" | "not_configured"; latencyMs?: number };
 type Incident = { id: string; startedAt: string; resolvedAt: string | null; services: string[]; worst: "degraded" | "down" };
@@ -148,7 +149,7 @@ export default function StatusPage() {
           </ul>
           <p className="mt-4 text-xs text-slate">
             Live checks, refreshed every minute · last checked {new Date(data.checkedAt).toLocaleTimeString("en-NG", { hour: "numeric", minute: "2-digit", hour12: true })}.
-            Problems? Email hello@notesapp.name.ng.
+            Problems? Email {CONTACT_EMAIL}.
           </p>
 
           <h2 className="mt-12 font-display text-2xl text-ink">Recent response times</h2>

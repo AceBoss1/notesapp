@@ -5,6 +5,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useDevice } from "@/lib/use-device";
 import { isMobile, type BrowserName, type Device } from "@/lib/visitor-device";
+import { APP_HOST } from "@/lib/host";
 
 // Chrome's install prompt, when it offers one (Android, and Chrome or Edge on a computer).
 type InstallPrompt = Event & { prompt: () => Promise<void>; userChoice: Promise<{ outcome: "accepted" | "dismissed" }> };
@@ -74,7 +75,7 @@ export default function InstallGuide() {
   const [prompt, setPrompt] = useState<InstallPrompt | null>(null);
   const [installed, setInstalled] = useState(false);
   const [copied, setCopied] = useState(false);
-  const [address, setAddress] = useState("app.notesapp.name.ng");
+  const [address, setAddress] = useState(APP_HOST);
 
   useEffect(() => { if (device) setTab(tabOf(device)); }, [device]);
   useEffect(() => {

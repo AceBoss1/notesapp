@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { onAuthStateChanged, User } from "firebase/auth";
 import { auth } from "@/lib/firebase";
+import { ROOT_DOMAIN, MAIN_HOST } from "@/lib/host";
 
 // The Console: API keys, webhooks and your own domain. Keys and webhooks are switched on per account by our team
 // (Enterprise); the domain section needs a plan that includes your own domain (Business and Enterprise).
@@ -215,7 +216,7 @@ export default function ConsolePage() {
       {/* ---------------- Domain ---------------- */}
       <h2 className="mt-12 font-display text-2xl text-ink">Your own domain</h2>
       {!access.domainAllowed ? (
-        <Locked>A branded site on your own domain (Home, Notes and Shop) is a Business and Enterprise feature. Until then your page lives at <span className="font-mono">notesapp.name.ng/u/{access.username}</span>. See <Link href="/pricing" className="text-crimson underline">Pricing</Link>.</Locked>
+        <Locked>A branded site on your own domain (Home, Notes and Shop) is a Business and Enterprise feature. Until then your page lives at <span className="font-mono">{ROOT_DOMAIN}/u/{access.username}</span>. See <Link href="/pricing" className="text-crimson underline">Pricing</Link>.</Locked>
       ) : !domain ? (
         <form className="card mt-4 p-5" onSubmit={(e) => { e.preventDefault(); act(async () => { await call(user, "/api/console/domain", { method: "POST", body: JSON.stringify({ host }) }); setHost(""); }, "Domain added — now add the DNS records below."); }}>
           <label className="text-xs text-slate">Domain<input value={host} onChange={(e) => setHost(e.target.value)} placeholder="notes.yourbrand.com  or  yourbrand.com" className={`${field} font-mono`} /></label>
@@ -256,7 +257,7 @@ export default function ConsolePage() {
               <option value="store">Profile, then my shop first</option>
             </select>
           </label>
-          <p className="mt-3 text-xs text-slate">Visitors browse your page, journals and store here. Signing in and paying happen securely on www.notesapp.name.ng, and they&apos;re sent back to your store afterwards.</p>
+          <p className="mt-3 text-xs text-slate">Visitors browse your page, journals and store here. Signing in and paying happen securely on {MAIN_HOST}, and they&apos;re sent back to your store afterwards.</p>
           <button disabled={busy} className="mt-4 text-xs text-crimson underline" onClick={() => confirm(`Remove ${domain.host}?`) && act(() => call(user, "/api/console/domain", { method: "DELETE" }), "Domain removed.")}>Remove domain</button>
         </div>
       )}

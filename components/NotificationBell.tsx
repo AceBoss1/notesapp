@@ -35,6 +35,7 @@ const ICON: Record<NotificationType, string> = {
   team: "📋",
   review: "★",
   recommendation: "💬",
+  mention: "@",
 };
 
 function timeAgo(iso: string): string {

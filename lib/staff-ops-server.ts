@@ -8,6 +8,7 @@ import {
   FILE_MAX_BYTES, MAX_FILES, StaffOpsError, canEditDocs, canOpenAttachments, canSeeDoc, canSeeMessage, checkFile, cleanDoc, cleanMessage, extOf, FILE_TYPES,
   type DocInput, type HubInput, type HubMessage, type StaffDoc, type StaffFile,
 } from "./staff-ops";
+import { SITE_URL } from "@/lib/host";
 
 // Server side of the staff library (staffDocs) and the message hub (hubMessages). Both are server-only collections; only signed-in staff reach
 // them, through /api/admin/staff-library and /api/admin/hub. Files live in the private bucket (staff/<doc id>/..., hub/<message id>/...).
@@ -229,7 +230,7 @@ export async function sendMessage(db: Firestore, me: Me, id: string, input: HubI
       if (!p?.email) continue;
       const ccNote = clean.cc.includes(uid) && attachments.length ? "\n\nAttachments went to the people in To; ask the sender if you need them." : "";
       const fileNote = attachments.length && !clean.cc.includes(uid) ? `\n\n${attachments.length} file${attachments.length === 1 ? " is" : "s are"} attached in the message hub.` : "";
-      const ok = await sendEmail({ to: p.email, subject: clean.subject, text: `From ${me.name}:\n\n${clean.body}${fileNote}${ccNote}`, action: { label: "Open the message hub", url: "https://www.notesapp.name.ng/admin/team/messages" } }).catch(() => false);
+      const ok = await sendEmail({ to: p.email, subject: clean.subject, text: `From ${me.name}:\n\n${clean.body}${fileNote}${ccNote}`, action: { label: "Open the message hub", url: `${SITE_URL}/admin/team/messages` } }).catch(() => false);
       if (ok) emailed++;
     }
     await ref.update({ emailed });

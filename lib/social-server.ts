@@ -1,7 +1,7 @@
 import type { Firestore } from "firebase-admin/firestore";
 import { createHash, randomBytes } from "crypto";
 import { accountCryptoConfigured, decryptSecret, encryptSecret } from "./account-crypto";
-import { MAIN_HOST, isMainHost } from "./host";
+import { MAIN_HOST, isMainHost, SITE_URL } from "./host";
 import { postOgImage } from "./og";
 import { LINKEDIN_LIMIT, X_LIMIT, clipWords, escapeLinkedIn, linkedinText, plainText, xText, xWeight, type PostSource } from "./social-text";
 
@@ -24,7 +24,7 @@ export class SocialError extends Error {
 export type Deps = { fetch: typeof fetch; now: () => Date };
 const realDeps = (): Deps => ({ fetch: (...a) => fetch(...a), now: () => new Date() });
 
-const site = () => (process.env.NEXT_PUBLIC_SITE_URL || `https://${MAIN_HOST}`).replace(/\/$/, "");
+const site = () => SITE_URL;
 const env = (k: string) => (process.env[k] ?? "").trim();
 const cfg = (p: Provider) => p === "linkedin"
   ? { id: env("LINKEDIN_CLIENT_ID"), secret: env("LINKEDIN_CLIENT_SECRET") }

@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { useAdminAuth } from "@/lib/useAdminAuth";
+import { SITE_URL } from "@/lib/host";
 
 type Diag = { configured: boolean; mode: string; webhookKeySet: boolean; encryptionKeySet: boolean; ok: boolean; httpStatus: number; summary: string; body: string };
 type Ev = { id: string; event: string; status: string; amount: string; trx: string; reference: string; receivedAt: string; handled: boolean };
@@ -109,7 +110,7 @@ export default function AdminPaylonyPage() {
       {out && <pre className="mt-3 max-h-80 overflow-auto bg-card p-2 font-mono text-[11px] text-slate">{out}</pre>}
 
       <h2 className="mt-10 font-display text-2xl">Webhook</h2>
-      <p className="mt-2 text-sm text-slate">Give Paylony this webhook address: <code>https://www.notesapp.name.ng/api/paylony/webhook</code>, with the webhook key set in Vercel as PAYLONY_WEBHOOK_KEY. Events arrive for money paid into a virtual account and for payouts that change state.</p>
+      <p className="mt-2 text-sm text-slate">Give Paylony this webhook address: <code>{SITE_URL}/api/paylony/webhook</code>, with the webhook key set in Vercel as PAYLONY_WEBHOOK_KEY. Events arrive for money paid into a virtual account and for payouts that change state.</p>
       {events.length === 0 ? <p className="mt-3 text-sm text-slate">No events received yet.</p> : (
         <ul className="card mt-3 divide-y divide-rule text-sm">
           {events.map((e) => (

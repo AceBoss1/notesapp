@@ -1,16 +1,17 @@
 import type { Metadata } from "next";
 import Image from "next/image";
 import { CANDELLUX, DIGITAL_WITCH, ITEL, REAL_PARTNER } from "@/lib/life/catalog";
+import { SITE_URL, LIFE_URL } from "@/lib/host";
 
 export const metadata: Metadata = {
   title: "Partner with Notes Life",
   description: "Put your brand in Notes Life, the free NotesApp life game: your own place in Notesville, jobs, outlets players can own, billboards and links to your real shop. Meet our partners: Chef Adams, itel Energy, Candellux Imperial and Digital Witch.",
-  alternates: { canonical: "https://life.notesapp.name.ng/partners" },
+  alternates: { canonical: `${LIFE_URL}/partners` },
   openGraph: { title: "Partner with Notes Life", description: "Your brand, in the game players live in.", images: ["/images/life/shots/chef-desktop.webp"] },
 };
 
-const PLAY = "https://www.notesapp.name.ng/life/play";
-const HOME = "https://life.notesapp.name.ng";
+const PLAY = `${SITE_URL}/life/play`;
+const HOME = LIFE_URL;
 // The main site's contact form, opened on the Partnership topic with a starter message the business fills in before sending.
 const STARTER = `Hello NotesApp team,
 
@@ -22,7 +23,7 @@ City:
 What we'd like in the game (a shop or place, jobs, outlets players can own, billboards):
 Phone or WhatsApp:
 `;
-const CONTACT = `https://www.notesapp.name.ng/contact?topic=partnership&message=${encodeURIComponent(STARTER)}`;
+const CONTACT = `${SITE_URL}/contact?topic=partnership&message=${encodeURIComponent(STARTER)}`;
 
 const perks: [string, string, string][] = [
   ["🏪", "Your place in Notesville", "A shop, restaurant or hotel in the game, built in your colours with your logo and real products or services."],
@@ -37,7 +38,7 @@ const partners: { name: string; logo: string; logoClass: string; shot: string; w
   {
     name: "Chef Adams", logo: "/images/life/partners/chef-emblem.webp", logoClass: "h-14 w-14 object-contain", shot: "/images/life/shots/chef-desktop.webp", where: "Food · Wuse, Abuja", tone: "#292929",
     what: ["Delivery, takeaway and dine-in, with the real Chef Adams menu: rice, shawarma, pizza and Sum Ting Fresh smoothies", "Jobs: kiosk attendant, line cook, delivery rider, outlet supervisor", "Become a Partner: a Takeaway Kiosk from N$ 2.5m or a Mini Dine-In Shop from N$ 8.0m", "Billboards on the street"],
-    real: [{ href: "https://www.notesapp.name.ng/u/chef_adams", label: "@chef_adams on NotesApp" }, { href: REAL_PARTNER.chef_adams, label: "Own a Chef Adams franchise" }],
+    real: [{ href: `${SITE_URL}/u/chef_adams`, label: "@chef_adams on NotesApp" }, { href: REAL_PARTNER.chef_adams, label: "Own a Chef Adams franchise" }],
   },
   {
     name: "itel Energy", logo: "/images/life/partners/itel-logo.svg", logoClass: "h-12 w-auto", shot: "/images/life/shots/itel-desktop.webp", where: "Solar and power · Wuse market road", tone: "#FF073C",

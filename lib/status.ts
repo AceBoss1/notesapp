@@ -12,6 +12,7 @@ import { whogohostConfigured, wgCredits } from "./whogohost";
 import { PROVIDERS, providerConfigured } from "./social-server";
 import { nanaConfigured } from "./nana-config";
 import { cloudflareTurn, cloudflareTurnConfigured } from "./calls-server";
+import { SITE_URL } from "@/lib/host";
 
 // Server-only service health checks behind /status. Reports only
 // up/slow/down + latency — never error details or config.
@@ -115,7 +116,7 @@ export async function checkServices(): Promise<ServiceStatus[]> {
   );
 
   // The Enterprise API answers (a request without a key is refused with 401, which proves the route is up).
-  const site = (process.env.NEXT_PUBLIC_SITE_URL || "https://www.notesapp.name.ng").replace(/\/$/, "");
+  const site = SITE_URL;
   checks.push(
     timed(reachable(`${site}/api/v1/me`)).then((r) => toStatus("api", "Developer API", "Enterprise API, Console and webhooks", r))
   );

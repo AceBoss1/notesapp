@@ -7,6 +7,7 @@ import { PAYOUT_HOLD_HOURS } from "@/lib/cancellation";
 import { formatSlot, sessionEnd } from "@/lib/booking-time";
 import { rateLimit } from "@/lib/rate-limit";
 import type { LedgerEntry } from "@/lib/payments";
+import { CONTACT_EMAIL } from "@/lib/host";
 
 export const dynamic = "force-dynamic";
 
@@ -48,7 +49,7 @@ export async function POST(req: NextRequest) {
 
     const when = `${b.date} at ${formatSlot(b.slot)} (WAT)`;
     const pubEmail = await getUserEmail(b.publisherUid);
-    const support = process.env.SUPPORT_EMAIL || "hello@notesapp.name.ng";
+    const support = process.env.SUPPORT_EMAIL || CONTACT_EMAIL;
     await Promise.all([
       sendEmail({ to: support, subject: `Session problem reported — ${reference}`, text: `A client reported a problem with the session on ${when} (@${b.username}):\n"${reason}"\n\nThe payout is frozen; resolve it on /admin/payments (release or refund).\nReference: ${reference}` }),
       sendEmail({ to: b.clientEmail, bell: { uid: user.uid, type: "booking", linkHref: "/bookings" }, subject: "We got your report", text: `Thanks — we've paused the publisher's payout for the session on ${when} and will review what you reported. We'll email you with the outcome.\nReference: ${reference}\n\n#NotesApp` }),

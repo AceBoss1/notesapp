@@ -1,16 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
-import { MAIN_HOST, isMainHost, isAppHost, isLifeHost } from "@/lib/host";
+import { MAIN_HOST, isMainHost, isAppHost, isLifeHost, movedHost, rootTarget } from "@/lib/host";
 
 // Custom domains (Enterprise). On our own hosts this does nothing. On a member's domain it serves their branded site
 // (app/(site)/s/[username]: header with their name, Home, Notes, Shop, "Powered by #NotesApp" footer) and sends everything
-// else — sign-in, checkout, bookings, settings, other people's pages — to www.notesapp.name.ng, where those must happen.
+// else — sign-in, checkout, bookings, settings, other people's pages — to the main site (MAIN_HOST), where those must happen.
 //   /                     → Home (profile header, booking, then the shop and notes, in the order of their front-page setting)
 //   /notes, /notes/<slug> → their notes          (/journals/… is an alias)
 //   /shop, /shop/<id>     → their shop           (/store and /u/<username>/store are aliases)
 //   /terms, /privacy      → their own legal pages, with a "powered by #NotesApp" block
 //   /login, /signup       → Enterprise: a branded sign-in / sign-up window on their domain; Business: the main-site page, then back here
 // A note or item that isn't theirs is sent to the main site instead.
-type Resolved = { found: boolean; uid?: string; username?: string; home?: "profile" | "store"; owned?: boolean; full?: boolean };
+type Resolved = { found: boolean; known?: boolean; answered?: boolean; uid?: string; username?: string; home?: "profile" | "store"; owned?: boolean; full?: boolean };
 const cache = new Map<string, { at: number; v: Resolved }>();
 const TTL_MS = 60_000;
 const MISS_TTL_MS = 5_000; // a domain that was just activated shouldn't stay "not connected" for a minute
@@ -22,7 +22,7 @@ async function resolve(host: string, check?: string): Promise<Resolved> {
   let v: Resolved = { found: false };
   try {
     const res = await fetch(`https://${MAIN_HOST}/api/public/domain-resolve?host=${encodeURIComponent(host)}${check ? `&check=${encodeURIComponent(check)}` : ""}`, { cache: "no-store" });
-    if (res.ok) v = await res.json();
+    if (res.ok) v = { ...(await res.json()), answered: true };
   } catch {
     /* fall through: treated as not found for this minute */
   }
@@ -32,13 +32,18 @@ async function resolve(host: string, check?: string): Promise<Resolved> {
 }
 
 const PASS = /^\/(_next\/|favicon|robots\.txt|sitemap|images\/|fonts\/|api\/(views|trending|boosts|ads|public|status|consent|booking\/slots|auth\/branded|paystack\/(initialize|verify))\b)/;
-// Pages the app domain doesn't carry: it sends them to www.notesapp.name.ng. (Explore, Help, Terms and Privacy stay on the app domain.)
+// Pages the app domain doesn't carry: it sends them to the main site (MAIN_HOST). (Explore, Help, Terms and Privacy stay on the app domain.)
 const APP_TO_MAIN = /^\/(about|pricing|roadmap|status|docs|changelog|security|brand|challenge|advertise|domains|organisations|store-selling|merchstore|contact|coauthoring|gifts|boost|badges|track)(\/|$)/;
 const PUBLIC_FILE = /\.[a-z0-9]{2,5}$/i;
 
 export async function middleware(req: NextRequest) {
   const host = (req.headers.get("host") || "").toLowerCase().replace(/:\d+$/, "");
-  // life.notesapp.name.ng: the Notes Life page at its root (an invite's ?ref= kept); /play opens the game on the main site, where the
+  // One of our other domains (the site lives on NEXT_PUBLIC_ROOT_DOMAIN, lib/host.ts): every page goes to the same page and
+  // subdomain on the root, permanently. /api/* stays served here, so webhooks and OAuth callbacks registered with the old
+  // address keep working until each provider is updated (docs/DOMAIN_SWITCH.md).
+  const moved = host ? movedHost(host) : null;
+  if (moved && !req.nextUrl.pathname.startsWith("/api/")) return NextResponse.redirect(`https://${moved}${req.nextUrl.pathname}${req.nextUrl.search}`, 308);
+  // life.<root>: the Notes Life page at its root (an invite's ?ref= kept); /play opens the game on the main site, where the
   // NotesApp sign-in lives; its pictures and the app's own files load as usual; anything else goes to the main site.
   if (host && isLifeHost(host)) {
     const { pathname, search } = req.nextUrl;
@@ -71,6 +76,12 @@ export async function middleware(req: NextRequest) {
   if (PASS.test(pathname) || PUBLIC_FILE.test(pathname)) return NextResponse.next();
 
   const d = await resolve(host);
+  // A domain no member has added is one of ours, added to Vercel: its pages go to the same page on the root (lib/host.ts).
+  // Only when the lookup really answered, so a slow lookup never sends a member's visitors away.
+  if (!d.found && d.answered && !d.known) {
+    const target = rootTarget(host);
+    if (target) return NextResponse.redirect(`https://${target}${pathname}${search}`, 308);
+  }
   if (!d.found || !d.username) return new NextResponse("This domain isn't connected to a #NotesApp account.", { status: 404 });
 
   const headers = new Headers(req.headers);

@@ -1,3 +1,4 @@
+import { SITE_URL, CONTACT_EMAIL } from "@/lib/host";
 // Company-level identity — distinct from the two founders' personal
 // social links in lib/admin.ts. Central place so the domain/handles
 // only need updating in one spot.
@@ -22,8 +23,8 @@ export const PARTNER_ICONS = {
 };
 
 export const SITE = {
-  url: "https://www.notesapp.name.ng",
-  email: "hello@notesapp.name.ng",
+  url: SITE_URL,
+  email: CONTACT_EMAIL,
   linkedin: "https://www.linkedin.com/company/na-notesapp",
   facebook: "https://web.facebook.com/na-notesapp",
 };

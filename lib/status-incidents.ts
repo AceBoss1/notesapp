@@ -2,6 +2,7 @@ import { createHash, randomBytes } from "crypto";
 import { getAdminDb } from "./firebase-admin";
 import { sendEmail } from "./email";
 import type { ServiceStatus } from "./status";
+import { SITE_URL } from "@/lib/host";
 
 // Incident history + email subscribers for /status. An incident opens after two consecutive bad
 // checks (so one slow request doesn't count) and resolves on the first clean check. State lives in
@@ -10,7 +11,7 @@ import type { ServiceStatus } from "./status";
 // from the first check after deploy.
 export type Incident = { id: string; startedAt: string; resolvedAt: string | null; services: string[]; worst: "degraded" | "down" };
 
-const SITE = () => (process.env.NEXT_PUBLIC_SITE_URL || "https://www.notesapp.name.ng").replace(/\/$/, "");
+const SITE = () => SITE_URL;
 const MAX_EMAILS = 500;
 
 export const subscriberId = (email: string) => createHash("sha1").update(email.trim().toLowerCase()).digest("hex").slice(0, 24);

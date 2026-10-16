@@ -66,7 +66,9 @@ investor data room, runway calculator, CAC and MRR calculator, burn and revenue 
 | `CLOUDFLARE_STREAM_TOKEN` | no | Cloudflare API token with **Stream: Edit** — video lessons of view-only items and courses (uploaded with signed-URL protection; the account id is `R2_ACCOUNT_ID` unless `CLOUDFLARE_ACCOUNT_ID` is set). Without it, only PDF lessons work |
 | `R2_PRIVATE_BUCKET` | no | Name of the private bucket for paid downloads (just a name, a plain variable) |
 | `PAYSTACK_SECRET_KEY` | **yes** | Paystack API key (also verifies webhook signatures) |
-| `NEXT_PUBLIC_SITE_URL` | no | `https://www.notesapp.name.ng` (emails, API URLs, share links) |
+| `NEXT_PUBLIC_ROOT_DOMAIN` | no | **The site's address, the only setting for it** (`lib/host.ts`): `notesapp.name.ng` when unset, `notesapp.tech` after the move. Every subdomain of it is ours (`app.`, `life.`, `mcp.`, any new one); every other domain on the Vercel project redirects to the same page and subdomain on it (members' own domains excepted). Follow `docs/DOMAIN_SWITCH.md` before changing it |
+| `NEXT_PUBLIC_SITE_URL` | no | Only for local development and previews (`localhost`, `*.vercel.app`); ignored on the live site, which always uses `https://www.<root>` |
+| `NEXT_PUBLIC_CONTACT_EMAIL` | no | Public contact address (footer, legal pages, status). Default `hello@notesapp.name.ng`; change it once mail works on the new domain |
 | `ANTHROPIC_API_KEY` | no | Anthropic API key (Sensitive) that switches Nana's AI on for everyone. Without it Nana answers from the help centre and members can connect their own key; optional `NANA_MODEL`, `NANA_DAILY_LIMIT`, `NANA_CHAT_PER_USER_DAILY`, `NANA_ASSIST_DAILY` |
 | `RESEND_API_KEY` | **yes** | Resend key; without it emails are skipped |
 | `EMAIL_FROM`, `SUPPORT_EMAIL` | no | Sender (`#NotesApp <…>`) and where support/error alerts go (default hello@notesapp.name.ng) |

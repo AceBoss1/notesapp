@@ -15,6 +15,7 @@ import {
   limit as fsLimit,
 } from "firebase/firestore";
 import { db } from "./firebase";
+import { api } from "./moments-client";
 
 function noteRef(noteId: string) {
   return doc(db, "notes", noteId);
@@ -124,7 +125,7 @@ export async function addComment(
   content: string,
   parentCommentId: string | null = null
 ): Promise<void> {
-  await addDoc(collection(db, "notes", noteId, "comments"), {
+  const ref = await addDoc(collection(db, "notes", noteId, "comments"), {
     authorUid: author.uid,
     authorUsername: author.username,
     authorDisplayName: author.displayName,
@@ -137,6 +138,8 @@ export async function addComment(
     parentCommentId,
     likeCount: 0,
   });
+  // People @mentioned in it get a bell (the server reads the saved comment; never for chats).
+  if (content.includes("@")) api("/api/notify/mentions", { body: { kind: "comment", noteId, commentId: ref.id } }).catch(() => {});
 }
 
 export async function deleteComment(

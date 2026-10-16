@@ -1,3 +1,4 @@
+import { SITE_URL } from "@/lib/host";
 // Single source for the /docs endpoint reference — the page renders straight from this, so docs and the
 // routes under app/api/v1 are edited together.
 export type Endpoint = {
@@ -14,7 +15,7 @@ export const ENDPOINTS: Endpoint[] = [
   {
     id: "me", method: "GET", path: "/v1/me", scope: "any key", summary: "The account a key belongs to — a quick way to test your key.",
     example: `{ "id": "uid_123", "username": "precheks", "display_name": "Precheks", "plan": "enterprise",
-  "profile_url": "https://www.notesapp.name.ng/u/precheks", "payouts_ready": true }`,
+  "profile_url": "${SITE_URL}/u/precheks", "payouts_ready": true }`,
   },
   {
     id: "list-posts", method: "GET", path: "/v1/posts", scope: "read:posts", summary: "Your posts, newest first.",
@@ -23,7 +24,7 @@ export const ENDPOINTS: Endpoint[] = [
       { name: "limit", in: "query", text: "1–100, default 25." },
       { name: "cursor", in: "query", text: "`next_cursor` from the previous page." },
     ],
-    example: `{ "data": [ { "id": "n_1", "slug": "minding-the-pay-gap", "url": "https://www.notesapp.name.ng/journals/minding-the-pay-gap",
+    example: `{ "data": [ { "id": "n_1", "slug": "minding-the-pay-gap", "url": "${SITE_URL}/journals/minding-the-pay-gap",
     "title": "Minding the Pay Gap", "status": "published", "date": "2026-10-03T09:00:00.000Z",
     "tags": [], "categories": [], "featured_image": "", "premium": false,
     "view_count": 8, "like_count": 1, "share_count": 0 } ], "next_cursor": null }`,

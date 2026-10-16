@@ -215,8 +215,15 @@ export async function createNote(
     api("/api/notify/new-post", { body: { noteId: ref.id } }).catch((err) =>
       console.warn("new-post notification failed:", err)
     );
+    notifyJournalMentions(ref.id, data.content);
   }
   return ref.id;
+}
+
+// People @mentioned in a published journal get a bell (the server reads the saved journal; each person once per journal).
+function notifyJournalMentions(id: string, content: string | undefined) {
+  if (!content || !content.includes("@")) return;
+  api("/api/notify/mentions", { body: { kind: "journal", noteId: id } }).catch((err) => console.warn("mention notification failed:", err));
 }
 
 export async function updateNote(
@@ -225,6 +232,7 @@ export async function updateNote(
 ): Promise<void> {
   await updateDoc(doc(db, COLLECTION, id), data);
   invalidateNotesCache();
+  if (data.status === "published") notifyJournalMentions(id, data.content);
 }
 
 export async function deleteNote(id: string): Promise<void> {

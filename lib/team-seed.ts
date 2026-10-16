@@ -1,5 +1,6 @@
 import type { Firestore } from "firebase-admin/firestore";
 import type { Status } from "./team";
+import { MCP_HOST } from "@/lib/host";
 
 // Work items the founder asked to be put on the team hub board, assigned to Engineering and Product & tech. Added once: each has a
 // seedKey, and a seed never adds an item whose key is already on the board (teamSeeds/{name} records that a seed has run).
@@ -39,7 +40,7 @@ export const LIFE_PARTNER_BACKLOG: Seed[] = [
 const FOUNDER = { owner: "founder" as const };
 export const AGENT_LAYER_BACKLOG: Seed[] = [
   { key: "agent-foundations", title: "Agent layer foundations: new scopes, action log, proposals store", detail: "Scopes read:profile, write:store, write:bookings, read:messages, write:orders beside today's five; agentActions (12 months) and agentProposals (48-hour expiry). Both the MCP server and Nana use them.", status: "todo", horizon: "week", depts: ["engineering"], due: "2026-10-25" },
-  { key: "agent-subdomain", title: "Point mcp.notesapp.name.ng at the app", detail: "Stable address for agents and directory listings.", status: "todo", horizon: "week", depts: ["engineering", "product"], due: "2026-10-31", ...FOUNDER },
+  { key: "agent-subdomain", title: `Point ${MCP_HOST} at the app`, detail: "Stable address for agents and directory listings.", status: "todo", horizon: "week", depts: ["engineering", "product"], due: "2026-10-31", ...FOUNDER },
   { key: "agent-plans-decision", title: "Decide which plans get the Nana operator", detail: "Proposed: the full operator on Business and Enterprise; weekly summary and booking replies on all publishing plans.", status: "decision", horizon: "week", depts: ["product", "finance"], due: "2026-11-07", decisionQuestion: "Which plans get the full operator, and which jobs are on every publishing plan?", ...FOUNDER },
   { key: "agent-design", title: "Design pass: Nana's inbox, the Connect NotesApp screen, Connected agents in Console", detail: "Phone and desktop mockups first, then build.", status: "todo", horizon: "later", depts: ["product"], due: "2026-11-14" },
   { key: "agent-mcp-phase1", title: "NotesApp MCP server, phase 1", detail: "Remote MCP endpoint; reader tools (search creators, profile, open slots, booking link, store search); creator tools on the v1 API (profile, posts, create_draft, publish_post, bookings, orders, earnings); OAuth 2.1 with consent and revoke; rate limits; untrusted-content labels; tests and docs.", status: "todo", horizon: "later", depts: ["engineering"], due: "2026-11-15" },

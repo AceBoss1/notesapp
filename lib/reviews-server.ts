@@ -1,5 +1,6 @@
 import type { Firestore } from "firebase-admin/firestore";
 import { notifyBell } from "./email";
+import { notifyMentions } from "./mentions-server";
 import {
   ReviewError, cleanRecommendation, cleanReply, cleanReview, summarise,
   type RatingSummary, type Recommendation, type RecommendationStatus, type Review,
@@ -50,6 +51,7 @@ export async function submitReview(db: Firestore, uid: string, itemId: string, i
     return summarise(sum, count);
   });
   await notifyBell({ uid: ownerUid, type: "review", linkHref: `/shop/${itemId}`, message: `${me.name} left ${clean.rating} star${clean.rating === 1 ? "" : "s"} on ${String(item.data()!.title ?? "your item")}.` }).catch(() => {});
+  if (clean.text) await notifyMentions(db, { kind: "review", sourceId: ref.id, text: clean.text, author: { uid, name: me.name, username: me.username, avatar: me.avatar }, where: `in a review of ${String(item.data()!.title ?? "an item")}`, linkHref: `/shop/${itemId}`, skipUids: [ownerUid] }, now).catch(() => {});
   return { summary };
 }
 
@@ -74,6 +76,8 @@ export async function replyToReview(db: Firestore, sellerUid: string, reviewId: 
   need(s.data()!.ownerUid === sellerUid, "Only the seller can reply to a review of their item.");
   await ref.update({ reply: { text: reply, at: now.toISOString() } });
   await notifyBell({ uid: String(s.data()!.uid), type: "review", linkHref: `/shop/${s.data()!.itemId}`, message: `The seller replied to your review of ${String(s.data()!.itemTitle ?? "an item")}.` }).catch(() => {});
+  const seller = await whoIs(db, sellerUid);
+  await notifyMentions(db, { kind: "review_reply", sourceId: ref.id, text: reply, author: { uid: sellerUid, name: seller.name, username: seller.username, avatar: seller.avatar }, where: `in a reply to a review of ${String(s.data()!.itemTitle ?? "an item")}`, linkHref: `/shop/${s.data()!.itemId}`, skipUids: [String(s.data()!.uid)] }, now).catch(() => {});
 }
 
 export type ReviewList = { reviews: Review[]; summary: RatingSummary; canReview: boolean; mine: Review | null };
@@ -133,6 +137,12 @@ export async function answerRecommendation(db: Firestore, subjectUid: string, id
   need(s.exists, "That recommendation wasn't found.", 404);
   need(s.data()!.subjectUid === subjectUid, "Only the person recommended can approve or hide it.");
   await ref.update({ status: action === "approve" ? "approved" : "hidden" });
+  // Mentions in a recommendation only go out once it is public, on the profile of the person it's about.
+  if (action === "approve") {
+    const r = s.data()!;
+    const subject = (await db.doc(`users/${subjectUid}`).get()).data();
+    await notifyMentions(db, { kind: "recommendation", sourceId: ref.id, text: String(r.text ?? ""), author: { uid: String(r.authorUid), name: String(r.authorName ?? "Someone"), username: String(r.authorUsername ?? ""), avatar: String(r.authorAvatar ?? "") }, where: `in a recommendation of ${String(subject?.displayName ?? "a member")}`, linkHref: `/u/${String(subject?.username ?? "")}#recommendations`, skipUids: [subjectUid] }).catch(() => {});
+  }
 }
 
 export async function deleteRecommendation(db: Firestore, uid: string, id: string): Promise<void> {
