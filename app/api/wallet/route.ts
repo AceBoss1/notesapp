@@ -13,7 +13,7 @@ export async function GET(req: NextRequest) {
     if (!WALLET_LIVE) return NextResponse.json({ error: "Not found." }, { status: 404 });
     const me = await verifySignedInRequest(req.headers.get("authorization")?.replace(/^Bearer\s+/i, "")).catch(() => null);
     if (!me) return NextResponse.json({ error: "Sign in first." }, { status: 401 });
-    const limited = rateLimit(req, "wallet", me.uid, 60, 60);
+    const limited = await rateLimit(req, "wallet", me.uid, 60, 60);
     if (limited) return limited;
     const brief = req.nextUrl.searchParams.get("brief") === "1";
     const s = await walletSummary(getAdminDb(), me.uid, brief ? 0 : 100);

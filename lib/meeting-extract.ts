@@ -2,6 +2,7 @@ import type { Firestore } from "firebase-admin/firestore";
 import { NanaError } from "./nana";
 import { realDeps, runAi, type NanaDeps, type SystemBlock } from "./nana-server";
 import type { Meeting, TeamItem } from "./team";
+import { setting } from "@/lib/config";
 
 // Decisions and actions picked out of a meeting for the team to approve: from the meeting's chat room (by Nana, while the meeting goes on or after it) or
 // from the person's Granola notes after it. Nothing is saved here; the person ticks what is right and only those become decisions and work items.
@@ -87,7 +88,7 @@ export async function suggestFromChat(db: Firestore, uid: string, m: Meeting, pe
   if (chat.length < 20) throw new NanaError("There is not enough in the meeting chat yet.", 422);
   const system: SystemBlock[] = [{ type: "text", text: SYSTEM, cache_control: { type: "ephemeral" } }];
   const body = `Meeting: ${m.title}\nToday is ${today}.\nParticipants: ${people.map((p) => p.name).join(", ")}\n\nChat (oldest first):\n${chat}`;
-  const limit = Math.max(1, Number(process.env.NANA_ASSIST_DAILY) || 20);
+  const limit = Math.max(1, Number(setting("NANA_ASSIST_DAILY")) || 20);
   const ran = await runAi(db, deps, deps.now(), uid, { system, messages: [{ role: "user", content: body }], maxTokens: 1500 }, limit);
   if (!ran.completion) throw new NanaError("Picking decisions and actions needs an AI account. Connect your own on the Nana page, or use your Granola notes instead.", 403);
   if (ran.completion.refused || !ran.completion.text.trim()) throw new NanaError("I couldn't read that chat. Try again in a moment.", 422);

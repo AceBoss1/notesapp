@@ -75,7 +75,7 @@ export type UserProfile = {
   // permission — firestore.rules' notes/journals create rule still
   // only checks isAdmin() (the 2 hardcoded founder emails), not this
   // field. Wiring role-based publish permission is the same migration
-  // the README's "admin allowlist won't survive multi-tenant" section
+  // the the build log's (docs/BUILD_LOG.md) "admin allowlist won't survive multi-tenant" section
   // already flags — Firebase custom claims via Admin SDK, not a
   // Firestore-document field a client could reason about. This field
   // is a label + moderation marker today, not an authorization grant.

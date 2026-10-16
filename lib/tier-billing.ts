@@ -9,6 +9,7 @@ import { sendEmail } from "./email";
 import { getUserEmail } from "./firebase-admin";
 import type { AccountTier } from "./users";
 import { SITE_URL } from "@/lib/host";
+import { setting } from "@/lib/config";
 
 // Server-only. Pro / Business plan billing: one Paystack plan per
 // (tier, interval), a `tierSubscriptions/{uid}` record per paying
@@ -230,7 +231,7 @@ export async function expireOrgTrials(): Promise<number> {
 // Paystack's subscription list — used to find the subscription code + email
 // token needed to cancel (scans a few pages; fine at this scale).
 export async function findPaystackSubscription(email: string, planCode: string): Promise<{ code: string; token: string } | null> {
-  const key = process.env.PAYSTACK_SECRET_KEY;
+  const key = setting("PAYSTACK_SECRET_KEY");
   if (!key) throw new Error("PAYSTACK_SECRET_KEY is not set.");
   for (let page = 1; page <= 5; page++) {
     const res = await fetch(`https://api.paystack.co/subscription?perPage=100&page=${page}`, {

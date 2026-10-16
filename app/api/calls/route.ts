@@ -28,7 +28,7 @@ export async function POST(req: NextRequest) {
     const me = await authed(req, "messages", body.action === "start");
     const db = getAdminDb();
     if (body.action === "start") {
-      const limited = rateLimit(req, "call-start", me.uid, 30, 3600);
+      const limited = await rateLimit(req, "call-start", me.uid, 30, 3600);
       if (limited) return limited;
       const r = await startCall(db, me.uid, body.toUid, body.kind);
       return NextResponse.json({ ...r, iceServers: await iceServers() });

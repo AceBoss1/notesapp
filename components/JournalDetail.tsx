@@ -56,7 +56,7 @@ export default async function JournalDetail({
   // /u/na-notesapp. Real people keep using authorProfile as before;
   // this only fills the gap for that one synthetic channel.
   const linkedUsername =
-    note.author === NA_NOTESAPP_PROFILE.displayName
+    note.authorUsername === NA_NOTESAPP_PROFILE.username || note.author === NA_NOTESAPP_PROFILE.displayName
       ? NA_NOTESAPP_PROFILE.username
       : authorProfile?.username;
 

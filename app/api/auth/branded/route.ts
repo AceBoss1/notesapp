@@ -14,7 +14,7 @@ export const dynamic = "force-dynamic";
 //   POST { kind: "verify" } + Bearer      → the verification link for the signed-in caller
 // The domain is the one the request arrived on; anything that isn't an active full-white-label domain is refused.
 export async function POST(req: NextRequest) {
-  const limited = rateLimit(req, "auth-branded", clientIp(req), 10, 3600);
+  const limited = await rateLimit(req, "auth-branded", clientIp(req), 10, 3600);
   if (limited) return limited;
   try {
     const host = normalizeHost((req.headers.get("x-forwarded-host") || req.headers.get("host") || "").split(",")[0]);
@@ -31,7 +31,7 @@ export async function POST(req: NextRequest) {
     if (body.kind === "reset") {
       const email = String(body.email || "").trim().toLowerCase();
       if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) return NextResponse.json({ error: "Enter a valid email." }, { status: 400 });
-      const byEmail = rateLimit(req, "auth-branded-email", email, 3, 3600);
+      const byEmail = await rateLimit(req, "auth-branded-email", email, 3, 3600);
       if (byEmail) return byEmail;
       try {
         const link = ours(await auth.generatePasswordResetLink(email), "resetPassword");
@@ -48,7 +48,7 @@ export async function POST(req: NextRequest) {
       const me = await verifySignedInRequest(req.headers.get("authorization")?.replace(/^Bearer\s+/i, "")).catch(() => null);
       if (!me || !me.email) return NextResponse.json({ error: "Sign in first." }, { status: 401 });
       if (me.emailVerified) return NextResponse.json({ ok: true, already: true });
-      const byUser = rateLimit(req, "auth-branded-verify", me.uid, 3, 3600);
+      const byUser = await rateLimit(req, "auth-branded-verify", me.uid, 3, 3600);
       if (byUser) return byUser;
       const link = ours(await auth.generateEmailVerificationLink(me.email), "verifyEmail");
       const sent = await sendEmail({

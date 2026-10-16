@@ -35,7 +35,7 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
   try {
     const c = await caller(req);
-    const limited = rateLimit(req, "pricing", c.uid, 30, 3600);
+    const limited = await rateLimit(req, "pricing", c.uid, 30, 3600);
     if (limited) return limited;
     const b = await req.json().catch(() => ({}));
     const r = await savePricing(getAdminDb(), c, b.config, b.reset === true);

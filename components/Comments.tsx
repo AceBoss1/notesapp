@@ -22,7 +22,6 @@ import { adminAccess } from "@/lib/admin-claims";
 import { hasDept } from "@/lib/admin-access";
 import { NA_NOTESAPP_PROFILE } from "@/lib/journals-directory";
 import { getSuspendedUids } from "@/lib/moderation";
-import { notifyComment, notifyReply } from "@/lib/notifications";
 
 function CommentRow({
   comment,
@@ -232,10 +231,7 @@ export default function Comments({
     setPosting(true);
     setPostError("");
     try {
-      await addComment(noteId, slug, title, author, text.trim());
-      notifyComment({ slug, title, author: noteAuthor }, author).catch((err) =>
-        console.warn("notifyComment failed:", err)
-      );
+      await addComment(noteId, text.trim(), null, postAsBrand && canModerate);
       setText("");
       await load();
     } catch (err) {
@@ -258,19 +254,7 @@ export default function Comments({
     setPostingReply(true);
     setReplyError("");
     try {
-      await addComment(noteId, slug, title, author, replyText.trim(), parentId);
-      const parent = comments.find((c) => c.id === parentId);
-      if (parent) {
-        notifyReply(
-          {
-            authorUid: parent.authorUid,
-            authorUsername: parent.authorUsername,
-            authorDisplayName: parent.authorDisplayName,
-          },
-          { slug, title, author: noteAuthor },
-          author
-        ).catch((err) => console.warn("notifyReply failed:", err));
-      }
+      await addComment(noteId, replyText.trim(), parentId, replyAsBrand && canModerate);
       setReplyText("");
       setReplyingTo(null);
       setReplyAsBrand(false);

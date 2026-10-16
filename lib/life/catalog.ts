@@ -1,10 +1,11 @@
 import { LIFE_URL } from "@/lib/host";
+import { setting } from "@/lib/config";
 // Notes Life: the game's rules and everything that can be bought, eaten, worked or ridden. Shared by the server (which owns money and
 // ownership: lib/life/server.ts), the game screens and the tests. Prices are in Notesville Naira (N$), whole numbers.
 // Decided 14 October 2026: start with N$ 100,000 on day 1 in Wuse, Abuja; ₦1 of NotesApp Credit buys N$ 100; 24 game hours = 48 real
 // minutes (30 game days = 24 real hours); rent N$ 60,000 every 30 game days.
 
-export const LIFE_LIVE = process.env.NEXT_PUBLIC_LIFE_LIVE !== "false";
+export const LIFE_LIVE = setting("NEXT_PUBLIC_LIFE_LIVE") !== "false";
 
 export const START_NAIRA = 100_000;
 export const GAME_DAY_MS = 48 * 60_000;
@@ -404,7 +405,7 @@ export const NEGOTIATE_CHANCE = 0.6;
 export const REFERRAL_BONUS_KOBO = 25_000; // ₦250 of Bonus Credits each, for the inviter and the friend who joins
 export const REFERRAL_MAX_PER_MONTH = 20; // rewarded invites per inviter per calendar month
 // The game never hands out more than this in Bonus Credits in a calendar month (all players together); override with LIFE_BONUS_MONTHLY_CAP_NAIRA.
-export const BONUS_MONTHLY_CAP_KOBO = Math.max(0, Number(process.env.LIFE_BONUS_MONTHLY_CAP_NAIRA || 500_000)) * 100;
+export const BONUS_MONTHLY_CAP_KOBO = Math.max(0, Number(setting("LIFE_BONUS_MONTHLY_CAP_NAIRA") || 500_000)) * 100;
 export const PLAY_URL = LIFE_URL;
 export const inviteLink = (username: string) => `${PLAY_URL}/?ref=${encodeURIComponent(username)}`;
 

@@ -11,7 +11,7 @@ export async function POST(req: NextRequest) {
   try {
     const me = await verifySignedInRequest(req.headers.get("authorization")?.replace(/^Bearer\s+/i, "")).catch(() => null);
     if (!me) return NextResponse.json({ error: "Sign in first." }, { status: 401 });
-    const limited = rateLimit(req, "boost-cancel", me.uid, 10, 3600);
+    const limited = await rateLimit(req, "boost-cancel", me.uid, 10, 3600);
     if (limited) return limited;
     const { reference } = await req.json().catch(() => ({}));
     if (typeof reference !== "string" || !reference) return NextResponse.json({ error: "Missing boost." }, { status: 400 });

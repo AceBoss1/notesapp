@@ -1,16 +1,17 @@
+import { setting } from "@/lib/config";
 // Server-only. Cloudflare Stream, used for the video lessons of view-only items and courses. Every video is uploaded with
 // requireSignedURLs, so it can only be played with a short-lived token that /api/store/view/lesson hands to a buyer, and
 // MP4 downloads are never enabled. Set CLOUDFLARE_STREAM_TOKEN (an API token with Stream:Edit); the account id is the same
 // Cloudflare account as R2 (R2_ACCOUNT_ID) unless CLOUDFLARE_ACCOUNT_ID is set.
-const accountId = () => process.env.CLOUDFLARE_ACCOUNT_ID || process.env.R2_ACCOUNT_ID || "";
-export const streamConfigured = () => !!process.env.CLOUDFLARE_STREAM_TOKEN && !!accountId();
+const accountId = () => setting("CLOUDFLARE_ACCOUNT_ID") || setting("R2_ACCOUNT_ID") || "";
+export const streamConfigured = () => !!setting("CLOUDFLARE_STREAM_TOKEN") && !!accountId();
 export { STREAM_MAX_BYTES } from "./stream-config";
 export const STREAM_MAX_SECONDS = 4 * 3600;
 
 async function cf<T>(path: string, init?: RequestInit): Promise<T> {
   const res = await fetch(`https://api.cloudflare.com/client/v4/accounts/${accountId()}/stream${path}`, {
     ...init,
-    headers: { Authorization: `Bearer ${process.env.CLOUDFLARE_STREAM_TOKEN}`, "Content-Type": "application/json", ...(init?.headers || {}) },
+    headers: { Authorization: `Bearer ${setting("CLOUDFLARE_STREAM_TOKEN")}`, "Content-Type": "application/json", ...(init?.headers || {}) },
   });
   const j = await res.json().catch(() => ({}));
   if (!res.ok || j.success === false) throw new Error(j.errors?.[0]?.message || `Cloudflare Stream request failed (${res.status})`);
@@ -54,14 +55,14 @@ export const playerUrl = (token: string) => `https://iframe.videodelivery.net/${
 export async function pingStream(): Promise<boolean> {
   try {
     const res = await fetch(`https://api.cloudflare.com/client/v4/accounts/${accountId()}/stream/storage-usage`, {
-      headers: { Authorization: `Bearer ${process.env.CLOUDFLARE_STREAM_TOKEN}` },
+      headers: { Authorization: `Bearer ${setting("CLOUDFLARE_STREAM_TOKEN")}` },
       cache: "no-store",
     });
     if (res.ok) return true;
     const j = await res.json().catch(() => ({}));
     console.warn("[status] Cloudflare Stream storage-usage failed:", res.status, j?.errors?.[0]?.code, j?.errors?.[0]?.message);
     // Some tokens can list videos but not read usage: any successful Stream call proves the service answers.
-    const list = await fetch(`https://api.cloudflare.com/client/v4/accounts/${accountId()}/stream`, { headers: { Authorization: `Bearer ${process.env.CLOUDFLARE_STREAM_TOKEN}` }, cache: "no-store" });
+    const list = await fetch(`https://api.cloudflare.com/client/v4/accounts/${accountId()}/stream`, { headers: { Authorization: `Bearer ${setting("CLOUDFLARE_STREAM_TOKEN")}` }, cache: "no-store" });
     if (!list.ok) console.warn("[status] Cloudflare Stream list failed:", list.status);
     return list.ok;
   } catch (e) {
@@ -76,13 +77,13 @@ export type StreamVideoRow = { uid: string; created?: string; creator?: string; 
 // What Cloudflare says to a storage-usage request, in full, for the admin "Test connection" button.
 export async function streamDiagnostics() {
   const acct = accountId();
-  const out = { tokenSet: !!process.env.CLOUDFLARE_STREAM_TOKEN, accountIdEnding: acct ? `…${acct.slice(-4)}` : "", ok: false, status: 0, code: "", message: "" };
+  const out = { tokenSet: !!setting("CLOUDFLARE_STREAM_TOKEN"), accountIdEnding: acct ? `…${acct.slice(-4)}` : "", ok: false, status: 0, code: "", message: "" };
   if (!out.tokenSet || !acct) {
     out.message = !out.tokenSet ? "CLOUDFLARE_STREAM_TOKEN isn't set on the server." : "No Cloudflare account id (R2_ACCOUNT_ID / CLOUDFLARE_ACCOUNT_ID) is set.";
     return out;
   }
   try {
-    const res = await fetch(`https://api.cloudflare.com/client/v4/accounts/${acct}/stream/storage-usage`, { headers: { Authorization: `Bearer ${process.env.CLOUDFLARE_STREAM_TOKEN}` }, cache: "no-store" });
+    const res = await fetch(`https://api.cloudflare.com/client/v4/accounts/${acct}/stream/storage-usage`, { headers: { Authorization: `Bearer ${setting("CLOUDFLARE_STREAM_TOKEN")}` }, cache: "no-store" });
     const j = await res.json().catch(() => ({}));
     out.status = res.status;
     out.ok = res.ok;

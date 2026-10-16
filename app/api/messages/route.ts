@@ -42,7 +42,7 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
   try {
     const me = await authed(req, "messages", true);
-    const limited = rateLimit(req, "dm", me.uid, MESSAGES_PER_MINUTE, 60);
+    const limited = await rateLimit(req, "dm", me.uid, MESSAGES_PER_MINUTE, 60);
     if (limited) return limited;
     const body = await req.json().catch(() => ({}));
     const db = getAdminDb();

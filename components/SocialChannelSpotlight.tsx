@@ -11,13 +11,14 @@ import JournalRow from "@/components/JournalRow";
 import { useJournalStats } from "@/lib/useJournalStats";
 import { NA_NOTESAPP_PROFILE } from "@/lib/journals-directory";
 import { NoteWithComputed } from "@/lib/firestore-notes";
+import { isNoteBy } from "@/lib/firestore-notes";
 
 // Unlike @notesapp, this channel's entries are real notes — an admin
 // posts as it via the author toggle in NoteForm.tsx. Shown here by
 // default (not buried behind the Channels tab) so it's actually
 // discoverable the moment something's published under it.
 export default function SocialChannelSpotlight({ allNotes }: { allNotes: NoteWithComputed[] }) {
-  const posts = allNotes.filter((n) => n.author === NA_NOTESAPP_PROFILE.displayName);
+  const posts = allNotes.filter((n) => isNoteBy(n, NA_NOTESAPP_PROFILE));
   const stats = useJournalStats(NA_NOTESAPP_PROFILE.username, posts.length);
 
   return (

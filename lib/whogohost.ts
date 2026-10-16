@@ -1,5 +1,6 @@
 import { createHmac } from "crypto";
 import { ProxyAgent, fetch as undiciFetch } from "undici";
+import { setting } from "@/lib/config";
 
 // Client for the Whogohost (go54) Domain Reseller API. Server-only: it reads WHOGOHOST_RESELLER_EMAIL and WHOGOHOST_API_KEY, which must
 // never reach the browser. Requests carry a `username` header (the reseller email) and a `token`:
@@ -13,21 +14,21 @@ const TIMEOUT_MS = 20_000;
 // fixed outgoing address, e.g. http://user:pass@host:port), every call to Whogohost goes through it; nothing else does. The URL holds a
 // password, so it is never logged or returned.
 let agent: { url: string; a: ProxyAgent } | undefined;
-export const proxyConfigured = () => !!process.env.WHOGOHOST_PROXY_URL;
+export const proxyConfigured = () => !!setting("WHOGOHOST_PROXY_URL");
 // The proxy's host and port only (never the user name or password), for the admin page.
 export function proxyHost(): string | null {
-  try { const u = new URL(process.env.WHOGOHOST_PROXY_URL || ""); return `${u.protocol}//${u.host}`; } catch { return process.env.WHOGOHOST_PROXY_URL ? "(not a valid URL)" : null; }
+  try { const u = new URL(setting("WHOGOHOST_PROXY_URL") || ""); return `${u.protocol}//${u.host}`; } catch { return setting("WHOGOHOST_PROXY_URL") ? "(not a valid URL)" : null; }
 }
 // What went wrong with a network failure, without any credential: the low-level code (ECONNREFUSED, ENOTFOUND, ETIMEDOUT, a proxy 407 …).
 function networkDetail(err: unknown): string {
   const e = err as { name?: string; message?: string; code?: string; cause?: { code?: string; message?: string; name?: string } };
   let t = [e.cause?.code, e.cause?.message || e.cause?.name, e.code, e.message].filter(Boolean).join(" · ");
-  const proxy = process.env.WHOGOHOST_PROXY_URL;
+  const proxy = setting("WHOGOHOST_PROXY_URL");
   if (proxy) { try { const u = new URL(proxy); for (const x of [proxy, u.password, u.username]) if (x) t = t.split(x).join("***"); } catch { t = t.split(proxy).join("***"); } }
   return t.slice(0, 200);
 }
 export async function proxiedFetch(url: string, init: RequestInit = {}): Promise<Response> {
-  const proxy = process.env.WHOGOHOST_PROXY_URL;
+  const proxy = setting("WHOGOHOST_PROXY_URL");
   if (!proxy) return fetch(url, init);
   if (agent?.url !== proxy) agent = { url: proxy, a: new ProxyAgent(proxy) };
   return (await undiciFetch(url, { ...(init as object), dispatcher: agent.a } as never)) as unknown as Response;
@@ -45,7 +46,7 @@ export async function outgoingIp(): Promise<string | null> {
 }
 
 export function whogohostConfigured(): boolean {
-  return !!(process.env.WHOGOHOST_RESELLER_EMAIL && process.env.WHOGOHOST_API_KEY);
+  return !!(setting("WHOGOHOST_RESELLER_EMAIL") && setting("WHOGOHOST_API_KEY"));
 }
 
 // PHP's gmdate("y-m-d H"): two-digit year, e.g. "26-10-09 14".
@@ -95,7 +96,7 @@ async function probe(name: string, fn: () => Promise<unknown>) {
 }
 
 export async function wgDiagnose() {
-  const emailSet = !!process.env.WHOGOHOST_RESELLER_EMAIL, keySet = !!process.env.WHOGOHOST_API_KEY;
+  const emailSet = !!setting("WHOGOHOST_RESELLER_EMAIL"), keySet = !!setting("WHOGOHOST_API_KEY");
   if (!emailSet || !keySet) return { configured: false, emailSet, keySet, ok: false, summary: "Set WHOGOHOST_RESELLER_EMAIL and WHOGOHOST_API_KEY in Vercel." } as const;
   const [version, credits, tlds, ip] = await Promise.allSettled([wgVersion(), wgCredits(), wgTlds(), outgoingIp()]);
   const shape = (r: PromiseSettledResult<unknown>) =>
@@ -118,7 +119,7 @@ export class WhogohostError extends Error {
 }
 
 async function call<T = unknown>(method: "GET" | "POST", path: string, params: Record<string, unknown> = {}, retried = false): Promise<T> {
-  const email = process.env.WHOGOHOST_RESELLER_EMAIL, key = process.env.WHOGOHOST_API_KEY;
+  const email = setting("WHOGOHOST_RESELLER_EMAIL"), key = setting("WHOGOHOST_API_KEY");
   if (!email || !key) throw new WhogohostError("The domain service isn't set up yet.", 503);
   const query = buildQuery(params);
   const url = `${ENDPOINT}${path}${method === "GET" && query ? `?${query}` : ""}`;

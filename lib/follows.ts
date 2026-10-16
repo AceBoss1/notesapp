@@ -63,7 +63,7 @@ export async function followJournal(
 // members can't unfollow @NotesApp or either founder. (This is also
 // enforced in firestore.rules, so a client-side bypass can't work
 // either.) Letting paid tiers unfollow these is a documented future
-// change, not implemented yet — see README.
+// change, not implemented yet — see docs/BUILD_LOG.md.
 export async function unfollowJournal(uid: string, username: string): Promise<void> {
   if (MANDATORY_USERNAMES.includes(username)) {
     throw new Error("This journal is auto-followed for every member and can't be unfollowed yet.");

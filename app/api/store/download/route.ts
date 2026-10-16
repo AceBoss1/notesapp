@@ -13,7 +13,7 @@ export async function GET(req: NextRequest) {
     const idToken = req.headers.get("authorization")?.replace(/^Bearer\s+/i, "");
     const user = await verifySignedInRequest(idToken).catch(() => null);
     if (!user) return NextResponse.json({ error: "Sign in first." }, { status: 401 });
-    const limited = rateLimit(req, "digital-download", user.uid, 30, 3600);
+    const limited = await rateLimit(req, "digital-download", user.uid, 30, 3600);
     if (limited) return limited;
     const link = await createDownloadLink(user.uid, String(req.nextUrl.searchParams.get("ref") || ""));
     return NextResponse.json(link, { headers: { "Cache-Control": "no-store" } });

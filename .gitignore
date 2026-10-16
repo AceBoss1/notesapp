@@ -28,3 +28,7 @@ tsconfig.tsbuildinfo
 
 # Firebase emulator logs
 *-debug.log
+
+# Playwright
+test-results/
+playwright-report/

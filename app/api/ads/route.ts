@@ -7,7 +7,7 @@ import { isPlacement } from "@/lib/ads";
 export const dynamic = "force-dynamic";
 
 export async function GET(req: NextRequest) {
-  const limited = rateLimit(req, "ads", clientIp(req), 120, 60);
+  const limited = await rateLimit(req, "ads", clientIp(req), 120, 60);
   if (limited) return limited;
   const placement = req.nextUrl.searchParams.get("placement");
   if (!isPlacement(placement)) return NextResponse.json({ error: "Unknown placement." }, { status: 400 });

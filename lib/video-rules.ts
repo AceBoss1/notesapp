@@ -1,4 +1,5 @@
 import type { AccountTier } from "./users";
+import { setting } from "@/lib/config";
 
 // Post videos: client-safe constants and helpers, shared by the composer, the player and the server.
 // There is no transcoding — we cap size and length instead, accept only formats every phone and browser plays,
@@ -18,7 +19,7 @@ export const VIDEO_RULES_TEXT = [
   "Videos can't be added to premium (subscribers-only) posts yet.",
 ];
 
-export const videoPublicUrl = (key: string) => `${(process.env.NEXT_PUBLIC_R2_PUBLIC_URL || "").replace(/\/$/, "")}/${key}`;
+export const videoPublicUrl = (key: string) => `${(setting("NEXT_PUBLIC_R2_PUBLIC_URL") || "").replace(/\/$/, "")}/${key}`;
 
 // ISO-8601 week of a date, e.g. "2026-W41" — the quota window.
 export function isoWeekKey(d: Date): string {

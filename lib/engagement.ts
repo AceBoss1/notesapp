@@ -112,34 +112,11 @@ export async function getRecentCommentsOnNotes(
     .slice(0, max);
 }
 
-export async function addComment(
-  noteId: string,
-  noteSlug: string,
-  noteTitle: string,
-  author: {
-    uid: string;
-    username: string;
-    displayName: string;
-    avatar: string;
-  },
-  content: string,
-  parentCommentId: string | null = null
-): Promise<void> {
-  const ref = await addDoc(collection(db, "notes", noteId, "comments"), {
-    authorUid: author.uid,
-    authorUsername: author.username,
-    authorDisplayName: author.displayName,
-    authorAvatar: author.avatar,
-    content,
-    createdAt: new Date().toISOString(),
-    noteId,
-    noteSlug,
-    noteTitle,
-    parentCommentId,
-    likeCount: 0,
-  });
-  // People @mentioned in it get a bell (the server reads the saved comment; never for chats).
-  if (content.includes("@")) api("/api/notify/mentions", { body: { kind: "comment", noteId, commentId: ref.id } }).catch(() => {});
+// Comments are written by the server (POST /api/comments, lib/comments-server.ts), which takes the name and picture from the
+// account and sends the bells (journal author, the person replied to, anyone @mentioned). `asBrand`: a moderator posting as @na-notesapp.
+export async function addComment(noteId: string, content: string, parentCommentId: string | null = null, asBrand = false): Promise<string> {
+  const r = await api<{ id: string }>("/api/comments", { body: { noteId, content, parentCommentId, asBrand } });
+  return r.id;
 }
 
 export async function deleteComment(

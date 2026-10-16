@@ -12,7 +12,7 @@ export async function POST(req: NextRequest) {
     const user = await verifySignedInRequest(idToken).catch(() => null);
     if (!user) return NextResponse.json({ error: "Sign in first." }, { status: 401 });
     if (!user.emailVerified) return NextResponse.json({ error: "Verify your email first, then apply." }, { status: 403 });
-    const limited = rateLimit(req, "tier-request", user.uid, 5, 3600);
+    const limited = await rateLimit(req, "tier-request", user.uid, 5, 3600);
     if (limited) return limited;
 
     const { message } = await req.json();

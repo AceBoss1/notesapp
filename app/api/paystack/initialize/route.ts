@@ -45,7 +45,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const limited = rateLimit(req, "pay-init", user.uid, 10, 600);
+    const limited = await rateLimit(req, "pay-init", user.uid, 10, 600);
     if (limited) return limited;
     const payer = (await getAdminDb().doc(`users/${user.uid}`).get()).data();
     if (payer?.consent?.version !== LEGAL_VERSION) {

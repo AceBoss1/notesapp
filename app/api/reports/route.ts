@@ -10,7 +10,7 @@ export const dynamic = "force-dynamic";
 export async function POST(req: NextRequest) {
   try {
     const me = await authed(req, "messages", true);
-    const limited = rateLimit(req, "report", me.uid, 10, 3600);
+    const limited = await rateLimit(req, "report", me.uid, 10, 3600);
     if (limited) return limited;
     const body = await req.json().catch(() => ({}));
     await createReport(getAdminDb(), me.uid, body);

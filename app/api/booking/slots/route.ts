@@ -11,7 +11,7 @@ import { rateLimit, clientIp } from "@/lib/rate-limit";
 export const dynamic = "force-dynamic";
 
 export async function GET(req: NextRequest) {
-  const limited = rateLimit(req, "slots", clientIp(req), 60, 60);
+  const limited = await rateLimit(req, "slots", clientIp(req), 60, 60);
   if (limited) return limited;
   try {
     const username = req.nextUrl.searchParams.get("username") || "";

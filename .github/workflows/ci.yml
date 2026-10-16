@@ -2,10 +2,14 @@ name: CI
 on:
   pull_request:
   push:
-    branches: [main]
+    branches: [main, staging]
+
+# Every pull request: types, the settings list, every test suite, a production build and the smoke test against it.
+# Staging and releases: docs/STAGING.md.
 jobs:
   checks:
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -14,4 +18,47 @@ jobs:
         with: { distribution: temurin, java-version: 21 }
       - run: npm ci
       - run: npx tsc --noEmit
+      - run: npx -y tsx scripts/settings-doc.ts --check
       - run: npm run test:rules
+      - run: npm run test:life
+      - run: npm run test:messages
+      - run: npm run test:mentions
+      - run: npm run test:digest
+      - run: npm run test:authors
+      - run: npm run test:shared
+      # the link-preview safety test listens on port 80, which needs root on the runner
+      - run: sudo -E env "PATH=$PATH" npx -y tsx tests/link-preview/safety.ts
+
+  smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    needs: checks
+    env:
+      NEXT_TELEMETRY_DISABLED: 1
+      NEXT_PUBLIC_FIREBASE_API_KEY: x
+      NEXT_PUBLIC_FIREBASE_PROJECT_ID: demo-notesapp
+      NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN: x
+      NEXT_PUBLIC_FIREBASE_APP_ID: x
+      FIRESTORE_EMULATOR_HOST: 127.0.0.1:8080
+      GCLOUD_PROJECT: demo-notesapp
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22, cache: npm }
+      - uses: actions/setup-java@v4
+        with: { distribution: temurin, java-version: 21 }
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      # A throwaway service account (the emulator doesn't check it), so server routes start as they do on Vercel.
+      - name: Dummy service account
+        run: |
+          openssl genrsa 2048 > key.pem
+          node -e 'const fs=require("fs");fs.writeFileSync("sa.json",JSON.stringify({type:"service_account",project_id:"demo-notesapp",private_key_id:"x",private_key:fs.readFileSync("key.pem","utf8"),client_email:"ci@demo-notesapp.iam.gserviceaccount.com",client_id:"1",token_uri:"https://oauth2.googleapis.com/token"}))'
+          echo "FIREBASE_SERVICE_ACCOUNT_KEY=$(cat sa.json)" >> "$GITHUB_ENV"
+      - name: Build, start and smoke test (with the Firestore emulator)
+        run: |
+          npx -y firebase-tools@13 emulators:exec --only firestore --project demo-notesapp \
+            "npx next build && (npx next start -p 3000 & npx -y wait-on@8 http://127.0.0.1:3000/robots.txt && npm run test:smoke)"
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with: { name: playwright-traces, path: test-results, retention-days: 7 }

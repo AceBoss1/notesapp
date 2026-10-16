@@ -3,6 +3,7 @@ import { decryptAccountNumber, accountCryptoConfigured } from "./account-crypto"
 import { PaylonyReply, SIGN_FORMATS, SignFormat, bankList, bankTransfer, fetchTransfer, paylonyConfigured, replyCode } from "./paylony";
 import { matchBankCode, parseBankList } from "./paylony-banks";
 import { ttlCache } from "./ttl-cache";
+import { setting } from "@/lib/config";
 
 // Server-only. Sending a publisher payout through Paylony, and settling its result. The provider is chosen in the admin
 // (paylonyConfig/main.payoutProvider, default "paystack"); Paylony is used only for an account that has everything it needs.
@@ -48,7 +49,7 @@ export type PayoutAccountForPaylony = { uid: string; accountName: string; paylon
 // Whether this account can be paid through Paylony right now: the admin chose it, the signing format is verified, the keys
 // are set, and we hold the full number and Paylony's code for the bank.
 export async function canUsePaylony(account: PayoutAccountForPaylony): Promise<boolean> {
-  if (!paylonyConfigured() || !process.env.PAYLONY_ENCRYPTION_KEY || !accountCryptoConfigured()) return false;
+  if (!paylonyConfigured() || !setting("PAYLONY_ENCRYPTION_KEY") || !accountCryptoConfigured()) return false;
   const cfg = await paylonyConfig();
   if (cfg.payoutProvider !== "paylony" || !cfg.signFormat || !account.paylonyBankCode) return false;
   return (await getAdminDb().doc(`payoutSecrets/${account.uid}`).get()).exists;

@@ -14,7 +14,7 @@ export async function POST(req: NextRequest) {
     const idToken = req.headers.get("authorization")?.replace(/^Bearer\s+/i, "");
     const user = await verifySignedInRequest(idToken).catch(() => null);
     if (!user) return NextResponse.json({ error: "Sign in first." }, { status: 401 });
-    const limited = rateLimit(req, "digital-upload", user.uid, 20, 3600);
+    const limited = await rateLimit(req, "digital-upload", user.uid, 20, 3600);
     if (limited) return limited;
     if (!privateFilesConfigured()) return NextResponse.json({ error: "Digital products aren't switched on yet (private file storage isn't configured)." }, { status: 503 });
 

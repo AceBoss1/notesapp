@@ -1,3 +1,4 @@
+import { setting } from "@/lib/config";
 // Badge levels:
 //   verified — the maroon ✔: an internal role, Business/Enterprise, or the
 //              paid ₦999/month add-on (account in good standing; NOT an
@@ -16,7 +17,7 @@ export const GOLD_BADGE_LIVE = true; // any gold badge can render at all
 // in the environment (NEXT_PUBLIC_DOJAH_WIDGET_PERSONAL / _CORPORATE).
 export const GOLD_KIND_LIVE: Record<"identity" | "endorsement", boolean> = {
   endorsement: true,
-  identity: !!process.env.NEXT_PUBLIC_DOJAH_WIDGET_PERSONAL && !!process.env.NEXT_PUBLIC_DOJAH_WIDGET_CORPORATE,
+  identity: !!setting("NEXT_PUBLIC_DOJAH_WIDGET_PERSONAL") && !!setting("NEXT_PUBLIC_DOJAH_WIDGET_CORPORATE"),
 };
 
 export type BadgeLevel = "gold" | "verified" | null;

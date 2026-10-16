@@ -9,7 +9,7 @@ export async function POST(req: NextRequest) {
     const idToken = req.headers.get("authorization")?.replace(/^Bearer\s+/i, "");
     const adminUid = await verifyAdminRequest(idToken, ["support", "moderation", "finance"]).catch(() => null);
     if (!adminUid) return NextResponse.json({ error: "Admins only." }, { status: 403 });
-    const limited = rateLimit(req, "user-emails", adminUid, 60, 600);
+    const limited = await rateLimit(req, "user-emails", adminUid, 60, 600);
     if (limited) return limited;
     const { uids } = await req.json();
     if (!Array.isArray(uids) || uids.length > 1000 || !uids.every((u) => typeof u === "string")) {

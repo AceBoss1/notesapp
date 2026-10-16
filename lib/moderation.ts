@@ -4,13 +4,7 @@ import type { GoldRequestStatus, GoldTrack } from "./gold";
 import { db } from "./firebase";
 import { suspensionEnd, type SuspensionLength } from "./suspension-length";
 import { UserRole, Suspension, AccountTier } from "./users";
-import {
-  notifySuspended,
-  notifyUnsuspended,
-  notifyAppealRejected,
-  notifyRoleChanged,
-  notifyTierDecision,
-} from "./notifications";
+import { notifyModeration } from "./notifications";
 
 const USERS = "users";
 // Reason / appeal text live in suspensions/{uid} (readable only by the
@@ -45,9 +39,7 @@ export async function suspendUser(
   };
   await setDoc(doc(db, SUSPENSIONS, uid), suspension);
   await updateDoc(doc(db, USERS, uid), { suspended: true });
-  notifySuspended(uid, username, reason, until).catch((err) =>
-    console.warn("notifySuspended failed:", err)
-  );
+  notifyModeration(uid, "suspended").catch((err) => console.warn("notifySuspended failed:", err));
 }
 
 export async function unsuspendUser(
@@ -67,9 +59,7 @@ export async function unsuspendUser(
     resolvedByUid,
   });
   await updateDoc(doc(db, USERS, uid), { suspended: false });
-  notifyUnsuspended(uid, username, upheld).catch((err) =>
-    console.warn("notifyUnsuspended failed:", err)
-  );
+  notifyModeration(uid, "unsuspended").catch((err) => console.warn("notifyUnsuspended failed:", err));
 }
 
 export async function rejectAppeal(uid: string, username: string, resolvedByUid: string): Promise<void> {
@@ -79,9 +69,7 @@ export async function rejectAppeal(uid: string, username: string, resolvedByUid:
     resolvedAt: new Date().toISOString(),
     resolvedByUid,
   });
-  notifyAppealRejected(uid, username).catch((err) =>
-    console.warn("notifyAppealRejected failed:", err)
-  );
+  notifyModeration(uid, "appeal_rejected").catch((err) => console.warn("notifyAppealRejected failed:", err));
 }
 
 // Admin-only (firestore.rules lets admins update any user field).
@@ -101,7 +89,7 @@ export async function resolveTierRequest(uid: string, username: string, adminUid
     "tierRequest.resolvedAt": now,
     "tierRequest.resolvedByUid": adminUid,
   });
-  notifyTierDecision(uid, username, approve).catch((err) => console.warn("notifyTierDecision failed:", err));
+  notifyModeration(uid, "tier_decision").catch((err) => console.warn("notifyTierDecision failed:", err));
 }
 
 // Admin-only: grant/revoke the gold badge (identity check or endorsement).
@@ -153,9 +141,7 @@ export async function resolveBadgeRequest(uid: string, adminUid: string, approve
 
 export async function updateUserRole(uid: string, username: string, role: UserRole): Promise<void> {
   await updateDoc(doc(db, USERS, uid), { role });
-  notifyRoleChanged(uid, username, ROLE_LABEL[role]).catch((err) =>
-    console.warn("notifyRoleChanged failed:", err)
-  );
+  notifyModeration(uid, "role_changed").catch((err) => console.warn("notifyRoleChanged failed:", err));
 }
 
 // Called by the suspended member themselves — firestore.rules only

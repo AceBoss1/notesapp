@@ -1,4 +1,5 @@
 import { createHmac, timingSafeEqual } from "crypto";
+import { setting } from "@/lib/config";
 
 // Server-only. Paylony (api.paylony.com): virtual accounts and bank payouts are being added behind this client; Paystack stays
 // the main provider for everything else. Keys (never in code):
@@ -7,9 +8,9 @@ import { createHmac, timingSafeEqual } from "crypto";
 //   PAYLONY_ENCRYPTION_KEY  signs payout requests (HMAC-512 over the alphabetically arranged parameters, sent as `Signature`)
 // Built from the public API pages we have; the payout and reserved-account endpoints are not in here yet.
 export const PAYLONY_API = "https://api.paylony.com/api/v1";
-export const paylonyConfigured = () => !!process.env.PAYLONY_SECRET_KEY;
+export const paylonyConfigured = () => !!setting("PAYLONY_SECRET_KEY");
 export const paylonyMode = (): "test" | "live" | "unset" => {
-  const k = process.env.PAYLONY_SECRET_KEY || "";
+  const k = setting("PAYLONY_SECRET_KEY") || "";
   return k.startsWith("sk_live_") ? "live" : k.startsWith("sk_test_") ? "test" : "unset";
 };
 
@@ -30,7 +31,7 @@ export const paylonyCodeText = (code: unknown) => PAYLONY_CODES[String(code)] ??
 export type PaylonyReply = { ok: boolean; httpStatus: number; body: unknown };
 
 async function call(path: string, init?: RequestInit): Promise<PaylonyReply> {
-  const key = process.env.PAYLONY_SECRET_KEY;
+  const key = setting("PAYLONY_SECRET_KEY");
   if (!key) throw new Error("PAYLONY_SECRET_KEY is not set.");
   const res = await fetch(`${PAYLONY_API}${path}`, {
     ...init,
@@ -79,7 +80,7 @@ export function signingText(payload: Record<string, string>, format: SignFormat)
 }
 
 export function signPayout(payload: Record<string, string>, format: SignFormat): string {
-  const key = process.env.PAYLONY_ENCRYPTION_KEY;
+  const key = setting("PAYLONY_ENCRYPTION_KEY");
   if (!key) throw new Error("PAYLONY_ENCRYPTION_KEY is not set.");
   return createHmac("sha512", key).update(signingText(payload, format)).digest("hex");
 }
@@ -95,7 +96,7 @@ export function replyCode(r: PaylonyReply): string {
 
 // Paylony's webhook key is sent as the Bearer token on every webhook.
 export function webhookAuthorised(authorization: string | null): boolean {
-  const key = process.env.PAYLONY_WEBHOOK_KEY;
+  const key = setting("PAYLONY_WEBHOOK_KEY");
   if (!key || !authorization) return false;
   const given = Buffer.from(authorization.replace(/^Bearer\s+/i, "").trim());
   const want = Buffer.from(key);
@@ -116,8 +117,8 @@ export type PaylonyWebhook = {
 // What the admin page shows about the connection. Never includes a key.
 export async function paylonyDiagnostics() {
   const out = {
-    configured: paylonyConfigured(), mode: paylonyMode(), webhookKeySet: !!process.env.PAYLONY_WEBHOOK_KEY,
-    encryptionKeySet: !!process.env.PAYLONY_ENCRYPTION_KEY, ok: false, httpStatus: 0, summary: "", body: "",
+    configured: paylonyConfigured(), mode: paylonyMode(), webhookKeySet: !!setting("PAYLONY_WEBHOOK_KEY"),
+    encryptionKeySet: !!setting("PAYLONY_ENCRYPTION_KEY"), ok: false, httpStatus: 0, summary: "", body: "",
   };
   if (!out.configured) {
     out.summary = "PAYLONY_SECRET_KEY isn't set on the server.";

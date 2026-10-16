@@ -12,7 +12,7 @@ export const dynamic = "force-dynamic";
 export async function POST(req: NextRequest) {
   try {
     const me = await authed(req, "messages", true);
-    const limited = rateLimit(req, "group-create", me.uid, 5, 3600);
+    const limited = await rateLimit(req, "group-create", me.uid, 5, 3600);
     if (limited) return limited;
     const body = await req.json().catch(() => ({}));
     const db = getAdminDb();

@@ -14,7 +14,7 @@ const MAX_ENTRIES = 500;
 const memo = new Map<string, { at: number; data: { followers: number; subscribers: number } }>();
 
 export async function GET(req: NextRequest) {
-  const limited = rateLimit(req, "journal-stats", clientIp(req), 120, 60);
+  const limited = await rateLimit(req, "journal-stats", clientIp(req), 120, 60);
   if (limited) return limited;
   const username = (req.nextUrl.searchParams.get("username") || "").toLowerCase();
   if (!/^[a-z0-9_-]{2,30}$/.test(username)) return NextResponse.json({ error: "Invalid journal." }, { status: 400 });

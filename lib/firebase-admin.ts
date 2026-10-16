@@ -3,6 +3,7 @@ import { getAuth } from "firebase-admin/auth";
 import { getFirestore } from "firebase-admin/firestore";
 import { ADMIN_PROFILES } from "./admin";
 import { accessFromClaims, hasAnyDept, isSuper, type Access, type Dept } from "./admin-access";
+import { setting } from "@/lib/config";
 
 // Server-only — never imported from a "use client" file. Distinct
 // from lib/firebase.ts (the client SDK used everywhere else in this
@@ -19,10 +20,10 @@ import { accessFromClaims, hasAnyDept, isSuper, type Access, type Dept } from ".
 export function getAdminApp(): App {
   if (getApps().length) return getApps()[0];
 
-  const raw = process.env.FIREBASE_SERVICE_ACCOUNT_KEY;
+  const raw = setting("FIREBASE_SERVICE_ACCOUNT_KEY");
   if (!raw) {
     throw new Error(
-      "FIREBASE_SERVICE_ACCOUNT_KEY is not set in this environment's variables — required for uploads to work. See README."
+      "FIREBASE_SERVICE_ACCOUNT_KEY is not set in this environment's variables — required for uploads to work. See docs/ENVIRONMENT.md."
     );
   }
   let serviceAccount: object;
@@ -76,7 +77,7 @@ export async function verifyPublisherRequest(idToken: string | undefined): Promi
 }
 
 // The founder who alone appoints and removes super admins. Set OWNER_EMAIL to change it; the default is the first founder account (lib/admin.ts).
-export const ownerEmail = () => (process.env.OWNER_EMAIL || Object.keys(ADMIN_PROFILES)[0] || "").trim().toLowerCase();
+export const ownerEmail = () => (setting("OWNER_EMAIL") || Object.keys(ADMIN_PROFILES)[0] || "").trim().toLowerCase();
 export const isOwnerEmail = (email?: string | null) => !!email && email.trim().toLowerCase() === ownerEmail();
 
 export class AccessError extends Error {

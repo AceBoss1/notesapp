@@ -7,6 +7,7 @@ import { MomentError, adminRemoveMoment, type MomentDeps } from "./moments-serve
 import { wipeMessage } from "./groups-server";
 import { deleteObject, privateFilesConfigured } from "./private-files";
 import { SITE_URL } from "@/lib/host";
+import { setting } from "@/lib/config";
 
 // Reports on moments and conversations. Because moments disappear and messages can be deleted, a report keeps a copy of
 // what was reported (and, for a moment, its files) until someone at #NotesApp has looked at it; resolving the report then
@@ -93,7 +94,7 @@ export async function createReport(
 const DIGEST_HOUR = 8; // Lagos time: the daily digest goes out once it is 8am or later
 
 export async function emailTeam(subject: string, text: string): Promise<void> {
-  const to = process.env.REPORTS_EMAIL;
+  const to = setting("REPORTS_EMAIL");
   if (to) await sendEmail({ to, subject, text });
 }
 

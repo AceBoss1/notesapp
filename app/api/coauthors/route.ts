@@ -39,7 +39,7 @@ export async function POST(req: NextRequest) {
     const idToken = req.headers.get("authorization")?.replace(/^Bearer\s+/i, "");
     const me = await verifySignedInRequest(idToken).catch(() => null);
     if (!me) return NextResponse.json({ error: "Sign in first." }, { status: 401 });
-    const limited = rateLimit(req, "coauthors", me.uid, 40, 3600);
+    const limited = await rateLimit(req, "coauthors", me.uid, 40, 3600);
     if (limited) return limited;
 
     const body = await req.json().catch(() => ({}));

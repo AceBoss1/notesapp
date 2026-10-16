@@ -903,3 +903,26 @@ test("Messages: typing is written only by yourself in your own conversations; ch
   await assertFails(getDoc(doc(as("pub"), "chatPins/alice")));
   await assertFails(setDoc(doc(as("alice"), "chatPins/alice"), { list: [] }));
 });
+
+test("notifications and comments: only the server creates them; members read and mark their own bells, delete their own comments", async () => {
+  await env.withSecurityRulesDisabled(async (ctx) => {
+    const db = ctx.firestore();
+    await setDoc(doc(db, "notes/pub1"), { slug: "p", title: "x", status: "published", authorUid: "pub" });
+    await setDoc(doc(db, "notes/pub1/comments/c1"), { authorUid: "alice", content: "x", likeCount: 0 });
+    await setDoc(doc(db, "notifications/n1"), { recipientUid: "alice", type: "like", message: "m", read: false, createdAt: "x" });
+  });
+  // nobody, not even the person it would be for, can create a bell or a comment from a browser
+  const fake = { recipientUid: "pub", type: "like", message: "Fake", read: false, createdAt: "x" };
+  await assertFails(setDoc(doc(as("alice"), "notifications/fake1"), fake));
+  await assertFails(setDoc(doc(as("pub"), "notifications/fake2"), fake));
+  await assertFails(setDoc(doc(as("alice"), "notes/pub1/comments/c2"), { authorUid: "alice", authorDisplayName: "Emmanuel Adams", content: "x", likeCount: 0 }));
+  // reading and marking your own bell still work; someone else's don't
+  await assertSucceeds(getDoc(doc(as("alice"), "notifications/n1")));
+  await assertFails(getDoc(doc(as("bob"), "notifications/n1")));
+  await assertSucceeds(updateDoc(doc(as("alice"), "notifications/n1"), { read: true }));
+  await assertFails(updateDoc(doc(as("alice"), "notifications/n1"), { message: "changed" }));
+  // comments stay public to read; their author (or moderation) can delete
+  await assertSucceeds(getDoc(doc(as("bob"), "notes/pub1/comments/c1")));
+  await assertFails(deleteDoc(doc(as("bob"), "notes/pub1/comments/c1")));
+  await assertSucceeds(deleteDoc(doc(as("alice"), "notes/pub1/comments/c1")));
+});

@@ -12,7 +12,7 @@ export async function POST(req: NextRequest) {
   try {
     const me = await verifySignedInRequest(req.headers.get("authorization")?.replace(/^Bearer\s+/i, "")).catch(() => null);
     if (!me) return NextResponse.json({ error: "Sign in first." }, { status: 401 });
-    const limited = rateLimit(req, "presence", me.uid, 30, 60);
+    const limited = await rateLimit(req, "presence", me.uid, 30, 60);
     if (limited) return limited;
     const body = await req.json().catch(() => ({}));
     const uids = Array.isArray(body.uids) ? body.uids.filter((u: unknown): u is string => typeof u === "string" && u.length > 0 && u.length < 128) : [];

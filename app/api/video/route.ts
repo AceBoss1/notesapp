@@ -29,7 +29,7 @@ export async function POST(req: NextRequest) {
     const isMoment = body.purpose === "moment";
     if (isMoment && !MOMENTS_LIVE) return NextResponse.json({ error: "Not found." }, { status: 404 });
     const uid = isMoment ? await momentUploader(token) : await verifyPublisherRequest(token);
-    const limited = rateLimit(req, "video", uid, 20, 600);
+    const limited = await rateLimit(req, "video", uid, 20, 600);
     if (limited) return limited;
     const db = getAdminDb();
 

@@ -14,6 +14,7 @@ import { uploadToR2 } from "@/lib/upload";
 import { DROP_RING, useFileDrop } from "@/lib/useFileDrop";
 import RichTextEditor from "@/components/RichTextEditor";
 import { roleLabelFor, type UserProfile } from "@/lib/users";
+import { resolveAuthorUsername } from "@/lib/journals-directory";
 
 // Kept identical to Precheks' own author_role text on purpose — this
 // writes into the shared `notes` document, and Precheks renders
@@ -155,7 +156,9 @@ export default function NoteForm({ noteId, initial, self, org }: Props) {
         ? { authorUid: org.profile.uid, authorUsername: org.profile.username, writerUid: initial?.writerUid ?? self.uid, writerUsername: initial?.writerUsername ?? self.username }
         : self
         ? { authorUid: self.uid, authorUsername: self.username }
-        : {}),
+        : // an admin publishing under a founder's or @na-notesapp's name: record whose journal it is by username (not by the
+          // display name), so renaming never loses it; the backfill script adds the account id (scripts/backfill-author-uids.ts)
+          resolveAuthorUsername(author.name) ? { authorUsername: resolveAuthorUsername(author.name)! } : {}),
       status: forceDraft ? ("draft" as const) : status,
       premium,
       // Saving with a video attaches it; removing one clears the stored fields (updateDoc only touches what it's given).

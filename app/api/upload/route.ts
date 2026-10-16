@@ -11,11 +11,11 @@ import { ALLOWED_TYPES, maxUploadBytes } from "@/lib/upload-rules";
 // to R2 itself — the file never passes through this server. Keeps
 // Next.js's own request body size limits and server bandwidth out of
 // the picture entirely, which matters once video uploads exist (see
-// README's video-upload roadmap note).
+// the build log's (docs/BUILD_LOG.md) video-upload roadmap note).
 //
 // Admin-only, same allowlist as firestore.rules' isAdmin() — this
 // mirrors NoteForm.tsx being admin-only today. If publishing ever
-// opens to staff/volunteer (see README), this check needs to move
+// opens to staff/volunteer (see docs/BUILD_LOG.md), this check needs to move
 // from a hardcoded email allowlist to whatever that migration lands
 // on, not just be loosened in place.
 export async function POST(req: NextRequest) {
@@ -35,7 +35,7 @@ export async function POST(req: NextRequest) {
       : isAvatar
         ? await verifyAvatarUploadRequest(idToken)
         : await verifyPublisherRequest(idToken);
-    const limited = rateLimit(req, "upload", uid, 30, 600);
+    const limited = await rateLimit(req, "upload", uid, 30, 600);
     if (limited) return limited;
     if (!filename || !contentType) {
       return NextResponse.json({ error: "filename and contentType are required" }, { status: 400 });

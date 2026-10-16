@@ -13,7 +13,7 @@ export async function GET(req: NextRequest) {
     const idToken = req.headers.get("authorization")?.replace(/^Bearer\s+/i, "");
     const user = await verifySignedInRequest(idToken).catch(() => null);
     if (!user) return NextResponse.json({ error: "Sign in to view this payment." }, { status: 401 });
-    const limited = rateLimit(req, "pay-verify", user.uid, 30, 600);
+    const limited = await rateLimit(req, "pay-verify", user.uid, 30, 600);
     if (limited) return limited;
 
     const reference = req.nextUrl.searchParams.get("reference");

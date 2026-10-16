@@ -16,6 +16,7 @@ import { sendMorningSummaries, sendWorkReminders } from "@/lib/team-server";
 import { sendGrantReminders } from "@/lib/grants-server";
 import { sendDueReminders } from "@/lib/dues-server";
 import { sendWeeklyDigests } from "@/lib/digest-server";
+import { setting } from "@/lib/config";
 
 // Run every ~15 minutes by an external scheduler with
 //   Authorization: Bearer $CRON_SECRET
@@ -26,7 +27,7 @@ import { sendWeeklyDigests } from "@/lib/digest-server";
 export const dynamic = "force-dynamic";
 
 export async function GET(req: NextRequest) {
-  const secret = process.env.CRON_SECRET;
+  const secret = setting("CRON_SECRET");
   if (!secret || req.headers.get("authorization") !== `Bearer ${secret}`) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }

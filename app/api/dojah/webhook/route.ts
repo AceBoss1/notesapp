@@ -3,6 +3,7 @@ import { getAdminDb, getUserEmail } from "@/lib/firebase-admin";
 import { sendEmail } from "@/lib/email";
 import { summarizeDojahEvent, verifyDojahSignature } from "@/lib/dojah";
 import { SITE_URL } from "@/lib/host";
+import { setting } from "@/lib/config";
 
 export const dynamic = "force-dynamic";
 const site = () => SITE_URL;
@@ -14,7 +15,7 @@ const site = () => SITE_URL;
 // set DOJAH_AUTO_APPROVE=true to approve applications whose every step passed.
 export async function POST(req: NextRequest) {
   const raw = await req.text();
-  if (!verifyDojahSignature(raw, req.headers.get("x-dojah-signature"), process.env.DOJAH_WEBHOOK_SECRET)) {
+  if (!verifyDojahSignature(raw, req.headers.get("x-dojah-signature"), setting("DOJAH_WEBHOOK_SECRET"))) {
     return NextResponse.json({ error: "Invalid signature." }, { status: 401 });
   }
   try {
@@ -36,7 +37,7 @@ export async function POST(req: NextRequest) {
     await reqRef.update({ dojah: s });
 
     // Opt-in automatic approval: only for an application that is waiting for review.
-    if (s.passed && request.status === "pending" && process.env.DOJAH_AUTO_APPROVE === "true") {
+    if (s.passed && request.status === "pending" && setting("DOJAH_AUTO_APPROVE") === "true") {
       await reqRef.update({ status: "approved", resolvedAt: new Date().toISOString(), resolvedByUid: "dojah" });
       const to = await getUserEmail(uid);
       if (to) await sendEmail({ to, bell: { uid, type: "badge", linkHref: "/badges" }, subject: "Your identity check passed", text: `Your identity check with our verification partner passed and your gold badge application is approved. Subscribe to switch the badge on: ${site()}/badges\n\n#NotesApp` }).catch(() => {});

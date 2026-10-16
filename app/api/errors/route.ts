@@ -10,7 +10,7 @@ export async function POST(req: NextRequest) {
   try {
     const ua = req.headers.get("user-agent") || "";
     if (!ua || /bot|crawl|spider|preview|headless|lighthouse/i.test(ua)) return NextResponse.json({ ok: true });
-    if (rateLimit(req, "client-error", clientIp(req), 20, 600)) return NextResponse.json({ ok: true });
+    if (await rateLimit(req, "client-error", clientIp(req), 20, 600)) return NextResponse.json({ ok: true });
     const text = await req.text();
     if (text.length > 6000) return NextResponse.json({ ok: true });
     const b = JSON.parse(text) as { message?: unknown; stack?: unknown; url?: unknown };

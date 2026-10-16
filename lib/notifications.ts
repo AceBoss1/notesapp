@@ -12,10 +12,8 @@ import {
   getDocs,
   Unsubscribe,
 } from "firebase/firestore";
-import { describeUntil } from "./suspension-length";
 import { db } from "./firebase";
-import { getUserByDisplayName } from "./users";
-import { resolveAuthorUsername } from "./journals-directory";
+import { api } from "./moments-client";
 
 const NOTIFICATIONS = "notifications";
 
@@ -61,125 +59,15 @@ export type AppNotification = {
   linkHref?: string;
 };
 
-// No Cloud Functions in this deployment — every notification here is
-// written directly by whichever client action caused it (the liker's
-// browser writes a notification addressed to the note's author, not
-// the author's own browser). firestore.rules can only validate shape
-// (recipientUid is a string, type is one of the known values, read
-// starts false) — it can't verify "did this uid actually like that
-// note," the way a trusted server-side function could. Practical
-// effect: a motivated user could write a fake notification to anyone.
-// Low severity — it's a fake in-app message, not a data leak or a
-// permission escalation, and only the recipient can ever read it. If
-// this becomes a real abuse vector, the fix is a Cloud Function that
-// owns notification creation instead of the client.
-async function createNotification(
-  data: Omit<AppNotification, "id" | "read" | "createdAt">
-): Promise<void> {
-  await addDoc(collection(db, NOTIFICATIONS), {
-    ...data,
-    read: false,
-    createdAt: new Date().toISOString(),
-  });
+// Notifications are written by the server only (firestore.rules lets browsers read their own and mark them read, never create):
+// comments, replies and likes in lib/comments-server.ts, @mentions in lib/mentions-server.ts, moderation in /api/admin/notify,
+// everything else through notifyBell in lib/email.ts. These two ask the server after the browser did its part.
+export async function notifyLiked(noteId: string): Promise<void> {
+  await api("/api/notify/like", { body: { noteId } });
 }
-
-type Actor = { uid: string; username: string; displayName: string; avatar: string };
-type NoteRef = { slug: string; title: string; author: string };
-
-export async function notifyLike(note: NoteRef, liker: Actor): Promise<void> {
-  const author = await getUserByDisplayName(note.author);
-  if (!author || author.uid === liker.uid) return; // no self-notify, no recipient to notify
-  await createNotification({
-    recipientUid: author.uid,
-    type: "like",
-    message: `${liker.displayName} liked "${note.title}"`,
-    actorUsername: liker.username,
-    actorDisplayName: liker.displayName,
-    actorAvatar: liker.avatar,
-    linkHref: `/journals/${note.slug}`,
-  });
-}
-
-export async function notifyComment(note: NoteRef, commenter: Actor): Promise<void> {
-  const author = await getUserByDisplayName(note.author);
-  if (!author || author.uid === commenter.uid) return;
-  await createNotification({
-    recipientUid: author.uid,
-    type: "comment",
-    message: `${commenter.displayName} commented on "${note.title}"`,
-    actorUsername: commenter.username,
-    actorDisplayName: commenter.displayName,
-    actorAvatar: commenter.avatar,
-    linkHref: `/journals/${note.slug}#comments`,
-  });
-}
-
-export async function notifyReply(
-  parentComment: { authorUid: string; authorUsername: string; authorDisplayName: string },
-  note: NoteRef,
-  replier: Actor
-): Promise<void> {
-  if (parentComment.authorUid === replier.uid) return;
-  await createNotification({
-    recipientUid: parentComment.authorUid,
-    type: "reply",
-    message: `${replier.displayName} replied to your comment on "${note.title}"`,
-    actorUsername: replier.username,
-    actorDisplayName: replier.displayName,
-    actorAvatar: replier.avatar,
-    linkHref: `/journals/${note.slug}#comments`,
-  });
-}
-
-// New-post fan-out lives on the server now (lib/new-post-notify.ts, POST /api/notify/new-post), because follow records are not readable from browsers.
-
-export async function notifySuspended(uid: string, username: string, reason: string, until?: string): Promise<void> {
-  await createNotification({
-    recipientUid: uid,
-    type: "suspended",
-    message: `Your account was suspended ${describeUntil(until)}: ${reason}`,
-    linkHref: `/u/${username}`,
-  });
-}
-
-export async function notifyUnsuspended(uid: string, username: string, viaAppeal: boolean): Promise<void> {
-  await createNotification({
-    recipientUid: uid,
-    type: "unsuspended",
-    message: viaAppeal
-      ? "Your appeal was upheld — your account is active again."
-      : "Your account is active again.",
-    linkHref: `/u/${username}`,
-  });
-}
-
-export async function notifyAppealRejected(uid: string, username: string): Promise<void> {
-  await createNotification({
-    recipientUid: uid,
-    type: "appeal_rejected",
-    message: "Your appeal wasn't upheld — your account remains suspended.",
-    linkHref: `/u/${username}`,
-  });
-}
-
-export async function notifyRoleChanged(uid: string, username: string, newRoleLabel: string): Promise<void> {
-  await createNotification({
-    recipientUid: uid,
-    type: "role_changed",
-    message: `Your role was changed to ${newRoleLabel}.`,
-    linkHref: `/u/${username}`,
-  });
-}
-
-export async function notifyTierDecision(uid: string, username: string, approved: boolean): Promise<void> {
-  await createNotification({
-    recipientUid: uid,
-    type: "role_changed",
-    message: approved
-      ? "Your Free Basic application was approved — you can now publish. Set your rates and payouts under Rates & payouts."
-      : "Your Free Basic application wasn't approved this time. You can reapply, or choose Pro or Business.",
-    linkHref: approved ? "/profile/publishing" : `/u/${username}`,
-  });
+export type ModerationNotice = "suspended" | "unsuspended" | "appeal_rejected" | "role_changed" | "tier_decision";
+export async function notifyModeration(uid: string, kind: ModerationNotice): Promise<void> {
+  await api("/api/admin/notify", { body: { uid, kind } });
 }
 
 // Live subscription — the bell needs real-time updates, not a

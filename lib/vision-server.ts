@@ -1,6 +1,7 @@
 import type { Firestore } from "firebase-admin/firestore";
 import { ADMIN_PROFILES } from "./admin";
 import { FOUNDERS, isFounder, personFor, type Founders, type PersonKey } from "./vision";
+import { setting } from "@/lib/config";
 
 // What the Vision model hands each person. The starting split and the staff option are served only to the people they concern, never shipped in the
 // page's code: the three founders get the founders' split (the "bridge" case from the capital-structure registry); Nora Bawa gets her own option only.
@@ -19,7 +20,7 @@ export type VisionPayload = {
 export async function whoIs(db: Firestore, c: Caller): Promise<PersonKey | null> {
   const doc = await db.doc(`users/${c.uid}`).get();
   const name = String(doc.data()?.displayName || ADMIN_PROFILES[c.email.toLowerCase()]?.displayName || "");
-  return personFor({ name, email: c.email, owner: c.owner, username: String(doc.data()?.username || "") }, process.env.VISION_PEOPLE);
+  return personFor({ name, email: c.email, owner: c.owner, username: String(doc.data()?.username || "") }, setting("VISION_PEOPLE"));
 }
 
 // `as` lets the owner look at the model as another person to check what they see; anyone else's `as` is ignored.

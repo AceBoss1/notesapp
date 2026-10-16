@@ -27,7 +27,7 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
   try {
     const me = await verifyAdminAccess(bearer(req));
-    const limited = rateLimit(req, "admin-access", me.uid, 30, 3600);
+    const limited = await rateLimit(req, "admin-access", me.uid, 30, 3600);
     if (limited) return limited;
     const body = await req.json().catch(() => ({}));
     return NextResponse.json(await changeAccess(getAdminDb(), me, body));

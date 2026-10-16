@@ -2,6 +2,7 @@ import { getAdminDb } from "./firebase-admin";
 import { DnsRecord, dnsInstructions, isApexDomain } from "./host";
 import { effectiveTier } from "./users";
 import { getTierConfig } from "./tiers";
+import { setting } from "@/lib/config";
 
 // Custom domains for Enterprise accounts (`customDomains/{host}`, server-only; one per account).
 // The domain is registered on the Vercel project through its API when VERCEL_API_TOKEN and VERCEL_PROJECT_ID
@@ -13,9 +14,10 @@ export type DomainDoc = {
 };
 
 const api = () => {
-  const token = process.env.VERCEL_API_TOKEN, project = process.env.VERCEL_PROJECT_ID;
+  const token = setting("VERCEL_API_TOKEN"), project = setting("VERCEL_PROJECT_ID");
   if (!token || !project) return null;
-  const team = process.env.VERCEL_TEAM_ID ? `teamId=${encodeURIComponent(process.env.VERCEL_TEAM_ID)}` : "";
+  const teamId = setting("VERCEL_TEAM_ID");
+  const team = teamId ? `teamId=${encodeURIComponent(teamId)}` : "";
   return { token, project, team };
 };
 export const vercelConfigured = () => !!api();

@@ -29,7 +29,7 @@ export async function GET(req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
-  const limited = rateLimit(req, "digest-unsubscribe", clientIp(req), 20, 60);
+  const limited = await rateLimit(req, "digest-unsubscribe", clientIp(req), 20, 60);
   if (limited) return limited;
   const { u, t, ok } = params(req);
   if (!ok) return page("Link not valid", "<p>That link isn't valid.</p>", 400);
