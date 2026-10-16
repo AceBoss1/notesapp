@@ -281,6 +281,17 @@ Calls are free. Planned: paid calls inside Notes Life (₦5 a minute voice, ₦1
 **Links:** type a web address anywhere you write on #NotesApp (a journal, a comment or reply, a message, a moment caption, a review, a recommendation, your bio or Notes Life chat) and it becomes a link people can tap. It works with full addresses (https://…), www.… and plain names such as candelluximperialhotel.com. In Messages, a message with a web address shows a preview card under it: the page's picture, title and description.
 
 **@mentions:** type @ and the first letters of someone's username, and #NotesApp suggests matching members. Pick one with the arrow keys and Enter (or Tab), or tap it; Esc closes the list. Wherever it shows, @username is a link to that person's profile.
+
+**Who gets told:** when you @mention someone in a comment or reply, a published journal, a moment, a store review or a seller's reply, or a recommendation (once the person it's about approves it), they get a notification in their bell with a few words around the mention and a link to it. Each person is told once for each thing, so editing a comment or a journal only tells people you newly mention. Nobody is told about mentioning themselves, and if either of you has blocked the other, no notification goes. Mentions in messages, group chats and Notes Life chat never notify anyone: those are conversations, and a mention there doesn't pull anyone in. Up to 10 people are told per comment, journal or moment.
+`),
+    A("weekly-digest", "The #NotesApp Weekly Digest email", "Getting started", `
+Every Sunday evening (from 5 PM, Lagos time) #NotesApp can email you a short digest: up to five journals published that week, chosen for you. Journals from people you follow come first, then the topics you like, then what most people liked that week. Your own posts are never in it.
+
+Each story shows the writer's picture and name (and the organisation they wrote for), the title, the opening of the story, how long it takes to read, and its likes and comments. Tap the title or **Read more** to open it; **Read more in your feed** opens your journal feed.
+
+**Turning it off:** every digest has an **Unsubscribe from the weekly digest** link at the bottom (your email app's own Unsubscribe button works too), or switch it off under **Emails** in [Account settings](/profile/account#email). Switch it back on there any time. Emails about your bookings, orders, payments and account always come, whatever you choose.
+
+You need a confirmed email address to get it, and it only comes when there's something to read.
 `),
     A("social-sharing", "Sharing posts to social media", "Publishing and earning", `
 Every post has a share menu (WhatsApp, X, Facebook, LinkedIn, copy link) that works without connecting anything. Connected publishing, where you connect LinkedIn and X once and publish an excerpt with a link back to your journal, is built and is being switched on; see the [roadmap](/roadmap) for the latest. You always see and can edit the words before anything is posted.`),

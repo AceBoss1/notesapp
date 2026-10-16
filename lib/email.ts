@@ -78,7 +78,8 @@ ${brand
 </table></td></tr></table></body></html>`;
 }
 
-export async function sendEmail(params: { to: string; subject: string; text: string; action?: EmailAction; bell?: BellNote; brand?: EmailBrand }): Promise<boolean> {
+// `html` replaces the standard branded layout (the weekly digest has its own); `headers` adds mail headers (List-Unsubscribe).
+export async function sendEmail(params: { to: string; subject: string; text: string; action?: EmailAction; bell?: BellNote; brand?: EmailBrand; html?: string; headers?: Record<string, string> }): Promise<boolean> {
   if (params.bell) await notifyBell({ ...params.bell, message: params.bell.message ?? params.subject });
   const key = process.env.RESEND_API_KEY;
   if (!key) {
@@ -93,7 +94,7 @@ export async function sendEmail(params: { to: string; subject: string; text: str
     const res = await fetch("https://api.resend.com/emails", {
       method: "POST",
       headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
-      body: JSON.stringify({ from, to: params.to, subject: params.subject, text: params.action && !params.text.includes(params.action.url) ? `${params.text}\n\n${params.action.label}: ${params.action.url}` : params.text, html: renderEmailHtml(params.text, params.action, params.brand) }),
+      body: JSON.stringify({ from, to: params.to, subject: params.subject, text: params.action && !params.text.includes(params.action.url) ? `${params.text}\n\n${params.action.label}: ${params.action.url}` : params.text, html: params.html ?? renderEmailHtml(params.text, params.action, params.brand), ...(params.headers ? { headers: params.headers } : {}) }),
     });
     if (!res.ok) console.error("[email] Resend error", res.status, await res.text().catch(() => ""));
     return res.ok;

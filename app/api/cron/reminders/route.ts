@@ -15,6 +15,7 @@ import { momentDeps } from "@/lib/moments-api";
 import { sendMorningSummaries, sendWorkReminders } from "@/lib/team-server";
 import { sendGrantReminders } from "@/lib/grants-server";
 import { sendDueReminders } from "@/lib/dues-server";
+import { sendWeeklyDigests } from "@/lib/digest-server";
 
 // Run every ~15 minutes by an external scheduler with
 //   Authorization: Bearer $CRON_SECRET
@@ -86,6 +87,8 @@ export async function GET(req: NextRequest) {
   await job("dueReminders", () => sendDueReminders(db));
   // Work board deadlines: to each item's owner 3 days and 1 day before, on the day, and once when overdue.
   await job("workReminders", () => sendWorkReminders(db));
+  // Sundays from 5 PM Lagos, in batches across runs, once WEEKLY_DIGEST=on (lib/digest-server.ts).
+  await job("weeklyDigest", () => sendWeeklyDigests(db));
   await job("reconcilePaylonyPayouts", () => reconcilePaylonyPayouts().then((r) => r.paid + r.failed));
   // Heartbeat read by /status ("Scheduled jobs"); server-only collection, no client rules.
   await db.collection("cronRuns").doc("reminders").set({ at: new Date().toISOString(), ok: failed.length === 0, failed }).catch((e) => console.error("cron heartbeat failed", e));

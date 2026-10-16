@@ -15,6 +15,7 @@ import { auth } from "@/lib/firebase";
 import { getUserByUid, UserProfile } from "@/lib/users";
 import AccountData from "@/components/AccountData";
 import VisibilitySettings from "@/components/VisibilitySettings";
+import EmailSettings from "@/components/EmailSettings";
 import PageHero from "@/components/PageHero";
 import PasswordInput from "@/components/PasswordInput";
 import { ROOT_DOMAIN } from "@/lib/host";
@@ -176,6 +177,12 @@ export default function AccountPage() {
         <p className="mt-3 text-xs text-slate">Forgot it? <Link href="/forgot-password" className="text-crimson">Reset by email</Link>.</p>
       </form>
 
+      {user && (
+        <section id="email" className="mx-auto mt-10 max-w-2xl scroll-mt-6 px-6">
+          <h2 className="font-display text-2xl text-ink">Emails</h2>
+          <div className="mt-4"><EmailSettings /></div>
+        </section>
+      )}
       {user && (
         <section className="mx-auto mt-10 max-w-2xl px-6">
           <h2 className="font-display text-2xl text-ink">Online status and lists</h2>
