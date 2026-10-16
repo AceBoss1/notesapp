@@ -2,7 +2,9 @@
 
 import ProfileAvatar from "@/components/ProfileAvatar";
 import AppLink from "@/components/AppLink";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import LinkedText from "@/components/LinkedText";
+import MentionPicker from "@/components/MentionPicker";
 import Link from "next/link";
 import Image from "next/image";
 import { onAuthStateChanged, User } from "firebase/auth";
@@ -110,7 +112,7 @@ function CommentRow({
             This comment is hidden — the account is temporarily suspended.
           </p>
         ) : (
-          <p className="mt-1 text-sm text-ink font-body">{comment.content}</p>
+          <p className="mt-1 whitespace-pre-wrap break-words text-sm text-ink font-body"><LinkedText text={comment.content} /></p>
         )}
 
         <div className="mt-2 flex items-center gap-4 text-xs font-ui">
@@ -167,6 +169,8 @@ export default function Comments({
   const [posting, setPosting] = useState(false);
   const [replyingTo, setReplyingTo] = useState<string | null>(null);
   const [replyText, setReplyText] = useState("");
+  const commentBox = useRef<HTMLTextAreaElement>(null);
+  const replyBoxRef = useRef<HTMLInputElement>(null);
   const [postingReply, setPostingReply] = useState(false);
   // Admin-only: post/reply as @na-notesapp instead of as themselves.
   // authorUid still ends up as the real admin's uid either way — the
@@ -311,8 +315,10 @@ export default function Comments({
             height={40}
             className="rounded-full object-cover w-10 h-10 flex-shrink-0"
           />
-          <div className="flex-1">
+          <div className="relative flex-1">
+            <MentionPicker target={commentBox} value={text} onChange={setText} />
             <textarea
+              ref={commentBox}
               rows={3}
               value={text}
               onChange={(e) => setText(e.target.value)}
@@ -369,8 +375,10 @@ export default function Comments({
           const replies = repliesFor(c.id);
           const replyBox = (
             <div>
-              <div className="flex gap-2">
+              <div className="relative flex gap-2">
+                <MentionPicker target={replyBoxRef} value={replyText} onChange={setReplyText} />
                 <input
+                  ref={replyBoxRef}
                   value={replyText}
                   onChange={(e) => setReplyText(e.target.value)}
                   placeholder={

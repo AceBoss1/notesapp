@@ -1,13 +1,7 @@
-import { parseFormat } from "@/lib/message-format";
+import LinkedText from "@/components/LinkedText";
 
-// A message's text with **bold**, _italic_ and __underline__ shown (see lib/message-format.ts). Plain React text: no HTML.
-export default function FormattedText({ text }: { text: string }) {
-  return (
-    <>
-      {parseFormat(text).map((s, k) => {
-        const cls = `${s.b ? "font-bold " : ""}${s.i ? "italic " : ""}${s.u ? "underline " : ""}`.trim();
-        return cls ? <span key={k} className={cls}>{s.text}</span> : <span key={k}>{s.text}</span>;
-      })}
-    </>
-  );
+// A message's text with **bold**, _italic_ and __underline__ shown (see lib/message-format.ts), and web addresses and @username
+// as links (lib/linkify.ts). Plain React text: no HTML.
+export default function FormattedText({ text, linkClass }: { text: string; linkClass?: string }) {
+  return <LinkedText text={text} format linkClass={linkClass} />;
 }

@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
+import MentionPicker from "@/components/MentionPicker";
 import { auth } from "@/lib/firebase";
 import { uploadToR2WithKey } from "@/lib/upload";
 import { api } from "@/lib/moments-client";
@@ -25,6 +26,7 @@ const clock = (s: number) => `${Math.floor(s / 60)}:${String(Math.round(s % 60))
 export default function MomentComposer({ onClose, onPosted }: { onClose: () => void; onPosted: () => void }) {
   const [kind, setKind] = useState<MomentKind>("text");
   const [text, setText] = useState("");
+  const captionBox = useRef<HTMLTextAreaElement>(null);
   const [hours, setHours] = useState<MomentHours>(MOMENT_DEFAULT_HOURS);
   const [file, setFile] = useState<File | null>(null);
   const [voice, setVoice] = useState<VoiceOver | null>(null);
@@ -149,7 +151,7 @@ export default function MomentComposer({ onClose, onPosted }: { onClose: () => v
               : `That video is ${clock(duration)}, longer than the ${MOMENT_VIDEO_MAX_SECONDS} seconds a moment can be, and you have ${quota.remaining === 1 ? "1 video moment" : `${quota.remaining} video moments`} left this week. Only the first ${clock(Math.min(duration, allowed * MOMENT_VIDEO_MAX_SECONDS))} will be shared; the rest will be left out.`}
           </div>
         )}
-        <textarea value={text} onChange={(e) => setText(e.target.value)} maxLength={MOMENT_TEXT_MAX} rows={4} placeholder={MOMENT_HINT} className="mt-4 w-full rounded border border-rule p-3 text-sm" />
+        <div className="relative"><MentionPicker target={captionBox} value={text} onChange={setText} /><textarea ref={captionBox} value={text} onChange={(e) => setText(e.target.value)} maxLength={MOMENT_TEXT_MAX} rows={4} placeholder={MOMENT_HINT} className="mt-4 w-full rounded border border-rule p-3 text-sm" /></div>
         <p className="text-right text-xs text-slate">{text.length}/{MOMENT_TEXT_MAX}</p>
         <VoiceOverRecorder value={voice} onChange={setVoice} />
         <fieldset className="mt-3">

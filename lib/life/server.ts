@@ -3,7 +3,7 @@ const COMING_CITY_IDS = ["lagos", "port_harcourt"];
 import {
   CITY, DEALS, FOOD, FOOD_MODES, GAME_DAY_MS, GAME_HOUR_MS, HOTEL_OF, ITEM, JOB, MONTH_DAYS, NEGOTIATE_CHANCE, ORDER_MAX_ITEMS, RECIPE, RENT_NAIRA,
   SHIFT_MS, START_NAIRA, STARTER_ITEMS, TRANSPORT_OF, bestOwned, cookingSkill, fmtN, jobBlocker, netWorth, shiftPay, FUEL_NAIRA, RESIDENTS, nepaAt, type FoodMode,
-  swimSkill, DW_COURSE, DW_CLASS_HOURS, DW_CLASS_MS, DW_CLASS_EFFECT, dwOpen, giveawayOn, giveawayEligible, giveawayWeek, giveawayPrize, GIVEAWAY, OUTLET, OUTLET_AREAS, OUTLET_BACKUP, STAFF_PERKS, isStaff, outletBlocker, outletPrice, outletTakings, shiftExtra, type Outlet, type OutletArea,
+  swimSkill, hotelCheckout, lodged, worldTime, DW_COURSE, DW_CLASS_HOURS, DW_CLASS_MS, DW_CLASS_EFFECT, dwOpen, giveawayOn, giveawayEligible, giveawayWeek, giveawayPrize, GIVEAWAY, OUTLET, OUTLET_AREAS, OUTLET_BACKUP, STAFF_PERKS, isStaff, outletBlocker, outletPrice, outletTakings, shiftExtra, type Outlet, type OutletArea,
 } from "./catalog";
 
 // Server-only. Notes Life money and ownership: lifePlayers/{uid} (the player, read by the owner, written only here) and lifeTx/{id}
@@ -19,6 +19,7 @@ export type LifePlayer = {
   naira: number; owned: string[]; cooks: number; reputation: number; dealsDone: number; shifts: number; chefShifts: number; itelShifts: number; hotelShifts: number;
   outlets: Outlet[]; swimLessons: number; swims: number; gymSessions: number; cityNotify: string[];
   certs: string[]; dwCourses: Record<string, number>; dwClassAt: number; techShifts: number; giveawayWeek: number; // Digital Witch: certificates, classes done per course enrolled, last class, tech shifts, last giveaway week
+  hotelUntil: number; // a Candellux suite: yours till this checkout time (11 AM game time), 0 when you have none
 
   jobId: string | null; shift: { jobId: string; startedAt: number; endsAt: number; pay: number } | null;
   deal: Deal | null; lastDealAt: number; rentMonths: number; rentOwed: number; barberUntil: number; gymUntil: number;
@@ -47,7 +48,7 @@ function fromDoc(uid: string, d: FirebaseFirestore.DocumentData | undefined, pro
     swimLessons: num(d?.swimLessons), swims: num(d?.swims), gymSessions: num(d?.gymSessions),
     certs: Array.isArray(d?.certs) ? (d!.certs as string[]).filter((c) => !!DW_COURSE(c)) : [],
     dwCourses: Object.fromEntries(Object.entries((d?.dwCourses ?? {}) as Record<string, unknown>).filter(([k]) => !!DW_COURSE(k)).map(([k, v]) => [k, num(v)])),
-    dwClassAt: num(d?.dwClassAt), techShifts: num(d?.techShifts), giveawayWeek: num(d?.giveawayWeek, -1), cityNotify: Array.isArray(d?.cityNotify) ? (d!.cityNotify as string[]).filter((c) => COMING_CITY_IDS.includes(c)) : [],
+    dwClassAt: num(d?.dwClassAt), techShifts: num(d?.techShifts), giveawayWeek: num(d?.giveawayWeek, -1), hotelUntil: num(d?.hotelUntil), cityNotify: Array.isArray(d?.cityNotify) ? (d!.cityNotify as string[]).filter((c) => COMING_CITY_IDS.includes(c)) : [],
     jobId: typeof d?.jobId === "string" ? d.jobId : null, shift: d?.shift ?? null, deal: d?.deal ?? null, lastDealAt: num(d?.lastDealAt, now),
     rentMonths: num(d?.rentMonths), rentOwed: num(d?.rentOwed), barberUntil: num(d?.barberUntil), gymUntil: num(d?.gymUntil),
     netWorth: 0, updatedAt: now, createdAt: fresh ? now : num(d?.createdAt, now),
@@ -169,13 +170,17 @@ export async function act(db: Firestore, uid: string, a: Action, now = Date.now(
       case "hotel": {
         const h = HOTEL_OF(String(a.service));
         if (!h || h.soon) throw new LifeError(400, "That isn't open yet.");
+        if (h.id === "suite" && lodged(p.hotelUntil, now)) throw new LifeError(409, `Your suite is yours till ${worldTime(p.hotelUntil).label} checkout. Go up to your room.`);
         const half = isStaff(p.jobId, "candellux") && STAFF_PERKS.hotelHalf.includes(h.id);
         debit(p, lines, half ? Math.round(h.price / 2) : h.price, `Candellux · ${h.name}${half ? " (staff, half price)" : ""}`, "hotel");
         if (h.boost === "barber") p.barberUntil = now + GAME_DAY_MS;
         if (h.boost === "gym") { p.gymUntil = now + GAME_DAY_MS; p.gymSessions += 1; }
         if (h.id === "lesson") p.swimLessons += 1;
         if (h.id === "pool") p.swims += 1;
-        return { minutes: h.minutes, effect: h.effect, set: h.set ?? null, boost: h.boost ?? null };
+        if (h.id === "suite") p.hotelUntil = hotelCheckout(now);
+        // staying at the hotel: the restaurant sends food up as room service, and it fills you up
+        if (h.id === "restaurant" && lodged(p.hotelUntil, now)) return { minutes: h.minutes, effect: { fun: 10 }, set: { hunger: 100 }, boost: null, roomService: true };
+        return { minutes: h.minutes, effect: h.effect, set: h.set ?? null, boost: h.boost ?? null, checkout: h.id === "suite" ? p.hotelUntil : null };
       }
       case "job_apply": {
         const j = JOB(String(a.job));

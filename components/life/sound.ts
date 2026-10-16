@@ -18,7 +18,7 @@ export function loadSoundPrefs(): SoundPrefs {
 export function saveSoundPrefs(p: SoundPrefs) { try { localStorage.setItem(KEY, JSON.stringify(p)); } catch { /* private mode: this visit only */ } }
 
 export type Sfx = "tap" | "coin" | "pay" | "ring" | "door" | "water" | "eat" | "sizzle" | "done" | "success" | "warn" | "sleep" | "whoosh" | "bell" | "horn" | "bonus" | "page" | "nepa_off" | "up_nepa" | "pull";
-export type Ambience = "none" | "room" | "room-night" | "street" | "street-night" | "hotel" | "pool";
+export type Ambience = "none" | "room" | "room-night" | "street" | "street-night" | "hotel" | "pool" | "calm";
 
 type Ctx = AudioContext;
 export class Sound {
@@ -176,6 +176,7 @@ export class Sound {
     if (next === "room") this.ambStop.push(this.hiss(now, 1, { type: "lowpass", freq: 700, gain: 0.04, bus, attack: 1, loop: true }).stop); // the fan
     if (next === "pool") this.ambStop.push(this.hiss(now, 1, { freq: 700, q: 0.4, gain: 0.12, bus, attack: 1, loop: true }).stop); // water
     if (next === "hotel") this.lounge();
+    if (next === "calm") this.softTune();
     this.ambNext = 0;
     this.ambTimer = window.setInterval(() => {
       if (!this.ctx || this.ctx.state !== "running") return;
@@ -210,6 +211,23 @@ export class Sound {
     };
     playChord();
     this.music = window.setInterval(playChord, 4000);
+  }
+
+  // In your hotel suite, at the VIP bar and in class at the Digital Witch hub: a soft tune, a slow music-box melody over a warm pad
+  // (no traffic, no generators).
+  private softTune() {
+    const notes = [523.3, 659.3, 784, 659.3, 587.3, 698.5, 880, 698.5, 523.3, 659.3, 784, 987.8, 880, 784, 659.3, 587.3];
+    const pads = [[130.8, 196, 261.6], [146.8, 220, 293.7], [174.6, 261.6, 349.2], [196, 293.7, 392]];
+    let i = 0;
+    const step = () => {
+      if (!this.ctx || this.ctx.state !== "running") return;
+      const t = this.ctx.currentTime;
+      this.tone(notes[i % notes.length], t, 1.6, { gain: 0.03, attack: 0.02, bus: this.ambBus });
+      if (i % 4 === 0) for (const f of pads[(i / 4) % pads.length]) this.tone(f, t, 3.4, { gain: 0.018, type: "triangle", attack: 0.8, bus: this.ambBus });
+      i++;
+    };
+    step();
+    this.music = window.setInterval(step, 900);
   }
 
   // Settings → Test sound: a chime, then a generator for two seconds.

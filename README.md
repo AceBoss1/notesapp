@@ -1,6 +1,6 @@
 # #NotesApp — landing page + MVP
 
-**Start with "Where things stand" just below — it is the current state, env vars and deploy checklist.**
+**Start with "Where things stand" just below — it is the current state, env vars and deploy checklist. The hand-over note is `HANDOVER.md`.**
 
 **⚠ Read "Independent infrastructure migration" before this
 paragraph — it's the most recent, most important architectural
@@ -13,36 +13,46 @@ Firestore project and its own Cloudflare R2 bucket. Treat all
 architecture looks the way it does, not as the current state of
 Firestore access.
 
-## Where things stand (updated 10 Oct 2026)
+## Where things stand (updated 16 Oct 2026, v0.36.0)
 
 **Read this section first.** Everything below it is a chronological build log; where an older passage says something is
-"not built", "demo" or "shared with Precheks", this section is the current truth.
+"not built", "demo" or "shared with Precheks", this section is the current truth. Release notes for every version are in
+`lib/changelog.ts` (shown at `/changelog`); the hand-over note for the next person is `HANDOVER.md`.
 
 ### Live today
 | Area | What exists | Where to read more |
 |---|---|---|
-| Publishing | Journals (rich-text composer, drafts, premium posts), follow, likes, comments, shares, co-authoring, organisation channels and teams | "Who can publish", "Organisation accounts", co-authoring in "Boosts & gifts" |
+| Publishing | Journals (Markdown composer with toolbar and preview, drafts, premium posts), follow, likes, comments and replies, shares, co-authoring, organisation channels and teams, drag-and-drop or pasted pictures | "Who can publish", "Organisation accounts", co-authoring in "Boosts & gifts" |
+| **Links and @mentions** | Web addresses become links wherever members write (`lib/linkify.ts`, `components/LinkedText.tsx`, `remarkLinkify` for journals); link preview cards in Messages and Notes Life chat (`/api/link-preview`: signed in, public addresses only, every redirect re-checked, 512 KB / 5 s, cached 6 h); the @mention picker (`components/MentionPicker.tsx`, users by username prefix) in journals, comments, replies, messages, moment captions and Notes Life chat; @username links to `/u/username` | `/help` → "Links and @mentions" |
 | **Video on posts** | One MP4/WebM per post (≤ 100 MB, ≤ 3 min, weekly allowance by plan), our own player, cover-image picker, server-verified uploads | "Video on posts" |
 | **Share previews** | Per-post, per-store-item and per-store Open Graph cards | "Share previews (Open Graph)" |
 | Booking & money | Native calendar, Paystack checkout, escrow-style holds, automatic payouts, client rescheduling/cancellation + problem reports | "Payments, payouts, rates, reminders", "Money flow" |
-| Stores | Physical goods (managed stock, parcel IDs, rider links, tracking), digital downloads (private bucket, short-lived links), store boosts, official merch pre-orders | "Seller checkout and parcel tracking", "Boosts & gifts", `/store-selling` |
-| Promotion | Post/item boosts, gifts, self-serve banner ads and ad share | "Boosts & gifts", "Advertiser campaigns" |
-| Plans & badges | Free Standard/Basic, Pro, Business (Paystack plans), Enterprise (custom); maroon ✔, gold ✔ (endorsed; identity-checked is built but **Dojah is still on the sandbox**) | "Pro / Business plans", "Verified badge", "Dojah webhook" |
-| **Enterprise** | Server-to-server API (`/api/v1`), Console, signed webhooks, `/docs`, own domain (subdomain or root) | "API, Console, Docs and custom domains" |
-| Trust & ops | `/security`, `/status` (+ incidents, response times, email subscribers), `/changelog`, account export/deletion, error monitoring, traction snapshot, admin by custom claims | "Where to look when something's wrong" below |
-| **Messaging** | Direct messages and group chats (up to 50), voice notes, stickers, pinned messages and chats, typing indicator, edit/delete with reader consent, moments, block/report, device and email notifications, free voice/video calls that ring the installed app | "Where things stand" flags `NEXT_PUBLIC_MESSAGES_LIVE`, `NEXT_PUBLIC_MOMENTS_LIVE` |
-| **Nana AI and help centre** | Chat on every page, pinned in `/messages`, `/nana`, `/help` articles (built-in + staff, Admin → Help & Nana), writing help in drafts, sharing and messages, member-connected Anthropic key, Ask Nana in the team hub | "Nana AI and the help centre" |
+| **NotesApp Credit wallet** | Top up ₦1,000 to ₦500,000 through Paystack (bonus credits on larger top-ups), pay with wallet or card or both, statement with filters, refunds to the wallet; switch: `NEXT_PUBLIC_WALLET_LIVE` | `lib/wallet.ts`, `lib/wallet-server.ts`, `/help` |
+| Stores | Physical goods (managed stock, categories, "ships from", parcel IDs, rider links, tracking), digital downloads (private bucket, short-lived links), saved items ♡, featured item, store boosts, reviews from buyers who received the item (with seller replies), official merch pre-orders; organisation admins can add and edit items | "Seller checkout and parcel tracking", "Boosts & gifts", `/store-selling` |
+| Promotion & discovery | Post/item boosts (cancel any time, half of what's left refunded), gifts, self-serve banner ads and ad share, Trending with a Top store items tab, recommendations on profiles and organisations | "Boosts & gifts", "Advertiser campaigns" |
+| Plans & badges | Free Standard/Basic, Pro, Business (Paystack plans), Enterprise (custom); prices set by the owner in Admin → Pricing; maroon ✔, gold ✔ (endorsed; identity-checked is built but **Dojah is still on the sandbox**) | "Pro / Business plans", "Verified badge", "Dojah webhook" |
+| **Enterprise** | Server-to-server API (`/api/v1`), Console, signed webhooks, `/docs`, own domain (subdomain or root), site themes (Legacy or Modern) for Business and Enterprise | "API, Console, Docs and custom domains" |
+| **App address** | `app.notesapp.name.ng`: welcome screen with sign-up and sign-in, a Download button that knows the device, then the journal feed | `middleware.ts` |
+| Trust & ops | `/security`, `/status` (+ incidents, response times, email subscribers, calls and their relay, Claude), `/changelog`, account export/deletion, error monitoring, traction snapshot (stored hourly), admin by custom claims and departments | "Where to look when something's wrong" below |
+| **Messaging** | Direct messages and group chats (up to 50, admin moderation), voice notes, stickers, emoji, bold/italic/underline, replies, pin 3 messages and 3 chats, typing indicator, edit/delete with reader consent once read, link previews, moments, block/report, device and email notifications | Flags `NEXT_PUBLIC_MESSAGES_LIVE`, `NEXT_PUBLIC_MOMENTS_LIVE` |
+| **Calls** | Free 1:1 voice and video calls between people who follow each other (WebRTC), call back from the call line, drag/swap self view, front/back camera, ringing on the installed app even when closed; relay through Cloudflare TURN or our own TURN | `lib/calls-server.ts`, flag `NEXT_PUBLIC_CALLS_LIVE` |
+| **Followers and presence** | Followers and Following lists on every profile, online now and last seen (only for people who follow you), two privacy switches | `/help` → "Followers, following and online status" |
+| **Nana AI and help centre** | Chat on every page, pinned in `/messages`, `/nana`, `/help` articles (built-in + staff, Admin → Help & Nana), writing help in drafts, sharing and messages, member-connected Anthropic key, Ask Nana in the team hub, help-centre-only answers when the AI is off | "Nana AI and the help centre" |
+| **Notes Life** | A free life game at `life.notesapp.name.ng` (and `/life`) played with the NotesApp account: needs, jobs and shifts, food (Chef Adams delivery, takeaway, dine-in, cooking), a fridge and microwave, NEPA blackouts with Power GO / generators / solar, Abuja (Lagos coming), partners Chef Adams, itel Energy, Candellux Imperial (suites with an 11 AM checkout, room service, the pool, swimming lessons, the VIP bar with a 360° view, gym) and Digital Witch (courses, certificates for tech jobs, Cynthia Okeh as #1 and her Saturday giveaway), partner outlets players can own, residents 🤖 and real players at the same place, chat with friends, invites (₦250 each), Billionaires List, sound. Game money (Notesville Naira) bought with the wallet or a card, never cashed out | README "Notes Life" section, `/help` → "How Notes Life works", `/life/partners`, flag `NEXT_PUBLIC_LIFE_LIVE` |
 | **Social publishing** | Publish a post to a connected LinkedIn or X account (`LINKEDIN_*`, `X_*` variables) | "Publish to LinkedIn and X" in `/changelog` |
-| **Team hub (internal)** | Work board, milestones, daily/weekly summaries, money ledger (finance/product/owner rules), staff roles and departments, grouped admin menu. Opens to Business and Enterprise after internal testing (`/teams`) | "Money ledger", `lib/admin-access.ts` |
-| **Public site** | Home and About with the owner's description, Trusted by and Partners marquees (`lib/partners.ts`, partner cards link to `/status`, Anthropic/Claude included), `/pricing`, `/teams`, `/roadmap` | `lib/partners.ts` |
+| **Team hub (internal)** | Work board (views by person, departments, due dates), milestones, daily/weekly summaries, meetings with Granola (each member connects their own account), money ledger, Grants & subscriptions, Expenses due, payment assignee and deadlines, payroll, staff library with "I have read this" and who has read it, team message hub, legal team access, Admin → Pricing, the AI agent-layer backlog (15 items with owners and due dates). Opens to Business and Enterprise after internal testing (`/teams`) | "Money ledger", `lib/admin-access.ts` |
+| **Public site** | Home and About with the owner's description, Trusted by and Partners marquees (`lib/partners.ts`), With thanks (programmes that back us), `/pricing`, `/teams`, `/roadmap`, `/domains`, the #1MillionNairaNotesAppChallenge; the standard description lives in `lib/site.ts` | `lib/partners.ts`, `lib/site.ts` |
 | Company | NOTESAPP TECHNOLOGIES LTD (RC and TIN in `lib/site.ts`; SMEDAN number pending) | "Company identity" |
 
 ### Not built yet
 WhatsApp reminders (plan: Meta WhatsApp Cloud API directly; booking reminders + delivery updates; needs Meta Business
-verification and approved templates) · publishing to Facebook, Instagram and TikTok (LinkedIn and X are built) · AI notetaker + MCP assistant ·
-team hub and team messaging for Business and Enterprise (internal only for now) · LinkedIn advertising (Advertising API development tier approved; being built: advertisers boost a post on LinkedIn from their own ad account (Business and Enterprise only), plus our own LinkedIn campaign stats on the admin Traction page, planned next) · iOS/Android apps ·
-video transcoding/streaming (we cap size and length instead) · Dojah **live** mode (README "Going live with Dojah") ·
-webhook retries (one attempt, manual resend) · OAuth for third-party API apps · checkout and bookings in a popup on custom domains, and a sending address on the member's own domain (sign-in and sign-up in the member's name are live) · Nana suggested replies, team hub tasks/payments/payroll/staff library, investor data room (all planned: see "Planned: team operations…") · runway calculator, CAC and MRR calculator, burn and revenue analytics, vesting and cap table (planned) · Sentry (we have built-in error monitoring instead).
+verification and approved templates) · publishing to Facebook, Instagram and TikTok (LinkedIn and X are built) · the NotesApp MCP server and the Nana operator
+(scoped; the work is on the team hub as the agent-layer backlog) · AI notetaker · team hub and team messaging for Business and Enterprise (internal only for now) ·
+LinkedIn advertising (Advertising API development tier approved; advertisers boost a post on LinkedIn from their own ad account, plus our own campaign stats on Traction) ·
+Paylony virtual accounts and bank payouts (client in `lib/paylony.ts`; the payout and reserved-account endpoints are not in yet) · domain sales and DNS management (Whogohost / go54) ·
+Notes Life: Lagos, the conference hall, real players in the VIP bar · iOS/Android apps · video transcoding/streaming (we cap size and length instead) · Dojah **live** mode (README "Going live with Dojah") ·
+webhook retries (one attempt, manual resend) · OAuth for third-party API apps · checkout and bookings in a popup on custom domains, and a sending address on the member's own domain (sign-in and sign-up in the member's name are live) ·
+investor data room, runway calculator, CAC and MRR calculator, burn and revenue analytics, vesting and cap table (planned) · voice (Listen on journals, Nana reading aloud) · Sentry (we have built-in error monitoring instead).
 
 ### Environment variables (Vercel → Settings → Environment Variables; redeploy after changing any)
 | Variable | Secret? | Purpose |
@@ -70,6 +80,17 @@ webhook retries (one attempt, manual resend) · OAuth for third-party API apps �
 | `LINKEDIN_CLIENT_ID`, `LINKEDIN_CLIENT_SECRET`, `X_CLIENT_ID`, `X_CLIENT_SECRET` | secrets **yes** | Publish a post to a member's LinkedIn / X (each network appears only when its two values are set; needs `ACCOUNT_DATA_KEY` too). Optional `LINKEDIN_API_VERSION` (YYYYMM, default 202606) |
 | `WHOGOHOST_RESELLER_EMAIL`, `WHOGOHOST_API_KEY` | key **yes** | Domain reseller API (Whogohost / go54). Production only, mark both Sensitive. Check them at `GET /api/admin/domains` (admin) |
 | `VERCEL_API_TOKEN`, `VERCEL_PROJECT_ID`, `VERCEL_TEAM_ID` | token **yes** | Optional: auto-connect Enterprise custom domains and `/status` check; team id only for a team project |
+| `NEXT_PUBLIC_MESSAGES_LIVE`, `NEXT_PUBLIC_MOMENTS_LIVE`, `NEXT_PUBLIC_CALLS_LIVE`, `NEXT_PUBLIC_WALLET_LIVE`, `NEXT_PUBLIC_LIFE_LIVE` | no | Feature switches; each is on unless set to `false` (calls also need messages on) |
+| `NEXT_PUBLIC_VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `VAPID_SUBJECT` | private key **yes** | Device notifications (web push) and call ringing; subject is `mailto:…` |
+| `CALL_PUSH_SECRET` | **yes** | Signs the answer/decline links in call notifications (falls back to the VAPID private key) |
+| `CLOUDFLARE_TURN_KEY_ID`, `CLOUDFLARE_TURN_API_TOKEN` | token **yes** | Cloudflare TURN relay for calls on strict networks; or our own: `TURN_URLS` (comma-separated), `TURN_USERNAME`, `TURN_CREDENTIAL` |
+| `GRANOLA_MCP_URL` | no | Granola's MCP address for the team hub (default `https://mcp.granola.ai/mcp`) |
+| `ANTHROPIC_BASE_URL` | no | Only to send Claude calls through a proxy (default `https://api.anthropic.com`) |
+| `LIFE_BONUS_MONTHLY_CAP_NAIRA` | no | Most NotesApp Bonus Credit Notes Life invites can pay out in a month (default 500,000) |
+| `PAYLONY_SECRET_KEY`, `PAYLONY_WEBHOOK_KEY`, `PAYLONY_ENCRYPTION_KEY` | **yes** | Paylony (virtual accounts and payouts, being added); `sk_test_…` or `sk_live_…` |
+| `WHOGOHOST_PROXY_URL` | no | Fixed-IP proxy for the Whogohost reseller API, when it needs an allow-listed address |
+| `OWNER_EMAIL` | no | The owner account (the first admin profile if unset) |
+| `REPORTS_EMAIL` | no | Where reports of members and content are emailed |
 
 Script-only (never in Vercel): `SOURCE_SERVICE_ACCOUNT`, `DEST_SERVICE_ACCOUNT` (migration), `GOOGLE_APPLICATION_CREDENTIALS`.
 A copy-paste template is `.env.local.example`.
@@ -77,8 +98,10 @@ A copy-paste template is `.env.local.example`.
 ### Deploy checklist (after merging a change that touches rules or indexes)
 1. `firebase deploy --only firestore` — publishes `firestore.rules` and the TTL policies in `firestore.indexes.json`
    (`errorLogs`, `webhookDeliveries`, `apiIdempotency`, `videoUploads`, plus older ones). If it offers to delete the
-   `adSeen`/`seen` field overrides, answer **N**.
-2. `npm run test:rules` before deploying rules (starts the Firestore emulator; needs Java) — 36 tests.
+   `adSeen`/`seen` field overrides, answer **N**. **Pending as of 16 Oct:** the rules that let Notes Life presence use the
+   Digital Witch hub (`dw`) are merged but not deployed.
+2. Before deploying rules or changing the economy: `npm run test:rules` (54 tests), `npm run test:life` (Notes Life economy,
+   prints `ALL OK`) and `npm run test:messages` (message edits). Each starts the Firestore emulator and needs Java.
 3. cron-job.org: `GET https://www.notesapp.name.ng/api/cron/reminders` every 15 min with `Authorization: Bearer $CRON_SECRET`, and
    `GET /api/status` every 5 min (so incidents are detected without visitors).
 4. Media bucket CORS from `scripts/r2-cors.json` on **both** R2 buckets (browser PUTs go straight to R2).
@@ -86,7 +109,8 @@ A copy-paste template is `.env.local.example`.
 ### Where to look when something's wrong
 `/status` (live checks: database, auth, uploads, media, **digital downloads**, **developer API**, **custom domains**, payments, email,
 identity, scheduled jobs) · `/admin/errors` (grouped errors, 30-day retention) · `/admin/traction` (numbers for decks) ·
-`/admin/payments` (held/failed payouts) · `/admin/api-access` (API access and domains) · Vercel → Logs.
+`/admin/payments` (held/failed payouts) · `/admin/api-access` (API access and domains) · `/admin/paylony` (Paylony keys and webhook) ·
+Firebase console → Firestore → Query insights (reads by collection) · Vercel → Logs, and Usage (Fluid Active CPU, build minutes).
 
 ### Scripts (`scripts/`)
 `set-admin-claims.mjs` · `set-founder-tier.mjs` · `fix-founder-profiles.mjs` · `move-suspensions.mjs` · `strip-user-emails.mjs` ·
@@ -2472,6 +2496,7 @@ A browser life game at **life.notesapp.name.ng**, its own look, **NotesApp sign-
   - **Cities, the new Candellux, swimming and VIPs (built 15 October 2026, v0.33.0):** new players pick a city from `CITY_CARDS` (our own landmark drawings in `public/images/life/cities/`: Abuja City Gate, the National Theatre for Lagos, Isaac Boro Park for Port Harcourt). Only Abuja is open; action `city_notify` stores `lifePlayers.cityNotify[]` for cities in `COMING_CITY_IDS`. The `hotel` scene in `components/life/world.ts` has `night` and `view` (`front`, `pool`, `aerial`), `swim` and `vips`; the old `pool` scene is gone. `solar()` puts panels on the Candellux, gym, itel and Chef Adams roofs. `HOTEL` services carry `tab: "pool"` for the Pool tab: day pass, `lesson` (N$ 15,000), gym, `poolbar` (N$ 10,000), `vipbar` (N$ 11,500). The server counts `swimLessons`, `swims` and `gymSessions`; `swimSkill()` = lessons × 2 + swims ÷ 2, max 10; the deep end opens after `SWIM_DEEP_LESSONS` = 3. Jobs `hotel_swim` (`needSwim` 5) and `hotel_gym` (`needGymSessions` 10); the lifeguard gets a rescue bonus. `vipsAt()` rotates the four richest residents through the VIP bar, two at a time, every `VIP_EVERY_HOURS` = 4 game hours. Chef Adams food groups `fast` (shawarma, pizza) and `fresh` (Sum Ting Fresh), with billboards `bb:chef2`–`bb:chef4`.
   - **Friend chat in the game (built 15 October 2026, v0.34.0):** `components/life/FriendChat.tsx` is a chat sheet (phone) or right-hand dock (desktop) over the game for players who follow each other (the `friends` view). It reads `conversations/{conversationId(a,b)}/messages` live (firestore.rules: only the two participants) and sends through `POST /api/messages`, so it is the same conversation as Messages; new messages from the friend mark it read like the Messages thread does. `LifeGame` listens to the player's conversations (`participants array-contains`) for unread counts per friend (badges on the Phone button and the Friends tile); a friend's unread going up adds the reply Social. Social comes from `chatSocial()` in `lib/life/play.ts` (`CHAT_SOCIAL`: send +8, same place +12, reply +4, at most 40 per real hour, tracked in the save as `chatHour`/`chatGained`). A real player at the same place who is a friend gets "Chat here"; others still open NotesApp Messages.
   - **Digital Witch partner (built 16 October 2026, v0.35.0):** place `dw` (Digital Witch hub, CBD) with the `dw` scene in `components/life/world.ts` (glass Skyscraper Plaza towers with solar roofs, the hub's open glass front and classrooms, a fountain plaza, the billboard `billboards/digitalwitch.webp`; the same advert is a lightbox at the Wuse bus stand in the street scene). Resident `cynthia` (Ekwutosi Cynthia Okeh, `photo` and `partner` fields; N$ 7.5bn, #1) is at the hub 9 AM to 5 PM and the VIP bar 7 PM to 11 PM (`cynthiaAt`; `vipsAt` puts her first in the evening and leaves her out of the rotation). `DW_COURSES` (price, classes, the job each opens); server actions `dw_enroll`, `dw_class` (opening hours `dwOpen`, one class per `DW_CLASS_MS` = 2 game hours, certificate on the last class), `dw_giveaway` (Saturday 7 PM to 11 PM, `giveawayEligible` = a certificate and 10 `techShifts`, once per `giveawayWeek`, `giveawayPrize`: 5% N$ 1m, 10% N$ 500k). `lifePlayers` gains `certs`, `dwCourses`, `dwClassAt`, `techShifts`, `giveawayWeek`. Jobs carry `needCert` (a course id or `"any"`) and `tech`; `jobBlocker` checks certificates at apply time only, so existing tech workers keep their jobs. Presence allows `dw` (firestore.rules: run `firebase deploy --only firestore`). Partner card on `/life/partners`.
+  - **Hotel stays and calm sound (built 16 October 2026, v0.36.0):** the suite is a stay: `hotel` action `suite` sets `lifePlayers.hotelUntil = hotelCheckout(now)` (`lib/life/catalog.ts`: the next 11 AM game time, or tomorrow's from 6 AM; one stay at a time). While `lodged(hotelUntil)`, the hotel panel shows *Your Imperial Suite* (rest an hour, sleep up to 8 hours, capped at checkout), each setting `SUITE_SET` (energy, hygiene, bladder, fun 100) when it ends, and the `restaurant` returns `set: { hunger: 100 }` as room service. The game says when you've checked out. `components/life/sound.ts` has a `calm` surroundings (a soft music-box tune) used in the suite, at the VIP bar (panel or drink) and in class; generators and the NEPA off/on sounds are skipped there. The VIP bar panel opens with a 360° view (`components/life/VipPano.tsx`, `partners/candellux-vip-360.webp`).
   - **NEPA, power and itel Energy (built 14 October 2026):** `nepaAt()`/`outagesOfDay()` in `lib/life/catalog.ts` give the same blackouts to everyone from the world clock (seeded per game day: 2 or 3 outages, 2 to 6 game hours). Items in the `power` category: `power_go` (N$ 150k, itel), `solar_panel` (N$ 55k, needs the Power GO), `home_kit` (N$ 2.4m, soon), `gen_small` "I Better Pass My Neighbour" (N$ 65k, 0.4 L/h, 5 L tank), `gen_big` 3.5kVA (N$ 420k, 1.1 L/h, 12 L). Server: action `fuel` (N$ 1,100/L), `buy` checks `needs` and `soon`, and `shift_start` refuses desk work on the old desktop during a blackout without a Power GO or generator. Client (`powerStep` in `lib/life/play.ts`): battery Wh and petrol in the save; the prompt "NEPA has taken light" once per outage; generator hum and neighbours' generators in `sound.ts`; UP NEPA when light returns. itel Energy scene in `world.ts` (place `itel`, Wuse); partner via @clickam (`ITEL.sellerUrl`). Logo and product images in `public/images/life/partners/itel-*`.
   - **Residents (computer players, always 🤖):** `RESIDENTS` and `RESIDENTS_AT` in the catalogue (look, role, lines on greet/food/work/NEPA/money, some with a net worth). They stand in each scene; chats are scripted and kept in localStorage only (`components/life/chats.ts`). `richList` merges the rich ones in (`npc` rows), with `?real=1` for real players only and `realRank`.
   - **Players at the same place:** `lifePresence/{uid}` holds only `place`, `outfit`, `at` (rules: own doc, those keys); names and pictures come from the public `users` doc so nobody can pose as someone else (`components/life/presence.ts`). Refreshed every 45 s; others shown if seen in the last 10 minutes; tap → real NotesApp message. Settings: "Show me to other players" (deletes the doc). Index: lifePresence (place, at desc). Erased with the account.

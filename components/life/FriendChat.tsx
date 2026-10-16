@@ -5,6 +5,11 @@ import type { User } from "firebase/auth";
 import { collection, limit, onSnapshot, orderBy, query } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { conversationId, MESSAGE_MAX } from "@/lib/messages-rules";
+import { firstUrl } from "@/lib/linkify";
+import { SITE } from "@/lib/site";
+import LinkedText from "@/components/LinkedText";
+import LinkPreview from "@/components/LinkPreview";
+import MentionPicker from "@/components/MentionPicker";
 
 export type ChatFriend = { uid: string; username: string; name: string; avatar: string };
 type Line = { id: string; from: string; text: string; createdAt: string; sticker?: string; attachments?: unknown[]; removed?: unknown };
@@ -32,6 +37,7 @@ export default function FriendChat({ user, friend, here, where, social, gains, o
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const box = useRef<HTMLDivElement>(null);
+  const field = useRef<HTMLInputElement>(null);
   // Before the first message the conversation doesn't exist, so the live read is refused and stops; it starts again after a send.
   const [listen, setListen] = useState(0);
   const waiting = useRef(false);
@@ -86,15 +92,16 @@ export default function FriendChat({ user, friend, here, where, social, gains, o
         {lines === null ? <p className="text-slate">Loading…</p> : lines.length === 0 ? <p className="text-slate">Say hello to {first}. It&apos;s the same chat as your NotesApp Messages.</p> : lines.map((l) => {
           const mine = l.from === user.uid;
           return (<div key={l.id} className="flex flex-col">
-            <div className={`max-w-[80%] rounded-2xl px-3 py-2 ${mine ? "self-end rounded-tr-sm bg-crimson text-white" : "rounded-tl-sm bg-[#f1f5f9]"}`}>{what(l)}<span className={`mt-0.5 block text-[10px] ${mine ? "text-white/70" : "text-slate"}`}>{time(l.createdAt)}</span></div>
+            <div className={`max-w-[80%] whitespace-pre-wrap break-words rounded-2xl px-3 py-2 ${mine ? "self-end rounded-tr-sm bg-crimson text-white" : "rounded-tl-sm bg-[#f1f5f9]"}`}>{l.text && !l.removed ? <LinkedText text={l.text} format base={SITE.url} linkClass={mine ? "font-semibold text-white underline" : undefined} /> : what(l)}{l.text && !l.removed && firstUrl(l.text) && <LinkPreview url={firstUrl(l.text)!} user={user} mine={mine} />}<span className={`mt-0.5 block text-[10px] ${mine ? "text-white/70" : "text-slate"}`}>{time(l.createdAt)}</span></div>
             {gains.filter((g) => g.after === l.id).map((g, i) => <span key={i} className="mt-1 self-center rounded-full bg-emerald-50 px-2.5 py-0.5 text-[11px] font-bold text-emerald-700">{g.text}</span>)}
           </div>);
         })}
       </div>
       <div className="flex items-center gap-2 text-[11px] font-bold text-slate">💬 Social<span className="h-2 flex-1 overflow-hidden rounded-full bg-[#e5e7eb]"><i className="block h-full rounded-full bg-emerald-500" style={{ width: `${Math.round(social)}%` }} /></span>{Math.round(social)}</div>
       {error && <p className="mt-1 text-xs text-crimson">{error}</p>}
-      <form className="mt-2 flex gap-2" onSubmit={(e) => { e.preventDefault(); void send(); }}>
-        <input value={text} onChange={(e) => setText(e.target.value.slice(0, MESSAGE_MAX))} placeholder={`Message ${first}…`} className="min-w-0 flex-1 rounded-full border px-4 py-2.5 text-sm" />
+      <form className="relative mt-2 flex gap-2" onSubmit={(e) => { e.preventDefault(); void send(); }}>
+        <MentionPicker target={field} value={text} onChange={(v) => setText(v.slice(0, MESSAGE_MAX))} place="above" />
+        <input ref={field} value={text} onChange={(e) => setText(e.target.value.slice(0, MESSAGE_MAX))} placeholder={`Message ${first}…`} className="min-w-0 flex-1 rounded-full border px-4 py-2.5 text-sm" />
         <button disabled={busy || !text.trim()} className="rounded-full bg-emerald-600 px-4 py-2.5 text-sm font-extrabold text-white disabled:opacity-50">Send</button>
       </form>
       <p className="mt-2 text-center text-[10px] text-slate">Also in your <a href={`/messages/${cid}`} target="_blank" rel="noreferrer" className="underline">NotesApp Messages</a> · only friends who follow each other</p>

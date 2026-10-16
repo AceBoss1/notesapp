@@ -1,5 +1,6 @@
 "use client";
 
+import LinkedText from "@/components/LinkedText";
 import { headline } from "@/lib/profile-work";
 import { useEffect, useState } from "react";
 import Link from "next/link";
@@ -284,7 +285,7 @@ export default function ProfilePageClient({ params }: { params: { username: stri
               {profile.roleLabel} · @{profile.username}
             </p>
           )}
-          <p className="mt-2 max-w-lg text-sm text-slate">{profile.bio}</p>
+          <p className="mt-2 max-w-lg break-words text-sm text-slate"><LinkedText text={profile.bio} /></p>
           {!suspended && badge === "gold" && goldKindOf(realProfile) && (
             <p className="mt-1 text-xs font-semibold text-slate">{GOLD_BADGE_TITLE[goldKindOf(realProfile)!].replace("Gold badge — ", "Gold ✔ · ")}</p>
           )}

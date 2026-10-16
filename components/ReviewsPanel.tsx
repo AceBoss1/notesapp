@@ -1,5 +1,6 @@
 "use client";
 
+import LinkedText from "@/components/LinkedText";
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import type { User } from "firebase/auth";
@@ -83,8 +84,8 @@ export default function ReviewsPanel({ itemId, ownerUid, user, sellerUid, title 
                 <p className="text-xs text-slate"><Stars value={r.rating} size="text-sm" /> · {dayLabel(r.createdAt)}{r.updatedAt ? " (edited)" : ""} · <span className="text-emerald-700">Verified buyer</span>{ownerUid && r.itemId && <> · <Link href={`/shop/${r.itemId}`} className="underline">{r.itemTitle}</Link></>}</p>
               </div>
             </div>
-            {r.text && <p className="mt-2 whitespace-pre-line text-sm text-ink">{r.text}</p>}
-            {r.reply && <div className="mt-3 rounded-lg border-l-2 border-crimson bg-paper p-3 text-sm"><p className="text-xs font-semibold text-crimson">Reply from the seller · {dayLabel(r.reply.at)}</p><p className="mt-1 whitespace-pre-line text-slate">{r.reply.text}</p></div>}
+            {r.text && <p className="mt-2 whitespace-pre-line break-words text-sm text-ink"><LinkedText text={r.text} /></p>}
+            {r.reply && <div className="mt-3 rounded-lg border-l-2 border-crimson bg-paper p-3 text-sm"><p className="text-xs font-semibold text-crimson">Reply from the seller · {dayLabel(r.reply.at)}</p><p className="mt-1 whitespace-pre-line break-words text-slate"><LinkedText text={r.reply.text} /></p></div>}
             {!r.reply && user && user.uid === (sellerUid ?? r.ownerUid) && (
               replyFor === r.id ? (
                 <form className="mt-3" onSubmit={async (e) => { e.preventDefault(); if (await run({ action: "reply", id: r.id, text: reply })) { setReplyFor(null); setReply(""); } }}>
