@@ -4,8 +4,7 @@ import { useEffect, useRef } from "react";
 
 // The real VIP bar at the Candellux, as a 360° strip players can look around: the lounge and the guest corner joined by golden
 // mirror pillars into one panorama (public/images/life/partners/candellux-vip-360.webp, 1926 × 520; half a pillar at each end, so
-// copies side by side join up). It
-// pans slowly by itself; a drag or swipe takes over, and it wraps round both ways.
+// copies side by side join up). It pans slowly by itself; a drag or swipe takes over, and it wraps round both ways.
 const SRC = "/images/life/partners/candellux-vip-360.webp", W = 1926, H = 520;
 
 export default function VipPano() {
