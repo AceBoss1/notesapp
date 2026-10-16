@@ -33,7 +33,7 @@ const perks: [string, string, string][] = [
   ["🤖", "Residents who talk about you", "The game's residents mention your products in their chats: food tips, NEPA tips, work tips."],
 ];
 
-const partners: { name: string; logo: string; logoClass: string; shot: string; where: string; what: string[]; real: { href: string; label: string }[]; tone: string; feature?: { bg: string; photo: string; person: string } }[] = [
+const partners: { name: string; logo: string; logoClass: string; shot: string; where: string; what: string[]; real: { href: string; label: string }[]; tone: string; feature?: { bg: string; bgWide: string; photo: string; person: string } }[] = [
   {
     name: "Chef Adams", logo: "/images/life/partners/chef-emblem.webp", logoClass: "h-14 w-14 object-contain", shot: "/images/life/shots/chef-desktop.webp", where: "Food · Wuse, Abuja", tone: "#292929",
     what: ["Delivery, takeaway and dine-in, with the real Chef Adams menu: rice, shawarma, pizza and Sum Ting Fresh smoothies", "Jobs: kiosk attendant, line cook, delivery rider, outlet supervisor", "Become a Partner: a Takeaway Kiosk from N$ 2.5m or a Mini Dine-In Shop from N$ 8.0m", "Billboards on the street"],
@@ -47,11 +47,11 @@ const partners: { name: string; logo: string; logoClass: string; shot: string; w
   {
     name: "Candellux Imperial Hotel & Suites", logo: "/images/life/partners/candellux-logo.webp", logoClass: "h-14 w-14 rounded-full object-cover", shot: "/images/life/shots/hotel-desktop.webp", where: "Hotel · Garki, Abuja", tone: "#262b6b",
     what: ["The hotel built from the real Candellux, by day and by night, with the pool, pool bar, VIP bar and gym at the back", "Swimming with other players, and swimming lessons that open the deep end", "Suites, the 24-hour restaurant, barbing saloon and laundry", "Jobs: front desk, waiter, housekeeping, lifeguard, swimming instructor, gym instructor, cook, duty manager", "Staff perks: half price at the pool, gym, pool bar and VIP bar"],
-    real: [{ href: `https://wa.me/${CANDELLUX.whatsapp}?text=${encodeURIComponent("Hello Candellux, I'd like to book a room (I found you on Notes Life).")}`, label: `Book on WhatsApp · ${CANDELLUX.whatsappLabel}` }],
+    real: [{ href: CANDELLUX.site, label: "candelluximperialhotel.com" }, { href: `https://wa.me/${CANDELLUX.whatsapp}?text=${encodeURIComponent("Hello Candellux, I'd like to book a room (I found you on Notes Life).")}`, label: `Book on WhatsApp · ${CANDELLUX.whatsappLabel}` }],
   },
   {
     name: "Digital Witch", logo: "/images/life/partners/digitalwitch-logo.webp", logoClass: "h-14 w-14 rounded-xl object-cover", shot: "/images/life/billboards/digitalwitch.webp", where: "EdTech · Skyscraper Plaza, CBD", tone: "#0b1442",
-    feature: { bg: "/images/life/partners/digitalwitch-hub.webp", photo: "/images/life/partners/cynthia-okeh-full.webp", person: "Ekwutosi Cynthia Okeh, founder of Digital Witch" },
+    feature: { bg: "/images/life/partners/digitalwitch-hub.webp", bgWide: "/images/life/partners/digitalwitch-hub-wide.webp", photo: "/images/life/partners/cynthia-okeh-cut.webp", person: "Ekwutosi Cynthia Okeh, founder of Digital Witch" },
     what: ["Ekwutosi Cynthia Okeh, the founder, is in the game as #1 on the Billionaires List: at the training hub by day and the Candellux VIP bar in the evening", "Courses at the Digital Witch hub: Virtual Assistant, Customer Support, Social Media, Project Management, Data Analysis, UI/UX", "Digital Witch certificates open the tech jobs, from remote virtual assistant to UI/UX designer", "Saturday-night giveaways of N$ 500,000 and N$ 1,000,000 for graduates doing well, and adverts at the Wuse bus stand"],
     real: [{ href: DIGITAL_WITCH.site, label: "digitalwitchng.com" }, { href: `https://wa.me/${DIGITAL_WITCH.whatsapp}?text=${encodeURIComponent("Hello Digital Witch, I'd like to learn a tech skill (I found you on Notes Life).")}`, label: `WhatsApp · ${DIGITAL_WITCH.whatsappLabel}` }],
   },
@@ -97,17 +97,21 @@ export default function LifePartnersPage() {
           <p className="mt-1 text-sm text-slate">Real businesses, in the game today. In-game prices are game prices; real orders and bookings are made with them directly.</p>
           <div className="mt-6 grid gap-6">
             {partners.map((p) => p.feature ? (
-              // A landscape card: the partner's place in the game behind, the text in white on their blue at the right, and
-              // the founder's picture floating right in it.
+              // A landscape card: the partner's place in the game behind (framed so the hub shows on the right on desktop), the text in
+              // white on their see-through blue at the left, like the other partners, and the founder cut out, standing on the blue.
               <article key={p.name} className="relative overflow-hidden rounded-3xl shadow-sm">
-                <div className="relative aspect-[1440/650] lg:absolute lg:inset-0 lg:aspect-auto"><Image src={p.feature.bg} alt={`${p.name} in Notes Life, the real game`} fill sizes="100vw" className="object-cover object-left" /></div>
-                <div className="relative flex flex-col lg:min-h-[30rem] lg:flex-row lg:items-stretch">
-                  <div className="p-6 text-white sm:p-8 lg:ml-auto lg:w-[58%] lg:rounded-l-[2rem]" style={{ background: `${p.tone}f2` }}>
-                    <Image src={p.feature.photo} alt={p.feature.person} width={600} height={600} className="float-right -mt-16 mb-3 ml-4 w-32 rounded-2xl border-4 border-white object-cover shadow-2xl sm:-mt-28 sm:w-44 lg:-mt-2 lg:w-52 lg:rotate-2" />
+                <div className="relative aspect-[1440/650] lg:absolute lg:inset-0 lg:aspect-auto">
+                  <Image src={p.feature.bg} alt={`${p.name} in Notes Life, the real game`} fill sizes="100vw" className="object-cover lg:hidden" />
+                  <Image src={p.feature.bgWide} alt={`${p.name} in Notes Life, the real game`} fill sizes="(min-width: 1024px) 1152px, 100vw" className="hidden object-cover object-right lg:block" />
+                  <Image src={p.feature.photo} alt={p.feature.person} width={677} height={800} className="absolute bottom-0 right-3 h-[88%] w-auto lg:hidden" />
+                </div>
+                <div className="relative flex bg-[#0b1442] text-white lg:min-h-[30rem] lg:w-[56%] lg:rounded-r-[2rem] lg:bg-[#0b1442]/70 lg:backdrop-blur-[2px]">
+                  <div className="min-w-0 flex-1 p-6 sm:p-8">
                     <div className="flex items-center gap-3"><Image src={p.logo} alt="" width={120} height={60} className={`${p.logoClass} ring-2 ring-white/30`} /><div><h3 className="font-ui text-xl font-extrabold">{p.name}</h3><p className="text-xs text-white/70">{p.where} · <span className="font-bold text-white">PARTNER</span></p></div></div>
                     <ul className="mt-4 space-y-1.5 text-sm">{p.what.map((w) => <li key={w} className="flex gap-2"><span className="text-sky-300">✓</span><span>{w}</span></li>)}</ul>
-                    <div className="clear-both flex flex-wrap gap-2 pt-4">{p.real.map((r) => <a key={r.href} href={r.href} target="_blank" rel="noreferrer" className="rounded-full border border-white px-3 py-1.5 font-ui text-xs font-bold text-white hover:bg-white hover:text-ink">{r.label} ↗</a>)}</div>
+                    <div className="flex flex-wrap gap-2 pt-4">{p.real.map((r) => <a key={r.href} href={r.href} target="_blank" rel="noreferrer" className="rounded-full border border-white px-3 py-1.5 font-ui text-xs font-bold text-white hover:bg-white hover:text-ink">{r.label} ↗</a>)}</div>
                   </div>
+                  <Image src={p.feature.photo} alt="" width={677} height={800} className="-ml-4 hidden h-[21rem] w-auto shrink-0 self-end lg:block" />
                 </div>
               </article>
             ) : (
