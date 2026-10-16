@@ -1,9 +1,10 @@
 # #NotesApp hand-over note
 
-**Date:** 16 October 2026 · **Latest version:** v0.37.0 (on branch `claude/notesapp-tech-and-digest`, not merged yet) · **Repository:** `AceBoss1/notesapp`
+**Date:** 16 October 2026 · **Latest version:** v0.38.0 · **Repository:** `AceBoss1/notesapp`
 **Owner:** the founder and CEO of NotesApp Technologies Ltd (product decisions, approvals, deploys that need console access).
 
-Start with `README.md` → "Where things stand": it lists what is live, the environment variables and the deploy checklist.
+Start with `README.md` (what is live, the docs index, the checks); settings are in `docs/ENVIRONMENT.md`, deploying in
+`docs/DEPLOY.md`, how the newer pieces work in `docs/ARCHITECTURE.md`, the full history in `docs/BUILD_LOG.md`.
 This note covers how the work is done, what's in flight, and what to watch.
 
 ---
@@ -14,7 +15,8 @@ This note covers how the work is done, what's in flight, and what to watch.
 |---|---|
 | `main` | **v0.36.0** (merged 16 Oct 2026, with this note and the updated README): Notes Life hotel stays (11 AM checkout, room service, 100% needs in the suite), the calm sound in the suite / VIP bar / classes, site-wide links, chat link previews and the @mention picker; before it, #145 and #146 (Digital Witch landing cards, the partner card, the VIP bar 360° view, the pool shape, the street billboard). Vercel deploys `main` on merge. |
 | `claude/pensive-allen-5tvypx` | The previous session's working branch, reset to `main` after each merge. |
-| `claude/notesapp-tech-and-digest` | **v0.37.0, waiting for review:** one setting for the primary address (`NEXT_PUBLIC_ROOT_DOMAIN`, every domain serves the site under its own name), the link-preview rebinding fix, @mention bells in public places, and the weekly digest (off until `WEEKLY_DIGEST=on`). |
+| `claude/server-writes-and-docs` | **v0.38.0:** server-owned comments and notifications, shared rate limits (Upstash), one place for settings (`lib/config.ts`), journals by account id, the staging plan and CI, the digest admin page, the short README and `docs/`, and the fund and launch tasks on the team hub. |
+| `claude/notesapp-tech-and-digest` | v0.37.0, merged: the primary address setting, link-preview fix, @mention bells, the weekly digest. |
 
 Working branch convention: each session works on its own `claude/…` branch (Vercel doesn't deploy `claude/*`); it was `claude/pensive-allen-5tvypx` before. After each squash merge the branch is reset to `main`
 (`git fetch origin main && git checkout -B <branch> origin/main && git push -f -u origin <branch>`).
@@ -28,16 +30,21 @@ Working branch convention: each session works on its own `claude/…` branch (Ve
 3. **The agent-layer scope PDF**: attach it to the staff library entry "Where AI agents meet #NotesApp".
 4. **Legal draft set** (counsel pack, fixed documents 1.2–3.2, equity plan, five-director consent): drafts are **kept out of the
    repository on purpose** and are still open.
-5. **Dojah live mode** and **Paylony live keys**: both are still on test/sandbox (README "Going live with Dojah"; `lib/paylony.ts`).
+5. **Dojah live mode** and **Paylony live keys**: both are still on test/sandbox (`docs/BUILD_LOG.md` "Going live with Dojah"; `lib/paylony.ts`).
 6. **notesapp.tech (the .tech No Excuses Fund, applications close 15 Dec 2026):** register it in the company's name, then
    follow `docs/DOMAIN_SWITCH.md` (Vercel domains, Firebase authorised domains, Resend, webhooks, LinkedIn/X callbacks,
    then `NEXT_PUBLIC_ROOT_DOMAIN=notesapp.tech`). The fund wants the **primary** site on .tech: every link we publish should use it.
 7. **Before the fund's code review** (terms 4.5: read-only repository access may be asked for): decide what reviewers should
-   not see (company numbers, counsel's advice, partner details in the README and this note) and move it out. Removing it
+   not see (company numbers, counsel's advice, partner details in `docs/BUILD_LOG.md` and this note) and move it out. Removing it
    from the files is not enough: git history keeps it, so share a clean copy of the repository (a fresh repo from the current
    files) rather than this one.
-8. **Weekly digest:** set `EMAIL_LINK_SECRET`, preview it (`POST /api/admin/digest {action:"send_test"}`), check the Resend
-   plan (free = 100 emails a day for everything), then `WEEKLY_DIGEST=on`.
+8. **Weekly digest:** Admin → Weekly digest: Preview, Send me a test, then Turn on. Check the Resend plan first (free = 100
+   emails a day for everything). Links are signed with `CRON_SECRET` unless `EMAIL_LINK_SECRET` is set.
+9. **After merging v0.38.0:** `firebase deploy --only firestore` (browsers can no longer create notifications or comments;
+   until it's deployed the old rules still allow it), create the Upstash database (`UPSTASH_REDIS_REST_URL`,
+   `UPSTASH_REDIS_REST_TOKEN`), and run `npx -y tsx scripts/backfill-author-uids.ts` then `--apply`.
+10. **Staging:** `docs/STAGING.md` (a second Firebase project and the `staging` branch on Vercel Preview).
+All of these are on the team hub board with departments and dates (`lib/team-seed.ts`: `FUND_BACKLOG`, `LAUNCH_BACKLOG`).
 
 ## 3. How the work is done (please keep these)
 
@@ -46,6 +53,9 @@ Working branch convention: each session works on its own `claude/…` branch (Ve
   emulator env (Firebase demo project, a dummy service-account JSON, `FIRESTORE_EMULATOR_HOST=127.0.0.1:8080`) → confirm
   **"Compiled successfully"** and **`ƒ Middleware`** in the output → create the PR (no PR template in the repo) → **squash-merge** →
   reset the branch to main.
+- **Settings only through `lib/config.ts`** (`setting("NAME")`), never `process.env`; CI checks it.
+- **Comments and notifications are written by the server**, never by browsers (`lib/comments-server.ts`, `notifyBell`).
+- **Journals are matched by account id or username** (`isNoteBy`), never by display name.
 - **One build at a time.** Two `next build`s in parallel exhaust the container.
 - **Commit messages** end with the Co-Authored-By and session lines; **no AI model names or IDs** in commits, PRs, code or docs.
 - **Legal drafts are never committed.** The **Vision** page stays out of the changelog, the roadmap and public docs; it is served only to the
@@ -56,7 +66,8 @@ Working branch convention: each session works on its own `claude/…` branch (Ve
 - **Game features: mockups first.** Show phone and desktop mockups of important Notes Life features for approval before building
   (they are rendered from the real `components/life/world.ts` scenes).
 - **Every feature ships with its docs:** a `lib/changelog.ts` entry (Added / Changed / Fixed, version bump), the help article in
-  `lib/kb-articles.ts` (Nana answers from these), the README, and tests where there is server logic.
+  `lib/kb-articles.ts` (Nana answers from these), the docs (`README.md` "Where things stand", `docs/ARCHITECTURE.md`; settings in
+  `lib/config.ts` then `npm run docs:settings`), and tests where there is server logic.
 - Writing style for anything people read: short, plain sentences; British spelling; prices in N$ (game) or ₦ (real money).
 
 ## 4. Map of the code
@@ -70,7 +81,10 @@ Working branch convention: each session works on its own `claude/…` branch (Ve
 | Links and @mentions | `lib/linkify.ts` (tokenizer + `remarkLinkify`), `components/LinkedText.tsx`, `components/MentionPicker.tsx`, `components/LinkPreview.tsx`, `app/api/link-preview/route.ts` |
 | Addresses | `lib/host.ts` (the primary address and every domain's family), `middleware.ts`, `lib/use-family-url.ts` + `components/FamilyLink.tsx`, `docs/DOMAIN_SWITCH.md` |
 | Mention bells | `lib/mentions-server.ts`, `app/api/notify/mentions/route.ts` (comments, journals); reviews, recommendations and moments call it on the server |
-| Weekly digest | template `lib/digest.ts`, sending `lib/digest-server.ts`, cron job `weeklyDigest`, `app/api/digest/unsubscribe`, `app/api/account/email-prefs`, `app/api/admin/digest`, `components/EmailSettings.tsx` |
+| Settings | `lib/config.ts` (every setting), `docs/ENVIRONMENT.md` (made from it: `npm run docs:settings`) |
+| Comments and bells | `lib/comments-server.ts`, `app/api/comments`, `app/api/notify/like`, `app/api/admin/notify`, `lib/moderation-messages.ts` |
+| Shared store | `lib/shared-store.ts` (Upstash REST, memory fallback), `lib/rate-limit.ts` |
+| Weekly digest | template `lib/digest.ts`, sending `lib/digest-server.ts`, cron job `weeklyDigest`, `app/api/digest/unsubscribe`, `app/api/account/email-prefs`, `app/api/admin/digest`, `app/(main)/admin/digest`, `components/EmailSettings.tsx` |
 | Money | Paystack `app/api/paystack/*`, `lib/payments.ts`; wallet `lib/wallet*.ts`; Paylony (in progress) `lib/paylony.ts`; team ledger in the admin area |
 | Nana AI | `lib/nana-*.ts`, `components/Nana*.tsx`, help articles `lib/kb-articles.ts` |
 | Platform numbers | `lib/stat-cache.ts` (snapshots in `statCache/{key}`: traction hourly, revenue every 15 minutes), `lib/traction-server.ts` |
@@ -87,6 +101,9 @@ npm run test:messages          # message edit/delete rules
 npm run test:mentions          # @mention bells; prints "ALL OK"
 npm run test:digest            # weekly digest; prints "ALL OK"
 npm run test:preview           # link-preview safety (no emulator; listens on port 80)
+npm run test:authors           # journal author backfill
+npm run test:shared            # shared rate limits and cache (a stand-in Upstash)
+npm run test:smoke             # Playwright, against a running site (SMOKE_BASE_URL)
 ```
 The emulator-based tests start their own emulator on port 8080, so stop any emulator you started yourself first.
 

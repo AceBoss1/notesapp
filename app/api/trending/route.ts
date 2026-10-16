@@ -16,7 +16,7 @@ type Bucket = { kind: "note" | "profile"; id: string; count: number };
 // (pageViews buckets). Until any windowed data exists it falls back
 // to lifetime view counts, and says so via `basis`.
 export async function GET(req: NextRequest) {
-  const limited = rateLimit(req, "trending", clientIp(req), 60, 60);
+  const limited = await rateLimit(req, "trending", clientIp(req), 60, 60);
   if (limited) return limited;
   try {
     const days = Math.min(30, Math.max(1, Number(req.nextUrl.searchParams.get("days")) || 7));

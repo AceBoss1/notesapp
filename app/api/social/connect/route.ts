@@ -11,7 +11,7 @@ export const dynamic = "force-dynamic";
 export async function POST(req: NextRequest) {
   try {
     const me = await socialAuthed(req, true);
-    const limited = rateLimit(req, "social-connect", me.uid, 10, 600);
+    const limited = await rateLimit(req, "social-connect", me.uid, 10, 600);
     if (limited) return limited;
     const body = await req.json().catch(() => ({}));
     if (!isProvider(body.provider)) throw new SocialError(400, "Choose LinkedIn or X.");

@@ -49,7 +49,7 @@ export async function authenticateApiKey(req: NextRequest, scope: ApiScope | "an
   if (!key || key.revokedAt || given.length !== stored.length || !timingSafeEqual(given, stored)) {
     return fail({ status: 401, code: "invalid_key", message: "That API key isn't valid or has been revoked." });
   }
-  const limited = rateLimit(req, "api-key", parsed.id, 120, 60);
+  const limited = await rateLimit(req, "api-key", parsed.id, 120, 60);
   if (limited) return { fail: NextResponse.json({ error: { code: "rate_limited", message: "Too many requests — slow down." } }, { status: 429, headers: { "Retry-After": limited.headers.get("Retry-After") || "30" } }) };
   const user = (await db.doc(`users/${key.uid}`).get()).data();
   if (!user || user.suspended) return fail({ status: 403, code: "account_unavailable", message: "This account can't use the API right now." });

@@ -26,7 +26,7 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
   try {
     const me = await authed(req, "moments", true);
-    const limited = rateLimit(req, "moment", me.uid, 20, 600);
+    const limited = await rateLimit(req, "moment", me.uid, 20, 600);
     if (limited) return limited;
     const body = await req.json().catch(() => ({}));
     return NextResponse.json({ moment: await createMoment(getAdminDb(), me, body, momentDeps) });

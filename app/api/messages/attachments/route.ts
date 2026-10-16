@@ -22,7 +22,7 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
   try {
     const me = await authed(req, "messages", true);
-    const limited = rateLimit(req, "dm-file", me.uid, 30, 600);
+    const limited = await rateLimit(req, "dm-file", me.uid, 30, 600);
     if (limited) return limited;
     if (!privateFilesConfigured()) throw new MessageError(503, "Sending files isn't set up yet.");
     const body = await req.json().catch(() => ({}));

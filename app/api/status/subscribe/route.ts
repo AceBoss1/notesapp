@@ -7,7 +7,7 @@ export const dynamic = "force-dynamic";
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
 
 export async function POST(req: NextRequest) {
-  const limited = rateLimit(req, "status-subscribe", clientIp(req), 5, 600);
+  const limited = await rateLimit(req, "status-subscribe", clientIp(req), 5, 600);
   if (limited) return limited;
   const body = (await req.json().catch(() => ({}))) as { email?: unknown };
   const email = typeof body.email === "string" ? body.email.trim() : "";

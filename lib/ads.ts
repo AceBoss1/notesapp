@@ -8,7 +8,7 @@
 //   admob    — Google AdMob (a MOBILE-APP SDK, not for websites)  "Sponsored: AdMob"
 // Only `notesapp` is implemented. Third-party providers are intentionally NOT
 // loaded: each needs its own account approval, a consent banner, and (Google)
-// an ads.txt — see README "Ads scaffold".
+// an ads.txt — see docs/BUILD_LOG.md "Ads scaffold".
 export type AdProvider = "notesapp" | "google" | "meta" | "admob";
 
 export const AD_FOOTER: Record<AdProvider, string> = {

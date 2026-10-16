@@ -11,7 +11,7 @@ export const dynamic = "force-dynamic";
 // up). Nothing sensitive is returned.
 //   /api/public/domain-resolve?host=notes.brand.com[&check=journal:<slug> | item:<id>]
 export async function GET(req: NextRequest) {
-  const limited = rateLimit(req, "domain-resolve", clientIp(req), 300, 60);
+  const limited = await rateLimit(req, "domain-resolve", clientIp(req), 300, 60);
   if (limited) return limited;
   const host = normalizeHost(req.nextUrl.searchParams.get("host") || "");
   const headers = { "Cache-Control": "public, s-maxage=30, stale-while-revalidate=60" };

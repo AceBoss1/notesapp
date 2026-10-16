@@ -20,7 +20,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ counted: false });
     }
     const ip = clientIp(req);
-    if (rateLimit(req, "boost-imp", ip, 120, 600)) return NextResponse.json({ counted: false });
+    if (await rateLimit(req, "boost-imp", ip, 120, 600)) return NextResponse.json({ counted: false });
 
     const { boostId, type } = await req.json();
     if (typeof boostId !== "string" || !/^[A-Za-z0-9_-]{1,80}$/.test(boostId) || (type !== "impression" && type !== "click")) {

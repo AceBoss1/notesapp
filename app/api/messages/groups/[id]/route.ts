@@ -14,7 +14,7 @@ export const dynamic = "force-dynamic";
 export async function POST(req: NextRequest, { params }: { params: { id: string } }) {
   try {
     const me = await authed(req, "messages", true);
-    const limited = rateLimit(req, "group-edit", me.uid, 30, 600);
+    const limited = await rateLimit(req, "group-edit", me.uid, 30, 600);
     if (limited) return limited;
     const body = await req.json().catch(() => ({}));
     const db = getAdminDb();

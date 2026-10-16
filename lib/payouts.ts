@@ -6,6 +6,7 @@ import { notifyBell, sendEmail } from "./email";
 import { formatNaira } from "./booking-time";
 import { PAYOUT_HOLD_HOURS } from "./cancellation";
 import type { LedgerEntry } from "./payments";
+import { setting } from "@/lib/config";
 
 // Server-only. The one place a publisher payout is sent, used by the admin "Release" button and
 // by the scheduled auto-release (bookings, PAYOUT_HOLD_HOURS after the session ends).
@@ -85,7 +86,7 @@ const AUTO_BATCH = 100;
 // wait for a manual release, with the reason shown on /admin/payments). Set
 // AUTO_PAYOUTS=off in the environment to pause it. Returns how many transfers were started.
 export async function autoReleasePayouts(opts: { transfer?: typeof initiateTransfer; now?: number } = {}): Promise<number> {
-  if (process.env.AUTO_PAYOUTS === "off") return 0;
+  if (setting("AUTO_PAYOUTS") === "off") return 0;
   const db = getAdminDb();
   const now = opts.now ?? Date.now();
   const dueBefore = now - PAYOUT_HOLD_HOURS * 3_600_000; // releaseAfter is the session end

@@ -12,7 +12,7 @@ export async function GET(req: NextRequest) {
   try {
     const me = await verifySignedInRequest(req.headers.get("authorization")?.replace(/^Bearer\s+/i, "")).catch(() => null);
     if (!me) return NextResponse.json({ error: "Sign in to see followers and following." }, { status: 401 });
-    const limited = rateLimit(req, "follow-lists", me.uid, 60, 60);
+    const limited = await rateLimit(req, "follow-lists", me.uid, 60, 60);
     if (limited) return limited;
     const url = new URL(req.url);
     const kind = url.searchParams.get("list") === "following" ? "following" : "followers";

@@ -19,8 +19,8 @@ export async function POST(req: NextRequest) {
     if ((kind !== "note" && kind !== "profile") || typeof id !== "string" || !/^[A-Za-z0-9_-]{1,80}$/.test(id)) {
       return NextResponse.json({ error: "Invalid" }, { status: 400 });
     }
-    if (rateLimit(req, "view-ip", clientIp(req), 120, 600)) return NextResponse.json({ ok: true, counted: false });
-    if (rateLimit(req, "view-page", `${clientIp(req)}:${kind}:${id}`, 1, 1800)) {
+    if (await rateLimit(req, "view-ip", clientIp(req), 120, 600)) return NextResponse.json({ ok: true, counted: false });
+    if (await rateLimit(req, "view-page", `${clientIp(req)}:${kind}:${id}`, 1, 1800)) {
       return NextResponse.json({ ok: true, counted: false });
     }
 

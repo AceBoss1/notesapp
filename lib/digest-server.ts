@@ -9,6 +9,7 @@ import { COMPANY_INFO } from "./site";
 import { DEFAULT_AVATAR } from "./admin";
 import { resolveAuthorUsername } from "./journals-directory";
 import { digestSubject, pickStories, renderDigestHtml, renderDigestText, type DigestEmail, type PoolStory } from "./digest";
+import { setting } from "@/lib/config";
 
 // Server-only. The #NotesApp Weekly Digest (template in lib/digest.ts).
 //
@@ -28,11 +29,33 @@ const RUN_WINDOW_MS = 48 * 3_600_000;
 const LAGOS_OFFSET_MS = 3_600_000; // UTC+1, no daylight saving
 const NO_INBOX = new Set(["na-notesapp"]);
 
-export const digestOn = () => process.env.WEEKLY_DIGEST === "on";
-const perRun = () => Math.max(1, Math.min(500, Number(process.env.DIGEST_PER_RUN) || 40));
+// On when an admin switched it on (Admin → Weekly digest, stored in digestConfig/main, server-only) or WEEKLY_DIGEST=on in Vercel.
+export async function digestOn(db: Firestore): Promise<boolean> {
+  if (setting("WEEKLY_DIGEST") === "on") return true;
+  return (await db.doc("digestConfig/main").get().catch(() => null))?.data()?.on === true;
+}
+export async function setDigestOn(db: Firestore, on: boolean, byUid: string): Promise<void> {
+  await db.doc("digestConfig/main").set({ on, byUid, at: new Date().toISOString() }, { merge: true });
+}
+// What Admin → Weekly digest shows.
+export async function digestStatus(db: Firestore, now = new Date()) {
+  const [cfg, last] = await Promise.all([db.doc("digestConfig/main").get(), db.doc(`digestRuns/${digestWeek(now).id}`).get()]);
+  const week = digestWeek(now);
+  const next = now.getTime() < week.startsAt + RUN_WINDOW_MS && !last.data()?.done ? week.startsAt : week.startsAt + WEEK_MS;
+  return {
+    on: setting("WEEKLY_DIGEST") === "on" || cfg.data()?.on === true,
+    forcedByVercel: setting("WEEKLY_DIGEST") === "on",
+    switchedBy: cfg.data()?.byUid ?? null, switchedAt: cfg.data()?.at ?? null,
+    linkSecret: setting("EMAIL_LINK_SECRET") ? "EMAIL_LINK_SECRET" : setting("CRON_SECRET") ? "CRON_SECRET" : null,
+    emailReady: !!setting("RESEND_API_KEY"), perRun: perRun(),
+    thisWeek: { id: week.id, sent: Number(last.data()?.sent) || 0, done: last.data()?.done === true },
+    nextSendAt: new Date(next).toISOString(),
+  };
+}
+const perRun = () => Math.max(1, Math.min(500, Number(setting("DIGEST_PER_RUN")) || 40));
 
 // ---- one-click unsubscribe links (signed, so nobody can turn it off for someone else) ----
-const secret = () => process.env.EMAIL_LINK_SECRET || process.env.CRON_SECRET || "";
+const secret = () => setting("EMAIL_LINK_SECRET") || setting("CRON_SECRET") || "";
 export function digestToken(uid: string): string {
   return createHmac("sha256", secret()).update(`weekly-digest:${uid}`).digest("base64url").slice(0, 32);
 }
@@ -129,7 +152,7 @@ export function digestWeek(now = new Date()): { startsAt: number; id: string } {
 }
 
 export async function sendWeeklyDigests(db: Firestore, now = new Date()): Promise<number> {
-  if (!digestOn() || !secret()) return 0;
+  if (!secret() || !(await digestOn(db))) return 0;
   const week = digestWeek(now);
   if (now.getTime() - week.startsAt > RUN_WINDOW_MS) return 0;
   const runRef = db.doc(`digestRuns/${week.id}`);

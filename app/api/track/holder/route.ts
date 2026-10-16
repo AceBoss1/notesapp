@@ -36,7 +36,7 @@ async function load(token: string) {
 
 export async function GET(req: NextRequest) {
   try {
-    const limited = rateLimit(req, "holder", clientIp(req), 40, 60);
+    const limited = await rateLimit(req, "holder", clientIp(req), 40, 60);
     if (limited) return limited;
     const { parcel, entry } = await load(String(req.nextUrl.searchParams.get("token") || ""));
     const latest = [...parcel.custody].reverse().find((c) => c.status === "confirmed");
@@ -57,7 +57,7 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   try {
-    const limited = rateLimit(req, "holder-post", clientIp(req), 30, 60);
+    const limited = await rateLimit(req, "holder-post", clientIp(req), 30, 60);
     if (limited) return limited;
     const body = await req.json();
     const { db, pref, parcel, entry } = await load(String(body.token || ""));

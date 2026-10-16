@@ -1,3 +1,4 @@
+import { setting } from "@/lib/config";
 // NotesApp Credit: a prepaid balance a member tops up through Paystack and spends across #NotesApp (and, later, Notes Life).
 // Shared rules for the server, the screens and the tests. Amounts are in kobo.
 //
@@ -6,7 +7,7 @@
 //   BONUS_KINDS (boosts, verification badges, advert banners; calls once paid calls exist).
 // - Refunds of a wallet payment go back to the wallet, the bonus share as a fresh bonus lot.
 
-export const WALLET_LIVE = process.env.NEXT_PUBLIC_WALLET_LIVE !== "false";
+export const WALLET_LIVE = setting("NEXT_PUBLIC_WALLET_LIVE") !== "false";
 
 export const TOPUP_MIN_KOBO = 1_000 * 100;
 export const TOPUP_MAX_KOBO = 500_000 * 100;

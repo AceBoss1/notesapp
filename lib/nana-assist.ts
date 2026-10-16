@@ -3,6 +3,7 @@ import { LINKEDIN_LIMIT, X_LIMIT, clipWords, xWeight } from "./social-text";
 import { NanaError } from "./nana";
 import { bookingContext } from "./nana-booking";
 import { AiDown, aiCandidates, chargePlatform, realDeps, type NanaDeps, type SystemBlock } from "./nana-server";
+import { setting } from "@/lib/config";
 
 // Nana's writing help: improve, shorten or expand a draft, turn notes into a first draft, write a post for LinkedIn or X, polish a message or
 // suggest a reply. It works on text the person sends and gives text back; nothing is saved by us. It needs an AI account (the member's own, or
@@ -26,7 +27,7 @@ export const isTask = (t: unknown): t is Task => typeof t === "string" && t in T
 export const SURFACES = { draft: ["improve", "shorten", "expand", "friendlier", "professional", "draft"], social: ["social", "improve", "shorten", "friendlier"], chat: ["reply", "improve", "friendlier", "professional", "shorten"] } as const;
 export type Surface = keyof typeof SURFACES;
 
-const perUserAssistLimit = () => Math.max(1, Number(process.env.NANA_ASSIST_DAILY) || 20);
+const perUserAssistLimit = () => Math.max(1, Number(setting("NANA_ASSIST_DAILY")) || 20);
 
 const SYSTEM = `You are Nana AI's writing helper inside #NotesApp, a platform where African creators, professionals and businesses publish, sell and message. You help a member with their own words.
 

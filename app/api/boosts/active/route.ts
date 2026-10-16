@@ -16,7 +16,7 @@ export const dynamic = "force-dynamic";
 // delivered (relative to what was bought) go first so campaigns get
 // fair rotation.
 export async function GET(req: NextRequest) {
-  const limited = rateLimit(req, "boosts-active", clientIp(req), 60, 60);
+  const limited = await rateLimit(req, "boosts-active", clientIp(req), 60, 60);
   if (limited) return limited;
   try {
     const limit = Math.min(6, Math.max(1, Number(req.nextUrl.searchParams.get("limit")) || 3));

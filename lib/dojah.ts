@@ -1,4 +1,5 @@
 import { createHmac, timingSafeEqual } from "crypto";
+import { setting } from "@/lib/config";
 
 // Dojah webhooks (kyc_widget). Dojah POSTs each event to /api/dojah/webhook and signs it:
 //   x-dojah-signature     = HMAC-SHA256(raw body, DOJAH_WEBHOOK_SECRET) as hex  ← we verify this
@@ -118,7 +119,7 @@ export function summarizeDojahEvent(event: any, track: "personal" | "corporate" 
       }
     }
   }
-  const sandbox = (process.env.DOJAH_API_BASE || "").includes("sandbox");
+  const sandbox = (setting("DOJAH_API_BASE") || "").includes("sandbox");
   if (track === "corporate" && !sandbox && businessNumber && expectedRc && digitsOf(expectedRc) !== businessNumber) {
     missing.push("a registration number matching the one the organisation signed up with");
   }
@@ -137,4 +138,4 @@ export function summarizeDojahEvent(event: any, track: "personal" | "corporate" 
 }
 
 // Sandbox keys talk to Dojah's sandbox host; set DOJAH_API_BASE accordingly (default: production).
-export const dojahApiBase = () => (process.env.DOJAH_API_BASE || "https://api.dojah.io").replace(/\/$/, "");
+export const dojahApiBase = () => (setting("DOJAH_API_BASE") || "https://api.dojah.io").replace(/\/$/, "");

@@ -13,6 +13,7 @@ import { PROVIDERS, providerConfigured } from "./social-server";
 import { nanaConfigured } from "./nana-config";
 import { cloudflareTurn, cloudflareTurnConfigured } from "./calls-server";
 import { SITE_URL } from "@/lib/host";
+import { setting } from "@/lib/config";
 
 // Server-only service health checks behind /status. Reports only
 // up/slow/down + latency — never error details or config.
@@ -63,7 +64,7 @@ export async function checkServices(): Promise<ServiceStatus[]> {
     }).then((r) => toStatus("database", "Database", "Journals, profiles, bookings (Firestore)", r))
   );
 
-  const apiKey = process.env.NEXT_PUBLIC_FIREBASE_API_KEY;
+  const apiKey = setting("NEXT_PUBLIC_FIREBASE_API_KEY");
   checks.push(
     apiKey
       ? timed(reachable(`https://identitytoolkit.googleapis.com/v1/accounts:lookup?key=${apiKey}`, { method: "POST", headers: { "Content-Type": "application/json" }, body: "{}" })).then((r) =>
@@ -73,7 +74,7 @@ export async function checkServices(): Promise<ServiceStatus[]> {
   );
 
   checks.push(
-    (process.env.R2_ACCOUNT_ID && process.env.R2_ACCESS_KEY_ID
+    (setting("R2_ACCOUNT_ID") && setting("R2_ACCESS_KEY_ID")
       ? timed(async (signal) => {
           await getR2Client().send(new HeadBucketCommand({ Bucket: R2_BUCKET }), { abortSignal: signal });
           return true;
@@ -82,7 +83,7 @@ export async function checkServices(): Promise<ServiceStatus[]> {
     ).then((r) => (r ? toStatus("storage", "Media uploads", "Image and avatar uploads (Cloudflare R2)", r) : notConfigured("storage", "Media uploads", "Image and avatar uploads (Cloudflare R2)")))
   );
 
-  const media = process.env.NEXT_PUBLIC_R2_PUBLIC_URL;
+  const media = setting("NEXT_PUBLIC_R2_PUBLIC_URL");
   checks.push(
     media
       ? timed(reachable(media, { method: "HEAD" })).then((r) => toStatus("media", "Media delivery", "Serving uploaded images (media domain)", r))
@@ -144,14 +145,14 @@ export async function checkServices(): Promise<ServiceStatus[]> {
   );
 
   // Claude (Anthropic) writes Nana's replies and writing help when an AI key is set. The check lists models, which costs nothing.
-  const claudeKey = (process.env.ANTHROPIC_API_KEY || "").trim();
+  const claudeKey = (setting("ANTHROPIC_API_KEY") || "").trim();
   const claudeDesc = "Claude by Anthropic, the AI behind Nana AI's answers and writing help";
   checks.push(
     claudeKey
       ? (async () => {
           let why = "";
           const r = await timed(async (signal) => {
-            const res = await fetch(`${(process.env.ANTHROPIC_BASE_URL || "https://api.anthropic.com").replace(/\/$/, "")}/v1/models?limit=1`, { headers: { "x-api-key": claudeKey, "anthropic-version": "2023-06-01" }, signal, cache: "no-store" });
+            const res = await fetch(`${(setting("ANTHROPIC_BASE_URL") || "https://api.anthropic.com").replace(/\/$/, "")}/v1/models?limit=1`, { headers: { "x-api-key": claudeKey, "anthropic-version": "2023-06-01" }, signal, cache: "no-store" });
             if (res.status === 401 || res.status === 403) why = " (Anthropic rejected our key: check ANTHROPIC_API_KEY in Vercel)";
             else if (res.status === 429) why = " (rate limited by Anthropic)";
             else if (res.status >= 500) why = " (Anthropic is having trouble)";
@@ -173,7 +174,7 @@ export async function checkServices(): Promise<ServiceStatus[]> {
     } as ServiceStatus))
   );
 
-  const paystack = process.env.PAYSTACK_SECRET_KEY;
+  const paystack = setting("PAYSTACK_SECRET_KEY");
   checks.push(
     paystack
       ? timed(async (signal) => {
@@ -201,7 +202,7 @@ export async function checkServices(): Promise<ServiceStatus[]> {
   // Cloudflare for credentials exactly as a call does, so a wrong key shows here instead of in a failed call.
   const callsName = "Calls (voice and video)";
   const callsDesc = "Free one-to-one calls in Messages, with the Cloudflare relay for networks that block direct connections";
-  const ownTurn = !!((process.env.TURN_URLS || "").trim() && process.env.TURN_USERNAME && process.env.TURN_CREDENTIAL);
+  const ownTurn = !!((setting("TURN_URLS") || "").trim() && setting("TURN_USERNAME") && setting("TURN_CREDENTIAL"));
   checks.push(
     !CALLS_LIVE
       ? Promise.resolve(notConfigured("calls", callsName, callsDesc))
@@ -228,7 +229,7 @@ export async function checkServices(): Promise<ServiceStatus[]> {
         : notConfigured("push", "Device notifications", "Notifications for new messages on phones and browsers"))
   );
 
-  const resend = process.env.RESEND_API_KEY;
+  const resend = setting("RESEND_API_KEY");
   checks.push(
     resend
       ? timed(async (signal) => {

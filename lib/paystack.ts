@@ -1,11 +1,12 @@
 import { createHmac, timingSafeEqual, randomBytes } from "crypto";
+import { setting } from "@/lib/config";
 
 // Server-only. Paystack secret key never reaches the browser.
 const API = "https://api.paystack.co";
 
 function secret(): string {
-  const key = process.env.PAYSTACK_SECRET_KEY;
-  if (!key) throw new Error("PAYSTACK_SECRET_KEY is not set. See README.");
+  const key = setting("PAYSTACK_SECRET_KEY");
+  if (!key) throw new Error("PAYSTACK_SECRET_KEY is not set. See docs/ENVIRONMENT.md.");
   return key;
 }
 

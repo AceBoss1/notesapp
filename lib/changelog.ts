@@ -11,6 +11,18 @@ export type Release = {
 
 export const CHANGELOG: Release[] = [
   {
+    version: "v0.38.0",
+    bump: "minor",
+    date: "2026-10-16",
+    changes: [
+      { kind: "fixed", text: "Comments always show the real name and picture of the person who wrote them: comments are now saved by #NotesApp's server, which reads who you are from your account." },
+      { kind: "fixed", text: "Notifications can only come from #NotesApp itself, so nobody can send you a fake one. Liking, unliking and liking again sends one notification, not several." },
+      { kind: "changed", text: "Limits on how often something can be done (posting, sending, signing in) now hold across all of #NotesApp's servers, not each one separately." },
+      { kind: "changed", text: "Journals belong to their author's account rather than their name, so changing your display name never separates you from your posts." },
+      { kind: "added", text: "Admins: a Weekly digest page to preview the digest, send yourself a test and switch the Sunday send on or off." },
+    ],
+  },
+  {
     version: "v0.37.0",
     bump: "minor",
     date: "2026-10-16",

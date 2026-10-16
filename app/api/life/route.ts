@@ -25,7 +25,7 @@ function fail(err: unknown) {
 export async function GET(req: NextRequest) {
   try {
     const me = await who(req);
-    const limited = rateLimit(req, "life-get", me.uid, 60, 60);
+    const limited = await rateLimit(req, "life-get", me.uid, 60, 60);
     if (limited) return limited;
     const db = getAdminDb();
     const v = req.nextUrl.searchParams.get("view");
@@ -47,7 +47,7 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
   try {
     const me = await who(req);
-    const limited = rateLimit(req, "life-act", me.uid, 90, 60);
+    const limited = await rateLimit(req, "life-act", me.uid, 90, 60);
     if (limited) return limited;
     const body = (await req.json().catch(() => ({}))) as Action;
     const db = getAdminDb();

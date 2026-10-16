@@ -20,7 +20,7 @@ const fail = (err: unknown, fallback: string) => {
 // Anyone: GET ?itemId=… (one item's reviews) or ?ownerUid=… (a seller's reviews across items). Signed in: also whether you can review.
 export async function GET(req: NextRequest) {
   try {
-    const limited = rateLimit(req, "reviews-read", clientIp(req), 120, 60);
+    const limited = await rateLimit(req, "reviews-read", clientIp(req), 120, 60);
     if (limited) return limited;
     const sp = req.nextUrl.searchParams;
     return NextResponse.json(await listReviews(getAdminDb(), { itemId: sp.get("itemId") || undefined, ownerUid: sp.get("ownerUid") || undefined }, await uidOf(req)), { headers: { "Cache-Control": "no-store" } });
@@ -34,7 +34,7 @@ export async function POST(req: NextRequest) {
   try {
     const uid = await uidOf(req);
     if (!uid) throw new ReviewError("Sign in first.", 401);
-    const limited = rateLimit(req, "reviews-write", uid, 30, 600);
+    const limited = await rateLimit(req, "reviews-write", uid, 30, 600);
     if (limited) return limited;
     const db = getAdminDb();
     const b = await req.json().catch(() => ({}));

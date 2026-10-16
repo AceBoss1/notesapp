@@ -14,7 +14,7 @@ export async function POST(req: NextRequest) {
   try {
     const token = req.headers.get("authorization")?.replace(/^Bearer\s+/i, "");
     const { uid } = await verifySignedInRequest(token).catch(() => { throw Object.assign(new Error("Sign in first."), { status: 401 }); });
-    const limited = rateLimit(req, "mentions", uid, 30, 60);
+    const limited = await rateLimit(req, "mentions", uid, 30, 60);
     if (limited) return limited;
     const b = (await req.json().catch(() => ({}))) as { kind?: unknown; noteId?: unknown; commentId?: unknown };
     const noteId = typeof b.noteId === "string" && /^[A-Za-z0-9_-]{1,128}$/.test(b.noteId) ? b.noteId : "";

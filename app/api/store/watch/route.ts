@@ -25,7 +25,7 @@ export async function POST(req: NextRequest) {
   try {
     const me = await verifySignedInRequest(bearer(req)).catch(() => null);
     if (!me) return NextResponse.json({ error: "Sign in first." }, { status: 401 });
-    const limited = rateLimit(req, "stock-watch", me.uid, 30, 3600);
+    const limited = await rateLimit(req, "stock-watch", me.uid, 30, 3600);
     if (limited) return limited;
     const { itemId, watch } = await req.json();
     const db = getAdminDb();

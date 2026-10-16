@@ -9,7 +9,7 @@ import { rateLimit, clientIp } from "@/lib/rate-limit";
 // URL on that domain that redeems it (in the #fragment, so it never reaches a server log or a Referer header).
 // POST { host, next? } with Authorization: Bearer <ID token>  →  { url }
 export async function POST(req: NextRequest) {
-  const limited = rateLimit(req, "auth-handoff", clientIp(req), 20, 60);
+  const limited = await rateLimit(req, "auth-handoff", clientIp(req), 20, 60);
   if (limited) return limited;
   try {
     const user = await verifySignedInRequest(req.headers.get("authorization")?.replace(/^Bearer\s+/i, "")).catch(() => null);

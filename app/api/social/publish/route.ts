@@ -11,7 +11,7 @@ export const dynamic = "force-dynamic";
 export async function POST(req: NextRequest) {
   try {
     const me = await socialAuthed(req, true);
-    const limited = rateLimit(req, "social-publish", me.uid, 20, 3600);
+    const limited = await rateLimit(req, "social-publish", me.uid, 20, 3600);
     if (limited) return limited;
     const body = await req.json().catch(() => ({}));
     const results = await publishPost(getAdminDb(), me.uid, { noteId: String(body.noteId ?? ""), targets: body.targets, texts: body.texts, force: body.force === true });

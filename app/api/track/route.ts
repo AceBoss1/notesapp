@@ -18,7 +18,7 @@ const WINDOW_MS = 3_600_000;
 // 4 digits of the receiver's phone number.
 export async function GET(req: NextRequest) {
   try {
-    const limited = rateLimit(req, "track", clientIp(req), 40, 60);
+    const limited = await rateLimit(req, "track", clientIp(req), 40, 60);
     if (limited) return limited;
     const id = normalizeParcelId(req.nextUrl.searchParams.get("id"));
     if (!id) return NextResponse.json({ error: "That doesn't look like a parcel ID (it looks like NA-7K2M9QXD)." }, { status: 400 });

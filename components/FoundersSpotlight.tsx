@@ -10,6 +10,7 @@ import TeamBadge from "@/components/TeamBadge";
 import { useJournalStats } from "@/lib/useJournalStats";
 import { FOUNDER_JOURNALS } from "@/lib/journals-directory";
 import { NoteWithComputed } from "@/lib/firestore-notes";
+import { isNoteBy } from "@/lib/firestore-notes";
 
 function FounderRow({
   founder,
@@ -60,7 +61,7 @@ export default function FoundersSpotlight({ allNotes }: { allNotes: NoteWithComp
           <FounderRow
             key={founder.username}
             founder={founder}
-            journalCount={allNotes.filter((n) => n.author === founder.displayName).length}
+            journalCount={allNotes.filter((n) => isNoteBy(n, founder)).length}
           />
         ))}
       </div>

@@ -55,7 +55,7 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
   try {
     const me = await staff(req);
-    const limited = rateLimit(req, "admin-help", me.uid, 120, 3600);
+    const limited = await rateLimit(req, "admin-help", me.uid, 120, 3600);
     if (limited) return limited;
     const db = getAdminDb();
     const b = await req.json().catch(() => ({}));

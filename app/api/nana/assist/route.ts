@@ -20,7 +20,7 @@ export async function POST(req: NextRequest) {
     // The hourly limit protects #NotesApp's bill; a member using their own AI account is not limited.
     const db = getAdminDb();
     if (!(await aiStatus(db, d.uid)).connected) {
-      const limited = rateLimit(req, "nana-assist", d.uid, 30, 3600);
+      const limited = await rateLimit(req, "nana-assist", d.uid, 30, 3600);
       if (limited) return limited;
     }
     const b = await req.json().catch(() => ({}));

@@ -1,6 +1,7 @@
 import type { Firestore } from "firebase-admin/firestore";
 import { createHash } from "crypto";
 import webpush from "web-push";
+import { setting } from "@/lib/config";
 
 // Web push to a member's browsers and phones (Android Chrome and installed web apps; iPhone once the site is added to the home
 // screen). Needs three env vars (generate with `npx web-push generate-vapid-keys`): NEXT_PUBLIC_VAPID_PUBLIC_KEY,
@@ -12,25 +13,25 @@ import webpush from "web-push";
 const clean = (v: string | undefined) => (v ?? "").trim().replace(/^["']|["']$/g, "").replace(/\s+/g, "");
 const decode = (k: string) => (/^[A-Za-z0-9_-]+$/.test(k) ? Buffer.from(k, "base64url") : null);
 export function vapidPublicKey(): string | null {
-  const k = clean(process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY);
+  const k = clean(setting("NEXT_PUBLIC_VAPID_PUBLIC_KEY"));
   const b = decode(k);
   return b && b.length === 65 && b[0] === 4 ? k : null;
 }
 export function vapidPrivateKey(): string | null {
-  const k = clean(process.env.VAPID_PRIVATE_KEY);
+  const k = clean(setting("VAPID_PRIVATE_KEY"));
   return decode(k)?.length === 32 ? k : null;
 }
-const vapidSubject = () => clean(process.env.VAPID_SUBJECT).replace(/^mailto:\s*/i, "mailto:");
+const vapidSubject = () => clean(setting("VAPID_SUBJECT")).replace(/^mailto:\s*/i, "mailto:");
 const subjectOk = () => /^(mailto:[^@\s]+@[^@\s]+|https:\/\/\S+)$/.test(vapidSubject());
 export const pushConfigured = () => !!(vapidPublicKey() && vapidPrivateKey() && subjectOk());
 
 // What is wrong with the settings, in plain words, for /status: null when they are fine (or none are set).
 export function pushProblem(): string | null {
-  const any = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY || process.env.VAPID_PRIVATE_KEY || process.env.VAPID_SUBJECT;
+  const any = setting("NEXT_PUBLIC_VAPID_PUBLIC_KEY") || setting("VAPID_PRIVATE_KEY") || setting("VAPID_SUBJECT");
   if (!any || pushConfigured()) return null;
-  if (!process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY) return "NEXT_PUBLIC_VAPID_PUBLIC_KEY is missing";
+  if (!setting("NEXT_PUBLIC_VAPID_PUBLIC_KEY")) return "NEXT_PUBLIC_VAPID_PUBLIC_KEY is missing";
   if (!vapidPublicKey()) return "NEXT_PUBLIC_VAPID_PUBLIC_KEY is not valid: it must be the Public Key from web-push (87 characters, nothing else)";
-  if (!process.env.VAPID_PRIVATE_KEY) return "VAPID_PRIVATE_KEY is missing";
+  if (!setting("VAPID_PRIVATE_KEY")) return "VAPID_PRIVATE_KEY is missing";
   if (!vapidPrivateKey()) return "VAPID_PRIVATE_KEY is not valid: it must be the Private Key from web-push (43 characters)";
   return "VAPID_SUBJECT must be a mailto: address, for example mailto:hello@notesapp.name.ng";
 }

@@ -5,6 +5,7 @@ import { getAdminDb } from "@/lib/firebase-admin";
 import { clientIp, rateLimit } from "@/lib/rate-limit";
 import { isPlacement, AD_PLACEMENTS } from "@/lib/ads";
 import { lagosDay, loadActiveAds } from "@/lib/ads-server";
+import { setting } from "@/lib/config";
 
 export const dynamic = "force-dynamic";
 
@@ -18,11 +19,11 @@ export const dynamic = "force-dynamic";
 //   * Bots/previews are skipped by user-agent; the endpoint is rate-limited.
 //   * /admin/ads flags publishers with abnormal click rates for review.
 // Still not bulletproof against a determined attacker rotating IPs — that is why
-// ad-share payouts must be held and reviewed (see README), not automatic.
+// ad-share payouts must be held and reviewed (see docs/BUILD_LOG.md), not automatic.
 export async function POST(req: NextRequest) {
   const ua = req.headers.get("user-agent") || "";
   if (/bot|crawler|spider|headless|preview/i.test(ua)) return NextResponse.json({ ok: true, counted: false });
-  const limited = rateLimit(req, "ad-track", clientIp(req), 90, 60);
+  const limited = await rateLimit(req, "ad-track", clientIp(req), 90, 60);
   if (limited) return limited;
   try {
     const { adId, event, placement, publisherUid } = await req.json().catch(() => ({}));
@@ -34,7 +35,7 @@ export async function POST(req: NextRequest) {
 
     const db = getAdminDb();
     const day = lagosDay();
-    const visitor = createHash("sha256").update(`${clientIp(req)}|${ua}|${process.env.AD_HASH_SALT || "notesapp"}`).digest("hex").slice(0, 24);
+    const visitor = createHash("sha256").update(`${clientIp(req)}|${ua}|${setting("AD_HASH_SALT") || "notesapp"}`).digest("hex").slice(0, 24);
     const impKey = `${visitor}_${adId}_impression_${day}`;
     if (event === "click") {
       // No impression from this visitor today → not a real click.

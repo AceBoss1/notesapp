@@ -8,7 +8,7 @@ export const dynamic = "force-dynamic";
 let cache: { at: number; banks: { name: string; code: string }[] } | null = null;
 
 export async function GET(req: NextRequest) {
-  const limited = rateLimit(req, "banks", clientIp(req), 30, 60);
+  const limited = await rateLimit(req, "banks", clientIp(req), 30, 60);
   if (limited) return limited;
   try {
     if (!cache || Date.now() - cache.at > 86_400_000) {

@@ -4,6 +4,7 @@ import { getAdminDb } from "@/lib/firebase-admin";
 import { PaylonyWebhook, webhookAuthorised } from "@/lib/paylony";
 import { reconcilePaylonyPayouts } from "@/lib/paylony-payouts";
 import { clientIp, rateLimit } from "@/lib/rate-limit";
+import { setting } from "@/lib/config";
 
 export const dynamic = "force-dynamic";
 
@@ -15,9 +16,9 @@ export const dynamic = "force-dynamic";
 // settles an instant-settlement collection when we answer with the plain text "success", so we answer that only after the
 // event is safely stored. Crediting an order or paying out a seller from these events is added with the features that need them.
 export async function POST(req: NextRequest) {
-  const limited = rateLimit(req, "paylony-webhook", clientIp(req), 120, 60);
+  const limited = await rateLimit(req, "paylony-webhook", clientIp(req), 120, 60);
   if (limited) return limited;
-  if (!process.env.PAYLONY_WEBHOOK_KEY) return new NextResponse("not configured", { status: 503 });
+  if (!setting("PAYLONY_WEBHOOK_KEY")) return new NextResponse("not configured", { status: 503 });
   if (!webhookAuthorised(req.headers.get("authorization"))) return new NextResponse("unauthorised", { status: 401 });
 
   let event: PaylonyWebhook;

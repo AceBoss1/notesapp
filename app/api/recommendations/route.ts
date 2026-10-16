@@ -20,7 +20,7 @@ const fail = (err: unknown, fallback: string) => {
 // Anyone: GET ?subjectUid=… → the approved recommendations. The person recommended also gets what is waiting; an author gets their own.
 export async function GET(req: NextRequest) {
   try {
-    const limited = rateLimit(req, "recs-read", clientIp(req), 120, 60);
+    const limited = await rateLimit(req, "recs-read", clientIp(req), 120, 60);
     if (limited) return limited;
     const subjectUid = req.nextUrl.searchParams.get("subjectUid") || "";
     if (!subjectUid || subjectUid.includes("/")) throw new ReviewError("Whose profile?");
@@ -36,7 +36,7 @@ export async function POST(req: NextRequest) {
   try {
     const uid = await uidOf(req);
     if (!uid) throw new ReviewError("Sign in first.", 401);
-    const limited = rateLimit(req, "recs-write", uid, 30, 600);
+    const limited = await rateLimit(req, "recs-write", uid, 30, 600);
     if (limited) return limited;
     const db = getAdminDb();
     const b = await req.json().catch(() => ({}));

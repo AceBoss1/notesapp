@@ -11,7 +11,7 @@ export async function POST(req: NextRequest) {
   try {
     const b = await req.json().catch(() => ({}));
     const itemId = String(b.itemId ?? "");
-    if (rateLimit(req, "store-look", `${clientIp(req)}:${itemId}`, 2, 3600)) return NextResponse.json({ ok: false });
+    if (await rateLimit(req, "store-look", `${clientIp(req)}:${itemId}`, 2, 3600)) return NextResponse.json({ ok: false });
     const token = req.headers.get("authorization")?.replace(/^Bearer\s+/i, "");
     const d = token ? await getAuth(getAdminApp()).verifyIdToken(token).catch(() => null) : null;
     return NextResponse.json({ ok: await recordView(getAdminDb(), itemId, d?.uid) });

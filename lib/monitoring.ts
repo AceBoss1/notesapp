@@ -2,6 +2,7 @@ import { createHash } from "crypto";
 import { getAdminDb } from "./firebase-admin";
 import { sendEmail } from "./email";
 import { CONTACT_EMAIL } from "@/lib/host";
+import { setting } from "@/lib/config";
 
 // Built-in error monitoring (no third-party account needed). Unexpected server errors and browser
 // errors are grouped by a fingerprint into `errorLogs/{fingerprint}` (server-only, expires after
@@ -67,7 +68,7 @@ export async function reportError(err: unknown, ctx: ErrorContext): Promise<void
     if (t - alertWindow.start > 3_600_000) alertWindow = { start: t, count: 0 };
     if (alertWindow.count++ < MAX_ALERTS_PER_HOUR) {
       await sendEmail({
-        to: process.env.SUPPORT_EMAIL || CONTACT_EMAIL,
+        to: setting("SUPPORT_EMAIL") || CONTACT_EMAIL,
         subject: `New ${ctx.source} error on #NotesApp: ${message.slice(0, 80)}`,
         text: `A new error was seen (${ctx.source}${route ? `, ${route}` : ""}).\n\n${message}\n${stackTop}\n\nDetails and counts: /admin/errors`,
       }).catch(() => {});

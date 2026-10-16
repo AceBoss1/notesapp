@@ -33,7 +33,7 @@ export async function POST(req: NextRequest) {
     const who = signedIn?.uid ?? String(body.email ?? "").toLowerCase().slice(0, 100);
     // These limits protect #NotesApp's bill and inbox; a member using their own AI account is not limited.
     if (!(signedIn && (await aiStatus(db, signedIn.uid)).connected)) {
-      const limited = rateLimit(req, "nana", `${clientIp(req)}:${who}`, 14, 600) ?? rateLimit(req, "nana-ip", clientIp(req), 60, 3600);
+      const limited = (await rateLimit(req, "nana", `${clientIp(req)}:${who}`, 14, 600)) ?? (await rateLimit(req, "nana-ip", clientIp(req), 60, 3600));
       if (limited) return limited;
     }
 

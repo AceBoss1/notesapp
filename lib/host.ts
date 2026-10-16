@@ -1,3 +1,4 @@
+import { setting } from "@/lib/config";
 // Pure host helpers (no Node-only imports — also used by middleware.ts on the edge runtime).
 //
 // Every domain added to the Vercel project serves the whole site under its own name: no redirects, the address bar keeps the
@@ -11,7 +12,7 @@
 // Members' own domains (Business and Enterprise) are the exception: middleware.ts serves their branded site there.
 const clean = (h: string | undefined) => (h || "").trim().toLowerCase().replace(/^[a-z]+:\/\//, "").replace(/^www\./, "").replace(/[/:].*$/, "").replace(/\.$/, "");
 export const LEGACY_ROOT_DOMAIN = "notesapp.name.ng";
-export const ROOT_DOMAIN = clean(process.env.NEXT_PUBLIC_ROOT_DOMAIN) || LEGACY_ROOT_DOMAIN;
+export const ROOT_DOMAIN = clean(setting("NEXT_PUBLIC_ROOT_DOMAIN")) || LEGACY_ROOT_DOMAIN;
 // Our domains we know of, so they work without a lookup. A domain added to Vercel later works too: middleware.ts checks it
 // isn't a member's and then treats it as ours.
 const OTHER_ROOTS = [LEGACY_ROOT_DOMAIN, "notesapp.tech"].filter((r) => r !== ROOT_DOMAIN);
@@ -26,7 +27,7 @@ export const MCP_HOST = `mcp.${ROOT_DOMAIN}`;
 // The primary address of the main site, always https://www.<root> on the live site. NEXT_PUBLIC_SITE_URL is only used for local
 // development and Vercel previews (localhost, 127.0.0.1, *.vercel.app); any other value is ignored, so the root is the only setting.
 export const SITE_URL = (() => {
-  const env = (process.env.NEXT_PUBLIC_SITE_URL || "").trim().replace(/\/$/, "");
+  const env = (setting("NEXT_PUBLIC_SITE_URL") || "").trim().replace(/\/$/, "");
   if (/^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/i.test(env) || /^https:\/\/[a-z0-9-]+\.vercel\.app$/i.test(env)) return env;
   return `https://${MAIN_HOST}`;
 })();
@@ -34,7 +35,7 @@ export const APP_URL = `https://${APP_HOST}`;
 export const LIFE_URL = `https://${LIFE_HOST}`;
 // Where people write to us. Mail moves separately from the website (it needs MX, SPF and DKIM on the new domain), so it is
 // its own setting: NEXT_PUBLIC_CONTACT_EMAIL, defaulting to the address that works today.
-export const CONTACT_EMAIL = (process.env.NEXT_PUBLIC_CONTACT_EMAIL || `hello@${LEGACY_ROOT_DOMAIN}`).trim();
+export const CONTACT_EMAIL = (setting("NEXT_PUBLIC_CONTACT_EMAIL") || `hello@${LEGACY_ROOT_DOMAIN}`).trim();
 
 const bare = (hostname: string) => hostname.toLowerCase().replace(/:\d+$/, "").replace(/\.$/, "");
 const under = (h: string, root: string) => (h === root ? "" : h.endsWith(`.${root}`) ? h.slice(0, -root.length - 1) : null);

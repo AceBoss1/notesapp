@@ -7,6 +7,7 @@ import {
   SIGN_FORMATS, accountName, bankList, bankTransfer, createCheckoutAccount, paylonyCodeText, paylonyDiagnostics, paylonyMode, replyCode,
   type PaylonyReply,
 } from "@/lib/paylony";
+import { setting } from "@/lib/config";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
@@ -63,7 +64,7 @@ export async function POST(req: NextRequest) {
       const want = body.provider === "paylony" ? "paylony" : "paystack";
       if (want === "paylony") {
         const cfg = await paylonyConfig();
-        const missing = [!cfg.signFormat && "the signing format isn't verified (run the Signature test with a test key)", !process.env.PAYLONY_ENCRYPTION_KEY && "PAYLONY_ENCRYPTION_KEY isn't set", !accountCryptoConfigured() && "ACCOUNT_DATA_KEY isn't set", paylonyMode() === "unset" && "PAYLONY_SECRET_KEY isn't set"].filter(Boolean);
+        const missing = [!cfg.signFormat && "the signing format isn't verified (run the Signature test with a test key)", !setting("PAYLONY_ENCRYPTION_KEY") && "PAYLONY_ENCRYPTION_KEY isn't set", !accountCryptoConfigured() && "ACCOUNT_DATA_KEY isn't set", paylonyMode() === "unset" && "PAYLONY_SECRET_KEY isn't set"].filter(Boolean);
         if (missing.length) return NextResponse.json({ error: `Can't switch to Paylony yet: ${missing.join("; ")}.` }, { status: 409 });
       }
       await getAdminDb().doc("paylonyConfig/main").set({ payoutProvider: want, providerChangedAt: new Date().toISOString() }, { merge: true });

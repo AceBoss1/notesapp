@@ -13,7 +13,7 @@ export async function POST(req: NextRequest) {
   try {
     const user = await verifySignedInRequest(req.headers.get("authorization")?.replace(/^Bearer\s+/i, "")).catch(() => null);
     if (!user) return NextResponse.json({ error: "Sign in first." }, { status: 401 });
-    const limited = rateLimit(req, "site-theme", user.uid, 30, 3600);
+    const limited = await rateLimit(req, "site-theme", user.uid, 30, 3600);
     if (limited) return limited;
     const b = await req.json().catch(() => ({}));
     if (!isSiteTheme(b.theme)) return NextResponse.json({ error: "Choose Legacy or Aurora." }, { status: 400 });

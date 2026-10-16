@@ -10,7 +10,7 @@ export const dynamic = "force-dynamic";
 let cache: { at: number; services: ServiceStatus[]; incidents: Incident[] } | null = null;
 
 export async function GET(req: NextRequest) {
-  const limited = rateLimit(req, "status", clientIp(req), 30, 60);
+  const limited = await rateLimit(req, "status", clientIp(req), 30, 60);
   if (limited) return limited;
   if (!cache || Date.now() - cache.at > 60_000) {
     const services = await checkServices();

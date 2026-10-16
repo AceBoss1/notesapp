@@ -12,7 +12,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     const body = await req.json().catch(() => ({}));
     const action = String(body.action ?? "");
     const me = await authed(req, "moments", action !== "view");
-    const limited = rateLimit(req, "moment-act", me.uid, 120, 600);
+    const limited = await rateLimit(req, "moment-act", me.uid, 120, 600);
     if (limited) return limited;
     const db = getAdminDb();
     if (action === "like") return NextResponse.json(await toggleLike(db, me.uid, params.id));

@@ -13,7 +13,7 @@ export async function POST(req: NextRequest) {
     const token = req.headers.get("authorization")?.replace(/^Bearer\s+/i, "");
     const d = token ? await getAuth(getAdminApp()).verifyIdToken(token).catch(() => null) : null;
     if (!d) throw new StoreStatsError("Sign in to save items.", 401);
-    const limited = rateLimit(req, "store-fav", d.uid, 60, 600);
+    const limited = await rateLimit(req, "store-fav", d.uid, 60, 600);
     if (limited) return limited;
     const b = await req.json().catch(() => ({}));
     return NextResponse.json(await toggleFavorite(getAdminDb(), d.uid, String(b.itemId ?? "")), { headers: { "Cache-Control": "no-store" } });

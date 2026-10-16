@@ -4,6 +4,7 @@ import { accountCryptoConfigured, decryptSecret, encryptSecret } from "./account
 import { MAIN_HOST, isMainHost, SITE_URL } from "./host";
 import { postOgImage } from "./og";
 import { LINKEDIN_LIMIT, X_LIMIT, clipWords, escapeLinkedIn, linkedinText, plainText, xText, xWeight, type PostSource } from "./social-text";
+import { setting, type SettingName } from "@/lib/config";
 
 // Publishing a journal post to a member's own LinkedIn or X account: they connect once (OAuth), then "Publish" posts an excerpt of the post with
 // a link back to the full journal on #NotesApp, after showing them the text and letting them edit it. Tokens are kept encrypted in a server-only
@@ -25,7 +26,7 @@ export type Deps = { fetch: typeof fetch; now: () => Date };
 const realDeps = (): Deps => ({ fetch: (...a) => fetch(...a), now: () => new Date() });
 
 const site = () => SITE_URL;
-const env = (k: string) => (process.env[k] ?? "").trim();
+const env = (k: SettingName) => (setting(k) ?? "").trim();
 const cfg = (p: Provider) => p === "linkedin"
   ? { id: env("LINKEDIN_CLIENT_ID"), secret: env("LINKEDIN_CLIENT_SECRET") }
   : { id: env("X_CLIENT_ID"), secret: env("X_CLIENT_SECRET") };

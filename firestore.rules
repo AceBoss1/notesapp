@@ -215,11 +215,9 @@ service cloud.firestore {
         // Comments are public.
         allow read: if true;
 
-        // A signed-in user can create a comment only as themselves.
-        // Suspended users cannot create comments.
-        allow create: if isSignedIn()
-          && !isSuspended()
-          && request.resource.data.authorUid == request.auth.uid;
+        // Written by the server only (POST /api/comments, lib/comments-server.ts), which takes the name and picture from
+        // the account, so nobody can comment as someone else. Suspended accounts are refused there.
+        allow create: if false;
 
         // Comment updates:
         // - author can edit own comment
@@ -1014,30 +1012,15 @@ service cloud.firestore {
     // NOTIFICATIONS — NOTESAPP
     // ============================================================
     //
-    // No Cloud Functions in this deployment — every notification is
-    // written directly by whichever client action caused it (the
-    // liker's browser writes a doc addressed to the note's author,
-    // not the author's own browser). That means creation can only be
-    // shape-validated here, not verified against "did this really
-    // happen" the way a trusted server-side function could — a
-    // motivated user could write a fake notification to any uid. Low
-    // severity: it's a fake in-app message, not a data leak or a
-    // permission escalation, and only the recipient can ever read it.
-    // If this becomes a real abuse vector, the fix is a Cloud
-    // Function that owns notification creation instead of the client.
+    // Notifications: each member reads their own and marks them read; only the server creates them.
     match /notifications/{notificationId} {
       allow read: if isSignedIn()
         && (resource.data.recipientUid == request.auth.uid || isSuper());
 
-      allow create: if isSignedIn()
-        && request.resource.data.recipientUid is string
-        && request.resource.data.type in [
-             'like', 'comment', 'reply', 'new_post',
-             'suspended', 'unsuspended', 'appeal_rejected', 'role_changed'
-           ]
-        && request.resource.data.message is string
-        && request.resource.data.read == false
-        && request.resource.data.createdAt is string;
+      // Written by the server only (Admin SDK, which these rules don't apply to): comments, likes and @mentions in
+      // lib/comments-server.ts and lib/mentions-server.ts, moderation in /api/admin/notify, the rest via notifyBell.
+      // So nobody can send someone a fake notification.
+      allow create: if false;
 
       // A recipient can only ever flip their own notification to
       // read — nothing else about it, and never someone else's.

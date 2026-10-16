@@ -9,6 +9,7 @@ import {
 } from "./nana";
 import { kbReply } from "./nana-kb";
 import { STAFF_PAGES, buildSystem, knownPaths, visitorBlock } from "./nana-prompt";
+import { setting } from "@/lib/config";
 
 // The server side of Nana AI. A chat is stateless on the wire (the page sends the conversation each turn); we keep a transcript in the
 // server-only collection `nanaChats` so staff can see what people ask, fill gaps in the knowledge base and follow up when someone wants a
@@ -20,9 +21,9 @@ import { STAFF_PAGES, buildSystem, knownPaths, visitorBlock } from "./nana-promp
 
 export { nanaConfigured } from "./nana-config";
 // Claude Opus 5.5 is the default; set NANA_MODEL (for example claude-haiku-5-5 or claude-sonnet-5-5) to trade some quality for cost.
-export const nanaModel = () => (process.env.NANA_MODEL || "").trim() || "claude-opus-5-5";
-const platformKey = () => (process.env.ANTHROPIC_API_KEY || "").trim();
-const dailyLimit = () => Math.max(1, Number(process.env.NANA_DAILY_LIMIT) || 1500);
+export const nanaModel = () => (setting("NANA_MODEL") || "").trim() || "claude-opus-5-5";
+const platformKey = () => (setting("ANTHROPIC_API_KEY") || "").trim();
+const dailyLimit = () => Math.max(1, Number(setting("NANA_DAILY_LIMIT")) || 1500);
 
 export type SystemBlock = { type: "text"; text: string; cache_control?: { type: "ephemeral" } };
 export type Completion = { text: string; refused: boolean };
@@ -127,7 +128,7 @@ export function cleanMessages(raw: unknown): NanaMsg[] {
   return msgs;
 }
 
-const perUserChatLimit = () => Math.max(1, Number(process.env.NANA_CHAT_PER_USER_DAILY) || 100);
+const perUserChatLimit = () => Math.max(1, Number(setting("NANA_CHAT_PER_USER_DAILY")) || 100);
 
 // One turn of the conversation.
 export async function chat(db: Firestore, input: ChatInput, deps: NanaDeps = realDeps()): Promise<ChatResult> {

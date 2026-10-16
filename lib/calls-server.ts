@@ -5,6 +5,7 @@ import { MessageError } from "./messages-server";
 import { notifyBell } from "./email";
 import { sendPush, type PushPayload } from "./push-server";
 import { callLogText, isCallKind, settleEnd, type CallDoc, type CallEnd, type CallKind } from "./calls";
+import { setting } from "@/lib/config";
 
 export type CallDeps = { push: (uid: string, p: PushPayload) => Promise<number>; bell: typeof notifyBell };
 const defaultDeps = (db: Firestore): CallDeps => ({ push: (uid, p) => sendPush(db, uid, p), bell: notifyBell });
@@ -13,9 +14,9 @@ const defaultDeps = (db: Firestore): CallDeps => ({ push: (uid, p) => sendPush(d
 // TURN_USERNAME and TURN_CREDENTIAL, or CLOUDFLARE_TURN_KEY_ID and CLOUDFLARE_TURN_API_TOKEN for short-lived Cloudflare relay credentials.
 export async function iceServers(fetcher: typeof fetch = fetch): Promise<RTCIceServerLike[]> {
   const list: RTCIceServerLike[] = [{ urls: ["stun:stun.cloudflare.com:3478", "stun:stun.l.google.com:19302"] }];
-  const urls = (process.env.TURN_URLS || "").split(",").map((u) => u.trim()).filter(Boolean);
-  if (urls.length && process.env.TURN_USERNAME && process.env.TURN_CREDENTIAL) {
-    list.push({ urls, username: process.env.TURN_USERNAME, credential: process.env.TURN_CREDENTIAL });
+  const urls = (setting("TURN_URLS") || "").split(",").map((u) => u.trim()).filter(Boolean);
+  if (urls.length && setting("TURN_USERNAME") && setting("TURN_CREDENTIAL")) {
+    list.push({ urls, username: setting("TURN_USERNAME"), credential: setting("TURN_CREDENTIAL") });
     return list;
   }
   const turn = await cloudflareTurn(fetcher);
@@ -24,12 +25,12 @@ export async function iceServers(fetcher: typeof fetch = fetch): Promise<RTCIceS
 }
 export type RTCIceServerLike = { urls: string | string[]; username?: string; credential?: string };
 
-export const cloudflareTurnConfigured = () => !!((process.env.CLOUDFLARE_TURN_KEY_ID || "").trim() && (process.env.CLOUDFLARE_TURN_API_TOKEN || "").trim());
+export const cloudflareTurnConfigured = () => !!((setting("CLOUDFLARE_TURN_KEY_ID") || "").trim() && (setting("CLOUDFLARE_TURN_API_TOKEN") || "").trim());
 
 // Asks Cloudflare for short-lived TURN credentials (free; only relayed traffic is billed). On failure, why says what to fix in
 // plain words for /status, never the key or token.
 export async function cloudflareTurn(fetcher: typeof fetch = fetch, signal?: AbortSignal): Promise<{ server?: RTCIceServerLike; why?: string }> {
-  const keyId = (process.env.CLOUDFLARE_TURN_KEY_ID || "").trim(), token = (process.env.CLOUDFLARE_TURN_API_TOKEN || "").trim();
+  const keyId = (setting("CLOUDFLARE_TURN_KEY_ID") || "").trim(), token = (setting("CLOUDFLARE_TURN_API_TOKEN") || "").trim();
   if (!keyId || !token) return { why: "not set up" };
   try {
     const r = await fetcher(`https://rtc.live.cloudflare.com/v1/turn/keys/${encodeURIComponent(keyId)}/credentials/generate`, {
@@ -116,7 +117,7 @@ export async function endCall(db: Firestore, uid: string, id: unknown, asked: un
 // The service worker answers a ringing notification's Decline (and checks whether it's still ringing) without a sign-in: it proves it got
 // the push with this token, made from the call id and a server secret.
 export function ringToken(id: string): string {
-  const secret = process.env.CALL_PUSH_SECRET || process.env.VAPID_PRIVATE_KEY || "notesapp-call";
+  const secret = setting("CALL_PUSH_SECRET") || setting("VAPID_PRIVATE_KEY") || "notesapp-call";
   return createHmac("sha256", secret).update(`ring:${id}`).digest("hex").slice(0, 32);
 }
 export const ringTokenOk = (id: string, token: unknown) => typeof token === "string" && token.length === 32 && timingSafeEqual(Buffer.from(token), Buffer.from(ringToken(id)));

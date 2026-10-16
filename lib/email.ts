@@ -1,6 +1,7 @@
 import { getAdminDb } from "./firebase-admin";
 import type { NotificationType } from "./notifications";
 import { SITE_URL } from "@/lib/host";
+import { setting } from "@/lib/config";
 
 // Server-only transactional email via Resend's HTTP API (no SDK needed).
 // Without RESEND_API_KEY this logs and no-ops, so booking/payment
@@ -81,12 +82,12 @@ ${brand
 // `html` replaces the standard branded layout (the weekly digest has its own); `headers` adds mail headers (List-Unsubscribe).
 export async function sendEmail(params: { to: string; subject: string; text: string; action?: EmailAction; bell?: BellNote; brand?: EmailBrand; html?: string; headers?: Record<string, string> }): Promise<boolean> {
   if (params.bell) await notifyBell({ ...params.bell, message: params.bell.message ?? params.subject });
-  const key = process.env.RESEND_API_KEY;
+  const key = setting("RESEND_API_KEY");
   if (!key) {
     console.warn(`[email] RESEND_API_KEY not set — skipped "${params.subject}" to ${params.to}`);
     return false;
   }
-  const baseFrom = process.env.EMAIL_FROM || "#NotesApp <onboarding@resend.dev>";
+  const baseFrom = setting("EMAIL_FROM") || "#NotesApp <onboarding@resend.dev>";
   // On a member's behalf the sender's name is theirs (the address stays ours until their own domain is verified with Resend).
   const address = /<([^>]+)>/.exec(baseFrom)?.[1] ?? baseFrom;
   const from = params.brand ? `${params.brand.name.replace(/[<>"\r\n]/g, "")} <${address}>` : baseFrom;

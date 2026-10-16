@@ -37,7 +37,7 @@ export async function POST(req: NextRequest) {
   try {
     const me = await who(req);
     if (!me) return NextResponse.json({ error: "Sign in first." }, { status: 401 });
-    const limited = rateLimit(req, "account-delete", me.uid, 5, 3600);
+    const limited = await rateLimit(req, "account-delete", me.uid, 5, 3600);
     if (limited) return limited;
     if (Date.now() - me.authTime > FRESH_LOGIN_MS) return NextResponse.json({ error: "For your security, sign in again first.", code: "reauth" }, { status: 401 });
 

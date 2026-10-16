@@ -34,7 +34,7 @@ export async function addStaff(db: Firestore, c: Caller, input: StaffInput, now 
   gate(c);
   const clean = cleanStaff(input);
   const { accountNumber, ...rest } = clean;
-  if (accountNumber) need(accountCryptoConfigured(), "Bank account numbers can't be stored until ACCOUNT_DATA_KEY is set (see the README).", 400);
+  if (accountNumber) need(accountCryptoConfigured(), "Bank account numbers can't be stored until ACCOUNT_DATA_KEY is set (see docs/ENVIRONMENT.md).", 400);
   const ref = db.collection(STAFF).doc();
   const doc = { ...rest, active: true, hasAccount: !!accountNumber, accountLast4: accountNumber ? accountNumber.slice(-4) : "", createdAt: now.toISOString(), createdByEmail: c.email };
   await ref.set(doc);
@@ -52,7 +52,7 @@ export async function updateStaff(db: Firestore, c: Caller, id: unknown, input: 
   const patch: Record<string, unknown> = { ...rest, updatedAt: now.toISOString() };
   if (input.active !== undefined) patch.active = input.active === true;
   if (accountNumber) {
-    need(accountCryptoConfigured(), "Bank account numbers can't be stored until ACCOUNT_DATA_KEY is set (see the README).", 400);
+    need(accountCryptoConfigured(), "Bank account numbers can't be stored until ACCOUNT_DATA_KEY is set (see docs/ENVIRONMENT.md).", 400);
     patch.hasAccount = true; patch.accountLast4 = accountNumber.slice(-4);
     await db.collection(SECRETS).doc(ref.id).set({ enc: encryptAccountNumber(accountNumber), at: now.toISOString() });
   }

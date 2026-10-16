@@ -5,6 +5,7 @@
 // people, CAC lookup for organisations) whether or not it passes.
 // Endorsement is a manual review — no deposit.
 import type { GoldBadgeKind } from "./badges";
+import { setting } from "@/lib/config";
 
 export type GoldTrack = "personal" | "corporate";
 
@@ -18,7 +19,7 @@ export const GOLD_PRICING: Record<GoldTrack, { label: string; monthlyKobo: numbe
 // secrets. Results are read by an admin in the Dojah dashboard — we do not
 // receive or store any ID data ourselves.
 export function dojahWidgetUrl(track: GoldTrack, reference: string): string | null {
-  const id = track === "corporate" ? process.env.NEXT_PUBLIC_DOJAH_WIDGET_CORPORATE : process.env.NEXT_PUBLIC_DOJAH_WIDGET_PERSONAL;
+  const id = track === "corporate" ? setting("NEXT_PUBLIC_DOJAH_WIDGET_CORPORATE") : setting("NEXT_PUBLIC_DOJAH_WIDGET_PERSONAL");
   if (!id) return null;
   return `https://identity.dojah.io?widget_id=${encodeURIComponent(id)}&reference_id=${encodeURIComponent(reference)}`;
 }
