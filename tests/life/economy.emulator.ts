@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { initializeApp } from "firebase-admin/app";
 import { FieldValue, getFirestore } from "firebase-admin/firestore";
 import { act, mutate, richList, friends, statement, invites } from "../../lib/life/server";
-import { GAME_DAY_MS, GAME_HOUR_MS, SHIFT_MS, START_NAIRA, WORLD_EPOCH, worldTime, shiftPay, JOB, nepaAt, outagesOfDay, OUTLET, OUTLETS, outletTakings, outletProfitPerDay, outletPrice, jobBlocker, swimSkill, vipsAt, HOTEL, FOODS, type Outlet } from "../../lib/life/catalog";
+import { GAME_DAY_MS, GAME_HOUR_MS, SHIFT_MS, START_NAIRA, WORLD_EPOCH, worldTime, shiftPay, JOB, nepaAt, outagesOfDay, OUTLET, OUTLETS, outletTakings, outletProfitPerDay, outletPrice, jobBlocker, swimSkill, vipsAt, HOTEL, FOODS, cynthiaAt, dwOpen, giveawayOn, giveawayPrize, giveawayEligible, weekdayOf, DW_CLASS_MS, GIVEAWAY, RESIDENTS, type Outlet } from "../../lib/life/catalog";
 import { advance, freshSave, sanitize, powerStep, powerSource, fridgeCold, chatSocial, CHAT_SOCIAL } from "../../lib/life/play";
 import { payFromWallet, creditTopup } from "../../lib/wallet-server";
 import { fulfillPayment, type PaymentRecord } from "../../lib/payments";
@@ -75,6 +75,21 @@ const rej = async (p: Promise<unknown>, re: RegExp) => { await assert.rejects(p,
   assert.equal(cs.chatGained, 40, "capped at 40 an hour"); assert.equal(chatSocial(cs, "send", H + 9000).gain, 0);
   assert.equal(chatSocial(cs, "send", H + 3_600_000).gain, 8, "a new hour, a new allowance");
   assert.equal(sanitize({ chatHour: 5, chatGained: 12 }).chatGained, 12);
+  // Digital Witch: Cynthia is #1, at the hub by day and the VIP bar in the evening; certificates open tech jobs; the Saturday giveaway
+  assert.equal([...RESIDENTS].sort((a, b) => (b.netWorth ?? 0) - (a.netWorth ?? 0))[0].id, "cynthia");
+  const atH = (h: number, dayOffset = 0) => { let t = WORLD_EPOCH + dayOffset * GAME_DAY_MS; while (worldTime(t).hour !== h) t += GAME_HOUR_MS / 4; return t; };
+  assert.equal(cynthiaAt(atH(10)), "dw"); assert.equal(cynthiaAt(atH(20)), "hotel"); assert.equal(cynthiaAt(atH(2)), null);
+  assert.ok(dwOpen(atH(9)) && !dwOpen(atH(18)) && !dwOpen(atH(7)));
+  assert.equal(vipsAt(atH(20)).in[0], "cynthia"); assert.ok(!vipsAt(atH(12)).in.includes("cynthia"));
+  assert.match(jobBlocker(JOB("dw_va")!, { owned: [], cooking: 1, chefShifts: 0, reputation: 0 }) ?? "", /Virtual Assistant certificate/);
+  assert.equal(jobBlocker(JOB("dw_va")!, { owned: [], cooking: 1, chefShifts: 0, reputation: 0, certs: ["va"] }), null);
+  assert.match(jobBlocker(JOB("tech")!, { owned: ["pc_laptop"], cooking: 1, chefShifts: 0, reputation: 0 }) ?? "", /Digital Witch certificate/);
+  assert.equal(jobBlocker(JOB("tech")!, { owned: ["pc_laptop"], cooking: 1, chefShifts: 0, reputation: 0, certs: ["cs"] }), null);
+  let sat = WORLD_EPOCH; while (weekdayOf(sat) !== GIVEAWAY.weekday) sat += GAME_DAY_MS / 2;
+  const satNight = atH(20, Math.round((sat - WORLD_EPOCH) / GAME_DAY_MS));
+  assert.ok(giveawayOn(satNight)); assert.ok(!giveawayOn(atH(20, Math.round((sat - WORLD_EPOCH) / GAME_DAY_MS) + 1)));
+  assert.equal(giveawayPrize(0.01), 1_000_000); assert.equal(giveawayPrize(0.1), 500_000); assert.equal(giveawayPrize(0.5), 0);
+  assert.ok(!giveawayEligible(["va"], 9) && giveawayEligible(["va"], 10) && !giveawayEligible([], 50));
   console.log("pure ok");
 
   for (const [u, n] of [["p1", "ada"], ["p2", "bola"], ["p3", "chi"]]) await db.doc(`users/${u}`).set({ username: n, displayName: n.toUpperCase() });
@@ -145,7 +160,7 @@ const rej = async (p: Promise<unknown>, re: RegExp) => { await assert.rejects(p,
   r = await act(db, "p6", { action: "shift_start", needsLow: false }, outT); assert.ok((r.result as { pay: number }).pay > 0);
   // rich list and friends
   const rl = await richList(db, "p2", 20, true); assert.equal(rl.rows[0].uid, "p2"); assert.equal(rl.me?.rank, 1);
-  const rlAll = await richList(db, "p2"); assert.equal(rlAll.rows[0].uid, "npc:musa"); assert.ok(rlAll.rows.some((x) => x.uid === "p2" && !x.npc)); assert.equal(rlAll.me?.realRank, 1); assert.ok((rlAll.me?.rank ?? 0) > 1);
+  const rlAll = await richList(db, "p2"); assert.equal(rlAll.rows[0].uid, "npc:cynthia"); assert.match(rlAll.rows[0].avatar, /cynthia-okeh/); assert.equal(rlAll.rows[1].uid, "npc:musa"); assert.ok(rlAll.rows.some((x) => x.uid === "p2" && !x.npc)); assert.equal(rlAll.me?.realRank, 1); assert.ok((rlAll.me?.rank ?? 0) > 1);
   await db.doc("follows/p1_bola").set({ followerUid: "p1", username: "bola" }); await db.doc("follows/p2_ada").set({ followerUid: "p2", username: "ada" }); await db.doc("follows/p3_ada").set({ followerUid: "p3", username: "ada" });
   const fr = await friends(db, "p1"); assert.deepEqual(fr.friends.map((f) => f.username), ["bola"]); assert.equal(fr.friends[0].plays, true);
   const st = await statement(db, "p2"); assert.ok(st.lines.some((l) => l.kind === "buy_naira"));
@@ -220,5 +235,31 @@ const rej = async (p: Promise<unknown>, re: RegExp) => { await assert.rejects(p,
   r = await act(db, "p8", { action: "city_notify", city: "lagos" }, T8); assert.deepEqual(r.player.cityNotify, ["lagos"]);
   await rej(act(db, "p8", { action: "city_notify", city: "kano" }, T8), /isn't coming/);
   console.log("swim ok");
+
+  // Digital Witch at the server: enrol, take classes (spaced, in opening hours), get certified, apply, the giveaway
+  await db.doc("users/p9").set({ username: "kemi", displayName: "KEMI" });
+  const D0 = atH(9, 70);
+  await mutate(db, "p9", () => null, D0);
+  await db.doc("lifePlayers/p9").update({ naira: 300_000 });
+  await rej(act(db, "p9", { action: "dw_class", course: "va" }, D0), /Pay for the Virtual Assistant course/);
+  r = await act(db, "p9", { action: "dw_enroll", course: "va" }, D0); assert.equal(r.player.naira, 240_000);
+  await rej(act(db, "p9", { action: "dw_enroll", course: "va" }, D0), /already on/);
+  r = await act(db, "p9", { action: "dw_class", course: "va" }, D0); assert.equal((r.result as { done: number }).done, 1);
+  await rej(act(db, "p9", { action: "dw_class", course: "va" }, D0 + 1000), /One class at a time/);
+  await rej(act(db, "p9", { action: "dw_class", course: "va" }, atH(20, 70)), /9 AM to 6 PM/);
+  let tc = D0;
+  for (let i = 2; i <= 4; i++) { tc += DW_CLASS_MS; r = await act(db, "p9", { action: "dw_class", course: "va" }, tc); }
+  assert.equal((r.result as { cert: boolean }).cert, true); assert.deepEqual(r.player.certs, ["va"]);
+  r = await act(db, "p9", { action: "job_apply", job: "dw_va" }, tc); assert.equal(r.player.jobId, "dw_va");
+  const satDay = Math.ceil((tc - WORLD_EPOCH) / GAME_DAY_MS); let gs = atH(20, satDay); while (!giveawayOn(gs)) gs += GAME_DAY_MS;
+  await rej(act(db, "p9", { action: "dw_giveaway" }, gs), /10 tech shifts/);
+  await db.doc("lifePlayers/p9").update({ techShifts: 10, owned: FieldValue.arrayUnion("pc_laptop") });
+  await rej(act(db, "p9", { action: "dw_giveaway" }, gs - 6 * GAME_HOUR_MS), /Saturday nights/);
+  const before9 = (await db.doc("lifePlayers/p9").get()).data()!.naira;
+  r = await act(db, "p9", { action: "dw_giveaway" }, gs, () => 0.01); assert.equal((r.result as { prize: number }).prize, 1_000_000); assert.equal(r.player.naira, before9 + 1_000_000);
+  await rej(act(db, "p9", { action: "dw_giveaway" }, gs + 1000, () => 0.01), /this week's giveaway/);
+  await act(db, "p9", { action: "shift_start", needsLow: false }, gs + 2000);
+  r = await act(db, "p9", { action: "shift_finish" }, gs + 2000 + SHIFT_MS); assert.equal(r.player.techShifts, 11);
+  console.log("digital witch ok");
   console.log("ALL OK");
 })().catch((e) => { console.log("FAIL", e); process.exit(1); });

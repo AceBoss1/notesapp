@@ -18,7 +18,7 @@ import { Sound, loadSoundPrefs, saveSoundPrefs, type Ambience, type Sfx, type So
 type Player = LifePlayer & { cooking: number; swimming: number; serverNow: number };
 type Panel =
   | "welcome" | "needs" | "sleep" | "desk" | "outfit" | "cook" | "deal" | "go" | "food" | "hotel" | "phone" | "jobs" | "friends"
-  | "invite" | "bank" | "rich" | "settings" | "ebike" | "nepa" | "power" | "itel" | "product" | "business" | "kitchen" | "arrive" | "hotelpool" | "vip" | { shop: C.ItemCat } | { chat: string } | { player: Present }
+  | "invite" | "bank" | "rich" | "settings" | "ebike" | "nepa" | "power" | "itel" | "product" | "business" | "kitchen" | "arrive" | "hotelpool" | "vip" | "dw" | { shop: C.ItemCat } | { chat: string } | { player: Present }
   | { jobs: C.Brand } | { partner: "chef_adams" | "itel" } | { outlet: C.OutletKind } | null;
 type Toast = { text: string; share?: string; tone?: "ok" | "warn" } | null;
 type Friend = { uid: string; username: string; name: string; avatar: string; plays: boolean; netWorth: number };
@@ -57,6 +57,7 @@ export default function LifeGame() {
   const [friendList, setFriendList] = useState<Friend[] | null>(null);
   // Chatting with a friend inside the game (components/life/FriendChat.tsx), and what each friend has sent that you haven't read.
   const [fchat, setFchat] = useState<ChatFriend | null>(null);
+  const [dwTab, setDwTab] = useState<"courses" | "certs" | "jobs">("courses");
   const [chatGains, setChatGains] = useState<{ after: string; text: string }[]>([]);
   const [unreadBy, setUnreadBy] = useState<Record<string, number>>({});
   const [picked, setPicked] = useState<{ name: string; tel: string }[]>([]);
@@ -204,7 +205,7 @@ export default function LifeGame() {
   const roomPower: Power = src === "grid" ? "grid" : src === "gen" ? "gen" : src === "go" ? "go" : src === "tank" ? "tank" : "out";
   const mine = (player?.outlets ?? []).map((o) => ({ kind: o.kind, owner: player!.name.split(" ")[0] }));
   const mineKey = mine.map((m) => m.kind).join();
-  const vipKey = C.vipsAt(Date.now() + offset.current).in.join();
+  const vipKey = C.vipsAt(Date.now() + offset.current).in.join() + (C.cynthiaAt(Date.now() + offset.current) ?? "");
   const othersKey = others.map((o) => o.uid + o.outfit).join();
   const spec: SceneSpec | null = useMemo(() => {
     if (!save || !player) return null;
@@ -216,6 +217,7 @@ export default function LifeGame() {
     if (save.place === "chef") return { id: "chef", outfit: save.outfit, night, others: o, mine };
     if (save.place === "itel") return { id: "itel", outfit: save.outfit, night, others: o, mine };
     if (save.place === "hotel") return { id: "hotel", outfit: save.outfit, others: o, night, vips: C.vipsAt(Date.now() + offset.current).in };
+    if (save.place === "dw") return { id: "dw", outfit: save.outfit, others: o, night, cynthia: C.cynthiaAt(Date.now() + offset.current) === "dw", learning: a?.kind === "class" };
     if (save.place === "work") return { id: "street", outfit: save.outfit, night, riding: player.owned.includes("ebike") ? "ebike" : null, others: o };
     return { id: "room", owned: player.owned, rug: save.rug, outfit: save.outfit, night, ringing: player.deal?.state === "offered", at: spot, sleeping: a?.kind === "sleep", power: roomPower };
   }, [save?.place, save?.activity?.kind, save?.activity?.label, save?.outfit, save?.rug, player?.owned.join(), player?.deal?.state, night, spot, roomPower, othersKey, mineKey, vipKey]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -236,7 +238,7 @@ export default function LifeGame() {
   }, [user, presencePlace, showMeOn]);
   useEffect(() => { if (spec && world.current) void world.current.show(spec); }, [spec]);
   // What you hear around you, and the bedside phone while a deal call waits.
-  const ambience: Ambience = !spec ? "none" : spec.id === "room" ? (night ? "room-night" : "room") : spec.id === "street" || spec.id === "chef" ? (night ? "street-night" : "street") : spec.id === "hotel" ? (spec.view === "pool" ? "pool" : "hotel") : "pool";
+  const ambience: Ambience = !spec ? "none" : spec.id === "room" ? (night ? "room-night" : "room") : spec.id === "street" || spec.id === "chef" || spec.id === "dw" ? (night ? "street-night" : "street") : spec.id === "hotel" ? (spec.view === "pool" ? "pool" : "hotel") : "pool";
   useEffect(() => { snd.current?.ambience(ambience); }, [ambience]);
   useEffect(() => { snd.current?.generators(src === "gen" && save?.place === "home" ? (player?.owned.includes("gen_big") ? "big" : "small") : null, nepa.out); }, [src, save?.place, nepa.out, player?.owned]); // eslint-disable-line react-hooks/exhaustive-deps
   const ringing = player?.deal?.state === "offered" && save?.place === "home";
@@ -392,6 +394,20 @@ export default function LifeGame() {
     start({ kind: "hotel", label: swimLabel, icon: h.icon, end: r.effect, set: r.set ?? undefined }, r.minutes);
     if (h.id === "suite") say("👑 Checked in to the Imperial Suite.", shareText("Living large at the Candellux Imperial in Notes Life 👑"));
   }
+  async function dwClass(c: C.Course) {
+    const r = await act<{ minutes: number; effect: Partial<Record<C.Need, number>>; done: number; of: number; cert: boolean }>({ action: "dw_class", course: c.id });
+    if (!r) return;
+    setPanel(null);
+    start({ kind: "class", label: `${c.name} · class ${r.done} of ${r.of}`, icon: "📚", end: r.effect }, r.minutes);
+    if (r.cert) { sfx("success"); say(`🎓 Final class! You're Digital Witch certified in ${c.name}. ${C.JOB(c.job)?.title} is open to you (Phone → Jobs).`, shareText(`I just got Digital Witch certified in ${c.name} in Notes Life 🎓`)); }
+    else say(`📚 Class ${r.done} of ${r.of}: ${c.name}.`);
+  }
+  async function giveaway() {
+    const r = await act<{ prize: number }>({ action: "dw_giveaway" });
+    if (!r) return;
+    if (r.prize > 0) { sfx("bonus"); say(`🎉 Cynthia's graduate giveaway: you won ${C.fmtN(r.prize)}! “You took the course, you're working your skill. Keep going!”`, shareText(`I just won ${C.fmtN(r.prize)} in Cynthia Okeh's Digital Witch graduate giveaway on Notes Life 🎉`)); }
+    else say("🎁 Not this time. Cynthia: “Keep working your skill, my dear. There's always next Saturday!”");
+  }
   async function cook(rcp: C.Recipe) {
     const r = await act<{ minutes: number; plates: number; hunger: number; skill: number }>({ action: "cook", recipe: rcp.id });
     if (!r) return;
@@ -484,7 +500,15 @@ export default function LifeGame() {
   // ---- what each tag in the scene says and does ----
   const tagInfo = (key: string): { label: string; up?: boolean; go: () => void } | null => {
     if (!player || !save) return null;
-    if (key.startsWith("npc:")) { const r = C.RESIDENT(key.slice(4)); return r ? { label: `${r.name} 🤖`, go: () => setPanel({ chat: r.id }) } : null; }
+    if (key.startsWith("npc:")) { const r = C.RESIDENT(key.slice(4)); return r ? { label: `${r.name} 🤖${r.id === "cynthia" ? " · #1" : ""}`, go: () => setPanel({ chat: r.id }) } : null; }
+    if (key === "bb:digitalwitch") return { label: "📣 Digital Witch · Learn a tech skill", go: () => { setDwTab("courses"); setPanel("dw"); } };
+    if (spec?.id === "dw") {
+      const open = C.dwOpen(Date.now() + offset.current);
+      if (key === "hub") return { label: open ? "🎓 Digital Witch · Training Hub" : "🎓 Digital Witch · classes from 9 AM", up: true, go: () => { setDwTab("courses"); setPanel("dw"); } };
+      if (key === "class") return save.activity?.kind === "class" ? { label: `📚 In class · ${save.activity.label}`, up: true, go: () => setPanel("dw") } : null;
+      if (key === "tower") return { label: "🏙 Skyscraper Plaza · CBD", go: () => setPanel("dw") };
+      if (key === "fountain") return { label: "⛲ Plaza", go: () => say("The Skyscraper Plaza fountain. Learners meet here between classes.") };
+    }
     if (key === "bb:challenge") return { label: "📣 #1MillionNairaNotesAppChallenge", up: true, go: () => { window.open("https://www.notesapp.name.ng/challenge", "_blank"); } };
     if (key === "bb:itel" || key === "bb:itel2") return { label: "⚡ itel Energy · Go solar", go: () => setPanel("itel") };
     if (key.startsWith("bb:chef")) return { label: ({ "bb:chef2": "🌯 Shawarma · Order now", "bb:chef3": "🍕 Chef Adams pizza", "bb:chef4": "🍌 Sum Ting Fresh" } as Record<string, string>)[key] ?? "🍽 Chef Adams · Order now", go: () => setPanel("food") };
@@ -771,21 +795,22 @@ export default function LifeGame() {
       const nx = v.next ? C.RESIDENT(v.next) : null, rank = (id: string) => C.RESIDENTS.filter((r) => r.netWorth).sort((a2, b2) => (b2.netWorth ?? 0) - (a2.netWorth ?? 0)).findIndex((r) => r.id === id) + 1;
       return (<div>{close}<p className="text-[11px] font-bold uppercase tracking-widest text-[#8a6a12]">👑 VIP bar · Candellux</p><h2 className="text-xl font-extrabold">Who&apos;s in {night ? "tonight" : "now"}</h2>
         <p className="text-xs text-slate">Where the top of the Billionaires List drinks. 15% more than the pool bar. Who&apos;s in changes every {C.VIP_EVERY_HOURS} game hours.</p>
-        <div className="mt-3 grid gap-2">{v.in.map((id, i) => { const r = C.RESIDENT(id)!; return <Row key={id} pick={i === 0} icon={<span className="flex h-10 w-10 items-center justify-center rounded-full text-sm font-bold text-white" style={{ background: r.look[0] === "#f5f5f4" ? "#78716c" : r.look[0] }}>{r.name.split(" ").filter((w) => w[0] === w[0].toUpperCase()).map((w) => w[0]).slice(-2).join("")}</span>} title={`${r.name} 🤖 · #${rank(id)}`} note={`${r.role} · ${C.fmtShort(r.netWorth ?? 0)} · “${r.lines.money[0]}”`} right={<button onClick={() => setPanel({ chat: id })} className="rounded-full bg-[#262b6b] px-3 py-1 font-bold text-white">Say hello</button>} />; })}
+        <div className="mt-3 grid gap-2">{v.in.map((id, i) => { const r = C.RESIDENT(id)!; return <Row key={id} pick={i === 0} icon={r.photo ? <img src={r.photo} alt="" className="h-10 w-10 rounded-full object-cover ring-2 ring-amber-400" /> : <span className="flex h-10 w-10 items-center justify-center rounded-full text-sm font-bold text-white" style={{ background: r.look[0] === "#f5f5f4" ? "#78716c" : r.look[0] }}>{r.name.split(" ").filter((w) => w[0] === w[0].toUpperCase()).map((w) => w[0]).slice(-2).join("")}</span>} title={`${r.name} 🤖 · #${rank(id)}`} note={`${r.role} · ${C.fmtShort(r.netWorth ?? 0)} · “${r.lines.money[0]}”`} right={<button onClick={() => setPanel({ chat: id })} className="rounded-full bg-[#262b6b] px-3 py-1 font-bold text-white">Say hello</button>} />; })}
           {nx && <Row icon="🔒" title={`Next in: ${nx.name} 🤖`} note={`${nx.role} · arrives at ${C.worldTime(v.nextAt).label}`} />}</div>
         <div className="mt-3 grid grid-cols-2 gap-2"><Btn tone="navy" disabled={s.place !== "hotel"} onClick={() => hotel(vip)}>👑 Order · {C.fmtN(vip.price)}</Btn><Btn tone="ghost" disabled={s.place !== "hotel"} onClick={() => hotel(bar)}>🍹 Pool bar · {C.fmtN(bar.price)}</Btn></div>
-        <p className="mt-2 text-[10px] text-slate">VIPs are residents 🤖 for now. When real players reach the top of the list, they&apos;ll take turns here too.</p></div>);
+        {v.in.includes("cynthia") && C.giveawayOn(Date.now() + offset.current) && <div className="mt-3"><Btn tone="green" disabled={s.place !== "hotel"} onClick={giveaway}>🎁 Cynthia&apos;s graduate giveaway is on tonight</Btn></div>}
+        <p className="mt-2 text-[10px] text-slate">VIPs are residents 🤖 for now. Ekwutosi Cynthia Okeh (Digital Witch) comes every evening from 7 PM. When real players reach the top of the list, they&apos;ll take turns here too.</p></div>);
     }
 
     if (panel === "phone") return (<div>{close}<p className="text-lg font-extrabold">📱 Phone</p>
-      <div className="mt-3 grid grid-cols-4 gap-3 text-center text-[11px] font-semibold">{([["💼", "Jobs", "bg-emerald-500", () => setPanel("jobs")], ["👥", "Friends", "bg-crimson", () => setPanel("friends")], ["🎁", "Invite", "bg-pink-500", () => setPanel("invite")], ["☎️", "Deals", "bg-sky-500", () => setPanel("deal")], ["🏦", "Bank", "bg-amber-500", () => setPanel("bank")], ["🛺", "Go", "bg-teal-600", () => setPanel("go")], ["CHEF", "Chef Adams", "bg-[#292929]", () => setPanel("food")], ["👑", "Candellux", "bg-[#262b6b]", () => setPanel("hotel")], ["⚡", "itel Energy", "bg-[#e8173f]", () => setPanel("itel")], ["🏪", "Businesses", "bg-[#F2B544]", () => setPanel("business")], ["👑", "Rich list", "bg-slate-800", () => setPanel("rich")], ["🛋", "Shop", "bg-orange-500", () => setPanel({ shop: "rug" })], ["📰", "NotesApp", "bg-[#7A0328]", () => void leave()], ["⚙️", "Settings", "bg-slate-400", () => setPanel("settings")]] as [string, string, string, () => void][]).map(([i, n, c, f]) => (
-        <button key={n + i} onClick={f} className="relative">{n === "Friends" && friendUnread > 0 && <span className="absolute right-1 top-0 z-10 rounded-full bg-rose-600 px-1.5 text-[10px] font-extrabold text-white">{friendUnread}</span>}<span className={`mx-auto flex h-14 w-14 items-center justify-center overflow-hidden rounded-2xl ${c} text-2xl text-white shadow`}>{i === "CHEF" ? <img src="/images/life/partners/chef-emblem.webp" alt="" className="h-12 w-12 object-contain" /> : i}</span><span className="mt-1 block">{n}</span></button>
+      <div className="mt-3 grid grid-cols-4 gap-3 text-center text-[11px] font-semibold">{([["💼", "Jobs", "bg-emerald-500", () => setPanel("jobs")], ["👥", "Friends", "bg-crimson", () => setPanel("friends")], ["🎁", "Invite", "bg-pink-500", () => setPanel("invite")], ["☎️", "Deals", "bg-sky-500", () => setPanel("deal")], ["🏦", "Bank", "bg-amber-500", () => setPanel("bank")], ["🛺", "Go", "bg-teal-600", () => setPanel("go")], ["CHEF", "Chef Adams", "bg-[#292929]", () => setPanel("food")], ["👑", "Candellux", "bg-[#262b6b]", () => setPanel("hotel")], ["⚡", "itel Energy", "bg-[#e8173f]", () => setPanel("itel")], ["DW", "Digital Witch", "bg-[#0b1442]", () => { setDwTab("courses"); setPanel("dw"); }], ["🏪", "Businesses", "bg-[#F2B544]", () => setPanel("business")], ["👑", "Rich list", "bg-slate-800", () => setPanel("rich")], ["🛋", "Shop", "bg-orange-500", () => setPanel({ shop: "rug" })], ["📰", "NotesApp", "bg-[#7A0328]", () => void leave()], ["⚙️", "Settings", "bg-slate-400", () => setPanel("settings")]] as [string, string, string, () => void][]).map(([i, n, c, f]) => (
+        <button key={n + i} onClick={f} className="relative">{n === "Friends" && friendUnread > 0 && <span className="absolute right-1 top-0 z-10 rounded-full bg-rose-600 px-1.5 text-[10px] font-extrabold text-white">{friendUnread}</span>}<span className={`mx-auto flex h-14 w-14 items-center justify-center overflow-hidden rounded-2xl ${c} text-2xl text-white shadow`}>{i === "CHEF" ? <img src="/images/life/partners/chef-emblem.webp" alt="" className="h-12 w-12 object-contain" /> : i === "DW" ? <img src="/images/life/partners/digitalwitch-logo.webp" alt="" className="h-14 w-14 object-cover" /> : i}</span><span className="mt-1 block">{n}</span></button>
       ))}</div></div>);
 
     if (panel === "jobs") return (<div>{close}<p className="text-lg font-extrabold">💼 Jobs in Abuja</p><p className="text-[11px] text-slate">Real NotesApp careers. Better gear, better pay. One shift is {C.SHIFT_HOURS} game hours ({C.SHIFT_MS / 60_000} real minutes).</p>
       {job && <div className="mt-3 rounded-2xl border-2 border-emerald-400 bg-emerald-50 p-3"><b className="block">{job.icon} Your job: {job.title}</b><span className="text-[11px] text-slate">{job.employer} · {C.fmtN(C.shiftPay(job, p.owned, needsLow(s.needs)))} a shift{needsLow(s.needs) ? " (a need is low)" : ""} · {p.shifts} shifts done</span>
         <div className="mt-2 flex gap-2">{p.shift ? <span className="text-xs font-semibold">On shift now</span> : <><Btn tone="green" onClick={startShift}>Start a shift</Btn><Btn tone="ghost" onClick={() => act({ action: "job_quit" })}>Quit</Btn></>}</div></div>}
-      {([[undefined, "Around town"], ["chef_adams", "Chef Adams"], ["itel", "itel Energy"], ["candellux", "Candellux"]] as [C.Brand | undefined, string][]).map(([b, title]) => <div key={title}><p className="mt-3 text-[10px] font-bold uppercase tracking-wider text-slate">{title}</p><div className="mt-1 grid gap-1.5">{C.JOBS.filter((j) => j.id !== job?.id && j.brand === b).map(jobRow)}</div></div>)}
+      {([[undefined, "Around town"], ["tech", "Tech · remote · need a Digital Witch certificate"], ["chef_adams", "Chef Adams"], ["itel", "itel Energy"], ["candellux", "Candellux"]] as [C.Brand | "tech" | undefined, string][]).map(([b, title]) => <div key={title}><p className="mt-3 text-[10px] font-bold uppercase tracking-wider text-slate">{title}</p><div className="mt-1 grid gap-1.5">{C.JOBS.filter((j) => j.id !== job?.id && (b === "tech" ? !!j.tech : !j.tech && j.brand === b)).map(jobRow)}</div></div>)}
       <div className="mt-3 grid grid-cols-2 gap-2">{partnerCard("chef_adams")}{partnerCard("itel")}</div></div>);
 
     if (typeof panel === "object" && panel && "jobs" in panel) {
@@ -863,9 +888,11 @@ export default function LifeGame() {
     if (chatId) {
       const r = C.RESIDENT(chatId);
       if (!r) return null;
-      return (<div>{close}<div className="flex items-center gap-3"><span className="flex h-14 w-14 items-center justify-center rounded-full text-lg font-bold text-white" style={{ background: r.look[0] }}>{r.name.split(" ").map((w) => w[0]).slice(0, 2).join("")}</span><div><b className="block text-lg leading-tight">{r.name}</b><span className="text-[11px] text-slate">🤖 Resident · {r.role}</span></div></div>
+      const tNow = Date.now() + offset.current;
+      return (<div>{close}<div className="flex items-center gap-3">{r.photo ? <img src={r.photo} alt="" className="h-14 w-14 shrink-0 rounded-full object-cover ring-2 ring-amber-400" /> : <span className="flex h-14 w-14 items-center justify-center rounded-full text-lg font-bold text-white" style={{ background: r.look[0] }}>{r.name.split(" ").map((w) => w[0]).slice(0, 2).join("")}</span>}<div><b className="block text-lg leading-tight">{r.name}</b><span className="text-[11px] text-slate">🤖 Resident · {r.role}</span>{r.id === "cynthia" && <span className="mt-0.5 block text-[11px] font-bold text-amber-700">👑 #1 on the Billionaires List · {C.fmtShort(r.netWorth ?? 0)}</span>}</div></div>
         <div className="mt-3 max-h-64 space-y-2 overflow-y-auto text-sm">{chat.length === 0 ? <p className="max-w-[85%] rounded-2xl rounded-tl-sm bg-slate-100 px-3 py-2">{r.lines.greet[0]}</p> : chat.map((l, i) => <p key={i} className={`max-w-[85%] rounded-2xl px-3 py-2 ${l.me ? "ml-auto rounded-tr-sm bg-emerald-500 text-white" : "rounded-tl-sm bg-slate-100"}`}>{l.text}</p>)}</div>
         <div className="mt-3 flex flex-wrap gap-2 text-xs font-bold">{TOPICS.map((t) => <button key={t.id} onClick={() => askResident(r.id, t.id)} className="rounded-full border px-3 py-1.5">{t.label}</button>)}</div>
+        {r.id === "cynthia" && cynthiaBox(tNow)}
         <p className="mt-2 text-[10px] text-slate">Residents are computer players, marked 🤖. Chats with them stay on this device only.</p></div>);
     }
     if (panel && typeof panel === "object" && "player" in panel) {
@@ -878,6 +905,7 @@ export default function LifeGame() {
         <p className="mt-2 text-[10px] text-slate">Messages follow the usual NotesApp rules: anyone can block or report.</p></div>);
     }
     if (panel === "friends") return friendsPanel(close);
+    if (panel === "dw") return dwPanel(close);
     if (panel === "invite") return invitePanel(close);
     if (panel === "bank") return bankPanel(close);
     if (panel === "rich") return richPanel(close);
@@ -897,7 +925,7 @@ export default function LifeGame() {
       return <div className="mt-3 grid gap-1 rounded-full bg-slate-100 p-1 text-center text-xs font-bold" style={{ gridTemplateColumns: `repeat(${tabs.length},1fr)` }}>{tabs.map(([l, k, to]) => <button key={k} onClick={() => setPanel(to)} className="rounded-full py-1.5" style={k === on ? { background: col, color: "#fff" } : undefined}>{l}</button>)}</div>;
     }
     function jobRow(j: C.Job) {
-      const block = C.jobBlocker(j, { owned: p.owned, cooking: p.cooking, chefShifts: p.chefShifts, itelShifts: p.itelShifts, hotelShifts: p.hotelShifts, reputation: p.reputation, fit: p.gymUntil > Date.now() + offset.current, swim: p.swimming, gymSessions: p.gymSessions });
+      const block = C.jobBlocker(j, { owned: p.owned, cooking: p.cooking, chefShifts: p.chefShifts, itelShifts: p.itelShifts, hotelShifts: p.hotelShifts, reputation: p.reputation, fit: p.gymUntil > Date.now() + offset.current, swim: p.swimming, gymSessions: p.gymSessions, certs: p.certs });
       const icon = j.brand === "chef_adams" ? <img src="/images/life/partners/chef-emblem.webp" alt="" className="h-9 w-9 object-contain" /> : j.icon;
       return <Row key={j.id} icon={icon} title={<>{j.title}</>} note={<>{j.employer}{block ? <b className="block text-crimson">🔒 {block}</b> : j.ladder ? <span className="block">{j.ladder}</span> : null}</>}
         right={<><b className="block text-emerald-700">{j.pay ? `${C.fmtN(j.pay)}/shift` : ""}</b>{j.extra && <span className="block text-[10px] text-slate">+ {j.extra.label.toLowerCase()}</span>}{!block && !p.shift && <button disabled={busy} onClick={async () => { const r = await act<{ message: string }>({ action: "job_apply", job: j.id }); if (r) say(r.message, shareText(`I just got a job as ${j.title} in Notes Life 💼`)); }} className="mt-1 rounded-full bg-ink px-2.5 py-1 text-[11px] font-bold text-white">Take it</button>}</>} />;
@@ -1006,6 +1034,39 @@ export default function LifeGame() {
         )}
         <p className="mt-2 text-center text-[10px] text-slate">Craving it for real? <a href="/u/chef_adams" target="_blank" rel="noreferrer" className="font-bold text-[#E53935]">@chef_adams</a> is on NotesApp ↗ · Satisfaction in every bite.</p></div>);
     }
+    // --- Digital Witch: courses, certificates and the tech jobs they open ---
+    function dwPanel(close: ReactNode) {
+      const tNow = Date.now() + offset.current, open = C.dwOpen(tNow), here = s.place === "dw", busyNow = !!s.activity;
+      const nextClassAt = p.dwClassAt + C.DW_CLASS_MS;
+      const NAVY = "#0b1442";
+      const head = <div className="flex items-center gap-3"><img src="/images/life/partners/digitalwitch-logo.webp" alt="Digital Witch" className="h-12 w-12 rounded-xl object-cover" /><div><p className="text-lg font-extrabold leading-tight" style={{ color: NAVY }}>Digital Witch</p><p className="text-[11px] text-slate">Training Hub · Skyscraper Plaza, CBD · <b>PARTNER</b></p></div></div>;
+      const tabs = <div className="mt-3 grid grid-cols-3 gap-1 rounded-full bg-slate-100 p-1 text-center text-xs font-bold">{([["courses", "Courses"], ["certs", "My certificates"], ["jobs", "Jobs"]] as const).map(([k, l]) => <button key={k} onClick={() => setDwTab(k)} className={`rounded-full py-1.5 ${dwTab === k ? "text-white" : ""}`} style={dwTab === k ? { background: NAVY } : undefined}>{l}</button>)}</div>;
+      const where = !here ? <p className="mt-3 rounded-xl bg-amber-50 px-3 py-2 text-xs text-amber-900">Classes happen at the hub. <button className="font-bold underline" onClick={() => setPanel("go")}>Go to the Digital Witch hub (CBD)</button></p> : !open ? <p className="mt-3 rounded-xl bg-amber-50 px-3 py-2 text-xs text-amber-900">The hub is closed. Classes run {C.DW_HOURS.from} AM to {C.DW_HOURS.to - 12} PM.</p> : null;
+      const courseRow = (c: C.Course) => {
+        const enrolled = c.id in p.dwCourses, done = p.dwCourses[c.id] ?? 0, cert = p.certs.includes(c.id), j = C.JOB(c.job);
+        const right = cert ? <b className="text-emerald-700">🎓 Certified</b>
+          : !enrolled ? <button disabled={busy} onClick={() => act({ action: "dw_enroll", course: c.id }).then((r) => r && say(`🎓 ${(r as { message?: string }).message ?? "Enrolled."}`))} className="rounded-full px-3 py-1 font-bold text-white disabled:opacity-40" style={{ background: NAVY }}>{C.fmtN(c.price)}</button>
+          : <button disabled={busy || !here || !open || busyNow || tNow < nextClassAt - 3000} onClick={() => dwClass(c)} className="rounded-full bg-emerald-600 px-3 py-1 font-bold text-white disabled:opacity-40">Class {done + 1} of {c.classes}</button>;
+        return <Row key={c.id} icon={c.icon} title={`${c.name} · ${c.classes} classes`} note={<>{enrolled && !cert ? <b className="block" style={{ color: NAVY }}>{done} of {c.classes} done</b> : null}Unlocks {j?.title} · {C.fmtN(j?.pay ?? 0)} a shift{j?.needItem ? " · needs a laptop" : ""}</>} pick={enrolled && !cert} right={right} />;
+      };
+      return (<div>{close}{head}{tabs}
+        {dwTab === "courses" && <>
+          <p className="mt-3 text-xs text-slate">On-demand tech skills with Ekwutosi Cynthia Okeh&apos;s team. One class is {C.DW_CLASS_HOURS} game hours at the hub (Energy −10, Fun +5). Finish every class to get <b>Digital Witch certified</b>: tech jobs need it.</p>
+          {where}
+          <div className="mt-3 grid gap-2">{C.DW_COURSES.map(courseRow)}</div>
+          <div className="mt-3 rounded-2xl p-3 text-[11px] text-white" style={{ background: NAVY }}><b>Learn for real:</b> Digital Witch has trained {C.DIGITAL_WITCH.learners} learners. <a href={C.DIGITAL_WITCH.site} target="_blank" rel="noreferrer" className="underline">digitalwitchng.com ↗</a> · <a href={`https://wa.me/${C.DIGITAL_WITCH.whatsapp}?text=${encodeURIComponent("Hello Digital Witch, I'd like to learn a tech skill (I found you on Notes Life).")}`} target="_blank" rel="noreferrer" className="underline">WhatsApp {C.DIGITAL_WITCH.whatsappLabel} ↗</a></div>
+        </>}
+        {dwTab === "certs" && <div className="mt-3">{p.certs.length === 0 ? <p className="text-sm text-slate">No certificates yet. Pick a course and finish its classes.</p> : <div className="grid gap-2">{p.certs.map((id) => { const c = C.DW_COURSE(id)!; return <Row key={id} icon="🎓" title={`Digital Witch certified · ${c.name}`} note={`Opens ${C.JOB(c.job)?.title}`} right={<button onClick={() => setDwTab("jobs")} className="font-bold underline">Jobs</button>} />; })}</div>}
+          <div className="mt-3 rounded-2xl bg-amber-50 p-3 text-[11px]"><b className="block text-[12px]">🎁 Cynthia&apos;s graduate giveaway</b><span className="text-slate">Saturday nights, 7 PM to 11 PM, at the Candellux VIP bar: N$ 500,000 or N$ 1,000,000 for some graduates who are doing well (a certificate and {C.GIVEAWAY.needTechShifts} tech shifts). You: {p.certs.length ? <b className="text-emerald-700">certified ✓</b> : "no certificate yet"} · <b>{Math.min(p.techShifts, C.GIVEAWAY.needTechShifts)} of {C.GIVEAWAY.needTechShifts} tech shifts</b></span></div></div>}
+        {dwTab === "jobs" && <div className="mt-3 grid gap-1.5">{C.JOBS.filter((j) => j.tech).map(jobRow)}</div>}
+      </div>);
+    }
+    function cynthiaBox(tNow: number) {
+      const at = C.cynthiaAt(tNow), on = C.giveawayOn(tNow), ok = C.giveawayEligible(p.certs, p.techShifts);
+      return (<><div className="mt-3 rounded-2xl bg-amber-50 p-3 text-[11px]"><b className="block text-[12px]">🎁 {on ? "Her graduate giveaway is on now, at the Candellux VIP bar" : `Next giveaway: Saturday night at the Candellux VIP bar`}</b><span className="text-slate">For Digital Witch graduates who are doing well: a certificate and {C.GIVEAWAY.needTechShifts} tech shifts. You: {p.certs.length ? <b className="text-emerald-700">certified ✓</b> : "no certificate yet"} · <b>{Math.min(p.techShifts, C.GIVEAWAY.needTechShifts)} of {C.GIVEAWAY.needTechShifts} tech shifts</b></span>
+        {on && at === "hotel" && <div className="mt-2"><Btn tone="green" disabled={s.place !== "hotel" || !ok} onClick={giveaway}>🎁 Go up to Cynthia</Btn></div>}</div>
+        <div className="mt-2 rounded-2xl bg-slate-50 p-3 text-[11px] text-slate"><b className="text-ink">Where to find her:</b> the Digital Witch hub 9 AM to 5 PM · the Candellux VIP bar 7 PM to 11 PM. <button className="font-bold text-ink underline" onClick={() => { setDwTab("courses"); setPanel("dw"); }}>Digital Witch courses</button></div></>);
+    }
     function friendsPanel(close: ReactNode) {
       const list = friendList;
       const message = (f: Friend) => openChat({ uid: f.uid, username: f.username, name: f.name, avatar: f.avatar });
@@ -1065,7 +1126,7 @@ export default function LifeGame() {
       if (pop) return (<div className="text-center"><div className="text-5xl">🧑‍⚖️</div><h3 className="mt-2 text-xl font-extrabold">Welcome to the official <span className="rounded bg-ink px-1.5 text-white">[REDACTED BY LAWYERS]</span> Rich List!</h3><p className="mt-2 text-sm text-slate">Our lawyers asked us to call it the {C.RICH_TITLE}. Net worth = your Notesville Naira plus everything you own.</p><div className="mt-4"><Btn onClick={() => { setPop(false); update((x) => ({ ...x, seenRich: true })); }}>Show me the money</Btn></div></div>);
       return (<div>{close}<p className="text-[11px] font-bold uppercase tracking-widest text-amber-600">👑 {C.RICH_TITLE}</p><h2 className="text-2xl font-extrabold">{C.RICH_SUBTITLE}</h2><p className="text-xs text-slate">Net worth = Notesville Naira + what you own. 🤖 = resident (computer player).</p>
         <div className="mt-2 grid grid-cols-2 gap-1 rounded-full bg-slate-100 p-1 text-center text-[11px] font-bold">{[[false, "Everyone"], [true, "Real players only"]].map(([v, l]) => <button key={String(v)} onClick={() => setRichReal(v as boolean)} className={`rounded-full py-1.5 ${richReal === v ? "bg-ink text-white" : ""}`}>{l as string}</button>)}</div>
-        {!data ? <p className="mt-3 text-sm text-slate">Loading…</p> : <ol className="mt-2 divide-y">{data.rows.map((r) => <li key={r.uid} className={`flex items-center gap-2.5 py-2 ${r.uid === p.uid ? "rounded-xl bg-amber-50 px-2" : ""}`}><b className={`w-6 text-center ${r.rank <= 3 ? "text-amber-600" : ""}`}>{r.rank}</b>{r.npc ? <span className="flex h-9 w-9 items-center justify-center rounded-full bg-slate-200">🤖</span> : r.avatar ? <img src={r.avatar} alt="" className="h-9 w-9 rounded-full object-cover" /> : <span className="flex h-9 w-9 items-center justify-center rounded-full bg-emerald-100 text-xs font-bold">{r.name[0]}</span>}<span className="min-w-0 flex-1"><b className="block truncate text-sm">{r.name}</b><span className="text-[10px] text-slate">{r.npc ? `🤖 Resident · ${r.npc.role} ${r.npc.icons}` : `@${r.username} · Abuja ${r.owned.map((o) => C.ITEM(o)?.icon).join(" ")}`}</span></span><b className="text-sm">{C.fmtShort(r.netWorth)}</b></li>)}</ol>}
+        {!data ? <p className="mt-3 text-sm text-slate">Loading…</p> : <ol className="mt-2 divide-y">{data.rows.map((r) => <li key={r.uid} className={`flex items-center gap-2.5 py-2 ${r.uid === p.uid ? "rounded-xl bg-amber-50 px-2" : ""}`}><b className={`w-6 text-center ${r.rank <= 3 ? "text-amber-600" : ""}`}>{r.rank}</b>{r.npc && r.avatar ? <img src={r.avatar} alt="" className="h-9 w-9 rounded-full object-cover ring-2 ring-amber-400" /> : r.npc ? <span className="flex h-9 w-9 items-center justify-center rounded-full bg-slate-200">🤖</span> : r.avatar ? <img src={r.avatar} alt="" className="h-9 w-9 rounded-full object-cover" /> : <span className="flex h-9 w-9 items-center justify-center rounded-full bg-emerald-100 text-xs font-bold">{r.name[0]}</span>}<span className="min-w-0 flex-1"><b className="block truncate text-sm">{r.name}</b><span className="text-[10px] text-slate">{r.npc ? `🤖 Resident · ${r.npc.role} ${r.npc.icons}` : `@${r.username} · Abuja ${r.owned.map((o) => C.ITEM(o)?.icon).join(" ")}`}</span></span><b className="text-sm">{C.fmtShort(r.netWorth)}</b></li>)}</ol>}
         {data?.me && <p className="mt-2 text-center text-xs">You: <b>#{data.me.rank}</b>{!richReal && data.me.realRank ? <> · <b>#{data.me.realRank}</b> of real players</> : null} · {C.fmtShort(data.me.netWorth)}</p>}
         <a href={WA(shareText(brag))} target="_blank" rel="noreferrer" className="mt-3 block rounded-full bg-amber-500 py-3 text-center font-bold text-white">😎 Brag on WhatsApp</a></div>);
     }

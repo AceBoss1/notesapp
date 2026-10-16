@@ -3,7 +3,7 @@ const COMING_CITY_IDS = ["lagos", "port_harcourt"];
 import {
   CITY, DEALS, FOOD, FOOD_MODES, GAME_DAY_MS, GAME_HOUR_MS, HOTEL_OF, ITEM, JOB, MONTH_DAYS, NEGOTIATE_CHANCE, ORDER_MAX_ITEMS, RECIPE, RENT_NAIRA,
   SHIFT_MS, START_NAIRA, STARTER_ITEMS, TRANSPORT_OF, bestOwned, cookingSkill, fmtN, jobBlocker, netWorth, shiftPay, FUEL_NAIRA, RESIDENTS, nepaAt, type FoodMode,
-  swimSkill, OUTLET, OUTLET_AREAS, OUTLET_BACKUP, STAFF_PERKS, isStaff, outletBlocker, outletPrice, outletTakings, shiftExtra, type Outlet, type OutletArea,
+  swimSkill, DW_COURSE, DW_CLASS_HOURS, DW_CLASS_MS, DW_CLASS_EFFECT, dwOpen, giveawayOn, giveawayEligible, giveawayWeek, giveawayPrize, GIVEAWAY, OUTLET, OUTLET_AREAS, OUTLET_BACKUP, STAFF_PERKS, isStaff, outletBlocker, outletPrice, outletTakings, shiftExtra, type Outlet, type OutletArea,
 } from "./catalog";
 
 // Server-only. Notes Life money and ownership: lifePlayers/{uid} (the player, read by the owner, written only here) and lifeTx/{id}
@@ -18,6 +18,8 @@ export type LifePlayer = {
   uid: string; username: string; name: string; avatar: string; city: string; startedAt: number;
   naira: number; owned: string[]; cooks: number; reputation: number; dealsDone: number; shifts: number; chefShifts: number; itelShifts: number; hotelShifts: number;
   outlets: Outlet[]; swimLessons: number; swims: number; gymSessions: number; cityNotify: string[];
+  certs: string[]; dwCourses: Record<string, number>; dwClassAt: number; techShifts: number; giveawayWeek: number; // Digital Witch: certificates, classes done per course enrolled, last class, tech shifts, last giveaway week
+
   jobId: string | null; shift: { jobId: string; startedAt: number; endsAt: number; pay: number } | null;
   deal: Deal | null; lastDealAt: number; rentMonths: number; rentOwed: number; barberUntil: number; gymUntil: number;
   netWorth: number; updatedAt: number; createdAt: number;
@@ -42,7 +44,10 @@ function fromDoc(uid: string, d: FirebaseFirestore.DocumentData | undefined, pro
     startedAt: fresh ? now : num(d!.startedAt), naira: fresh ? START_NAIRA + num(d?.naira) : num(d!.naira), owned,
     cooks: num(d?.cooks), reputation: num(d?.reputation), dealsDone: num(d?.dealsDone), shifts: num(d?.shifts), chefShifts: num(d?.chefShifts),
     itelShifts: num(d?.itelShifts), hotelShifts: num(d?.hotelShifts), outlets: outletsOf(d?.outlets),
-    swimLessons: num(d?.swimLessons), swims: num(d?.swims), gymSessions: num(d?.gymSessions), cityNotify: Array.isArray(d?.cityNotify) ? (d!.cityNotify as string[]).filter((c) => COMING_CITY_IDS.includes(c)) : [],
+    swimLessons: num(d?.swimLessons), swims: num(d?.swims), gymSessions: num(d?.gymSessions),
+    certs: Array.isArray(d?.certs) ? (d!.certs as string[]).filter((c) => !!DW_COURSE(c)) : [],
+    dwCourses: Object.fromEntries(Object.entries((d?.dwCourses ?? {}) as Record<string, unknown>).filter(([k]) => !!DW_COURSE(k)).map(([k, v]) => [k, num(v)])),
+    dwClassAt: num(d?.dwClassAt), techShifts: num(d?.techShifts), giveawayWeek: num(d?.giveawayWeek, -1), cityNotify: Array.isArray(d?.cityNotify) ? (d!.cityNotify as string[]).filter((c) => COMING_CITY_IDS.includes(c)) : [],
     jobId: typeof d?.jobId === "string" ? d.jobId : null, shift: d?.shift ?? null, deal: d?.deal ?? null, lastDealAt: num(d?.lastDealAt, now),
     rentMonths: num(d?.rentMonths), rentOwed: num(d?.rentOwed), barberUntil: num(d?.barberUntil), gymUntil: num(d?.gymUntil),
     netWorth: 0, updatedAt: now, createdAt: fresh ? now : num(d?.createdAt, now),
@@ -115,7 +120,10 @@ export type Action =
   | { action: "outlet_open"; outlet: string; area?: string }
   | { action: "outlet_collect"; outlet?: string }
   | { action: "outlet_backup"; outlet: string }
-  | { action: "city_notify"; city: string };
+  | { action: "city_notify"; city: string }
+  | { action: "dw_enroll"; course: string }
+  | { action: "dw_class"; course: string }
+  | { action: "dw_giveaway" };
 
 export async function act(db: Firestore, uid: string, a: Action, now = Date.now(), rand: () => number = Math.random) {
   return mutate(db, uid, (p, lines) => {
@@ -173,7 +181,7 @@ export async function act(db: Firestore, uid: string, a: Action, now = Date.now(
         const j = JOB(String(a.job));
         if (!j) throw new LifeError(400, "That job doesn't exist.");
         if (p.shift) throw new LifeError(409, "Finish your shift first.");
-        const block = jobBlocker(j, { owned: p.owned, cooking: cookingSkill(p.cooks), chefShifts: p.chefShifts, itelShifts: p.itelShifts, hotelShifts: p.hotelShifts, reputation: p.reputation, fit: p.gymUntil > now, swim: swimSkill(p.swimLessons, p.swims), gymSessions: p.gymSessions });
+        const block = jobBlocker(j, { owned: p.owned, cooking: cookingSkill(p.cooks), chefShifts: p.chefShifts, itelShifts: p.itelShifts, hotelShifts: p.hotelShifts, reputation: p.reputation, fit: p.gymUntil > now, swim: swimSkill(p.swimLessons, p.swims), gymSessions: p.gymSessions, certs: p.certs });
         if (block) throw new LifeError(403, block);
         p.jobId = j.id;
         return { message: `You're hired: ${j.title}, ${j.employer.split(" · ")[0]}.` };
@@ -213,6 +221,7 @@ export async function act(db: Firestore, uid: string, a: Action, now = Date.now(
         if (j?.brand === "chef_adams") p.chefShifts += 1;
         if (j?.brand === "itel") p.itelShifts += 1;
         if (j?.brand === "candellux") p.hotelShifts += 1;
+        if (j?.tech) p.techShifts += 1;
         const pay = p.shift.pay + extra;
         p.shift = null;
         // A finished shift is when an invite counts: lib/life/referral.ts pays the Bonus Credits after this (once; a friend whose email
@@ -291,6 +300,40 @@ export async function act(db: Firestore, uid: string, a: Action, now = Date.now(
         o.backup = true;
         return { message: "Backup power fitted: it sells through every blackout now.", total: takings };
       }
+      // ---- Digital Witch: pay for a course, take its classes (one every 2 game hours, 9 AM to 6 PM), get certified ----
+      case "dw_enroll": {
+        const c = DW_COURSE(String(a.course));
+        if (!c) throw new LifeError(400, "Choose a course.");
+        if (p.certs.includes(c.id)) throw new LifeError(409, `You're already Digital Witch certified in ${c.name}.`);
+        if (c.id in p.dwCourses) throw new LifeError(409, `You're already on the ${c.name} course.`);
+        debit(p, lines, c.price, `Digital Witch · ${c.name} course`, "dw");
+        p.dwCourses = { ...p.dwCourses, [c.id]: 0 };
+        return { message: `You're enrolled: ${c.name}, ${c.classes} classes at the hub.` };
+      }
+      case "dw_class": {
+        const c = DW_COURSE(String(a.course));
+        if (!c) throw new LifeError(400, "Choose a course.");
+        if (p.certs.includes(c.id)) throw new LifeError(409, `You're already certified in ${c.name}.`);
+        if (!(c.id in p.dwCourses)) throw new LifeError(403, `Pay for the ${c.name} course first.`);
+        if (!dwOpen(now)) throw new LifeError(409, "Classes run from 9 AM to 6 PM. Come back in the morning.");
+        if (now < p.dwClassAt + DW_CLASS_MS - 3_000) throw new LifeError(409, "You're in a class already. One class at a time.");
+        const done = (p.dwCourses[c.id] ?? 0) + 1;
+        p.dwCourses = { ...p.dwCourses, [c.id]: done };
+        p.dwClassAt = now;
+        const cert = done >= c.classes;
+        if (cert) p.certs = [...p.certs, c.id];
+        return { minutes: DW_CLASS_HOURS * 60, effect: DW_CLASS_EFFECT, done, of: c.classes, cert };
+      }
+      case "dw_giveaway": {
+        if (!giveawayOn(now)) throw new LifeError(409, "Cynthia's graduate giveaway is on Saturday nights, 7 PM to 11 PM, at the Candellux VIP bar.");
+        if (!giveawayEligible(p.certs, p.techShifts)) throw new LifeError(403, `The giveaway is for Digital Witch graduates who are doing well: a certificate and ${GIVEAWAY.needTechShifts} tech shifts (you have ${p.certs.length ? "a certificate" : "no certificate"} and ${p.techShifts} tech shift${p.techShifts === 1 ? "" : "s"}).`);
+        const week = giveawayWeek(now);
+        if (p.giveawayWeek === week) throw new LifeError(409, "You've been to this week's giveaway. Come back next Saturday.");
+        p.giveawayWeek = week;
+        const prize = giveawayPrize(rand());
+        if (prize > 0) credit(p, lines, prize, "Cynthia Okeh's graduate giveaway (Digital Witch)", "giveaway");
+        return { prize };
+      }
       case "city_notify": {
         const c = String(a.city);
         if (!COMING_CITY_IDS.includes(c)) throw new LifeError(400, "That city isn't coming yet.");
@@ -313,7 +356,7 @@ export async function richList(db: Firestore, uid: string, limit = 20, realOnly 
   if (me) realRank = (await db.collection("lifePlayers").where("netWorth", ">", num(me.netWorth)).count().get()).data().count + 1;
   type Row = { rank: number; uid: string; username: string; name: string; avatar: string; city: string; netWorth: number; owned: string[]; npc?: { role: string; area: string; icons: string } };
   const real: Row[] = top.docs.map((d) => { const x = d.data(); return { rank: 0, uid: d.id, username: String(x.username ?? ""), name: String(x.name ?? ""), avatar: String(x.avatar ?? ""), city: String(x.city ?? CITY.id), netWorth: num(x.netWorth), owned: (x.owned as string[] | undefined)?.filter((i) => (ITEM(i)?.price ?? 0) >= 100_000) ?? [] }; });
-  const npcs: Row[] = realOnly ? [] : RESIDENTS.filter((r) => r.netWorth).map((r) => ({ rank: 0, uid: `npc:${r.id}`, username: "", name: r.name, avatar: "", city: CITY.id, netWorth: r.netWorth!, owned: [], npc: { role: r.role, area: r.area, icons: r.owned ?? "" } }));
+  const npcs: Row[] = realOnly ? [] : RESIDENTS.filter((r) => r.netWorth).map((r) => ({ rank: 0, uid: `npc:${r.id}`, username: "", name: r.name, avatar: r.photo ?? "", city: CITY.id, netWorth: r.netWorth!, owned: [], npc: { role: r.role, area: r.area, icons: r.owned ?? "" } }));
   const rows = [...real, ...npcs].sort((a, b) => b.netWorth - a.netWorth).slice(0, limit).map((r, i) => ({ ...r, rank: i + 1 }));
   const npcAbove = me ? npcs.filter((n) => n.netWorth > num(me.netWorth)).length : 0;
   return { rows, me: me ? { rank: realRank === null ? null : realRank + npcAbove, realRank, netWorth: num(me.netWorth) } : null };
