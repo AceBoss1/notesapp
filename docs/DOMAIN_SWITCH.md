@@ -1,24 +1,30 @@
 # Moving #NotesApp to notesapp.tech
 
-The site's address is one setting on Vercel, `NEXT_PUBLIC_ROOT_DOMAIN` (`lib/host.ts`). Unset, it is `notesapp.name.ng`.
-Nothing else needs changing in the code:
+**Every domain on the Vercel project shows the site under its own name.** There are no redirects between our domains:
+`life.notesapp.name.ng` shows Notes Life and the address bar keeps saying `life.notesapp.name.ng`; `life.notesapp.tech`
+shows the same thing as `life.notesapp.tech`. It is one deployment, so the content is identical everywhere.
 
-- `www.<root>` is the main site, and the live site's own address (`SITE_URL`) always follows the root. A leftover
-  `NEXT_PUBLIC_SITE_URL` is ignored on the live site (it only counts for `localhost` and `*.vercel.app` previews).
-- **Every subdomain of the root is ours**: `app.` (the app address), `life.` (Notes Life), `mcp.`, and any we add later.
-- **Every other domain added to the Vercel project** (the old root, a domain we buy later, `notesapp.ng` …) is sent
-  permanently (308) to the same page on the root, keeping its subdomain: `life.notesapp.name.ng/partners` →
-  `life.notesapp.tech/partners`, `notesapp.name.ng` → `www.notesapp.tech`. `notesapp.ng` goes to `app.<root>`.
-  The one exception is a domain a member has connected as their own (Business and Enterprise custom domains), which keeps
-  showing their site.
-- `/api/*` keeps working on every domain, so webhooks and sign-in callbacks registered with an old address don't break while
-  each provider is updated.
-- `media.` subdomains are never redirected: every picture and video already stored points at `media.notesapp.name.ng`.
+- **Every subdomain works the same way on every domain**: `www.` the main site, `app.` the app address, `life.` Notes Life,
+  and `mcp.` or any new one the main site. Links between them stay on the visitor's domain (Play on `life.notesapp.name.ng`
+  opens `www.notesapp.name.ng/life/play`). `notesapp.ng` opens the app, as before.
+- **A domain added to Vercel later works by itself**, with no code change: it is served as ours once middleware has checked it
+  isn't a member's own domain (Business and Enterprise custom domains keep showing the member's site).
+- **One setting picks the primary address**: `NEXT_PUBLIC_ROOT_DOMAIN` (`lib/host.ts`; unset = `notesapp.name.ng`). It is
+  the address used by everything that leaves the site: emails, share links, API docs, webhooks, sign-in callbacks, and
+  search engines (on every other domain each page sends an HTTP `rel=canonical` header naming the primary address, so
+  Google doesn't see copies). `SITE_URL` always follows it on the live site; `NEXT_PUBLIC_SITE_URL` only counts for
+  `localhost` and `*.vercel.app` previews.
+- Payments bring the buyer back to the domain they paid on.
+- Sign-in is kept per domain by browsers, so someone who uses both domains signs in on each once. Members who stay on
+  `notesapp.name.ng` notice nothing: they stay signed in and their installed app and notifications keep working.
+- `media.notesapp.name.ng` (pictures and videos) doesn't change.
 
-To add another domain later: add it in Vercel → Domains, nothing else. It redirects to the root by itself.
+To add another domain later: add it (and its subdomains) in Vercel → Domains. Nothing else.
 
 Why: the .tech No Excuses Fund (applications close 15 Dec 2026) needs the product's **primary** website live on .tech
-when we apply, not a redirect to it, and kept there for 24 months after any award.
+when we apply, not a redirect to it, and kept there for 24 months after any award. "Primary" in their terms is where the
+product is offered and where **our own marketing and links point**, so after the switch every link we publish should use
+`notesapp.tech`; the old domain keeps working quietly for people who already use it.
 
 ## Order of work
 
@@ -30,13 +36,13 @@ Do the steps in this order. Steps 1 to 3 can happen days before the switch; noth
       `life.notesapp.tech` (and `mcp.notesapp.tech` if it is used). Set the DNS records Vercel shows
       (A `76.76.21.21` for the apex, CNAME `cname.vercel-dns.com` for the others). Every subdomain has to be added to
       Vercel to reach the site; a wildcard `*.notesapp.tech` covers future ones but needs the domain on Vercel's nameservers.
-- [ ] Keep all the `notesapp.name.ng` domains on the Vercel project. They must keep resolving so the redirects work.
+- [ ] Keep all the `notesapp.name.ng` domains on the Vercel project. They keep serving the site under their own name.
 
 ### 2. Allow the new address where people sign in
 - [ ] Firebase console → Authentication → Settings → **Authorised domains**: add `www.notesapp.tech`, `notesapp.tech`,
       `app.notesapp.tech`, `life.notesapp.tech`. Keep the old ones.
 - [ ] Firebase → Authentication → Templates: if the action link (email verification, password reset) is set to a custom
-      address on `notesapp.name.ng`, change it to `https://www.notesapp.tech/auth/action`. Old links still work (they redirect).
+      address on `notesapp.name.ng`, change it to `https://www.notesapp.tech/auth/action`. Old links still work (the old address still serves the page).
 - [ ] Dojah dashboard: add the new address to the widget's allowed domains, if the dashboard has that list.
 
 ### 3. Email (can stay on the old domain at first)
@@ -52,12 +58,12 @@ Email is a separate setting so the website can move before mail does.
 - [ ] `NEXT_PUBLIC_SITE_URL`: change it to `https://www.notesapp.tech` or delete it. (An old value pointing at
       `notesapp.name.ng` is ignored once the root changes, but it's clearer to fix it.)
 - [ ] Redeploy (`NEXT_PUBLIC_*` values are built in, so a redeploy is required).
-- [ ] Check: `https://www.notesapp.name.ng/pricing` lands on `https://www.notesapp.tech/pricing`; sign in on
-      `www.notesapp.tech` and on `app.notesapp.tech`; open `life.notesapp.tech`.
+- [ ] Check: `https://www.notesapp.tech` and `https://app.notesapp.tech` open the site and you can sign in on both;
+      `https://life.notesapp.tech` opens Notes Life; `https://www.notesapp.name.ng` still works and stays on its own address;
+      emails now link to `notesapp.tech`.
 
 ### 5. Update every provider's callback (the same day)
-Each of these is registered with a full address. They keep working on the old address (step 4 leaves `/api/*` alone),
-but move them now so nothing depends on it.
+Each of these is registered with a full address. They keep working on the old address (it still serves the whole site), but move them now so the primary address is used.
 - [ ] **Paystack** dashboard → Settings → API keys & webhooks: webhook URL → `https://www.notesapp.tech/api/paystack/webhook`.
       (The checkout callback address is worked out per payment, so nothing else to change.)
 - [ ] **Paylony** dashboard: webhook → `https://www.notesapp.tech/api/paylony/webhook` (also shown on Admin → Paylony).
@@ -73,11 +79,10 @@ but move them now so nothing depends on it.
 - [ ] Google Search Console: add `notesapp.tech` and use **Change of address** from `notesapp.name.ng`. Submit
       `https://www.notesapp.tech/sitemap.xml`.
 - [ ] Update the address on LinkedIn, X, Facebook, the email signature, the pitch deck and partner materials.
-- [ ] Tell members (a short changelog entry and a banner are enough). Expect two things:
-  - people are **signed out once**: browsers keep sign-in per address;
-  - installed apps and device notifications belong to the old address: members open `app.notesapp.tech`, install again and turn
-    notifications on again. Email and bell notifications are unaffected.
-- [ ] Leave the old domain registered and pointed at Vercel for at least two years (old links, emails and QR codes).
+- [ ] Tell members the new address (a changelog entry is enough). Nobody is signed out: the old address keeps working. People who
+      start using `notesapp.tech` sign in there once, and install the app again from `app.notesapp.tech` if they want it on
+      the new address.
+- [ ] Keep the old domain registered and on Vercel (old links, emails, QR codes, installed apps).
 
 ## For the fund (not code)
 - The .tech site must be the real product, not a landing page, from the day we apply until the decision, and for 24 months

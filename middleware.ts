@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { MAIN_HOST, isMainHost, isAppHost, isLifeHost, movedHost, rootTarget } from "@/lib/host";
+import { APP_HOST, LIFE_HOST, MAIN_HOST, ROOT_DOMAIN, familyHost, familyOf, isMainHost, ourRoot, roleOf, type Family } from "@/lib/host";
 
 // Custom domains (Enterprise). On our own hosts this does nothing. On a member's domain it serves their branded site
 // (app/(site)/s/[username]: header with their name, Home, Notes, Shop, "Powered by #NotesApp" footer) and sends everything
@@ -36,27 +36,36 @@ const PASS = /^\/(_next\/|favicon|robots\.txt|sitemap|images\/|fonts\/|api\/(vie
 const APP_TO_MAIN = /^\/(about|pricing|roadmap|status|docs|changelog|security|brand|challenge|advertise|domains|organisations|store-selling|merchstore|contact|coauthoring|gifts|boost|badges|track)(\/|$)/;
 const PUBLIC_FILE = /\.[a-z0-9]{2,5}$/i;
 
-export async function middleware(req: NextRequest) {
-  const host = (req.headers.get("host") || "").toLowerCase().replace(/:\d+$/, "");
-  // One of our other domains (the site lives on NEXT_PUBLIC_ROOT_DOMAIN, lib/host.ts): every page goes to the same page and
-  // subdomain on the root, permanently. /api/* stays served here, so webhooks and OAuth callbacks registered with the old
-  // address keep working until each provider is updated (docs/DOMAIN_SWITCH.md).
-  const moved = host ? movedHost(host) : null;
-  if (moved && !req.nextUrl.pathname.startsWith("/api/")) return NextResponse.redirect(`https://${moved}${req.nextUrl.pathname}${req.nextUrl.search}`, 308);
-  // life.<root>: the Notes Life page at its root (an invite's ?ref= kept); /play opens the game on the main site, where the
+// The site on one of our domains, staying in the visitor's family: life.<domain> → Notes Life, app.<domain> (and the short app
+// domains) → the app, anything else → the main site. Moves between them go to www./app. of the same domain, never elsewhere.
+function ours(req: NextRequest, host: string, fam: Family) {
+  const res = route(req, host, fam);
+  // On any domain but the primary one, tell search engines which address counts (an HTTP rel=canonical header), so the same
+  // pages on several domains aren't treated as copies. Visitors see nothing of it.
+  const { pathname } = req.nextUrl;
+  if (fam.root !== ROOT_DOMAIN && !pathname.startsWith("/api/") && !pathname.startsWith("/_next") && !PUBLIC_FILE.test(pathname) && !res.headers.get("location")) {
+    const role = roleOf(fam);
+    const primary = role === "app" ? APP_HOST : role === "life" ? LIFE_HOST : MAIN_HOST;
+    res.headers.set("Link", `<https://${primary}${pathname}>; rel="canonical"`);
+  }
+  return res;
+}
+function route(req: NextRequest, host: string, fam: Family) {
+  const { pathname, search } = req.nextUrl;
+  const role = roleOf(fam);
+  const main = familyHost(host, "main");
+  // life.<domain>: the Notes Life page at its root (an invite's ?ref= kept); /play opens the game on the main site, where the
   // NotesApp sign-in lives; its pictures and the app's own files load as usual; anything else goes to the main site.
-  if (host && isLifeHost(host)) {
-    const { pathname, search } = req.nextUrl;
+  if (role === "life") {
     if (pathname === "/") return NextResponse.rewrite(new URL(`/life${search}`, req.url));
     if (pathname === "/partners") return NextResponse.rewrite(new URL(`/life/partners${search}`, req.url));
-    if (pathname === "/play" || pathname === "/life/play") return NextResponse.redirect(`https://${MAIN_HOST}/life/play${search}`, 307);
-    if (pathname === "/life" || pathname.startsWith("/_next") || pathname.startsWith("/api/") || PUBLIC_FILE.test(pathname)) return NextResponse.next();
-    return NextResponse.redirect(`https://${MAIN_HOST}${pathname}${search}`, 307);
+    if (pathname === "/play" || pathname === "/life/play") return NextResponse.redirect(`https://${main}/life/play${search}`, 307);
+    if (pathname === "/life" || pathname.startsWith("/life/") || pathname.startsWith("/_next") || pathname.startsWith("/api/") || PUBLIC_FILE.test(pathname)) return NextResponse.next();
+    return NextResponse.redirect(`https://${main}${pathname}${search}`, 307);
   }
-  if (host && isAppHost(host)) {
-    // The app domain (notesapp.ng): the home page is a splash to sign up or sign in (a signed-in member goes straight to the journal);
+  if (role === "app") {
+    // The app address: the home page is a splash to sign up or sign in (a signed-in member goes straight to the journal);
     // the marketing and company pages live on the main site.
-    const { pathname, search } = req.nextUrl;
     if (pathname === "/") return NextResponse.rewrite(new URL("/welcome", req.url));
     // Signing in and up happen right here, on the welcome screen's own forms (not on a separate page and not on the main site). /login, /signup and
     // /forgot-password land there too (unless someone is being sent over from a member's own domain, which still uses the main login page).
@@ -67,21 +76,28 @@ export async function middleware(req: NextRequest) {
       if (next) u.searchParams.set("next", next);
       return NextResponse.rewrite(u);
     }
-    if (APP_TO_MAIN.test(pathname)) return NextResponse.redirect(`https://${MAIN_HOST}${pathname}${search}`, 307);
+    if (APP_TO_MAIN.test(pathname)) return NextResponse.redirect(`https://${main}${pathname}${search}`, 307);
     return NextResponse.next();
   }
-  if (!host || isMainHost(host)) return NextResponse.next();
+  return NextResponse.next();
+}
+
+export async function middleware(req: NextRequest) {
+  const host = (req.headers.get("host") || "").toLowerCase().replace(/:\d+$/, "");
+  if (!host) return NextResponse.next();
+  // Our domains (lib/host.ts): every domain on the Vercel project serves the site under its own name, so the address bar keeps
+  // what the visitor typed. Only domains we know skip the lookup; any other one is checked against members' own domains below.
+  const known = ourRoot(host);
+  if (known) return ours(req, host, known);
+  if (isMainHost(host)) return NextResponse.next(); // localhost and Vercel previews
 
   const { pathname, search } = req.nextUrl;
   if (PASS.test(pathname) || PUBLIC_FILE.test(pathname)) return NextResponse.next();
 
   const d = await resolve(host);
-  // A domain no member has added is one of ours, added to Vercel: its pages go to the same page on the root (lib/host.ts).
-  // Only when the lookup really answered, so a slow lookup never sends a member's visitors away.
-  if (!d.found && d.answered && !d.known) {
-    const target = rootTarget(host);
-    if (target) return NextResponse.redirect(`https://${target}${pathname}${search}`, 308);
-  }
+  // A domain no member has added is one of ours, added to Vercel later: the site, under that name. Only when the lookup really
+  // answered, so a slow lookup never shows a member's visitors the wrong site.
+  if (!d.found && d.answered && !d.known) return ours(req, host, familyOf(host));
   if (!d.found || !d.username) return new NextResponse("This domain isn't connected to a #NotesApp account.", { status: 404 });
 
   const headers = new Headers(req.headers);

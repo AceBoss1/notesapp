@@ -6,7 +6,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { onAuthStateChanged } from "firebase/auth";
 import { auth } from "@/lib/firebase";
-import { MAIN_HOST } from "@/lib/host";
+import { useFamilyUrl } from "@/lib/use-family-url";
 import { challengePromoActive } from "@/lib/challenge-promo";
 import ChallengePanel from "@/components/ChallengePanel";
 import LoginForm from "@/components/LoginForm";
@@ -15,13 +15,12 @@ import { COMPANY_INFO } from "@/lib/site";
 import { useDevice } from "@/lib/use-device";
 import { downloadIcon, downloadLabel, isMobile } from "@/lib/visitor-device";
 
-const MAIN = `https://${MAIN_HOST}`;
-
 // The welcome screen of the app address: on a wide screen the challenge announcement in crimson on the left and, on the right, the sign-in and sign-up forms
 // themselves (no pop-up, no trip to another page: this address handles them on its own); on a phone just the card. Someone already signed in goes to their journal
 // (or the page they were sent from). /login, /signup and /forgot-password on this address land here (middleware).
 export default function Splash() {
   const router = useRouter();
+  const MAIN = useFamilyUrl("main"); // the main site on the visitor's own domain (lib/host.ts)
   const [signedOut, setSignedOut] = useState(false);
   const [view, setView] = useState<"signin" | "signup">("signin");
   const [onboarding, setOnboarding] = useState(false); // the account is being made: don't redirect until the follow step is done

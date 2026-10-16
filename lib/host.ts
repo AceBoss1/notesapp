@@ -1,33 +1,30 @@
 // Pure host helpers (no Node-only imports — also used by middleware.ts on the edge runtime).
 //
-// The whole site's address is ONE setting: NEXT_PUBLIC_ROOT_DOMAIN (Vercel → Environment Variables, then redeploy). Unset, it is
-// notesapp.name.ng. Everything follows it:
-//   www.<root>          the main site (SITE_URL); the bare <root> goes there too
-//   <any>.<root>        a subdomain we serve: app. (the app address), life. (Notes Life), mcp., and any added later
-//   any other domain    added to the Vercel project (an old root, a new one we buy, notesapp.ng …) is sent permanently (308)
-//                       to the same page on the root, keeping its subdomain: life.<old> → life.<root>, <old> → www.<root>.
-//                       Known old roots are listed in OTHER_ROOTS so they redirect without a lookup; any other domain
-//                       redirects once middleware.ts has checked it isn't a member's own domain (customDomains).
-// /api/* is served on every domain, so webhooks and OAuth callbacks registered with an old address keep working while the
-// providers are updated. Read docs/DOMAIN_SWITCH.md before changing the root.
+// Every domain added to the Vercel project serves the whole site under its own name: no redirects, the address bar keeps the
+// domain the visitor typed (life.notesapp.name.ng shows Notes Life as life.notesapp.name.ng). A domain plus its subdomains is
+// a "family": www.<domain> is the main site, app.<domain> the app address, life.<domain> Notes Life, and any other subdomain
+// (mcp., future ones) the main site. Moving between them stays in the visitor's family (middleware.ts, useFamilyUrl).
+//
+// ONE setting picks the primary address: NEXT_PUBLIC_ROOT_DOMAIN (Vercel → Environment Variables, then redeploy). Unset, it is
+// notesapp.name.ng. It is the address everything that leaves the site uses: emails, share links, search engines' canonical
+// address, API docs, webhooks and sign-in callbacks (SITE_URL, MAIN_HOST, APP_URL, LIFE_URL). Read docs/DOMAIN_SWITCH.md.
+// Members' own domains (Business and Enterprise) are the exception: middleware.ts serves their branded site there.
 const clean = (h: string | undefined) => (h || "").trim().toLowerCase().replace(/^[a-z]+:\/\//, "").replace(/^www\./, "").replace(/[/:].*$/, "").replace(/\.$/, "");
 export const LEGACY_ROOT_DOMAIN = "notesapp.name.ng";
 export const ROOT_DOMAIN = clean(process.env.NEXT_PUBLIC_ROOT_DOMAIN) || LEGACY_ROOT_DOMAIN;
-// Domains we own that aren't the root (today or after a switch). Not required for a redirect, only quicker.
+// Our domains we know of, so they work without a lookup. A domain added to Vercel later works too: middleware.ts checks it
+// isn't a member's and then treats it as ours.
 const OTHER_ROOTS = [LEGACY_ROOT_DOMAIN, "notesapp.tech"].filter((r) => r !== ROOT_DOMAIN);
-// Short domains that open the app: they go to app.<root> rather than www.<root>.
-const APP_SHORT_DOMAINS = ["notesapp.ng"];
+// Short domains that open the app itself (the bare domain and www. act like app.<domain>).
+export const APP_SHORT_DOMAINS = ["notesapp.ng"];
 export const KNOWN_ROOTS = [ROOT_DOMAIN, ...OTHER_ROOTS];
 export const MAIN_HOST = `www.${ROOT_DOMAIN}`;
 export const APP_HOST = `app.${ROOT_DOMAIN}`;
 export const LIFE_HOST = `life.${ROOT_DOMAIN}`;
 export const MCP_HOST = `mcp.${ROOT_DOMAIN}`;
-// Subdomains of an old domain that are never sent to the root: media. is the picture and video bucket (Cloudflare), whose
-// addresses are stored in the database, so it keeps its own address.
-const KEEP_SUBS = new Set(["media"]);
 
-// The main site's address, always https://www.<root> on the live site. NEXT_PUBLIC_SITE_URL is only used for local development
-// and Vercel previews (localhost, 127.0.0.1, *.vercel.app); any other value is ignored, so the root is the only setting.
+// The primary address of the main site, always https://www.<root> on the live site. NEXT_PUBLIC_SITE_URL is only used for local
+// development and Vercel previews (localhost, 127.0.0.1, *.vercel.app); any other value is ignored, so the root is the only setting.
 export const SITE_URL = (() => {
   const env = (process.env.NEXT_PUBLIC_SITE_URL || "").trim().replace(/\/$/, "");
   if (/^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/i.test(env) || /^https:\/\/[a-z0-9-]+\.vercel\.app$/i.test(env)) return env;
@@ -41,8 +38,11 @@ export const CONTACT_EMAIL = (process.env.NEXT_PUBLIC_CONTACT_EMAIL || `hello@${
 
 const bare = (hostname: string) => hostname.toLowerCase().replace(/:\d+$/, "").replace(/\.$/, "");
 const under = (h: string, root: string) => (h === root ? "" : h.endsWith(`.${root}`) ? h.slice(0, -root.length - 1) : null);
-// "app.notesapp.name.ng" → { root: "notesapp.name.ng", sub: "app" } for the root and the domains we know are ours; null otherwise.
-export function ourRoot(hostname: string): { root: string; sub: string } | null {
+const isLocal = (h: string) => h === "localhost" || h === "127.0.0.1" || h.endsWith(".vercel.app");
+
+export type Family = { root: string; sub: string };
+// "life.notesapp.name.ng" → { root: "notesapp.name.ng", sub: "life" } for the domains we know; null otherwise.
+export function ourRoot(hostname: string): Family | null {
   const h = bare(hostname);
   for (const root of [...KNOWN_ROOTS, ...APP_SHORT_DOMAINS]) {
     const sub = under(h, root);
@@ -50,26 +50,13 @@ export function ourRoot(hostname: string): { root: string; sub: string } | null 
   }
   return null;
 }
-// On the root itself (any subdomain).
-export const onRoot = (hostname: string) => under(bare(hostname), ROOT_DOMAIN) !== null;
-
-// Where a host that isn't on the root belongs on the root: the same subdomain there (www. for a bare domain), app. for the short
-// app domains. `registrable` says how much of the host is the domain itself; without it, it's worked out (notesapp.africa,
-// notesapp.com.ng). Null for the root itself and for subdomains we keep (media.).
-export function rootTarget(hostname: string, registrable?: string): string | null {
+// The family of a domain that isn't in the list (one added to Vercel later): its registrable domain and what's in front of it.
+export function familyOf(hostname: string): Family {
   const h = bare(hostname);
-  if (onRoot(h)) return null;
   const known = ourRoot(h);
-  const domain = known?.root ?? registrable ?? registrableDomain(h);
-  const sub = under(h, domain) ?? "";
-  if (KEEP_SUBS.has(sub.split(".").pop() || "")) return null;
-  if (APP_SHORT_DOMAINS.includes(domain) && (sub === "" || sub === "www")) return APP_HOST;
-  return sub === "" || sub === "www" ? MAIN_HOST : `${sub}.${ROOT_DOMAIN}`;
-}
-// A host on one of the old domains we know: middleware.ts redirects it straight away.
-export function movedHost(hostname: string): string | null {
-  const o = ourRoot(hostname);
-  return o && o.root !== ROOT_DOMAIN ? rootTarget(hostname) : null;
+  if (known) return known;
+  const root = registrableDomain(h);
+  return { root, sub: under(h, root) ?? "" };
 }
 // "life.notesapp.com.ng" → "notesapp.com.ng", "app.notesapp.africa" → "notesapp.africa".
 export function registrableDomain(host: string): string {
@@ -77,18 +64,32 @@ export function registrableDomain(host: string): string {
   const two = parts.slice(-2).join(".");
   return SECOND_LEVEL.has(two) && parts.length >= 3 ? parts.slice(-3).join(".") : two;
 }
+// What a host is for: the app address, Notes Life, or the main site.
+export function roleOf(f: Family): "app" | "life" | "main" {
+  if (f.sub === "app" || (APP_SHORT_DOMAINS.includes(f.root) && (f.sub === "" || f.sub === "www"))) return "app";
+  return f.sub === "life" ? "life" : "main";
+}
+// The main site, the app or Notes Life in the same family as `hostname` (the short app domains' main site is the primary one).
+// On localhost and previews everything is one host, so that host is returned.
+export function familyHost(hostname: string, role: "main" | "app" | "life"): string {
+  const h = bare(hostname);
+  if (isLocal(h)) return hostname;
+  const { root } = familyOf(h);
+  if (APP_SHORT_DOMAINS.includes(root)) return role === "app" ? h : role === "life" ? LIFE_HOST : MAIN_HOST;
+  return `${role === "main" ? "www" : role}.${root}`;
+}
 
-// The app domain: opens #NotesApp like an app (splash, then the journal) and sends marketing pages to MAIN_HOST.
+// The app domain: opens #NotesApp like an app (splash, then the journal) and sends marketing pages to the main site.
 export const APP_HOSTS = [APP_HOST];
-export const isAppHost = (hostname: string) => under(bare(hostname), ROOT_DOMAIN) === "app";
+export const isAppHost = (hostname: string) => { const f = ourRoot(hostname); return !!f && roleOf(f) === "app"; };
 // Notes Life: its own address, served from /life on the same app (middleware.ts).
-export const isLifeHost = (hostname: string) => under(bare(hostname), ROOT_DOMAIN) === "life";
+export const isLifeHost = (hostname: string) => { const f = ourRoot(hostname); return !!f && roleOf(f) === "life"; };
 
-// True for our own hosts (the root and every subdomain of it, the old domains we know), local development and Vercel preview
-// deployments. Everything else is a member's custom domain, or a domain we added to Vercel that middleware.ts sends to the root.
+// True for the domains we know (every subdomain), local development and Vercel preview deployments. Anything else is a
+// member's own domain or a domain of ours added to Vercel later; middleware.ts tells them apart.
 export function isMainHost(hostname: string): boolean {
   const h = bare(hostname);
-  return ourRoot(h) !== null || h === "localhost" || h === "127.0.0.1" || h.endsWith(".vercel.app");
+  return ourRoot(h) !== null || isLocal(h);
 }
 
 const HOST_RE = /^(?=.{4,253}$)([a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z]{2,63}$/;
