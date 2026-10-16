@@ -23,6 +23,8 @@ import { UnverifiedOrgNotice } from "@/components/OrgNotice";
 import Avatar from "@/components/Avatar";
 import FollowButton from "@/components/FollowButton";
 import MessageButton from "@/components/messages/MessageButton";
+import { remarkLinkify } from "@/lib/linkify";
+import { SITE } from "@/lib/site";
 
 // The reading page for one note (same Firestore doc as precheks.com.ng/notes/{slug}). Used by /journals/<slug> and a member's own site.
 // `site` is set on a member's own site: "more notes" are then only theirs, links stay inside the site
@@ -38,7 +40,8 @@ export default async function JournalDetail({
   if (!note) return notFound();
 
   const [processed, moreNotes, authorProfile, coProfiles] = await Promise.all([
-    remark().use(html).process(note.content),
+    // web addresses and @username become links (on a journal's own domain, @mentions point back to NotesApp)
+    remark().use(remarkLinkify, { base: site ? SITE.url : "" }).use(html).process(note.content),
     site
       ? getAllNotes().then((all) => all.filter((n) => n.authorUid === site.uid && n.slug !== note.slug).slice(0, 4))
       : getMoreNotes(note.slug, 4),

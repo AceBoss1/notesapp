@@ -5,6 +5,8 @@ import { remark } from "remark";
 import html from "remark-html";
 import { uploadToR2 } from "@/lib/upload";
 import { DROP_RING, useFileDrop } from "@/lib/useFileDrop";
+import { remarkLinkify } from "@/lib/linkify";
+import MentionPicker from "@/components/MentionPicker";
 
 // Formatting toolbar + live preview over plain Markdown. Content is
 // still stored as Markdown, so every existing journal, the journal
@@ -54,6 +56,7 @@ export default function RichTextEditor({ value, onChange, draftKey }: Props) {
     if (tab !== "preview") return;
     let alive = true;
     remark()
+      .use(remarkLinkify)
       .use(html)
       .process(value)
       .then((f) => alive && setPreview(String(f)))
@@ -201,6 +204,8 @@ export default function RichTextEditor({ value, onChange, draftKey }: Props) {
       )}
 
       {tab === "write" ? (
+        <div className="relative">
+        <MentionPicker target={ref} value={value} onChange={onChange} />
         <textarea
           ref={ref}
           required
@@ -211,6 +216,7 @@ export default function RichTextEditor({ value, onChange, draftKey }: Props) {
           placeholder="Write here — use the toolbar or Markdown."
           className="mt-2 w-full border border-rule bg-card px-4 py-3 font-mono text-sm outline-none focus:border-crimson"
         />
+        </div>
       ) : (
         <div
           className="prose mt-2 min-h-[24rem] max-w-none border border-rule bg-card px-6 py-4"

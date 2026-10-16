@@ -11,6 +11,9 @@ import { api } from "@/lib/moments-client";
 import { ATTACHMENT_ACCEPT, MESSAGE_MAX, REMOVED_TEXT, attachmentTypeOf, formatBytes, type ThreadMessage } from "@/lib/messages-rules";
 import { wrapSelection } from "@/lib/message-format";
 import FormattedText from "./FormattedText";
+import LinkPreview from "@/components/LinkPreview";
+import MentionPicker from "@/components/MentionPicker";
+import { firstUrl } from "@/lib/linkify";
 import MessageAttachments from "./MessageAttachments";
 import VoiceNoteButton from "./VoiceNoteButton";
 import StickerPicker from "./StickerPicker";
@@ -492,7 +495,8 @@ export default function Thread({ id, to, embedded = false }: { id?: string; to?:
                         </p>
                       )}
                       {m.attachments && cid && <MessageAttachments cid={cid} mid={m.id} files={m.attachments} mine={mine} />}
-                      {m.text && <p className="whitespace-pre-wrap break-words"><FormattedText text={m.text} /></p>}
+                      {m.text && <p className="whitespace-pre-wrap break-words"><FormattedText text={m.text} linkClass={mine ? "font-semibold text-white underline underline-offset-2" : undefined} /></p>}
+                      {m.text && firstUrl(m.text) && <LinkPreview url={firstUrl(m.text)!} user={user ?? null} mine={mine} />}
                       <p className={`mt-1 flex flex-wrap items-center justify-end gap-x-3 text-[11px] ${mine ? "text-white/80" : "text-slate"}`}>
                         {isPinned && <span aria-label="Pinned">📌</span>}
                         {m.editedAt && <span className="italic">edited</span>}
@@ -555,7 +559,8 @@ export default function Thread({ id, to, embedded = false }: { id?: string; to?:
             ))}
           </ul>
         )}
-        <div className="flex gap-2">
+        <div className="relative flex gap-2">
+          <MentionPicker target={box} value={text} onChange={typed} place="above" />
           <textarea
             ref={box} value={text} rows={2} maxLength={MESSAGE_MAX} placeholder="Start or reply a conversation" onChange={(e) => typed(e.target.value)} onBlur={stopTyping}
             onKeyDown={(e) => {

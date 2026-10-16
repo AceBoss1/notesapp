@@ -309,9 +309,23 @@ export const cookingSkill = (cooks: number) => Math.min(10, 1 + Math.floor(cooks
 
 // ---- Candellux Imperial Hotel & Suites (partner), Garki ----
 export type HotelService = { id: string; name: string; icon: string; price: number; minutes: number; effect: Partial<Record<Need, number>>; set?: Partial<Record<Need, number>>; note: string; boost?: "barber" | "gym"; soon?: boolean; tab?: "pool" };
+// A stay in a suite: you have the room till checkout at 11 AM, game time, even when you go for a swim or leave the hotel. A stay is a
+// hotel day (24 game hours, 11 AM to 11 AM); check in early in the morning (from 6 AM) and it runs to 11 AM the next day. Every
+// time you're in the room, Energy, Hygiene, Bladder and Fun go to 100%, and food from the hotel restaurant comes as room service
+// (Hunger to 100%).
+export const HOTEL_CHECKOUT_HOUR = 11;
+export const SUITE_SET: Partial<Record<Need, number>> = { energy: 100, hygiene: 100, bladder: 100, fun: 100 };
+export function hotelCheckout(now = Date.now()): number {
+  const t = worldTime(now);
+  let hours = HOTEL_CHECKOUT_HOUR - (t.hour + t.minute / 60);
+  if (hours <= 0) hours += 24;
+  if (hours <= HOTEL_CHECKOUT_HOUR - 6) hours += 24; // checked in from 6 AM: tomorrow's 11 AM
+  return now + Math.round(hours * GAME_HOUR_MS);
+}
+export const lodged = (hotelUntil: number, now = Date.now()) => hotelUntil > now;
 export const HOTEL: HotelService[] = [
-  { id: "suite", name: "Luxury suite (a night)", icon: "🛏", price: 180_000, minutes: 8 * 60, effect: { fun: 20 }, set: { energy: 100, hygiene: 100 }, note: "Energy and hygiene to 100% · mood: great" },
-  { id: "restaurant", name: "24-hour restaurant", icon: "🍽", price: 6_500, minutes: 40, effect: { hunger: 70, fun: 10 }, note: "Hunger +70 · Fun +10" },
+  { id: "suite", name: "Luxury suite (a stay)", icon: "🛏", price: 180_000, minutes: 60, effect: {}, set: SUITE_SET, note: "Your room till 11 AM checkout · Energy, Hygiene, Bladder and Fun to 100% · room service fills you up" },
+  { id: "restaurant", name: "24-hour restaurant", icon: "🍽", price: 6_500, minutes: 40, effect: { hunger: 70, fun: 10 }, note: "Hunger +70 · Fun +10 · as room service while you're staying: Hunger to 100%" },
   { id: "pool", name: "Swim · day pass", icon: "🏊", price: 25_000, minutes: 60, effect: { fun: 30, energy: 10, hygiene: 5 }, note: "Swim with residents and players. Fun +30 · Energy +10", tab: "pool" },
   { id: "lesson", name: "Swimming lesson", icon: "🎓", price: 15_000, minutes: 45, effect: { fun: 10, energy: -8 }, note: "With Coach Femi 🤖 · swimming skill +2 · after 3 you can swim in the deep end", tab: "pool" },
   { id: "gym", name: "Gym session", icon: "🏋", price: 10_000, minutes: 60, effect: { energy: -10, fun: 5 }, note: "With a gym instructor · fitness: energy lasts longer for a game day (needed for lifeguard)", boost: "gym", tab: "pool" },

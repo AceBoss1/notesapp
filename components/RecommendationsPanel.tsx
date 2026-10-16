@@ -1,5 +1,6 @@
 "use client";
 
+import LinkedText from "@/components/LinkedText";
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import type { User } from "firebase/auth";
@@ -68,7 +69,7 @@ export default function RecommendationsPanel({ subjectUid, subjectName, user }: 
             {data.waiting.map((r) => (
               <li key={r.id} className="py-3">
                 <Who r={r} />
-                <p className="mt-2 whitespace-pre-line text-sm text-ink">{r.text}</p>
+                <p className="mt-2 whitespace-pre-line break-words text-sm text-ink"><LinkedText text={r.text} /></p>
                 <div className="mt-2 flex gap-2">
                   {r.status === "pending" && <button type="button" disabled={busy} onClick={() => run({ action: "approve", id: r.id }, "Approved. It shows on your profile now.")} className="rounded-full bg-crimson px-4 py-1.5 font-ui text-xs font-semibold text-paper disabled:opacity-50">Show on my profile</button>}
                   {r.status === "hidden" && <button type="button" disabled={busy} onClick={() => run({ action: "approve", id: r.id }, "It shows on your profile again.")} className="rounded-full border border-rule px-4 py-1.5 font-ui text-xs font-semibold disabled:opacity-50">Show again</button>}
@@ -107,7 +108,7 @@ export default function RecommendationsPanel({ subjectUid, subjectName, user }: 
           {data.approved.map((r) => (
             <li key={r.id} className="card p-5">
               <Who r={r} />
-              <p className="mt-3 whitespace-pre-line text-sm text-ink">“{r.text}”</p>
+              <p className="mt-3 whitespace-pre-line break-words text-sm text-ink">“<LinkedText text={r.text} />”</p>
             </li>
           ))}
         </ul>

@@ -13,6 +13,8 @@ import { createWorld, type Power, type RoomSpot, type SceneSpec, type Tag, type 
 import { announce, hide, setShowMe, showMe, whoIsHere, type Present, type PresencePlace } from "./presence";
 import { TOPICS, chatWith, say as chatSay, type Line as ChatLine, type Topic } from "./chats";
 import VipPano from "./VipPano";
+
+const SUITE_LABEL = "In your Imperial Suite";
 import FriendChat, { type ChatFriend } from "./FriendChat";
 import { Sound, loadSoundPrefs, saveSoundPrefs, type Ambience, type Sfx, type SoundPrefs } from "./sound";
 
@@ -97,6 +99,8 @@ export default function LifeGame() {
   const lastCloud = useRef(0);
   const lastPowerAt = useRef(0);
   const wasOut = useRef<boolean | null>(null);
+  const calmRef = useRef(false); // in your suite, at the VIP bar or in class: no NEPA noise
+  const stayRef = useRef(false); // checked in at the Candellux (for the checkout notice)
   saveRef.current = save; playerRef.current = player;
 
   // ---- sound (components/life/sound.ts): made in the browser, volumes kept on this device ----
@@ -239,9 +243,12 @@ export default function LifeGame() {
   }, [user, presencePlace, showMeOn]);
   useEffect(() => { if (spec && world.current) void world.current.show(spec); }, [spec]);
   // What you hear around you, and the bedside phone while a deal call waits.
-  const ambience: Ambience = !spec ? "none" : spec.id === "room" ? (night ? "room-night" : "room") : spec.id === "street" || spec.id === "chef" || spec.id === "dw" ? (night ? "street-night" : "street") : spec.id === "hotel" ? (spec.view === "pool" ? "pool" : "hotel") : "pool";
+  // A soft tune, and no NEPA noise, in your hotel suite, at the VIP bar and in class at the Digital Witch hub.
+  const act0 = save?.activity, calm = panel === "vip" || act0?.kind === "class" || (act0?.kind === "hotel" && (act0.label.startsWith(SUITE_LABEL) || act0.label.startsWith("Room service") || act0.label === C.HOTEL_OF("vipbar")?.name));
+  calmRef.current = calm;
+  const ambience: Ambience = calm ? "calm" : !spec ? "none" : spec.id === "room" ? (night ? "room-night" : "room") : spec.id === "street" || spec.id === "chef" || spec.id === "dw" ? (night ? "street-night" : "street") : spec.id === "hotel" ? (spec.view === "pool" ? "pool" : "hotel") : "pool";
   useEffect(() => { snd.current?.ambience(ambience); }, [ambience]);
-  useEffect(() => { snd.current?.generators(src === "gen" && save?.place === "home" ? (player?.owned.includes("gen_big") ? "big" : "small") : null, nepa.out); }, [src, save?.place, nepa.out, player?.owned]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { snd.current?.generators(!calm && src === "gen" && save?.place === "home" ? (player?.owned.includes("gen_big") ? "big" : "small") : null, nepa.out && !calm); }, [src, save?.place, nepa.out, player?.owned, calm]); // eslint-disable-line react-hooks/exhaustive-deps
   const ringing = player?.deal?.state === "offered" && save?.place === "home";
   useEffect(() => { snd.current?.ringing(!!ringing); }, [ringing]);
 
@@ -277,12 +284,16 @@ export default function LifeGame() {
         lastPowerAt.current = now;
         if (n0.out && r.s.nepaSeen !== n0.id) {
           r.s = { ...r.s, nepaSeen: n0.id };
-          sfx("nepa_off");
+          if (!calmRef.current) sfx("nepa_off");
           say("⚡ NEPA has taken light! Mama Nkechi: “Ah! NEPA don take light again o!”", undefined, "warn");
           setPanel((cur) => cur ?? "nepa");
         }
-        if (wasOut.current && !n0.out) { sfx("up_nepa"); say("💡 Nwiiiii… UP NEPA! Light has returned. “Shhhh! Before dem hear and take am again!”"); r.s = { ...r.s, genOn: false }; }
+        if (wasOut.current && !n0.out) { if (!calmRef.current) sfx("up_nepa"); say("💡 Nwiiiii… UP NEPA! Light has returned. “Shhhh! Before dem hear and take am again!”"); r.s = { ...r.s, genOn: false }; }
         wasOut.current = n0.out;
+        // checkout at 11 AM: the suite is no longer yours
+        const staying = C.lodged(p0.hotelUntil, now + offset.current);
+        if (stayRef.current && !staying) say("🔑 11 AM: you've checked out of the Candellux Imperial Suite. Thank you for staying!");
+        stayRef.current = staying;
       }
       if (r.s.spoiledAt > s.spoiledAt) say(r.s.plates === 0 && !p0?.owned.includes("fridge") ? "🤢 Your stored food spoiled: 8 game hours without a fridge. A fridge keeps it fresh." : "🤢 Your stored food spoiled: the fridge was off for 8 game hours. A Power Tank 1000 keeps it cold through a blackout.", undefined, "warn");
       setSave(r.s); setNow(now);
@@ -388,12 +399,21 @@ export default function LifeGame() {
     else start({ kind: mode === "dinein" ? "dinein" : "eat", label: mode === "dinein" ? "Eating in at Chef Adams" : "Eating your takeaway", icon: mode === "dinein" ? "🍽" : "🥡", end: { hunger: r.hunger, fun: r.fun, social: r.social } }, r.minutes);
   }
   async function hotel(h: C.HotelService) {
-    const r = await act<{ minutes: number; effect: Partial<Record<C.Need, number>>; set: Partial<Record<C.Need, number>> | null; boost: string | null }>({ action: "hotel", service: h.id });
+    const r = await act<{ minutes: number; effect: Partial<Record<C.Need, number>>; set: Partial<Record<C.Need, number>> | null; boost: string | null; checkout?: number | null; roomService?: boolean }>({ action: "hotel", service: h.id });
     if (!r) return;
     if (r.boost === "gym") update((x) => ({ ...x, gymUntil: Date.now() + C.GAME_DAY_MS }));
-    const swimLabel = h.id === "pool" ? `Swimming${(playerRef.current?.swimLessons ?? 0) >= C.SWIM_DEEP_LESSONS ? "" : " · shallow end"}` : h.id === "lesson" ? "Swimming lesson with Coach Femi" : h.name;
+    if (h.id === "suite") {
+      suite(60);
+      return say(`👑 Checked in to the Imperial Suite. It's yours till ${C.worldTime(r.checkout ?? 0).label} checkout, even when you go out: come back up any time.`, shareText("Living large at the Candellux Imperial in Notes Life 👑"));
+    }
+    const swimLabel = h.id === "pool" ? `Swimming${(playerRef.current?.swimLessons ?? 0) >= C.SWIM_DEEP_LESSONS ? "" : " · shallow end"}` : h.id === "lesson" ? "Swimming lesson with Coach Femi" : r.roomService ? "Room service in your suite" : h.name;
     start({ kind: "hotel", label: swimLabel, icon: h.icon, end: r.effect, set: r.set ?? undefined }, r.minutes);
-    if (h.id === "suite") say("👑 Checked in to the Imperial Suite.", shareText("Living large at the Candellux Imperial in Notes Life 👑"));
+  }
+  // Time in your Candellux suite (while the stay lasts): Energy, Hygiene, Bladder and Fun to 100% when it's done.
+  function suite(minutes: number, sleep = false) {
+    const p = playerRef.current, left = p ? Math.floor((p.hotelUntil - (Date.now() + offset.current)) / C.GAME_MIN_MS) : 0;
+    if (left <= 0) return say("Your stay is over: you checked out at 11 AM. Book the suite again for another night.", undefined, "warn");
+    start({ kind: "hotel", label: sleep ? `${SUITE_LABEL} · asleep` : SUITE_LABEL, icon: sleep ? "😴" : "🛏", set: C.SUITE_SET }, Math.max(1, Math.min(minutes, left)));
   }
   async function dwClass(c: C.Course) {
     const r = await act<{ minutes: number; effect: Partial<Record<C.Need, number>>; done: number; of: number; cert: boolean }>({ action: "dw_class", course: c.id });
@@ -776,12 +796,14 @@ export default function LifeGame() {
 
     if (panel === "food") return foodPanel(close);
     if (panel === "hotel" || panel === "hotelpool") {
-      const poolTab = panel === "hotelpool";
-      const hotelRow = (h: C.HotelService) => { const half = C.isStaff(p.jobId, "candellux") && C.STAFF_PERKS.hotelHalf.includes(h.id); return <Row key={h.id} icon={h.icon} title={h.id === "lesson" ? `${h.name} · ${Math.min(p.swimLessons + 1, C.SWIM_DEEP_LESSONS)} of ${C.SWIM_DEEP_LESSONS}` : h.name} note={<>{h.note}{h.id === "pool" && p.swimLessons < C.SWIM_DEEP_LESSONS && <b className="block text-sky-700">Shallow end until you&apos;ve had {C.SWIM_DEEP_LESSONS} lessons</b>}{half && <b className="block text-emerald-700">Staff: half price</b>}</>} pick={h.id === "pool"} right={h.soon ? <span className="text-slate">Soon</span> : <button disabled={busy || s.place !== "hotel"} onClick={() => hotel(h)} className="rounded-full bg-[#262b6b] px-3 py-1 font-bold text-white disabled:opacity-40">{C.fmtN(half ? Math.round(h.price / 2) : h.price)}</button>} />; };
+      const poolTab = panel === "hotelpool", stay = C.lodged(p.hotelUntil, Date.now() + offset.current);
+      const hotelRow = (h: C.HotelService) => { const half = C.isStaff(p.jobId, "candellux") && C.STAFF_PERKS.hotelHalf.includes(h.id); return <Row key={h.id} icon={h.icon} title={h.id === "lesson" ? `${h.name} · ${Math.min(p.swimLessons + 1, C.SWIM_DEEP_LESSONS)} of ${C.SWIM_DEEP_LESSONS}` : h.name} note={<>{h.note}{h.id === "pool" && p.swimLessons < C.SWIM_DEEP_LESSONS && <b className="block text-sky-700">Shallow end until you&apos;ve had {C.SWIM_DEEP_LESSONS} lessons</b>}{half && <b className="block text-emerald-700">Staff: half price</b>}</>} pick={h.id === "pool"} right={h.soon ? <span className="text-slate">Soon</span> : h.id === "suite" && stay ? <button disabled={busy || s.place !== "hotel" || !!s.activity} onClick={() => suite(60)} className="rounded-full bg-emerald-600 px-3 py-1 font-bold text-white disabled:opacity-40">Your room ✓</button> : <button disabled={busy || s.place !== "hotel"} onClick={() => hotel(h)} className="rounded-full bg-[#262b6b] px-3 py-1 font-bold text-white disabled:opacity-40">{C.fmtN(half ? Math.round(h.price / 2) : h.price)}</button>} />; };
       const vipIn = C.vipsAt(Date.now() + offset.current).in.map((id) => C.RESIDENT(id)?.name).filter(Boolean);
       return (<div>{close}
       {brandHead("candellux")}{brandTabs("candellux", poolTab ? "pool" : "main")}
       {s.place !== "hotel" && <p className="mt-3 rounded-xl bg-amber-50 px-3 py-2 text-xs text-amber-900">You&apos;re not at the hotel. <button className="font-bold underline" onClick={() => setPanel("go")}>Go to Garki</button></p>}
+      {stay && <div className="mt-3 rounded-2xl border border-[#e3b23c] bg-[#1c2030] p-3 text-white"><p className="text-[13px] font-bold text-[#e3b23c]">🛏 Your Imperial Suite</p><p className="text-[11px] text-white/80">Yours till <b className="text-white">{C.worldTime(p.hotelUntil).label}</b> checkout, even while you swim or go out. Time in the room: Energy, Hygiene, Bladder and Fun to 100%. The restaurant brings food up as room service: Hunger to 100%.</p>
+        {s.place === "hotel" ? <div className="mt-2 grid grid-cols-2 gap-2"><button disabled={!!s.activity} onClick={() => suite(60)} className="rounded-full bg-[#e3b23c] py-2.5 text-sm font-bold text-[#1c2030] disabled:opacity-40">🛋 Rest an hour</button><button disabled={!!s.activity} onClick={() => suite(8 * 60, true)} className="rounded-full border border-white/40 py-2.5 text-sm font-bold text-white disabled:opacity-40">😴 Sleep (up to 8 h)</button></div> : <p className="mt-1.5 text-[11px] text-white/70">Your room is kept while you&apos;re out.</p>}</div>}
       {!poolTab && <div className="mt-3 grid grid-cols-3 gap-1.5"><img src="/images/life/partners/candellux-night.webp" alt="Candellux Imperial Hotel & Suites at night" className="col-span-2 row-span-2 h-full w-full rounded-xl object-cover" /><img src="/images/life/partners/candellux-sign.webp" alt="The Candellux services sign" className="h-20 w-full rounded-xl object-cover" /><img src="/images/life/partners/candellux-gate-day.webp" alt="The Candellux gate by day" className="h-20 w-full rounded-xl object-cover" /></div>}
       <div className="mt-3 grid gap-1.5">{C.HOTEL.filter((h) => (h.tab === "pool") === poolTab).map(hotelRow)}</div>
       {poolTab && <>

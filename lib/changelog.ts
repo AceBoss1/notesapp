@@ -11,6 +11,19 @@ export type Release = {
 
 export const CHANGELOG: Release[] = [
   {
+    version: "v0.36.0",
+    bump: "minor",
+    date: "2026-10-16",
+    changes: [
+      { kind: "added", text: "Web addresses become links people can tap, everywhere members write: messages, comments, journals, moment captions, reviews, recommendations, profile bios and Notes Life chat. Type candelluximperialhotel.com, www.… or a full https:// address." },
+      { kind: "added", text: "Messages show a preview card under a message with a web address in it: the page's picture, title, description and site." },
+      { kind: "added", text: "Type @ in a journal, a comment, a reply, a message, a moment caption or Notes Life chat and NotesApp suggests members as you type: pick one with ↑ ↓ and Enter, or a tap. @username links to their profile everywhere it shows." },
+      { kind: "added", text: "Notes Life: a stay at the Candellux Imperial Suite. The room is yours till checkout at 11 AM game time (check in from 6 AM and it runs to 11 AM the next day), even while you swim or leave the hotel. Every time you're in the room, Energy, Hygiene, Bladder and Fun go to 100%: rest an hour or sleep up to 8 hours." },
+      { kind: "added", text: "Room service: while you're staying, food from the Candellux restaurant comes up to your suite and fills you up (Hunger to 100%)." },
+      { kind: "changed", text: "Notes Life plays a soft tune in your hotel suite, at the VIP bar and in class at the Digital Witch hub, and NEPA's noise (the generators, light going and coming back) stays out of all three." },
+    ],
+  },
+  {
     version: "v0.35.0",
     bump: "minor",
     date: "2026-10-16",

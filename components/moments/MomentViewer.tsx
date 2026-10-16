@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
+import LinkedText from "@/components/LinkedText";
 import { api } from "@/lib/moments-client";
 import { timeLeftLabel } from "@/lib/moments-rules";
 import type { MomentGroup, MomentView } from "@/lib/moments-server";
@@ -195,12 +196,12 @@ export default function MomentViewer({ moments, onClose, onChanged, groups, onSe
               onEnded={() => { if (advanced.current !== m.id) { advanced.current = m.id; next(); } }}
             />
           )}
-          {m.kind === "text" && <p className="px-8 text-center font-display text-3xl leading-snug">{m.text}</p>}
+          {m.kind === "text" && <p className="px-8 text-center font-display text-3xl leading-snug"><LinkedText text={m.text ?? ""} linkClass="text-white underline underline-offset-4" /></p>}
           {m.audioUrl && <audio key={m.id} src={m.audioUrl} autoPlay />}
         </div>
 
         <div className="absolute inset-x-0 bottom-0 z-10 space-y-2 bg-gradient-to-t from-black/85 via-black/55 to-transparent p-3 pt-20">
-          {m.kind !== "text" && m.text && <p className="text-center text-sm drop-shadow">{m.text}</p>}
+          {m.kind !== "text" && m.text && <p className="text-center text-sm drop-shadow"><LinkedText text={m.text} linkClass="font-semibold text-white underline underline-offset-2" /></p>}
           {note && <p className="text-xs text-amber-300" role="status">{note}</p>}
           {m.mine && showViewers && (
             <div className="max-h-44 overflow-y-auto rounded-2xl border border-white/20 bg-black/60 p-3 text-sm backdrop-blur lg:hidden" role="region" aria-label="Who watched">
