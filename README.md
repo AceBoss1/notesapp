@@ -1,6 +1,6 @@
 # #NotesApp — landing page + MVP
 
-**Start with "Where things stand" just below — it is the current state, env vars and deploy checklist.**
+**Start with "Where things stand" just below — it is the current state, env vars and deploy checklist. The hand-over note is `HANDOVER.md`.**
 
 **⚠ Read "Independent infrastructure migration" before this
 paragraph — it's the most recent, most important architectural
@@ -13,37 +13,46 @@ Firestore project and its own Cloudflare R2 bucket. Treat all
 architecture looks the way it does, not as the current state of
 Firestore access.
 
-## Where things stand (updated 10 Oct 2026)
+## Where things stand (updated 16 Oct 2026, v0.36.0)
 
 **Read this section first.** Everything below it is a chronological build log; where an older passage says something is
-"not built", "demo" or "shared with Precheks", this section is the current truth.
+"not built", "demo" or "shared with Precheks", this section is the current truth. Release notes for every version are in
+`lib/changelog.ts` (shown at `/changelog`); the hand-over note for the next person is `HANDOVER.md`.
 
 ### Live today
 | Area | What exists | Where to read more |
 |---|---|---|
-| Publishing | Journals (rich-text composer, drafts, premium posts), follow, likes, comments, shares, co-authoring, organisation channels and teams | "Who can publish", "Organisation accounts", co-authoring in "Boosts & gifts" |
+| Publishing | Journals (Markdown composer with toolbar and preview, drafts, premium posts), follow, likes, comments and replies, shares, co-authoring, organisation channels and teams, drag-and-drop or pasted pictures | "Who can publish", "Organisation accounts", co-authoring in "Boosts & gifts" |
+| **Links and @mentions** | Web addresses become links wherever members write (`lib/linkify.ts`, `components/LinkedText.tsx`, `remarkLinkify` for journals); link preview cards in Messages and Notes Life chat (`/api/link-preview`: signed in, public addresses only, every redirect re-checked, 512 KB / 5 s, cached 6 h); the @mention picker (`components/MentionPicker.tsx`, users by username prefix) in journals, comments, replies, messages, moment captions and Notes Life chat; @username links to `/u/username` | `/help` → "Links and @mentions" |
 | **Video on posts** | One MP4/WebM per post (≤ 100 MB, ≤ 3 min, weekly allowance by plan), our own player, cover-image picker, server-verified uploads | "Video on posts" |
 | **Share previews** | Per-post, per-store-item and per-store Open Graph cards | "Share previews (Open Graph)" |
 | Booking & money | Native calendar, Paystack checkout, escrow-style holds, automatic payouts, client rescheduling/cancellation + problem reports | "Payments, payouts, rates, reminders", "Money flow" |
-| Stores | Physical goods (managed stock, parcel IDs, rider links, tracking), digital downloads (private bucket, short-lived links), store boosts, official merch pre-orders | "Seller checkout and parcel tracking", "Boosts & gifts", `/store-selling` |
-| Promotion | Post/item boosts, gifts, self-serve banner ads and ad share | "Boosts & gifts", "Advertiser campaigns" |
-| Plans & badges | Free Standard/Basic, Pro, Business (Paystack plans), Enterprise (custom); maroon ✔, gold ✔ (endorsed; identity-checked is built but **Dojah is still on the sandbox**) | "Pro / Business plans", "Verified badge", "Dojah webhook" |
-| **Enterprise** | Server-to-server API (`/api/v1`), Console, signed webhooks, `/docs`, own domain (subdomain or root) | "API, Console, Docs and custom domains" |
-| Trust & ops | `/security`, `/status` (+ incidents, response times, email subscribers), `/changelog`, account export/deletion, error monitoring, traction snapshot, admin by custom claims | "Where to look when something's wrong" below |
-| **Messaging** | Direct messages and group chats (up to 50), voice notes, stickers, pinned messages and chats, typing indicator, edit/delete with reader consent, moments, block/report, device and email notifications, free voice/video calls that ring the installed app | "Where things stand" flags `NEXT_PUBLIC_MESSAGES_LIVE`, `NEXT_PUBLIC_MOMENTS_LIVE` |
-| **Nana AI and help centre** | Chat on every page, pinned in `/messages`, `/nana`, `/help` articles (built-in + staff, Admin → Help & Nana), writing help in drafts, sharing and messages, member-connected Anthropic key, Ask Nana in the team hub | "Nana AI and the help centre" |
-| **Links and @mentions** | Web addresses become links wherever members write (`lib/linkify.ts`, `components/LinkedText.tsx`, `remarkLinkify` for journals); link preview cards in Messages and Notes Life chat (`/api/link-preview`: signed in, public addresses only, every redirect re-checked, 512 KB / 5 s, cached 6 h); the @mention picker (`components/MentionPicker.tsx`, users by username prefix) in journals, comments, replies, messages, moment captions and Notes Life chat; @username links to `/u/username` | `/help` → "Links and @mentions" |
+| **NotesApp Credit wallet** | Top up ₦1,000 to ₦500,000 through Paystack (bonus credits on larger top-ups), pay with wallet or card or both, statement with filters, refunds to the wallet; switch: `NEXT_PUBLIC_WALLET_LIVE` | `lib/wallet.ts`, `lib/wallet-server.ts`, `/help` |
+| Stores | Physical goods (managed stock, categories, "ships from", parcel IDs, rider links, tracking), digital downloads (private bucket, short-lived links), saved items ♡, featured item, store boosts, reviews from buyers who received the item (with seller replies), official merch pre-orders; organisation admins can add and edit items | "Seller checkout and parcel tracking", "Boosts & gifts", `/store-selling` |
+| Promotion & discovery | Post/item boosts (cancel any time, half of what's left refunded), gifts, self-serve banner ads and ad share, Trending with a Top store items tab, recommendations on profiles and organisations | "Boosts & gifts", "Advertiser campaigns" |
+| Plans & badges | Free Standard/Basic, Pro, Business (Paystack plans), Enterprise (custom); prices set by the owner in Admin → Pricing; maroon ✔, gold ✔ (endorsed; identity-checked is built but **Dojah is still on the sandbox**) | "Pro / Business plans", "Verified badge", "Dojah webhook" |
+| **Enterprise** | Server-to-server API (`/api/v1`), Console, signed webhooks, `/docs`, own domain (subdomain or root), site themes (Legacy or Modern) for Business and Enterprise | "API, Console, Docs and custom domains" |
+| **App address** | `app.notesapp.name.ng`: welcome screen with sign-up and sign-in, a Download button that knows the device, then the journal feed | `middleware.ts` |
+| Trust & ops | `/security`, `/status` (+ incidents, response times, email subscribers, calls and their relay, Claude), `/changelog`, account export/deletion, error monitoring, traction snapshot (stored hourly), admin by custom claims and departments | "Where to look when something's wrong" below |
+| **Messaging** | Direct messages and group chats (up to 50, admin moderation), voice notes, stickers, emoji, bold/italic/underline, replies, pin 3 messages and 3 chats, typing indicator, edit/delete with reader consent once read, link previews, moments, block/report, device and email notifications | Flags `NEXT_PUBLIC_MESSAGES_LIVE`, `NEXT_PUBLIC_MOMENTS_LIVE` |
+| **Calls** | Free 1:1 voice and video calls between people who follow each other (WebRTC), call back from the call line, drag/swap self view, front/back camera, ringing on the installed app even when closed; relay through Cloudflare TURN or our own TURN | `lib/calls-server.ts`, flag `NEXT_PUBLIC_CALLS_LIVE` |
+| **Followers and presence** | Followers and Following lists on every profile, online now and last seen (only for people who follow you), two privacy switches | `/help` → "Followers, following and online status" |
+| **Nana AI and help centre** | Chat on every page, pinned in `/messages`, `/nana`, `/help` articles (built-in + staff, Admin → Help & Nana), writing help in drafts, sharing and messages, member-connected Anthropic key, Ask Nana in the team hub, help-centre-only answers when the AI is off | "Nana AI and the help centre" |
+| **Notes Life** | A free life game at `life.notesapp.name.ng` (and `/life`) played with the NotesApp account: needs, jobs and shifts, food (Chef Adams delivery, takeaway, dine-in, cooking), a fridge and microwave, NEPA blackouts with Power GO / generators / solar, Abuja (Lagos coming), partners Chef Adams, itel Energy, Candellux Imperial (suites with an 11 AM checkout, room service, the pool, swimming lessons, the VIP bar with a 360° view, gym) and Digital Witch (courses, certificates for tech jobs, Cynthia Okeh as #1 and her Saturday giveaway), partner outlets players can own, residents 🤖 and real players at the same place, chat with friends, invites (₦250 each), Billionaires List, sound. Game money (Notesville Naira) bought with the wallet or a card, never cashed out | README "Notes Life" section, `/help` → "How Notes Life works", `/life/partners`, flag `NEXT_PUBLIC_LIFE_LIVE` |
 | **Social publishing** | Publish a post to a connected LinkedIn or X account (`LINKEDIN_*`, `X_*` variables) | "Publish to LinkedIn and X" in `/changelog` |
-| **Team hub (internal)** | Work board, milestones, daily/weekly summaries, money ledger (finance/product/owner rules), staff roles and departments, grouped admin menu. Opens to Business and Enterprise after internal testing (`/teams`) | "Money ledger", `lib/admin-access.ts` |
-| **Public site** | Home and About with the owner's description, Trusted by and Partners marquees (`lib/partners.ts`, partner cards link to `/status`, Anthropic/Claude included), `/pricing`, `/teams`, `/roadmap` | `lib/partners.ts` |
+| **Team hub (internal)** | Work board (views by person, departments, due dates), milestones, daily/weekly summaries, meetings with Granola (each member connects their own account), money ledger, Grants & subscriptions, Expenses due, payment assignee and deadlines, payroll, staff library with "I have read this" and who has read it, team message hub, legal team access, Admin → Pricing, the AI agent-layer backlog (15 items with owners and due dates). Opens to Business and Enterprise after internal testing (`/teams`) | "Money ledger", `lib/admin-access.ts` |
+| **Public site** | Home and About with the owner's description, Trusted by and Partners marquees (`lib/partners.ts`), With thanks (programmes that back us), `/pricing`, `/teams`, `/roadmap`, `/domains`, the #1MillionNairaNotesAppChallenge; the standard description lives in `lib/site.ts` | `lib/partners.ts`, `lib/site.ts` |
 | Company | NOTESAPP TECHNOLOGIES LTD (RC and TIN in `lib/site.ts`; SMEDAN number pending) | "Company identity" |
 
 ### Not built yet
 WhatsApp reminders (plan: Meta WhatsApp Cloud API directly; booking reminders + delivery updates; needs Meta Business
-verification and approved templates) · publishing to Facebook, Instagram and TikTok (LinkedIn and X are built) · AI notetaker + MCP assistant ·
-team hub and team messaging for Business and Enterprise (internal only for now) · LinkedIn advertising (Advertising API development tier approved; being built: advertisers boost a post on LinkedIn from their own ad account (Business and Enterprise only), plus our own LinkedIn campaign stats on the admin Traction page, planned next) · iOS/Android apps ·
-video transcoding/streaming (we cap size and length instead) · Dojah **live** mode (README "Going live with Dojah") ·
-webhook retries (one attempt, manual resend) · OAuth for third-party API apps · checkout and bookings in a popup on custom domains, and a sending address on the member's own domain (sign-in and sign-up in the member's name are live) · Nana suggested replies, team hub tasks/payments/payroll/staff library, investor data room (all planned: see "Planned: team operations…") · runway calculator, CAC and MRR calculator, burn and revenue analytics, vesting and cap table (planned) · Sentry (we have built-in error monitoring instead).
+verification and approved templates) · publishing to Facebook, Instagram and TikTok (LinkedIn and X are built) · the NotesApp MCP server and the Nana operator
+(scoped; the work is on the team hub as the agent-layer backlog) · AI notetaker · team hub and team messaging for Business and Enterprise (internal only for now) ·
+LinkedIn advertising (Advertising API development tier approved; advertisers boost a post on LinkedIn from their own ad account, plus our own campaign stats on Traction) ·
+Paylony virtual accounts and bank payouts (client in `lib/paylony.ts`; the payout and reserved-account endpoints are not in yet) · domain sales and DNS management (Whogohost / go54) ·
+Notes Life: Lagos, the conference hall, real players in the VIP bar · iOS/Android apps · video transcoding/streaming (we cap size and length instead) · Dojah **live** mode (README "Going live with Dojah") ·
+webhook retries (one attempt, manual resend) · OAuth for third-party API apps · checkout and bookings in a popup on custom domains, and a sending address on the member's own domain (sign-in and sign-up in the member's name are live) ·
+investor data room, runway calculator, CAC and MRR calculator, burn and revenue analytics, vesting and cap table (planned) · voice (Listen on journals, Nana reading aloud) · Sentry (we have built-in error monitoring instead).
 
 ### Environment variables (Vercel → Settings → Environment Variables; redeploy after changing any)
 | Variable | Secret? | Purpose |
@@ -71,6 +80,17 @@ webhook retries (one attempt, manual resend) · OAuth for third-party API apps �
 | `LINKEDIN_CLIENT_ID`, `LINKEDIN_CLIENT_SECRET`, `X_CLIENT_ID`, `X_CLIENT_SECRET` | secrets **yes** | Publish a post to a member's LinkedIn / X (each network appears only when its two values are set; needs `ACCOUNT_DATA_KEY` too). Optional `LINKEDIN_API_VERSION` (YYYYMM, default 202606) |
 | `WHOGOHOST_RESELLER_EMAIL`, `WHOGOHOST_API_KEY` | key **yes** | Domain reseller API (Whogohost / go54). Production only, mark both Sensitive. Check them at `GET /api/admin/domains` (admin) |
 | `VERCEL_API_TOKEN`, `VERCEL_PROJECT_ID`, `VERCEL_TEAM_ID` | token **yes** | Optional: auto-connect Enterprise custom domains and `/status` check; team id only for a team project |
+| `NEXT_PUBLIC_MESSAGES_LIVE`, `NEXT_PUBLIC_MOMENTS_LIVE`, `NEXT_PUBLIC_CALLS_LIVE`, `NEXT_PUBLIC_WALLET_LIVE`, `NEXT_PUBLIC_LIFE_LIVE` | no | Feature switches; each is on unless set to `false` (calls also need messages on) |
+| `NEXT_PUBLIC_VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `VAPID_SUBJECT` | private key **yes** | Device notifications (web push) and call ringing; subject is `mailto:…` |
+| `CALL_PUSH_SECRET` | **yes** | Signs the answer/decline links in call notifications (falls back to the VAPID private key) |
+| `CLOUDFLARE_TURN_KEY_ID`, `CLOUDFLARE_TURN_API_TOKEN` | token **yes** | Cloudflare TURN relay for calls on strict networks; or our own: `TURN_URLS` (comma-separated), `TURN_USERNAME`, `TURN_CREDENTIAL` |
+| `GRANOLA_MCP_URL` | no | Granola's MCP address for the team hub (default `https://mcp.granola.ai/mcp`) |
+| `ANTHROPIC_BASE_URL` | no | Only to send Claude calls through a proxy (default `https://api.anthropic.com`) |
+| `LIFE_BONUS_MONTHLY_CAP_NAIRA` | no | Most NotesApp Bonus Credit Notes Life invites can pay out in a month (default 500,000) |
+| `PAYLONY_SECRET_KEY`, `PAYLONY_WEBHOOK_KEY`, `PAYLONY_ENCRYPTION_KEY` | **yes** | Paylony (virtual accounts and payouts, being added); `sk_test_…` or `sk_live_…` |
+| `WHOGOHOST_PROXY_URL` | no | Fixed-IP proxy for the Whogohost reseller API, when it needs an allow-listed address |
+| `OWNER_EMAIL` | no | The owner account (the first admin profile if unset) |
+| `REPORTS_EMAIL` | no | Where reports of members and content are emailed |
 
 Script-only (never in Vercel): `SOURCE_SERVICE_ACCOUNT`, `DEST_SERVICE_ACCOUNT` (migration), `GOOGLE_APPLICATION_CREDENTIALS`.
 A copy-paste template is `.env.local.example`.
@@ -78,8 +98,10 @@ A copy-paste template is `.env.local.example`.
 ### Deploy checklist (after merging a change that touches rules or indexes)
 1. `firebase deploy --only firestore` — publishes `firestore.rules` and the TTL policies in `firestore.indexes.json`
    (`errorLogs`, `webhookDeliveries`, `apiIdempotency`, `videoUploads`, plus older ones). If it offers to delete the
-   `adSeen`/`seen` field overrides, answer **N**.
-2. `npm run test:rules` before deploying rules (starts the Firestore emulator; needs Java) — 36 tests.
+   `adSeen`/`seen` field overrides, answer **N**. **Pending as of 16 Oct:** the rules that let Notes Life presence use the
+   Digital Witch hub (`dw`) are merged but not deployed.
+2. Before deploying rules or changing the economy: `npm run test:rules` (54 tests), `npm run test:life` (Notes Life economy,
+   prints `ALL OK`) and `npm run test:messages` (message edits). Each starts the Firestore emulator and needs Java.
 3. cron-job.org: `GET https://www.notesapp.name.ng/api/cron/reminders` every 15 min with `Authorization: Bearer $CRON_SECRET`, and
    `GET /api/status` every 5 min (so incidents are detected without visitors).
 4. Media bucket CORS from `scripts/r2-cors.json` on **both** R2 buckets (browser PUTs go straight to R2).
@@ -87,7 +109,8 @@ A copy-paste template is `.env.local.example`.
 ### Where to look when something's wrong
 `/status` (live checks: database, auth, uploads, media, **digital downloads**, **developer API**, **custom domains**, payments, email,
 identity, scheduled jobs) · `/admin/errors` (grouped errors, 30-day retention) · `/admin/traction` (numbers for decks) ·
-`/admin/payments` (held/failed payouts) · `/admin/api-access` (API access and domains) · Vercel → Logs.
+`/admin/payments` (held/failed payouts) · `/admin/api-access` (API access and domains) · `/admin/paylony` (Paylony keys and webhook) ·
+Firebase console → Firestore → Query insights (reads by collection) · Vercel → Logs, and Usage (Fluid Active CPU, build minutes).
 
 ### Scripts (`scripts/`)
 `set-admin-claims.mjs` · `set-founder-tier.mjs` · `fix-founder-profiles.mjs` · `move-suspensions.mjs` · `strip-user-emails.mjs` ·
