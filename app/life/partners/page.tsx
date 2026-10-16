@@ -100,10 +100,10 @@ export default function LifePartnersPage() {
               // A landscape card: the partner's place in the game behind, the text in white on their blue at the right, and
               // the founder's picture floating right in it.
               <article key={p.name} className="relative overflow-hidden rounded-3xl shadow-sm">
-                <Image src={p.feature.bg} alt={`${p.name} in Notes Life, the real game`} fill sizes="100vw" className="object-cover object-left" />
-                <div className="relative flex min-h-[30rem] flex-col justify-end pt-48 lg:flex-row lg:items-stretch lg:pt-0">
+                <div className="relative aspect-[1440/650] lg:absolute lg:inset-0 lg:aspect-auto"><Image src={p.feature.bg} alt={`${p.name} in Notes Life, the real game`} fill sizes="100vw" className="object-cover object-left" /></div>
+                <div className="relative flex flex-col lg:min-h-[30rem] lg:flex-row lg:items-stretch">
                   <div className="p-6 text-white sm:p-8 lg:ml-auto lg:w-[58%] lg:rounded-l-[2rem]" style={{ background: `${p.tone}f2` }}>
-                    <Image src={p.feature.photo} alt={p.feature.person} width={600} height={600} className="float-right -mt-24 mb-3 ml-4 w-32 rounded-2xl border-4 border-white object-cover shadow-2xl sm:-mt-28 sm:w-44 lg:-mt-2 lg:w-52 lg:rotate-2" />
+                    <Image src={p.feature.photo} alt={p.feature.person} width={600} height={600} className="float-right -mt-16 mb-3 ml-4 w-32 rounded-2xl border-4 border-white object-cover shadow-2xl sm:-mt-28 sm:w-44 lg:-mt-2 lg:w-52 lg:rotate-2" />
                     <div className="flex items-center gap-3"><Image src={p.logo} alt="" width={120} height={60} className={`${p.logoClass} ring-2 ring-white/30`} /><div><h3 className="font-ui text-xl font-extrabold">{p.name}</h3><p className="text-xs text-white/70">{p.where} · <span className="font-bold text-white">PARTNER</span></p></div></div>
                     <ul className="mt-4 space-y-1.5 text-sm">{p.what.map((w) => <li key={w} className="flex gap-2"><span className="text-sky-300">✓</span><span>{w}</span></li>)}</ul>
                     <div className="clear-both flex flex-wrap gap-2 pt-4">{p.real.map((r) => <a key={r.href} href={r.href} target="_blank" rel="noreferrer" className="rounded-full border border-white px-3 py-1.5 font-ui text-xs font-bold text-white hover:bg-white hover:text-ink">{r.label} ↗</a>)}</div>
