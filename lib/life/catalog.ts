@@ -371,7 +371,7 @@ export const giveawayOn = (now = Date.now()) => { const h = worldTime(now).hour;
 export const giveawayWeek = (now = Date.now()) => Math.floor(worldDay(now) / 7);
 export const giveawayEligible = (certs: string[], techShifts: number) => certs.length > 0 && techShifts >= GIVEAWAY.needTechShifts;
 export const giveawayPrize = (r: number) => (r < GIVEAWAY.pBig ? GIVEAWAY.big : r < GIVEAWAY.pBig + GIVEAWAY.pSmall ? GIVEAWAY.small : 0);
-export const CANDELLUX = { name: "Candellux Imperial Hotel & Suites", tagline: "…We Strive for the Best", address: "Area 1, No. 5 Sir Anebo Okekenta Street, Garki, Abuja", whatsapp: "2349160049435", whatsappLabel: "+234 916 004 9435" };
+export const CANDELLUX = { name: "Candellux Imperial Hotel & Suites", tagline: "…We Strive for the Best", address: "Area 1, No. 5 Sir Anebo Okekenta Street, Garki, Abuja", whatsapp: "2349160049435", whatsappLabel: "+234 916 004 9435", site: "https://candelluximperialhotel.com/" };
 
 // ---- Deal calls on the bedside phone ----
 export type DealTemplate = { who: string; from: string; ask: string; cost: number; pay: number; hours: number };

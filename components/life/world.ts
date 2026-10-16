@@ -80,7 +80,7 @@ export function createWorld(canvas: HTMLCanvasElement) {
     part(new THREE.BoxGeometry(w + 0.3, 0.08, 0.5), mat("#4b5563"), 0, up - 0.05, 0.1);
     const v = new THREE.Vector3(0, up + h + 0.35, 0).applyAxisAngle(new THREE.Vector3(0, 1, 0), ry); tag(key, x + v.x, v.y + 0.14, z + v.z);
   }
-  const BB = { digitalWitch: "billboards/digitalwitch.webp", itelSun: "billboards/itel-sun-is-free.webp", itelTank: "billboards/itel-power-tank-fridge.webp", itelInverter: "billboards/itel-inverter-power-tank.webp", chef: "billboards/chef-adams-menu.webp", shawarma: "billboards/chef-shawarma.webp", pizza: "billboards/chef-pizza.webp", fresh: "billboards/chef-sumting-fresh.webp" };
+  const BB = { digitalWitch: "billboards/digitalwitch.webp", digitalWitchWide: "billboards/digitalwitch-wide.webp", itelSun: "billboards/itel-sun-is-free.webp", itelTank: "billboards/itel-power-tank-fridge.webp", itelInverter: "billboards/itel-inverter-power-tank.webp", chef: "billboards/chef-adams-menu.webp", shawarma: "billboards/chef-shawarma.webp", pizza: "billboards/chef-pizza.webp", fresh: "billboards/chef-sumting-fresh.webp" };
   const CHALLENGE = "/images/challenge/challenge-banner.webp";
   function chefMan(x: number, z: number, rot = 0) { const g = person(x, z, "#ffffff", rot); const hat = new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.16, 0.32, 16), mat("#ffffff")); hat.position.set(0, 2.12, 0); g.add(hat); return g; }
   // Residents (computer players): their look from the catalogue, a tag the page draws as their name with 🤖.
@@ -261,7 +261,7 @@ export function createWorld(canvas: HTMLCanvasElement) {
     box(4, 3, 2, "#f1f5f9", 16.5, 0.14, -4.0); sign("Green Wheels\nE-bikes · EVs", "#065f46", "#ffffff", 3.6, 1.0, 16.5, 2.6, -2.98, 92);
     for (const x of [-12, -3, 6, 15]) { cyl(0.06, 4, "#475569", x, 0.14, -0.1); const p = box(0.8, 0.05, 0.5, "#1d4ed8", x, 4.15, -0.1); p.rotation.x = 0.35; }
     [-14, -9.5, -4, 4, 8.5, 20, -22, -17, 12, 25].forEach((x, i) => tree(x, i > 5 ? -7 : -4.4, i > 5 ? 1.4 : 1.1));
-    await Promise.all([billboard("bb:challenge", CHALLENGE, -6.5, -8.2, 5.0, 2.81, 0, 1.4), billboard("bb:itel", IMG(BB.itelSun), 1.2, -8.6, 2.3, 2.88, 0, 1.4), billboard("bb:chef", IMG(BB.chef), 8.8, -8.2, 5.0, 2.8, 0, 1.4), billboard("bb:chef3", IMG(BB.pizza), -13.6, -8.4, 2.8, 2.8, 0.1, 1.4), billboard("bb:chef4", IMG(BB.fresh), 14.4, -8.8, 2.8, 2.8, -0.1, 1.4)]);
+    await Promise.all([billboard("bb:challenge", CHALLENGE, -6.5, -8.2, 5.0, 2.81, 0, 1.4), billboard("bb:itel", IMG(BB.itelSun), 1.2, -8.6, 2.3, 2.88, 0, 1.4), billboard("bb:digitalwitch2", IMG(BB.digitalWitchWide), 8.8, -8.2, 5.0, 2.8, 0, 1.4), billboard("bb:chef3", IMG(BB.pizza), -13.6, -8.4, 2.8, 2.8, 0.1, 1.4), billboard("bb:chef4", IMG(BB.fresh), 14.4, -8.8, 2.8, 2.8, -0.1, 1.4)]);
     const phone = innerWidth < 700;
     cam.position.set(...(phone ? [0, 8, 22] : [2, 12, 24]) as [number, number, number]); controls.target.set(phone ? 0 : 2, phone ? 1.2 : 0.5, -0.5);
     controls.minDistance = 10; controls.maxDistance = 45;
@@ -485,7 +485,7 @@ export function createWorld(canvas: HTMLCanvasElement) {
     box(0.3, 0.8, 0.3, "#111", -6.6, 0, 2.6);
     if (night) { const sgl = new THREE.PointLight("#fbbf24", 2.5, 5); sgl.position.set(-6, 3, 4); scene.add(sgl); }
 
-    // ---- round the back: the pool, from their photo: green artificial grass, the blue mosaic pool with white edging and steel
+    // ---- round the back: the pool, from their photo: green artificial grass, the blue mosaic pool with sandstone coping and steel
     // ladders, stainless railings along the sandstone ground floor, a green-roofed pergola with vines, hedge columns on the right, black
     // rattan sofas; the pool bar in the middle of the building, the gym in the extension on the far right, the VIP bar on the left ----
     const PZ = -22, back = BZ - 3.75;
@@ -493,10 +493,22 @@ export function createWorld(canvas: HTMLCanvasElement) {
     turf.wrapS = turf.wrapT = THREE.RepeatWrapping; turf.repeat.set(8, 4);
     const lawn = new THREE.Mesh(new THREE.BoxGeometry(34, 0.1, 15), new THREE.MeshStandardMaterial({ map: turf, roughness: 1 })); lawn.position.set(0, 0.05, back - 8.6); lawn.receiveShadow = true; scene.add(lawn);
     const mosaic = canvasTex(256, 128, (g, w, h) => { const cols = ["#1d4ed8", "#2563eb", "#1e40af", "#3b82f6"]; for (let y = 0; y < h; y += 8) for (let x = 0; x < w; x += 8) { g.fillStyle = cols[((x * 7 + y * 3) / 8) % 4 | 0]; g.fillRect(x + 0.5, y + 0.5, 7, 7); } g.fillStyle = "#93c5fd"; for (let x = 0; x < w; x += 16) g.fillRect(x, 0, 8, 6); });
-    plane(11, 4.6, mosaic, -1, 0.115, PZ, -Math.PI / 2);
-    const water = new THREE.Mesh(new THREE.PlaneGeometry(11, 4.6), new THREE.MeshStandardMaterial({ color: night ? "#22d3ee" : "#60a5fa", transparent: true, opacity: 0.45, roughness: 0.05, emissive: night ? "#0891b2" : "#000000", emissiveIntensity: night ? 0.5 : 0 })); water.rotation.x = -Math.PI / 2; water.position.set(-1, 0.13, PZ); scene.add(water);
-    for (const [w0, d0, x0, z0] of [[11.8, 0.4, -1, PZ - 2.5], [11.8, 0.4, -1, PZ + 2.5], [0.4, 5.4, -6.7, PZ], [0.4, 5.4, 4.7, PZ]] as [number, number, number, number][]) box(w0, 0.16, d0, "#f5f5f0", x0, 0.04, z0);
-    for (const [x, z] of [[3.4, PZ - 2.5], [-5.2, PZ + 2.5]] as [number, number][]) { for (const dx of [-0.25, 0.25]) { rod(new THREE.Vector3(x + dx, 0.2, z), new THREE.Vector3(x + dx, 1.1, z), "#d1d5db", 0.03); rod(new THREE.Vector3(x + dx, 1.1, z), new THREE.Vector3(x + dx, 0.6, z + (z < PZ ? 0.5 : -0.5)), "#d1d5db", 0.03); } }
+    // the pool's shape, as in the photo: a long rectangle with one end rounded. The round end, up to the steps, is the shallow part
+    // (lighter water, a float line where it gets deep); the deep end is by the lifeguard. Wide sandstone coping all round.
+    const PX0 = -6.5, PX1 = 4.5, PR = 2.3, AX = PX0 + PR, STEP = -1.2;
+    const outline = (x1: number) => { const sh = new THREE.Shape(); sh.moveTo(AX, -PR); sh.lineTo(x1, -PR); sh.lineTo(x1, PR); sh.lineTo(AX, PR); sh.absarc(AX, 0, PR, Math.PI / 2, Math.PI * 1.5, false); return sh; };
+    const flat = (geo: THREE.BufferGeometry, m: THREE.Material, y: number) => { const o = new THREE.Mesh(geo, m); o.rotation.x = -Math.PI / 2; o.position.set(0, y, PZ); o.receiveShadow = true; scene.add(o); return o; };
+    mosaic.wrapS = mosaic.wrapT = THREE.RepeatWrapping; mosaic.repeat.set(0.2, 0.25);
+    flat(new THREE.ShapeGeometry(outline(PX1), 24), new THREE.MeshStandardMaterial({ map: mosaic, roughness: 0.6 }), 0.115);
+    flat(new THREE.ShapeGeometry(outline(STEP), 24), new THREE.MeshStandardMaterial({ color: "#bae6fd", transparent: true, opacity: 0.35, roughness: 0.2 }), 0.12);
+    flat(new THREE.ShapeGeometry(outline(PX1), 24), new THREE.MeshStandardMaterial({ color: night ? "#22d3ee" : "#60a5fa", transparent: true, opacity: 0.45, roughness: 0.05, emissive: night ? "#0891b2" : "#000000", emissiveIntensity: night ? 0.5 : 0 }), 0.13);
+    const COPING = "#e3cfa8";
+    const ring = flat(new THREE.RingGeometry(PR, PR + 0.45, 28, 1, Math.PI / 2, Math.PI), mat(COPING), 0.2); ring.position.x = AX;
+    for (const [w0, d0, x0, z0] of [[PX1 - AX + 0.45, 0.45, (AX + PX1 + 0.45) / 2, PZ - PR - 0.225], [PX1 - AX + 0.45, 0.45, (AX + PX1 + 0.45) / 2, PZ + PR + 0.225], [0.45, 2 * PR + 0.9, PX1 + 0.225, PZ]] as [number, number, number, number][]) box(w0, 0.16, d0, COPING, x0, 0.04, z0);
+    // the float line where the shallow part ends, by the steps
+    for (let z = -PR + 0.3; z <= PR - 0.3; z += 0.38) { const f = new THREE.Mesh(new THREE.SphereGeometry(0.1, 8, 6), mat(Math.round((z + PR) / 0.38) % 2 ? "#ef4444" : "#f8fafc")); f.position.set(STEP, 0.16, PZ + z); scene.add(f); }
+    // steel ladders: the steps into the shallow part, and one at the deep end
+    for (const [x, z] of [[STEP + 0.6, PZ + PR + 0.2], [3.4, PZ - PR - 0.2]] as [number, number][]) { for (const dx of [-0.25, 0.25]) { rod(new THREE.Vector3(x + dx, 0.2, z), new THREE.Vector3(x + dx, 1.1, z), "#d1d5db", 0.03); rod(new THREE.Vector3(x + dx, 1.1, z), new THREE.Vector3(x + dx, 0.6, z + (z < PZ ? 0.5 : -0.5)), "#d1d5db", 0.03); } }
     if (night) { const pl = new THREE.PointLight("#67e8f9", 6, 10); pl.position.set(-1, 1.5, PZ); scene.add(pl); }
     // stainless railings along the building, with gaps for the doors
     for (const [x0, x1] of [[-15, -3], [2, 14]]) { const zz = back - 1.4; rod(new THREE.Vector3(x0, 1.0, zz), new THREE.Vector3(x1, 1.0, zz), "#e5e7eb", 0.035); rod(new THREE.Vector3(x0, 0.6, zz), new THREE.Vector3(x1, 0.6, zz), "#e5e7eb", 0.02); for (let x = x0; x <= x1; x += 1.5) rod(new THREE.Vector3(x, 0.1, zz), new THREE.Vector3(x, 1.0, zz), "#e5e7eb", 0.03); }

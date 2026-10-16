@@ -12,6 +12,7 @@ import { loadSave, restorePoint, restorePoints, saveCloud, saveLocal, type Resto
 import { createWorld, type Power, type RoomSpot, type SceneSpec, type Tag, type World } from "./world";
 import { announce, hide, setShowMe, showMe, whoIsHere, type Present, type PresencePlace } from "./presence";
 import { TOPICS, chatWith, say as chatSay, type Line as ChatLine, type Topic } from "./chats";
+import VipPano from "./VipPano";
 import FriendChat, { type ChatFriend } from "./FriendChat";
 import { Sound, loadSoundPrefs, saveSoundPrefs, type Ambience, type Sfx, type SoundPrefs } from "./sound";
 
@@ -501,7 +502,7 @@ export default function LifeGame() {
   const tagInfo = (key: string): { label: string; up?: boolean; go: () => void } | null => {
     if (!player || !save) return null;
     if (key.startsWith("npc:")) { const r = C.RESIDENT(key.slice(4)); return r ? { label: `${r.name} 🤖${r.id === "cynthia" ? " · #1" : ""}`, go: () => setPanel({ chat: r.id }) } : null; }
-    if (key === "bb:digitalwitch") return { label: "📣 Digital Witch · Learn a tech skill", go: () => { setDwTab("courses"); setPanel("dw"); } };
+    if (key.startsWith("bb:digitalwitch")) return { label: "📣 Digital Witch · Learn a tech skill", go: () => { setDwTab("courses"); setPanel("dw"); } };
     if (spec?.id === "dw") {
       const open = C.dwOpen(Date.now() + offset.current);
       if (key === "hub") return { label: open ? "🎓 Digital Witch · Training Hub" : "🎓 Digital Witch · classes from 9 AM", up: true, go: () => { setDwTab("courses"); setPanel("dw"); } };
@@ -787,13 +788,14 @@ export default function LifeGame() {
         <button onClick={() => setPanel("vip")} className="mt-3 flex w-full items-center gap-3 rounded-2xl bg-[#1c2030] p-3 text-left text-white"><span className="text-2xl">👑</span><span className="min-w-0 flex-1 text-[11px]"><b className="block text-[13px] text-[#e3b23c]">In the VIP bar now</b>{vipIn.join(" and ")} 🤖</span><span className="text-xs font-bold">See →</span></button>
         <div className="mt-3 rounded-2xl bg-sky-50 p-3 text-[11px]"><b>Your swimming skill: {p.swimming} of 10.</b> <span className="text-slate">Lessons (+2) and swims raise it. Skill 5 qualifies you as a swimming instructor.</span><span className="bar mt-1.5 block"><i style={{ width: `${p.swimming * 10}%`, background: "#0ea5e9" }} /></span></div>
       </>}
-      {!poolTab && <div className="mt-3 flex gap-3 rounded-2xl border border-[#e3b23c] bg-[#fffbeb] p-2.5"><img src="/images/life/partners/candellux-pool.webp" alt="" className="h-16 w-20 shrink-0 rounded-xl object-cover" /><div className="min-w-0 text-[11px]"><b className="block text-[12px]">Stay at the real Candellux</b>{C.CANDELLUX.address} · WhatsApp {C.CANDELLUX.whatsappLabel}<a href={WA("Hello Candellux, I'd like to book a room (I found you on Notes Life).", C.CANDELLUX.whatsapp)} target="_blank" rel="noreferrer" className="mt-1 block font-bold text-[#262b6b] underline">Book a real room ↗</a></div></div>}
+      {!poolTab && <div className="mt-3 flex gap-3 rounded-2xl border border-[#e3b23c] bg-[#fffbeb] p-2.5"><img src="/images/life/partners/candellux-pool.webp" alt="" className="h-16 w-20 shrink-0 rounded-xl object-cover" /><div className="min-w-0 text-[11px]"><b className="block text-[12px]">Stay at the real Candellux</b>{C.CANDELLUX.address} · WhatsApp {C.CANDELLUX.whatsappLabel}<a href={WA("Hello Candellux, I'd like to book a room (I found you on Notes Life).", C.CANDELLUX.whatsapp)} target="_blank" rel="noreferrer" className="mt-1 block font-bold text-[#262b6b] underline">Book a real room ↗</a><a href={C.CANDELLUX.site} target="_blank" rel="noreferrer" className="mt-0.5 block text-[#262b6b] underline">candelluximperialhotel.com ↗</a></div></div>}
       <p className="mt-2 text-center text-[10px] text-slate">Candellux Imperial is a Notes Life partner. Turn the camera round at the hotel: the pool is at the back.</p></div>);
     }
     if (panel === "vip") {
       const v = C.vipsAt(Date.now() + offset.current), vip = C.HOTEL_OF("vipbar")!, bar = C.HOTEL_OF("poolbar")!;
       const nx = v.next ? C.RESIDENT(v.next) : null, rank = (id: string) => C.RESIDENTS.filter((r) => r.netWorth).sort((a2, b2) => (b2.netWorth ?? 0) - (a2.netWorth ?? 0)).findIndex((r) => r.id === id) + 1;
-      return (<div>{close}<p className="text-[11px] font-bold uppercase tracking-widest text-[#8a6a12]">👑 VIP bar · Candellux</p><h2 className="text-xl font-extrabold">Who&apos;s in {night ? "tonight" : "now"}</h2>
+      // The real VIP bar at the Candellux, from their photos, as a 360° view: what players see when they walk in.
+      return (<div>{close}<div className="mb-3 mt-1"><VipPano /></div><p className="text-[11px] font-bold uppercase tracking-widest text-[#8a6a12]">👑 VIP bar · Candellux</p><h2 className="text-xl font-extrabold">Who&apos;s in {night ? "tonight" : "now"}</h2>
         <p className="text-xs text-slate">Where the top of the Billionaires List drinks. 15% more than the pool bar. Who&apos;s in changes every {C.VIP_EVERY_HOURS} game hours.</p>
         <div className="mt-3 grid gap-2">{v.in.map((id, i) => { const r = C.RESIDENT(id)!; return <Row key={id} pick={i === 0} icon={r.photo ? <img src={r.photo} alt="" className="h-10 w-10 rounded-full object-cover ring-2 ring-amber-400" /> : <span className="flex h-10 w-10 items-center justify-center rounded-full text-sm font-bold text-white" style={{ background: r.look[0] === "#f5f5f4" ? "#78716c" : r.look[0] }}>{r.name.split(" ").filter((w) => w[0] === w[0].toUpperCase()).map((w) => w[0]).slice(-2).join("")}</span>} title={`${r.name} 🤖 · #${rank(id)}`} note={`${r.role} · ${C.fmtShort(r.netWorth ?? 0)} · “${r.lines.money[0]}”`} right={<button onClick={() => setPanel({ chat: id })} className="rounded-full bg-[#262b6b] px-3 py-1 font-bold text-white">Say hello</button>} />; })}
           {nx && <Row icon="🔒" title={`Next in: ${nx.name} 🤖`} note={`${nx.role} · arrives at ${C.worldTime(v.nextAt).label}`} />}</div>
