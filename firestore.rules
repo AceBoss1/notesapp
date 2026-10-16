@@ -834,7 +834,7 @@ service cloud.firestore {
       allow read: if isSignedIn();
       allow create, update: if isSignedIn() && request.auth.uid == uid
         && request.resource.data.keys().hasOnly(['place', 'outfit', 'at'])
-        && request.resource.data.place in ['home', 'work', 'chef', 'hotel', 'itel', 'ride']
+        && request.resource.data.place in ['home', 'work', 'chef', 'hotel', 'itel', 'dw', 'ride']
         && request.resource.data.outfit is string && request.resource.data.outfit.size() <= 9
         && request.resource.data.at is int;
       allow delete: if isSignedIn() && request.auth.uid == uid;

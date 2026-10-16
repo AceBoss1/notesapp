@@ -108,13 +108,14 @@ export const TRANSPORT: { id: TransportId; name: string; icon: string; minutes: 
 export const TRANSPORT_OF = (id: string) => TRANSPORT.find((t) => t.id === id);
 export const EBIKE_PROMPT_AFTER = 3; // after this many bicycle rides, suggest an e-bike
 
-export type PlaceId = "home" | "work" | "chef" | "hotel" | "itel";
+export type PlaceId = "home" | "work" | "chef" | "hotel" | "itel" | "dw";
 export const PLACES: { id: PlaceId; name: string; area: string; icon: string }[] = [
   { id: "home", name: "Home", area: "Wuse", icon: "🏠" },
   { id: "chef", name: "Chef Adams", area: "Wuse", icon: "🍽" },
   { id: "hotel", name: "Candellux Imperial", area: "Garki", icon: "👑" },
   { id: "itel", name: "itel Energy", area: "Wuse", icon: "⚡" },
   { id: "work", name: "Work", area: "Garki", icon: "💼" },
+  { id: "dw", name: "Digital Witch hub", area: "CBD", icon: "🎓" },
 ];
 
 // ---- Jobs (they mirror NotesApp careers; Chef Adams is a partner brand) ----
@@ -126,6 +127,8 @@ export type Job = {
   extra?: { label: string; min: number; max: number; step: number }; // paid on top when the shift ends: tips, a bonus on what you sold
   needSwim?: number; needGymSessions?: number; // swimming skill (lessons and swims at Candellux), gym sessions done
   meal?: number; // a free staff meal at the end of the shift (Hunger)
+  needCert?: string; // a Digital Witch certificate: a course id, or "any"
+  tech?: boolean; // a tech job: its shifts count towards Cynthia's graduate giveaway
 };
 export const SHIFT_HOURS = 4;
 export const SHIFT_MS = SHIFT_HOURS * GAME_HOUR_MS; // 8 real minutes
@@ -133,7 +136,14 @@ export const JOBS: Job[] = [
   { id: "writer", title: "Junior writer", employer: "Notesville Daily · from your desk", icon: "✍️", pay: 6_000, place: "home", ladder: "Intern → Editor → Publisher" },
   { id: "rider", title: "Delivery rider", employer: "Wuse market · your bicycle", icon: "📦", pay: 4_500, place: "work", usesBike: true, needItem: ["bicycle", "ebike"], ladder: "E-bike: 2× more deliveries" },
   { id: "tutor", title: "Maths tutor", employer: "Book sessions, like on NotesApp", icon: "🎓", pay: 8_000, place: "work", ladder: "Needs a good mood (all needs green)" },
-  { id: "tech", title: "Tech freelancer", employer: "Remote clients · from your desk", icon: "💻", pay: 15_000, place: "home", needItem: ["pc_laptop", "pc_aio"] },
+  { id: "tech", title: "Tech freelancer", employer: "Remote clients · from your desk", icon: "💻", pay: 15_000, place: "home", needItem: ["pc_laptop", "pc_aio"], needCert: "any", tech: true },
+  // Tech jobs: remote, from your desk, each needs its Digital Witch certificate (from 16 October 2026; players already in a tech job keep it)
+  { id: "dw_va", title: "Remote virtual assistant", employer: "Remote clients · from your desk · Digital Witch certified", icon: "🧑‍💻", pay: 9_000, place: "home", needCert: "va", tech: true },
+  { id: "dw_cs", title: "Remote customer support", employer: "Global brands · from your desk · Digital Witch certified", icon: "🎧", pay: 8_500, place: "home", needCert: "cs", tech: true },
+  { id: "dw_smm", title: "Social media manager", employer: "Brands and creators · from your desk · Digital Witch certified", icon: "📱", pay: 11_000, place: "home", needCert: "smm", tech: true },
+  { id: "dw_pm", title: "Remote project coordinator", employer: "Tech teams abroad · from your desk · Digital Witch certified", icon: "🗂", pay: 14_000, place: "home", needCert: "pm", tech: true },
+  { id: "dw_data", title: "Data analyst", employer: "Remote clients · from your desk · Digital Witch certified", icon: "📊", pay: 16_000, place: "home", needItem: ["pc_laptop", "pc_aio"], needCert: "data", tech: true },
+  { id: "dw_ux", title: "UI/UX designer", employer: "Product teams · from your desk · Digital Witch certified", icon: "🎨", pay: 18_000, place: "home", needItem: ["pc_laptop", "pc_aio"], needCert: "ux", tech: true },
   { id: "fashion", title: "Fashion seller", employer: "Your own stall at Wuse market", icon: "🧵", pay: 0, place: "work", soon: true, ladder: "Your own store, like on NotesApp" },
   { id: "chef_kiosk", title: "Kiosk attendant", employer: "Chef Adams · takeaway kiosk, Wuse", icon: "🥡", pay: 4_000, place: "chef", brand: "chef_adams", needHygiene: 60 },
   { id: "chef_cook", title: "Line cook", employer: "Chef Adams · trained on the house recipes", icon: "🍳", pay: 5_500, place: "chef", brand: "chef_adams", needCooking: 3, ladder: "Cook → Supervisor → Partner" },
@@ -167,7 +177,7 @@ export function shiftPay(job: Job, owned: string[], needsLow: boolean): number {
   if (needsLow) pay *= LOW_PAY_FACTOR;
   return Math.round(pay);
 }
-export type JobCheck = { owned: string[]; cooking: number; chefShifts: number; itelShifts?: number; hotelShifts?: number; reputation: number; fit?: boolean; swim?: number; gymSessions?: number };
+export type JobCheck = { owned: string[]; cooking: number; chefShifts: number; itelShifts?: number; hotelShifts?: number; reputation: number; fit?: boolean; swim?: number; gymSessions?: number; certs?: string[] };
 export const brandShifts = (p: Pick<JobCheck, "chefShifts" | "itelShifts" | "hotelShifts">, b: Brand) => (b === "chef_adams" ? p.chefShifts : b === "itel" ? p.itelShifts ?? 0 : p.hotelShifts ?? 0);
 export function jobBlocker(job: Job, p: JobCheck): string | null {
   if (job.soon) return "Coming soon";
@@ -178,6 +188,10 @@ export function jobBlocker(job: Job, p: JobCheck): string | null {
   if (job.needFitness && !p.fit) return "Needs fitness: train at the Candellux gym first";
   if (job.needSwim && (p.swim ?? 0) < job.needSwim) return `Needs swimming skill ${job.needSwim} (you have ${p.swim ?? 0})`;
   if (job.needGymSessions && (p.gymSessions ?? 0) < job.needGymSessions) return `After ${job.needGymSessions} gym sessions (${p.gymSessions ?? 0} so far)`;
+  if (job.needCert) {
+    const certs = p.certs ?? [];
+    if (job.needCert === "any" ? !certs.length : !certs.includes(job.needCert)) return job.needCert === "any" ? "Needs a Digital Witch certificate" : `Needs the Digital Witch ${DW_COURSE(job.needCert)?.name ?? ""} certificate`;
+  }
   return null;
 }
 // The extra on top of a shift (tips, a sales bonus), rolled when it ends.
@@ -314,12 +328,49 @@ export const swimSkill = (lessons: number, swims: number) => Math.min(10, lesson
 // The VIP bar: who's in changes every 4 game hours, two at a time from the richest residents on the Billionaires List (real players later).
 export const VIP_EVERY_HOURS = 4;
 export function vipsAt(now = Date.now()): { in: string[]; next: string | null; nextAt: number } {
-  const top = RESIDENTS.filter((r) => r.netWorth).sort((a, b) => (b.netWorth ?? 0) - (a.netWorth ?? 0)).slice(0, 4).map((r) => r.id);
+  const top = RESIDENTS.filter((r) => r.netWorth && r.id !== "cynthia").sort((a, b) => (b.netWorth ?? 0) - (a.netWorth ?? 0)).slice(0, 4).map((r) => r.id);
   if (!top.length) return { in: [], next: null, nextAt: now };
   const span = VIP_EVERY_HOURS * GAME_HOUR_MS, slot = Math.floor((now - WORLD_EPOCH) / span);
   const at = (k: number) => top[((k % top.length) + top.length) % top.length];
+  // Cynthia Okeh (Digital Witch, #1) is at the VIP bar every evening (cynthiaAt); the rest of the top of the list takes turns beside her.
+  if (cynthiaAt(now) === "hotel") return { in: ["cynthia", at(slot)], next: at(slot + 1), nextAt: WORLD_EPOCH + (slot + 1) * span };
   return { in: Array.from(new Set([at(slot), at(slot + 1)])), next: at(slot + 2), nextAt: WORLD_EPOCH + (slot + 1) * span };
 }
+// ---- Digital Witch (partner, from 16 October 2026): an EdTech platform for on-demand tech skills, founded by Ekwutosi Cynthia Okeh.
+// Its training hub is the ground floor of the Skyscraper Plaza in the Central Business District. Courses are paid in Notesville Naira;
+// passing every class gives a Digital Witch certificate, which tech jobs need. Cynthia is at the hub by day and the Candellux VIP bar
+// in the evening, and on Saturday nights she gives some of her graduates who are doing well N$ 500,000 or N$ 1,000,000. ----
+export const DIGITAL_WITCH = { name: "Digital Witch", site: "https://digitalwitchng.com", whatsapp: "2347011944457", whatsappLabel: "+234 701 194 4457", learners: "150,000+", place: "Skyscraper Plaza, Central Business District" };
+export type Course = { id: string; name: string; icon: string; price: number; classes: number; job: string };
+export const DW_COURSES: Course[] = [
+  { id: "va", name: "Virtual Assistant", icon: "🧑‍💻", price: 60_000, classes: 4, job: "dw_va" },
+  { id: "cs", name: "Customer Support", icon: "🎧", price: 60_000, classes: 4, job: "dw_cs" },
+  { id: "smm", name: "Social Media Management", icon: "📱", price: 80_000, classes: 5, job: "dw_smm" },
+  { id: "pm", name: "Project Management", icon: "🗂", price: 100_000, classes: 5, job: "dw_pm" },
+  { id: "data", name: "Data Analysis", icon: "📊", price: 120_000, classes: 6, job: "dw_data" },
+  { id: "ux", name: "UI/UX Design", icon: "🎨", price: 120_000, classes: 6, job: "dw_ux" },
+];
+export const DW_COURSE = (id: string) => DW_COURSES.find((c) => c.id === id);
+export const DW_CLASS_HOURS = 2;
+export const DW_CLASS_MS = DW_CLASS_HOURS * GAME_HOUR_MS; // 4 real minutes
+export const DW_CLASS_EFFECT: Partial<Record<Need, number>> = { energy: -10, fun: 5 };
+export const DW_HOURS = { from: 9, to: 18 }; // classes run 9 AM to 6 PM
+export const dwOpen = (now = Date.now()) => { const h = worldTime(now).hour; return h >= DW_HOURS.from && h < DW_HOURS.to; };
+// Where Cynthia is: the hub 9 AM to 5 PM, the Candellux VIP bar 7 PM to 11 PM, home otherwise.
+export function cynthiaAt(now = Date.now()): "dw" | "hotel" | null {
+  const h = worldTime(now).hour;
+  return h >= 9 && h < 17 ? "dw" : h >= 19 && h < 23 ? "hotel" : null;
+}
+// Game days and weeks, counted from midnight (a game day's clock starts at 6 AM, see worldTime). Day 0 was a Monday.
+export const worldDay = (now = Date.now()) => Math.floor((now - WORLD_EPOCH + GAME_DAY_MS / 4) / GAME_DAY_MS);
+export const WEEKDAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
+export const weekdayOf = (now = Date.now()) => ((worldDay(now) % 7) + 7) % 7;
+// The graduate giveaway: Saturday 7 PM to 11 PM at the VIP bar, once a game week per player, for certified players with 10 tech shifts.
+export const GIVEAWAY = { weekday: 5, from: 19, to: 23, needTechShifts: 10, big: 1_000_000, small: 500_000, pBig: 0.05, pSmall: 0.1 };
+export const giveawayOn = (now = Date.now()) => { const h = worldTime(now).hour; return weekdayOf(now) === GIVEAWAY.weekday && h >= GIVEAWAY.from && h < GIVEAWAY.to; };
+export const giveawayWeek = (now = Date.now()) => Math.floor(worldDay(now) / 7);
+export const giveawayEligible = (certs: string[], techShifts: number) => certs.length > 0 && techShifts >= GIVEAWAY.needTechShifts;
+export const giveawayPrize = (r: number) => (r < GIVEAWAY.pBig ? GIVEAWAY.big : r < GIVEAWAY.pBig + GIVEAWAY.pSmall ? GIVEAWAY.small : 0);
 export const CANDELLUX = { name: "Candellux Imperial Hotel & Suites", tagline: "…We Strive for the Best", address: "Area 1, No. 5 Sir Anebo Okekenta Street, Garki, Abuja", whatsapp: "2349160049435", whatsappLabel: "+234 916 004 9435" };
 
 // ---- Deal calls on the bedside phone ----
@@ -394,7 +445,7 @@ export function nepaAt(now = Date.now()): { out: boolean; id: string | null; unt
 
 // ---- Residents: computer players of Notesville, always marked 🤖. They live in the scenes, chat (kept on your device only), and a few
 // sit on the Billionaires List so new players have someone to chase. ----
-export type Resident = { id: string; name: string; role: string; area: string; look: [string, string, string, boolean]; netWorth?: number; owned?: string; lines: Record<"greet" | "food" | "work" | "nepa" | "money", string[]> };
+export type Resident = { id: string; name: string; role: string; area: string; look: [string, string, string, boolean]; netWorth?: number; owned?: string; photo?: string; partner?: string; lines: Record<"greet" | "food" | "work" | "nepa" | "money", string[]> };
 const L = (greet: string[], food: string[], work: string[], nepa: string[], money: string[]) => ({ greet, food, work, nepa, money });
 export const RESIDENTS: Resident[] = [
   { id: "nkechi", name: "Mama Nkechi", role: "Your neighbour · pepper soup seller", area: "Wuse", look: ["#7c3aed", "#5b3520", "#1f2937", true], netWorth: 230_000,
@@ -413,9 +464,12 @@ export const RESIDENTS: Resident[] = [
     lines: L(["Young man, young woman. Hard work pays.", "Assalamu alaikum."], ["Candellux restaurant is where I hold my meetings."], ["Start small. My first business was one shop in Wuse."], ["All my buildings run on solar. NEPA is not my business."], ["Property. Always property."]) },
   { id: "ifeoma", name: "Dr Ifeoma Obi", role: "Clinics, Asokoro", area: "Asokoro", look: ["#0f766e", "#7a4a2c", "#1f2937", true], netWorth: 2_100_000_000, owned: "🏥 🚙",
     lines: L(["Good day. Are you keeping well?", "Remember to sleep. Energy matters."], ["Eat well. Hunger lowers your pay, you know."], ["Skills first. Then money follows."], ["My clinics can't stop for NEPA. Inverters and batteries everywhere."], ["Invest in what you know."]) },
+  // A real partner: Ekwutosi Cynthia Okeh, founder of Digital Witch (her photo, with her permission through the partnership).
+  { id: "cynthia", name: "Ekwutosi Cynthia Okeh", role: "Founder, Digital Witch · on-demand skills coach", area: "Central Business District", look: ["#111827", "#6b3f22", "#111827", false], netWorth: 7_500_000_000, owned: "🎓 🏙 🚙", photo: "/images/life/partners/cynthia-okeh.webp", partner: "digital_witch",
+    lines: L(["Welcome! Are you ready to learn a skill that pays in dollars?", "Hello, my dear! Remember: your background doesn't decide your future."], ["Feed your body, then feed your brain. Class starts at 9!"], ["Get certified, then get hired. Remote work doesn't care where you live.", "Pick one skill, master it, and the world becomes your office."], ["NEPA can take light, but nobody can take your skill. Charge your laptop and keep learning."], ["Learn, earn, repeat. My graduates who do well get a giveaway from me now and then.", "Skills first. The money will follow."]) },
   { id: "aisha", name: "Aisha", role: "Student", area: "Wuse", look: ["#16a34a", "#8a5a3b", "#1f2937", true],
     lines: L(["Hi! Exams soon, I'm reading every night."], ["Noodles and egg is my survival meal."], ["Tutoring pays well if your needs are green."], ["I bought Power GO to read at night. Best decision."], ["I'm saving for a laptop."]) },
 ];
 export const RESIDENT = (id: string) => RESIDENTS.find((r) => r.id === id);
 // Which residents you meet where.
-export const RESIDENTS_AT: Partial<Record<PlaceId | "street", string[]>> = { street: ["nkechi", "tunde", "halima", "emeka"], chef: ["halima", "emeka"], itel: ["dauda", "aisha", "chinedu"], hotel: ["musa", "ifeoma"], home: ["nkechi"] };
+export const RESIDENTS_AT: Partial<Record<PlaceId | "street", string[]>> = { street: ["nkechi", "tunde", "halima", "emeka"], chef: ["halima", "emeka"], itel: ["dauda", "aisha", "chinedu"], hotel: ["musa", "ifeoma"], home: ["nkechi"], dw: ["aisha"] };

@@ -1,10 +1,10 @@
 import type { Metadata } from "next";
 import Image from "next/image";
-import { CANDELLUX, ITEL, REAL_PARTNER } from "@/lib/life/catalog";
+import { CANDELLUX, DIGITAL_WITCH, ITEL, REAL_PARTNER } from "@/lib/life/catalog";
 
 export const metadata: Metadata = {
   title: "Partner with Notes Life",
-  description: "Put your brand in Notes Life, the free NotesApp life game: your own place in Notesville, jobs, outlets players can own, billboards and links to your real shop. Meet our partners: Chef Adams, itel Energy and Candellux Imperial.",
+  description: "Put your brand in Notes Life, the free NotesApp life game: your own place in Notesville, jobs, outlets players can own, billboards and links to your real shop. Meet our partners: Chef Adams, itel Energy, Candellux Imperial and Digital Witch.",
   alternates: { canonical: "https://life.notesapp.name.ng/partners" },
   openGraph: { title: "Partner with Notes Life", description: "Your brand, in the game players live in.", images: ["/images/life/shots/chef-desktop.webp"] },
 };
@@ -48,6 +48,11 @@ const partners: { name: string; logo: string; logoClass: string; shot: string; w
     name: "Candellux Imperial Hotel & Suites", logo: "/images/life/partners/candellux-logo.webp", logoClass: "h-14 w-14 rounded-full object-cover", shot: "/images/life/shots/hotel-desktop.webp", where: "Hotel · Garki, Abuja", tone: "#262b6b",
     what: ["The hotel built from the real Candellux, by day and by night, with the pool, pool bar, VIP bar and gym at the back", "Swimming with other players, and swimming lessons that open the deep end", "Suites, the 24-hour restaurant, barbing saloon and laundry", "Jobs: front desk, waiter, housekeeping, lifeguard, swimming instructor, gym instructor, cook, duty manager", "Staff perks: half price at the pool, gym, pool bar and VIP bar"],
     real: [{ href: `https://wa.me/${CANDELLUX.whatsapp}?text=${encodeURIComponent("Hello Candellux, I'd like to book a room (I found you on Notes Life).")}`, label: `Book on WhatsApp · ${CANDELLUX.whatsappLabel}` }],
+  },
+  {
+    name: "Digital Witch", logo: "/images/life/partners/digitalwitch-logo.webp", logoClass: "h-14 w-14 rounded-xl object-cover", shot: "/images/life/billboards/digitalwitch.webp", where: "EdTech · Skyscraper Plaza, CBD", tone: "#0b1442",
+    what: ["Ekwutosi Cynthia Okeh, the founder, is in the game as #1 on the Billionaires List: at the training hub by day and the Candellux VIP bar in the evening", "Courses at the Digital Witch hub: Virtual Assistant, Customer Support, Social Media, Project Management, Data Analysis, UI/UX", "Digital Witch certificates open the tech jobs, from remote virtual assistant to UI/UX designer", "Saturday-night giveaways of N$ 500,000 and N$ 1,000,000 for graduates doing well, and adverts at the Wuse bus stand"],
+    real: [{ href: DIGITAL_WITCH.site, label: "digitalwitchng.com" }, { href: `https://wa.me/${DIGITAL_WITCH.whatsapp}?text=${encodeURIComponent("Hello Digital Witch, I'd like to learn a tech skill (I found you on Notes Life).")}`, label: `WhatsApp · ${DIGITAL_WITCH.whatsappLabel}` }],
   },
 ];
 

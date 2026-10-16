@@ -15,7 +15,8 @@ export type SceneSpec =
   | { id: "itel"; outfit: string; night: boolean; others: Other[]; mine?: Mine[] }
   | { id: "street"; outfit: string; night: boolean; riding: string | null; others: Other[] }
   | { id: "chef"; outfit: string; night: boolean; others: Other[]; mine?: Mine[] }
-  | { id: "hotel"; outfit: string; others: Other[]; night?: boolean; view?: "front" | "pool" | "aerial"; swim?: boolean; vips?: string[] };
+  | { id: "hotel"; outfit: string; others: Other[]; night?: boolean; view?: "front" | "pool" | "aerial"; swim?: boolean; vips?: string[] }
+  | { id: "dw"; outfit: string; others: Other[]; night?: boolean; cynthia?: boolean; learning?: boolean };
 export type RoomSpot = "rug" | "bed" | "desk" | "bath" | "wc" | "wardrobe" | "cooker" | "phone";
 export type Tag = { key: string; x: number; y: number; visible: boolean };
 
@@ -79,11 +80,19 @@ export function createWorld(canvas: HTMLCanvasElement) {
     part(new THREE.BoxGeometry(w + 0.3, 0.08, 0.5), mat("#4b5563"), 0, up - 0.05, 0.1);
     const v = new THREE.Vector3(0, up + h + 0.35, 0).applyAxisAngle(new THREE.Vector3(0, 1, 0), ry); tag(key, x + v.x, v.y + 0.14, z + v.z);
   }
-  const BB = { itelSun: "billboards/itel-sun-is-free.webp", itelTank: "billboards/itel-power-tank-fridge.webp", itelInverter: "billboards/itel-inverter-power-tank.webp", chef: "billboards/chef-adams-menu.webp", shawarma: "billboards/chef-shawarma.webp", pizza: "billboards/chef-pizza.webp", fresh: "billboards/chef-sumting-fresh.webp" };
+  const BB = { digitalWitch: "billboards/digitalwitch.webp", itelSun: "billboards/itel-sun-is-free.webp", itelTank: "billboards/itel-power-tank-fridge.webp", itelInverter: "billboards/itel-inverter-power-tank.webp", chef: "billboards/chef-adams-menu.webp", shawarma: "billboards/chef-shawarma.webp", pizza: "billboards/chef-pizza.webp", fresh: "billboards/chef-sumting-fresh.webp" };
   const CHALLENGE = "/images/challenge/challenge-banner.webp";
   function chefMan(x: number, z: number, rot = 0) { const g = person(x, z, "#ffffff", rot); const hat = new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.16, 0.32, 16), mat("#ffffff")); hat.position.set(0, 2.12, 0); g.add(hat); return g; }
   // Residents (computer players): their look from the catalogue, a tag the page draws as their name with 🤖.
-  function npc(id: string, x: number, z: number, rot = 0, y = 0) { const r = RESIDENT(id); if (!r) return; const [sh, sk, lg, dr] = r.look; person(x, z, sh, rot, y, sk, lg, dr); tag("npc:" + id, x, y + 2.35, z); }
+  function npc(id: string, x: number, z: number, rot = 0, y = 0) {
+    const r = RESIDENT(id); if (!r) return; const [sh, sk, lg, dr] = r.look; const g = person(x, z, sh, rot, y, sk, lg, dr);
+    // Cynthia Okeh (Digital Witch): long auburn waves over the shoulders and the white piping of her black suit.
+    if (id === "cynthia") {
+      const hair = new THREE.Mesh(new THREE.CylinderGeometry(0.26, 0.33, 0.78, 16, 1, true, Math.PI * 0.15, Math.PI * 1.7), mat("#5a2a14", { side: THREE.DoubleSide })); hair.position.set(0, 1.5, -0.04); hair.rotation.y = Math.PI; g.add(hair);
+      for (const dx of [-0.16, 0.16]) { const pipe = new THREE.Mesh(new THREE.BoxGeometry(0.03, 0.66, 0.02), mat("#f8fafc")); pipe.position.set(dx, 1.16, 0.16); g.add(pipe); }
+    }
+    tag("npc:" + id, x, y + 2.35, z);
+  }
   function residents(where: keyof typeof RESIDENTS_AT, spots: [number, number, number, number][]) { (RESIDENTS_AT[where] ?? []).forEach((id, i) => { const p = spots[i]; if (p) npc(id, p[0], p[1], p[2], p[3]); }); }
   // Real players here now: their outfit, a tag the page draws with their name.
   function others(list: Other[], spots: [number, number, number, number][]) { list.slice(0, spots.length).forEach((o, i) => { const [x, z, rot, y] = spots[i]; person(x, z, /^#[0-9a-f]{6}$/i.test(o.outfit) ? o.outfit : "#64748b", rot, y); tag("player:" + o.uid, x, y + 2.35, z); }); }
@@ -237,6 +246,11 @@ export function createWorld(canvas: HTMLCanvasElement) {
     box(70, 0.14, 2.6, "#d6d3d1", 0, 0, -1.6); box(70, 0.03, 0.9, "#16a34a", 0, 0.14, -0.55);
     box(3.4, 0.08, 1.3, "#0f766e", -7, 2.3, -2.2); for (const dx of [-1.6, 1.6]) box(0.08, 2.3, 0.08, "#334155", -7 + dx, 0.14, -2.7); box(2.6, 0.08, 0.45, "#a16207", -7, 0.6, -2.5);
     sign("WUSE\nBus stop", "#0f766e", "#ffffff", 1.4, 0.8, -7, 1.7, -2.84, 120);
+    // a lit advert panel at the bus stand: Digital Witch (partner)
+    const dwAd = await loadImg(IMG(BB.digitalWitch));
+    box(1.2, 1.55, 0.14, "#0b1442", -9.3, 0.55, -2.45); for (const dx of [-0.45, 0.45]) box(0.08, 0.55, 0.08, "#334155", -9.3 + dx, 0.14, -2.45);
+    const adm = new THREE.Mesh(new THREE.PlaneGeometry(1.04, 1.3), new THREE.MeshBasicMaterial({ map: canvasTex(400, 500, (g, w, h) => { g.fillStyle = "#0b1442"; g.fillRect(0, 0, w, h); fit(g, dwAd, 0, 0, w, h); }) }));
+    adm.position.set(-9.3, 1.33, -2.37); scene.add(adm); tag("bb:digitalwitch", -9.3, 2.35, -2.4);
     box(6.2, 1.8, 1.7, "#0f766e", -4.5, 0.3, 3.2); box(6.2, 0.55, 1.72, "#0b1324", -4.5, 1.2, 3.2); box(6.22, 0.12, 1.72, "#f8fafc", -4.5, 0.95, 3.2);
     sign("METRO · Garki", "#0f766e", "#ffffff", 3.2, 0.42, -5.0, 0.65, 4.06, 120); wheelsAt([[-6.6, 2.35], [-2.2, 2.35], [-6.6, 4.05], [-2.2, 4.05]], 0.34);
     box(1.5, 0.75, 1.0, "#facc15", 6.2, 0.35, 3.0); box(1.6, 0.06, 1.1, "#111827", 6.2, 1.55, 3.0); box(0.5, 0.45, 0.9, "#16a34a", 7.0, 0.35, 3.0); wheelsAt([[5.7, 2.45], [5.7, 3.55], [7.25, 3.0]], 0.24);
@@ -531,6 +545,69 @@ export function createWorld(canvas: HTMLCanvasElement) {
     controls.minDistance = 10; controls.maxDistance = 55;
     tag("sign", -6.6, 5.6, 2.6); tag("gate", -0.2, 2.6, WZ); tag("roof", 0, 12.6, BZ + 3.4); tag("pool", -1, 1.2, PZ); tag("guard", 6.2, 4.4, PZ); tag("gym", -15.6, 3.8, back - 2.4); tag("bar", 0, 2.9, back - 1.0); tag("vip", 8.6, 3.4, back - 1.5);
   }
+  // Digital Witch training hub: the ground floor of a glass skyscraper plaza in the Central Business District, with a fountain plaza,
+  // the hub's navy fascia and headset logo, classrooms you see through the glass, and Cynthia Okeh at the door (by day).
+  async function dw(s: Extract<SceneSpec, { id: "dw" }>) {
+    const [logo, bb] = await Promise.all([loadImg(IMG("partners/digitalwitch-logo.webp")), loadImg(IMG(BB.digitalWitch))]);
+    const NAVY = "#0b1442", night = !!s.night;
+    scene.background = new THREE.Color(night ? "#0f1730" : "#bfe3f5"); lights(night ? 0.45 : 1);
+    const tiles = canvasTex(256, 256, (g, w, h) => { g.fillStyle = "#d6d9de"; g.fillRect(0, 0, w, h); g.strokeStyle = "#b8bec7"; g.lineWidth = 3; for (let x = 0; x <= w; x += 64) { g.beginPath(); g.moveTo(x, 0); g.lineTo(x, h); g.stroke(); g.beginPath(); g.moveTo(0, x); g.lineTo(w, x); g.stroke(); } });
+    tiles.wrapS = tiles.wrapT = THREE.RepeatWrapping; tiles.repeat.set(24, 24);
+    const ground = new THREE.Mesh(new THREE.PlaneGeometry(90, 90), new THREE.MeshStandardMaterial({ map: tiles, roughness: 0.9 })); ground.rotation.x = -Math.PI / 2; ground.receiveShadow = true; scene.add(ground);
+    box(70, 0.02, 5, "#4b5563", 0, 0, 2.6); for (let i = -8; i < 9; i++) box(1.3, 0.03, 0.14, "#f9fafb", i * 4, 0.01, 2.6);
+    box(70, 0.14, 3.6, "#d6d3d1", 0, 0, -1.9); box(70, 0.03, 0.9, "#16a34a", 0, 0.14, -0.4);
+    // glass towers: one tall in the middle, two lower ones beside it
+    const glass = (cols: number, rows: number) => canvasTex(256, 512, (g, w, h) => {
+      g.fillStyle = night ? "#0c1a33" : "#2d5d8a"; g.fillRect(0, 0, w, h);
+      const cw = w / cols, rh = h / rows;
+      for (let r = 0; r < rows; r++) for (let c = 0; c < cols; c++) { const lit = night ? (r * 7 + c * 3) % 5 < 3 : (r + c) % 3 === 0; g.fillStyle = night ? (lit ? "#fde68a" : "#1e293b") : lit ? "#a5c8e6" : "#6f9cc4"; g.fillRect(c * cw + 2, r * rh + 2, cw - 4, rh - 4); }
+    });
+    const tower = (w: number, h: number, d: number, x: number, z: number, cols: number, rows: number) => {
+      const t = glass(cols, rows), side = glass(Math.max(3, Math.round(cols * d / w)), rows);
+      const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), [new THREE.MeshStandardMaterial({ map: side, roughness: 0.2, metalness: 0.35 }), new THREE.MeshStandardMaterial({ map: side, roughness: 0.2, metalness: 0.35 }), mat("#e5e7eb"), mat("#e5e7eb"), new THREE.MeshStandardMaterial({ map: t, roughness: 0.2, metalness: 0.35 }), new THREE.MeshStandardMaterial({ map: t, roughness: 0.2, metalness: 0.35 })]);
+      m.position.set(x, h / 2, z); m.castShadow = true; scene.add(m); box(w + 0.5, 0.5, d + 0.5, "#e5e7eb", x, h, z);
+    };
+    tower(9, 30, 7, 0, -16, 8, 26); tower(6, 18, 6, -10.5, -14, 5, 16); tower(6, 21, 6, 10.5, -14.5, 5, 18);
+    cyl(0.08, 4, "#cbd5e1", 0, 30.5, -16); solar(-10.5, 18.3, -14, 3, 3, 0, 1.4, 1.2); solar(10.5, 21.3, -14.5, 3, 3, 0, 1.4, 1.2);
+    plane(7.6, 1.0, canvasTex(1520, 200, (g, w, h) => { g.fillStyle = NAVY; g.fillRect(0, 0, w, h); g.fillStyle = "#ffffff"; g.font = "bold 120px sans-serif"; g.textAlign = "center"; g.textBaseline = "middle"; g.fillText("SKYSCRAPER PLAZA", w / 2, h / 2 + 6); }), 0, 7.2, -12.47, 0, 0, night);
+    // the podium: the Digital Witch hub with a glass front and its navy fascia
+    const HZ = -6.2;
+    // an open front: back and side walls, a light floor and the roof, so the classrooms show through the glass
+    box(15, 4.4, 0.3, "#eef2f7", 0, 0.14, HZ - 5); for (const dx of [-7.35, 7.35]) box(0.3, 4.4, 5, "#e2e8f0", dx, 0.14, HZ - 2.5);
+    box(14.6, 0.04, 4.8, "#f8fafc", 0, 0.14, HZ - 2.5); box(15.2, 0.3, 5.2, "#cbd5e1", 0, 4.4, HZ - 2.5);
+    box(15.2, 1.15, 0.45, NAVY, 0, 3.25, HZ + 0.1);
+    plane(11, 1.0, canvasTex(2200, 200, (g, w, h) => { g.fillStyle = NAVY; g.fillRect(0, 0, w, h); fit(g, logo, 8, -40, 280, 280); g.fillStyle = "#ffffff"; g.font = "bold 128px sans-serif"; g.textBaseline = "middle"; g.fillText("DIGITAL WITCH", 330, h / 2 - 4); g.fillStyle = "#c7d2fe"; g.font = "56px sans-serif"; g.fillText("TRAINING HUB", 1420, h / 2 + 4); }), 0, 3.82, HZ + 0.34, 0, 0, night);
+    const front = new THREE.Mesh(new THREE.PlaneGeometry(13.6, 2.9), new THREE.MeshStandardMaterial({ color: "#dbeafe", transparent: true, opacity: 0.32, roughness: 0.05 })); front.position.set(0, 1.6, HZ + 0.02); scene.add(front);
+    for (const dx of [-6.8, -3.4, 0, 3.4, 6.8]) box(0.14, 3.0, 0.2, "#94a3b8", dx, 0.14, HZ + 0.05);
+    const inner = new THREE.PointLight("#ffffff", 3, 12); inner.position.set(0, 3.4, HZ - 2.4); scene.add(inner);
+    // classrooms: desks with laptops facing a screen that says what you learn here
+    for (let row = 0; row < 2; row++) for (let i = 0; i < 4; i++) {
+      const x = -4.8 + i * 3.2, z = HZ - 1.6 - row * 1.4; box(2.2, 0.75, 0.7, "#f8fafc", x, 0.14, z);
+      for (const dx of [-0.5, 0.5]) { box(0.42, 0.03, 0.3, "#334155", x + dx, 0.9, z); const sc = new THREE.Mesh(new THREE.PlaneGeometry(0.42, 0.28), new THREE.MeshBasicMaterial({ color: "#60a5fa" })); sc.position.set(x + dx, 1.06, z - 0.15); sc.rotation.x = -0.25; scene.add(sc); }
+    }
+    plane(5.2, 2.0, canvasTex(1040, 400, (g, w, h) => { g.fillStyle = "#ffffff"; g.fillRect(0, 0, w, h); g.fillStyle = NAVY; g.font = "bold 84px sans-serif"; g.textAlign = "center"; g.fillText("Learn. Get certified.", w / 2, 150); g.fillStyle = "#4f46e5"; g.fillText("Earn globally.", w / 2, 260); g.fillStyle = "#64748b"; g.font = "40px sans-serif"; g.fillText("Virtual assistant · Customer support · Data · UI/UX", w / 2, 345); }), 0, 2.2, HZ - 4.9, 0, 0, true);
+    // the plaza: a fountain, benches and palms
+    const FX = -7.2, FZ = -3.6;
+    cyl(1.7, 0.5, "#e2e8f0", FX, 0, FZ, 1.8, 28); const water = new THREE.Mesh(new THREE.CylinderGeometry(1.5, 1.5, 0.05, 28), new THREE.MeshStandardMaterial({ color: "#60a5fa", transparent: true, opacity: 0.8 })); water.position.set(FX, 0.5, FZ); scene.add(water); cyl(0.12, 1.4, "#bfdbfe", FX, 0.5, FZ);
+    for (const x of [4.6, 7.0]) { box(1.8, 0.45, 0.5, "#78716c", x, 0.14, -3.4); }
+    const palm = (x: number, z: number) => { cyl(0.1, 2.0, "#7c5a3a", x, 0, z, 0.14); for (let k = 0; k < 7; k++) { const lf = new THREE.Mesh(new THREE.ConeGeometry(0.16, 1.4, 5), mat("#2f855a")); lf.position.set(x + Math.cos(k) * 0.5, 2.1, z + Math.sin(k) * 0.5); lf.rotation.z = Math.cos(k) * 1.2; lf.rotation.x = Math.sin(k) * 1.2; scene.add(lf); } };
+    [-12.5, -3.2, 3.6, 12.5].forEach((x) => palm(x, -4.6));
+    // a backlit billboard of the hub by the road
+    const BX = 10.6, BZ = -3.0;
+    const bbm = new THREE.Mesh(new THREE.PlaneGeometry(2.6, 3.25), new THREE.MeshBasicMaterial({ map: canvasTex(800, 1000, (g, w, h) => { g.fillStyle = NAVY; g.fillRect(0, 0, w, h); fit(g, bb, 0, 0, w, h); }) })); bbm.position.set(BX, 3.9, BZ); bbm.rotation.y = -0.3; scene.add(bbm);
+    box(2.8, 3.45, 0.12, "#1f2937", BX, 2.18, BZ - 0.07).rotation.y = -0.3; for (const dx of [-0.9, 0.9]) box(0.12, 2.3, 0.12, "#374151", BX + dx, 0, BZ - 0.1);
+    tag("bb:digitalwitch", BX, 6.0, BZ);
+    // people: Cynthia at the door by day, learners with laptops, players here now
+    if (s.cynthia !== false) npc("cynthia", 1.6, HZ + 1.3, 0, 0.14);
+    person(-2.6, HZ + 1.1, "#4f46e5", 0.4, 0.14, "#7a4a2c", "#1f2937", true); person(4.4, HZ + 1.6, "#0ea5e9", -0.3, 0.14);
+    others(s.others, [[-4.4, -2.6, Math.PI, 0.14], [6.2, -2.4, Math.PI, 0.14]]);
+    player = s.learning ? person(-1.6, HZ - 1.0, s.outfit, Math.PI, 0.14) : person(-0.6, -2.8, s.outfit, Math.PI, 0.14);
+    tag("hub", 0, 4.9, HZ + 0.3); tag("tower", 0, 8.4, -12.4); tag("fountain", FX, 1.8, FZ); tag("class", -1.6, 2.3, HZ - 1.6);
+    const phone = innerWidth < 700;
+    cam.position.set(...(phone ? [4, 15, 44] : [2.5, 12, 32]) as [number, number, number]); controls.target.set(phone ? 0.8 : 0.5, phone ? 8 : 7, phone ? -8 : -8);
+    controls.minDistance = 8; controls.maxDistance = 46;
+  }
+
   // ---------- running it ----------
   function clear() {
     scene.traverse((o) => { const m = o as THREE.Mesh; if (m.geometry) m.geometry.dispose(); const mm = m.material as THREE.Material | THREE.Material[] | undefined; (Array.isArray(mm) ? mm : mm ? [mm] : []).forEach((x) => { (x as THREE.MeshStandardMaterial).map?.dispose(); x.dispose(); }); });
@@ -544,7 +621,7 @@ export function createWorld(canvas: HTMLCanvasElement) {
     if (key === current) { if (s.id === "room" && at && !s.sleeping) walkTo(at); return; }
     current = key;
     clear();
-    if (s.id === "room") await room(s); else if (s.id === "itel") await itel(s); else if (s.id === "street") await street(s); else if (s.id === "chef") await chef(s); else await hotel(s);
+    if (s.id === "room") await room(s); else if (s.id === "itel") await itel(s); else if (s.id === "street") await street(s); else if (s.id === "chef") await chef(s); else if (s.id === "dw") await dw(s); else await hotel(s);
     controls.update(); resize();
   }
   function walkTo(spot: RoomSpot) { if (!player) return; const [x, z, rot] = ROOM_SPOTS[spot]; const to = new THREE.Vector3(x, player.position.y, z); if (to.distanceTo(player.position) < 0.05) return; tween = { from: player.position.clone(), to, rot, t0: performance.now(), ms: 550 }; }

@@ -5,7 +5,7 @@ import { collection, deleteDoc, doc, getDoc, getDocs, limit, orderBy, query, set
 import { db } from "@/lib/firebase";
 
 export type Present = { uid: string; username: string; name: string; avatar: string; outfit: string };
-export type PresencePlace = "home" | "work" | "chef" | "hotel" | "itel" | "ride";
+export type PresencePlace = "home" | "work" | "chef" | "hotel" | "itel" | "dw" | "ride";
 const FRESH_MS = 10 * 60_000; // seen in the last ten real minutes
 const KEY = "notesLife:showMe";
 

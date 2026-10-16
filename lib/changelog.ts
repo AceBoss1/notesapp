@@ -11,6 +11,19 @@ export type Release = {
 
 export const CHANGELOG: Release[] = [
   {
+    version: "v0.35.0",
+    bump: "minor",
+    date: "2026-10-16",
+    changes: [
+      { kind: "added", text: "Notes Life: Digital Witch joins as a partner. Its training hub is on the ground floor of the Skyscraper Plaza in the Central Business District (Go → Digital Witch hub), with classrooms you can see through the glass." },
+      { kind: "added", text: "Ekwutosi Cynthia Okeh, the founder of Digital Witch, is in the game as #1 on the Billionaires List. Meet her at the hub from 9 AM to 5 PM and at the Candellux VIP bar from 7 PM to 11 PM." },
+      { kind: "added", text: "Digital Witch courses: Virtual Assistant and Customer Support (N$ 60,000, 4 classes), Social Media Management (N$ 80,000, 5), Project Management (N$ 100,000, 5), Data Analysis and UI/UX Design (N$ 120,000, 6). One class is 2 game hours at the hub, 9 AM to 6 PM. Finish every class to get Digital Witch certified." },
+      { kind: "added", text: "New tech jobs, all from your desk: remote virtual assistant, remote customer support, social media manager, remote project coordinator, data analyst and UI/UX designer, each with its Digital Witch certificate." },
+      { kind: "added", text: "Cynthia's graduate giveaway: on Saturday nights at the VIP bar, certified players with 10 tech shifts can go up to her once a week for a chance at N$ 500,000 or N$ 1,000,000." },
+      { kind: "changed", text: "Tech jobs now need a Digital Witch certificate, including Tech freelancer (any certificate). Players who already have a tech job keep it. Digital Witch adverts are at the Wuse bus stand, and Digital Witch is on the Partner with Notes Life page." },
+    ],
+  },
+  {
     version: "v0.34.0",
     bump: "minor",
     date: "2026-10-15",
