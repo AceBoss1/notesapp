@@ -6,6 +6,7 @@ import { isSuspensionLength, suspensionEnd, describeUntil } from "./suspension-l
 import { MomentError, adminRemoveMoment, type MomentDeps } from "./moments-server";
 import { wipeMessage } from "./groups-server";
 import { deleteObject, privateFilesConfigured } from "./private-files";
+import { SITE_URL } from "@/lib/host";
 
 // Reports on moments and conversations. Because moments disappear and messages can be deleted, a report keeps a copy of
 // what was reported (and, for a moment, its files) until someone at #NotesApp has looked at it; resolving the report then
@@ -83,7 +84,7 @@ export async function createReport(
   // Only nudity and violence email the team straight away (we promise to review those within 24 hours); everything else waits for the
   // daily digest (sendReportsDigest), so reports can't eat the sending quota.
   if (URGENT_REASONS.includes(input.reason)) {
-    const link = `${(process.env.NEXT_PUBLIC_SITE_URL || "https://www.notesapp.name.ng").replace(/\/$/, "")}/admin/reports`;
+    const link = `${SITE_URL}/admin/reports`;
     await emailTeam(`URGENT: ${REPORT_REASON_LABEL[input.reason]} report on #NotesApp`, `A ${kind} was just reported for "${REPORT_REASON_LABEL[input.reason]}". We aim to review these within ${REPORT_URGENT_HOURS} hours.\n\nReview it here: ${link}`).catch(() => {});
   }
   return { id };
@@ -112,7 +113,7 @@ export async function sendReportsDigest(db: Firestore, now = new Date(), send: (
   const byReason = new Map<string, number>();
   for (const d of snap.docs) byReason.set(d.data().reason, (byReason.get(d.data().reason) ?? 0) + 1);
   const lines = Array.from(byReason.entries()).sort((a, b) => b[1] - a[1]).map(([r, n]) => `  ${n} × ${r}${URGENT_REASONS.includes(r as never) ? " (urgent)" : ""}`);
-  const link = `${(process.env.NEXT_PUBLIC_SITE_URL || "https://www.notesapp.name.ng").replace(/\/$/, "")}/admin/reports`;
+  const link = `${SITE_URL}/admin/reports`;
   const head = counts.overdue > 0 ? `${counts.overdue} OVERDUE (waiting more than ${REPORT_URGENT_HOURS} hours), ` : "";
   await send(
     `${counts.urgent > 0 ? "URGENT: " : ""}${snap.size} open report${snap.size === 1 ? "" : "s"} on #NotesApp`,

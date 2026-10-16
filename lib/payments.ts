@@ -12,6 +12,7 @@ import { periodEndFrom, cancelBadgeIfCovered } from "./tier-billing";
 import { ESCROW_PLACEHOLDER_DAYS, newParcelId, phoneLast4 } from "./orders";
 import { merchParcelDoc } from "./orders-server";
 import { creditTopup } from "./wallet-server";
+import { SITE_URL } from "@/lib/host";
 
 // Server-only. All money-state changes happen here, via the Admin SDK
 // (Firestore rules make payments/bookings/ledger/subscriptions
@@ -529,7 +530,7 @@ async function notifyPaid(p: PaymentRecord) {
     return;
   }
   if (p.kind === "digital" && p.digital) {
-    const site = process.env.NEXT_PUBLIC_SITE_URL || "https://www.notesapp.name.ng";
+    const site = SITE_URL;
     await sendEmail({
       to: p.email,
       subject: "Your #NotesApp purchase is ready",
@@ -570,12 +571,12 @@ async function notifyPaid(p: PaymentRecord) {
       to: p.email,
       subject: "Your #NotesApp ad campaign is in review",
       bell: { uid: p.uid, type: "ad", linkHref: "/advertise/campaigns" },
-      text: `Thanks — we received ${formatNaira(p.amountKobo)} for your ad campaign. We review every ad before it goes live (usually within a day). If we can't run it you'll get a full refund. Track it any time at ${process.env.NEXT_PUBLIC_SITE_URL || "https://www.notesapp.name.ng"}/advertise/campaigns.\nReference: ${p.reference}\n\n#NotesApp`,
+      text: `Thanks — we received ${formatNaira(p.amountKobo)} for your ad campaign. We review every ad before it goes live (usually within a day). If we can't run it you'll get a full refund. Track it any time at ${SITE_URL}/advertise/campaigns.\nReference: ${p.reference}\n\n#NotesApp`,
     });
     return;
   }
   if (p.kind === "store" && p.store) {
-    const site = process.env.NEXT_PUBLIC_SITE_URL || "https://www.notesapp.name.ng";
+    const site = SITE_URL;
     const st = p.store;
     await sendEmail({
       to: p.email,
@@ -596,7 +597,7 @@ async function notifyPaid(p: PaymentRecord) {
   }
   if (p.kind === "merch" && p.merch) {
     const m = p.merch;
-    const site = process.env.NEXT_PUBLIC_SITE_URL || "https://www.notesapp.name.ng";
+    const site = SITE_URL;
     const parcelId = ((await getAdminDb().doc(`merchOrders/${p.reference}`).get()).data() as { parcelId?: string } | undefined)?.parcelId;
     await sendEmail({
       to: p.email,

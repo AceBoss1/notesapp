@@ -3,9 +3,10 @@ import { friendlyMessage } from "@/lib/api-errors";
 import { getAdminDb, getUserEmail, verifyAdminRequest } from "@/lib/firebase-admin";
 import { sendEmail } from "@/lib/email";
 import { FieldValue } from "firebase-admin/firestore";
+import { SITE_URL } from "@/lib/host";
 
 export const dynamic = "force-dynamic";
-const site = () => process.env.NEXT_PUBLIC_SITE_URL || "https://www.notesapp.name.ng";
+const site = () => SITE_URL;
 const bearer = (req: NextRequest) => req.headers.get("authorization")?.replace(/^Bearer\s+/i, "");
 
 // Admin: every organisation account + pending conversion requests.

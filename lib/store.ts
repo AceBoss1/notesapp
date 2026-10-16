@@ -2,6 +2,7 @@ import { addDoc, collection, deleteDoc, deleteField, doc, getDoc, getDocs, query
 import { db } from "./firebase";
 import { toMillis } from "./dates";
 import { cleanShipsFrom, isStoreCategory } from "./store-meta";
+import { SITE_URL } from "@/lib/host";
 
 // Demo catalogue for today — one array per username, hardcoded rather
 // than a Firestore read, so the store has real content in front of
@@ -202,7 +203,7 @@ function clean(input: StoreItemInput) {
     ...(input.subtitle?.trim() ? { subtitle: input.subtitle.trim() } : {}),
     price: input.price.trim(),
     ...(input.badge?.trim() ? { badge: input.badge.trim() } : {}),
-    link: "https://www.notesapp.name.ng",
+    link: SITE_URL,
     image: images[0] || input.image.trim() || DEFAULT_STORE_IMAGE,
     cta: digital ? (input.access === "view" ? "Buy & view" : "Buy & download") : "Buy now",
   };

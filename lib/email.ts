@@ -1,5 +1,6 @@
 import { getAdminDb } from "./firebase-admin";
 import type { NotificationType } from "./notifications";
+import { SITE_URL } from "@/lib/host";
 
 // Server-only transactional email via Resend's HTTP API (no SDK needed).
 // Without RESEND_API_KEY this logs and no-ops, so booking/payment
@@ -50,7 +51,7 @@ export async function notifyBell(note: BellNote & { message: string }): Promise<
 export type EmailBrand = { name: string; logoUrl: string; siteUrl: string };
 
 export function renderEmailHtml(text: string, action?: EmailAction, brand?: EmailBrand): string {
-  const site = (brand?.siteUrl || process.env.NEXT_PUBLIC_SITE_URL || "https://www.notesapp.name.ng").replace(/\/$/, "");
+  const site = (brand?.siteUrl || SITE_URL).replace(/\/$/, "");
   // The footer carries the #NotesApp sign-off, so drop a trailing one from the body.
   const body = text.replace(/\s*#NotesApp\s*$/, "").trim();
   const paragraphs = body
@@ -77,7 +78,8 @@ ${brand
 </table></td></tr></table></body></html>`;
 }
 
-export async function sendEmail(params: { to: string; subject: string; text: string; action?: EmailAction; bell?: BellNote; brand?: EmailBrand }): Promise<boolean> {
+// `html` replaces the standard branded layout (the weekly digest has its own); `headers` adds mail headers (List-Unsubscribe).
+export async function sendEmail(params: { to: string; subject: string; text: string; action?: EmailAction; bell?: BellNote; brand?: EmailBrand; html?: string; headers?: Record<string, string> }): Promise<boolean> {
   if (params.bell) await notifyBell({ ...params.bell, message: params.bell.message ?? params.subject });
   const key = process.env.RESEND_API_KEY;
   if (!key) {
@@ -92,7 +94,7 @@ export async function sendEmail(params: { to: string; subject: string; text: str
     const res = await fetch("https://api.resend.com/emails", {
       method: "POST",
       headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
-      body: JSON.stringify({ from, to: params.to, subject: params.subject, text: params.action && !params.text.includes(params.action.url) ? `${params.text}\n\n${params.action.label}: ${params.action.url}` : params.text, html: renderEmailHtml(params.text, params.action, params.brand) }),
+      body: JSON.stringify({ from, to: params.to, subject: params.subject, text: params.action && !params.text.includes(params.action.url) ? `${params.text}\n\n${params.action.label}: ${params.action.url}` : params.text, html: params.html ?? renderEmailHtml(params.text, params.action, params.brand), ...(params.headers ? { headers: params.headers } : {}) }),
     });
     if (!res.ok) console.error("[email] Resend error", res.status, await res.text().catch(() => ""));
     return res.ok;

@@ -2,6 +2,7 @@ import Link from "next/link";
 import type { Metadata } from "next";
 import { ENDPOINTS, WEBHOOK_DOCS } from "@/lib/api-docs";
 import PageHero from "@/components/PageHero";
+import { SITE_URL, MAIN_HOST } from "@/lib/host";
 
 export const metadata: Metadata = {
   title: "API Docs",
@@ -34,7 +35,7 @@ export default function DocsPage() {
         <li>Open the Console and create a key with the permissions you need. Copy it — it&apos;s shown once.</li>
         <li>Call the API:</li>
       </ol>
-      <pre className={`${code} mt-3`}>{`curl https://www.notesapp.name.ng/api/v1/me \\
+      <pre className={`${code} mt-3`}>{`curl ${SITE_URL}/api/v1/me \\
   -H "Authorization: Bearer nak_your_key_here"`}</pre>
 
       <h2 id="auth" className="mt-12 font-display text-3xl text-ink">Authentication</h2>
@@ -53,7 +54,7 @@ export default function DocsPage() {
       </ul>
 
       <h2 id="endpoints" className="mt-12 font-display text-3xl text-ink">Endpoints</h2>
-      <p className="mt-2 text-sm text-slate">Base URL: <code className="font-mono text-xs">https://www.notesapp.name.ng/api</code></p>
+      <p className="mt-2 text-sm text-slate">Base URL: <code className="font-mono text-xs">{SITE_URL}/api</code></p>
       <div className="mt-6 space-y-8">
         {ENDPOINTS.map((e) => (
           <section key={e.id} id={e.id} className="card p-5">
@@ -98,7 +99,7 @@ function verify(rawBody, header, secret) {
       <p className="mt-3 text-slate">
         Business and Enterprise accounts get their own branded site on their own domain — <span className="font-mono text-xs">notes.yourbrand.com</span> or the root <span className="font-mono text-xs">yourbrand.com</span>. Add it in the Console, create the DNS record it shows
         (a CNAME for a subdomain, an A record for a root domain), then press <em>Check status</em>. If your domain isn&apos;t hosted anywhere yet, or your provider won&apos;t accept the record, the easiest route is to set the domain&apos;s nameservers to <span className="font-mono text-xs">ns1.vercel-dns.com</span> and <span className="font-mono text-xs">ns2.vercel-dns.com</span> at your registrar, so Vercel manages the records (this moves all of the domain&apos;s DNS, including any email records). The site has your name in the header, three pages — Home (your profile and booking), Notes (<span className="font-mono text-xs">/notes</span>) and Shop (<span className="font-mono text-xs">/shop</span>) — and a small “powered by #NotesApp” footer. Your <span className="font-mono text-xs">/u/username</span> page keeps working; you choose whether the front page shows Home or your Shop.
-        Visitors browse, sign in, book sessions and buy right on your domain. Signing in briefly passes through www.notesapp.name.ng (where accounts live) and brings them straight back, already signed in; payments run on Paystack and return to your site.
+        Visitors browse, sign in, book sessions and buy right on your domain. Signing in briefly passes through {MAIN_HOST} (where accounts live) and brings them straight back, already signed in; payments run on Paystack and return to your site.
       </p>
     </div>
     </>

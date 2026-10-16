@@ -7,7 +7,8 @@ import { normalizeHost } from "@/lib/host";
 export const dynamic = "force-dynamic";
 
 // Used by middleware.ts to map a custom domain to its owner, and (with `check`) to confirm a journal slug or store
-// item belongs to that owner before it's served on the domain. Active domains only. Nothing sensitive is returned.
+// item belongs to that owner before it's served on the domain. Active domains only (plus `known` for a domain still being set
+// up). Nothing sensitive is returned.
 //   /api/public/domain-resolve?host=notes.brand.com[&check=journal:<slug> | item:<id>]
 export async function GET(req: NextRequest) {
   const limited = rateLimit(req, "domain-resolve", clientIp(req), 300, 60);
@@ -19,7 +20,9 @@ export async function GET(req: NextRequest) {
   if (!host) return NextResponse.json({ found: false }, { headers: miss });
   const db = getAdminDb();
   const d = (await db.doc(`customDomains/${host}`).get()).data() as DomainDoc | undefined;
-  if (!d || d.status !== "active") return NextResponse.json({ found: false }, { headers: miss });
+  // `known`: some member has added this domain (maybe not active yet). A domain nobody added is one of ours on Vercel, and
+  // middleware.ts sends it to the root (lib/host.ts).
+  if (!d || d.status !== "active") return NextResponse.json({ found: false, known: !!d }, { headers: miss });
   // `full`: Enterprise full white label, so sign-in and sign-up happen on the domain itself (middleware.ts).
   const out: Record<string, unknown> = { found: true, host, uid: d.uid, username: d.username, home: d.home, full: !!(await whiteLabelOwner(host).catch(() => null)) };
   const check = req.nextUrl.searchParams.get("check");

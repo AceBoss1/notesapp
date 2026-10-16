@@ -12,6 +12,7 @@ import { limit } from "./limits-server";
 import { stickerById } from "./stickers";
 import { stripFormat } from "./message-format";
 import { safeFileName } from "./private-files";
+import { SITE_URL } from "@/lib/host";
 
 export type Notify = (note: { uid: string; type: "message" | "moment"; linkHref: string; message: string }) => Promise<void>;
 
@@ -42,7 +43,7 @@ export type Alerts = {
   email: (toUid: string, mail: { subject: string; text: string; label: string; url: string }) => Promise<void>;
   push: (toUid: string, payload: PushPayload) => Promise<number>;
 };
-const siteUrl = () => (process.env.NEXT_PUBLIC_SITE_URL || "https://www.notesapp.name.ng").replace(/\/$/, "");
+const siteUrl = () => SITE_URL;
 const EMAIL_EVERY_MS = 3_600_000; // at most one message email an hour per member (all conversations together)
 
 export type SendInput = { text: string; moment?: MomentRef; attachmentIds?: string[]; sticker?: string; replyToId?: string };

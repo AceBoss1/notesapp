@@ -11,6 +11,17 @@ export type Release = {
 
 export const CHANGELOG: Release[] = [
   {
+    version: "v0.37.0",
+    bump: "minor",
+    date: "2026-10-16",
+    changes: [
+      { kind: "added", text: "When someone @mentions you in a comment or reply, a published journal, a moment, a store review or a seller's reply, or an approved recommendation, you get a notification with a few words around the mention. Once per person for each thing; never for mentions in messages, group chats or Notes Life chat; not when either of you has blocked the other." },
+      { kind: "added", text: "The #NotesApp Weekly Digest: on Sunday evenings, up to five journals from the week, from people you follow first and then the topics you like, with the writer's picture, the opening of each story, reading time, likes and comments. Unsubscribe with one click from any digest, or under Emails in Account settings." },
+      { kind: "added", text: "#NotesApp works the same on each of our web addresses, and keeps the address you typed. Payments bring you back to the address you paid on." },
+      { kind: "fixed", text: "Link previews in Messages are now checked again at the moment they connect, so a web address can't be used to reach anything other than a public website." },
+    ],
+  },
+  {
     version: "v0.36.0",
     bump: "minor",
     date: "2026-10-16",

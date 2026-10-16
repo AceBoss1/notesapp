@@ -10,6 +10,7 @@ import {
   TeamError, canSeeMeeting, cleanItem, cleanMeeting, cleanComment, cleanReview, focusLines, buildMorningSummary, bucketWeeks, weekStart, weekEnd, lagosDay, lagosParts, type Review, type TeamComment, type WeekNumbers, MEETING_STATUSES, type Meeting, type MeetingStatus, cleanMilestone, metricValue, statusEffects, lagosDate, addDays,
   milestoneProgress, type Milestone, type TeamItem, type Status, workReminders, workReminderLine,
 } from "./team";
+import { SITE_URL } from "@/lib/host";
 
 // Server side of the team hub. Everything lives in two server-only collections (teamItems, teamMilestones); only signed-in admins reach
 // them, through /api/admin/team.
@@ -183,7 +184,7 @@ export async function syncTeamRooms(db: Firestore, me: string, teamUids: string[
 
 // ---- Comments on items (stored under `discussion`: a subcollection named `comments` would be world-readable through the collection-group rule for journal comments) ---------------------------------------------------------------------------------------------------------------
 const nameIn = (people: Person[], uid: string) => people.find((p) => p.uid === uid)?.name ?? "A teammate";
-const siteUrl = () => (process.env.NEXT_PUBLIC_SITE_URL || "https://www.notesapp.name.ng").replace(/\/$/, "");
+const siteUrl = () => SITE_URL;
 
 export async function listComments(db: Firestore, itemId: string): Promise<TeamComment[]> {
   const snap = await db.collection(`${ITEMS}/${itemId}/discussion`).orderBy("createdAt").limit(200).get();

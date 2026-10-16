@@ -3,9 +3,10 @@ import { friendlyMessage } from "@/lib/api-errors";
 import { getAdminDb, getUserEmail, verifyAdminRequest } from "@/lib/firebase-admin";
 import { sendEmail } from "@/lib/email";
 import { cleanText } from "@/lib/orders";
+import { SITE_URL } from "@/lib/host";
 
 export const dynamic = "force-dynamic";
-const site = () => process.env.NEXT_PUBLIC_SITE_URL || "https://www.notesapp.name.ng";
+const site = () => SITE_URL;
 
 // Admin decision on a gold-badge application. Approving lets the member subscribe; declining
 // closes it. Either way the applicant gets a bell notification and an email.

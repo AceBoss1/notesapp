@@ -5,9 +5,10 @@ import { FieldValue } from "firebase-admin/firestore";
 import { ESCROW_AUTO_RELEASE_DAYS, StoreOrder, newParcelId, phoneLast4 } from "./orders";
 import type { MerchOrder } from "./merch";
 import { formatNaira } from "./booking-time";
+import { SITE_URL } from "@/lib/host";
 
 // Server-only helpers for seller orders and parcel links.
-const site = () => process.env.NEXT_PUBLIC_SITE_URL || "https://www.notesapp.name.ng";
+const site = () => SITE_URL;
 
 export const hashToken = (t: string) => createHash("sha256").update(t).digest("hex");
 export const newLinkToken = () => randomBytes(18).toString("base64url");

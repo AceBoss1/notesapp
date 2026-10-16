@@ -3,16 +3,17 @@ import Image from "next/image";
 import { COMPANY_INFO } from "@/lib/site";
 
 import { InviteNote, PlayLink } from "@/components/life/LifeInvite";
+import { LIFE_URL } from "@/lib/host";
+import FamilyLink from "@/components/FamilyLink";
 
 export const metadata: Metadata = {
   title: "Notes Life · play free in Abuja",
   description: "Notes Life is a free browser life game from NotesApp. Start in a face-me-I-face-you room in your city, hustle, build and climb the Billionaires List with your NotesApp account.",
-  alternates: { canonical: "https://life.notesapp.name.ng" },
+  alternates: { canonical: LIFE_URL },
   openGraph: { title: "Notes Life · play free in Abuja", description: "Start small. Hustle. Ball out (in game money). A NotesApp game.", images: ["/images/life/game-room.webp"] },
 };
 
-const APP = "https://app.notesapp.name.ng";
-const PLAY = "https://www.notesapp.name.ng/life/play";
+const PLAY = "/life/play"; // relative: stays on the visitor's domain (lib/host.ts)
 // Screenshots from the game itself (public/images/life/shots/), phone size.
 const shots: { src: string; title: string; text: string }[] = [
   { src: "/images/life/shots/welcome.webp", title: "Choose your city", text: "Abuja is open, with the City Gate. Lagos (the National Theatre) and Port Harcourt (Isaac Boro Park) are coming: tap to be told first." },
@@ -44,9 +45,9 @@ export default function LifePage() {
         <p className="font-ui text-xl font-extrabold tracking-tight">Notes <span className="text-emerald-600">Life</span></p>
         <div className="flex items-center gap-2">
           <a href="/life/partners" className="rounded-full bg-white/80 px-3 py-1.5 font-ui text-xs font-semibold shadow-sm">🤝 Partner with us</a>
-          <a href={APP} className="flex items-center gap-2 rounded-full bg-white/80 px-3 py-1.5 font-ui text-xs font-semibold shadow-sm">
+          <FamilyLink to="app" className="flex items-center gap-2 rounded-full bg-white/80 px-3 py-1.5 font-ui text-xs font-semibold shadow-sm">
             <Image src="/images/brand/icon-192.png" alt="" width={20} height={20} className="rounded" /> by NotesApp
-          </a>
+          </FamilyLink>
         </div>
       </header>
 
@@ -58,7 +59,7 @@ export default function LifePage() {
             <p className="mt-4 max-w-lg text-lg text-slate">Notes Life is a free life game in your browser. Begin in a face-me-I-face-you room in your own city (Abuja, Lagos or Port Harcourt to start), choose any work, write, take bookings, run a shop, decorate, visit and call your friends, and work your way to towers, jets and yachts. You play with your NotesApp account.</p>
             <div className="mt-6 flex flex-wrap gap-3">
               <PlayLink play={PLAY} className="rounded-full bg-emerald-600 px-6 py-3 font-ui text-sm font-bold text-white shadow hover:bg-emerald-700" />
-              <a href={`${APP}/signup`} className="rounded-full bg-white px-6 py-3 font-ui text-sm font-bold text-ink shadow-sm hover:bg-white/80">Get a NotesApp account</a>
+              <FamilyLink to="app" path="/signup" className="rounded-full bg-white px-6 py-3 font-ui text-sm font-bold text-ink shadow-sm hover:bg-white/80">Get a NotesApp account</FamilyLink>
             </div>
             <p className="mt-3 text-xs text-slate"><InviteNote>Abuja is open now: a room in Wuse, N$ 100,000, jobs at Chef Adams, itel Energy and Candellux, your own partner outlet and the Billionaires List. Lagos and Port Harcourt are next.</InviteNote></p>
           </div>
@@ -123,7 +124,7 @@ export default function LifePage() {
               <h2 id="partner" className="mt-2 font-display text-4xl">Work there. Then own one.</h2>
               <p className="mt-3 text-white/85">Take shifts at Chef Adams, itel Energy or the Candellux Imperial: kiosk attendant, solar installer, CarlCare technician, front desk, waiter with tips, duty manager. Staff get perks, like 20% off itel products.</p>
               <p className="mt-3 text-white/85">Earn your way to your own outlet: a Chef Adams <b>Takeaway Kiosk</b> from N$ 2.5m or <b>Mini Dine-In Shop</b> from N$ 8.0m, an itel <b>Home Store</b> from N$ 1.5m or <b>Mall Store</b> from N$ 7.0m. Residents run it while you&apos;re away, your name goes on the sign, and you collect the takings. Keep a Power Tank on it, because NEPA will take light.</p>
-              <p className="mt-3 text-sm text-white/70"><a href="/life/partners" className="font-bold text-white underline">See our partners</a> · Want the real thing? <a href="https://www.notesapp.name.ng/journals/own-a-chef-adams-franchise-in-your-choice-location" className="font-bold text-[#F2B544] underline">Own a Chef Adams franchise</a> · <a href="https://www.itel-life.com/ng/itel-home/about-itel-home" target="_blank" rel="noreferrer" className="font-bold text-[#ff6b86] underline">itel Home</a></p>
+              <p className="mt-3 text-sm text-white/70"><a href="/life/partners" className="font-bold text-white underline">See our partners</a> · Want the real thing? <a href={`/journals/own-a-chef-adams-franchise-in-your-choice-location`} className="font-bold text-[#F2B544] underline">Own a Chef Adams franchise</a> · <a href="https://www.itel-life.com/ng/itel-home/about-itel-home" target="_blank" rel="noreferrer" className="font-bold text-[#ff6b86] underline">itel Home</a></p>
             </div>
             <div className="grid grid-cols-2 gap-3">
               <Image src="/images/life/billboards/itel-sun-is-free.webp" alt="itel Energy billboard in Notes Life: The Sun is Free. Why Not Use It?" width={720} height={900} className="h-auto w-full rounded-2xl" />

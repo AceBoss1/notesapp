@@ -6,9 +6,10 @@ import { rateLimit } from "@/lib/rate-limit";
 import { notifyBell, sendEmail } from "@/lib/email";
 import { CustodyEntry, StoreOrder, cleanText, isHolderType, isHttpsUrl, normalizePhone } from "@/lib/orders";
 import { autoReleaseAt, canActForSeller, confirmOrder, expireLinks, hashToken, holderUrl, newLinkToken } from "@/lib/orders-server";
+import { SITE_URL } from "@/lib/host";
 
 export const dynamic = "force-dynamic";
-const site = () => process.env.NEXT_PUBLIC_SITE_URL || "https://www.notesapp.name.ng";
+const site = () => SITE_URL;
 const bearer = (req: NextRequest) => req.headers.get("authorization")?.replace(/^Bearer\s+/i, "");
 class Fail extends Error {
   constructor(message: string, public status = 400) {

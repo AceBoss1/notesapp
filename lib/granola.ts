@@ -1,6 +1,7 @@
 import { createHash, randomBytes } from "crypto";
 import type { Firestore } from "firebase-admin/firestore";
 import { accountCryptoConfigured, decryptSecret, encryptSecret } from "./account-crypto";
+import { SITE_URL } from "@/lib/host";
 
 // Granola's hosted MCP server, used by the team hub. Each staff member connects their own Granola account (OAuth 2.1 with PKCE and dynamic
 // client registration, so nothing to register by hand); their tokens are kept encrypted (AES-256-GCM, ACCOUNT_DATA_KEY) in the server-only
@@ -14,7 +15,7 @@ export class GranolaError extends Error {
 }
 
 export const mcpUrl = () => (process.env.GRANOLA_MCP_URL || "https://mcp.granola.ai/mcp").replace(/\/$/, "");
-const site = () => (process.env.NEXT_PUBLIC_SITE_URL || "https://www.notesapp.name.ng").replace(/\/$/, "");
+const site = () => SITE_URL;
 export const redirectUri = () => `${site()}/api/admin/granola/callback`;
 const PROTOCOL = "2025-06-18";
 const STATE_TTL_MS = 10 * 60_000;

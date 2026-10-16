@@ -8,6 +8,7 @@ import { GOLD_PRICING, GoldTrack } from "./gold";
 import { sendEmail } from "./email";
 import { getUserEmail } from "./firebase-admin";
 import type { AccountTier } from "./users";
+import { SITE_URL } from "@/lib/host";
 
 // Server-only. Pro / Business plan billing: one Paystack plan per
 // (tier, interval), a `tierSubscriptions/{uid}` record per paying
@@ -175,7 +176,7 @@ export async function expireTiers(): Promise<number> {
         to: sub.email,
         bell: { uid: sub.uid, type: "plan", linkHref: "/pricing" },
         subject: `Your #NotesApp ${sub.tier === "pro" ? "Pro" : "Business"} plan has ended`,
-        text: `Your paid plan ended, so your account is back on Free Basic. Your journal, bookings and earnings are untouched. You can upgrade again any time from ${process.env.NEXT_PUBLIC_SITE_URL || "https://www.notesapp.name.ng"}/pricing.`,
+        text: `Your paid plan ended, so your account is back on Free Basic. Your journal, bookings and earnings are untouched. You can upgrade again any time from ${SITE_URL}/pricing.`,
       }).catch(() => {});
     }
     n++;
@@ -195,7 +196,7 @@ const TRIAL_REMINDER_DAYS = 5;
 export async function expireOrgTrials(): Promise<number> {
   await ensurePricing();
   const db = getAdminDb();
-  const site = process.env.NEXT_PUBLIC_SITE_URL || "https://www.notesapp.name.ng";
+  const site = SITE_URL;
   const now = Date.now();
   const snap = await db.collection("users").where("trialUntil", "<", new Date(now + TRIAL_REMINDER_DAYS * 86_400_000).toISOString()).get();
   let n = 0;

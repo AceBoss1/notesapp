@@ -5,6 +5,7 @@ import { FinanceError } from "./finance";
 import { createEntry, type Caller } from "./finance-server";
 import { MAX_USAGE, cleanGrant, cleanUsage, dueReminders, daysLeft, kobo, reminderText, usd, type Grant, type GrantInput, type GrantStatus } from "./grants";
 import { lagosDate } from "./team";
+import { SITE_URL } from "@/lib/host";
 
 // Server side of the grants and subscriptions tracker. Collection: grants (server-only in firestore.rules). Finance edits, product reads.
 const COL = "grants";
@@ -91,7 +92,7 @@ export type GrantDeps = {
   recipients: () => Promise<{ uid: string; email: string }[]>;
 };
 export const defaultGrantDeps = (db: Firestore, page = "/admin/team/grants"): GrantDeps => ({
-  email: async (to, m) => { await sendEmail({ to, subject: m.subject, text: m.text, action: { label: "Open", url: `https://www.notesapp.name.ng${page}` } }); },
+  email: async (to, m) => { await sendEmail({ to, subject: m.subject, text: m.text, action: { label: "Open", url: `${SITE_URL}${page}` } }); },
   bell: async (uid, message) => notifyBell({ uid, type: "team", linkHref: page, message }),
   // The owner, super admins and the finance team.
   recipients: async () => (await listStaff(db)).filter((p) => p.owner || p.role === "super" || p.depts.includes("finance")).map((p) => ({ uid: p.uid, email: p.email })),

@@ -1,3 +1,4 @@
+import { APP_HOST, APP_URL, LIFE_HOST, LIFE_URL, ROOT_DOMAIN } from "./host";
 import { AD_PACKAGES } from "./ad-packages";
 import { WHAT_IS_INTRO, WHAT_YOU_CAN_DO, WHAT_IS_FREE, WHAT_IS_TIERS } from "./site";
 import { BOOST_PACKAGES, GIFT_MAX_KOBO, GIFT_MIN_KOBO } from "./boost-config";
@@ -48,11 +49,11 @@ You will be asked to follow a few journals so your feed is not empty. Verify you
 
 You can also tell us, if you like, what you do, your role and where you work. It is optional and shows under your name on your profile; change it any time in [Edit profile](/profile/edit).
 
-Every password box has an eye button to show or hide what you typed, so you can check it before you continue. On the app address, [app.notesapp.name.ng](https://app.notesapp.name.ng), you sign in or create your account right on the welcome screen.
+Every password box has an eye button to show or hide what you typed, so you can check it before you continue. On the app address, [${APP_HOST}](${APP_URL}), you sign in or create your account right on the welcome screen.
 
 Forgot your password? Use [Reset password](/forgot-password).`),
     A("install-notesapp", "Installing NotesApp on your phone or computer", "Getting started", `
-NotesApp installs straight from your browser: no app store and nothing to download by hand. Open [app.notesapp.name.ng](https://app.notesapp.name.ng) and press the Download button on the welcome screen. It says **Download on mobile** on a phone or tablet, **Download on PC** on Windows and **Download on Mac** on a Mac, and opens [the install page](/install) with the steps for your device and browser.
+NotesApp installs straight from your browser: no app store and nothing to download by hand. Open [${APP_HOST}](${APP_URL}) and press the Download button on the welcome screen. It says **Download on mobile** on a phone or tablet, **Download on PC** on Windows and **Download on Mac** on a Mac, and opens [the install page](/install) with the steps for your device and browser.
 
 - **iPhone or iPad:** open NotesApp in Safari, tap Share, then **Add to Home Screen**.
 - **Android:** open it in Chrome, tap the ⋮ menu, then **Install app** (or Add to Home screen).
@@ -210,7 +211,7 @@ Calls are free. Planned: paid calls inside Notes Life (₦5 a minute voice, ₦1
       : []),
     ...(LIFE_LIVE
       ? [A("notes-life", "Notes Life: the NotesApp life game", "Publishing and earning", `
-**Notes Life** is a free life game you play in your browser with your NotesApp account, at [life.notesapp.name.ng](https://life.notesapp.name.ng) or [Play Notes Life](/life/play). The first playable version is set in **Wuse, Abuja**. Lagos and Port Harcourt come later.
+**Notes Life** is a free life game you play in your browser with your NotesApp account, at [${LIFE_HOST}](${LIFE_URL}) or [Play Notes Life](/life/play). The first playable version is set in **Wuse, Abuja**. Lagos and Port Harcourt come later.
 
 **Starting out:** you begin on day 1 with **N$ 100,000** (Notesville Naira) in a room with sage walls: a bed, a bedside lamp and a deal phone, a wardrobe, a WC and bath, a desk with an old big desktop, a standing fan, a bicycle and the maroon NotesApp rug. Rent is **N$ 60,000 every 30 game days**, paid to your landlord, Alhaji Bello. It is taken automatically when it falls due; if you can't pay, it waits as rent owed until you can.
 
@@ -260,13 +261,13 @@ Calls are free. Planned: paid calls inside Notes Life (₦5 a minute voice, ₦1
 
 **More jobs at the partners:** at **itel Energy** (Go → itel Energy → Jobs): sales attendant (N$ 5,000 a shift plus up to N$ 1,500 bonus on Power GO sales), CarlCare technician (N$ 8,000, needs a laptop), solar installer (N$ 9,000, needs a bicycle or e-bike) and store supervisor (N$ 12,000, after 10 itel shifts). itel staff get 20% off itel products. At **Candellux** (Garki → Jobs): front desk (N$ 6,000), restaurant waiter (N$ 5,000 plus tips), housekeeping (N$ 4,500 and a free staff meal), pool lifeguard (N$ 6,500 plus up to N$ 1,500 rescue bonus, needs gym fitness), swimming instructor (N$ 8,000 plus a lesson bonus, needs swimming skill 5), gym instructor (N$ 8,500, after 10 gym sessions), restaurant cook (N$ 7,500, cooking skill 4) and duty manager (N$ 15,000, after 15 Candellux shifts and 4★). Candellux staff pay half price at the pool, gym, pool bar and VIP bar.
 
-**Become a Partner (own an outlet):** at Chef Adams and itel Energy, the **Partner** tab sells outlets: a Chef Adams **Takeaway Kiosk** (from N$ 2.5m, after 10 Chef Adams shifts and 3★) and **Mini Dine-In Shop** (from N$ 8.0m, after running a kiosk for 7 game days at 80% quality and 4★); an **itel Home Store** (from N$ 1.5m, after 5 itel shifts and owning a Power GO) and **itel Mall Store** (from N$ 7.0m, after running a Home Store for 7 game days and 4★). Choose Wuse market or Garki Area 1 (12% dearer, 12% busier). Outlets are run by residents 🤖 while you're away, and appear in Notesville with your name on them. Chef Adams keeps 8% of sales as the brand fee; itel earns from the stock you buy at partner prices; your staff's wages come out too. Collect your takings at the outlet or in Phone → **Businesses**: they wait up to **30 game days** (about a real day), then the outlet stops selling until you collect. Quality slips while takings sit uncollected. Without backup power an outlet sells half during blackouts: fit an itel Power Tank 1000 and two 650W panels (N$ 620,000) to sell through them. An outlet's value counts on the Billionaires List. Real players work shifts at the brands' own outlets; outlets players own are staffed by residents for now. Want the real thing? The Partner tab links to the [Chef Adams franchise](https://www.notesapp.name.ng/journals/own-a-chef-adams-franchise-in-your-choice-location) and [itel Home](https://www.itel-life.com/ng/itel-home/about-itel-home) pages.
+**Become a Partner (own an outlet):** at Chef Adams and itel Energy, the **Partner** tab sells outlets: a Chef Adams **Takeaway Kiosk** (from N$ 2.5m, after 10 Chef Adams shifts and 3★) and **Mini Dine-In Shop** (from N$ 8.0m, after running a kiosk for 7 game days at 80% quality and 4★); an **itel Home Store** (from N$ 1.5m, after 5 itel shifts and owning a Power GO) and **itel Mall Store** (from N$ 7.0m, after running a Home Store for 7 game days and 4★). Choose Wuse market or Garki Area 1 (12% dearer, 12% busier). Outlets are run by residents 🤖 while you're away, and appear in Notesville with your name on them. Chef Adams keeps 8% of sales as the brand fee; itel earns from the stock you buy at partner prices; your staff's wages come out too. Collect your takings at the outlet or in Phone → **Businesses**: they wait up to **30 game days** (about a real day), then the outlet stops selling until you collect. Quality slips while takings sit uncollected. Without backup power an outlet sells half during blackouts: fit an itel Power Tank 1000 and two 650W panels (N$ 620,000) to sell through them. An outlet's value counts on the Billionaires List. Real players work shifts at the brands' own outlets; outlets players own are staffed by residents for now. Want the real thing? The Partner tab links to the [Chef Adams franchise](/journals/own-a-chef-adams-franchise-in-your-choice-location) and [itel Home](https://www.itel-life.com/ng/itel-home/about-itel-home) pages.
 
 **Fridge, microwave and keeping food:** tick **Keep for later** when you order takeaway or delivery, and the food is stored as plates (cooked plates are stored too). Without a fridge stored food spoils after **8 game hours**; in a fridge it keeps while the fridge has power. In a blackout the fridge needs a generator or the **itel Power Tank 1000** (N$ 400,000, runs the fridge about 5 game hours, and your lights when the Power GO is empty), charged by NEPA or by day with **650W bifacial panels** (N$ 110,000 each, it takes two). A **microwave** warms stored food: Hunger +50 instead of +40 cold.
 
 **Billboards:** the roads carry billboards for the partners and for the #1MillionNairaNotesAppChallenge. Tap one to open it.
 
-**Leaving:** Phone → **NotesApp**, or **Back to NotesApp** in Settings, saves your game and takes you to your journal feed on [app.notesapp.name.ng](https://app.notesapp.name.ng/journals).
+**Leaving:** Phone → **NotesApp**, or **Back to NotesApp** in Settings, saves your game and takes you to your journal feed on [${APP_HOST}](${APP_URL}/journals).
 
 **Partners:** Chef Adams, itel Energy, Candellux Imperial and Digital Witch are real businesses that partner with Notes Life (see [Partner with Notes Life](/life/partners), where businesses can ask to join). Their in-game prices are game prices; real orders and bookings are made with them directly.`)]
       : []),
@@ -280,6 +281,17 @@ Calls are free. Planned: paid calls inside Notes Life (₦5 a minute voice, ₦1
 **Links:** type a web address anywhere you write on #NotesApp (a journal, a comment or reply, a message, a moment caption, a review, a recommendation, your bio or Notes Life chat) and it becomes a link people can tap. It works with full addresses (https://…), www.… and plain names such as candelluximperialhotel.com. In Messages, a message with a web address shows a preview card under it: the page's picture, title and description.
 
 **@mentions:** type @ and the first letters of someone's username, and #NotesApp suggests matching members. Pick one with the arrow keys and Enter (or Tab), or tap it; Esc closes the list. Wherever it shows, @username is a link to that person's profile.
+
+**Who gets told:** when you @mention someone in a comment or reply, a published journal, a moment, a store review or a seller's reply, or a recommendation (once the person it's about approves it), they get a notification in their bell with a few words around the mention and a link to it. Each person is told once for each thing, so editing a comment or a journal only tells people you newly mention. Nobody is told about mentioning themselves, and if either of you has blocked the other, no notification goes. Mentions in messages, group chats and Notes Life chat never notify anyone: those are conversations, and a mention there doesn't pull anyone in. Up to 10 people are told per comment, journal or moment.
+`),
+    A("weekly-digest", "The #NotesApp Weekly Digest email", "Getting started", `
+Every Sunday evening (from 5 PM, Lagos time) #NotesApp can email you a short digest: up to five journals published that week, chosen for you. Journals from people you follow come first, then the topics you like, then what most people liked that week. Your own posts are never in it.
+
+Each story shows the writer's picture and name (and the organisation they wrote for), the title, the opening of the story, how long it takes to read, and its likes and comments. Tap the title or **Read more** to open it; **Read more in your feed** opens your journal feed.
+
+**Turning it off:** every digest has an **Unsubscribe from the weekly digest** link at the bottom (your email app's own Unsubscribe button works too), or switch it off under **Emails** in [Account settings](/profile/account#email). Switch it back on there any time. Emails about your bookings, orders, payments and account always come, whatever you choose.
+
+You need a confirmed email address to get it, and it only comes when there's something to read.
 `),
     A("social-sharing", "Sharing posts to social media", "Publishing and earning", `
 Every post has a share menu (WhatsApp, X, Facebook, LinkedIn, copy link) that works without connecting anything. Connected publishing, where you connect LinkedIn and X once and publish an excerpt with a link back to your journal, is built and is being switched on; see the [roadmap](/roadmap) for the latest. You always see and can edit the words before anything is posted.`),
@@ -352,7 +364,7 @@ Aside from being the Founder, CEO and CTO of NOTESAPP TECHNOLOGIES LTD (the comp
 His affiliations and recognition reflect his commitment to innovation, entrepreneurship and global sustainability. He publishes on #NotesApp under his own name, and several of his articles on careers and business are on his journal here.
 
 ## Sources
-- #NotesApp profile and journal: [notesapp.name.ng/u/emmanuel](/u/emmanuel)
+- #NotesApp profile and journal: [${ROOT_DOMAIN}/u/emmanuel](/u/emmanuel)
 - Website: [adams.com.ng](https://adams.com.ng)
 - Medium: [itsemmanueladams.medium.com](https://itsemmanueladams.medium.com)
 - LinkedIn: [Emmanuel Adams](https://www.linkedin.com/in/emmanuel-adams-27891354)

@@ -1,3 +1,4 @@
+import { LIFE_URL } from "@/lib/host";
 // Notes Life: the game's rules and everything that can be bought, eaten, worked or ridden. Shared by the server (which owns money and
 // ownership: lib/life/server.ts), the game screens and the tests. Prices are in Notesville Naira (N$), whole numbers.
 // Decided 14 October 2026: start with N$ 100,000 on day 1 in Wuse, Abuja; ₦1 of NotesApp Credit buys N$ 100; 24 game hours = 48 real
@@ -220,7 +221,7 @@ export const OUTLET_HOLD_DAYS = 30;
 export const OUTLET_BACKUP = { price: 620_000, name: "itel Power Tank 1000 and two 650W bifacial panels" };
 export const OUTLET_STAFF = ["Emeka", "Halima", "Tunde", "Aisha", "Chinedu", "Ngozi", "Musa", "Ifeoma"];
 export const REAL_PARTNER: Record<"chef_adams" | "itel", string> = {
-  chef_adams: "https://www.notesapp.name.ng/journals/own-a-chef-adams-franchise-in-your-choice-location",
+  chef_adams: `/journals/own-a-chef-adams-franchise-in-your-choice-location`,
   itel: "https://www.itel-life.com/ng/itel-home/about-itel-home",
 };
 export type Outlet = { kind: OutletKind; area: OutletArea; openedAt: number; lastCollectAt: number; earned: number; backup: boolean };
@@ -404,7 +405,7 @@ export const REFERRAL_BONUS_KOBO = 25_000; // ₦250 of Bonus Credits each, for 
 export const REFERRAL_MAX_PER_MONTH = 20; // rewarded invites per inviter per calendar month
 // The game never hands out more than this in Bonus Credits in a calendar month (all players together); override with LIFE_BONUS_MONTHLY_CAP_NAIRA.
 export const BONUS_MONTHLY_CAP_KOBO = Math.max(0, Number(process.env.LIFE_BONUS_MONTHLY_CAP_NAIRA || 500_000)) * 100;
-export const PLAY_URL = "https://life.notesapp.name.ng";
+export const PLAY_URL = LIFE_URL;
 export const inviteLink = (username: string) => `${PLAY_URL}/?ref=${encodeURIComponent(username)}`;
 
 // ---- Net worth and the Billionaires List ----
@@ -428,7 +429,7 @@ export const fmtN = (n: number) => `N$ ${Math.round(n).toLocaleString("en-NG")}`
 export const fmtShort = (n: number) => (n >= 1e9 ? `N$ ${(n / 1e9).toFixed(2)}bn` : n >= 1e6 ? `N$ ${(n / 1e6).toFixed(1)}m` : fmtN(n));
 
 // ---- itel Energy (partner, through @clickam, the itel distributor on NotesApp) ----
-export const ITEL = { name: "itel Energy", seller: "clickam", sellerUrl: "https://www.notesapp.name.ng/u/clickam", note: "Solar shop, Wuse market road · products from @clickam on NotesApp" };
+export const ITEL = { name: "itel Energy", seller: "clickam", sellerUrl: "/u/clickam", note: "Solar shop, Wuse market road · products from @clickam on NotesApp" };
 export const POWER_GO = { wh: 320, maxW: 200, chargeW: 100, solarW: 55 }; // battery size, mains charging, the 100W panel's average by day
 export const POWER_TANK = { wh: 1000, chargeW: 250, fridgeW: 200, panelW: 300 }; // 1000Wh: the fridge alone for 5 game hours; each 650W panel averages ~300W by day
 export const FOOD_SPOIL_HOURS = 8; // stored food without a cold fridge spoils after this many game hours

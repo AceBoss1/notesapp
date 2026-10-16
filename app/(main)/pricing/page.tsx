@@ -14,6 +14,7 @@ import { getLimitTable } from "@/lib/limits-server";
 import { CALLS_LIVE, MESSAGES_LIVE, MOMENTS_LIVE } from "@/lib/moments-rules";
 import { WALLET_LIVE } from "@/lib/wallet";
 import { enterpriseFrom, planPrice, planRate, pct, breakEven } from "@/lib/pricing";
+import { ROOT_DOMAIN } from "@/lib/host";
 
 export const metadata: Metadata = {
   title: "Pricing",
@@ -125,7 +126,7 @@ const ROWS: Row[] = [
           ? t.tier === "business"
             ? "Serve your page, journals and store on notes.yourbrand.com or yourbrand.com — your /u/username page stays the default home, and you can switch back any time. Semi white-label: the footer reads “Your name is powered by #NotesApp” and emails go out under #NotesApp's name on your behalf"
             : "Serve your page, journals and store on notes.yourbrand.com or yourbrand.com — your /u/username page stays the default home, and you can switch back any time. Full white label: visitors sign in and sign up in a window in your name and logo (still clearly a NotesApp account), and their password and confirmation emails come in your name. Checkout and bookings still open on #NotesApp for now"
-          : "Your page lives at notesapp.name.ng/u/username",
+          : `Your page lives at ${ROOT_DOMAIN}/u/username`,
   },
   {
     label: "Files in messages",

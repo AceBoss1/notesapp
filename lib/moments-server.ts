@@ -6,6 +6,7 @@ import {
   isMomentExpired, isMomentHours, isMomentKind, momentExpiry, type MomentHours, type MomentKind,
 } from "./moments-rules";
 import { sendMessage } from "./messages-server";
+import { notifyMentions } from "./mentions-server";
 import { MESSAGE_MAX } from "./messages-rules";
 import { VIDEO_MAX_BYTES, VIDEO_TYPES, isoWeekKey } from "./video-rules";
 import { effectiveTier, type AccountTier } from "./users";
@@ -162,6 +163,10 @@ export async function createMoment(db: Firestore, owner: { uid: string; username
     t.set(db.doc(`moments/${id}`), { ...full, expireAt: new Date(full.expiresAt) });
     if (audioRef) t.update(audioRef, { attached: true });
   });
+  if (text.includes("@")) {
+    const u = (await db.doc(`users/${owner.uid}`).get()).data();
+    await notifyMentions(db, { kind: "moment", sourceId: id, text, author: { uid: owner.uid, name: String(u?.displayName ?? owner.username), username: owner.username, avatar: String(u?.avatar ?? "") }, where: "in a moment", linkHref: `/u/${owner.username}` }, now).catch(() => {});
+  }
   return toView(id, full, owner.uid, false, deps);
 }
 

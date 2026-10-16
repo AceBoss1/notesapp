@@ -5,9 +5,10 @@ import { getAdminApp, getAdminDb, getUserEmail, verifySignedInRequest } from "@/
 import { rateLimit } from "@/lib/rate-limit";
 import { sendEmail } from "@/lib/email";
 import { canHaveTeam, seatLimit, OrgInvite, OrgMember, OrgRole } from "@/lib/org";
+import { SITE_URL } from "@/lib/host";
 
 export const dynamic = "force-dynamic";
-const site = () => process.env.NEXT_PUBLIC_SITE_URL || "https://www.notesapp.name.ng";
+const site = () => SITE_URL;
 const bearer = (req: NextRequest) => req.headers.get("authorization")?.replace(/^Bearer\s+/i, "");
 const mid = (orgUid: string, memberUid: string) => `${orgUid}_${memberUid}`;
 class Fail extends Error {

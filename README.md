@@ -13,7 +13,7 @@ Firestore project and its own Cloudflare R2 bucket. Treat all
 architecture looks the way it does, not as the current state of
 Firestore access.
 
-## Where things stand (updated 16 Oct 2026, v0.36.0)
+## Where things stand (updated 16 Oct 2026, v0.37.0)
 
 **Read this section first.** Everything below it is a chronological build log; where an older passage says something is
 "not built", "demo" or "shared with Precheks", this section is the current truth. Release notes for every version are in
@@ -45,7 +45,7 @@ Firestore access.
 | Company | NOTESAPP TECHNOLOGIES LTD (RC and TIN in `lib/site.ts`; SMEDAN number pending) | "Company identity" |
 
 ### Not built yet
-WhatsApp reminders (plan: Meta WhatsApp Cloud API directly; booking reminders + delivery updates; needs Meta Business
+The **hashtag interests picker** (members choose topics; the weekly digest already ranks by `users/{uid}.interests`, and the feed will put chosen topics first) · WhatsApp reminders (plan: Meta WhatsApp Cloud API directly; booking reminders + delivery updates; needs Meta Business
 verification and approved templates) · publishing to Facebook, Instagram and TikTok (LinkedIn and X are built) · the NotesApp MCP server and the Nana operator
 (scoped; the work is on the team hub as the agent-layer backlog) · AI notetaker · team hub and team messaging for Business and Enterprise (internal only for now) ·
 LinkedIn advertising (Advertising API development tier approved; advertisers boost a post on LinkedIn from their own ad account, plus our own campaign stats on Traction) ·
@@ -66,7 +66,9 @@ investor data room, runway calculator, CAC and MRR calculator, burn and revenue 
 | `CLOUDFLARE_STREAM_TOKEN` | no | Cloudflare API token with **Stream: Edit** — video lessons of view-only items and courses (uploaded with signed-URL protection; the account id is `R2_ACCOUNT_ID` unless `CLOUDFLARE_ACCOUNT_ID` is set). Without it, only PDF lessons work |
 | `R2_PRIVATE_BUCKET` | no | Name of the private bucket for paid downloads (just a name, a plain variable) |
 | `PAYSTACK_SECRET_KEY` | **yes** | Paystack API key (also verifies webhook signatures) |
-| `NEXT_PUBLIC_SITE_URL` | no | `https://www.notesapp.name.ng` (emails, API URLs, share links) |
+| `NEXT_PUBLIC_ROOT_DOMAIN` | no | **The primary address, the only setting for it** (`lib/host.ts`): `notesapp.name.ng` when unset, `notesapp.tech` after the move. Used by emails, share links, webhooks, sign-in callbacks and search engines. Every domain on the Vercel project still shows the site under its own name (no redirects; `www.`, `app.`, `life.`, any subdomain; members' own domains excepted). Follow `docs/DOMAIN_SWITCH.md` before changing it |
+| `NEXT_PUBLIC_SITE_URL` | no | Only for local development and previews (`localhost`, `*.vercel.app`); ignored on the live site, which always uses `https://www.<root>` |
+| `NEXT_PUBLIC_CONTACT_EMAIL` | no | Public contact address (footer, legal pages, status). Default `hello@notesapp.name.ng`; change it once mail works on the new domain |
 | `ANTHROPIC_API_KEY` | no | Anthropic API key (Sensitive) that switches Nana's AI on for everyone. Without it Nana answers from the help centre and members can connect their own key; optional `NANA_MODEL`, `NANA_DAILY_LIMIT`, `NANA_CHAT_PER_USER_DAILY`, `NANA_ASSIST_DAILY` |
 | `RESEND_API_KEY` | **yes** | Resend key; without it emails are skipped |
 | `EMAIL_FROM`, `SUPPORT_EMAIL` | no | Sender (`#NotesApp <…>`) and where support/error alerts go (default hello@notesapp.name.ng) |
@@ -91,6 +93,9 @@ investor data room, runway calculator, CAC and MRR calculator, burn and revenue 
 | `WHOGOHOST_PROXY_URL` | no | Fixed-IP proxy for the Whogohost reseller API, when it needs an allow-listed address |
 | `OWNER_EMAIL` | no | The owner account (the first admin profile if unset) |
 | `REPORTS_EMAIL` | no | Where reports of members and content are emailed |
+| `WEEKLY_DIGEST` | no | `on` turns the Sunday weekly digest on (`lib/digest-server.ts`). Off by default: preview first with `POST /api/admin/digest {action:"preview"\|"send_test"}` |
+| `DIGEST_PER_RUN` | no | Digests sent per cron run (default 40; the cron runs every ~15 min). Resend's free plan is 100 emails a day for **everything**, so raise the plan before sending to more members than that |
+| `EMAIL_LINK_SECRET` | **yes** | Signs the one-click unsubscribe links (falls back to `CRON_SECRET`; without either, the digest doesn't send) |
 
 Script-only (never in Vercel): `SOURCE_SERVICE_ACCOUNT`, `DEST_SERVICE_ACCOUNT` (migration), `GOOGLE_APPLICATION_CREDENTIALS`.
 A copy-paste template is `.env.local.example`.
@@ -101,8 +106,10 @@ A copy-paste template is `.env.local.example`.
    `adSeen`/`seen` field overrides, answer **N**. **Pending as of 16 Oct:** the rules that let Notes Life presence use the
    Digital Witch hub (`dw`) are merged but not deployed.
 2. Before deploying rules or changing the economy: `npm run test:rules` (54 tests), `npm run test:life` (Notes Life economy,
-   prints `ALL OK`) and `npm run test:messages` (message edits). Each starts the Firestore emulator and needs Java.
-3. cron-job.org: `GET https://www.notesapp.name.ng/api/cron/reminders` every 15 min with `Authorization: Bearer $CRON_SECRET`, and
+   prints `ALL OK`), `npm run test:messages` (message edits), `npm run test:mentions` (@mention bells) and `npm run test:digest`
+   (weekly digest). Each starts the Firestore emulator and needs Java. `npm run test:preview` checks link-preview safety
+   (no emulator; needs port 80).
+3. cron-job.org: `GET https://www.<root>/api/cron/reminders` (today `www.notesapp.name.ng`) every 15 min with `Authorization: Bearer $CRON_SECRET`, and
    `GET /api/status` every 5 min (so incidents are detected without visitors).
 4. Media bucket CORS from `scripts/r2-cors.json` on **both** R2 buckets (browser PUTs go straight to R2).
 
@@ -111,6 +118,22 @@ A copy-paste template is `.env.local.example`.
 identity, scheduled jobs) · `/admin/errors` (grouped errors, 30-day retention) · `/admin/traction` (numbers for decks) ·
 `/admin/payments` (held/failed payouts) · `/admin/api-access` (API access and domains) · `/admin/paylony` (Paylony keys and webhook) ·
 Firebase console → Firestore → Query insights (reads by collection) · Vercel → Logs, and Usage (Fluid Active CPU, build minutes).
+
+### Addresses, @mention bells and the weekly digest (v0.37.0)
+- **Addresses:** `lib/host.ts`. Every domain on the Vercel project serves the site under its own name (no redirects between
+  our domains; `www.`, `app.`, `life.` and any subdomain). `NEXT_PUBLIC_ROOT_DOMAIN` picks the primary address used by
+  emails, share links, webhooks, sign-in callbacks and the `rel=canonical` header that other domains send. Moving to
+  notesapp.tech: `docs/DOMAIN_SWITCH.md`. In page code, use relative links, `FamilyLink` / `useFamilyUrl` to reach app. or
+  life. on the visitor's own domain, and `SITE_URL` only for things that leave the site (emails, shares).
+- **@mention bells:** `lib/mentions-server.ts` (once per person per thing in `mentionNotices`, server-only; blocks respected;
+  max 10). Comments and journals are saved by the browser, which then calls `POST /api/notify/mentions` (the server reads what
+  was saved and checks the caller wrote it); reviews, seller replies, approved recommendations and moments notify on the
+  server. Never chats.
+- **Weekly digest:** template `lib/digest.ts` (Medium's layout, Quora's text wrapping round the picture), sending
+  `lib/digest-server.ts`, cron job `weeklyDigest` in `/api/cron/reminders` (Sundays from 5 PM Lagos, in batches,
+  `digestRuns/{sunday}`), choices in `emailPrefs/{uid}` (server-only) via `/api/account/email-prefs` and Account settings →
+  Emails, one-click unsubscribe `/api/digest/unsubscribe` with List-Unsubscribe headers. Interests: `users/{uid}.interests`
+  (hashtags) are already used for ranking; the hashtag picker that fills them is the next step.
 
 ### Scripts (`scripts/`)
 `set-admin-claims.mjs` · `set-founder-tier.mjs` · `fix-founder-profiles.mjs` · `move-suspensions.mjs` · `strip-user-emails.mjs` ·

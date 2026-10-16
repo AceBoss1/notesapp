@@ -1,3 +1,4 @@
+import { APP_HOST, LIFE_HOST } from "@/lib/host";
 import Link from "next/link";
 import NotesLifeCard from "@/components/NotesLifeCard";
 import type { Metadata } from "next";
@@ -16,14 +17,14 @@ const ITEMS: { title: string; tag: string; body: string; detail: string; link?: 
   {
     title: "Notes Life: a life game on NotesApp",
     tag: "Social",
-    body: "Live now, first playable: a browser game at life.notesapp.name.ng that you play with your NotesApp sign-in. Start in a room in Wuse, Abuja with N$ 100,000, keep your needs up, work general and Chef Adams jobs, take deal calls, eat at Chef Adams, relax at Candellux Imperial, invite friends for Bonus Credits and climb the Billionaires List. Also live: NEPA power cuts with itel Energy's Power GO Pro, Power Tank 1000, solar and generators; a fridge, microwave and food that spoils; jobs at itel Energy and Candellux; owning a Chef Adams or itel outlet (Become a Partner); billboards on the roads; a city picker (Abuja open); the new Candellux with its pool, swimming lessons, pool bar, VIP bar and gym; shawarma, pizza and smoothies at Chef Adams; chatting with friends inside the game for Social; Digital Witch courses, certificates and tech jobs with its founder Cynthia Okeh as #1 on the list; residents (computer players) and seeing real players at the same place. Next: real players working at outlets other players own, Lagos and Port Harcourt, the market street with real NotesApp stores, and calling friends from your game phone.",
+    body: `Live now, first playable: a browser game at ${LIFE_HOST} that you play with your NotesApp sign-in. Start in a room in Wuse, Abuja with N$ 100,000, keep your needs up, work general and Chef Adams jobs, take deal calls, eat at Chef Adams, relax at Candellux Imperial, invite friends for Bonus Credits and climb the Billionaires List. Also live: NEPA power cuts with itel Energy's Power GO Pro, Power Tank 1000, solar and generators; a fridge, microwave and food that spoils; jobs at itel Energy and Candellux; owning a Chef Adams or itel outlet (Become a Partner); billboards on the roads; a city picker (Abuja open); the new Candellux with its pool, swimming lessons, pool bar, VIP bar and gym; shawarma, pizza and smoothies at Chef Adams; chatting with friends inside the game for Social; Digital Witch courses, certificates and tech jobs with its founder Cynthia Okeh as #1 on the list; residents (computer players) and seeing real players at the same place. Next: real players working at outlets other players own, Lagos and Port Harcourt, the market street with real NotesApp stores, and calling friends from your game phone.`,
     detail: "Your NotesApp profile picture is your portrait in the game. Notesville Naira is game money: earn it from jobs and deals, or buy it with NotesApp Credit (₦1 = N$ 100). It can't be cashed out. Inviting a friend who finishes their first shift gives you both ₦250 in Bonus Credits. Planned later: your own shop stall, events at the Candellux conference hall, and paid calls from NotesApp Credit.",
     link: { href: "/life", label: "Play Notes Life →" },
   },
   {
     title: "Install NotesApp on your phone or computer",
     tag: "App",
-    body: "Live now: the app address (app.notesapp.name.ng) has its own welcome screen with sign-in and sign-up built in, and a Download button that says Download on mobile, PC or Mac and opens the steps for your device. Next: working offline for reading, and push notifications on installed apps.",
+    body: `Live now: the app address (${APP_HOST}) has its own welcome screen with sign-in and sign-up built in, and a Download button that says Download on mobile, PC or Mac and opens the steps for your device. Next: working offline for reading, and push notifications on installed apps.`,
     detail:
       "NotesApp installs from your browser: Add to Home Screen on iPhone and Android, Install in Chrome or Edge on a computer, Add to Dock in Safari on a Mac. No store and nothing extra to download. The install page at /install shows the steps for the device and browser you are using.",
     link: { href: "/install", label: "How to install →" },

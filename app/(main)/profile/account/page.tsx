@@ -15,8 +15,10 @@ import { auth } from "@/lib/firebase";
 import { getUserByUid, UserProfile } from "@/lib/users";
 import AccountData from "@/components/AccountData";
 import VisibilitySettings from "@/components/VisibilitySettings";
+import EmailSettings from "@/components/EmailSettings";
 import PageHero from "@/components/PageHero";
 import PasswordInput from "@/components/PasswordInput";
+import { ROOT_DOMAIN } from "@/lib/host";
 
 const input = "mt-2 w-full rounded-xl border border-rule bg-card px-4 py-3 font-body focus:border-gold outline-none";
 const btn = "rounded-full bg-ink text-paper px-5 py-2 font-ui text-sm font-semibold hover:bg-crimson-deep transition-colors disabled:opacity-50";
@@ -144,7 +146,7 @@ export default function AccountPage() {
       <form onSubmit={changeUsername} className="card mt-8 p-6">
         <h2 className="font-display text-xl">Username</h2>
         <p className="mt-1 text-sm text-slate">
-          Your profile lives at notesapp.name.ng/u/{profile?.username}. You can change it once every 30 days; your old
+          Your profile lives at {ROOT_DOMAIN}/u/{profile?.username}. You can change it once every 30 days; your old
           link keeps redirecting to you and the old name stays reserved.
         </p>
         <input value={username} onChange={(e) => setUsername(e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, "").slice(0, 24))} className={input} aria-label="Username" />
@@ -175,6 +177,12 @@ export default function AccountPage() {
         <p className="mt-3 text-xs text-slate">Forgot it? <Link href="/forgot-password" className="text-crimson">Reset by email</Link>.</p>
       </form>
 
+      {user && (
+        <section id="email" className="mx-auto mt-10 max-w-2xl scroll-mt-6 px-6">
+          <h2 className="font-display text-2xl text-ink">Emails</h2>
+          <div className="mt-4"><EmailSettings /></div>
+        </section>
+      )}
       {user && (
         <section className="mx-auto mt-10 max-w-2xl px-6">
           <h2 className="font-display text-2xl text-ink">Online status and lists</h2>

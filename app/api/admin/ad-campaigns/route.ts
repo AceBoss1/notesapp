@@ -6,10 +6,11 @@ import { sendEmail } from "@/lib/email";
 import { formatNaira } from "@/lib/booking-time";
 import { deliveredByAd } from "@/lib/ads-server";
 import type { AdCampaign } from "@/lib/ad-packages";
+import { SITE_URL } from "@/lib/host";
 
 export const dynamic = "force-dynamic";
 
-const site = () => process.env.NEXT_PUBLIC_SITE_URL || "https://www.notesapp.name.ng";
+const site = () => SITE_URL;
 const lagosMonth = () => new Date().toLocaleDateString("en-CA", { timeZone: "Africa/Lagos" }).slice(0, 7);
 
 // Admin-only decisions on paid ad campaigns:
