@@ -121,7 +121,7 @@ export default function LifeGame() {
   const gotPlayer = (p: Player) => {
     const prev = playerRef.current;
     if (prev && p.naira > prev.naira) sfx("coin"); else if (prev && p.naira < prev.naira) sfx("pay");
-    offset.current = p.serverNow - Date.now(); setPlayer(p);
+    offset.current = p.serverNow - Date.now(); playerRef.current = p; setPlayer(p); // the ref now, so code right after an action sees it
   };
   const update = (f: (s: SaveState) => SaveState) => setSave((s) => (s ? f(s) : s));
 
