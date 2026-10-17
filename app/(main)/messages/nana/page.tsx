@@ -10,10 +10,13 @@ export const metadata: Metadata = { title: "Nana AI · Messages", robots: { inde
 export default function NanaMessagePage() {
   if (!MESSAGES_LIVE) notFound();
   return (
-    <div className="mx-auto max-w-2xl px-4 py-12 sm:px-6">
-      <p className="mb-3 font-ui text-sm"><Link href="/messages" className="text-crimson underline">← Messages</Link></p>
-      <div className="overflow-hidden rounded-xl border border-rule"><NanaPanel context="messages" className="h-[min(640px,calc(100dvh-12rem))]" /></div>
-      <p className="mt-3 text-xs text-slate">Nana is #NotesApp&apos;s helper. <Link href="/nana" className="underline">More about Nana, and connecting your own AI account</Link>.</p>
+    // Full screen on a phone (no site bar above it there), a card beside the list on desktop.
+    <div className="flex h-[100dvh] flex-col bg-paper lg:card lg:h-[calc(100dvh-7.5rem)] lg:overflow-hidden lg:bg-card">
+      <p className="shrink-0 border-b border-rule bg-card px-4 pb-2.5 pt-[max(0.625rem,env(safe-area-inset-top))] font-ui text-sm lg:px-6 lg:pt-4">
+        <Link href="/messages" className="inline-flex items-center gap-1 font-semibold text-crimson hover:underline"><span aria-hidden="true">←</span> Messages</Link>
+      </p>
+      <NanaPanel context="messages" className="flex-1" />
+      <p className="shrink-0 border-t border-rule bg-card px-4 pb-[max(0.625rem,env(safe-area-inset-bottom))] pt-2.5 text-xs text-slate lg:px-6 lg:pb-3">Nana is #NotesApp&apos;s helper. <Link href="/nana" className="underline">More about Nana, and connecting your own AI account</Link>.</p>
     </div>
   );
 }

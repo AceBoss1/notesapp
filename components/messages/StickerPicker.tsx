@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { STICKERS } from "@/lib/stickers";
 
 // A button that opens a grid of stickers (the #NotesApp icons from /brand). Picking one sends it straight away.
-export default function StickerPicker({ onPick, disabled }: { onPick: (id: string) => void; disabled?: boolean }) {
+export default function StickerPicker({ onPick, disabled, className = "rounded border border-rule px-3 py-1", label = "🖼 Stickers" }: { onPick: (id: string) => void; disabled?: boolean; className?: string; label?: string }) {
   const [open, setOpen] = useState(false);
   const box = useRef<HTMLDivElement>(null);
   useEffect(() => {
@@ -15,7 +15,7 @@ export default function StickerPicker({ onPick, disabled }: { onPick: (id: strin
   }, [open]);
   return (
     <div className="relative" ref={box}>
-      <button type="button" onClick={() => setOpen((o) => !o)} disabled={disabled} aria-expanded={open} aria-label="Stickers" title="Stickers" className="rounded border border-rule px-3 py-1">🖼 Stickers</button>
+      <button type="button" onClick={() => setOpen((o) => !o)} disabled={disabled} aria-expanded={open} aria-label="Stickers" title="Stickers" className={className}>{label}</button>
       {open && (
         <div className="absolute bottom-full left-0 z-20 mb-2 w-72 rounded-lg border border-rule bg-card p-3 shadow-lg" role="dialog" aria-label="Choose a sticker">
           <div className="grid max-h-64 grid-cols-3 gap-2 overflow-y-auto">

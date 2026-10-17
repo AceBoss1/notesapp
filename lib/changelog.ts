@@ -15,7 +15,12 @@ export const CHANGELOG: Release[] = [
     bump: "minor",
     date: "2026-10-17",
     changes: [
-      { kind: "changed", text: "Journals open with what you're interested in (For you), then what people read most this week, then what's new, then people and channels to follow." },
+      { kind: "changed", text: "A new look on phones and computers. On a phone: one light header with search, your notifications and your picture (which opens the menu), and a tab bar along the bottom (Feed, Explore, Market, Messages, Profile). On a computer the journal feed has a menu on the left and Most read and Who to follow on the right." },
+      { kind: "changed", text: "Journals is a feed with four tabs: For you (your interests first), Following, Latest and Top this week. Most read this week, Who to follow, boosted journals (marked Promoted) and adverts sit between the posts. Like, comment, share and save straight from the feed." },
+      { kind: "added", text: "Explore: topics, people and channels, which used to be tabs of Journals." },
+      { kind: "added", text: "Save journals with the bookmark; they're listed in Saved with your saved store items." },
+      { kind: "changed", text: "Messages and calls have a new look: a conversation fills the screen on a phone, and calls show the person's picture large, with clear buttons." },
+      { kind: "changed", text: "The verified badge suggestion is based on your plan: what to add on your plan, or that Business includes it." },
       { kind: "added", text: "Notes Market at /shop: every store on #NotesApp in one place, in the same order (For you, Most viewed, New), with digital items, categories and a list of stores." },
       { kind: "added", text: "Notes Academy at /academy: where courses will live. Publishers can tell us they want to teach." },
       { kind: "changed", text: "Profiles have Notes, Store and Courses tabs, and the buttons Follow, Book a session, Conversation and Gift me. On a phone, Follow steps aside once you follow someone." },

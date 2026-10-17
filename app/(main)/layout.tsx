@@ -1,9 +1,9 @@
 import Link from "next/link";
 import Image from "next/image";
-import NavLinks from "@/components/NavLinks";
-import HideOnAppHost from "@/components/HideOnAppHost";
-import AuthNav from "@/components/AuthNav";
-import MobileNav from "@/components/MobileNav";
+import Masthead from "@/components/shell/Masthead";
+import BottomTabs from "@/components/shell/BottomTabs";
+import { AppFrame, ChromeGate, FooterGate } from "@/components/shell/Frame";
+import { MemberProvider } from "@/lib/member-client";
 import VerifyEmailBanner from "@/components/VerifyEmailBanner";
 import WorkPrompt from "@/components/WorkPrompt";
 import NanaChat from "@/components/NanaChat";
@@ -12,7 +12,6 @@ import PushPrompt from "@/components/messages/PushPrompt";
 import PresenceBeat from "@/components/PresenceBeat";
 import CallManager from "@/components/calls/CallManager";
 import PayChooser from "@/components/PayChooser";
-import SearchBar from "@/components/SearchBar";
 import CelebrationBanner from "@/components/CelebrationBanner";
 import ChallengeBanner from "@/components/ChallengeBanner";
 import RememberReturn from "@/components/RememberReturn";
@@ -72,49 +71,28 @@ const site = await getSiteSettingsCached();
   ].filter((l) => !!l.href);
 
   return (
-    <>
+    <MemberProvider>
         <RememberReturn />
-        <CelebrationBanner />
-        <ChallengeBanner />
-        <VerifyEmailBanner />
-        <WorkPrompt />
-        <PushPrompt />
+        <ChromeGate>
+          <CelebrationBanner />
+          <ChallengeBanner />
+          <VerifyEmailBanner />
+          <WorkPrompt />
+          <PushPrompt />
+        </ChromeGate>
         <PresenceBeat />
         <CallManager />
         <PayChooser />
-        {/* Masthead */}
-        <header className="sticky top-0 z-40 bg-crimson-deep text-paper shadow-md" style={{ backgroundImage: "linear-gradient(100deg, #4E0119 0%, #7A0328 60%, #A6093D 100%)" }}>
-          <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 py-4 sm:px-6 lg:px-8">
-            <Link href="/" className="flex shrink-0 items-center gap-2.5">
-              <Image
-                src="/images/brand/notesapp-icon.webp"
-                alt="#NotesApp"
-                width={36}
-                height={36}
-                className="h-9 w-9 rounded-lg"
-              />
-              <span className="font-ui text-xl font-extrabold tracking-tight text-paper">
-                Notes<span className="text-[#FFB3C6]">App</span>
-              </span>
-            </Link>
-            <nav className="hidden items-center gap-5 font-ui text-sm font-semibold text-paper lg:flex xl:gap-7">
-              <NavLinks links={NAV} appLinks={APP_NAV} />
-              <SearchBar />
-              <span className="h-4 w-px bg-paper/30" />
-              <AuthNav onDark />
-            </nav>
-            <MobileNav links={NAV} appLinks={APP_NAV} />
-          </div>
-        </header>
+        <Masthead links={NAV} appLinks={APP_NAV} />
 
-        <main>{children}</main>
+        <main><AppFrame>{children}</AppFrame></main>
 
         {/* Footer */}
-        <HideOnAppHost>
+        <FooterGate>
         <footer className="mt-24 bg-crimson-deep text-paper" style={{ backgroundImage: "linear-gradient(160deg, #4E0119 0%, #7A0328 100%)" }}>
           <FooterCta />
-          <div className="mx-auto grid max-w-7xl grid-cols-1 gap-10 px-4 py-16 sm:grid-cols-2 sm:px-6 lg:grid-cols-4 lg:px-8">
-            <div>
+          <div className="mx-auto grid max-w-7xl grid-cols-2 gap-x-6 gap-y-10 px-4 py-12 sm:gap-10 sm:px-6 sm:py-16 lg:grid-cols-4 lg:px-8">
+            <div className="col-span-2 lg:col-span-1">
               <div className="flex items-center gap-2.5">
                 <Image
                   src="/images/brand/notesapp-icon.webp"
@@ -172,7 +150,7 @@ const site = await getSiteSettingsCached();
               </ul>
             </div>
 
-            <div>
+            <div className="col-span-2 sm:col-span-1">
               <p className="eyebrow text-crimson-bright/90">Connect</p>
               <ul className="mt-4 space-y-2 text-sm text-paper/75">
                 <li><Link href="/nana" className="hover:text-paper">Nana AI</Link></li>
@@ -237,8 +215,9 @@ const site = await getSiteSettingsCached();
             </p>
           </div>
         </footer>
-        </HideOnAppHost>
+        </FooterGate>
+      <BottomTabs />
       <NanaChat />
-    </>
+    </MemberProvider>
   );
 }

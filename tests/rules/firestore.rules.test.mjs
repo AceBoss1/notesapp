@@ -277,6 +277,17 @@ test("store items: category from the list, ships-from 2 to 60 characters; saves 
   await assertFails(deleteDoc(doc(as("alice"), "storeFavorites/alice_c1")));
 });
 
+test("saved journals: a member reads only their own, and only the server writes them", async () => {
+  await env.withSecurityRulesDisabled(async (ctx) => {
+    await setDoc(doc(ctx.firestore(), "savedJournals/alice_n1"), { uid: "alice", noteId: "n1", savedAt: "2026-10-17T00:00:00Z" });
+  });
+  await assertSucceeds(getDoc(doc(as("alice"), "savedJournals/alice_n1")));
+  await assertFails(getDoc(doc(as("bob"), "savedJournals/alice_n1")));
+  await assertFails(getDoc(doc(anon(), "savedJournals/alice_n1")));
+  await assertFails(setDoc(doc(as("alice"), "savedJournals/alice_n2"), { uid: "alice", noteId: "n2", savedAt: "x" }));
+  await assertFails(deleteDoc(doc(as("alice"), "savedJournals/alice_n1")));
+});
+
 test("digital store items: no delivery/stock, kind is fixed, files and purchases are server-only", async () => {
   const base = { ownerUid: "pub", title: "Guide", price: "₦2,000", link: "https://www.notesapp.name.ng", image: "/x.png", cta: "Buy & download", sellable: true, priceKobo: 200000, deliveryKobo: 0, stock: 0 };
   const digital = { ...base, kind: "digital", fileName: "guide.pdf", fileSize: 1234 };

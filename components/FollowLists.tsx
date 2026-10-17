@@ -16,7 +16,7 @@ export default function FollowLists({ username, owner = false, followerCount }: 
   const [open, setOpen] = useState<Kind | null>(null);
   return (
     <>
-      <p className="mt-1 flex gap-4 font-ui text-xs font-semibold text-crimson">
+      <p className="mt-1 flex justify-center gap-4 font-ui text-xs font-semibold text-crimson sm:justify-start">
         <button type="button" onClick={() => setOpen("followers")} className="underline-offset-2 hover:underline">Followers{typeof followerCount === "number" ? ` (${followerCount})` : ""}</button>
         <button type="button" onClick={() => setOpen("following")} className="underline-offset-2 hover:underline">Following</button>
       </p>

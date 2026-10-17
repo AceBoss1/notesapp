@@ -11,8 +11,9 @@ import Avatar from "@/components/Avatar";
 import { MESSAGES_LIVE } from "@/lib/moments-rules";
 import { collection, onSnapshot, query, where } from "firebase/firestore";
 
-// `onDark`: the desktop masthead is crimson, so the links and buttons are drawn light there.
-export default function AuthNav({ onDark = false }: { onDark?: boolean }) {
+// `onDark`: the desktop masthead is crimson, so the links and buttons are drawn light there. `compact` (the app header):
+// the bell in a soft circle and the picture opens the menu, without the @username.
+export default function AuthNav({ onDark = false, compact = false }: { onDark?: boolean; compact?: boolean }) {
   const [user, setUser] = useState<User | null | undefined>(undefined);
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [open, setOpen] = useState(false);
@@ -67,16 +68,22 @@ export default function AuthNav({ onDark = false }: { onDark?: boolean }) {
 
   return (
     <div className="flex items-center gap-4">
-      <NotificationBell user={user} />
-      {profile && (
+      <NotificationBell user={user} buttonClassName={onDark ? "relative flex h-10 w-10 items-center justify-center rounded-full bg-paper/15 text-paper hover:bg-paper/25" : undefined} />
+      {profile && !compact && (
         <Link href={`/u/${profile.username}`} aria-label="My profile" title="My profile" className="flex">
           <Avatar src={profile.avatar} alt={profile.displayName} size={28} square={profile.accountKind === "organisation"} />
         </Link>
       )}
       <div className="relative" ref={menuRef}>
-        <button onClick={() => setOpen((o) => !o)} aria-haspopup="menu" aria-expanded={open} className={`font-mono ${onDark ? "text-paper" : "text-crimson-bright"}`}>
-          <span className="inline-block max-w-[10rem] truncate align-bottom">{profile ? `@${profile.username}` : "Account"}</span> ▾
-        </button>
+        {compact ? (
+          <button onClick={() => setOpen((o) => !o)} aria-haspopup="menu" aria-expanded={open} aria-label="Account menu" className="flex rounded-full ring-2 ring-paper/40">
+            {profile ? <Avatar src={profile.avatar} alt={profile.displayName} size={40} square={profile.accountKind === "organisation"} /> : <span className="h-10 w-10 rounded-full bg-paper/20" />}
+          </button>
+        ) : (
+          <button onClick={() => setOpen((o) => !o)} aria-haspopup="menu" aria-expanded={open} className={`font-mono ${onDark ? "rounded-full bg-paper/15 px-4 py-2 text-paper hover:bg-paper/25" : "text-crimson-bright"}`}>
+            <span className="inline-block max-w-[10rem] truncate align-bottom">{profile ? `@${profile.username}` : "Account"}</span> ▾
+          </button>
+        )}
         {open && (
           <div role="menu" className="absolute right-0 z-50 mt-2 w-52 border border-rule bg-card py-1 shadow-lg" onClick={() => setOpen(false)}>
             {profile && <Link href={`/u/${profile.username}`} className={item}>My profile</Link>}

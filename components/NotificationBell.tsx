@@ -49,7 +49,8 @@ function timeAgo(iso: string): string {
   return `${days}d`;
 }
 
-export default function NotificationBell({ user }: { user: User }) {
+// `buttonClassName` restyles the round button (the phone header draws it in a soft circle); `panelClassName` places the list.
+export default function NotificationBell({ user, buttonClassName, panelClassName }: { user: User; buttonClassName?: string; panelClassName?: string }) {
   const [open, setOpen] = useState(false);
   const [notifications, setNotifications] = useState<AppNotification[]>([]);
   const boxRef = useRef<HTMLDivElement>(null);
@@ -81,7 +82,7 @@ export default function NotificationBell({ user }: { user: User }) {
       <button
         onClick={() => setOpen((v) => !v)}
         aria-label="Notifications"
-        className="relative flex h-9 w-9 items-center justify-center rounded-full text-ink hover:text-crimson-bright"
+        className={buttonClassName ?? "relative flex h-9 w-9 items-center justify-center rounded-full text-ink hover:text-crimson-bright"}
       >
         <span className="text-lg leading-none">🔔</span>
         {unreadCount > 0 && (
@@ -92,7 +93,7 @@ export default function NotificationBell({ user }: { user: User }) {
       </button>
 
       {open && (
-        <div className="absolute left-0 top-full z-50 mt-2 w-[min(20rem,calc(100vw-4rem))] max-h-96 overflow-y-auto rounded-xl2 border border-rule bg-card shadow-lg lg:left-auto lg:right-0 lg:w-80">
+        <div className={`${panelClassName ?? "absolute left-0 top-full mt-2 w-[min(20rem,calc(100vw-4rem))] lg:left-auto lg:right-0 lg:w-80"} z-50 max-h-96 overflow-y-auto rounded-xl2 border border-rule bg-card text-ink shadow-lg`}>
           <div className="flex items-center justify-between border-b border-rule p-3">
             <p className="font-ui text-sm font-bold text-ink">Notifications</p>
             {unreadCount > 0 && (

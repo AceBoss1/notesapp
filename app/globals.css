@@ -31,6 +31,14 @@
   .btn-ghost {
     @apply inline-flex items-center justify-center gap-2 rounded-full border border-ink/15 px-6 py-3 font-ui text-sm font-semibold text-ink transition-colors hover:border-crimson hover:text-crimson;
   }
+  .btn-following {
+    @apply border-transparent bg-crimson/10 text-crimson hover:text-crimson-deep;
+  }
+  /* A profile's buttons (Moda redesign): bigger pills. */
+  .profile-actions .btn-primary,
+  .profile-actions .btn-ghost {
+    @apply !px-7 !py-3.5 !text-[15px];
+  }
   .card {
     @apply rounded-xl2 border border-rule bg-card;
   }

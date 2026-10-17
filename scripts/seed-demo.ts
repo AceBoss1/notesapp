@@ -1,6 +1,6 @@
 // Fills the Firestore and Auth emulators with a small, realistic #NotesApp: people (founders, a verified writer, an organisation,
-// a seller), journals on different topics, store items with sales set up, this week's visits, a bookable publisher, and a
-// signed-in reader with interests. For trying pages locally, screenshots and the smoke test. Emulators only: it refuses to run
+// a seller), journals on different topics, store items with sales set up, this week's visits, a bookable publisher, a
+// signed-in reader with interests and two conversations. For trying pages locally, screenshots and the smoke test. Emulators only: it refuses to run
 // unless FIRESTORE_EMULATOR_HOST is set, so it can never touch live data.
 //
 //   npx -y firebase-tools@13 emulators:exec --only firestore,auth --project demo-notesapp \
@@ -58,7 +58,7 @@ const ITEMS = [
     batch.set(db.doc(`usernames/${p.username}`), { uid: p.uid });
     batch.set(db.doc(`payoutAccounts/${p.uid}`), { recipientCode: `RCP_${p.uid}` });
   }
-  batch.set(db.doc("publisherSettings/u_emmanuel"), { payoutReady: true, session: { enabled: true, rateKobo: 2500000, minutes: 60 } });
+  batch.set(db.doc("publisherSettings/u_emmanuel"), { payoutReady: true, session: { enabled: true, priceKobo: 2500000, minutes: 60 } });
   for (const uid of ["u_chimdinma", "u_ada", "u_precheks", "u_clickam"]) batch.set(db.doc(`publisherSettings/${uid}`), { payoutReady: true });
   batch.set(db.doc("publisherSettings/u_tola"), {}); // hasn't set up payouts: Gift me shows greyed out with its ℹ️
   for (const n of NOTES) {
@@ -72,6 +72,17 @@ const ITEMS = [
     batch.set(db.doc(`pageViews/item_${i.id}_${ymd(1).replace(/-/g, "")}`), { kind: "item", id: i.id, day: ymd(1), count: i.week });
   }
   batch.set(db.doc("follows/u_reader_ada"), { followerUid: "u_reader", username: "ada" });
+  // Two conversations for the reader (Messages), one with unread messages.
+  const chats: [string, [string, string, number][]][] = [
+    ["u_chimdinma", [["u_chimdinma", "Did you see the pay gap numbers?", 3], ["u_reader", "Yes! Sharing it with my team.", 2.9], ["u_chimdinma", "The full breakdown drops Friday.", 1]]],
+    ["u_emmanuel", [["u_emmanuel", "Welcome to #NotesApp 👋", 6], ["u_emmanuel", "Tell me what you'd like to read more of.", 5.9]]],
+  ];
+  for (const [other, msgs] of chats) {
+    const cid = ["u_reader", other].sort().join("_");
+    const last = msgs[msgs.length - 1];
+    batch.set(db.doc(`conversations/${cid}`), { participants: ["u_reader", other].sort(), createdAt: day(msgs[0][2]), lastMessage: { from: last[0], text: last[1], at: day(last[2]) }, lastMessageAt: day(last[2]), unread: { u_reader: other === "u_emmanuel" ? 2 : 0, [other]: 0 } });
+    msgs.forEach(([from, text, age], i) => batch.set(db.doc(`conversations/${cid}/messages/${String(Date.now() - age * 86_400_000).padStart(13, "0")}_${i}`), { from, text, createdAt: day(age) }));
+  }
   await batch.commit();
   for (const p of PEOPLE.filter((x) => x.email)) {
     await auth.createUser({ uid: p.uid, email: p.email, password: "demo-password-1", displayName: p.displayName, emailVerified: true }).catch((e) => { if (!String(e).includes("exists")) throw e; });

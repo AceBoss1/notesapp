@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { onAuthStateChanged, type User } from "firebase/auth";
 import { collection, doc, getDoc, onSnapshot, query, where } from "firebase/firestore";
 import { auth, db } from "@/lib/firebase";
@@ -11,7 +12,8 @@ import Avatar from "@/components/Avatar";
 import GroupAvatar from "./GroupAvatar";
 import { stripFormat } from "@/lib/message-format";
 import MessageSettings from "./MessageSettings";
-import PresenceText from "@/components/PresenceText";
+import HandleLine from "./HandleLine";
+import { PinIcon } from "./icons";
 import { usePresence } from "@/lib/presence-client";
 import { NameBadgeIcons } from "@/components/PersonName";
 import { badgeLevel, goldKindOf, isTeamMember, type UserProfile } from "@/lib/users";
@@ -21,8 +23,10 @@ type Who = { uid: string; username: string; displayName: string; avatar: string;
 type Row = { id: string; lastText: string; lastAt: string; lastFromMe: boolean; unread: number; moment: boolean; with: Who; group?: { title: string; team: boolean; members: number; lastFrom: string; avatar?: string } };
 
 // The inbox, live: new messages and unread counts appear as they arrive (it listens to the member's own conversations, which
-// firestore.rules let only the two people in each one read).
-export default function Inbox() {
+// firestore.rules let only the two people in each one read). It fills its card: the title on top, the list scrolling under it; the
+// open conversation's row is tinted.
+export default function Inbox({ as = "h2" }: { as?: "h1" | "h2" }) {
+  const pathname = usePathname();
   const [user, setUser] = useState<User | null | undefined>(undefined);
   const [rows, setRows] = useState<Row[] | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -64,43 +68,68 @@ export default function Inbox() {
     );
   }, [user]);
 
-  if (user === null) return <p className="text-slate"><Link href="/login" className="text-crimson underline">Sign in</Link> to see your messages.</p>;
-  if (error) return <p className="text-red-700" role="alert">{error}</p>;
-  if (!rows) return <p className="text-slate">Loading…</p>;
+  const Heading = as;
+  const top = (
+    <div className="flex shrink-0 items-center justify-between gap-3 border-b border-rule px-5 py-4">
+      <Heading className="font-display text-3xl text-ink">Messages</Heading>
+      {user && <Link href="/messages/new-group" className="rounded-full px-3 py-1.5 font-ui text-xs font-bold text-ink hover:bg-paper hover:text-crimson">+ New group</Link>}
+    </div>
+  );
+  if (user === null) return <>{top}<p className="p-5 text-slate"><Link href="/login" className="text-crimson underline">Sign in</Link> to see your messages.</p></>;
+  if (error) return <>{top}<p className="p-5 text-red-700" role="alert">{error}</p></>;
+  if (!rows) return <>{top}<p className="p-5 text-slate">Loading…</p></>;
+  const pill = "shrink-0 rounded px-1.5 py-0.5 font-ui text-[10px] font-bold tracking-wideish";
   return (
     <>
-      <p className="mb-3 text-right"><Link href="/messages/new-group" className="btn-ghost !px-4 !py-2 text-xs">+ New group</Link></p>
-      <ul className="divide-y divide-rule border-y border-rule">
-          <li className="bg-amber-50/60">
-            <Link href="/messages/nana" className="flex items-center gap-3 px-2 py-3 hover:bg-paper">
-              <Image src="/images/nana/nana-sm.webp" alt="" width={44} height={44} className="h-11 w-11 rounded-full" />
+      {top}
+      <div className="min-h-0 flex-1 overflow-y-auto">
+        <ul className="divide-y divide-rule border-b border-rule">
+          <li>
+            <Link href="/messages/nana" aria-current={pathname === "/messages/nana" ? "page" : undefined} className={`flex items-center gap-3 px-5 py-3.5 ${pathname === "/messages/nana" ? "bg-paper" : "bg-amber-50/60 hover:bg-paper"}`}>
+              <Image src="/images/nana/nana-sm.webp" alt="" width={40} height={40} className="h-10 w-10 shrink-0 rounded-full" />
               <span className="min-w-0 flex-1">
-                <span className="block font-bold text-ink">Nana AI <span className="rounded bg-crimson/10 px-1.5 py-0.5 text-[10px] font-bold text-crimson">PINNED</span></span>
-                <span className="block truncate text-sm text-slate">Your #NotesApp helper. Ask me anything about the platform.</span>
+                <span className="flex items-center gap-2 font-ui text-sm font-bold text-ink">Nana AI <span className={`${pill} bg-crimson/10 text-crimson`}>PINNED</span></span>
+                <span className="mt-0.5 block truncate text-[13px] text-slate">Your #NotesApp helper. Ask me anything about the platform.</span>
               </span>
             </Link>
           </li>
-          {[...rows].sort((a, b) => Number(pins.includes(b.id)) - Number(pins.includes(a.id)) || (pins.includes(a.id) ? pins.indexOf(a.id) - pins.indexOf(b.id) : 0)).map((r) => (
-            <li key={r.id} className={`flex items-center ${pins.includes(r.id) ? "bg-paper/60" : ""}`}>
-              <Link href={`/messages/${r.id}`} className="flex min-w-0 flex-1 items-center gap-3 py-3 hover:bg-paper">
-                {r.group ? <GroupAvatar title={r.group.title} size={44} team={r.group.team} src={r.group.avatar} /> : <Avatar src={r.with.avatar} alt={r.with.displayName} size={44} square={!!r.with.isOrg} />}
-                <span className="min-w-0 flex-1">
-                  {r.group ? (
-                    <span className="block font-bold text-ink">{r.group.title} {r.group.team && <span className="rounded bg-amber-100 px-1.5 py-0.5 text-[10px] font-bold text-amber-900">TEAM</span>} <span className="font-normal text-slate">{r.group.members} members</span></span>
-                  ) : (
-                    <span className="block font-bold text-ink">{r.with.displayName}<NameBadgeIcons username={r.with.username} size={14} badges={{ level: r.with.level ?? null, goldKind: r.with.goldKind, team: !!r.with.team }} /> <span className="font-normal text-slate">@{r.with.username}</span></span>
-                  )}
-                  {!r.group && <PresenceText status={presence.statuses[r.with.uid]} className="block" />}
-                  <span className="block truncate text-sm text-slate">{r.moment ? "↩ Moment reply · " : ""}{r.lastFromMe ? "You: " : r.group && r.group.lastFrom ? `${r.group.lastFrom}: ` : ""}{stripFormat(r.lastText)}</span>
-                </span>
-                {r.unread > 0 && <span className="rounded-full bg-crimson px-2 py-0.5 text-xs font-bold text-white">{r.unread}</span>}
-              </Link>
-              <button type="button" onClick={() => togglePin(r.id, !pins.includes(r.id))} title={pins.includes(r.id) ? "Unpin this chat" : "Pin this chat to the top (up to 3)"} aria-label={pins.includes(r.id) ? "Unpin chat" : "Pin chat"} className={`ml-1 shrink-0 rounded-full px-2 py-1 text-sm ${pins.includes(r.id) ? "" : "opacity-30 hover:opacity-80"}`}>📌</button>
-            </li>
-          ))}
+          {[...rows].sort((a, b) => Number(pins.includes(b.id)) - Number(pins.includes(a.id)) || (pins.includes(a.id) ? pins.indexOf(a.id) - pins.indexOf(b.id) : 0)).map((r) => {
+            const pinned = pins.includes(r.id);
+            const open = pathname === `/messages/${r.id}`;
+            const status = r.group ? undefined : presence.statuses[r.with.uid];
+            const preview = `${r.moment ? "↩ Moment reply · " : ""}${r.lastFromMe ? "You: " : r.group && r.group.lastFrom ? `${r.group.lastFrom}: ` : ""}${stripFormat(r.lastText)}`;
+            return (
+              <li key={r.id} className={`group flex items-center ${open ? "bg-paper" : ""}`}>
+                <Link href={`/messages/${r.id}`} aria-current={open ? "page" : undefined} className={`flex min-w-0 flex-1 items-center gap-3 py-3.5 pl-5 pr-2 ${open ? "" : "hover:bg-paper/70"}`}>
+                  {r.group ? <GroupAvatar title={r.group.title} size={40} team={r.group.team} src={r.group.avatar} /> : <Avatar src={r.with.avatar} alt={r.with.displayName} size={40} square={!!r.with.isOrg} className="shrink-0" />}
+                  <span className="min-w-0 flex-1">
+                    {r.group ? (<>
+                      <span className="flex min-w-0 items-center gap-2 font-ui text-sm font-bold text-ink"><span className="truncate">{r.group.title}</span>{r.group.team && <span className={`${pill} bg-amber-100 text-amber-900`}>TEAM</span>}</span>
+                      <span className="block text-xs text-slate">{r.group.members} members</span>
+                    </>) : (<>
+                      {/* Name, badges, then the handle: beside the name, or on the next line with their online status when that's shown. */}
+                      <span className="flex min-w-0 items-center font-ui text-sm font-bold text-ink">
+                        <span className="truncate">{r.with.displayName}</span>
+                        <NameBadgeIcons username={r.with.username} size={14} badges={{ level: r.with.level ?? null, goldKind: r.with.goldKind, team: !!r.with.team }} />
+                        {!status && r.with.username && <span className="ml-2 truncate text-xs font-normal text-slate">@{r.with.username}</span>}
+                      </span>
+                      {status && <HandleLine username={r.with.username} status={status} className="text-xs text-slate" />}
+                    </>)}
+                    {(r.lastText || r.moment) && <span className={`mt-0.5 block truncate text-[13px] ${r.unread > 0 ? "font-semibold text-ink" : "text-slate"}`}>{preview}</span>}
+                  </span>
+                  {r.unread > 0 && <span className="flex h-5 min-w-5 shrink-0 items-center justify-center rounded-full bg-crimson-bright px-1.5 font-ui text-[11px] font-bold text-white">{r.unread}</span>}
+                </Link>
+                {/* Pinned chats show their pin; on the others it's faint (on desktop, until you point at the row). */}
+                <button type="button" onClick={() => togglePin(r.id, !pinned)} title={pinned ? "Unpin this chat" : "Pin this chat to the top (up to 3)"} aria-label={pinned ? "Unpin chat" : "Pin chat"} aria-pressed={pinned} className={`mr-3 flex h-8 w-8 shrink-0 items-center justify-center rounded-full hover:bg-paper ${pinned ? "text-crimson-bright" : "text-slate opacity-30 hover:opacity-90 focus-visible:opacity-90 lg:opacity-0 lg:group-hover:opacity-60"}`}>
+                  <PinIcon size={15} />
+                </button>
+              </li>
+            );
+          })}
         </ul>
-      {!rows.length && <p className="mt-4 text-slate">No messages yet. Replies to your moments, and messages from other members, land here. You can also <Link href="/messages/new-group" className="text-crimson underline">start a group</Link>.</p>}
-      <MessageSettings />
+        {!rows.length && <p className="px-5 pt-4 text-sm text-slate">No messages yet. Replies to your moments, and messages from other members, land here. You can also <Link href="/messages/new-group" className="text-crimson underline">start a group</Link>.</p>}
+        <div className="px-5 pb-5"><MessageSettings /></div>
+      </div>
     </>
   );
 }

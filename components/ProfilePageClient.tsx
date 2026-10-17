@@ -250,24 +250,25 @@ export default function ProfilePageClient({ params }: { params: { username: stri
   const isOrgAcct = realProfile?.accountKind === "organisation";
   return (
     <div>
-      <div className="h-32 bg-crimson-deep sm:h-40" style={{ backgroundImage: "radial-gradient(50rem 20rem at 85% -30%, rgba(166,9,61,0.7), transparent 70%), linear-gradient(135deg, #4E0119 0%, #7A0328 100%)" }} aria-hidden="true" />
+      <div className="h-44 bg-crimson-deep sm:h-40" style={{ backgroundImage: "radial-gradient(50rem 20rem at 85% -30%, rgba(166,9,61,0.7), transparent 70%), linear-gradient(135deg, #4E0119 0%, #7A0328 100%)" }} aria-hidden="true" />
     <div className="mx-auto max-w-5xl px-4 pb-16 sm:px-6 lg:px-8">
-      <div className="card -mt-16 flex flex-col items-start gap-6 p-6 sm:flex-row sm:items-center">
+      {/* Moda redesign: centred on a phone, the picture and words on the left and the buttons on the right on a computer. */}
+      <div className="card -mt-32 flex flex-col items-center gap-5 rounded-[1.75rem] p-6 text-center shadow-sm sm:-mt-16 sm:flex-row sm:items-center sm:gap-8 sm:p-8 sm:text-left">
         {!suspended && !synthetic && realProfile ? (
           // A ring when the member has moments you can see (only when Moments is switched on).
           <MomentRing username={profile.username} isOwn={isOwnProfile} avatar={profile.avatar} square={isOrgAcct}>
-            <Avatar square={isOrgAcct} src={profile.avatar} alt={profile.displayName} size={88} />
+            <Avatar square={isOrgAcct} src={profile.avatar} alt={profile.displayName} size={104} />
           </MomentRing>
         ) : (
           <Avatar
             square={isOrgAcct}
             src={suspended ? SUSPENDED_AVATAR : profile.avatar}
             alt={profile.displayName}
-            size={88}
+            size={104}
           />
         )}
-        <div>
-          <h1 className="font-display text-3xl text-ink">
+        <div className="min-w-0 flex-1">
+          <h1 className="font-display text-[2.1rem] leading-tight text-ink sm:text-4xl">
             {/* inline, so the badges follow the last word when a long name wraps */}
             {profile.displayName}
             <NameBadgeIcons username={profile.username} size={20} badges={suspended ? NO_BADGES : { level: badge, goldKind: goldKindOf(realProfile), team: VERIFIED_USERNAMES.includes(profile.username) || (!!realProfile && isTeamMember(realProfile)) }} />
@@ -279,18 +280,18 @@ export default function ProfilePageClient({ params }: { params: { username: stri
               ⚠ Temporarily Suspended · @{profile.username}
             </p>
           ) : (
-            <p className="font-mono text-xs uppercase tracking-eyebrow text-crimson-bright">
+            <p className="mt-1 font-mono text-xs uppercase tracking-eyebrow text-crimson-bright">
               {profile.roleLabel} · @{profile.username}
             </p>
           )}
-          <p className="mt-2 max-w-lg break-words text-sm text-slate"><LinkedText text={profile.bio} /></p>
+          <p className="mx-auto mt-2 max-w-lg break-words text-base text-slate sm:mx-0 sm:text-sm"><LinkedText text={profile.bio} /></p>
           {!suspended && badge === "gold" && goldKindOf(realProfile) && (
             <p className="mt-1 text-xs font-semibold text-slate">{GOLD_BADGE_TITLE[goldKindOf(realProfile)!].replace("Gold badge — ", "Gold ✔ · ")}</p>
           )}
           {!suspended && <UnverifiedOrgNotice profile={realProfile} />}
-          {realProfile && <SocialLinksRow social={realProfile.social} />}
+          {realProfile && <SocialLinksRow social={realProfile.social} className="justify-center sm:justify-start" />}
           {viewer && realProfile && viewer.uid === realProfile.uid && (
-            <p className="mt-2 flex gap-4 font-ui text-xs font-semibold text-crimson">
+            <p className="mt-2 flex flex-wrap justify-center gap-4 font-ui text-xs font-semibold text-crimson sm:justify-start">
               {canPublish(realProfile) && <Link href="/write">Write</Link>}
               <Link href={`/u/${realProfile.username}/store`}>My store</Link>
               <Link href="/profile/edit">Edit profile</Link>
@@ -308,7 +309,7 @@ export default function ProfilePageClient({ params }: { params: { username: stri
           {viewer && !suspended && <FollowLists username={profile.username} owner={isOwnerViewer} followerCount={followerCountUnavailable ? null : followerCount} />}
           {viewer && realProfile && viewer.uid !== realProfile.uid && <PresenceText status={presence.statuses[realProfile.uid]} className="mt-1" />}
         </div>
-        <div className="ml-0 flex shrink-0 flex-wrap gap-3 sm:ml-auto">
+        <div className="profile-actions flex w-full flex-wrap items-start justify-center gap-3 sm:ml-auto sm:w-auto sm:max-w-sm sm:shrink-0 sm:justify-end">
           {/* Follow (steps aside on phones once you follow), Book a session, Conversation, Gift me. */}
           <FollowButton username={profile.username} compactWhenFollowing />
           {viewer && !suspended && <OfficialFollowControl username={profile.username} />}

@@ -11,7 +11,7 @@ const EMOJIS = [
 ];
 
 // The 😊 button before B / I / U: opens a grid; tapping an emoji puts it into the message where the cursor is.
-export default function EmojiPicker({ onPick, disabled }: { onPick: (emoji: string) => void; disabled?: boolean }) {
+export default function EmojiPicker({ onPick, disabled, className = "w-8 rounded border border-rule py-1" }: { onPick: (emoji: string) => void; disabled?: boolean; className?: string }) {
   const [open, setOpen] = useState(false);
   const box = useRef<HTMLDivElement>(null);
   useEffect(() => {
@@ -24,7 +24,7 @@ export default function EmojiPicker({ onPick, disabled }: { onPick: (emoji: stri
   }, [open]);
   return (
     <div className="relative" ref={box}>
-      <button type="button" onClick={() => setOpen((o) => !o)} disabled={disabled} aria-expanded={open} aria-label="Emoji" title="Emoji" className="w-8 rounded border border-rule py-1">😊</button>
+      <button type="button" onClick={() => setOpen((o) => !o)} disabled={disabled} aria-expanded={open} aria-label="Emoji" title="Emoji" className={className}>😊</button>
       {open && (
         <div className="absolute bottom-full left-0 z-20 mb-2 w-72 rounded-lg border border-rule bg-card p-2 shadow-lg" role="dialog" aria-label="Choose an emoji">
           <div className="grid max-h-56 grid-cols-8 gap-1 overflow-y-auto">

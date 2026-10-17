@@ -5,7 +5,7 @@ import { onAuthStateChanged } from "firebase/auth";
 import { addDoc, collection, doc, getDoc, onSnapshot, query, updateDoc, where } from "firebase/firestore";
 import { auth, db } from "@/lib/firebase";
 import { api } from "@/lib/moments-client";
-import Avatar from "@/components/Avatar";
+import { CallStage, IncomingCall } from "@/components/calls/CallViews";
 import { CALLS_LIVE } from "@/lib/moments-rules";
 import { CALL_RING_MS, CALL_STALE_MS, duration, type CallDoc, type CallKind } from "@/lib/calls";
 
@@ -83,18 +83,7 @@ function useRingtone(on: boolean) {
 
 function Incoming({ call, onAccept, onDecline }: { call: CallDoc & { id: string }; onAccept: () => void; onDecline: () => void }) {
   useRingtone(true);
-  return (
-    <div className="fixed inset-x-0 top-4 z-[120] mx-auto w-[min(24rem,calc(100vw-2rem))] rounded-2xl bg-ink p-4 text-paper shadow-2xl" role="alertdialog" aria-label={`Incoming call from ${call.callerName}`}>
-      <div className="flex items-center gap-3">
-        <Avatar src={call.callerAvatar} alt="" size={48} />
-        <div className="min-w-0 flex-1"><p className="truncate font-ui font-bold">{call.callerName}</p><p className="text-xs text-paper/70">Incoming {call.kind === "video" ? "video" : "voice"} call</p></div>
-      </div>
-      <div className="mt-4 grid grid-cols-2 gap-3">
-        <button type="button" onClick={onDecline} className="rounded-full bg-red-600 py-2.5 font-ui text-sm font-bold">Decline</button>
-        <button type="button" onClick={onAccept} className="rounded-full bg-green-600 py-2.5 font-ui text-sm font-bold">Answer</button>
-      </div>
-    </div>
-  );
+  return <IncomingCall kind={call.kind} name={call.callerName} avatar={call.callerAvatar} onAccept={onAccept} onDecline={onDecline} />;
 }
 
 function CallScreen({ active, onDone }: { active: Active; onDone: () => void }) {
@@ -113,9 +102,6 @@ function CallScreen({ active, onDone }: { active: Active; onDone: () => void }) 
   const pcRef = useRef<RTCPeerConnection | null>(null);
   const [facing, setFacing] = useState<"user" | "environment">("user");
   const [cams, setCams] = useState(0); // how many cameras this device has (the switch shows when there's more than one)
-  const [swapped, setSwapped] = useState(false); // you big, them small
-  const [pos, setPos] = useState<{ x: number; y: number } | null>(null); // where the small picture was dragged to
-  const drag = useRef<{ dx: number; dy: number; moved: boolean } | null>(null);
   const endRef = useRef<(reason: "ended" | "missed" | "failed") => void>(() => {});
   useRingtone(phase === "ringing" && active.role === "caller");
 
@@ -254,46 +240,12 @@ function CallScreen({ active, onDone }: { active: Active; onDone: () => void }) 
       setFacing(next);
     } catch { /* this device has one camera, or it's busy */ }
   }, [facing, camOff]);
-  // The small picture: drag it anywhere; a tap (no drag) swaps which picture is big.
-  const onDown = (e: React.PointerEvent<HTMLVideoElement>) => { const r = e.currentTarget.getBoundingClientRect(); drag.current = { dx: e.clientX - r.left, dy: e.clientY - r.top, moved: false }; e.currentTarget.setPointerCapture(e.pointerId); };
-  const onMove = (e: React.PointerEvent<HTMLVideoElement>) => {
-    const d = drag.current; if (!d) return;
-    const w = e.currentTarget.offsetWidth, h = e.currentTarget.offsetHeight;
-    const x = Math.min(window.innerWidth - w - 8, Math.max(8, e.clientX - d.dx)), y = Math.min(window.innerHeight - h - 8, Math.max(8, e.clientY - d.dy));
-    if (!d.moved && pos && Math.abs(x - pos.x) + Math.abs(y - pos.y) < 6) return;
-    d.moved = true; setPos({ x, y });
-  };
-  const onUp = () => { const d = drag.current; drag.current = null; if (d && !d.moved) setSwapped((v) => !v); };
   const status = phase === "starting" ? "Starting…" : phase === "ringing" ? "Ringing…" : phase === "connecting" ? "Connecting…" : phase === "live" ? duration(secs) : note || "Call ended";
 
   return (
-    <div className="fixed inset-0 z-[130] flex flex-col bg-ink text-paper" role="dialog" aria-modal="true" aria-label={`${kind === "video" ? "Video" : "Voice"} call with ${name}`}>
-      {kind === "video" && (() => {
-        // Two pictures: one fills the screen, the other is small (draggable; tap to swap). Your own picture is mirrored when it's the front camera.
-        const big = "absolute inset-0 h-full w-full object-cover";
-        const small = `absolute z-20 h-36 w-24 touch-none cursor-grab rounded-xl border border-paper/30 object-cover shadow-xl ${pos ? "" : "bottom-28 right-4"}`;
-        const smallStyle = pos ? { left: pos.x, top: pos.y } : undefined;
-        const mirror = facing === "user" ? { transform: "scaleX(-1)" } : undefined;
-        const handlers = { onPointerDown: onDown, onPointerMove: onMove, onPointerUp: onUp, title: "Drag to move · tap to swap" };
-        return <>
-          <video ref={remoteVideo} autoPlay playsInline className={swapped ? small : big} style={swapped ? smallStyle : undefined} {...(swapped ? handlers : {})} />
-          <video ref={localVideo} autoPlay playsInline muted className={`${swapped ? big : small} ${camOff ? "opacity-30" : ""}`} style={{ ...(swapped ? {} : smallStyle), ...mirror }} {...(swapped ? {} : handlers)} />
-        </>;
-      })()}
-      <audio ref={remoteAudio} autoPlay className="hidden" />
-      <div className="relative z-10 flex flex-1 flex-col items-center justify-center gap-3 p-6 text-center">
-        {(kind === "audio" || phase !== "live") && <Avatar src={avatar} alt="" size={112} />}
-        <p className="font-display text-3xl drop-shadow">{name}</p>
-        <p className="font-mono text-sm text-paper/80 drop-shadow" aria-live="polite">{status}</p>
-        {kind === "audio" && phase === "live" && <p className="text-xs text-paper/60">Free call · phone to phone</p>}
-      </div>
-
-      <div className="relative z-10 flex items-center justify-center gap-5 pb-10">
-        <button type="button" onClick={toggleMute} disabled={phase === "over"} aria-pressed={muted} className={`h-14 w-14 rounded-full text-xl ${muted ? "bg-paper text-ink" : "bg-paper/15"}`} aria-label={muted ? "Unmute" : "Mute"}>{muted ? "🔇" : "🎙"}</button>
-        {kind === "video" && cams !== 1 && <button type="button" onClick={flipCam} disabled={phase === "over" || camOff} className="h-14 w-14 rounded-full bg-paper/15 text-xl" aria-label={facing === "user" ? "Switch to the back camera" : "Switch to the front camera"} title="Switch camera">🔄</button>}
-        {kind === "video" && <button type="button" onClick={toggleCam} disabled={phase === "over"} aria-pressed={camOff} className={`h-14 w-14 rounded-full text-xl ${camOff ? "bg-paper text-ink" : "bg-paper/15"}`} aria-label={camOff ? "Turn camera on" : "Turn camera off"}>{camOff ? "🚫" : "📷"}</button>}
-        <button type="button" onClick={() => endRef.current(phase === "ringing" || phase === "starting" ? "missed" : "ended")} disabled={phase === "over"} className="h-16 w-16 rounded-full bg-red-600 text-2xl" aria-label="End call">✕</button>
-      </div>
-    </div>
+    <CallStage kind={kind} name={name} avatar={avatar} status={status} live={phase === "live"} over={phase === "over"}
+      muted={muted} camOff={camOff} canFlip={cams !== 1} facing={facing}
+      onMute={toggleMute} onFlip={flipCam} onCam={toggleCam} onEnd={() => endRef.current(phase === "ringing" || phase === "starting" ? "missed" : "ended")}
+      remoteVideo={remoteVideo} localVideo={localVideo} remoteAudio={remoteAudio} />
   );
 }

@@ -58,7 +58,7 @@ export default function VoiceNoteButton({ maxSeconds, disabled, onRecorded, onEr
 
   if (recording) {
     return (
-      <div className="flex items-center gap-2 self-end rounded-full border border-red-300 bg-red-50 px-3 py-2 text-sm text-red-700" role="status" aria-live="off">
+      <div className="flex h-12 items-center gap-2 self-end rounded-full border border-red-300 bg-red-50 px-3 text-sm text-red-700" role="status" aria-live="off">
         <span className="h-2.5 w-2.5 animate-pulse rounded-full bg-red-600" aria-hidden />
         <span className="font-mono tabular-nums">{mmss(seconds)} / {mmss(maxSeconds)}</span>
         <button type="button" onClick={() => { cancelled.current = true; rec.current?.stop(); }} aria-label="Cancel recording" title="Cancel" className="px-1 text-lg leading-none">×</button>
@@ -67,9 +67,9 @@ export default function VoiceNoteButton({ maxSeconds, disabled, onRecorded, onEr
     );
   }
   return (
-    <button type="button" onClick={start} disabled={disabled} aria-label="Record a voice note" title={`Record a voice note (up to ${mmss(maxSeconds)})`} className="flex h-10 w-10 shrink-0 items-center justify-center self-end rounded-full border border-rule text-ink hover:border-crimson hover:text-crimson disabled:opacity-50">
+    <button type="button" onClick={start} disabled={disabled} aria-label="Record a voice note" title={`Record a voice note (up to ${mmss(maxSeconds)})`} className="flex h-12 w-11 shrink-0 items-center justify-center self-end rounded-full text-ink hover:bg-paper hover:text-crimson disabled:opacity-50">
       {/* Dictate icon: a microphone with sound waves */}
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
         <rect x="9" y="3" width="6" height="11" rx="3" />
         <path d="M5.5 11.5a6.5 6.5 0 0 0 13 0" />
         <path d="M12 18v3" />

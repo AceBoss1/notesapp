@@ -9,8 +9,10 @@ export const metadata: Metadata = { title: "New group", robots: { index: false }
 export default function NewGroupPage() {
   if (!MESSAGES_LIVE) notFound();
   return (
-    <div className="mx-auto max-w-2xl px-4 py-16 sm:px-6">
-      <MessagesBoundary><NewGroup /></MessagesBoundary>
+    <div className="mx-auto max-w-2xl px-4 py-6 sm:px-6 lg:max-w-none lg:p-0">
+      <div className="card p-5 sm:p-6 lg:h-[calc(100dvh-7.5rem)] lg:overflow-y-auto lg:p-8">
+        <div className="lg:max-w-xl"><MessagesBoundary><NewGroup /></MessagesBoundary></div>
+      </div>
     </div>
   );
 }

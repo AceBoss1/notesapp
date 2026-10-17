@@ -21,7 +21,7 @@ export default function DiscoveryHero<T extends string>({ eyebrow, title, sub, q
           {children}
         </div>
       </section>
-      <div className="sticky top-0 z-20 border-b border-rule bg-paper/95 backdrop-blur">
+      <div className="border-b border-rule bg-paper">
         <div className="mx-auto flex max-w-6xl gap-2 overflow-x-auto px-4 py-3 sm:px-8" role="tablist">
           {tabs.map((t) => (
             <button key={t.id} role="tab" aria-selected={tab === t.id} onClick={() => onTab(t.id)}

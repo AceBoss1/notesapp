@@ -26,7 +26,13 @@ function Preview({ group }: { group: MomentGroup | undefined }): ReactNode {
 // The Moments card on /journals, laid out like the Status row in WhatsApp: your own tile first (your picture, with a + to add one), then a
 // tile for each member you follow who has a moment up. Tap a tile to watch. Moments show only to people the owner allows (their followers,
 // or everyone if they chose that in their profile settings). Live videos will join this row when live video is switched on.
-export default function MomentsStrip() {
+const ago = (iso: string) => {
+  const m = Math.max(1, Math.round((Date.now() - Date.parse(iso)) / 60_000));
+  return m < 60 ? `${m}m` : m < 1440 ? `${Math.round(m / 60)}h` : `${Math.round(m / 1440)}d`;
+};
+
+// `look="feed"` (the journal feed, Moda redesign): a row of rings with names on phones, tall cards with the newest line on a computer.
+export default function MomentsStrip({ look = "card" }: { look?: "card" | "feed" }) {
   const [user, setUser] = useState<User | null | undefined>(undefined);
   const [data, setData] = useState<{ groups: MomentGroup[]; me: Me } | null>(null);
   const [viewing, setViewing] = useState<MomentGroup | null>(null);
@@ -43,6 +49,69 @@ export default function MomentsStrip() {
   const mine = data.groups.find((g) => g.ownerUid === data.me.uid);
   const others = data.groups.filter((g) => g.ownerUid !== data.me.uid);
   const tile = "relative h-40 w-28 shrink-0 overflow-hidden rounded-2xl border border-rule text-left";
+  const layers = (
+    <>
+      {viewing && <MomentViewer key={viewing.ownerUid} moments={viewing.moments} groups={data.groups} onSelectGroup={(g) => setViewing(g)} onClose={() => { setViewing(null); load(); }} onChanged={load} />}
+      {menu && <OwnPictureMenu avatar={data.me.avatar} square={!!mine?.isOrg} hasMoments={!!mine} onViewMoments={() => mine && setViewing(mine)} onAddMoment={() => setComposing(true)} onAvatarChanged={(url) => setData((d) => d && { ...d, me: { ...d.me, avatar: url } })} onClose={() => setMenu(false)} />}
+      {composing && <MomentComposer onClose={() => setComposing(false)} onPosted={load} />}
+    </>
+  );
+
+  if (look === "feed") {
+    const latest = (g: MomentGroup) => g.moments[g.moments.length - 1];
+    return (
+      <section aria-label="Moments">
+        {/* Phones: rings */}
+        <div className="flex gap-4 overflow-x-auto border-b border-rule bg-card px-4 py-4 lg:hidden">
+          <button type="button" onClick={() => (mine ? setViewing(mine) : setComposing(true))} onContextMenu={(e) => { e.preventDefault(); setMenu(true); }} className="flex w-16 shrink-0 flex-col items-center gap-1.5" aria-label={mine ? "View your moments" : "Add a moment"}>
+            {mine
+              ? <span className="rounded-full bg-gradient-to-tr from-crimson via-crimson-bright to-amber-400 p-[3px]"><span className="block rounded-full bg-white p-[2px]"><Avatar src={data.me.avatar} alt="" size={54} /></span></span>
+              : <span className="flex h-16 w-16 items-center justify-center rounded-full border-2 border-dashed border-rule text-2xl text-crimson">+</span>}
+            <span className="text-xs text-slate">You</span>
+          </button>
+          {others.map((g) => (
+            <button key={g.ownerUid} type="button" onClick={() => setViewing(g)} className="flex w-16 shrink-0 flex-col items-center gap-1.5" aria-label={`View ${g.displayName}'s moments`}>
+              <span className={`bg-[#C9A227] p-[3px] ${g.isOrg ? "rounded-2xl" : "rounded-full"}`}><span className={`block bg-white p-[2px] ${g.isOrg ? "rounded-2xl" : "rounded-full"}`}><Avatar src={g.avatar} alt="" size={54} square={!!g.isOrg} /></span></span>
+              <span className="w-full truncate text-center text-xs text-ink">{g.ownerUsername}</span>
+            </button>
+          ))}
+          {!others.length && <p className="self-center text-sm text-slate">Moments from people you follow show up here.</p>}
+        </div>
+        {/* Computers: tall cards */}
+        <div className="card hidden p-5 lg:block">
+          <div className="flex items-baseline justify-between">
+            <p className="eyebrow">Moments</p>
+            <p className="text-xs text-slate">From you and the people you follow</p>
+          </div>
+          <div className="mt-4 flex gap-3 overflow-x-auto pb-1">
+            <div className="relative shrink-0">
+              <button type="button" onClick={() => (mine ? setViewing(mine) : setComposing(true))} className={`relative flex h-[230px] w-[134px] flex-col items-center justify-between overflow-hidden rounded-2xl text-left ${mine ? "" : "border-2 border-dashed border-rule bg-gradient-to-b from-paper to-rule/60"}`} aria-label={mine ? "View your moments" : "Add a moment"}>
+                {mine && <Preview group={mine} />}
+                <span className="relative mt-3 block rounded-full bg-[#C9A227] p-[2px]"><Avatar src={data.me.avatar} alt="" size={48} /></span>
+                {!mine && <span className="relative flex h-9 w-9 items-center justify-center rounded-full bg-crimson-bright text-lg text-white">+</span>}
+                <span className={`relative w-full px-3 pb-3 text-center font-ui text-sm font-semibold ${mine ? "bg-gradient-to-t from-black/70 to-transparent pt-6 text-white" : "text-ink"}`}>{mine ? "My moments" : "Add a moment"}</span>
+              </button>
+              <button type="button" onClick={() => setMenu(true)} aria-label="Your profile picture and moments" className="absolute right-2 top-2 flex h-7 w-7 items-center justify-center rounded-full bg-card/90 text-sm text-ink shadow">⋯</button>
+            </div>
+            {others.map((g) => {
+              const l = latest(g);
+              return (
+                <button key={g.ownerUid} type="button" onClick={() => setViewing(g)} className="relative h-[230px] w-[134px] shrink-0 overflow-hidden rounded-2xl text-left" aria-label={`View ${g.displayName}'s moments`}>
+                  <Preview group={g} />
+                  <span className={`absolute left-3 top-3 block bg-[#C9A227] p-[2px] ${g.isOrg ? "rounded-2xl" : "rounded-full"}`}><Avatar src={g.avatar} alt="" size={44} square={!!g.isOrg} /></span>
+                  <span className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent px-3 pb-3 pt-10 text-white">
+                    <span className="flex items-center font-ui text-xs font-bold"><span className="truncate">{g.displayName.split(" ")[0]}</span><NameBadgeIcons username={g.ownerUsername} size={11} onDark /><span className="ml-1 shrink-0 font-normal opacity-80">· {l ? ago(l.createdAt) : ""}</span></span>
+                  </span>
+                </button>
+              );
+            })}
+            {!others.length && <p className="self-center pl-2 text-sm text-slate">When people you follow share a moment, it shows up here.</p>}
+          </div>
+        </div>
+        {layers}
+      </section>
+    );
+  }
 
   return (
     <section className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8" aria-label="Moments">
@@ -75,9 +144,7 @@ export default function MomentsStrip() {
           {!others.length && <p className="self-center pl-2 text-sm text-slate">When people you follow share a moment, it shows up here.</p>}
         </div>
       </div>
-      {viewing && <MomentViewer key={viewing.ownerUid} moments={viewing.moments} groups={data.groups} onSelectGroup={(g) => setViewing(g)} onClose={() => { setViewing(null); load(); }} onChanged={load} />}
-      {menu && <OwnPictureMenu avatar={data.me.avatar} square={!!mine?.isOrg} hasMoments={!!mine} onViewMoments={() => mine && setViewing(mine)} onAddMoment={() => setComposing(true)} onAvatarChanged={(url) => setData((d) => d && { ...d, me: { ...d.me, avatar: url } })} onClose={() => setMenu(false)} />}
-      {composing && <MomentComposer onClose={() => setComposing(false)} onPosted={load} />}
+      {layers}
     </section>
   );
 }

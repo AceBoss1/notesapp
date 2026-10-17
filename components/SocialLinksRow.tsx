@@ -14,11 +14,11 @@ const LINKS: { key: keyof SocialLinks; label: string; icon: ReactNode }[] = [
 
 // A member's social links, as saved on Edit profile, shown as a row of icons (the name is the hover text and the screen-reader
 // label). Only http(s) URLs are rendered as links (the value is user-entered).
-export default function SocialLinksRow({ social }: { social?: SocialLinks }) {
+export default function SocialLinksRow({ social, className = "" }: { social?: SocialLinks; className?: string }) {
   const links = LINKS.filter((l) => /^https?:\/\//i.test(social?.[l.key] || ""));
   if (links.length === 0) return null;
   return (
-    <p className="mt-3 flex flex-wrap gap-2">
+    <p className={`mt-3 flex flex-wrap gap-2 ${className}`}>
       {links.map((l) => (
         <a
           key={l.key}

@@ -52,7 +52,7 @@ export default function ProfileTabs({ username, notes, storeItems, isOfficial, s
 
   return (
     <div className="mt-10">
-      <div className="sticky top-0 z-10 -mx-4 border-b border-rule bg-paper/95 px-4 backdrop-blur sm:mx-0 sm:px-0">
+      <div className="-mx-4 border-b border-rule px-4 sm:mx-0 sm:px-0">
         <div className="flex gap-6 overflow-x-auto" role="tablist">
           {tabBtn("notes", "Notes", noteCount)}
           {tabBtn("store", "Store", storeItems.length)}

@@ -292,7 +292,13 @@ Calls are free. Planned: paid calls inside Notes Life (₦5 a minute voice, ₦1
 **Browsing:** the **Topics** tab on [Journals](/journals) groups every topic that has journals, with yours first. Tap a hashtag at the end of a journal to see more on that topic.
 `),
     A("discovery", "Journals, Notes Market, Notes Academy and Trending", "Getting started", `
-**The order:** [Journals](/journals), [Notes Market](/shop) and [Notes Academy](/academy) all show things in the same order: **For you** first (on [your interests](/interests)), then **Most viewed** (what people opened most in the last 7 days), then **Recent**. Use the tabs to see one of these on its own, or a topic.
+**Getting around:** on a phone, the bar along the bottom takes you to **Feed**, **Explore**, **Market**, **Messages** and your **Profile**; tap your picture at the top for the menu (your account, the rest of the site, Sign out). On a computer, the journal feed has the same places in a menu on the left.
+
+**The journal feed:** [Journals](/journals) has four tabs: **For you** (journals on [your interests](/interests) first, then everything newest first), **Following** (people you follow), **Latest** and **Top · 7d** (what people read most this week). Like, comment, share or save a journal from the feed; saved journals are in [Saved](/saved). **Most read this week** and **Who to follow** appear between posts on a phone and on the right on a computer. Journals marked **Promoted** are boosted.
+
+**Explore:** [Explore](/explore) is where to browse topics, people and channels.
+
+**The order elsewhere:** [Notes Market](/shop) and [Notes Academy](/academy) show things in the same order: **For you** first, then **Most viewed** (the last 7 days), then **Recent**.
 
 **Notes Market** collects every #NotesApp store: items for you, the most viewed, new arrivals, digital downloads, categories and a list of stores. Each item shows its seller and their badges. Buying works as it does in the seller's own store.
 
