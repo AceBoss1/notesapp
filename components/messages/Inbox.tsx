@@ -18,6 +18,7 @@ import { usePresence } from "@/lib/presence-client";
 import { NameBadgeIcons } from "@/components/PersonName";
 import { badgeLevel, goldKindOf, isTeamMember, type UserProfile } from "@/lib/users";
 import type { GoldBadgeKind } from "@/lib/badges";
+import { INBOX_TABS, filterInbox, tabCounts, type Contexts, type InboxTab } from "@/lib/chat-tools";
 
 type Who = { uid: string; username: string; displayName: string; avatar: string; level?: "verified" | "gold" | null; goldKind?: GoldBadgeKind; team?: boolean; isOrg?: boolean };
 type Row = { id: string; lastText: string; lastAt: string; lastFromMe: boolean; unread: number; moment: boolean; with: Who; group?: { title: string; team: boolean; members: number; lastFrom: string; avatar?: string } };
@@ -32,6 +33,10 @@ export default function Inbox({ as = "h2" }: { as?: "h1" | "h2" }) {
   const [error, setError] = useState<string | null>(null);
   const people = useRef(new Map<string, Who>());
   const [pins, setPins] = useState<string[]>([]); // your pinned chats (chatPins/{uid}, 3 at most)
+  const [q, setQ] = useState(""); // the search box
+  const [tab, setTab] = useState<InboxTab>("all");
+  const [contexts, setContexts] = useState<Contexts | null>(null); // who you have bookings and orders with (for those two chips)
+  useEffect(() => { if (user) api<Contexts>("/api/messages/contexts").then(setContexts).catch(() => setContexts({ bookings: [], orders: [] })); }, [user]);
   useEffect(() => { if (!user) return; return onSnapshot(doc(db, "chatPins", user.uid), (d) => setPins((d.data()?.list as string[] | undefined) ?? []), () => {}); }, [user]);
   async function togglePin(id: string, pin: boolean) {
     setError(null);
@@ -79,12 +84,31 @@ export default function Inbox({ as = "h2" }: { as?: "h1" | "h2" }) {
   if (error) return <>{top}<p className="p-5 text-red-700" role="alert">{error}</p></>;
   if (!rows) return <>{top}<p className="p-5 text-slate">Loading…</p></>;
   const pill = "shrink-0 rounded px-1.5 py-0.5 font-ui text-[10px] font-bold tracking-wideish";
+  const counts = tabCounts(rows, contexts);
+  const shown = filterInbox(rows, q, tab, contexts);
+  const filtering = !!q.trim() || tab !== "all";
   return (
     <>
       {top}
+      {/* Search and the filter chips, as in most messengers: All · Unread · Groups, plus Bookings and Orders (chats with people you have a
+          session or a store order with). A chip only shows when it has chats in it. */}
+      <div className="shrink-0 space-y-2.5 border-b border-rule px-4 py-3">
+        <label className="flex items-center gap-2 rounded-full bg-paper px-4 py-2 text-sm text-slate focus-within:ring-2 focus-within:ring-crimson/20">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" className="h-4 w-4 shrink-0" aria-hidden="true"><circle cx="11" cy="11" r="7" /><path d="m20 20-3.5-3.5" /></svg>
+          <input type="search" value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search chats and people" aria-label="Search chats" className="min-w-0 flex-1 bg-transparent text-ink outline-none placeholder:text-slate/80" />
+        </label>
+        <div className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-0.5 [scrollbar-width:none]" role="tablist" aria-label="Filter chats">
+          {INBOX_TABS.filter((t) => t.key === "all" || t.key === tab || counts[t.key] > 0).map((t) => (
+            <button key={t.key} type="button" role="tab" aria-selected={tab === t.key} onClick={() => setTab(t.key)}
+              className={`shrink-0 rounded-full border px-3.5 py-1.5 font-ui text-xs font-semibold ${tab === t.key ? "border-crimson bg-crimson/10 text-crimson" : "border-rule text-ink hover:bg-paper"}`}>
+              {t.label}{t.key !== "all" && counts[t.key] > 0 ? <span className="ml-1.5 font-mono text-[11px] opacity-80">{counts[t.key]}</span> : null}
+            </button>
+          ))}
+        </div>
+      </div>
       <div className="min-h-0 flex-1 overflow-y-auto">
         <ul className="divide-y divide-rule border-b border-rule">
-          <li>
+          {!filtering && <li>
             <Link href="/messages/nana" aria-current={pathname === "/messages/nana" ? "page" : undefined} className={`flex items-center gap-3 px-5 py-3.5 ${pathname === "/messages/nana" ? "bg-paper" : "bg-amber-50/60 hover:bg-paper"}`}>
               <Image src="/images/nana/nana-sm.webp" alt="" width={40} height={40} className="h-10 w-10 shrink-0 rounded-full" />
               <span className="min-w-0 flex-1">
@@ -92,8 +116,8 @@ export default function Inbox({ as = "h2" }: { as?: "h1" | "h2" }) {
                 <span className="mt-0.5 block truncate text-[13px] text-slate">Your #NotesApp helper. Ask me anything about the platform.</span>
               </span>
             </Link>
-          </li>
-          {[...rows].sort((a, b) => Number(pins.includes(b.id)) - Number(pins.includes(a.id)) || (pins.includes(a.id) ? pins.indexOf(a.id) - pins.indexOf(b.id) : 0)).map((r) => {
+          </li>}
+          {[...shown].sort((a, b) => Number(pins.includes(b.id)) - Number(pins.includes(a.id)) || (pins.includes(a.id) ? pins.indexOf(a.id) - pins.indexOf(b.id) : 0)).map((r) => {
             const pinned = pins.includes(r.id);
             const open = pathname === `/messages/${r.id}`;
             const status = r.group ? undefined : presence.statuses[r.with.uid];
@@ -127,6 +151,7 @@ export default function Inbox({ as = "h2" }: { as?: "h1" | "h2" }) {
             );
           })}
         </ul>
+        {filtering && !shown.length && <p className="px-5 pt-4 text-sm text-slate">{q.trim() ? <>No chats match “{q.trim()}”.</> : "No chats here yet."} <button type="button" onClick={() => { setQ(""); setTab("all"); }} className="text-crimson underline">Show all chats</button></p>}
         {!rows.length && <p className="px-5 pt-4 text-sm text-slate">No messages yet. Replies to your moments, and messages from other members, land here. You can also <Link href="/messages/new-group" className="text-crimson underline">start a group</Link>.</p>}
         <div className="px-5 pb-5"><MessageSettings /></div>
       </div>

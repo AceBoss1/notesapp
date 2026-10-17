@@ -120,8 +120,13 @@ const COURSES = [
     const cid = ["u_reader", other].sort().join("_");
     const last = msgs[msgs.length - 1];
     batch.set(db.doc(`conversations/${cid}`), { participants: ["u_reader", other].sort(), createdAt: day(msgs[0][2]), lastMessage: { from: last[0], text: last[1], at: day(last[2]) }, lastMessageAt: day(last[2]), unread: { u_reader: other === "u_emmanuel" ? 2 : 0, [other]: 0 } });
-    msgs.forEach(([from, text, age], i) => batch.set(db.doc(`conversations/${cid}/messages/${String(Date.now() - age * 86_400_000).padStart(13, "0")}_${i}`), { from, text, createdAt: day(age) }));
+    msgs.forEach(([from, text, age], i) => batch.set(db.doc(`conversations/${cid}/messages/${String(Date.now() - age * 86_400_000).padStart(13, "0")}_${i}`), { from, text, createdAt: day(age), ...(other === "u_chimdinma" && i === 0 ? { reactions: { u_reader: "👍" } } : {}), ...(other === "u_chimdinma" && i === 1 ? { readAt: day(2.8), reactions: { u_chimdinma: "❤️" } } : {}) }));
   }
+  // A third, with Ada after a session the reader booked (it shows under the inbox's Bookings filter), with her notes as a PDF.
+  batch.set(db.doc("bookings/demo_ada_session"), { publisherUid: "u_ada", clientUid: "u_reader", status: "completed", title: "First session", startsAt: day(4), endsAt: day(4), priceKobo: 1500000, createdAt: day(6) });
+  batch.set(db.doc("conversations/u_ada_u_reader"), { participants: ["u_ada", "u_reader"], createdAt: day(4), lastMessage: { from: "u_ada", text: "📎 Session-notes-Oct.pdf", at: day(0.2) }, lastMessageAt: day(0.2), unread: { u_reader: 1, u_ada: 0 } });
+  batch.set(db.doc("conversations/u_ada_u_reader/messages/a1"), { from: "u_ada", text: "Thank you for today. Here are the notes from our session, and the two exercises for this week.", createdAt: day(0.21) });
+  batch.set(db.doc("conversations/u_ada_u_reader/messages/a2"), { from: "u_ada", text: "", attachments: [{ key: "demo/session-notes.pdf", name: "Session-notes-Oct.pdf", size: 248_000, type: "application/pdf", kind: "document" }], createdAt: day(0.2) });
   await batch.commit();
   // Emmanuel's picture history (the profile picture viewer): the current one first, then two older ones.
   for (const [n, url] of [[0, `${I}/headshots/emmanuel-adams-2.jpeg`], [30, `${I}/notes/IMG_6676.jpeg`], [120, `${I}/headshots/emmanuel-adams-1.jpeg`]] as const) {

@@ -1,8 +1,8 @@
 import type { Firestore } from "firebase-admin/firestore";
 import { FieldValue } from "firebase-admin/firestore";
 import { randomBytes } from "crypto";
-import { MESSAGE_MAX } from "./messages-rules";
-import { MessageError } from "./messages-server";
+import { MESSAGE_MAX, isReaction } from "./messages-rules";
+import { MessageError, mutedAmong } from "./messages-server";
 import { notifyBell } from "./email";
 
 // Pins, edits and deletes in Messages. Server-only: clients never write messages.
@@ -42,6 +42,32 @@ export async function pinMessage(db: Firestore, uid: string, cid: string, messag
   });
 }
 
+// ---- reactions ----
+// One reaction per person per message (choosing another replaces it; "" takes it off). Not on deleted, removed or call lines, and not in a
+// one-to-one chat where either person has blocked the other. The sender gets a bell for a new reaction (unless they muted the chat).
+export async function reactToMessage(db: Firestore, uid: string, cid: string, messageId: string, emoji: unknown, notify = notifyBell): Promise<{ reaction: string }> {
+  if (!messageId || messageId.includes("/")) throw new MessageError(400, "Choose a message.");
+  if (emoji !== "" && !isReaction(emoji)) throw new MessageError(400, "Pick one of the reactions.");
+  const c = await conversation(db, uid, cid);
+  if (!isGroup(c)) {
+    const other = (c.participants as string[]).find((p) => p !== uid) ?? uid;
+    const [a, b] = await db.getAll(db.doc(`dmBlocks/${uid}_${other}`), db.doc(`dmBlocks/${other}_${uid}`));
+    if (a.exists || b.exists) throw new MessageError(403, "You can't react in this conversation.");
+  }
+  const ref = db.doc(`conversations/${cid}/messages/${messageId}`);
+  const m = (await ref.get()).data();
+  if (!m || m.removed || m.deleted || m.call) throw new MessageError(404, "That message wasn't found.");
+  const before = (m.reactions as Record<string, string> | undefined)?.[uid] ?? "";
+  if (before === emoji) return { reaction: before };
+  await ref.update({ [`reactions.${uid}`]: emoji ? emoji : FieldValue.delete() });
+  if (emoji && m.from !== uid && !(await mutedAmong(db, [m.from], cid)).has(m.from)) {
+    const name = String((await db.doc(`users/${uid}`).get()).data()?.displayName ?? "Someone");
+    const what = String(m.text ?? "").trim();
+    await notify({ uid: m.from, type: "message", linkHref: `/messages/${cid}`, message: `${name} reacted ${emoji} to your message${what ? `: “${what.slice(0, 60)}${what.length > 60 ? "…" : ""}”` : ""}` }).catch(() => {});
+  }
+  return { reaction: String(emoji) };
+}
+
 // ---- pinned chats ----
 export async function pinChat(db: Firestore, uid: string, cid: string, pin: boolean): Promise<{ pinnedChats: string[] }> {
   await conversation(db, uid, cid);
@@ -77,7 +103,7 @@ async function apply(db: Firestore, cid: string, messageId: string, kind: "edit"
   if (kind === "edit") await ref.update({ text, editedAt: at, pendingRequest: FieldValue.delete() });
   else {
     for (const f of (m.attachments as { key: string }[] | undefined) ?? []) await deleteFile(String(f.key)).catch(() => {});
-    await ref.update({ text: "", deleted: { at }, attachments: FieldValue.delete(), sticker: FieldValue.delete(), momentRef: FieldValue.delete(), pendingRequest: FieldValue.delete() });
+    await ref.update({ text: "", deleted: { at }, attachments: FieldValue.delete(), sticker: FieldValue.delete(), momentRef: FieldValue.delete(), pendingRequest: FieldValue.delete(), reactions: FieldValue.delete() });
     const quotes = await convRef.collection("messages").where("replyTo.id", "==", messageId).get();
     for (const q of quotes.docs) await q.ref.update({ "replyTo.text": DELETED_TEXT }).catch(() => {});
   }

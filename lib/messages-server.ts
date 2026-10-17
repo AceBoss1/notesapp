@@ -232,7 +232,7 @@ export async function getThread(db: Firestore, uid: string, cid: string, now = n
     const ref = m.momentRef as MomentRef | undefined;
     return {
       id: d.id, from: m.from, text: m.text, createdAt: m.createdAt, ...(m.readAt ? { readAt: m.readAt } : {}), ...(m.sticker ? { sticker: m.sticker } : {}), ...(m.replyTo ? { replyTo: m.replyTo } : {}),
-      ...(m.removed ? { removed: m.removed } : {}), ...(m.call ? { call: m.call } : {}),
+      ...(m.removed ? { removed: m.removed } : {}), ...(m.call ? { call: m.call } : {}), ...(m.reactions && Object.keys(m.reactions).length ? { reactions: m.reactions } : {}),
       ...(m.attachments ? { attachments: (m.attachments as MessageAttachment[]).map(({ key: _k, ...info }) => info) } : {}),
       // Only whether it has expired — never the moment's content.
       ...(ref ? { moment: { momentId: ref.momentId, expired: isMomentExpired(ref.expiresAt, now) } } : {}),
@@ -245,6 +245,18 @@ export async function getThread(db: Firestore, uid: string, cid: string, now = n
 
 export function groupInfoOf(conv: FirebaseFirestore.DocumentData): GroupInfo {
   return { title: String(conv.title ?? "Group"), scope: conv.scope === "team" ? "team" : "public", memberUids: conv.participants as string[], adminUids: (conv.adminUids as string[] | undefined) ?? [], createdBy: String(conv.createdBy ?? ""), ...(conv.meetingId ? { meetingId: String(conv.meetingId) } : {}), ...(conv.avatar ? { avatar: String(conv.avatar) } : {}), ...(conv.sendLocked === true ? { sendLocked: true } : {}), bannedUids: (conv.bannedUids as string[] | undefined) ?? [] };
+}
+
+// Who you have bookings or store orders with (either side), so the inbox can show those chats under Bookings and Orders. Four one-field
+// queries, newest 500 of each; only the other person's id comes back.
+export async function chatContexts(db: Firestore, uid: string): Promise<{ bookings: string[]; orders: string[] }> {
+  const pick = async (col: string, mine: string, other: string) =>
+    (await db.collection(col).where(mine, "==", uid).select(other).limit(500).get()).docs.map((d) => String(d.data()[other] ?? "")).filter((u) => u && u !== uid);
+  const [b1, b2, o1, o2] = await Promise.all([
+    pick("bookings", "publisherUid", "clientUid"), pick("bookings", "clientUid", "publisherUid"),
+    pick("storeOrders", "sellerUid", "buyerUid"), pick("storeOrders", "buyerUid", "sellerUid"),
+  ].map((p) => p.catch(() => [] as string[])));
+  return { bookings: Array.from(new Set([...b1, ...b2])), orders: Array.from(new Set([...o1, ...o2])) };
 }
 
 // Total unread across conversations (the number beside "Messages" in the menu).

@@ -11,6 +11,20 @@ export type Release = {
 
 export const CHANGELOG: Release[] = [
   {
+    version: "v0.44.0",
+    bump: "minor",
+    date: "2026-10-17",
+    changes: [
+      { kind: "added", text: "Chat essentials: react to any message (👍 ❤️ 😂 😮 😢 🙏). The reactions show under the bubble; tap one to add yours or take it off, and the sender gets a bell." },
+      { kind: "changed", text: "Every message has one menu: right-click on a computer, hold it on a phone, or tap ⋯. Reactions on top, then Reply, Copy, Pin, Message info (when it was sent and read; in a group, who has read it), Select, Edit and Delete." },
+      { kind: "added", text: "Select several messages to copy them together or delete your own in one go (read ones still wait for the readers to agree)." },
+      { kind: "added", text: "Search: the Messages list has a search box (names, @handles, group names and the last message), and \"Search in this chat\" finds words and file names in a conversation, with ↑ ↓ to step through." },
+      { kind: "added", text: "Filters above your chats: All, Unread, Groups, and Bookings and Orders for chats with people you have a session or a store order with." },
+      { kind: "changed", text: "Files show as cards with the type, size, Open (PDFs) and Save; pictures and videos have Save under them." },
+      { kind: "added", text: "On a phone, swipe a message to the right to reply to it." },
+    ],
+  },
+  {
     version: "v0.43.0",
     bump: "minor",
     date: "2026-10-17",
