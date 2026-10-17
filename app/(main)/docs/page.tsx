@@ -2,11 +2,12 @@ import Link from "next/link";
 import type { Metadata } from "next";
 import { ENDPOINTS, WEBHOOK_DOCS } from "@/lib/api-docs";
 import PageHero from "@/components/PageHero";
-import { SITE_URL, MAIN_HOST } from "@/lib/host";
+import { SITE_URL, MAIN_HOST, MCP_HOST } from "@/lib/host";
+import { TOOLS } from "@/lib/mcp/catalog";
 
 export const metadata: Metadata = {
   title: "API Docs",
-  description: "The #NotesApp API for Enterprise partners, as used by precheks.com.ng: authentication, posts, bookings, orders, earnings and webhooks, plus how Business and Enterprise accounts connect their own domain.",
+  description: "The #NotesApp API for Enterprise partners, as used by precheks.com.ng: authentication, posts, bookings, orders, earnings and webhooks; the MCP server for AI assistants; and how Business and Enterprise accounts connect their own domain.",
 };
 
 const code = "overflow-x-auto rounded bg-ink px-4 py-3 font-mono text-xs leading-relaxed text-paper";
@@ -23,7 +24,7 @@ export default function DocsPage() {
 
       <nav className="card mt-8 p-4 text-sm" aria-label="On this page">
         <ul className="grid gap-1 sm:grid-cols-2">
-          {[["quickstart", "Quickstart"], ["auth", "Authentication"], ["errors", "Errors & limits"], ["endpoints", "Endpoints"], ["webhooks", "Webhooks"], ["domains", "Your own domain"]].map(([id, label]) => (
+          {[["quickstart", "Quickstart"], ["auth", "Authentication"], ["errors", "Errors & limits"], ["endpoints", "Endpoints"], ["webhooks", "Webhooks"], ["mcp", "MCP server (AI assistants)"], ["domains", "Your own domain"]].map(([id, label]) => (
             <li key={id}><a href={`#${id}`} className="text-crimson underline">{label}</a></li>
           ))}
         </ul>
@@ -94,6 +95,35 @@ function verify(rawBody, header, secret) {
   const expected = createHmac("sha256", secret).update(\`\${t}.\${rawBody}\`).digest("hex");
   return v1.length === expected.length && timingSafeEqual(Buffer.from(v1), Buffer.from(expected));
 }`}</pre>
+
+      <h2 id="mcp" className="mt-12 font-display text-3xl text-ink">MCP server for AI assistants</h2>
+      <p className="mt-3 text-slate">
+        AI assistants that speak the Model Context Protocol (Claude, ChatGPT and others) can use #NotesApp through our MCP server: find creators, journals, store items and
+        courses, see a creator&apos;s open session times, and hand back booking links. <strong>It only reads.</strong> Booking, buying and paying always happen on #NotesApp itself.
+        Add it to your assistant as a remote (Streamable HTTP) server at:
+      </p>
+      <pre className={`${code} mt-3`}>{`${SITE_URL}/api/mcp`}</pre>
+      <p className="mt-2 text-xs text-slate">It will also answer at <span className="font-mono">https://{MCP_HOST}</span> once that address is live. No sign-in is needed for the public tools.</p>
+      <p className="mt-3 text-slate">
+        The <code className="font-mono text-xs">my_*</code> tools read your own account through the same API as above: send your API key as <code className="font-mono text-xs">Authorization: Bearer nak_…</code>
+        (the key&apos;s scopes apply). Every tool call is logged for 12 months (the tool, the arguments and the key&apos;s id, never the secret). Text members wrote, such as bios
+        and titles, is marked as data so assistants don&apos;t take it as instructions. Up to 120 calls a minute.
+      </p>
+      <div className="mt-4 space-y-2">
+        {TOOLS.map((t) => (
+          <div key={t.name} className="card p-3">
+            <p className="font-mono text-sm font-bold text-ink">{t.name}{t.needsKey && <span className="ml-2 rounded bg-amber-100 px-1.5 py-0.5 font-ui text-[10px] font-bold text-amber-900">API KEY</span>}</p>
+            <p className="mt-1 text-sm text-slate">{t.description}</p>
+          </div>
+        ))}
+      </div>
+      <p className="mt-3 text-sm text-slate">Try it with curl:</p>
+      <pre className={`${code} mt-2`}>{`curl ${SITE_URL}/api/mcp \
+  -H "Content-Type: application/json" \
+  -H "Accept: application/json, text/event-stream" \
+  -d '{"jsonrpc":"2.0","id":1,"method":"tools/call",
+       "params":{"name":"search_creators","arguments":{"query":"therapist","bookable":true}}}'`}</pre>
+      <p className="mt-3 text-sm text-slate">Coming next: signing in with your #NotesApp account instead of a key, and tools that can draft posts and reply to bookings, always with your approval.</p>
 
       <h2 id="domains" className="mt-12 font-display text-3xl text-ink">Your own domain</h2>
       <p className="mt-3 text-slate">

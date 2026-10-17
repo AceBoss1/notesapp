@@ -11,6 +11,16 @@ export type Release = {
 
 export const CHANGELOG: Release[] = [
   {
+    version: "v0.46.0",
+    bump: "minor",
+    date: "2026-10-17",
+    changes: [
+      { kind: "added", text: "The #NotesApp MCP server, phase 1: AI assistants that support MCP (Claude, ChatGPT and others) can find creators, journals, Notes Market items and Notes Academy courses, show a creator's open session times and share booking links. It only reads; booking, buying and paying happen on #NotesApp. Address and tools in the API docs." },
+      { kind: "added", text: "With your API key, your assistant can also read your own profile, journals, bookings, orders and earnings (the key's permissions apply). Every call is logged." },
+      { kind: "added", text: "A booking link can open the booking card on a chosen date and time, so a shared open time is one tap from booking." },
+    ],
+  },
+  {
     version: "v0.45.1",
     bump: "patch",
     date: "2026-10-17",
