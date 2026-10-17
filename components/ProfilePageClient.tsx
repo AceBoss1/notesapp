@@ -289,7 +289,7 @@ export default function ProfilePageClient({ params }: { params: { username: stri
             <p className="mt-1 text-xs font-semibold text-slate">{GOLD_BADGE_TITLE[goldKindOf(realProfile)!].replace("Gold badge — ", "Gold ✔ · ")}</p>
           )}
           {!suspended && <UnverifiedOrgNotice profile={realProfile} />}
-          {realProfile && <SocialLinksRow social={realProfile.social} className="justify-center sm:justify-start" />}
+          {realProfile && <SocialLinksRow social={realProfile.social} editable={isOwnProfile} className="justify-center sm:justify-start" />}
           {viewer && realProfile && viewer.uid === realProfile.uid && (
             <p className="mt-2 flex flex-wrap justify-center gap-4 font-ui text-xs font-semibold text-crimson sm:justify-start">
               {canPublish(realProfile) && <Link href="/write">Write</Link>}

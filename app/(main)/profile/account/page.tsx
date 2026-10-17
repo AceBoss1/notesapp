@@ -139,7 +139,7 @@ export default function AccountPage() {
   return (
     <>
       <PageHero compact max="max-w-2xl" eyebrow={profile ? `@${profile.username}` : "Account"} title={<>Account settings</>}>
-        <p>Name, bio and photo are on <Link href="/profile/edit" className="text-crimson">Edit profile</Link>.</p>
+        <p>Your name, bio, photo and work are on <Link href="/profile/edit" className="text-crimson">Edit profile</Link>, and so are your <Link href="/profile/edit#links" className="text-crimson">social links</Link> (LinkedIn, Instagram, Facebook, X, TikTok, WhatsApp and your website).</p>
       </PageHero>
       <section className="mx-auto max-w-2xl px-4 sm:px-6 lg:px-8 py-10">
 

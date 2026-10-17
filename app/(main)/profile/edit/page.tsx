@@ -18,6 +18,7 @@ import { cleanSocial } from "@/lib/social-links";
 import { notePictureChange } from "@/lib/profile-pictures-client";
 import BadgeCard from "@/components/BadgeCard";
 import PageHero from "@/components/PageHero";
+import ScrollToHash from "@/components/ScrollToHash";
 import { DROP_RING, useFileDrop } from "@/lib/useFileDrop";
 
 // The address, a handle or (WhatsApp) a phone number all work: lib/social-links.ts turns them into links when you save.
@@ -117,6 +118,7 @@ export default function ProfileEditPage() {
 
   return (
     <>
+      <ScrollToHash />
       <PageHero compact max="max-w-2xl" eyebrow={`@${profile.username}`} title={<>Edit Profile</>}>
         <p>Change your username, email or password in{" "}
         <Link href="/profile/account" className="text-crimson">Account settings</Link>.</p>
@@ -128,7 +130,7 @@ export default function ProfileEditPage() {
       </div>
       <SiteReminder profile={profile} className="mt-6" />
 
-      <form onSubmit={handleSubmit} className={`relative mt-8 grid gap-6 ${avatarDrop.dragging ? DROP_RING : ""}`} {...avatarDrop.bind}>
+      <form onSubmit={handleSubmit} className={`relative mt-8 grid grid-cols-[minmax(0,1fr)] gap-6 ${avatarDrop.dragging ? DROP_RING : ""}`} {...avatarDrop.bind}>
         {avatarDrop.dragging && <div className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center rounded bg-paper/80 font-ui text-sm font-bold text-crimson">Drop to use as your profile picture</div>}
         <label className="block">
           <span className="eyebrow">Display Name</span>
@@ -159,7 +161,7 @@ export default function ProfileEditPage() {
 
         <label className="block">
           <span className="eyebrow">Avatar</span>
-          <div className="mt-2 flex items-center gap-4">
+          <div className="mt-2 flex flex-wrap items-center gap-4">
             {avatar && (
               <Image
                 src={avatar}
@@ -169,14 +171,14 @@ export default function ProfileEditPage() {
                 className="rounded-full object-cover w-16 h-16"
               />
             )}
-            <input type="file" accept="image/*" onChange={handleAvatarUpload} />
+            <input type="file" accept="image/*" onChange={handleAvatarUpload} className="min-w-0 max-w-full" />
             <span className="text-[11px] text-slate">or drag a picture onto this page, or paste one</span>
           </div>
           {uploading && <p className="text-xs text-slate mt-1">Uploading…</p>}
           {uploadError && <p className="text-xs text-crimson mt-1">{uploadError}</p>}
         </label>
 
-        <div>
+        <div id="links" className="scroll-mt-28">
           <p className="eyebrow">Social Links</p>
           <p className="mt-1 text-xs text-slate">Paste the address, or just your @handle; for WhatsApp, your phone number. They show as icons on your profile.</p>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-3">
