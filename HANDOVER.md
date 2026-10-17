@@ -26,8 +26,7 @@ Working branch convention (owner's instruction, 17 Oct 2026): branches are named
 
 ## 2. Waiting on the owner
 
-1. **`firebase deploy --only firestore`** (also needed for v0.40.0's saved journals, `savedJournals`, and v0.42.0's courses and v0.43.0's past profile pictures: until it's deployed, published courses, learners' progress and picture histories can't be read in the browser). The rules that let Notes Life presence use the Digital Witch hub (`dw`) are merged
-   but not deployed. Until they are, players at the hub don't appear to each other.
+1. **`firebase deploy --only firestore`**: done by the owner on 17 Oct 2026 (through v0.45.0: saved journals, courses, profile pictures, kept messages). Run it again after any release that changes `firestore.rules`.
 2. **Firestore index suggestions** (Query insights, e.g. `ledger WHERE status = ? COUNT`): create them with the console's one-click
    "Create index" when they appear.
 3. **The agent-layer scope PDF**: attach it to the staff library entry "Where AI agents meet #NotesApp".
@@ -49,6 +48,9 @@ Working branch convention (owner's instruction, 17 Oct 2026): branches are named
 10. **Staging:** `docs/STAGING.md` (a second Firebase project and the `staging` branch on Vercel Preview).
 11. **After merging v0.39.0:** `npx -y tsx scripts/backfill-topics.ts` then `--apply` (files older journals under topics).
 12. **Courses:** the owner's decisions are in `docs/COURSES.md` ("Decisions", 17 Oct 2026). Step 1, free courses with the publisher's YouTube, goes live as Notes Academy in this release; certificates, paid courses and the Enterprise packages follow. The package prices are in Admin → Pricing.
+13. **MCP server (v0.46.0):** point `mcp.notesapp.name.ng` (and later `mcp.notesapp.tech`) at Vercel (Vercel → Domains, then the CNAME it shows); set a Firestore **TTL policy** on `agentActions.expireAt` (Firestore → TTL) so the log keeps 12 months; decide the phase 2 questions on the team hub (which plans, AI budget, referral fee) before OAuth and write tools.
+14. **Discord changelog:** `DISCORD_CHANGELOG_WEBHOOK_URL` in Vercel (Production), from a new webhook (the first one was shared in chat), then redeploy.
+
 All of these are on the team hub board with departments and dates (`lib/team-seed.ts`: `FUND_BACKLOG`, `LAUNCH_BACKLOG`, `COURSES_BACKLOG`, `TOPICS_BACKLOG`, `BIMI_BACKLOG`). Items can have several people (`ownerUids`; `ownerUid` stays as the first of them for older readers) and can repeat monthly (`repeat: "monthly"`: done moves the due date on a month).
 
 ## 3. How the work is done (please keep these)

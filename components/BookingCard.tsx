@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { User } from "firebase/auth";
 import { doc, getDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
@@ -31,6 +31,13 @@ export default function BookingCard({
   const [slot, setSlot] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // A link with ?date=2026-10-20&time=14:00 (an assistant sharing an open time, lib/mcp/tools.ts) opens the card on that slot.
+  const wanted = useRef<string | null>(null);
+  useEffect(() => {
+    const q = new URLSearchParams(window.location.search);
+    const d = q.get("date") ?? "", t = q.get("time") ?? "";
+    if (/^\d{4}-\d{2}-\d{2}$/.test(d)) { setDate(d); if (/^\d{2}:\d{2}$/.test(t)) wanted.current = t; }
+  }, []);
 
   useEffect(() => {
     if (!publisherUid) return;
@@ -48,7 +55,7 @@ export default function BookingCard({
     if (!date) return;
     fetch(`/api/booking/slots?username=${encodeURIComponent(username)}&date=${date}`)
       .then((r) => r.json())
-      .then(setSlots)
+      .then((s: Slots) => { setSlots(s); if (wanted.current && s.slots?.includes(wanted.current)) setSlot(wanted.current); wanted.current = null; })
       .catch(() => setSlots({ bookable: false, slots: [] }));
   }, [date, username]);
 

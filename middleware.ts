@@ -56,6 +56,12 @@ function route(req: NextRequest, host: string, fam: Family) {
   const { pathname, search } = req.nextUrl;
   const role = roleOf(fam);
   const main = familyHost(host, "main");
+  // mcp.<domain>: the MCP server for AI assistants (app/api/mcp). Its address is the root (or /mcp); anything else goes to the docs.
+  if (fam.sub === "mcp") {
+    if (pathname === "/" || pathname === "/mcp") return NextResponse.rewrite(new URL(`/api/mcp${search}`, req.url));
+    if (pathname.startsWith("/api/mcp") || pathname.startsWith("/_next") || PUBLIC_FILE.test(pathname)) return NextResponse.next();
+    return NextResponse.redirect(`https://${main}/docs#mcp`, 307);
+  }
   // life.<domain>: the Notes Life page at its root (an invite's ?ref= kept); /play opens the game on the main site, where the
   // NotesApp sign-in lives; its pictures and the app's own files load as usual; anything else goes to the main site.
   if (role === "life") {
