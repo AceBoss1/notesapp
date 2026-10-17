@@ -45,8 +45,11 @@ export async function OPTIONS() {
   return new NextResponse(null, { status: 204, headers: CORS });
 }
 
-// No server-sent stream in phase 1: say so, as the transport allows.
-export async function GET() {
+// A person opening the address in a browser (asking for a page) goes to the docs. An MCP client asking for a server-sent stream is told
+// there isn't one in phase 1, as the transport allows (405).
+export async function GET(req: NextRequest) {
+  const accept = req.headers.get("accept") || "";
+  if (accept.includes("text/html") && !accept.includes("text/event-stream")) return NextResponse.redirect(`${SITE_URL}/docs#mcp`, 307);
   return new NextResponse(JSON.stringify({ error: `This MCP server answers POST requests (JSON-RPC). See ${SITE_URL}/docs#mcp.` }), { status: 405, headers: { ...CORS, Allow: "POST, OPTIONS", "Content-Type": "application/json" } });
 }
 
