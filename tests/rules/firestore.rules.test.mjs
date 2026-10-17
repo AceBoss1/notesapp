@@ -285,6 +285,15 @@ test("store items: category from the list, ships-from 2 to 60 characters; saves 
   await assertFails(deleteDoc(doc(as("alice"), "storeFavorites/alice_c1")));
 });
 
+test("past profile pictures: anyone can see them, only the server writes them", async () => {
+  await env.withSecurityRulesDisabled(async (ctx) => {
+    await setDoc(doc(ctx.firestore(), "profilePictures/p1"), { uid: "alice", url: "/images/headshots/a.jpg", createdAt: "2026-10-17T00:00:00Z" });
+  });
+  await assertSucceeds(getDoc(doc(anon(), "profilePictures/p1")));
+  await assertFails(setDoc(doc(as("alice"), "profilePictures/p2"), { uid: "alice", url: "/images/x.jpg", createdAt: "x" }));
+  await assertFails(deleteDoc(doc(as("alice"), "profilePictures/p1")));
+});
+
 test("saved journals: a member reads only their own, and only the server writes them", async () => {
   await env.withSecurityRulesDisabled(async (ctx) => {
     await setDoc(doc(ctx.firestore(), "savedJournals/alice_n1"), { uid: "alice", noteId: "n1", savedAt: "2026-10-17T00:00:00Z" });

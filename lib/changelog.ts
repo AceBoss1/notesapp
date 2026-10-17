@@ -11,6 +11,16 @@ export type Release = {
 
 export const CHANGELOG: Release[] = [
   {
+    version: "v0.43.0",
+    bump: "minor",
+    date: "2026-10-17",
+    changes: [
+      { kind: "added", text: "Profile pictures, like Facebook: tap someone's picture to see their profile pictures, newest first, and swipe (or use ‹ ›) through the older ones, with the date of each. Pictures are kept from your next change on; you can take an old one out of your history." },
+      { kind: "changed", text: "In the journal feed, your own picture has the same + as on your profile: change your picture, add a moment or see yours." },
+      { kind: "fixed", text: "Social links show on every profile, not just some: an address without https://, an @handle or a WhatsApp number now works, and Edit profile tells you if a link can't be read." },
+    ],
+  },
+  {
     version: "v0.42.0",
     bump: "minor",
     date: "2026-10-17",

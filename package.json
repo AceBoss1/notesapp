@@ -22,6 +22,7 @@
     "test:smoke": "playwright test",
     "test:topics": "npx -y tsx tests/topics/topics.test.ts",
     "test:discovery": "npx -y tsx tests/discovery/shelves.test.ts",
+    "test:social": "npx -y tsx tests/social/social-links.test.ts",
     "test:courses": "npx -y tsx tests/courses/courses.test.ts",
     "test:courses-server": "NEXT_PUBLIC_FIREBASE_API_KEY=x NEXT_PUBLIC_FIREBASE_PROJECT_ID=demo-notesapp NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=x NEXT_PUBLIC_FIREBASE_APP_ID=x npx firebase-tools@13 emulators:exec --only firestore --project demo-notesapp \"npx -y tsx tests/courses/courses.emulator.ts\""
   },

@@ -14,18 +14,21 @@ import { auth } from "@/lib/firebase";
 import { getUserByUid, updateProfile, UserProfile } from "@/lib/users";
 import { uploadToR2 } from "@/lib/upload";
 import { SocialLinks } from "@/lib/admin";
+import { cleanSocial } from "@/lib/social-links";
+import { notePictureChange } from "@/lib/profile-pictures-client";
 import BadgeCard from "@/components/BadgeCard";
 import PageHero from "@/components/PageHero";
 import { DROP_RING, useFileDrop } from "@/lib/useFileDrop";
 
-const SOCIAL_FIELDS: { key: keyof SocialLinks; label: string }[] = [
-  { key: "linkedin", label: "LinkedIn URL" },
-  { key: "instagram", label: "Instagram URL" },
-  { key: "facebook", label: "Facebook URL" },
-  { key: "twitter", label: "X / Twitter URL" },
-  { key: "tiktok", label: "TikTok URL" },
-  { key: "whatsapp", label: "WhatsApp URL" },
-  { key: "website", label: "Website URL" },
+// The address, a handle or (WhatsApp) a phone number all work: lib/social-links.ts turns them into links when you save.
+const SOCIAL_FIELDS: { key: keyof SocialLinks; label: string; hint: string }[] = [
+  { key: "linkedin", label: "LinkedIn", hint: "linkedin.com/in/yourname" },
+  { key: "instagram", label: "Instagram", hint: "@yourname" },
+  { key: "facebook", label: "Facebook", hint: "facebook.com/yourname" },
+  { key: "twitter", label: "X / Twitter", hint: "@yourname" },
+  { key: "tiktok", label: "TikTok", hint: "@yourname" },
+  { key: "whatsapp", label: "WhatsApp", hint: "0803 123 4567" },
+  { key: "website", label: "Website", hint: "yourwebsite.com" },
 ];
 
 export default function ProfileEditPage() {
@@ -44,6 +47,7 @@ export default function ProfileEditPage() {
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [unreadable, setUnreadable] = useState<string[]>([]);
 
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, async (user) => {
@@ -88,7 +92,14 @@ export default function ProfileEditPage() {
     if (!profile) return;
     setSaving(true);
     setSaved(false);
-    await updateProfile(profile.uid, { displayName, bio, avatar, social, ...cleanWork(profile.accountKind === "organisation" ? { industry: work.industry } : work) });
+    // Links are saved as full addresses so they show on the profile; what we can't read is kept as typed (and flagged) so
+    // nothing is lost.
+    const { clean, unreadable: bad } = cleanSocial(social);
+    const kept: SocialLinks = { ...clean, ...Object.fromEntries(bad.map((k) => [k, social[k]])) };
+    setSocial(kept);
+    setUnreadable(bad.map((k) => SOCIAL_FIELDS.find((f) => f.key === k)?.label ?? k));
+    await updateProfile(profile.uid, { displayName, bio, avatar, social: kept, ...cleanWork(profile.accountKind === "organisation" ? { industry: work.industry } : work) });
+    if (avatar && avatar !== profile.avatar) { await notePictureChange(avatar, profile.avatar); setProfile({ ...profile, avatar }); }
     setSaving(false);
     setSaved(true);
   }
@@ -167,8 +178,9 @@ export default function ProfileEditPage() {
 
         <div>
           <p className="eyebrow">Social Links</p>
+          <p className="mt-1 text-xs text-slate">Paste the address, or just your @handle; for WhatsApp, your phone number. They show as icons on your profile.</p>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-3">
-            {SOCIAL_FIELDS.map(({ key, label }) => (
+            {SOCIAL_FIELDS.map(({ key, label, hint }) => (
               <label key={key} className="block">
                 <span className="text-xs text-slate">{label}</span>
                 <input
@@ -176,7 +188,7 @@ export default function ProfileEditPage() {
                   onChange={(e) =>
                     setSocial((s) => ({ ...s, [key]: e.target.value }))
                   }
-                  placeholder="https://…"
+                  placeholder={hint}
                   className="mt-1 w-full border border-rule bg-card px-3 py-2 text-sm focus:border-gold outline-none"
                 />
               </label>
@@ -192,6 +204,9 @@ export default function ProfileEditPage() {
           >
             {saving ? "Saving…" : "Save Profile"}
           </button>
+          {saved && unreadable.length > 0 && (
+            <p role="alert" className="text-sm text-crimson">We couldn&apos;t read your {unreadable.join(", ")} link, so it won&apos;t show on your profile. Paste the full address (or your @handle) and save again.</p>
+          )}
           {saved && (
             <p className="text-sm text-slate">
               Saved — <Link href={`/u/${profile.username}`} className="text-crimson underline">view your public profile</Link>.

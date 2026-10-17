@@ -123,6 +123,12 @@ const COURSES = [
     msgs.forEach(([from, text, age], i) => batch.set(db.doc(`conversations/${cid}/messages/${String(Date.now() - age * 86_400_000).padStart(13, "0")}_${i}`), { from, text, createdAt: day(age) }));
   }
   await batch.commit();
+  // Emmanuel's picture history (the profile picture viewer): the current one first, then two older ones.
+  for (const [n, url] of [[0, `${I}/headshots/emmanuel-adams-2.jpeg`], [30, `${I}/notes/IMG_6676.jpeg`], [120, `${I}/headshots/emmanuel-adams-1.jpeg`]] as const) {
+    await db.collection("profilePictures").add({ uid: "u_emmanuel", url, createdAt: day(n) });
+  }
+  // Tola typed their links the casual way (handles, a bare address, a phone number); the profile still shows them.
+  await db.doc("users/u_tola").set({ social: { twitter: "@tolabello", instagram: "tola.bello", linkedin: "linkedin.com/in/tolabello", whatsapp: "0803 123 4567", website: "tolabello.com" } }, { merge: true });
   // Precheks' site: the Maroon theme, journals only, an About page.
   await db.doc("users/u_precheks").set({ siteTheme: "maroon", siteSections: { journals: true, shop: false, courses: false }, sitePages: { about: "## About Precheks\n\nBackground checks for African businesses: **identity, address, employment and education**, done in days.", updatedAt: day(0) } }, { merge: true });
   for (const p of PEOPLE.filter((x) => x.email)) {

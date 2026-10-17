@@ -49,6 +49,17 @@ minute stored and watched, so it belongs in the paid plans' price.
   X, WhatsApp, Facebook, a copy link, and a downloadable PDF and image. The verification page has its own Open Graph card, so
   a shared link shows the certificate.
 - Business and Enterprise: their logo and signature on their certificates; Enterprise can choose the design.
+- **The three logo places along the top** (owner, 17 Oct 2026; very important). Each place shows only when it applies:
+  - **Top left: the "#NotesApp Certified Course" logo**, only on courses #NotesApp has certified. Certification is set by
+    #NotesApp staff in Admin (a `certified` flag on the course, with who certified it and when); teachers can't set it.
+  - **Top centre: the publisher's logo** (their organisation or brand logo), when they have one.
+  - **Top right: the logo of another verifying institution**, when the publisher's course is accredited by one (a
+    professional body, school or regulator). The publisher adds the institution's name, logo and a reference/link; #NotesApp
+    reviews it before it can appear, so nobody can claim an accreditation they don't have. The verification page names the
+    institution too.
+  - **Always, beside the QR code: the "Notes Academy Verifiable Certificate" badge**, whatever the logos above.
+  - Assets needed before building: the Certified Course logo and the Verifiable Certificate badge (we design them in the brand
+    colours, or the owner supplies them).
 - Data: `certificates/{id}` (server-only), written only by the server when completion is checked there.
 
 ## How it fits what exists

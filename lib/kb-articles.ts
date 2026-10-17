@@ -352,6 +352,13 @@ Calls are free. Planned: paid calls inside Notes Life (₦5 a minute voice, ₦1
 **On a computer:** the journal feed has the same places in a menu on the left, and Most read and Who to follow on the right. On the other pages, the top bar links to Journals, Market, Academy, Trending, Pricing and About; Contact is in the footer and on the About page.
 
 A conversation or a call fills the whole screen on a phone; go back with the arrow at the top left.`),
+    A("profile-pictures-and-links", "Your profile picture, past pictures and social links", "Getting started", `
+**Changing your picture:** tap the **+** on your picture (on your profile, or on "You" at the top of the journal feed) and choose **Update profile picture**, or use [Edit profile](/profile/edit).
+
+**Past pictures:** tap anyone's profile picture to see their pictures, newest first. Swipe left or right on a phone, or use **‹ ›** (or the arrow keys) on a computer; each shows the date it became their picture. Your pictures are kept from your next change on (the picture you're replacing is kept too). To take an old one out of your history, open your pictures and tap **Remove from history**; the one you're using now can't be removed until you change it. If someone also has a moment up, tapping their picture asks which you'd like to see.
+
+**Social links:** on [Edit profile](/profile/edit), paste the address or just your @handle (X, Instagram, TikTok), linkedin.com/in/yourname, or for WhatsApp your phone number (0803… is fine). They show as icons under your name on your profile and your own site. If a link can't be read, Edit profile tells you which one.
+`),
     A("explore-and-saved", "Explore and saved journals", "Getting started", `
 **Explore:** [Explore](/explore) is where to browse topics, people and channels (they used to be tabs of Journals). Open a topic to see its journals, or follow people and organisation channels from there. Your [interests](/interests) come first among the topics.
 
