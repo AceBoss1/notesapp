@@ -11,6 +11,14 @@ export type Release = {
 
 export const CHANGELOG: Release[] = [
   {
+    version: "v0.46.1",
+    bump: "patch",
+    date: "2026-10-17",
+    changes: [
+      { kind: "fixed", text: "Opening the MCP server's address (mcp.notesapp.name.ng) in a browser now goes to the MCP docs instead of showing a technical message. AI assistants connect as before." },
+    ],
+  },
+  {
     version: "v0.46.0",
     bump: "minor",
     date: "2026-10-17",

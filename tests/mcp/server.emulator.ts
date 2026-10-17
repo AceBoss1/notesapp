@@ -38,7 +38,9 @@ const tool = async (name: string, args: object = {}, headers: Record<string, str
 
   // transport: OPTIONS (CORS), GET (no stream), bad JSON, unknown version, notifications, batches
   assert.equal((await OPTIONS()).status, 204);
-  assert.equal((await GET()).status, 405);
+  assert.equal((await GET(new NextRequest("http://localhost/api/mcp", { headers: { accept: "text/event-stream" } }))).status, 405, "no stream for MCP clients");
+  const browser = await GET(new NextRequest("http://localhost/api/mcp", { headers: { accept: "text/html,application/xhtml+xml,*/*;q=0.8" } }));
+  assert.equal(browser.status, 307); assert.match(browser.headers.get("location") ?? "", /\/docs#mcp$/, "a browser goes to the docs");
   assert.equal((await call("{not json")).body.error.code, -32700);
   assert.equal((await call({ jsonrpc: "2.0", id: 1, method: "ping" }, { "mcp-protocol-version": "2030-01-01" })).status, 400);
   assert.equal((await call({ jsonrpc: "2.0", method: "notifications/initialized" })).status, 202);
