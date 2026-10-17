@@ -8,9 +8,7 @@ import { auth } from "@/lib/firebase";
 import { isFollowing, followJournal, unfollowJournal } from "@/lib/follows";
 import { MANDATORY_USERNAMES } from "@/lib/journals-directory";
 
-// `compactWhenFollowing`: on a profile, once you follow, the button steps aside on phones (where room for Book, Message and
-// Gift is short) and stays on larger screens, where "Following" is how you unfollow.
-export default function FollowButton({ username, compactWhenFollowing = false }: { username: string; compactWhenFollowing?: boolean }) {
+export default function FollowButton({ username }: { username: string }) {
   const [user, setUser] = useState<User | null | undefined>(undefined);
   const [following, setFollowing] = useState<boolean | null>(null);
   const [busy, setBusy] = useState(false);
@@ -45,7 +43,7 @@ export default function FollowButton({ username, compactWhenFollowing = false }:
     return (
       <span
         title="Auto-followed for every member on the free tier — can't unfollow yet."
-        className={`btn-ghost btn-following ${compactWhenFollowing ? "hidden sm:inline-flex" : "inline-flex"} cursor-default !px-5 !py-2 text-xs`}
+        className="btn-ghost btn-following inline-flex cursor-default !px-5 !py-2 text-xs"
       >
         ✓ Following
       </span>
@@ -75,7 +73,7 @@ export default function FollowButton({ username, compactWhenFollowing = false }:
   }
 
   return (
-    <span className={`${compactWhenFollowing && following && !error ? "hidden sm:inline-flex" : "inline-flex"} flex-col items-start gap-1`}>
+    <span className="inline-flex flex-col items-start gap-1">
     <button
       onClick={toggle}
       disabled={busy}

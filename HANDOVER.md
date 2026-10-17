@@ -1,6 +1,6 @@
 # #NotesApp hand-over note
 
-**Date:** 17 October 2026 · **Latest version:** v0.40.0 · **Repository:** `AceBoss1/notesapp`
+**Date:** 17 October 2026 · **Latest version:** v0.41.0 · **Repository:** `AceBoss1/notesapp`
 **Owner:** the founder and CEO of NotesApp Technologies Ltd (product decisions, approvals, deploys that need console access).
 
 Start with `README.md` (what is live, the docs index, the checks); settings are in `docs/ENVIRONMENT.md`, deploying in
@@ -96,7 +96,8 @@ All of these are on the team hub board with departments and dates (`lib/team-see
 | Shared store | `lib/shared-store.ts` (Upstash REST, memory fallback), `lib/rate-limit.ts` |
 | Topics and interests | `lib/topics.ts` (the one list), `components/TopicPicker.tsx`, `app/(main)/interests`, `app/api/account/interests`, `lib/interests-client.ts`, `scripts/backfill-topics.ts` |
 | Frame | `lib/chrome.ts` (which page gets which frame), `lib/member-client.tsx` (the signed-in member, once), `components/shell/` (Masthead, BottomTabs, AppSidebar, AccountSheet, Frame: AppFrame, ChromeGate, FooterGate) |
-| Journal feed | `components/JournalsPageClient.tsx`, `components/feed/FeedPost.tsx`, `FeedModules.tsx`; Explore `components/ExplorePageClient.tsx`; saved journals `lib/saved-journals-*.ts`, `app/api/journals/save`; badge suggestion `BadgePitchCard` in `components/BadgeToast.tsx` |
+| Member sites | `/profile/site` (Your site), `lib/site-settings.ts` (sections, About/Contact), `lib/site-themes.ts` (Legacy, Aurora, Maroon), `app/api/site/{theme,sections,pages}`, `app/(site)/s/[username]/*`, `components/site/*` (SiteFeed for Maroon), `components/SiteReminder.tsx` |
+| Journal feed | `lib/feed-author.ts` (who wrote it, even for journals saved with only a name), `components/JournalsPageClient.tsx`, `components/feed/FeedPost.tsx`, `FeedModules.tsx`; Explore `components/ExplorePageClient.tsx`; saved journals `lib/saved-journals-*.ts`, `app/api/journals/save`; badge suggestion `BadgePitchCard` in `components/BadgeToast.tsx` |
 | Calls (look) | `components/calls/CallViews.tsx` (`CallStage`, `IncomingCall`: plain props, handy for screenshots); the logic stays in `CallManager.tsx` |
 | Discovery | `lib/discovery.ts` (the shelves: For you, Most viewed, Recent), `lib/discovery-server.ts` + `app/api/public/weekly-views` (this week's visits from `pageViews`), `components/DiscoveryHero.tsx`, `Shelf.tsx`, `RankedList.tsx`, `FollowCards.tsx`, `JournalsPageClient.tsx`, `app/(main)/trending` |
 | Notes Market and Academy | `/shop`: `components/MarketPageClient.tsx`, `MarketCard.tsx`, `lib/shop-directory.ts` (`getMarket`), `app/api/public/market`; `/academy`: `app/(main)/academy`; profile tabs `components/ProfileTabs.tsx`, `BookSessionButton.tsx` |

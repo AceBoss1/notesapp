@@ -310,8 +310,8 @@ export default function ProfilePageClient({ params }: { params: { username: stri
           {viewer && realProfile && viewer.uid !== realProfile.uid && <PresenceText status={presence.statuses[realProfile.uid]} className="mt-1" />}
         </div>
         <div className="profile-actions flex w-full flex-wrap items-start justify-center gap-3 sm:ml-auto sm:w-auto sm:max-w-sm sm:shrink-0 sm:justify-end">
-          {/* Follow (steps aside on phones once you follow), Book a session, Conversation, Gift me. */}
-          <FollowButton username={profile.username} compactWhenFollowing />
+          {/* Follow (✓ Following once you do), Book a session, Conversation, Gift me. */}
+          <FollowButton username={profile.username} />
           {viewer && !suspended && <OfficialFollowControl username={profile.username} />}
           {!synthetic && !suspended && viewer?.uid !== realProfile?.uid && <BookSessionButton publisherUid={realProfile?.uid} />}
           {!synthetic && !suspended && <MessageButton username={profile.username} profileUid={realProfile?.uid} label="💬 Conversation" />}
@@ -370,7 +370,7 @@ export default function ProfilePageClient({ params }: { params: { username: stri
       )}
 
       {/* Notes · Store · Courses (components/ProfileTabs.tsx). */}
-      <ProfileTabs username={profile.username} notes={notes} storeItems={storeItems} isOfficial={isOfficial} suspended={suspended} storeFirst={storeFirst} />
+      <ProfileTabs username={profile.username} owner={{ username: profile.username, displayName: profile.displayName, avatar: profile.avatar, role: profile.roleLabel, isOrg: isOrgAcct }} notes={notes} storeItems={storeItems} isOfficial={isOfficial} suspended={suspended} storeFirst={storeFirst} />
 
       {/* Paid 1:1 sessions at the publisher's own rate: hidden until they switch it on in /profile/publishing ("Book a session"
           above comes here). Not on synthetic channel accounts. */}

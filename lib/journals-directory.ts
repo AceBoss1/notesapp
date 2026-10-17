@@ -101,6 +101,7 @@ export const VERIFIED_USERNAMES = [
 // Returns null for an unmapped author name.
 export function resolveAuthorUsername(displayName: string): string | null {
   if (displayName === NA_NOTESAPP_PROFILE.displayName) return NA_NOTESAPP_PROFILE.username;
+  if (displayName === OFFICIAL_NOTESAPP_PROFILE.displayName) return OFFICIAL_NOTESAPP_PROFILE.username;
   const founder = MANDATORY_JOURNALS.find(
     (j) => j.type === "person" && j.displayName === displayName
   );

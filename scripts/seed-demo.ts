@@ -5,7 +5,7 @@
 //
 //   npx -y firebase-tools@13 emulators:exec --only firestore,auth --project demo-notesapp \
 //     "FIREBASE_AUTH_EMULATOR_HOST=127.0.0.1:9099 npx -y tsx scripts/seed-demo.ts && <your command>"
-// The reader signs in as reader@demo.notesapp / demo-password-1.
+// Sign in as reader@demo.notesapp (a reader) or chimdinma@demo.notesapp (Business), password demo-password-1.
 import { initializeApp } from "firebase-admin/app";
 import { getAuth } from "firebase-admin/auth";
 import { getFirestore } from "firebase-admin/firestore";
@@ -24,7 +24,7 @@ const I = "/images";
 type Person = { uid: string; username: string; displayName: string; avatar: string; bio: string; role?: string; accountTier?: string; accountKind?: string; verified?: boolean; email?: string; interests?: string[] };
 const PEOPLE: Person[] = [
   { uid: "u_emmanuel", username: "emmanuel", displayName: "Emmanuel Adams", avatar: `${I}/headshots/emmanuel-adams-2.jpeg`, bio: "Founder and CEO, #NotesApp.", role: "admin", accountTier: "business" },
-  { uid: "u_chimdinma", username: "chimdinma", displayName: "Chimdinma Onwuegbu", avatar: `${I}/headshots/chimdinma-onwuegbu-1.jpeg`, bio: "Co-founder. Careers, money and people.", role: "admin", accountTier: "business" },
+  { uid: "u_chimdinma", username: "chimdinma", displayName: "Chimdinma Onwuegbu", avatar: `${I}/headshots/chimdinma-onwuegbu-1.jpeg`, bio: "Co-founder. Careers, money and people.", role: "admin", accountTier: "business", email: "chimdinma@demo.notesapp" },
   { uid: "u_ada", username: "ada", displayName: "Ada Okafor", avatar: `${I}/headshots/default-avatar.png`, bio: "Therapist in Abuja.", role: "reader", accountTier: "pro", verified: true },
   { uid: "u_tola", username: "tola", displayName: "Tola Bello", avatar: `${I}/headshots/default-avatar.png`, bio: "Tech writer.", role: "reader", accountTier: "basic" },
   { uid: "u_precheks", username: "precheks", displayName: "Precheks", avatar: `${I}/brand/notesapp-icon.png`, bio: "Background checks for Africa.", role: "reader", accountTier: "business", accountKind: "organisation" },
@@ -61,6 +61,8 @@ const ITEMS = [
   batch.set(db.doc("publisherSettings/u_emmanuel"), { payoutReady: true, session: { enabled: true, priceKobo: 2500000, minutes: 60 } });
   for (const uid of ["u_chimdinma", "u_ada", "u_precheks", "u_clickam"]) batch.set(db.doc(`publisherSettings/${uid}`), { payoutReady: true });
   batch.set(db.doc("publisherSettings/u_tola"), {}); // hasn't set up payouts: Gift me shows greyed out with its ℹ️
+  // A journal saved the old way (by the Precheks app, or before usernames were stored): only the display name.
+  batch.set(db.doc("notes/n_oldstyle"), { slug: "what-is-an-economy-for", title: "What is an economy for?", date: day(1), topics: ["economy"], categories: [], tags: [], featured_image: `${I}/notes/IMG_7827.jpeg`, content: "Because I heard Nigeria's economy is getting better. I believe them. Or at least, I am trying to.", author: "NotesApp", author_role: "Official Channel", author_avatar: `${I}/brand/notesapp-icon.png`, status: "published", viewCount: 8, likeCount: 2, shareCount: 1 });
   for (const n of NOTES) {
     const a = PEOPLE.find((p) => p.uid === n.author)!;
     batch.set(db.doc(`notes/${n.id}`), { slug: n.slug, title: n.title, date: day(n.age), topics: n.topics, categories: [], tags: [], featured_image: n.img, content: n.body, author: a.displayName, author_role: "", author_avatar: a.avatar, authorUid: a.uid, authorUsername: a.username, status: "published", viewCount: n.views, likeCount: Math.round(n.views / 40), shareCount: 0 });
@@ -84,9 +86,11 @@ const ITEMS = [
     msgs.forEach(([from, text, age], i) => batch.set(db.doc(`conversations/${cid}/messages/${String(Date.now() - age * 86_400_000).padStart(13, "0")}_${i}`), { from, text, createdAt: day(age) }));
   }
   await batch.commit();
+  // Precheks' site: the Maroon theme, journals only, an About page.
+  await db.doc("users/u_precheks").set({ siteTheme: "maroon", siteSections: { journals: true, shop: false, courses: false }, sitePages: { about: "## About Precheks\n\nBackground checks for African businesses: **identity, address, employment and education**, done in days.", updatedAt: day(0) } }, { merge: true });
   for (const p of PEOPLE.filter((x) => x.email)) {
     await auth.createUser({ uid: p.uid, email: p.email, password: "demo-password-1", displayName: p.displayName, emailVerified: true }).catch((e) => { if (!String(e).includes("exists")) throw e; });
   }
-  console.log(`seeded ${PEOPLE.length} people, ${NOTES.length} journals, ${ITEMS.length} items; reader@demo.notesapp / demo-password-1`);
+  console.log(`seeded ${PEOPLE.length} people, ${NOTES.length + 1} journals, ${ITEMS.length} items; reader@demo.notesapp and chimdinma@demo.notesapp / demo-password-1`);
   process.exit(0);
 })().catch((e) => { console.error(e); process.exit(1); });

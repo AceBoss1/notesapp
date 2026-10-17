@@ -5,6 +5,7 @@ import Link from "next/link";
 import ItemCard from "@/components/StoreItemCard";
 import { STORE_CATEGORIES, categoryOf } from "@/lib/store-meta";
 import { getStoreStats, type StoreStat } from "@/lib/store-social";
+import { isCrimsonTheme } from "@/lib/site-themes";
 import { useSite } from "./SiteContext";
 import { useOwnItems } from "./useOwnItems";
 import AuroraBand from "./AuroraBand";
@@ -14,7 +15,7 @@ export default function SiteShop() {
   const items = useOwnItems();
   const [filter, setFilter] = useState("All");
   const [stats, setStats] = useState<Record<string, StoreStat>>({});
-  const aurora = theme === "aurora";
+  const aurora = isCrimsonTheme(theme); // Aurora and Maroon share this shop
   useEffect(() => { if (aurora) getStoreStats(uid).then(setStats); }, [aurora, uid]);
 
   const list = items ?? [];

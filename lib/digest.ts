@@ -8,6 +8,9 @@
 //   from Quora: the story's picture sits at the right and the words wrap around it (img align="right", which every mail app,
 //     Outlook included, honours), a longer opening of the story with an inline "Read more »", and a "Read more in your feed"
 //     button.
+// Then, when there are any, "From Notes Market" and "From Notes Academy": up to two most viewed and two most bought each.
+// The #NotesApp mark leads the title ("Weekly Digest" drops to its own line on phones), and the logo the other emails carry
+// sits above the interests box.
 // Built with tables and inline styles only (mail apps ignore stylesheets); 600px wide on a computer, full width on a phone.
 
 export type DigestStory = {
@@ -21,12 +24,17 @@ export type DigestStory = {
   readMinutes: number;
   likes: number;
   comments: number;
+  views?: number;
   premium: boolean;
 };
+// A store item or a course in the Market and Academy sections.
+export type DigestItem = { title: string; href: string; image: string | null; price: string; by: string; why: string };
 export type DigestReader = { name: string; username: string; avatar: string };
 export type DigestEmail = {
   reader: DigestReader;
   stories: DigestStory[];
+  market?: DigestItem[]; // Notes Market: most viewed and most bought, when there are any
+  courses?: DigestItem[]; // Notes Academy: the same, once courses exist
   site: string; // https://www.<root>
   appUrl: string; // where "Install #NotesApp" goes
   unsubscribeUrl: string;
@@ -49,6 +57,7 @@ function story(s: DigestStory, last: boolean): string {
   const meta = [
     s.premium ? `<span style="color:#C9A227;">&#10022;</span>&nbsp;Members only` : "",
     `${s.readMinutes} min read`,
+    s.views ? `${count(s.views)} views` : "",
     s.likes ? `&#9829;&nbsp;${count(s.likes)}` : "",
     s.comments ? `&#128172;&nbsp;${count(s.comments)}` : "",
   ].filter(Boolean).join(`<span style="color:${C.rule};">&nbsp;&nbsp;&middot;&nbsp;&nbsp;</span>`);
@@ -66,11 +75,33 @@ function story(s: DigestStory, last: boolean): string {
 </td></tr>`;
 }
 
+function itemRow(it: DigestItem, last: boolean): string {
+  const img = it.image
+    ? `<img src="${esc(it.image)}" width="72" height="72" alt="" style="display:block;width:72px;height:72px;object-fit:cover;border:0;border-radius:6px;">`
+    : `<div style="width:72px;height:72px;border-radius:6px;background:${C.paper};"></div>`;
+  return `<tr><td style="padding:14px 0;${last ? "" : `border-bottom:1px solid ${C.rule};`}">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr>
+<td width="86" style="vertical-align:top;"><a href="${esc(it.href)}">${img}</a></td>
+<td style="vertical-align:top;font-family:${SANS};"><a href="${esc(it.href)}" style="text-decoration:none;color:${C.ink};font-size:16px;font-weight:700;line-height:1.3;">${esc(it.title)}</a>
+<p style="margin:4px 0 0;font-size:14px;color:${C.body};">${esc(it.price)} &middot; ${esc(it.by)}</p>
+<p style="margin:2px 0 0;font-size:12px;color:${C.muted};">${esc(it.why)}</p></td>
+</tr></table></td></tr>`;
+}
+function itemSection(title: string, items: DigestItem[] | undefined, more: { href: string; label: string }): string {
+  if (!items?.length) return "";
+  return `<tr><td bgcolor="#ffffff" style="background:#ffffff;padding:4px 24px 22px;border-left:1px solid ${C.rule};border-right:1px solid ${C.rule};">
+  <p style="margin:0;padding:12px 0;border-top:1px solid ${C.ink};border-bottom:1px solid ${C.rule};font-family:${SANS};font-size:15px;font-weight:800;letter-spacing:1px;color:${C.ink};">${title}</p>
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0">${items.map((it, i) => itemRow(it, i === items.length - 1)).join("")}</table>
+  <p style="margin:10px 0 0;font-family:${SANS};font-size:14px;"><a href="${esc(more.href)}" style="color:${C.link};font-weight:600;text-decoration:none;">${more.label}&nbsp;&raquo;</a></p>
+</td></tr>`;
+}
+
 export function renderDigestHtml(d: DigestEmail): string {
   const r = d.reader;
   const button = (href: string, label: string, bg: string) =>
     `<table role="presentation" cellpadding="0" cellspacing="0" align="center"><tr><td bgcolor="${bg}" style="background:${bg};border-radius:999px;"><a href="${esc(href)}" style="display:inline-block;padding:12px 28px;font-family:${SANS};font-size:15px;font-weight:700;color:#ffffff;text-decoration:none;">${label}</a></td></tr></table>`;
-  return `<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="color-scheme" content="light"><title>#NotesApp Weekly Digest</title></head>
+  return `<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="color-scheme" content="light"><title>#NotesApp Weekly Digest</title>
+<style>@media only screen and (max-width:480px){.na-title-line{display:block !important;}}</style></head>
 <body style="margin:0;padding:0;background:${C.paper};">
 <div style="display:none;max-height:0;overflow:hidden;">${esc(d.stories.map((s) => s.title).slice(0, 3).join(" · "))}</div>
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" bgcolor="${C.paper}" style="background:${C.paper};"><tr><td align="center" style="padding:20px 10px;">
@@ -80,14 +111,17 @@ export function renderDigestHtml(d: DigestEmail): string {
     <td style="padding-right:10px;vertical-align:middle;"><img src="${esc(r.avatar)}" width="36" height="36" alt="" style="display:block;width:36px;height:36px;border-radius:50%;object-fit:cover;border:0;"></td>
     <td style="vertical-align:middle;font-family:${SANS};font-size:14px;line-height:1.35;color:${C.ink};">Stories for <strong>${esc(r.name)}</strong><br><span style="color:${C.muted};font-size:13px;">@${esc(r.username)} &middot; <a href="${esc(d.interestsUrl)}" style="color:${C.link};text-decoration:none;">Choose your interests</a></span></td>
   </tr></table>
-  <p style="margin:22px 0 14px;font-family:${SERIF};font-size:34px;line-height:1.1;color:${C.ink};"><strong style="color:${C.crimson};">#NotesApp</strong> Weekly Digest</p>
+  <p style="margin:22px 0 14px;font-family:${SERIF};font-size:34px;line-height:1.1;color:${C.ink};"><img src="${esc(d.site)}/images/brand/icon-192.png" width="34" height="34" alt="#" style="display:inline-block;width:34px;height:34px;border:0;border-radius:8px;vertical-align:-5px;margin-right:8px;"><strong style="color:${C.crimson};">NotesApp</strong> <span class="na-title-line" style="display:inline;">Weekly Digest</span></p>
   <p style="margin:0;padding:12px 0;border-top:1px solid ${C.ink};border-bottom:1px solid ${C.rule};font-family:${SANS};font-size:15px;font-weight:800;letter-spacing:1px;color:${C.ink};">THIS WEEK&rsquo;S HIGHLIGHTS</p>
 </td></tr>
 <tr><td bgcolor="#ffffff" style="background:#ffffff;padding:0 24px;border-left:1px solid ${C.rule};border-right:1px solid ${C.rule};">
   <table role="presentation" width="100%" cellpadding="0" cellspacing="0">${d.stories.map((s, i) => story(s, i === d.stories.length - 1)).join("")}</table>
 </td></tr>
 <tr><td bgcolor="#ffffff" style="background:#ffffff;padding:8px 24px 28px;border-left:1px solid ${C.rule};border-right:1px solid ${C.rule};">${button(`${d.site}/journals`, "Read more in your feed", C.crimson)}</td></tr>
+${itemSection("FROM NOTES MARKET", d.market, { href: `${d.site}/shop`, label: "Browse Notes Market" })}
+${itemSection("FROM NOTES ACADEMY", d.courses, { href: `${d.site}/academy`, label: "Browse Notes Academy" })}
 <tr><td bgcolor="${C.paper}" style="background:${C.paper};padding:28px 24px;border-left:1px solid ${C.rule};border-right:1px solid ${C.rule};text-align:center;">
+  <a href="${esc(d.site)}" style="text-decoration:none;"><img src="${esc(d.site)}/images/brand/email-logo.png" width="160" alt="#NotesApp" style="display:block;margin:0 auto 18px;border:0;height:auto;width:160px;"></a>
   <p style="margin:0 0 16px;font-family:${SERIF};font-size:20px;line-height:1.35;color:${C.ink};">See more of what you like and less of what you don&rsquo;t.</p>
   ${button(d.interestsUrl, "Choose your interests", "#1F7A4D")}
 </td></tr>
@@ -103,7 +137,11 @@ export function renderDigestHtml(d: DigestEmail): string {
 export function renderDigestText(d: DigestEmail): string {
   const lines = [`Stories for ${d.reader.name} (@${d.reader.username})`, "", "#NotesApp Weekly Digest: this week's highlights", ""];
   for (const s of d.stories) {
-    lines.push(`${s.title}`, `${s.writerName}${s.inName ? ` in ${s.inName}` : ""} · ${s.readMinutes} min read${s.premium ? " · Members only" : ""}`, s.summary, `Read more: ${s.href}`, "");
+    lines.push(`${s.title}`, `${s.writerName}${s.inName ? ` in ${s.inName}` : ""} · ${s.readMinutes} min read${s.views ? ` · ${count(s.views)} views` : ""}${s.premium ? " · Members only" : ""}`, s.summary, `Read more: ${s.href}`, "");
+  }
+  for (const [title, items] of [["From Notes Market", d.market], ["From Notes Academy", d.courses]] as const) {
+    if (!items?.length) continue;
+    lines.push(`${title}:`, ...items.map((it) => `- ${it.title} · ${it.price} · ${it.by} (${it.why}): ${it.href}`), "");
   }
   lines.push(`Read more in your feed: ${d.site}/journals`, `Choose your interests: ${d.interestsUrl}`, "", `Unsubscribe from the weekly digest: ${d.unsubscribeUrl}`, `Sent by #NotesApp · ${d.company}`);
   return lines.join("\n");

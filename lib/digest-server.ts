@@ -9,7 +9,8 @@ import { COMPANY_INFO } from "./site";
 import { DEFAULT_AVATAR } from "./admin";
 import { resolveAuthorUsername } from "./journals-directory";
 import { topicsOf } from "./topics";
-import { digestSubject, pickStories, renderDigestHtml, renderDigestText, type DigestEmail, type PoolStory } from "./digest";
+import { digestSubject, pickStories, renderDigestHtml, renderDigestText, type DigestEmail, type DigestItem, type PoolStory } from "./digest";
+import { getMarket, type MarketItem } from "./shop-directory";
 import { setting } from "@/lib/config";
 
 // Server-only. The #NotesApp Weekly Digest (template in lib/digest.ts).
@@ -21,7 +22,9 @@ import { setting } from "@/lib/config";
 // Who: members with a verified email who haven't turned it off (emailPrefs/{uid}.weeklyDigest === false, server-only), aren't
 // suspended, and have at least one story to read. Every email has a one-click unsubscribe link and List-Unsubscribe headers.
 // What: up to 5 journals published in the last 7 days: people they follow first, then their interests (users/{uid}.interests,
-// the hashtags they choose), then the week's most liked. Never their own.
+// the hashtags they choose), then the week's most liked. Never their own. Then Notes Market (weekMarket: the two most viewed
+// items this week and the two most bought in the last 30 days) and Notes Academy (the same, once courses exist); a section
+// with nothing in it is left out.
 // Email quota: Resend's free plan allows 100 emails a day for everything (bookings, receipts …). Raise the plan before
 // turning the digest on for more members than that, or keep DIGEST_PER_RUN low.
 
@@ -116,13 +119,37 @@ export async function weekPool(db: Firestore, now = new Date()): Promise<PoolSto
       // An organisation's post: "Ada in Precheks" (the team member who wrote it, in the organisation).
       writerName: w ? String(w.displayName ?? n.author ?? "") : String(n.author ?? ""), writerAvatar: abs(w ? w.avatar : n.author_avatar, `${SITE_URL}${DEFAULT_AVATAR}`)!,
       ...(w ? { inName: String(n.author ?? "") } : {}),
-      readMinutes: Math.max(1, Math.round(words / 200)), likes: Number(n.likeCount) || 0, comments: comments[i], premium: n.premium === true,
+      readMinutes: Math.max(1, Math.round(words / 200)), likes: Number(n.likeCount) || 0, comments: comments[i], views: Number(n.viewCount) || 0, premium: n.premium === true,
     };
   });
 }
 
+// The Market section, the same for everyone that week: the two most viewed items this week (all-time views when nothing was
+// counted this week), then the two most bought in the last 30 days that aren't already there.
+export async function weekMarket(db: Firestore, now = new Date()): Promise<DigestItem[]> {
+  const { items } = await getMarket();
+  if (!items.length) return [];
+  const since = new Date(now.getTime() - 30 * 86_400_000).toISOString();
+  const [orders, digital] = await Promise.all([
+    db.collection("storeOrders").where("paidAt", ">=", since).get(), // one field each, no index needed
+    db.collection("digitalPurchases").where("createdAt", ">=", since).get(),
+  ]);
+  const sold = new Map<string, number>();
+  for (const d of orders.docs) if (d.data().status !== "refunded") sold.set(String(d.data().itemId), (sold.get(String(d.data().itemId)) ?? 0) + (Number(d.data().quantity) || 1));
+  for (const d of digital.docs) sold.set(String(d.data().itemId), (sold.get(String(d.data().itemId)) ?? 0) + 1);
+  const week = items.some((i) => i.viewsWeek > 0);
+  const heat = (i: MarketItem) => (week ? i.viewsWeek : i.views);
+  const viewed = items.filter((i) => heat(i) > 0).sort((a, b) => heat(b) - heat(a)).slice(0, 2);
+  const bought = items.filter((i) => (sold.get(i.id) ?? 0) > 0 && !viewed.includes(i)).sort((a, b) => (sold.get(b.id) ?? 0) - (sold.get(a.id) ?? 0)).slice(0, 2);
+  const row = (i: MarketItem, why: string): DigestItem => ({ title: i.title, href: i.href.startsWith("/") ? `${SITE_URL}${i.href}` : i.href, image: abs(i.image, null), price: i.price, by: i.sellerName, why });
+  return [
+    ...viewed.map((i) => row(i, `${heat(i).toLocaleString("en-GB")} views ${week ? "this week" : "so far"}`)),
+    ...bought.map((i) => row(i, `${sold.get(i.id)} bought in the last 30 days`)),
+  ];
+}
+
 // ---- one member's email ----
-export async function buildDigest(db: Firestore, uid: string, pool: PoolStory[]): Promise<DigestEmail | null> {
+export async function buildDigest(db: Firestore, uid: string, pool: PoolStory[], market: DigestItem[] = []): Promise<DigestEmail | null> {
   const u = (await db.doc(`users/${uid}`).get()).data();
   if (!u || u.suspended === true || !u.username || NO_INBOX.has(String(u.username))) return null;
   const follows = await db.collection("follows").where("followerUid", "==", uid).limit(500).get();
@@ -130,7 +157,8 @@ export async function buildDigest(db: Firestore, uid: string, pool: PoolStory[])
   if (!stories.length) return null;
   return {
     reader: { name: String(u.displayName || u.username), username: String(u.username), avatar: abs(u.avatar, `${SITE_URL}${DEFAULT_AVATAR}`)! },
-    stories, site: SITE_URL, appUrl: `${APP_URL}/install`, unsubscribeUrl: unsubscribeUrl(uid), interestsUrl: `${SITE_URL}${INTERESTS_PATH}`, settingsUrl: `${SITE_URL}${EMAIL_SETTINGS_PATH}`,
+    // Courses join once Notes Academy opens (docs/COURSES.md); until then that section is left out.
+    stories, market, courses: [], site: SITE_URL, appUrl: `${APP_URL}/install`, unsubscribeUrl: unsubscribeUrl(uid), interestsUrl: `${SITE_URL}${INTERESTS_PATH}`, settingsUrl: `${SITE_URL}${EMAIL_SETTINGS_PATH}`,
     company: `${COMPANY_INFO.legalName} · RC ${COMPANY_INFO.rcNumber}`,
   };
 }
@@ -174,6 +202,7 @@ export async function sendWeeklyDigests(db: Firestore, now = new Date()): Promis
 
   const pool = await weekPool(db, now);
   if (!pool.length) return 0;
+  const market = await weekMarket(db, now).catch(() => []);
   const [prefs, auth] = await Promise.all([
     db.getAll(...batch.map((uid) => db.doc(`emailPrefs/${uid}`))),
     getAuth(getAdminApp()).getUsers(batch.map((uid) => ({ uid }))),
@@ -184,7 +213,7 @@ export async function sendWeeklyDigests(db: Firestore, now = new Date()): Promis
   for (const uid of batch) {
     const to = email.get(uid);
     if (!to || optedOut.has(uid)) continue;
-    const d = await buildDigest(db, uid, pool).catch(() => null);
+    const d = await buildDigest(db, uid, pool, market).catch(() => null);
     if (d && (await sendDigest(to, uid, d))) sent++;
   }
   if (sent) await runRef.set({ sent: FieldValue.increment(sent) }, { merge: true }).catch(() => {});

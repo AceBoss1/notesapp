@@ -304,7 +304,7 @@ Calls are free. Planned: paid calls inside Notes Life (₦5 a minute voice, ₦1
 
 **Notes Academy** is where courses will be. It's opening soon; if you'd like to teach, use **Want to teach?** on the page.
 
-**Profiles** have **Notes**, **Store** and **Courses** tabs, and these buttons: **Follow** (on a phone it steps aside once you follow), **Book a session** (when the publisher takes bookings), **Conversation** (a direct message) and **Gift me**. If Gift me is greyed out, the publisher hasn't set up payouts yet: tap or hover the ℹ️ beside it.
+**Profiles** have **Notes**, **Store** and **Courses** tabs, and these buttons: **Follow** (it reads **✓ Following** once you follow; tap it to unfollow), **Book a session** (when the publisher takes bookings), **Conversation** (a direct message) and **Gift me**. If Gift me is greyed out, the publisher hasn't set up payouts yet: tap or hover the ℹ️ beside it.
 
 **Trending** has the same tabs: Notes, Store, Courses and Publishers.
 
@@ -355,7 +355,13 @@ You can invite writers and admins by username or email; they publish under your 
     A("your-own-domain", "Your own domain", "Teams and organisations", `
 Business and Enterprise accounts can serve their page, journals and store on their own domain (for example notes.yourbrand.com or yourbrand.com), with Home, Notes and Shop pages, and visitors who sign in, book and pay without leaving the site. Business is semi white-label (the footer says "powered by #NotesApp"); Enterprise adds fully branded sign-in and sign-up in your name.
 
-You connect the domain in the Console by adding the DNS records we show. Buying and managing domains inside #NotesApp, with our partner Whogohost (go54), is coming soon; see [Domains](/domains).`),
+You connect the domain in the Console by adding the DNS records we show. Buying and managing domains inside #NotesApp, with our partner Whogohost (go54), is coming soon; see [Domains](/domains).
+
+## Setting up your site
+Open [Your site](/profile/site) (also linked from Edit profile and the Console). It shows your site's address: your own domain if you connected one, and the preview at ${ROOT_DOMAIN}/s/your-username, which always works. Then, in three steps:
+1. **Choose a theme.** Legacy is the original light look (and the default); Aurora has a deep crimson band with your profile on a card; Maroon looks like the #NotesApp journal feed, with your notes as posts on white cards that readers can like, share and save. You can switch at any time.
+2. **Choose what shows.** Journals, Shop and Courses, each on or off (at least one stays on). Home shows your profile and then, right below it, what you chose: just the shop, just your posts, or a short preview of each with a link to see all. A section you switch off leaves the menu and its page is no longer found. Courses show once Notes Academy opens.
+3. **Write your About and Contact pages** with the same editor as your journals (up to 20,000 characters each). Each page appears in your site's menu once it is saved; save one empty to take it off. Until both are written, Your site, Edit profile and the Console remind you.`),
     A("api-and-console", "The API and Console (Enterprise)", "Teams and organisations", `
 Enterprise accounts can use a server-to-server API (switched on per account by our team) to publish posts and read bookings, orders and earnings, with signed webhooks for events like a booking or a paid order. Keys and webhooks are managed in the Console. Ask for access on the [contact page](/contact); the documentation is public at [API docs](/docs).`),
     A("team-hub", "Team hub and team messaging (coming soon)", "Teams and organisations", `

@@ -3,7 +3,7 @@
 import WorkFields from "@/components/WorkFields";
 import { cleanWork, type Work } from "@/lib/profile-work";
 import MomentSettings from "@/components/moments/MomentSettings";
-import SiteThemePicker from "@/components/SiteThemePicker";
+import SiteReminder from "@/components/SiteReminder";
 import { canChooseSiteTheme } from "@/lib/site-themes";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
@@ -115,6 +115,7 @@ export default function ProfileEditPage() {
       <div className="mt-6">
         <BadgeCard />
       </div>
+      <SiteReminder profile={profile} className="mt-6" />
 
       <form onSubmit={handleSubmit} className={`relative mt-8 grid gap-6 ${avatarDrop.dragging ? DROP_RING : ""}`} {...avatarDrop.bind}>
         {avatarDrop.dragging && <div className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center rounded bg-paper/80 font-ui text-sm font-bold text-crimson">Drop to use as your profile picture</div>}
@@ -199,7 +200,13 @@ export default function ProfileEditPage() {
           )}
         </div>
       </form>
-      {canChooseSiteTheme(profile) && <SiteThemePicker current={profile.siteTheme} username={profile.username} />}
+      {canChooseSiteTheme(profile) && (
+        <section className="card mt-10 p-6" aria-labelledby="site-h">
+          <h2 id="site-h" className="font-display text-xl text-ink">Your site</h2>
+          <p className="mt-1 text-sm text-slate">Your own website, with your profile, journals and shop: choose its theme and what it shows, and write its About and Contact pages.</p>
+          <Link href="/profile/site" className="btn-primary mt-4 inline-block !px-4 !py-2 text-xs">Set up your site</Link>
+        </section>
+      )}
       <MomentSettings />
     </section>
     </>

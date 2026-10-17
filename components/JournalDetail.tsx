@@ -26,6 +26,7 @@ import MessageButton from "@/components/messages/MessageButton";
 import { remarkLinkify } from "@/lib/linkify";
 import { SITE } from "@/lib/site";
 import { hashtag, matchTopic, noteHeading, topicsOf } from "@/lib/topics";
+import { isCrimsonTheme } from "@/lib/site-themes";
 
 // The reading page for one note (same Firestore doc as precheks.com.ng/notes/{slug}). Used by /journals/<slug> and a member's own site.
 // `site` is set on a member's own site: "more notes" are then only theirs, links stay inside the site
@@ -62,8 +63,8 @@ export default async function JournalDetail({
       : authorProfile?.username;
 
   const notesBase = site ? `${site.base}/notes` : "/journals";
-  // Wide layout with the author rail: the main site, and member sites that chose the Aurora theme.
-  const wide = !site || site.theme === "aurora";
+  // Wide layout with the author rail: the main site, and member sites that chose the Aurora or Maroon theme.
+  const wide = !site || isCrimsonTheme(site.theme);
   // Profile links go to #NotesApp, so inside a member's site they're plain text.
   const Who = ({ href, className, children }: { href: string; className?: string; children: React.ReactNode }) =>
     site ? <span className={className}>{children}</span> : <Link href={href} className={className}>{children}</Link>;

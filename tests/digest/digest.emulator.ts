@@ -49,6 +49,12 @@ const db = getFirestore();
   const html = renderDigestHtml(d!);
   assert.ok(html.includes("Stories for <strong>Ada Obi</strong>") && html.includes("Tola Writer <span") && html.includes("Minding the pay gap"));
   assert.ok(renderDigestText(d!).includes("Unsubscribe from the weekly digest: "));
+  // The mark before the title, the logo above the interests box; Market and Academy only when they have something.
+  assert.ok(html.includes("/images/brand/icon-192.png") && html.includes("/images/brand/email-logo.png") && !html.includes("#NotesApp</strong> Weekly Digest"));
+  assert.ok(!html.includes("FROM NOTES MARKET") && !html.includes("FROM NOTES ACADEMY"));
+  const withMarket = renderDigestHtml({ ...d!, market: [{ title: "Excel course", href: "https://x/shop/1", image: null, price: "₦6,000", by: "Chimdinma", why: "120 views this week" }] });
+  assert.ok(withMarket.includes("FROM NOTES MARKET") && withMarket.includes("Excel course") && !withMarket.includes("FROM NOTES ACADEMY"));
+  assert.ok(renderDigestText({ ...d!, market: [{ title: "Excel course", href: "https://x/shop/1", image: null, price: "₦6,000", by: "Chimdinma", why: "2 bought in the last 30 days" }] }).includes("From Notes Market:"));
   assert.equal(await buildDigest(db, "u_writer", []), null, "nothing to read, nothing sent");
 
   // the choice

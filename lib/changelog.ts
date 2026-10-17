@@ -11,6 +11,19 @@ export type Release = {
 
 export const CHANGELOG: Release[] = [
   {
+    version: "v0.41.0",
+    bump: "minor",
+    date: "2026-10-17",
+    changes: [
+      { kind: "changed", text: "On a phone, a profile keeps showing ✓ Following once you follow, as on a computer." },
+      { kind: "changed", text: "A profile's Notes tab shows journals the way the journal feed does, with likes, comments, shares, views and save." },
+      { kind: "added", text: "Trending shows a picture beside every journal and store item." },
+      { kind: "fixed", text: "Journals saved with only the writer's name (some older posts and official channel posts) now show the right @username, badges and link, instead of a link that went nowhere." },
+      { kind: "changed", text: "The Weekly Digest: the #NotesApp mark in the title, each story's views, and two new sections when there's something to show: the most viewed and most bought in Notes Market, and the same for Notes Academy once courses open." },
+      { kind: "added", text: "Business and Enterprise sites: a Your site page to set them up, a third theme (Maroon, with your notes as posts like the journal feed), a choice of what shows (Journals, Shop, Courses), and About and Contact pages written with the journal editor." },
+    ],
+  },
+  {
     version: "v0.40.0",
     bump: "minor",
     date: "2026-10-17",
