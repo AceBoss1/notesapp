@@ -58,8 +58,10 @@ minute stored and watched, so it belongs in the paid plans' price.
     reviews it before it can appear, so nobody can claim an accreditation they don't have. The verification page names the
     institution too.
   - **Always, beside the QR code: the "Notes Academy Verifiable Certificate" badge**, whatever the logos above.
-  - Assets needed before building: the Certified Course logo and the Verifiable Certificate badge (we design them in the brand
-    colours, or the owner supplies them).
+  - The artwork is in `public/images/academy/` (made from the owner's Notes Academy logo, 17 Oct 2026; PNG for print and
+    PDFs, WebP for pages, SVG to edit): `notesapp-certified-course` (top left), `notes-academy-verifiable-certificate` (the
+    seal beside the QR code) and `notes-academy-verifiable-certificate-wide` (seal + words, where there's room), plus the
+    Notes Academy logo itself, `notes-academy-logo`.
 - Data: `certificates/{id}` (server-only), written only by the server when completion is checked there.
 
 ## How it fits what exists
