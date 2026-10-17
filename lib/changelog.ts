@@ -17,6 +17,8 @@ export const CHANGELOG: Release[] = [
     changes: [
       { kind: "added", text: "Profile pictures, like Facebook: tap someone's picture to see their profile pictures, newest first, and swipe (or use ‹ ›) through the older ones, with the date of each. Pictures are kept from your next change on; you can take an old one out of your history." },
       { kind: "changed", text: "In the journal feed, your own picture has the same + as on your profile: change your picture, add a moment or see yours." },
+      { kind: "added", text: "For the team: a work item can be assigned to several people at once. Tick each person, or Select all; everyone on it gets the bell, the deadline reminders, the comments and the item in their morning summary. Meeting invites have Select all too." },
+      { kind: "added", text: "For the team: work items can repeat every month. \"Done this month\" moves the due date on a month and the reminders start again, so a monthly check never drops off the board." },
       { kind: "fixed", text: "Social links show on every profile, not just some: an address without https://, an @handle or a WhatsApp number now works, and Edit profile tells you if a link can't be read." },
     ],
   },

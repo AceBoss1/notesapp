@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useAdminAuth } from "@/lib/useAdminAuth";
 import NanaPanel from "@/components/NanaPanel";
@@ -9,8 +9,8 @@ import GranolaPanel from "@/components/GranolaPanel";
 import { DEPARTMENTS, DEPT_LABEL, hasAnyDept, type Dept } from "@/lib/admin-access";
 import { formatNaira } from "@/lib/booking-time";
 import {
-  HORIZONS, HORIZON_LABEL, MEETING_TEAMS, METRICS, STATUS_LABEL, addDays, defaultMembers, meetingTeamLabel, groupItems, isOverdue, lagosParts,
-  type Horizon, type Meeting, type MetricKey, type Milestone, type Progress, type Status, type TeamComment, type TeamItem,
+  HORIZONS, HORIZON_LABEL, MEETING_TEAMS, METRICS, REPEATS, REPEAT_LABEL, STATUS_LABEL, addDays, defaultMembers, meetingTeamLabel, groupItems, isOverdue, isOwner, lagosParts, ownersOf,
+  type Horizon, type Repeat, type Meeting, type MetricKey, type Milestone, type Progress, type Status, type TeamComment, type TeamItem,
 } from "@/lib/team";
 
 type Person = { uid: string; name: string; email: string; depts?: string[] };
@@ -34,6 +34,40 @@ function Tile({ label, value }: { label: string; value: string }) {
 }
 
 // One piece of work. Quick buttons for the usual moves; blocking and asking for a decision each ask for the one line that makes them useful.
+// Tick who it's for: one person, several, or everyone with "Select all". `locked` (you, for a meeting) stays ticked. In `menu` form it is a
+// button ("Ada and 2 others ▾") that opens the same list, for the one-line add form.
+function PeoplePicker({ people, value, onChange, me, locked, menu = false, label = "Assigned to" }: { people: Person[]; value: string[]; onChange: (v: string[]) => void; me: string; locked?: string; menu?: boolean; label?: string }) {
+  const all = people.map((p) => p.uid);
+  const ticked = (u: string) => u === locked || value.includes(u);
+  const n = all.filter(ticked).length;
+  const allBox = useRef<HTMLInputElement>(null);
+  useEffect(() => { if (allBox.current) allBox.current.indeterminate = n > 0 && n < all.length; }, [n, all.length]);
+  const first = (u: string) => (u === me ? "You" : people.find((p) => p.uid === u)?.name.split(" ")[0] ?? "Someone");
+  const chosen = all.filter(ticked);
+  const summary = !chosen.length ? "No one yet" : chosen.length === all.length && all.length > 2 ? "Everyone" : chosen.length <= 2 ? chosen.map(first).join(" and ") : `${first(chosen[0])} and ${chosen.length - 1} others`;
+  const list = (
+    <div className="mt-1">
+      <label className="flex items-center gap-1.5 border-b border-rule pb-1.5 text-xs font-semibold text-ink">
+        <input ref={allBox} type="checkbox" checked={n === all.length && all.length > 0} onChange={(e) => onChange(e.target.checked ? all : locked ? [locked] : [])} /> Select all ({all.length})
+      </label>
+      <div className="mt-1.5 flex flex-wrap gap-x-4 gap-y-1">
+        {people.map((p) => (
+          <label key={p.uid} className="flex items-center gap-1.5 text-xs text-ink">
+            <input type="checkbox" disabled={p.uid === locked} checked={ticked(p.uid)} onChange={(e) => onChange(e.target.checked ? Array.from(new Set([...value, p.uid])) : value.filter((u) => u !== p.uid))} /> {p.name}{p.uid === me ? " (you)" : ""}
+          </label>
+        ))}
+      </div>
+    </div>
+  );
+  if (!menu) return <fieldset className="text-[11px] text-slate"><legend>{label} ({n})</legend>{list}</fieldset>;
+  return (
+    <details className="relative text-[11px] text-slate">
+      <summary className="cursor-pointer list-none">{label}<span className={`${input} min-w-[9rem] cursor-pointer`}>{summary} ▾</span></summary>
+      <div className="absolute right-0 z-20 mt-1 w-72 max-w-[85vw] rounded-lg sm:left-0 sm:right-auto border border-rule bg-card p-3 shadow-xl">{list}</div>
+    </details>
+  );
+}
+
 function ItemCard({ item, people, today, me, send, fetchComments }: { item: TeamItem; people: Person[]; today: string; me: string; send: (body: Record<string, unknown>) => Promise<void>; fetchComments: (id: string) => Promise<TeamComment[]> }) {
   const [mode, setMode] = useState<null | "edit" | "block" | "ask" | "decide">(null);
   const [text, setText] = useState("");
@@ -43,11 +77,11 @@ function ItemCard({ item, people, today, me, send, fetchComments }: { item: Team
   const [comments, setComments] = useState<TeamComment[] | null>(null);
   const [cText, setCText] = useState("");
   const loadC = useCallback(() => { fetchComments(item.id).then(setComments).catch(() => setComments([])); }, [fetchComments, item.id]);
-  const owner = people.find((p) => p.uid === item.ownerUid)?.name;
+  const owners = ownersOf(item).map((u) => people.find((p) => p.uid === u)?.name ?? "Former teammate");
   const overdue = isOverdue(item, today);
   const act = async (body: Record<string, unknown>) => {
     setBusy(true);
-    try { await send({ action: "updateItem", id: item.id, ...body }); setMode(null); setText(""); } finally { setBusy(false); }
+    try { await send({ action: "updateItem", id: item.id, ...body }); setMode(null); setText(""); } catch {} finally { setBusy(false); }
   };
   const btn = "rounded border border-rule px-2 py-1 text-[11px] font-semibold text-ink hover:border-crimson hover:text-crimson disabled:opacity-50";
 
@@ -57,7 +91,8 @@ function ItemCard({ item, people, today, me, send, fetchComments }: { item: Team
         <p className={`font-ui text-sm font-bold ${item.status === "done" ? "text-slate line-through" : "text-ink"}`}>{item.title}</p>
         <span className="flex flex-wrap items-center gap-1.5 text-[11px] text-slate">
           {(item.depts ?? []).map((d) => <span key={d} className="rounded bg-crimson/10 px-1.5 py-0.5 font-semibold text-crimson">{DEPT_LABEL[d as Dept] ?? d}</span>)}
-          {owner ? <span className="rounded bg-card px-1.5 py-0.5 ring-1 ring-rule">{owner}</span> : <span className="italic">{item.depts?.length ? "no one named yet" : "unassigned"}</span>}
+          {owners.length ? owners.map((o, k) => <span key={k} className="rounded bg-card px-1.5 py-0.5 ring-1 ring-rule">{o}</span>) : <span className="italic">{item.depts?.length ? "no one named yet" : "unassigned"}</span>}
+          {item.repeat === "monthly" && <span className="rounded bg-emerald-50 px-1.5 py-0.5 font-semibold text-emerald-900" title={item.lastDoneAt ? `Last done ${new Date(item.lastDoneAt).toLocaleDateString("en-NG", { day: "numeric", month: "short", year: "numeric" })}` : "Comes back every month when it's done"}>↻ every month</span>}
           {item.due && <span className={overdue ? "font-bold text-crimson" : ""}>{overdue ? "overdue · " : "due "}{dayLabel(item.due)}</span>}
         </span>
       </div>
@@ -69,7 +104,7 @@ function ItemCard({ item, people, today, me, send, fetchComments }: { item: Team
       {mode === null && (
         <div className="mt-2 flex flex-wrap gap-1.5">
           {item.status === "todo" && <button disabled={busy} onClick={() => act({ status: "doing" })} className={btn}>Start</button>}
-          {item.status !== "done" && item.status !== "decision" && <button disabled={busy} onClick={() => act({ status: "done" })} className={btn}>Done</button>}
+          {item.status !== "done" && item.status !== "decision" && <button disabled={busy} onClick={() => act({ status: "done" })} className={btn} title={item.repeat === "monthly" ? "Done for this month: it comes back next month" : undefined}>{item.repeat === "monthly" ? "Done this month" : "Done"}</button>}
           {(item.status === "todo" || item.status === "doing") && <button onClick={() => { setText(""); setMode("block"); }} className={btn}>Blocked</button>}
           {(item.status === "todo" || item.status === "doing") && <button onClick={() => { setText(""); setMode("ask"); }} className={btn}>Needs a decision</button>}
           {item.status === "blocked" && <button disabled={busy} onClick={() => act({ status: "doing" })} className={btn}>Unblocked</button>}
@@ -117,16 +152,11 @@ function ItemCard({ item, people, today, me, send, fetchComments }: { item: Team
       {mode === "edit" && (
         <form className="mt-2 grid gap-2 sm:grid-cols-2" onSubmit={(e) => {
           e.preventDefault();
-          void act({ title: draft.title, detail: draft.detail, ownerUid: draft.ownerUid, depts: draft.depts ?? [], horizon: draft.horizon, due: draft.due, status: draft.status, blockedReason: draft.blockedReason, decisionQuestion: draft.decisionQuestion });
+          void act({ title: draft.title, detail: draft.detail, ownerUids: ownersOf(draft), depts: draft.depts ?? [], horizon: draft.horizon, due: draft.due, repeat: draft.repeat ?? "", status: draft.status, blockedReason: draft.blockedReason, decisionQuestion: draft.decisionQuestion });
         }}>
           <label className="text-[11px] text-slate sm:col-span-2">Title<input value={draft.title} onChange={(e) => setDraft({ ...draft, title: e.target.value })} className={input} /></label>
           <label className="text-[11px] text-slate sm:col-span-2">Details<textarea value={draft.detail} onChange={(e) => setDraft({ ...draft, detail: e.target.value })} rows={2} className={input} /></label>
-          <label className="text-[11px] text-slate">Owner
-            <select value={draft.ownerUid} onChange={(e) => setDraft({ ...draft, ownerUid: e.target.value })} className={input}>
-              <option value="">Unassigned</option>
-              {people.map((p) => <option key={p.uid} value={p.uid}>{p.name}</option>)}
-            </select>
-          </label>
+          <div className="sm:col-span-2"><PeoplePicker people={people} me={me} value={ownersOf(draft)} onChange={(v) => setDraft({ ...draft, ownerUids: v, ownerUid: v[0] ?? "" })} /></div>
           <fieldset className="text-[11px] text-slate sm:col-span-2"><legend>Departments</legend>
             <span className="mt-1 flex flex-wrap gap-x-3 gap-y-1">{DEPARTMENTS.map((d) => <label key={d.key} className="inline-flex items-center gap-1 text-ink"><input type="checkbox" checked={(draft.depts ?? []).includes(d.key)} onChange={(e) => setDraft({ ...draft, depts: e.target.checked ? [...(draft.depts ?? []), d.key] : (draft.depts ?? []).filter((x) => x !== d.key) })} />{d.label}</label>)}</span>
           </fieldset>
@@ -141,6 +171,11 @@ function ItemCard({ item, people, today, me, send, fetchComments }: { item: Team
             </select>
           </label>
           <label className="text-[11px] text-slate">Due date<input type="date" value={draft.due} onChange={(e) => setDraft({ ...draft, due: e.target.value })} className={input} /></label>
+          <label className="text-[11px] text-slate">Repeat
+            <select value={draft.repeat ?? ""} onChange={(e) => setDraft({ ...draft, repeat: e.target.value as Repeat, due: e.target.value && !draft.due ? addDays(today, 30) : draft.due })} className={input}>
+              {REPEATS.map((r) => <option key={r} value={r}>{REPEAT_LABEL[r]}</option>)}
+            </select>
+          </label>
           {draft.status === "blocked" && <label className="text-[11px] text-slate sm:col-span-2">Blocked on<input value={draft.blockedReason} onChange={(e) => setDraft({ ...draft, blockedReason: e.target.value })} className={input} /></label>}
           {draft.status === "decision" && <label className="text-[11px] text-slate sm:col-span-2">Decision needed<input value={draft.decisionQuestion} onChange={(e) => setDraft({ ...draft, decisionQuestion: e.target.value })} className={input} /></label>}
           <div className="flex flex-wrap gap-2 sm:col-span-2">
@@ -187,7 +222,7 @@ export default function AdminTeamPage() {
   const [data, setData] = useState<Data | null>(null);
   const [error, setError] = useState("");
   const [whose, setWhose] = useState(""); // "" = everyone, otherwise a person's uid (yours = "Assigned to me")
-  const [quick, setQuick] = useState({ title: "", horizon: "today" as Horizon, ownerUid: "" });
+  const [quick, setQuick] = useState({ title: "", horizon: "today" as Horizon, ownerUids: null as string[] | null }); // null = just me
   const [showMs, setShowMs] = useState(false);
   const [ms, setMs] = useState({ title: "", metric: "registered" as MetricKey, mode: "gain", target: "", startsOn: "", endsOn: "", ownerUid: "", note: "" });
   const [showLater, setShowLater] = useState(false);
@@ -215,7 +250,7 @@ export default function AdminTeamPage() {
   }, [call, load]);
 
   const fetchComments = useCallback(async (id: string) => (await call(undefined, `?comments=${encodeURIComponent(id)}`)).comments as TeamComment[], [call]);
-  const visible = useMemo(() => (data ? data.items.filter((i) => !whose || (whose === "none" ? !i.ownerUid : whose.startsWith("dept:") ? (i.depts ?? []).includes(whose.slice(5)) : i.ownerUid === whose)) : []), [data, whose]);
+  const visible = useMemo(() => (data ? data.items.filter((i) => !whose || (whose === "none" ? !ownersOf(i).length : whose.startsWith("dept:") ? (i.depts ?? []).includes(whose.slice(5)) : isOwner(i, whose))) : []), [data, whose]);
   const allOverdue = useMemo(() => (data ? groupItems(data.items, data.today).overdue : []), [data]);
   const g = useMemo(() => (data ? groupItems(visible, data.today) : null), [data, visible]);
 
@@ -264,7 +299,7 @@ export default function AdminTeamPage() {
       {allOverdue.length > 0 && (
         <div className="mt-4 flex flex-wrap items-center gap-2 rounded-xl border border-crimson/30 bg-crimson/5 p-3 text-xs" role="status">
           <span className="font-semibold text-crimson">{allOverdue.length} overdue across the team:</span>
-          {Array.from(allOverdue.reduce((m, i) => m.set(i.ownerUid, (m.get(i.ownerUid) ?? 0) + 1), new Map<string, number>())).map(([uid, n]) => (
+          {Array.from(allOverdue.reduce((m, i) => { for (const u of ownersOf(i).length ? ownersOf(i) : [""]) m.set(u, (m.get(u) ?? 0) + 1); return m; }, new Map<string, number>())).map(([uid, n]) => (
             <button key={uid || "none"} type="button" onClick={() => setWhose(uid || "none")} className={`rounded-full border px-2.5 py-0.5 font-semibold ${whose === (uid || "none") ? "border-crimson bg-crimson text-paper" : "border-crimson/40 text-crimson hover:bg-crimson/10"}`}>
               {uid ? (uid === data.me ? "You" : people.find((p) => p.uid === uid)?.name.split(" ")[0] ?? "Someone") : "Not assigned"} · {n}
             </button>
@@ -310,7 +345,7 @@ export default function AdminTeamPage() {
       <form className="card mt-6 flex flex-wrap items-end gap-2 p-4" onSubmit={async (e) => {
         e.preventDefault();
         if (!quick.title.trim()) return;
-        await send({ action: "createItem", title: quick.title, horizon: quick.horizon, ownerUid: quick.ownerUid || data.me, due: quick.horizon === "today" ? today : "" });
+        await send({ action: "createItem", title: quick.title, horizon: quick.horizon, ownerUids: quick.ownerUids ?? [data.me], due: quick.horizon === "today" ? today : "" }).catch(() => {});
         setQuick({ ...quick, title: "" });
       }}>
         <label className="min-w-[14rem] flex-1 text-[11px] text-slate">Add work<input value={quick.title} onChange={(e) => setQuick({ ...quick, title: e.target.value })} placeholder="What needs doing?" className={input} /></label>
@@ -319,12 +354,7 @@ export default function AdminTeamPage() {
             {HORIZONS.map((h) => <option key={h} value={h}>{HORIZON_LABEL[h]}</option>)}
           </select>
         </label>
-        <label className="text-[11px] text-slate">Owner
-          <select value={quick.ownerUid || data.me} onChange={(e) => setQuick({ ...quick, ownerUid: e.target.value })} className={input}>
-            <option value="">Unassigned</option>
-            {people.map((p) => <option key={p.uid} value={p.uid}>{p.name}{p.uid === data.me ? " (me)" : ""}</option>)}
-          </select>
-        </label>
+        <PeoplePicker menu label="For" people={people} me={data.me} value={quick.ownerUids ?? [data.me]} onChange={(v) => setQuick({ ...quick, ownerUids: v })} />
         <button disabled={!quick.title.trim()} className="btn-primary !px-4 !py-2 text-xs">Add</button>
       </form>
 
@@ -360,13 +390,7 @@ export default function AdminTeamPage() {
             </label>
             <fieldset className="sm:col-span-2">
               <legend className="text-[11px] text-slate">Who is invited ({meet.memberUids.length + (meet.memberUids.includes(data.me) ? 0 : 1)} including you). Picking a team ticks its people; tick or untick anyone.</legend>
-              <div className="mt-1 flex flex-wrap gap-x-4 gap-y-1">
-                {data.people.map((p) => (
-                  <label key={p.uid} className="flex items-center gap-1.5 text-xs text-ink">
-                    <input type="checkbox" disabled={p.uid === data.me} checked={p.uid === data.me || meet.memberUids.includes(p.uid)} onChange={(e) => setMeet({ ...meet, memberUids: e.target.checked ? [...meet.memberUids, p.uid] : meet.memberUids.filter((u) => u !== p.uid) })} /> {p.name}{p.uid === data.me ? " (you)" : ""}
-                  </label>
-                ))}
-              </div>
+              <PeoplePicker people={data.people} me={data.me} locked={data.me} label="Invited" value={meet.memberUids} onChange={(v) => setMeet({ ...meet, memberUids: v })} />
             </fieldset>
             <label className="text-[11px] text-slate sm:col-span-2">Agenda<textarea value={meet.agenda} onChange={(e) => setMeet({ ...meet, agenda: e.target.value })} rows={3} className={input} /></label>
             <div className="sm:col-span-2"><button disabled={!meet.title.trim() || !meet.date || meet.memberUids.filter((u) => u !== data.me).length === 0} className="btn-primary !px-4 !py-2 text-xs">Schedule and invite {meet.memberUids.filter((u) => u !== data.me).length} {meet.memberUids.filter((u) => u !== data.me).length === 1 ? "person" : "people"}</button></div>

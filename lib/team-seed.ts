@@ -1,12 +1,12 @@
 import type { Firestore } from "firebase-admin/firestore";
-import type { Status } from "./team";
+import type { Repeat, Status } from "./team";
 import { MCP_HOST } from "@/lib/host";
 
 // Work items the founder asked to be put on the team hub board, assigned to Engineering and Product & tech. Added once: each has a
 // seedKey, and a seed never adds an item whose key is already on the board (teamSeeds/{name} records that a seed has run).
 // Optional: the departments it goes to (default Engineering and Product & tech), a due date (YYYY-MM-DD, Lagos), the question when it
-// needs a decision, and owner "founder" = the super admin whose visit runs the seed.
-type Seed = { key: string; title: string; detail: string; status: Status; horizon: "today" | "week" | "later"; depts?: string[]; due?: string; decisionQuestion?: string; owner?: "founder" };
+// needs a decision, owner "founder" = the super admin whose visit runs the seed, and repeat "monthly" for an item that comes back each month.
+type Seed = { key: string; title: string; detail: string; status: Status; horizon: "today" | "week" | "later"; depts?: string[]; due?: string; decisionQuestion?: string; owner?: "founder"; repeat?: Repeat };
 const ENG = ["engineering", "product"];
 export const ENGINEERING_BACKLOG: Seed[] = [
   { key: "eng-trim-reads", title: "Trim whole-collection Firestore reads (notes, users, etc.)", detail: "Replace full-collection reads with indexed queries, counts and cached summaries to cut Firestore costs.", status: "todo", horizon: "week" },
@@ -92,6 +92,15 @@ export const COURSES_BACKLOG: Seed[] = [
   { key: "course-enterprise", title: "Courses for Enterprise: package and sales page (from ₦100,000 a month)", detail: "Branded certificates, cohorts, bulk learner invites, organisation reports. 'Talk to us' on the Enterprise page and Console, requests in Admin → Enterprise.", status: "todo", horizon: "later", depts: ["growth", "finance"], due: "2027-01-30" },
 ];
 
+// The NotesApp icon beside our emails in Gmail and Apple Mail (BIMI). We wait for a Common Mark Certificate (CMC): cheaper than a VMC
+// and no trademark needed, but the logo must have been in public use for at least 12 months. NotesApp went public in August 2026.
+export const BIMI_BACKLOG: Seed[] = [
+  { key: "bimi-monthly-record", title: "Monthly: keep the logo's public record for the email icon (BIMI)", detail: "We're waiting for a CMC, which needs the logo to have been in public use for 12 months. NotesApp went public in August 2026, so we can apply from late August 2027. Each month: (1) check the na logo is on the home page and that the Internet Archive (web.archive.org) has a snapshot from this month; if not, use Save Page Now; (2) put dated proof (the archive links, posts, press) in the staff library; (3) if the primary address moves to notesapp.tech, save snapshots of both addresses: the 12 months count per domain, from when the logo appears there. Mark it done each month and it comes back next month.", status: "todo", horizon: "later", depts: ["growth", "engineering"], due: "2026-11-02", owner: "founder", repeat: "monthly" },
+  { key: "bimi-dmarc", title: "Move DMARC to quarantine on our sending domain (needed for BIMI)", detail: "BIMI needs DMARC at p=quarantine or p=reject (pct=100). First check SPF and DKIM pass for every sender in Resend → Domains; send the DMARC reports (rua) to a mailbox we read and watch them for two weeks before tightening.", status: "todo", horizon: "later", depts: ["engineering"], due: "2026-12-15" },
+  { key: "bimi-svg", title: "Make the na logo in SVG Tiny P/S (the BIMI format)", detail: "Square, centred on a solid background, no scripts or outside links, title set to NotesApp. Check it with a BIMI validator before applying.", status: "todo", horizon: "later", depts: ["product"], due: "2027-06-30" },
+  { key: "bimi-cmc-apply", title: "Apply for the CMC and publish the BIMI record", detail: "Once the logo has 12 months of public history: apply to a CMC issuer (DigiCert or Entrust; check the current price), host the SVG and the certificate on the site, then add the TXT record default._bimi on the sending domain: v=BIMI1; l=<logo.svg URL>; a=<certificate .pem URL>. Gmail then shows the na icon beside our emails (a CMC shows the logo without Gmail's blue tick).", status: "todo", horizon: "later", depts: ["engineering", "finance"], due: "2027-08-31", owner: "founder" },
+];
+
 // Going live with v0.39.0: topics and interests.
 export const TOPICS_BACKLOG: Seed[] = [
   { key: "topics-backfill", title: "File existing journals under topics", detail: "npx -y tsx scripts/backfill-topics.ts (a dry run lists what it would change and the journals that match no topic), then --apply. Editors file the unmatched ones from the journal form.", status: "todo", horizon: "week", depts: ["engineering", "content"], due: "2026-10-24" },
@@ -127,7 +136,7 @@ export async function seedOnce(db: Firestore, name: string, items: Seed[], byUid
   let n = 0;
   for (const i of items) {
     if (have.has(i.key)) continue;
-    batch.set(db.collection("teamItems").doc(), { title: i.title, detail: i.detail, ownerUid: i.owner === "founder" ? byUid : "", depts: i.depts ?? ENG, status: i.status, horizon: i.horizon, due: i.due ?? "", blockedReason: "", decisionQuestion: i.decisionQuestion ?? "", decidedNote: "", createdByUid: byUid, createdAt: at, updatedAt: at, doneAt: i.status === "done" ? at : "", seedKey: i.key });
+    batch.set(db.collection("teamItems").doc(), { title: i.title, detail: i.detail, ownerUid: i.owner === "founder" ? byUid : "", ownerUids: i.owner === "founder" ? [byUid] : [], repeat: i.repeat ?? "", depts: i.depts ?? ENG, status: i.status, horizon: i.horizon, due: i.due ?? "", blockedReason: "", decisionQuestion: i.decisionQuestion ?? "", decidedNote: "", createdByUid: byUid, createdAt: at, updatedAt: at, doneAt: i.status === "done" ? at : "", seedKey: i.key });
     n++;
   }
   batch.set(mark, { at, byUid, count: n });
