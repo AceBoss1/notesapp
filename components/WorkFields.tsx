@@ -6,7 +6,7 @@ import { INDUSTRIES, JOB_TITLE_MAX, WORKPLACE_MAX, type Work } from "@/lib/profi
 // Organisations only get the first (they have no personal job title).
 export default function WorkFields({ value, onChange, inputClass, orgOnly = false }: { value: Work; onChange: (v: Work) => void; inputClass: string; orgOnly?: boolean }) {
   return (
-    <fieldset className="space-y-4">
+    <fieldset className="min-w-0 space-y-4">
       <legend className="eyebrow">{orgOnly ? "About your organisation" : "About you"} <span className="normal-case tracking-normal text-slate">(optional, shown on your profile)</span></legend>
       <label className="block">
         <span className="text-sm text-ink">{orgOnly ? "What does your organisation do?" : "What do you do?"}</span>

@@ -11,6 +11,15 @@ export type Release = {
 
 export const CHANGELOG: Release[] = [
   {
+    version: "v0.45.1",
+    bump: "patch",
+    date: "2026-10-17",
+    changes: [
+      { kind: "changed", text: "Your social links are easier to find: on your own profile, a pencil beside your link icons (or \"+ Add your social links\" when you have none) opens Edit profile at Social links, and Account settings links there too." },
+      { kind: "fixed", text: "Edit profile no longer runs wider than a phone screen." },
+    ],
+  },
+  {
     version: "v0.45.0",
     bump: "minor",
     date: "2026-10-17",
