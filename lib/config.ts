@@ -42,6 +42,7 @@ export const SETTINGS = {
   DIGEST_PER_RUN: { group: "Email", secret: false, about: "Digests sent per cron run (default 40). Resend's free plan is 100 emails a day for everything." },
   EMAIL_LINK_SECRET: { group: "Email", secret: true, about: "Signs one-click unsubscribe links (falls back to CRON_SECRET; without either the digest doesn't send)." },
   CRON_SECRET: { group: "Scheduled jobs", secret: true, about: "Bearer secret for /api/cron/reminders." },
+  DISCORD_CHANGELOG_WEBHOOK_URL: { group: "Scheduled jobs", secret: true, about: "Discord channel webhook (Server Settings → Integrations → Webhooks) for #announcements: each new changelog release is posted once by the cron job (lib/discord.ts). The URL is a password: keep it only here." },
   UPSTASH_REDIS_REST_URL: { group: "Shared store", secret: false, about: "Upstash Redis REST address: rate limits and some caches shared by every server instance (lib/shared-store.ts). Without it each instance counts on its own." },
   UPSTASH_REDIS_REST_TOKEN: { group: "Shared store", secret: true, about: "Upstash Redis REST token." },
   ANTHROPIC_API_KEY: { group: "AI (Nana)", secret: true, about: "Switches Nana's AI on for everyone. Without it Nana answers from the help centre and members can connect their own key." },

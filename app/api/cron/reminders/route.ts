@@ -16,6 +16,7 @@ import { sendMorningSummaries, sendWorkReminders } from "@/lib/team-server";
 import { sendGrantReminders } from "@/lib/grants-server";
 import { sendDueReminders } from "@/lib/dues-server";
 import { sendWeeklyDigests } from "@/lib/digest-server";
+import { announceReleases } from "@/lib/discord";
 import { setting } from "@/lib/config";
 
 // Run every ~15 minutes by an external scheduler with
@@ -90,6 +91,7 @@ export async function GET(req: NextRequest) {
   await job("workReminders", () => sendWorkReminders(db));
   // Sundays from 5 PM Lagos, in batches across runs, once WEEKLY_DIGEST=on (lib/digest-server.ts).
   await job("weeklyDigest", () => sendWeeklyDigests(db));
+  await job("discordChangelog", () => announceReleases(db).then((v) => v.length)); // new releases to the Discord #announcements channel
   await job("reconcilePaylonyPayouts", () => reconcilePaylonyPayouts().then((r) => r.paid + r.failed));
   // Heartbeat read by /status ("Scheduled jobs"); server-only collection, no client rules.
   await db.collection("cronRuns").doc("reminders").set({ at: new Date().toISOString(), ok: failed.length === 0, failed }).catch((e) => console.error("cron heartbeat failed", e));
