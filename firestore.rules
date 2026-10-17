@@ -663,6 +663,12 @@ service cloud.firestore {
       allow write: if false;
     }
 
+    // Messages a member kept (Saved → From chats): only they read them; the server writes (lib/message-forward.ts).
+    match /keptMessages/{id} {
+      allow read: if isSignedIn() && resource.data.uid == request.auth.uid;
+      allow write: if false;
+    }
+
     // Notes Academy (docs/COURSES.md): courses and their lessons are public once published, drafts stay with the server (the
     // teacher edits and previews them through /api/academy). Enrolments and progress: each learner reads their own. Every write
     // goes through the server (lib/courses-server.ts).

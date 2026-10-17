@@ -11,6 +11,18 @@ export type Release = {
 
 export const CHANGELOG: Release[] = [
   {
+    version: "v0.45.0",
+    bump: "minor",
+    date: "2026-10-17",
+    changes: [
+      { kind: "added", text: "Forward a message to up to five of your chats at once; it shows \"Forwarded\". Files go with it. Your own message can also start a new journal draft." },
+      { kind: "added", text: "Keep: save any message to Saved → From chats, a list only you can see, with a link back to the chat. If the sender deletes the message, it leaves your list too." },
+      { kind: "added", text: "#NotesApp links in messages show as cards: a journal (Read), a store item with its price (Buy), a free course (Enrol) or a profile." },
+      { kind: "added", text: "Nana in your chats: \"Summarise\" tells you what you missed when a chat has five or more new messages (or any time, from the chat's menu), and Translate puts a message into English, Pidgin, Yorùbá, Igbo or Hausa." },
+      { kind: "fixed", text: "A long link no longer pushes a message bubble past the edge of a phone screen." },
+    ],
+  },
+  {
     version: "v0.44.0",
     bump: "minor",
     date: "2026-10-17",

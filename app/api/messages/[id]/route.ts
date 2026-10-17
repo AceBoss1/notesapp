@@ -4,7 +4,10 @@ import { getThread, isMuted, markRead, setMute } from "@/lib/messages-server";
 import { bannedMembers, groupMembers } from "@/lib/groups-server";
 import { authed, fail } from "@/lib/moments-api";
 import { answerRequest, changeMessage, pinChat, pinMessage, reactToMessage } from "@/lib/message-edits";
-import { deleteObject, privateFilesConfigured } from "@/lib/private-files";
+import { copyObject, deleteObject, headObject, privateFilesConfigured } from "@/lib/private-files";
+import { forwardMessage, keepMessage } from "@/lib/message-forward";
+import { rateLimit } from "@/lib/rate-limit";
+import { MESSAGES_PER_MINUTE } from "@/lib/messages-rules";
 
 export const dynamic = "force-dynamic";
 
@@ -31,7 +34,8 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
 // { action: "pin", messageId, pin } pins a message (3 at most); { action: "pin_chat", pin } pins the chat in your inbox (3 at most);
 // { action: "edit", messageId, text } / { action: "delete", messageId } changes your own message (asks the readers once it's read);
 // { action: "request", requestId, answer: "allow" | "decline" | "withdraw" } answers such a request; { action: "react", messageId, emoji } reacts
-// ("" takes your reaction off).
+// ("" takes your reaction off); { action: "forward", messageId, to: [conversation ids] } sends it on (5 chats at most);
+// { action: "keep", messageId, keep } keeps your own copy (Saved → From chats) or lets it go.
 export async function POST(req: NextRequest, { params }: { params: { id: string } }) {
   try {
     const me = await authed(req, "messages");
@@ -39,6 +43,12 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     if (body.action === "mute") { await setMute(getAdminDb(), me.uid, params.id, body.muted === true); return NextResponse.json({ ok: true }); }
     const del = privateFilesConfigured() ? deleteObject : undefined;
     if (body.action === "pin") return NextResponse.json(await pinMessage(getAdminDb(), me.uid, params.id, String(body.messageId ?? ""), body.pin !== false));
+    if (body.action === "forward") {
+      const limited = await rateLimit(req, "dm", me.uid, MESSAGES_PER_MINUTE, 60);
+      if (limited) return limited;
+      return NextResponse.json(await forwardMessage(getAdminDb(), me.uid, params.id, String(body.messageId ?? ""), body.to, privateFilesConfigured() ? { head: headObject, copy: copyObject } : undefined));
+    }
+    if (body.action === "keep") return NextResponse.json(await keepMessage(getAdminDb(), me.uid, params.id, String(body.messageId ?? ""), body.keep !== false));
     if (body.action === "react") return NextResponse.json(await reactToMessage(getAdminDb(), me.uid, params.id, String(body.messageId ?? ""), body.emoji));
     if (body.action === "pin_chat") return NextResponse.json(await pinChat(getAdminDb(), me.uid, params.id, body.pin !== false));
     if (body.action === "edit" || body.action === "delete") return NextResponse.json(await changeMessage(getAdminDb(), me.uid, params.id, String(body.messageId ?? ""), body.action, body.text, del));

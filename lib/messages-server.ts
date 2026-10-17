@@ -46,7 +46,7 @@ export type Alerts = {
 const siteUrl = () => SITE_URL;
 const EMAIL_EVERY_MS = 3_600_000; // at most one message email an hour per member (all conversations together)
 
-export type SendInput = { text: string; moment?: MomentRef; attachmentIds?: string[]; sticker?: string; replyToId?: string };
+export type SendInput = { text: string; moment?: MomentRef; attachmentIds?: string[]; sticker?: string; replyToId?: string; forwarded?: boolean };
 // How the server checks an uploaded file really arrived (a HEAD on the private bucket); injected so it can be tested.
 export type FileDeps = { head: (key: string) => Promise<{ size: number } | null> };
 
@@ -163,7 +163,7 @@ export async function sendMessage(db: Firestore, fromUid: string, toUid: string,
     if (!conv.exists) {
       t.set(convRef, { participants: [fromUid, toUid].sort(), createdAt, unread: { [fromUid]: 0, [toUid]: 0 } });
     }
-    t.set(msgRef, { from: fromUid, text, createdAt, ...(attachments.length ? { attachments } : {}), ...(sticker ? { sticker } : {}), ...(replyTo ? { replyTo } : {}), ...(input.moment ? { momentRef: input.moment } : {}) });
+    t.set(msgRef, { from: fromUid, text, createdAt, ...(attachments.length ? { attachments } : {}), ...(sticker ? { sticker } : {}), ...(replyTo ? { replyTo } : {}), ...(input.moment ? { momentRef: input.moment } : {}), ...(input.forwarded ? { forwarded: true } : {}) });
     t.update(convRef, {
       lastMessage: { from: fromUid, text: preview, at: createdAt, ...(input.moment ? { moment: true } : {}) },
       lastMessageAt: createdAt,
@@ -232,7 +232,7 @@ export async function getThread(db: Firestore, uid: string, cid: string, now = n
     const ref = m.momentRef as MomentRef | undefined;
     return {
       id: d.id, from: m.from, text: m.text, createdAt: m.createdAt, ...(m.readAt ? { readAt: m.readAt } : {}), ...(m.sticker ? { sticker: m.sticker } : {}), ...(m.replyTo ? { replyTo: m.replyTo } : {}),
-      ...(m.removed ? { removed: m.removed } : {}), ...(m.call ? { call: m.call } : {}), ...(m.reactions && Object.keys(m.reactions).length ? { reactions: m.reactions } : {}),
+      ...(m.removed ? { removed: m.removed } : {}), ...(m.call ? { call: m.call } : {}), ...(m.reactions && Object.keys(m.reactions).length ? { reactions: m.reactions } : {}), ...(m.forwarded ? { forwarded: true } : {}),
       ...(m.attachments ? { attachments: (m.attachments as MessageAttachment[]).map(({ key: _k, ...info }) => info) } : {}),
       // Only whether it has expired — never the moment's content.
       ...(ref ? { moment: { momentId: ref.momentId, expired: isMomentExpired(ref.expiresAt, now) } } : {}),

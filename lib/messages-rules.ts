@@ -33,6 +33,7 @@ export type ThreadMessage = {
   deleted?: { at: string }; // deleted by its sender
   pendingRequest?: { id: string; kind: "edit" | "delete"; text?: string; readers: string[]; approved: string[]; expiresAt: string }; // waiting for the readers to agree
   reactions?: Record<string, string>; // uid → one of REACTIONS (one each; lib/message-edits.ts)
+  forwarded?: boolean; // sent on from another chat (lib/message-forward.ts)
 };
 
 // Reactions: one per person per message, from this short list (as in most messengers).

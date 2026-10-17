@@ -14,6 +14,14 @@ export default function NewEntryPage() {
   const teamOrgs = (orgs || []).filter((o) => o.canPublish);
   const [postAs, setPostAs] = useState("me");
   const [orgProfile, setOrgProfile] = useState<UserProfile | null>(null);
+  // A message sent on from a chat ("Start a journal draft"): it becomes the start of the entry, once.
+  const [fromChat, setFromChat] = useState<{ content: string } | null>(null);
+  useEffect(() => {
+    try {
+      const raw = sessionStorage.getItem("notesapp:chatDraft");
+      if (raw) { setFromChat(JSON.parse(raw)); sessionStorage.removeItem("notesapp:chatDraft"); }
+    } catch {}
+  }, []);
 
   // Members without a publishing plan of their own can only write for an organisation.
   const personal = !!profile && canPublish(profile);
@@ -31,6 +39,7 @@ export default function NewEntryPage() {
     <section className="mx-auto max-w-3xl px-4 py-14 sm:px-6">
       <Link href="/write" className="block font-ui text-xs font-semibold uppercase tracking-wideish text-crimson-bright">← My journal</Link>
       <h1 className="mt-4 font-display text-4xl">New entry</h1>
+      {fromChat && <p className="mt-3 rounded-lg bg-amber-50 px-3 py-2 text-sm text-ink">Started from your message. Add a title, shape it, and save it as a draft or publish it when you&apos;re ready.</p>}
       {teamOrgs.length > 0 && (
         <label className="mt-6 block text-xs text-slate">Post as
           <select
@@ -48,9 +57,9 @@ export default function NewEntryPage() {
       )}
       <div className="mt-8">
         {activeOrgId ? (
-          orgProfile ? <NoteForm key={activeOrgId} self={profile} org={{ profile: orgProfile }} /> : <p className="text-sm text-slate">Loading…</p>
+          orgProfile ? <NoteForm key={`${activeOrgId}${fromChat ? "-chat" : ""}`} self={profile} org={{ profile: orgProfile }} initial={fromChat ? { content: fromChat.content, status: "draft" } : undefined} /> : <p className="text-sm text-slate">Loading…</p>
         ) : (
-          <NoteForm key="me" self={profile} />
+          <NoteForm key={fromChat ? "me-chat" : "me"} self={profile} initial={fromChat ? { content: fromChat.content, status: "draft" } : undefined} />
         )}
       </div>
     </section>

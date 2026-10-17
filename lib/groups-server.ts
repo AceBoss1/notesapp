@@ -3,6 +3,7 @@ import { FieldValue } from "firebase-admin/firestore";
 import { getAuth } from "firebase-admin/auth";
 import { randomBytes } from "crypto";
 import { GROUP_MEMBERS_MAX, GROUP_TITLE_MAX, MESSAGE_MAX, attachmentLabel, newGroupId, type GroupInfo, type GroupScope } from "./messages-rules";
+import { dropKept } from "./message-kept";
 import { MessageError, claimAttachments, groupInfoOf, mutedAmong, quoteOf, type FileDeps, type Notify, type SendInput } from "./messages-server";
 import { notifyBell } from "./email";
 import { getAdminApp, getAdminDb } from "./firebase-admin";
@@ -128,7 +129,7 @@ export async function sendGroupMessage(
     if (!fresh || !(fresh.participants as string[]).includes(fromUid)) throw new MessageError(404, "That group wasn't found.");
     if (fresh.sendLocked === true && !((fresh.adminUids as string[] | undefined) ?? []).includes(fromUid)) throw new MessageError(403, "Only group admins can send messages in this group right now.");
     for (const u of fresh.participants as string[]) if (u !== fromUid && ((fresh.unread?.[u] as number | undefined) ?? 0) === 0) wasQuiet.push(u);
-    t.set(ref.collection("messages").doc(messageId), { from: fromUid, text, createdAt, ...(attachments.length ? { attachments } : {}), ...(sticker ? { sticker } : {}), ...(replyTo ? { replyTo } : {}) });
+    t.set(ref.collection("messages").doc(messageId), { from: fromUid, text, createdAt, ...(attachments.length ? { attachments } : {}), ...(sticker ? { sticker } : {}), ...(replyTo ? { replyTo } : {}), ...(input.forwarded ? { forwarded: true } : {}) });
     const patch: Record<string, unknown> = { lastMessage: { from: fromUid, fromName: me.displayName, text: preview, at: createdAt }, lastMessageAt: createdAt, [`unread.${fromUid}`]: 0 };
     for (const u of others) patch[`unread.${u}`] = FieldValue.increment(1);
     t.update(ref, patch);
@@ -190,7 +191,8 @@ export async function wipeMessage(db: Firestore, cid: string, messageId: string,
   if (m.removed || m.call) return false;
   for (const f of (m.attachments as { key: string }[] | undefined) ?? []) await deleteFile(String(f.key)).catch(() => {});
   const at = now.toISOString();
-  await ref.update({ text: "", removed: { by, at }, attachments: FieldValue.delete(), sticker: FieldValue.delete(), momentRef: FieldValue.delete(), replyTo: FieldValue.delete() });
+  await ref.update({ text: "", removed: { by, at }, attachments: FieldValue.delete(), sticker: FieldValue.delete(), momentRef: FieldValue.delete(), replyTo: FieldValue.delete(), reactions: FieldValue.delete() });
+  await dropKept(db, ref.id).catch(() => {}); // kept copies go with it
   const label = by === "admin" ? "Message removed by a group admin" : "Message removed by #NotesApp";
   const quotes = await convRef.collection("messages").where("replyTo.id", "==", messageId).get();
   for (const q of quotes.docs) await q.ref.update({ "replyTo.text": label }).catch(() => {});

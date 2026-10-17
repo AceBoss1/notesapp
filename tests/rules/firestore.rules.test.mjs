@@ -305,6 +305,18 @@ test("saved journals: a member reads only their own, and only the server writes 
   await assertFails(deleteDoc(doc(as("alice"), "savedJournals/alice_n1")));
 });
 
+test("kept messages: a member reads only their own, and only the server writes them", async () => {
+  await env.withSecurityRulesDisabled(async (ctx) => {
+    await setDoc(doc(ctx.firestore(), "keptMessages/alice_m1"), { uid: "alice", cid: "alice_bob", messageId: "m1", text: "Lunch at 1?" });
+  });
+  await assertSucceeds(getDoc(doc(as("alice"), "keptMessages/alice_m1")));
+  await assertSucceeds(getDocs(query(collection(as("alice"), "keptMessages"), where("uid", "==", "alice"))));
+  await assertFails(getDoc(doc(as("bob"), "keptMessages/alice_m1")));
+  await assertFails(getDocs(collection(as("bob"), "keptMessages")));
+  await assertFails(setDoc(doc(as("alice"), "keptMessages/alice_m2"), { uid: "alice", messageId: "m2", text: "x" }));
+  await assertFails(deleteDoc(doc(as("alice"), "keptMessages/alice_m1")));
+});
+
 test("courses: published ones and their lessons are public, drafts and every write stay with the server", async () => {
   await env.withSecurityRulesDisabled(async (ctx) => {
     const db = ctx.firestore();

@@ -6,13 +6,18 @@ import { Fragment, useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { onAuthStateChanged, type User } from "firebase/auth";
-import { collection, deleteDoc, doc, limit, onSnapshot, orderBy, query, setDoc } from "firebase/firestore";
+import { collection, deleteDoc, doc, limit, onSnapshot, orderBy, query, setDoc, where } from "firebase/firestore";
 import { auth, db } from "@/lib/firebase";
 import { api } from "@/lib/moments-client";
 import { ATTACHMENT_ACCEPT, MESSAGE_MAX, REMOVED_TEXT, attachmentTypeOf, formatBytes, reactionSummary, type ThreadMessage } from "@/lib/messages-rules";
 import { stripFormat, wrapSelection } from "@/lib/message-format";
 import { searchThread } from "@/lib/chat-tools";
 import MessageMenu, { MessageInfo, type MenuItem } from "./MessageMenu";
+import ForwardDialog from "./ForwardDialog";
+import NotesAppCard from "./NotesAppCard";
+import { SummaryDialog, TranslateDialog, askNana } from "./ChatNana";
+import { parseCardLink } from "@/lib/chat-cards";
+import { KNOWN_ROOTS } from "@/lib/host";
 import FormattedText from "./FormattedText";
 import LinkPreview from "@/components/LinkPreview";
 import MentionPicker from "@/components/MentionPicker";
@@ -107,6 +112,13 @@ export default function Thread({ id, to, embedded = false }: { id?: string; to?:
   const [swipe, setSwipe] = useState<{ id: string; dx: number } | null>(null); // a message being swiped right to reply (phones)
   const touch = useRef<{ id: string; x: number; y: number; timer?: ReturnType<typeof setTimeout>; opened?: boolean } | null>(null);
   const [toast, setToast] = useState("");
+  const [forwarding, setForwarding] = useState<ThreadMessage | null>(null);
+  const [kept, setKept] = useState<string[]>([]); // the messages here you kept (Saved → From chats)
+  const [translatingId, setTranslatingId] = useState<string | null>(null); // choosing a language for this message
+  const [translations, setTranslations] = useState<Record<string, { label: string; text?: string; error?: string }>>({});
+  const [summary, setSummary] = useState<{ context: string; count: number } | null>(null);
+  const openedMark = useRef<string | null>(null); // where you had read up to when you opened the chat (for "N new · Summarise")
+  const openedAt = useRef("");
   const [pinned, setPinned] = useState<{ id: string; by: string; at: string }[]>([]);
   const [typing, setTyping] = useState<Record<string, number>>({}); // who else is typing, and when they last typed
   const [, setTick] = useState(0);
@@ -168,7 +180,7 @@ export default function Thread({ id, to, embedded = false }: { id?: string; to?:
         const rows: ThreadMessage[] = snap.docs.reverse().map((d) => {
           const m = d.data();
           // A reply to a moment says whether the moment has expired; the moment itself is never in the message.
-          return { id: d.id, from: m.from, text: m.text, createdAt: m.createdAt, ...(m.readAt ? { readAt: m.readAt } : {}), ...(m.call ? { call: m.call } : {}), ...(m.removed ? { removed: m.removed } : {}), ...(m.editedAt ? { editedAt: m.editedAt } : {}), ...(m.deleted ? { deleted: m.deleted } : {}), ...(m.pendingRequest ? { pendingRequest: m.pendingRequest } : {}), ...(m.sticker ? { sticker: m.sticker } : {}), ...(m.replyTo ? { replyTo: m.replyTo } : {}), ...(m.attachments ? { attachments: (m.attachments as { name: string; size: number; type: string; kind: "image" | "video" | "document" | "audio"; durationSec?: number }[]).map(({ name, size, type, kind, durationSec }) => ({ name, size, type, kind, ...(durationSec ? { durationSec } : {}) })) } : {}), ...(m.momentRef ? { moment: { momentId: m.momentRef.momentId, expired: isMomentExpired(m.momentRef.expiresAt) } } : {}), ...(m.reactions && Object.keys(m.reactions).length ? { reactions: m.reactions } : {}) };
+          return { id: d.id, from: m.from, text: m.text, createdAt: m.createdAt, ...(m.readAt ? { readAt: m.readAt } : {}), ...(m.call ? { call: m.call } : {}), ...(m.removed ? { removed: m.removed } : {}), ...(m.editedAt ? { editedAt: m.editedAt } : {}), ...(m.deleted ? { deleted: m.deleted } : {}), ...(m.pendingRequest ? { pendingRequest: m.pendingRequest } : {}), ...(m.sticker ? { sticker: m.sticker } : {}), ...(m.replyTo ? { replyTo: m.replyTo } : {}), ...(m.attachments ? { attachments: (m.attachments as { name: string; size: number; type: string; kind: "image" | "video" | "document" | "audio"; durationSec?: number }[]).map(({ name, size, type, kind, durationSec }) => ({ name, size, type, kind, ...(durationSec ? { durationSec } : {}) })) } : {}), ...(m.momentRef ? { moment: { momentId: m.momentRef.momentId, expired: isMomentExpired(m.momentRef.expiresAt) } } : {}), ...(m.reactions && Object.keys(m.reactions).length ? { reactions: m.reactions } : {}), ...(m.forwarded ? { forwarded: true } : {}) };
         });
         setMessages(rows);
         // Something new from them while this is open: it's read.
@@ -181,10 +193,16 @@ export default function Thread({ id, to, embedded = false }: { id?: string; to?:
   useEffect(() => {
     if (!user || !cid) return;
     const uid = user.uid;
-    const a = onSnapshot(doc(db, "conversations", cid), (d) => { setPinned((d.data()?.pinned as { id: string; by: string; at: string }[] | undefined) ?? []); setReadMarks((d.data()?.readMarker as Record<string, string> | undefined) ?? {}); }, () => {});
+    const a = onSnapshot(doc(db, "conversations", cid), (d) => {
+      setPinned((d.data()?.pinned as { id: string; by: string; at: string }[] | undefined) ?? []);
+      const marks = (d.data()?.readMarker as Record<string, string> | undefined) ?? {};
+      if (openedMark.current === null) { openedMark.current = marks[uid] ?? ""; openedAt.current = new Date().toISOString(); }
+      setReadMarks(marks);
+    }, () => {});
+    const k = onSnapshot(query(collection(db, "keptMessages"), where("uid", "==", uid), where("cid", "==", cid)), (snap) => setKept(snap.docs.map((d) => String(d.data().messageId))), () => {});
     const b = onSnapshot(collection(db, `conversations/${cid}/typing`), (snap) => setTyping(Object.fromEntries(snap.docs.filter((d) => d.id !== uid).map((d) => [d.id, Number(d.data().at) || 0]))), () => {});
     const t = setInterval(() => setTick((n) => n + 1), 2000); // "typing…" fades by itself
-    return () => { a(); b(); clearInterval(t); if (lastTyped.current) deleteDoc(doc(db, `conversations/${cid}/typing/${uid}`)).catch(() => {}); };
+    return () => { a(); b(); k(); clearInterval(t); openedMark.current = null; if (lastTyped.current) deleteDoc(doc(db, `conversations/${cid}/typing/${uid}`)).catch(() => {}); };
   }, [user, cid]);
   // Telling the others you're typing: at most every 3 seconds while you type; cleared when you send.
   function typed(v: string) {
@@ -218,6 +236,16 @@ export default function Thread({ id, to, embedded = false }: { id?: string; to?:
   }
   const answer = (requestId: string, a: "allow" | "decline" | "withdraw") => msgAction({ action: "request", requestId, answer: a });
   const react = (m: ThreadMessage, emoji: string) => msgAction({ action: "react", messageId: m.id, emoji });
+  const keep = (m: ThreadMessage, on: boolean) => msgAction({ action: "keep", messageId: m.id, keep: on }, () => flash(on ? "Kept. Find it in Saved → From chats" : "No longer kept"));
+  async function translate(m: ThreadMessage, lang: string, label: string) {
+    if (!user) return;
+    setTranslations((t) => ({ ...t, [m.id]: { label } }));
+    try { const text = await askNana(user, { task: "translate", text: stripFormat(m.text), language: lang }); setTranslations((t) => ({ ...t, [m.id]: { label, text } })); }
+    catch (e) { setTranslations((t) => ({ ...t, [m.id]: { label, error: e instanceof Error ? e.message : "Couldn't translate it." } })); }
+  }
+  // The chat as plain lines for Nana's summary: "Ada: …", oldest first.
+  const asLines = (list: ThreadMessage[]) => list.filter((x) => !x.deleted && !x.removed && !x.call).map((x) => `${nameOf(x.from)}: ${plain(x)}`).join("\n");
+  const missed = messages.filter((x) => openedMark.current !== null && x.from !== user?.uid && x.createdAt > openedMark.current && x.createdAt <= openedAt.current && !x.call && !x.deleted && !x.removed);
   const flash = (t: string) => { setToast(t); setTimeout(() => setToast(""), 1800); };
   const nameOf = (uid: string) => (uid === user?.uid ? "You" : people[uid]?.name || "Member");
   const plain = (m: ThreadMessage) => stripFormat(m.text || "") || (m.sticker ? "[Sticker]" : m.attachments?.length ? m.attachments.map((a) => `[${a.name}]`).join(" ") : "");
@@ -392,6 +420,7 @@ export default function Thread({ id, to, embedded = false }: { id?: string; to?:
           ) : undefined}
           items={[
             { label: "Search in this chat", icon: "🔍", onClick: () => setSearchOpen(true) },
+            { label: "Summarise with Nana", icon: "✨", onClick: () => { const list = missed.length >= 3 ? missed : messages.slice(-50); setSummary({ context: asLines(list), count: list.length }); } },
             { label: "Select messages", icon: "☑️", onClick: () => setSelected([]) },
             { label: "Members", icon: "👥", onClick: () => setShowMembers(true) },
             { label: group.adminUids.includes(user?.uid ?? "") && group.scope !== "team" ? "Group settings" : "", icon: "⚙️", onClick: () => setShowMembers(true), hidden: !(group.adminUids.includes(user?.uid ?? "") && group.scope !== "team") },
@@ -418,6 +447,7 @@ export default function Thread({ id, to, embedded = false }: { id?: string; to?:
           ) : undefined}
           items={[
             { label: "Search in this chat", icon: "🔍", onClick: () => setSearchOpen(true) },
+            { label: "Summarise with Nana", icon: "✨", onClick: () => { const list = missed.length >= 3 ? missed : messages.slice(-50); setSummary({ context: asLines(list), count: list.length }); } },
             { label: "Select messages", icon: "☑️", onClick: () => setSelected([]) },
             { label: "View profile", icon: "👤", href: `/u/${who.username}`, divider: true },
             { label: "View moments", icon: "✨", onClick: viewMoments, hidden: !MOMENTS_LIVE },
@@ -439,6 +469,12 @@ export default function Thread({ id, to, embedded = false }: { id?: string; to?:
           <button type="button" disabled={searchHits.length < 2} onClick={() => setHit((h) => (h - 1 + searchHits.length) % searchHits.length)} aria-label="Older match" className="flex h-9 w-9 items-center justify-center rounded-full text-ink hover:bg-paper disabled:opacity-30">↑</button>
           <button type="button" disabled={searchHits.length < 2} onClick={() => setHit((h) => (h + 1) % searchHits.length)} aria-label="Newer match" className="flex h-9 w-9 items-center justify-center rounded-full text-ink hover:bg-paper disabled:opacity-30">↓</button>
           <button type="button" onClick={() => { setSearchOpen(false); setSearchQ(""); }} aria-label="Close search" className="flex h-9 w-9 items-center justify-center rounded-full text-xl text-slate hover:bg-paper">×</button>
+        </div>
+      )}
+      {missed.length >= 5 && !searchOpen && (
+        <div className="mx-4 mt-3 flex shrink-0 items-center gap-3 rounded-xl border border-crimson/20 bg-crimson/5 px-3 py-2 text-sm lg:mx-7">
+          <span className="flex-1 text-ink"><strong>{missed.length} new messages</strong> since you were last here</span>
+          <button type="button" onClick={() => setSummary({ context: asLines(missed), count: missed.length })} className="shrink-0 rounded-full bg-crimson-deep px-3.5 py-1.5 font-ui text-xs font-bold text-white hover:bg-crimson">✨ Summarise</button>
         </div>
       )}
       {pinned.length > 0 && (
@@ -476,6 +512,7 @@ export default function Thread({ id, to, embedded = false }: { id?: string; to?:
           const meta = (msg: ThreadMessage) => {
             const parts = [
               isPinned && <span aria-label="Pinned" className="inline-flex"><PinIcon size={12} /></span>,
+              kept.includes(msg.id) && <span aria-label="Kept" title="Kept: in Saved → From chats">🔖</span>,
               msg.editedAt && <span className="italic">edited</span>,
               <span key="sent" className="inline-flex items-center gap-1">{mine && <span aria-label="Sent"><TickIcon /></span>}{stamp(msg.createdAt)}</span>,
               mine && msg.readAt && <span className="inline-flex items-center gap-1"><span aria-label="Read"><TickIcon read /></span>{stamp(msg.readAt)}</span>,
@@ -574,7 +611,7 @@ export default function Thread({ id, to, embedded = false }: { id?: string; to?:
                       {pending(m)}
                     </div>
                   ) : (<>
-                    <div className={`rounded-xl2 px-4 py-3 text-[15px] leading-snug lg:rounded-2xl lg:text-sm ${mine ? "bg-crimson text-white" : "border border-rule bg-card text-ink lg:bg-paper"}`}>
+                    <div className={`min-w-0 max-w-full rounded-xl2 px-4 py-3 text-[15px] leading-snug lg:rounded-2xl lg:text-sm ${mine ? "bg-crimson text-white" : "border border-rule bg-card text-ink lg:bg-paper"}`}>
                       {m.replyTo && (
                         <button
                           type="button"
@@ -585,14 +622,21 @@ export default function Thread({ id, to, embedded = false }: { id?: string; to?:
                           <span className="line-clamp-3 whitespace-pre-wrap"><strong>{firstName(quoted)}:</strong> {(m.replyTo.text || "…").replace(/\n{2,}/g, "\n")}</span>
                         </button>
                       )}
+                      {m.forwarded && <p className={`mb-1 flex items-center gap-1 text-xs italic ${mine ? "text-white/80" : "text-slate"}`}><span aria-hidden="true">↪</span> Forwarded</p>}
                       {m.moment && (
                         <p className={`mb-1 text-xs italic ${mine ? "text-white/80" : "text-slate"}`}>
                           {m.moment.expired ? "Replied to a moment that has expired" : "Replied to a moment"}
                         </p>
                       )}
                       {m.attachments && cid && <MessageAttachments cid={cid} mid={m.id} files={m.attachments} mine={mine} />}
-                      {m.text && <p className="whitespace-pre-wrap break-words"><FormattedText text={m.text} linkClass={mine ? "font-semibold text-white underline underline-offset-2" : undefined} /></p>}
-                      {m.text && firstUrl(m.text) && <LinkPreview url={firstUrl(m.text)!} user={user ?? null} mine={mine} />}
+                      {m.text && <p className="whitespace-pre-wrap [overflow-wrap:anywhere]"><FormattedText text={m.text} linkClass={mine ? "font-semibold text-white underline underline-offset-2" : undefined} /></p>}
+                      {translations[m.id] && (
+                        <div className={`mt-2 border-t pt-2 text-sm ${mine ? "border-white/30" : "border-rule"}`}>
+                          <p className={`mb-0.5 flex items-center gap-2 text-[11px] ${mine ? "text-white/75" : "text-slate"}`}>✨ {translations[m.id].label} · Nana<button type="button" onClick={() => setTranslations((t) => { const n = { ...t }; delete n[m.id]; return n; })} className="underline">Hide</button></p>
+                          <p className="whitespace-pre-wrap">{translations[m.id].error ? <span className={mine ? "" : "text-red-700"}>{translations[m.id].error}</span> : translations[m.id].text ?? "Translating…"}</p>
+                        </div>
+                      )}
+                      {m.text && firstUrl(m.text) && (parseCardLink(firstUrl(m.text)!, KNOWN_ROOTS) ? <NotesAppCard url={firstUrl(m.text)!} user={user ?? null} mine={mine} /> : <LinkPreview url={firstUrl(m.text)!} user={user ?? null} mine={mine} />)}
                       <p className={`mt-1.5 flex flex-wrap items-center gap-x-1.5 text-xs lg:text-[11px] ${mine ? "text-white/80" : "text-slate"}`}>{meta(m)}</p>
                     </div>
                     {chips(m)}
@@ -690,7 +734,10 @@ export default function Thread({ id, to, embedded = false }: { id?: string; to?:
         const isPinned = pinned.some((p) => p.id === m.id);
         const items: MenuItem[] = [
           { label: "Reply", icon: "↩", onClick: () => { setReplyingTo(m); setTimeout(() => box.current?.focus(), 0); }, hidden: blockedByMe },
+          { label: "Forward", icon: "↪", onClick: () => setForwarding(m) },
           { label: "Copy", icon: "⧉", onClick: () => copy([m]), hidden: !plain(m) },
+          { label: kept.includes(m.id) ? "Stop keeping" : "Keep", icon: "🔖", onClick: () => keep(m, !kept.includes(m.id)) },
+          { label: "Translate", icon: "🌍", onClick: () => setTranslatingId(m.id), hidden: !m.text },
           { label: isPinned ? "Unpin" : "Pin", icon: "📌", onClick: () => pinMsg(m, !isPinned), hidden: blockedByMe || (isGroup && !amAdmin) },
           { label: "Message info", icon: "ⓘ", onClick: () => setInfo(m.id), hidden: !mine },
           { label: "Select", icon: "☑️", onClick: () => setSelected([m.id]) },
@@ -709,6 +756,9 @@ export default function Thread({ id, to, embedded = false }: { id?: string; to?:
         const read = others.filter((x) => (readMarks[x.uid] ?? "") >= m.createdAt);
         return <MessageInfo sent={m.createdAt} edited={m.editedAt} readers={read.map((x) => nameOf(x.uid) || x.displayName)} notYet={others.filter((x) => !read.includes(x)).map((x) => nameOf(x.uid) || x.displayName)} onClose={() => setInfo(null)} />;
       })()}
+      {forwarding && cid && <ForwardDialog cid={cid} messageId={forwarding.id} draftText={forwarding.from === user?.uid && forwarding.text ? forwarding.text : undefined} onDone={flash} onClose={() => setForwarding(null)} />}
+      {translatingId && <TranslateDialog onPick={(lang, label) => { const m = messages.find((x) => x.id === translatingId); if (m) void translate(m, lang, label); }} onClose={() => setTranslatingId(null)} />}
+      {summary && user && <SummaryDialog user={user} context={summary.context} count={summary.count} onClose={() => setSummary(null)} />}
       {moments && <MomentViewer moments={moments} onClose={() => setMoments(null)} onChanged={() => {}} />}
       {reporting && cid && <ReportDialog kind="conversation" targetId={cid} onClose={() => setReporting(false)} />}
       {reportingMsg && cid && <ReportDialog kind="conversation" targetId={cid} messageId={reportingMsg} onClose={() => setReportingMsg(null)} />}

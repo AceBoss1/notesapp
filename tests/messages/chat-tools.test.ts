@@ -2,6 +2,8 @@
 import assert from "node:assert/strict";
 import { fileBadge, filterInbox, fold, searchThread, tabCounts } from "../../lib/chat-tools";
 import { isReaction, reactionSummary } from "../../lib/messages-rules";
+import { parseCardLink } from "../../lib/chat-cards";
+
 
 const row = (uid: string, name: string, username: string, lastText: string, unread = 0, group?: string) => ({ id: uid, lastText, unread, with: { uid, username, displayName: name }, ...(group ? { group: { title: group } } : {}) });
 const rows = [
@@ -50,5 +52,18 @@ assert.deepEqual(reactionSummary({ a: "😂", b: "👍", c: "😂" }), [{ emoji:
 assert.deepEqual(reactionSummary(undefined), []);
 assert.deepEqual(reactionSummary({ a: "🔥" }), [], "anything not on the list is ignored");
 assert.ok(isReaction("❤️")); assert.ok(!isReaction("🔥")); assert.ok(!isReaction(""));
+
+// #NotesApp links that get a card: our domains only, the four kinds, not pages like /academy/teach
+const roots = ["notesapp.name.ng", "notesapp.tech"];
+assert.deepEqual(parseCardLink("https://www.notesapp.name.ng/journals/Minding-The-Pay-Gap", roots), { kind: "journal", id: "minding-the-pay-gap" });
+assert.deepEqual(parseCardLink("https://notesapp.tech/shop/AbC_123", roots), { kind: "item", id: "AbC_123" });
+assert.deepEqual(parseCardLink("https://app.notesapp.name.ng/academy/excel-everyday/", roots), { kind: "course", id: "excel-everyday" });
+assert.deepEqual(parseCardLink("https://www.notesapp.name.ng/u/Emmanuel?ref=x", roots), { kind: "profile", id: "emmanuel" });
+assert.equal(parseCardLink("https://www.notesapp.name.ng/academy/teach", roots), null);
+assert.equal(parseCardLink("https://www.notesapp.name.ng/journals/a/comments", roots), null);
+assert.equal(parseCardLink("https://notesapp.name.ng.evil.com/u/emmanuel", roots), null, "look-alike domains don't count");
+assert.equal(parseCardLink("https://example.com/journals/x", roots), null);
+assert.equal(parseCardLink("javascript:alert(1)", roots), null);
+assert.equal(parseCardLink("not a url", roots), null);
 
 console.log("ALL OK");

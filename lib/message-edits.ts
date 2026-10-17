@@ -3,6 +3,7 @@ import { FieldValue } from "firebase-admin/firestore";
 import { randomBytes } from "crypto";
 import { MESSAGE_MAX, isReaction } from "./messages-rules";
 import { MessageError, mutedAmong } from "./messages-server";
+import { dropKept } from "./message-kept";
 import { notifyBell } from "./email";
 
 // Pins, edits and deletes in Messages. Server-only: clients never write messages.
@@ -104,6 +105,7 @@ async function apply(db: Firestore, cid: string, messageId: string, kind: "edit"
   else {
     for (const f of (m.attachments as { key: string }[] | undefined) ?? []) await deleteFile(String(f.key)).catch(() => {});
     await ref.update({ text: "", deleted: { at }, attachments: FieldValue.delete(), sticker: FieldValue.delete(), momentRef: FieldValue.delete(), pendingRequest: FieldValue.delete(), reactions: FieldValue.delete() });
+    await dropKept(db, messageId).catch(() => {}); // kept copies go with it
     const quotes = await convRef.collection("messages").where("replyTo.id", "==", messageId).get();
     for (const q of quotes.docs) await q.ref.update({ "replyTo.text": DELETED_TEXT }).catch(() => {});
   }
