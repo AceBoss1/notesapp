@@ -12,8 +12,9 @@ import ItemCard from "@/components/StoreItemCard";
 import JournalRow from "@/components/JournalRow";
 import { useSavedJournals } from "@/lib/saved-journals-client";
 import { getNoteById, type NoteWithComputed } from "@/lib/firestore-notes";
+import KeptMessages from "@/components/messages/KeptMessages";
 
-// What the member saved: journals (the bookmark in the feed) and store items (the heart on an item). They appear in the order
+// What the member saved: journals (the bookmark in the feed), messages kept from chats and store items (the heart on an item). They appear in the order
 // they load.
 export default function SavedItemsClient() {
   const router = useRouter();
@@ -50,6 +51,7 @@ export default function SavedItemsClient() {
           <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2">{journalList.map((n) => <JournalRow key={n.id} note={n} showAuthor />)}</div>
         </section>
       )}
+      {user && <KeptMessages user={user} />}
       <h2 className="mt-10 font-display text-2xl text-ink">Store items</h2>
       <p className="mt-1 text-sm text-slate">Items you saved with the ♥ in any store. Tap the heart again to remove one.</p>
       {loading ? (

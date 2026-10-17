@@ -120,9 +120,27 @@ const COURSES = [
     const cid = ["u_reader", other].sort().join("_");
     const last = msgs[msgs.length - 1];
     batch.set(db.doc(`conversations/${cid}`), { participants: ["u_reader", other].sort(), createdAt: day(msgs[0][2]), lastMessage: { from: last[0], text: last[1], at: day(last[2]) }, lastMessageAt: day(last[2]), unread: { u_reader: other === "u_emmanuel" ? 2 : 0, [other]: 0 } });
-    msgs.forEach(([from, text, age], i) => batch.set(db.doc(`conversations/${cid}/messages/${String(Date.now() - age * 86_400_000).padStart(13, "0")}_${i}`), { from, text, createdAt: day(age) }));
+    msgs.forEach(([from, text, age], i) => batch.set(db.doc(`conversations/${cid}/messages/${String(Date.now() - age * 86_400_000).padStart(13, "0")}_${i}`), { from, text, createdAt: day(age), ...(other === "u_chimdinma" && i === 0 ? { reactions: { u_reader: "👍" } } : {}), ...(other === "u_chimdinma" && i === 1 ? { readAt: day(2.8), reactions: { u_chimdinma: "❤️" } } : {}) }));
   }
+  // A third, with Ada after a session the reader booked (it shows under the inbox's Bookings filter), with her notes as a PDF.
+  batch.set(db.doc("bookings/demo_ada_session"), { publisherUid: "u_ada", clientUid: "u_reader", status: "completed", title: "First session", startsAt: day(4), endsAt: day(4), priceKobo: 1500000, createdAt: day(6) });
+  batch.set(db.doc("conversations/u_ada_u_reader"), { participants: ["u_ada", "u_reader"], createdAt: day(4), lastMessage: { from: "u_ada", text: "📎 Session-notes-Oct.pdf", at: day(0.2) }, lastMessageAt: day(0.2), unread: { u_reader: 1, u_ada: 0 } });
+  batch.set(db.doc("conversations/u_ada_u_reader/messages/a1"), { from: "u_ada", text: "Thank you for today. Here are the notes from our session, and the two exercises for this week.", createdAt: day(0.21) });
+  // A busy group the reader hasn't opened for a while (the "N new · Summarise" bar), with a #NotesApp link that shows as a card.
+  const crew = ["u_reader", "u_chimdinma", "u_tola", "u_ada"];
+  const said: [string, string][] = [["u_chimdinma", "Morning all! Pay gap piece is live 👉 https://www.notesapp.name.ng/journals/minding-the-pay-gap"], ["u_tola", "Read it on the bus. The coaching numbers surprised me."], ["u_ada", "Same. Therapists charge less than I expected."], ["u_tola", "Should we do a live session on pricing?"], ["u_chimdinma", "Yes, Thursday 6pm works for me."], ["u_ada", "Thursday is fine. I'll bring questions from my clients."], ["u_tola", "I'll set up the room and post the link here."]];
+  batch.set(db.doc("conversations/g_creators"), { kind: "group", title: "Creators circle", participants: crew, adminUids: ["u_chimdinma"], createdBy: "u_chimdinma", scope: "public", createdAt: day(5), readMarker: { u_reader: day(3) }, lastMessage: { from: "u_tola", fromName: "Tola Bello", text: said[said.length - 1][1], at: day(0.1) }, lastMessageAt: day(0.1), unread: { u_reader: said.length, u_chimdinma: 0, u_tola: 0, u_ada: 0 } });
+  said.forEach(([from, text], i) => batch.set(db.doc(`conversations/g_creators/messages/g${i}`), { from, text, createdAt: day(1 - i * 0.12) }));
+  // The reader kept Chimdinma's note about Friday (Saved → From chats).
+  batch.set(db.doc("keptMessages/u_reader_kept1"), { uid: "u_reader", cid: "u_chimdinma_u_reader", messageId: "kept1", from: "u_chimdinma", fromName: "Chimdinma Onwuegbu", chatTitle: "Chimdinma Onwuegbu", text: "The full breakdown drops Friday.", files: [], sentAt: day(1), keptAt: day(0.5) });
+  batch.set(db.doc("conversations/u_ada_u_reader/messages/a2"), { from: "u_ada", text: "", attachments: [{ key: "demo/session-notes.pdf", name: "Session-notes-Oct.pdf", size: 248_000, type: "application/pdf", kind: "document" }], createdAt: day(0.2) });
   await batch.commit();
+  // Emmanuel's picture history (the profile picture viewer): the current one first, then two older ones.
+  for (const [n, url] of [[0, `${I}/headshots/emmanuel-adams-2.jpeg`], [30, `${I}/notes/IMG_6676.jpeg`], [120, `${I}/headshots/emmanuel-adams-1.jpeg`]] as const) {
+    await db.collection("profilePictures").add({ uid: "u_emmanuel", url, createdAt: day(n) });
+  }
+  // Tola typed their links the casual way (handles, a bare address, a phone number); the profile still shows them.
+  await db.doc("users/u_tola").set({ social: { twitter: "@tolabello", instagram: "tola.bello", linkedin: "linkedin.com/in/tolabello", whatsapp: "0803 123 4567", website: "tolabello.com" } }, { merge: true });
   // Precheks' site: the Maroon theme, journals only, an About page.
   await db.doc("users/u_precheks").set({ siteTheme: "maroon", siteSections: { journals: true, shop: false, courses: false }, sitePages: { about: "## About Precheks\n\nBackground checks for African businesses: **identity, address, employment and education**, done in days.", updatedAt: day(0) } }, { merge: true });
   for (const p of PEOPLE.filter((x) => x.email)) {

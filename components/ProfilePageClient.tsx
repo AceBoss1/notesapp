@@ -256,7 +256,7 @@ export default function ProfilePageClient({ params }: { params: { username: stri
       <div className="card -mt-32 flex flex-col items-center gap-5 rounded-[1.75rem] p-6 text-center shadow-sm sm:-mt-16 sm:flex-row sm:items-center sm:gap-8 sm:p-8 sm:text-left">
         {!suspended && !synthetic && realProfile ? (
           // A ring when the member has moments you can see (only when Moments is switched on).
-          <MomentRing username={profile.username} isOwn={isOwnProfile} avatar={profile.avatar} square={isOrgAcct}>
+          <MomentRing username={profile.username} uid={realProfile.uid} name={profile.displayName} isOwn={isOwnProfile} avatar={profile.avatar} square={isOrgAcct}>
             <Avatar square={isOrgAcct} src={profile.avatar} alt={profile.displayName} size={104} />
           </MomentRing>
         ) : (

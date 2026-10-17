@@ -52,7 +52,7 @@ export default function MomentsStrip({ look = "card" }: { look?: "card" | "feed"
   const layers = (
     <>
       {viewing && <MomentViewer key={viewing.ownerUid} moments={viewing.moments} groups={data.groups} onSelectGroup={(g) => setViewing(g)} onClose={() => { setViewing(null); load(); }} onChanged={load} />}
-      {menu && <OwnPictureMenu avatar={data.me.avatar} square={!!mine?.isOrg} hasMoments={!!mine} onViewMoments={() => mine && setViewing(mine)} onAddMoment={() => setComposing(true)} onAvatarChanged={(url) => setData((d) => d && { ...d, me: { ...d.me, avatar: url } })} onClose={() => setMenu(false)} />}
+      {menu && <OwnPictureMenu avatar={data.me.avatar} square={!!mine?.isOrg} hasMoments={!!mine} onViewMoments={() => mine && setViewing(mine)} onAddMoment={() => setComposing(true)} onAvatarChanged={() => window.location.reload()} onClose={() => setMenu(false)} />}
       {composing && <MomentComposer onClose={() => setComposing(false)} onPosted={load} />}
     </>
   );
@@ -63,12 +63,16 @@ export default function MomentsStrip({ look = "card" }: { look?: "card" | "feed"
       <section aria-label="Moments">
         {/* Phones: rings */}
         <div className="flex gap-4 overflow-x-auto border-b border-rule bg-card px-4 py-4 lg:hidden">
-          <button type="button" onClick={() => (mine ? setViewing(mine) : setComposing(true))} onContextMenu={(e) => { e.preventDefault(); setMenu(true); }} className="flex w-16 shrink-0 flex-col items-center gap-1.5" aria-label={mine ? "View your moments" : "Add a moment"}>
-            {mine
-              ? <span className="rounded-full bg-gradient-to-tr from-crimson via-crimson-bright to-amber-400 p-[3px]"><span className="block rounded-full bg-white p-[2px]"><Avatar src={data.me.avatar} alt="" size={54} /></span></span>
-              : <span className="flex h-16 w-16 items-center justify-center rounded-full border-2 border-dashed border-rule text-2xl text-crimson">+</span>}
+          {/* Your own picture, as on your profile: tap it to watch your moments (or, with none, for the menu); the + opens the
+              menu to change your picture or add a moment. */}
+          <div className="relative flex w-16 shrink-0 flex-col items-center gap-1.5">
+            <button type="button" onClick={() => (mine ? setViewing(mine) : setMenu(true))} aria-label={mine ? "View your moments" : "Your profile picture and moments"}
+              className={`rounded-full p-[3px] ${mine ? "bg-gradient-to-tr from-crimson via-crimson-bright to-amber-400" : "border-2 border-dashed border-rule"}`}>
+              <span className="block rounded-full bg-white p-[2px]"><Avatar src={data.me.avatar} alt="" size={mine ? 54 : 52} square={!!mine?.isOrg} /></span>
+            </button>
+            <button type="button" onClick={() => setMenu(true)} aria-label="Change your picture or add a moment" className="absolute left-[42px] top-[42px] flex h-6 w-6 items-center justify-center rounded-full border-2 border-white bg-crimson text-base font-bold leading-none text-white shadow">+</button>
             <span className="text-xs text-slate">You</span>
-          </button>
+          </div>
           {others.map((g) => (
             <button key={g.ownerUid} type="button" onClick={() => setViewing(g)} className="flex w-16 shrink-0 flex-col items-center gap-1.5" aria-label={`View ${g.displayName}'s moments`}>
               <span className={`bg-[#C9A227] p-[3px] ${g.isOrg ? "rounded-2xl" : "rounded-full"}`}><span className={`block bg-white p-[2px] ${g.isOrg ? "rounded-2xl" : "rounded-full"}`}><Avatar src={g.avatar} alt="" size={54} square={!!g.isOrg} /></span></span>
@@ -85,13 +89,13 @@ export default function MomentsStrip({ look = "card" }: { look?: "card" | "feed"
           </div>
           <div className="mt-4 flex gap-3 overflow-x-auto pb-1">
             <div className="relative shrink-0">
-              <button type="button" onClick={() => (mine ? setViewing(mine) : setComposing(true))} className={`relative flex h-[230px] w-[134px] flex-col items-center justify-between overflow-hidden rounded-2xl text-left ${mine ? "" : "border-2 border-dashed border-rule bg-gradient-to-b from-paper to-rule/60"}`} aria-label={mine ? "View your moments" : "Add a moment"}>
+              <button type="button" onClick={() => (mine ? setViewing(mine) : setMenu(true))} className={`relative flex h-[230px] w-[134px] flex-col items-center justify-between overflow-hidden rounded-2xl text-left ${mine ? "" : "border-2 border-dashed border-rule bg-gradient-to-b from-paper to-rule/60"}`} aria-label={mine ? "View your moments" : "Your profile picture and moments"}>
                 {mine && <Preview group={mine} />}
                 <span className="relative mt-3 block rounded-full bg-[#C9A227] p-[2px]"><Avatar src={data.me.avatar} alt="" size={48} /></span>
-                {!mine && <span className="relative flex h-9 w-9 items-center justify-center rounded-full bg-crimson-bright text-lg text-white">+</span>}
                 <span className={`relative w-full px-3 pb-3 text-center font-ui text-sm font-semibold ${mine ? "bg-gradient-to-t from-black/70 to-transparent pt-6 text-white" : "text-ink"}`}>{mine ? "My moments" : "Add a moment"}</span>
               </button>
-              <button type="button" onClick={() => setMenu(true)} aria-label="Your profile picture and moments" className="absolute right-2 top-2 flex h-7 w-7 items-center justify-center rounded-full bg-card/90 text-sm text-ink shadow">⋯</button>
+              {/* The same + as on your profile picture: change your picture, add a moment, view yours. */}
+              <button type="button" onClick={() => setMenu(true)} aria-label="Change your picture or add a moment" className="absolute left-[78px] top-[46px] flex h-7 w-7 items-center justify-center rounded-full border-2 border-white bg-crimson text-lg font-bold leading-none text-white shadow">+</button>
             </div>
             {others.map((g) => {
               const l = latest(g);

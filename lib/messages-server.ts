@@ -46,7 +46,7 @@ export type Alerts = {
 const siteUrl = () => SITE_URL;
 const EMAIL_EVERY_MS = 3_600_000; // at most one message email an hour per member (all conversations together)
 
-export type SendInput = { text: string; moment?: MomentRef; attachmentIds?: string[]; sticker?: string; replyToId?: string };
+export type SendInput = { text: string; moment?: MomentRef; attachmentIds?: string[]; sticker?: string; replyToId?: string; forwarded?: boolean };
 // How the server checks an uploaded file really arrived (a HEAD on the private bucket); injected so it can be tested.
 export type FileDeps = { head: (key: string) => Promise<{ size: number } | null> };
 
@@ -163,7 +163,7 @@ export async function sendMessage(db: Firestore, fromUid: string, toUid: string,
     if (!conv.exists) {
       t.set(convRef, { participants: [fromUid, toUid].sort(), createdAt, unread: { [fromUid]: 0, [toUid]: 0 } });
     }
-    t.set(msgRef, { from: fromUid, text, createdAt, ...(attachments.length ? { attachments } : {}), ...(sticker ? { sticker } : {}), ...(replyTo ? { replyTo } : {}), ...(input.moment ? { momentRef: input.moment } : {}) });
+    t.set(msgRef, { from: fromUid, text, createdAt, ...(attachments.length ? { attachments } : {}), ...(sticker ? { sticker } : {}), ...(replyTo ? { replyTo } : {}), ...(input.moment ? { momentRef: input.moment } : {}), ...(input.forwarded ? { forwarded: true } : {}) });
     t.update(convRef, {
       lastMessage: { from: fromUid, text: preview, at: createdAt, ...(input.moment ? { moment: true } : {}) },
       lastMessageAt: createdAt,
@@ -232,7 +232,7 @@ export async function getThread(db: Firestore, uid: string, cid: string, now = n
     const ref = m.momentRef as MomentRef | undefined;
     return {
       id: d.id, from: m.from, text: m.text, createdAt: m.createdAt, ...(m.readAt ? { readAt: m.readAt } : {}), ...(m.sticker ? { sticker: m.sticker } : {}), ...(m.replyTo ? { replyTo: m.replyTo } : {}),
-      ...(m.removed ? { removed: m.removed } : {}), ...(m.call ? { call: m.call } : {}),
+      ...(m.removed ? { removed: m.removed } : {}), ...(m.call ? { call: m.call } : {}), ...(m.reactions && Object.keys(m.reactions).length ? { reactions: m.reactions } : {}), ...(m.forwarded ? { forwarded: true } : {}),
       ...(m.attachments ? { attachments: (m.attachments as MessageAttachment[]).map(({ key: _k, ...info }) => info) } : {}),
       // Only whether it has expired — never the moment's content.
       ...(ref ? { moment: { momentId: ref.momentId, expired: isMomentExpired(ref.expiresAt, now) } } : {}),
@@ -245,6 +245,18 @@ export async function getThread(db: Firestore, uid: string, cid: string, now = n
 
 export function groupInfoOf(conv: FirebaseFirestore.DocumentData): GroupInfo {
   return { title: String(conv.title ?? "Group"), scope: conv.scope === "team" ? "team" : "public", memberUids: conv.participants as string[], adminUids: (conv.adminUids as string[] | undefined) ?? [], createdBy: String(conv.createdBy ?? ""), ...(conv.meetingId ? { meetingId: String(conv.meetingId) } : {}), ...(conv.avatar ? { avatar: String(conv.avatar) } : {}), ...(conv.sendLocked === true ? { sendLocked: true } : {}), bannedUids: (conv.bannedUids as string[] | undefined) ?? [] };
+}
+
+// Who you have bookings or store orders with (either side), so the inbox can show those chats under Bookings and Orders. Four one-field
+// queries, newest 500 of each; only the other person's id comes back.
+export async function chatContexts(db: Firestore, uid: string): Promise<{ bookings: string[]; orders: string[] }> {
+  const pick = async (col: string, mine: string, other: string) =>
+    (await db.collection(col).where(mine, "==", uid).select(other).limit(500).get()).docs.map((d) => String(d.data()[other] ?? "")).filter((u) => u && u !== uid);
+  const [b1, b2, o1, o2] = await Promise.all([
+    pick("bookings", "publisherUid", "clientUid"), pick("bookings", "clientUid", "publisherUid"),
+    pick("storeOrders", "sellerUid", "buyerUid"), pick("storeOrders", "buyerUid", "sellerUid"),
+  ].map((p) => p.catch(() => [] as string[])));
+  return { bookings: Array.from(new Set([...b1, ...b2])), orders: Array.from(new Set([...o1, ...o2])) };
 }
 
 // Total unread across conversations (the number beside "Messages" in the menu).

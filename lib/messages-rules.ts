@@ -32,7 +32,18 @@ export type ThreadMessage = {
   editedAt?: string; // changed by its sender (lib/message-edits.ts)
   deleted?: { at: string }; // deleted by its sender
   pendingRequest?: { id: string; kind: "edit" | "delete"; text?: string; readers: string[]; approved: string[]; expiresAt: string }; // waiting for the readers to agree
+  reactions?: Record<string, string>; // uid → one of REACTIONS (one each; lib/message-edits.ts)
+  forwarded?: boolean; // sent on from another chat (lib/message-forward.ts)
 };
+
+// Reactions: one per person per message, from this short list (as in most messengers).
+export const REACTIONS = ["👍", "❤️", "😂", "😮", "😢", "🙏"] as const;
+export const isReaction = (e: unknown): e is (typeof REACTIONS)[number] => typeof e === "string" && (REACTIONS as readonly string[]).includes(e);
+// The chips under a bubble: each emoji used, how many and who, in the list's order.
+export function reactionSummary(r: Record<string, string> | undefined): { emoji: string; count: number; uids: string[] }[] {
+  if (!r) return [];
+  return REACTIONS.map((emoji) => ({ emoji, uids: Object.keys(r).filter((u) => r[u] === emoji) as string[] })).filter((x) => x.uids.length).map((x) => ({ ...x, count: x.uids.length }));
+}
 
 export const REMOVED_TEXT = { admin: "Message removed by a group admin", notesapp: "Message removed by #NotesApp" } as const;
 

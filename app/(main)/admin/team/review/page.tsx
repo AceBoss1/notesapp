@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useAdminAuth } from "@/lib/useAdminAuth";
 import { formatNaira } from "@/lib/booking-time";
-import { addDays, reviewSummary, type Meeting, type Milestone, type Progress, type Review, type WeekNumbers, type WeekWork } from "@/lib/team";
+import { addDays, ownerNames, reviewSummary, type Meeting, type Milestone, type Progress, type Review, type WeekNumbers, type WeekWork } from "@/lib/team";
 
 type Person = { uid: string; name: string; email: string };
 type Data = {
@@ -96,10 +96,10 @@ export default function WeeklyReviewPage() {
         <section className="card p-5">
           <h2 className="font-display text-2xl">Work</h2>
           <p className="mt-1 text-sm text-slate">{data.work.done.length} done · {data.work.created} added · {data.work.carriedOver.length} carried over · {data.work.overdue} overdue</p>
-          {data.work.done.length > 0 && <><p className="mt-3 font-ui text-sm font-bold text-ink">Done</p><ul className="mt-1 space-y-1 text-sm text-ink">{data.work.done.map((x) => <li key={x.id}>✔ {x.title} <span className="text-xs text-slate">{x.ownerUid ? nameOf(x.ownerUid) : ""}</span></li>)}</ul></>}
+          {data.work.done.length > 0 && <><p className="mt-3 font-ui text-sm font-bold text-ink">Done</p><ul className="mt-1 space-y-1 text-sm text-ink">{data.work.done.map((x) => <li key={x.id}>✔ {x.title} <span className="text-xs text-slate">{ownerNames(x, nameOf)}</span></li>)}</ul></>}
           {data.work.decisions.length > 0 && <><p className="mt-3 font-ui text-sm font-bold text-crimson">Still waiting for a decision</p><ul className="mt-1 space-y-1 text-sm">{data.work.decisions.map((x) => <li key={x.id}>{x.decisionQuestion || x.title}</li>)}</ul></>}
           {data.work.blocked.length > 0 && <><p className="mt-3 font-ui text-sm font-bold text-amber-900">Still blocked</p><ul className="mt-1 space-y-1 text-sm">{data.work.blocked.map((x) => <li key={x.id}>{x.title}: <span className="text-slate">{x.blockedReason}</span></li>)}</ul></>}
-          {data.work.carriedOver.length > 0 && <><p className="mt-3 font-ui text-sm font-bold text-ink">Carried over</p><ul className="mt-1 space-y-1 text-sm text-ink">{data.work.carriedOver.slice(0, 12).map((x) => <li key={x.id}>{x.title} <span className="text-xs text-slate">{x.ownerUid ? nameOf(x.ownerUid) : "unassigned"}{x.due ? `, due ${x.due}` : ""}</span></li>)}</ul></>}
+          {data.work.carriedOver.length > 0 && <><p className="mt-3 font-ui text-sm font-bold text-ink">Carried over</p><ul className="mt-1 space-y-1 text-sm text-ink">{data.work.carriedOver.slice(0, 12).map((x) => <li key={x.id}>{x.title} <span className="text-xs text-slate">{ownerNames(x, nameOf) || "unassigned"}{x.due ? `, due ${x.due}` : ""}</span></li>)}</ul></>}
         </section>
 
         <div className="space-y-6">

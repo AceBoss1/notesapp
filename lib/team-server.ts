@@ -8,7 +8,7 @@ import type { Traction } from "./traction";
 import { createGroup, sendGroupMessage, syncMembers, syncTeamRoom, type GroupDeps } from "./groups-server";
 import {
   TeamError, canSeeMeeting, cleanItem, cleanMeeting, cleanComment, cleanReview, focusLines, buildMorningSummary, bucketWeeks, weekStart, weekEnd, lagosDay, lagosParts, type Review, type TeamComment, type WeekNumbers, MEETING_STATUSES, type Meeting, type MeetingStatus, cleanMilestone, metricValue, statusEffects, lagosDate, addDays,
-  milestoneProgress, type Milestone, type TeamItem, type Status, workReminders, workReminderLine,
+  milestoneProgress, type Milestone, type TeamItem, type Status, workReminders, workReminderLine, ownersOf, nextMonthly,
 } from "./team";
 import { SITE_URL } from "@/lib/host";
 
@@ -56,13 +56,15 @@ export async function listTeam(db: Firestore) {
   return { items, milestones };
 }
 
-const DEFAULTS = { detail: "", ownerUid: "", status: "todo", horizon: "week", due: "", blockedReason: "", decisionQuestion: "", decidedNote: "" } as const;
+const DEFAULTS = { detail: "", ownerUid: "", ownerUids: [] as string[], repeat: "", status: "todo", horizon: "week", due: "", blockedReason: "", decisionQuestion: "", decidedNote: "" } as const;
 
-// Tells someone they have been given a work item (never the person who did it).
-async function tellAssignee(db: Firestore, actorUid: string, ownerUid: string, title: string, due: string) {
-  if (!ownerUid || ownerUid === actorUid) return;
+// Tells each person they have been given a work item (never the person who did it).
+async function tellAssignees(db: Firestore, actorUid: string, uids: string[], title: string, due: string, only = uids) {
+  const to = only.filter((u) => u && u !== actorUid);
+  if (!to.length) return;
   const people = await listTeamPeople(db).catch(() => [] as Person[]);
-  await notifyBell({ uid: ownerUid, type: "team", linkHref: "/admin/team", message: `${nameIn(people, actorUid)} assigned you “${title}”${due ? ` (due ${due})` : ""}.` }).catch(() => {});
+  const others = (n: number) => (n > 0 ? ` with ${n} other${n === 1 ? "" : "s"}` : "");
+  await Promise.all(to.map((uid) => notifyBell({ uid, type: "team", linkHref: "/admin/team", message: `${nameIn(people, actorUid)} assigned you “${title}”${others(uids.length - 1)}${due ? ` (due ${due})` : ""}.` }).catch(() => {})));
 }
 
 export async function createItem(db: Firestore, adminUid: string, body: Record<string, unknown>) {
@@ -73,7 +75,7 @@ export async function createItem(db: Firestore, adminUid: string, body: Record<s
   const item = { ...DEFAULTS, ...c, status, createdByUid: adminUid, createdAt: now, updatedAt: now, doneAt: status === "done" ? now : "" };
   if (status === "decision" && !item.decisionQuestion) item.decisionQuestion = item.title ?? "";
   const ref = await db.collection(ITEMS).add(item);
-  await tellAssignee(db, adminUid, String(item.ownerUid ?? ""), String(item.title ?? ""), String(item.due ?? ""));
+  await tellAssignees(db, adminUid, item.ownerUids ?? [], String(item.title ?? ""), String(item.due ?? ""));
   return { id: ref.id };
 }
 
@@ -88,11 +90,17 @@ export async function updateItem(db: Firestore, id: string, body: Record<string,
   if (next.status === "blocked" && !next.blockedReason) throw new TeamError("Say what it is blocked on.");
   if (next.status === "decision" && !next.decisionQuestion) next.decisionQuestion = next.title;
   if (c.status && c.status !== "blocked" && !("blockedReason" in body)) next.blockedReason = c.status === "done" ? next.blockedReason : "";
-  // A new date or a new owner starts the deadline reminders afresh.
-  const fresh = ("due" in c && c.due !== prev.due) || ("ownerUid" in c && c.ownerUid !== prev.ownerUid);
-  const patch = { ...c, ...(next.decisionQuestion !== prev.decisionQuestion ? { decisionQuestion: next.decisionQuestion } : {}), blockedReason: next.blockedReason, ...statusEffects(next.status, prev.status, now), ...(fresh ? { remindedDays: [] } : {}), updatedAt: now };
+  // A monthly item marked done stays open: the due date moves on a month and its reminders start again.
+  const rolls = next.repeat === "monthly" && c.status === "done" && prev.status !== "done";
+  if (rolls) Object.assign(c, { status: "todo", due: nextMonthly(next.due, lagosDate()), lastDoneAt: now });
+  // A new date or new people start the deadline reminders afresh.
+  const before = ownersOf(prev), after = c.ownerUids ?? before;
+  const added = after.filter((u) => !before.includes(u));
+  const fresh = ("due" in c && c.due !== prev.due) || added.length > 0;
+  const patch = { ...c, ...(next.decisionQuestion !== prev.decisionQuestion ? { decisionQuestion: next.decisionQuestion } : {}), blockedReason: rolls ? "" : next.blockedReason, ...(rolls ? {} : statusEffects(next.status, prev.status, now)), ...(fresh ? { remindedDays: [] } : {}), updatedAt: now };
   await ref.update(patch);
-  if ("ownerUid" in c && c.ownerUid && c.ownerUid !== prev.ownerUid) await tellAssignee(db, actorUid, String(c.ownerUid), next.title, next.due);
+  if (added.length) await tellAssignees(db, actorUid, after, next.title, String(c.due ?? next.due), added); // only the people just added
+  return rolls ? { rolledTo: String(c.due) } : {};
 }
 
 export async function deleteItem(db: Firestore, id: string) {
@@ -199,7 +207,7 @@ export async function addComment(db: Firestore, adminUid: string, itemId: string
   if (!item) throw new TeamError("That item no longer exists.", 404);
   const c = await ref.collection("discussion").add({ byUid: adminUid, text: t, createdAt: now.toISOString() });
   await ref.update({ commentCount: FieldValue.increment(1) });
-  const who = Array.from(new Set([item.ownerUid, item.createdByUid].filter((u) => u && u !== adminUid)));
+  const who = Array.from(new Set([...ownersOf(item), item.createdByUid].filter((u) => u && u !== adminUid)));
   await Promise.all(who.map((uid) => notify({ uid, type: "team", linkHref: "/admin/team", message: `${nameIn(people, adminUid)} commented on “${item.title}”: ${t.slice(0, 100)}` }).catch(() => {})));
   return { id: c.id };
 }
@@ -251,10 +259,12 @@ export async function sendWorkReminders(db: Firestore, now = new Date(), deps: D
     const due = workReminders(item, today);
     if (!due.length) continue;
     await d.ref.update({ remindedDays: [...(item.remindedDays ?? []), ...due] }); // marked first, so a failed send can't repeat every run
-    const o = byOwner.get(item.ownerUid) ?? { lines: [], urgent: false };
-    o.lines.push(`- ${workReminderLine(item, today)}`);
-    o.urgent ||= due.some((n) => n <= 1);
-    byOwner.set(item.ownerUid, o);
+    for (const uid of ownersOf(item)) { // everyone it's assigned to gets the reminder
+      const o = byOwner.get(uid) ?? { lines: [], urgent: false };
+      o.lines.push(`- ${workReminderLine(item, today)}`);
+      o.urgent ||= due.some((n) => n <= 1);
+      byOwner.set(uid, o);
+    }
   }
   let sent = 0;
   for (const [uid, o] of Array.from(byOwner.entries())) {

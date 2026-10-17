@@ -8,7 +8,7 @@ import { GranolaError, askGranola } from "@/lib/granola";
 import { granolaQuestion, onlyNew, parseGranolaSections, suggestFromChat } from "@/lib/meeting-extract";
 import { NanaError } from "@/lib/nana";
 import { rateLimit } from "@/lib/rate-limit";
-import { AGENT_LAYER_BACKLOG, AGENT_SCOPE_DOC, ENGINEERING_BACKLOG, COURSES_BACKLOG, FUND_BACKLOG, LAUNCH_BACKLOG, TOPICS_BACKLOG, LIFE_PARTNER_BACKLOG, seedDocOnce, seedOnce } from "@/lib/team-seed";
+import { AGENT_LAYER_BACKLOG, AGENT_SCOPE_DOC, BIMI_BACKLOG, ENGINEERING_BACKLOG, COURSES_BACKLOG, FUND_BACKLOG, LAUNCH_BACKLOG, TOPICS_BACKLOG, LIFE_PARTNER_BACKLOG, seedDocOnce, seedOnce } from "@/lib/team-seed";
 
 export const dynamic = "force-dynamic";
 const bearer = (req: NextRequest) => req.headers.get("authorization")?.replace(/^Bearer\s+/i, "");
@@ -56,6 +56,7 @@ export async function GET(req: NextRequest) {
       await seedOnce(db, "launch-v037-2026-10", LAUNCH_BACKLOG, me).catch(() => 0);
       await seedOnce(db, "courses-plan-2026-10", COURSES_BACKLOG, me).catch(() => 0);
       await seedOnce(db, "topics-launch-2026-10", TOPICS_BACKLOG, me).catch(() => 0);
+      await seedOnce(db, "bimi-cmc-2026-10", BIMI_BACKLOG, me).catch(() => 0);
     }
     const people0 = await listTeamPeople(db);
     await syncTeamRooms(db, me, people0.map((p) => p.uid)).catch(() => {}); // the Team room and upcoming meetings follow who is on the team
@@ -83,7 +84,7 @@ export async function POST(req: NextRequest) {
     if (["updateMeeting", "addDecision", "removeDecision", "addMeetingAction", "suggestFromChat", "suggestFromGranola"].includes(String(body.action)) && !canSeeMeeting(await getMeeting(db, id), me, acc.owner)) throw new TeamError("That meeting wasn't found.", 404);
     switch (body.action) {
       case "createItem": return NextResponse.json(await createItem(db, me, body));
-      case "updateItem": await updateItem(db, id, body, me); break;
+      case "updateItem": return NextResponse.json({ ok: true, ...(await updateItem(db, id, body, me)) });
       case "deleteItem": await deleteItem(db, id); break;
       case "createMilestone": return NextResponse.json(await createMilestone(db, me, body));
       case "deleteMilestone": await deleteMilestone(db, id); break;

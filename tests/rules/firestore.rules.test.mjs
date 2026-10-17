@@ -285,6 +285,15 @@ test("store items: category from the list, ships-from 2 to 60 characters; saves 
   await assertFails(deleteDoc(doc(as("alice"), "storeFavorites/alice_c1")));
 });
 
+test("past profile pictures: anyone can see them, only the server writes them", async () => {
+  await env.withSecurityRulesDisabled(async (ctx) => {
+    await setDoc(doc(ctx.firestore(), "profilePictures/p1"), { uid: "alice", url: "/images/headshots/a.jpg", createdAt: "2026-10-17T00:00:00Z" });
+  });
+  await assertSucceeds(getDoc(doc(anon(), "profilePictures/p1")));
+  await assertFails(setDoc(doc(as("alice"), "profilePictures/p2"), { uid: "alice", url: "/images/x.jpg", createdAt: "x" }));
+  await assertFails(deleteDoc(doc(as("alice"), "profilePictures/p1")));
+});
+
 test("saved journals: a member reads only their own, and only the server writes them", async () => {
   await env.withSecurityRulesDisabled(async (ctx) => {
     await setDoc(doc(ctx.firestore(), "savedJournals/alice_n1"), { uid: "alice", noteId: "n1", savedAt: "2026-10-17T00:00:00Z" });
@@ -294,6 +303,18 @@ test("saved journals: a member reads only their own, and only the server writes 
   await assertFails(getDoc(doc(anon(), "savedJournals/alice_n1")));
   await assertFails(setDoc(doc(as("alice"), "savedJournals/alice_n2"), { uid: "alice", noteId: "n2", savedAt: "x" }));
   await assertFails(deleteDoc(doc(as("alice"), "savedJournals/alice_n1")));
+});
+
+test("kept messages: a member reads only their own, and only the server writes them", async () => {
+  await env.withSecurityRulesDisabled(async (ctx) => {
+    await setDoc(doc(ctx.firestore(), "keptMessages/alice_m1"), { uid: "alice", cid: "alice_bob", messageId: "m1", text: "Lunch at 1?" });
+  });
+  await assertSucceeds(getDoc(doc(as("alice"), "keptMessages/alice_m1")));
+  await assertSucceeds(getDocs(query(collection(as("alice"), "keptMessages"), where("uid", "==", "alice"))));
+  await assertFails(getDoc(doc(as("bob"), "keptMessages/alice_m1")));
+  await assertFails(getDocs(collection(as("bob"), "keptMessages")));
+  await assertFails(setDoc(doc(as("alice"), "keptMessages/alice_m2"), { uid: "alice", messageId: "m2", text: "x" }));
+  await assertFails(deleteDoc(doc(as("alice"), "keptMessages/alice_m1")));
 });
 
 test("courses: published ones and their lessons are public, drafts and every write stay with the server", async () => {

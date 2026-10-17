@@ -1,4 +1,4 @@
-import { DeleteObjectCommand, GetObjectCommand, HeadObjectCommand, PutObjectCommand } from "@aws-sdk/client-s3";
+import { CopyObjectCommand, DeleteObjectCommand, GetObjectCommand, HeadObjectCommand, PutObjectCommand } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import { getR2Client } from "./r2";
 import { setting } from "@/lib/config";
@@ -37,6 +37,11 @@ export async function headObject(key: string): Promise<{ size: number } | null> 
   } catch {
     return null;
   }
+}
+
+// A copy inside the private bucket (a forwarded message gets its own copy of each file, so deleting one message never breaks another).
+export async function copyObject(from: string, to: string): Promise<void> {
+  await getR2Client().send(new CopyObjectCommand({ Bucket: privateBucket(), Key: to, CopySource: `${privateBucket()}/${encodeURIComponent(from)}` }));
 }
 
 export async function deleteObject(key: string): Promise<void> {

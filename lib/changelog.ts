@@ -11,6 +11,44 @@ export type Release = {
 
 export const CHANGELOG: Release[] = [
   {
+    version: "v0.45.0",
+    bump: "minor",
+    date: "2026-10-17",
+    changes: [
+      { kind: "added", text: "Forward a message to up to five of your chats at once; it shows \"Forwarded\". Files go with it. Your own message can also start a new journal draft." },
+      { kind: "added", text: "Keep: save any message to Saved → From chats, a list only you can see, with a link back to the chat. If the sender deletes the message, it leaves your list too." },
+      { kind: "added", text: "#NotesApp links in messages show as cards: a journal (Read), a store item with its price (Buy), a free course (Enrol) or a profile." },
+      { kind: "added", text: "Nana in your chats: \"Summarise\" tells you what you missed when a chat has five or more new messages (or any time, from the chat's menu), and Translate puts a message into English, Pidgin, Yorùbá, Igbo or Hausa." },
+      { kind: "fixed", text: "A long link no longer pushes a message bubble past the edge of a phone screen." },
+    ],
+  },
+  {
+    version: "v0.44.0",
+    bump: "minor",
+    date: "2026-10-17",
+    changes: [
+      { kind: "added", text: "Chat essentials: react to any message (👍 ❤️ 😂 😮 😢 🙏). The reactions show under the bubble; tap one to add yours or take it off, and the sender gets a bell." },
+      { kind: "changed", text: "Every message has one menu: right-click on a computer, hold it on a phone, or tap ⋯. Reactions on top, then Reply, Copy, Pin, Message info (when it was sent and read; in a group, who has read it), Select, Edit and Delete." },
+      { kind: "added", text: "Select several messages to copy them together or delete your own in one go (read ones still wait for the readers to agree)." },
+      { kind: "added", text: "Search: the Messages list has a search box (names, @handles, group names and the last message), and \"Search in this chat\" finds words and file names in a conversation, with ↑ ↓ to step through." },
+      { kind: "added", text: "Filters above your chats: All, Unread, Groups, and Bookings and Orders for chats with people you have a session or a store order with." },
+      { kind: "changed", text: "Files show as cards with the type, size, Open (PDFs) and Save; pictures and videos have Save under them." },
+      { kind: "added", text: "On a phone, swipe a message to the right to reply to it." },
+    ],
+  },
+  {
+    version: "v0.43.0",
+    bump: "minor",
+    date: "2026-10-17",
+    changes: [
+      { kind: "added", text: "Profile pictures, like Facebook: tap someone's picture to see their profile pictures, newest first, and swipe (or use ‹ ›) through the older ones, with the date of each. Pictures are kept from your next change on; you can take an old one out of your history." },
+      { kind: "changed", text: "In the journal feed, your own picture has the same + as on your profile: change your picture, add a moment or see yours." },
+      { kind: "added", text: "For the team: a work item can be assigned to several people at once. Tick each person, or Select all; everyone on it gets the bell, the deadline reminders, the comments and the item in their morning summary. Meeting invites have Select all too." },
+      { kind: "added", text: "For the team: work items can repeat every month. \"Done this month\" moves the due date on a month and the reminders start again, so a monthly check never drops off the board." },
+      { kind: "fixed", text: "Social links show on every profile, not just some: an address without https://, an @handle or a WhatsApp number now works, and Edit profile tells you if a link can't be read." },
+    ],
+  },
+  {
     version: "v0.42.0",
     bump: "minor",
     date: "2026-10-17",

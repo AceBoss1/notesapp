@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import type { SocialLinks } from "@/lib/admin";
+import { socialHref } from "@/lib/social-links";
 import { FacebookIcon, GlobeIcon, InstagramIcon, LinkedInIcon, TikTokIcon, WhatsAppIcon, XIcon } from "@/components/ContactIcons";
 
 const LINKS: { key: keyof SocialLinks; label: string; icon: ReactNode }[] = [
@@ -13,16 +14,17 @@ const LINKS: { key: keyof SocialLinks; label: string; icon: ReactNode }[] = [
 ];
 
 // A member's social links, as saved on Edit profile, shown as a row of icons (the name is the hover text and the screen-reader
-// label). Only http(s) URLs are rendered as links (the value is user-entered).
+// label). What they typed is read by socialHref: full addresses, bare ones, handles and WhatsApp numbers all work; anything
+// it can't read isn't shown.
 export default function SocialLinksRow({ social, className = "" }: { social?: SocialLinks; className?: string }) {
-  const links = LINKS.filter((l) => /^https?:\/\//i.test(social?.[l.key] || ""));
+  const links = LINKS.map((l) => ({ ...l, href: socialHref(l.key, social?.[l.key]) })).filter((l): l is typeof l & { href: string } => !!l.href);
   if (links.length === 0) return null;
   return (
     <p className={`mt-3 flex flex-wrap gap-2 ${className}`}>
       {links.map((l) => (
         <a
           key={l.key}
-          href={social![l.key]}
+          href={l.href}
           target="_blank"
           rel="noopener noreferrer nofollow"
           title={l.label}

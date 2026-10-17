@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useAdminAuth } from "@/lib/useAdminAuth";
 import Thread from "@/components/messages/Thread";
 import MessagesBoundary from "@/components/messages/MessagesBoundary";
-import { lagosParts, meetingSummary, meetingTeamLabel, type Meeting, type TeamItem } from "@/lib/team";
+import { lagosParts, meetingSummary, meetingTeamLabel, ownerNames, type Meeting, type TeamItem } from "@/lib/team";
 
 type Person = { uid: string; name: string; email: string };
 type Data = { me: string; meeting: Meeting; actions: TeamItem[]; people: Person[] };
@@ -159,7 +159,7 @@ export default function MeetingPage({ params }: { params: { id: string } }) {
               {actions.map((a) => (
                 <li key={a.id} className="text-sm text-ink">
                   <span className={a.status === "done" ? "text-slate line-through" : ""}>{a.title}</span>{" "}
-                  <span className="text-[11px] text-slate">{a.ownerUid ? nameOf(a.ownerUid) : "unassigned"}{a.due ? ` · due ${a.due}` : ""} · {a.status === "done" ? "done" : "on the board"}</span>
+                  <span className="text-[11px] text-slate">{ownerNames(a, nameOf) || "unassigned"}{a.due ? ` · due ${a.due}` : ""} · {a.status === "done" ? "done" : "on the board"}</span>
                 </li>
               ))}
             </ul>

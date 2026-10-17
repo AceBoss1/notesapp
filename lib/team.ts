@@ -14,7 +14,10 @@ export type TeamItem = {
   id: string;
   title: string;
   detail: string;
-  ownerUid: string; // "" = unassigned
+  ownerUid: string; // the first person it's assigned to ("" = unassigned); kept beside ownerUids for older readers
+  ownerUids?: string[]; // everyone it's assigned to (older items have only ownerUid)
+  repeat?: Repeat; // "monthly": marking it done moves the due date on a month instead of closing it
+  lastDoneAt?: string; // when a repeating item was last done
   depts?: string[]; // the departments it's assigned to (lib/admin-access.ts DEPARTMENTS)
   seedKey?: string; // set on items added by a seed (lib/team-seed.ts), so a seed never adds the same item twice
   status: Status;
@@ -32,6 +35,19 @@ export type TeamItem = {
   commentCount?: number;
 };
 
+export const REPEATS = ["", "monthly"] as const;
+export type Repeat = (typeof REPEATS)[number];
+export const REPEAT_LABEL: Record<Repeat, string> = { "": "Doesn't repeat", monthly: "Every month" };
+
+// Everyone a work item is assigned to: the list when there is one, otherwise the single owner of older items.
+export const ownersOf = (i: Pick<TeamItem, "ownerUid" | "ownerUids">): string[] => (i.ownerUids?.length ? i.ownerUids : i.ownerUid ? [i.ownerUid] : []);
+export const isOwner = (i: Pick<TeamItem, "ownerUid" | "ownerUids">, uid: string) => ownersOf(i).includes(uid);
+// "Ada", "Ada and Tunde", "Ada, Tunde and 2 others".
+export function ownerNames(i: Pick<TeamItem, "ownerUid" | "ownerUids">, nameOf: (uid: string) => string): string {
+  const n = ownersOf(i).map(nameOf);
+  return n.length <= 2 ? n.join(" and ") : `${n[0]}, ${n[1]} and ${n.length - 2} other${n.length === 3 ? "" : "s"}`;
+}
+
 const DATE = /^\d{4}-\d{2}-\d{2}$/;
 const clip = (v: unknown, n: number) => (typeof v === "string" ? v.trim().slice(0, n) : "");
 
@@ -43,6 +59,20 @@ export function lagosDate(now = new Date()): string {
 export const lagosDay = (iso: string) => lagosDate(new Date(iso));
 export function addDays(date: string, days: number): string {
   return new Date(new Date(`${date}T00:00:00Z`).getTime() + days * 86_400_000).toISOString().slice(0, 10);
+}
+// The same day next month; the 31st becomes the last day of a shorter month (31 Jan → 28 Feb).
+export function addMonths(date: string, months: number): string {
+  const [y, m, d] = date.split("-").map(Number);
+  const first = new Date(Date.UTC(y, m - 1 + months, 1));
+  const last = new Date(Date.UTC(first.getUTCFullYear(), first.getUTCMonth() + 1, 0)).getUTCDate();
+  return new Date(Date.UTC(first.getUTCFullYear(), first.getUTCMonth(), Math.min(d, last))).toISOString().slice(0, 10);
+}
+// The next due date of a monthly item once it's done: a month on from its due date, and never today or earlier (one done late goes to
+// the first monthly date after today).
+export function nextMonthly(due: string, today: string): string {
+  let next = addMonths(due || today, 1);
+  for (let k = 2; next <= today && k < 600; k++) next = addMonths(due || today, k);
+  return next;
 }
 
 export class TeamError extends Error {
@@ -62,7 +92,19 @@ export function cleanItem(body: Record<string, unknown>, partial: boolean): Part
     out.title = t;
   }
   if (has("detail")) out.detail = clip(body.detail, 2000);
-  if (has("ownerUid")) out.ownerUid = clip(body.ownerUid, 128);
+  // Several people (ownerUids) or one (ownerUid, as older callers send it). Both are stored: ownerUid is the first of the list.
+  if (has("ownerUids") && Array.isArray(body.ownerUids)) {
+    out.ownerUids = Array.from(new Set(body.ownerUids.map((u) => clip(u, 128)).filter(Boolean))).slice(0, 50);
+    out.ownerUid = out.ownerUids[0] ?? "";
+  } else if (has("ownerUid")) {
+    out.ownerUid = clip(body.ownerUid, 128);
+    out.ownerUids = out.ownerUid ? [out.ownerUid] : [];
+  }
+  if (has("repeat")) {
+    const r = body.repeat ?? "";
+    if (!REPEATS.includes(r as Repeat)) throw new TeamError("Unknown repeat.");
+    out.repeat = r as Repeat;
+  }
   if (has("depts")) out.depts = Array.isArray(body.depts) ? Array.from(new Set(body.depts.filter((d): d is string => typeof d === "string" && DEPARTMENTS.some((x) => x.key === d)))) : [];
   if (has("status")) {
     const s = body.status ?? "todo";
@@ -98,8 +140,8 @@ export const isOverdue = (i: TeamItem, today: string) => isOpen(i) && !!i.due &&
 // Deadline reminders to the person a work item is assigned to: 3 days and 1 day before, on the day, then once when it is overdue.
 export const WORK_REMIND_DAYS = [3, 1, 0];
 const dayDiff = (from: string, to: string) => Math.round((Date.parse(`${to}T12:00:00Z`) - Date.parse(`${from}T12:00:00Z`)) / 86_400_000);
-export function workReminders(i: Pick<TeamItem, "status" | "due" | "ownerUid" | "remindedDays">, today: string): number[] {
-  if (i.status === "done" || !i.due || !i.ownerUid) return [];
+export function workReminders(i: Pick<TeamItem, "status" | "due" | "ownerUid" | "ownerUids" | "remindedDays">, today: string): number[] {
+  if (i.status === "done" || !i.due || !ownersOf(i).length) return [];
   const sent = i.remindedDays ?? [];
   const left = dayDiff(today, i.due);
   if (left < 0) return sent.includes(-1) ? [] : [-1];
@@ -267,7 +309,7 @@ export function meetingSummary(m: Meeting, actions: TeamItem[], nameOf: (uid: st
   const lines = [`${m.title} (${when.date}, ${when.time})`];
   if (m.agenda) lines.push("", "Agenda:", m.agenda);
   if (m.decisions.length) lines.push("", "Decisions:", ...m.decisions.map((d) => `- ${d.text}`));
-  if (actions.length) lines.push("", "Actions:", ...actions.map((a) => `- ${a.title}${a.ownerUid ? ` (${nameOf(a.ownerUid)})` : ""}${a.due ? `, due ${a.due}` : ""}${a.status === "done" ? " [done]" : ""}`));
+  if (actions.length) lines.push("", "Actions:", ...actions.map((a) => `- ${a.title}${ownersOf(a).length ? ` (${ownerNames(a, nameOf)})` : ""}${a.due ? `, due ${a.due}` : ""}${a.status === "done" ? " [done]" : ""}`));
   if (m.notes) lines.push("", "Notes:", m.notes);
   return lines.join("\n");
 }
@@ -298,7 +340,7 @@ export type Digest = { subject: string; text: string; bell: string; empty: boole
 
 export function buildMorningSummary(i: DigestInput): Digest {
   const g = groupItems(i.items, i.today);
-  const mine = (x: TeamItem) => x.ownerUid === i.uid;
+  const mine = (x: TeamItem) => isOwner(x, i.uid);
   const todayMine = g.today.filter(mine);
   const overdueMine = g.overdue.filter((x) => mine(x) && x.status !== "blocked" && x.status !== "decision");
   const doneYesterday = i.items.filter((x) => x.status === "done" && x.doneAt && lagosDay(x.doneAt) === addDays(i.today, -1)).length;
@@ -307,8 +349,8 @@ export function buildMorningSummary(i: DigestInput): Digest {
   if (todayMine.length) lines.push("", `Your day (${todayMine.length})`, ...todayMine.map((x) => `- ${x.title}${dated(x)}${isOverdue(x, i.today) ? " [overdue]" : ""}`));
   else lines.push("", "Nothing is set for you today.");
   if (i.meetingsToday.length) lines.push("", "Meetings today", ...i.meetingsToday.map((m) => `- ${m.time} ${m.title}`));
-  if (g.decisions.length) lines.push("", `Waiting for a decision (${g.decisions.length})`, ...g.decisions.slice(0, 8).map((x) => `- ${x.decisionQuestion || x.title}${x.ownerUid ? ` (${i.nameOf(x.ownerUid)})` : ""}`));
-  if (g.blocked.length) lines.push("", `Blocked (${g.blocked.length})`, ...g.blocked.slice(0, 8).map((x) => `- ${x.title}: ${x.blockedReason}${x.ownerUid ? ` (${i.nameOf(x.ownerUid)})` : ""}`));
+  if (g.decisions.length) lines.push("", `Waiting for a decision (${g.decisions.length})`, ...g.decisions.slice(0, 8).map((x) => `- ${x.decisionQuestion || x.title}${ownersOf(x).length ? ` (${ownerNames(x, i.nameOf)})` : ""}`));
+  if (g.blocked.length) lines.push("", `Blocked (${g.blocked.length})`, ...g.blocked.slice(0, 8).map((x) => `- ${x.title}: ${x.blockedReason}${ownersOf(x).length ? ` (${ownerNames(x, i.nameOf)})` : ""}`));
   if (i.signals.length) lines.push("", "Waiting in the review queues", ...i.signals.map((s) => `- ${s.count} ${s.label.toLowerCase()}`));
   if (i.milestones.length) lines.push("", "Milestones", ...i.milestones.map((m) => `- ${m.title}: ${m.pct}% (${m.state})`));
   if (doneYesterday) lines.push("", `The team finished ${doneYesterday} item${doneYesterday === 1 ? "" : "s"} yesterday.`);
@@ -386,7 +428,7 @@ export function reviewSummary(i: {
     `- Payments: ${cur?.payments ?? 0}${delta(cur?.payments ?? 0, prev?.payments)}`,
     `- Money processed: ${i.naira(cur?.processedKobo ?? 0)}`];
   lines.push("", `Work: ${i.work.done.length} done, ${i.work.created} added, ${i.work.carriedOver.length} carried over, ${i.work.overdue} overdue`);
-  if (i.work.done.length) lines.push("Done:", ...i.work.done.map((x) => `- ${x.title}${x.ownerUid ? ` (${i.nameOf(x.ownerUid)})` : ""}`));
+  if (i.work.done.length) lines.push("Done:", ...i.work.done.map((x) => `- ${x.title}${ownersOf(x).length ? ` (${ownerNames(x, i.nameOf)})` : ""}`));
   if (i.work.decisions.length) lines.push("Waiting for a decision:", ...i.work.decisions.map((x) => `- ${x.decisionQuestion || x.title}`));
   if (i.work.blocked.length) lines.push("Blocked:", ...i.work.blocked.map((x) => `- ${x.title}: ${x.blockedReason}`));
   if (i.milestones.length) lines.push("", "Milestones", ...i.milestones.map((m) => `- ${m.title}: ${m.pct}% (${m.state})`));

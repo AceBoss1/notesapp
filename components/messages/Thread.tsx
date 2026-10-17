@@ -6,11 +6,18 @@ import { Fragment, useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { onAuthStateChanged, type User } from "firebase/auth";
-import { collection, deleteDoc, doc, limit, onSnapshot, orderBy, query, setDoc } from "firebase/firestore";
+import { collection, deleteDoc, doc, limit, onSnapshot, orderBy, query, setDoc, where } from "firebase/firestore";
 import { auth, db } from "@/lib/firebase";
 import { api } from "@/lib/moments-client";
-import { ATTACHMENT_ACCEPT, MESSAGE_MAX, REMOVED_TEXT, attachmentTypeOf, formatBytes, type ThreadMessage } from "@/lib/messages-rules";
-import { wrapSelection } from "@/lib/message-format";
+import { ATTACHMENT_ACCEPT, MESSAGE_MAX, REMOVED_TEXT, attachmentTypeOf, formatBytes, reactionSummary, type ThreadMessage } from "@/lib/messages-rules";
+import { stripFormat, wrapSelection } from "@/lib/message-format";
+import { searchThread } from "@/lib/chat-tools";
+import MessageMenu, { MessageInfo, type MenuItem } from "./MessageMenu";
+import ForwardDialog from "./ForwardDialog";
+import NotesAppCard from "./NotesAppCard";
+import { SummaryDialog, TranslateDialog, askNana } from "./ChatNana";
+import { parseCardLink } from "@/lib/chat-cards";
+import { KNOWN_ROOTS } from "@/lib/host";
 import FormattedText from "./FormattedText";
 import LinkPreview from "@/components/LinkPreview";
 import MentionPicker from "@/components/MentionPicker";
@@ -95,7 +102,23 @@ export default function Thread({ id, to, embedded = false }: { id?: string; to?:
   const [people, setPeople] = useState<Record<string, Person>>({});
   const [replyingTo, setReplyingTo] = useState<ThreadMessage | null>(null);
   const [editing, setEditing] = useState<ThreadMessage | null>(null); // your message being edited in the box
-  const [menuFor, setMenuFor] = useState<string | null>(null); // the message whose ⋯ menu is open
+  const [menu, setMenu] = useState<{ id: string; at: { x: number; y: number } | null } | null>(null); // the message whose menu is open (at: where, on a computer)
+  const [info, setInfo] = useState<string | null>(null); // the message whose info is open
+  const [selected, setSelected] = useState<string[] | null>(null); // selecting messages (null = not selecting)
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [searchQ, setSearchQ] = useState("");
+  const [hit, setHit] = useState(0); // which search match is in view
+  const [readMarks, setReadMarks] = useState<Record<string, string>>({}); // in a group: the newest message each member has read
+  const [swipe, setSwipe] = useState<{ id: string; dx: number } | null>(null); // a message being swiped right to reply (phones)
+  const touch = useRef<{ id: string; x: number; y: number; timer?: ReturnType<typeof setTimeout>; opened?: boolean } | null>(null);
+  const [toast, setToast] = useState("");
+  const [forwarding, setForwarding] = useState<ThreadMessage | null>(null);
+  const [kept, setKept] = useState<string[]>([]); // the messages here you kept (Saved → From chats)
+  const [translatingId, setTranslatingId] = useState<string | null>(null); // choosing a language for this message
+  const [translations, setTranslations] = useState<Record<string, { label: string; text?: string; error?: string }>>({});
+  const [summary, setSummary] = useState<{ context: string; count: number } | null>(null);
+  const openedMark = useRef<string | null>(null); // where you had read up to when you opened the chat (for "N new · Summarise")
+  const openedAt = useRef("");
   const [pinned, setPinned] = useState<{ id: string; by: string; at: string }[]>([]);
   const [typing, setTyping] = useState<Record<string, number>>({}); // who else is typing, and when they last typed
   const [, setTick] = useState(0);
@@ -157,7 +180,7 @@ export default function Thread({ id, to, embedded = false }: { id?: string; to?:
         const rows: ThreadMessage[] = snap.docs.reverse().map((d) => {
           const m = d.data();
           // A reply to a moment says whether the moment has expired; the moment itself is never in the message.
-          return { id: d.id, from: m.from, text: m.text, createdAt: m.createdAt, ...(m.readAt ? { readAt: m.readAt } : {}), ...(m.call ? { call: m.call } : {}), ...(m.removed ? { removed: m.removed } : {}), ...(m.editedAt ? { editedAt: m.editedAt } : {}), ...(m.deleted ? { deleted: m.deleted } : {}), ...(m.pendingRequest ? { pendingRequest: m.pendingRequest } : {}), ...(m.sticker ? { sticker: m.sticker } : {}), ...(m.replyTo ? { replyTo: m.replyTo } : {}), ...(m.attachments ? { attachments: (m.attachments as { name: string; size: number; type: string; kind: "image" | "video" | "document" | "audio"; durationSec?: number }[]).map(({ name, size, type, kind, durationSec }) => ({ name, size, type, kind, ...(durationSec ? { durationSec } : {}) })) } : {}), ...(m.momentRef ? { moment: { momentId: m.momentRef.momentId, expired: isMomentExpired(m.momentRef.expiresAt) } } : {}) };
+          return { id: d.id, from: m.from, text: m.text, createdAt: m.createdAt, ...(m.readAt ? { readAt: m.readAt } : {}), ...(m.call ? { call: m.call } : {}), ...(m.removed ? { removed: m.removed } : {}), ...(m.editedAt ? { editedAt: m.editedAt } : {}), ...(m.deleted ? { deleted: m.deleted } : {}), ...(m.pendingRequest ? { pendingRequest: m.pendingRequest } : {}), ...(m.sticker ? { sticker: m.sticker } : {}), ...(m.replyTo ? { replyTo: m.replyTo } : {}), ...(m.attachments ? { attachments: (m.attachments as { name: string; size: number; type: string; kind: "image" | "video" | "document" | "audio"; durationSec?: number }[]).map(({ name, size, type, kind, durationSec }) => ({ name, size, type, kind, ...(durationSec ? { durationSec } : {}) })) } : {}), ...(m.momentRef ? { moment: { momentId: m.momentRef.momentId, expired: isMomentExpired(m.momentRef.expiresAt) } } : {}), ...(m.reactions && Object.keys(m.reactions).length ? { reactions: m.reactions } : {}), ...(m.forwarded ? { forwarded: true } : {}) };
         });
         setMessages(rows);
         // Something new from them while this is open: it's read.
@@ -170,10 +193,16 @@ export default function Thread({ id, to, embedded = false }: { id?: string; to?:
   useEffect(() => {
     if (!user || !cid) return;
     const uid = user.uid;
-    const a = onSnapshot(doc(db, "conversations", cid), (d) => setPinned((d.data()?.pinned as { id: string; by: string; at: string }[] | undefined) ?? []), () => {});
+    const a = onSnapshot(doc(db, "conversations", cid), (d) => {
+      setPinned((d.data()?.pinned as { id: string; by: string; at: string }[] | undefined) ?? []);
+      const marks = (d.data()?.readMarker as Record<string, string> | undefined) ?? {};
+      if (openedMark.current === null) { openedMark.current = marks[uid] ?? ""; openedAt.current = new Date().toISOString(); }
+      setReadMarks(marks);
+    }, () => {});
+    const k = onSnapshot(query(collection(db, "keptMessages"), where("uid", "==", uid), where("cid", "==", cid)), (snap) => setKept(snap.docs.map((d) => String(d.data().messageId))), () => {});
     const b = onSnapshot(collection(db, `conversations/${cid}/typing`), (snap) => setTyping(Object.fromEntries(snap.docs.filter((d) => d.id !== uid).map((d) => [d.id, Number(d.data().at) || 0]))), () => {});
     const t = setInterval(() => setTick((n) => n + 1), 2000); // "typing…" fades by itself
-    return () => { a(); b(); clearInterval(t); if (lastTyped.current) deleteDoc(doc(db, `conversations/${cid}/typing/${uid}`)).catch(() => {}); };
+    return () => { a(); b(); k(); clearInterval(t); openedMark.current = null; if (lastTyped.current) deleteDoc(doc(db, `conversations/${cid}/typing/${uid}`)).catch(() => {}); };
   }, [user, cid]);
   // Telling the others you're typing: at most every 3 seconds while you type; cleared when you send.
   function typed(v: string) {
@@ -187,7 +216,7 @@ export default function Thread({ id, to, embedded = false }: { id?: string; to?:
 
   async function msgAction(body: Record<string, unknown>, ok?: (r: Record<string, unknown>) => void) {
     if (!cid) return;
-    setError(null); setMenuFor(null);
+    setError(null); setMenu(null);
     try { const r = await api<Record<string, unknown>>(`/api/messages/${cid}`, { body }); ok?.(r); }
     catch (e) { setError(e instanceof Error ? e.message : "That didn't work."); }
   }
@@ -196,7 +225,7 @@ export default function Thread({ id, to, embedded = false }: { id?: string; to?:
     if (!confirm(m.readAt || isGroup ? "Delete this message? If it has been read, the people who read it are asked to agree first." : "Delete this message for everyone?")) return;
     void msgAction({ action: "delete", messageId: m.id }, (r) => { if (r.done === false) setError(`Waiting for ${Number(r.waitingFor) === 1 ? "the reader" : `${r.waitingFor} readers`} to agree. The request ends after 30 days.`); });
   };
-  const startEdit = (m: ThreadMessage) => { setMenuFor(null); setReplyingTo(null); setEditing(m); setText(m.text); setTimeout(() => box.current?.focus(), 0); };
+  const startEdit = (m: ThreadMessage) => { setMenu(null); setReplyingTo(null); setEditing(m); setText(m.text); setTimeout(() => box.current?.focus(), 0); };
   async function saveEdit() {
     if (!editing) return;
     const m = editing;
@@ -206,6 +235,58 @@ export default function Thread({ id, to, embedded = false }: { id?: string; to?:
     });
   }
   const answer = (requestId: string, a: "allow" | "decline" | "withdraw") => msgAction({ action: "request", requestId, answer: a });
+  const react = (m: ThreadMessage, emoji: string) => msgAction({ action: "react", messageId: m.id, emoji });
+  const keep = (m: ThreadMessage, on: boolean) => msgAction({ action: "keep", messageId: m.id, keep: on }, () => flash(on ? "Kept. Find it in Saved → From chats" : "No longer kept"));
+  async function translate(m: ThreadMessage, lang: string, label: string) {
+    if (!user) return;
+    setTranslations((t) => ({ ...t, [m.id]: { label } }));
+    try { const text = await askNana(user, { task: "translate", text: stripFormat(m.text), language: lang }); setTranslations((t) => ({ ...t, [m.id]: { label, text } })); }
+    catch (e) { setTranslations((t) => ({ ...t, [m.id]: { label, error: e instanceof Error ? e.message : "Couldn't translate it." } })); }
+  }
+  // The chat as plain lines for Nana's summary: "Ada: …", oldest first.
+  const asLines = (list: ThreadMessage[]) => list.filter((x) => !x.deleted && !x.removed && !x.call).map((x) => `${nameOf(x.from)}: ${plain(x)}`).join("\n");
+  const missed = messages.filter((x) => openedMark.current !== null && x.from !== user?.uid && x.createdAt > openedMark.current && x.createdAt <= openedAt.current && !x.call && !x.deleted && !x.removed);
+  const flash = (t: string) => { setToast(t); setTimeout(() => setToast(""), 1800); };
+  const nameOf = (uid: string) => (uid === user?.uid ? "You" : people[uid]?.name || "Member");
+  const plain = (m: ThreadMessage) => stripFormat(m.text || "") || (m.sticker ? "[Sticker]" : m.attachments?.length ? m.attachments.map((a) => `[${a.name}]`).join(" ") : "");
+  async function copy(list: ThreadMessage[]) {
+    const text = list.length === 1 ? plain(list[0]) : list.map((m) => `[${stamp(m.createdAt)}] ${nameOf(m.from)}: ${plain(m)}`).join("\n");
+    try { await navigator.clipboard.writeText(text); flash(list.length === 1 ? "Copied" : `Copied ${list.length} messages`); } catch { setError("Couldn't copy. Select the words and copy them instead."); }
+  }
+  // Deleting several of your own at once: one question, then each goes through the same rules as one (read ones wait for the readers).
+  async function deleteMany(list: ThreadMessage[]) {
+    if (!cid || !list.length || !confirm(`Delete ${list.length} message${list.length === 1 ? "" : "s"}? Any that have been read wait for the readers to agree first.`)) return;
+    let waiting = 0;
+    for (const m of list) { try { const r = await api<{ done: boolean }>(`/api/messages/${cid}`, { body: { action: "delete", messageId: m.id } }); if (r.done === false) waiting++; } catch (e) { setError(e instanceof Error ? e.message : "Couldn't delete one of them."); } }
+    setSelected(null);
+    if (waiting) setError(`${waiting} of them ${waiting === 1 ? "is" : "are"} waiting for the readers to agree.`);
+  }
+  const openMenu = (m: ThreadMessage, at: { x: number; y: number } | null) => { if (selected) return; setMenu({ id: m.id, at }); };
+  // Phones: hold a message for the menu; swipe it right to reply.
+  const touchHandlers = (m: ThreadMessage, canReply: boolean) => ({
+    onTouchStart: (e: React.TouchEvent) => {
+      if (selected) return;
+      const t = e.touches[0];
+      const timer = setTimeout(() => { if (touch.current?.id === m.id) { touch.current.opened = true; setSwipe(null); navigator.vibrate?.(15); openMenu(m, null); } }, 450);
+      touch.current = { id: m.id, x: t.clientX, y: t.clientY, timer };
+    },
+    onTouchMove: (e: React.TouchEvent) => {
+      const c = touch.current; if (!c || c.id !== m.id) return;
+      const dx = e.touches[0].clientX - c.x, dy = e.touches[0].clientY - c.y;
+      if (Math.abs(dx) > 8 || Math.abs(dy) > 8) clearTimeout(c.timer);
+      if (canReply && !c.opened && dx > 10 && Math.abs(dx) > Math.abs(dy) * 1.5) setSwipe({ id: m.id, dx: Math.min(dx, 90) });
+    },
+    onTouchEnd: () => {
+      const c = touch.current; if (c) clearTimeout(c.timer);
+      if (swipe?.id === m.id && swipe.dx > 60) { setReplyingTo(m); setTimeout(() => box.current?.focus(), 0); navigator.vibrate?.(10); }
+      setSwipe(null); touch.current = null;
+    },
+  });
+  const searchHits = searchOpen ? searchThread(messages, searchQ) : [];
+  const hitKey = searchHits.join(",");
+  // A new search shows the newest match first; ↑ goes to older ones.
+  useEffect(() => { setHit(Math.max(0, searchHits.length - 1)); }, [hitKey]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { const id = searchHits[hit]; if (id) document.getElementById(`m-${id}`)?.scrollIntoView({ block: "center", behavior: "smooth" }); }, [hit, hitKey]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Braces matter: an effect must return nothing or a clean-up function. Some browsers' scrollIntoView() now returns a Promise, and
   // returning it made React call it as a clean-up ("destroy is not a function"), which crashed the page.
@@ -338,6 +419,9 @@ export default function Thread({ id, to, embedded = false }: { id?: string; to?:
             <button type="button" onClick={() => setShowMembers(true)} title="Manage the group: members, admins, bans, who can send, picture" className="hidden shrink-0 rounded-full border border-rule px-4 py-2 font-ui text-xs font-semibold text-crimson hover:bg-paper sm:inline-flex">⚙️ Manage</button>
           ) : undefined}
           items={[
+            { label: "Search in this chat", icon: "🔍", onClick: () => setSearchOpen(true) },
+            { label: "Summarise with Nana", icon: "✨", onClick: () => { const list = missed.length >= 3 ? missed : messages.slice(-50); setSummary({ context: asLines(list), count: list.length }); } },
+            { label: "Select messages", icon: "☑️", onClick: () => setSelected([]) },
             { label: "Members", icon: "👥", onClick: () => setShowMembers(true) },
             { label: group.adminUids.includes(user?.uid ?? "") && group.scope !== "team" ? "Group settings" : "", icon: "⚙️", onClick: () => setShowMembers(true), hidden: !(group.adminUids.includes(user?.uid ?? "") && group.scope !== "team") },
             { label: "Create group", icon: "➕", href: "/messages/new-group", divider: true },
@@ -362,7 +446,10 @@ export default function Thread({ id, to, embedded = false }: { id?: string; to?:
             </span>
           ) : undefined}
           items={[
-            { label: "View profile", icon: "👤", href: `/u/${who.username}` },
+            { label: "Search in this chat", icon: "🔍", onClick: () => setSearchOpen(true) },
+            { label: "Summarise with Nana", icon: "✨", onClick: () => { const list = missed.length >= 3 ? missed : messages.slice(-50); setSummary({ context: asLines(list), count: list.length }); } },
+            { label: "Select messages", icon: "☑️", onClick: () => setSelected([]) },
+            { label: "View profile", icon: "👤", href: `/u/${who.username}`, divider: true },
             { label: "View moments", icon: "✨", onClick: viewMoments, hidden: !MOMENTS_LIVE },
             { label: "Create group", icon: "➕", href: "/messages/new-group", divider: true },
             { label: muted ? "Unmute notifications" : "Mute notifications", icon: muted ? "🔔" : "🔕", onClick: toggleMute },
@@ -374,6 +461,22 @@ export default function Thread({ id, to, embedded = false }: { id?: string; to?:
         <p className="shrink-0 border-b border-rule bg-card px-4 pb-3 pt-[max(0.75rem,env(safe-area-inset-top))] font-ui text-sm text-slate lg:rounded-t-xl2 lg:px-7 lg:pt-5"><Link href="/messages" className="font-semibold text-crimson hover:underline">← Messages</Link>{to ? ` · @${to}` : ""}</p>
       )}
       {group && showMembers && cid && user && <GroupMembers cid={cid} group={group} members={group.members} banned={banned} meUid={user.uid} onChanged={loadMeta} onLeft={() => { window.location.href = "/messages"; }} />}
+      {searchOpen && (
+        <div className="flex shrink-0 items-center gap-2 border-b border-rule bg-card px-3 py-2 lg:px-7" role="search">
+          <input autoFocus type="search" value={searchQ} onChange={(e) => setSearchQ(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); setHit((h) => (searchHits.length ? (h - 1 + searchHits.length) % searchHits.length : 0)); } if (e.key === "Escape") { setSearchOpen(false); setSearchQ(""); } }}
+            placeholder="Search this chat" aria-label="Search this chat" className="min-w-0 flex-1 rounded-full bg-paper px-4 py-2 text-sm text-ink outline-none focus:ring-2 focus:ring-crimson/20" />
+          <span className="shrink-0 font-mono text-xs text-slate" aria-live="polite">{searchQ.trim().length < 2 ? "" : searchHits.length ? `${hit + 1} of ${searchHits.length}` : "No matches"}</span>
+          <button type="button" disabled={searchHits.length < 2} onClick={() => setHit((h) => (h - 1 + searchHits.length) % searchHits.length)} aria-label="Older match" className="flex h-9 w-9 items-center justify-center rounded-full text-ink hover:bg-paper disabled:opacity-30">↑</button>
+          <button type="button" disabled={searchHits.length < 2} onClick={() => setHit((h) => (h + 1) % searchHits.length)} aria-label="Newer match" className="flex h-9 w-9 items-center justify-center rounded-full text-ink hover:bg-paper disabled:opacity-30">↓</button>
+          <button type="button" onClick={() => { setSearchOpen(false); setSearchQ(""); }} aria-label="Close search" className="flex h-9 w-9 items-center justify-center rounded-full text-xl text-slate hover:bg-paper">×</button>
+        </div>
+      )}
+      {missed.length >= 5 && !searchOpen && (
+        <div className="mx-4 mt-3 flex shrink-0 items-center gap-3 rounded-xl border border-crimson/20 bg-crimson/5 px-3 py-2 text-sm lg:mx-7">
+          <span className="flex-1 text-ink"><strong>{missed.length} new messages</strong> since you were last here</span>
+          <button type="button" onClick={() => setSummary({ context: asLines(missed), count: missed.length })} className="shrink-0 rounded-full bg-crimson-deep px-3.5 py-1.5 font-ui text-xs font-bold text-white hover:bg-crimson">✨ Summarise</button>
+        </div>
+      )}
       {pinned.length > 0 && (
         <div className="mx-4 mt-3 shrink-0 space-y-1 rounded-xl border border-rule bg-card px-3 py-2 text-xs lg:mx-7 lg:bg-paper">
           {pinned.map((p) => { const pm = messages.find((x) => x.id === p.id); return (
@@ -399,42 +502,40 @@ export default function Thread({ id, to, embedded = false }: { id?: string; to?:
           const replyButton = (msg: ThreadMessage) => !blockedByMe && (
             <button type="button" onClick={() => { setReplyingTo(msg); box.current?.focus(); }} className="font-medium opacity-90 hover:underline hover:opacity-100" aria-label="Reply to this message" title="Reply">↩ Reply</button>
           );
-          const reportButton = (msg: ThreadMessage) => isGroup && msg.from !== user?.uid && (
-            <button type="button" onClick={() => setReportingMsg(msg.id)} className="opacity-80 hover:opacity-100" aria-label="Report this message">Report</button>
-          );
           const firstName = (p?: Person) => (p?.name || "").split(" ")[0] || "Member";
-          // Group admins can take any message out of the group (it is replaced by "Message removed by a group admin").
-          const amGroupAdmin = !!group && group.adminUids.includes(user?.uid ?? "");
-          const removeButton = (msg: ThreadMessage) => amGroupAdmin && !msg.removed && (
-            <button type="button" onClick={() => removeMessage(msg)} className="opacity-80 hover:opacity-100" aria-label="Remove this message from the group">Remove</button>
-          );
-          // ⋯ : pin, edit and delete (your own), report and remove, in one small menu.
+          // ⋯ opens the same menu as a right-click or a long press.
           const isPinned = pinned.some((p) => p.id === m.id);
-          const canPin = !blockedByMe && (!isGroup || amGroupAdmin);
           const moreMenu = (msg: ThreadMessage) => (
-            <span className="relative">
-              <button type="button" onClick={() => setMenuFor(menuFor === msg.id ? null : msg.id)} className="px-1 font-bold opacity-80 hover:opacity-100" aria-label="More actions for this message" aria-expanded={menuFor === msg.id}>⋯</button>
-              {menuFor === msg.id && (
-                <span className={`absolute bottom-6 z-20 flex w-40 flex-col rounded-lg border border-rule bg-card py-1 text-left text-xs text-ink shadow-xl ${mine ? "right-0" : "left-0"}`}>
-                  {canPin && <button type="button" onClick={() => pinMsg(msg, !isPinned)} className="px-3 py-1.5 text-left hover:bg-paper">📌 {isPinned ? "Unpin" : "Pin"}</button>}
-                  {mine && !msg.pendingRequest && msg.text && <button type="button" onClick={() => startEdit(msg)} className="px-3 py-1.5 text-left hover:bg-paper">✏️ Edit</button>}
-                  {mine && !msg.pendingRequest && <button type="button" onClick={() => deleteMsg(msg)} className="px-3 py-1.5 text-left text-red-700 hover:bg-paper">🗑 Delete</button>}
-                  {isGroup && msg.from !== user?.uid && <button type="button" onClick={() => { setMenuFor(null); setReportingMsg(msg.id); }} className="px-3 py-1.5 text-left hover:bg-paper">⚑ Report</button>}
-                  {amGroupAdmin && !msg.removed && <button type="button" onClick={() => { setMenuFor(null); void removeMessage(msg); }} className="px-3 py-1.5 text-left text-red-700 hover:bg-paper">🚫 Remove (admin)</button>}
-                </span>
-              )}
-            </span>
+            <button type="button" onClick={(e) => { const r = e.currentTarget.getBoundingClientRect(); openMenu(msg, { x: mine ? r.right : r.left, y: r.bottom + 4 }); }} className="px-1 font-bold opacity-80 hover:opacity-100" aria-label="More actions for this message" aria-haspopup="menu" aria-expanded={menu?.id === msg.id}>⋯</button>
           );
           // The small line inside each bubble: ✓ sent time · ✓✓ read time · ↩ Reply, then ⋯.
           const meta = (msg: ThreadMessage) => {
             const parts = [
               isPinned && <span aria-label="Pinned" className="inline-flex"><PinIcon size={12} /></span>,
+              kept.includes(msg.id) && <span aria-label="Kept" title="Kept: in Saved → From chats">🔖</span>,
               msg.editedAt && <span className="italic">edited</span>,
               <span key="sent" className="inline-flex items-center gap-1">{mine && <span aria-label="Sent"><TickIcon /></span>}{stamp(msg.createdAt)}</span>,
               mine && msg.readAt && <span className="inline-flex items-center gap-1"><span aria-label="Read"><TickIcon read /></span>{stamp(msg.readAt)}</span>,
               replyButton(msg),
             ].filter(Boolean);
             return <>{parts.map((x, k) => <Fragment key={k}>{k > 0 && <span aria-hidden="true">·</span>}{x}</Fragment>)}{moreMenu(msg)}</>;
+          };
+          // The reactions under a bubble: tap one to add yours (or take it off); the names show on hover.
+          const chips = (msg: ThreadMessage) => {
+            const list = reactionSummary(msg.reactions);
+            if (!list.length) return null;
+            const mineR = msg.reactions?.[user?.uid ?? ""] ?? "";
+            return (
+              <div className={`relative z-[1] -mt-2 flex flex-wrap gap-1 ${mine ? "justify-end pr-2" : "pl-2"}`}>
+                {list.map((r) => (
+                  <button key={r.emoji} type="button" disabled={blockedByMe} onClick={() => react(msg, mineR === r.emoji ? "" : r.emoji)} title={r.uids.map(nameOf).join(", ")}
+                    aria-label={`${r.emoji} ${r.count}: ${r.uids.map(nameOf).join(", ")}${mineR === r.emoji ? ". Tap to take yours off" : ". Tap to react the same"}`}
+                    className={`flex items-center gap-1 rounded-full border px-2 py-0.5 text-sm shadow-sm ${mineR === r.emoji ? "border-crimson/40 bg-crimson/10" : "border-rule bg-card"}`}>
+                    <span>{r.emoji}</span>{r.count > 1 && <span className="font-ui text-[11px] font-semibold text-slate">{r.count}</span>}
+                  </button>
+                ))}
+              </div>
+            );
           };
           // Waiting for consent: the sender sees who it's waiting for; each reader who hasn't answered can allow or decline.
           const pending = (msg: ThreadMessage) => {
@@ -482,11 +583,19 @@ export default function Thread({ id, to, embedded = false }: { id?: string; to?:
                   <span className="h-px flex-1 bg-rule" />
                 </div>
               )}
-              <div id={`m-${m.id}`} className={`flex items-end gap-2 lg:gap-3 ${mine ? "flex-row-reverse" : ""} ${newGroup ? "mt-3" : "mt-1"}`}>
+              <div id={`m-${m.id}`}
+                onClick={selected ? () => setSelected((l) => (l ?? []).includes(m.id) ? (l ?? []).filter((x) => x !== m.id) : [...(l ?? []), m.id]) : undefined}
+                className={`relative flex items-end gap-2 lg:gap-3 ${mine ? "flex-row-reverse" : ""} ${newGroup ? "mt-3" : "mt-1"} ${selected ? "-mx-2 cursor-pointer rounded-xl px-2 py-0.5" : ""} ${selected?.includes(m.id) ? "bg-crimson/10" : ""}`}>
+                {selected && <span aria-hidden="true" className={`absolute top-1/2 -translate-y-1/2 flex h-5 w-5 items-center justify-center rounded-full border-2 text-[11px] font-bold ${mine ? "left-2" : "right-2"} ${selected.includes(m.id) ? "border-crimson bg-crimson text-white" : "border-slate/40 bg-card"}`}>{selected.includes(m.id) ? "✓" : ""}</span>}
+                {swipe?.id === m.id && <span aria-hidden="true" className="absolute left-0 top-1/2 -translate-y-1/2 text-lg text-crimson" style={{ opacity: Math.min(1, swipe.dx / 60) }}>↩</span>}
                 <span className={`shrink-0 ${mine ? "hidden lg:block" : ""} ${endOfRun ? "" : "invisible"}`}>
                   <ProfileAvatar username={person?.username || (mine ? "" : who?.username ?? "")} src={person?.avatar ?? ""} alt={person?.name ?? ""} size={32} square={!!person?.isOrg} from="chat" />
                 </span>
-                <div className={`flex min-w-0 max-w-[80%] flex-col lg:max-w-[70%] ${mine ? "items-end" : "items-start"}`}>
+                <div
+                  {...touchHandlers(m, !blockedByMe)}
+                  onContextMenu={(e) => { if (selected) return; e.preventDefault(); openMenu(m, { x: e.clientX, y: e.clientY }); }}
+                  style={swipe?.id === m.id ? { transform: `translateX(${swipe.dx}px)` } : undefined}
+                  className={`flex min-w-0 max-w-[80%] flex-col transition-transform duration-150 [-webkit-touch-callout:none] lg:max-w-[70%] ${swipe?.id === m.id ? "!duration-0" : ""} ${mine ? "items-end" : "items-start"} ${selected ? "pointer-events-none" : ""} ${searchHits.includes(m.id) ? `rounded-2xl ring-2 ring-offset-2 ring-offset-paper ${searchHits[hit] === m.id ? "ring-amber-500" : "ring-amber-200"}` : ""}`}>
                   {newGroup && isGroup && (
                     <p className="mb-1 flex items-center gap-1.5 font-ui text-xs font-bold text-ink">
                       {person?.name ?? ""}
@@ -498,10 +607,11 @@ export default function Thread({ id, to, embedded = false }: { id?: string; to?:
                       {/* eslint-disable-next-line @next/next/no-img-element */}
                       <img src={sticker.src} alt={`${sticker.label} sticker`} className={sticker.wide ? "h-auto w-56 max-w-full object-contain" : "h-28 w-28 object-contain"} />
                       <p className={`mt-1 flex flex-wrap items-center gap-x-1.5 text-[11px] text-slate ${mine ? "justify-end" : ""}`}>{meta(m)}</p>
+                      {chips(m)}
                       {pending(m)}
                     </div>
                   ) : (<>
-                    <div className={`rounded-xl2 px-4 py-3 text-[15px] leading-snug lg:rounded-2xl lg:text-sm ${mine ? "bg-crimson text-white" : "border border-rule bg-card text-ink lg:bg-paper"}`}>
+                    <div className={`min-w-0 max-w-full rounded-xl2 px-4 py-3 text-[15px] leading-snug lg:rounded-2xl lg:text-sm ${mine ? "bg-crimson text-white" : "border border-rule bg-card text-ink lg:bg-paper"}`}>
                       {m.replyTo && (
                         <button
                           type="button"
@@ -512,16 +622,24 @@ export default function Thread({ id, to, embedded = false }: { id?: string; to?:
                           <span className="line-clamp-3 whitespace-pre-wrap"><strong>{firstName(quoted)}:</strong> {(m.replyTo.text || "…").replace(/\n{2,}/g, "\n")}</span>
                         </button>
                       )}
+                      {m.forwarded && <p className={`mb-1 flex items-center gap-1 text-xs italic ${mine ? "text-white/80" : "text-slate"}`}><span aria-hidden="true">↪</span> Forwarded</p>}
                       {m.moment && (
                         <p className={`mb-1 text-xs italic ${mine ? "text-white/80" : "text-slate"}`}>
                           {m.moment.expired ? "Replied to a moment that has expired" : "Replied to a moment"}
                         </p>
                       )}
                       {m.attachments && cid && <MessageAttachments cid={cid} mid={m.id} files={m.attachments} mine={mine} />}
-                      {m.text && <p className="whitespace-pre-wrap break-words"><FormattedText text={m.text} linkClass={mine ? "font-semibold text-white underline underline-offset-2" : undefined} /></p>}
-                      {m.text && firstUrl(m.text) && <LinkPreview url={firstUrl(m.text)!} user={user ?? null} mine={mine} />}
+                      {m.text && <p className="whitespace-pre-wrap [overflow-wrap:anywhere]"><FormattedText text={m.text} linkClass={mine ? "font-semibold text-white underline underline-offset-2" : undefined} /></p>}
+                      {translations[m.id] && (
+                        <div className={`mt-2 border-t pt-2 text-sm ${mine ? "border-white/30" : "border-rule"}`}>
+                          <p className={`mb-0.5 flex items-center gap-2 text-[11px] ${mine ? "text-white/75" : "text-slate"}`}>✨ {translations[m.id].label} · Nana<button type="button" onClick={() => setTranslations((t) => { const n = { ...t }; delete n[m.id]; return n; })} className="underline">Hide</button></p>
+                          <p className="whitespace-pre-wrap">{translations[m.id].error ? <span className={mine ? "" : "text-red-700"}>{translations[m.id].error}</span> : translations[m.id].text ?? "Translating…"}</p>
+                        </div>
+                      )}
+                      {m.text && firstUrl(m.text) && (parseCardLink(firstUrl(m.text)!, KNOWN_ROOTS) ? <NotesAppCard url={firstUrl(m.text)!} user={user ?? null} mine={mine} /> : <LinkPreview url={firstUrl(m.text)!} user={user ?? null} mine={mine} />)}
                       <p className={`mt-1.5 flex flex-wrap items-center gap-x-1.5 text-xs lg:text-[11px] ${mine ? "text-white/80" : "text-slate"}`}>{meta(m)}</p>
                     </div>
+                    {chips(m)}
                     {pending(m)}
                   </>)}
                 </div>
@@ -534,11 +652,24 @@ export default function Thread({ id, to, embedded = false }: { id?: string; to?:
       </div>
       <div className={`shrink-0 lg:border-t lg:border-rule lg:px-7 lg:pb-5 lg:pt-4 ${embedded ? "" : "pb-[env(safe-area-inset-bottom)]"}`}>
         {error && <p className="px-4 pb-2 text-sm text-red-700 lg:px-0" role="alert">{error}</p>}
+        {toast && <p className="px-4 pb-2 text-center text-sm font-semibold text-emerald-800 lg:px-0" role="status">{toast}</p>}
+        {selected && (() => {
+          const list = messages.filter((x) => selected.includes(x.id));
+          const allMine = list.length > 0 && list.every((x) => x.from === user?.uid && !x.pendingRequest);
+          return (
+            <div className="flex items-center gap-2 border-t border-rule bg-card px-4 py-3 lg:border-0 lg:bg-transparent lg:px-0">
+              <button type="button" onClick={() => setSelected(null)} aria-label="Stop selecting" className="flex h-10 w-10 items-center justify-center rounded-full text-xl text-slate hover:bg-paper">×</button>
+              <span className="flex-1 font-ui text-sm font-semibold text-ink">{list.length ? `${list.length} selected` : "Tap messages to select them"}</span>
+              <button type="button" disabled={!list.length} onClick={() => { void copy(list); setSelected(null); }} className="rounded-full border border-rule px-4 py-2 font-ui text-sm font-semibold text-ink hover:bg-paper disabled:opacity-40">Copy</button>
+              <button type="button" disabled={!allMine} title={allMine ? undefined : "You can delete only your own messages"} onClick={() => deleteMany(list)} className="rounded-full border border-red-200 px-4 py-2 font-ui text-sm font-semibold text-red-700 hover:bg-red-50 disabled:opacity-40">Delete</button>
+            </div>
+          );
+        })()}
         {blockedByMe && <p className="px-4 pb-3 text-sm text-slate lg:px-0">You&apos;ve blocked this member. Unblock them to send a message.</p>}
         {group?.sendLocked && (group.adminUids.includes(user?.uid ?? "")
           ? <p className="mx-4 mb-2 rounded-lg bg-amber-50 p-2 text-xs text-ink lg:mx-0">Sending is limited to admins in this group. You can still write because you are an admin.</p>
           : <p className="mx-4 mb-4 rounded-lg border border-rule bg-card p-3 text-center text-sm text-slate lg:mx-0 lg:mb-0 lg:bg-paper">Only group admins can send messages in this group. You can still read it.</p>)}
-        <form className={group?.sendLocked && !group.adminUids.includes(user?.uid ?? "") ? "hidden" : ""} onSubmit={(e) => { e.preventDefault(); if (editing) { if (text.trim()) void saveEdit(); return; } if ((text.trim() || files.length) && !busy && !blockedByMe) send(); }}>
+        <form className={selected || (group?.sendLocked && !group.adminUids.includes(user?.uid ?? "")) ? "hidden" : ""} onSubmit={(e) => { e.preventDefault(); if (editing) { if (text.trim()) void saveEdit(); return; } if ((text.trim() || files.length) && !busy && !blockedByMe) send(); }}>
           <div className="flex flex-wrap items-center gap-2 px-4 pb-3 lg:gap-1 lg:px-0">
             <EmojiPicker onPick={insertEmoji} disabled={blockedByMe} className={`${CHIP} !px-3.5 text-base`} />
             {/* Bold, italic and underline are always there on desktop; on a phone they show once there's something to format, which keeps the row to one line. */}
@@ -595,6 +726,39 @@ export default function Thread({ id, to, embedded = false }: { id?: string; to?:
           {limits && <p className="pt-2 text-center text-xs text-slate lg:hidden">Up to {limits}</p>}
         </form>
       </div>
+      {menu && (() => {
+        const m = messages.find((x) => x.id === menu.id);
+        if (!m) return null;
+        const mine = m.from === user?.uid;
+        const amAdmin = !!group && group.adminUids.includes(user?.uid ?? "");
+        const isPinned = pinned.some((p) => p.id === m.id);
+        const items: MenuItem[] = [
+          { label: "Reply", icon: "↩", onClick: () => { setReplyingTo(m); setTimeout(() => box.current?.focus(), 0); }, hidden: blockedByMe },
+          { label: "Forward", icon: "↪", onClick: () => setForwarding(m) },
+          { label: "Copy", icon: "⧉", onClick: () => copy([m]), hidden: !plain(m) },
+          { label: kept.includes(m.id) ? "Stop keeping" : "Keep", icon: "🔖", onClick: () => keep(m, !kept.includes(m.id)) },
+          { label: "Translate", icon: "🌍", onClick: () => setTranslatingId(m.id), hidden: !m.text },
+          { label: isPinned ? "Unpin" : "Pin", icon: "📌", onClick: () => pinMsg(m, !isPinned), hidden: blockedByMe || (isGroup && !amAdmin) },
+          { label: "Message info", icon: "ⓘ", onClick: () => setInfo(m.id), hidden: !mine },
+          { label: "Select", icon: "☑️", onClick: () => setSelected([m.id]) },
+          { label: "Edit", icon: "✏️", onClick: () => startEdit(m), hidden: !mine || !!m.pendingRequest || !m.text },
+          { label: "Report", icon: "⚑", onClick: () => setReportingMsg(m.id), hidden: !isGroup || mine },
+          { label: "Remove (admin)", icon: "🚫", onClick: () => void removeMessage(m), danger: true, hidden: !amAdmin || !!m.removed },
+          { label: "Delete", icon: "🗑", onClick: () => deleteMsg(m), danger: true, hidden: !mine || !!m.pendingRequest },
+        ];
+        return <MessageMenu at={menu.at} mine={mine} current={m.reactions?.[user?.uid ?? ""] ?? ""} canReact={!blockedByMe} items={items} onReact={(e) => void react(m, e)} onClose={() => setMenu(null)} />;
+      })()}
+      {info && (() => {
+        const m = messages.find((x) => x.id === info);
+        if (!m) return null;
+        if (!group) return <MessageInfo sent={m.createdAt} readAt={m.readAt} edited={m.editedAt} onClose={() => setInfo(null)} />;
+        const others = group.members.filter((x) => x.uid !== m.from);
+        const read = others.filter((x) => (readMarks[x.uid] ?? "") >= m.createdAt);
+        return <MessageInfo sent={m.createdAt} edited={m.editedAt} readers={read.map((x) => nameOf(x.uid) || x.displayName)} notYet={others.filter((x) => !read.includes(x)).map((x) => nameOf(x.uid) || x.displayName)} onClose={() => setInfo(null)} />;
+      })()}
+      {forwarding && cid && <ForwardDialog cid={cid} messageId={forwarding.id} draftText={forwarding.from === user?.uid && forwarding.text ? forwarding.text : undefined} onDone={flash} onClose={() => setForwarding(null)} />}
+      {translatingId && <TranslateDialog onPick={(lang, label) => { const m = messages.find((x) => x.id === translatingId); if (m) void translate(m, lang, label); }} onClose={() => setTranslatingId(null)} />}
+      {summary && user && <SummaryDialog user={user} context={summary.context} count={summary.count} onClose={() => setSummary(null)} />}
       {moments && <MomentViewer moments={moments} onClose={() => setMoments(null)} onChanged={() => {}} />}
       {reporting && cid && <ReportDialog kind="conversation" targetId={cid} onClose={() => setReporting(false)} />}
       {reportingMsg && cid && <ReportDialog kind="conversation" targetId={cid} messageId={reportingMsg} onClose={() => setReportingMsg(null)} />}

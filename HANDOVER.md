@@ -1,6 +1,6 @@
 # #NotesApp hand-over note
 
-**Date:** 17 October 2026 · **Latest version:** v0.42.0 · **Repository:** `AceBoss1/notesapp`
+**Date:** 17 October 2026 · **Latest version:** v0.43.0 · **Repository:** `AceBoss1/notesapp`
 **Owner:** the founder and CEO of NotesApp Technologies Ltd (product decisions, approvals, deploys that need console access).
 
 Start with `README.md` (what is live, the docs index, the checks); settings are in `docs/ENVIRONMENT.md`, deploying in
@@ -26,7 +26,7 @@ Working branch convention (owner's instruction, 17 Oct 2026): branches are named
 
 ## 2. Waiting on the owner
 
-1. **`firebase deploy --only firestore`** (also needed for v0.40.0's saved journals, `savedJournals`, and v0.42.0's courses: until it's deployed, published courses and learners' progress can't be read in the browser). The rules that let Notes Life presence use the Digital Witch hub (`dw`) are merged
+1. **`firebase deploy --only firestore`** (also needed for v0.40.0's saved journals, `savedJournals`, and v0.42.0's courses and v0.43.0's past profile pictures: until it's deployed, published courses, learners' progress and picture histories can't be read in the browser). The rules that let Notes Life presence use the Digital Witch hub (`dw`) are merged
    but not deployed. Until they are, players at the hub don't appear to each other.
 2. **Firestore index suggestions** (Query insights, e.g. `ledger WHERE status = ? COUNT`): create them with the console's one-click
    "Create index" when they appear.
@@ -49,7 +49,7 @@ Working branch convention (owner's instruction, 17 Oct 2026): branches are named
 10. **Staging:** `docs/STAGING.md` (a second Firebase project and the `staging` branch on Vercel Preview).
 11. **After merging v0.39.0:** `npx -y tsx scripts/backfill-topics.ts` then `--apply` (files older journals under topics).
 12. **Courses:** the owner's decisions are in `docs/COURSES.md` ("Decisions", 17 Oct 2026). Step 1, free courses with the publisher's YouTube, goes live as Notes Academy in this release; certificates, paid courses and the Enterprise packages follow. The package prices are in Admin → Pricing.
-All of these are on the team hub board with departments and dates (`lib/team-seed.ts`: `FUND_BACKLOG`, `LAUNCH_BACKLOG`, `COURSES_BACKLOG`, `TOPICS_BACKLOG`).
+All of these are on the team hub board with departments and dates (`lib/team-seed.ts`: `FUND_BACKLOG`, `LAUNCH_BACKLOG`, `COURSES_BACKLOG`, `TOPICS_BACKLOG`, `BIMI_BACKLOG`). Items can have several people (`ownerUids`; `ownerUid` stays as the first of them for older readers) and can repeat monthly (`repeat: "monthly"`: done moves the due date on a month).
 
 ## 3. How the work is done (please keep these)
 
@@ -97,6 +97,7 @@ All of these are on the team hub board with departments and dates (`lib/team-see
 | Topics and interests | `lib/topics.ts` (the one list), `components/TopicPicker.tsx`, `app/(main)/interests`, `app/api/account/interests`, `lib/interests-client.ts`, `scripts/backfill-topics.ts` |
 | Frame | `lib/chrome.ts` (which page gets which frame), `lib/member-client.tsx` (the signed-in member, once), `components/shell/` (Masthead, BottomTabs, AppSidebar, AccountSheet, Frame: AppFrame, ChromeGate, FooterGate) |
 | Member sites | `/profile/site` (Your site), `lib/site-settings.ts` (sections, About/Contact), `lib/site-themes.ts` (Legacy, Aurora, Maroon), `app/api/site/{theme,sections,pages}`, `app/(site)/s/[username]/*`, `components/site/*` (SiteFeed for Maroon), `components/SiteReminder.tsx` |
+| Profile pictures and links | past pictures: `lib/profile-pictures.ts` (server, `profilePictures`), `lib/profile-pictures-client.ts`, `app/api/account/pictures`, `components/PictureViewer.tsx` (opened from `MomentRing` and `OwnPictureMenu`); social links: `lib/social-links.ts` (`socialHref`, `cleanSocial`; `npm run test:social`) |
 | Journal feed | `lib/feed-author.ts` (who wrote it, even for journals saved with only a name), `components/JournalsPageClient.tsx`, `components/feed/FeedPost.tsx`, `FeedModules.tsx`; Explore `components/ExplorePageClient.tsx`; saved journals `lib/saved-journals-*.ts`, `app/api/journals/save`; badge suggestion `BadgePitchCard` in `components/BadgeToast.tsx` |
 | Calls (look) | `components/calls/CallViews.tsx` (`CallStage`, `IncomingCall`: plain props, handy for screenshots); the logic stays in `CallManager.tsx` |
 | Discovery | `lib/discovery.ts` (the shelves: For you, Most viewed, Recent), `lib/discovery-server.ts` + `app/api/public/weekly-views` (this week's visits from `pageViews`), `components/DiscoveryHero.tsx`, `Shelf.tsx`, `RankedList.tsx`, `FollowCards.tsx`, `JournalsPageClient.tsx`, `app/(main)/trending` |
