@@ -22,6 +22,12 @@ export type PricingConfig = {
   enterprise: { fromMonthlyKobo: number; fromYearlyKobo: number; adShare: number; floorSession: number; floorPhysical: number; floorDigital: number };
   // The two course packages on top of Enterprise (docs/COURSES.md): Enterprise Courses, and the Academy API's "from" price before usage.
   coursePackages: { enterpriseCoursesMonthlyKobo: number; academyApiFromMonthlyKobo: number; certificateMinKobo: number };
+  // Certificates on free courses claimed late: free for the grace days after completing, then the price rises by weeklyRate of the
+  // starting price each full week (not compounding), up to capRate. Shown to the learner before they pay (a "late claim fee").
+  certificateLate: { graceDays: number; weeklyRate: number; capRate: number };
+  // Nana (the AI helper and, in phase 2, the operator) on our AI account: each plan's monthly allowance, the top-up packs a member can
+  // buy when theirs runs out, and a ceiling for the whole site each month. Members with their own AI key are not limited.
+  nana: { budgets: { basic: number; pro: number; business: number; enterprise: number }; topUps: { id: string; name: string; priceKobo: number; creditKobo: number }[]; siteCeilingKobo: number };
   badgeKobo: number;
   gold: { personal: { monthlyKobo: number; depositKobo: number }; corporate: { monthlyKobo: number; depositKobo: number } };
   boosts: { id: string; name: string; impressions: number; priceKobo: number }[];
@@ -41,6 +47,8 @@ export function currentPricing(): PricingConfig {
     business: { ...rates("business"), monthlyKobo: tier("business").monthlyKobo!, yearlyKobo: tier("business").yearlyKobo! },
     enterprise: { fromMonthlyKobo: ENTERPRISE_FROM.monthly, fromYearlyKobo: ENTERPRISE_FROM.yearly, adShare: e.adRevenueShare ?? 0, floorSession: e.sessionAndUnlockCommissionFloor ?? 0.05, floorPhysical: e.physicalCommissionFloor ?? 0.01, floorDigital: e.digitalCommissionFloor ?? 0.015 },
     coursePackages: { ...COURSE_PACKAGES },
+    certificateLate: { ...CERTIFICATE_LATE },
+    nana: { budgets: { ...NANA.budgets }, topUps: NANA.topUps.map((t) => ({ ...t })), siteCeilingKobo: NANA.siteCeilingKobo },
     badgeKobo: BADGE_PRICE_KOBO,
     gold: { personal: { monthlyKobo: GOLD_PRICING.personal.monthlyKobo, depositKobo: GOLD_PRICING.personal.identityDepositKobo }, corporate: { monthlyKobo: GOLD_PRICING.corporate.monthlyKobo, depositKobo: GOLD_PRICING.corporate.identityDepositKobo } },
     boosts: BOOST_PACKAGES.map((p) => ({ id: p.id, name: p.name, impressions: p.impressions, priceKobo: p.priceKobo })),
@@ -52,7 +60,29 @@ const ENTERPRISE_FROM = { monthly: 55_000 * 100, yearly: 550_000 * 100 };
 // The Enterprise course packages, kept here for the same reason. The regular Enterprise price above doesn't change with them.
 // certificateMinKobo: our part of a certificate on a free course (the teacher's margin comes on top).
 const COURSE_PACKAGES = { enterpriseCoursesMonthlyKobo: 100_000 * 100, academyApiFromMonthlyKobo: 250_000 * 100, certificateMinKobo: 999 * 100 };
+const CERTIFICATE_LATE = { graceDays: 7, weeklyRate: 0.01, capRate: 0.5 };
+// Allowances in kobo of AI cost a month. Free Basic's is ours to give (our commission on Basic sales pays for it); 4 weekly summaries
+// on the small model cost about ₦15, so ₦50 leaves room. Top-ups keep 20% for card fees and running costs.
+const NANA = {
+  budgets: { basic: 50 * 100, pro: 750 * 100, business: 3_000 * 100, enterprise: 10_000 * 100 },
+  topUps: [
+    { id: "nana-1k", name: "Starter", priceKobo: 1_000 * 100, creditKobo: 800 * 100 },
+    { id: "nana-2k5", name: "Plus", priceKobo: 2_500 * 100, creditKobo: 2_100 * 100 },
+    { id: "nana-5k", name: "Max", priceKobo: 5_000 * 100, creditKobo: 4_400 * 100 },
+  ],
+  siteCeilingKobo: 500_000 * 100,
+};
 export const DEFAULT_PRICING: PricingConfig = currentPricing();
+
+// What a certificate costs on a given day: the starting price (our minimum + the teacher's margin), plus the late claim fee once the
+// grace days after completing are over. Whole kobo, rounded up to the next naira.
+export function certificatePrice(startKobo: number, completedAt: string, now: Date, late = CERTIFICATE_LATE): { kobo: number; lateKobo: number; weeksLate: number; capped: boolean } {
+  const days = Math.floor((now.getTime() - Date.parse(completedAt)) / 86_400_000);
+  const weeksLate = days > late.graceDays ? Math.floor((days - late.graceDays) / 7) : 0;
+  const rate = Math.min(late.capRate, weeksLate * late.weeklyRate);
+  const lateKobo = Math.ceil((startKobo * rate) / 100) * 100;
+  return { kobo: startKobo + lateKobo, lateKobo, weeksLate, capped: weeksLate * late.weeklyRate >= late.capRate && late.capRate > 0 };
+}
 
 const group = (n: number) => String(Math.round(n)).replace(/\B(?=(\d{3})+(?!\d))/g, ",");
 export const nairaText = (kobo: number) => `₦${group(kobo / 100)}`;
@@ -76,6 +106,9 @@ export function applyPricing(c: PricingConfig): void {
   e.price = `Starting from ${nairaText(c.enterprise.fromMonthlyKobo)}+/month`;
   e.priceNote = `or ${nairaText(c.enterprise.fromYearlyKobo)}+/year${monthsFree(c.enterprise.fromMonthlyKobo, c.enterprise.fromYearlyKobo)} · cancel anytime · rates and seats agreed with us`;
   Object.assign(COURSE_PACKAGES, c.coursePackages);
+  Object.assign(CERTIFICATE_LATE, c.certificateLate);
+  Object.assign(NANA.budgets, c.nana.budgets); NANA.siteCeilingKobo = c.nana.siteCeilingKobo;
+  for (const t of c.nana.topUps) { const p = NANA.topUps.find((x) => x.id === t.id); if (p) { p.priceKobo = t.priceKobo; p.creditKobo = t.creditKobo; } }
   setBadgePriceKobo(c.badgeKobo);
   for (const k of ["personal", "corporate"] as const) { GOLD_PRICING[k].monthlyKobo = c.gold[k].monthlyKobo; GOLD_PRICING[k].identityDepositKobo = c.gold[k].depositKobo; }
   for (const b of c.boosts) { const p = BOOST_PACKAGES.find((x) => x.id === b.id); if (p) { p.impressions = b.impressions; p.priceKobo = b.priceKobo; p.maxPerDay = Math.ceil(b.impressions / p.minDays); } }
@@ -116,6 +149,22 @@ export function cleanPricing(input: unknown): PricingConfig {
     // added after the packages: a config without it keeps the default
     certificateMinKobo: cp.certificateMinKobo === undefined ? d.coursePackages.certificateMinKobo : kobo(cp.certificateMinKobo, "Certificate minimum", 100 * 100),
   };
+  // Added later: a config saved before these existed keeps their defaults.
+  const cl = i.certificateLate === undefined ? d.certificateLate : rec(i.certificateLate);
+  const graceDays = Math.round(Number(cl.graceDays));
+  if (!Number.isFinite(graceDays) || graceDays < 0 || graceDays > 365) throw new PricingError("Certificate late fee: grace days should be between 0 and 365.");
+  const certificateLate = { graceDays, weeklyRate: frac(cl.weeklyRate, "Certificate late fee per week", 0.25), capRate: frac(cl.capRate, "Certificate late fee cap", 5) };
+  const n = i.nana === undefined ? d.nana : rec(i.nana), nb = rec(n.budgets);
+  const nana = {
+    budgets: { basic: kobo(nb.basic, "Nana budget, Free Basic"), pro: kobo(nb.pro, "Nana budget, Pro"), business: kobo(nb.business, "Nana budget, Business"), enterprise: kobo(nb.enterprise, "Nana budget, Enterprise") },
+    topUps: d.nana.topUps.map((b) => {
+      const o = rec((Array.isArray(n.topUps) ? n.topUps : []).find((x) => rec(x).id === b.id));
+      const priceKobo = kobo(o.priceKobo, `Nana top-up ${b.name} price`, 100 * 100), creditKobo = kobo(o.creditKobo, `Nana top-up ${b.name} credit`, 100);
+      if (creditKobo > priceKobo) throw new PricingError(`Nana top-up ${b.name}: the credit is more than the price.`);
+      return { id: b.id, name: b.name, priceKobo, creditKobo };
+    }),
+    siteCeilingKobo: kobo(n.siteCeilingKobo, "Nana site-wide monthly ceiling", 1_000 * 100),
+  };
   const g = rec(i.gold);
   const gold = (v: unknown, n: string) => { const o = rec(v); return { monthlyKobo: kobo(o.monthlyKobo, `${n} gold monthly`, 100 * 100), depositKobo: kobo(o.depositKobo, `${n} gold check deposit`) }; };
   const list = (v: unknown, base: PricingConfig["boosts"], name: string) => base.map((b) => {
@@ -127,7 +176,7 @@ export function cleanPricing(input: unknown): PricingConfig {
   return {
     basic: r(i.basic, "Free Basic"), pro: paid(i.pro, "Pro"), business: paid(i.business, "Business"),
     enterprise: { fromMonthlyKobo, fromYearlyKobo, adShare: frac(e.adShare, "Enterprise ad share", 1), floorSession: frac(e.floorSession, "Enterprise session floor", 0.5), floorPhysical: frac(e.floorPhysical, "Enterprise physical floor", 0.5), floorDigital: frac(e.floorDigital, "Enterprise digital floor", 0.5) },
-    coursePackages,
+    coursePackages, certificateLate, nana,
     badgeKobo: kobo(i.badgeKobo, "Verified badge price", 100 * 100),
     gold: { personal: gold(g.personal, "Personal"), corporate: gold(g.corporate, "Organisation") },
     boosts: list(i.boosts, d.boosts, "Boost"), ads: list(i.ads, d.ads, "Ad package"),

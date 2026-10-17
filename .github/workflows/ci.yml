@@ -33,6 +33,7 @@ jobs:
       - run: npm run test:team
       - run: npm run test:chat
       - run: npm run test:mcp
+      - run: npm run test:pricing
       - run: npm run test:courses-server
       - run: npm run test:team-server
       - run: npm run test:mcp-server
