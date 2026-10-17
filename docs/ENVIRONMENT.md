@@ -68,6 +68,7 @@ Environment Variables (mark secrets Sensitive), then redeploy: `NEXT_PUBLIC_*` v
 | Setting | Secret | What it does |
 |---|---|---|
 | `CRON_SECRET` | **yes** | Bearer secret for /api/cron/reminders. |
+| `DISCORD_CHANGELOG_WEBHOOK_URL` | **yes** | Discord channel webhook (Server Settings → Integrations → Webhooks) for #announcements: each new changelog release is posted once by the cron job (lib/discord.ts). The URL is a password: keep it only here. |
 
 ## Shared store
 
