@@ -7,6 +7,8 @@ import { onAuthStateChanged, User } from "firebase/auth";
 import { auth } from "@/lib/firebase";
 import { getUserByUsername, canPublish, UserProfile } from "@/lib/users";
 import Avatar from "@/components/Avatar";
+import { NameBadgeIcons } from "@/components/PersonName";
+import { badgesOf } from "@/lib/name-badges";
 import ReviewsPanel from "@/components/ReviewsPanel";
 import StoreManager from "@/components/StoreManager";
 import { digitalReady, getStoreItems, StoreItem } from "@/lib/store";
@@ -101,7 +103,7 @@ export default function StorePageClient({ params }: { params: { username: string
           <div className="flex items-center gap-4">
             <Avatar src={profile.avatar} alt={profile.displayName} size={72} square={isOrg} />
             <div>
-              <h1 className="font-display text-3xl text-ink">{profile.displayName}&apos;s store</h1>
+              <h1 className="font-display text-3xl text-ink">{profile.displayName}&apos;s store<NameBadgeIcons username={profile.username} size={18} badges={badgesOf(profile)} /></h1>
               <p className="mt-1 text-sm text-slate">
                 {visible.length} item{visible.length === 1 ? "" : "s"}{totalSaved > 0 ? ` · ♥ ${totalSaved} saved` : ""}{profile.bio ? ` · ${profile.bio.slice(0, 90)}${profile.bio.length > 90 ? "…" : ""}` : ""}
               </p>

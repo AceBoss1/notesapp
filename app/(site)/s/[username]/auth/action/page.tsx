@@ -5,6 +5,7 @@ import { useSearchParams } from "next/navigation";
 import { applyActionCode, confirmPasswordReset, verifyPasswordResetCode } from "firebase/auth";
 import { auth } from "@/lib/firebase";
 import { useSite } from "@/components/site/SiteContext";
+import { NameBadgeIcons } from "@/components/PersonName";
 import PasswordInput from "@/components/PasswordInput";
 
 // The page behind the links in the emails sent from a member's own domain (password reset, email confirmation): the whole thing
@@ -40,7 +41,7 @@ function Action() {
     <div className="mx-auto max-w-sm px-4 py-20 text-center">
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img src={site.avatar} alt="" className="mx-auto h-14 w-14 rounded-full object-cover" />
-      <p className="mt-3 font-ui text-sm font-bold text-ink">{site.displayName}</p>
+      <p className="mt-3 font-ui text-sm font-bold text-ink">{site.displayName}<NameBadgeIcons username={site.username} size={14} /></p>
       {state === "working" && <p className="mt-8 text-sm text-slate">One moment…</p>}
       {state === "bad" && (
         <>

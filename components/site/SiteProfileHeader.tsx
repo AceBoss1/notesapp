@@ -5,7 +5,8 @@ import { useEffect, useState } from "react";
 import { badgeLevel, getUserByUsername, goldKindOf, roleLabelFor, UserProfile } from "@/lib/users";
 import { getFollowerCount } from "@/lib/follows";
 import { GOLD_BADGE_TITLE } from "@/lib/badges";
-import VerifiedBadge from "@/components/VerifiedBadge";
+import { NameBadgeIcons } from "@/components/PersonName";
+import { badgesOf, NO_BADGES } from "@/lib/name-badges";
 import { OrgLabel } from "@/components/OrgNotice";
 import SocialLinksRow from "@/components/SocialLinksRow";
 import FollowButton from "@/components/FollowButton";
@@ -36,7 +37,7 @@ export default function SiteProfileHeader() {
       <div className="min-w-0">
         <h1 className="flex flex-wrap items-center gap-2 font-display text-4xl text-ink">
           {site.displayName}
-          {badge && <VerifiedBadge size={22} level={badge} goldKind={gold} />}
+          <NameBadgeIcons username={site.username} size={22} badges={profile ? badgesOf(profile) : NO_BADGES} />
           <OrgLabel profile={profile} />
         </h1>
         {profile && headline(profile) && <p className="mt-1 text-base font-semibold text-ink">{headline(profile)}</p>}

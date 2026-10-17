@@ -7,6 +7,7 @@ import { signUpProfile, isUsernameTaken } from "@/lib/users";
 import { followJournal } from "@/lib/follows";
 import { MANDATORY_JOURNALS, isReservedUsername } from "@/lib/journals-directory";
 import { useSite } from "./SiteContext";
+import { NameBadgeIcons } from "@/components/PersonName";
 import PasswordInput from "@/components/PasswordInput";
 
 // Sign-in and sign-up on an Enterprise member's own domain (full white label): a window in the member's name and logo,
@@ -117,7 +118,7 @@ function AuthModal({ mode, setMode, onDone, onClose }: { mode: Mode; setMode: (m
         <div className="flex items-center gap-3">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src={site.avatar} alt="" className="h-11 w-11 rounded-full object-cover" />
-          <p className="font-ui text-base font-extrabold text-ink">{site.displayName}</p>
+          <p className="font-ui text-base font-extrabold text-ink">{site.displayName}<NameBadgeIcons username={site.username} size={15} /></p>
         </div>
         <h2 className="mt-5 font-display text-2xl text-ink">{welcome ? "Welcome" : title}</h2>
         {!welcome && mode !== "forgot" && <p className="mt-1 text-xs text-slate">{mode === "signin" ? `Use your NotesApp account to sign in to ${site.displayName}.` : `Create a NotesApp account to book, buy and follow on ${site.displayName}. It works on every site powered by NotesApp.`}</p>}

@@ -22,3 +22,18 @@ export const shipsFromOk = (v: unknown): boolean => cleanShipsFrom(v).length >= 
 
 // The category a card is filed under (older items have none).
 export const categoryOf = (i: { category?: string; kind?: string }): StoreCategory => (isStoreCategory(i.category) ? i.category : i.kind === "digital" ? "Books & courses" : "Other");
+
+// The topics (lib/topics.ts) a store category belongs to, so the marketplace can put a shopper's interests first. An item can
+// also carry its own `topics`; these fill in for items that don't.
+export const CATEGORY_TOPICS: Record<StoreCategory, string[]> = {
+  "Fashion & clothing": ["fashion"],
+  "Shoes & bags": ["fashion"],
+  "Beauty & care": ["beauty"],
+  "Jewellery & accessories": ["fashion", "beauty"],
+  "Home & living": ["lifestyle"],
+  "Food & drinks": ["food"],
+  "Electronics": ["tech"],
+  "Books & courses": ["education", "books"],
+  "Art & crafts": ["art"],
+  "Other": [],
+};

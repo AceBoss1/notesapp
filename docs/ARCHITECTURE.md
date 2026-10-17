@@ -55,6 +55,35 @@ journals have no `topics`: `topicsOf()` reads their categories and tags through 
 (journals on their interests) before everything else, the Topics tab groups topics with theirs first, a journal's hashtags
 link to `/journals?topic=…`, and the weekly digest ranks by them. API v1 accepts and returns `topics`.
 
+## The frame (v0.40.0, the owner's Moda designs)
+`lib/chrome.ts` decides the frame from the address, so every piece agrees: an open conversation (`isThreadRoute`) is full
+screen on a phone (no masthead, banners, tab bar or footer); the app frame (`usesAppFrame`: /journals, /explore, /saved
+everywhere, and every page on the app address except Messages, writing, admin and sign-in) gives computers the app header
+(wide search, Write, bell, picture) and the left menu (`AppSidebar`); the phone tab bar (`showsBottomTabs`) shows for
+signed-in members, and for everyone on the app address. Phones always get the light header (`Masthead`): the mark, search,
+the bell and your picture, which opens `AccountSheet` (the account menu plus the site links the footer had); visitors get
+Sign in and ☰. Signed-in members on a phone get the tab bar and the sheet instead of the site footer (`FooterGate`). The member
+is read once for the whole frame (`MemberProvider`, `useMember`). Nana's button and the feed's write button sit above the tab
+bar (`useBottomTabs`). Banners step aside on Messages pages (`ChromeGate`).
+
+Journals is now a feed (`JournalsPageClient`, `FeedPost`): tabs For you (`byForYou`, then newest), Following, Latest, Top · 7d;
+Most read this week and Who to follow between posts on a phone and in the right column on a computer; boosted journals inline
+as Promoted (impressions and clicks through `useBoostImpression` / `beacon` from `BoostedStrip`); the journals ad slot after
+the fifth post; the badge suggestion (`BadgePitchCard`) based on the member's plan and badge. The bookmark saves to
+`savedJournals/{uid}_{noteId}` through `POST /api/journals/save` (server-only writes; a member reads their own). The feed's
+"Share a thought" box hands its text to the journal editor's draft (`notesapp:draft:new`).
+
+## Discovery: one order everywhere (v0.40.0)
+Journals, Notes Market (`/shop`), Notes Academy (`/academy`), profile tabs and Trending share `lib/discovery.ts`:
+`shelves(list, reader)` gives **For you** (on the reader's interests, people they follow first), **Most viewed** (the true
+ranking by this week's views, `viewsWeek`, or all-time views when nothing was counted this week) and **Recent** (newest,
+leaving out what For you already shows, unless that would leave it empty). This week's views come from the daily
+`pageViews/{kind}_{id}_{yyyymmdd}` buckets (kinds `note`, `profile`, `item`; store items are counted by
+`lib/store-stats-server.ts`), summed by `lib/discovery-server.ts` and served at `/api/public/weekly-views?kind=` (cached 5
+minutes). The market is `getMarket()` in `lib/shop-directory.ts`: every listed store's items with seller, topics (the item's
+own, or its category's through `CATEGORY_TOPICS`), views and favourites, at `/api/public/market`. Badges next to names come
+from one batched call, `/api/public/badges`, drawn by `NameBadgeIcons`.
+
 ## Weekly digest switch (v0.38.0)
 Admin → Weekly digest (`/admin/digest`, owner and super admins): status, preview, send yourself a test, and the on/off switch
 (`digestConfig/main`). `WEEKLY_DIGEST=on` in Vercel keeps it on regardless. Unsubscribe links are signed with

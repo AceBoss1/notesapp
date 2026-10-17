@@ -31,6 +31,7 @@ export const LEAD_CATEGORIES = [
   { value: "report", label: "Report a post or account" },
   { value: "verification", label: "Gold badge / identity verification" },
   { value: "bug", label: "Bug report" },
+  { value: "courses", label: "Teaching on Notes Academy" },
   { value: "partnership", label: "Partnership" },
   { value: "press", label: "Press" },
   { value: "investment", label: "Investment" },

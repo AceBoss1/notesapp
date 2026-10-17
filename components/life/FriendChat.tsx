@@ -10,6 +10,7 @@ import { SITE } from "@/lib/site";
 import LinkedText from "@/components/LinkedText";
 import LinkPreview from "@/components/LinkPreview";
 import MentionPicker from "@/components/MentionPicker";
+import { NameBadgeIcons } from "@/components/PersonName";
 
 export type ChatFriend = { uid: string; username: string; name: string; avatar: string };
 type Line = { id: string; from: string; text: string; createdAt: string; sticker?: string; attachments?: unknown[]; removed?: unknown };
@@ -85,7 +86,7 @@ export default function FriendChat({ user, friend, here, where, social, gains, o
     <div className="pointer-events-auto absolute inset-x-2 bottom-2 z-30 flex max-h-[78%] flex-col rounded-[1.75rem] bg-white p-4 text-ink shadow-2xl lg:inset-x-auto lg:bottom-28 lg:right-6 lg:top-24 lg:max-h-none lg:w-[400px]">
       <div className="flex items-center gap-3 border-b pb-3">
         <span className="relative shrink-0">{friend.avatar ? <img src={friend.avatar} alt="" className="h-11 w-11 rounded-full object-cover" /> : <span className="flex h-11 w-11 items-center justify-center rounded-full bg-crimson text-sm font-bold text-white">{friend.name.slice(0, 2).toUpperCase()}</span>}<i className="absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full border-2 border-white bg-emerald-500" /></span>
-        <div className="min-w-0 flex-1"><b className="block truncate leading-tight">{friend.name}</b><span className="text-[11px] text-slate">{here ? `Here with you · ${where}` : "Friend · you follow each other"}</span></div>
+        <div className="min-w-0 flex-1"><span className="flex min-w-0 items-center leading-tight"><b className="truncate">{friend.name}</b><NameBadgeIcons username={friend.username} size={14} /></span><span className="text-[11px] text-slate">{here ? `Here with you · ${where}` : "Friend · you follow each other"}</span></div>
         <button onClick={onClose} aria-label="Close the chat" className="text-2xl leading-none text-slate">×</button>
       </div>
       <div ref={box} className="min-h-[8rem] flex-1 space-y-1.5 overflow-y-auto py-3 text-sm">

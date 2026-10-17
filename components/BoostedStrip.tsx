@@ -4,11 +4,11 @@ import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { auth } from "@/lib/firebase";
 
-type Boost = { id: string; href: string; kind: "post" | "item"; title: string; author: string; image: string };
+export type Boost = { id: string; href: string; kind: "post" | "item"; title: string; author: string; image: string };
 
 // Beacon with optional sign-in token so a publisher's own views of their
 // boost aren't counted.
-async function beacon(boostId: string, type: "impression" | "click") {
+export async function beacon(boostId: string, type: "impression" | "click") {
   try {
     const token = await auth.currentUser?.getIdToken();
     fetch("/api/boosts/impression", {
@@ -20,9 +20,9 @@ async function beacon(boostId: string, type: "impression" | "click") {
   } catch {}
 }
 
-function BoostCard({ b }: { b: Boost }) {
-  const ref = useRef<HTMLAnchorElement>(null);
-  // An impression only counts after the card has been ≥50% visible for 1 s.
+// An impression only counts after the boosted card has been ≥50% visible for 1 s.
+export function useBoostImpression<T extends HTMLElement>(boostId: string) {
+  const ref = useRef<T>(null);
   useEffect(() => {
     const el = ref.current;
     if (!el || typeof IntersectionObserver === "undefined") return;
@@ -31,7 +31,7 @@ function BoostCard({ b }: { b: Boost }) {
       ([entry]) => {
         if (entry.isIntersecting && entry.intersectionRatio >= 0.5) {
           timer = setTimeout(() => {
-            beacon(b.id, "impression");
+            beacon(boostId, "impression");
             io.disconnect();
           }, 1000);
         } else if (timer) clearTimeout(timer);
@@ -43,8 +43,12 @@ function BoostCard({ b }: { b: Boost }) {
       io.disconnect();
       if (timer) clearTimeout(timer);
     };
-  }, [b.id]);
+  }, [boostId]);
+  return ref;
+}
 
+function BoostCard({ b }: { b: Boost }) {
+  const ref = useBoostImpression<HTMLAnchorElement>(b.id);
   return (
     <Link ref={ref} href={b.href} onClick={() => beacon(b.id, "click")} className="card flex flex-col overflow-hidden hover:shadow-md">
       {b.image && (

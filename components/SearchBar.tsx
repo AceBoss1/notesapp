@@ -7,7 +7,8 @@ import { getAllUsers, UserProfile } from "@/lib/users";
 import { CHANNEL_JOURNALS } from "@/lib/journals-directory";
 import { topicLabel, topicsOf } from "@/lib/topics";
 
-export default function SearchBar() {
+// `className` sizes the box and `inputClassName` restyles the field (the phone header and the app header draw it as a wide pill).
+export default function SearchBar({ className = "w-full max-w-xs", inputClassName, placeholder = "Search journals, people, topics…" }: { className?: string; inputClassName?: string; placeholder?: string } = {}) {
   const [open, setOpen] = useState(false);
   const [q, setQ] = useState("");
   const [notes, setNotes] = useState<NoteWithComputed[] | null>(null);
@@ -67,7 +68,7 @@ export default function SearchBar() {
   const hasResults = matchedNotes.length > 0 || matchedPeople.length > 0;
 
   return (
-    <div ref={boxRef} className="relative w-full max-w-xs">
+    <div ref={boxRef} className={`relative ${className}`}>
       <input
         value={q}
         onFocus={() => setOpen(true)}
@@ -75,12 +76,13 @@ export default function SearchBar() {
           setQ(e.target.value);
           setOpen(true);
         }}
-        placeholder="Search journals, people, topics…"
-        className="w-full rounded-full border border-rule bg-card px-4 py-2 font-body text-sm focus:border-crimson outline-none"
+        placeholder={placeholder}
+        aria-label="Search"
+        className={inputClassName ?? "w-full rounded-full border border-rule bg-card px-4 py-2 font-body text-sm focus:border-crimson outline-none"}
       />
 
       {open && q.trim().length >= 2 && (
-        <div className="absolute left-0 right-0 top-full z-50 mt-2 max-h-96 overflow-y-auto rounded-xl2 border border-rule bg-card shadow-lg">
+        <div className="absolute left-0 right-0 top-full z-50 mt-2 min-w-[16rem] max-h-96 text-ink overflow-y-auto rounded-xl2 border border-rule bg-card shadow-lg">
           {notes === null ? (
             <p className="p-4 text-sm text-slate">Loading…</p>
           ) : !hasResults ? (

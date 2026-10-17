@@ -2,8 +2,9 @@
 
 import NanaAssist from "@/components/NanaAssist";
 import { DROP_RING, useFileDrop } from "@/lib/useFileDrop";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { Fragment, useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { onAuthStateChanged, type User } from "firebase/auth";
 import { collection, deleteDoc, doc, limit, onSnapshot, orderBy, query, setDoc } from "firebase/firestore";
 import { auth, db } from "@/lib/firebase";
@@ -19,14 +20,15 @@ import VoiceNoteButton from "./VoiceNoteButton";
 import StickerPicker from "./StickerPicker";
 import EmojiPicker from "./EmojiPicker";
 import ProfileAvatar from "@/components/ProfileAvatar";
-import VerifiedBadge from "@/components/VerifiedBadge";
-import TeamBadge from "@/components/TeamBadge";
+import { NameBadgeIcons } from "@/components/PersonName";
 import { badgeLevel, getUserByUid, goldKindOf, isTeamMember } from "@/lib/users";
 import { stickerById } from "@/lib/stickers";
 import { isMomentExpired } from "@/lib/moments-rules";
 import ReportDialog from "@/components/moments/ReportDialog";
 import GroupAvatar from "./GroupAvatar";
-import ThreadHeader from "./ThreadHeader";
+import ThreadHeader, { HEADER_BUTTON } from "./ThreadHeader";
+import HandleLine from "./HandleLine";
+import { CheckIcon, PhoneIcon, PinIcon, SendIcon, TickIcon, VideoIcon } from "./icons";
 import { placeCall } from "@/components/calls/CallManager";
 import { CALLS_LIVE } from "@/lib/moments-rules";
 import { callLogText } from "@/lib/calls";
@@ -36,8 +38,8 @@ import { MOMENTS_LIVE } from "@/lib/moments-rules";
 import type { MomentView } from "@/lib/moments-server";
 import GroupMembers, { type GroupMember } from "./GroupMembers";
 import { isGroupId, type GroupInfo } from "@/lib/messages-rules";
-import PresenceText from "@/components/PresenceText";
 import { usePresence } from "@/lib/presence-client";
+import { isThreadRoute } from "@/lib/chrome";
 
 // "2:05 PM" today, "12 Oct, 2:05 PM" on another day.
 const stamp = (iso: string) => {
@@ -57,12 +59,18 @@ function dayLabel(iso: string): string {
 }
 const GROUP_GAP_MS = 5 * 60_000; // messages from one person within five minutes share one name line
 
+// The row of chips above the box: white tiles on a phone, plain text buttons on desktop. Nana's is the filled one (its button is drawn
+// by NanaAssist, so it's restyled from here).
+const CHIP = "inline-flex h-10 items-center justify-center rounded-xl bg-card px-4 font-ui text-sm font-semibold text-ink shadow-[0_1px_2px_rgba(26,18,16,0.06)] hover:text-crimson disabled:opacity-50 lg:h-9 lg:rounded-lg lg:bg-transparent lg:px-2.5 lg:shadow-none lg:hover:bg-paper";
+const NANA_CHIP = "[&>button:first-child]:h-10 [&>button:first-child]:rounded-xl [&>button:first-child]:border-crimson-deep [&>button:first-child]:bg-crimson-deep [&>button:first-child]:px-5 [&>button:first-child]:text-sm [&>button:first-child]:text-white [&>button:first-child:hover]:bg-crimson [&>button:first-child>img]:hidden lg:[&>button:first-child]:h-9 lg:[&>button:first-child]:rounded-lg lg:mx-1";
+
 type Person = { name: string; username: string; avatar: string; level: "verified" | "gold" | null; goldKind?: ReturnType<typeof goldKindOf>; team?: boolean; isOrg?: boolean };
 type Who = { uid: string; username: string; displayName: string; avatar: string };
 
 // One conversation. `to` (a username) starts a new one; `id` opens an existing one. Replies to moments carry a small note:
 // "Replied to a moment" while it's live, "…that has expired" after — the moment itself can't be opened once it's gone.
 export default function Thread({ id, to, embedded = false }: { id?: string; to?: string; embedded?: boolean }) {
+  const pathname = usePathname();
   const [user, setUser] = useState<User | null | undefined>(undefined);
   const [cid, setCid] = useState(id);
   const [who, setWho] = useState<Who | null>(null);
@@ -312,17 +320,22 @@ export default function Thread({ id, to, embedded = false }: { id?: string; to?:
   }
 
   if (user === null) return <p className="text-slate"><Link href="/login" className="text-crimson underline">Sign in</Link> to message.</p>;
+  // On a phone an open conversation is the whole screen (the site hides its own bars there, lib/chrome.ts); a new one, still under the
+  // site's bars, just fills the page. On desktop it is a card beside the list, as tall as the window allows, scrolling inside.
+  const frame = embedded ? "card" : `${isThreadRoute(pathname) ? "h-[100dvh]" : "min-h-[calc(100dvh-9rem)]"} bg-paper lg:h-[calc(100dvh-7.5rem)] lg:min-h-0 lg:rounded-xl2 lg:border lg:border-rule lg:bg-card`;
+  const back = embedded ? undefined : "/messages";
+  const limits = allowed ? `${allowed.maxCount} file${allowed.maxCount === 1 ? "" : "s"}, ${formatBytes(allowed.maxBytes)} each` : "";
   return (
-    <div className={`relative flex flex-col ${embedded ? "" : "lg:sticky lg:top-24 lg:h-[calc(100vh-8rem)]"} ${dragging ? DROP_RING : ""}`} {...bind}>
-      {dragging && <div className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center rounded bg-paper/80 font-ui text-sm font-bold text-crimson">Drop to attach</div>}
+    <div className={`relative flex flex-col ${frame} ${dragging ? DROP_RING : ""}`} {...bind}>
+      {dragging && <div className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center bg-paper/80 font-ui text-sm font-bold text-crimson lg:rounded-xl2">Drop to attach</div>}
       {group ? (
         <ThreadHeader
-          back={!embedded ? <Link href="/messages" className="text-crimson underline">← Messages</Link> : undefined}
+          back={back}
           avatar={<GroupAvatar title={group.title} size={48} team={group.scope === "team"} src={group.avatar} />}
-          title={<>{group.title}{group.scope === "team" && <span className="rounded bg-amber-100 px-1.5 py-0.5 text-[10px] font-bold text-amber-900">TEAM</span>}</>}
+          title={<><span className="truncate">{group.title}</span>{group.scope === "team" && <span className="shrink-0 rounded bg-amber-100 px-1.5 py-0.5 font-ui text-[10px] font-bold text-amber-900">TEAM</span>}</>}
           subtitle={<>{group.scope === "team" ? "Team room" : "Group"} · {group.members.length.toLocaleString("en-NG")} member{group.members.length === 1 ? "" : "s"}{group.sendLocked ? " · only admins can send" : ""}</>}
           actions={group.adminUids.includes(user?.uid ?? "") && group.scope !== "team" ? (
-            <button type="button" onClick={() => setShowMembers(true)} title="Manage the group: members, admins, bans, who can send, picture" className="rounded-full border border-crimson/40 px-3 py-1.5 font-ui text-xs font-semibold text-crimson hover:bg-crimson/5">⚙️ Manage</button>
+            <button type="button" onClick={() => setShowMembers(true)} title="Manage the group: members, admins, bans, who can send, picture" className="hidden shrink-0 rounded-full border border-rule px-4 py-2 font-ui text-xs font-semibold text-crimson hover:bg-paper sm:inline-flex">⚙️ Manage</button>
           ) : undefined}
           items={[
             { label: "Members", icon: "👥", onClick: () => setShowMembers(true) },
@@ -334,17 +347,17 @@ export default function Thread({ id, to, embedded = false }: { id?: string; to?:
         />
       ) : who ? (
         <ThreadHeader
-          back={!embedded ? <Link href="/messages" className="text-crimson underline">← Messages</Link> : undefined}
-          avatar={<Link href={`/u/${who.username}`}><Avatar src={who.avatar} alt={who.displayName} size={48} square={!!people[who.uid]?.isOrg} /></Link>}
-          title={<><Link href={`/u/${who.username}`} className="hover:underline">{people[who.uid]?.name || who.displayName}</Link>{people[who.uid]?.level && <VerifiedBadge size={16} level={people[who.uid]!.level} goldKind={people[who.uid]!.goldKind} />}{people[who.uid]?.team && <TeamBadge size={16} />}</>}
-          subtitle={presence.statuses[who.uid] ? <PresenceText status={presence.statuses[who.uid]} /> : <span>@{who.username}</span>}
+          back={back}
+          avatar={<Link href={`/u/${who.username}`} className="shrink-0"><Avatar src={who.avatar} alt={who.displayName} size={48} square={!!people[who.uid]?.isOrg} /></Link>}
+          title={<><Link href={`/u/${who.username}`} className="truncate hover:underline">{people[who.uid]?.name || who.displayName}</Link><NameBadgeIcons username={who.username} size={16} badges={people[who.uid] ? { level: people[who.uid]!.level, goldKind: people[who.uid]!.goldKind, team: !!people[who.uid]!.team } : undefined} /></>}
+          subtitle={<HandleLine username={who.username} status={presence.statuses[who.uid]} />}
           actions={CALLS_LIVE && !blockedByMe ? (
-            <span className="flex items-center gap-1">
-              <button type="button" onClick={() => placeCall({ toUid: who.uid, kind: "audio", name: people[who.uid]?.name || who.displayName, avatar: who.avatar })} aria-label={`Voice call ${who.displayName}`} title="Voice call (free)" className="flex h-9 w-9 items-center justify-center rounded-full text-crimson hover:bg-paper">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M6.6 10.8a15.1 15.1 0 006.6 6.6l2.2-2.2a1 1 0 011-.25 11.4 11.4 0 003.6.57 1 1 0 011 1V20a1 1 0 01-1 1A17 17 0 013 4a1 1 0 011-1h3.5a1 1 0 011 1c0 1.25.2 2.45.57 3.57a1 1 0 01-.25 1z" /></svg>
+            <span className="flex shrink-0 items-center gap-0.5 lg:gap-3">
+              <button type="button" onClick={() => placeCall({ toUid: who.uid, kind: "audio", name: people[who.uid]?.name || who.displayName, avatar: who.avatar })} aria-label={`Voice call ${who.displayName}`} title="Voice call (free)" className={HEADER_BUTTON}>
+                <PhoneIcon size={22} />
               </button>
-              <button type="button" onClick={() => placeCall({ toUid: who.uid, kind: "video", name: people[who.uid]?.name || who.displayName, avatar: who.avatar })} aria-label={`Video call ${who.displayName}`} title="Video call (free)" className="flex h-9 w-9 items-center justify-center rounded-full text-crimson hover:bg-paper">
-                <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M4 6h11a2 2 0 012 2v1.6l3.4-2.3A1 1 0 0122 8.1v7.8a1 1 0 01-1.6.8L17 14.4V16a2 2 0 01-2 2H4a2 2 0 01-2-2V8a2 2 0 012-2z" /></svg>
+              <button type="button" onClick={() => placeCall({ toUid: who.uid, kind: "video", name: people[who.uid]?.name || who.displayName, avatar: who.avatar })} aria-label={`Video call ${who.displayName}`} title="Video call (free)" className={HEADER_BUTTON}>
+                <VideoIcon size={24} />
               </button>
             </span>
           ) : undefined}
@@ -358,30 +371,33 @@ export default function Thread({ id, to, embedded = false }: { id?: string; to?:
           ]}
         />
       ) : (
-        <p className="mb-4 text-sm text-slate"><Link href="/messages" className="text-crimson underline">← Messages</Link>{to ? ` · @${to}` : ""}</p>
+        <p className="shrink-0 border-b border-rule bg-card px-4 pb-3 pt-[max(0.75rem,env(safe-area-inset-top))] font-ui text-sm text-slate lg:rounded-t-xl2 lg:px-7 lg:pt-5"><Link href="/messages" className="font-semibold text-crimson hover:underline">← Messages</Link>{to ? ` · @${to}` : ""}</p>
       )}
       {group && showMembers && cid && user && <GroupMembers cid={cid} group={group} members={group.members} banned={banned} meUid={user.uid} onChanged={loadMeta} onLeft={() => { window.location.href = "/messages"; }} />}
       {pinned.length > 0 && (
-        <div className="mb-2 space-y-1 rounded-lg border border-rule bg-paper p-2 text-xs">
+        <div className="mx-4 mt-3 shrink-0 space-y-1 rounded-xl border border-rule bg-card px-3 py-2 text-xs lg:mx-7 lg:bg-paper">
           {pinned.map((p) => { const pm = messages.find((x) => x.id === p.id); return (
             <div key={p.id} className="flex items-center gap-2">
-              <button type="button" onClick={() => document.getElementById(`m-${p.id}`)?.scrollIntoView({ block: "center", behavior: "smooth" })} className="min-w-0 flex-1 truncate text-left"><span aria-hidden="true">📌 </span><strong>{(people[pm?.from ?? ""]?.name || "Message").split(" ")[0]}:</strong> {pm ? (pm.text || (pm.attachments?.length ? "📎 Attachment" : pm.sticker ? "🖼 Sticker" : "…")) : "an earlier message"}</button>
+              <button type="button" onClick={() => document.getElementById(`m-${p.id}`)?.scrollIntoView({ block: "center", behavior: "smooth" })} className="flex min-w-0 flex-1 items-center gap-1.5 text-left"><PinIcon size={13} className="shrink-0 text-crimson" /><span className="truncate"><strong>{(people[pm?.from ?? ""]?.name || "Message").split(" ")[0]}:</strong> {pm ? (pm.text || (pm.attachments?.length ? "📎 Attachment" : pm.sticker ? "🖼 Sticker" : "…")) : "an earlier message"}</span></button>
               {(!isGroup || group?.adminUids.includes(user?.uid ?? "")) && <button type="button" onClick={() => pm && pinMsg(pm, false)} disabled={!pm} aria-label="Unpin" title="Unpin" className="text-slate hover:text-crimson">×</button>}
             </div>
           ); })}
         </div>
       )}
-      <div className={`min-h-[40vh] space-y-1 ${embedded ? "" : "lg:min-h-0 lg:flex-1 lg:overflow-y-auto lg:pr-2"}`}>
+      <div className={embedded ? "min-h-[40vh] px-4 py-4 lg:px-7" : "min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 py-4 lg:px-7 lg:py-5"}>
         {messages.map((m, idx) => {
           const mine = m.from === user?.uid;
           const person = people[m.from];
           const prev = messages[idx - 1];
+          const next = messages[idx + 1];
           const newDay = !prev || dayKey(prev.createdAt) !== dayKey(m.createdAt);
           const newGroup = newDay || prev.from !== m.from || new Date(m.createdAt).getTime() - new Date(prev.createdAt).getTime() > GROUP_GAP_MS;
+          // The picture sits beside the last message of a run from one person, as in most messengers.
+          const endOfRun = !next || !!next.call || !!next.deleted || !!next.removed || next.from !== m.from || dayKey(next.createdAt) !== dayKey(m.createdAt) || new Date(next.createdAt).getTime() - new Date(m.createdAt).getTime() > GROUP_GAP_MS;
           const sticker = m.sticker ? stickerById(m.sticker) : undefined;
           const quoted = m.replyTo ? people[m.replyTo.from] : undefined;
           const replyButton = (msg: ThreadMessage) => !blockedByMe && (
-            <button type="button" onClick={() => { setReplyingTo(msg); box.current?.focus(); }} className="font-bold opacity-80 hover:opacity-100" aria-label="Reply to this message" title="Reply">↩ Reply</button>
+            <button type="button" onClick={() => { setReplyingTo(msg); box.current?.focus(); }} className="font-medium opacity-90 hover:underline hover:opacity-100" aria-label="Reply to this message" title="Reply">↩ Reply</button>
           );
           const reportButton = (msg: ThreadMessage) => isGroup && msg.from !== user?.uid && (
             <button type="button" onClick={() => setReportingMsg(msg.id)} className="opacity-80 hover:opacity-100" aria-label="Report this message">Report</button>
@@ -409,6 +425,17 @@ export default function Thread({ id, to, embedded = false }: { id?: string; to?:
               )}
             </span>
           );
+          // The small line inside each bubble: ✓ sent time · ✓✓ read time · ↩ Reply, then ⋯.
+          const meta = (msg: ThreadMessage) => {
+            const parts = [
+              isPinned && <span aria-label="Pinned" className="inline-flex"><PinIcon size={12} /></span>,
+              msg.editedAt && <span className="italic">edited</span>,
+              <span key="sent" className="inline-flex items-center gap-1">{mine && <span aria-label="Sent"><TickIcon /></span>}{stamp(msg.createdAt)}</span>,
+              mine && msg.readAt && <span className="inline-flex items-center gap-1"><span aria-label="Read"><TickIcon read /></span>{stamp(msg.readAt)}</span>,
+              replyButton(msg),
+            ].filter(Boolean);
+            return <>{parts.map((x, k) => <Fragment key={k}>{k > 0 && <span aria-hidden="true">·</span>}{x}</Fragment>)}{moreMenu(msg)}</>;
+          };
           // Waiting for consent: the sender sees who it's waiting for; each reader who hasn't answered can allow or decline.
           const pending = (msg: ThreadMessage) => {
             const r = msg.pendingRequest; if (!r) return null;
@@ -422,16 +449,16 @@ export default function Thread({ id, to, embedded = false }: { id?: string; to?:
           };
           if (m.deleted) return (
             <div key={m.id} id={`m-${m.id}`} className={`my-2 flex ${mine ? "justify-end" : "justify-start"}`}>
-              <span className="rounded-lg border border-dashed border-rule px-3 py-1.5 text-xs italic text-slate">🗑 {mine ? "You deleted this message" : "This message was deleted"} · {stamp(m.createdAt)}</span>
+              <span className="rounded-full border border-dashed border-rule px-3 py-1.5 text-xs italic text-slate">🗑 {mine ? "You deleted this message" : "This message was deleted"} · {stamp(m.createdAt)}</span>
             </div>
           );
           if (m.removed) return (
             <div key={m.id} id={`m-${m.id}`} className={`my-2 flex ${mine ? "justify-end" : "justify-start"}`}>
-              <span className="rounded-lg border border-dashed border-rule px-3 py-1.5 text-xs italic text-slate">🚫 {REMOVED_TEXT[m.removed.by]}{!mine && person?.name ? ` (was from ${firstName(person)})` : ""} · {stamp(m.createdAt)}</span>
+              <span className="rounded-full border border-dashed border-rule px-3 py-1.5 text-xs italic text-slate">🚫 {REMOVED_TEXT[m.removed.by]}{!mine && person?.name ? ` (was from ${firstName(person)})` : ""} · {stamp(m.createdAt)}</span>
             </div>
           );
           if (m.call) {
-            const callCls = `rounded-full border px-3 py-1 text-xs ${m.call.outcome === "missed" && !mine ? "border-crimson/40 bg-crimson/5 text-crimson" : "border-rule bg-paper text-slate"}`;
+            const callCls = `rounded-full border px-3 py-1 text-xs ${m.call.outcome === "missed" && !mine ? "border-crimson/40 bg-crimson/5 text-crimson" : "border-rule bg-card text-slate lg:bg-paper"}`;
             const callLine = <>📞 {m.call.outcome === "missed" && mine ? `${m.call.kind === "video" ? "Video" : "Voice"} call · no answer` : callLogText(m.call)} · {stamp(m.createdAt)}</>;
             // In a one-to-one chat, tapping a call line calls back, the same kind of call (voice or video).
             const kind = m.call.kind;
@@ -451,34 +478,30 @@ export default function Thread({ id, to, embedded = false }: { id?: string; to?:
               {newDay && (
                 <div className="my-5 flex items-center gap-4" role="separator" aria-label={dayLabel(m.createdAt)}>
                   <span className="h-px flex-1 bg-rule" />
-                  <span className="font-ui text-xs font-semibold uppercase tracking-eyebrow text-slate">{dayLabel(m.createdAt)}</span>
+                  <span className="font-mono text-[11px] uppercase tracking-eyebrow text-slate">{dayLabel(m.createdAt)}</span>
                   <span className="h-px flex-1 bg-rule" />
                 </div>
               )}
-              <div id={`m-${m.id}`} className={`flex items-start gap-2 ${mine ? "flex-row-reverse" : ""} ${newGroup ? "mt-4" : "mt-1"}`}>
-                <ProfileAvatar username={person?.username || (mine ? "" : who?.username ?? "")} src={person?.avatar ?? ""} alt={person?.name ?? ""} size={32} square={!!person?.isOrg} from="chat" />
-                <div className={`flex min-w-0 max-w-[80%] flex-col ${mine ? "items-end" : "items-start"}`}>
-                  {newGroup && (
-                    <p className="mb-1 flex items-center gap-1.5 font-ui text-sm font-bold text-ink">
+              <div id={`m-${m.id}`} className={`flex items-end gap-2 lg:gap-3 ${mine ? "flex-row-reverse" : ""} ${newGroup ? "mt-3" : "mt-1"}`}>
+                <span className={`shrink-0 ${mine ? "hidden lg:block" : ""} ${endOfRun ? "" : "invisible"}`}>
+                  <ProfileAvatar username={person?.username || (mine ? "" : who?.username ?? "")} src={person?.avatar ?? ""} alt={person?.name ?? ""} size={32} square={!!person?.isOrg} from="chat" />
+                </span>
+                <div className={`flex min-w-0 max-w-[80%] flex-col lg:max-w-[70%] ${mine ? "items-end" : "items-start"}`}>
+                  {newGroup && isGroup && (
+                    <p className="mb-1 flex items-center gap-1.5 font-ui text-xs font-bold text-ink">
                       {person?.name ?? ""}
-                      {person?.level && <VerifiedBadge size={14} level={person.level} goldKind={person.goldKind} />}
-                      {person?.team && <TeamBadge size={14} />}
+                      {person && <NameBadgeIcons username={person.username} size={13} badges={{ level: person.level, goldKind: person.goldKind, team: !!person.team }} />}
                     </p>
                   )}
                   {sticker ? (
                     <div>
                       {/* eslint-disable-next-line @next/next/no-img-element */}
                       <img src={sticker.src} alt={`${sticker.label} sticker`} className={sticker.wide ? "h-auto w-56 max-w-full object-contain" : "h-28 w-28 object-contain"} />
-                      <p className={`flex gap-x-3 text-[11px] text-slate ${mine ? "justify-end" : ""}`}>
-                        <span>{mine && <span aria-label="Sent">✔ </span>}{stamp(m.createdAt)}</span>
-                        {mine && m.readAt && <span><span aria-label="Read">✔✔ </span>{stamp(m.readAt)}</span>}
-                        {replyButton(m)}
-                        {moreMenu(m)}
-                      </p>
+                      <p className={`mt-1 flex flex-wrap items-center gap-x-1.5 text-[11px] text-slate ${mine ? "justify-end" : ""}`}>{meta(m)}</p>
                       {pending(m)}
                     </div>
                   ) : (<>
-                    <div className={`rounded-lg px-3 py-2 text-sm ${mine ? "bg-crimson text-white" : "border border-rule bg-card text-ink"}`}>
+                    <div className={`rounded-xl2 px-4 py-3 text-[15px] leading-snug lg:rounded-2xl lg:text-sm ${mine ? "bg-crimson text-white" : "border border-rule bg-card text-ink lg:bg-paper"}`}>
                       {m.replyTo && (
                         <button
                           type="button"
@@ -497,14 +520,7 @@ export default function Thread({ id, to, embedded = false }: { id?: string; to?:
                       {m.attachments && cid && <MessageAttachments cid={cid} mid={m.id} files={m.attachments} mine={mine} />}
                       {m.text && <p className="whitespace-pre-wrap break-words"><FormattedText text={m.text} linkClass={mine ? "font-semibold text-white underline underline-offset-2" : undefined} /></p>}
                       {m.text && firstUrl(m.text) && <LinkPreview url={firstUrl(m.text)!} user={user ?? null} mine={mine} />}
-                      <p className={`mt-1 flex flex-wrap items-center justify-end gap-x-3 text-[11px] ${mine ? "text-white/80" : "text-slate"}`}>
-                        {isPinned && <span aria-label="Pinned">📌</span>}
-                        {m.editedAt && <span className="italic">edited</span>}
-                        <span>{mine && <span aria-label="Sent">✔ </span>}{stamp(m.createdAt)}</span>
-                        {mine && m.readAt && <span><span aria-label="Read">✔✔ </span>{stamp(m.readAt)}</span>}
-                        {replyButton(m)}
-                        {moreMenu(m)}
-                      </p>
+                      <p className={`mt-1.5 flex flex-wrap items-center gap-x-1.5 text-xs lg:text-[11px] ${mine ? "text-white/80" : "text-slate"}`}>{meta(m)}</p>
                     </div>
                     {pending(m)}
                   </>)}
@@ -516,64 +532,72 @@ export default function Thread({ id, to, embedded = false }: { id?: string; to?:
         {typers.length > 0 && <p className="mt-2 text-xs italic text-slate" aria-live="polite">{isGroup ? `${typers.map((u) => (people[u]?.name || "Someone").split(" ")[0]).slice(0, 2).join(", ")} ${typers.length > 1 ? "are" : "is"} typing…` : "…typing"}</p>}
         <div ref={end} />
       </div>
-      {error && <p className="mt-2 text-sm text-red-700" role="alert">{error}</p>}
-      {blockedByMe && <p className="mt-3 text-sm text-slate">You&apos;ve blocked this member. Unblock them to send a message.</p>}
+      <div className={`shrink-0 lg:border-t lg:border-rule lg:px-7 lg:pb-5 lg:pt-4 ${embedded ? "" : "pb-[env(safe-area-inset-bottom)]"}`}>
+        {error && <p className="px-4 pb-2 text-sm text-red-700 lg:px-0" role="alert">{error}</p>}
+        {blockedByMe && <p className="px-4 pb-3 text-sm text-slate lg:px-0">You&apos;ve blocked this member. Unblock them to send a message.</p>}
+        {group?.sendLocked && (group.adminUids.includes(user?.uid ?? "")
+          ? <p className="mx-4 mb-2 rounded-lg bg-amber-50 p-2 text-xs text-ink lg:mx-0">Sending is limited to admins in this group. You can still write because you are an admin.</p>
+          : <p className="mx-4 mb-4 rounded-lg border border-rule bg-card p-3 text-center text-sm text-slate lg:mx-0 lg:mb-0 lg:bg-paper">Only group admins can send messages in this group. You can still read it.</p>)}
+        <form className={group?.sendLocked && !group.adminUids.includes(user?.uid ?? "") ? "hidden" : ""} onSubmit={(e) => { e.preventDefault(); if (editing) { if (text.trim()) void saveEdit(); return; } if ((text.trim() || files.length) && !busy && !blockedByMe) send(); }}>
+          <div className="flex flex-wrap items-center gap-2 px-4 pb-3 lg:gap-1 lg:px-0">
+            <EmojiPicker onPick={insertEmoji} disabled={blockedByMe} className={`${CHIP} !px-3.5 text-base`} />
+            {/* Bold, italic and underline are always there on desktop; on a phone they show once there's something to format, which keeps the row to one line. */}
+            <button type="button" onClick={() => format("**")} aria-label="Bold" title="Bold (Ctrl+B)" className={`${CHIP} w-9 !px-0 font-bold ${text ? "" : "!hidden lg:!inline-flex"}`}>B</button>
+            <button type="button" onClick={() => format("_")} aria-label="Italic" title="Italic (Ctrl+I)" className={`${CHIP} w-9 !px-0 font-medium italic ${text ? "" : "!hidden lg:!inline-flex"}`}>I</button>
+            <button type="button" onClick={() => format("__")} aria-label="Underline" title="Underline (Ctrl+U)" className={`${CHIP} w-9 !px-0 font-medium underline ${text ? "" : "!hidden lg:!inline-flex"}`}>U</button>
+            <StickerPicker onPick={sendSticker} disabled={busy || blockedByMe} className={`${CHIP} lg:!px-4`} label="Stickers" />
+            {!blockedByMe && <NanaAssist surface="chat" label="Nana" className={NANA_CHIP} getText={() => text} onApply={(t) => { setText(t); setTimeout(() => box.current?.focus(), 0); }}
+              getContext={() => messages.slice(-8).map((m) => `${m.from === user?.uid ? "Me" : (people[m.from]?.name || "Them").split(" ")[0]}: ${m.text || (m.sticker ? "(sticker)" : m.attachments?.length ? "(attachment)" : "")}`).join("\n")} />}
+            <button type="button" onClick={() => picker.current?.click()} aria-label="Attach files" title="Attach pictures, videos, voice notes or documents" className={`${CHIP} lg:!px-4`}>Attach</button>
+            <input ref={picker} type="file" multiple accept={ATTACHMENT_ACCEPT} className="hidden" onChange={(e) => pick(e.target.files)} />
+            {limits && <span className="ml-2 hidden text-xs text-slate lg:inline">up to {limits}</span>}
+          </div>
+          {editing && (
+            <div className="mx-4 mb-2 flex items-start justify-between gap-3 rounded-r-lg border-l-4 border-amber-500 bg-amber-50 px-3 py-2 text-xs text-ink lg:mx-0">
+              <span className="min-w-0">✏️ <strong>Editing your message.</strong> {editing.readAt || isGroup ? "If it has been read, the reader is asked to agree first." : "It hasn't been read yet, so it changes straight away."}</span>
+              <button type="button" onClick={() => { setEditing(null); setText(""); }} aria-label="Cancel editing" className="text-base leading-none">×</button>
+            </div>
+          )}
+          {replyingTo && (
+            <div className="mx-4 mb-2 flex items-start justify-between gap-3 rounded-r-lg border-l-4 border-crimson bg-card px-3 py-2 text-xs text-slate lg:mx-0 lg:bg-paper">
+              <span className="line-clamp-2 min-w-0"><strong className="text-ink">Replying to {replyingTo.from === user?.uid ? "yourself" : (people[replyingTo.from]?.name || "them").split(" ")[0]}:</strong> {replyingTo.text || (replyingTo.sticker ? "🖼 Sticker" : replyingTo.attachments?.length ? "📎 Attachment" : "")}</span>
+              <button type="button" onClick={() => setReplyingTo(null)} aria-label="Cancel the reply" className="text-base leading-none">×</button>
+            </div>
+          )}
+          {files.length > 0 && (
+            <ul className="mb-2 flex flex-wrap gap-2 px-4 text-xs lg:px-0">
+              {files.map((f, k) => (
+                <li key={k} className="flex items-center gap-2 rounded-full border border-rule bg-card px-3 py-1">
+                  <span className="max-w-[12rem] truncate">{voiceLength.current.has(f) ? `🎙 Voice note ${Math.floor(voiceLength.current.get(f)! / 60)}:${String(Math.floor(voiceLength.current.get(f)! % 60)).padStart(2, "0")}` : f.name}</span><span className="text-slate">{formatBytes(f.size)}</span>
+                  <button type="button" onClick={() => setFiles(files.filter((_, j) => j !== k))} aria-label={`Remove ${f.name}`} className="text-slate">×</button>
+                </li>
+              ))}
+            </ul>
+          )}
+          <div className="relative flex items-end gap-1.5 border-t border-rule bg-card px-4 py-2.5 lg:gap-3 lg:border-0 lg:bg-transparent lg:p-0">
+            <MentionPicker target={box} value={text} onChange={typed} place="above" />
+            {/* Grows with what's typed where the browser can (field-sizing), up to a few lines, then scrolls. */}
+            <textarea
+              ref={box} value={text} rows={1} maxLength={MESSAGE_MAX} placeholder="Start or reply a conversation" onChange={(e) => typed(e.target.value)} onBlur={stopTyping}
+              onKeyDown={(e) => {
+                const k = e.key.toLowerCase();
+                if ((e.ctrlKey || e.metaKey) && (k === "b" || k === "i" || k === "u")) { e.preventDefault(); format(k === "b" ? "**" : k === "i" ? "_" : "__"); }
+                else if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); e.currentTarget.form?.requestSubmit(); }
+              }}
+              className="max-h-40 min-h-[3rem] min-w-0 flex-1 resize-none rounded-3xl border border-transparent bg-paper px-4 py-3 text-[15px] leading-6 text-ink outline-none [field-sizing:content] placeholder:text-slate/80 focus:border-crimson/30 lg:min-h-[3.5rem] lg:rounded-2xl lg:py-4 lg:text-sm"
+            />
+            <VoiceNoteButton maxSeconds={allowed?.maxVoiceSeconds ?? 300} disabled={busy || blockedByMe} onRecorded={addVoiceNote} onError={setError} />
+            <button disabled={busy || (!text.trim() && !files.length) || blockedByMe} aria-label={busy ? "Sending" : editing ? "Save" : "Send"} className="flex h-12 w-12 shrink-0 items-center justify-center self-end rounded-full bg-crimson-bright text-white transition-colors hover:bg-crimson disabled:opacity-60 lg:h-12 lg:w-auto lg:bg-crimson lg:px-8 lg:font-ui lg:text-sm lg:font-semibold lg:hover:bg-crimson-bright">
+              {editing ? <CheckIcon className="lg:hidden" /> : <SendIcon className="-mr-0.5 lg:hidden" />}
+              <span className="hidden lg:inline">{busy ? "Sending…" : editing ? "Save" : "Send"}</span>
+            </button>
+          </div>
+          {limits && <p className="pt-2 text-center text-xs text-slate lg:hidden">Up to {limits}</p>}
+        </form>
+      </div>
       {moments && <MomentViewer moments={moments} onClose={() => setMoments(null)} onChanged={() => {}} />}
       {reporting && cid && <ReportDialog kind="conversation" targetId={cid} onClose={() => setReporting(false)} />}
       {reportingMsg && cid && <ReportDialog kind="conversation" targetId={cid} messageId={reportingMsg} onClose={() => setReportingMsg(null)} />}
-      {group?.sendLocked && (group.adminUids.includes(user?.uid ?? "")
-        ? <p className="mt-3 rounded-lg bg-amber-50 p-2 text-xs text-ink">Sending is limited to admins in this group. You can still write because you are an admin.</p>
-        : <p className="mt-4 rounded-lg border border-rule bg-paper p-3 text-center text-sm text-slate">Only group admins can send messages in this group. You can still read it.</p>)}
-      <form className={group?.sendLocked && !group.adminUids.includes(user?.uid ?? "") ? "hidden" : "mt-4"} onSubmit={(e) => { e.preventDefault(); if (editing) { if (text.trim()) void saveEdit(); return; } if ((text.trim() || files.length) && !busy && !blockedByMe) send(); }}>
-        <div className="mb-1 flex flex-wrap items-center gap-1 text-sm">
-          <EmojiPicker onPick={insertEmoji} disabled={blockedByMe} />
-          <button type="button" onClick={() => format("**")} aria-label="Bold" title="Bold (Ctrl+B)" className="w-8 rounded border border-rule py-1 font-bold">B</button>
-          <button type="button" onClick={() => format("_")} aria-label="Italic" title="Italic (Ctrl+I)" className="w-8 rounded border border-rule py-1 italic">I</button>
-          <button type="button" onClick={() => format("__")} aria-label="Underline" title="Underline (Ctrl+U)" className="w-8 rounded border border-rule py-1 underline">U</button>
-          <StickerPicker onPick={sendSticker} disabled={busy || blockedByMe} />
-          {!blockedByMe && <NanaAssist surface="chat" label="Nana" getText={() => text} onApply={(t) => { setText(t); setTimeout(() => box.current?.focus(), 0); }}
-            getContext={() => messages.slice(-8).map((m) => `${m.from === user?.uid ? "Me" : (people[m.from]?.name || "Them").split(" ")[0]}: ${m.text || (m.sticker ? "(sticker)" : m.attachments?.length ? "(attachment)" : "")}`).join("\n")} />}
-          <button type="button" onClick={() => picker.current?.click()} aria-label="Attach files" title="Attach pictures, videos, voice notes or documents" className="ml-1 rounded border border-rule px-3 py-1">📎 Attach</button>
-          <input ref={picker} type="file" multiple accept={ATTACHMENT_ACCEPT} className="hidden" onChange={(e) => pick(e.target.files)} />
-          {allowed && <span className="ml-1 text-xs text-slate">up to {allowed.maxCount} file{allowed.maxCount === 1 ? "" : "s"}, {formatBytes(allowed.maxBytes)} each</span>}
-        </div>
-        {editing && (
-          <div className="mb-2 flex items-start justify-between gap-3 border-l-4 border-amber-500 bg-amber-50 px-3 py-2 text-xs text-ink">
-            <span className="min-w-0">✏️ <strong>Editing your message.</strong> {editing.readAt || isGroup ? "If it has been read, the reader is asked to agree first." : "It hasn't been read yet, so it changes straight away."}</span>
-            <button type="button" onClick={() => { setEditing(null); setText(""); }} aria-label="Cancel editing" className="text-base leading-none">×</button>
-          </div>
-        )}
-        {replyingTo && (
-          <div className="mb-2 flex items-start justify-between gap-3 border-l-4 border-crimson bg-paper px-3 py-2 text-xs text-slate">
-            <span className="line-clamp-2 min-w-0"><strong className="text-ink">Replying to {replyingTo.from === user?.uid ? "yourself" : (people[replyingTo.from]?.name || "them").split(" ")[0]}:</strong> {replyingTo.text || (replyingTo.sticker ? "🖼 Sticker" : replyingTo.attachments?.length ? "📎 Attachment" : "")}</span>
-            <button type="button" onClick={() => setReplyingTo(null)} aria-label="Cancel the reply" className="text-base leading-none">×</button>
-          </div>
-        )}
-        {files.length > 0 && (
-          <ul className="mb-2 flex flex-wrap gap-2 text-xs">
-            {files.map((f, k) => (
-              <li key={k} className="flex items-center gap-2 rounded border border-rule px-2 py-1">
-                <span className="max-w-[12rem] truncate">{voiceLength.current.has(f) ? `🎙 Voice note ${Math.floor(voiceLength.current.get(f)! / 60)}:${String(Math.floor(voiceLength.current.get(f)! % 60)).padStart(2, "0")}` : f.name}</span><span className="text-slate">{formatBytes(f.size)}</span>
-                <button type="button" onClick={() => setFiles(files.filter((_, j) => j !== k))} aria-label={`Remove ${f.name}`} className="text-slate">×</button>
-              </li>
-            ))}
-          </ul>
-        )}
-        <div className="relative flex gap-2">
-          <MentionPicker target={box} value={text} onChange={typed} place="above" />
-          <textarea
-            ref={box} value={text} rows={2} maxLength={MESSAGE_MAX} placeholder="Start or reply a conversation" onChange={(e) => typed(e.target.value)} onBlur={stopTyping}
-            onKeyDown={(e) => {
-              const k = e.key.toLowerCase();
-              if ((e.ctrlKey || e.metaKey) && (k === "b" || k === "i" || k === "u")) { e.preventDefault(); format(k === "b" ? "**" : k === "i" ? "_" : "__"); }
-              else if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); e.currentTarget.form?.requestSubmit(); }
-            }}
-            className="min-w-0 flex-1 resize-y rounded border border-rule px-3 py-2 text-sm"
-          />
-          <VoiceNoteButton maxSeconds={allowed?.maxVoiceSeconds ?? 300} disabled={busy || blockedByMe} onRecorded={addVoiceNote} onError={setError} />
-          <button disabled={busy || (!text.trim() && !files.length) || blockedByMe} className="btn-primary self-end disabled:opacity-50">{busy ? "Sending…" : editing ? "Save" : "Send"}</button>
-        </div>
-      </form>
     </div>
   );
 }

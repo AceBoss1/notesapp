@@ -12,6 +12,14 @@ staging copy, and what's already built for it.
 - The smoke test can point at any address: `SMOKE_BASE_URL=https://… npm run test:smoke`.
 - `staging` is a branch CI already watches.
 
+## Demo data on your computer
+`scripts/seed-demo.ts` fills the Firestore and Auth emulators with a small #NotesApp (people with badges, journals on
+topics, store items, this week's visits, a bookable publisher, one publisher without payouts, and a signed-in reader with
+interests: reader@demo.notesapp / demo-password-1). It refuses to run without `FIRESTORE_EMULATOR_HOST`, so it never
+touches live data. Point the site at the emulators with `NEXT_PUBLIC_FIRESTORE_EMULATOR_HOST=127.0.0.1:8080` and
+`NEXT_PUBLIC_AUTH_EMULATOR_HOST=127.0.0.1:9099`; this is how the phone and desktop screenshots are taken before shipping.
+If a `NEXT_PUBLIC_` switch seems ignored, delete `.next` and start the dev server again.
+
 ## To set up (owner, about an hour)
 1. **A second Firebase project**, `notesapp-staging` (Firebase console → Add project). Turn on Authentication (email and
    password) and Firestore. Deploy the rules to it: `npx firebase-tools@13 deploy --only firestore --project notesapp-staging`.

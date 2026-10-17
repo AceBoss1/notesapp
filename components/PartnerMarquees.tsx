@@ -1,8 +1,9 @@
 import Link from "next/link";
 import { activeHostForUsername } from "@/lib/domains";
 import { PARTNERS, TRUSTED_BY } from "@/lib/partners";
-import { badgeLevel, getAllUsers, goldKindOf } from "@/lib/users";
-import VerifiedBadge from "@/components/VerifiedBadge";
+import { getAllUsers } from "@/lib/users";
+import { NameBadgeIcons } from "@/components/PersonName";
+import { badgesOf } from "@/lib/name-badges";
 
 // A row that scrolls sideways, pauses when you point at it, and stands still (wrapped and centred) for people who ask their device for
 // less motion. Each copy of the names is long enough to fill a wide screen, and the repeats are hidden from screen readers.
@@ -52,7 +53,7 @@ export async function TrustedByStrip({ className = "" }: { className?: string })
     const u = users.find((x) => x.username === c.username);
     if (!u || u.suspended) return null;
     const host = await activeHostForUsername(c.username);
-    return { key: c.username, name: u.displayName, avatar: u.avatar, what: c.what, badge: badgeLevel(u), gold: goldKindOf(u), href: host ? `https://${host}` : `/u/${c.username}`, external: !!host };
+    return { key: c.username, name: u.displayName, avatar: u.avatar, what: c.what, badges: badgesOf(u), href: host ? `https://${host}` : `/u/${c.username}`, external: !!host };
   }))).filter((r): r is NonNullable<typeof r> => !!r);
   if (!rows.length) return null;
   return (
@@ -63,7 +64,7 @@ export async function TrustedByStrip({ className = "" }: { className?: string })
           <Item key={`${k}-${r.key}`} hidden={hidden} href={r.href} external={r.external}>
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src={r.avatar} alt="" width={36} height={36} className="h-9 w-9 shrink-0 rounded-lg object-cover" />
-            <span><span className="flex items-center gap-1 font-ui text-sm font-bold text-ink">{r.name}<VerifiedBadge size={14} level={r.badge} goldKind={r.gold} /></span>{r.what && <span className="block text-xs text-slate">{r.what}</span>}</span>
+            <span><span className="flex items-center gap-1 font-ui text-sm font-bold text-ink">{r.name}<NameBadgeIcons username={r.key} size={14} badges={r.badges} /></span>{r.what && <span className="block text-xs text-slate">{r.what}</span>}</span>
           </Item>
         ))} />
     </section>

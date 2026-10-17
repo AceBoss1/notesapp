@@ -8,7 +8,9 @@ import { auth } from "@/lib/firebase";
 import { isFollowing, followJournal, unfollowJournal } from "@/lib/follows";
 import { MANDATORY_USERNAMES } from "@/lib/journals-directory";
 
-export default function FollowButton({ username }: { username: string }) {
+// `compactWhenFollowing`: on a profile, once you follow, the button steps aside on phones (where room for Book, Message and
+// Gift is short) and stays on larger screens, where "Following" is how you unfollow.
+export default function FollowButton({ username, compactWhenFollowing = false }: { username: string; compactWhenFollowing?: boolean }) {
   const [user, setUser] = useState<User | null | undefined>(undefined);
   const [following, setFollowing] = useState<boolean | null>(null);
   const [busy, setBusy] = useState(false);
@@ -43,7 +45,7 @@ export default function FollowButton({ username }: { username: string }) {
     return (
       <span
         title="Auto-followed for every member on the free tier — can't unfollow yet."
-        className="inline-flex cursor-default items-center gap-1.5 rounded-full border border-crimson/30 bg-crimson/10 px-5 py-2 font-ui text-xs font-semibold text-crimson-bright"
+        className={`btn-ghost btn-following ${compactWhenFollowing ? "hidden sm:inline-flex" : "inline-flex"} cursor-default !px-5 !py-2 text-xs`}
       >
         ✓ Following
       </span>
@@ -73,17 +75,17 @@ export default function FollowButton({ username }: { username: string }) {
   }
 
   return (
-    <span className="inline-flex flex-col items-start gap-1">
+    <span className={`${compactWhenFollowing && following && !error ? "hidden sm:inline-flex" : "inline-flex"} flex-col items-start gap-1`}>
     <button
       onClick={toggle}
       disabled={busy}
       className={
         following
-          ? "btn-ghost !px-5 !py-2 text-xs disabled:opacity-50"
+          ? "btn-ghost btn-following !px-5 !py-2 text-xs disabled:opacity-50"
           : "btn-primary !px-5 !py-2 text-xs disabled:opacity-50"
       }
     >
-      {busy ? "…" : following ? "Following" : "Follow"}
+      {busy ? "…" : following ? "✓ Following" : "Follow"}
     </button>
     {error && <span role="alert" className="max-w-[16rem] text-[11px] text-crimson">{error}</span>}
     </span>

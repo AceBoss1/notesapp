@@ -9,7 +9,8 @@ import { onAuthStateChanged, User } from "firebase/auth";
 import { auth } from "@/lib/firebase";
 import { recordView } from "@/lib/track";
 import { getUserByUsername, getCommentsByUser, badgeLevel, goldKindOf, isTeamMember, canPublish, roleLabelFor, UserProfile, CommentActivity, Suspension } from "@/lib/users";
-import TeamBadge from "@/components/TeamBadge";
+import { NameBadgeIcons } from "@/components/PersonName";
+import { NO_BADGES } from "@/lib/name-badges";
 import { GOLD_BADGE_TITLE, type BadgeLevel } from "@/lib/badges";
 import { getAllNotes, isNoteBy, NoteWithComputed } from "@/lib/firestore-notes";
 import SocialLinksRow from "@/components/SocialLinksRow";
@@ -30,17 +31,14 @@ import SubscribeButton from "@/components/SubscribeButton";
 import BookingCard from "@/components/BookingCard";
 import ScrollToHash from "@/components/ScrollToHash";
 import GiftButton from "@/components/GiftButton";
-import VerifiedBadge from "@/components/VerifiedBadge";
 import BadgeToast from "@/components/BadgeToast";
 import { OrgLabel, UnverifiedOrgNotice } from "@/components/OrgNotice";
-import JournalRow from "@/components/JournalRow";
-import NotesAppPostRow from "@/components/NotesAppPostRow";
+import ProfileTabs from "@/components/ProfileTabs";
+import BookSessionButton from "@/components/BookSessionButton";
 import { getStoreItems, StoreItem } from "@/lib/store";
-import ItemCard from "@/components/StoreItemCard";
 import AdSlot from "@/components/AdSlot";
 import RecommendationsPanel from "@/components/RecommendationsPanel";
 import { OFFICIAL_NOTESAPP_PROFILE, NA_NOTESAPP_PROFILE, SYNTHETIC_USERNAMES, VERIFIED_USERNAMES } from "@/lib/journals-directory";
-import { NOTESAPP_POSTS } from "@/lib/notesapp-posts";
 
 const SUSPENDED_AVATAR = "/images/brand/suspended-avatar.png";
 
@@ -252,27 +250,28 @@ export default function ProfilePageClient({ params }: { params: { username: stri
   const isOrgAcct = realProfile?.accountKind === "organisation";
   return (
     <div>
-      <div className="h-32 bg-crimson-deep sm:h-40" style={{ backgroundImage: "radial-gradient(50rem 20rem at 85% -30%, rgba(166,9,61,0.7), transparent 70%), linear-gradient(135deg, #4E0119 0%, #7A0328 100%)" }} aria-hidden="true" />
+      <div className="h-44 bg-crimson-deep sm:h-40" style={{ backgroundImage: "radial-gradient(50rem 20rem at 85% -30%, rgba(166,9,61,0.7), transparent 70%), linear-gradient(135deg, #4E0119 0%, #7A0328 100%)" }} aria-hidden="true" />
     <div className="mx-auto max-w-5xl px-4 pb-16 sm:px-6 lg:px-8">
-      <div className="card -mt-16 flex flex-col items-start gap-6 p-6 sm:flex-row sm:items-center">
+      {/* Moda redesign: centred on a phone, the picture and words on the left and the buttons on the right on a computer. */}
+      <div className="card -mt-32 flex flex-col items-center gap-5 rounded-[1.75rem] p-6 text-center shadow-sm sm:-mt-16 sm:flex-row sm:items-center sm:gap-8 sm:p-8 sm:text-left">
         {!suspended && !synthetic && realProfile ? (
           // A ring when the member has moments you can see (only when Moments is switched on).
           <MomentRing username={profile.username} isOwn={isOwnProfile} avatar={profile.avatar} square={isOrgAcct}>
-            <Avatar square={isOrgAcct} src={profile.avatar} alt={profile.displayName} size={88} />
+            <Avatar square={isOrgAcct} src={profile.avatar} alt={profile.displayName} size={104} />
           </MomentRing>
         ) : (
           <Avatar
             square={isOrgAcct}
             src={suspended ? SUSPENDED_AVATAR : profile.avatar}
             alt={profile.displayName}
-            size={88}
+            size={104}
           />
         )}
-        <div>
-          <h1 className="flex items-center gap-2 font-display text-3xl text-ink">
+        <div className="min-w-0 flex-1">
+          <h1 className="font-display text-[2.1rem] leading-tight text-ink sm:text-4xl">
+            {/* inline, so the badges follow the last word when a long name wraps */}
             {profile.displayName}
-            {badge && !suspended && <VerifiedBadge size={20} level={badge} goldKind={goldKindOf(realProfile)} />}
-            {!suspended && (VERIFIED_USERNAMES.includes(profile.username) || (!!realProfile && isTeamMember(realProfile))) && <TeamBadge size={20} />}
+            <NameBadgeIcons username={profile.username} size={20} badges={suspended ? NO_BADGES : { level: badge, goldKind: goldKindOf(realProfile), team: VERIFIED_USERNAMES.includes(profile.username) || (!!realProfile && isTeamMember(realProfile)) }} />
             <OrgLabel profile={realProfile} />
           </h1>
           {!suspended && profile.headline && <p className="mt-0.5 text-sm font-semibold text-ink">{profile.headline}</p>}
@@ -281,18 +280,18 @@ export default function ProfilePageClient({ params }: { params: { username: stri
               ⚠ Temporarily Suspended · @{profile.username}
             </p>
           ) : (
-            <p className="font-mono text-xs uppercase tracking-eyebrow text-crimson-bright">
+            <p className="mt-1 font-mono text-xs uppercase tracking-eyebrow text-crimson-bright">
               {profile.roleLabel} · @{profile.username}
             </p>
           )}
-          <p className="mt-2 max-w-lg break-words text-sm text-slate"><LinkedText text={profile.bio} /></p>
+          <p className="mx-auto mt-2 max-w-lg break-words text-base text-slate sm:mx-0 sm:text-sm"><LinkedText text={profile.bio} /></p>
           {!suspended && badge === "gold" && goldKindOf(realProfile) && (
             <p className="mt-1 text-xs font-semibold text-slate">{GOLD_BADGE_TITLE[goldKindOf(realProfile)!].replace("Gold badge — ", "Gold ✔ · ")}</p>
           )}
           {!suspended && <UnverifiedOrgNotice profile={realProfile} />}
-          {realProfile && <SocialLinksRow social={realProfile.social} />}
+          {realProfile && <SocialLinksRow social={realProfile.social} className="justify-center sm:justify-start" />}
           {viewer && realProfile && viewer.uid === realProfile.uid && (
-            <p className="mt-2 flex gap-4 font-ui text-xs font-semibold text-crimson">
+            <p className="mt-2 flex flex-wrap justify-center gap-4 font-ui text-xs font-semibold text-crimson sm:justify-start">
               {canPublish(realProfile) && <Link href="/write">Write</Link>}
               <Link href={`/u/${realProfile.username}/store`}>My store</Link>
               <Link href="/profile/edit">Edit profile</Link>
@@ -310,20 +309,17 @@ export default function ProfilePageClient({ params }: { params: { username: stri
           {viewer && !suspended && <FollowLists username={profile.username} owner={isOwnerViewer} followerCount={followerCountUnavailable ? null : followerCount} />}
           {viewer && realProfile && viewer.uid !== realProfile.uid && <PresenceText status={presence.statuses[realProfile.uid]} className="mt-1" />}
         </div>
-        <div className="ml-0 flex shrink-0 flex-wrap gap-3 sm:ml-auto">
-          <FollowButton username={profile.username} />
+        <div className="profile-actions flex w-full flex-wrap items-start justify-center gap-3 sm:ml-auto sm:w-auto sm:max-w-sm sm:shrink-0 sm:justify-end">
+          {/* Follow (steps aside on phones once you follow), Book a session, Conversation, Gift me. */}
+          <FollowButton username={profile.username} compactWhenFollowing />
           {viewer && !suspended && <OfficialFollowControl username={profile.username} />}
-          {!synthetic && !suspended && <MessageButton username={profile.username} profileUid={realProfile?.uid} />}
-          {!synthetic && <GiftButton username={profile.username} publisherUid={realProfile?.uid} />}
+          {!synthetic && !suspended && viewer?.uid !== realProfile?.uid && <BookSessionButton publisherUid={realProfile?.uid} />}
+          {!synthetic && !suspended && <MessageButton username={profile.username} profileUid={realProfile?.uid} label="💬 Conversation" />}
+          {!synthetic && <GiftButton username={profile.username} publisherUid={realProfile?.uid} label="🎁 Gift me" />}
           {hasPremium && (
             <div id="subscribe" className="scroll-mt-28 rounded-full">
               <SubscribeButton username={profile.username} publisherUid={realProfile?.uid} />
             </div>
-          )}
-          {storeItems.length > 0 && (
-            <Link href={`/u/${profile.username}/store`} className="btn-ghost">
-              Brand store
-            </Link>
           )}
         </div>
       </div>
@@ -373,11 +369,13 @@ export default function ProfilePageClient({ params }: { params: { username: stri
         </div>
       )}
 
-      {/* Paid 1:1 sessions at the publisher's own rate — hidden until
-          they switch it on in /profile/publishing. Not on synthetic
-          channel accounts. */}
+      {/* Notes · Store · Courses (components/ProfileTabs.tsx). */}
+      <ProfileTabs username={profile.username} notes={notes} storeItems={storeItems} isOfficial={isOfficial} suspended={suspended} storeFirst={storeFirst} />
+
+      {/* Paid 1:1 sessions at the publisher's own rate: hidden until they switch it on in /profile/publishing ("Book a session"
+          above comes here). Not on synthetic channel accounts. */}
       {!synthetic && (
-        <div id="book" className="scroll-mt-28">
+        <div id="book" className="mt-14 scroll-mt-28">
           <BookingCard username={profile.username} publisherUid={realProfile?.uid} viewer={viewer} />
         </div>
       )}
@@ -385,60 +383,6 @@ export default function ProfilePageClient({ params }: { params: { username: stri
       <AdSlot placement="profile" publisher={realProfile ?? undefined} publisherUid={realProfile?.uid} />
 
       {!suspended && !synthetic && realProfile && <RecommendationsPanel subjectUid={realProfile.uid} subjectName={profile.displayName} user={viewer} />}
-
-      {/* The store: a taste of it under the journal, or the whole shelf as the page's main content when they publish no journal. */}
-      {storeItems.length > 0 && (
-        <div className="mt-14">
-          <div className="flex items-center justify-between">
-            <p className="eyebrow">{storeFirst ? "Store" : "From the brand store"}</p>
-            {!storeFirst && storeItems.length > 3 && (
-              <Link
-                href={`/u/${profile.username}/store`}
-                className="font-ui text-xs font-semibold text-crimson hover:text-crimson-bright"
-              >
-                View all →
-              </Link>
-            )}
-          </div>
-          <div className="mt-5 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
-            {(storeFirst ? storeItems : storeItems.slice(0, 3)).map((item) => (
-              <ItemCard key={item.id ?? item.title} item={item} />
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* Their public writing — same /notes documents Precheks shows,
-          except for @notesapp, whose "journal" is 5 hardcoded
-          explanatory posts (see lib/notesapp-posts.ts) — UI-only, no
-          Firestore, same as the rest of this synthetic profile. */}
-      {isOfficial ? (
-        <div className="mt-14">
-          <p className="eyebrow">Journal</p>
-          <div className="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-2">
-            {NOTESAPP_POSTS.map((post) => (
-              <NotesAppPostRow key={post.slug} post={post} />
-            ))}
-          </div>
-        </div>
-      ) : storeFirst ? null : (
-        <div className="mt-14">
-          <p className="eyebrow">Public journal</p>
-          {suspended ? (
-            <p className="mt-4 text-sm italic text-slate">
-              Entries are hidden while this account is temporarily suspended.
-            </p>
-          ) : notes.length === 0 ? (
-            <p className="mt-4 text-sm text-slate">No public entries yet.</p>
-          ) : (
-            <div className="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-2">
-              {notes.map((n) => (
-                <JournalRow key={n.id} note={n} />
-              ))}
-            </div>
-          )}
-        </div>
-      )}
 
       {/* Activity — @notesapp gets none of this, there's no real
           Firestore data behind it. */}
@@ -472,7 +416,8 @@ export default function ProfilePageClient({ params }: { params: { username: stri
                           className="font-semibold text-ink hover:text-crimson-bright"
                         >
                           {c.authorDisplayName}
-                        </Link>{" "}
+                        </Link>
+                        <NameBadgeIcons username={c.authorUsername} size={13} />{" "}
                         commented on{" "}
                         <Link href={`/journals/${c.noteSlug}`} className="text-crimson-bright hover:text-ink">
                           {c.noteTitle}

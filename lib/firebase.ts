@@ -1,6 +1,6 @@
 import { initializeApp, getApps, getApp } from "firebase/app";
-import { getFirestore } from "firebase/firestore";
-import { getAuth } from "firebase/auth";
+import { connectFirestoreEmulator, getFirestore } from "firebase/firestore";
+import { connectAuthEmulator, getAuth } from "firebase/auth";
 import { setting } from "@/lib/config";
 
 const firebaseConfig = {
@@ -14,4 +14,16 @@ const firebaseConfig = {
 
 export const app = getApps().length ? getApp() : initializeApp(firebaseConfig);
 export const db = getFirestore(app);
+// Local development, CI and screenshots: point Firestore at the emulator (never set on the live site). Each copy of the SDK
+// (the browser, server components, API routes) connects its own instance; connecting one twice throws, which is ignored.
+const emulator = setting("NEXT_PUBLIC_FIRESTORE_EMULATOR_HOST");
+if (emulator) {
+  const [host, port] = emulator.split(":");
+  try { connectFirestoreEmulator(db, host, Number(port) || 8080); } catch { /* already connected */ }
+}
 export const auth = getAuth(app);
+// The same for sign-in: the Auth emulator (never on the live site).
+const authEmulator = setting("NEXT_PUBLIC_AUTH_EMULATOR_HOST");
+if (authEmulator) {
+  try { connectAuthEmulator(auth, `http://${authEmulator}`, { disableWarnings: true }); } catch { /* already connected */ }
+}

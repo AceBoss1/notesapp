@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { api } from "@/lib/moments-client";
 import Avatar from "@/components/Avatar";
+import { NameBadgeIcons } from "@/components/PersonName";
 import { GROUP_MEMBERS_MAX, type GroupInfo } from "@/lib/messages-rules";
 import { uploadToR2 } from "@/lib/upload";
 import GroupAvatar from "./GroupAvatar";
@@ -34,7 +35,7 @@ export default function GroupMembers({ cid, group, members, banned = [], meUid, 
         {members.map((m) => (
           <li key={m.uid} className="flex flex-wrap items-center gap-2 py-2">
             <Avatar src={m.avatar} alt={m.displayName} size={28} />
-            <span className="min-w-0 flex-1"><span className="font-bold text-ink">{m.displayName}{m.uid === meUid ? " (you)" : ""}</span> <span className="text-slate">@{m.username}</span>{m.admin && <span className="ml-2 rounded bg-crimson/10 px-1.5 py-0.5 text-[10px] font-bold text-crimson">{team ? "team" : "admin"}</span>}</span>
+            <span className="min-w-0 flex-1"><span className="font-bold text-ink">{m.displayName}{m.uid === meUid ? " (you)" : ""}</span><NameBadgeIcons username={m.username} size={13} /> <span className="text-slate">@{m.username}</span>{m.admin && <span className="ml-2 rounded bg-crimson/10 px-1.5 py-0.5 text-[10px] font-bold text-crimson">{team ? "team" : "admin"}</span>}</span>
             {isAdmin && !team && m.uid !== meUid && (
               <span className="flex gap-1">
                 <button disabled={busy} onClick={() => act({ action: "admin", uid: m.uid, admin: !m.admin })} className={small}>{m.admin ? "Remove admin" : "Make admin"}</button>

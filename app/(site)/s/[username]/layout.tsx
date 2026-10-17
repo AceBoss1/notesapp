@@ -7,6 +7,8 @@ import { getTierConfig } from "@/lib/tiers";
 import { MAIN_HOST, isMainHost } from "@/lib/host";
 import { domainForUid } from "@/lib/domains";
 import { SiteProvider } from "@/components/site/SiteContext";
+import { NameBadgeIcons } from "@/components/PersonName";
+import { badgesOf } from "@/lib/name-badges";
 import SiteNav from "@/components/site/SiteNav";
 import SiteAccount from "@/components/site/SiteAccount";
 import { SiteAuthProvider } from "@/components/site/SiteAuth";
@@ -69,6 +71,7 @@ export default async function SiteLayout({ children, params }: Props) {
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src={p.avatar} alt="" className={`h-9 w-9 shrink-0 object-cover ${pic}`} />
               <span className={`truncate font-ui text-lg font-extrabold tracking-tight ${aurora ? "text-paper" : "text-ink"}`}>{p.displayName}</span>
+              <NameBadgeIcons username={p.username} size={16} badges={badgesOf(p)} />
             </Link>
             <div className="flex shrink-0 items-center gap-5">
               <SiteNav />

@@ -652,6 +652,11 @@ service cloud.firestore {
       allow read: if isSignedIn() && resource.data.uid == request.auth.uid;
       allow write: if false;
     }
+    // Bookmarked journals (Saved): private like saved items; only the server writes them (POST /api/journals/save).
+    match /savedJournals/{id} {
+      allow read: if isSignedIn() && resource.data.uid == request.auth.uid;
+      allow write: if false;
+    }
 
     // Recorded errors (lib/monitoring.ts) — written and read by the server only.
     match /errorLogs/{id} {

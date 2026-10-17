@@ -46,13 +46,29 @@ export default function GiftButton({
 
   if (ready === "loading" || ready === "off" || user === undefined || user?.uid === publisherUid) return null;
 
+  // Greyed out, with the reason behind an ℹ️ you can hover (computer) or tap (phone) instead of a line under the button.
   if (ready === "no-payout") {
     return (
-      <span className="inline-flex flex-col items-start gap-1">
+      <span className="group relative inline-flex items-center gap-1">
         <button type="button" disabled aria-disabled="true" className="btn-ghost !px-4 !py-2 text-xs cursor-not-allowed opacity-50">
           {label}
         </button>
-        <span className="text-[11px] text-slate">This publisher hasn't set up payouts yet.</span>
+        <button
+          type="button"
+          onClick={() => setOpen((o) => !o)}
+          onBlur={() => setOpen(false)}
+          aria-label="Why can't I send a gift?"
+          aria-expanded={open}
+          className="flex h-6 w-6 items-center justify-center rounded-full text-sm leading-none text-slate hover:text-ink"
+        >
+          ℹ️
+        </button>
+        <span
+          role="tooltip"
+          className={`absolute left-0 top-full z-30 mt-1 w-56 sm:left-auto sm:right-0 rounded border border-rule bg-paper px-3 py-2 text-[11px] leading-snug text-slate shadow-lg ${open ? "block" : "hidden group-hover:block"}`}
+        >
+          This publisher hasn&apos;t set up payouts yet, so gifts can&apos;t reach them. Try again later.
+        </span>
       </span>
     );
   }

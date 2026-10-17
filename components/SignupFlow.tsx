@@ -9,6 +9,8 @@ import { signUpProfile, isUsernameTaken, getAllUsers, UserProfile } from "@/lib/
 import { followJournal } from "@/lib/follows";
 import { MANDATORY_JOURNALS, MANDATORY_USERNAMES, isReservedUsername } from "@/lib/journals-directory";
 import Avatar from "@/components/Avatar";
+import { NameBadgeIcons } from "@/components/PersonName";
+import { badgesOf } from "@/lib/name-badges";
 import WorkFields from "@/components/WorkFields";
 import type { Work } from "@/lib/profile-work";
 import { normalizeRc, ORG_TRIAL_DAYS } from "@/lib/org";
@@ -205,7 +207,7 @@ export default function SignupFlow({ embedded = false, onSwitch, onStarted }: { 
             <div key={j.username} className="card flex items-center gap-3 p-4">
               <Avatar src={j.avatar} alt={j.displayName} size={40} />
               <div className="flex-1">
-                <p className="font-ui text-sm font-semibold text-ink">{j.displayName}</p>
+                <p className="font-ui text-sm font-semibold text-ink">{j.displayName}<NameBadgeIcons username={j.username} size={13} /></p>
                 <p className="font-mono text-xs text-slate">@{j.username}</p>
               </div>
               <span className="rounded-full bg-crimson/10 px-3 py-1 font-mono text-[10px] uppercase tracking-wideish text-crimson-bright">
@@ -250,7 +252,7 @@ export default function SignupFlow({ embedded = false, onSwitch, onStarted }: { 
                   >
                     <Avatar src={u.avatar} alt={u.displayName} size={40} />
                     <div className="flex-1">
-                      <p className="font-ui text-sm font-semibold text-ink">{u.displayName}</p>
+                      <p className="font-ui text-sm font-semibold text-ink">{u.displayName}<NameBadgeIcons username={u.username} size={13} badges={badgesOf(u)} /></p>
                       <p className="font-mono text-xs text-slate">@{u.username}</p>
                     </div>
                     <span

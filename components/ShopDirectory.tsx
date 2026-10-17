@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import type { DirectoryShop } from "@/lib/shop-directory";
 import Avatar from "@/components/Avatar";
+import { NameBadgeIcons } from "@/components/PersonName";
 
 const PAGE = 12;
 
@@ -37,6 +38,7 @@ export default function ShopDirectory({ shops }: { shops: DirectoryShop[] }) {
                 <div className="min-w-0">
                   <p className="truncate font-ui text-base font-bold text-ink">
                     {s.displayName}&apos;s store
+                    <NameBadgeIcons username={s.username} size={14} />
                     {s.boosted && <span className="ml-2 align-middle font-mono text-[10px] uppercase tracking-wideish text-crimson">↗ Boosted</span>}
                   </p>
                   <p className="font-mono text-xs text-slate">@{s.username} · {s.itemCount} item{s.itemCount === 1 ? "" : "s"}</p>
