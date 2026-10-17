@@ -180,6 +180,7 @@ export default function AccountPage() {
       {user && (
         <section id="email" className="mx-auto mt-10 max-w-2xl scroll-mt-6 px-6">
           <h2 className="font-display text-2xl text-ink">Emails</h2>
+          <p className="mt-1 text-sm text-slate">What the feed and the digest show you first: <Link href="/interests" className="text-crimson">your interests</Link>.</p>
           <div className="mt-4"><EmailSettings /></div>
         </section>
       )}

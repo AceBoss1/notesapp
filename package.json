@@ -19,7 +19,8 @@
     "docs:settings": "npx -y tsx scripts/settings-doc.ts",
     "test:authors": "npx -y tsx tests/authors/backfill.test.ts",
     "test:shared": "npx -y tsx tests/shared-store/upstash.test.ts",
-    "test:smoke": "playwright test"
+    "test:smoke": "playwright test",
+    "test:topics": "npx -y tsx tests/topics/topics.test.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.133.0",

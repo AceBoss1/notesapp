@@ -11,6 +11,17 @@ export type Release = {
 
 export const CHANGELOG: Release[] = [
   {
+    version: "v0.39.0",
+    bump: "minor",
+    date: "2026-10-17",
+    changes: [
+      { kind: "added", text: "Choose your interests: pick the topics you want to read about, and journals on them come first in your feed (For you) and in your weekly digest." },
+      { kind: "added", text: "Writers pick up to 3 topics for each journal from one shared list of hashtags, and can add their own hashtags." },
+      { kind: "changed", text: "Topics are one list across #NotesApp, so #FinTech, fin tech and Fintech are the same topic. Older journals are filed under the topics their categories and tags mean." },
+      { kind: "changed", text: "The Topics tab groups topics (Business and money, Tech, Health and wellbeing and more) with yours first, and the hashtags at the end of a journal open that topic." },
+    ],
+  },
+  {
     version: "v0.38.0",
     bump: "minor",
     date: "2026-10-16",

@@ -8,6 +8,7 @@ import { auth, db } from "@/lib/firebase";
 import { useAdminAuth } from "@/lib/useAdminAuth";
 import { allowedSections, pathAllowed, hasAnyDept, hasDept, roleLabel, deptSummary } from "@/lib/admin-access";
 import { getAllNotes, NoteWithComputed } from "@/lib/firestore-notes";
+import { topicLabel, topicsOf } from "@/lib/topics";
 
 // Ported from Precheks' own expanded /admin dashboard — same notes
 // collection, same stats, same charts. "Journal" is this app's label
@@ -51,7 +52,8 @@ function aggregateTaxonomy(
 ): TaxonomyRow[] {
   const map = new Map<string, TaxonomyRow>();
   notes.forEach((n) => {
-    const values = field === "categories" ? n.categories : n.tags;
+    // "categories": the topics journals are filed under (lib/topics.ts); "tags": writers' own hashtags.
+    const values = field === "categories" ? topicsOf(n).map(topicLabel) : n.tags;
     (values || []).forEach((label) => {
       const entry = map.get(label) || { label, views: 0, count: 0 };
       entry.views += n.viewCount || 0;

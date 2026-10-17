@@ -8,7 +8,7 @@ import { GranolaError, askGranola } from "@/lib/granola";
 import { granolaQuestion, onlyNew, parseGranolaSections, suggestFromChat } from "@/lib/meeting-extract";
 import { NanaError } from "@/lib/nana";
 import { rateLimit } from "@/lib/rate-limit";
-import { AGENT_LAYER_BACKLOG, AGENT_SCOPE_DOC, ENGINEERING_BACKLOG, FUND_BACKLOG, LAUNCH_BACKLOG, LIFE_PARTNER_BACKLOG, seedDocOnce, seedOnce } from "@/lib/team-seed";
+import { AGENT_LAYER_BACKLOG, AGENT_SCOPE_DOC, ENGINEERING_BACKLOG, COURSES_BACKLOG, FUND_BACKLOG, LAUNCH_BACKLOG, TOPICS_BACKLOG, LIFE_PARTNER_BACKLOG, seedDocOnce, seedOnce } from "@/lib/team-seed";
 
 export const dynamic = "force-dynamic";
 const bearer = (req: NextRequest) => req.headers.get("authorization")?.replace(/^Bearer\s+/i, "");
@@ -54,6 +54,8 @@ export async function GET(req: NextRequest) {
       await seedDocOnce(db, "agent-layer-scope-doc-2026-10", AGENT_SCOPE_DOC, me).catch(() => false);
       await seedOnce(db, "no-excuses-fund-2026-10", FUND_BACKLOG, me).catch(() => 0);
       await seedOnce(db, "launch-v037-2026-10", LAUNCH_BACKLOG, me).catch(() => 0);
+      await seedOnce(db, "courses-plan-2026-10", COURSES_BACKLOG, me).catch(() => 0);
+      await seedOnce(db, "topics-launch-2026-10", TOPICS_BACKLOG, me).catch(() => 0);
     }
     const people0 = await listTeamPeople(db);
     await syncTeamRooms(db, me, people0.map((p) => p.uid)).catch(() => {}); // the Team room and upcoming meetings follow who is on the team

@@ -284,8 +284,15 @@ Calls are free. Planned: paid calls inside Notes Life (₦5 a minute voice, ₦1
 
 **Who gets told:** when you @mention someone in a comment or reply, a published journal, a moment, a store review or a seller's reply, or a recommendation (once the person it's about approves it), they get a notification in their bell with a few words around the mention and a link to it. Each person is told once for each thing, so editing a comment or a journal only tells people you newly mention. Nobody is told about mentioning themselves, and if either of you has blocked the other, no notification goes. Mentions in messages, group chats and Notes Life chat never notify anyone: those are conversations, and a mention there doesn't pull anyone in. Up to 10 people are told per comment, journal or moment.
 `),
+    A("interests-and-topics", "Choosing your interests and topics", "Getting started", `
+**Your interests:** go to [Choose your interests](/interests) and pick the topics you want to read about (up to 12, at least 3 makes a good feed). Journals on them come first in your feed, under **For you**, and in your weekly digest. Change them any time.
+
+**Topics on a journal:** when you write, pick up to 3 topics from the list (search it, or tap a hashtag). Readers who chose those topics see your journal first. You can add your own hashtags too, such as #SideHustle; they're tidied as you type and show at the end of the journal.
+
+**Browsing:** the **Topics** tab on [Journals](/journals) groups every topic that has journals, with yours first. Tap a hashtag at the end of a journal to see more on that topic.
+`),
     A("weekly-digest", "The #NotesApp Weekly Digest email", "Getting started", `
-Every Sunday evening (from 5 PM, Lagos time) #NotesApp can email you a short digest: up to five journals published that week, chosen for you. Journals from people you follow come first, then the topics you like, then what most people liked that week. Your own posts are never in it.
+Every Sunday evening (from 5 PM, Lagos time) #NotesApp can email you a short digest: up to five journals published that week, chosen for you. Journals from people you follow come first, then [your interests](/interests), then what most people liked that week. Your own posts are never in it.
 
 Each story shows the writer's picture and name (and the organisation they wrote for), the title, the opening of the story, how long it takes to read, and its likes and comments. Tap the title or **Read more** to open it; **Read more in your feed** opens your journal feed.
 

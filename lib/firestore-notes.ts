@@ -19,8 +19,9 @@ export type Note = {
   slug: string;
   title: string;
   date: string; // ISO string
-  categories: string[];
-  tags: string[];
+  categories: string[]; // older journals: free-typed; now the names of `topics` (lib/topics.ts)
+  tags: string[]; // the writer's own hashtags, tidied (normaliseTag)
+  topics?: string[]; // 1 to 3 topic slugs from lib/topics.ts; read with topicsOf(), which also understands older journals
   featured_image: string;
   content: string; // markdown
   author: string;

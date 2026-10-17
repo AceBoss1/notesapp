@@ -5,6 +5,7 @@ import Link from "next/link";
 import { getAllNotes, NoteWithComputed } from "@/lib/firestore-notes";
 import { getAllUsers, UserProfile } from "@/lib/users";
 import { CHANNEL_JOURNALS } from "@/lib/journals-directory";
+import { topicLabel, topicsOf } from "@/lib/topics";
 
 export default function SearchBar() {
   const [open, setOpen] = useState(false);
@@ -40,6 +41,7 @@ export default function SearchBar() {
       .filter(
         (n) =>
           n.title.toLowerCase().includes(query) ||
+          topicsOf(n).some((t) => topicLabel(t).toLowerCase().includes(query) || t.includes(query)) ||
           n.categories.some((c) => c.toLowerCase().includes(query)) ||
           n.tags.some((t) => t.toLowerCase().includes(query))
       )

@@ -30,7 +30,8 @@ export type DigestEmail = {
   site: string; // https://www.<root>
   appUrl: string; // where "Install #NotesApp" goes
   unsubscribeUrl: string;
-  interestsUrl: string;
+  interestsUrl: string; // /interests
+  settingsUrl?: string; // Account settings → Emails
   company: string; // "NOTESAPP TECHNOLOGIES LTD · RC 9825642"
 };
 
@@ -94,7 +95,7 @@ export function renderDigestHtml(d: DigestEmail): string {
   <p style="margin:0 0 12px;font-family:${SANS};font-size:17px;font-weight:700;color:#ffffff;">Read from anywhere.</p>
   <table role="presentation" cellpadding="0" cellspacing="0"><tr><td style="border:1px solid #6B5E5A;border-radius:8px;"><a href="${esc(d.appUrl)}" style="display:inline-block;padding:9px 16px;font-family:${SANS};font-size:14px;font-weight:600;color:#ffffff;text-decoration:none;">&#11015;&nbsp; Install #NotesApp on your phone or computer</a></td></tr></table>
   <p style="margin:18px 0 0;padding-top:16px;border-top:1px solid #3B302C;font-family:${SANS};font-size:12px;line-height:1.7;color:#BFB3AE;">Sent by #NotesApp &middot; ${esc(d.company)}<br>
-  You get this because you have a #NotesApp account. <a href="${esc(d.unsubscribeUrl)}" style="color:#ffffff;">Unsubscribe from the weekly digest</a> &middot; <a href="${esc(d.interestsUrl)}" style="color:#BFB3AE;">Email settings</a> &middot; <a href="${esc(d.site)}/help" style="color:#BFB3AE;">Help</a></p>
+  You get this because you have a #NotesApp account. <a href="${esc(d.unsubscribeUrl)}" style="color:#ffffff;">Unsubscribe from the weekly digest</a> &middot; <a href="${esc(d.settingsUrl ?? d.interestsUrl)}" style="color:#BFB3AE;">Email settings</a> &middot; <a href="${esc(d.site)}/help" style="color:#BFB3AE;">Help</a></p>
 </td></tr>
 </table></td></tr></table></body></html>`;
 }
