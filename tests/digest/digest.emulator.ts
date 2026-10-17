@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { initializeApp } from "firebase-admin/app";
 import { getFirestore } from "firebase-admin/firestore";
 process.env.EMAIL_LINK_SECRET = "test-secret";
-import { buildDigest, digestToken, digestWanted, digestWeek, setDigestWanted, validDigestToken, weekPool } from "../../lib/digest-server";
+import { buildDigest, digestToken, digestWanted, digestWeek, setDigestWanted, validDigestToken, weekCourses, weekPool } from "../../lib/digest-server";
 import { pickStories, renderDigestHtml, renderDigestText, type PoolStory } from "../../lib/digest";
 initializeApp({ projectId: "demo-notesapp" });
 const db = getFirestore();
@@ -56,6 +56,21 @@ const db = getFirestore();
   assert.ok(withMarket.includes("FROM NOTES MARKET") && withMarket.includes("Excel course") && !withMarket.includes("FROM NOTES ACADEMY"));
   assert.ok(renderDigestText({ ...d!, market: [{ title: "Excel course", href: "https://x/shop/1", image: null, price: "₦6,000", by: "Chimdinma", why: "2 bought in the last 30 days" }] }).includes("From Notes Market:"));
   assert.equal(await buildDigest(db, "u_writer", []), null, "nothing to read, nothing sent");
+
+  // Notes Academy: the most viewed course this week, then the most enrolled in the last 30 days; drafts and suspended teachers left out
+  await db.doc("users/u_bad").set({ username: "bad", displayName: "Suspended Teacher", suspended: true });
+  await db.doc("courses/c1").set({ ownerUid: "u_writer", title: "Excel in a weekend", slug: "excel-in-a-weekend", status: "published", cover: "/images/shop/ms-excel-beginner-to-advanced.jpg" });
+  await db.doc("courses/c2").set({ ownerUid: "u_writer", title: "Writing for the web", slug: "writing-for-the-web", status: "published", cover: "" });
+  await db.doc("courses/c3").set({ ownerUid: "u_writer", title: "Draft course", slug: "draft-course", status: "draft" });
+  await db.doc("courses/c4").set({ ownerUid: "u_bad", title: "Hidden", slug: "hidden", status: "published" });
+  for (const [id, count] of [["c1", 40], ["c3", 90], ["c4", 99]] as const) await db.doc(`pageViews/course_${id}_20261017`).set({ kind: "course", id, day: "2026-10-17", count });
+  await db.doc("enrolments/c2_u_ada").set({ courseId: "c2", uid: "u_ada", enrolledAt: "2026-10-10T09:00:00Z", done: {} });
+  await db.doc("enrolments/c2_u_x").set({ courseId: "c2", uid: "u_x", enrolledAt: "2026-10-12T09:00:00Z", done: {} });
+  await db.doc("enrolments/c4_u_ada").set({ courseId: "c4", uid: "u_ada", enrolledAt: "2026-10-12T09:00:00Z", done: {} });
+  const courses = await weekCourses(db, now);
+  assert.deepEqual(courses.map((c) => [c.title, c.why, c.price, c.by]), [["Excel in a weekend", "40 views this week", "Free", "Tola Writer"], ["Writing for the web", "2 enrolled in the last 30 days", "Free", "Tola Writer"]]);
+  assert.match(courses[0].href, /^https:\/\/www\..+\/academy\/excel-in-a-weekend$/); assert.match(courses[0].image ?? "", /^https:\/\/.+\/images\/shop\//); assert.equal(courses[1].image, null);
+  assert.ok(renderDigestHtml({ ...d!, courses }).includes("FROM NOTES ACADEMY"));
 
   // the choice
   assert.equal(await digestWanted(db, "u_ada"), true);

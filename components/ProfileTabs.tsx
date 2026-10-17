@@ -14,10 +14,13 @@ import type { StoreItem } from "@/lib/store";
 import { hashtag, topicsOf } from "@/lib/topics";
 import { byMostViewed, byRecent } from "@/lib/discovery";
 import { useWeeklyViews } from "@/lib/weekly-views-client";
+import CourseCard, { courseCardOf } from "@/components/CourseCard";
+import { ACADEMY_LIVE, courseHref } from "@/lib/courses";
+import { useAcademy } from "@/lib/courses-client";
 
 // A profile's Notes · Store · Courses (/u/<username>; ?tab=store or ?tab=courses opens one). Notes can be sorted by Most viewed
-// or Recent and narrowed to one of the topics they write about, and are shown as in the journal feed (FeedPost). Courses come
-// with Notes Academy (docs/COURSES.md).
+// or Recent and narrowed to one of the topics they write about, and are shown as in the journal feed (FeedPost). Courses are the
+// ones they teach on Notes Academy (published only), most viewed first.
 type Tab = "notes" | "store" | "courses";
 type Sort = "viewed" | "recent";
 
@@ -32,6 +35,7 @@ export default function ProfileTabs({ username, owner, notes, storeItems, isOffi
   const [sort, setSort] = useState<Sort>("recent");
   const [topic, setTopic] = useState<string | null>(null);
   const weekly = useWeeklyViews("note");
+  const courses = useAcademy(username, ACADEMY_LIVE && !suspended && !isOfficial);
   useEffect(() => { if (storeFirst) setTab("store"); }, [storeFirst]);
   useEffect(() => {
     const t = new URLSearchParams(window.location.search).get("tab");
@@ -64,7 +68,7 @@ export default function ProfileTabs({ username, owner, notes, storeItems, isOffi
         <div className="flex gap-6 overflow-x-auto" role="tablist">
           {tabBtn("notes", "Notes", noteCount)}
           {tabBtn("store", "Store", storeItems.length)}
-          {tabBtn("courses", "Courses", 0)}
+          {tabBtn("courses", "Courses", courses?.length ?? 0)}
         </div>
       </div>
 
@@ -104,12 +108,21 @@ export default function ProfileTabs({ username, owner, notes, storeItems, isOffi
         </div>
       )}
 
-      {tab === "courses" && (
+      {tab === "courses" && (courses?.length ? (
+        <div className="mt-5 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {[...courses].sort((a, b) => b.views - a.views || b.publishedAt.localeCompare(a.publishedAt)).map((c) => <CourseCard key={c.id} c={courseCardOf(c)} href={courseHref(c.slug)} />)}
+        </div>
+      ) : ACADEMY_LIVE ? (
+        <div className="card mt-5 p-6 text-sm text-slate">
+          <p className="font-display text-xl text-ink">{courses === undefined && !suspended && !isOfficial ? "Loading courses…" : "No courses yet"}</p>
+          <p className="mt-1">Free courses on <Link href="/academy" className="font-semibold text-crimson">Notes Academy</Link>: lessons from the teacher&apos;s YouTube or written on #NotesApp, with your progress saved as you go.</p>
+        </div>
+      ) : (
         <div className="card mt-5 p-6 text-sm text-slate">
           <p className="font-display text-xl text-ink">No courses yet</p>
           <p className="mt-1">Courses are coming with <Link href="/academy" className="font-semibold text-crimson">Notes Academy</Link>: free courses from the teacher&apos;s YouTube, paid courses on #NotesApp, and certificates anyone can check.</p>
         </div>
-      )}
+      ))}
     </div>
   );
 }

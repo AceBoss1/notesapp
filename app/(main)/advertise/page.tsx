@@ -101,10 +101,20 @@ export default function AdvertisePage() {
         </Link>
       </div>
 
-      <div className="card mt-6 p-6">
-        <p className="font-ui text-sm font-bold text-ink">How ads will appear</p>
+      <div className="card mt-6 border-dashed p-6">
+        <p className="font-mono text-[11px] uppercase tracking-eyebrow text-crimson-bright">Paid add-on · Business and Enterprise · After internal testing</p>
+        <p className="mt-2 font-ui text-sm font-bold text-ink">Advertise on LinkedIn from #NotesApp</p>
         <p className="mt-2 text-sm text-slate">
-          Banners rotate across #NotesApp — the home, Journals and Trending pages, and on publisher profiles and at the end of posts.
+          Boost one of your posts on LinkedIn from inside #NotesApp, using your own LinkedIn ad account, and see the campaign&apos;s numbers next to your #NotesApp ones.
+          LinkedIn bills you directly; we never hold your ad money. We are testing it internally now, and once that testing is done it will be offered as a paid add-on for Business and Enterprise.
+          No price or date yet — see the <Link href="/roadmap" className="text-crimson underline">roadmap</Link>.
+        </p>
+      </div>
+
+      <div className="card mt-6 p-6">
+        <p className="font-ui text-sm font-bold text-ink">Where ads appear</p>
+        <p className="mt-2 text-sm text-slate">
+          Banners rotate across #NotesApp — the home and Trending pages, between posts in the journal feed, and on publisher profiles and at the end of posts.
           Free journals always carry them; Pro and Business publishers choose whether to show them (and earn their share if they do).
           Every ad is labelled with who it&apos;s from — <strong>Sponsored: NotesApp Ads</strong> for our own banners, and the
           matching Google, Meta or AdMob label if and when those networks are switched on (AdMob arrives with our iOS and Android apps — see the{" "}

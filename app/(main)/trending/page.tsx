@@ -9,13 +9,15 @@ import RankedList from "@/components/RankedList";
 import { NameBadgeIcons } from "@/components/PersonName";
 import { hashtag } from "@/lib/topics";
 import { useInterests } from "@/lib/interests-client";
+import { ACADEMY_LIVE, courseHref, plural } from "@/lib/courses";
 
-// Trending (/trending): the most visited journals, store items and publishers, with the same tabs as profiles (Notes · Store ·
-// Courses) plus Publishers. Journals can be narrowed to a topic, the reader's interests first.
+// Trending (/trending): the most visited journals, store items, courses and publishers, with the same tabs as profiles (Notes ·
+// Store · Courses) plus Publishers. Journals can be narrowed to a topic, the reader's interests first.
 type Post = { id: string; slug: string; title: string; author: string; authorUsername?: string; views: number; date: string; topics?: string[]; featured_image?: string };
 type Publisher = { username: string; displayName: string; avatar: string; views: number; posts: number };
 type Item = { id: string; title: string; price: string; image: string; digital: boolean; seller: string; sellerUsername: string; sellerIsOrg: boolean; views: number; favs: number; rating?: number; reviews?: number };
-type Data = { basis: string; posts: Post[]; publishers: Publisher[]; items: Item[] };
+type Course = { id: string; slug: string; title: string; cover: string; teacher: string; teacherUsername: string; lessons: number; enrolled: number; views: number };
+type Data = { basis: string; posts: Post[]; publishers: Publisher[]; items: Item[]; courses?: Course[] };
 type Tab = "notes" | "store" | "courses" | "publishers";
 const TABS: { id: Tab; label: string }[] = [{ id: "notes", label: "Notes" }, { id: "store", label: "Store" }, { id: "courses", label: "Courses" }, { id: "publishers", label: "Publishers" }];
 
@@ -102,7 +104,16 @@ export default function TrendingPage() {
           </>
         )}
 
-        {data && tab === "courses" && (
+        {data && tab === "courses" && ACADEMY_LIVE && (
+          <>
+            <p className="mb-3 text-xs text-slate">Free courses on Notes Academy, ranked by visits. Courses nobody has opened yet follow, newest first. <Link href="/academy" className="font-semibold text-crimson">Browse Notes Academy</Link></p>
+            {(data.courses ?? []).length === 0 ? <p className="py-6 text-sm text-slate">No courses have been published yet. <Link href="/academy/teach" className="font-semibold text-crimson">Teach the first one</Link>.</p> : (
+              <RankedList rows={(data.courses ?? []).map((c) => ({ key: c.id, href: courseHref(c.slug), title: c.title, image: c.cover || undefined, count: c.views, sub: <>{c.teacher} · {plural(c.lessons, "lesson")} · {plural(c.enrolled, "enrolled", "enrolled")}</> }))} />
+            )}
+          </>
+        )}
+
+        {data && tab === "courses" && !ACADEMY_LIVE && (
           <div className="card p-6 text-sm text-slate">
             <p className="font-display text-xl text-ink">Courses are coming</p>
             <p className="mt-1">The most followed courses will show here once <Link href="/academy" className="font-semibold text-crimson">Notes Academy</Link> opens.</p>

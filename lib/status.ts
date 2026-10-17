@@ -12,6 +12,7 @@ import { whogohostConfigured, wgCredits } from "./whogohost";
 import { PROVIDERS, providerConfigured } from "./social-server";
 import { nanaConfigured } from "./nana-config";
 import { cloudflareTurn, cloudflareTurnConfigured } from "./calls-server";
+import { redis, sharedStoreConfigured } from "./shared-store";
 import { SITE_URL } from "@/lib/host";
 import { setting } from "@/lib/config";
 
@@ -61,7 +62,7 @@ export async function checkServices(): Promise<ServiceStatus[]> {
     timed(async () => {
       await getAdminDb().collection("settings").limit(1).get();
       return true;
-    }).then((r) => toStatus("database", "Database", "Journals, profiles, bookings (Firestore)", r))
+    }).then((r) => toStatus("database", "Database", "Journals, profiles, bookings, stores and courses (Firestore)", r))
   );
 
   const apiKey = setting("NEXT_PUBLIC_FIREBASE_API_KEY");
@@ -125,8 +126,8 @@ export async function checkServices(): Promise<ServiceStatus[]> {
   // Own-domain connections go through the Vercel API; only checked once it's configured.
   checks.push(
     vercelConfigured()
-      ? timed(() => pingVercel()).then((r) => toStatus("domains", "Custom domains", "Connecting and verifying Enterprise domains (Vercel)", r))
-      : Promise.resolve(notConfigured("domains", "Custom domains", "Connecting and verifying Enterprise domains (Vercel)"))
+      ? timed(() => pingVercel()).then((r) => toStatus("domains", "Custom domains", "Connecting and verifying Business and Enterprise domains (Vercel)", r))
+      : Promise.resolve(notConfigured("domains", "Custom domains", "Connecting and verifying Business and Enterprise domains (Vercel)"))
   );
 
   // Domain sales and DNS (Whogohost reseller API): only listed once its two settings exist. The credit read costs nothing.
@@ -134,6 +135,14 @@ export async function checkServices(): Promise<ServiceStatus[]> {
     whogohostConfigured()
       ? timed(async () => { await wgCredits(); return true; }).then((r) => toStatus("registrar", "Domain registration", "Domain sales and DNS management (Whogohost)", r))
       : Promise.resolve(notConfigured("registrar", "Domain registration", "Domain sales and DNS management (Whogohost)"))
+  );
+
+  // Shared limits (Upstash): without it each server keeps its own counts, which still works, so a failed ping is "slow", not "down".
+  const sharedName = "Shared limits", sharedDesc = "Limits on how often things can be done, held across all our servers (Upstash)";
+  checks.push(
+    sharedStoreConfigured()
+      ? timed(async () => (await redis([["PING"]])) !== null).then((r) => { const st = toStatus("shared", sharedName, sharedDesc, r); return st.state === "down" ? { ...st, state: "degraded" as ServiceState } : st; })
+      : Promise.resolve(notConfigured("shared", sharedName, sharedDesc))
   );
 
   // Sharing to LinkedIn and X: only says whether the connections are set up (we don't post anything to test it).
@@ -235,8 +244,8 @@ export async function checkServices(): Promise<ServiceStatus[]> {
       ? timed(async (signal) => {
           const res = await fetch("https://api.resend.com/domains", { headers: { Authorization: `Bearer ${resend}` }, signal, cache: "no-store" });
           return res.status < 500; // a restricted send-only key returns 401 but proves the API is up
-        }).then((r) => toStatus("email", "Email", "Booking confirmations, reminders and the team's report alerts (Resend)", r))
-      : Promise.resolve(notConfigured("email", "Email", "Booking confirmations, reminders and the team's report alerts (Resend)"))
+        }).then((r) => toStatus("email", "Email", "Booking confirmations, reminders, the Weekly Digest and the team's report alerts (Resend)", r))
+      : Promise.resolve(notConfigured("email", "Email", "Booking confirmations, reminders, the Weekly Digest and the team's report alerts (Resend)"))
   );
 
   // Identity checks for the gold badge (Dojah hosted widget) — only once enabled.
@@ -252,13 +261,13 @@ export async function checkServices(): Promise<ServiceStatus[]> {
   // this catches the scheduler silently stopping (escrow never released, trials never expiring).
   checks.push(
     getAdminDb().collection("cronRuns").doc("reminders").get().then((snap): ServiceStatus => {
-      const id = "cron", name = "Scheduled jobs", description = "Session reminders, plan expiry, order releases, moment clean-up, the daily reports digest and timed-suspension lifts";
+      const id = "cron", name = "Scheduled jobs", description = "Session reminders, plan expiry, order releases, moment clean-up, the daily reports digest, the Sunday Weekly Digest and timed-suspension lifts";
       const d = snap.data();
       if (!d?.at) return notConfigured(id, name, description);
       const ageMin = (Date.now() - new Date(d.at).getTime()) / 60_000;
       const state: ServiceState = ageMin > CRON_DOWN_MIN ? "down" : ageMin > CRON_SLOW_MIN || d.ok === false ? "degraded" : "operational";
       return { id, name, description, state };
-    }).catch(() => ({ id: "cron", name: "Scheduled jobs", description: "Session reminders, plan expiry, order releases, moment clean-up, the daily reports digest and timed-suspension lifts", state: "down" as ServiceState }))
+    }).catch(() => ({ id: "cron", name: "Scheduled jobs", description: "Session reminders, plan expiry, order releases, moment clean-up, the daily reports digest, the Sunday Weekly Digest and timed-suspension lifts", state: "down" as ServiceState }))
   );
 
   return Promise.all(checks);

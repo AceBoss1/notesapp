@@ -1,17 +1,18 @@
 // What a Business or Enterprise member's own site shows (Journals, Shop, Courses) and its About and Contact pages.
 // Both live on users/{uid} and are written only by the server (/api/site/sections, /api/site/pages) after the plan check.
 import type { UserProfile } from "./users";
+import { ACADEMY_LIVE } from "./courses";
 
 export const SITE_SECTIONS = [
   { id: "journals", name: "Journals", blurb: "Your notes, on Home and on the Notes page." },
   { id: "shop", name: "Shop", blurb: "Your store items, on Home and on the Shop page." },
-  { id: "courses", name: "Courses", blurb: "Your courses, once Notes Academy opens. Until then nothing shows for them." },
+  { id: "courses", name: "Courses", blurb: "The courses you teach on Notes Academy, on Home and on the Courses page." },
 ] as const;
 export type SiteSectionId = (typeof SITE_SECTIONS)[number]["id"];
 export type SiteSections = Record<SiteSectionId, boolean>;
 
-// Courses don't exist on the platform yet (docs/COURSES.md): the switch is kept, but no Courses link or listing shows until this is true.
-export const COURSES_LIVE = false;
+// Courses follow Notes Academy's switch (NEXT_PUBLIC_ACADEMY_LIVE): while it's off, no Courses link or listing shows.
+export const COURSES_LIVE = ACADEMY_LIVE;
 
 // Everything is on unless the member switched it off, so sites made before this setting look the same.
 export const siteSectionsOf = (p: Pick<UserProfile, "siteSections"> | null | undefined): SiteSections => ({

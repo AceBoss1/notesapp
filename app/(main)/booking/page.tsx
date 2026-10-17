@@ -1,6 +1,7 @@
 import Link from "next/link";
 import type { Metadata } from "next";
 import { POLICY_TEXT } from "@/lib/cancellation";
+import { LIMITS, formatNaira } from "@/lib/booking-time";
 import PageHero from "@/components/PageHero";
 
 export const metadata: Metadata = {
@@ -22,9 +23,9 @@ export default function BookingPage() {
 
       <div className="mt-12 grid grid-cols-1 gap-6 sm:grid-cols-3">
         {[
-          { n: "1", t: "Read", d: "A visitor finishes your public note." },
-          { n: "2", t: "Book", d: "They pick a date and one of your open times — your own weekly availability, shown in Lagos time." },
-          { n: "3", t: "Pay & remind", d: "Paystack collects payment in Naira. Both of you get a confirmation email and reminders 24 hours and 1 hour before." },
+          { n: "1", t: "Read", d: "A visitor finishes your public note, or opens your profile." },
+          { n: "2", t: "Book", d: "They tap Book a session and pick a date and one of your open times — your own weekly availability, shown in Lagos time." },
+          { n: "3", t: "Pay & remind", d: "They pay in Naira through Paystack or from their NotesApp Credit wallet. Both of you get a confirmation email and reminders 24 hours and 1 hour before." },
         ].map((s) => (
           <div key={s.n} className="card p-6">
             <span className="font-mono text-xs text-crimson-bright">Step {s.n}</span>
@@ -38,7 +39,7 @@ export default function BookingPage() {
         <div className="card p-6">
           <p className="font-ui text-sm font-bold text-ink">For publishers</p>
           <p className="mt-2 text-sm text-slate">
-            Set your session price (₦5,000–₦500,000), length and weekly
+            Set your session price ({formatNaira(LIMITS.sessionMinKobo)}–{formatNaira(LIMITS.sessionMaxKobo)}), length and weekly
             availability, and add your bank account. Your earnings are
             released after each session, minus NotesApp's commission for
             your tier — see{" "}
@@ -49,7 +50,7 @@ export default function BookingPage() {
           <p className="font-ui text-sm font-bold text-ink">Cancellations &amp; refunds</p>
           <p className="mt-2 text-sm text-slate">{POLICY_TEXT}</p>
           <p className="mt-2 text-sm text-slate">
-            Manage your sessions any time on{" "}
+            Clients can reschedule or cancel themselves under this policy, and report a problem after a session. Manage your sessions any time on{" "}
             <Link href="/bookings" className="text-crimson underline underline-offset-2">your bookings page</Link>.
           </p>
         </div>
@@ -60,7 +61,7 @@ export default function BookingPage() {
           Find a publisher to book
         </Link>
         <p className="mt-3 text-xs text-slate">
-          Coming next: clients rescheduling themselves and WhatsApp reminders.
+          Coming next: WhatsApp reminders alongside email and the bell.
         </p>
       </div>
     </div>

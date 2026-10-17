@@ -13,7 +13,7 @@ export default function StoreSellingPage() {
     <>
       <PageHero eyebrow="Stores" title={<>Sell physical goods and digital downloads from your store</>}>
         <p>Your store at <code>/u/yourname/store</code> sells physical items through #NotesApp checkout — the buyer&apos;s money is held until the parcel arrives, and every
-        order gets a parcel ID anyone can track. (Stores don&apos;t link out to other shops; your profile link and the links in your posts are where you point people elsewhere.)</p>
+        order gets a parcel ID anyone can track. Your items show in the Store tab of your profile and in <Link href="/shop" className="text-crimson underline">Notes Market</Link>, where every #NotesApp store is in one place. (Stores don&apos;t link out to other shops; your profile link and the links in your posts are where you point people elsewhere.)</p>
       </PageHero>
       <div className="mx-auto max-w-3xl px-4 py-12 sm:px-6 lg:px-8">
 
@@ -54,10 +54,18 @@ export default function StoreSellingPage() {
         <li>Like a download, the sale is final once the buyer first opens it. Your share is paid after the usual 7-day window.</li>
         <li>Honest limits: nothing on a screen can be made impossible to copy — someone determined can record their screen. This stops casual saving and sharing, and ties each purchase to one buyer and two devices.</li>
       </ul>
+      <p className="mt-3 text-sm text-slate">
+        Want to teach a full course, with progress for learners? <Link href="/academy" className="text-crimson underline">Notes Academy</Link> has free courses now, with lessons from your own YouTube; paid courses on Pro and Business come next, with the same fee as your digital items.
+      </p>
 
       <h2 className="mt-12 font-display text-2xl text-ink">Boost your items</h2>
       <p className="mt-3 text-sm text-slate">
-        Any item can be boosted from your store page with the same packages as post boosts — it then rotates in the Boosted strips and at the top of your store page. See <Link href="/boost" className="text-crimson underline">Boost</Link>.
+        Any item can be boosted from your store page with the same packages as post boosts — it then rotates in the Boosted strips, including in Notes Market, and at the top of your store page. See <Link href="/boost" className="text-crimson underline">Boost</Link>.
+      </p>
+
+      <h2 className="mt-12 font-display text-2xl text-ink">Notes Market</h2>
+      <p className="mt-3 text-sm text-slate">
+        Every shop that can take an order is listed in <Link href="/shop" className="text-crimson underline">Notes Market</Link>: items on each shopper&apos;s interests first, then the most viewed this week and the newest, with digital items, categories and a list of stores. Buyers can save items with the ♡. To keep your shop out of the list, switch off the listing under <Link href="/profile/publishing" className="text-crimson underline">Rates &amp; payouts</Link>; your shop and its links keep working.
       </p>
 
       <h2 className="mt-12 font-display text-2xl text-ink">Organisations</h2>

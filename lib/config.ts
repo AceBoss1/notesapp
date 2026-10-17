@@ -82,6 +82,7 @@ export const SETTINGS = {
   NEXT_PUBLIC_CALLS_LIVE: { group: "Feature switches", secret: false, about: "Voice and video calls: on whenever messages are, unless set to false." },
   NEXT_PUBLIC_WALLET_LIVE: { group: "Feature switches", secret: false, about: "The NotesApp Credit wallet: on unless set to false." },
   NEXT_PUBLIC_LIFE_LIVE: { group: "Feature switches", secret: false, about: "Notes Life: on unless set to false." },
+  NEXT_PUBLIC_ACADEMY_LIVE: { group: "Feature switches", secret: false, about: "Notes Academy free courses (/academy, teaching, course pages, the Courses tabs, member sites and the digest): on unless set to false, which brings back the opening-soon page." },
   AD_HASH_SALT: { group: "Other", secret: true, about: "Salt for hashing ad-visitor ids (default notesapp)." },
   GRANOLA_MCP_URL: { group: "Other", secret: false, about: "Granola's MCP address for the team hub (default https://mcp.granola.ai/mcp)." },
   LIFE_BONUS_MONTHLY_CAP_NAIRA: { group: "Other", secret: false, about: "Most NotesApp Bonus Credit Notes Life invites can pay out in a month (default 500,000)." },
@@ -110,6 +111,7 @@ const PUBLIC: Partial<Record<SettingName, string | undefined>> = {
   NEXT_PUBLIC_CALLS_LIVE: process.env.NEXT_PUBLIC_CALLS_LIVE,
   NEXT_PUBLIC_WALLET_LIVE: process.env.NEXT_PUBLIC_WALLET_LIVE,
   NEXT_PUBLIC_LIFE_LIVE: process.env.NEXT_PUBLIC_LIFE_LIVE,
+  NEXT_PUBLIC_ACADEMY_LIVE: process.env.NEXT_PUBLIC_ACADEMY_LIVE,
 };
 
 // The raw value, exactly as process.env would give it (undefined when unset), so `?? default` and `|| default` keep working.

@@ -5,7 +5,7 @@ import PageHero from "@/components/PageHero";
 export const metadata: Metadata = {
   title: "Team hub and team messaging",
   description:
-    "Coming to Business and Enterprise: a shared workspace for your team with a work board, milestones, a morning summary, a weekly review, meetings and a team room. Our own team is testing it first.",
+    "A paid add-on for Business and Enterprise after our internal testing: a shared workspace for your team with a work board, meetings, a money ledger, payroll, a staff library and team messages. Our own team is testing it now.",
 };
 
 const INSIDE = [
@@ -15,13 +15,15 @@ const INSIDE = [
   { title: "A weekly review", body: "The week in numbers and in work, with a place to write what went well, what you learned and what next week is about. The focus lines can turn into next week's tasks." },
   { title: "Comments on every item", body: "Talk about a task where the task is, so the decision and the reason stay together." },
   { title: "Meetings and a team room", body: "Schedule a meeting, give it its own chat room, record the decisions and turn actions into tasks. A team room keeps the everyday conversation in one place." },
+  { title: "Money, payroll and a staff library", body: "A money ledger with receipts, bills and renewals with who pays them and by when, a payroll run each month, and a library for the handbook, SOPs and policies that shows who has read what." },
+  { title: "Team messages", body: "A message hub for staff, with To, Cc, files and an optional email copy, next to the everyday team room." },
   { title: "Roles that fit the job", body: "People see what their job needs. Someone in customer care does not need to see payments, and finance does not need to see the support inbox." },
 ];
 
 export default function TeamsPage() {
   return (
     <>
-      <PageHero eyebrow="Coming Soon · Business and Enterprise" title={<>Team hub and team messaging</>}>
+      <PageHero eyebrow="Paid add-on · Business and Enterprise · After internal testing" title={<>Team hub and team messaging</>}>
         <p>A shared workspace for the people who run your channel with you: who is doing what, what needs a decision, and a place to talk about it, all next to the journals, bookings and store you already run on #NotesApp.</p>
       </PageHero>
       <div className="mx-auto max-w-4xl px-4 py-12 sm:px-6 lg:px-8">
@@ -29,7 +31,7 @@ export default function TeamsPage() {
       <section className="card mt-10 p-7" aria-labelledby="status">
         <h2 id="status" className="font-display text-2xl text-ink">Where it stands</h2>
         <p className="mt-2 text-sm text-slate">
-          Our own team is using it now, every day, to run #NotesApp. We want to find what gets in the way before anyone else relies on it, so it opens to Business and Enterprise accounts once our internal testing is done. There is no date yet. Nothing on this page can be switched on today, and what you get may change a little from what we use ourselves.
+          Our own team is using it now, every day, to run #NotesApp. We want to find what gets in the way before anyone else relies on it. Once our internal testing is done, it will be offered as a <strong className="text-ink">paid add-on for Business and Enterprise</strong>. There is no price or date yet. Nothing on this page can be switched on today, and what you get may change a little from what we use ourselves.
         </p>
       </section>
 
@@ -49,7 +51,10 @@ export default function TeamsPage() {
       <section className="mt-12" aria-labelledby="who">
         <h2 id="who" className="font-display text-2xl text-ink">Who will get it</h2>
         <p className="mt-2 text-sm text-slate">
-          Business and Enterprise accounts, for their team seats: four on Business (the owner and three team members), and as many as you need on Enterprise. Group chats, which anyone on #NotesApp can start, are already live, and team messaging builds on them.
+          Business and Enterprise accounts that add it, for their team seats: four on Business (the owner and three team members), and as many as you need on Enterprise. Group chats, which anyone on #NotesApp can start, are already live, and team messaging builds on them.
+        </p>
+        <p className="mt-3 text-sm text-slate">
+          Coming the same way, as paid add-ons for Business and Enterprise after internal testing: company finance tools (runway, acquisition cost, burn and revenue analytics, a cap table with vesting), an investor and partner data room, and advertising on LinkedIn from #NotesApp. See the <Link href="/roadmap" className="text-crimson underline underline-offset-2">roadmap</Link>.
         </p>
         <div className="mt-6 flex flex-wrap gap-3">
           <Link href="/pricing" className="btn-primary">See plans and team seats</Link>

@@ -296,6 +296,49 @@ test("saved journals: a member reads only their own, and only the server writes 
   await assertFails(deleteDoc(doc(as("alice"), "savedJournals/alice_n1")));
 });
 
+test("courses: published ones and their lessons are public, drafts and every write stay with the server", async () => {
+  await env.withSecurityRulesDisabled(async (ctx) => {
+    const db = ctx.firestore();
+    await setDoc(doc(db, "courses/live"), { ownerUid: "pub", title: "Excel", slug: "excel", status: "published" });
+    await setDoc(doc(db, "courses/live/lessons/l1"), { order: 0, title: "Intro", kind: "youtube", youtubeId: "abcdefghijk" });
+    await setDoc(doc(db, "courses/draft"), { ownerUid: "pub", title: "Soon", slug: "soon", status: "draft" });
+    await setDoc(doc(db, "courses/draft/lessons/l1"), { order: 0, title: "Secret", kind: "text", body: "x" });
+    await setDoc(doc(db, "courseSlugs/excel"), { courseId: "live" });
+  });
+  await assertSucceeds(getDoc(doc(anon(), "courses/live")));
+  await assertSucceeds(getDoc(doc(anon(), "courses/live/lessons/l1")));
+  await assertSucceeds(getDocs(query(collection(anon(), "courses/live/lessons"), orderBy("order"))));
+  await assertSucceeds(getDocs(query(collection(anon(), "courses"), where("slug", "==", "excel"), where("status", "==", "published"))));
+  await assertFails(getDocs(query(collection(anon(), "courses"), where("slug", "==", "soon")))); // a query that could return a draft
+  await assertFails(getDoc(doc(anon(), "courses/draft")));
+  await assertFails(getDoc(doc(as("pub"), "courses/draft"))); // even the teacher reads drafts through the server
+  await assertFails(getDoc(doc(as("alice"), "courses/draft/lessons/l1")));
+  await assertFails(getDocs(collection(as("alice"), "courses/draft/lessons")));
+  await assertFails(getDoc(doc(as("alice"), "courseSlugs/excel")));
+  // nobody writes a course, a lesson or a slug from a browser, not even the teacher
+  await assertFails(setDoc(doc(as("pub"), "courses/new"), { ownerUid: "pub", title: "Mine", slug: "mine", status: "published" }));
+  await assertFails(updateDoc(doc(as("pub"), "courses/live"), { enrolCount: 9999 }));
+  await assertFails(updateDoc(doc(as("pub"), "courses/draft"), { status: "published" }));
+  await assertFails(setDoc(doc(as("pub"), "courses/live/lessons/l2"), { order: 1, title: "More", kind: "text", body: "x" }));
+  await assertFails(deleteDoc(doc(as("pub"), "courses/live/lessons/l1")));
+  await assertFails(deleteDoc(doc(as("pub"), "courses/live")));
+  await assertFails(setDoc(doc(as("pub"), "courseSlugs/taken"), { courseId: "x" }));
+});
+
+test("enrolments: a learner reads only their own progress, and only the server writes it", async () => {
+  await env.withSecurityRulesDisabled(async (ctx) => {
+    await setDoc(doc(ctx.firestore(), "enrolments/live_alice"), { courseId: "live", uid: "alice", enrolledAt: "2026-10-17T00:00:00Z", done: { l1: "2026-10-17T01:00:00Z" } });
+  });
+  await assertSucceeds(getDoc(doc(as("alice"), "enrolments/live_alice")));
+  await assertSucceeds(getDocs(query(collection(as("alice"), "enrolments"), where("uid", "==", "alice"), where("courseId", "==", "live"))));
+  await assertFails(getDoc(doc(as("pub"), "enrolments/live_alice")));
+  await assertFails(getDoc(doc(anon(), "enrolments/live_alice")));
+  await assertFails(getDocs(query(collection(as("pub"), "enrolments"), where("courseId", "==", "live"))));
+  await assertFails(setDoc(doc(as("alice"), "enrolments/live2_alice"), { courseId: "live2", uid: "alice", enrolledAt: "x", done: {} }));
+  await assertFails(updateDoc(doc(as("alice"), "enrolments/live_alice"), { completedAt: "2026-10-17T02:00:00Z" }));
+  await assertFails(deleteDoc(doc(as("alice"), "enrolments/live_alice")));
+});
+
 test("digital store items: no delivery/stock, kind is fixed, files and purchases are server-only", async () => {
   const base = { ownerUid: "pub", title: "Guide", price: "₦2,000", link: "https://www.notesapp.name.ng", image: "/x.png", cta: "Buy & download", sellable: true, priceKobo: 200000, deliveryKobo: 0, stock: 0 };
   const digital = { ...base, kind: "digital", fileName: "guide.pdf", fileSize: 1234 };

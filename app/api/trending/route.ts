@@ -8,12 +8,14 @@ import { getAllUsers } from "@/lib/users";
 import { ttlCache } from "@/lib/ttl-cache";
 import { friendlyMessage } from "@/lib/api-errors";
 import { topicsOf } from "@/lib/topics";
+import { getAcademy } from "@/lib/courses-server";
+import { ACADEMY_LIVE } from "@/lib/courses";
 
 export const dynamic = "force-dynamic";
 
-type Bucket = { kind: "note" | "profile"; id: string; count: number };
+type Bucket = { kind: "note" | "profile" | "item" | "course"; id: string; count: number };
 
-// Trending posts + publishers. Score = visits in the last N days
+// Trending posts, publishers, store items and courses. Score = visits in the last N days
 // (pageViews buckets). Until any windowed data exists it falls back
 // to lifetime view counts, and says so via `basis`.
 export async function GET(req: NextRequest) {
@@ -27,18 +29,20 @@ export async function GET(req: NextRequest) {
 
     // Notes and users come from the shared 5-minute caches; only the
     // pageViews buckets (bounded by days × pages) are read fresh.
-    const [viewSnap, allNotes, allUsers] = await Promise.all([
+    const [viewSnap, allNotes, allUsers, academy] = await Promise.all([
       db.collection("pageViews").where("day", ">=", cutoff).get(),
       getAllNotes({ publishedOnly: true }),
       getAllUsers(),
+      ACADEMY_LIVE ? getAcademy() : Promise.resolve([]),
     ]);
 
     const noteViews = new Map<string, number>();
     const profileViews = new Map<string, number>();
+    const courseViews = new Map<string, number>();
     viewSnap.docs.forEach((d) => {
       const b = d.data() as Bucket;
-      const m = b.kind === "note" ? noteViews : profileViews;
-      m.set(b.id, (m.get(b.id) || 0) + (b.count || 0));
+      const m = b.kind === "note" ? noteViews : b.kind === "profile" ? profileViews : b.kind === "course" ? courseViews : null;
+      m?.set(b.id, (m.get(b.id) || 0) + (b.count || 0));
     });
     const windowTotal = [...noteViews.values(), ...profileViews.values()].reduce((a, b) => a + b, 0);
     const windowed = windowTotal > 0;
@@ -140,8 +144,20 @@ export async function GET(req: NextRequest) {
         });
     }
 
+    // Courses (Notes Academy): visits in the same period from their day buckets; until any are counted, lifetime visits. Courses
+    // nobody has opened yet follow, newest first, so the tab is never empty while there are courses.
+    const courseWindowed = [...courseViews.values()].some((n) => n > 0);
+    const courseRows = academy.map((c) => ({
+      id: c.id, slug: c.slug, title: c.title, cover: c.cover, teacher: c.ownerName, teacherUsername: c.ownerUsername,
+      lessons: c.lessonCount, enrolled: c.enrolCount, views: courseWindowed ? courseViews.get(c.id) || 0 : c.views, publishedAt: c.publishedAt,
+    }));
+    const courses = [
+      ...courseRows.filter((c) => c.views > 0).sort((a, b) => b.views - a.views || b.enrolled - a.enrolled),
+      ...courseRows.filter((c) => c.views === 0).sort((a, b) => b.publishedAt.localeCompare(a.publishedAt)),
+    ].slice(0, limit);
+
     return NextResponse.json(
-      { basis: windowed ? `last ${days} days` : "all time", posts, publishers, items },
+      { basis: windowed ? `last ${days} days` : "all time", posts, publishers, items, courses },
       { headers: { "Cache-Control": "public, s-maxage=900, stale-while-revalidate=1800" } }
     );
   } catch (err) {

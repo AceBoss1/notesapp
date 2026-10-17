@@ -1,6 +1,6 @@
 // Fills the Firestore and Auth emulators with a small, realistic #NotesApp: people (founders, a verified writer, an organisation,
-// a seller), journals on different topics, store items with sales set up, this week's visits, a bookable publisher, a
-// signed-in reader with interests and two conversations. For trying pages locally, screenshots and the smoke test. Emulators only: it refuses to run
+// a seller), journals on different topics, store items with sales set up, two free Notes Academy courses, this week's visits, a
+// bookable publisher, a signed-in reader with interests, a course in progress and two conversations. For trying pages locally, screenshots and the smoke test. Emulators only: it refuses to run
 // unless FIRESTORE_EMULATOR_HOST is set, so it can never touch live data.
 //
 //   npx -y firebase-tools@13 emulators:exec --only firestore,auth --project demo-notesapp \
@@ -50,6 +50,30 @@ const ITEMS = [
   { id: "i_hero", owner: "u_clickam", title: "NotesApp magazine, June 2026", price: "₦1,500", kobo: 150000, img: `${I}/shop/Hero-Cover-June-2026.webp`, category: "Books & courses", kind: "physical", age: 0, views: 20, week: 20, favs: 1 },
 ];
 
+// Notes Academy: two published free courses. The video ids only need to look real (the emulator never calls YouTube).
+const COURSES = [
+  {
+    id: "excel-everyday", owner: "u_chimdinma", slug: "excel-for-everyday-work", title: "Excel for everyday work", topics: ["data", "careers", "productivity"],
+    cover: `${I}/shop/ms-excel-beginner-to-advanced.jpg`, age: 6, views: 520, week: 140, enrolled: 46,
+    summary: "Go from a blank sheet to a budget, a sales tracker and a tidy report. Three short video lessons for people who use Excel at work and want to stop guessing.",
+    lessons: [
+      { id: "l1", title: "Find your way round a spreadsheet", kind: "youtube", youtubeId: "Xl4cM2q8T0a", minutes: 9 },
+      { id: "l2", title: "Formulas you'll use every day", kind: "youtube", youtubeId: "bR7kP9sQx1E", minutes: 14 },
+      { id: "l3", title: "Charts and a one-page report", kind: "youtube", youtubeId: "nT3vW6yZ0cD", minutes: 12 },
+    ],
+  },
+  {
+    id: "first-customers", owner: "u_emmanuel", slug: "your-first-ten-customers", title: "Your first ten customers", topics: ["entrepreneurship", "startups", "sales"],
+    cover: `${I}/shop/Entrepreneurship-101-Release-Inner-Entrepreneur.jpg`, age: 2, views: 210, week: 90, enrolled: 18,
+    summary: "A short reading course for new founders: who to sell to first, what to say, and how to price before you have a brand.",
+    lessons: [
+      { id: "t1", title: "Who buys first", kind: "text", minutes: 5, body: "## Who buys first\n\nYour first customers are people who **already have the problem** and are trying to fix it badly. Write down ten of them by name before you build anything." },
+      { id: "t2", title: "What to say", kind: "text", minutes: 6, body: "## What to say\n\nOne sentence on the problem, one on what you do about it, and a question. Then listen.\n\n- Keep it short\n- Ask for a call, not a sale" },
+      { id: "t3", title: "Pricing before you have a brand", kind: "text", minutes: 7, body: "## Pricing\n\nCharge from the first day. A small price tells you more than a hundred compliments." },
+    ],
+  },
+];
+
 (async () => {
   const auth = getAuth();
   const batch = db.batch();
@@ -73,6 +97,19 @@ const ITEMS = [
     batch.set(db.doc(`storeStats/${i.id}`), { ownerUid: i.owner, views: i.views, favs: i.favs });
     batch.set(db.doc(`pageViews/item_${i.id}_${ymd(1).replace(/-/g, "")}`), { kind: "item", id: i.id, day: ymd(1), count: i.week });
   }
+  for (const c of COURSES) {
+    const a = PEOPLE.find((p) => p.uid === c.owner)!;
+    batch.set(db.doc(`courses/${c.id}`), {
+      ownerUid: a.uid, ownerUsername: a.username, ownerName: a.displayName, ownerAvatar: a.avatar, title: c.title, slug: c.slug, summary: c.summary, topics: c.topics, cover: c.cover,
+      free: true, status: "published", lessonIds: c.lessons.map((l) => l.id), lessonCount: c.lessons.length, minutes: c.lessons.reduce((n, l) => n + l.minutes, 0),
+      enrolCount: c.enrolled, viewCount: c.views, createdAt: day(c.age + 3), updatedAt: day(c.age), publishedAt: day(c.age),
+    });
+    batch.set(db.doc(`courseSlugs/${c.slug}`), { courseId: c.id });
+    c.lessons.forEach(({ id, ...l }, order) => batch.set(db.doc(`courses/${c.id}/lessons/${id}`), { ...l, order }));
+    batch.set(db.doc(`pageViews/course_${c.id}_${ymd(1).replace(/-/g, "")}`), { kind: "course", id: c.id, day: ymd(1), count: c.week });
+  }
+  // The reader is part-way through the Excel course: one lesson of three done.
+  batch.set(db.doc("enrolments/excel-everyday_u_reader"), { courseId: "excel-everyday", uid: "u_reader", enrolledAt: day(3), done: { l1: day(2) }, lastLessonId: "l1", completedAt: null });
   batch.set(db.doc("follows/u_reader_ada"), { followerUid: "u_reader", username: "ada" });
   // Two conversations for the reader (Messages), one with unread messages.
   const chats: [string, [string, string, number][]][] = [
@@ -91,6 +128,6 @@ const ITEMS = [
   for (const p of PEOPLE.filter((x) => x.email)) {
     await auth.createUser({ uid: p.uid, email: p.email, password: "demo-password-1", displayName: p.displayName, emailVerified: true }).catch((e) => { if (!String(e).includes("exists")) throw e; });
   }
-  console.log(`seeded ${PEOPLE.length} people, ${NOTES.length + 1} journals, ${ITEMS.length} items; reader@demo.notesapp and chimdinma@demo.notesapp / demo-password-1`);
+  console.log(`seeded ${PEOPLE.length} people, ${NOTES.length + 1} journals, ${ITEMS.length} items, ${COURSES.length} courses; reader@demo.notesapp and chimdinma@demo.notesapp / demo-password-1`);
   process.exit(0);
 })().catch((e) => { console.error(e); process.exit(1); });

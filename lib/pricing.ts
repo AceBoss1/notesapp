@@ -20,6 +20,8 @@ export type PricingConfig = {
   business: TierRates & { monthlyKobo: number; yearlyKobo: number };
   // Enterprise is agreed per account: these are the "from" prices shown, the floor rates used when no account rate is set, and the ad share.
   enterprise: { fromMonthlyKobo: number; fromYearlyKobo: number; adShare: number; floorSession: number; floorPhysical: number; floorDigital: number };
+  // The two course packages on top of Enterprise (docs/COURSES.md): Enterprise Courses, and the Academy API's "from" price before usage.
+  coursePackages: { enterpriseCoursesMonthlyKobo: number; academyApiFromMonthlyKobo: number; certificateMinKobo: number };
   badgeKobo: number;
   gold: { personal: { monthlyKobo: number; depositKobo: number }; corporate: { monthlyKobo: number; depositKobo: number } };
   boosts: { id: string; name: string; impressions: number; priceKobo: number }[];
@@ -38,6 +40,7 @@ export function currentPricing(): PricingConfig {
     pro: { ...rates("pro"), monthlyKobo: tier("pro").monthlyKobo!, yearlyKobo: tier("pro").yearlyKobo! },
     business: { ...rates("business"), monthlyKobo: tier("business").monthlyKobo!, yearlyKobo: tier("business").yearlyKobo! },
     enterprise: { fromMonthlyKobo: ENTERPRISE_FROM.monthly, fromYearlyKobo: ENTERPRISE_FROM.yearly, adShare: e.adRevenueShare ?? 0, floorSession: e.sessionAndUnlockCommissionFloor ?? 0.05, floorPhysical: e.physicalCommissionFloor ?? 0.01, floorDigital: e.digitalCommissionFloor ?? 0.015 },
+    coursePackages: { ...COURSE_PACKAGES },
     badgeKobo: BADGE_PRICE_KOBO,
     gold: { personal: { monthlyKobo: GOLD_PRICING.personal.monthlyKobo, depositKobo: GOLD_PRICING.personal.identityDepositKobo }, corporate: { monthlyKobo: GOLD_PRICING.corporate.monthlyKobo, depositKobo: GOLD_PRICING.corporate.identityDepositKobo } },
     boosts: BOOST_PACKAGES.map((p) => ({ id: p.id, name: p.name, impressions: p.impressions, priceKobo: p.priceKobo })),
@@ -46,6 +49,9 @@ export function currentPricing(): PricingConfig {
 }
 // Enterprise has no fixed price in TIERS (only display text), so its "from" prices are kept here.
 const ENTERPRISE_FROM = { monthly: 55_000 * 100, yearly: 550_000 * 100 };
+// The Enterprise course packages, kept here for the same reason. The regular Enterprise price above doesn't change with them.
+// certificateMinKobo: our part of a certificate on a free course (the teacher's margin comes on top).
+const COURSE_PACKAGES = { enterpriseCoursesMonthlyKobo: 100_000 * 100, academyApiFromMonthlyKobo: 250_000 * 100, certificateMinKobo: 999 * 100 };
 export const DEFAULT_PRICING: PricingConfig = currentPricing();
 
 const group = (n: number) => String(Math.round(n)).replace(/\B(?=(\d{3})+(?!\d))/g, ",");
@@ -69,6 +75,7 @@ export function applyPricing(c: PricingConfig): void {
   e.sessionAndUnlockCommissionFloor = c.enterprise.floorSession; e.physicalCommissionFloor = c.enterprise.floorPhysical; e.digitalCommissionFloor = c.enterprise.floorDigital;
   e.price = `Starting from ${nairaText(c.enterprise.fromMonthlyKobo)}+/month`;
   e.priceNote = `or ${nairaText(c.enterprise.fromYearlyKobo)}+/year${monthsFree(c.enterprise.fromMonthlyKobo, c.enterprise.fromYearlyKobo)} · cancel anytime · rates and seats agreed with us`;
+  Object.assign(COURSE_PACKAGES, c.coursePackages);
   setBadgePriceKobo(c.badgeKobo);
   for (const k of ["personal", "corporate"] as const) { GOLD_PRICING[k].monthlyKobo = c.gold[k].monthlyKobo; GOLD_PRICING[k].identityDepositKobo = c.gold[k].depositKobo; }
   for (const b of c.boosts) { const p = BOOST_PACKAGES.find((x) => x.id === b.id); if (p) { p.impressions = b.impressions; p.priceKobo = b.priceKobo; p.maxPerDay = Math.ceil(b.impressions / p.minDays); } }
@@ -101,6 +108,14 @@ export function cleanPricing(input: unknown): PricingConfig {
   const e = rec(i.enterprise);
   const fromMonthlyKobo = kobo(e.fromMonthlyKobo, "Enterprise monthly 'from' price", 100 * 100), fromYearlyKobo = kobo(e.fromYearlyKobo, "Enterprise yearly 'from' price", 100 * 100);
   if (fromYearlyKobo < fromMonthlyKobo || fromYearlyKobo > fromMonthlyKobo * 12) throw new PricingError("Enterprise: the yearly 'from' price should be between one and twelve months.");
+  // A config saved before the course packages existed has none: keep the defaults for them instead of refusing the whole config.
+  const cp = i.coursePackages === undefined ? d.coursePackages : rec(i.coursePackages);
+  const coursePackages = {
+    enterpriseCoursesMonthlyKobo: kobo(cp.enterpriseCoursesMonthlyKobo, "Enterprise Courses monthly price", 100 * 100),
+    academyApiFromMonthlyKobo: kobo(cp.academyApiFromMonthlyKobo, "Enterprise Academy API monthly 'from' price", 100 * 100),
+    // added after the packages: a config without it keeps the default
+    certificateMinKobo: cp.certificateMinKobo === undefined ? d.coursePackages.certificateMinKobo : kobo(cp.certificateMinKobo, "Certificate minimum", 100 * 100),
+  };
   const g = rec(i.gold);
   const gold = (v: unknown, n: string) => { const o = rec(v); return { monthlyKobo: kobo(o.monthlyKobo, `${n} gold monthly`, 100 * 100), depositKobo: kobo(o.depositKobo, `${n} gold check deposit`) }; };
   const list = (v: unknown, base: PricingConfig["boosts"], name: string) => base.map((b) => {
@@ -112,6 +127,7 @@ export function cleanPricing(input: unknown): PricingConfig {
   return {
     basic: r(i.basic, "Free Basic"), pro: paid(i.pro, "Pro"), business: paid(i.business, "Business"),
     enterprise: { fromMonthlyKobo, fromYearlyKobo, adShare: frac(e.adShare, "Enterprise ad share", 1), floorSession: frac(e.floorSession, "Enterprise session floor", 0.5), floorPhysical: frac(e.floorPhysical, "Enterprise physical floor", 0.5), floorDigital: frac(e.floorDigital, "Enterprise digital floor", 0.5) },
+    coursePackages,
     badgeKobo: kobo(i.badgeKobo, "Verified badge price", 100 * 100),
     gold: { personal: gold(g.personal, "Personal"), corporate: gold(g.corporate, "Organisation") },
     boosts: list(i.boosts, d.boosts, "Boost"), ads: list(i.ads, d.ads, "Ad package"),
@@ -139,6 +155,9 @@ export const planRate = (tierName: "basic" | "pro" | "business", kind: "session"
 };
 export const planPrice = (tierName: "pro" | "business") => nairaText(TIERS.find((x) => x.tier === tierName)!.monthlyKobo!);
 export const enterpriseFrom = () => nairaText(currentPricing().enterprise.fromMonthlyKobo);
+export const enterpriseCoursesPrice = () => nairaText(COURSE_PACKAGES.enterpriseCoursesMonthlyKobo);
+export const academyApiFrom = () => nairaText(COURSE_PACKAGES.academyApiFromMonthlyKobo);
+export const certificateMin = () => nairaText(COURSE_PACKAGES.certificateMinKobo);
 // Monthly earnings from sessions, subscriptions and gifts above which a paid plan costs less than the extra commission it saves.
 export const breakEven = (tierName: "pro" | "business") => {
   const b = TIERS.find((x) => x.tier === "basic")!.sessionAndUnlockCommission as number, t = TIERS.find((x) => x.tier === tierName)!;

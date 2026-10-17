@@ -4,11 +4,16 @@ import { getAllUsers } from "@/lib/users";
 import { CHANNEL_JOURNALS } from "@/lib/journals-directory";
 import { NOTESAPP_POSTS } from "@/lib/notesapp-posts";
 import { SITE } from "@/lib/site";
+import { getAcademy } from "@/lib/courses-server";
+import { ACADEMY_LIVE } from "@/lib/courses";
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const staticPages: MetadataRoute.Sitemap = [
     { url: `${SITE.url}/`, changeFrequency: "weekly", priority: 1 },
     { url: `${SITE.url}/journals`, changeFrequency: "daily", priority: 0.9 },
+    { url: `${SITE.url}/explore`, changeFrequency: "daily", priority: 0.6 },
+    { url: `${SITE.url}/shop`, changeFrequency: "daily", priority: 0.7 },
+    ...(ACADEMY_LIVE ? [{ url: `${SITE.url}/academy`, changeFrequency: "daily" as const, priority: 0.7 }] : []),
     { url: `${SITE.url}/pricing`, changeFrequency: "monthly", priority: 0.7 },
     { url: `${SITE.url}/boost`, changeFrequency: "monthly", priority: 0.6 },
     { url: `${SITE.url}/badges`, changeFrequency: "monthly", priority: 0.5 },
@@ -88,5 +93,10 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     // same fallback as above
   }
 
-  return [...staticPages, ...notesappPostPages, ...notePages, ...profilePages];
+  // Published Notes Academy courses (getAcademy is cached and never throws).
+  const coursePages: MetadataRoute.Sitemap = ACADEMY_LIVE
+    ? (await getAcademy()).map((c) => ({ url: `${SITE.url}/academy/${c.slug}`, lastModified: c.publishedAt ? new Date(c.publishedAt) : undefined, changeFrequency: "weekly" as const, priority: 0.6 }))
+    : [];
+
+  return [...staticPages, ...notesappPostPages, ...notePages, ...coursePages, ...profilePages];
 }

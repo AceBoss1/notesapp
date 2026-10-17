@@ -5,7 +5,7 @@ import { GOLD_PRICING } from "@/lib/gold";
 import { formatNaira } from "@/lib/booking-time";
 import { getTierConfig } from "@/lib/tiers";
 import PageHero from "@/components/PageHero";
-import { enterpriseFrom, planPrice, planRate, pct } from "@/lib/pricing";
+import { academyApiFrom, enterpriseCoursesPrice, enterpriseFrom, planPrice, planRate, pct } from "@/lib/pricing";
 
 export const metadata: Metadata = {
   title: "Organisations",
@@ -23,7 +23,7 @@ const STEPS = [
 ];
 
 const ENTERPRISE = [
-  ["Your own branded site", "Your name and logo, on your own domain (notes.yourbrand.com or yourbrand.com): a Home page with your profile and booking, a Notes page and a Shop. A small “powered by #NotesApp” footer, and your logo as the tab icon. Business has this too, as a semi white-label site; Enterprise adds fully branded sign-in and sign-up in your name, the API and the lowest rates. Visitors sign in, comment, book sessions and buy without leaving your site."],
+  ["Your own branded site", "Your name and logo, on your own domain (notes.yourbrand.com or yourbrand.com), set up on the Your site page: the Legacy, Aurora or Maroon theme, which sections show (Journals, Shop, Courses), and About and Contact pages. A small “powered by #NotesApp” footer, and your logo as the tab icon. Business has this too, as a semi white-label site; Enterprise adds fully branded sign-in and sign-up in your name, the API and the lowest rates. Visitors sign in, comment, book sessions and buy without leaving your site."],
   ["Rates agreed with us", "Enterprise isn't a fixed price list. We agree your commission on sessions, store sales and downloads, and your share of the ad revenue on your pages, for your account."],
   ["API, webhooks and a Console", "Publish posts from your own systems, read bookings, orders and earnings, and get signed webhooks when a booking is made or an order is paid. Keys and webhooks are managed in the Console; the docs are public."],
   ["Seats and onboarding", "A team size that fits you, with the maroon ✔ included, and onboarding help from us to set up your channel, domain and payouts."],
@@ -35,7 +35,7 @@ export default function OrganisationsPage() {
     <>
       <PageHero eyebrow="Organisations" title={<>A #channel for your organisation</>}>
         <p>Companies, NGOs, churches, schools and clubs publish on #NotesApp the same way people do — with a registered-organisation
-        label, CAC verification and, soon, a team.</p>
+        label, CAC verification and a team that writes under one name.</p>
       </PageHero>
       <div className="mx-auto max-w-3xl px-4 py-12 sm:px-6 lg:px-8">
 
@@ -58,7 +58,7 @@ export default function OrganisationsPage() {
           <a href="https://apexglitz.com.ng" className="text-crimson underline">apexglitz.com.ng</a>.
         </p>
         <ul className="mt-5 grid gap-3 sm:grid-cols-2">
-          {ENTERPRISE.map(([t, d]) => (
+          {[...ENTERPRISE, ["Courses for your team or customers", `Two packages on top of Enterprise: Enterprise Courses (${enterpriseCoursesPrice()}/month), with courses under your brand, your logo on certificates, cohorts and bulk invites; or the Enterprise Academy API (from ${academyApiFrom()}/month plus usage), for an academy of your own built on our API.`]].map(([t, d]) => (
             <li key={t} className="rounded-xl2 border border-rule p-4">
               <p className="font-ui text-sm font-bold text-ink">{t}</p>
               <p className="mt-1 text-sm text-slate">{d}</p>
@@ -116,6 +116,9 @@ export default function OrganisationsPage() {
       <p className="mt-3 text-sm text-slate">
         Organisations start on Business ({ORG_SEATS.business} seats: the owner plus three team members, counting pending invitations) or Enterprise (seats and commission agreed with us). Team publishing needs one of these plans; if the plan ends, the team can&apos;t publish until it returns, and everything already published stays.{" "}
         <Link href="/pricing" className="text-crimson underline">See pricing</Link> · <Link href="/contact" className="text-crimson underline">Talk to us about Enterprise</Link>
+      </p>
+      <p className="mt-3 text-sm text-slate">
+        The <Link href="/teams" className="text-crimson underline">Team hub</Link> (work board, meetings, money ledger, payroll, staff library and team messages), company finance tools, an investor and partner data room, and advertising on LinkedIn from #NotesApp are being tested by our own team. Once that testing is done, they will be offered as paid add-ons for Business and Enterprise.
       </p>
     </div>
     </>

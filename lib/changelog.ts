@@ -11,6 +11,19 @@ export type Release = {
 
 export const CHANGELOG: Release[] = [
   {
+    version: "v0.42.0",
+    bump: "minor",
+    date: "2026-10-17",
+    changes: [
+      { kind: "added", text: "Notes Academy is open with free courses. Any publishing account can teach: lessons from your own YouTube (they play right on #NotesApp) and written lessons, under your topics, with a cover. Learners enrol free, videos tick themselves off once watched, and progress is kept." },
+      { kind: "added", text: "Courses show on Notes Academy (For you, Most viewed, New, Continue learning), on your profile's Courses tab, in Trending's Courses tab, on Business and Enterprise sites and in the weekly digest." },
+      { kind: "added", text: "Pricing: the two Enterprise course packages (Enterprise Courses, and the Enterprise Academy API for a white-label academy of your own), and the certificate price for free courses." },
+      { kind: "changed", text: "The Team hub, company finance tools, the investor data room and advertising on LinkedIn from #NotesApp are being tested with our own team and will be paid add-ons for Business and Enterprise afterwards. The roadmap, pricing and help pages say so." },
+      { kind: "changed", text: "The home page, About, Roadmap, Pricing, Status and help centre are up to date with everything above, and prices on them follow the live prices." },
+      { kind: "changed", text: "Signing in from a link (for example Enrol on a course) brings you back to where you were." },
+    ],
+  },
+  {
     version: "v0.41.0",
     bump: "minor",
     date: "2026-10-17",

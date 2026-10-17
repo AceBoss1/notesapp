@@ -4,7 +4,7 @@ import Link from "next/link";
 import { TIERS, formatPercent, badgeIncluded, canSellViewOnly, BADGE_PRICE_KOBO, getTierConfig } from "@/lib/tiers";
 import { VIDEO_MAX_BYTES, VIDEO_MAX_SECONDS, VIDEO_WEEKLY_LIMIT } from "@/lib/video-rules";
 import { GOLD_PRICING } from "@/lib/gold";
-import { BOOST_PACKAGES } from "@/lib/boost-config";
+import { BOOST_PACKAGES, GIFT_MAX_KOBO, GIFT_MIN_KOBO } from "@/lib/boost-config";
 import { GOLD_KIND_LIVE } from "@/lib/badges";
 import UpgradeButton from "@/components/UpgradeButton";
 import { LIMITS, formatNaira } from "@/lib/booking-time";
@@ -13,19 +13,22 @@ import { getAdminDb } from "@/lib/firebase-admin";
 import { getLimitTable } from "@/lib/limits-server";
 import { CALLS_LIVE, MESSAGES_LIVE, MOMENTS_LIVE } from "@/lib/moments-rules";
 import { WALLET_LIVE } from "@/lib/wallet";
-import { enterpriseFrom, planPrice, planRate, pct, breakEven } from "@/lib/pricing";
+import { academyApiFrom, certificateMin, enterpriseCoursesPrice, enterpriseFrom, planPrice, planRate, pct, breakEven } from "@/lib/pricing";
 import { ROOT_DOMAIN } from "@/lib/host";
 
 export const metadata: Metadata = {
   title: "Pricing",
   description:
-    "#NotesApp's tier ladder — Free Standard for readers, Free Basic through Enterprise for publishers, with transparent ad revenue share and booking/unlock/merch commission at every level.",
+    "#NotesApp's tier ladder — Free Standard for readers, Free Basic through Enterprise for publishers, with transparent ad revenue share and commission at every level, course pricing for Notes Academy, and the Enterprise course packages.",
 };
 
 // These numbers are set by the admin team and can change; the page re-reads them every minute.
 export const revalidate = 60;
 
 type Row = { label: string; href?: string; render: (t: (typeof TIERS)[number], L: LimitTable) => string; show?: boolean };
+// No setting holds the certificate minimum yet (docs/COURSES.md, decision 3), so it is written here once.
+const TEAM_HUB_NOTE = "The Team hub and team messages are coming as a paid add-on for Business and Enterprise after our internal testing";
+const YOUR_SITE = "Your site: the Legacy, Aurora or Maroon theme, Journals, Shop and Courses on or off, and About and Contact pages.";
 const mins = (s: number) => (s % 60 === 0 ? `${s / 60} minute${s === 60 ? "" : "s"}` : `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`);
 
 const ROWS: Row[] = [
@@ -70,7 +73,7 @@ const ROWS: Row[] = [
   {
     label: "Gifts from readers",
     href: "/gifts",
-    render: (t) => (t.canPublish ? "Receive gifts of ₦200 – ₦500,000 on your profile and every post" : "Send gifts"),
+    render: (t) => (t.canPublish ? `Receive gifts of ${formatNaira(GIFT_MIN_KOBO)} – ${formatNaira(GIFT_MAX_KOBO)} with Gift me on your profile and on every post` : "Send gifts"),
   },
   {
     label: "Post boosts",
@@ -97,6 +100,18 @@ const ROWS: Row[] = [
     render: (t) => (t.canPublish ? (canSellViewOnly(t.tier) ? "Yes — sell PDFs and video lessons that buyers watch or read here, with no download, on up to 2 devices" : "Upgrade to Pro — downloads only") : "—"),
   },
   {
+    label: "Courses in Notes Academy",
+    href: "/academy",
+    render: (t) =>
+      !t.canPublish
+        ? `Take free courses; a certificate at the end costs from ${certificateMin()}`
+        : t.tier === "basic"
+          ? `Free courses, free to publish, with lessons from your own YouTube. Learners pay from ${certificateMin()} plus your margin for the certificate`
+          : t.tier === "enterprise"
+            ? `Free and paid courses, and two packages on top of Enterprise: Enterprise Courses (${enterpriseCoursesPrice()}/month) and the Enterprise Academy API (from ${academyApiFrom()}/month plus usage)`
+            : `Free courses, as on Free Basic. Paid courses are coming next, with the same fee as your digital items (${formatPercent(t.digitalCommission, t.digitalCommissionFloor)})`,
+  },
+  {
     label: "Links out to other shops",
     render: (t) => (t.canPublish ? "Only your one profile link and links inside your posts — stores sell through #NotesApp checkout" : "—"),
   },
@@ -110,7 +125,7 @@ const ROWS: Row[] = [
   {
     label: "Team seats",
     href: "/organisations",
-    render: (t) => (!t.canPublish ? "—" : t.tier === "business" ? "4 — the owner plus 3 team members (clerk, rider, supervisor). Team hub and team messaging are coming to Business and Enterprise" : t.tier === "enterprise" ? "As many as you need, agreed with us. Team hub and team messaging are coming to Business and Enterprise" : "1 — the owner"),
+    render: (t) => (!t.canPublish ? "—" : t.tier === "business" ? `4 — the owner plus 3 team members (clerk, rider, supervisor). ${TEAM_HUB_NOTE}` : t.tier === "enterprise" ? `As many as you need, agreed with us. ${TEAM_HUB_NOTE}` : "1 — the owner"),
   },
   {
     label: "Parcel tracking & escrow",
@@ -124,8 +139,8 @@ const ROWS: Row[] = [
         ? "—"
         : t.customDomain
           ? t.tier === "business"
-            ? "Serve your page, journals and store on notes.yourbrand.com or yourbrand.com — your /u/username page stays the default home, and you can switch back any time. Semi white-label: the footer reads “Your name is powered by #NotesApp” and emails go out under #NotesApp's name on your behalf"
-            : "Serve your page, journals and store on notes.yourbrand.com or yourbrand.com — your /u/username page stays the default home, and you can switch back any time. Full white label: visitors sign in and sign up in a window in your name and logo (still clearly a NotesApp account), and their password and confirmation emails come in your name. Checkout and bookings still open on #NotesApp for now"
+            ? `Serve your page, journals and store on notes.yourbrand.com or yourbrand.com — your /u/username page stays the default home, and you can switch back any time. ${YOUR_SITE} Semi white-label: the footer reads “Your name is powered by #NotesApp” and emails go out under #NotesApp's name on your behalf`
+            : `Serve your page, journals and store on notes.yourbrand.com or yourbrand.com — your /u/username page stays the default home, and you can switch back any time. ${YOUR_SITE} Full white label: visitors sign in and sign up in a window in your name and logo (still clearly a NotesApp account), and their password and confirmation emails come in your name. Checkout and bookings still open on #NotesApp for now`
           : `Your page lives at ${ROOT_DOMAIN}/u/username`,
   },
   {
@@ -156,7 +171,7 @@ const ROWS: Row[] = [
   },
   {
     label: "API & Console",
-    href: "/changelog",
+    href: "/docs",
     render: (t) => (t.canPublish ? (t.apiAccess ? "Server-to-server API, keys and webhooks — enabled per account by our team" : t.customDomain ? "Console for connecting your own domain only — no API" : "—") : "—"),
   },
   ];
@@ -180,9 +195,9 @@ export default async function PricingPage() {
         </p>
       )}
       <p className="small">
-        Publishers set their own prices — sessions from ₦5,000 to
-        ₦500,000, monthly journal subscriptions from ₦1,000 to
-        ₦100,000. The commission below comes out of each paid session
+        Publishers set their own prices — sessions from {formatNaira(LIMITS.sessionMinKobo)} to{" "}
+        {formatNaira(LIMITS.sessionMaxKobo)}, monthly journal subscriptions from {formatNaira(LIMITS.subscriptionMinKobo)} to{" "}
+        {formatNaira(LIMITS.subscriptionMaxKobo)}. The commission below comes out of each paid session
         or subscription; you're paid to your verified bank account
         after the session (subscriptions after a 7-day dispute window).
         Nana AI helps with drafts, posts for LinkedIn and X, and messages on every plan, never as a paid-tier perk: connect your own AI account today, and once our own AI is switched on for everyone each member gets a small daily allowance (<Link href="/nana" className="text-crimson underline">about Nana</Link>).
@@ -298,6 +313,47 @@ export default async function PricingPage() {
         </div>
       </div>
 
+      <section className="card mt-6 p-6" aria-labelledby="courses-pricing">
+        <p id="courses-pricing" className="font-ui text-sm font-bold text-ink">Courses in Notes Academy</p>
+        <ul className="mt-3 list-disc space-y-2 pl-5 text-sm text-slate">
+          <li><strong className="text-ink">Free courses are free to publish</strong> on every publishing plan, with lessons from your own YouTube that play inside #NotesApp, and free for learners to take.</li>
+          <li><strong className="text-ink">Certificates on free courses are paid:</strong> the learner pays from {certificateMin()}, plus the margin you set. We keep {certificateMin()} and our usual commission on your margin; the rest of the margin is yours.</li>
+          <li><strong className="text-ink">Paid courses are coming next on Pro and Business</strong> (and Enterprise), with the same fee as your digital items: {planRate("pro", "digital")} on Pro, {planRate("business", "digital")} on Business. Lessons stay private and play only for learners who paid.</li>
+        </ul>
+        <p className="mt-3 text-sm"><Link href="/academy" className="text-crimson underline underline-offset-2">Visit Notes Academy →</Link></p>
+      </section>
+
+      <section className="mt-6 grid grid-cols-1 gap-6 sm:grid-cols-2" aria-label="Enterprise course packages">
+        <div className="card p-6">
+          <p className="font-mono text-[11px] uppercase tracking-eyebrow text-crimson-bright">On top of Enterprise</p>
+          <p className="mt-2 font-ui text-sm font-bold text-ink">Enterprise Courses</p>
+          <p className="mt-1 font-display text-2xl text-crimson">{enterpriseCoursesPrice()}/month</p>
+          <p className="mt-2 text-sm text-slate">Courses hosted on #NotesApp under your brand: your logo on certificates, cohorts and bulk invites, set amounts of learners, storage and video hours, and your own tutors added as team members. No API needed.</p>
+        </div>
+        <div className="card p-6">
+          <p className="font-mono text-[11px] uppercase tracking-eyebrow text-crimson-bright">On top of Enterprise</p>
+          <p className="mt-2 font-ui text-sm font-bold text-ink">Enterprise Academy API</p>
+          <p className="mt-1 font-display text-2xl text-crimson">From {academyApiFrom()}/month <span className="font-ui text-sm text-slate">+ usage</span></p>
+          <p className="mt-2 text-sm text-slate">Your own white-label academy built on our API and webhooks: your tutors, enrolment, and progress and certificate webhooks, billed partly by learners and video hours.</p>
+        </div>
+        <p className="text-xs text-slate sm:col-span-2">
+          The regular Enterprise plan stays at {enterpriseFrom()}/month for anyone who takes neither package.{" "}
+          <Link href="/contact?topic=courses" className="text-crimson underline underline-offset-2">Talk to us about courses for your team or customers</Link>.
+        </p>
+      </section>
+
+      <section className="card mt-6 border-dashed p-6" aria-labelledby="add-ons">
+        <p id="add-ons" className="font-ui text-sm font-bold text-ink">Coming as paid add-ons for Business and Enterprise after internal testing</p>
+        <p className="mt-2 text-sm text-slate">Our own team is using these now. Once our internal testing is done, Business and Enterprise accounts can add them for a fee. No prices yet.</p>
+        <ul className="mt-3 grid grid-cols-1 gap-2 text-sm text-slate sm:grid-cols-2">
+          <li><Link href="/teams" className="font-semibold text-ink underline decoration-rule underline-offset-4 hover:text-crimson">Team hub</Link>: a work board, meetings, a money ledger, payroll, a staff library and team messages.</li>
+          <li><strong className="text-ink">Company finance tools</strong>: a runway calculator, acquisition cost, burn and revenue analytics, and a cap table with vesting.</li>
+          <li><strong className="text-ink">Investor and partner data room</strong>: private, watermarked documents and live figures for the people you let in.</li>
+          <li><strong className="text-ink">Advertise on LinkedIn from #NotesApp</strong>: boost a post on LinkedIn from your own ad account, with the campaign stats here.</li>
+        </ul>
+        <p className="mt-3 text-sm"><Link href="/roadmap" className="text-crimson underline underline-offset-2">See them on the roadmap →</Link></p>
+      </section>
+
       <div className="card mt-6 p-6">
         <p className="font-ui text-sm font-bold text-ink">Learn more about each product</p>
         <ul className="mt-3 grid grid-cols-1 gap-2 text-sm sm:grid-cols-2">
@@ -307,11 +363,13 @@ export default async function PricingPage() {
             ["/boost", "Boost a post (packages and prices)"],
             ["/coauthoring", "Co-authoring and earnings splits"],
             ["/badges", "Verification badges — verified and gold, with prices"],
-            ["/merchstore", "Merch store"],
+            ["/shop", "Notes Market — every #NotesApp store in one place"],
+            ["/academy", "Notes Academy — free courses, and certificates anyone can verify"],
+            ["/merchstore", "Official #NotesApp merch"],
             ["/advertise", "Advertise — banner campaigns and ad share"],
             ["/store-selling", "Sell physical goods & digital downloads — checkout, delivery hold, parcel tracking, instant downloads"],
             ["/domains", "Domains — search, register and manage, with DNS (coming soon, Business and Enterprise)"],
-            ["/teams", "Team hub and team messaging (coming soon, Business and Enterprise)"],
+            ["/teams", "Team hub (a paid add-on for Business and Enterprise after internal testing)"],
             ["/help", "Help centre — answers about everything above, and Nana AI"],
             ["/organisations", "Organisations — free 30-day Business trial, CAC verification"],
           ].map(([href, label]) => (

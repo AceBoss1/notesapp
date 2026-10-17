@@ -13,7 +13,7 @@ const btn = "rounded-full bg-crimson px-5 py-2 font-ui text-xs font-semibold tex
 const ghost = "rounded-full border border-rule px-4 py-2 font-ui text-xs font-semibold hover:border-crimson disabled:opacity-50";
 
 // The form works in naira and percents; the server stores kobo and fractions. These convert both ways on the same object shape.
-const KOBO_KEYS = new Set(["monthlyKobo", "yearlyKobo", "fromMonthlyKobo", "fromYearlyKobo", "badgeKobo", "depositKobo", "priceKobo"]);
+const KOBO_KEYS = new Set(["monthlyKobo", "yearlyKobo", "fromMonthlyKobo", "fromYearlyKobo", "badgeKobo", "depositKobo", "priceKobo", "enterpriseCoursesMonthlyKobo", "academyApiFromMonthlyKobo", "certificateMinKobo"]);
 const RATE_KEYS = new Set(["session", "physical", "digital", "adShare", "floorSession", "floorPhysical", "floorDigital"]);
 type Any = any; // eslint-disable-line @typescript-eslint/no-explicit-any
 function convert(v: Any, key: string, toForm: boolean): Any {
@@ -69,7 +69,7 @@ export default function PricingPage() {
       <Link href="/admin" className="font-ui text-xs font-semibold text-crimson">← Admin</Link>
       <h1 className="mt-2 font-display text-4xl text-ink">Pricing &amp; revenue rates</h1>
       <p className="mt-2 max-w-3xl text-sm text-slate">
-        The prices of the paid plans, our share of sessions, subscriptions, gifts and sales, what publishers earn from ads, the badge prices and the boost and ad packages. Changes apply to
+        The prices of the paid plans and the Enterprise course packages, our share of sessions, subscriptions, gifts and sales, what publishers earn from ads, the badge prices and the boost and ad packages. Changes apply to
         <strong> new purchases straight away</strong> on every page and checkout. People already subscribed stay on the price of the plan they bought until they resubscribe; sales already made keep the rate they were made at. Only the owner and super admins can change these, and every change is logged.
       </p>
       {error && <p className="mt-4 whitespace-pre-line text-sm text-red-700" role="alert">{error}</p>}
@@ -90,6 +90,16 @@ export default function PricingPage() {
                   <tr className="bg-white"><td className="px-3 py-3 font-semibold">Enterprise <span className="font-normal text-slate">(shown as “from”)</span></td><td className="px-3 py-3">{input(["enterprise", "fromMonthlyKobo"], "", "Enterprise from monthly")}</td><td className="px-3 py-3">{input(["enterprise", "fromYearlyKobo"], "", "Enterprise from yearly")}</td><td className="px-3 py-3 text-xs text-slate">Agreed per account</td></tr>
                 </tbody>
               </table>
+            </div>
+          </section>
+
+          <section className="card mt-6 p-5">
+            <h2 className="font-display text-2xl text-ink">Enterprise course packages</h2>
+            <p className="mt-1 text-xs text-slate">Two packages on top of the regular Enterprise plan, whose price above stays as it is for anyone who takes neither. Shown on the pricing page.</p>
+            <div className="mt-3 grid gap-3 text-sm sm:grid-cols-2">
+              <div className="flex items-center justify-between gap-3"><span>Enterprise Courses, per month, ₦</span>{input(["coursePackages", "enterpriseCoursesMonthlyKobo"], "", "Enterprise Courses monthly price")}</div>
+              <div className="flex items-center justify-between gap-3"><span>Enterprise Academy API, from, per month, ₦ <span className="text-xs text-slate">(plus usage)</span></span>{input(["coursePackages", "academyApiFromMonthlyKobo"], "", "Enterprise Academy API monthly from price")}</div>
+              <div className="flex items-center justify-between gap-3"><span>Certificate on a free course, our minimum, ₦ <span className="text-xs text-slate">(the teacher&apos;s margin comes on top)</span></span>{input(["coursePackages", "certificateMinKobo"], "", "Certificate minimum")}</div>
             </div>
           </section>
 
