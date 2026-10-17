@@ -45,6 +45,16 @@ showing. `isNoteBy()` (`lib/firestore-notes.ts`) and `getAuthorProfile()` (`lib/
 publishes under a founder's or @na-notesapp's name record the username. Older posts: `scripts/backfill-author-uids.ts`
 (dry run by default, `--apply` to write; test `npm run test:authors`).
 
+## Topics and interests (v0.39.0)
+`lib/topics.ts` is the one list of hashtags (about 60 topics in 8 groups, each with the spellings people use as aliases).
+A journal has `topics` (1 to 3 slugs, picked in the journal form with `components/TopicPicker.tsx`) and `tags` (the writer's
+own hashtags, tidied by `parseTags`); `categories` now holds the topics' names for anything that still reads it. Older
+journals have no `topics`: `topicsOf()` reads their categories and tags through the aliases, so they're filed too
+(`scripts/backfill-topics.ts` writes it down; `npm run test:topics`). Members choose up to 12 interests at `/interests`
+(saved by the server, `POST /api/account/interests`, into `users/{uid}.interests`). The journal feed shows **For you**
+(journals on their interests) before everything else, the Topics tab groups topics with theirs first, a journal's hashtags
+link to `/journals?topic=…`, and the weekly digest ranks by them. API v1 accepts and returns `topics`.
+
 ## Weekly digest switch (v0.38.0)
 Admin → Weekly digest (`/admin/digest`, owner and super admins): status, preview, send yourself a test, and the on/off switch
 (`digestConfig/main`). `WEEKLY_DIGEST=on` in Vercel keeps it on regardless. Unsubscribe links are signed with

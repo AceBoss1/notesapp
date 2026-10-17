@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { friendlyMessage } from "./api-errors";
 import { ApiAuth, ApiScope, apiError, authenticateApiKey } from "./api-keys";
 import { SITE_URL as MAIN_SITE_URL } from "@/lib/host";
+import { MAX_NOTE_TOPICS, cleanTopics, parseTags, topicLabel, topicsOf } from "@/lib/topics";
 
 export const SITE_URL = () => MAIN_SITE_URL;
 
@@ -46,7 +47,7 @@ export const byNewest = (field: string) => (a: Record<string, any>, b: Record<st
 export function postJson(id: string, n: Record<string, any>, withContent = false) {
   return {
     id, slug: n.slug, url: `${SITE_URL()}/journals/${n.slug}`, title: n.title, status: n.status, date: n.date,
-    tags: n.tags ?? [], categories: n.categories ?? [], featured_image: n.featured_image || "", premium: !!n.premium,
+    topics: topicsOf(n), tags: n.tags ?? [], categories: n.categories ?? [], featured_image: n.featured_image || "", premium: !!n.premium,
     view_count: n.viewCount ?? 0, like_count: n.likeCount ?? 0, share_count: n.shareCount ?? 0,
     ...(withContent ? { content: n.content ?? "" } : {}),
   };
@@ -75,7 +76,8 @@ export function parsePostBody(b: Record<string, unknown>, partial: boolean) {
     if (b.status !== "draft" && b.status !== "published") throw fail(400, "invalid_request", "`status` must be `draft` or `published`.");
     out.status = b.status;
   }
-  if (b.tags !== undefined) out.tags = list(b.tags, 40, 10);
+  if (b.tags !== undefined) out.tags = parseTags(list(b.tags, 40, 10));
+  if (b.topics !== undefined) { out.topics = cleanTopics(b.topics, MAX_NOTE_TOPICS); out.categories = (out.topics as string[]).map(topicLabel); }
   if (b.categories !== undefined) out.categories = list(b.categories, 40, 5);
   if (b.premium !== undefined) out.premium = b.premium === true;
   if (b.featured_image !== undefined) {

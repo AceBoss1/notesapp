@@ -1,6 +1,6 @@
 # #NotesApp hand-over note
 
-**Date:** 16 October 2026 · **Latest version:** v0.38.0 · **Repository:** `AceBoss1/notesapp`
+**Date:** 17 October 2026 · **Latest version:** v0.39.0 · **Repository:** `AceBoss1/notesapp`
 **Owner:** the founder and CEO of NotesApp Technologies Ltd (product decisions, approvals, deploys that need console access).
 
 Start with `README.md` (what is live, the docs index, the checks); settings are in `docs/ENVIRONMENT.md`, deploying in
@@ -15,7 +15,8 @@ This note covers how the work is done, what's in flight, and what to watch.
 |---|---|
 | `main` | **v0.36.0** (merged 16 Oct 2026, with this note and the updated README): Notes Life hotel stays (11 AM checkout, room service, 100% needs in the suite), the calm sound in the suite / VIP bar / classes, site-wide links, chat link previews and the @mention picker; before it, #145 and #146 (Digital Witch landing cards, the partner card, the VIP bar 360° view, the pool shape, the street billboard). Vercel deploys `main` on merge. |
 | `claude/pensive-allen-5tvypx` | The previous session's working branch, reset to `main` after each merge. |
-| `claude/server-writes-and-docs` | **v0.38.0:** server-owned comments and notifications, shared rate limits (Upstash), one place for settings (`lib/config.ts`), journals by account id, the staging plan and CI, the digest admin page, the short README and `docs/`, and the fund and launch tasks on the team hub. |
+| `claude/interests-and-courses` | **v0.39.0:** hashtag interests and one topic list (`lib/topics.ts`, `/interests`, the journal form, For you in the feed, the Topics tab, the digest), and the course platform plan (`docs/COURSES.md`). |
+| `claude/server-writes-and-docs` | v0.38.0, merged: server-owned comments and notifications, shared rate limits (Upstash), one place for settings (`lib/config.ts`), journals by account id, the staging plan and CI, the digest admin page, the short README and `docs/`, and the fund and launch tasks on the team hub. |
 | `claude/notesapp-tech-and-digest` | v0.37.0, merged: the primary address setting, link-preview fix, @mention bells, the weekly digest. |
 
 Working branch convention: each session works on its own `claude/…` branch (Vercel doesn't deploy `claude/*`); it was `claude/pensive-allen-5tvypx` before. After each squash merge the branch is reset to `main`
@@ -44,7 +45,9 @@ Working branch convention: each session works on its own `claude/…` branch (Ve
    until it's deployed the old rules still allow it), create the Upstash database (`UPSTASH_REDIS_REST_URL`,
    `UPSTASH_REDIS_REST_TOKEN`), and run `npx -y tsx scripts/backfill-author-uids.ts` then `--apply`.
 10. **Staging:** `docs/STAGING.md` (a second Firebase project and the `staging` branch on Vercel Preview).
-All of these are on the team hub board with departments and dates (`lib/team-seed.ts`: `FUND_BACKLOG`, `LAUNCH_BACKLOG`).
+11. **After merging v0.39.0:** `npx -y tsx scripts/backfill-topics.ts` then `--apply` (files older journals under topics).
+12. **Courses:** the four decisions in `docs/COURSES.md` ("Open questions") before step 1 starts.
+All of these are on the team hub board with departments and dates (`lib/team-seed.ts`: `FUND_BACKLOG`, `LAUNCH_BACKLOG`, `COURSES_BACKLOG`, `TOPICS_BACKLOG`).
 
 ## 3. How the work is done (please keep these)
 
@@ -57,7 +60,12 @@ All of these are on the team hub board with departments and dates (`lib/team-see
 - **Comments and notifications are written by the server**, never by browsers (`lib/comments-server.ts`, `notifyBell`).
 - **Journals are matched by account id or username** (`isNoteBy`), never by display name.
 - **One build at a time.** Two `next build`s in parallel exhaust the container.
-- **Commit messages** end with the Co-Authored-By and session lines; **no AI model names or IDs** in commits, PRs, code or docs.
+- **Commits and pull requests are the owner's** (his instruction, 17 Oct 2026): author `Emmanuel Adams <emmanuel@adams.com.ng>`
+  (`git config user.name "Emmanuel Adams"`, `git config user.email emmanuel@adams.com.ng`), and every commit message and PR
+  description ends with
+  `Authored-By: Emmanuel Adams of Adams Consults (https://www.adams.com.ng) <emmanuel@adams.com.ng>.`
+  No Claude or AI naming anywhere: no co-author line, no session link, no "generated with" footer, no model names or IDs in
+  commits, PRs, code or docs.
 - **Legal drafts are never committed.** The **Vision** page stays out of the changelog, the roadmap and public docs; it is served only to the
   people it concerns (`lib/vision-server.ts`, `VISION_PEOPLE`).
 - **Screenshots before shipping:** every major UI build (a new page, a new email, a redesigned panel) is shown as phone and
@@ -84,6 +92,8 @@ All of these are on the team hub board with departments and dates (`lib/team-see
 | Settings | `lib/config.ts` (every setting), `docs/ENVIRONMENT.md` (made from it: `npm run docs:settings`) |
 | Comments and bells | `lib/comments-server.ts`, `app/api/comments`, `app/api/notify/like`, `app/api/admin/notify`, `lib/moderation-messages.ts` |
 | Shared store | `lib/shared-store.ts` (Upstash REST, memory fallback), `lib/rate-limit.ts` |
+| Topics and interests | `lib/topics.ts` (the one list), `components/TopicPicker.tsx`, `app/(main)/interests`, `app/api/account/interests`, `lib/interests-client.ts`, `scripts/backfill-topics.ts` |
+| Courses (planned) | `docs/COURSES.md`; builds on view-only lessons (`components/LessonsEditor.tsx`, `lib/stream.ts`, `lib/private-files.ts`) |
 | Weekly digest | template `lib/digest.ts`, sending `lib/digest-server.ts`, cron job `weeklyDigest`, `app/api/digest/unsubscribe`, `app/api/account/email-prefs`, `app/api/admin/digest`, `app/(main)/admin/digest`, `components/EmailSettings.tsx` |
 | Money | Paystack `app/api/paystack/*`, `lib/payments.ts`; wallet `lib/wallet*.ts`; Paylony (in progress) `lib/paylony.ts`; team ledger in the admin area |
 | Nana AI | `lib/nana-*.ts`, `components/Nana*.tsx`, help articles `lib/kb-articles.ts` |
@@ -103,6 +113,7 @@ npm run test:digest            # weekly digest; prints "ALL OK"
 npm run test:preview           # link-preview safety (no emulator; listens on port 80)
 npm run test:authors           # journal author backfill
 npm run test:shared            # shared rate limits and cache (a stand-in Upstash)
+npm run test:topics            # topics, hashtags and the topic backfill
 npm run test:smoke             # Playwright, against a running site (SMOKE_BASE_URL)
 ```
 The emulator-based tests start their own emulator on port 8080, so stop any emulator you started yourself first.

@@ -81,6 +81,24 @@ export const LAUNCH_BACKLOG: Seed[] = [
   { key: "ops-author-uids", title: "Run the journal author backfill", detail: "npx -y tsx scripts/backfill-author-uids.ts (a dry run: it lists what it would change), check the list, then again with --apply: gives every journal the account id of its author and co-authors, so a rename never loses a post.", status: "todo", horizon: "week", depts: ["engineering"], due: "2026-10-27" },
 ];
 
+// #NotesApp Courses (docs/COURSES.md): free courses with the publisher's YouTube for every publishing plan; paid courses on Pro
+// and Business with files in the private bucket; Enterprise from ₦100,000 a month; certificates anyone can verify and share.
+export const COURSES_BACKLOG: Seed[] = [
+  { key: "course-decisions", title: "Courses: decide paid video playback, the course fee, certificates on free courses and the Enterprise package", detail: "docs/COURSES.md \"Open questions\". Recommended: originals in private R2, playback through Cloudflare Stream signed tokens; certificates on free courses too; define what ₦100,000 a month covers for Enterprise.", status: "decision", horizon: "week", depts: ["product", "finance"], due: "2026-10-31", decisionQuestion: "Stream or straight-from-R2 for paid video, and what does the Enterprise course package include?", ...FOUNDER },
+  { key: "course-design", title: "Courses: phone and desktop mockups (builder, course page, lesson player, certificate, verification page)", detail: "Mockups first, then build (HANDOVER.md).", status: "todo", horizon: "week", depts: ["product"], due: "2026-11-07" },
+  { key: "course-step1", title: "Courses step 1: free courses with YouTube lessons, enrol and progress", detail: "Any publishing account. YouTube (privacy-enhanced player) and text lessons, the course page, enrol, progress, filed under topics.", status: "todo", horizon: "later", depts: ["engineering", "product"], due: "2026-11-28" },
+  { key: "course-step2", title: "Courses step 2: certificates with verification and sharing", detail: "Issued on completion (server-only certificates/{id}), /certificates/<id> verification page with QR code, LinkedIn Add to profile, X, WhatsApp, PDF and image, Open Graph card.", status: "todo", horizon: "later", depts: ["engineering", "product"], due: "2026-12-12" },
+  { key: "course-step3", title: "Courses step 3: paid courses for Pro and Business", detail: "Uploads to the private R2 bucket, signed playback, checkout and payouts like store items, two-device limit, plan flags and limits in Admin → Limits.", status: "todo", horizon: "later", depts: ["engineering", "finance"], due: "2027-01-16" },
+  { key: "course-enterprise", title: "Courses for Enterprise: package and sales page (from ₦100,000 a month)", detail: "Branded certificates, cohorts, bulk learner invites, organisation reports. 'Talk to us' on the Enterprise page and Console, requests in Admin → Enterprise.", status: "todo", horizon: "later", depts: ["growth", "finance"], due: "2027-01-30" },
+];
+
+// Going live with v0.39.0: topics and interests.
+export const TOPICS_BACKLOG: Seed[] = [
+  { key: "topics-backfill", title: "File existing journals under topics", detail: "npx -y tsx scripts/backfill-topics.ts (a dry run lists what it would change and the journals that match no topic), then --apply. Editors file the unmatched ones from the journal form.", status: "todo", horizon: "week", depts: ["engineering", "content"], due: "2026-10-24" },
+  { key: "topics-announce", title: "Tell members about Choose your interests", detail: "A post on @notesapp and @na-notesapp, the changelog, and a line in the next weekly digest: /interests puts their topics first in the feed and the digest.", status: "todo", horizon: "week", depts: ["growth", "content"], due: "2026-10-28" },
+  { key: "topics-review", title: "Review the topic list after a month", detail: "Which hashtags writers type that match no topic (the backfill's list, writers' own hashtags): add topics or aliases in lib/topics.ts.", status: "todo", horizon: "later", depts: ["content", "product"], due: "2026-11-27" },
+];
+
 // A staff library entry added once (teamSeeds/{name} records it), shown to everyone on staff. The file itself is attached from the
 // library page: the library keeps files in the private bucket, which a seed can't write to.
 export const AGENT_SCOPE_DOC = {

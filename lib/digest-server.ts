@@ -8,6 +8,7 @@ import { APP_URL, CONTACT_EMAIL, SITE_URL } from "./host";
 import { COMPANY_INFO } from "./site";
 import { DEFAULT_AVATAR } from "./admin";
 import { resolveAuthorUsername } from "./journals-directory";
+import { topicsOf } from "./topics";
 import { digestSubject, pickStories, renderDigestHtml, renderDigestText, type DigestEmail, type PoolStory } from "./digest";
 import { setting } from "@/lib/config";
 
@@ -65,7 +66,8 @@ export function validDigestToken(uid: string, token: string): boolean {
   return a.length === b.length && timingSafeEqual(a, b);
 }
 export const unsubscribeUrl = (uid: string) => `${SITE_URL}/api/digest/unsubscribe?u=${encodeURIComponent(uid)}&t=${digestToken(uid)}`;
-export const INTERESTS_PATH = "/profile/account#email";
+export const INTERESTS_PATH = "/interests";
+export const EMAIL_SETTINGS_PATH = "/profile/account#email";
 
 // ---- the member's choice ----
 export async function digestWanted(db: Firestore, uid: string): Promise<boolean> {
@@ -108,7 +110,7 @@ export async function weekPool(db: Firestore, now = new Date()): Promise<PoolSto
     const w = n.writerUid ? writer.get(String(n.writerUid)) : undefined;
     return {
       id, authorUid: String(n.authorUid ?? ""), authorUsername: String(n.authorUsername ?? resolveAuthorUsername(String(n.author ?? "")) ?? ""),
-      tags: [...(Array.isArray(n.tags) ? n.tags : []), ...(Array.isArray(n.categories) ? n.categories : [])].map(String), publishedAt: String(n.date ?? ""),
+      tags: topicsOf(n), publishedAt: String(n.date ?? ""), // its topics (lib/topics.ts), matched against the reader's interests
       title: String(n.title ?? "Untitled"), summary: summaryOf(String(n.content ?? "")), href: `${SITE_URL}/journals/${String(n.slug ?? id)}`,
       image: abs(n.featured_image || n.videoPoster, null),
       // An organisation's post: "Ada in Precheks" (the team member who wrote it, in the organisation).
@@ -128,7 +130,7 @@ export async function buildDigest(db: Firestore, uid: string, pool: PoolStory[])
   if (!stories.length) return null;
   return {
     reader: { name: String(u.displayName || u.username), username: String(u.username), avatar: abs(u.avatar, `${SITE_URL}${DEFAULT_AVATAR}`)! },
-    stories, site: SITE_URL, appUrl: `${APP_URL}/install`, unsubscribeUrl: unsubscribeUrl(uid), interestsUrl: `${SITE_URL}${INTERESTS_PATH}`,
+    stories, site: SITE_URL, appUrl: `${APP_URL}/install`, unsubscribeUrl: unsubscribeUrl(uid), interestsUrl: `${SITE_URL}${INTERESTS_PATH}`, settingsUrl: `${SITE_URL}${EMAIL_SETTINGS_PATH}`,
     company: `${COMPANY_INFO.legalName} · RC ${COMPANY_INFO.rcNumber}`,
   };
 }

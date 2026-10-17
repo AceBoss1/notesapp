@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { NoteWithComputed } from "@/lib/firestore-notes";
+import { noteHeading } from "@/lib/topics";
 
 export default function JournalRow({
   note,
@@ -32,7 +33,7 @@ export default function JournalRow({
         <p className="mt-1 truncate text-xs text-slate">{note.excerpt}</p>
         <p className="mt-1 font-mono text-[10px] uppercase tracking-eyebrow text-crimson-bright">
           {showAuthor ? `${note.author}${note.coAuthors?.length ? ` + ${note.coAuthors.length}` : ""} · ` : ""}
-          {note.categories[0] || "Journal"}
+          {noteHeading(note)}
           {note.premium && <span className="ml-1.5 text-crimson">🔒</span>}
         </p>
       </div>

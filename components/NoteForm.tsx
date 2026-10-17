@@ -15,6 +15,8 @@ import { DROP_RING, useFileDrop } from "@/lib/useFileDrop";
 import RichTextEditor from "@/components/RichTextEditor";
 import { roleLabelFor, type UserProfile } from "@/lib/users";
 import { resolveAuthorUsername } from "@/lib/journals-directory";
+import TopicPicker from "@/components/TopicPicker";
+import { MAX_NOTE_TAGS, MAX_NOTE_TOPICS, matchTopic, normaliseTag, parseTags, topicLabel, topicsOf } from "@/lib/topics";
 
 // Kept identical to Precheks' own author_role text on purpose — this
 // writes into the shared `notes` document, and Precheks renders
@@ -66,10 +68,13 @@ export default function NoteForm({ noteId, initial, self, org }: Props) {
   const [title, setTitle] = useState(initial?.title || "");
   const [slug, setSlug] = useState(initial?.slug || "");
   const [slugTouched, setSlugTouched] = useState(!!initial?.slug);
-  const [categories, setCategories] = useState(
-    (initial?.categories || []).join(", ")
+  // Topics: 1 to 3 from the shared list (lib/topics.ts); an older journal starts with the topics its categories and tags mean.
+  const [topics, setTopics] = useState<string[]>(initial ? topicsOf(initial) : []);
+  // The writer's own hashtags, tidied on save (parseTags); a category that isn't a topic is kept as a hashtag.
+  const [tags, setTags] = useState(
+    Array.from(new Set([...(initial?.tags || []), ...(initial?.categories || []).filter((c) => !matchTopic(c))].map(normaliseTag).filter(Boolean)))
+      .map((t) => `#${t}`).join(" ")
   );
-  const [tags, setTags] = useState((initial?.tags || []).join(", "));
   const [content, setContent] = useState(initial?.content || "");
   // A featured image that was only the video's cover (filled in automatically on save) counts as "not set", so a
   // changed or removed video cover carries through.
@@ -139,14 +144,10 @@ export default function NoteForm({ noteId, initial, self, org }: Props) {
       title,
       slug: finalSlug,
       date: initial?.date || new Date().toISOString(),
-      categories: categories
-        .split(",")
-        .map((c) => c.trim())
-        .filter(Boolean),
-      tags: tags
-        .split(",")
-        .map((t) => t.trim())
-        .filter(Boolean),
+      // `categories` keeps the topics' names for anything that still reads it; `topics` is what the site files journals by.
+      topics,
+      categories: topics.map(topicLabel),
+      tags: parseTags(tags),
       featured_image: featuredImage || video?.videoPoster || "",
       content,
       author: author.name,
@@ -230,25 +231,24 @@ export default function NoteForm({ noteId, initial, self, org }: Props) {
         />
       </label>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-        <label className="block">
-          <span className="eyebrow">Categories (comma-separated)</span>
-          <input
-            value={categories}
-            onChange={(e) => setCategories(e.target.value)}
-            placeholder="Career coaching, Life Hacks"
-            className="mt-2 w-full border border-rule bg-card px-4 py-3 font-body focus:border-crimson outline-none"
-          />
-        </label>
-        <label className="block">
-          <span className="eyebrow">Tags (comma-separated)</span>
-          <input
-            value={tags}
-            onChange={(e) => setTags(e.target.value)}
-            className="mt-2 w-full border border-rule bg-card px-4 py-3 font-body focus:border-crimson outline-none"
-          />
-        </label>
+      <div className="block">
+        <span className="eyebrow">Topics (pick up to {MAX_NOTE_TOPICS})</span>
+        <p className="mt-1 text-xs text-slate">Readers who chose these topics see this journal first, in their feed and their weekly digest.</p>
+        <div className="mt-2 rounded border border-rule bg-card p-4">
+          <TopicPicker value={topics} onChange={setTopics} max={MAX_NOTE_TOPICS} compact />
+        </div>
+        {topics.length === 0 && <p className="mt-1 text-xs text-crimson">Pick at least one topic so readers can find it.</p>}
       </div>
+      <label className="block">
+        <span className="eyebrow">Your own hashtags (optional, up to {MAX_NOTE_TAGS})</span>
+        <input
+          value={tags}
+          onChange={(e) => setTags(e.target.value)}
+          placeholder="#SideHustle #AbujaTech"
+          className="mt-2 w-full border border-rule bg-card px-4 py-3 font-body focus:border-crimson outline-none"
+        />
+        {tags.trim() && <span className="mt-1 block text-xs text-slate">Saved as {parseTags(tags).map((t) => `#${t}`).join(" ") || "nothing yet"}</span>}
+      </label>
 
       {!self && (
       <label className="block">

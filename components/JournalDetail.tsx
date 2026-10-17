@@ -25,6 +25,7 @@ import FollowButton from "@/components/FollowButton";
 import MessageButton from "@/components/messages/MessageButton";
 import { remarkLinkify } from "@/lib/linkify";
 import { SITE } from "@/lib/site";
+import { hashtag, matchTopic, noteHeading, topicsOf } from "@/lib/topics";
 
 // The reading page for one note (same Firestore doc as precheks.com.ng/notes/{slug}). Used by /journals/<slug> and a member's own site.
 // `site` is set on a member's own site: "more notes" are then only theirs, links stay inside the site
@@ -77,7 +78,7 @@ export default async function JournalDetail({
         {site ? "← All notes" : "← All Journals"}
       </Link>
       <p className="eyebrow mt-6">
-        {note.categories[0] || "Journal"}
+        {noteHeading(note)}
         {note.premium && (
           <span className="ml-2 rounded-full bg-crimson/10 px-2.5 py-0.5 text-crimson">
             🔒 Premium
@@ -192,13 +193,15 @@ export default async function JournalDetail({
         </>
       )}
 
-      {note.tags.length > 0 && (
+      {(topicsOf(note).length > 0 || note.tags.length > 0) && (
+        // Topics link to that topic's journals; the writer's own hashtags search for it. Plain text inside a member's own site.
         <div className="mt-10 flex flex-wrap gap-3 border-t border-rule pt-6">
-          {note.tags.map((t) => (
-            <span key={t} className="font-mono text-[11px] uppercase tracking-eyebrow text-slate">
-              #{t}
-            </span>
-          ))}
+          {topicsOf(note).map((t) => site
+            ? <span key={t} className="font-ui text-xs font-semibold text-crimson">{hashtag(t)}</span>
+            : <Link key={t} href={`/journals?topic=${t}`} className="rounded-full border border-crimson/30 px-3 py-1 font-ui text-xs font-semibold text-crimson hover:bg-crimson hover:text-paper">{hashtag(t)}</Link>)}
+          {note.tags.filter((t) => !topicsOf(note).includes(matchTopic(t) ?? "")).map((t) => site
+            ? <span key={t} className="font-mono text-[11px] uppercase tracking-eyebrow text-slate">#{t}</span>
+            : <Link key={t} href={`/journals?q=${encodeURIComponent(t)}`} className="font-mono text-[11px] uppercase tracking-eyebrow text-slate hover:text-crimson">#{t}</Link>)}
         </div>
       )}
 
@@ -271,7 +274,7 @@ export default async function JournalDetail({
                     className="h-40 w-full object-cover"
                   />
                 )}
-                <p className="eyebrow mt-3">{n.categories[0] || "Journal"}</p>
+                <p className="eyebrow mt-3">{noteHeading(n)}</p>
                 <h4 className="mt-1.5 font-display text-lg text-ink group-hover:text-crimson-bright">
                   {n.title}
                 </h4>

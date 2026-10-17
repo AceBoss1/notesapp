@@ -4,19 +4,21 @@ import { useMemo, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { NoteWithComputed } from "@/lib/firestore-notes";
+import { noteHeading, topicLabel, topicsOf } from "@/lib/topics";
 
 export default function NotesGrid({ notes }: { notes: NoteWithComputed[] }) {
   const [selected, setSelected] = useState<string>("All");
 
+  // Filter chips: the topics these journals are filed under (lib/topics.ts), by name.
   const categories = useMemo(() => {
-    const all = Array.from(new Set(notes.flatMap((n) => n.categories)));
+    const all = Array.from(new Set(notes.flatMap((n) => topicsOf(n).map(topicLabel))));
     return ["All", ...all];
   }, [notes]);
 
   const filtered =
     selected === "All"
       ? notes
-      : notes.filter((n) => n.categories.includes(selected));
+      : notes.filter((n) => topicsOf(n).map(topicLabel).includes(selected));
 
   return (
     <>
@@ -51,7 +53,7 @@ export default function NotesGrid({ notes }: { notes: NoteWithComputed[] }) {
                 className="w-full h-48 object-cover"
               />
             )}
-            <p className="eyebrow mt-3">{n.categories[0] || "Notes"}</p>
+            <p className="eyebrow mt-3">{noteHeading(n) === "Journal" ? "Notes" : noteHeading(n)}</p>
             <h3 className="headline-link text-xl mt-1.5">{n.title}</h3>
             <p className="mt-2 text-sm text-slate">{n.excerpt}</p>
           </Link>

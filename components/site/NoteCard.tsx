@@ -1,5 +1,6 @@
 import Link from "next/link";
 import type { NoteWithComputed } from "@/lib/firestore-notes";
+import { noteHeading } from "@/lib/topics";
 
 export default function NoteCard({ note, base }: { note: NoteWithComputed; base: string }) {
   return (
@@ -10,7 +11,7 @@ export default function NoteCard({ note, base }: { note: NoteWithComputed; base:
       )}
       <div className="flex flex-1 flex-col p-5">
         <p className="font-mono text-[10px] uppercase tracking-eyebrow text-crimson-bright">
-          {note.categories[0] || "Journal"}
+          {noteHeading(note)}
           {note.premium && <span className="ml-1.5">🔒</span>}
         </p>
         <h3 className="mt-2 font-display text-xl leading-snug text-ink">{note.title}</h3>

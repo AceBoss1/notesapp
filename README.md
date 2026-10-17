@@ -13,10 +13,11 @@ Router) on Vercel, Firebase (Auth, Firestore), Cloudflare R2 and Stream, Paystac
 | `docs/ARCHITECTURE.md` | How the newer pieces work: addresses, bells, digest, server-owned writes, shared limits, settings |
 | `docs/DOMAIN_SWITCH.md` | Moving the primary address to notesapp.tech |
 | `docs/STAGING.md` | The staging copy and how a release goes |
+| `docs/COURSES.md` | The course platform plan (free YouTube courses, paid courses, certificates) |
 | `docs/BUILD_LOG.md` | The full history, in order (what used to be this README) |
 | `lib/changelog.ts` | Release notes, shown at `/changelog` |
 
-## Where things stand (updated 16 Oct 2026, v0.38.0)
+## Where things stand (updated 17 Oct 2026, v0.39.0)
 
 ### Live today
 | Area | What exists | Where to read more |
@@ -44,7 +45,7 @@ Router) on Vercel, Firebase (Auth, Firestore), Cloudflare R2 and Stream, Paystac
 | Company | NOTESAPP TECHNOLOGIES LTD (RC and TIN in `lib/site.ts`; SMEDAN number pending) | "Company identity" |
 
 ### Not built yet
-The **hashtag interests picker** (members choose topics; the weekly digest already ranks by `users/{uid}.interests`, and the feed will put chosen topics first) · WhatsApp reminders (plan: Meta WhatsApp Cloud API directly; booking reminders + delivery updates; needs Meta Business
+**#NotesApp Courses** (`docs/COURSES.md`: free courses with the publisher's YouTube, paid courses on Pro and Business, Enterprise from ₦100,000 a month, certificates with verification and sharing) · WhatsApp reminders (plan: Meta WhatsApp Cloud API directly; booking reminders + delivery updates; needs Meta Business
 verification and approved templates) · publishing to Facebook, Instagram and TikTok (LinkedIn and X are built) · the NotesApp MCP server and the Nana operator
 (scoped; the work is on the team hub as the agent-layer backlog) · AI notetaker · team hub and team messaging for Business and Enterprise (internal only for now) ·
 LinkedIn advertising (Advertising API development tier approved; advertisers boost a post on LinkedIn from their own ad account, plus our own campaign stats on Traction) ·
@@ -72,6 +73,7 @@ npm run test:mentions              # @mention bells
 npm run test:digest                # weekly digest
 npm run test:authors               # journal author backfill
 npm run test:shared                # shared rate limits and cache
+npm run test:topics                # topics, hashtags and the topic backfill
 npm run test:preview               # link-preview safety (listens on port 80)
 npm run test:smoke                 # Playwright smoke test against a running site (SMOKE_BASE_URL)
 npx -y tsx scripts/settings-doc.ts --check   # settings read only through lib/config.ts; docs/ENVIRONMENT.md current

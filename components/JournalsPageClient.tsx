@@ -16,6 +16,8 @@ import JournalDirectory from "@/components/JournalDirectory";
 import TopicsBrowser from "@/components/TopicsBrowser";
 import JournalRow from "@/components/JournalRow";
 import BadgeToast from "@/components/BadgeToast";
+import { hashtag, interestsFirst, isTopic, topicLabel, topicsOf } from "@/lib/topics";
+import { useInterests } from "@/lib/interests-client";
 
 export default function JournalsPageClient() {
   const [notes, setNotes] = useState<NoteWithComputed[] | null>(null);
@@ -26,9 +28,16 @@ export default function JournalsPageClient() {
   const [activeTab, setActiveTab] = useState<JournalsTab>("all");
   const [selectedTopic, setSelectedTopic] = useState<string | null>(null);
 
+  const { interests, signedIn } = useInterests();
+
   useEffect(() => {
     getAllNotes({ publishedOnly: true }).then(setNotes).catch((e) => setError(e.message));
     getAllUsers().then(setUsers).catch(() => setUsers([]));
+    // Links from a journal's hashtags: /journals?topic=fintech opens the Topics tab on it; /journals?q=word searches.
+    const sp = new URLSearchParams(window.location.search);
+    const topic = sp.get("topic"), q0 = sp.get("q");
+    if (topic && isTopic(topic)) { setActiveTab("topics"); setSelectedTopic(topic); }
+    if (q0) setQuery(q0.slice(0, 80));
   }, []);
 
   // "People" — every individual journal: both founders plus any other
@@ -64,10 +73,14 @@ export default function JournalsPageClient() {
       (n) =>
         n.title.toLowerCase().includes(q) ||
         n.author.toLowerCase().includes(q) ||
+        topicsOf(n).some((t) => topicLabel(t).toLowerCase().includes(q) || t.includes(q)) ||
         n.categories.some((c) => c.toLowerCase().includes(q)) ||
         n.tags.some((t) => t.toLowerCase().includes(q))
     );
   }, [notes, q]);
+
+  // Journals on the reader's interests first ("For you"), the rest after (lib/topics.ts). Not while searching.
+  const forYou = useMemo(() => interestsFirst(filteredNotes, interests ?? []), [filteredNotes, interests]);
 
   const filteredPeople = useMemo(() => {
     if (!q) return people;
@@ -137,8 +150,30 @@ export default function JournalsPageClient() {
                       </div>
                     </div>
                   )}
-                  <p className="eyebrow">More Journals</p>
-                  {filteredNotes.length === 0 ? (
+                  {!q && signedIn && interests !== null && interests.length === 0 && (
+                    <div className="card mb-8 flex flex-wrap items-center justify-between gap-4 border-crimson/30 p-5">
+                      <div>
+                        <p className="font-display text-xl">Make this feed yours</p>
+                        <p className="mt-1 text-sm text-slate">Choose the topics you like and journals on them come first, here and in your weekly digest.</p>
+                      </div>
+                      <Link href="/interests" className="btn-primary !px-5 !py-2 text-sm">Choose your interests</Link>
+                    </div>
+                  )}
+                  {!q && forYou.picked.length > 0 && (
+                    <div className="mb-12">
+                      <div className="flex flex-wrap items-baseline justify-between gap-2">
+                        <p className="eyebrow">For you</p>
+                        <Link href="/interests" className="font-ui text-xs font-semibold text-crimson">Your interests: {(interests ?? []).slice(0, 4).map(hashtag).join(" ")}{(interests ?? []).length > 4 ? " …" : ""} · Change</Link>
+                      </div>
+                      <div className="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-2">
+                        {forYou.picked.map((n) => <JournalRow key={n.id} note={n} showAuthor />)}
+                      </div>
+                    </div>
+                  )}
+                  <p className="eyebrow">{!q && forYou.picked.length > 0 ? "Everything else" : "More Journals"}</p>
+                  {(q ? filteredNotes : forYou.rest).length === 0 && forYou.picked.length > 0 && !q ? (
+                    <p className="mt-4 text-sm text-slate">That's everything for now.</p>
+                  ) : filteredNotes.length === 0 ? (
                     <p className="mt-4 text-sm text-slate">
                       No published entries{q ? ` matching "${query}"` : ""} yet.{" "}
                       {!q && (
@@ -149,7 +184,7 @@ export default function JournalsPageClient() {
                     </p>
                   ) : (
                     <div className="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-2">
-                      {filteredNotes.map((n) => (
+                      {(q ? filteredNotes : forYou.rest).map((n) => (
                         <JournalRow key={n.id} note={n} showAuthor />
                       ))}
                     </div>
@@ -188,10 +223,11 @@ export default function JournalsPageClient() {
               {activeTab === "topics" && (
                 <>
                   <p className="eyebrow">Topics</p>
-                  <p className="mt-1 text-sm text-slate">Browse by category.</p>
+                  <p className="mt-1 text-sm text-slate">Browse by topic. <Link href="/interests" className="text-crimson underline underline-offset-2">Choose your interests</Link> to see your topics first.</p>
                   <div className="mt-5">
                     <TopicsBrowser
                       notes={filteredNotes}
+                      interests={interests ?? []}
                       selectedTopic={selectedTopic}
                       onSelectTopic={setSelectedTopic}
                     />
