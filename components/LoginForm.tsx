@@ -33,7 +33,8 @@ export default function LoginForm({ embedded = false, onSwitch }: { embedded?: b
     try {
       const cred = await signInWithEmailAndPassword(auth, email, password);
       await ensureAdminProfile(cred.user); // no-op for regular readers
-      if (!(await goBack(cred.user))) router.push(embedded ? nextPath() : "/"); // came from a member's own domain? sign in there and go back
+      // came from a member's own domain? sign in there and go back. Otherwise the page that asked (?next=, e.g. a course to enrol in).
+      if (!(await goBack(cred.user))) router.push(embedded || new URLSearchParams(window.location.search).has("next") ? nextPath() : "/");
     } catch (err) {
       const code = (err as { code?: string }).code;
       setError(

@@ -1,12 +1,15 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import Shelf from "@/components/Shelf";
+import AcademyPageClient from "@/components/academy/AcademyPageClient";
+import { ACADEMY_LIVE } from "@/lib/courses";
 
-// Notes Academy: courses on #NotesApp (docs/COURSES.md). Until the first courses open this page says what's coming; then it gets
-// the same shelves as Journals and Notes Market (For you, Most viewed, New), the reader's interests first.
+// Notes Academy: courses on #NotesApp (docs/COURSES.md). Free courses are open (components/academy/AcademyPageClient.tsx: the
+// same shelves as Journals and Notes Market, the reader's interests first). With NEXT_PUBLIC_ACADEMY_LIVE=false the page says
+// what's coming instead, as it did before courses opened.
 export const metadata: Metadata = {
   title: "Notes Academy",
-  description: "Courses from African creators and professionals: free courses from the teacher's YouTube, paid courses on #NotesApp, and certificates anyone can verify.",
+  description: "Free courses from African creators and professionals, with lessons that play right on #NotesApp and your progress saved as you go.",
   alternates: { canonical: "/academy" },
 };
 
@@ -18,6 +21,10 @@ const POINTS = [
 ];
 
 export default function AcademyPage() {
+  return ACADEMY_LIVE ? <AcademyPageClient /> : <AcademySoon />;
+}
+
+function AcademySoon() {
   return (
     <>
       <section className="bg-gradient-to-br from-crimson-deep via-crimson to-crimson-bright text-paper">

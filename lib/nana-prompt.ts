@@ -4,11 +4,13 @@ import { WHAT_IS_INTRO, WHAT_YOU_CAN_DO, WHAT_IS_FREE, WHAT_IS_TIERS } from "./s
 
 // Pages Nana may link to besides the help articles (a link to anything else is stripped before the reply is shown).
 export const NANA_PAGES: [path: string, what: string][] = [
-  ["/", "Home"], ["/journals", "Browse journals, people and shops"], ["/trending", "Most visited publishers and posts"], ["/signup", "Create an account"], ["/login", "Sign in"],
+  ["/", "Home"], ["/journals", "The journal feed (For you, Following, Latest, Top this week)"], ["/trending", "Most visited publishers and posts"], ["/signup", "Create an account"], ["/login", "Sign in"],
   ["/forgot-password", "Reset a password"], ["/pricing", "Plans, prices and what each includes"], ["/booking", "How paid sessions and bookings work"], ["/bookings", "A member's own bookings"],
   ["/gifts", "Gifts"], ["/boost", "Boost packages and prices"], ["/coauthoring", "Co-authoring"], ["/advertise", "Advertise on #NotesApp"], ["/badges", "Verified and gold badges"],
   ["/store-selling", "Selling physical goods and digital downloads"], ["/track", "Track a parcel"], ["/merchstore", "Merch store"], ["/organisations", "Organisation accounts"],
-  ["/organisation", "Turn an account into an organisation"], ["/domains", "Domains (coming soon)"], ["/teams", "Team hub and team messaging (coming soon)"], ["/docs", "API docs"],
+  ["/organisation", "Turn an account into an organisation"], ["/domains", "Domains (coming soon)"], ["/teams", "Team hub (a paid add-on for Business and Enterprise after internal testing; not available yet)"], ["/docs", "API docs"],
+  ["/explore", "Explore topics, people and channels"], ["/saved", "A member's saved journals and items"], ["/interests", "Choose your interests"], ["/shop", "Notes Market: every #NotesApp store"], ["/academy", "Notes Academy: courses"],
+  ["/profile/site", "Your site (Business and Enterprise)"], ["/profile/wallet", "NotesApp Credit wallet"],
   ["/messages", "Messages"], ["/profile/edit", "Edit profile"], ["/profile/publishing", "Rates, payouts and publishing settings"], ["/profile/account", "Account settings, data download and deletion"],
   ["/write/new", "Write a new post"], ["/about", "About #NotesApp"], ["/brand", "Brand assets"], ["/roadmap", "What is coming"], ["/status", "Service status"], ["/changelog", "What changed"],
   ["/security", "Trust and security"], ["/terms", "Terms of Service"], ["/privacy", "Privacy Policy"], ["/contact", "Contact the team"], ["/challenge", "#1MillionNairaNotesAppChallenge"], ["/help", "Help centre"],

@@ -658,6 +658,23 @@ service cloud.firestore {
       allow write: if false;
     }
 
+    // Notes Academy (docs/COURSES.md): courses and their lessons are public once published, drafts stay with the server (the
+    // teacher edits and previews them through /api/academy). Enrolments and progress: each learner reads their own. Every write
+    // goes through the server (lib/courses-server.ts).
+    match /courses/{courseId} {
+      allow read: if resource.data.status == 'published';
+      allow write: if false;
+      match /lessons/{lessonId} {
+        allow read: if get(/databases/$(database)/documents/courses/$(courseId)).data.status == 'published';
+        allow write: if false;
+      }
+    }
+    match /courseSlugs/{slug} { allow read, write: if false; }
+    match /enrolments/{id} {
+      allow read: if isSignedIn() && resource.data.uid == request.auth.uid;
+      allow write: if false;
+    }
+
     // Recorded errors (lib/monitoring.ts) — written and read by the server only.
     match /errorLogs/{id} {
       allow read, write: if false;

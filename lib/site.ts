@@ -34,11 +34,12 @@ export const SITE = {
 export const WHAT_IS_INTRO =
   "#NotesApp is where African creators, professionals, coaches, consultants, therapists and businesses publish their work, build an audience they can talk to directly, and get paid in Naira.";
 export const WHAT_YOU_CAN_DO = [
-  "Write journals and share them with readers who follow you",
+  "Write journals and share them with readers who follow you and the topics they care about",
   "Take bookings for private 1:1 sessions",
-  "Sell physical goods, digital downloads, PDFs and video courses",
+  "Sell physical goods, digital downloads, PDFs and video courses, in your own store and in Notes Market",
+  "Teach free courses in Notes Academy, with lessons from your own YouTube",
   "Earn from journal subscriptions and gifts",
-  "Run it all under your own name, or your own domain on Business and Enterprise plans",
+  "Run it all under your own name, or your own site and domain on Business and Enterprise plans",
   "Play Notes Life, our free life game",
 ];
 export const WHAT_IS_FREE = "Anyone can read, comment, book a session or buy from a shop for free.";

@@ -14,7 +14,7 @@ export const metadata: Metadata = {
 const STEPS = [
   { t: "Pick a post or a store item", d: "Any published post of yours — new or old — or any item in your store (a download needs its file attached first). Or tick “Boost” in the composer as you publish." },
   { t: "Choose a package", d: "Buy a set number of impressions. Bigger packages cost less per impression." },
-  { t: "We show it", d: "It rotates in the Boosted slots on the home page and Journals page for up to the package's window." },
+  { t: "We show it", d: "A boosted journal appears in the journal feed marked Promoted, and a boosted item in the Boosted strips on the home page and in Notes Market, for up to the package's window." },
   { t: "Pay for what's delivered", d: "Anything not delivered by the end is refunded pro-rata." },
 ];
 
@@ -68,13 +68,13 @@ export default function BoostPage() {
           <p className="font-ui text-sm font-bold text-ink">Fair by design</p>
           <p className="mt-2 text-sm text-slate">
             Boost revenue has no commission — the price is the price. If a boost ends with impressions undelivered, the
-            undelivered share is refunded to your card. You can cancel a running boost any time under Boost performance: delivered impressions are spent, and you get half of the undelivered share back (the other half is forfeited). One active boost per post; boosted posts are labelled “Boosted”.
+            undelivered share is refunded the way you paid (your card, or your wallet). You can cancel a running boost any time under Boost performance: delivered impressions are spent, and you get half of the undelivered share back (the other half is forfeited). One active boost per post; boosted posts are labelled “Boosted”.
           </p>
         </div>
         <div className="card p-6">
           <p className="font-ui text-sm font-bold text-ink">Who can boost</p>
           <p className="mt-2 text-sm text-slate">
-            Any publisher, for their own published posts and the items in their own store. Payment is by Paystack in Naira, and you need a verified email
+            Any publisher, for their own published posts and the items in their own store. Pay in Naira through Paystack or from your NotesApp Credit wallet, and you need a verified email
             (see <Link href="/pricing" className="text-crimson underline">pricing</Link> for the full picture).
           </p>
         </div>

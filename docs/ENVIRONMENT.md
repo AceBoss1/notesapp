@@ -143,6 +143,7 @@ Environment Variables (mark secrets Sensitive), then redeploy: `NEXT_PUBLIC_*` v
 | `NEXT_PUBLIC_CALLS_LIVE` | no | Voice and video calls: on whenever messages are, unless set to false. |
 | `NEXT_PUBLIC_WALLET_LIVE` | no | The NotesApp Credit wallet: on unless set to false. |
 | `NEXT_PUBLIC_LIFE_LIVE` | no | Notes Life: on unless set to false. |
+| `NEXT_PUBLIC_ACADEMY_LIVE` | no | Notes Academy free courses (/academy, teaching, course pages, the Courses tabs, member sites and the digest): on unless set to false, which brings back the opening-soon page. |
 
 ## Other
 

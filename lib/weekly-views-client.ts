@@ -2,9 +2,9 @@
 
 import { useEffect, useState } from "react";
 
-// This week's visits per journal, profile or store item (GET /api/public/weekly-views), shared in this tab for 5 minutes.
+// This week's visits per journal, profile, store item or course (GET /api/public/weekly-views), shared in this tab for 5 minutes.
 const cache = new Map<string, { at: number; p: Promise<Record<string, number>> }>();
-export function useWeeklyViews(kind: "note" | "profile" | "item"): Record<string, number> {
+export function useWeeklyViews(kind: "note" | "profile" | "item" | "course"): Record<string, number> {
   const [v, setV] = useState<Record<string, number>>({});
   useEffect(() => {
     let hit = cache.get(kind);

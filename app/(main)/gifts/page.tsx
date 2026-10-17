@@ -1,14 +1,14 @@
 import Link from "next/link";
 import type { Metadata } from "next";
-import { GIFT_PRESETS_NAIRA } from "@/lib/boost-config";
+import { GIFT_MAX_KOBO, GIFT_MIN_KOBO, GIFT_PRESETS_NAIRA } from "@/lib/boost-config";
 import { formatNaira } from "@/lib/booking-time";
-import { TIERS, commissionRateFor } from "@/lib/tiers";
+import { TIERS, commissionRateFor, getTierConfig } from "@/lib/tiers";
 import PageHero from "@/components/PageHero";
 
 export const metadata: Metadata = {
   title: "Gifts",
   description:
-    "Say thanks to a publisher — or to a single post — with a gift from ₦200 to ₦500,000. Paid in Naira through Paystack, released to the publisher's bank account after a 7-day window.",
+    "Say thanks to a publisher — or to a single post — with a gift in Naira, from Gift me on their profile or the gift button on a post. Paid through Paystack or the NotesApp Credit wallet, released to the publisher's bank account after a 7-day window.",
 };
 
 const EXAMPLE_KOBO = 5_000 * 100;
@@ -29,14 +29,14 @@ export default function GiftsPage() {
             {formatNaira(n * 100)}
           </span>
         ))}
-        <span className="rounded-full border border-crimson px-5 py-2 font-mono text-sm text-crimson">or any amount up to ₦500,000</span>
+        <span className="rounded-full border border-crimson px-5 py-2 font-mono text-sm text-crimson">or any amount from {formatNaira(GIFT_MIN_KOBO)} up to {formatNaira(GIFT_MAX_KOBO)}</span>
       </div>
 
       <div className="mt-12 grid grid-cols-1 gap-6 sm:grid-cols-3">
         {[
-          { t: "Find the 🎁", d: "Every publisher profile and every post has a Gift button (when the publisher accepts gifts)." },
+          { t: "Find Gift me", d: "Every publisher profile has a Gift me button, and every post a 🎁 (when the publisher accepts gifts). If Gift me is greyed out, the publisher hasn't set up payouts yet: the ℹ️ beside it explains." },
           { t: "Choose an amount", d: "Pick a preset or type your own, add a short message, or send anonymously." },
-          { t: "Pay with Paystack", d: "Card, bank transfer or USSD in Naira. The publisher is notified by app and email." },
+          { t: "Pay in Naira", d: "Card, bank transfer or USSD through Paystack, or your NotesApp Credit wallet. The publisher is notified by app and email." },
         ].map((s, i) => (
           <div key={s.t} className="card p-6">
             <span className="font-mono text-xs text-crimson-bright">Step {i + 1}</span>
@@ -67,7 +67,7 @@ export default function GiftsPage() {
           })}
           <li className="flex justify-between py-2">
             <span className="text-ink">Enterprise</span>
-            <span className="text-slate">negotiated (from 5% commission)</span>
+            <span className="text-slate">negotiated (from {Math.round((getTierConfig("enterprise").sessionAndUnlockCommissionFloor ?? 0.05) * 100)}% commission)</span>
           </li>
         </ul>
         <p className="mt-3 text-xs text-slate">
@@ -89,7 +89,7 @@ export default function GiftsPage() {
         <div className="card p-6">
           <p className="font-ui text-sm font-bold text-ink">Want to receive gifts?</p>
           <p className="mt-2 text-sm text-slate">
-            Add a verified bank account under Rates &amp; payouts and the Gift button appears on your profile and every post
+            Add a verified bank account under Rates &amp; payouts and Gift me switches on on your profile, with the gift button on every post,
             automatically.
           </p>
           <Link href="/profile/publishing" className="mt-3 inline-block text-sm text-crimson underline underline-offset-2">

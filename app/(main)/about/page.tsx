@@ -30,7 +30,11 @@ export const metadata: Metadata = {
 const LIVE = [
   ...(MOMENTS_LIVE ? [{ href: "/journals", title: "Moments", copy: "Share a picture, a video of up to 90 seconds or text, with an optional voice-over, on your profile picture for 24, 48 or 72 hours. See them in the Moments row on Journals, like WhatsApp Status; you choose whether only your followers or everyone can see yours." }] : []),
   ...(MESSAGES_LIVE ? [{ href: "/messages", title: CALLS_LIVE ? "Messages, calls & group chats" : "Messages & group chats", copy: `One-to-one messages, and groups of up to 50 people you follow or who follow you, with bold, italic and underline, sent and read ticks with times, pictures, videos and documents, voice notes of up to 5 minutes, and stickers. Pin your important messages and chats, see when someone is typing, and edit or delete what you sent.${CALLS_LIVE ? " Free voice and video calls with anyone you follow who follows you back, straight between your two devices and never recorded, ringing on the installed app even when it isn't open." : ""} Replies to your moments land here too, and notifications on your device are on by default.` }] : []),
-  { href: "/journals", title: "Journals", copy: "Publish with a rich-text composer; readers follow, comment, like and share." },
+  { href: "/journals", title: "Journals", copy: "Publish with a rich-text composer and up to 3 topics; readers follow, comment, like, share and save." },
+  { href: "/journals", title: "The journal feed & Explore", copy: "For you (your interests first), Following, Latest and Top this week, with Most read and Who to follow. Explore topics, people and channels, and keep journals in Saved. On a phone, a tab bar along the bottom: Feed, Explore, Market, Messages, Profile." },
+  { href: "/shop", title: "Notes Market", copy: "Every #NotesApp store in one place: items for you, the most viewed this week, new arrivals, categories and a list of stores." },
+  { href: "/academy", title: "Notes Academy", copy: "Free courses from any publisher, with lessons from their own YouTube that play inside #NotesApp. Paid courses on Pro and Business are next." },
+  { href: "/help/weekly-digest", title: "The Weekly Digest", copy: "A Sunday-evening email with up to five journals from the week, chosen for you, and what's moving in Notes Market." },
   { href: "/booking", title: "Paid 1:1 sessions", copy: "Your own price and weekly availability, Paystack checkout, reminders and a clear cancellation policy." },
   { href: "/journals", title: "Monthly subscriptions", copy: "Readers subscribe to unlock your premium entries; renewals are automatic." },
   { href: "/gifts", title: "Gifts", copy: "Readers can send you a gift on your profile or on any post." },
@@ -44,8 +48,8 @@ const LIVE = [
   { href: "/store-selling", title: "Parcel tracking for riders & drivers", copy: "A chain-of-custody log for every parcel: record each holder — bike rider, bus driver, park agent — and they update the location or hand on to the next person from a short link, with no login." },
   { href: "/organisations", title: "Team seats & your own site", copy: "Business includes 4 seats (owner plus three team members) and your own domain with a semi white-label site; Enterprise has as many as you need, an API and the lowest commissions." },
   { href: "/merchstore", title: "Merch store", copy: "Official #NotesApp merch with your choice of logo — pre-order in batches, delivered in Nigeria." },
-  { href: "/trending", title: "Trending", copy: "The most visited publishers and posts on #NotesApp." },
-  { href: "/docs", title: "API, Console & your own domain", copy: "Business and Enterprise accounts get a branded site — Home, Notes and Shop — on their own domain; Enterprise adds a server-to-server API, signed webhooks and Console keys." },
+  { href: "/trending", title: "Trending", copy: "The most visited notes, store items, courses and publishers on #NotesApp." },
+  { href: "/docs", title: "Your site, API & Console", copy: "Business and Enterprise accounts get a branded site on their own domain, set up on the Your site page: the Legacy, Aurora or Maroon theme, Journals, Shop and Courses on or off, and About and Contact pages. Enterprise adds a server-to-server API, signed webhooks and Console keys." },
   { href: "/security", title: "Trust & security", copy: "How payments, files, access rules and your data are protected — including downloading or deleting your own data." },
   { href: "/nana", title: "Nana AI & help centre", copy: "Ask Nana, our helper, about anything on #NotesApp from the chat button on every page, in Messages, or browse the help centre. She links you to the right page and passes you to a person when she can't help. She is powered by Claude, from our partner Anthropic." },
   { href: "/status", title: "Status & changelog", copy: "Live service health with response times and incident updates, plus a changelog of every release." },
@@ -107,9 +111,10 @@ export default async function AboutPage() {
         <p className="eyebrow">What you can do today</p>
         <FeatureMosaic className="mt-5" items={LIVE} />
         <p className="mt-4 text-sm text-slate">
-          Still to come: WhatsApp reminders, iOS and Android apps, sharing
+          Still to come: paid courses and certificates, WhatsApp reminders, iOS and Android apps, sharing
           to more social networks (LinkedIn and X are live), and Google and Meta ads
-          alongside our own — see the{" "}
+          alongside our own. The Team hub, company finance tools, an investor data room and advertising on LinkedIn
+          are being tested by our own team and will be paid add-ons for Business and Enterprise once that testing is done — see the{" "}
           <Link href="/roadmap" className="text-crimson underline underline-offset-2">roadmap</Link>.
         </p>
       </div>
@@ -129,7 +134,7 @@ export default async function AboutPage() {
             to {planRate("business", "session")} on Business, negotiable on Enterprise), and a smaller one on store sales: {planRate("basic", "physical")} of physical items and {planRate("basic", "digital")} of downloads on Free Basic, down to {planRate("business", "physical")} and {planRate("business", "digital")} on Business and from {pct(getTierConfig("enterprise").physicalCommissionFloor ?? 0.01)} and {pct(getTierConfig("enterprise").digitalCommissionFloor ?? 0.015)} on Enterprise. Boosts are
             priced by validated impressions with no commission. Pro and
             Business are paid plans; verification badges, gold and our own
-            merch are paid add-ons; and advertisers' banner campaigns (paid up front, reviewed before they run, refunded for anything undelivered) fund the ad share we pay opted-in
+            merch are paid add-ons; free courses cost nothing to publish, and their certificates are paid; and advertisers' banner campaigns (paid up front, reviewed before they run, refunded for anything undelivered) fund the ad share we pay opted-in
             publishers. Every number is on the{" "}
             <Link href="/pricing" className="text-crimson underline">pricing page</Link>.
           </p>

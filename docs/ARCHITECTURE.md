@@ -88,3 +88,26 @@ from one batched call, `/api/public/badges`, drawn by `NameBadgeIcons`.
 Admin → Weekly digest (`/admin/digest`, owner and super admins): status, preview, send yourself a test, and the on/off switch
 (`digestConfig/main`). `WEEKLY_DIGEST=on` in Vercel keeps it on regardless. Unsubscribe links are signed with
 `EMAIL_LINK_SECRET`, or `CRON_SECRET` when that isn't set.
+
+## Notes Academy: free courses (step 1 of docs/COURSES.md)
+- **Data** (every write on the server, `lib/courses-server.ts`): `courses/{id}` (teacher, title, `slug`, summary, up to 3
+  `topics`, `cover`, `status` draft or published, `lessonIds` in order, `lessonCount`, `minutes`, `enrolCount`, `viewCount`,
+  dates), `courses/{id}/lessons/{lessonId}` (`order`, `title`, `kind` youtube or text, `youtubeId`, `minutes`, Markdown
+  `body` up to 50,000 characters), `enrolments/{courseId}_{uid}` (`done`: lesson id → when, `lastLessonId`, `completedAt`) and
+  `courseSlugs/{slug}` (reserves each address with a create that fails when it's taken). `firestore.rules`: published courses
+  and their lessons are public, drafts are not even readable by their teacher in the browser (the editor and the draft preview
+  go through the server), learners read their own enrolments, browsers write none of it. Limits: 30 courses a member, 100
+  lessons a course. The pure checks (YouTube links, addresses, fields, progress) are in `lib/courses.ts`.
+- **Routes** (signed in, rate-limited): `/api/academy/courses` (GET mine or `?slug=` one draft, POST new), `/courses/[id]`
+  (GET, PATCH, DELETE, POST publish/unpublish), `/courses/[id]/lessons` (POST add, PUT order), `/courses/[id]/lessons/[lessonId]`
+  (PATCH, DELETE), `/api/academy/enrol`, `/api/academy/progress`, `/api/academy/view` (one per visitor a day, not the teacher;
+  also writes `pageViews/course_{id}_{day}`, kind `course`) and the public list `/api/public/academy` (`?owner=`, cached a minute).
+  Only publishing accounts (`canPublish`) teach.
+- **Pages**: `/academy` (`AcademyPageClient`: Continue learning, For you, Most viewed, New, topic chips, Teach a course),
+  `/academy/teach` and `/academy/teach/[id]` (the editor), `/academy/[slug]` (`CourseView`; share card from `courseMetadata` in
+  `lib/og.ts`) and `/academy/[slug]/[lessonId]` (`LessonPlayer`: YouTube's privacy-enhanced player through the IFrame Player
+  API, loaded only there; a video ticks itself off at 90% of the seconds actually played; text lessons rendered like journals).
+  The first lesson is a free preview; the rest open on enrolling. Courses also show on profiles (Courses tab), Trending (Courses
+  tab), members' sites (`COURSES_LIVE` follows the switch) and the weekly digest (`weekCourses`).
+- **Switch**: `NEXT_PUBLIC_ACADEMY_LIVE=false` brings back the opening-soon page and hides courses everywhere.
+- **Tests**: `npm run test:courses` (pure), `npm run test:courses-server` (emulator), the rules and digest tests.

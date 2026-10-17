@@ -1,6 +1,6 @@
 # #NotesApp hand-over note
 
-**Date:** 17 October 2026 · **Latest version:** v0.41.0 · **Repository:** `AceBoss1/notesapp`
+**Date:** 17 October 2026 · **Latest version:** v0.42.0 · **Repository:** `AceBoss1/notesapp`
 **Owner:** the founder and CEO of NotesApp Technologies Ltd (product decisions, approvals, deploys that need console access).
 
 Start with `README.md` (what is live, the docs index, the checks); settings are in `docs/ENVIRONMENT.md`, deploying in
@@ -26,7 +26,7 @@ Working branch convention (owner's instruction, 17 Oct 2026): branches are named
 
 ## 2. Waiting on the owner
 
-1. **`firebase deploy --only firestore`** (also needed for v0.40.0's saved journals, `savedJournals`; until then the bookmark can't list what you saved). The rules that let Notes Life presence use the Digital Witch hub (`dw`) are merged
+1. **`firebase deploy --only firestore`** (also needed for v0.40.0's saved journals, `savedJournals`, and v0.42.0's courses: until it's deployed, published courses and learners' progress can't be read in the browser). The rules that let Notes Life presence use the Digital Witch hub (`dw`) are merged
    but not deployed. Until they are, players at the hub don't appear to each other.
 2. **Firestore index suggestions** (Query insights, e.g. `ledger WHERE status = ? COUNT`): create them with the console's one-click
    "Create index" when they appear.
@@ -48,7 +48,7 @@ Working branch convention (owner's instruction, 17 Oct 2026): branches are named
    `UPSTASH_REDIS_REST_TOKEN`), and run `npx -y tsx scripts/backfill-author-uids.ts` then `--apply`.
 10. **Staging:** `docs/STAGING.md` (a second Firebase project and the `staging` branch on Vercel Preview).
 11. **After merging v0.39.0:** `npx -y tsx scripts/backfill-topics.ts` then `--apply` (files older journals under topics).
-12. **Courses:** the four decisions in `docs/COURSES.md` ("Open questions") before step 1 starts.
+12. **Courses:** the owner's decisions are in `docs/COURSES.md` ("Decisions", 17 Oct 2026). Step 1, free courses with the publisher's YouTube, goes live as Notes Academy in this release; certificates, paid courses and the Enterprise packages follow. The package prices are in Admin → Pricing.
 All of these are on the team hub board with departments and dates (`lib/team-seed.ts`: `FUND_BACKLOG`, `LAUNCH_BACKLOG`, `COURSES_BACKLOG`, `TOPICS_BACKLOG`).
 
 ## 3. How the work is done (please keep these)
@@ -103,7 +103,8 @@ All of these are on the team hub board with departments and dates (`lib/team-see
 | Notes Market and Academy | `/shop`: `components/MarketPageClient.tsx`, `MarketCard.tsx`, `lib/shop-directory.ts` (`getMarket`), `app/api/public/market`; `/academy`: `app/(main)/academy`; profile tabs `components/ProfileTabs.tsx`, `BookSessionButton.tsx` |
 | Badges by names | `lib/name-badges.ts`, `lib/badges-client.ts`, `app/api/public/badges`, `components/PersonName.tsx` (`NameBadgeIcons`) |
 | Demo data | `scripts/seed-demo.ts` (emulators only; `NEXT_PUBLIC_FIRESTORE_EMULATOR_HOST`, `NEXT_PUBLIC_AUTH_EMULATOR_HOST`), see `docs/STAGING.md` |
-| Courses (planned) | `docs/COURSES.md`; builds on view-only lessons (`components/LessonsEditor.tsx`, `lib/stream.ts`, `lib/private-files.ts`) |
+| Courses | `docs/COURSES.md`; free courses (v0.42.0): `lib/courses.ts` (shapes, limits, YouTube ids, `ACADEMY_LIVE`), `lib/courses-server.ts` (every write), `lib/courses-client.ts`, `app/api/academy/*`, `app/api/public/academy`, `components/academy/*`, pages `/academy`, `/academy/teach`, `/academy/[slug]`, `/academy/[slug]/[lessonId]`; tests `npm run test:courses`, `test:courses-server`; paid courses build on view-only lessons (`components/LessonsEditor.tsx`, `lib/stream.ts`, `lib/private-files.ts`); the Enterprise Courses and Academy API prices are `coursePackages` in `lib/pricing.ts` (Admin → Pricing) |
+| Paid add-ons | The team hub, company finance tools, the investor data room and LinkedIn advertising: in internal testing, then paid add-ons for Business and Enterprise. Said the same way on `/pricing`, `/roadmap`, `/teams`, `/advertise`, `/organisations` and the help article `paid-add-ons` (`lib/kb-articles.ts`) |
 | Weekly digest | template `lib/digest.ts`, sending `lib/digest-server.ts`, cron job `weeklyDigest`, `app/api/digest/unsubscribe`, `app/api/account/email-prefs`, `app/api/admin/digest`, `app/(main)/admin/digest`, `components/EmailSettings.tsx` |
 | Money | Paystack `app/api/paystack/*`, `lib/payments.ts`; wallet `lib/wallet*.ts`; Paylony (in progress) `lib/paylony.ts`; team ledger in the admin area |
 | Nana AI | `lib/nana-*.ts`, `components/Nana*.tsx`, help articles `lib/kb-articles.ts` |

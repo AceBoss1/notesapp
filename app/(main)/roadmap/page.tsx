@@ -6,14 +6,25 @@ import { GOLD_KIND_LIVE } from "@/lib/badges";
 import { CALLS_LIVE, MESSAGES_LIVE, MOMENTS_LIVE } from "@/lib/moments-rules";
 import { WALLET_LIVE } from "@/lib/wallet";
 import PageHero from "@/components/PageHero";
+import { certificateMin } from "@/lib/pricing";
 
 export const metadata: Metadata = {
   title: "Roadmap",
   description:
-    "What's live and what's next for #NotesApp — moments, messages, free voice and video calls, Nana AI and publishing to LinkedIn and X are live; the team hub, AI notetaker, full white label, Paylony payments, meetings, and more are next. Decided and documented, or under discussion.",
+    "What's live and what's next for #NotesApp — the journal feed, Explore, Notes Market, free courses in Notes Academy, Your site, the Weekly Digest, messages, free calls, Nana AI and publishing to LinkedIn and X are live; paid courses, certificates, full white label, Paylony payments and more are next, and the Team hub, company finance tools, the data room and LinkedIn advertising come as paid add-ons for Business and Enterprise after internal testing.",
 };
 
+// The four tools our own team is testing before Business and Enterprise can add them for a fee.
+const ADD_ON = "It will be offered as a paid add-on for Business and Enterprise once our internal testing is done.";
+
 const ITEMS: { title: string; tag: string; body: string; detail: string; link?: { href: string; label: string } }[] = [
+  {
+    title: "Notes Academy: courses on #NotesApp",
+    tag: "Courses",
+    body: "Live now: free courses. Any publisher can teach, with lessons from their own YouTube that play inside #NotesApp, plus text lessons, and learners keep their progress. Next, in this order: certificates anyone can check and add to LinkedIn, paid courses on Pro and Business, quizzes and reviews, then the Enterprise packages.",
+    get detail() { return `Free courses are free to publish and to take. Certificates on free courses are paid: the learner pays from ${certificateMin()} plus the margin the teacher sets. Paid courses are uploaded to #NotesApp, kept private and played only for learners who paid, with the viewer's @username and email drawn faintly over the video; our fee on them is the same as on digital store items. For organisations, two packages sit on top of Enterprise: Enterprise Courses, and the Enterprise Academy API for a white-label academy of their own. Prices are on the pricing page.`; },
+    link: { href: "/academy", label: "Visit Notes Academy →" },
+  },
   {
     title: "Notes Life: a life game on NotesApp",
     tag: "Social",
@@ -38,10 +49,10 @@ const ITEMS: { title: string; tag: string; body: string; detail: string; link?: 
   },
   {
     title: "Team hub and team messaging for Business and Enterprise",
-    tag: "Teams",
-    body: "A shared workspace for your team: a work board with what is moving, stuck or waiting on a decision, milestones, a morning summary and weekly review, and a team room for meetings and chat. Our own team is using it first (work board with items by department, money ledger, staff roles including legal and engineering, a staff library, a message hub, payroll, and an Ask Nana panel that knows your open items); it opens to Business and Enterprise accounts once our internal testing is done.",
+    tag: "Teams · Paid add-on",
+    body: `A shared workspace for your team: a work board with what is moving, stuck or waiting on a decision, milestones, a morning summary and weekly review, and a team room for meetings and chat. Our own team is testing it now (work board with items by department, meetings, a money ledger, payroll, staff roles including legal and engineering, a staff library, team messages, and an Ask Nana panel that knows your open items). ${ADD_ON}`,
     detail:
-      "We are running it ourselves before anyone else relies on it, so we can fix what gets in the way. Business and Enterprise accounts will get it for their team seats (four on Business, as many as you need on Enterprise), with the people on your team seeing only what their role needs. It builds on group chats, which are already live. No date yet; we will announce it on this page, the changelog and by email when it opens.",
+      "We are running it ourselves before anyone else relies on it, so we can fix what gets in the way. Business and Enterprise accounts will be able to add it for their team seats (four on Business, as many as you need on Enterprise), with the people on your team seeing only what their role needs. It builds on group chats, which are already live. No price or date yet; we will announce both on this page, the pricing page, the changelog and by email.",
     link: { href: "/teams", label: "See the team hub page →" },
   },
   {
@@ -95,31 +106,31 @@ const ITEMS: { title: string; tag: string; body: string; detail: string; link?: 
   },
   {
     title: "More for the team hub: tasks, payments, payroll and a staff library",
-    tag: "Teams",
-    body: "Live for our own team: payments to be made with who must make them and by when; payroll under Accounts; a message hub; and a staff library for the handbook, SOPs and staff materials, where you upload files and see who has opened and who has confirmed each document (👁). Work items have owners, due dates and reminders, and can be given to departments, such as engineering and product.",
+    tag: "Teams · Paid add-on",
+    body: `In internal testing with our own team: payments to be made with who must make them and by when; payroll under Accounts; a message hub; and a staff library for the handbook, SOPs and staff materials, where you upload files and see who has opened and who has confirmed each document (👁). Work items have owners, due dates and reminders, and can be given to departments, such as engineering and product. These come with the Team hub: ${ADD_ON.charAt(0).toLowerCase()}${ADD_ON.slice(1)}`,
     detail:
       "Our own team uses it first, as with the rest of the hub. Messages stay in the hub, and the ones marked for email are sent by email too. Policies can ask staff to confirm they have read them. Payroll stays visible only to finance and the owner. The legal team can now be given access and maintains the library with care and product.",
   },
   {
     title: "Company finance tools: runway, acquisition cost, burn and cap table",
-    tag: "Company",
-    body: "Planned, for our own team: a runway calculator that shows how long our cash lasts as we hire, counting the free software plans and credits we have been given; a calculator for what it costs to win a member and what they pay back; burn and revenue analytics; and a record of who owns what, with vesting schedules.",
+    tag: "Company · Paid add-on",
+    body: "For our own team first: a runway calculator that shows how long the cash lasts as you hire, counting the free software plans and credits you have been given; a calculator for what it costs to win a customer and what they pay back; burn and revenue analytics; and a record of who owns what, with vesting schedules.",
     detail:
-      "These sit in the team hub next to the money ledger, and only the owner and senior admins can open the ownership records. The figures can also feed the investor data room. We build the analytics first because the ledger already holds the numbers. Not built yet, no date.",
+      "These sit in the team hub next to the money ledger, and only the owner and senior admins can open the ownership records. The figures can also feed the investor data room. We build the analytics first because the ledger already holds the numbers. We are building and testing them with our own team; once internal testing is done they will be offered as paid add-ons for Business and Enterprise. No price or date yet.",
   },
   {
     title: "Investor and partner data room",
-    tag: "Company",
-    body: "Planned: a private data room for investors and partners, with separate logins by category. Files open in a viewer that shows each person's name and email across the pages, and they can't be downloaded. Live traction and revenue figures come straight from our own dashboards.",
+    tag: "Company · Paid add-on",
+    body: "A private data room for investors and partners, with separate logins by category. Files open in a viewer that shows each person's name and email across the pages, and they can't be downloaded. Live traction and revenue figures come straight from the dashboards.",
     detail:
-      "People ask for access with a short form, and we approve or add them. Every opening is logged. A watermark and a signed NDA deter sharing; we can't stop someone photographing a screen, and we say so. Not built yet.",
+      "People ask for access with a short form, and the owner approves or adds them. Every opening is logged. A watermark and a signed NDA deter sharing; nobody can stop someone photographing a screen, and we say so. We are building and testing it with our own team first; once internal testing is done it will be offered as a paid add-on for Business and Enterprise. No price or date yet.",
   },
   {
     title: "Advertise on LinkedIn from #NotesApp",
-    tag: "Ads",
-    body: "Next up, for Business and Enterprise members only: boost one of your posts on LinkedIn from inside #NotesApp, using your own LinkedIn ad account, and see what it earned next to your #NotesApp numbers. LinkedIn has approved our access to its Advertising API (development tier), so we are now building and testing it, and it opens to members after LinkedIn's review of our app. No date yet.",
+    tag: "Ads · Paid add-on",
+    body: "For Business and Enterprise: boost one of your posts on LinkedIn from inside #NotesApp, using your own LinkedIn ad account, and see the campaign's numbers next to your #NotesApp numbers. LinkedIn has approved our access to its Advertising API (development tier), so we are building and testing it internally now. Once internal testing is done (and LinkedIn has reviewed our app), it will be offered as a paid add-on for Business and Enterprise. No price or date yet.",
     detail:
-      "How it would work: you connect your LinkedIn ad account, pick a post, set a budget and audience, and LinkedIn bills you directly; #NotesApp never holds your ad money. Reporting comes back to your dashboard. Later steps, each its own approval and its own privacy review: sending sign-ups back to LinkedIn so campaigns can be measured, and bringing in LinkedIn leads. We would only list audiences you create from your own followers with your consent. It will be a Business and Enterprise feature, not on Free or Pro. LinkedIn ads cost more per click than most platforms, so it suits members selling to companies and professionals; our own boosts remain the lower-cost way to be seen on #NotesApp.",
+      "How it would work: you connect your LinkedIn ad account, pick a post, set a budget and audience, and LinkedIn bills you directly; #NotesApp never holds your ad money. Reporting comes back to your dashboard. Later steps, each its own approval and its own privacy review: sending sign-ups back to LinkedIn so campaigns can be measured, and bringing in LinkedIn leads. We would only list audiences you create from your own followers with your consent. It will be a paid add-on for Business and Enterprise, not on Free or Pro. LinkedIn ads cost more per click than most platforms, so it suits members selling to companies and professionals; our own boosts remain the lower-cost way to be seen on #NotesApp.",
   },
   {
     title: "Domain sales and DNS management",
@@ -172,8 +183,7 @@ export default function RoadmapPage() {
   return (
     <>
       <PageHero eyebrow="Coming Soon" title={<>What's next for #NotesApp</>}>
-        <p>The core loop — publish, book, get paid — is what's demoed
-        today. The ones marked on the right are decided and documented, not yet built. Nana AI and the help centre, publishing to LinkedIn and X, direct and group messages, paid sessions (with rescheduling and automatic payouts), monthly subscriptions, publisher rates and payouts, post and item boosts, gifts, Pro / Business plans, organisation accounts, stores for physical goods and digital downloads, parcel tracking, and official merch are already live. Last updated 14 October 2026.</p>
+        <p>The core loop — publish, book, get paid — is live, and so is a lot around it: the journal feed with your interests, Explore and saved journals, Notes Market, free courses in Notes Academy, Your site for Business and Enterprise, the Weekly Digest, Nana AI and the help centre, publishing to LinkedIn and X, messages and free calls, paid sessions, subscriptions, boosts, gifts, the paid plans, organisation accounts and stores with parcel tracking. Below is what&apos;s live in each area and what comes next; the list on the right is decided and documented, not yet built. Last updated 17 October 2026.</p>
       </PageHero>
       <div className="mx-auto max-w-4xl px-4 py-12 sm:px-6 lg:px-8">
 
@@ -186,7 +196,13 @@ export default function RoadmapPage() {
           <div>
             <p className="font-ui text-sm font-bold text-ink">✓ Live today</p>
             <ul className="mt-3 space-y-2 text-sm text-slate">
-              <li>Journals — real published notes, with a rich-text composer</li>
+              <li>Journals — real published notes, with a rich-text composer, up to 3 topics each and your own hashtags</li>
+              <li>The journal feed: For you (your <Link href="/interests" className="text-crimson underline">interests</Link> first), Following, Latest and Top · 7d, with Most read and Who to follow; <Link href="/explore" className="text-crimson underline">Explore</Link> for topics, people and channels; and <Link href="/saved" className="text-crimson underline">saved journals</Link></li>
+              <li>A new look on phones: one light header, and a tab bar along the bottom (Feed, Explore, Market, Messages, Profile); profiles with Notes, Store and Courses tabs and Follow, Book a session, Conversation and Gift me</li>
+              <li><Link href="/shop" className="text-crimson underline">Notes Market</Link>: every #NotesApp store in one place, For you first, then the most viewed and the newest</li>
+              <li><Link href="/academy" className="text-crimson underline">Notes Academy</Link>: free courses from any publisher, with lessons from their own YouTube that play right here</li>
+              <li>Your site for Business and Enterprise: the Legacy, Aurora or Maroon theme, Journals, Shop and Courses on or off, and About and Contact pages</li>
+              <li>The #NotesApp Weekly Digest on Sunday evenings (with the most viewed and most bought in Notes Market), and a notification when someone @mentions you</li>
               <li>Paid 1:1 sessions on each publisher&apos;s own rate and availability, paid through Paystack, with a bookings dashboard, rescheduling and a clear cancellation policy</li>
               <li>Paid monthly journal subscriptions that unlock premium entries</li>
               <li>Post and store-item boosts (pay for validated impressions) and gifts on every profile and post — see <Link href="/boost" className="text-crimson underline">Boost</Link> and <Link href="/gifts" className="text-crimson underline">Gifts</Link></li>
@@ -201,7 +217,7 @@ export default function RoadmapPage() {
               <li><Link href="/nana" className="text-crimson underline">Nana AI</Link> and the <Link href="/help" className="text-crimson underline">help centre</Link>: ask anything about #NotesApp, from every page and from a conversation pinned in Messages, and get writing help in drafts, shares and messages (with your own AI account connected, or ours when switched on)</li>
               <li>Publishing a post to your connected LinkedIn and X from the post itself</li>
               <li>Download your data or delete your account yourself, under Account → Your data</li>
-              <li>Trending feed, a live <Link href="/status" className="text-crimson underline">status page</Link> and a public <Link href="/changelog" className="text-crimson underline">changelog</Link></li>
+              <li>Trending (Notes, Store, Courses and Publishers), a live <Link href="/status" className="text-crimson underline">status page</Link> and a public <Link href="/changelog" className="text-crimson underline">changelog</Link></li>
               <li>Verification badges: the maroon ✔ for accounts in good standing and the <strong className="text-ink">gold ✔ for endorsed accounts</strong>{GOLD_KIND_LIVE.identity ? " and identity-checked accounts" : ""} — see <Link href="/badges" className="text-crimson underline">Verification badges</Link></li>
               <li>Publisher payouts to a verified bank account, released automatically after the session</li>
               <li>Email confirmations and reminders · password reset and email verification</li>
@@ -211,20 +227,21 @@ export default function RoadmapPage() {
           <div>
             <p className="font-ui text-sm font-bold text-ink">○ On the roadmap, not live</p>
             <ul className="mt-3 space-y-2 text-sm text-slate">
+              <li>Course certificates anyone can verify, paid courses on Pro and Business, quizzes, and the two Enterprise course packages</li>
               <li>WhatsApp reminders alongside email and the bell</li>
               {GOLD_KIND_LIVE.identity ? null : <li>Automatic identity-checked gold badge (all built; NIN + face check for people, CAC for organisations awaiting final tests)</li>}
               <li>Full white label for Enterprise (sign-in, sign-up and emails in the member&apos;s name are live; checkout and bookings on their own site, and their own sending address, are next)</li>
               <li><Link href="/domains" className="text-crimson underline">Domain sales and DNS management</Link> through Whogohost (now go54), for Business and Enterprise</li>
-              <li>NotesApp Credit and Bonus Credits</li>
+              {!WALLET_LIVE && <li>NotesApp Credit and Bonus Credits</li>}
               <li>Paylony payments and Tap-to-Pay</li>
               <li><Link href="/challenge" className="text-crimson underline">#1MillionNairaNotesAppChallenge</Link> for influencers (coming soon)</li>
               <li>iOS and Android apps</li>
-              <li>The team hub and team messaging for Business and Enterprise (our own team is using it now)</li>
+              <li><strong className="text-ink">Paid add-ons for Business and Enterprise, after our internal testing:</strong> the <Link href="/teams" className="text-crimson underline">Team hub</Link> and team messages, company finance tools (runway, acquisition cost, burn, cap table), the investor and partner data room, and advertising on LinkedIn from #NotesApp</li>
               <li>AI notetaker and your own AI assistant through MCP</li>
               <li>Voice: Listen to a journal, Nana that speaks, voice transcripts</li>
-              <li>Publishing to Facebook, Instagram and TikTok; LinkedIn advertising from #NotesApp, for Business and Enterprise (approved by LinkedIn, being built)</li>
+              <li>Publishing to Facebook, Instagram and TikTok</li>
               <li>Google ads on the web and AdMob in the apps</li>
-              <li>Nana suggests replies · an investor and partner data room · company finance tools (runway, acquisition cost, burn, cap table)</li>
+              <li>Nana suggests replies</li>
               <li>Audio and video meetings, meeting chat (under team discussion)</li>
               {!MOMENTS_LIVE && <li>Moments: pictures, video and text on profile pictures for 24, 48 or 72 hours</li>}
               {!MESSAGES_LIVE && <li>Direct messages</li>}

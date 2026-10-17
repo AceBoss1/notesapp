@@ -16,7 +16,7 @@ const DOES = [
   { title: "Writing help in your drafts", body: "In the journal composer, ask Nana to improve, shorten or expand your writing, make it friendlier or more professional, or turn rough notes into a first draft." },
   { title: "Posts for LinkedIn and X", body: "When you share a post, ask Nana to write the words for LinkedIn or X, and edit them before anything goes out." },
   { title: "Help with messages", body: "In a conversation, ask Nana to suggest a reply or polish what you wrote. You always read and send it yourself." },
-  { title: "In the team hub", body: "Our own team asks Nana what to focus on and how the admin tools work. She is coming to Business and Enterprise teams after our internal testing." },
+  { title: "In the team hub", body: "Our own team asks Nana what to focus on and how the admin tools work. She comes with the Team hub, which will be a paid add-on for Business and Enterprise after our internal testing." },
 ];
 
 export default function NanaPage() {

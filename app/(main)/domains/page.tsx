@@ -105,7 +105,7 @@ export default function DomainsPage() {
       <section className="mt-12 card border-dashed p-7">
         <span className="font-mono text-[11px] uppercase tracking-eyebrow text-crimson-bright">Not live yet</span>
         <p className="mt-3 text-sm text-slate">
-          Until this ships, you can connect a domain you already own on Business or Enterprise. See <Link href="/pricing" className="text-crimson underline underline-offset-2">Pricing</Link>, the <Link href="/roadmap" className="text-crimson underline underline-offset-2">roadmap</Link> and the <Link href="/changelog" className="text-crimson underline underline-offset-2">changelog</Link>.
+          Until this ships, you can connect a domain you already own on Business or Enterprise, and set up how it looks on the <Link href="/profile/site" className="text-crimson underline underline-offset-2">Your site</Link> page (the Legacy, Aurora or Maroon theme, what shows, and About and Contact pages). See <Link href="/pricing" className="text-crimson underline underline-offset-2">Pricing</Link>, the <Link href="/roadmap" className="text-crimson underline underline-offset-2">roadmap</Link> and the <Link href="/changelog" className="text-crimson underline underline-offset-2">changelog</Link>.
         </p>
       </section>
     </div>

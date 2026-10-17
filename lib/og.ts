@@ -76,3 +76,20 @@ export async function storeMetadata(ownerUid: string, displayName: string, avata
   const description = `${displayName}'s store on #NotesApp — ${count} item${count === 1 ? "" : "s"}.`;
   return cardFor(title, description, image || avatar || OG_DEFAULT, title);
 }
+
+// A Notes Academy course (and its lessons' pages): its cover, title and summary. Drafts get no card.
+export async function courseMetadata(slug: string, lessonTitle?: string): Promise<Metadata> {
+  try {
+    const db = getAdminDb();
+    const id = (await db.doc(`courseSlugs/${slug}`).get()).data()?.courseId;
+    const c = id ? (await db.doc(`courses/${id}`).get()).data() : undefined;
+    if (!c || c.status !== "published") return { title: "Course", robots: { index: false } };
+    const title = lessonTitle ? `${lessonTitle} · ${c.title}` : String(c.title);
+    const description = `${String(c.summary ?? "").replace(/\s+/g, " ").slice(0, 240)}${c.summary?.length > 240 ? "…" : ""} Free course by ${c.ownerName ?? "a #NotesApp teacher"} on Notes Academy.`.trim();
+    const meta = cardFor(title, description, c.cover || c.ownerAvatar || OG_DEFAULT, String(c.title), { type: "website", url: `/academy/${slug}` });
+    return { ...meta, alternates: { canonical: `/academy/${slug}` } };
+  } catch (err) {
+    console.error("[og] course metadata failed", err);
+    return { title: "Course" };
+  }
+}

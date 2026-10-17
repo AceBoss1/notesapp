@@ -13,7 +13,8 @@ import { activeHostForUsername } from "@/lib/domains";
 import PartnerIcon from "@/components/PartnerIcon";
 import ProgramThanks from "@/components/ProgramThanks";
 import { CALLS_LIVE, MESSAGES_LIVE, MOMENTS_LIVE } from "@/lib/moments-rules";
-import { planRate } from "@/lib/pricing";
+import { planRate, pct } from "@/lib/pricing";
+import { getTierConfig } from "@/lib/tiers";
 
 // The reference customers' links point at their own sites once they have them; refreshed every few minutes.
 export const revalidate = 300;
@@ -29,11 +30,15 @@ const LOOP = [
 
 const FEATURES = [
   { title: "Public & private journals", copy: "One toggle, same canvas. Publish an article, or keep a private session log for a client — your call, entry by entry." },
+  { title: "A journal feed made for you", copy: "Pick your interests and journals on them come first, under For you. Then Following, Latest and Top this week, with Most read and Who to follow between the posts. Like, comment, share and save straight from the feed, and find topics, people and channels in Explore. On a phone, a tab bar along the bottom takes you to Feed, Explore, Market, Messages and your Profile." },
+  { title: "Notes Market", copy: "Every #NotesApp store in one place: items picked for you first, then the most viewed this week and the newest, with digital items, categories and a list of stores. Buying works just as it does in the seller's own store." },
+  { title: "Notes Academy: free courses", copy: "Teach for free with lessons from your own YouTube, played right inside #NotesApp, and learners keep their progress. Paid courses on Pro and Business are next, and certificates anyone can check." },
+  { title: "The Weekly Digest", copy: "On Sunday evenings, up to five journals from the week, from people you follow and the topics you like, plus the most viewed and most bought in Notes Market. One click to unsubscribe." },
   { title: "Native booking calendar", copy: "Built into your profile page, running on your own weekly availability. No redirect, no second login — and clients can cancel or reschedule under a clear refund policy." },
   { title: "Your rates, your payouts", copy: "Set your own session price and monthly subscription price. Paystack collects in Naira; earnings are paid to your verified bank account after each session." },
   { title: "Booking confirmations & reminders", copy: "Email confirmations and 24-hour and 1-hour reminders are live today. WhatsApp reminders are coming next." },
   { title: "Boost a post or a store item", copy: "Put a post or a product in front of more readers. You pay only for validated impressions, delivered over several days — undelivered ones are refunded." },
-  { title: "Gifts", copy: "Readers can send you a gift on your profile or on any single post — from ₦200 up to ₦500,000, with a note if they like. Add your payout account and the 🎁 button switches on." },
+  { title: "Gifts", copy: "Readers can send you a gift with Gift me on your profile, or on any single post — from ₦200 up to ₦500,000, with a note if they like. Add your payout account and the button switches on." },
   { title: "A real writing desk", copy: "Format with a toolbar, preview as you go, drop in images, add a short video, and never lose a draft — everything is saved as clean Markdown. Videos play in our own light player that only loads when you press play." },
   { title: "Ad share, from day one", get copy() { return `Pro publishers earn ${planRate("pro", "adShare")} and Business publishers ${planRate("business", "adShare")} of the ad revenue on their pages — no follower or view thresholds to clear first. Ads are opt-in for paid plans, every one is labelled “Sponsored”, and your share is paid monthly after review. Brands can buy a banner campaign online.`; } },
   { title: "Co-authoring", copy: "Pro and Business publishers can write a post with other members, agree each person's share of what it earns — gifts on it are split now — and share the byline. Everyone accepts before it's listed." },
@@ -41,9 +46,9 @@ const FEATURES = [
   ...(MESSAGES_LIVE ? [{ title: CALLS_LIVE ? "Messages, calls & group chats" : "Messages & group chats", copy: `Talk one to one, or start a group of up to 50 people you follow or who follow you, with bold, italic and underline, a ✔ when your message is sent and ✔✔ when it is read, with the times, and attach pictures, videos and documents (how big and how many depends on your plan), record voice notes of up to 5 minutes and send stickers.${CALLS_LIVE ? " Call anyone you follow who follows you back, by voice or video, free: it rings on their phone or computer." : ""} Replies to your moments land here too. You can block or report anyone.` }] : []),
   ...(WALLET_LIVE ? [{ title: "NotesApp Credit wallet", copy: "Top up once from ₦1,000 and pay for boosts, badges, adverts, gifts, shop items and sessions without entering your card each time. ₦5,000 and more adds Bonus Credits." }] : []),
   { title: "Gold badge", copy: "Get endorsed by #NotesApp, or identity-checked, and wear the gold ✔ beside your name on your profile, the directory and every post." },
-  { title: "A brand store for every journal", copy: "Every professional gets their own storefront on their profile — sell physical goods with buyer payments held until delivery, a managed stock count and a tracking ID for every parcel — or digital downloads delivered instantly after payment, or — on Pro and above — view-only files and video courses that buyers watch on up to 2 devices with no download. Items can have up to 5 photos and Size and Colour options. Boost any item to put it in front of more readers. Organisations can run theirs with their team." },
+  { title: "A store on every profile", copy: "Every professional gets their own store, in the Store tab of their profile and in Notes Market — sell physical goods with buyer payments held until delivery, a managed stock count and a tracking ID for every parcel — or digital downloads delivered instantly after payment, or — on Pro and above — view-only files and video courses that buyers watch on up to 2 devices with no download. Items can have up to 5 photos and Size and Colour options. Boost any item to put it in front of more readers. Organisations can run theirs with their team." },
   { title: "Parcel tracking for riders & drivers", copy: "Every parcel gets a chain-of-custody log: record each holder — bike rider, bus driver, park agent — and they update the location or hand on to the next person from a short link, with no login. Buyers see it on the parcel's tracking page." },
-  { title: "Your own branded site: Business & Enterprise", copy: "Business and Enterprise accounts put their name and logo on their own domain with Home, Notes and Shop (Business is semi white-label, with “powered by #NotesApp” in the footer), visitors who sign in, book and pay without leaving it, and Enterprise adds a server-to-server API with signed webhooks, unlimited team seats, a 75% ad share and store commissions from 1% on physical items and 1.5% on downloads. Enterprise is fully white-label: sign-in, sign-up and their emails come in your name and logo. Business includes 4 seats (the owner plus three team members)." },
+  { title: "Your site: Business & Enterprise", get copy() { const e = getTierConfig("enterprise"); return `Business and Enterprise accounts put their name and logo on their own domain, and set it up on the Your site page: choose the Legacy, Aurora or Maroon theme, what shows (Journals, Shop, Courses) and write About and Contact pages. Visitors sign in, book and pay without leaving it (Business is semi white-label, with “powered by #NotesApp” in the footer). Enterprise is fully white-label, with sign-in, sign-up and emails in your name and logo, and adds a server-to-server API with signed webhooks, unlimited team seats, a ${pct(e.adRevenueShare ?? 0)} ad share and store commissions from ${pct(e.physicalCommissionFloor ?? 0.01)} on physical items and ${pct(e.digitalCommissionFloor ?? 0.015)} on downloads. Business includes 4 seats (the owner plus three team members).`; } },
   { title: "Trust you can check", copy: "Buyer payments held until delivery, private files behind short-lived links, view-only courses on two devices, tested access rules, and your own data to download or delete. Read how it works on Trust & security." },
   { title: "Nana AI and a help centre", copy: "Ask Nana, our helper, anything about the platform from the chat button on every page, and get answers with links to the right page, or browse the help centre. She can also suggest replies that offer your open session times and booking link. If Nana can't help, she passes you to a person." },
   { title: "Open about what's live", copy: "A public status page with response times and incident updates, and a changelog of every release, so you always know what changed." },
@@ -73,9 +78,9 @@ export default async function Home() {
               consultants, therapists and businesses publish their work, build an
               audience they can talk to directly, and get paid in Naira. Write
               journals, take bookings for private sessions, sell products,
-              PDF/video courses and other digital downloads, earn subscriptions
-              and gifts, and run it all under your own name or your own domain,
-              in one place.
+              PDF/video courses and other digital downloads in Notes Market,
+              teach free courses in Notes Academy, earn subscriptions and gifts,
+              and run it all under your own name or your own domain, in one place.
             </p>
             <div className="mt-9 flex flex-wrap items-center gap-4">
               <Link href="/journals" className="btn-primary">

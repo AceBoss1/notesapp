@@ -2,7 +2,8 @@
 
 A course is a set of lessons a member teaches on #NotesApp, with progress, a certificate at the end that anyone can verify, and
 a one-tap share of that certificate. Free courses grow the audience; paid courses earn. This is the owner's spec (17 Oct 2026)
-turned into a build plan, with the owner's decisions at the end. Not built yet.
+turned into a build plan, with the owner's decisions at the end. **Step 1 (free courses) is built**: how it works is in
+`docs/ARCHITECTURE.md` ("Notes Academy: free courses"); steps 2 to 5 are not built yet.
 
 ## Who can do what
 

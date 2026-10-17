@@ -318,9 +318,9 @@ export default function PublishingSettingsPage() {
         <div className="card p-6">
           <label className="flex items-center gap-3">
             <input type="checkbox" checked={shopListed} onChange={(e) => setShopListed(e.target.checked)} />
-            <span className="eyebrow">List my shop on the Merch Store page</span>
+            <span className="eyebrow">List my shop in Notes Market</span>
           </label>
-          <p className="mt-2 text-xs text-slate">Your shop appears under &ldquo;Individual Shops&rdquo; on the Merch Store page while you have something buyable (an item in stock, or a download with its file) and a payout account. Switch this off to keep it off that page; your shop and its links keep working.</p>
+          <p className="mt-2 text-xs text-slate">Your shop and its items appear in Notes Market (and under &ldquo;Individual Shops&rdquo; on the Merch Store page) while you have something buyable (an item in stock, or a download with its file) and a payout account. Switch this off to keep them out of both; your shop and its links keep working.</p>
         </div>
 
         <div className="card p-6">

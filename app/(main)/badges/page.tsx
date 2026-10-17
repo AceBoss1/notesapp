@@ -16,7 +16,8 @@ export const metadata: Metadata = {
     "What the #NotesApp team badge, the verified ✔ and the gold badge (endorsed or identity-checked) mean, who gets them, and how to add the verified badge to your profile.",
 };
 
-const FAQ = [
+// Read when the page renders, so prices an admin changed in Admin → Pricing show here.
+const faq = () => [
   {
     q: "Does the maroon ✔ mean #NotesApp checked my identity?",
     a: "No. It shows an account in good standing that is on an eligible plan or has the badge subscription. Identity checks and endorsements are what the gold badge is for — endorsements are open now, identity checks are " + (GOLD_KIND_LIVE.identity ? "open too." : "coming soon."),
@@ -31,7 +32,7 @@ const FAQ = [
   },
   {
     q: "How much does gold cost?",
-    a: "The same on every plan: ₦1,999/month for individuals, ₦2,999/month for organisations. Applying and being reviewed for an endorsement is free. An identity check adds a one-off deposit (₦999 personal, ₦1,999 organisation) paid before review.",
+    a: `The same on every plan: ${formatNaira(GOLD_PRICING.personal.monthlyKobo)}/month for individuals, ${formatNaira(GOLD_PRICING.corporate.monthlyKobo)}/month for organisations. Applying and being reviewed for an endorsement is free. An identity check adds a one-off deposit (${formatNaira(GOLD_PRICING.personal.identityDepositKobo)} personal, ${formatNaira(GOLD_PRICING.corporate.identityDepositKobo)} organisation) paid before review.`,
   },
   {
     q: "Is the identity deposit refundable?",
@@ -55,11 +56,11 @@ const FAQ = [
   },
   {
     q: "What happens to my badge if I cancel or downgrade?",
-    a: "You keep the verified badge until the end of the period you've paid for. If you were on Business and move to a lower plan, the free badge goes with the plan unless you add the ₦999 badge subscription.",
+    a: `You keep the verified badge until the end of the period you've paid for. If you were on Business and move to a lower plan, the free badge goes with the plan unless you add the ${formatNaira(BADGE_PRICE_KOBO)} badge subscription.`,
   },
   {
     q: "Where do badges show?",
-    a: "Next to your name on your profile, in the people directory and on the byline of your posts.",
+    a: "Right after your name, before your @username, wherever your picture and name appear: your profile, the journal feed, Notes Market, messages and the byline of your posts.",
   },
   {
     q: "Can a badge be removed?",
@@ -166,7 +167,7 @@ export default function BadgesPage() {
       <div className="mt-12">
         <p className="eyebrow">Questions</p>
         <dl className="mt-4 divide-y divide-rule border-y border-rule">
-          {FAQ.map((f) => (
+          {faq().map((f) => (
             <div key={f.q} className="py-4">
               <dt className="font-ui text-sm font-bold text-ink">{f.q}</dt>
               <dd className="mt-1 text-sm text-slate">{f.a}</dd>
