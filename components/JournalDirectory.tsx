@@ -6,8 +6,7 @@ import FollowButton from "@/components/FollowButton";
 import { NoteWithComputed, isNoteBy } from "@/lib/firestore-notes";
 import { OFFICIAL_NOTESAPP_PROFILE, VERIFIED_USERNAMES } from "@/lib/journals-directory";
 import { NOTESAPP_POSTS } from "@/lib/notesapp-posts";
-import VerifiedBadge from "@/components/VerifiedBadge";
-import TeamBadge from "@/components/TeamBadge";
+import { NameBadgeIcons } from "@/components/PersonName";
 import type { BadgeLevel, GoldBadgeKind } from "@/lib/badges";
 
 export type DirectoryEntry = {
@@ -51,8 +50,7 @@ export default function JournalDirectory({
               <div>
                 <p className="flex items-center gap-1.5 font-ui text-sm font-bold text-ink">
                   {entry.displayName}
-                  {(entry.badge || VERIFIED_USERNAMES.includes(entry.username)) && <VerifiedBadge size={13} level={entry.badge || "verified"} goldKind={entry.goldKind} />}
-                  {(entry.team || VERIFIED_USERNAMES.includes(entry.username)) && <TeamBadge size={13} />}
+                  <NameBadgeIcons username={entry.username} size={13} badges={{ level: entry.badge || (VERIFIED_USERNAMES.includes(entry.username) ? "verified" : null), goldKind: entry.goldKind, team: !!entry.team || VERIFIED_USERNAMES.includes(entry.username) }} />
                 </p>
                 <p className="font-mono text-xs text-slate">
                   @{entry.username} · {journalCount} journal{journalCount === 1 ? "" : "s"}

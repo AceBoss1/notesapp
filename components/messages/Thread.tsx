@@ -19,8 +19,7 @@ import VoiceNoteButton from "./VoiceNoteButton";
 import StickerPicker from "./StickerPicker";
 import EmojiPicker from "./EmojiPicker";
 import ProfileAvatar from "@/components/ProfileAvatar";
-import VerifiedBadge from "@/components/VerifiedBadge";
-import TeamBadge from "@/components/TeamBadge";
+import { NameBadgeIcons } from "@/components/PersonName";
 import { badgeLevel, getUserByUid, goldKindOf, isTeamMember } from "@/lib/users";
 import { stickerById } from "@/lib/stickers";
 import { isMomentExpired } from "@/lib/moments-rules";
@@ -336,7 +335,7 @@ export default function Thread({ id, to, embedded = false }: { id?: string; to?:
         <ThreadHeader
           back={!embedded ? <Link href="/messages" className="text-crimson underline">← Messages</Link> : undefined}
           avatar={<Link href={`/u/${who.username}`}><Avatar src={who.avatar} alt={who.displayName} size={48} square={!!people[who.uid]?.isOrg} /></Link>}
-          title={<><Link href={`/u/${who.username}`} className="hover:underline">{people[who.uid]?.name || who.displayName}</Link>{people[who.uid]?.level && <VerifiedBadge size={16} level={people[who.uid]!.level} goldKind={people[who.uid]!.goldKind} />}{people[who.uid]?.team && <TeamBadge size={16} />}</>}
+          title={<><Link href={`/u/${who.username}`} className="hover:underline">{people[who.uid]?.name || who.displayName}</Link><NameBadgeIcons username={who.username} size={16} badges={people[who.uid] ? { level: people[who.uid]!.level, goldKind: people[who.uid]!.goldKind, team: !!people[who.uid]!.team } : undefined} /></>}
           subtitle={presence.statuses[who.uid] ? <PresenceText status={presence.statuses[who.uid]} /> : <span>@{who.username}</span>}
           actions={CALLS_LIVE && !blockedByMe ? (
             <span className="flex items-center gap-1">
@@ -461,8 +460,7 @@ export default function Thread({ id, to, embedded = false }: { id?: string; to?:
                   {newGroup && (
                     <p className="mb-1 flex items-center gap-1.5 font-ui text-sm font-bold text-ink">
                       {person?.name ?? ""}
-                      {person?.level && <VerifiedBadge size={14} level={person.level} goldKind={person.goldKind} />}
-                      {person?.team && <TeamBadge size={14} />}
+                      {person && <NameBadgeIcons username={person.username} size={14} badges={{ level: person.level, goldKind: person.goldKind, team: !!person.team }} />}
                     </p>
                   )}
                   {sticker ? (

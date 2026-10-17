@@ -17,6 +17,7 @@ import NotifyWhenBack from "@/components/NotifyWhenBack";
 import BoostNudge from "@/components/BoostNudge";
 import { isMainHost } from "@/lib/host";
 import Avatar from "@/components/Avatar";
+import { NameBadgeIcons } from "@/components/PersonName";
 import FavoriteButton from "@/components/FavoriteButton";
 import ReviewsPanel from "@/components/ReviewsPanel";
 import MessageButton from "@/components/messages/MessageButton";
@@ -176,7 +177,7 @@ export default function ShopItemPage() {
             <div className="mt-3 flex flex-wrap items-center gap-3">
               <Link href={`/u/${seller.username}/store`} className="flex items-center gap-2 text-sm text-ink">
                 <Avatar src={seller.avatar} alt={seller.displayName} size={36} square={seller.isOrg} />
-                <span>Sold by <span className="font-semibold text-crimson">{seller.displayName}</span></span>
+                <span>Sold by <span className="font-semibold text-crimson">{seller.displayName}</span><NameBadgeIcons username={seller.username} size={14} /></span>
               </Link>
               <MessageButton username={seller.username} profileUid={item.ownerUid} />
             </div>

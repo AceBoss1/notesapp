@@ -5,8 +5,7 @@ import Avatar from "@/components/Avatar";
 import FollowButton from "@/components/FollowButton";
 import SubscribeButton from "@/components/SubscribeButton";
 import StatsRow from "@/components/StatsRow";
-import VerifiedBadge from "@/components/VerifiedBadge";
-import TeamBadge from "@/components/TeamBadge";
+import { NameBadgeIcons } from "@/components/PersonName";
 import { useJournalStats } from "@/lib/useJournalStats";
 import { FOUNDER_JOURNALS } from "@/lib/journals-directory";
 import { NoteWithComputed } from "@/lib/firestore-notes";
@@ -27,7 +26,7 @@ function FounderRow({
         <Avatar src={founder.avatar} alt={founder.displayName} size={64} />
         <div>
           <p className="font-ui text-base font-bold text-ink">
-            {founder.displayName} <VerifiedBadge size={13} /><TeamBadge size={13} />
+            {founder.displayName}<NameBadgeIcons username={founder.username} size={13} badges={{ level: "verified", team: true }} />
           </p>
           <p className="font-mono text-xs uppercase tracking-eyebrow text-crimson-bright">
             {founder.bio}

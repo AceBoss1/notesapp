@@ -4,6 +4,7 @@ import { useEffect, useRef, useState, type RefObject } from "react";
 import { collection, getDocs, limit, orderBy, query, where } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { mentionAt } from "@/lib/linkify";
+import { NameBadgeIcons } from "@/components/PersonName";
 
 // Type @ in a post, a comment, a message or a caption and this offers matching members (by username); ↑ ↓ to move, Enter or
 // Tab to pick, Esc to close. Picking writes "@username " at the caret. Put it inside a `relative` wrapper with the field; it
@@ -83,7 +84,7 @@ export default function MentionPicker({ target, value, onChange, place = "below"
         <li key={p.username} role="option" aria-selected={i === active}>
           <button type="button" onMouseDown={(e) => { e.preventDefault(); pick(p); }} onMouseEnter={() => setActive(i)} className={`flex w-full items-center gap-2.5 px-3 py-2 text-left text-sm ${i === active ? "bg-paper" : ""}`}>
             {p.avatar ? <img src={p.avatar} alt="" className="h-7 w-7 shrink-0 rounded-full object-cover" /> : <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-crimson text-[11px] font-bold text-white">{p.displayName.slice(0, 2).toUpperCase()}</span>}
-            <span className="min-w-0"><b className="block truncate leading-tight">{p.displayName}</b><span className="block truncate text-xs text-slate">@{p.username}</span></span>
+            <span className="min-w-0"><span className="flex min-w-0 items-center leading-tight"><b className="truncate">{p.displayName}</b><NameBadgeIcons username={p.username} size={13} /></span><span className="block truncate text-xs text-slate">@{p.username}</span></span>
           </button>
         </li>
       ))}

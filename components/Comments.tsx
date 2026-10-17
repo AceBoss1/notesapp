@@ -2,6 +2,8 @@
 
 import ProfileAvatar from "@/components/ProfileAvatar";
 import AppLink from "@/components/AppLink";
+import { NameBadgeIcons } from "@/components/PersonName";
+import { NO_BADGES } from "@/lib/name-badges";
 import { useEffect, useRef, useState } from "react";
 import LinkedText from "@/components/LinkedText";
 import MentionPicker from "@/components/MentionPicker";
@@ -92,6 +94,7 @@ function CommentRow({
           <ProfileLink className="font-ui text-sm font-semibold text-ink hover:text-crimson-bright">
             {comment.authorDisplayName}
           </ProfileLink>
+          <NameBadgeIcons username={comment.authorUsername} size={14} badges={suspended ? NO_BADGES : undefined} />
           <ProfileLink className="font-mono text-xs text-crimson-bright">
             @{comment.authorUsername}
           </ProfileLink>

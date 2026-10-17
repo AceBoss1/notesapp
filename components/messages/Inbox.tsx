@@ -13,8 +13,7 @@ import { stripFormat } from "@/lib/message-format";
 import MessageSettings from "./MessageSettings";
 import PresenceText from "@/components/PresenceText";
 import { usePresence } from "@/lib/presence-client";
-import VerifiedBadge from "@/components/VerifiedBadge";
-import TeamBadge from "@/components/TeamBadge";
+import { NameBadgeIcons } from "@/components/PersonName";
 import { badgeLevel, goldKindOf, isTeamMember, type UserProfile } from "@/lib/users";
 import type { GoldBadgeKind } from "@/lib/badges";
 
@@ -89,7 +88,7 @@ export default function Inbox() {
                   {r.group ? (
                     <span className="block font-bold text-ink">{r.group.title} {r.group.team && <span className="rounded bg-amber-100 px-1.5 py-0.5 text-[10px] font-bold text-amber-900">TEAM</span>} <span className="font-normal text-slate">{r.group.members} members</span></span>
                   ) : (
-                    <span className="block font-bold text-ink">{r.with.displayName} {r.with.level && <VerifiedBadge size={14} level={r.with.level} goldKind={r.with.goldKind} />}{r.with.team && <TeamBadge size={14} />} <span className="font-normal text-slate">@{r.with.username}</span></span>
+                    <span className="block font-bold text-ink">{r.with.displayName}<NameBadgeIcons username={r.with.username} size={14} badges={{ level: r.with.level ?? null, goldKind: r.with.goldKind, team: !!r.with.team }} /> <span className="font-normal text-slate">@{r.with.username}</span></span>
                   )}
                   {!r.group && <PresenceText status={presence.statuses[r.with.uid]} className="block" />}
                   <span className="block truncate text-sm text-slate">{r.moment ? "↩ Moment reply · " : ""}{r.lastFromMe ? "You: " : r.group && r.group.lastFrom ? `${r.group.lastFrom}: ` : ""}{stripFormat(r.lastText)}</span>

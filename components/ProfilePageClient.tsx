@@ -9,7 +9,8 @@ import { onAuthStateChanged, User } from "firebase/auth";
 import { auth } from "@/lib/firebase";
 import { recordView } from "@/lib/track";
 import { getUserByUsername, getCommentsByUser, badgeLevel, goldKindOf, isTeamMember, canPublish, roleLabelFor, UserProfile, CommentActivity, Suspension } from "@/lib/users";
-import TeamBadge from "@/components/TeamBadge";
+import { NameBadgeIcons } from "@/components/PersonName";
+import { NO_BADGES } from "@/lib/name-badges";
 import { GOLD_BADGE_TITLE, type BadgeLevel } from "@/lib/badges";
 import { getAllNotes, isNoteBy, NoteWithComputed } from "@/lib/firestore-notes";
 import SocialLinksRow from "@/components/SocialLinksRow";
@@ -30,7 +31,6 @@ import SubscribeButton from "@/components/SubscribeButton";
 import BookingCard from "@/components/BookingCard";
 import ScrollToHash from "@/components/ScrollToHash";
 import GiftButton from "@/components/GiftButton";
-import VerifiedBadge from "@/components/VerifiedBadge";
 import BadgeToast from "@/components/BadgeToast";
 import { OrgLabel, UnverifiedOrgNotice } from "@/components/OrgNotice";
 import JournalRow from "@/components/JournalRow";
@@ -271,8 +271,7 @@ export default function ProfilePageClient({ params }: { params: { username: stri
         <div>
           <h1 className="flex items-center gap-2 font-display text-3xl text-ink">
             {profile.displayName}
-            {badge && !suspended && <VerifiedBadge size={20} level={badge} goldKind={goldKindOf(realProfile)} />}
-            {!suspended && (VERIFIED_USERNAMES.includes(profile.username) || (!!realProfile && isTeamMember(realProfile))) && <TeamBadge size={20} />}
+            <NameBadgeIcons username={profile.username} size={20} badges={suspended ? NO_BADGES : { level: badge, goldKind: goldKindOf(realProfile), team: VERIFIED_USERNAMES.includes(profile.username) || (!!realProfile && isTeamMember(realProfile)) }} />
             <OrgLabel profile={realProfile} />
           </h1>
           {!suspended && profile.headline && <p className="mt-0.5 text-sm font-semibold text-ink">{profile.headline}</p>}
@@ -472,7 +471,8 @@ export default function ProfilePageClient({ params }: { params: { username: stri
                           className="font-semibold text-ink hover:text-crimson-bright"
                         >
                           {c.authorDisplayName}
-                        </Link>{" "}
+                        </Link>
+                        <NameBadgeIcons username={c.authorUsername} size={13} />{" "}
                         commented on{" "}
                         <Link href={`/journals/${c.noteSlug}`} className="text-crimson-bright hover:text-ink">
                           {c.noteTitle}

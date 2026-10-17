@@ -5,8 +5,7 @@ import Avatar from "@/components/Avatar";
 import FollowButton from "@/components/FollowButton";
 import SubscribeButton from "@/components/SubscribeButton";
 import StatsRow from "@/components/StatsRow";
-import VerifiedBadge from "@/components/VerifiedBadge";
-import TeamBadge from "@/components/TeamBadge";
+import { NameBadgeIcons } from "@/components/PersonName";
 import { useJournalStats } from "@/lib/useJournalStats";
 import { OFFICIAL_NOTESAPP_PROFILE } from "@/lib/journals-directory";
 import { NOTESAPP_POSTS } from "@/lib/notesapp-posts";
@@ -38,8 +37,7 @@ export default function ChannelSpotlight() {
               <h2 className="font-display text-2xl text-ink">
                 {OFFICIAL_NOTESAPP_PROFILE.displayName}
               </h2>
-              <VerifiedBadge />
-              <TeamBadge />
+              <NameBadgeIcons username={OFFICIAL_NOTESAPP_PROFILE.username} size={16} badges={{ level: "verified", team: true }} />
               <span className="rounded-full bg-crimson/10 px-2.5 py-0.5 font-mono text-[10px] uppercase tracking-wideish text-crimson-bright">
                 Official
               </span>

@@ -5,6 +5,7 @@ import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import type { User } from "firebase/auth";
 import Avatar from "@/components/Avatar";
+import { NameBadgeIcons } from "@/components/PersonName";
 import { REVIEW_MAX, REPLY_MAX, stars, type RatingSummary, type Review } from "@/lib/reviews";
 
 type Data = { reviews: Review[]; summary: RatingSummary; canReview: boolean; mine: Review | null };
@@ -80,7 +81,7 @@ export default function ReviewsPanel({ itemId, ownerUid, user, sellerUid, title 
             <div className="flex items-center gap-3">
               <Avatar src={r.avatar} alt={r.name} size={36} />
               <div className="min-w-0 flex-1">
-                <p className="truncate font-ui text-sm font-bold text-ink">{r.username ? <Link href={`/u/${r.username}`} className="hover:underline">{r.name}</Link> : r.name}</p>
+                <p className="truncate font-ui text-sm font-bold text-ink">{r.username ? <Link href={`/u/${r.username}`} className="hover:underline">{r.name}</Link> : r.name}<NameBadgeIcons username={r.username} size={13} /></p>
                 <p className="text-xs text-slate"><Stars value={r.rating} size="text-sm" /> · {dayLabel(r.createdAt)}{r.updatedAt ? " (edited)" : ""} · <span className="text-emerald-700">Verified buyer</span>{ownerUid && r.itemId && <> · <Link href={`/shop/${r.itemId}`} className="underline">{r.itemTitle}</Link></>}</p>
               </div>
             </div>

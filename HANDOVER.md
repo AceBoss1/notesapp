@@ -19,7 +19,8 @@ This note covers how the work is done, what's in flight, and what to watch.
 | `claude/server-writes-and-docs` | v0.38.0, merged: server-owned comments and notifications, shared rate limits (Upstash), one place for settings (`lib/config.ts`), journals by account id, the staging plan and CI, the digest admin page, the short README and `docs/`, and the fund and launch tasks on the team hub. |
 | `claude/notesapp-tech-and-digest` | v0.37.0, merged: the primary address setting, link-preview fix, @mention bells, the weekly digest. |
 
-Working branch convention: each session works on its own `claude/…` branch (Vercel doesn't deploy `claude/*`); it was `claude/pensive-allen-5tvypx` before. After each squash merge the branch is reset to `main`
+Working branch convention (owner's instruction, 17 Oct 2026): branches are named `push/<what it is>`, for example
+`push/interests-and-courses`. Vercel doesn't deploy `push/*` or the older `claude/*` branches (`vercel.json`); only `main` goes live. After each squash merge the branch is reset to `main`
 (`git fetch origin main && git checkout -B <branch> origin/main && git push -f -u origin <branch>`).
 
 ## 2. Waiting on the owner

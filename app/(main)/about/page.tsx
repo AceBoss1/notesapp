@@ -11,6 +11,8 @@ import type { Metadata } from "next";
 import { ADMIN_PROFILES } from "@/lib/admin";
 import { getSiteSettingsCached } from "@/lib/settings";
 import Avatar from "@/components/Avatar";
+import { NameBadgeIcons } from "@/components/PersonName";
+import { officialBadges } from "@/lib/name-badges";
 import { CHANNEL_JOURNALS } from "@/lib/journals-directory";
 import { GOLD_KIND_LIVE } from "@/lib/badges";
 import GoldBadgeExplainer from "@/components/GoldBadgeExplainer";
@@ -163,7 +165,7 @@ export default async function AboutPage() {
             >
               <Avatar src={f.avatar} alt={f.displayName} size={64} />
               <div>
-                <p className="font-ui text-base font-bold text-ink">{f.displayName}</p>
+                <p className="font-ui text-base font-bold text-ink">{f.displayName}<NameBadgeIcons username={f.username} size={15} /></p>
                 <p className="font-mono text-xs uppercase tracking-eyebrow text-crimson-bright">
                   {f.role}
                 </p>
@@ -194,7 +196,7 @@ export default async function AboutPage() {
             >
               <Avatar src={c.avatar} alt={c.displayName} size={64} square />
               <div>
-                <p className="font-ui text-base font-bold text-ink">{c.displayName}</p>
+                <p className="font-ui text-base font-bold text-ink">{c.displayName}<NameBadgeIcons username={c.username} size={15} badges={officialBadges(c.username)} /></p>
                 <p className="font-mono text-xs uppercase tracking-eyebrow text-crimson-bright">
                   {c.username === "notesapp" ? "Official Platform Journal" : "Official Social Channel"}
                 </p>

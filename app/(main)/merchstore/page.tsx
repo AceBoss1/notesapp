@@ -13,6 +13,7 @@ import MerchCard from "@/components/MerchCard";
 import ShopDirectory from "@/components/ShopDirectory";
 import { getShopDirectory } from "@/lib/shop-directory";
 import Avatar from "@/components/Avatar";
+import { NameBadgeIcons } from "@/components/PersonName";
 import Link from "next/link";
 import PageHero from "@/components/PageHero";
 
@@ -79,6 +80,7 @@ export default async function MerchStorePage() {
                   <div>
                     <p className="font-ui text-base font-bold text-ink">
                       {profile.displayName}'s store
+                      <NameBadgeIcons username={profile.username} size={15} />
                     </p>
                     <p className="font-mono text-xs text-slate">
                       @{profile.username} · {items.length} item{items.length === 1 ? "" : "s"}

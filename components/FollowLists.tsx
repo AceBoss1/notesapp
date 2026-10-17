@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { api } from "@/lib/moments-client";
 import Avatar from "@/components/Avatar";
+import { NameBadgeIcons } from "@/components/PersonName";
 import { type FollowPage, type ListedPerson } from "@/lib/social-graph";
 
 type Kind = "followers" | "following";
@@ -83,7 +84,7 @@ function ListDialog({ username, start, owner, onClose }: { username: string; sta
                 <li key={p.username} className="flex items-center gap-3 py-2.5">
                   <Link href={`/u/${p.username}`} onClick={onClose} className="flex min-w-0 flex-1 items-center gap-3">
                     <Avatar src={p.avatar} alt={p.displayName} size={40} square={p.isOrg} />
-                    <span className="min-w-0"><span className="block truncate font-bold text-ink">{p.displayName}</span><span className="block truncate text-xs text-slate">@{p.username}{p.channel ? " · channel" : p.isOrg ? " · organisation" : ""}</span></span>
+                    <span className="min-w-0"><span className="flex min-w-0 items-center font-bold text-ink"><span className="truncate">{p.displayName}</span><NameBadgeIcons username={p.username} size={14} /></span><span className="block truncate text-xs text-slate">@{p.username}{p.channel ? " · channel" : p.isOrg ? " · organisation" : ""}</span></span>
                   </Link>
                   {owner && kind === "following" && <button type="button" onClick={() => unfollow(p.username)} className="rounded-full border border-rule px-3 py-1 font-ui text-xs font-semibold hover:border-crimson">Unfollow</button>}
                 </li>

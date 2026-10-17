@@ -5,6 +5,7 @@ import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import type { User } from "firebase/auth";
 import Avatar from "@/components/Avatar";
+import { NameBadgeIcons } from "@/components/PersonName";
 import { RECOMMENDATION_MAX, RELATIONSHIPS, type Recommendation } from "@/lib/reviews";
 
 type Data = { approved: Recommendation[]; waiting: Recommendation[]; mine: Recommendation | null };
@@ -16,7 +17,7 @@ function Who({ r }: { r: Recommendation }) {
     <div className="flex items-center gap-3">
       <Avatar src={r.authorAvatar} alt={r.authorName} size={40} square={r.authorIsOrg} />
       <div className="min-w-0">
-        <p className="truncate font-ui text-sm font-bold text-ink">{r.authorUsername ? <Link href={`/u/${r.authorUsername}`} className="hover:underline">{r.authorName}</Link> : r.authorName}</p>
+        <p className="truncate font-ui text-sm font-bold text-ink">{r.authorUsername ? <Link href={`/u/${r.authorUsername}`} className="hover:underline">{r.authorName}</Link> : r.authorName}<NameBadgeIcons username={r.authorUsername} size={13} /></p>
         <p className="text-xs text-slate">{r.relationship} · {dayLabel(r.createdAt)}</p>
       </div>
     </div>

@@ -3,6 +3,8 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
+import { NameBadgeIcons } from "@/components/PersonName";
+import { badgesOf } from "@/lib/name-badges";
 import { useAdminAuth } from "@/lib/useAdminAuth";
 import { getAllUsersForAdmin, UserProfile, UserRole, AccountTier } from "@/lib/users";
 import { SUSPENSION_LENGTHS, describeUntil, type SuspensionLength } from "@/lib/suspension-length";
@@ -235,7 +237,8 @@ export default function AdminUsersPage() {
                     />
                     <div>
                       <p className="font-ui font-semibold text-ink group-hover:text-crimson-bright">
-                        {u.displayName}{" "}
+                        {u.displayName}
+                        <NameBadgeIcons username={u.username} size={14} badges={badgesOf(u)} />{" "}
                         <span className="font-mono text-xs text-crimson-bright">
                           @{u.username}
                         </span>

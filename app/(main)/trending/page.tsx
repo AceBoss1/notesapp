@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import Avatar from "@/components/Avatar";
+import { NameBadgeIcons } from "@/components/PersonName";
 import AdSlot from "@/components/AdSlot";
 import BadgeToast from "@/components/BadgeToast";
 import PageHero from "@/components/PageHero";
@@ -54,7 +55,7 @@ export default function TrendingPage() {
                 <span className="w-6 font-mono text-sm text-crimson-bright">{i + 1}</span>
                 <Avatar src={p.avatar} alt={p.displayName} size={44} />
                 <span className="flex-1">
-                  <span className="block font-ui text-sm font-bold text-ink">{p.displayName}</span>
+                  <span className="flex items-center font-ui text-sm font-bold text-ink">{p.displayName}<NameBadgeIcons username={p.username} size={14} /></span>
                   <span className="block font-mono text-xs text-slate">@{p.username} · {p.posts} posts</span>
                 </span>
                 <span className="font-mono text-xs text-slate">👁 {p.views.toLocaleString()}</span>

@@ -5,13 +5,13 @@ import { notFound } from "next/navigation";
 import { remark } from "remark";
 import html from "remark-html";
 import { getNoteBySlug, getMoreNotes, getAllNotes } from "@/lib/firestore-notes";
-import { getAuthorProfile, getUserByUid, badgeLevel, goldKindOf, isTeamMember, roleLabelFor } from "@/lib/users";
-import TeamBadge from "@/components/TeamBadge";
+import { getAuthorProfile, getUserByUid, roleLabelFor } from "@/lib/users";
 import BadgeToast from "@/components/BadgeToast";
 import BoostNudge from "@/components/BoostNudge";
 import VideoPlayer from "@/components/VideoPlayer";
 import { videoPublicUrl } from "@/lib/video-rules";
-import VerifiedBadge from "@/components/VerifiedBadge";
+import { NameBadgeIcons } from "@/components/PersonName";
+import { badgesOf } from "@/lib/name-badges";
 import { NA_NOTESAPP_PROFILE } from "@/lib/journals-directory";
 import SocialBar from "@/components/SocialBar";
 import SocialPublish from "@/components/SocialPublish";
@@ -108,9 +108,8 @@ export default async function JournalDetail({
             <Link href={site ? site.base || "/" : `/u/${linkedUsername}`} className="block">
             <div>
               <p className="font-ui text-sm font-semibold text-ink group-hover:text-crimson-bright">
-                By {authorProfile?.displayName || note.author}{" "}
-                {authorProfile && badgeLevel(authorProfile) && <VerifiedBadge size={14} level={badgeLevel(authorProfile)} goldKind={goldKindOf(authorProfile)} />}
-                {authorProfile && isTeamMember(authorProfile) && <TeamBadge size={14} />}{" "}
+                By {authorProfile?.displayName || note.author}
+                <NameBadgeIcons username={linkedUsername} size={14} badges={authorProfile ? badgesOf(authorProfile) : undefined} />{" "}
                 <span className="font-mono text-crimson-bright">
                   @{linkedUsername}
                 </span>
@@ -307,7 +306,7 @@ export default async function JournalDetail({
           <div className="flex items-center gap-3">
             <Avatar src={authorProfile.avatar || note.author_avatar} alt={authorProfile.displayName} size={48} square={authorProfile.accountKind === "organisation"} />
             <div className="min-w-0">
-              <p className="truncate font-ui text-sm font-bold text-ink">{authorProfile.displayName}</p>
+              <p className="flex min-w-0 items-center font-ui text-sm font-bold text-ink"><span className="truncate">{authorProfile.displayName}</span><NameBadgeIcons username={authorProfile.username} size={14} badges={badgesOf(authorProfile)} /></p>
               <p className="truncate font-mono text-[11px] uppercase tracking-wide text-slate">{roleLabelFor(authorProfile)}</p>
             </div>
           </div>
