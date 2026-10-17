@@ -310,8 +310,8 @@ export default function ProfilePageClient({ params }: { params: { username: stri
           {viewer && realProfile && viewer.uid !== realProfile.uid && <PresenceText status={presence.statuses[realProfile.uid]} className="mt-1" />}
         </div>
         <div className="profile-actions flex w-full flex-wrap items-start justify-center gap-3 sm:ml-auto sm:w-auto sm:max-w-sm sm:shrink-0 sm:justify-end">
-          {/* Follow (steps aside on phones once you follow), Book a session, Conversation, Gift me. */}
-          <FollowButton username={profile.username} compactWhenFollowing />
+          {/* Follow (✓ Following once you do), Book a session, Conversation, Gift me. */}
+          <FollowButton username={profile.username} />
           {viewer && !suspended && <OfficialFollowControl username={profile.username} />}
           {!synthetic && !suspended && viewer?.uid !== realProfile?.uid && <BookSessionButton publisherUid={realProfile?.uid} />}
           {!synthetic && !suspended && <MessageButton username={profile.username} profileUid={realProfile?.uid} label="💬 Conversation" />}

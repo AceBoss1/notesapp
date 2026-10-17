@@ -1,6 +1,6 @@
 # #NotesApp hand-over note
 
-**Date:** 17 October 2026 · **Latest version:** v0.40.0 · **Repository:** `AceBoss1/notesapp`
+**Date:** 17 October 2026 · **Latest version:** v0.40.1 · **Repository:** `AceBoss1/notesapp`
 **Owner:** the founder and CEO of NotesApp Technologies Ltd (product decisions, approvals, deploys that need console access).
 
 Start with `README.md` (what is live, the docs index, the checks); settings are in `docs/ENVIRONMENT.md`, deploying in

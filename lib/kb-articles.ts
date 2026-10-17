@@ -304,7 +304,7 @@ Calls are free. Planned: paid calls inside Notes Life (₦5 a minute voice, ₦1
 
 **Notes Academy** is where courses will be. It's opening soon; if you'd like to teach, use **Want to teach?** on the page.
 
-**Profiles** have **Notes**, **Store** and **Courses** tabs, and these buttons: **Follow** (on a phone it steps aside once you follow), **Book a session** (when the publisher takes bookings), **Conversation** (a direct message) and **Gift me**. If Gift me is greyed out, the publisher hasn't set up payouts yet: tap or hover the ℹ️ beside it.
+**Profiles** have **Notes**, **Store** and **Courses** tabs, and these buttons: **Follow** (it reads **✓ Following** once you follow; tap it to unfollow), **Book a session** (when the publisher takes bookings), **Conversation** (a direct message) and **Gift me**. If Gift me is greyed out, the publisher hasn't set up payouts yet: tap or hover the ℹ️ beside it.
 
 **Trending** has the same tabs: Notes, Store, Courses and Publishers.
 
