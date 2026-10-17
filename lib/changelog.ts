@@ -11,6 +11,20 @@ export type Release = {
 
 export const CHANGELOG: Release[] = [
   {
+    version: "v0.40.0",
+    bump: "minor",
+    date: "2026-10-17",
+    changes: [
+      { kind: "changed", text: "Journals open with what you're interested in (For you), then what people read most this week, then what's new, then people and channels to follow." },
+      { kind: "added", text: "Notes Market at /shop: every store on #NotesApp in one place, in the same order (For you, Most viewed, New), with digital items, categories and a list of stores." },
+      { kind: "added", text: "Notes Academy at /academy: where courses will live. Publishers can tell us they want to teach." },
+      { kind: "changed", text: "Profiles have Notes, Store and Courses tabs, and the buttons Follow, Book a session, Conversation and Gift me. On a phone, Follow steps aside once you follow someone." },
+      { kind: "changed", text: "Trending has Notes, Store, Courses and Publishers tabs, with your interests first among the topics." },
+      { kind: "changed", text: "Wherever a picture and a name appear together, the person's badges come right after the name, before their @username." },
+      { kind: "changed", text: "When a publisher hasn't set up payouts, Gift me is greyed out with an ℹ️ that explains why (hover or tap it)." },
+    ],
+  },
+  {
     version: "v0.39.0",
     bump: "minor",
     date: "2026-10-17",

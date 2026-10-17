@@ -1,4 +1,4 @@
-import type { Firestore } from "firebase-admin/firestore";
+import { FieldValue, type Firestore } from "firebase-admin/firestore";
 
 // Saved items (the heart) and the "what buyers check more" numbers. Saves are private per member (`storeFavorites/{uid}_{itemId}`);
 // the totals are public (`storeStats/{itemId}` = { ownerUid, views, favs }). Both are written only here, in a transaction.
@@ -42,6 +42,9 @@ export async function recordView(db: Firestore, itemId: string, viewerUid?: stri
     const ownerUid = String(item.data()!.ownerUid);
     if (viewerUid && viewerUid === ownerUid) return false;
     t.set(statRef, { ownerUid, views: (Number(stat.data()?.views) || 0) + 1, favs: Number(stat.data()?.favs) || 0 }, { merge: true });
+    // The day's bucket too (as journals and profiles have), so the marketplace can rank by this week's visits.
+    const day = new Date().toISOString().slice(0, 10);
+    t.set(db.doc(`pageViews/item_${itemId}_${day.replace(/-/g, "")}`), { kind: "item", id: itemId, day, count: FieldValue.increment(1) }, { merge: true });
     return true;
   });
 }

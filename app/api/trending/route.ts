@@ -7,6 +7,7 @@ import { getAllNotes } from "@/lib/firestore-notes";
 import { getAllUsers } from "@/lib/users";
 import { ttlCache } from "@/lib/ttl-cache";
 import { friendlyMessage } from "@/lib/api-errors";
+import { topicsOf } from "@/lib/topics";
 
 export const dynamic = "force-dynamic";
 
@@ -59,7 +60,8 @@ export async function GET(req: NextRequest) {
         slug: n.slug as string,
         title: n.title as string,
         author: n.author as string,
-        authorUsername: byName.get(n.author)?.username,
+        authorUsername: (n.authorUsername as string | undefined) || byName.get(n.author)?.username,
+        topics: topicsOf(n),
         featured_image: (n.featured_image as string) || "",
         date: n.date as string,
         views: windowed ? noteViews.get(n.id) || 0 : lifetime,
@@ -71,7 +73,7 @@ export async function GET(req: NextRequest) {
     const posts = [...notes]
       .filter((n) => n.views > 0)
       .sort((a, b) => b.views - a.views || b.lifetime - a.lifetime || toMillis(b.date) - toMillis(a.date))
-      .slice(0, limit);
+      .slice(0, 40); // enough to narrow to one topic on the page
 
     const pubs = new Map<string, { username: string; displayName: string; avatar: string; views: number; posts: number }>();
     const touch = (name: string) => {

@@ -138,7 +138,7 @@ export default function MomentViewer({ moments, onClose, onChanged, groups, onSe
                 <button type="button" onClick={() => (g.ownerUid === m.ownerUid ? undefined : onSelectGroup?.(g))} aria-current={g.ownerUid === m.ownerUid}
                   className={`flex w-full items-center gap-3 rounded-2xl border p-2.5 text-left ${g.ownerUid === m.ownerUid ? "border-pink-400/50 bg-white/10" : "border-transparent hover:bg-white/5"}`}>
                   <span className={`block bg-gradient-to-tr from-crimson via-crimson-bright to-amber-400 p-[2px] ${g.isOrg ? "rounded-2xl" : "rounded-full"}`}><span className={`block bg-[#12060a] p-[2px] ${g.isOrg ? "rounded-2xl" : "rounded-full"}`}><Avatar src={g.avatar} alt="" size={40} square={!!g.isOrg} /></span></span>
-                  <span className="min-w-0"><span className="flex min-w-0 items-center text-sm font-bold"><span className="truncate">{g.displayName}</span><NameBadgeIcons username={g.ownerUsername} size={13} /></span><span className="block text-xs text-white/60">{g.moments.length} moment{g.moments.length === 1 ? "" : "s"} · {timeLeftLabel(g.moments[g.moments.length - 1].expiresAt)}</span></span>
+                  <span className="min-w-0"><span className="flex min-w-0 items-center text-sm font-bold"><span className="truncate">{g.displayName}</span><NameBadgeIcons username={g.ownerUsername} size={13} onDark /></span><span className="block text-xs text-white/60">{g.moments.length} moment{g.moments.length === 1 ? "" : "s"} · {timeLeftLabel(g.moments[g.moments.length - 1].expiresAt)}</span></span>
                 </button>
               </li>
             ))}
@@ -171,7 +171,7 @@ export default function MomentViewer({ moments, onClose, onChanged, groups, onSe
           ))}
         </div>
         <div className="flex items-center justify-between px-3 pb-2 text-sm">
-          <Link href={`/u/${m.ownerUsername}`} className="flex items-center gap-2 font-bold hover:underline">{owner?.avatar ? <Avatar src={owner.avatar} alt="" size={32} square={!!owner.isOrg} /> : null}@{m.ownerUsername}<NameBadgeIcons username={m.ownerUsername} size={14} /></Link>
+          <Link href={`/u/${m.ownerUsername}`} className="flex items-center gap-2 font-bold hover:underline">{owner?.avatar ? <Avatar src={owner.avatar} alt="" size={32} square={!!owner.isOrg} /> : null}{owner?.displayName ? <span>{owner.displayName}</span> : null}<NameBadgeIcons username={m.ownerUsername} size={14} onDark /><span className="font-normal text-white/70">@{m.ownerUsername}</span></Link>
           <span className="text-white/70">
             {m.resharedFrom ? `reshared from @${m.resharedFrom.ownerUsername} · ` : ""}{timeLeftLabel(m.expiresAt)}
           </span>
@@ -254,7 +254,7 @@ export default function MomentViewer({ moments, onClose, onChanged, groups, onSe
         <div className={card}>
           <div className="flex items-center gap-3">
             <Avatar src={owner?.avatar ?? ""} alt="" size={48} square={!!owner?.isOrg} />
-            <div className="min-w-0"><p className="flex min-w-0 items-center font-bold"><span className="truncate">{owner?.displayName ?? `@${m.ownerUsername}`}</span><NameBadgeIcons username={m.ownerUsername} size={14} /></p><p className="truncate text-xs text-white/60">@{m.ownerUsername}</p></div>
+            <div className="min-w-0"><p className="flex min-w-0 items-center font-bold"><span className="truncate">{owner?.displayName ?? `@${m.ownerUsername}`}</span><NameBadgeIcons username={m.ownerUsername} size={14} onDark /></p><p className="truncate text-xs text-white/60">@{m.ownerUsername}</p></div>
           </div>
           {!m.mine && (
             <>

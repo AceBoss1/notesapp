@@ -55,6 +55,17 @@ journals have no `topics`: `topicsOf()` reads their categories and tags through 
 (journals on their interests) before everything else, the Topics tab groups topics with theirs first, a journal's hashtags
 link to `/journals?topic=…`, and the weekly digest ranks by them. API v1 accepts and returns `topics`.
 
+## Discovery: one order everywhere (v0.40.0)
+Journals, Notes Market (`/shop`), Notes Academy (`/academy`), profile tabs and Trending share `lib/discovery.ts`:
+`shelves(list, reader)` gives **For you** (on the reader's interests, people they follow first), **Most viewed** (the true
+ranking by this week's views, `viewsWeek`, or all-time views when nothing was counted this week) and **Recent** (newest,
+leaving out what For you already shows, unless that would leave it empty). This week's views come from the daily
+`pageViews/{kind}_{id}_{yyyymmdd}` buckets (kinds `note`, `profile`, `item`; store items are counted by
+`lib/store-stats-server.ts`), summed by `lib/discovery-server.ts` and served at `/api/public/weekly-views?kind=` (cached 5
+minutes). The market is `getMarket()` in `lib/shop-directory.ts`: every listed store's items with seller, topics (the item's
+own, or its category's through `CATEGORY_TOPICS`), views and favourites, at `/api/public/market`. Badges next to names come
+from one batched call, `/api/public/badges`, drawn by `NameBadgeIcons`.
+
 ## Weekly digest switch (v0.38.0)
 Admin → Weekly digest (`/admin/digest`, owner and super admins): status, preview, send yourself a test, and the on/off switch
 (`digestConfig/main`). `WEEKLY_DIGEST=on` in Vercel keeps it on regardless. Unsubscribe links are signed with

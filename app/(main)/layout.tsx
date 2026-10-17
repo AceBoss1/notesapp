@@ -22,17 +22,20 @@ import { FacebookIcon, LinkedInIcon, MailIcon, NotesAppIcon } from "@/components
 import PartnerIcon from "@/components/PartnerIcon";
 import { ROOT_DOMAIN } from "@/lib/host";
 
+// Contact is in the footer and on About.
 const NAV = [
   { href: "/journals", label: "Journals" },
+  { href: "/shop", label: "Market" },
+  { href: "/academy", label: "Academy" },
   { href: "/trending", label: "Trending" },
   { href: "/pricing", label: "Pricing" },
   { href: "/about", label: "About" },
-  { href: "/contact", label: "Contact" },
 ];
 
 // On the app domain (notesapp.ng) the masthead carries only the app.
 const APP_NAV = [
   { href: "/journals", label: "Journals" },
+  { href: "/shop", label: "Market" },
   { href: "/messages", label: "Messages" },
   { href: "/bookings", label: "Bookings" },
   { href: "/trending", label: "Trending" },
@@ -141,6 +144,8 @@ const site = await getSiteSettingsCached();
               <p className="eyebrow text-crimson-bright/90">Product</p>
               <ul className="mt-4 space-y-2 text-sm text-paper/75">
                 <li><Link href="/journals" className="hover:text-paper">Journals</Link></li>
+                <li><Link href="/shop" className="hover:text-paper">Notes Market</Link></li>
+                <li><Link href="/academy" className="hover:text-paper">Notes Academy</Link></li>
                 <li><Link href="/booking" className="hover:text-paper">Booking</Link></li>
                 <li><Link href="/boost" className="hover:text-paper">Boost</Link></li>
                 <li><Link href="/gifts" className="hover:text-paper">Gifts</Link></li>

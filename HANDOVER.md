@@ -1,6 +1,6 @@
 # #NotesApp hand-over note
 
-**Date:** 17 October 2026 · **Latest version:** v0.39.0 · **Repository:** `AceBoss1/notesapp`
+**Date:** 17 October 2026 · **Latest version:** v0.40.0 · **Repository:** `AceBoss1/notesapp`
 **Owner:** the founder and CEO of NotesApp Technologies Ltd (product decisions, approvals, deploys that need console access).
 
 Start with `README.md` (what is live, the docs index, the checks); settings are in `docs/ENVIRONMENT.md`, deploying in
@@ -15,7 +15,8 @@ This note covers how the work is done, what's in flight, and what to watch.
 |---|---|
 | `main` | **v0.36.0** (merged 16 Oct 2026, with this note and the updated README): Notes Life hotel stays (11 AM checkout, room service, 100% needs in the suite), the calm sound in the suite / VIP bar / classes, site-wide links, chat link previews and the @mention picker; before it, #145 and #146 (Digital Witch landing cards, the partner card, the VIP bar 360° view, the pool shape, the street billboard). Vercel deploys `main` on merge. |
 | `claude/pensive-allen-5tvypx` | The previous session's working branch, reset to `main` after each merge. |
-| `claude/interests-and-courses` | **v0.39.0:** hashtag interests and one topic list (`lib/topics.ts`, `/interests`, the journal form, For you in the feed, the Topics tab, the digest), and the course platform plan (`docs/COURSES.md`). |
+| `push/discovery` | **v0.40.0:** Journals, Notes Market (`/shop`) and Notes Academy (`/academy`) in one order (For you, Most viewed this week, Recent), profile tabs and buttons, Trending tabs, badges after every name, the ℹ️ on Gift me, and demo data for the emulators (`scripts/seed-demo.ts`). |
+| `claude/interests-and-courses` | v0.39.0, merged: hashtag interests and one topic list (`lib/topics.ts`, `/interests`, the journal form, For you in the feed, the Topics tab, the digest), and the course platform plan (`docs/COURSES.md`). |
 | `claude/server-writes-and-docs` | v0.38.0, merged: server-owned comments and notifications, shared rate limits (Upstash), one place for settings (`lib/config.ts`), journals by account id, the staging plan and CI, the digest admin page, the short README and `docs/`, and the fund and launch tasks on the team hub. |
 | `claude/notesapp-tech-and-digest` | v0.37.0, merged: the primary address setting, link-preview fix, @mention bells, the weekly digest. |
 
@@ -94,6 +95,10 @@ All of these are on the team hub board with departments and dates (`lib/team-see
 | Comments and bells | `lib/comments-server.ts`, `app/api/comments`, `app/api/notify/like`, `app/api/admin/notify`, `lib/moderation-messages.ts` |
 | Shared store | `lib/shared-store.ts` (Upstash REST, memory fallback), `lib/rate-limit.ts` |
 | Topics and interests | `lib/topics.ts` (the one list), `components/TopicPicker.tsx`, `app/(main)/interests`, `app/api/account/interests`, `lib/interests-client.ts`, `scripts/backfill-topics.ts` |
+| Discovery | `lib/discovery.ts` (the shelves: For you, Most viewed, Recent), `lib/discovery-server.ts` + `app/api/public/weekly-views` (this week's visits from `pageViews`), `components/DiscoveryHero.tsx`, `Shelf.tsx`, `RankedList.tsx`, `FollowCards.tsx`, `JournalsPageClient.tsx`, `app/(main)/trending` |
+| Notes Market and Academy | `/shop`: `components/MarketPageClient.tsx`, `MarketCard.tsx`, `lib/shop-directory.ts` (`getMarket`), `app/api/public/market`; `/academy`: `app/(main)/academy`; profile tabs `components/ProfileTabs.tsx`, `BookSessionButton.tsx` |
+| Badges by names | `lib/name-badges.ts`, `lib/badges-client.ts`, `app/api/public/badges`, `components/PersonName.tsx` (`NameBadgeIcons`) |
+| Demo data | `scripts/seed-demo.ts` (emulators only; `NEXT_PUBLIC_FIRESTORE_EMULATOR_HOST`, `NEXT_PUBLIC_AUTH_EMULATOR_HOST`), see `docs/STAGING.md` |
 | Courses (planned) | `docs/COURSES.md`; builds on view-only lessons (`components/LessonsEditor.tsx`, `lib/stream.ts`, `lib/private-files.ts`) |
 | Weekly digest | template `lib/digest.ts`, sending `lib/digest-server.ts`, cron job `weeklyDigest`, `app/api/digest/unsubscribe`, `app/api/account/email-prefs`, `app/api/admin/digest`, `app/(main)/admin/digest`, `components/EmailSettings.tsx` |
 | Money | Paystack `app/api/paystack/*`, `lib/payments.ts`; wallet `lib/wallet*.ts`; Paylony (in progress) `lib/paylony.ts`; team ledger in the admin area |
@@ -115,6 +120,7 @@ npm run test:preview           # link-preview safety (no emulator; listens on po
 npm run test:authors           # journal author backfill
 npm run test:shared            # shared rate limits and cache (a stand-in Upstash)
 npm run test:topics            # topics, hashtags and the topic backfill
+npm run test:discovery         # For you, Most viewed and Recent shelves
 npm run test:smoke             # Playwright, against a running site (SMOKE_BASE_URL)
 ```
 The emulator-based tests start their own emulator on port 8080, so stop any emulator you started yourself first.

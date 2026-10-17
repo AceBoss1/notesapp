@@ -69,7 +69,7 @@ export default function MomentsStrip() {
               <span className={`absolute left-2 top-2 block bg-gradient-to-tr from-crimson via-crimson-bright to-amber-400 p-[3px] shadow ${g.isOrg ? "rounded-2xl" : "rounded-full"}`}>
                 <span className={`block bg-white p-[2px] ${g.isOrg ? "rounded-2xl" : "rounded-full"}`}><Avatar src={g.avatar} alt="" size={36} square={!!g.isOrg} /></span>
               </span>
-              <span className="absolute inset-x-0 bottom-0 flex items-center bg-gradient-to-t from-black/70 to-transparent px-2 pb-2 pt-6 text-xs font-bold text-white"><span className="truncate">{g.displayName}</span><NameBadgeIcons username={g.ownerUsername} size={12} /></span>
+              <span className="absolute inset-x-0 bottom-0 flex items-center bg-gradient-to-t from-black/70 to-transparent px-2 pb-2 pt-6 text-xs font-bold text-white"><span className="truncate">{g.displayName}</span><NameBadgeIcons username={g.ownerUsername} size={12} onDark /></span>
             </button>
           ))}
           {!others.length && <p className="self-center pl-2 text-sm text-slate">When people you follow share a moment, it shows up here.</p>}

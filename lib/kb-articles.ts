@@ -291,6 +291,19 @@ Calls are free. Planned: paid calls inside Notes Life (₦5 a minute voice, ₦1
 
 **Browsing:** the **Topics** tab on [Journals](/journals) groups every topic that has journals, with yours first. Tap a hashtag at the end of a journal to see more on that topic.
 `),
+    A("discovery", "Journals, Notes Market, Notes Academy and Trending", "Getting started", `
+**The order:** [Journals](/journals), [Notes Market](/shop) and [Notes Academy](/academy) all show things in the same order: **For you** first (on [your interests](/interests)), then **Most viewed** (what people opened most in the last 7 days), then **Recent**. Use the tabs to see one of these on its own, or a topic.
+
+**Notes Market** collects every #NotesApp store: items for you, the most viewed, new arrivals, digital downloads, categories and a list of stores. Each item shows its seller and their badges. Buying works as it does in the seller's own store.
+
+**Notes Academy** is where courses will be. It's opening soon; if you'd like to teach, use **Want to teach?** on the page.
+
+**Profiles** have **Notes**, **Store** and **Courses** tabs, and these buttons: **Follow** (on a phone it steps aside once you follow), **Book a session** (when the publisher takes bookings), **Conversation** (a direct message) and **Gift me**. If Gift me is greyed out, the publisher hasn't set up payouts yet: tap or hover the ℹ️ beside it.
+
+**Trending** has the same tabs: Notes, Store, Courses and Publishers.
+
+**Badges** always come right after a person's name, before their @username, wherever their picture and name appear.
+`),
     A("weekly-digest", "The #NotesApp Weekly Digest email", "Getting started", `
 Every Sunday evening (from 5 PM, Lagos time) #NotesApp can email you a short digest: up to five journals published that week, chosen for you. Journals from people you follow come first, then [your interests](/interests), then what most people liked that week. Your own posts are never in it.
 

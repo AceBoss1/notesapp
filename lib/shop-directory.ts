@@ -1,5 +1,7 @@
 import { getAdminDb } from "./firebase-admin";
 import { ttlCache } from "./ttl-cache";
+import { CATEGORY_TOPICS, categoryOf } from "./store-meta";
+import { cleanTopics } from "./topics";
 
 // The shops listed under "Individual Shops" on the Merch Store page: every publisher who can take an order right now.
 // A shop is listed when it has at least one buyable item (a physical item in stock, or a download with its file
@@ -20,7 +22,17 @@ export type DirectoryShop = {
   hiddenBy?: "owner" | "admin"; // only set (when switched off) for the admin view
 };
 
+// One item in Notes Market (/shop): every buyable item of every listed shop, with its seller, visits and topics.
+export type MarketItem = {
+  id: string; title: string; price: string; image: string; kind: string; category: string; topics: string[]; createdAt: string;
+  sellerUid: string; sellerUsername: string; sellerName: string; sellerAvatar: string; sellerIsOrg: boolean; href: string;
+  views: number; viewsWeek: number; favs: number;
+};
+
 async function build(includeHidden: boolean): Promise<DirectoryShop[]> {
+  return (await buildAll(includeHidden)).shops;
+}
+async function buildAll(includeHidden: boolean): Promise<{ shops: DirectoryShop[]; items: MarketItem[] }> {
   const db = getAdminDb();
   const [itemsSnap, boostsSnap, domainsSnap] = await Promise.all([
     db.collection("storeItems").where("sellable", "==", true).get(),
@@ -42,6 +54,7 @@ async function build(includeHidden: boolean): Promise<DirectoryShop[]> {
   const domainOf = new Map(domainsSnap.docs.map((d) => [d.data().uid as string, d.data().host as string]));
 
   const shops: DirectoryShop[] = [];
+  const market: MarketItem[] = [];
   await Promise.all(
     [...byOwner.entries()].map(async ([uid, items]) => {
       const [userSnap, payoutSnap] = await Promise.all([db.doc(`users/${uid}`).get(), db.doc(`payoutAccounts/${uid}`).get()]);
@@ -65,12 +78,33 @@ async function build(includeHidden: boolean): Promise<DirectoryShop[]> {
         newestAt: String(sorted[0]?.createdAt || ""),
         ...(includeHidden && hiddenBy ? { hiddenBy } : {}),
       });
+      if (hiddenBy) return;
+      for (const i of sorted) {
+        const category = categoryOf(i);
+        market.push({
+          id: String(i.id), title: String(i.title ?? ""), price: String(i.price ?? ""), image: String(i.images?.[0] || i.image || ""), kind: String(i.kind ?? "physical"),
+          category, topics: Array.isArray(i.topics) && i.topics.length ? cleanTopics(i.topics, 3) : CATEGORY_TOPICS[category], createdAt: String(i.createdAt ?? ""),
+          sellerUid: uid, sellerUsername: String(u.username), sellerName: String(u.displayName || u.username), sellerAvatar: String(u.avatar ?? ""), sellerIsOrg: u.accountKind === "organisation",
+          href: host ? `https://${host}/shop/${i.id}` : `/shop/${i.id}`, views: 0, viewsWeek: 0, favs: 0,
+        });
+      }
     })
   );
-  return shops.sort((a, b) => Number(b.boosted) - Number(a.boosted) || b.newestAt.localeCompare(a.newestAt));
+  // Visits and favourites: lifetime from storeStats, this week from the day buckets (lib/store-stats-server.ts recordView).
+  if (market.length) {
+    const stats = await db.getAll(...market.map((m) => db.doc(`storeStats/${m.id}`)));
+    stats.forEach((st, i) => { market[i].views = Number(st.data()?.views) || 0; market[i].favs = Number(st.data()?.favs) || 0; });
+    const week = await db.collection("pageViews").where("day", ">=", new Date(now - 7 * 86_400_000).toISOString().slice(0, 10)).get();
+    const byId = new Map(market.map((m) => [m.id, m]));
+    week.docs.forEach((d) => { const b = d.data(); if (b.kind === "item") { const m = byId.get(String(b.id)); if (m) m.viewsWeek += Number(b.count) || 0; } });
+  }
+  return { shops: shops.sort((a, b) => Number(b.boosted) - Number(a.boosted) || b.newestAt.localeCompare(a.newestAt)), items: market };
 }
 
-const listed = ttlCache(60_000, () => build(false));
+const everything = ttlCache(60_000, () => buildAll(false));
+const listed = async () => (await everything()).shops;
+// Notes Market (/shop, GET /api/public/market): every buyable item of the listed shops.
+export const getMarket = async (): Promise<{ shops: DirectoryShop[]; items: MarketItem[] }> => everything().catch(() => ({ shops: [], items: [] }));
 export const getShopDirectory = async (): Promise<DirectoryShop[]> => listed().catch(() => []);
 // Admin view: includes the shops that are switched off, flagged `hidden`.
 export const getShopDirectoryForAdmin = () => build(true);

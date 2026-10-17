@@ -33,14 +33,12 @@ import ScrollToHash from "@/components/ScrollToHash";
 import GiftButton from "@/components/GiftButton";
 import BadgeToast from "@/components/BadgeToast";
 import { OrgLabel, UnverifiedOrgNotice } from "@/components/OrgNotice";
-import JournalRow from "@/components/JournalRow";
-import NotesAppPostRow from "@/components/NotesAppPostRow";
+import ProfileTabs from "@/components/ProfileTabs";
+import BookSessionButton from "@/components/BookSessionButton";
 import { getStoreItems, StoreItem } from "@/lib/store";
-import ItemCard from "@/components/StoreItemCard";
 import AdSlot from "@/components/AdSlot";
 import RecommendationsPanel from "@/components/RecommendationsPanel";
 import { OFFICIAL_NOTESAPP_PROFILE, NA_NOTESAPP_PROFILE, SYNTHETIC_USERNAMES, VERIFIED_USERNAMES } from "@/lib/journals-directory";
-import { NOTESAPP_POSTS } from "@/lib/notesapp-posts";
 
 const SUSPENDED_AVATAR = "/images/brand/suspended-avatar.png";
 
@@ -269,7 +267,8 @@ export default function ProfilePageClient({ params }: { params: { username: stri
           />
         )}
         <div>
-          <h1 className="flex items-center gap-2 font-display text-3xl text-ink">
+          <h1 className="font-display text-3xl text-ink">
+            {/* inline, so the badges follow the last word when a long name wraps */}
             {profile.displayName}
             <NameBadgeIcons username={profile.username} size={20} badges={suspended ? NO_BADGES : { level: badge, goldKind: goldKindOf(realProfile), team: VERIFIED_USERNAMES.includes(profile.username) || (!!realProfile && isTeamMember(realProfile)) }} />
             <OrgLabel profile={realProfile} />
@@ -310,19 +309,16 @@ export default function ProfilePageClient({ params }: { params: { username: stri
           {viewer && realProfile && viewer.uid !== realProfile.uid && <PresenceText status={presence.statuses[realProfile.uid]} className="mt-1" />}
         </div>
         <div className="ml-0 flex shrink-0 flex-wrap gap-3 sm:ml-auto">
-          <FollowButton username={profile.username} />
+          {/* Follow (steps aside on phones once you follow), Book a session, Conversation, Gift me. */}
+          <FollowButton username={profile.username} compactWhenFollowing />
           {viewer && !suspended && <OfficialFollowControl username={profile.username} />}
-          {!synthetic && !suspended && <MessageButton username={profile.username} profileUid={realProfile?.uid} />}
-          {!synthetic && <GiftButton username={profile.username} publisherUid={realProfile?.uid} />}
+          {!synthetic && !suspended && viewer?.uid !== realProfile?.uid && <BookSessionButton publisherUid={realProfile?.uid} />}
+          {!synthetic && !suspended && <MessageButton username={profile.username} profileUid={realProfile?.uid} label="💬 Conversation" />}
+          {!synthetic && <GiftButton username={profile.username} publisherUid={realProfile?.uid} label="🎁 Gift me" />}
           {hasPremium && (
             <div id="subscribe" className="scroll-mt-28 rounded-full">
               <SubscribeButton username={profile.username} publisherUid={realProfile?.uid} />
             </div>
-          )}
-          {storeItems.length > 0 && (
-            <Link href={`/u/${profile.username}/store`} className="btn-ghost">
-              Brand store
-            </Link>
           )}
         </div>
       </div>
@@ -372,11 +368,13 @@ export default function ProfilePageClient({ params }: { params: { username: stri
         </div>
       )}
 
-      {/* Paid 1:1 sessions at the publisher's own rate — hidden until
-          they switch it on in /profile/publishing. Not on synthetic
-          channel accounts. */}
+      {/* Notes · Store · Courses (components/ProfileTabs.tsx). */}
+      <ProfileTabs username={profile.username} notes={notes} storeItems={storeItems} isOfficial={isOfficial} suspended={suspended} storeFirst={storeFirst} />
+
+      {/* Paid 1:1 sessions at the publisher's own rate: hidden until they switch it on in /profile/publishing ("Book a session"
+          above comes here). Not on synthetic channel accounts. */}
       {!synthetic && (
-        <div id="book" className="scroll-mt-28">
+        <div id="book" className="mt-14 scroll-mt-28">
           <BookingCard username={profile.username} publisherUid={realProfile?.uid} viewer={viewer} />
         </div>
       )}
@@ -384,60 +382,6 @@ export default function ProfilePageClient({ params }: { params: { username: stri
       <AdSlot placement="profile" publisher={realProfile ?? undefined} publisherUid={realProfile?.uid} />
 
       {!suspended && !synthetic && realProfile && <RecommendationsPanel subjectUid={realProfile.uid} subjectName={profile.displayName} user={viewer} />}
-
-      {/* The store: a taste of it under the journal, or the whole shelf as the page's main content when they publish no journal. */}
-      {storeItems.length > 0 && (
-        <div className="mt-14">
-          <div className="flex items-center justify-between">
-            <p className="eyebrow">{storeFirst ? "Store" : "From the brand store"}</p>
-            {!storeFirst && storeItems.length > 3 && (
-              <Link
-                href={`/u/${profile.username}/store`}
-                className="font-ui text-xs font-semibold text-crimson hover:text-crimson-bright"
-              >
-                View all →
-              </Link>
-            )}
-          </div>
-          <div className="mt-5 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
-            {(storeFirst ? storeItems : storeItems.slice(0, 3)).map((item) => (
-              <ItemCard key={item.id ?? item.title} item={item} />
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* Their public writing — same /notes documents Precheks shows,
-          except for @notesapp, whose "journal" is 5 hardcoded
-          explanatory posts (see lib/notesapp-posts.ts) — UI-only, no
-          Firestore, same as the rest of this synthetic profile. */}
-      {isOfficial ? (
-        <div className="mt-14">
-          <p className="eyebrow">Journal</p>
-          <div className="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-2">
-            {NOTESAPP_POSTS.map((post) => (
-              <NotesAppPostRow key={post.slug} post={post} />
-            ))}
-          </div>
-        </div>
-      ) : storeFirst ? null : (
-        <div className="mt-14">
-          <p className="eyebrow">Public journal</p>
-          {suspended ? (
-            <p className="mt-4 text-sm italic text-slate">
-              Entries are hidden while this account is temporarily suspended.
-            </p>
-          ) : notes.length === 0 ? (
-            <p className="mt-4 text-sm text-slate">No public entries yet.</p>
-          ) : (
-            <div className="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-2">
-              {notes.map((n) => (
-                <JournalRow key={n.id} note={n} />
-              ))}
-            </div>
-          )}
-        </div>
-      )}
 
       {/* Activity — @notesapp gets none of this, there's no real
           Firestore data behind it. */}

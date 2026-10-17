@@ -1,6 +1,7 @@
 import { GOLD_BADGE_TITLE, GoldBadgeKind } from "@/lib/badges";
 
-export default function VerifiedBadge({ size = 16, level = "verified", goldKind }: { size?: number; level?: "verified" | "gold" | null; goldKind?: GoldBadgeKind }) {
+// `onDark`: a light outline so the maroon tick stays visible on crimson or black backgrounds.
+export default function VerifiedBadge({ size = 16, level = "verified", goldKind, onDark = false }: { size?: number; level?: "verified" | "gold" | null; goldKind?: GoldBadgeKind; onDark?: boolean }) {
   if (!level) return null;
   const gold = level === "gold";
   const label = gold ? (goldKind ? GOLD_BADGE_TITLE[goldKind] : "Gold badge — identity verified by Dojah or endorsed by #NotesApp") : "Verified";
@@ -18,8 +19,8 @@ export default function VerifiedBadge({ size = 16, level = "verified", goldKind 
       <path
         d="M10 0l2.245 1.183 2.523-.29 1.183 2.245L18.196 4.35l-.29 2.523L19.09 9.09l-1.184 2.245.29 2.523-2.245 1.184-1.183 2.245-2.523-.29L10 18.18l-2.245-1.184-2.523.29-1.183-2.245-2.245-1.184.29-2.523L.906 9.09l1.184-2.245-.29-2.523L4.045 3.138l1.183-2.245 2.523.29L10 0z"
         fill={gold ? "#C99A1B" : "#7A0328"}
-        stroke={gold ? "#8A6508" : "none"}
-        strokeWidth={gold ? 0.6 : 0}
+        stroke={onDark ? "#FBF6F2" : gold ? "#8A6508" : "none"}
+        strokeWidth={onDark ? 1.4 : gold ? 0.6 : 0}
       />
       <path
         d="M6 10l2.5 2.5L14 7"

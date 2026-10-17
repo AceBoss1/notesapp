@@ -17,8 +17,10 @@ assert.equal(byMostViewed(list)[0].id, "fin-old-popular"); // lifetime 900 beats
 assert.deepEqual(byForYou(list, reader).map((s) => s.id).sort(), ["fin-new", "fin-old-popular", "followed"].sort(), "interests only, never your own");
 assert.equal(byForYou(list, reader)[0].id, "followed", "people you follow first among your interests");
 const sh = shelves(list, reader, 3);
-const all = [...sh.forYou, ...sh.mostViewed, ...sh.recent].map((s) => s.id);
-assert.equal(new Set(all).size, all.length, "nothing repeated across shelves");
+assert.deepEqual(sh.mostViewed.map((s) => s.id), byMostViewed(list).filter((s) => (s.viewsWeek ?? s.views) > 0).slice(0, 3).map((s) => s.id), "Most viewed is the true ranking");
+assert.ok(!sh.recent.some((s) => sh.forYou.some((f) => f.id === s.id)), "Recent leaves out what For you showed");
+const everyone = shelves(list.filter((s) => s.topics.includes("fintech") && s.ownerUsername !== "me"), reader, 6);
+assert.ok(everyone.recent.length > 0, "Recent falls back to the newest when For you showed everything");
 assert.ok(!sh.mostViewed.some((s) => s.id === "cold"), "nothing with no visits on Most viewed");
 assert.deepEqual(shelves(list, { interests: [] }, 3).forYou, [], "no interests, no For you shelf");
 for (const c of STORE_CATEGORIES) for (const t of CATEGORY_TOPICS[c]) assert.ok(isTopic(t), `${c} → ${t} is a topic`);

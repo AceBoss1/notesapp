@@ -21,6 +21,8 @@ Environment Variables (mark secrets Sensitive), then redeploy: `NEXT_PUBLIC_*` v
 | `NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET` | no | Firebase web config. |
 | `NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID` | no | Firebase web config. |
 | `NEXT_PUBLIC_FIREBASE_APP_ID` | no | Firebase web config. |
+| `NEXT_PUBLIC_FIRESTORE_EMULATOR_HOST` | no | Development, CI and screenshots only: host:port of the Firestore emulator for the browser (127.0.0.1:8080). Never set on the live site. |
+| `NEXT_PUBLIC_AUTH_EMULATOR_HOST` | no | Development, CI and screenshots only: host:port of the Auth emulator for the browser (127.0.0.1:9099); the server reads FIREBASE_AUTH_EMULATOR_HOST. Never set on the live site. |
 | `FIREBASE_SERVICE_ACCOUNT_KEY` | **yes** | Service-account JSON as one line; every server route needs it. |
 | `GOOGLE_APPLICATION_CREDENTIALS` | no | Local only: path to a service-account file, instead of FIREBASE_SERVICE_ACCOUNT_KEY. |
 
@@ -136,11 +138,11 @@ Environment Variables (mark secrets Sensitive), then redeploy: `NEXT_PUBLIC_*` v
 
 | Setting | Secret | What it does |
 |---|---|---|
-| `NEXT_PUBLIC_MESSAGES_LIVE` | no | On unless set to false. |
-| `NEXT_PUBLIC_MOMENTS_LIVE` | no | On unless set to false. |
-| `NEXT_PUBLIC_CALLS_LIVE` | no | On unless set to false (needs messages on). |
-| `NEXT_PUBLIC_WALLET_LIVE` | no | On unless set to false. |
-| `NEXT_PUBLIC_LIFE_LIVE` | no | On unless set to false. |
+| `NEXT_PUBLIC_MESSAGES_LIVE` | no | Messages, group chats and the Conversation button: off unless set to true (also on when moments are). |
+| `NEXT_PUBLIC_MOMENTS_LIVE` | no | Moments: off unless set to true (turns messages on too). |
+| `NEXT_PUBLIC_CALLS_LIVE` | no | Voice and video calls: on whenever messages are, unless set to false. |
+| `NEXT_PUBLIC_WALLET_LIVE` | no | The NotesApp Credit wallet: on unless set to false. |
+| `NEXT_PUBLIC_LIFE_LIVE` | no | Notes Life: on unless set to false. |
 
 ## Other
 

@@ -3,8 +3,9 @@
 //   For you      matches the reader's interests (topics, lib/topics.ts); people they follow first among those
 //   Recent       the newest
 //   Most viewed  the most visits this week (lifetime visits until weekly counts exist)
-// On the "All" view each thing shows on one shelf only (For you, then Most viewed, then Recent), so a reader never scrolls
-// past the same card three times; a shelf's own tab lists everything in that order.
+// On the "All" view, Most viewed is always the true ranking (it may repeat a For you card, because a ranking that skips the
+// top items would be wrong); Recent leaves out what For you already showed, and falls back to the newest overall when that
+// leaves nothing. A shelf's own tab lists everything in its order.
 export type Shelfable = { id: string; topics: string[]; publishedAt: string; views: number; viewsWeek?: number; ownerUsername?: string };
 export type Reader = { interests: string[]; follows?: Set<string>; self?: string };
 export type Shelves<T> = { forYou: T[]; mostViewed: T[]; recent: T[] };
@@ -26,12 +27,12 @@ export function byForYou<T extends Shelfable>(list: T[], r: Reader): T[] {
   return list.filter((s) => s.topics.some((t) => want.has(t)) && s.ownerUsername !== r.self).sort((a, b) => score(b) - score(a));
 }
 
-// The three shelves for the "All" view, each `size` long at most, nothing repeated.
+// The three shelves for the "All" view, each `size` long at most.
 export function shelves<T extends Shelfable>(list: T[], r: Reader, size = 6): Shelves<T> {
-  const used = new Set<string>();
-  const take = (ordered: T[]) => { const out: T[] = []; for (const s of ordered) { if (out.length >= size) break; if (!used.has(s.id)) { used.add(s.id); out.push(s); } } return out; };
-  const forYou = take(byForYou(list, r));
-  const mostViewed = take(byMostViewed(list).filter((s) => heat(s) > 0));
-  const recent = take(byRecent(list));
-  return { forYou, mostViewed, recent };
+  const forYou = byForYou(list, r).slice(0, size);
+  const mostViewed = byMostViewed(list).filter((s) => heat(s) > 0).slice(0, size);
+  const shown = new Set(forYou.map((s) => s.id));
+  const newest = byRecent(list);
+  const fresh = newest.filter((s) => !shown.has(s.id));
+  return { forYou, mostViewed, recent: (fresh.length ? fresh : newest).slice(0, size) };
 }

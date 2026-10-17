@@ -17,7 +17,7 @@ Router) on Vercel, Firebase (Auth, Firestore), Cloudflare R2 and Stream, Paystac
 | `docs/BUILD_LOG.md` | The full history, in order (what used to be this README) |
 | `lib/changelog.ts` | Release notes, shown at `/changelog` |
 
-## Where things stand (updated 17 Oct 2026, v0.39.0)
+## Where things stand (updated 17 Oct 2026, v0.40.0)
 
 ### Live today
 | Area | What exists | Where to read more |
@@ -29,7 +29,7 @@ Router) on Vercel, Firebase (Auth, Firestore), Cloudflare R2 and Stream, Paystac
 | Booking & money | Native calendar, Paystack checkout, escrow-style holds, automatic payouts, client rescheduling/cancellation + problem reports | "Payments, payouts, rates, reminders", "Money flow" |
 | **NotesApp Credit wallet** | Top up ₦1,000 to ₦500,000 through Paystack (bonus credits on larger top-ups), pay with wallet or card or both, statement with filters, refunds to the wallet; switch: `NEXT_PUBLIC_WALLET_LIVE` | `lib/wallet.ts`, `lib/wallet-server.ts`, `/help` |
 | Stores | Physical goods (managed stock, categories, "ships from", parcel IDs, rider links, tracking), digital downloads (private bucket, short-lived links), saved items ♡, featured item, store boosts, reviews from buyers who received the item (with seller replies), official merch pre-orders; organisation admins can add and edit items | "Seller checkout and parcel tracking", "Boosts & gifts", `/store-selling` |
-| Promotion & discovery | Post/item boosts (cancel any time, half of what's left refunded), gifts, self-serve banner ads and ad share, Trending with a Top store items tab, recommendations on profiles and organisations | "Boosts & gifts", "Advertiser campaigns" |
+| Promotion & discovery | **Journals, Notes Market (`/shop`) and Notes Academy (`/academy`) in one order: For you, Most viewed this week, Recent** (`lib/discovery.ts`); profile tabs Notes, Store, Courses; Trending tabs Notes, Store, Courses, Publishers; post/item boosts (cancel any time, half of what's left refunded), gifts, self-serve banner ads and ad share, recommendations on profiles and organisations | "Boosts & gifts", "Advertiser campaigns" |
 | Plans & badges | Free Standard/Basic, Pro, Business (Paystack plans), Enterprise (custom); prices set by the owner in Admin → Pricing; maroon ✔, gold ✔ (endorsed; identity-checked is built but **Dojah is still on the sandbox**) | "Pro / Business plans", "Verified badge", "Dojah webhook" |
 | **Enterprise** | Server-to-server API (`/api/v1`), Console, signed webhooks, `/docs`, own domain (subdomain or root), site themes (Legacy or Modern) for Business and Enterprise | "API, Console, Docs and custom domains" |
 | **App address** | `app.notesapp.name.ng`: welcome screen with sign-up and sign-in, a Download button that knows the device, then the journal feed | `middleware.ts` |
@@ -74,6 +74,7 @@ npm run test:digest                # weekly digest
 npm run test:authors               # journal author backfill
 npm run test:shared                # shared rate limits and cache
 npm run test:topics                # topics, hashtags and the topic backfill
+npm run test:discovery             # For you, Most viewed and Recent shelves
 npm run test:preview               # link-preview safety (listens on port 80)
 npm run test:smoke                 # Playwright smoke test against a running site (SMOKE_BASE_URL)
 npx -y tsx scripts/settings-doc.ts --check   # settings read only through lib/config.ts; docs/ENVIRONMENT.md current
