@@ -2,7 +2,7 @@
 
 A course is a set of lessons a member teaches on #NotesApp, with progress, a certificate at the end that anyone can verify, and
 a one-tap share of that certificate. Free courses grow the audience; paid courses earn. This is the owner's spec (17 Oct 2026)
-turned into a build plan. Not built yet.
+turned into a build plan, with the owner's decisions at the end. Not built yet.
 
 ## Who can do what
 
@@ -23,7 +23,7 @@ turned into a build plan. Not built yet.
 - **Enterprise**: a conversation, not a checkbox. The Enterprise page and Console say "Courses for your team or customers:
   from ₦100,000 a month, talk to us", and the request lands in Admin → Enterprise.
 
-### Decision for the owner: paid video
+### Paid video (decided: Stream with a viewer watermark, see Decisions)
 Files (PDFs, slides, audio, downloads, the original video files) go in private R2 as specified. For **playing** paid video
 we recommend **Cloudflare Stream with signed tokens**, which view-only courses already use (`lib/stream.ts`): it streams in
 small encrypted pieces with no single file to save, adapts to slow connections and phone data, and its tokens expire. Playing
@@ -73,8 +73,20 @@ youtube | video | pdf | text | quiz, the YouTube id or the private file key, dur
 
 Each step ships with phone and desktop screenshots first (`HANDOVER.md`), the help article, the changelog and tests.
 
-## Open questions for the owner
-1. Paid video playback: Stream (recommended) or straight from R2?
-2. The plan fee on course sales: the same as store items, or different?
-3. Do free courses get certificates too? (Suggested: yes, marked "Free course".)
-4. The Enterprise course package: what ₦100,000 a month includes (learners, storage, video hours).
+## Decisions (owner, 17 Oct 2026)
+1. **Paid video: Cloudflare Stream** with signed, short-lived tokens; the original file stays in private R2. Our player draws
+   a **watermark of the viewer's @username and email** over the video, faint and moving every few seconds, so it can't be
+   cropped out and any screen recording carries the viewer's own details.
+2. **Our fee on course sales: the same as digital store items**, by the publisher's plan (one rule for publishers).
+3. **Certificates on free courses are paid**: the learner pays our minimum **₦999** plus the margin the publisher sets, and
+   we also take our usual commission from that margin (e.g. margin ₦1,000 → the learner pays ₦1,999; we keep ₦999 plus our
+   commission on the ₦1,000). Paid courses can include the certificate in the course price.
+4. **Enterprise: two packages on top of the regular Enterprise plan** (whose rate stays as it is for anyone who takes
+   neither):
+   - **Enterprise Courses, ₦100,000 a month**: courses hosted on #NotesApp under their brand, their logo on certificates,
+     cohorts and bulk invites, set amounts of learners, storage and video hours, their own tutors added as team members.
+     No API needed.
+   - **Enterprise Academy API, from ₦250,000 a month plus usage**: a stand-alone white-label academy built on our API and
+     webhooks, with their own tutors, enrolment, progress and certificate webhooks, billed partly by learners and video
+     hours.
+   All three prices, and what each package includes, are set by the owner in **Admin → Pricing**.

@@ -11,6 +11,7 @@ import type { NoteWithComputed } from "@/lib/firestore-notes";
 import { hashtag, topicsOf } from "@/lib/topics";
 import Avatar from "@/components/Avatar";
 import { NameBadgeIcons } from "@/components/PersonName";
+import type { FeedAuthor } from "@/lib/feed-author";
 
 export const ago = (iso: string) => {
   const m = Math.max(1, Math.round((Date.now() - Date.parse(iso)) / 60_000));
@@ -43,7 +44,7 @@ const BARS = "M5 20V9M10 20V4M15 20v-8M20 20V7";
 const BOOKMARK = "M6.5 3.5h11v17l-5.5-4-5.5 4v-17Z";
 const OPEN = "M8 16 16 8M9 8h7v7";
 
-export type FeedAuthor = { avatar: string; username: string; role?: string; isOrg?: boolean };
+export type { FeedAuthor } from "@/lib/feed-author";
 type Props = {
   note: NoteWithComputed;
   author: FeedAuthor;
@@ -89,10 +90,15 @@ export default function FeedPost({ note, author, user, views, saved, onSave, fol
   return (
     <article className="border-b-[10px] border-[#F3ECE7] bg-card px-4 py-5 lg:border-b lg:border-rule lg:px-6 lg:py-6">
       <header className="flex items-start gap-3">
-        <Link href={`/u/${author.username}`} className="shrink-0"><Avatar src={author.avatar} alt={note.author} size={44} square={author.isOrg} /></Link>
+        {author.username
+          ? <Link href={`/u/${author.username}`} className="shrink-0"><Avatar src={author.avatar} alt={note.author} size={44} square={author.isOrg} /></Link>
+          : <span className="shrink-0"><Avatar src={author.avatar} alt={note.author} size={44} square={author.isOrg} /></span>}
         <div className="min-w-0 flex-1">
-          <p className="flex items-center font-ui text-[15px] font-bold leading-tight text-ink"><Link href={`/u/${author.username}`} className="truncate hover:text-crimson">{note.author}</Link><NameBadgeIcons username={author.username} /></p>
-          <p className="mt-0.5 truncate text-sm text-slate">@{author.username}{author.role ? ` · ${author.role}` : ""} · {ago(note.date)}</p>
+          <p className="flex items-center font-ui text-[15px] font-bold leading-tight text-ink">
+            {author.username ? <Link href={`/u/${author.username}`} className="truncate hover:text-crimson">{note.author}</Link> : <span className="truncate">{note.author}</span>}
+            {author.username && <NameBadgeIcons username={author.username} />}
+          </p>
+          <p className="mt-0.5 truncate text-sm text-slate">{[author.username && `@${author.username}`, author.role, ago(note.date)].filter(Boolean).join(" · ")}</p>
         </div>
         {label && <span className="shrink-0 rounded-full bg-crimson/[0.07] px-2.5 py-1 font-mono text-[10px] uppercase tracking-eyebrow text-crimson">{label}</span>}
         {follow && <div className="hidden shrink-0 lg:block">{follow}</div>}

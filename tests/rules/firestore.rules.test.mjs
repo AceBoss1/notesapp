@@ -182,6 +182,14 @@ test("organisation fields can't be edited by the owner", async () => {
   await assertFails(updateDoc(doc(as("orgx"), "users/orgx"), { accountKind: "personal" }));
 });
 
+test("site theme, sections and About/Contact pages are server-only on a member's profile", async () => {
+  await assertFails(updateDoc(doc(as("pub"), "users/pub"), { siteTheme: "maroon" }));
+  await assertFails(updateDoc(doc(as("pub"), "users/pub"), { siteSections: { journals: false, shop: true, courses: true } }));
+  await assertFails(updateDoc(doc(as("pub"), "users/pub"), { sitePages: { about: "Hi", updatedAt: "x" } }));
+  await assertFails(updateDoc(doc(as("pub"), "users/pub"), { bio: "ok", "sitePages.contact": "Call me" })); // not alongside an allowed field either
+  await assertSucceeds(updateDoc(doc(as("pub"), "users/pub"), { bio: "ok" }));
+});
+
 test("a publisher can edit and delete their own entries, not other people's", async () => {
   await env.withSecurityRulesDisabled(async (ctx) => {
     const adminDb = ctx.firestore();

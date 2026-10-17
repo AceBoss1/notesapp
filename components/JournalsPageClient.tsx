@@ -12,7 +12,8 @@ import MomentsStrip from "@/components/moments/MomentsStrip";
 import Avatar from "@/components/Avatar";
 import { BadgePitchCard } from "@/components/BadgeToast";
 import { beacon, useBoostImpression, type Boost } from "@/components/BoostedStrip";
-import FeedPost, { type FeedAuthor } from "@/components/feed/FeedPost";
+import FeedPost from "@/components/feed/FeedPost";
+import { feedAuthorOf, type FeedAuthor } from "@/lib/feed-author";
 import { MostRead, WhoToFollow, type FollowRow } from "@/components/feed/FeedModules";
 import { PenIcon } from "@/components/shell/icons";
 import { useBottomTabs } from "@/components/shell/BottomTabs";
@@ -82,7 +83,6 @@ export default function JournalsPageClient() {
   }, [user]);
   useEffect(() => setShown(PAGE), [tab, topic]);
 
-  const byUsername = useMemo(() => new Map(users.map((u) => [u.username, u])), [users]);
   const shelved = useMemo<Shelved[]>(() => {
     const q = query.trim().toLowerCase();
     return (notes ?? [])
@@ -124,10 +124,7 @@ export default function JournalsPageClient() {
     if (draft.trim()) try { localStorage.setItem("notesapp:draft:new", draft.trim()); } catch {}
     router.push("/write/new");
   }
-  const authorOf = (n: NoteWithComputed): FeedAuthor => {
-    const u = n.authorUsername ? byUsername.get(n.authorUsername) : undefined;
-    return { avatar: u?.avatar || n.author_avatar, username: n.authorUsername || u?.username || "", role: n.author_role || undefined, isOrg: u?.accountKind === "organisation" };
-  };
+  const authorOf = (n: NoteWithComputed): FeedAuthor => feedAuthorOf(n, users);
   const followControl = (username: string | undefined) => {
     if (!user || !username || username === profile?.username) return undefined;
     return following.has(username)
@@ -135,7 +132,7 @@ export default function JournalsPageClient() {
       : <button type="button" onClick={() => follow(username)} className="rounded-full bg-ink px-5 py-2 font-ui text-sm font-bold text-paper hover:bg-crimson-deep">Follow</button>;
   };
   const post = (n: NoteWithComputed, label?: string) => (
-    <FeedPost note={n} author={authorOf(n)} user={user} views={n.viewCount || 0} saved={saved.has(n.id)} onSave={toggleSave} follow={followControl(n.authorUsername)} label={label} />
+    <FeedPost note={n} author={authorOf(n)} user={user} views={n.viewCount || 0} saved={saved.has(n.id)} onSave={toggleSave} follow={followControl(authorOf(n).username)} label={label} />
   );
   const promoted = boosts
     .map((b) => ({ b, n: notes?.find((x) => b.href.endsWith(`/journals/${x.slug}`)) }))

@@ -12,12 +12,13 @@ import { badgesOf } from "@/lib/name-badges";
 import SiteNav from "@/components/site/SiteNav";
 import SiteAccount from "@/components/site/SiteAccount";
 import { SiteAuthProvider } from "@/components/site/SiteAuth";
-import { siteThemeOf } from "@/lib/site-themes";
+import { isCrimsonTheme, siteThemeOf } from "@/lib/site-themes";
+import { missingSitePages, siteSectionsOf } from "@/lib/site-settings";
 
-// A member's branded site (Business and Enterprise custom domains): their name in the header, three pages — Home (profile and
-// booking), Notes and Shop — and a "Powered by #NotesApp" footer. No #NotesApp navigation. On their own domain the
-// URLs are /, /notes and /shop (middleware.ts rewrites them here); www.notesapp.name.ng/s/<username> previews it.
-// `data-site-theme` is where future themes will plug in.
+// A member's branded site (Business and Enterprise custom domains): their name in the header, Home (profile, the sections they
+// chose and booking), Notes and Shop (each only if chosen), About and Contact (once written), and a "Powered by #NotesApp" footer.
+// No #NotesApp navigation. On their own domain the URLs are /, /notes, /shop, /about and /contact (middleware.ts rewrites them
+// here); www.notesapp.name.ng/s/<username> previews it. `data-site-theme` is where themes plug in.
 export const dynamic = "force-dynamic";
 
 type Props = { children: React.ReactNode; params: { username: string } };
@@ -55,8 +56,10 @@ export default async function SiteLayout({ children, params }: Props) {
     base, uid: p.uid, username: p.username, displayName: p.displayName, avatar: p.avatar, bio: p.bio, social: p.social || {},
     home: (domain?.home === "store" ? "store" : "profile") as "profile" | "store",
     theme: siteThemeOf(p), isOrg: p.accountKind === "organisation",
+    sections: siteSectionsOf(p),
+    pages: { about: !missingSitePages(p).includes("about"), contact: !missingSitePages(p).includes("contact") },
   };
-  const aurora = info.theme === "aurora";
+  const crimson = isCrimsonTheme(info.theme); // Aurora and Maroon: the crimson header
   const pic = info.isOrg ? "rounded-xl" : "rounded-full";
   // Enterprise on its own domain: sign-in and sign-up are a branded window on the site itself (not on the main-site preview).
   const ownDomainAuth = fullLabel && !isMainHost(host);
@@ -65,12 +68,12 @@ export default async function SiteLayout({ children, params }: Props) {
     <SiteProvider value={info}>
      <Auth>
       <div data-site-theme={info.theme} className="flex min-h-screen flex-col">
-        <header className={aurora ? "sticky top-0 z-40 text-paper shadow-md" : "sticky top-0 z-40 border-b border-rule bg-paper/90 backdrop-blur"} style={aurora ? { backgroundImage: "linear-gradient(100deg, #4E0119 0%, #7A0328 70%, #A6093D 100%)" } : undefined}>
+        <header className={crimson ? "sticky top-0 z-40 text-paper shadow-md" : "sticky top-0 z-40 border-b border-rule bg-paper/90 backdrop-blur"} style={crimson ? { backgroundImage: "linear-gradient(100deg, #4E0119 0%, #7A0328 70%, #A6093D 100%)" } : undefined}>
           <div className="mx-auto flex max-w-5xl items-center justify-between gap-4 px-4 py-4 sm:px-6">
             <Link href={base || "/"} className="flex min-w-0 items-center gap-3">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src={p.avatar} alt="" className={`h-9 w-9 shrink-0 object-cover ${pic}`} />
-              <span className={`truncate font-ui text-lg font-extrabold tracking-tight ${aurora ? "text-paper" : "text-ink"}`}>{p.displayName}</span>
+              <span className={`truncate font-ui text-lg font-extrabold tracking-tight ${crimson ? "text-paper" : "text-ink"}`}>{p.displayName}</span>
               <NameBadgeIcons username={p.username} size={16} badges={badgesOf(p)} />
             </Link>
             <div className="flex shrink-0 items-center gap-5">

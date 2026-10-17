@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { onAuthStateChanged, User } from "firebase/auth";
 import { auth } from "@/lib/firebase";
 import { ROOT_DOMAIN, MAIN_HOST } from "@/lib/host";
+import SiteReminder from "@/components/SiteReminder";
 
 // The Console: API keys, webhooks and your own domain. Keys and webhooks are switched on per account by our team
 // (Enterprise); the domain section needs a plan that includes your own domain (Business and Enterprise).
@@ -115,6 +116,7 @@ export default function ConsolePage() {
       <p className="mt-3 text-slate">
         Build on #NotesApp from your own systems. Read the <Link href="/docs" className="text-crimson underline">Docs</Link> for every endpoint. Prices and plan details are on <Link href="/pricing" className="text-crimson underline">Pricing</Link>.
       </p>
+      <SiteReminder className="mt-6" />
       {error && <p className="mt-6 border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-900">{error}</p>}
       {msg && <p className="mt-6 border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-900">{msg}</p>}
       {secret && <Secret label={secret.label} value={secret.value} onClose={() => setSecret(null)} />}
@@ -215,6 +217,7 @@ export default function ConsolePage() {
 
       {/* ---------------- Domain ---------------- */}
       <h2 className="mt-12 font-display text-2xl text-ink">Your own domain</h2>
+      {access.domainAllowed && <p className="mt-2 text-sm text-slate">Your site&apos;s theme, what it shows and its About and Contact pages are on <Link href="/profile/site" className="text-crimson underline">Your site</Link>.</p>}
       {!access.domainAllowed ? (
         <Locked>A branded site on your own domain (Home, Notes and Shop) is a Business and Enterprise feature. Until then your page lives at <span className="font-mono">{ROOT_DOMAIN}/u/{access.username}</span>. See <Link href="/pricing" className="text-crimson underline">Pricing</Link>.</Locked>
       ) : !domain ? (

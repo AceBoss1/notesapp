@@ -88,7 +88,7 @@ export default function TrendingPage() {
               </div>
             )}
             {posts.length === 0 ? <p className="py-6 text-sm text-slate">No visits recorded yet{topic ? ` on ${hashtag(topic)}` : ""}.</p> : (
-              <RankedList rows={posts.map((p) => ({ key: p.id, href: `/journals/${p.slug}`, title: p.title, sub: <>{p.author}{p.topics?.[0] ? ` · ${hashtag(p.topics[0])}` : ""}</>, count: p.views }))} />
+              <RankedList rows={posts.map((p) => ({ key: p.id, href: `/journals/${p.slug}`, title: p.title, sub: <>{p.author}{p.topics?.[0] ? ` · ${hashtag(p.topics[0])}` : ""}</>, count: p.views, image: p.featured_image || undefined }))} />
             )}
           </>
         )}
@@ -97,7 +97,7 @@ export default function TrendingPage() {
           <>
             <p className="mb-3 text-xs text-slate">Ranked by what buyers look at and save (a save counts five looks). Items nobody has opened yet follow, newest first. <Link href="/shop" className="font-semibold text-crimson">Browse Notes Market</Link></p>
             {(data.items ?? []).length === 0 ? <p className="py-6 text-sm text-slate">No store items have been looked at yet.</p> : (
-              <RankedList rows={data.items.map((it) => ({ key: it.id, href: `/shop/${it.id}`, title: it.title, count: it.views, sub: <>{it.seller}{it.digital ? " · digital" : ""} · {it.price}{it.favs ? ` · ♥ ${it.favs.toLocaleString("en-GB")}` : ""}{it.reviews ? ` · ★ ${it.rating}` : ""}</> }))} />
+              <RankedList rows={data.items.map((it) => ({ key: it.id, href: `/shop/${it.id}`, title: it.title, image: it.image, count: it.views, sub: <>{it.seller}{it.digital ? " · digital" : ""} · {it.price}{it.favs ? ` · ♥ ${it.favs.toLocaleString("en-GB")}` : ""}{it.reviews ? ` · ★ ${it.rating}` : ""}</> }))} />
             )}
           </>
         )}

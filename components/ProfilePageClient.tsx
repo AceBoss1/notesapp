@@ -370,7 +370,7 @@ export default function ProfilePageClient({ params }: { params: { username: stri
       )}
 
       {/* Notes · Store · Courses (components/ProfileTabs.tsx). */}
-      <ProfileTabs username={profile.username} notes={notes} storeItems={storeItems} isOfficial={isOfficial} suspended={suspended} storeFirst={storeFirst} />
+      <ProfileTabs username={profile.username} owner={{ username: profile.username, displayName: profile.displayName, avatar: profile.avatar, role: profile.roleLabel, isOrg: isOrgAcct }} notes={notes} storeItems={storeItems} isOfficial={isOfficial} suspended={suspended} storeFirst={storeFirst} />
 
       {/* Paid 1:1 sessions at the publisher's own rate: hidden until they switch it on in /profile/publishing ("Book a session"
           above comes here). Not on synthetic channel accounts. */}

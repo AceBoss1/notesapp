@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { onAuthStateChanged, signOut, User } from "firebase/auth";
 import { auth } from "@/lib/firebase";
+import { isCrimsonTheme } from "@/lib/site-themes";
 import { useSiteAuth } from "./SiteAuth";
 import { useSite } from "./SiteContext";
 
@@ -11,7 +12,7 @@ import { useSite } from "./SiteContext";
 // signing in happens on #NotesApp (middleware sends /login there and brings the visitor back, already signed in here).
 export default function SiteAccount() {
   const [user, setUser] = useState<User | null | undefined>(undefined);
-  const dark = useSite().theme === "aurora";
+  const dark = isCrimsonTheme(useSite().theme);
   const whiteLabel = useSiteAuth(); // set on Enterprise domains: sign in and sign up open in a window right here
   useEffect(() => onAuthStateChanged(auth, setUser), []);
   if (user === undefined) return <span className="w-16" />;

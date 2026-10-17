@@ -17,7 +17,7 @@ Router) on Vercel, Firebase (Auth, Firestore), Cloudflare R2 and Stream, Paystac
 | `docs/BUILD_LOG.md` | The full history, in order (what used to be this README) |
 | `lib/changelog.ts` | Release notes, shown at `/changelog` |
 
-## Where things stand (updated 17 Oct 2026, v0.40.0)
+## Where things stand (updated 17 Oct 2026, v0.41.0)
 
 ### Live today
 | Area | What exists | Where to read more |
@@ -32,7 +32,7 @@ Router) on Vercel, Firebase (Auth, Firestore), Cloudflare R2 and Stream, Paystac
 | **Frame (Moda redesign)** | Phones: one light header and a bottom tab bar (Feed, Explore, Market, Messages, Profile) for members and on the app address, full-screen conversations and calls; computers: the app header and left menu on the feed pages and the app address (`lib/chrome.ts`, `components/shell/*`) | `docs/ARCHITECTURE.md` "The frame" |
 | Promotion & discovery | **The journal feed (For you, Following, Latest, Top · 7d) with Most read, Who to follow, Promoted boosts and ads between posts; Explore (`/explore`); saved journals; Notes Market (`/shop`) and Notes Academy (`/academy`) in one order: For you, Most viewed this week, Recent** (`lib/discovery.ts`); profile tabs Notes, Store, Courses; Trending tabs Notes, Store, Courses, Publishers; post/item boosts (cancel any time, half of what's left refunded), gifts, self-serve banner ads and ad share, recommendations on profiles and organisations | "Boosts & gifts", "Advertiser campaigns" |
 | Plans & badges | Free Standard/Basic, Pro, Business (Paystack plans), Enterprise (custom); prices set by the owner in Admin → Pricing; maroon ✔, gold ✔ (endorsed; identity-checked is built but **Dojah is still on the sandbox**) | "Pro / Business plans", "Verified badge", "Dojah webhook" |
-| **Enterprise** | Server-to-server API (`/api/v1`), Console, signed webhooks, `/docs`, own domain (subdomain or root), site themes (Legacy or Modern) for Business and Enterprise | "API, Console, Docs and custom domains" |
+| **Enterprise** | Server-to-server API (`/api/v1`), Console, signed webhooks, `/docs`, own domain (subdomain or root); for Business and Enterprise a **Your site** page (`/profile/site`): themes Legacy, Aurora and Maroon, which sections show (Journals, Shop, Courses), About and Contact pages, reminders until they're written | "API, Console, Docs and custom domains" |
 | **App address** | `app.notesapp.name.ng`: welcome screen with sign-up and sign-in, a Download button that knows the device, then the journal feed | `middleware.ts` |
 | Trust & ops | `/security`, `/status` (+ incidents, response times, email subscribers, calls and their relay, Claude), `/changelog`, account export/deletion, error monitoring, traction snapshot (stored hourly), admin by custom claims and departments | "Where to look when something's wrong" below |
 | **Messaging** | Direct messages and group chats (up to 50, admin moderation), voice notes, stickers, emoji, bold/italic/underline, replies, pin 3 messages and 3 chats, typing indicator, edit/delete with reader consent once read, link previews, moments, block/report, device and email notifications | Flags `NEXT_PUBLIC_MESSAGES_LIVE`, `NEXT_PUBLIC_MOMENTS_LIVE` |

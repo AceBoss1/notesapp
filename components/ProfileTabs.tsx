@@ -2,7 +2,10 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import JournalRow from "@/components/JournalRow";
+import FeedPost from "@/components/feed/FeedPost";
+import { feedAuthorOf, type FeedAuthor } from "@/lib/feed-author";
+import { useMember } from "@/lib/member-client";
+import { useSavedJournals } from "@/lib/saved-journals-client";
 import NotesAppPostRow from "@/components/NotesAppPostRow";
 import ItemCard from "@/components/StoreItemCard";
 import { NOTESAPP_POSTS } from "@/lib/notesapp-posts";
@@ -13,13 +16,18 @@ import { byMostViewed, byRecent } from "@/lib/discovery";
 import { useWeeklyViews } from "@/lib/weekly-views-client";
 
 // A profile's Notes · Store · Courses (/u/<username>; ?tab=store or ?tab=courses opens one). Notes can be sorted by Most viewed
-// or Recent and narrowed to one of the topics they write about. Courses come with Notes Academy (docs/COURSES.md).
+// or Recent and narrowed to one of the topics they write about, and are shown as in the journal feed (FeedPost). Courses come
+// with Notes Academy (docs/COURSES.md).
 type Tab = "notes" | "store" | "courses";
 type Sort = "viewed" | "recent";
 
-export default function ProfileTabs({ username, notes, storeItems, isOfficial, suspended, storeFirst }: {
-  username: string; notes: NoteWithComputed[]; storeItems: StoreItem[]; isOfficial: boolean; suspended: boolean; storeFirst: boolean;
+export default function ProfileTabs({ username, owner, notes, storeItems, isOfficial, suspended, storeFirst }: {
+  username: string; owner: FeedAuthor & { displayName: string }; notes: NoteWithComputed[]; storeItems: StoreItem[]; isOfficial: boolean; suspended: boolean; storeFirst: boolean;
 }) {
+  const { user } = useMember();
+  const { saved, toggle } = useSavedJournals(user);
+  // Their own journals carry their picture as it is now; co-authored ones are drawn under the main author.
+  const authorOf = (n: NoteWithComputed): FeedAuthor => (n.authorUsername === username || (!n.authorUsername && n.author === owner.displayName) ? owner : feedAuthorOf(n, []));
   const [tab, setTab] = useState<Tab>(storeFirst ? "store" : "notes");
   const [sort, setSort] = useState<Sort>("recent");
   const [topic, setTopic] = useState<string | null>(null);
@@ -75,7 +83,9 @@ export default function ProfileTabs({ username, notes, storeItems, isOfficial, s
                 <button onClick={() => { setSort("recent"); setTopic(null); }} className={chip(sort === "recent" && !topic)}>Recent</button>
                 {topics.map((t) => <button key={t} onClick={() => setTopic(topic === t ? null : t)} className={chip(topic === t)}>{hashtag(t)}</button>)}
               </div>
-              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">{listed.map((n) => <JournalRow key={n.id} note={n} />)}</div>
+              <div className="-mx-4 overflow-hidden sm:mx-0 sm:rounded-2xl sm:border sm:border-rule sm:bg-card">
+                {listed.map((n) => <FeedPost key={n.id} note={n} author={authorOf(n)} user={user} views={n.viewCount || 0} saved={saved.has(n.id)} onSave={toggle} />)}
+              </div>
             </>
           )}
         </div>
