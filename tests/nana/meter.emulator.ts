@@ -12,7 +12,7 @@ initializeApp({ projectId: "demo-notesapp" });
 const db = getFirestore();
 const now = new Date("2026-10-20T10:00:00Z"); // a Tuesday
 const calls: CompleteArgs[] = [];
-// Each fake answer costs 2,000 input + 500 output tokens: Pearl = $0.0045 = 720 kobo; Emerald = 3× = 2,160; Ruby = 5× = 3,600.
+// Each fake answer costs 2,000 input + 500 output tokens: Pearl ($0.10/$0.50) = $0.00045 = 72 kobo; Emerald ($2/$10) = 1,440; Ruby ($4/$20) = 2,880.
 const deps: NanaDeps = { now: () => now, complete: async (a) => { calls.push(a); return { text: `Answer ${calls.length}`, refused: false, usage: { input_tokens: 2000, output_tokens: 500 } }; } };
 const member = (uid: string, name: string) => ({ uid, name, email: `${uid}@x.test` });
 const ask = (uid: string, content: string, extra: Record<string, unknown> = {}) => chat(db, { messages: [{ role: "user", content }], signedIn: member(uid, uid), ...extra }, deps);
@@ -28,7 +28,7 @@ const acct = async (uid: string) => (await db.doc(`nanaAccounts/${uid}`).get()).
   const r1 = await ask("u_basic", "Tell me about my week's plan for writing", { gem: "ruby", effort: "high" });
   assert.equal(r1.via, "platform"); assert.equal(r1.gem, "pearl"); assert.equal(r1.effort, "low");
   assert.equal(calls[0].model, gemModel("pearl")); assert.equal(calls[0].model, "claude-haiku-5-5"); assert.equal(calls[0].effort, "low"); assert.equal(calls[0].maxTokens, 2000);
-  assert.equal((await acct("u_basic")).usedKobo, 720);
+  assert.equal((await acct("u_basic")).usedKobo, 72);
   // Until the allowance runs out; the call that crosses the line is still answered (we carry the rest).
   while ((await acct("u_basic")).usedKobo < weekly) await ask("u_basic", `Another personal question ${calls.length}, about my drafts`);
   const out = await ask("u_basic", "One more about my drafts please");
@@ -41,22 +41,22 @@ const acct = async (uid: string) => (await db.doc(`nanaAccounts/${uid}`).get()).
   await db.runTransaction(async (t) => addNanaCredit(t, db, "u_basic", 800 * 100, "na_test", now));
   const paid = await ask("u_basic", "And now about my drafts again");
   assert.equal(paid.via, "platform");
-  assert.equal((await acct("u_basic")).creditKobo, 80_000 - 720);
+  assert.equal((await acct("u_basic")).creditKobo, 80_000 - 72);
   // Next week the allowance is back, and is used before the credit.
   const nextWeek = new Date("2026-10-27T10:00:00Z");
   const later = await chat(db, { messages: [{ role: "user", content: "Next week, my drafts" }], signedIn: member("u_basic", "Bola") }, { ...deps, now: () => nextWeek });
   assert.equal(later.via, "platform");
   const a = await acct("u_basic");
-  assert.equal(a.creditKobo, 80_000 - 720, "credit untouched while there's allowance"); assert.equal(a.usedKobo, 720); assert.equal(a.period, "w2026-10-26");
+  assert.equal(a.creditKobo, 80_000 - 72, "credit untouched while there's allowance"); assert.equal(a.usedKobo, 72); assert.equal(a.period, "w2026-10-26");
 
   // Business gets Emerald and Balanced, not Ruby; Enterprise gets Ruby and Thorough. A dearer gem costs more.
   const b = await ask("u_biz", "Draft my plan for this week", { gem: "ruby", effort: "high" });
   assert.equal(b.gem, "emerald"); assert.equal(b.effort, "medium");
   assert.equal(calls[calls.length - 1].model, "claude-sonnet-5-5"); assert.equal(calls[calls.length - 1].maxTokens, 4000);
-  assert.equal((await acct("u_biz")).usedKobo, 2_160);
+  assert.equal((await acct("u_biz")).usedKobo, 1_440);
   const e = await ask("u_ent", "Draft my plan for this week", { gem: "ruby", effort: "high" });
   assert.equal(e.gem, "ruby"); assert.equal(calls[calls.length - 1].model, "claude-opus-5-5"); assert.equal(calls[calls.length - 1].effort, "high");
-  assert.equal((await acct("u_ent")).usedKobo, 3_600);
+  assert.equal((await acct("u_ent")).usedKobo, 2_880);
 
   // The answer bank: a visitor's general question is answered once; the next person gets it free and instantly.
   const n = calls.length;

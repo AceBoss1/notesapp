@@ -48,12 +48,20 @@ export const planName = (t: AccountTier) => ({ standard: "Free", basic: "Free Ba
 
 // ── What a call cost ─────────────────────────────────────────────────────────────────────────────────────────────────────────────────
 // The model's prices in US dollars per million tokens, and the naira rate, come from Admin → Pricing. Cached prompt reads are billed at
-// a tenth of the input price and cache writes at 1.25 times; we charge members exactly that, rounded up to the kobo.
+// a tenth of the input price (a twentieth on Ruby's model); cache writes at 1.25 times for the 5-minute cache and twice for the 1-hour one
+// (Nana's instructions). We charge members exactly that, rounded up to the kobo.
 export type GemRates = { inUsd: number; outUsd: number };
-export type Usage = { input_tokens?: number | null; output_tokens?: number | null; cache_read_input_tokens?: number | null; cache_creation_input_tokens?: number | null };
-export function costKobo(u: Usage, r: GemRates, usdKobo: number): number {
+export type Usage = {
+  input_tokens?: number | null; output_tokens?: number | null; cache_read_input_tokens?: number | null; cache_creation_input_tokens?: number | null;
+  cache_creation?: { ephemeral_5m_input_tokens?: number | null; ephemeral_1h_input_tokens?: number | null } | null;
+};
+export const CACHE_READ: Record<Gem, number> = { pearl: 0.1, emerald: 0.1, ruby: 0.05 };
+export function costKobo(u: Usage, r: GemRates, usdKobo: number, cacheRead = 0.1): number {
   const n = (v: number | null | undefined) => Math.max(0, Number(v) || 0);
-  const inUnits = n(u.input_tokens) + n(u.cache_creation_input_tokens) * 1.25 + n(u.cache_read_input_tokens) * 0.1;
+  // The split by cache lifetime when the API gives it; otherwise every write counts as a 5-minute one.
+  const hour = n(u.cache_creation?.ephemeral_1h_input_tokens);
+  const writes = u.cache_creation ? n(u.cache_creation.ephemeral_5m_input_tokens) * 1.25 + hour * 2 : n(u.cache_creation_input_tokens) * 1.25;
+  const inUnits = n(u.input_tokens) + writes + n(u.cache_read_input_tokens) * cacheRead;
   const usd = (inUnits * r.inUsd + n(u.output_tokens) * r.outUsd) / 1_000_000;
   return Math.ceil(usd * usdKobo);
 }

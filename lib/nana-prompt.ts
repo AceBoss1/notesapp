@@ -1,4 +1,4 @@
-import { articlePath, type KbArticle } from "./kb";
+import { articlePath, queryWords, searchArticles, type KbArticle } from "./kb";
 import { NANA_NAME } from "./nana";
 import { WHAT_IS_INTRO, WHAT_YOU_CAN_DO, WHAT_IS_FREE, WHAT_IS_TIERS } from "./site";
 
@@ -19,17 +19,42 @@ export const NANA_PAGES: [path: string, what: string][] = [
 // Admin pages Nana may link to, only when she is talking with staff inside the team hub.
 export const STAFF_PAGES = ["/admin/team", "/admin/team/review", "/admin/team/finance", "/admin/access", "/admin/help"];
 
-export const KNOWLEDGE_MAX_CHARS = 90_000;
+export const KNOWLEDGE_MAX_CHARS = 24_000; // the matching articles sent with one answer
+export const ARTICLES_MAX = 6;
 
 // Every path a reply may link to.
 export function knownPaths(articles: KbArticle[]): Set<string> {
   return new Set([...NANA_PAGES.map(([p]) => p), ...articles.map((a) => articlePath(a.slug))]);
 }
 
-// The instructions and the knowledge base. This block is the same for every visitor, so it is cached; who is asking goes in a second,
-// small block after it (see visitorBlock).
+// The help articles for this turn: the best matches for the latest question, then one or two for each earlier question in the chat, so a
+// follow-up ("and refunds?") still has what the first answer used. A very short question leans on the one before it. Sending these few
+// instead of the whole help centre (about 19,000 tokens) is what keeps an answer cheap.
+export function pickArticles(all: KbArticle[], userMessages: string[], max = ARTICLES_MAX): KbArticle[] {
+  const asked = userMessages.map((m) => m.trim()).filter(Boolean).reverse(); // newest first
+  if (!asked.length) return [];
+  const [latest, ...earlier] = asked;
+  const topic = queryWords(latest).length <= 2 && earlier[0] ? `${earlier[0]} ${latest}` : latest;
+  const out: KbArticle[] = [];
+  const add = (xs: KbArticle[]) => { for (const a of xs) if (out.length < max && !out.includes(a)) out.push(a); };
+  add(searchArticles(all, topic, 4));
+  for (const q of earlier.slice(0, 3)) add(searchArticles(all, q, 2));
+  let size = 0;
+  return out.filter((a) => (size += a.title.length + a.body.length + 40) <= KNOWLEDGE_MAX_CHARS || a === out[0]);
+}
+
+// The articles in full, for the block after the cached one.
+export function knowledgeBlock(articles: KbArticle[]): string {
+  return articles.length
+    ? `HELP ARTICLES FOR THIS QUESTION (the knowledge base; each article's own page is shown so you can link to it):\n\n${articles.map((a) => `### ${a.title}\nPage: ${articlePath(a.slug)}\n${a.body}`).join("\n\n")}`
+    : "HELP ARTICLES FOR THIS QUESTION: none matched. If a title in the list of help articles looks right, point the person to that page; otherwise follow the rule for questions the knowledge does not cover.";
+}
+
+// The instructions, the pages Nana may link to and the title of every help article. This is the same for every visitor and only changes
+// when an article is added or renamed, so it is cached for an hour; the matching articles (knowledgeBlock) and who is asking
+// (visitorBlock) go in small blocks after it.
 export function buildSystem(articles: KbArticle[]): string {
-  const knowledge = articles.map((a) => `### ${a.title}\nPage: ${articlePath(a.slug)}\n${a.body}`).join("\n\n").slice(0, KNOWLEDGE_MAX_CHARS);
+  const index = articles.map((a) => `- ${a.title}: ${articlePath(a.slug)}`).join("\n");
   const pages = NANA_PAGES.map(([p, w]) => `- ${p}: ${w}`).join("\n");
   return `You are ${NANA_NAME} (people call you Nana), the friendly helper for #NotesApp, a platform where African creators, professionals and businesses publish, build an audience and get paid in Naira. You answer questions about #NotesApp for visitors and members in a chat window.
 
@@ -42,7 +67,7 @@ What is #NotesApp
 - When someone asks what #NotesApp is, answer with this, in your own warm voice but keeping its facts: "${WHAT_IS_INTRO} On #NotesApp you can:\n${WHAT_YOU_CAN_DO.map((x) => `- ${x}`).join("\n")}\n${WHAT_IS_FREE} ${WHAT_IS_TIERS}"
 
 What you may say
-- Use ONLY the knowledge below. Never invent prices, rates, limits, dates, features or policies. If the knowledge does not cover the question, or you are not sure, say so honestly in a sentence, suggest the contact page, and end your reply with the tag [[GAP]].
+- Use ONLY the help articles given for this question and the facts in these instructions. Never invent prices, rates, limits, dates, features or policies. If the knowledge does not cover the question, or you are not sure, say so honestly in a sentence, suggest the contact page, and end your reply with the tag [[GAP]].
 - If something is coming soon or not live, say it is not available yet, and never promise a date.
 - Give 1 to 3 helpful links, written as markdown like [Pricing](/pricing), using ONLY paths from the knowledge pages or the list of pages below. Never link anywhere else and never write a web address in full.
 - You cannot see anyone's account, orders or payments, and you cannot change, refund, cancel or reset anything. Explain how they can do it themselves, or that the team can.
@@ -58,9 +83,8 @@ Tags: add [[GAP]] and/or [[HANDOFF]] on their own final line only when they appl
 Pages you may link to:
 ${pages}
 
-KNOWLEDGE BASE (each article's own page is shown so you can link to it):
-
-${knowledge}`;
+Help articles (titles only; the ones that match the question are given in full after these instructions):
+${index}`;
 }
 
 // Who is asking: small, and kept out of the cached block above.

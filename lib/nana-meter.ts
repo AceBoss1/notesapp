@@ -3,7 +3,7 @@ import { currentPricing } from "./pricing";
 import { ensurePricing } from "./pricing-server";
 import { effectiveTier, type AccountTier, type UserProfile } from "./users";
 import {
-  canStart, costKobo, effortsFor, gemsFor, nextReset, periodAllowance, periodKey, spend, standing,
+  CACHE_READ, canStart, costKobo, effortsFor, gemsFor, nextReset, periodAllowance, periodKey, spend, standing,
   type Effort, type Gem, type NanaAccount, type Standing, type Usage,
 } from "./nana-gems";
 
@@ -63,7 +63,7 @@ export type Charge = { costKobo: number; fromAllowance: number; fromCredit: numb
 // After a call on our account: what it cost, taken from the allowance first, then credit.
 export async function meterCharge(db: Firestore, m: Meter, usage: Usage | undefined, now: Date): Promise<Charge> {
   const n = currentPricing().nana;
-  const cost = costKobo(usage ?? {}, n.rates[m.gem], n.usdKobo);
+  const cost = costKobo(usage ?? {}, n.rates[m.gem], n.usdKobo, CACHE_READ[m.gem]);
   const site = db.collection("nanaSpend").doc(month(now));
   if (!m.uid) {
     await site.set({ allowanceKobo: FieldValue.increment(cost), calls: FieldValue.increment(1), month: month(now) }, { merge: true });

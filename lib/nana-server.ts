@@ -8,7 +8,7 @@ import {
   NANA_HISTORY_MAX, NANA_TRANSCRIPT_MAX, NANA_USER_MAX, NanaError, cleanVisitor, parseReply, type NanaMsg,
 } from "./nana";
 import { kbReply } from "./nana-kb";
-import { STAFF_PAGES, buildSystem, knownPaths, visitorBlock } from "./nana-prompt";
+import { STAFF_PAGES, buildSystem, knowledgeBlock, knownPaths, pickArticles, visitorBlock } from "./nana-prompt";
 import { setting } from "@/lib/config";
 import type { Effort, Gem, Usage } from "./nana-gems";
 import { EFFORT_INFO, pickEffort, pickGem } from "./nana-gems";
@@ -30,7 +30,7 @@ export const gemModel = (g: Gem) => (g === "ruby" ? (setting("NANA_MODEL_RUBY") 
 const platformKey = () => (setting("ANTHROPIC_API_KEY") || "").trim();
 const dailyLimit = () => Math.max(1, Number(setting("NANA_DAILY_LIMIT")) || 1500);
 
-export type SystemBlock = { type: "text"; text: string; cache_control?: { type: "ephemeral" } };
+export type SystemBlock = { type: "text"; text: string; cache_control?: { type: "ephemeral"; ttl?: "5m" | "1h" } };
 export type Completion = { text: string; refused: boolean; usage?: Usage };
 // model and effort come from the gem and effort the member chose; without them it's Pearl, Quick.
 export type CompleteArgs = { apiKey: string; system: SystemBlock[]; messages: NanaMsg[]; maxTokens: number; model?: string; effort?: Effort };
@@ -167,15 +167,19 @@ export async function chat(db: Firestore, input: ChatInput, deps: NanaDeps = rea
   const gem = who.uid && !hub ? pickGem(tier, input.gem) : "pearl";
   const effort = who.uid && !hub ? pickEffort(tier, input.effort) : "low";
   const meter: Meter | undefined = hub ? undefined : { uid: who.uid, tier, gem, effort };
-  const helpCentre = buildSystem(articles);
+  // The help centre's whole text, as the answer bank's fingerprint: editing any article retires the answers built on the old text.
+  const helpCentre = articles.map((a) => `${a.slug}\n${a.title}\n${a.body}`).join("\n\n");
   // A general first question may already be in the answer bank (lib/nana-bank.ts); if not, it's answered without the person's name or
   // page so the answer suits the next person too.
   const bankQ = !hub && bankDays() > 0 ? bankQuestion(messages) : null;
   const key = bankQ ? bankKey(bankQ, !!who.uid, helpCentre) : null;
   const banked = key ? await bankGet(db, key, gem, now).catch(() => null) : null;
   const system: SystemBlock[] = [
-    { type: "text", text: helpCentre, cache_control: { type: "ephemeral" } },
-    ...(staffKb.length ? [{ type: "text" as const, text: `TEAM-ONLY KNOWLEDGE (you are talking with a #NotesApp staff member inside the team hub; use this for questions about the hub and admin tools, and never tell anyone else about it):\n\n${staffKb.map((a) => `### ${a.title}\nPage: ${a.slug}\n${a.body}`).join("\n\n")}`, cache_control: { type: "ephemeral" as const } }] : []),
+    // Instructions and article titles: the same for everyone, so kept ready for an hour (a cache write costs 2× input, each read 0.1×).
+    { type: "text", text: buildSystem(articles), cache_control: { type: "ephemeral", ttl: "1h" } },
+    ...(staffKb.length ? [{ type: "text" as const, text: `TEAM-ONLY KNOWLEDGE (you are talking with a #NotesApp staff member inside the team hub; use this for questions about the hub and admin tools, and never tell anyone else about it):\n\n${staffKb.map((a) => `### ${a.title}\nPage: ${a.slug}\n${a.body}`).join("\n\n")}`, cache_control: { type: "ephemeral" as const, ttl: "1h" as const } }] : []),
+    // Only the articles that match this conversation, in full (lib/nana-prompt.ts pickArticles).
+    { type: "text", text: knowledgeBlock(pickArticles(articles, messages.filter((m) => m.role === "user").map((m) => String(m.content)))) },
     { type: "text", text: visitorBlock(key ? { name: "there", signedIn: !!who.uid } : { name: who.name, signedIn: !!who.uid, page }) + (input.hubContext ? `\n\n${input.hubContext}` : "") },
   ];
 

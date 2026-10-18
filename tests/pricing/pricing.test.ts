@@ -28,7 +28,7 @@ const free = clone(); free.nana.topUps[0].creditKobo = free.nana.topUps[0].price
 assert.throws(() => cleanPricing(free), PricingError, "a top-up can't give more than it costs");
 // Nana's timer, gems and model prices came later: a nana section saved before them keeps their defaults.
 assert.equal(DEFAULT_PRICING.nana.resetEvery, "week"); assert.equal(DEFAULT_PRICING.nana.allowanceGems, "all"); assert.equal(DEFAULT_PRICING.nana.budgets.standard, 50 * 100);
-assert.deepEqual(DEFAULT_PRICING.nana.rates.ruby, { inUsd: 5, outUsd: 25 });
+assert.deepEqual(DEFAULT_PRICING.nana.rates.ruby, { inUsd: 4, outUsd: 20 }); assert.deepEqual(DEFAULT_PRICING.nana.rates.pearl, { inUsd: 0.1, outUsd: 0.5 });
 const before = clone(); delete before.nana.resetEvery; delete before.nana.allowanceGems; delete before.nana.usdKobo; delete before.nana.rates; delete before.nana.budgets.standard;
 assert.deepEqual(cleanPricing(before).nana, DEFAULT_PRICING.nana);
 const daily = clone(); daily.nana.resetEvery = "day"; daily.nana.allowanceGems = "pearl"; daily.nana.rates.emerald.outUsd = 16.5;
