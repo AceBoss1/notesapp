@@ -1,7 +1,7 @@
-// Topics and hashtags (lib/topics.ts) and the topic backfill (scripts/backfill-topics.ts). Run: npm run test:topics → "ALL OK".
+// Topics and hashtags (lib/topics.ts) and the topic backfill (lib/backfills.ts). Run: npm run test:topics → "ALL OK".
 import assert from "node:assert/strict";
 import { TOPICS, cleanTopics, hashtag, interestsFirst, matchTopic, normaliseTag, noteHeading, parseTags, topicsOf } from "../../lib/topics";
-import { planTopics } from "../../scripts/backfill-topics";
+import { planTopics } from "../../lib/backfills";
 
 // the list itself: unique slugs, and no alias that means two topics
 const slugs = TOPICS.map((t) => t.slug);

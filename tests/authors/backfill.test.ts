@@ -1,6 +1,6 @@
-// The journal author backfill's decisions (scripts/backfill-author-uids.ts). Run: npx -y tsx tests/authors/backfill.test.ts → "ALL OK".
+// The journal author backfill's decisions (lib/backfills.ts). Run: npx -y tsx tests/authors/backfill.test.ts → "ALL OK".
 import assert from "node:assert/strict";
-import { planBackfill, type Lookups } from "../../scripts/backfill-author-uids";
+import { planBackfill, type Lookups } from "../../lib/backfills";
 
 const users = [{ uid: "u_emma", username: "emmanuel", displayName: "Emmanuel Adams" }, { uid: "u_ada", username: "ada", displayName: "Ada Obi" }, { uid: "u_ada2", username: "ada2", displayName: "Ada Obi" }, { uid: "u_tola", username: "tola", displayName: "Tola" }];
 const l: Lookups = {
