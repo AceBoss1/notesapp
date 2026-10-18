@@ -13,6 +13,7 @@ import { ESCROW_PLACEHOLDER_DAYS, newParcelId, phoneLast4 } from "./orders";
 import { merchParcelDoc } from "./orders-server";
 import { creditTopup } from "./wallet-server";
 import { addNanaCredit } from "./nana-meter";
+import { issueInTransaction } from "./certificates-server";
 import { SITE_URL } from "@/lib/host";
 
 // Server-only. All money-state changes happen here, via the Admin SDK
@@ -21,7 +22,7 @@ import { SITE_URL } from "@/lib/host";
 
 export type PaymentRecord = {
   reference: string;
-  kind: "booking" | "subscription" | "boost" | "gift" | "tier" | "badge" | "gold_deposit" | "gold" | "merch" | "ad" | "store" | "digital" | "wallet_topup" | "life_naira" | "nana_credit";
+  kind: "booking" | "subscription" | "boost" | "gift" | "tier" | "badge" | "gold_deposit" | "gold" | "merch" | "ad" | "store" | "digital" | "wallet_topup" | "life_naira" | "nana_credit" | "certificate";
   uid: string; // the payer
   email: string;
   amountKobo: number;
@@ -76,6 +77,9 @@ export type PaymentRecord = {
   topup?: { bonusKobo: number };
   // A Nana credit pack (lib/nana-meter.ts): which pack, and the AI credit it adds (fixed at checkout).
   nanaPack?: { packId: string; name: string; creditKobo: number };
+  // A Notes Academy certificate (lib/certificates-server.ts): the course, the name to print, the price fixed at checkout and the
+  // teacher's part of it (their margin and its share of any late claim fee); issuedId once it's issued.
+  certificate?: { courseId: string; courseTitle: string; learnerName: string; startKobo: number; lateKobo: number; teacherKobo: number; issuedId?: string };
   topupReversedKobo?: number;
 };
 
@@ -89,7 +93,7 @@ export type LedgerEntry = {
   reference: string; // ledger doc id (the payment reference, or `<ref>_<uid>` for a co-author's share)
   paymentReference?: string; // the Paystack payment this entry belongs to (set on split entries)
   sharePercent?: number; // this author's % of a co-authored post's gift
-  kind: "booking" | "subscription" | "gift" | "adshare" | "order" | "digital";
+  kind: "booking" | "subscription" | "gift" | "adshare" | "order" | "digital" | "certificate";
   publisherUid: string;
   publisherUsername: string;
   payerUid: string;
@@ -314,6 +318,14 @@ export async function fulfillPayment(reference: string): Promise<PaymentRecord> 
       });
     } else if (current.kind === "wallet_topup") {
       await creditTopup(t, db, current, new Date(now));
+    } else if (current.kind === "certificate" && current.certificate) {
+      // Issued straight away. The teacher's part (their margin, less our commission) is held for the usual window, like a download.
+      const id = await issueInTransaction(t, db, current, new Date(now));
+      if (current.certificate.teacherKobo > 0) {
+        t.set(db.doc(`ledger/${reference}`), ledgerFor(current, current.certificate.teacherKobo, new Date(Date.now() + DIGITAL_HOLD_DAYS * 86_400_000), now));
+      }
+      t.update(payRef, { status: "paid", paidAt: now, "certificate.issuedId": id });
+      return { payment: { ...current, status: "paid" as const, paidAt: now, certificate: { ...current.certificate, issuedId: id } }, fresh: true };
     } else if (current.kind === "nana_credit" && current.nanaPack) {
       addNanaCredit(t, db, current.uid, current.nanaPack.creditKobo, reference, new Date(now));
     } else if (current.kind === "life_naira") {
@@ -523,6 +535,11 @@ async function notifyPaid(p: PaymentRecord) {
   if (p.kind === "gift" && p.gift) return notifyGift(p);
   if (p.kind === "life_naira") {
     await notifyBell({ uid: p.uid, type: "plan", linkHref: "/life/play", message: `N$ ${p.amountKobo.toLocaleString("en-NG")} added to Notes Life.` });
+    return;
+  }
+  if (p.kind === "certificate" && p.certificate?.issuedId) {
+    await notifyBell({ uid: p.uid, type: "plan", linkHref: `/certificates/${p.certificate.issuedId}`, message: `Your certificate for “${p.certificate.courseTitle}” is ready. Share it or add it to LinkedIn.` });
+    if (p.publisherUid && p.publisherUid !== p.uid) await notifyBell({ uid: p.publisherUid, type: "plan", linkHref: "/academy/teach", message: `${p.certificate.learnerName} got their certificate for “${p.certificate.courseTitle}”.` });
     return;
   }
   if (p.kind === "nana_credit" && p.nanaPack) {

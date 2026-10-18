@@ -1,6 +1,7 @@
 import { getAdminDb } from "./firebase-admin";
 import { refundTransaction } from "./paystack";
 import { refundToWallet, restoreTopup, reverseTopup } from "./wallet-server";
+import { revokeForPayment } from "./certificates-server";
 
 // Every refund goes through here. A payment made from the NotesApp Credit wallet goes back to the wallet (never to a card, since
 // nothing was charged to one); a wallet top-up refunded to the card first takes the unspent credit (and its bonus) back out;
@@ -10,6 +11,8 @@ export async function refundPayment(reference: string, amountKobo?: number): Pro
   const p = (await db.doc(`payments/${reference}`).get()).data();
   // Notesville Naira has already been spent in the game, maybe; it is game money and final (Terms, Notes Life).
   if (p?.kind === "life_naira") throw new Error("Notesville Naira purchases are final and can't be refunded here.");
+  // A refunded certificate stops being valid; its verification page says it was revoked and why.
+  if (p?.kind === "certificate") await revokeForPayment(db, reference);
   if (p?.payWith === "wallet") { await refundToWallet(db, reference, amountKobo); return; }
   if (p?.kind === "wallet_topup") {
     const taken = await reverseTopup(db, reference, amountKobo);

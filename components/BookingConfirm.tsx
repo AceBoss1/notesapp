@@ -11,11 +11,12 @@ import { forgetReturnHost, rememberedReturnHost } from "@/lib/return-to";
 
 type Result = {
   status: string;
-  kind: "booking" | "subscription" | "boost" | "gift" | "tier" | "badge" | "gold" | "gold_deposit" | "merch" | "ad" | "store" | "digital" | "wallet_topup" | "life_naira" | "nana_credit";
+  kind: "booking" | "subscription" | "boost" | "gift" | "tier" | "badge" | "gold" | "gold_deposit" | "merch" | "ad" | "store" | "digital" | "wallet_topup" | "life_naira" | "nana_credit" | "certificate";
   amountKobo?: number;
   payWith?: "wallet";
   topup?: { bonusKobo: number };
   nanaPack?: { packId: string; name: string; creditKobo: number };
+  certificate?: { courseTitle: string; issuedId: string | null };
   tier?: { tier: string; interval: string };
   boost?: { noteId: string };
   gift?: { username: string; noteSlug?: string };
@@ -66,6 +67,12 @@ function Confirm() {
           <p className="font-display text-2xl text-ink">Notesville Naira added ✓</p>
           <p className="mt-3 text-sm text-slate">N$ {(result.amountKobo ?? 0).toLocaleString("en-NG")} is in your Notes Life bank. Game money: it can&apos;t be turned back into naira.</p>
           <AppLink href="/life/play" className="btn-primary mt-6 inline-block !px-5 !py-2 text-xs">Back to Notes Life</AppLink>
+        </>
+      ) : result.status === "paid" && result.kind === "certificate" ? (
+        <>
+          <p className="font-display text-2xl text-ink">Your certificate is ready ✓</p>
+          <p className="mt-3 text-sm text-slate">{result.certificate?.courseTitle ? `“${result.certificate.courseTitle}”. ` : ""}Anyone can check it with its QR code or ID. Add it to LinkedIn, share it, or download it as a PDF.</p>
+          {result.certificate?.issuedId && <AppLink href={`/certificates/${result.certificate.issuedId}`} className="btn-primary mt-6 inline-block !px-5 !py-2 text-xs">See my certificate</AppLink>}
         </>
       ) : result.status === "paid" && result.kind === "nana_credit" ? (
         <>

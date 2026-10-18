@@ -1,6 +1,5 @@
 "use client";
 
-import { certificateMin } from "@/lib/pricing";
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import DiscoveryHero from "@/components/DiscoveryHero";
@@ -20,9 +19,8 @@ const TABS: { id: Tab; label: string }[] = [{ id: "all", label: "All" }, { id: "
 type Shelved = Omit<CourseListing, "viewsWeek"> & Shelfable;
 const grid = "grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3";
 
-// What comes after free courses (docs/COURSES.md). Amounts are set by the owner in Admin → Pricing, so only the certificate floor is named.
+// What comes after free courses and certificates (docs/COURSES.md). Amounts are set by the owner in Admin → Pricing.
 const ACADEMY_NEXT = [
-  { t: "Certificates", get d() { return `Finish a course and get a certificate with its own page anyone can check, ready for LinkedIn. From ${certificateMin()}.`; } },
   { t: "Paid courses", d: "On Pro and Business: upload your lessons; they're kept private and only learners who paid can open them." },
   { t: "For organisations", d: "Enterprise courses for your team or customers, under your brand. Talk to us." },
 ];

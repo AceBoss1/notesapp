@@ -110,7 +110,7 @@ export default function TeachDashboard() {
           ))}
         </ul>
       )}
-      <p className="mt-6 text-xs text-slate">Up to {MAX_COURSES_PER_MEMBER} courses, each with up to 100 lessons. Certificates and paid courses are coming: <Link href="/academy" className="font-semibold text-crimson">see what&apos;s next</Link>.</p>
+      <p className="mt-6 text-xs text-slate">Up to {MAX_COURSES_PER_MEMBER} courses, each with up to 100 lessons. Learners who finish get a certificate: <Link href="/academy/teach/setup" className="font-semibold text-crimson">🎓 set up your academy</Link> (your name, logo, signature and margin). Paid courses are coming.</p>
     </>
   );
 }

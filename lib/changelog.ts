@@ -11,6 +11,19 @@ export type Release = {
 
 export const CHANGELOG: Release[] = [
   {
+    version: "v0.48.0",
+    bump: "minor",
+    date: "2026-10-18",
+    changes: [
+      { kind: "added", text: "Notes Academy certificates: finish every lesson and tap 🎓 Get your certificate on the course page. Check your name, pay (card or wallet) and it's issued straight away with its own ID and QR code." },
+      { kind: "added", text: "Anyone can check a certificate at notesapp.name.ng/certificates, by its ID or its QR code: genuine or revoked, for whom, which course and when. Add it to LinkedIn, share it on X or WhatsApp, or save it as a PDF." },
+      { kind: "added", text: "Teachers set up their academy once: the name and logo on their certificates, who signs them (a photo of the signature, or the name in script), an accrediting institution (shown once we've checked it) and their own margin on top of our part of the price." },
+      { kind: "added", text: "A late claim fee for certificates claimed more than 7 days after finishing a course, shown before you pay. Courses our team has reviewed carry the #NotesApp Certified Course seal." },
+      { kind: "added", text: "Questions learners often ask, on every course page and in the help centre." },
+      { kind: "changed", text: "The MCP server's own address, mcp.notesapp.name.ng, is live and now the one in the API docs (the old address still works)." },
+    ],
+  },
+  {
     version: "v0.47.1",
     bump: "patch",
     date: "2026-10-18",

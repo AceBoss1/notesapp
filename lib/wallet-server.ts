@@ -36,6 +36,7 @@ export function paymentLabel(p: Pick<PaymentRecord, "kind" | "publisherUsername"
     case "digital": return `${p.digital?.itemTitle ?? "Download"} · @${p.publisherUsername}`;
     case "life_naira": return "Notesville Naira for Notes Life";
     case "nana_credit": return "Nana AI credit";
+    case "certificate": return "Notes Academy certificate";
     case "booking": return `Session with @${p.booking?.username ?? p.publisherUsername}${p.booking ? ` · ${p.booking.date} ${p.booking.slot}` : ""}`;
     default: return "Payment";
   }
