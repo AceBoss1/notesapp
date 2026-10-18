@@ -29,7 +29,7 @@ export function CardTapCard({ holder, last4, small = false }: { holder: string; 
         <Waves className={small ? "h-4 w-4" : "h-6 w-6"} />
       </div>
       <span className={`relative mt-1.5 block rounded-md bg-gradient-to-br from-amber-200 to-amber-500 ${small ? "h-4 w-6" : "h-7 w-10"}`} aria-hidden />
-      <p className={`relative font-mono tracking-widest ${small ? "mt-1 text-[9px]" : "mt-2 text-sm"}`}>•••• •••• •••• {last4}</p>
+      <p className={`relative font-mono tracking-widest ${small ? "mt-1 text-[9px]" : "mt-2 text-sm"}`}>{small ? "••••" : "•••• •••• ••••"} {last4}</p>
       <div className={`relative flex items-end justify-between gap-2 ${small ? "text-[8px]" : "text-[10px]"}`}>
         <b className="min-w-0 truncate uppercase tracking-wide">{holder}</b>
         <span className="shrink-0 uppercase opacity-75">N$ debit</span>

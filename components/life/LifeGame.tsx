@@ -372,7 +372,7 @@ export default function LifeGame() {
       if (read) await read;
       gotPlayer(r.player);
       if (charge) {
-        if (r.player.naira < before) { setTap({ charge, phase: "approved" }); window.setTimeout(() => setTap((t) => (t?.charge === charge ? null : t)), 1300); }
+        if (r.player.naira < before) { setTap({ charge, phase: "approved" }); window.setTimeout(() => setTap((t) => (t?.charge === charge ? null : t)), 1800); }
         else setTap(null); // nothing was taken (a deal that fell through)
       }
       return r.result;
