@@ -437,6 +437,18 @@ Open [Your site](/profile/site) (also linked from Edit profile and the Console).
 3. **Write your About and Contact pages** with the same editor as your journals (up to 20,000 characters each). Each page appears in your site's menu once it is saved; save one empty to take it off. Until both are written, Your site, Edit profile and the Console remind you.`),
     A("api-and-console", "The API and Console (Enterprise)", "Teams and organisations", `
 Enterprise accounts can use a server-to-server API (switched on per account by our team) to publish posts and read bookings, orders and earnings, with signed webhooks for events like a booking or a paid order. Keys and webhooks are managed in the Console. Ask for access on the [contact page](/contact); the documentation is public at [API docs](/docs).`),
+    A("mcp-ai-assistants", "MCP: use #NotesApp from your AI assistant", "Teams and organisations", `
+MCP (Model Context Protocol) is a standard way for AI assistants such as Claude and ChatGPT to use other services. #NotesApp has an MCP server, so you can ask your own assistant to find things on #NotesApp for you.
+
+**What it can do (anyone, no sign-in):** find creators, journals, Notes Market items and Notes Academy courses; show a creator's open session times; and give you a booking link that opens the booking card on the time you picked.
+
+**It only reads.** Booking, buying and paying always happen on #NotesApp itself, never inside the assistant.
+
+**How to add it:** in your assistant's settings, add a remote MCP server (also called a custom connector or Streamable HTTP server) with the address \`https://www.notesapp.name.ng/api/mcp\` (it also answers at \`https://mcp.notesapp.name.ng\`). The [API docs](/docs#mcp) list every tool, with an example.
+
+**Your own account:** with an API key (the [API and Console](/help/api-and-console), for Enterprise accounts), your assistant can also read your own profile, journals, bookings, orders and earnings. Send the key as a Bearer token; its permissions apply. Every call is logged for 12 months, without the key itself.
+
+**Coming next:** signing in with your #NotesApp account instead of a key, and tools that can draft posts and reply to bookings, always with your approval. There's no date yet.`),
     A("team-hub", "Team hub and team messaging (paid add-on, after internal testing)", "Teams and organisations", `
 A shared workspace for your team: a work board, milestones, a morning summary, a weekly review, meetings, a money ledger, payroll, a staff library and team messages. Our own team is testing it now. Once that testing is done, it will be offered as a **paid add-on for Business and Enterprise**. It is not available yet, and there is no price or date. See the [Team hub page](/teams) and the [roadmap](/roadmap).`),
     A("paid-add-ons", "Paid add-ons for Business and Enterprise", "Teams and organisations", `
