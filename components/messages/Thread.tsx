@@ -662,12 +662,12 @@ export default function Thread({ id, to, embedded = false }: { id?: string; to?:
           const list = messages.filter((x) => selected.includes(x.id));
           const sendable = list.filter((x) => !x.deleted && !x.removed && !x.call && !x.pendingRequest);
           return (
-            <div className="flex items-center gap-2 border-t border-rule bg-card px-4 py-3 lg:border-0 lg:bg-transparent lg:px-0">
-              <button type="button" onClick={() => setSelected(null)} aria-label="Stop selecting" className="flex h-10 w-10 items-center justify-center rounded-full text-xl text-slate hover:bg-paper">×</button>
-              <span className="flex-1 font-ui text-sm font-semibold text-ink">{list.length ? `${list.length} selected` : "Tap messages to select them"}</span>
-              <button type="button" disabled={!list.length} onClick={() => { void copy(list); setSelected(null); }} className="rounded-full border border-rule px-3.5 py-2 font-ui text-sm font-semibold text-ink hover:bg-paper disabled:opacity-40">Copy</button>
-              <button type="button" disabled={!sendable.length || sendable.length > FORWARD_MANY} title={sendable.length > FORWARD_MANY ? `Forward up to ${FORWARD_MANY} at a time` : undefined} onClick={() => setForwarding(sendable)} className="rounded-full border border-rule px-3.5 py-2 font-ui text-sm font-semibold text-ink hover:bg-paper disabled:opacity-40">Forward</button>
-              <button type="button" disabled={!list.length} onClick={() => setDeleting(list)} className="rounded-full border border-red-200 px-3.5 py-2 font-ui text-sm font-semibold text-red-700 hover:bg-red-50 disabled:opacity-40">Delete</button>
+            <div className="flex items-center gap-1.5 border-t border-rule bg-card px-3 py-3 lg:gap-2 lg:border-0 lg:bg-transparent lg:px-0">
+              <button type="button" onClick={() => setSelected(null)} aria-label="Stop selecting" className="flex h-10 w-8 shrink-0 items-center justify-center rounded-full text-xl text-slate hover:bg-paper">×</button>
+              <span className={`min-w-0 flex-1 font-ui text-sm font-semibold text-ink ${list.length ? "whitespace-nowrap" : ""}`}>{list.length ? `${list.length} selected` : "Tap messages to select them"}</span>
+              <button type="button" disabled={!list.length} onClick={() => { void copy(list); setSelected(null); }} className="rounded-full border border-rule px-3 py-2 font-ui text-sm font-semibold text-ink hover:bg-paper disabled:opacity-40">Copy</button>
+              <button type="button" disabled={!sendable.length || sendable.length > FORWARD_MANY} title={sendable.length > FORWARD_MANY ? `Forward up to ${FORWARD_MANY} at a time` : undefined} onClick={() => setForwarding(sendable)} className="rounded-full border border-rule px-3 py-2 font-ui text-sm font-semibold text-ink hover:bg-paper disabled:opacity-40">Forward</button>
+              <button type="button" disabled={!list.length} onClick={() => setDeleting(list)} className="rounded-full border border-red-200 px-3 py-2 font-ui text-sm font-semibold text-red-700 hover:bg-red-50 disabled:opacity-40">Delete</button>
             </div>
           );
         })()}
