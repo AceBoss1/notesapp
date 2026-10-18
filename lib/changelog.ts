@@ -11,6 +11,16 @@ export type Release = {
 
 export const CHANGELOG: Release[] = [
   {
+    version: "v0.53.0",
+    bump: "minor",
+    date: "2026-10-18",
+    changes: [
+      { kind: "added", text: "Nana suggests topics from your title: a moment after you type a journal's or course's title, Nana offers topics and subtopics (#Tech › #ITSupport) to tap, or Add all. New subtopics are created when you save. Free, and not taken from your Nana allowance." },
+      { kind: "added", text: "Market items can have a subcategory under their category (Shoes & bags › Tote bags), and Nana suggests both from the item's name." },
+      { kind: "added", text: "Admin → Topics lists every subtopic and subcategory members have created, with how often each is used, to rename or remove." },
+    ],
+  },
+  {
     version: "v0.52.0",
     bump: "minor",
     date: "2026-10-18",

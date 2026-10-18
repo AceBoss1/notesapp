@@ -316,6 +316,8 @@ Calls are free. Planned: paid calls inside Notes Life (₦5 a minute voice, ₦1
 
 **Topics on a journal:** when you write, pick up to 3 topics from the list (search it, or tap a hashtag). Readers who chose those topics see your journal first. You can add your own hashtags too, such as #SideHustle; they're tidied as you type and show at the end of the journal.
 
+**Nana's suggestions:** once you've typed a title, Nana suggests topics and subtopics for it, such as #Tech › #ITSupport. Tap the ones you want, or **Add all**; nothing is added until you tap. Ones marked NEW don't exist yet and are created when you save. A journal can have up to 3 subtopics, which show as hashtags with the others. Courses get the same suggestions from their title and summary, and Market items get a suggested category and subcategory (Shoes & bags › Tote bags). Suggestions are free and don't use your Nana allowance.
+
 **Browsing:** the **Topics** tab on [Journals](/journals) groups every topic that has journals, with yours first. Tap a hashtag at the end of a journal to see more on that topic.
 `),
     A("discovery", "Journals, Notes Market, Notes Academy and Trending", "Getting started", `

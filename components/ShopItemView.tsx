@@ -146,7 +146,7 @@ export default function ShopItemPage() {
       )}
       <p className="text-sm text-slate">
         {seller ? <><Link href={`/u/${seller.username}/store`} className="text-crimson underline">{seller.displayName}&apos;s store</Link> <span aria-hidden="true">/</span> </> : null}
-        {categoryOf(item)}
+        {categoryOf(item)}{item.subcategory ? <> <span aria-hidden="true">›</span> {item.subcategory}</> : null}
       </p>
       <div className="mt-5 grid gap-10 lg:grid-cols-2">
         <div>

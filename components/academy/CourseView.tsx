@@ -6,6 +6,7 @@ import { AcademyIcon } from "@/components/shell/icons";
 import Avatar from "@/components/Avatar";
 import { NameBadgeIcons } from "@/components/PersonName";
 import { hashtag } from "@/lib/topics";
+import { subtopicHashtag } from "@/lib/subtopics";
 import { countCourseView, useCourse } from "@/lib/courses-client";
 import AcademyFaq from "./AcademyFaq";
 import ReviewsPanel, { Stars } from "@/components/ReviewsPanel";
@@ -123,6 +124,7 @@ export default function CourseView({ slug }: { slug: string }) {
           {course.topics.length > 0 && (
             <div className="mt-4 flex flex-wrap gap-2">
               {course.topics.map((t) => <Link key={t} href={`/academy?topic=${t}`} className="rounded-full bg-card px-3 py-1 text-xs font-semibold text-crimson ring-1 ring-rule hover:ring-crimson">{hashtag(t)}</Link>)}
+              {(course.subtopics ?? []).map((x) => <Link key={`${x.parent}/${x.slug}`} href={`/academy?topic=${x.parent}`} className="rounded-full bg-card px-3 py-1 text-xs font-semibold text-slate ring-1 ring-rule hover:ring-crimson">{hashtag(x.parent)} › {subtopicHashtag(x.label)}</Link>)}
             </div>
           )}
           <h2 className="mt-8 font-display text-2xl text-ink">Lessons</h2>

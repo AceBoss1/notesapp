@@ -27,6 +27,7 @@ export type Course = {
   lessonCount: number; minutes: number; enrolCount: number; viewCount: number;
   createdAt: string; updatedAt: string; publishedAt: string | null;
   likeCount?: number; ratingSum?: number; ratingCount?: number; // kept by lib/course-social-server.ts
+  subtopics?: { parent: string; slug: string; label: string }[]; // under its topics (lib/subtopics.ts), shown as #Topic › #Subtopic
 };
 export type LessonKind = "youtube" | "text";
 export type Lesson = { id: string; order: number; title: string; kind: LessonKind; youtubeId?: string; minutes?: number; body?: string };

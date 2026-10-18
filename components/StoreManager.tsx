@@ -1,5 +1,7 @@
 "use client";
 
+import { CategorySuggestions } from "@/components/NanaSuggest";
+import { ensureSubtopics } from "@/lib/subtopics-client";
 import { useRef, useState } from "react";
 import { UserProfile } from "@/lib/users";
 import { auth } from "@/lib/firebase";
@@ -16,7 +18,7 @@ import { DIGITAL_EXTENSIONS, DIGITAL_MAX_BYTES } from "@/lib/private-files-confi
 import { STORE_CATEGORIES, SHIPS_FROM_MAX, cleanShipsFrom, shipsFromOk } from "@/lib/store-meta";
 
 const field = "mt-1 w-full border border-rule bg-card px-3 py-2 font-body text-sm outline-none focus:border-gold";
-const EMPTY = { title: "", subtitle: "", badge: "", priceNaira: "", deliveryNaira: "0", stock: "", category: "", shipsFrom: "" };
+const EMPTY = { title: "", subtitle: "", badge: "", priceNaira: "", deliveryNaira: "0", stock: "", category: "", subcategory: "", shipsFrom: "" };
 // Size/colour entries the seller has ticked ✔ so far: one row per saved combination, with how many pieces of it they have.
 type VariantRow = { values: string[]; qty: number };
 const EMPTY_DRAFT = { values: ["", ""], qty: "" };
@@ -107,7 +109,7 @@ export default function StoreManager({
     }
     setForm(
       item
-        ? { title: item.title, subtitle: item.subtitle ?? "", badge: item.badge ?? "", priceNaira: String((item.priceKobo ?? 0) / 100), deliveryNaira: String((item.deliveryKobo ?? 0) / 100), stock: String(item.stock ?? 0), category: item.category ?? "", shipsFrom: item.shipsFrom ?? "" }
+        ? { title: item.title, subtitle: item.subtitle ?? "", badge: item.badge ?? "", priceNaira: String((item.priceKobo ?? 0) / 100), deliveryNaira: String((item.deliveryKobo ?? 0) / 100), stock: String(item.stock ?? 0), category: item.category ?? "", subcategory: item.subcategory ?? "", shipsFrom: item.shipsFrom ?? "" }
         : EMPTY
     );
     setError("");
@@ -156,8 +158,14 @@ export default function StoreManager({
     if (viewOnly && !editing && !viewOnlyOk) return setError("View-only items and courses are on the Pro plan and above.");
     if (digital && !viewOnly && !editing && !file) return setError("Choose the file buyers will download.");
     if (file && file.size > DIGITAL_MAX_BYTES) return setError(`The file is too big — the limit is ${DIGITAL_MAX_BYTES / 1024 / 1024} MB.`);
+    // A new subcategory is created now (Nana's suggestion or typed), so it's offered to the next seller too.
+    let subcategory = "";
+    if (form.subcategory.trim()) {
+      try { subcategory = (await ensureSubtopics("category", [{ parent: form.category, label: form.subcategory }]))[0]?.label ?? ""; }
+      catch (err) { return setError(err instanceof Error ? err.message : "Couldn't save the subcategory."); }
+    }
     const input = {
-      title: form.title, subtitle: form.subtitle, badge: form.badge, image: images[0] ?? "", images, category: form.category, ...(digital ? {} : { shipsFrom: cleanShipsFrom(form.shipsFrom) }),
+      title: form.title, subtitle: form.subtitle, badge: form.badge, image: images[0] ?? "", images, category: form.category, ...(subcategory ? { subcategory } : {}), ...(digital ? {} : { shipsFrom: cleanShipsFrom(form.shipsFrom) }),
       ...(withOptions ? { options, variantStock: Object.fromEntries(rows.map((r) => [variantKey(r.values), r.qty])) } : {}),
       price: `₦${(priceKobo / 100).toLocaleString("en-NG")}`, link: "", cta: digital ? (viewOnly ? "Buy & view" : "Buy & download") : "Buy now",
       sellable: true, priceKobo, deliveryKobo: digital ? 0 : deliveryKobo, stock,
@@ -401,11 +409,15 @@ export default function StoreManager({
               </span>
             </div>
           )}
+          <div className="sm:col-span-2"><CategorySuggestions title={form.title} category={form.category} subcategory={form.subcategory} onPick={(category, subcategory) => setForm((f) => ({ ...f, category, subcategory }))} /></div>
           <label className="text-xs text-slate">Category (buyers can filter by it)
-            <select value={form.category} onChange={(e) => setForm((f) => ({ ...f, category: e.target.value }))} className={field} required>
+            <select value={form.category} onChange={(e) => setForm((f) => ({ ...f, category: e.target.value, subcategory: "" }))} className={field} required>
               <option value="">Choose…</option>
               {STORE_CATEGORIES.map((c) => <option key={c} value={c}>{c}</option>)}
             </select>
+          </label>
+          <label className="text-xs text-slate">Subcategory (optional, e.g. Bags)
+            <input value={form.subcategory} onChange={set("subcategory")} maxLength={30} disabled={!form.category} className={field} />
           </label>
           <label className="text-xs text-slate">Tag (optional, e.g. Best Seller)
             <input value={form.badge} onChange={set("badge")} maxLength={24} className={field} />

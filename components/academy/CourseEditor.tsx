@@ -5,6 +5,8 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import RichTextEditor from "@/components/RichTextEditor";
 import TopicPicker from "@/components/TopicPicker";
+import { SubtopicChips, TopicSuggestions } from "@/components/NanaSuggest";
+import type { Subtopic } from "@/lib/subtopics";
 import { useMember } from "@/lib/member-client";
 import { api } from "@/lib/moments-client";
 import { uploadToR2 } from "@/lib/upload";
@@ -28,6 +30,7 @@ export default function CourseEditor({ courseId }: { courseId: string }) {
   const [title, setTitle] = useState("");
   const [summary, setSummary] = useState("");
   const [topics, setTopics] = useState<string[]>([]);
+  const [subtopics, setSubtopics] = useState<Subtopic[]>([]);
   const [cover, setCover] = useState("");
   const [uploading, setUploading] = useState(false);
   const [busy, setBusy] = useState<string | null>(null);
@@ -38,11 +41,11 @@ export default function CourseEditor({ courseId }: { courseId: string }) {
   useEffect(() => {
     if (!user) return;
     api<{ course: Course; lessons: Lesson[] }>(`/api/academy/courses/${courseId}`)
-      .then((r) => { setCourse(r.course); setLessons(r.lessons); setTitle(r.course.title); setSummary(r.course.summary); setTopics(r.course.topics); setCover(r.course.cover); })
+      .then((r) => { setCourse(r.course); setLessons(r.lessons); setTitle(r.course.title); setSummary(r.course.summary); setTopics(r.course.topics); setSubtopics(r.course.subtopics ?? []); setCover(r.course.cover); })
       .catch((e) => setLoadError(e.message));
   }, [user, courseId]);
 
-  const dirty = !!course && (title.trim() !== course.title || summary.trim() !== course.summary || cover !== course.cover || topics.join() !== course.topics.join());
+  const dirty = !!course && (title.trim() !== course.title || summary.trim() !== course.summary || cover !== course.cover || topics.join() !== course.topics.join() || subtopics.map((x) => x.slug).join() !== (course.subtopics ?? []).map((x) => x.slug).join());
   const missing = useMemo(() => publishProblems({ title, summary }, lessons.length), [title, summary, lessons.length]);
   const flash = (m: string) => { setNote(m); setError(""); setTimeout(() => setNote((x) => (x === m ? "" : x)), 3000); };
 
@@ -52,8 +55,8 @@ export default function CourseEditor({ courseId }: { courseId: string }) {
     try { return await fn(); } catch (e) { setError(e instanceof Error ? e.message : "Something went wrong."); return null; } finally { setBusy(null); }
   }
   const saveDetails = () => run("details", async () => {
-    const r = await api<{ course: Course }>(`/api/academy/courses/${courseId}`, { method: "PATCH", body: { title, summary, topics, cover } });
-    setCourse(r.course); setTitle(r.course.title); setSummary(r.course.summary);
+    const r = await api<{ course: Course }>(`/api/academy/courses/${courseId}`, { method: "PATCH", body: { title, summary, topics, subtopics, cover } });
+    setCourse(r.course); setTitle(r.course.title); setSummary(r.course.summary); setSubtopics(r.course.subtopics ?? []);
     flash("Details saved.");
     return r.course;
   });
@@ -138,7 +141,8 @@ export default function CourseEditor({ courseId }: { courseId: string }) {
           <textarea value={summary} onChange={(e) => setSummary(e.target.value)} maxLength={COURSE_SUMMARY_MAX} rows={4} className={input} placeholder="What will learners be able to do after this course? Who is it for?" />
           <span className="mt-1 block text-right text-xs text-slate">{summary.length.toLocaleString("en-GB")} / {COURSE_SUMMARY_MAX.toLocaleString("en-GB")}</span>
         </label>
-        <div className="mt-2"><p className={label}>Topics</p><p className="mb-2 text-xs text-slate">Up to {MAX_COURSE_TOPICS}: they bring the course to learners interested in them.</p><TopicPicker value={topics} onChange={setTopics} max={MAX_COURSE_TOPICS} compact /></div>
+        <div className="mt-2"><TopicSuggestions kind="course" title={title} summary={summary} topics={topics} subtopics={subtopics} maxTopics={MAX_COURSE_TOPICS} onChange={(n) => { setTopics(n.topics); setSubtopics(n.subtopics); }} /></div>
+        <div className="mt-2"><p className={label}>Topics</p><p className="mb-2 text-xs text-slate">Up to {MAX_COURSE_TOPICS}: they bring the course to learners interested in them.</p><TopicPicker value={topics} onChange={(t) => { setTopics(t); setSubtopics((s) => s.filter((x) => t.includes(x.parent))); }} max={MAX_COURSE_TOPICS} compact /><SubtopicChips subtopics={subtopics} onRemove={(x) => setSubtopics((s) => s.filter((y) => y !== x))} /></div>
         <div className="mt-5">
           <p className={label}>Cover picture</p>
           <p className="text-xs text-slate">Wide (16:9) works best. JPEG, PNG or WebP.</p>
