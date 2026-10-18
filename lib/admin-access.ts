@@ -75,6 +75,7 @@ export const ADMIN_SECTIONS: Section[] = [
   { href: "/admin/domains", label: "Domain sales", need: ["product"], group: "Platform" },
   { href: "/admin/limits", label: "Limits", need: ["product", "engineering"], group: "Platform" },
   { href: "/admin/settings", label: "Settings", need: ["product", "engineering"], group: "Platform" },
+  { href: "/admin/maintenance", label: "Maintenance", need: "super", group: "Admin" },
   { href: "/admin/seed", label: "Seed", need: "super", group: "Admin" },
   { href: "/admin/access", label: "Team access", need: "super", group: "Admin" },
 ];

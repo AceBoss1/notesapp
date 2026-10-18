@@ -44,9 +44,9 @@ Working branch convention (owner's instruction, 17 Oct 2026): branches are named
    emails a day for everything). Links are signed with `CRON_SECRET` unless `EMAIL_LINK_SECRET` is set.
 9. **After merging v0.38.0:** `firebase deploy --only firestore` (browsers can no longer create notifications or comments;
    until it's deployed the old rules still allow it), create the Upstash database (`UPSTASH_REDIS_REST_URL`,
-   `UPSTASH_REDIS_REST_TOKEN`), and run `npx -y tsx scripts/backfill-author-uids.ts` then `--apply`.
+   `UPSTASH_REDIS_REST_TOKEN`), and run the journal author backfill (Admin → Maintenance: Dry run, then Apply; or `npx -y tsx scripts/backfill-author-uids.ts` then `--apply`).
 10. **Staging:** `docs/STAGING.md` (a second Firebase project and the `staging` branch on Vercel Preview).
-11. **After merging v0.39.0:** `npx -y tsx scripts/backfill-topics.ts` then `--apply` (files older journals under topics).
+11. **After merging v0.39.0:** file older journals under topics (Admin → Maintenance: Dry run, then Apply; or `npx -y tsx scripts/backfill-topics.ts` then `--apply`).
 12. **Courses:** the owner's decisions are in `docs/COURSES.md` ("Decisions", 17 Oct 2026). Step 1, free courses with the publisher's YouTube, goes live as Notes Academy in this release; certificates, paid courses and the Enterprise packages follow. The package prices are in Admin → Pricing.
 13. **MCP server (v0.46.0):** point `mcp.notesapp.name.ng` (and later `mcp.notesapp.tech`) at Vercel (Vercel → Domains, then the CNAME it shows); set a Firestore **TTL policy** on `agentActions.expireAt` (Firestore → TTL) so the log keeps 12 months; decide the phase 2 questions on the team hub (which plans, AI budget, referral fee) before OAuth and write tools.
 14. **Discord changelog:** `DISCORD_CHANGELOG_WEBHOOK_URL` in Vercel (Production), from a new webhook (the first one was shared in chat), then redeploy.

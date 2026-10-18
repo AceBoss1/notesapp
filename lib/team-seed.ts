@@ -78,7 +78,7 @@ export const LAUNCH_BACKLOG: Seed[] = [
   { key: "ops-rules-deploy", title: "Deploy the Firestore rules (server-owned notifications and comments)", detail: "firebase deploy --only firestore after the merge: browsers can no longer write notifications or comments directly. Also publishes the Digital Witch hub presence rules still waiting.", status: "todo", horizon: "today", depts: ["engineering"], due: "2026-10-20" },
   { key: "ops-upstash", title: "Create the Upstash Redis database for shared rate limits", detail: "Free tier is enough. Put UPSTASH_REDIS_REST_URL and UPSTASH_REDIS_REST_TOKEN in Vercel; until then each server instance counts on its own.", status: "todo", horizon: "week", depts: ["engineering"], due: "2026-10-27" },
   { key: "ops-staging", title: "Set up staging (docs/STAGING.md)", detail: "A second Firebase project, the staging branch on Vercel Preview with its own variables, and the smoke test in CI.", status: "todo", horizon: "later", depts: ["engineering"], due: "2026-11-13" },
-  { key: "ops-author-uids", title: "Run the journal author backfill", detail: "npx -y tsx scripts/backfill-author-uids.ts (a dry run: it lists what it would change), check the list, then again with --apply: gives every journal the account id of its author and co-authors, so a rename never loses a post.", status: "todo", horizon: "week", depts: ["engineering"], due: "2026-10-27" },
+  { key: "ops-author-uids", title: "Run the journal author backfill", detail: "Admin → Maintenance → Journal authors by account: Dry run lists what it would change; check the list, then Apply (or npx -y tsx scripts/backfill-author-uids.ts, then --apply): gives every journal the account id of its author and co-authors, so a rename never loses a post.", status: "todo", horizon: "week", depts: ["engineering"], due: "2026-10-27" },
 ];
 
 // #NotesApp Courses (docs/COURSES.md): free courses with the publisher's YouTube for every publishing plan; paid courses on Pro
@@ -103,7 +103,7 @@ export const BIMI_BACKLOG: Seed[] = [
 
 // Going live with v0.39.0: topics and interests.
 export const TOPICS_BACKLOG: Seed[] = [
-  { key: "topics-backfill", title: "File existing journals under topics", detail: "npx -y tsx scripts/backfill-topics.ts (a dry run lists what it would change and the journals that match no topic), then --apply. Editors file the unmatched ones from the journal form.", status: "todo", horizon: "week", depts: ["engineering", "content"], due: "2026-10-24" },
+  { key: "topics-backfill", title: "File existing journals under topics", detail: "Admin → Maintenance → File journals under topics: Dry run lists what it would change and the journals that match no topic, then Apply (or npx -y tsx scripts/backfill-topics.ts, then --apply). Editors file the unmatched ones from the journal form.", status: "todo", horizon: "week", depts: ["engineering", "content"], due: "2026-10-24" },
   { key: "topics-announce", title: "Tell members about Choose your interests", detail: "A post on @notesapp and @na-notesapp, the changelog, and a line in the next weekly digest: /interests puts their topics first in the feed and the digest.", status: "todo", horizon: "week", depts: ["growth", "content"], due: "2026-10-28" },
   { key: "topics-review", title: "Review the topic list after a month", detail: "Which hashtags writers type that match no topic (the backfill's list, writers' own hashtags): add topics or aliases in lib/topics.ts.", status: "todo", horizon: "later", depts: ["content", "product"], due: "2026-11-27" },
 ];
