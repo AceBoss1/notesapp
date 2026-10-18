@@ -11,6 +11,14 @@ export type Release = {
 
 export const CHANGELOG: Release[] = [
   {
+    version: "v0.48.1",
+    bump: "patch",
+    date: "2026-10-18",
+    changes: [
+      { kind: "changed", text: "Certificates: \"Certificate of completion\" is bigger and bolder, and everything from it to the completion date now sits at the exact centre of the certificate with a little more space between lines, leaving room for the academy's logo and subtext at the top." },
+    ],
+  },
+  {
     version: "v0.48.0",
     bump: "minor",
     date: "2026-10-18",
