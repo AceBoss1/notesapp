@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
+import { AcademyIcon } from "@/components/shell/icons";
 import { remark } from "remark";
 import html from "remark-html";
 import { remarkLinkify } from "@/lib/linkify";
@@ -97,7 +98,7 @@ export default function LessonPlayer({ slug, lessonId }: { slug: string; lessonI
                 <div className="card mb-4 p-4">
                   <div className="h-2 overflow-hidden rounded-full bg-rule"><div className="h-full rounded-full bg-crimson transition-all" style={{ width: `${p.pct}%` }} /></div>
                   <p className="mt-1.5 text-xs text-slate">{p.complete ? "Every lesson done. Well done!" : `${p.done} of ${p.total} lessons done · ${p.pct}%`}</p>
-                  {p.complete && !mine && <Link href={enrolment.certificateId ? `/certificates/${enrolment.certificateId}` : `/academy/${slug}/certificate`} className="btn-primary mt-3 w-full !py-2 text-xs">{enrolment.certificateId ? "🎓 See your certificate" : "🎓 Get your certificate"}</Link>}
+                  {p.complete && !mine && <Link href={enrolment.certificateId ? `/certificates/${enrolment.certificateId}` : `/academy/${slug}/certificate`} className="btn-primary mt-3 w-full !py-2 text-xs"><AcademyIcon className="mr-1.5 inline-block h-[1.2em] w-[1.2em] align-[-0.25em]" />{enrolment.certificateId ? "See your certificate" : "Get your certificate"}</Link>}
                 </div>
               )}
               <p className="font-display text-xl text-ink">Lessons</p>

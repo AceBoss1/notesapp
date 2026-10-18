@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
+import { AcademyIcon } from "@/components/shell/icons";
 import Avatar from "@/components/Avatar";
 import { NameBadgeIcons } from "@/components/PersonName";
 import { hashtag } from "@/lib/topics";
@@ -135,11 +136,11 @@ function EnrolCard({ course, lessons, enrolment, signedIn, slug, busy, onEnrol, 
       )}
       {mine && <Link href={`/academy/teach/${course.id}`} className="mt-4 block text-center text-sm font-semibold text-crimson">You teach this course · Edit it</Link>}
       {mine ? (
-        <Link href="/academy/teach/setup" className="mt-4 block border-t border-rule pt-3 text-center text-sm font-semibold text-crimson">🎓 Set up your certificates</Link>
+        <Link href="/academy/teach/setup" className="mt-4 block border-t border-rule pt-3 text-center text-sm font-semibold text-crimson"><AcademyIcon className="mr-1.5 inline-block h-[1.2em] w-[1.2em] align-[-0.25em]" />Set up your certificates</Link>
       ) : enrolment?.certificateId ? (
-        <Link href={`/certificates/${enrolment.certificateId}`} className="mt-4 block border-t border-rule pt-3 text-center text-sm font-semibold text-crimson">🎓 See your certificate</Link>
+        <Link href={`/certificates/${enrolment.certificateId}`} className="mt-4 block border-t border-rule pt-3 text-center text-sm font-semibold text-crimson"><AcademyIcon className="mr-1.5 inline-block h-[1.2em] w-[1.2em] align-[-0.25em]" />See your certificate</Link>
       ) : enrolment && p.complete ? (
-        <Link href={`/academy/${slug}/certificate`} className="btn-primary mt-4 w-full !py-3">🎓 Get your certificate</Link>
+        <Link href={`/academy/${slug}/certificate`} className="btn-primary mt-4 w-full !py-3"><AcademyIcon className="mr-1.5 inline-block h-[1.2em] w-[1.2em] align-[-0.25em]" />Get your certificate</Link>
       ) : (
         <p className="mt-4 border-t border-rule pt-3 text-xs text-slate">Finish every lesson and get a certificate anyone can check, with your name, the hours and a QR code.</p>
       )}

@@ -103,7 +103,10 @@ export async function certificateMetadata(id: string): Promise<Metadata> {
     const description = c.status === "revoked"
       ? `This Notes Academy certificate (${id}) has been revoked.`
       : `Certificate of completion from ${c.academyName} on Notes Academy, #NotesApp. Verify it with ID ${id}.`;
-    return { ...cardFor(title, description, "/images/academy/notes-academy-verifiable-certificate-wide.png", "Notes Academy Verifiable Certificate", { type: "website", url: `/certificates/${id}` }), robots: { index: false } };
+    // The certificate itself as the picture (1200 × 630), so pasting the link (LinkedIn's Add media → Add a link, X, WhatsApp) shows it.
+    const image = `/certificates/${id}/image.png?size=og`;
+    const meta = cardFor(title, description, image, `${c.learnerName}'s Notes Academy certificate for ${c.courseTitle}`, { type: "website", url: `/certificates/${id}` });
+    return { ...meta, openGraph: { ...meta.openGraph, images: [{ url: image, width: 1200, height: 630, alt: `${c.learnerName}'s Notes Academy certificate for ${c.courseTitle}` }] }, robots: { index: false } };
   } catch (err) {
     console.error("[og] certificate metadata failed", err);
     return { title: "Certificate" };

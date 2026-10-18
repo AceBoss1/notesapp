@@ -14,6 +14,18 @@ const naira = (kobo: number) => `₦${Math.round(kobo / 100).toLocaleString("en-
 const field = "mt-1 w-full rounded-xl border border-rule bg-card px-3.5 py-2.5 text-sm text-ink outline-none focus:border-crimson";
 const label = "block text-sm font-semibold text-ink";
 
+// A logo as PNG (up to 1200 px wide, transparency kept): the certificate picture (lib/certificate-image.tsx) can't read WebP.
+async function asPng(file: File): Promise<File> {
+  if (file.type === "image/png" || file.type === "image/jpeg") return file;
+  const img = await createImageBitmap(file);
+  const scale = Math.min(1, 1200 / img.width);
+  const c = document.createElement("canvas");
+  c.width = Math.round(img.width * scale); c.height = Math.round(img.height * scale);
+  c.getContext("2d")!.drawImage(img, 0, 0, c.width, c.height);
+  const blob: Blob = await new Promise((ok, no) => c.toBlob((b) => (b ? ok(b) : no(new Error("Couldn't read that picture."))), "image/png"));
+  return new File([blob], "logo.png", { type: "image/png" });
+}
+
 // A photo of a signature on white paper → the same signature on transparent: near-white goes clear, light grey fades out.
 async function whiten(file: File): Promise<File> {
   const img = await createImageBitmap(file);
@@ -78,7 +90,7 @@ export default function AcademySetup() {
   const set = (k: keyof Form) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => setF((o) => ({ ...o, [k]: e.target.value }));
   async function upload(k: "logoUrl" | "signatureUrl" | "accLogoUrl", file: File) {
     setBusy(k); setError("");
-    try { const url = await uploadToR2(k === "signatureUrl" ? await whiten(file) : file, "academy"); setF((o) => ({ ...o, [k]: url })); }
+    try { const url = await uploadToR2(k === "signatureUrl" ? await whiten(file) : await asPng(file), "academy"); setF((o) => ({ ...o, [k]: url })); }
     catch (e) { setError(e instanceof Error ? e.message : "Couldn't upload that picture."); }
     finally { setBusy(""); }
   }
