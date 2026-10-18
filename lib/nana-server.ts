@@ -20,7 +20,7 @@ import { setting } from "@/lib/config";
 // knowledge base alone (lib/nana-kb.ts), so the chat never just stops.
 
 export { nanaConfigured } from "./nana-config";
-// Claude Opus 5.5 is the default; set NANA_MODEL (for example claude-haiku-5-5 or claude-sonnet-5-5) to trade some quality for cost.
+// NANA_MODEL picks the model (production uses claude-haiku-5-5); Claude Opus 5.5 is only the fallback when it isn't set.
 export const nanaModel = () => (setting("NANA_MODEL") || "").trim() || "claude-opus-5-5";
 const platformKey = () => (setting("ANTHROPIC_API_KEY") || "").trim();
 const dailyLimit = () => Math.max(1, Number(setting("NANA_DAILY_LIMIT")) || 1500);
@@ -37,17 +37,20 @@ export class AiDown extends Error {
   }
 }
 
+export const FALLBACK_MODELS = new Set(["claude-fable-5-1", "claude-opus-5-5", "claude-opus-5", "claude-sonnet-5-5"]);
 const realComplete: NanaDeps["complete"] = async ({ apiKey, system, messages, maxTokens }) => {
   const client = new Anthropic({ apiKey, timeout: 45_000, maxRetries: 1 });
   try {
+    const model = nanaModel();
     const res = await client.beta.messages.create({
-      model: nanaModel(),
+      model,
       max_tokens: maxTokens, // thinking counts toward this as well as the reply
       system,
       messages,
       output_config: { effort: "low" }, // a support answer should be quick; thinking depth is the speed and cost control on this model
-      betas: ["server-side-fallback-2026-07-01"],
-      fallbacks: "default", // if a safety classifier declines, the API re-runs the request on another model
+      // If a safety classifier declines, the API re-runs the request on another model, but only on the models that offer it (not Haiku 5.5,
+      // which declines outright and is the model set in production).
+      ...(FALLBACK_MODELS.has(model) ? { betas: ["server-side-fallback-2026-07-01"], fallbacks: "default" as const } : {}),
     });
     if (res.stop_reason === "refusal") return { text: "", refused: true };
     const text = res.content.filter((b): b is Anthropic.Beta.BetaTextBlock => b.type === "text").map((b) => b.text).join("\n").trim();
