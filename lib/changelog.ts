@@ -11,6 +11,15 @@ export type Release = {
 
 export const CHANGELOG: Release[] = [
   {
+    version: "v0.47.1",
+    bump: "patch",
+    date: "2026-10-18",
+    changes: [
+      { kind: "fixed", text: "Nana uses far less of your free allowance: each answer now reads only the help articles that match your question instead of the whole help centre, and the model prices used to work out costs are corrected. A Pearl answer now costs well under ₦2." },
+      { kind: "added", text: "A help article on the #NotesApp MCP server, so Nana can explain how to use #NotesApp from your AI assistant." },
+    ],
+  },
+  {
     version: "v0.47.0",
     bump: "minor",
     date: "2026-10-18",

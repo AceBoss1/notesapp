@@ -87,7 +87,7 @@ const NANA: PricingConfig["nana"] = {
   resetEvery: "week",
   allowanceGems: "all",
   usdKobo: 1_600 * 100,
-  rates: { pearl: { inUsd: 1, outUsd: 5 }, emerald: { inUsd: 3, outUsd: 15 }, ruby: { inUsd: 5, outUsd: 25 } },
+  rates: { pearl: { inUsd: 0.1, outUsd: 0.5 }, emerald: { inUsd: 2, outUsd: 10 }, ruby: { inUsd: 4, outUsd: 20 } }, // Haiku 5.5, Sonnet 5.5, Opus 5.5
 };
 export const DEFAULT_PRICING: PricingConfig = currentPricing();
 

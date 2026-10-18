@@ -1,7 +1,7 @@
 // Nana's gems, allowance timer and spending order (lib/nana-gems.ts), and which questions may use the answer bank (lib/nana-bank.ts).
 // Run: npm run test:nana → "ALL OK".
 import assert from "node:assert/strict";
-import { costKobo, effortsFor, gemsFor, nextReset, periodAllowance, periodKey, pickEffort, pickGem, spend, standing, canStart } from "../../lib/nana-gems";
+import { CACHE_READ, costKobo, effortsFor, gemsFor, nextReset, periodAllowance, periodKey, pickEffort, pickGem, spend, standing, canStart } from "../../lib/nana-gems";
 import { bankKey, bankQuestion } from "../../lib/nana-bank";
 
 // Who gets which gem and effort: Pearl and Quick for all; Emerald and Balanced from Business; Ruby and Thorough on Enterprise.
@@ -20,6 +20,9 @@ assert.equal(costKobo({ cache_read_input_tokens: 100_000 }, pearl, 160_000), 1_6
 assert.equal(costKobo({ cache_creation_input_tokens: 100_000 }, pearl, 160_000), 20_000, "cache writes at 1.25×");
 assert.equal(costKobo({ input_tokens: 1 }, pearl, 160_000), 1, "rounded up to the kobo");
 assert.equal(costKobo({}, pearl, 160_000), 0);
+assert.equal(costKobo({ cache_creation: { ephemeral_1h_input_tokens: 100_000, ephemeral_5m_input_tokens: 0 }, cache_creation_input_tokens: 100_000 }, pearl, 160_000), 32_000, "1-hour cache writes at 2×");
+assert.equal(costKobo({ cache_creation: { ephemeral_1h_input_tokens: 0, ephemeral_5m_input_tokens: 100_000 } }, pearl, 160_000), 20_000);
+assert.equal(costKobo({ cache_read_input_tokens: 100_000 }, { inUsd: 4, outUsd: 20 }, 160_000, CACHE_READ.ruby), 3_200, "Ruby's model reads its cache at a twentieth");
 
 // The timer runs on Lagos time; weeks start on Monday.
 const sunNight = new Date("2026-10-18T22:30:00Z"); // 11:30 pm Sunday in Lagos
