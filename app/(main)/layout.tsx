@@ -35,6 +35,7 @@ const NAV = [
 const APP_NAV = [
   { href: "/journals", label: "Journals" },
   { href: "/shop", label: "Market" },
+  { href: "/academy", label: "Academy" },
   { href: "/messages", label: "Messages" },
   { href: "/bookings", label: "Bookings" },
   { href: "/trending", label: "Trending" },

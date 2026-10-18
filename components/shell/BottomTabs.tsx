@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation";
 import { useMember } from "@/lib/member-client";
 import { showsBottomTabs } from "@/lib/chrome";
 import { MESSAGES_LIVE } from "@/lib/moments-rules";
-import { ExploreIcon, HomeIcon, MarketIcon, MessagesIcon, ProfileIcon, TrendingIcon } from "./icons";
+import { AcademyIcon, ExploreIcon, HomeIcon, MarketIcon, MessagesIcon, ProfileIcon, TrendingIcon } from "./icons";
 
 // Whether the phone tab bar is on screen, for things that sit above it (Nana's button, the write button).
 export function useBottomTabs(): boolean {
@@ -14,7 +14,7 @@ export function useBottomTabs(): boolean {
   return showsBottomTabs(pathname, { member: !!user, appHost });
 }
 
-// The tab bar along the bottom of a phone (Moda redesign): Feed, Explore, Market, Messages, Profile.
+// The tab bar along the bottom of a phone (Moda redesign): Feed, Explore, Market, Academy, Messages, Profile.
 export default function BottomTabs() {
   const pathname = usePathname();
   const { profile, user, unreadDms } = useMember();
@@ -25,6 +25,7 @@ export default function BottomTabs() {
     { href: "/journals", label: "Feed", Icon: HomeIcon, on: pathname === "/journals" || pathname.startsWith("/journals/") },
     { href: "/explore", label: "Explore", Icon: ExploreIcon, on: pathname === "/explore" },
     { href: "/shop", label: "Market", Icon: MarketIcon, on: pathname === "/shop" },
+    { href: "/academy", label: "Academy", Icon: AcademyIcon, on: pathname === "/academy" || pathname.startsWith("/academy/") },
     MESSAGES_LIVE
       ? { href: "/messages", label: "Messages", Icon: MessagesIcon, on: pathname.startsWith("/messages"), badge: unreadDms }
       : { href: "/trending", label: "Trending", Icon: TrendingIcon, on: pathname === "/trending" },

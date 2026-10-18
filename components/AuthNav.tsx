@@ -51,12 +51,12 @@ export default function AuthNav({ onDark = false, compact = false }: { onDark?: 
   if (!user) {
     return (
       <div className="flex items-center gap-4">
-        <Link href="/login" className={onDark ? "rounded-full border border-paper/50 px-4 py-1.5 text-paper hover:bg-paper/10" : "text-ink hover:text-crimson-bright"}>
+        <Link href="/login" className={`whitespace-nowrap ${onDark ? "rounded-full border border-paper/50 px-4 py-1.5 text-paper hover:bg-paper/10" : "text-ink hover:text-crimson-bright"}`}>
           Sign In
         </Link>
         <Link
           href="/signup"
-          className={onDark ? "rounded-full bg-paper px-4 py-1.5 text-crimson-deep hover:opacity-90" : "bg-ink text-paper px-4 py-1.5 hover:bg-crimson-deep transition-colors"}
+          className={`whitespace-nowrap ${onDark ? "rounded-full bg-paper px-4 py-1.5 text-crimson-deep hover:opacity-90" : "bg-ink text-paper px-4 py-1.5 hover:bg-crimson-deep transition-colors"}`}
         >
           {onDark ? "Create account" : "Sign Up"}
         </Link>
