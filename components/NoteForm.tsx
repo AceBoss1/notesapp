@@ -16,6 +16,9 @@ import RichTextEditor from "@/components/RichTextEditor";
 import { roleLabelFor, type UserProfile } from "@/lib/users";
 import { resolveAuthorUsername } from "@/lib/journals-directory";
 import TopicPicker from "@/components/TopicPicker";
+import { SubtopicChips, TopicSuggestions } from "@/components/NanaSuggest";
+import { ensureSubtopics } from "@/lib/subtopics-client";
+import type { Subtopic } from "@/lib/subtopics";
 import { MAX_NOTE_TAGS, MAX_NOTE_TOPICS, matchTopic, normaliseTag, parseTags, topicLabel, topicsOf } from "@/lib/topics";
 
 // Kept identical to Precheks' own author_role text on purpose — this
@@ -70,6 +73,8 @@ export default function NoteForm({ noteId, initial, self, org }: Props) {
   const [slugTouched, setSlugTouched] = useState(!!initial?.slug);
   // Topics: 1 to 3 from the shared list (lib/topics.ts); an older journal starts with the topics its categories and tags mean.
   const [topics, setTopics] = useState<string[]>(initial ? topicsOf(initial) : []);
+  // Subtopics chosen from Nana's suggestions: saved as hashtags (new ones are created on save, lib/subtopics-client.ts).
+  const [subtopics, setSubtopics] = useState<Subtopic[]>([]);
   // The writer's own hashtags, tidied on save (parseTags); a category that isn't a topic is kept as a hashtag.
   const [tags, setTags] = useState(
     Array.from(new Set([...(initial?.tags || []), ...(initial?.categories || []).filter((c) => !matchTopic(c))].map(normaliseTag).filter(Boolean)))
@@ -140,6 +145,9 @@ export default function NoteForm({ noteId, initial, self, org }: Props) {
     } catch {
       /* if the check itself fails, let the save decide */
     }
+    let subTags: string[] = [];
+    try { subTags = (await ensureSubtopics("topic", subtopics.filter((x) => topics.includes(x.parent)))).map((x) => x.slug); }
+    catch (e) { setError(e instanceof Error ? e.message : "Couldn't save the subtopics."); setSaving(false); return null; }
     const payload = {
       title,
       slug: finalSlug,
@@ -147,7 +155,7 @@ export default function NoteForm({ noteId, initial, self, org }: Props) {
       // `categories` keeps the topics' names for anything that still reads it; `topics` is what the site files journals by.
       topics,
       categories: topics.map(topicLabel),
-      tags: parseTags(tags),
+      tags: parseTags([...subTags, ...parseTags(tags)]),
       featured_image: featuredImage || video?.videoPoster || "",
       content,
       author: author.name,
@@ -231,11 +239,13 @@ export default function NoteForm({ noteId, initial, self, org }: Props) {
         />
       </label>
 
+      <TopicSuggestions kind="journal" title={title} topics={topics} subtopics={subtopics} maxTopics={MAX_NOTE_TOPICS} onChange={(n) => { setTopics(n.topics); setSubtopics(n.subtopics); }} />
       <div className="block">
         <span className="eyebrow">Topics (pick up to {MAX_NOTE_TOPICS})</span>
         <p className="mt-1 text-xs text-slate">Readers who chose these topics see this journal first, in their feed and their weekly digest.</p>
         <div className="mt-2 rounded border border-rule bg-card p-4">
-          <TopicPicker value={topics} onChange={setTopics} max={MAX_NOTE_TOPICS} compact />
+          <TopicPicker value={topics} onChange={(t) => { setTopics(t); setSubtopics((s) => s.filter((x) => t.includes(x.parent))); }} max={MAX_NOTE_TOPICS} compact />
+          <SubtopicChips subtopics={subtopics} onRemove={(x) => setSubtopics((s) => s.filter((y) => y !== x))} />
         </div>
         {topics.length === 0 && <p className="mt-1 text-xs text-crimson">Pick at least one topic so readers can find it.</p>}
       </div>

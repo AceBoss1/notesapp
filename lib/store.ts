@@ -1,4 +1,5 @@
 import { addDoc, collection, deleteDoc, deleteField, doc, getDoc, getDocs, query, setDoc, updateDoc, where } from "firebase/firestore";
+import { cleanSubtopicLabel } from "./subtopics";
 import { db } from "./firebase";
 import { toMillis } from "./dates";
 import { cleanShipsFrom, isStoreCategory } from "./store-meta";
@@ -26,6 +27,7 @@ export type StoreItem = {
   stock?: number; // optional; counts down per sale (for an item with options: the total across all combinations)
   // Which shelf the item is filed under (see lib/store-meta.ts), and for physical items where it is sent from.
   category?: string;
+  subcategory?: string; // narrower than the category, e.g. "Bags" (lib/subtopics.ts); new ones are created as the item is saved
   shipsFrom?: string;
   // Extra photos (the first is the main one, also kept in `image`): up to MAX_IMAGES.
   images?: string[];
@@ -196,6 +198,7 @@ function clean(input: StoreItemInput) {
     deliveryKobo: digital ? 0 : Math.round(Number(input.deliveryKobo ?? 0)),
     stock,
     ...(isStoreCategory(input.category) ? { category: input.category } : {}),
+    ...(isStoreCategory(input.category) && cleanSubtopicLabel(input.subcategory) ? { subcategory: cleanSubtopicLabel(input.subcategory) } : {}),
     ...(!digital && cleanShipsFrom(input.shipsFrom) ? { shipsFrom: cleanShipsFrom(input.shipsFrom) } : {}),
     ...(options.length ? { options, variantStock } : {}),
     ...(images.length ? { images } : {}),

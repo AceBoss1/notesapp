@@ -1,6 +1,8 @@
 import { FieldValue, type DocumentReference, type Firestore, type Transaction } from "firebase-admin/firestore";
 import { getAdminDb } from "./firebase-admin";
+import { ensureMany } from "./subtopics-server";
 import { ttlCache } from "./ttl-cache";
+import type { Subtopic } from "./subtopics";
 import { weeklyViews } from "./discovery-server";
 import { canPublish, type UserProfile } from "./users";
 import {
@@ -26,6 +28,7 @@ export function courseOf(id: string, d: FirebaseFirestore.DocumentData): Course 
     lessonCount: Number(d.lessonCount) || 0, minutes: Number(d.minutes) || 0, enrolCount: Number(d.enrolCount) || 0, viewCount: Number(d.viewCount) || 0,
     createdAt: String(d.createdAt ?? ""), updatedAt: String(d.updatedAt ?? ""), publishedAt: d.publishedAt ? String(d.publishedAt) : null,
     likeCount: Number(d.likeCount) || 0, ratingSum: Number(d.ratingSum) || 0, ratingCount: Number(d.ratingCount) || 0,
+    subtopics: Array.isArray(d.subtopics) ? (d.subtopics as Subtopic[]).map((x) => ({ parent: String(x.parent), slug: String(x.slug), label: String(x.label) })) : [],
   };
 }
 export function lessonOf(id: string, d: FirebaseFirestore.DocumentData): Lesson {
@@ -114,6 +117,12 @@ export async function updateCourse(db: Firestore, uid: string, id: string, body:
   if (f.title === "") throw new CourseError("Give the course a title.");
   if (c.status === "published" && f.summary === "") throw new CourseError("A published course needs a summary.");
   const patch: Record<string, unknown> = { ...f, ...ownerFields(p), updatedAt: iso(now) };
+  // Subtopics under the course's topics (Nana's suggestions): any new one is created now (lib/subtopics-server.ts).
+  if (body.subtopics !== undefined) {
+    const topics = (f.topics ?? c.topics) as string[];
+    const wanted = Array.isArray(body.subtopics) ? (body.subtopics as { parent?: unknown }[]).filter((x) => topics.includes(String(x?.parent))) : [];
+    try { patch.subtopics = await ensureMany(db, uid, "topic", wanted, now); } catch (e) { throw new CourseError(e instanceof Error ? e.message : "Couldn't save the subtopics."); }
+  } else if (f.topics) patch.subtopics = ((c as { subtopics?: { parent: string }[] }).subtopics ?? []).filter((x) => f.topics!.includes(x.parent));
   // The address follows the title until the course is first published; after that, links people shared keep working.
   if (f.title && !c.publishedAt && slugify(f.title) !== slugify(c.title)) {
     patch.slug = await reserveSlug(db, f.title, id);
