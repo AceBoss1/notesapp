@@ -11,6 +11,16 @@ export type Release = {
 
 export const CHANGELOG: Release[] = [
   {
+    version: "v0.50.0",
+    bump: "minor",
+    date: "2026-10-18",
+    changes: [
+      { kind: "added", text: "Notes Academy is in the phone tab bar, next to Market, with its own cap icon, and in the header and footer on a computer." },
+      { kind: "added", text: "Explore now has Market and Academy tabs: the most looked-at products and courses this week, searchable, with a way into Notes Market and Notes Academy." },
+      { kind: "fixed", text: "The header links no longer wrap onto two lines on narrower computer screens." },
+    ],
+  },
+  {
     version: "v0.49.0",
     bump: "minor",
     date: "2026-10-18",
