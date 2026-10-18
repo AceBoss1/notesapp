@@ -6,9 +6,10 @@ import Link from "next/link";
 import type { User } from "firebase/auth";
 import Avatar from "@/components/Avatar";
 import { NameBadgeIcons } from "@/components/PersonName";
-import { RECOMMENDATION_MAX, RELATIONSHIPS, type Recommendation } from "@/lib/reviews";
+import { RECOMMENDATION_MAX, RELATIONSHIPS, type RatingSummary, type Recommendation } from "@/lib/reviews";
+import { Stars } from "@/components/ReviewsPanel";
 
-type Data = { approved: Recommendation[]; waiting: Recommendation[]; mine: Recommendation | null };
+type Data = { approved: Recommendation[]; waiting: Recommendation[]; mine: Recommendation | null; summary?: RatingSummary & { total: number } };
 const field = "mt-1 w-full rounded-lg border border-rule bg-card px-3 py-2 text-sm outline-none focus:border-crimson";
 const dayLabel = (iso: string) => new Date(iso).toLocaleDateString("en-NG", { month: "short", year: "numeric" });
 
@@ -18,14 +19,15 @@ function Who({ r }: { r: Recommendation }) {
       <Avatar src={r.authorAvatar} alt={r.authorName} size={40} square={r.authorIsOrg} />
       <div className="min-w-0">
         <p className="truncate font-ui text-sm font-bold text-ink">{r.authorUsername ? <Link href={`/u/${r.authorUsername}`} className="hover:underline">{r.authorName}</Link> : r.authorName}<NameBadgeIcons username={r.authorUsername} size={13} /></p>
-        <p className="text-xs text-slate">{r.relationship} · {dayLabel(r.createdAt)}</p>
+        <p className="text-xs text-slate">{r.rating ? <><Stars value={r.rating} size="text-sm" /> · </> : null}{r.relationship} · {dayLabel(r.createdAt)}</p>
       </div>
     </div>
   );
 }
 
-// Recommendations on a profile (a person or an organisation). Anyone signed in can write one for someone else; it shows publicly only after the
-// person recommended approves it, and they can hide it later. One per pair; the author can rewrite or withdraw theirs.
+// Recommendations on a profile (a person or an organisation): stars (1 to 5) and a few sentences. Anyone signed in can write one for someone
+// else; it shows publicly (here, beside their journals and on their site's About page: RecommendationsCard) only after the person
+// recommended approves it, and they can hide it later. One per pair; the author can rewrite or withdraw theirs.
 export default function RecommendationsPanel({ subjectUid, subjectName, user }: { subjectUid: string; subjectName: string; user: User | null | undefined }) {
   const [data, setData] = useState<Data | null>(null);
   const [error, setError] = useState("");
@@ -33,6 +35,7 @@ export default function RecommendationsPanel({ subjectUid, subjectName, user }: 
   const [busy, setBusy] = useState(false);
   const [open, setOpen] = useState(false);
   const [relationship, setRelationship] = useState<string>(RELATIONSHIPS[0]);
+  const [rating, setRating] = useState(0);
   const [text, setText] = useState("");
 
   const call = useCallback(async (body?: Record<string, unknown>) => {
@@ -57,8 +60,9 @@ export default function RecommendationsPanel({ subjectUid, subjectName, user }: 
   return (
     <section className="mt-14" id="recommendations" aria-label="Recommendations">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <p className="eyebrow">Recommendations{data.approved.length ? ` · ${data.approved.length}` : ""}</p>
-        {canWrite && !open && <button type="button" onClick={() => { setOpen(true); setNote(""); if (data.mine) { setRelationship(data.mine.relationship); setText(data.mine.text); } }} className="rounded-full border border-rule px-4 py-1.5 font-ui text-xs font-semibold hover:border-crimson">{data.mine ? "Edit my recommendation" : `Recommend ${subjectName}`}</button>}
+        <p className="eyebrow flex items-center gap-2">Recommendations{data.approved.length ? ` · ${data.approved.length}` : ""}
+          {!!data.summary?.count && <span className="normal-case tracking-normal"><Stars value={data.summary.average} size="text-sm" /> <b className="font-ui text-ink">{data.summary.average.toFixed(1)}</b></span>}</p>
+        {canWrite && !open && <button type="button" onClick={() => { setOpen(true); setNote(""); if (data.mine) { setRelationship(data.mine.relationship); setText(data.mine.text); setRating(data.mine.rating ?? 0); } }} className="rounded-full border border-rule px-4 py-1.5 font-ui text-xs font-semibold hover:border-crimson">{data.mine ? "Edit my recommendation" : `Recommend ${subjectName}`}</button>}
       </div>
       {note && <p className="mt-3 text-sm text-green-700" role="status">{note}</p>}
 
@@ -72,7 +76,7 @@ export default function RecommendationsPanel({ subjectUid, subjectName, user }: 
                 <Who r={r} />
                 <p className="mt-2 whitespace-pre-line break-words text-sm text-ink"><LinkedText text={r.text} /></p>
                 <div className="mt-2 flex gap-2">
-                  {r.status === "pending" && <button type="button" disabled={busy} onClick={() => run({ action: "approve", id: r.id }, "Approved. It shows on your profile now.")} className="rounded-full bg-crimson px-4 py-1.5 font-ui text-xs font-semibold text-paper disabled:opacity-50">Show on my profile</button>}
+                  {r.status === "pending" && <button type="button" disabled={busy} onClick={() => run({ action: "approve", id: r.id }, "Approved. It shows on your profile, beside your journals and on your site's About page now.")} className="rounded-full bg-crimson px-4 py-1.5 font-ui text-xs font-semibold text-paper disabled:opacity-50">Show on my profile</button>}
                   {r.status === "hidden" && <button type="button" disabled={busy} onClick={() => run({ action: "approve", id: r.id }, "It shows on your profile again.")} className="rounded-full border border-rule px-4 py-1.5 font-ui text-xs font-semibold disabled:opacity-50">Show again</button>}
                   {r.status === "pending" && <button type="button" disabled={busy} onClick={() => run({ action: "hide", id: r.id }, "Hidden.")} className="rounded-full border border-rule px-4 py-1.5 font-ui text-xs font-semibold disabled:opacity-50">Not now</button>}
                   {r.status === "hidden" && <span className="self-center text-xs text-slate">Hidden</span>}
@@ -84,18 +88,23 @@ export default function RecommendationsPanel({ subjectUid, subjectName, user }: 
       )}
 
       {open && canWrite && (
-        <form className="card mt-4 p-5" onSubmit={async (e) => { e.preventDefault(); if (await run({ action: "write", subjectUid, relationship, text }, `Sent. It shows on ${subjectName}'s profile once they approve it.`)) { setOpen(false); setText(""); } }}>
+        <form className="card mt-4 p-5" onSubmit={async (e) => { e.preventDefault(); if (await run({ action: "write", subjectUid, relationship, rating, text }, `Sent. It shows on ${subjectName}'s profile once they approve it.`)) { setOpen(false); setText(""); } }}>
           <p className="font-ui text-sm font-bold text-ink">Recommend {subjectName}</p>
           <label className="mt-3 block text-xs text-slate">How do you know them?
             <select className={field} value={relationship} onChange={(e) => setRelationship(e.target.value)}>{RELATIONSHIPS.map((r) => <option key={r}>{r}</option>)}</select>
           </label>
+          <div className="mt-3 text-xs text-slate">Your rating
+            <div className="mt-1 flex gap-1" role="radiogroup" aria-label="Rating">
+              {[1, 2, 3, 4, 5].map((n) => <button key={n} type="button" role="radio" aria-checked={rating === n} aria-label={`${n} star${n === 1 ? "" : "s"}`} onClick={() => setRating(n)} className={`text-3xl leading-none ${n <= rating ? "text-amber-500" : "text-rule"}`}>★</button>)}
+            </div>
+          </div>
           <label className="mt-3 block text-xs text-slate">What should people know?
             <textarea className={field} rows={4} maxLength={RECOMMENDATION_MAX} value={text} onChange={(e) => setText(e.target.value)} />
           </label>
           <p className="mt-1 text-xs text-slate">Be honest and specific. They approve it before it is public, and your name and picture appear with it.</p>
           {error && <p className="mt-2 text-sm text-red-700" role="alert">{error}</p>}
           <div className="mt-3 flex gap-2">
-            <button disabled={busy} className="rounded-full bg-crimson px-5 py-2 font-ui text-xs font-semibold text-paper hover:bg-crimson-bright disabled:opacity-50">{data.mine ? "Save" : "Send"}</button>
+            <button disabled={busy || !rating} className="rounded-full bg-crimson px-5 py-2 font-ui text-xs font-semibold text-paper hover:bg-crimson-bright disabled:opacity-50">{data.mine ? "Save" : "Send"}</button>
             <button type="button" className="rounded-full border border-rule px-4 py-2 font-ui text-xs font-semibold" onClick={() => setOpen(false)}>Cancel</button>
             {data.mine && <button type="button" disabled={busy} className="rounded-full border border-rule px-4 py-2 font-ui text-xs font-semibold text-crimson" onClick={async () => { if (await run({ action: "withdraw", id: data.mine!.id }, "Withdrawn.")) setOpen(false); }}>Withdraw</button>}
           </div>

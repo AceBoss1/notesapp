@@ -26,6 +26,7 @@ export type Course = {
   lessonIds: string[]; // the lessons in order, so progress and completion need no extra reads
   lessonCount: number; minutes: number; enrolCount: number; viewCount: number;
   createdAt: string; updatedAt: string; publishedAt: string | null;
+  likeCount?: number; ratingSum?: number; ratingCount?: number; // kept by lib/course-social-server.ts
 };
 export type LessonKind = "youtube" | "text";
 export type Lesson = { id: string; order: number; title: string; kind: LessonKind; youtubeId?: string; minutes?: number; body?: string };
@@ -36,7 +37,23 @@ export type CourseListing = {
   id: string; slug: string; title: string; summary: string; cover: string; topics: string[];
   lessonIds: string[]; lessonCount: number; minutes: number; enrolCount: number; views: number; viewsWeek: number; publishedAt: string;
   ownerUid: string; ownerUsername: string; ownerName: string; ownerAvatar: string;
+  likeCount: number; rating: { count: number; average: number };
 };
+
+// Likes, saves and reviews (lib/course-social-server.ts). A course shows its stars from RATING_SHOWN_FROM reviews; a learner may review
+// once they've done half its lessons (rounded up).
+export const RATING_SHOWN_FROM = 2;
+export const showsRating = (r: { count: number } | null | undefined) => !!r && r.count >= RATING_SHOWN_FROM;
+export const courseRating = (c: { ratingSum?: number; ratingCount?: number }) => {
+  const count = Number(c.ratingCount) || 0;
+  return { count, average: count ? Math.round(((Number(c.ratingSum) || 0) / count) * 10) / 10 : 0 };
+};
+export function reviewProgress(lessonIds: string[], done: Record<string, string> | undefined): { done: number; total: number; needed: number; ok: boolean } {
+  const total = lessonIds.length;
+  const n = lessonIds.filter((id) => done?.[id]).length;
+  const needed = Math.max(1, Math.ceil(total / 2));
+  return { done: n, total, needed, ok: total > 0 && n >= needed };
+}
 
 export const courseHref = (slug: string) => `/academy/${slug}`;
 export const lessonHref = (slug: string, lessonId: string) => `/academy/${slug}/${lessonId}`;
