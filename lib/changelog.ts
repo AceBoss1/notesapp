@@ -11,6 +11,17 @@ export type Release = {
 
 export const CHANGELOG: Release[] = [
   {
+    version: "v0.47.0",
+    bump: "minor",
+    date: "2026-10-18",
+    changes: [
+      { kind: "added", text: "Nana's gems: Nana now runs on three models, Pearl (fast and light, every plan), Emerald (deeper answers, Business and Enterprise) and Ruby (our most capable, Enterprise). Choose the gem, and how long Nana thinks (Quick, Balanced or Thorough, by plan), from the button next to Nana's name in the chat." },
+      { kind: "added", text: "A free Nana allowance on every plan, bigger on higher plans, that refreshes every week. The chat and the Nana page show what's left and when it refreshes." },
+      { kind: "added", text: "Nana credit: anyone can buy it on the Nana page, by card or from your NotesApp Credit wallet. Your free allowance is used first, then your credit, which never expires." },
+      { kind: "added", text: "Nana's answer bank: a general question someone has asked before is answered straight away, free, without using your allowance. Personal questions never go in." },
+    ],
+  },
+  {
     version: "v0.46.1",
     bump: "patch",
     date: "2026-10-17",

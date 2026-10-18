@@ -12,6 +12,7 @@ import { periodEndFrom, cancelBadgeIfCovered } from "./tier-billing";
 import { ESCROW_PLACEHOLDER_DAYS, newParcelId, phoneLast4 } from "./orders";
 import { merchParcelDoc } from "./orders-server";
 import { creditTopup } from "./wallet-server";
+import { addNanaCredit } from "./nana-meter";
 import { SITE_URL } from "@/lib/host";
 
 // Server-only. All money-state changes happen here, via the Admin SDK
@@ -20,7 +21,7 @@ import { SITE_URL } from "@/lib/host";
 
 export type PaymentRecord = {
   reference: string;
-  kind: "booking" | "subscription" | "boost" | "gift" | "tier" | "badge" | "gold_deposit" | "gold" | "merch" | "ad" | "store" | "digital" | "wallet_topup" | "life_naira";
+  kind: "booking" | "subscription" | "boost" | "gift" | "tier" | "badge" | "gold_deposit" | "gold" | "merch" | "ad" | "store" | "digital" | "wallet_topup" | "life_naira" | "nana_credit";
   uid: string; // the payer
   email: string;
   amountKobo: number;
@@ -73,6 +74,8 @@ export type PaymentRecord = {
   walletRefundedKobo?: number;
   // A wallet top-up: the Bonus Credits it adds (fixed at checkout), and how much of it was later refunded to the card.
   topup?: { bonusKobo: number };
+  // A Nana credit pack (lib/nana-meter.ts): which pack, and the AI credit it adds (fixed at checkout).
+  nanaPack?: { packId: string; name: string; creditKobo: number };
   topupReversedKobo?: number;
 };
 
@@ -311,6 +314,8 @@ export async function fulfillPayment(reference: string): Promise<PaymentRecord> 
       });
     } else if (current.kind === "wallet_topup") {
       await creditTopup(t, db, current, new Date(now));
+    } else if (current.kind === "nana_credit" && current.nanaPack) {
+      addNanaCredit(t, db, current.uid, current.nanaPack.creditKobo, reference, new Date(now));
     } else if (current.kind === "life_naira") {
       // Notesville Naira for Notes Life: 1 kobo of NotesApp Credit (or card) = N$ 1. Game money only; it never converts back.
       const at = Date.now();
@@ -518,6 +523,10 @@ async function notifyPaid(p: PaymentRecord) {
   if (p.kind === "gift" && p.gift) return notifyGift(p);
   if (p.kind === "life_naira") {
     await notifyBell({ uid: p.uid, type: "plan", linkHref: "/life/play", message: `N$ ${p.amountKobo.toLocaleString("en-NG")} added to Notes Life.` });
+    return;
+  }
+  if (p.kind === "nana_credit" && p.nanaPack) {
+    await notifyBell({ uid: p.uid, type: "plan", linkHref: "/nana#credit", message: `${formatNaira(p.nanaPack.creditKobo)} of Nana credit added (${p.nanaPack.name}). It never expires and is used after your free allowance.` });
     return;
   }
   if (p.kind === "wallet_topup") {

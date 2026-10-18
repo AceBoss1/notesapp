@@ -9,9 +9,10 @@ import { aiStatus } from "@/lib/ai-connect";
 import { hubContextFor } from "@/lib/nana-hub";
 
 export const dynamic = "force-dynamic";
-export const maxDuration = 60;
+export const maxDuration = 120; // Thorough answers (Enterprise) can take longer
 
-// POST { messages: [{role, content}], chatId?, name?, email?, page?, context? } → { reply, chatId, handoff, gap, mode, via, notice? }.
+// POST { messages: [{role, content}], chatId?, name?, email?, page?, context?, gem?, effort? } → { reply, chatId, handoff, gap, mode, via, notice?, gem?, effort? }.
+// gem and effort are what the member chose (lib/nana-gems.ts); the server brings them down to what their plan allows.
 // Signed-in members are recognised from their sign-in (name and email come from the account); visitors must send a name and email.
 // context "hub" is for staff inside the team hub: it needs an admin sign-in and adds the team-only knowledge and that person's open work.
 // mode says whether the AI wrote the reply ("ai") or the knowledge base did ("kb"); with no AI available Nana still answers.
@@ -42,7 +43,7 @@ export async function POST(req: NextRequest) {
       const me = await verifyAdminAccess(token); // throws unless this is a signed-in staff member
       hubContext = await hubContextFor(db, me.uid, signedIn?.name || me.email);
     }
-    return NextResponse.json(await chat(db, { chatId: body.chatId, name: body.name, email: body.email, messages: body.messages, page: body.page, signedIn, hubContext }), { headers: { "Cache-Control": "no-store" } });
+    return NextResponse.json(await chat(db, { chatId: body.chatId, name: body.name, email: body.email, messages: body.messages, page: body.page, signedIn, hubContext, gem: body.gem, effort: body.effort }), { headers: { "Cache-Control": "no-store" } });
   } catch (err) {
     if (err instanceof NanaError) return NextResponse.json({ error: err.message }, { status: err.status });
     const f = friendlyMessage(err, "Couldn't reach Nana");

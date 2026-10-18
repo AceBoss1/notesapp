@@ -13,7 +13,7 @@ const btn = "rounded-full bg-crimson px-5 py-2 font-ui text-xs font-semibold tex
 const ghost = "rounded-full border border-rule px-4 py-2 font-ui text-xs font-semibold hover:border-crimson disabled:opacity-50";
 
 // The form works in naira and percents; the server stores kobo and fractions. These convert both ways on the same object shape.
-const KOBO_KEYS = new Set(["monthlyKobo", "yearlyKobo", "fromMonthlyKobo", "fromYearlyKobo", "badgeKobo", "depositKobo", "priceKobo", "enterpriseCoursesMonthlyKobo", "academyApiFromMonthlyKobo", "certificateMinKobo", "creditKobo", "siteCeilingKobo", "basic", "pro", "business", "enterprise"]); // the plan names are kobo only as numbers (Nana budgets); as objects they are walked into
+const KOBO_KEYS = new Set(["monthlyKobo", "yearlyKobo", "fromMonthlyKobo", "fromYearlyKobo", "badgeKobo", "depositKobo", "priceKobo", "enterpriseCoursesMonthlyKobo", "academyApiFromMonthlyKobo", "certificateMinKobo", "creditKobo", "siteCeilingKobo", "usdKobo", "standard", "basic", "pro", "business", "enterprise"]); // the plan names are kobo only as numbers (Nana budgets); as objects they are walked into
 const RATE_EXTRA = new Set(["weeklyRate", "capRate"]);
 const RATE_KEYS = new Set(["session", "physical", "digital", "adShare", "floorSession", "floorPhysical", "floorDigital"]);
 type Any = any; // eslint-disable-line @typescript-eslint/no-explicit-any
@@ -23,7 +23,7 @@ function convert(v: Any, key: string, toForm: boolean): Any {
   if (typeof v === "number" || typeof v === "string") {
     if (KOBO_KEYS.has(key)) return toForm ? String(Number(v) / 100) : Math.round(Number(v) * 100);
     if (RATE_KEYS.has(key) || RATE_EXTRA.has(key)) return toForm ? String(Math.round(Number(v) * 10000) / 100) : Number(v) / 100;
-    if (key === "impressions" || key === "graceDays") return toForm ? String(v) : Number(v);
+    if (key === "impressions" || key === "graceDays" || key === "inUsd" || key === "outUsd") return toForm ? String(v) : Number(v);
   }
   return v;
 }
@@ -116,12 +116,30 @@ export default function PricingPage() {
 
           <section className="card mt-6 p-5">
             <h2 className="font-display text-2xl text-ink">Nana AI allowances</h2>
-            <p className="mt-1 text-xs text-slate">What each member can spend a month on our AI account (writing help now; the operator&apos;s summaries and drafts when it ships). When it runs out Nana pauses until next month, unless the member buys a top-up or connects their own AI key, which is never limited. The site-wide ceiling stops all use on our account for the rest of the month.</p>
+            <p className="mt-1 text-xs text-slate">What each member can spend a month on our AI account, in naira of what the AI costs us: chats, writing help, summaries. It is shared out over the reset period below and refreshes on that timer (unused allowance doesn&apos;t carry over). When it runs out, Nana uses the member&apos;s Nana credit, then answers from the help centre. Members with their own AI key are never limited. The site-wide ceiling pauses free allowances for the rest of the month; bought credit still works. Gems: Pearl for everyone, Emerald from Business, Ruby on Enterprise (models in Settings: NANA_MODEL, NANA_MODEL_EMERALD, NANA_MODEL_RUBY).</p>
             <div className="mt-3 grid gap-3 text-sm sm:grid-cols-2">
-              {(["basic", "pro", "business", "enterprise"] as const).map((t) => (
-                <div key={t} className="flex items-center justify-between gap-3"><span>{t === "basic" ? "Free Basic" : t[0].toUpperCase() + t.slice(1)}, per member a month, ₦</span>{input(["nana", "budgets", t], "", `Nana budget ${t}`)}</div>
+              {(["standard", "basic", "pro", "business", "enterprise"] as const).map((t) => (
+                <div key={t} className="flex items-center justify-between gap-3"><span>{t === "standard" ? "Free" : t === "basic" ? "Free Basic" : t[0].toUpperCase() + t.slice(1)}, per member a month, ₦</span>{input(["nana", "budgets", t], "", `Nana budget ${t}`)}</div>
               ))}
-              <div className="flex items-center justify-between gap-3 sm:col-span-2"><span>Site-wide ceiling a month, ₦</span>{input(["nana", "siteCeilingKobo"], "", "Nana site ceiling")}</div>
+              <div className="flex items-center justify-between gap-3"><span>Site-wide ceiling a month, ₦</span>{input(["nana", "siteCeilingKobo"], "", "Nana site ceiling")}</div>
+              <label className="flex items-center justify-between gap-3"><span>Allowance refreshes every</span>
+                <select aria-label="Nana allowance reset" className={`${field} !w-40 !text-left`} value={form.nana?.resetEvery ?? "week"} onChange={(e) => set(["nana", "resetEvery"], e.target.value)}><option value="day">day</option><option value="week">week (Monday)</option><option value="month">month (the 1st)</option></select>
+              </label>
+              <label className="flex items-center justify-between gap-3"><span>The allowance covers</span>
+                <select aria-label="Nana allowance covers" className={`${field} !w-40 !text-left`} value={form.nana?.allowanceGems ?? "all"} onChange={(e) => set(["nana", "allowanceGems"], e.target.value)}><option value="all">every gem</option><option value="pearl">Pearl only</option></select>
+              </label>
+            </div>
+            <p className="mt-4 font-ui text-xs font-bold text-ink">What the models cost us</p>
+            <p className="mt-1 text-xs text-slate">The provider&apos;s list prices in US dollars per million tokens, and the naira to the dollar. Each answer&apos;s cost is worked out from these and taken from the allowance, then credit. Check them when a model or the exchange rate changes.</p>
+            <div className="mt-2 grid gap-3 text-sm sm:grid-cols-3">
+              {(["pearl", "emerald", "ruby"] as const).map((g) => (
+                <div key={g} className="rounded-lg border border-rule p-3">
+                  <p className="font-semibold capitalize">{g}</p>
+                  <div className="mt-2 flex items-center justify-between gap-2"><span className="text-xs">Input, $</span>{input(["nana", "rates", g, "inUsd"], "", `${g} input price`)}</div>
+                  <div className="mt-2 flex items-center justify-between gap-2"><span className="text-xs">Output, $</span>{input(["nana", "rates", g, "outUsd"], "", `${g} output price`)}</div>
+                </div>
+              ))}
+              <div className="flex items-center justify-between gap-3 sm:col-span-3"><span>Naira to one US dollar, ₦</span>{input(["nana", "usdKobo"], "", "Naira to the dollar")}</div>
             </div>
             <p className="mt-4 font-ui text-xs font-bold text-ink">Top-ups a member can buy</p>
             <div className="mt-2 grid gap-3 text-sm sm:grid-cols-3">

@@ -83,7 +83,10 @@ Environment Variables (mark secrets Sensitive), then redeploy: `NEXT_PUBLIC_*` v
 |---|---|---|
 | `ANTHROPIC_API_KEY` | **yes** | Switches Nana's AI on for everyone. Without it Nana answers from the help centre and members can connect their own key. |
 | `ANTHROPIC_BASE_URL` | no | Only to send Claude calls through a proxy (default https://api.anthropic.com). |
-| `NANA_MODEL` | no | The Claude model Nana uses (lib/nana-config.ts has the default). |
+| `NANA_MODEL` | no | The model behind Pearl, the gem everyone uses (default claude-haiku-5-5; lib/nana-gems.ts). |
+| `NANA_MODEL_EMERALD` | no | The model behind Emerald, for Business and Enterprise (default claude-sonnet-5-5). |
+| `NANA_MODEL_RUBY` | no | The model behind Ruby, for Enterprise (default claude-opus-5-5). |
+| `NANA_BANK_DAYS` | no | How many days Nana keeps a general answer in the answer bank to give again for free (default 7; 0 turns the bank off; lib/nana-bank.ts). |
 | `NANA_DAILY_LIMIT` | no | Nana's daily answers across the site. |
 | `NANA_CHAT_PER_USER_DAILY` | no | Nana chat answers per member a day. |
 | `NANA_ASSIST_DAILY` | no | Writing-help uses per member a day. |

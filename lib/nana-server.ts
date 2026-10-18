@@ -10,6 +10,10 @@ import {
 import { kbReply } from "./nana-kb";
 import { STAFF_PAGES, buildSystem, knownPaths, visitorBlock } from "./nana-prompt";
 import { setting } from "@/lib/config";
+import type { Effort, Gem, Usage } from "./nana-gems";
+import { EFFORT_INFO, pickEffort, pickGem } from "./nana-gems";
+import { memberTier, meterCharge, meterCheck, type Meter } from "./nana-meter";
+import { bankDays, bankGet, bankKey, bankPut, bankQuestion } from "./nana-bank";
 
 // The server side of Nana AI. A chat is stateless on the wire (the page sends the conversation each turn); we keep a transcript in the
 // server-only collection `nanaChats` so staff can see what people ask, fill gaps in the knowledge base and follow up when someone wants a
@@ -20,14 +24,16 @@ import { setting } from "@/lib/config";
 // knowledge base alone (lib/nana-kb.ts), so the chat never just stops.
 
 export { nanaConfigured } from "./nana-config";
-// NANA_MODEL picks the model (production uses claude-haiku-5-5); Claude Opus 5.5 is only the fallback when it isn't set.
-export const nanaModel = () => (setting("NANA_MODEL") || "").trim() || "claude-opus-5-5";
+// The model behind each gem (lib/nana-gems.ts). NANA_MODEL is Pearl, the one everyone uses (production: claude-haiku-5-5).
+export const nanaModel = () => (setting("NANA_MODEL") || "").trim() || "claude-haiku-5-5";
+export const gemModel = (g: Gem) => (g === "ruby" ? (setting("NANA_MODEL_RUBY") || "").trim() || "claude-opus-5-5" : g === "emerald" ? (setting("NANA_MODEL_EMERALD") || "").trim() || "claude-sonnet-5-5" : nanaModel());
 const platformKey = () => (setting("ANTHROPIC_API_KEY") || "").trim();
 const dailyLimit = () => Math.max(1, Number(setting("NANA_DAILY_LIMIT")) || 1500);
 
 export type SystemBlock = { type: "text"; text: string; cache_control?: { type: "ephemeral" } };
-export type Completion = { text: string; refused: boolean };
-export type CompleteArgs = { apiKey: string; system: SystemBlock[]; messages: NanaMsg[]; maxTokens: number };
+export type Completion = { text: string; refused: boolean; usage?: Usage };
+// model and effort come from the gem and effort the member chose; without them it's Pearl, Quick.
+export type CompleteArgs = { apiKey: string; system: SystemBlock[]; messages: NanaMsg[]; maxTokens: number; model?: string; effort?: Effort };
 export type NanaDeps = { complete: (a: CompleteArgs) => Promise<Completion>; now: () => Date };
 
 // The AI could not be used right now. `kind` says why, so a rejected key or an empty balance can be told apart from a short outage.
@@ -38,23 +44,23 @@ export class AiDown extends Error {
 }
 
 export const FALLBACK_MODELS = new Set(["claude-fable-5-1", "claude-opus-5-5", "claude-opus-5", "claude-sonnet-5-5"]);
-const realComplete: NanaDeps["complete"] = async ({ apiKey, system, messages, maxTokens }) => {
-  const client = new Anthropic({ apiKey, timeout: 45_000, maxRetries: 1 });
+const realComplete: NanaDeps["complete"] = async ({ apiKey, system, messages, maxTokens, model: wanted, effort = "low" }) => {
+  const client = new Anthropic({ apiKey, timeout: effort === "high" ? 110_000 : 45_000, maxRetries: 1 });
   try {
-    const model = nanaModel();
+    const model = wanted || nanaModel();
     const res = await client.beta.messages.create({
       model,
       max_tokens: maxTokens, // thinking counts toward this as well as the reply
       system,
       messages,
-      output_config: { effort: "low" }, // a support answer should be quick; thinking depth is the speed and cost control on this model
+      output_config: { effort }, // Quick for a support answer; Balanced and Thorough are for the plans that can choose them
       // If a safety classifier declines, the API re-runs the request on another model, but only on the models that offer it (not Haiku 5.5,
-      // which declines outright and is the model set in production).
+      // which declines outright and is Pearl).
       ...(FALLBACK_MODELS.has(model) ? { betas: ["server-side-fallback-2026-07-01"], fallbacks: "default" as const } : {}),
     });
-    if (res.stop_reason === "refusal") return { text: "", refused: true };
+    if (res.stop_reason === "refusal") return { text: "", refused: true, usage: res.usage };
     const text = res.content.filter((b): b is Anthropic.Beta.BetaTextBlock => b.type === "text").map((b) => b.text).join("\n").trim();
-    return { text, refused: false };
+    return { text, refused: false, usage: res.usage };
   } catch (err) {
     if (err instanceof Anthropic.AuthenticationError || err instanceof Anthropic.PermissionDeniedError) throw new AiDown("auth", "the key was rejected");
     if (err instanceof Anthropic.APIError && err.status === 400 && /credit|billing|balance/i.test(err.message)) throw new AiDown("billing", "no credit left");
@@ -91,16 +97,24 @@ export async function chargePlatform(db: Firestore, now: Date, uid: string | und
   });
 }
 
-export type Via = "own" | "platform" | "kb";
+export type Via = "own" | "platform" | "kb" | "bank";
 export type Ran = { completion: Completion; via: "own" | "platform"; notice?: string } | { completion: null; via: "kb"; notice?: string };
 
 // Tries each AI source in turn; a null completion means none worked and the caller should fall back to the knowledge base.
-export async function runAi(db: Firestore, deps: NanaDeps, now: Date, uid: string | undefined, req: Omit<CompleteArgs, "apiKey">, perUserLimit: number): Promise<Ran> {
+// With a meter, calls on our account are paid from the member's allowance and then their Nana credit (lib/nana-meter.ts); a member
+// with neither left gets the knowledge base and a notice saying why. Their own AI account is never metered.
+export async function runAi(db: Firestore, deps: NanaDeps, now: Date, uid: string | undefined, req: Omit<CompleteArgs, "apiKey">, perUserLimit: number, meter?: Meter): Promise<Ran> {
   let notice: string | undefined;
   for (const c of await aiCandidates(db, uid)) {
+    if (c.source === "platform" && meter) {
+      const ok = await meterCheck(db, meter, now);
+      if (!ok.ok) { notice = ok.notice; continue; }
+    }
     if (c.source === "platform" && !(await chargePlatform(db, now, uid, perUserLimit))) continue; // today's allowance is used up
     try {
-      return { completion: await deps.complete({ ...req, apiKey: c.apiKey }), via: c.source, notice };
+      const completion = await deps.complete({ ...req, apiKey: c.apiKey });
+      if (c.source === "platform" && meter) await meterCharge(db, meter, completion.usage, now).catch((e) => console.error("[nana] metering failed", e instanceof Error ? e.message : e));
+      return { completion, via: c.source, notice };
     } catch (err) {
       if (!(err instanceof AiDown)) throw err;
       if (c.source === "own") notice = err.kind === "billing" ? "Your connected AI account is out of credit, so I used the next best thing." : err.kind === "auth" ? "Your connected AI account didn't accept its key, so I used the next best thing. You can reconnect it on the Nana page." : undefined;
@@ -113,8 +127,9 @@ export type ChatInput = {
   chatId?: unknown; name?: unknown; email?: unknown; messages?: unknown; page?: unknown;
   signedIn?: { uid: string; name: string; email: string } | null; // from the verified sign-in, never from the request body
   hubContext?: string; // staff only: what the team hub knows about this person, built by the server after checking they are staff
+  gem?: unknown; effort?: unknown; // what the member chose; brought down to what their plan allows (lib/nana-gems.ts)
 };
-export type ChatResult = { reply: string; chatId: string; handoff: boolean; gap: boolean; mode: "ai" | "kb"; via: Via; notice?: string };
+export type ChatResult = { reply: string; chatId: string; handoff: boolean; gap: boolean; mode: "ai" | "kb"; via: Via; notice?: string; gem?: Gem; effort?: Effort };
 
 export function cleanMessages(raw: unknown): NanaMsg[] {
   if (!Array.isArray(raw) || !raw.length) throw new NanaError("Type a message and I'll help.");
@@ -145,15 +160,30 @@ export async function chat(db: Firestore, input: ChatInput, deps: NanaDeps = rea
   const articles: KbArticle[] = await getArticles(db, now.getTime());
   const page = typeof input.page === "string" && /^\/[A-Za-z0-9\-._~/]{0,120}$/.test(input.page) ? input.page : undefined;
   const staffKb = input.hubContext !== undefined ? internalArticles() : [];
+  const hub = input.hubContext !== undefined;
+  // Members choose a gem and effort within their plan; visitors and the team hub use Pearl, Quick. The hub is staff work, so it isn't
+  // taken from anyone's allowance (the daily caps still apply).
+  const tier = who.uid ? await memberTier(db, who.uid) : "standard";
+  const gem = who.uid && !hub ? pickGem(tier, input.gem) : "pearl";
+  const effort = who.uid && !hub ? pickEffort(tier, input.effort) : "low";
+  const meter: Meter | undefined = hub ? undefined : { uid: who.uid, tier, gem, effort };
+  const helpCentre = buildSystem(articles);
+  // A general first question may already be in the answer bank (lib/nana-bank.ts); if not, it's answered without the person's name or
+  // page so the answer suits the next person too.
+  const bankQ = !hub && bankDays() > 0 ? bankQuestion(messages) : null;
+  const key = bankQ ? bankKey(bankQ, !!who.uid, helpCentre) : null;
+  const banked = key ? await bankGet(db, key, gem, now).catch(() => null) : null;
   const system: SystemBlock[] = [
-    { type: "text", text: buildSystem(articles), cache_control: { type: "ephemeral" } },
+    { type: "text", text: helpCentre, cache_control: { type: "ephemeral" } },
     ...(staffKb.length ? [{ type: "text" as const, text: `TEAM-ONLY KNOWLEDGE (you are talking with a #NotesApp staff member inside the team hub; use this for questions about the hub and admin tools, and never tell anyone else about it):\n\n${staffKb.map((a) => `### ${a.title}\nPage: ${a.slug}\n${a.body}`).join("\n\n")}`, cache_control: { type: "ephemeral" as const } }] : []),
-    { type: "text", text: visitorBlock({ name: who.name, signedIn: !!who.uid, page }) + (input.hubContext ? `\n\n${input.hubContext}` : "") },
+    { type: "text", text: visitorBlock(key ? { name: "there", signedIn: !!who.uid } : { name: who.name, signedIn: !!who.uid, page }) + (input.hubContext ? `\n\n${input.hubContext}` : "") },
   ];
 
-  const ran = await runAi(db, deps, now, who.uid, { system, messages, maxTokens: 2000 }, perUserChatLimit());
+  const ran: Ran = banked
+    ? { completion: { text: banked, refused: false }, via: "platform" }
+    : await runAi(db, deps, now, who.uid, { system, messages, maxTokens: EFFORT_INFO[effort].chatTokens, model: gemModel(gem), effort }, perUserChatLimit(), meter);
   let parsed: { text: string; handoff: boolean; gap: boolean };
-  let via: Via = ran.via;
+  let via: Via = banked ? "bank" : ran.via;
   if (ran.completion) {
     parsed = parseReply(ran.completion.refused || !ran.completion.text ? "I'm sorry, I can't help with that one. The team can, though: please use the contact page. [[GAP]]" : ran.completion.text);
   } else {
@@ -164,6 +194,10 @@ export async function chat(db: Firestore, input: ChatInput, deps: NanaDeps = rea
   const paths = knownPaths(articles);
   if (staffKb.length) for (const p of STAFF_PAGES) paths.add(p); // inside the hub, Nana may link to the admin pages she explains
   const reply = sanitizeLinks(parsed.text, paths) || "Sorry, I didn't catch that. Could you say it another way?";
+  // A fresh AI answer to a general question goes in the bank (not a refusal, a hand-off or a gap in the help centre).
+  if (key && bankQ && !banked && ran.completion && !ran.completion.refused && ran.completion.text && !parsed.handoff && !parsed.gap) {
+    await bankPut(db, key, bankQ, ran.completion.text, gem, !!who.uid, now).catch((e) => console.error("[nana] bank write failed", e instanceof Error ? e.message : e));
+  }
 
   // Save the transcript (the same chat continues when the page sends back its id and it belongs to this person).
   const asId = typeof input.chatId === "string" && /^[A-Za-z0-9]{10,40}$/.test(input.chatId) ? input.chatId : null;
@@ -187,5 +221,6 @@ export async function chat(db: Firestore, input: ChatInput, deps: NanaDeps = rea
       message: `From a Nana AI chat. They asked for a person, or Nana thought a person should follow up.\n\nTheir last message: ${asked.slice(0, 500)}\n\nThe whole chat is under Admin → Help & Nana → Chats (chat ${ref.id}).`,
     });
   }
-  return { reply, chatId: ref.id, handoff: parsed.handoff, gap: parsed.gap, mode: ran.completion ? "ai" : "kb", via, ...(ran.notice ? { notice: ran.notice } : {}) };
+  const notice = banked ? "⚡ Instant answer from Nana's answer bank: free, nothing taken from your allowance." : ran.notice;
+  return { reply, chatId: ref.id, handoff: parsed.handoff, gap: parsed.gap, mode: ran.completion ? "ai" : "kb", via, ...(notice ? { notice } : {}), ...(meter && who.uid ? { gem, effort } : {}) };
 }

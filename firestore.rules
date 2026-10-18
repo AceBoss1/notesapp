@@ -453,6 +453,11 @@ service cloud.firestore {
     match /nanaUsage/{id} {
       allow read, write: if false;
     }
+    // Nana's allowance and credit per member, what it costs the site each month, and the answer bank (lib/nana-meter.ts,
+    // lib/nana-bank.ts): the server only. Members see theirs through /api/nana/account.
+    match /nanaAccounts/{uid} { allow read, write: if false; }
+    match /nanaSpend/{month} { allow read, write: if false; }
+    match /nanaBank/{key} { allow read, write: if false; }
     match /parcelLinks/{id} {
       allow read, write: if false;
     }

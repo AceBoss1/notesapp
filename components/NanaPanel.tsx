@@ -9,6 +9,8 @@ import { auth } from "@/lib/firebase";
 import { getUserByUid } from "@/lib/users";
 import { NANA_HISTORY_MAX, NANA_NAME, NANA_USER_MAX, firstName, type NanaMsg } from "@/lib/nana";
 import Markdownish from "./Markdownish";
+import { NanaGemPicker, readChoice, useNanaAccount } from "./NanaGems";
+import type { Effort, Gem } from "@/lib/nana-gems";
 
 // The Nana AI chat itself: used by the corner button, the pinned conversation in Messages, the Nana page and the team hub. Members are
 // recognised automatically; visitors give a name and email first. The conversation is kept in this tab (sessionStorage) and a visitor's name
@@ -45,6 +47,9 @@ export default function NanaPanel({ context = "site", onClose, className = "", a
   const [handoff, setHandoff] = useState(false);
   const [mode, setMode] = useState<"ai" | "kb" | null>(null);
   const [loaded, setLoaded] = useState(false); // nothing is saved until the saved chat has been read back
+  const { account, refresh } = useNanaAccount(); // members: their gems, effort and allowance (components/NanaGems.tsx)
+  const [choice, setChoice] = useState<{ gem: Gem; effort: Effort }>({ gem: "pearl", effort: "low" });
+  useEffect(() => setChoice(readChoice()), []);
   const endRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
 
@@ -77,19 +82,20 @@ export default function NanaPanel({ context = "site", onClose, className = "", a
       if (user) headers.Authorization = `Bearer ${await user.getIdToken()}`;
       const res = await fetch("/api/nana", {
         method: "POST", headers,
-        body: JSON.stringify({ messages: next.slice(-NANA_HISTORY_MAX).map(({ role, content: c }) => ({ role, content: c })), chatId, page: pathname, context: context === "hub" ? "hub" : "site", ...(user ? {} : visitor) }),
+        body: JSON.stringify({ messages: next.slice(-NANA_HISTORY_MAX).map(({ role, content: c }) => ({ role, content: c })), chatId, page: pathname, context: context === "hub" ? "hub" : "site", ...(user ? (context === "hub" ? {} : choice) : visitor) }),
       });
       const j = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(j.error || "Something went wrong. Please try again.");
       setChatId(j.chatId); setMode(j.mode === "kb" ? "kb" : "ai");
       if (j.handoff) setHandoff(true);
       setMsgs((m) => [...m, { role: "assistant", content: j.reply, ...(j.notice ? { note: j.notice } : {}) }]);
+      if (user && context !== "hub") void refresh(); // what's left of the allowance
     } catch (e) {
       setMsgs((m) => [...m, { role: "assistant", content: e instanceof Error ? e.message : "Something went wrong. Please try again.", error: true }]);
     } finally {
       setBusy(false);
     }
-  }, [busy, chatId, context, msgs, pathname, ready, user, visitor]);
+  }, [busy, chatId, choice, context, msgs, pathname, ready, refresh, user, visitor]);
 
   function startAsVisitor(e: React.FormEvent) {
     e.preventDefault();
@@ -112,6 +118,7 @@ export default function NanaPanel({ context = "site", onClose, className = "", a
           <p className="font-ui text-sm font-bold text-ink">{NANA_NAME}{hub && <span className="ml-2 rounded bg-amber-100 px-1.5 py-0.5 text-[10px] font-bold text-amber-900">TEAM</span>}</p>
           <p className="truncate text-xs text-slate">{mode === "kb" ? "Answering from the help centre" : hub ? "Your team hub helper" : "Your #NotesApp helper · ask me anything"}</p>
         </div>
+        {user && account && !hub && <NanaGemPicker account={account} choice={choice} onChoice={setChoice} />}
         {msgs.length > 0 && <button type="button" onClick={reset} className="rounded px-2 py-1 font-ui text-xs text-slate hover:text-crimson">New chat</button>}
         {onClose && <button type="button" onClick={onClose} aria-label="Close chat" className="rounded px-2 py-1 text-lg leading-none text-slate hover:text-crimson">×</button>}
       </header>

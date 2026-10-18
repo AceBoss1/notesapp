@@ -2,6 +2,7 @@ import { BADGE_PRICE_KOBO, TIERS, setBadgePriceKobo } from "./tiers";
 import { GOLD_PRICING } from "./gold";
 import { BOOST_PACKAGES } from "./boost-config";
 import { AD_PACKAGES } from "./ad-packages";
+import { GEMS, GEM_INFO, isReset, type Gem, type GemRates, type ResetEvery } from "./nana-gems";
 
 // Prices and revenue rates that an admin can change from /admin/pricing, in one plain object. The rest of the app still reads TIERS,
 // GOLD_PRICING, BOOST_PACKAGES, AD_PACKAGES and BADGE_PRICE_KOBO; applyPricing() writes the chosen values into those in place, so
@@ -25,9 +26,20 @@ export type PricingConfig = {
   // Certificates on free courses claimed late: free for the grace days after completing, then the price rises by weeklyRate of the
   // starting price each full week (not compounding), up to capRate. Shown to the learner before they pay (a "late claim fee").
   certificateLate: { graceDays: number; weeklyRate: number; capRate: number };
-  // Nana (the AI helper and, in phase 2, the operator) on our AI account: each plan's monthly allowance, the top-up packs a member can
-  // buy when theirs runs out, and a ceiling for the whole site each month. Members with their own AI key are not limited.
-  nana: { budgets: { basic: number; pro: number; business: number; enterprise: number }; topUps: { id: string; name: string; priceKobo: number; creditKobo: number }[]; siteCeilingKobo: number };
+  // Nana (the AI helper and, in phase 2, the operator) on our AI account (lib/nana-gems.ts): each plan's monthly allowance, shared out
+  // over the reset period (a day, a week or a month); the credit packs anyone can buy, which never expire and are spent after the
+  // allowance; a ceiling on what allowances can cost the whole site each month (bought credit isn't stopped by it); what the models
+  // cost us (US dollars per million tokens, and the naira to the dollar); and whether the allowance covers every gem the plan allows
+  // or Pearl only. Members with their own AI key are not metered.
+  nana: {
+    budgets: { standard: number; basic: number; pro: number; business: number; enterprise: number };
+    topUps: { id: string; name: string; priceKobo: number; creditKobo: number }[];
+    siteCeilingKobo: number;
+    resetEvery: ResetEvery;
+    allowanceGems: "all" | "pearl";
+    usdKobo: number;
+    rates: Record<Gem, GemRates>;
+  };
   badgeKobo: number;
   gold: { personal: { monthlyKobo: number; depositKobo: number }; corporate: { monthlyKobo: number; depositKobo: number } };
   boosts: { id: string; name: string; impressions: number; priceKobo: number }[];
@@ -48,7 +60,7 @@ export function currentPricing(): PricingConfig {
     enterprise: { fromMonthlyKobo: ENTERPRISE_FROM.monthly, fromYearlyKobo: ENTERPRISE_FROM.yearly, adShare: e.adRevenueShare ?? 0, floorSession: e.sessionAndUnlockCommissionFloor ?? 0.05, floorPhysical: e.physicalCommissionFloor ?? 0.01, floorDigital: e.digitalCommissionFloor ?? 0.015 },
     coursePackages: { ...COURSE_PACKAGES },
     certificateLate: { ...CERTIFICATE_LATE },
-    nana: { budgets: { ...NANA.budgets }, topUps: NANA.topUps.map((t) => ({ ...t })), siteCeilingKobo: NANA.siteCeilingKobo },
+    nana: { budgets: { ...NANA.budgets }, topUps: NANA.topUps.map((t) => ({ ...t })), siteCeilingKobo: NANA.siteCeilingKobo, resetEvery: NANA.resetEvery, allowanceGems: NANA.allowanceGems, usdKobo: NANA.usdKobo, rates: { pearl: { ...NANA.rates.pearl }, emerald: { ...NANA.rates.emerald }, ruby: { ...NANA.rates.ruby } } },
     badgeKobo: BADGE_PRICE_KOBO,
     gold: { personal: { monthlyKobo: GOLD_PRICING.personal.monthlyKobo, depositKobo: GOLD_PRICING.personal.identityDepositKobo }, corporate: { monthlyKobo: GOLD_PRICING.corporate.monthlyKobo, depositKobo: GOLD_PRICING.corporate.identityDepositKobo } },
     boosts: BOOST_PACKAGES.map((p) => ({ id: p.id, name: p.name, impressions: p.impressions, priceKobo: p.priceKobo })),
@@ -62,15 +74,20 @@ const ENTERPRISE_FROM = { monthly: 55_000 * 100, yearly: 550_000 * 100 };
 const COURSE_PACKAGES = { enterpriseCoursesMonthlyKobo: 100_000 * 100, academyApiFromMonthlyKobo: 250_000 * 100, certificateMinKobo: 999 * 100 };
 const CERTIFICATE_LATE = { graceDays: 7, weeklyRate: 0.01, capRate: 0.5 };
 // Allowances in kobo of AI cost a month. Free Basic's is ours to give (our commission on Basic sales pays for it); 4 weekly summaries
-// on the small model cost about ₦15, so ₦50 leaves room. Top-ups keep 20% for card fees and running costs.
-const NANA = {
-  budgets: { basic: 50 * 100, pro: 750 * 100, business: 3_000 * 100, enterprise: 10_000 * 100 },
+// on the small model cost about ₦15, so ₦50 leaves room. Free (Standard) members get the same. Top-ups keep 20% for card fees and
+// running costs. The model prices are the published per-million-token list prices; check them when a model changes.
+const NANA: PricingConfig["nana"] = {
+  budgets: { standard: 50 * 100, basic: 50 * 100, pro: 750 * 100, business: 3_000 * 100, enterprise: 10_000 * 100 },
   topUps: [
     { id: "nana-1k", name: "Starter", priceKobo: 1_000 * 100, creditKobo: 800 * 100 },
     { id: "nana-2k5", name: "Plus", priceKobo: 2_500 * 100, creditKobo: 2_100 * 100 },
     { id: "nana-5k", name: "Max", priceKobo: 5_000 * 100, creditKobo: 4_400 * 100 },
   ],
   siteCeilingKobo: 500_000 * 100,
+  resetEvery: "week",
+  allowanceGems: "all",
+  usdKobo: 1_600 * 100,
+  rates: { pearl: { inUsd: 1, outUsd: 5 }, emerald: { inUsd: 3, outUsd: 15 }, ruby: { inUsd: 5, outUsd: 25 } },
 };
 export const DEFAULT_PRICING: PricingConfig = currentPricing();
 
@@ -108,6 +125,8 @@ export function applyPricing(c: PricingConfig): void {
   Object.assign(COURSE_PACKAGES, c.coursePackages);
   Object.assign(CERTIFICATE_LATE, c.certificateLate);
   Object.assign(NANA.budgets, c.nana.budgets); NANA.siteCeilingKobo = c.nana.siteCeilingKobo;
+  NANA.resetEvery = c.nana.resetEvery; NANA.allowanceGems = c.nana.allowanceGems; NANA.usdKobo = c.nana.usdKobo;
+  for (const g of GEMS) Object.assign(NANA.rates[g], c.nana.rates[g]);
   for (const t of c.nana.topUps) { const p = NANA.topUps.find((x) => x.id === t.id); if (p) { p.priceKobo = t.priceKobo; p.creditKobo = t.creditKobo; } }
   setBadgePriceKobo(c.badgeKobo);
   for (const k of ["personal", "corporate"] as const) { GOLD_PRICING[k].monthlyKobo = c.gold[k].monthlyKobo; GOLD_PRICING[k].identityDepositKobo = c.gold[k].depositKobo; }
@@ -127,6 +146,7 @@ const frac = (v: unknown, what: string, max: number): number => {
   if (!Number.isFinite(n) || n < 0 || n > max) throw new PricingError(`${what}: enter a percentage between 0 and ${Math.round(max * 100)}.`);
   return Math.round(n * 10000) / 10000;
 };
+const bad = (msg: string): never => { throw new PricingError(msg); };
 const rec = (v: unknown): Record<string, unknown> => (v && typeof v === "object" ? (v as Record<string, unknown>) : {});
 
 export function cleanPricing(input: unknown): PricingConfig {
@@ -156,7 +176,8 @@ export function cleanPricing(input: unknown): PricingConfig {
   const certificateLate = { graceDays, weeklyRate: frac(cl.weeklyRate, "Certificate late fee per week", 0.25), capRate: frac(cl.capRate, "Certificate late fee cap", 5) };
   const n = i.nana === undefined ? d.nana : rec(i.nana), nb = rec(n.budgets);
   const nana = {
-    budgets: { basic: kobo(nb.basic, "Nana budget, Free Basic"), pro: kobo(nb.pro, "Nana budget, Pro"), business: kobo(nb.business, "Nana budget, Business"), enterprise: kobo(nb.enterprise, "Nana budget, Enterprise") },
+    // Free (Standard) was added later: a config without it gets the default
+    budgets: { standard: nb.standard === undefined ? d.nana.budgets.standard : kobo(nb.standard, "Nana budget, Free"), basic: kobo(nb.basic, "Nana budget, Free Basic"), pro: kobo(nb.pro, "Nana budget, Pro"), business: kobo(nb.business, "Nana budget, Business"), enterprise: kobo(nb.enterprise, "Nana budget, Enterprise") },
     topUps: d.nana.topUps.map((b) => {
       const o = rec((Array.isArray(n.topUps) ? n.topUps : []).find((x) => rec(x).id === b.id));
       const priceKobo = kobo(o.priceKobo, `Nana top-up ${b.name} price`, 100 * 100), creditKobo = kobo(o.creditKobo, `Nana top-up ${b.name} credit`, 100);
@@ -164,6 +185,15 @@ export function cleanPricing(input: unknown): PricingConfig {
       return { id: b.id, name: b.name, priceKobo, creditKobo };
     }),
     siteCeilingKobo: kobo(n.siteCeilingKobo, "Nana site-wide monthly ceiling", 1_000 * 100),
+    // The timer, the gems and the model prices came after: a config without them keeps the defaults.
+    resetEvery: n.resetEvery === undefined ? d.nana.resetEvery : isReset(n.resetEvery) ? n.resetEvery : bad("Nana allowance: reset every day, week or month."),
+    allowanceGems: n.allowanceGems === undefined ? d.nana.allowanceGems : n.allowanceGems === "all" || n.allowanceGems === "pearl" ? n.allowanceGems : bad("Nana allowance: covers every gem, or Pearl only."),
+    usdKobo: n.usdKobo === undefined ? d.nana.usdKobo : kobo(n.usdKobo, "Naira to the dollar", 100 * 100),
+    rates: Object.fromEntries(GEMS.map((g) => {
+      const o = n.rates === undefined ? d.nana.rates[g] : rec(rec(n.rates)[g]);
+      const usd = (v: unknown, what: string) => { const x = Number(v); if (!Number.isFinite(x) || x < 0 || x > 1000) throw new PricingError(`${GEM_INFO[g].name} ${what}: enter US dollars per million tokens, 0 to 1,000.`); return Math.round(x * 1000) / 1000; };
+      return [g, { inUsd: usd(o.inUsd, "input price"), outUsd: usd(o.outUsd, "output price") }];
+    })) as Record<Gem, GemRates>,
   };
   const g = rec(i.gold);
   const gold = (v: unknown, n: string) => { const o = rec(v); return { monthlyKobo: kobo(o.monthlyKobo, `${n} gold monthly`, 100 * 100), depositKobo: kobo(o.depositKobo, `${n} gold check deposit`) }; };
@@ -187,7 +217,7 @@ export function cleanPricing(input: unknown): PricingConfig {
 export function describeChanges(a: PricingConfig, b: PricingConfig): string[] {
   const out: string[] = [];
   const walk = (x: unknown, y: unknown, path: string) => {
-    if (typeof x === "number" && typeof y === "number") { if (x !== y) out.push(`${path}: ${x} → ${y}`); return; }
+    if ((typeof x === "number" && typeof y === "number") || (typeof x === "string" && typeof y === "string")) { if (x !== y) out.push(`${path}: ${x} → ${y}`); return; }
     if (Array.isArray(x) && Array.isArray(y)) { x.forEach((v, n) => walk(v, y[n], `${path}.${rec(v).id ?? n}`)); return; }
     if (x && y && typeof x === "object") Object.keys(x as object).forEach((k) => walk((x as Record<string, unknown>)[k], (y as Record<string, unknown>)[k], path ? `${path}.${k}` : k));
   };
