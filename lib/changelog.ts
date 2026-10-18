@@ -11,6 +11,14 @@ export type Release = {
 
 export const CHANGELOG: Release[] = [
   {
+    version: "v0.50.1",
+    bump: "patch",
+    date: "2026-10-18",
+    changes: [
+      { kind: "changed", text: "Get your certificate, See your certificate and Set up your certificates now carry the Notes Academy cap icon instead of the 🎓 emoji." },
+    ],
+  },
+  {
     version: "v0.50.0",
     bump: "minor",
     date: "2026-10-18",

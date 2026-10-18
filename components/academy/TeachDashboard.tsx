@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { AcademyIcon } from "@/components/shell/icons";
 import { useRouter } from "next/navigation";
 import { useMember } from "@/lib/member-client";
 import { api } from "@/lib/moments-client";
@@ -110,7 +111,7 @@ export default function TeachDashboard() {
           ))}
         </ul>
       )}
-      <p className="mt-6 text-xs text-slate">Up to {MAX_COURSES_PER_MEMBER} courses, each with up to 100 lessons. Learners who finish get a certificate: <Link href="/academy/teach/setup" className="font-semibold text-crimson">🎓 set up your academy</Link> (your name, logo, signature and margin). Paid courses are coming.</p>
+      <p className="mt-6 text-xs text-slate">Up to {MAX_COURSES_PER_MEMBER} courses, each with up to 100 lessons. Learners who finish get a certificate: <Link href="/academy/teach/setup" className="font-semibold text-crimson"><AcademyIcon className="mr-1 inline-block h-[1.2em] w-[1.2em] align-[-0.25em]" />set up your academy</Link> (your name, logo, signature and margin). Paid courses are coming.</p>
     </>
   );
 }

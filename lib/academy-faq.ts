@@ -7,7 +7,7 @@ export function academyFaq(): { q: string; a: string }[] {
   const min = `₦${(p.coursePackages.certificateMinKobo / 100).toLocaleString("en-NG")}`;
   const l = p.certificateLate;
   return [
-    { q: "How and when do I get my certificate?", a: "As soon as you've finished every lesson, a 🎓 Get your certificate button appears on the course page. Check your name, pay, and it's issued straight away with its own ID and QR code. You'll find it again on the course page." },
+    { q: "How and when do I get my certificate?", a: "As soon as you've finished every lesson, a Get your certificate button appears on the course page. Check your name, pay, and it's issued straight away with its own ID and QR code. You'll find it again on the course page." },
     { q: "What does the certificate cost?", a: `The course is free. The certificate costs ${min} (#NotesApp's part) plus the teacher's own margin; you see the total before you pay, by card or from your NotesApp Credit wallet. Claim it within ${l.graceDays} days of finishing: after that a late claim fee of ${Math.round(l.weeklyRate * 100)}% of the price is added each week, up to ${Math.round(l.capRate * 100)}% more.` },
     { q: "Can employers check my certificate?", a: "Yes. Anyone can scan its QR code, or enter its ID (NA-C-…) at notesapp.name.ng/certificates, and see that it's genuine. You can add it to your LinkedIn profile, share it, or save it as a PDF." },
     { q: "Can I change the name on my certificate?", a: "Check the spelling before you pay: once it's issued, the name can't be changed. If something went wrong, contact us and we'll help." },
