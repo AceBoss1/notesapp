@@ -36,6 +36,7 @@ export async function GET(req: NextRequest) {
       amountKobo: payment.amountKobo,
       ...(payment.payWith === "wallet" ? { payWith: "wallet" } : {}),
       ...(payment.topup ? { topup: payment.topup } : {}),
+      ...(payment.nanaPack ? { nanaPack: payment.nanaPack } : {}),
     });
   } catch (err) {
     console.error("Paystack verify failed:", err);

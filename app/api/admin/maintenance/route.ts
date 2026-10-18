@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { FieldValue } from "firebase-admin/firestore";
 import { getAdminDb, verifyAdminRequest } from "@/lib/firebase-admin";
 import { BACKFILLS, isBackfill, runBackfill } from "@/lib/backfills";
+import { bankClear, bankDays, bankStats } from "@/lib/nana-bank";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 300;
@@ -9,6 +10,7 @@ export const maxDuration = 300;
 // Admin → Maintenance (app/(main)/admin/maintenance). Owner and super admins only: these write to every journal.
 // GET → when each backfill last ran (maintenance/<job>). POST { job, apply } → runs it (lib/backfills.ts): a dry run lists what
 // it would change and touches nothing; apply: true writes the same list. Safe to re-run: both only fill what's missing.
+// Nana's answer bank (lib/nana-bank.ts): GET includes its size and most asked; POST { job: "bank-clear" } empties it.
 async function admin(req: NextRequest) {
   return verifyAdminRequest(req.headers.get("authorization")?.replace(/^Bearer\s+/i, ""), "super");
 }
@@ -22,15 +24,21 @@ async function status() {
   }));
 }
 
+const bank = async () => ({ ...(await bankStats(getAdminDb(), new Date())), days: bankDays() });
+
 export async function GET(req: NextRequest) {
   try { await admin(req); } catch { return NextResponse.json({ error: "Owner and super admins only." }, { status: 403 }); }
-  return NextResponse.json({ jobs: await status() }, { headers: { "Cache-Control": "no-store" } });
+  return NextResponse.json({ jobs: await status(), bank: await bank() }, { headers: { "Cache-Control": "no-store" } });
 }
 
 export async function POST(req: NextRequest) {
   let uid: string;
   try { uid = await admin(req); } catch { return NextResponse.json({ error: "Owner and super admins only." }, { status: 403 }); }
   const { job, apply } = (await req.json().catch(() => ({}))) as { job?: unknown; apply?: unknown };
+  if (job === "bank-clear") {
+    const cleared = await bankClear(getAdminDb());
+    return NextResponse.json({ cleared, bank: await bank() });
+  }
   if (!isBackfill(job)) return NextResponse.json({ error: "Unknown job." }, { status: 400 });
   const db = getAdminDb();
   const result = await runBackfill(db, job, apply === true);

@@ -4,6 +4,7 @@ import { NanaError } from "./nana";
 import { bookingContext } from "./nana-booking";
 import { AiDown, aiCandidates, chargePlatform, realDeps, type NanaDeps, type SystemBlock } from "./nana-server";
 import { setting } from "@/lib/config";
+import { memberTier, meterCharge, meterCheck, type Meter } from "./nana-meter";
 
 // Nana's writing help: improve, shorten or expand a draft, turn notes into a first draft, write a post for LinkedIn or X, polish a message or
 // suggest a reply. It works on text the person sends and gives text back; nothing is saved by us. It needs an AI account (the member's own, or
@@ -78,11 +79,18 @@ export async function assist(db: Firestore, uid: string, input: AssistInput, dep
   const system: SystemBlock[] = [{ type: "text", text: SYSTEM, cache_control: { type: "ephemeral" } }];
 
   const now = deps.now();
-  let lastKind: AiDown["kind"] | null = null, limited = false;
+  // On our account, writing help uses Pearl and is paid from the member's allowance, then their Nana credit (lib/nana-meter.ts).
+  const meter: Meter = { uid, tier: await memberTier(db, uid), gem: "pearl", effort: "low" };
+  let lastKind: AiDown["kind"] | null = null, limited = false, outOf = "";
   for (const c of candidates) {
+    if (c.source === "platform") {
+      const ok = await meterCheck(db, meter, now);
+      if (!ok.ok) { outOf = ok.notice; continue; }
+    }
     if (c.source === "platform" && !(await chargePlatform(db, now, uid, perUserAssistLimit()))) { limited = true; continue; }
     try {
       const out = await deps.complete({ apiKey: c.apiKey, system, messages: [{ role: "user", content: body }], maxTokens: 4000 });
+      if (c.source === "platform") await meterCharge(db, meter, out.usage, now).catch((e) => console.error("[nana] metering failed", e instanceof Error ? e.message : e));
       let result = out.text.trim();
       if (!result || out.refused) throw new NanaError("I couldn't help with that one. Try changing the text a little.", 422);
       // Platform limits are enforced on what we hand back, whatever the model wrote.
@@ -94,6 +102,7 @@ export async function assist(db: Firestore, uid: string, input: AssistInput, dep
       lastKind = err.kind;
     }
   }
+  if (outOf && !lastKind && !limited) throw new NanaError(outOf, 402);
   if (limited && !lastKind) throw new NanaError("You've used today's free writing help. Connect your own AI account on the Nana page for more, or try again tomorrow.", 429);
   throw new NanaError(lastKind === "auth" || lastKind === "billing" ? "The AI account didn't work just now (the key was rejected or has no credit). You can check it on the Nana page." : "The AI is busy right now. Please try again in a minute.", 503);
 }

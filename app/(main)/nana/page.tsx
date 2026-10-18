@@ -3,6 +3,7 @@ import Link from "next/link";
 import type { Metadata } from "next";
 import NanaConnect from "@/components/NanaConnect";
 import NanaPanel from "@/components/NanaPanel";
+import { NanaAllowance } from "@/components/NanaGems";
 import { nanaConfigured } from "@/lib/nana-config";
 
 export const metadata: Metadata = {
@@ -49,8 +50,14 @@ export default function NanaPage() {
           <div className="card p-5"><p className="font-ui text-sm font-bold text-ink">With AI</p><p className="mt-1 text-sm text-slate">Nana holds a real conversation, combines what she knows, and gives the writing help above. If the AI is ever unavailable, she carries on from the help centre.</p></div>
         </div>
         <p className="mt-4 rounded-lg border border-rule bg-card p-4 text-sm text-ink">
-          {ai ? "Right now: the AI is switched on for everyone. Our AI has a small free allowance each day for each person, because we pay for it. Connect your own AI account below and there is no limit from us at all." : "Right now: Nana answers from the help centre for everyone. To switch the full version on for yourself today, connect your own AI account below. When we switch our own AI on for everyone, it works without it."}
+          {ai ? "Right now: the AI is switched on for everyone. Every member gets a free allowance, sized by plan and refreshed regularly, because we pay for it; Nana credit tops it up. Connect your own AI account below and there is no limit from us at all." : "Right now: Nana answers from the help centre for everyone. To switch the full version on for yourself today, connect your own AI account below. When we switch our own AI on for everyone, it works without it."}
         </p>
+      </section>
+
+      <section id="credit" className="mt-14 scroll-mt-24" aria-labelledby="gems">
+        <h2 id="gems" className="font-display text-2xl text-ink">Pearl, Emerald and Ruby</h2>
+        <p className="mt-2 max-w-3xl text-sm text-slate">Nana runs on three models, named after gems: the dearer the gem, the more capable the model. Everyone has Pearl. Business adds Emerald, and Enterprise adds Ruby; choose in the chat, next to Nana&apos;s name. Your free allowance refreshes on a timer and doesn't carry over; Nana credit you buy does, and is used once the allowance runs out.</p>
+        <div className="mt-5"><NanaAllowance /></div>
       </section>
 
       <section className="mt-14" aria-labelledby="connect">

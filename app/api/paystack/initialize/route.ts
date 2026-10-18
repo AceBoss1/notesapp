@@ -12,6 +12,7 @@ import { getTierPlanCode, getBadgePlanCode, getGoldPlanCode } from "@/lib/tier-b
 import { GOLD_PRICING, isGoldKind, isGoldTrack } from "@/lib/gold";
 import { getAdPackage } from "@/lib/ad-packages";
 import { ensurePricing } from "@/lib/pricing-server";
+import { currentPricing } from "@/lib/pricing";
 import { isPlacement } from "@/lib/ads";
 import { r2PublicUrl } from "@/lib/r2";
 import { getMerchItem, LOGO_OPTIONS, MERCH_BATCH, MERCH_DELIVERY_KOBO, MERCH_MAX_QTY, merchBatchOpen, validateAddress } from "@/lib/merch";
@@ -95,6 +96,21 @@ export async function POST(req: NextRequest) {
       };
       await db.doc(`payments/${reference}`).set(record);
       return NextResponse.json({ authorizationUrl: tx.authorization_url, reference });
+    }
+
+    // ---- Nana AI credit pack (lib/nana-meter.ts), from the wallet or by card; anyone signed in can buy one ----
+    if (kind === "nana_credit") {
+      const pack = currentPricing().nana.topUps.find((p) => p.id === body.packId);
+      if (!pack) return NextResponse.json({ error: "Choose a Nana credit pack." }, { status: 400 });
+      const reference = newReference();
+      const origin = await callbackOrigin(req);
+      const tx = await initTx({ email: user.email, amountKobo: pack.priceKobo, reference, callbackUrl: `${origin}/booking/confirm`, metadata: { kind, uid: user.uid, packId: pack.id } });
+      const record: PaymentRecord = {
+        reference, kind: "nana_credit", uid: user.uid, email: user.email, amountKobo: pack.priceKobo, status: "pending",
+        publisherUid: user.uid, publisherUsername: "", commissionRate: 0, nanaPack: { packId: pack.id, name: pack.name, creditKobo: pack.creditKobo }, createdAt: new Date().toISOString(),
+      };
+      await savePayment(record);
+      return NextResponse.json({ authorizationUrl: tx.authorization_url, reference, paid: payWith === "wallet" });
     }
 
     // ---- Notesville Naira for Notes Life (₦1 = N$ 100), from the wallet or by card ----

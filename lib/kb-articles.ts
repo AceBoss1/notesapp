@@ -69,6 +69,22 @@ Nana AI is our helper. Ask her anything about #NotesApp from the chat button on 
 She can also help you write, when you ask: improve, shorten or expand a journal draft, write a post for LinkedIn or X, polish a message, or suggest a reply. In a conversation, if someone asks to book a session, her suggested reply can offer your next open times and your booking link. You always see the result first and decide whether to use it.
 
 If the AI is ever off or unavailable, Nana still answers from the [help centre](/help). To use the AI and writing help today, you can [connect your own AI account](/help/connect-your-own-ai).`),
+    A("nana-gems-and-credit", "Nana's gems, free allowance and Nana credit", "Getting started", `
+Nana runs on three AI models, named after gems: the dearer the gem, the more capable the model.
+
+- **Pearl:** fast and light, for everyday questions. Every plan.
+- **Emerald:** deeper answers and better writing. Business and Enterprise.
+- **Ruby:** our most capable, for the hardest work. Enterprise.
+
+You can also choose how long Nana thinks before answering: **Quick** on every plan, **Balanced** from Business, **Thorough** on Enterprise. Choose both from the gem button next to Nana's name in the chat.
+
+**Free allowance.** Every member gets a free allowance on our AI account, sized by plan (Free and Free Basic, Pro, Business and Enterprise each get more). It refreshes on a timer, usually every Monday (Lagos time), and doesn't carry over. Dearer gems and more thinking use it faster. The chat's gem button and the [Nana page](/nana#credit) show what's left and when it refreshes.
+
+**Nana credit.** Anyone, on any plan, can buy Nana credit on the [Nana page](/nana#credit), by card or from your NotesApp Credit wallet. Your free allowance is always used first, then your credit. Credit never expires and carries over. When both run out, Nana answers from the help centre until your allowance refreshes.
+
+**Answer bank.** When you open a chat with a general question someone has asked before (for example "How do I get paid?"), Nana may answer straight away from her answer bank. That's free and doesn't use your allowance. Only general questions go in, never anything personal.
+
+With [your own AI account connected](/help/connect-your-own-ai) there is no allowance and no limit from us.`),
     A("connect-your-own-ai", "Connect your own AI account", "Getting started", `
 You can connect your own Anthropic (Claude) account so that Nana, the writing help in drafts, sharing and messages, and the team hub (for staff) use it. The AI cost goes to your account, and #NotesApp puts no daily limit on you.
 
