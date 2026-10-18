@@ -32,6 +32,10 @@ const rejects = (p: Promise<unknown>, status: number) => assert.rejects(p, (e: u
   // The teacher sets up with a ₦500 margin and an accrediting institution, which waits for review.
   const a = await saveAcademy(db, "u_teach", { name: "LWB Academy", logoUrl: "https://cdn/academy/u/l.png", signerName: "Tola Bello", marginNaira: 500, accreditation: { name: "LBS", logoUrl: "https://cdn/academy/u/lbs.png", proof: "https://lbs.edu/partners" } }, now, () => true);
   assert.equal(a.accreditation?.status, "pending");
+  // Only our team may issue as Notes Academy, or use its logo.
+  await rejects(saveAcademy(db, "u_teach", { name: "Notes Academy Lagos", signerName: "X" }, now, () => true), 400);
+  await rejects(saveAcademy(db, "u_teach", { name: "Tola's School", logoUrl: "/images/academy/notes-academy-logo.png" }, now, () => false), 400);
+  assert.equal((await saveAcademy(db, "u_staffer", { name: "Notes Academy", logoUrl: "/images/academy/notes-academy-logo.png" }, now, () => false, true)).logoUrl, "/images/academy/notes-academy-logo.png");
   q = await quote(db, "u_ada", "c1", "Ada Okoye", now);
   assert.equal(q.kobo, 149_900); assert.equal(q.face.academyName, "LWB Academy"); assert.equal(q.face.accreditation, null, "not printed while pending");
   // Saving again unchanged keeps the review; changing it sends it back.

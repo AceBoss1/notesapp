@@ -1,3 +1,5 @@
+import { SITE_URL } from "@/lib/host";
+
 // Notes Academy certificates (docs/COURSES.md, "Certificates"): pure and shared by the pages and the server.
 //
 //   academies/{ownerUid}  → the teacher's one-time setup (who issues, who signs, an accrediting institution, their margin)
@@ -79,15 +81,32 @@ export function cleanSetup(i: SetupInput, ours: (url: string) => boolean): Omit<
   };
 }
 
+// Courses by our own team carry the Notes Academy logo (top centre, and faintly behind the text); a staff teacher who hasn't set up
+// an academy issues as Notes Academy.
+export const NOTES_ACADEMY_LOGO = "/images/academy/notes-academy-logo.png";
+export const STAFF_ROLES = ["admin", "staff"];
+// Under the signature on our team's courses (until they set their own in Your academy): who they are at Notes Academy.
+const STAFF_TITLES: Record<string, string> = { emmanuel: "Founder/Dean, Notes Academy" };
+const academyUrl = () => `${SITE_URL}/academy`;
+export const NOTES_ACADEMY_SUBTEXT = "Learn from people who've done it";
+// Where a staff teacher's setup starts (Your academy), so saving it keeps our branding.
+export const staffDefaults = (username: string) => ({ name: "Notes Academy", subtext: NOTES_ACADEMY_SUBTEXT, logoUrl: NOTES_ACADEMY_LOGO, signerTitle: STAFF_TITLES[username] ?? "Notes Academy", website: academyUrl() });
+// Only our team may issue as Notes Academy or #NotesApp, or use the Notes Academy logo.
+export const reservedAcademyName = (name: string) => /notes\s*academy|notes\s*app/i.test(name);
+
 // The face for a course whose teacher hasn't set up yet: their own name issues and signs it.
 export function faceFor(
-  academy: Academy | null, course: { title: string; minutes: number; ownerName: string; certified?: unknown },
+  academy: Academy | null, course: { title: string; minutes: number; ownerName: string; ownerUsername?: string; certified?: unknown; staff?: boolean },
   learner: { name: string; completedAt: string }, issue: { id: string; issuedAt: string },
 ): CertificateFace {
   const acc = academy?.accreditation?.status === "approved" ? { name: academy.accreditation.name, logoUrl: academy.accreditation.logoUrl } : null;
   return {
-    academyName: academy?.name || course.ownerName, subtext: academy?.subtext ?? "", website: academy?.website ?? "", logoUrl: academy?.logoUrl ?? "",
-    signerName: academy?.signerName || course.ownerName, signerTitle: academy?.signerTitle ?? "", signatureUrl: academy?.signatureUrl ?? "",
+    academyName: academy?.name || (course.staff ? "Notes Academy" : course.ownerName),
+    subtext: academy ? academy.subtext : course.staff ? NOTES_ACADEMY_SUBTEXT : "",
+    website: academy?.website || (course.staff ? academyUrl() : ""),
+    logoUrl: academy?.logoUrl || (course.staff ? NOTES_ACADEMY_LOGO : ""),
+    signerName: academy?.signerName || course.ownerName,
+    signerTitle: academy?.signerTitle || (course.staff ? STAFF_TITLES[course.ownerUsername ?? ""] ?? "Notes Academy" : ""), signatureUrl: academy?.signatureUrl ?? "",
     accreditation: acc, certified: !!course.certified,
     learnerName: learner.name, courseTitle: course.title, hours: hoursOf(course.minutes), completedAt: learner.completedAt, issuedAt: issue.issuedAt, id: issue.id,
   };

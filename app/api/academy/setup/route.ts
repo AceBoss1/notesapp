@@ -5,6 +5,7 @@ import { ACADEMY_LIVE } from "@/lib/courses";
 import { ensurePricing } from "@/lib/pricing-server";
 import { currentPricing } from "@/lib/pricing";
 import { academyOf, saveAcademy } from "@/lib/certificates-server";
+import { STAFF_ROLES, staffDefaults } from "@/lib/certificates";
 import { academyClosed, academyError, NO_STORE, signInFirst, signedInUid } from "@/lib/academy-api";
 
 export const dynamic = "force-dynamic";
@@ -18,7 +19,11 @@ export async function GET(req: NextRequest) {
   if (!uid) return signInFirst();
   await ensurePricing();
   const p = currentPricing();
-  return NextResponse.json({ academy: await academyOf(getAdminDb(), uid), minKobo: p.coursePackages.certificateMinKobo, late: p.certificateLate }, { headers: NO_STORE });
+  const db = getAdminDb();
+  const me = (await db.doc(`users/${uid}`).get()).data();
+  // Our team's courses issue as Notes Academy: their setup starts there.
+  const defaults = STAFF_ROLES.includes(String(me?.role)) ? staffDefaults(String(me?.username ?? "")) : null;
+  return NextResponse.json({ academy: await academyOf(db, uid), minKobo: p.coursePackages.certificateMinKobo, late: p.certificateLate, defaults }, { headers: NO_STORE });
 }
 
 export async function POST(req: NextRequest) {
@@ -28,7 +33,9 @@ export async function POST(req: NextRequest) {
     if (!uid) return signInFirst();
     const limited = await rateLimit(req, "academy-setup", uid, 30, 3600);
     if (limited) return limited;
-    return NextResponse.json({ academy: await saveAcademy(getAdminDb(), uid, await req.json().catch(() => ({}))) });
+    const db = getAdminDb();
+    const staff = STAFF_ROLES.includes(String((await db.doc(`users/${uid}`).get()).data()?.role));
+    return NextResponse.json({ academy: await saveAcademy(db, uid, await req.json().catch(() => ({})), new Date(), undefined, staff) });
   } catch (err) {
     return academyError(err, "Couldn't save your academy");
   }

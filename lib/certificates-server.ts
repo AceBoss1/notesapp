@@ -2,7 +2,7 @@ import type { Firestore, Transaction } from "firebase-admin/firestore";
 import { currentPricing, certificatePrice } from "./pricing";
 import { r2PublicUrl } from "./r2";
 import {
-  AcademyError, cleanLearnerName, cleanSetup, faceFor, isCertificateId, newCertificateId, teacherGross,
+  NOTES_ACADEMY_LOGO, STAFF_ROLES, reservedAcademyName, AcademyError, cleanLearnerName, cleanSetup, faceFor, isCertificateId, newCertificateId, teacherGross,
   type Academy, type Certificate, type CertificateFace, type SetupInput,
 } from "./certificates";
 import { SITE_URL } from "@/lib/host";
@@ -18,8 +18,9 @@ export async function academyOf(db: Firestore, uid: string): Promise<Academy | n
   return d ? (d as Academy) : null;
 }
 
-export async function saveAcademy(db: Firestore, uid: string, input: SetupInput, now = new Date(), isOurs = ours): Promise<Academy> {
-  const c = cleanSetup(input, isOurs);
+export async function saveAcademy(db: Firestore, uid: string, input: SetupInput, now = new Date(), isOurs = ours, staff = false): Promise<Academy> {
+  const c = cleanSetup(input, (url) => isOurs(url) || (staff && url === NOTES_ACADEMY_LOGO));
+  if (!staff && reservedAcademyName(c.name)) throw new AcademyError("That name belongs to #NotesApp. Use your own academy's or institution's name.");
   const ref = db.doc(`academies/${uid}`);
   return db.runTransaction(async (t) => {
     const before = (await t.get(ref)).data() as Academy | undefined;
@@ -33,7 +34,7 @@ export async function saveAcademy(db: Firestore, uid: string, input: SetupInput,
   });
 }
 
-type CourseDoc = { title: string; slug: string; minutes: number; ownerUid: string; ownerName: string; status: string; certified?: unknown };
+type CourseDoc = { title: string; slug: string; minutes: number; ownerUid: string; ownerName: string; ownerUsername?: string; status: string; certified?: unknown };
 type EnrolDoc = { completedAt?: string | null; certificateId?: string };
 
 export type Quote = {
@@ -52,7 +53,8 @@ export async function quote(db: Firestore, uid: string, courseId: string, learne
   if (c.ownerUid === uid) throw new AcademyError("You teach this course, so there's no certificate to claim. Set up the one your learners get in Your academy.", 409);
   const e = es.data() as EnrolDoc | undefined;
   if (!e?.completedAt) throw new AcademyError("Finish every lesson first, then claim your certificate.", 409);
-  const academy = await academyOf(db, c.ownerUid);
+  const [academy, owner] = await Promise.all([academyOf(db, c.ownerUid), db.doc(`users/${c.ownerUid}`).get()]);
+  const staff = STAFF_ROLES.includes(String(owner.data()?.role));
   const late = currentPricing().certificateLate;
   const marginKobo = academy?.marginKobo ?? 0;
   const startKobo = currentPricing().coursePackages.certificateMinKobo + marginKobo;
@@ -64,7 +66,7 @@ export async function quote(db: Firestore, uid: string, courseId: string, learne
     startKobo, lateKobo: price.lateKobo, kobo: price.kobo, marginKobo,
     graceUntil: new Date(Date.parse(e.completedAt) + (late.graceDays + 1) * 86_400_000).toISOString(),
     weeklyKobo: roundUp(startKobo * late.weeklyRate), capKobo: roundUp(startKobo * late.capRate),
-    face: faceFor(academy, c, { name: learnerName, completedAt: e.completedAt }, { id: "NA-C-XXXXXXXX", issuedAt: now.toISOString() }),
+    face: faceFor(academy, { ...c, staff }, { name: learnerName, completedAt: e.completedAt }, { id: "NA-C-XXXXXXXX", issuedAt: now.toISOString() }),
     certificateId: e.certificateId ?? null,
   };
 }
@@ -89,10 +91,12 @@ export async function issueInTransaction(t: Transaction, db: Firestore, p: { uid
   const e = es.data() as EnrolDoc | undefined;
   if (e?.certificateId) return e.certificateId;
   const c = cs.data() as CourseDoc;
-  const academy = (await t.get(db.doc(`academies/${c.ownerUid}`))).data() as Academy | undefined;
+  const [as, os] = await Promise.all([t.get(db.doc(`academies/${c.ownerUid}`)), t.get(db.doc(`users/${c.ownerUid}`))]);
+  const academy = as.data() as Academy | undefined;
+  const staff = STAFF_ROLES.includes(String(os.data()?.role));
   let id = newCertificateId();
   for (let i = 0; i < 3 && (await t.get(db.doc(`certificates/${id}`))).exists; i++) id = newCertificateId();
-  const face = faceFor(academy ?? null, c, { name: learnerName, completedAt: e?.completedAt || now.toISOString() }, { id, issuedAt: now.toISOString() });
+  const face = faceFor(academy ?? null, { ...c, staff }, { name: learnerName, completedAt: e?.completedAt || now.toISOString() }, { id, issuedAt: now.toISOString() });
   const cert: Certificate = { ...face, uid: p.uid, courseId, courseSlug: c.slug, ownerUid: c.ownerUid, paymentRef: p.reference, status: "valid" };
   t.set(db.doc(`certificates/${id}`), cert);
   t.set(eref, { certificateId: id }, { merge: true });

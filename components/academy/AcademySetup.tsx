@@ -59,13 +59,13 @@ export default function AcademySetup() {
 
   useEffect(() => {
     if (!user) return;
-    api<{ academy: Academy | null; minKobo: number; late: typeof late }>("/api/academy/setup").then((r) => {
+    api<{ academy: Academy | null; minKobo: number; late: typeof late; defaults: { name: string; subtext: string; logoUrl: string; signerTitle: string; website: string } | null }>("/api/academy/setup").then((r) => {
       setMinKobo(r.minKobo); setLate(r.late); setSaved(r.academy);
       const a = r.academy;
       setF(a ? {
         name: a.name, subtext: a.subtext, website: a.website.replace(/^https?:\/\//, ""), logoUrl: a.logoUrl, signerName: a.signerName, signerTitle: a.signerTitle,
         signatureUrl: a.signatureUrl, margin: String(a.marginKobo / 100), accName: a.accreditation?.name ?? "", accLogoUrl: a.accreditation?.logoUrl ?? "", accProof: a.accreditation?.proof ?? "",
-      } : EMPTY);
+      } : r.defaults ? { ...EMPTY, name: r.defaults.name, subtext: r.defaults.subtext, logoUrl: r.defaults.logoUrl, signerTitle: r.defaults.signerTitle, website: r.defaults.website.replace(/^https?:\/\//, "") } : EMPTY);
       setLoaded(true);
     }).catch((e) => setError(e.message));
   }, [user]);
@@ -174,7 +174,7 @@ export default function AcademySetup() {
         <aside className="min-w-0">
           <div className="lg:sticky lg:top-24">
             <p className="eyebrow">Preview</p>
-            <div className="mt-2 rounded-2xl border border-rule bg-card p-2 shadow-sm"><Certificate face={sample} verifyUrl="https://www.notesapp.name.ng/certificates/NA-C-7K2M9QXD" /></div>
+            <div className="mt-2 rounded-2xl border border-rule bg-card p-2 shadow-sm"><Certificate face={sample} verifyUrl="https://www.notesapp.name.ng/certificates/NA-C-7K2M9QXD" slots /></div>
             <p className="mt-2 text-xs text-slate">A learner&apos;s name, course and date are shown as an example. The top-right space shows an accrediting institution once approved. &quot;#NotesApp Certified Course&quot; (top left) is added by our team to courses we&apos;ve reviewed.</p>
           </div>
         </aside>

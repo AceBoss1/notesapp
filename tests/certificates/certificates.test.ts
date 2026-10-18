@@ -34,6 +34,10 @@ const academy: Academy = { ownerUid: "u", ...c, accreditation: { name: "LBS", lo
 assert.equal(faceFor(academy, course, { name: "A B", completedAt: "" }, { id: "", issuedAt: "" }).accreditation, null, "not until approved");
 assert.deepEqual(faceFor({ ...academy, accreditation: { ...academy.accreditation!, status: "approved" } }, course, { name: "A B", completedAt: "" }, { id: "", issuedAt: "" }).accreditation, { name: "LBS", logoUrl: "l" });
 assert.equal(faceFor(academy, { ...course, certified: null }, { name: "A B", completedAt: "" }, { id: "", issuedAt: "" }).certified, false);
+const staffFace = faceFor(null, { ...course, staff: true }, { name: "A B", completedAt: "" }, { id: "", issuedAt: "" });
+assert.equal(staffFace.academyName, "Notes Academy"); assert.equal(staffFace.signerTitle, "Notes Academy"); assert.equal(staffFace.subtext, "Learn from people who've done it"); assert.match(staffFace.website, /\/academy$/);
+assert.equal(faceFor(null, { ...course, staff: true, ownerUsername: "emmanuel" }, { name: "A B", completedAt: "" }, { id: "", issuedAt: "" }).signerTitle, "Founder/Dean, Notes Academy"); assert.equal(staffFace.logoUrl, "/images/academy/notes-academy-logo.png", "our team's courses carry the Notes Academy logo");
+assert.equal(faceFor(academy, { ...course, staff: true }, { name: "A B", completedAt: "" }, { id: "", issuedAt: "" }).academyName, "LWB Academy", "a staff teacher's own academy still wins");
 assert.equal(faceFor(academy, { ...course, minutes: 10 }, { name: "A B", completedAt: "" }, { id: "", issuedAt: "" }).hours, 1, "at least an hour");
 
 // The teacher's share: their margin, and the same share of any late claim fee.
