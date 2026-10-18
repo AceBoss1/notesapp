@@ -458,6 +458,8 @@ service cloud.firestore {
     match /nanaAccounts/{uid} { allow read, write: if false; }
     match /nanaSpend/{month} { allow read, write: if false; }
     match /nanaBank/{key} { allow read, write: if false; }
+    // Credit added by hand in Admin → Credits (lib/admin-credits.ts): the server only.
+    match /creditTopups/{id} { allow read, write: if false; }
     match /parcelLinks/{id} {
       allow read, write: if false;
     }
