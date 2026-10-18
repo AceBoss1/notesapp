@@ -13,8 +13,12 @@ import JournalRow from "@/components/JournalRow";
 import { useSavedJournals } from "@/lib/saved-journals-client";
 import { getNoteById, type NoteWithComputed } from "@/lib/firestore-notes";
 import KeptMessages from "@/components/messages/KeptMessages";
+import CourseCard, { courseCardOf } from "@/components/CourseCard";
+import { useSavedCourses } from "@/lib/course-social-client";
+import { useAcademy } from "@/lib/courses-client";
 
-// What the member saved: journals (the bookmark in the feed), messages kept from chats and store items (the heart on an item). They appear in the order
+// What the member saved: journals (the bookmark in the feed), courses (the bookmark on a course), messages kept from chats and store
+// items (the heart on an item). They appear in the order
 // they load.
 export default function SavedItemsClient() {
   const router = useRouter();
@@ -23,6 +27,9 @@ export default function SavedItemsClient() {
   const [items, setItems] = useState<Record<string, StoreItem | null>>({});
   const { saved: savedJournals } = useSavedJournals(user);
   const [journals, setJournals] = useState<Record<string, NoteWithComputed | null>>({});
+  const { saved: savedCourses } = useSavedCourses();
+  const academy = useAcademy(undefined, savedCourses.size > 0);
+  const courseList = (academy ?? []).filter((c) => savedCourses.has(c.id));
   useEffect(() => onAuthStateChanged(auth, setUser), []);
   useEffect(() => { if (user === null) router.replace("/login"); }, [user, router]);
   useEffect(() => {
@@ -49,6 +56,13 @@ export default function SavedItemsClient() {
           <h2 className="font-display text-2xl text-ink">Journals</h2>
           <p className="mt-1 text-sm text-slate">Journals you saved with the bookmark. Tap it again on the journal to remove one.</p>
           <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2">{journalList.map((n) => <JournalRow key={n.id} note={n} showAuthor />)}</div>
+        </section>
+      )}
+      {courseList.length > 0 && (
+        <section className="mt-10">
+          <h2 className="font-display text-2xl text-ink">Courses</h2>
+          <p className="mt-1 text-sm text-slate">Courses you saved with the bookmark. Tap it again to remove one.</p>
+          <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">{courseList.map((c) => <CourseCard key={c.id} c={courseCardOf(c)} href={`/academy/${c.slug}`} />)}</div>
         </section>
       )}
       {user && <KeptMessages user={user} />}

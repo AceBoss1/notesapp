@@ -27,6 +27,8 @@ import { remarkLinkify } from "@/lib/linkify";
 import { SITE } from "@/lib/site";
 import { hashtag, matchTopic, noteHeading, topicsOf } from "@/lib/topics";
 import { isCrimsonTheme } from "@/lib/site-themes";
+import RecommendationsCard from "@/components/RecommendationsCard";
+import { SITE_URL } from "@/lib/host";
 
 // The reading page for one note (same Firestore doc as precheks.com.ng/notes/{slug}). Used by /journals/<slug> and a member's own site.
 // `site` is set on a member's own site: "more notes" are then only theirs, links stay inside the site
@@ -255,6 +257,9 @@ export default async function JournalDetail({
         )}
       </div>
 
+      {/* The author's recommendations: here on phones and narrow layouts (the sidebar has them on a computer). */}
+      {authorProfile?.uid && authorProfile.username && <RecommendationsCard subjectUid={authorProfile.uid} username={authorProfile.username} name={authorProfile.displayName} profileBase={site ? SITE_URL : ""} className={`card mt-8 p-5 ${wide ? "lg:hidden" : ""}`} />}
+
       <AdSlot placement="post" publisher={authorProfile ?? undefined} publisherUid={authorProfile?.uid} />
 
       <Comments noteId={note.id} slug={note.slug} title={note.title} noteAuthor={note.author} linkProfiles={!site} />
@@ -318,6 +323,7 @@ export default async function JournalDetail({
             </div>
           )}
         </div>
+        {authorProfile.uid && authorProfile.username && <RecommendationsCard subjectUid={authorProfile.uid} username={authorProfile.username} name={authorProfile.displayName} profileBase={site ? SITE_URL : ""} />}
         {linkedUsername && (
           <div className="card p-5">
             <p className="font-ui text-sm font-bold text-ink">Liked this?</p>

@@ -1,6 +1,7 @@
 // Notes Academy checks (lib/courses.ts): YouTube links, addresses, lessons, publishing and progress. Run: npm run test:courses → "ALL OK".
+import { breakdownOf, cleanRecommendation, recommendationSummary } from "../../lib/reviews";
 import assert from "node:assert/strict";
-import { cleanCourseFields, cleanLesson, durationLabel, progressOf, publishProblems, slugify, youtubeEmbed, youtubeId, LESSON_BODY_MAX } from "../../lib/courses";
+import { cleanCourseFields, cleanLesson, courseRating, durationLabel, progressOf, reviewProgress, showsRating, publishProblems, slugify, youtubeEmbed, youtubeId, LESSON_BODY_MAX } from "../../lib/courses";
 
 // every form of YouTube link gives the 11-character id; anything else gives nothing
 const ID = "Vl0H-qTclOg";
@@ -48,6 +49,23 @@ assert.deepEqual(progressOf(["a", "b", "c"], { done: { a: "t", gone: "t" } }), {
 assert.deepEqual(progressOf(["a", "b"], { done: { a: "t", b: "t" } }), { done: 2, total: 2, pct: 100, next: "a", complete: true });
 assert.deepEqual(progressOf(["a"], null), { done: 0, total: 1, pct: 0, next: "a", complete: false });
 assert.deepEqual(progressOf([], { done: {} }), { done: 0, total: 0, pct: 0, next: null, complete: false });
+
+// reviews: half the lessons (rounded up, at least one), counting only lessons the course still has; stars from two reviews
+assert.deepEqual(reviewProgress(["a", "b", "c", "d"], { a: "t", b: "t" }), { done: 2, total: 4, needed: 2, ok: true });
+assert.deepEqual(reviewProgress(["a", "b", "c"], { a: "t", gone: "t" }), { done: 1, total: 3, needed: 2, ok: false });
+assert.deepEqual(reviewProgress(["a"], { a: "t" }), { done: 1, total: 1, needed: 1, ok: true });
+assert.deepEqual(reviewProgress([], {}), { done: 0, total: 0, needed: 1, ok: false });
+assert.deepEqual(reviewProgress(["a", "b"], undefined), { done: 0, total: 2, needed: 1, ok: false });
+assert.equal(showsRating({ count: 1 }), false); assert.equal(showsRating({ count: 2 }), true); assert.equal(showsRating(null), false);
+assert.deepEqual(courseRating({ ratingSum: 14, ratingCount: 3 }), { count: 3, average: 4.7 });
+assert.deepEqual(courseRating({}), { count: 0, average: 0 });
+
+// reviews and recommendations (lib/reviews.ts): the split, the stars on recommendations
+assert.deepEqual(breakdownOf([5, 5, 4, 1, 0, 6, 3.6]), [1, 0, 0, 2, 2]);
+assert.throws(() => cleanRecommendation({ relationship: "Worked with them", text: "Brilliant to work with, always on time." }), /1 to 5 stars/);
+assert.deepEqual(cleanRecommendation({ relationship: "Worked with them", rating: 5, text: "Brilliant to work with, always on time." }), { relationship: "Worked with them", rating: 5, text: "Brilliant to work with, always on time." });
+assert.throws(() => cleanRecommendation({ relationship: "Worked with them", rating: 6, text: "Brilliant to work with, always on time." }), /1 to 5 stars/);
+assert.deepEqual(recommendationSummary([{ rating: 5 }, { rating: 4 }, {}]), { count: 2, average: 4.5, total: 3 }, "older ones without stars count in the total only");
 
 assert.equal(durationLabel(45), "45 min"); assert.equal(durationLabel(60), "1 h"); assert.equal(durationLabel(135), "2 h 15 min"); assert.equal(durationLabel(0), "");
 console.log("ALL OK");

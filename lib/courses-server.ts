@@ -4,7 +4,7 @@ import { ttlCache } from "./ttl-cache";
 import { weeklyViews } from "./discovery-server";
 import { canPublish, type UserProfile } from "./users";
 import {
-  MAX_COURSES_PER_MEMBER, MAX_LESSONS, cleanCourseFields, cleanLesson, publishProblems, slugify,
+  MAX_COURSES_PER_MEMBER, MAX_LESSONS, cleanCourseFields, courseRating, cleanLesson, publishProblems, slugify,
   type Course, type CourseListing, type Enrolment, type Lesson, type LessonInput,
 } from "./courses";
 
@@ -25,6 +25,7 @@ export function courseOf(id: string, d: FirebaseFirestore.DocumentData): Course 
     free: true, status: d.status === "published" ? "published" : "draft", lessonIds: Array.isArray(d.lessonIds) ? d.lessonIds.map(String) : [],
     lessonCount: Number(d.lessonCount) || 0, minutes: Number(d.minutes) || 0, enrolCount: Number(d.enrolCount) || 0, viewCount: Number(d.viewCount) || 0,
     createdAt: String(d.createdAt ?? ""), updatedAt: String(d.updatedAt ?? ""), publishedAt: d.publishedAt ? String(d.publishedAt) : null,
+    likeCount: Number(d.likeCount) || 0, ratingSum: Number(d.ratingSum) || 0, ratingCount: Number(d.ratingCount) || 0,
   };
 }
 export function lessonOf(id: string, d: FirebaseFirestore.DocumentData): Lesson {
@@ -278,6 +279,7 @@ async function buildListing(db: Firestore): Promise<CourseListing[]> {
       id: c.id, slug: c.slug, title: c.title, summary: c.summary, cover: c.cover, topics: c.topics, lessonIds: c.lessonIds, lessonCount: c.lessonCount, minutes: c.minutes,
       enrolCount: c.enrolCount, views: c.viewCount, viewsWeek: week.course[c.id] ?? 0, publishedAt: c.publishedAt || c.createdAt,
       ownerUid: c.ownerUid, ownerUsername: String(u.username), ownerName: String(u.displayName || u.username), ownerAvatar: String(u.avatar ?? ""),
+      likeCount: c.likeCount ?? 0, rating: courseRating(c),
     }];
   });
 }

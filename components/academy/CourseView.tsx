@@ -8,7 +8,9 @@ import { NameBadgeIcons } from "@/components/PersonName";
 import { hashtag } from "@/lib/topics";
 import { countCourseView, useCourse } from "@/lib/courses-client";
 import AcademyFaq from "./AcademyFaq";
-import { durationLabel, lessonHref, plural, progressOf, type Course, type Enrolment, type Lesson } from "@/lib/courses";
+import ReviewsPanel, { Stars } from "@/components/ReviewsPanel";
+import { useCourseSocial, useSavedCourses } from "@/lib/course-social-client";
+import { RATING_SHOWN_FROM, durationLabel, lessonHref, plural, progressOf, showsRating, type Course, type Enrolment, type Lesson } from "@/lib/courses";
 
 // /academy/<slug>: a course's page. Cover, title, the teacher, summary and topics; the lessons with their length (✓ once done);
 // then "Enrol — free" (signed out: sign in and come straight back), or the learner's progress and Continue. The teacher sees
@@ -19,6 +21,10 @@ export default function CourseView({ slug }: { slug: string }) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const counted = useRef(false);
+  const { social, like } = useCourseSocial(course && !preview ? course.id : undefined);
+  const { saved, toggle: toggleSave } = useSavedCourses();
+  const [note, setNote] = useState("");
+  const flash = (t: string) => { setNote(t); setTimeout(() => setNote(""), 2200); };
 
   useEffect(() => {
     if (!course || preview || user === undefined || counted.current) return;
@@ -72,6 +78,12 @@ export default function CourseView({ slug }: { slug: string }) {
                 <span className="block font-mono text-xs text-paper/75">@{course.ownerUsername} · Teacher</span>
               </span>
             </Link>
+            {social && showsRating(social.rating) && (
+              <a href="#reviews" className="mt-4 flex w-fit items-center gap-2 text-sm">
+                <Stars value={social.rating.average} size="text-base !text-amber-300" /><strong>{social.rating.average.toFixed(1)}</strong>
+                <span className="text-paper/80">· {plural(social.rating.count, "review")}{course.enrolCount ? ` · ${plural(course.enrolCount, "learner")}` : ""}</span>
+              </a>
+            )}
           </div>
           {course.cover
             // eslint-disable-next-line @next/next/no-img-element
@@ -79,6 +91,24 @@ export default function CourseView({ slug }: { slug: string }) {
             : null}
         </div>
       </section>
+      {!preview && (
+        <div className="border-b border-rule bg-card">
+          <div className="mx-auto flex max-w-6xl items-center justify-around gap-2 px-4 py-1.5 font-ui text-sm font-semibold text-ink sm:justify-start sm:gap-6 sm:px-8">
+            <button type="button" onClick={async () => { const e = await like(); if (e) flash(e); }} aria-pressed={!!social?.liked} aria-label={social?.liked ? "Unlike this course" : "Like this course"}
+              className={`flex items-center gap-1.5 rounded-full px-3 py-2 hover:bg-paper ${social?.liked ? "text-crimson" : ""}`}>
+              <HeartIcon on={!!social?.liked} />{social ? social.likeCount.toLocaleString("en-GB") : "Like"}
+            </button>
+            <button type="button" onClick={async () => { const r = await toggleSave(course.id); if (r.error) flash(r.error); else flash(saved.has(course.id) ? "Removed from Saved" : "Saved: find it in Saved → Courses"); }} aria-pressed={saved.has(course.id)}
+              className={`flex items-center gap-1.5 rounded-full px-3 py-2 hover:bg-paper ${saved.has(course.id) ? "text-crimson" : ""}`}>
+              <BookmarkIcon on={saved.has(course.id)} />{saved.has(course.id) ? "Saved" : "Save"}
+            </button>
+            <a href="#reviews" className="flex items-center gap-1.5 rounded-full px-3 py-2 hover:bg-paper"><span aria-hidden className="text-amber-500">★</span>Review</a>
+            <button type="button" onClick={async () => { const url = window.location.href.split("#")[0]; try { if (navigator.share) await navigator.share({ title: course.title, url }); else { await navigator.clipboard.writeText(url); flash("Link copied"); } } catch {} }}
+              className="flex items-center gap-1.5 rounded-full px-3 py-2 hover:bg-paper"><span aria-hidden>↗</span>Share</button>
+          </div>
+          {note && <p role="status" className="pb-2 text-center text-xs font-semibold text-crimson">{note}</p>}
+        </div>
+      )}
 
       <div className="mx-auto grid max-w-6xl gap-8 px-4 py-8 sm:px-8 lg:grid-cols-[1fr_340px]">
         <aside className="lg:col-start-2 lg:row-start-1">
@@ -98,6 +128,7 @@ export default function CourseView({ slug }: { slug: string }) {
           <h2 className="mt-8 font-display text-2xl text-ink">Lessons</h2>
           <p className="mt-1 text-xs text-slate">{plural(lessons.length, "lesson")}{course.minutes ? ` · ${durationLabel(course.minutes)}` : ""}{enrolment ? "" : " · the first lesson is a free preview"}</p>
           <LessonList slug={slug} lessons={lessons} enrolment={enrolment} open={!!enrolment || mine} />
+          {!preview && <ReviewsPanel courseId={course.id} user={user} title="What learners say" minShown={RATING_SHOWN_FROM} />}
           <AcademyFaq />
         </div>
       </div>
@@ -171,3 +202,10 @@ export function LessonList({ slug, lessons, enrolment, open, current }: { slug: 
     </ol>
   );
 }
+
+const HeartIcon = ({ on }: { on: boolean }) => (
+  <svg viewBox="0 0 24 24" className="h-5 w-5" fill={on ? "currentColor" : "none"} stroke="currentColor" strokeWidth={1.9} strokeLinejoin="round" aria-hidden="true"><path d="M12 20s-7-4.4-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.6-7 10-7 10Z" /></svg>
+);
+export const BookmarkIcon = ({ on, className = "h-5 w-5" }: { on: boolean; className?: string }) => (
+  <svg viewBox="0 0 24 24" className={className} fill={on ? "currentColor" : "none"} stroke="currentColor" strokeWidth={1.9} strokeLinejoin="round" aria-hidden="true"><path d="M6.5 3.5h11v17l-5.5-4-5.5 4v-17Z" /></svg>
+);

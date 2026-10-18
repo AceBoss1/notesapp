@@ -2,7 +2,7 @@ import type { Firestore } from "firebase-admin/firestore";
 import { notifyBell } from "./email";
 import { notifyMentions } from "./mentions-server";
 import {
-  ReviewError, cleanRecommendation, cleanReply, cleanReview, summarise,
+  ReviewError, breakdownOf, cleanRecommendation, recommendationSummary, cleanReply, cleanReview, summarise,
   type RatingSummary, type Recommendation, type RecommendationStatus, type Review,
 } from "./reviews";
 
@@ -25,7 +25,7 @@ export async function boughtItem(db: Firestore, uid: string, itemId: string): Pr
   return !digital.empty;
 }
 
-const toReview = (id: string, d: FirebaseFirestore.DocumentData): Review => ({ ...(d as Omit<Review, "id">), id });
+const toReview = (id: string, d: FirebaseFirestore.DocumentData): Review => ({ ...(d as Omit<Review, "id">), id, verified: true });
 
 export async function submitReview(db: Firestore, uid: string, itemId: string, input: { rating?: unknown; text?: unknown }, now = new Date()): Promise<{ summary: RatingSummary }> {
   const clean = cleanReview(input);
@@ -80,7 +80,7 @@ export async function replyToReview(db: Firestore, sellerUid: string, reviewId: 
   await notifyMentions(db, { kind: "review_reply", sourceId: ref.id, text: reply, author: { uid: sellerUid, name: seller.name, username: seller.username, avatar: seller.avatar }, where: `in a reply to a review of ${String(s.data()!.itemTitle ?? "an item")}`, linkHref: `/shop/${s.data()!.itemId}`, skipUids: [String(s.data()!.uid)] }, now).catch(() => {});
 }
 
-export type ReviewList = { reviews: Review[]; summary: RatingSummary; canReview: boolean; mine: Review | null };
+export type ReviewList = { reviews: Review[]; summary: RatingSummary; breakdown: number[]; canReview: boolean; mine: Review | null };
 
 // An item's reviews (newest first) or, with ownerUid, every review across a seller's items. `viewerUid` only decides canReview/mine.
 export async function listReviews(db: Firestore, q: { itemId?: string; ownerUid?: string }, viewerUid?: string): Promise<ReviewList> {
@@ -91,7 +91,8 @@ export async function listReviews(db: Firestore, q: { itemId?: string; ownerUid?
     db.collection("storeReviews").where(field, "==", value).get(),
     q.itemId ? db.doc(`storeStats/${q.itemId}`).get() : db.collection("storeStats").where("ownerUid", "==", value).get(),
   ]);
-  const reviews = snap.docs.map((d) => toReview(d.id, d.data())).sort((a, b) => b.createdAt.localeCompare(a.createdAt)).slice(0, 50);
+  const everyReview = snap.docs.map((d) => toReview(d.id, d.data())).sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+  const reviews = everyReview.slice(0, 50);
   const docs = "docs" in stats ? stats.docs.map((d) => d.data()) : [stats.data() ?? {}];
   const summary = summarise(docs.reduce((s, d) => s + (Number(d.ratingSum) || 0), 0), docs.reduce((s, d) => s + (Number(d.ratingCount) || 0), 0));
   const mine = viewerUid && q.itemId ? reviews.find((r) => r.uid === viewerUid) ?? null : null;
@@ -100,7 +101,7 @@ export async function listReviews(db: Firestore, q: { itemId?: string; ownerUid?
     const owner = (await db.doc(`storeItems/${q.itemId}`).get()).data()?.ownerUid;
     canReview = !!owner && owner !== viewerUid && (!!mine || (await boughtItem(db, viewerUid, q.itemId)));
   }
-  return { reviews, summary, canReview, mine };
+  return { reviews, summary, breakdown: breakdownOf(everyReview.map((r) => r.rating)), canReview, mine };
 }
 
 // ── Recommendations ─────────────────────────────────────────────────────────────────────────────────────────────────────────────────
@@ -109,7 +110,7 @@ export async function listReviews(db: Firestore, q: { itemId?: string; ownerUid?
 const toRec = (id: string, d: FirebaseFirestore.DocumentData): Recommendation => ({ ...(d as Omit<Recommendation, "id">), id });
 export const MAX_PENDING_PER_AUTHOR = 10;
 
-export async function writeRecommendation(db: Firestore, authorUid: string, subjectUid: string, input: { relationship?: unknown; text?: unknown }, now = new Date()): Promise<void> {
+export async function writeRecommendation(db: Firestore, authorUid: string, subjectUid: string, input: { relationship?: unknown; rating?: unknown; text?: unknown }, now = new Date()): Promise<void> {
   need(!!subjectUid && !subjectUid.includes("/"), "Who is it for?", 400);
   need(authorUid !== subjectUid, "You can't recommend yourself.");
   const clean = cleanRecommendation(input);
@@ -154,12 +155,13 @@ export async function deleteRecommendation(db: Firestore, uid: string, id: strin
 }
 
 // Approved ones for everyone; the subject also sees what is waiting and what they hid; an author sees their own for this subject.
-export async function listRecommendations(db: Firestore, subjectUid: string, viewerUid?: string): Promise<{ approved: Recommendation[]; waiting: Recommendation[]; mine: Recommendation | null }> {
+export async function listRecommendations(db: Firestore, subjectUid: string, viewerUid?: string): Promise<{ approved: Recommendation[]; waiting: Recommendation[]; mine: Recommendation | null; summary: ReturnType<typeof recommendationSummary> }> {
   const snap = await db.collection("recommendations").where("subjectUid", "==", subjectUid).get();
   const all = snap.docs.map((d) => toRec(d.id, d.data())).sort((a, b) => b.createdAt.localeCompare(a.createdAt));
   const isSubject = viewerUid === subjectUid;
+  const approved = all.filter((r) => r.status === "approved");
   return {
-    approved: all.filter((r) => r.status === "approved"),
+    approved, summary: recommendationSummary(approved),
     waiting: isSubject ? all.filter((r) => r.status !== "approved") : [],
     mine: viewerUid && !isSubject ? all.find((r) => r.authorUid === viewerUid) ?? null : null,
   };

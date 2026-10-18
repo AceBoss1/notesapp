@@ -11,6 +11,16 @@ export type Release = {
 
 export const CHANGELOG: Release[] = [
   {
+    version: "v0.52.0",
+    bump: "minor",
+    date: "2026-10-18",
+    changes: [
+      { kind: "added", text: "Like, save and review courses: ♥ and the bookmark on every course page and card (saved courses are under Saved → Courses), and What learners say, where learners who've done half the lessons give 1 to 5 stars and a few words. The teacher can reply once to each review. A course shows its stars once it has 2 reviews." },
+      { kind: "added", text: "Recommendations now carry 1 to 5 stars, and the ones a person approves also show beside their journals and on their site's About page, not only on their profile." },
+      { kind: "changed", text: "Store item reviews have the same new look: the average, how the stars split, a Bought it badge on each review and the seller's reply beneath it." },
+    ],
+  },
+  {
     version: "v0.51.0",
     bump: "minor",
     date: "2026-10-18",
