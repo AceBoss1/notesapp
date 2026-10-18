@@ -8,7 +8,7 @@ export const HomeIcon = (p: P) => <I {...p}><path d="M3 10.5 12 3l9 7.5" /><path
 export const ExploreIcon = (p: P) => <I {...p}><circle cx="11" cy="11" r="6.5" /><path d="m20 20-4.2-4.2" /></I>;
 export const TrendingIcon = (p: P) => <I {...p}><path d="M4 17 10 11l4 4 6-7" /><path d="M15 8h5v5" /></I>;
 export const MarketIcon = (p: P) => <I {...p}><path d="M4 9h16l-1 11H5L4 9Z" /><path d="M8.5 9V7a3.5 3.5 0 0 1 7 0v2" /></I>;
-export const AcademyIcon = (p: P) => <I {...p}><path d="m2.5 9 9.5-4.5L21.5 9 12 13.5 2.5 9Z" /><path d="M6.5 11v4.5c0 1.4 2.5 3 5.5 3s5.5-1.6 5.5-3V11" /><path d="M21.5 9v5" /></I>;
+export const AcademyIcon = (p: P) => <I {...p}><path d="M1.5 9 12 4.8 22.5 9 12 13.2 1.5 9Z" /><path d="M7 11.2v4.4c0 1.4 2.2 2.6 5 2.6s5-1.2 5-2.6v-4.4" /><path d="M12 9 4.6 11.3v4.5" /><circle cx="12" cy="9" r="0.9" fill="currentColor" stroke="none" /><path d="M3.9 15.8h1.4l.5 3.4H3.4l.5-3.4Z" fill="currentColor" /></I>;
 export const MessagesIcon = (p: P) => <I {...p}><path d="M4 5.5h16v10H9l-5 4v-14Z" /></I>;
 export const SavedIcon = (p: P) => <I {...p}><path d="M6.5 3.5h11v17l-5.5-4-5.5 4v-17Z" /></I>;
 export const ProfileIcon = (p: P) => <I {...p}><circle cx="12" cy="8.5" r="3.8" /><path d="M4.5 20.5c1.3-3.6 4.2-5.5 7.5-5.5s6.2 1.9 7.5 5.5" /></I>;
