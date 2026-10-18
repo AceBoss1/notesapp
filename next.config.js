@@ -1,5 +1,11 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  // The certificate picture (app/(main)/certificates/[id]/image.png, lib/certificate-image.tsx) reads its fonts and our badges from the disk.
+  experimental: {
+    outputFileTracingIncludes: {
+      "/certificates/[id]/image.png": ["./assets/fonts/**", "./assets/certificate-logo.png", "./public/images/academy/*.png", "./public/images/brand/icon-512.png"],
+    },
+  },
   images: {
     remotePatterns: [
       // Legacy — pre-migration Cloudinary URLs may still exist on old

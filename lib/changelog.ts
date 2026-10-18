@@ -11,10 +11,12 @@ export type Release = {
 
 export const CHANGELOG: Release[] = [
   {
-    version: "v0.50.1",
-    bump: "patch",
+    version: "v0.51.0",
+    bump: "minor",
     date: "2026-10-18",
     changes: [
+      { kind: "added", text: "Your certificate as a picture: Download image saves it as a PNG, and Copy image link gives you a link to paste into LinkedIn (Add media → Add a link) so the certificate shows on your profile." },
+      { kind: "changed", text: "A shared certificate link now shows the certificate itself in its preview on LinkedIn, X and WhatsApp." },
       { kind: "changed", text: "Get your certificate, See your certificate and Set up your certificates now carry the Notes Academy cap icon instead of the 🎓 emoji." },
     ],
   },
