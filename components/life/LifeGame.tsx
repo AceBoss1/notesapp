@@ -13,6 +13,8 @@ import { createWorld, type Power, type RoomSpot, type SceneSpec, type Tag, type 
 import { announce, hide, setShowMe, showMe, whoIsHere, type Present, type PresencePlace } from "./presence";
 import { TOPICS, chatWith, say as chatSay, type Line as ChatLine, type Topic } from "./chats";
 import VipPano from "./VipPano";
+import CardTap, { CardTapCard, type TapState } from "./CardTap";
+import { CARDTAP, cardLast4, tapCharge } from "@/lib/life/cardtap";
 
 const SUITE_LABEL = "In your Imperial Suite";
 import FriendChat, { type ChatFriend } from "./FriendChat";
@@ -23,7 +25,7 @@ import { familyHost } from "@/lib/host";
 type Player = LifePlayer & { cooking: number; swimming: number; serverNow: number };
 type Panel =
   | "welcome" | "needs" | "sleep" | "desk" | "outfit" | "cook" | "deal" | "go" | "food" | "hotel" | "phone" | "jobs" | "friends"
-  | "invite" | "bank" | "rich" | "settings" | "ebike" | "nepa" | "power" | "itel" | "product" | "business" | "kitchen" | "arrive" | "hotelpool" | "vip" | "dw" | { shop: C.ItemCat } | { chat: string } | { player: Present }
+  | "invite" | "bank" | "rich" | "settings" | "cardtap" | "ebike" | "nepa" | "power" | "itel" | "product" | "business" | "kitchen" | "arrive" | "hotelpool" | "vip" | "dw" | { shop: C.ItemCat } | { chat: string } | { player: Present }
   | { jobs: C.Brand } | { partner: "chef_adams" | "itel" } | { outlet: C.OutletKind } | null;
 type Toast = { text: string; share?: string; tone?: "ok" | "warn" } | null;
 type Friend = { uid: string; username: string; name: string; avatar: string; plays: boolean; netWorth: number };
@@ -34,6 +36,9 @@ const OUTFITS = ["#f59e0b", "#e53935", "#2563eb", "#16a34a", "#7c3aed", "#0f766e
 // "Back to NotesApp": the app's journal feed, on the visitor's own domain (lib/host.ts)
 const notesAppHome = () => `${window.location.protocol}//${familyHost(window.location.host, "app")}/journals`;
 const WA = (text: string, phone?: string) => `https://wa.me/${phone ?? ""}?text=${encodeURIComponent(text)}`;
+// Paying with Paylony CardTap (a tap at every counter) or straight away: a choice kept on this device.
+const TAP_KEY = "notesLife:cardtap";
+const loadTapOn = () => { try { return localStorage.getItem(TAP_KEY) !== "off"; } catch { return true; } };
 const ngPhone = (tel: string) => { const d = tel.replace(/\D/g, ""); return d.startsWith("0") && d.length === 11 ? `234${d.slice(1)}` : d; };
 
 async function call<T>(user: User, method: "GET" | "POST", body?: object, q = ""): Promise<T> {
@@ -79,6 +84,10 @@ export default function LifeGame() {
   const [points, setPoints] = useState<RestorePoint[] | null>(null);
   const [outletArea, setOutletArea] = useState<C.OutletArea>("wuse");
   const [keepFood, setKeepFood] = useState(false);
+  const [tap, setTap] = useState<TapState | null>(null);
+  const [tapOn, setTapOn] = useState(true);
+  const tapWait = useRef<((go: boolean) => void) | null>(null);
+  useEffect(() => { setTapOn(loadTapOn()); }, []);
   const panelKey = typeof panel === "string" ? panel : null;
   useEffect(() => {
     if (!user || !panelKey) return;
@@ -348,12 +357,47 @@ export default function LifeGame() {
   }, [user, player !== null, say]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ---- actions ----
+  // Spending Notesville Naira at a counter goes through Paylony CardTap first (components/life/CardTap.tsx): the merchant's phone shows the
+  // price, the player taps their card, then the server charges it. Cancelling the tap means nothing is sent.
   async function act<T = Record<string, unknown>>(body: object): Promise<T | null> {
     if (!user) return null;
+    const pl = playerRef.current;
+    const charge = tapOn && pl ? tapCharge(body as { action: string }, { jobId: pl.jobId, deal: pl.deal }) : null;
+    if (charge && !(await new Promise<boolean>((go) => { tapWait.current = go; setTap({ charge, phase: "ready" }); }))) return null;
+    const read = charge ? new Promise((r) => window.setTimeout(r, 700)) : null; // a card read takes a moment
     setBusy(true); setErr(null);
-    try { const r = await call<{ player: Player; result: T }>(user, "POST", body); gotPlayer(r.player); return r.result; }
-    catch (e) { setErr(e instanceof Error ? e.message : "That didn't work."); return null; }
+    try {
+      const before = pl?.naira ?? 0;
+      const r = await call<{ player: Player; result: T }>(user, "POST", body);
+      if (read) await read;
+      gotPlayer(r.player);
+      if (charge) {
+        if (r.player.naira < before) { setTap({ charge, phase: "approved" }); window.setTimeout(() => setTap((t) => (t?.charge === charge ? null : t)), 1300); }
+        else setTap(null); // nothing was taken (a deal that fell through)
+      }
+      return r.result;
+    }
+    catch (e) {
+      const m = e instanceof Error ? e.message : "That didn't work.";
+      setErr(m);
+      if (read) { await read; setTap({ charge: charge!, phase: "declined", message: m }); }
+      return null;
+    }
     finally { setBusy(false); }
+  }
+  function tapCard() {
+    if (!tapWait.current) return;
+    sfx("nfc");
+    setTap((t) => (t ? { ...t, phase: "reading" } : t));
+    tapWait.current(true); tapWait.current = null;
+  }
+  function tapCancel() {
+    tapWait.current?.(false); tapWait.current = null;
+    setTap(null);
+  }
+  function setTapPref(on: boolean) {
+    setTapOn(on);
+    try { localStorage.setItem(TAP_KEY, on ? "on" : "off"); } catch { /* fine */ }
   }
   function start(a: Omit<Activity, "startedAt" | "endsAt">, minutes: number) {
     const s = saveRef.current; if (!s) return false;
@@ -525,6 +569,7 @@ export default function LifeGame() {
   const tagInfo = (key: string): { label: string; up?: boolean; go: () => void } | null => {
     if (!player || !save) return null;
     if (key.startsWith("npc:")) { const r = C.RESIDENT(key.slice(4)); return r ? { label: `${r.name} 🤖${r.id === "cynthia" ? " · #1" : ""}`, go: () => setPanel({ chat: r.id }) } : null; }
+    if (key === "bb:paylony") return { label: "📣 Paylony · Pay with CardTap", go: () => setPanel("cardtap") };
     if (key.startsWith("bb:digitalwitch")) return { label: "📣 Digital Witch · Learn a tech skill", go: () => { setDwTab("courses"); setPanel("dw"); } };
     if (spec?.id === "dw") {
       const open = C.dwOpen(Date.now() + offset.current);
@@ -671,6 +716,7 @@ export default function LifeGame() {
           </div>
         </div>
       )}
+      {tap && <CardTap tap={tap} holder={player.name} last4={cardLast4(player.uid)} onTap={tapCard} onCancel={tapCancel} />}
       {fchat && user && save && (
         <FriendChat user={user} friend={fchat} here={others.some((o) => o.uid === fchat.uid)} where={C.PLACES.find((x) => x.id === save.place)?.name ?? "Abuja"}
           social={save.needs.social} gains={chatGains}
@@ -937,6 +983,7 @@ export default function LifeGame() {
     if (panel === "bank") return bankPanel(close);
     if (panel === "rich") return richPanel(close);
     if (panel === "settings") return settingsPanel(close);
+    if (panel === "cardtap") return cardTapPanel(close);
     return null;
 
     // --- brands: a header and tabs (Eat or Shop or Services · Jobs · Partner), job rows, partner outlets ---
@@ -1144,8 +1191,22 @@ export default function LifeGame() {
           <div className="mt-2 flex flex-wrap gap-1.5">{[100, 500, 1_000, 3_500, 10_000].map((n) => <button key={n} onClick={() => setNaira(n)} className={`rounded-full px-3 py-1 text-xs font-bold ${naira === n ? "bg-ink text-white" : "border"}`}>₦{n.toLocaleString("en-NG")} → {C.fmtShort(n * 100)}</button>)}</div>
           <div className="mt-2 grid grid-cols-2 gap-2"><Btn tone="green" onClick={() => buyNaira(naira, "wallet")}>From my wallet</Btn><Btn tone="ghost" onClick={() => buyNaira(naira, "card")}>Card or bank</Btn></div>
           <a href="/profile/wallet" target="_blank" rel="noreferrer" className="mt-2 block text-center text-[11px] text-crimson underline">Top up your NotesApp wallet ↗</a></div>
+        <button onClick={() => setPanel("cardtap")} className="mt-3 flex w-full items-center gap-3 rounded-2xl bg-[#eef3fb] p-3 text-left"><CardTapCard holder={p.name} last4={cardLast4(p.uid)} small />
+          <span className="min-w-0 text-[11px] text-slate"><b className="block text-sm text-ink">Your CardTap card</b>Tap to pay at every counter in Notesville, from Paylony (partner). {tapOn ? "On" : "Off"} · <span className="underline">About</span></span></button>
         <p className="mt-3 text-[11px] font-bold uppercase tracking-wider text-slate">Statement</p>
         {!lines ? <p className="text-sm text-slate">Loading…</p> : <ul className="mt-1 divide-y text-sm">{lines.map((l) => <li key={l.id} className="flex justify-between py-1.5"><span className="min-w-0 truncate pr-2">{l.label}<span className="block text-[10px] text-slate">{new Date(l.at).toLocaleString("en-NG", { day: "numeric", month: "short", hour: "numeric", hour12: true, minute: "2-digit" })}</span></span><b className={l.amount > 0 ? "text-emerald-700" : ""}>{l.amount > 0 ? "+" : "−"}{C.fmtN(Math.abs(l.amount))}</b></li>)}</ul>}</div>);
+    }
+    // Paylony CardTap (partner): from the billboard on the street and the bank. In the game it pays in Notesville Naira; the real CardTap
+    // takes contactless card payments on NFC phones. Only what Paylony says about it publicly is said here.
+    function cardTapPanel(close: ReactNode) {
+      return (<div>{close}<div className="flex items-center gap-3"><img src={CARDTAP.lockup} alt="Paylony" className="h-10 w-auto rounded-md" /><img src={CARDTAP.logo} alt="CardTap" className="h-9 w-auto rounded-md" /><span className="rounded-full bg-[#1d4ed8] px-2 py-0.5 text-[10px] font-bold text-white">PARTNER</span></div>
+        <h2 className="mt-3 text-2xl font-extrabold">{CARDTAP.tagline}</h2>
+        <div className="mt-3 flex justify-center rounded-2xl bg-[#eef3fb] py-4"><CardTapCard holder={p.name} last4={cardLast4(p.uid)} /></div>
+        <ul className="mt-3 space-y-1.5 text-sm">{["Every payment in Notesville is a tap: food at Chef Adams, the Candellux, fares, petrol, the itel shop and your outlets.", "The merchant's phone shows who you're paying and how much. Tap your card, hear the beep, approved.", "Game money only: CardTap here spends your Notesville Naira, never real money."].map((t) => <li key={t} className="flex gap-2"><span className="text-[#1d4ed8]">✓</span><span>{t}</span></li>)}</ul>
+        <div className="mt-3 rounded-2xl border p-3 text-[11px] text-slate"><b className="block text-sm text-ink">CardTap in real life</b>Pay with CardTap on Paylony: tap a card on an NFC phone to pay. Fast and secure, with API integration for businesses (NFC devices only).
+          <a href={CARDTAP.site} target="_blank" rel="noreferrer" className="mt-2 block rounded-full bg-[#1d4ed8] py-2 text-center text-sm font-bold text-white">Start at paylony.com ↗</a></div>
+        <label className="mt-3 flex items-center justify-between gap-3 rounded-2xl border p-3 text-xs"><span><b className="block text-sm">Tap to pay with CardTap</b>Off: payments go straight through, no tap.</span>
+          <input type="checkbox" checked={tapOn} onChange={(e) => setTapPref(e.target.checked)} className="h-5 w-5 accent-[#1d4ed8]" /></label></div>);
     }
     function richPanel(close: ReactNode) {
       const data = rich, pop = richPop, setPop = setRichPop;
@@ -1175,6 +1236,8 @@ export default function LifeGame() {
           <button onClick={() => snd.current?.test()} className="justify-self-start rounded-full border px-3 py-1 text-xs font-bold">▶ Test sound</button>
           <p className="text-[10px] text-slate">No sound? Turn your phone's volume up (media volume) and, on iPhone, the silent switch off.</p>
         </div>
+        <label className="mt-3 flex items-center justify-between gap-3 rounded-2xl border p-3 text-xs"><span><b className="block text-sm">Tap to pay with CardTap</b>Pay at every counter by tapping your Paylony CardTap card. Off: payments go straight through.</span>
+          <input type="checkbox" checked={tapOn} onChange={(e) => setTapPref(e.target.checked)} className="h-5 w-5 accent-emerald-600" /></label>
         <label className="mt-3 flex items-center justify-between gap-3 rounded-2xl border p-3 text-xs"><span><b className="block text-sm">Show me to other players</b>Players at the same place see your name and outfit, and can message you on NotesApp.</span>
           <input type="checkbox" checked={showMeOn} onChange={(e) => { setShowMe(e.target.checked); setShowMeOn(e.target.checked); if (!e.target.checked && user) void hide(user.uid); }} className="h-5 w-5 accent-emerald-600" /></label>
         <p className="mt-3 text-[11px] font-bold uppercase tracking-wider text-slate">Restore points</p>

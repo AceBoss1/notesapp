@@ -17,7 +17,7 @@ export function loadSoundPrefs(): SoundPrefs {
 }
 export function saveSoundPrefs(p: SoundPrefs) { try { localStorage.setItem(KEY, JSON.stringify(p)); } catch { /* private mode: this visit only */ } }
 
-export type Sfx = "tap" | "coin" | "pay" | "ring" | "door" | "water" | "eat" | "sizzle" | "done" | "success" | "warn" | "sleep" | "whoosh" | "bell" | "horn" | "bonus" | "page" | "nepa_off" | "up_nepa" | "pull";
+export type Sfx = "tap" | "coin" | "pay" | "ring" | "door" | "water" | "eat" | "sizzle" | "done" | "success" | "warn" | "sleep" | "whoosh" | "bell" | "horn" | "bonus" | "page" | "nepa_off" | "up_nepa" | "pull" | "nfc";
 export type Ambience = "none" | "room" | "room-night" | "street" | "street-night" | "hotel" | "pool" | "calm";
 
 type Ctx = AudioContext;
@@ -98,6 +98,8 @@ export class Sound {
     const t = this.ctx.currentTime + 0.01;
     switch (name) {
       case "tap": this.tone(880, t, 0.05, { gain: 0.06, type: "triangle" }); break;
+      // a card terminal reading a contactless card (Paylony CardTap in Notes Life)
+      case "nfc": this.tone(2700, t, 0.11, { gain: 0.08, type: "square" }); break;
       case "page": this.hiss(t, 0.18, { freq: 3000, q: 0.5, gain: 0.08, to: 1500 }); break;
       case "coin": this.tone(988, t, 0.09, { gain: 0.15, type: "square" }); this.tone(1319, t + 0.08, 0.35, { gain: 0.13, type: "square" }); break;
       case "pay": this.hiss(t, 0.06, { freq: 3500, q: 2, gain: 0.15 }); this.tone(1568, t + 0.05, 0.12, { gain: 0.12, type: "triangle" }); this.tone(2093, t + 0.13, 0.4, { gain: 0.12, type: "triangle" }); break;

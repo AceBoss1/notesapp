@@ -7,6 +7,7 @@ import { advance, freshSave, sanitize, powerStep, powerSource, fridgeCold, chatS
 import { payFromWallet, creditTopup } from "../../lib/wallet-server";
 import { fulfillPayment, type PaymentRecord } from "../../lib/payments";
 import { awardReferral } from "../../lib/life/referral";
+import { tapCharge } from "../../lib/life/cardtap";
 initializeApp({ projectId: "demo-notesapp" });
 const db = getFirestore();
 const rej = async (p: Promise<unknown>, re: RegExp) => { await assert.rejects(p, re); };
@@ -101,6 +102,7 @@ const rej = async (p: Promise<unknown>, re: RegExp) => { await assert.rejects(p,
   ({ player } = await act(db, "p1", { action: "buy", item: "cooker" }, T0)); assert.equal(player.naira, 35000);
   await rej(act(db, "p1", { action: "buy", item: "cooker" }, T0), /already own/);
   let r = await act(db, "p1", { action: "food", mode: "delivery", items: [{ id: "combo", qty: 1 }] }, T0); assert.equal(r.player.naira, 35000 - 2700); assert.equal((r.result as { hunger: number }).hunger, 50);
+  assert.equal(tapCharge({ action: "food", mode: "delivery", items: [{ id: "combo", qty: 1 }] }, { jobId: null })?.amount, 2700, "the CardTap terminal shows what the server charges");
   await rej(act(db, "p1", { action: "food", mode: "delivery", items: [{ id: "lobster", qty: 1 }] }, T0), /menu/);
   await rej(act(db, "p1", { action: "travel", mode: "ebike", to: "work" }, T0), /don't have/);
   r = await act(db, "p1", { action: "cook", recipe: "noodles_egg" }, T0); assert.equal(r.player.cooks, 1);
@@ -216,11 +218,13 @@ const rej = async (p: Promise<unknown>, re: RegExp) => { await assert.rejects(p,
   await rej(act(db, "p7", { action: "outlet_backup", outlet: "chef_kiosk" }, T7 + 3 * GAME_DAY_MS), /already/);
   await act(db, "p7", { action: "job_apply", job: "itel_sales" }, T7 + 3 * GAME_DAY_MS);
   r = await act(db, "p7", { action: "buy", item: "power_tank" }, T7 + 3 * GAME_DAY_MS); assert.match((r.result as { message: string }).message, /staff price, N\$ 320,000/);
+  assert.equal(tapCharge({ action: "buy", item: "power_tank" }, { jobId: "itel_sales" })?.amount, 320_000, "CardTap: itel staff price");
   await act(db, "p7", { action: "shift_start", needsLow: false }, T7 + 3 * GAME_DAY_MS);
   r = await act(db, "p7", { action: "shift_finish" }, T7 + 3 * GAME_DAY_MS + SHIFT_MS, () => 0.99); assert.equal((r.result as { extra: number }).extra, 1500); assert.equal(r.player.itelShifts, 6);
   await act(db, "p7", { action: "job_apply", job: "hotel_house" }, T7 + 4 * GAME_DAY_MS);
   const b7 = (await db.doc("lifePlayers/p7").get()).data()!.naira;
   r = await act(db, "p7", { action: "hotel", service: "pool" }, T7 + 4 * GAME_DAY_MS); assert.equal(r.player.naira, b7 - 12_500, "Candellux staff: half price pool");
+  assert.equal(tapCharge({ action: "hotel", service: "pool" }, { jobId: "hotel_house" })?.amount, 12_500, "CardTap: Candellux staff price");
   console.log("outlets ok");
 
   await db.doc("users/p8").set({ username: "femi", displayName: "FEMI" });
