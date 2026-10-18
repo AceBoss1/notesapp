@@ -731,6 +731,7 @@ service cloud.firestore {
     match /momentUsage/{id} { allow read, write: if false; }
     match /momentAudio/{id} { allow read, write: if false; }
     match /userPrefs/{id} { allow read, write: if false; }
+    match /chatHidden/{uid}/chats/{cid} { allow read: if isSignedIn() && request.auth.uid == uid; allow write: if false; } // deleted for me (lib/message-edits.ts)
     match /chatPins/{uid} { allow read: if isSignedIn() && request.auth.uid == uid; allow write: if false; } // pinned chats (lib/message-edits.ts)
     match /pushSubscriptions/{id} { allow read, write: if false; }
     match /contentReports/{id} { allow read, write: if false; }

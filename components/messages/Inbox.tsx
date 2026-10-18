@@ -1,5 +1,6 @@
 "use client";
 
+import { EmojiText } from "@/components/NotesAppEmoji";
 import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
@@ -139,7 +140,7 @@ export default function Inbox({ as = "h2" }: { as?: "h1" | "h2" }) {
                       </span>
                       {status && <HandleLine username={r.with.username} status={status} className="text-xs text-slate" />}
                     </>)}
-                    {(r.lastText || r.moment) && <span className={`mt-0.5 block truncate text-[13px] ${r.unread > 0 ? "font-semibold text-ink" : "text-slate"}`}>{preview}</span>}
+                    {(r.lastText || r.moment) && <span className={`mt-0.5 block truncate text-[13px] ${r.unread > 0 ? "font-semibold text-ink" : "text-slate"}`}><EmojiText text={preview} /></span>}
                   </span>
                   {r.unread > 0 && <span className="flex h-5 min-w-5 shrink-0 items-center justify-center rounded-full bg-crimson-bright px-1.5 font-ui text-[11px] font-bold text-white">{r.unread}</span>}
                 </Link>

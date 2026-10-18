@@ -36,13 +36,41 @@ export type ThreadMessage = {
   forwarded?: boolean; // sent on from another chat (lib/message-forward.ts)
 };
 
-// Reactions: one per person per message, from this short list (as in most messengers).
-export const REACTIONS = ["👍", "❤️", "😂", "😮", "😢", "🙏"] as const;
-export const isReaction = (e: unknown): e is (typeof REACTIONS)[number] => typeof e === "string" && (REACTIONS as readonly string[]).includes(e);
-// The chips under a bubble: each emoji used, how many and who, in the list's order.
+// #NotesApp's own emojis: typed as :na: or :academy: and drawn as small pictures inside #NotesApp (components/NotesAppEmoji.tsx).
+// Anywhere that only shows text (the inbox, a bell, an email) they read as their label.
+export const NOTESAPP_EMOJI: Record<string, { src: string; label: string }> = {
+  ":na:": { src: "/images/emoji/na.png", label: "#NotesApp" },
+  ":academy:": { src: "/images/emoji/academy.svg", label: "Notes Academy" },
+};
+export const NOTESAPP_EMOJI_RE = /:(?:na|academy):/g;
+export const isNotesAppEmoji = (e: unknown): e is string => typeof e === "string" && Object.prototype.hasOwnProperty.call(NOTESAPP_EMOJI, e);
+export const emojiAsText = (s: string) => s.replace(NOTESAPP_EMOJI_RE, (t) => NOTESAPP_EMOJI[t].label);
+
+// Reactions: one per person per message. Any single emoji, or one of ours; each member keeps their own quick set of QUICK_COUNT along
+// the top of the message menu (userPrefs/{uid}.quickReactions), starting from these.
+export const REACTIONS = ["👍", "❤️", "😂", "😮", "😢", "🙏", ":na:"] as const;
+export const QUICK_COUNT = REACTIONS.length;
+const PICTOGRAPH = new RegExp("^(?:\\p{Extended_Pictographic}|\\p{Regional_Indicator}|[#*0-9]\\uFE0F?\\u20E3)", "u");
+const LETTER = new RegExp("[\\p{L}\\p{N}]", "u");
+function oneEmoji(s: string): boolean {
+  if (!s || s.length > 32 || /\s/.test(s) || !PICTOGRAPH.test(s)) return false;
+  // One character on screen (a family, a flag or a skin tone is several code points but one grapheme), and no letters after it.
+  if (typeof Intl.Segmenter === "function") return Array.from(new Intl.Segmenter(undefined, { granularity: "grapheme" }).segment(s)).length === 1;
+  return !LETTER.test(s.replace(/^[#*0-9]/, ""));
+}
+export const isReaction = (e: unknown): e is string => typeof e === "string" && (isNotesAppEmoji(e) || oneEmoji(e));
+// A member's quick set: QUICK_COUNT different reactions, or nothing (the default).
+export function cleanQuickReactions(v: unknown): string[] | null {
+  if (!Array.isArray(v) || v.length !== QUICK_COUNT || !v.every(isReaction) || new Set(v).size !== v.length) return null;
+  return v as string[];
+}
+// The chips under a bubble: each emoji used, how many and who; the most used first, then in the default list's order.
 export function reactionSummary(r: Record<string, string> | undefined): { emoji: string; count: number; uids: string[] }[] {
   if (!r) return [];
-  return REACTIONS.map((emoji) => ({ emoji, uids: Object.keys(r).filter((u) => r[u] === emoji) as string[] })).filter((x) => x.uids.length).map((x) => ({ ...x, count: x.uids.length }));
+  const by = new Map<string, string[]>();
+  for (const [u, e] of Object.entries(r)) if (e) by.set(e, [...(by.get(e) ?? []), u]);
+  const rank = (e: string) => { const i = (REACTIONS as readonly string[]).indexOf(e); return i === -1 ? REACTIONS.length : i; };
+  return Array.from(by, ([emoji, uids]) => ({ emoji, uids, count: uids.length })).sort((a, b) => b.count - a.count || rank(a.emoji) - rank(b.emoji) || a.emoji.localeCompare(b.emoji));
 }
 
 export const REMOVED_TEXT = { admin: "Message removed by a group admin", notesapp: "Message removed by #NotesApp" } as const;

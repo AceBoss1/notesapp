@@ -6,7 +6,7 @@ import { authed, fail } from "@/lib/moments-api";
 
 export const dynamic = "force-dynamic";
 
-// GET  → { emailMessages, pushAvailable }   POST { emailMessages } → saved
+// GET  → { emailMessages, quickReactions, pushAvailable }   POST { emailMessages?, quickReactions? (null = the default) } → saved
 export async function GET(req: NextRequest) {
   try {
     const me = await authed(req, "messages");
@@ -20,7 +20,7 @@ export async function POST(req: NextRequest) {
   try {
     const me = await authed(req, "messages", true);
     const body = await req.json().catch(() => ({}));
-    await setPrefs(getAdminDb(), me.uid, { emailMessages: body.emailMessages });
+    await setPrefs(getAdminDb(), me.uid, { emailMessages: body.emailMessages, quickReactions: body.quickReactions });
     return NextResponse.json({ ok: true });
   } catch (err) {
     return fail(err, "Couldn't save your settings");

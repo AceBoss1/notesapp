@@ -1,7 +1,7 @@
 import type { Firestore } from "firebase-admin/firestore";
 import { FieldValue } from "firebase-admin/firestore";
 import { randomBytes } from "crypto";
-import { MESSAGE_MAX, attachmentLabel, attachmentTypeOf, conversationId, type GroupInfo, type GroupScope, type MessageAttachment, type MomentRef, type ThreadMessage } from "./messages-rules";
+import { MESSAGE_MAX, QUICK_COUNT, cleanQuickReactions, attachmentLabel, attachmentTypeOf, conversationId, type GroupInfo, type GroupScope, type MessageAttachment, type MomentRef, type ThreadMessage } from "./messages-rules";
 import { isMomentExpired } from "./moments-rules";
 import { notifyBell, sendEmail } from "./email";
 import { getAdminDb, getUserEmail } from "./firebase-admin";
@@ -306,13 +306,19 @@ export async function emailsAllowed(db: Firestore, uid: string): Promise<boolean
   return getTierConfig(effectiveTier({ username: u.username ?? "", role: u.role ?? "reader", accountTier: u.accountTier ?? "standard" })).messageEmails === true;
 }
 
-export type MessagePrefs = { emailMessages: boolean; emailAllowed: boolean };
+export type MessagePrefs = { emailMessages: boolean; emailAllowed: boolean; quickReactions: string[] | null };
 export async function getPrefs(db: Firestore, uid: string): Promise<MessagePrefs> {
-  const emailAllowed = await emailsAllowed(db, uid);
-  // Off unless switched on, and never on for a plan that doesn't include it.
-  return { emailMessages: emailAllowed && (await db.doc(`userPrefs/${uid}`).get()).data()?.emailMessages === true, emailAllowed };
+  const [emailAllowed, p] = await Promise.all([emailsAllowed(db, uid), db.doc(`userPrefs/${uid}`).get().then((d) => d.data())]);
+  // Off unless switched on, and never on for a plan that doesn't include it. quickReactions: null = the default set.
+  return { emailMessages: emailAllowed && p?.emailMessages === true, emailAllowed, quickReactions: cleanQuickReactions(p?.quickReactions) };
 }
-export async function setPrefs(db: Firestore, uid: string, prefs: { emailMessages?: unknown }): Promise<void> {
+export async function setPrefs(db: Firestore, uid: string, prefs: { emailMessages?: unknown; quickReactions?: unknown }): Promise<void> {
+  if (prefs.quickReactions !== undefined) {
+    // null puts the default set back.
+    const list = prefs.quickReactions === null ? null : cleanQuickReactions(prefs.quickReactions);
+    if (prefs.quickReactions !== null && !list) throw new MessageError(400, `Choose ${QUICK_COUNT} different emojis.`);
+    await db.doc(`userPrefs/${uid}`).set({ uid, quickReactions: list ?? FieldValue.delete() }, { merge: true });
+  }
   if (typeof prefs.emailMessages !== "boolean") return;
   if (prefs.emailMessages && !(await emailsAllowed(db, uid))) throw new MessageError(403, "Email for new messages comes with the Business and Enterprise plans.");
   await db.doc(`userPrefs/${uid}`).set({ uid, emailMessages: prefs.emailMessages }, { merge: true });

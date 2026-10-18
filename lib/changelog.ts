@@ -11,6 +11,17 @@ export type Release = {
 
 export const CHANGELOG: Release[] = [
   {
+    version: "v0.49.0",
+    bump: "minor",
+    date: "2026-10-18",
+    changes: [
+      { kind: "added", text: "#NotesApp's own emojis in Messages: the na mark and the Notes Academy cap, in the 😊 emoji list and as reactions. Type :na: or :academy: and they show as pictures once sent." },
+      { kind: "added", text: "Your own quick reactions: tap ⇄ at the end of the reaction row to swap any of them for another emoji, from the list or typed on your keyboard. They're saved to your account, so they follow you to every device. React with any emoji, not just the six." },
+      { kind: "added", text: "Forward several messages at once: Select them, then Forward (up to 10 at a time, in the order they were written)." },
+      { kind: "added", text: "Delete for me: any message, yours or theirs, can go from your own view of a chat; everyone else still sees it. Delete now works on any selection: your own can still go for everyone." },
+    ],
+  },
+  {
     version: "v0.48.1",
     bump: "patch",
     date: "2026-10-18",

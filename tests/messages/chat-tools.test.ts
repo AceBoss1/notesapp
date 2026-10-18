@@ -1,7 +1,7 @@
 // Finding things in Messages (lib/chat-tools.ts) and the reaction chips (lib/messages-rules.ts). Run: npm run test:chat → "ALL OK".
 import assert from "node:assert/strict";
 import { fileBadge, filterInbox, fold, searchThread, tabCounts } from "../../lib/chat-tools";
-import { isReaction, reactionSummary } from "../../lib/messages-rules";
+import { REACTIONS, cleanQuickReactions, emojiAsText, isReaction, reactionSummary } from "../../lib/messages-rules";
 import { parseCardLink } from "../../lib/chat-cards";
 
 
@@ -47,11 +47,24 @@ assert.equal(fileBadge("Report.final.docx"), "DOCX");
 assert.equal(fileBadge("archive.tar.gz"), "GZ");
 assert.equal(fileBadge("README"), "FILE");
 
-// reaction chips: in the list's order, counted, with who
-assert.deepEqual(reactionSummary({ a: "😂", b: "👍", c: "😂" }), [{ emoji: "👍", count: 1, uids: ["b"] }, { emoji: "😂", count: 2, uids: ["a", "c"] }]);
+// reaction chips: the most used first, then in the default list's order; counted, with who; any emoji
+assert.deepEqual(reactionSummary({ a: "😂", b: "👍", c: "😂" }), [{ emoji: "😂", count: 2, uids: ["a", "c"] }, { emoji: "👍", count: 1, uids: ["b"] }]);
+assert.deepEqual(reactionSummary({ a: "🔥", b: "👍" }), [{ emoji: "👍", count: 1, uids: ["b"] }, { emoji: "🔥", count: 1, uids: ["a"] }]);
+assert.deepEqual(reactionSummary({ a: ":na:", b: "" }), [{ emoji: ":na:", count: 1, uids: ["a"] }]);
 assert.deepEqual(reactionSummary(undefined), []);
-assert.deepEqual(reactionSummary({ a: "🔥" }), [], "anything not on the list is ignored");
-assert.ok(isReaction("❤️")); assert.ok(!isReaction("🔥")); assert.ok(!isReaction(""));
+// a reaction: any one emoji (with a skin tone, a flag, a family, a keycap) or one of ours; never words, two emojis or our unknown codes
+for (const ok of ["❤️", "🔥", "🎓", "👍🏾", "🇳🇬", "👨‍👩‍👧", "1️⃣", ":na:", ":academy:"]) assert.ok(isReaction(ok), ok);
+for (const bad of ["", "a", "hi", "🔥🔥", "🔥 ", ":fire:", ":na", "<b>", "x".repeat(40), 5, null]) assert.ok(!isReaction(bad), String(bad));
+// a member's quick set: exactly QUICK_COUNT different reactions
+assert.deepEqual(cleanQuickReactions([...REACTIONS]), [...REACTIONS]);
+assert.deepEqual(cleanQuickReactions(["🔥", "❤️", "😂", "😮", "😢", "🙏", ":academy:"]), ["🔥", "❤️", "😂", "😮", "😢", "🙏", ":academy:"]);
+assert.equal(cleanQuickReactions(["🔥", "🔥", "😂", "😮", "😢", "🙏", ":na:"]), null, "no repeats");
+assert.equal(cleanQuickReactions(["🔥"]), null, "the whole row");
+assert.equal(cleanQuickReactions(["hi", "❤️", "😂", "😮", "😢", "🙏", ":na:"]), null);
+assert.equal(cleanQuickReactions("🔥"), null);
+// ours read as their names where only text shows
+assert.equal(emojiAsText("Welcome to :na: and :academy:!"), "Welcome to #NotesApp and Notes Academy!");
+assert.equal(emojiAsText("ratio 1:na:2"), "ratio 1#NotesApp2");
 
 // #NotesApp links that get a card: our domains only, the four kinds, not pages like /academy/teach
 const roots = ["notesapp.name.ng", "notesapp.tech"];

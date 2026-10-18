@@ -3,7 +3,7 @@ import { getAdminDb } from "@/lib/firebase-admin";
 import { getThread, isMuted, markRead, setMute } from "@/lib/messages-server";
 import { bannedMembers, groupMembers } from "@/lib/groups-server";
 import { authed, fail } from "@/lib/moments-api";
-import { answerRequest, changeMessage, pinChat, pinMessage, reactToMessage } from "@/lib/message-edits";
+import { answerRequest, changeMessage, hideMessages, pinChat, pinMessage, reactToMessage } from "@/lib/message-edits";
 import { copyObject, deleteObject, headObject, privateFilesConfigured } from "@/lib/private-files";
 import { forwardMessage, keepMessage } from "@/lib/message-forward";
 import { rateLimit } from "@/lib/rate-limit";
@@ -49,6 +49,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
       return NextResponse.json(await forwardMessage(getAdminDb(), me.uid, params.id, String(body.messageId ?? ""), body.to, privateFilesConfigured() ? { head: headObject, copy: copyObject } : undefined));
     }
     if (body.action === "keep") return NextResponse.json(await keepMessage(getAdminDb(), me.uid, params.id, String(body.messageId ?? ""), body.keep !== false));
+    if (body.action === "hide") return NextResponse.json(await hideMessages(getAdminDb(), me.uid, params.id, body.messageIds));
     if (body.action === "react") return NextResponse.json(await reactToMessage(getAdminDb(), me.uid, params.id, String(body.messageId ?? ""), body.emoji));
     if (body.action === "pin_chat") return NextResponse.json(await pinChat(getAdminDb(), me.uid, params.id, body.pin !== false));
     if (body.action === "edit" || body.action === "delete") return NextResponse.json(await changeMessage(getAdminDb(), me.uid, params.id, String(body.messageId ?? ""), body.action, body.text, del));

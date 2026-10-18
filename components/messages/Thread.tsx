@@ -9,16 +9,17 @@ import { onAuthStateChanged, type User } from "firebase/auth";
 import { collection, deleteDoc, doc, limit, onSnapshot, orderBy, query, setDoc, where } from "firebase/firestore";
 import { auth, db } from "@/lib/firebase";
 import { api } from "@/lib/moments-client";
-import { ATTACHMENT_ACCEPT, MESSAGE_MAX, REMOVED_TEXT, attachmentTypeOf, formatBytes, reactionSummary, type ThreadMessage } from "@/lib/messages-rules";
+import { ATTACHMENT_ACCEPT, MESSAGE_MAX, NOTESAPP_EMOJI, REMOVED_TEXT, attachmentTypeOf, formatBytes, reactionSummary, type ThreadMessage } from "@/lib/messages-rules";
 import { stripFormat, wrapSelection } from "@/lib/message-format";
 import { searchThread } from "@/lib/chat-tools";
-import MessageMenu, { MessageInfo, type MenuItem } from "./MessageMenu";
+import MessageMenu, { DeleteChoice, MessageInfo, type MenuItem } from "./MessageMenu";
 import ForwardDialog from "./ForwardDialog";
 import NotesAppCard from "./NotesAppCard";
 import { SummaryDialog, TranslateDialog, askNana } from "./ChatNana";
 import { parseCardLink } from "@/lib/chat-cards";
 import { KNOWN_ROOTS } from "@/lib/host";
 import FormattedText from "./FormattedText";
+import { Emoji } from "@/components/NotesAppEmoji";
 import LinkPreview from "@/components/LinkPreview";
 import MentionPicker from "@/components/MentionPicker";
 import { firstUrl } from "@/lib/linkify";
@@ -47,6 +48,8 @@ import GroupMembers, { type GroupMember } from "./GroupMembers";
 import { isGroupId, type GroupInfo } from "@/lib/messages-rules";
 import { usePresence } from "@/lib/presence-client";
 import { isThreadRoute } from "@/lib/chrome";
+
+const FORWARD_MANY = 10; // messages forwarded together from a selection
 
 // "2:05 PM" today, "12 Oct, 2:05 PM" on another day.
 const stamp = (iso: string) => {
@@ -86,7 +89,9 @@ export default function Thread({ id, to, embedded = false }: { id?: string; to?:
   const [banned, setBanned] = useState<GroupMember[]>([]);
   const [muted, setMuted] = useState(false);
   const [moments, setMoments] = useState<MomentView[] | null>(null);
-  const [messages, setMessages] = useState<ThreadMessage[]>([]);
+  const [all, setMessages] = useState<ThreadMessage[]>([]);
+  const [hidden, setHidden] = useState<string[]>([]); // deleted for you only (chatHidden/{uid}/chats/{cid})
+  const messages = hidden.length ? all.filter((m) => !hidden.includes(m.id)) : all;
   const [text, setText] = useState("");
   const [files, setFiles] = useState<File[]>([]);
   const [allowed, setAllowed] = useState<{ maxBytes: number; maxCount: number; maxVoiceSeconds: number } | null>(null);
@@ -112,7 +117,8 @@ export default function Thread({ id, to, embedded = false }: { id?: string; to?:
   const [swipe, setSwipe] = useState<{ id: string; dx: number } | null>(null); // a message being swiped right to reply (phones)
   const touch = useRef<{ id: string; x: number; y: number; timer?: ReturnType<typeof setTimeout>; opened?: boolean } | null>(null);
   const [toast, setToast] = useState("");
-  const [forwarding, setForwarding] = useState<ThreadMessage | null>(null);
+  const [forwarding, setForwarding] = useState<ThreadMessage[] | null>(null);
+  const [deleting, setDeleting] = useState<ThreadMessage[] | null>(null); // choosing: for everyone, or just for you
   const [kept, setKept] = useState<string[]>([]); // the messages here you kept (Saved → From chats)
   const [translatingId, setTranslatingId] = useState<string | null>(null); // choosing a language for this message
   const [translations, setTranslations] = useState<Record<string, { label: string; text?: string; error?: string }>>({});
@@ -200,9 +206,10 @@ export default function Thread({ id, to, embedded = false }: { id?: string; to?:
       setReadMarks(marks);
     }, () => {});
     const k = onSnapshot(query(collection(db, "keptMessages"), where("uid", "==", uid), where("cid", "==", cid)), (snap) => setKept(snap.docs.map((d) => String(d.data().messageId))), () => {});
+    const h = onSnapshot(doc(db, `chatHidden/${uid}/chats/${cid}`), (d) => setHidden((d.data()?.ids as string[] | undefined) ?? []), () => {});
     const b = onSnapshot(collection(db, `conversations/${cid}/typing`), (snap) => setTyping(Object.fromEntries(snap.docs.filter((d) => d.id !== uid).map((d) => [d.id, Number(d.data().at) || 0]))), () => {});
     const t = setInterval(() => setTick((n) => n + 1), 2000); // "typing…" fades by itself
-    return () => { a(); b(); k(); clearInterval(t); openedMark.current = null; if (lastTyped.current) deleteDoc(doc(db, `conversations/${cid}/typing/${uid}`)).catch(() => {}); };
+    return () => { a(); b(); k(); h(); clearInterval(t); openedMark.current = null; if (lastTyped.current) deleteDoc(doc(db, `conversations/${cid}/typing/${uid}`)).catch(() => {}); };
   }, [user, cid]);
   // Telling the others you're typing: at most every 3 seconds while you type; cleared when you send.
   function typed(v: string) {
@@ -221,10 +228,8 @@ export default function Thread({ id, to, embedded = false }: { id?: string; to?:
     catch (e) { setError(e instanceof Error ? e.message : "That didn't work."); }
   }
   const pinMsg = (m: ThreadMessage, pin: boolean) => msgAction({ action: "pin", messageId: m.id, pin });
-  const deleteMsg = (m: ThreadMessage) => {
-    if (!confirm(m.readAt || isGroup ? "Delete this message? If it has been read, the people who read it are asked to agree first." : "Delete this message for everyone?")) return;
-    void msgAction({ action: "delete", messageId: m.id }, (r) => { if (r.done === false) setError(`Waiting for ${Number(r.waitingFor) === 1 ? "the reader" : `${r.waitingFor} readers`} to agree. The request ends after 30 days.`); });
-  };
+  // Deleted for you only: gone from your view of the chat; everyone else still sees it.
+  const hideMany = (list: ThreadMessage[]) => msgAction({ action: "hide", messageIds: list.map((m) => m.id) }, () => { setSelected(null); flash(list.length === 1 ? "Deleted for you" : `${list.length} messages deleted for you`); });
   const startEdit = (m: ThreadMessage) => { setMenu(null); setReplyingTo(null); setEditing(m); setText(m.text); setTimeout(() => box.current?.focus(), 0); };
   async function saveEdit() {
     if (!editing) return;
@@ -253,9 +258,9 @@ export default function Thread({ id, to, embedded = false }: { id?: string; to?:
     const text = list.length === 1 ? plain(list[0]) : list.map((m) => `[${stamp(m.createdAt)}] ${nameOf(m.from)}: ${plain(m)}`).join("\n");
     try { await navigator.clipboard.writeText(text); flash(list.length === 1 ? "Copied" : `Copied ${list.length} messages`); } catch { setError("Couldn't copy. Select the words and copy them instead."); }
   }
-  // Deleting several of your own at once: one question, then each goes through the same rules as one (read ones wait for the readers).
+  // Deleting your own for everyone (one or several): each goes through the same rules as one (read ones wait for the readers).
   async function deleteMany(list: ThreadMessage[]) {
-    if (!cid || !list.length || !confirm(`Delete ${list.length} message${list.length === 1 ? "" : "s"}? Any that have been read wait for the readers to agree first.`)) return;
+    if (!cid || !list.length) return;
     let waiting = 0;
     for (const m of list) { try { const r = await api<{ done: boolean }>(`/api/messages/${cid}`, { body: { action: "delete", messageId: m.id } }); if (r.done === false) waiting++; } catch (e) { setError(e instanceof Error ? e.message : "Couldn't delete one of them."); } }
     setSelected(null);
@@ -529,9 +534,9 @@ export default function Thread({ id, to, embedded = false }: { id?: string; to?:
               <div className={`relative z-[1] -mt-2 flex flex-wrap gap-1 ${mine ? "justify-end pr-2" : "pl-2"}`}>
                 {list.map((r) => (
                   <button key={r.emoji} type="button" disabled={blockedByMe} onClick={() => react(msg, mineR === r.emoji ? "" : r.emoji)} title={r.uids.map(nameOf).join(", ")}
-                    aria-label={`${r.emoji} ${r.count}: ${r.uids.map(nameOf).join(", ")}${mineR === r.emoji ? ". Tap to take yours off" : ". Tap to react the same"}`}
+                    aria-label={`${NOTESAPP_EMOJI[r.emoji]?.label ?? r.emoji} ${r.count}: ${r.uids.map(nameOf).join(", ")}${mineR === r.emoji ? ". Tap to take yours off" : ". Tap to react the same"}`}
                     className={`flex items-center gap-1 rounded-full border px-2 py-0.5 text-sm shadow-sm ${mineR === r.emoji ? "border-crimson/40 bg-crimson/10" : "border-rule bg-card"}`}>
-                    <span>{r.emoji}</span>{r.count > 1 && <span className="font-ui text-[11px] font-semibold text-slate">{r.count}</span>}
+                    <Emoji e={r.emoji} />{r.count > 1 && <span className="font-ui text-[11px] font-semibold text-slate">{r.count}</span>}
                   </button>
                 ))}
               </div>
@@ -655,13 +660,14 @@ export default function Thread({ id, to, embedded = false }: { id?: string; to?:
         {toast && <p className="px-4 pb-2 text-center text-sm font-semibold text-emerald-800 lg:px-0" role="status">{toast}</p>}
         {selected && (() => {
           const list = messages.filter((x) => selected.includes(x.id));
-          const allMine = list.length > 0 && list.every((x) => x.from === user?.uid && !x.pendingRequest);
+          const sendable = list.filter((x) => !x.deleted && !x.removed && !x.call && !x.pendingRequest);
           return (
-            <div className="flex items-center gap-2 border-t border-rule bg-card px-4 py-3 lg:border-0 lg:bg-transparent lg:px-0">
-              <button type="button" onClick={() => setSelected(null)} aria-label="Stop selecting" className="flex h-10 w-10 items-center justify-center rounded-full text-xl text-slate hover:bg-paper">×</button>
-              <span className="flex-1 font-ui text-sm font-semibold text-ink">{list.length ? `${list.length} selected` : "Tap messages to select them"}</span>
-              <button type="button" disabled={!list.length} onClick={() => { void copy(list); setSelected(null); }} className="rounded-full border border-rule px-4 py-2 font-ui text-sm font-semibold text-ink hover:bg-paper disabled:opacity-40">Copy</button>
-              <button type="button" disabled={!allMine} title={allMine ? undefined : "You can delete only your own messages"} onClick={() => deleteMany(list)} className="rounded-full border border-red-200 px-4 py-2 font-ui text-sm font-semibold text-red-700 hover:bg-red-50 disabled:opacity-40">Delete</button>
+            <div className="flex items-center gap-1.5 border-t border-rule bg-card px-3 py-3 lg:gap-2 lg:border-0 lg:bg-transparent lg:px-0">
+              <button type="button" onClick={() => setSelected(null)} aria-label="Stop selecting" className="flex h-10 w-8 shrink-0 items-center justify-center rounded-full text-xl text-slate hover:bg-paper">×</button>
+              <span className={`min-w-0 flex-1 font-ui text-sm font-semibold text-ink ${list.length ? "whitespace-nowrap" : ""}`}>{list.length ? `${list.length} selected` : "Tap messages to select them"}</span>
+              <button type="button" disabled={!list.length} onClick={() => { void copy(list); setSelected(null); }} className="rounded-full border border-rule px-3 py-2 font-ui text-sm font-semibold text-ink hover:bg-paper disabled:opacity-40">Copy</button>
+              <button type="button" disabled={!sendable.length || sendable.length > FORWARD_MANY} title={sendable.length > FORWARD_MANY ? `Forward up to ${FORWARD_MANY} at a time` : undefined} onClick={() => setForwarding(sendable)} className="rounded-full border border-rule px-3 py-2 font-ui text-sm font-semibold text-ink hover:bg-paper disabled:opacity-40">Forward</button>
+              <button type="button" disabled={!list.length} onClick={() => setDeleting(list)} className="rounded-full border border-red-200 px-3 py-2 font-ui text-sm font-semibold text-red-700 hover:bg-red-50 disabled:opacity-40">Delete</button>
             </div>
           );
         })()}
@@ -734,7 +740,7 @@ export default function Thread({ id, to, embedded = false }: { id?: string; to?:
         const isPinned = pinned.some((p) => p.id === m.id);
         const items: MenuItem[] = [
           { label: "Reply", icon: "↩", onClick: () => { setReplyingTo(m); setTimeout(() => box.current?.focus(), 0); }, hidden: blockedByMe },
-          { label: "Forward", icon: "↪", onClick: () => setForwarding(m) },
+          { label: "Forward", icon: "↪", onClick: () => setForwarding([m]), hidden: !!m.deleted || !!m.removed || !!m.call },
           { label: "Copy", icon: "⧉", onClick: () => copy([m]), hidden: !plain(m) },
           { label: kept.includes(m.id) ? "Stop keeping" : "Keep", icon: "🔖", onClick: () => keep(m, !kept.includes(m.id)) },
           { label: "Translate", icon: "🌍", onClick: () => setTranslatingId(m.id), hidden: !m.text },
@@ -744,7 +750,7 @@ export default function Thread({ id, to, embedded = false }: { id?: string; to?:
           { label: "Edit", icon: "✏️", onClick: () => startEdit(m), hidden: !mine || !!m.pendingRequest || !m.text },
           { label: "Report", icon: "⚑", onClick: () => setReportingMsg(m.id), hidden: !isGroup || mine },
           { label: "Remove (admin)", icon: "🚫", onClick: () => void removeMessage(m), danger: true, hidden: !amAdmin || !!m.removed },
-          { label: "Delete", icon: "🗑", onClick: () => deleteMsg(m), danger: true, hidden: !mine || !!m.pendingRequest },
+          { label: "Delete", icon: "🗑", onClick: () => setDeleting([m]), danger: true, hidden: mine && !!m.pendingRequest },
         ];
         return <MessageMenu at={menu.at} mine={mine} current={m.reactions?.[user?.uid ?? ""] ?? ""} canReact={!blockedByMe} items={items} onReact={(e) => void react(m, e)} onClose={() => setMenu(null)} />;
       })()}
@@ -756,7 +762,14 @@ export default function Thread({ id, to, embedded = false }: { id?: string; to?:
         const read = others.filter((x) => (readMarks[x.uid] ?? "") >= m.createdAt);
         return <MessageInfo sent={m.createdAt} edited={m.editedAt} readers={read.map((x) => nameOf(x.uid) || x.displayName)} notYet={others.filter((x) => !read.includes(x)).map((x) => nameOf(x.uid) || x.displayName)} onClose={() => setInfo(null)} />;
       })()}
-      {forwarding && cid && <ForwardDialog cid={cid} messageId={forwarding.id} draftText={forwarding.from === user?.uid && forwarding.text ? forwarding.text : undefined} onDone={flash} onClose={() => setForwarding(null)} />}
+      {forwarding && cid && <ForwardDialog cid={cid} messageIds={forwarding.map((m) => m.id)} draftText={forwarding.every((m) => m.from === user?.uid && m.text) ? forwarding.map((m) => m.text).join("\n\n") : undefined} onDone={(note) => { flash(note); setSelected(null); }} onClose={() => setForwarding(null)} />}
+      {deleting && (() => {
+        const everyone = deleting.every((m) => m.from === user?.uid && !m.pendingRequest && !m.deleted && !m.removed && !m.call);
+        const read = deleting.some((m) => m.readAt) || isGroup;
+        return <DeleteChoice count={deleting.length} everyone={everyone} read={read} onClose={() => setDeleting(null)}
+          onMe={() => { const l = deleting; setDeleting(null); void hideMany(l); }}
+          onEveryone={() => { const l = deleting; setDeleting(null); void deleteMany(l); }} />;
+      })()}
       {translatingId && <TranslateDialog onPick={(lang, label) => { const m = messages.find((x) => x.id === translatingId); if (m) void translate(m, lang, label); }} onClose={() => setTranslatingId(null)} />}
       {summary && user && <SummaryDialog user={user} context={summary.context} count={summary.count} onClose={() => setSummary(null)} />}
       {moments && <MomentViewer moments={moments} onClose={() => setMoments(null)} onChanged={() => {}} />}

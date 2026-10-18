@@ -1,7 +1,7 @@
 import type { Firestore } from "firebase-admin/firestore";
 import { FieldValue } from "firebase-admin/firestore";
 import { randomBytes } from "crypto";
-import { MESSAGE_MAX, isReaction } from "./messages-rules";
+import { MESSAGE_MAX, emojiAsText, isReaction } from "./messages-rules";
 import { MessageError, mutedAmong } from "./messages-server";
 import { dropKept } from "./message-kept";
 import { notifyBell } from "./email";
@@ -48,7 +48,7 @@ export async function pinMessage(db: Firestore, uid: string, cid: string, messag
 // one-to-one chat where either person has blocked the other. The sender gets a bell for a new reaction (unless they muted the chat).
 export async function reactToMessage(db: Firestore, uid: string, cid: string, messageId: string, emoji: unknown, notify = notifyBell): Promise<{ reaction: string }> {
   if (!messageId || messageId.includes("/")) throw new MessageError(400, "Choose a message.");
-  if (emoji !== "" && !isReaction(emoji)) throw new MessageError(400, "Pick one of the reactions.");
+  if (emoji !== "" && !isReaction(emoji)) throw new MessageError(400, "React with one emoji.");
   const c = await conversation(db, uid, cid);
   if (!isGroup(c)) {
     const other = (c.participants as string[]).find((p) => p !== uid) ?? uid;
@@ -64,9 +64,22 @@ export async function reactToMessage(db: Firestore, uid: string, cid: string, me
   if (emoji && m.from !== uid && !(await mutedAmong(db, [m.from], cid)).has(m.from)) {
     const name = String((await db.doc(`users/${uid}`).get()).data()?.displayName ?? "Someone");
     const what = String(m.text ?? "").trim();
-    await notify({ uid: m.from, type: "message", linkHref: `/messages/${cid}`, message: `${name} reacted ${emoji} to your message${what ? `: “${what.slice(0, 60)}${what.length > 60 ? "…" : ""}”` : ""}` }).catch(() => {});
+    await notify({ uid: m.from, type: "message", linkHref: `/messages/${cid}`, message: `${name} reacted ${emojiAsText(String(emoji))} to your message${what ? `: “${what.slice(0, 60)}${what.length > 60 ? "…" : ""}”` : ""}` }).catch(() => {});
   }
   return { reaction: String(emoji) };
+}
+
+// ---- deleting for yourself ----
+// Any message, yours or theirs, can leave your own view of the chat: chatHidden/{uid}/chats/{cid}.ids, which only you can read.
+// Everyone else still sees it (deleting your own for everyone is changeMessage's "delete").
+export const HIDE_MAX = 100;
+export async function hideMessages(db: Firestore, uid: string, cid: string, ids: unknown): Promise<{ hidden: number }> {
+  const list = Array.isArray(ids) ? Array.from(new Set(ids.map(String))).filter((x) => x && !x.includes("/")) : [];
+  if (!list.length) throw new MessageError(400, "Choose the messages to delete.");
+  if (list.length > HIDE_MAX) throw new MessageError(400, `Delete up to ${HIDE_MAX} messages at a time.`);
+  await conversation(db, uid, cid);
+  await db.doc(`chatHidden/${uid}/chats/${cid}`).set({ ids: FieldValue.arrayUnion(...list) }, { merge: true });
+  return { hidden: list.length };
 }
 
 // ---- pinned chats ----
