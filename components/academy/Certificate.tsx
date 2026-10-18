@@ -24,7 +24,7 @@ export default function Certificate({ face, verifyUrl, qr, preview = false, slot
           <span key={x + y} className="absolute rotate-45" style={{ [x]: u(1.55), [y]: u(1.55), width: u(1.1), height: u(1.1), background: gold }} />
         ))}
         {/* faint mark behind the text: the academy's logo (our team's courses: the Notes Academy logo) */}
-        {face.logoUrl && <img src={face.logoUrl} alt="" className="absolute left-1/2 -translate-x-1/2 opacity-[0.06]" style={{ top: u(22), width: u(30) }} />}
+        {face.logoUrl && <img src={face.logoUrl} alt="" className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 opacity-[0.06]" style={{ width: u(30) }} />}
 
         {/* the three logo slots: every element keeps its place whether or not a slot is filled */}
         {face.certified && <img src="/images/academy/notesapp-certified-course.webp" alt="#NotesApp Certified Course" className="absolute" style={{ left: u(5.4), top: u(5), width: u(11.5) }} />}
@@ -42,18 +42,20 @@ export default function Certificate({ face, verifyUrl, qr, preview = false, slot
           {face.logoUrl && <img src={face.logoUrl} alt="" style={{ maxHeight: u(8.6), maxWidth: u(30), objectFit: "contain" }} />}
         </div>
 
-        {/* the text, each line in its own place */}
-        {[
-          [13.6, <p key="n" className="font-bold uppercase" style={{ fontSize: u(1.9), letterSpacing: u(0.12), color: ink }}>{face.academyName}</p>],
-          [16.3, face.subtext ? <p key="s" className="italic" style={{ fontFamily: "Newsreader, Georgia, serif", fontSize: u(0.95), color: "#4b5563" }}>{face.subtext}</p> : null],
-          [19.4, <p key="c" className="font-bold uppercase" style={{ fontSize: u(1.05), letterSpacing: u(0.42), color: crimson }}>Certificate of completion</p>],
-          [22.4, <p key="t" style={{ fontSize: u(1.05), color: "#4b5563" }}>This is to certify that</p>],
-          [24.6, <p key="l" className="font-bold" style={{ fontFamily: "Newsreader, Georgia, serif", fontSize: u(face.learnerName.length > 40 ? 2.8 : face.learnerName.length > 28 ? 3.6 : 4.6), lineHeight: 1.15, whiteSpace: "nowrap" }}>{face.learnerName}</p>],
-          [31.2, <span key="g" className="mx-auto block" style={{ width: u(26), height: u(0.12), background: gold }} />],
-          [32.8, <p key="h" style={{ fontSize: u(1.05), color: "#4b5563" }}>has successfully completed</p>],
-          [35, <p key="k" className="font-bold" style={{ fontFamily: "Newsreader, Georgia, serif", fontSize: u(face.courseTitle.length > 70 ? 1.5 : face.courseTitle.length > 48 ? 1.9 : 2.4), color: crimson, lineHeight: 1.2, whiteSpace: "nowrap" }}>{face.courseTitle}</p>],
-          [39.4, <p key="o" style={{ fontSize: u(0.9), color: "#4b5563" }}>offered by {face.academyName}{face.academyName === "Notes Academy" ? "" : " on Notes Academy"} · {face.hours} learning hour{face.hours === 1 ? "" : "s"} · completed {certificateDate(face.completedAt)}</p>],
-        ].map(([top, el], k) => el ? <div key={k} className="absolute inset-x-0" style={{ top: u(top as number), paddingInline: u(14) }}>{el}</div> : null)}
+        {/* who issues it, under the logo, in fixed places */}
+        <p className="absolute inset-x-0 font-bold uppercase" style={{ top: u(13.6), fontSize: u(1.9), letterSpacing: u(0.12), color: ink, paddingInline: u(14) }}>{face.academyName}</p>
+        {face.subtext && <p className="absolute inset-x-0 italic" style={{ top: u(16.3), fontFamily: "Newsreader, Georgia, serif", fontSize: u(0.95), color: "#4b5563", paddingInline: u(14) }}>{face.subtext}</p>}
+
+        {/* "Certificate of completion" to the date: one block whose middle is the exact centre of the certificate */}
+        <div className="absolute inset-x-0 flex -translate-y-1/2 flex-col items-center" style={{ top: "50%", paddingInline: u(12) }}>
+          <p className="font-extrabold uppercase" style={{ fontSize: u(1.45), letterSpacing: u(0.5), color: crimson }}>Certificate of completion</p>
+          <p style={{ fontSize: u(1.3), color: "#4b5563", marginTop: u(1.6) }}>This is to certify that</p>
+          <p className="font-bold" style={{ fontFamily: "Newsreader, Georgia, serif", fontSize: u(face.learnerName.length > 40 ? 3.2 : face.learnerName.length > 28 ? 4.2 : 5.4), lineHeight: 1.1, whiteSpace: "nowrap", marginTop: u(0.6) }}>{face.learnerName}</p>
+          <span className="block" style={{ width: u(29), height: u(0.14), background: `linear-gradient(90deg, transparent, ${gold}, transparent)`, marginTop: u(0.9) }} />
+          <p style={{ fontSize: u(1.35), color: "#4b5563", marginTop: u(1.3) }}>has successfully completed</p>
+          <p className="font-bold" style={{ fontFamily: "Newsreader, Georgia, serif", fontSize: u(face.courseTitle.length > 70 ? 1.7 : face.courseTitle.length > 48 ? 2.2 : 2.8), color: crimson, lineHeight: 1.2, whiteSpace: "nowrap", marginTop: u(0.7) }}>{face.courseTitle}</p>
+          <p style={{ fontSize: u(1.2), color: "#4b5563", marginTop: u(0.9) }}>offered by {face.academyName}{face.academyName === "Notes Academy" ? "" : " on Notes Academy"} · {face.hours} learning hour{face.hours === 1 ? "" : "s"} · completed {certificateDate(face.completedAt)}</p>
+        </div>
 
         {/* signature */}
         <div className="absolute text-left" style={{ left: u(5), bottom: u(4.6), width: u(28) }}>

@@ -32,3 +32,6 @@ tsconfig.tsbuildinfo
 # Playwright
 test-results/
 playwright-report/
+
+# screenshot set-up only (never shipped)
+public/demo-cert/
