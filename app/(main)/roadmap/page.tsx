@@ -11,7 +11,7 @@ import { certificateMin } from "@/lib/pricing";
 export const metadata: Metadata = {
   title: "Roadmap",
   description:
-    "What's live and what's next for #NotesApp — the journal feed, Explore, Notes Market, free courses in Notes Academy, Your site, the Weekly Digest, messages, free calls, Nana AI and publishing to LinkedIn and X are live; paid courses, certificates, full white label, Paylony payments and more are next, and the Team hub, company finance tools, the data room and LinkedIn advertising come as paid add-ons for Business and Enterprise after internal testing.",
+    "What's live and what's next for #NotesApp — the journal feed, Explore, Notes Market, free courses and certificates in Notes Academy, Your site, the Weekly Digest, messages, free calls, Nana AI and publishing to LinkedIn and X are live; paid courses, full white label, Paylony payments and more are next, and the Team hub, company finance tools, the data room and LinkedIn advertising come as paid add-ons for Business and Enterprise after internal testing.",
 };
 
 // The four tools our own team is testing before Business and Enterprise can add them for a fee.
@@ -21,7 +21,7 @@ const ITEMS: { title: string; tag: string; body: string; detail: string; link?: 
   {
     title: "Notes Academy: courses on #NotesApp",
     tag: "Courses",
-    body: "Live now: free courses. Any publisher can teach, with lessons from their own YouTube that play inside #NotesApp, plus text lessons, and learners keep their progress. Next, in this order: certificates anyone can check and add to LinkedIn, paid courses on Pro and Business, quizzes and reviews, then the Enterprise packages.",
+    body: "Live now: free courses and certificates. Any publisher can teach, with lessons from their own YouTube that play inside #NotesApp, plus text lessons, and learners keep their progress; finishers get a certificate anyone can check and add to LinkedIn. Next, in this order: paid courses on Pro and Business, quizzes and reviews, then the Enterprise packages.",
     get detail() { return `Free courses are free to publish and to take. Certificates on free courses are paid: the learner pays from ${certificateMin()} plus the margin the teacher sets. Paid courses are uploaded to #NotesApp, kept private and played only for learners who paid, with the viewer's @username and email drawn faintly over the video; our fee on them is the same as on digital store items. For organisations, two packages sit on top of Enterprise: Enterprise Courses, and the Enterprise Academy API for a white-label academy of their own. Prices are on the pricing page.`; },
     link: { href: "/academy", label: "Visit Notes Academy →" },
   },

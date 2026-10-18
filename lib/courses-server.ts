@@ -36,6 +36,7 @@ export function lessonOf(id: string, d: FirebaseFirestore.DocumentData): Lesson 
 const enrolmentOf = (d: FirebaseFirestore.DocumentData): Enrolment => ({
   courseId: String(d.courseId), uid: String(d.uid), enrolledAt: String(d.enrolledAt ?? ""), done: d.done && typeof d.done === "object" ? d.done : {},
   lastLessonId: d.lastLessonId ? String(d.lastLessonId) : null, completedAt: d.completedAt ? String(d.completedAt) : null,
+  ...(d.certificateId ? { certificateId: String(d.certificateId) } : {}),
 });
 
 // The member as a teacher: a publishing account (free Basic and up) that isn't suspended.

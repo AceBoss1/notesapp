@@ -28,6 +28,7 @@ jobs:
       - run: npm run test:shared
       - run: npm run test:topics
       - run: npm run test:nana
+      - run: npm run test:certificates
       - run: npm run test:discovery
       - run: npm run test:courses
       - run: npm run test:social
@@ -39,6 +40,7 @@ jobs:
       - run: npm run test:team-server
       - run: npm run test:maintenance
       - run: npm run test:credits
+      - run: npm run test:certificates-server
       - run: npm run test:nana-server
       - run: npm run test:mcp-server
       # the link-preview safety test listens on port 80, which needs root on the runner

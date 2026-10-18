@@ -10,7 +10,7 @@ export type CourseCardData = {
 };
 export const courseCardOf = (c: CourseListing, progress?: number): CourseCardData => ({
   id: c.id, title: c.title, teacher: c.ownerName, teacherAvatar: c.ownerAvatar, teacherUsername: c.ownerUsername, image: c.cover, lessons: c.lessonCount,
-  hours: Math.round((c.minutes / 60) * 10) / 10, minutes: c.minutes, priceLabel: "Free", free: true, certificate: false, learners: c.enrolCount, progress,
+  hours: Math.round((c.minutes / 60) * 10) / 10, minutes: c.minutes, priceLabel: "Free", free: true, certificate: true, learners: c.enrolCount, progress,
 });
 
 export default function CourseCard({ c, href }: { c: CourseCardData; href: string }) {

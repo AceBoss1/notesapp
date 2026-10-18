@@ -37,6 +37,7 @@ export async function GET(req: NextRequest) {
       ...(payment.payWith === "wallet" ? { payWith: "wallet" } : {}),
       ...(payment.topup ? { topup: payment.topup } : {}),
       ...(payment.nanaPack ? { nanaPack: payment.nanaPack } : {}),
+      ...(payment.certificate ? { certificate: { courseTitle: payment.certificate.courseTitle, issuedId: payment.certificate.issuedId ?? null } } : {}),
     });
   } catch (err) {
     console.error("Paystack verify failed:", err);

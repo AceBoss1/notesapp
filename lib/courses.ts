@@ -29,7 +29,7 @@ export type Course = {
 };
 export type LessonKind = "youtube" | "text";
 export type Lesson = { id: string; order: number; title: string; kind: LessonKind; youtubeId?: string; minutes?: number; body?: string };
-export type Enrolment = { courseId: string; uid: string; enrolledAt: string; done: Record<string, string>; lastLessonId: string | null; completedAt: string | null };
+export type Enrolment = { courseId: string; uid: string; enrolledAt: string; done: Record<string, string>; lastLessonId: string | null; completedAt: string | null; certificateId?: string };
 
 // A published course on a shelf (GET /api/public/academy), with its teacher as they are now and this week's visits.
 export type CourseListing = {

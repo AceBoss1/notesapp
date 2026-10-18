@@ -27,6 +27,8 @@ import { fulfillPayment } from "@/lib/payments";
 import { TOPUP_MAX_KOBO, TOPUP_MIN_KOBO, WALLET_LIVE, bonusFor, isWalletKind } from "@/lib/wallet";
 import { WalletError, payFromWallet } from "@/lib/wallet-server";
 import { BUY_NAIRA_MAX, BUY_NAIRA_MIN, LIFE_LIVE } from "@/lib/life/catalog";
+import { AcademyError } from "@/lib/certificates";
+import { checkoutFor } from "@/lib/certificates-server";
 
 // Starts a Paystack checkout for a 1:1 session or a monthly journal
 // subscription. Price, slots and plan all come from the publisher's
@@ -96,6 +98,26 @@ export async function POST(req: NextRequest) {
       };
       await db.doc(`payments/${reference}`).set(record);
       return NextResponse.json({ authorizationUrl: tx.authorization_url, reference });
+    }
+
+    // ---- Notes Academy certificate (lib/certificates-server.ts): the learner finished the course; the price is fixed now ----
+    if (kind === "certificate") {
+      let co: Awaited<ReturnType<typeof checkoutFor>>;
+      try { co = await checkoutFor(db, user.uid, body.courseId, body.learnerName); }
+      catch (e) { if (e instanceof AcademyError) return NextResponse.json({ error: e.message }, { status: e.status }); throw e; }
+      const teacher = (await db.doc(`users/${co.ownerUid}`).get()).data();
+      const reference = newReference();
+      const origin = await callbackOrigin(req);
+      const tx = await initTx({ email: user.email, amountKobo: co.q.kobo, reference, callbackUrl: `${origin}/booking/confirm`, metadata: { kind, uid: user.uid, courseId: co.q.course.id } });
+      const record: PaymentRecord = {
+        reference, kind: "certificate", uid: user.uid, email: user.email, amountKobo: co.q.kobo, status: "pending",
+        publisherUid: co.ownerUid, publisherUsername: String(teacher?.username ?? ""),
+        commissionRate: digitalCommissionRateFor((teacher?.accountTier as AccountTier) || "basic", teacher?.customRates),
+        certificate: { courseId: co.q.course.id, courseTitle: co.q.course.title, learnerName: co.name, startKobo: co.q.startKobo, lateKobo: co.q.lateKobo, teacherKobo: co.teacherKobo },
+        createdAt: new Date().toISOString(),
+      };
+      await savePayment(record);
+      return NextResponse.json({ authorizationUrl: tx.authorization_url, reference, paid: payWith === "wallet" });
     }
 
     // ---- Nana AI credit pack (lib/nana-meter.ts), from the wallet or by card; anyone signed in can buy one ----

@@ -93,3 +93,19 @@ export async function courseMetadata(slug: string, lessonTitle?: string): Promis
     return { title: "Course" };
   }
 }
+
+// /certificates/<id>: who earned it, for what, from whom. Nothing beyond what's printed on the certificate.
+export async function certificateMetadata(id: string): Promise<Metadata> {
+  try {
+    const c = (await getAdminDb().doc(`certificates/${id}`).get()).data();
+    if (!c) return { title: "Certificate not found", robots: { index: false } };
+    const title = `${c.learnerName}: ${c.courseTitle}`;
+    const description = c.status === "revoked"
+      ? `This Notes Academy certificate (${id}) has been revoked.`
+      : `Certificate of completion from ${c.academyName} on Notes Academy, #NotesApp. Verify it with ID ${id}.`;
+    return { ...cardFor(title, description, "/images/academy/notes-academy-verifiable-certificate-wide.png", "Notes Academy Verifiable Certificate", { type: "website", url: `/certificates/${id}` }), robots: { index: false } };
+  } catch (err) {
+    console.error("[og] certificate metadata failed", err);
+    return { title: "Certificate" };
+  }
+}

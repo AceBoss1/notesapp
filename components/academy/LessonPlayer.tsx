@@ -96,7 +96,8 @@ export default function LessonPlayer({ slug, lessonId }: { slug: string; lessonI
               {enrolment && (
                 <div className="card mb-4 p-4">
                   <div className="h-2 overflow-hidden rounded-full bg-rule"><div className="h-full rounded-full bg-crimson transition-all" style={{ width: `${p.pct}%` }} /></div>
-                  <p className="mt-1.5 text-xs text-slate">{p.complete ? "Every lesson done. Well done! Certificates are coming." : `${p.done} of ${p.total} lessons done · ${p.pct}%`}</p>
+                  <p className="mt-1.5 text-xs text-slate">{p.complete ? "Every lesson done. Well done!" : `${p.done} of ${p.total} lessons done · ${p.pct}%`}</p>
+                  {p.complete && !mine && <Link href={enrolment.certificateId ? `/certificates/${enrolment.certificateId}` : `/academy/${slug}/certificate`} className="btn-primary mt-3 w-full !py-2 text-xs">{enrolment.certificateId ? "🎓 See your certificate" : "🎓 Get your certificate"}</Link>}
                 </div>
               )}
               <p className="font-display text-xl text-ink">Lessons</p>

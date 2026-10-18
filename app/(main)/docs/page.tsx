@@ -102,8 +102,8 @@ function verify(rawBody, header, secret) {
         courses, see a creator&apos;s open session times, and hand back booking links. <strong>It only reads.</strong> Booking, buying and paying always happen on #NotesApp itself.
         Add it to your assistant as a remote (Streamable HTTP) server at:
       </p>
-      <pre className={`${code} mt-3`}>{`${SITE_URL}/api/mcp`}</pre>
-      <p className="mt-2 text-xs text-slate">It will also answer at <span className="font-mono">https://{MCP_HOST}</span> once that address is live. No sign-in is needed for the public tools.</p>
+      <pre className={`${code} mt-3`}>{`https://${MCP_HOST}`}</pre>
+      <p className="mt-2 text-xs text-slate">It answers at <span className="font-mono">{`${SITE_URL}/api/mcp`}</span> too; use either. No sign-in is needed for the public tools.</p>
       <p className="mt-3 text-slate">
         The <code className="font-mono text-xs">my_*</code> tools read your own account through the same API as above: send your API key as <code className="font-mono text-xs">Authorization: Bearer nak_…</code>
         (the key&apos;s scopes apply). Every tool call is logged for 12 months (the tool, the arguments and the key&apos;s id, never the secret). Text members wrote, such as bios

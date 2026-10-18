@@ -14,7 +14,9 @@ import { BONUS_DAYS, BONUS_STEPS, TOPUP_MAX_KOBO, TOPUP_MIN_KOBO, WALLET_LIVE } 
 import { ORG_TRIAL_DAYS } from "./org";
 import { COMPANY_INFO } from "./site";
 import { BADGE_PRICE_KOBO, TIERS, formatPercent } from "./tiers";
-import { academyApiFrom, certificateMin, enterpriseCoursesPrice } from "./pricing";
+import { academyApiFrom, certificateMin, currentPricing, enterpriseCoursesPrice } from "./pricing";
+import { academyFaq } from "./academy-faq";
+const CERTIFICATE_LATE_TEXT = () => { const l = currentPricing().certificateLate; return { grace: l.graceDays, weekly: `${Math.round(l.weeklyRate * 100)}%`, cap: `${Math.round(l.capRate * 100)}%` }; };
 import { VIDEO_MAX_SECONDS } from "./video-rules";
 import type { KbArticle } from "./kb";
 
@@ -344,7 +346,7 @@ Calls are free. Planned: paid calls inside Notes Life (₦5 a minute voice, ₦1
 - Tap **Enrol — free**. If you're not signed in, sign in (or join free) and you come straight back, already enrolled.
 - Video lessons play in YouTube's privacy-enhanced player, so you stay on #NotesApp. A video is ticked off by itself once you've watched most of it; you can always tap **Mark as done** yourself, or **Mark as not done** to undo it. Text lessons end with a **Mark as done** button.
 - Your progress and the **Continue** button are on the course page, and courses you've started are under **Continue learning** on Notes Academy.
-- Certificates are coming: finish a course and get one anyone can check, from ${certificateMin()}.
+- **Certificates:** once every lesson is done, tap **🎓 Get your certificate** on the course page. Check the name (it can't be changed once issued), then pay from ${certificateMin()} plus the teacher's margin, by card or from your wallet. It's issued straight away with an ID (NA-C-…) and a QR code; anyone can check it at [/certificates](/certificates). Add it to LinkedIn, share it or save it as a PDF from its page. Claim within ${CERTIFICATE_LATE_TEXT().grace} days of finishing: after that a late claim fee of ${CERTIFICATE_LATE_TEXT().weekly} of the price is added each week, up to ${CERTIFICATE_LATE_TEXT().cap} more.
 
 **Teaching a course**
 - Any publishing account can teach a free course, including the free Basic plan. If you don't publish yet, start at [Rates & payouts](/profile/publishing).
@@ -353,10 +355,13 @@ Calls are free. Planned: paid calls inside Notes Life (₦5 a minute voice, ₦1
 - **2. Add lessons:** paste a link to a video on your own YouTube and check the picture to make sure it's the right one (keep videos public or unlisted, not private, or they won't play), or write a text lesson in the journal editor. Add the minutes if you like; they add up to the course's length. Use ↑ and ↓ to put lessons in order.
 - **3. Publish:** a course needs a title, a summary and at least one lesson. Use **Preview** first if you like; only you can see a draft.
 - You can keep editing after publishing. To remove the last lesson of a published course, unpublish it first. Deleting a course removes its lessons and its learners' progress.
+- **Your academy (certificates):** set it up once at [Your academy](/academy/teach/setup): the name and logo on your certificates, who signs them (a photo of the signature on white paper; we remove the white), an accrediting institution if you have one (its logo shows once #NotesApp has checked it) and your margin on top of our ${certificateMin()}. You receive the margin less our usual commission, and your share grows with any late claim fee. Courses our team has reviewed get the "#NotesApp Certified Course" seal.
 - Up to 30 courses, each with up to 100 lessons. Your published courses show on your profile's Courses tab, on Trending, on your own site (Business and Enterprise) and in the weekly digest when they're popular.
 
-**Coming next:** certificates, paid courses on Pro and Business, and courses for organisations on Enterprise (see [Pricing](/pricing)).
+**Coming next:** paid courses on Pro and Business, and courses for organisations on Enterprise (see [Pricing](/pricing)). Questions learners often ask are in [Notes Academy: questions](/help/notes-academy-faq).
 `),
+    A("notes-academy-faq", "Notes Academy: questions learners ask", "Getting started", `
+${academyFaq().map((f) => `**${f.q}** ${f.a}`).join("\n\n")}`),
     A("getting-around", "Getting around: the tab bar and the menu", "Getting started", `
 **On a phone:** one light header sits at the top, with search, your notifications (the bell) and your picture. Tap your picture for the menu: your profile, store, bookings, Wallet, Saved, your interests, your settings, the rest of the site and Sign out. Along the bottom is a tab bar:
 - **Feed**: the [journal feed](/journals).
@@ -444,7 +449,7 @@ MCP (Model Context Protocol) is a standard way for AI assistants such as Claude 
 
 **It only reads.** Booking, buying and paying always happen on #NotesApp itself, never inside the assistant.
 
-**How to add it:** in your assistant's settings, add a remote MCP server (also called a custom connector or Streamable HTTP server) with the address \`https://www.notesapp.name.ng/api/mcp\` (it also answers at \`https://mcp.notesapp.name.ng\`). The [API docs](/docs#mcp) list every tool, with an example.
+**How to add it:** in your assistant's settings, add a remote MCP server (also called a custom connector or Streamable HTTP server) with the address \`https://mcp.notesapp.name.ng\` (\`https://www.notesapp.name.ng/api/mcp\` works too). The [API docs](/docs#mcp) list every tool, with an example.
 
 **Your own account:** with an API key (the [API and Console](/help/api-and-console), for Enterprise accounts), your assistant can also read your own profile, journals, bookings, orders and earnings. Send the key as a Bearer token; its permissions apply. Every call is logged for 12 months, without the key itself.
 
@@ -502,7 +507,7 @@ Use the [contact form](/contact) and pick the topic (bookings, payments and refu
     A("about-and-status", "About #NotesApp, status and updates", "Company", `
 #NotesApp is run by ${COMPANY_INFO.legalName} (RC ${COMPANY_INFO.rcNumber}), a private company limited by shares registered in Nigeria. Read [About](/about), see live service health on [Status](/status), what changed on the [Changelog](/changelog) and what is coming on the [roadmap](/roadmap). Our domain partner is Whogohost (go54), and we connect to services such as Paystack, Paylony, Cloudflare, Firebase, Vercel, Resend and Dojah.`),
     A("roadmap-whats-coming", "What is coming next", "Company", `
-Not live yet, with no promised dates: course certificates, paid courses on Pro and Business, and the Enterprise course packages; publishing to Facebook, Instagram and TikTok (LinkedIn and X are live); AI drafting from your past notes; domain sales and DNS management inside #NotesApp; ${WALLET_LIVE ? "paid calls in Notes Life (the NotesApp Credit wallet itself is live)" : "NotesApp Credit and Bonus Credits"}; Paylony payments and Tap-to-Pay; WhatsApp reminders; fuller identity checks; and iOS and Android apps. Details and the latest are on the [roadmap](/roadmap).
+Not live yet, with no promised dates: paid courses on Pro and Business, and the Enterprise course packages; publishing to Facebook, Instagram and TikTok (LinkedIn and X are live); AI drafting from your past notes; domain sales and DNS management inside #NotesApp; ${WALLET_LIVE ? "paid calls in Notes Life (the NotesApp Credit wallet itself is live)" : "NotesApp Credit and Bonus Credits"}; Paylony payments and Tap-to-Pay; WhatsApp reminders; fuller identity checks; and iOS and Android apps. Details and the latest are on the [roadmap](/roadmap).
 
 ${ADD_ONS_LINE}`),
     A("million-naira-challenge", "The #1MillionNairaNotesAppChallenge", "Company", `

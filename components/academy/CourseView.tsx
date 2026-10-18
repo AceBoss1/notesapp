@@ -6,6 +6,7 @@ import Avatar from "@/components/Avatar";
 import { NameBadgeIcons } from "@/components/PersonName";
 import { hashtag } from "@/lib/topics";
 import { countCourseView, useCourse } from "@/lib/courses-client";
+import AcademyFaq from "./AcademyFaq";
 import { durationLabel, lessonHref, plural, progressOf, type Course, type Enrolment, type Lesson } from "@/lib/courses";
 
 // /academy/<slug>: a course's page. Cover, title, the teacher, summary and topics; the lessons with their length (✓ once done);
@@ -96,6 +97,7 @@ export default function CourseView({ slug }: { slug: string }) {
           <h2 className="mt-8 font-display text-2xl text-ink">Lessons</h2>
           <p className="mt-1 text-xs text-slate">{plural(lessons.length, "lesson")}{course.minutes ? ` · ${durationLabel(course.minutes)}` : ""}{enrolment ? "" : " · the first lesson is a free preview"}</p>
           <LessonList slug={slug} lessons={lessons} enrolment={enrolment} open={!!enrolment || mine} />
+          <AcademyFaq />
         </div>
       </div>
     </>
@@ -132,7 +134,15 @@ function EnrolCard({ course, lessons, enrolment, signedIn, slug, busy, onEnrol, 
         </>
       )}
       {mine && <Link href={`/academy/teach/${course.id}`} className="mt-4 block text-center text-sm font-semibold text-crimson">You teach this course · Edit it</Link>}
-      <p className="mt-4 border-t border-rule pt-3 text-xs text-slate">Certificates are coming to Notes Academy: finish a course and get one anyone can check.</p>
+      {mine ? (
+        <Link href="/academy/teach/setup" className="mt-4 block border-t border-rule pt-3 text-center text-sm font-semibold text-crimson">🎓 Set up your certificates</Link>
+      ) : enrolment?.certificateId ? (
+        <Link href={`/certificates/${enrolment.certificateId}`} className="mt-4 block border-t border-rule pt-3 text-center text-sm font-semibold text-crimson">🎓 See your certificate</Link>
+      ) : enrolment && p.complete ? (
+        <Link href={`/academy/${slug}/certificate`} className="btn-primary mt-4 w-full !py-3">🎓 Get your certificate</Link>
+      ) : (
+        <p className="mt-4 border-t border-rule pt-3 text-xs text-slate">Finish every lesson and get a certificate anyone can check, with your name, the hours and a QR code.</p>
+      )}
     </div>
   );
 }
