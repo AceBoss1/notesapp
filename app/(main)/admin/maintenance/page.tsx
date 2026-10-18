@@ -13,6 +13,7 @@ const JOBS: { key: Backfill; title: string; what: string; flags: string }[] = [
 ];
 const when = (iso: string) => new Date(iso).toLocaleString("en-GB", { day: "numeric", month: "short", year: "numeric", hour: "numeric", minute: "2-digit", hour12: true, timeZone: "Africa/Lagos" });
 const SHOW = 100;
+type Bank = { answers: number; hits: number; days: number; top: { q: string; hits: number; gem: string }[] };
 
 // Admin → Maintenance: the one-off fixes for older journals (lib/backfills.ts), each a dry run first (lists what would change,
 // touches nothing), then Apply. Owner and super admins only. The same jobs run from the command line (scripts/backfill-*.ts).
@@ -20,6 +21,7 @@ export default function AdminMaintenancePage() {
   const { user, loading } = useAdminAuth();
   const call = useAdminCall(user, "/api/admin/maintenance");
   const [jobs, setJobs] = useState<Record<string, JobStatus>>({});
+  const [bank, setBank] = useState<Bank | null>(null);
   const [results, setResults] = useState<Partial<Record<Backfill, BackfillResult>>>({});
   const [busy, setBusy] = useState("");
   const [error, setError] = useState("");
@@ -28,7 +30,7 @@ export default function AdminMaintenancePage() {
     setBusy(label); setError("");
     try { await fn(); } catch (e) { setError(e instanceof Error ? e.message : "Something went wrong"); } finally { setBusy(""); }
   }, []);
-  useEffect(() => { if (user) void run("load", async () => setJobs((await call()).jobs)); }, [user, call, run]);
+  useEffect(() => { if (user) void run("load", async () => { const j = await call(); setJobs(j.jobs); setBank(j.bank); }); }, [user, call, run]);
 
   const go = (job: Backfill, apply: boolean) => run(`${job}:${apply ? "apply" : "dry"}`, async () => {
     const r = await call({ job, apply });
@@ -40,7 +42,7 @@ export default function AdminMaintenancePage() {
   return (
     <section className="mx-auto max-w-3xl px-4 py-14">
       <h1 className="font-display text-4xl">Maintenance</h1>
-      <p className="mt-2 text-sm text-slate">One-off fixes for older journals. Run the dry run first: it lists every change and touches nothing. Apply writes exactly that list. Both are safe to run again; they only fill what&apos;s missing.</p>
+      <p className="mt-2 text-sm text-slate">One-off fixes for older journals, and Nana&apos;s answer bank. Run the dry run first: it lists every change and touches nothing. Apply writes exactly that list. Both are safe to run again; they only fill what&apos;s missing.</p>
       {error && <p className="mt-4 text-sm text-crimson">{error}</p>}
 
       {JOBS.map((j) => {
@@ -99,6 +101,22 @@ export default function AdminMaintenancePage() {
           </div>
         );
       })}
+
+      <div className="card mt-6 p-5">
+        <h2 className="font-ui text-lg font-bold text-ink">Nana&apos;s answer bank</h2>
+        <p className="mt-1 text-sm text-slate">General first questions (no names, numbers or links) answered by the AI are kept {bank ? `${bank.days} days` : "a few days"} (NANA_BANK_DAYS) and given again free to the next person who asks. Editing a help article retires the old answers on its own; empty the bank after a bigger change, such as new prices.</p>
+        {bank && (
+          <>
+            <p className="mt-3 text-sm">{bank.days ? `${bank.answers} answer${bank.answers === 1 ? "" : "s"} kept, given again ${bank.hits} time${bank.hits === 1 ? "" : "s"}.` : "Switched off (NANA_BANK_DAYS is 0)."}</p>
+            {bank.top.length > 0 && (
+              <ul className="mt-2 divide-y divide-rule rounded-xl border border-rule text-xs">
+                {bank.top.map((t) => <li key={t.q} className="flex items-start justify-between gap-3 px-3 py-2"><span className="min-w-0 [overflow-wrap:anywhere]">{t.q}</span><span className="shrink-0 text-slate">{t.hits}× · {t.gem}</span></li>)}
+              </ul>
+            )}
+          </>
+        )}
+        <button disabled={!!busy || !bank?.answers} onClick={() => { if (confirm("Empty Nana's answer bank? Each question is answered by the AI again the next time it's asked.")) void run("bank", async () => { const r = await call({ job: "bank-clear" }); setBank(r.bank); }); }} className="btn-ghost mt-4 !px-4 !py-2 text-xs">{busy === "bank" ? "Emptying…" : "Empty the answer bank"}</button>
+      </div>
     </section>
   );
 }
