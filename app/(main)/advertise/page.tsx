@@ -38,6 +38,7 @@ export default function AdvertisePage() {
         </div>
         <Link href="/advertise/new" className="btn-primary mt-4 inline-block">Start a campaign</Link>
         <Link href="/advertise/campaigns" className="ml-4 text-sm text-crimson underline underline-offset-2">My campaigns</Link>
+        <Link href="/advertise/specifications" className="ml-4 text-sm text-crimson underline underline-offset-2">Sizes and where adverts show</Link>
       </div>
 
       <div className="mt-12 grid grid-cols-1 gap-6 sm:grid-cols-3">

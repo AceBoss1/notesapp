@@ -29,7 +29,7 @@ export default function EmojiPicker({ onPick, disabled, className = "w-8 rounded
       <button type="button" onClick={() => setOpen((o) => !o)} disabled={disabled} aria-expanded={open} aria-label="Emoji" title="Emoji" className={className}>😊</button>
       {open && (
         <div className="absolute bottom-full left-0 z-20 mb-2 w-72 rounded-lg border border-rule bg-card p-2 shadow-lg" role="dialog" aria-label="Choose an emoji">
-          {/* Ours first: they go in as :na: and :academy: and show as pictures once sent. */}
+          {/* Ours first: they go in as :na:, :academy: or :football: and show as pictures once sent. */}
           <p className="px-1 pb-1 font-ui text-[11px] font-bold uppercase tracking-wider text-slate">#NotesApp</p>
           <div className="mb-2 flex gap-1 border-b border-rule pb-2">
             {Object.entries(NOTESAPP_EMOJI).map(([code, x]) => (

@@ -1,7 +1,7 @@
 import { Fragment } from "react";
 import { NOTESAPP_EMOJI, NOTESAPP_EMOJI_RE, isNotesAppEmoji } from "@/lib/messages-rules";
 
-// One emoji: ours (:na:, :academy:) as a small picture the size of the text around it, any other as itself.
+// One emoji: ours (:na:, :academy:, :football:) as a small picture the size of the text around it, any other as itself.
 export function Emoji({ e, className = "" }: { e: string; className?: string }) {
   if (!isNotesAppEmoji(e)) return <span className={className}>{e}</span>;
   const x = NOTESAPP_EMOJI[e];

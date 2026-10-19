@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import DiscoveryHero from "@/components/DiscoveryHero";
 import Shelf from "@/components/Shelf";
+import AdSlot from "@/components/AdSlot";
 import CourseCard, { courseCardOf } from "@/components/CourseCard";
 import { hashtag } from "@/lib/topics";
 import { subtopicHashtag } from "@/lib/subtopics";
@@ -159,6 +160,7 @@ export default function AcademyPageClient() {
                   </Shelf>
                 )}
                 <Shelf title="For you" why={why} seeAll={s.forYou.length ? { href: "/academy?tab=foryou" } : undefined}>{s.forYou.length ? cards(s.forYou) : (interests ?? []).length ? nothing : pick}</Shelf>
+                <AdSlot placement="academy" />
                 {s.mostViewed.length > 0 && <Shelf title={`Most viewed ${anyWeekly ? "this week" : ""}`.trim()} seeAll={{ href: "/academy?tab=viewed" }}>{cards(s.mostViewed)}</Shelf>}
                 <Shelf title="New" seeAll={{ href: "/academy?tab=new" }}>{s.recent.length ? cards(s.recent) : nothing}</Shelf>
               </>

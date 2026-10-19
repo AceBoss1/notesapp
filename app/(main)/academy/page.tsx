@@ -9,13 +9,13 @@ import { ACADEMY_LIVE } from "@/lib/courses";
 // what's coming instead, as it did before courses opened.
 export const metadata: Metadata = {
   title: "Notes Academy",
-  description: "Free courses from African creators and professionals, with lessons that play right on #NotesApp and your progress saved as you go.",
+  description: "Free and paid courses from African creators, professionals and organisations, with lessons that play right on #NotesApp, your progress saved as you go, and certificates anyone can check.",
   alternates: { canonical: "/academy" },
 };
 
 const POINTS = [
   { t: "Free courses", d: "Any publisher can teach for free, with lessons from their own YouTube that play right here." },
-  { t: "Paid courses", d: "On Pro and Business: upload your lessons; they're kept private and only learners who paid can open them." },
+  { t: "Paid courses", d: "On Pro and above: text lessons, PDFs and YouTube, plus your own uploaded videos on Business and Enterprise; they're kept private and only learners who paid can open them." },
   { t: "Certificates", d: "Finish a course and get a certificate with its own page anyone can check, ready for LinkedIn." },
   { t: "For organisations", d: "Enterprise courses for your team or customers, from ₦100,000 a month. Talk to us." },
 ];

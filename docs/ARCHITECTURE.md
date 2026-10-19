@@ -111,3 +111,22 @@ Admin → Weekly digest (`/admin/digest`, owner and super admins): status, previ
   tab), members' sites (`COURSES_LIVE` follows the switch) and the weekly digest (`weekCourses`).
 - **Switch**: `NEXT_PUBLIC_ACADEMY_LIVE=false` brings back the opening-soon page and hides courses everywhere.
 - **Tests**: `npm run test:courses` (pure), `npm run test:courses-server` (emulator), the rules and digest tests.
+
+## Notes Academy: paid courses, co-tutors, organisations and certificates (steps 2 and 3 of docs/COURSES.md)
+- **Paid courses** (`lib/course-sales-server.ts`): a course with `priceKobo` > 0 is sold through `/api/paystack/initialize` with
+  `kind: "course"` (card, bank transfer or wallet). `fulfillPayment` calls `fulfilCourseInTransaction`, which writes
+  `coursePurchases/{reference}`, the learner's enrolment and each tutor's held `ledger` share (split like gift co-authors, each at
+  their own plan's digital fee). Payouts for kind `course` release on their own 7 days after the sale (`lib/payouts.ts`).
+  Refunds within `COURSE_REFUND_DAYS` only while `startedAt` is empty (Admin → Payments or the learner's own button).
+- **Lessons**: Pro can price courses with text, PDF (private R2, `lib/course-uploads-server.ts`) and YouTube lessons; Business and
+  Enterprise also upload video to Cloudflare Stream (signed playback, a drifting @username + email watermark in `LessonPlayer`).
+  Paid lessons are served only by `POST /api/academy/lesson` (previews for anyone, the rest for buyers on at most two devices
+  through `viewAccess`, `lib/view-access.ts`); `firestore.rules` refuse reads of a paid course's `lessons` subcollection.
+- **Co-tutors and organisations**: `courseTutorInvites` (up to 4, each with a share; accept to edit content), `/api/academy/courses/[id]/tutors`;
+  `orgUid` on create teaches as the organisation (its admins and writers), which then owns the course and its sales.
+- **Course details**: level, language, format, outcomes, requirements, schedule, modules; the live-class and group links in
+  `courseLinks/{courseId}` (server-only, `/api/academy/links`, shown to learners only). Likes, saves and reviews (teacher replies once).
+- **Certificates** (`lib/certificates-server.ts`): `academies/{uid}` (name, logo, signer, accreditation, margin),
+  `certificates/{id}` (NA-C-…, QR); claim and pay at `/api/academy/certificate` (late fee after 7 days; `included` on paid
+  courses that carry it in the price), verify at `/certificates`, PNG and PDF, revoke in Admin.
+- **Webhooks**: `course.sold` (Enterprise). **Tests**: `tests/courses/paid.emulator.ts`, `courses.test.ts`, the rules tests.

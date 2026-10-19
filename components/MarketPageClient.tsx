@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import DiscoveryHero from "@/components/DiscoveryHero";
 import Shelf from "@/components/Shelf";
+import AdSlot from "@/components/AdSlot";
 import MarketCard from "@/components/MarketCard";
 import ShopDirectory from "@/components/ShopDirectory";
 import BoostedStrip from "@/components/BoostedStrip";
@@ -70,7 +71,9 @@ export default function MarketPageClient() {
             {tab === "all" && (
               <>
                 <Shelf title="For you" why={why} seeAll={s.forYou.length ? { href: "/shop?tab=foryou" } : undefined}>{s.forYou.length ? cards(s.forYou) : pick}</Shelf>
+                <AdSlot placement="market" />
                 {s.mostViewed.length > 0 && <Shelf title={`Most viewed ${anyWeekly ? "this week" : ""}`.trim()} seeAll={{ href: "/shop?tab=viewed" }}>{cards(s.mostViewed)}</Shelf>}
+                {s.mostViewed.length > 0 && <AdSlot placement="market" offset={1} />}
                 <Shelf title="New in" seeAll={{ href: "/shop?tab=new" }}>{s.recent.length ? cards(s.recent) : <p className="text-sm text-slate">Nothing here yet{category ? ` in ${category}` : ""}.</p>}</Shelf>
                 {shopsShown.length > 0 && <Shelf title="Stores" seeAll={{ href: "/shop?tab=stores", label: "All stores" }}><ShopDirectory shops={shopsShown.slice(0, 6)} /></Shelf>}
               </>

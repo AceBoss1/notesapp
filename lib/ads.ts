@@ -20,12 +20,20 @@ export const AD_FOOTER: Record<AdProvider, string> = {
 
 // Where a banner can appear. "site" slots always show house ads; "publisher"
 // slots sit on a publisher's own profile/posts and respect their ad setting.
+// `where` is what /advertise/specifications says about each spot.
 export const AD_PLACEMENTS = {
-  home: { label: "Home page (middle)", scope: "site" },
-  journals: { label: "Journals list", scope: "site" },
-  trending: { label: "Trending page", scope: "site" },
-  profile: { label: "Publisher profile", scope: "publisher" },
-  post: { label: "End of a post", scope: "publisher" },
+  home: { label: "Home page (middle)", scope: "site", where: "The middle of the home page." },
+  journals: { label: "Journals list", scope: "site", where: "Between the posts in the journal feed." },
+  trending: { label: "Trending page", scope: "site", where: "On Trending, under the tabs." },
+  profile: { label: "Publisher profile", scope: "publisher", where: "On publishers' profiles, when they show adverts (their ad share)." },
+  post: { label: "End of a post", scope: "publisher", where: "At the end of a journal, when its publisher shows adverts (their ad share)." },
+  market: { label: "Notes Market", scope: "site", where: "In Notes Market, after the first row of For you and after Most viewed." },
+  academy: { label: "Notes Academy", scope: "site", where: "In Notes Academy, between the course shelves." },
+  explore: { label: "Explore", scope: "site", where: "On Explore, under the tabs." },
+  search: { label: "Search results", scope: "site", where: "In search results (journals matching what was searched), after the 3rd result." },
+  course: { label: "Free course pages", scope: "site", where: "On free course pages: under This course includes on a computer, after the curriculum on a phone. Never on paid courses, lessons or certificates." },
+  digest: { label: "Weekly digest email", scope: "site", where: "In the Sunday weekly digest email, in its sponsored slots. Each email sent counts as an impression." },
+  life: { label: "Notes Life billboards (in the game)", scope: "site", where: "On the roadside billboards in Notes Life, the free life game. Needs a billboard picture as well." },
 } as const;
 export type AdPlacement = keyof typeof AD_PLACEMENTS;
 export const isPlacement = (v: unknown): v is AdPlacement => typeof v === "string" && v in AD_PLACEMENTS;
@@ -35,6 +43,7 @@ export type AdCreative = {
   title: string;
   text?: string;
   image?: string;
+  billboard?: string; // the Notes Life billboard picture (1600 × 900), for the life spot
   href: string;
   placements: AdPlacement[];
   weight: number; // 1–10, relative share of rotation

@@ -1,7 +1,7 @@
 // Finding things in Messages (lib/chat-tools.ts) and the reaction chips (lib/messages-rules.ts). Run: npm run test:chat → "ALL OK".
 import assert from "node:assert/strict";
 import { fileBadge, filterInbox, fold, searchThread, tabCounts } from "../../lib/chat-tools";
-import { REACTIONS, cleanQuickReactions, emojiAsText, isReaction, reactionSummary } from "../../lib/messages-rules";
+import { REACTIONS, cleanQuickReactions, emojiAsText, isNotesAppEmoji, isReaction, reactionSummary } from "../../lib/messages-rules";
 import { parseCardLink } from "../../lib/chat-cards";
 
 
@@ -64,6 +64,8 @@ assert.equal(cleanQuickReactions(["hi", "❤️", "😂", "😮", "😢", "🙏"
 assert.equal(cleanQuickReactions("🔥"), null);
 // ours read as their names where only text shows
 assert.equal(emojiAsText("Welcome to :na: and :academy:!"), "Welcome to #NotesApp and Notes Academy!");
+assert.equal(emojiAsText("Match day :football:"), "Match day Football", "the football is one of ours");
+assert.ok(isNotesAppEmoji(":football:"));
 assert.equal(emojiAsText("ratio 1:na:2"), "ratio 1#NotesApp2");
 
 // #NotesApp links that get a card: our domains only, the four kinds, not pages like /academy/teach

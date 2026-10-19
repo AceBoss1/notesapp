@@ -60,6 +60,7 @@ export default function BoostPage() {
           <li>Bots and crawlers don't count, and neither do your own views while signed in.</li>
           <li>A daily cap spreads delivery across several days instead of burning through in an hour.</li>
           <li>You can see impressions delivered and clicks under <Link href="/profile/publishing" className="text-crimson underline">Rates &amp; payouts</Link>.</li>
+          <li>Boosts rotate, a few at a time on a computer or tablet and one at a time on a phone, and they also go in the weekly digest, where each email sent counts as an impression. The best picture is 1200 × 628 px; see <Link href="/advertise/specifications" className="text-crimson underline">sizes and spots</Link>.</li>
         </ul>
       </div>
 

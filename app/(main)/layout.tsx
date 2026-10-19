@@ -125,6 +125,8 @@ const site = await getSiteSettingsCached();
                 <li><Link href="/journals" className="hover:text-paper">Journals</Link></li>
                 <li><Link href="/shop" className="hover:text-paper">Notes Market</Link></li>
                 <li><Link href="/academy" className="hover:text-paper">Notes Academy</Link></li>
+                <li><Link href="/certificates" className="hover:text-paper">Check a certificate</Link></li>
+                <li><Link href="/life" className="hover:text-paper">Notes Life</Link></li>
                 <li><Link href="/booking" className="hover:text-paper">Booking</Link></li>
                 <li><Link href="/boost" className="hover:text-paper">Boost</Link></li>
                 <li><Link href="/gifts" className="hover:text-paper">Gifts</Link></li>
