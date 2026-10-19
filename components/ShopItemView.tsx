@@ -42,6 +42,8 @@ export default function ShopItemPage() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [agreed, setAgreed] = useState(false);
+  // The store's delivery partner (lib/logistics.ts): its price for this address replaces the item's own delivery fee.
+  const [ship, setShip] = useState<{ partner: { name: string; username: string } | null; carrier: { name: string; feeKobo: number } | null } | null>(null);
   const [owned, setOwned] = useState(false); // this buyer already bought this download
   // On a seller's own domain (Enterprise) we only show the item; signing in and paying happen on the main site.
   const [customHost, setCustomHost] = useState(false);
@@ -87,13 +89,25 @@ export default function ShopItemPage() {
     getDoc(doc(db, "storeStats", itemId)).then((s) => setStat(s.exists() ? { views: Number(s.data()?.views) || 0, favs: Number(s.data()?.favs) || 0 } : null)).catch(() => {});
   }, [itemId, !!item, user?.uid]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // Ask for the delivery partner's price once the buyer has said where it's going (and again when the quantity changes the weight).
+  const physical = !!item && item.kind !== "digital";
+  useEffect(() => {
+    if (!physical) return;
+    let gone = false;
+    const t = window.setTimeout(() => {
+      const q = new URLSearchParams({ view: "quote", itemId, qty: String(quantity), city: addr.city, state: addr.state });
+      fetch(`/api/logistics?${q}`).then((r) => r.json()).then((j) => { if (!gone) setShip({ partner: j.partner ?? null, carrier: j.carrier ?? null }); }).catch(() => {});
+    }, 400);
+    return () => { gone = true; window.clearTimeout(t); };
+  }, [physical, itemId, quantity, addr.city, addr.state]);
+
   if (item === undefined || user === undefined) return <div className="px-6 py-24 text-center text-slate">Loading…</div>;
   if (!item) return <div className="px-6 py-24 text-center text-slate">This item isn&apos;t for sale here.</div>;
 
   const digital = item.kind === "digital";
   const viewOnly = isViewOnly(item);
   const unit = item.priceKobo ?? 0;
-  const delivery = item.deliveryKobo ?? 0;
+  const delivery = ship?.carrier ? ship.carrier.feeKobo : item.deliveryKobo ?? 0;
   const options = digital ? [] : item.options ?? [];
   const vs = item.variantStock ?? {};
   const chosen = options.length > 0 && options.every((_, i) => selection[i]);
@@ -107,6 +121,7 @@ export default function ShopItemPage() {
   const unitsLeft = selectedStock ?? inStock;
   const qty = Math.min(quantity, maxQty);
   const total = unit * qty + delivery;
+  const partnerName = ship?.partner?.name;
   const set = (k: keyof typeof addr) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => setAddr((a) => ({ ...a, [k]: e.target.value }));
 
   async function payDigital() {
@@ -185,7 +200,7 @@ export default function ShopItemPage() {
           <p className="mt-4 font-mono text-2xl text-crimson-bright">{formatNaira(unit)}</p>
           <ul className="mt-3 space-y-1 text-sm text-slate">
             {!digital && <li>📍 {item.shipsFrom ? <>Ships from <strong className="text-ink">{item.shipsFrom}</strong></> : "Ships from: the seller will confirm after your order"}</li>}
-            {!digital && <li>🚚 {delivery ? `${formatNaira(delivery)} delivery` : "Delivery arranged by the seller"}</li>}
+            {!digital && <li>🚚 {ship?.carrier ? <>{formatNaira(delivery)} delivery by <strong className="text-ink">{ship.carrier.name}</strong> to {addr.city || addr.state}</> : partnerName ? <>Delivered by <strong className="text-ink">{partnerName}</strong>: the price shows when you enter your address</> : delivery ? `${formatNaira(delivery)} delivery` : "Delivery arranged by the seller"}</li>}
             {stat && (stat.views > 0 || stat.favs > 0) && <li>👁 {stat.views} view{stat.views === 1 ? "" : "s"}{stat.favs > 0 ? ` · ♥ ${stat.favs} saved` : ""}</li>}
           </ul>
 
@@ -267,7 +282,7 @@ export default function ShopItemPage() {
           <input type="number" min={1} max={maxQty} value={qty} onChange={(e) => setQuantity(Math.max(1, Math.min(maxQty, Number(e.target.value) || 1)))} className={field} />
         </label>
         <div className="self-end text-sm text-ink">
-          {formatNaira(unit)} × {qty}{delivery ? ` + ${formatNaira(delivery)} delivery` : " · delivery arranged by the seller"} = <strong>{formatNaira(total)}</strong>
+          {formatNaira(unit)} × {qty}{delivery ? ` + ${formatNaira(delivery)} delivery${ship?.carrier ? ` by ${ship.carrier.name}` : ""}` : " · delivery arranged by the seller"} = <strong>{formatNaira(total)}</strong>
         </div>
         <p className="sm:col-span-2 mt-2 font-ui text-sm font-bold text-ink">Deliver to</p>
         <label className="text-xs text-slate">Full name<input value={addr.fullName} onChange={set("fullName")} className={field} /></label>

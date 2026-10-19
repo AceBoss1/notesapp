@@ -1,3 +1,5 @@
+import type { ShipmentInfo } from "./shipments";
+
 // Seller checkout for physical goods + parcel tracking.
 //
 // A buyer pays on-platform for an item in a publisher's store. The money is held
@@ -48,6 +50,21 @@ export type CustodyEntry = {
 
 export type CourierInfo = { name: string; trackingNumber: string; trackingUrl: string };
 
+// A hand-off the seller (or a logistics business) records: who holds the parcel now and where. `shownTo` names who sees the phone
+// number in the consent message ("buyer" for store orders, "receiver" for shipments).
+export type CustodyInput = { holderType: Exclude<HolderType, "buyer" | "courier">; holderName: string; holderPhone?: string; location: string };
+export function parseCustody(body: Record<string, unknown>, shownTo: "buyer" | "receiver"): CustodyInput | string {
+  if (!isHolderType(body.holderType) || body.holderType === "buyer" || body.holderType === "courier") return "Choose who holds the parcel.";
+  const holderName = cleanText(body.holderName, 60);
+  const location = cleanText(body.location, 120);
+  if (!holderName || !location) return "Enter the holder's name and where the parcel is.";
+  if (!String(body.holderPhone || "").trim()) return { holderType: body.holderType, holderName, location };
+  const holderPhone = normalizePhone(body.holderPhone);
+  if (!holderPhone) return "Enter a valid Nigerian phone number for the holder (e.g. 08012345678).";
+  if (body.consent !== true) return `Confirm the holder agrees to their phone number being shown to the ${shownTo}.`;
+  return { holderType: body.holderType, holderName, holderPhone, location };
+}
+
 // parcels/{parcelId} — the public face of an order (server-written; read only through /api/track)
 export type Parcel = {
   parcelId: string;
@@ -61,10 +78,14 @@ export type Parcel = {
   quantity: number;
   city: string;
   state: string;
-  status: OrderStatus;
+  status: OrderStatus | "cancelled"; // "cancelled": only a logistics business's own shipment (lib/shipments.ts)
   // Official #NotesApp merch uses the same tracking page; its own four stages replace
-  // the escrow-flavoured `status` wording (see lib/merch.ts MERCH_STEPS).
-  kind?: "store" | "merch";
+  // the escrow-flavoured `status` wording (see lib/merch.ts MERCH_STEPS). A "shipment" is one a logistics business booked for its
+  // own customer (no order, no escrow, no NotesApp buyer): buyerUid is "" and orderRef is the parcel ID.
+  kind?: "store" | "merch" | "shipment";
+  shipment?: ShipmentInfo;
+  carrierUid?: string; // a store order delivered by the store's delivery partner
+  carrierName?: string;
   merchStatus?: "preordered" | "printed" | "shipped" | "delivered" | "refunded";
   mode?: "courier" | "handoff";
   courier?: CourierInfo;
@@ -101,6 +122,8 @@ export type StoreOrder = {
   confirmedAt?: string;
   autoConfirmed?: boolean;
   disputeReason?: string;
+  // Delivered by the store's delivery partner (lib/logistics.ts): who, what the buyer paid them and our commission from it.
+  carrier?: { uid: string; username: string; name: string; feeKobo: number; cutKobo: number };
 };
 
 const ID_CHARS = "23456789ABCDEFGHJKLMNPQRSTUVWXYZ"; // no 0/O/1/I

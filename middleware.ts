@@ -9,6 +9,7 @@ import { APP_HOST, LIFE_HOST, MAIN_HOST, ROOT_DOMAIN, familyHost, familyOf, isMa
 //   /shop, /shop/<id>     → their shop           (/store and /u/<username>/store are aliases)
 //   /terms, /privacy      → their own legal pages, with a "powered by #NotesApp" block
 //   /about, /contact      → the About and Contact pages they wrote (/courses: their courses, once those exist)
+//   /track, /track/<id>   → logistics businesses (Track on /profile/site): look up and follow their shipments
 //   /login, /signup       → Enterprise: a branded sign-in / sign-up window on their domain; Business: the main-site page, then back here
 // A note or item that isn't theirs is sent to the main site instead.
 type Resolved = { found: boolean; known?: boolean; answered?: boolean; uid?: string; username?: string; home?: "profile" | "store"; owned?: boolean; full?: boolean };
@@ -33,9 +34,9 @@ async function resolve(host: string, check?: string): Promise<Resolved> {
 }
 
 // Files and the API calls a member's site makes on its own domain (journals/save and notify/like: the Maroon theme's feed posts).
-const PASS = /^\/(_next\/|favicon|robots\.txt|sitemap|images\/|fonts\/|api\/(views|trending|boosts|ads|public|status|consent|booking\/slots|auth\/branded|paystack\/(initialize|verify)|journals\/save|notify\/like|recommendations)\b)/;
+const PASS = /^\/(_next\/|favicon|robots\.txt|sitemap|images\/|fonts\/|api\/(views|trending|boosts|ads|public|status|consent|booking\/slots|auth\/branded|paystack\/(initialize|verify)|journals\/save|notify\/like|recommendations|track)\b)/;
 // Pages the app domain doesn't carry: it sends them to the main site (MAIN_HOST). (Explore, Help, Terms and Privacy stay on the app domain.)
-const APP_TO_MAIN = /^\/(about|pricing|roadmap|status|docs|changelog|security|brand|challenge|advertise|domains|organisations|store-selling|merchstore|contact|coauthoring|gifts|boost|badges|track)(\/|$)/;
+const APP_TO_MAIN = /^\/(about|pricing|roadmap|status|docs|changelog|security|brand|challenge|advertise|domains|organisations|store-selling|logistics|merchstore|contact|coauthoring|gifts|boost|badges|track)(\/|$)/;
 const PUBLIC_FILE = /\.[a-z0-9]{2,5}$/i;
 
 // The site on one of our domains, staying in the visitor's family: life.<domain> → Notes Life, app.<domain> (and the short app
@@ -120,6 +121,7 @@ export async function middleware(req: NextRequest) {
   if (pathname === "/auth/handoff" || pathname === "/booking/confirm" || pathname === "/auth/action") return rewrite(`${site}${pathname}`);
   if (pathname === "/terms" || pathname === "/privacy") return rewrite(`${site}${pathname}`); // the member's own legal pages
   if (pathname === "/about" || pathname === "/contact" || pathname === "/courses") return rewrite(`${site}${pathname}`); // pages from /profile/site
+  if (pathname === "/track" || /^\/track\/[A-Za-z0-9-]{8,12}\/?$/.test(pathname)) return rewrite(`${site}${pathname.replace(/\/$/, "")}`); // the Track section
 
   const m = /^\/(notes|journals|shop)\/([^/]+)\/?$/.exec(pathname);
   if (m) {

@@ -35,6 +35,7 @@ const KIND_TO_STREAM: Record<string, StreamId> = {
   gold: "gold",
   gold_deposit: "gold",
   merch: "merch",
+  logistics_addon: "plans", // the logistics add-on: a monthly fee, like a plan
 };
 
 export type PaymentLite = { reference: string; kind: string; status: string; amountKobo: number; paidAt?: string; createdAt?: string };

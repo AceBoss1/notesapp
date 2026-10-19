@@ -11,6 +11,28 @@ export type Release = {
 
 export const CHANGELOG: Release[] = [
   {
+    version: "v0.57.0",
+    bump: "minor",
+    date: "2026-10-19",
+    changes: [
+      { kind: "added", text: "The logistics network: logistics businesses list the states they cover, the areas they know, their services and a rate card by distance and weight. Stores find them on Find a delivery partner, message them, and choose one as their delivery partner." },
+      { kind: "added", text: "With a delivery partner, buyers pay the partner's price for their address at checkout, the order goes straight to the partner, and it's tracked on the store's own Track page. Stores pay nothing for delivery; the partner is paid once delivery is confirmed." },
+      { kind: "added", text: "The logistics add-on for Free Basic and Pro: Shipments and a listing in the network for ₦4,500 a month, with a 30-day free trial and no card. Business and Enterprise include it." },
+      { kind: "added", text: "Store items can have a weight, so delivery partners' prices fit the parcel." },
+    ],
+  },
+  {
+    version: "v0.56.0",
+    bump: "minor",
+    date: "2026-10-19",
+    changes: [
+      { kind: "added", text: "Shipments for logistics businesses (Business and Enterprise): book deliveries, waybills, bulk deliveries, warehousing and home or office errands for your own customers, get a tracking number, send the receiver their link on WhatsApp or SMS, and hand the parcel rider to rider with the same no-login update links as store orders. Pick the services you offer: an errands company ticks errands, a full logistics company ticks everything. See For logistics businesses." },
+      { kind: "added", text: "Your site has a Track section: a Track page and menu link, a tracking box on Home with your services, and a page for each shipment, on your own domain at /track. Only your shipments show there." },
+      { kind: "changed", text: "Warehoused parcels read “In storage” until they're despatched, and errands read “On the way” and “Done”." },
+      { kind: "fixed", text: "A member's site no longer shows a broken picture in its header, profile and footer when no profile picture has been added." },
+    ],
+  },
+  {
     version: "v0.55.0",
     bump: "minor",
     date: "2026-10-19",

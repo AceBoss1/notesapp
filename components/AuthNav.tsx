@@ -98,6 +98,7 @@ export default function AuthNav({ onDark = false, compact = false }: { onDark?: 
             {MESSAGES_LIVE && <Link href="/messages" className={item}>💬 Messages{unreadDms > 0 && <span className="ml-2 rounded-full bg-crimson px-1.5 py-0.5 text-[10px] font-bold text-white">{unreadDms}</span>}</Link>}
             <Link href="/bookings" className={item}>Bookings</Link>
             <Link href="/orders" className={item}>Orders &amp; parcels</Link>
+            {profile && canPublish(profile) && <Link href="/shipments" className={item}>Shipments (logistics)</Link>}
             {WALLET_LIVE && <Link href="/profile/wallet" className={item}>💳 Wallet</Link>}
             <Link href="/saved" className={item}>♥ Saved items</Link>
             <Link href="/boost" className={item}>Boost a post</Link>

@@ -13,7 +13,7 @@ import { getAdminDb } from "@/lib/firebase-admin";
 import { getLimitTable } from "@/lib/limits-server";
 import { CALLS_LIVE, MESSAGES_LIVE, MOMENTS_LIVE } from "@/lib/moments-rules";
 import { WALLET_LIVE } from "@/lib/wallet";
-import { academyApiFrom, certificateMin, enterpriseCoursesPrice, enterpriseFrom, planPrice, planRate, pct, breakEven } from "@/lib/pricing";
+import { academyApiFrom, certificateMin, enterpriseCoursesPrice, enterpriseFrom, logisticsAddonPrice, logisticsTrialDays, planPrice, planRate, pct, breakEven } from "@/lib/pricing";
 import { ROOT_DOMAIN } from "@/lib/host";
 
 export const metadata: Metadata = {
@@ -133,6 +133,11 @@ const ROWS: Row[] = [
     label: "Parcel tracking & escrow",
     href: "/store-selling",
     render: (t) => (t.canPublish ? "Buyer's money held until delivery · parcel ID · no-login hand-over links for riders and drivers" : "—"),
+  },
+  {
+    label: "Shipments for logistics businesses",
+    href: "/logistics",
+    render: (t) => (!t.canPublish ? "—" : t.customDomain ? "Book shipments for your customers, rider hand-off links, and a Track page on your own site · list your business in the logistics network so stores can choose you · deliveries are paid by the customer" : `The logistics add-on: ${logisticsAddonPrice()}/month, with a ${logisticsTrialDays()}-day free trial and no card · shipments, rider hand-off links and a listing in the logistics network`),
   },
   {
     label: "Your own domain",

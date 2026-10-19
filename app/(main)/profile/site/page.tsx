@@ -15,7 +15,7 @@ import SiteThemePicker from "@/components/SiteThemePicker";
 import { missingPagesText } from "@/components/SiteReminder";
 
 // "Your site" (Business and Enterprise): what their own site is and where it lives, then the three things they set up there:
-// the theme, which sections show (Journals, Shop, Courses) and the About and Contact pages. Everything saves through the server
+// the theme, which sections show (Journals, Shop, Courses, Track) and the About and Contact pages. Everything saves through the server
 // (/api/site/theme, /api/site/sections, /api/site/pages), which checks the plan.
 type Domain = { host: string; status: "pending" | "active" };
 
@@ -141,7 +141,7 @@ export default function YourSitePage() {
           <p className="mt-4 eyebrow">Set it up in three steps</p>
           <ol className="mt-2 list-decimal space-y-1 pl-5 text-sm text-ink">
             <li><strong>Choose a theme</strong>: the look of the whole site. You can switch at any time.</li>
-            <li><strong>Choose what shows</strong>: Journals, Shop and Courses, each on or off. Home shows your profile and then what you chose.</li>
+            <li><strong>Choose what shows</strong>: Journals, Shop, Courses and Track, each on or off. Home shows your profile and then what you chose.</li>
             <li><strong>Write your About and Contact pages</strong>: who you are and how to reach you, with the same editor as your journals.</li>
           </ol>
           <a href={siteHref} target="_blank" rel="noopener noreferrer" className="btn-primary mt-5 inline-block !px-4 !py-2 text-xs">View your site</a>
@@ -152,13 +152,14 @@ export default function YourSitePage() {
         <section className="card mt-10 p-6" aria-labelledby="sections-h">
           <h2 id="sections-h" className="font-display text-xl text-ink">2. Choose what shows</h2>
           <p className="mt-1 text-sm text-slate">Each section you switch on gets its own page and a link in your site&apos;s menu, and appears on Home right under your profile. A section you switch off disappears from the site. Keep at least one on.</p>
-          <div className="mt-4 grid gap-3 sm:grid-cols-3">
+          <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
             {SITE_SECTIONS.map((s) => (
               <label key={s.id} className={`${field} flex cursor-pointer items-start gap-3 ${sections[s.id] ? "border-crimson" : ""}`}>
                 <input type="checkbox" checked={sections[s.id]} onChange={(e) => setSections((cur) => ({ ...cur, [s.id]: e.target.checked }))} className="mt-1" />
                 <span>
                   <span className="block font-ui text-sm font-bold text-ink">{s.name}</span>
                   <span className="mt-1 block text-xs text-slate">{s.blurb}</span>
+                  {s.id === "track" && <Link href="/shipments" className="mt-1 block text-xs text-crimson underline">Book and manage shipments</Link>}
                 </span>
               </label>
             ))}

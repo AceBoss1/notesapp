@@ -6,13 +6,16 @@ import { getAdminApp, getAdminDb } from "@/lib/firebase-admin";
 import { clientIp, rateLimit } from "@/lib/rate-limit";
 import { Parcel, normalizeParcelId } from "@/lib/orders";
 import { canActForSeller } from "@/lib/orders-server";
+import { serviceName } from "@/lib/shipments";
 
 export const dynamic = "force-dynamic";
 
 const LOCK_AFTER = 8; // wrong "last 4 digits" guesses per hour before this parcel's phone numbers lock
 const WINDOW_MS = 3_600_000;
 
-// Public parcel tracking: GET /api/track?id=NA-XXXXXXXX[&last4=1234]
+// Public parcel tracking: GET /api/track?id=NA-XXXXXXXX[&last4=1234][&seller=username]
+// `seller` is a logistics business's own site asking (its Track page): any parcel that isn't theirs is "not found" there.
+// A shipment's receiver phone number and delivery address are never sent; its last 4 digits unlock the riders' numbers as for orders.
 // Anyone with the parcel ID sees where it is. Holders' phone numbers appear only for
 // the buyer, the seller or an admin (signed in), or for someone who also gives the last
 // 4 digits of the receiver's phone number.
@@ -24,14 +27,15 @@ export async function GET(req: NextRequest) {
     if (!id) return NextResponse.json({ error: "That doesn't look like a parcel ID (it looks like NA-7K2M9QXD)." }, { status: 400 });
     const ref = getAdminDb().doc(`parcels/${id}`);
     const parcel = (await ref.get()).data() as Parcel | undefined;
-    if (!parcel) return NextResponse.json({ error: "No parcel with that ID." }, { status: 404 });
+    const seller = String(req.nextUrl.searchParams.get("seller") || "").toLowerCase();
+    if (!parcel || (seller && String(parcel.sellerUsername).toLowerCase() !== seller)) return NextResponse.json({ error: "No parcel with that ID." }, { status: 404 });
 
     // Who is asking?
     let privileged = false;
     const token = req.headers.get("authorization")?.replace(/^Bearer\s+/i, "");
     if (token) {
       const d = await getAuth(getAdminApp()).verifyIdToken(token).catch(() => null);
-      if (d && (d.uid === parcel.buyerUid || hasAnyDept(accessFromClaims(d), ["support", "finance"]) || (await canActForSeller(d.uid, parcel.sellerUid)))) privileged = true;
+      if (d && (d.uid === parcel.buyerUid || hasAnyDept(accessFromClaims(d), ["support", "finance"]) || (await canActForSeller(d.uid, parcel.sellerUid)) || (!!parcel.carrierUid && (await canActForSeller(d.uid, parcel.carrierUid))))) privileged = true;
     }
     let phonesUnlocked = privileged;
     let phoneError = "";
@@ -59,6 +63,7 @@ export async function GET(req: NextRequest) {
       merchStatus: parcel.merchStatus ?? null,
       seller: { name: parcel.sellerName, username: parcel.sellerUsername },
       destination: `${parcel.city}, ${parcel.state}`,
+      shipment: parcel.kind === "shipment" && parcel.shipment ? { serviceId: parcel.shipment.service, service: serviceName(parcel.shipment.service), pickup: parcel.shipment.pickup } : null,
       mode: parcel.mode ?? null,
       courier: parcel.courier ?? null,
       custody: (parcel.custody || []).map((c) => ({

@@ -4,7 +4,7 @@ import { friendlyMessage } from "@/lib/api-errors";
 import { getAdminDb, getUserEmail, verifySignedInRequest } from "@/lib/firebase-admin";
 import { rateLimit } from "@/lib/rate-limit";
 import { notifyBell, sendEmail } from "@/lib/email";
-import { CustodyEntry, StoreOrder, cleanText, isHolderType, isHttpsUrl, normalizePhone } from "@/lib/orders";
+import { CustodyEntry, StoreOrder, cleanText, isHttpsUrl, parseCustody } from "@/lib/orders";
 import { autoReleaseAt, canActForSeller, confirmOrder, expireLinks, hashToken, holderUrl, newLinkToken } from "@/lib/orders-server";
 import { SITE_URL } from "@/lib/host";
 
@@ -72,14 +72,16 @@ export async function POST(req: NextRequest) {
       batch.update(ref, { status: "disputed", disputeReason: reason });
       batch.update(parcelRef, { status: "disputed" });
       batch.update(db.doc(`ledger/${order.reference}`), { status: "disputed" });
+      if (order.carrier) batch.update(db.doc(`ledger/${order.reference}_ship`), { status: "disputed" });
       await batch.commit();
       const to = await getUserEmail(order.sellerUid);
       if (to) await sendEmail({ to, bell: { uid: order.sellerUid, type: "order", linkHref: "/orders" }, subject: "A buyer reported a problem with an order", text: `The buyer of ${order.itemTitle} reported a problem: "${reason}". The money stays held while #NotesApp reviews it — please keep your tracking and any proof of delivery handy and reply to our email if we contact you.\n\n#NotesApp` }).catch(() => {});
       return NextResponse.json({ ok: true });
     }
 
-    // ---- seller ----
-    if (!isSeller) throw new Fail("Only the seller can do that.", 403);
+    // ---- seller, or the store's delivery partner carrying it (hand-offs and delivery, not the courier details) ----
+    const isCarrier = !isSeller && !!order.carrier && ["add_custody", "holder_link", "mark_delivered"].includes(action) && (await canActForSeller(me.uid, order.carrier.uid));
+    if (!isSeller && !isCarrier) throw new Fail("Only the seller can do that.", 403);
     const open = ["paid", "dispatched"].includes(order.status);
 
     if (action === "set_courier") {
@@ -103,21 +105,10 @@ export async function POST(req: NextRequest) {
     if (action === "add_custody") {
       if (!open) throw new Fail("This order can't be changed now.", 409);
       if (order.mode === "courier") throw new Fail("This order is tracked with a courier.", 409);
-      if (!isHolderType(body.holderType) || body.holderType === "buyer" || body.holderType === "courier") throw new Fail("Choose who holds the parcel.");
-      const holderName = cleanText(body.holderName, 60);
-      const location = cleanText(body.location, 120);
-      if (!holderName || !location) throw new Fail("Enter the holder's name and where the parcel is.");
-      let holderPhone: string | undefined;
-      if (String(body.holderPhone || "").trim()) {
-        const p = normalizePhone(body.holderPhone);
-        if (!p) throw new Fail("Enter a valid Nigerian phone number for the holder (e.g. 08012345678).");
-        if (body.consent !== true) throw new Fail("Confirm the holder agrees to their phone number being shown to the buyer.");
-        holderPhone = p;
-      }
-      const entry: CustodyEntry = {
-        id: `${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`,
-        holderType: body.holderType, holderName, ...(holderPhone ? { holderPhone } : {}), location, at: now, status: "confirmed", by: "seller",
-      };
+      const c = parseCustody(body, "buyer");
+      if (typeof c === "string") throw new Fail(c);
+      const { holderName, location } = c;
+      const entry: CustodyEntry = { id: `${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`, ...c, at: now, status: "confirmed", by: "seller" };
       const batch = db.batch();
       batch.update(ref, { status: "dispatched", mode: "handoff", ...(order.dispatchedAt ? {} : { dispatchedAt: now }) });
       batch.update(parcelRef, { status: "dispatched", mode: "handoff", custody: FieldValue.arrayUnion(entry) });

@@ -1,4 +1,6 @@
 import type { Metadata } from "next";
+import { DEFAULT_AVATAR } from "@/lib/admin";
+import { serviceName, servicesOf } from "@/lib/shipments";
 import { headers } from "next/headers";
 import Link from "next/link";
 import Image from "next/image";
@@ -47,17 +49,20 @@ export default async function SiteLayout({ children, params }: Props) {
       </div>
     );
   }
+  // No picture yet: the standard one, never an empty <img> (a broken image in the header, the profile and the footer).
+  const avatar = p.avatar || DEFAULT_AVATAR;
   const host = (headers().get("host") || "").toLowerCase().replace(/:\d+$/, "");
   const base = isMainHost(host) ? `/s/${p.username}` : "";
   // Business: "Name is powered by [na] #NotesApp". Enterprise: "Name, powered by [na]" — just the icon.
   const fullLabel = getTierConfig(effectiveTier(p)).whiteLabel === "full";
   const domain = await domainForUid(p.uid).catch(() => null);
   const info = {
-    base, uid: p.uid, username: p.username, displayName: p.displayName, avatar: p.avatar, bio: p.bio, social: p.social || {},
+    base, uid: p.uid, username: p.username, displayName: p.displayName, avatar, bio: p.bio, social: p.social || {},
     home: (domain?.home === "store" ? "store" : "profile") as "profile" | "store",
     theme: siteThemeOf(p), isOrg: p.accountKind === "organisation",
     sections: siteSectionsOf(p),
     pages: { about: !missingSitePages(p).includes("about"), contact: !missingSitePages(p).includes("contact") },
+    services: siteSectionsOf(p).track ? servicesOf(p).map(serviceName) : [],
   };
   const crimson = isCrimsonTheme(info.theme); // Aurora and Maroon: the crimson header
   const pic = info.isOrg ? "rounded-xl" : "rounded-full";
@@ -72,7 +77,7 @@ export default async function SiteLayout({ children, params }: Props) {
           <div className="mx-auto flex max-w-5xl items-center justify-between gap-4 px-4 py-4 sm:px-6">
             <Link href={base || "/"} className="flex min-w-0 items-center gap-3">
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={p.avatar} alt="" className={`h-9 w-9 shrink-0 object-cover ${pic}`} />
+              <img src={avatar} alt="" className={`h-9 w-9 shrink-0 object-cover ${pic}`} />
               <span className={`truncate font-ui text-lg font-extrabold tracking-tight ${crimson ? "text-paper" : "text-ink"}`}>{p.displayName}</span>
               <NameBadgeIcons username={p.username} size={16} badges={badgesOf(p)} />
             </Link>
@@ -98,7 +103,7 @@ export default async function SiteLayout({ children, params }: Props) {
           <div className="border-t border-paper/10 py-4 text-center text-xs text-paper/55">
             <p className="inline-flex flex-wrap items-center justify-center gap-x-2 gap-y-1">
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={p.avatar} alt="" className="h-4 w-4 shrink-0 rounded object-cover" />
+              <img src={avatar} alt="" className="h-4 w-4 shrink-0 rounded object-cover" />
               <span>{fullLabel ? `${p.displayName}, powered by` : `${p.displayName} is powered by`}</span>
               <a href={`https://${MAIN_HOST}`} aria-label="#NotesApp" className="inline-flex items-center gap-1.5 font-semibold text-paper/80 hover:text-paper">
                 <Image src="/images/brand/notesapp-icon.webp" alt="" width={16} height={16} className="h-4 w-4 rounded" />

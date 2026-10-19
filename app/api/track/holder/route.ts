@@ -45,6 +45,7 @@ export async function GET(req: NextRequest) {
       itemTitle: parcel.itemTitle,
       destination: `${parcel.city}, ${parcel.state}`,
       parcelStatus: parcel.status,
+      kind: parcel.kind ?? "store",
       entry: { id: entry.id, holderType: entry.holderType, holderName: entry.holderName, location: entry.location, status: entry.status },
       isLatest: !!latest && latest.id === entry.id,
     });
@@ -93,7 +94,7 @@ export async function POST(req: NextRequest) {
       if (!holderName || !location) throw new Fail("Enter the next holder's name and where you're handing it over.");
       const p = normalizePhone(body.holderPhone);
       if (!p) throw new Fail("Enter the next holder's Nigerian phone number (e.g. 08012345678).");
-      if (body.consent !== true) throw new Fail("Confirm they agree to their phone number being shown to the buyer.");
+      if (body.consent !== true) throw new Fail(`Confirm they agree to their phone number being shown to the ${parcel.kind === "shipment" ? "receiver" : "buyer"}.`);
       const next: CustodyEntry = {
         id: `${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`,
         holderType: body.holderType, holderName, holderPhone: p, location, at: now, status: "pending", by: "holder",
@@ -103,12 +104,15 @@ export async function POST(req: NextRequest) {
       batch.update(pref, { custody: FieldValue.arrayUnion(next) });
       batch.set(db.doc(`parcelLinks/${hashToken(token)}`), { parcelId: parcel.parcelId, entryId: next.id, active: true, createdAt: now, expiresAt: new Date(Date.now() + 14 * 86_400_000).toISOString() });
       await batch.commit();
-      // The buyer sees where it is now (bell only; the seller gets the email below for store orders).
-      await notifyBell({ uid: parcel.buyerUid, type: parcel.kind === "merch" ? "merch" : "order", linkHref: `/track/${parcel.parcelId}`, message: `Your order is now with ${holderName} (${location}).` });
-      // Tell the seller who it's with now (holders' links expire on confirmation).
-      const order = (await db.doc(`storeOrders/${parcel.orderRef}`).get()).data() as StoreOrder | undefined;
-      const to = order ? await getUserEmail(order.sellerUid) : null;
-      if (to) await sendEmail({ to, bell: { uid: order?.sellerUid, type: "order", linkHref: "/orders", message: `Parcel ${parcel.parcelId}: ${entry.holderName} handed it to ${holderName}` }, subject: `Parcel ${parcel.parcelId} handed on`, text: `${entry.holderName} handed ${parcel.itemTitle} on to ${holderName} (${HOLDER_LABEL[body.holderType as keyof typeof HOLDER_LABEL]}) at ${location}. It shows as confirmed once ${holderName} opens their link and confirms.\n\n#NotesApp`, action: { label: "Track the parcel", url: `${SITE_URL}/track/${parcel.parcelId}` } }).catch(() => {});
+      // The buyer sees where it is now (bell only; the seller gets the email below for store orders). A shipment's receiver isn't a
+      // member: they follow the tracking page.
+      if (parcel.buyerUid) await notifyBell({ uid: parcel.buyerUid, type: parcel.kind === "merch" ? "merch" : "order", linkHref: `/track/${parcel.parcelId}`, message: `Your order is now with ${holderName} (${location}).` });
+      // Tell the seller (or the logistics business) who it's with now (holders' links expire on confirmation).
+      const shipment = parcel.kind === "shipment";
+      const order = shipment ? undefined : ((await db.doc(`storeOrders/${parcel.orderRef}`).get()).data() as StoreOrder | undefined);
+      const sellerUid = shipment ? parcel.sellerUid : order?.sellerUid;
+      const to = sellerUid ? await getUserEmail(sellerUid) : null;
+      if (to) await sendEmail({ to, bell: { uid: sellerUid, type: "order", linkHref: shipment ? "/shipments" : "/orders", message: `Parcel ${parcel.parcelId}: ${entry.holderName} handed it to ${holderName}` }, subject: `Parcel ${parcel.parcelId} handed on`, text: `${entry.holderName} handed ${parcel.itemTitle} on to ${holderName} (${HOLDER_LABEL[body.holderType as keyof typeof HOLDER_LABEL]}) at ${location}. It shows as confirmed once ${holderName} opens their link and confirms.\n\n#NotesApp`, action: { label: "Track the parcel", url: `${SITE_URL}/track/${parcel.parcelId}` } }).catch(() => {});
       return NextResponse.json({ ok: true, nextUrl: holderUrl(token) });
     }
 
@@ -123,6 +127,14 @@ export async function POST(req: NextRequest) {
       await batch.commit();
       await expireLinks(parcel.parcelId);
       await sendMerchStatusEmail(morder, parcel.parcelId, "delivered");
+      return NextResponse.json({ ok: true });
+    }
+
+    if (action === "delivered" && parcel.kind === "shipment") {
+      // A logistics business's shipment: no order and no escrow, just the record and a bell for the business.
+      await pref.update({ status: "delivered", "shipment.deliveredAt": now });
+      await expireLinks(parcel.parcelId);
+      await notifyBell({ uid: parcel.sellerUid, type: "order", linkHref: "/shipments", message: `Delivered: ${parcel.parcelId} (${parcel.itemTitle}), by ${entry.holderName}` });
       return NextResponse.json({ ok: true });
     }
 

@@ -31,6 +31,8 @@ import { AcademyError } from "@/lib/certificates";
 import { checkoutFor } from "@/lib/certificates-server";
 import { courseCheckout } from "@/lib/course-sales-server";
 import { CourseError } from "@/lib/courses-server";
+import { accessOf, partnerQuote } from "@/lib/logistics-server";
+import { itemKg } from "@/lib/logistics";
 
 // Starts a Paystack checkout for a 1:1 session or a monthly journal
 // subscription. Price, slots and plan all come from the publisher's
@@ -142,6 +144,25 @@ export async function POST(req: NextRequest) {
     }
 
     // ---- Nana AI credit pack (lib/nana-meter.ts), from the wallet or by card; anyone signed in can buy one ----
+    // ---- the logistics add-on: a month as a provider in the logistics network, for Free Basic and Pro ----
+    if (kind === "logistics_addon") {
+      const me = (await db.doc(`users/${user.uid}`).get()).data();
+      if (!me) return NextResponse.json({ error: "Account not found." }, { status: 404 });
+      const access = await accessOf(db, me as Parameters<typeof accessOf>[1]);
+      if (access.ok && access.via === "plan") return NextResponse.json({ error: "Your plan already includes the logistics tools." }, { status: 409 });
+      if (!["basic", "pro"].includes(String(me.accountTier))) return NextResponse.json({ error: "The logistics add-on is for Free Basic and Pro accounts that publish." }, { status: 403 });
+      const amount = currentPricing().logistics.addonMonthlyKobo;
+      const reference = newReference();
+      const origin = await callbackOrigin(req);
+      const tx = await initTx({ email: user.email, amountKobo: amount, reference, callbackUrl: `${origin}/booking/confirm`, metadata: { kind, uid: user.uid } });
+      const record: PaymentRecord = {
+        reference, kind: "logistics_addon", uid: user.uid, email: user.email, amountKobo: amount, status: "pending",
+        publisherUid: user.uid, publisherUsername: "", commissionRate: 0, createdAt: new Date().toISOString(),
+      };
+      await savePayment(record);
+      return NextResponse.json({ authorizationUrl: tx.authorization_url, reference, paid: payWith === "wallet" });
+    }
+
     if (kind === "nana_credit") {
       const pack = currentPricing().nana.topUps.find((p) => p.id === body.packId);
       if (!pack) return NextResponse.json({ error: "Choose a Nana credit pack." }, { status: 400 });
@@ -280,7 +301,10 @@ export async function POST(req: NextRequest) {
         city: String(a.city).trim(),
         state: String(a.state),
       };
-      const deliveryKobo = Number(item.deliveryKobo) || 0;
+      // The store's delivery partner prices the delivery from its rate card for this address and weight; with no partner, or one that
+      // doesn't cover the address, the item's own delivery fee applies as before.
+      const carrier = await partnerQuote(db, item.ownerUid, address, itemKg(item.weightKg) * quantity);
+      const deliveryKobo = carrier ? carrier.feeKobo : Number(item.deliveryKobo) || 0;
       const amountKobo = item.priceKobo * quantity + deliveryKobo;
       if (amountKobo > STORE_ITEM_MAX_KOBO * 2) return NextResponse.json({ error: "That order is too large." }, { status: 400 });
       const reference = newReference();
@@ -312,7 +336,7 @@ export async function POST(req: NextRequest) {
         store: {
           itemId: itemSnap.id, itemTitle: String(item.title), itemImage: String(item.image || ""), quantity,
           ...(variant ? { variant, variantLabel } : {}),
-          unitKobo: item.priceKobo, deliveryKobo, address,
+          unitKobo: item.priceKobo, deliveryKobo, address, ...(carrier ? { carrier } : {}),
         },
         createdAt: new Date().toISOString(),
       };
