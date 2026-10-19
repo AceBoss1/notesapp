@@ -11,7 +11,7 @@ import { certificateMin } from "@/lib/pricing";
 export const metadata: Metadata = {
   title: "Roadmap",
   description:
-    "What's live and what's next for #NotesApp — the journal feed, Explore, Notes Market, free courses and certificates in Notes Academy, Your site, the Weekly Digest, messages, free calls, Nana AI and publishing to LinkedIn and X are live; paid courses, full white label, Paylony payments and more are next, and the Team hub, company finance tools, the data room and LinkedIn advertising come as paid add-ons for Business and Enterprise after internal testing.",
+    "What's live and what's next for #NotesApp — the journal feed, Explore, Notes Market, free and paid courses and certificates in Notes Academy, Your site, the Weekly Digest, messages, free calls, Nana AI and publishing to LinkedIn and X are live; quizzes, the Enterprise course packages, full white label, Paylony payments and more are next, and the Team hub, company finance tools, the data room and LinkedIn advertising come as paid add-ons for Business and Enterprise after internal testing.",
 };
 
 // The four tools our own team is testing before Business and Enterprise can add them for a fee.
@@ -21,7 +21,7 @@ const ITEMS: { title: string; tag: string; body: string; detail: string; link?: 
   {
     title: "Notes Academy: courses on #NotesApp",
     tag: "Courses",
-    body: "Live now: free courses and certificates. Any publisher can teach, with lessons from their own YouTube that play inside #NotesApp, plus text lessons, and learners keep their progress; finishers get a certificate anyone can check and add to LinkedIn. Next, in this order: paid courses on Pro and Business, quizzes and reviews, then the Enterprise packages.",
+    body: "Live now: free and paid courses, certificates and reviews. Any publisher can teach for free, with lessons from their own YouTube that play inside #NotesApp, plus text lessons; Pro sells courses with text, PDFs and YouTube, and Business and Enterprise upload their own videos too, with up to 4 co-tutors. Learners keep their progress, and finishers get a certificate anyone can check and add to LinkedIn. Next: quizzes, then the Enterprise packages.",
     get detail() { return `Free courses are free to publish and to take. Certificates on free courses are paid: the learner pays from ${certificateMin()} plus the margin the teacher sets. Paid courses are uploaded to #NotesApp, kept private and played only for learners who paid, with the viewer's @username and email drawn faintly over the video; our fee on them is the same as on digital store items. For organisations, two packages sit on top of Enterprise: Enterprise Courses, and the Enterprise Academy API for a white-label academy of their own. Prices are on the pricing page.`; },
     link: { href: "/academy", label: "Visit Notes Academy →" },
   },
@@ -183,7 +183,7 @@ export default function RoadmapPage() {
   return (
     <>
       <PageHero eyebrow="Coming Soon" title={<>What's next for #NotesApp</>}>
-        <p>The core loop — publish, book, get paid — is live, and so is a lot around it: the journal feed with your interests, Explore and saved journals, Notes Market, free courses in Notes Academy, Your site for Business and Enterprise, the Weekly Digest, Nana AI and the help centre, publishing to LinkedIn and X, messages and free calls, paid sessions, subscriptions, boosts, gifts, the paid plans, organisation accounts and stores with parcel tracking. Below is what&apos;s live in each area and what comes next; the list on the right is decided and documented, not yet built. Last updated 17 October 2026.</p>
+        <p>The core loop — publish, book, get paid — is live, and so is a lot around it: the journal feed with your interests, Explore and saved journals, Notes Market, free and paid courses in Notes Academy, Your site for Business and Enterprise, the Weekly Digest, Nana AI and the help centre, publishing to LinkedIn and X, messages and free calls, paid sessions, subscriptions, boosts, gifts, the paid plans, organisation accounts and stores with parcel tracking. Below is what&apos;s live in each area and what comes next; the list on the right is decided and documented, not yet built. Last updated 19 October 2026.</p>
       </PageHero>
       <div className="mx-auto max-w-4xl px-4 py-12 sm:px-6 lg:px-8">
 
@@ -200,7 +200,7 @@ export default function RoadmapPage() {
               <li>The journal feed: For you (your <Link href="/interests" className="text-crimson underline">interests</Link> first), Following, Latest and Top · 7d, with Most read and Who to follow; <Link href="/explore" className="text-crimson underline">Explore</Link> for topics, people and channels; and <Link href="/saved" className="text-crimson underline">saved journals</Link></li>
               <li>A new look on phones: one light header, and a tab bar along the bottom (Feed, Explore, Market, Messages, Profile); profiles with Notes, Store and Courses tabs and Follow, Book a session, Conversation and Gift me</li>
               <li><Link href="/shop" className="text-crimson underline">Notes Market</Link>: every #NotesApp store in one place, For you first, then the most viewed and the newest</li>
-              <li><Link href="/academy" className="text-crimson underline">Notes Academy</Link>: free courses from any publisher, with lessons from their own YouTube that play right here</li>
+              <li><Link href="/academy" className="text-crimson underline">Notes Academy</Link>: free courses from any publisher, with lessons from their own YouTube that play right here, paid courses on Pro, Business and Enterprise with co-tutors, reviews, and certificates anyone can check</li>
               <li>Your site for Business and Enterprise: the Legacy, Aurora or Maroon theme, Journals, Shop and Courses on or off, and About and Contact pages</li>
               <li>The #NotesApp Weekly Digest on Sunday evenings (with the most viewed and most bought in Notes Market), and a notification when someone @mentions you</li>
               <li>Paid 1:1 sessions on each publisher&apos;s own rate and availability, paid through Paystack, with a bookings dashboard, rescheduling and a clear cancellation policy</li>
@@ -228,8 +228,9 @@ export default function RoadmapPage() {
           <div>
             <p className="font-ui text-sm font-bold text-ink">○ On the roadmap, not live</p>
             <ul className="mt-3 space-y-2 text-sm text-slate">
-              <li>Course certificates anyone can verify, paid courses on Pro and Business, quizzes, and the two Enterprise course packages</li>
+              <li>Course quizzes, and the two Enterprise course packages</li>
               <li>WhatsApp reminders alongside email and the bell</li>
+              <li><Link href="/community" className="text-crimson underline">Community</Link> for churches, NGOs, schools and clubs: public and members-only Spaces, a General announcement channel, private Circles, and <Link href="/events" className="text-crimson underline">Events</Link> for every account with reminders and Join live links (free up to 200 members; our own live streaming later, as a paid add-on)</li>
               <li>For logistics providers: API and webhooks on Enterprise, and Nana suggesting delivery rates</li>
               {GOLD_KIND_LIVE.identity ? null : <li>Automatic identity-checked gold badge (all built; NIN + face check for people, CAC for organisations awaiting final tests)</li>}
               <li>Full white label for Enterprise (sign-in, sign-up and emails in the member&apos;s name are live; checkout and bookings on their own site, and their own sending address, are next)</li>

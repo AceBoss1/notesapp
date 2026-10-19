@@ -32,7 +32,7 @@ const FEATURES = [
   { title: "Public & private journals", copy: "One toggle, same canvas. Publish an article, or keep a private session log for a client — your call, entry by entry." },
   { title: "A journal feed made for you", copy: "Pick your interests and journals on them come first, under For you. Then Following, Latest and Top this week, with Most read and Who to follow between the posts. Like, comment, share and save straight from the feed, and find topics, people and channels in Explore. On a phone, a tab bar along the bottom takes you to Feed, Explore, Market, Messages and your Profile." },
   { title: "Notes Market", copy: "Every #NotesApp store in one place: items picked for you first, then the most viewed this week and the newest, with digital items, categories and a list of stores. Buying works just as it does in the seller's own store." },
-  { title: "Notes Academy: free courses", copy: "Teach for free with lessons from your own YouTube, played right inside #NotesApp, and learners keep their progress. Paid courses on Pro and Business are next, and certificates anyone can check." },
+  { title: "Notes Academy: free and paid courses", copy: "Teach for free with lessons from your own YouTube, or sell courses: on Pro with text lessons, PDFs and YouTube, on Business and Enterprise with your own uploaded videos too, and up to 4 co-tutors. Learners keep their progress, and finishers get certificates anyone can check." },
   { title: "The Weekly Digest", copy: "On Sunday evenings, up to five journals from the week, from people you follow and the topics you like, plus the most viewed and most bought in Notes Market. One click to unsubscribe." },
   { title: "Native booking calendar", copy: "Built into your profile page, running on your own weekly availability. No redirect, no second login — and clients can cancel or reschedule under a clear refund policy." },
   { title: "Your rates, your payouts", copy: "Set your own session price and monthly subscription price. Paystack collects in Naira; earnings are paid to your verified bank account after each session." },
@@ -53,6 +53,7 @@ const FEATURES = [
   { title: "Trust you can check", copy: "Buyer payments held until delivery, private files behind short-lived links, view-only courses on two devices, tested access rules, and your own data to download or delete. Read how it works on Trust & security." },
   { title: "Nana AI and a help centre", copy: "Ask Nana, our helper, anything about the platform from the chat button on every page, and get answers with links to the right page, or browse the help centre. She can also suggest replies that offer your open session times and booking link. If Nana can't help, she passes you to a person." },
   { title: "Open about what's live", copy: "A public status page with response times and incident updates, and a changelog of every release, so you always know what changed." },
+  { title: "Community & Events (coming)", copy: "For churches, NGOs, schools and clubs: post to everyone or to members only, announce to the whole community, run private Circles, and publish events with reminders and a Join live link. Free up to 200 members." },
   { title: "Bring your own transcription (coming)", copy: "Connect Otter.ai or Whisper for session notes. We integrate; we don't lock you into one AI vendor." },
 ];
 
