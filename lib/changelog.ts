@@ -11,6 +11,14 @@ export type Release = {
 
 export const CHANGELOG: Release[] = [
   {
+    version: "v0.57.1",
+    bump: "patch",
+    date: "2026-10-19",
+    changes: [
+      { kind: "fixed", text: "Home, About, the roadmap, Store selling and the help centre now say paid courses are live (Pro: text, PDFs and YouTube; Business and Enterprise: your own uploaded videos too, with co-tutors), instead of calling them next." },
+    ],
+  },
+  {
     version: "v0.57.0",
     bump: "minor",
     date: "2026-10-19",

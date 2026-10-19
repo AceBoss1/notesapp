@@ -55,7 +55,7 @@ export default function StoreSellingPage() {
         <li>Honest limits: nothing on a screen can be made impossible to copy — someone determined can record their screen. This stops casual saving and sharing, and ties each purchase to one buyer and two devices.</li>
       </ul>
       <p className="mt-3 text-sm text-slate">
-        Want to teach a full course, with progress for learners? <Link href="/academy" className="text-crimson underline">Notes Academy</Link> has free courses now, with lessons from your own YouTube; paid courses on Pro and Business come next, with the same fee as your digital items.
+        Want to teach a full course, with progress for learners? <Link href="/academy" className="text-crimson underline">Notes Academy</Link> has free courses with lessons from your own YouTube and, on Pro and above, paid courses, with the same fee as your digital items.
       </p>
 
       <h2 className="mt-12 font-display text-2xl text-ink">Boost your items</h2>

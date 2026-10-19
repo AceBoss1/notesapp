@@ -421,7 +421,7 @@ Choose **Digital download** when you add an item and upload your file (PDF, ePub
 
 On **Pro and above** you can instead choose **View only**: add lessons (videos or PDFs) that buyers watch or read on #NotesApp with no download, on up to two devices per purchase, with the buyer's email faintly stamped on the content. One lesson is a single view-only file; several make a course. See [Store selling](/store-selling#view-only).
 
-For a full course, with progress for learners, use [Notes Academy](/academy): free courses with lessons from your own YouTube are open now, and paid courses on Pro and Business come next, with the same fee as your digital items.`),
+For a full course, with progress for learners, use [Notes Academy](/academy): free courses with lessons from your own YouTube, and on Pro and above paid courses, with the same fee as your digital items.`),
     A("track-a-parcel", "Tracking a parcel", "Selling", `
 Every store order gets a parcel ID that looks like NA-7K2M9QXD, sent to the buyer by email. Enter it on [Track a parcel](/track) to see where the parcel is, who holds it and the courier details if there are any. Parcels sent by a logistics business on #NotesApp have the same kind of number: track them on that business's own site, or here.`),
     A("logistics-shipments", "Shipments for logistics businesses", "Selling", `
@@ -545,7 +545,7 @@ Use the [contact form](/contact) and pick the topic (bookings, payments and refu
     A("about-and-status", "About #NotesApp, status and updates", "Company", `
 #NotesApp is run by ${COMPANY_INFO.legalName} (RC ${COMPANY_INFO.rcNumber}), a private company limited by shares registered in Nigeria. Read [About](/about), see live service health on [Status](/status), what changed on the [Changelog](/changelog) and what is coming on the [roadmap](/roadmap). Our domain partner is Whogohost (go54), and we connect to services such as Paystack, Paylony, Cloudflare, Firebase, Vercel, Resend and Dojah.`),
     A("roadmap-whats-coming", "What is coming next", "Company", `
-Not live yet, with no promised dates: paid courses on Pro and Business, and the Enterprise course packages; publishing to Facebook, Instagram and TikTok (LinkedIn and X are live); AI drafting from your past notes; domain sales and DNS management inside #NotesApp; ${WALLET_LIVE ? "paid calls in Notes Life (the NotesApp Credit wallet itself is live)" : "NotesApp Credit and Bonus Credits"}; Paylony payments and Tap-to-Pay; WhatsApp reminders; fuller identity checks; and iOS and Android apps. Details and the latest are on the [roadmap](/roadmap).
+Not live yet, with no promised dates: course quizzes and the Enterprise course packages; publishing to Facebook, Instagram and TikTok (LinkedIn and X are live); AI drafting from your past notes; domain sales and DNS management inside #NotesApp; ${WALLET_LIVE ? "paid calls in Notes Life (the NotesApp Credit wallet itself is live)" : "NotesApp Credit and Bonus Credits"}; Paylony payments and Tap-to-Pay; WhatsApp reminders; fuller identity checks; and iOS and Android apps. Details and the latest are on the [roadmap](/roadmap).
 
 ${ADD_ONS_LINE}`),
     A("million-naira-challenge", "The #1MillionNairaNotesAppChallenge", "Company", `

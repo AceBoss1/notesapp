@@ -33,7 +33,7 @@ const LIVE = [
   { href: "/journals", title: "Journals", copy: "Publish with a rich-text composer and up to 3 topics; readers follow, comment, like, share and save." },
   { href: "/journals", title: "The journal feed & Explore", copy: "For you (your interests first), Following, Latest and Top this week, with Most read and Who to follow. Explore topics, people and channels, and keep journals in Saved. On a phone, a tab bar along the bottom: Feed, Explore, Market, Messages, Profile." },
   { href: "/shop", title: "Notes Market", copy: "Every #NotesApp store in one place: items for you, the most viewed this week, new arrivals, categories and a list of stores." },
-  { href: "/academy", title: "Notes Academy", copy: "Free courses from any publisher, with lessons from their own YouTube that play inside #NotesApp. Paid courses on Pro and Business are next." },
+  { href: "/academy", title: "Notes Academy", copy: "Free and paid courses from any publisher: free ones with lessons from their own YouTube, paid ones on Pro (text, PDFs and YouTube) and on Business and Enterprise (your own uploaded videos too), with co-tutors, reviews and certificates anyone can check." },
   { href: "/help/weekly-digest", title: "The Weekly Digest", copy: "A Sunday-evening email with up to five journals from the week, chosen for you, and what's moving in Notes Market." },
   { href: "/booking", title: "Paid 1:1 sessions", copy: "Your own price and weekly availability, Paystack checkout, reminders and a clear cancellation policy." },
   { href: "/journals", title: "Monthly subscriptions", copy: "Readers subscribe to unlock your premium entries; renewals are automatic." },
@@ -112,7 +112,7 @@ export default async function AboutPage() {
         <p className="eyebrow">What you can do today</p>
         <FeatureMosaic className="mt-5" items={LIVE} />
         <p className="mt-4 text-sm text-slate">
-          Still to come: paid courses and certificates, WhatsApp reminders, iOS and Android apps, sharing
+          Still to come: quizzes and the Enterprise course packages, WhatsApp reminders, iOS and Android apps, sharing
           to more social networks (LinkedIn and X are live), and Google and Meta ads
           alongside our own. The Team hub, company finance tools, an investor data room and advertising on LinkedIn
           are being tested by our own team and will be paid add-ons for Business and Enterprise once that testing is done — see the{" "}
