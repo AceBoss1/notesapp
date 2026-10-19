@@ -4,7 +4,7 @@ import { friendlyMessage } from "@/lib/api-errors";
 import { getAdminDb, getUserEmail, verifySignedInRequest } from "@/lib/firebase-admin";
 import { rateLimit } from "@/lib/rate-limit";
 import { notifyBell, sendEmail } from "@/lib/email";
-import { CustodyEntry, StoreOrder, cleanText, isHolderType, isHttpsUrl, normalizePhone } from "@/lib/orders";
+import { CustodyEntry, StoreOrder, cleanText, isHttpsUrl, parseCustody } from "@/lib/orders";
 import { autoReleaseAt, canActForSeller, confirmOrder, expireLinks, hashToken, holderUrl, newLinkToken } from "@/lib/orders-server";
 import { SITE_URL } from "@/lib/host";
 
@@ -103,21 +103,10 @@ export async function POST(req: NextRequest) {
     if (action === "add_custody") {
       if (!open) throw new Fail("This order can't be changed now.", 409);
       if (order.mode === "courier") throw new Fail("This order is tracked with a courier.", 409);
-      if (!isHolderType(body.holderType) || body.holderType === "buyer" || body.holderType === "courier") throw new Fail("Choose who holds the parcel.");
-      const holderName = cleanText(body.holderName, 60);
-      const location = cleanText(body.location, 120);
-      if (!holderName || !location) throw new Fail("Enter the holder's name and where the parcel is.");
-      let holderPhone: string | undefined;
-      if (String(body.holderPhone || "").trim()) {
-        const p = normalizePhone(body.holderPhone);
-        if (!p) throw new Fail("Enter a valid Nigerian phone number for the holder (e.g. 08012345678).");
-        if (body.consent !== true) throw new Fail("Confirm the holder agrees to their phone number being shown to the buyer.");
-        holderPhone = p;
-      }
-      const entry: CustodyEntry = {
-        id: `${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`,
-        holderType: body.holderType, holderName, ...(holderPhone ? { holderPhone } : {}), location, at: now, status: "confirmed", by: "seller",
-      };
+      const c = parseCustody(body, "buyer");
+      if (typeof c === "string") throw new Fail(c);
+      const { holderName, location } = c;
+      const entry: CustodyEntry = { id: `${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`, ...c, at: now, status: "confirmed", by: "seller" };
       const batch = db.batch();
       batch.update(ref, { status: "dispatched", mode: "handoff", ...(order.dispatchedAt ? {} : { dispatchedAt: now }) });
       batch.update(parcelRef, { status: "dispatched", mode: "handoff", custody: FieldValue.arrayUnion(entry) });

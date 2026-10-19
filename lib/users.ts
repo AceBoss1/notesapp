@@ -122,7 +122,8 @@ export type UserProfile = {
   // Organisation accounts (server-written; see lib/org.ts). Absent = personal.
   accountKind?: AccountKind;
   siteTheme?: string; // Business and Enterprise: the look of their own site (lib/site-themes.ts); written only by /api/site/theme
-  siteSections?: { journals?: boolean; shop?: boolean; courses?: boolean }; // what their site shows (lib/site-settings.ts); written only by /api/site/sections
+  siteSections?: { journals?: boolean; shop?: boolean; courses?: boolean; track?: boolean }; // what their site shows (lib/site-settings.ts); written only by /api/site/sections
+  logistics?: { services?: string[] }; // logistics businesses: the services they offer (lib/shipments.ts servicesOf); written only by /api/shipments
   sitePages?: { about?: string; contact?: string; updatedAt?: string }; // their site's About and Contact pages, Markdown; written only by /api/site/pages
   org?: OrgInfo;
   trialUntil?: string; // free Business trial end

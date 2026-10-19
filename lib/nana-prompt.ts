@@ -7,7 +7,7 @@ export const NANA_PAGES: [path: string, what: string][] = [
   ["/", "Home"], ["/journals", "The journal feed (For you, Following, Latest, Top this week)"], ["/trending", "Most visited publishers and posts"], ["/signup", "Create an account"], ["/login", "Sign in"],
   ["/forgot-password", "Reset a password"], ["/pricing", "Plans, prices and what each includes"], ["/booking", "How paid sessions and bookings work"], ["/bookings", "A member's own bookings"],
   ["/gifts", "Gifts"], ["/boost", "Boost packages and prices"], ["/coauthoring", "Co-authoring"], ["/advertise", "Advertise on #NotesApp"], ["/badges", "Verified and gold badges"],
-  ["/store-selling", "Selling physical goods and digital downloads"], ["/track", "Track a parcel"], ["/merchstore", "Merch store"], ["/organisations", "Organisation accounts"],
+  ["/store-selling", "Selling physical goods and digital downloads"], ["/track", "Track a parcel"], ["/logistics", "For logistics businesses: shipments, tracking and their own site"], ["/shipments", "A logistics business's shipments (Business and Enterprise)"], ["/merchstore", "Merch store"], ["/organisations", "Organisation accounts"],
   ["/organisation", "Turn an account into an organisation"], ["/domains", "Domains (coming soon)"], ["/teams", "Team hub (a paid add-on for Business and Enterprise after internal testing; not available yet)"], ["/docs", "API docs"],
   ["/explore", "Explore topics, people and channels"], ["/saved", "A member's saved journals and items"], ["/interests", "Choose your interests"], ["/shop", "Notes Market: every #NotesApp store"], ["/academy", "Notes Academy: courses"],
   ["/profile/site", "Your site (Business and Enterprise)"], ["/profile/wallet", "NotesApp Credit wallet"],

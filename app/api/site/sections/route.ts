@@ -18,7 +18,7 @@ export async function POST(req: NextRequest) {
     if (limited) return limited;
     const b = await req.json().catch(() => ({}));
     const sections = cleanSiteSections(b.sections);
-    if (!sections) return NextResponse.json({ error: "Choose at least one of Journals, Shop and Courses." }, { status: 400 });
+    if (!sections) return NextResponse.json({ error: "Choose at least one of Journals, Shop, Courses and Track." }, { status: 400 });
     const db = getAdminDb();
     const snap = await db.doc(`users/${user.uid}`).get();
     const p = snap.data() as UserProfile | undefined;

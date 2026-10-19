@@ -9,6 +9,7 @@ type Info = {
   itemTitle: string;
   destination: string;
   parcelStatus: string;
+  kind?: "store" | "merch" | "shipment";
   entry: { id: string; holderType: HolderType; holderName: string; location: string; status: "confirmed" | "pending" };
   isLatest: boolean;
 };
@@ -60,11 +61,15 @@ export default function HolderPage() {
 
   if (!info) return <div className="mx-auto max-w-md px-4 py-24 text-center text-slate">{error || "Loading…"}</div>;
   const e = info.entry;
+  // A logistics business's shipment goes to a receiver, and its "Seller" step is the business's office.
+  const shipment = info.kind === "shipment";
+  const to = shipment ? "receiver" : "buyer";
+  const label = (t: HolderType) => (shipment && t === "seller" ? "Office" : HOLDER_LABEL[t]);
   return (
     <section className="mx-auto max-w-md px-4 py-12">
       <span className="eyebrow">Parcel {info.parcelId}</span>
       <h1 className="mt-3 font-display text-2xl text-ink">{info.itemTitle}</h1>
-      <p className="mt-1 text-sm text-slate">Going to {info.destination} · you: {HOLDER_LABEL[e.holderType]} {e.holderName}</p>
+      <p className="mt-1 text-sm text-slate">Going to {info.destination} · you: {label(e.holderType)} {e.holderName}</p>
       {error && <p className="mt-4 text-sm text-crimson">{error}</p>}
       {msg && <p className="mt-4 text-sm text-ink">{msg}</p>}
 
@@ -87,7 +92,7 @@ export default function HolderPage() {
             <div className="mt-2 grid gap-2">
               <label className="text-xs text-slate">Who
                 <select value={next.holderType} onChange={(ev) => setNext({ ...next, holderType: ev.target.value as HolderType })} className={field}>
-                  {(["bike", "bus", "park", "seller"] as HolderType[]).map((t) => <option key={t} value={t}>{HOLDER_LABEL[t]}</option>)}
+                  {(["bike", "bus", "park", "seller"] as HolderType[]).map((t) => <option key={t} value={t}>{label(t)}</option>)}
                 </select>
               </label>
               <label className="text-xs text-slate">Their name<input value={next.holderName} onChange={(ev) => setNext({ ...next, holderName: ev.target.value })} className={field} /></label>
@@ -95,7 +100,7 @@ export default function HolderPage() {
               <label className="text-xs text-slate">Where you&apos;re handing it over<input value={next.location} onChange={(ev) => setNext({ ...next, location: ev.target.value })} className={field} /></label>
               <label className="flex items-start gap-2 text-xs text-slate">
                 <input type="checkbox" checked={next.consent} onChange={(ev) => setNext({ ...next, consent: ev.target.checked })} className="mt-0.5" />
-                <span>They agree to their phone number being shown to the buyer.</span>
+                <span>They agree to their phone number being shown to the {to}.</span>
               </label>
             </div>
             <button disabled={busy} onClick={() => act({ action: "pass_on", ...next }, "Recorded. Send them the link below — your own link stops working once they confirm.")} className="btn-primary mt-3 !px-4 !py-2 text-xs">Hand it on</button>
@@ -107,8 +112,8 @@ export default function HolderPage() {
             )}
           </div>
           <div className="card p-5 text-sm">
-            <p className="font-ui font-bold text-ink">Delivered to the buyer?</p>
-            <button disabled={busy} onClick={() => confirm("Mark this parcel as delivered to the buyer?") && act({ action: "delivered" }, "Marked delivered. Thank you!")} className="btn-primary mt-2 !px-4 !py-2 text-xs">Mark delivered</button>
+            <p className="font-ui font-bold text-ink">Delivered to the {to}?</p>
+            <button disabled={busy} onClick={() => confirm(`Mark this parcel as delivered to the ${to}?`) && act({ action: "delivered" }, "Marked delivered. Thank you!")} className="btn-primary mt-2 !px-4 !py-2 text-xs">Mark delivered</button>
           </div>
         </div>
       )}

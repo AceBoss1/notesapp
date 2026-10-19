@@ -1,5 +1,6 @@
 "use client";
 
+import { canChooseSiteTheme } from "@/lib/site-themes";
 import { useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -38,6 +39,7 @@ export default function AccountSheet({ open, onClose, links }: { open: boolean; 
     ...(MESSAGES_LIVE ? [{ href: "/messages", label: "Messages", badge: unreadDms }] : []),
     { href: "/bookings", label: "Bookings" },
     { href: "/orders", label: "Orders & parcels" },
+    ...(canChooseSiteTheme(profile) ? [{ href: "/shipments", label: "Shipments (logistics)" }] : []),
     ...(WALLET_LIVE ? [{ href: "/profile/wallet", label: "Wallet" }] : []),
     { href: "/saved", label: "Saved" },
     { href: "/interests", label: "Your interests" },

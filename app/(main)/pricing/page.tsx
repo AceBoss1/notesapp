@@ -133,6 +133,11 @@ const ROWS: Row[] = [
     render: (t) => (t.canPublish ? "Buyer's money held until delivery · parcel ID · no-login hand-over links for riders and drivers" : "—"),
   },
   {
+    label: "Shipments for logistics businesses",
+    href: "/logistics",
+    render: (t) => (!t.canPublish ? "—" : t.customDomain ? "Book shipments for your customers, rider hand-off links, and a Track page on your own site · deliveries are paid by the customer" : "—"),
+  },
+  {
     label: "Your own domain",
     render: (t) =>
       !t.canPublish

@@ -417,7 +417,23 @@ On **Pro and above** you can instead choose **View only**: add lessons (videos o
 
 For a full course, with progress for learners, use [Notes Academy](/academy): free courses with lessons from your own YouTube are open now, and paid courses on Pro and Business come next, with the same fee as your digital items.`),
     A("track-a-parcel", "Tracking a parcel", "Selling", `
-Every store order gets a parcel ID that looks like NA-7K2M9QXD, sent to the buyer by email. Enter it on [Track a parcel](/track) to see where the parcel is, who holds it and the courier details if there are any.`),
+Every store order gets a parcel ID that looks like NA-7K2M9QXD, sent to the buyer by email. Enter it on [Track a parcel](/track) to see where the parcel is, who holds it and the courier details if there are any. Parcels sent by a logistics business on #NotesApp have the same kind of number: track them on that business's own site, or here.`),
+    A("logistics-shipments", "Shipments for logistics businesses", "Selling", `
+For delivery, waybill, warehousing and home or office errand businesses on **Business or Enterprise** ([For logistics businesses](/logistics)).
+
+**Your services:** on [Shipments](/shipments), open **Your services** and tick what you do: delivery, waybill, bulk delivery, warehousing and despatch, home errands, office errands. An errands company ticks errands only; a full logistics company ticks everything. Only those can be booked, and your site lists them.
+
+**Book a shipment:** choose the service, say what's being sent, the sender, where it's picked up (or stored), and the receiver's name, phone and address. You get a tracking number like NA-7K2M9QXD. Tap **Send on WhatsApp** (or SMS) to send the receiver their number and link.
+
+**Hand it on:** under **Record who has it now**, add the rider, bus driver or park agent and where it is, then **Get their update link** and send it to them. From that link they update the location, hand it to the next person and mark it delivered, with no account. Each link stops working once the next person confirms. You can mark it delivered yourself, or cancel it while it's still only booked.
+
+**Your site's Track page:** in [Your site](/profile/site), switch on **Track**. Your site then has a Track link in its menu, a tracking box on Home with your services, and a page for each shipment, on your own domain at /track. Only your shipments show there. With Track off, links go to #NotesApp's [Track a parcel](/track) page.
+
+**Your team:** in an organisation, staff with store access can book and update shipments in your business's name.
+
+**Privacy:** the receiver's phone number and address are only for you and your team. A rider's phone number shows only if they agreed, and only to someone who enters the last 4 digits of the receiver's phone number.
+
+Deliveries are paid: you set your delivery prices and your customers pay them. Only digital items never need shipping.`),
     A("merch-store", "The official #NotesApp merch store", "Selling", `
 T-shirts, caps, mugs and more, with the core mark or a seasonal logo from the [Brand page](/brand). You pre-order and pay with Paystack; we print after the batch closes and deliver anywhere in Nigeria for a flat ${money(MERCH_DELIVERY_KOBO)}. See the [Merch store](/merchstore). Every publisher's own shop is in [Notes Market](/shop), and listed on the Merch store page too.`),
     // ── Badges and trust
