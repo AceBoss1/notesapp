@@ -24,6 +24,10 @@ const FlipIcon = () => (
 const CameraIcon = ({ off }: { off?: boolean }) => (
   <Icon><rect x="2.5" y="6.5" width="13.5" height="11" rx="2" /><path d="M16 10.5l5.5-3v9l-5.5-3z" />{off && <path d="M3 3.5l17 17" />}</Icon>
 );
+const ScreenIcon = ({ on }: { on?: boolean }) => (
+  <Icon><rect x="2.5" y="4" width="19" height="12.5" rx="1.5" /><path d="M8.5 20.5h7M12 16.5v4" />{on ? <path d="M9 8l6 5M15 8l-6 5" /> : <path d="M12 13V7.5M9.5 10L12 7.5l2.5 2.5" />}</Icon>
+);
+const LockIcon = () => <Icon className="h-3.5 w-3.5"><rect x="5" y="10.5" width="14" height="10" rx="2" /><path d="M8 10.5V7.5a4 4 0 018 0v3" /></Icon>;
 const CrossIcon = ({ className }: { className?: string }) => <Icon className={className}><path d="M6 6l12 12M18 6L6 18" /></Icon>;
 const PhoneIcon = ({ className }: { className?: string }) => (
   <Icon className={className}><path d="M21 16.4v2.8a1.9 1.9 0 01-2 1.9 18.7 18.7 0 01-8.2-2.9 18.4 18.4 0 01-5.7-5.7A18.7 18.7 0 012.2 4.2 1.9 1.9 0 014.1 2.2h2.8a1.9 1.9 0 011.9 1.6c.1.9.3 1.7.6 2.5a1.9 1.9 0 01-.4 2L7.8 9.5a15.2 15.2 0 005.7 5.7l1.2-1.2a1.9 1.9 0 012-.4c.8.3 1.6.5 2.5.6a1.9 1.9 0 011.6 1.9z" /></Icon>
@@ -63,11 +67,14 @@ export type CallStageProps = {
   live: boolean; over: boolean;
   muted: boolean; camOff: boolean; canFlip: boolean; facing: "user" | "environment";
   onMute: () => void; onFlip: () => void; onCam: () => void; onEnd: () => void;
+  // The safety code both people compare (empty until the call is up); screen sharing (computers only).
+  safetyCode?: string; canShare?: boolean; sharing?: boolean; theirShare?: boolean; onShare?: () => void;
   remoteVideo?: Ref<HTMLVideoElement>; localVideo?: Ref<HTMLVideoElement>; remoteAudio?: Ref<HTMLAudioElement>;
 };
 
-export function CallStage({ kind, name, avatar, status, live, over, muted, camOff, canFlip, facing, onMute, onFlip, onCam, onEnd, remoteVideo, localVideo, remoteAudio }: CallStageProps) {
+export function CallStage({ kind, name, avatar, status, live, over, muted, camOff, canFlip, facing, onMute, onFlip, onCam, onEnd, safetyCode, canShare, sharing, theirShare, onShare, remoteVideo, localVideo, remoteAudio }: CallStageProps) {
   const [swapped, setSwapped] = useState(false); // you big, them small
+  const [showCode, setShowCode] = useState(false);
   const [pos, setPos] = useState<{ x: number; y: number } | null>(null); // where the small picture was dragged to
   const drag = useRef<{ dx: number; dy: number; moved: boolean } | null>(null);
 
@@ -91,11 +98,12 @@ export function CallStage({ kind, name, avatar, status, live, over, muted, camOf
         const big = "absolute inset-0";
         const small = `absolute z-20 h-[150px] w-[104px] touch-none cursor-grab overflow-hidden rounded-2xl bg-white/10 shadow-xl lg:h-[220px] lg:w-40 ${pos ? "" : "right-4 top-[calc(env(safe-area-inset-top)_+_1.5rem)] lg:bottom-[7.5rem] lg:right-10 lg:top-auto"}`;
         const smallStyle = pos ? { left: pos.x, top: pos.y } : undefined;
-        const mirror = facing === "user" ? { transform: "scaleX(-1)" } : undefined;
+        const mirror = facing === "user" && !sharing ? { transform: "scaleX(-1)" } : undefined;
         const handlers = { onPointerDown: onDown, onPointerMove: onMove, onPointerUp: onUp, title: "Drag to move · tap to swap" };
         return <>
           <div className={swapped ? small : big} style={swapped ? smallStyle : undefined} {...(swapped ? handlers : {})}>
-            <video ref={remoteVideo} autoPlay playsInline className="h-full w-full object-cover" />
+            {/* A shared screen is shown whole, not cropped to fill. */}
+            <video ref={remoteVideo} autoPlay playsInline className={`h-full w-full ${theirShare ? "bg-black object-contain" : "object-cover"}`} />
           </div>
           <div className={swapped ? big : small} style={swapped ? undefined : smallStyle} {...(swapped ? {} : handlers)}>
             {!swapped && <span className="absolute inset-0 flex items-center justify-center font-ui text-sm text-white/60">You</span>}
@@ -112,11 +120,25 @@ export function CallStage({ kind, name, avatar, status, live, over, muted, camOf
         <p className={`max-w-full break-words font-display leading-tight drop-shadow ${liveVideo ? "text-2xl lg:text-3xl" : "mt-6 text-[34px] lg:text-[44px]"}`}>{name}</p>
         <p className={`font-mono text-[15px] text-white/60 drop-shadow lg:text-sm ${liveVideo ? "mt-1.5" : "mt-4"}`} aria-live="polite">{status}</p>
         {kind === "audio" && live && <p className="mt-2 font-ui text-xs text-white/45">Free call · phone to phone</p>}
+        {theirShare && <p className="mt-1 font-ui text-xs text-white/60 drop-shadow">{name.split(" ")[0]} is sharing their screen</p>}
+        {safetyCode && (
+          <button type="button" onClick={() => setShowCode((v) => !v)} aria-expanded={showCode}
+            className="mt-2 inline-flex items-center gap-1.5 rounded-full bg-white/10 px-3 py-1 font-ui text-xs text-white/75 hover:bg-white/15">
+            <LockIcon /> End-to-end encrypted{showCode ? "" : " · check the code"}
+          </button>
+        )}
+        {safetyCode && showCode && (
+          <div className="mt-2 max-w-xs rounded-2xl bg-black/40 px-4 py-3 font-ui text-xs text-white/75">
+            <p className="font-mono text-lg tracking-wider text-white">{safetyCode}</p>
+            <p className="mt-1">{name.split(" ")[0]} sees a code too. If both codes match, this call is encrypted between your two devices and nobody, not even #NotesApp, can listen in or watch.</p>
+          </div>
+        )}
       </div>
 
       <div className="relative z-10 flex items-start justify-center gap-4 px-4 pb-[calc(env(safe-area-inset-bottom)_+_1.75rem)] sm:gap-6 lg:items-center lg:gap-5 lg:pb-10">
         <CallButton label="Mute" aria={muted ? "Unmute" : "Mute"} pressed={muted} onClick={onMute} disabled={over}><MicIcon off={muted} /></CallButton>
         {kind === "video" && canFlip && <CallButton label="Flip" aria={facing === "user" ? "Switch to the back camera" : "Switch to the front camera"} onClick={onFlip} disabled={over || camOff}><FlipIcon /></CallButton>}
+        {kind === "video" && canShare && <span className="hidden lg:contents"><CallButton label="Screen" aria={sharing ? "Stop sharing your screen" : "Share your screen"} pressed={sharing} onClick={() => onShare?.()} disabled={over}><ScreenIcon on={sharing} /></CallButton></span>}
         {kind === "video" && <CallButton label="Camera" aria={camOff ? "Turn camera on" : "Turn camera off"} pressed={camOff} onClick={onCam} disabled={over}><CameraIcon off={camOff} /></CallButton>}
         <CallButton label="End" aria="End call" end onClick={onEnd} disabled={over}><CrossIcon className="h-8 w-8 lg:h-6 lg:w-6" /></CallButton>
       </div>

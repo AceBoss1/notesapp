@@ -220,13 +220,17 @@ ${MOMENTS_LIVE ? `**Moments:** share a picture, a video of up to 90 seconds or a
 
 **Make a call:** open the conversation and tap the **phone** (voice) or **camera** (video) at the top. It rings on the other person's phone or computer wherever they are on #NotesApp, for up to 45 seconds. During a call you can mute, turn your camera off and on, and end the call. In a video call, drag your own small picture to any corner, tap it to swap it with the other person's, and tap **🔄** to switch between your front and back camera.
 
+**Share your screen (computers):** in a video call on a computer, tap **Screen** and choose a window, tab or your whole screen. The other person sees all of it; tap **Screen** again, or **Stop sharing** in your browser, and your camera comes back. Phones can't share their screen: phone browsers (and the app installed from them) don't allow it.
+
+**Check it's private:** once a call connects, tap **🔒 End-to-end encrypted** to see a 12-digit safety code. The other person sees a code too: read yours out to each other. If they match, the call is encrypted between your two devices and nobody in between, not even #NotesApp, can listen in or watch. If they don't match, end the call.
+
 **Answer:** an incoming call shows a card with **Answer** and **Decline**, with a soft ringtone. If you [installed #NotesApp](/install) and allowed notifications, a call also rings when the app isn't open on your screen: the notification buzzes and sounds again every few seconds for the length of the call, with **Answer** and **Decline** buttons. If you don't answer, it becomes a missed call.
 
 **Missed calls and Call back:** every call leaves a line in the conversation (for example "Voice call · 3:12", "Missed video call", "Declined voice call"). A missed call also sends a bell and, if you turned them on, a notification on your device. Tap **Call back** on any call line to call that person again, the same kind of call (voice or video). Call back isn't offered in group chats or to someone you've blocked.
 
 **Who you can call:** only people you follow who also follow you, and who haven't blocked you. If you can't call someone, check that you follow each other. Group calls aren't available yet; free calls for up to 6 people in a group chat are coming (see the [roadmap](/roadmap)).
 
-**Privacy:** calls go straight between your two devices and are encrypted. On networks that block a direct connection, the call passes through Cloudflare's relay, which can't listen. We never record calls. We keep only a short record (who, voice or video, when, how long, answered or missed), which is deleted with your account. See [Privacy](/privacy).
+**Privacy:** calls go straight between your two devices and are end-to-end encrypted (compare the safety code to check). On networks that block a direct connection, the call passes through Cloudflare's relay, which can't listen. We never record calls. We keep only a short record (who, voice or video, when, how long, answered or missed), which is deleted with your account. See [Privacy](/privacy).
 
 **If a call won't work:**
 - Allow the **microphone** (and the **camera** for video) when your browser asks. If you said no before, allow it in your browser's site settings or your phone's settings, then try again.

@@ -33,3 +33,23 @@ export function settleEnd(status: CallStatus, asked: CallEnd, byCallee: boolean)
   if (status === "ringing") return asked === "declined" && byCallee ? "declined" : asked === "failed" ? "failed" : "missed";
   return asked === "failed" ? "failed" : "ended";
 }
+
+// ── The safety code (like WhatsApp's): proof that a call is end to end encrypted ──
+// Each browser makes a fresh encryption certificate for every call, and the call's audio and video are encrypted with it (DTLS-SRTP). The
+// certificate's fingerprint travels in the offer and the answer, which pass through our database; someone who could change them could sit
+// in the middle. So both people are shown a code made from both fingerprints: if the two screens show the same code, nobody is in between.
+// The certificates are new for each call, so 12 digits can't be forged in the seconds a call takes to connect.
+
+// "a=fingerprint:sha-256 AB:CD:…" → "SHA-256 AB:CD:…" (the first one in the description), or null.
+export function sdpFingerprint(sdp: string | undefined | null): string | null {
+  const m = /^a=fingerprint:(\S+)\s+([0-9A-Fa-f:]+)\s*$/m.exec(sdp ?? "");
+  return m ? `${m[1].toUpperCase()} ${m[2].toUpperCase()}` : null;
+}
+
+// The same 12 digits on both phones, whichever side each fingerprint is ("482 913 207 551").
+export async function safetyCode(a: string, b: string): Promise<string> {
+  const bytes = new Uint8Array(await globalThis.crypto.subtle.digest("SHA-256", new TextEncoder().encode([a, b].sort().join("|"))));
+  let n = BigInt(0);
+  for (const x of bytes.slice(0, 8)) n = (n << BigInt(8)) + BigInt(x);
+  return (n % BigInt(10 ** 12)).toString().padStart(12, "0").replace(/(\d{3})(?=\d)/g, "$1 ");
+}
