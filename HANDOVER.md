@@ -25,9 +25,11 @@ Working branch convention (owner's instruction, 17 Oct 2026): branches are named
 (`git fetch origin main && git checkout -B <branch> origin/main && git push -f -u origin <branch>`).
 
 Ship-docs rule (owner's instruction, 19 Oct 2026): everything that ships updates the main front pages and docs in the same release:
-Home (`app/(main)/page.tsx`), About, the changelog (`lib/changelog.ts`), Status (`lib/status.ts`), the Roadmap (live and not-live lists),
+Home (`app/(main)/page.tsx`), About, the desktop footer (`app/(main)/layout.tsx`), the changelog (`lib/changelog.ts`), Status (`lib/status.ts`), the Roadmap (live and not-live lists),
 the help articles (`lib/kb-articles.ts`), `README.md` and these handover notes. Push list rule (19 Oct 2026): every finished item gets its own
 `push/<topic>` branch and a row in `docs/PUSH_LIST2.md` (kept on the working branch); a pull request carries only the items the owner names.
+Before opening any pull request, fetch `main` and make sure the branch is on the current `main` (merge or rebase it, re-run the checks); anything new
+on `main` that isn't understood is raised with the owner first.
 
 ## 2. Waiting on the owner
 
