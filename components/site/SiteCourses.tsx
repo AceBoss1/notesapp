@@ -30,7 +30,7 @@ export default function SiteCourses() {
         ) : courses.length === 0 ? (
           <div className="card mt-8 p-6">
             <p className="font-display text-xl text-ink">No courses yet</p>
-            <p className="mt-1 text-sm text-slate">{displayName}&apos;s free courses will be listed here.</p>
+            <p className="mt-1 text-sm text-slate">{displayName}&apos;s courses will be listed here.</p>
           </div>
         ) : (
           <div className="mt-8 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">

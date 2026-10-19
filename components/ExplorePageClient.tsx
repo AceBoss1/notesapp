@@ -107,7 +107,7 @@ export default function ExplorePageClient() {
               </Shelf>
             )}
             {tab === "academy" && (
-              <Shelf title="Notes Academy" why={<>Free courses from people who&apos;ve done it, with a certificate anyone can check. <Link href="/academy" className="font-semibold text-crimson">Open Notes Academy →</Link></>}>
+              <Shelf title="Notes Academy" why={<>Free and paid courses from people who&apos;ve done it, with a certificate anyone can check. <Link href="/academy" className="font-semibold text-crimson">Open Notes Academy →</Link></>}>
                 {courses === undefined ? <p className="py-10 text-center text-sm text-slate">Loading…</p> : courseList.length
                   ? <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">{courseList.map((c) => <CourseCard key={c.id} c={courseCardOf(c)} href={courseHref(c.slug)} />)}</div>
                   : <p className="py-10 text-center text-sm text-slate">{q ? "No courses match that search." : "No courses yet."}</p>}

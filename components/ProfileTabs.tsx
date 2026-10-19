@@ -115,7 +115,7 @@ export default function ProfileTabs({ username, owner, notes, storeItems, isOffi
       ) : ACADEMY_LIVE ? (
         <div className="card mt-5 p-6 text-sm text-slate">
           <p className="font-display text-xl text-ink">{courses === undefined && !suspended && !isOfficial ? "Loading courses…" : "No courses yet"}</p>
-          <p className="mt-1">Free courses on <Link href="/academy" className="font-semibold text-crimson">Notes Academy</Link>: lessons from the teacher&apos;s YouTube or written on #NotesApp, with your progress saved as you go.</p>
+          <p className="mt-1">Free and paid courses on <Link href="/academy" className="font-semibold text-crimson">Notes Academy</Link>: lessons from the teacher&apos;s YouTube, written on #NotesApp, PDFs and videos, with your progress saved as you go.</p>
         </div>
       ) : (
         <div className="card mt-5 p-6 text-sm text-slate">

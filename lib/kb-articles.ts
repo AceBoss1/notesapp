@@ -323,11 +323,11 @@ Calls are free. Planned: paid calls inside Notes Life (₦5 a minute voice, ₦1
 **Browsing:** the **Topics** tab on [Journals](/journals) groups every topic that has journals, with yours first. Tap a hashtag at the end of a journal to see more on that topic.
 `),
     A("discovery", "Journals, Notes Market, Notes Academy and Trending", "Getting started", `
-**Getting around:** on a phone, the bar along the bottom takes you to **Feed**, **Explore**, **Market**, **Messages** and your **Profile**; tap your picture at the top for the menu (your account, the rest of the site, Sign out). On a computer, the journal feed has the same places in a menu on the left.
+**Getting around:** on a phone, the bar along the bottom takes you to **Feed**, **Explore**, **Market**, **Academy**, **Messages** and your **Profile**; tap your picture at the top for the menu (your account, the rest of the site, Sign out). On a computer, the journal feed has the same places in a menu on the left.
 
 **The journal feed:** [Journals](/journals) has four tabs: **For you** (journals on [your interests](/interests) first, then everything newest first), **Following** (people you follow), **Latest** and **Top · 7d** (what people read most this week). Like, comment, share or save a journal from the feed; saved journals are in [Saved](/saved). **Most read this week** and **Who to follow** appear between posts on a phone and on the right on a computer. Journals marked **Promoted** are boosted.
 
-**Explore:** [Explore](/explore) is where to browse topics, people and channels.
+**Explore:** [Explore](/explore) is where to browse topics, people and channels, with **Market** and **Academy** tabs for the week's most looked-at products and courses.
 
 **The order elsewhere:** [Notes Market](/shop) and [Notes Academy](/academy) show things in the same order: **For you** first, then **Most viewed** (the last 7 days), then **Recent**.
 
@@ -377,8 +377,9 @@ ${academyFaq().map((f) => `**${f.q}** ${f.a}`).join("\n\n")}`),
     A("getting-around", "Getting around: the tab bar and the menu", "Getting started", `
 **On a phone:** one light header sits at the top, with search, your notifications (the bell) and your picture. Tap your picture for the menu: your profile, store, bookings, Wallet, Saved, your interests, your settings, the rest of the site and Sign out. Along the bottom is a tab bar:
 - **Feed**: the [journal feed](/journals).
-- **Explore**: topics, people and channels ([Explore](/explore)).
+- **Explore**: topics, people and channels, and the Market and Academy tabs ([Explore](/explore)).
 - **Market**: [Notes Market](/shop), every #NotesApp store in one place.
+- **Academy**: [Notes Academy](/academy), free and paid courses.
 - **Messages**: your conversations and calls ([Messages](/messages)).
 - **Profile**: your own profile, with its Notes, Store and Courses tabs.
 
@@ -392,10 +393,10 @@ A conversation or a call fills the whole screen on a phone; go back with the arr
 
 **Social links:** on [Edit profile](/profile/edit), paste the address or just your @handle (X, Instagram, TikTok), linkedin.com/in/yourname, or for WhatsApp your phone number (0803… is fine). They show as icons under your name on your profile and your own site. If a link can't be read, Edit profile tells you which one.
 `),
-    A("explore-and-saved", "Explore and saved journals", "Getting started", `
-**Explore:** [Explore](/explore) is where to browse topics, people and channels (they used to be tabs of Journals). Open a topic to see its journals, or follow people and organisation channels from there. Your [interests](/interests) come first among the topics.
+    A("explore-and-saved", "Explore and Saved", "Getting started", `
+**Explore:** [Explore](/explore) is where to browse topics, people and channels (they used to be tabs of Journals). Open a topic to see its journals, or follow people and organisation channels from there. Your [interests](/interests) come first among the topics. The **Market** and **Academy** tabs show the most looked-at products and courses this week, with a search box and a way into [Notes Market](/shop) and [Notes Academy](/academy).
 
-**Saving a journal:** tap the bookmark on a journal in the feed, or in a profile's Notes tab, to save it for later. Tap it again to remove it. Everything you saved is in [Saved](/saved), together with the store items you saved with the ♡. Only you can see what you saved.`),
+**Saving a journal:** tap the bookmark on a journal in the feed, or in a profile's Notes tab, to save it for later. Tap it again to remove it. Everything you saved is in [Saved](/saved), together with the store items you saved with the ♡, the courses you saved with the bookmark (under **Courses**) and the messages you kept from chats (under **From chats**). Only you can see what you saved.`),
     A("weekly-digest", "The #NotesApp Weekly Digest email", "Getting started", `
 Every Sunday evening (from 5 PM, Lagos time) #NotesApp can email you a short digest: up to five journals published that week, chosen for you. Journals from people you follow come first, then [your interests](/interests), then what most people liked that week. Your own posts are never in it.
 
@@ -421,7 +422,7 @@ Choose **Digital download** when you add an item and upload your file (PDF, ePub
 
 On **Pro and above** you can instead choose **View only**: add lessons (videos or PDFs) that buyers watch or read on #NotesApp with no download, on up to two devices per purchase, with the buyer's email faintly stamped on the content. One lesson is a single view-only file; several make a course. See [Store selling](/store-selling#view-only).
 
-For a full course, with progress for learners, use [Notes Academy](/academy): free courses with lessons from your own YouTube are open now, and paid courses on Pro and Business come next, with the same fee as your digital items.`),
+For a full course, with progress for learners, use [Notes Academy](/academy): free courses with lessons from your own YouTube on every publishing plan, and paid courses on Pro and above, with the same fee as your digital items (text lessons and PDFs, plus your own uploaded videos on Business and Enterprise). See [Teaching and learning on Notes Academy](/help/academy).`),
     A("track-a-parcel", "Tracking a parcel", "Selling", `
 Every store order gets a parcel ID that looks like NA-7K2M9QXD, sent to the buyer by email. Enter it on [Track a parcel](/track) to see where the parcel is, who holds it and the courier details if there are any. Parcels sent by a logistics business on #NotesApp have the same kind of number: track them on that business's own site, or here.`),
     A("logistics-shipments", "Shipments for logistics businesses", "Selling", `
@@ -467,7 +468,7 @@ Companies, NGOs, churches, schools and clubs can run a verified channel. Sign up
 
 Already have a personal account? You do not need a new one: open [Make an organisation](/organisation), enter the CAC number, and the same account (with its username, posts and followers) becomes an organisation. If the account is more than a day old, an admin approves the change first.
 
-You can invite writers and admins by username or email; they publish under your channel's name and earnings go to one payout account. Your organisation's admins can also add and edit items in the organisation's store to help you; deleting items, orders and money stay with the owner and anyone given store access. Business includes four seats (the owner plus three); Enterprise has as many as you need. See [Organisations](/organisations).`),
+You can invite writers and admins by username or email; they publish under your channel's name and earnings go to one payout account. They can also teach on [Notes Academy](/academy) as the organisation (**Teach as**), free or paid, with certificates in your academy's name and logo. Your organisation's admins can also add and edit items in the organisation's store to help you; deleting items, orders and money stay with the owner and anyone given store access. Business includes four seats (the owner plus three); Enterprise has as many as you need. See [Organisations](/organisations).`),
     A("your-own-domain", "Your own domain", "Teams and organisations", `
 Business and Enterprise accounts can serve their page, journals and store on their own domain (for example notes.yourbrand.com or yourbrand.com), with Home, Notes and Shop pages, and visitors who sign in, book and pay without leaving the site. Business is semi white-label (the footer says "powered by #NotesApp"); Enterprise adds fully branded sign-in and sign-up in your name.
 
@@ -545,7 +546,7 @@ Use the [contact form](/contact) and pick the topic (bookings, payments and refu
     A("about-and-status", "About #NotesApp, status and updates", "Company", `
 #NotesApp is run by ${COMPANY_INFO.legalName} (RC ${COMPANY_INFO.rcNumber}), a private company limited by shares registered in Nigeria. Read [About](/about), see live service health on [Status](/status), what changed on the [Changelog](/changelog) and what is coming on the [roadmap](/roadmap). Our domain partner is Whogohost (go54), and we connect to services such as Paystack, Paylony, Cloudflare, Firebase, Vercel, Resend and Dojah.`),
     A("roadmap-whats-coming", "What is coming next", "Company", `
-Not live yet, with no promised dates: paid courses on Pro and Business, and the Enterprise course packages; publishing to Facebook, Instagram and TikTok (LinkedIn and X are live); AI drafting from your past notes; domain sales and DNS management inside #NotesApp; ${WALLET_LIVE ? "paid calls in Notes Life (the NotesApp Credit wallet itself is live)" : "NotesApp Credit and Bonus Credits"}; Paylony payments and Tap-to-Pay; WhatsApp reminders; fuller identity checks; and iOS and Android apps. Details and the latest are on the [roadmap](/roadmap).
+Not live yet, with no promised dates: quizzes on courses, and the Enterprise course packages; publishing to Facebook, Instagram and TikTok (LinkedIn and X are live); AI drafting from your past notes (your AI assistant can already read #NotesApp through our MCP server); domain sales and DNS management inside #NotesApp; ${WALLET_LIVE ? "paid calls in Notes Life (the NotesApp Credit wallet itself is live)" : "NotesApp Credit and Bonus Credits"}; Paylony for real-money payments and Tap-to-Pay (Paylony CardTap already pays at every counter in Notes Life, with game money); WhatsApp reminders; fuller identity checks; and iOS and Android apps. Details and the latest are on the [roadmap](/roadmap).
 
 ${ADD_ONS_LINE}`),
     A("million-naira-challenge", "The #1MillionNairaNotesAppChallenge", "Company", `

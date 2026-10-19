@@ -20,6 +20,7 @@ const STEPS = [
   ["We confirm your registration", "An admin checks your number against the CAC register. Once confirmed, the “unverified” notice goes and the maroon ✔ shows (Business and Enterprise include it)."],
   ["Optional: the gold badge", "Apply for the Corporate gold badge — endorsement or an identity check against the CAC register."],
   ["Invite your team", "Invite writers and admins by @username or email. They publish under your channel's name, shown as “by @person for #YourOrg”. Everything those posts earn goes to your organisation's single payout account, set by the owner."],
+  ["Teach as your organisation", "On Notes Academy, your team can publish courses under your organisation's name (Teach as), free or paid, with co-tutors, and certificates in your academy's name and logo. What paid courses earn goes to the organisation's payout account."],
 ];
 
 const ENTERPRISE = [
