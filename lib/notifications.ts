@@ -41,6 +41,7 @@ export type NotificationType =
   | "review" // a review or a seller reply on a store item
   | "recommendation" // someone wrote you a recommendation
   | "mention" // someone @mentioned you in public: a comment, a journal, a moment, a review (never a chat)
+  | "course" // Notes Academy: a co-tutor invitation, a course sale
   | "team"; // the team hub: a comment on your work, the morning summary
 
 export type AppNotification = {

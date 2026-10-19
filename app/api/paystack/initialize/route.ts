@@ -29,6 +29,8 @@ import { WalletError, payFromWallet } from "@/lib/wallet-server";
 import { BUY_NAIRA_MAX, BUY_NAIRA_MIN, LIFE_LIVE } from "@/lib/life/catalog";
 import { AcademyError } from "@/lib/certificates";
 import { checkoutFor } from "@/lib/certificates-server";
+import { courseCheckout } from "@/lib/course-sales-server";
+import { CourseError } from "@/lib/courses-server";
 
 // Starts a Paystack checkout for a 1:1 session or a monthly journal
 // subscription. Price, slots and plan all come from the publisher's
@@ -114,6 +116,25 @@ export async function POST(req: NextRequest) {
         publisherUid: co.ownerUid, publisherUsername: String(teacher?.username ?? ""),
         commissionRate: digitalCommissionRateFor((teacher?.accountTier as AccountTier) || "basic", teacher?.customRates),
         certificate: { courseId: co.q.course.id, courseTitle: co.q.course.title, learnerName: co.name, startKobo: co.q.startKobo, lateKobo: co.q.lateKobo, teacherKobo: co.teacherKobo },
+        createdAt: new Date().toISOString(),
+      };
+      await savePayment(record);
+      return NextResponse.json({ authorizationUrl: tx.authorization_url, reference, paid: payWith === "wallet" });
+    }
+
+    // ---- a paid Notes Academy course (lib/course-sales-server.ts): the price, the teacher and their rate are fixed now ----
+    if (kind === "course") {
+      let co: Awaited<ReturnType<typeof courseCheckout>>;
+      try { co = await courseCheckout(db, user.uid, body.courseId); }
+      catch (e) { if (e instanceof CourseError) return NextResponse.json({ error: e.message }, { status: e.status }); throw e; }
+      const amountKobo = co.course.priceKobo!;
+      const reference = newReference();
+      const origin = await callbackOrigin(req);
+      const tx = await initTx({ email: user.email, amountKobo, reference, callbackUrl: `${origin}/booking/confirm`, metadata: { kind, uid: user.uid, courseId: co.course.id } });
+      const record: PaymentRecord = {
+        reference, kind: "course", uid: user.uid, email: user.email, amountKobo, status: "pending",
+        publisherUid: co.course.ownerUid, publisherUsername: String(co.owner.username ?? ""), commissionRate: co.commissionRate,
+        course: { courseId: co.course.id, courseTitle: co.course.title, courseSlug: co.course.slug },
         createdAt: new Date().toISOString(),
       };
       await savePayment(record);

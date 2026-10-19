@@ -346,6 +346,26 @@ test("courses: published ones and their lessons are public, drafts and every wri
   await assertFails(setDoc(doc(as("pub"), "courseSlugs/taken"), { courseId: "x" }));
 });
 
+test("paid courses: the course is public, its lessons never are; links, invitations and purchases stay private", async () => {
+  await env.withSecurityRulesDisabled(async (ctx) => {
+    const db = ctx.firestore();
+    await setDoc(doc(db, "courses/paid"), { ownerUid: "pub", title: "Support", slug: "support", status: "published", priceKobo: 4000000, outline: [{ id: "l1", title: "Intro", kind: "video" }] });
+    await setDoc(doc(db, "courses/paid/lessons/l1"), { order: 0, title: "Intro", kind: "video", streamUid: "a".repeat(32), preview: true });
+    await setDoc(doc(db, "courseLinks/paid"), { classUrl: "https://zoom.us/j/1", communityUrl: "" });
+    await setDoc(doc(db, "courseTutorInvites/paid_bob"), { courseId: "paid", uid: "bob", percent: 30, status: "accepted" });
+    await setDoc(doc(db, "coursePurchases/ref1"), { buyerUid: "alice", courseId: "paid", status: "active" });
+  });
+  await assertSucceeds(getDoc(doc(anon(), "courses/paid")));
+  await assertFails(getDoc(doc(anon(), "courses/paid/lessons/l1"))); // even a free preview opens through /api/academy/lesson
+  await assertFails(getDoc(doc(as("alice"), "courses/paid/lessons/l1")));
+  await assertFails(getDocs(collection(as("alice"), "courses/paid/lessons")));
+  await assertFails(getDoc(doc(as("alice"), "courseLinks/paid")));
+  await assertFails(getDoc(doc(as("bob"), "courseTutorInvites/paid_bob")));
+  await assertSucceeds(getDoc(doc(as("alice"), "coursePurchases/ref1")));
+  await assertFails(getDoc(doc(as("bob"), "coursePurchases/ref1")));
+  await assertFails(setDoc(doc(as("alice"), "coursePurchases/ref2"), { buyerUid: "alice", courseId: "paid", status: "active" }));
+});
+
 test("enrolments: a learner reads only their own progress, and only the server writes it", async () => {
   await env.withSecurityRulesDisabled(async (ctx) => {
     await setDoc(doc(ctx.firestore(), "enrolments/live_alice"), { courseId: "live", uid: "alice", enrolledAt: "2026-10-17T00:00:00Z", done: { l1: "2026-10-17T01:00:00Z" } });

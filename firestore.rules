@@ -687,18 +687,23 @@ service cloud.firestore {
       allow write: if false;
     }
 
-    // Notes Academy (docs/COURSES.md): courses and their lessons are public once published, drafts stay with the server (the
-    // teacher edits and previews them through /api/academy). Enrolments and progress: each learner reads their own. Every write
-    // goes through the server (lib/courses-server.ts).
+    // Notes Academy (docs/COURSES.md): courses are public once published, drafts stay with the server (the teacher edits and
+    // previews them through /api/academy). A free course's lessons are public too; a paid course's never are (its outline is on the
+    // course; buyers open lessons through /api/academy/lesson). Enrolments and progress: each learner reads their own. Every write
+    // goes through the server (lib/courses-server.ts, lib/course-sales-server.ts).
     match /courses/{courseId} {
       allow read: if resource.data.status == 'published';
       allow write: if false;
       match /lessons/{lessonId} {
-        allow read: if get(/databases/$(database)/documents/courses/$(courseId)).data.status == 'published';
+        allow read: if get(/databases/$(database)/documents/courses/$(courseId)).data.status == 'published'
+          && get(/databases/$(database)/documents/courses/$(courseId)).data.get('priceKobo', 0) == 0;
         allow write: if false;
       }
     }
     match /courseSlugs/{slug} { allow read, write: if false; }
+    match /courseLinks/{courseId} { allow read, write: if false; } // the live class and learners' group links (GET /api/academy/links)
+    match /courseTutorInvites/{id} { allow read, write: if false; } // co-tutor invitations and their agreed shares
+    match /coursePurchases/{ref} { allow read: if isSignedIn() && resource.data.buyerUid == request.auth.uid; allow write: if false; }
     match /enrolments/{id} {
       allow read: if isSignedIn() && resource.data.uid == request.auth.uid;
       allow write: if false;

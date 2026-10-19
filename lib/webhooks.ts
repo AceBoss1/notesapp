@@ -5,7 +5,7 @@ import { getAdminDb } from "./firebase-admin";
 // Outbound webhooks for Enterprise API accounts. Endpoints live in `webhookEndpoints` (server-only, the signing
 // secret included) and every attempt is logged in `webhookDeliveries` (30-day TTL on `expireAt`).
 // Each POST is signed: header `NotesApp-Signature: t=<unix seconds>,v1=<hex HMAC-SHA256 of "<t>.<raw body>">`.
-export const WEBHOOK_EVENTS = ["booking.created", "order.paid", "digital.sold", "payout.released", "post.published"] as const;
+export const WEBHOOK_EVENTS = ["booking.created", "order.paid", "digital.sold", "course.sold", "payout.released", "post.published"] as const;
 export type WebhookEvent = (typeof WEBHOOK_EVENTS)[number];
 
 export type WebhookEndpoint = { uid: string; url: string; events: WebhookEvent[]; secret: string; active: boolean; createdAt: string };
