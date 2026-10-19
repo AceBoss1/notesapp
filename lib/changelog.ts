@@ -11,6 +11,14 @@ export type Release = {
 
 export const CHANGELOG: Release[] = [
   {
+    version: "v0.58.1",
+    bump: "patch",
+    date: "2026-10-19",
+    changes: [
+      { kind: "added", text: "A football ⚽ of our own in Messages: in the #NotesApp row of the 😊 emoji list and as a reaction. Type :football: and it shows as a picture once sent." },
+    ],
+  },
+  {
     version: "v0.58.0",
     bump: "minor",
     date: "2026-10-19",
