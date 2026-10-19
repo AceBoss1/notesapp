@@ -14,6 +14,7 @@ import { merchParcelDoc } from "./orders-server";
 import { creditTopup } from "./wallet-server";
 import { addNanaCredit } from "./nana-meter";
 import { issueInTransaction } from "./certificates-server";
+import { courseShares, fulfilCourseInTransaction, type SaleShare } from "./course-sales-server";
 import { extendAddon, type Carrier } from "./logistics-server";
 import { SITE_URL } from "@/lib/host";
 
@@ -23,7 +24,7 @@ import { SITE_URL } from "@/lib/host";
 
 export type PaymentRecord = {
   reference: string;
-  kind: "booking" | "subscription" | "boost" | "gift" | "tier" | "badge" | "gold_deposit" | "gold" | "merch" | "ad" | "store" | "digital" | "wallet_topup" | "life_naira" | "nana_credit" | "certificate" | "logistics_addon";
+  kind: "booking" | "subscription" | "boost" | "gift" | "tier" | "badge" | "gold_deposit" | "gold" | "merch" | "ad" | "store" | "digital" | "wallet_topup" | "life_naira" | "nana_credit" | "certificate" | "course" | "logistics_addon";
   uid: string; // the payer
   email: string;
   amountKobo: number;
@@ -66,6 +67,7 @@ export type PaymentRecord = {
   };
   // A downloadable file from a publisher's store: instant, final once downloaded.
   digital?: { itemId: string; itemTitle: string; itemImage: string };
+  course?: { courseId: string; courseTitle: string; courseSlug: string }; // a paid course (lib/course-sales-server.ts)
   gold?: { kind: "endorsement" | "identity"; track: "personal" | "corporate"; planCode?: string };
   gift?: { username: string; noteId?: string; noteSlug?: string; message: string; anonymous: boolean; senderName: string };
   // Store orders reserve stock while the buyer pays; an unpaid reservation is returned later.
@@ -97,7 +99,7 @@ export type LedgerEntry = {
   reference: string; // ledger doc id (the payment reference, or `<ref>_<uid>` for a co-author's share)
   paymentReference?: string; // the Paystack payment this entry belongs to (set on split entries)
   sharePercent?: number; // this author's % of a co-authored post's gift
-  kind: "booking" | "subscription" | "gift" | "adshare" | "order" | "digital" | "certificate" | "shipping";
+  kind: "booking" | "subscription" | "gift" | "adshare" | "order" | "digital" | "certificate" | "course" | "shipping";
   publisherUid: string;
   publisherUsername: string;
   payerUid: string;
@@ -195,6 +197,7 @@ export async function fulfillPayment(reference: string): Promise<PaymentRecord> 
 
   const now = new Date().toISOString();
   const shares = payment.kind === "gift" ? await giftShares(payment) : [];
+  const courseSplit: SaleShare[] = payment.kind === "course" ? await courseShares(db, payment) : [];
   const result = await db.runTransaction(async (t) => {
     const freshPay = await t.get(payRef);
     const current = freshPay.data() as PaymentRecord;
@@ -293,6 +296,9 @@ export async function fulfillPayment(reference: string): Promise<PaymentRecord> 
         downloads: 0, createdAt: now,
       });
       t.set(db.doc(`ledger/${reference}`), ledgerFor(current, current.amountKobo, new Date(Date.now() + DIGITAL_HOLD_DAYS * 86_400_000), now));
+    } else if (current.kind === "course" && current.course) {
+      // A paid course: the learner has it straight away; the tutors' shares are held for the refund window, then paid out.
+      await fulfilCourseInTransaction(t, db, current, courseSplit, now);
     } else if (current.kind === "boost" && current.boost) {
       // Boosts are platform revenue: no ledger entry, just an active campaign.
       const pk = getBoostPackage(current.boost.packageId);
@@ -550,6 +556,8 @@ async function emitSaleWebhooks(p: PaymentRecord): Promise<void> {
     await emitWebhook(p.publisherUid, "booking.created", { id: p.reference, date: p.booking.date, slot: p.booking.slot, minutes: p.booking.minutes, amount_kobo: p.amountKobo });
   } else if (p.kind === "store" && p.store) {
     await emitWebhook(p.publisherUid, "order.paid", { id: p.reference, item_id: p.store.itemId, item_title: p.store.itemTitle, quantity: p.store.quantity, ...(p.store.variantLabel ? { options: p.store.variantLabel } : {}), amount_kobo: p.amountKobo, ship_to: { city: p.store.address.city, state: p.store.address.state } });
+  } else if (p.kind === "course" && p.course) {
+    await emitWebhook(p.publisherUid, "course.sold", { id: p.reference, course_id: p.course.courseId, course_title: p.course.courseTitle, amount_kobo: p.amountKobo });
   } else if (p.kind === "digital" && p.digital) {
     await emitWebhook(p.publisherUid, "digital.sold", { id: p.reference, item_id: p.digital.itemId, item_title: p.digital.itemTitle, amount_kobo: p.amountKobo });
   }
@@ -581,6 +589,19 @@ async function notifyPaid(p: PaymentRecord) {
   if (p.kind === "boost") {
     // No email for boosts — the bell is the receipt.
     await notifyBell({ uid: p.uid, type: "plan", linkHref: "/profile/boosts", message: `Your boost is live (${formatNaira(p.amountKobo)}). Track it under Boost performance.` });
+    return;
+  }
+  if (p.kind === "course" && p.course) {
+    const site = SITE_URL;
+    const href = `/academy/${p.course.courseSlug}`;
+    await sendEmail({
+      to: p.email,
+      subject: `You're in: ${p.course.courseTitle}`,
+      bell: { uid: p.uid, type: "course", linkHref: href, message: `You bought “${p.course.courseTitle}”. Start whenever you like.` },
+      text: `Thanks! “${p.course.courseTitle}” (${formatNaira(p.amountKobo)}) is yours, for good. Open it from its page or from Continue learning on Notes Academy. It plays on up to 2 of your devices.\n\nChanged your mind? You can get a refund within 7 days, as long as you haven't started the course.\nReference: ${p.reference}\n\n#NotesApp`,
+      action: { label: "Open the course", url: `${site}${href}` },
+    });
+    await notifyBell({ uid: p.publisherUid, type: "course", linkHref: "/academy/teach", message: `Sold: “${p.course.courseTitle}” (${formatNaira(p.amountKobo)}). Earnings after commission are paid out after ${DIGITAL_HOLD_DAYS} days.` });
     return;
   }
   if (p.kind === "digital" && p.digital) {

@@ -109,7 +109,7 @@ Your publishing tier shows under your name on your profile, for example "Pro Pub
 - **Business**: ${t("business").price}, or ${money(t("business").yearlyKobo!)} a year (two months free). Includes the verified badge, your own domain, and four team seats.
 - **Enterprise**: ${t("enterprise").price}. Rates and seats are agreed with us; [contact us](/contact).
 
-**Courses (Notes Academy):** free courses are free to publish on every publishing plan. Certificates on free courses are paid: the learner pays from ${certificateMin()} plus the margin the teacher sets. Paid courses are coming next on Pro and Business, with the same fee as digital items. For organisations, two packages sit on top of Enterprise: **Enterprise Courses** at ${enterpriseCoursesPrice()} a month, and the **Enterprise Academy API** from ${academyApiFrom()} a month plus usage. The regular Enterprise price stays as it is for anyone who takes neither.
+**Courses (Notes Academy):** free courses are free to publish on every publishing plan. Certificates on free courses are paid: the learner pays from ${certificateMin()} plus the margin the teacher sets. Paid courses: on Pro with text lessons, PDFs and YouTube, and on Business and Enterprise with uploaded videos too, with the same fee as digital items. For organisations, two packages sit on top of Enterprise: **Enterprise Courses** at ${enterpriseCoursesPrice()} a month, and the **Enterprise Academy API** from ${academyApiFrom()} a month plus usage. The regular Enterprise price stays as it is for anyone who takes neither.
 
 **Coming as paid add-ons:** ${ADD_ONS_LINE}
 
@@ -333,7 +333,7 @@ Calls are free. Planned: paid calls inside Notes Life (₦5 a minute voice, ₦1
 
 **Notes Market** collects every #NotesApp store: items for you, the most viewed, new arrivals, digital downloads, categories and a list of stores. Each item shows its seller and their badges. Buying works as it does in the seller's own store.
 
-**Notes Academy** has courses: free courses from any publisher, with lessons from the teacher's own YouTube that play right on #NotesApp. Paid courses on Pro and Business come next.
+**Notes Academy** has courses: free courses from any publisher, with lessons from the teacher's own YouTube that play right on #NotesApp, and paid courses on Pro, Business and Enterprise.
 
 **Profiles** have **Notes**, **Store** and **Courses** tabs, and these buttons: **Follow** (it reads **✓ Following** once you follow; tap it to unfollow), **Book a session** (when the publisher takes bookings), **Conversation** (a direct message) and **Gift me**. If Gift me is greyed out, the publisher hasn't set up payouts yet: tap or hover the ℹ️ beside it.
 
@@ -342,12 +342,15 @@ Calls are free. Planned: paid calls inside Notes Life (₦5 a minute voice, ₦1
 **Badges** always come right after a person's name, before their @username, wherever their picture and name appear.
 `),
     A("academy", "Teaching and learning on Notes Academy", "Getting started", `
-[Notes Academy](/academy) is where #NotesApp members teach and take free courses. Lessons play right on #NotesApp, and your progress is saved as you go.
+[Notes Academy](/academy) is where #NotesApp members and organisations teach and take courses, free and paid. Lessons play right on #NotesApp, and your progress is saved as you go.
 
 **Taking a course**
-- Open Notes Academy from the menu, or go to [/academy](/academy). Courses on [your interests](/interests) come first, then the most viewed this week and the newest. Tap a topic to narrow the list, or search by course or teacher.
-- A course's page shows what it covers, who teaches it and every lesson with its length. The first lesson is a free preview.
-- Tap **Enrol — free**. If you're not signed in, sign in (or join free) and you come straight back, already enrolled.
+- Open Notes Academy from the menu, or go to [/academy](/academy). Courses on [your interests](/interests) come first, then the most viewed this week and the newest. Tap a topic to narrow the list (on a computer, the Topics list shows how many courses each topic and subtopic has), filter by level or by free and paid, or search by course or teacher.
+- A course's page shows its level, format and language, who teaches it, and four tabs: **Overview** (what you'll learn, about the course, how it works, requirements), **Curriculum** (every lesson with its length, grouped in modules), **Tutors** and **Reviews**. Beside them: the price, what the course includes, **Share** (WhatsApp, LinkedIn, X, Facebook or a link) and the course details. On a free course the first lesson is a free preview.
+- **A free course:** tap **Enrol — free**. If you're not signed in, sign in (or join free) and you come straight back, already enrolled.
+- **A paid course:** watch its free previews first, then tap **Buy the course** and pay by card, bank transfer or from your wallet. It's yours for good and plays on up to 2 of your devices; to watch on a new one, remove an old one when it asks. Uploaded videos never download, and your @username and email drift faintly across them. The certificate is usually included in the price.
+- **Refunds:** you can get a refund within 7 days of buying a paid course, as long as you haven't started it (opening a paid lesson counts as starting). Tap **get a refund** on the course's page; the money goes back the way you paid.
+- **Live classes and groups:** some courses run live classes (on Zoom or Meet) with recordings, and have a WhatsApp or Telegram group. Once you've enrolled or bought, **Join the live class** and **Join the group** appear on the course's page.
 - Video lessons play in YouTube's privacy-enhanced player, so you stay on #NotesApp. A video is ticked off by itself once you've watched most of it; you can always tap **Mark as done** yourself, or **Mark as not done** to undo it. Text lessons end with a **Mark as done** button.
 - Your progress and the **Continue** button are on the course page, and courses you've started are under **Continue learning** on Notes Academy.
 - **Certificates:** once every lesson is done, tap **Get your certificate** on the course page. Check the name (it can't be changed once issued), then pay from ${certificateMin()} plus the teacher's margin, by card or from your wallet. It's issued straight away with an ID (NA-C-…) and a QR code; anyone can check it at [/certificates](/certificates). Add it to LinkedIn, share it, save it as a PDF or download it as a picture (PNG) from its page. To show the picture on LinkedIn, choose **Add media → Add a link** on the certificate there and paste the image link (**Copy image link** on the certificate's page). Shared links show the certificate itself. Claim within ${CERTIFICATE_LATE_TEXT().grace} days of finishing: after that a late claim fee of ${CERTIFICATE_LATE_TEXT().weekly} of the price is added each week, up to ${CERTIFICATE_LATE_TEXT().cap} more.
@@ -355,16 +358,19 @@ Calls are free. Planned: paid calls inside Notes Life (₦5 a minute voice, ₦1
 - **Recommendations:** on someone's profile, tap **Recommend**, choose how you know them, give 1 to 5 stars and write a few sentences. It appears only after they approve it: on their profile, beside their journals and on their site's About page.
 
 **Teaching a course**
-- Any publishing account can teach a free course, including the free Basic plan. If you don't publish yet, start at [Rates & payouts](/profile/publishing).
+- Any publishing account can teach a free course, including the free Basic plan. If you don't publish yet, start at [Rates & payouts](/profile/publishing). On an organisation's team (Business or Enterprise), choose **Teach as** your organisation when you start a course: it's published under the organisation's name, and its admins can edit it too.
 - Go to [Teach a course](/academy/teach) and tap **New course**. A working title is all you need to start.
 - **1. Describe it:** a clear title, a short summary of what learners will be able to do, up to 3 topics and a wide cover picture. The course's address follows the title until you first publish.
-- **2. Add lessons:** paste a link to a video on your own YouTube and check the picture to make sure it's the right one (keep videos public or unlisted, not private, or they won't play), or write a text lesson in the journal editor. Add the minutes if you like; they add up to the course's length. Use ↑ and ↓ to put lessons in order.
-- **3. Publish:** a course needs a title, a summary and at least one lesson. Use **Preview** first if you like; only you can see a draft.
-- You can keep editing after publishing. To remove the last lesson of a published course, unpublish it first. Deleting a course removes its lessons and its learners' progress.
+- **About the course:** the level, language and format (self-paced, or live classes with recordings), what learners will learn and the requirements (one per line), how long it runs and when classes are, and two private links: the live class (Zoom, Meet or Teams) and the learners' group (WhatsApp or Telegram). Only learners who enrolled or bought see the links.
+- **Price:** free, or paid on Pro (text lessons, PDFs and YouTube) and on Business or Enterprise (your own uploaded videos too). You get the price less the same fee as your digital items, paid to your bank 7 days after each sale; add your bank account in Rates & payouts before you publish. Tick **Certificate included** to include it in the price.
+- **Tutors:** teach alone, or invite up to 4 co-tutors by @username with their share of each sale. Each one accepts first, can then edit the course's content and lessons, and is paid their share at their own plan's fee. The price, the tutors and publishing stay with the lead.
+- **Add lessons:** paste a link to a video on your own YouTube and check the picture to make sure it's the right one (keep videos public or unlisted, not private, or they won't play), or write a text lesson in the journal editor. On a paid course you can also upload videos (Business and Enterprise, up to 200 MB each) and PDFs (up to 50 MB), and tick **Free preview** on the lessons anyone may open before buying. Group lessons in **modules** if you like. Add the minutes; they add up to the course's length. Use ↑ and ↓ to put lessons in order.
+- **Publish:** a course needs a title, a summary and at least one lesson. Use **Preview** first if you like; only its tutors can see a draft.
+- You can keep editing after publishing. To remove the last lesson of a published course, unpublish it first. Deleting a course removes its lessons and its learners' progress; a course people have bought can't be deleted (unpublish it instead, and they keep it).
 - **Your academy (certificates):** set it up once at [Your academy](/academy/teach/setup): the name and logo on your certificates, who signs them (a photo of the signature on white paper; we remove the white), an accrediting institution if you have one (its logo shows once #NotesApp has checked it) and your margin on top of our ${certificateMin()}. You receive the margin less our usual commission, and your share grows with any late claim fee. Courses our team has reviewed get the "#NotesApp Certified Course" seal.
 - Up to 30 courses, each with up to 100 lessons. Your published courses show on your profile's Courses tab, on Trending, on your own site (Business and Enterprise) and in the weekly digest when they're popular.
 
-**Coming next:** paid courses on Pro and Business, and courses for organisations on Enterprise (see [Pricing](/pricing)). Questions learners often ask are in [Notes Academy: questions](/help/notes-academy-faq).
+**Coming next:** quizzes, and Enterprise courses for organisations with cohorts and bulk invites (see [Pricing](/pricing)). Questions learners often ask are in [Notes Academy: questions](/help/notes-academy-faq).
 `),
     A("notes-academy-faq", "Notes Academy: questions learners ask", "Getting started", `
 ${academyFaq().map((f) => `**${f.q}** ${f.a}`).join("\n\n")}`),

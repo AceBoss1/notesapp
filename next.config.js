@@ -6,6 +6,11 @@ const nextConfig = {
       "/certificates/[id]/image.png": ["./assets/fonts/**", "./assets/certificate-logo.png", "./public/images/academy/*.png", "./public/images/brand/icon-512.png"],
     },
   },
+  // pdf.js (the view-only PDF viewer, components/PdfViewer.tsx) has an optional Node "canvas" import it never uses in the browser.
+  webpack: (config) => {
+    config.resolve.alias = { ...(config.resolve.alias || {}), canvas: false };
+    return config;
+  },
   images: {
     remotePatterns: [
       // Legacy — pre-migration Cloudinary URLs may still exist on old

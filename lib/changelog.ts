@@ -11,7 +11,7 @@ export type Release = {
 
 export const CHANGELOG: Release[] = [
   {
-    version: "v0.56.0",
+    version: "v0.57.0",
     bump: "minor",
     date: "2026-10-19",
     changes: [
@@ -22,14 +22,26 @@ export const CHANGELOG: Release[] = [
     ],
   },
   {
-    version: "v0.55.0",
+    version: "v0.56.0",
     bump: "minor",
-    date: "2026-10-18",
+    date: "2026-10-19",
     changes: [
       { kind: "added", text: "Shipments for logistics businesses (Business and Enterprise): book deliveries, waybills, bulk deliveries, warehousing and home or office errands for your own customers, get a tracking number, send the receiver their link on WhatsApp or SMS, and hand the parcel rider to rider with the same no-login update links as store orders. Pick the services you offer: an errands company ticks errands, a full logistics company ticks everything. See For logistics businesses." },
       { kind: "added", text: "Your site has a Track section: a Track page and menu link, a tracking box on Home with your services, and a page for each shipment, on your own domain at /track. Only your shipments show there." },
       { kind: "changed", text: "Warehoused parcels read “In storage” until they're despatched, and errands read “On the way” and “Done”." },
       { kind: "fixed", text: "A member's site no longer shows a broken picture in its header, profile and footer when no profile picture has been added." },
+    ],
+  },
+  {
+    version: "v0.55.0",
+    bump: "minor",
+    date: "2026-10-19",
+    changes: [
+      { kind: "added", text: "Paid courses on Notes Academy. On Pro, sell courses with text lessons, PDFs and YouTube; on Business and Enterprise, upload your own videos too. Learners pay by card, bank transfer or wallet, keep the course for good on up to 2 devices, and can get a refund within 7 days if they haven't started. Uploaded videos never download, with each viewer's @username and email drifting across them. Your earnings, less the same fee as digital items, are paid 7 days after each sale." },
+      { kind: "added", text: "Co-tutors: invite up to 4 by @username with their share of each sale; each one accepts, can edit the course, and is paid at their own plan's fee. Organisations' teams can teach as the organisation." },
+      { kind: "added", text: "Every course page, free or paid, now shows its level, format and language, What you'll learn, How it works, Requirements and the tutors, in tabs (Overview, Curriculum, Tutors, Reviews), beside the price, This course includes, Share (WhatsApp, LinkedIn, X, Facebook) and the course details. Lessons can be grouped in modules, and live-class courses can share their class and WhatsApp group links with learners only." },
+      { kind: "added", text: "Notes Academy lists free and paid courses, with a Topics list showing how many courses each topic and subtopic has, and Level and Price filters." },
+      { kind: "fixed", text: "Review on a course page now opens the reviews and scrolls to them, on phones too." },
     ],
   },
   {

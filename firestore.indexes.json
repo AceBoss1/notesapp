@@ -181,6 +181,8 @@
           "queryScope": "COLLECTION"
         }
       ]
-    }
+    },
+    { "collectionGroup": "agentActions", "fieldPath": "expireAt", "ttl": true, "indexes": [] },
+    { "collectionGroup": "nanaBank", "fieldPath": "expireAt", "ttl": true, "indexes": [] }
   ]
 }

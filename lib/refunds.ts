@@ -11,8 +11,8 @@ export async function refundPayment(reference: string, amountKobo?: number): Pro
   const p = (await db.doc(`payments/${reference}`).get()).data();
   // Notesville Naira has already been spent in the game, maybe; it is game money and final (Terms, Notes Life).
   if (p?.kind === "life_naira") throw new Error("Notesville Naira purchases are final and can't be refunded here.");
-  // A refunded certificate stops being valid; its verification page says it was revoked and why.
-  if (p?.kind === "certificate") await revokeForPayment(db, reference);
+  // A refunded certificate (or a refunded course whose certificate came with it) stops being valid; its verification page says it was revoked and why.
+  if (p?.kind === "certificate" || p?.kind === "course") await revokeForPayment(db, reference);
   if (p?.payWith === "wallet") { await refundToWallet(db, reference, amountKobo); return; }
   if (p?.kind === "wallet_topup") {
     const taken = await reverseTopup(db, reference, amountKobo);

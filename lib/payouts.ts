@@ -94,7 +94,7 @@ export async function autoReleasePayouts(opts: { transfer?: typeof initiateTrans
   const due = snap.docs
     .map((d) => d.data() as LedgerEntry & { autoAttempts?: number })
     .filter((l) => {
-      const due = l.kind === "booking" ? dueBefore : l.kind === "digital" ? now : -Infinity;
+      const due = l.kind === "booking" ? dueBefore : l.kind === "digital" || l.kind === "course" ? now : -Infinity;
       return new Date(l.releaseAfter).getTime() <= due && (l.autoAttempts ?? 0) < AUTO_MAX_ATTEMPTS;
     })
     .slice(0, AUTO_BATCH);
@@ -107,12 +107,12 @@ export async function autoReleasePayouts(opts: { transfer?: typeof initiateTrans
         started++;
         await ref.update({ autoReleasedAt: new Date(now).toISOString() });
         const to = await getUserEmail(l.publisherUid);
-        if (!to) await notifyBell({ uid: l.publisherUid, type: "booking", linkHref: "/profile/publishing", message: `Payout of ${formatNaira(l.netKobo)} for your ${l.kind === "digital" ? "sale" : "session"} is on its way.` });
+        if (!to) await notifyBell({ uid: l.publisherUid, type: "booking", linkHref: "/profile/publishing", message: `Payout of ${formatNaira(l.netKobo)} for your ${l.kind === "digital" || l.kind === "course" ? "sale" : "session"} is on its way.` });
         else await sendEmail({
           to,
-          subject: l.kind === "digital" ? "Your download sale payout is on its way" : "Your session payout is on its way",
-          text: `Your earnings of ${formatNaira(l.netKobo)} for ${l.kind === "digital" ? "a download sale" : "a completed session"} are being paid to your bank account now. Transfers usually arrive within minutes.\nReference: ${l.reference}\n\n#NotesApp`,
-          bell: { uid: l.publisherUid, type: "booking", linkHref: "/profile/publishing", message: `Payout of ${formatNaira(l.netKobo)} for your ${l.kind === "digital" ? "sale" : "session"} is on its way.` },
+          subject: l.kind === "course" ? "Your course sale payout is on its way" : l.kind === "digital" ? "Your download sale payout is on its way" : "Your session payout is on its way",
+          text: `Your earnings of ${formatNaira(l.netKobo)} for ${l.kind === "course" ? "a course sale" : l.kind === "digital" ? "a download sale" : "a completed session"} are being paid to your bank account now. Transfers usually arrive within minutes.\nReference: ${l.reference}\n\n#NotesApp`,
+          bell: { uid: l.publisherUid, type: "booking", linkHref: "/profile/publishing", message: `Payout of ${formatNaira(l.netKobo)} for your ${l.kind === "digital" || l.kind === "course" ? "sale" : "session"} is on its way.` },
         }).catch(() => {});
       } else if (r.error === "Publisher has no payout account.") {
         await ref.update({ failureReason: r.error, autoAttempts: AUTO_MAX_ATTEMPTS });

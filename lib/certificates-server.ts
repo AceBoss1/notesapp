@@ -34,8 +34,8 @@ export async function saveAcademy(db: Firestore, uid: string, input: SetupInput,
   });
 }
 
-type CourseDoc = { title: string; slug: string; minutes: number; ownerUid: string; ownerName: string; ownerUsername?: string; status: string; certified?: unknown };
-type EnrolDoc = { completedAt?: string | null; certificateId?: string };
+type CourseDoc = { title: string; slug: string; minutes: number; ownerUid: string; ownerName: string; ownerUsername?: string; status: string; certified?: unknown; priceKobo?: number; certificateIncluded?: boolean; tutorUids?: string[] };
+type EnrolDoc = { completedAt?: string | null; certificateId?: string; purchaseRef?: string };
 
 export type Quote = {
   course: { id: string; title: string; slug: string; ownerName: string; hours: number };
@@ -43,6 +43,7 @@ export type Quote = {
   startKobo: number; lateKobo: number; kobo: number; marginKobo: number;
   graceUntil: string; weeklyKobo: number; capKobo: number;
   face: CertificateFace; certificateId: string | null;
+  included: boolean; // a paid course whose price includes the certificate: claimed without paying (POST /api/academy/certificate)
 };
 
 // What a learner who finished the course would pay today, and the certificate they'd get (shown as a preview until paid).
@@ -50,7 +51,7 @@ export async function quote(db: Firestore, uid: string, courseId: string, learne
   const [cs, es] = await Promise.all([db.doc(`courses/${courseId}`).get(), db.doc(`enrolments/${courseId}_${uid}`).get()]);
   if (!cs.exists) throw new AcademyError("That course doesn't exist (any more).", 404);
   const c = cs.data() as CourseDoc;
-  if (c.ownerUid === uid) throw new AcademyError("You teach this course, so there's no certificate to claim. Set up the one your learners get in Your academy.", 409);
+  if (c.ownerUid === uid || (c.tutorUids ?? []).includes(uid)) throw new AcademyError("You teach this course, so there's no certificate to claim. Set up the one your learners get in Your academy.", 409);
   const e = es.data() as EnrolDoc | undefined;
   if (!e?.completedAt) throw new AcademyError("Finish every lesson first, then claim your certificate.", 409);
   const [academy, owner] = await Promise.all([academyOf(db, c.ownerUid), db.doc(`users/${c.ownerUid}`).get()]);
@@ -68,6 +69,7 @@ export async function quote(db: Firestore, uid: string, courseId: string, learne
     weeklyKobo: roundUp(startKobo * late.weeklyRate), capKobo: roundUp(startKobo * late.capRate),
     face: faceFor(academy, { ...c, staff }, { name: learnerName, completedAt: e.completedAt }, { id: "NA-C-XXXXXXXX", issuedAt: now.toISOString() }),
     certificateId: e.certificateId ?? null,
+    included: (Number(c.priceKobo) || 0) > 0 && c.certificateIncluded === true && !!e.purchaseRef,
   };
 }
 
@@ -77,6 +79,7 @@ export async function checkoutFor(db: Firestore, uid: string, courseId: unknown,
   const name = cleanLearnerName(learnerName);
   const q = await quote(db, uid, courseId, name, now);
   if (q.certificateId) throw new AcademyError("You already have this certificate.", 409);
+  if (q.included) throw new AcademyError("Your certificate is included in the course's price: claim it without paying.", 409);
   const c = (await db.doc(`courses/${courseId}`).get()).data() as CourseDoc;
   return { q, name, ownerUid: c.ownerUid, teacherKobo: teacherGross(q.startKobo, q.marginKobo, q.lateKobo) };
 }
