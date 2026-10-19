@@ -105,7 +105,7 @@ export default function AdminPaymentsPage() {
                   <td className="space-x-2 whitespace-nowrap">
                     {open && <button className={btn} disabled={!ready || !!busy} onClick={() => act("release", l.reference)}>Release</button>}
                     {l.status === "held" && <button className={btn} disabled={!!busy} onClick={() => act("dispute", l.reference)}>Dispute</button>}
-                    {l.kind === "order" && open && !ready && <button className={btn} disabled={!!busy} onClick={() => act("confirm_order", l.reference)}>Confirm delivery</button>}
+                    {(l.kind === "order" || l.kind === "shipping") && open && !ready && <button className={btn} disabled={!!busy} onClick={() => act("confirm_order", l.reference)}>Confirm delivery</button>}
                     {open && <button className={btn} disabled={!!busy} onClick={() => act("refund", l.reference)}>Refund</button>}
                   </td>
                 </tr>

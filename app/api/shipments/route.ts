@@ -2,7 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { friendlyMessage } from "@/lib/api-errors";
 import { getAdminDb, verifySignedInRequest } from "@/lib/firebase-admin";
 import { rateLimit } from "@/lib/rate-limit";
-import { normalizeParcelId, type Parcel } from "@/lib/orders";
+import { normalizeParcelId, type Parcel, type StoreOrder } from "@/lib/orders";
+import type { Firestore } from "firebase-admin/firestore";
 import { trackingLink } from "@/lib/shipments";
 import { ShipmentError, createShipment, listShipments, myBusinesses, setServices, shipmentAction, shipmentBusiness, type Business } from "@/lib/shipments-server";
 import { SITE_URL } from "@/lib/host";
@@ -13,6 +14,19 @@ const bearer = (req: NextRequest) => req.headers.get("authorization")?.replace(/
 // What the dashboard shows for one shipment: everything on the parcel, plus the link the receiver follows.
 const row = (b: Business, p: Parcel) => ({ ...p, failedLookups: undefined, lockedUntil: undefined, link: trackingLink({ siteUrl: SITE_URL, username: b.username, domain: b.domain, trackOn: b.trackOn, parcelId: p.parcelId }) });
 
+// Store orders this business delivers as a store's delivery partner (lib/logistics.ts), newest first, with each parcel's hand-offs. The
+// partner needs the buyer's address and phone to deliver; it never sees what the store was paid.
+async function carried(db: Firestore, uid: string) {
+  const snap = await db.collection("storeOrders").where("carrier.uid", "==", uid).limit(200).get();
+  const orders = snap.docs.map((d) => d.data() as StoreOrder).sort((a, b) => (a.paidAt < b.paidAt ? 1 : -1)).slice(0, 100);
+  const parcels = await Promise.all(orders.map(async (o) => (await db.doc(`parcels/${o.parcelId}`).get()).data() as Parcel | undefined));
+  return orders.map((o, i) => ({
+    reference: o.reference, parcelId: o.parcelId, sellerUsername: o.sellerUsername, itemTitle: o.itemTitle, quantity: o.quantity, variantLabel: o.variantLabel ?? null,
+    address: o.address, status: o.status, paidAt: o.paidAt, feeKobo: o.carrier?.feeKobo ?? 0, earnKobo: (o.carrier?.feeKobo ?? 0) - (o.carrier?.cutKobo ?? 0),
+    custody: parcels[i]?.custody ?? [],
+  }));
+}
+
 // GET → { businesses: [{ uid, username, name, trackOn, domain, services, shipments: [...] }] }: every business the member books for (their own
 // on Business or Enterprise, and organisations that gave them store access), each with its latest shipments.
 export async function GET(req: NextRequest) {
@@ -21,7 +35,7 @@ export async function GET(req: NextRequest) {
     if (!me) return NextResponse.json({ error: "Sign in first." }, { status: 401 });
     const db = getAdminDb();
     const businesses = await myBusinesses(db, me.uid);
-    const out = await Promise.all(businesses.map(async (b) => ({ ...b, shipments: (await listShipments(db, b.uid)).map((p) => row(b, p)) })));
+    const out = await Promise.all(businesses.map(async (b) => ({ ...b, shipments: (await listShipments(db, b.uid)).map((p) => row(b, p)), carried: await carried(db, b.uid) })));
     return NextResponse.json({ businesses: out }, { headers: { "Cache-Control": "no-store" } });
   } catch (err) {
     const f = friendlyMessage(err, "Couldn't load shipments");

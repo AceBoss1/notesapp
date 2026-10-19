@@ -2,10 +2,11 @@ import Link from "next/link";
 import type { Metadata } from "next";
 import PageHero from "@/components/PageHero";
 import { SHIPMENT_SERVICES } from "@/lib/shipments";
+import { logisticsAddonPrice, logisticsTrialDays } from "@/lib/pricing";
 
 export const metadata: Metadata = {
   title: "For logistics businesses: tracking and your own website",
-  description: "Delivery, waybill, warehousing and home or office errand businesses: book shipments, hand them rider to rider with no-login update links, and give customers a website with Home, Blog, Track and Contact pages on your own domain. On the Business and Enterprise plans.",
+  description: "Delivery, waybill, warehousing and home or office errand businesses: book shipments, hand them rider to rider with no-login update links, give customers a website with Home, Blog, Track and Contact pages on your own domain, and get delivery jobs from stores in the logistics network.",
 };
 
 const STARTER = `Hello #NotesApp team,
@@ -58,6 +59,15 @@ export default function LogisticsPage() {
           {SHIPMENT_SERVICES.map((s) => <li key={s.id} className="card p-3"><span className="font-semibold text-ink">{s.name}</span><span className="block text-xs text-slate">{s.blurb}</span></li>)}
         </ul>
 
+        <h2 className="mt-12 font-display text-2xl text-ink">The logistics network: deliveries for stores</h2>
+        <p className="mt-3 text-sm text-slate">List your business in the <Link href="/logistics/network" className="text-crimson underline">logistics network</Link> with the states you cover, the areas you know, your services and your rate card (by distance and weight). Stores on #NotesApp find you there, message you to agree pickups, and choose you as their delivery partner.</p>
+        <ul className="mt-4 space-y-3 text-sm text-slate">
+          <li className="card p-4"><strong className="text-ink">Buyers pay you online.</strong> At the store&apos;s checkout, the buyer sees your price for their address and the parcel&apos;s weight, and pays it with the order. The order comes straight to you under <em>Deliveries for stores</em> with the buyer&apos;s address.</li>
+          <li className="card p-4"><strong className="text-ink">Tracked on the store&apos;s site.</strong> The tracking number opens on the store&apos;s own Track page, so its customers stay with the store. You record hand-offs with the same rider links.</li>
+          <li className="card p-4"><strong className="text-ink">Paid on delivery.</strong> Your fee is held with the order and paid to you once delivery is confirmed. #NotesApp&apos;s commission comes only out of your delivery earnings; stores and buyers pay nothing extra.</li>
+        </ul>
+        <p className="mt-3 text-sm"><Link href="/logistics/network" className="text-crimson underline">Run a store? Find a delivery partner →</Link></p>
+
         <h2 className="mt-12 font-display text-2xl text-ink">Your team</h2>
         <p className="mt-3 text-sm text-slate">Make your account an <Link href="/organisations" className="text-crimson underline">organisation</Link> and give dispatch staff store access: they book shipments and record hand-offs under your business&apos;s name. Riders don&apos;t need accounts at all.</p>
 
@@ -65,7 +75,7 @@ export default function LogisticsPage() {
         <p className="mt-3 text-sm text-slate">The receiver&apos;s phone number and delivery address are only for you and your team. The public Track page shows the item, the service, where it was picked up, the destination city and each hand-off. A rider&apos;s phone number shows only if they agreed, and only to someone who enters the last 4 digits of the receiver&apos;s phone number.</p>
 
         <h2 className="mt-12 font-display text-2xl text-ink">What it costs</h2>
-        <p className="mt-3 text-sm text-slate">Shipments, tracking and Your site come with the Business and Enterprise plans. See <Link href="/pricing" className="text-crimson underline">Plans and prices</Link>. Deliveries are paid: you set your delivery prices and your customers pay them. (Only digital items never need shipping.)</p>
+        <p className="mt-3 text-sm text-slate">Shipments, tracking, Your site and a listing in the logistics network come with the Business and Enterprise plans. On Free Basic or Pro, the <strong className="text-ink">logistics add-on</strong> gives you Shipments and a listing in the network for {logisticsAddonPrice()} a month, with a {logisticsTrialDays()}-day free trial and no card: start it on <Link href="/shipments" className="text-crimson underline">Shipments</Link>. Tracking links then open on #NotesApp&apos;s Track page; your own site and domain come with Business. See <Link href="/pricing" className="text-crimson underline">Plans and prices</Link>. Deliveries are paid: you set your delivery prices and your customers pay them. (Only digital items never need shipping.)</p>
       </div>
     </>
   );

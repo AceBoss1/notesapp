@@ -14,7 +14,7 @@ import { BONUS_DAYS, BONUS_STEPS, TOPUP_MAX_KOBO, TOPUP_MIN_KOBO, WALLET_LIVE } 
 import { ORG_TRIAL_DAYS } from "./org";
 import { COMPANY_INFO } from "./site";
 import { BADGE_PRICE_KOBO, TIERS, formatPercent } from "./tiers";
-import { academyApiFrom, certificateMin, currentPricing, enterpriseCoursesPrice } from "./pricing";
+import { academyApiFrom, certificateMin, currentPricing, enterpriseCoursesPrice, logisticsAddonPrice, logisticsTrialDays } from "./pricing";
 import { academyFaq } from "./academy-faq";
 const CERTIFICATE_LATE_TEXT = () => { const l = currentPricing().certificateLate; return { grace: l.graceDays, weekly: `${Math.round(l.weeklyRate * 100)}%`, cap: `${Math.round(l.capRate * 100)}%` }; };
 import { VIDEO_MAX_SECONDS } from "./video-rules";
@@ -440,6 +440,16 @@ For delivery, waybill, warehousing and home or office errand businesses on **Bus
 **Privacy:** the receiver's phone number and address are only for you and your team. A rider's phone number shows only if they agreed, and only to someone who enters the last 4 digits of the receiver's phone number.
 
 Deliveries are paid: you set your delivery prices and your customers pay them. Only digital items never need shipping.`),
+    A("logistics-network", "The logistics network: delivery partners for stores", "Selling", `
+Logistics businesses on #NotesApp list the states they cover and their prices, and stores choose one as their **delivery partner**.
+
+**For stores (Free Basic and above):** open [Find a delivery partner](/logistics/network), pick the state you deliver to, and **Message** a provider to agree how pickups work. Then tap **Make my delivery partner**. From then on, when a buyer enters an address your partner covers, checkout shows the partner's price for that address and the item's weight, and the buyer pays it online with the order. The order goes straight to your partner, and the buyer tracks it on your own Track page (or [Track a parcel](/track)). You pay nothing for delivery, and your store's fee is only on the goods. Where your partner doesn't deliver, your own delivery fee applies. Set each physical item's weight in your store so the price is right. You can stop using a partner any time.
+
+**For logistics businesses:** on [Shipments](/shipments), fill in your listing: where you're based, the states you cover (or all of Nigeria), the areas you know, your services and your rate card (prices by distance and weight, a price per extra kilo, and a same-day charge if you offer it). Switch on **Listed** and add a verified bank account under Rates & payouts so stores can find you. Orders from stores that chose you appear under **Deliveries for stores** with the buyer's address; record hand-offs and mark them delivered as with your own shipments.
+
+**Getting paid:** the buyer's delivery fee is held with the order and paid to you when delivery is confirmed (by the buyer, or 7 days after it's marked delivered). #NotesApp keeps a commission from your delivery earnings only: ${formatPercent(currentPricing().logistics.cutRate)} of each delivery fee, at least ${formatNaira(currentPricing().logistics.cutMinKobo)}. Stores and buyers pay no extra.
+
+**Who can be a provider:** Business and Enterprise include it. On Free Basic and Pro it's the **logistics add-on**: ${logisticsAddonPrice()} a month, with a ${logisticsTrialDays()}-day free trial and no card. The add-on also opens Shipments. API and webhooks for Enterprise come later.`),
     A("merch-store", "The official #NotesApp merch store", "Selling", `
 T-shirts, caps, mugs and more, with the core mark or a seasonal logo from the [Brand page](/brand). You pre-order and pay with Paystack; we print after the batch closes and deliver anywhere in Nigeria for a flat ${money(MERCH_DELIVERY_KOBO)}. See the [Merch store](/merchstore). Every publisher's own shop is in [Notes Market](/shop), and listed on the Merch store page too.`),
     // ── Badges and trust

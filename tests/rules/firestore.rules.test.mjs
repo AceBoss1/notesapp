@@ -269,6 +269,13 @@ test("store items: category from the list, ships-from 2 to 60 characters; saves 
   await assertFails(setDoc(doc(as("pub"), "storeItems/c4"), { ...item, shipsFrom: "x".repeat(61) })); // too long
   await assertSucceeds(setDoc(doc(as("pub"), "storeItems/c5"), { ...item, subtitle: "x".repeat(1200) })); // description: up to 1,200 characters
   await assertFails(setDoc(doc(as("pub"), "storeItems/c6"), { ...item, subtitle: "x".repeat(1201) }));
+  // weight, for delivery partners' prices: more than 0, up to 500 kg; delivery providers are server-only
+  await assertSucceeds(setDoc(doc(as("pub"), "storeItems/w1"), { ...item, weightKg: 2.5 }));
+  await assertFails(setDoc(doc(as("pub"), "storeItems/w2"), { ...item, weightKg: 0 }));
+  await assertFails(setDoc(doc(as("pub"), "storeItems/w3"), { ...item, weightKg: 501 }));
+  await assertFails(setDoc(doc(as("pub"), "storeItems/w4"), { ...item, weightKg: "2" }));
+  await assertFails(getDoc(doc(anon(), "logisticsProviders/pub")));
+  await assertFails(setDoc(doc(as("pub"), "logisticsProviders/pub"), { listed: true }));
   // numbers: anyone reads, nobody writes
   await env.withSecurityRulesDisabled(async (ctx) => {
     const sdb = ctx.firestore();

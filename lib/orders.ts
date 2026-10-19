@@ -84,6 +84,8 @@ export type Parcel = {
   // own customer (no order, no escrow, no NotesApp buyer): buyerUid is "" and orderRef is the parcel ID.
   kind?: "store" | "merch" | "shipment";
   shipment?: ShipmentInfo;
+  carrierUid?: string; // a store order delivered by the store's delivery partner
+  carrierName?: string;
   merchStatus?: "preordered" | "printed" | "shipped" | "delivered" | "refunded";
   mode?: "courier" | "handoff";
   courier?: CourierInfo;
@@ -120,6 +122,8 @@ export type StoreOrder = {
   confirmedAt?: string;
   autoConfirmed?: boolean;
   disputeReason?: string;
+  // Delivered by the store's delivery partner (lib/logistics.ts): who, what the buyer paid them and our commission from it.
+  carrier?: { uid: string; username: string; name: string; feeKobo: number; cutKobo: number };
 };
 
 const ID_CHARS = "23456789ABCDEFGHJKLMNPQRSTUVWXYZ"; // no 0/O/1/I
