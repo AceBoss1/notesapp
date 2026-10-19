@@ -11,6 +11,15 @@ export type Release = {
 
 export const CHANGELOG: Release[] = [
   {
+    version: "v0.59.0",
+    bump: "minor",
+    date: "2026-10-19",
+    changes: [
+      { kind: "added", text: "Top up your wallet with Paylony CardTap: choose Tap to pay with CardTap under Top up, paste the code into the CardTap app (or scan it), tap your bank card on your Android phone and enter your PIN. The credit, and any Bonus Credits, arrive by themselves." },
+      { kind: "added", text: "CardTap's fee is passed on at cost, 1% of the top-up and never more than ₦1,000, shown before you pay. During the launch offer we pay it for you." },
+    ],
+  },
+  {
     version: "v0.57.0",
     bump: "minor",
     date: "2026-10-19",

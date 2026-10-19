@@ -1,4 +1,6 @@
 import { FieldValue } from "firebase-admin/firestore";
+import { verifyCheckoutPayment } from "./paylony";
+import { readVerify } from "./cardtap-topup";
 import { emitWebhook } from "./webhooks";
 import { getAdminDb, getUserEmail } from "./firebase-admin";
 import { slotLockId, verifyTransaction, pricePaidKobo } from "./paystack";
@@ -76,7 +78,11 @@ export type PaymentRecord = {
   createdAt: string;
   paidAt?: string;
   // Paid from the NotesApp Credit wallet instead of Paystack (lib/wallet-server.ts): what was taken, and how much has gone back.
-  payWith?: "wallet";
+  // "cardtap": a wallet top-up paid with Paylony CardTap (lib/cardtap-topup-server.ts), confirmed with Paylony instead of Paystack.
+  payWith?: "wallet" | "cardtap";
+  // CardTap: Paylony's fee (1%, at most ₦1,000), whether we paid it (the launch offer), what the member pays, the code for the app,
+  // and Paylony's last answer about it (kept so a reply we don't recognise can be seen).
+  cardtap?: { feeKobo: number; waived: boolean; payKobo: number; initiationRef?: string; lastVerify?: { at: string; state: string; body: string } };
   walletDebit?: { creditKobo: number; bonusKobo: number };
   walletRefundedKobo?: number;
   // A wallet top-up: the Bonus Credits it adds (fixed at checkout), and how much of it was later refunded to the card.
@@ -172,6 +178,18 @@ async function giftShares(p: PaymentRecord): Promise<Share[]> {
 // in whichever order they land. Confirms with Paystack itself, checks
 // the amount against what we recorded server-side, then writes
 // everything in one transaction.
+// Paylony hasn't confirmed a CardTap payment (yet): state "waiting" while the member is still tapping, "failed" when it said no.
+export class CardtapNotPaid extends Error {
+  constructor(public state: "waiting" | "failed") { super(state === "failed" ? "The CardTap payment didn't go through." : "Waiting for the CardTap payment."); }
+}
+async function confirmCardtap(payRef: FirebaseFirestore.DocumentReference, payment: PaymentRecord): Promise<void> {
+  const r = await verifyCheckoutPayment(payment.reference);
+  const v = readVerify(r.body, payment.cardtap?.payKobo ?? payment.amountKobo);
+  const body = (typeof r.body === "string" ? r.body : JSON.stringify(r.body)).slice(0, 1500);
+  await payRef.update({ "cardtap.lastVerify": { at: new Date().toISOString(), state: v.state, body } }).catch(() => {});
+  if (v.state !== "paid") throw new CardtapNotPaid(v.state);
+}
+
 export async function fulfillPayment(reference: string): Promise<PaymentRecord> {
   await ensurePricing();
   const db = getAdminDb();
@@ -182,7 +200,9 @@ export async function fulfillPayment(reference: string): Promise<PaymentRecord> 
   if (payment.status !== "pending") return payment;
 
   // A wallet payment was taken from the wallet when it was started (payFromWallet), so there is nothing to ask Paystack.
-  const tx = payment.payWith === "wallet" ? null : await verifyTransaction(reference);
+  // A CardTap top-up is asked of Paylony instead, and stays pending (CardtapNotPaid) until Paylony clearly says it's paid.
+  if (payment.payWith === "cardtap") await confirmCardtap(payRef, payment);
+  const tx = payment.payWith === "wallet" || payment.payWith === "cardtap" ? null : await verifyTransaction(reference);
   if (tx && tx.status !== "success") throw new Error(`Payment not successful (${tx.status})`);
   if (tx && (pricePaidKobo(tx) !== payment.amountKobo || tx.currency !== "NGN")) {
     // Keep the evidence (a plan-based charge uses the PLAN's amount, so a stale

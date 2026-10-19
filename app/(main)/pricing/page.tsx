@@ -198,7 +198,7 @@ export default async function PricingPage() {
       </p>
         {WALLET_LIVE && (
         <p className="mt-4 text-sm text-slate">
-          Pay without entering your card each time: top up your <Link href="/profile/wallet" className="text-crimson underline">NotesApp Credit wallet</Link> from ₦1,000 (₦5,000 and more adds Bonus Credits) and use it for boosts, the verification badge, adverts, gifts, shop items and sessions. Credit can&apos;t be cashed out.
+          Pay without entering your card each time: top up your <Link href="/profile/wallet" className="text-crimson underline">NotesApp Credit wallet</Link> from ₦1,000 (₦5,000 and more adds Bonus Credits), by card or with a tap of your card through Paylony CardTap (its 1% fee, at most ₦1,000, at cost), and use it for boosts, the verification badge, adverts, gifts, shop items and sessions. Credit can&apos;t be cashed out.
         </p>
       )}
       <p className="small">

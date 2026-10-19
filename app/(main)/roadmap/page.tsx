@@ -151,7 +151,7 @@ const ITEMS: { title: string; tag: string; body: string; detail: string; link?: 
   {
     title: "Paylony payments and Tap-to-Pay",
     tag: "Payments",
-    body: "Paylony as the main payment provider for one-off payments and payouts, with an admin switch to fall back to Paystack. Then Tap-to-Pay: team members' Android phones taking contactless card payments at a pop-up or a customer's door.",
+    body: "Live: top up your NotesApp Credit wallet with Paylony CardTap, a tap of your bank card on an Android phone, at CardTap's own fee (1%, at most ₦1,000), and every counter payment in Notes Life. Next: Paylony as the main payment provider for one-off payments and payouts, with an admin switch to fall back to Paystack. Then Tap-to-Pay: team members' Android phones taking contactless card payments at a pop-up or a customer's door.",
     detail:
       "Build order: a provider layer that handles every payment and payout through one interface, the admin switch with an automatic fallback, a Paylony webhook, Paylony payouts, then Tap-to-Pay for the team seats on Business and Enterprise, which needs an NFC-capable mobile app.",
   },
