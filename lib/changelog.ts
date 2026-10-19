@@ -11,6 +11,14 @@ export type Release = {
 
 export const CHANGELOG: Release[] = [
   {
+    version: "v0.57.2",
+    bump: "patch",
+    date: "2026-10-19",
+    changes: [
+      { kind: "added", text: "Coming soon: Community for churches, NGOs, schools and clubs (public and members-only Spaces, a General announcement channel, private Circles) and Events for every account, with reminders and Join live links. See the Community and Events pages and the roadmap." },
+    ],
+  },
+  {
     version: "v0.57.1",
     bump: "patch",
     date: "2026-10-19",

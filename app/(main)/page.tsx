@@ -53,6 +53,7 @@ const FEATURES = [
   { title: "Trust you can check", copy: "Buyer payments held until delivery, private files behind short-lived links, view-only courses on two devices, tested access rules, and your own data to download or delete. Read how it works on Trust & security." },
   { title: "Nana AI and a help centre", copy: "Ask Nana, our helper, anything about the platform from the chat button on every page, and get answers with links to the right page, or browse the help centre. She can also suggest replies that offer your open session times and booking link. If Nana can't help, she passes you to a person." },
   { title: "Open about what's live", copy: "A public status page with response times and incident updates, and a changelog of every release, so you always know what changed." },
+  { title: "Community & Events (coming)", copy: "For churches, NGOs, schools and clubs: post to everyone or to members only, announce to the whole community, run private Circles, and publish events with reminders and a Join live link. Free up to 200 members." },
   { title: "Bring your own transcription (coming)", copy: "Connect Otter.ai or Whisper for session notes. We integrate; we don't lock you into one AI vendor." },
 ];
 

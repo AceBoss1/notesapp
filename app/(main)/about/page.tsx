@@ -112,7 +112,7 @@ export default async function AboutPage() {
         <p className="eyebrow">What you can do today</p>
         <FeatureMosaic className="mt-5" items={LIVE} />
         <p className="mt-4 text-sm text-slate">
-          Still to come: quizzes and the Enterprise course packages, WhatsApp reminders, iOS and Android apps, sharing
+          Still to come: <Link href="/community" className="text-crimson underline underline-offset-2">Community</Link> for churches, NGOs and clubs, <Link href="/events" className="text-crimson underline underline-offset-2">Events</Link>, quizzes and the Enterprise course packages, WhatsApp reminders, iOS and Android apps, sharing
           to more social networks (LinkedIn and X are live), and Google and Meta ads
           alongside our own. The Team hub, company finance tools, an investor data room and advertising on LinkedIn
           are being tested by our own team and will be paid add-ons for Business and Enterprise once that testing is done — see the{" "}

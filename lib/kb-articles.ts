@@ -462,6 +462,20 @@ The gold ✔ is for accounts #NotesApp has vouched for, in two kinds: **endorsed
 
 It costs the same on every plan: ${money(GOLD_PRICING.personal.monthlyKobo)} a month for a person or ${money(GOLD_PRICING.corporate.monthlyKobo)} a month for an organisation. An endorsement review is free; an identity check adds a one-off non-refundable deposit (${money(GOLD_PRICING.personal.identityDepositKobo)} personal, ${money(GOLD_PRICING.corporate.identityDepositKobo)} organisation) that covers the third-party check whether or not it passes. We do not collect or store your ID documents; our partner Dojah runs the check and an admin sees only the outcome. You can cancel any time and keep the badge until the period you paid for ends. Apply at [Verification badges](/badges).`),
     // ── Teams and organisations
+    A("community-coming-soon", "Community and Events (coming soon)", "Teams and organisations", `
+**Coming soon.** [Community](/community) is for churches, NGOs, schools, clubs and associations with many members, a bit like a Facebook group with a channel, run by your own admins.
+
+**Spaces:** a public Space whose posts anyone can read (on your profile and in Explore), and a members-only Space whose posts only your members can see. Members-only posts never show in Explore, search, share previews or the Weekly Digest.
+
+**General:** every member is in it. It's an announcement channel: your admins post, members react and comment.
+
+**Circles:** private rooms your admins set up inside the community, such as the choir, the youth or the board (on Business).
+
+**Members:** people join openly, by approval or by invite link, and can be asked a question when they join. Roles are owner, admins, moderators and members. The member list is for members only and never shows phone numbers.
+
+**Events:** for every account, not only communities. Members tap Going or Interested, get reminders 24 hours and 1 hour before, and can add the event to their calendar. Events can repeat weekly or monthly, and can carry a Join live link to YouTube Live, Facebook Live, Zoom or Google Meet. See [Events](/events).
+
+**Who and what it costs:** any account can start a community. It shows a notice until we've verified the organisation behind it. It's free up to 200 members; Business has no member limit and adds Circles. Our own live streaming comes later, as a paid add-on. Giving (offerings, tithes and campaigns) comes later too.`),
     A("organisation-accounts", "Organisation accounts", "Teams and organisations", `
 Companies, NGOs, churches, schools and clubs can run a verified channel. Sign up as an Organisation with your CAC number (RC, BN or IT) and a work email, verify the email, and start a free ${ORG_TRIAL_DAYS}-day Business trial (no card, one per registration number). We then confirm the registration against the CAC register; until then the channel shows an "unverified organisation" notice.
 
