@@ -15,20 +15,20 @@ const noun = (k: CallKind) => (k === "video" ? "video call" : "voice call");
 const Icon = ({ children, className = "h-7 w-7 lg:h-[22px] lg:w-[22px]" }: { children: ReactNode; className?: string }) => (
   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden className={className}>{children}</svg>
 );
-const MicIcon = ({ off }: { off?: boolean }) => (
+export const MicIcon = ({ off }: { off?: boolean }) => (
   <Icon><rect x="9" y="3" width="6" height="11" rx="3" /><path d="M5.5 11a6.5 6.5 0 0013 0M12 17.5V21" />{off && <path d="M4 4l16 16" />}</Icon>
 );
 const FlipIcon = () => (
   <Icon><path d="M3.5 8.5h3l1.8-2.5h7.4l1.8 2.5h3v10h-17z" /><path d="M9.3 12.6a2.9 2.9 0 015.1-1.2M14.7 14.4a2.9 2.9 0 01-5.1 1.2" /><path d="M14.6 9.8v1.8h-1.8M9.4 17.2v-1.8h1.8" /></Icon>
 );
-const CameraIcon = ({ off }: { off?: boolean }) => (
+export const CameraIcon = ({ off }: { off?: boolean }) => (
   <Icon><rect x="2.5" y="6.5" width="13.5" height="11" rx="2" /><path d="M16 10.5l5.5-3v9l-5.5-3z" />{off && <path d="M3 3.5l17 17" />}</Icon>
 );
 const ScreenIcon = ({ on }: { on?: boolean }) => (
   <Icon><rect x="2.5" y="4" width="19" height="12.5" rx="1.5" /><path d="M8.5 20.5h7M12 16.5v4" />{on ? <path d="M9 8l6 5M15 8l-6 5" /> : <path d="M12 13V7.5M9.5 10L12 7.5l2.5 2.5" />}</Icon>
 );
 const LockIcon = () => <Icon className="h-3.5 w-3.5"><rect x="5" y="10.5" width="14" height="10" rx="2" /><path d="M8 10.5V7.5a4 4 0 018 0v3" /></Icon>;
-const CrossIcon = ({ className }: { className?: string }) => <Icon className={className}><path d="M6 6l12 12M18 6L6 18" /></Icon>;
+export const CrossIcon = ({ className }: { className?: string }) => <Icon className={className}><path d="M6 6l12 12M18 6L6 18" /></Icon>;
 const PhoneIcon = ({ className }: { className?: string }) => (
   <Icon className={className}><path d="M21 16.4v2.8a1.9 1.9 0 01-2 1.9 18.7 18.7 0 01-8.2-2.9 18.4 18.4 0 01-5.7-5.7A18.7 18.7 0 012.2 4.2 1.9 1.9 0 014.1 2.2h2.8a1.9 1.9 0 011.9 1.6c.1.9.3 1.7.6 2.5a1.9 1.9 0 01-.4 2L7.8 9.5a15.2 15.2 0 005.7 5.7l1.2-1.2a1.9 1.9 0 012-.4c.8.3 1.6.5 2.5.6a1.9 1.9 0 011.6 1.9z" /></Icon>
 );
@@ -146,15 +146,17 @@ export function CallStage({ kind, name, avatar, status, live, over, muted, camOf
   );
 }
 
-export type IncomingCallProps = { kind: CallKind; name: string; avatar: string; username?: string; onAccept: () => void; onDecline: () => void };
+export type IncomingCallProps = { kind: CallKind; name: string; avatar: string; username?: string; group?: string; onAccept: () => void; onDecline: () => void };
 
 // Phones: the whole screen, like a phone call. Desktop: a card at the top right, over whatever page is open.
-export function IncomingCall({ kind, name, avatar, username, onAccept, onDecline }: IncomingCallProps) {
+// A group call (`group` is the group's name) rings the same way, with Join and Not now.
+export function IncomingCall({ kind, name, avatar, username, group, onAccept, onDecline }: IncomingCallProps) {
   const [host, setHost] = useState("");
   useEffect(() => setHost(window.location.host), []);
-  const label = `Incoming ${noun(kind)} from ${name}`;
-  const title = `Incoming ${noun(kind)}`;
-  const sub = `${name} is calling you on #NotesApp`;
+  const label = group ? `Group ${noun(kind)} in ${group}, started by ${name}` : `Incoming ${noun(kind)} from ${name}`;
+  const title = group ? `Group ${noun(kind)}` : `Incoming ${noun(kind)}`;
+  const sub = group ? `${name} started a call in ${group}` : `${name} is calling you on #NotesApp`;
+  const yes = group ? "Join" : "Answer", no = group ? "Not now" : "Decline";
 
   return (
     <>
@@ -173,16 +175,16 @@ export function IncomingCall({ kind, name, avatar, username, onAccept, onDecline
           <p className="font-mono text-[13px] uppercase tracking-eyebrow text-paper/80">#NotesApp {noun(kind)}</p>
           <div className="mt-4"><CallAvatar src={avatar} name={name} ring="white" /></div>
           <p className="mt-6 max-w-full break-words font-display text-[36px] leading-tight">{name}</p>
-          <p className="mt-4 font-ui text-[15px] text-white/75">{username ? `@${username} · ` : ""}calling…</p>
+          <p className="mt-4 font-ui text-[15px] text-white/75">{group ? `${group} · group call` : `${username ? `@${username} · ` : ""}calling…`}</p>
         </div>
         <div className="flex justify-between px-12 pb-[calc(env(safe-area-inset-bottom)_+_2.5rem)] min-[380px]:px-16">
           <div className="flex flex-col items-center gap-3">
-            <button type="button" onClick={onDecline} aria-label="Decline" className="flex h-[76px] w-[76px] items-center justify-center rounded-full bg-[#E5383B] hover:bg-[#D12F32]"><CrossIcon className="h-9 w-9" /></button>
-            <span aria-hidden className="font-ui text-[15px] text-white/80">Decline</span>
+            <button type="button" onClick={onDecline} aria-label={no} className="flex h-[76px] w-[76px] items-center justify-center rounded-full bg-[#E5383B] hover:bg-[#D12F32]"><CrossIcon className="h-9 w-9" /></button>
+            <span aria-hidden className="font-ui text-[15px] text-white/80">{no}</span>
           </div>
           <div className="flex flex-col items-center gap-3">
-            <button type="button" onClick={onAccept} aria-label="Answer" className="flex h-[76px] w-[76px] items-center justify-center rounded-full bg-[#2FA36B] hover:bg-[#29925F]"><PhoneIcon className="h-8 w-8" /></button>
-            <span aria-hidden className="font-ui text-[15px] text-white/80">Answer</span>
+            <button type="button" onClick={onAccept} aria-label={yes} className="flex h-[76px] w-[76px] items-center justify-center rounded-full bg-[#2FA36B] hover:bg-[#29925F]"><PhoneIcon className="h-8 w-8" /></button>
+            <span aria-hidden className="font-ui text-[15px] text-white/80">{yes}</span>
           </div>
         </div>
       </div>
@@ -198,8 +200,8 @@ export function IncomingCall({ kind, name, avatar, username, onAccept, onDecline
           </div>
         </div>
         <div className="mt-3 grid grid-cols-2 gap-2.5">
-          <button type="button" onClick={onAccept} className="h-12 rounded-xl bg-[#2FA36B] font-ui text-sm font-bold hover:bg-[#29925F]">Answer</button>
-          <button type="button" onClick={onDecline} className="h-12 rounded-xl bg-white/10 font-ui text-sm font-bold hover:bg-white/15">Decline</button>
+          <button type="button" onClick={onAccept} className="h-12 rounded-xl bg-[#2FA36B] font-ui text-sm font-bold hover:bg-[#29925F]">{yes}</button>
+          <button type="button" onClick={onDecline} className="h-12 rounded-xl bg-white/10 font-ui text-sm font-bold hover:bg-white/15">{no}</button>
         </div>
       </div>
     </>

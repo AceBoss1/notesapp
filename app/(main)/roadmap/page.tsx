@@ -93,8 +93,8 @@ const ITEMS: { title: string; tag: string; body: string; detail: string; link?: 
   {
     title: "Group calls in group chats",
     tag: "Social",
-    body: "Coming: free calls for up to 6 people in a group chat. Anyone in the group taps Join call; the call goes phone to phone and is end-to-end encrypted, so nobody else, us included, can listen in.",
-    detail: "Each person in the call sees a short code for every other person; if the codes match on both phones, nobody else can listen in. One-to-one voice and video calls are already live between people who follow each other. Bigger group meetings, with video for many people, need a different kind of server and come later.",
+    body: "Live now: free calls in a group chat, up to 6 people talking or 4 on video. Everyone in the group is rung with Join, and anyone can tap Join call while it's going; the call goes phone to phone and is end-to-end encrypted, so nobody else, us included, can listen in.",
+    detail: "Tap someone's picture in the call to see your safety code with them; if the codes match on both phones, nobody else can listen in. One-to-one calls show the same code, and on a computer you can share your screen. Bigger group meetings, with video for many people, need a different kind of server and come later.",
   },
   {
     title: "Community and Events",
@@ -228,7 +228,7 @@ export default function RoadmapPage() {
               {MOMENTS_LIVE && <li>Moments: a picture, a video or text, with an optional voice-over, on your profile picture for 24, 48 or 72 hours. A video over 90 seconds is split into parts (as many as your plan&apos;s weekly video allowance covers); a bar at the top fills in maroon as each moment plays; followers can like, 🔁 re-share or 💬 reply from the Moments row on the Journals page, you can see who watched, you choose whether only your followers or everyone can see yours, and anyone can block or report</li>}
               {MESSAGES_LIVE && <li>Direct messages with a live inbox: bold, italic and underline, a ✔ when sent and a ✔✔ with the time when read, pictures, videos and documents attached (how big and how many depends on your plan), voice notes of up to 5 minutes and stickers. Pin up to 3 messages in a chat and up to 3 chats in your inbox, see when someone is typing, and edit or delete your own messages (once a message has been read, the reader is asked first). Notifications on your device (offered when you first use Messages, and on until you turn them off), email on Business and Enterprise (off until you switch it on, at most one an hour), and block and report tools</li>}
               {WALLET_LIVE && <li>The NotesApp Credit <Link href="/profile/wallet" className="text-crimson underline">wallet</Link>: top up once (Bonus Credits on ₦5,000 and more) and pay for boosts, badges, adverts, gifts, shop items and sessions without your card each time</li>}
-              {CALLS_LIVE && <li>Free voice and video calls in Messages with anyone you follow who follows you back: straight between your two devices, encrypted and never recorded, with a line in the conversation for every call, a notification for a missed one, and Call back on any call line. A safety code proves a call is end-to-end encrypted, and on a computer you can share your screen. In a video call you can move or swap your own picture and switch between front and back camera, and calls ring on the installed app even when it isn't open on your screen</li>}
+              {CALLS_LIVE && <li>Free voice and video calls in Messages with anyone you follow who follows you back: straight between your two devices, encrypted and never recorded, with a line in the conversation for every call, a notification for a missed one, and Call back on any call line. A safety code proves a call is end-to-end encrypted, and on a computer you can share your screen. Group calls in group chats: up to 6 people talking or 4 on video, phone to phone. In a video call you can move or swap your own picture and switch between front and back camera, and calls ring on the installed app even when it isn't open on your screen</li>}
               <li><Link href="/nana" className="text-crimson underline">Nana AI</Link> and the <Link href="/help" className="text-crimson underline">help centre</Link>: ask anything about #NotesApp, from every page and from a conversation pinned in Messages, and get writing help in drafts, shares and messages; three gems (Pearl, Emerald, Ruby) by plan, a free weekly allowance, Nana credit and an answer bank; topic suggestions from your title, and chat summaries and translations</li>
               <li>The #NotesApp MCP server, phase 1: AI assistants such as Claude and ChatGPT can find creators, journals, store items and courses, and with your API key read your own data (see the <Link href="/docs" className="text-crimson underline">API Docs</Link>)</li>
               <li>Publishing a post to your connected LinkedIn and X from the post itself</li>
@@ -245,7 +245,6 @@ export default function RoadmapPage() {
             <ul className="mt-3 space-y-2 text-sm text-slate">
               <li>Quizzes on courses, and the two Enterprise course packages</li>
               <li>WhatsApp reminders alongside email and the bell</li>
-              <li>Group calls in group chats: free calls for up to 6 people, phone to phone and end-to-end encrypted, with Join call in the group and a code each person can compare</li>
               <li><Link href="/community" className="text-crimson underline">Community</Link> for churches, NGOs, schools and clubs: public and members-only Spaces, a General announcement channel, private Circles, and <Link href="/events" className="text-crimson underline">Events</Link> for every account with reminders and Join live links (free up to 200 members; our own live streaming later, as a paid add-on)</li>
               <li>For logistics providers: API and webhooks on Enterprise, and Nana suggesting delivery rates</li>
               {GOLD_KIND_LIVE.identity ? null : <li>Automatic identity-checked gold badge (all built; NIN + face check for people, CAC for organisations awaiting final tests)</li>}
@@ -261,7 +260,7 @@ export default function RoadmapPage() {
               <li>Publishing to Facebook, Instagram and TikTok</li>
               <li>Google ads on the web and AdMob in the apps</li>
               <li>Nana suggests replies</li>
-              <li>Audio and video meetings, meeting chat (under team discussion)</li>
+              <li>Bigger audio and video meetings (more than 6 people), meeting chat (under team discussion)</li>
               {!MOMENTS_LIVE && <li>Moments: pictures, video and text on profile pictures for 24, 48 or 72 hours</li>}
               {!MESSAGES_LIVE && <li>Direct messages</li>}
               {!CALLS_LIVE && <li>Audio and video calls inside messages</li>}

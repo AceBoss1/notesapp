@@ -6,6 +6,8 @@ import { addDoc, collection, doc, getDoc, onSnapshot, query, updateDoc, where } 
 import { auth, db } from "@/lib/firebase";
 import { api } from "@/lib/moments-client";
 import { CallStage, IncomingCall } from "@/components/calls/CallViews";
+import { GROUP_CALL_EVENT, GroupCallScreen, setLiveGroupCalls, type GroupStart, type LiveGroupCall } from "@/components/calls/GroupCall";
+import { ringsFor } from "@/lib/group-calls";
 import { CALLS_LIVE } from "@/lib/moments-rules";
 import { CALL_RING_MS, CALL_STALE_MS, duration, safetyCode, sdpFingerprint, type CallDoc, type CallKind } from "@/lib/calls";
 
@@ -24,6 +26,13 @@ export default function CallManager() {
   const [active, setActive] = useState<Active | null>(null);
   const activeRef = useRef<Active | null>(null);
   activeRef.current = active;
+  // Group calls: the live ones in my groups, the one ringing me (until I join or say Not now), and the one I'm in.
+  const [groupCalls, setGroupCalls] = useState<LiveGroupCall[]>([]);
+  const [groupOn, setGroupOn] = useState<GroupStart | null>(null);
+  const groupRef = useRef<GroupStart | null>(null);
+  groupRef.current = groupOn;
+  const [dismissed, setDismissed] = useState<string[]>([]);
+  const [, setNow] = useState(0);
 
   useEffect(() => (CALLS_LIVE ? onAuthStateChanged(auth, (u) => setUid(u?.uid ?? null)) : undefined), []);
   // Incoming calls: anything ringing for me that isn't stale (the caller may have closed their app).
@@ -35,10 +44,31 @@ export default function CallManager() {
     }, () => setRinging(null));
   }, [uid]);
   useEffect(() => {
-    const onStart = (e: Event) => { if (!activeRef.current) setActive({ role: "caller", start: (e as CustomEvent<Start>).detail }); };
+    const onStart = (e: Event) => { if (!activeRef.current && !groupRef.current) setActive({ role: "caller", start: (e as CustomEvent<Start>).detail }); };
+    const onGroup = (e: Event) => { if (!activeRef.current && !groupRef.current) setGroupOn((e as CustomEvent<GroupStart>).detail); };
     window.addEventListener(CALL_EVENT, onStart);
-    return () => window.removeEventListener(CALL_EVENT, onStart);
+    window.addEventListener(GROUP_CALL_EVENT, onGroup);
+    return () => { window.removeEventListener(CALL_EVENT, onStart); window.removeEventListener(GROUP_CALL_EVENT, onGroup); };
   }, []);
+  useEffect(() => {
+    if (!uid) { setGroupCalls([]); setLiveGroupCalls([]); return; }
+    return onSnapshot(query(collection(db, "groupCalls"), where("memberUids", "array-contains", uid), where("status", "==", "live")), (snap) => {
+      const list = snap.docs.map((d) => ({ ...(d.data() as LiveGroupCall), id: d.id }));
+      setGroupCalls(list); setLiveGroupCalls(list);
+    }, () => { setGroupCalls([]); setLiveGroupCalls([]); });
+  }, [uid]);
+  // A group call stops ringing after 45 seconds even if nothing else changes.
+  useEffect(() => { if (!groupCalls.length) return; const t = setInterval(() => setNow(Date.now()), 5000); return () => clearInterval(t); }, [groupCalls.length]);
+  const groupRing = uid && !active && !groupOn && !ringing ? groupCalls.find((c) => ringsFor(c, uid) && !dismissed.includes(c.id)) ?? null : null;
+  // Opened from a group call notification (…?join=<call id>).
+  useEffect(() => {
+    if (activeRef.current || groupRef.current) return;
+    const p = new URLSearchParams(window.location.search);
+    const c = groupCalls.find((x) => x.id === p.get("join"));
+    if (!c) return;
+    p.delete("join"); window.history.replaceState(null, "", window.location.pathname + (p.toString() ? `?${p}` : ""));
+    setGroupOn({ cid: c.cid, title: c.title, kind: c.kind, id: c.id });
+  }, [groupCalls]);
 
   const accept = useCallback((c: CallDoc & { id: string }) => { setActive({ role: "callee", id: c.id, kind: c.kind, name: c.callerName, avatar: c.callerAvatar }); setRinging(null); }, []);
   // Opened from the ringing notification's Answer (…?answer=<call id>): answer straight away.
@@ -56,7 +86,13 @@ export default function CallManager() {
           onAccept={() => accept(ringing)}
           onDecline={() => { api("/api/calls", { body: { action: "end", id: ringing.id, reason: "declined" } }).catch(() => {}); setRinging(null); }} />
       )}
+      {groupRing && (
+        <Incoming call={{ kind: groupRing.kind, callerName: groupRing.startedByName, callerAvatar: groupRing.joined?.[groupRing.startedBy]?.avatar ?? "" }} group={groupRing.title}
+          onAccept={() => setGroupOn({ cid: groupRing.cid, title: groupRing.title, kind: groupRing.kind, id: groupRing.id })}
+          onDecline={() => setDismissed((d) => [...d, groupRing.id])} />
+      )}
       {active && <CallScreen active={active} onDone={() => setActive(null)} />}
+      {groupOn && <GroupCallScreen start={groupOn} me={uid} onDone={() => setGroupOn(null)} />}
     </>
   );
 }
@@ -81,9 +117,9 @@ function useRingtone(on: boolean) {
   }, [on]);
 }
 
-function Incoming({ call, onAccept, onDecline }: { call: CallDoc & { id: string }; onAccept: () => void; onDecline: () => void }) {
+function Incoming({ call, group, onAccept, onDecline }: { call: Pick<CallDoc, "kind" | "callerName" | "callerAvatar">; group?: string; onAccept: () => void; onDecline: () => void }) {
   useRingtone(true);
-  return <IncomingCall kind={call.kind} name={call.callerName} avatar={call.callerAvatar} onAccept={onAccept} onDecline={onDecline} />;
+  return <IncomingCall kind={call.kind} name={call.callerName} avatar={call.callerAvatar} group={group} onAccept={onAccept} onDecline={onDecline} />;
 }
 
 function CallScreen({ active, onDone }: { active: Active; onDone: () => void }) {
