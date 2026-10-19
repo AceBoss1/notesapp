@@ -133,6 +133,8 @@ const site = await getSiteSettingsCached();
                 <li><Link href="/badges" className="hover:text-paper">Verification badges</Link></li>
                 <li><Link href="/advertise" className="hover:text-paper">Advertise</Link></li>
                 <li><Link href="/organisations" className="hover:text-paper">Organisations</Link></li>
+                <li><Link href="/community" className="hover:text-paper">Community</Link></li>
+                <li><Link href="/events" className="hover:text-paper">Events</Link></li>
                 <li><Link href="/store-selling" className="hover:text-paper">Store selling</Link></li>
                 <li><Link href="/logistics" className="hover:text-paper">Logistics</Link></li>
                 <li><Link href="/logistics/network" className="hover:text-paper">Logistics network</Link></li>

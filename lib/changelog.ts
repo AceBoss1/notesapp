@@ -11,6 +11,22 @@ export type Release = {
 
 export const CHANGELOG: Release[] = [
   {
+    version: "v0.57.2",
+    bump: "patch",
+    date: "2026-10-19",
+    changes: [
+      { kind: "added", text: "Coming soon: Community for churches, NGOs, schools and clubs (public and members-only Spaces, a General announcement channel, private Circles) and Events for every account, with reminders and Join live links. See the Community and Events pages and the roadmap." },
+    ],
+  },
+  {
+    version: "v0.57.1",
+    bump: "patch",
+    date: "2026-10-19",
+    changes: [
+      { kind: "fixed", text: "Home, About, the roadmap, Store selling and the help centre now say paid courses are live (Pro: text, PDFs and YouTube; Business and Enterprise: your own uploaded videos too, with co-tutors), instead of calling them next." },
+    ],
+  },
+  {
     version: "v0.57.0",
     bump: "minor",
     date: "2026-10-19",

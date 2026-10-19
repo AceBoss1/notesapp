@@ -421,7 +421,7 @@ Choose **Digital download** when you add an item and upload your file (PDF, ePub
 
 On **Pro and above** you can instead choose **View only**: add lessons (videos or PDFs) that buyers watch or read on #NotesApp with no download, on up to two devices per purchase, with the buyer's email faintly stamped on the content. One lesson is a single view-only file; several make a course. See [Store selling](/store-selling#view-only).
 
-For a full course, with progress for learners, use [Notes Academy](/academy): free courses with lessons from your own YouTube are open now, and paid courses on Pro and Business come next, with the same fee as your digital items.`),
+For a full course, with progress for learners, use [Notes Academy](/academy): free courses with lessons from your own YouTube, and on Pro and above paid courses, with the same fee as your digital items.`),
     A("track-a-parcel", "Tracking a parcel", "Selling", `
 Every store order gets a parcel ID that looks like NA-7K2M9QXD, sent to the buyer by email. Enter it on [Track a parcel](/track) to see where the parcel is, who holds it and the courier details if there are any. Parcels sent by a logistics business on #NotesApp have the same kind of number: track them on that business's own site, or here.`),
     A("logistics-shipments", "Shipments for logistics businesses", "Selling", `
@@ -462,6 +462,20 @@ The gold ✔ is for accounts #NotesApp has vouched for, in two kinds: **endorsed
 
 It costs the same on every plan: ${money(GOLD_PRICING.personal.monthlyKobo)} a month for a person or ${money(GOLD_PRICING.corporate.monthlyKobo)} a month for an organisation. An endorsement review is free; an identity check adds a one-off non-refundable deposit (${money(GOLD_PRICING.personal.identityDepositKobo)} personal, ${money(GOLD_PRICING.corporate.identityDepositKobo)} organisation) that covers the third-party check whether or not it passes. We do not collect or store your ID documents; our partner Dojah runs the check and an admin sees only the outcome. You can cancel any time and keep the badge until the period you paid for ends. Apply at [Verification badges](/badges).`),
     // ── Teams and organisations
+    A("community-coming-soon", "Community and Events (coming soon)", "Teams and organisations", `
+**Coming soon.** [Community](/community) is for churches, NGOs, schools, clubs and associations with many members, a bit like a Facebook group with a channel, run by your own admins.
+
+**Spaces:** a public Space whose posts anyone can read (on your profile and in Explore), and a members-only Space whose posts only your members can see. Members-only posts never show in Explore, search, share previews or the Weekly Digest.
+
+**General:** every member is in it. It's an announcement channel: your admins post, members react and comment.
+
+**Circles:** private rooms your admins set up inside the community, such as the choir, the youth or the board (on Business).
+
+**Members:** people join openly, by approval or by invite link, and can be asked a question when they join. Roles are owner, admins, moderators and members. The member list is for members only and never shows phone numbers.
+
+**Events:** for every account, not only communities. Members tap Going or Interested, get reminders 24 hours and 1 hour before, and can add the event to their calendar. Events can repeat weekly or monthly, and can carry a Join live link to YouTube Live, Facebook Live, Zoom or Google Meet. See [Events](/events).
+
+**Who and what it costs:** any account can start a community. It shows a notice until we've verified the organisation behind it. It's free up to 200 members; Business has no member limit and adds Circles. Our own live streaming comes later, as a paid add-on. Giving (offerings, tithes and campaigns) comes later too.`),
     A("organisation-accounts", "Organisation accounts", "Teams and organisations", `
 Companies, NGOs, churches, schools and clubs can run a verified channel. Sign up as an Organisation with your CAC number (RC, BN or IT) and a work email, verify the email, and start a free ${ORG_TRIAL_DAYS}-day Business trial (no card, one per registration number). We then confirm the registration against the CAC register; until then the channel shows an "unverified organisation" notice.
 
@@ -545,7 +559,7 @@ Use the [contact form](/contact) and pick the topic (bookings, payments and refu
     A("about-and-status", "About #NotesApp, status and updates", "Company", `
 #NotesApp is run by ${COMPANY_INFO.legalName} (RC ${COMPANY_INFO.rcNumber}), a private company limited by shares registered in Nigeria. Read [About](/about), see live service health on [Status](/status), what changed on the [Changelog](/changelog) and what is coming on the [roadmap](/roadmap). Our domain partner is Whogohost (go54), and we connect to services such as Paystack, Paylony, Cloudflare, Firebase, Vercel, Resend and Dojah.`),
     A("roadmap-whats-coming", "What is coming next", "Company", `
-Not live yet, with no promised dates: paid courses on Pro and Business, and the Enterprise course packages; publishing to Facebook, Instagram and TikTok (LinkedIn and X are live); AI drafting from your past notes; domain sales and DNS management inside #NotesApp; ${WALLET_LIVE ? "paid calls in Notes Life (the NotesApp Credit wallet itself is live)" : "NotesApp Credit and Bonus Credits"}; Paylony payments and Tap-to-Pay; WhatsApp reminders; fuller identity checks; and iOS and Android apps. Details and the latest are on the [roadmap](/roadmap).
+Not live yet, with no promised dates: course quizzes and the Enterprise course packages; publishing to Facebook, Instagram and TikTok (LinkedIn and X are live); AI drafting from your past notes; domain sales and DNS management inside #NotesApp; ${WALLET_LIVE ? "paid calls in Notes Life (the NotesApp Credit wallet itself is live)" : "NotesApp Credit and Bonus Credits"}; Paylony payments and Tap-to-Pay; WhatsApp reminders; fuller identity checks; and iOS and Android apps. Details and the latest are on the [roadmap](/roadmap).
 
 ${ADD_ONS_LINE}`),
     A("million-naira-challenge", "The #1MillionNairaNotesAppChallenge", "Company", `
