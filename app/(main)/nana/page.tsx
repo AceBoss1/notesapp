@@ -8,7 +8,7 @@ import { nanaConfigured } from "@/lib/nana-config";
 
 export const metadata: Metadata = {
   title: "Nana AI",
-  description: "Meet Nana, #NotesApp's helper: ask her anything about the platform and get answers with links, get writing help for drafts, sharing and messages, and connect your own AI account.",
+  description: "Meet Nana, #NotesApp's helper: ask her anything about the platform and get answers with links, get writing help for drafts, sharing and messages, topic suggestions, chat summaries and translations, with a free weekly allowance on every plan and Nana credit to top it up.",
 };
 export const revalidate = 3600; // static text; nanaConfigured() is checked again each hour
 
@@ -16,7 +16,9 @@ const DOES = [
   { title: "Answers, with links", body: "Ask about plans and prices, payouts, bookings and refunds, selling, badges, organisations. She answers in plain words and links you to the right page. Her answers come from our help centre, which our team writes and keeps right." },
   { title: "Writing help in your drafts", body: "In the journal composer, ask Nana to improve, shorten or expand your writing, make it friendlier or more professional, or turn rough notes into a first draft." },
   { title: "Posts for LinkedIn and X", body: "When you share a post, ask Nana to write the words for LinkedIn or X, and edit them before anything goes out." },
-  { title: "Help with messages", body: "In a conversation, ask Nana to suggest a reply or polish what you wrote. You always read and send it yourself." },
+  { title: "Help with messages", body: "In a conversation, ask Nana to suggest a reply or polish what you wrote. You always read and send it yourself. Summarise tells you what you missed in a busy chat, and Translate puts a message into English, Pidgin, Yorùbá, Igbo or Hausa." },
+  { title: "Topics from your title", body: "Type a journal's or course's title and Nana suggests topics and subtopics to tap; for a Market item, its category and subcategory. Free, and not taken from your allowance." },
+  { title: "Gems, allowance and credit", body: "Choose Pearl (fast, every plan), Emerald (deeper, Business and Enterprise) or Ruby (our most capable, Enterprise), and how long she thinks. Every plan has a free allowance that refreshes weekly; Nana credit tops it up and never expires. A general question asked before is answered free from her answer bank." },
   { title: "In the team hub", body: "Our own team asks Nana what to focus on and how the admin tools work. She comes with the Team hub, which will be a paid add-on for Business and Enterprise after our internal testing." },
 ];
 

@@ -11,7 +11,7 @@ import { resolveAuthorUsername } from "./journals-directory";
 import { topicsOf } from "./topics";
 import { digestSubject, pickStories, renderDigestHtml, renderDigestText, type DigestEmail, type DigestItem, type PoolStory } from "./digest";
 import { getMarket, type MarketItem } from "./shop-directory";
-import { ACADEMY_LIVE, courseHref } from "./courses";
+import { ACADEMY_LIVE, courseHref, priceLabel } from "./courses";
 import { setting } from "@/lib/config";
 
 // Server-only. The #NotesApp Weekly Digest (template in lib/digest.ts).
@@ -171,7 +171,7 @@ export async function weekCourses(db: Firestore, now = new Date()): Promise<Dige
   const popular = live.filter((x) => (joined.get(x.id) ?? 0) > 0 && !viewed.includes(x)).sort((a, b) => (joined.get(b.id) ?? 0) - (joined.get(a.id) ?? 0)).slice(0, 2);
   const name = new Map(owners.map((o) => [o.id, String(o.data()?.displayName || o.data()?.username || "")]));
   const row = ({ id, c }: { id: string; c: FirebaseFirestore.DocumentData }, why: string): DigestItem => ({
-    title: String(c.title ?? ""), href: `${SITE_URL}${courseHref(String(c.slug ?? id))}`, image: abs(c.cover, null), price: "Free", by: name.get(String(c.ownerUid)) || String(c.ownerName ?? ""), why,
+    title: String(c.title ?? ""), href: `${SITE_URL}${courseHref(String(c.slug ?? id))}`, image: abs(c.cover, null), price: priceLabel(c), by: name.get(String(c.ownerUid)) || String(c.ownerName ?? ""), why,
   });
   return [
     ...viewed.map((x) => row(x, `${(week.get(x.id) ?? 0).toLocaleString("en-GB")} views this week`)),

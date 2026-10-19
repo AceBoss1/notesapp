@@ -11,7 +11,7 @@ import { certificateMin } from "@/lib/pricing";
 export const metadata: Metadata = {
   title: "Roadmap",
   description:
-    "What's live and what's next for #NotesApp — the journal feed, Explore, Notes Market, free and paid courses and certificates in Notes Academy, Your site, the Weekly Digest, messages, free calls, Nana AI and publishing to LinkedIn and X are live; quizzes, the Enterprise course packages, full white label, Paylony payments and more are next, and the Team hub, company finance tools, the data room and LinkedIn advertising come as paid add-ons for Business and Enterprise after internal testing.",
+    "What's live and what's next for #NotesApp — the journal feed, Explore, Notes Market, free and paid courses and certificates in Notes Academy, Your site, the Weekly Digest, messages, free calls, Nana AI, the MCP server and publishing to LinkedIn and X are live; quizzes, full white label, Paylony payments and more are next, and the Team hub, company finance tools, the data room and LinkedIn advertising come as paid add-ons for Business and Enterprise after internal testing.",
 };
 
 // The four tools our own team is testing before Business and Enterprise can add them for a fee.
@@ -21,14 +21,14 @@ const ITEMS: { title: string; tag: string; body: string; detail: string; link?: 
   {
     title: "Notes Academy: courses on #NotesApp",
     tag: "Courses",
-    body: "Live now: free and paid courses, certificates and reviews. Any publisher can teach for free, with lessons from their own YouTube that play inside #NotesApp, plus text lessons; Pro sells courses with text, PDFs and YouTube, and Business and Enterprise upload their own videos too, with up to 4 co-tutors. Learners keep their progress, and finishers get a certificate anyone can check and add to LinkedIn. Next: quizzes, then the Enterprise packages.",
-    get detail() { return `Free courses are free to publish and to take. Certificates on free courses are paid: the learner pays from ${certificateMin()} plus the margin the teacher sets. Paid courses are uploaded to #NotesApp, kept private and played only for learners who paid, with the viewer's @username and email drawn faintly over the video; our fee on them is the same as on digital store items. For organisations, two packages sit on top of Enterprise: Enterprise Courses, and the Enterprise Academy API for a white-label academy of their own. Prices are on the pricing page.`; },
+    body: "Live now: free and paid courses, co-tutors, organisations teaching as themselves, likes, saves and reviews, and certificates. Any publisher can teach free courses, with lessons from their own YouTube that play inside #NotesApp, plus text lessons; on Pro and above, courses can be paid, with PDFs too, and Business and Enterprise upload their own videos. Learners keep their progress, and finishers get a certificate anyone can check and add to LinkedIn. Next, in this order: quizzes, then the Enterprise packages.",
+    get detail() { return `Free courses are free to publish and to take. Certificates on free courses are paid: the learner pays from ${certificateMin()} plus the margin the teacher sets. Paid courses carry text lessons, PDFs and YouTube on Pro, and uploaded videos on Business and Enterprise, kept private and played only for learners who paid, with the viewer's @username and email drawn faintly over the video. Learners keep a paid course on up to 2 devices and can get a refund within 7 days if they haven't started it. Up to 4 co-tutors can teach a course, each paid their share at their own plan's fee, and a paid course can include its certificate in the price. Our fee on paid courses is the same as on digital store items. For organisations, two packages sit on top of Enterprise: Enterprise Courses, and the Enterprise Academy API for a white-label academy of their own. Prices are on the pricing page.`; },
     link: { href: "/academy", label: "Visit Notes Academy →" },
   },
   {
     title: "Notes Life: a life game on NotesApp",
     tag: "Social",
-    body: `Live now, first playable: a browser game at ${LIFE_HOST} that you play with your NotesApp sign-in. Start in a room in Wuse, Abuja with N$ 100,000, keep your needs up, work general and Chef Adams jobs, take deal calls, eat at Chef Adams, relax at Candellux Imperial, invite friends for Bonus Credits and climb the Billionaires List. Also live: NEPA power cuts with itel Energy's Power GO Pro, Power Tank 1000, solar and generators; a fridge, microwave and food that spoils; jobs at itel Energy and Candellux; owning a Chef Adams or itel outlet (Become a Partner); billboards on the roads; a city picker (Abuja open); the new Candellux with its pool, swimming lessons, pool bar, VIP bar and gym; shawarma, pizza and smoothies at Chef Adams; chatting with friends inside the game for Social; Digital Witch courses, certificates and tech jobs with its founder Cynthia Okeh as #1 on the list; residents (computer players) and seeing real players at the same place. Next: real players working at outlets other players own, Lagos and Port Harcourt, the market street with real NotesApp stores, and calling friends from your game phone.`,
+    body: `Live now, first playable: a browser game at ${LIFE_HOST} that you play with your NotesApp sign-in. Start in a room in Wuse, Abuja with N$ 100,000, keep your needs up, work general and Chef Adams jobs, take deal calls, eat at Chef Adams, relax at Candellux Imperial, invite friends for Bonus Credits and climb the Billionaires List. Also live: NEPA power cuts with itel Energy's Power GO Pro, Power Tank 1000, solar and generators; a fridge, microwave and food that spoils; jobs at itel Energy and Candellux; owning a Chef Adams or itel outlet (Become a Partner); billboards on the roads; a city picker (Abuja open); the new Candellux with its pool, swimming lessons, pool bar, VIP bar and gym; shawarma, pizza and smoothies at Chef Adams; chatting with friends inside the game for Social; Digital Witch courses, certificates and tech jobs with its founder Cynthia Okeh as #1 on the list; residents (computer players) and seeing real players at the same place; and paying at every counter with a tap of your Paylony CardTap card (game money only). Next: real players working at outlets other players own, Lagos and Port Harcourt, the market street with real NotesApp stores, and calling friends from your game phone.`,
     detail: "Your NotesApp profile picture is your portrait in the game. Notesville Naira is game money: earn it from jobs and deals, or buy it with NotesApp Credit (₦1 = N$ 100). It can't be cashed out. Inviting a friend who finishes their first shift gives you both ₦250 in Bonus Credits. Planned later: your own shop stall, events at the Candellux conference hall, and paid calls from NotesApp Credit.",
     link: { href: "/life", label: "Play Notes Life →" },
   },
@@ -91,6 +91,19 @@ const ITEMS: { title: string; tag: string; body: string; detail: string; link?: 
       "Today: Google sign-in isn't offered in the window (someone who signed up with Google chooses “Forgot your password” to set one), and the sender address on those emails is still ours, with the member's name on it. Checkout: Paystack's inline popup instead of a redirect — the popup still shows #NotesApp's name, which we'll confirm with Paystack before promising otherwise. Email: each Enterprise domain becomes a verified sending domain (SPF and DKIM records the member adds), so emails come from, for example, bookings@theirbrand.com. A sweep of error pages and leftover #NotesApp wording follows. The rest of the Enterprise plan is also still to come: unlimited team seats provisioned per account, a dedicated support channel with a service-level agreement, field-team Tap-to-Pay, and syncing sales into accounting tools such as QuickBooks and Xero.",
   },
   {
+    title: "Group calls in group chats",
+    tag: "Social",
+    body: "Coming: free calls for up to 6 people in a group chat. Anyone in the group taps Join call; the call goes phone to phone and is end-to-end encrypted, so nobody else, us included, can listen in.",
+    detail: "Each person in the call sees a short code for every other person; if the codes match on both phones, nobody else can listen in. One-to-one voice and video calls are already live between people who follow each other. Bigger group meetings, with video for many people, need a different kind of server and come later.",
+  },
+  {
+    title: "Community and Events",
+    tag: "Social",
+    body: "Coming: a community for churches, NGOs, schools, clubs and associations, run by the organisation's own admins, like a Facebook group with a channel. Public and members-only Spaces, a General announcement channel where admins post and members react and comment, and private Circles on Business. Events for every account: RSVP (Going or Interested), reminders a day and an hour before, repeating events, and Join live links to YouTube Live, Facebook Live, Zoom or Google Meet.",
+    detail: "Free up to 200 members; Business has unlimited members and private Circles. Members and roles (owner, admins, moderators, members), joining open, by approval or by invite link. Members-only posts never appear in Explore, search, link previews, the Weekly Digest, Nana or the MCP server. Later, in this order: bigger Circles, giving with bank-style charges and paid event tickets with QR check-in, then our own live streaming as a paid add-on. No date yet.",
+    link: { href: "/community", label: "See Community →" },
+  },
+  {
     title: "Online status and followers lists",
     tag: "Social",
     body: "Live now: see who is online, and when someone was last online, on Messages and on profiles, between people who follow each other. Every profile shows who follows them and who they follow.",
@@ -151,7 +164,7 @@ const ITEMS: { title: string; tag: string; body: string; detail: string; link?: 
   {
     title: "Paylony payments and Tap-to-Pay",
     tag: "Payments",
-    body: "Paylony as the main payment provider for one-off payments and payouts, with an admin switch to fall back to Paystack. Then Tap-to-Pay: team members' Android phones taking contactless card payments at a pop-up or a customer's door.",
+    body: "Paylony as the main payment provider for one-off payments and payouts, with an admin switch to fall back to Paystack. In Notes Life, Paylony CardTap is already how you pay at every counter, with game money. Then Tap-to-Pay: team members' Android phones taking contactless card payments at a pop-up or a customer's door.",
     detail:
       "Build order: a provider layer that handles every payment and payout through one interface, the admin switch with an automatic fallback, a Paylony webhook, Paylony payouts, then Tap-to-Pay for the team seats on Business and Enterprise, which needs an NFC-capable mobile app.",
   },
@@ -183,7 +196,7 @@ export default function RoadmapPage() {
   return (
     <>
       <PageHero eyebrow="Coming Soon" title={<>What's next for #NotesApp</>}>
-        <p>The core loop — publish, book, get paid — is live, and so is a lot around it: the journal feed with your interests, Explore and saved journals, Notes Market, free and paid courses in Notes Academy, Your site for Business and Enterprise, the Weekly Digest, Nana AI and the help centre, publishing to LinkedIn and X, messages and free calls, paid sessions, subscriptions, boosts, gifts, the paid plans, organisation accounts and stores with parcel tracking. Below is what&apos;s live in each area and what comes next; the list on the right is decided and documented, not yet built. Last updated 19 October 2026.</p>
+        <p>The core loop — publish, book, get paid — is live, and so is a lot around it: the journal feed with your interests, Explore and Saved, Notes Market, free and paid courses and certificates in Notes Academy, Your site for Business and Enterprise, the Weekly Digest, Nana AI and the help centre, the MCP server for AI assistants, publishing to LinkedIn and X, messages and free calls, paid sessions, subscriptions, boosts, gifts, the paid plans, organisation accounts and stores with parcel tracking. Below is what&apos;s live in each area and what comes next; the list on the right is decided and documented, not yet built. Last updated 19 October 2026.</p>
       </PageHero>
       <div className="mx-auto max-w-4xl px-4 py-12 sm:px-6 lg:px-8">
 
@@ -197,12 +210,13 @@ export default function RoadmapPage() {
             <p className="font-ui text-sm font-bold text-ink">✓ Live today</p>
             <ul className="mt-3 space-y-2 text-sm text-slate">
               <li>Journals — real published notes, with a rich-text composer, up to 3 topics each and your own hashtags</li>
-              <li>The journal feed: For you (your <Link href="/interests" className="text-crimson underline">interests</Link> first), Following, Latest and Top · 7d, with Most read and Who to follow; <Link href="/explore" className="text-crimson underline">Explore</Link> for topics, people and channels; and <Link href="/saved" className="text-crimson underline">saved journals</Link></li>
-              <li>A new look on phones: one light header, and a tab bar along the bottom (Feed, Explore, Market, Messages, Profile); profiles with Notes, Store and Courses tabs and Follow, Book a session, Conversation and Gift me</li>
+              <li>The journal feed: For you (your <Link href="/interests" className="text-crimson underline">interests</Link> first), Following, Latest and Top · 7d, with Most read and Who to follow; <Link href="/explore" className="text-crimson underline">Explore</Link> for topics, people and channels, with Market and Academy tabs; and <Link href="/saved" className="text-crimson underline">Saved</Link> for journals, store items, courses and messages kept from chats</li>
+              <li>A new look on phones: one light header, and a tab bar along the bottom (Feed, Explore, Market, Academy, Messages, Profile); profiles with Notes, Store and Courses tabs and Follow, Book a session, Conversation and Gift me</li>
               <li><Link href="/shop" className="text-crimson underline">Notes Market</Link>: every #NotesApp store in one place, For you first, then the most viewed and the newest</li>
-              <li><Link href="/academy" className="text-crimson underline">Notes Academy</Link>: free courses from any publisher, with lessons from their own YouTube that play right here, paid courses on Pro, Business and Enterprise with co-tutors, reviews, and certificates anyone can check</li>
+              <li><Link href="/academy" className="text-crimson underline">Notes Academy</Link>: free courses from any publisher, with lessons from their own YouTube that play right here, and paid courses on Pro and above (uploaded videos on Business and Enterprise); co-tutors, organisations, likes, saves and reviews</li>
+              <li><Link href="/certificates" className="text-crimson underline">Certificates</Link> anyone can check by ID or QR code, in the teacher&apos;s academy name and logo, to add to LinkedIn or save as a PDF or picture</li>
               <li>Your site for Business and Enterprise: the Legacy, Aurora or Maroon theme, Journals, Shop and Courses on or off, and About and Contact pages</li>
-              <li>The #NotesApp Weekly Digest on Sunday evenings (with the most viewed and most bought in Notes Market), and a notification when someone @mentions you</li>
+              <li>The #NotesApp Weekly Digest on Sunday evenings (with the most viewed and most bought in Notes Market and Notes Academy), and a notification when someone @mentions you</li>
               <li>Paid 1:1 sessions on each publisher&apos;s own rate and availability, paid through Paystack, with a bookings dashboard, rescheduling and a clear cancellation policy</li>
               <li>Paid monthly journal subscriptions that unlock premium entries</li>
               <li>Post and store-item boosts (pay for validated impressions) and gifts on every profile and post — see <Link href="/boost" className="text-crimson underline">Boost</Link> and <Link href="/gifts" className="text-crimson underline">Gifts</Link></li>
@@ -215,7 +229,8 @@ export default function RoadmapPage() {
               {MESSAGES_LIVE && <li>Direct messages with a live inbox: bold, italic and underline, a ✔ when sent and a ✔✔ with the time when read, pictures, videos and documents attached (how big and how many depends on your plan), voice notes of up to 5 minutes and stickers. Pin up to 3 messages in a chat and up to 3 chats in your inbox, see when someone is typing, and edit or delete your own messages (once a message has been read, the reader is asked first). Notifications on your device (offered when you first use Messages, and on until you turn them off), email on Business and Enterprise (off until you switch it on, at most one an hour), and block and report tools</li>}
               {WALLET_LIVE && <li>The NotesApp Credit <Link href="/profile/wallet" className="text-crimson underline">wallet</Link>: top up once (Bonus Credits on ₦5,000 and more) and pay for boosts, badges, adverts, gifts, shop items and sessions without your card each time</li>}
               {CALLS_LIVE && <li>Free voice and video calls in Messages with anyone you follow who follows you back: straight between your two devices, encrypted and never recorded, with a line in the conversation for every call, a notification for a missed one, and Call back on any call line. In a video call you can move or swap your own picture and switch between front and back camera, and calls ring on the installed app even when it isn't open on your screen</li>}
-              <li><Link href="/nana" className="text-crimson underline">Nana AI</Link> and the <Link href="/help" className="text-crimson underline">help centre</Link>: ask anything about #NotesApp, from every page and from a conversation pinned in Messages, and get writing help in drafts, shares and messages (with your own AI account connected, or ours when switched on)</li>
+              <li><Link href="/nana" className="text-crimson underline">Nana AI</Link> and the <Link href="/help" className="text-crimson underline">help centre</Link>: ask anything about #NotesApp, from every page and from a conversation pinned in Messages, and get writing help in drafts, shares and messages; three gems (Pearl, Emerald, Ruby) by plan, a free weekly allowance, Nana credit and an answer bank; topic suggestions from your title, and chat summaries and translations</li>
+              <li>The #NotesApp MCP server, phase 1: AI assistants such as Claude and ChatGPT can find creators, journals, store items and courses, and with your API key read your own data (see the <Link href="/docs" className="text-crimson underline">API Docs</Link>)</li>
               <li>Publishing a post to your connected LinkedIn and X from the post itself</li>
               <li>Download your data or delete your account yourself, under Account → Your data</li>
               <li>Trending (Notes, Store, Courses and Publishers), a live <Link href="/status" className="text-crimson underline">status page</Link> and a public <Link href="/changelog" className="text-crimson underline">changelog</Link></li>
@@ -228,19 +243,20 @@ export default function RoadmapPage() {
           <div>
             <p className="font-ui text-sm font-bold text-ink">○ On the roadmap, not live</p>
             <ul className="mt-3 space-y-2 text-sm text-slate">
-              <li>Course quizzes, and the two Enterprise course packages</li>
+              <li>Quizzes on courses, and the two Enterprise course packages</li>
               <li>WhatsApp reminders alongside email and the bell</li>
+              <li>Group calls in group chats: free calls for up to 6 people, phone to phone and end-to-end encrypted, with Join call in the group and a code each person can compare</li>
               <li><Link href="/community" className="text-crimson underline">Community</Link> for churches, NGOs, schools and clubs: public and members-only Spaces, a General announcement channel, private Circles, and <Link href="/events" className="text-crimson underline">Events</Link> for every account with reminders and Join live links (free up to 200 members; our own live streaming later, as a paid add-on)</li>
               <li>For logistics providers: API and webhooks on Enterprise, and Nana suggesting delivery rates</li>
               {GOLD_KIND_LIVE.identity ? null : <li>Automatic identity-checked gold badge (all built; NIN + face check for people, CAC for organisations awaiting final tests)</li>}
               <li>Full white label for Enterprise (sign-in, sign-up and emails in the member&apos;s name are live; checkout and bookings on their own site, and their own sending address, are next)</li>
               <li><Link href="/domains" className="text-crimson underline">Domain sales and DNS management</Link> through Whogohost (now go54), for Business and Enterprise</li>
               {!WALLET_LIVE && <li>NotesApp Credit and Bonus Credits</li>}
-              <li>Paylony payments and Tap-to-Pay</li>
+              <li>Paylony for real-money payments and payouts, and Tap-to-Pay (CardTap already pays in Notes Life, with game money)</li>
               <li><Link href="/challenge" className="text-crimson underline">#1MillionNairaNotesAppChallenge</Link> for influencers (coming soon)</li>
               <li>iOS and Android apps</li>
               <li><strong className="text-ink">Paid add-ons for Business and Enterprise, after our internal testing:</strong> the <Link href="/teams" className="text-crimson underline">Team hub</Link> and team messages, company finance tools (runway, acquisition cost, burn, cap table), the investor and partner data room, and advertising on LinkedIn from #NotesApp</li>
-              <li>AI notetaker and your own AI assistant through MCP</li>
+              <li>AI notetaker, and your own AI assistant writing drafts through MCP (reading is live)</li>
               <li>Voice: Listen to a journal, Nana that speaks, voice transcripts</li>
               <li>Publishing to Facebook, Instagram and TikTok</li>
               <li>Google ads on the web and AdMob in the apps</li>

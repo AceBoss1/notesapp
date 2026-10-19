@@ -104,7 +104,7 @@ const ROWS: Row[] = [
     href: "/academy",
     render: (t) =>
       !t.canPublish
-        ? `Take free courses; a certificate at the end costs from ${certificateMin()}`
+        ? `Take free courses, or buy paid ones by card, bank transfer or wallet; a certificate on a free course costs from ${certificateMin()}`
         : t.tier === "basic"
           ? `Free courses, free to publish, with lessons from your own YouTube. Learners pay from ${certificateMin()} plus your margin for the certificate`
           : t.tier === "enterprise"
@@ -207,7 +207,7 @@ export default async function PricingPage() {
         {formatNaira(LIMITS.subscriptionMaxKobo)}. The commission below comes out of each paid session
         or subscription; you're paid to your verified bank account
         after the session (subscriptions after a 7-day dispute window).
-        Nana AI helps with drafts, posts for LinkedIn and X, and messages on every plan, never as a paid-tier perk: connect your own AI account today, and once our own AI is switched on for everyone each member gets a small daily allowance (<Link href="/nana" className="text-crimson underline">about Nana</Link>).
+        Nana AI helps with drafts, posts for LinkedIn and X, and messages on every plan: each plan has a free Nana allowance that refreshes every week, bigger on higher plans, with Pearl on every plan, Emerald on Business and Enterprise and Ruby on Enterprise. Nana credit, bought on the Nana page by card or from your wallet, is used after the allowance and never expires, and questions asked before are answered free. You can also connect your own AI account (<Link href="/nana" className="text-crimson underline">about Nana</Link>).
       </p>
       </PageHero>
     <div className="mx-auto max-w-6xl px-4 pb-16 sm:px-6 lg:px-8">
@@ -372,7 +372,7 @@ export default async function PricingPage() {
             ["/coauthoring", "Co-authoring and earnings splits"],
             ["/badges", "Verification badges — verified and gold, with prices"],
             ["/shop", "Notes Market — every #NotesApp store in one place"],
-            ["/academy", "Notes Academy — free courses, and certificates anyone can verify"],
+            ["/academy", "Notes Academy — free and paid courses, and certificates anyone can verify"],
             ["/merchstore", "Official #NotesApp merch"],
             ["/advertise", "Advertise — banner campaigns and ad share"],
             ["/store-selling", "Sell physical goods & digital downloads — checkout, delivery hold, parcel tracking, instant downloads"],
