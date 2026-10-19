@@ -82,7 +82,7 @@ export async function creditTopup(t: Transaction, db: Firestore, p: PaymentRecor
   expiredLine(t, db, p.uid, w, now);
   t.set(ref, { creditKobo: w.creditKobo + p.amountKobo, bonusLots: lots, updatedAt: now.toISOString() });
   t.set(db.doc(`walletTx/${p.reference}_topup`), {
-    uid: p.uid, type: "topup", creditKobo: p.amountKobo, bonusKobo, label: "Top-up via Paystack", reference: p.reference, kind: "wallet_topup", at: now.toISOString(),
+    uid: p.uid, type: "topup", creditKobo: p.amountKobo, bonusKobo, label: p.payWith === "cardtap" ? "Top-up via CardTap" : "Top-up via Paystack", reference: p.reference, kind: "wallet_topup", at: now.toISOString(),
   } satisfies WalletTx);
 }
 

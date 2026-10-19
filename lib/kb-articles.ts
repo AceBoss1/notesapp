@@ -120,6 +120,8 @@ Paid plans renew automatically through Paystack, monthly or yearly. Cancel any t
 
 **Top up:** from ${money(TOPUP_MIN_KOBO)} to ${money(TOPUP_MAX_KOBO)} at a time, through Paystack (card, bank transfer or USSD). Open the menu under your name → **Wallet** → **Top up**.
 
+**Top up with CardTap:** on an Android phone with NFC, choose **Tap to pay with CardTap** under Top up. You get a code: open the free [CardTap app](https://play.google.com/store/apps/details?id=com.lonytech.cardtap) from Paylony, paste the code (or scan its QR), tap your bank card on the phone and enter your PIN. Your wallet updates by itself a moment later. CardTap's own fee is added at cost, 1% of the top-up and never more than ₦1,000, and you see it before you pay (during the launch offer, #NotesApp pays it for you). It's usually cheaper than paying by card. iPhones from the iPhone 13 follow when Paylony adds them. Refunds of a CardTap top-up go through Paylony.
+
 **Bonus Credits** come with larger top-ups:
 ${BONUS_STEPS.map((b) => `- ${money(b.fromKobo)} or more: **+${money(b.bonusKobo)}**`).join("\n")}
 They last ${BONUS_DAYS} days, are spent before your own credit (soonest-ending first), and can be used only for boosts, the verification badge and advert banners (and paid calls, when those arrive). Bonus amounts can change and are always shown before you pay.

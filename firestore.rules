@@ -516,6 +516,11 @@ service cloud.firestore {
       allow read, write: if false;
     }
 
+    // Wallet settings (the CardTap launch offer): server-only, through Admin → Credits.
+    match /walletConfig/{id} {
+      allow read, write: if false;
+    }
+
     // House ad creatives — admin only (the public reads them through /api/ads).
     match /adCreatives/{id} {
       allow read, write: if adminHas('growth');

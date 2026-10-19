@@ -14,6 +14,13 @@ export async function refundPayment(reference: string, amountKobo?: number): Pro
   // A refunded certificate (or a refunded course whose certificate came with it) stops being valid; its verification page says it was revoked and why.
   if (p?.kind === "certificate" || p?.kind === "course") await revokeForPayment(db, reference);
   if (p?.payWith === "wallet") { await refundToWallet(db, reference, amountKobo); return; }
+  // CardTap top-ups: Paylony returns the money (they handle settlement and refunds), so here we only take the credit back and mark
+  // the payment for Paylony; finance asks Paylony to refund it with the payment's reference.
+  if (p?.kind === "wallet_topup" && p.payWith === "cardtap") {
+    const taken = await reverseTopup(db, reference, amountKobo);
+    if (taken.kobo) await db.doc(`payments/${reference}`).update({ cardtapRefund: { kobo: taken.kobo, status: "ask_paylony", at: new Date().toISOString() } });
+    return;
+  }
   if (p?.kind === "wallet_topup") {
     const taken = await reverseTopup(db, reference, amountKobo);
     if (!taken.kobo) return;
