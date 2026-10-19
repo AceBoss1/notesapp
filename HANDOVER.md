@@ -24,6 +24,11 @@ Working branch convention (owner's instruction, 17 Oct 2026): branches are named
 `push/interests-and-courses`. Vercel doesn't deploy `push/*` or the older `claude/*` branches (`vercel.json`); only `main` goes live. After each squash merge the branch is reset to `main`
 (`git fetch origin main && git checkout -B <branch> origin/main && git push -f -u origin <branch>`).
 
+Ship-docs rule (owner's instruction, 19 Oct 2026): everything that ships updates the main front pages and docs in the same release:
+Home (`app/(main)/page.tsx`), About, the changelog (`lib/changelog.ts`), Status (`lib/status.ts`), the Roadmap (live and not-live lists),
+the help articles (`lib/kb-articles.ts`), `README.md` and these handover notes. Push list rule (19 Oct 2026): every finished item gets its own
+`push/<topic>` branch and a row in `docs/PUSH_LIST2.md` (kept on the working branch); a pull request carries only the items the owner names.
+
 ## 2. Waiting on the owner
 
 1. **`firebase deploy --only firestore`**: done by the owner on 17 Oct 2026 (through v0.45.0: saved journals, courses, profile pictures, kept messages). Run it again after any release that changes `firestore.rules`.
