@@ -2,8 +2,8 @@
 
 A course is a set of lessons a member teaches on #NotesApp, with progress, a certificate at the end that anyone can verify, and
 a one-tap share of that certificate. Free courses grow the audience; paid courses earn. This is the owner's spec (17 Oct 2026)
-turned into a build plan, with the owner's decisions at the end. **Step 1 (free courses) is built**: how it works is in
-`docs/ARCHITECTURE.md` ("Notes Academy: free courses"); steps 2 to 5 are not built yet.
+turned into a build plan, with the owner's decisions at the end. **Steps 1 to 3 are built** (free courses, certificates, paid
+courses with co-tutors and organisations; see `docs/BUILD_LOG.md`, v0.42 to v0.55); quizzes and Enterprise courses are next.
 
 ## Who can do what
 
@@ -82,6 +82,7 @@ youtube | video | pdf | text | quiz, the YouTube id or the private file key, dur
 1. **Free courses with YouTube** (any publisher): course builder, YouTube and text lessons, the course page, enrol, progress.
 2. **Certificates**: issue on completion, the verification page, sharing, the PDF.
 3. **Paid courses** (Pro, Business): uploads to private R2, playback (the decision above), checkout, payouts, two-device limit.
+   Built in v0.55.0, with publishing for an organisation, co-tutors, and course details (level, format, outcomes, modules) for every course.
 4. **Quizzes**, reviews, "continue learning" in the feed and the digest.
 5. **Enterprise courses** (from ₦100,000 a month): branded certificates, cohorts, bulk invites, reports for the organisation.
 
@@ -104,3 +105,15 @@ Each step ships with phone and desktop screenshots first (`HANDOVER.md`), the he
      webhooks, with their own tutors, enrolment, progress and certificate webhooks, billed partly by learners and video
      hours.
    All three prices, and what each package includes, are set by the owner in **Admin → Pricing**.
+
+## Decisions (owner, 18–19 Oct 2026)
+5. **Who sells what:** free courses on every publishing plan (Free Basic and up); paid courses with text lessons, PDFs and YouTube on Pro
+   and up; paid courses with uploaded video on Business and Enterprise only.
+6. **Commission** as for digital sales: 6% on Pro, 4% on Business (Enterprise by agreement). **Refunds** within 7 days of buying, only if
+   the learner hasn't started (opening a paid lesson counts as starting).
+7. **Co-tutors:** a course can have one tutor or co-tutors. Sales are split like a co-authored post's gifts: each co-tutor's agreed
+   percent, the lead keeps the rest, each share at its own plan's commission. Organisations' admins and writers can teach as the organisation.
+8. **Course details for every course**, free or paid (from the partner review of digitalwitchng.com): level, language, format (live
+   classes with recordings), what you'll learn, requirements, how it works, modules, This course includes, Share, and private class and
+   community links shown only to people who enrolled or bought.
+

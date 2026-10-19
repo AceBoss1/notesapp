@@ -32,6 +32,7 @@ export async function startCheckout(
     | { kind: "boost"; noteId: string; packageId: string }
     | { kind: "boost"; itemId: string; packageId: string }
     | { kind: "digital"; itemId: string; acceptFinal: boolean }
+    | { kind: "course"; courseId: string }
     | { kind: "tier"; tier: "pro" | "business"; interval: "monthly" | "annually" }
     | { kind: "badge" }
     | { kind: "gold_deposit" }

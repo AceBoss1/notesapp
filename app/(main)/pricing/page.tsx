@@ -109,7 +109,9 @@ const ROWS: Row[] = [
           ? `Free courses, free to publish, with lessons from your own YouTube. Learners pay from ${certificateMin()} plus your margin for the certificate`
           : t.tier === "enterprise"
             ? `Free and paid courses, and two packages on top of Enterprise: Enterprise Courses (${enterpriseCoursesPrice()}/month) and the Enterprise Academy API (from ${academyApiFrom()}/month plus usage)`
-            : `Free courses, as on Free Basic. Paid courses are coming next, with the same fee as your digital items (${formatPercent(t.digitalCommission, t.digitalCommissionFloor)})`,
+            : t.tier === "pro"
+              ? `Free courses, and paid courses with text lessons, PDFs and YouTube, for the same fee as your digital items (${formatPercent(t.digitalCommission, t.digitalCommissionFloor)})`
+              : `Free and paid courses, including your own uploaded videos, for the same fee as your digital items (${formatPercent(t.digitalCommission, t.digitalCommissionFloor)}); teach as your organisation, with co-tutors`,
   },
   {
     label: "Links out to other shops",
@@ -318,7 +320,8 @@ export default async function PricingPage() {
         <ul className="mt-3 list-disc space-y-2 pl-5 text-sm text-slate">
           <li><strong className="text-ink">Free courses are free to publish</strong> on every publishing plan, with lessons from your own YouTube that play inside #NotesApp, and free for learners to take.</li>
           <li><strong className="text-ink">Certificates on free courses are paid:</strong> the learner pays from {certificateMin()}, plus the margin you set. We keep {certificateMin()} and our usual commission on your margin; the rest of the margin is yours.</li>
-          <li><strong className="text-ink">Paid courses are coming next on Pro and Business</strong> (and Enterprise), with the same fee as your digital items: {planRate("pro", "digital")} on Pro, {planRate("business", "digital")} on Business. Lessons stay private and play only for learners who paid.</li>
+          <li><strong className="text-ink">Paid courses</strong>, with the same fee as your digital items: on Pro ({planRate("pro", "digital")}) with text lessons, PDFs and YouTube; on Business ({planRate("business", "digital")}) and Enterprise with your own uploaded videos too. Lessons stay private and play only for learners who paid, on up to two devices, with each viewer&apos;s details drifting across the video. Learners can get a refund within 7 days if they haven&apos;t started.</li>
+          <li><strong className="text-ink">Co-tutors and organisations:</strong> teach alone, invite co-tutors with their share of each sale (each paid at their own plan&apos;s fee), or teach as your organisation with your team.</li>
         </ul>
         <p className="mt-3 text-sm"><Link href="/academy" className="text-crimson underline underline-offset-2">Visit Notes Academy →</Link></p>
       </section>

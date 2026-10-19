@@ -1,7 +1,7 @@
 // Notes Academy checks (lib/courses.ts): YouTube links, addresses, lessons, publishing and progress. Run: npm run test:courses → "ALL OK".
 import { breakdownOf, cleanRecommendation, recommendationSummary } from "../../lib/reviews";
 import assert from "node:assert/strict";
-import { cleanCourseFields, cleanLesson, courseRating, durationLabel, progressOf, reviewProgress, showsRating, publishProblems, slugify, youtubeEmbed, youtubeId, LESSON_BODY_MAX } from "../../lib/courses";
+import { cleanPrice, cleanLink, communityKindOf, groupByModule, priceLabel, canSellCourses, canUploadVideo, cleanCourseFields, cleanLesson, courseRating, durationLabel, progressOf, reviewProgress, showsRating, publishProblems, slugify, youtubeEmbed, youtubeId, LESSON_BODY_MAX } from "../../lib/courses";
 
 // every form of YouTube link gives the 11-character id; anything else gives nothing
 const ID = "Vl0H-qTclOg";
@@ -30,13 +30,16 @@ assert.equal(typeof cleanCourseFields({ cover: "//evil.example/x.png" }), "strin
 assert.deepEqual(cleanCourseFields({ cover: "" }), { cover: "" });
 
 // lessons
-assert.deepEqual(cleanLesson({ kind: "youtube", title: " Formulas ", url: `https://youtu.be/${ID}`, minutes: "12" }), { title: "Formulas", kind: "youtube", youtubeId: ID, minutes: 12 });
-assert.deepEqual(cleanLesson({ kind: "text", title: "Reading", body: "## Hi\n\nText", minutes: "" }), { title: "Reading", kind: "text", body: "## Hi\n\nText", minutes: null });
+assert.deepEqual(cleanLesson({ kind: "youtube", title: " Formulas ", url: `https://youtu.be/${ID}`, minutes: "12" }), { title: "Formulas", kind: "youtube", youtubeId: ID, minutes: 12, preview: false });
+assert.deepEqual(cleanLesson({ kind: "text", title: "Reading", body: "## Hi\n\nText", minutes: "" }), { title: "Reading", kind: "text", body: "## Hi\n\nText", minutes: null, preview: false });
 assert.equal(typeof cleanLesson({ kind: "youtube", title: "x", url: "https://vimeo.com/1" }), "string");
 assert.equal(typeof cleanLesson({ kind: "text", title: "x", body: "" }), "string");
 assert.equal(typeof cleanLesson({ kind: "text", title: "x", body: "a".repeat(LESSON_BODY_MAX + 1) }), "string");
 assert.equal(typeof cleanLesson({ kind: "text", title: "", body: "a" }), "string");
-assert.equal(typeof cleanLesson({ kind: "pdf", title: "x" }), "string");
+assert.equal(typeof cleanLesson({ kind: "pdf", title: "x" }), "string", "a PDF needs its upload");
+assert.equal(typeof cleanLesson({ kind: "audio", title: "x" }), "string");
+assert.deepEqual(cleanLesson({ kind: "video", title: "V", streamUid: "a".repeat(32), preview: true, moduleId: "m1aaaaaa" }), { title: "V", kind: "video", streamUid: "a".repeat(32), minutes: null, preview: true, moduleId: "m1aaaaaa" });
+assert.equal(typeof cleanLesson({ kind: "pdf", title: "x", fileKey: "elsewhere/x.pdf" }), "string", "PDFs live under courses/<id>/");
 assert.equal(typeof cleanLesson({ kind: "youtube", title: "x", url: ID, minutes: 0 }), "string");
 assert.equal(typeof cleanLesson({ kind: "youtube", title: "x", url: ID, minutes: 601 }), "string");
 
@@ -68,4 +71,15 @@ assert.throws(() => cleanRecommendation({ relationship: "Worked with them", rati
 assert.deepEqual(recommendationSummary([{ rating: 5 }, { rating: 4 }, {}]), { count: 2, average: 4.5, total: 3 }, "older ones without stars count in the total only");
 
 assert.equal(durationLabel(45), "45 min"); assert.equal(durationLabel(60), "1 h"); assert.equal(durationLabel(135), "2 h 15 min"); assert.equal(durationLabel(0), "");
+// paid courses: price, links, plans, modules
+assert.equal(cleanPrice({ priceNaira: "40,000" }), 4_000_000);
+assert.equal(cleanPrice({ priceNaira: "0" }), 0);
+assert.equal(typeof cleanPrice({ priceNaira: "300" }), "string", "at least ₦500");
+assert.equal(priceLabel({ priceKobo: 4_000_000 }), "₦40,000"); assert.equal(priceLabel({}), "Free");
+assert.equal(cleanLink("http://zoom.us/j/1"), null); assert.equal(cleanLink(""), ""); assert.equal(cleanLink("https://zoom.us/j/1"), "https://zoom.us/j/1");
+assert.equal(communityKindOf("https://chat.whatsapp.com/x"), "WhatsApp"); assert.equal(communityKindOf("https://t.me/x"), "Telegram");
+assert.ok(canSellCourses("pro") && !canSellCourses("basic") && canUploadVideo("business") && !canUploadVideo("pro"));
+assert.deepEqual(groupByModule([{ id: "a", moduleId: "m1" }, { id: "b" }], [{ id: "m1", title: "One" }]).map((g) => [g.module?.title ?? null, g.items.map((x) => x.id)]), [[null, ["b"]], ["One", ["a"]]]);
+assert.equal(typeof cleanCourseFields({ level: "expert" }), "string");
+assert.deepEqual((cleanCourseFields({ modules: [{ title: " One " }, { id: "m1aaaaaa", title: "Two" }] }) as { modules: { id: string; title: string }[] }).modules.map((m) => m.title), ["One", "Two"]);
 console.log("ALL OK");

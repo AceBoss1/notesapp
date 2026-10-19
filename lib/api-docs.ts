@@ -76,6 +76,7 @@ export const WEBHOOK_DOCS: { event: string; text: string }[] = [
   { event: "booking.created", text: "A client paid for a session with you." },
   { event: "order.paid", text: "A buyer paid for a physical item in your store." },
   { event: "digital.sold", text: "A buyer paid for a download in your store." },
+  { event: "course.sold", text: "A learner bought one of your Notes Academy courses." },
   { event: "payout.released", text: "A payout to your bank account was started." },
   { event: "post.published", text: "A post of yours went live through the API." },
 ];

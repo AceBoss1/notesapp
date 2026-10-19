@@ -37,7 +37,7 @@
     "test:credits": "NEXT_PUBLIC_FIREBASE_API_KEY=x NEXT_PUBLIC_FIREBASE_PROJECT_ID=demo-notesapp NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=x NEXT_PUBLIC_FIREBASE_APP_ID=x npx firebase-tools@13 emulators:exec --only firestore,auth --project demo-notesapp \"npx -y tsx tests/admin/credits.emulator.ts\"",
     "test:certificates-server": "NEXT_PUBLIC_FIREBASE_API_KEY=x NEXT_PUBLIC_FIREBASE_PROJECT_ID=demo-notesapp NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=x NEXT_PUBLIC_FIREBASE_APP_ID=x npx firebase-tools@13 emulators:exec --only firestore,auth --project demo-notesapp \"npx -y tsx tests/certificates/certificates.emulator.ts\"",
     "test:nana-server": "NEXT_PUBLIC_FIREBASE_API_KEY=x NEXT_PUBLIC_FIREBASE_PROJECT_ID=demo-notesapp NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=x NEXT_PUBLIC_FIREBASE_APP_ID=x npx firebase-tools@13 emulators:exec --only firestore --project demo-notesapp \"npx -y tsx tests/nana/meter.emulator.ts && npx -y tsx tests/topics/subtopics.emulator.ts\"",
-    "test:courses-server": "NEXT_PUBLIC_FIREBASE_API_KEY=x NEXT_PUBLIC_FIREBASE_PROJECT_ID=demo-notesapp NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=x NEXT_PUBLIC_FIREBASE_APP_ID=x npx firebase-tools@13 emulators:exec --only firestore --project demo-notesapp \"npx -y tsx tests/courses/courses.emulator.ts && npx -y tsx tests/courses/social.emulator.ts\""
+    "test:courses-server": "NEXT_PUBLIC_FIREBASE_API_KEY=x NEXT_PUBLIC_FIREBASE_PROJECT_ID=demo-notesapp NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=x NEXT_PUBLIC_FIREBASE_APP_ID=x npx firebase-tools@13 emulators:exec --only firestore --project demo-notesapp \"npx -y tsx tests/courses/courses.emulator.ts && npx -y tsx tests/courses/social.emulator.ts && npx -y tsx tests/courses/paid.emulator.ts\""
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.133.0",

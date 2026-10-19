@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { refundable, undoCoursePurchase } from "@/lib/course-sales-server";
 import { friendlyMessage } from "@/lib/api-errors";
 import { getAdminDb, verifyAdminRequest } from "@/lib/firebase-admin";
 import { slotLockId } from "@/lib/paystack";
@@ -79,6 +80,14 @@ export async function POST(req: NextRequest) {
         // A download is final once the buyer has started it.
         const dp = (await db.doc(`digitalPurchases/${paymentRef}`).get()).data();
         if (dp?.firstDownloadAt) return NextResponse.json({ error: "The buyer has already downloaded this — digital sales are final, so it can't be refunded." }, { status: 409 });
+      }
+      if (paySnap.data()?.kind === "course") {
+        // Courses: within 7 days of buying, and only if the learner hasn't started (lib/course-sales-server.ts).
+        const r = await refundable(db, paymentRef);
+        if (!r.ok) return NextResponse.json({ error: r.reason }, { status: 409 });
+        await refundPayment(paymentRef);
+        await undoCoursePurchase(db, paymentRef);
+        return NextResponse.json({ ok: true });
       }
       if (paySnap.data()?.kind === "merch") {
         const o = (await db.doc(`merchOrders/${paymentRef}`).get()).data();

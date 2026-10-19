@@ -137,7 +137,7 @@ export async function publicTool(db: Firestore, name: string, a: Record<string, 
       const rows = (await getAcademy())
         .filter((c) => matches(q, c.title, c.summary, c.ownerName, c.ownerUsername, ...c.topics))
         .slice(0, limit)
-        .map((c) => ({ title: c.title, summary: excerpt(c.summary, 220), teacher: c.ownerName, teacher_username: c.ownerUsername, lessons: c.lessonCount, minutes: c.minutes, free: true, topics: c.topics, url: `${site()}/academy/${c.slug}` }));
+        .map((c) => ({ title: c.title, summary: excerpt(c.summary, 220), teacher: c.ownerName, teacher_username: c.ownerUsername, lessons: c.lessonCount, minutes: c.minutes, free: !(c.priceKobo > 0), price: c.priceKobo > 0 ? `₦${Math.round(c.priceKobo / 100).toLocaleString("en-GB")}` : "Free", level: c.level || undefined, topics: c.topics, url: `${site()}/academy/${c.slug}` }));
       return { data: { note: MEMBER_TEXT, count: rows.length, courses: rows } };
     }
   }

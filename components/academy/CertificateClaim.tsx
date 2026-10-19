@@ -37,7 +37,11 @@ export default function CertificateClaim({ slug }: { slug: string }) {
     if (!user || !course || !q) return;
     if (name.trim().length < 2) return setError("Type your name as it should appear on the certificate.");
     setBusy(true); setError("");
-    try { await startCheckout(user, { kind: "certificate", courseId: course.id, learnerName: name.trim() }, { amountKobo: q.kobo }); }
+    try {
+      // Included in a paid course's price: issued now, without paying again.
+      if (q.included) { const r = await api<{ id: string }>("/api/academy/certificate", { body: { courseId: course.id, learnerName: name.trim() } }); window.location.href = `/certificates/${r.id}`; return; }
+      await startCheckout(user, { kind: "certificate", courseId: course.id, learnerName: name.trim() }, { amountKobo: q.kobo });
+    }
     catch (e) { if (e instanceof Error && e.message) setError(e.message); setBusy(false); }
   }
 
@@ -67,7 +71,13 @@ export default function CertificateClaim({ slug }: { slug: string }) {
               <input value={name} onChange={(e) => setName(e.target.value)} maxLength={70} className="mt-1 w-full rounded-xl border border-rule bg-card px-3.5 py-3 text-base outline-none focus:border-crimson" />
             </label>
             <p className="mt-1 text-xs text-slate">Check the spelling: it can&apos;t be changed after it&apos;s issued.</p>
-            {q && (
+            {q?.included && (
+              <>
+                <p className="mt-4 rounded-2xl bg-emerald-50 p-4 text-sm text-emerald-900">Your certificate is included in the price you paid for this course. There&apos;s nothing more to pay.</p>
+                <button onClick={pay} disabled={busy} className="btn-primary mt-4 w-full !py-3.5 text-base">{busy ? "Issuing…" : "Get my certificate"}</button>
+              </>
+            )}
+            {q && !q.included && (
               <>
                 <div className="mt-4 rounded-2xl bg-paper p-4 text-sm">
                   <p className="flex justify-between"><span>Certificate</span><span>{naira(q.startKobo)}</span></p>
