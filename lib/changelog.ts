@@ -18,6 +18,7 @@ export const CHANGELOG: Release[] = [
       { kind: "changed", text: "The home page, About, Roadmap, Pricing, Nana, Organisations, Store selling and the help centre are up to date with paid courses, co-tutors, organisations teaching on Notes Academy and certificates, Nana's gems, weekly allowance and credit, the MCP server for AI assistants, the Academy tab, Explore's Market and Academy tabs, Saved, and Paylony CardTap in Notes Life." },
       { kind: "changed", text: "Nana can now point you to the certificate checker, Teach a course, Your academy, the Nana page, Notes Life and the install page." },
       { kind: "added", text: "The footer links to Check a certificate and Notes Life." },
+      { kind: "changed", text: "The roadmap now lists what's coming next in Messages and for organisations: group calls for up to 6 people, and Community and Events." },
       { kind: "fixed", text: "The weekly digest shows a paid course's price instead of Free." },
     ],
   },

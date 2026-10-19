@@ -91,6 +91,18 @@ const ITEMS: { title: string; tag: string; body: string; detail: string; link?: 
       "Today: Google sign-in isn't offered in the window (someone who signed up with Google chooses “Forgot your password” to set one), and the sender address on those emails is still ours, with the member's name on it. Checkout: Paystack's inline popup instead of a redirect — the popup still shows #NotesApp's name, which we'll confirm with Paystack before promising otherwise. Email: each Enterprise domain becomes a verified sending domain (SPF and DKIM records the member adds), so emails come from, for example, bookings@theirbrand.com. A sweep of error pages and leftover #NotesApp wording follows. The rest of the Enterprise plan is also still to come: unlimited team seats provisioned per account, a dedicated support channel with a service-level agreement, field-team Tap-to-Pay, and syncing sales into accounting tools such as QuickBooks and Xero.",
   },
   {
+    title: "Group calls in group chats",
+    tag: "Social",
+    body: "Coming: free calls for up to 6 people in a group chat. Anyone in the group taps Join call; the call goes phone to phone and is end-to-end encrypted, so nobody else, us included, can listen in.",
+    detail: "Each person in the call sees a short code for every other person; if the codes match on both phones, nobody else can listen in. One-to-one voice and video calls are already live between people who follow each other. Bigger group meetings, with video for many people, need a different kind of server and come later.",
+  },
+  {
+    title: "Community and Events",
+    tag: "Social",
+    body: "Coming: a community for churches, NGOs, schools, clubs and associations, run by the organisation's own admins, like a Facebook group with a channel. Public and members-only Spaces, a General announcement channel where admins post and members react and comment, and private Circles on Business. Events for every account: RSVP (Going or Interested), reminders a day and an hour before, repeating events, and Join live links to YouTube Live, Facebook Live, Zoom or Google Meet.",
+    detail: "Free up to 200 members; Business has unlimited members and private Circles. Members and roles (owner, admins, moderators, members), joining open, by approval or by invite link. Members-only posts never appear in Explore, search, link previews, the Weekly Digest, Nana or the MCP server. Later, in this order: bigger Circles, giving with bank-style charges and paid event tickets with QR check-in, then our own live streaming as a paid add-on. No date yet.",
+  },
+  {
     title: "Online status and followers lists",
     tag: "Social",
     body: "Live now: see who is online, and when someone was last online, on Messages and on profiles, between people who follow each other. Every profile shows who follows them and who they follow.",
@@ -232,6 +244,8 @@ export default function RoadmapPage() {
             <ul className="mt-3 space-y-2 text-sm text-slate">
               <li>Quizzes on courses, and the two Enterprise course packages</li>
               <li>WhatsApp reminders alongside email and the bell</li>
+              <li>Group calls in group chats: free calls for up to 6 people, phone to phone and end-to-end encrypted, with Join call in the group and a code each person can compare</li>
+              <li>Community for churches, NGOs, schools, clubs and associations: public and members-only Spaces, a General announcement channel, private Circles on Business, and Events for every account with RSVPs, reminders and Join live links (free up to 200 members; giving, tickets and our own live streaming later)</li>
               <li>For logistics providers: API and webhooks on Enterprise, and Nana suggesting delivery rates</li>
               {GOLD_KIND_LIVE.identity ? null : <li>Automatic identity-checked gold badge (all built; NIN + face check for people, CAC for organisations awaiting final tests)</li>}
               <li>Full white label for Enterprise (sign-in, sign-up and emails in the member&apos;s name are live; checkout and bookings on their own site, and their own sending address, are next)</li>
