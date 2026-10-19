@@ -41,18 +41,53 @@ const APP_NAV = [
   { href: "/trending", label: "Trending" },
 ];
 
+// The footer's link columns, in the owner's order (19 Oct 2026). The first column (logo, partners, contacts, Terms | Privacy)
+// is written out in the footer itself.
+const PRODUCT = [
+  { href: "/journals", label: "Journals" },
+  { href: "/shop", label: "Notes Market" },
+  { href: "/academy", label: "Notes Academy" },
+  { href: "/booking", label: "Booking" },
+  { href: "/boost", label: "Boost" },
+  { href: "/coauthoring", label: "Co-authoring" },
+  { href: "/badges", label: "Verification badges" },
+  { href: "/advertise", label: "Advertise" },
+  { href: "/organisations", label: "Organisations" },
+  { href: "/events", label: "Events" },
+  { href: "/store-selling", label: "Store selling" },
+  { href: "/logistics", label: "Logistics" },
+  { href: "/logistics/network", label: "Logistics network" },
+];
 const COMPANY = [
   { href: "/brand", label: "Brand" },
   { href: "/about", label: "About Us" },
+  { href: "/contact", label: "Contact" },
   { href: "/pricing", label: "Pricing" },
   { href: "/roadmap", label: "Roadmap" },
   { href: "/status", label: "Status" },
   { href: "/docs", label: "API Docs" },
   { href: "/changelog", label: "Changelog" },
   { href: "/security", label: "Trust & Security" },
-  { href: "/terms", label: "Terms of Service" },
-  { href: "/privacy", label: "Privacy Policy" },
   { href: "/teams", label: "Team hub" },
+  { href: "/domains", label: "Buy Domains" },
+  { href: "/merchstore", label: "Merch Store" },
+  { href: "/challenge", label: "#1MillionNairaNotes" },
+];
+// Calls are end-to-end encrypted, so the footer says so; both land on /calls.
+const CONNECT = [
+  { href: "/gifts", label: "Gifts" },
+  { href: "/nana", label: "Nana AI" },
+  { href: "/help", label: "Help centre" },
+  { href: "/community#spaces", label: "Spaces" },
+  { href: "/community#circles", label: "Circles" },
+  { href: "/community", label: "Community" },
+  { href: "/calls#one-to-one", label: "Encrypted 1-on-1 calls" },
+  { href: "/calls#group", label: "Encrypted group calls" },
+  { href: "/explore", label: "Explore" },
+  { href: "/trending", label: "Trending" },
+  { href: "/track", label: "Track a Parcel" },
+  { href: "/certificates", label: "Check a certificate" },
+  { href: "/life", label: "Want to pass time; try Notes Life" },
 ];
 
 // The #NotesApp masthead and footer. The members' branded sites live in app/(site) and don't get these.
@@ -117,62 +152,7 @@ const site = await getSiteSettingsCached();
                   Staff Login
                 </Link>
               </p>
-            </div>
-
-            <div>
-              <p className="eyebrow text-crimson-bright/90">Product</p>
-              <ul className="mt-4 space-y-2 text-sm text-paper/75">
-                <li><Link href="/journals" className="hover:text-paper">Journals</Link></li>
-                <li><Link href="/shop" className="hover:text-paper">Notes Market</Link></li>
-                <li><Link href="/academy" className="hover:text-paper">Notes Academy</Link></li>
-                <li><Link href="/certificates" className="hover:text-paper">Check a certificate</Link></li>
-                <li><Link href="/life" className="hover:text-paper">Notes Life</Link></li>
-                <li><Link href="/booking" className="hover:text-paper">Booking</Link></li>
-                <li><Link href="/boost" className="hover:text-paper">Boost</Link></li>
-                <li><Link href="/gifts" className="hover:text-paper">Gifts</Link></li>
-                <li><Link href="/coauthoring" className="hover:text-paper">Co-authoring</Link></li>
-                <li><Link href="/merchstore" className="hover:text-paper">Merch Store</Link></li>
-                <li><Link href="/badges" className="hover:text-paper">Verification badges</Link></li>
-                <li><Link href="/advertise" className="hover:text-paper">Advertise</Link></li>
-                <li><Link href="/organisations" className="hover:text-paper">Organisations</Link></li>
-                <li><Link href="/community" className="hover:text-paper">Community</Link></li>
-                <li><Link href="/events" className="hover:text-paper">Events</Link></li>
-                <li><Link href="/store-selling" className="hover:text-paper">Store selling</Link></li>
-                <li><Link href="/logistics" className="hover:text-paper">Logistics</Link></li>
-                <li><Link href="/logistics/network" className="hover:text-paper">Logistics network</Link></li>
-                <li><Link href="/domains" className="hover:text-paper">Domains</Link></li>
-              </ul>
-            </div>
-
-            <div>
-              <p className="eyebrow text-crimson-bright/90">Company</p>
-              <ul className="mt-4 space-y-2 text-sm text-paper/75">
-                {COMPANY.map((item) => (
-                  <li key={item.href}>
-                    <Link href={item.href} className="hover:text-paper">
-                      {item.label}
-                    </Link>
-                  </li>
-                ))}
-              </ul>
-            </div>
-
-            <div className="col-span-2 sm:col-span-1">
-              <p className="eyebrow text-crimson-bright/90">Connect</p>
-              <ul className="mt-4 space-y-2 text-sm text-paper/75">
-                <li><Link href="/nana" className="hover:text-paper">Nana AI</Link></li>
-                <li><Link href="/help" className="hover:text-paper">Help centre</Link></li>
-                <li>
-                  <Link href="/trending" className="hover:text-paper">
-                    Trending
-                  </Link>
-                </li>
-                <li>
-                  <Link href="/contact" className="hover:text-paper">
-                    Contact
-                  </Link>
-                </li>
-                <li><Link href="/track" className="hover:text-paper">Track a Parcel</Link></li>
+              <ul className="mt-6 space-y-2 text-sm text-paper/75">
                 <li>
                   <a href={`mailto:${site.email}`} className="inline-flex items-center gap-2 hover:text-paper">
                     <MailIcon /> {site.email}
@@ -204,13 +184,26 @@ const site = await getSiteSettingsCached();
                     </a>
                   </li>
                 ))}
-                <li>
-                  <Link href="/challenge" className="hover:text-paper">
-                    #1MillionNairaNotesAppChallenge
-                  </Link>
-                </li>
               </ul>
+              <p className="mt-6 text-sm text-paper/75">
+                <Link href="/terms" className="hover:text-paper">Terms</Link>
+                <span className="mx-2 text-paper/40" aria-hidden>|</span>
+                <Link href="/privacy" className="hover:text-paper">Privacy</Link>
+              </p>
             </div>
+
+            {([["Product", PRODUCT], ["Company", COMPANY], ["Connect", CONNECT]] as const).map(([title, items]) => (
+              <div key={title}>
+                <p className="eyebrow text-crimson-bright/90">{title}</p>
+                <ul className="mt-4 space-y-2 text-sm text-paper/75">
+                  {items.map((item) => (
+                    <li key={item.label}>
+                      <Link href={item.href} className="hover:text-paper">{item.label}</Link>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ))}
           </div>
 
           <div className="border-t border-paper/10 py-5 text-center text-xs text-paper/45">
