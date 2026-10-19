@@ -106,7 +106,7 @@ export default function TrendingPage() {
 
         {data && tab === "courses" && ACADEMY_LIVE && (
           <>
-            <p className="mb-3 text-xs text-slate">Free courses on Notes Academy, ranked by visits. Courses nobody has opened yet follow, newest first. <Link href="/academy" className="font-semibold text-crimson">Browse Notes Academy</Link></p>
+            <p className="mb-3 text-xs text-slate">Courses on Notes Academy, ranked by visits. Courses nobody has opened yet follow, newest first. <Link href="/academy" className="font-semibold text-crimson">Browse Notes Academy</Link></p>
             {(data.courses ?? []).length === 0 ? <p className="py-6 text-sm text-slate">No courses have been published yet. <Link href="/academy/teach" className="font-semibold text-crimson">Teach the first one</Link>.</p> : (
               <RankedList rows={(data.courses ?? []).map((c) => ({ key: c.id, href: courseHref(c.slug), title: c.title, image: c.cover || undefined, count: c.views, sub: <>{c.teacher} · {plural(c.lessons, "lesson")} · {plural(c.enrolled, "enrolled", "enrolled")}</> }))} />
             )}

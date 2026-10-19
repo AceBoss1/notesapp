@@ -36,13 +36,14 @@ export type ThreadMessage = {
   forwarded?: boolean; // sent on from another chat (lib/message-forward.ts)
 };
 
-// #NotesApp's own emojis: typed as :na: or :academy: and drawn as small pictures inside #NotesApp (components/NotesAppEmoji.tsx).
+// #NotesApp's own emojis: typed as :na:, :academy: or :football: and drawn as small pictures inside #NotesApp (components/NotesAppEmoji.tsx).
 // Anywhere that only shows text (the inbox, a bell, an email) they read as their label.
 export const NOTESAPP_EMOJI: Record<string, { src: string; label: string }> = {
   ":na:": { src: "/images/emoji/na.png", label: "#NotesApp" },
   ":academy:": { src: "/images/emoji/academy.svg", label: "Notes Academy" },
+  ":football:": { src: "/images/emoji/football.png", label: "Football" },
 };
-export const NOTESAPP_EMOJI_RE = /:(?:na|academy):/g;
+export const NOTESAPP_EMOJI_RE = /:(?:na|academy|football):/g;
 export const isNotesAppEmoji = (e: unknown): e is string => typeof e === "string" && Object.prototype.hasOwnProperty.call(NOTESAPP_EMOJI, e);
 export const emojiAsText = (s: string) => s.replace(NOTESAPP_EMOJI_RE, (t) => NOTESAPP_EMOJI[t].label);
 

@@ -11,6 +11,49 @@ export type Release = {
 
 export const CHANGELOG: Release[] = [
   {
+    version: "v0.59.0",
+    bump: "minor",
+    date: "2026-10-19",
+    changes: [
+      { kind: "added", text: "Top up your wallet with Paylony CardTap: choose Tap to pay with CardTap under Top up, paste the code into the CardTap app (or scan it), tap your bank card on your Android phone and enter your PIN. The credit, and any Bonus Credits, arrive by themselves." },
+      { kind: "added", text: "CardTap's fee is passed on at cost, 1% of the top-up and never more than ₦1,000, shown before you pay. During the launch offer we pay it for you." },
+    ],
+  },
+  {
+    version: "v0.58.1",
+    bump: "patch",
+    date: "2026-10-19",
+    changes: [
+      { kind: "added", text: "A football ⚽ of our own in Messages: in the #NotesApp row of the 😊 emoji list and as a reaction. Type :football: and it shows as a picture once sent." },
+    ],
+  },
+  {
+    version: "v0.58.0",
+    bump: "minor",
+    date: "2026-10-19",
+    changes: [
+      { kind: "changed", text: "Boosts take turns: the Boosted strips show 3 at a time on a computer or tablet and 1 on a phone, and move to the next set every 45 seconds, waiting while your pointer is over them or they're off screen. Dots under the strip jump to a set." },
+      { kind: "changed", text: "Adverts sit in one fixed 1200 × 628 frame everywhere, with a Learn more button, and each stays 30 seconds when a spot has several (only while it's on screen)." },
+      { kind: "added", text: "New advert spots: Notes Market, Notes Academy, Explore, search results, free course pages, the weekly digest and, if the advertiser chooses, a billboard on the road in Notes Life. Never in Messages, checkout, lessons, paid course pages, certificates or the editors." },
+      { kind: "added", text: "Advert sizes and spots (/advertise/specifications): the best picture size (1200 × 628 px), the safe area, the words, the Notes Life billboard (1600 × 900), where adverts show, how they rotate and how impressions are counted, with templates to download." },
+      { kind: "changed", text: "The campaign form crops your picture to the right shape before you pay, keeps the headline to 60 characters and the text to 120, and asks for a billboard picture when you tick Notes Life." },
+      { kind: "changed", text: "The weekly digest now has up to 10 journals, 4 Notes Market items and 4 Notes Academy courses, the week's most viewed on your interests first, with people you follow mixed in, and up to 3 sponsored slots: a boosted journal after the 2nd story, an advert after the 6th and a boosted item near the end. Each email sent counts as an impression and clicks from it are counted." },
+      { kind: "added", text: "Admin → Ads: how many boosts show at once on computers and on phones, how long boosts and adverts stay, the promoted posts in the journal feed, the digest's sponsored slots, and each spot on or off, changed without a deploy." },
+    ],
+  },
+  {
+    version: "v0.57.3",
+    bump: "patch",
+    date: "2026-10-19",
+    changes: [
+      { kind: "changed", text: "The home page, About, Roadmap, Pricing, Nana, Organisations, Store selling and the help centre are up to date with paid courses, co-tutors, organisations teaching on Notes Academy and certificates, Nana's gems, weekly allowance and credit, the MCP server for AI assistants, the Academy tab, Explore's Market and Academy tabs, Saved, and Paylony CardTap in Notes Life." },
+      { kind: "changed", text: "Nana can now point you to the certificate checker, Teach a course, Your academy, the Nana page, Notes Life and the install page." },
+      { kind: "added", text: "The footer links to Check a certificate and Notes Life." },
+      { kind: "changed", text: "The roadmap now lists what's coming next in Messages and for organisations: group calls for up to 6 people." },
+      { kind: "fixed", text: "The weekly digest shows a paid course's price instead of Free." },
+    ],
+  },
+  {
     version: "v0.57.2",
     bump: "patch",
     date: "2026-10-19",

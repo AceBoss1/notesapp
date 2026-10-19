@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { AD_TEXT_MAX, AD_TITLE_MAX } from "@/lib/ad-config";
 import { friendlyMessage } from "@/lib/api-errors";
 import { getAdminDb, verifySignedInRequest } from "@/lib/firebase-admin";
 import { slotLockId, initializeTransaction, newReference } from "@/lib/paystack";
@@ -228,17 +229,22 @@ export async function POST(req: NextRequest) {
       const pk = getAdPackage(body.packageId);
       if (!pk) return NextResponse.json({ error: "Choose a package." }, { status: 400 });
       const advertiserName = String(body.advertiserName || "").trim().slice(0, 80);
-      const title = String(body.title || "").trim().slice(0, 90);
-      const text = String(body.text || "").trim().slice(0, 180);
+      const title = String(body.title || "").trim();
+      const text = String(body.text || "").trim();
+      if (title.length > AD_TITLE_MAX) return NextResponse.json({ error: `Keep the headline to ${AD_TITLE_MAX} characters.` }, { status: 400 });
+      if (text.length > AD_TEXT_MAX) return NextResponse.json({ error: `Keep the text to ${AD_TEXT_MAX} characters.` }, { status: 400 });
       const href = String(body.href || "").trim().slice(0, 500);
       const image = String(body.image || "").trim().slice(0, 500);
       if (advertiserName.length < 2) return NextResponse.json({ error: "Enter your business or advertiser name." }, { status: 400 });
       if (title.length < 3) return NextResponse.json({ error: "Add a headline." }, { status: 400 });
       if (!/^https:\/\/[^\s]+$/i.test(href)) return NextResponse.json({ error: "The ad link must start with https://" }, { status: 400 });
       // Images must be ones we host (uploaded through the campaign form).
-      if (image && !image.startsWith(r2PublicUrl("ads/"))) return NextResponse.json({ error: "Upload the ad image through the form." }, { status: 400 });
+      if (!image || !image.startsWith(r2PublicUrl(`ads/${user.uid}/`))) return NextResponse.json({ error: "Upload the advert picture through the form." }, { status: 400 });
       const placements = Array.isArray(body.placements) ? Array.from(new Set(body.placements.filter(isPlacement))) : [];
       if (placements.length === 0) return NextResponse.json({ error: "Pick at least one placement." }, { status: 400 });
+      // Notes Life billboards need their own 1600 × 900 picture (lib/ad-config.ts BILLBOARD_IMAGE), uploaded the same way.
+      const billboard = placements.includes("life") ? String(body.billboard || "").trim().slice(0, 500) : "";
+      if (placements.includes("life") && !billboard.startsWith(r2PublicUrl(`ads/${user.uid}/`))) return NextResponse.json({ error: "Add the Notes Life billboard picture, or untick Notes Life." }, { status: 400 });
       if (body.agreed !== true) return NextResponse.json({ error: "Please confirm you've read the advertising rules." }, { status: 400 });
       const reference = newReference();
       const origin = await callbackOrigin(req);
@@ -250,7 +256,7 @@ export async function POST(req: NextRequest) {
       await db.doc(`adCampaigns/${reference}`).set({
         id: reference, uid: user.uid, email: user.email, advertiserName, packageId: pk.id, packageName: pk.name,
         impressionsBudget: pk.impressions, windowDays: pk.windowDays, amountKobo: pk.priceKobo, placements,
-        creative: { title, text, image, href }, status: "awaiting_payment", createdAt: now,
+        creative: { title, text, image, href, ...(billboard ? { billboard } : {}) }, status: "awaiting_payment", createdAt: now,
       });
       const record: PaymentRecord = {
         reference, kind: "ad", uid: user.uid, email: user.email, amountKobo: pk.priceKobo,

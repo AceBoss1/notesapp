@@ -13,7 +13,7 @@ export type Other = { uid: string; outfit: string };
 export type SceneSpec =
   | { id: "room"; owned: string[]; rug: string; outfit: string; night: boolean; ringing: boolean; at: RoomSpot; sleeping: boolean; power: Power }
   | { id: "itel"; outfit: string; night: boolean; others: Other[]; mine?: Mine[] }
-  | { id: "street"; outfit: string; night: boolean; riding: string | null; others: Other[] }
+  | { id: "street"; outfit: string; night: boolean; riding: string | null; others: Other[]; ad?: { src: string } | null } // ad: an advertiser's billboard (Notes Life spot)
   | { id: "chef"; outfit: string; night: boolean; others: Other[]; mine?: Mine[] }
   | { id: "hotel"; outfit: string; others: Other[]; night?: boolean; view?: "front" | "pool" | "aerial"; swim?: boolean; vips?: string[] }
   | { id: "dw"; outfit: string; others: Other[]; night?: boolean; cynthia?: boolean; learning?: boolean };
@@ -70,13 +70,22 @@ export function createWorld(canvas: HTMLCanvasElement) {
     g.position.set(x, y, z); g.rotation.y = rot; scene.add(g); return g;
   }
   // A roadside billboard: two posts, a dark frame, the advert lit like a backlit board (a tag sits on it so it can be tapped).
-  async function billboard(key: string, src: string, x: number, z: number, w: number, h: number, ry = 0, up = 2.2) {
-    const im = await loadImg(src);
+  // src null: the house board, "Your advert here", for the advertisers' billboard when no campaign is running.
+  async function billboard(key: string, src: string | null, x: number, z: number, w: number, h: number, ry = 0, up = 2.2) {
+    const im = src ? await loadImg(src) : null;
     const g = new THREE.Group(); g.position.set(x, 0.14, z); g.rotation.y = ry; scene.add(g);
     const part = (geo: THREE.BufferGeometry, m: THREE.Material, px: number, py: number, pz: number) => { const o = new THREE.Mesh(geo, m); o.position.set(px, py, pz); o.castShadow = true; g.add(o); };
     for (const dx of [-w * 0.3, w * 0.3]) part(new THREE.BoxGeometry(0.16, up, 0.16), mat("#374151"), dx, up / 2, -0.12);
     part(new THREE.BoxGeometry(w + 0.24, h + 0.24, 0.18), mat("#111827"), 0, up + h / 2, -0.12);
     if (im) { const tex = canvasTex(Math.round(im.width), Math.round(im.height), (c) => c.drawImage(im, 0, 0)); part(new THREE.PlaneGeometry(w, h), new THREE.MeshBasicMaterial({ map: tex }), 0, up + h / 2, 0); }
+    else if (!src) {
+      const tex = canvasTex(800, 450, (c, cw, chh) => {
+        c.fillStyle = "#7A0328"; c.fillRect(0, 0, cw, chh); c.fillStyle = "#ffffff"; c.textAlign = "center";
+        c.font = "bold 74px sans-serif"; c.fillText("Your advert here", cw / 2, 190);
+        c.font = "36px sans-serif"; c.fillText("notesapp.name.ng/advertise", cw / 2, 270); c.font = "28px sans-serif"; c.fillText("1600 × 900 · tap to see how", cw / 2, 330);
+      });
+      part(new THREE.PlaneGeometry(w, h), new THREE.MeshBasicMaterial({ map: tex }), 0, up + h / 2, 0);
+    }
     part(new THREE.BoxGeometry(w + 0.3, 0.08, 0.5), mat("#4b5563"), 0, up - 0.05, 0.1);
     const v = new THREE.Vector3(0, up + h + 0.35, 0).applyAxisAngle(new THREE.Vector3(0, 1, 0), ry); tag(key, x + v.x, v.y + 0.14, z + v.z);
   }
@@ -262,7 +271,7 @@ export function createWorld(canvas: HTMLCanvasElement) {
     box(4, 3, 2, "#f1f5f9", 16.5, 0.14, -4.0); sign("Green Wheels\nE-bikes · EVs", "#065f46", "#ffffff", 3.6, 1.0, 16.5, 2.6, -2.98, 92);
     for (const x of [-12, -3, 6, 15]) { cyl(0.06, 4, "#475569", x, 0.14, -0.1); const p = box(0.8, 0.05, 0.5, "#1d4ed8", x, 4.15, -0.1); p.rotation.x = 0.35; }
     [-14, -9.5, -4, 4, 8.5, 20, -22, -17, 12, 25].forEach((x, i) => tree(x, i > 5 ? -7 : -4.4, i > 5 ? 1.4 : 1.1));
-    await Promise.all([billboard("bb:challenge", CHALLENGE, -6.5, -8.2, 5.0, 2.81, 0, 1.4), billboard("bb:itel", IMG(BB.itelSun), 1.2, -8.6, 2.3, 2.88, 0, 1.4), billboard("bb:digitalwitch2", IMG(BB.digitalWitchWide), 8.8, -8.2, 5.0, 2.8, 0, 1.4), billboard("bb:chef3", IMG(BB.pizza), -13.6, -8.4, 2.8, 2.8, 0.1, 1.4), billboard("bb:chef4", IMG(BB.fresh), 14.4, -8.8, 2.8, 2.8, -0.1, 1.4), billboard("bb:paylony", IMG(BB.paylony), -19.4, -8.6, 2.3, 3.43, 0.18, 1.4)]);
+    await Promise.all([billboard("bb:challenge", CHALLENGE, -6.5, -8.2, 5.0, 2.81, 0, 1.4), billboard("bb:itel", IMG(BB.itelSun), 1.2, -8.6, 2.3, 2.88, 0, 1.4), billboard("bb:digitalwitch2", IMG(BB.digitalWitchWide), 8.8, -8.2, 5.0, 2.8, 0, 1.4), billboard("bb:chef3", IMG(BB.pizza), -13.6, -8.4, 2.8, 2.8, 0.1, 1.4), billboard("bb:chef4", IMG(BB.fresh), 14.4, -8.8, 2.8, 2.8, -0.1, 1.4), billboard("bb:paylony", IMG(BB.paylony), -19.4, -8.6, 2.3, 3.43, 0.18, 1.4), billboard("bb:ad", s.ad?.src ?? null, 20.8, -8.4, 5.0, 2.81, -0.12, 1.4)]);
     const phone = innerWidth < 700;
     cam.position.set(...(phone ? [0, 8, 22] : [2, 12, 24]) as [number, number, number]); controls.target.set(phone ? 0 : 2, phone ? 1.2 : 0.5, -0.5);
     controls.minDistance = 10; controls.maxDistance = 45;

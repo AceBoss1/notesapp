@@ -47,6 +47,7 @@ Environment Variables (mark secrets Sensitive), then redeploy: `NEXT_PUBLIC_*` v
 | `PAYLONY_SECRET_KEY` | **yes** | Paylony (virtual accounts and payouts, being added): sk_test_… or sk_live_…. |
 | `PAYLONY_WEBHOOK_KEY` | **yes** | Paylony webhook key. |
 | `PAYLONY_ENCRYPTION_KEY` | **yes** | Paylony encryption key. |
+| `PAYLONY_CARDTAP_TERMINAL_ID` | no | Our CardTap terminal ID (Paylony dashboard): wallet top-ups with CardTap are offered only when this and PAYLONY_SECRET_KEY are set. |
 | `AUTO_PAYOUTS` | no | off pauses automatic payout release. |
 | `ACCOUNT_DATA_KEY` | **yes** | Encrypts stored bank details, Granola and social tokens: base64 of 32 random bytes, made once. |
 

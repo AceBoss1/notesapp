@@ -6,7 +6,7 @@ import { setting } from "@/lib/config";
 //   PAYLONY_SECRET_KEY      sk_test_… or sk_live_… — Bearer token for every request (dashboard → API credentials)
 //   PAYLONY_WEBHOOK_KEY     the key Paylony sends as the Bearer token on its webhooks to us
 //   PAYLONY_ENCRYPTION_KEY  signs payout requests (HMAC-512 over the alphabetically arranged parameters, sent as `Signature`)
-// Built from the public API pages we have; the payout and reserved-account endpoints are not in here yet.
+// Built from the public API pages we have, plus Paylony's CardTap collection (19 Oct 2026).
 export const PAYLONY_API = "https://api.paylony.com/api/v1";
 export const paylonyConfigured = () => !!setting("PAYLONY_SECRET_KEY");
 export const paylonyMode = (): "test" | "live" | "unset" => {
@@ -62,6 +62,14 @@ export const createCheckoutAccount = (i: CheckoutAccountInput) => call("/create_
 
 // GET /transaction_verify/{trx} — confirm a collection before crediting anything for it.
 export const verifyTransaction = (trx: string) => call(`/transaction_verify/${encodeURIComponent(trx)}`);
+
+// ---- CardTap (Paylony's add-on; the "Paylony CardTap" Postman collection) ----
+// POST /pay_with_cardtap — a CardTap payment on our terminal: the reply carries the code (initiationRef) and an instruction for the
+// member to complete it in the CardTap app. Amounts are in naira. Paylony calls our webhook when it's paid.
+export type CardtapInput = { amount: number; name: string; email: string; phone: string; terminal_id: string; reference: string; title?: string; description?: string; redirectUrl?: string; logoUrl?: string };
+export const payWithCardtap = (i: CardtapInput) => call("/pay_with_cardtap", { method: "POST", body: JSON.stringify({ currency: "NGN", ...i }) });
+// GET /verify_checkout_payment/{reference} — the state of a CardTap payment, by our reference.
+export const verifyCheckoutPayment = (reference: string) => call(`/verify_checkout_payment/${encodeURIComponent(reference)}`);
 
 // ---- Payouts (POST /bank_transfer) ----
 // Every payout is signed: the payload parameters arranged alphabetically, then HMAC-SHA512 with PAYLONY_ENCRYPTION_KEY, sent in

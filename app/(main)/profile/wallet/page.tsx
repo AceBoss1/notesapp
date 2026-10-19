@@ -6,6 +6,7 @@ import { onAuthStateChanged, type User } from "firebase/auth";
 import { auth } from "@/lib/firebase";
 import { startCheckout } from "@/lib/checkout";
 import PageHero from "@/components/PageHero";
+import CardtapTopUp from "@/components/wallet/CardtapTopUp";
 import { BONUS_DAYS, TOPUP_MAX_KOBO, TOPUP_MIN_KOBO, TOPUP_PRESETS_NAIRA, WALLET_LIVE, bonusFor, nairaOf, type BonusLot, type WalletTx } from "@/lib/wallet";
 
 type Summary = { creditKobo: number; bonusKobo: number; bonusLots: BonusLot[]; activity: (WalletTx & { id: string })[] };
@@ -56,6 +57,7 @@ function TopUp({ user, onDone }: { user: User; onDone: () => void }) {
       {error && <p className="mt-2 text-xs text-crimson" role="alert">{error}</p>}
       <button type="button" onClick={pay} disabled={busy || !ok} className="btn-primary mt-4 w-full !py-3 disabled:opacity-50">{busy ? "Opening Paystack…" : `Pay ${ok ? nairaOf(kobo) : ""} with Paystack`}</button>
       <p className="mt-2 text-center text-[11px] text-slate">Card, bank transfer or USSD</p>
+      <CardtapTopUp user={user} naira={naira} ok={ok} onPaid={onDone} />
       <ul className="mt-3 list-disc space-y-1 pl-4 text-[11px] text-slate">
         <li>Credit can&apos;t be withdrawn or sent to other members.</li>
         <li>Bonus Credits last {BONUS_DAYS} days and are spent first, on boosts, badges and advert banners only.</li>

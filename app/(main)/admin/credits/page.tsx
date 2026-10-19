@@ -6,7 +6,7 @@ import { useAdminCall } from "@/lib/useAdminCall";
 import type { CreditKind, Member, TopUpLog } from "@/lib/admin-credits";
 
 type Super = { uid: string; name: string; email: string; allowed: boolean };
-type Data = { canTopUp: boolean; owner: boolean; supers: Super[]; log: TopUpLog[] };
+type Data = { canTopUp: boolean; owner: boolean; supers: Super[]; log: TopUpLog[]; cardtap?: { ready: boolean; feeWaived: boolean; at: string | null } };
 const naira = (kobo: number) => `₦${(kobo / 100).toLocaleString("en-NG", { maximumFractionDigits: 2 })}`;
 const when = (iso: string) => new Date(iso).toLocaleString("en-GB", { day: "numeric", month: "short", hour: "numeric", minute: "2-digit", hour12: true, timeZone: "Africa/Lagos" });
 const KINDS: { key: CreditKind; label: string; note: string }[] = [
@@ -108,6 +108,22 @@ export default function AdminCreditsPage() {
               <button disabled={!!busy || !ready} onClick={add} className="btn-primary mt-3 !px-5 !py-2 text-xs">{busy === "add" ? "Adding…" : ready ? `Add ₦${n.toLocaleString("en-NG")}` : "Add"}</button>
             </div>
           )}
+        </div>
+      )}
+
+      {data?.cardtap && (
+        <div className="card mt-6 p-5">
+          <h2 className="font-ui text-lg font-bold text-ink">CardTap top-ups: launch offer</h2>
+          <p className="mt-1 text-sm text-slate">Members who top up their wallet with Paylony CardTap pay Paylony&apos;s fee at cost (1%, at most ₦1,000). Switch this on and we pay it for them instead; they pay only the top-up.{data.cardtap.ready ? "" : " CardTap top-ups aren't offered yet: PAYLONY_SECRET_KEY and PAYLONY_CARDTAP_TERMINAL_ID need to be set in Vercel."}</p>
+          <label className="mt-3 flex items-center gap-3 text-sm font-semibold text-ink">
+            <input type="checkbox" checked={data.cardtap.feeWaived} disabled={!data.canTopUp || busy === "cardtap"} onChange={(e) => {
+              const waived = e.target.checked;
+              if (!confirm(waived ? "Pay CardTap's fee for members from now on?" : "Stop the launch offer? Members will pay CardTap's fee again.")) return;
+              void run("cardtap", async () => { const r = await call({ action: "cardtap_fee", waived }); setData((d) => (d ? { ...d, cardtap: r.cardtap } : d)); setMsg(waived ? "Launch offer on: we pay CardTap's fee." : "Launch offer off: members pay CardTap's fee at cost."); });
+            }} />
+            We pay CardTap&apos;s fee (launch offer)
+          </label>
+          {data.cardtap.at && <p className="mt-1 text-xs text-slate">Last changed {new Date(data.cardtap.at).toLocaleString("en-GB", { day: "numeric", month: "short", hour: "numeric", minute: "2-digit" })}</p>}
         </div>
       )}
 

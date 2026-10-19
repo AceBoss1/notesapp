@@ -11,6 +11,7 @@ import FoundersSpotlight from "@/components/FoundersSpotlight";
 import JournalDirectory from "@/components/JournalDirectory";
 import TopicsBrowser from "@/components/TopicsBrowser";
 import Shelf from "@/components/Shelf";
+import AdSlot from "@/components/AdSlot";
 import { isTopic } from "@/lib/topics";
 import { useInterests } from "@/lib/interests-client";
 import MarketCard from "@/components/MarketCard";
@@ -85,6 +86,7 @@ export default function ExplorePageClient() {
             className={`shrink-0 rounded-full px-5 py-2 font-ui text-sm font-semibold ${tab === t.id ? "bg-crimson-deep text-paper" : "border border-rule bg-card text-ink hover:border-crimson"}`}>{t.label}</button>
         ))}
       </div>
+      <div className="mt-5 empty:hidden"><AdSlot key={tab} placement="explore" offset={TABS.findIndex((t) => t.id === tab)} className="!my-0" /></div>
       <div className="mt-6">
         {notes === null ? <p className="py-16 text-center text-sm text-slate">Loading…</p> : (
           <>
@@ -107,7 +109,7 @@ export default function ExplorePageClient() {
               </Shelf>
             )}
             {tab === "academy" && (
-              <Shelf title="Notes Academy" why={<>Free courses from people who&apos;ve done it, with a certificate anyone can check. <Link href="/academy" className="font-semibold text-crimson">Open Notes Academy →</Link></>}>
+              <Shelf title="Notes Academy" why={<>Free and paid courses from people who&apos;ve done it, with a certificate anyone can check. <Link href="/academy" className="font-semibold text-crimson">Open Notes Academy →</Link></>}>
                 {courses === undefined ? <p className="py-10 text-center text-sm text-slate">Loading…</p> : courseList.length
                   ? <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">{courseList.map((c) => <CourseCard key={c.id} c={courseCardOf(c)} href={courseHref(c.slug)} />)}</div>
                   : <p className="py-10 text-center text-sm text-slate">{q ? "No courses match that search." : "No courses yet."}</p>}

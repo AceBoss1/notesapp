@@ -120,6 +120,8 @@ Paid plans renew automatically through Paystack, monthly or yearly. Cancel any t
 
 **Top up:** from ${money(TOPUP_MIN_KOBO)} to ${money(TOPUP_MAX_KOBO)} at a time, through Paystack (card, bank transfer or USSD). Open the menu under your name → **Wallet** → **Top up**.
 
+**Top up with CardTap:** on an Android phone with NFC, choose **Tap to pay with CardTap** under Top up. You get a code: open the free [CardTap app](https://play.google.com/store/apps/details?id=com.lonytech.cardtap) from Paylony, paste the code (or scan its QR), tap your bank card on the phone and enter your PIN. Your wallet updates by itself a moment later. CardTap's own fee is added at cost, 1% of the top-up and never more than ₦1,000, and you see it before you pay (during the launch offer, #NotesApp pays it for you). It's usually cheaper than paying by card. iPhones from the iPhone 13 follow when Paylony adds them. Refunds of a CardTap top-up go through Paylony.
+
 **Bonus Credits** come with larger top-ups:
 ${BONUS_STEPS.map((b) => `- ${money(b.fromKobo)} or more: **+${money(b.bonusKobo)}**`).join("\n")}
 They last ${BONUS_DAYS} days, are spent before your own credit (soonest-ending first), and can be used only for boosts, the verification badge and advert banners (and paid calls, when those arrive). Bonus amounts can change and are always shown before you pay.
@@ -178,7 +180,7 @@ Add a bank account under Rates & payouts. We verify the account name first and s
 
 Money can be held while we review a reported problem. Commission depends on your plan: see [commission rates](/help/commission-rates).`),
     A("boost-a-post", "Boosting a post or a store item", "Publishing and earning", `
-A boost puts a published post, or an item in your store, in front of more readers: a boosted journal appears in the journal feed marked **Promoted**, and a boosted item in the Boosted strips on the home page and in [Notes Market](/shop). You pay for validated impressions (a real visitor had it at least half on screen for about a second, counted once per visitor per day), not for clicks.
+A boost puts a published post, or an item in your store, in front of more readers: a boosted journal appears in the journal feed marked **Promoted**, and a boosted item in the Boosted strips on the home page and in [Notes Market](/shop). The strips show a few boosts at a time on a computer or tablet and one on a phone, taking turns, and boosts also go in the sponsored slots of the [weekly digest](/help/weekly-digest), where each email sent counts as one impression. The best picture is 1200 × 628 px (see [Advert sizes and spots](/advertise/specifications)). You pay for validated impressions (a real visitor had it at least half on screen for about a second, counted once per visitor per day), not for clicks.
 
 Packages:
 ${BOOST_PACKAGES.map((p) => `- **${p.name}**: ${money(p.priceKobo)} for ${n(p.impressions)} impressions, delivered over at least ${p.minDays} days, running up to ${p.windowDays} days.`).join("\n")}
@@ -192,6 +194,8 @@ Co-authors need a publishing account (Free Basic or above) to accept, because th
 **Advertising on #NotesApp:** anyone can buy a banner campaign, paid online and priced by validated impressions:
 ${AD_PACKAGES.map((p) => `- **${p.name}**: ${money(p.priceKobo)} for ${n(p.impressions)} impressions, up to ${p.windowDays} days.`).join("\n")}
 Every ad is reviewed; if we cannot run it you are refunded in full, and impressions not delivered by the end are refunded pro rata. Start at [Advertise](/advertise).
+
+**Sizes and spots:** one picture works everywhere: **1200 × 628 px** (1.91 : 1; at least 600 × 314, up to 2400 × 1256 for sharp screens), JPG, PNG or WebP, best under 500 KB and at most 1 MB, with the logo and words inside the middle 960 × 502. The campaign form crops other shapes for you before you pay. The headline is up to 60 characters and the text up to 120. Adverts can show on the home page, the journal feed, Trending, publishers' profiles and posts (when they show adverts), Notes Market, Notes Academy, Explore, search results, free course pages, the weekly digest (each email sent counts as an impression) and, if you choose, on a billboard in Notes Life, which needs its own 1600 × 900 picture. Never in Messages, checkout, lessons, paid course pages, certificates or the editors. When a spot has several adverts, each stays about 30 seconds. All of it, with templates to download: [Advert sizes and spots](/advertise/specifications).
 
 **Ad share for publishers:** Pro publishers earn ${formatPercent(t("pro").adRevenueShare!)} and Business publishers ${formatPercent(t("business").adRevenueShare!)} of the ad revenue on their pages if they opt in, with no follower or view threshold. Free journals always show ads and have no share. Shares are calculated monthly, reviewed, held for 30 days and paid to your verified bank account; amounts under ₦1,000 roll into the next month.`),
     ...(MESSAGES_LIVE || MOMENTS_LIVE
@@ -220,7 +224,7 @@ ${MOMENTS_LIVE ? `**Moments:** share a picture, a video of up to 90 seconds or a
 
 **Missed calls and Call back:** every call leaves a line in the conversation (for example "Voice call · 3:12", "Missed video call", "Declined voice call"). A missed call also sends a bell and, if you turned them on, a notification on your device. Tap **Call back** on any call line to call that person again, the same kind of call (voice or video). Call back isn't offered in group chats or to someone you've blocked.
 
-**Who you can call:** only people you follow who also follow you, and who haven't blocked you. If you can't call someone, check that you follow each other. Group calls aren't available yet.
+**Who you can call:** only people you follow who also follow you, and who haven't blocked you. If you can't call someone, check that you follow each other. Group calls aren't available yet; free calls for up to 6 people in a group chat are coming (see the [roadmap](/roadmap)).
 
 **Privacy:** calls go straight between your two devices and are encrypted. On networks that block a direct connection, the call passes through Cloudflare's relay, which can't listen. We never record calls. We keep only a short record (who, voice or video, when, how long, answered or missed), which is deleted with your account. See [Privacy](/privacy).
 
@@ -323,11 +327,11 @@ Calls are free. Planned: paid calls inside Notes Life (₦5 a minute voice, ₦1
 **Browsing:** the **Topics** tab on [Journals](/journals) groups every topic that has journals, with yours first. Tap a hashtag at the end of a journal to see more on that topic.
 `),
     A("discovery", "Journals, Notes Market, Notes Academy and Trending", "Getting started", `
-**Getting around:** on a phone, the bar along the bottom takes you to **Feed**, **Explore**, **Market**, **Messages** and your **Profile**; tap your picture at the top for the menu (your account, the rest of the site, Sign out). On a computer, the journal feed has the same places in a menu on the left.
+**Getting around:** on a phone, the bar along the bottom takes you to **Feed**, **Explore**, **Market**, **Academy**, **Messages** and your **Profile**; tap your picture at the top for the menu (your account, the rest of the site, Sign out). On a computer, the journal feed has the same places in a menu on the left.
 
 **The journal feed:** [Journals](/journals) has four tabs: **For you** (journals on [your interests](/interests) first, then everything newest first), **Following** (people you follow), **Latest** and **Top · 7d** (what people read most this week). Like, comment, share or save a journal from the feed; saved journals are in [Saved](/saved). **Most read this week** and **Who to follow** appear between posts on a phone and on the right on a computer. Journals marked **Promoted** are boosted.
 
-**Explore:** [Explore](/explore) is where to browse topics, people and channels.
+**Explore:** [Explore](/explore) is where to browse topics, people and channels, with **Market** and **Academy** tabs for the week's most looked-at products and courses.
 
 **The order elsewhere:** [Notes Market](/shop) and [Notes Academy](/academy) show things in the same order: **For you** first, then **Most viewed** (the last 7 days), then **Recent**.
 
@@ -377,8 +381,9 @@ ${academyFaq().map((f) => `**${f.q}** ${f.a}`).join("\n\n")}`),
     A("getting-around", "Getting around: the tab bar and the menu", "Getting started", `
 **On a phone:** one light header sits at the top, with search, your notifications (the bell) and your picture. Tap your picture for the menu: your profile, store, bookings, Wallet, Saved, your interests, your settings, the rest of the site and Sign out. Along the bottom is a tab bar:
 - **Feed**: the [journal feed](/journals).
-- **Explore**: topics, people and channels ([Explore](/explore)).
+- **Explore**: topics, people and channels, and the Market and Academy tabs ([Explore](/explore)).
 - **Market**: [Notes Market](/shop), every #NotesApp store in one place.
+- **Academy**: [Notes Academy](/academy), free and paid courses.
 - **Messages**: your conversations and calls ([Messages](/messages)).
 - **Profile**: your own profile, with its Notes, Store and Courses tabs.
 
@@ -392,16 +397,16 @@ A conversation or a call fills the whole screen on a phone; go back with the arr
 
 **Social links:** on [Edit profile](/profile/edit), paste the address or just your @handle (X, Instagram, TikTok), linkedin.com/in/yourname, or for WhatsApp your phone number (0803… is fine). They show as icons under your name on your profile and your own site. If a link can't be read, Edit profile tells you which one.
 `),
-    A("explore-and-saved", "Explore and saved journals", "Getting started", `
-**Explore:** [Explore](/explore) is where to browse topics, people and channels (they used to be tabs of Journals). Open a topic to see its journals, or follow people and organisation channels from there. Your [interests](/interests) come first among the topics.
+    A("explore-and-saved", "Explore and Saved", "Getting started", `
+**Explore:** [Explore](/explore) is where to browse topics, people and channels (they used to be tabs of Journals). Open a topic to see its journals, or follow people and organisation channels from there. Your [interests](/interests) come first among the topics. The **Market** and **Academy** tabs show the most looked-at products and courses this week, with a search box and a way into [Notes Market](/shop) and [Notes Academy](/academy).
 
-**Saving a journal:** tap the bookmark on a journal in the feed, or in a profile's Notes tab, to save it for later. Tap it again to remove it. Everything you saved is in [Saved](/saved), together with the store items you saved with the ♡. Only you can see what you saved.`),
+**Saving a journal:** tap the bookmark on a journal in the feed, or in a profile's Notes tab, to save it for later. Tap it again to remove it. Everything you saved is in [Saved](/saved), together with the store items you saved with the ♡, the courses you saved with the bookmark (under **Courses**) and the messages you kept from chats (under **From chats**). Only you can see what you saved.`),
     A("weekly-digest", "The #NotesApp Weekly Digest email", "Getting started", `
-Every Sunday evening (from 5 PM, Lagos time) #NotesApp can email you a short digest: up to five journals published that week, chosen for you. Journals from people you follow come first, then [your interests](/interests), then what most people liked that week. Your own posts are never in it.
+Every Sunday evening (from 5 PM, Lagos time) #NotesApp can email you a digest: up to ten journals published that week, chosen for you. The most viewed journals on [your interests](/interests) come first, with people you follow mixed in, then the week's most viewed. Your own posts are never in it.
 
 Each story shows the writer's picture and name (and the organisation they wrote for), the title, the opening of the story, how long it takes to read, its views, and its likes and comments. Tap the title or **Read more** to open it; **Read more in your feed** opens your journal feed.
 
-When there's something to show, the digest also has the most viewed and most bought in [Notes Market](/shop) that week, and the same for [Notes Academy](/academy).
+When there's something to show, the digest also has four items from [Notes Market](/shop) and four courses from [Notes Academy](/academy), the week's most viewed on your interests first. Up to three sponsored slots, clearly labelled, carry a boosted journal, an advert and a boosted store item.
 
 **Turning it off:** every digest has an **Unsubscribe from the weekly digest** link at the bottom (your email app's own Unsubscribe button works too), or switch it off under **Emails** in [Account settings](/profile/account#email). Switch it back on there any time. Emails about your bookings, orders, payments and account always come, whatever you choose.
 
@@ -421,7 +426,7 @@ Choose **Digital download** when you add an item and upload your file (PDF, ePub
 
 On **Pro and above** you can instead choose **View only**: add lessons (videos or PDFs) that buyers watch or read on #NotesApp with no download, on up to two devices per purchase, with the buyer's email faintly stamped on the content. One lesson is a single view-only file; several make a course. See [Store selling](/store-selling#view-only).
 
-For a full course, with progress for learners, use [Notes Academy](/academy): free courses with lessons from your own YouTube, and on Pro and above paid courses, with the same fee as your digital items.`),
+For a full course, with progress for learners, use [Notes Academy](/academy): free courses with lessons from your own YouTube on every publishing plan, and paid courses on Pro and above, with the same fee as your digital items (text lessons and PDFs, plus your own uploaded videos on Business and Enterprise). See [Teaching and learning on Notes Academy](/help/academy).`),
     A("track-a-parcel", "Tracking a parcel", "Selling", `
 Every store order gets a parcel ID that looks like NA-7K2M9QXD, sent to the buyer by email. Enter it on [Track a parcel](/track) to see where the parcel is, who holds it and the courier details if there are any. Parcels sent by a logistics business on #NotesApp have the same kind of number: track them on that business's own site, or here.`),
     A("logistics-shipments", "Shipments for logistics businesses", "Selling", `
@@ -481,7 +486,7 @@ Companies, NGOs, churches, schools and clubs can run a verified channel. Sign up
 
 Already have a personal account? You do not need a new one: open [Make an organisation](/organisation), enter the CAC number, and the same account (with its username, posts and followers) becomes an organisation. If the account is more than a day old, an admin approves the change first.
 
-You can invite writers and admins by username or email; they publish under your channel's name and earnings go to one payout account. Your organisation's admins can also add and edit items in the organisation's store to help you; deleting items, orders and money stay with the owner and anyone given store access. Business includes four seats (the owner plus three); Enterprise has as many as you need. See [Organisations](/organisations).`),
+You can invite writers and admins by username or email; they publish under your channel's name and earnings go to one payout account. They can also teach on [Notes Academy](/academy) as the organisation (**Teach as**), free or paid, with certificates in your academy's name and logo. Your organisation's admins can also add and edit items in the organisation's store to help you; deleting items, orders and money stay with the owner and anyone given store access. Business includes four seats (the owner plus three); Enterprise has as many as you need. See [Organisations](/organisations).`),
     A("your-own-domain", "Your own domain", "Teams and organisations", `
 Business and Enterprise accounts can serve their page, journals and store on their own domain (for example notes.yourbrand.com or yourbrand.com), with Home, Notes and Shop pages, and visitors who sign in, book and pay without leaving the site. Business is semi white-label (the footer says "powered by #NotesApp"); Enterprise adds fully branded sign-in and sign-up in your name.
 
@@ -559,7 +564,7 @@ Use the [contact form](/contact) and pick the topic (bookings, payments and refu
     A("about-and-status", "About #NotesApp, status and updates", "Company", `
 #NotesApp is run by ${COMPANY_INFO.legalName} (RC ${COMPANY_INFO.rcNumber}), a private company limited by shares registered in Nigeria. Read [About](/about), see live service health on [Status](/status), what changed on the [Changelog](/changelog) and what is coming on the [roadmap](/roadmap). Our domain partner is Whogohost (go54), and we connect to services such as Paystack, Paylony, Cloudflare, Firebase, Vercel, Resend and Dojah.`),
     A("roadmap-whats-coming", "What is coming next", "Company", `
-Not live yet, with no promised dates: course quizzes and the Enterprise course packages; publishing to Facebook, Instagram and TikTok (LinkedIn and X are live); AI drafting from your past notes; domain sales and DNS management inside #NotesApp; ${WALLET_LIVE ? "paid calls in Notes Life (the NotesApp Credit wallet itself is live)" : "NotesApp Credit and Bonus Credits"}; Paylony payments and Tap-to-Pay; WhatsApp reminders; fuller identity checks; and iOS and Android apps. Details and the latest are on the [roadmap](/roadmap).
+Not live yet, with no promised dates: quizzes on courses, and the Enterprise course packages; group calls for up to 6 people; Community (Spaces, an announcement channel, Circles) and Events for organisations; publishing to Facebook, Instagram and TikTok (LinkedIn and X are live); AI drafting from your past notes (your AI assistant can already read #NotesApp through our MCP server); domain sales and DNS management inside #NotesApp; ${WALLET_LIVE ? "paid calls in Notes Life (the NotesApp Credit wallet itself is live)" : "NotesApp Credit and Bonus Credits"}; Paylony for real-money payments and Tap-to-Pay (Paylony CardTap already pays at every counter in Notes Life, with game money); WhatsApp reminders; fuller identity checks; and iOS and Android apps. Details and the latest are on the [roadmap](/roadmap).
 
 ${ADD_ONS_LINE}`),
     A("million-naira-challenge", "The #1MillionNairaNotesAppChallenge", "Company", `

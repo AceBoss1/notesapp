@@ -45,6 +45,8 @@ function Promoted({ boost, children }: { boost: Boost; children: React.ReactNode
   return <div ref={ref} onClickCapture={() => beacon(boost.id, "click")}>{children}</div>;
 }
 
+const PROMO_AT = [2, 7, 12, 17];
+
 export default function JournalsPageClient() {
   const router = useRouter();
   const { user, profile } = useMember();
@@ -73,7 +75,7 @@ export default function JournalsPageClient() {
     if (q0) setQuery(q0.slice(0, 80));
     getAllNotes({ publishedOnly: true }).then(setNotes).catch((e) => setError(e.message));
     getAllUsers().then(setUsers).catch(() => setUsers([]));
-    fetch("/api/boosts/active?kind=post&limit=2").then((r) => r.json()).then((d) => setBoosts(d.boosts || [])).catch(() => {});
+    fetch("/api/boosts/active?kind=post&limit=feed").then((r) => r.json()).then((d) => setBoosts(d.boosts || [])).catch(() => {});
   }, [router]);
   useEffect(() => {
     if (!user) { setFollowing(new Set()); return; }
@@ -134,6 +136,7 @@ export default function JournalsPageClient() {
   const post = (n: NoteWithComputed, label?: string) => (
     <FeedPost note={n} author={authorOf(n)} user={user} views={n.viewCount || 0} saved={saved.has(n.id)} onSave={toggleSave} follow={followControl(authorOf(n).username)} label={label} />
   );
+  // Promoted posts sit after the 3rd, 8th, 13th and 18th posts; how many is set in Admin → Ads (2 unless changed).
   const promoted = boosts
     .map((b) => ({ b, n: notes?.find((x) => b.href.endsWith(`/journals/${x.slug}`)) }))
     .filter((p): p is { b: Boost; n: NoteWithComputed } => !!p.n);
@@ -170,11 +173,11 @@ export default function JournalsPageClient() {
   const between = (i: number) => (
     <>
       {i === 1 && <div className="lg:hidden"><MostRead rows={mostRead} /></div>}
-      {i === 2 && promoted[0] && <Promoted boost={promoted[0].b}>{post(promoted[0].n, "Promoted")}</Promoted>}
+      {PROMO_AT.indexOf(i) >= 0 && promoted[PROMO_AT.indexOf(i)] && <Promoted boost={promoted[PROMO_AT.indexOf(i)].b}>{post(promoted[PROMO_AT.indexOf(i)].n, "Promoted")}</Promoted>}
       {i === 2 && <div className="lg:hidden"><WhoToFollow rows={toFollow} following={following} onFollow={follow} /></div>}
       {i === 3 && <div className="border-b-[10px] border-[#F3ECE7] bg-card px-4 py-5 empty:hidden lg:hidden"><BadgePitchCard /></div>}
-      {i === 4 && <div className={`bg-card px-4 empty:hidden lg:px-6 ${GAP}`}><AdSlot placement="journals" /></div>}
-      {i === 7 && promoted[1] && <Promoted boost={promoted[1].b}>{post(promoted[1].n, "Promoted")}</Promoted>}
+      {query && (i === 2 || (i === page.length - 1 && page.length < 3)) && <div className={`bg-card px-4 empty:hidden lg:px-6 ${GAP}`}><AdSlot placement="search" /></div>}
+      {i === 4 && !query && <div className={`bg-card px-4 empty:hidden lg:px-6 ${GAP}`}><AdSlot placement="journals" /></div>}
     </>
   );
 

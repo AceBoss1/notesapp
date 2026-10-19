@@ -1,5 +1,6 @@
 "use client";
 
+import AdSlot from "@/components/AdSlot";
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { AcademyIcon } from "@/components/shell/icons";
@@ -201,6 +202,7 @@ export default function CourseView({ slug }: { slug: string }) {
                 <p className="mt-4 border-t border-rule pt-3 text-xs text-slate">Changed your mind? You haven&apos;t started yet, so you can <button type="button" onClick={askRefund} disabled={busy} className="font-semibold text-crimson underline">get a refund</button> until {new Date(purchase.refundUntil).toLocaleDateString("en-GB", { day: "numeric", month: "short" })}.</p>
               )}
             </div>
+            {!paid && !preview && <div className="hidden empty:hidden lg:block"><AdSlot placement="course" stacked className="!my-0" /></div>}
             {!preview && (
               <div className="card p-5">
                 <p className="font-ui text-sm font-bold text-ink">Share this course</p>
@@ -289,6 +291,8 @@ export default function CourseView({ slug }: { slug: string }) {
             <div role="tabpanel" className="mt-5">
               <p className="text-xs text-slate">{(course.modules ?? []).length ? `${plural(course.modules!.length, "module")} · ` : ""}{plural(lessons.length, "lesson")}{course.minutes ? ` · ${durationLabel(course.minutes)}` : ""}{open ? "" : paid ? " · free previews are marked" : " · the first lesson is a free preview"}</p>
               <LessonList slug={slug} lessons={lessons} enrolment={enrolment} open={open} modules={course.modules} paid={paid} />
+              {/* Free courses carry an advert (phones here, computers in the side card); paid ones never do. */}
+              {!paid && !preview && <div className="empty:hidden lg:hidden"><AdSlot placement="course" stacked /></div>}
             </div>
           )}
 

@@ -31,6 +31,7 @@ export const SETTINGS = {
   PAYLONY_SECRET_KEY: { group: "Payments", secret: true, about: "Paylony (virtual accounts and payouts, being added): sk_test_\u2026 or sk_live_\u2026." },
   PAYLONY_WEBHOOK_KEY: { group: "Payments", secret: true, about: "Paylony webhook key." },
   PAYLONY_ENCRYPTION_KEY: { group: "Payments", secret: true, about: "Paylony encryption key." },
+  PAYLONY_CARDTAP_TERMINAL_ID: { group: "Payments", secret: false, about: "Our CardTap terminal ID (Paylony dashboard): wallet top-ups with CardTap are offered only when this and PAYLONY_SECRET_KEY are set." },
   AUTO_PAYOUTS: { group: "Payments", secret: false, about: "off pauses automatic payout release." },
   ACCOUNT_DATA_KEY: { group: "Payments", secret: true, about: "Encrypts stored bank details, Granola and social tokens: base64 of 32 random bytes, made once." },
   RESEND_API_KEY: { group: "Email", secret: true, about: "Resend key; without it emails are skipped (bells still arrive)." },
