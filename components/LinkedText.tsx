@@ -4,7 +4,7 @@ import { parseFormat } from "@/lib/message-format";
 import { EmojiText } from "@/components/NotesAppEmoji";
 
 // Text people typed, with web addresses as links (a new tab) and @username as a link to the profile (lib/linkify.ts).
-// format: also show **bold**, _italic_ and __underline__, and our :na: / :academy: emojis as pictures (messages). base: where profiles live when this isn't on NotesApp itself
+// format: also show **bold**, _italic_ and __underline__, and our :na: / :academy: / :football: emojis as pictures (messages). base: where profiles live when this isn't on NotesApp itself
 // (Notes Life, a journal's own domain). React text only: never HTML.
 export default function LinkedText({ text, format = false, base = "", linkClass = "font-semibold text-crimson underline decoration-crimson/40 underline-offset-2 hover:decoration-crimson" }: { text: string; format?: boolean; base?: string; linkClass?: string }) {
   return (
