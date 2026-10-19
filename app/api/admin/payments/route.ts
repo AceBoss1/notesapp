@@ -123,19 +123,20 @@ export async function POST(req: NextRequest) {
     if (!ledger) return NextResponse.json({ error: "No payout entry for this payment" }, { status: 404 });
 
     if (action === "confirm_order") {
-      if (ledger.kind !== "order") return NextResponse.json({ error: "Only store orders have a delivery hold." }, { status: 409 });
+      if (ledger.kind !== "order" && ledger.kind !== "shipping") return NextResponse.json({ error: "Only store orders have a delivery hold." }, { status: 409 });
       if (!["held", "disputed"].includes(ledger.status)) return NextResponse.json({ error: `Payout is ${ledger.status}.` }, { status: 409 });
-      await confirmOrder(reference, "admin");
+      await confirmOrder(ledger.paymentReference || reference, "admin"); // a delivery partner's entry belongs to the order it delivered
       return NextResponse.json({ ok: true });
     }
 
     if (action === "dispute") {
       if (ledger.status !== "held") return NextResponse.json({ error: `Can't dispute a ${ledger.status} payout.` }, { status: 409 });
       await ledgerRef.update({ status: "disputed" });
-      if (ledger.kind === "order") {
-        const o = (await db.doc(`storeOrders/${reference}`).get()).data();
+      if (ledger.kind === "order" || ledger.kind === "shipping") {
+        const orderRef = ledger.paymentReference || reference;
+        const o = (await db.doc(`storeOrders/${orderRef}`).get()).data();
         if (o && o.status !== "disputed") {
-          await db.doc(`storeOrders/${reference}`).update({ status: "disputed", disputeReason: o.disputeReason || "Frozen by an admin" });
+          await db.doc(`storeOrders/${orderRef}`).update({ status: "disputed", disputeReason: o.disputeReason || "Frozen by an admin" });
           await db.doc(`parcels/${o.parcelId}`).update({ status: "disputed" });
         }
       }

@@ -26,12 +26,16 @@ export async function confirmOrder(reference: string, by: "buyer" | "auto" | "ad
     order = snap.data() as StoreOrder | undefined;
     if (!order) throw new Error("Order not found");
     if (order.status === "confirmed" || order.status === "refunded") return;
-    const lref = db.doc(`ledger/${reference}`);
-    const l = (await t.get(lref)).data();
+    // The store's entry, and the delivery partner's when a partner delivered it (lib/payments.ts shippingRef): both are released.
+    const lrefs = [db.doc(`ledger/${reference}`), ...(order.carrier ? [db.doc(`ledger/${reference}_ship`)] : [])];
+    const ls = await Promise.all(lrefs.map(async (r) => (await t.get(r)).data()));
     t.update(oref, { status: "confirmed", confirmedAt: now, ...(by === "auto" ? { autoConfirmed: true } : {}) });
     t.update(db.doc(`parcels/${order.parcelId}`), { status: "confirmed" });
-    if (l && ["held", "disputed"].includes(l.status)) t.update(lref, { releaseAfter: now, ...(l.status === "disputed" && by === "admin" ? { status: "held" } : {}) });
+    ls.forEach((l, i) => { if (l && ["held", "disputed"].includes(l.status)) t.update(lrefs[i], { releaseAfter: now, ...(l.status === "disputed" && by === "admin" ? { status: "held" } : {}) }); });
   });
+  if (order?.carrier) {
+    await notifyBell({ uid: order.carrier.uid, type: "order", linkHref: "/shipments", message: `Delivery confirmed: ${order.itemTitle} for @${order.sellerUsername}. Your ${formatNaira(order.carrier.feeKobo - order.carrier.cutKobo)} is released.` });
+  }
   if (order && by === "buyer") {
     await notifyBell({ uid: order.sellerUid, type: "order", linkHref: "/orders", message: `The buyer confirmed ${order.itemTitle} arrived — your payout is released.` });
   }

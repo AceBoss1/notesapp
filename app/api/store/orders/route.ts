@@ -72,14 +72,16 @@ export async function POST(req: NextRequest) {
       batch.update(ref, { status: "disputed", disputeReason: reason });
       batch.update(parcelRef, { status: "disputed" });
       batch.update(db.doc(`ledger/${order.reference}`), { status: "disputed" });
+      if (order.carrier) batch.update(db.doc(`ledger/${order.reference}_ship`), { status: "disputed" });
       await batch.commit();
       const to = await getUserEmail(order.sellerUid);
       if (to) await sendEmail({ to, bell: { uid: order.sellerUid, type: "order", linkHref: "/orders" }, subject: "A buyer reported a problem with an order", text: `The buyer of ${order.itemTitle} reported a problem: "${reason}". The money stays held while #NotesApp reviews it — please keep your tracking and any proof of delivery handy and reply to our email if we contact you.\n\n#NotesApp` }).catch(() => {});
       return NextResponse.json({ ok: true });
     }
 
-    // ---- seller ----
-    if (!isSeller) throw new Fail("Only the seller can do that.", 403);
+    // ---- seller, or the store's delivery partner carrying it (hand-offs and delivery, not the courier details) ----
+    const isCarrier = !isSeller && !!order.carrier && ["add_custody", "holder_link", "mark_delivered"].includes(action) && (await canActForSeller(me.uid, order.carrier.uid));
+    if (!isSeller && !isCarrier) throw new Fail("Only the seller can do that.", 403);
     const open = ["paid", "dispatched"].includes(order.status);
 
     if (action === "set_courier") {

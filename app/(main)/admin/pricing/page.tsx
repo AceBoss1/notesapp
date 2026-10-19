@@ -13,8 +13,8 @@ const btn = "rounded-full bg-crimson px-5 py-2 font-ui text-xs font-semibold tex
 const ghost = "rounded-full border border-rule px-4 py-2 font-ui text-xs font-semibold hover:border-crimson disabled:opacity-50";
 
 // The form works in naira and percents; the server stores kobo and fractions. These convert both ways on the same object shape.
-const KOBO_KEYS = new Set(["monthlyKobo", "yearlyKobo", "fromMonthlyKobo", "fromYearlyKobo", "badgeKobo", "depositKobo", "priceKobo", "enterpriseCoursesMonthlyKobo", "academyApiFromMonthlyKobo", "certificateMinKobo", "creditKobo", "siteCeilingKobo", "usdKobo", "standard", "basic", "pro", "business", "enterprise"]); // the plan names are kobo only as numbers (Nana budgets); as objects they are walked into
-const RATE_EXTRA = new Set(["weeklyRate", "capRate"]);
+const KOBO_KEYS = new Set(["monthlyKobo", "yearlyKobo", "fromMonthlyKobo", "fromYearlyKobo", "badgeKobo", "depositKobo", "priceKobo", "enterpriseCoursesMonthlyKobo", "academyApiFromMonthlyKobo", "certificateMinKobo", "creditKobo", "siteCeilingKobo", "usdKobo", "addonMonthlyKobo", "cutMinKobo", "standard", "basic", "pro", "business", "enterprise"]); // the plan names are kobo only as numbers (Nana budgets); as objects they are walked into
+const RATE_EXTRA = new Set(["weeklyRate", "capRate", "cutRate"]);
 const RATE_KEYS = new Set(["session", "physical", "digital", "adShare", "floorSession", "floorPhysical", "floorDigital"]);
 type Any = any; // eslint-disable-line @typescript-eslint/no-explicit-any
 function convert(v: Any, key: string, toForm: boolean): Any {
@@ -23,7 +23,7 @@ function convert(v: Any, key: string, toForm: boolean): Any {
   if (typeof v === "number" || typeof v === "string") {
     if (KOBO_KEYS.has(key)) return toForm ? String(Number(v) / 100) : Math.round(Number(v) * 100);
     if (RATE_KEYS.has(key) || RATE_EXTRA.has(key)) return toForm ? String(Math.round(Number(v) * 10000) / 100) : Number(v) / 100;
-    if (key === "impressions" || key === "graceDays" || key === "inUsd" || key === "outUsd") return toForm ? String(v) : Number(v);
+    if (key === "impressions" || key === "graceDays" || key === "trialDays" || key === "inUsd" || key === "outUsd") return toForm ? String(v) : Number(v);
   }
   return v;
 }
@@ -111,6 +111,17 @@ export default function PricingPage() {
               <div className="flex items-center justify-between gap-3"><span>Free days after finishing</span>{input(["certificateLate", "graceDays"], "days", "Certificate grace days")}</div>
               <div className="flex items-center justify-between gap-3"><span>Added each week after that</span>{input(["certificateLate", "weeklyRate"], "%", "Certificate late fee per week")}</div>
               <div className="flex items-center justify-between gap-3"><span>At most</span>{input(["certificateLate", "capRate"], "%", "Certificate late fee cap")}</div>
+            </div>
+          </section>
+
+          <section className="card mt-6 p-5">
+            <h2 className="font-display text-2xl text-ink">Logistics network</h2>
+            <p className="mt-1 text-xs text-slate">Providers (dispatch, waybill, warehousing and errand businesses) list their coverage and rate card; stores choose one as their delivery partner and buyers pay the shipping at checkout. Business and Enterprise accounts can be providers on their plan; Free Basic and Pro accounts take the add-on, with a free trial that needs no card. Buyers pay the provider's own price and stores pay nothing for delivery: our commission comes only out of the provider's earnings on each delivery (at least the minimum, never more than the fee); the provider is paid the rest.</p>
+            <div className="mt-3 grid gap-3 text-sm sm:grid-cols-2">
+              <div className="flex items-center justify-between gap-3"><span>Add-on for Free Basic and Pro, per month, ₦</span>{input(["logistics", "addonMonthlyKobo"], "", "Logistics add-on monthly price")}</div>
+              <div className="flex items-center justify-between gap-3"><span>Free trial, no card</span>{input(["logistics", "trialDays"], "days", "Logistics add-on trial days")}</div>
+              <div className="flex items-center justify-between gap-3"><span>Our commission on providers&apos; delivery earnings</span>{input(["logistics", "cutRate"], "%", "Cut on shipping fees")}</div>
+              <div className="flex items-center justify-between gap-3"><span>At least, per delivery, ₦</span>{input(["logistics", "cutMinKobo"], "", "Minimum cut on a shipping fee")}</div>
             </div>
           </section>
 

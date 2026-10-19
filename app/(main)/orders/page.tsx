@@ -106,6 +106,7 @@ function SellerCard({ o, user, onDone }: { o: Order; user: User; onDone: () => v
       {showAddr && <p className="mt-1 text-xs text-ink">{o.address.fullName} · {o.address.phone}<br />{o.address.street}, {o.address.city}, {o.address.state}</p>}
       {error && <p className="mt-2 text-xs text-crimson">{error}</p>}
 
+      {o.carrier && <p className="mt-2 text-xs text-ink">Delivered by your delivery partner, <b>{o.carrier.name}</b> (@{o.carrier.username}): they collect it from you and keep the tracking up to date. The buyer paid them {formatNaira(o.carrier.feeKobo)} for delivery.</p>}
       {o.mode === "courier" && o.courier && (
         <p className="mt-2 text-xs text-ink">Courier: {o.courier.name} · {o.courier.trackingNumber}</p>
       )}
@@ -128,7 +129,7 @@ function SellerCard({ o, user, onDone }: { o: Order; user: User; onDone: () => v
         </p>
       )}
 
-      {open && o.mode !== "handoff" && (
+      {open && o.mode !== "handoff" && !o.carrier && (
         <details className="mt-3">
           <summary className="cursor-pointer text-xs font-semibold text-crimson">Sending by courier? Add the tracking</summary>
           <div className="mt-2 grid gap-2 sm:grid-cols-3">

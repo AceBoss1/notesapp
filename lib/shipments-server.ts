@@ -2,13 +2,13 @@ import { FieldValue, type Firestore } from "firebase-admin/firestore";
 import { newParcelId, parseCustody, phoneLast4, type CustodyEntry, type Parcel } from "./orders";
 import { canActForSeller, expireLinks, hashToken, holderUrl, newLinkToken } from "./orders-server";
 import { cleanServices, cleanShipment, serviceName, servicesOf, shipmentOpen, type ShipmentInfo, type ShipmentService } from "./shipments";
-import { canChooseSiteTheme } from "./site-themes";
+import { accessOf } from "./logistics-server";
 import { siteSectionsOf } from "./site-settings";
 import { activeHostForUsername } from "./domains";
 import type { UserProfile } from "./users";
 
 // Server side of shipments (lib/shipments.ts): booking, the hand-off chain and the end of the road, for a logistics business on
-// Business or Enterprise. The business itself or a team member it gave store access may run them (canActForSeller), the same people
+// Business or Enterprise, or on Free Basic or Pro with the logistics add-on (or its free trial; lib/logistics-server.ts accessOf). The business itself or a team member it gave store access may run them (canActForSeller), the same people
 // who run an organisation's store orders. Shipments live in `parcels` (kind "shipment"), which only the server writes.
 
 export class ShipmentError extends Error {
@@ -24,7 +24,7 @@ export async function shipmentBusiness(db: Firestore, uid: string, businessUid: 
   const p = (await db.doc(`users/${businessUid}`).get()).data() as UserProfile | undefined;
   if (!p || p.suspended) throw new ShipmentError("That account isn't available.", 404);
   if (!(await canActForSeller(uid, businessUid))) throw new ShipmentError("You can't manage this business's shipments.", 403);
-  if (!canChooseSiteTheme(p)) throw new ShipmentError("Shipments and tracking are on the Business and Enterprise plans.", 403);
+  if (!(await accessOf(db, p)).ok) throw new ShipmentError("Shipments and tracking come with Business and Enterprise, or the logistics add-on on Free Basic and Pro.", 403);
   return { uid: businessUid, username: p.username, name: p.displayName || p.username, trackOn: siteSectionsOf(p).track, domain: await activeHostForUsername(p.username), services: servicesOf(p) };
 }
 

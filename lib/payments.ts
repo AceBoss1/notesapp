@@ -14,6 +14,7 @@ import { merchParcelDoc } from "./orders-server";
 import { creditTopup } from "./wallet-server";
 import { addNanaCredit } from "./nana-meter";
 import { issueInTransaction } from "./certificates-server";
+import { extendAddon, type Carrier } from "./logistics-server";
 import { SITE_URL } from "@/lib/host";
 
 // Server-only. All money-state changes happen here, via the Admin SDK
@@ -22,7 +23,7 @@ import { SITE_URL } from "@/lib/host";
 
 export type PaymentRecord = {
   reference: string;
-  kind: "booking" | "subscription" | "boost" | "gift" | "tier" | "badge" | "gold_deposit" | "gold" | "merch" | "ad" | "store" | "digital" | "wallet_topup" | "life_naira" | "nana_credit" | "certificate";
+  kind: "booking" | "subscription" | "boost" | "gift" | "tier" | "badge" | "gold_deposit" | "gold" | "merch" | "ad" | "store" | "digital" | "wallet_topup" | "life_naira" | "nana_credit" | "certificate" | "logistics_addon";
   uid: string; // the payer
   email: string;
   amountKobo: number;
@@ -59,6 +60,9 @@ export type PaymentRecord = {
     unitKobo: number;
     deliveryKobo: number;
     address: { fullName: string; phone: string; street: string; city: string; state: string };
+    // Delivered by the store's delivery partner (lib/logistics.ts): deliveryKobo is the partner's fee from its rate card, paid to the
+    // partner less our cut (its own ledger entry), not to the store.
+    carrier?: Carrier;
   };
   // A downloadable file from a publisher's store: instant, final once downloaded.
   digital?: { itemId: string; itemTitle: string; itemImage: string };
@@ -93,7 +97,7 @@ export type LedgerEntry = {
   reference: string; // ledger doc id (the payment reference, or `<ref>_<uid>` for a co-author's share)
   paymentReference?: string; // the Paystack payment this entry belongs to (set on split entries)
   sharePercent?: number; // this author's % of a co-authored post's gift
-  kind: "booking" | "subscription" | "gift" | "adshare" | "order" | "digital" | "certificate";
+  kind: "booking" | "subscription" | "gift" | "adshare" | "order" | "digital" | "certificate" | "shipping";
   publisherUid: string;
   publisherUsername: string;
   payerUid: string;
@@ -112,6 +116,9 @@ export type LedgerEntry = {
   paylonyAttempts?: number;
   failureReason?: string;
 };
+
+// A delivery partner's share of a store order: its own ledger entry next to the store's.
+export const shippingRef = (reference: string) => `${reference}_ship`;
 
 const SUBSCRIPTION_HOLD_DAYS = 7; // dispute window before subscription earnings can be paid out
 export const DIGITAL_HOLD_DAYS = 7; // same window before a digital sale is paid out (a purchase is final once downloaded)
@@ -247,7 +254,9 @@ export async function fulfillPayment(reference: string): Promise<PaymentRecord> 
           t.update(itemRef, { variantStock: next, stock: Object.values(next).reduce((n: number, v) => n + (Number(v) > 0 ? Number(v) : 0), 0) });
         } else t.update(itemRef, { stock: stock - st.quantity });
       }
+      const carrier = st.carrier;
       t.set(db.doc(`storeOrders/${reference}`), {
+        ...(carrier ? { carrier } : {}),
         reference, parcelId, sellerUid: current.publisherUid, sellerUsername: current.publisherUsername, buyerUid: current.uid,
         buyerEmail: current.email, itemId: st.itemId, itemTitle: st.itemTitle, itemImage: st.itemImage, quantity: st.quantity, ...(st.variantLabel ? { variantLabel: st.variantLabel } : {}),
         unitKobo: st.unitKobo, deliveryKobo: st.deliveryKobo, amountKobo: current.amountKobo, commissionKobo,
@@ -257,12 +266,23 @@ export async function fulfillPayment(reference: string): Promise<PaymentRecord> 
         parcelId, orderRef: reference, sellerUid: current.publisherUid, sellerUsername: current.publisherUsername,
         sellerName: seller?.displayName || current.publisherUsername, buyerUid: current.uid, buyerPhoneLast4: phoneLast4(st.address.phone),
         itemTitle: st.itemTitle, quantity: st.quantity, city: st.address.city, state: st.address.state, status: "paid", custody: [], createdAt: now,
+        ...(carrier ? { carrierUid: carrier.uid, carrierName: carrier.name } : {}),
       });
+      // With a delivery partner the store is paid the goods and the partner the delivery, less our cut; both are held until delivery
+      // is confirmed (lib/orders-server.ts confirmOrder releases both).
+      const sellerGross = carrier ? current.amountKobo - st.deliveryKobo : current.amountKobo;
+      const releaseAfter = new Date(Date.now() + ESCROW_PLACEHOLDER_DAYS * 86_400_000).toISOString();
       t.set(db.doc(`ledger/${reference}`), {
         reference, kind: "order", publisherUid: current.publisherUid, publisherUsername: current.publisherUsername, payerUid: current.uid,
-        grossKobo: current.amountKobo, commissionKobo, netKobo: current.amountKobo - commissionKobo, status: "held",
-        releaseAfter: new Date(Date.now() + ESCROW_PLACEHOLDER_DAYS * 86_400_000).toISOString(), createdAt: now,
+        grossKobo: sellerGross, commissionKobo, netKobo: sellerGross - commissionKobo, status: "held", releaseAfter, createdAt: now,
       } satisfies LedgerEntry);
+      if (carrier) {
+        t.set(db.doc(`ledger/${shippingRef(reference)}`), {
+          reference: shippingRef(reference), paymentReference: reference, kind: "shipping", publisherUid: carrier.uid, publisherUsername: carrier.username,
+          payerUid: current.uid, grossKobo: st.deliveryKobo, commissionKobo: carrier.cutKobo, netKobo: st.deliveryKobo - carrier.cutKobo,
+          status: "held", releaseAfter, createdAt: now,
+        } satisfies LedgerEntry);
+      }
     } else if (current.kind === "digital" && current.digital) {
       // A digital sale: access is instant. The seller's money is held for the usual dispute window
       // (paid out automatically afterwards); the buyer cannot be refunded once they download.
@@ -326,6 +346,10 @@ export async function fulfillPayment(reference: string): Promise<PaymentRecord> 
       }
       t.update(payRef, { status: "paid", paidAt: now, "certificate.issuedId": id });
       return { payment: { ...current, status: "paid" as const, paidAt: now, certificate: { ...current.certificate, issuedId: id } }, fresh: true };
+    } else if (current.kind === "logistics_addon") {
+      // A month of the logistics add-on (Free Basic and Pro): runs on from the trial or the month already paid.
+      const acc = (await t.get(db.doc(`users/${current.uid}`))).data()?.logisticsAccount;
+      extendAddon(t, db, current.uid, acc, new Date(now));
     } else if (current.kind === "nana_credit" && current.nanaPack) {
       addNanaCredit(t, db, current.uid, current.nanaPack.creditKobo, reference, new Date(now));
     } else if (current.kind === "life_naira") {
@@ -542,6 +566,10 @@ async function notifyPaid(p: PaymentRecord) {
     if (p.publisherUid && p.publisherUid !== p.uid) await notifyBell({ uid: p.publisherUid, type: "plan", linkHref: "/academy/teach", message: `${p.certificate.learnerName} got their certificate for “${p.certificate.courseTitle}”.` });
     return;
   }
+  if (p.kind === "logistics_addon") {
+    await notifyBell({ uid: p.uid, type: "plan", linkHref: "/shipments", message: `Logistics add-on paid (${formatNaira(p.amountKobo)}): another month of Shipments and your place in the logistics network.` });
+    return;
+  }
   if (p.kind === "nana_credit" && p.nanaPack) {
     await notifyBell({ uid: p.uid, type: "plan", linkHref: "/nana#credit", message: `${formatNaira(p.nanaPack.creditKobo)} of Nana credit added (${p.nanaPack.name}). It never expires and is used after your free allowance.` });
     return;
@@ -616,8 +644,22 @@ async function notifyPaid(p: PaymentRecord) {
         to: sellerEmail,
         subject: "New order on your #NotesApp store",
         bell: { uid: p.publisherUid, type: "order", linkHref: "/orders", message: `New order: ${st.quantity} × ${st.itemTitle}${st.variantLabel ? ` (${st.variantLabel})` : ""}` },
-        text: `${st.quantity} × ${st.itemTitle}${st.variantLabel ? ` (${st.variantLabel})` : ""} was ordered (${formatNaira(p.amountKobo)} incl. delivery). Deliver to ${st.address.fullName}, ${st.address.phone}, ${st.address.street}, ${st.address.city}, ${st.address.state}.\nDispatch it and keep the tracking up to date at ${site}/orders (courier details, or each hand-off if it goes by bike, bus or park). You're paid after the buyer confirms delivery, or 7 days after you mark it delivered.\n\n#NotesApp`,
+        text: st.carrier
+          ? `${st.quantity} × ${st.itemTitle}${st.variantLabel ? ` (${st.variantLabel})` : ""} was ordered (${formatNaira(p.amountKobo - st.deliveryKobo)} for the goods; the buyer paid ${formatNaira(st.deliveryKobo)} delivery to your delivery partner, ${st.carrier.name}). Have it ready: ${st.carrier.name} collects it and delivers to ${st.address.fullName} in ${st.address.city}, ${st.address.state}, and keeps the tracking up to date. Follow it at ${site}/orders. You're paid after the buyer confirms delivery, or 7 days after it's marked delivered.\n\n#NotesApp`
+          : `${st.quantity} × ${st.itemTitle}${st.variantLabel ? ` (${st.variantLabel})` : ""} was ordered (${formatNaira(p.amountKobo)} incl. delivery). Deliver to ${st.address.fullName}, ${st.address.phone}, ${st.address.street}, ${st.address.city}, ${st.address.state}.\nDispatch it and keep the tracking up to date at ${site}/orders (courier details, or each hand-off if it goes by bike, bus or park). You're paid after the buyer confirms delivery, or 7 days after you mark it delivered.\n\n#NotesApp`,
       }).catch(() => {});
+    }
+    // The delivery partner: a pickup from the store, the buyer's address, and what it's paid once delivery is confirmed.
+    if (st.carrier) {
+      const carrierEmail = await getUserEmail(st.carrier.uid);
+      if (carrierEmail) {
+        await sendEmail({
+          to: carrierEmail,
+          subject: `New delivery from @${p.publisherUsername}`,
+          bell: { uid: st.carrier.uid, type: "order", linkHref: "/shipments", message: `New delivery: ${st.quantity} × ${st.itemTitle} from @${p.publisherUsername} to ${st.address.city}, ${st.address.state}` },
+          text: `@${p.publisherUsername} has an order for you to deliver: ${st.quantity} × ${st.itemTitle}${st.variantLabel ? ` (${st.variantLabel})` : ""}.\nDeliver to ${st.address.fullName}, ${st.address.phone}, ${st.address.street}, ${st.address.city}, ${st.address.state}.\nThe buyer paid ${formatNaira(st.deliveryKobo)} for delivery; you're paid ${formatNaira(st.deliveryKobo - st.carrier.cutKobo)} after delivery is confirmed (#NotesApp keeps ${formatNaira(st.carrier.cutKobo)}). Collect it from the store, then record each hand-off and mark it delivered at ${site}/shipments.\n\n#NotesApp`,
+        }).catch(() => {});
+      }
     }
     return;
   }

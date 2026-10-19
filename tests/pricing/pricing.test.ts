@@ -37,6 +37,15 @@ const hourly = clone(); hourly.nana.resetEvery = "hour";
 assert.throws(() => cleanPricing(hourly), PricingError);
 const pricey = clone(); pricey.nana.rates.pearl.inUsd = -1;
 assert.throws(() => cleanPricing(pricey), PricingError);
+// the logistics network: the add-on (₦4,500, a 30-day trial) and the cut on shipping (10%, at least ₦100); added later, so an older
+// config keeps these defaults
+assert.deepEqual(DEFAULT_PRICING.logistics, { addonMonthlyKobo: 4_500 * 100, trialDays: 30, cutRate: 0.1, cutMinKobo: 100 * 100 });
+const noLogistics = clone(); delete noLogistics.logistics;
+assert.deepEqual(cleanPricing(noLogistics).logistics, DEFAULT_PRICING.logistics);
+const greedy = clone(); greedy.logistics.cutRate = 0.9;
+assert.throws(() => cleanPricing(greedy), PricingError, "the cut is at most 50%");
+const forever = clone(); forever.logistics.trialDays = 400;
+assert.throws(() => cleanPricing(forever), PricingError);
 const weekly = clone(); weekly.certificateLate.weeklyRate = 0.5;
 assert.throws(() => cleanPricing(weekly), PricingError, "at most 25% a week");
 const grace = clone(); grace.certificateLate.graceDays = -1;

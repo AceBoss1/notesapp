@@ -10,7 +10,7 @@ export const REVENUE_MAX_AGE_MS = 15 * 60_000;
 async function readRevenueInput(db: Firestore): Promise<Parameters<typeof computeRevenue>[0]> {
   const [pay, led, boosts, charges, adRev, adSh] = await Promise.all([
     db.collection("payments").select("kind", "status", "amountKobo", "paidAt", "createdAt").get(),
-    db.collection("ledger").select("commissionKobo").get(),
+    db.collection("ledger").select("commissionKobo", "paymentReference").get(),
     db.collection("boosts").select("refundedKobo").get(),
     db.collection("tierCharges").select("kind", "amountKobo", "at").get(),
     db.collection("adRevenue").select("month", "amountKobo").get(),
@@ -22,7 +22,8 @@ async function readRevenueInput(db: Firestore): Promise<Parameters<typeof comput
       const p = d.data();
       return { reference: d.id, kind: p.kind, status: p.status, amountKobo: p.amountKobo, paidAt: p.paidAt, createdAt: p.createdAt };
     }),
-    commissionByRef: Object.fromEntries(led.docs.map((d) => [d.id, Number(d.data().commissionKobo) || 0])),
+    // By payment: split entries (a co-author's share of a gift, a delivery partner's share of an order) add to their payment's total.
+    commissionByRef: led.docs.reduce<Record<string, number>>((m, d) => { const r = String(d.data().paymentReference || d.id); m[r] = (m[r] ?? 0) + (Number(d.data().commissionKobo) || 0); return m; }, {}),
     boostRefundByRef: Object.fromEntries(boosts.docs.map((d) => [d.id, Number(d.data().refundedKobo) || 0])),
     adRevenue: adRev.docs.map((d) => ({ month: String(d.data().month), amountKobo: Number(d.data().amountKobo) || 0 })),
     adShares: adSh.docs.map((d) => ({ month: String(d.data().month), shareKobo: Number(d.data().shareKobo) || 0, status: String(d.data().status) })),

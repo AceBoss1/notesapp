@@ -35,7 +35,7 @@ export async function GET(req: NextRequest) {
     const token = req.headers.get("authorization")?.replace(/^Bearer\s+/i, "");
     if (token) {
       const d = await getAuth(getAdminApp()).verifyIdToken(token).catch(() => null);
-      if (d && (d.uid === parcel.buyerUid || hasAnyDept(accessFromClaims(d), ["support", "finance"]) || (await canActForSeller(d.uid, parcel.sellerUid)))) privileged = true;
+      if (d && (d.uid === parcel.buyerUid || hasAnyDept(accessFromClaims(d), ["support", "finance"]) || (await canActForSeller(d.uid, parcel.sellerUid)) || (!!parcel.carrierUid && (await canActForSeller(d.uid, parcel.carrierUid))))) privileged = true;
     }
     let phonesUnlocked = privileged;
     let phoneError = "";

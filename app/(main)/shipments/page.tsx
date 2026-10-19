@@ -6,6 +6,8 @@ import { useRouter } from "next/navigation";
 import { onAuthStateChanged, User } from "firebase/auth";
 import { auth } from "@/lib/firebase";
 import PageHero from "@/components/PageHero";
+import { AccessCard, ListingCard, type Me } from "@/components/logistics/ProviderPanel";
+import CarriedOrders, { type Carried } from "@/components/logistics/CarriedOrders";
 import { HOLDER_LABEL, HolderType, type Parcel } from "@/lib/orders";
 import { NIGERIAN_STATES } from "@/lib/merch";
 import { SHIPMENT_SERVICES, cleanShipment, isErrand, receiverMessage, serviceName, shipmentOpen, shipmentStatusLabel, waNumber, type ShipmentService } from "@/lib/shipments";
@@ -13,7 +15,7 @@ import { SHIPMENT_SERVICES, cleanShipment, isErrand, receiverMessage, serviceNam
 // Shipments for logistics businesses (lib/shipments.ts): book one for a customer, record each hand-off or give riders their update
 // link, send the receiver their tracking link, mark it delivered. Business and Enterprise; team members with store access too.
 type Row = Parcel & { link: string };
-type Biz = { uid: string; username: string; name: string; trackOn: boolean; domain: string | null; services: ShipmentService[]; shipments: Row[] };
+type Biz = { uid: string; username: string; name: string; trackOn: boolean; domain: string | null; services: ShipmentService[]; shipments: Row[]; carried?: Carried[] };
 type Filter = "active" | "delivered" | "cancelled" | "all";
 const field = "mt-1 w-full border border-rule bg-card px-3 py-2 text-sm outline-none focus:border-crimson";
 const holderLabel = (t: HolderType) => (t === "seller" ? "Office" : HOLDER_LABEL[t]);
@@ -206,9 +208,11 @@ export default function ShipmentsPage() {
   const [which, setWhich] = useState("");
   const [filter, setFilter] = useState<Filter>("active");
   const [q, setQ] = useState("");
+  const [me, setMe] = useState<Me | null>(null); // as a provider: access (plan, add-on, trial) and the network listing
 
   const load = useCallback(async (u: User) => {
     try {
+      fetch("/api/logistics?view=me", { headers: { Authorization: `Bearer ${await u.getIdToken()}` } }).then((r) => r.json()).then((j) => j.access && setMe(j)).catch(() => {});
       const res = await fetch("/api/shipments", { headers: { Authorization: `Bearer ${await u.getIdToken()}` } });
       const j = await res.json();
       if (!res.ok) throw new Error(j.error || "Couldn't load shipments.");
@@ -239,14 +243,9 @@ export default function ShipmentsPage() {
       <section className="mx-auto max-w-3xl px-4 py-10 sm:px-6">
         {error && <p className="text-sm text-crimson">{error}</p>}
         {list === null && !error && <p className="text-sm text-slate">Loading…</p>}
-        {list?.length === 0 && (
-          <div className="card p-6 text-sm">
-            <p className="font-display text-xl text-ink">Shipments are on the Business and Enterprise plans</p>
-            <p className="mt-2 text-slate">Run deliveries, waybills, warehousing or home and office errands? Book shipments, give your riders update links, and get a site with Home, Blog, Track and Contact pages on your own domain.</p>
-            <div className="mt-4 flex flex-wrap gap-3"><Link href="/logistics" className="btn-primary !px-4 !py-2 text-xs">See how it works</Link><Link href="/pricing" className="rounded-full border border-rule px-4 py-2 text-xs font-semibold text-ink">Plans and prices</Link></div>
-            <p className="mt-3 text-xs text-slate">On a team? Ask the business owner to give you store access in their team settings.</p>
-          </div>
-        )}
+        {user && me && (!me.access.ok || me.access.via !== "plan" || list?.length === 0) && <AccessCard me={me} user={user} onChange={() => load(user)} />}
+        {list?.length === 0 && me && !me.access.ok && <p className="mb-6 text-xs text-slate">On a team? Ask the business owner to give you store access in their team settings. <Link href="/logistics" className="text-crimson underline">How it works</Link></p>}
+        {user && me?.access.ok && biz?.uid === user.uid && <ListingCard me={me} user={user} onSaved={() => load(user)} />}
         {list && list.length > 1 && (
           <label className="mb-4 block text-xs text-slate">Business
             <select value={which} onChange={(e) => setWhich(e.target.value)} className={field}>{list.map((b) => <option key={b.uid} value={b.uid}>{b.name} (@{b.username})</option>)}</select>
@@ -275,6 +274,7 @@ export default function ShipmentsPage() {
             </div>
             {shown.length === 0 ? <p className="mt-6 text-sm text-slate">{biz.shipments.length ? "Nothing here." : "No shipments yet. Book your first one above."}</p>
               : <ul className="mt-6 space-y-3">{shown.map((s) => <ShipmentCard key={s.parcelId} biz={biz} s={s} user={user} onChange={put} />)}</ul>}
+            <CarriedOrders orders={biz.carried ?? []} user={user} onDone={() => load(user)} />
           </>
         )}
       </section>

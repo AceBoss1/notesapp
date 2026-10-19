@@ -29,6 +29,7 @@ export type StoreItem = {
   category?: string;
   subcategory?: string; // narrower than the category, e.g. "Bags" (lib/subtopics.ts); new ones are created as the item is saved
   shipsFrom?: string;
+  weightKg?: number; // one of it, for a delivery partner's rate card (lib/logistics.ts); not set = 1 kg
   // Extra photos (the first is the main one, also kept in `image`): up to MAX_IMAGES.
   images?: string[];
   // Up to two options a buyer picks from (for example Size and Colour), each with up to twenty choices. Stock is then kept
@@ -200,6 +201,7 @@ function clean(input: StoreItemInput) {
     ...(isStoreCategory(input.category) ? { category: input.category } : {}),
     ...(isStoreCategory(input.category) && cleanSubtopicLabel(input.subcategory) ? { subcategory: cleanSubtopicLabel(input.subcategory) } : {}),
     ...(!digital && cleanShipsFrom(input.shipsFrom) ? { shipsFrom: cleanShipsFrom(input.shipsFrom) } : {}),
+    ...(!digital && Number(input.weightKg) > 0 && Number(input.weightKg) <= 500 ? { weightKg: Math.round(Number(input.weightKg) * 100) / 100 } : {}),
     ...(options.length ? { options, variantStock } : {}),
     ...(images.length ? { images } : {}),
     title: input.title.trim(),
