@@ -13,6 +13,7 @@ import { useOwnNotes } from "./useOwnNotes";
 import { useOwnItems } from "./useOwnItems";
 import NoteCard from "./NoteCard";
 import SiteFeed from "./SiteFeed";
+import TrackBox from "./TrackBox";
 import SiteProfileHeader from "./SiteProfileHeader";
 import AuroraBand from "./AuroraBand";
 import ScrollToHash from "@/components/ScrollToHash";
@@ -24,7 +25,7 @@ import { byRecent } from "@/lib/discovery";
 
 const seeAll = "font-ui text-xs font-semibold text-crimson hover:text-crimson-bright";
 
-// Home: who they are, then what they chose to show (Journals, Shop, Courses, in that order, or the shop first if that's their
+// Home: who they are, then what they chose to show (a tracking box for logistics businesses, then Journals, Shop, Courses, in that order, or the shop first if that's their
 // domain's front page), then how to book them.
 export default function SiteHome() {
   const site = useSite();
@@ -99,7 +100,8 @@ export default function SiteHome() {
           </div>
         </section>
   );
-  const sections = <>{shopFirst ? <>{itemsSection}{notesSection}</> : <>{notesSection}{itemsSection}</>}{coursesSection}</>;
+  // A logistics business (the Track section): tracking comes first, right under who they are.
+  const sections = <>{site.sections.track && <TrackBox />}{shopFirst ? <>{itemsSection}{notesSection}</> : <>{notesSection}{itemsSection}</>}{coursesSection}</>;
 
   // Booking runs right here: pick a time, sign in if needed (the visitor is brought back signed in), pay with Paystack.
   const booking = (

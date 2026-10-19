@@ -20,6 +20,7 @@ export type SiteInfo = {
   isOrg: boolean; // organisations get a rounded-square picture, people a circle
   sections: SiteSections; // what they chose to show (lib/site-settings.ts)
   pages: { about: boolean; contact: boolean }; // whether they wrote an About and a Contact page
+  services: string[]; // a logistics business with Track on: the services it offers, by name (lib/shipments.ts); otherwise none
 };
 
 const Ctx = createContext<SiteInfo | null>(null);
