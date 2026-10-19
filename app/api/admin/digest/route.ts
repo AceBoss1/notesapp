@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAdminDb, getUserEmail, verifyAdminRequest } from "@/lib/firebase-admin";
-import { buildDigest, digestStatus, sendDigest, setDigestOn, weekCourses, weekPool, weekMarket } from "@/lib/digest-server";
+import { buildDigest, digestStatus, sendDigest, setDigestOn, weekCourses, weekPool, weekMarket, weekSponsors } from "@/lib/digest-server";
 import { renderDigestHtml } from "@/lib/digest";
 
 export const dynamic = "force-dynamic";
@@ -32,7 +32,9 @@ export async function POST(req: NextRequest) {
     return NextResponse.json(await digestStatus(db));
   }
   const [pool, market, courses] = await Promise.all([weekPool(db), weekMarket(db).catch(() => []), weekCourses(db).catch(() => [])]);
-  const d = await buildDigest(db, uid, pool, market, courses);
+  // With this week's sponsored slots as you'd get them; a preview or a test never counts as an impression.
+  const sponsors = await weekSponsors(db, new Date(), pool).catch(() => undefined);
+  const d = await buildDigest(db, uid, pool, market, courses, sponsors);
   if (!d) return NextResponse.json({ error: pool.length ? "Nothing to send you this week (only your own posts, or your profile isn't set up)." : "No journals were published in the last 7 days, so there's nothing to show." }, { status: 404 });
   if (action === "preview") return NextResponse.json({ html: renderDigestHtml(d), stories: d.stories.length });
   if (action === "send_test") {

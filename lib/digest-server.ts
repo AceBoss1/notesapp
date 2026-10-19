@@ -9,7 +9,11 @@ import { COMPANY_INFO } from "./site";
 import { DEFAULT_AVATAR } from "./admin";
 import { resolveAuthorUsername } from "./journals-directory";
 import { topicsOf } from "./topics";
-import { digestSubject, pickStories, renderDigestHtml, renderDigestText, type DigestEmail, type DigestItem, type PoolStory } from "./digest";
+import { digestSubject, fillSlots, pickItems, pickStories, renderDigestHtml, renderDigestText, type DigestEmail, type DigestSponsored, type PoolItem, type PoolStory, type SlotCandidate } from "./digest";
+import { loadActiveAds, lagosDay } from "./ads-server";
+import { adConfig } from "./ad-config-server";
+import { spotOn } from "./ad-config";
+import { AD_FOOTER } from "./ads";
 import { getMarket, type MarketItem } from "./shop-directory";
 import { ACADEMY_LIVE, courseHref, priceLabel } from "./courses";
 import { setting } from "@/lib/config";
@@ -22,10 +26,12 @@ import { setting } from "@/lib/config";
 // (Admin → POST /api/admin/digest).
 // Who: members with a verified email who haven't turned it off (emailPrefs/{uid}.weeklyDigest === false, server-only), aren't
 // suspended, and have at least one story to read. Every email has a one-click unsubscribe link and List-Unsubscribe headers.
-// What: up to 5 journals published in the last 7 days: people they follow first, then their interests (users/{uid}.interests,
-// the hashtags they choose), then the week's most liked. Never their own. Then Notes Market (weekMarket: the two most viewed
-// items this week and the two most bought in the last 30 days) and Notes Academy (weekCourses: the two most viewed courses
-// this week and the two most enrolled in the last 30 days); a section with nothing in it is left out.
+// What: up to 10 journals published in the last 7 days, the most viewed on the reader's interests (users/{uid}.interests, the
+// hashtags they choose) with people they follow mixed in, then the week's most viewed. Never their own. Then 4 from Notes
+// Market and 4 from Notes Academy, the same way (weekMarket, weekCourses, pickItems). A section with nothing in it is left out.
+// Sponsored: up to 3 slots (Admin → Ads), filled from active boosts and adverts with the digest spot (weekSponsors, fillSlots).
+// Each email sent counts as one impression for what it carried (countSends), within each boost's daily cap and what was
+// bought; clicks go through /api/digest/go, which counts them.
 // Email quota: Resend's free plan allows 100 emails a day for everything (bookings, receipts …). Raise the plan before
 // turning the digest on for more members than that, or keep DIGEST_PER_RUN low.
 
@@ -102,9 +108,9 @@ export async function weekPool(db: Firestore, now = new Date()): Promise<PoolSto
   const since = new Date(now.getTime() - WEEK_MS).toISOString();
   const snap = await db.collection("notes").where("date", ">=", since).get(); // one field, no index needed
   const notes = snap.docs.map((d) => ({ id: d.id, n: d.data() })).filter(({ n }) => n.status === "published" && String(n.date ?? "") <= now.toISOString());
-  // The 60 most liked are enough to choose 5 from for anyone; count their comments.
-  notes.sort((a, b) => (Number(b.n.likeCount) || 0) - (Number(a.n.likeCount) || 0));
-  const top = notes.slice(0, 60);
+  // The 100 most viewed are enough to choose 10 from for anyone; count their comments.
+  notes.sort((a, b) => (Number(b.n.viewCount) || 0) - (Number(a.n.viewCount) || 0) || (Number(b.n.likeCount) || 0) - (Number(a.n.likeCount) || 0));
+  const top = notes.slice(0, 100);
   const comments = await Promise.all(top.map(({ id }) => db.collection(`notes/${id}/comments`).count().get().then((c) => c.data().count).catch(() => 0)));
   const writerUids = Array.from(new Set(top.map(({ n }) => String(n.writerUid ?? "")).filter(Boolean)));
   const writers = writerUids.length ? await db.getAll(...writerUids.map((u) => db.doc(`users/${u}`))) : [];
@@ -125,70 +131,129 @@ export async function weekPool(db: Firestore, now = new Date()): Promise<PoolSto
   });
 }
 
-// The Market section, the same for everyone that week: the two most viewed items this week (all-time views when nothing was
-// counted this week), then the two most bought in the last 30 days that aren't already there.
-export async function weekMarket(db: Firestore, now = new Date()): Promise<DigestItem[]> {
+// The Market section's pool, the same for everyone that week: the 40 most viewed items this week (all-time views when
+// nothing was counted this week), with their topics and category, for pickItems to choose 4 per reader.
+const POOL_ITEMS = 40;
+export async function weekMarket(_db: Firestore, _now = new Date()): Promise<PoolItem[]> {
   const { items } = await getMarket();
   if (!items.length) return [];
-  const since = new Date(now.getTime() - 30 * 86_400_000).toISOString();
-  const [orders, digital] = await Promise.all([
-    db.collection("storeOrders").where("paidAt", ">=", since).get(), // one field each, no index needed
-    db.collection("digitalPurchases").where("createdAt", ">=", since).get(),
-  ]);
-  const sold = new Map<string, number>();
-  for (const d of orders.docs) if (d.data().status !== "refunded") sold.set(String(d.data().itemId), (sold.get(String(d.data().itemId)) ?? 0) + (Number(d.data().quantity) || 1));
-  for (const d of digital.docs) sold.set(String(d.data().itemId), (sold.get(String(d.data().itemId)) ?? 0) + 1);
   const week = items.some((i) => i.viewsWeek > 0);
   const heat = (i: MarketItem) => (week ? i.viewsWeek : i.views);
-  const viewed = items.filter((i) => heat(i) > 0).sort((a, b) => heat(b) - heat(a)).slice(0, 2);
-  const bought = items.filter((i) => (sold.get(i.id) ?? 0) > 0 && !viewed.includes(i)).sort((a, b) => (sold.get(b.id) ?? 0) - (sold.get(a.id) ?? 0)).slice(0, 2);
-  const row = (i: MarketItem, why: string): DigestItem => ({ title: i.title, href: i.href.startsWith("/") ? `${SITE_URL}${i.href}` : i.href, image: abs(i.image, null), price: i.price, by: i.sellerName, why });
-  return [
-    ...viewed.map((i) => row(i, `${heat(i).toLocaleString("en-GB")} views ${week ? "this week" : "so far"}`)),
-    ...bought.map((i) => row(i, `${sold.get(i.id)} bought in the last 30 days`)),
-  ];
+  return items.filter((i) => heat(i) > 0).sort((a, b) => heat(b) - heat(a)).slice(0, POOL_ITEMS).map((i) => ({
+    id: i.id, title: i.title, href: i.href.startsWith("/") ? `${SITE_URL}${i.href}` : i.href, image: abs(i.image, null), price: i.price, by: i.sellerName,
+    why: `${heat(i).toLocaleString("en-GB")} views ${week ? "this week" : "so far"}`, tags: [...(i.topics ?? []), i.category].filter(Boolean), heat: heat(i), ownerUid: i.sellerUid,
+  }));
 }
 
-// The Academy section, the same for everyone that week: the two most viewed published courses this week, then the two with the
-// most new learners in the last 30 days that aren't already there. Courses of suspended teachers are left out.
-export async function weekCourses(db: Firestore, now = new Date()): Promise<DigestItem[]> {
+// The Academy section's pool: the 40 most viewed published courses this week (all-time views when nothing was counted this
+// week), with their topics. Courses of suspended teachers are left out.
+export async function weekCourses(db: Firestore, now = new Date()): Promise<PoolItem[]> {
   if (!ACADEMY_LIVE) return [];
   const snap = await db.collection("courses").where("status", "==", "published").get();
   if (snap.empty) return [];
   const since = (days: number) => new Date(now.getTime() - days * 86_400_000).toISOString();
-  const [views, enrolled] = await Promise.all([
-    db.collection("pageViews").where("day", ">=", since(7).slice(0, 10)).get(), // one field each, no index needed
-    db.collection("enrolments").where("enrolledAt", ">=", since(30)).get(),
-  ]);
-  const week = new Map<string, number>(), joined = new Map<string, number>();
+  const views = await db.collection("pageViews").where("day", ">=", since(7).slice(0, 10)).get(); // one field, no index needed
+  const week = new Map<string, number>();
   for (const d of views.docs) if (d.data().kind === "course") week.set(String(d.data().id), (week.get(String(d.data().id)) ?? 0) + (Number(d.data().count) || 0));
-  for (const d of enrolled.docs) joined.set(String(d.data().courseId), (joined.get(String(d.data().courseId)) ?? 0) + 1);
   const courses = snap.docs.map((d) => ({ id: d.id, c: d.data() }));
   const owners = await db.getAll(...Array.from(new Set(courses.map(({ c }) => String(c.ownerUid)))).map((u) => db.doc(`users/${u}`)));
   const ok = new Set(owners.filter((o) => o.exists && o.data()?.suspended !== true).map((o) => o.id));
-  const live = courses.filter(({ c }) => ok.has(String(c.ownerUid)));
-  const viewed = live.filter(({ id }) => (week.get(id) ?? 0) > 0).sort((a, b) => (week.get(b.id) ?? 0) - (week.get(a.id) ?? 0)).slice(0, 2);
-  const popular = live.filter((x) => (joined.get(x.id) ?? 0) > 0 && !viewed.includes(x)).sort((a, b) => (joined.get(b.id) ?? 0) - (joined.get(a.id) ?? 0)).slice(0, 2);
   const name = new Map(owners.map((o) => [o.id, String(o.data()?.displayName || o.data()?.username || "")]));
-  const row = ({ id, c }: { id: string; c: FirebaseFirestore.DocumentData }, why: string): DigestItem => ({
-    title: String(c.title ?? ""), href: `${SITE_URL}${courseHref(String(c.slug ?? id))}`, image: abs(c.cover, null), price: priceLabel(c), by: name.get(String(c.ownerUid)) || String(c.ownerName ?? ""), why,
+  const anyWeek = courses.some(({ id }) => (week.get(id) ?? 0) > 0);
+  const heat = (id: string, c: FirebaseFirestore.DocumentData) => (anyWeek ? week.get(id) ?? 0 : Number(c.viewCount) || 0);
+  return courses.filter(({ id, c }) => ok.has(String(c.ownerUid)) && heat(id, c) > 0).sort((a, b) => heat(b.id, b.c) - heat(a.id, a.c)).slice(0, POOL_ITEMS).map(({ id, c }) => ({
+    id, title: String(c.title ?? ""), href: `${SITE_URL}${courseHref(String(c.slug ?? id))}`, image: abs(c.cover, null), price: priceLabel(c), by: name.get(String(c.ownerUid)) || String(c.ownerName ?? ""),
+    why: `${heat(id, c).toLocaleString("en-GB")} views ${anyWeek ? "this week" : "so far"}`, tags: Array.isArray(c.topics) ? c.topics.map(String) : [], heat: heat(id, c), ownerUid: String(c.ownerUid),
+  }));
+}
+
+// ---- sponsored slots ----
+// What can go in this week's sponsored slots: boosted journals and store items that can still be delivered (inside their
+// window, impressions left, under today's cap), and active adverts with the digest spot (paid campaigns first). `left` is how
+// many more emails each boost may count today. Nothing when Admin → Ads has the digest spot off or no slots.
+export type Sponsors = { posts: SlotCandidate[]; items: SlotCandidate[]; ads: SlotCandidate[]; left: Map<string, number>; slots: number };
+const boostDay = (d = new Date()) => d.toISOString().slice(0, 10); // the same day key /api/boosts/impression uses
+export const digestGo = (kind: "b" | "a", id: string) => `${SITE_URL}/api/digest/go?${kind}=${encodeURIComponent(id)}`;
+export async function weekSponsors(db: Firestore, now = new Date(), pool: PoolStory[] = []): Promise<Sponsors> {
+  const cfg = await adConfig();
+  const none: Sponsors = { posts: [], items: [], ads: [], left: new Map(), slots: 0 };
+  if (cfg.digestSlots === 0 || !spotOn(cfg, "digest")) return none;
+  const today = boostDay(now);
+  const snap = await db.collection("boosts").where("status", "==", "active").get();
+  const left = new Map<string, number>();
+  const live = snap.docs.map((d) => ({ id: d.id, b: d.data() })).filter(({ id, b }) => {
+    const n = Math.min((Number(b.impressionsPurchased) || 0) - (Number(b.impressionsDelivered) || 0), (Number(b.maxPerDay) || 0) - (Number(b.daily?.[today]) || 0));
+    if (!(new Date(String(b.endsAt)).getTime() > now.getTime()) || n <= 0) return false;
+    left.set(id, n);
+    return true;
   });
-  return [
-    ...viewed.map((x) => row(x, `${(week.get(x.id) ?? 0).toLocaleString("en-GB")} views this week`)),
-    ...popular.map((x) => row(x, `${joined.get(x.id)} enrolled in the last 30 days`)),
-  ];
+  const { items: market } = await getMarket().catch(() => ({ items: [] as MarketItem[] }));
+  const itemTags = new Map(market.map((i) => [i.id, [...(i.topics ?? []), i.category].filter(Boolean)]));
+  const storyTags = new Map(pool.map((p) => [p.href, p.tags]));
+  const posts: SlotCandidate[] = [], items: SlotCandidate[] = [];
+  for (const { id, b } of live) {
+    const target = b.itemId ? `${SITE_URL}/shop/${b.itemId}` : `${SITE_URL}/journals/${b.slug}`;
+    const x: SlotCandidate = { kind: b.itemId ? "item" : "post", id, title: String(b.title ?? ""), image: abs(b.image, null), href: digestGo("b", id), label: `Promoted · ${String(b.author ?? "")}`, ownerUid: String(b.publisherUid ?? ""), target, tags: b.itemId ? itemTags.get(String(b.itemId)) ?? [] : storyTags.get(target) ?? [] };
+    (b.itemId ? items : posts).push(x);
+  }
+  // The least delivered (for what was bought) first, as on the site.
+  const share = (id: string) => { const b = live.find((l) => l.id === id)!.b; return (Number(b.impressionsDelivered) || 0) / Math.max(1, Number(b.impressionsPurchased) || 1); };
+  posts.sort((a, b) => share(a.id) - share(b.id)); items.sort((a, b) => share(a.id) - share(b.id));
+  const t = now.getTime();
+  const ads: SlotCandidate[] = (await loadActiveAds())
+    .filter((a) => a.placements?.includes("digest") && (!a.startsAt || new Date(a.startsAt).getTime() <= t) && (!a.endsAt || new Date(a.endsAt).getTime() >= t))
+    .map((a) => ({ kind: "ad" as const, id: a.id, title: a.title, text: a.text || undefined, image: abs(a.image, null), href: digestGo("a", a.id), label: AD_FOOTER[a.provider ?? "notesapp"], paid: !!(a as { campaignId?: string }).campaignId }));
+  return { posts, items, ads, left, slots: cfg.digestSlots };
+}
+
+// What this batch's emails carried: each email sent is one impression. Boosts: added to impressionsDelivered and today's
+// count (never past what was bought; a boost that reaches it is completed). Adverts: added to adStats for the day, under the
+// digest spot, so campaign budgets and reports include them.
+export async function countSends(db: Firestore, sends: Map<string, number>, now = new Date()): Promise<void> {
+  const today = boostDay(now), day = lagosDay(now);
+  for (const [key, n] of sends) {
+    const [kind, id] = [key.slice(0, key.indexOf(":")), key.slice(key.indexOf(":") + 1)];
+    if (n <= 0) continue;
+    if (kind === "ad") {
+      const inc = FieldValue.increment(n);
+      await db.doc(`adStats/${id}_${day}`).set({ adId: id, day, impressions: inc, byPlacement: { digest: { impressions: inc } } }, { merge: true }).catch(() => {});
+      continue;
+    }
+    await db.runTransaction(async (t) => {
+      const ref = db.doc(`boosts/${id}`);
+      const b = (await t.get(ref)).data();
+      if (!b || b.status !== "active") return;
+      const room = Math.max(0, (Number(b.impressionsPurchased) || 0) - (Number(b.impressionsDelivered) || 0));
+      const add = Math.min(n, room);
+      if (add <= 0) return;
+      const done = (Number(b.impressionsDelivered) || 0) + add >= (Number(b.impressionsPurchased) || 0);
+      t.update(ref, {
+        impressionsDelivered: FieldValue.increment(add), [`daily.${today}`]: FieldValue.increment(add), digestSends: FieldValue.increment(add),
+        ...(done ? { status: "completed", completedAt: now.toISOString() } : {}),
+      });
+    }).catch(() => {});
+  }
 }
 
 // ---- one member's email ----
-export async function buildDigest(db: Firestore, uid: string, pool: PoolStory[], market: DigestItem[] = [], courses: DigestItem[] = []): Promise<DigestEmail | null> {
+// sponsors: this week's boosts and adverts (weekSponsors); the slots chosen are in the result's `sponsored`, and the boosts'
+// `left` counts go down by one for each, so a batch never carries a boost past its daily cap.
+export async function buildDigest(db: Firestore, uid: string, pool: PoolStory[], market: PoolItem[] = [], courses: PoolItem[] = [], sponsors?: Sponsors): Promise<DigestEmail | null> {
   const u = (await db.doc(`users/${uid}`).get()).data();
   if (!u || u.suspended === true || !u.username || NO_INBOX.has(String(u.username))) return null;
   const follows = await db.collection("follows").where("followerUid", "==", uid).limit(500).get();
-  const stories = pickStories(pool, { uid, follows: new Set(follows.docs.map((d) => String(d.data().username))), interests: Array.isArray(u.interests) ? u.interests.map(String) : [] });
+  const interests = Array.isArray(u.interests) ? u.interests.map(String) : [];
+  const stories = pickStories(pool, { uid, follows: new Set(follows.docs.map((d) => String(d.data().username))), interests });
   if (!stories.length) return null;
+  let sponsored: DigestSponsored[] = [];
+  if (sponsors && sponsors.slots > 0) {
+    const open = (x: SlotCandidate) => x.kind === "ad" || (sponsors.left.get(x.id) ?? 0) > 0;
+    sponsored = fillSlots({ posts: sponsors.posts.filter(open), items: sponsors.items.filter(open), ads: sponsors.ads }, { uid, interests, storyHrefs: new Set(stories.map((s) => s.href)) }, sponsors.slots);
+    for (const x of sponsored) if (x.kind !== "ad") sponsors.left.set(x.id, (sponsors.left.get(x.id) ?? 1) - 1);
+  }
   return {
     reader: { name: String(u.displayName || u.username), username: String(u.username), avatar: abs(u.avatar, `${SITE_URL}${DEFAULT_AVATAR}`)! },
-    stories, market, courses, site: SITE_URL, appUrl: `${APP_URL}/install`, unsubscribeUrl: unsubscribeUrl(uid), interestsUrl: `${SITE_URL}${INTERESTS_PATH}`, settingsUrl: `${SITE_URL}${EMAIL_SETTINGS_PATH}`,
+    stories, market: pickItems(market, { uid, interests }), courses: pickItems(courses, { uid, interests }), sponsored, site: SITE_URL, appUrl: `${APP_URL}/install`, unsubscribeUrl: unsubscribeUrl(uid), interestsUrl: `${SITE_URL}${INTERESTS_PATH}`, settingsUrl: `${SITE_URL}${EMAIL_SETTINGS_PATH}`,
     company: `${COMPANY_INFO.legalName} · RC ${COMPANY_INFO.rcNumber}`,
   };
 }
@@ -232,7 +297,7 @@ export async function sendWeeklyDigests(db: Firestore, now = new Date()): Promis
 
   const pool = await weekPool(db, now);
   if (!pool.length) return 0;
-  const [market, courses] = await Promise.all([weekMarket(db, now).catch(() => []), weekCourses(db, now).catch(() => [])]);
+  const [market, courses, sponsors] = await Promise.all([weekMarket(db, now).catch(() => []), weekCourses(db, now).catch(() => []), weekSponsors(db, now, pool).catch(() => undefined)]);
   const [prefs, auth] = await Promise.all([
     db.getAll(...batch.map((uid) => db.doc(`emailPrefs/${uid}`))),
     getAuth(getAdminApp()).getUsers(batch.map((uid) => ({ uid }))),
@@ -240,12 +305,18 @@ export async function sendWeeklyDigests(db: Firestore, now = new Date()): Promis
   const optedOut = new Set(prefs.filter((p) => p.data()?.weeklyDigest === false).map((p) => p.id));
   const email = new Map(auth.users.filter((a) => a.email && a.emailVerified && !a.disabled).map((a) => [a.uid, a.email!]));
   let sent = 0;
+  const sends = new Map<string, number>(); // "post:<boostId>" / "item:<boostId>" / "ad:<adId>" → emails sent carrying it
   for (const uid of batch) {
     const to = email.get(uid);
     if (!to || optedOut.has(uid)) continue;
-    const d = await buildDigest(db, uid, pool, market, courses).catch(() => null);
-    if (d && (await sendDigest(to, uid, d))) sent++;
+    const d = await buildDigest(db, uid, pool, market, courses, sponsors).catch(() => null);
+    if (!d) continue;
+    if (await sendDigest(to, uid, d)) {
+      sent++;
+      for (const x of d.sponsored ?? []) sends.set(`${x.kind === "ad" ? "ad" : "boost"}:${x.id}`, (sends.get(`${x.kind === "ad" ? "ad" : "boost"}:${x.id}`) ?? 0) + 1);
+    } else for (const x of d.sponsored ?? []) if (x.kind !== "ad" && sponsors) sponsors.left.set(x.id, (sponsors.left.get(x.id) ?? 0) + 1); // not sent: give it back
   }
   if (sent) await runRef.set({ sent: FieldValue.increment(sent) }, { merge: true }).catch(() => {});
+  await countSends(db, sends, now);
   return sent;
 }

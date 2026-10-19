@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getAdminDb } from "@/lib/firebase-admin";
 import { clientIp, rateLimit } from "@/lib/rate-limit";
 import { ttlCache } from "@/lib/ttl-cache";
+import { adConfig } from "@/lib/ad-config-server";
 
 // One read of the active boosts serves everyone for a minute.
 const activeBoosts = ttlCache(60_000, async () => {
@@ -19,7 +20,12 @@ export async function GET(req: NextRequest) {
   const limited = await rateLimit(req, "boosts-active", clientIp(req), 60, 60);
   if (limited) return limited;
   try {
-    const limit = Math.min(6, Math.max(1, Number(req.nextUrl.searchParams.get("limit")) || 3));
+    const cfg = await adConfig();
+    // Up to 12, so a strip has a few sets to rotate through; ?limit=feed is the journal feed's promoted posts (Admin → Ads).
+    const asked = req.nextUrl.searchParams.get("limit");
+    const limit = asked === "feed" ? cfg.feedPromoted : Math.min(12, Math.max(1, Number(asked) || 3));
+    const show = { wide: cfg.boostsWide, phone: cfg.boostsPhone, rotateSec: cfg.boostRotateSec };
+    if (limit === 0) return NextResponse.json({ boosts: [], show });
     // ?kind=item|post narrows the strip; ?owner=<uid> shows only that publisher's boosts (a store page).
     const want = req.nextUrl.searchParams.get("kind");
     const owner = req.nextUrl.searchParams.get("owner") || "";
@@ -37,7 +43,7 @@ export async function GET(req: NextRequest) {
       .sort((a, b) => a.impressionsDelivered / a.impressionsPurchased - b.impressionsDelivered / b.impressionsPurchased)
       .slice(0, limit)
       .map((b) => ({ id: b.id, href: b.itemId ? `/shop/${b.itemId}` : `/journals/${b.slug}`, kind: b.itemId ? "item" : "post", title: b.title, author: b.author, image: b.image }));
-    return NextResponse.json({ boosts }, { headers: { "Cache-Control": "public, s-maxage=60, stale-while-revalidate=120" } });
+    return NextResponse.json({ boosts, show }, { headers: { "Cache-Control": "public, s-maxage=60, stale-while-revalidate=120" } });
   } catch (err) {
     console.error("boosts active failed:", err);
     return NextResponse.json({ boosts: [] });

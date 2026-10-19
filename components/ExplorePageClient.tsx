@@ -11,6 +11,7 @@ import FoundersSpotlight from "@/components/FoundersSpotlight";
 import JournalDirectory from "@/components/JournalDirectory";
 import TopicsBrowser from "@/components/TopicsBrowser";
 import Shelf from "@/components/Shelf";
+import AdSlot from "@/components/AdSlot";
 import { isTopic } from "@/lib/topics";
 import { useInterests } from "@/lib/interests-client";
 import MarketCard from "@/components/MarketCard";
@@ -85,6 +86,7 @@ export default function ExplorePageClient() {
             className={`shrink-0 rounded-full px-5 py-2 font-ui text-sm font-semibold ${tab === t.id ? "bg-crimson-deep text-paper" : "border border-rule bg-card text-ink hover:border-crimson"}`}>{t.label}</button>
         ))}
       </div>
+      <div className="mt-5 empty:hidden"><AdSlot key={tab} placement="explore" offset={TABS.findIndex((t) => t.id === tab)} className="!my-0" /></div>
       <div className="mt-6">
         {notes === null ? <p className="py-16 text-center text-sm text-slate">Loading…</p> : (
           <>

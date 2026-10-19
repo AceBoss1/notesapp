@@ -24,7 +24,7 @@ export type AdCampaign = {
   windowDays: number;
   amountKobo: number;
   placements: string[];
-  creative: { title: string; text: string; image: string; href: string };
+  creative: { title: string; text: string; image: string; href: string; billboard?: string }; // billboard: Notes Life, 1600 × 900
   status: CampaignStatus;
   createdAt: string;
   paidAt?: string;

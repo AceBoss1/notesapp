@@ -11,6 +11,20 @@ export type Release = {
 
 export const CHANGELOG: Release[] = [
   {
+    version: "v0.58.0",
+    bump: "minor",
+    date: "2026-10-19",
+    changes: [
+      { kind: "changed", text: "Boosts take turns: the Boosted strips show 3 at a time on a computer or tablet and 1 on a phone, and move to the next set every 45 seconds, waiting while your pointer is over them or they're off screen. Dots under the strip jump to a set." },
+      { kind: "changed", text: "Adverts sit in one fixed 1200 × 628 frame everywhere, with a Learn more button, and each stays 30 seconds when a spot has several (only while it's on screen)." },
+      { kind: "added", text: "New advert spots: Notes Market, Notes Academy, Explore, search results, free course pages, the weekly digest and, if the advertiser chooses, a billboard on the road in Notes Life. Never in Messages, checkout, lessons, paid course pages, certificates or the editors." },
+      { kind: "added", text: "Advert sizes and spots (/advertise/specifications): the best picture size (1200 × 628 px), the safe area, the words, the Notes Life billboard (1600 × 900), where adverts show, how they rotate and how impressions are counted, with templates to download." },
+      { kind: "changed", text: "The campaign form crops your picture to the right shape before you pay, keeps the headline to 60 characters and the text to 120, and asks for a billboard picture when you tick Notes Life." },
+      { kind: "changed", text: "The weekly digest now has up to 10 journals, 4 Notes Market items and 4 Notes Academy courses, the week's most viewed on your interests first, with people you follow mixed in, and up to 3 sponsored slots: a boosted journal after the 2nd story, an advert after the 6th and a boosted item near the end. Each email sent counts as an impression and clicks from it are counted." },
+      { kind: "added", text: "Admin → Ads: how many boosts show at once on computers and on phones, how long boosts and adverts stay, the promoted posts in the journal feed, the digest's sponsored slots, and each spot on or off, changed without a deploy." },
+    ],
+  },
+  {
     version: "v0.57.3",
     bump: "patch",
     date: "2026-10-19",

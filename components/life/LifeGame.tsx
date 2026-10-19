@@ -21,6 +21,7 @@ import FriendChat, { type ChatFriend } from "./FriendChat";
 import { NameBadgeIcons } from "@/components/PersonName";
 import { Sound, loadSoundPrefs, saveSoundPrefs, type Ambience, type Sfx, type SoundPrefs } from "./sound";
 import { familyHost } from "@/lib/host";
+import { loadAds, weightedOrder, type Ad } from "@/components/AdSlot";
 
 type Player = LifePlayer & { cooking: number; swimming: number; serverNow: number };
 type Panel =
@@ -57,6 +58,12 @@ export default function LifeGame() {
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
   const [tags, setTags] = useState<Tag[]>([]);
+  // The advertisers' billboard on the street (the Notes Life spot): one campaign per visit, or the house "Your advert here".
+  const [lifeAd, setLifeAd] = useState<Ad | null>(null);
+  useEffect(() => { loadAds("life").then((l) => setLifeAd(weightedOrder(l.ads.filter((a) => a.provider === "notesapp" && a.billboard))[0] ?? null)).catch(() => {}); }, []);
+  const adTrack = (event: "impression" | "click", adId: string) => {
+    try { navigator.sendBeacon?.("/api/ads/track", new Blob([JSON.stringify({ adId, event, placement: "life" })], { type: "application/json" })); } catch { /* never breaks the game */ }
+  };
   const [spot, setSpot] = useState<RoomSpot>("rug");
   const [savedAt, setSavedAt] = useState(0);
   const [, setNow] = useState(Date.now());
@@ -228,16 +235,17 @@ export default function LifeGame() {
     if (!save || !player) return null;
     const a = save.activity;
     const o = others.map((x) => ({ uid: x.uid, outfit: x.outfit }));
-    if (a?.kind === "travel") return { id: "street", outfit: save.outfit, night, riding: a.icon === "🛵" ? "ebike" : null, others: o };
+    const ad = lifeAd?.billboard ? { src: `/_next/image?url=${encodeURIComponent(lifeAd.billboard)}&w=1920&q=80` } : null; // same-origin, so the 3D board can draw it
+    if (a?.kind === "travel") return { id: "street", outfit: save.outfit, night, riding: a.icon === "🛵" ? "ebike" : null, others: o, ad };
     const vips = C.vipsAt(Date.now() + offset.current).in;
     if (a?.kind === "hotel" && /Swimming|lesson|Pool bar|VIP bar|Gym/.test(a.label)) return { id: "hotel", outfit: save.outfit, others: o, night, view: "pool", swim: /Swimming|lesson/.test(a.label), vips };
     if (save.place === "chef") return { id: "chef", outfit: save.outfit, night, others: o, mine };
     if (save.place === "itel") return { id: "itel", outfit: save.outfit, night, others: o, mine };
     if (save.place === "hotel") return { id: "hotel", outfit: save.outfit, others: o, night, vips: C.vipsAt(Date.now() + offset.current).in };
     if (save.place === "dw") return { id: "dw", outfit: save.outfit, others: o, night, cynthia: C.cynthiaAt(Date.now() + offset.current) === "dw", learning: a?.kind === "class" };
-    if (save.place === "work") return { id: "street", outfit: save.outfit, night, riding: player.owned.includes("ebike") ? "ebike" : null, others: o };
+    if (save.place === "work") return { id: "street", outfit: save.outfit, night, riding: player.owned.includes("ebike") ? "ebike" : null, others: o, ad };
     return { id: "room", owned: player.owned, rug: save.rug, outfit: save.outfit, night, ringing: player.deal?.state === "offered", at: spot, sleeping: a?.kind === "sleep", power: roomPower };
-  }, [save?.place, save?.activity?.kind, save?.activity?.label, save?.outfit, save?.rug, player?.owned.join(), player?.deal?.state, night, spot, roomPower, othersKey, mineKey, vipKey]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [save?.place, save?.activity?.kind, save?.activity?.label, save?.outfit, save?.rug, player?.owned.join(), player?.deal?.state, night, spot, roomPower, othersKey, mineKey, vipKey, lifeAd?.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Where you are, for other players (lifePresence), and who else is here: every 45 s, and when you move.
   const presencePlace: PresencePlace | null = !save ? null : save.activity?.kind === "travel" ? "ride" : (save.place as PresencePlace);
@@ -254,6 +262,14 @@ export default function LifeGame() {
     return () => { alive = false; window.clearInterval(t); };
   }, [user, presencePlace, showMeOn]);
   useEffect(() => { if (spec && world.current) void world.current.show(spec); }, [spec]);
+  // The billboard is seen when the street is on screen with it: one impression per advert per visit (the server keeps it to
+  // one per person per day).
+  const adSeen = useRef(new Set<string>());
+  useEffect(() => {
+    if (spec?.id !== "street" || !lifeAd || adSeen.current.has(lifeAd.id)) return;
+    const t = setTimeout(() => { adSeen.current.add(lifeAd.id); adTrack("impression", lifeAd.id); }, 1500);
+    return () => clearTimeout(t);
+  }, [spec?.id, lifeAd?.id]); // eslint-disable-line react-hooks/exhaustive-deps
   // What you hear around you, and the bedside phone while a deal call waits.
   // A soft tune, and no NEPA noise, in your hotel suite, at the VIP bar and in class at the Digital Witch hub.
   const act0 = save?.activity, calm = panel === "vip" || act0?.kind === "class" || (act0?.kind === "hotel" && (act0.label.startsWith(SUITE_LABEL) || act0.label.startsWith("Room service") || act0.label === C.HOTEL_OF("vipbar")?.name));
@@ -570,6 +586,9 @@ export default function LifeGame() {
     if (!player || !save) return null;
     if (key.startsWith("npc:")) { const r = C.RESIDENT(key.slice(4)); return r ? { label: `${r.name} 🤖${r.id === "cynthia" ? " · #1" : ""}`, go: () => setPanel({ chat: r.id }) } : null; }
     if (key === "bb:paylony") return { label: "📣 Paylony · Pay with CardTap", go: () => setPanel("cardtap") };
+    if (key === "bb:ad") return lifeAd
+      ? { label: `📣 ${lifeAd.title} · Sponsored`, go: () => { adTrack("click", lifeAd.id); window.open(lifeAd.href, "_blank", "noopener"); } }
+      : { label: "📣 Your advert here", go: () => { window.open("/advertise/specifications#billboard", "_blank"); } };
     if (key.startsWith("bb:digitalwitch")) return { label: "📣 Digital Witch · Learn a tech skill", go: () => { setDwTab("courses"); setPanel("dw"); } };
     if (spec?.id === "dw") {
       const open = C.dwOpen(Date.now() + offset.current);
