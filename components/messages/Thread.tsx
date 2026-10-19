@@ -38,6 +38,8 @@ import ThreadHeader, { HEADER_BUTTON } from "./ThreadHeader";
 import HandleLine from "./HandleLine";
 import { CheckIcon, PhoneIcon, PinIcon, SendIcon, TickIcon, VideoIcon } from "./icons";
 import { placeCall } from "@/components/calls/CallManager";
+import { openGroupCall, useLiveGroupCalls } from "@/components/calls/GroupCall";
+import { groupCallText, present } from "@/lib/group-calls";
 import { CALLS_LIVE } from "@/lib/moments-rules";
 import { callLogText } from "@/lib/calls";
 import Avatar from "@/components/Avatar";
@@ -132,6 +134,7 @@ export default function Thread({ id, to, embedded = false }: { id?: string; to?:
   const end = useRef<HTMLDivElement>(null);
   const presence = usePresence(who && !group && who.uid && who.uid !== user?.uid ? [who.uid] : []);
   const isGroup = !!group || (!!cid && isGroupId(cid)); // known from the id, so a message sent before the details arrive still goes to the group
+  const groupLive = useLiveGroupCalls().find((c) => c.cid === cid && present(c).length > 0) ?? null; // a group call someone is in, in this group, now
   useEffect(() => onAuthStateChanged(auth, setUser), []);
   useEffect(() => { if (user) api<{ maxBytes: number; maxCount: number; maxVoiceSeconds: number }>("/api/messages/attachments").then(setAllowed).catch(() => {}); }, [user]);
 
@@ -420,9 +423,18 @@ export default function Thread({ id, to, embedded = false }: { id?: string; to?:
           avatar={<GroupAvatar title={group.title} size={48} team={group.scope === "team"} src={group.avatar} />}
           title={<><span className="truncate">{group.title}</span>{group.scope === "team" && <span className="shrink-0 rounded bg-amber-100 px-1.5 py-0.5 font-ui text-[10px] font-bold text-amber-900">TEAM</span>}</>}
           subtitle={<>{group.scope === "team" ? "Team room" : "Group"} · {group.members.length.toLocaleString("en-NG")} member{group.members.length === 1 ? "" : "s"}{group.sendLocked ? " · only admins can send" : ""}</>}
-          actions={group.adminUids.includes(user?.uid ?? "") && group.scope !== "team" ? (
+          actions={<span className="flex shrink-0 items-center gap-0.5 lg:gap-3">
+            {CALLS_LIVE && cid && (groupLive ? (
+              <button type="button" onClick={() => openGroupCall({ cid, title: group.title, kind: groupLive.kind, id: groupLive.id })} title={`Join the group ${groupLive.kind === "video" ? "video" : "voice"} call`}
+                className="shrink-0 rounded-full bg-[#2FA36B] px-4 py-2 font-ui text-xs font-bold text-white hover:bg-[#29925F]">📞 Join call</button>
+            ) : <>
+              <button type="button" onClick={() => openGroupCall({ cid, title: group.title, kind: "audio" })} aria-label={`Group voice call in ${group.title}`} title="Group voice call (free, up to 6 people)" className={HEADER_BUTTON}><PhoneIcon size={22} /></button>
+              <button type="button" onClick={() => openGroupCall({ cid, title: group.title, kind: "video" })} aria-label={`Group video call in ${group.title}`} title="Group video call (free, up to 4 people)" className={HEADER_BUTTON}><VideoIcon size={24} /></button>
+            </>)}
+            {group.adminUids.includes(user?.uid ?? "") && group.scope !== "team" && (
             <button type="button" onClick={() => setShowMembers(true)} title="Manage the group: members, admins, bans, who can send, picture" className="hidden shrink-0 rounded-full border border-rule px-4 py-2 font-ui text-xs font-semibold text-crimson hover:bg-paper sm:inline-flex">⚙️ Manage</button>
-          ) : undefined}
+            )}
+          </span>}
           items={[
             { label: "Search in this chat", icon: "🔍", onClick: () => setSearchOpen(true) },
             { label: "Summarise with Nana", icon: "✨", onClick: () => { const list = missed.length >= 3 ? missed : messages.slice(-50); setSummary({ context: asLines(list), count: list.length }); } },
@@ -565,7 +577,7 @@ export default function Thread({ id, to, embedded = false }: { id?: string; to?:
           );
           if (m.call) {
             const callCls = `rounded-full border px-3 py-1 text-xs ${m.call.outcome === "missed" && !mine ? "border-crimson/40 bg-crimson/5 text-crimson" : "border-rule bg-card text-slate lg:bg-paper"}`;
-            const callLine = <>📞 {m.call.outcome === "missed" && mine ? `${m.call.kind === "video" ? "Video" : "Voice"} call · no answer` : callLogText(m.call)} · {stamp(m.createdAt)}</>;
+            const callLine = <>📞 {m.call.group ? groupCallText(m.call.kind, m.call.seconds, m.call.peak ?? 1) : m.call.outcome === "missed" && mine ? `${m.call.kind === "video" ? "Video" : "Voice"} call · no answer` : callLogText(m.call)} · {stamp(m.createdAt)}</>;
             // In a one-to-one chat, tapping a call line calls back, the same kind of call (voice or video).
             const kind = m.call.kind;
             const canRedial = CALLS_LIVE && !blockedByMe && !isGroup && !!who;

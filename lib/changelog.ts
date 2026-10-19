@@ -11,6 +11,24 @@ export type Release = {
 
 export const CHANGELOG: Release[] = [
   {
+    version: "v0.61.0",
+    bump: "minor",
+    date: "2026-10-19",
+    changes: [
+      { kind: "added", text: "Group calls in group chats, free: tap the phone or camera at the top of a group to call everyone in it. Up to 6 people can talk, or 4 on video. Members get a ringing card with Join (and a notification), the chat shows Join call while it's going, and a line like “Group voice call · 12:03 · 4 people” when it ends." },
+      { kind: "added", text: "Group calls go straight between the phones in the call, end-to-end encrypted, never through #NotesApp. Tap someone's picture in the call to compare your safety code with them." },
+    ],
+  },
+  {
+    version: "v0.60.0",
+    bump: "minor",
+    date: "2026-10-19",
+    changes: [
+      { kind: "added", text: "Calls show a safety code, like WhatsApp: tap “End-to-end encrypted” during a call to see 12 digits. The other person sees a code too; if both match, the call is encrypted between your two devices and nobody, not even #NotesApp, can listen in or watch." },
+      { kind: "added", text: "Share your screen in a video call on a computer (Chrome, Edge, Firefox or Safari). The other person sees your whole screen; stop sharing and your camera comes back. Phones can't share their screen from the browser or the installed app yet." },
+    ],
+  },
+  {
     version: "v0.59.0",
     bump: "minor",
     date: "2026-10-19",
