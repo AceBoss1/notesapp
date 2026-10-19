@@ -7,7 +7,7 @@ import { auth, db } from "@/lib/firebase";
 import { api } from "@/lib/moments-client";
 import { CallStage, IncomingCall } from "@/components/calls/CallViews";
 import { CALLS_LIVE } from "@/lib/moments-rules";
-import { CALL_RING_MS, CALL_STALE_MS, duration, type CallDoc, type CallKind } from "@/lib/calls";
+import { CALL_RING_MS, CALL_STALE_MS, duration, safetyCode, sdpFingerprint, type CallDoc, type CallKind } from "@/lib/calls";
 
 // Free one-to-one calls in Messages. Mounted once in the main layout: it rings for incoming calls anywhere on the site, and opens the call screen
 // when you start a call from a conversation (placeCall). The two browsers connect directly (WebRTC); calls/{id} only carries the handshake.
@@ -102,6 +102,14 @@ function CallScreen({ active, onDone }: { active: Active; onDone: () => void }) 
   const pcRef = useRef<RTCPeerConnection | null>(null);
   const [facing, setFacing] = useState<"user" | "environment">("user");
   const [cams, setCams] = useState(0); // how many cameras this device has (the switch shows when there's more than one)
+  const [code, setCode] = useState(""); // the safety code both people can compare (lib/calls.ts)
+  // Screen sharing, on computers only (phone browsers can't capture the screen): your screen replaces your camera in the call, and a
+  // message on the call's own data channel tells the other side, so they see the whole screen instead of a cropped one.
+  const [canShare, setCanShare] = useState(false);
+  const [sharing, setSharing] = useState(false);
+  const [theirShare, setTheirShare] = useState(false);
+  const screen = useRef<MediaStreamTrack | null>(null);
+  const ctl = useRef<RTCDataChannel | null>(null);
   const endRef = useRef<(reason: "ended" | "missed" | "failed") => void>(() => {});
   useRingtone(phase === "ringing" && active.role === "caller");
 
@@ -122,6 +130,7 @@ function CallScreen({ active, onDone }: { active: Active; onDone: () => void }) 
       clearInterval(tick); clearTimeout(ringTimer); clearTimeout(dropTimer);
       pc?.close();
       local.current?.getTracks().forEach((t) => t.stop());
+      screen.current?.stop();
       setPhase("over");
       setNote(message);
       setTimeout(onDone, message ? 1800 : 300);
@@ -149,11 +158,19 @@ function CallScreen({ active, onDone }: { active: Active; onDone: () => void }) 
         if (remoteVideo.current) remoteVideo.current.srcObject = s;
         if (remoteAudio.current) remoteAudio.current.srcObject = s;
       };
+      const listen = (ch: RTCDataChannel) => {
+        ctl.current = ch;
+        ch.onmessage = (e) => { try { setTheirShare(JSON.parse(String(e.data)).sharing === true); } catch { /* not ours */ } };
+      };
+      if (mine === "callerCandidates") listen(pc.createDataChannel("ctl")); // made before the offer, so it is part of it
+      else pc.ondatachannel = (e) => listen(e.channel);
       pc.onicecandidate = (e) => { if (e.candidate) addDoc(collection(db, "calls", id, mine), e.candidate.toJSON()).catch(() => {}); };
       pc.onconnectionstatechange = () => {
         const st = pc?.connectionState;
         if (st === "connected") {
           clearTimeout(dropTimer);
+          const mineFp = sdpFingerprint(pc?.localDescription?.sdp), theirFp = sdpFingerprint(pc?.remoteDescription?.sdp);
+          if (mineFp && theirFp) safetyCode(mineFp, theirFp).then(setCode).catch(() => {});
           setPhase((p) => { if (p !== "live") { const t0 = Date.now(); clearInterval(tick); tick = setInterval(() => setSecs(Math.round((Date.now() - t0) / 1000)), 1000); } return "live"; });
         } else if (st === "disconnected") {
           clearTimeout(dropTimer);
@@ -180,6 +197,7 @@ function CallScreen({ active, onDone }: { active: Active; onDone: () => void }) 
         local.current = await navigator.mediaDevices.getUserMedia({ audio: true, video: kind === "video" ? { facingMode: "user", width: { ideal: 640 }, height: { ideal: 480 } } : false });
         if (localVideo.current && kind === "video") localVideo.current.srcObject = local.current;
         if (kind === "video") navigator.mediaDevices.enumerateDevices().then((d) => setCams(d.filter((x) => x.kind === "videoinput").length)).catch(() => {});
+        if (kind === "video") setCanShare(typeof navigator.mediaDevices.getDisplayMedia === "function" && window.matchMedia("(pointer: fine)").matches);
       } catch {
         if (active.role === "callee") end("failed");
         stop(kind === "video" ? "Allow the camera and microphone to make video calls." : "Allow the microphone to make calls.");
@@ -240,11 +258,36 @@ function CallScreen({ active, onDone }: { active: Active; onDone: () => void }) 
       setFacing(next);
     } catch { /* this device has one camera, or it's busy */ }
   }, [facing, camOff]);
+  const tell = useCallback((on: boolean) => { if (ctl.current?.readyState === "open") ctl.current.send(JSON.stringify({ sharing: on })); }, []);
+  const stopShare = useCallback(async () => {
+    const cam = local.current?.getVideoTracks()[0];
+    const sender = pcRef.current?.getSenders().find((x) => x.track?.kind === "video" || x.track === screen.current);
+    if (cam) await sender?.replaceTrack(cam).catch(() => {});
+    screen.current?.stop(); screen.current = null;
+    if (localVideo.current) localVideo.current.srcObject = local.current;
+    setSharing(false); tell(false);
+  }, [tell]);
+  const share = useCallback(async () => {
+    if (sharing) { await stopShare(); return; }
+    try {
+      const s = await navigator.mediaDevices.getDisplayMedia({ video: { frameRate: { ideal: 15 } }, audio: false });
+      const track = s.getVideoTracks()[0];
+      if (!track) return;
+      track.contentHint = "detail";
+      const sender = pcRef.current?.getSenders().find((x) => x.track?.kind === "video");
+      await sender?.replaceTrack(track);
+      screen.current = track;
+      track.onended = () => { void stopShare(); }; // "Stop sharing" in the browser's own bar
+      if (localVideo.current) localVideo.current.srcObject = new MediaStream([track]);
+      setSharing(true); tell(true);
+    } catch { /* they closed the picker */ }
+  }, [sharing, stopShare, tell]);
   const status = phase === "starting" ? "Starting…" : phase === "ringing" ? "Ringing…" : phase === "connecting" ? "Connecting…" : phase === "live" ? duration(secs) : note || "Call ended";
 
   return (
     <CallStage kind={kind} name={name} avatar={avatar} status={status} live={phase === "live"} over={phase === "over"}
-      muted={muted} camOff={camOff} canFlip={cams !== 1} facing={facing}
+      muted={muted} camOff={camOff} canFlip={cams !== 1 && !sharing} facing={facing}
+      safetyCode={phase === "live" ? code : ""} canShare={canShare && phase === "live"} sharing={sharing} theirShare={theirShare} onShare={share}
       onMute={toggleMute} onFlip={flipCam} onCam={toggleCam} onEnd={() => endRef.current(phase === "ringing" || phase === "starting" ? "missed" : "ended")}
       remoteVideo={remoteVideo} localVideo={localVideo} remoteAudio={remoteAudio} />
   );
