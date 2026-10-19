@@ -9,9 +9,7 @@ HANDOVER.
 
 | Item | Branch | What | Needs | Status |
 |---|---|---|---|---|
-| Calls: safety code and screen sharing | `push/release-0.61` | v0.60.0 (renumbered after #176): a 12-digit code both people compare to prove a call is end-to-end encrypted; screen sharing in video calls on computers | — | In PR #177 |
-| Group calls | `push/release-0.61` | v0.61.0: free group calls from a group chat, phone to phone: up to 6 talking, 4 on video. Deploy: firestore rules + index | Calls: safety code and screen sharing | In PR #177 |
 
-Merged (in the changelog, kept here for one round): v0.57.3–v0.59.0 from the other session (#176); v0.57.1 and v0.57.2 (#175); v0.56.0 and v0.57.0 (#174). The old `push/call-safety-screen` and `push/group-calls` branches are superseded by `push/release-0.61`.
+Merged (in the changelog, kept here for one round): v0.60.0 call safety code and screen sharing, v0.61.0 group calls (#177; deploy: `firebase deploy --only firestore` for the groupCalls rules and index); v0.57.3–v0.59.0 from the other session (#176); v0.57.1 and v0.57.2 (#175); v0.56.0 and v0.57.0 (#174).
 
 Later, not started: provider API and webhooks on Enterprise; Nana suggesting delivery rates (waits for the AI work); Community phase 1.
