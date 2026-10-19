@@ -59,6 +59,16 @@ const LIVE = [
   { href: "/pricing", title: "Video on posts", copy: "Add a short video to a post — one MP4 or WebM up to 3 minutes — played in our own player that only loads when you press play." },
 ];
 
+// Why Nigeria, why now: public figures, each with its source, as the owner supplied them.
+const MARKET = [
+  { figure: "100M+", label: "internet users in Nigeria", source: "DataReportal, early 2024" },
+  { figure: "36.75M", label: "social media user identities", source: "DataReportal, early 2024" },
+  { figure: "12.4M", label: "Instagram users", source: "DataReportal, early 2024" },
+  { figure: "1.4B+", label: "hours of music Nigerians streamed on Spotify", source: "Spotify, 2025" },
+  { figure: "17M", label: "Verve cards issued by OPay and Moniepoint", source: "TechCabal, 2024" },
+  { figure: "150K+", label: "Netflix subscribers", source: "World Population Review, 2024" },
+];
+
 const FOUNDERS = [
   { ...ADMIN_PROFILES["ezurukam@gmail.com"], role: "Founder, CEO & CTO" },
   { ...ADMIN_PROFILES["precheks.info@gmail.com"], role: "Guest Writer" },
@@ -86,28 +96,84 @@ export default async function AboutPage() {
       </div>
       <NotesLifeCard className="mt-10" />
 
-      <div className="prose prose-lg mt-10 max-w-none font-body text-ink">
-        <p>
-          No platform today is built for African creators, professionals
-          and businesses who publish content, take bookings, sell products and
-          downloads, collect payment in Naira, and stay in touch with the
-          people who follow them — all in one place. Substack
-          assumes a Western reader. Calendly assumes Stripe. Notion is
-          built for tech teams.
-        </p>
-        <p>
-          #NotesApp closes that loop: publish a note, get booked from
-          it, get paid in Naira through Paystack, and follow up by email, in
-          messages and in group chats (WhatsApp is next). Follow a journal to see everything it
-          publishes; subscribe to one to unlock what it keeps for paying
-          readers; send a gift to say thanks; boost a post to reach more
-          people.
-        </p>
-        <p>
-          We're building this alongside the creators, professionals and businesses
-          who run their work on it from day one, starting with our first reference
-          customers: Precheks, a journal, at notes.precheks.com.ng (its main website, precheks.com.ng, runs on our API and webhooks), and ApexGlitz, a fashion shop that sells to Africa through #NotesApp, at apexglitz.com.ng.
-        </p>
+      <div className="mt-12 space-y-12 font-body text-ink">
+        <section>
+          <p className="eyebrow">The pain we started with</p>
+          <h2 className="mt-2 font-display text-3xl leading-tight">Five tools to do one job</h2>
+          <p className="mt-4 text-lg text-slate">
+            We started #NotesApp to fix our own problem. To publish, take a booking, sell and get paid in Naira, an African
+            creator, professional or business stitches together a blog, a booking link, a WhatsApp catalogue, a payment page and
+            a spreadsheet. The best of those tools were built for somewhere else: Substack assumes a Western reader, Calendly
+            assumes Stripe, Notion is built for tech teams. Every handoff between them loses a reader, a booking or a sale.
+          </p>
+        </section>
+
+        <section>
+          <p className="eyebrow">What we saw</p>
+          <h2 className="mt-2 font-display text-3xl leading-tight">Our clients and their customers are one family</h2>
+          <p className="mt-4 text-lg text-slate">
+            Building for our first clients, we saw what the usual tools miss: the writer and the reader, the shop and its buyer,
+            the tutor and the learner are the same people on different days. A reader books a coach, a buyer opens a store, a
+            learner starts teaching. So instead of a tool for one side, we built a home where everyone is welcome as family,
+            for real social and economic needs: somewhere to be heard, to learn, to buy and sell, to talk, and to get paid.
+          </p>
+        </section>
+
+        <section>
+          <p className="eyebrow">What we built</p>
+          <h2 className="mt-2 font-display text-3xl leading-tight">One account, the whole loop</h2>
+          <p className="mt-4 text-lg text-slate">
+            Publish a journal, get booked from it and get paid in Naira through Paystack{WALLET_LIVE ? " or a NotesApp Credit wallet" : ""}.
+            Sell physical goods and downloads in Notes Market, and teach courses in Notes Academy with certificates anyone can
+            check. Keep in touch by email{MESSAGES_LIVE ? ", messages and group chats" : ""}{CALLS_LIVE ? ", and free calls that are end-to-end encrypted" : ""}.
+            Businesses run it on their own domain; Enterprises plug in with our API. Reading, commenting, booking and buying are
+            free; we earn a commission when our members earn, set out in the open below.
+          </p>
+        </section>
+
+        <section>
+          <p className="eyebrow">Why Nigeria, why now</p>
+          <h2 className="mt-2 font-display text-3xl leading-tight">Online, paying and ready</h2>
+          <div className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-3">
+            {MARKET.map((m) => (
+              <div key={m.label} className="card p-4">
+                <p className="font-display text-2xl text-crimson sm:text-3xl">{m.figure}</p>
+                <p className="mt-1 text-sm text-ink">{m.label}</p>
+                <p className="mt-1 font-mono text-[10px] uppercase tracking-eyebrow text-slate">{m.source}</p>
+              </div>
+            ))}
+          </div>
+          <p className="mt-5 text-lg text-slate">
+            Nigerians are online, they pay for what they love and they carry cards in their pockets. What they don&apos;t have
+            is one home, built here and paying out in Naira, where the people they follow can publish, sell, teach and talk to
+            them. That&apos;s the gap #NotesApp fills, starting in Nigeria and growing across Africa.
+          </p>
+        </section>
+
+        <section>
+          <p className="eyebrow">Who&apos;s already here</p>
+          <h2 className="mt-2 font-display text-3xl leading-tight">Built with the people who use it</h2>
+          <p className="mt-4 text-lg text-slate">
+            We build alongside the creators, professionals and businesses who run their work on #NotesApp, starting with our
+            first reference customers: Precheks, a journal at notes.precheks.com.ng (its main website, precheks.com.ng, runs on
+            our API and webhooks); ApexGlitz, a fashion shop that sells to Africa through #NotesApp at apexglitz.com.ng; and{" "}
+            <Link href="/u/lwb" className="text-crimson underline underline-offset-2">LWB</Link>, founded by{" "}
+            <Link href="/u/emmanuela" className="text-crimson underline underline-offset-2">@emmanuela</Link>, which teaches free
+            courses in Notes Academy.
+          </p>
+        </section>
+
+        <section className="rounded-2xl border-2 border-crimson/20 bg-crimson/[0.03] p-7 sm:p-9">
+          <p className="eyebrow">Where we&apos;re going</p>
+          <h2 className="mt-2 font-display text-3xl leading-tight">Help us build it faster</h2>
+          <p className="mt-4 text-lg text-slate">
+            Next on the <Link href="/roadmap" className="text-crimson underline underline-offset-2">roadmap</Link>: Community for
+            churches, NGOs and clubs, with bigger meetings; Events; iOS and Android apps; WhatsApp reminders; and the Team hub
+            and finance tools for Business and Enterprise. We&apos;ve built lean and in the open, and we&apos;re now looking for
+            investors, accelerators and partners who want to build Africa&apos;s home for creators and the people they serve.
+          </p>
+          <Link href="/contact" className="btn-primary mt-6 inline-flex">Talk to us</Link>
+        </section>
       </div>
 
       <div className="mt-14">

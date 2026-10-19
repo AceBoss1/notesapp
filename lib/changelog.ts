@@ -11,6 +11,15 @@ export type Release = {
 
 export const CHANGELOG: Release[] = [
   {
+    version: "v0.61.2",
+    bump: "patch",
+    date: "2026-10-19",
+    changes: [
+      { kind: "changed", text: "We tell our story the way we see it: we started #NotesApp to fix our own pain, saw that our clients and their customers are one family, and built one home where everyone is welcome. The home page, search and social previews say it too." },
+      { kind: "changed", text: "The About page reads like our pitch: the pain we started with, what we saw, what we built, why Nigeria and why now (with the numbers and where they come from), who's already here (Precheks, ApexGlitz and LWB), and where we're going, with a Talk to us button for investors, accelerators and partners." },
+    ],
+  },
+  {
     version: "v0.61.1",
     bump: "patch",
     date: "2026-10-19",
