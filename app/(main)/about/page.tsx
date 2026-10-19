@@ -35,7 +35,7 @@ const LIVE = [
   { href: "/shop", title: "Notes Market", copy: "Every #NotesApp store in one place: items for you, the most viewed this week, new arrivals, categories and a list of stores." },
   { href: "/academy", title: "Notes Academy", copy: "Free courses from any publisher, with lessons from their own YouTube that play inside #NotesApp, and paid courses on Pro and above: text lessons, PDFs and, on Business and Enterprise, uploaded videos that never download and carry each viewer's name. Teach alone, with up to 4 co-tutors, or as your organisation. Learners like, save and review courses." },
   { href: "/certificates", title: "Certificates anyone can check", copy: "Finish a course and claim a certificate with its own ID and QR code, in the teacher's academy name and logo. Anyone can check it at notesapp.name.ng/certificates; add it to LinkedIn or save it as a PDF or picture. On paid courses it can be included in the price." },
-  { href: "/help/weekly-digest", title: "The Weekly Digest", copy: "A Sunday-evening email with up to five journals from the week, chosen for you, and what's moving in Notes Market and Notes Academy." },
+  { href: "/help/weekly-digest", title: "The Weekly Digest", copy: "A Sunday-evening email with up to ten journals from the week, chosen for your interests, plus four items from Notes Market and four courses from Notes Academy." },
   { href: "/booking", title: "Paid 1:1 sessions", copy: "Your own price and weekly availability, Paystack checkout, reminders and a clear cancellation policy." },
   { href: "/journals", title: "Monthly subscriptions", copy: "Readers subscribe to unlock your premium entries; renewals are automatic." },
   { href: "/gifts", title: "Gifts", copy: "Readers can send you a gift on your profile or on any post." },
@@ -64,7 +64,7 @@ const MARKET = [
   { figure: "100M+", label: "internet users in Nigeria", source: "DataReportal, early 2024" },
   { figure: "36.75M", label: "social media user identities", source: "DataReportal, early 2024" },
   { figure: "12.4M", label: "Instagram users", source: "DataReportal, early 2024" },
-  { figure: "1.4B+", label: "hours of music Nigerians streamed on Spotify", source: "Spotify, 2025" },
+  { figure: "1.3B+", label: "hours Nigerians spent listening on Spotify", source: "Spotify Wrapped, 2025" },
   { figure: "17M", label: "Verve cards issued by OPay and Moniepoint", source: "TechCabal, 2024" },
   { figure: "150K+", label: "Netflix subscribers", source: "World Population Review, 2024" },
 ];
@@ -103,8 +103,8 @@ export default async function AboutPage() {
           <p className="mt-4 text-lg text-slate">
             We started #NotesApp to fix our own problem. To publish, take a booking, sell and get paid in Naira, an African
             creator, professional or business stitches together a blog, a booking link, a WhatsApp catalogue, a payment page and
-            a spreadsheet. The best of those tools were built for somewhere else: Substack assumes a Western reader, Calendly
-            assumes Stripe, Notion is built for tech teams. Every handoff between them loses a reader, a booking or a sale.
+            a spreadsheet. The best of those tools were built for somewhere else: Substack takes paid subscriptions only
+            through Stripe and Calendly only through Stripe or PayPal, so neither has a Naira checkout. Every handoff between them loses a reader, a booking or a sale.
           </p>
         </section>
 
