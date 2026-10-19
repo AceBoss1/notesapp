@@ -210,7 +210,7 @@ export async function checkServices(): Promise<ServiceStatus[]> {
   // Free voice and video calls in Messages. The relay (TURN) carries calls on networks that block direct connections; this asks
   // Cloudflare for credentials exactly as a call does, so a wrong key shows here instead of in a failed call.
   const callsName = "Calls (voice and video)";
-  const callsDesc = "Free one-to-one calls in Messages, with the Cloudflare relay for networks that block direct connections";
+  const callsDesc = "Free one-to-one and group calls in Messages, with the Cloudflare relay for networks that block direct connections";
   const ownTurn = !!((setting("TURN_URLS") || "").trim() && setting("TURN_USERNAME") && setting("TURN_CREDENTIAL"));
   checks.push(
     !CALLS_LIVE

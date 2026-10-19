@@ -224,7 +224,9 @@ ${MOMENTS_LIVE ? `**Moments:** share a picture, a video of up to 90 seconds or a
 
 **Missed calls and Call back:** every call leaves a line in the conversation (for example "Voice call · 3:12", "Missed video call", "Declined voice call"). A missed call also sends a bell and, if you turned them on, a notification on your device. Tap **Call back** on any call line to call that person again, the same kind of call (voice or video). Call back isn't offered in group chats or to someone you've blocked.
 
-**Who you can call:** only people you follow who also follow you, and who haven't blocked you. If you can't call someone, check that you follow each other. Group calls aren't available yet.
+**Who you can call:** only people you follow who also follow you, and who haven't blocked you. If you can't call someone, check that you follow each other.
+
+**Group calls:** in a group chat, tap the **phone** (voice) or **camera** (video) at the top to call the group. Everyone in the group gets a ringing card with **Join** and **Not now** (and a notification if you turned them on), and the chat shows **Join call** while someone is in it, so you can join late. Up to **6 people** can be on a voice call and **4** on video: each phone connects straight to every other phone, so every extra person adds data for everyone, and a phone on mobile data copes best with a few. When it's full, others see "The call is full". Mute, turn your camera off and leave whenever you like; the call ends when the last person leaves, with a line in the chat such as "Group voice call · 12:03 · 4 people". Tap someone's picture during the call to compare your safety code with them. Bigger meetings are planned with [Community](/community).
 
 **Privacy:** calls go straight between your two devices and are end-to-end encrypted (compare the safety code to check). On networks that block a direct connection, the call passes through Cloudflare's relay, which can't listen. We never record calls. We keep only a short record (who, voice or video, when, how long, answered or missed), which is deleted with your account. See [Privacy](/privacy).
 

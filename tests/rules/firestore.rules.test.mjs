@@ -941,6 +941,36 @@ test("calls: only the two people read it; caller writes the offer, callee answer
   await assertFails(addDoc(collection(a, "calls/c1/callerCandidates"), { candidate: "late" })); // nothing after it ends
 });
 
+test("group calls: members read the call; a connection is written by the newcomer and answered by the other; nobody else", async () => {
+  const seen = { name: "x", avatar: "", at: "2026-10-19T10:00:00Z", seen: "2026-10-19T10:00:00Z" };
+  await env.withSecurityRulesDisabled(async (ctx) => {
+    const f = ctx.firestore();
+    await setDoc(doc(f, "groupCalls/g1"), { cid: "g_1", kind: "audio", title: "Choir", startedBy: "alice", memberUids: ["alice", "pub", "bob"], joined: { alice: seen, pub: seen }, status: "live", createdAt: "2026-10-19T10:00:00Z" });
+  });
+  const a = as("alice"), p = as("pub"), b = as("bob"), x = as("stranger");
+  await assertSucceeds(getDoc(doc(b, "groupCalls/g1"))); // a member not yet in it (to see Join)
+  await assertSucceeds(getDocs(query(collection(b, "groupCalls"), where("memberUids", "array-contains", "bob"), where("status", "==", "live"))));
+  await assertFails(getDoc(doc(x, "groupCalls/g1")));
+  await assertFails(updateDoc(doc(a, "groupCalls/g1"), { status: "ended" })); // the server starts, joins and ends calls
+  const offer = { type: "offer", sdp: "v=0" };
+  await assertSucceeds(setDoc(doc(p, "groupCalls/g1/links/l1"), { from: "pub", to: "alice", at: "t", offer }));
+  await assertFails(setDoc(doc(b, "groupCalls/g1/links/l2"), { from: "bob", to: "alice", at: "t", offer })); // bob hasn't joined
+  await assertFails(setDoc(doc(p, "groupCalls/g1/links/l3"), { from: "alice", to: "pub", at: "t", offer })); // only as yourself
+  await assertFails(setDoc(doc(p, "groupCalls/g1/links/l4"), { from: "pub", to: "bob", at: "t", offer })); // only to someone in the call
+  await assertFails(setDoc(doc(p, "groupCalls/g1/links/l5"), { from: "pub", to: "alice", at: "t", offer, answer: offer }));
+  await assertSucceeds(getDoc(doc(a, "groupCalls/g1/links/l1")));
+  await assertFails(getDoc(doc(b, "groupCalls/g1/links/l1"))); // a member, but not on this connection
+  await assertFails(updateDoc(doc(p, "groupCalls/g1/links/l1"), { answer: { type: "answer", sdp: "x" } })); // the offerer can't answer
+  await assertSucceeds(updateDoc(doc(a, "groupCalls/g1/links/l1"), { answer: { type: "answer", sdp: "v=0" } }));
+  await assertSucceeds(addDoc(collection(p, "groupCalls/g1/links/l1/fromCandidates"), { candidate: "c" }));
+  await assertFails(addDoc(collection(a, "groupCalls/g1/links/l1/fromCandidates"), { candidate: "c" }));
+  await assertSucceeds(addDoc(collection(a, "groupCalls/g1/links/l1/toCandidates"), { candidate: "c" }));
+  await assertSucceeds(getDocs(collection(p, "groupCalls/g1/links/l1/toCandidates")));
+  await assertFails(getDocs(collection(b, "groupCalls/g1/links/l1/toCandidates")));
+  await env.withSecurityRulesDisabled(async (ctx) => updateDoc(doc(ctx.firestore(), "groupCalls/g1"), { status: "ended" }));
+  await assertFails(addDoc(collection(p, "groupCalls/g1/links/l1/fromCandidates"), { candidate: "late" })); // nothing after it ends
+});
+
 test("wallet: a member reads only their own balance and statement; nobody writes from a browser", async () => {
   await env.withSecurityRulesDisabled(async (ctx) => {
     const f = ctx.firestore();

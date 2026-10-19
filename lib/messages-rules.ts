@@ -27,7 +27,7 @@ export type ThreadMessage = {
   sticker?: string; // a sticker's id (lib/stickers.ts); a sticker is a message of its own
   readAt?: string; // when the other person opened it (shown to the sender as a double tick)
   attachments?: AttachmentInfo[];
-  call?: { kind: "audio" | "video"; outcome: "declined" | "missed" | "ended" | "failed"; seconds: number }; // a line recording a call (lib/calls.ts)
+  call?: { kind: "audio" | "video"; outcome: "declined" | "missed" | "ended" | "failed"; seconds: number; group?: boolean; peak?: number }; // a line recording a call (lib/calls.ts, lib/group-calls.ts)
   removed?: { by: "admin" | "notesapp"; at: string }; // taken out by a group admin or by #NotesApp after a report: text and files are gone
   editedAt?: string; // changed by its sender (lib/message-edits.ts)
   deleted?: { at: string }; // deleted by its sender
