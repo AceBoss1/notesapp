@@ -804,6 +804,35 @@ service cloud.firestore {
       }
     }
 
+    // Group calls (lib/group-calls.ts). The server starts, joins and ends them; the group's members may read the call. Each connection between
+    // two people is a link: the newcomer writes it with an offer, the other person adds the answer; only those two read it and its candidates.
+    match /groupCalls/{callId} {
+      allow read: if isSignedIn() && request.auth.uid in resource.data.memberUids;
+      allow write: if false;
+      function gcall() { return get(/databases/$(database)/documents/groupCalls/$(callId)).data; }
+      function inGroupCall() { return isSignedIn() && gcall().status == 'live' && request.auth.uid in gcall().joined; }
+      match /links/{linkId} {
+        allow read: if isSignedIn() && (resource.data.from == request.auth.uid || resource.data.to == request.auth.uid);
+        allow create: if inGroupCall() && request.resource.data.from == request.auth.uid
+          && request.resource.data.to is string && request.resource.data.to != request.auth.uid && request.resource.data.to in gcall().joined
+          && request.resource.data.keys().hasOnly(['from', 'to', 'at', 'offer']) && request.resource.data.offer is map;
+        allow update: if inGroupCall() && resource.data.to == request.auth.uid
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['answer']) && request.resource.data.answer is map;
+        allow delete: if false;
+        function link() { return get(/databases/$(database)/documents/groupCalls/$(callId)/links/$(linkId)).data; }
+        match /fromCandidates/{c} {
+          allow read: if isSignedIn() && (link().from == request.auth.uid || link().to == request.auth.uid);
+          allow create: if inGroupCall() && link().from == request.auth.uid;
+          allow update, delete: if false;
+        }
+        match /toCandidates/{c} {
+          allow read: if isSignedIn() && (link().from == request.auth.uid || link().to == request.auth.uid);
+          allow create: if inGroupCall() && link().to == request.auth.uid;
+          allow update, delete: if false;
+        }
+      }
+    }
+
     match /conversations/{cid} {
       allow read: if isSignedIn() && request.auth.uid in resource.data.participants;
       allow write: if false;
