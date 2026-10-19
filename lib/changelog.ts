@@ -11,6 +11,15 @@ export type Release = {
 
 export const CHANGELOG: Release[] = [
   {
+    version: "v0.61.1",
+    bump: "patch",
+    date: "2026-10-19",
+    changes: [
+      { kind: "changed", text: "A tidier footer: the logo, our first customers, our email and pages, and Terms | Privacy on the left; then Product, Company (with Contact, Buy Domains and the Merch Store) and Connect (Gifts, Nana, help, Spaces, Circles, Community, encrypted 1-on-1 and group calls, Explore, Trending, parcel tracking, certificates and Notes Life)." },
+      { kind: "added", text: "Encrypted calls (/calls): free 1-on-1 voice and video calls and group calls on one page, with the safety code, screen sharing on a computer, who can call you and what we keep." },
+    ],
+  },
+  {
     version: "v0.61.0",
     bump: "minor",
     date: "2026-10-19",
