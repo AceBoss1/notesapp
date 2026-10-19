@@ -36,6 +36,7 @@ jobs:
       - run: npm run test:chat
       - run: npm run test:mcp
       - run: npm run test:pricing
+      - run: npm run test:ads
       - run: npm run test:cardtap
       - run: npm run test:shipments
       - run: npm run test:logistics

@@ -30,6 +30,7 @@
     "test:chat": "npx -y tsx tests/messages/chat-tools.test.ts",
     "test:mcp": "npx -y tsx tests/mcp/protocol.test.ts",
     "test:pricing": "npx -y tsx tests/pricing/pricing.test.ts",
+    "test:ads": "npx -y tsx tests/ads/ads.test.ts",
     "test:cardtap": "npx -y tsx tests/life/cardtap.test.ts",
     "test:shipments": "npx -y tsx tests/shipments/shipments.test.ts",
     "test:logistics": "npx -y tsx tests/logistics/logistics.test.ts",

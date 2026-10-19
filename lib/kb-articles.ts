@@ -178,7 +178,7 @@ Add a bank account under Rates & payouts. We verify the account name first and s
 
 Money can be held while we review a reported problem. Commission depends on your plan: see [commission rates](/help/commission-rates).`),
     A("boost-a-post", "Boosting a post or a store item", "Publishing and earning", `
-A boost puts a published post, or an item in your store, in front of more readers: a boosted journal appears in the journal feed marked **Promoted**, and a boosted item in the Boosted strips on the home page and in [Notes Market](/shop). You pay for validated impressions (a real visitor had it at least half on screen for about a second, counted once per visitor per day), not for clicks.
+A boost puts a published post, or an item in your store, in front of more readers: a boosted journal appears in the journal feed marked **Promoted**, and a boosted item in the Boosted strips on the home page and in [Notes Market](/shop). The strips show a few boosts at a time on a computer or tablet and one on a phone, taking turns, and boosts also go in the sponsored slots of the [weekly digest](/help/weekly-digest), where each email sent counts as one impression. The best picture is 1200 × 628 px (see [Advert sizes and spots](/advertise/specifications)). You pay for validated impressions (a real visitor had it at least half on screen for about a second, counted once per visitor per day), not for clicks.
 
 Packages:
 ${BOOST_PACKAGES.map((p) => `- **${p.name}**: ${money(p.priceKobo)} for ${n(p.impressions)} impressions, delivered over at least ${p.minDays} days, running up to ${p.windowDays} days.`).join("\n")}
@@ -192,6 +192,8 @@ Co-authors need a publishing account (Free Basic or above) to accept, because th
 **Advertising on #NotesApp:** anyone can buy a banner campaign, paid online and priced by validated impressions:
 ${AD_PACKAGES.map((p) => `- **${p.name}**: ${money(p.priceKobo)} for ${n(p.impressions)} impressions, up to ${p.windowDays} days.`).join("\n")}
 Every ad is reviewed; if we cannot run it you are refunded in full, and impressions not delivered by the end are refunded pro rata. Start at [Advertise](/advertise).
+
+**Sizes and spots:** one picture works everywhere: **1200 × 628 px** (1.91 : 1; at least 600 × 314, up to 2400 × 1256 for sharp screens), JPG, PNG or WebP, best under 500 KB and at most 1 MB, with the logo and words inside the middle 960 × 502. The campaign form crops other shapes for you before you pay. The headline is up to 60 characters and the text up to 120. Adverts can show on the home page, the journal feed, Trending, publishers' profiles and posts (when they show adverts), Notes Market, Notes Academy, Explore, search results, free course pages, the weekly digest (each email sent counts as an impression) and, if you choose, on a billboard in Notes Life, which needs its own 1600 × 900 picture. Never in Messages, checkout, lessons, paid course pages, certificates or the editors. When a spot has several adverts, each stays about 30 seconds. All of it, with templates to download: [Advert sizes and spots](/advertise/specifications).
 
 **Ad share for publishers:** Pro publishers earn ${formatPercent(t("pro").adRevenueShare!)} and Business publishers ${formatPercent(t("business").adRevenueShare!)} of the ad revenue on their pages if they opt in, with no follower or view threshold. Free journals always show ads and have no share. Shares are calculated monthly, reviewed, held for 30 days and paid to your verified bank account; amounts under ₦1,000 roll into the next month.`),
     ...(MESSAGES_LIVE || MOMENTS_LIVE
@@ -397,11 +399,11 @@ A conversation or a call fills the whole screen on a phone; go back with the arr
 
 **Saving a journal:** tap the bookmark on a journal in the feed, or in a profile's Notes tab, to save it for later. Tap it again to remove it. Everything you saved is in [Saved](/saved), together with the store items you saved with the ♡. Only you can see what you saved.`),
     A("weekly-digest", "The #NotesApp Weekly Digest email", "Getting started", `
-Every Sunday evening (from 5 PM, Lagos time) #NotesApp can email you a short digest: up to five journals published that week, chosen for you. Journals from people you follow come first, then [your interests](/interests), then what most people liked that week. Your own posts are never in it.
+Every Sunday evening (from 5 PM, Lagos time) #NotesApp can email you a digest: up to ten journals published that week, chosen for you. The most viewed journals on [your interests](/interests) come first, with people you follow mixed in, then the week's most viewed. Your own posts are never in it.
 
 Each story shows the writer's picture and name (and the organisation they wrote for), the title, the opening of the story, how long it takes to read, its views, and its likes and comments. Tap the title or **Read more** to open it; **Read more in your feed** opens your journal feed.
 
-When there's something to show, the digest also has the most viewed and most bought in [Notes Market](/shop) that week, and the same for [Notes Academy](/academy).
+When there's something to show, the digest also has four items from [Notes Market](/shop) and four courses from [Notes Academy](/academy), the week's most viewed on your interests first. Up to three sponsored slots, clearly labelled, carry a boosted journal, an advert and a boosted store item.
 
 **Turning it off:** every digest has an **Unsubscribe from the weekly digest** link at the bottom (your email app's own Unsubscribe button works too), or switch it off under **Emails** in [Account settings](/profile/account#email). Switch it back on there any time. Emails about your bookings, orders, payments and account always come, whatever you choose.
 
