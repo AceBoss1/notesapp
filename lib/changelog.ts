@@ -11,6 +11,15 @@ export type Release = {
 
 export const CHANGELOG: Release[] = [
   {
+    version: "v0.54.0",
+    bump: "minor",
+    date: "2026-10-18",
+    changes: [
+      { kind: "added", text: "Notes Life: Paylony CardTap is our newest partner. Every Notesville Naira payment at a counter is now a tap: the merchant's phone shows who you're paying and how much, you tap your CardTap card, it beeps and approves. Food at Chef Adams, the Candellux, fares, petrol, the itel shop, Digital Witch courses and partner outlets. Game money only; buying N$ with NotesApp Credit is unchanged." },
+      { kind: "added", text: "Your own CardTap card in the Central Bank of Notesville, a CardTap billboard on the Wuse road, “Tap to pay” on the Metro bus, and Paylony on the Partner with Notes Life page. Prefer no tap? Settings → Tap to pay with CardTap." },
+    ],
+  },
+  {
     version: "v0.53.0",
     bump: "minor",
     date: "2026-10-18",

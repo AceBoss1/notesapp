@@ -1,11 +1,12 @@
 import type { Metadata } from "next";
 import Image from "next/image";
 import { CANDELLUX, DIGITAL_WITCH, ITEL, REAL_PARTNER } from "@/lib/life/catalog";
+import { CARDTAP } from "@/lib/life/cardtap";
 import { LIFE_URL } from "@/lib/host";
 
 export const metadata: Metadata = {
   title: "Partner with Notes Life",
-  description: "Put your brand in Notes Life, the free NotesApp life game: your own place in Notesville, jobs, outlets players can own, billboards and links to your real shop. Meet our partners: Chef Adams, itel Energy, Candellux Imperial and Digital Witch.",
+  description: "Put your brand in Notes Life, the free NotesApp life game: your own place in Notesville, jobs, outlets players can own, billboards and links to your real shop. Meet our partners: Chef Adams, itel Energy, Candellux Imperial, Digital Witch and Paylony CardTap.",
   alternates: { canonical: `${LIFE_URL}/partners` },
   openGraph: { title: "Partner with Notes Life", description: "Your brand, in the game players live in.", images: ["/images/life/shots/chef-desktop.webp"] },
 };
@@ -55,6 +56,11 @@ const partners: { name: string; logo: string; logoClass: string; shot: string; w
     feature: { bg: "/images/life/partners/digitalwitch-hub.webp", bgWide: "/images/life/partners/digitalwitch-hub-wide.webp", photo: "/images/life/partners/cynthia-okeh-cut.webp", person: "Ekwutosi Cynthia Okeh, founder of Digital Witch" },
     what: ["Ekwutosi Cynthia Okeh, the founder, is in the game as #1 on the Billionaires List: at the training hub by day and the Candellux VIP bar in the evening", "Courses at the Digital Witch hub: Virtual Assistant, Customer Support, Social Media, Project Management, Data Analysis, UI/UX", "Digital Witch certificates open the tech jobs, from remote virtual assistant to UI/UX designer", "Saturday-night giveaways of N$ 500,000 and N$ 1,000,000 for graduates doing well, and adverts at the Wuse bus stand"],
     real: [{ href: DIGITAL_WITCH.site, label: "digitalwitchng.com" }, { href: `https://wa.me/${DIGITAL_WITCH.whatsapp}?text=${encodeURIComponent("Hello Digital Witch, I'd like to learn a tech skill (I found you on Notes Life).")}`, label: `WhatsApp · ${DIGITAL_WITCH.whatsappLabel}` }],
+  },
+  {
+    name: "Paylony CardTap", logo: CARDTAP.lockup, logoClass: "h-12 w-auto rounded-lg", shot: CARDTAP.billboard, where: "Payments · every counter in Notesville", tone: "#1d4ed8",
+    what: ["Every Notesville Naira payment is a tap: the merchant's phone shows who you're paying and how much, you tap your CardTap card, it beeps and approves", "Food at Chef Adams, the Candellux, Metro and keke fares, petrol, the itel shop, Digital Witch courses and partner outlets", "Each player's own CardTap card in the Central Bank of Notesville", "A billboard on the Wuse road and “Tap to pay” on the Metro bus"],
+    real: [{ href: CARDTAP.site, label: "paylony.com" }],
   },
 ];
 

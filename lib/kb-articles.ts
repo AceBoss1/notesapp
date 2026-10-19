@@ -296,7 +296,9 @@ Calls are free. Planned: paid calls inside Notes Life (₦5 a minute voice, ₦1
 
 **Leaving:** Phone → **NotesApp**, or **Back to NotesApp** in Settings, saves your game and takes you to your journal feed on [${APP_HOST}](${APP_URL}/journals).
 
-**Partners:** Chef Adams, itel Energy, Candellux Imperial and Digital Witch are real businesses that partner with Notes Life (see [Partner with Notes Life](/life/partners), where businesses can ask to join). Their in-game prices are game prices; real orders and bookings are made with them directly.`)]
+**Paying with CardTap:** every Notesville Naira payment at a counter (food, the Candellux, fares, petrol, the itel shop, courses, outlets) is a tap of your **Paylony CardTap** card: the merchant's phone shows who you're paying and how much, you tap your card, it beeps and approves. It's game money only; buying N$ with NotesApp Credit is a normal checkout. Turn the tap off in Settings → **Tap to pay with CardTap** and payments go straight through. Your card is in the Central Bank of Notesville (tap your N$ balance).
+
+**Partners:** Chef Adams, itel Energy, Candellux Imperial, Digital Witch and Paylony (CardTap) are real businesses that partner with Notes Life (see [Partner with Notes Life](/life/partners), where businesses can ask to join). Their in-game prices are game prices; real orders and bookings are made with them directly.`)]
       : []),
     A("followers-and-online-status", "Followers, following and online status", "Publishing and earning", `
 **Followers and following:** under the follower count on every profile are **Followers** and **Following**. Open either to see the people and organisations, 30 at a time. You must be signed in. You can see someone's lists only if they have made their lists visible **and** you have yours visible too; your own lists are always visible to you. Follower counts stay public.

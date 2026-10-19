@@ -80,7 +80,7 @@ export function createWorld(canvas: HTMLCanvasElement) {
     part(new THREE.BoxGeometry(w + 0.3, 0.08, 0.5), mat("#4b5563"), 0, up - 0.05, 0.1);
     const v = new THREE.Vector3(0, up + h + 0.35, 0).applyAxisAngle(new THREE.Vector3(0, 1, 0), ry); tag(key, x + v.x, v.y + 0.14, z + v.z);
   }
-  const BB = { digitalWitch: "billboards/digitalwitch.webp", digitalWitchWide: "billboards/digitalwitch-wide.webp", itelSun: "billboards/itel-sun-is-free.webp", itelTank: "billboards/itel-power-tank-fridge.webp", itelInverter: "billboards/itel-inverter-power-tank.webp", chef: "billboards/chef-adams-menu.webp", shawarma: "billboards/chef-shawarma.webp", pizza: "billboards/chef-pizza.webp", fresh: "billboards/chef-sumting-fresh.webp" };
+  const BB = { digitalWitch: "billboards/digitalwitch.webp", digitalWitchWide: "billboards/digitalwitch-wide.webp", itelSun: "billboards/itel-sun-is-free.webp", itelTank: "billboards/itel-power-tank-fridge.webp", itelInverter: "billboards/itel-inverter-power-tank.webp", chef: "billboards/chef-adams-menu.webp", shawarma: "billboards/chef-shawarma.webp", pizza: "billboards/chef-pizza.webp", fresh: "billboards/chef-sumting-fresh.webp", paylony: "billboards/paylony-cardtap.webp" };
   const CHALLENGE = "/images/challenge/challenge-banner.webp";
   function chefMan(x: number, z: number, rot = 0) { const g = person(x, z, "#ffffff", rot); const hat = new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.16, 0.32, 16), mat("#ffffff")); hat.position.set(0, 2.12, 0); g.add(hat); return g; }
   // Residents (computer players): their look from the catalogue, a tag the page draws as their name with 🤖.
@@ -252,7 +252,8 @@ export function createWorld(canvas: HTMLCanvasElement) {
     const adm = new THREE.Mesh(new THREE.PlaneGeometry(1.04, 1.3), new THREE.MeshBasicMaterial({ map: canvasTex(400, 500, (g, w, h) => { g.fillStyle = "#0b1442"; g.fillRect(0, 0, w, h); fit(g, dwAd, 0, 0, w, h); }) }));
     adm.position.set(-9.3, 1.33, -2.37); scene.add(adm); tag("bb:digitalwitch", -9.3, 2.35, -2.4);
     box(6.2, 1.8, 1.7, "#0f766e", -4.5, 0.3, 3.2); box(6.2, 0.55, 1.72, "#0b1324", -4.5, 1.2, 3.2); box(6.22, 0.12, 1.72, "#f8fafc", -4.5, 0.95, 3.2);
-    sign("METRO · Garki", "#0f766e", "#ffffff", 3.2, 0.42, -5.0, 0.65, 4.06, 120); wheelsAt([[-6.6, 2.35], [-2.2, 2.35], [-6.6, 4.05], [-2.2, 4.05]], 0.34);
+    sign("METRO · Garki", "#0f766e", "#ffffff", 3.2, 0.42, -5.0, 0.65, 4.06, 120);
+    sign("Tap to pay · CardTap", "#1d4ed8", "#ffffff", 1.3, 0.36, -2.3, 0.65, 4.06, 110); // fares by Paylony CardTap (partner) wheelsAt([[-6.6, 2.35], [-2.2, 2.35], [-6.6, 4.05], [-2.2, 4.05]], 0.34);
     box(1.5, 0.75, 1.0, "#facc15", 6.2, 0.35, 3.0); box(1.6, 0.06, 1.1, "#111827", 6.2, 1.55, 3.0); box(0.5, 0.45, 0.9, "#16a34a", 7.0, 0.35, 3.0); wheelsAt([[5.7, 2.45], [5.7, 3.55], [7.25, 3.0]], 0.24);
     const ride = s.riding;
     if (ride === "ebike") bicycle(1.6, -0.5, "#16a34a", true); else bicycle(1.6, -0.5);
@@ -261,7 +262,7 @@ export function createWorld(canvas: HTMLCanvasElement) {
     box(4, 3, 2, "#f1f5f9", 16.5, 0.14, -4.0); sign("Green Wheels\nE-bikes · EVs", "#065f46", "#ffffff", 3.6, 1.0, 16.5, 2.6, -2.98, 92);
     for (const x of [-12, -3, 6, 15]) { cyl(0.06, 4, "#475569", x, 0.14, -0.1); const p = box(0.8, 0.05, 0.5, "#1d4ed8", x, 4.15, -0.1); p.rotation.x = 0.35; }
     [-14, -9.5, -4, 4, 8.5, 20, -22, -17, 12, 25].forEach((x, i) => tree(x, i > 5 ? -7 : -4.4, i > 5 ? 1.4 : 1.1));
-    await Promise.all([billboard("bb:challenge", CHALLENGE, -6.5, -8.2, 5.0, 2.81, 0, 1.4), billboard("bb:itel", IMG(BB.itelSun), 1.2, -8.6, 2.3, 2.88, 0, 1.4), billboard("bb:digitalwitch2", IMG(BB.digitalWitchWide), 8.8, -8.2, 5.0, 2.8, 0, 1.4), billboard("bb:chef3", IMG(BB.pizza), -13.6, -8.4, 2.8, 2.8, 0.1, 1.4), billboard("bb:chef4", IMG(BB.fresh), 14.4, -8.8, 2.8, 2.8, -0.1, 1.4)]);
+    await Promise.all([billboard("bb:challenge", CHALLENGE, -6.5, -8.2, 5.0, 2.81, 0, 1.4), billboard("bb:itel", IMG(BB.itelSun), 1.2, -8.6, 2.3, 2.88, 0, 1.4), billboard("bb:digitalwitch2", IMG(BB.digitalWitchWide), 8.8, -8.2, 5.0, 2.8, 0, 1.4), billboard("bb:chef3", IMG(BB.pizza), -13.6, -8.4, 2.8, 2.8, 0.1, 1.4), billboard("bb:chef4", IMG(BB.fresh), 14.4, -8.8, 2.8, 2.8, -0.1, 1.4), billboard("bb:paylony", IMG(BB.paylony), -19.4, -8.6, 2.3, 3.43, 0.18, 1.4)]);
     const phone = innerWidth < 700;
     cam.position.set(...(phone ? [0, 8, 22] : [2, 12, 24]) as [number, number, number]); controls.target.set(phone ? 0 : 2, phone ? 1.2 : 0.5, -0.5);
     controls.minDistance = 10; controls.maxDistance = 45;

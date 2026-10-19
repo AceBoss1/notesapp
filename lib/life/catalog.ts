@@ -338,6 +338,9 @@ export const HOTEL: HotelService[] = [
   { id: "conference", name: "Conference hall", icon: "🎤", price: 400_000, minutes: 0, effect: {}, note: "Host an event, sell tickets (coming soon)", soon: true },
 ];
 export const HOTEL_OF = (id: string) => HOTEL.find((h) => h.id === id);
+// What a player pays, staff perks included: the server charges this and the CardTap terminal shows it (lib/life/cardtap.ts).
+export const itemPrice = (it: Item, jobId: string | null) => (it.brand === "itel" && isStaff(jobId, "itel") ? Math.round(it.price * (1 - STAFF_PERKS.itelDiscount)) : it.price);
+export const hotelPrice = (h: HotelService, jobId: string | null) => (isStaff(jobId, "candellux") && STAFF_PERKS.hotelHalf.includes(h.id) ? Math.round(h.price / 2) : h.price);
 // Swimming: lessons (+2 each) and swims (+1 every 2) raise your skill; after 3 lessons you swim in the deep end.
 export const SWIM_DEEP_LESSONS = 3;
 export const swimSkill = (lessons: number, swims: number) => Math.min(10, lessons * 2 + Math.floor(swims / 2));

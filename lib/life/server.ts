@@ -3,7 +3,7 @@ const COMING_CITY_IDS = ["lagos", "port_harcourt"];
 import {
   CITY, DEALS, FOOD, FOOD_MODES, GAME_DAY_MS, GAME_HOUR_MS, HOTEL_OF, ITEM, JOB, MONTH_DAYS, NEGOTIATE_CHANCE, ORDER_MAX_ITEMS, RECIPE, RENT_NAIRA,
   SHIFT_MS, START_NAIRA, STARTER_ITEMS, TRANSPORT_OF, bestOwned, cookingSkill, fmtN, jobBlocker, netWorth, shiftPay, FUEL_NAIRA, RESIDENTS, nepaAt, type FoodMode,
-  swimSkill, hotelCheckout, lodged, worldTime, DW_COURSE, DW_CLASS_HOURS, DW_CLASS_MS, DW_CLASS_EFFECT, dwOpen, giveawayOn, giveawayEligible, giveawayWeek, giveawayPrize, GIVEAWAY, OUTLET, OUTLET_AREAS, OUTLET_BACKUP, STAFF_PERKS, isStaff, outletBlocker, outletPrice, outletTakings, shiftExtra, type Outlet, type OutletArea,
+  swimSkill, hotelCheckout, lodged, worldTime, DW_COURSE, DW_CLASS_HOURS, DW_CLASS_MS, DW_CLASS_EFFECT, dwOpen, giveawayOn, giveawayEligible, giveawayWeek, giveawayPrize, GIVEAWAY, OUTLET, OUTLET_AREAS, OUTLET_BACKUP, STAFF_PERKS, isStaff, itemPrice, hotelPrice, outletBlocker, outletPrice, outletTakings, shiftExtra, type Outlet, type OutletArea,
 } from "./catalog";
 
 // Server-only. Notes Life money and ownership: lifePlayers/{uid} (the player, read by the owner, written only here) and lifeTx/{id}
@@ -136,7 +136,7 @@ export async function act(db: Firestore, uid: string, a: Action, now = Date.now(
         if (p.owned.includes(it.id)) throw new LifeError(409, "You already own that.");
         if (it.needs && !p.owned.includes(it.needs)) throw new LifeError(409, `Get the ${ITEM(it.needs)?.name ?? "base item"} first: this plugs into it.`);
         const staff = it.brand === "itel" && isStaff(p.jobId, "itel");
-        const price = staff ? Math.round(it.price * (1 - STAFF_PERKS.itelDiscount)) : it.price;
+        const price = itemPrice(it, p.jobId);
         debit(p, lines, price, staff ? `${it.name} (itel staff price)` : it.name, "buy");
         p.owned.push(it.id);
         return { message: `${it.name} is yours${staff ? ` at the staff price, ${fmtN(price)}` : ""}.`, price };
@@ -172,7 +172,7 @@ export async function act(db: Firestore, uid: string, a: Action, now = Date.now(
         if (!h || h.soon) throw new LifeError(400, "That isn't open yet.");
         if (h.id === "suite" && lodged(p.hotelUntil, now)) throw new LifeError(409, `Your suite is yours till ${worldTime(p.hotelUntil).label} checkout. Go up to your room.`);
         const half = isStaff(p.jobId, "candellux") && STAFF_PERKS.hotelHalf.includes(h.id);
-        debit(p, lines, half ? Math.round(h.price / 2) : h.price, `Candellux · ${h.name}${half ? " (staff, half price)" : ""}`, "hotel");
+        debit(p, lines, hotelPrice(h, p.jobId), `Candellux · ${h.name}${half ? " (staff, half price)" : ""}`, "hotel");
         if (h.boost === "barber") p.barberUntil = now + GAME_DAY_MS;
         if (h.boost === "gym") { p.gymUntil = now + GAME_DAY_MS; p.gymSessions += 1; }
         if (h.id === "lesson") p.swimLessons += 1;
