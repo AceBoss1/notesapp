@@ -32,7 +32,7 @@ export default function AdminDigestPage() {
   return (
     <section className="mx-auto max-w-3xl px-4 py-14">
       <h1 className="font-display text-4xl">Weekly digest</h1>
-      <p className="mt-2 text-sm text-slate">Every Sunday from 5 PM Lagos time, up to five of the week&apos;s journals to each member with a confirmed email: people they follow first, then their interests, then the most liked. Members can unsubscribe from any digest or in Account settings.</p>
+      <p className="mt-2 text-sm text-slate">Every Sunday from 5 PM Lagos time, up to ten of the week&apos;s journals to each member with a confirmed email (their interests first, people they follow mixed in, then the week&apos;s most viewed), four Notes Market items, four Notes Academy courses and up to three sponsored slots. Members can unsubscribe from any digest or in Account settings.</p>
       {error && <p className="mt-4 text-sm text-crimson">{error}</p>}
       {msg && <p className="mt-4 text-sm text-emerald-800">{msg}</p>}
 
