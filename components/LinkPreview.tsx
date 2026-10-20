@@ -8,7 +8,8 @@ import type { LinkPreviewData } from "@/app/api/link-preview/route";
 // /api/link-preview. Nothing shows when the page has nothing to show (or can't be reached).
 const seen = new Map<string, LinkPreviewData | null>();
 
-export default function LinkPreview({ url, user, mine = false }: { url: string; user: User | null; mine?: boolean }) {
+// The preview for one address (cached for the visit); also used by the chat's Links tab.
+export function useLinkPreview(url: string, user: User | null) {
   const [p, setP] = useState<LinkPreviewData | null | undefined>(seen.get(url));
   useEffect(() => {
     if (seen.has(url) || !user) return;
@@ -22,6 +23,11 @@ export default function LinkPreview({ url, user, mine = false }: { url: string; 
     })();
     return () => { alive = false; };
   }, [url, user]);
+  return p;
+}
+
+export default function LinkPreview({ url, user, mine = false }: { url: string; user: User | null; mine?: boolean }) {
+  const p = useLinkPreview(url, user);
   if (!p) return null;
   return (
     <a href={p.url} target="_blank" rel="noopener noreferrer nofollow ugc" className={`mt-2 block overflow-hidden rounded-lg border text-left no-underline ${mine ? "border-white/30 bg-white/10 text-white" : "border-rule bg-paper text-ink"}`}>

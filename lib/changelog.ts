@@ -11,6 +11,19 @@ export type Release = {
 
 export const CHANGELOG: Release[] = [
   {
+    version: "v0.62.0",
+    bump: "minor",
+    date: "2026-10-20",
+    changes: [
+      { kind: "changed", text: "Photos and videos in chats show as pictures only, like WhatsApp: no file name or size under them. Tap a photo (or the full-screen button on a video) to open it full screen inside #NotesApp, with Save and ×; the file's private link never opens in a new tab." },
+      { kind: "changed", text: "Save on a photo or video downloads it where you are, without opening a tab." },
+      { kind: "added", text: "Swipe between a chat's photos and videos in the full-screen viewer, oldest to newest, with “2 of 7” at the top; on a computer, use ‹ › or the arrow keys." },
+      { kind: "added", text: "The full-screen viewer says who sent each photo or video and when, with ★ Keep and ↪ Forward at the top and ⋮ for the rest: go to the message in the chat, share it to another app (on a phone), save it, see all the chat's media, links and docs, or delete it for you." },
+      { kind: "added", text: "Your own photos and videos in a chat can be posted as your moment, and your own photos made your profile picture, straight from the viewer. Someone else's can be kept, forwarded, shared or saved, never posted as yours." },
+      { kind: "added", text: "Media, links and docs (in a chat's ⋮ menu): everything shared in the chat in three tabs. Photos and videos in a grid by month, newest first; documents with their size, who sent them and when; and every link with its preview. Press and hold, or tap Select, to forward, keep or delete several for you at once." },
+    ],
+  },
+  {
     version: "v0.61.3",
     bump: "patch",
     date: "2026-10-20",
