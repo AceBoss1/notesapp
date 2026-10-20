@@ -6,6 +6,7 @@ import { getAdminDb } from "@/lib/firebase-admin";
 import { byCategory, searchArticles, summaryOf, articlePath, type KbArticle } from "@/lib/kb";
 import { builtInArticles } from "@/lib/kb-articles";
 import { getArticles } from "@/lib/kb-server";
+import { SITE } from "@/lib/site";
 
 export const metadata: Metadata = {
   title: "Help centre",
@@ -60,9 +61,10 @@ export default async function HelpPage({ searchParams }: { searchParams: { q?: s
           <div className="flex flex-col items-center gap-6 p-8 sm:flex-row sm:justify-between sm:p-10">
             <div>
               <p className="font-mono text-[11px] uppercase tracking-eyebrow text-paper/70">Still stuck?</p>
-              <h2 className="mt-2 font-display text-3xl">Ask Nana, or talk to a person on the team.</h2>
+              <h2 className="mt-2 font-display text-3xl">Ask Nana, ask the community, or talk to a person on the team.</h2>
               <div className="mt-5 flex flex-wrap gap-3">
                 <Link href="/nana" className="rounded-full bg-paper px-6 py-3 font-ui text-sm font-bold text-crimson-deep hover:opacity-90">Ask Nana</Link>
+                <a href={SITE.discord} target="_blank" rel="noopener noreferrer" className="rounded-full border border-paper/40 px-6 py-3 font-ui text-sm font-bold text-paper hover:bg-paper/10">Join our Discord</a>
                 <Link href="/contact" className="rounded-full border border-paper/40 px-6 py-3 font-ui text-sm font-bold text-paper hover:bg-paper/10">Contact the team</Link>
               </div>
             </div>

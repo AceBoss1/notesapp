@@ -16,8 +16,8 @@ import CelebrationBanner from "@/components/CelebrationBanner";
 import ChallengeBanner from "@/components/ChallengeBanner";
 import RememberReturn from "@/components/RememberReturn";
 import { getSiteSettingsCached } from "@/lib/settings";
-import { COMPANY_INFO } from "@/lib/site";
-import { FacebookIcon, LinkedInIcon, MailIcon, NotesAppIcon } from "@/components/ContactIcons";
+import { COMPANY_INFO, DISCORD_LABEL, SITE } from "@/lib/site";
+import { DiscordIcon, FacebookIcon, LinkedInIcon, MailIcon, NotesAppIcon } from "@/components/ContactIcons";
 import PartnerIcon from "@/components/PartnerIcon";
 import { ROOT_DOMAIN } from "@/lib/host";
 
@@ -172,6 +172,11 @@ const site = await getSiteSettingsCached();
                     </a>
                   </li>
                 )}
+                <li>
+                  <a href={SITE.discord} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 hover:text-paper">
+                    <DiscordIcon /> {DISCORD_LABEL}
+                  </a>
+                </li>
                 <li>
                   <Link href="/u/na-notesapp" className="inline-flex items-center gap-2 hover:text-paper">
                     <NotesAppIcon /> {ROOT_DOMAIN}/u/na-notesapp
