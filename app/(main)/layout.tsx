@@ -41,8 +41,8 @@ const APP_NAV = [
   { href: "/trending", label: "Trending" },
 ];
 
-// The footer's link columns, in the owner's order (19 Oct 2026). The first column (logo, partners, contacts, Terms | Privacy)
-// is written out in the footer itself.
+// The footer's link columns, in the owner's order (19 Oct 2026). The first column (logo, partners, contacts) is written out in
+// the footer itself; Terms of Service | Privacy Policy sit on the copyright line (20 Oct 2026).
 const PRODUCT = [
   { href: "/journals", label: "Journals" },
   { href: "/shop", label: "Notes Market" },
@@ -185,11 +185,6 @@ const site = await getSiteSettingsCached();
                   </li>
                 ))}
               </ul>
-              <p className="mt-6 text-sm text-paper/75">
-                <Link href="/terms" className="hover:text-paper">Terms</Link>
-                <span className="mx-2 text-paper/40" aria-hidden>|</span>
-                <Link href="/privacy" className="hover:text-paper">Privacy</Link>
-              </p>
             </div>
 
             {([["Product", PRODUCT], ["Company", COMPANY], ["Connect", CONNECT]] as const).map(([title, items]) => (
@@ -207,7 +202,16 @@ const site = await getSiteSettingsCached();
           </div>
 
           <div className="border-t border-paper/10 py-5 text-center text-xs text-paper/45">
-            <p>© {new Date().getFullYear()} #NotesApp. All rights reserved.</p>
+            <p>
+              © {new Date().getFullYear()} #NotesApp. All rights reserved.
+              <span className="mx-2 hidden text-paper/30 sm:inline" aria-hidden>·</span>
+              {/* On a phone the two links get their own line, so neither breaks in the middle. */}
+              <span className="mt-1 block whitespace-nowrap sm:mt-0 sm:inline">
+                <Link href="/terms" className="text-paper/70 underline-offset-2 hover:text-paper hover:underline">Terms of Service</Link>
+                <span className="mx-2 text-paper/30" aria-hidden>|</span>
+                <Link href="/privacy" className="text-paper/70 underline-offset-2 hover:text-paper hover:underline">Privacy Policy</Link>
+              </span>
+            </p>
             <p className="mt-1 inline-flex flex-wrap items-center justify-center gap-1.5">
               <NotesAppIcon />
               {COMPANY_INFO.legalName} · RC {COMPANY_INFO.rcNumber} · TIN {COMPANY_INFO.tin}

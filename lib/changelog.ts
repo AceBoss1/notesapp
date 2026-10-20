@@ -11,6 +11,14 @@ export type Release = {
 
 export const CHANGELOG: Release[] = [
   {
+    version: "v0.61.3",
+    bump: "patch",
+    date: "2026-10-20",
+    changes: [
+      { kind: "changed", text: "Terms of Service and Privacy Policy now sit on the footer's copyright line, beside © #NotesApp, instead of under the contact links." },
+    ],
+  },
+  {
     version: "v0.61.2",
     bump: "patch",
     date: "2026-10-19",
