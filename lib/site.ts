@@ -32,7 +32,7 @@ export const SITE = {
 // The standard "what is #NotesApp" description: the site's meta description, the app manifest, the About intro,
 // the help centre's "What is #NotesApp?" article and Nana's answer all use these words. Change them here.
 export const WHAT_IS_INTRO =
-  "#NotesApp is where African creators, professionals, coaches, consultants, therapists and businesses publish their work, build an audience they can talk to directly, and get paid in Naira.";
+  "#NotesApp is one home for African creators, professionals and businesses and the people they serve, where everyone is welcome as family: publish your work, take bookings, sell, teach, talk and get paid in Naira, all in one place.";
 export const WHAT_YOU_CAN_DO = [
   "Write journals and share them with readers who follow you and the topics they care about",
   "Take bookings for private 1:1 sessions",

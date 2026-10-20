@@ -13,7 +13,7 @@ export const NANA_PAGES: [path: string, what: string][] = [
   ["/academy/teach", "Teach: a teacher's courses, co-tutor invites and sales"], ["/academy/teach/setup", "Set up your academy and certificates"], ["/certificates", "Check a Notes Academy certificate"],
   ["/nana", "Nana: gems, the free weekly allowance and Nana credit"], ["/life", "Notes Life, the free life game"], ["/life/play", "Play Notes Life"], ["/life/partners", "Partner with Notes Life"], ["/install", "Install #NotesApp on a phone or computer"],
   ["/profile/site", "Your site (Business and Enterprise)"], ["/profile/wallet", "NotesApp Credit wallet"],
-  ["/messages", "Messages"], ["/profile/edit", "Edit profile"], ["/profile/publishing", "Rates, payouts and publishing settings"], ["/profile/account", "Account settings, data download and deletion"],
+  ["/messages", "Messages"], ["/calls", "Encrypted calls: 1-on-1 and group calls, the safety code, screen sharing"], ["/profile/edit", "Edit profile"], ["/profile/publishing", "Rates, payouts and publishing settings"], ["/profile/account", "Account settings, data download and deletion"],
   ["/write/new", "Write a new post"], ["/about", "About #NotesApp"], ["/brand", "Brand assets"], ["/roadmap", "What is coming"], ["/status", "Service status"], ["/changelog", "What changed"],
   ["/security", "Trust and security"], ["/terms", "Terms of Service"], ["/privacy", "Privacy Policy"], ["/contact", "Contact the team"], ["/challenge", "#1MillionNairaNotesAppChallenge"], ["/help", "Help centre"],
 ];

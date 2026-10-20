@@ -11,6 +11,26 @@ export type Release = {
 
 export const CHANGELOG: Release[] = [
   {
+    version: "v0.61.2",
+    bump: "patch",
+    date: "2026-10-19",
+    changes: [
+      { kind: "changed", text: "We tell our story the way we see it: we started #NotesApp to fix our own pain, saw that our clients and their customers are one family, and built one home where everyone is welcome. The home page, search and social previews say it too." },
+      { kind: "changed", text: "The About page reads like our pitch: the pain we started with, what we saw, what we built, why Nigeria and why now (with the numbers and where they come from), who's already here (Precheks, ApexGlitz and LWB), and where we're going, with a Talk to us button for investors, accelerators and partners." },
+      { kind: "fixed", text: "Facts checked against their sources: Nigerians spent 1.3 billion hours listening on Spotify in 2025 (it said 1.4 billion), and what we say about Substack and Calendly is now exact (they take payment only through Stripe or PayPal, so there's no Naira checkout)." },
+      { kind: "fixed", text: "The Weekly Digest is described as it is now: up to ten journals, your interests first, plus four Notes Market items and four Notes Academy courses (the home page, About, email settings and Admin said up to five journals)." },
+    ],
+  },
+  {
+    version: "v0.61.1",
+    bump: "patch",
+    date: "2026-10-19",
+    changes: [
+      { kind: "changed", text: "A tidier footer: the logo, our first customers, our email and pages, and Terms | Privacy on the left; then Product, Company (with Contact, Buy Domains and the Merch Store) and Connect (Gifts, Nana, help, Spaces, Circles, Community, encrypted 1-on-1 and group calls, Explore, Trending, parcel tracking, certificates and Notes Life)." },
+      { kind: "added", text: "Encrypted calls (/calls): free 1-on-1 voice and video calls and group calls on one page, with the safety code, screen sharing on a computer, who can call you and what we keep." },
+    ],
+  },
+  {
     version: "v0.61.0",
     bump: "minor",
     date: "2026-10-19",

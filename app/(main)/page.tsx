@@ -33,7 +33,7 @@ const FEATURES = [
   { title: "A journal feed made for you", copy: "Pick your interests and journals on them come first, under For you. Then Following, Latest and Top this week, with Most read and Who to follow between the posts. Like, comment, share and save straight from the feed, and find topics, people and channels in Explore, with the week's most looked-at products and courses in its Market and Academy tabs. On a phone, a tab bar along the bottom takes you to Feed, Explore, Market, Academy, Messages and your Profile." },
   { title: "Notes Market", copy: "Every #NotesApp store in one place: items picked for you first, then the most viewed this week and the newest, with digital items, categories and a list of stores. Buying works just as it does in the seller's own store." },
   { title: "Notes Academy: free and paid courses", copy: "Teach free courses with lessons from your own YouTube, or sell paid ones on Pro and above with text lessons and PDFs, plus your own uploaded videos on Business and Enterprise, which never download and carry each viewer's name. Teach alone, with up to 4 co-tutors who each get their share of a sale, or as your organisation. Learners keep their progress, like, save and review courses, and get certificates anyone can check at notesapp.name.ng/certificates." },
-  { title: "The Weekly Digest", copy: "On Sunday evenings, up to five journals from the week, from people you follow and the topics you like, plus the most viewed and most bought in Notes Market and Notes Academy. One click to unsubscribe." },
+  { title: "The Weekly Digest", copy: "On Sunday evenings, up to ten journals from the week, your interests first with people you follow mixed in, plus four items from Notes Market and four courses from Notes Academy. One click to unsubscribe." },
   { title: "Native booking calendar", copy: "Built into your profile page, running on your own weekly availability. No redirect, no second login — and clients can cancel or reschedule under a clear refund policy." },
   { title: "Your rates, your payouts", copy: "Set your own session price and monthly subscription price. Paystack collects in Naira; earnings are paid to your verified bank account after each session." },
   { title: "Booking confirmations & reminders", copy: "Email confirmations and 24-hour and 1-hour reminders are live today. WhatsApp reminders are coming next." },
@@ -77,13 +77,14 @@ export default async function Home() {
               Get paid, in Naira.
             </h1>
             <p className="mt-6 max-w-xl font-body text-lg text-slate">
-              #NotesApp is where African creators, professionals, coaches,
-              consultants, therapists and businesses publish their work, build an
-              audience they can talk to directly, and get paid in Naira. Write
-              journals, take bookings for private sessions, sell products,
-              PDF/video courses and other digital downloads in Notes Market,
-              teach free and paid courses in Notes Academy, earn subscriptions and gifts,
-              and run it all under your own name or your own domain, in one place.
+              We started #NotesApp to fix our own pain: publishing, taking
+              bookings and getting paid in Naira meant stitching five tools
+              together. Along the way we saw that our clients and their
+              customers aren&apos;t two markets, they&apos;re one family. So we
+              built one home where everyone is welcome: write journals, take
+              bookings, sell in Notes Market, teach in Notes Academy, message
+              and call each other free, and get paid in Naira, under your own
+              name or your own domain.
             </p>
             <div className="mt-9 flex flex-wrap items-center gap-4">
               <Link href="/journals" className="btn-primary">
@@ -181,8 +182,8 @@ export default async function Home() {
       <section className="mx-auto max-w-7xl px-4 py-20 sm:px-6 lg:px-8">
         <span className="eyebrow">Why we're different</span>
         <h2 className="mt-4 max-w-2xl font-display text-3xl text-ink sm:text-4xl">
-          Substack assumes a Western reader. Calendly assumes Stripe.
-          Neither assumes WhatsApp and Naira.
+          Substack and Calendly get paid through Stripe or PayPal.
+          We get you paid in Naira.
         </h2>
         <FeatureMosaic className="mt-14" items={FEATURES.map((f) => ({ title: f.title, copy: f.copy }))} />
       </section>
