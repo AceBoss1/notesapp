@@ -11,6 +11,15 @@ export type Release = {
 
 export const CHANGELOG: Release[] = [
   {
+    version: "v0.62.1",
+    bump: "patch",
+    date: "2026-10-20",
+    changes: [
+      { kind: "fixed", text: "Calls, group invites, moments and online status work with the accounts every member follows automatically (@notesapp and the founders), even for members whose automatic follow was never saved. Before, someone who joined without the sign-up form's follow step saw “Following” on a founder's profile but couldn't call them." },
+      { kind: "fixed", text: "Opening the profile of an automatically followed account now saves that follow if it was missing, so follower counts and lists include you." },
+    ],
+  },
+  {
     version: "v0.62.0",
     bump: "minor",
     date: "2026-10-20",
