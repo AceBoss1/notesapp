@@ -2,7 +2,7 @@
 
 import NanaAssist from "@/components/NanaAssist";
 import { DROP_RING, useFileDrop } from "@/lib/useFileDrop";
-import { Fragment, useCallback, useEffect, useRef, useState } from "react";
+import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { onAuthStateChanged, type User } from "firebase/auth";
@@ -24,7 +24,8 @@ import LinkPreview from "@/components/LinkPreview";
 import MentionPicker from "@/components/MentionPicker";
 import { firstUrl } from "@/lib/linkify";
 import MessageAttachments from "./MessageAttachments";
-import type { MediaItem } from "./MediaViewer";
+import MediaViewer, { ChatMediaContext, mediaKey, type ChatMedia, type MediaItem } from "./MediaViewer";
+import ChatLibrary from "./ChatLibrary";
 import VoiceNoteButton from "./VoiceNoteButton";
 import StickerPicker from "./StickerPicker";
 import EmojiPicker from "./EmojiPicker";
@@ -94,9 +95,9 @@ export default function Thread({ id, to, embedded = false }: { id?: string; to?:
   const [moments, setMoments] = useState<MomentView[] | null>(null);
   const [all, setMessages] = useState<ThreadMessage[]>([]);
   const [hidden, setHidden] = useState<string[]>([]); // deleted for you only (chatHidden/{uid}/chats/{cid})
-  const messages = hidden.length ? all.filter((m) => !hidden.includes(m.id)) : all;
+  const messages = useMemo(() => (hidden.length ? all.filter((m) => !hidden.includes(m.id)) : all), [all, hidden]);
   // Every photo and video still in the chat, oldest first, for swiping in the full-screen viewer.
-  const gallery: MediaItem[] = messages.flatMap((m) => (m.deleted || m.removed || !m.attachments ? [] : m.attachments.flatMap((f, i) => (f.kind === "image" || f.kind === "video" ? [{ mid: m.id, i, kind: f.kind }] : []))));
+  const gallery: MediaItem[] = useMemo(() => messages.flatMap((m) => (m.deleted || m.removed || !m.attachments ? [] : m.attachments.flatMap((f, i) => (f.kind === "image" || f.kind === "video" ? [{ mid: m.id, i, kind: f.kind }] : [])))), [messages]);
   const [text, setText] = useState("");
   const [files, setFiles] = useState<File[]>([]);
   const [allowed, setAllowed] = useState<{ maxBytes: number; maxCount: number; maxVoiceSeconds: number } | null>(null);
@@ -125,6 +126,9 @@ export default function Thread({ id, to, embedded = false }: { id?: string; to?:
   const [forwarding, setForwarding] = useState<ThreadMessage[] | null>(null);
   const [deleting, setDeleting] = useState<ThreadMessage[] | null>(null); // choosing: for everyone, or just for you
   const [kept, setKept] = useState<string[]>([]); // the messages here you kept (Saved → From chats)
+  const [viewing, setViewing] = useState<{ key: string; start: number; url?: string } | null>(null); // the photo or video open full screen
+  const closeViewer = useCallback(() => setViewing(null), []);
+  const [library, setLibrary] = useState(false); // Media, links and docs
   const [translatingId, setTranslatingId] = useState<string | null>(null); // choosing a language for this message
   const [translations, setTranslations] = useState<Record<string, { label: string; text?: string; error?: string }>>({});
   const [summary, setSummary] = useState<{ context: string; count: number } | null>(null);
@@ -248,6 +252,22 @@ export default function Thread({ id, to, embedded = false }: { id?: string; to?:
   const answer = (requestId: string, a: "allow" | "decline" | "withdraw") => msgAction({ action: "request", requestId, answer: a });
   const react = (m: ThreadMessage, emoji: string) => msgAction({ action: "react", messageId: m.id, emoji });
   const keep = (m: ThreadMessage, on: boolean) => msgAction({ action: "keep", messageId: m.id, keep: on }, () => flash(on ? "Kept. Find it in Saved → From chats" : "No longer kept"));
+  // Keeping several at once (from Media, links and docs, or the viewer's ★).
+  async function keepMany(mids: string[], on: boolean) {
+    if (!cid) return;
+    let done = 0;
+    for (const mid of mids) { try { await api(`/api/messages/${cid}`, { body: { action: "keep", messageId: mid, keep: on } }); done++; } catch (e) { setError(e instanceof Error ? e.message : "Couldn't keep one of them."); } }
+    if (done) flash(!on ? "No longer kept" : done === 1 ? "Kept. Find it in Saved → From chats" : `${done} kept. Find them in Saved → From chats`);
+  }
+  // Scrolls the chat to a message and lights it up for a moment ("Go to message in chat").
+  function goTo(mid: string) {
+    setViewing(null); setLibrary(false);
+    setTimeout(() => {
+      const el = document.getElementById(`m-${mid}`);
+      el?.scrollIntoView({ block: "center", behavior: "smooth" });
+      el?.animate([{ backgroundColor: "rgba(166, 9, 61, 0.14)" }, { backgroundColor: "rgba(166, 9, 61, 0)" }], { duration: 1800, easing: "ease-out" });
+    }, 50);
+  }
   async function translate(m: ThreadMessage, lang: string, label: string) {
     if (!user) return;
     setTranslations((t) => ({ ...t, [m.id]: { label } }));
@@ -417,7 +437,21 @@ export default function Thread({ id, to, embedded = false }: { id?: string; to?:
   const frame = embedded ? "card" : `${isThreadRoute(pathname) ? "h-[100dvh]" : "min-h-[calc(100dvh-9rem)]"} bg-paper lg:h-[calc(100dvh-7.5rem)] lg:min-h-0 lg:rounded-xl2 lg:border lg:border-rule lg:bg-card`;
   const back = embedded ? undefined : "/messages";
   const limits = allowed ? `${allowed.maxCount} file${allowed.maxCount === 1 ? "" : "s"}, ${formatBytes(allowed.maxBytes)} each` : "";
+  // What the full-screen viewer and Media, links and docs can do here.
+  const chatMedia: ChatMedia | null = user && cid ? {
+    cid, meUid: user.uid, myAvatar: people[user.uid]?.avatar ?? "", messages, kept, toast, nameOf,
+    keep: (mids, on) => { void keepMany(mids, on); },
+    forward: (mids) => {
+      const list = messages.filter((x) => mids.includes(x.id) && !x.deleted && !x.removed && !x.call && !x.pendingRequest);
+      if (list.length > FORWARD_MANY) setError(`Forward up to ${FORWARD_MANY} at a time.`); else if (list.length) setForwarding(list);
+    },
+    hide: (mids) => { void hideMany(messages.filter((x) => mids.includes(x.id))); },
+    goTo,
+    open: (it, url) => { const start = gallery.findIndex((g) => mediaKey(g) === mediaKey(it)); if (start >= 0) setViewing({ key: mediaKey(it), start, url }); },
+    openLibrary: () => setLibrary(true),
+  } : null;
   return (
+    <ChatMediaContext.Provider value={chatMedia}>
     <div className={`relative flex flex-col ${frame} ${dragging ? DROP_RING : ""}`} {...bind}>
       {dragging && <div className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center bg-paper/80 font-ui text-sm font-bold text-crimson lg:rounded-xl2">Drop to attach</div>}
       {group ? (
@@ -440,6 +474,7 @@ export default function Thread({ id, to, embedded = false }: { id?: string; to?:
           </span>}
           items={[
             { label: "Search in this chat", icon: "🔍", onClick: () => setSearchOpen(true) },
+            { label: "Media, links and docs", icon: "▦", onClick: () => setLibrary(true), hidden: !cid },
             { label: "Summarise with Nana", icon: "✨", onClick: () => { const list = missed.length >= 3 ? missed : messages.slice(-50); setSummary({ context: asLines(list), count: list.length }); } },
             { label: "Select messages", icon: "☑️", onClick: () => setSelected([]) },
             { label: "Members", icon: "👥", onClick: () => setShowMembers(true) },
@@ -467,6 +502,7 @@ export default function Thread({ id, to, embedded = false }: { id?: string; to?:
           ) : undefined}
           items={[
             { label: "Search in this chat", icon: "🔍", onClick: () => setSearchOpen(true) },
+            { label: "Media, links and docs", icon: "▦", onClick: () => setLibrary(true), hidden: !cid },
             { label: "Summarise with Nana", icon: "✨", onClick: () => { const list = missed.length >= 3 ? missed : messages.slice(-50); setSummary({ context: asLines(list), count: list.length }); } },
             { label: "Select messages", icon: "☑️", onClick: () => setSelected([]) },
             { label: "View profile", icon: "👤", href: `/u/${who.username}`, divider: true },
@@ -790,6 +826,9 @@ export default function Thread({ id, to, embedded = false }: { id?: string; to?:
       {moments && <MomentViewer moments={moments} onClose={() => setMoments(null)} onChanged={() => {}} />}
       {reporting && cid && <ReportDialog kind="conversation" targetId={cid} onClose={() => setReporting(false)} />}
       {reportingMsg && cid && <ReportDialog kind="conversation" targetId={cid} messageId={reportingMsg} onClose={() => setReportingMsg(null)} />}
+      {library && user && chatMedia && <ChatLibrary user={user} onClose={() => setLibrary(false)} />}
+      {viewing && cid && <MediaViewer key={viewing.key} cid={cid} items={gallery} start={viewing.start} firstUrl={viewing.url} onClose={closeViewer} />}
     </div>
+    </ChatMediaContext.Provider>
   );
 }

@@ -4,13 +4,14 @@ import { useEffect, useState } from "react";
 import { api } from "@/lib/moments-client";
 import { formatBytes, type AttachmentInfo } from "@/lib/messages-rules";
 import { fileBadge } from "@/lib/chat-tools";
-import MediaViewer, { fileQuery, mediaKey, saveFile, type MediaItem } from "./MediaViewer";
+import MediaViewer, { fileQuery, mediaKey, saveFile, useChatMedia, type MediaItem } from "./MediaViewer";
 
 type Opened = { url: string };
 
 // The files in one message. Pictures and videos load in the bubble (their link is fetched when the bubble appears, because the files are
-// private and links are short-lived) with no name or link on show: tap one to open it full screen in MediaViewer, which has Save and
-// swipes through `gallery`, the chat's photos and videos in order.
+// private and links are short-lived) with no name or link on show: tap one to open it full screen in MediaViewer, which swipes
+// through `gallery`, the chat's photos and videos in order. In a chat (ChatMediaContext) the chat opens its one viewer, with all its
+// options; anywhere else this opens a plain one with Save.
 // Documents show a card (type, name, size) with Open for a PDF and Save for everything.
 export default function MessageAttachments({ cid, mid, files, mine, gallery }: { cid: string; mid: string; files: AttachmentInfo[]; mine: boolean; gallery?: MediaItem[] }) {
   return (
@@ -24,7 +25,9 @@ function One({ cid, mid, i, f, mine, gallery }: { cid: string; mid: string; i: n
   const q = fileQuery(cid, { mid, i });
   const [url, setUrl] = useState<string | null>(null);
   const [failed, setFailed] = useState(false);
-  const [viewing, setViewing] = useState(false);
+  const [viewing, setViewingHere] = useState(false);
+  const chat = useChatMedia();
+  const setViewing = (on: boolean) => { if (on && chat && url && (f.kind === "image" || f.kind === "video")) chat.open({ mid, i, kind: f.kind }, url); else setViewingHere(on); };
   const media = f.kind === "image" || f.kind === "video" || f.kind === "audio";
   useEffect(() => {
     if (!media) return;
