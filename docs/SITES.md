@@ -9,11 +9,12 @@ Enterprise only.
 
 | Question | Decision |
 |---|---|
-| Who gets a site | Free Basic and Pro get a site at `/s/<username>`; their own domain stays Business and Enterprise. Free Basic can use the **Personal** kit only. |
+| Who gets a site | Free Basic and Pro get a site at `/s/<username>`; their own domain stays Business and Enterprise. Free Basic can use the **Personal** kit only: for anyone personal, including content creators, not only academics. |
 | Analytics by plan | Everyone sees the last 7 days. Pro: 90 days, the Customers tab and the download. Business and Enterprise: everything, including visits by page and where visitors came from. |
 | First kits | Personal, Fashion, Food & baking, Services, Healthcare, School, Church/NGO. |
 | Order of work | 1. Analytics. 2. Sections and kits, with the Clean look and the first kits. 3. Scholar and the academic sections. 4. More kits. |
 | Academic sections | Publications, Awards, Talks (with the globe) and In the news are open from Free Basic. |
+| Track | The Track section starts at Business (owner, 20 Oct 2026). |
 | Colours | Every look has colour sets to choose from. |
 | Competitors | We take ideas (kits by type of business, a seller dashboard), never their design or words. |
 
@@ -31,7 +32,7 @@ Enterprise only.
    | Journals | Every site |
    | Shop | Pro and above |
    | Courses | Pro and above for paid courses; the Academy packages for academy pages |
-   | Track | Business, or the logistics add-on |
+   | Track | Business and above |
    | Events, Community, Giving | The Community plan and add-ons ([Community](COMMUNITY.md)) |
 
    A section the member's plan doesn't cover shows locked, with what it needs and a button to get it: kits sell plans and add-ons.
@@ -44,10 +45,10 @@ Kits themselves cost nothing and switching between them is free; what a member c
 
 | Plan | Kits |
 |---|---|
-| Free Basic | Personal (with the academic sections, Gallery), the Clean and Scholar looks, preset colour sets, at `/s/<username>` |
+| Free Basic | Personal: for a person or a content creator (bio, links, journals, videos, Gallery, and the academic sections for those who want them), the Clean and Scholar looks, preset colour sets, at `/s/<username>` |
 | Pro | Also Fashion, Food & baking, Services, Healthcare; Shop sections; custom brand colours |
 | Business, Enterprise | Everything, including School and Church/NGO, on their own domain |
-| Add-ons | Community live streaming, Giving, Logistics (Track), the Enterprise Academy packages: their sections show locked inside kits until added |
+| Add-ons | Community live streaming, Giving, the Enterprise Academy packages: their sections show locked inside kits until added (Track is part of Business) |
 
 Later, optional: a paid **"Set it up for me"** service (our team fills a kit with the business's photos, prices and words), and premium
 looks once there are many.
@@ -56,9 +57,12 @@ looks once there are many.
 
 For churches, NGOs, schools and clubs ([COMMUNITY.md](COMMUNITY.md)):
 
-- **Visitors who aren't signed in** see a public home page that explains the organisation, and its About and Contact pages.
-- **Signed-in members** use it the way they would use a Facebook group: the public and members-only Spaces, the General announcement
-  channel with comments, Circles, Events and the member list.
+- **Visitors who aren't signed in and non-members** can see a public home page that explains the organisation, the General channel in
+  public with slow mode, a Join or invite button (when the admins turn joining on), and the About and Contact pages. **The admins choose
+  which of these non-members see.**
+- **Signed-in members** get the full group, the way they would use a Facebook group: posts (the public and members-only Spaces), Circles,
+  Events and the member list.
+- **View as**: admins preview the community as a non-member, a member, a moderator and an admin before they change anything.
 - **Admins** get what a Facebook group gives its admins (approving members, join questions, roles, removing and banning, pinned posts,
   announcements, member insights), made easier where we can, plus what Facebook doesn't do: giving, paid event tickets, the
   organisation's own site and domain.

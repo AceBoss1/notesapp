@@ -10,6 +10,7 @@ members. Coming-soon pages: `/community` and `/events`; agreed names and limits 
 | Who can start a community | Any account. It shows the default notice ("This community hasn't been verified yet…") until the organisation is verified; verification removes it. |
 | Plans and limits | Free up to 200 members (Spaces, General, Events). Business: unlimited members and private Circles. Live streaming: a paid add-on. |
 | General chat | An announcement channel: admins post, members react and comment. |
+| What non-members see (20 Oct 2026) | The admins choose: a public home, the General channel in public with slow mode, a Join or invite button (when joining is on), About and Contact. Members get the full group (posts, Circles, Events, the member list). Admins can **view as** a non-member, member, moderator or admin. See also [SITES.md](SITES.md), the Community theme. |
 | Live | Start with Join live links (YouTube Live, Facebook Live, Zoom, Google Meet) on events; our own streaming (Cloudflare Stream Live) later, as the add-on. |
 | Names | **Community**, with **Spaces** (public or members only) and **Circles** (private rooms). "Groups" stays the name of group chats in Messages. (The owner first chose "Network", then "Circles", which doesn't clash with the logistics network.) |
 | Giving | In scope (phase 2). Charges look like bank charges and are cheaper wallet to wallet: the charges below, approved by the owner on 19 Oct 2026. |
