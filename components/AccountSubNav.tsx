@@ -10,6 +10,7 @@ const LINKS = [
   { href: "/write", label: "My journal" },
   { href: "/profile/edit", label: "Edit profile" },
   { href: "/profile/publishing", label: "Rates & payouts" },
+  { href: "/profile/analytics", label: "Analytics" },
   { href: "/bookings", label: "Bookings" },
   { href: "/boost", label: "Boost", exact: true },
   ...(WALLET_LIVE ? [{ href: "/profile/wallet", label: "Wallet" }] : []),

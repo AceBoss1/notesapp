@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import type { User } from "firebase/auth";
 import { collection, getDocs, onSnapshot, query, where } from "firebase/firestore";
 import { db } from "./firebase";
+import { visitSource } from "./track";
 
 // The heart and the view counts, from the browser's side. A member's saved items are read live (they may read only their own);
 // the totals come from the public `storeStats` documents. Changing a save goes through /api/store/favorite.
@@ -51,6 +52,6 @@ export async function countView(itemId: string, user?: User | null) {
     const key = `na-view-${itemId}`, today = new Date().toISOString().slice(0, 10);
     if (localStorage.getItem(key) === today) return;
     localStorage.setItem(key, today);
-    await fetch("/api/store/look", { method: "POST", headers: { "Content-Type": "application/json", ...(user ? { Authorization: `Bearer ${await user.getIdToken()}` } : {}) }, body: JSON.stringify({ itemId }) });
+    await fetch("/api/store/look", { method: "POST", headers: { "Content-Type": "application/json", ...(user ? { Authorization: `Bearer ${await user.getIdToken()}` } : {}) }, body: JSON.stringify({ itemId, ...visitSource() }) });
   } catch { /* a missed count is fine */ }
 }

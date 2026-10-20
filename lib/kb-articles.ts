@@ -170,6 +170,18 @@ For the publisher, subscription money is released to their verified bank account
 A reader can send a publisher, or one single post, a gift from ${money(GIFT_MIN_KOBO)} to ${money(GIFT_MAX_KOBO)}, with a short note, or anonymously. Gift is the **Gift me** button on a publisher's profile and the 🎁 on their posts; both switch on once the publisher has added a payout account. If Gift me is greyed out, tap or hover the ℹ️ beside it.
 
 You need a verified email to send a gift, and you cannot gift yourself. Gifts are paid to the publisher's bank account 7 days after they arrive (a short dispute window), minus their plan's commission. More at [Gifts](/gifts).`),
+    A("analytics", "Your analytics", "Publishing and earning", `
+[Analytics](/profile/analytics), under My account, shows how you're doing in one place.
+
+**Overview:** what you earned after our fee (from store sales, downloads, sessions, subscriptions, gifts, courses and more), orders paid and how many checkouts were started, your average order, and visits to your profile, site, journals, items and courses, each with the change on the period before. A chart shows each day, and you can switch it between earnings, orders and visits. **Selling best** lists your top items and **Running low** the physical items with 3 or fewer left.
+
+**Tabs:** Sales (where your earnings came from), Orders, Products (views, sold, sales and stock per item), Customers, Visits and Promotion (what your boosts and adverts were seen and clicked).
+
+**What each plan sees:** every plan sees the last 7 days. **Pro** adds the last 30 and 90 days, the **Customers** tab (everyone who has bought from you, how much they've spent and when they last ordered, most valuable first) and **Download sales**, a spreadsheet of your orders. **Business and Enterprise** add **visits by page** and **where visitors came from**: WhatsApp, Instagram, Facebook, X, LinkedIn, TikTok, YouTube, search engines, other websites, or direct.
+
+**Organisations:** teammates with store access can switch to the organisation's analytics.
+
+**How visits are counted:** once per visitor per page every 30 minutes (store items and courses once a day), never your own, and only from the day analytics started. Apps such as WhatsApp often hide where a visit came from; add \`?utm_source=whatsapp\` (or instagram, facebook…) to links you share so those visits are counted right. Customers' details are for running your orders only.`),
     A("payouts", "Getting paid: payouts and when money is released", "Publishing and earning", `
 Add a bank account under Rates & payouts. We verify the account name first and store only the account name, bank and last four digits. Then:
 - **Sessions:** paid 24 hours after the session ends.

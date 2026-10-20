@@ -11,6 +11,15 @@ export type Release = {
 
 export const CHANGELOG: Release[] = [
   {
+    version: "v0.62.0",
+    bump: "minor",
+    date: "2026-10-20",
+    changes: [
+      { kind: "added", text: "Analytics, under My account: what you earned after our fee, orders paid out of checkouts started, your average order, visits, a day-by-day chart, your best sellers and items running low, and tabs for Sales, Orders, Products, Customers, Visits and Promotion (your boosts and adverts). Every plan sees the last 7 days." },
+      { kind: "added", text: "On Pro: the last 30 and 90 days, your customers (who bought, how much and when, most valuable first) and a download of your sales. On Business and Enterprise: visits by page and where visitors came from (WhatsApp, Instagram, search and more). Organisation teammates who run the store see its analytics too." },
+    ],
+  },
+  {
     version: "v0.61.2",
     bump: "patch",
     date: "2026-10-19",

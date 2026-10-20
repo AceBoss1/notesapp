@@ -233,6 +233,7 @@ export default function RoadmapPage() {
               <li>The #NotesApp MCP server, phase 1: AI assistants such as Claude and ChatGPT can find creators, journals, store items and courses, and with your API key read your own data (see the <Link href="/docs" className="text-crimson underline">API Docs</Link>)</li>
               <li>Publishing a post to your connected LinkedIn and X from the post itself</li>
               <li>Download your data or delete your account yourself, under Account → Your data</li>
+              <li><Link href="/profile/analytics" className="text-crimson underline">Analytics</Link> for every member who sells, teaches or publishes: earnings, orders, best sellers, stock running low and visits; customers and a sales download on Pro; visits by page and where visitors came from on Business</li>
               <li>Trending (Notes, Store, Courses and Publishers), a live <Link href="/status" className="text-crimson underline">status page</Link> and a public <Link href="/changelog" className="text-crimson underline">changelog</Link></li>
               <li>Verification badges: the maroon ✔ for accounts in good standing and the <strong className="text-ink">gold ✔ for endorsed accounts</strong>{GOLD_KIND_LIVE.identity ? " and identity-checked accounts" : ""} — see <Link href="/badges" className="text-crimson underline">Verification badges</Link></li>
               <li>Publisher payouts to a verified bank account, released automatically after the session</li>
@@ -244,6 +245,7 @@ export default function RoadmapPage() {
             <p className="font-ui text-sm font-bold text-ink">○ On the roadmap, not live</p>
             <ul className="mt-3 space-y-2 text-sm text-slate">
               <li>Quizzes on courses, and the two Enterprise course packages</li>
+              <li>Sites for everyone: kits by type of business (Personal, Fashion, Food &amp; baking, Services, Healthcare, School, Church/NGO), the Clean and Scholar looks with colour sets, and Publications, Awards, Talks and In the news sections; a site at /s/your-name from Free Basic</li>
               <li>WhatsApp reminders alongside email and the bell</li>
               <li><Link href="/community" className="text-crimson underline">Community</Link> for churches, NGOs, schools and clubs: public and members-only Spaces, a General announcement channel, private Circles, and <Link href="/events" className="text-crimson underline">Events</Link> for every account with reminders and Join live links (free up to 200 members; our own live streaming later, as a paid add-on)</li>
               <li>For logistics providers: API and webhooks on Enterprise, and Nana suggesting delivery rates</li>

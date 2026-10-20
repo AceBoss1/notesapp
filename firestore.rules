@@ -1005,6 +1005,7 @@ service cloud.firestore {
     match /pageViews/{id} {
       allow read, write: if false;
     }
+    match /ownerViews/{id} { allow read, write: if false; } // each member's daily visits (lib/visits-server.ts), read through /api/analytics
 
     // Pro/Business plan records — owner + admins read; server-only writes.
     match /tierSubscriptions/{uid} {

@@ -7,6 +7,7 @@ import { db } from "./firebase";
 import { api } from "./moments-client";
 import { useMember } from "./member-client";
 import { isPaid, orderedLessons, type Course, type CourseListing, type Enrolment, type Lesson } from "./courses";
+import { visitSource } from "./track";
 
 // Notes Academy in the browser. Published courses (and a free course's lessons) are read straight from Firestore (the rules allow
 // it); a paid course lists its lessons from its outline and opens each through POST /api/academy/lesson; a tutor's draft comes from
@@ -155,6 +156,6 @@ export async function countCourseView(courseId: string, user?: User | null) {
     const key = `na-course-view-${courseId}`, today = new Date().toISOString().slice(0, 10);
     if (localStorage.getItem(key) === today) return;
     localStorage.setItem(key, today);
-    await fetch("/api/academy/view", { method: "POST", headers: { "Content-Type": "application/json", ...(user ? { Authorization: `Bearer ${await user.getIdToken()}` } : {}) }, body: JSON.stringify({ courseId }), keepalive: true });
+    await fetch("/api/academy/view", { method: "POST", headers: { "Content-Type": "application/json", ...(user ? { Authorization: `Bearer ${await user.getIdToken()}` } : {}) }, body: JSON.stringify({ courseId, ...visitSource() }), keepalive: true });
   } catch { /* a missed count is fine */ }
 }

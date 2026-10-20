@@ -1,6 +1,26 @@
 {
   "indexes": [
     {
+      "collectionGroup": "ledger",
+      "queryScope": "COLLECTION",
+      "fields": [{ "fieldPath": "publisherUid", "order": "ASCENDING" }, { "fieldPath": "createdAt", "order": "ASCENDING" }]
+    },
+    {
+      "collectionGroup": "payments",
+      "queryScope": "COLLECTION",
+      "fields": [{ "fieldPath": "publisherUid", "order": "ASCENDING" }, { "fieldPath": "createdAt", "order": "ASCENDING" }]
+    },
+    {
+      "collectionGroup": "bookings",
+      "queryScope": "COLLECTION",
+      "fields": [{ "fieldPath": "publisherUid", "order": "ASCENDING" }, { "fieldPath": "createdAt", "order": "ASCENDING" }]
+    },
+    {
+      "collectionGroup": "storeOrders",
+      "queryScope": "COLLECTION",
+      "fields": [{ "fieldPath": "sellerUid", "order": "ASCENDING" }, { "fieldPath": "paidAt", "order": "ASCENDING" }]
+    },
+    {
       "collectionGroup": "parcels",
       "queryScope": "COLLECTION",
       "fields": [{ "fieldPath": "sellerUid", "order": "ASCENDING" }, { "fieldPath": "kind", "order": "ASCENDING" }, { "fieldPath": "createdAt", "order": "DESCENDING" }]
