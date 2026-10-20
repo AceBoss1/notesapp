@@ -10,6 +10,7 @@ import { getAdminApp, getAdminDb } from "./firebase-admin";
 import { r2PublicUrl } from "./r2";
 import { sendPush, type PushPayload } from "./push-server";
 import { stickerById } from "./stickers";
+import { isAutoFollowed } from "./journals-directory";
 
 // Group chats. A group is a `conversations` document with kind "group": a title, its members (`participants`, so the same live listeners and
 // security rules as direct messages apply), its admins and a scope. Clients never write; every change goes through here.
@@ -43,7 +44,7 @@ async function checkAddable(db: Firestore, adder: { uid: string; username: strin
       db.doc(`follows/${adder.uid}_${String(u?.username ?? "-")}`).get(),
     ]);
     if (blocked.exists) throw new MessageError(404, "One of those members wasn't found.");
-    if (!theyFollow.exists && !iFollow.exists) throw new MessageError(403, `You can add people you follow or who follow you. ${u?.displayName ?? "That member"} is neither.`);
+    if (!theyFollow.exists && !iFollow.exists && !isAutoFollowed(adder.username) && !isAutoFollowed(String(u?.username ?? ""))) throw new MessageError(403, `You can add people you follow or who follow you. ${u?.displayName ?? "That member"} is neither.`);
   }
 }
 

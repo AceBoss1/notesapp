@@ -24,7 +24,12 @@ export default function FollowButton({ username }: { username: string }) {
       return;
     }
     // If the check fails, show the button anyway (as "Follow") instead of a loading bar that never ends.
-    isFollowing(user.uid, username).then(setFollowing).catch((e) => { console.warn("[follow] check failed", e); setFollowing(false); });
+    isFollowing(user.uid, username).then((on) => {
+      // An auto-followed account whose follow record was never written (the member joined outside the sign-up form's follow
+      // step): write it now, so counts and lists include them too.
+      if (!on && mandatory && user.uid) followJournal(user.uid, username, true).catch(() => {});
+      setFollowing(on);
+    }).catch((e) => { console.warn("[follow] check failed", e); setFollowing(false); });
   }, [user, username]);
 
   if (user === undefined || (user && following === null)) {
