@@ -17,6 +17,7 @@ export const CHANGELOG: Release[] = [
     changes: [
       { kind: "changed", text: "Photos and videos in chats show as pictures only, like WhatsApp: no file name or size under them. Tap a photo (or the full-screen button on a video) to open it full screen inside #NotesApp, with Save and ×; the file's private link never opens in a new tab." },
       { kind: "changed", text: "Save on a photo or video downloads it where you are, without opening a tab." },
+      { kind: "added", text: "Swipe between a chat's photos and videos in the full-screen viewer, oldest to newest, with “2 of 7” at the top; on a computer, use ‹ › or the arrow keys." },
     ],
   },
   {

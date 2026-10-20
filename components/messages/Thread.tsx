@@ -24,6 +24,7 @@ import LinkPreview from "@/components/LinkPreview";
 import MentionPicker from "@/components/MentionPicker";
 import { firstUrl } from "@/lib/linkify";
 import MessageAttachments from "./MessageAttachments";
+import type { MediaItem } from "./MediaViewer";
 import VoiceNoteButton from "./VoiceNoteButton";
 import StickerPicker from "./StickerPicker";
 import EmojiPicker from "./EmojiPicker";
@@ -94,6 +95,8 @@ export default function Thread({ id, to, embedded = false }: { id?: string; to?:
   const [all, setMessages] = useState<ThreadMessage[]>([]);
   const [hidden, setHidden] = useState<string[]>([]); // deleted for you only (chatHidden/{uid}/chats/{cid})
   const messages = hidden.length ? all.filter((m) => !hidden.includes(m.id)) : all;
+  // Every photo and video still in the chat, oldest first, for swiping in the full-screen viewer.
+  const gallery: MediaItem[] = messages.flatMap((m) => (m.deleted || m.removed || !m.attachments ? [] : m.attachments.flatMap((f, i) => (f.kind === "image" || f.kind === "video" ? [{ mid: m.id, i, kind: f.kind }] : []))));
   const [text, setText] = useState("");
   const [files, setFiles] = useState<File[]>([]);
   const [allowed, setAllowed] = useState<{ maxBytes: number; maxCount: number; maxVoiceSeconds: number } | null>(null);
@@ -645,7 +648,7 @@ export default function Thread({ id, to, embedded = false }: { id?: string; to?:
                           {m.moment.expired ? "Replied to a moment that has expired" : "Replied to a moment"}
                         </p>
                       )}
-                      {m.attachments && cid && <MessageAttachments cid={cid} mid={m.id} files={m.attachments} mine={mine} />}
+                      {m.attachments && cid && <MessageAttachments cid={cid} mid={m.id} files={m.attachments} mine={mine} gallery={gallery} />}
                       {m.text && <p className="whitespace-pre-wrap [overflow-wrap:anywhere]"><FormattedText text={m.text} linkClass={mine ? "font-semibold text-white underline underline-offset-2" : undefined} /></p>}
                       {translations[m.id] && (
                         <div className={`mt-2 border-t pt-2 text-sm ${mine ? "border-white/30" : "border-rule"}`}>

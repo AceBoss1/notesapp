@@ -4,23 +4,24 @@ import { useEffect, useState } from "react";
 import { api } from "@/lib/moments-client";
 import { formatBytes, type AttachmentInfo } from "@/lib/messages-rules";
 import { fileBadge } from "@/lib/chat-tools";
-import MediaViewer from "./MediaViewer";
+import MediaViewer, { fileQuery, mediaKey, saveFile, type MediaItem } from "./MediaViewer";
 
 type Opened = { url: string };
 
 // The files in one message. Pictures and videos load in the bubble (their link is fetched when the bubble appears, because the files are
-// private and links are short-lived) with no name or link on show: tap one to open it full screen in MediaViewer, which has Save.
+// private and links are short-lived) with no name or link on show: tap one to open it full screen in MediaViewer, which has Save and
+// swipes through `gallery`, the chat's photos and videos in order.
 // Documents show a card (type, name, size) with Open for a PDF and Save for everything.
-export default function MessageAttachments({ cid, mid, files, mine }: { cid: string; mid: string; files: AttachmentInfo[]; mine: boolean }) {
+export default function MessageAttachments({ cid, mid, files, mine, gallery }: { cid: string; mid: string; files: AttachmentInfo[]; mine: boolean; gallery?: MediaItem[] }) {
   return (
     <div className="mb-1 space-y-2">
-      {files.map((f, i) => <One key={i} cid={cid} mid={mid} i={i} f={f} mine={mine} />)}
+      {files.map((f, i) => <One key={i} cid={cid} mid={mid} i={i} f={f} mine={mine} gallery={gallery} />)}
     </div>
   );
 }
 
-function One({ cid, mid, i, f, mine }: { cid: string; mid: string; i: number; f: AttachmentInfo; mine: boolean }) {
-  const q = `/api/messages/file?cid=${encodeURIComponent(cid)}&mid=${encodeURIComponent(mid)}&i=${i}`;
+function One({ cid, mid, i, f, mine, gallery }: { cid: string; mid: string; i: number; f: AttachmentInfo; mine: boolean; gallery?: MediaItem[] }) {
+  const q = fileQuery(cid, { mid, i });
   const [url, setUrl] = useState<string | null>(null);
   const [failed, setFailed] = useState(false);
   const [viewing, setViewing] = useState(false);
@@ -32,20 +33,21 @@ function One({ cid, mid, i, f, mine }: { cid: string; mid: string; i: number; f:
     return () => { live = false; };
   }, [q, media]);
 
-  // The download link is sent as an attachment, so following it saves the file and the page stays put: no new tab with the link in it.
   async function download() {
-    try {
-      const a = document.createElement("a");
-      a.href = (await api<Opened>(`${q}&download=1`)).url;
-      a.rel = "noopener";
-      document.body.appendChild(a); a.click(); a.remove();
-    } catch { setFailed(true); }
+    try { await saveFile(q); } catch { setFailed(true); }
   }
   async function openIt() {
     try { window.open((await api<Opened>(q)).url, "_blank", "noopener"); } catch { setFailed(true); }
   }
   const sub = `text-[11px] ${mine ? "text-white/80" : "text-slate"}`;
-  const viewer = viewing && url && (f.kind === "image" || f.kind === "video") && <MediaViewer kind={f.kind} url={url} onSave={download} onClose={() => setViewing(false)} />;
+  // This file within the chat's photos and videos (or on its own, if the chat didn't pass the list or it isn't in it yet).
+  const items: MediaItem[] = (() => {
+    const self: MediaItem = { mid, i, kind: f.kind === "video" ? "video" : "image" };
+    return gallery?.some((g) => mediaKey(g) === mediaKey(self)) ? gallery : [self];
+  })();
+  const viewer = viewing && url && (f.kind === "image" || f.kind === "video") && (
+    <MediaViewer cid={cid} items={items} start={items.findIndex((g) => mediaKey(g) === mediaKey({ mid, i }))} firstUrl={url} onClose={() => setViewing(false)} />
+  );
 
   if (f.kind === "image") {
     return url
