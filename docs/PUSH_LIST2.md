@@ -9,6 +9,7 @@ HANDOVER.
 
 | Item | Branch | What | Needs | Status |
 |---|---|---|---|---|
+| Analytics (and the sites plan) | `push/analytics` | v0.62.0: My account → Analytics: earnings, orders and checkouts, average order, chart, best sellers, low stock, Sales/Orders/Products/Customers/Visits/Promotion; 7 days for all, 30/90 days + customers + download on Pro, visits by page and source on Business; organisation teammates. Plus `docs/SITES.md` (looks, kits, Community theme, the owner's decisions of 20 Oct 2026). Deploy: firestore rules + 4 indexes | — | Finished, waiting |
 
 Merged (in the changelog, kept here for one round): v0.60.0 call safety code and screen sharing, v0.61.0 group calls (#177; deploy: `firebase deploy --only firestore` for the groupCalls rules and index); v0.57.3–v0.59.0 from the other session (#176); v0.57.1 and v0.57.2 (#175); v0.56.0 and v0.57.0 (#174).
 
