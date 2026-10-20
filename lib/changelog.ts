@@ -11,6 +11,15 @@ export type Release = {
 
 export const CHANGELOG: Release[] = [
   {
+    version: "v0.61.3",
+    bump: "patch",
+    date: "2026-10-20",
+    changes: [
+      { kind: "changed", text: "Photos and videos in chats show as pictures only, like WhatsApp: no file name or size under them. Tap a photo (or the full-screen button on a video) to open it full screen inside #NotesApp, with Save and ×; the file's private link never opens in a new tab." },
+      { kind: "changed", text: "Save on a photo or video downloads it where you are, without opening a tab." },
+    ],
+  },
+  {
     version: "v0.61.2",
     bump: "patch",
     date: "2026-10-19",

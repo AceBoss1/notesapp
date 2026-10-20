@@ -4,12 +4,13 @@ import { useEffect, useState } from "react";
 import { api } from "@/lib/moments-client";
 import { formatBytes, type AttachmentInfo } from "@/lib/messages-rules";
 import { fileBadge } from "@/lib/chat-tools";
+import MediaViewer from "./MediaViewer";
 
 type Opened = { url: string };
 
 // The files in one message. Pictures and videos load in the bubble (their link is fetched when the bubble appears, because the files are
-// private and links are short-lived), with the name, size and Save under them; documents show a card (type, name, size) with Open for a
-// PDF and Save for everything.
+// private and links are short-lived) with no name or link on show: tap one to open it full screen in MediaViewer, which has Save.
+// Documents show a card (type, name, size) with Open for a PDF and Save for everything.
 export default function MessageAttachments({ cid, mid, files, mine }: { cid: string; mid: string; files: AttachmentInfo[]; mine: boolean }) {
   return (
     <div className="mb-1 space-y-2">
@@ -22,6 +23,7 @@ function One({ cid, mid, i, f, mine }: { cid: string; mid: string; i: number; f:
   const q = `/api/messages/file?cid=${encodeURIComponent(cid)}&mid=${encodeURIComponent(mid)}&i=${i}`;
   const [url, setUrl] = useState<string | null>(null);
   const [failed, setFailed] = useState(false);
+  const [viewing, setViewing] = useState(false);
   const media = f.kind === "image" || f.kind === "video" || f.kind === "audio";
   useEffect(() => {
     if (!media) return;
@@ -30,30 +32,51 @@ function One({ cid, mid, i, f, mine }: { cid: string; mid: string; i: number; f:
     return () => { live = false; };
   }, [q, media]);
 
+  // The download link is sent as an attachment, so following it saves the file and the page stays put: no new tab with the link in it.
   async function download() {
-    try { window.open((await api<Opened>(`${q}&download=1`)).url, "_blank", "noopener"); } catch { setFailed(true); }
+    try {
+      const a = document.createElement("a");
+      a.href = (await api<Opened>(`${q}&download=1`)).url;
+      a.rel = "noopener";
+      document.body.appendChild(a); a.click(); a.remove();
+    } catch { setFailed(true); }
   }
   async function openIt() {
     try { window.open((await api<Opened>(q)).url, "_blank", "noopener"); } catch { setFailed(true); }
   }
   const sub = `text-[11px] ${mine ? "text-white/80" : "text-slate"}`;
-  const saveRow = <p className={`mt-1 flex items-center gap-2 ${sub}`}><span className="min-w-0 truncate">{f.name} · {formatBytes(f.size)}</span><button type="button" onClick={download} className="shrink-0 font-semibold underline">Save</button></p>;
+  const viewer = viewing && url && (f.kind === "image" || f.kind === "video") && <MediaViewer kind={f.kind} url={url} onSave={download} onClose={() => setViewing(false)} />;
 
   if (f.kind === "image") {
     return url
-      // eslint-disable-next-line @next/next/no-img-element
-      ? <div><a href={url} target="_blank" rel="noopener noreferrer"><img src={url} alt={f.name} className="max-h-64 max-w-full rounded" /></a>{saveRow}</div>
-      : <p className="text-xs opacity-80">{failed ? `Couldn't load ${f.name}` : "Loading picture…"}</p>;
+      ? (
+        <div>
+          <button type="button" onClick={() => setViewing(true)} aria-label="Open photo" className="block">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={url} alt="Photo" className="max-h-64 max-w-full rounded" />
+          </button>
+          {viewer}
+        </div>
+      )
+      : <p className="text-xs opacity-80">{failed ? "Couldn't load the photo" : "Loading photo…"}</p>;
   }
   if (f.kind === "audio") {
     return url
       ? <div><audio src={url} controls preload="metadata" className="h-10 w-60 max-w-full" />{f.durationSec ? <span className="ml-1 text-[11px] opacity-80">{Math.floor(f.durationSec / 60)}:{String(Math.floor(f.durationSec % 60)).padStart(2, "0")}</span> : null}</div>
-      : <p className="text-xs opacity-80">{failed ? `Couldn't load ${f.name}` : "Loading voice note…"}</p>;
+      : <p className="text-xs opacity-80">{failed ? "Couldn't load the voice note" : "Loading voice note…"}</p>;
   }
   if (f.kind === "video") {
     return url
-      ? <div><video src={url} controls preload="metadata" playsInline className="max-h-64 max-w-full rounded bg-black" />{saveRow}</div>
-      : <p className="text-xs opacity-80">{failed ? `Couldn't load ${f.name}` : "Loading video…"}</p>;
+      ? (
+        <div className="relative inline-block max-w-full">
+          <video src={url} controls preload="metadata" playsInline controlsList="nodownload" className="max-h-64 max-w-full rounded bg-black" />
+          <button type="button" onClick={() => setViewing(true)} aria-label="Open video full screen" className="absolute right-1.5 top-1.5 flex h-8 w-8 items-center justify-center rounded-full bg-black/55 text-white hover:bg-black/75">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5" /></svg>
+          </button>
+          {viewer}
+        </div>
+      )
+      : <p className="text-xs opacity-80">{failed ? "Couldn't load the video" : "Loading video…"}</p>;
   }
   const pdf = f.type === "application/pdf";
   const btn = `flex-1 py-2 text-center font-ui text-sm font-semibold ${mine ? "text-white hover:bg-white/10" : "text-crimson hover:bg-crimson/5"}`;
