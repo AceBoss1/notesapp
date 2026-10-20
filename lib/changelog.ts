@@ -11,6 +11,14 @@ export type Release = {
 
 export const CHANGELOG: Release[] = [
   {
+    version: "v0.61.5",
+    bump: "patch",
+    date: "2026-10-20",
+    changes: [
+      { kind: "added", text: "Our Discord community, na-notesapp (discord.gg/bbkg47stW): ask the team and other members, hear about each release in #announcements, and talk API, MCP and Notes Life. Linked from the footer, Contact, About, the help centre and its articles, the API docs, the changelog, and Notes Life (its page, its FAQ and the game's Settings)." },
+    ],
+  },
+  {
     version: "v0.61.2",
     bump: "patch",
     date: "2026-10-19",

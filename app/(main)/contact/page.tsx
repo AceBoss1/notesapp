@@ -1,7 +1,8 @@
 import { getSiteSettingsCached } from "@/lib/settings";
 import type { Metadata } from "next";
 import ContactForm from "@/components/ContactForm";
-import { FacebookIcon, LinkedInIcon, MailIcon, NotesAppIcon } from "@/components/ContactIcons";
+import { DiscordIcon, FacebookIcon, LinkedInIcon, MailIcon, NotesAppIcon } from "@/components/ContactIcons";
+import { DISCORD_LABEL, SITE } from "@/lib/site";
 import PageHero from "@/components/PageHero";
 import { ROOT_DOMAIN } from "@/lib/host";
 
@@ -53,6 +54,12 @@ export default async function ContactPage() {
             </a>
           </div>
         )}
+        <div>
+          <p className="font-ui text-sm font-semibold text-ink">Discord community</p>
+          <a href={SITE.discord} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 text-crimson">
+            <DiscordIcon /> {DISCORD_LABEL}
+          </a>
+        </div>
         <div>
           <p className="font-ui text-sm font-semibold text-ink">#NotesApp on #NotesApp</p>
           <a href="/u/na-notesapp" className="inline-flex items-center gap-2 text-crimson">

@@ -27,7 +27,11 @@ export const SITE = {
   email: CONTACT_EMAIL,
   linkedin: "https://www.linkedin.com/company/na-notesapp",
   facebook: "https://web.facebook.com/na-notesapp",
+  // Our community server, na-notesapp: help from the team and other members, the API and MCP, Notes Life, and every release
+  // (lib/discord.ts posts new changelog entries to its #announcements channel).
+  discord: "https://discord.gg/bbkg47stW",
 };
+export const DISCORD_LABEL = SITE.discord.replace(/^https?:\/\//, "");
 
 // The standard "what is #NotesApp" description: the site's meta description, the app manifest, the About intro,
 // the help centre's "What is #NotesApp?" article and Nana's answer all use these words. Change them here.

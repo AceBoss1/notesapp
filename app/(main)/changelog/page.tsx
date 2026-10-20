@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { CHANGELOG, ChangeKind } from "@/lib/changelog";
 import PageHero from "@/components/PageHero";
+import { SITE } from "@/lib/site";
 
 export const metadata: Metadata = {
   title: "Changelog",
@@ -19,7 +20,7 @@ export default function ChangelogPage() {
   return (
     <>
       <PageHero eyebrow="What&apos;s new" title={<>Changelog</>}>
-        <p>All notable changes to #NotesApp, newest first. Versions go up by <strong>major</strong> (something existing changed), <strong>minor</strong> (new features) or <strong>patch</strong> (fixes).</p>
+        <p>All notable changes to #NotesApp, newest first. Versions go up by <strong>major</strong> (something existing changed), <strong>minor</strong> (new features) or <strong>patch</strong> (fixes). Each release is also posted to #announcements on <a href={SITE.discord} target="_blank" rel="noopener noreferrer" className="text-crimson underline">our Discord</a>.</p>
       </PageHero>
       <section className="mx-auto max-w-3xl px-4 py-12 sm:px-6">
 
