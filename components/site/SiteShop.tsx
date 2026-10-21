@@ -78,15 +78,16 @@ export default function SiteShop() {
               ].map((l) => <button key={l.label} type="button" onClick={l.go} className={`shrink-0 border-b-2 pb-1 ${l.on ? "border-crimson" : "border-transparent hover:border-rule"}`}>{l.label}</button>)}
             </nav>
             {featured && (
-              <Link href={`${base}/shop/${featured.id}`} className="group mt-6 grid overflow-hidden rounded-3xl bg-crimson-deep text-paper sm:grid-cols-2">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={featured.image} alt={featured.title} className={`h-56 w-full sm:h-96 ${style.fit === "contain" ? "bg-white object-contain p-6" : "object-cover"}`} />
-                <span className="flex flex-col justify-center gap-2 p-6 sm:gap-3 sm:p-10">
+              <Link href={`${base}/shop/${featured.id}`} className="group mt-6 grid items-center gap-5 overflow-hidden rounded-3xl bg-crimson-deep p-5 text-paper sm:grid-cols-[1fr_minmax(0,22rem)] sm:gap-8 sm:p-8">
+                <span className="order-2 flex flex-col justify-center gap-2 sm:order-1 sm:gap-3 sm:pl-2">
                   <span className="font-mono text-[11px] uppercase tracking-eyebrow text-paper/70">Featured</span>
                   <span className="font-display text-2xl leading-tight sm:text-4xl">{featured.title}</span>
                   <span className="font-ui text-xl font-bold">{featured.price}</span>
                   <span className="mt-2 inline-block w-fit rounded-full bg-paper px-5 py-2.5 font-ui text-sm font-bold text-crimson-deep transition group-hover:bg-white">Shop now</span>
                 </span>
+                {/* The picture sits inside the card, on the right (on top on phones). */}
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={featured.image} alt={featured.title} className={`order-1 max-h-72 w-full rounded-2xl sm:order-2 sm:max-h-none ${style.ratio === "portrait" ? "aspect-[4/5]" : "aspect-square"} ${style.fit === "contain" ? "bg-white object-contain p-4" : "object-cover"}`} />
               </Link>
             )}
             <div className="sticky top-0 z-10 -mx-4 mt-8 border-y border-rule bg-paper/95 px-4 py-3 backdrop-blur sm:mx-0">

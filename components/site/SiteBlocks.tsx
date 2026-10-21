@@ -9,11 +9,11 @@ import { useSite } from "./SiteContext";
 // The content sections of a member's site (lib/site-kits.ts), in the member's order. Colours come from the site's colour set (the crimson
 // classes follow it), so every look and every colour set draws them the same way.
 
-const outward = (b: SiteButton) => (b.kind === "link" || b.kind === "whatsapp" ? { target: "_blank", rel: "noopener noreferrer" } : {});
+const outward = (b: SiteButton) => (b.kind === "link" ? { target: "_blank", rel: "noopener noreferrer" } : {});
 function Btn({ b, primary }: { b: SiteButton; primary?: boolean }) {
   const site = useSite();
   return (
-    <a href={buttonHref(b, site.base, `Hello ${site.displayName}, `)} {...outward(b)}
+    <a href={buttonHref(b, site.base)} {...outward(b)}
       className={primary
         ? "inline-flex items-center justify-center rounded-xl bg-crimson px-5 py-3 font-ui text-sm font-bold text-paper hover:bg-crimson-bright"
         : "inline-flex items-center justify-center rounded-xl border border-crimson/30 px-5 py-3 font-ui text-sm font-bold text-crimson hover:bg-crimson/5"}>
@@ -52,7 +52,8 @@ const Icon = ({ c }: { c: string }) => <span aria-hidden className="flex h-10 w-
 export function SiteInfoStrip() {
   const { blocks, booking, base } = useSite();
   const i = blocks.info;
-  const wa = i.whatsapp ? buttonHref({ kind: "whatsapp", label: "", value: i.whatsapp }, "") : "";
+  // WhatsApp stays as a way to reach them, not to order (orders and payments stay on #NotesApp).
+  const wa = i.whatsapp ? `https://wa.me/${i.whatsapp.replace(/^\+/, "").replace(/^0/, "234")}` : "";
   const hours = (i.bookingHours && booking.hours) || i.hours;
   const cards = [
     hours && { icon: "🕘", text: hours, href: booking.offered ? `${base}/#book` : "" },

@@ -1,4 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
+import { CART_MAX_LINES } from "@/lib/cart";
+import { basketDelivery } from "@/lib/cart-server";
 import { friendlyMessage } from "@/lib/api-errors";
 import { getAdminDb, verifySignedInRequest } from "@/lib/firebase-admin";
 import { clientIp, rateLimit } from "@/lib/rate-limit";
@@ -19,7 +21,7 @@ const publicView = (d: ProviderDoc) => ({
 
 // GET ?view=network[&state=Lagos]   → { providers }: the network, optionally only those covering a state (anyone may look)
 // GET ?view=me                      → { access, profile, partner, price, trialDays }: the signed-in member as a provider and as a store
-// GET ?view=quote&seller=uid&itemId=…&qty=…&city=…&state=… → { carrier | null }: what the store's partner charges for this delivery
+// GET ?view=basket&items=… → a basket's delivery. GET ?view=quote&seller=uid&itemId=…&qty=…&city=…&state=… → { carrier | null }: what the store's partner charges for this delivery
 export async function GET(req: NextRequest) {
   try {
     const q = req.nextUrl.searchParams;
@@ -43,6 +45,19 @@ export async function GET(req: NextRequest) {
       const c = await partnerQuote(db, item.ownerUid, { city, state }, itemKg(item.weightKg) * qty);
       // The buyer sees the partner and the fee, never our commission (that comes out of the partner's earnings).
       return NextResponse.json({ carrier: c ? { name: c.name, username: c.username, feeKobo: c.feeKobo } : null, partner: await partnerOf(db, item.ownerUid) });
+    }
+    // A basket's delivery (lib/cart-server.ts): ?view=basket&items=id:qty,id:qty&city=…&state=… → { deliveryKobo, carrier | null }
+    if (view === "basket") {
+      const limited = await rateLimit(req, "logistics-quote", clientIp(req), 60, 60);
+      if (limited) return limited;
+      const pairs = String(q.get("items") || "").split(",").slice(0, CART_MAX_LINES).map((x) => x.split(":")).filter(([id]) => /^[A-Za-z0-9_-]{1,64}$/.test(id ?? ""));
+      const snaps = pairs.length ? await db.getAll(...pairs.map(([id]) => db.doc(`storeItems/${id}`))) : [];
+      const lines = snaps.map((d, i) => ({ item: d.data() ?? {}, quantity: Math.max(1, Math.min(99, Math.floor(Number(pairs[i][1])) || 1)), owner: d.data()?.ownerUid as string | undefined })).filter((l) => l.owner && l.item.kind !== "digital");
+      const state = String(q.get("state") || ""), city = String(q.get("city") || "").trim();
+      if (!lines.length || lines.some((l) => l.owner !== lines[0].owner)) return NextResponse.json({ deliveryKobo: 0, carrier: null });
+      const covered = NIGERIAN_STATES.includes(state);
+      const { deliveryKobo, carrier } = await basketDelivery(db, lines[0].owner!, lines, covered ? { city, state } : { city: "", state: "" });
+      return NextResponse.json({ deliveryKobo, carrier: carrier && covered ? { name: carrier.name, username: carrier.username, feeKobo: carrier.feeKobo } : null });
     }
     const me = await verifySignedInRequest(bearer(req)).catch(() => null);
     if (!me) return NextResponse.json({ error: "Sign in first." }, { status: 401 });

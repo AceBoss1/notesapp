@@ -11,13 +11,15 @@ export type Release = {
 
 export const CHANGELOG: Release[] = [
   {
-    version: "v0.70.1",
-    bump: "patch",
+    version: "v0.71.0",
+    bump: "minor",
     date: "2026-10-21",
     changes: [
       { kind: "fixed", text: "Courses on your site now open inside your site (on your own domain too), instead of sending visitors away to Notes Academy. Lessons and certificates still open on #NotesApp." },
       { kind: "fixed", text: "The shop on your site now looks like a shop on every look: New arrivals, category and Most popular links, a featured piece, a bar with the product count, search, sorting and bigger or smaller pictures, and picture tiles two to a row on phones, with Sold out and Only a few left. Fashion and beauty show tall photos, gadgets and parts show the whole product on white." },
-      { kind: "added", text: "For shops: an announcement bar across the top of your site, a WhatsApp chat button in the corner, and, when the shop is your main page and you have a cover photo, the cover across the whole page with Shop now." },
+      { kind: "added", text: "A basket for shops on your site: tap + on a picture (or Add to basket on an item's page), see the count in the header, change quantities, and pay for everything at once by card or bank with one delivery. Each item becomes its own order, held until its delivery is confirmed." },
+      { kind: "added", text: "For shops: an announcement bar across the top of your site, the featured piece with its picture on the right, and, when the shop is your main page and you have a cover photo, the cover across the whole page with Shop now." },
+      { kind: "changed", text: "No more Order on WhatsApp buttons on sites: orders and payments stay on #NotesApp, where buyers are protected. A button saved before becomes Contact us, and the kits' starter buttons now point to the shop, booking or Contact." },
       { kind: "fixed", text: "Pictures are now turned into WebP before they upload (journals, shop, site, profile, chats, moments, adverts): smaller files and faster pages, very large photos made smaller, and the hidden camera details left out." },
     ],
   },

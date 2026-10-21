@@ -10,6 +10,7 @@ export async function refundPayment(reference: string, amountKobo?: number): Pro
   const db = getAdminDb();
   const p = (await db.doc(`payments/${reference}`).get()).data();
   // Notesville Naira has already been spent in the game, maybe; it is game money and final (Terms, Notes Life).
+  if (p?.kind === "store_cart") throw new Error("Refund a basket's orders one by one (each is its own order).");
   if (p?.kind === "life_naira") throw new Error("Notesville Naira purchases are final and can't be refunded here.");
   // A refunded certificate (or a refunded course whose certificate came with it) stops being valid; its verification page says it was revoked and why.
   if (p?.kind === "certificate" || p?.kind === "course") await revokeForPayment(db, reference);
@@ -28,5 +29,7 @@ export async function refundPayment(reference: string, amountKobo?: number): Pro
     catch (e) { await restoreTopup(db, reference, taken); throw e; } // Paystack refused: the member loses nothing
     return;
   }
+  // One order of a basket (lib/cart.ts): its share of the basket's card payment goes back.
+  if (p?.cartRef) { await refundTransaction(String(p.cartRef), amountKobo ?? Number(p.amountKobo)); return; }
   await refundTransaction(reference, amountKobo);
 }

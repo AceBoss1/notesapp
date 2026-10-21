@@ -34,7 +34,7 @@ const b = cleanBlocks({
   extra: { on: true },
 });
 assert.equal(b.hero.headline, "Fresh cakes"); assert.equal(b.hero.subline.length, 240); assert.equal(b.hero.image, "", "only https pictures");
-assert.deepEqual(b.hero.button, { kind: "whatsapp", label: "Order on WhatsApp", value: "08031234567" });
+assert.deepEqual(b.hero.button, { kind: "contact", label: "Contact us", value: "" }, "an Order on WhatsApp button saved before becomes Contact us");
 assert.equal(b.hero.second, null, "an http link is refused");
 assert.equal(b.info.whatsapp, "+2348030000000"); assert.equal(b.info.mapUrl, "", "only Google Maps links");
 assert.equal(b.services.items.length, 40, "empty rows dropped, then the limit"); assert.equal(b.services.items[0].name, "Cake");
@@ -46,7 +46,7 @@ assert.deepEqual(cleanButton({ kind: "call", value: "" }), { kind: "call", label
 
 // Buttons
 const info = { on: true, hours: "", bookingHours: false, whatsapp: "08031234567", phone: "", address: "", mapUrl: "" };
-assert.equal(buttonHref(resolveButton({ kind: "whatsapp", label: "x", value: "" }, info)!, ""), "https://wa.me/2348031234567");
+assert.equal(buttonHref(resolveButton({ kind: "call", label: "x", value: "" }, { ...info, phone: "08031234567" })!, ""), "tel:08031234567");
 assert.equal(resolveButton({ kind: "call", label: "x", value: "" }, { ...info, whatsapp: "" }), null, "no number anywhere: no button");
 assert.equal(buttonHref({ kind: "book", label: "", value: "" }, "/s/apex"), "/s/apex/#book");
 assert.equal(buttonHref({ kind: "shop", label: "", value: "" }, ""), "/shop");

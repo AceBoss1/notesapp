@@ -35,6 +35,7 @@ jobs:
       - run: npm run test:team
       - run: npm run test:chat
       - run: npm run test:uploads
+      - run: npm run test:cart
       - run: npm run test:mcp
       - run: npm run test:pricing
       - run: npm run test:ads
@@ -56,6 +57,7 @@ jobs:
       - run: npm run test:mcp-server
       - run: npm run test:shipments-server
       - run: npm run test:logistics-server
+      - run: npm run test:cart-server
       - run: npm run test:calls-server
       - run: npm run test:analytics-server
       - run: npm run test:sites-server

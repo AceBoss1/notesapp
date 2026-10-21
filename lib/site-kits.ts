@@ -13,7 +13,7 @@ import { placeCoords } from "./places";
 // which pays the higher store commission, lib/tiers.ts).
 export const SECTION_MIN_TIER: Record<"journals" | "shop" | "courses" | "track", string> = { journals: "basic", shop: "basic", courses: "basic", track: "business" };
 export const BLOCKS = [
-  { id: "hero", name: "Top banner", blurb: "A headline, a line about what you do, a picture, and your main button (Book now, Order on WhatsApp, Call us…).", minTier: "basic" },
+  { id: "hero", name: "Top banner", blurb: "A headline, a line about what you do, a picture, and your main button (Book now, Shop now, Call us…).", minTier: "basic" },
   { id: "info", name: "Hours and contacts strip", blurb: "Opening hours, WhatsApp, phone and where to find you, in a strip under the banner.", minTier: "basic" },
   { id: "services", name: "Services and prices", blurb: "What you offer and what it costs: a price list.", minTier: "basic" },
   { id: "gallery", name: "Gallery", blurb: "Pictures of your work, your place or your moments.", minTier: "basic" },
@@ -33,7 +33,6 @@ export const blockAllowed = (id: BlockId, tier: string) => meetsTier(tier, BLOCK
 // ── Content ──
 export const BUTTON_KINDS = [
   { id: "book", label: "Book now", needs: "" },
-  { id: "whatsapp", label: "Order on WhatsApp", needs: "Your WhatsApp number" },
   { id: "call", label: "Call us", needs: "Your phone number" },
   { id: "shop", label: "Shop now", needs: "" },
   { id: "contact", label: "Contact us", needs: "" },
@@ -88,16 +87,19 @@ function talkCoords(x: Record<string, unknown>, place: string): { lat: number | 
   return c ? { lat: c[0], lng: c[1] } : { lat: null, lng: null };
 }
 
+// "Order on WhatsApp" buttons are gone: #NotesApp keeps orders and payments on the platform, where buyers are protected (owner, 21 Oct
+// 2026). One saved before then becomes Contact us.
 export function cleanButton(v: unknown): SiteButton | null {
   if (!v || typeof v !== "object") return null;
   const o = v as Record<string, unknown>;
+  if (o.kind === "whatsapp") return { kind: "contact", label: "Contact us", value: "" };
   const kind = BUTTON_KINDS.find((k) => k.id === o.kind);
   if (!kind) return null;
   const label = t(o.label, 30) || kind.label;
   let value = "";
-  if (kind.id === "whatsapp" || kind.id === "call") value = digits(o.value);
+  if (kind.id === "call") value = digits(o.value);
   else if (kind.id === "link") { const u = t(o.value, 400); value = /^https:\/\/[^\s"'<>]+$/i.test(u) ? u : ""; }
-  // A WhatsApp or Call button may leave its number empty: it then uses the number in the hours and contacts strip (resolveButton).
+  // A Call button may leave its number empty: it then uses the number in the hours and contacts strip (resolveButton).
   if (kind.id === "link" && !value) return null;
   return { kind: kind.id, label, value };
 }
@@ -204,21 +206,19 @@ export function byYear<T extends { year: string }>(items: T[]): { year: string; 
     return nb - na;
   }).map(([year, items]) => ({ year, items }));
 }
-// A button as the visitor gets it: a WhatsApp or Call button without its own number takes the one in the strip; with neither, no button.
+// A button as the visitor gets it: a Call button without its own number takes the one in the strip; with neither, no button.
 export function resolveButton(b: SiteButton | null, info: Info): SiteButton | null {
   if (!b) return null;
-  if (b.kind === "whatsapp") { const v = b.value || info.whatsapp || info.phone; return v ? { ...b, value: v } : null; }
   if (b.kind === "call") { const v = b.value || info.phone || info.whatsapp; return v ? { ...b, value: v } : null; }
   if (b.kind === "link" && !b.value) return null;
   return b;
 }
 // Where a button goes on a member's site (base is "" on their domain, "/s/<username>" on the preview).
-export function buttonHref(b: SiteButton, base: string, whatsappText = ""): string {
+export function buttonHref(b: SiteButton, base: string): string {
   if (b.kind === "book") return `${base || ""}/#book`;
   if (b.kind === "shop") return `${base}/shop`;
   if (b.kind === "contact") return `${base}/contact`;
   if (b.kind === "call") return `tel:${b.value}`;
-  if (b.kind === "whatsapp") return `https://wa.me/${b.value.replace(/^\+/, "").replace(/^0/, "234")}${whatsappText ? `?text=${encodeURIComponent(whatsappText)}` : ""}`;
   return b.value;
 }
 
@@ -246,17 +246,17 @@ export const KITS: Kit[] = [
   },
   {
     id: "fashion", name: "Fashion: clothes, bags, shoes and jewellery", emoji: "👗", minTier: "pro", theme: "clean", palette: "royal",
-    blurb: "Your collection up front (clothes, bags, shoes, jewellery), prices and delivery, orders on WhatsApp, and pictures from your shoots.",
+    blurb: "Your collection up front (clothes, bags, shoes, jewellery), prices and delivery, safe checkout, and pictures from your shoots.",
     sections: { journals: false, shop: true, courses: false, track: false }, blocks: ["hero", "info", "gallery", "testimonials", "faq"],
-    starter: { headline: "New styles, made to be worn.", subline: "Shop the latest pieces, delivered anywhere in Nigeria.", button: btn("shop"), second: btn("whatsapp"),
+    starter: { headline: "New styles, made to be worn.", subline: "Shop the latest pieces, delivered anywhere in Nigeria.", button: btn("shop"), second: btn("contact"),
       hours: "Mon–Sat, 9am to 7pm",
       faq: [{ q: "Do you deliver outside my state?", a: "Yes. Delivery is worked out at checkout for your address." }, { q: "Can I return an item?", a: "Tell us within 48 hours of delivery and we'll sort it out." }] },
   },
   {
     id: "food", name: "Food and baking", emoji: "🍰", minTier: "pro", theme: "clean", palette: "sunset",
-    blurb: "Your menu with prices, opening hours, orders on WhatsApp, and pictures that make people hungry.",
+    blurb: "Your menu with prices to order and pay online, opening hours, and pictures that make people hungry.",
     sections: { journals: false, shop: true, courses: false, track: false }, blocks: ["hero", "info", "services", "gallery", "testimonials"],
-    starter: { headline: "Freshly made, every day.", subline: "Cakes, small chops and meals for every occasion. Order ahead and we'll have it ready.", button: btn("whatsapp", "Order on WhatsApp"), second: btn("call"),
+    starter: { headline: "Freshly made, every day.", subline: "Cakes, small chops and meals for every occasion. Order ahead and we'll have it ready.", button: btn("shop", "Order now"), second: btn("call"),
       hours: "Mon–Sat, 8am to 6pm",
       services: [{ name: "Birthday cake (8 inch)", price: "₦25,000", note: "Order 2 days ahead" }, { name: "Small chops (per pack)", price: "₦6,000", note: "" }] },
   },
@@ -264,7 +264,7 @@ export const KITS: Kit[] = [
     id: "services", name: "Services and freelancers", emoji: "🛠️", minTier: "pro", theme: "clean", palette: "ocean",
     blurb: "What you do and what it costs, how to book you, past work, and what clients say.",
     sections: { journals: true, shop: false, courses: false, track: false }, blocks: ["hero", "services", "gallery", "testimonials", "faq"],
-    starter: { headline: "Your work, done properly.", subline: "Clear prices, on time, and easy to reach.", button: btn("book"), second: btn("whatsapp"),
+    starter: { headline: "Your work, done properly.", subline: "Clear prices, on time, and easy to reach.", button: btn("book"), second: btn("call"),
       services: [{ name: "Consultation (1 hour)", price: "₦15,000", note: "Online or in person" }],
       faq: [{ q: "How do I book?", a: "Tap Book now, pick a time and pay to confirm." }] },
   },
@@ -282,7 +282,7 @@ export const KITS: Kit[] = [
     id: "spa", name: "Massage and spa", emoji: "💆", minTier: "pro", theme: "clean", palette: "forest",
     blurb: "Your treatments and prices, booking, opening hours and where to find you, and what clients say.",
     sections: { journals: false, shop: false, courses: false, track: false }, blocks: ["hero", "info", "services", "gallery", "testimonials", "faq"],
-    starter: { headline: "Relax. You've earned it.", subline: "Massages and spa treatments in a calm, clean space. Book your time in a minute.", button: btn("book", "Book a treatment"), second: btn("whatsapp", "Chat on WhatsApp"),
+    starter: { headline: "Relax. You've earned it.", subline: "Massages and spa treatments in a calm, clean space. Book your time in a minute.", button: btn("book", "Book a treatment"), second: btn("call"),
       hours: "Mon–Sat, 10am to 8pm · Sun, 12pm to 6pm",
       services: [{ name: "Swedish massage (60 minutes)", price: "₦25,000", note: "" }, { name: "Deep tissue massage (60 minutes)", price: "₦30,000", note: "" }, { name: "Facial", price: "₦18,000", note: "" }],
       faq: [{ q: "Do I need to book?", a: "Booking is best so your therapist is ready for you; walk-ins are welcome when there's space." }] },
@@ -291,7 +291,7 @@ export const KITS: Kit[] = [
     id: "salon", name: "Salons and beauty", emoji: "💇", minTier: "pro", theme: "clean", palette: "royal",
     blurb: "Your price list for hair, nails and make-up, your work in pictures, your stylists, and booking.",
     sections: { journals: false, shop: true, courses: false, track: false }, blocks: ["hero", "services", "gallery", "team", "testimonials", "info"],
-    starter: { headline: "Look good, feel good.", subline: "Hair, nails and make-up by stylists who listen. Book your appointment or chat with us.", button: btn("book", "Book an appointment"), second: btn("whatsapp"),
+    starter: { headline: "Look good, feel good.", subline: "Hair, nails and make-up by stylists who listen. Book your appointment or chat with us.", button: btn("book", "Book an appointment"), second: btn("shop", "Shop products"),
       hours: "Tue–Sun, 9am to 7pm",
       services: [{ name: "Braids (medium, waist length)", price: "From ₦20,000", note: "" }, { name: "Gel nails", price: "₦8,000", note: "" }, { name: "Bridal make-up", price: "From ₦60,000", note: "Trial included" }] },
   },
@@ -299,7 +299,7 @@ export const KITS: Kit[] = [
     id: "fitness", name: "Fitness trainers", emoji: "💪", minTier: "pro", theme: "clean", palette: "sunset",
     blurb: "Your training plans and prices, results your clients got, booking sessions, and your workouts and tips.",
     sections: { journals: true, shop: false, courses: true, track: false }, blocks: ["hero", "services", "testimonials", "gallery", "faq"],
-    starter: { headline: "Get stronger, one session at a time.", subline: "Personal training in person or online, with a plan made for you.", button: btn("book", "Book a session"), second: btn("whatsapp"),
+    starter: { headline: "Get stronger, one session at a time.", subline: "Personal training in person or online, with a plan made for you.", button: btn("book", "Book a session"), second: btn("call"),
       services: [{ name: "Personal training (1 hour)", price: "₦15,000", note: "" }, { name: "Monthly plan (12 sessions)", price: "₦150,000", note: "With a nutrition guide" }],
       faq: [{ q: "I'm a beginner. Is that fine?", a: "Yes. We start where you are and build up safely." }] },
   },
@@ -307,41 +307,41 @@ export const KITS: Kit[] = [
     id: "events", name: "Events and photography", emoji: "📸", minTier: "pro", theme: "clean", palette: "charcoal",
     blurb: "Your best work first, your packages and prices, what clients say, and booking a date.",
     sections: { journals: true, shop: false, courses: false, track: false }, blocks: ["hero", "gallery", "services", "testimonials", "faq"],
-    starter: { headline: "Moments worth keeping.", subline: "Weddings, birthdays, corporate events and portraits, planned and captured beautifully.", button: btn("book", "Book a date"), second: btn("whatsapp"),
+    starter: { headline: "Moments worth keeping.", subline: "Weddings, birthdays, corporate events and portraits, planned and captured beautifully.", button: btn("book", "Book a date"), second: btn("contact"),
       services: [{ name: "Portrait session", price: "₦40,000", note: "1 hour, 15 edited photos" }, { name: "Wedding coverage", price: "From ₦350,000", note: "Photo and video" }],
       faq: [{ q: "How soon do we get our pictures?", a: "Portraits in a week; weddings in about four weeks." }] },
   },
   {
     id: "electronics", name: "Electronics and mobile devices", emoji: "📱", minTier: "pro", theme: "clean", palette: "ocean",
-    blurb: "Phones, laptops and accessories in your shop, repairs and their prices, opening hours, and orders on WhatsApp.",
+    blurb: "Phones, laptops and accessories in your shop, repairs and their prices with booking, and opening hours.",
     sections: { journals: false, shop: true, courses: false, track: false }, blocks: ["hero", "info", "services", "testimonials", "faq"],
-    starter: { headline: "Genuine devices. Honest repairs.", subline: "Phones, laptops and accessories with warranty, and repairs done while you wait.", button: btn("shop"), second: btn("whatsapp"),
+    starter: { headline: "Genuine devices. Honest repairs.", subline: "Phones, laptops and accessories with warranty, and repairs done while you wait.", button: btn("shop"), second: btn("book", "Book a repair"),
       hours: "Mon–Sat, 9am to 7pm",
       services: [{ name: "Screen replacement", price: "From ₦25,000", note: "Same day" }, { name: "Battery replacement", price: "From ₦12,000", note: "" }],
       faq: [{ q: "Do your devices have a warranty?", a: "Yes. New devices carry the maker's warranty; repairs have our 30-day warranty." }] },
   },
   {
     id: "motor", name: "Motor and motorcycle spare parts", emoji: "🔧", minTier: "pro", theme: "clean", palette: "charcoal",
-    blurb: "Parts for cars and motorcycles in your shop, what you fit and service, where to find you, and orders on WhatsApp.",
+    blurb: "Parts for cars and motorcycles in your shop, what you fit and service, and where to find you.",
     sections: { journals: false, shop: true, courses: false, track: false }, blocks: ["hero", "info", "services", "faq", "testimonials"],
-    starter: { headline: "The right part, first time.", subline: "Genuine and quality spare parts for cars and motorcycles. Tell us your model and we'll find it.", button: btn("whatsapp", "Ask for a part"), second: btn("shop"),
+    starter: { headline: "The right part, first time.", subline: "Genuine and quality spare parts for cars and motorcycles. Tell us your model and we'll find it.", button: btn("shop", "Shop parts"), second: btn("contact", "Ask for a part"),
       hours: "Mon–Sat, 8am to 6pm",
       services: [{ name: "Brake pads (fitted)", price: "From ₦18,000", note: "" }, { name: "Oil change and service", price: "From ₦15,000", note: "" }],
-      faq: [{ q: "Can you find a part I can't see in the shop?", a: "Yes. Send us your vehicle's make, model and year on WhatsApp." }] },
+      faq: [{ q: "Can you find a part I can't see in the shop?", a: "Yes. Send us your vehicle's make, model and year from our Contact page." }] },
   },
   {
     id: "solar", name: "Solar and energy solutions", emoji: "☀️", minTier: "pro", theme: "clean", palette: "gold",
-    blurb: "Your solar and inverter packages with prices, installations you've done, what customers say, and a free quote on WhatsApp.",
+    blurb: "Your solar and inverter packages with prices, installations you've done, what customers say, and site visits you can book.",
     sections: { journals: true, shop: true, courses: false, track: false }, blocks: ["hero", "services", "gallery", "testimonials", "faq"],
-    starter: { headline: "Steady power, lower bills.", subline: "Solar panels, inverters and batteries for homes and businesses, installed and looked after.", button: btn("whatsapp", "Get a free quote"), second: btn("call"),
+    starter: { headline: "Steady power, lower bills.", subline: "Solar panels, inverters and batteries for homes and businesses, installed and looked after.", button: btn("shop", "See packages"), second: btn("book", "Book a site visit"),
       services: [{ name: "Home starter (1.5 kVA)", price: "From ₦650,000", note: "Inverter, batteries and panels" }, { name: "Maintenance visit", price: "₦20,000", note: "" }],
       faq: [{ q: "How long does installation take?", a: "Most homes are done in a day, after a free site visit." }] },
   },
   {
     id: "realestate", name: "Real estate", emoji: "🏠", minTier: "pro", theme: "clean", palette: "forest",
-    blurb: "Properties to rent or buy in pictures, prices and locations, inspections on WhatsApp, and your team.",
+    blurb: "Properties to rent or buy in pictures, prices and locations, inspections you can book, and your team.",
     sections: { journals: true, shop: false, courses: false, track: false }, blocks: ["hero", "gallery", "services", "info", "team", "testimonials", "faq"],
-    starter: { headline: "Find your next home.", subline: "Verified properties to rent and buy, and inspections at a time that suits you.", button: btn("whatsapp", "Book an inspection"), second: btn("call"),
+    starter: { headline: "Find your next home.", subline: "Verified properties to rent and buy, and inspections at a time that suits you.", button: btn("book", "Book an inspection"), second: btn("call"),
       hours: "Mon–Sat, 9am to 6pm",
       services: [{ name: "2-bedroom flat, Lekki", price: "₦4,500,000 a year", note: "To let" }, { name: "Land (600 sqm), Ibeju-Lekki", price: "₦18,000,000", note: "For sale, C of O" }],
       faq: [{ q: "Do you charge for inspections?", a: "Tell us which property and we'll confirm any inspection fee before you come." }] },

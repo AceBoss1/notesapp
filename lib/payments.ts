@@ -27,7 +27,7 @@ import { SITE_URL } from "@/lib/host";
 
 export type PaymentRecord = {
   reference: string;
-  kind: "booking" | "subscription" | "boost" | "gift" | "tier" | "badge" | "gold_deposit" | "gold" | "merch" | "ad" | "store" | "digital" | "wallet_topup" | "life_naira" | "nana_credit" | "certificate" | "course" | "logistics_addon" | "inventory_addon";
+  kind: "booking" | "subscription" | "boost" | "gift" | "tier" | "badge" | "gold_deposit" | "gold" | "merch" | "ad" | "store" | "digital" | "wallet_topup" | "life_naira" | "nana_credit" | "certificate" | "course" | "logistics_addon" | "inventory_addon" | "store_cart";
   uid: string; // the payer
   email: string;
   amountKobo: number;
@@ -73,6 +73,10 @@ export type PaymentRecord = {
   course?: { courseId: string; courseTitle: string; courseSlug: string }; // a paid course (lib/course-sales-server.ts)
   gold?: { kind: "endorsement" | "identity"; track: "personal" | "corporate"; planCode?: string };
   gift?: { username: string; noteId?: string; noteSlug?: string; message: string; anonymous: boolean; senderName: string };
+  // A basket (lib/cart.ts): the payment Paystack charges lists its orders; each order is an ordinary "store" payment carrying cartRef.
+  // The basket's own record carries no money of its own in reports (its orders do).
+  cart?: { orders: string[] };
+  cartRef?: string;
   // Store orders reserve stock while the buyer pays; an unpaid reservation is returned later.
   reservedUntil?: string;
   reservationReleased?: boolean;
@@ -191,7 +195,9 @@ async function confirmCardtap(payRef: FirebaseFirestore.DocumentReference, payme
   if (v.state !== "paid") throw new CardtapNotPaid(v.state);
 }
 
-export async function fulfillPayment(reference: string): Promise<PaymentRecord> {
+// `paidWith`: one order of a basket, settled by fulfillPayment of the basket (lib/cart.ts), whose Paystack payment was just checked;
+// the order itself was never charged on its own, so there is nothing to ask Paystack about it.
+export async function fulfillPayment(reference: string, paidWith?: { cartRef: string }): Promise<PaymentRecord> {
   await ensurePricing();
   const db = getAdminDb();
   const payRef = db.doc(`payments/${reference}`);
@@ -203,7 +209,8 @@ export async function fulfillPayment(reference: string): Promise<PaymentRecord> 
   // A wallet payment was taken from the wallet when it was started (payFromWallet), so there is nothing to ask Paystack.
   // A CardTap top-up is asked of Paylony instead, and stays pending (CardtapNotPaid) until Paylony clearly says it's paid.
   if (payment.payWith === "cardtap") await confirmCardtap(payRef, payment);
-  const tx = payment.payWith === "wallet" || payment.payWith === "cardtap" ? null : await verifyTransaction(reference);
+  if (paidWith && payment.cartRef !== paidWith.cartRef) throw new Error("That order isn't part of this basket.");
+  const tx = payment.payWith === "wallet" || payment.payWith === "cardtap" || paidWith ? null : await verifyTransaction(reference);
   if (tx && tx.status !== "success") throw new Error(`Payment not successful (${tx.status})`);
   if (tx && (pricePaidKobo(tx) !== payment.amountKobo || tx.currency !== "NGN")) {
     // Keep the evidence (a plan-based charge uses the PLAN's amount, so a stale
@@ -214,6 +221,12 @@ export async function fulfillPayment(reference: string): Promise<PaymentRecord> 
     throw new Error(
       `Paid amount does not match the price (expected ${formatNaira(payment.amountKobo)}, Paystack charged ${formatNaira(pricePaidKobo(tx))} ${tx.currency}).`
     );
+  }
+
+  // A basket: its orders are settled one by one (each as a single item would be: order, parcel, held money), then the basket itself is
+  // marked paid. Run again after a failure part-way, the orders already settled are left as they are.
+  if (payment.kind === "store_cart") {
+    for (const order of payment.cart?.orders ?? []) await fulfillPayment(order, { cartRef: reference });
   }
 
   const now = new Date().toISOString();
@@ -288,6 +301,7 @@ export async function fulfillPayment(reference: string): Promise<PaymentRecord> 
       t.set(db.doc(`storeOrders/${reference}`), {
         ...(carrier ? { carrier } : {}),
         reference, parcelId, sellerUid: current.publisherUid, sellerUsername: current.publisherUsername, buyerUid: current.uid,
+        ...(current.cartRef ? { cartRef: current.cartRef } : {}),
         buyerEmail: current.email, itemId: st.itemId, itemTitle: st.itemTitle, itemImage: st.itemImage, quantity: st.quantity, ...(st.variantLabel ? { variantLabel: st.variantLabel } : {}),
         unitKobo: st.unitKobo, deliveryKobo: st.deliveryKobo, amountKobo: current.amountKobo, commissionKobo,
         address: st.address, status: "paid", paidAt: now,
@@ -690,6 +704,7 @@ async function notifyPaid(p: PaymentRecord) {
     const st = p.store;
     // The seller hears when this sale took the item to its low-stock level or sold it out (when they have inventory).
     await lowStockAlert(getAdminDb(), { ownerUid: p.publisherUid, itemId: st.itemId, variant: st.variant, quantity: st.quantity }).catch(() => false);
+    if (p.cartRef) return; // part of a basket: one message for the whole basket (below)
     await sendEmail({
       to: p.email,
       subject: "Your #NotesApp order is confirmed",
@@ -716,6 +731,45 @@ async function notifyPaid(p: PaymentRecord) {
           subject: `New delivery from @${p.publisherUsername}`,
           bell: { uid: st.carrier.uid, type: "order", linkHref: "/shipments", message: `New delivery: ${st.quantity} × ${st.itemTitle} from @${p.publisherUsername} to ${st.address.city}, ${st.address.state}` },
           text: `@${p.publisherUsername} has an order for you to deliver: ${st.quantity} × ${st.itemTitle}${st.variantLabel ? ` (${st.variantLabel})` : ""}.\nDeliver to ${st.address.fullName}, ${st.address.phone}, ${st.address.street}, ${st.address.city}, ${st.address.state}.\nThe buyer paid ${formatNaira(st.deliveryKobo)} for delivery; you're paid ${formatNaira(st.deliveryKobo - st.carrier.cutKobo)} after delivery is confirmed (#NotesApp keeps ${formatNaira(st.carrier.cutKobo)}). Collect it from the store, then record each hand-off and mark it delivered at ${site}/shipments.\n\n#NotesApp`,
+        }).catch(() => {});
+      }
+    }
+    return;
+  }
+  // A basket: one confirmation for the buyer, one new-order message for the seller (and the delivery partner), listing every item.
+  if (p.kind === "store_cart" && p.cart) {
+    const site = SITE_URL;
+    const db = getAdminDb();
+    const orders = (await Promise.all(p.cart.orders.map((r) => db.doc(`payments/${r}`).get()))).map((d) => d.data() as PaymentRecord | undefined).filter((o): o is PaymentRecord => !!o?.store);
+    if (!orders.length) return;
+    const first = orders[0].store!;
+    const a = first.address;
+    const list = orders.map((o) => `${o.store!.quantity} × ${o.store!.itemTitle}${o.store!.variantLabel ? ` (${o.store!.variantLabel})` : ""}`).join("\n");
+    const soldOut = orders.filter((o) => o.status === "paid_slot_conflict").map((o) => o.store!.itemTitle);
+    const delivery = first.deliveryKobo, carrier = first.carrier;
+    await sendEmail({
+      to: p.email,
+      subject: "Your #NotesApp order is confirmed",
+      bell: { uid: p.uid, type: "order", linkHref: "/orders" },
+      text: `Thanks! Your basket from @${p.publisherUsername} — ${formatNaira(p.amountKobo)} including ${formatNaira(delivery)} delivery — to ${a.fullName}, ${a.street}, ${a.city}, ${a.state}:\n${list}\n${soldOut.length ? `\nSold out before your payment landed, so refunded: ${soldOut.join(", ")}.\n` : ""}\nEach item is its own order on ${site}/orders. Your money is held by #NotesApp until you confirm it arrived (or 7 days after it's marked delivered).\nReference: ${p.reference}\n\n#NotesApp`,
+    });
+    const sellerEmail = await getUserEmail(p.publisherUid);
+    if (sellerEmail) {
+      await sendEmail({
+        to: sellerEmail,
+        subject: "New order on your #NotesApp store",
+        bell: { uid: p.publisherUid, type: "order", linkHref: "/orders", message: `New order: ${orders.length} items in one basket` },
+        text: `A basket of ${orders.length} items was ordered — send them together:\n${list}\n\n${carrier ? `The buyer paid ${formatNaira(delivery)} delivery to your delivery partner, ${carrier.name}, who collects the parcel and delivers to ${a.fullName} in ${a.city}, ${a.state}.` : `Deliver to ${a.fullName}, ${a.phone}, ${a.street}, ${a.city}, ${a.state} (the buyer paid ${formatNaira(delivery)} delivery).`}\nEach item is its own order on ${site}/orders: dispatch and track each there. You're paid for each after the buyer confirms delivery, or 7 days after it's marked delivered.\n\n#NotesApp`,
+      }).catch(() => {});
+    }
+    if (carrier) {
+      const carrierEmail = await getUserEmail(carrier.uid);
+      if (carrierEmail) {
+        await sendEmail({
+          to: carrierEmail,
+          subject: `New delivery from @${p.publisherUsername}`,
+          bell: { uid: carrier.uid, type: "order", linkHref: "/shipments", message: `New delivery: ${orders.length} items from @${p.publisherUsername} to ${a.city}, ${a.state}` },
+          text: `@${p.publisherUsername} has a basket for you to deliver as one parcel:\n${list}\nDeliver to ${a.fullName}, ${a.phone}, ${a.street}, ${a.city}, ${a.state}.\nThe buyer paid ${formatNaira(delivery)} for delivery; you're paid ${formatNaira(delivery - carrier.cutKobo)} after delivery is confirmed (#NotesApp keeps ${formatNaira(carrier.cutKobo)}). Record it at ${site}/shipments.\n\n#NotesApp`,
         }).catch(() => {});
       }
     }
