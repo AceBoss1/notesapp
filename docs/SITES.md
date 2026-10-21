@@ -29,7 +29,7 @@ v0.64.0) are built; phases 3 and 4 are next.
    | About, Contact, Services and price list, Gallery, Testimonials, Team, FAQ | Every site |
    | Publications, Awards, Talks (globe), In the news | Every site (from Free Basic) |
    | Journals | Every site |
-   | Shop | Pro and above |
+   | Shop | Every site (the plan's store commission: higher on Free Basic) |
    | Courses | Pro and above for paid courses; the Academy packages for academy pages |
    | Track | Business and above |
    | Events, Community, Giving | The Community plan and add-ons ([Community](COMMUNITY.md)) |
@@ -91,7 +91,7 @@ An Analytics page for every member who sells, teaches, books sessions or publish
 - **Sections** (`lib/site-kits.ts`, stored in `sites/{uid}`, written only by `lib/site-server.ts`): top banner with up to two buttons (Book
   now, Order on WhatsApp, Call us, Shop, Contact, a link), hours and contacts strip with a Google Maps link, services and prices, gallery
   (opens larger), testimonials, team, questions and answers; each on or off, in the member's order, shown only once filled in. Every
-  section is open from Free Basic. Pages: Journals and Courses from Free Basic, Shop from Pro, Track from Business.
+  section is open from Free Basic. Pages: Journals, Shop and Courses from Free Basic (owner, 21 Oct 2026: Shop stays open, at the plan's higher commission), Track from Business.
 - **Kits:** Personal and creators (Free Basic); Fashion, Food & baking, Services, Healthcare (Pro); School, Church/NGO (Business). A kit
   sets the look, colour set, pages, sections and their order, and fills only empty parts with starter words: it never overwrites the
   member's words.

@@ -10,8 +10,8 @@ import type { UserProfile } from "@/lib/users";
 
 export const dynamic = "force-dynamic";
 
-// Members with a site: POST { sections: { journals, shop, courses, track } } chooses what their own site shows (at least one); Shop needs Pro and
-// Track Business (lib/site-kits.ts SECTION_MIN_TIER).
+// Members with a site: POST { sections: { journals, shop, courses, track } } chooses what their own site shows (at least one); Track needs
+// Business (lib/site-kits.ts SECTION_MIN_TIER).
 // Written here (not from the browser) so the plan is checked on the server.
 export async function POST(req: NextRequest) {
   try {

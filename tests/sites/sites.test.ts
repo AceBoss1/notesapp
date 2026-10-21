@@ -53,7 +53,7 @@ assert.equal(buttonHref({ kind: "shop", label: "", value: "" }, ""), "/shop");
 const d = siteDocOf({ blocks: { ...b, team: { on: true, items: [{ name: "Ada" }] } }, order: ["faq", "team", "hero"] });
 assert.deepEqual(visibleBlocks(d, "basic"), ["faq", "team", "hero", "info", "services", "gallery"], "every section is open from Free Basic (docs/SITES.md)");
 assert.deepEqual(visibleBlocks(d, "standard"), [], "no site below Free Basic");
-assert.deepEqual(siteSectionsShown({ ...(u("basic") as object), siteSections: { journals: true, shop: true, courses: true, track: true } } as never), { journals: true, shop: false, courses: true, track: false }, "Shop needs Pro, Track Business");
+assert.deepEqual(siteSectionsShown({ ...(u("basic") as object), siteSections: { journals: true, shop: true, courses: true, track: true } } as never), { journals: true, shop: true, courses: true, track: false }, "Shop from Free Basic (higher commission), Track from Business");
 
 // Kits
 assert.equal(KITS.length, 7);
@@ -70,7 +70,8 @@ assert.equal(r.site.blocks.hero.on && r.site.blocks.services.on && !r.site.block
 assert.deepEqual(r.sections, { journals: false, shop: true, courses: false, track: false });
 const r2 = applyKitTo(siteDocOf({}), kitOf("healthcare")!, "basic");
 assert.equal(r2.site.blocks.team.on, true);
-assert.equal(applyKitTo(siteDocOf({}), kitOf("food")!, "basic").sections.shop, false, "a page the plan doesn't cover (Shop below Pro) stays off");
+assert.equal(applyKitTo(siteDocOf({}), kitOf("food")!, "basic").sections.shop, true, "Shop is open from Free Basic");
+assert.equal(applyKitTo(siteDocOf({}), { ...kitOf("food")!, sections: { journals: false, shop: false, courses: false, track: true } }, "pro").sections.track, false, "a page the plan doesn't cover (Track below Business) stays off");
 
 // Booking hours in words (owner, 21 Oct 2026: the hours strip connects to the booking calendar)
 const wk = (slots: string[]) => Object.fromEntries([1, 2, 3, 4, 5].map((d) => [String(d), slots]));

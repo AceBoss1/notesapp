@@ -20,7 +20,7 @@ export const CHANGELOG: Release[] = [
       { kind: "added", text: "The Clean look: white and rounded, with your main button in the header and a big banner with your picture. Every look now has colour sets (crimson, green, blue, purple, orange, gold, charcoal), and on Pro you can use your own brand colour. Every look and colour set comes on a white or a warm paper background, your choice." },
       { kind: "added", text: "New sections for any site: a banner with buttons (Book now, Order on WhatsApp, Call us, Shop, Contact or a link), opening hours and contacts with a map link, services and prices, a gallery, testimonials, your team and questions and answers. Switch each on or off and put them in your own order." },
       { kind: "added", text: "Your hours are connected to your booking calendar: the hours strip can show the times you take sessions, and tapping them opens your booking card. And a “Book me” card under every post on your site, if you switch it on." },
-      { kind: "changed", text: "Which pages a site shows follows the plan: Journals and Courses from Free Basic, Shop from Pro, Track from Business. The Legacy and Clean looks come with Free Basic; Aurora and Maroon with Pro." },
+      { kind: "changed", text: "Which pages a site shows follows the plan: Journals, Shop and Courses from Free Basic (the shop pays your plan's store commission), Track from Business. The Legacy and Clean looks come with Free Basic; Aurora and Maroon with Pro." },
     ],
   },
   {

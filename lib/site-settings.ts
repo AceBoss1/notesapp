@@ -27,7 +27,7 @@ export const siteSectionsOf = (p: Pick<UserProfile, "siteSections"> | null | und
   track: p?.siteSections?.track === true,
 });
 
-// What a visitor actually gets: the member's choice, less any section their plan no longer covers (Shop needs Pro, Track Business:
+// What a visitor actually gets: the member's choice, less any section their plan no longer covers (Track needs Business:
 // lib/site-kits.ts SECTION_MIN_TIER). A downgrade hides a section without forgetting the choice.
 export const siteSectionsShown = (p: Pick<UserProfile, "siteSections" | "username" | "role" | "accountTier"> | null | undefined): SiteSections => {
   const s = siteSectionsOf(p);
