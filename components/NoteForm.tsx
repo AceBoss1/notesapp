@@ -93,6 +93,7 @@ export default function NoteForm({ noteId, initial, self, org }: Props) {
     initial?.status || "draft"
   );
   const [premium, setPremium] = useState(initial?.premium || false);
+  const [offerSwahili, setOfferSwahili] = useState(initial?.offerSwahili || false);
   const [video, setVideo] = useState<VideoValue | null>(videoFromNote(initial));
   const [videoBusy, setVideoBusy] = useState(false);
   const [boostAfter, setBoostAfter] = useState(false);
@@ -170,6 +171,7 @@ export default function NoteForm({ noteId, initial, self, org }: Props) {
           resolveAuthorUsername(author.name) ? { authorUsername: resolveAuthorUsername(author.name)! } : {}),
       status: forceDraft ? ("draft" as const) : status,
       premium,
+      offerSwahili: offerSwahili && !premium,
       // Saving with a video attaches it; removing one clears the stored fields (updateDoc only touches what it's given).
       ...(video
         ? { videoId: video.videoId, videoKey: video.videoKey, videoDuration: video.videoDuration, videoSize: video.videoSize, ...(video.videoPoster ? { videoPoster: video.videoPoster } : {}) }
@@ -359,6 +361,26 @@ export default function NoteForm({ noteId, initial, self, org }: Props) {
             prompt instead of the full entry. #NotesApp-only field —
             Precheks' own note pages ignore it and show the entry in
             full either way.{video ? " Remove the video first to make this post premium." : ""}
+          </span>
+        </span>
+      </label>
+
+      <label className="flex items-center gap-3">
+        <input
+          type="checkbox"
+          checked={offerSwahili && !premium}
+          disabled={premium}
+          onChange={(e) => setOfferSwahili(e.target.checked)}
+          className="h-4 w-4 accent-crimson"
+        />
+        <span>
+          <span className="font-ui text-sm font-semibold text-ink">
+            Offer this journal in Kiswahili
+          </span>
+          <span className="block text-xs text-slate">
+            Readers get 🌍 Kiswahili and 🔊 Sikiliza (listen), by NKENNEAi. It&apos;s translated, and the audio made, the first
+            time a reader asks, then kept for everyone; edit the journal and a fresh version is made next time.
+            {premium ? " Not for premium posts: subscriber-only words stay with your subscribers." : ""}
           </span>
         </span>
       </label>

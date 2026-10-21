@@ -59,6 +59,7 @@ export type Note = {
   // or reads this, and its updateDoc calls only touch the fields it
   // knows about, so this survives edits made from either app. Gates
   // the entry behind a subscription to its author's journal.
+  offerSwahili?: boolean; // the author offers it in Kiswahili (NKENNEAi): readers get 🌍 Kiswahili and 🔊 Sikiliza
   premium?: boolean;
   // One optional video per post, uploaded through /api/video and verified there; firestore.rules only let a post
   // point at a video the same member uploaded. Not available on premium posts.

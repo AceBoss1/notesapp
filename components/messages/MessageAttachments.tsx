@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { api } from "@/lib/moments-client";
 import { formatBytes, type AttachmentInfo } from "@/lib/messages-rules";
 import { fileBadge } from "@/lib/chat-tools";
+import VoiceNoteKiswahili from "./VoiceNoteKiswahili";
 import MediaViewer, { fileQuery, mediaKey, saveFile, useChatMedia, type MediaItem } from "./MediaViewer";
 
 type Opened = { url: string };
@@ -13,15 +14,15 @@ type Opened = { url: string };
 // through `gallery`, the chat's photos and videos in order. In a chat (ChatMediaContext) the chat opens its one viewer, with all its
 // options; anywhere else this opens a plain one with Save.
 // Documents show a card (type, name, size) with Open for a PDF and Save for everything.
-export default function MessageAttachments({ cid, mid, files, mine, gallery }: { cid: string; mid: string; files: AttachmentInfo[]; mine: boolean; gallery?: MediaItem[] }) {
+export default function MessageAttachments({ cid, mid, files, mine, gallery, voiceText }: { cid: string; mid: string; files: AttachmentInfo[]; mine: boolean; gallery?: MediaItem[]; voiceText?: Record<string, Record<string, string>> }) {
   return (
     <div className="mb-1 space-y-2">
-      {files.map((f, i) => <One key={i} cid={cid} mid={mid} i={i} f={f} mine={mine} gallery={gallery} />)}
+      {files.map((f, i) => <One key={i} cid={cid} mid={mid} i={i} f={f} mine={mine} gallery={gallery} voiceText={voiceText?.[String(i)]} />)}
     </div>
   );
 }
 
-function One({ cid, mid, i, f, mine, gallery }: { cid: string; mid: string; i: number; f: AttachmentInfo; mine: boolean; gallery?: MediaItem[] }) {
+function One({ cid, mid, i, f, mine, gallery, voiceText }: { cid: string; mid: string; i: number; f: AttachmentInfo; mine: boolean; gallery?: MediaItem[]; voiceText?: Record<string, string> }) {
   const q = fileQuery(cid, { mid, i });
   const [url, setUrl] = useState<string | null>(null);
   const [failed, setFailed] = useState(false);
@@ -67,7 +68,7 @@ function One({ cid, mid, i, f, mine, gallery }: { cid: string; mid: string; i: n
   }
   if (f.kind === "audio") {
     return url
-      ? <div><audio src={url} controls preload="metadata" className="h-10 w-60 max-w-full" />{f.durationSec ? <span className="ml-1 text-[11px] opacity-80">{Math.floor(f.durationSec / 60)}:{String(Math.floor(f.durationSec % 60)).padStart(2, "0")}</span> : null}</div>
+      ? <div><audio src={url} controls preload="metadata" className="h-10 w-60 max-w-full" />{f.durationSec ? <span className="ml-1 text-[11px] opacity-80">{Math.floor(f.durationSec / 60)}:{String(Math.floor(f.durationSec % 60)).padStart(2, "0")}</span> : null}<VoiceNoteKiswahili cid={cid} mid={mid} i={i} mine={mine} kept={voiceText} /></div>
       : <p className="text-xs opacity-80">{failed ? "Couldn't load the voice note" : "Loading voice note…"}</p>;
   }
   if (f.kind === "video") {

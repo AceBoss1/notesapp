@@ -51,6 +51,13 @@ Environment Variables (mark secrets Sensitive), then redeploy: `NEXT_PUBLIC_*` v
 | `AUTO_PAYOUTS` | no | off pauses automatic payout release. |
 | `ACCOUNT_DATA_KEY` | **yes** | Encrypts stored bank details, Granola and social tokens: base64 of 32 random bytes, made once. |
 
+## Kiswahili (NKENNEAi)
+
+| Setting | Secret | What it does |
+|---|---|---|
+| `NKENNE_API_KEY` | **yes** | NKENNEAi developer API key (Developer Tools → API Keys): Kiswahili reading, listening and voice-note translation. Without it the Kiswahili buttons don't show. |
+| `NKENNE_API_URL` | no | NKENNEAi API base address; defaults to https://developers-api.nkenne.ai. |
+
 ## Email
 
 | Setting | Secret | What it does |

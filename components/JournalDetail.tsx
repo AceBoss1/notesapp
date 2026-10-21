@@ -29,6 +29,8 @@ import { hashtag, matchTopic, noteHeading, topicsOf } from "@/lib/topics";
 import { BAND_GRADIENT, isCrimsonTheme } from "@/lib/site-themes";
 import RecommendationsCard from "@/components/RecommendationsCard";
 import { SITE_URL } from "@/lib/host";
+import { setting } from "@/lib/config";
+import KiswahiliJournal from "@/components/KiswahiliJournal";
 
 // The reading page for one note (same Firestore doc as precheks.com.ng/notes/{slug}). Used by /journals/<slug> and a member's own site.
 // `site` is set on a member's own site: "more notes" are then only theirs, links stay inside the site
@@ -186,12 +188,18 @@ export default async function JournalDetail({
         {note.videoKey && !note.premium && (
           <VideoPlayer src={videoPublicUrl(note.videoKey)} poster={note.videoPoster} duration={note.videoDuration} size={note.videoSize} title={note.title} />
         )}
-        <PremiumGate
-          premium={!!note.premium}
-          authorUsername={linkedUsername || ""}
-          authorName={note.author}
-          contentHtml={contentHtml}
-        />
+        {(() => {
+          const gate = (
+            <PremiumGate
+              premium={!!note.premium}
+              authorUsername={linkedUsername || ""}
+              authorName={note.author}
+              contentHtml={contentHtml}
+            />
+          );
+          // Kiswahili (NKENNEAi) when the author offers it, the key is set, and the journal is free to read.
+          return note.offerSwahili && !note.premium && setting("NKENNE_API_KEY") ? <KiswahiliJournal noteId={note.id} english={gate} /> : gate;
+        })()}
         </>
       )}
 
