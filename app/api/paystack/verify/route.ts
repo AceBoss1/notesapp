@@ -25,9 +25,14 @@ export async function GET(req: NextRequest) {
     }
 
     const payment = await fulfillPayment(reference);
+    // A basket shows as a store order; any item that sold out before the payment landed is named (it's refunded).
+    const soldOut = payment.kind === "store_cart"
+      ? (await Promise.all((payment.cart?.orders ?? []).map((r) => getAdminDb().doc(`payments/${r}`).get()))).filter((d) => d.data()?.status === "paid_slot_conflict").map((d) => String(d.data()?.store?.itemTitle ?? ""))
+      : [];
     return NextResponse.json({
       status: payment.status,
-      kind: payment.kind,
+      kind: payment.kind === "store_cart" ? "store" : payment.kind,
+      ...(soldOut.length ? { soldOut } : {}),
       booking: payment.booking,
       subscription: payment.subscription,
       boost: payment.boost,

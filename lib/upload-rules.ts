@@ -29,3 +29,21 @@ export async function looksLikeImage(file: File): Promise<boolean> {
     default: return true; // video: not byte-checked here
   }
 }
+
+// Pictures become WebP in the browser before they're uploaded (lib/upload.ts): smaller files, faster pages, and the camera's
+// hidden details (where it was taken) are left behind. JPEG and PNG only: a GIF may move, AVIF and WebP are already small. Academy
+// logos and signatures stay PNG, because the certificate picture (lib/certificate-image.tsx) can't read WebP. Long sides are cut
+// down to `maxSide` (a profile picture needs far less than a cover). The original is kept when the browser can't make WebP or the
+// WebP comes out bigger.
+export type UploadPurpose = "journal" | "avatar" | "ad" | "moment" | "academy";
+export const WEBP_QUALITY = 0.82;
+export function webpPlan(type: string, purpose: UploadPurpose): { maxSide: number } | null {
+  if (purpose === "academy") return null;
+  if (type !== "image/jpeg" && type !== "image/png") return null;
+  return { maxSide: purpose === "avatar" ? 1024 : 2560 };
+}
+export function fitWithin(width: number, height: number, maxSide: number): { width: number; height: number } {
+  const scale = Math.min(1, maxSide / Math.max(width, height, 1));
+  return { width: Math.max(1, Math.round(width * scale)), height: Math.max(1, Math.round(height * scale)) };
+}
+export const webpName = (name: string) => `${name.replace(/\.[A-Za-z0-9]{1,5}$/, "") || "picture"}.webp`;

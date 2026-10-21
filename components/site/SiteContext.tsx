@@ -4,7 +4,7 @@ import { createContext, useContext } from "react";
 import type { SocialLinks } from "@/lib/admin";
 import type { SiteThemeId } from "@/lib/site-themes";
 import type { SiteSections } from "@/lib/site-settings";
-import type { BlockId, Blocks } from "@/lib/site-kits";
+import type { BlockId, Blocks, SiteFocus } from "@/lib/site-kits";
 
 // What every page of a member's branded site needs to know. `base` is "" on their own domain and
 // "/s/<username>" when the same site is previewed on www.notesapp.name.ng.
@@ -26,6 +26,8 @@ export type SiteInfo = {
   shownBlocks: BlockId[];
   // Their booking calendar: whether sessions are on, and its opening hours in words (lib/site-kits.ts bookingHoursText).
   booking: { offered: boolean; hours: string };
+  focus: SiteFocus; // what Home leads with (lib/site-kits.ts SITE_FOCUS): their shop, services, courses or notes, or a mix
+  kit: string; // the kit they started from (lib/site-kits.ts), which sets how the shop shows its pictures (shopStyleOf)
   cover: string; // the wide picture behind their profile header, if any (lib/site-kits.ts) // the ones a visitor sees, in the member's order (switched on, filled in, covered by the plan)
 };
 

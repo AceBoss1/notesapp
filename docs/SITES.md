@@ -25,7 +25,7 @@ v0.65.0) phase 3 (the Scholar look and the academic sections, v0.66.0) and phase
 
    | Section | Needs |
    |---|---|
-   | Top banner with buttons (Book now, Order on WhatsApp, Call us); an info strip (opening hours, WhatsApp, map) | Every site |
+   | Top banner with buttons (Book now, Shop, Call us; no Order on WhatsApp, owner 21 Oct 2026); an info strip (opening hours, WhatsApp as a contact, map) | Every site |
    | About, Contact, Services and price list, Gallery, Testimonials, Team, FAQ | Every site |
    | Publications, Awards, Talks (globe), In the news | Every site (from Free Basic) |
    | Journals | Every site |
@@ -45,7 +45,7 @@ Kits themselves cost nothing and switching between them is free; what a member c
 | Plan | Kits |
 |---|---|
 | Free Basic | Personal: for a person or a content creator (bio, links, journals, videos, Gallery, and the academic sections for those who want them), the Clean and Scholar looks, preset colour sets, at `/s/<username>` |
-| Pro | Also the business kits (Fashion, Food & baking, Services, Healthcare, Spa, Salons, Fitness, Events, Electronics, Motor parts, Solar, Real estate); custom brand colours (Shop is on every site, at the plan's commission) |
+| Pro | Also the business kits (Fashion, Food & baking, Services, Healthcare, Beauty and wellness (spa, massage, hair, nails), Fitness, Events, Electronics, Motor parts, Solar, Real estate); custom brand colours (Shop is on every site, at the plan's commission) |
 | Business, Enterprise | Everything, including School and Church/NGO, on their own domain |
 | Add-ons | Community live streaming, Giving, the Enterprise Academy packages: their sections show locked inside kits until added (Track is part of Business) |
 
@@ -89,7 +89,7 @@ An Analytics page for every member who sells, teaches, books sessions or publish
   while sessions are on the hours card opens the booking card; a "Book me" card under every post on the site (`bookBelowPosts`). The site sets three CSS variables (`--c-crimson`, `--c-crimson-bright`, `--c-crimson-deep`) that the Tailwind crimson colours
   read, with today's values as the fallback, so the main site never changes.
 - **Sections** (`lib/site-kits.ts`, stored in `sites/{uid}`, written only by `lib/site-server.ts`): top banner with up to two buttons (Book
-  now, Order on WhatsApp, Call us, Shop, Contact, a link), hours and contacts strip with a Google Maps link, services and prices, gallery
+  now, Call us, Shop, Contact, a link), hours and contacts strip with a Google Maps link, services and prices, gallery
   (opens larger), testimonials, team, questions and answers; each on or off, in the member's order, shown only once filled in. Every
   section is open from Free Basic. Pages: Journals, Shop and Courses from Free Basic (owner, 21 Oct 2026: Shop stays open, at the plan's higher commission), Track from Business.
 - **Kits:** Personal and creators (Free Basic); Fashion, Food & baking, Services, Healthcare (Pro); School, Church/NGO (Business). A kit
@@ -114,7 +114,7 @@ An Analytics page for every member who sells, teaches, books sessions or publish
 
 ## Phase 4: more kits and the cover photo (built, v0.70.0)
 
-- **Kits** (owner, 21 Oct 2026), Pro like the other business kits: Massage and spa, Salons and beauty, Fitness trainers, Events and
+- **Kits** (owner, 21 Oct 2026), Pro like the other business kits: Beauty and wellness (spa, massage, hair or nails), Fitness trainers, Events and
   photography, Electronics and mobile devices, Motor and motorcycle spare parts, Solar and energy solutions, Real estate. Fashion now
   covers clothes, bags, shoes and jewellery. 16 kits in all.
 - **Cover photo** on every look (`sites/{uid}.cover`), behind the profile header, with the logo over its edge and the social links under

@@ -12,6 +12,7 @@ import { forgetReturnHost, rememberedReturnHost } from "@/lib/return-to";
 type Result = {
   status: string;
   kind: "booking" | "subscription" | "boost" | "gift" | "tier" | "badge" | "gold" | "gold_deposit" | "merch" | "ad" | "store" | "digital" | "wallet_topup" | "life_naira" | "nana_credit" | "certificate";
+  soldOut?: string[]; // a basket: items that sold out before the payment landed (refunded)
   amountKobo?: number;
   payWith?: "wallet";
   topup?: { bonusKobo: number };
@@ -140,6 +141,7 @@ function Confirm() {
         <>
           <p className="font-display text-2xl text-ink">Order placed ✓</p>
           <p className="mt-3 text-sm text-slate">Your money is held by #NotesApp until you confirm the parcel arrived. Follow it and confirm delivery on My orders. A confirmation email is on its way.</p>
+          {!!result.soldOut?.length && <p className="mt-3 text-sm text-crimson">Sold out before your payment landed, so we&apos;ll refund you for: {result.soldOut.join(", ")}.</p>}
           <AppLink href="/orders" className="btn-primary mt-6 inline-block !px-5 !py-2 text-xs">
             My orders
           </AppLink>

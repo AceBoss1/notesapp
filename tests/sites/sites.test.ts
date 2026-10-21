@@ -2,7 +2,7 @@
 // and kits that never wipe the member's words. Run: npm run test:sites → "ALL OK".
 import assert from "node:assert/strict";
 import { backgroundOf, canHaveSite, meetsTier, paletteRgb, paletteVars, themeAllowed } from "../../lib/site-themes";
-import { KITS, applyKitTo, bookingHoursText, buttonHref, byYear, cleanBlocks, cleanButton, cleanOrder, cleanPalette, kitAllowed, kitOf, resolveButton, siteDocOf, visibleBlocks } from "../../lib/site-kits";
+import { KITS, applyKitTo, cleanEmail, cleanFocus, durationText, isBeautyKit, bookingHoursText, buttonHref, byYear, cleanBlocks, cleanButton, cleanOrder, cleanPalette, kitAllowed, kitOf, resolveButton, shopStyleOf, siteDocOf, sortItems, visibleBlocks } from "../../lib/site-kits";
 import { siteSectionsShown } from "../../lib/site-settings";
 import { placeCoords } from "../../lib/places";
 import { landDots } from "../../lib/globe-land";
@@ -34,7 +34,7 @@ const b = cleanBlocks({
   extra: { on: true },
 });
 assert.equal(b.hero.headline, "Fresh cakes"); assert.equal(b.hero.subline.length, 240); assert.equal(b.hero.image, "", "only https pictures");
-assert.deepEqual(b.hero.button, { kind: "whatsapp", label: "Order on WhatsApp", value: "08031234567" });
+assert.deepEqual(b.hero.button, { kind: "contact", label: "Contact us", value: "" }, "an Order on WhatsApp button saved before becomes Contact us");
 assert.equal(b.hero.second, null, "an http link is refused");
 assert.equal(b.info.whatsapp, "+2348030000000"); assert.equal(b.info.mapUrl, "", "only Google Maps links");
 assert.equal(b.services.items.length, 40, "empty rows dropped, then the limit"); assert.equal(b.services.items[0].name, "Cake");
@@ -46,7 +46,7 @@ assert.deepEqual(cleanButton({ kind: "call", value: "" }), { kind: "call", label
 
 // Buttons
 const info = { on: true, hours: "", bookingHours: false, whatsapp: "08031234567", phone: "", address: "", mapUrl: "" };
-assert.equal(buttonHref(resolveButton({ kind: "whatsapp", label: "x", value: "" }, info)!, ""), "https://wa.me/2348031234567");
+assert.equal(buttonHref(resolveButton({ kind: "call", label: "x", value: "" }, { ...info, phone: "08031234567" })!, ""), "tel:08031234567");
 assert.equal(resolveButton({ kind: "call", label: "x", value: "" }, { ...info, whatsapp: "" }), null, "no number anywhere: no button");
 assert.equal(buttonHref({ kind: "book", label: "", value: "" }, "/s/apex"), "/s/apex/#book");
 assert.equal(buttonHref({ kind: "shop", label: "", value: "" }, ""), "/shop");
@@ -58,10 +58,10 @@ assert.deepEqual(visibleBlocks(d, "standard"), [], "no site below Free Basic");
 assert.deepEqual(siteSectionsShown({ ...(u("basic") as object), siteSections: { journals: true, shop: true, courses: true, track: true } } as never), { journals: true, shop: true, courses: true, track: false }, "Shop from Free Basic (higher commission), Track from Business");
 
 // Kits
-assert.equal(KITS.length, 16);
+assert.equal(KITS.length, 18);
 assert.deepEqual(KITS.filter((k) => kitAllowed(k, "basic")).map((k) => k.id), ["personal", "scholar"], "Free Basic: the personal kits only (Personal and creators, Academics)");
-assert.deepEqual(KITS.filter((k) => kitAllowed(k, "pro")).map((k) => k.id), ["personal", "scholar", "fashion", "food", "services", "healthcare", "spa", "salon", "fitness", "events", "electronics", "motor", "solar", "realestate"]);
-assert.equal(KITS.filter((k) => kitAllowed(k, "business")).length, 16);
+assert.deepEqual(KITS.filter((k) => kitAllowed(k, "pro")).map((k) => k.id), ["personal", "scholar", "fashion", "food", "services", "healthcare", "beauty-spa", "beauty-massage", "beauty-hair", "beauty-nails", "fitness", "events", "electronics", "motor", "solar", "realestate"]);
+assert.equal(KITS.filter((k) => kitAllowed(k, "business")).length, 18);
 const mine = siteDocOf({ blocks: { hero: { headline: "My own words" }, services: { items: [{ name: "Mine", price: "₦1" }] } } });
 const r = applyKitTo(mine, kitOf("food")!, "pro");
 assert.equal(r.theme, "clean"); assert.equal(r.site.kit, "food"); assert.equal(r.site.palette.id, "sunset");
@@ -130,4 +130,58 @@ assert.equal(siteDocOf({ cover: "https://img.test/c.jpg" }).cover, "https://img.
 assert.equal(siteDocOf({ cover: "javascript:alert(1)" }).cover, ""); assert.equal(siteDocOf({}).cover, "");
 const tm = cleanBlocks({ team: { on: true, items: [{ name: "Bisi", username: "@Bisi_A" }, { name: "Tolu", username: "no spaces!" }, { name: "Ada" }] } }).team.items;
 assert.equal(tm[0].username, "bisi_a"); assert.equal(tm[1].username, undefined); assert.equal("username" in tm[2], false);
+
+// the shop: pictures by kit, and search and sorting
+assert.deepEqual(shopStyleOf("fashion"), { ratio: "portrait", fit: "cover" });
+assert.deepEqual(shopStyleOf("salon"), { ratio: "portrait", fit: "cover" });
+assert.deepEqual(shopStyleOf("electronics"), { ratio: "square", fit: "contain" });
+assert.deepEqual(shopStyleOf("motor"), { ratio: "square", fit: "contain" });
+assert.deepEqual(shopStyleOf("food"), { ratio: "square", fit: "cover" });
+assert.deepEqual(shopStyleOf(""), { ratio: "square", fit: "cover" });
+const goods = [
+  { title: "Ankara gown", subtitle: "Made to measure", category: "Fashion & clothing", priceKobo: 2500000, createdAt: "2026-01-02T00:00:00Z" },
+  { title: "Leather bag", category: "Shoes & bags", subcategory: "Bags", priceKobo: 1800000, createdAt: { toMillis: () => Date.parse("2026-03-01T00:00:00Z") } },
+  { title: "Gift card", createdAt: "2026-02-01T00:00:00Z" },
+  { title: "beaded necklace", category: "Jewellery", priceKobo: 900000 },
+];
+const titles = (l: { title: string }[]) => l.map((g) => g.title);
+assert.deepEqual(titles(sortItems(goods, "new")), ["Leather bag", "Gift card", "Ankara gown", "beaded necklace"]);
+assert.deepEqual(titles(sortItems(goods, "low")), ["beaded necklace", "Leather bag", "Ankara gown", "Gift card"]);
+assert.deepEqual(titles(sortItems(goods, "high")), ["Ankara gown", "Leather bag", "beaded necklace", "Gift card"]);
+assert.deepEqual(titles(sortItems(goods, "az")), ["Ankara gown", "beaded necklace", "Gift card", "Leather bag"]);
+assert.deepEqual(titles(sortItems(goods, "new", "  BAGS ")), ["Leather bag"]);
+assert.deepEqual(titles(sortItems(goods, "az", "made gown")), ["Ankara gown"]);
+assert.deepEqual(sortItems(goods, "new", "nothing like it"), []);
+const viewed = goods.map((g, i) => ({ ...g, id: `i${i}` }));
+assert.deepEqual(titles(sortItems(viewed, "popular", "", { i3: 50, i0: 9 })), ["beaded necklace", "Ankara gown", "Leather bag", "Gift card"], "most viewed first, then newest");
+assert.equal(goods[0].title, "Ankara gown", "the shop's own list is left alone");
+
+// Beauty and wellness: four flavours of one kit, the old Spa and Salon kits still found, services with times and tabs, the photo hero
+const beauty = KITS.filter((k) => k.family?.id === "beauty");
+assert.deepEqual(beauty.map((k) => k.family!.flavour), ["Spa", "Massage", "Hair", "Nails"]);
+assert.equal(kitOf("spa")?.id, "beauty-spa"); assert.equal(kitOf("salon")?.id, "beauty-hair");
+assert.ok(isBeautyKit("beauty-nails") && isBeautyKit("spa") && !isBeautyKit("fashion"));
+for (const k of beauty) {
+  assert.equal(k.starter.button.kind, "book", `${k.id} opens with booking`);
+  assert.ok(k.starter.services!.every((x) => x.minutes && x.group), `${k.id}: every starter service has a time and a tab`);
+}
+const nails = applyKitTo(siteDocOf({}), kitOf("beauty-nails")!, "pro").site;
+assert.equal(nails.blocks.hero.style, "photo"); assert.equal(nails.blocks.hero.eyebrow, "Welcome to");
+const kept = applyKitTo(siteDocOf({ blocks: { hero: { on: true, headline: "Mine", eyebrow: "Hello from" } } }), kitOf("beauty-spa")!, "pro").site;
+assert.equal(kept.blocks.hero.headline, "Mine"); assert.equal(kept.blocks.hero.eyebrow, "Hello from", "applying a kit keeps what they wrote");
+const sv = cleanBlocks({ services: { on: true, items: [{ name: "Facial", price: "₦25,000", minutes: "70", group: " Facials ", image: "https://img.test/f.jpg" }, { name: "Tea", minutes: 2, image: "http://x" }] } }).services.items;
+assert.deepEqual(sv[0], { name: "Facial", price: "₦25,000", note: "", minutes: 70, group: "Facials", image: "https://img.test/f.jpg" });
+assert.deepEqual(sv[1], { name: "Tea", price: "", note: "" }, "too short a time and an insecure picture are left out");
+assert.equal(cleanBlocks({ hero: { style: "weird", eyebrow: "  " } }).hero.style, undefined);
+assert.deepEqual([durationText(45), durationText(60), durationText(70), durationText(135), durationText(0)], ["45 min", "1 hr", "1 hr 10 min", "2 hr 15 min", ""]);
+// Luxe, Home focus, the services button, email instead of phone
+for (const k of beauty) { assert.equal(k.theme, "luxe"); assert.equal(k.starter.second?.kind, "services", `${k.id}: Check our services`); }
+assert.equal(kitOf("fashion")!.theme, "luxe"); assert.equal(kitOf("fashion")!.starter.heroStyle, "photo");
+assert.equal(buttonHref({ kind: "services", label: "Check our services", value: "" }, "/s/x"), "/s/x/#services");
+assert.equal(buttonHref({ kind: "services", label: "x", value: "" }, ""), "/#services");
+assert.deepEqual(["shop", "services", "courses", "notes", "mix", "weird", undefined].map(cleanFocus), ["shop", "services", "courses", "notes", "mix", "mix", "mix"]);
+assert.equal(siteDocOf({}).focus, "mix");
+assert.equal(cleanEmail(" Hello@Studio.NG "), "hello@studio.ng"); assert.equal(cleanEmail("not an email"), ""); assert.equal(cleanEmail("a@b"), "");
+assert.equal(cleanBlocks({ info: { on: true, email: "hi@x.ng", phone: "0803" } }).info.email, "hi@x.ng");
+assert.deepEqual(visibleBlocks(siteDocOf({ blocks: { info: { on: true, phone: "08031234567" } } }), "pro").includes("info"), false, "a phone number alone doesn't show the strip (it isn't shown on Home)");
 console.log("ALL OK");

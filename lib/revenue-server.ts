@@ -18,7 +18,7 @@ async function readRevenueInput(db: Firestore): Promise<Parameters<typeof comput
   ]);
   return {
     days: 30,
-    payments: pay.docs.map((d) => {
+    payments: pay.docs.filter((d) => d.data().kind !== "store_cart").map((d) => { // a basket's money is in its orders
       const p = d.data();
       return { reference: d.id, kind: p.kind, status: p.status, amountKobo: p.amountKobo, paidAt: p.paidAt, createdAt: p.createdAt };
     }),

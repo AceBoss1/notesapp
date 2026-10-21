@@ -54,6 +54,13 @@ export default function SiteThemePicker({ current, username, tier, title = "Your
                   </span>
                 ))}
               </span>
+            ) : t.id === "luxe" ? (
+              // A full photo with a title and an outlined button over it
+              <span className="mb-3 flex h-16 flex-col items-center justify-center gap-1 overflow-hidden rounded-lg bg-gradient-to-br from-ink/80 via-crimson-deep/80 to-ink/70" aria-hidden="true">
+                <span className="h-1 w-8 rounded bg-white/70" />
+                <span className="h-2 w-20 rounded bg-white" />
+                <span className="mt-0.5 h-2.5 w-12 rounded-sm border border-white/90" />
+              </span>
             ) : t.id === "clean" ? (
               // White, a coloured button at the top right, words beside a picture
               <span className="mb-3 block h-16 overflow-hidden rounded-lg border border-rule bg-card p-2" aria-hidden="true">

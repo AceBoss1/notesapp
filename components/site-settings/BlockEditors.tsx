@@ -80,6 +80,13 @@ export default function BlockEditors({ tier, value, onChange, orcid = null, onOr
       {value.hero.on && (
         <details open className="rounded-2xl border border-rule p-4"><summary className="cursor-pointer font-ui text-sm font-bold text-ink">{name("hero")}</summary>
           <div className="mt-3 grid gap-3">
+            <label className="text-xs text-slate">Style
+              <select value={value.hero.style ?? "side"} onChange={(e) => set("hero", { ...value.hero, style: e.target.value === "photo" ? "photo" : undefined })} className={field}>
+                <option value="side">Words beside the picture</option>
+                <option value="photo">Full photo, words over it (the banner picture or your cover; the Luxe look always does this)</option>
+              </select>
+            </label>
+            <label className="text-xs text-slate">Small line above the headline (optional)<input value={value.hero.eyebrow ?? ""} maxLength={40} onChange={(e) => set("hero", { ...value.hero, eyebrow: e.target.value })} className={field} placeholder="Welcome to" /></label>
             <label className="text-xs text-slate">Headline<input value={value.hero.headline} maxLength={90} onChange={(e) => set("hero", { ...value.hero, headline: e.target.value })} className={field} placeholder="Your work, shown properly." /></label>
             <label className="text-xs text-slate">A line about what you do<textarea value={value.hero.subline} maxLength={240} rows={2} onChange={(e) => set("hero", { ...value.hero, subline: e.target.value })} className={field} /></label>
             <Picture value={value.hero.image} label="Add a picture" onChange={(image) => set("hero", { ...value.hero, image })} />
@@ -97,7 +104,8 @@ export default function BlockEditors({ tier, value, onChange, orcid = null, onOr
                 <span>Use the hours of my booking calendar (<a href="/profile/publishing" className="text-crimson underline">set them here</a>). While your sessions are on, tapping the hours opens your booking card.</span></label>
             </div>
             <label className="text-xs text-slate">WhatsApp number<input value={value.info.whatsapp} inputMode="tel" onChange={(e) => set("info", { ...value.info, whatsapp: e.target.value })} className={field} placeholder="0803 000 0000" /></label>
-            <label className="text-xs text-slate">Phone number<input value={value.info.phone} inputMode="tel" onChange={(e) => set("info", { ...value.info, phone: e.target.value })} className={field} /></label>
+            <label className="text-xs text-slate">Email (shown on Home)<input type="email" value={value.info.email ?? ""} onChange={(e) => set("info", { ...value.info, email: e.target.value })} className={field} placeholder="hello@yourbusiness.ng" /></label>
+            <label className="text-xs text-slate">Phone number (for Call buttons only; not shown on Home)<input value={value.info.phone} inputMode="tel" onChange={(e) => set("info", { ...value.info, phone: e.target.value })} className={field} /></label>
             <label className="text-xs text-slate">Where to find you<input value={value.info.address} maxLength={200} onChange={(e) => set("info", { ...value.info, address: e.target.value })} className={field} placeholder="12 Allen Avenue, Ikeja, Lagos" /></label>
             <label className="text-xs text-slate sm:col-span-2">Google Maps link (optional)<input value={value.info.mapUrl} onChange={(e) => set("info", { ...value.info, mapUrl: e.target.value })} className={field} placeholder="https://maps.app.goo.gl/…" /></label>
           </div>
@@ -106,7 +114,17 @@ export default function BlockEditors({ tier, value, onChange, orcid = null, onOr
       {value.services.on && (
         <details open className="rounded-2xl border border-rule p-4"><summary className="cursor-pointer font-ui text-sm font-bold text-ink">{name("services")}</summary>
           <div className="mt-3"><Rows items={value.services.items} max={LIMITS.services} blank={{ name: "", price: "", note: "" }} addLabel="Add a service" onChange={(items) => set("services", { ...value.services, items })}
-            render={(x, s) => <div className="grid gap-2 sm:grid-cols-3"><input aria-label="Service" placeholder="Service or item" value={x.name} maxLength={80} onChange={(e) => s({ ...x, name: e.target.value })} className={field} /><input aria-label="Price" placeholder="₦10,000 or From ₦5,000" value={x.price} maxLength={40} onChange={(e) => s({ ...x, price: e.target.value })} className={field} /><input aria-label="Note" placeholder="A short note (optional)" value={x.note} maxLength={160} onChange={(e) => s({ ...x, note: e.target.value })} className={field} /></div>} /></div>
+            render={(x, s) => (
+              <div className="grid gap-2 sm:grid-cols-3">
+                <input aria-label="Service" placeholder="Service or item" value={x.name} maxLength={80} onChange={(e) => s({ ...x, name: e.target.value })} className={field} />
+                <input aria-label="Price" placeholder="₦10,000 or From ₦5,000" value={x.price} maxLength={40} onChange={(e) => s({ ...x, price: e.target.value })} className={field} />
+                <input aria-label="Note" placeholder="A short note (optional)" value={x.note} maxLength={160} onChange={(e) => s({ ...x, note: e.target.value })} className={field} />
+                <input aria-label="Minutes" type="number" min={5} max={720} placeholder="Minutes (optional)" value={x.minutes ?? ""} onChange={(e) => s({ ...x, minutes: e.target.value ? Number(e.target.value) : undefined })} className={field} />
+                <input aria-label="Tab" placeholder="Tab, e.g. Facials (optional)" value={x.group ?? ""} maxLength={40} onChange={(e) => s({ ...x, group: e.target.value })} className={field} />
+                <Picture value={x.image ?? ""} label="Picture (optional)" onChange={(image) => s({ ...x, image })} />
+              </div>
+            )} />
+            <p className="mt-2 text-xs text-slate">Add minutes, a tab or a picture and your services show as a menu of cards in tabs (Facials, Massages…), each with Book now while your sessions are on.</p></div>
         </details>
       )}
       {value.gallery.on && (

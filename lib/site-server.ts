@@ -1,7 +1,7 @@
 import type { Firestore } from "firebase-admin/firestore";
 import { effectiveTier, type UserProfile } from "./users";
 import { canCustomColour, canHaveSite, tierName } from "./site-themes";
-import { applyKitTo, blockAllowed, bookingHoursText, cleanCover, cleanBlocks, cleanOrder, cleanPalette, DEFAULT_ORDER, kitAllowed, kitOf, siteDocOf, type SiteDoc } from "./site-kits";
+import { applyKitTo, blockAllowed, bookingHoursText, cleanAnnounce, cleanCover, cleanFocus, cleanBlocks, cleanOrder, cleanPalette, DEFAULT_ORDER, kitAllowed, kitOf, siteDocOf, type SiteDoc } from "./site-kits";
 
 // Sites (lib/site-kits.ts): the server's side of sites/{uid}, the content sections, colour set and kit of a member's site. Every write is
 // checked against the member's plan here; the security rules let anyone read sites/{uid} (it is a public website) and nobody write it.
@@ -28,7 +28,7 @@ async function owner(db: Firestore, uid: string): Promise<{ p: UserProfile; tier
 
 // Saves what the member sends: their sections' content, their order, the colour set and background, and the booking card under posts. A section the plan doesn't cover is saved switched
 // off; a custom colour is kept only from Pro.
-export async function saveSite(db: Firestore, uid: string, raw: { blocks?: unknown; order?: unknown; palette?: unknown; bookBelowPosts?: unknown; cover?: unknown }, now = new Date()): Promise<SiteDoc> {
+export async function saveSite(db: Firestore, uid: string, raw: { blocks?: unknown; order?: unknown; palette?: unknown; bookBelowPosts?: unknown; cover?: unknown; announce?: unknown; focus?: unknown }, now = new Date()): Promise<SiteDoc> {
   const { tier } = await owner(db, uid);
   const cur = await readSite(db, uid);
   const blocks = raw.blocks === undefined ? cur.blocks : cleanBlocks(raw.blocks);
@@ -41,7 +41,9 @@ export async function saveSite(db: Firestore, uid: string, raw: { blocks?: unkno
   }
   const bookBelowPosts = raw.bookBelowPosts === undefined ? cur.bookBelowPosts : raw.bookBelowPosts === true;
   const cover = raw.cover === undefined ? cur.cover : cleanCover(raw.cover);
-  const next: SiteDoc = { ...cur, cover, blocks, order: raw.order === undefined ? cur.order : cleanOrder(raw.order), palette, bookBelowPosts, updatedAt: now.toISOString() };
+  const announce = raw.announce === undefined ? cur.announce ?? "" : cleanAnnounce(raw.announce);
+  const focus = raw.focus === undefined ? cur.focus ?? "mix" : cleanFocus(raw.focus);
+  const next: SiteDoc = { ...cur, cover, announce, focus, blocks, order: raw.order === undefined ? cur.order : cleanOrder(raw.order), palette, bookBelowPosts, updatedAt: now.toISOString() };
   await db.doc(`sites/${uid}`).set({ ...next, uid }, { merge: false });
   return next;
 }

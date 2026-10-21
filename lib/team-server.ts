@@ -313,11 +313,11 @@ export async function weeklyNumbers(db: Firestore, currentWeekStart: string, wee
   const iso = new Date(from).toISOString();
   const [users, pays] = await Promise.all([
     db.collection("users").where("createdAt", ">=", iso).select("createdAt").get(),
-    db.collection("payments").where("paidAt", ">=", iso).select("paidAt", "status", "amountKobo").get(),
+    db.collection("payments").where("paidAt", ">=", iso).select("paidAt", "status", "amountKobo", "kind").get(),
   ]);
   return bucketWeeks(
     users.docs.map((d) => lagosDay(String(d.data().createdAt))),
-    pays.docs.filter((d) => d.data().status === "paid").map((d) => ({ date: lagosDay(String(d.data().paidAt)), kobo: Number(d.data().amountKobo) || 0 })),
+    pays.docs.filter((d) => d.data().status === "paid" && d.data().kind !== "store_cart").map((d) => ({ date: lagosDay(String(d.data().paidAt)), kobo: Number(d.data().amountKobo) || 0 })),
     currentWeekStart, weeks,
   );
 }

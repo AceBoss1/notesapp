@@ -35,6 +35,8 @@ import { CourseError } from "@/lib/courses-server";
 import { accessOf, partnerQuote } from "@/lib/logistics-server";
 import { accessFor as inventoryAccessFor } from "@/lib/inventory-server";
 import { itemKg } from "@/lib/logistics";
+import { cartAmounts, cartChildRef, cleanCartLines } from "@/lib/cart";
+import { basketDelivery } from "@/lib/cart-server";
 
 // Starts a Paystack checkout for a 1:1 session or a monthly journal
 // subscription. Price, slots and plan all come from the publisher's
@@ -289,28 +291,89 @@ export async function POST(req: NextRequest) {
 
     // ---- official merch pre-order (price, delivery and batch all server-side) ----
     // ---- physical goods from a publisher's store (money held until delivery) ----
-    if (kind === "store") {
-      const itemSnap = await db.doc(`storeItems/${String(body.itemId)}`).get();
-      const item = itemSnap.data();
-      if (!item || item.sellable !== true || !Number.isInteger(item.priceKobo)) return NextResponse.json({ error: "This item isn't for sale here." }, { status: 404 });
-      if (item.kind === "digital") return NextResponse.json({ error: "That's a digital download — buy it with the download checkout." }, { status: 409 });
-      if (item.ownerUid === user.uid) return NextResponse.json({ error: "You can't buy your own item." }, { status: 409 });
-      const quantity = Number(body.quantity);
-      if (!Number.isInteger(quantity) || quantity < 1 || quantity > STORE_MAX_QTY) {
-        return NextResponse.json({ error: `Choose a quantity from 1 to ${STORE_MAX_QTY}.` }, { status: 400 });
+    // ---- a basket from one shop (lib/cart.ts): one card payment, one ordinary store order per line ----
+    if (kind === "store_cart") {
+      if (payWith === "wallet") return NextResponse.json({ error: "Pay for a basket by card or bank." }, { status: 400 });
+      const cleaned = cleanCartLines(body.lines);
+      if (typeof cleaned === "string") return NextResponse.json({ error: cleaned }, { status: 400 });
+      const lines: Exclude<Awaited<ReturnType<typeof storeLine>>, { error: string }>[] = [];
+      for (const l of cleaned) {
+        const line = await storeLine(db, user.uid, l.itemId, l.quantity, l.variant);
+        if ("error" in line) return NextResponse.json({ error: line.error }, { status: line.status });
+        lines.push(line);
       }
-      // An item with options (Size, Colour …): the buyer must pick one choice from each, checked against the listing.
-      let variant: string | undefined;
-      let variantLabel: string | undefined;
-      const options = (Array.isArray(item.options) ? item.options : []) as { name: string; choices: string[] }[];
-      if (options.length) {
-        const picked = Array.isArray(body.variant) ? (body.variant as unknown[]).map(String) : [];
-        if (picked.length !== options.length || picked.some((c, i) => !options[i].choices.includes(c))) {
-          return NextResponse.json({ error: `Choose ${options.map((o) => o.name.toLowerCase()).join(" and ")} first.` }, { status: 400 });
+      const sellerUid = String(lines[0].item.ownerUid);
+      if (lines.some((l) => l.item.ownerUid !== sellerUid)) return NextResponse.json({ error: "A basket holds items from one shop." }, { status: 400 });
+      const addrProblem = validateAddress(body.address);
+      if (addrProblem) return NextResponse.json({ error: addrProblem }, { status: 400 });
+      const seller = (await db.doc(`users/${sellerUid}`).get()).data();
+      if (!seller || seller.suspended === true || (seller.accountTier === "standard" && !["staff", "volunteer", "admin"].includes(seller.role))) {
+        return NextResponse.json({ error: "This seller isn't taking orders right now." }, { status: 409 });
+      }
+      const payout = (await db.doc(`payoutAccounts/${sellerUid}`).get()).data();
+      if (!payout?.recipientCode) return NextResponse.json({ error: "This seller hasn't set up payouts yet, so they can't take orders." }, { status: 409 });
+      const a = body.address;
+      const address = { fullName: String(a.fullName).trim(), phone: String(a.phone).replace(/[\s-]/g, ""), street: String(a.street).trim(), city: String(a.city).trim(), state: String(a.state) };
+      // One delivery for the whole basket (lib/cart-server.ts).
+      const { carrier, deliveryKobo } = await basketDelivery(db, sellerUid, lines, address);
+      const amounts = cartAmounts(lines.map((l) => ({ unitKobo: l.item.priceKobo, quantity: l.quantity })), deliveryKobo);
+      const amountKobo = amounts.reduce((x, y) => x + y, 0);
+      if (amountKobo > STORE_ITEM_MAX_KOBO * 2) return NextResponse.json({ error: "That order is too large." }, { status: 400 });
+      const reference = newReference();
+      const origin = await callbackOrigin(req);
+      // Stock is taken for every line while the buyer pays (and all given back if any line can't be had).
+      const reserved: typeof lines = [];
+      try {
+        for (const l of lines) {
+          await releaseExpiredReservations(l.itemSnap.id).catch(() => 0);
+          await reserveStock(l.itemSnap.id, l.quantity, l.variant);
+          reserved.push(l);
         }
-        variant = picked.join("|");
-        variantLabel = options.map((o, i) => `${o.name}: ${picked[i]}`).join(", ");
+      } catch (e) {
+        for (const l of reserved) await returnStock(l.itemSnap.id, l.quantity, l.variant).catch(() => {});
+        if (e instanceof StockError) return NextResponse.json({ error: `${String(lines[reserved.length].item.title)}: ${e.message}` }, { status: 409 });
+        throw e;
       }
+      const giveBack = async () => { for (const l of lines) await returnStock(l.itemSnap.id, l.quantity, l.variant).catch(() => {}); };
+      const now = new Date().toISOString();
+      const reservedUntil = new Date(Date.now() + RESERVATION_MINUTES * 60_000).toISOString();
+      const commissionRate = physicalCommissionRateFor((seller.accountTier as AccountTier) || "basic", seller.customRates);
+      const children: PaymentRecord[] = lines.map((l, i) => ({
+        reference: cartChildRef(reference, i), cartRef: reference, reservedUntil, kind: "store", uid: user.uid, email: user.email!, amountKobo: amounts[i],
+        status: "pending", publisherUid: sellerUid, publisherUsername: seller.username || "", commissionRate,
+        store: {
+          itemId: l.itemSnap.id, itemTitle: String(l.item.title), itemImage: String(l.item.image || ""), quantity: l.quantity,
+          ...(l.variant ? { variant: l.variant, variantLabel: l.variantLabel } : {}),
+          unitKobo: l.item.priceKobo, deliveryKobo: i === 0 ? deliveryKobo : 0, address, ...(carrier && i === 0 ? { carrier } : {}),
+        },
+        createdAt: now,
+      }));
+      let tx;
+      try {
+        tx = await initTx({ email: user.email, amountKobo, reference, callbackUrl: `${origin}/booking/confirm`, metadata: { kind, uid: user.uid, orders: children.length } });
+      } catch (e) {
+        await giveBack();
+        throw e;
+      }
+      try {
+        const batch = db.batch();
+        for (const c of children) batch.set(db.doc(`payments/${c.reference}`), c);
+        batch.set(db.doc(`payments/${reference}`), {
+          reference, kind: "store_cart", uid: user.uid, email: user.email, amountKobo, status: "pending", publisherUid: sellerUid, publisherUsername: seller.username || "",
+          commissionRate, cart: { orders: children.map((c) => c.reference) }, createdAt: now,
+        } satisfies PaymentRecord);
+        await batch.commit();
+      } catch (e) {
+        await giveBack();
+        throw e;
+      }
+      return NextResponse.json({ authorizationUrl: tx.authorization_url, reference });
+    }
+
+    if (kind === "store") {
+      const line = await storeLine(db, user.uid, body.itemId, body.quantity, body.variant);
+      if ("error" in line) return NextResponse.json({ error: line.error }, { status: line.status });
+      const { itemSnap, item, quantity, variant, variantLabel } = line;
       const addrProblem = validateAddress(body.address);
       if (addrProblem) return NextResponse.json({ error: addrProblem }, { status: 400 });
       const seller = (await db.doc(`users/${item.ownerUid}`).get()).data();
@@ -683,4 +746,29 @@ export async function POST(req: NextRequest) {
     console.error("Paystack initialize failed:", err);
     { const f = friendlyMessage(err, "Couldn't start payment"); return NextResponse.json({ error: f.message }, { status: f.status }); }
   }
+}
+
+// One item of a store order (a single purchase or one line of a basket), checked against the listing: for sale here, physical, not the
+// buyer's own, a quantity from 1 to STORE_MAX_QTY, and one choice from each of its options.
+async function storeLine(db: FirebaseFirestore.Firestore, buyerUid: string, itemId: unknown, rawQuantity: unknown, rawVariant: unknown) {
+  const itemSnap = await db.doc(`storeItems/${String(itemId)}`).get();
+  const item = itemSnap.data();
+  if (!item || item.sellable !== true || !Number.isInteger(item.priceKobo)) return { error: "This item isn't for sale here.", status: 404 } as const;
+  if (item.kind === "digital") return { error: "That's a digital download — buy it with the download checkout.", status: 409 } as const;
+  if (item.ownerUid === buyerUid) return { error: "You can't buy your own item.", status: 409 } as const;
+  const quantity = Number(rawQuantity);
+  if (!Number.isInteger(quantity) || quantity < 1 || quantity > STORE_MAX_QTY) return { error: `Choose a quantity from 1 to ${STORE_MAX_QTY}.`, status: 400 } as const;
+  // An item with options (Size, Colour …): the buyer must pick one choice from each, checked against the listing.
+  let variant: string | undefined;
+  let variantLabel: string | undefined;
+  const options = (Array.isArray(item.options) ? item.options : []) as { name: string; choices: string[] }[];
+  if (options.length) {
+    const picked = Array.isArray(rawVariant) ? (rawVariant as unknown[]).map(String) : [];
+    if (picked.length !== options.length || picked.some((c, i) => !options[i].choices.includes(c))) {
+      return { error: `Choose ${options.map((o) => o.name.toLowerCase()).join(" and ")} for ${String(item.title)} first.`, status: 400 } as const;
+    }
+    variant = picked.join("|");
+    variantLabel = options.map((o, i) => `${o.name}: ${picked[i]}`).join(", ");
+  }
+  return { itemSnap, item, quantity, variant, variantLabel };
 }

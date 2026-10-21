@@ -3,22 +3,58 @@
     {
       "collectionGroup": "ledger",
       "queryScope": "COLLECTION",
-      "fields": [{ "fieldPath": "publisherUid", "order": "ASCENDING" }, { "fieldPath": "createdAt", "order": "ASCENDING" }]
+      "fields": [
+        {
+          "fieldPath": "publisherUid",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "createdAt",
+          "order": "ASCENDING"
+        }
+      ]
     },
     {
       "collectionGroup": "payments",
       "queryScope": "COLLECTION",
-      "fields": [{ "fieldPath": "publisherUid", "order": "ASCENDING" }, { "fieldPath": "createdAt", "order": "ASCENDING" }]
+      "fields": [
+        {
+          "fieldPath": "publisherUid",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "createdAt",
+          "order": "ASCENDING"
+        }
+      ]
     },
     {
       "collectionGroup": "bookings",
       "queryScope": "COLLECTION",
-      "fields": [{ "fieldPath": "publisherUid", "order": "ASCENDING" }, { "fieldPath": "createdAt", "order": "ASCENDING" }]
+      "fields": [
+        {
+          "fieldPath": "publisherUid",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "createdAt",
+          "order": "ASCENDING"
+        }
+      ]
     },
     {
       "collectionGroup": "storeOrders",
       "queryScope": "COLLECTION",
-      "fields": [{ "fieldPath": "sellerUid", "order": "ASCENDING" }, { "fieldPath": "paidAt", "order": "ASCENDING" }]
+      "fields": [
+        {
+          "fieldPath": "sellerUid",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "paidAt",
+          "order": "ASCENDING"
+        }
+      ]
     },
     {
       "collectionGroup": "parcels",
@@ -151,6 +187,38 @@
         {
           "fieldPath": "at",
           "order": "DESCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "communityPosts",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "cid",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "channel",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "createdAt",
+          "order": "DESCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "events",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "hostUid",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "nextStartAt",
+          "order": "ASCENDING"
         }
       ]
     }

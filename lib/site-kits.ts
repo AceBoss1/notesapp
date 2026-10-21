@@ -13,7 +13,7 @@ import { placeCoords } from "./places";
 // which pays the higher store commission, lib/tiers.ts).
 export const SECTION_MIN_TIER: Record<"journals" | "shop" | "courses" | "track", string> = { journals: "basic", shop: "basic", courses: "basic", track: "business" };
 export const BLOCKS = [
-  { id: "hero", name: "Top banner", blurb: "A headline, a line about what you do, a picture, and your main button (Book now, Order on WhatsApp, Call us…).", minTier: "basic" },
+  { id: "hero", name: "Top banner", blurb: "A headline, a line about what you do, a picture, and your main button (Book now, Shop now, Call us…).", minTier: "basic" },
   { id: "info", name: "Hours and contacts strip", blurb: "Opening hours, WhatsApp, phone and where to find you, in a strip under the banner.", minTier: "basic" },
   { id: "services", name: "Services and prices", blurb: "What you offer and what it costs: a price list.", minTier: "basic" },
   { id: "gallery", name: "Gallery", blurb: "Pictures of your work, your place or your moments.", minTier: "basic" },
@@ -33,19 +33,23 @@ export const blockAllowed = (id: BlockId, tier: string) => meetsTier(tier, BLOCK
 // ── Content ──
 export const BUTTON_KINDS = [
   { id: "book", label: "Book now", needs: "" },
-  { id: "whatsapp", label: "Order on WhatsApp", needs: "Your WhatsApp number" },
   { id: "call", label: "Call us", needs: "Your phone number" },
   { id: "shop", label: "Shop now", needs: "" },
   { id: "contact", label: "Contact us", needs: "" },
+  { id: "services", label: "Check our services", needs: "" },
   { id: "link", label: "Learn more", needs: "A web address (https://…)" },
 ] as const;
 export type ButtonKind = (typeof BUTTON_KINDS)[number]["id"];
 export type SiteButton = { kind: ButtonKind; label: string; value: string };
-export type Hero = { on: boolean; headline: string; subline: string; image: string; button: SiteButton | null; second: SiteButton | null };
+// style "photo": the picture fills the top of the page edge to edge, with the words over it (the beauty kits); otherwise words beside the
+// picture. eyebrow: a small line above the headline ("Welcome to").
+export type Hero = { on: boolean; headline: string; subline: string; image: string; button: SiteButton | null; second: SiteButton | null; style?: "photo"; eyebrow?: string };
 // bookingHours: show the opening hours of their booking calendar instead of typed hours (owner, 21 Oct 2026). Either way, when their
 // sessions are on, the hours card opens the booking card.
-export type Info = { on: boolean; hours: string; bookingHours: boolean; whatsapp: string; phone: string; address: string; mapUrl: string };
-export type ServiceItem = { name: string; price: string; note: string };
+// The strip shows the email, never the phone number (owner, 22 Oct 2026); the phone is for Call buttons.
+export type Info = { on: boolean; hours: string; bookingHours: boolean; whatsapp: string; phone: string; email?: string; address: string; mapUrl: string };
+// minutes and group (the menu's tabs: Facials, Massages, Nails …) and a picture are optional; with them, services show as a menu of cards.
+export type ServiceItem = { name: string; price: string; note: string; minutes?: number; group?: string; image?: string };
 export type Picture = { image: string; caption: string };
 export type Testimonial = { quote: string; name: string; role: string };
 // username: tag them (their name links to their #NotesApp profile). Showing someone gives them no access: seats are Business and above.
@@ -68,7 +72,13 @@ export type SitePalette = { id: PaletteId; custom?: string; bg?: SiteBackground 
 // orcid: the researcher's ORCID iD, and whether their new works are added to Publications daily (lib/publications-server.ts).
 export type OrcidLink = { id: string; sync: boolean; lastSyncAt?: string };
 // cover: a wide picture behind the profile header, on every look (owner, 21 Oct 2026).
-export type SiteDoc = { kit: string; palette: SitePalette; blocks: Blocks; order: BlockId[]; bookBelowPosts: boolean; orcid: OrcidLink | null; cover: string; updatedAt?: string };
+// focus: what Home leads with (shown first and in full); "mix" (the default) gives a little of each.
+export const SITE_FOCUS = [
+  { id: "mix", label: "A mix of everything" }, { id: "shop", label: "My shop" }, { id: "services", label: "My services" }, { id: "courses", label: "My courses" }, { id: "notes", label: "My notes" },
+] as const;
+export type SiteFocus = (typeof SITE_FOCUS)[number]["id"];
+export const cleanFocus = (v: unknown): SiteFocus => (SITE_FOCUS.some((f) => f.id === v) ? v as SiteFocus : "mix");
+export type SiteDoc = { kit: string; palette: SitePalette; blocks: Blocks; order: BlockId[]; bookBelowPosts: boolean; orcid: OrcidLink | null; cover: string; announce?: string; focus?: SiteFocus; updatedAt?: string };
 
 export const LIMITS = { services: 40, gallery: 24, testimonials: 12, team: 24, faq: 20, publications: 200, awards: 60, talks: 80, news: 60 } as const;
 const t = (v: unknown, max: number) => String(v ?? "").replace(/\s+/g, " ").trim().slice(0, max);
@@ -88,16 +98,19 @@ function talkCoords(x: Record<string, unknown>, place: string): { lat: number | 
   return c ? { lat: c[0], lng: c[1] } : { lat: null, lng: null };
 }
 
+// "Order on WhatsApp" buttons are gone: #NotesApp keeps orders and payments on the platform, where buyers are protected (owner, 21 Oct
+// 2026). One saved before then becomes Contact us.
 export function cleanButton(v: unknown): SiteButton | null {
   if (!v || typeof v !== "object") return null;
   const o = v as Record<string, unknown>;
+  if (o.kind === "whatsapp") return { kind: "contact", label: "Contact us", value: "" };
   const kind = BUTTON_KINDS.find((k) => k.id === o.kind);
   if (!kind) return null;
   const label = t(o.label, 30) || kind.label;
   let value = "";
-  if (kind.id === "whatsapp" || kind.id === "call") value = digits(o.value);
+  if (kind.id === "call") value = digits(o.value);
   else if (kind.id === "link") { const u = t(o.value, 400); value = /^https:\/\/[^\s"'<>]+$/i.test(u) ? u : ""; }
-  // A WhatsApp or Call button may leave its number empty: it then uses the number in the hours and contacts strip (resolveButton).
+  // A Call button may leave its number empty: it then uses the number in the hours and contacts strip (resolveButton).
   if (kind.id === "link" && !value) return null;
   return { kind: kind.id, label, value };
 }
@@ -112,15 +125,28 @@ const list = <T,>(v: unknown, max: number, each: (x: Record<string, unknown>) =>
   (Array.isArray(v) ? v : []).slice(0, max * 4).map((x) => (x && typeof x === "object" ? each(x as Record<string, unknown>) : null)).filter((x): x is T => x !== null).slice(0, max);
 
 export const cleanCover = (v: unknown) => img(v);
+// The announcement bar across the top of every page of the site ("Free delivery in Lagos this week"): one line, plain words, no links.
+function cleanService(x: Record<string, unknown>): ServiceItem {
+  const minutes = Math.floor(Number(x.minutes));
+  return {
+    name: t(x.name, 80), price: t(x.price, 40), note: t(x.note, 160),
+    ...(minutes >= 5 && minutes <= 720 ? { minutes } : {}), ...(t(x.group, 40) ? { group: t(x.group, 40) } : {}), ...(img(x.image) ? { image: img(x.image) } : {}),
+  };
+}
+// "1 hr 10 min", "45 min", "2 hr".
+export const durationText = (m?: number) => (!m ? "" : m < 60 ? `${m} min` : `${Math.floor(m / 60)} hr${m % 60 ? ` ${m % 60} min` : ""}`);
+export const cleanEmail = (v: unknown) => { const e = t(v, 120).toLowerCase(); return /^[^\s@<>"]+@[^\s@<>"]+\.[a-z]{2,}$/.test(e) ? e : ""; };
+export const ANNOUNCE_MAX = 90;
+export const cleanAnnounce = (v: unknown) => t(v, ANNOUNCE_MAX);
 // Everything a member can send for their sections, made safe and within the limits. Unknown parts are dropped.
 export function cleanBlocks(v: unknown): Blocks {
   const o = (v && typeof v === "object" ? v : {}) as Record<string, Record<string, unknown> | undefined>;
   const on = (x: Record<string, unknown> | undefined) => x?.on === true;
   const h = o.hero ?? {}, i = o.info ?? {};
   return {
-    hero: { on: on(h), headline: t(h.headline, 90), subline: t(h.subline, 240), image: img(h.image), button: cleanButton(h.button), second: cleanButton(h.second) },
-    info: { on: on(i), hours: t(i.hours, 120), bookingHours: i.bookingHours === true, whatsapp: digits(i.whatsapp), phone: digits(i.phone), address: t(i.address, 200), mapUrl: /^https:\/\/(www\.)?(google\.[a-z.]+\/maps|maps\.app\.goo\.gl|goo\.gl\/maps|maps\.google\.[a-z.]+)\S*$/i.test(t(i.mapUrl, 500)) ? t(i.mapUrl, 500) : "" },
-    services: { on: on(o.services), items: list(o.services?.items, LIMITS.services, (x) => (t(x.name, 80) ? { name: t(x.name, 80), price: t(x.price, 40), note: t(x.note, 160) } : null)) },
+    hero: { on: on(h), headline: t(h.headline, 90), subline: t(h.subline, 240), image: img(h.image), button: cleanButton(h.button), second: cleanButton(h.second), ...(h.style === "photo" ? { style: "photo" as const } : {}), ...(t(h.eyebrow, 40) ? { eyebrow: t(h.eyebrow, 40) } : {}) },
+    info: { on: on(i), hours: t(i.hours, 120), bookingHours: i.bookingHours === true, whatsapp: digits(i.whatsapp), phone: digits(i.phone), ...(cleanEmail(i.email) ? { email: cleanEmail(i.email) } : {}), address: t(i.address, 200), mapUrl: /^https:\/\/(www\.)?(google\.[a-z.]+\/maps|maps\.app\.goo\.gl|goo\.gl\/maps|maps\.google\.[a-z.]+)\S*$/i.test(t(i.mapUrl, 500)) ? t(i.mapUrl, 500) : "" },
+    services: { on: on(o.services), items: list(o.services?.items, LIMITS.services, (x) => (t(x.name, 80) ? cleanService(x) : null)) },
     gallery: { on: on(o.gallery), items: list(o.gallery?.items, LIMITS.gallery, (x) => (img(x.image) ? { image: img(x.image), caption: t(x.caption, 120) } : null)) },
     testimonials: { on: on(o.testimonials), items: list(o.testimonials?.items, LIMITS.testimonials, (x) => (t(x.quote, 400) && t(x.name, 60) ? { quote: para(x.quote, 400), name: t(x.name, 60), role: t(x.role, 80) } : null)) },
     team: { on: on(o.team), items: list(o.team?.items, LIMITS.team, (x) => { const u = t(x.username, 40).replace(/^@/, "").toLowerCase(); return t(x.name, 60) ? { name: t(x.name, 60), role: t(x.role, 80), photo: img(x.photo), ...(/^[a-z0-9_.]{2,30}$/.test(u) ? { username: u } : {}) } : null; }) },
@@ -152,14 +178,14 @@ const orcidOf = (v: unknown): OrcidLink | null => {
 };
 export function siteDocOf(raw: unknown): SiteDoc {
   const o = (raw && typeof raw === "object" ? raw : {}) as Record<string, unknown>;
-  return { kit: t(o.kit, 30), palette: cleanPalette(o.palette), blocks: cleanBlocks(o.blocks), order: cleanOrder(o.order), bookBelowPosts: o.bookBelowPosts === true, orcid: orcidOf(o.orcid), cover: img(o.cover), updatedAt: typeof o.updatedAt === "string" ? o.updatedAt : undefined };
+  return { kit: t(o.kit, 30), palette: cleanPalette(o.palette), blocks: cleanBlocks(o.blocks), order: cleanOrder(o.order), bookBelowPosts: o.bookBelowPosts === true, orcid: orcidOf(o.orcid), cover: img(o.cover), announce: cleanAnnounce(o.announce), focus: cleanFocus(o.focus), updatedAt: typeof o.updatedAt === "string" ? o.updatedAt : undefined };
 }
 // What a visitor sees: only the sections switched on, with something in them, that the plan still covers (after a downgrade, a section waits
 // switched off rather than vanishing from the settings).
 export function visibleBlocks(d: SiteDoc, tier: string): BlockId[] {
   const b = d.blocks;
   const has: Record<BlockId, boolean> = {
-    hero: b.hero.on && !!(b.hero.headline || b.hero.subline || b.hero.image), info: b.info.on && !!(b.info.hours || b.info.bookingHours || b.info.whatsapp || b.info.phone || b.info.address),
+    hero: b.hero.on && !!(b.hero.headline || b.hero.subline || b.hero.image), info: b.info.on && !!(b.info.hours || b.info.bookingHours || b.info.whatsapp || b.info.email || b.info.address),
     services: b.services.on && b.services.items.length > 0, gallery: b.gallery.on && b.gallery.items.length > 0,
     testimonials: b.testimonials.on && b.testimonials.items.length > 0, team: b.team.on && b.team.items.length > 0, faq: b.faq.on && b.faq.items.length > 0,
     publications: b.publications.on && b.publications.items.length > 0, awards: b.awards.on && b.awards.items.length > 0,
@@ -201,31 +227,74 @@ export function byYear<T extends { year: string }>(items: T[]): { year: string; 
     return nb - na;
   }).map(([year, items]) => ({ year, items }));
 }
-// A button as the visitor gets it: a WhatsApp or Call button without its own number takes the one in the strip; with neither, no button.
+// A button as the visitor gets it: a Call button without its own number takes the one in the strip; with neither, no button.
 export function resolveButton(b: SiteButton | null, info: Info): SiteButton | null {
   if (!b) return null;
-  if (b.kind === "whatsapp") { const v = b.value || info.whatsapp || info.phone; return v ? { ...b, value: v } : null; }
   if (b.kind === "call") { const v = b.value || info.phone || info.whatsapp; return v ? { ...b, value: v } : null; }
   if (b.kind === "link" && !b.value) return null;
   return b;
 }
 // Where a button goes on a member's site (base is "" on their domain, "/s/<username>" on the preview).
-export function buttonHref(b: SiteButton, base: string, whatsappText = ""): string {
+export function buttonHref(b: SiteButton, base: string): string {
   if (b.kind === "book") return `${base || ""}/#book`;
   if (b.kind === "shop") return `${base}/shop`;
   if (b.kind === "contact") return `${base}/contact`;
+  if (b.kind === "services") return `${base || ""}/#services`;
   if (b.kind === "call") return `tel:${b.value}`;
-  if (b.kind === "whatsapp") return `https://wa.me/${b.value.replace(/^\+/, "").replace(/^0/, "234")}${whatsappText ? `?text=${encodeURIComponent(whatsappText)}` : ""}`;
   return b.value;
 }
 
 // ── Kits ──
-type Starter = { headline: string; subline: string; button: SiteButton; second?: SiteButton; services?: ServiceItem[]; faq?: Qa[]; hours?: string };
+type Starter = { headline: string; subline: string; button: SiteButton; second?: SiteButton; services?: ServiceItem[]; faq?: Qa[]; hours?: string; heroStyle?: "photo"; eyebrow?: string };
 export type Kit = {
   id: string; name: string; emoji: string; blurb: string; minTier: string; theme: SiteThemeId; palette: PaletteId;
   sections: { journals: boolean; shop: boolean; courses: boolean; track: boolean }; blocks: BlockId[]; starter: Starter;
+  // Kits that are flavours of one (Beauty and wellness: Spa, Massage, Hair, Nails) show as one card with a choice.
+  family?: { id: string; name: string; flavour: string };
 };
 const btn = (kind: ButtonKind, label?: string): SiteButton => ({ kind, label: label ?? BUTTON_KINDS.find((k) => k.id === kind)!.label, value: "" });
+
+// Beauty & wellness (owner, 21 Oct 2026): one kit in four flavours, each with its own starter menu. They open with a full photo (hero style
+// "photo"), list services as a menu with durations and prices in tabs, and keep a Book your appointment tab on the side of every page.
+// They replace the earlier "Massage and spa" (spa) and "Salons and beauty" (salon) kits; sites that used those keep working (kitOf).
+function beautyKits(): Kit[] {
+  const family = (flavour: string) => ({ id: "beauty", name: "Beauty and wellness", flavour });
+  const book = btn("book", "Book your appointment");
+  const base = { minTier: "pro", theme: "luxe" as const, family: undefined as Kit["family"] };
+  const ask = { q: "How do I book?", a: "Pick a time on this page and pay online: your booking is confirmed straight away, with a reminder before it." };
+  return [
+    { ...base, id: "beauty-spa", name: "Beauty and wellness: Spa", emoji: "🧖", palette: "forest", family: family("Spa"),
+      blurb: "Facials, massages, body treatments and packages on a menu with times and prices, a full photo up top, and booking on every page.",
+      sections: { journals: false, shop: false, courses: false, track: false }, blocks: ["hero", "services", "info", "gallery", "testimonials", "faq"],
+      starter: { heroStyle: "photo", eyebrow: "Welcome to", headline: "Breathe out. We'll take it from here.", subline: "Facials, massages and body treatments in a calm, clean space.", button: book, second: btn("services"),
+        hours: "Mon–Sat, 9am to 7pm",
+        services: [{ group: "Facials", name: "Essential facial", minutes: 45, price: "₦25,000", note: "" }, { group: "Facials", name: "Deep-cleansing facial", minutes: 70, price: "₦35,000", note: "" }, { group: "Massages", name: "Relaxation massage", minutes: 45, price: "₦30,000", note: "" }, { group: "Massages", name: "Hot stone massage", minutes: 60, price: "₦40,000", note: "" }, { group: "Body", name: "Body polish", minutes: 60, price: "₦35,000", note: "" }, { group: "Packages", name: "Half-day retreat", minutes: 180, price: "₦85,000", note: "Facial, massage and body polish" }],
+        faq: [ask, { q: "What should I bring?", a: "Just yourself. We have robes, slippers and everything you need." }] } },
+    { ...base, id: "beauty-massage", name: "Beauty and wellness: Massage", emoji: "💆", palette: "gold", family: family("Massage"),
+      blurb: "Your massages on a menu with times and prices, home visits, your therapists, and booking on every page.",
+      sections: { journals: false, shop: false, courses: false, track: false }, blocks: ["hero", "services", "info", "testimonials", "team", "faq"],
+      starter: { heroStyle: "photo", eyebrow: "Welcome to", headline: "Let the tension go.", subline: "Swedish, deep tissue, hot stone and sports massage, at our studio or in your home.", button: book, second: btn("services"),
+        hours: "Mon–Sun, 10am to 9pm",
+        services: [{ group: "Massages", name: "Swedish massage", minutes: 60, price: "₦25,000", note: "" }, { group: "Massages", name: "Deep tissue massage", minutes: 60, price: "₦30,000", note: "" }, { group: "Massages", name: "Hot stone massage", minutes: 75, price: "₦38,000", note: "" }, { group: "Couples", name: "Couples massage", minutes: 60, price: "₦55,000", note: "" }, { group: "Home visits", name: "Massage at home", minutes: 90, price: "₦45,000", note: "We bring the table and oils" }],
+        faq: [ask, { q: "Do you come to my home?", a: "Yes. Book a home visit and tell us your address; we bring everything." }] } },
+    { ...base, id: "beauty-hair", name: "Beauty and wellness: Hair", emoji: "💇", palette: "royal", family: family("Hair"),
+      blurb: "Braids, wigs, cuts and colour on a menu with times and prices, your work in pictures, your stylists, hair products, and booking.",
+      sections: { journals: false, shop: true, courses: false, track: false }, blocks: ["hero", "services", "gallery", "team", "testimonials", "info", "faq"],
+      starter: { heroStyle: "photo", eyebrow: "Welcome to", headline: "Hair that turns heads.", subline: "Braids, wigs, cuts, colour and treatments by stylists who listen.", button: book, second: btn("services"),
+        hours: "Tue–Sun, 9am to 7pm",
+        services: [{ group: "Braids", name: "Knotless braids (medium, waist length)", minutes: 300, price: "From ₦35,000", note: "" }, { group: "Braids", name: "Cornrows", minutes: 120, price: "From ₦12,000", note: "" }, { group: "Wigs", name: "Wig install", minutes: 90, price: "₦15,000", note: "" }, { group: "Wigs", name: "Wig revamp", minutes: 120, price: "₦18,000", note: "" }, { group: "Cuts and colour", name: "Cut and style", minutes: 45, price: "₦8,000", note: "" }, { group: "Cuts and colour", name: "Colour", minutes: 120, price: "From ₦25,000", note: "" }, { group: "Treatments", name: "Deep conditioning treatment", minutes: 60, price: "₦12,000", note: "" }],
+        faq: [ask, { q: "Should I bring my own hair extensions?", a: "You can, or we can supply them: the price is shown when you book." }] } },
+    { ...base, id: "beauty-nails", name: "Beauty and wellness: Nails", emoji: "💅", palette: "crimson", family: family("Nails"),
+      blurb: "Manicures, pedicures, extensions and nail art on a menu with times and prices, your work in pictures, press-ons to buy, and booking.",
+      sections: { journals: false, shop: true, courses: false, track: false }, blocks: ["hero", "services", "gallery", "testimonials", "info", "faq"],
+      starter: { heroStyle: "photo", eyebrow: "Welcome to", headline: "Nails, done beautifully.", subline: "Gel, acrylic and press-ons, manicures and pedicures, in a clean and calm studio.", button: book, second: btn("services"),
+        hours: "Mon–Sat, 9am to 8pm",
+        services: [{ group: "Manicure", name: "Classic manicure", minutes: 30, price: "₦6,000", note: "" }, { group: "Manicure", name: "Gel polish", minutes: 45, price: "₦8,000", note: "" }, { group: "Extensions", name: "Acrylic full set", minutes: 90, price: "₦15,000", note: "" }, { group: "Extensions", name: "Gel-X full set", minutes: 90, price: "₦18,000", note: "" }, { group: "Pedicure", name: "Classic pedicure", minutes: 45, price: "₦8,000", note: "" }, { group: "Pedicure", name: "Jelly pedicure", minutes: 60, price: "₦15,000", note: "" }, { group: "Nail art", name: "Nail art (per set)", minutes: 15, price: "From ₦2,000", note: "" }],
+        faq: [ask, { q: "How long do gel nails last?", a: "Two to three weeks with care. Come back for a refill or a soak-off." }] } },
+  ];
+}
+// The kits that came before Beauty and wellness, for sites that still carry them.
+const OLD_KITS: Record<string, string> = { spa: "beauty-spa", salon: "beauty-hair" };
 export const KITS: Kit[] = [
   {
     id: "personal", name: "Personal and creators", emoji: "✍️", minTier: "basic", theme: "clean", palette: "crimson",
@@ -242,18 +311,18 @@ export const KITS: Kit[] = [
     starter: { headline: "Hello, and welcome.", subline: "What I research and teach, where I've published and spoken, and how to reach me.", button: btn("contact", "Get in touch") },
   },
   {
-    id: "fashion", name: "Fashion: clothes, bags, shoes and jewellery", emoji: "👗", minTier: "pro", theme: "clean", palette: "royal",
-    blurb: "Your collection up front (clothes, bags, shoes, jewellery), prices and delivery, orders on WhatsApp, and pictures from your shoots.",
-    sections: { journals: false, shop: true, courses: false, track: false }, blocks: ["hero", "info", "gallery", "testimonials", "faq"],
-    starter: { headline: "New styles, made to be worn.", subline: "Shop the latest pieces, delivered anywhere in Nigeria.", button: btn("shop"), second: btn("whatsapp"),
+    id: "fashion", name: "Fashion: clothes, bags, shoes and jewellery", emoji: "👗", minTier: "pro", theme: "luxe", palette: "royal",
+    blurb: "Your collection up front (clothes, bags, shoes, jewellery), prices and delivery, safe checkout, and pictures from your shoots.",
+    sections: { journals: false, shop: true, courses: false, track: false }, blocks: ["hero", "gallery", "testimonials", "faq", "info"],
+    starter: { heroStyle: "photo", eyebrow: "New collection", headline: "New styles, made to be worn.", subline: "Shop the latest pieces, delivered anywhere in Nigeria.", button: btn("shop"), second: btn("shop", "New arrivals"),
       hours: "Mon–Sat, 9am to 7pm",
       faq: [{ q: "Do you deliver outside my state?", a: "Yes. Delivery is worked out at checkout for your address." }, { q: "Can I return an item?", a: "Tell us within 48 hours of delivery and we'll sort it out." }] },
   },
   {
     id: "food", name: "Food and baking", emoji: "🍰", minTier: "pro", theme: "clean", palette: "sunset",
-    blurb: "Your menu with prices, opening hours, orders on WhatsApp, and pictures that make people hungry.",
+    blurb: "Your menu with prices to order and pay online, opening hours, and pictures that make people hungry.",
     sections: { journals: false, shop: true, courses: false, track: false }, blocks: ["hero", "info", "services", "gallery", "testimonials"],
-    starter: { headline: "Freshly made, every day.", subline: "Cakes, small chops and meals for every occasion. Order ahead and we'll have it ready.", button: btn("whatsapp", "Order on WhatsApp"), second: btn("call"),
+    starter: { headline: "Freshly made, every day.", subline: "Cakes, small chops and meals for every occasion. Order ahead and we'll have it ready.", button: btn("shop", "Order now"), second: btn("call"),
       hours: "Mon–Sat, 8am to 6pm",
       services: [{ name: "Birthday cake (8 inch)", price: "₦25,000", note: "Order 2 days ahead" }, { name: "Small chops (per pack)", price: "₦6,000", note: "" }] },
   },
@@ -261,7 +330,7 @@ export const KITS: Kit[] = [
     id: "services", name: "Services and freelancers", emoji: "🛠️", minTier: "pro", theme: "clean", palette: "ocean",
     blurb: "What you do and what it costs, how to book you, past work, and what clients say.",
     sections: { journals: true, shop: false, courses: false, track: false }, blocks: ["hero", "services", "gallery", "testimonials", "faq"],
-    starter: { headline: "Your work, done properly.", subline: "Clear prices, on time, and easy to reach.", button: btn("book"), second: btn("whatsapp"),
+    starter: { headline: "Your work, done properly.", subline: "Clear prices, on time, and easy to reach.", button: btn("book"), second: btn("call"),
       services: [{ name: "Consultation (1 hour)", price: "₦15,000", note: "Online or in person" }],
       faq: [{ q: "How do I book?", a: "Tap Book now, pick a time and pay to confirm." }] },
   },
@@ -275,28 +344,12 @@ export const KITS: Kit[] = [
       faq: [{ q: "Do I need an appointment?", a: "Appointments are best; walk-ins are seen when a doctor is free." }] },
   },
   // Phase 4 (owner, 21 Oct 2026): more kits by type of business, Pro like the others.
-  {
-    id: "spa", name: "Massage and spa", emoji: "💆", minTier: "pro", theme: "clean", palette: "forest",
-    blurb: "Your treatments and prices, booking, opening hours and where to find you, and what clients say.",
-    sections: { journals: false, shop: false, courses: false, track: false }, blocks: ["hero", "info", "services", "gallery", "testimonials", "faq"],
-    starter: { headline: "Relax. You've earned it.", subline: "Massages and spa treatments in a calm, clean space. Book your time in a minute.", button: btn("book", "Book a treatment"), second: btn("whatsapp", "Chat on WhatsApp"),
-      hours: "Mon–Sat, 10am to 8pm · Sun, 12pm to 6pm",
-      services: [{ name: "Swedish massage (60 minutes)", price: "₦25,000", note: "" }, { name: "Deep tissue massage (60 minutes)", price: "₦30,000", note: "" }, { name: "Facial", price: "₦18,000", note: "" }],
-      faq: [{ q: "Do I need to book?", a: "Booking is best so your therapist is ready for you; walk-ins are welcome when there's space." }] },
-  },
-  {
-    id: "salon", name: "Salons and beauty", emoji: "💇", minTier: "pro", theme: "clean", palette: "royal",
-    blurb: "Your price list for hair, nails and make-up, your work in pictures, your stylists, and booking.",
-    sections: { journals: false, shop: true, courses: false, track: false }, blocks: ["hero", "services", "gallery", "team", "testimonials", "info"],
-    starter: { headline: "Look good, feel good.", subline: "Hair, nails and make-up by stylists who listen. Book your appointment or chat with us.", button: btn("book", "Book an appointment"), second: btn("whatsapp"),
-      hours: "Tue–Sun, 9am to 7pm",
-      services: [{ name: "Braids (medium, waist length)", price: "From ₦20,000", note: "" }, { name: "Gel nails", price: "₦8,000", note: "" }, { name: "Bridal make-up", price: "From ₦60,000", note: "Trial included" }] },
-  },
+  ...beautyKits(),
   {
     id: "fitness", name: "Fitness trainers", emoji: "💪", minTier: "pro", theme: "clean", palette: "sunset",
     blurb: "Your training plans and prices, results your clients got, booking sessions, and your workouts and tips.",
     sections: { journals: true, shop: false, courses: true, track: false }, blocks: ["hero", "services", "testimonials", "gallery", "faq"],
-    starter: { headline: "Get stronger, one session at a time.", subline: "Personal training in person or online, with a plan made for you.", button: btn("book", "Book a session"), second: btn("whatsapp"),
+    starter: { headline: "Get stronger, one session at a time.", subline: "Personal training in person or online, with a plan made for you.", button: btn("book", "Book a session"), second: btn("call"),
       services: [{ name: "Personal training (1 hour)", price: "₦15,000", note: "" }, { name: "Monthly plan (12 sessions)", price: "₦150,000", note: "With a nutrition guide" }],
       faq: [{ q: "I'm a beginner. Is that fine?", a: "Yes. We start where you are and build up safely." }] },
   },
@@ -304,41 +357,41 @@ export const KITS: Kit[] = [
     id: "events", name: "Events and photography", emoji: "📸", minTier: "pro", theme: "clean", palette: "charcoal",
     blurb: "Your best work first, your packages and prices, what clients say, and booking a date.",
     sections: { journals: true, shop: false, courses: false, track: false }, blocks: ["hero", "gallery", "services", "testimonials", "faq"],
-    starter: { headline: "Moments worth keeping.", subline: "Weddings, birthdays, corporate events and portraits, planned and captured beautifully.", button: btn("book", "Book a date"), second: btn("whatsapp"),
+    starter: { headline: "Moments worth keeping.", subline: "Weddings, birthdays, corporate events and portraits, planned and captured beautifully.", button: btn("book", "Book a date"), second: btn("contact"),
       services: [{ name: "Portrait session", price: "₦40,000", note: "1 hour, 15 edited photos" }, { name: "Wedding coverage", price: "From ₦350,000", note: "Photo and video" }],
       faq: [{ q: "How soon do we get our pictures?", a: "Portraits in a week; weddings in about four weeks." }] },
   },
   {
     id: "electronics", name: "Electronics and mobile devices", emoji: "📱", minTier: "pro", theme: "clean", palette: "ocean",
-    blurb: "Phones, laptops and accessories in your shop, repairs and their prices, opening hours, and orders on WhatsApp.",
+    blurb: "Phones, laptops and accessories in your shop, repairs and their prices with booking, and opening hours.",
     sections: { journals: false, shop: true, courses: false, track: false }, blocks: ["hero", "info", "services", "testimonials", "faq"],
-    starter: { headline: "Genuine devices. Honest repairs.", subline: "Phones, laptops and accessories with warranty, and repairs done while you wait.", button: btn("shop"), second: btn("whatsapp"),
+    starter: { headline: "Genuine devices. Honest repairs.", subline: "Phones, laptops and accessories with warranty, and repairs done while you wait.", button: btn("shop"), second: btn("book", "Book a repair"),
       hours: "Mon–Sat, 9am to 7pm",
       services: [{ name: "Screen replacement", price: "From ₦25,000", note: "Same day" }, { name: "Battery replacement", price: "From ₦12,000", note: "" }],
       faq: [{ q: "Do your devices have a warranty?", a: "Yes. New devices carry the maker's warranty; repairs have our 30-day warranty." }] },
   },
   {
     id: "motor", name: "Motor and motorcycle spare parts", emoji: "🔧", minTier: "pro", theme: "clean", palette: "charcoal",
-    blurb: "Parts for cars and motorcycles in your shop, what you fit and service, where to find you, and orders on WhatsApp.",
+    blurb: "Parts for cars and motorcycles in your shop, what you fit and service, and where to find you.",
     sections: { journals: false, shop: true, courses: false, track: false }, blocks: ["hero", "info", "services", "faq", "testimonials"],
-    starter: { headline: "The right part, first time.", subline: "Genuine and quality spare parts for cars and motorcycles. Tell us your model and we'll find it.", button: btn("whatsapp", "Ask for a part"), second: btn("shop"),
+    starter: { headline: "The right part, first time.", subline: "Genuine and quality spare parts for cars and motorcycles. Tell us your model and we'll find it.", button: btn("shop", "Shop parts"), second: btn("contact", "Ask for a part"),
       hours: "Mon–Sat, 8am to 6pm",
       services: [{ name: "Brake pads (fitted)", price: "From ₦18,000", note: "" }, { name: "Oil change and service", price: "From ₦15,000", note: "" }],
-      faq: [{ q: "Can you find a part I can't see in the shop?", a: "Yes. Send us your vehicle's make, model and year on WhatsApp." }] },
+      faq: [{ q: "Can you find a part I can't see in the shop?", a: "Yes. Send us your vehicle's make, model and year from our Contact page." }] },
   },
   {
     id: "solar", name: "Solar and energy solutions", emoji: "☀️", minTier: "pro", theme: "clean", palette: "gold",
-    blurb: "Your solar and inverter packages with prices, installations you've done, what customers say, and a free quote on WhatsApp.",
+    blurb: "Your solar and inverter packages with prices, installations you've done, what customers say, and site visits you can book.",
     sections: { journals: true, shop: true, courses: false, track: false }, blocks: ["hero", "services", "gallery", "testimonials", "faq"],
-    starter: { headline: "Steady power, lower bills.", subline: "Solar panels, inverters and batteries for homes and businesses, installed and looked after.", button: btn("whatsapp", "Get a free quote"), second: btn("call"),
+    starter: { headline: "Steady power, lower bills.", subline: "Solar panels, inverters and batteries for homes and businesses, installed and looked after.", button: btn("shop", "See packages"), second: btn("book", "Book a site visit"),
       services: [{ name: "Home starter (1.5 kVA)", price: "From ₦650,000", note: "Inverter, batteries and panels" }, { name: "Maintenance visit", price: "₦20,000", note: "" }],
       faq: [{ q: "How long does installation take?", a: "Most homes are done in a day, after a free site visit." }] },
   },
   {
     id: "realestate", name: "Real estate", emoji: "🏠", minTier: "pro", theme: "clean", palette: "forest",
-    blurb: "Properties to rent or buy in pictures, prices and locations, inspections on WhatsApp, and your team.",
+    blurb: "Properties to rent or buy in pictures, prices and locations, inspections you can book, and your team.",
     sections: { journals: true, shop: false, courses: false, track: false }, blocks: ["hero", "gallery", "services", "info", "team", "testimonials", "faq"],
-    starter: { headline: "Find your next home.", subline: "Verified properties to rent and buy, and inspections at a time that suits you.", button: btn("whatsapp", "Book an inspection"), second: btn("call"),
+    starter: { headline: "Find your next home.", subline: "Verified properties to rent and buy, and inspections at a time that suits you.", button: btn("book", "Book an inspection"), second: btn("call"),
       hours: "Mon–Sat, 9am to 6pm",
       services: [{ name: "2-bedroom flat, Lekki", price: "₦4,500,000 a year", note: "To let" }, { name: "Land (600 sqm), Ibeju-Lekki", price: "₦18,000,000", note: "For sale, C of O" }],
       faq: [{ q: "Do you charge for inspections?", a: "Tell us which property and we'll confirm any inspection fee before you come." }] },
@@ -354,14 +407,16 @@ export const KITS: Kit[] = [
   },
   {
     id: "church", name: "Churches and NGOs", emoji: "🤝", minTier: "business", theme: "clean", palette: "forest",
-    blurb: "Who you are and what you do, service or programme times, news, your team and how to get involved. Community and Giving come later.",
+    blurb: "Who you are and what you do, service or programme times, news, your team and how to get involved. Start a Community for your members too; Giving comes later.",
     sections: { journals: true, shop: false, courses: false, track: false }, blocks: ["hero", "info", "gallery", "team", "faq"],
     starter: { headline: "Stronger communities, brighter futures.", subline: "Join us, volunteer, or support the work we do.", button: btn("contact", "Get involved"),
       hours: "Sundays, 8am and 10am · Wednesdays, 6pm",
       faq: [{ q: "How can I get involved?", a: "Reach us through the Contact page and tell us how you'd like to help." }] },
   },
 ];
-export const kitOf = (id: unknown) => KITS.find((k) => k.id === id) ?? null;
+export const kitOf = (id: unknown) => KITS.find((k) => k.id === (typeof id === "string" && OLD_KITS[id] ? OLD_KITS[id] : id)) ?? null;
+// A beauty and wellness site (any flavour, or the kits before them): the services menu and the side booking tab.
+export const isBeautyKit = (id: string) => id.startsWith("beauty-") || id in OLD_KITS;
 export const kitAllowed = (k: Kit, tier: string) => meetsTier(tier, k.minTier);
 
 // Applying a kit: its look, colours, page sections and section order, and its starter words only where the member hasn't written anything,
@@ -374,6 +429,8 @@ export function applyKitTo(d: SiteDoc, k: Kit, tier: string): { site: SiteDoc; t
   if (!b.hero.subline) b.hero.subline = s.subline;
   if (!b.hero.button) b.hero.button = s.button;
   if (!b.hero.second && s.second) b.hero.second = s.second;
+  if (s.heroStyle && !b.hero.style) b.hero.style = s.heroStyle;
+  if (s.eyebrow && !b.hero.eyebrow) b.hero.eyebrow = s.eyebrow;
   if (!b.info.hours && s.hours) b.info.hours = s.hours;
   if (!b.services.items.length && s.services) b.services.items = s.services;
   if (!b.faq.items.length && s.faq) b.faq.items = s.faq;
@@ -385,4 +442,31 @@ export function applyKitTo(d: SiteDoc, k: Kit, tier: string): { site: SiteDoc; t
   if (!Object.values(sections).some(Boolean)) sections.journals = true;
   // The kit's colour set replaces a custom colour too (the member can pick it again after); their background choice stays.
   return { site: { ...d, kit: k.id, palette: { id: k.palette, ...(d.palette.bg ? { bg: d.palette.bg } : {}) }, blocks: b, order }, theme: k.theme, sections };
+}
+
+// How a shop shows its pictures, by kit: clothes and beauty (every flavour) as tall photos filling the tile; gadgets, parts and panels whole on
+// white (product shots); food and everything else as square photos. Sorting and filtering are the same everywhere (sortItems).
+export type ShopStyle = { ratio: "portrait" | "square"; fit: "cover" | "contain" };
+export function shopStyleOf(kit: string): ShopStyle {
+  if (kit === "fashion" || isBeautyKit(kit)) return { ratio: "portrait", fit: "cover" };
+  if (kit === "electronics" || kit === "motor" || kit === "solar") return { ratio: "square", fit: "contain" };
+  return { ratio: "square", fit: "cover" };
+}
+export const SHOP_SORTS = [
+  { id: "new", label: "Newest" }, { id: "popular", label: "Most popular" }, { id: "low", label: "Price: low to high" }, { id: "high", label: "Price: high to low" }, { id: "az", label: "Name: A to Z" },
+] as const;
+export type ShopSort = (typeof SHOP_SORTS)[number]["id"];
+export const isShopSort = (v: unknown): v is ShopSort => SHOP_SORTS.some((s) => s.id === v);
+// Items in the order a visitor asked for, after a search (title, description and category). Items without a price in kobo go last
+// when sorting by price; "popular" goes by views (`views`, by item id); "new" puts the most recently added first (createdAt, an ISO date or a Firestore time; undated ones last).
+const addedAt = (v: unknown): number => (typeof v === "string" ? Date.parse(v) || 0 : v && typeof (v as { toMillis?: unknown }).toMillis === "function" ? (v as { toMillis: () => number }).toMillis() : 0);
+export function sortItems<T extends { id?: string; title: string; subtitle?: string; category?: string; subcategory?: string; priceKobo?: number; createdAt?: unknown }>(items: T[], sort: ShopSort, search = "", views: Record<string, number> = {}): T[] {
+  const words = search.toLowerCase().split(/\s+/).filter(Boolean);
+  const found = words.length ? items.filter((i) => { const hay = `${i.title} ${i.subtitle ?? ""} ${i.category ?? ""} ${i.subcategory ?? ""}`.toLowerCase(); return words.every((w) => hay.includes(w)); }) : [...items];
+  const price = (i: T, missing: number) => (typeof i.priceKobo === "number" ? i.priceKobo : missing);
+  if (sort === "low") return found.sort((a, b) => price(a, Infinity) - price(b, Infinity));
+  if (sort === "high") return found.sort((a, b) => price(b, -Infinity) - price(a, -Infinity));
+  if (sort === "az") return found.sort((a, b) => a.title.localeCompare(b.title));
+  if (sort === "popular") return found.sort((a, b) => (views[b.id ?? ""] ?? 0) - (views[a.id ?? ""] ?? 0) || addedAt(b.createdAt) - addedAt(a.createdAt));
+  return found.sort((a, b) => addedAt(b.createdAt) - addedAt(a.createdAt));
 }

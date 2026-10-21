@@ -49,10 +49,11 @@ const LIVE = [
   { href: "/store-selling", title: "Parcel tracking for riders & drivers", copy: "A chain-of-custody log for every parcel: record each holder — bike rider, bus driver, park agent — and they update the location or hand on to the next person from a short link, with no login." },
   { href: "/logistics", title: "Shipments & the logistics network", copy: "Logistics businesses book shipments, hand them rider to rider and give customers a Track page on their own site. Stores pick a delivery partner from the logistics network, and buyers pay its price at checkout. Business and Enterprise, or the logistics add-on for Free Basic and Pro." },
   { href: "/help/inventory", title: "Inventory", copy: "Stock per item and option, SKUs, cost prices, low-stock alerts, the history of every change and spreadsheet import and export. Included on Business and Enterprise; an add-on on Free Basic and Pro." },
+  { href: "/community", title: "Community & Events", copy: "For churches, NGOs, schools and clubs: a General announcement channel, public and members-only Spaces, private Circles on Business, admin tools with View as, and you choose what non-members see. Events for every account, with reminders and Join live links." },
   { href: "/organisations", title: "Team seats & your own site", copy: "Business includes 4 seats (owner plus three team members) and your own domain with a semi white-label site; Enterprise has as many as you need, an API and the lowest commissions." },
   { href: "/merchstore", title: "Merch store", copy: "Official #NotesApp merch with your choice of logo — pre-order in batches, delivered in Nigeria." },
   { href: "/trending", title: "Trending", copy: "The most visited notes, store items, courses and publishers on #NotesApp." },
-  { href: "/help/your-site", title: "Your own site, API & Console", copy: "From Free Basic, your own website at /s/your-name: kits by type of business, the Clean, Scholar, Legacy, Aurora and Maroon looks with colour sets, and sections for buttons, hours, prices, a gallery, testimonials, team and answers, or publications, awards, talks on a globe and news. Business and Enterprise put it on their own domain. Enterprise adds a server-to-server API, signed webhooks and Console keys." },
+  { href: "/help/your-site", title: "Your own site, API & Console", copy: "From Free Basic, your own website at /s/your-name: kits by type of business, the Clean, Luxe, Scholar, Legacy, Aurora and Maroon looks with colour sets, and sections for buttons, hours, prices, a gallery, testimonials, team and answers, or publications, awards, talks on a globe and news, a storefront for the shop with a basket, and courses that open inside the site. Business and Enterprise put it on their own domain. Enterprise adds a server-to-server API, signed webhooks and Console keys." },
   { href: "/security", title: "Trust & security", copy: "How payments, files, access rules and your data are protected — including downloading or deleting your own data." },
   { href: "/nana", title: "Nana AI & help centre", copy: "Ask Nana, our helper, about anything on #NotesApp from the chat button on every page, in Messages, or browse the help centre. She links you to the right page and passes you to a person when she can't help. Choose her gem (Pearl, Emerald or Ruby, by plan), use the free allowance that refreshes weekly or top it up with Nana credit; questions asked before are answered free. She also suggests topics from your title, and summarises and translates chats. She is powered by Claude, from our partner Anthropic." },
   { href: "/docs", title: "#NotesApp in your AI assistant (MCP)", copy: "AI assistants that support MCP can find creators, journals, Notes Market items and Notes Academy courses, show open session times and share booking links. With your API key, they can read your own profile, bookings, orders and earnings. It only reads; booking, buying and paying happen on #NotesApp." },
@@ -169,8 +170,8 @@ export default async function AboutPage() {
           <p className="eyebrow">Where we&apos;re going</p>
           <h2 className="mt-2 font-display text-3xl leading-tight">Help us build it faster</h2>
           <p className="mt-4 text-lg text-slate">
-            Next on the <Link href="/roadmap" className="text-crimson underline underline-offset-2">roadmap</Link>: Community for
-            churches, NGOs and clubs, with bigger meetings; Events; iOS and Android apps; WhatsApp reminders; and the Team hub
+            Next on the <Link href="/roadmap" className="text-crimson underline underline-offset-2">roadmap</Link>: giving, tickets
+            and our own live streaming for communities, with bigger meetings; iOS and Android apps; WhatsApp reminders; and the Team hub
             and finance tools for Business and Enterprise. We&apos;ve built lean and in the open, and we&apos;re now looking for
             investors, accelerators and partners who want to build Africa&apos;s home for creators and the people they serve.
           </p>
@@ -182,7 +183,7 @@ export default async function AboutPage() {
         <p className="eyebrow">What you can do today</p>
         <FeatureMosaic className="mt-5" items={LIVE} />
         <p className="mt-4 text-sm text-slate">
-          Still to come: <Link href="/community" className="text-crimson underline underline-offset-2">Community</Link> for churches, NGOs and clubs, <Link href="/events" className="text-crimson underline underline-offset-2">Events</Link>, quizzes and the Enterprise course packages, WhatsApp reminders, iOS and Android apps, sharing
+          Still to come: giving, tickets and live streaming for <Link href="/community" className="text-crimson underline underline-offset-2">communities</Link>, quizzes and the Enterprise course packages, WhatsApp reminders, iOS and Android apps, sharing
           to more social networks (LinkedIn and X are live), and Google and Meta ads
           alongside our own. The Team hub, company finance tools, an investor data room and advertising on LinkedIn
           are being tested by our own team and will be paid add-ons for Business and Enterprise once that testing is done — see the{" "}

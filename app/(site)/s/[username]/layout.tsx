@@ -9,15 +9,17 @@ import { getTierConfig } from "@/lib/tiers";
 import { MAIN_HOST, isMainHost } from "@/lib/host";
 import { domainForUid } from "@/lib/domains";
 import { SiteProvider } from "@/components/site/SiteContext";
+import SiteBasketButton from "@/components/site/SiteBasketButton";
+import SocialLinksRow from "@/components/SocialLinksRow";
 import { NameBadgeIcons } from "@/components/PersonName";
 import { badgesOf } from "@/lib/name-badges";
 import SiteNav from "@/components/site/SiteNav";
 import SiteAccount from "@/components/site/SiteAccount";
 import { SiteAuthProvider } from "@/components/site/SiteAuth";
 import SiteDarkToggle from "@/components/site/SiteDarkToggle";
-import { BAND_GRADIENT, SITE_DARK_KEY, canHaveSite, isCrimsonTheme, paletteVars, siteThemeOf, themeAllowed } from "@/lib/site-themes";
+import { BAND_GRADIENT, SITE_DARK_KEY, backgroundOf, canHaveSite, isCleanLike, isCrimsonTheme, paletteVars, siteThemeOf, themeAllowed } from "@/lib/site-themes";
 import { missingSitePages, siteSectionsShown } from "@/lib/site-settings";
-import { buttonHref, emptyBlocks, resolveButton, visibleBlocks } from "@/lib/site-kits";
+import { buttonHref, emptyBlocks, isBeautyKit, resolveButton, visibleBlocks } from "@/lib/site-kits";
 import { bookingOf, readSite } from "@/lib/site-server";
 import { getAdminDb } from "@/lib/firebase-admin";
 
@@ -79,8 +81,13 @@ export default async function SiteLayout({ children, params }: Props) {
     shownBlocks: site ? visibleBlocks(site, tier) : [],
     booking,
     cover: site?.cover ?? "",
+    kit: site?.kit ?? "",
+    focus: site?.focus ?? (domain?.home === "store" ? "shop" : "mix"),
   };
-  const clean = info.theme === "clean";
+  const clean = isCleanLike(info.theme);
+  // Night background (lib/site-themes.ts): the dark colours Scholar uses in dark mode, always on (Scholar keeps its own switch).
+  const night = info.theme !== "scholar" && backgroundOf(site?.palette, info.theme) === "night";
+  const bookTab = isBeautyKit(info.kit) && info.booking.offered;
   const scholar = info.theme === "scholar"; // plain and academic, with a dark mode
   // Clean: the main button of their banner sits at the top right of every page.
   const cta = clean && info.shownBlocks.includes("hero") ? resolveButton(info.blocks.hero.button, info.blocks.info) : null;
@@ -92,9 +99,10 @@ export default async function SiteLayout({ children, params }: Props) {
   return (
     <SiteProvider value={info}>
      <Auth>
-      <div data-site-theme={info.theme} className="flex min-h-screen flex-col bg-paper" style={paletteVars(site?.palette, tier, info.theme) as React.CSSProperties} suppressHydrationWarning>
+      <div data-site-theme={info.theme} {...(night ? { "data-site-dark": "true" } : {})} className="flex min-h-screen flex-col bg-paper" style={paletteVars(site?.palette, tier, info.theme) as React.CSSProperties} suppressHydrationWarning>
         {/* Scholar: light or dark before the first paint, from the visitor's last choice or their device's setting. */}
         {scholar && <script dangerouslySetInnerHTML={{ __html: `try{var e=document.currentScript.parentElement,v=localStorage.getItem(${JSON.stringify(SITE_DARK_KEY)});e.setAttribute("data-site-dark",v==="true"||v==="false"?v:String(matchMedia("(prefers-color-scheme: dark)").matches))}catch(_){}` }} />}
+        {site?.announce && <p className="bg-ink px-4 py-2 text-center font-ui text-[11px] font-semibold uppercase tracking-[0.18em] text-paper sm:text-xs">{site.announce}</p>}
         <header className={crimson ? "sticky top-0 z-40 text-paper shadow-md" : clean ? "sticky top-0 z-40 border-b border-rule bg-paper/95 backdrop-blur" : "sticky top-0 z-40 border-b border-rule bg-paper/90 backdrop-blur"} style={crimson ? { backgroundImage: BAND_GRADIENT } : undefined}>
           <div className="mx-auto flex max-w-5xl items-center justify-between gap-4 px-4 py-4 sm:px-6">
             <Link href={base || "/"} className="flex min-w-0 items-center gap-3">
@@ -105,13 +113,21 @@ export default async function SiteLayout({ children, params }: Props) {
             </Link>
             <div className="flex shrink-0 items-center gap-5">
               <SiteNav />
+              {info.sections.shop && <SiteBasketButton light={crimson} />}
               <SiteAccount />
               {scholar && <SiteDarkToggle />}
-              {cta && <a href={buttonHref(cta, base, `Hello ${p.displayName}, `)} className="hidden rounded-full bg-crimson px-4 py-2 font-ui text-sm font-bold text-paper hover:bg-crimson-bright sm:inline-flex" {...(cta.kind === "link" || cta.kind === "whatsapp" ? { target: "_blank", rel: "noopener noreferrer" } : {})}>{cta.label}</a>}
+              {cta && <a href={buttonHref(cta, base)} className="hidden rounded-full bg-crimson px-4 py-2 font-ui text-sm font-bold text-paper hover:bg-crimson-bright sm:inline-flex" {...(cta.kind === "link" ? { target: "_blank", rel: "noopener noreferrer" } : {})}>{cta.label}</a>}
             </div>
           </div>
         </header>
-        <main className="flex-1">{children}</main>
+        <main className={`flex-1 ${bookTab ? "pb-16 lg:pb-0" : ""}`}>{children}</main>
+        {/* The beauty kits: Book your appointment on every page, a tab on the right edge (a bar along the bottom on phones). */}
+        {bookTab && (
+          <>
+            <a href={`${base}/#book`} className="fixed right-0 top-1/2 z-40 hidden -translate-y-1/2 rounded-l-xl bg-crimson px-3 py-5 font-ui text-xs font-bold uppercase tracking-[0.2em] text-paper shadow-lg [writing-mode:vertical-rl] hover:bg-crimson-bright lg:block">Book your appointment</a>
+            <a href={`${base}/#book`} className="fixed inset-x-0 bottom-0 z-40 block bg-crimson py-3.5 pb-[calc(env(safe-area-inset-bottom)+0.875rem)] text-center font-ui text-sm font-bold uppercase tracking-[0.2em] text-paper shadow-[0_-6px_20px_rgba(0,0,0,0.12)] lg:hidden">Book your appointment</a>
+          </>
+        )}
         <footer data-site-footer className="mt-20 border-t border-rule bg-ink text-paper">
           <div className="mx-auto flex max-w-5xl flex-col items-start justify-between gap-4 px-4 py-8 sm:flex-row sm:items-center sm:px-6">
             <div>
@@ -121,6 +137,7 @@ export default async function SiteLayout({ children, params }: Props) {
                 <Link href={`${base}/terms`} className="underline hover:text-paper">Terms</Link> ·{" "}
                 <Link href={`${base}/privacy`} className="underline hover:text-paper">Privacy</Link>
               </p>
+              <SocialLinksRow social={info.social} light />
             </div>
             <SiteNav footer />
           </div>

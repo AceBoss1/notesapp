@@ -6,7 +6,8 @@ import { effectiveTier } from "./effective-tier";
 
 export const SITE_THEMES = [
   { id: "legacy", name: "Legacy", blurb: "The original look: a light page, a simple header and a clean list of your notes and shop.", minTier: "basic" },
-  { id: "clean", name: "Clean", blurb: "White and rounded, with your main button at the top (Book now, Order on WhatsApp, Call us), a banner with your picture, and your opening hours and contacts in a strip.", minTier: "basic" },
+  { id: "clean", name: "Clean", blurb: "White and rounded, with your main button at the top (Book now, Shop now, Call us), a banner with your picture, and your opening hours and contacts in a strip.", minTier: "basic" },
+  { id: "luxe", name: "Luxe", blurb: "Opens with a full photo (your banner picture or cover) and your words and buttons over it, your social links beneath, then your services, shop and gallery under centred titles, like a boutique or a spa.", minTier: "pro" },
   { id: "scholar", name: "Scholar", blurb: "Plain and academic, made for reading: a narrow page with your photo and links, your publications by year, awards, talks on a globe and news, with a dark mode.", minTier: "basic" },
   { id: "aurora", name: "Aurora", blurb: "A deep colour band with your profile on a card, shop categories, a featured item and a reading page with your booking card beside it.", minTier: "pro" },
   { id: "maroon", name: "Maroon", blurb: "Like the #NotesApp journal feed: a coloured header, your profile on a card, and your notes as posts on white cards that readers can like, share and save.", minTier: "pro" },
@@ -16,6 +17,8 @@ export const isSiteTheme = (v: unknown): v is SiteThemeId => typeof v === "strin
 export const siteThemeOf = (p: { siteTheme?: string } | null | undefined): SiteThemeId => (isSiteTheme(p?.siteTheme) ? p!.siteTheme as SiteThemeId : "legacy");
 // Aurora and Maroon share the crimson header, the band at the top of each page, the profile card and the wide reading page.
 export const isCrimsonTheme = (t: string | undefined) => t === "aurora" || t === "maroon";
+// Clean and Luxe share their layout (white header with the main button, the strip, content sections); Luxe opens with the full photo.
+export const isCleanLike = (t: string | undefined) => t === "clean" || t === "luxe";
 // The names joined for messages ("Legacy, Aurora or Maroon").
 export const siteThemeNames = () => SITE_THEMES.map((t) => t.name).join(", ").replace(/, ([^,]*)$/, " or $1");
 
@@ -64,11 +67,12 @@ export function paletteRgb(palette: { id?: string; custom?: string } | null | un
 }
 // The page background, with every colour set and every look (owner, 21 Oct 2026): white, or #NotesApp's warm paper. Without a choice, Clean
 // is white and the other looks paper, as they were.
-export const SITE_BACKGROUNDS = [{ id: "white", name: "White" }, { id: "paper", name: "Paper (warm ivory)" }] as const;
+// Night: a dark page with the colour set glowing on it (the beauty kits' evening look; the same dark colours as Scholar's dark mode).
+export const SITE_BACKGROUNDS = [{ id: "white", name: "White" }, { id: "paper", name: "Paper (warm ivory)" }, { id: "night", name: "Night (dark)" }] as const;
 export type SiteBackground = (typeof SITE_BACKGROUNDS)[number]["id"];
-export const isBackground = (v: unknown): v is SiteBackground => v === "white" || v === "paper";
+export const isBackground = (v: unknown): v is SiteBackground => v === "white" || v === "paper" || v === "night";
 export const backgroundOf = (palette: { bg?: string } | null | undefined, theme: string): SiteBackground =>
-  isBackground(palette?.bg) ? palette!.bg as SiteBackground : theme === "clean" ? "white" : "paper";
+  isBackground(palette?.bg) ? palette!.bg as SiteBackground : isCleanLike(theme) ? "white" : "paper";
 export function paletteVars(palette: { id?: string; custom?: string; bg?: string } | null | undefined, tier: string, theme = "legacy"): Record<string, string> {
   const { base, bright, deep } = paletteRgb(palette, tier);
   // --c-crimson-light and --c-crimson-lighter are the accent on a dark page (the Scholar look's dark mode, app/globals.css).

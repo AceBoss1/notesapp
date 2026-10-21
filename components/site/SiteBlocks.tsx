@@ -1,7 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { buttonHref, byYear, resolveButton, type BlockId, type SiteButton } from "@/lib/site-kits";
+import SocialLinksRow from "@/components/SocialLinksRow";
+import { buttonHref, byYear, durationText, resolveButton, type BlockId, type SiteButton } from "@/lib/site-kits";
 import TalksGlobe from "./TalksGlobe";
 import { MAIN_HOST } from "@/lib/host";
 import { useSite } from "./SiteContext";
@@ -9,11 +10,11 @@ import { useSite } from "./SiteContext";
 // The content sections of a member's site (lib/site-kits.ts), in the member's order. Colours come from the site's colour set (the crimson
 // classes follow it), so every look and every colour set draws them the same way.
 
-const outward = (b: SiteButton) => (b.kind === "link" || b.kind === "whatsapp" ? { target: "_blank", rel: "noopener noreferrer" } : {});
+const outward = (b: SiteButton) => (b.kind === "link" ? { target: "_blank", rel: "noopener noreferrer" } : {});
 function Btn({ b, primary }: { b: SiteButton; primary?: boolean }) {
   const site = useSite();
   return (
-    <a href={buttonHref(b, site.base, `Hello ${site.displayName}, `)} {...outward(b)}
+    <a href={buttonHref(b, site.base)} {...outward(b)}
       className={primary
         ? "inline-flex items-center justify-center rounded-xl bg-crimson px-5 py-3 font-ui text-sm font-bold text-paper hover:bg-crimson-bright"
         : "inline-flex items-center justify-center rounded-xl border border-crimson/30 px-5 py-3 font-ui text-sm font-bold text-crimson hover:bg-crimson/5"}>
@@ -46,18 +47,53 @@ export function SiteHero({ clean, plain }: { clean: boolean; plain?: boolean }) 
   );
 }
 
+// The banner as a full photo (hero style "photo", the beauty kits): the picture edge to edge with a soft shade, and the words and buttons
+// over it in the middle — a small line above ("Welcome to"), the headline large, the line about what they do, outlined buttons.
+export function SitePhotoHero() {
+  const { blocks, base, cover, social } = useSite();
+  const h = blocks.hero;
+  const image = h.image || cover; // no banner picture: the cover photo
+  const buttons = [resolveButton(h.button, blocks.info), resolveButton(h.second, blocks.info)].filter((b): b is SiteButton => !!b);
+  return (
+    <section className="relative isolate flex min-h-[78vh] items-center justify-center overflow-hidden px-4 py-20 text-center text-white sm:min-h-[86vh]">
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img src={image} alt="" className="absolute inset-0 -z-10 h-full w-full object-cover" />
+      <div aria-hidden className="absolute inset-0 -z-10 bg-gradient-to-b from-black/45 via-black/35 to-black/55" />
+      <div className="max-w-4xl">
+        {h.eyebrow && <p className="font-ui text-xs font-semibold uppercase tracking-[0.35em] text-white/85 sm:text-sm">{h.eyebrow}</p>}
+        {h.headline && <h1 className="mt-4 font-display text-5xl leading-[1.05] sm:text-7xl">{h.headline}</h1>}
+        {h.subline && <p className="mx-auto mt-5 max-w-xl text-base text-white/90 sm:text-lg">{h.subline}</p>}
+        {buttons.length > 0 && (
+          <div className="mt-9 flex flex-wrap justify-center gap-3">
+            {buttons.map((b, i) => (
+              <a key={i} href={buttonHref(b, base)} {...outward(b)}
+                className={i === 0
+                  ? "inline-flex items-center justify-center border border-white/90 bg-white/10 px-7 py-3.5 font-ui text-sm font-semibold uppercase tracking-[0.2em] text-white backdrop-blur-sm hover:bg-white hover:text-ink"
+                  : "inline-flex items-center justify-center px-5 py-3.5 font-ui text-sm font-semibold uppercase tracking-[0.2em] text-white/90 underline-offset-8 hover:underline"}>
+                {b.label}
+              </a>
+            ))}
+          </div>
+        )}
+        <SocialLinksRow social={social} light className="mt-8 justify-center" />
+      </div>
+    </section>
+  );
+}
+
 const Icon = ({ c }: { c: string }) => <span aria-hidden className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-crimson/10 text-lg">{c}</span>;
 // The hours card is connected to their booking calendar: its hours can come from the calendar, and while their sessions are on it opens the
 // booking card.
 export function SiteInfoStrip() {
   const { blocks, booking, base } = useSite();
   const i = blocks.info;
-  const wa = i.whatsapp ? buttonHref({ kind: "whatsapp", label: "", value: i.whatsapp }, "") : "";
+  // WhatsApp stays as a way to reach them, not to order (orders and payments stay on #NotesApp).
+  const wa = i.whatsapp ? `https://wa.me/${i.whatsapp.replace(/^\+/, "").replace(/^0/, "234")}` : "";
   const hours = (i.bookingHours && booking.hours) || i.hours;
   const cards = [
     hours && { icon: "🕘", text: hours, href: booking.offered ? `${base}/#book` : "" },
     i.whatsapp && { icon: "💬", text: "Chat on WhatsApp", href: wa },
-    i.phone && { icon: "📞", text: i.phone, href: `tel:${i.phone}` },
+    i.email && { icon: "✉️", text: i.email, href: `mailto:${i.email}` }, // never the phone number on Home (owner); it's for Call buttons
     i.address && { icon: "📍", text: i.address, href: i.mapUrl },
   ].filter(Boolean) as { icon: string; text: string; href: string }[];
   return (
@@ -72,17 +108,63 @@ export function SiteInfoStrip() {
   );
 }
 
-const Heading = ({ children }: { children: React.ReactNode }) => <p className="eyebrow">{children}</p>;
+// Section titles: small eyebrows, or, on Luxe, centred serif titles under a small line.
+function Heading({ children }: { children: React.ReactNode }) {
+  const { theme } = useSite();
+  if (theme === "luxe") return <h2 className="text-center font-display text-3xl text-ink sm:text-4xl">{children}</h2>;
+  return <p className="eyebrow">{children}</p>;
+}
+// Services and prices. With times, tabs or pictures (the beauty kits' menu, like a spa's), they show as cards in tabs (All, Facials,
+// Massages …), each with its time, its price and Book now while the member's sessions are on; otherwise as a simple price list.
 function Services() {
-  const { blocks } = useSite();
+  const { blocks, booking, base } = useSite();
+  const items = blocks.services.items;
+  const [tab, setTab] = useState("All");
+  const menu = items.some((x) => x.minutes || x.group || x.image);
+  if (!menu) {
+    return (
+      <section id="services" className="mt-14 scroll-mt-28">
+        <Heading>Services and prices</Heading>
+        <ul className="card mt-5 divide-y divide-rule">
+          {items.map((x, n) => (
+            <li key={n} className="flex items-start justify-between gap-4 p-4">
+              <span><span className="block font-ui text-sm font-bold text-ink">{x.name}</span>{x.note && <span className="block text-xs text-slate">{x.note}</span>}</span>
+              {x.price && <span className="shrink-0 font-ui text-sm font-bold text-crimson">{x.price}</span>}
+            </li>
+          ))}
+        </ul>
+      </section>
+    );
+  }
+  const groups = Array.from(new Set(items.map((x) => x.group).filter((g): g is string => !!g)));
+  const shown = tab === "All" ? items : items.filter((x) => x.group === tab);
   return (
-    <section className="mt-14">
-      <Heading>Services and prices</Heading>
-      <ul className="card mt-5 divide-y divide-rule">
-        {blocks.services.items.map((s, n) => (
-          <li key={n} className="flex items-start justify-between gap-4 p-4">
-            <span><span className="block font-ui text-sm font-bold text-ink">{s.name}</span>{s.note && <span className="block text-xs text-slate">{s.note}</span>}</span>
-            {s.price && <span className="shrink-0 font-ui text-sm font-bold text-crimson">{s.price}</span>}
+    <section id="services" className="mt-16 scroll-mt-28" aria-labelledby="menu-h">
+      <p className="text-center font-ui text-xs font-semibold uppercase tracking-[0.3em] text-crimson">Our menu</p>
+      <h2 id="menu-h" className="mt-2 text-center font-display text-4xl text-ink">Services</h2>
+      {groups.length > 1 && (
+        <div className="-mx-4 mt-6 flex gap-2 overflow-x-auto px-4 pb-1 sm:mx-0 sm:flex-wrap sm:justify-center sm:px-0" role="tablist" aria-label="Kinds of service">
+          {["All", ...groups].map((g) => (
+            <button key={g} type="button" role="tab" aria-selected={tab === g} onClick={() => setTab(g)}
+              className={`shrink-0 rounded-full border px-4 py-1.5 text-sm ${tab === g ? "border-crimson bg-crimson text-paper" : "border-rule bg-card text-ink hover:border-crimson"}`}>{g}</button>
+          ))}
+        </div>
+      )}
+      <ul className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        {shown.map((x, n) => (
+          <li key={`${x.name}${n}`} className="card flex flex-col overflow-hidden">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            {x.image && <img src={x.image} alt="" loading="lazy" className="aspect-[4/3] w-full object-cover" />}
+            <div className="flex flex-1 flex-col p-5">
+              {x.group && <p className="text-[11px] font-semibold uppercase tracking-wide text-slate">{x.group}</p>}
+              <p className="mt-1 font-display text-xl leading-snug text-ink">{x.name}</p>
+              {x.note && <p className="mt-1 text-sm text-slate">{x.note}</p>}
+              <p className="mt-3 flex flex-1 items-end gap-3 font-ui text-sm">
+                {x.minutes ? <span className="text-slate">{durationText(x.minutes)}</span> : null}
+                {x.price && <span className="font-bold text-ink">{x.price}</span>}
+              </p>
+              {booking.offered && <a href={`${base}/#book`} className="mt-4 inline-flex w-fit items-center rounded-full border border-crimson px-4 py-2 font-ui text-xs font-bold uppercase tracking-wide text-crimson hover:bg-crimson hover:text-paper">Book now</a>}
+            </div>
           </li>
         ))}
       </ul>
@@ -272,7 +354,9 @@ const PARTS: Record<Exclude<BlockId, "hero" | "info">, () => JSX.Element> = {
   services: Services, gallery: Gallery, testimonials: Testimonials, team: Team, faq: Faq, publications: Publications, awards: Awards, talks: Talks, news: News,
 };
 // The sections after the banner and the strip, in the member's order.
-export function SiteContentBlocks() {
+// `lead`: one section goes first (Services, when Home leads with them).
+export function SiteContentBlocks({ lead }: { lead?: BlockId } = {}) {
   const { shownBlocks } = useSite();
-  return <>{shownBlocks.filter((id): id is keyof typeof PARTS => id in PARTS).map((id) => { const P = PARTS[id]; return <P key={id} />; })}</>;
+  const order = lead && shownBlocks.includes(lead) ? [lead, ...shownBlocks.filter((id) => id !== lead)] : shownBlocks;
+  return <>{order.filter((id): id is keyof typeof PARTS => id in PARTS).map((id) => { const P = PARTS[id]; return <P key={id} />; })}</>;
 }

@@ -23,7 +23,7 @@ export async function gatherTraction(db: Firestore): Promise<Traction> {
   return computeTraction({
     users: users.docs.map((d) => d.data() as never),
     storeItems: items.docs.map((d) => d.data() as never),
-    payments: payments.docs.map((d) => d.data() as never),
+    payments: payments.docs.filter((d) => d.data().kind !== "store_cart").map((d) => d.data() as never), // a basket's money is in its orders
     ledger: ledger.docs.map((d) => d.data() as never),
     bookings: bookings.docs.map((d) => d.data() as never),
     storeOrders: orders.docs.map((d) => d.data() as never),

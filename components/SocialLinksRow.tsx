@@ -18,7 +18,8 @@ const LINKS: { key: keyof SocialLinks; label: string; icon: ReactNode }[] = [
 // label). What they typed is read by socialHref: full addresses, bare ones, handles and WhatsApp numbers all work; anything
 // it can't read isn't shown. On your own profile (`editable`) a pencil after the icons opens Edit profile at Social links, and with no
 // links yet an "Add your social links" button shows instead.
-export default function SocialLinksRow({ social, className = "", editable = false }: { social?: SocialLinks; className?: string; editable?: boolean }) {
+// `light`: white icons, over a photo or a dark footer.
+export default function SocialLinksRow({ social, className = "", editable = false, light = false }: { social?: SocialLinks; className?: string; editable?: boolean; light?: boolean }) {
   const links = LINKS.map((l) => ({ ...l, href: socialHref(l.key, social?.[l.key]) })).filter((l): l is typeof l & { href: string } => !!l.href);
   if (links.length === 0) {
     if (!editable) return null;
@@ -34,7 +35,7 @@ export default function SocialLinksRow({ social, className = "", editable = fals
           rel="noopener noreferrer nofollow"
           title={l.label}
           aria-label={l.label}
-          className="flex h-9 w-9 items-center justify-center rounded-full border border-rule text-crimson transition-colors hover:border-crimson hover:bg-crimson hover:text-paper"
+          className={`flex h-9 w-9 items-center justify-center rounded-full border transition-colors ${light ? "border-white/50 text-white hover:bg-white hover:text-ink" : "border-rule text-crimson hover:border-crimson hover:bg-crimson hover:text-paper"}`}
         >
           {l.icon}
         </a>

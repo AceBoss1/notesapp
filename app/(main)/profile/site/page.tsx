@@ -9,7 +9,7 @@ import { effectiveTier, getUserByUid, UserProfile } from "@/lib/users";
 import { MAIN_HOST } from "@/lib/host";
 import { canHaveSite, meetsTier, siteThemeOf, tierName, type SiteThemeId } from "@/lib/site-themes";
 import { SITE_PAGES, SITE_PAGE_MAX, SITE_SECTIONS, siteSectionsOf, type SitePageId, type SiteSections } from "@/lib/site-settings";
-import { BLOCKS, SECTION_MIN_TIER, blockAllowed, emptyBlocks, DEFAULT_ORDER, type BlockId, type Blocks, type Kit, type SiteDoc } from "@/lib/site-kits";
+import { ANNOUNCE_MAX, BLOCKS, SECTION_MIN_TIER, SITE_FOCUS, blockAllowed, emptyBlocks, DEFAULT_ORDER, type BlockId, type Blocks, type Kit, type SiteDoc } from "@/lib/site-kits";
 import { getTierConfig } from "@/lib/tiers";
 import PageHero from "@/components/PageHero";
 import RichTextEditor from "@/components/RichTextEditor";
@@ -186,6 +186,9 @@ export default function YourSitePage() {
               <p className="font-ui text-sm font-bold text-ink">Cover photo</p>
               <p className="mt-0.5 mb-2 text-xs text-slate">A wide picture across the top of your profile, on any look (about 1500 × 500 works well). Your social links show under your name.</p>
               <Picture value={site.cover} label="Add a cover photo" onChange={async (cover) => { if (!user) return; const d = await call(user, "/api/site/content", { cover }); applyDoc(d.site); }} />
+              <p className="mt-6 font-ui text-sm font-bold text-ink">Announcement bar</p>
+              <p className="mt-0.5 mb-2 text-xs text-slate">One line across the top of every page of your site, like &ldquo;Free delivery in Lagos this week&rdquo;. Leave it empty to hide it.</p>
+              <AnnounceField key={site.announce ?? ""} value={site.announce ?? ""} onSave={async (announce) => { if (!user) return; const d = await call(user, "/api/site/content", { announce }); applyDoc(d.site); }} />
             </div>
           )}
         </SiteThemePicker>
@@ -216,6 +219,22 @@ export default function YourSitePage() {
               <span className="mt-1 block text-xs text-slate">A card under each of your journals on your site that opens your booking calendar. It shows while your sessions are on (<Link href="/profile/publishing" className="text-crimson underline">set your times and price</Link>).</span>
             </span>
           </label>
+          {site && (
+            <fieldset className="mt-6">
+              <legend className="font-ui text-sm font-bold text-ink">Home leads with</legend>
+              <p className="mt-0.5 text-xs text-slate">What visitors see first on Home, and more of it. With a mix, Home shows a little of each.</p>
+              <div className="mt-2 flex flex-wrap gap-2" role="radiogroup">
+                {SITE_FOCUS.map((f) => {
+                  const on = (site.focus ?? "mix") === f.id;
+                  return (
+                    <button key={f.id} type="button" role="radio" aria-checked={on}
+                      onClick={async () => { if (!user) return; const d = await call(user, "/api/site/content", { focus: f.id }); applyDoc(d.site); }}
+                      className={`rounded-full border px-3 py-1.5 text-xs ${on ? "border-crimson bg-crimson text-paper" : "border-rule text-ink hover:border-crimson"}`}>{f.label}</button>
+                  );
+                })}
+              </div>
+            </fieldset>
+          )}
           <p className="mt-6 text-sm text-slate">Sections on Home, in this order (use the arrows). Fill them in at step 4.</p>
           <ol className="mt-3 space-y-2">
             {order.map((id, n) => {
@@ -284,5 +303,17 @@ export default function YourSitePage() {
         </p>
       </section>
     </>
+  );
+}
+
+// The announcement bar's line (lib/site-kits.ts cleanAnnounce), saved on its own.
+function AnnounceField({ value, onSave }: { value: string; onSave: (v: string) => Promise<void> }) {
+  const [v, setV] = useState(value);
+  const [busy, setBusy] = useState(false);
+  return (
+    <div className="flex flex-wrap gap-2">
+      <input value={v} onChange={(e) => setV(e.target.value)} maxLength={ANNOUNCE_MAX} placeholder="Free delivery on orders over ₦50,000" aria-label="Announcement bar" className="min-w-0 flex-1 rounded-xl border border-rule bg-card px-3 py-2 text-sm text-ink" />
+      <button type="button" className="btn-primary !px-4 !py-2 text-xs" disabled={busy || v.trim() === value} onClick={async () => { setBusy(true); try { await onSave(v); } finally { setBusy(false); } }}>{busy ? "Saving…" : "Save"}</button>
+    </div>
   );
 }

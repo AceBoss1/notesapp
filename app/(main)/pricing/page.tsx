@@ -154,7 +154,7 @@ const ROWS: Row[] = [
         : t.tier === "basic"
           ? `At ${ROOT_DOMAIN}/s/username: the Personal and Academics kits, the Clean, Scholar and Legacy looks with colour sets, a banner with buttons, hours, prices, gallery, testimonials, team, answers, publications, awards, talks and news, Journals, Shop and Courses`
           : t.tier === "pro"
-            ? "Also the 12 business kits (Fashion, Food & baking, Services, Healthcare, Spa, Salons, Fitness, Events, Electronics, Motor parts, Solar, Real estate), the Aurora and Maroon looks, and your own brand colour"
+            ? "Also the 12 business kits (Fashion, Food & baking, Services, Healthcare, Beauty and wellness (spa, massage, hair, nails), Fitness, Events, Electronics, Motor parts, Solar, Real estate), the Aurora and Maroon looks, and your own brand colour"
             : "Every kit, including Schools and Churches/NGOs, and Track, on your own domain too",
   },
   {

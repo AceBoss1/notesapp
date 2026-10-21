@@ -23,6 +23,8 @@ import ReviewsPanel from "@/components/ReviewsPanel";
 import MessageButton from "@/components/messages/MessageButton";
 import { countView, useSavedItems } from "@/lib/store-social";
 import { categoryOf } from "@/lib/store-meta";
+import { useSiteOptional } from "@/components/site/SiteContext";
+import { useBasket } from "@/lib/cart-client";
 
 const field = "mt-1 w-full border border-rule bg-card px-3 py-2 text-sm outline-none focus:border-crimson";
 
@@ -41,6 +43,10 @@ export default function ShopItemPage() {
   const [addr, setAddr] = useState({ fullName: "", phone: "", street: "", city: "", state: "" });
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
+  // On a member's site the item can also go in the basket (lib/cart-client.ts), to pay for several together.
+  const site = useSiteOptional();
+  const basket = useBasket(site?.uid ?? "");
+  const [added, setAdded] = useState(false);
   const [agreed, setAgreed] = useState(false);
   // The store's delivery partner (lib/logistics.ts): its price for this address replaces the item's own delivery fee.
   const [ship, setShip] = useState<{ partner: { name: string; username: string } | null; carrier: { name: string; feeKobo: number } | null } | null>(null);
@@ -135,6 +141,19 @@ export default function ShopItemPage() {
       setError(err instanceof Error ? err.message : "Couldn't start payment.");
       setBusy(false);
     }
+  }
+
+  function addToBasket() {
+    setError("");
+    if (!item?.id && !itemId) return;
+    if (options.length && !chosen) return setError(`Choose ${options.map((o) => o.name.toLowerCase()).join(" and ")} first.`);
+    if (selectedStock !== null && selectedStock <= 0) return setError("That option is sold out — pick another.");
+    const ok = basket.add({
+      itemId, quantity: qty, ...(options.length ? { variant: selection, variantLabel: options.map((o, i) => `${o.name}: ${selection[i]}`).join(", ") } : {}),
+      title: item!.title, price: item!.price, priceKobo: unit, image: item!.image,
+    });
+    if (!ok) return setError("Your basket is full. Pay for it first, then add more.");
+    setAdded(true);
   }
 
   async function pay(e: React.FormEvent) {
@@ -281,6 +300,13 @@ export default function ShopItemPage() {
         <label className="text-xs text-slate">Quantity
           <input type="number" min={1} max={maxQty} value={qty} onChange={(e) => setQuantity(Math.max(1, Math.min(maxQty, Number(e.target.value) || 1)))} className={field} />
         </label>
+        {site && (
+          <div className="sm:col-span-2 flex flex-wrap items-center gap-3">
+            <button type="button" onClick={addToBasket} className="btn-primary">Add to basket</button>
+            {added && <span className="text-sm text-ink">Added ✓ <Link href={`${site.base}/cart`} className="font-semibold text-crimson underline">View basket ({basket.count})</Link></span>}
+            <span className="w-full text-xs text-slate">Or buy just this one now: fill in the address below.</span>
+          </div>
+        )}
         <div className="self-end text-sm text-ink">
           {formatNaira(unit)} × {qty}{delivery ? ` + ${formatNaira(delivery)} delivery${ship?.carrier ? ` by ${ship.carrier.name}` : ""}` : " · delivery arranged by the seller"} = <strong>{formatNaira(total)}</strong>
         </div>
@@ -300,7 +326,7 @@ export default function ShopItemPage() {
           #NotesApp is not the seller or the carrier — see <Link href="/terms" className="text-crimson underline">Terms 5g</Link>.
         </p>
         {error && <p className="sm:col-span-2 text-sm text-crimson">{error}</p>}
-        <button disabled={busy} className="btn-primary sm:col-span-2">{busy ? "Please wait…" : user ? `Pay ${formatNaira(total)}` : "Sign in to buy"}</button>
+        <button disabled={busy} className="btn-primary sm:col-span-2">{busy ? "Please wait…" : user ? `${site ? "Buy now: pay" : "Pay"} ${formatNaira(total)}` : "Sign in to buy"}</button>
       </form>
       )}
         </div>

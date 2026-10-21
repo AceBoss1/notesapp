@@ -11,6 +11,45 @@ export type Release = {
 
 export const CHANGELOG: Release[] = [
   {
+    version: "v0.74.0",
+    bump: "minor",
+    date: "2026-10-22",
+    changes: [
+      { kind: "added", text: "Community is live: any account can start one for its church, NGO, school, club or association, at notesapp.name.ng/c/your-name. Free up to 200 members; Business has no limit and adds private Circles." },
+      { kind: "added", text: "Members get the whole group: the General announcement channel (admins post, members like and comment), public and members-only Spaces, Events, the member list and Circles. Members-only posts never leave the community." },
+      { kind: "added", text: "People who aren't members see a home page about you, and whatever your admins choose to show: General (read only, with slow mode for members), About, Contact, public events, the member list and a Join button." },
+      { kind: "added", text: "Admin tools: join openly, by approval with join questions, or by invite link; approve requests; owner, admins and moderators; remove or ban; pin posts; slow mode; Spaces; insights (members, new joins, activity, most active); and View as a non-member, member, moderator or admin before you change anything." },
+      { kind: "added", text: "Events for every account: Going and Interested, reminders 24 hours and 1 hour before (bell, phone and email), Add to calendar, weekly or monthly repeats, a Join live link (YouTube Live, Facebook Live, Zoom, Google Meet), and upcoming public events by state and city. A community's events can be for members only." },
+    ],
+  },
+  {
+    version: "v0.73.0",
+    bump: "minor",
+    date: "2026-10-22",
+    changes: [
+      { kind: "added", text: "Beauty and wellness kit for your site, in four flavours: Spa, Massage, Hair and Nails (Pro and above). It opens with a full photo and your words over it, lists your services as a menu with tabs, times and prices, each with Book now, and keeps a Book your appointment tab on every page. It replaces the Massage and spa and Salons kits; sites using those keep working." },
+      { kind: "added", text: "Services can now carry minutes, a tab (Facials, Braids, Pedicure…) and a picture, on any site: they then show as a menu of cards." },
+      { kind: "added", text: "A Night background for your site (any look but Scholar): a dark page with your colours glowing on it." },
+      { kind: "added", text: "The Luxe look (Pro): your site opens with a full photo (your banner picture or your cover) with your words, buttons and social links over it, then everything under centred titles. Beauty and wellness and Fashion start on it; Fashion's Home now opens with Shop now and New arrivals, then Shop by category and New in." },
+      { kind: "added", text: "Choose what your Home leads with: your shop, your services, your courses or your notes, first and with more of it, or a mix of everything (the default)." },
+      { kind: "added", text: "A Check our services button for your banner, which jumps to your services menu. Beauty and wellness sites start with Book your appointment and Check our services." },
+      { kind: "changed", text: "Your site's hours and contacts strip shows your email instead of your phone number (the phone number is only used by Call buttons). Your social links now also show in your site's footer." },
+    ],
+  },
+  {
+    version: "v0.72.0",
+    bump: "minor",
+    date: "2026-10-22",
+    changes: [
+      { kind: "fixed", text: "Courses on your site now open inside your site (on your own domain too), instead of sending visitors away to Notes Academy. Lessons and certificates still open on #NotesApp." },
+      { kind: "fixed", text: "The shop on your site now looks like a shop on every look: New arrivals, category and Most popular links, a featured piece, a bar with the product count, search, sorting and bigger or smaller pictures, and picture tiles two to a row on phones, with Sold out and Only a few left. Fashion and beauty show tall photos, gadgets and parts show the whole product on white." },
+      { kind: "added", text: "A basket for shops on your site: tap + on a picture (or Add to basket on an item's page), see the count in the header, change quantities, and pay for everything at once by card or bank with one delivery. Each item becomes its own order, held until its delivery is confirmed." },
+      { kind: "added", text: "For shops: an announcement bar across the top of your site, the featured piece with its picture on the right, and, when the shop is your main page and you have a cover photo, the cover across the whole page with Shop now." },
+      { kind: "changed", text: "No more Order on WhatsApp buttons on sites: orders and payments stay on #NotesApp, where buyers are protected. A button saved before becomes Contact us, and the kits' starter buttons now point to the shop, booking or Contact." },
+      { kind: "fixed", text: "Pictures are now turned into WebP before they upload (journals, shop, site, profile, chats, moments, adverts): smaller files and faster pages, very large photos made smaller, and the hidden camera details left out." },
+    ],
+  },
+  {
     version: "v0.71.0",
     bump: "minor",
     date: "2026-10-22",

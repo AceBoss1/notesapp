@@ -14,9 +14,11 @@ import GiftButton from "@/components/GiftButton";
 import { useSite } from "./SiteContext";
 
 // The member's profile block at the top of their Home page: their cover photo if they set one, logo, name with its badges, role, bio, the gold endorsement
-// line, social icons, followers and join date, and the Follow / Gift buttons. The same facts as their #NotesApp profile.
-export default function SiteProfileHeader() {
-  const site = useSite();
+// line, social icons, followers and join date, and the Follow / Gift buttons. The same facts as their #NotesApp profile. `noCover`: the
+// cover is already shown above, as the shop banner (SiteHome's StoreBanner).
+export default function SiteProfileHeader({ noCover = false }: { noCover?: boolean }) {
+  const ctx = useSite();
+  const site = noCover ? { ...ctx, cover: "" } : ctx;
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [followers, setFollowers] = useState<number | null>(null);
 
