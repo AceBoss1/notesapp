@@ -16,7 +16,7 @@ import RichTextEditor from "@/components/RichTextEditor";
 import SiteThemePicker from "@/components/SiteThemePicker";
 import KitPicker from "@/components/site-settings/KitPicker";
 import PalettePicker from "@/components/site-settings/PalettePicker";
-import BlockEditors from "@/components/site-settings/BlockEditors";
+import BlockEditors, { Picture } from "@/components/site-settings/BlockEditors";
 import { missingPagesText } from "@/components/SiteReminder";
 
 // "Your site" (Free Basic and above; docs/SITES.md): where the site lives, then five steps: start from a kit, the look and its colours, what
@@ -62,7 +62,7 @@ export default function YourSitePage() {
     setText(pages);
     setSaved(pages);
     if (!canHaveSite(p)) return;
-    call(u, "/api/site/content").then((d) => applyDoc(d.site)).catch(() => applyDoc({ kit: "", palette: { id: "crimson" }, blocks: emptyBlocks(), order: DEFAULT_ORDER, bookBelowPosts: false, orcid: null }));
+    call(u, "/api/site/content").then((d) => applyDoc(d.site)).catch(() => applyDoc({ kit: "", palette: { id: "crimson" }, blocks: emptyBlocks(), order: DEFAULT_ORDER, bookBelowPosts: false, orcid: null, cover: "" }));
     if (getTierConfig(effectiveTier(p)).customDomain) {
       fetch("/api/console/domain", { headers: { Authorization: `Bearer ${await u.getIdToken()}` } })
         .then((r) => r.json()).then((d) => setDomain(d.domain || null)).catch(() => {});
@@ -181,6 +181,13 @@ export default function YourSitePage() {
 
         <SiteThemePicker key={theme} current={theme} username={profile.username} tier={tier} title="2. Choose its look and colours" onChange={setTheme}>
           {site && <PalettePicker key={`${site.palette.id}${site.palette.custom ?? ""}${site.palette.bg ?? ""}${theme}`} tier={tier} theme={theme} value={site.palette} onSave={async (palette) => { if (!user) return; const d = await call(user, "/api/site/content", { palette }); applyDoc(d.site); }} />}
+          {site && (
+            <div className="mt-6">
+              <p className="font-ui text-sm font-bold text-ink">Cover photo</p>
+              <p className="mt-0.5 mb-2 text-xs text-slate">A wide picture across the top of your profile, on any look (about 1500 × 500 works well). Your social links show under your name.</p>
+              <Picture value={site.cover} label="Add a cover photo" onChange={async (cover) => { if (!user) return; const d = await call(user, "/api/site/content", { cover }); applyDoc(d.site); }} />
+            </div>
+          )}
         </SiteThemePicker>
 
         <section className="card mt-10 p-6" aria-labelledby="sections-h">

@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { buttonHref, byYear, resolveButton, type BlockId, type SiteButton } from "@/lib/site-kits";
 import TalksGlobe from "./TalksGlobe";
+import { MAIN_HOST } from "@/lib/host";
 import { useSite } from "./SiteContext";
 
 // The content sections of a member's site (lib/site-kits.ts), in the member's order. Colours come from the site's colour set (the crimson
@@ -144,7 +145,10 @@ function Team() {
               // eslint-disable-next-line @next/next/no-img-element
               ? <img src={x.photo} alt="" loading="lazy" className="mx-auto h-20 w-20 rounded-full object-cover" />
               : <span aria-hidden className="mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-crimson/10 font-display text-2xl text-crimson">{x.name.split(/\s+/).slice(0, 2).map((w) => w[0]).join("").toUpperCase()}</span>}
-            <p className="mt-3 font-ui text-sm font-bold text-ink">{x.name}</p>
+            {/* Tagged: their name links to their #NotesApp profile. */}
+            {x.username
+              ? <a href={`https://${MAIN_HOST}/u/${x.username}`} target="_blank" rel="noopener noreferrer" className="mt-3 block font-ui text-sm font-bold text-ink hover:text-crimson">{x.name} <span className="font-normal text-crimson">@{x.username}</span></a>
+              : <p className="mt-3 font-ui text-sm font-bold text-ink">{x.name}</p>}
             {x.role && <p className="text-xs text-slate">{x.role}</p>}
           </li>
         ))}

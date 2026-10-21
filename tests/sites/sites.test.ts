@@ -58,10 +58,10 @@ assert.deepEqual(visibleBlocks(d, "standard"), [], "no site below Free Basic");
 assert.deepEqual(siteSectionsShown({ ...(u("basic") as object), siteSections: { journals: true, shop: true, courses: true, track: true } } as never), { journals: true, shop: true, courses: true, track: false }, "Shop from Free Basic (higher commission), Track from Business");
 
 // Kits
-assert.equal(KITS.length, 8);
+assert.equal(KITS.length, 16);
 assert.deepEqual(KITS.filter((k) => kitAllowed(k, "basic")).map((k) => k.id), ["personal", "scholar"], "Free Basic: the personal kits only (Personal and creators, Academics)");
-assert.deepEqual(KITS.filter((k) => kitAllowed(k, "pro")).map((k) => k.id), ["personal", "scholar", "fashion", "food", "services", "healthcare"]);
-assert.equal(KITS.filter((k) => kitAllowed(k, "business")).length, 8);
+assert.deepEqual(KITS.filter((k) => kitAllowed(k, "pro")).map((k) => k.id), ["personal", "scholar", "fashion", "food", "services", "healthcare", "spa", "salon", "fitness", "events", "electronics", "motor", "solar", "realestate"]);
+assert.equal(KITS.filter((k) => kitAllowed(k, "business")).length, 16);
 const mine = siteDocOf({ blocks: { hero: { headline: "My own words" }, services: { items: [{ name: "Mine", price: "₦1" }] } } });
 const r = applyKitTo(mine, kitOf("food")!, "pro");
 assert.equal(r.theme, "clean"); assert.equal(r.site.kit, "food"); assert.equal(r.site.palette.id, "sunset");
@@ -118,4 +118,16 @@ const dots = landDots();
 assert.ok(dots.length > 3000 && dots.length < 5000, `land dots: ${dots.length}`);
 const near = (lat: number, lng: number) => dots.some(([a, b]) => Math.abs(a - lat) <= 2 && Math.abs(b - lng) <= 2);
 assert.ok(near(9, 8), "Nigeria is land"); assert.ok(!near(0, -30), "the middle of the Atlantic isn't");
+
+// Phase 4: the new kits each start a usable site; a cover photo; team members tagged by username.
+for (const k of KITS) {
+  const r = applyKitTo(siteDocOf({}), k, "business");
+  assert.ok(r.site.blocks.hero.headline && r.site.blocks.hero.button, `${k.id}: a banner with a button`);
+  assert.ok(visibleBlocks(r.site, "business").includes("hero"), `${k.id}: shows something`);
+  assert.equal(new Set(r.site.order).size, r.site.order.length, `${k.id}: each section once`);
+}
+assert.equal(siteDocOf({ cover: "https://img.test/c.jpg" }).cover, "https://img.test/c.jpg");
+assert.equal(siteDocOf({ cover: "javascript:alert(1)" }).cover, ""); assert.equal(siteDocOf({}).cover, "");
+const tm = cleanBlocks({ team: { on: true, items: [{ name: "Bisi", username: "@Bisi_A" }, { name: "Tolu", username: "no spaces!" }, { name: "Ada" }] } }).team.items;
+assert.equal(tm[0].username, "bisi_a"); assert.equal(tm[1].username, undefined); assert.equal("username" in tm[2], false);
 console.log("ALL OK");

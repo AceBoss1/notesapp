@@ -25,7 +25,8 @@ export type SiteInfo = {
   blocks: Blocks; // the content sections (lib/site-kits.ts): banner, hours and contacts, services, gallery, testimonials, team, questions
   shownBlocks: BlockId[];
   // Their booking calendar: whether sessions are on, and its opening hours in words (lib/site-kits.ts bookingHoursText).
-  booking: { offered: boolean; hours: string }; // the ones a visitor sees, in the member's order (switched on, filled in, covered by the plan)
+  booking: { offered: boolean; hours: string };
+  cover: string; // the wide picture behind their profile header, if any (lib/site-kits.ts) // the ones a visitor sees, in the member's order (switched on, filled in, covered by the plan)
 };
 
 const Ctx = createContext<SiteInfo | null>(null);

@@ -28,7 +28,7 @@ export async function POST(req: NextRequest) {
     const limited = await rateLimit(req, "site-content", me.uid, 120, 3600);
     if (limited) return limited;
     const b = await req.json().catch(() => ({}));
-    return NextResponse.json({ site: await saveSite(getAdminDb(), me.uid, { blocks: b.blocks, order: b.order, palette: b.palette, bookBelowPosts: b.bookBelowPosts }) });
+    return NextResponse.json({ site: await saveSite(getAdminDb(), me.uid, { blocks: b.blocks, order: b.order, palette: b.palette, bookBelowPosts: b.bookBelowPosts, cover: b.cover }) });
   } catch (err) {
     if (err instanceof SiteError) return NextResponse.json({ error: err.message }, { status: err.status });
     const f = friendlyMessage(err, "Couldn't save your site");

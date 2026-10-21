@@ -12,7 +12,7 @@ import { PLACE_NAMES, placeCoords } from "@/lib/places";
 const field = "mt-1 w-full rounded-xl border border-rule bg-card px-3 py-2 text-sm outline-none focus:border-crimson";
 const small = "rounded-full border border-rule px-3 py-1 text-xs font-semibold text-ink hover:border-crimson disabled:opacity-40";
 
-function Picture({ value, onChange, label }: { value: string; onChange: (url: string) => void; label: string }) {
+export function Picture({ value, onChange, label }: { value: string; onChange: (url: string) => void; label: string }) {
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState("");
   async function pick(f: File | undefined) {
@@ -126,7 +126,8 @@ export default function BlockEditors({ tier, value, onChange, orcid = null, onOr
       {value.team.on && (
         <details open className="rounded-2xl border border-rule p-4"><summary className="cursor-pointer font-ui text-sm font-bold text-ink">{name("team")}</summary>
           <div className="mt-3"><Rows grid items={value.team.items} max={LIMITS.team} blank={{ name: "", role: "", photo: "" }} addLabel="Add a person" onChange={(items) => set("team", { ...value.team, items })}
-            render={(x, s) => <div className="grid gap-2"><Picture value={x.photo} label="Add a photo" onChange={(photo) => s({ ...x, photo })} /><div className="grid gap-2 sm:grid-cols-2"><input aria-label="Name" placeholder="Name" value={x.name} maxLength={60} onChange={(e) => s({ ...x, name: e.target.value })} className={field} /><input aria-label="Role" placeholder="Role" value={x.role} maxLength={80} onChange={(e) => s({ ...x, role: e.target.value })} className={field} /></div></div>} /></div>
+            render={(x, s) => <div className="grid gap-2"><Picture value={x.photo} label="Add a photo" onChange={(photo) => s({ ...x, photo })} /><div className="grid gap-2 sm:grid-cols-2"><input aria-label="Name" placeholder="Name" value={x.name} maxLength={60} onChange={(e) => s({ ...x, name: e.target.value })} className={field} /><input aria-label="Role" placeholder="Role" value={x.role} maxLength={80} onChange={(e) => s({ ...x, role: e.target.value })} className={field} /></div><input aria-label="Their #NotesApp username" placeholder="@username on #NotesApp (optional): links their name" value={x.username ? `@${x.username}` : ""} maxLength={31} onChange={(e) => s({ ...x, username: e.target.value.replace(/^@/, "").trim() || undefined })} className={field} /></div>} />
+            <p className="mt-2 text-xs text-slate">Showing someone here is just a mention: it gives them no access to your account. Team members who work in your account (seats) come with Business.</p></div>
         </details>
       )}
       {value.faq.on && (

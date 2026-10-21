@@ -91,6 +91,9 @@ const fails = async (p: Promise<unknown>, status: number, re: RegExp) => {
   await saveSite(db, "basic", { palette: { id: "royal" } });
   st = await readSite(db, "basic");
   assert.equal(st.orcid?.id, "0000-0002-1825-0097", "saving the site keeps the ORCID link");
+  assert.equal((await saveSite(db, "basic", { cover: "https://img.test/cover.jpg" })).cover, "https://img.test/cover.jpg");
+  assert.equal((await saveSite(db, "basic", { palette: { id: "gold" } })).cover, "https://img.test/cover.jpg", "kept by other saves");
+  assert.equal((await applyKit(db, "basic", "personal")).site.cover, "https://img.test/cover.jpg", "and by a kit");
   assert.equal(await setOrcid(db, "basic", { orcid: null }), null);
   assert.equal((await readSite(db, "basic")).orcid, null);
   console.log("ALL OK");

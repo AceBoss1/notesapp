@@ -11,6 +11,16 @@ export type Release = {
 
 export const CHANGELOG: Release[] = [
   {
+    version: "v0.69.0",
+    bump: "minor",
+    date: "2026-10-21",
+    changes: [
+      { kind: "added", text: "Eight more kits for your site, each with its own look, colours, sections and starter words: Massage and spa, Salons and beauty, Fitness trainers, Events and photography, Electronics and mobile devices, Motor and motorcycle spare parts, Solar and energy solutions, and Real estate (Pro and above). The Fashion kit now covers clothes, bags, shoes and jewellery." },
+      { kind: "added", text: "A cover photo across the top of your profile on your site, on every look, with your logo over its edge and your social links under your name." },
+      { kind: "added", text: "Tag your team: add a person's #NotesApp @username in the Team section and their name links to their profile. Showing someone gives them no access to your account; team seats come with Business." },
+    ],
+  },
+  {
     version: "v0.68.0",
     bump: "minor",
     date: "2026-10-21",

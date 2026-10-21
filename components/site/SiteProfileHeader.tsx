@@ -13,7 +13,7 @@ import FollowButton from "@/components/FollowButton";
 import GiftButton from "@/components/GiftButton";
 import { useSite } from "./SiteContext";
 
-// The member's profile block at the top of their Home page: logo, name with its badges, role, bio, the gold endorsement
+// The member's profile block at the top of their Home page: their cover photo if they set one, logo, name with its badges, role, bio, the gold endorsement
 // line, social icons, followers and join date, and the Follow / Gift buttons. The same facts as their #NotesApp profile.
 export default function SiteProfileHeader() {
   const site = useSite();
@@ -30,11 +30,17 @@ export default function SiteProfileHeader() {
   const joinedAt = profile?.createdAt ? new Date(profile.createdAt) : null;
   const joined = joinedAt && !Number.isNaN(joinedAt.getTime()) ? joinedAt.toLocaleDateString("en-NG", { month: "long", year: "numeric" }) : "";
 
+  // With a cover photo (every look): the picture across the top, the logo overlapping its lower edge.
   return (
-    <section className="flex flex-col items-start gap-6 sm:flex-row sm:items-center">
+    <div>
+    {site.cover && (
+      // eslint-disable-next-line @next/next/no-img-element
+      <img src={site.cover} alt="" className="aspect-[3/1] w-full rounded-2xl object-cover sm:aspect-[4/1]" />
+    )}
+    <section className={`flex flex-col items-start gap-6 sm:flex-row ${site.cover ? "px-2 sm:px-6" : "sm:items-center"}`}>
       {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img src={site.avatar} alt={site.displayName} className={`h-28 w-28 shrink-0 border border-rule object-cover ${site.isOrg ? "rounded-2xl" : "rounded-full"}`} />
-      <div className="min-w-0">
+      <img src={site.avatar} alt={site.displayName} className={`h-28 w-28 shrink-0 border object-cover ${site.cover ? "relative -mt-14 border-4 border-paper bg-paper shadow-sm" : "border-rule"} ${site.isOrg ? "rounded-2xl" : "rounded-full"}`} />
+      <div className={`min-w-0 ${site.cover ? "sm:pt-4" : ""}`}>
         <h1 className="flex flex-wrap items-center gap-2 font-display text-4xl text-ink">
           {site.displayName}
           <NameBadgeIcons username={site.username} size={22} badges={profile ? badgesOf(profile) : NO_BADGES} />
@@ -53,10 +59,11 @@ export default function SiteProfileHeader() {
           </p>
         )}
       </div>
-      <div className="flex shrink-0 flex-wrap gap-3 sm:ml-auto">
+      <div className={`flex shrink-0 flex-wrap gap-3 sm:ml-auto ${site.cover ? "sm:pt-4" : ""}`}>
         <FollowButton username={site.username} />
         <GiftButton username={site.username} publisherUid={site.uid} />
       </div>
     </section>
+    </div>
   );
 }

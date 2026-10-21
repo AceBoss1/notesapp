@@ -78,6 +78,7 @@ export default async function SiteLayout({ children, params }: Props) {
     blocks: site?.blocks ?? emptyBlocks(),
     shownBlocks: site ? visibleBlocks(site, tier) : [],
     booking,
+    cover: site?.cover ?? "",
   };
   const clean = info.theme === "clean";
   const scholar = info.theme === "scholar"; // plain and academic, with a dark mode

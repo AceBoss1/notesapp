@@ -2,7 +2,7 @@
 
 The plan for growing Your site into sites for every kind of member and business, and for giving members their own analytics. The owner's
 decisions of 20 Oct 2026 are below. Phase 1 (analytics, v0.63.0) and phase 2 (sections, the Clean look, colour sets and the first kits,
-v0.64.0) and phase 3 (the Scholar look and the academic sections, v0.65.0) are built; phase 4 is next.
+v0.64.0) phase 3 (the Scholar look and the academic sections, v0.65.0) and phase 4 (more kits and the cover photo, v0.69.0) are built.
 
 ## Decisions (owner, 20 Oct 2026)
 
@@ -45,7 +45,7 @@ Kits themselves cost nothing and switching between them is free; what a member c
 | Plan | Kits |
 |---|---|
 | Free Basic | Personal: for a person or a content creator (bio, links, journals, videos, Gallery, and the academic sections for those who want them), the Clean and Scholar looks, preset colour sets, at `/s/<username>` |
-| Pro | Also Fashion, Food & baking, Services, Healthcare; Shop sections; custom brand colours |
+| Pro | Also the business kits (Fashion, Food & baking, Services, Healthcare, Spa, Salons, Fitness, Events, Electronics, Motor parts, Solar, Real estate); custom brand colours (Shop is on every site, at the plan's commission) |
 | Business, Enterprise | Everything, including School and Church/NGO, on their own domain |
 | Add-ons | Community live streaming, Giving, the Enterprise Academy packages: their sections show locked inside kits until added (Track is part of Business) |
 
@@ -112,7 +112,11 @@ An Analytics page for every member who sells, teaches, books sessions or publish
   profile), a DOI (Crossref), or an ORCID iD (ORCID's public API) with an optional daily sync (`sites/{uid}.orcid`, the reminders cron).
   Merged by DOI or title, never twice; the member checks and saves (`lib/publications-import.ts`, `lib/publications-server.ts`).
 
-## Phase 4: more kits (next)
+## Phase 4: more kits and the cover photo (built, v0.69.0)
 
-More kits by type of member and business (for example salons, events, real estate, photographers), each in the same shape as the first
-seven.
+- **Kits** (owner, 21 Oct 2026), Pro like the other business kits: Massage and spa, Salons and beauty, Fitness trainers, Events and
+  photography, Electronics and mobile devices, Motor and motorcycle spare parts, Solar and energy solutions, Real estate. Fashion now
+  covers clothes, bags, shoes and jewellery. 16 kits in all.
+- **Cover photo** on every look (`sites/{uid}.cover`), behind the profile header, with the logo over its edge and the social links under
+  the name.
+- **Team tags**: a person's @username links their name to their #NotesApp profile. A mention only: seats are Business and above.

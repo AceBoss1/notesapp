@@ -48,7 +48,8 @@ export type Info = { on: boolean; hours: string; bookingHours: boolean; whatsapp
 export type ServiceItem = { name: string; price: string; note: string };
 export type Picture = { image: string; caption: string };
 export type Testimonial = { quote: string; name: string; role: string };
-export type Person = { name: string; role: string; photo: string };
+// username: tag them (their name links to their #NotesApp profile). Showing someone gives them no access: seats are Business and above.
+export type Person = { name: string; role: string; photo: string; username?: string };
 export type Qa = { q: string; a: string };
 export type Publication = { title: string; authors: string; venue: string; year: string; url: string; note: string };
 export type Award = { title: string; by: string; year: string; note: string };
@@ -66,7 +67,8 @@ export type SitePalette = { id: PaletteId; custom?: string; bg?: SiteBackground 
 // bookBelowPosts: a booking card under every post on the site (owner, 21 Oct 2026).
 // orcid: the researcher's ORCID iD, and whether their new works are added to Publications daily (lib/publications-server.ts).
 export type OrcidLink = { id: string; sync: boolean; lastSyncAt?: string };
-export type SiteDoc = { kit: string; palette: SitePalette; blocks: Blocks; order: BlockId[]; bookBelowPosts: boolean; orcid: OrcidLink | null; updatedAt?: string };
+// cover: a wide picture behind the profile header, on every look (owner, 21 Oct 2026).
+export type SiteDoc = { kit: string; palette: SitePalette; blocks: Blocks; order: BlockId[]; bookBelowPosts: boolean; orcid: OrcidLink | null; cover: string; updatedAt?: string };
 
 export const LIMITS = { services: 40, gallery: 24, testimonials: 12, team: 24, faq: 20, publications: 200, awards: 60, talks: 80, news: 60 } as const;
 const t = (v: unknown, max: number) => String(v ?? "").replace(/\s+/g, " ").trim().slice(0, max);
@@ -109,6 +111,7 @@ export const emptyBlocks = (): Blocks => ({
 const list = <T,>(v: unknown, max: number, each: (x: Record<string, unknown>) => T | null): T[] =>
   (Array.isArray(v) ? v : []).slice(0, max * 4).map((x) => (x && typeof x === "object" ? each(x as Record<string, unknown>) : null)).filter((x): x is T => x !== null).slice(0, max);
 
+export const cleanCover = (v: unknown) => img(v);
 // Everything a member can send for their sections, made safe and within the limits. Unknown parts are dropped.
 export function cleanBlocks(v: unknown): Blocks {
   const o = (v && typeof v === "object" ? v : {}) as Record<string, Record<string, unknown> | undefined>;
@@ -120,7 +123,7 @@ export function cleanBlocks(v: unknown): Blocks {
     services: { on: on(o.services), items: list(o.services?.items, LIMITS.services, (x) => (t(x.name, 80) ? { name: t(x.name, 80), price: t(x.price, 40), note: t(x.note, 160) } : null)) },
     gallery: { on: on(o.gallery), items: list(o.gallery?.items, LIMITS.gallery, (x) => (img(x.image) ? { image: img(x.image), caption: t(x.caption, 120) } : null)) },
     testimonials: { on: on(o.testimonials), items: list(o.testimonials?.items, LIMITS.testimonials, (x) => (t(x.quote, 400) && t(x.name, 60) ? { quote: para(x.quote, 400), name: t(x.name, 60), role: t(x.role, 80) } : null)) },
-    team: { on: on(o.team), items: list(o.team?.items, LIMITS.team, (x) => (t(x.name, 60) ? { name: t(x.name, 60), role: t(x.role, 80), photo: img(x.photo) } : null)) },
+    team: { on: on(o.team), items: list(o.team?.items, LIMITS.team, (x) => { const u = t(x.username, 40).replace(/^@/, "").toLowerCase(); return t(x.name, 60) ? { name: t(x.name, 60), role: t(x.role, 80), photo: img(x.photo), ...(/^[a-z0-9_.]{2,30}$/.test(u) ? { username: u } : {}) } : null; }) },
     faq: { on: on(o.faq), items: list(o.faq?.items, LIMITS.faq, (x) => (t(x.q, 160) && para(x.a, 800) ? { q: t(x.q, 160), a: para(x.a, 800) } : null)) },
     publications: { on: on(o.publications), items: list(o.publications?.items, LIMITS.publications, (x) => (t(x.title, 300) ? { title: t(x.title, 300), authors: t(x.authors, 600), venue: t(x.venue, 200), year: year(x.year), url: link(x.url), note: t(x.note, 120) } : null)) },
     awards: { on: on(o.awards), items: list(o.awards?.items, LIMITS.awards, (x) => (t(x.title, 200) ? { title: t(x.title, 200), by: t(x.by, 160), year: year(x.year), note: t(x.note, 200) } : null)) },
@@ -149,7 +152,7 @@ const orcidOf = (v: unknown): OrcidLink | null => {
 };
 export function siteDocOf(raw: unknown): SiteDoc {
   const o = (raw && typeof raw === "object" ? raw : {}) as Record<string, unknown>;
-  return { kit: t(o.kit, 30), palette: cleanPalette(o.palette), blocks: cleanBlocks(o.blocks), order: cleanOrder(o.order), bookBelowPosts: o.bookBelowPosts === true, orcid: orcidOf(o.orcid), updatedAt: typeof o.updatedAt === "string" ? o.updatedAt : undefined };
+  return { kit: t(o.kit, 30), palette: cleanPalette(o.palette), blocks: cleanBlocks(o.blocks), order: cleanOrder(o.order), bookBelowPosts: o.bookBelowPosts === true, orcid: orcidOf(o.orcid), cover: img(o.cover), updatedAt: typeof o.updatedAt === "string" ? o.updatedAt : undefined };
 }
 // What a visitor sees: only the sections switched on, with something in them, that the plan still covers (after a downgrade, a section waits
 // switched off rather than vanishing from the settings).
@@ -239,8 +242,8 @@ export const KITS: Kit[] = [
     starter: { headline: "Hello, and welcome.", subline: "What I research and teach, where I've published and spoken, and how to reach me.", button: btn("contact", "Get in touch") },
   },
   {
-    id: "fashion", name: "Fashion and accessories", emoji: "👗", minTier: "pro", theme: "clean", palette: "royal",
-    blurb: "Your collection up front, prices and delivery, orders on WhatsApp, and pictures from your shoots.",
+    id: "fashion", name: "Fashion: clothes, bags, shoes and jewellery", emoji: "👗", minTier: "pro", theme: "clean", palette: "royal",
+    blurb: "Your collection up front (clothes, bags, shoes, jewellery), prices and delivery, orders on WhatsApp, and pictures from your shoots.",
     sections: { journals: false, shop: true, courses: false, track: false }, blocks: ["hero", "info", "gallery", "testimonials", "faq"],
     starter: { headline: "New styles, made to be worn.", subline: "Shop the latest pieces, delivered anywhere in Nigeria.", button: btn("shop"), second: btn("whatsapp"),
       hours: "Mon–Sat, 9am to 7pm",
@@ -270,6 +273,75 @@ export const KITS: Kit[] = [
       hours: "Mon–Fri, 8am to 5pm · Sat, 9am to 1pm",
       services: [{ name: "General consultation", price: "₦10,000", note: "" }, { name: "Lab tests", price: "From ₦5,000", note: "" }],
       faq: [{ q: "Do I need an appointment?", a: "Appointments are best; walk-ins are seen when a doctor is free." }] },
+  },
+  // Phase 4 (owner, 21 Oct 2026): more kits by type of business, Pro like the others.
+  {
+    id: "spa", name: "Massage and spa", emoji: "💆", minTier: "pro", theme: "clean", palette: "forest",
+    blurb: "Your treatments and prices, booking, opening hours and where to find you, and what clients say.",
+    sections: { journals: false, shop: false, courses: false, track: false }, blocks: ["hero", "info", "services", "gallery", "testimonials", "faq"],
+    starter: { headline: "Relax. You've earned it.", subline: "Massages and spa treatments in a calm, clean space. Book your time in a minute.", button: btn("book", "Book a treatment"), second: btn("whatsapp", "Chat on WhatsApp"),
+      hours: "Mon–Sat, 10am to 8pm · Sun, 12pm to 6pm",
+      services: [{ name: "Swedish massage (60 minutes)", price: "₦25,000", note: "" }, { name: "Deep tissue massage (60 minutes)", price: "₦30,000", note: "" }, { name: "Facial", price: "₦18,000", note: "" }],
+      faq: [{ q: "Do I need to book?", a: "Booking is best so your therapist is ready for you; walk-ins are welcome when there's space." }] },
+  },
+  {
+    id: "salon", name: "Salons and beauty", emoji: "💇", minTier: "pro", theme: "clean", palette: "royal",
+    blurb: "Your price list for hair, nails and make-up, your work in pictures, your stylists, and booking.",
+    sections: { journals: false, shop: true, courses: false, track: false }, blocks: ["hero", "services", "gallery", "team", "testimonials", "info"],
+    starter: { headline: "Look good, feel good.", subline: "Hair, nails and make-up by stylists who listen. Book your appointment or chat with us.", button: btn("book", "Book an appointment"), second: btn("whatsapp"),
+      hours: "Tue–Sun, 9am to 7pm",
+      services: [{ name: "Braids (medium, waist length)", price: "From ₦20,000", note: "" }, { name: "Gel nails", price: "₦8,000", note: "" }, { name: "Bridal make-up", price: "From ₦60,000", note: "Trial included" }] },
+  },
+  {
+    id: "fitness", name: "Fitness trainers", emoji: "💪", minTier: "pro", theme: "clean", palette: "sunset",
+    blurb: "Your training plans and prices, results your clients got, booking sessions, and your workouts and tips.",
+    sections: { journals: true, shop: false, courses: true, track: false }, blocks: ["hero", "services", "testimonials", "gallery", "faq"],
+    starter: { headline: "Get stronger, one session at a time.", subline: "Personal training in person or online, with a plan made for you.", button: btn("book", "Book a session"), second: btn("whatsapp"),
+      services: [{ name: "Personal training (1 hour)", price: "₦15,000", note: "" }, { name: "Monthly plan (12 sessions)", price: "₦150,000", note: "With a nutrition guide" }],
+      faq: [{ q: "I'm a beginner. Is that fine?", a: "Yes. We start where you are and build up safely." }] },
+  },
+  {
+    id: "events", name: "Events and photography", emoji: "📸", minTier: "pro", theme: "clean", palette: "charcoal",
+    blurb: "Your best work first, your packages and prices, what clients say, and booking a date.",
+    sections: { journals: true, shop: false, courses: false, track: false }, blocks: ["hero", "gallery", "services", "testimonials", "faq"],
+    starter: { headline: "Moments worth keeping.", subline: "Weddings, birthdays, corporate events and portraits, planned and captured beautifully.", button: btn("book", "Book a date"), second: btn("whatsapp"),
+      services: [{ name: "Portrait session", price: "₦40,000", note: "1 hour, 15 edited photos" }, { name: "Wedding coverage", price: "From ₦350,000", note: "Photo and video" }],
+      faq: [{ q: "How soon do we get our pictures?", a: "Portraits in a week; weddings in about four weeks." }] },
+  },
+  {
+    id: "electronics", name: "Electronics and mobile devices", emoji: "📱", minTier: "pro", theme: "clean", palette: "ocean",
+    blurb: "Phones, laptops and accessories in your shop, repairs and their prices, opening hours, and orders on WhatsApp.",
+    sections: { journals: false, shop: true, courses: false, track: false }, blocks: ["hero", "info", "services", "testimonials", "faq"],
+    starter: { headline: "Genuine devices. Honest repairs.", subline: "Phones, laptops and accessories with warranty, and repairs done while you wait.", button: btn("shop"), second: btn("whatsapp"),
+      hours: "Mon–Sat, 9am to 7pm",
+      services: [{ name: "Screen replacement", price: "From ₦25,000", note: "Same day" }, { name: "Battery replacement", price: "From ₦12,000", note: "" }],
+      faq: [{ q: "Do your devices have a warranty?", a: "Yes. New devices carry the maker's warranty; repairs have our 30-day warranty." }] },
+  },
+  {
+    id: "motor", name: "Motor and motorcycle spare parts", emoji: "🔧", minTier: "pro", theme: "clean", palette: "charcoal",
+    blurb: "Parts for cars and motorcycles in your shop, what you fit and service, where to find you, and orders on WhatsApp.",
+    sections: { journals: false, shop: true, courses: false, track: false }, blocks: ["hero", "info", "services", "faq", "testimonials"],
+    starter: { headline: "The right part, first time.", subline: "Genuine and quality spare parts for cars and motorcycles. Tell us your model and we'll find it.", button: btn("whatsapp", "Ask for a part"), second: btn("shop"),
+      hours: "Mon–Sat, 8am to 6pm",
+      services: [{ name: "Brake pads (fitted)", price: "From ₦18,000", note: "" }, { name: "Oil change and service", price: "From ₦15,000", note: "" }],
+      faq: [{ q: "Can you find a part I can't see in the shop?", a: "Yes. Send us your vehicle's make, model and year on WhatsApp." }] },
+  },
+  {
+    id: "solar", name: "Solar and energy solutions", emoji: "☀️", minTier: "pro", theme: "clean", palette: "gold",
+    blurb: "Your solar and inverter packages with prices, installations you've done, what customers say, and a free quote on WhatsApp.",
+    sections: { journals: true, shop: true, courses: false, track: false }, blocks: ["hero", "services", "gallery", "testimonials", "faq"],
+    starter: { headline: "Steady power, lower bills.", subline: "Solar panels, inverters and batteries for homes and businesses, installed and looked after.", button: btn("whatsapp", "Get a free quote"), second: btn("call"),
+      services: [{ name: "Home starter (1.5 kVA)", price: "From ₦650,000", note: "Inverter, batteries and panels" }, { name: "Maintenance visit", price: "₦20,000", note: "" }],
+      faq: [{ q: "How long does installation take?", a: "Most homes are done in a day, after a free site visit." }] },
+  },
+  {
+    id: "realestate", name: "Real estate", emoji: "🏠", minTier: "pro", theme: "clean", palette: "forest",
+    blurb: "Properties to rent or buy in pictures, prices and locations, inspections on WhatsApp, and your team.",
+    sections: { journals: true, shop: false, courses: false, track: false }, blocks: ["hero", "gallery", "services", "info", "team", "testimonials", "faq"],
+    starter: { headline: "Find your next home.", subline: "Verified properties to rent and buy, and inspections at a time that suits you.", button: btn("whatsapp", "Book an inspection"), second: btn("call"),
+      hours: "Mon–Sat, 9am to 6pm",
+      services: [{ name: "2-bedroom flat, Lekki", price: "₦4,500,000 a year", note: "To let" }, { name: "Land (600 sqm), Ibeju-Lekki", price: "₦18,000,000", note: "For sale, C of O" }],
+      faq: [{ q: "Do you charge for inspections?", a: "Tell us which property and we'll confirm any inspection fee before you come." }] },
   },
   {
     id: "school", name: "Schools and academies", emoji: "🎓", minTier: "business", theme: "clean", palette: "royal",
