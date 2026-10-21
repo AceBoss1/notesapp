@@ -14,7 +14,7 @@ import { getAdminDb } from "@/lib/firebase-admin";
 import { getLimitTable } from "@/lib/limits-server";
 import { CALLS_LIVE, MESSAGES_LIVE, MOMENTS_LIVE } from "@/lib/moments-rules";
 import { WALLET_LIVE } from "@/lib/wallet";
-import { academyApiFrom, certificateMin, enterpriseCoursesPrice, enterpriseFrom, logisticsAddonPrice, logisticsTrialDays, planPrice, planRate, pct, breakEven } from "@/lib/pricing";
+import { academyApiFrom, certificateMin, enterpriseCoursesPrice, enterpriseFrom, logisticsAddonPrice, logisticsTrialDays, planPrice, planRate, pct, breakEven , inventoryAddonPrice, inventoryTrialDays } from "@/lib/pricing";
 import { ROOT_DOMAIN } from "@/lib/host";
 
 export const metadata: Metadata = {
@@ -134,6 +134,11 @@ const ROWS: Row[] = [
     label: "Parcel tracking & escrow",
     href: "/store-selling",
     render: (t) => (t.canPublish ? "Buyer's money held until delivery · parcel ID · no-login hand-over links for riders and drivers" : "—"),
+  },
+  {
+    label: "Inventory",
+    href: "/help/inventory",
+    render: (t) => (!t.canPublish ? "—" : t.tier === "business" || t.tier === "enterprise" ? "Included: stock per item and option, SKUs, cost prices, low-stock alerts, the history of every change, spreadsheet in and out" : `Add-on: ${inventoryAddonPrice()}/month after a free ${inventoryTrialDays()}-day trial`),
   },
   {
     label: "Shipments for logistics businesses",

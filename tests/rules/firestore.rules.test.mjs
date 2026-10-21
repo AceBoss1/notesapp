@@ -1077,3 +1077,17 @@ test("free trials: a member can't give themselves a trial, a trial history or a 
   await assertFails(updateDoc(doc(me, "users/tri"), { trialTier: "business", trialUntil: "2099-01-01T00:00:00Z", accountTier: "business" }));
   await assertSucceeds(updateDoc(doc(me, "users/tri"), { bio: "still fine" }));
 });
+
+test("inventory: SKUs, cost prices and the stock history are private; only the server reads and writes them", async () => {
+  await env.withSecurityRulesDisabled(async (ctx) => {
+    const f = ctx.firestore();
+    await setDoc(doc(f, "inventory/bag"), { ownerUid: "pub", sku: "TOTE", costKobo: 600000, lowAt: 3 });
+    await setDoc(doc(f, "inventoryMoves/m1"), { ownerUid: "pub", itemId: "bag", delta: 5, after: 5, reason: "restock" });
+  });
+  const owner = as("pub");
+  await assertFails(getDoc(doc(owner, "inventory/bag"))); // even the owner reads them through /api/inventory
+  await assertFails(getDoc(doc(env.authenticatedContext("bob").firestore(), "inventory/bag")));
+  await assertFails(setDoc(doc(owner, "inventory/bag"), { ownerUid: "pub", costKobo: 1 }));
+  await assertFails(setDoc(doc(owner, "inventoryMoves/m2"), { ownerUid: "pub", itemId: "bag", delta: 100, after: 100, reason: "restock" }));
+  await assertFails(getDoc(doc(owner, "inventoryMoves/m1")));
+});

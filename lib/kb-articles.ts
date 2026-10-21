@@ -15,7 +15,7 @@ import { ORG_TRIAL_DAYS } from "./org";
 import { TRIAL_DAYS } from "./trials";
 import { COMPANY_INFO, SITE } from "./site";
 import { BADGE_PRICE_KOBO, TIERS, formatPercent } from "./tiers";
-import { academyApiFrom, certificateMin, currentPricing, enterpriseCoursesPrice, logisticsAddonPrice, logisticsTrialDays } from "./pricing";
+import { academyApiFrom, certificateMin, currentPricing, enterpriseCoursesPrice, inventoryAddonPrice, inventoryTrialDays, logisticsAddonPrice, logisticsTrialDays } from "./pricing";
 import { academyFaq } from "./academy-faq";
 const CERTIFICATE_LATE_TEXT = () => { const l = currentPricing().certificateLate; return { grace: l.graceDays, weekly: `${Math.round(l.weeklyRate * 100)}%`, cap: `${Math.round(l.capRate * 100)}%` }; };
 import { VIDEO_MAX_SECONDS } from "./video-rules";
@@ -426,6 +426,18 @@ You need a confirmed email address to get it, and it only comes when there's som
     A("social-sharing", "Sharing posts to social media", "Publishing and earning", `
 Every post has a share menu (WhatsApp, X, Facebook, LinkedIn, copy link) that works without connecting anything. You can also connect LinkedIn and X once and publish an excerpt of your post there, with a link back to the full journal on #NotesApp. You always see and can edit the words first (Nana can write them for you), and nothing goes out until you press Post. LinkedIn connections last about 60 days before you reconnect. Facebook, Instagram and TikTok are on the [roadmap](/roadmap).`),
     // ── Selling
+    A("inventory", "Inventory: your stock, SKUs and alerts", "Selling", `
+[Inventory](/profile/inventory), under My account, keeps your store's stock in one place.
+
+**What you see:** every physical item, and every option of an item with options (size, colour), with what's left, its SKU and the level at which you want an alert; and at the top, your units in stock, their value at cost, and how many are running low or sold out. Filter to **Running low** or **Sold out**, or search by name, option or SKU.
+
+**Changing stock:** tap **Restock or correct** on a line. **Add** a number (or take some off with a minus) or **set the count**, and pick a reason: restocked, stock count correction, damaged or lost, returned, or other, with a note such as the supplier's invoice. Sales and refunds are recorded on their own. Open an item to set its **SKU** (and each option's), its **cost price** (only you see it) and its **alert level**, and to see its **history**: every change, when, by whom and what was left after.
+
+**Alerts:** when a sale takes an item (or an option) to its alert level, or sells it out, you get a notification. Restocking an item that had sold out tells everyone who asked to be told.
+
+**Spreadsheet:** **Download spreadsheet** gives you every line (item_id, title, option, sku, stock, low_stock_at, cost_naira, price_naira). Change what you need, then **Upload spreadsheet**: you see what will change and any rows with problems before anything is saved. Rows are matched by item_id and option, or by SKU.
+
+**Who has it:** included on Business and Enterprise. On Free Basic and Pro, add it for ${inventoryAddonPrice()} a month, after a free ${inventoryTrialDays()}-day trial (no card, once). An organisation's teammates who run its store, and its admins, can use the organisation's inventory.`),
     A("selling-physical-goods", "Selling physical goods from your store", "Selling", `
 Your store lives at /u/yourname/store. Add an item, tick that it is sold through #NotesApp checkout, and set the price, your delivery fee and your stock. You need a payout account under Rates & payouts.
 
