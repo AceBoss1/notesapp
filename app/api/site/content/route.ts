@@ -19,7 +19,8 @@ export async function GET(req: NextRequest) {
   }
 }
 
-// POST { blocks?, order?, palette? } → { site }: saves the sections' content, their order and the colour set (lib/site-server.ts checks the plan).
+// POST { blocks?, order?, palette?, bookBelowPosts? } → { site }: saves the sections' content, their order, the colour set and background, and
+// the booking card under posts (lib/site-server.ts checks the plan).
 export async function POST(req: NextRequest) {
   try {
     const me = await verifySignedInRequest(bearer(req)).catch(() => null);
@@ -27,7 +28,7 @@ export async function POST(req: NextRequest) {
     const limited = await rateLimit(req, "site-content", me.uid, 120, 3600);
     if (limited) return limited;
     const b = await req.json().catch(() => ({}));
-    return NextResponse.json({ site: await saveSite(getAdminDb(), me.uid, { blocks: b.blocks, order: b.order, palette: b.palette }) });
+    return NextResponse.json({ site: await saveSite(getAdminDb(), me.uid, { blocks: b.blocks, order: b.order, palette: b.palette, bookBelowPosts: b.bookBelowPosts }) });
   } catch (err) {
     if (err instanceof SiteError) return NextResponse.json({ error: err.message }, { status: err.status });
     const f = friendlyMessage(err, "Couldn't save your site");

@@ -1,8 +1,8 @@
 // Sites (lib/site-themes.ts, lib/site-kits.ts): who has a site and which looks, colour sets, content made safe, what visitors see, buttons,
 // and kits that never wipe the member's words. Run: npm run test:sites → "ALL OK".
 import assert from "node:assert/strict";
-import { canHaveSite, meetsTier, paletteRgb, paletteVars, themeAllowed } from "../../lib/site-themes";
-import { KITS, applyKitTo, buttonHref, cleanBlocks, cleanButton, cleanOrder, cleanPalette, kitAllowed, kitOf, resolveButton, siteDocOf, visibleBlocks } from "../../lib/site-kits";
+import { backgroundOf, canHaveSite, meetsTier, paletteRgb, paletteVars, themeAllowed } from "../../lib/site-themes";
+import { KITS, applyKitTo, bookingHoursText, buttonHref, cleanBlocks, cleanButton, cleanOrder, cleanPalette, kitAllowed, kitOf, resolveButton, siteDocOf, visibleBlocks } from "../../lib/site-kits";
 import { siteSectionsShown } from "../../lib/site-settings";
 
 const u = (accountTier: string, role = "publisher") => ({ username: "x", role, accountTier }) as never;
@@ -43,7 +43,7 @@ assert.equal(cleanButton({ kind: "link", value: "" }), null);
 assert.deepEqual(cleanButton({ kind: "call", value: "" }), { kind: "call", label: "Call us", value: "" }, "a Call button may use the strip's number");
 
 // Buttons
-const info = { on: true, hours: "", whatsapp: "08031234567", phone: "", address: "", mapUrl: "" };
+const info = { on: true, hours: "", bookingHours: false, whatsapp: "08031234567", phone: "", address: "", mapUrl: "" };
 assert.equal(buttonHref(resolveButton({ kind: "whatsapp", label: "x", value: "" }, info)!, ""), "https://wa.me/2348031234567");
 assert.equal(resolveButton({ kind: "call", label: "x", value: "" }, { ...info, whatsapp: "" }), null, "no number anywhere: no button");
 assert.equal(buttonHref({ kind: "book", label: "", value: "" }, "/s/apex"), "/s/apex/#book");
@@ -71,4 +71,22 @@ assert.deepEqual(r.sections, { journals: false, shop: true, courses: false, trac
 const r2 = applyKitTo(siteDocOf({}), kitOf("healthcare")!, "basic");
 assert.equal(r2.site.blocks.team.on, true);
 assert.equal(applyKitTo(siteDocOf({}), kitOf("food")!, "basic").sections.shop, false, "a page the plan doesn't cover (Shop below Pro) stays off");
+
+// Booking hours in words (owner, 21 Oct 2026: the hours strip connects to the booking calendar)
+const wk = (slots: string[]) => Object.fromEntries([1, 2, 3, 4, 5].map((d) => [String(d), slots]));
+assert.equal(bookingHoursText({ ...wk(["09:00", "10:00", "16:00"]), "6": ["10:00", "12:00"] }, 60), "Mon–Fri, 9:00 AM to 5:00 PM · Sat, 10:00 AM to 1:00 PM");
+assert.equal(bookingHoursText({ "1": ["09:00"], "3": ["09:00"] }, 30), "Mon, 9:00 AM to 9:30 AM · Wed, 9:00 AM to 9:30 AM", "only days next to each other run together");
+assert.equal(bookingHoursText({ "0": ["14:00"], "1": ["bad"] }, 60), "Sun, 2:00 PM to 3:00 PM");
+assert.equal(bookingHoursText(null, 60), "");
+assert.equal(cleanBlocks({ info: { on: true, bookingHours: true } }).info.bookingHours, true);
+assert.deepEqual(visibleBlocks(siteDocOf({ blocks: { info: { on: true, bookingHours: true } } }), "basic"), ["info"], "booking hours alone fill the strip");
+
+// Backgrounds: white or paper with every colour set and look; Clean is white unless chosen
+assert.deepEqual(cleanPalette({ id: "ocean", bg: "white" }), { id: "ocean", bg: "white" });
+assert.deepEqual(cleanPalette({ id: "ocean", bg: "pink" }), { id: "ocean" });
+assert.equal(backgroundOf({}, "clean"), "white"); assert.equal(backgroundOf({}, "legacy"), "paper"); assert.equal(backgroundOf({ bg: "paper" }, "clean"), "paper");
+assert.equal(paletteVars({ id: "crimson", bg: "white" }, "basic", "maroon")["--c-paper"], "255 255 255");
+assert.equal(paletteVars({ id: "crimson" }, "basic", "aurora")["--c-paper"], undefined, "paper: the usual background");
+assert.equal(applyKitTo(siteDocOf({ palette: { id: "gold", bg: "paper" } }), kitOf("personal")!, "basic").site.palette.bg, "paper", "a kit keeps the background choice");
+assert.equal(siteDocOf({}).bookBelowPosts, false); assert.equal(siteDocOf({ bookBelowPosts: true }).bookBelowPosts, true);
 console.log("ALL OK");

@@ -43,12 +43,15 @@ export function SiteHero({ clean }: { clean: boolean }) {
 }
 
 const Icon = ({ c }: { c: string }) => <span aria-hidden className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-crimson/10 text-lg">{c}</span>;
+// The hours card is connected to their booking calendar: its hours can come from the calendar, and while their sessions are on it opens the
+// booking card.
 export function SiteInfoStrip() {
-  const { blocks } = useSite();
+  const { blocks, booking, base } = useSite();
   const i = blocks.info;
   const wa = i.whatsapp ? buttonHref({ kind: "whatsapp", label: "", value: i.whatsapp }, "") : "";
+  const hours = (i.bookingHours && booking.hours) || i.hours;
   const cards = [
-    i.hours && { icon: "🕘", text: i.hours, href: "" },
+    hours && { icon: "🕘", text: hours, href: booking.offered ? `${base}/#book` : "" },
     i.whatsapp && { icon: "💬", text: "Chat on WhatsApp", href: wa },
     i.phone && { icon: "📞", text: i.phone, href: `tel:${i.phone}` },
     i.address && { icon: "📍", text: i.address, href: i.mapUrl },

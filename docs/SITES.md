@@ -83,7 +83,10 @@ An Analytics page for every member who sells, teaches, books sessions or publish
 - **Looks** (`lib/site-themes.ts`): Legacy and **Clean** from Free Basic; Aurora and Maroon from Pro (our choice, for the owner to
   confirm). A look the plan no longer covers shows as Legacy.
 - **Colour sets:** crimson, forest, ocean, royal, sunset, gold, charcoal on every look; a custom brand colour from Pro (too-light colours are
-  darkened). The site sets three CSS variables (`--c-crimson`, `--c-crimson-bright`, `--c-crimson-deep`) that the Tailwind crimson colours
+  darkened). **Background** (owner, 21 Oct 2026): every look and colour set on white or paper (`palette.bg`; `--c-paper`); Clean defaults
+  to white, the others to paper.
+- **Booking** (owner, 21 Oct 2026): the hours strip can show the booking calendar's hours (`info.bookingHours`, `bookingHoursText`), and
+  while sessions are on the hours card opens the booking card; a "Book me" card under every post on the site (`bookBelowPosts`). The site sets three CSS variables (`--c-crimson`, `--c-crimson-bright`, `--c-crimson-deep`) that the Tailwind crimson colours
   read, with today's values as the fallback, so the main site never changes.
 - **Sections** (`lib/site-kits.ts`, stored in `sites/{uid}`, written only by `lib/site-server.ts`): top banner with up to two buttons (Book
   now, Order on WhatsApp, Call us, Shop, Contact, a link), hours and contacts strip with a Google Maps link, services and prices, gallery

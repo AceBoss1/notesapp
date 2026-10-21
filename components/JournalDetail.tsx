@@ -26,7 +26,7 @@ import MessageButton from "@/components/messages/MessageButton";
 import { remarkLinkify } from "@/lib/linkify";
 import { SITE } from "@/lib/site";
 import { hashtag, matchTopic, noteHeading, topicsOf } from "@/lib/topics";
-import { isCrimsonTheme } from "@/lib/site-themes";
+import { BAND_GRADIENT, isCrimsonTheme } from "@/lib/site-themes";
 import RecommendationsCard from "@/components/RecommendationsCard";
 import { SITE_URL } from "@/lib/host";
 
@@ -38,7 +38,7 @@ export default async function JournalDetail({
   site,
 }: {
   params: { slug: string };
-  site?: { uid: string; base: string; theme?: string };
+  site?: { uid: string; base: string; theme?: string; bookBelow?: boolean };
 }) {
   const note = await getNoteBySlug(params.slug);
   if (!note) return notFound();
@@ -222,18 +222,20 @@ export default async function JournalDetail({
         </div>
       )}
 
-      {authorProfile && (
+      {/* Booking under the post: always on #NotesApp; on a member's site when they switched on "Book me" under every post (Your site),
+          where it opens the booking card on their own Home. On wide layouts the author rail has it on a computer. */}
+      {authorProfile && (!site || site.bookBelow) && (
         <div className={`card mt-10 flex flex-col items-start gap-4 p-7 sm:flex-row sm:items-center sm:justify-between ${wide ? "lg:hidden" : ""}`}>
           <div>
             <p className="font-ui text-base font-bold text-ink">
-              Book a session with {note.author}
+              {site ? `Book ${note.author}` : `Book a session with ${note.author}`}
             </p>
             <p className="mt-1 text-sm text-slate">
-              Native calendar, no redirect — payment collects inline.
+              {site ? "Pick a time that suits you and pay here, without leaving this site." : "Native calendar, no redirect — payment collects inline."}
             </p>
           </div>
-          <Link href={`/u/${authorProfile.username}`} className="btn-primary shrink-0">
-            View calendar
+          <Link href={site ? `${site.base || ""}/#book` : `/u/${authorProfile.username}`} className="btn-primary shrink-0">
+            {site ? "Book me" : "View calendar"}
           </Link>
         </div>
       )}
@@ -302,12 +304,12 @@ export default async function JournalDetail({
     </article>
     {wide && authorProfile && (
       <aside className="hidden space-y-5 lg:sticky lg:top-24 lg:block lg:self-start" aria-label="About the author">
-        <div className="rounded-xl2 p-6 text-paper shadow-lg" style={{ backgroundImage: "linear-gradient(160deg, #4E0119 0%, #7A0328 100%)" }}>
+        {(!site || site.bookBelow) && <div className="rounded-xl2 p-6 text-paper shadow-lg" style={{ backgroundImage: site ? BAND_GRADIENT : "linear-gradient(160deg, #4E0119 0%, #7A0328 100%)" }}>
           <p className="font-mono text-[11px] uppercase tracking-eyebrow text-paper/70">Book a 1:1 session</p>
           <p className="mt-2 font-display text-2xl leading-snug">Book a session with {authorProfile.displayName}</p>
           <p className="mt-2 text-sm text-paper/80">Native calendar, no redirect. Payment collects inline.</p>
           <Link href={site ? `${site.base || ""}/#book` : `/u/${authorProfile.username}`} className="mt-4 inline-block rounded-full bg-paper px-5 py-2.5 font-ui text-sm font-bold text-crimson-deep hover:opacity-90">View calendar</Link>
-        </div>
+        </div>}
         <div className="card p-5">
           <div className="flex items-center gap-3">
             <Avatar src={authorProfile.avatar || note.author_avatar} alt={authorProfile.displayName} size={48} square={authorProfile.accountKind === "organisation"} />

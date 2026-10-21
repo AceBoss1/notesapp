@@ -9,7 +9,8 @@ const config: Config = {
     extend: {
       colors: {
         ink: "#1A1210",         // near-black, warm — primary text
-        paper: "#FBF6F2",       // warm ivory w/ a whisper of rose — page background
+        // paper is a CSS variable too, with this value as the fallback: a member's site can choose a white background (lib/site-themes.ts).
+        paper: "rgb(var(--c-paper, 251 246 242) / <alpha-value>)", // #FBF6F2 warm ivory w/ a whisper of rose — page background
         // NotesApp signature, drawn straight from the mark (#7A0328, #A6093D, #4E0119). Written as CSS variables with those values as the
         // fallback, so a member's site can use its own colour set (lib/site-themes.ts paletteVars); everywhere else it is exactly the crimson.
         crimson: "rgb(var(--c-crimson, 122 3 40) / <alpha-value>)",

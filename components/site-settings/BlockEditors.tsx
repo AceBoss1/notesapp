@@ -88,7 +88,11 @@ export default function BlockEditors({ tier, value, onChange }: { tier: string; 
       {value.info.on && (
         <details open className="rounded-2xl border border-rule p-4"><summary className="cursor-pointer font-ui text-sm font-bold text-ink">{name("info")}</summary>
           <div className="mt-3 grid gap-3 sm:grid-cols-2">
-            <label className="text-xs text-slate">Opening hours<input value={value.info.hours} maxLength={120} onChange={(e) => set("info", { ...value.info, hours: e.target.value })} className={field} placeholder="Mon–Sat, 8am to 6pm" /></label>
+            <div className="text-xs text-slate">
+              <label>Opening hours<input value={value.info.hours} maxLength={120} disabled={value.info.bookingHours} onChange={(e) => set("info", { ...value.info, hours: e.target.value })} className={`${field} disabled:opacity-50`} placeholder="Mon–Sat, 8am to 6pm" /></label>
+              <label className="mt-1.5 flex items-start gap-2"><input type="checkbox" checked={value.info.bookingHours} onChange={(e) => set("info", { ...value.info, bookingHours: e.target.checked })} className="mt-0.5" />
+                <span>Use the hours of my booking calendar (<a href="/profile/publishing" className="text-crimson underline">set them here</a>). While your sessions are on, tapping the hours opens your booking card.</span></label>
+            </div>
             <label className="text-xs text-slate">WhatsApp number<input value={value.info.whatsapp} inputMode="tel" onChange={(e) => set("info", { ...value.info, whatsapp: e.target.value })} className={field} placeholder="0803 000 0000" /></label>
             <label className="text-xs text-slate">Phone number<input value={value.info.phone} inputMode="tel" onChange={(e) => set("info", { ...value.info, phone: e.target.value })} className={field} /></label>
             <label className="text-xs text-slate">Where to find you<input value={value.info.address} maxLength={200} onChange={(e) => set("info", { ...value.info, address: e.target.value })} className={field} placeholder="12 Allen Avenue, Ikeja, Lagos" /></label>

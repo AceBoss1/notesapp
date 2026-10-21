@@ -4,7 +4,8 @@
 //
 // Stored in sites/{uid} (public to read, written only by the server): { kit, palette: { id, custom? }, blocks: { hero, info, services, … },
 // order: BlockId[], updatedAt }. The look stays users/{uid}.siteTheme and the four page sections users/{uid}.siteSections.
-import { HEX_RE, isPalette, meetsTier, type PaletteId, type SiteThemeId } from "./site-themes";
+import { formatSlot } from "./booking-time";
+import { HEX_RE, isBackground, isPalette, meetsTier, type PaletteId, type SiteBackground, type SiteThemeId } from "./site-themes";
 
 // ── Sections and what they need ──
 // The page sections (users/{uid}.siteSections) and what each needs (owner's decisions, 20 Oct 2026).
@@ -34,7 +35,9 @@ export const BUTTON_KINDS = [
 export type ButtonKind = (typeof BUTTON_KINDS)[number]["id"];
 export type SiteButton = { kind: ButtonKind; label: string; value: string };
 export type Hero = { on: boolean; headline: string; subline: string; image: string; button: SiteButton | null; second: SiteButton | null };
-export type Info = { on: boolean; hours: string; whatsapp: string; phone: string; address: string; mapUrl: string };
+// bookingHours: show the opening hours of their booking calendar instead of typed hours (owner, 21 Oct 2026). Either way, when their
+// sessions are on, the hours card opens the booking card.
+export type Info = { on: boolean; hours: string; bookingHours: boolean; whatsapp: string; phone: string; address: string; mapUrl: string };
 export type ServiceItem = { name: string; price: string; note: string };
 export type Picture = { image: string; caption: string };
 export type Testimonial = { quote: string; name: string; role: string };
@@ -45,7 +48,9 @@ export type Blocks = {
   services: { on: boolean; items: ServiceItem[] }; gallery: { on: boolean; items: Picture[] };
   testimonials: { on: boolean; items: Testimonial[] }; team: { on: boolean; items: Person[] }; faq: { on: boolean; items: Qa[] };
 };
-export type SiteDoc = { kit: string; palette: { id: PaletteId; custom?: string }; blocks: Blocks; order: BlockId[]; updatedAt?: string };
+export type SitePalette = { id: PaletteId; custom?: string; bg?: SiteBackground };
+// bookBelowPosts: a booking card under every post on the site (owner, 21 Oct 2026).
+export type SiteDoc = { kit: string; palette: SitePalette; blocks: Blocks; order: BlockId[]; bookBelowPosts: boolean; updatedAt?: string };
 
 export const LIMITS = { services: 40, gallery: 24, testimonials: 12, team: 24, faq: 20 } as const;
 const t = (v: unknown, max: number) => String(v ?? "").replace(/\s+/g, " ").trim().slice(0, max);
@@ -70,7 +75,7 @@ export function cleanButton(v: unknown): SiteButton | null {
 
 export const emptyBlocks = (): Blocks => ({
   hero: { on: false, headline: "", subline: "", image: "", button: null, second: null },
-  info: { on: false, hours: "", whatsapp: "", phone: "", address: "", mapUrl: "" },
+  info: { on: false, hours: "", bookingHours: false, whatsapp: "", phone: "", address: "", mapUrl: "" },
   services: { on: false, items: [] }, gallery: { on: false, items: [] }, testimonials: { on: false, items: [] }, team: { on: false, items: [] }, faq: { on: false, items: [] },
 });
 const list = <T,>(v: unknown, max: number, each: (x: Record<string, unknown>) => T | null): T[] =>
@@ -83,7 +88,7 @@ export function cleanBlocks(v: unknown): Blocks {
   const h = o.hero ?? {}, i = o.info ?? {};
   return {
     hero: { on: on(h), headline: t(h.headline, 90), subline: t(h.subline, 240), image: img(h.image), button: cleanButton(h.button), second: cleanButton(h.second) },
-    info: { on: on(i), hours: t(i.hours, 120), whatsapp: digits(i.whatsapp), phone: digits(i.phone), address: t(i.address, 200), mapUrl: /^https:\/\/(www\.)?(google\.[a-z.]+\/maps|maps\.app\.goo\.gl|goo\.gl\/maps|maps\.google\.[a-z.]+)\S*$/i.test(t(i.mapUrl, 500)) ? t(i.mapUrl, 500) : "" },
+    info: { on: on(i), hours: t(i.hours, 120), bookingHours: i.bookingHours === true, whatsapp: digits(i.whatsapp), phone: digits(i.phone), address: t(i.address, 200), mapUrl: /^https:\/\/(www\.)?(google\.[a-z.]+\/maps|maps\.app\.goo\.gl|goo\.gl\/maps|maps\.google\.[a-z.]+)\S*$/i.test(t(i.mapUrl, 500)) ? t(i.mapUrl, 500) : "" },
     services: { on: on(o.services), items: list(o.services?.items, LIMITS.services, (x) => (t(x.name, 80) ? { name: t(x.name, 80), price: t(x.price, 40), note: t(x.note, 160) } : null)) },
     gallery: { on: on(o.gallery), items: list(o.gallery?.items, LIMITS.gallery, (x) => (img(x.image) ? { image: img(x.image), caption: t(x.caption, 120) } : null)) },
     testimonials: { on: on(o.testimonials), items: list(o.testimonials?.items, LIMITS.testimonials, (x) => (t(x.quote, 400) && t(x.name, 60) ? { quote: para(x.quote, 400), name: t(x.name, 60), role: t(x.role, 80) } : null)) },
@@ -96,25 +101,51 @@ export function cleanOrder(v: unknown): BlockId[] {
   const seen = (Array.isArray(v) ? v : []).filter(isBlockId).filter((x, i, a) => a.indexOf(x) === i);
   return [...seen, ...DEFAULT_ORDER.filter((b) => !seen.includes(b))];
 }
-export function cleanPalette(v: unknown): { id: PaletteId; custom?: string } {
+export function cleanPalette(v: unknown): SitePalette {
   const o = (v && typeof v === "object" ? v : {}) as Record<string, unknown>;
   const id: PaletteId = isPalette(o.id) ? o.id : "crimson";
-  return typeof o.custom === "string" && HEX_RE.test(o.custom) ? { id, custom: o.custom.toLowerCase() } : { id };
+  return {
+    id,
+    ...(typeof o.custom === "string" && HEX_RE.test(o.custom) ? { custom: o.custom.toLowerCase() } : {}),
+    ...(isBackground(o.bg) ? { bg: o.bg } : {}),
+  };
 }
 export function siteDocOf(raw: unknown): SiteDoc {
   const o = (raw && typeof raw === "object" ? raw : {}) as Record<string, unknown>;
-  return { kit: t(o.kit, 30), palette: cleanPalette(o.palette), blocks: cleanBlocks(o.blocks), order: cleanOrder(o.order), updatedAt: typeof o.updatedAt === "string" ? o.updatedAt : undefined };
+  return { kit: t(o.kit, 30), palette: cleanPalette(o.palette), blocks: cleanBlocks(o.blocks), order: cleanOrder(o.order), bookBelowPosts: o.bookBelowPosts === true, updatedAt: typeof o.updatedAt === "string" ? o.updatedAt : undefined };
 }
 // What a visitor sees: only the sections switched on, with something in them, that the plan still covers (after a downgrade, a section waits
 // switched off rather than vanishing from the settings).
 export function visibleBlocks(d: SiteDoc, tier: string): BlockId[] {
   const b = d.blocks;
   const has: Record<BlockId, boolean> = {
-    hero: b.hero.on && !!(b.hero.headline || b.hero.subline || b.hero.image), info: b.info.on && !!(b.info.hours || b.info.whatsapp || b.info.phone || b.info.address),
+    hero: b.hero.on && !!(b.hero.headline || b.hero.subline || b.hero.image), info: b.info.on && !!(b.info.hours || b.info.bookingHours || b.info.whatsapp || b.info.phone || b.info.address),
     services: b.services.on && b.services.items.length > 0, gallery: b.gallery.on && b.gallery.items.length > 0,
     testimonials: b.testimonials.on && b.testimonials.items.length > 0, team: b.team.on && b.team.items.length > 0, faq: b.faq.on && b.faq.items.length > 0,
   };
   return d.order.filter((id) => has[id] && blockAllowed(id, tier));
+}
+// The opening hours of a member's booking calendar (publisherSettings session.availability: "0".."6" → ["09:00", …], Sunday first), in
+// words: days with the same hours run together, Monday first ("Mon–Fri, 9:00 AM to 5:00 PM · Sat, 10:00 AM to 1:00 PM"). A day runs from its
+// first time to the end of its last session.
+const DAY = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+export function bookingHoursText(availability: unknown, minutes: number): string {
+  const a = (availability && typeof availability === "object" ? availability : {}) as Record<string, unknown>;
+  const span = (d: number) => {
+    const slots = (Array.isArray(a[String(d)]) ? (a[String(d)] as unknown[]) : []).filter((x): x is string => typeof x === "string" && /^\d{2}:\d{2}$/.test(x)).sort();
+    if (!slots.length) return "";
+    const [h, m] = slots[slots.length - 1].split(":").map(Number);
+    const end = h * 60 + m + Math.max(15, Math.min(minutes || 60, 480));
+    return `${formatSlot(slots[0])} to ${formatSlot(`${String(Math.floor(end / 60) % 24).padStart(2, "0")}:${String(end % 60).padStart(2, "0")}`)}`;
+  };
+  const week = [1, 2, 3, 4, 5, 6, 0].map((d) => ({ d, s: span(d) }));
+  const runs: { from: number; to: number; s: string }[] = [];
+  for (const { d, s } of week) {
+    const last = runs[runs.length - 1];
+    if (s && last && last.s === s && week.findIndex((w) => w.d === last.to) + 1 === week.findIndex((w) => w.d === d)) last.to = d;
+    else if (s) runs.push({ from: d, to: d, s });
+  }
+  return runs.map((r) => `${DAY[r.from]}${r.to !== r.from ? `–${DAY[r.to]}` : ""}, ${r.s}`).join(" · ");
 }
 // A button as the visitor gets it: a WhatsApp or Call button without its own number takes the one in the strip; with neither, no button.
 export function resolveButton(b: SiteButton | null, info: Info): SiteButton | null {
@@ -222,6 +253,6 @@ export function applyKitTo(d: SiteDoc, k: Kit, tier: string): { site: SiteDoc; t
     courses: k.sections.courses && meetsTier(tier, SECTION_MIN_TIER.courses), track: k.sections.track && meetsTier(tier, SECTION_MIN_TIER.track),
   };
   if (!Object.values(sections).some(Boolean)) sections.journals = true;
-  // The kit's colour set replaces a custom colour too (the member can pick it again after).
-  return { site: { ...d, kit: k.id, palette: { id: k.palette }, blocks: b, order }, theme: k.theme, sections };
+  // The kit's colour set replaces a custom colour too (the member can pick it again after); their background choice stays.
+  return { site: { ...d, kit: k.id, palette: { id: k.palette, ...(d.palette.bg ? { bg: d.palette.bg } : {}) }, blocks: b, order }, theme: k.theme, sections };
 }

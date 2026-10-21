@@ -40,6 +40,7 @@ export default function YourSitePage() {
   const [site, setSite] = useState<SiteDoc | null>(null);
   const [blocks, setBlocks] = useState<Blocks>(emptyBlocks());
   const [order, setOrder] = useState<BlockId[]>(DEFAULT_ORDER);
+  const [bookBelow, setBookBelow] = useState(false);
   const [sections, setSections] = useState<SiteSections>(siteSectionsOf(null));
   const [sectionsMsg, setSectionsMsg] = useState("");
   const [contentMsg, setContentMsg] = useState("");
@@ -48,7 +49,7 @@ export default function YourSitePage() {
   const [saved, setSaved] = useState<Record<SitePageId, string>>({ about: "", contact: "" }); // what the site shows now
   const [pageMsg, setPageMsg] = useState<Record<SitePageId, string>>({ about: "", contact: "" });
 
-  const applyDoc = (d: SiteDoc) => { setSite(d); setBlocks(d.blocks); setOrder(d.order); };
+  const applyDoc = (d: SiteDoc) => { setSite(d); setBlocks(d.blocks); setOrder(d.order); setBookBelow(d.bookBelowPosts); };
   useEffect(() => onAuthStateChanged(auth, async (u) => {
     if (!u) { router.replace("/login?next=/profile/site"); return; }
     setUser(u);
@@ -61,7 +62,7 @@ export default function YourSitePage() {
     setText(pages);
     setSaved(pages);
     if (!canHaveSite(p)) return;
-    call(u, "/api/site/content").then((d) => applyDoc(d.site)).catch(() => applyDoc({ kit: "", palette: { id: "crimson" }, blocks: emptyBlocks(), order: DEFAULT_ORDER }));
+    call(u, "/api/site/content").then((d) => applyDoc(d.site)).catch(() => applyDoc({ kit: "", palette: { id: "crimson" }, blocks: emptyBlocks(), order: DEFAULT_ORDER, bookBelowPosts: false }));
     if (getTierConfig(effectiveTier(p)).customDomain) {
       fetch("/api/console/domain", { headers: { Authorization: `Bearer ${await u.getIdToken()}` } })
         .then((r) => r.json()).then((d) => setDomain(d.domain || null)).catch(() => {});
@@ -79,7 +80,7 @@ export default function YourSitePage() {
     setBusy("sections"); setSectionsMsg("");
     try {
       await call(user, "/api/site/sections", { sections });
-      const d = await call(user, "/api/site/content", { blocks, order });
+      const d = await call(user, "/api/site/content", { blocks, order, bookBelowPosts: bookBelow });
       applyDoc(d.site);
       setSectionsMsg("Saved. Your site shows what you chose.");
     } catch (e) {
@@ -179,7 +180,7 @@ export default function YourSitePage() {
         <KitPicker tier={tier} current={site?.kit ?? ""} onApply={applyKit} />
 
         <SiteThemePicker key={theme} current={theme} username={profile.username} tier={tier} title="2. Choose its look and colours" onChange={setTheme}>
-          {site && <PalettePicker key={`${site.palette.id}${site.palette.custom ?? ""}`} tier={tier} value={site.palette} onSave={async (palette) => { if (!user) return; const d = await call(user, "/api/site/content", { palette }); applyDoc(d.site); }} />}
+          {site && <PalettePicker key={`${site.palette.id}${site.palette.custom ?? ""}${site.palette.bg ?? ""}${theme}`} tier={tier} theme={theme} value={site.palette} onSave={async (palette) => { if (!user) return; const d = await call(user, "/api/site/content", { palette }); applyDoc(d.site); }} />}
         </SiteThemePicker>
 
         <section className="card mt-10 p-6" aria-labelledby="sections-h">
@@ -201,6 +202,13 @@ export default function YourSitePage() {
               );
             })}
           </div>
+          <label className={`${field} mt-3 flex cursor-pointer items-start gap-3 ${bookBelow ? "border-crimson" : ""}`}>
+            <input type="checkbox" checked={bookBelow} onChange={(e) => setBookBelow(e.target.checked)} className="mt-1" />
+            <span>
+              <span className="block font-ui text-sm font-bold text-ink">“Book me” under every post</span>
+              <span className="mt-1 block text-xs text-slate">A card under each of your journals on your site that opens your booking calendar. It shows while your sessions are on (<Link href="/profile/publishing" className="text-crimson underline">set your times and price</Link>).</span>
+            </span>
+          </label>
           <p className="mt-6 text-sm text-slate">Sections on Home, in this order (use the arrows). Fill them in at step 4.</p>
           <ol className="mt-3 space-y-2">
             {order.map((id, n) => {

@@ -61,9 +61,18 @@ export function paletteRgb(palette: { id?: string; custom?: string } | null | un
   const p = SITE_PALETTES.find((x) => x.id === palette?.id) ?? SITE_PALETTES[0];
   return { base: [...p.base] as RGB, bright: [...p.bright] as RGB, deep: [...p.deep] as RGB };
 }
-export function paletteVars(palette: { id?: string; custom?: string } | null | undefined, tier: string): Record<string, string> {
+// The page background, with every colour set and every look (owner, 21 Oct 2026): white, or #NotesApp's warm paper. Without a choice, Clean
+// is white and the other looks paper, as they were.
+export const SITE_BACKGROUNDS = [{ id: "white", name: "White" }, { id: "paper", name: "Paper (warm ivory)" }] as const;
+export type SiteBackground = (typeof SITE_BACKGROUNDS)[number]["id"];
+export const isBackground = (v: unknown): v is SiteBackground => v === "white" || v === "paper";
+export const backgroundOf = (palette: { bg?: string } | null | undefined, theme: string): SiteBackground =>
+  isBackground(palette?.bg) ? palette!.bg as SiteBackground : theme === "clean" ? "white" : "paper";
+export function paletteVars(palette: { id?: string; custom?: string; bg?: string } | null | undefined, tier: string, theme = "legacy"): Record<string, string> {
   const { base, bright, deep } = paletteRgb(palette, tier);
-  return { "--c-crimson": base.join(" "), "--c-crimson-bright": bright.join(" "), "--c-crimson-deep": deep.join(" ") };
+  const vars: Record<string, string> = { "--c-crimson": base.join(" "), "--c-crimson-bright": bright.join(" "), "--c-crimson-deep": deep.join(" ") };
+  if (backgroundOf(palette, theme) === "white") vars["--c-paper"] = "255 255 255"; // tailwind.config.ts: paper reads --c-paper
+  return vars;
 }
 // The crimson-style band and header, in the site's colours.
 export const BAND_GRADIENT = "linear-gradient(100deg, rgb(var(--c-crimson-deep, 78 1 25)) 0%, rgb(var(--c-crimson, 122 3 40)) 70%, rgb(var(--c-crimson-bright, 166 9 61)) 100%)";

@@ -17,7 +17,7 @@ import { SiteAuthProvider } from "@/components/site/SiteAuth";
 import { BAND_GRADIENT, canHaveSite, isCrimsonTheme, paletteVars, siteThemeOf, themeAllowed } from "@/lib/site-themes";
 import { missingSitePages, siteSectionsShown } from "@/lib/site-settings";
 import { buttonHref, emptyBlocks, resolveButton, visibleBlocks } from "@/lib/site-kits";
-import { readSite } from "@/lib/site-server";
+import { bookingOf, readSite } from "@/lib/site-server";
 import { getAdminDb } from "@/lib/firebase-admin";
 
 // A member's own site (Free Basic and above at /s/<username>; Business and Enterprise also on their own domain): their name in the header,
@@ -61,7 +61,9 @@ export default async function SiteLayout({ children, params }: Props) {
   // Business: "Name is powered by [na] #NotesApp". Enterprise: "Name, powered by [na]" — just the icon.
   const fullLabel = getTierConfig(effectiveTier(p)).whiteLabel === "full";
   const tier = effectiveTier(p);
-  const [domain, site] = await Promise.all([domainForUid(p.uid).catch(() => null), readSite(getAdminDb(), p.uid).catch(() => null)]);
+  const [domain, site, booking] = await Promise.all([
+    domainForUid(p.uid).catch(() => null), readSite(getAdminDb(), p.uid).catch(() => null), bookingOf(getAdminDb(), p.uid).catch(() => ({ offered: false, hours: "" })),
+  ]);
   const sections = siteSectionsShown(p);
   // A look the plan no longer covers (after a downgrade) falls back to Legacy.
   const chosen = siteThemeOf(p);
@@ -74,6 +76,7 @@ export default async function SiteLayout({ children, params }: Props) {
     services: sections.track ? servicesOf(p).map(serviceName) : [],
     blocks: site?.blocks ?? emptyBlocks(),
     shownBlocks: site ? visibleBlocks(site, tier) : [],
+    booking,
   };
   const clean = info.theme === "clean";
   // Clean: the main button of their banner sits at the top right of every page.
@@ -86,8 +89,8 @@ export default async function SiteLayout({ children, params }: Props) {
   return (
     <SiteProvider value={info}>
      <Auth>
-      <div data-site-theme={info.theme} className={`flex min-h-screen flex-col ${clean ? "bg-card" : ""}`} style={paletteVars(site?.palette, tier) as React.CSSProperties}>
-        <header className={crimson ? "sticky top-0 z-40 text-paper shadow-md" : clean ? "sticky top-0 z-40 border-b border-rule bg-card/95 backdrop-blur" : "sticky top-0 z-40 border-b border-rule bg-paper/90 backdrop-blur"} style={crimson ? { backgroundImage: BAND_GRADIENT } : undefined}>
+      <div data-site-theme={info.theme} className="flex min-h-screen flex-col bg-paper" style={paletteVars(site?.palette, tier, info.theme) as React.CSSProperties}>
+        <header className={crimson ? "sticky top-0 z-40 text-paper shadow-md" : clean ? "sticky top-0 z-40 border-b border-rule bg-paper/95 backdrop-blur" : "sticky top-0 z-40 border-b border-rule bg-paper/90 backdrop-blur"} style={crimson ? { backgroundImage: BAND_GRADIENT } : undefined}>
           <div className="mx-auto flex max-w-5xl items-center justify-between gap-4 px-4 py-4 sm:px-6">
             <Link href={base || "/"} className="flex min-w-0 items-center gap-3">
               {/* eslint-disable-next-line @next/next/no-img-element */}

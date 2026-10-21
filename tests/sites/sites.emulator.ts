@@ -3,7 +3,7 @@
 import assert from "node:assert/strict";
 import { initializeApp } from "firebase-admin/app";
 import { getFirestore } from "firebase-admin/firestore";
-import { SiteError, applyKit, readSite, saveSite } from "../../lib/site-server";
+import { SiteError, applyKit, bookingOf, readSite, saveSite } from "../../lib/site-server";
 
 initializeApp({ projectId: "demo-notesapp" });
 const db = getFirestore();
@@ -56,6 +56,17 @@ const fails = async (p: Promise<unknown>, status: number, re: RegExp) => {
   await db.doc("sites/pro").update({ palette: { id: "ocean", custom: "#2a7f62" } });
   const d = await saveSite(db, "pro", { blocks: { hero: { headline: "Still mine" } } });
   assert.equal(d.palette.custom, undefined); assert.equal(d.palette.id, "ocean");
+
+  // Background, "Book me" under posts, and the booking calendar's hours.
+  const w = await saveSite(db, "basic", { palette: { id: "forest", bg: "white" }, bookBelowPosts: true });
+  assert.deepEqual(w.palette, { id: "forest", bg: "white" }); assert.equal(w.bookBelowPosts, true);
+  assert.equal((await saveSite(db, "basic", { blocks: { hero: { on: true, headline: "x" } } })).bookBelowPosts, true, "kept when other things are saved");
+  assert.equal((await applyKit(db, "basic", "personal")).site.palette.bg, "white", "a kit keeps the background");
+  assert.deepEqual(await bookingOf(db, "basic"), { offered: false, hours: "" });
+  await db.doc("publisherSettings/basic").set({ session: { enabled: true, minutes: 60, priceKobo: 500000, availability: { "1": ["09:00", "16:00"], "2": ["09:00", "16:00"] } } });
+  assert.deepEqual(await bookingOf(db, "basic"), { offered: true, hours: "Mon–Tue, 9:00 AM to 5:00 PM" });
+  await db.doc("publisherSettings/basic").update({ "session.enabled": false });
+  assert.equal((await bookingOf(db, "basic")).offered, false, "sessions off: no booking link");
   console.log("ALL OK");
   process.exit(0);
 })().catch((e) => { console.error(e); process.exit(1); });

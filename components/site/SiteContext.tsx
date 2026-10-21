@@ -23,7 +23,9 @@ export type SiteInfo = {
   pages: { about: boolean; contact: boolean }; // whether they wrote an About and a Contact page
   services: string[]; // a logistics business with Track on: the services it offers, by name (lib/shipments.ts); otherwise none
   blocks: Blocks; // the content sections (lib/site-kits.ts): banner, hours and contacts, services, gallery, testimonials, team, questions
-  shownBlocks: BlockId[]; // the ones a visitor sees, in the member's order (switched on, filled in, covered by the plan)
+  shownBlocks: BlockId[];
+  // Their booking calendar: whether sessions are on, and its opening hours in words (lib/site-kits.ts bookingHoursText).
+  booking: { offered: boolean; hours: string }; // the ones a visitor sees, in the member's order (switched on, filled in, covered by the plan)
 };
 
 const Ctx = createContext<SiteInfo | null>(null);
