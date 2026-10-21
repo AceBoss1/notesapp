@@ -215,13 +215,15 @@ export default function RoadmapPage() {
               <li><Link href="/shop" className="text-crimson underline">Notes Market</Link>: every #NotesApp store in one place, For you first, then the most viewed and the newest</li>
               <li><Link href="/academy" className="text-crimson underline">Notes Academy</Link>: free courses from any publisher, with lessons from their own YouTube that play right here, and paid courses on Pro and above (uploaded videos on Business and Enterprise); co-tutors, organisations, likes, saves and reviews</li>
               <li><Link href="/certificates" className="text-crimson underline">Certificates</Link> anyone can check by ID or QR code, in the teacher&apos;s academy name and logo, to add to LinkedIn or save as a PDF or picture</li>
-              <li>Your site for Business and Enterprise: the Legacy, Aurora or Maroon theme, Journals, Shop and Courses on or off, and About and Contact pages</li>
+              <li><Link href="/help/your-site" className="text-crimson underline">Your own site</Link> from Free Basic at /s/your-name (your own domain on Business and Enterprise): 16 kits: Personal and creators, Academics and researchers, Fashion, Food &amp; baking, Services, Healthcare, Massage and spa, Salons and beauty, Fitness, Events and photography, Electronics, Motor parts, Solar and energy, Real estate, Schools and Churches/NGOs; a cover photo on every look; the Clean, Scholar (with dark mode), Legacy, Aurora and Maroon looks with colour sets and a white or paper background (your own brand colour on Pro); Publications (imported from Google Scholar, ORCID or a DOI), Awards, Talks on a globe and In the news; a banner with WhatsApp, Call and Book buttons, hours and contacts, prices, a gallery, testimonials, team and answers, in your order; and About and Contact pages</li>
               <li>The #NotesApp Weekly Digest on Sunday evenings (with the most viewed and most bought in Notes Market and Notes Academy), and a notification when someone @mentions you</li>
               <li>Paid 1:1 sessions on each publisher&apos;s own rate and availability, paid through Paystack, with a bookings dashboard, rescheduling and a clear cancellation policy</li>
               <li>Paid monthly journal subscriptions that unlock premium entries</li>
               <li>Post and store-item boosts (pay for validated impressions) and gifts on every profile and post — see <Link href="/boost" className="text-crimson underline">Boost</Link> and <Link href="/gifts" className="text-crimson underline">Gifts</Link></li>
               <li>Your own store with physical goods and instant digital downloads and (Pro and above) view-only files and video courses, sold through #NotesApp checkout with parcel tracking — see <Link href="/store-selling" className="text-crimson underline">Store selling</Link></li>
               <li><Link href="/logistics" className="text-crimson underline">Shipments for logistics businesses</Link>, with a Track page on their own site, and the <Link href="/logistics/network" className="text-crimson underline">logistics network</Link>: stores choose a delivery partner and buyers pay its price at checkout (Business and Enterprise, or the logistics add-on on Free Basic and Pro)</li>
+              <li><Link href="/help/inventory" className="text-crimson underline">Inventory</Link>: stock per item and option, SKUs and cost prices, low-stock alerts, the history of every change and a spreadsheet in and out (included on Business; an add-on on Free Basic and Pro)</li>
+              <li>Free 15-day trials of Pro and Business (each once, with a paid plan between two trials)</li>
               <li>Paid Pro and Business plans through Paystack, and official #NotesApp merch pre-orders in Naira — see <Link href="/pricing" className="text-crimson underline">Pricing</Link> and the <Link href="/merchstore" className="text-crimson underline">Merch store</Link></li>
               <li>Your own domain (Business and Enterprise) and, on Enterprise, the server-to-server API, Console keys and webhooks — see the <Link href="/docs" className="text-crimson underline">API Docs</Link></li>
               <li>Video on posts — one MP4 or WebM per post (up to 3 minutes and 100 MB), played in our own data-friendly player, with a weekly allowance by plan</li>
@@ -233,6 +235,7 @@ export default function RoadmapPage() {
               <li>The #NotesApp MCP server, phase 1: AI assistants such as Claude and ChatGPT can find creators, journals, store items and courses, and with your API key read your own data (see the <Link href="/docs" className="text-crimson underline">API Docs</Link>)</li>
               <li>Publishing a post to your connected LinkedIn and X from the post itself</li>
               <li>Download your data or delete your account yourself, under Account → Your data</li>
+              <li><Link href="/profile/analytics" className="text-crimson underline">Analytics</Link> for every member who sells, teaches or publishes: earnings, orders, best sellers, stock running low and visits; customers and a sales download on Pro; visits by page and where visitors came from on Business</li>
               <li>Trending (Notes, Store, Courses and Publishers), a live <Link href="/status" className="text-crimson underline">status page</Link> and a public <Link href="/changelog" className="text-crimson underline">changelog</Link></li>
               <li>Verification badges: the maroon ✔ for accounts in good standing and the <strong className="text-ink">gold ✔ for endorsed accounts</strong>{GOLD_KIND_LIVE.identity ? " and identity-checked accounts" : ""} — see <Link href="/badges" className="text-crimson underline">Verification badges</Link></li>
               <li>Publisher payouts to a verified bank account, released automatically after the session</li>
@@ -322,7 +325,7 @@ export default function RoadmapPage() {
         </span>
         <h2 className="mt-2 font-display text-2xl text-ink">Organisation accounts</h2>
         <p className="mt-3 text-slate">
-          Live: organisation sign-up with a CAC registration number, a free 30-day Business trial, an &ldquo;unverified organisation&rdquo; notice until we
+          Live: organisation sign-up with a CAC registration number, a free 15-day Business trial, an &ldquo;unverified organisation&rdquo; notice until we
           confirm the registration, and the maroon ✔ once confirmed. Team members too: the owner, admins and writers publish under the channel&apos;s name (four seats on Business), and
           everything their posts earn goes to the organisation&apos;s single payout account.
         </p>

@@ -1,19 +1,70 @@
 {
   "indexes": [
     {
+      "collectionGroup": "ledger",
+      "queryScope": "COLLECTION",
+      "fields": [{ "fieldPath": "publisherUid", "order": "ASCENDING" }, { "fieldPath": "createdAt", "order": "ASCENDING" }]
+    },
+    {
+      "collectionGroup": "payments",
+      "queryScope": "COLLECTION",
+      "fields": [{ "fieldPath": "publisherUid", "order": "ASCENDING" }, { "fieldPath": "createdAt", "order": "ASCENDING" }]
+    },
+    {
+      "collectionGroup": "bookings",
+      "queryScope": "COLLECTION",
+      "fields": [{ "fieldPath": "publisherUid", "order": "ASCENDING" }, { "fieldPath": "createdAt", "order": "ASCENDING" }]
+    },
+    {
+      "collectionGroup": "storeOrders",
+      "queryScope": "COLLECTION",
+      "fields": [{ "fieldPath": "sellerUid", "order": "ASCENDING" }, { "fieldPath": "paidAt", "order": "ASCENDING" }]
+    },
+    {
       "collectionGroup": "parcels",
       "queryScope": "COLLECTION",
-      "fields": [{ "fieldPath": "sellerUid", "order": "ASCENDING" }, { "fieldPath": "kind", "order": "ASCENDING" }, { "fieldPath": "createdAt", "order": "DESCENDING" }]
+      "fields": [
+        {
+          "fieldPath": "sellerUid",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "kind",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "createdAt",
+          "order": "DESCENDING"
+        }
+      ]
     },
     {
       "collectionGroup": "groupCalls",
       "queryScope": "COLLECTION",
-      "fields": [{ "fieldPath": "memberUids", "arrayConfig": "CONTAINS" }, { "fieldPath": "status", "order": "ASCENDING" }]
+      "fields": [
+        {
+          "fieldPath": "memberUids",
+          "arrayConfig": "CONTAINS"
+        },
+        {
+          "fieldPath": "status",
+          "order": "ASCENDING"
+        }
+      ]
     },
     {
       "collectionGroup": "lifePresence",
       "queryScope": "COLLECTION",
-      "fields": [{ "fieldPath": "place", "order": "ASCENDING" }, { "fieldPath": "at", "order": "DESCENDING" }]
+      "fields": [
+        {
+          "fieldPath": "place",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "at",
+          "order": "DESCENDING"
+        }
+      ]
     },
     {
       "collectionGroup": "notifications",
@@ -63,6 +114,38 @@
       "fields": [
         {
           "fieldPath": "uid",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "at",
+          "order": "DESCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "inventoryMoves",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "ownerUid",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "at",
+          "order": "DESCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "inventoryMoves",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "ownerUid",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "itemId",
           "order": "ASCENDING"
         },
         {
@@ -187,7 +270,17 @@
         }
       ]
     },
-    { "collectionGroup": "agentActions", "fieldPath": "expireAt", "ttl": true, "indexes": [] },
-    { "collectionGroup": "nanaBank", "fieldPath": "expireAt", "ttl": true, "indexes": [] }
+    {
+      "collectionGroup": "agentActions",
+      "fieldPath": "expireAt",
+      "ttl": true,
+      "indexes": []
+    },
+    {
+      "collectionGroup": "nanaBank",
+      "fieldPath": "expireAt",
+      "ttl": true,
+      "indexes": []
+    }
   ]
 }

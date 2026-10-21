@@ -2,12 +2,13 @@ import { NextRequest, NextResponse } from "next/server";
 import { friendlyMessage } from "@/lib/api-errors";
 import { getAdminDb, verifySignedInRequest } from "@/lib/firebase-admin";
 import { rateLimit } from "@/lib/rate-limit";
-import { canChooseSiteTheme, isSiteTheme, siteThemeNames } from "@/lib/site-themes";
+import { canHaveSite, isSiteTheme, siteThemeNames, themeAllowed, tierName, SITE_THEMES } from "@/lib/site-themes";
+import { effectiveTier } from "@/lib/users";
 import type { UserProfile } from "@/lib/users";
 
 export const dynamic = "force-dynamic";
 
-// Business and Enterprise members: POST { theme: "legacy" | "aurora" | "maroon" } sets the look of their own site. Written here (not from the browser)
+// Members with a site (Free Basic and above): POST { theme } sets the look of their own site; each look has its plan (lib/site-themes.ts). Written here (not from the browser)
 // so the plan is checked on the server.
 export async function POST(req: NextRequest) {
   try {
@@ -21,7 +22,8 @@ export async function POST(req: NextRequest) {
     const snap = await db.doc(`users/${user.uid}`).get();
     const p = snap.data() as UserProfile | undefined;
     if (!p) return NextResponse.json({ error: "Profile not found." }, { status: 404 });
-    if (!canChooseSiteTheme(p)) return NextResponse.json({ error: "Choosing a site theme is on the Business and Enterprise plans." }, { status: 403 });
+    if (!canHaveSite(p)) return NextResponse.json({ error: "Your own site comes with Free Basic and above." }, { status: 403 });
+    if (!themeAllowed(b.theme, effectiveTier(p))) return NextResponse.json({ error: `The ${SITE_THEMES.find((t) => t.id === b.theme)!.name} look comes with ${tierName(SITE_THEMES.find((t) => t.id === b.theme)!.minTier)} and above.` }, { status: 403 });
     await db.doc(`users/${user.uid}`).update({ siteTheme: b.theme });
     return NextResponse.json({ theme: b.theme });
   } catch (err) {

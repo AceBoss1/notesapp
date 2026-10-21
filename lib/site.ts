@@ -44,7 +44,7 @@ export const WHAT_YOU_CAN_DO = [
   "Teach free and paid courses in Notes Academy, on your own, with co-tutors or as an organisation, and give learners certificates anyone can check",
   "Ask Nana, our AI helper, about the platform, and let her suggest topics, summarise and translate chats",
   "Earn from journal subscriptions and gifts",
-  "Run it all under your own name, or your own site and domain on Business and Enterprise plans",
+  "Run it all under your own name, with your own site from Free Basic and your own domain on Business and Enterprise plans",
   "Play Notes Life, our free life game",
 ];
 export const WHAT_IS_FREE = "Anyone can read, comment, book a session or buy from a shop for free.";

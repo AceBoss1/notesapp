@@ -12,9 +12,10 @@ import { LIFE_LIVE } from "./life/catalog";
 import { CALLS_LIVE, MESSAGES_LIVE, MOMENTS_LIVE } from "./moments-rules";
 import { BONUS_DAYS, BONUS_STEPS, TOPUP_MAX_KOBO, TOPUP_MIN_KOBO, WALLET_LIVE } from "./wallet";
 import { ORG_TRIAL_DAYS } from "./org";
+import { TRIAL_DAYS } from "./trials";
 import { COMPANY_INFO, SITE } from "./site";
 import { BADGE_PRICE_KOBO, TIERS, formatPercent } from "./tiers";
-import { academyApiFrom, certificateMin, currentPricing, enterpriseCoursesPrice, logisticsAddonPrice, logisticsTrialDays } from "./pricing";
+import { academyApiFrom, certificateMin, currentPricing, enterpriseCoursesPrice, inventoryAddonPrice, inventoryTrialDays, logisticsAddonPrice, logisticsTrialDays } from "./pricing";
 import { academyFaq } from "./academy-faq";
 const CERTIFICATE_LATE_TEXT = () => { const l = currentPricing().certificateLate; return { grace: l.graceDays, weekly: `${Math.round(l.weeklyRate * 100)}%`, cap: `${Math.round(l.capRate * 100)}%` }; };
 import { VIDEO_MAX_SECONDS } from "./video-rules";
@@ -109,6 +110,8 @@ Your publishing tier shows under your name on your profile, for example "Pro Pub
 - **Business**: ${t("business").price}, or ${money(t("business").yearlyKobo!)} a year (two months free). Includes the verified badge, your own domain, and four team seats.
 - **Enterprise**: ${t("enterprise").price}. Rates and seats are agreed with us; [contact us](/contact).
 
+**Free trials:** you can try Pro and Business free for ${TRIAL_DAYS} days each, with no card, from [Pricing](/pricing) (a verified email is needed). Each plan can be tried once. When a trial ends you're back on the plan you pay for, or Free Basic, and everything you published stays. To try another plan after a trial, pay for a plan first: a paid plan has to come between two free trials. You can upgrade or downgrade by paying at any time. Add-ons (such as logistics) have a one-time free trial of up to ${TRIAL_DAYS} days too.
+
 **Courses (Notes Academy):** free courses are free to publish on every publishing plan. Certificates on free courses are paid: the learner pays from ${certificateMin()} plus the margin the teacher sets. Paid courses: on Pro with text lessons, PDFs and YouTube, and on Business and Enterprise with uploaded videos too, with the same fee as digital items. For organisations, two packages sit on top of Enterprise: **Enterprise Courses** at ${enterpriseCoursesPrice()} a month, and the **Enterprise Academy API** from ${academyApiFrom()} a month plus usage. The regular Enterprise price stays as it is for anyone who takes neither.
 
 **Coming as paid add-ons:** ${ADD_ONS_LINE}
@@ -170,6 +173,18 @@ For the publisher, subscription money is released to their verified bank account
 A reader can send a publisher, or one single post, a gift from ${money(GIFT_MIN_KOBO)} to ${money(GIFT_MAX_KOBO)}, with a short note, or anonymously. Gift is the **Gift me** button on a publisher's profile and the 🎁 on their posts; both switch on once the publisher has added a payout account. If Gift me is greyed out, tap or hover the ℹ️ beside it.
 
 You need a verified email to send a gift, and you cannot gift yourself. Gifts are paid to the publisher's bank account 7 days after they arrive (a short dispute window), minus their plan's commission. More at [Gifts](/gifts).`),
+    A("analytics", "Your analytics", "Publishing and earning", `
+[Analytics](/profile/analytics), under My account, shows how you're doing in one place.
+
+**Overview:** what you earned after our fee (from store sales, downloads, sessions, subscriptions, gifts, courses and more), orders paid and how many checkouts were started, your average order, and visits to your profile, site, journals, items and courses, each with the change on the period before. A chart shows each day, and you can switch it between earnings, orders and visits. **Selling best** lists your top items and **Running low** the physical items with 3 or fewer left.
+
+**Tabs:** Sales (where your earnings came from), Orders, Products (views, sold, sales and stock per item), Customers, Visits and Promotion (what your boosts and adverts were seen and clicked).
+
+**What each plan sees:** every plan sees the last 7 days. **Pro** adds the last 30 and 90 days, the **Customers** tab (everyone who has bought from you, how much they've spent and when they last ordered, most valuable first) and **Download sales**, a spreadsheet of your orders. **Business and Enterprise** add **visits by page** and **where visitors came from**: WhatsApp, Instagram, Facebook, X, LinkedIn, TikTok, YouTube, search engines, other websites, or direct.
+
+**Organisations:** teammates with store access can switch to the organisation's analytics.
+
+**How visits are counted:** once per visitor per page every 30 minutes (store items and courses once a day), never your own, and only from the day analytics started. Apps such as WhatsApp often hide where a visit came from; add \`?utm_source=whatsapp\` (or instagram, facebook…) to links you share so those visits are counted right. Customers' details are for running your orders only.`),
     A("payouts", "Getting paid: payouts and when money is released", "Publishing and earning", `
 Add a bank account under Rates & payouts. We verify the account name first and store only the account name, bank and last four digits. Then:
 - **Sessions:** paid 24 hours after the session ends.
@@ -380,7 +395,7 @@ Calls are free. Planned: paid calls inside Notes Life (₦5 a minute voice, ₦1
 - **Publish:** a course needs a title, a summary and at least one lesson. Use **Preview** first if you like; only its tutors can see a draft.
 - You can keep editing after publishing. To remove the last lesson of a published course, unpublish it first. Deleting a course removes its lessons and its learners' progress; a course people have bought can't be deleted (unpublish it instead, and they keep it).
 - **Your academy (certificates):** set it up once at [Your academy](/academy/teach/setup): the name and logo on your certificates, who signs them (a photo of the signature on white paper; we remove the white), an accrediting institution if you have one (its logo shows once #NotesApp has checked it) and your margin on top of our ${certificateMin()}. You receive the margin less our usual commission, and your share grows with any late claim fee. Courses our team has reviewed get the "#NotesApp Certified Course" seal.
-- Up to 30 courses, each with up to 100 lessons. Your published courses show on your profile's Courses tab, on Trending, on your own site (Business and Enterprise) and in the weekly digest when they're popular.
+- Up to 30 courses, each with up to 100 lessons. Your published courses show on your profile's Courses tab, on Trending, on your own site and in the weekly digest when they're popular.
 
 **Coming next:** quizzes, and Enterprise courses for organisations with cohorts and bulk invites (see [Pricing](/pricing)). Questions learners often ask are in [Notes Academy: questions](/help/notes-academy-faq).
 `),
@@ -423,6 +438,18 @@ You need a confirmed email address to get it, and it only comes when there's som
     A("social-sharing", "Sharing posts to social media", "Publishing and earning", `
 Every post has a share menu (WhatsApp, X, Facebook, LinkedIn, copy link) that works without connecting anything. You can also connect LinkedIn and X once and publish an excerpt of your post there, with a link back to the full journal on #NotesApp. You always see and can edit the words first (Nana can write them for you), and nothing goes out until you press Post. LinkedIn connections last about 60 days before you reconnect. Facebook, Instagram and TikTok are on the [roadmap](/roadmap).`),
     // ── Selling
+    A("inventory", "Inventory: your stock, SKUs and alerts", "Selling", `
+[Inventory](/profile/inventory), under My account, keeps your store's stock in one place.
+
+**What you see:** every physical item, and every option of an item with options (size, colour), with what's left, its SKU and the level at which you want an alert; and at the top, your units in stock, their value at cost, and how many are running low or sold out. Filter to **Running low** or **Sold out**, or search by name, option or SKU.
+
+**Changing stock:** tap **Restock or correct** on a line. **Add** a number (or take some off with a minus) or **set the count**, and pick a reason: restocked, stock count correction, damaged or lost, returned, or other, with a note such as the supplier's invoice. Sales and refunds are recorded on their own. Open an item to set its **SKU** (and each option's), its **cost price** (only you see it) and its **alert level**, and to see its **history**: every change, when, by whom and what was left after.
+
+**Alerts:** when a sale takes an item (or an option) to its alert level, or sells it out, you get a notification. Restocking an item that had sold out tells everyone who asked to be told.
+
+**Spreadsheet:** **Download spreadsheet** gives you every line (item_id, title, option, sku, stock, low_stock_at, cost_naira, price_naira). Change what you need, then **Upload spreadsheet**: you see what will change and any rows with problems before anything is saved. Rows are matched by item_id and option, or by SKU.
+
+**Who has it:** included on Business and Enterprise. On Free Basic and Pro, add it for ${inventoryAddonPrice()} a month, after a free ${inventoryTrialDays()}-day trial (no card, once). An organisation's teammates who run its store, and its admins, can use the organisation's inventory.`),
     A("selling-physical-goods", "Selling physical goods from your store", "Selling", `
 Your store lives at /u/yourname/store. Add an item, tick that it is sold through #NotesApp checkout, and set the price, your delivery fee and your stock. You need a payout account under Rates & payouts.
 
@@ -495,16 +522,25 @@ Companies, NGOs, churches, schools and clubs can run a verified channel. Sign up
 Already have a personal account? You do not need a new one: open [Make an organisation](/organisation), enter the CAC number, and the same account (with its username, posts and followers) becomes an organisation. If the account is more than a day old, an admin approves the change first.
 
 You can invite writers and admins by username or email; they publish under your channel's name and earnings go to one payout account. They can also teach on [Notes Academy](/academy) as the organisation (**Teach as**), free or paid, with certificates in your academy's name and logo. Your organisation's admins can also add and edit items in the organisation's store to help you; deleting items, orders and money stay with the owner and anyone given store access. Business includes four seats (the owner plus three); Enterprise has as many as you need. See [Organisations](/organisations).`),
+    A("your-site", "Your own site", "Publishing and earning", `
+Every Free Basic, Pro, Business and Enterprise member has their own website at ${ROOT_DOMAIN}/s/your-username, with your name at the top and no #NotesApp menus around it. Business and Enterprise can also put it on their own domain ([Your own domain](/help/your-own-domain)). Set it up on [Your site](/profile/site), under Edit profile, in five steps:
+
+1. **Start from a kit.** Pick the one closest to what you do: **Personal and creators** (for you as a person, a writer or a content creator), **Academics and researchers**, **Fashion** (clothes, bags, shoes and jewellery), **Food and baking**, **Services and freelancers**, **Healthcare and clinics**, **Massage and spa**, **Salons and beauty**, **Fitness trainers**, **Events and photography**, **Electronics and mobile devices**, **Motor and motorcycle spare parts**, **Solar and energy solutions**, **Real estate**, **Schools and academies** or **Churches and NGOs**. A kit sets the look, the colours, which sections show and their order, and fills empty parts with starter words for you to change. It never overwrites what you've already written, and you can switch kits any time.
+2. **Choose the look and colours.** Legacy (the original), **Clean** (white and rounded, with your main button in the header and a big banner with your picture), **Scholar** (plain and academic, a narrow page made for reading, with a light and dark switch that remembers each visitor's choice), Aurora (a deep colour band) or Maroon (your notes as posts, like the journal feed). Every look takes a colour set: #NotesApp crimson, forest green, ocean blue, royal purple, sunset orange, gold or charcoal. On Pro and above you can type your own brand colour; very light colours are darkened so words stay readable. Then choose the **background**, white or warm paper, with any look and colour set (Clean starts on white, the others on paper). Add a **cover photo** too: a wide picture across the top of your profile (about 1500 × 500), on any look, with your social links under your name.
+3. **Choose what shows.** Pages: Journals, Shop, Courses and Track, each with a link in your site's menu. Switch on **“Book me” under every post** to put a booking card under each of your journals on your site (it shows while your sessions are on). Sections on Home, in the order you set with the arrows: the top banner, the hours and contacts strip, services and prices, gallery, testimonials, team, and questions and answers, and the academic sections: **Publications** (shown by year, newest first, with your name in bold in the author list), **Awards**, **Talks** (each place you spoke at is a dot on a globe visitors can turn; type the city, e.g. Lagos, Nigeria, or add its latitude and longitude) and **In the news**. To fill Publications quickly, use **Import** in step 4: upload the BibTeX file from Google Scholar (on your profile, tick the box above your list, then Export → BibTeX), Zotero or Mendeley; add a paper by its **DOI**; or enter your **ORCID iD** to bring in your public works, and tick **Keep in sync** to have new ones added every day. Nothing is added twice and your edits stay; check the list, then save.
+4. **Put in your words, prices and pictures.** In **Team**, add a person's #NotesApp @username to link their name to their profile (it's a mention only; team seats come with Business). The banner has a headline, a line about what you do, a picture and up to two buttons: Book now (opens your booking card), Order on WhatsApp, Call us, Shop, Contact or a link. Leave a WhatsApp or Call button's number empty to use the one in your strip. In the hours and contacts strip, tick **Use the hours of my booking calendar** to show the times you take sessions (set on [Publishing](/profile/publishing)); while your sessions are on, tapping the hours opens your booking card. Gallery pictures open larger when tapped. A section only shows once it has something in it.
+5. **Write your About and Contact pages** with the same editor as your journals (up to 20,000 characters each). Each appears in your menu once saved.
+
+**What each plan gets:** Free Basic: the Personal and Academics kits, the Legacy, Clean and Scholar looks, the colour sets, every section, and the Journals, Shop and Courses pages (your shop pays the Free Basic store commission). **Pro** adds the business kits (Fashion, Food and baking, Services, Healthcare, Massage and spa, Salons, Fitness, Events and photography, Electronics, Motor parts, Solar and Real estate), the Aurora and Maroon looks, your own brand colour, and lower commissions. **Business and Enterprise** add the School and Church/NGO kits, Track, and your own domain. If your plan changes, what it no longer covers is hidden, never deleted.
+
+Your site's visits count in [Analytics](/profile/analytics). Use only pictures and words you have the right to use.`),
     A("your-own-domain", "Your own domain", "Teams and organisations", `
 Business and Enterprise accounts can serve their page, journals and store on their own domain (for example notes.yourbrand.com or yourbrand.com), with Home, Notes and Shop pages, and visitors who sign in, book and pay without leaving the site. Business is semi white-label (the footer says "powered by #NotesApp"); Enterprise adds fully branded sign-in and sign-up in your name.
 
 You connect the domain in the Console by adding the DNS records we show. Buying and managing domains inside #NotesApp, with our partner Whogohost (go54), is coming soon; see [Domains](/domains).
 
 ## Setting up your site
-Open [Your site](/profile/site) (also linked from Edit profile and the Console). It shows your site's address: your own domain if you connected one, and the preview at ${ROOT_DOMAIN}/s/your-username, which always works. Then, in three steps:
-1. **Choose a theme.** Legacy is the original light look (and the default); Aurora has a deep crimson band with your profile on a card; Maroon looks like the #NotesApp journal feed, with your notes as posts on white cards that readers can like, share and save. You can switch at any time.
-2. **Choose what shows.** Journals, Shop and Courses, each on or off (at least one stays on). Home shows your profile and then, right below it, what you chose: just the shop, just your posts, or a short preview of each with a link to see all. A section you switch off leaves the menu and its page is no longer found. Courses shows your Notes Academy courses.
-3. **Write your About and Contact pages** with the same editor as your journals (up to 20,000 characters each). Each page appears in your site's menu once it is saved; save one empty to take it off. Until both are written, Your site, Edit profile and the Console remind you.`),
+Open [Your site](/profile/site) (also linked from Edit profile and the Console): your domain shows there once it's connected, and the preview at ${ROOT_DOMAIN}/s/your-username always works. Choosing a kit, a look, colours and sections is in [Your own site](/help/your-site).`),
     A("api-and-console", "The API and Console (Enterprise)", "Teams and organisations", `
 Enterprise accounts can use a server-to-server API (switched on per account by our team) to publish posts and read bookings, orders and earnings, with signed webhooks for events like a booking or a paid order. Keys and webhooks are managed in the Console. Ask for access on the [contact page](/contact); the documentation is public at [API docs](/docs). Questions about the API or the MCP server can go to our [Discord](${SITE.discord}), where API changes are announced too.`),
     A("mcp-ai-assistants", "MCP: use #NotesApp from your AI assistant", "Teams and organisations", `

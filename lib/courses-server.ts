@@ -7,6 +7,8 @@ import { weeklyViews } from "./discovery-server";
 import { canPublish, effectiveTier, type AccountTier, type UserProfile } from "./users";
 import { canHaveTeam, isOrganisation } from "./org";
 import { notifyBell } from "./email";
+import { ownerVisitData, ownerVisitRef } from "./visits-server";
+import type { Source } from "./analytics";
 import {
   MAX_COURSES_PER_MEMBER, MAX_CO_TUTORS, MAX_LESSONS, MIN_LEAD_TUTOR_PERCENT, canSellCourses, canUploadVideo, cleanCourseFields, cleanLesson, cleanLink, cleanPrice,
   communityKindOf, courseRating, isPaid, leadTutorPercent, orderedLessons, publishProblems, slugify, tutorInviteId,
@@ -547,7 +549,7 @@ export async function linksFor(db: Firestore, uid: string, courseId: string): Pr
 
 // One more look at a published course, and the day's bucket (pageViews/course_{id}_{yyyymmdd}) that Most viewed and Trending
 // rank by. The tutors' own looks don't count; the route lets each visitor count once a day.
-export async function recordCourseView(db: Firestore, courseId: string, viewerUid?: string, now = new Date()): Promise<boolean> {
+export async function recordCourseView(db: Firestore, courseId: string, viewerUid?: string, now = new Date(), source: Source = "direct"): Promise<boolean> {
   if (!safeId(courseId)) return false;
   const ref = db.doc(`courses/${courseId}`);
   return db.runTransaction(async (t) => {
@@ -556,6 +558,8 @@ export async function recordCourseView(db: Firestore, courseId: string, viewerUi
     if (viewerUid && (viewerUid === c.data()!.ownerUid || strings(c.data()!.tutorUids).includes(viewerUid))) return false;
     t.update(ref, { viewCount: FieldValue.increment(1) });
     t.set(db.doc(`pageViews/course_${courseId}_${dayKey(now).replace(/-/g, "")}`), { kind: "course", id: courseId, day: dayKey(now), count: FieldValue.increment(1) }, { merge: true });
+    const owner = String(c.data()!.ownerUid ?? "");
+    if (owner) t.set(ownerVisitRef(db, owner, dayKey(now)), ownerVisitData(owner, dayKey(now), "course", courseId, source), { merge: true }); // the teacher's analytics
     return true;
   });
 }

@@ -3,7 +3,7 @@ import { newParcelId, parseCustody, phoneLast4, type CustodyEntry, type Parcel }
 import { canActForSeller, expireLinks, hashToken, holderUrl, newLinkToken } from "./orders-server";
 import { cleanServices, cleanShipment, serviceName, servicesOf, shipmentOpen, type ShipmentInfo, type ShipmentService } from "./shipments";
 import { accessOf } from "./logistics-server";
-import { siteSectionsOf } from "./site-settings";
+import { siteSectionsShown } from "./site-settings";
 import { activeHostForUsername } from "./domains";
 import type { UserProfile } from "./users";
 
@@ -25,7 +25,7 @@ export async function shipmentBusiness(db: Firestore, uid: string, businessUid: 
   if (!p || p.suspended) throw new ShipmentError("That account isn't available.", 404);
   if (!(await canActForSeller(uid, businessUid))) throw new ShipmentError("You can't manage this business's shipments.", 403);
   if (!(await accessOf(db, p)).ok) throw new ShipmentError("Shipments and tracking come with Business and Enterprise, or the logistics add-on on Free Basic and Pro.", 403);
-  return { uid: businessUid, username: p.username, name: p.displayName || p.username, trackOn: siteSectionsOf(p).track, domain: await activeHostForUsername(p.username), services: servicesOf(p) };
+  return { uid: businessUid, username: p.username, name: p.displayName || p.username, trackOn: siteSectionsShown(p).track, domain: await activeHostForUsername(p.username), services: servicesOf(p) };
 }
 
 // Every business the member runs shipments for: their own account (on Business or Enterprise) and organisations that gave them store

@@ -7,13 +7,14 @@ import { GOLD_PRICING } from "@/lib/gold";
 import { BOOST_PACKAGES, GIFT_MAX_KOBO, GIFT_MIN_KOBO } from "@/lib/boost-config";
 import { GOLD_KIND_LIVE } from "@/lib/badges";
 import UpgradeButton from "@/components/UpgradeButton";
+import TrialButton from "@/components/TrialButton";
 import { LIMITS, formatNaira } from "@/lib/booking-time";
 import { limitTable, type LimitTable } from "@/lib/limits";
 import { getAdminDb } from "@/lib/firebase-admin";
 import { getLimitTable } from "@/lib/limits-server";
 import { CALLS_LIVE, MESSAGES_LIVE, MOMENTS_LIVE } from "@/lib/moments-rules";
 import { WALLET_LIVE } from "@/lib/wallet";
-import { academyApiFrom, certificateMin, enterpriseCoursesPrice, enterpriseFrom, logisticsAddonPrice, logisticsTrialDays, planPrice, planRate, pct, breakEven } from "@/lib/pricing";
+import { academyApiFrom, certificateMin, enterpriseCoursesPrice, enterpriseFrom, logisticsAddonPrice, logisticsTrialDays, planPrice, planRate, pct, breakEven , inventoryAddonPrice, inventoryTrialDays } from "@/lib/pricing";
 import { ROOT_DOMAIN } from "@/lib/host";
 
 export const metadata: Metadata = {
@@ -28,7 +29,7 @@ export const revalidate = 60;
 type Row = { label: string; href?: string; render: (t: (typeof TIERS)[number], L: LimitTable) => string; show?: boolean };
 // No setting holds the certificate minimum yet (docs/COURSES.md, decision 3), so it is written here once.
 const TEAM_HUB_NOTE = "The Team hub and team messages are coming as a paid add-on for Business and Enterprise after our internal testing";
-const YOUR_SITE = "Your site: the Legacy, Aurora or Maroon theme, Journals, Shop and Courses on or off, and About and Contact pages.";
+const YOUR_SITE = "Your site: every kit, the Clean, Legacy, Aurora or Maroon look with your colours, your sections, Journals, Shop, Courses and Track, and About and Contact pages.";
 const mins = (s: number) => (s % 60 === 0 ? `${s / 60} minute${s === 60 ? "" : "s"}` : `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`);
 
 const ROWS: Row[] = [
@@ -135,9 +136,26 @@ const ROWS: Row[] = [
     render: (t) => (t.canPublish ? "Buyer's money held until delivery · parcel ID · no-login hand-over links for riders and drivers" : "—"),
   },
   {
+    label: "Inventory",
+    href: "/help/inventory",
+    render: (t) => (!t.canPublish ? "—" : t.tier === "business" || t.tier === "enterprise" ? "Included: stock per item and option, SKUs, cost prices, low-stock alerts, the history of every change, spreadsheet in and out" : `Add-on: ${inventoryAddonPrice()}/month after a free ${inventoryTrialDays()}-day trial`),
+  },
+  {
     label: "Shipments for logistics businesses",
     href: "/logistics",
     render: (t) => (!t.canPublish ? "—" : t.customDomain ? "Book shipments for your customers, rider hand-off links, and a Track page on your own site · list your business in the logistics network so stores can choose you · deliveries are paid by the customer" : `The logistics add-on: ${logisticsAddonPrice()}/month, with a ${logisticsTrialDays()}-day free trial and no card · shipments, rider hand-off links and a listing in the logistics network`),
+  },
+  {
+    label: "Your own site",
+    href: "/help/your-site",
+    render: (t) =>
+      !t.canPublish
+        ? "—"
+        : t.tier === "basic"
+          ? `At ${ROOT_DOMAIN}/s/username: the Personal and Academics kits, the Clean, Scholar and Legacy looks with colour sets, a banner with buttons, hours, prices, gallery, testimonials, team, answers, publications, awards, talks and news, Journals, Shop and Courses`
+          : t.tier === "pro"
+            ? "Also the 12 business kits (Fashion, Food & baking, Services, Healthcare, Spa, Salons, Fitness, Events, Electronics, Motor parts, Solar, Real estate), the Aurora and Maroon looks, and your own brand colour"
+            : "Every kit, including Schools and Churches/NGOs, and Track, on your own domain too",
   },
   {
     label: "Your own domain",
@@ -148,7 +166,7 @@ const ROWS: Row[] = [
           ? t.tier === "business"
             ? `Serve your page, journals and store on notes.yourbrand.com or yourbrand.com — your /u/username page stays the default home, and you can switch back any time. ${YOUR_SITE} Semi white-label: the footer reads “Your name is powered by #NotesApp” and emails go out under #NotesApp's name on your behalf`
             : `Serve your page, journals and store on notes.yourbrand.com or yourbrand.com — your /u/username page stays the default home, and you can switch back any time. ${YOUR_SITE} Full white label: visitors sign in and sign up in a window in your name and logo (still clearly a NotesApp account), and their password and confirmation emails come in your name. Checkout and bookings still open on #NotesApp for now`
-          : `Your page lives at ${ROOT_DOMAIN}/u/username`,
+          : "With Business and Enterprise; until then your site is at /s/username",
   },
   {
     label: "Files in messages",
@@ -236,7 +254,7 @@ export default async function PricingPage() {
                   <p className="font-ui text-sm font-bold text-white">{t.label}</p>
                   <p className="mt-1 font-mono text-sm font-semibold text-pink-200">{t.price}</p>
                   {t.priceNote && <p className="mt-1 max-w-[11rem] text-xs font-normal text-white/75">{t.priceNote}</p>}
-                  {(t.tier === "pro" || t.tier === "business") && <UpgradeButton tier={t.tier} label={t.label} />}
+                  {(t.tier === "pro" || t.tier === "business") && <><UpgradeButton tier={t.tier} label={t.label} /><TrialButton tier={t.tier} label={t.label} /></>}
                 </th>
               ))}
             </tr>
@@ -379,7 +397,7 @@ export default async function PricingPage() {
             ["/domains", "Domains — search, register and manage, with DNS (coming soon, Business and Enterprise)"],
             ["/teams", "Team hub (a paid add-on for Business and Enterprise after internal testing)"],
             ["/help", "Help centre — answers about everything above, and Nana AI"],
-            ["/organisations", "Organisations — free 30-day Business trial, CAC verification"],
+            ["/organisations", "Organisations — free 15-day Business trial, CAC verification"],
           ].map(([href, label]) => (
             <li key={href}>
               <Link href={href} className="text-crimson underline underline-offset-2">{label} →</Link>

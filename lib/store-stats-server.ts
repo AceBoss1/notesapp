@@ -1,4 +1,6 @@
 import { FieldValue, type Firestore } from "firebase-admin/firestore";
+import { ownerVisitData, ownerVisitRef } from "./visits-server";
+import type { Source } from "./analytics";
 
 // Saved items (the heart) and the "what buyers check more" numbers. Saves are private per member (`storeFavorites/{uid}_{itemId}`);
 // the totals are public (`storeStats/{itemId}` = { ownerUid, views, favs }). Both are written only here, in a transaction.
@@ -33,7 +35,7 @@ export async function toggleFavorite(db: Firestore, uid: string, itemId: string,
 }
 
 // One more look at an item. The seller's own visits don't count. (The browser also sends at most one a day per item.)
-export async function recordView(db: Firestore, itemId: string, viewerUid?: string): Promise<boolean> {
+export async function recordView(db: Firestore, itemId: string, viewerUid?: string, source: Source = "direct"): Promise<boolean> {
   if (!itemId || itemId.includes("/")) return false;
   const itemRef = db.doc(`storeItems/${itemId}`), statRef = db.doc(`storeStats/${itemId}`);
   return db.runTransaction(async (t) => {
@@ -45,6 +47,7 @@ export async function recordView(db: Firestore, itemId: string, viewerUid?: stri
     // The day's bucket too (as journals and profiles have), so the marketplace can rank by this week's visits.
     const day = new Date().toISOString().slice(0, 10);
     t.set(db.doc(`pageViews/item_${itemId}_${day.replace(/-/g, "")}`), { kind: "item", id: itemId, day, count: FieldValue.increment(1) }, { merge: true });
+    t.set(ownerVisitRef(db, ownerUid, day), ownerVisitData(ownerUid, day, "item", itemId, source), { merge: true }); // the seller's analytics
     return true;
   });
 }

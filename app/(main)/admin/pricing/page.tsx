@@ -126,6 +126,15 @@ export default function PricingPage() {
           </section>
 
           <section className="card mt-6 p-5">
+            <h2 className="font-display text-2xl text-ink">Inventory</h2>
+            <p className="mt-1 text-xs text-slate">Stock, SKUs, cost prices, a history of every change, low-stock alerts and spreadsheet import and export. Included on Business and Enterprise; Free Basic and Pro add it. Trials are never longer than 15 days.</p>
+            <div className="mt-3 grid gap-3 text-sm sm:grid-cols-2">
+              <div className="flex items-center justify-between gap-3"><span>Add-on for Free Basic and Pro, per month, ₦</span>{input(["inventory", "addonMonthlyKobo"], "", "Inventory add-on monthly price")}</div>
+              <div className="flex items-center justify-between gap-3"><span>Free trial, no card</span>{input(["inventory", "trialDays"], "days", "Inventory add-on trial days")}</div>
+            </div>
+          </section>
+
+          <section className="card mt-6 p-5">
             <h2 className="font-display text-2xl text-ink">Nana AI allowances</h2>
             <p className="mt-1 text-xs text-slate">What each member can spend a month on our AI account, in naira of what the AI costs us: chats, writing help, summaries. It is shared out over the reset period below and refreshes on that timer (unused allowance doesn&apos;t carry over). When it runs out, Nana uses the member&apos;s Nana credit, then answers from the help centre. Members with their own AI key are never limited. The site-wide ceiling pauses free allowances for the rest of the month; bought credit still works. Gems: Pearl for everyone, Emerald from Business, Ruby on Enterprise (models in Settings: NANA_MODEL, NANA_MODEL_EMERALD, NANA_MODEL_RUBY).</p>
             <div className="mt-3 grid gap-3 text-sm sm:grid-cols-2">

@@ -11,6 +11,93 @@ export type Release = {
 
 export const CHANGELOG: Release[] = [
   {
+    version: "v0.70.0",
+    bump: "minor",
+    date: "2026-10-21",
+    changes: [
+      { kind: "added", text: "Eight more kits for your site, each with its own look, colours, sections and starter words: Massage and spa, Salons and beauty, Fitness trainers, Events and photography, Electronics and mobile devices, Motor and motorcycle spare parts, Solar and energy solutions, and Real estate (Pro and above). The Fashion kit now covers clothes, bags, shoes and jewellery." },
+      { kind: "added", text: "A cover photo across the top of your profile on your site, on every look, with your logo over its edge and your social links under your name." },
+      { kind: "added", text: "Tag your team: add a person's #NotesApp @username in the Team section and their name links to their profile. Showing someone gives them no access to your account; team seats come with Business." },
+    ],
+  },
+  {
+    version: "v0.69.0",
+    bump: "minor",
+    date: "2026-10-21",
+    changes: [
+      { kind: "added", text: "Import your publications instead of typing them: upload the BibTeX file Google Scholar exports (or Zotero, Mendeley and others), add a paper by its DOI, or bring in your public works from ORCID. Nothing is added twice, your own edits stay, and you check the list before saving." },
+      { kind: "added", text: "Keep in sync with ORCID: link your ORCID iD and new works on your record are added to your site's Publications every day." },
+    ],
+  },
+  {
+    version: "v0.68.0",
+    bump: "minor",
+    date: "2026-10-21",
+    changes: [
+      { kind: "added", text: "Inventory, under My account: every physical item and option with what's left, its SKU, cost price (private) and the level at which you want an alert, with totals for units in stock and stock value. Restock, take off or correct a count with a reason, and see the history of every change: sales, refunds, restocks and corrections." },
+      { kind: "added", text: "Low-stock alerts: a notification when a sale takes an item to its low-stock level, or sells it out. Download your stock as a spreadsheet, edit it, and upload it back: you see every change and any problem before anything is saved." },
+      { kind: "added", text: "Inventory is included on Business and Enterprise. Free Basic and Pro add it for ₦1,500 a month, after a free 15-day trial (no card). Organisation teammates who run the store can use it too." },
+    ],
+  },
+  {
+    version: "v0.67.0",
+    bump: "minor",
+    date: "2026-10-21",
+    changes: [
+      { kind: "added", text: "Free trials for everyone: try Pro or Business free for 15 days from Pricing, with no card (a verified email is needed). Each plan can be tried once." },
+      { kind: "changed", text: "Trials are 15 days now, not 30, including the organisation Business trial and the logistics add-on's trial. A paid plan has to come between two free trials: after a trial you're back on the plan you pay for, or Free Basic, until you pay for one. Upgrading and downgrading work as before." },
+    ],
+  },
+  {
+    version: "v0.66.0",
+    bump: "minor",
+    date: "2026-10-21",
+    changes: [
+      { kind: "added", text: "The Scholar look for your site: plain and academic, a narrow page made for reading, with a light and dark switch that remembers each visitor's choice (and follows their phone's setting until they choose). From Free Basic, with every colour set." },
+      { kind: "added", text: "Academic sections for any site, from Free Basic: Publications (by year, newest first, your name in bold among the authors, with links and labels such as Best paper), Awards, Talks on a globe visitors can turn (type the city and its dot appears), and In the news." },
+      { kind: "added", text: "An Academics and researchers kit, free with Free Basic like Personal and creators: the Scholar look with your publications, talks, awards and news ready to fill in." },
+    ],
+  },
+  {
+    version: "v0.65.0",
+    bump: "minor",
+    date: "2026-10-21",
+    changes: [
+      { kind: "added", text: "Your own site now comes with Free Basic and Pro too, at notesapp.name.ng/s/your-name (your own domain stays with Business and Enterprise). Set it up on Your site, under Edit profile." },
+      { kind: "added", text: "Kits: start your site from one made for what you do: Personal and creators (Free Basic), Fashion, Food & baking, Services and Healthcare (Pro), and Schools and Churches/NGOs (Business). A kit sets the look, colours, sections and starter words; it never overwrites what you've written." },
+      { kind: "added", text: "The Clean look: white and rounded, with your main button in the header and a big banner with your picture. Every look now has colour sets (crimson, green, blue, purple, orange, gold, charcoal), and on Pro you can use your own brand colour. Every look and colour set comes on a white or a warm paper background, your choice." },
+      { kind: "added", text: "New sections for any site: a banner with buttons (Book now, Order on WhatsApp, Call us, Shop, Contact or a link), opening hours and contacts with a map link, services and prices, a gallery, testimonials, your team and questions and answers. Switch each on or off and put them in your own order." },
+      { kind: "added", text: "Your hours are connected to your booking calendar: the hours strip can show the times you take sessions, and tapping them opens your booking card. And a “Book me” card under every post on your site, if you switch it on." },
+      { kind: "changed", text: "Which pages a site shows follows the plan: Journals, Shop and Courses from Free Basic (the shop pays your plan's store commission), Track from Business. The Legacy and Clean looks come with Free Basic; Aurora and Maroon with Pro." },
+    ],
+  },
+  {
+    version: "v0.64.0",
+    bump: "minor",
+    date: "2026-10-21",
+    changes: [
+      { kind: "added", text: "Analytics, under My account: what you earned after our fee, orders paid out of checkouts started, your average order, visits, a day-by-day chart, your best sellers and items running low, and tabs for Sales, Orders, Products, Customers, Visits and Promotion (your boosts and adverts). Every plan sees the last 7 days." },
+      { kind: "added", text: "On Pro: the last 30 and 90 days, your customers (who bought, how much and when, most valuable first) and a download of your sales. On Business and Enterprise: visits by page and where visitors came from (WhatsApp, Instagram, search and more). Organisation teammates who run the store see its analytics too." },
+    ],
+  },
+  {
+    version: "v0.63.1",
+    bump: "patch",
+    date: "2026-10-21",
+    changes: [
+      { kind: "fixed", text: "When a CardTap wallet top-up can't start, Admin → Paylony now shows why: whether CardTap is switched on, and Paylony's own reply to each of the latest attempts." },
+      { kind: "added", text: "The status page has a Wallet top-ups (CardTap) line: Operational when the latest top-up started, Down with Paylony's reason in a few words when it couldn't." },
+    ],
+  },
+  {
+    version: "v0.63.0",
+    bump: "minor",
+    date: "2026-10-21",
+    changes: [
+      { kind: "added", text: "Your profile pictures have a ⋮ menu when you look through them: make an old picture your profile picture again (no new upload), save one to your device, change it for a new one, or remove an old one from your history. On a computer, Make profile picture also sits at the top." },
+    ],
+  },
+  {
     version: "v0.62.2",
     bump: "patch",
     date: "2026-10-20",

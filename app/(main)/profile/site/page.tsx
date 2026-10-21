@@ -5,22 +5,27 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { onAuthStateChanged, User } from "firebase/auth";
 import { auth } from "@/lib/firebase";
-import { getUserByUid, UserProfile } from "@/lib/users";
+import { effectiveTier, getUserByUid, UserProfile } from "@/lib/users";
 import { MAIN_HOST } from "@/lib/host";
-import { canChooseSiteTheme } from "@/lib/site-themes";
+import { canHaveSite, meetsTier, siteThemeOf, tierName, type SiteThemeId } from "@/lib/site-themes";
 import { SITE_PAGES, SITE_PAGE_MAX, SITE_SECTIONS, siteSectionsOf, type SitePageId, type SiteSections } from "@/lib/site-settings";
+import { BLOCKS, SECTION_MIN_TIER, blockAllowed, emptyBlocks, DEFAULT_ORDER, type BlockId, type Blocks, type Kit, type SiteDoc } from "@/lib/site-kits";
+import { getTierConfig } from "@/lib/tiers";
 import PageHero from "@/components/PageHero";
 import RichTextEditor from "@/components/RichTextEditor";
 import SiteThemePicker from "@/components/SiteThemePicker";
+import KitPicker from "@/components/site-settings/KitPicker";
+import PalettePicker from "@/components/site-settings/PalettePicker";
+import BlockEditors, { Picture } from "@/components/site-settings/BlockEditors";
 import { missingPagesText } from "@/components/SiteReminder";
 
-// "Your site" (Business and Enterprise): what their own site is and where it lives, then the three things they set up there:
-// the theme, which sections show (Journals, Shop, Courses, Track) and the About and Contact pages. Everything saves through the server
-// (/api/site/theme, /api/site/sections, /api/site/pages), which checks the plan.
+// "Your site" (Free Basic and above; docs/SITES.md): where the site lives, then five steps: start from a kit, the look and its colours, what
+// shows (the page sections and the content sections, in order), the content, and the About and Contact pages. Everything saves through the
+// server (/api/site/kit, /theme, /sections, /content, /pages), which checks the plan; what the plan doesn't include shows a 🔒.
 type Domain = { host: string; status: "pending" | "active" };
 
-async function post(user: User, url: string, body: unknown) {
-  const res = await fetch(url, { method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${await user.getIdToken()}` }, body: JSON.stringify(body) });
+async function call(user: User, url: string, body?: unknown) {
+  const res = await fetch(url, { method: body === undefined ? "GET" : "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${await user.getIdToken()}` }, ...(body === undefined ? {} : { body: JSON.stringify(body) }) });
   const d = await res.json().catch(() => ({}));
   if (!res.ok) throw new Error(d.error || "Couldn't save that.");
   return d;
@@ -31,37 +36,69 @@ export default function YourSitePage() {
   const [user, setUser] = useState<User | null>(null);
   const [profile, setProfile] = useState<UserProfile | null | undefined>(undefined);
   const [domain, setDomain] = useState<Domain | null>(null);
+  const [theme, setTheme] = useState<SiteThemeId>("legacy");
+  const [site, setSite] = useState<SiteDoc | null>(null);
+  const [blocks, setBlocks] = useState<Blocks>(emptyBlocks());
+  const [order, setOrder] = useState<BlockId[]>(DEFAULT_ORDER);
+  const [bookBelow, setBookBelow] = useState(false);
   const [sections, setSections] = useState<SiteSections>(siteSectionsOf(null));
   const [sectionsMsg, setSectionsMsg] = useState("");
+  const [contentMsg, setContentMsg] = useState("");
   const [busy, setBusy] = useState<string | null>(null);
   const [text, setText] = useState<Record<SitePageId, string>>({ about: "", contact: "" });
   const [saved, setSaved] = useState<Record<SitePageId, string>>({ about: "", contact: "" }); // what the site shows now
   const [pageMsg, setPageMsg] = useState<Record<SitePageId, string>>({ about: "", contact: "" });
 
+  const applyDoc = (d: SiteDoc) => { setSite(d); setBlocks(d.blocks); setOrder(d.order); setBookBelow(d.bookBelowPosts); };
   useEffect(() => onAuthStateChanged(auth, async (u) => {
     if (!u) { router.replace("/login?next=/profile/site"); return; }
     setUser(u);
     const p = await getUserByUid(u.uid).catch(() => null);
     setProfile(p);
     if (!p) return;
+    setTheme(siteThemeOf(p));
     setSections(siteSectionsOf(p));
     const pages = { about: p.sitePages?.about || "", contact: p.sitePages?.contact || "" };
     setText(pages);
     setSaved(pages);
-    if (canChooseSiteTheme(p)) {
+    if (!canHaveSite(p)) return;
+    call(u, "/api/site/content").then((d) => applyDoc(d.site)).catch(() => applyDoc({ kit: "", palette: { id: "crimson" }, blocks: emptyBlocks(), order: DEFAULT_ORDER, bookBelowPosts: false, orcid: null, cover: "" }));
+    if (getTierConfig(effectiveTier(p)).customDomain) {
       fetch("/api/console/domain", { headers: { Authorization: `Bearer ${await u.getIdToken()}` } })
         .then((r) => r.json()).then((d) => setDomain(d.domain || null)).catch(() => {});
     }
   }), [router]);
 
+  async function applyKit(k: Kit) {
+    if (!user) return;
+    const d = await call(user, "/api/site/kit", { kit: k.id });
+    applyDoc(d.site); setTheme(d.theme); setSections(d.sections);
+  }
+
   async function saveSections() {
     if (!user) return;
     setBusy("sections"); setSectionsMsg("");
     try {
-      await post(user, "/api/site/sections", { sections });
+      await call(user, "/api/site/sections", { sections });
+      const d = await call(user, "/api/site/content", { blocks, order, bookBelowPosts: bookBelow });
+      applyDoc(d.site);
       setSectionsMsg("Saved. Your site shows what you chose.");
     } catch (e) {
       setSectionsMsg(e instanceof Error ? e.message : "Couldn't save that.");
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  async function saveContent() {
+    if (!user) return;
+    setBusy("content"); setContentMsg("");
+    try {
+      const d = await call(user, "/api/site/content", { blocks });
+      applyDoc(d.site);
+      setContentMsg("Saved. Empty rows were left out.");
+    } catch (e) {
+      setContentMsg(e instanceof Error ? e.message : "Couldn't save that.");
     } finally {
       setBusy(null);
     }
@@ -71,7 +108,7 @@ export default function YourSitePage() {
     if (!user) return;
     setBusy(page); setPageMsg((m) => ({ ...m, [page]: "" }));
     try {
-      const d = await post(user, "/api/site/pages", { page, markdown: text[page] });
+      const d = await call(user, "/api/site/pages", { page, markdown: text[page] });
       setSaved((s) => ({ ...s, [page]: d.markdown }));
       setText((t) => ({ ...t, [page]: d.markdown }));
       try { localStorage.removeItem(`notesapp:draft:site-${page}-${user.uid}`); } catch {}
@@ -87,13 +124,13 @@ export default function YourSitePage() {
   if (profile === undefined) return <div className="px-6 py-24 text-center text-slate">Loading…</div>;
   if (profile === null) return <div className="px-6 py-24 text-center text-slate">Profile not found.</div>;
 
-  if (!canChooseSiteTheme(profile)) {
+  if (!canHaveSite(profile)) {
     return (
       <>
         <PageHero compact max="max-w-3xl" eyebrow={`@${profile.username}`} title={<>Your site</>} />
         <section className="mx-auto max-w-3xl px-4 py-10 sm:px-6 lg:px-8">
           <div className="card border-l-4 border-crimson p-6 text-sm text-slate">
-            <p>Your own website, with your profile, journals and shop under your name (and on your own domain if you like), is part of the Business and Enterprise plans. There you choose its look, what it shows, and write its About and Contact pages.</p>
+            <p>Your own website, with your profile, journals and more under your name, comes with <strong className="text-ink">Free Basic</strong>, which costs nothing: apply for it under <Link href="/profile/publishing" className="text-crimson underline">Rates &amp; payouts</Link>. Shops and services get more with Pro, and your own domain comes with Business.</p>
             <Link href="/pricing" className="btn-primary mt-4 inline-block !px-4 !py-2 text-xs">See the plans</Link>
           </div>
         </section>
@@ -101,77 +138,123 @@ export default function YourSitePage() {
     );
   }
 
+  const tier = effectiveTier(profile);
+  const ownDomain = getTierConfig(tier).customDomain;
   const preview = `/s/${profile.username}`;
   const live = domain?.status === "active";
   const siteHref = live ? `https://${domain.host}` : preview;
   const missing = SITE_PAGES.filter((x) => !saved[x.id].trim()).map((x) => x.id);
   const noneOn = !Object.values(sections).some(Boolean);
   const field = "rounded-2xl border border-rule p-4";
+  const move = (id: BlockId, by: -1 | 1) => setOrder((o) => { const i = o.indexOf(id), j = i + by; if (j < 0 || j >= o.length) return o; const a = [...o]; [a[i], a[j]] = [a[j], a[i]]; return a; });
 
   return (
     <>
       <PageHero compact max="max-w-3xl" eyebrow={`@${profile.username}`} title={<>Your site</>}>
-        <p>Your own website: your profile, journals and shop under your name, with no #NotesApp menus around them.</p>
+        <p>Your own website, under your name, with no #NotesApp menus around it: start from a kit, choose its look and colours, and put in your words, prices and pictures.</p>
       </PageHero>
       <section className="mx-auto max-w-3xl px-4 py-10 sm:px-6 lg:px-8">
-        {missing.length > 0 && (
+        {missing.length > 0 && meetsTier(tier, "business") && (
           <div className="mb-8 border-l-4 border-crimson bg-crimson/[0.06] px-5 py-4 text-sm text-ink" role="status">
-            <strong>{missingPagesText(missing)}</strong> Write {missing.length === 2 ? "them" : "it"} in step 3 below; once saved, {missing.length === 2 ? "each one" : "it"} is linked in your site&apos;s menu.
+            <strong>{missingPagesText(missing)}</strong> Write {missing.length === 2 ? "them" : "it"} in step 5 below; once saved, {missing.length === 2 ? "each one" : "it"} is linked in your site&apos;s menu.
           </div>
         )}
 
         <div className="card p-6">
-          <h2 className="font-display text-xl text-ink">How your site works</h2>
-          <p className="mt-2 text-sm text-slate">
-            Visitors see your profile, your journals and your shop, can book a session with you, and can sign in and pay without leaving it.
-            It updates by itself when you publish a journal or add something to your shop.
-          </p>
-          <p className="mt-4 eyebrow">Where it is</p>
-          <ul className="mt-2 space-y-1 text-sm text-ink">
-            {domain ? (
+          <h2 className="font-display text-xl text-ink">Where your site is</h2>
+          <ul className="mt-3 space-y-1 text-sm text-ink">
+            <li>Your site: <a href={preview} target="_blank" rel="noopener noreferrer" className="font-mono text-crimson underline">{MAIN_HOST}{preview}</a></li>
+            {ownDomain ? (domain ? (
               <li>
                 Your domain: <a href={`https://${domain.host}`} target="_blank" rel="noopener noreferrer" className="font-mono text-crimson underline">{domain.host}</a>{" "}
                 {live ? <span className="text-slate">(live)</span> : <span className="text-slate">(not connected yet: finish it in the <Link href="/console" className="text-crimson underline">Console</Link>)</span>}
               </li>
             ) : (
-              <li className="text-slate">You haven&apos;t added your own domain. You can connect one, such as notes.yourbrand.com, in the <Link href="/console" className="text-crimson underline">Console</Link>.</li>
-            )}
-            <li>Preview{domain ? " (always works)" : ""}: <a href={preview} target="_blank" rel="noopener noreferrer" className="font-mono text-crimson underline">{MAIN_HOST}{preview}</a></li>
+              <li className="text-slate">You can connect your own domain, such as notes.yourbrand.com, in the <Link href="/console" className="text-crimson underline">Console</Link>.</li>
+            )) : <li className="text-slate">Your own domain (yourbrand.com) comes with Business. <Link href="/pricing" className="text-crimson underline">See plans</Link></li>}
           </ul>
-          <p className="mt-4 eyebrow">Set it up in three steps</p>
-          <ol className="mt-2 list-decimal space-y-1 pl-5 text-sm text-ink">
-            <li><strong>Choose a theme</strong>: the look of the whole site. You can switch at any time.</li>
-            <li><strong>Choose what shows</strong>: Journals, Shop, Courses and Track, each on or off. Home shows your profile and then what you chose.</li>
-            <li><strong>Write your About and Contact pages</strong>: who you are and how to reach you, with the same editor as your journals.</li>
-          </ol>
-          <a href={siteHref} target="_blank" rel="noopener noreferrer" className="btn-primary mt-5 inline-block !px-4 !py-2 text-xs">View your site</a>
+          <p className="mt-3 text-sm text-slate">It updates by itself when you publish a journal or add something to your shop. Visitors can book you and pay without leaving it.</p>
+          <a href={siteHref} target="_blank" rel="noopener noreferrer" className="btn-primary mt-4 inline-block !px-4 !py-2 text-xs">View your site</a>
         </div>
 
-        <SiteThemePicker current={profile.siteTheme} username={profile.username} title="1. Choose a theme" />
+        <KitPicker tier={tier} current={site?.kit ?? ""} onApply={applyKit} />
+
+        <SiteThemePicker key={theme} current={theme} username={profile.username} tier={tier} title="2. Choose its look and colours" onChange={setTheme}>
+          {site && <PalettePicker key={`${site.palette.id}${site.palette.custom ?? ""}${site.palette.bg ?? ""}${theme}`} tier={tier} theme={theme} value={site.palette} onSave={async (palette) => { if (!user) return; const d = await call(user, "/api/site/content", { palette }); applyDoc(d.site); }} />}
+          {site && (
+            <div className="mt-6">
+              <p className="font-ui text-sm font-bold text-ink">Cover photo</p>
+              <p className="mt-0.5 mb-2 text-xs text-slate">A wide picture across the top of your profile, on any look (about 1500 × 500 works well). Your social links show under your name.</p>
+              <Picture value={site.cover} label="Add a cover photo" onChange={async (cover) => { if (!user) return; const d = await call(user, "/api/site/content", { cover }); applyDoc(d.site); }} />
+            </div>
+          )}
+        </SiteThemePicker>
 
         <section className="card mt-10 p-6" aria-labelledby="sections-h">
-          <h2 id="sections-h" className="font-display text-xl text-ink">2. Choose what shows</h2>
-          <p className="mt-1 text-sm text-slate">Each section you switch on gets its own page and a link in your site&apos;s menu, and appears on Home right under your profile. A section you switch off disappears from the site. Keep at least one on.</p>
-          <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-            {SITE_SECTIONS.map((s) => (
-              <label key={s.id} className={`${field} flex cursor-pointer items-start gap-3 ${sections[s.id] ? "border-crimson" : ""}`}>
-                <input type="checkbox" checked={sections[s.id]} onChange={(e) => setSections((cur) => ({ ...cur, [s.id]: e.target.checked }))} className="mt-1" />
-                <span>
-                  <span className="block font-ui text-sm font-bold text-ink">{s.name}</span>
-                  <span className="mt-1 block text-xs text-slate">{s.blurb}</span>
-                  {s.id === "track" && <Link href="/shipments" className="mt-1 block text-xs text-crimson underline">Book and manage shipments</Link>}
-                </span>
-              </label>
-            ))}
+          <h2 id="sections-h" className="font-display text-xl text-ink">3. Choose what shows</h2>
+          <p className="mt-1 text-sm text-slate">Pages: each gets its own page and a link in your site&apos;s menu, and a preview on Home. Keep at least one on.</p>
+          <div className="mt-4 grid gap-3 sm:grid-cols-2">
+            {SITE_SECTIONS.map((s) => {
+              const open = meetsTier(tier, SECTION_MIN_TIER[s.id]);
+              return (
+                <label key={s.id} className={`${field} flex items-start gap-3 ${open ? "cursor-pointer" : "opacity-60"} ${sections[s.id] && open ? "border-crimson" : ""}`}>
+                  <input type="checkbox" checked={sections[s.id] && open} disabled={!open} onChange={(e) => setSections((cur) => ({ ...cur, [s.id]: e.target.checked }))} className="mt-1" />
+                  <span>
+                    <span className="block font-ui text-sm font-bold text-ink">{s.name}</span>
+                    <span className="mt-1 block text-xs text-slate">{s.blurb}</span>
+                    {!open && <span className="mt-1 block text-xs font-semibold text-slate">🔒 Comes with {tierName(SECTION_MIN_TIER[s.id])}</span>}
+                    {open && s.id === "track" && <Link href="/shipments" className="mt-1 block text-xs text-crimson underline">Book and manage shipments</Link>}
+                  </span>
+                </label>
+              );
+            })}
           </div>
+          <label className={`${field} mt-3 flex cursor-pointer items-start gap-3 ${bookBelow ? "border-crimson" : ""}`}>
+            <input type="checkbox" checked={bookBelow} onChange={(e) => setBookBelow(e.target.checked)} className="mt-1" />
+            <span>
+              <span className="block font-ui text-sm font-bold text-ink">“Book me” under every post</span>
+              <span className="mt-1 block text-xs text-slate">A card under each of your journals on your site that opens your booking calendar. It shows while your sessions are on (<Link href="/profile/publishing" className="text-crimson underline">set your times and price</Link>).</span>
+            </span>
+          </label>
+          <p className="mt-6 text-sm text-slate">Sections on Home, in this order (use the arrows). Fill them in at step 4.</p>
+          <ol className="mt-3 space-y-2">
+            {order.map((id, n) => {
+              const b = BLOCKS.find((x) => x.id === id)!;
+              const open = blockAllowed(id, tier);
+              return (
+                <li key={id} className={`${field} flex items-start gap-3 ${open ? "" : "opacity-60"} ${blocks[id].on && open ? "border-crimson" : ""}`}>
+                  <input type="checkbox" aria-label={b.name} checked={blocks[id].on && open} disabled={!open} onChange={(e) => setBlocks((cur) => ({ ...cur, [id]: { ...cur[id], on: e.target.checked } }))} className="mt-1" />
+                  <span className="flex-1">
+                    <span className="block font-ui text-sm font-bold text-ink">{b.name}</span>
+                    <span className="mt-1 block text-xs text-slate">{b.blurb}</span>
+                    {!open && <span className="mt-1 block text-xs font-semibold text-slate">🔒 Comes with {tierName(b.minTier)}</span>}
+                  </span>
+                  <span className="flex shrink-0 flex-col gap-1">
+                    <button type="button" aria-label={`Move ${b.name} up`} disabled={n === 0} onClick={() => move(id, -1)} className="rounded border border-rule px-2 text-xs disabled:opacity-30">↑</button>
+                    <button type="button" aria-label={`Move ${b.name} down`} disabled={n === order.length - 1} onClick={() => move(id, 1)} className="rounded border border-rule px-2 text-xs disabled:opacity-30">↓</button>
+                  </span>
+                </li>
+              );
+            })}
+          </ol>
           <div className="mt-4 flex flex-wrap items-center gap-4">
             <button type="button" onClick={saveSections} disabled={busy !== null || noneOn} className="btn-primary !px-4 !py-2 text-xs disabled:opacity-50">{busy === "sections" ? "Saving…" : "Save"}</button>
-            {noneOn ? <p className="text-sm text-crimson">Switch on at least one section.</p> : sectionsMsg && <p className="text-sm text-ink" role="status">{sectionsMsg}</p>}
+            {noneOn ? <p className="text-sm text-crimson">Switch on at least one page.</p> : sectionsMsg && <p className="text-sm text-ink" role="status">{sectionsMsg}</p>}
+          </div>
+        </section>
+
+        <section className="card mt-10 p-6" aria-labelledby="content-h">
+          <h2 id="content-h" className="font-display text-xl text-ink">4. Your words, prices and pictures</h2>
+          <p className="mt-1 text-sm text-slate">What goes in each section you switched on. Only add what&apos;s true about you and your business.</p>
+          <BlockEditors tier={tier} value={blocks} onChange={setBlocks} orcid={site?.orcid ?? null} onOrcid={(orcid) => setSite((s) => (s ? { ...s, orcid } : s))} />
+          <div className="mt-4 flex flex-wrap items-center gap-4">
+            <button type="button" onClick={saveContent} disabled={busy !== null} className="btn-primary !px-4 !py-2 text-xs disabled:opacity-50">{busy === "content" ? "Saving…" : "Save"}</button>
+            {contentMsg && <p className="text-sm text-ink" role="status">{contentMsg}</p>}
           </div>
         </section>
 
         <section className="mt-10" aria-labelledby="pages-h">
-          <h2 id="pages-h" className="font-display text-xl text-ink">3. Write your About and Contact pages</h2>
+          <h2 id="pages-h" className="font-display text-xl text-ink">5. Write your About and Contact pages</h2>
           <p className="mt-1 text-sm text-slate">Each page is linked in your site&apos;s menu once it has something in it. Leave one empty and save to take it off your site. Your writing is kept on this device as you type, until you save.</p>
           {SITE_PAGES.map((pg) => {
             const over = text[pg.id].length > SITE_PAGE_MAX;

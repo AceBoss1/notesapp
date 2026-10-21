@@ -52,3 +52,38 @@
 /* Boosted strip: each new set of boosts fades in (components/BoostedStrip.tsx). */
 @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
 @media (prefers-reduced-motion: reduce) { .animate-\[fadeIn_\.5s_ease\] { animation: none !important; } }
+
+/* A member's site in the Scholar look, dark mode (lib/site-themes.ts; the switch is components/site/SiteDarkToggle.tsx). The page colours
+   turn round, and the accent takes the lighter shades of the site's colour set so links stay readable. `!important` because the colour
+   set is written inline on the same element. The footer keeps its usual colours. */
+[data-site-dark="true"] {
+  --c-ink: 236 229 224 !important;
+  --c-paper: 20 18 17 !important;
+  --c-card: 30 27 25 !important;
+  --c-slate: 170 160 154 !important;
+  --c-rule: 60 54 51 !important;
+  --c-crimson: var(--c-crimson-light, 214 128 152) !important;
+  --c-crimson-bright: var(--c-crimson-lighter, 228 160 180) !important;
+  color-scheme: dark;
+}
+[data-site-dark="true"] [data-site-footer] {
+  --c-ink: 26 18 16;
+  --c-paper: 251 246 242;
+}
+/* Journals and pages in dark mode: the typography plugin's colours follow the page. */
+[data-site-dark="true"] .prose {
+  --tw-prose-body: rgb(var(--c-ink));
+  --tw-prose-headings: rgb(var(--c-ink));
+  --tw-prose-lead: rgb(var(--c-slate));
+  --tw-prose-bold: rgb(var(--c-ink));
+  --tw-prose-quotes: rgb(var(--c-ink));
+  --tw-prose-quote-borders: rgb(var(--c-rule));
+  --tw-prose-hr: rgb(var(--c-rule));
+  --tw-prose-bullets: rgb(var(--c-slate));
+  --tw-prose-counters: rgb(var(--c-slate));
+  --tw-prose-code: rgb(var(--c-ink));
+  --tw-prose-captions: rgb(var(--c-slate));
+  --tw-prose-th-borders: rgb(var(--c-rule));
+  --tw-prose-td-borders: rgb(var(--c-rule));
+  --tw-prose-links: rgb(var(--c-crimson-bright));
+}

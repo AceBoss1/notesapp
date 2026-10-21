@@ -5,6 +5,8 @@ import { pingStream, streamConfigured } from "./stream";
 import { GOLD_KIND_LIVE } from "./badges";
 import { privateBucket, privateFilesConfigured } from "./private-files";
 import { paylonyConfigured, walletBalance } from "./paylony";
+import { cardtapReady } from "./cardtap-topup-server";
+import { cardtapHealth, type CardtapLast } from "./cardtap-topup";
 import { pushConfigured, pushProblem } from "./push-server";
 import { CALLS_LIVE, MESSAGES_LIVE, MOMENTS_LIVE } from "./moments-rules";
 import { pingVercel, vercelConfigured } from "./domains";
@@ -62,7 +64,7 @@ export async function checkServices(): Promise<ServiceStatus[]> {
     timed(async () => {
       await getAdminDb().collection("settings").limit(1).get();
       return true;
-    }).then((r) => toStatus("database", "Database", "Journals, profiles, bookings, stores, courses, shipments and the logistics network (Firestore)", r))
+    }).then((r) => toStatus("database", "Database", "Journals, profiles, bookings, stores, courses, shipments, the logistics network, members' sites and analytics (Firestore)", r))
   );
 
   const apiKey = setting("NEXT_PUBLIC_FIREBASE_API_KEY");
@@ -198,6 +200,18 @@ export async function checkServices(): Promise<ServiceStatus[]> {
     paylonyConfigured()
       ? timed(async () => (await walletBalance()).ok).then((r) => toStatus("paylony", "Bank payouts (Paylony)", "Paylony transfers and virtual accounts", r))
       : Promise.resolve(notConfigured("paylony", "Bank payouts (Paylony)", "Paylony transfers and virtual accounts"))
+  );
+
+  // Wallet top-ups with Paylony CardTap (only listed once switched on): there is no free test call, so this reports how the
+  // latest real top-up went, which startCardtap records; "down" names Paylony's reason (e.g. Invalid Merchant Authorization).
+  const tapName = "Wallet top-ups (CardTap)", tapDesc = "Topping up NotesApp Credit by tapping a card with Paylony CardTap";
+  checks.push(
+    cardtapReady()
+      ? getAdminDb().doc("paylonyConfig/cardtapLast").get().then((d) => {
+          const h = cardtapHealth((d.data() as CardtapLast | undefined) ?? null);
+          return { id: "cardtap", name: tapName, description: `${tapDesc} (${h.note})`, state: h.state } as ServiceStatus;
+        }).catch(() => ({ id: "cardtap", name: tapName, description: tapDesc, state: "degraded" } as ServiceStatus))
+      : Promise.resolve(notConfigured("cardtap", tapName, tapDesc))
   );
 
   // Messages and moments (only listed once switched on): the database that holds conversations answers. Expired moments are

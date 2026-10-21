@@ -16,6 +16,7 @@ import SiteFeed from "./SiteFeed";
 import TrackBox from "./TrackBox";
 import SiteProfileHeader from "./SiteProfileHeader";
 import AuroraBand from "./AuroraBand";
+import { SiteContentBlocks, SiteHero, SiteInfoStrip } from "./SiteBlocks";
 import ScrollToHash from "@/components/ScrollToHash";
 import CourseCard, { courseCardOf } from "@/components/CourseCard";
 import { COURSES_LIVE } from "@/lib/site-settings";
@@ -25,8 +26,9 @@ import { byRecent } from "@/lib/discovery";
 
 const seeAll = "font-ui text-xs font-semibold text-crimson hover:text-crimson-bright";
 
-// Home: who they are, then what they chose to show (a tracking box for logistics businesses, then Journals, Shop, Courses, in that order, or the shop first if that's their
-// domain's front page), then how to book them.
+// Home: who they are, their banner and hours strip (lib/site-kits.ts), then what they chose to show (a tracking box for logistics businesses, then
+// Journals, Shop, Courses, in that order, or the shop first if that's their domain's front page), their other content sections in their order
+// (services, gallery, testimonials, team, questions), then how to book them. The Clean look leads with the banner.
 export default function SiteHome() {
   const site = useSite();
   const { journals, shop, courses } = site.sections;
@@ -101,7 +103,12 @@ export default function SiteHome() {
         </section>
   );
   // A logistics business (the Track section): tracking comes first, right under who they are.
-  const sections = <>{site.sections.track && <TrackBox />}{shopFirst ? <>{itemsSection}{notesSection}</> : <>{notesSection}{itemsSection}</>}{coursesSection}</>;
+  // Scholar puts their work (publications, talks…) before their journals.
+  const pages = <>{shopFirst ? <>{itemsSection}{notesSection}</> : <>{notesSection}{itemsSection}</>}{coursesSection}</>;
+  const sections = site.theme === "scholar"
+    ? <>{site.sections.track && <TrackBox />}<SiteContentBlocks />{pages}</>
+    : <>{site.sections.track && <TrackBox />}{pages}<SiteContentBlocks /></>;
+  const hero = site.shownBlocks.includes("hero"), strip = site.shownBlocks.includes("info");
 
   // Booking runs right here: pick a time, sign in if needed (the visitor is brought back signed in), pay with Paystack.
   const booking = (
@@ -120,6 +127,8 @@ export default function SiteHome() {
         <AuroraBand />
         <div className="mx-auto max-w-5xl px-4 pb-14 sm:px-6">
           <div className="card relative z-10 -mt-16 p-6"><SiteProfileHeader /></div>
+          {hero && <SiteHero clean={false} />}
+          {strip && <SiteInfoStrip />}
           {sections}
           {booking}
         </div>
@@ -127,9 +136,37 @@ export default function SiteHome() {
     );
   }
 
+  // Clean: the banner first (or who they are, without one), the strip, what they show, then who they are on a card, and booking.
+  if (site.theme === "clean") {
+    return (
+      <div className="mx-auto max-w-5xl px-4 py-10 sm:px-6 sm:py-14">
+        {hero ? <SiteHero clean /> : <SiteProfileHeader />}
+        {strip && <SiteInfoStrip />}
+        {sections}
+        {hero && <div className="card mt-14 p-6"><SiteProfileHeader /></div>}
+        {booking}
+      </div>
+    );
+  }
+
+  // Scholar: a narrow reading column; who they are, a few words, then their work (publications, talks, awards, news in their order).
+  if (site.theme === "scholar") {
+    return (
+      <div className="mx-auto max-w-3xl px-4 py-12 sm:px-6">
+        <SiteProfileHeader />
+        {hero && <SiteHero clean={false} plain />}
+        {strip && <SiteInfoStrip />}
+        {sections}
+        {booking}
+      </div>
+    );
+  }
+
   return (
     <div className="mx-auto max-w-5xl px-4 py-14 sm:px-6">
       <SiteProfileHeader />
+      {hero && <SiteHero clean={false} />}
+      {strip && <SiteInfoStrip />}
       {sections}
       {booking}
     </div>

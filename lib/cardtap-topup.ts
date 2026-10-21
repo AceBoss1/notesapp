@@ -53,3 +53,13 @@ export function readVerify(body: unknown, payKobo: number): { state: "paid" | "f
   }
   return { state: "waiting", paidKobo };
 }
+
+// What /status says about CardTap, from the outcome of the latest top-up attempt (paylonyConfig/cardtapLast, written by
+// startCardtap). A refusal stays "down" until a top-up starts again, with Paylony's reason in a few words, never the reply itself.
+export type CardtapLast = { at: string; ok: boolean; code?: string; meaning?: string; httpStatus?: number };
+export function cardtapHealth(last: CardtapLast | null): { state: "operational" | "down"; note: string } {
+  if (!last) return { state: "operational", note: "no top-ups yet" };
+  if (last.ok) return { state: "operational", note: "the latest top-up started" };
+  const why = last.meaning || (last.httpStatus ? `Paylony answered ${last.httpStatus}` : "Paylony didn't answer");
+  return { state: "down", note: `the latest top-up couldn't start: ${why}` };
+}

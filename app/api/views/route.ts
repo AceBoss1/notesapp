@@ -4,6 +4,7 @@ import { getAdminDb } from "@/lib/firebase-admin";
 import { clientIp, rateLimit } from "@/lib/rate-limit";
 import { getAllNotes } from "@/lib/firestore-notes";
 import { getAllUsers } from "@/lib/users";
+import { countOwnerVisit, sourceFrom } from "@/lib/visits-server";
 
 // Records one visit into a per-day bucket (pageViews/{kind}_{id}_{yyyymmdd})
 // so /api/trending can rank by a recent window instead of all-time.
@@ -15,7 +16,8 @@ export async function POST(req: NextRequest) {
     if (/bot|crawl|spider|preview|facebookexternalhit|slurp|headless/i.test(req.headers.get("user-agent") || "")) {
       return NextResponse.json({ ok: true, counted: false });
     }
-    const { kind, id } = await req.json();
+    const body = await req.json();
+    const { kind, id } = body;
     if ((kind !== "note" && kind !== "profile") || typeof id !== "string" || !/^[A-Za-z0-9_-]{1,80}$/.test(id)) {
       return NextResponse.json({ error: "Invalid" }, { status: 400 });
     }
@@ -28,16 +30,23 @@ export async function POST(req: NextRequest) {
     // Only count pages that exist (and published notes), so junk ids can't create docs.
     // Checked against the shared 5-minute caches, so a visit costs one
     // write and no reads.
+    // The owner, for their analytics (ownerViews): a journal's author (an organisation for its posts), or the profile's member.
+    let ownerUid = "";
     if (kind === "note") {
-      if (!(await getAllNotes({ publishedOnly: true })).some((n) => n.id === id)) return NextResponse.json({ ok: true, counted: false });
-    } else if (!(await getAllUsers()).some((u) => u.username === id)) {
-      return NextResponse.json({ ok: true, counted: false });
+      const note = (await getAllNotes({ publishedOnly: true })).find((n) => n.id === id);
+      if (!note) return NextResponse.json({ ok: true, counted: false });
+      ownerUid = note.authorUid || (note.authorUsername ? (await getAllUsers()).find((u) => u.username === note.authorUsername)?.uid ?? "" : "");
+    } else {
+      const user = (await getAllUsers()).find((u) => u.username === id);
+      if (!user) return NextResponse.json({ ok: true, counted: false });
+      ownerUid = user.uid;
     }
 
     const day = new Date().toISOString().slice(0, 10);
     await db
       .doc(`pageViews/${kind}_${id}_${day.replace(/-/g, "")}`)
       .set({ kind, id, day, count: FieldValue.increment(1) }, { merge: true });
+    await countOwnerVisit(db, ownerUid, kind, id, sourceFrom(body, req.headers.get("host"))).catch(() => {});
     return NextResponse.json({ ok: true, counted: true });
   } catch (err) {
     console.error("view tracking failed:", err);

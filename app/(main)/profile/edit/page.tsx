@@ -4,7 +4,7 @@ import WorkFields from "@/components/WorkFields";
 import { cleanWork, type Work } from "@/lib/profile-work";
 import MomentSettings from "@/components/moments/MomentSettings";
 import SiteReminder from "@/components/SiteReminder";
-import { canChooseSiteTheme } from "@/lib/site-themes";
+import { canHaveSite } from "@/lib/site-themes";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
@@ -217,7 +217,7 @@ export default function ProfileEditPage() {
           )}
         </div>
       </form>
-      {canChooseSiteTheme(profile) && (
+      {canHaveSite(profile) && (
         <section className="card mt-10 p-6" aria-labelledby="site-h">
           <h2 id="site-h" className="font-display text-xl text-ink">Your site</h2>
           <p className="mt-1 text-sm text-slate">Your own website, with your profile, journals and shop: choose its theme and what it shows, and write its About and Contact pages.</p>

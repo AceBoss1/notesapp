@@ -3,6 +3,7 @@ import { getAuth } from "firebase-admin/auth";
 import { getAdminApp, getAdminDb } from "@/lib/firebase-admin";
 import { clientIp, rateLimit } from "@/lib/rate-limit";
 import { recordView } from "@/lib/store-stats-server";
+import { sourceFrom } from "@/lib/visits-server";
 
 export const dynamic = "force-dynamic";
 
@@ -14,7 +15,7 @@ export async function POST(req: NextRequest) {
     if (await rateLimit(req, "store-look", `${clientIp(req)}:${itemId}`, 2, 3600)) return NextResponse.json({ ok: false });
     const token = req.headers.get("authorization")?.replace(/^Bearer\s+/i, "");
     const d = token ? await getAuth(getAdminApp()).verifyIdToken(token).catch(() => null) : null;
-    return NextResponse.json({ ok: await recordView(getAdminDb(), itemId, d?.uid) });
+    return NextResponse.json({ ok: await recordView(getAdminDb(), itemId, d?.uid, sourceFrom(b, req.headers.get("host"))) });
   } catch {
     return NextResponse.json({ ok: false });
   }
