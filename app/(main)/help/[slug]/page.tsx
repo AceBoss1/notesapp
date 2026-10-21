@@ -6,6 +6,7 @@ import { getAdminDb } from "@/lib/firebase-admin";
 import { articlePath, summaryOf, type KbArticle } from "@/lib/kb";
 import { builtInArticles } from "@/lib/kb-articles";
 import { getArticles } from "@/lib/kb-server";
+import { SITE } from "@/lib/site";
 
 export const revalidate = 60;
 // Each article is rendered on its first visit, then cached (see above).
@@ -36,7 +37,7 @@ export default async function HelpArticlePage({ params }: { params: { slug: stri
 
       <div className="card mt-10 p-6">
         <p className="font-ui text-sm font-bold text-ink">Still stuck?</p>
-        <p className="mt-1 text-sm text-slate">Ask Nana, our AI helper, with the chat button at the bottom of the page, or <Link href="/contact" className="text-crimson underline">contact the team</Link> and a person will help.</p>
+        <p className="mt-1 text-sm text-slate">Ask Nana, our AI helper, with the chat button at the bottom of the page, ask the community on <a href={SITE.discord} target="_blank" rel="noopener noreferrer" className="text-crimson underline">our Discord</a>, or <Link href="/contact" className="text-crimson underline">contact the team</Link> and a person will help.</p>
       </div>
 
       {related.length > 0 && (

@@ -81,6 +81,10 @@ export const MANDATORY_JOURNALS: JournalDirectoryEntry[] = [
 
 export const MANDATORY_USERNAMES = MANDATORY_JOURNALS.map((j) => j.username);
 
+// Every member follows these accounts and can't unfollow them, so "does X follow Y" counts them as followed even when the follow
+// record was never written: sign-up only writes it at its follow step, so members who joined another way can be missing it.
+export const isAutoFollowed = (username: string) => MANDATORY_USERNAMES.includes(username);
+
 // Every username that gets the ✔ verified badge today — the 4
 // official accounts. Real members don't have a path to this yet; see
 // UserProfile.verified in lib/users.ts for where that's headed

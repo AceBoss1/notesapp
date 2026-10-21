@@ -1,6 +1,6 @@
 import { CopyObjectCommand, DeleteObjectCommand, GetObjectCommand, HeadObjectCommand, PutObjectCommand } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
-import { getR2Client } from "./r2";
+import { R2_BUCKET, getR2Client } from "./r2";
 import { setting } from "@/lib/config";
 
 // Server-only. Digital products live in a SEPARATE R2 bucket (R2_PRIVATE_BUCKET) that is never
@@ -44,6 +44,20 @@ export async function copyObject(from: string, to: string): Promise<void> {
   await getR2Client().send(new CopyObjectCommand({ Bucket: privateBucket(), Key: to, CopySource: `${privateBucket()}/${encodeURIComponent(from)}` }));
 }
 
+// A copy from the private bucket into the public media bucket, for when the owner of a chat photo or video chooses to make it
+// their profile picture or a moment (lib/chat-media-server.ts). Nothing else may move a private file out.
+export async function copyToPublic(from: string, to: string, contentType: string): Promise<void> {
+  await getR2Client().send(new CopyObjectCommand({ Bucket: R2_BUCKET, Key: to, CopySource: `${privateBucket()}/${encodeURIComponent(from)}`, ContentType: contentType, MetadataDirective: "REPLACE" }));
+}
+// The file itself, for /api/messages/file?raw=1 (Share to another app needs the bytes from this site, not a storage link).
+export async function getObjectBody(key: string): Promise<{ body: ReadableStream; size: number } | null> {
+  try {
+    const r = await getR2Client().send(new GetObjectCommand({ Bucket: privateBucket(), Key: key }));
+    return r.Body ? { body: r.Body.transformToWebStream(), size: Number(r.ContentLength || 0) } : null;
+  } catch {
+    return null;
+  }
+}
 export async function deleteObject(key: string): Promise<void> {
   await getR2Client().send(new DeleteObjectCommand({ Bucket: privateBucket(), Key: key })).catch(() => {});
 }
