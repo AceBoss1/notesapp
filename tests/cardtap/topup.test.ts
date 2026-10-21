@@ -1,7 +1,7 @@
 // CardTap wallet top-ups (lib/cardtap-topup.ts): Paylony's fee at cost, the launch offer, and reading Paylony's replies strictly.
 // Run: npm run test:cardtap → "ALL OK".
 import assert from "node:assert/strict";
-import { CARDTAP_FEE_CAP_KOBO, cardtapFeeKobo, cardtapQuote, readStart, readVerify } from "../../lib/cardtap-topup";
+import { CARDTAP_FEE_CAP_KOBO, cardtapFeeKobo, cardtapHealth, cardtapQuote, readStart, readVerify } from "../../lib/cardtap-topup";
 
 const N = (n: number) => n * 100;
 // 1% of the top-up, never more than ₦1,000
@@ -28,5 +28,12 @@ assert.equal(readVerify({ status: "00", data: { status: "successful", amount: "5
 assert.equal(readVerify({ status: "00", data: { status: "failed", amount: "5050" } }, pay).state, "failed");
 assert.equal(readVerify({ status: "00", data: { transaction_status: "declined" } }, pay).state, "failed");
 assert.equal(readVerify("<html>Bad gateway</html>", pay).state, "waiting");
+
+// /status: the latest attempt decides, with Paylony's reason in words
+assert.deepEqual(cardtapHealth(null), { state: "operational", note: "no top-ups yet" });
+assert.equal(cardtapHealth({ at: "x", ok: true }).state, "operational");
+assert.deepEqual(cardtapHealth({ at: "x", ok: false, code: "19", meaning: "Invalid Merchant Authorization", httpStatus: 401 }), { state: "down", note: "the latest top-up couldn't start: Invalid Merchant Authorization" });
+assert.equal(cardtapHealth({ at: "x", ok: false, httpStatus: 502 }).note, "the latest top-up couldn't start: Paylony answered 502");
+assert.equal(cardtapHealth({ at: "x", ok: false, httpStatus: 0 }).note, "the latest top-up couldn't start: Paylony didn't answer");
 
 console.log("ALL OK");

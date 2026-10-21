@@ -8,6 +8,7 @@ import {
   type PaylonyReply,
 } from "@/lib/paylony";
 import { setting } from "@/lib/config";
+import { cardtapReady } from "@/lib/cardtap-topup-server";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
@@ -19,13 +20,14 @@ export async function GET(req: NextRequest) {
   try {
     await verifyAdminRequest(bearer(req), ["finance"]);
     const db = getAdminDb();
-    const [diagnostics, events, cfg, accounts, secrets, pending] = await Promise.all([
+    const [diagnostics, events, cfg, accounts, secrets, pending, taps] = await Promise.all([
       paylonyDiagnostics(),
       db.collection("paylonyEvents").orderBy("receivedAt", "desc").limit(25).get(),
       db.doc("paylonyConfig/main").get(),
       db.collection("payoutAccounts").get(),
       db.collection("payoutSecrets").get(),
       db.collection("ledger").where("status", "==", "transferring").limit(100).get(),
+      db.collection("payments").where("payWith", "==", "cardtap").limit(200).get(), // one field, no index; newest picked below
     ]);
     const have = new Set(secrets.docs.map((d) => d.id));
     const pc = await paylonyConfig();
@@ -36,6 +38,14 @@ export async function GET(req: NextRequest) {
         accounts: accounts.size,
         ready: accounts.docs.filter((d) => d.data().paylonyBankCode && have.has(d.id)).length, // has Paylony's bank code and the encrypted number
         waiting: pending.docs.filter((d) => d.data().transferProvider === "paylony").map((d) => ({ id: d.id, reference: d.data().transferReference, netKobo: d.data().netKobo, note: d.data().failureReason || "" })),
+      },
+      // CardTap wallet top-ups: is it switched on, and what Paylony said to the latest attempts (the raw reply when a start failed).
+      cardtap: {
+        ready: cardtapReady(), terminalIdSet: !!setting("PAYLONY_CARDTAP_TERMINAL_ID"),
+        recent: taps.docs.map((d) => ({ id: d.id, ...d.data() } as Record<string, unknown>)).sort((a, b) => String(b.createdAt).localeCompare(String(a.createdAt))).slice(0, 10).map((p) => ({
+          reference: p.id, createdAt: p.createdAt, amountKobo: p.amountKobo, status: p.status, failed: p.cardtapFailed === true,
+          httpStatus: (p.cardtapStartHttp as number | undefined) ?? null, reply: (p.cardtapStartError as string | undefined) ?? "",
+        })),
       },
       events: events.docs.map((d) => {
         const e = d.data();

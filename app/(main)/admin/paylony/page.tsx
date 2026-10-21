@@ -17,6 +17,7 @@ export default function AdminPaylonyPage() {
   const [error, setError] = useState("");
   const [config, setConfig] = useState<{ signFormat: string | null; verifiedAt: string | null; payoutProvider?: string; accountKeySet?: boolean }>({ signFormat: null, verifiedAt: null });
   const [payouts, setPayouts] = useState<{ accounts: number; ready: number; waiting: { id: string; reference: string; netKobo: number; note: string }[] } | null>(null);
+  const [cardtap, setCardtap] = useState<{ ready: boolean; terminalIdSet: boolean; recent: { reference: string; createdAt: string; amountKobo: number; status: string; failed: boolean; httpStatus: number | null; reply: string }[] } | null>(null);
   const [tool, setTool] = useState<string>("");
   const [out, setOut] = useState("");
   const [bank, setBank] = useState({ bankCode: "000013", accountNumber: "" });
@@ -49,6 +50,7 @@ export default function AdminPaylonyPage() {
       setEvents(j.events);
       setConfig(j.config);
       setPayouts(j.payouts);
+      setCardtap(j.cardtap ?? null);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Something went wrong");
     } finally {
@@ -108,6 +110,26 @@ export default function AdminPaylonyPage() {
         <button onClick={() => run("account_name", bank)} disabled={!!tool || !bank.accountNumber} className="btn-ghost !px-4 !py-2 text-xs">Check name</button>
       </div>
       {out && <pre className="mt-3 max-h-80 overflow-auto bg-card p-2 font-mono text-[11px] text-slate">{out}</pre>}
+
+      <h2 className="mt-10 font-display text-2xl">CardTap top-ups</h2>
+      {cardtap && (
+        <>
+          <p className="mt-2 text-sm text-slate">{cardtap.ready ? "Switched on: members see Top up with CardTap in their wallet." : `Off${cardtap.terminalIdSet ? "" : ": PAYLONY_CARDTAP_TERMINAL_ID isn't set in Vercel"}.`} The latest attempts, with Paylony&apos;s own reply when one couldn&apos;t start:</p>
+          {cardtap.recent.length === 0 ? <p className="mt-3 text-sm text-slate">No CardTap top-ups yet.</p> : (
+            <ul className="card mt-3 divide-y divide-rule text-sm">
+              {cardtap.recent.map((t) => (
+                <li key={t.reference} className="px-4 py-2">
+                  <p className="flex flex-wrap items-center justify-between gap-2">
+                    <span><strong className="text-ink">₦{(t.amountKobo / 100).toLocaleString("en-NG")}</strong> · {t.failed ? <span className="text-red-700">didn&apos;t start</span> : t.status} <span className="font-mono text-xs text-slate">· {t.reference}</span></span>
+                    <span className="font-mono text-[11px] text-slate">{new Date(t.createdAt).toLocaleString("en-NG", { hour12: true })}</span>
+                  </p>
+                  {t.failed && <pre className="mt-1 max-h-40 overflow-auto whitespace-pre-wrap break-all bg-paper p-2 font-mono text-[11px] text-slate">{t.httpStatus !== null ? `HTTP ${t.httpStatus}: ` : ""}{t.reply || "(no reply)"}</pre>}
+                </li>
+              ))}
+            </ul>
+          )}
+        </>
+      )}
 
       <h2 className="mt-10 font-display text-2xl">Webhook</h2>
       <p className="mt-2 text-sm text-slate">Give Paylony this webhook address: <code>{SITE_URL}/api/paylony/webhook</code>, with the webhook key set in Vercel as PAYLONY_WEBHOOK_KEY. Events arrive for money paid into a virtual account and for payouts that change state.</p>

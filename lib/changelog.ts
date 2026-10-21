@@ -11,7 +11,7 @@ export type Release = {
 
 export const CHANGELOG: Release[] = [
   {
-    version: "v0.69.0",
+    version: "v0.70.0",
     bump: "minor",
     date: "2026-10-21",
     changes: [
@@ -21,7 +21,7 @@ export const CHANGELOG: Release[] = [
     ],
   },
   {
-    version: "v0.68.0",
+    version: "v0.69.0",
     bump: "minor",
     date: "2026-10-21",
     changes: [
@@ -30,7 +30,7 @@ export const CHANGELOG: Release[] = [
     ],
   },
   {
-    version: "v0.67.0",
+    version: "v0.68.0",
     bump: "minor",
     date: "2026-10-21",
     changes: [
@@ -40,7 +40,7 @@ export const CHANGELOG: Release[] = [
     ],
   },
   {
-    version: "v0.66.0",
+    version: "v0.67.0",
     bump: "minor",
     date: "2026-10-21",
     changes: [
@@ -49,7 +49,7 @@ export const CHANGELOG: Release[] = [
     ],
   },
   {
-    version: "v0.65.0",
+    version: "v0.66.0",
     bump: "minor",
     date: "2026-10-21",
     changes: [
@@ -59,7 +59,7 @@ export const CHANGELOG: Release[] = [
     ],
   },
   {
-    version: "v0.64.0",
+    version: "v0.65.0",
     bump: "minor",
     date: "2026-10-21",
     changes: [
@@ -72,12 +72,29 @@ export const CHANGELOG: Release[] = [
     ],
   },
   {
-    version: "v0.63.0",
+    version: "v0.64.0",
     bump: "minor",
     date: "2026-10-21",
     changes: [
       { kind: "added", text: "Analytics, under My account: what you earned after our fee, orders paid out of checkouts started, your average order, visits, a day-by-day chart, your best sellers and items running low, and tabs for Sales, Orders, Products, Customers, Visits and Promotion (your boosts and adverts). Every plan sees the last 7 days." },
       { kind: "added", text: "On Pro: the last 30 and 90 days, your customers (who bought, how much and when, most valuable first) and a download of your sales. On Business and Enterprise: visits by page and where visitors came from (WhatsApp, Instagram, search and more). Organisation teammates who run the store see its analytics too." },
+    ],
+  },
+  {
+    version: "v0.63.1",
+    bump: "patch",
+    date: "2026-10-21",
+    changes: [
+      { kind: "fixed", text: "When a CardTap wallet top-up can't start, Admin → Paylony now shows why: whether CardTap is switched on, and Paylony's own reply to each of the latest attempts." },
+      { kind: "added", text: "The status page has a Wallet top-ups (CardTap) line: Operational when the latest top-up started, Down with Paylony's reason in a few words when it couldn't." },
+    ],
+  },
+  {
+    version: "v0.63.0",
+    bump: "minor",
+    date: "2026-10-21",
+    changes: [
+      { kind: "added", text: "Your profile pictures have a ⋮ menu when you look through them: make an old picture your profile picture again (no new upload), save one to your device, change it for a new one, or remove an old one from your history. On a computer, Make profile picture also sits at the top." },
     ],
   },
   {

@@ -1,8 +1,8 @@
 # Sites: looks, sections, kits and analytics
 
 The plan for growing Your site into sites for every kind of member and business, and for giving members their own analytics. The owner's
-decisions of 20 Oct 2026 are below. Phase 1 (analytics, v0.63.0) and phase 2 (sections, the Clean look, colour sets and the first kits,
-v0.64.0) phase 3 (the Scholar look and the academic sections, v0.65.0) and phase 4 (more kits and the cover photo, v0.69.0) are built.
+decisions of 20 Oct 2026 are below. Phase 1 (analytics, v0.64.0) and phase 2 (sections, the Clean look, colour sets and the first kits,
+v0.65.0) phase 3 (the Scholar look and the academic sections, v0.66.0) and phase 4 (more kits and the cover photo, v0.70.0) are built.
 
 ## Decisions (owner, 20 Oct 2026)
 
@@ -66,7 +66,7 @@ For churches, NGOs, schools and clubs ([COMMUNITY.md](COMMUNITY.md)):
   announcements, member insights), made easier where we can, plus what Facebook doesn't do: giving, paid event tickets, the
   organisation's own site and domain.
 
-## Phase 1: analytics (built, v0.63.0)
+## Phase 1: analytics (built, v0.64.0)
 
 An Analytics page for every member who sells, teaches, books sessions or publishes:
 
@@ -77,7 +77,7 @@ An Analytics page for every member who sells, teaches, books sessions or publish
 - A date range and a chart; a download of the sales (Pro and above).
 - New: daily visit counts per page for each site and store, and where visitors came from (Business and above see them).
 
-## Phase 2: sections, the Clean look, colour sets and kits (built, v0.64.0)
+## Phase 2: sections, the Clean look, colour sets and kits (built, v0.65.0)
 
 - **Who has a site:** Free Basic and above, at `/s/<username>` (`canHaveSite`); readers don't. Own domain stays Business and Enterprise.
 - **Looks** (`lib/site-themes.ts`): Legacy and **Clean** from Free Basic; Aurora and Maroon from Pro (our choice, for the owner to
@@ -98,7 +98,7 @@ An Analytics page for every member who sells, teaches, books sessions or publish
 - **Settings:** Your site has five steps: kit, look and colours, what shows (with order arrows), words prices and pictures, About and
   Contact. Help → "Your own site".
 
-## Phase 3: Scholar and the academic sections (built, v0.65.0)
+## Phase 3: Scholar and the academic sections (built, v0.66.0)
 
 - **Scholar look** (Free Basic): a narrow reading column, the name in the serif face, the academic sections before journals, and a light and
   dark switch in the header. Dark mode follows the visitor's device until they choose, and remembers their choice on that device
@@ -108,11 +108,11 @@ An Analytics page for every member who sells, teaches, books sessions or publish
   Talks (a canvas dot-globe that turns slowly, pauses off screen, doesn't move for reduced motion; drag to turn, tap a dot; a place from
   `lib/places.ts` or typed coordinates), In the news.
 - **Kit:** Academics and researchers, a personal kit, so free with Free Basic like Personal and creators.
-- **Import** (owner, 21 Oct 2026; v0.68.0): BibTeX (Google Scholar's own export, since Scholar has no way for other sites to read a
+- **Import** (owner, 21 Oct 2026; v0.69.0): BibTeX (Google Scholar's own export, since Scholar has no way for other sites to read a
   profile), a DOI (Crossref), or an ORCID iD (ORCID's public API) with an optional daily sync (`sites/{uid}.orcid`, the reminders cron).
   Merged by DOI or title, never twice; the member checks and saves (`lib/publications-import.ts`, `lib/publications-server.ts`).
 
-## Phase 4: more kits and the cover photo (built, v0.69.0)
+## Phase 4: more kits and the cover photo (built, v0.70.0)
 
 - **Kits** (owner, 21 Oct 2026), Pro like the other business kits: Massage and spa, Salons and beauty, Fitness trainers, Events and
   photography, Electronics and mobile devices, Motor and motorcycle spare parts, Solar and energy solutions, Real estate. Fashion now
