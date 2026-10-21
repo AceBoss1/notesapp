@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Image from "next/image";
-import { COMPANY_INFO } from "@/lib/site";
+import { COMPANY_INFO, SITE } from "@/lib/site";
 
 import { InviteNote, PlayLink } from "@/components/life/LifeInvite";
 import { LIFE_URL } from "@/lib/host";
@@ -42,11 +42,12 @@ export default function LifePage() {
   return (
     <div className="min-h-screen bg-gradient-to-b from-sky-200 via-sky-50 to-amber-50 text-ink">
       <header className="mx-auto flex max-w-6xl items-center justify-between px-4 py-5 sm:px-6">
-        <p className="font-ui text-xl font-extrabold tracking-tight">Notes <span className="text-emerald-600">Life</span></p>
-        <div className="flex items-center gap-2">
-          <a href="/life/partners" className="rounded-full bg-white/80 px-3 py-1.5 font-ui text-xs font-semibold shadow-sm">🤝 Partner with us</a>
-          <FamilyLink to="app" className="flex items-center gap-2 rounded-full bg-white/80 px-3 py-1.5 font-ui text-xs font-semibold shadow-sm">
-            <Image src="/images/brand/icon-192.png" alt="" width={20} height={20} className="rounded" /> by NotesApp
+        <p className="shrink-0 whitespace-nowrap font-ui text-xl font-extrabold tracking-tight">Notes <span className="text-emerald-600">Life</span></p>
+        <div className="flex items-center gap-1.5 sm:gap-2">
+          <a href={SITE.discord} target="_blank" rel="noopener noreferrer" aria-label="Notes Life players on Discord" className="whitespace-nowrap rounded-full bg-white/80 px-3 py-1.5 font-ui text-xs font-semibold shadow-sm">💬<span className="hidden sm:inline"> Discord</span></a>
+          <a href="/life/partners" className="whitespace-nowrap rounded-full bg-white/80 px-3 py-1.5 font-ui text-xs font-semibold shadow-sm">🤝 Partner<span className="hidden sm:inline"> with us</span></a>
+          <FamilyLink to="app" className="flex items-center gap-2 whitespace-nowrap rounded-full bg-white/80 px-3 py-1.5 font-ui text-xs font-semibold shadow-sm">
+            <Image src="/images/brand/icon-192.png" alt="" width={20} height={20} className="rounded" /> <span><span className="hidden sm:inline">by </span>NotesApp</span>
           </FamilyLink>
         </div>
       </header>
@@ -148,7 +149,8 @@ export default function LifePage() {
               ["Is it free?", "Yes, free to play in your browser on your phone or computer. Nothing to download."],
               ["Do I need an account?", "You play with your NotesApp account, so your friends, your photo and your progress go with you."],
               ["Is the money real?", "Notesville Naira is game money, just for fun. It can't be cashed out. Some quests give Bonus Credits you can use on NotesApp."],
-              ["Can I play now?", "Yes. Abuja is open, with NEPA power cuts, partner jobs and outlets you can own. Lagos, Port Harcourt, the market and calls from your game phone come in later updates. Follow @na-notesapp for news."],
+              ["Can I play now?", "Yes. Abuja is open, with NEPA power cuts, partner jobs and outlets you can own. Lagos, Port Harcourt, the market and calls from your game phone come in later updates. Follow @na-notesapp, or join our Discord, for news."],
+              ["Where do players talk?", "On our Discord: tips, bugs, ideas for the game and news of each update, with the team and other players."],
               ["What do I get for inviting friends?", "When a friend joins from your invite link and finishes their first shift, you both get ₦250 NotesApp Bonus Credit (up to 20 friends a month). Bonus Credit lasts 90 days and pays for boosts, ads and badges."],
             ].map(([q, a]) => (
               <div key={q} className="py-4"><dt className="font-ui font-bold">{q}</dt><dd className="mt-1 text-sm text-slate">{a}</dd></div>
@@ -158,7 +160,7 @@ export default function LifePage() {
       </main>
 
       <footer className="border-t border-white/60 py-6 text-center text-xs text-slate">
-        © {new Date().getFullYear()} {COMPANY_INFO.legalName}. Notes Life is a NotesApp game. Game money has no cash value.
+        © {new Date().getFullYear()} {COMPANY_INFO.legalName}. Notes Life is a NotesApp game. Game money has no cash value. · <a href={SITE.discord} target="_blank" rel="noopener noreferrer" className="underline">Join the players on Discord</a>
       </footer>
     </div>
   );

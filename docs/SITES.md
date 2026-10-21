@@ -67,7 +67,7 @@ For churches, NGOs, schools and clubs ([COMMUNITY.md](COMMUNITY.md)):
   announcements, member insights), made easier where we can, plus what Facebook doesn't do: giving, paid event tickets, the
   organisation's own site and domain.
 
-## Phase 1: analytics (built, v0.62.0)
+## Phase 1: analytics (built, v0.63.0)
 
 An Analytics page for every member who sells, teaches, books sessions or publishes:
 

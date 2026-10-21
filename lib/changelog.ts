@@ -11,12 +11,50 @@ export type Release = {
 
 export const CHANGELOG: Release[] = [
   {
+    version: "v0.63.0",
+    bump: "minor",
+    date: "2026-10-21",
+    changes: [
+      { kind: "added", text: "Analytics, under My account: what you earned after our fee, orders paid out of checkouts started, your average order, visits, a day-by-day chart, your best sellers and items running low, and tabs for Sales, Orders, Products, Customers, Visits and Promotion (your boosts and adverts). Every plan sees the last 7 days." },
+      { kind: "added", text: "On Pro: the last 30 and 90 days, your customers (who bought, how much and when, most valuable first) and a download of your sales. On Business and Enterprise: visits by page and where visitors came from (WhatsApp, Instagram, search and more). Organisation teammates who run the store see its analytics too." },
+    ],
+  },
+  {
+    version: "v0.62.2",
+    bump: "patch",
+    date: "2026-10-20",
+    changes: [
+      { kind: "added", text: "Our Discord community, na-notesapp (discord.gg/bbkg47stW): ask the team and other members, hear about each release in #announcements, and talk API, MCP and Notes Life. Linked from the footer, Contact, About, the help centre and its articles, the API docs, the changelog, and Notes Life (its page, its FAQ and the game's Settings)." },
+    ],
+  },
+  {
+    version: "v0.62.1",
+    bump: "patch",
+    date: "2026-10-20",
+    changes: [
+      { kind: "fixed", text: "Calls, group invites, moments and online status work with the accounts every member follows automatically (@notesapp and the founders), even for members whose automatic follow was never saved. Before, someone who joined without the sign-up form's follow step saw “Following” on a founder's profile but couldn't call them." },
+      { kind: "fixed", text: "Opening the profile of an automatically followed account now saves that follow if it was missing, so follower counts and lists include you." },
+    ],
+  },
+  {
     version: "v0.62.0",
     bump: "minor",
     date: "2026-10-20",
     changes: [
-      { kind: "added", text: "Analytics, under My account: what you earned after our fee, orders paid out of checkouts started, your average order, visits, a day-by-day chart, your best sellers and items running low, and tabs for Sales, Orders, Products, Customers, Visits and Promotion (your boosts and adverts). Every plan sees the last 7 days." },
-      { kind: "added", text: "On Pro: the last 30 and 90 days, your customers (who bought, how much and when, most valuable first) and a download of your sales. On Business and Enterprise: visits by page and where visitors came from (WhatsApp, Instagram, search and more). Organisation teammates who run the store see its analytics too." },
+      { kind: "changed", text: "Photos and videos in chats show as pictures only, like WhatsApp: no file name or size under them. Tap a photo (or the full-screen button on a video) to open it full screen inside #NotesApp, with Save and ×; the file's private link never opens in a new tab." },
+      { kind: "changed", text: "Save on a photo or video downloads it where you are, without opening a tab." },
+      { kind: "added", text: "Swipe between a chat's photos and videos in the full-screen viewer, oldest to newest, with “2 of 7” at the top; on a computer, use ‹ › or the arrow keys." },
+      { kind: "added", text: "The full-screen viewer says who sent each photo or video and when, with ★ Keep and ↪ Forward at the top and ⋮ for the rest: go to the message in the chat, share it to another app (on a phone), save it, see all the chat's media, links and docs, or delete it for you." },
+      { kind: "added", text: "Your own photos and videos in a chat can be posted as your moment, and your own photos made your profile picture, straight from the viewer. Someone else's can be kept, forwarded, shared or saved, never posted as yours." },
+      { kind: "added", text: "Media, links and docs (in a chat's ⋮ menu): everything shared in the chat in three tabs. Photos and videos in a grid by month, newest first; documents with their size, who sent them and when; and every link with its preview. Press and hold, or tap Select, to forward, keep or delete several for you at once." },
+    ],
+  },
+  {
+    version: "v0.61.3",
+    bump: "patch",
+    date: "2026-10-20",
+    changes: [
+      { kind: "changed", text: "Terms of Service and Privacy Policy now sit on the footer's copyright line, beside © #NotesApp, instead of under the contact links." },
     ],
   },
   {

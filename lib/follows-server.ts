@@ -1,5 +1,5 @@
 import type { Firestore } from "firebase-admin/firestore";
-import { NA_NOTESAPP_PROFILE, OFFICIAL_NOTESAPP_PROFILE, SYNTHETIC_JOURNALS, type JournalDirectoryEntry } from "./journals-directory";
+import { NA_NOTESAPP_PROFILE, OFFICIAL_NOTESAPP_PROFILE, SYNTHETIC_JOURNALS, isAutoFollowed, type JournalDirectoryEntry } from "./journals-directory";
 import {
   NA_UID, PAGE_SIZE, MAX_STATUS_LOOKUPS, canSeeOnline, canViewList, isOnline, visibilityOf,
   type FollowPage, type ListedPerson, type PresenceStatus, type Visibility,
@@ -147,7 +147,7 @@ export async function presenceFor(db: Firestore, viewerUid: string, targetUidsRa
   const seen = new Map<string, PresenceStatus | null>();
   live.forEach((i, n) => {
     const [mineToThem, themToMine, pres] = [snaps[n * 3], snaps[n * 3 + 1], snaps[n * 3 + 2]];
-    const mutual = !!mineToThem?.exists && !!themToMine?.exists;
+    const mutual = (!!mineToThem?.exists || isAutoFollowed(i.username)) && (!!themToMine?.exists || isAutoFollowed(viewer.username));
     if (!canSeeOnline({ viewerShowOnline: viewer.vis.showOnline, targetShowOnline: i.vis.showOnline, mutual })) { seen.set(i.uid, null); return; }
     const ts = pres?.data()?.lastSeen;
     const ms = ts && typeof ts.toMillis === "function" ? (ts.toMillis() as number) : typeof ts === "number" ? ts : null;

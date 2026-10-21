@@ -8,6 +8,7 @@ import { wipeMessage } from "./groups-server";
 import { deleteObject, privateFilesConfigured } from "./private-files";
 import { SITE_URL } from "@/lib/host";
 import { setting } from "@/lib/config";
+import { isAutoFollowed } from "./journals-directory";
 
 // Reports on moments and conversations. Because moments disappear and messages can be deleted, a report keeps a copy of
 // what was reported (and, for a moment, its files) until someone at #NotesApp has looked at it; resolving the report then
@@ -50,7 +51,7 @@ export async function createReport(
     const [a, b, f] = await Promise.all([
       db.doc(`dmBlocks/${m.ownerUid}_${reporterUid}`).get(), db.doc(`dmBlocks/${reporterUid}_${m.ownerUid}`).get(), db.doc(`follows/${reporterUid}_${m.ownerUsername}`).get(),
     ]);
-    if (a.exists || b.exists || !f.exists) throw new MomentError(404, "That moment isn't available any more.");
+    if (a.exists || b.exists || (!f.exists && !isAutoFollowed(m.ownerUsername))) throw new MomentError(404, "That moment isn't available any more.");
     targetUid = m.ownerUid;
     evidence = {
       momentId: targetId, ownerUsername: m.ownerUsername, kind: m.kind, text: m.text ?? null, createdAt: m.createdAt, expiresAt: m.expiresAt,

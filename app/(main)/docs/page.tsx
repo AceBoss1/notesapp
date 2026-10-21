@@ -4,6 +4,7 @@ import { ENDPOINTS, WEBHOOK_DOCS } from "@/lib/api-docs";
 import PageHero from "@/components/PageHero";
 import { SITE_URL, MAIN_HOST, MCP_HOST } from "@/lib/host";
 import { TOOLS } from "@/lib/mcp/catalog";
+import { SITE } from "@/lib/site";
 
 export const metadata: Metadata = {
   title: "API Docs",
@@ -18,7 +19,7 @@ export default function DocsPage() {
     <>
       <PageHero eyebrow="Docs" title={<>#NotesApp API</>}>
         <p>Server-to-server access for Enterprise partners: publish posts, and read your own bookings, orders and earnings. Get access by contacting us, then create keys in the <Link href="/console" className="text-crimson underline">Console</Link>.
-        Changes are listed in the <Link href="/changelog" className="text-crimson underline">Changelog</Link>.</p>
+        Changes are listed in the <Link href="/changelog" className="text-crimson underline">Changelog</Link> and announced on <a href={SITE.discord} target="_blank" rel="noopener noreferrer" className="text-crimson underline">our Discord</a>, where you can ask the team and other developers about the API and the MCP server.</p>
       </PageHero>
       <div className="mx-auto max-w-3xl px-4 py-12 sm:px-6">
 
@@ -124,6 +125,7 @@ function verify(rawBody, header, secret) {
   -d '{"jsonrpc":"2.0","id":1,"method":"tools/call",
        "params":{"name":"search_creators","arguments":{"query":"therapist","bookable":true}}}'`}</pre>
       <p className="mt-3 text-sm text-slate">Coming next: signing in with your #NotesApp account instead of a key, and tools that can draft posts and reply to bookings, always with your approval.</p>
+      <p className="mt-3 text-sm text-slate">Building something, or stuck? Ask on <a href={SITE.discord} target="_blank" rel="noopener noreferrer" className="text-crimson underline">our Discord</a>.</p>
 
       <h2 id="domains" className="mt-12 font-display text-3xl text-ink">Your own domain</h2>
       <p className="mt-3 text-slate">

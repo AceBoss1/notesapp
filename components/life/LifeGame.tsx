@@ -22,6 +22,7 @@ import { NameBadgeIcons } from "@/components/PersonName";
 import { Sound, loadSoundPrefs, saveSoundPrefs, type Ambience, type Sfx, type SoundPrefs } from "./sound";
 import { familyHost } from "@/lib/host";
 import { loadAds, weightedOrder, type Ad } from "@/components/AdSlot";
+import { SITE } from "@/lib/site";
 
 type Player = LifePlayer & { cooking: number; swimming: number; serverNow: number };
 type Panel =
@@ -1262,7 +1263,7 @@ export default function LifeGame() {
         <p className="mt-3 text-[11px] font-bold uppercase tracking-wider text-slate">Restore points</p>
         {!points ? <p className="text-sm text-slate">Loading…</p> : points.length === 0 ? <p className="text-sm text-slate">None yet: one is kept each hour and each day you play.</p> : <ul className="mt-1 divide-y rounded-2xl border text-sm">{points.slice(0, 8).map((pt) => <li key={pt.slot} className="flex items-center justify-between px-3 py-2"><span><b className="block">{new Date(pt.savedAt).toLocaleString("en-NG", { weekday: "short", hour: "numeric", hour12: true, minute: "2-digit" })}</b><span className="text-[11px] text-slate">{pt.kind}</span></span><button onClick={() => restore(pt.slot)} className="rounded-full border px-3 py-1 text-xs font-semibold">Restore</button></li>)}</ul>}
         <p className="mt-3 rounded-xl bg-slate-100 px-3 py-2 text-[11px] text-slate">🔒 Your Notesville Naira, anything you bought and your rank are kept on our servers. A restore never takes them away or doubles them.</p>
-        <p className="mt-3 text-center text-[11px]"><a href="/help/notes-life" target="_blank" rel="noreferrer" className="text-crimson underline">How Notes Life works</a> · <button onClick={() => void leave()} className="text-crimson underline">Back to NotesApp</button></p></div>);
+        <p className="mt-3 text-center text-[11px]"><a href="/help/notes-life" target="_blank" rel="noreferrer" className="text-crimson underline">How Notes Life works</a> · <a href={SITE.discord} target="_blank" rel="noreferrer" className="text-crimson underline">Players on Discord</a> · <button onClick={() => void leave()} className="text-crimson underline">Back to NotesApp</button></p></div>);
     }
   }
 }

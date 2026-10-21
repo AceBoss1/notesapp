@@ -1,5 +1,5 @@
 import PageHero from "@/components/PageHero";
-import { WHAT_IS_INTRO, WHAT_IS_NOTESAPP, WHAT_YOU_CAN_DO, WHAT_IS_FREE, WHAT_IS_TIERS } from "@/lib/site";
+import { SITE, WHAT_IS_INTRO, WHAT_IS_NOTESAPP, WHAT_YOU_CAN_DO, WHAT_IS_FREE, WHAT_IS_TIERS } from "@/lib/site";
 import FeatureMosaic from "@/components/FeatureMosaic";
 import { WALLET_LIVE } from "@/lib/wallet";
 import NotesLifeCard from "@/components/NotesLifeCard";
@@ -286,7 +286,7 @@ export default async function AboutPage() {
         <div>
           <p className="font-ui text-base font-bold text-ink">Follow along</p>
           <p className="mt-1 text-sm text-slate">
-            Company updates and build-in-public notes, on LinkedIn and Facebook.
+            Company updates and build-in-public notes on LinkedIn and Facebook; talk with the team and other members on Discord.
           </p>
         </div>
         <div className="flex shrink-0 flex-wrap gap-3">
@@ -305,6 +305,9 @@ export default async function AboutPage() {
             className="btn-ghost"
           >
             Facebook
+          </a>
+          <a href={SITE.discord} target="_blank" rel="noopener noreferrer" className="btn-ghost">
+            Discord
           </a>
         </div>
       </div>
