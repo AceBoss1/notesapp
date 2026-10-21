@@ -19,6 +19,10 @@ import { academyApiFrom, certificateMin, currentPricing, enterpriseCoursesPrice,
 import { academyFaq } from "./academy-faq";
 const CERTIFICATE_LATE_TEXT = () => { const l = currentPricing().certificateLate; return { grace: l.graceDays, weekly: `${Math.round(l.weeklyRate * 100)}%`, cap: `${Math.round(l.capRate * 100)}%` }; };
 import { VIDEO_MAX_SECONDS } from "./video-rules";
+import { COMMENT_MAX, COMMUNITY_FREE_MEMBERS, POST_MAX, SPACES_MAX } from "./community";
+import { GROUP_MEMBERS_MAX } from "./messages-rules";
+import { GROUP_CALL_MAX } from "./group-calls";
+import { ROOM_CHAT_MAX, ROOM_LISTENERS_MAX_P2P, ROOM_SPEAKERS_MAX } from "./rooms";
 import type { KbArticle } from "./kb";
 
 // The built-in help articles. Prices, rates and limits are read from the same code the rest of the site uses, so these cannot disagree with
@@ -159,6 +163,14 @@ You can add one video per post (MP4 or WebM, up to ${VIDEO_MAX_SECONDS / 60} min
 Pick up to 3 topics for each journal (and add your own hashtags), so readers who chose those topics see it first in their feed and their weekly digest; see [Choosing your interests and topics](/help/interests-and-topics).
 
 Readers can follow your journal, comment, like, share and save. You can also [boost a post](/help/boost-a-post) to reach more readers, or [co-author](/help/co-authoring) with other members. Browse examples on [Journals](/journals).`),
+    A("kiswahili-journals", "Journals and voice notes in Kiswahili", "Publishing and earning", `
+With NKENNEAi, journals and voice notes can reach Kiswahili speakers.
+
+**For writers:** when you write or edit a journal, tick **Offer this journal in Kiswahili**. Readers then get **🌍 Kiswahili** (the journal translated, with **Show original**) and **🔊 Sikiliza** (it read aloud in Kiswahili, in a female or male voice, at 0.75×, 1× or 1.25×). It's translated, and the audio made, the first time a reader asks, then kept for everyone. Edit the journal and a fresh version is made next time. Not for subscriber-only (premium) posts: those words stay with your subscribers.
+
+**Voice notes in Messages:** under someone's Swahili voice note, tap **Transcript** or **Translate to English**; under your own English voice note, tap **In Kiswahili**. The words stay on the message for both of you.
+
+If you don't see these, Kiswahili isn't switched on yet.`),
     A("paid-sessions", "Paid 1:1 sessions and bookings", "Publishing and earning", `
 Publishers set a session price (${money(LIMITS.sessionMinKobo)} to ${money(LIMITS.sessionMaxKobo)}), a length and their weekly availability, shown in Lagos time. A visitor taps **Book a session** on the publisher's profile, picks a time, pays in Naira (through Paystack, or from their wallet), and both of you get a confirmation email and reminders 24 hours and 1 hour before.
 
@@ -228,6 +240,16 @@ At the top of every conversation is the person's picture, their name with any ba
 **Group chats:** start a group from Messages with up to 50 people you follow or who follow you. The top of a group shows its picture and how many members it has. Group admins see a **⚙️ Manage** button at the top of the group. From there they can rename it, set the group picture, add and remove people, make others admin, **switch member messages off** (then only admins can write and everyone else can still read) and back on, and **ban** someone who misbehaves: they are removed and can't be added back until an admin unbans them. Admins can also tap **Remove** under any message to take it out of the group: everyone then sees "Message removed by a group admin" in its place, and any files in it are deleted. If you don't see these options, you aren't an admin of that group: the members list marks who is. Anyone can leave or mute a group, and any message from someone else can be reported to #NotesApp; if we act on a report, the message is removed ("Message removed by #NotesApp").` : ""}
 
 ${MOMENTS_LIVE ? `**Moments:** share a picture, a video of up to 90 seconds or a line of text on your profile picture for 24, 48 or 72 hours. Followers see them in the Moments row on [Journals](/journals); you choose whether only followers, or everyone, can see yours. A moment is not your profile picture: to change your picture, tap + on your own picture and choose **Update profile picture**, or go to [Edit profile](/profile/edit).` : ""}`)]
+      : []),
+    ...(MESSAGES_LIVE
+      ? [A("chat-photos-and-media", "Photos, videos, links and docs in a chat", "Publishing and earning", `
+**Photos and videos** in a chat show as pictures only, like WhatsApp. Tap a photo (or the full-screen button on a video) to open it full screen inside #NotesApp.
+
+**The viewer:** swipe between the chat's photos and videos, oldest to newest, with "2 of 7" at the top; on a computer use ‹ › or the arrow keys. It says who sent each one and when, with **★ Keep** and **↪ Forward** at the top and **⋮** for the rest: go to the message in the chat, share it to another app (on a phone), **Save** it (it downloads where you are), see all the chat's media, or delete it for you.
+
+**Your own photos and videos** can be posted as your moment, and your own photos made your profile picture, straight from the viewer. Someone else's can be kept, forwarded, shared or saved, never posted as yours.
+
+**Media, links and docs** (in a chat's ⋮ menu): everything shared in the chat in three tabs. Photos and videos in a grid by month, newest first; documents with their size, who sent them and when; and every link with its preview. Press and hold, or tap **Select**, to forward, keep or delete several for you at once.`)]
       : []),
     ...(CALLS_LIVE
       ? [A("voice-and-video-calls", "Voice and video calls", "Publishing and earning", `
@@ -420,6 +442,14 @@ A conversation or a call fills the whole screen on a phone; go back with the arr
 
 **Social links:** on [Edit profile](/profile/edit), paste the address or just your @handle (X, Instagram, TikTok), linkedin.com/in/yourname, or for WhatsApp your phone number (0803… is fine). They show as icons under your name on your profile and your own site. If a link can't be read, Edit profile tells you which one.
 `),
+    A("pictures-and-uploads", "Pictures you upload (WebP)", "Getting started", `
+Pictures you upload anywhere on #NotesApp (journals, your shop, your site, your profile, chats, moments and adverts) are turned into **WebP** on your phone or computer before they're sent. WebP files are much smaller than JPEG or PNG for the same look, so your pages load faster and use less of your visitors' data.
+
+**Very large photos** are made smaller: profile pictures to 1024 pixels on the long side, others to 2560.
+
+**Privacy:** the hidden camera details in a photo (such as where it was taken, and the phone that took it) are left out.
+
+GIFs (so they keep moving), and pictures already in WebP or AVIF, are sent as they are. Academy logos and signatures stay PNG for certificates.`),
     A("explore-and-saved", "Explore and Saved", "Getting started", `
 **Explore:** [Explore](/explore) is where to browse topics, people and channels (they used to be tabs of Journals). Open a topic to see its journals, or follow people and organisation channels from there. Your [interests](/interests) come first among the topics. The **Market** and **Academy** tabs show the most looked-at products and courses this week, with a search box and a way into [Notes Market](/shop) and [Notes Academy](/academy).
 
@@ -519,13 +549,67 @@ It costs the same on every plan: ${money(GOLD_PRICING.personal.monthlyKobo)} a m
 
 **Admin tools (Admin tab):** approve or decline requests with their answers; settings (name, logo and cover, about, contact, how people join, what non-members see, slow mode, Spaces); the invite link; banned members; and **insights** (members, new joins this week and month, posts, comments, active members, the most active). On the Members tab, admins make moderators, the owner makes admins, and moderators and admins remove or ban those below them. Moderators and admins pin and remove posts. **Slow mode** makes members wait between posts and comments (moderators and admins aren't slowed).
 
-**View as:** admins can preview the community as a non-member, a member or a moderator (the owner, as an admin too) before changing anything. Nothing you do while previewing changes your role.`),
+**View as:** admins can preview the community as a non-member, a member or a moderator (the owner, as an admin too) before changing anything. Nothing you do while previewing changes your role.
+
+**More on each part:** [General](/help/community-general), [Spaces](/help/community-spaces), [Circles](/help/community-circles) and [Audio rooms](/help/community-audio-rooms), each with its own page on [Community](/community).`),
     A("events", "Events", "Teams and organisations", `
 [Events](/events) are for every account: services, meetings, launches, classes and outreaches. Add one on the Events page (for yourself) or on your community's Events tab (for the community, open to everyone or members only).
 
 An event has a start and end (Lagos time), where it is, and or a **Join live** link (YouTube Live, Facebook Live, Zoom, Google Meet or any https link). It can repeat **every week** or **every month**, until a date if you like.
 
 People tap **Going** or **Interested** and get a reminder **24 hours and 1 hour before** (a notification, a phone notification and an email), and can **Add to calendar**. Public events are listed under Upcoming, by state and city. If you change or cancel an event, everyone going or interested is told.`),
+    A("community-general", "General: your community's announcement channel", "Teams and organisations", `
+**General** is the announcement channel of a [community](/help/community). Every member is in it from the day they join; there's nothing to subscribe to. See it with pictures on [the General page](/community/general).
+
+**Who posts:** the owner and admins. They tap **Write something…** at the top of General, write up to ${n(POST_MAX)} characters, add a photo if they like, and post. Members get a notification and see it in General and on the community's Home.
+
+**What members do:** **Like**, **Comment** (up to ${n(COMMENT_MAX)} characters, with their picture beside it) and **Share** (a link to the post). Moderators and admins can **pin** a post to the top, or **remove** a post or a comment, from its **⋯** menu.
+
+**Slow mode:** in Admin → settings, admins can make members wait between comments (30 seconds up to an hour). Moderators and admins are never slowed.
+
+**Who can read it:** members always. People who aren't members only if the admins switch General on under **What non-members see**; they can read but not comment, and General's posts can then show on your profile and in Explore. If it's off, General's posts never leave the community.
+
+**General, Spaces, Circles or Audio rooms?** General is news from the leadership. [Spaces](/help/community-spaces) are topics where members post too. [Circles](/help/community-circles) are private chats for small teams. [Audio rooms](/help/community-audio-rooms) are live talks.`),
+    A("community-spaces", "Spaces: topics inside your community", "Teams and organisations", `
+**Spaces** are the topics inside a [community](/help/community) where members can post too: Prayer requests, Youth fellowship, Announcements, Alumni 2015, Volunteers. See them with pictures on [the Spaces page](/community/spaces).
+
+**How many:** up to ${SPACES_MAX} Spaces in a community. A Space has no headcount of its own: every member of the community can open every Space they're allowed to read, so a Space holds as many people as the community (${COMMUNITY_FREE_MEMBERS} members free, no limit on Business). There's no joining or leaving a single Space.
+
+**Public or members only (each Space):** a **public** Space can be read by anyone, even without joining, and its posts can show on your profile and in Explore. A **members-only** Space is seen by members only, and its posts never appear in Explore, search, link previews, the Weekly Digest, Nana's answers or the MCP server. Under the Space's name it says which it is, so members know who can read what they write.
+
+**Who posts (each Space):** **members** (everyone can write, like and comment) or **admins only** (admins post, members like and comment), for a second announcement stream such as Choir notices.
+
+**Setting them up:** Admin tab → **Spaces**: add a Space with its name, public or members only, and who posts. Rename or remove them any time. Pinning, removing and slow mode work as in [General](/help/community-general).
+
+**Need a small private group instead?** That's a [Circle](/help/community-circles).`),
+    A("community-circles", "Circles: private group chats in your community", "Teams and organisations", `
+A **Circle** is a private group chat inside a [community](/help/community) for the few people who work together: the choir, the ushers, the youth leaders, the board. See it with pictures on [the Circles page](/community/circles).
+
+**Who has them:** communities whose owner is on **Business** (or Enterprise). Only the owner and admins set them up.
+
+**How many people:** up to ${GROUP_MEMBERS_MAX} in a Circle, counting whoever sets it up. Only members of the community can be added. Someone who leaves the community, or is removed or banned, is taken out of its Circles too.
+
+**Setting one up:** open the community's **Circles** tab, type a name (Choir, Ushers, Youth leaders), tick the members to add and tap **Create the Circle**. Admins can add or remove people later.
+
+**What's in it:** a full group chat in [Messages](/messages): text, photos, videos, voice notes, documents, stickers, replies, reactions, pins, and **Media, links and docs** in its ⋮ menu. Tap the phone or camera at the top for a free **group call** (up to ${GROUP_CALL_MAX.audio} talking, or ${GROUP_CALL_MAX.video} on video), end-to-end encrypted.
+
+**Who sees it:** members see the Circles they're in on the Circles tab, with **Open chat**. Admins see every Circle in the community. Nobody else sees a Circle or what's said in it.`),
+    A("community-audio-rooms", "Audio rooms: live talks with a chat, like Clubhouse", "Teams and organisations", `
+**Audio rooms** let a [community](/help/community) talk live: a Bible study, a Q&A with the principal, a town hall. See them with pictures on [the Audio rooms page](/community/audio-rooms).
+
+**Who hosts:** the owner, admins and moderators. On the community's Home, tap **+ Start a room**, give it a name (Sunday Q&A, Midweek Bible study) and **Go live**. Members see it at the top of Home with **Join**. Audio rooms come with every community, free.
+
+**On stage:** the host and up to **${ROOM_SPEAKERS_MAX} speakers** at a time. A listener taps **✋ Raise hand to speak**; the host sees the hand and taps **Bring up**. The host can also tap anyone and **Invite to speak**, or **Move to listeners**. A speaker can step down with **Back to listening**. A green ring shows who's talking; the mic button mutes and unmutes.
+
+**Listening:** tap **Join** and you're listening; your mic stays off until you're brought up. **Leave quietly** whenever you like. Up to **${ROOM_LISTENERS_MAX_P2P} listeners** for now.
+
+**The room chat:** while the room is on, everyone in it can type (up to ${ROOM_CHAT_MAX} characters): questions, prayer points, amens, links. On a computer the chat sits beside the room; on a phone, tap **💬 Chat**, where a red number shows what you missed. The host and speakers are marked. The host or a moderator can **Remove** a message.
+
+**Ending:** **End room** ends it for everyone; the host leaving ends it too. Nothing is recorded, and the chat is deleted when the room ends.
+
+**How the sound travels:** phone to phone. The people on stage connect straight to each other, and each listener connects to the host, whose phone sends everyone the mix; nothing passes through #NotesApp's servers. That's why a room holds ${ROOM_LISTENERS_MAX_P2P} listeners for now, and why a host on Wi-Fi or strong 4G works best. Bigger rooms, for hundreds, come with our relay.
+
+**Can't hear?** Check your phone isn't on silent and the browser has permission to play sound; on a speaker's phone, allow the microphone. If you joined on a weak network, leave and join again.`),
     A("organisation-accounts", "Organisation accounts", "Teams and organisations", `
 Companies, NGOs, churches, schools and clubs can run a verified channel. Sign up as an Organisation with your CAC number (RC, BN or IT) and a work email, verify the email, and start a free ${ORG_TRIAL_DAYS}-day Business trial (no card, one per registration number). We then confirm the registration against the CAC register; until then the channel shows an "unverified organisation" notice.
 
@@ -559,7 +643,67 @@ Every Free Basic, Pro, Business and Enterprise member has their own website at $
 
 **Pictures** you upload anywhere on #NotesApp (journals, your shop, your site, your profile, chats) are turned into WebP on your phone or computer before they're sent: smaller and faster to load, with the hidden camera details (like where the photo was taken) left out. Very large photos are made smaller (profile pictures to 1024 px, others to 2560 px on the long side). GIFs, WebP and AVIF are sent as they are, and so are academy logos and signatures, which stay PNG for certificates.
 
-Your site's visits count in [Analytics](/profile/analytics). Use only pictures and words you have the right to use.`),
+Your site's visits count in [Analytics](/profile/analytics). Use only pictures and words you have the right to use.
+
+**More:** [Looks, colours, kits and Home](/help/site-looks-and-kits), [The shop and basket](/help/site-shop-and-basket), [Beauty and wellness kit](/help/beauty-and-wellness-kit), [Courses on your site](/help/courses-on-your-site), [Academic sites and publications](/help/academic-sites-and-publications), [Pictures you upload](/help/pictures-and-uploads).`),
+    A("site-shop-and-basket", "The shop and basket on your site", "Selling", `
+When your site shows the **Shop** page ([Your own site](/help/your-site)), it looks and works like an online shop, on every look.
+
+**What shoppers see:** links across the top (**New arrivals**, your top categories and **Most popular**); a **featured** piece with its picture on the right inside the card (the item you marked Featured, or your most viewed); a bar with the number of products, **search**, **sorting** (newest, most popular, price, name) and bigger or smaller pictures; and your items as picture tiles, two to a row on phones, with **Sold out** and **Only a few left**. Fashion and beauty show tall photos; gadgets and parts show the whole product on white. The category, sort and search stay in the address, so you can share a link to New arrivals or one category.
+
+**The basket:** tap **+** on a picture to add one (items with sizes or colours open their page to choose, then **Add to basket**). The basket icon in the header shows how many. In the basket, shoppers change quantities, enter one address, see one delivery price for everything, and pay once by card or bank. A basket holds up to 20 different items from one shop and lives on the shopper's device.
+
+**After they pay:** each item becomes its own order on My orders, so you dispatch and track each as usual (send them together), and you're paid for each when its delivery is confirmed. Refunds work per item.
+
+**Announcement bar:** type one line under **Announcement bar** on [Your site](/profile/site) (for example "Free delivery in Lagos this week") to show it across the top of every page.
+
+**When the shop is your main page** and you have a cover photo, your cover runs across the whole page with **Shop now**.
+
+**No WhatsApp orders:** sites don't have Order on WhatsApp buttons. Orders and payments stay on #NotesApp, where buyers are protected; a button saved before now says Contact us.`),
+    A("site-looks-and-kits", "Your site's look, colours, kits and what Home leads with", "Publishing and earning", `
+On [Your site](/profile/site) you choose how your site looks. More on setting it up: [Your own site](/help/your-site).
+
+**Looks:** **Legacy** (the original); **Clean** (white and rounded, your main button in the header, a big banner with your picture); **Scholar** (plain and academic, made for reading, with a light and dark switch: see [Academic sites](/help/academic-sites-and-publications)); and **Luxe** (Pro): your site opens with a full photo (your banner picture, or your cover) with your words, buttons and social links over it, then everything under centred titles.
+
+**Colours and background:** every look has colour sets (crimson, green, blue, purple and more). The **Night** background (any look but Scholar) makes the page dark with your colours glowing on it.
+
+**Kits:** start from one made for what you do, with its own look, colours, sections and starter words you replace: Personal and creators, Academics and researchers (both Free Basic), and on Pro: Fashion, Food and baking, Services and freelancers, Healthcare and clinics, Beauty and wellness ([four flavours](/help/beauty-and-wellness-kit)), Fitness trainers, Events and photography and more.
+
+**Home leads with:** choose what visitors see first on Home, and more of it: your **shop**, your **services**, your **courses** or your **notes**. Leave it on **A mix of everything** (the default) and Home shows a little of each.
+
+**The top banner:** a headline, a line about what you do, a picture and up to two buttons: Book now, Call us, Shop, Contact, **Check our services** (jumps to your services menu) or a link. On Clean, choose **Full photo** to put your words over the picture edge to edge.
+
+**Your details:** the hours and contacts strip shows your **email** (your phone number is used only by Call buttons). Your **social links** from Edit profile show under your name, over the full photo on Luxe, and in your site's footer. A **cover photo** runs across the top of your profile on every look, with your logo over its edge.`),
+    A("beauty-and-wellness-kit", "The Beauty and wellness kit (spa, massage, hair, nails)", "Publishing and earning", `
+The **Beauty and wellness** kit is for spas, massage therapists, hair salons and nail studios (Pro and above). Pick it on [Your site](/profile/site) and choose its flavour: **Spa**, **Massage**, **Hair** or **Nails**; each starts with its own words and services, which you replace with yours.
+
+**What it looks like:** it uses the Luxe look and opens with a full photo (your banner picture, or your cover) with your words over it and two buttons: **Book your appointment** and **Check our services**. Your social links show over the photo.
+
+**Your services menu:** each service can have its **minutes**, a **tab** (Facials, Braids, Pedicure, Gel…) and a **picture**. They show as a menu of cards under tabs, each with its time, price and **Book now**, which opens your booking calendar. Services with minutes, tabs and pictures work on any site, not only this kit.
+
+**Book tab:** a **Book your appointment** tab stays at the side of every page, so a visitor can book from anywhere.
+
+**Night look:** for a darker, evening feel, choose the **Night** background.
+
+Sites made with the older Massage and spa or Salons kits keep working as they are. More on looks and kits: [Your site's look](/help/site-looks-and-kits).`),
+    A("courses-on-your-site", "Your courses on your site", "Publishing and earning", `
+If you teach on [Notes Academy](/academy), your courses can show on your own site: switch on the **Courses** page on [Your site](/profile/site) (from Free Basic).
+
+**What visitors see:** your courses only, each opening right there inside your site (on your own domain too), with what it covers, the price and **Enrol** or **Buy**. Visitors aren't sent away to Notes Academy to decide.
+
+**Lessons and certificates** open on #NotesApp, where learners keep their progress, take quizzes and get their certificates.
+
+**Home leads with:** set it to **courses** and your Home puts your courses first. See [Your site's look](/help/site-looks-and-kits). More about teaching: [Teaching and learning on Notes Academy](/help/academy).`),
+    A("academic-sites-and-publications", "Academic sites: the Scholar look and importing your publications", "Publishing and earning", `
+For academics and researchers, from Free Basic. Pick the **Academics and researchers** kit on [Your site](/profile/site), or add the sections to any site.
+
+**The Scholar look:** plain and academic, a narrow page made for reading, with a light and dark switch that remembers each visitor's choice (and follows their phone's setting until they choose). It works with every colour set.
+
+**Academic sections:** **Publications** (by year, newest first, your name in bold among the authors, with links and labels such as Best paper); **Awards**; **Talks** on a globe visitors can turn (type the city and its dot appears); and **In the news**.
+
+**Import instead of typing:** in Publications, **upload a BibTeX file** (Google Scholar exports one; so do Zotero, Mendeley and others), **add a paper by its DOI**, or **bring in your public works from ORCID**. You check the list before saving; nothing is added twice, and your own edits stay.
+
+**Keep in sync with ORCID:** link your ORCID iD and new works on your ORCID record are added to your site's Publications every day.`),
     A("your-own-domain", "Your own domain", "Teams and organisations", `
 Business and Enterprise accounts can serve their page, journals and store on their own domain (for example notes.yourbrand.com or yourbrand.com), with Home, Notes and Shop pages, and visitors who sign in, book and pay without leaving the site. Business is semi white-label (the footer says "powered by #NotesApp"); Enterprise adds fully branded sign-in and sign-up in your name.
 
