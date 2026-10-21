@@ -42,7 +42,9 @@ export type NotificationType =
   | "recommendation" // someone wrote you a recommendation
   | "mention" // someone @mentioned you in public: a comment, a journal, a moment, a review (never a chat)
   | "course" // Notes Academy: a co-tutor invitation, a course sale
-  | "team"; // the team hub: a comment on your work, the morning summary
+  | "team" // the team hub: a comment on your work, the morning summary
+  | "community" // communities: join requests, approvals, announcements in General, comments on your posts
+  | "event"; // events: reminders 24 hours and 1 hour before, and changes to an event you said you'd go to
 
 export type AppNotification = {
   id: string;
