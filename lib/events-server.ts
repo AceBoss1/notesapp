@@ -1,7 +1,9 @@
 import type { Firestore } from "firebase-admin/firestore";
 import { FieldValue } from "firebase-admin/firestore";
 import type { UserProfile } from "./users";
-import { notifyBell } from "./email";
+import { notifyBell, sendEmail } from "./email";
+import { getUserEmail } from "./firebase-admin";
+import { SITE_URL } from "./host";
 import { sendPush } from "./push-server";
 import { can, type Role } from "./community";
 import { CommunityError, memberOf, readCommunity } from "./community-server";
@@ -127,7 +129,7 @@ export async function rsvp(db: Firestore, uid: string, id: string, status: unkno
   });
 }
 
-// The cron (every ~15 minutes): reminders 24 hours and 1 hour before each start, to everyone going or interested (bell and push), once
+// The cron (every ~15 minutes): reminders 24 hours and 1 hour before each start, to everyone going or interested (bell, email and push), once
 // each; and repeating events move on to their next start once one ends.
 export async function sendEventReminders(db: Firestore, now = new Date(), push = (uid: string, p: { title: string; body: string; url: string }) => sendPush(db, uid, p)): Promise<number> {
   let sent = 0;
@@ -149,7 +151,10 @@ export async function sendEventReminders(db: Firestore, now = new Date(), push =
     const rs = await db.collection("eventRsvps").where("eventId", "==", e.id).limit(2000).get();
     const message = kind === "hour" ? `${e.title} starts in an hour${e.liveUrl ? " — the Join live link is on the event" : ""}.` : `${e.title} is tomorrow: ${whenText(start, new Date(start.getTime() + len))}.`;
     for (const r of rs.docs) {
-      await notifyBell({ uid: r.data().uid, type: "event", linkHref: `/events/${e.id}`, message }).catch(() => {});
+      // Bell and email together (sendEmail adds the bell); just the bell when there's no address.
+      const to = await getUserEmail(r.data().uid).catch(() => null);
+      if (to) await sendEmail({ to, subject: kind === "hour" ? `Starting soon: ${e.title}` : `Tomorrow: ${e.title}`, text: `${message}\n\n${SITE_URL}/events/${e.id}\n\n#NotesApp`, bell: { uid: r.data().uid, type: "event", linkHref: `/events/${e.id}`, message } }).catch(() => {});
+      else await notifyBell({ uid: r.data().uid, type: "event", linkHref: `/events/${e.id}`, message }).catch(() => {});
       await push(r.data().uid, { title: e.title, body: message, url: `/events/${e.id}` }).catch(() => 0);
       sent++;
     }

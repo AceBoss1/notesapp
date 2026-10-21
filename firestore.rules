@@ -673,6 +673,16 @@ service cloud.firestore {
     // Public store numbers (views and how many people saved an item), kept by the server (lib/store-stats-server.ts); anyone can read them.
     // Who saved what is private: a member can read only their own saved items, and only the server writes them.
     match /storeStats/{id} { allow read: if true; allow write: if false; }
+    // Communities and events (lib/community-server.ts, lib/events-server.ts): what each person may see depends on their role in the
+    // community, so pages read through /api/community and /api/events; nothing is read or written from a browser.
+    match /communities/{id} { allow read, write: if false; }
+    match /communityMembers/{id} { allow read, write: if false; }
+    match /communityPosts/{id} { allow read, write: if false; }
+    match /communityComments/{id} { allow read, write: if false; }
+    match /communityLikes/{id} { allow read, write: if false; }
+    match /events/{id} { allow read, write: if false; }
+    match /eventRsvps/{id} { allow read, write: if false; }
+    match /eventReminders/{id} { allow read, write: if false; }
     // Inventory (lib/inventory-server.ts): SKUs, cost prices, low-stock levels and the stock history are private to the store and written
     // only by the server; the page reads them through /api/inventory.
     match /inventory/{itemId} { allow read, write: if false; }

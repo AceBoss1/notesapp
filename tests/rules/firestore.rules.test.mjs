@@ -1102,3 +1102,21 @@ test("inventory: SKUs, cost prices and the stock history are private; only the s
   await assertFails(setDoc(doc(owner, "inventoryMoves/m2"), { ownerUid: "pub", itemId: "bag", delta: 100, after: 100, reason: "restock" }));
   await assertFails(getDoc(doc(owner, "inventoryMoves/m1")));
 });
+
+test("communities and events: read and written only through the server, which checks each person's role", async () => {
+  await env.withSecurityRulesDisabled(async (ctx) => {
+    const f = ctx.firestore();
+    await setDoc(doc(f, "communities/grace"), { name: "Grace", ownerUid: "pub", memberCount: 1 });
+    await setDoc(doc(f, "communityMembers/grace_pub"), { cid: "grace", uid: "pub", role: "owner", status: "active" });
+    await setDoc(doc(f, "communityPosts/p1"), { cid: "grace", channel: "members", text: "members only" });
+    await setDoc(doc(f, "events/e1"), { title: "Service", visibility: "members", cid: "grace" });
+  });
+  const owner = as("pub");
+  for (const path of ["communities/grace", "communityMembers/grace_pub", "communityPosts/p1", "events/e1"]) {
+    await assertFails(getDoc(doc(owner, path)));
+    await assertFails(getDoc(doc(anon(), path)));
+  }
+  await assertFails(setDoc(doc(as("alice"), "communityMembers/grace_alice"), { cid: "grace", uid: "alice", role: "owner", status: "active" }));
+  await assertFails(updateDoc(doc(owner, "communities/grace"), { memberCount: 9999 }));
+  await assertFails(setDoc(doc(as("bob"), "eventRsvps/e1_bob"), { eventId: "e1", uid: "bob", status: "going" }));
+});
