@@ -18,6 +18,10 @@ export const CHANGELOG: Release[] = [
       { kind: "added", text: "Beauty and wellness kit for your site, in four flavours: Spa, Massage, Hair and Nails (Pro and above). It opens with a full photo and your words over it, lists your services as a menu with tabs, times and prices, each with Book now, and keeps a Book your appointment tab on every page. It replaces the Massage and spa and Salons kits; sites using those keep working." },
       { kind: "added", text: "Services can now carry minutes, a tab (Facials, Braids, Pedicure…) and a picture, on any site: they then show as a menu of cards." },
       { kind: "added", text: "A Night background for your site (any look but Scholar): a dark page with your colours glowing on it." },
+      { kind: "added", text: "The Luxe look (Pro): your site opens with a full photo (your banner picture or your cover) with your words, buttons and social links over it, then everything under centred titles. Beauty and wellness and Fashion start on it; Fashion's Home now opens with Shop now and New arrivals, then Shop by category and New in." },
+      { kind: "added", text: "Choose what your Home leads with: your shop, your services, your courses or your notes, first and with more of it, or a mix of everything (the default)." },
+      { kind: "added", text: "A Check our services button for your banner, which jumps to your services menu. Beauty and wellness sites start with Book your appointment and Check our services." },
+      { kind: "changed", text: "Your site's hours and contacts strip shows your email instead of your phone number (the phone number is only used by Call buttons). Your social links now also show in your site's footer." },
     ],
   },
   {

@@ -36,6 +36,7 @@ export const BUTTON_KINDS = [
   { id: "call", label: "Call us", needs: "Your phone number" },
   { id: "shop", label: "Shop now", needs: "" },
   { id: "contact", label: "Contact us", needs: "" },
+  { id: "services", label: "Check our services", needs: "" },
   { id: "link", label: "Learn more", needs: "A web address (https://…)" },
 ] as const;
 export type ButtonKind = (typeof BUTTON_KINDS)[number]["id"];
@@ -45,7 +46,8 @@ export type SiteButton = { kind: ButtonKind; label: string; value: string };
 export type Hero = { on: boolean; headline: string; subline: string; image: string; button: SiteButton | null; second: SiteButton | null; style?: "photo"; eyebrow?: string };
 // bookingHours: show the opening hours of their booking calendar instead of typed hours (owner, 21 Oct 2026). Either way, when their
 // sessions are on, the hours card opens the booking card.
-export type Info = { on: boolean; hours: string; bookingHours: boolean; whatsapp: string; phone: string; address: string; mapUrl: string };
+// The strip shows the email, never the phone number (owner, 22 Oct 2026); the phone is for Call buttons.
+export type Info = { on: boolean; hours: string; bookingHours: boolean; whatsapp: string; phone: string; email?: string; address: string; mapUrl: string };
 // minutes and group (the menu's tabs: Facials, Massages, Nails …) and a picture are optional; with them, services show as a menu of cards.
 export type ServiceItem = { name: string; price: string; note: string; minutes?: number; group?: string; image?: string };
 export type Picture = { image: string; caption: string };
@@ -70,7 +72,13 @@ export type SitePalette = { id: PaletteId; custom?: string; bg?: SiteBackground 
 // orcid: the researcher's ORCID iD, and whether their new works are added to Publications daily (lib/publications-server.ts).
 export type OrcidLink = { id: string; sync: boolean; lastSyncAt?: string };
 // cover: a wide picture behind the profile header, on every look (owner, 21 Oct 2026).
-export type SiteDoc = { kit: string; palette: SitePalette; blocks: Blocks; order: BlockId[]; bookBelowPosts: boolean; orcid: OrcidLink | null; cover: string; announce?: string; updatedAt?: string };
+// focus: what Home leads with (shown first and in full); "mix" (the default) gives a little of each.
+export const SITE_FOCUS = [
+  { id: "mix", label: "A mix of everything" }, { id: "shop", label: "My shop" }, { id: "services", label: "My services" }, { id: "courses", label: "My courses" }, { id: "notes", label: "My notes" },
+] as const;
+export type SiteFocus = (typeof SITE_FOCUS)[number]["id"];
+export const cleanFocus = (v: unknown): SiteFocus => (SITE_FOCUS.some((f) => f.id === v) ? v as SiteFocus : "mix");
+export type SiteDoc = { kit: string; palette: SitePalette; blocks: Blocks; order: BlockId[]; bookBelowPosts: boolean; orcid: OrcidLink | null; cover: string; announce?: string; focus?: SiteFocus; updatedAt?: string };
 
 export const LIMITS = { services: 40, gallery: 24, testimonials: 12, team: 24, faq: 20, publications: 200, awards: 60, talks: 80, news: 60 } as const;
 const t = (v: unknown, max: number) => String(v ?? "").replace(/\s+/g, " ").trim().slice(0, max);
@@ -127,6 +135,7 @@ function cleanService(x: Record<string, unknown>): ServiceItem {
 }
 // "1 hr 10 min", "45 min", "2 hr".
 export const durationText = (m?: number) => (!m ? "" : m < 60 ? `${m} min` : `${Math.floor(m / 60)} hr${m % 60 ? ` ${m % 60} min` : ""}`);
+export const cleanEmail = (v: unknown) => { const e = t(v, 120).toLowerCase(); return /^[^\s@<>"]+@[^\s@<>"]+\.[a-z]{2,}$/.test(e) ? e : ""; };
 export const ANNOUNCE_MAX = 90;
 export const cleanAnnounce = (v: unknown) => t(v, ANNOUNCE_MAX);
 // Everything a member can send for their sections, made safe and within the limits. Unknown parts are dropped.
@@ -136,7 +145,7 @@ export function cleanBlocks(v: unknown): Blocks {
   const h = o.hero ?? {}, i = o.info ?? {};
   return {
     hero: { on: on(h), headline: t(h.headline, 90), subline: t(h.subline, 240), image: img(h.image), button: cleanButton(h.button), second: cleanButton(h.second), ...(h.style === "photo" ? { style: "photo" as const } : {}), ...(t(h.eyebrow, 40) ? { eyebrow: t(h.eyebrow, 40) } : {}) },
-    info: { on: on(i), hours: t(i.hours, 120), bookingHours: i.bookingHours === true, whatsapp: digits(i.whatsapp), phone: digits(i.phone), address: t(i.address, 200), mapUrl: /^https:\/\/(www\.)?(google\.[a-z.]+\/maps|maps\.app\.goo\.gl|goo\.gl\/maps|maps\.google\.[a-z.]+)\S*$/i.test(t(i.mapUrl, 500)) ? t(i.mapUrl, 500) : "" },
+    info: { on: on(i), hours: t(i.hours, 120), bookingHours: i.bookingHours === true, whatsapp: digits(i.whatsapp), phone: digits(i.phone), ...(cleanEmail(i.email) ? { email: cleanEmail(i.email) } : {}), address: t(i.address, 200), mapUrl: /^https:\/\/(www\.)?(google\.[a-z.]+\/maps|maps\.app\.goo\.gl|goo\.gl\/maps|maps\.google\.[a-z.]+)\S*$/i.test(t(i.mapUrl, 500)) ? t(i.mapUrl, 500) : "" },
     services: { on: on(o.services), items: list(o.services?.items, LIMITS.services, (x) => (t(x.name, 80) ? cleanService(x) : null)) },
     gallery: { on: on(o.gallery), items: list(o.gallery?.items, LIMITS.gallery, (x) => (img(x.image) ? { image: img(x.image), caption: t(x.caption, 120) } : null)) },
     testimonials: { on: on(o.testimonials), items: list(o.testimonials?.items, LIMITS.testimonials, (x) => (t(x.quote, 400) && t(x.name, 60) ? { quote: para(x.quote, 400), name: t(x.name, 60), role: t(x.role, 80) } : null)) },
@@ -169,14 +178,14 @@ const orcidOf = (v: unknown): OrcidLink | null => {
 };
 export function siteDocOf(raw: unknown): SiteDoc {
   const o = (raw && typeof raw === "object" ? raw : {}) as Record<string, unknown>;
-  return { kit: t(o.kit, 30), palette: cleanPalette(o.palette), blocks: cleanBlocks(o.blocks), order: cleanOrder(o.order), bookBelowPosts: o.bookBelowPosts === true, orcid: orcidOf(o.orcid), cover: img(o.cover), announce: cleanAnnounce(o.announce), updatedAt: typeof o.updatedAt === "string" ? o.updatedAt : undefined };
+  return { kit: t(o.kit, 30), palette: cleanPalette(o.palette), blocks: cleanBlocks(o.blocks), order: cleanOrder(o.order), bookBelowPosts: o.bookBelowPosts === true, orcid: orcidOf(o.orcid), cover: img(o.cover), announce: cleanAnnounce(o.announce), focus: cleanFocus(o.focus), updatedAt: typeof o.updatedAt === "string" ? o.updatedAt : undefined };
 }
 // What a visitor sees: only the sections switched on, with something in them, that the plan still covers (after a downgrade, a section waits
 // switched off rather than vanishing from the settings).
 export function visibleBlocks(d: SiteDoc, tier: string): BlockId[] {
   const b = d.blocks;
   const has: Record<BlockId, boolean> = {
-    hero: b.hero.on && !!(b.hero.headline || b.hero.subline || b.hero.image), info: b.info.on && !!(b.info.hours || b.info.bookingHours || b.info.whatsapp || b.info.phone || b.info.address),
+    hero: b.hero.on && !!(b.hero.headline || b.hero.subline || b.hero.image), info: b.info.on && !!(b.info.hours || b.info.bookingHours || b.info.whatsapp || b.info.email || b.info.address),
     services: b.services.on && b.services.items.length > 0, gallery: b.gallery.on && b.gallery.items.length > 0,
     testimonials: b.testimonials.on && b.testimonials.items.length > 0, team: b.team.on && b.team.items.length > 0, faq: b.faq.on && b.faq.items.length > 0,
     publications: b.publications.on && b.publications.items.length > 0, awards: b.awards.on && b.awards.items.length > 0,
@@ -230,6 +239,7 @@ export function buttonHref(b: SiteButton, base: string): string {
   if (b.kind === "book") return `${base || ""}/#book`;
   if (b.kind === "shop") return `${base}/shop`;
   if (b.kind === "contact") return `${base}/contact`;
+  if (b.kind === "services") return `${base || ""}/#services`;
   if (b.kind === "call") return `tel:${b.value}`;
   return b.value;
 }
@@ -250,34 +260,34 @@ const btn = (kind: ButtonKind, label?: string): SiteButton => ({ kind, label: la
 function beautyKits(): Kit[] {
   const family = (flavour: string) => ({ id: "beauty", name: "Beauty and wellness", flavour });
   const book = btn("book", "Book your appointment");
-  const base = { minTier: "pro", theme: "clean" as const, family: undefined as Kit["family"] };
+  const base = { minTier: "pro", theme: "luxe" as const, family: undefined as Kit["family"] };
   const ask = { q: "How do I book?", a: "Pick a time on this page and pay online: your booking is confirmed straight away, with a reminder before it." };
   return [
     { ...base, id: "beauty-spa", name: "Beauty and wellness: Spa", emoji: "🧖", palette: "forest", family: family("Spa"),
       blurb: "Facials, massages, body treatments and packages on a menu with times and prices, a full photo up top, and booking on every page.",
       sections: { journals: false, shop: false, courses: false, track: false }, blocks: ["hero", "services", "info", "gallery", "testimonials", "faq"],
-      starter: { heroStyle: "photo", eyebrow: "Welcome to", headline: "Breathe out. We'll take it from here.", subline: "Facials, massages and body treatments in a calm, clean space.", button: book, second: btn("call"),
+      starter: { heroStyle: "photo", eyebrow: "Welcome to", headline: "Breathe out. We'll take it from here.", subline: "Facials, massages and body treatments in a calm, clean space.", button: book, second: btn("services"),
         hours: "Mon–Sat, 9am to 7pm",
         services: [{ group: "Facials", name: "Essential facial", minutes: 45, price: "₦25,000", note: "" }, { group: "Facials", name: "Deep-cleansing facial", minutes: 70, price: "₦35,000", note: "" }, { group: "Massages", name: "Relaxation massage", minutes: 45, price: "₦30,000", note: "" }, { group: "Massages", name: "Hot stone massage", minutes: 60, price: "₦40,000", note: "" }, { group: "Body", name: "Body polish", minutes: 60, price: "₦35,000", note: "" }, { group: "Packages", name: "Half-day retreat", minutes: 180, price: "₦85,000", note: "Facial, massage and body polish" }],
         faq: [ask, { q: "What should I bring?", a: "Just yourself. We have robes, slippers and everything you need." }] } },
     { ...base, id: "beauty-massage", name: "Beauty and wellness: Massage", emoji: "💆", palette: "gold", family: family("Massage"),
       blurb: "Your massages on a menu with times and prices, home visits, your therapists, and booking on every page.",
       sections: { journals: false, shop: false, courses: false, track: false }, blocks: ["hero", "services", "info", "testimonials", "team", "faq"],
-      starter: { heroStyle: "photo", eyebrow: "Welcome to", headline: "Let the tension go.", subline: "Swedish, deep tissue, hot stone and sports massage, at our studio or in your home.", button: book, second: btn("call"),
+      starter: { heroStyle: "photo", eyebrow: "Welcome to", headline: "Let the tension go.", subline: "Swedish, deep tissue, hot stone and sports massage, at our studio or in your home.", button: book, second: btn("services"),
         hours: "Mon–Sun, 10am to 9pm",
         services: [{ group: "Massages", name: "Swedish massage", minutes: 60, price: "₦25,000", note: "" }, { group: "Massages", name: "Deep tissue massage", minutes: 60, price: "₦30,000", note: "" }, { group: "Massages", name: "Hot stone massage", minutes: 75, price: "₦38,000", note: "" }, { group: "Couples", name: "Couples massage", minutes: 60, price: "₦55,000", note: "" }, { group: "Home visits", name: "Massage at home", minutes: 90, price: "₦45,000", note: "We bring the table and oils" }],
         faq: [ask, { q: "Do you come to my home?", a: "Yes. Book a home visit and tell us your address; we bring everything." }] } },
     { ...base, id: "beauty-hair", name: "Beauty and wellness: Hair", emoji: "💇", palette: "royal", family: family("Hair"),
       blurb: "Braids, wigs, cuts and colour on a menu with times and prices, your work in pictures, your stylists, hair products, and booking.",
       sections: { journals: false, shop: true, courses: false, track: false }, blocks: ["hero", "services", "gallery", "team", "testimonials", "info", "faq"],
-      starter: { heroStyle: "photo", eyebrow: "Welcome to", headline: "Hair that turns heads.", subline: "Braids, wigs, cuts, colour and treatments by stylists who listen.", button: book, second: btn("shop", "Shop hair care"),
+      starter: { heroStyle: "photo", eyebrow: "Welcome to", headline: "Hair that turns heads.", subline: "Braids, wigs, cuts, colour and treatments by stylists who listen.", button: book, second: btn("services"),
         hours: "Tue–Sun, 9am to 7pm",
         services: [{ group: "Braids", name: "Knotless braids (medium, waist length)", minutes: 300, price: "From ₦35,000", note: "" }, { group: "Braids", name: "Cornrows", minutes: 120, price: "From ₦12,000", note: "" }, { group: "Wigs", name: "Wig install", minutes: 90, price: "₦15,000", note: "" }, { group: "Wigs", name: "Wig revamp", minutes: 120, price: "₦18,000", note: "" }, { group: "Cuts and colour", name: "Cut and style", minutes: 45, price: "₦8,000", note: "" }, { group: "Cuts and colour", name: "Colour", minutes: 120, price: "From ₦25,000", note: "" }, { group: "Treatments", name: "Deep conditioning treatment", minutes: 60, price: "₦12,000", note: "" }],
         faq: [ask, { q: "Should I bring my own hair extensions?", a: "You can, or we can supply them: the price is shown when you book." }] } },
     { ...base, id: "beauty-nails", name: "Beauty and wellness: Nails", emoji: "💅", palette: "crimson", family: family("Nails"),
       blurb: "Manicures, pedicures, extensions and nail art on a menu with times and prices, your work in pictures, press-ons to buy, and booking.",
       sections: { journals: false, shop: true, courses: false, track: false }, blocks: ["hero", "services", "gallery", "testimonials", "info", "faq"],
-      starter: { heroStyle: "photo", eyebrow: "Welcome to", headline: "Nails, done beautifully.", subline: "Gel, acrylic and press-ons, manicures and pedicures, in a clean and calm studio.", button: book, second: btn("shop", "Shop press-ons"),
+      starter: { heroStyle: "photo", eyebrow: "Welcome to", headline: "Nails, done beautifully.", subline: "Gel, acrylic and press-ons, manicures and pedicures, in a clean and calm studio.", button: book, second: btn("services"),
         hours: "Mon–Sat, 9am to 8pm",
         services: [{ group: "Manicure", name: "Classic manicure", minutes: 30, price: "₦6,000", note: "" }, { group: "Manicure", name: "Gel polish", minutes: 45, price: "₦8,000", note: "" }, { group: "Extensions", name: "Acrylic full set", minutes: 90, price: "₦15,000", note: "" }, { group: "Extensions", name: "Gel-X full set", minutes: 90, price: "₦18,000", note: "" }, { group: "Pedicure", name: "Classic pedicure", minutes: 45, price: "₦8,000", note: "" }, { group: "Pedicure", name: "Jelly pedicure", minutes: 60, price: "₦15,000", note: "" }, { group: "Nail art", name: "Nail art (per set)", minutes: 15, price: "From ₦2,000", note: "" }],
         faq: [ask, { q: "How long do gel nails last?", a: "Two to three weeks with care. Come back for a refill or a soak-off." }] } },
@@ -301,10 +311,10 @@ export const KITS: Kit[] = [
     starter: { headline: "Hello, and welcome.", subline: "What I research and teach, where I've published and spoken, and how to reach me.", button: btn("contact", "Get in touch") },
   },
   {
-    id: "fashion", name: "Fashion: clothes, bags, shoes and jewellery", emoji: "👗", minTier: "pro", theme: "clean", palette: "royal",
+    id: "fashion", name: "Fashion: clothes, bags, shoes and jewellery", emoji: "👗", minTier: "pro", theme: "luxe", palette: "royal",
     blurb: "Your collection up front (clothes, bags, shoes, jewellery), prices and delivery, safe checkout, and pictures from your shoots.",
-    sections: { journals: false, shop: true, courses: false, track: false }, blocks: ["hero", "info", "gallery", "testimonials", "faq"],
-    starter: { headline: "New styles, made to be worn.", subline: "Shop the latest pieces, delivered anywhere in Nigeria.", button: btn("shop"), second: btn("contact"),
+    sections: { journals: false, shop: true, courses: false, track: false }, blocks: ["hero", "gallery", "testimonials", "faq", "info"],
+    starter: { heroStyle: "photo", eyebrow: "New collection", headline: "New styles, made to be worn.", subline: "Shop the latest pieces, delivered anywhere in Nigeria.", button: btn("shop"), second: btn("shop", "New arrivals"),
       hours: "Mon–Sat, 9am to 7pm",
       faq: [{ q: "Do you deliver outside my state?", a: "Yes. Delivery is worked out at checkout for your address." }, { q: "Can I return an item?", a: "Tell us within 48 hours of delivery and we'll sort it out." }] },
   },

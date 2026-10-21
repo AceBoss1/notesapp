@@ -10,13 +10,14 @@ import { MAIN_HOST, isMainHost } from "@/lib/host";
 import { domainForUid } from "@/lib/domains";
 import { SiteProvider } from "@/components/site/SiteContext";
 import SiteBasketButton from "@/components/site/SiteBasketButton";
+import SocialLinksRow from "@/components/SocialLinksRow";
 import { NameBadgeIcons } from "@/components/PersonName";
 import { badgesOf } from "@/lib/name-badges";
 import SiteNav from "@/components/site/SiteNav";
 import SiteAccount from "@/components/site/SiteAccount";
 import { SiteAuthProvider } from "@/components/site/SiteAuth";
 import SiteDarkToggle from "@/components/site/SiteDarkToggle";
-import { BAND_GRADIENT, SITE_DARK_KEY, backgroundOf, canHaveSite, isCrimsonTheme, paletteVars, siteThemeOf, themeAllowed } from "@/lib/site-themes";
+import { BAND_GRADIENT, SITE_DARK_KEY, backgroundOf, canHaveSite, isCleanLike, isCrimsonTheme, paletteVars, siteThemeOf, themeAllowed } from "@/lib/site-themes";
 import { missingSitePages, siteSectionsShown } from "@/lib/site-settings";
 import { buttonHref, emptyBlocks, isBeautyKit, resolveButton, visibleBlocks } from "@/lib/site-kits";
 import { bookingOf, readSite } from "@/lib/site-server";
@@ -81,8 +82,9 @@ export default async function SiteLayout({ children, params }: Props) {
     booking,
     cover: site?.cover ?? "",
     kit: site?.kit ?? "",
+    focus: site?.focus ?? (domain?.home === "store" ? "shop" : "mix"),
   };
-  const clean = info.theme === "clean";
+  const clean = isCleanLike(info.theme);
   // Night background (lib/site-themes.ts): the dark colours Scholar uses in dark mode, always on (Scholar keeps its own switch).
   const night = info.theme !== "scholar" && backgroundOf(site?.palette, info.theme) === "night";
   const bookTab = isBeautyKit(info.kit) && info.booking.offered;
@@ -135,6 +137,7 @@ export default async function SiteLayout({ children, params }: Props) {
                 <Link href={`${base}/terms`} className="underline hover:text-paper">Terms</Link> ·{" "}
                 <Link href={`${base}/privacy`} className="underline hover:text-paper">Privacy</Link>
               </p>
+              <SocialLinksRow social={info.social} light />
             </div>
             <SiteNav footer />
           </div>

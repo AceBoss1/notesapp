@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import SocialLinksRow from "@/components/SocialLinksRow";
 import { buttonHref, byYear, durationText, resolveButton, type BlockId, type SiteButton } from "@/lib/site-kits";
 import TalksGlobe from "./TalksGlobe";
 import { MAIN_HOST } from "@/lib/host";
@@ -49,13 +50,14 @@ export function SiteHero({ clean, plain }: { clean: boolean; plain?: boolean }) 
 // The banner as a full photo (hero style "photo", the beauty kits): the picture edge to edge with a soft shade, and the words and buttons
 // over it in the middle — a small line above ("Welcome to"), the headline large, the line about what they do, outlined buttons.
 export function SitePhotoHero() {
-  const { blocks, base } = useSite();
+  const { blocks, base, cover, social } = useSite();
   const h = blocks.hero;
+  const image = h.image || cover; // no banner picture: the cover photo
   const buttons = [resolveButton(h.button, blocks.info), resolveButton(h.second, blocks.info)].filter((b): b is SiteButton => !!b);
   return (
     <section className="relative isolate flex min-h-[78vh] items-center justify-center overflow-hidden px-4 py-20 text-center text-white sm:min-h-[86vh]">
       {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img src={h.image} alt="" className="absolute inset-0 -z-10 h-full w-full object-cover" />
+      <img src={image} alt="" className="absolute inset-0 -z-10 h-full w-full object-cover" />
       <div aria-hidden className="absolute inset-0 -z-10 bg-gradient-to-b from-black/45 via-black/35 to-black/55" />
       <div className="max-w-4xl">
         {h.eyebrow && <p className="font-ui text-xs font-semibold uppercase tracking-[0.35em] text-white/85 sm:text-sm">{h.eyebrow}</p>}
@@ -73,6 +75,7 @@ export function SitePhotoHero() {
             ))}
           </div>
         )}
+        <SocialLinksRow social={social} light className="mt-8 justify-center" />
       </div>
     </section>
   );
@@ -90,7 +93,7 @@ export function SiteInfoStrip() {
   const cards = [
     hours && { icon: "🕘", text: hours, href: booking.offered ? `${base}/#book` : "" },
     i.whatsapp && { icon: "💬", text: "Chat on WhatsApp", href: wa },
-    i.phone && { icon: "📞", text: i.phone, href: `tel:${i.phone}` },
+    i.email && { icon: "✉️", text: i.email, href: `mailto:${i.email}` }, // never the phone number on Home (owner); it's for Call buttons
     i.address && { icon: "📍", text: i.address, href: i.mapUrl },
   ].filter(Boolean) as { icon: string; text: string; href: string }[];
   return (
@@ -105,7 +108,12 @@ export function SiteInfoStrip() {
   );
 }
 
-const Heading = ({ children }: { children: React.ReactNode }) => <p className="eyebrow">{children}</p>;
+// Section titles: small eyebrows, or, on Luxe, centred serif titles under a small line.
+function Heading({ children }: { children: React.ReactNode }) {
+  const { theme } = useSite();
+  if (theme === "luxe") return <h2 className="text-center font-display text-3xl text-ink sm:text-4xl">{children}</h2>;
+  return <p className="eyebrow">{children}</p>;
+}
 // Services and prices. With times, tabs or pictures (the beauty kits' menu, like a spa's), they show as cards in tabs (All, Facials,
 // Massages …), each with its time, its price and Book now while the member's sessions are on; otherwise as a simple price list.
 function Services() {
@@ -115,7 +123,7 @@ function Services() {
   const menu = items.some((x) => x.minutes || x.group || x.image);
   if (!menu) {
     return (
-      <section className="mt-14">
+      <section id="services" className="mt-14 scroll-mt-28">
         <Heading>Services and prices</Heading>
         <ul className="card mt-5 divide-y divide-rule">
           {items.map((x, n) => (
@@ -131,7 +139,7 @@ function Services() {
   const groups = Array.from(new Set(items.map((x) => x.group).filter((g): g is string => !!g)));
   const shown = tab === "All" ? items : items.filter((x) => x.group === tab);
   return (
-    <section className="mt-16" aria-labelledby="menu-h">
+    <section id="services" className="mt-16 scroll-mt-28" aria-labelledby="menu-h">
       <p className="text-center font-ui text-xs font-semibold uppercase tracking-[0.3em] text-crimson">Our menu</p>
       <h2 id="menu-h" className="mt-2 text-center font-display text-4xl text-ink">Services</h2>
       {groups.length > 1 && (
@@ -346,7 +354,9 @@ const PARTS: Record<Exclude<BlockId, "hero" | "info">, () => JSX.Element> = {
   services: Services, gallery: Gallery, testimonials: Testimonials, team: Team, faq: Faq, publications: Publications, awards: Awards, talks: Talks, news: News,
 };
 // The sections after the banner and the strip, in the member's order.
-export function SiteContentBlocks() {
+// `lead`: one section goes first (Services, when Home leads with them).
+export function SiteContentBlocks({ lead }: { lead?: BlockId } = {}) {
   const { shownBlocks } = useSite();
-  return <>{shownBlocks.filter((id): id is keyof typeof PARTS => id in PARTS).map((id) => { const P = PARTS[id]; return <P key={id} />; })}</>;
+  const order = lead && shownBlocks.includes(lead) ? [lead, ...shownBlocks.filter((id) => id !== lead)] : shownBlocks;
+  return <>{order.filter((id): id is keyof typeof PARTS => id in PARTS).map((id) => { const P = PARTS[id]; return <P key={id} />; })}</>;
 }

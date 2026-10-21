@@ -83,7 +83,7 @@ export default function BlockEditors({ tier, value, onChange, orcid = null, onOr
             <label className="text-xs text-slate">Style
               <select value={value.hero.style ?? "side"} onChange={(e) => set("hero", { ...value.hero, style: e.target.value === "photo" ? "photo" : undefined })} className={field}>
                 <option value="side">Words beside the picture</option>
-                <option value="photo">Full photo, words over it (needs a picture; Clean look)</option>
+                <option value="photo">Full photo, words over it (the banner picture or your cover; the Luxe look always does this)</option>
               </select>
             </label>
             <label className="text-xs text-slate">Small line above the headline (optional)<input value={value.hero.eyebrow ?? ""} maxLength={40} onChange={(e) => set("hero", { ...value.hero, eyebrow: e.target.value })} className={field} placeholder="Welcome to" /></label>
@@ -104,7 +104,8 @@ export default function BlockEditors({ tier, value, onChange, orcid = null, onOr
                 <span>Use the hours of my booking calendar (<a href="/profile/publishing" className="text-crimson underline">set them here</a>). While your sessions are on, tapping the hours opens your booking card.</span></label>
             </div>
             <label className="text-xs text-slate">WhatsApp number<input value={value.info.whatsapp} inputMode="tel" onChange={(e) => set("info", { ...value.info, whatsapp: e.target.value })} className={field} placeholder="0803 000 0000" /></label>
-            <label className="text-xs text-slate">Phone number<input value={value.info.phone} inputMode="tel" onChange={(e) => set("info", { ...value.info, phone: e.target.value })} className={field} /></label>
+            <label className="text-xs text-slate">Email (shown on Home)<input type="email" value={value.info.email ?? ""} onChange={(e) => set("info", { ...value.info, email: e.target.value })} className={field} placeholder="hello@yourbusiness.ng" /></label>
+            <label className="text-xs text-slate">Phone number (for Call buttons only; not shown on Home)<input value={value.info.phone} inputMode="tel" onChange={(e) => set("info", { ...value.info, phone: e.target.value })} className={field} /></label>
             <label className="text-xs text-slate">Where to find you<input value={value.info.address} maxLength={200} onChange={(e) => set("info", { ...value.info, address: e.target.value })} className={field} placeholder="12 Allen Avenue, Ikeja, Lagos" /></label>
             <label className="text-xs text-slate sm:col-span-2">Google Maps link (optional)<input value={value.info.mapUrl} onChange={(e) => set("info", { ...value.info, mapUrl: e.target.value })} className={field} placeholder="https://maps.app.goo.gl/…" /></label>
           </div>

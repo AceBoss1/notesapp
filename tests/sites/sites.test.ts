@@ -2,7 +2,7 @@
 // and kits that never wipe the member's words. Run: npm run test:sites → "ALL OK".
 import assert from "node:assert/strict";
 import { backgroundOf, canHaveSite, meetsTier, paletteRgb, paletteVars, themeAllowed } from "../../lib/site-themes";
-import { KITS, applyKitTo, durationText, isBeautyKit, bookingHoursText, buttonHref, byYear, cleanBlocks, cleanButton, cleanOrder, cleanPalette, kitAllowed, kitOf, resolveButton, shopStyleOf, siteDocOf, sortItems, visibleBlocks } from "../../lib/site-kits";
+import { KITS, applyKitTo, cleanEmail, cleanFocus, durationText, isBeautyKit, bookingHoursText, buttonHref, byYear, cleanBlocks, cleanButton, cleanOrder, cleanPalette, kitAllowed, kitOf, resolveButton, shopStyleOf, siteDocOf, sortItems, visibleBlocks } from "../../lib/site-kits";
 import { siteSectionsShown } from "../../lib/site-settings";
 import { placeCoords } from "../../lib/places";
 import { landDots } from "../../lib/globe-land";
@@ -174,4 +174,14 @@ assert.deepEqual(sv[0], { name: "Facial", price: "₦25,000", note: "", minutes:
 assert.deepEqual(sv[1], { name: "Tea", price: "", note: "" }, "too short a time and an insecure picture are left out");
 assert.equal(cleanBlocks({ hero: { style: "weird", eyebrow: "  " } }).hero.style, undefined);
 assert.deepEqual([durationText(45), durationText(60), durationText(70), durationText(135), durationText(0)], ["45 min", "1 hr", "1 hr 10 min", "2 hr 15 min", ""]);
+// Luxe, Home focus, the services button, email instead of phone
+for (const k of beauty) { assert.equal(k.theme, "luxe"); assert.equal(k.starter.second?.kind, "services", `${k.id}: Check our services`); }
+assert.equal(kitOf("fashion")!.theme, "luxe"); assert.equal(kitOf("fashion")!.starter.heroStyle, "photo");
+assert.equal(buttonHref({ kind: "services", label: "Check our services", value: "" }, "/s/x"), "/s/x/#services");
+assert.equal(buttonHref({ kind: "services", label: "x", value: "" }, ""), "/#services");
+assert.deepEqual(["shop", "services", "courses", "notes", "mix", "weird", undefined].map(cleanFocus), ["shop", "services", "courses", "notes", "mix", "mix", "mix"]);
+assert.equal(siteDocOf({}).focus, "mix");
+assert.equal(cleanEmail(" Hello@Studio.NG "), "hello@studio.ng"); assert.equal(cleanEmail("not an email"), ""); assert.equal(cleanEmail("a@b"), "");
+assert.equal(cleanBlocks({ info: { on: true, email: "hi@x.ng", phone: "0803" } }).info.email, "hi@x.ng");
+assert.deepEqual(visibleBlocks(siteDocOf({ blocks: { info: { on: true, phone: "08031234567" } } }), "pro").includes("info"), false, "a phone number alone doesn't show the strip (it isn't shown on Home)");
 console.log("ALL OK");

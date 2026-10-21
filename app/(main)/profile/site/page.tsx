@@ -9,7 +9,7 @@ import { effectiveTier, getUserByUid, UserProfile } from "@/lib/users";
 import { MAIN_HOST } from "@/lib/host";
 import { canHaveSite, meetsTier, siteThemeOf, tierName, type SiteThemeId } from "@/lib/site-themes";
 import { SITE_PAGES, SITE_PAGE_MAX, SITE_SECTIONS, siteSectionsOf, type SitePageId, type SiteSections } from "@/lib/site-settings";
-import { ANNOUNCE_MAX, BLOCKS, SECTION_MIN_TIER, blockAllowed, emptyBlocks, DEFAULT_ORDER, type BlockId, type Blocks, type Kit, type SiteDoc } from "@/lib/site-kits";
+import { ANNOUNCE_MAX, BLOCKS, SECTION_MIN_TIER, SITE_FOCUS, blockAllowed, emptyBlocks, DEFAULT_ORDER, type BlockId, type Blocks, type Kit, type SiteDoc } from "@/lib/site-kits";
 import { getTierConfig } from "@/lib/tiers";
 import PageHero from "@/components/PageHero";
 import RichTextEditor from "@/components/RichTextEditor";
@@ -219,6 +219,22 @@ export default function YourSitePage() {
               <span className="mt-1 block text-xs text-slate">A card under each of your journals on your site that opens your booking calendar. It shows while your sessions are on (<Link href="/profile/publishing" className="text-crimson underline">set your times and price</Link>).</span>
             </span>
           </label>
+          {site && (
+            <fieldset className="mt-6">
+              <legend className="font-ui text-sm font-bold text-ink">Home leads with</legend>
+              <p className="mt-0.5 text-xs text-slate">What visitors see first on Home, and more of it. With a mix, Home shows a little of each.</p>
+              <div className="mt-2 flex flex-wrap gap-2" role="radiogroup">
+                {SITE_FOCUS.map((f) => {
+                  const on = (site.focus ?? "mix") === f.id;
+                  return (
+                    <button key={f.id} type="button" role="radio" aria-checked={on}
+                      onClick={async () => { if (!user) return; const d = await call(user, "/api/site/content", { focus: f.id }); applyDoc(d.site); }}
+                      className={`rounded-full border px-3 py-1.5 text-xs ${on ? "border-crimson bg-crimson text-paper" : "border-rule text-ink hover:border-crimson"}`}>{f.label}</button>
+                  );
+                })}
+              </div>
+            </fieldset>
+          )}
           <p className="mt-6 text-sm text-slate">Sections on Home, in this order (use the arrows). Fill them in at step 4.</p>
           <ol className="mt-3 space-y-2">
             {order.map((id, n) => {
