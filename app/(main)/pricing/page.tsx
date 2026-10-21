@@ -7,6 +7,7 @@ import { GOLD_PRICING } from "@/lib/gold";
 import { BOOST_PACKAGES, GIFT_MAX_KOBO, GIFT_MIN_KOBO } from "@/lib/boost-config";
 import { GOLD_KIND_LIVE } from "@/lib/badges";
 import UpgradeButton from "@/components/UpgradeButton";
+import TrialButton from "@/components/TrialButton";
 import { LIMITS, formatNaira } from "@/lib/booking-time";
 import { limitTable, type LimitTable } from "@/lib/limits";
 import { getAdminDb } from "@/lib/firebase-admin";
@@ -236,7 +237,7 @@ export default async function PricingPage() {
                   <p className="font-ui text-sm font-bold text-white">{t.label}</p>
                   <p className="mt-1 font-mono text-sm font-semibold text-pink-200">{t.price}</p>
                   {t.priceNote && <p className="mt-1 max-w-[11rem] text-xs font-normal text-white/75">{t.priceNote}</p>}
-                  {(t.tier === "pro" || t.tier === "business") && <UpgradeButton tier={t.tier} label={t.label} />}
+                  {(t.tier === "pro" || t.tier === "business") && <><UpgradeButton tier={t.tier} label={t.label} /><TrialButton tier={t.tier} label={t.label} /></>}
                 </th>
               ))}
             </tr>
@@ -379,7 +380,7 @@ export default async function PricingPage() {
             ["/domains", "Domains — search, register and manage, with DNS (coming soon, Business and Enterprise)"],
             ["/teams", "Team hub (a paid add-on for Business and Enterprise after internal testing)"],
             ["/help", "Help centre — answers about everything above, and Nana AI"],
-            ["/organisations", "Organisations — free 30-day Business trial, CAC verification"],
+            ["/organisations", "Organisations — free 15-day Business trial, CAC verification"],
           ].map(([href, label]) => (
             <li key={href}>
               <Link href={href} className="text-crimson underline underline-offset-2">{label} →</Link>

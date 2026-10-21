@@ -3,6 +3,7 @@ import { GOLD_PRICING } from "./gold";
 import { BOOST_PACKAGES } from "./boost-config";
 import { AD_PACKAGES } from "./ad-packages";
 import { GEMS, GEM_INFO, isReset, type Gem, type GemRates, type ResetEvery } from "./nana-gems";
+import { TRIAL_DAYS, addonTrialDays } from "./trials";
 
 // Prices and revenue rates that an admin can change from /admin/pricing, in one plain object. The rest of the app still reads TIERS,
 // GOLD_PRICING, BOOST_PACKAGES, AD_PACKAGES and BADGE_PRICE_KOBO; applyPricing() writes the chosen values into those in place, so
@@ -78,8 +79,9 @@ const ENTERPRISE_FROM = { monthly: 55_000 * 100, yearly: 550_000 * 100 };
 // certificateMinKobo: our part of a certificate on a free course (the teacher's margin comes on top).
 const COURSE_PACKAGES = { enterpriseCoursesMonthlyKobo: 100_000 * 100, academyApiFromMonthlyKobo: 250_000 * 100, certificateMinKobo: 999 * 100 };
 const CERTIFICATE_LATE = { graceDays: 7, weeklyRate: 0.01, capRate: 0.5 };
-// Decided 19 Oct 2026: the add-on is ₦4,500 a month with a 30-day trial that needs no card; the cut on shipping is 10%, at least ₦100.
-const LOGISTICS: PricingConfig["logistics"] = { addonMonthlyKobo: 4_500 * 100, trialDays: 30, cutRate: 0.1, cutMinKobo: 100 * 100 };
+// Decided 19 Oct 2026: the add-on is ₦4,500 a month with a free trial that needs no card; the cut on shipping is 10%, at least ₦100.
+// The trial is 15 days and never longer (owner, 21 Oct 2026: every trial is 15 days, lib/trials.ts).
+const LOGISTICS: PricingConfig["logistics"] = { addonMonthlyKobo: 4_500 * 100, trialDays: TRIAL_DAYS, cutRate: 0.1, cutMinKobo: 100 * 100 };
 // Allowances in kobo of AI cost a month. Free Basic's is ours to give (our commission on Basic sales pays for it); 4 weekly summaries
 // on the small model cost about ₦15, so ₦50 leaves room. Free (Standard) members get the same. Top-ups keep 20% for card fees and
 // running costs. The model prices are the published per-million-token list prices; check them when a model changes.
@@ -184,8 +186,9 @@ export function cleanPricing(input: unknown): PricingConfig {
   const certificateLate = { graceDays, weeklyRate: frac(cl.weeklyRate, "Certificate late fee per week", 0.25), capRate: frac(cl.capRate, "Certificate late fee cap", 5) };
   // Added later too.
   const lg = i.logistics === undefined ? d.logistics : rec(i.logistics);
-  const trialDays = Math.round(Number(lg.trialDays));
-  if (!Number.isFinite(trialDays) || trialDays < 0 || trialDays > 365) throw new PricingError("Logistics add-on: the free trial should be 0 to 365 days.");
+  const askedDays = Math.round(Number(lg.trialDays));
+  if (!Number.isFinite(askedDays) || askedDays < 0 || askedDays > 365) throw new PricingError(`Logistics add-on: the free trial should be 0 to ${TRIAL_DAYS} days.`);
+  const trialDays = addonTrialDays(askedDays); // a saved 30 becomes 15
   const logistics = { addonMonthlyKobo: kobo(lg.addonMonthlyKobo, "Logistics add-on monthly price", 100 * 100), trialDays, cutRate: frac(lg.cutRate, "Cut on shipping fees", 0.5), cutMinKobo: kobo(lg.cutMinKobo, "Minimum cut on a shipping fee") };
   const n = i.nana === undefined ? d.nana : rec(i.nana), nb = rec(n.budgets);
   const nana = {

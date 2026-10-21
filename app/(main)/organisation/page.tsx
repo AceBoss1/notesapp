@@ -7,6 +7,7 @@ import { onAuthStateChanged, reload, sendEmailVerification, User } from "firebas
 import { auth } from "@/lib/firebase";
 import { getUserByUid, UserProfile } from "@/lib/users";
 import { CAC_SEARCH_URL, ORG_SEATS, ORG_TRIAL_DAYS, isOrganisation } from "@/lib/org";
+import { trialHistory } from "@/lib/trials";
 
 const field = "mt-1 w-full border border-rule bg-card px-3 py-2 text-sm outline-none focus:border-crimson";
 
@@ -120,7 +121,7 @@ export default function OrganisationPage() {
             </>
           )}
         </Step>
-        <Step done={trialActive || paid || !!profile.trialUsedAt} title={`Start your free ${ORG_TRIAL_DAYS}-day Business trial`}>
+        <Step done={trialActive || paid || trialHistory(profile).some((t) => t.tier === "business")} title={`Start your free ${ORG_TRIAL_DAYS}-day Business trial`}>
           {trialActive ? (
             <>Running until {new Date(profile.trialUntil!).toDateString()}. <Link href="/pricing" className="text-crimson underline">Keep Business after the trial</Link></>
           ) : paid ? (

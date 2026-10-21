@@ -351,7 +351,7 @@ export async function fulfillPayment(reference: string): Promise<PaymentRecord> 
     } else if (current.kind === "tier" && current.tier) {
       // Paid plan: platform revenue (no ledger). Grant the tier now.
       const tr = current.tier;
-      t.set(db.doc(`users/${current.uid}`), { accountTier: tr.tier, trialUntil: FieldValue.delete(), trialTier: FieldValue.delete(), trialReminderSent: FieldValue.delete() }, { merge: true });
+      t.set(db.doc(`users/${current.uid}`), { accountTier: tr.tier, lastPaidAt: now, trialUntil: FieldValue.delete(), trialTier: FieldValue.delete(), trialReminderSent: FieldValue.delete() }, { merge: true }); // lastPaidAt: lib/trials.ts
       t.set(db.doc(`tierSubscriptions/${current.uid}`), {
         uid: current.uid,
         email: current.email,

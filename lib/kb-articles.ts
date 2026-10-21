@@ -12,6 +12,7 @@ import { LIFE_LIVE } from "./life/catalog";
 import { CALLS_LIVE, MESSAGES_LIVE, MOMENTS_LIVE } from "./moments-rules";
 import { BONUS_DAYS, BONUS_STEPS, TOPUP_MAX_KOBO, TOPUP_MIN_KOBO, WALLET_LIVE } from "./wallet";
 import { ORG_TRIAL_DAYS } from "./org";
+import { TRIAL_DAYS } from "./trials";
 import { COMPANY_INFO, SITE } from "./site";
 import { BADGE_PRICE_KOBO, TIERS, formatPercent } from "./tiers";
 import { academyApiFrom, certificateMin, currentPricing, enterpriseCoursesPrice, logisticsAddonPrice, logisticsTrialDays } from "./pricing";
@@ -108,6 +109,8 @@ Your publishing tier shows under your name on your profile, for example "Pro Pub
 - **Pro**: ${t("pro").price}, or ${money(t("pro").yearlyKobo!)} a year (two months free).
 - **Business**: ${t("business").price}, or ${money(t("business").yearlyKobo!)} a year (two months free). Includes the verified badge, your own domain, and four team seats.
 - **Enterprise**: ${t("enterprise").price}. Rates and seats are agreed with us; [contact us](/contact).
+
+**Free trials:** you can try Pro and Business free for ${TRIAL_DAYS} days each, with no card, from [Pricing](/pricing) (a verified email is needed). Each plan can be tried once. When a trial ends you're back on the plan you pay for, or Free Basic, and everything you published stays. To try another plan after a trial, pay for a plan first: a paid plan has to come between two free trials. You can upgrade or downgrade by paying at any time. Add-ons (such as logistics) have a one-time free trial of up to ${TRIAL_DAYS} days too.
 
 **Courses (Notes Academy):** free courses are free to publish on every publishing plan. Certificates on free courses are paid: the learner pays from ${certificateMin()} plus the margin the teacher sets. Paid courses: on Pro with text lessons, PDFs and YouTube, and on Business and Enterprise with uploaded videos too, with the same fee as digital items. For organisations, two packages sit on top of Enterprise: **Enterprise Courses** at ${enterpriseCoursesPrice()} a month, and the **Enterprise Academy API** from ${academyApiFrom()} a month plus usage. The regular Enterprise price stays as it is for anyone who takes neither.
 

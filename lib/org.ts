@@ -16,7 +16,7 @@ export type OrgInfo = {
   rcNote?: string; // reason shown when rejected
 };
 
-export const ORG_TRIAL_DAYS = 30;
+export { TRIAL_DAYS as ORG_TRIAL_DAYS } from "./trials"; // every plan's trial is 15 days now (lib/trials.ts)
 export const ORG_TRIAL_TIER = "business" as const;
 // Seats = the owner plus team members. Enterprise is agreed per account.
 export const ORG_SEATS: Record<string, number | null> = { business: 4, enterprise: null };

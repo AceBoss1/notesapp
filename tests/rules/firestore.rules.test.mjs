@@ -1066,3 +1066,14 @@ test("notifications and comments: only the server creates them; members read and
   await assertFails(deleteDoc(doc(as("bob"), "notes/pub1/comments/c1")));
   await assertSucceeds(deleteDoc(doc(as("alice"), "notes/pub1/comments/c1")));
 });
+
+test("free trials: a member can't give themselves a trial, a trial history or a payment date", async () => {
+  await env.withSecurityRulesDisabled(async (ctx) => {
+    await setDoc(doc(ctx.firestore(), "users/tri"), { uid: "tri", username: "tri", displayName: "Tri", role: "publisher", accountTier: "basic", suspended: false });
+  });
+  const me = env.authenticatedContext("tri").firestore();
+  await assertFails(updateDoc(doc(me, "users/tri"), { trials: [] }));
+  await assertFails(updateDoc(doc(me, "users/tri"), { lastPaidAt: "2026-10-21T00:00:00Z" }));
+  await assertFails(updateDoc(doc(me, "users/tri"), { trialTier: "business", trialUntil: "2099-01-01T00:00:00Z", accountTier: "business" }));
+  await assertSucceeds(updateDoc(doc(me, "users/tri"), { bio: "still fine" }));
+});

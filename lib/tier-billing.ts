@@ -10,6 +10,7 @@ import { getUserEmail } from "./firebase-admin";
 import type { AccountTier } from "./users";
 import { SITE_URL } from "@/lib/host";
 import { setting } from "@/lib/config";
+import { afterTrialTier, planName } from "./trials";
 
 // Server-only. Pro / Business plan billing: one Paystack plan per
 // (tier, interval), a `tierSubscriptions/{uid}` record per paying
@@ -130,7 +131,10 @@ export async function fulfillTierRenewal(data: {
   const base = Math.max(Date.now(), new Date(sub.currentPeriodEnd).getTime());
   const batch = db.batch();
   batch.update(doc.ref, { status: "active", currentPeriodEnd: periodEndFrom(base, sub.interval) });
-  batch.update(db.doc(`users/${sub.uid}`), { accountTier: sub.tier });
+  // A renewal keeps a free trial of a higher plan running (lib/trials.ts); lastPaidAt lets the account try another plan later.
+  const u = (await db.doc(`users/${sub.uid}`).get()).data();
+  const higherTrial = !!u?.trialUntil && new Date(u.trialUntil).getTime() > Date.now() && rankOf(u.trialTier) > rankOf(sub.tier);
+  batch.update(db.doc(`users/${sub.uid}`), { ...(higherTrial ? {} : { accountTier: sub.tier }), lastPaidAt: new Date().toISOString() });
   batch.set(seen, { reference: data.reference, uid: sub.uid, kind: "tier", amountKobo: pricePaidKobo(tx), at: new Date().toISOString() });
   await batch.commit();
   return true;
@@ -190,10 +194,10 @@ export async function expireTiers(): Promise<number> {
   return n + (await expireOrgTrials());
 }
 
-const TRIAL_REMINDER_DAYS = 5;
+const TRIAL_REMINDER_DAYS = 3;
+const rankOf = (t: unknown) => ({ basic: 1, pro: 2, business: 3, enterprise: 4 } as Record<string, number>)[String(t)] ?? 0;
 
-// Free organisation trials: remind a few days before the end, then drop the
-// account to Free Basic unless it has paid for the plan in the meantime.
+// Free trials (lib/trials.ts): remind a few days before the end, then move the account to the plan it pays for, or to Free Basic.
 export async function expireOrgTrials(): Promise<number> {
   await ensurePricing();
   const db = getAdminDb();
@@ -205,23 +209,26 @@ export async function expireOrgTrials(): Promise<number> {
     const u = d.data();
     const end = new Date(u.trialUntil).getTime();
     const email = await getUserEmail(d.id);
+    const plan = planName(u.trialTier || "business");
     if (end > now) {
       if (!u.trialReminderSent && email) {
-        await sendEmail({ to: email, bell: { uid: d.id, type: "plan", linkHref: "/pricing" }, subject: "Your #NotesApp free trial ends soon", text: `Your free Business trial for ${u.displayName} ends on ${new Date(end).toDateString()}. Keep Business (${nairaText(TIERS.find((t) => t.tier === "business")!.monthlyKobo!)}/month) from ${site}/pricing, or your account moves to Free Basic — your journal, followers and earnings stay.\n\n#NotesApp` }).catch(() => {});
+        const price = TIERS.find((t) => t.tier === u.trialTier)?.monthlyKobo;
+        await sendEmail({ to: email, bell: { uid: d.id, type: "plan", linkHref: "/pricing" }, subject: "Your #NotesApp free trial ends soon", text: `Your free ${plan} trial for ${u.displayName} ends on ${new Date(end).toDateString()}. Keep ${plan}${price ? ` (${nairaText(price)}/month)` : ""} from ${site}/pricing, or your account moves to Free Basic — your journal, followers and earnings stay.\n\n#NotesApp` }).catch(() => {});
         await d.ref.update({ trialReminderSent: true });
       }
       continue;
     }
     const paid = (await db.doc(`tierSubscriptions/${d.id}`).get()).data();
-    const stillPaid = paid && paid.status === "active";
+    const paidTier = paid && paid.status === "active" ? (paid.tier as string) : null;
     await d.ref.update({
-      ...(!stillPaid && u.accountTier === u.trialTier ? { accountTier: "basic" as AccountTier } : {}),
+      ...(u.accountTier === u.trialTier ? { accountTier: afterTrialTier(paidTier) as AccountTier } : {}),
       trialUntil: FieldValue.delete(),
       trialTier: FieldValue.delete(),
       trialReminderSent: FieldValue.delete(),
     });
-    if (!stillPaid && email) {
-      await sendEmail({ to: email, bell: { uid: d.id, type: "plan", linkHref: "/pricing" }, subject: "Your #NotesApp free trial has ended", text: `The free Business trial for ${u.displayName} has ended, so the account is back on Free Basic. Everything you published stays. Upgrade any time at ${site}/pricing.\n\n#NotesApp` }).catch(() => {});
+    if (email) {
+      const next = paidTier ? `your ${planName(paidTier)} plan` : "Free Basic";
+      await sendEmail({ to: email, bell: { uid: d.id, type: "plan", linkHref: "/pricing" }, subject: "Your #NotesApp free trial has ended", text: `The free ${plan} trial for ${u.displayName} has ended, so the account is on ${next}. Everything you published stays. ${paidTier ? "" : `Upgrade any time at ${site}/pricing (another free trial needs a paid plan first).`}\n\n#NotesApp` }).catch(() => {});
     }
     n++;
   }

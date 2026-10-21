@@ -11,6 +11,15 @@ export type Release = {
 
 export const CHANGELOG: Release[] = [
   {
+    version: "v0.66.0",
+    bump: "minor",
+    date: "2026-10-21",
+    changes: [
+      { kind: "added", text: "Free trials for everyone: try Pro or Business free for 15 days from Pricing, with no card (a verified email is needed). Each plan can be tried once." },
+      { kind: "changed", text: "Trials are 15 days now, not 30, including the organisation Business trial and the logistics add-on's trial. A paid plan has to come between two free trials: after a trial you're back on the plan you pay for, or Free Basic, until you pay for one. Upgrading and downgrading work as before." },
+    ],
+  },
+  {
     version: "v0.62.2",
     bump: "patch",
     date: "2026-10-20",
