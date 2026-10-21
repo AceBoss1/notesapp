@@ -49,6 +49,8 @@ export async function startCardtap(db: Firestore, me: { uid: string; email: stri
   const start = r.ok ? readStart(r.body) : null;
   if (!start) {
     await db.doc(`payments/${reference}`).update({ cardtapFailed: true, cardtapStartHttp: r.httpStatus, cardtapStartError: (typeof r.body === "string" ? r.body : JSON.stringify(r.body)).slice(0, 1500) });
+    // Also in the Vercel function log, so a refusal can be read there (Paylony's reply holds no keys).
+    console.warn("[cardtap] start refused", reference, r.httpStatus, (typeof r.body === "string" ? r.body : JSON.stringify(r.body)).slice(0, 800));
     const code = replyCode(r);
     throw new CardtapError(502, `CardTap couldn't start the payment${code ? ` (${paylonyCodeText(code)})` : ""}. Try again, or top up by card.`);
   }
