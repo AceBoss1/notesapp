@@ -19,6 +19,7 @@ import { sendWeeklyDigests } from "@/lib/digest-server";
 import { announceReleases } from "@/lib/discord";
 import { setting } from "@/lib/config";
 import { syncOrcidSites } from "@/lib/publications-server";
+import { sendEventReminders } from "@/lib/events-server";
 
 // Run every ~15 minutes by an external scheduler with
 //   Authorization: Bearer $CRON_SECRET
@@ -92,6 +93,8 @@ export async function GET(req: NextRequest) {
   await job("workReminders", () => sendWorkReminders(db));
   // Sundays from 5 PM Lagos, in batches across runs, once WEEKLY_DIGEST=on (lib/digest-server.ts).
   await job("weeklyDigest", () => sendWeeklyDigests(db));
+  // Events: reminders 24 hours and 1 hour before each start to everyone going or interested (lib/events-server.ts).
+  await job("eventReminders", () => sendEventReminders(db));
   // Researchers who linked ORCID with sync on: their new works are added to their site's Publications (lib/publications-server.ts).
   await job("syncOrcidSites", () => syncOrcidSites(db));
   await job("discordChangelog", () => announceReleases(db).then((v) => v.length)); // new releases to the Discord #announcements channel

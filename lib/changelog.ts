@@ -11,6 +11,18 @@ export type Release = {
 
 export const CHANGELOG: Release[] = [
   {
+    version: "v0.74.0",
+    bump: "minor",
+    date: "2026-10-22",
+    changes: [
+      { kind: "added", text: "Community is live: any account can start one for its church, NGO, school, club or association, at notesapp.name.ng/c/your-name. Free up to 200 members; Business has no limit and adds private Circles." },
+      { kind: "added", text: "Members get the whole group: the General announcement channel (admins post, members like and comment), public and members-only Spaces, Events, the member list and Circles. Members-only posts never leave the community." },
+      { kind: "added", text: "People who aren't members see a home page about you, and whatever your admins choose to show: General (read only, with slow mode for members), About, Contact, public events, the member list and a Join button." },
+      { kind: "added", text: "Admin tools: join openly, by approval with join questions, or by invite link; approve requests; owner, admins and moderators; remove or ban; pin posts; slow mode; Spaces; insights (members, new joins, activity, most active); and View as a non-member, member, moderator or admin before you change anything." },
+      { kind: "added", text: "Events for every account: Going and Interested, reminders 24 hours and 1 hour before (bell, phone and email), Add to calendar, weekly or monthly repeats, a Join live link (YouTube Live, Facebook Live, Zoom, Google Meet), and upcoming public events by state and city. A community's events can be for members only." },
+    ],
+  },
+  {
     version: "v0.73.0",
     bump: "minor",
     date: "2026-10-22",

@@ -48,6 +48,7 @@ jobs:
       - run: npm run test:sites
       - run: npm run test:trials
       - run: npm run test:inventory
+      - run: npm run test:community
       - run: npm run test:courses-server
       - run: npm run test:team-server
       - run: npm run test:maintenance
@@ -65,6 +66,7 @@ jobs:
       - run: npm run test:sites-server
       - run: npm run test:trials-server
       - run: npm run test:inventory-server
+      - run: npm run test:community-server
       # the link-preview safety test listens on port 80, which needs root on the runner
       - run: sudo -E env "PATH=$PATH" npx -y tsx tests/link-preview/safety.ts
 
