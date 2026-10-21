@@ -9,7 +9,7 @@ import { academyApiFrom, enterpriseCoursesPrice, enterpriseFrom, planPrice, plan
 
 export const metadata: Metadata = {
   title: "Organisations",
-  description: "Companies, NGOs, churches, schools and other bodies can run a verified #channel on #NotesApp: a free 30-day Business trial, CAC verification, a team that writes under one name, and Enterprise: your own branded site on your own domain, an API, and rates agreed with us.",
+  description: "Companies, NGOs, churches, schools and other bodies can run a verified #channel on #NotesApp: a free 15-day Business trial, CAC verification, a team that writes under one name, and Enterprise: your own branded site on your own domain, an API, and rates agreed with us.",
 };
 
 const STEPS = [

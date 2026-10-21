@@ -33,6 +33,7 @@ import { checkoutFor } from "@/lib/certificates-server";
 import { courseCheckout } from "@/lib/course-sales-server";
 import { CourseError } from "@/lib/courses-server";
 import { accessOf, partnerQuote } from "@/lib/logistics-server";
+import { accessFor as inventoryAccessFor } from "@/lib/inventory-server";
 import { itemKg } from "@/lib/logistics";
 
 // Starts a Paystack checkout for a 1:1 session or a monthly journal
@@ -158,6 +159,25 @@ export async function POST(req: NextRequest) {
       const tx = await initTx({ email: user.email, amountKobo: amount, reference, callbackUrl: `${origin}/booking/confirm`, metadata: { kind, uid: user.uid } });
       const record: PaymentRecord = {
         reference, kind: "logistics_addon", uid: user.uid, email: user.email, amountKobo: amount, status: "pending",
+        publisherUid: user.uid, publisherUsername: "", commissionRate: 0, createdAt: new Date().toISOString(),
+      };
+      await savePayment(record);
+      return NextResponse.json({ authorizationUrl: tx.authorization_url, reference, paid: payWith === "wallet" });
+    }
+
+    // ---- inventory on Free Basic and Pro: a month of the add-on (Business and Enterprise include it) ----
+    if (kind === "inventory_addon") {
+      const me = (await db.doc(`users/${user.uid}`).get()).data();
+      if (!me) return NextResponse.json({ error: "Account not found." }, { status: 404 });
+      const access = inventoryAccessFor(me as Parameters<typeof inventoryAccessFor>[0]);
+      if (access.ok && access.via === "plan") return NextResponse.json({ error: "Your plan already includes inventory." }, { status: 409 });
+      if (!["basic", "pro"].includes(String(me.accountTier))) return NextResponse.json({ error: "The inventory add-on is for Free Basic and Pro; Business and Enterprise include it." }, { status: 403 });
+      const amount = currentPricing().inventory.addonMonthlyKobo;
+      const reference = newReference();
+      const origin = await callbackOrigin(req);
+      const tx = await initTx({ email: user.email, amountKobo: amount, reference, callbackUrl: `${origin}/booking/confirm`, metadata: { kind, uid: user.uid } });
+      const record: PaymentRecord = {
+        reference, kind: "inventory_addon", uid: user.uid, email: user.email, amountKobo: amount, status: "pending",
         publisherUid: user.uid, publisherUsername: "", commissionRate: 0, createdAt: new Date().toISOString(),
       };
       await savePayment(record);

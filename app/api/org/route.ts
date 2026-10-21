@@ -2,7 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { friendlyMessage } from "@/lib/api-errors";
 import { getAdminDb, verifySignedInRequest } from "@/lib/firebase-admin";
 import { rateLimit } from "@/lib/rate-limit";
-import { ORG_TRIAL_DAYS, ORG_TRIAL_TIER, normalizeRc } from "@/lib/org";
+import { normalizeRc } from "@/lib/org";
+import { startTrial, TrialError } from "@/lib/trials-server";
 
 export const dynamic = "force-dynamic";
 
@@ -11,7 +12,7 @@ export const dynamic = "force-dynamic";
 //   register     — mark this account an organisation and submit its RC/CAC number
 //                  (brand-new accounts at once; older ones wait for admin approval)
 //   resubmit     — a rejected organisation sends a corrected number
-//   start_trial  — the free 30-day Business trial (verified email, once per RC number)
+//   start_trial  — the free 15-day Business trial (lib/trials.ts; verified email, once per RC number)
 export async function POST(req: NextRequest) {
   try {
     const me = await verifySignedInRequest(req.headers.get("authorization")?.replace(/^Bearer\s+/i, "")).catch(() => null);
@@ -52,19 +53,14 @@ export async function POST(req: NextRequest) {
     }
 
     if (action === "start_trial") {
-      if (user.accountKind !== "organisation") return NextResponse.json({ error: "Only organisation accounts get the trial." }, { status: 403 });
-      if (!me.emailVerified) return NextResponse.json({ error: "Verify your email first (check your inbox), then start the trial." }, { status: 403 });
-      if (user.org?.rcStatus === "rejected") return NextResponse.json({ error: "Fix your registration number first." }, { status: 403 });
-      const rc = user.org?.rcNumber as string;
-      const used = db.doc(`orgTrials/${rc}`);
-      if ((await used.get()).exists || user.trialUsedAt) return NextResponse.json({ error: "The free trial has already been used for this organisation." }, { status: 409 });
-      if (user.accountTier && !["standard", "basic"].includes(user.accountTier)) return NextResponse.json({ error: "Your account is already on a paid plan." }, { status: 409 });
-      const until = new Date(Date.now() + ORG_TRIAL_DAYS * 86_400_000).toISOString();
-      const batch = db.batch();
-      batch.set(used, { uid: me.uid, rcNumber: rc, startedAt: now, until });
-      batch.set(ref, { accountTier: ORG_TRIAL_TIER, trialTier: ORG_TRIAL_TIER, trialUntil: until, trialUsedAt: now }, { merge: true });
-      await batch.commit();
-      return NextResponse.json({ ok: true, until });
+      // The organisation page's button: the same 15-day Business trial as everyone's (lib/trials.ts), once per registration number.
+      if (user.accountKind !== "organisation") return NextResponse.json({ error: "Only organisation accounts start the trial here; everyone else can on Pricing." }, { status: 403 });
+      try {
+        return NextResponse.json({ ok: true, ...(await startTrial(db, me.uid, "business", { emailVerified: !!me.emailVerified })) });
+      } catch (e) {
+        if (e instanceof TrialError) return NextResponse.json({ error: e.message }, { status: e.status });
+        throw e;
+      }
     }
 
     return NextResponse.json({ error: "Unknown action." }, { status: 400 });

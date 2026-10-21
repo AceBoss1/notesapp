@@ -103,7 +103,7 @@ const wallet = async (uid: string, kobo: number) => {
   const addon: PaymentRecord = { reference: "addon1", kind: "logistics_addon", uid: "frazo", email: "frazo@x.ng", amountKobo: 450_000, status: "pending", publisherUid: "frazo", publisherUsername: "", commissionRate: 0, createdAt: new Date().toISOString() };
   await payFromWallet(db, addon); await fulfillPayment("addon1");
   const acc = (await db.doc("users/frazo").get()).data()!.logisticsAccount;
-  const trialEnd = new Date(acc.trialStartedAt).getTime() + 30 * 86_400_000;
+  const trialEnd = new Date(acc.trialStartedAt).getTime() + 15 * 86_400_000;
   const until = new Date(acc.addonUntil).getTime();
   assert.ok(until > trialEnd + 27 * 86_400_000 && until < trialEnd + 32 * 86_400_000, "a month after the trial ends");
   const after = await accessOf(db, (await db.doc("users/frazo").get()).data() as never, new Date(trialEnd + 86_400_000));

@@ -126,9 +126,11 @@ export type UserProfile = {
   logistics?: { services?: string[] }; // logistics businesses: the services they offer (lib/shipments.ts servicesOf); written only by /api/shipments
   sitePages?: { about?: string; contact?: string; updatedAt?: string }; // their site's About and Contact pages, Markdown; written only by /api/site/pages
   org?: OrgInfo;
-  trialUntil?: string; // free Business trial end
+  trialUntil?: string; // a free trial's end (lib/trials.ts)
   trialTier?: AccountTier;
-  trialUsedAt?: string;
+  trialUsedAt?: string; // the old 30-day organisation trial (counts as a Business trial, lib/trials.ts)
+  trials?: { tier: string; startedAt: string; until: string }[]; // every free trial started (lib/trials.ts)
+  lastPaidAt?: string; // the last time a plan was paid for: another free trial needs one after the last trial
   usernameChangedAt?: string; // set by /api/account/username
   roleFromAccess?: boolean; // the staff role (and so the team badge) came from team access; removing access takes it back (lib/admin-access-server.ts)
   previousUsername?: string;

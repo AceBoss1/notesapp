@@ -18,6 +18,7 @@ import { addNanaCredit } from "./nana-meter";
 import { issueInTransaction } from "./certificates-server";
 import { courseShares, fulfilCourseInTransaction, type SaleShare } from "./course-sales-server";
 import { extendAddon, type Carrier } from "./logistics-server";
+import { extendInventoryAddon, lowStockAlert, recordSale } from "./inventory-server";
 import { SITE_URL } from "@/lib/host";
 
 // Server-only. All money-state changes happen here, via the Admin SDK
@@ -26,7 +27,7 @@ import { SITE_URL } from "@/lib/host";
 
 export type PaymentRecord = {
   reference: string;
-  kind: "booking" | "subscription" | "boost" | "gift" | "tier" | "badge" | "gold_deposit" | "gold" | "merch" | "ad" | "store" | "digital" | "wallet_topup" | "life_naira" | "nana_credit" | "certificate" | "course" | "logistics_addon";
+  kind: "booking" | "subscription" | "boost" | "gift" | "tier" | "badge" | "gold_deposit" | "gold" | "merch" | "ad" | "store" | "digital" | "wallet_topup" | "life_naira" | "nana_credit" | "certificate" | "course" | "logistics_addon" | "inventory_addon";
   uid: string; // the payer
   email: string;
   amountKobo: number;
@@ -277,6 +278,12 @@ export async function fulfillPayment(reference: string): Promise<PaymentRecord> 
           t.update(itemRef, { variantStock: next, stock: Object.values(next).reduce((n: number, v) => n + (Number(v) > 0 ? Number(v) : 0), 0) });
         } else t.update(itemRef, { stock: stock - st.quantity });
       }
+      // The sale in the store's inventory history (lib/inventory-server.ts): the count after it is what's on the shelf now.
+      {
+        const vs = st.variant && item?.variantStock ? (item.variantStock as Record<string, number>) : null;
+        const shelf = vs ? Number(vs[st.variant!]) || 0 : Number(item?.stock) || 0;
+        recordSale(t, db, { ownerUid: current.publisherUid, itemId: st.itemId, variant: st.variant, quantity: st.quantity, after: current.reservationReleased ? Math.max(0, shelf - st.quantity) : shelf, buyerUid: current.uid, orderRef: reference, at: now });
+      }
       const carrier = st.carrier;
       t.set(db.doc(`storeOrders/${reference}`), {
         ...(carrier ? { carrier } : {}),
@@ -351,7 +358,7 @@ export async function fulfillPayment(reference: string): Promise<PaymentRecord> 
     } else if (current.kind === "tier" && current.tier) {
       // Paid plan: platform revenue (no ledger). Grant the tier now.
       const tr = current.tier;
-      t.set(db.doc(`users/${current.uid}`), { accountTier: tr.tier, trialUntil: FieldValue.delete(), trialTier: FieldValue.delete(), trialReminderSent: FieldValue.delete() }, { merge: true });
+      t.set(db.doc(`users/${current.uid}`), { accountTier: tr.tier, lastPaidAt: now, trialUntil: FieldValue.delete(), trialTier: FieldValue.delete(), trialReminderSent: FieldValue.delete() }, { merge: true }); // lastPaidAt: lib/trials.ts
       t.set(db.doc(`tierSubscriptions/${current.uid}`), {
         uid: current.uid,
         email: current.email,
@@ -376,6 +383,10 @@ export async function fulfillPayment(reference: string): Promise<PaymentRecord> 
       // A month of the logistics add-on (Free Basic and Pro): runs on from the trial or the month already paid.
       const acc = (await t.get(db.doc(`users/${current.uid}`))).data()?.logisticsAccount;
       extendAddon(t, db, current.uid, acc, new Date(now));
+    } else if (current.kind === "inventory_addon") {
+      // A month of inventory on Free Basic or Pro: runs on from the trial or the month already paid.
+      const acc = (await t.get(db.doc(`users/${current.uid}`))).data()?.inventoryAccount;
+      extendInventoryAddon(t, db, current.uid, acc, new Date(now));
     } else if (current.kind === "nana_credit" && current.nanaPack) {
       addNanaCredit(t, db, current.uid, current.nanaPack.creditKobo, reference, new Date(now));
     } else if (current.kind === "life_naira") {
@@ -594,6 +605,10 @@ async function notifyPaid(p: PaymentRecord) {
     if (p.publisherUid && p.publisherUid !== p.uid) await notifyBell({ uid: p.publisherUid, type: "plan", linkHref: "/academy/teach", message: `${p.certificate.learnerName} got their certificate for “${p.certificate.courseTitle}”.` });
     return;
   }
+  if (p.kind === "inventory_addon") {
+    await notifyBell({ uid: p.uid, type: "plan", linkHref: "/profile/inventory", message: `Inventory paid (${formatNaira(p.amountKobo)}): another month of stock, SKUs, history and low-stock alerts.` });
+    return;
+  }
   if (p.kind === "logistics_addon") {
     await notifyBell({ uid: p.uid, type: "plan", linkHref: "/shipments", message: `Logistics add-on paid (${formatNaira(p.amountKobo)}): another month of Shipments and your place in the logistics network.` });
     return;
@@ -673,6 +688,8 @@ async function notifyPaid(p: PaymentRecord) {
   if (p.kind === "store" && p.store) {
     const site = SITE_URL;
     const st = p.store;
+    // The seller hears when this sale took the item to its low-stock level or sold it out (when they have inventory).
+    await lowStockAlert(getAdminDb(), { ownerUid: p.publisherUid, itemId: st.itemId, variant: st.variant, quantity: st.quantity }).catch(() => false);
     await sendEmail({
       to: p.email,
       subject: "Your #NotesApp order is confirmed",

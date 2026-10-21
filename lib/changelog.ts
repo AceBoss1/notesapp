@@ -30,6 +30,25 @@ export const CHANGELOG: Release[] = [
     ],
   },
   {
+    version: "v0.67.0",
+    bump: "minor",
+    date: "2026-10-21",
+    changes: [
+      { kind: "added", text: "Inventory, under My account: every physical item and option with what's left, its SKU, cost price (private) and the level at which you want an alert, with totals for units in stock and stock value. Restock, take off or correct a count with a reason, and see the history of every change: sales, refunds, restocks and corrections." },
+      { kind: "added", text: "Low-stock alerts: a notification when a sale takes an item to its low-stock level, or sells it out. Download your stock as a spreadsheet, edit it, and upload it back: you see every change and any problem before anything is saved." },
+      { kind: "added", text: "Inventory is included on Business and Enterprise. Free Basic and Pro add it for ₦1,500 a month, after a free 15-day trial (no card). Organisation teammates who run the store can use it too." },
+    ],
+  },
+  {
+    version: "v0.66.0",
+    bump: "minor",
+    date: "2026-10-21",
+    changes: [
+      { kind: "added", text: "Free trials for everyone: try Pro or Business free for 15 days from Pricing, with no card (a verified email is needed). Each plan can be tried once." },
+      { kind: "changed", text: "Trials are 15 days now, not 30, including the organisation Business trial and the logistics add-on's trial. A paid plan has to come between two free trials: after a trial you're back on the plan you pay for, or Free Basic, until you pay for one. Upgrading and downgrading work as before." },
+    ],
+  },
+  {
     version: "v0.65.0",
     bump: "minor",
     date: "2026-10-21",

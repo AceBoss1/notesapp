@@ -8,6 +8,7 @@ import { releaseLedgerEntry } from "@/lib/payouts";
 import type { LedgerEntry } from "@/lib/payments";
 import { BoostCancelError, cancelBoost } from "@/lib/boost-cancel";
 import { confirmOrder, notifyBackInStock, returnStock } from "@/lib/orders-server";
+import { recordReturn } from "@/lib/inventory-server";
 
 // Admin-only money actions on a payment reference:
 //   release  — pay the publisher (only after releaseAfter has passed)
@@ -123,6 +124,7 @@ export async function POST(req: NextRequest) {
         const st = paySnap.data()?.store;
         if (st && paySnap.data()?.status === "paid" && was === "paid") {
           await returnStock(st.itemId, st.quantity, st.variant).catch(() => {});
+          await recordReturn(db, { ownerUid: paySnap.data()?.publisherUid, itemId: st.itemId, variant: st.variant, quantity: st.quantity, by: "refund", orderRef: paymentRef }).catch(() => {});
           await notifyBackInStock(st.itemId).catch(() => {});
         }
       }

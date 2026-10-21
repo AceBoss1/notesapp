@@ -7,13 +7,14 @@ import { GOLD_PRICING } from "@/lib/gold";
 import { BOOST_PACKAGES, GIFT_MAX_KOBO, GIFT_MIN_KOBO } from "@/lib/boost-config";
 import { GOLD_KIND_LIVE } from "@/lib/badges";
 import UpgradeButton from "@/components/UpgradeButton";
+import TrialButton from "@/components/TrialButton";
 import { LIMITS, formatNaira } from "@/lib/booking-time";
 import { limitTable, type LimitTable } from "@/lib/limits";
 import { getAdminDb } from "@/lib/firebase-admin";
 import { getLimitTable } from "@/lib/limits-server";
 import { CALLS_LIVE, MESSAGES_LIVE, MOMENTS_LIVE } from "@/lib/moments-rules";
 import { WALLET_LIVE } from "@/lib/wallet";
-import { academyApiFrom, certificateMin, enterpriseCoursesPrice, enterpriseFrom, logisticsAddonPrice, logisticsTrialDays, planPrice, planRate, pct, breakEven } from "@/lib/pricing";
+import { academyApiFrom, certificateMin, enterpriseCoursesPrice, enterpriseFrom, logisticsAddonPrice, logisticsTrialDays, planPrice, planRate, pct, breakEven , inventoryAddonPrice, inventoryTrialDays } from "@/lib/pricing";
 import { ROOT_DOMAIN } from "@/lib/host";
 
 export const metadata: Metadata = {
@@ -135,6 +136,11 @@ const ROWS: Row[] = [
     render: (t) => (t.canPublish ? "Buyer's money held until delivery · parcel ID · no-login hand-over links for riders and drivers" : "—"),
   },
   {
+    label: "Inventory",
+    href: "/help/inventory",
+    render: (t) => (!t.canPublish ? "—" : t.tier === "business" || t.tier === "enterprise" ? "Included: stock per item and option, SKUs, cost prices, low-stock alerts, the history of every change, spreadsheet in and out" : `Add-on: ${inventoryAddonPrice()}/month after a free ${inventoryTrialDays()}-day trial`),
+  },
+  {
     label: "Shipments for logistics businesses",
     href: "/logistics",
     render: (t) => (!t.canPublish ? "—" : t.customDomain ? "Book shipments for your customers, rider hand-off links, and a Track page on your own site · list your business in the logistics network so stores can choose you · deliveries are paid by the customer" : `The logistics add-on: ${logisticsAddonPrice()}/month, with a ${logisticsTrialDays()}-day free trial and no card · shipments, rider hand-off links and a listing in the logistics network`),
@@ -248,7 +254,7 @@ export default async function PricingPage() {
                   <p className="font-ui text-sm font-bold text-white">{t.label}</p>
                   <p className="mt-1 font-mono text-sm font-semibold text-pink-200">{t.price}</p>
                   {t.priceNote && <p className="mt-1 max-w-[11rem] text-xs font-normal text-white/75">{t.priceNote}</p>}
-                  {(t.tier === "pro" || t.tier === "business") && <UpgradeButton tier={t.tier} label={t.label} />}
+                  {(t.tier === "pro" || t.tier === "business") && <><UpgradeButton tier={t.tier} label={t.label} /><TrialButton tier={t.tier} label={t.label} /></>}
                 </th>
               ))}
             </tr>
@@ -391,7 +397,7 @@ export default async function PricingPage() {
             ["/domains", "Domains — search, register and manage, with DNS (coming soon, Business and Enterprise)"],
             ["/teams", "Team hub (a paid add-on for Business and Enterprise after internal testing)"],
             ["/help", "Help centre — answers about everything above, and Nana AI"],
-            ["/organisations", "Organisations — free 30-day Business trial, CAC verification"],
+            ["/organisations", "Organisations — free 15-day Business trial, CAC verification"],
           ].map(([href, label]) => (
             <li key={href}>
               <Link href={href} className="text-crimson underline underline-offset-2">{label} →</Link>
