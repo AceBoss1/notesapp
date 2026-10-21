@@ -9,8 +9,9 @@ import { DEFAULT_AVATAR } from "@/lib/admin";
 import { can, roleName, type Role, type Tab, type PublicView, type Space } from "@/lib/community";
 import { capi, field, small } from "./api";
 import Feed from "./Feed";
-import Members, { Circles } from "./Members";
+import Members, { Circles, useMembers } from "./Members";
 import Admin from "./Admin";
+import { RoomScreen, RoomsCard } from "./AudioRoom";
 import { EventList, NewEventButton } from "@/components/events/Events";
 
 // A community (/c/<id>), as this person's role lets them see it (lib/community-server.ts viewCommunity): non-members get the home page
@@ -34,6 +35,7 @@ export default function CommunityView({ id }: { id: string }) {
   const [v, setV] = useState<View | null>(null);
   const [err, setErr] = useState("");
   const [as, setAs] = useState("");
+  const [room, setRoom] = useState<{ id: string; title?: string } | null>(null); // an audio room I'm in (components/community/AudioRoom.tsx)
   const tab = (params.get("tab") as Tab) || "home";
   const invite = params.get("invite") ?? "";
   const load = useCallback(async () => {
@@ -78,7 +80,8 @@ export default function CommunityView({ id }: { id: string }) {
         </nav>
       </div>
       <div className="mx-auto max-w-5xl px-4 py-8 sm:px-6">
-        {shownTab === "home" && <Home v={v} as={as} me={user?.uid ?? null} go={go} />}
+        {shownTab === "home" && <Home v={v} as={as} me={user?.uid ?? null} go={go} onRoom={(rid, title) => setRoom({ id: rid, title })} />}
+        {room && user && <RoomScreen id={room.id} title={room.title} me={user.uid} onDone={() => setRoom(null)} />}
         {shownTab === "general" && <Feed cid={id} channel="general" canPost={!v.viewingAs && !!v.channels.find((ch) => ch.id === "general")?.canPost} role={v.role} me={user?.uid ?? null} as={as} slowModeSec={c.slowModeSec} />}
         {shownTab === "spaces" && <SpacesTab v={v} id={id} as={as} me={user?.uid ?? null} channels={spaceChannels} />}
         {shownTab === "events" && <div>{can(v.role, "events") && !v.viewingAs && <NewEventButton cid={id} onSaved={load} />}<EventList query={`cid=${id}`} empty="No upcoming events." /></div>}
@@ -130,20 +133,31 @@ function JoinBox({ v, user, invite, onChange }: { v: View; user: User | null; in
   );
 }
 
-function Home({ v, as, me, go }: { v: View; as: string; me: string | null; go: (t: Tab) => void }) {
+function Home({ v, as, me, go, onRoom }: { v: View; as: string; me: string | null; go: (t: Tab) => void; onRoom: (id: string, title?: string) => void }) {
   const c = v.community;
   return (
     <div className="grid gap-8 lg:grid-cols-[1fr,20rem]">
-      <div>
+      <div className="space-y-6">
+        {!!v.role && !v.viewingAs && me && <RoomsCard cid={c.id} canHost={can(v.role, "rooms")} onOpen={onRoom} />}
         {v.tabs.includes("general") ? (
           <>
-            <div className="flex items-center justify-between"><p className="eyebrow">General · announcements</p><button className="text-xs text-crimson underline" onClick={() => go("general")}>See all</button></div>
-            <Feed cid={c.id} channel="general" canPost={false} role={v.role} me={me} as={as} slowModeSec={0} />
+            <div className="flex items-center justify-between"><p className="font-ui text-sm font-bold text-ink">General · announcements</p><button className="text-xs text-crimson underline" onClick={() => go("general")}>See all</button></div>
+            <Feed cid={c.id} channel="general" canPost={!v.viewingAs && !!v.channels.find((ch) => ch.id === "general")?.canPost} role={v.role} me={me} as={as} slowModeSec={0} />
           </>
         ) : <p className="card p-6 text-sm text-slate">{v.role ? "Welcome." : "Join to see what members share."}</p>}
       </div>
       <aside className="space-y-4">
-        {c.about && <div className="card p-4"><p className="font-ui text-sm font-bold text-ink">About</p><p className="mt-1 line-clamp-6 whitespace-pre-line text-sm text-slate">{c.about}</p>{v.tabs.includes("about") && <button className="mt-2 text-xs text-crimson underline" onClick={() => go("about")}>Read more</button>}</div>}
+        <div className="card p-4">
+          <p className="font-ui text-sm font-bold text-ink">About</p>
+          {c.about && <p className="mt-1 line-clamp-6 whitespace-pre-line text-sm text-slate">{c.about}</p>}
+          <ul className="mt-3 space-y-2 text-sm text-ink">
+            <li className="flex gap-2"><span aria-hidden>{c.joinMode === "open" ? "🌍" : "🔒"}</span><span><b>{c.joinMode === "open" ? "Open" : c.joinMode === "approval" ? "Members approved" : "By invitation"}</b><span className="block text-xs text-slate">{c.joinMode === "open" ? "Anyone can join." : c.joinMode === "approval" ? "Anyone can ask to join; admins approve." : "Only people with an invite link can join."}</span></span></li>
+            <li className="flex gap-2"><span aria-hidden>👥</span><span><b>{c.memberCount.toLocaleString()}</b> {c.memberCount === 1 ? "member" : "members"}</span></li>
+            <li className="flex gap-2"><span aria-hidden>⭐</span><span>Run by <Link href={`/u/${c.ownerUsername}`} className="font-semibold hover:underline">{c.ownerName}</Link>{c.verified ? " ✔" : ""}</span></li>
+          </ul>
+          {v.tabs.includes("about") && <button className="mt-3 w-full rounded-lg bg-paper py-2 font-ui text-xs font-semibold text-ink hover:bg-rule/40" onClick={() => go("about")}>Read more</button>}
+        </div>
+        {v.tabs.includes("members") && <MembersPreview cid={c.id} as={as} count={c.memberCount} onAll={() => go("members")} />}
         {v.tabs.includes("events") && <div className="card p-4"><p className="font-ui text-sm font-bold text-ink">Upcoming events</p><EventList query={`cid=${c.id}`} empty="No upcoming events." /></div>}
         {c.spaces.length > 0 && <div className="card p-4"><p className="font-ui text-sm font-bold text-ink">Spaces</p><ul className="mt-1 text-sm text-slate">{c.spaces.map((s) => <li key={s.id}>{s.name}{s.visibility === "members" ? " · members only" : ""}</li>)}</ul></div>}
       </aside>
@@ -161,6 +175,29 @@ function SpacesTab({ v, id, as, me, channels }: { v: View; id: string; as: strin
       <div className="flex flex-wrap gap-2">{channels.map((x) => <button key={x.id} onClick={() => setSel(x.id)} className={`rounded-full border px-3 py-1 text-xs font-semibold ${x.id === ch.id ? "border-crimson bg-crimson text-paper" : "border-rule text-ink"}`}>{x.name}</button>)}</div>
       <p className="mt-2 text-xs text-slate">{vis === "members" ? "Members only: never shown outside the community." : "Public: anyone can read it."}</p>
       <div className="mt-4"><Feed cid={id} channel={ch.id} canPost={!v.viewingAs && ch.canPost} role={v.role} me={me} as={as} slowModeSec={v.community.slowModeSec} /></div>
+    </div>
+  );
+}
+
+// The faces of the people in it, like a group's members card.
+function MembersPreview({ cid, as, count, onAll }: { cid: string; as: string; count: number; onAll: () => void }) {
+  const { list } = useMembers(cid, as);
+  if (!list?.length) return null;
+  return (
+    <div className="card p-4">
+      <p className="font-ui text-sm font-bold text-ink">Members · {count.toLocaleString()}</p>
+      <ul className="mt-3 grid grid-cols-4 gap-3">
+        {list.slice(0, 8).map((m) => (
+          <li key={m.uid} className="text-center">
+            <Link href={`/u/${m.username}`} title={m.displayName}>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={m.avatar || DEFAULT_AVATAR} alt="" className="mx-auto h-12 w-12 rounded-full object-cover" />
+              <span className="mt-1 block truncate text-[11px] text-slate">{m.displayName.split(" ")[0]}</span>
+            </Link>
+          </li>
+        ))}
+      </ul>
+      <button className="mt-3 w-full rounded-lg bg-paper py-2 font-ui text-xs font-semibold text-ink hover:bg-rule/40" onClick={onAll}>See all members</button>
     </div>
   );
 }

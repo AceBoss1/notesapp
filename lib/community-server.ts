@@ -17,7 +17,7 @@ export class CommunityError extends Error { constructor(public status: number, m
 
 export type Member = { cid: string; uid: string; username: string; displayName: string; avatar: string; role: Role; status: "active" | "pending" | "banned"; answers?: string[]; joinedAt: string; lastPostAt?: string };
 export type Post = { id: string; cid: string; channel: string; authorUid: string; authorName: string; authorUsername: string; authorAvatar: string; text: string; image: string; pinned: boolean; likes: number; comments: number; public: boolean; createdAt: string };
-export type Comment = { id: string; postId: string; cid: string; authorUid: string; authorName: string; authorUsername: string; text: string; createdAt: string };
+export type Comment = { id: string; postId: string; cid: string; authorUid: string; authorName: string; authorUsername: string; authorAvatar?: string; text: string; createdAt: string };
 
 const MAX_OWNED = 5;
 const userOf = async (db: Firestore, uid: string) => (await db.doc(`users/${uid}`).get()).data() as UserProfile | undefined;
@@ -34,7 +34,7 @@ export async function memberOf(db: Firestore, cid: string, uid: string | null): 
   if (!uid) return null;
   return ((await memberRef(db, cid, uid).get()).data() as Member | undefined) ?? null;
 }
-const activeRole = (m: Member | null): Role | null => (m && m.status === "active" ? m.role : null);
+export const activeRole = (m: Member | null): Role | null => (m && m.status === "active" ? m.role : null);
 async function actor(db: Firestore, cid: string, uid: string): Promise<{ c: Community; me: Member; role: Role }> {
   const [c, me] = await Promise.all([readCommunity(db, cid), memberOf(db, cid, uid)]);
   if (!me || me.status !== "active") throw new CommunityError(403, "Join the community first.");
@@ -293,7 +293,7 @@ export async function addComment(db: Firestore, uid: string, postId: string, raw
   const text = cleanComment(raw);
   if (!text) throw new CommunityError(400, "Write a comment.");
   const ref = db.collection("communityComments").doc();
-  const cm: Comment = { id: ref.id, postId, cid: p.cid, authorUid: uid, authorName: me.displayName, authorUsername: me.username, text, createdAt: now.toISOString() };
+  const cm: Comment = { id: ref.id, postId, cid: p.cid, authorUid: uid, authorName: me.displayName, authorUsername: me.username, authorAvatar: me.avatar ?? "", text, createdAt: now.toISOString() };
   const batch = db.batch();
   batch.set(ref, cm);
   batch.update(db.doc(`communityPosts/${postId}`), { comments: FieldValue.increment(1) });

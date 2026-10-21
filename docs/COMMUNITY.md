@@ -1,7 +1,7 @@
 # Community
 
 Like a Facebook group with a channel, run by an organisation's own admins: churches, NGOs, schools, clubs and associations with many
-members. Phase 1 is live (v0.74.0): `/community`, `/c/<id>`, `/events`; the rules are `lib/community.ts` and `lib/events.ts`.
+members. Phase 1 is live (v0.74.0); audio rooms and the group-style feed came in v0.75.0 (`lib/rooms.ts`): `/community`, `/c/<id>`, `/events`; the rules are `lib/community.ts` and `lib/events.ts`.
 
 ## Decisions (owner, 19 Oct 2026)
 

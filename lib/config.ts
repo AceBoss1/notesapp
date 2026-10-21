@@ -81,6 +81,8 @@ export const SETTINGS = {
   CALL_PUSH_SECRET: { group: "Messaging and calls", secret: true, about: "Signs the answer and decline links in call notifications (falls back to the VAPID private key)." },
   CLOUDFLARE_TURN_KEY_ID: { group: "Messaging and calls", secret: false, about: "Cloudflare TURN relay for calls on strict networks." },
   CLOUDFLARE_TURN_API_TOKEN: { group: "Messaging and calls", secret: true, about: "Cloudflare TURN token." },
+  CLOUDFLARE_REALTIME_APP_ID: { group: "Messaging and calls", secret: false, about: "Cloudflare Realtime app for community audio rooms past 20 listeners (not used yet; the Team hub reminds until set)." },
+  CLOUDFLARE_REALTIME_APP_TOKEN: { group: "Messaging and calls", secret: true, about: "Cloudflare Realtime app token." },
   TURN_URLS: { group: "Messaging and calls", secret: false, about: "Our own TURN server instead: comma-separated addresses." },
   TURN_USERNAME: { group: "Messaging and calls", secret: false, about: "Our own TURN server's username." },
   TURN_CREDENTIAL: { group: "Messaging and calls", secret: true, about: "Our own TURN server's password." },

@@ -11,6 +11,7 @@ import {
   milestoneProgress, type Milestone, type TeamItem, type Status, workReminders, workReminderLine, ownersOf, nextMonthly,
 } from "./team";
 import { SITE_URL } from "@/lib/host";
+import { setting } from "@/lib/config";
 
 // Server side of the team hub. Everything lives in two server-only collections (teamItems, teamMilestones); only signed-in admins reach
 // them, through /api/admin/team.
@@ -40,6 +41,9 @@ export async function teamSignals(db: Firestore): Promise<Signal[]> {
     count(db.collection("leads").where("status", "==", "new")).then((n) => (n > 0 ? { id: "leads", label: "New contact messages and leads", count: n, href: "/admin/leads" } : null)),
     count(db.collection("ledger").where("status", "==", "disputed")).then((n) => (n > 0 ? { id: "disputes", label: "Disputed payouts", count: n, href: "/admin/payments", urgent: true } : null)),
     count(db.collection("errorLogs").where("lastSeenAt", ">=", since)).then((n) => (n > 0 ? { id: "errors", label: "Errors in the last 24 hours", count: n, href: "/admin/errors" } : null)),
+    // A standing reminder (owner, 22 Oct 2026): audio rooms run phone to phone for up to 20 listeners until the Cloudflare relay's keys are
+    // added (lib/rooms.ts, docs/ENVIRONMENT.md). It goes away by itself once they are.
+    Promise.resolve(setting("CLOUDFLARE_REALTIME_APP_ID") && setting("CLOUDFLARE_REALTIME_APP_TOKEN") ? null : { id: "rooms-relay", label: "Audio rooms: add the Cloudflare relay keys (CLOUDFLARE_REALTIME_APP_ID and _TOKEN) to go past 20 listeners", count: 1, href: "/help/community" }),
   ];
   const settled = await Promise.allSettled(jobs);
   return settled.flatMap((r) => (r.status === "fulfilled" && r.value ? [r.value] : []));

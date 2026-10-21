@@ -11,6 +11,15 @@ export type Release = {
 
 export const CHANGELOG: Release[] = [
   {
+    version: "v0.75.0",
+    bump: "minor",
+    date: "2026-10-22",
+    changes: [
+      { kind: "added", text: "Audio rooms in Community, like Clubhouse: admins and moderators go live with a room, bring up to 4 members on stage to speak, and everyone else listens and can raise a hand. A green ring shows who's talking. Members only, phone to phone, nothing recorded, up to 20 listeners for now." },
+      { kind: "changed", text: "Community looks and works like a group: Write something… to post (with a photo), Like, Comment and Share on every post, comments with pictures, a ⋯ menu to pin or remove, and an About card and the members' faces on Home." },
+    ],
+  },
+  {
     version: "v0.74.0",
     bump: "minor",
     date: "2026-10-22",

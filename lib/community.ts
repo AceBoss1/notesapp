@@ -37,11 +37,11 @@ export const roleName = (r: string) => ({ member: "Member", moderator: "Moderato
 // What each role may do (Facebook-group admin tools, made simpler): moderators keep order, admins run the community, the owner owns it.
 export type Action =
   | "post_general" | "post_space" | "comment" | "pin" | "remove_post" | "approve" | "remove_member" | "ban" | "set_role" | "settings"
-  | "events" | "circles" | "insights" | "invite" | "view_as";
+  | "events" | "circles" | "insights" | "invite" | "view_as" | "rooms";
 const NEEDS: Record<Action, Role> = {
   post_general: "admin", post_space: "member", comment: "member", pin: "moderator", remove_post: "moderator", approve: "moderator",
   remove_member: "moderator", ban: "moderator", set_role: "admin", settings: "admin", events: "admin", circles: "admin", insights: "admin",
-  invite: "member", view_as: "admin",
+  invite: "member", view_as: "admin", rooms: "moderator", // audio rooms (lib/rooms.ts): moderators and up host them
 };
 export const can = (role: Role | null | undefined, action: Action) => atLeast(role, NEEDS[action]);
 // Acting on another member: only on someone below you (an admin can't remove another admin; only the owner can), never on the owner.

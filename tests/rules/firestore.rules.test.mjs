@@ -971,6 +971,30 @@ test("group calls: members read the call; a connection is written by the newcome
   await assertFails(addDoc(collection(p, "groupCalls/g1/links/l1/fromCandidates"), { candidate: "late" })); // nothing after it ends
 });
 
+test("audio rooms: people in the room read it; a connection is written by its two people only, with a stage or listen kind", async () => {
+  const seen = { name: "x", avatar: "", at: "2026-10-22T10:00:00Z", seen: "2026-10-22T10:00:00Z" };
+  await env.withSecurityRulesDisabled(async (ctx) => {
+    await setDoc(doc(ctx.firestore(), "communityRooms/r1"), { cid: "grace", communityName: "Grace", title: "Q&A", hostUid: "host", hostName: "H", speakers: [], hands: {}, joined: { host: seen, lis: seen }, status: "live", mode: "p2p", createdAt: seen.at });
+  });
+  const h = as("host"), l = as("lis"), x = as("stranger");
+  await assertSucceeds(getDoc(doc(l, "communityRooms/r1")));
+  await assertFails(getDoc(doc(x, "communityRooms/r1")));
+  await assertFails(updateDoc(doc(h, "communityRooms/r1"), { speakers: ["lis"] })); // the server decides who speaks
+  const offer = { type: "offer", sdp: "v=0" };
+  await assertSucceeds(setDoc(doc(h, "communityRooms/r1/links/k1"), { from: "host", to: "lis", at: "t", kind: "listen", offer }));
+  await assertFails(setDoc(doc(h, "communityRooms/r1/links/k2"), { from: "host", to: "lis", at: "t", kind: "video", offer }));
+  await assertFails(setDoc(doc(h, "communityRooms/r1/links/k3"), { from: "host", to: "stranger", at: "t", kind: "listen", offer }));
+  await assertFails(setDoc(doc(x, "communityRooms/r1/links/k4"), { from: "stranger", to: "host", at: "t", kind: "stage", offer }));
+  await assertFails(getDoc(doc(x, "communityRooms/r1/links/k1")));
+  await assertFails(updateDoc(doc(h, "communityRooms/r1/links/k1"), { answer: offer })); // the offerer can't answer
+  await assertSucceeds(updateDoc(doc(l, "communityRooms/r1/links/k1"), { answer: { type: "answer", sdp: "v=0" } }));
+  await assertSucceeds(addDoc(collection(h, "communityRooms/r1/links/k1/fromCandidates"), { candidate: "c" }));
+  await assertFails(addDoc(collection(l, "communityRooms/r1/links/k1/fromCandidates"), { candidate: "c" }));
+  await assertSucceeds(addDoc(collection(l, "communityRooms/r1/links/k1/toCandidates"), { candidate: "c" }));
+  await env.withSecurityRulesDisabled(async (ctx) => updateDoc(doc(ctx.firestore(), "communityRooms/r1"), { status: "ended" }));
+  await assertFails(addDoc(collection(h, "communityRooms/r1/links/k1/fromCandidates"), { candidate: "late" }));
+});
+
 test("wallet: a member reads only their own balance and statement; nobody writes from a browser", async () => {
   await env.withSecurityRulesDisabled(async (ctx) => {
     const f = ctx.firestore();
