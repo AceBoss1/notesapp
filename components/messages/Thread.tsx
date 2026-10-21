@@ -196,7 +196,7 @@ export default function Thread({ id, to, embedded = false }: { id?: string; to?:
         const rows: ThreadMessage[] = snap.docs.reverse().map((d) => {
           const m = d.data();
           // A reply to a moment says whether the moment has expired; the moment itself is never in the message.
-          return { id: d.id, from: m.from, text: m.text, createdAt: m.createdAt, ...(m.readAt ? { readAt: m.readAt } : {}), ...(m.call ? { call: m.call } : {}), ...(m.removed ? { removed: m.removed } : {}), ...(m.editedAt ? { editedAt: m.editedAt } : {}), ...(m.deleted ? { deleted: m.deleted } : {}), ...(m.pendingRequest ? { pendingRequest: m.pendingRequest } : {}), ...(m.sticker ? { sticker: m.sticker } : {}), ...(m.replyTo ? { replyTo: m.replyTo } : {}), ...(m.attachments ? { attachments: (m.attachments as { name: string; size: number; type: string; kind: "image" | "video" | "document" | "audio"; durationSec?: number }[]).map(({ name, size, type, kind, durationSec }) => ({ name, size, type, kind, ...(durationSec ? { durationSec } : {}) })) } : {}), ...(m.momentRef ? { moment: { momentId: m.momentRef.momentId, expired: isMomentExpired(m.momentRef.expiresAt) } } : {}), ...(m.reactions && Object.keys(m.reactions).length ? { reactions: m.reactions } : {}), ...(m.forwarded ? { forwarded: true } : {}) };
+          return { id: d.id, from: m.from, text: m.text, createdAt: m.createdAt, ...(m.readAt ? { readAt: m.readAt } : {}), ...(m.call ? { call: m.call } : {}), ...(m.removed ? { removed: m.removed } : {}), ...(m.editedAt ? { editedAt: m.editedAt } : {}), ...(m.deleted ? { deleted: m.deleted } : {}), ...(m.pendingRequest ? { pendingRequest: m.pendingRequest } : {}), ...(m.sticker ? { sticker: m.sticker } : {}), ...(m.replyTo ? { replyTo: m.replyTo } : {}), ...(m.attachments ? { attachments: (m.attachments as { name: string; size: number; type: string; kind: "image" | "video" | "document" | "audio"; durationSec?: number }[]).map(({ name, size, type, kind, durationSec }) => ({ name, size, type, kind, ...(durationSec ? { durationSec } : {}) })) } : {}), ...(m.momentRef ? { moment: { momentId: m.momentRef.momentId, expired: isMomentExpired(m.momentRef.expiresAt) } } : {}), ...(m.reactions && Object.keys(m.reactions).length ? { reactions: m.reactions } : {}), ...(m.forwarded ? { forwarded: true } : {}), ...(m.voiceText ? { voiceText: m.voiceText } : {}) };
         });
         setMessages(rows);
         // Something new from them while this is open: it's read.
@@ -684,7 +684,7 @@ export default function Thread({ id, to, embedded = false }: { id?: string; to?:
                           {m.moment.expired ? "Replied to a moment that has expired" : "Replied to a moment"}
                         </p>
                       )}
-                      {m.attachments && cid && <MessageAttachments cid={cid} mid={m.id} files={m.attachments} mine={mine} gallery={gallery} />}
+                      {m.attachments && cid && <MessageAttachments cid={cid} mid={m.id} files={m.attachments} mine={mine} gallery={gallery} voiceText={m.voiceText} />}
                       {m.text && <p className="whitespace-pre-wrap [overflow-wrap:anywhere]"><FormattedText text={m.text} linkClass={mine ? "font-semibold text-white underline underline-offset-2" : undefined} /></p>}
                       {translations[m.id] && (
                         <div className={`mt-2 border-t pt-2 text-sm ${mine ? "border-white/30" : "border-rule"}`}>

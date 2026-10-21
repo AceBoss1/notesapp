@@ -11,6 +11,16 @@ export type Release = {
 
 export const CHANGELOG: Release[] = [
   {
+    version: "v0.71.0",
+    bump: "minor",
+    date: "2026-10-22",
+    changes: [
+      { kind: "added", text: "Journals in Kiswahili, with NKENNEAi: when the author ticks Offer this journal in Kiswahili, readers get 🌍 Kiswahili (the journal translated, with Show original) and 🔊 Sikiliza (it read aloud, female or male voice, at 0.75×, 1× or 1.25×). It's made the first time a reader asks and kept for everyone after; edit the journal and a fresh version is made next time. Not for subscriber-only posts." },
+      { kind: "added", text: "Voice notes in Kiswahili: tap Transcript or Translate to English under someone's Swahili voice note, or In Kiswahili under your own English one. The words stay on the message for both of you." },
+      { kind: "added", text: "Admin → Kiswahili (NKENNEAi): every call we make to NKENNEAi, its size and result, and how many readers were served from what we kept." },
+    ],
+  },
+  {
     version: "v0.70.0",
     bump: "minor",
     date: "2026-10-21",

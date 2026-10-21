@@ -31,6 +31,8 @@
     "test:mcp": "npx -y tsx tests/mcp/protocol.test.ts",
     "test:pricing": "npx -y tsx tests/pricing/pricing.test.ts",
     "test:ads": "npx -y tsx tests/ads/ads.test.ts",
+    "test:kiswahili": "npx -y tsx tests/kiswahili/kiswahili.test.ts",
+    "test:kiswahili-server": "NEXT_PUBLIC_FIREBASE_API_KEY=x NEXT_PUBLIC_FIREBASE_PROJECT_ID=demo-notesapp NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=x NEXT_PUBLIC_FIREBASE_APP_ID=x npx firebase-tools@13 emulators:exec --only firestore --project demo-notesapp \"npx -y tsx tests/kiswahili/kiswahili.emulator.ts\"",
     "test:cardtap": "npx -y tsx tests/life/cardtap.test.ts && npx -y tsx tests/cardtap/topup.test.ts",
     "test:cardtap-server": "NEXT_PUBLIC_WALLET_LIVE=true PAYLONY_SECRET_KEY=sk_test_x PAYLONY_CARDTAP_TERMINAL_ID=T-TEST NEXT_PUBLIC_FIREBASE_API_KEY=x NEXT_PUBLIC_FIREBASE_PROJECT_ID=demo-notesapp NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=x NEXT_PUBLIC_FIREBASE_APP_ID=x npx firebase-tools@13 emulators:exec --only firestore --project demo-notesapp \"npx -y tsx tests/cardtap/topup.emulator.ts\"",
     "test:shipments": "npx -y tsx tests/shipments/shipments.test.ts",
