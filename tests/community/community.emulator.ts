@@ -82,6 +82,8 @@ const user = (uid: string, tier = "basic", extra = {}) => db.doc(`users/${uid}`)
   const circle = await C.createCircle(db, "biz", "big-org", { title: "Board", memberUids: ["x1", "dan"] });
   assert.equal(circle.members, 2, "only community members go in");
   assert.deepEqual((await C.listCircles(db, "x2", "big-org")).length, 0, "not in it: not shown");
+  await C.leave(db, "x1", "big-org"); // out of the community, out of its Circles
+  assert.deepEqual((await db.doc(`conversations/${circle.id}`).get()).data()!.participants, ["biz"]);
   const ins = await C.insights(db, "pastor", "grace-chapel");
   assert.equal(ins.members, 3); assert.ok(ins.posts30 >= 2);
 

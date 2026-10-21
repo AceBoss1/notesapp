@@ -149,6 +149,18 @@ export async function leave(db: Firestore, uid: string, cid: string) {
   batch.delete(memberRef(db, cid, uid));
   if (me.status === "active") batch.update(db.doc(`communities/${cid}`), { memberCount: FieldValue.increment(-1) });
   await batch.commit();
+  await leaveCircles(db, cid, uid);
+}
+// Out of the community, out of its Circles: a private chat is for members only.
+async function leaveCircles(db: Firestore, cid: string, uid: string) {
+  const snap = await db.collection("conversations").where("communityId", "==", cid).get();
+  const mine = snap.docs.filter((d) => ((d.data().participants as string[] | undefined) ?? []).includes(uid));
+  if (!mine.length) return;
+  const { syncMembers } = await import("./groups-server");
+  for (const d of mine) {
+    const keep = (d.data().participants as string[]).filter((u) => u !== uid);
+    if (keep.length) await syncMembers(db, d.id, keep); else await d.ref.update({ participants: [], adminUids: [] });
+  }
 }
 // Approving or declining a request to join.
 export async function decide(db: Firestore, uid: string, cid: string, targetUid: string, approve: boolean, now = new Date()) {
@@ -191,6 +203,7 @@ export async function removeMember(db: Firestore, uid: string, cid: string, targ
   if (ban) batch.update(memberRef(db, cid, targetUid), { status: "banned", role: "member" }); else batch.delete(memberRef(db, cid, targetUid));
   if (them.status === "active") batch.update(db.doc(`communities/${cid}`), { memberCount: FieldValue.increment(-1) });
   await batch.commit();
+  await leaveCircles(db, cid, targetUid);
 }
 export async function unban(db: Firestore, uid: string, cid: string, targetUid: string) {
   const { role } = await actor(db, cid, uid);

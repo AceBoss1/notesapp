@@ -12,12 +12,14 @@ export const COMMUNITY_FREE_MEMBERS = 200;
 // Shown on a community until who runs it is verified (any account can start one).
 export const UNVERIFIED_COMMUNITY_NOTICE = "This community hasn't been verified yet — #NotesApp has not confirmed who runs it.";
 
+// Each part with a page of its own (/community/<page>, lib/community-features.ts) links to it.
 export const COMMUNITY_PARTS = [
-  { id: "spaces", name: "Spaces", blurb: "Public: posts anyone can read, on your profile and in Explore. Members only: posts only your members can see, never in Explore, search, share previews or the Weekly Digest." },
-  { id: "general", name: "General", blurb: "Every member is in it. An announcement channel: your admins post, members react and comment." },
-  { id: "circles", name: "Circles", blurb: "Private rooms your admins set up inside the community — the choir, the youth, ushers, the board — each with its own chat. On Business." },
-  { id: "events", name: "Events", blurb: "Services, meetings, outreaches and programmes, with Going and Interested, reminders, repeating events and a Join live link." },
-  { id: "members", name: "Members", blurb: "Open to anyone, by approval or by invite link, with join questions (\"Which branch?\"). Owner, admins, moderators and members; the member list is for members only and never shows phone numbers." },
+  { id: "general", page: "general", name: "General", blurb: "Every member is in it. An announcement channel: your admins post, members like, comment and share." },
+  { id: "spaces", page: "spaces", name: "Spaces", blurb: "Public: posts anyone can read, on your profile and in Explore. Members only: posts only your members can see, never in Explore, search, share previews or the Weekly Digest." },
+  { id: "circles", page: "circles", name: "Circles", blurb: "Private group chats your admins set up inside the community — the choir, the youth, ushers, the board — up to 50 people each, with group calls. On Business." },
+  { id: "audio-rooms", page: "audio-rooms", name: "Audio rooms", blurb: "Live talks like Clubhouse: the host and up to 4 speakers on stage, members listening, raising hands and typing in the room's chat. Nothing recorded." },
+  { id: "events", page: "", name: "Events", blurb: "Services, meetings, outreaches and programmes, with Going and Interested, reminders, repeating events and a Join live link." },
+  { id: "members", page: "", name: "Members", blurb: "Open to anyone, by approval or by invite link, with join questions (\"Which branch?\"). Owner, admins, moderators and members; the member list is for members only and never shows phone numbers." },
 ] as const;
 
 export const COMMUNITY_PHASES = [
