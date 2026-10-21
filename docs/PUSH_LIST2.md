@@ -9,7 +9,8 @@ HANDOVER.
 
 | Item | Branch | What | Needs | Status |
 |---|---|---|---|---|
+| Community and Events | `push/community` | v0.71.0: Community at /c/<id> (General, public and members-only Spaces, Circles on Business, members and roles, open/approval/invite joining with questions, admin tools, insights, View as, what non-members see); Events for every account (RSVP, reminders 24 h and 1 h, .ics, repeats, Join live, by state and city). Deploy: firestore rules + 2 indexes | — (from main) | Finished, waiting |
 
 Merged (in the changelog, kept here for one round): v0.63.0–v0.70.0 (#181: picture menu and CardTap diagnostics from the other session; analytics, sites for every plan with kits, Clean and Scholar, imports and more kits, free trials, inventory; deploy: `firebase deploy --only firestore`, HANDOVER 27–33); v0.61.3–v0.62.2 from the other session (#180; analytics and sites renumbered after it); v0.60.0 call safety code and screen sharing, v0.61.0 group calls (#177; deploy: `firebase deploy --only firestore` for the groupCalls rules and index); v0.57.3–v0.59.0 from the other session (#176); v0.57.1 and v0.57.2 (#175); v0.56.0 and v0.57.0 (#174).
 
-Next: Community (starts now). Later, not started: provider API and webhooks on Enterprise; Nana suggesting delivery rates (waits for the AI work); Community phase 1.
+Later, not started: provider API and webhooks on Enterprise; Nana suggesting delivery rates (waits for the AI work); Community phase 1.
