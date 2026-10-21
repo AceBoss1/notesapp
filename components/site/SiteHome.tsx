@@ -6,8 +6,9 @@ import { onAuthStateChanged, User } from "firebase/auth";
 import { auth } from "@/lib/firebase";
 import BookingCard from "@/components/BookingCard";
 import { recordView } from "@/lib/track";
-import ItemCard from "@/components/StoreItemCard";
 import { isCrimsonTheme } from "@/lib/site-themes";
+import { shopStyleOf, sortItems } from "@/lib/site-kits";
+import { ProductGrid } from "./Storefront";
 import { useSite } from "./SiteContext";
 import { useOwnNotes } from "./useOwnNotes";
 import { useOwnItems } from "./useOwnItems";
@@ -20,7 +21,6 @@ import { SiteContentBlocks, SiteHero, SiteInfoStrip } from "./SiteBlocks";
 import ScrollToHash from "@/components/ScrollToHash";
 import CourseCard, { courseCardOf } from "@/components/CourseCard";
 import { COURSES_LIVE } from "@/lib/site-settings";
-import { courseHref } from "@/lib/courses";
 import { useAcademy } from "@/lib/courses-client";
 import { byRecent } from "@/lib/discovery";
 
@@ -70,15 +70,16 @@ export default function SiteHome() {
           )}
         </section>
   );
+  // The shop as product tiles (components/site/Storefront.tsx): up to eight when it's the main thing they show, four beside other sections.
+  const shopCount = full || shopFirst ? 8 : 4;
   const itemsSection = hasItems && (
         <section className="mt-14">
-          <div className="flex items-center justify-between">
-            <p className="eyebrow">{full || shopFirst ? "Shop" : "From the shop"}</p>
-            {!full && !shopFirst && shownItems.length > 3 && <Link href={`${site.base}/shop`} className={seeAll}>See the whole shop →</Link>}
+          <div className="flex items-end justify-between gap-3">
+            <div><p className="eyebrow">{full || shopFirst ? "Shop" : "From the shop"}</p>{(full || shopFirst) && <h2 className="mt-1 font-display text-3xl text-ink">New in</h2>}</div>
+            {shownItems.length > shopCount && <Link href={`${site.base}/shop`} className={seeAll}>Shop all {shownItems.length} →</Link>}
           </div>
-          <div className="mt-5 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {(full || shopFirst ? shownItems : shownItems.slice(0, 3)).map((i) => <ItemCard key={i.id} item={i} shopBase={`${site.base}/shop`} />)}
-          </div>
+          <div className="mt-5"><ProductGrid items={sortItems(shownItems, "new").slice(0, shopCount)} base={site.base} style={shopStyleOf(site.kit)} /></div>
+          {shownItems.length > shopCount && <div className="mt-8 text-center"><Link href={`${site.base}/shop`} className="btn-primary inline-block !px-6 !py-2.5 text-sm">See the whole shop</Link></div>}
         </section>
   );
   // Their Notes Academy courses, like the other sections. With none (or while Notes Academy is switched off) they only get a line
@@ -90,7 +91,7 @@ export default function SiteHome() {
             {!full && shownCourses.length > 3 && <Link href={`${site.base}/courses`} className={seeAll}>See all courses →</Link>}
           </div>
           <div className="mt-5 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {(full ? shownCourses : shownCourses.slice(0, 3)).map((c) => <CourseCard key={c.id} c={courseCardOf(c)} href={courseHref(c.slug)} />)}
+            {(full ? shownCourses : shownCourses.slice(0, 3)).map((c) => <CourseCard key={c.id} c={courseCardOf(c)} href={`${site.base}/courses/${c.slug}`} />)}
           </div>
         </section>
   ) : courses && !journals && !shop && !loading && (
@@ -109,6 +110,10 @@ export default function SiteHome() {
     ? <>{site.sections.track && <TrackBox />}<SiteContentBlocks />{pages}</>
     : <>{site.sections.track && <TrackBox />}{pages}<SiteContentBlocks /></>;
   const hero = site.shownBlocks.includes("hero"), strip = site.shownBlocks.includes("info");
+  // A shop first and foremost (the shop is their front page, or on without journals) with a cover photo: the cover goes edge to edge at the
+  // top with Shop now over it, the way online shops open (Scholar keeps its reading layout).
+  const banner = shop && !!site.cover && (shopFirst || !journals) && site.theme !== "scholar";
+  const storeBanner = banner && <StoreBanner />;
 
   // Booking runs right here: pick a time, sign in if needed (the visitor is brought back signed in), pay with Paystack.
   const booking = (
@@ -124,9 +129,9 @@ export default function SiteHome() {
   if (isCrimsonTheme(site.theme)) {
     return (
       <div>
-        <AuroraBand />
+        {storeBanner || <AuroraBand />}
         <div className="mx-auto max-w-5xl px-4 pb-14 sm:px-6">
-          <div className="card relative z-10 -mt-16 p-6"><SiteProfileHeader /></div>
+          <div className={`card relative z-10 p-6 ${banner ? "mt-8" : "-mt-16"}`}><SiteProfileHeader noCover={banner} /></div>
           {hero && <SiteHero clean={false} />}
           {strip && <SiteInfoStrip />}
           {sections}
@@ -139,13 +144,16 @@ export default function SiteHome() {
   // Clean: the banner first (or who they are, without one), the strip, what they show, then who they are on a card, and booking.
   if (site.theme === "clean") {
     return (
+      <>
+      {storeBanner}
       <div className="mx-auto max-w-5xl px-4 py-10 sm:px-6 sm:py-14">
-        {hero ? <SiteHero clean /> : <SiteProfileHeader />}
+        {hero ? <SiteHero clean /> : <SiteProfileHeader noCover={banner} />}
         {strip && <SiteInfoStrip />}
         {sections}
-        {hero && <div className="card mt-14 p-6"><SiteProfileHeader /></div>}
+        {hero && <div className="card mt-14 p-6"><SiteProfileHeader noCover={banner} /></div>}
         {booking}
       </div>
+      </>
     );
   }
 
@@ -163,12 +171,32 @@ export default function SiteHome() {
   }
 
   return (
+    <>
+    {storeBanner}
     <div className="mx-auto max-w-5xl px-4 py-14 sm:px-6">
-      <SiteProfileHeader />
+      <SiteProfileHeader noCover={banner} />
       {hero && <SiteHero clean={false} />}
       {strip && <SiteInfoStrip />}
       {sections}
       {booking}
     </div>
+    </>
+  );
+}
+
+// The cover photo edge to edge and uncropped (members design covers with their own words on them), like an online shop's opening banner:
+// the picture opens the shop, with a Shop now button under it.
+function StoreBanner() {
+  const site = useSite();
+  return (
+    <section className="border-b border-rule bg-card">
+      <Link href={`${site.base}/shop`} aria-label={`Shop ${site.displayName}`} className="block">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src={site.cover} alt="" className="max-h-[80vh] w-full object-cover" />
+      </Link>
+      <div className="py-5 text-center">
+        <Link href={`${site.base}/shop`} className="inline-block rounded-full bg-crimson px-8 py-3 font-ui text-sm font-bold uppercase tracking-[0.2em] text-paper shadow-sm hover:bg-crimson-bright">Shop now</Link>
+      </div>
+    </section>
   );
 }

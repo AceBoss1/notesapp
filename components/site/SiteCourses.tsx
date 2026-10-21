@@ -3,16 +3,15 @@
 import CourseCard, { courseCardOf } from "@/components/CourseCard";
 import { isCrimsonTheme } from "@/lib/site-themes";
 import { COURSES_LIVE } from "@/lib/site-settings";
-import { courseHref } from "@/lib/courses";
 import { useAcademy } from "@/lib/courses-client";
 import { byRecent } from "@/lib/discovery";
 import { useSite } from "./SiteContext";
 import AuroraBand from "./AuroraBand";
 
-// The courses the member teaches on Notes Academy (published ones), newest first. A course opens on #NotesApp itself, where
-// learners enrol and keep their progress. While Notes Academy is switched off this page says courses are coming.
+// The courses the member teaches on Notes Academy (published ones), newest first. A course opens inside their site
+// (courses/[slug]); its lessons open on #NotesApp, where learners keep their progress. While Notes Academy is switched off this page says courses are coming.
 export default function SiteCourses() {
-  const { displayName, theme, username } = useSite();
+  const { base, displayName, theme, username } = useSite();
   const crimson = isCrimsonTheme(theme);
   const courses = useAcademy(username, COURSES_LIVE);
   return (
@@ -34,7 +33,7 @@ export default function SiteCourses() {
           </div>
         ) : (
           <div className="mt-8 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {byRecent(courses).map((c) => <CourseCard key={c.id} c={courseCardOf(c)} href={courseHref(c.slug)} />)}
+            {byRecent(courses).map((c) => <CourseCard key={c.id} c={courseCardOf(c)} href={`${base}/courses/${c.slug}`} />)}
           </div>
         )}
       </div>

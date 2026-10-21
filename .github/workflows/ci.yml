@@ -34,6 +34,7 @@ jobs:
       - run: npm run test:social
       - run: npm run test:team
       - run: npm run test:chat
+      - run: npm run test:uploads
       - run: npm run test:mcp
       - run: npm run test:pricing
       - run: npm run test:ads

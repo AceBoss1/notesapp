@@ -26,6 +26,7 @@ export type SiteInfo = {
   shownBlocks: BlockId[];
   // Their booking calendar: whether sessions are on, and its opening hours in words (lib/site-kits.ts bookingHoursText).
   booking: { offered: boolean; hours: string };
+  kit: string; // the kit they started from (lib/site-kits.ts), which sets how the shop shows its pictures (shopStyleOf)
   cover: string; // the wide picture behind their profile header, if any (lib/site-kits.ts) // the ones a visitor sees, in the member's order (switched on, filled in, covered by the plan)
 };
 

@@ -68,7 +68,7 @@ export type SitePalette = { id: PaletteId; custom?: string; bg?: SiteBackground 
 // orcid: the researcher's ORCID iD, and whether their new works are added to Publications daily (lib/publications-server.ts).
 export type OrcidLink = { id: string; sync: boolean; lastSyncAt?: string };
 // cover: a wide picture behind the profile header, on every look (owner, 21 Oct 2026).
-export type SiteDoc = { kit: string; palette: SitePalette; blocks: Blocks; order: BlockId[]; bookBelowPosts: boolean; orcid: OrcidLink | null; cover: string; updatedAt?: string };
+export type SiteDoc = { kit: string; palette: SitePalette; blocks: Blocks; order: BlockId[]; bookBelowPosts: boolean; orcid: OrcidLink | null; cover: string; announce?: string; updatedAt?: string };
 
 export const LIMITS = { services: 40, gallery: 24, testimonials: 12, team: 24, faq: 20, publications: 200, awards: 60, talks: 80, news: 60 } as const;
 const t = (v: unknown, max: number) => String(v ?? "").replace(/\s+/g, " ").trim().slice(0, max);
@@ -112,6 +112,9 @@ const list = <T,>(v: unknown, max: number, each: (x: Record<string, unknown>) =>
   (Array.isArray(v) ? v : []).slice(0, max * 4).map((x) => (x && typeof x === "object" ? each(x as Record<string, unknown>) : null)).filter((x): x is T => x !== null).slice(0, max);
 
 export const cleanCover = (v: unknown) => img(v);
+// The announcement bar across the top of every page of the site ("Free delivery in Lagos this week"): one line, plain words, no links.
+export const ANNOUNCE_MAX = 90;
+export const cleanAnnounce = (v: unknown) => t(v, ANNOUNCE_MAX);
 // Everything a member can send for their sections, made safe and within the limits. Unknown parts are dropped.
 export function cleanBlocks(v: unknown): Blocks {
   const o = (v && typeof v === "object" ? v : {}) as Record<string, Record<string, unknown> | undefined>;
@@ -152,7 +155,7 @@ const orcidOf = (v: unknown): OrcidLink | null => {
 };
 export function siteDocOf(raw: unknown): SiteDoc {
   const o = (raw && typeof raw === "object" ? raw : {}) as Record<string, unknown>;
-  return { kit: t(o.kit, 30), palette: cleanPalette(o.palette), blocks: cleanBlocks(o.blocks), order: cleanOrder(o.order), bookBelowPosts: o.bookBelowPosts === true, orcid: orcidOf(o.orcid), cover: img(o.cover), updatedAt: typeof o.updatedAt === "string" ? o.updatedAt : undefined };
+  return { kit: t(o.kit, 30), palette: cleanPalette(o.palette), blocks: cleanBlocks(o.blocks), order: cleanOrder(o.order), bookBelowPosts: o.bookBelowPosts === true, orcid: orcidOf(o.orcid), cover: img(o.cover), announce: cleanAnnounce(o.announce), updatedAt: typeof o.updatedAt === "string" ? o.updatedAt : undefined };
 }
 // What a visitor sees: only the sections switched on, with something in them, that the plan still covers (after a downgrade, a section waits
 // switched off rather than vanishing from the settings).
@@ -385,4 +388,31 @@ export function applyKitTo(d: SiteDoc, k: Kit, tier: string): { site: SiteDoc; t
   if (!Object.values(sections).some(Boolean)) sections.journals = true;
   // The kit's colour set replaces a custom colour too (the member can pick it again after); their background choice stays.
   return { site: { ...d, kit: k.id, palette: { id: k.palette, ...(d.palette.bg ? { bg: d.palette.bg } : {}) }, blocks: b, order }, theme: k.theme, sections };
+}
+
+// How a shop shows its pictures, by kit: clothes and beauty as tall photos filling the tile; gadgets, parts and panels whole on
+// white (product shots); food and everything else as square photos. Sorting and filtering are the same everywhere (sortItems).
+export type ShopStyle = { ratio: "portrait" | "square"; fit: "cover" | "contain" };
+export function shopStyleOf(kit: string): ShopStyle {
+  if (kit === "fashion" || kit === "salon" || kit === "spa") return { ratio: "portrait", fit: "cover" };
+  if (kit === "electronics" || kit === "motor" || kit === "solar") return { ratio: "square", fit: "contain" };
+  return { ratio: "square", fit: "cover" };
+}
+export const SHOP_SORTS = [
+  { id: "new", label: "Newest" }, { id: "popular", label: "Most popular" }, { id: "low", label: "Price: low to high" }, { id: "high", label: "Price: high to low" }, { id: "az", label: "Name: A to Z" },
+] as const;
+export type ShopSort = (typeof SHOP_SORTS)[number]["id"];
+export const isShopSort = (v: unknown): v is ShopSort => SHOP_SORTS.some((s) => s.id === v);
+// Items in the order a visitor asked for, after a search (title, description and category). Items without a price in kobo go last
+// when sorting by price; "popular" goes by views (`views`, by item id); "new" puts the most recently added first (createdAt, an ISO date or a Firestore time; undated ones last).
+const addedAt = (v: unknown): number => (typeof v === "string" ? Date.parse(v) || 0 : v && typeof (v as { toMillis?: unknown }).toMillis === "function" ? (v as { toMillis: () => number }).toMillis() : 0);
+export function sortItems<T extends { id?: string; title: string; subtitle?: string; category?: string; subcategory?: string; priceKobo?: number; createdAt?: unknown }>(items: T[], sort: ShopSort, search = "", views: Record<string, number> = {}): T[] {
+  const words = search.toLowerCase().split(/\s+/).filter(Boolean);
+  const found = words.length ? items.filter((i) => { const hay = `${i.title} ${i.subtitle ?? ""} ${i.category ?? ""} ${i.subcategory ?? ""}`.toLowerCase(); return words.every((w) => hay.includes(w)); }) : [...items];
+  const price = (i: T, missing: number) => (typeof i.priceKobo === "number" ? i.priceKobo : missing);
+  if (sort === "low") return found.sort((a, b) => price(a, Infinity) - price(b, Infinity));
+  if (sort === "high") return found.sort((a, b) => price(b, -Infinity) - price(a, -Infinity));
+  if (sort === "az") return found.sort((a, b) => a.title.localeCompare(b.title));
+  if (sort === "popular") return found.sort((a, b) => (views[b.id ?? ""] ?? 0) - (views[a.id ?? ""] ?? 0) || addedAt(b.createdAt) - addedAt(a.createdAt));
+  return found.sort((a, b) => addedAt(b.createdAt) - addedAt(a.createdAt));
 }

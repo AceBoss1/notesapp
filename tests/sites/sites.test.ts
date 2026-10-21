@@ -2,7 +2,7 @@
 // and kits that never wipe the member's words. Run: npm run test:sites → "ALL OK".
 import assert from "node:assert/strict";
 import { backgroundOf, canHaveSite, meetsTier, paletteRgb, paletteVars, themeAllowed } from "../../lib/site-themes";
-import { KITS, applyKitTo, bookingHoursText, buttonHref, byYear, cleanBlocks, cleanButton, cleanOrder, cleanPalette, kitAllowed, kitOf, resolveButton, siteDocOf, visibleBlocks } from "../../lib/site-kits";
+import { KITS, applyKitTo, bookingHoursText, buttonHref, byYear, cleanBlocks, cleanButton, cleanOrder, cleanPalette, kitAllowed, kitOf, resolveButton, shopStyleOf, siteDocOf, sortItems, visibleBlocks } from "../../lib/site-kits";
 import { siteSectionsShown } from "../../lib/site-settings";
 import { placeCoords } from "../../lib/places";
 import { landDots } from "../../lib/globe-land";
@@ -130,4 +130,29 @@ assert.equal(siteDocOf({ cover: "https://img.test/c.jpg" }).cover, "https://img.
 assert.equal(siteDocOf({ cover: "javascript:alert(1)" }).cover, ""); assert.equal(siteDocOf({}).cover, "");
 const tm = cleanBlocks({ team: { on: true, items: [{ name: "Bisi", username: "@Bisi_A" }, { name: "Tolu", username: "no spaces!" }, { name: "Ada" }] } }).team.items;
 assert.equal(tm[0].username, "bisi_a"); assert.equal(tm[1].username, undefined); assert.equal("username" in tm[2], false);
+
+// the shop: pictures by kit, and search and sorting
+assert.deepEqual(shopStyleOf("fashion"), { ratio: "portrait", fit: "cover" });
+assert.deepEqual(shopStyleOf("salon"), { ratio: "portrait", fit: "cover" });
+assert.deepEqual(shopStyleOf("electronics"), { ratio: "square", fit: "contain" });
+assert.deepEqual(shopStyleOf("motor"), { ratio: "square", fit: "contain" });
+assert.deepEqual(shopStyleOf("food"), { ratio: "square", fit: "cover" });
+assert.deepEqual(shopStyleOf(""), { ratio: "square", fit: "cover" });
+const goods = [
+  { title: "Ankara gown", subtitle: "Made to measure", category: "Fashion & clothing", priceKobo: 2500000, createdAt: "2026-01-02T00:00:00Z" },
+  { title: "Leather bag", category: "Shoes & bags", subcategory: "Bags", priceKobo: 1800000, createdAt: { toMillis: () => Date.parse("2026-03-01T00:00:00Z") } },
+  { title: "Gift card", createdAt: "2026-02-01T00:00:00Z" },
+  { title: "beaded necklace", category: "Jewellery", priceKobo: 900000 },
+];
+const titles = (l: { title: string }[]) => l.map((g) => g.title);
+assert.deepEqual(titles(sortItems(goods, "new")), ["Leather bag", "Gift card", "Ankara gown", "beaded necklace"]);
+assert.deepEqual(titles(sortItems(goods, "low")), ["beaded necklace", "Leather bag", "Ankara gown", "Gift card"]);
+assert.deepEqual(titles(sortItems(goods, "high")), ["Ankara gown", "Leather bag", "beaded necklace", "Gift card"]);
+assert.deepEqual(titles(sortItems(goods, "az")), ["Ankara gown", "beaded necklace", "Gift card", "Leather bag"]);
+assert.deepEqual(titles(sortItems(goods, "new", "  BAGS ")), ["Leather bag"]);
+assert.deepEqual(titles(sortItems(goods, "az", "made gown")), ["Ankara gown"]);
+assert.deepEqual(sortItems(goods, "new", "nothing like it"), []);
+const viewed = goods.map((g, i) => ({ ...g, id: `i${i}` }));
+assert.deepEqual(titles(sortItems(viewed, "popular", "", { i3: 50, i0: 9 })), ["beaded necklace", "Ankara gown", "Leather bag", "Gift card"], "most viewed first, then newest");
+assert.equal(goods[0].title, "Ankara gown", "the shop's own list is left alone");
 console.log("ALL OK");

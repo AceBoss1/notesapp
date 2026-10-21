@@ -79,8 +79,11 @@ export default async function SiteLayout({ children, params }: Props) {
     shownBlocks: site ? visibleBlocks(site, tier) : [],
     booking,
     cover: site?.cover ?? "",
+    kit: site?.kit ?? "",
   };
   const clean = info.theme === "clean";
+  // A WhatsApp chat button in the corner of every page (like an online shop's chat), when their hours and contacts strip shows a WhatsApp number.
+  const chat = info.shownBlocks.includes("info") && info.blocks.info.whatsapp ? buttonHref({ kind: "whatsapp", label: "", value: info.blocks.info.whatsapp }, base, `Hello ${p.displayName}, `) : "";
   const scholar = info.theme === "scholar"; // plain and academic, with a dark mode
   // Clean: the main button of their banner sits at the top right of every page.
   const cta = clean && info.shownBlocks.includes("hero") ? resolveButton(info.blocks.hero.button, info.blocks.info) : null;
@@ -95,6 +98,7 @@ export default async function SiteLayout({ children, params }: Props) {
       <div data-site-theme={info.theme} className="flex min-h-screen flex-col bg-paper" style={paletteVars(site?.palette, tier, info.theme) as React.CSSProperties} suppressHydrationWarning>
         {/* Scholar: light or dark before the first paint, from the visitor's last choice or their device's setting. */}
         {scholar && <script dangerouslySetInnerHTML={{ __html: `try{var e=document.currentScript.parentElement,v=localStorage.getItem(${JSON.stringify(SITE_DARK_KEY)});e.setAttribute("data-site-dark",v==="true"||v==="false"?v:String(matchMedia("(prefers-color-scheme: dark)").matches))}catch(_){}` }} />}
+        {site?.announce && <p className="bg-ink px-4 py-2 text-center font-ui text-[11px] font-semibold uppercase tracking-[0.18em] text-paper sm:text-xs">{site.announce}</p>}
         <header className={crimson ? "sticky top-0 z-40 text-paper shadow-md" : clean ? "sticky top-0 z-40 border-b border-rule bg-paper/95 backdrop-blur" : "sticky top-0 z-40 border-b border-rule bg-paper/90 backdrop-blur"} style={crimson ? { backgroundImage: BAND_GRADIENT } : undefined}>
           <div className="mx-auto flex max-w-5xl items-center justify-between gap-4 px-4 py-4 sm:px-6">
             <Link href={base || "/"} className="flex min-w-0 items-center gap-3">
@@ -112,6 +116,12 @@ export default async function SiteLayout({ children, params }: Props) {
           </div>
         </header>
         <main className="flex-1">{children}</main>
+        {chat && (
+          <a href={chat} target="_blank" rel="noopener noreferrer" aria-label={`Chat with ${p.displayName} on WhatsApp`} className="fixed bottom-24 right-4 z-40 inline-flex lg:bottom-6 lg:right-6 items-center gap-2 rounded-full bg-[#1f9d55] px-4 py-3 font-ui text-sm font-bold text-white shadow-lg hover:bg-[#178a49]">
+            <svg viewBox="0 0 24 24" className="h-5 w-5" fill="currentColor" aria-hidden="true"><path d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2Zm0 18.2a8.2 8.2 0 0 1-4.2-1.1l-.3-.2-3 .8.8-2.9-.2-.3A8.2 8.2 0 1 1 12 20.2Zm4.5-6.1c-.2-.1-1.5-.7-1.7-.8-.2-.1-.4-.1-.6.1l-.8 1c-.1.2-.3.2-.5.1a6.7 6.7 0 0 1-3.3-2.9c-.2-.4.2-.4.7-1.3.1-.2 0-.3 0-.4l-.8-1.8c-.2-.5-.4-.4-.6-.4h-.5a1 1 0 0 0-.7.3 3 3 0 0 0-.9 2.2 5.2 5.2 0 0 0 1.1 2.8 11.9 11.9 0 0 0 4.6 4c1.7.7 2.4.8 3.2.7.5-.1 1.5-.6 1.8-1.2.2-.6.2-1.1.1-1.2l-.4-.2Z"/></svg>
+            <span className="hidden sm:inline">Chat</span>
+          </a>
+        )}
         <footer data-site-footer className="mt-20 border-t border-rule bg-ink text-paper">
           <div className="mx-auto flex max-w-5xl flex-col items-start justify-between gap-4 px-4 py-8 sm:flex-row sm:items-center sm:px-6">
             <div>

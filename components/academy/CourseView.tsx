@@ -24,11 +24,12 @@ import {
 // tabs (Overview, Curriculum, Tutors, Reviews) beside a card with the price, what the course includes, Share and the details. A free
 // course: "Enrol — free". A paid course: "Buy the course" and its free previews; once bought, progress, Continue, the class and
 // community links, and a refund while it's allowed. On phones the price and the main button stay at the bottom of the screen.
-// The tutors see their own draft here as a preview.
+// The tutors see their own draft here as a preview. On a member's own site (`site`: app/(site)/s/[username]/courses/[slug]) the same page
+// sits inside their site, without adverts, and only for a course they teach; its lessons and certificate stay on #NotesApp.
 type Tab = "overview" | "curriculum" | "tutors" | "reviews";
 const TABS: Tab[] = ["overview", "curriculum", "tutors", "reviews"];
 
-export default function CourseView({ slug }: { slug: string }) {
+export default function CourseView({ slug, site }: { slug: string; site?: { base: string; uid: string } }) {
   const c = useCourse(slug);
   const { course, lessons, enrolment, user, preview } = c;
   const [busy, setBusy] = useState(false);
@@ -43,7 +44,7 @@ export default function CourseView({ slug }: { slug: string }) {
   const [note, setNote] = useState("");
   const flash = (t: string) => { setNote(t); setTimeout(() => setNote(""), 2200); };
   const paid = isPaid(course);
-  const tabBar = useBottomTabs(); // the phone's tab bar, when there is one: the price bar sits just above it
+  const tabBar = useBottomTabs() && !site; // the phone's tab bar, when there is one (never on a member's site): the price bar sits just above it
   const mine = !!user && !!course && (user.uid === course.ownerUid || (course.tutorUids ?? []).includes(user.uid));
   const bought = !!enrolment?.purchaseRef;
   const links = useCourseLinks(course?.id, (!!enrolment && (!paid || bought)) || mine);
@@ -93,12 +94,13 @@ export default function CourseView({ slug }: { slug: string }) {
   }, [user, enrolment, course, doEnrol]); // eslint-disable-line react-hooks/exhaustive-deps
 
   if (c.status === "loading") return <p className="px-4 py-24 text-center text-sm text-slate">Loading the course…</p>;
-  if (c.status === "missing" || !course) {
+  const theirs = !site || (!!course && (course.ownerUid === site.uid || (course.tutorUids ?? []).includes(site.uid)));
+  if (c.status === "missing" || !course || !theirs) {
     return (
       <div className="mx-auto max-w-xl px-4 py-24 text-center">
         <p className="font-display text-3xl text-ink">Course not found</p>
         <p className="mt-2 text-sm text-slate">It may have been unpublished or moved.</p>
-        <Link href="/academy" className="btn-primary mt-6 inline-block !px-6 !py-2 text-sm">Browse Notes Academy</Link>
+        <Link href={site ? `${site.base}/courses` : "/academy"} className="btn-primary mt-6 inline-block !px-6 !py-2 text-sm">{site ? "See all courses" : "Browse Notes Academy"}</Link>
       </div>
     );
   }
@@ -107,8 +109,9 @@ export default function CourseView({ slug }: { slug: string }) {
   const open = (!!enrolment && (!paid || bought)) || mine;
   const reviewCount = social?.rating.count ?? course.ratingCount ?? 0;
   const firstPara = course.summary.split(/\n\s*\n/)[0] ?? "";
-  const shareUrl = typeof window === "undefined" ? `/academy/${slug}` : window.location.href.split(/[?#]/)[0];
-  const signInHref = (flag: string) => `/login?next=${encodeURIComponent(`/academy/${slug}?${flag}=1`)}`;
+  const here = site ? `${site.base}/courses/${slug}` : `/academy/${slug}`;
+  const shareUrl = typeof window === "undefined" ? here : window.location.href.split(/[?#]/)[0];
+  const signInHref = (flag: string) => `/login?next=${encodeURIComponent(`${here}?${flag}=1`)}`;
   const firstPreview = lessons.find((l, i) => (paid ? l.preview : i === 0));
   const sub = course.subtopics?.find((x) => x.parent === course.topics[0]);
   const mainAction = open || enrolment === undefined && !!user ? null : paid
@@ -126,7 +129,7 @@ export default function CourseView({ slug }: { slug: string }) {
         <div className={`mx-auto grid max-w-6xl gap-8 px-5 py-9 sm:px-8 sm:py-11 ${course.cover ? "lg:grid-cols-[1fr_400px] lg:items-center" : ""}`}>
           <div className="min-w-0">
             <p className="font-mono text-xs uppercase tracking-eyebrow text-paper/80">
-              <Link href="/academy" className="hover:text-paper">Notes Academy</Link>
+              {site ? <Link href={`${site.base}/courses`} className="hover:text-paper">Courses</Link> : <Link href="/academy" className="hover:text-paper">Notes Academy</Link>}
               {course.topics[0] && <> › <Link href={`/academy?topic=${course.topics[0]}`} className="hover:text-paper">{hashtag(course.topics[0])}</Link></>}
               {sub && <> › {subtopicHashtag(sub.label)}</>}
             </p>
@@ -202,7 +205,7 @@ export default function CourseView({ slug }: { slug: string }) {
                 <p className="mt-4 border-t border-rule pt-3 text-xs text-slate">Changed your mind? You haven&apos;t started yet, so you can <button type="button" onClick={askRefund} disabled={busy} className="font-semibold text-crimson underline">get a refund</button> until {new Date(purchase.refundUntil).toLocaleDateString("en-GB", { day: "numeric", month: "short" })}.</p>
               )}
             </div>
-            {!paid && !preview && <div className="hidden empty:hidden lg:block"><AdSlot placement="course" stacked className="!my-0" /></div>}
+            {!paid && !preview && !site && <div className="hidden empty:hidden lg:block"><AdSlot placement="course" stacked className="!my-0" /></div>}
             {!preview && (
               <div className="card p-5">
                 <p className="font-ui text-sm font-bold text-ink">Share this course</p>
@@ -292,7 +295,7 @@ export default function CourseView({ slug }: { slug: string }) {
               <p className="text-xs text-slate">{(course.modules ?? []).length ? `${plural(course.modules!.length, "module")} · ` : ""}{plural(lessons.length, "lesson")}{course.minutes ? ` · ${durationLabel(course.minutes)}` : ""}{open ? "" : paid ? " · free previews are marked" : " · the first lesson is a free preview"}</p>
               <LessonList slug={slug} lessons={lessons} enrolment={enrolment} open={open} modules={course.modules} paid={paid} />
               {/* Free courses carry an advert (phones here, computers in the side card); paid ones never do. */}
-              {!paid && !preview && <div className="empty:hidden lg:hidden"><AdSlot placement="course" stacked /></div>}
+              {!paid && !preview && !site && <div className="empty:hidden lg:hidden"><AdSlot placement="course" stacked /></div>}
             </div>
           )}
 

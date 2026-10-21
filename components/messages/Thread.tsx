@@ -52,6 +52,7 @@ import GroupMembers, { type GroupMember } from "./GroupMembers";
 import { isGroupId, type GroupInfo } from "@/lib/messages-rules";
 import { usePresence } from "@/lib/presence-client";
 import { isThreadRoute } from "@/lib/chrome";
+import { asWebp } from "@/lib/upload";
 
 const FORWARD_MANY = 10; // messages forwarded together from a selection
 
@@ -365,7 +366,8 @@ export default function Thread({ id, to, embedded = false }: { id?: string; to?:
     try {
       // Files go straight to private storage first; the message then names them.
       const attachmentIds: string[] = [];
-      for (const f of files) {
+      for (const picked of files) {
+        const f = await asWebp(picked, "journal"); // photos go as WebP (lib/upload.ts)
         const up = await api<{ id: string; uploadUrl: string; contentType: string }>("/api/messages/attachments", { body: { name: f.name, size: f.size, ...(voiceLength.current.get(f) ? { durationSec: voiceLength.current.get(f) } : {}) } });
         const put = await fetch(up.uploadUrl, { method: "PUT", headers: { "Content-Type": up.contentType }, body: f });
         if (!put.ok) throw new Error(`${f.name} didn't upload. Try again.`);
