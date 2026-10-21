@@ -9,8 +9,9 @@ import { HEX_RE, isBackground, isPalette, meetsTier, type PaletteId, type SiteBa
 import { placeCoords } from "./places";
 
 // ── Sections and what they need ──
-// The page sections (users/{uid}.siteSections) and what each needs (owner's decisions, 20 Oct 2026).
-export const SECTION_MIN_TIER: Record<"journals" | "shop" | "courses" | "track", string> = { journals: "basic", shop: "pro", courses: "basic", track: "business" };
+// The page sections (users/{uid}.siteSections) and what each needs (owner's decisions, 20 and 21 Oct 2026: Shop is open from Free Basic,
+// which pays the higher store commission, lib/tiers.ts).
+export const SECTION_MIN_TIER: Record<"journals" | "shop" | "courses" | "track", string> = { journals: "basic", shop: "basic", courses: "basic", track: "business" };
 export const BLOCKS = [
   { id: "hero", name: "Top banner", blurb: "A headline, a line about what you do, a picture, and your main button (Book now, Order on WhatsApp, Call us…).", minTier: "basic" },
   { id: "info", name: "Hours and contacts strip", blurb: "Opening hours, WhatsApp, phone and where to find you, in a strip under the banner.", minTier: "basic" },
