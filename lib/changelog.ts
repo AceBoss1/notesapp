@@ -11,6 +11,16 @@ export type Release = {
 
 export const CHANGELOG: Release[] = [
   {
+    version: "v0.72.0",
+    bump: "minor",
+    date: "2026-10-21",
+    changes: [
+      { kind: "added", text: "Beauty and wellness kit for your site, in four flavours: Spa, Massage, Hair and Nails (Pro and above). It opens with a full photo and your words over it, lists your services as a menu with tabs, times and prices, each with Book now, and keeps a Book your appointment tab on every page. It replaces the Massage and spa and Salons kits; sites using those keep working." },
+      { kind: "added", text: "Services can now carry minutes, a tab (Facials, Braids, Pedicure…) and a picture, on any site: they then show as a menu of cards." },
+      { kind: "added", text: "A Night background for your site (any look but Scholar): a dark page with your colours glowing on it." },
+    ],
+  },
+  {
     version: "v0.71.0",
     bump: "minor",
     date: "2026-10-21",

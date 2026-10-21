@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { buttonHref, byYear, resolveButton, type BlockId, type SiteButton } from "@/lib/site-kits";
+import { buttonHref, byYear, durationText, resolveButton, type BlockId, type SiteButton } from "@/lib/site-kits";
 import TalksGlobe from "./TalksGlobe";
 import { MAIN_HOST } from "@/lib/host";
 import { useSite } from "./SiteContext";
@@ -46,6 +46,38 @@ export function SiteHero({ clean, plain }: { clean: boolean; plain?: boolean }) 
   );
 }
 
+// The banner as a full photo (hero style "photo", the beauty kits): the picture edge to edge with a soft shade, and the words and buttons
+// over it in the middle — a small line above ("Welcome to"), the headline large, the line about what they do, outlined buttons.
+export function SitePhotoHero() {
+  const { blocks, base } = useSite();
+  const h = blocks.hero;
+  const buttons = [resolveButton(h.button, blocks.info), resolveButton(h.second, blocks.info)].filter((b): b is SiteButton => !!b);
+  return (
+    <section className="relative isolate flex min-h-[78vh] items-center justify-center overflow-hidden px-4 py-20 text-center text-white sm:min-h-[86vh]">
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img src={h.image} alt="" className="absolute inset-0 -z-10 h-full w-full object-cover" />
+      <div aria-hidden className="absolute inset-0 -z-10 bg-gradient-to-b from-black/45 via-black/35 to-black/55" />
+      <div className="max-w-4xl">
+        {h.eyebrow && <p className="font-ui text-xs font-semibold uppercase tracking-[0.35em] text-white/85 sm:text-sm">{h.eyebrow}</p>}
+        {h.headline && <h1 className="mt-4 font-display text-5xl leading-[1.05] sm:text-7xl">{h.headline}</h1>}
+        {h.subline && <p className="mx-auto mt-5 max-w-xl text-base text-white/90 sm:text-lg">{h.subline}</p>}
+        {buttons.length > 0 && (
+          <div className="mt-9 flex flex-wrap justify-center gap-3">
+            {buttons.map((b, i) => (
+              <a key={i} href={buttonHref(b, base)} {...outward(b)}
+                className={i === 0
+                  ? "inline-flex items-center justify-center border border-white/90 bg-white/10 px-7 py-3.5 font-ui text-sm font-semibold uppercase tracking-[0.2em] text-white backdrop-blur-sm hover:bg-white hover:text-ink"
+                  : "inline-flex items-center justify-center px-5 py-3.5 font-ui text-sm font-semibold uppercase tracking-[0.2em] text-white/90 underline-offset-8 hover:underline"}>
+                {b.label}
+              </a>
+            ))}
+          </div>
+        )}
+      </div>
+    </section>
+  );
+}
+
 const Icon = ({ c }: { c: string }) => <span aria-hidden className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-crimson/10 text-lg">{c}</span>;
 // The hours card is connected to their booking calendar: its hours can come from the calendar, and while their sessions are on it opens the
 // booking card.
@@ -74,16 +106,57 @@ export function SiteInfoStrip() {
 }
 
 const Heading = ({ children }: { children: React.ReactNode }) => <p className="eyebrow">{children}</p>;
+// Services and prices. With times, tabs or pictures (the beauty kits' menu, like a spa's), they show as cards in tabs (All, Facials,
+// Massages …), each with its time, its price and Book now while the member's sessions are on; otherwise as a simple price list.
 function Services() {
-  const { blocks } = useSite();
+  const { blocks, booking, base } = useSite();
+  const items = blocks.services.items;
+  const [tab, setTab] = useState("All");
+  const menu = items.some((x) => x.minutes || x.group || x.image);
+  if (!menu) {
+    return (
+      <section className="mt-14">
+        <Heading>Services and prices</Heading>
+        <ul className="card mt-5 divide-y divide-rule">
+          {items.map((x, n) => (
+            <li key={n} className="flex items-start justify-between gap-4 p-4">
+              <span><span className="block font-ui text-sm font-bold text-ink">{x.name}</span>{x.note && <span className="block text-xs text-slate">{x.note}</span>}</span>
+              {x.price && <span className="shrink-0 font-ui text-sm font-bold text-crimson">{x.price}</span>}
+            </li>
+          ))}
+        </ul>
+      </section>
+    );
+  }
+  const groups = Array.from(new Set(items.map((x) => x.group).filter((g): g is string => !!g)));
+  const shown = tab === "All" ? items : items.filter((x) => x.group === tab);
   return (
-    <section className="mt-14">
-      <Heading>Services and prices</Heading>
-      <ul className="card mt-5 divide-y divide-rule">
-        {blocks.services.items.map((s, n) => (
-          <li key={n} className="flex items-start justify-between gap-4 p-4">
-            <span><span className="block font-ui text-sm font-bold text-ink">{s.name}</span>{s.note && <span className="block text-xs text-slate">{s.note}</span>}</span>
-            {s.price && <span className="shrink-0 font-ui text-sm font-bold text-crimson">{s.price}</span>}
+    <section className="mt-16" aria-labelledby="menu-h">
+      <p className="text-center font-ui text-xs font-semibold uppercase tracking-[0.3em] text-crimson">Our menu</p>
+      <h2 id="menu-h" className="mt-2 text-center font-display text-4xl text-ink">Services</h2>
+      {groups.length > 1 && (
+        <div className="-mx-4 mt-6 flex gap-2 overflow-x-auto px-4 pb-1 sm:mx-0 sm:flex-wrap sm:justify-center sm:px-0" role="tablist" aria-label="Kinds of service">
+          {["All", ...groups].map((g) => (
+            <button key={g} type="button" role="tab" aria-selected={tab === g} onClick={() => setTab(g)}
+              className={`shrink-0 rounded-full border px-4 py-1.5 text-sm ${tab === g ? "border-crimson bg-crimson text-paper" : "border-rule bg-card text-ink hover:border-crimson"}`}>{g}</button>
+          ))}
+        </div>
+      )}
+      <ul className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        {shown.map((x, n) => (
+          <li key={`${x.name}${n}`} className="card flex flex-col overflow-hidden">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            {x.image && <img src={x.image} alt="" loading="lazy" className="aspect-[4/3] w-full object-cover" />}
+            <div className="flex flex-1 flex-col p-5">
+              {x.group && <p className="text-[11px] font-semibold uppercase tracking-wide text-slate">{x.group}</p>}
+              <p className="mt-1 font-display text-xl leading-snug text-ink">{x.name}</p>
+              {x.note && <p className="mt-1 text-sm text-slate">{x.note}</p>}
+              <p className="mt-3 flex flex-1 items-end gap-3 font-ui text-sm">
+                {x.minutes ? <span className="text-slate">{durationText(x.minutes)}</span> : null}
+                {x.price && <span className="font-bold text-ink">{x.price}</span>}
+              </p>
+              {booking.offered && <a href={`${base}/#book`} className="mt-4 inline-flex w-fit items-center rounded-full border border-crimson px-4 py-2 font-ui text-xs font-bold uppercase tracking-wide text-crimson hover:bg-crimson hover:text-paper">Book now</a>}
+            </div>
           </li>
         ))}
       </ul>

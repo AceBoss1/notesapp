@@ -45,7 +45,7 @@ Kits themselves cost nothing and switching between them is free; what a member c
 | Plan | Kits |
 |---|---|
 | Free Basic | Personal: for a person or a content creator (bio, links, journals, videos, Gallery, and the academic sections for those who want them), the Clean and Scholar looks, preset colour sets, at `/s/<username>` |
-| Pro | Also the business kits (Fashion, Food & baking, Services, Healthcare, Spa, Salons, Fitness, Events, Electronics, Motor parts, Solar, Real estate); custom brand colours (Shop is on every site, at the plan's commission) |
+| Pro | Also the business kits (Fashion, Food & baking, Services, Healthcare, Beauty and wellness (spa, massage, hair, nails), Fitness, Events, Electronics, Motor parts, Solar, Real estate); custom brand colours (Shop is on every site, at the plan's commission) |
 | Business, Enterprise | Everything, including School and Church/NGO, on their own domain |
 | Add-ons | Community live streaming, Giving, the Enterprise Academy packages: their sections show locked inside kits until added (Track is part of Business) |
 
@@ -114,7 +114,7 @@ An Analytics page for every member who sells, teaches, books sessions or publish
 
 ## Phase 4: more kits and the cover photo (built, v0.70.0)
 
-- **Kits** (owner, 21 Oct 2026), Pro like the other business kits: Massage and spa, Salons and beauty, Fitness trainers, Events and
+- **Kits** (owner, 21 Oct 2026), Pro like the other business kits: Beauty and wellness (spa, massage, hair or nails), Fitness trainers, Events and
   photography, Electronics and mobile devices, Motor and motorcycle spare parts, Solar and energy solutions, Real estate. Fashion now
   covers clothes, bags, shoes and jewellery. 16 kits in all.
 - **Cover photo** on every look (`sites/{uid}.cover`), behind the profile header, with the logo over its edge and the social links under

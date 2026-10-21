@@ -7,7 +7,7 @@ import { auth } from "@/lib/firebase";
 import BookingCard from "@/components/BookingCard";
 import { recordView } from "@/lib/track";
 import { isCrimsonTheme } from "@/lib/site-themes";
-import { shopStyleOf, sortItems } from "@/lib/site-kits";
+import { isBeautyKit, shopStyleOf, sortItems } from "@/lib/site-kits";
 import { ProductGrid } from "./Storefront";
 import { useSite } from "./SiteContext";
 import { useOwnNotes } from "./useOwnNotes";
@@ -17,7 +17,7 @@ import SiteFeed from "./SiteFeed";
 import TrackBox from "./TrackBox";
 import SiteProfileHeader from "./SiteProfileHeader";
 import AuroraBand from "./AuroraBand";
-import { SiteContentBlocks, SiteHero, SiteInfoStrip } from "./SiteBlocks";
+import { SiteContentBlocks, SiteHero, SiteInfoStrip, SitePhotoHero } from "./SiteBlocks";
 import ScrollToHash from "@/components/ScrollToHash";
 import CourseCard, { courseCardOf } from "@/components/CourseCard";
 import { COURSES_LIVE } from "@/lib/site-settings";
@@ -112,14 +112,16 @@ export default function SiteHome() {
   const hero = site.shownBlocks.includes("hero"), strip = site.shownBlocks.includes("info");
   // A shop first and foremost (the shop is their front page, or on without journals) with a cover photo: the cover goes edge to edge at the
   // top with Shop now over it, the way online shops open (Scholar keeps its reading layout).
-  const banner = shop && !!site.cover && (shopFirst || !journals) && site.theme !== "scholar";
+  // The beauty kits' banner as a full photo (hero style "photo"): edge to edge at the top, on the Clean look; it takes the place of the shop banner.
+  const photoHero = hero && site.blocks.hero.style === "photo" && !!site.blocks.hero.image && site.theme === "clean";
+  const banner = !photoHero && shop && !!site.cover && (shopFirst || !journals) && site.theme !== "scholar";
   const storeBanner = banner && <StoreBanner />;
 
   // Booking runs right here: pick a time, sign in if needed (the visitor is brought back signed in), pay with Paystack.
   const booking = (
     <>
       <div id="book" className="scroll-mt-28">
-        <BookingCard username={site.username} publisherUid={site.uid} viewer={viewer} signInHref="/login" />
+        <BookingCard username={site.username} publisherUid={site.uid} viewer={viewer} signInHref="/login" {...(isBeautyKit(site.kit) ? { title: "Book your appointment" } : {})} />
       </div>
       <ScrollToHash />
     </>
@@ -145,9 +147,9 @@ export default function SiteHome() {
   if (site.theme === "clean") {
     return (
       <>
-      {storeBanner}
+      {photoHero ? <SitePhotoHero /> : storeBanner}
       <div className="mx-auto max-w-5xl px-4 py-10 sm:px-6 sm:py-14">
-        {hero ? <SiteHero clean /> : <SiteProfileHeader noCover={banner} />}
+        {photoHero ? null : hero ? <SiteHero clean /> : <SiteProfileHeader noCover={banner} />}
         {strip && <SiteInfoStrip />}
         {sections}
         {hero && <div className="card mt-14 p-6"><SiteProfileHeader noCover={banner} /></div>}

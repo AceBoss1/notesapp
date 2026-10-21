@@ -51,12 +51,12 @@ export default function PalettePicker({ tier, theme, value, onSave }: { tier: st
       </div>
       <p className="mt-5 font-ui text-sm font-bold text-ink">Background</p>
       <div className="mt-2 flex flex-wrap gap-2" role="radiogroup" aria-label="Background">
-        {SITE_BACKGROUNDS.map((b) => {
+        {SITE_BACKGROUNDS.filter((b) => b.id !== "night" || theme !== "scholar").map((b) => { // Scholar has its own light/dark switch
           const on = backgroundOf(v, theme) === b.id;
           return (
             <button key={b.id} type="button" role="radio" aria-checked={on} disabled={busy} onClick={() => save({ ...v, bg: b.id })}
               className={`flex items-center gap-2 rounded-full border px-3 py-1.5 text-xs ${on ? "border-ink font-semibold text-ink" : "border-rule text-slate hover:border-ink"}`}>
-              <span aria-hidden className="h-5 w-5 rounded-full border border-rule" style={{ background: b.id === "white" ? "#FFFFFF" : "#FBF6F2" }} />
+              <span aria-hidden className="h-5 w-5 rounded-full border border-rule" style={{ background: b.id === "white" ? "#FFFFFF" : b.id === "night" ? "#141211" : "#FBF6F2" }} />
               {b.name}
             </button>
           );

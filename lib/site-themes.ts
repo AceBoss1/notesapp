@@ -64,9 +64,10 @@ export function paletteRgb(palette: { id?: string; custom?: string } | null | un
 }
 // The page background, with every colour set and every look (owner, 21 Oct 2026): white, or #NotesApp's warm paper. Without a choice, Clean
 // is white and the other looks paper, as they were.
-export const SITE_BACKGROUNDS = [{ id: "white", name: "White" }, { id: "paper", name: "Paper (warm ivory)" }] as const;
+// Night: a dark page with the colour set glowing on it (the beauty kits' evening look; the same dark colours as Scholar's dark mode).
+export const SITE_BACKGROUNDS = [{ id: "white", name: "White" }, { id: "paper", name: "Paper (warm ivory)" }, { id: "night", name: "Night (dark)" }] as const;
 export type SiteBackground = (typeof SITE_BACKGROUNDS)[number]["id"];
-export const isBackground = (v: unknown): v is SiteBackground => v === "white" || v === "paper";
+export const isBackground = (v: unknown): v is SiteBackground => v === "white" || v === "paper" || v === "night";
 export const backgroundOf = (palette: { bg?: string } | null | undefined, theme: string): SiteBackground =>
   isBackground(palette?.bg) ? palette!.bg as SiteBackground : theme === "clean" ? "white" : "paper";
 export function paletteVars(palette: { id?: string; custom?: string; bg?: string } | null | undefined, tier: string, theme = "legacy"): Record<string, string> {

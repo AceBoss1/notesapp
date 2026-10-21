@@ -2,7 +2,7 @@
 // and kits that never wipe the member's words. Run: npm run test:sites → "ALL OK".
 import assert from "node:assert/strict";
 import { backgroundOf, canHaveSite, meetsTier, paletteRgb, paletteVars, themeAllowed } from "../../lib/site-themes";
-import { KITS, applyKitTo, bookingHoursText, buttonHref, byYear, cleanBlocks, cleanButton, cleanOrder, cleanPalette, kitAllowed, kitOf, resolveButton, shopStyleOf, siteDocOf, sortItems, visibleBlocks } from "../../lib/site-kits";
+import { KITS, applyKitTo, durationText, isBeautyKit, bookingHoursText, buttonHref, byYear, cleanBlocks, cleanButton, cleanOrder, cleanPalette, kitAllowed, kitOf, resolveButton, shopStyleOf, siteDocOf, sortItems, visibleBlocks } from "../../lib/site-kits";
 import { siteSectionsShown } from "../../lib/site-settings";
 import { placeCoords } from "../../lib/places";
 import { landDots } from "../../lib/globe-land";
@@ -58,10 +58,10 @@ assert.deepEqual(visibleBlocks(d, "standard"), [], "no site below Free Basic");
 assert.deepEqual(siteSectionsShown({ ...(u("basic") as object), siteSections: { journals: true, shop: true, courses: true, track: true } } as never), { journals: true, shop: true, courses: true, track: false }, "Shop from Free Basic (higher commission), Track from Business");
 
 // Kits
-assert.equal(KITS.length, 16);
+assert.equal(KITS.length, 18);
 assert.deepEqual(KITS.filter((k) => kitAllowed(k, "basic")).map((k) => k.id), ["personal", "scholar"], "Free Basic: the personal kits only (Personal and creators, Academics)");
-assert.deepEqual(KITS.filter((k) => kitAllowed(k, "pro")).map((k) => k.id), ["personal", "scholar", "fashion", "food", "services", "healthcare", "spa", "salon", "fitness", "events", "electronics", "motor", "solar", "realestate"]);
-assert.equal(KITS.filter((k) => kitAllowed(k, "business")).length, 16);
+assert.deepEqual(KITS.filter((k) => kitAllowed(k, "pro")).map((k) => k.id), ["personal", "scholar", "fashion", "food", "services", "healthcare", "beauty-spa", "beauty-massage", "beauty-hair", "beauty-nails", "fitness", "events", "electronics", "motor", "solar", "realestate"]);
+assert.equal(KITS.filter((k) => kitAllowed(k, "business")).length, 18);
 const mine = siteDocOf({ blocks: { hero: { headline: "My own words" }, services: { items: [{ name: "Mine", price: "₦1" }] } } });
 const r = applyKitTo(mine, kitOf("food")!, "pro");
 assert.equal(r.theme, "clean"); assert.equal(r.site.kit, "food"); assert.equal(r.site.palette.id, "sunset");
@@ -155,4 +155,23 @@ assert.deepEqual(sortItems(goods, "new", "nothing like it"), []);
 const viewed = goods.map((g, i) => ({ ...g, id: `i${i}` }));
 assert.deepEqual(titles(sortItems(viewed, "popular", "", { i3: 50, i0: 9 })), ["beaded necklace", "Ankara gown", "Leather bag", "Gift card"], "most viewed first, then newest");
 assert.equal(goods[0].title, "Ankara gown", "the shop's own list is left alone");
+
+// Beauty and wellness: four flavours of one kit, the old Spa and Salon kits still found, services with times and tabs, the photo hero
+const beauty = KITS.filter((k) => k.family?.id === "beauty");
+assert.deepEqual(beauty.map((k) => k.family!.flavour), ["Spa", "Massage", "Hair", "Nails"]);
+assert.equal(kitOf("spa")?.id, "beauty-spa"); assert.equal(kitOf("salon")?.id, "beauty-hair");
+assert.ok(isBeautyKit("beauty-nails") && isBeautyKit("spa") && !isBeautyKit("fashion"));
+for (const k of beauty) {
+  assert.equal(k.starter.button.kind, "book", `${k.id} opens with booking`);
+  assert.ok(k.starter.services!.every((x) => x.minutes && x.group), `${k.id}: every starter service has a time and a tab`);
+}
+const nails = applyKitTo(siteDocOf({}), kitOf("beauty-nails")!, "pro").site;
+assert.equal(nails.blocks.hero.style, "photo"); assert.equal(nails.blocks.hero.eyebrow, "Welcome to");
+const kept = applyKitTo(siteDocOf({ blocks: { hero: { on: true, headline: "Mine", eyebrow: "Hello from" } } }), kitOf("beauty-spa")!, "pro").site;
+assert.equal(kept.blocks.hero.headline, "Mine"); assert.equal(kept.blocks.hero.eyebrow, "Hello from", "applying a kit keeps what they wrote");
+const sv = cleanBlocks({ services: { on: true, items: [{ name: "Facial", price: "₦25,000", minutes: "70", group: " Facials ", image: "https://img.test/f.jpg" }, { name: "Tea", minutes: 2, image: "http://x" }] } }).services.items;
+assert.deepEqual(sv[0], { name: "Facial", price: "₦25,000", note: "", minutes: 70, group: "Facials", image: "https://img.test/f.jpg" });
+assert.deepEqual(sv[1], { name: "Tea", price: "", note: "" }, "too short a time and an insecure picture are left out");
+assert.equal(cleanBlocks({ hero: { style: "weird", eyebrow: "  " } }).hero.style, undefined);
+assert.deepEqual([durationText(45), durationText(60), durationText(70), durationText(135), durationText(0)], ["45 min", "1 hr", "1 hr 10 min", "2 hr 15 min", ""]);
 console.log("ALL OK");

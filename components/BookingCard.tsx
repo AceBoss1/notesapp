@@ -18,12 +18,14 @@ export default function BookingCard({
   publisherUid,
   viewer,
   signInHref,
+  title = "Book a 1:1 session",
 }: {
   username: string;
   publisherUid?: string;
   viewer: User | null | undefined;
   // On a member's own site: where the "sign in" prompt goes (the visitor is brought back here signed in).
   signInHref?: string;
+  title?: string; // "Book your appointment" on a beauty and wellness site
 }) {
   const [offered, setOffered] = useState<PublisherSettings["session"] | null>(null);
   const [date, setDate] = useState("");
@@ -82,7 +84,7 @@ export default function BookingCard({
   return (
     <div className="card mt-12 p-7">
       <p className="eyebrow">Native booking calendar</p>
-      <h2 className="mt-2 font-display text-2xl text-ink">Book a 1:1 session</h2>
+      <h2 className="mt-2 font-display text-2xl text-ink">{title}</h2>
       <p className="mt-2 text-sm text-slate">
         {offered.minutes} minutes · {formatNaira(offered.priceKobo)} · times shown in Lagos time (WAT).
       </p>

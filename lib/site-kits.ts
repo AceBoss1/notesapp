@@ -40,11 +40,14 @@ export const BUTTON_KINDS = [
 ] as const;
 export type ButtonKind = (typeof BUTTON_KINDS)[number]["id"];
 export type SiteButton = { kind: ButtonKind; label: string; value: string };
-export type Hero = { on: boolean; headline: string; subline: string; image: string; button: SiteButton | null; second: SiteButton | null };
+// style "photo": the picture fills the top of the page edge to edge, with the words over it (the beauty kits); otherwise words beside the
+// picture. eyebrow: a small line above the headline ("Welcome to").
+export type Hero = { on: boolean; headline: string; subline: string; image: string; button: SiteButton | null; second: SiteButton | null; style?: "photo"; eyebrow?: string };
 // bookingHours: show the opening hours of their booking calendar instead of typed hours (owner, 21 Oct 2026). Either way, when their
 // sessions are on, the hours card opens the booking card.
 export type Info = { on: boolean; hours: string; bookingHours: boolean; whatsapp: string; phone: string; address: string; mapUrl: string };
-export type ServiceItem = { name: string; price: string; note: string };
+// minutes and group (the menu's tabs: Facials, Massages, Nails …) and a picture are optional; with them, services show as a menu of cards.
+export type ServiceItem = { name: string; price: string; note: string; minutes?: number; group?: string; image?: string };
 export type Picture = { image: string; caption: string };
 export type Testimonial = { quote: string; name: string; role: string };
 // username: tag them (their name links to their #NotesApp profile). Showing someone gives them no access: seats are Business and above.
@@ -115,6 +118,15 @@ const list = <T,>(v: unknown, max: number, each: (x: Record<string, unknown>) =>
 
 export const cleanCover = (v: unknown) => img(v);
 // The announcement bar across the top of every page of the site ("Free delivery in Lagos this week"): one line, plain words, no links.
+function cleanService(x: Record<string, unknown>): ServiceItem {
+  const minutes = Math.floor(Number(x.minutes));
+  return {
+    name: t(x.name, 80), price: t(x.price, 40), note: t(x.note, 160),
+    ...(minutes >= 5 && minutes <= 720 ? { minutes } : {}), ...(t(x.group, 40) ? { group: t(x.group, 40) } : {}), ...(img(x.image) ? { image: img(x.image) } : {}),
+  };
+}
+// "1 hr 10 min", "45 min", "2 hr".
+export const durationText = (m?: number) => (!m ? "" : m < 60 ? `${m} min` : `${Math.floor(m / 60)} hr${m % 60 ? ` ${m % 60} min` : ""}`);
 export const ANNOUNCE_MAX = 90;
 export const cleanAnnounce = (v: unknown) => t(v, ANNOUNCE_MAX);
 // Everything a member can send for their sections, made safe and within the limits. Unknown parts are dropped.
@@ -123,9 +135,9 @@ export function cleanBlocks(v: unknown): Blocks {
   const on = (x: Record<string, unknown> | undefined) => x?.on === true;
   const h = o.hero ?? {}, i = o.info ?? {};
   return {
-    hero: { on: on(h), headline: t(h.headline, 90), subline: t(h.subline, 240), image: img(h.image), button: cleanButton(h.button), second: cleanButton(h.second) },
+    hero: { on: on(h), headline: t(h.headline, 90), subline: t(h.subline, 240), image: img(h.image), button: cleanButton(h.button), second: cleanButton(h.second), ...(h.style === "photo" ? { style: "photo" as const } : {}), ...(t(h.eyebrow, 40) ? { eyebrow: t(h.eyebrow, 40) } : {}) },
     info: { on: on(i), hours: t(i.hours, 120), bookingHours: i.bookingHours === true, whatsapp: digits(i.whatsapp), phone: digits(i.phone), address: t(i.address, 200), mapUrl: /^https:\/\/(www\.)?(google\.[a-z.]+\/maps|maps\.app\.goo\.gl|goo\.gl\/maps|maps\.google\.[a-z.]+)\S*$/i.test(t(i.mapUrl, 500)) ? t(i.mapUrl, 500) : "" },
-    services: { on: on(o.services), items: list(o.services?.items, LIMITS.services, (x) => (t(x.name, 80) ? { name: t(x.name, 80), price: t(x.price, 40), note: t(x.note, 160) } : null)) },
+    services: { on: on(o.services), items: list(o.services?.items, LIMITS.services, (x) => (t(x.name, 80) ? cleanService(x) : null)) },
     gallery: { on: on(o.gallery), items: list(o.gallery?.items, LIMITS.gallery, (x) => (img(x.image) ? { image: img(x.image), caption: t(x.caption, 120) } : null)) },
     testimonials: { on: on(o.testimonials), items: list(o.testimonials?.items, LIMITS.testimonials, (x) => (t(x.quote, 400) && t(x.name, 60) ? { quote: para(x.quote, 400), name: t(x.name, 60), role: t(x.role, 80) } : null)) },
     team: { on: on(o.team), items: list(o.team?.items, LIMITS.team, (x) => { const u = t(x.username, 40).replace(/^@/, "").toLowerCase(); return t(x.name, 60) ? { name: t(x.name, 60), role: t(x.role, 80), photo: img(x.photo), ...(/^[a-z0-9_.]{2,30}$/.test(u) ? { username: u } : {}) } : null; }) },
@@ -223,12 +235,56 @@ export function buttonHref(b: SiteButton, base: string): string {
 }
 
 // ── Kits ──
-type Starter = { headline: string; subline: string; button: SiteButton; second?: SiteButton; services?: ServiceItem[]; faq?: Qa[]; hours?: string };
+type Starter = { headline: string; subline: string; button: SiteButton; second?: SiteButton; services?: ServiceItem[]; faq?: Qa[]; hours?: string; heroStyle?: "photo"; eyebrow?: string };
 export type Kit = {
   id: string; name: string; emoji: string; blurb: string; minTier: string; theme: SiteThemeId; palette: PaletteId;
   sections: { journals: boolean; shop: boolean; courses: boolean; track: boolean }; blocks: BlockId[]; starter: Starter;
+  // Kits that are flavours of one (Beauty and wellness: Spa, Massage, Hair, Nails) show as one card with a choice.
+  family?: { id: string; name: string; flavour: string };
 };
 const btn = (kind: ButtonKind, label?: string): SiteButton => ({ kind, label: label ?? BUTTON_KINDS.find((k) => k.id === kind)!.label, value: "" });
+
+// Beauty & wellness (owner, 21 Oct 2026): one kit in four flavours, each with its own starter menu. They open with a full photo (hero style
+// "photo"), list services as a menu with durations and prices in tabs, and keep a Book your appointment tab on the side of every page.
+// They replace the earlier "Massage and spa" (spa) and "Salons and beauty" (salon) kits; sites that used those keep working (kitOf).
+function beautyKits(): Kit[] {
+  const family = (flavour: string) => ({ id: "beauty", name: "Beauty and wellness", flavour });
+  const book = btn("book", "Book your appointment");
+  const base = { minTier: "pro", theme: "clean" as const, family: undefined as Kit["family"] };
+  const ask = { q: "How do I book?", a: "Pick a time on this page and pay online: your booking is confirmed straight away, with a reminder before it." };
+  return [
+    { ...base, id: "beauty-spa", name: "Beauty and wellness: Spa", emoji: "🧖", palette: "forest", family: family("Spa"),
+      blurb: "Facials, massages, body treatments and packages on a menu with times and prices, a full photo up top, and booking on every page.",
+      sections: { journals: false, shop: false, courses: false, track: false }, blocks: ["hero", "services", "info", "gallery", "testimonials", "faq"],
+      starter: { heroStyle: "photo", eyebrow: "Welcome to", headline: "Breathe out. We'll take it from here.", subline: "Facials, massages and body treatments in a calm, clean space.", button: book, second: btn("call"),
+        hours: "Mon–Sat, 9am to 7pm",
+        services: [{ group: "Facials", name: "Essential facial", minutes: 45, price: "₦25,000", note: "" }, { group: "Facials", name: "Deep-cleansing facial", minutes: 70, price: "₦35,000", note: "" }, { group: "Massages", name: "Relaxation massage", minutes: 45, price: "₦30,000", note: "" }, { group: "Massages", name: "Hot stone massage", minutes: 60, price: "₦40,000", note: "" }, { group: "Body", name: "Body polish", minutes: 60, price: "₦35,000", note: "" }, { group: "Packages", name: "Half-day retreat", minutes: 180, price: "₦85,000", note: "Facial, massage and body polish" }],
+        faq: [ask, { q: "What should I bring?", a: "Just yourself. We have robes, slippers and everything you need." }] } },
+    { ...base, id: "beauty-massage", name: "Beauty and wellness: Massage", emoji: "💆", palette: "gold", family: family("Massage"),
+      blurb: "Your massages on a menu with times and prices, home visits, your therapists, and booking on every page.",
+      sections: { journals: false, shop: false, courses: false, track: false }, blocks: ["hero", "services", "info", "testimonials", "team", "faq"],
+      starter: { heroStyle: "photo", eyebrow: "Welcome to", headline: "Let the tension go.", subline: "Swedish, deep tissue, hot stone and sports massage, at our studio or in your home.", button: book, second: btn("call"),
+        hours: "Mon–Sun, 10am to 9pm",
+        services: [{ group: "Massages", name: "Swedish massage", minutes: 60, price: "₦25,000", note: "" }, { group: "Massages", name: "Deep tissue massage", minutes: 60, price: "₦30,000", note: "" }, { group: "Massages", name: "Hot stone massage", minutes: 75, price: "₦38,000", note: "" }, { group: "Couples", name: "Couples massage", minutes: 60, price: "₦55,000", note: "" }, { group: "Home visits", name: "Massage at home", minutes: 90, price: "₦45,000", note: "We bring the table and oils" }],
+        faq: [ask, { q: "Do you come to my home?", a: "Yes. Book a home visit and tell us your address; we bring everything." }] } },
+    { ...base, id: "beauty-hair", name: "Beauty and wellness: Hair", emoji: "💇", palette: "royal", family: family("Hair"),
+      blurb: "Braids, wigs, cuts and colour on a menu with times and prices, your work in pictures, your stylists, hair products, and booking.",
+      sections: { journals: false, shop: true, courses: false, track: false }, blocks: ["hero", "services", "gallery", "team", "testimonials", "info", "faq"],
+      starter: { heroStyle: "photo", eyebrow: "Welcome to", headline: "Hair that turns heads.", subline: "Braids, wigs, cuts, colour and treatments by stylists who listen.", button: book, second: btn("shop", "Shop hair care"),
+        hours: "Tue–Sun, 9am to 7pm",
+        services: [{ group: "Braids", name: "Knotless braids (medium, waist length)", minutes: 300, price: "From ₦35,000", note: "" }, { group: "Braids", name: "Cornrows", minutes: 120, price: "From ₦12,000", note: "" }, { group: "Wigs", name: "Wig install", minutes: 90, price: "₦15,000", note: "" }, { group: "Wigs", name: "Wig revamp", minutes: 120, price: "₦18,000", note: "" }, { group: "Cuts and colour", name: "Cut and style", minutes: 45, price: "₦8,000", note: "" }, { group: "Cuts and colour", name: "Colour", minutes: 120, price: "From ₦25,000", note: "" }, { group: "Treatments", name: "Deep conditioning treatment", minutes: 60, price: "₦12,000", note: "" }],
+        faq: [ask, { q: "Should I bring my own hair extensions?", a: "You can, or we can supply them: the price is shown when you book." }] } },
+    { ...base, id: "beauty-nails", name: "Beauty and wellness: Nails", emoji: "💅", palette: "crimson", family: family("Nails"),
+      blurb: "Manicures, pedicures, extensions and nail art on a menu with times and prices, your work in pictures, press-ons to buy, and booking.",
+      sections: { journals: false, shop: true, courses: false, track: false }, blocks: ["hero", "services", "gallery", "testimonials", "info", "faq"],
+      starter: { heroStyle: "photo", eyebrow: "Welcome to", headline: "Nails, done beautifully.", subline: "Gel, acrylic and press-ons, manicures and pedicures, in a clean and calm studio.", button: book, second: btn("shop", "Shop press-ons"),
+        hours: "Mon–Sat, 9am to 8pm",
+        services: [{ group: "Manicure", name: "Classic manicure", minutes: 30, price: "₦6,000", note: "" }, { group: "Manicure", name: "Gel polish", minutes: 45, price: "₦8,000", note: "" }, { group: "Extensions", name: "Acrylic full set", minutes: 90, price: "₦15,000", note: "" }, { group: "Extensions", name: "Gel-X full set", minutes: 90, price: "₦18,000", note: "" }, { group: "Pedicure", name: "Classic pedicure", minutes: 45, price: "₦8,000", note: "" }, { group: "Pedicure", name: "Jelly pedicure", minutes: 60, price: "₦15,000", note: "" }, { group: "Nail art", name: "Nail art (per set)", minutes: 15, price: "From ₦2,000", note: "" }],
+        faq: [ask, { q: "How long do gel nails last?", a: "Two to three weeks with care. Come back for a refill or a soak-off." }] } },
+  ];
+}
+// The kits that came before Beauty and wellness, for sites that still carry them.
+const OLD_KITS: Record<string, string> = { spa: "beauty-spa", salon: "beauty-hair" };
 export const KITS: Kit[] = [
   {
     id: "personal", name: "Personal and creators", emoji: "✍️", minTier: "basic", theme: "clean", palette: "crimson",
@@ -278,23 +334,7 @@ export const KITS: Kit[] = [
       faq: [{ q: "Do I need an appointment?", a: "Appointments are best; walk-ins are seen when a doctor is free." }] },
   },
   // Phase 4 (owner, 21 Oct 2026): more kits by type of business, Pro like the others.
-  {
-    id: "spa", name: "Massage and spa", emoji: "💆", minTier: "pro", theme: "clean", palette: "forest",
-    blurb: "Your treatments and prices, booking, opening hours and where to find you, and what clients say.",
-    sections: { journals: false, shop: false, courses: false, track: false }, blocks: ["hero", "info", "services", "gallery", "testimonials", "faq"],
-    starter: { headline: "Relax. You've earned it.", subline: "Massages and spa treatments in a calm, clean space. Book your time in a minute.", button: btn("book", "Book a treatment"), second: btn("call"),
-      hours: "Mon–Sat, 10am to 8pm · Sun, 12pm to 6pm",
-      services: [{ name: "Swedish massage (60 minutes)", price: "₦25,000", note: "" }, { name: "Deep tissue massage (60 minutes)", price: "₦30,000", note: "" }, { name: "Facial", price: "₦18,000", note: "" }],
-      faq: [{ q: "Do I need to book?", a: "Booking is best so your therapist is ready for you; walk-ins are welcome when there's space." }] },
-  },
-  {
-    id: "salon", name: "Salons and beauty", emoji: "💇", minTier: "pro", theme: "clean", palette: "royal",
-    blurb: "Your price list for hair, nails and make-up, your work in pictures, your stylists, and booking.",
-    sections: { journals: false, shop: true, courses: false, track: false }, blocks: ["hero", "services", "gallery", "team", "testimonials", "info"],
-    starter: { headline: "Look good, feel good.", subline: "Hair, nails and make-up by stylists who listen. Book your appointment or chat with us.", button: btn("book", "Book an appointment"), second: btn("shop", "Shop products"),
-      hours: "Tue–Sun, 9am to 7pm",
-      services: [{ name: "Braids (medium, waist length)", price: "From ₦20,000", note: "" }, { name: "Gel nails", price: "₦8,000", note: "" }, { name: "Bridal make-up", price: "From ₦60,000", note: "Trial included" }] },
-  },
+  ...beautyKits(),
   {
     id: "fitness", name: "Fitness trainers", emoji: "💪", minTier: "pro", theme: "clean", palette: "sunset",
     blurb: "Your training plans and prices, results your clients got, booking sessions, and your workouts and tips.",
@@ -364,7 +404,9 @@ export const KITS: Kit[] = [
       faq: [{ q: "How can I get involved?", a: "Reach us through the Contact page and tell us how you'd like to help." }] },
   },
 ];
-export const kitOf = (id: unknown) => KITS.find((k) => k.id === id) ?? null;
+export const kitOf = (id: unknown) => KITS.find((k) => k.id === (typeof id === "string" && OLD_KITS[id] ? OLD_KITS[id] : id)) ?? null;
+// A beauty and wellness site (any flavour, or the kits before them): the services menu and the side booking tab.
+export const isBeautyKit = (id: string) => id.startsWith("beauty-") || id in OLD_KITS;
 export const kitAllowed = (k: Kit, tier: string) => meetsTier(tier, k.minTier);
 
 // Applying a kit: its look, colours, page sections and section order, and its starter words only where the member hasn't written anything,
@@ -377,6 +419,8 @@ export function applyKitTo(d: SiteDoc, k: Kit, tier: string): { site: SiteDoc; t
   if (!b.hero.subline) b.hero.subline = s.subline;
   if (!b.hero.button) b.hero.button = s.button;
   if (!b.hero.second && s.second) b.hero.second = s.second;
+  if (s.heroStyle && !b.hero.style) b.hero.style = s.heroStyle;
+  if (s.eyebrow && !b.hero.eyebrow) b.hero.eyebrow = s.eyebrow;
   if (!b.info.hours && s.hours) b.info.hours = s.hours;
   if (!b.services.items.length && s.services) b.services.items = s.services;
   if (!b.faq.items.length && s.faq) b.faq.items = s.faq;
@@ -390,11 +434,11 @@ export function applyKitTo(d: SiteDoc, k: Kit, tier: string): { site: SiteDoc; t
   return { site: { ...d, kit: k.id, palette: { id: k.palette, ...(d.palette.bg ? { bg: d.palette.bg } : {}) }, blocks: b, order }, theme: k.theme, sections };
 }
 
-// How a shop shows its pictures, by kit: clothes and beauty as tall photos filling the tile; gadgets, parts and panels whole on
+// How a shop shows its pictures, by kit: clothes and beauty (every flavour) as tall photos filling the tile; gadgets, parts and panels whole on
 // white (product shots); food and everything else as square photos. Sorting and filtering are the same everywhere (sortItems).
 export type ShopStyle = { ratio: "portrait" | "square"; fit: "cover" | "contain" };
 export function shopStyleOf(kit: string): ShopStyle {
-  if (kit === "fashion" || kit === "salon" || kit === "spa") return { ratio: "portrait", fit: "cover" };
+  if (kit === "fashion" || isBeautyKit(kit)) return { ratio: "portrait", fit: "cover" };
   if (kit === "electronics" || kit === "motor" || kit === "solar") return { ratio: "square", fit: "contain" };
   return { ratio: "square", fit: "cover" };
 }
