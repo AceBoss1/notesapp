@@ -34,6 +34,7 @@ export type ThreadMessage = {
   pendingRequest?: { id: string; kind: "edit" | "delete"; text?: string; readers: string[]; approved: string[]; expiresAt: string }; // waiting for the readers to agree
   reactions?: Record<string, string>; // uid → one of REACTIONS (one each; lib/message-edits.ts)
   forwarded?: boolean; // sent on from another chat (lib/message-forward.ts)
+  voiceText?: Record<string, Record<string, string>>; // per voice note: its Kiswahili transcript or translation (lib/kiswahili-server.ts)
 };
 
 // #NotesApp's own emojis: typed as :na:, :academy: or :football: and drawn as small pictures inside #NotesApp (components/NotesAppEmoji.tsx).
