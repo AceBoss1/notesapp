@@ -20,6 +20,14 @@ export const CHANGELOG: Release[] = [
     ],
   },
   {
+    version: "v0.63.0",
+    bump: "minor",
+    date: "2026-10-21",
+    changes: [
+      { kind: "added", text: "Your profile pictures have a ⋮ menu when you look through them: make an old picture your profile picture again (no new upload), save one to your device, change it for a new one, or remove an old one from your history. On a computer, Make profile picture also sits at the top." },
+    ],
+  },
+  {
     version: "v0.62.2",
     bump: "patch",
     date: "2026-10-20",

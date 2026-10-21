@@ -51,7 +51,7 @@ export default function OwnPictureMenu({ avatar, square = false, hasMoments, onV
           <button type="button" className={btn} onClick={() => { onClose(); onAddMoment(); }}><span aria-hidden>＋</span>Add a moment</button>
         </div>
         {error && <p className="mt-3 text-sm text-red-700" role="alert">{error}</p>}
-        {viewing && auth.currentUser && <PictureViewer uid={auth.currentUser.uid} name="Your profile pictures" current={current} isOwn onClose={() => setViewing(false)} />}
+        {viewing && auth.currentUser && <PictureViewer uid={auth.currentUser.uid} name="Your profile pictures" current={current} isOwn onClose={() => setViewing(false)} onAvatarChanged={(url) => { setCurrent(url); onAvatarChanged?.(url); }} />}
         <p className="mt-4 text-xs text-slate">Want to change your name, bio or links too? <Link href="/profile/edit" className="text-crimson underline" onClick={onClose}>Edit profile</Link></p>
       </div>
     </div>
