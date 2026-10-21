@@ -11,6 +11,14 @@ export type Release = {
 
 export const CHANGELOG: Release[] = [
   {
+    version: "v0.63.1",
+    bump: "patch",
+    date: "2026-10-21",
+    changes: [
+      { kind: "fixed", text: "When a CardTap wallet top-up can't start, Admin → Paylony now shows why: whether CardTap is switched on, and Paylony's own reply to each of the latest attempts." },
+    ],
+  },
+  {
     version: "v0.62.2",
     bump: "patch",
     date: "2026-10-20",

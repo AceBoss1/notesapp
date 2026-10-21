@@ -48,7 +48,7 @@ export async function startCardtap(db: Firestore, me: { uid: string; email: stri
   } as Parameters<Starter>[0]).catch((e) => ({ ok: false, httpStatus: 0, body: e instanceof Error ? e.message : "request failed" }));
   const start = r.ok ? readStart(r.body) : null;
   if (!start) {
-    await db.doc(`payments/${reference}`).update({ cardtapFailed: true, cardtapStartError: (typeof r.body === "string" ? r.body : JSON.stringify(r.body)).slice(0, 1500) });
+    await db.doc(`payments/${reference}`).update({ cardtapFailed: true, cardtapStartHttp: r.httpStatus, cardtapStartError: (typeof r.body === "string" ? r.body : JSON.stringify(r.body)).slice(0, 1500) });
     const code = replyCode(r);
     throw new CardtapError(502, `CardTap couldn't start the payment${code ? ` (${paylonyCodeText(code)})` : ""}. Try again, or top up by card.`);
   }
