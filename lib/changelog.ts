@@ -11,9 +11,9 @@ export type Release = {
 
 export const CHANGELOG: Release[] = [
   {
-    version: "v0.72.0",
+    version: "v0.73.0",
     bump: "minor",
-    date: "2026-10-21",
+    date: "2026-10-22",
     changes: [
       { kind: "added", text: "Beauty and wellness kit for your site, in four flavours: Spa, Massage, Hair and Nails (Pro and above). It opens with a full photo and your words over it, lists your services as a menu with tabs, times and prices, each with Book now, and keeps a Book your appointment tab on every page. It replaces the Massage and spa and Salons kits; sites using those keep working." },
       { kind: "added", text: "Services can now carry minutes, a tab (Facials, Braids, Pedicure…) and a picture, on any site: they then show as a menu of cards." },
@@ -21,9 +21,9 @@ export const CHANGELOG: Release[] = [
     ],
   },
   {
-    version: "v0.71.0",
+    version: "v0.72.0",
     bump: "minor",
-    date: "2026-10-21",
+    date: "2026-10-22",
     changes: [
       { kind: "fixed", text: "Courses on your site now open inside your site (on your own domain too), instead of sending visitors away to Notes Academy. Lessons and certificates still open on #NotesApp." },
       { kind: "fixed", text: "The shop on your site now looks like a shop on every look: New arrivals, category and Most popular links, a featured piece, a bar with the product count, search, sorting and bigger or smaller pictures, and picture tiles two to a row on phones, with Sold out and Only a few left. Fashion and beauty show tall photos, gadgets and parts show the whole product on white." },
@@ -31,6 +31,16 @@ export const CHANGELOG: Release[] = [
       { kind: "added", text: "For shops: an announcement bar across the top of your site, the featured piece with its picture on the right, and, when the shop is your main page and you have a cover photo, the cover across the whole page with Shop now." },
       { kind: "changed", text: "No more Order on WhatsApp buttons on sites: orders and payments stay on #NotesApp, where buyers are protected. A button saved before becomes Contact us, and the kits' starter buttons now point to the shop, booking or Contact." },
       { kind: "fixed", text: "Pictures are now turned into WebP before they upload (journals, shop, site, profile, chats, moments, adverts): smaller files and faster pages, very large photos made smaller, and the hidden camera details left out." },
+    ],
+  },
+  {
+    version: "v0.71.0",
+    bump: "minor",
+    date: "2026-10-22",
+    changes: [
+      { kind: "added", text: "Journals in Kiswahili, with NKENNEAi: when the author ticks Offer this journal in Kiswahili, readers get 🌍 Kiswahili (the journal translated, with Show original) and 🔊 Sikiliza (it read aloud, female or male voice, at 0.75×, 1× or 1.25×). It's made the first time a reader asks and kept for everyone after; edit the journal and a fresh version is made next time. Not for subscriber-only posts." },
+      { kind: "added", text: "Voice notes in Kiswahili: tap Transcript or Translate to English under someone's Swahili voice note, or In Kiswahili under your own English one. The words stay on the message for both of you." },
+      { kind: "added", text: "Admin → Kiswahili (NKENNEAi): every call we make to NKENNEAi, its size and result, and how many readers were served from what we kept." },
     ],
   },
   {
