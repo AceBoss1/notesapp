@@ -4,7 +4,7 @@ import { rateLimit } from "@/lib/rate-limit";
 import { authed, fail as failOther } from "@/lib/moments-api";
 import { iceServers } from "@/lib/calls-server";
 import { CommunityError } from "@/lib/community-server";
-import { beatRoom, closeRoom, joinRoom, leaveRoom, liveRooms, raiseHand, setSpeaker, startRoom } from "@/lib/rooms-server";
+import { beatRoom, closeRoom, joinRoom, leaveRoom, liveRooms, raiseHand, removeChat, setSpeaker, startRoom } from "@/lib/rooms-server";
 
 export const dynamic = "force-dynamic";
 const fail = (err: unknown, fallback: string) => (err instanceof CommunityError ? NextResponse.json({ error: err.message }, { status: err.status }) : failOther(err, fallback));
@@ -12,7 +12,7 @@ const fail = (err: unknown, fallback: string) => (err instanceof CommunityError 
 // Audio rooms in a community (lib/rooms.ts).
 // GET ?cid= → { rooms } (live rooms, for members)
 // POST { action: "start", cid, title } → { id, iceServers } · { action: "join", id } → { iceServers } · { action: "beat", id } → { live }
-//      { action: "leave", id } · { action: "hand", id, up } · { action: "speaker", id, uid, on } · { action: "end", id }
+//      { action: "leave", id } · { action: "hand", id, up } · { action: "speaker", id, uid, on } · { action: "end", id } · { action: "unchat", id, messageId }
 export async function GET(req: NextRequest) {
   try {
     const me = await authed(req, "messages", false);
@@ -38,6 +38,7 @@ export async function POST(req: NextRequest) {
       case "hand": await raiseHand(db, me.uid, body.id, body.up); return NextResponse.json({ ok: true });
       case "speaker": return NextResponse.json(await setSpeaker(db, me.uid, body.id, body.uid, body.on));
       case "end": await closeRoom(db, me.uid, body.id); return NextResponse.json({ ok: true });
+      case "unchat": await removeChat(db, me.uid, body.id, body.messageId); return NextResponse.json({ ok: true });
       default: throw new CommunityError(400, "Unknown action.");
     }
   } catch (err) {

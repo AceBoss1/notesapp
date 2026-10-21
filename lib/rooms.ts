@@ -16,6 +16,11 @@ export const ROOM_LISTENERS_MAX_P2P = 20;
 export const ROOM_BEAT_MS = 20_000;
 export const ROOM_GONE_MS = 60_000;
 export const ROOM_TITLE_MAX = 80;
+// The room's chat (owner, 22 Oct 2026): everyone in the room can type while it's on: questions, amens, links. It lives in
+// communityRooms/{id}/chat, written by the people in the room (firestore.rules checks it's them, with their own name and picture), and
+// goes when the room ends. The host (or a moderator of the community) can take a message down.
+export const ROOM_CHAT_MAX = 500;
+export type RoomChat = { from: string; name: string; avatar: string; text: string; at: string };
 
 export type RoomMode = "p2p";
 export type RoomPerson = { name: string; avatar: string; at: string; seen: string };

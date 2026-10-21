@@ -56,7 +56,7 @@ export default function Members({ cid, role, me, as }: { cid: string; role: Role
 
 // Circles: private rooms inside the community, each its own group chat (Business; up to the group-chat size for now).
 type C = { id: string; title: string; members: number; mine: boolean };
-export function Circles({ cid, role, allowed, as }: { cid: string; role: Role | null; allowed: boolean; as: string }) {
+export function Circles({ cid, role, allowed, as, me }: { cid: string; role: Role | null; allowed: boolean; as: string; me: string | null }) {
   const [list, setList] = useState<C[] | null>(null);
   const [title, setTitle] = useState("");
   const [pick, setPick] = useState<string[]>([]);
@@ -86,7 +86,7 @@ export function Circles({ cid, role, allowed, as }: { cid: string; role: Role | 
           <input value={title} onChange={(e) => setTitle(e.target.value)} maxLength={60} placeholder="Name, e.g. Choir" className={`${field} mt-2`} aria-label="Circle name" />
           <p className="mt-3 text-xs text-slate">Who&apos;s in it (up to {GROUP_MEMBERS_MAX - 1} besides you):</p>
           <div className="mt-1 max-h-48 overflow-y-auto rounded-xl border border-rule p-2">
-            {(members ?? []).filter((m) => m.uid).map((m) => <label key={m.uid} className="flex items-center gap-2 py-0.5 text-sm"><input type="checkbox" checked={pick.includes(m.uid)} onChange={(e) => setPick(e.target.checked ? [...pick, m.uid] : pick.filter((x) => x !== m.uid))} />{m.displayName} <span className="text-xs text-slate">@{m.username}</span></label>)}
+            {(members ?? []).filter((m) => m.uid && m.uid !== me).map((m) => <label key={m.uid} className="flex items-center gap-2 py-0.5 text-sm"><input type="checkbox" checked={pick.includes(m.uid)} onChange={(e) => setPick(e.target.checked ? [...pick, m.uid] : pick.filter((x) => x !== m.uid))} />{m.displayName} <span className="text-xs text-slate">@{m.username}</span></label>)}
           </div>
           <button className="btn-primary mt-3 !px-4 !py-2 text-xs" disabled={title.trim().length < 2} onClick={create}>Create the Circle</button>
           {err && <p className="mt-2 text-sm text-crimson" role="alert">{err}</p>}

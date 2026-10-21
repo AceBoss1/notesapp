@@ -827,6 +827,17 @@ service cloud.firestore {
       allow write: if false;
       function room() { return get(/databases/$(database)/documents/communityRooms/$(roomId)).data; }
       function inRoom() { return isSignedIn() && room().status == 'live' && request.auth.uid in room().joined; }
+      // The room's chat (lib/rooms.ts): read and written by the people in the room, as themselves (their name and picture as the room has
+      // them), up to 500 characters; never edited; the host or a moderator removes through the server.
+      match /chat/{messageId} {
+        allow read: if inRoom();
+        allow create: if inRoom() && request.resource.data.keys().hasOnly(['from', 'name', 'avatar', 'text', 'at'])
+          && request.resource.data.from == request.auth.uid
+          && request.resource.data.name == room().joined[request.auth.uid].name && request.resource.data.avatar == room().joined[request.auth.uid].avatar
+          && request.resource.data.text is string && request.resource.data.text.size() > 0 && request.resource.data.text.size() <= 500
+          && request.resource.data.at is string;
+        allow update, delete: if false;
+      }
       match /links/{linkId} {
         allow read: if isSignedIn() && (resource.data.from == request.auth.uid || resource.data.to == request.auth.uid);
         allow create: if inRoom() && request.resource.data.from == request.auth.uid

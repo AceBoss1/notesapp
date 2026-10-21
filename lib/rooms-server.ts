@@ -109,6 +109,13 @@ export async function setSpeaker(db: Firestore, uid: string, id: unknown, who: u
   });
 }
 
+// Taking a chat message down: the host, or a moderator and up of the community.
+export async function removeChat(db: Firestore, uid: string, id: unknown, messageId: unknown): Promise<void> {
+  const { ref, r } = await roomOf(db, id);
+  if (uid !== r.hostUid && !can(await roleIn(db, r.cid, uid), "remove_post")) throw new CommunityError(403, "Only the host or a moderator can remove messages.");
+  await ref.collection("chat").doc(String(messageId ?? "x")).delete();
+}
+
 // Ending: the host, or an admin of the community. The connection details are cleared.
 export async function closeRoom(db: Firestore, uid: string, id: unknown, now = new Date()): Promise<void> {
   const { ref, r } = await roomOf(db, id);
@@ -124,6 +131,11 @@ export async function endRoom(db: Firestore, id: string, now = new Date()): Prom
     return true;
   });
   if (!ended) return;
+  for (let more = true; more;) {
+    const chat = await db.collection(`communityRooms/${id}/chat`).limit(400).get();
+    if (!chat.empty) { const b = db.batch(); chat.docs.forEach((d) => b.delete(d.ref)); await b.commit(); }
+    more = chat.size === 400;
+  }
   const links = await db.collection(`communityRooms/${id}/links`).limit(300).get();
   for (const l of links.docs) {
     for (const sub of ["fromCandidates", "toCandidates"]) {

@@ -1,13 +1,13 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { addDoc, collection, doc, onSnapshot, query, setDoc, updateDoc, where } from "firebase/firestore";
+import { addDoc, collection, doc, limitToLast, onSnapshot, orderBy, query, setDoc, updateDoc, where } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import Avatar from "@/components/Avatar";
 import { MicIcon } from "@/components/calls/CallViews";
 import { duration } from "@/lib/calls";
-import { ROOM_BEAT_MS, ROOM_LISTENERS_MAX_P2P, ROOM_SPEAKERS_MAX, linksFor, listenersOf, presentIn, roomRole, stageOf, type RoomDoc, type RoomLink, type RoomLinkKind } from "@/lib/rooms";
-import { capi, field } from "./api";
+import { ROOM_BEAT_MS, ROOM_CHAT_MAX, ROOM_LISTENERS_MAX_P2P, ROOM_SPEAKERS_MAX, linksFor, listenersOf, presentIn, roomRole, stageOf, type RoomChat, type RoomDoc, type RoomLink, type RoomLinkKind } from "@/lib/rooms";
+import { ago, capi, field } from "./api";
 
 // Audio rooms (lib/rooms.ts): the live rooms on a community's Home, and the room itself. On stage, phones connect to each other; each
 // listener connects to the host, whose phone mixes the stage (Web Audio) into the one stream it sends them.
@@ -72,6 +72,8 @@ export function RoomScreen({ id, me, title, onDone }: { id: string; me: string; 
   const [busy, setBusy] = useState("");
   const leaveRef = useRef<(m?: string) => void>(() => {});
   const micRef = useRef<MediaStream | null>(null); // for the mute button
+  const [chatOpen, setChatOpen] = useState(false); // the chat sheet on phones (always beside the room on a computer)
+  const [unread, setUnread] = useState(0);
 
   useEffect(() => {
     let over = false, ice: Ice = [], myAt = "", micOn = false;
@@ -222,8 +224,9 @@ export function RoomScreen({ id, me, title, onDone }: { id: string; me: string; 
   const toggleMute = () => { const m = !muted; micRef.current?.getAudioTracks().forEach((t) => { t.enabled = !m; }); setMuted(m); };
 
   return (
-    <div className="fixed inset-0 z-[130] flex flex-col bg-ink text-white" role="dialog" aria-modal="true" aria-label={`Audio room: ${room?.title ?? title ?? ""}`}
+    <div className="fixed inset-0 z-[130] flex bg-ink text-white" role="dialog" aria-modal="true" aria-label={`Audio room: ${room?.title ?? title ?? ""}`}
       style={{ backgroundImage: "radial-gradient(ellipse 80% 55% at 50% 0%, rgba(122,3,40,0.55) 0%, rgba(26,18,16,0) 70%)" }}>
+      <div className="flex min-w-0 flex-1 flex-col">
       <header className="flex items-start justify-between gap-3 px-5 pt-[calc(env(safe-area-inset-top)_+_1rem)]">
         <div className="min-w-0">
           <p className="font-ui text-[11px] font-semibold uppercase tracking-[0.25em] text-white/55">{room?.communityName ?? "Audio room"} · <span className="text-[#FF6B6B]">● Live</span> {room ? duration(secs) : ""}</p>
@@ -276,9 +279,73 @@ export function RoomScreen({ id, me, title, onDone }: { id: string; me: string; 
             {role === "speaker" && <button type="button" onClick={() => act({ action: "speaker", uid: me, on: false })} className="rounded-full bg-white/10 px-4 py-3 font-ui text-sm hover:bg-white/20">Back to listening</button>}
           </>
         )}
+        <button type="button" onClick={() => { setChatOpen(true); setUnread(0); }} aria-label={`Chat${unread ? `, ${unread} new` : ""}`} className="relative flex h-12 items-center gap-2 rounded-full bg-white/10 px-4 font-ui text-sm font-semibold hover:bg-white/20 lg:hidden">
+          💬 Chat{unread > 0 && <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-[#E5383B] px-1 text-[10px] font-bold">{unread}</span>}
+        </button>
         {role === "host" && <button type="button" onClick={() => confirm("End the room for everyone?") && act({ action: "end" })} className="rounded-full bg-[#E5383B] px-5 py-3 font-ui text-sm font-bold hover:bg-[#D12F32]">End room</button>}
       </footer>
+      </div>
+      {room && (
+        <aside className={`${chatOpen ? "fixed inset-x-0 bottom-0 z-10 flex h-[75vh] rounded-t-3xl shadow-2xl" : "hidden"} flex-col border-white/10 bg-[#211816] lg:static lg:flex lg:h-auto lg:w-96 lg:rounded-none lg:border-l lg:shadow-none`} aria-label="Room chat">
+          <RoomChatPanel id={id} me={me} room={room} canRemove={role === "host"} open={chatOpen} onClose={() => setChatOpen(false)} onNew={() => { if (!chatOpen) setUnread((n) => n + 1); }} remove={(mid) => act({ action: "unchat", messageId: mid })} />
+        </aside>
+      )}
     </div>
+  );
+}
+
+// The room's chat (lib/rooms.ts): everyone in the room types here while it's on; host and speakers are marked. The newest stays in view.
+function RoomChatPanel({ id, me, room, canRemove, open, onClose, onNew, remove }: { id: string; me: string; room: RoomDoc; canRemove: boolean; open: boolean; onClose: () => void; onNew: () => void; remove: (messageId: string) => void }) {
+  const [msgs, setMsgs] = useState<(RoomChat & { id: string })[]>([]);
+  const [text, setText] = useState("");
+  const [err, setErr] = useState("");
+  const end = useRef<HTMLDivElement>(null);
+  const seen = useRef<Set<string> | null>(null); // others' messages already counted (null until the first load, which isn't "new")
+  const onNewRef = useRef(onNew); onNewRef.current = onNew;
+  useEffect(() => onSnapshot(query(collection(db, "communityRooms", id, "chat"), orderBy("at"), limitToLast(100)), (s) => {
+    const list = s.docs.map((d) => ({ ...(d.data() as RoomChat), id: d.id }));
+    const theirs = list.filter((m) => m.from !== me).map((m) => m.id);
+    if (seen.current) for (const mid of theirs) if (!seen.current.has(mid)) onNewRef.current();
+    seen.current = new Set([...(seen.current ?? []), ...theirs]);
+    setMsgs(list);
+  }, () => {}), [id, me]);
+  useEffect(() => { end.current?.scrollIntoView({ block: "end" }); }, [msgs.length, open]);
+  const mine = room.joined[me];
+  async function send(e: React.FormEvent) {
+    e.preventDefault();
+    const t = text.trim();
+    if (!t || !mine) return;
+    setText(""); setErr("");
+    try { await addDoc(collection(db, "communityRooms", id, "chat"), { from: me, name: mine.name, avatar: mine.avatar, text: t.slice(0, ROOM_CHAT_MAX), at: new Date().toISOString() } satisfies RoomChat); }
+    catch { setErr("Couldn't send. Try again."); setText(t); }
+  }
+  const badge = (u: string) => (u === room.hostUid ? "Host" : room.speakers.includes(u) ? "Speaker" : "");
+  return (
+    <>
+      <div className="flex items-center justify-between border-b border-white/10 px-4 py-3">
+        <p className="font-ui text-sm font-bold">Room chat</p>
+        <button type="button" onClick={onClose} className="rounded-full px-2 text-xl text-white/60 hover:text-white lg:hidden" aria-label="Close the chat">×</button>
+      </div>
+      <div className="flex-1 space-y-3 overflow-y-auto px-4 py-3">
+        {!msgs.length && <p className="pt-6 text-center text-sm text-white/45">Say hello, ask a question, or send an amen. Everyone in the room sees it while the room is on.</p>}
+        {msgs.map((m) => (
+          <div key={m.id} className="group flex gap-2.5">
+            <Avatar src={m.avatar} alt="" size={30} className="!h-[30px] !w-[30px] shrink-0 rounded-full" />
+            <div className="min-w-0 flex-1">
+              <p className="font-ui text-xs"><span className="font-bold text-white/90">{m.from === me ? "You" : m.name}</span>{badge(m.from) && <span className="ml-1.5 rounded bg-white/10 px-1.5 py-px text-[10px] uppercase tracking-wide text-white/60">{badge(m.from)}</span>}<span className="ml-1.5 text-white/35">{ago(m.at)}</span></p>
+              <p className="whitespace-pre-line break-words text-sm text-white/85">{m.text}</p>
+            </div>
+            {canRemove && m.from !== me && <button type="button" onClick={() => remove(m.id)} className="self-start text-[11px] text-white/40 opacity-0 hover:text-white group-hover:opacity-100 focus:opacity-100">Remove</button>}
+          </div>
+        ))}
+        <div ref={end} />
+      </div>
+      <form onSubmit={send} className="flex items-center gap-2 border-t border-white/10 p-3 pb-[calc(env(safe-area-inset-bottom)_+_0.75rem)]">
+        <input value={text} onChange={(e) => setText(e.target.value)} maxLength={ROOM_CHAT_MAX} placeholder="Message the room…" aria-label="Message the room" className="min-w-0 flex-1 rounded-full bg-white/10 px-4 py-2.5 text-sm text-white placeholder:text-white/40 focus:bg-white/15 focus:outline-none" />
+        <button className="rounded-full bg-white px-4 py-2.5 font-ui text-sm font-bold text-ink disabled:opacity-40" disabled={!text.trim()}>Send</button>
+      </form>
+      {err && <p className="px-4 pb-2 text-xs text-[#FF6B6B]" role="alert">{err}</p>}
+    </>
   );
 }
 

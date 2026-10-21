@@ -991,8 +991,21 @@ test("audio rooms: people in the room read it; a connection is written by its tw
   await assertSucceeds(addDoc(collection(h, "communityRooms/r1/links/k1/fromCandidates"), { candidate: "c" }));
   await assertFails(addDoc(collection(l, "communityRooms/r1/links/k1/fromCandidates"), { candidate: "c" }));
   await assertSucceeds(addDoc(collection(l, "communityRooms/r1/links/k1/toCandidates"), { candidate: "c" }));
+  // The room's chat: everyone in it reads and writes, as themselves (their own name and picture from the room), nobody edits or deletes.
+  const msg = (from, extra = {}) => ({ from, name: "x", avatar: "", text: "Amen", at: "2026-10-22T10:01:00Z", ...extra });
+  await assertSucceeds(addDoc(collection(l, "communityRooms/r1/chat"), msg("lis")));
+  await assertSucceeds(getDocs(collection(h, "communityRooms/r1/chat")));
+  await assertFails(getDocs(collection(x, "communityRooms/r1/chat")));
+  await assertFails(addDoc(collection(x, "communityRooms/r1/chat"), msg("stranger")));
+  await assertFails(addDoc(collection(l, "communityRooms/r1/chat"), msg("host"))); // not as someone else
+  await assertFails(addDoc(collection(l, "communityRooms/r1/chat"), msg("lis", { name: "Pastor" }))); // not under another name
+  await assertFails(addDoc(collection(l, "communityRooms/r1/chat"), msg("lis", { text: "" })));
+  await assertFails(addDoc(collection(l, "communityRooms/r1/chat"), msg("lis", { text: "a".repeat(501) })));
+  await assertFails(addDoc(collection(l, "communityRooms/r1/chat"), msg("lis", { pinned: true })));
+  await assertFails(setDoc(doc(l, "communityRooms/r1/chat/m1"), msg("lis")).then(() => updateDoc(doc(l, "communityRooms/r1/chat/m1"), { text: "edited" })));
   await env.withSecurityRulesDisabled(async (ctx) => updateDoc(doc(ctx.firestore(), "communityRooms/r1"), { status: "ended" }));
   await assertFails(addDoc(collection(h, "communityRooms/r1/links/k1/fromCandidates"), { candidate: "late" }));
+  await assertFails(addDoc(collection(l, "communityRooms/r1/chat"), msg("lis"))); // the room is over
 });
 
 test("wallet: a member reads only their own balance and statement; nobody writes from a browser", async () => {

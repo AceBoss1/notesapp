@@ -134,7 +134,15 @@ const user = (uid: string, tier = "basic", extra = {}) => db.doc(`users/${uid}`)
   rd = (await db.doc(`communityRooms/${room.id}`).get()).data()!;
   assert.equal(rd.joined.m3, undefined); assert.ok(!rd.speakers.includes("m3"), "leaving takes them off stage");
   await fails(R.closeRoom(db, "m1", room.id), 403);
+  // The room's chat: the host (or a moderator) takes a message down; a member can't; it all goes when the room ends.
+  const chat = db.collection(`communityRooms/${room.id}/chat`);
+  const m = await chat.add({ from: "m6", name: "m6", avatar: "", text: "spam", at: now.toISOString() });
+  await chat.add({ from: "m5", name: "m5", avatar: "", text: "Amen", at: now.toISOString() });
+  await fails(R.removeChat(db, "m1", room.id, m.id), 403);
+  await R.removeChat(db, "bisi", room.id, m.id);
+  assert.equal((await chat.get()).size, 1);
   await R.leaveRoom(db, "bisi", room.id);
+  assert.equal((await chat.get()).size, 0, "the chat goes with the room");
   assert.equal((await db.doc(`communityRooms/${room.id}`).get()).data()!.status, "ended", "the host leaving ends the room");
   await fails(R.joinRoom(db, "m6", room.id), 410);
   console.log("ALL OK");

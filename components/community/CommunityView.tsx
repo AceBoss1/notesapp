@@ -62,7 +62,7 @@ export default function CommunityView({ id }: { id: string }) {
           <div className="min-w-0 flex-1 sm:pt-3">
             <h1 className="font-display text-3xl text-ink sm:text-4xl">{c.name}{c.verified && <span className="ml-2 align-middle text-base text-crimson" title="Verified">✔</span>}</h1>
             {c.tagline && <p className="mt-1 text-slate">{c.tagline}</p>}
-            <p className="mt-1 text-xs text-slate">{c.memberCount.toLocaleString()} {c.memberCount === 1 ? "member" : "members"} · run by <Link href={`/u/${c.ownerUsername}`} className="underline">{c.ownerName}</Link>{v.realRole ? ` · you're ${v.realRole === "member" ? "a member" : `${v.realRole === "admin" ? "an" : "a"} ${roleName(v.realRole).toLowerCase()}`}` : ""}</p>
+            <p className="mt-1 text-xs text-slate">{c.memberCount.toLocaleString()} {c.memberCount === 1 ? "member" : "members"} · run by <Link href={`/u/${c.ownerUsername}`} className="underline">{c.ownerName}</Link>{v.realRole ? ` · you're ${v.realRole === "member" ? "a member" : `${v.realRole === "admin" || v.realRole === "owner" ? "an" : "a"} ${roleName(v.realRole).toLowerCase()}`}` : ""}</p>
           </div>
           <div className="sm:pt-4"><JoinBox v={v} user={user ?? null} invite={invite} onChange={load} /></div>
         </div>
@@ -88,7 +88,7 @@ export default function CommunityView({ id }: { id: string }) {
         {shownTab === "members" && <Members cid={id} role={v.viewingAs ? null : v.role} me={user?.uid ?? null} as={as} />}
         {shownTab === "about" && <p className="card whitespace-pre-line p-6 text-sm text-ink">{c.about}</p>}
         {shownTab === "contact" && <p className="card whitespace-pre-line p-6 text-sm text-ink">{c.contact}</p>}
-        {shownTab === "circles" && <Circles cid={id} role={v.viewingAs ? null : v.role} allowed={c.circlesAllowed} as={as} />}
+        {shownTab === "circles" && <Circles cid={id} role={v.viewingAs ? null : v.role} allowed={c.circlesAllowed} as={as} me={user?.uid ?? null} />}
         {shownTab === "admin" && v.role && <Admin cid={id} role={v.role} questions={c.questions} inviteCode={c.inviteCode} onSaved={load}
           initial={c.publicView ? { name: c.name, tagline: c.tagline, about: c.about, contact: c.contact, avatar: c.avatar, cover: c.cover, joinMode: c.joinMode, questions: c.questions, publicView: c.publicView, slowModeSec: c.slowModeSec, spaces: c.allSpaces ?? c.spaces } : null} />}
       </div>
