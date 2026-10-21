@@ -16,6 +16,7 @@ export const CHANGELOG: Release[] = [
     date: "2026-10-21",
     changes: [
       { kind: "fixed", text: "When a CardTap wallet top-up can't start, Admin → Paylony now shows why: whether CardTap is switched on, and Paylony's own reply to each of the latest attempts." },
+      { kind: "added", text: "The status page has a Wallet top-ups (CardTap) line: Operational when the latest top-up started, Down with Paylony's reason in a few words when it couldn't." },
     ],
   },
   {
