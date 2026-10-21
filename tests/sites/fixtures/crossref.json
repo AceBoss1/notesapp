@@ -1,0 +1,41 @@
+{
+ "status": "ok",
+ "message": {
+  "title": [
+   "Deep learning"
+  ],
+  "author": [
+   {
+    "given": "Yann",
+    "family": "LeCun",
+    "sequence": "first"
+   },
+   {
+    "given": "Yoshua",
+    "family": "Bengio",
+    "sequence": "additional"
+   },
+   {
+    "given": "Geoffrey",
+    "family": "Hinton",
+    "sequence": "additional"
+   }
+  ],
+  "container-title": [
+   "Nature"
+  ],
+  "issued": {
+   "date-parts": [
+    [
+     2015,
+     5,
+     27
+    ]
+   ]
+  },
+  "URL": "https://doi.org/10.1038/nature14539",
+  "DOI": "10.1038/nature14539",
+  "publisher": "Springer Science and Business Media LLC",
+  "type": "journal-article"
+ }
+}

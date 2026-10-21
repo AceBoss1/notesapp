@@ -62,7 +62,7 @@ export default function YourSitePage() {
     setText(pages);
     setSaved(pages);
     if (!canHaveSite(p)) return;
-    call(u, "/api/site/content").then((d) => applyDoc(d.site)).catch(() => applyDoc({ kit: "", palette: { id: "crimson" }, blocks: emptyBlocks(), order: DEFAULT_ORDER, bookBelowPosts: false }));
+    call(u, "/api/site/content").then((d) => applyDoc(d.site)).catch(() => applyDoc({ kit: "", palette: { id: "crimson" }, blocks: emptyBlocks(), order: DEFAULT_ORDER, bookBelowPosts: false, orcid: null }));
     if (getTierConfig(effectiveTier(p)).customDomain) {
       fetch("/api/console/domain", { headers: { Authorization: `Bearer ${await u.getIdToken()}` } })
         .then((r) => r.json()).then((d) => setDomain(d.domain || null)).catch(() => {});
@@ -239,7 +239,7 @@ export default function YourSitePage() {
         <section className="card mt-10 p-6" aria-labelledby="content-h">
           <h2 id="content-h" className="font-display text-xl text-ink">4. Your words, prices and pictures</h2>
           <p className="mt-1 text-sm text-slate">What goes in each section you switched on. Only add what&apos;s true about you and your business.</p>
-          <BlockEditors tier={tier} value={blocks} onChange={setBlocks} />
+          <BlockEditors tier={tier} value={blocks} onChange={setBlocks} orcid={site?.orcid ?? null} onOrcid={(orcid) => setSite((s) => (s ? { ...s, orcid } : s))} />
           <div className="mt-4 flex flex-wrap items-center gap-4">
             <button type="button" onClick={saveContent} disabled={busy !== null} className="btn-primary !px-4 !py-2 text-xs disabled:opacity-50">{busy === "content" ? "Saving…" : "Save"}</button>
             {contentMsg && <p className="text-sm text-ink" role="status">{contentMsg}</p>}

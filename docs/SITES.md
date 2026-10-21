@@ -108,6 +108,9 @@ An Analytics page for every member who sells, teaches, books sessions or publish
   Talks (a canvas dot-globe that turns slowly, pauses off screen, doesn't move for reduced motion; drag to turn, tap a dot; a place from
   `lib/places.ts` or typed coordinates), In the news.
 - **Kit:** Academics and researchers, a personal kit, so free with Free Basic like Personal and creators.
+- **Import** (owner, 21 Oct 2026; v0.68.0): BibTeX (Google Scholar's own export, since Scholar has no way for other sites to read a
+  profile), a DOI (Crossref), or an ORCID iD (ORCID's public API) with an optional daily sync (`sites/{uid}.orcid`, the reminders cron).
+  Merged by DOI or title, never twice; the member checks and saves (`lib/publications-import.ts`, `lib/publications-server.ts`).
 
 ## Phase 4: more kits (next)
 

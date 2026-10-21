@@ -4,6 +4,7 @@ import assert from "node:assert/strict";
 import { initializeApp } from "firebase-admin/app";
 import { getFirestore } from "firebase-admin/firestore";
 import { SiteError, applyKit, bookingOf, readSite, saveSite } from "../../lib/site-server";
+import { setOrcid, syncOrcidFor, syncOrcidSites } from "../../lib/publications-server";
 
 initializeApp({ projectId: "demo-notesapp" });
 const db = getFirestore();
@@ -73,6 +74,25 @@ const fails = async (p: Promise<unknown>, status: number, re: RegExp) => {
   assert.deepEqual(await bookingOf(db, "basic"), { offered: true, hours: "Mon–Tue, 9:00 AM to 5:00 PM" });
   await db.doc("publisherSettings/basic").update({ "session.enabled": false });
   assert.equal((await bookingOf(db, "basic")).offered, false, "sessions off: no booking link");
+
+  // ORCID: link with sync; the daily sync adds new works once, keeps the member's own, and a later save keeps the link.
+  await fails(setOrcid(db, "reader", { orcid: "0000-0002-1825-0097", sync: true }), 403, /Free Basic/);
+  await fails(setOrcid(db, "basic", { orcid: "0000-0002-1825-0098", sync: true }), 400, /ORCID/);
+  assert.deepEqual(await setOrcid(db, "basic", { orcid: "https://orcid.org/0000-0002-1825-0097", sync: true }), { id: "0000-0002-1825-0097", sync: true });
+  await saveSite(db, "basic", { blocks: { ...(await readSite(db, "basic")).blocks, publications: { on: false, items: [{ title: "My own paper", note: "Best paper" }] } } });
+  const works = async () => [{ title: "My own paper", authors: "", venue: "", year: "2020", url: "", note: "" }, { title: "A new paper", authors: "K", venue: "Nature", year: "2026", url: "https://doi.org/10.1/new", note: "" }];
+  const now2 = new Date("2026-10-22T06:00:00Z");
+  assert.equal(await syncOrcidSites(db, now2, works), 1);
+  let st = await readSite(db, "basic");
+  assert.deepEqual(st.blocks.publications.items.map((x) => x.title), ["My own paper", "A new paper"]); assert.equal(st.blocks.publications.on, true);
+  assert.equal(st.blocks.publications.items[0].note, "Best paper");
+  assert.equal(await syncOrcidSites(db, new Date("2026-10-22T10:00:00Z"), works), 0, "not again within 20 hours");
+  assert.equal(await syncOrcidFor(db, "basic", new Date("2026-10-23T10:00:00Z"), works), 0, "nothing new");
+  await saveSite(db, "basic", { palette: { id: "royal" } });
+  st = await readSite(db, "basic");
+  assert.equal(st.orcid?.id, "0000-0002-1825-0097", "saving the site keeps the ORCID link");
+  assert.equal(await setOrcid(db, "basic", { orcid: null }), null);
+  assert.equal((await readSite(db, "basic")).orcid, null);
   console.log("ALL OK");
   process.exit(0);
 })().catch((e) => { console.error(e); process.exit(1); });

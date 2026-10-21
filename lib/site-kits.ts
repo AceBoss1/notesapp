@@ -64,7 +64,9 @@ export type Blocks = {
 };
 export type SitePalette = { id: PaletteId; custom?: string; bg?: SiteBackground };
 // bookBelowPosts: a booking card under every post on the site (owner, 21 Oct 2026).
-export type SiteDoc = { kit: string; palette: SitePalette; blocks: Blocks; order: BlockId[]; bookBelowPosts: boolean; updatedAt?: string };
+// orcid: the researcher's ORCID iD, and whether their new works are added to Publications daily (lib/publications-server.ts).
+export type OrcidLink = { id: string; sync: boolean; lastSyncAt?: string };
+export type SiteDoc = { kit: string; palette: SitePalette; blocks: Blocks; order: BlockId[]; bookBelowPosts: boolean; orcid: OrcidLink | null; updatedAt?: string };
 
 export const LIMITS = { services: 40, gallery: 24, testimonials: 12, team: 24, faq: 20, publications: 200, awards: 60, talks: 80, news: 60 } as const;
 const t = (v: unknown, max: number) => String(v ?? "").replace(/\s+/g, " ").trim().slice(0, max);
@@ -140,9 +142,14 @@ export function cleanPalette(v: unknown): SitePalette {
     ...(isBackground(o.bg) ? { bg: o.bg } : {}),
   };
 }
+const orcidOf = (v: unknown): OrcidLink | null => {
+  const o = (v && typeof v === "object" ? v : null) as Record<string, unknown> | null;
+  if (!o || typeof o.id !== "string" || !/^\d{4}-\d{4}-\d{4}-\d{3}[\dX]$/.test(o.id)) return null;
+  return { id: o.id, sync: o.sync === true, ...(typeof o.lastSyncAt === "string" ? { lastSyncAt: o.lastSyncAt } : {}) };
+};
 export function siteDocOf(raw: unknown): SiteDoc {
   const o = (raw && typeof raw === "object" ? raw : {}) as Record<string, unknown>;
-  return { kit: t(o.kit, 30), palette: cleanPalette(o.palette), blocks: cleanBlocks(o.blocks), order: cleanOrder(o.order), bookBelowPosts: o.bookBelowPosts === true, updatedAt: typeof o.updatedAt === "string" ? o.updatedAt : undefined };
+  return { kit: t(o.kit, 30), palette: cleanPalette(o.palette), blocks: cleanBlocks(o.blocks), order: cleanOrder(o.order), bookBelowPosts: o.bookBelowPosts === true, orcid: orcidOf(o.orcid), updatedAt: typeof o.updatedAt === "string" ? o.updatedAt : undefined };
 }
 // What a visitor sees: only the sections switched on, with something in them, that the plan still covers (after a downgrade, a section waits
 // switched off rather than vanishing from the settings).

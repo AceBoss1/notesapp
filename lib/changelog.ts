@@ -11,6 +11,15 @@ export type Release = {
 
 export const CHANGELOG: Release[] = [
   {
+    version: "v0.68.0",
+    bump: "minor",
+    date: "2026-10-21",
+    changes: [
+      { kind: "added", text: "Import your publications instead of typing them: upload the BibTeX file Google Scholar exports (or Zotero, Mendeley and others), add a paper by its DOI, or bring in your public works from ORCID. Nothing is added twice, your own edits stay, and you check the list before saving." },
+      { kind: "added", text: "Keep in sync with ORCID: link your ORCID iD and new works on your record are added to your site's Publications every day." },
+    ],
+  },
+  {
     version: "v0.65.0",
     bump: "minor",
     date: "2026-10-21",

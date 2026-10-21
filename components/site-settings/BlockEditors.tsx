@@ -2,7 +2,9 @@
 
 import { useState } from "react";
 import { uploadToR2 } from "@/lib/upload";
-import { BLOCKS, BUTTON_KINDS, LIMITS, blockAllowed, type BlockId, type Blocks, type SiteButton } from "@/lib/site-kits";
+import { BLOCKS, BUTTON_KINDS, LIMITS, blockAllowed, type BlockId, type Blocks, type OrcidLink, type SiteButton } from "@/lib/site-kits";
+import { mergePublications } from "@/lib/publications-import";
+import ImportPublications from "./ImportPublications";
 import { tierName } from "@/lib/site-themes";
 import { PLACE_NAMES, placeCoords } from "@/lib/places";
 
@@ -68,7 +70,7 @@ function Rows<T>({ items, max, blank, onChange, render, addLabel, grid }: { item
   );
 }
 
-export default function BlockEditors({ tier, value, onChange }: { tier: string; value: Blocks; onChange: (b: Blocks) => void }) {
+export default function BlockEditors({ tier, value, onChange, orcid = null, onOrcid }: { tier: string; value: Blocks; onChange: (b: Blocks) => void; orcid?: OrcidLink | null; onOrcid?: (o: OrcidLink | null) => void }) {
   const set = <K extends BlockId>(id: K, v: Blocks[K]) => onChange({ ...value, [id]: v });
   const on = BLOCKS.filter((b) => value[b.id].on && blockAllowed(b.id, tier));
   if (!on.length) return <p className="mt-3 text-sm text-slate">Switch on a section in step 3 (or start from a kit) and its details appear here.</p>;
@@ -135,6 +137,7 @@ export default function BlockEditors({ tier, value, onChange }: { tier: string; 
       )}
       {value.publications.on && (
         <details open className="rounded-2xl border border-rule p-4"><summary className="cursor-pointer font-ui text-sm font-bold text-ink">{name("publications")}</summary>
+          <ImportPublications orcid={orcid} onOrcid={(o) => onOrcid?.(o)} onAdd={(items) => { const m = mergePublications(value.publications.items, items, LIMITS.publications); set("publications", { on: true, items: m.items }); return m.added; }} />
           <div className="mt-3"><Rows items={value.publications.items} max={LIMITS.publications} blank={{ title: "", authors: "", venue: "", year: "", url: "", note: "" }} addLabel="Add a publication" onChange={(items) => set("publications", { ...value.publications, items })}
             render={(x, s) => <div className="grid gap-2"><input aria-label="Title" placeholder="Title" value={x.title} maxLength={300} onChange={(e) => s({ ...x, title: e.target.value })} className={field} /><input aria-label="Authors" placeholder="Authors, as they appear (your name is shown in bold)" value={x.authors} maxLength={600} onChange={(e) => s({ ...x, authors: e.target.value })} className={field} /><div className="grid gap-2 sm:grid-cols-[1fr,7rem]"><input aria-label="Journal, conference or publisher" placeholder="Journal, conference or publisher" value={x.venue} maxLength={200} onChange={(e) => s({ ...x, venue: e.target.value })} className={field} /><input aria-label="Year" placeholder="Year" value={x.year} maxLength={20} onChange={(e) => s({ ...x, year: e.target.value })} className={field} /></div><div className="grid gap-2 sm:grid-cols-[1fr,12rem]"><input aria-label="Link" placeholder="Link: https://doi.org/… (optional)" value={x.url} onChange={(e) => s({ ...x, url: e.target.value })} className={field} /><input aria-label="Label" placeholder="Label, e.g. Best paper" value={x.note} maxLength={120} onChange={(e) => s({ ...x, note: e.target.value })} className={field} /></div></div>} />
             <p className="mt-2 text-xs text-slate">Shown by year, newest first; within a year, in this order.</p></div>
