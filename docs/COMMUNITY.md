@@ -1,7 +1,7 @@
-# Community (coming soon)
+# Community
 
 Like a Facebook group with a channel, run by an organisation's own admins: churches, NGOs, schools, clubs and associations with many
-members. Coming-soon pages: `/community` and `/events`; agreed names and limits in `lib/community.ts` (`COMMUNITY_LIVE = false`).
+members. Phase 1 is live (v0.71.0): `/community`, `/c/<id>`, `/events`; the rules are `lib/community.ts` and `lib/events.ts`.
 
 ## Decisions (owner, 19 Oct 2026)
 
@@ -17,7 +17,8 @@ members. Coming-soon pages: `/community` and `/events`; agreed names and limits 
 
 ## Phases
 
-1. **Community, Spaces and Events.**
+1. **Community, Spaces and Events** (built, v0.71.0; also built: insights, slow mode, View as, what non-members see. Not yet: an Events tab on
+   profiles and Upcoming events in Explore (events are listed on `/events` by state and city), reports from inside a community to #NotesApp).
    - Members and roles: owner, admins, moderators and members. Joining is open, by approval or by invite link, with optional join questions.
    - Public and members-only Spaces. Members-only posts never reach Explore, search, Open Graph previews, the sitemap, the Weekly Digest, Nana or the MCP server.
    - The General announcement channel.

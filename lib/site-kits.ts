@@ -354,7 +354,7 @@ export const KITS: Kit[] = [
   },
   {
     id: "church", name: "Churches and NGOs", emoji: "🤝", minTier: "business", theme: "clean", palette: "forest",
-    blurb: "Who you are and what you do, service or programme times, news, your team and how to get involved. Community and Giving come later.",
+    blurb: "Who you are and what you do, service or programme times, news, your team and how to get involved. Start a Community for your members too; Giving comes later.",
     sections: { journals: true, shop: false, courses: false, track: false }, blocks: ["hero", "info", "gallery", "team", "faq"],
     starter: { headline: "Stronger communities, brighter futures.", subline: "Join us, volunteer, or support the work we do.", button: btn("contact", "Get involved"),
       hours: "Sundays, 8am and 10am · Wednesdays, 6pm",
