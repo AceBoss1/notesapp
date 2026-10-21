@@ -6,6 +6,7 @@ import { notifyBell } from "./email";
 import { sendPush, type PushPayload } from "./push-server";
 import { callLogText, isCallKind, settleEnd, type CallDoc, type CallEnd, type CallKind } from "./calls";
 import { setting } from "@/lib/config";
+import { isAutoFollowed } from "./journals-directory";
 
 export type CallDeps = { push: (uid: string, p: PushPayload) => Promise<number>; bell: typeof notifyBell };
 const defaultDeps = (db: Firestore): CallDeps => ({ push: (uid, p) => sendPush(db, uid, p), bell: notifyBell });
@@ -68,7 +69,7 @@ export async function startCall(db: Firestore, callerUid: string, toUid: unknown
   );
   if (b1.exists) throw new MessageError(404, "That member wasn't found.");
   if (b2.exists) throw new MessageError(403, "You've blocked this member. Unblock them to call.");
-  if (!f1.exists || !f2.exists) throw new MessageError(403, `Calls are for people who follow each other. You and ${them.name} need to follow each other first.`);
+  if ((!f1.exists && !isAutoFollowed(them.username)) || (!f2.exists && !isAutoFollowed(me.username))) throw new MessageError(403, `Calls are for people who follow each other. You and ${them.name} need to follow each other first.`);
   const id = `${now.getTime()}_${randomBytes(5).toString("hex")}`;
   const cid = conversationId(callerUid, callee);
   const doc: CallDoc = { callerUid, calleeUid: callee, kind, status: "ringing", cid, callerName: me.name, callerAvatar: me.avatar, calleeName: them.name, calleeAvatar: them.avatar, createdAt: now.toISOString() };

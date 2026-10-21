@@ -1,8 +1,8 @@
 # Sites: looks, sections, kits and analytics
 
 The plan for growing Your site into sites for every kind of member and business, and for giving members their own analytics. The owner's
-decisions of 20 Oct 2026 are below. Phase 1 (analytics, v0.62.0) and phase 2 (sections, the Clean look, colour sets and the first kits,
-v0.63.0) are built; phases 3 and 4 are next.
+decisions of 20 Oct 2026 are below. Phase 1 (analytics, v0.63.0) and phase 2 (sections, the Clean look, colour sets and the first kits,
+v0.64.0) are built; phases 3 and 4 are next.
 
 ## Decisions (owner, 20 Oct 2026)
 
@@ -66,7 +66,7 @@ For churches, NGOs, schools and clubs ([COMMUNITY.md](COMMUNITY.md)):
   announcements, member insights), made easier where we can, plus what Facebook doesn't do: giving, paid event tickets, the
   organisation's own site and domain.
 
-## Phase 1: analytics (built, v0.62.0)
+## Phase 1: analytics (built, v0.63.0)
 
 An Analytics page for every member who sells, teaches, books sessions or publishes:
 
@@ -77,7 +77,7 @@ An Analytics page for every member who sells, teaches, books sessions or publish
 - A date range and a chart; a download of the sales (Pro and above).
 - New: daily visit counts per page for each site and store, and where visitors came from (Business and above see them).
 
-## Phase 2: sections, the Clean look, colour sets and kits (built, v0.63.0)
+## Phase 2: sections, the Clean look, colour sets and kits (built, v0.64.0)
 
 - **Who has a site:** Free Basic and above, at `/s/<username>` (`canHaveSite`); readers don't. Own domain stays Business and Enterprise.
 - **Looks** (`lib/site-themes.ts`): Legacy and **Clean** from Free Basic; Aurora and Maroon from Pro (our choice, for the owner to

@@ -12,7 +12,7 @@ import { LIFE_LIVE } from "./life/catalog";
 import { CALLS_LIVE, MESSAGES_LIVE, MOMENTS_LIVE } from "./moments-rules";
 import { BONUS_DAYS, BONUS_STEPS, TOPUP_MAX_KOBO, TOPUP_MIN_KOBO, WALLET_LIVE } from "./wallet";
 import { ORG_TRIAL_DAYS } from "./org";
-import { COMPANY_INFO } from "./site";
+import { COMPANY_INFO, SITE } from "./site";
 import { BADGE_PRICE_KOBO, TIERS, formatPercent } from "./tiers";
 import { academyApiFrom, certificateMin, currentPricing, enterpriseCoursesPrice, logisticsAddonPrice, logisticsTrialDays } from "./pricing";
 import { academyFaq } from "./academy-faq";
@@ -320,7 +320,9 @@ Calls are free. Planned: paid calls inside Notes Life (₦5 a minute voice, ₦1
 
 **Paying with CardTap:** every Notesville Naira payment at a counter (food, the Candellux, fares, petrol, the itel shop, courses, outlets) is a tap of your **Paylony CardTap** card: the merchant's phone shows who you're paying and how much, you tap your card, it beeps and approves. It's game money only; buying N$ with NotesApp Credit is a normal checkout. Turn the tap off in Settings → **Tap to pay with CardTap** and payments go straight through. Your card is in the Central Bank of Notesville (tap your N$ balance).
 
-**Partners:** Chef Adams, itel Energy, Candellux Imperial, Digital Witch and Paylony (CardTap) are real businesses that partner with Notes Life (see [Partner with Notes Life](/life/partners), where businesses can ask to join). Their in-game prices are game prices; real orders and bookings are made with them directly.`)]
+**Partners:** Chef Adams, itel Energy, Candellux Imperial, Digital Witch and Paylony (CardTap) are real businesses that partner with Notes Life (see [Partner with Notes Life](/life/partners), where businesses can ask to join). Their in-game prices are game prices; real orders and bookings are made with them directly.
+
+**Talk to other players:** tips, bug reports, ideas and news of each update are on our [Discord](${SITE.discord}) (also linked from the game's Settings and the [Notes Life page](/life)).`)]
       : []),
     A("followers-and-online-status", "Followers, following and online status", "Publishing and earning", `
 **Followers and following:** under the follower count on every profile are **Followers** and **Following**. Open either to see the people and organisations, 30 at a time. You must be signed in. You can see someone's lists only if they have made their lists visible **and** you have yours visible too; your own lists are always visible to you. Follower counts stay public.
@@ -525,7 +527,7 @@ You connect the domain in the Console by adding the DNS records we show. Buying 
 ## Setting up your site
 Open [Your site](/profile/site) (also linked from Edit profile and the Console): your domain shows there once it's connected, and the preview at ${ROOT_DOMAIN}/s/your-username always works. Choosing a kit, a look, colours and sections is in [Your own site](/help/your-site).`),
     A("api-and-console", "The API and Console (Enterprise)", "Teams and organisations", `
-Enterprise accounts can use a server-to-server API (switched on per account by our team) to publish posts and read bookings, orders and earnings, with signed webhooks for events like a booking or a paid order. Keys and webhooks are managed in the Console. Ask for access on the [contact page](/contact); the documentation is public at [API docs](/docs).`),
+Enterprise accounts can use a server-to-server API (switched on per account by our team) to publish posts and read bookings, orders and earnings, with signed webhooks for events like a booking or a paid order. Keys and webhooks are managed in the Console. Ask for access on the [contact page](/contact); the documentation is public at [API docs](/docs). Questions about the API or the MCP server can go to our [Discord](${SITE.discord}), where API changes are announced too.`),
     A("mcp-ai-assistants", "MCP: use #NotesApp from your AI assistant", "Teams and organisations", `
 MCP (Model Context Protocol) is a standard way for AI assistants such as Claude and ChatGPT to use other services. #NotesApp has an MCP server, so you can ask your own assistant to find things on #NotesApp for you.
 
@@ -587,9 +589,11 @@ His affiliations and recognition reflect his commitment to innovation, entrepren
 - Facebook: [Mr.EmmanuelAdams](https://facebook.com/Mr.EmmanuelAdams)
 - The company and its founders: [About #NotesApp](/about)`),
     A("contact-and-support", "Contacting #NotesApp", "Company", `
-Use the [contact form](/contact) and pick the topic (bookings, payments and refunds, store orders and parcels, advertising, organisations, the gold badge, reporting, partnerships, press, investment or anything else). It goes straight to our admins. For a parcel, include its ID. Nana AI can answer most how-to questions, and can pass you to a person when it cannot.`),
+Use the [contact form](/contact) and pick the topic (bookings, payments and refunds, store orders and parcels, advertising, organisations, the gold badge, reporting, partnerships, press, investment or anything else). It goes straight to our admins. For a parcel, include its ID. Nana AI can answer most how-to questions, and can pass you to a person when it cannot.
+
+You can also ask the team and other members on our Discord community, **na-notesapp**: [${SITE.discord.replace(/^https?:\/\//, "")}](${SITE.discord}). It's where we announce each release, and where developers, Notes Life players and members swap tips. Don't post payment details, passwords or anything private there; use the contact form for those.`),
     A("about-and-status", "About #NotesApp, status and updates", "Company", `
-#NotesApp is run by ${COMPANY_INFO.legalName} (RC ${COMPANY_INFO.rcNumber}), a private company limited by shares registered in Nigeria. Read [About](/about), see live service health on [Status](/status), what changed on the [Changelog](/changelog) and what is coming on the [roadmap](/roadmap). Our domain partner is Whogohost (go54), and we connect to services such as Paystack, Paylony, Cloudflare, Firebase, Vercel, Resend and Dojah.`),
+#NotesApp is run by ${COMPANY_INFO.legalName} (RC ${COMPANY_INFO.rcNumber}), a private company limited by shares registered in Nigeria. Read [About](/about), see live service health on [Status](/status), what changed on the [Changelog](/changelog) (each release is also posted to #announcements on our [Discord](${SITE.discord})) and what is coming on the [roadmap](/roadmap). Our domain partner is Whogohost (go54), and we connect to services such as Paystack, Paylony, Cloudflare, Firebase, Vercel, Resend and Dojah.`),
     A("roadmap-whats-coming", "What is coming next", "Company", `
 Not live yet, with no promised dates: quizzes on courses, and the Enterprise course packages; meetings bigger than 6 people; Community (Spaces, an announcement channel, Circles) and Events for organisations; publishing to Facebook, Instagram and TikTok (LinkedIn and X are live); AI drafting from your past notes (your AI assistant can already read #NotesApp through our MCP server); domain sales and DNS management inside #NotesApp; ${WALLET_LIVE ? "paid calls in Notes Life (the NotesApp Credit wallet itself is live)" : "NotesApp Credit and Bonus Credits"}; Paylony for real-money payments and Tap-to-Pay (Paylony CardTap already pays at every counter in Notes Life, with game money); WhatsApp reminders; fuller identity checks; and iOS and Android apps. Details and the latest are on the [roadmap](/roadmap).
 

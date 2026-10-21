@@ -11,6 +11,7 @@ import { MESSAGE_MAX } from "./messages-rules";
 import { VIDEO_MAX_BYTES, VIDEO_TYPES, isoWeekKey } from "./video-rules";
 import { effectiveTier, type AccountTier } from "./users";
 import { limit } from "./limits-server";
+import { isAutoFollowed } from "./journals-directory";
 
 // Server side of Moments. Clients never read or write the `moments` collection directly (firestore.rules say no):
 // every read goes through here so the audience check (the owner and their followers) and the expiry check can't be skipped,
@@ -49,7 +50,7 @@ export type MomentView = {
 const dayKey = (d: Date) => d.toLocaleDateString("en-CA", { timeZone: "Africa/Lagos" });
 
 async function follows(db: Firestore, viewerUid: string, ownerUsername: string): Promise<boolean> {
-  return (await db.doc(`follows/${viewerUid}_${ownerUsername}`).get()).exists;
+  return isAutoFollowed(ownerUsername) || (await db.doc(`follows/${viewerUid}_${ownerUsername}`).get()).exists;
 }
 
 // Whether a member lets anyone signed in see their moments (their choice, in their profile settings). Off unless they switch it on.
