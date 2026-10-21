@@ -14,11 +14,15 @@ import { badgesOf } from "@/lib/name-badges";
 import SiteNav from "@/components/site/SiteNav";
 import SiteAccount from "@/components/site/SiteAccount";
 import { SiteAuthProvider } from "@/components/site/SiteAuth";
-import { isCrimsonTheme, siteThemeOf } from "@/lib/site-themes";
-import { missingSitePages, siteSectionsOf } from "@/lib/site-settings";
+import { BAND_GRADIENT, canHaveSite, isCrimsonTheme, paletteVars, siteThemeOf, themeAllowed } from "@/lib/site-themes";
+import { missingSitePages, siteSectionsShown } from "@/lib/site-settings";
+import { buttonHref, emptyBlocks, resolveButton, visibleBlocks } from "@/lib/site-kits";
+import { readSite } from "@/lib/site-server";
+import { getAdminDb } from "@/lib/firebase-admin";
 
-// A member's branded site (Business and Enterprise custom domains): their name in the header, Home (profile, the sections they
-// chose and booking), Notes and Shop (each only if chosen), About and Contact (once written), and a "Powered by #NotesApp" footer.
+// A member's own site (Free Basic and above at /s/<username>; Business and Enterprise also on their own domain): their name in the header,
+// Home (their banner and content sections, profile, the sections they chose and booking), Notes and Shop (each only if chosen), About and
+// Contact (once written), and a "Powered by #NotesApp" footer. The look, colour set and sections are theirs (docs/SITES.md).
 // No #NotesApp navigation. On their own domain the URLs are /, /notes, /shop, /about and /contact (middleware.ts rewrites them
 // here); www.notesapp.name.ng/s/<username> previews it. `data-site-theme` is where themes plug in.
 export const dynamic = "force-dynamic";
@@ -41,7 +45,8 @@ export async function generateMetadata({ params }: { params: { username: string 
 
 export default async function SiteLayout({ children, params }: Props) {
   const p = await getUserByUsername(params.username).catch(() => null);
-  if (!p || p.suspended || p.uid.startsWith("admin:")) {
+  // Free Basic and above have a site (lib/site-themes.ts canHaveSite); readers who don't publish don't.
+  if (!p || p.suspended || p.uid.startsWith("admin:") || !canHaveSite(p)) {
     return (
       <div className="mx-auto max-w-md px-4 py-24 text-center">
         <p className="font-display text-2xl text-ink">This site isn&apos;t available.</p>
@@ -55,15 +60,24 @@ export default async function SiteLayout({ children, params }: Props) {
   const base = isMainHost(host) ? `/s/${p.username}` : "";
   // Business: "Name is powered by [na] #NotesApp". Enterprise: "Name, powered by [na]" — just the icon.
   const fullLabel = getTierConfig(effectiveTier(p)).whiteLabel === "full";
-  const domain = await domainForUid(p.uid).catch(() => null);
+  const tier = effectiveTier(p);
+  const [domain, site] = await Promise.all([domainForUid(p.uid).catch(() => null), readSite(getAdminDb(), p.uid).catch(() => null)]);
+  const sections = siteSectionsShown(p);
+  // A look the plan no longer covers (after a downgrade) falls back to Legacy.
+  const chosen = siteThemeOf(p);
   const info = {
     base, uid: p.uid, username: p.username, displayName: p.displayName, avatar, bio: p.bio, social: p.social || {},
     home: (domain?.home === "store" ? "store" : "profile") as "profile" | "store",
-    theme: siteThemeOf(p), isOrg: p.accountKind === "organisation",
-    sections: siteSectionsOf(p),
+    theme: themeAllowed(chosen, tier) ? chosen : "legacy" as const, isOrg: p.accountKind === "organisation",
+    sections,
     pages: { about: !missingSitePages(p).includes("about"), contact: !missingSitePages(p).includes("contact") },
-    services: siteSectionsOf(p).track ? servicesOf(p).map(serviceName) : [],
+    services: sections.track ? servicesOf(p).map(serviceName) : [],
+    blocks: site?.blocks ?? emptyBlocks(),
+    shownBlocks: site ? visibleBlocks(site, tier) : [],
   };
+  const clean = info.theme === "clean";
+  // Clean: the main button of their banner sits at the top right of every page.
+  const cta = clean && info.shownBlocks.includes("hero") ? resolveButton(info.blocks.hero.button, info.blocks.info) : null;
   const crimson = isCrimsonTheme(info.theme); // Aurora and Maroon: the crimson header
   const pic = info.isOrg ? "rounded-xl" : "rounded-full";
   // Enterprise on its own domain: sign-in and sign-up are a branded window on the site itself (not on the main-site preview).
@@ -72,8 +86,8 @@ export default async function SiteLayout({ children, params }: Props) {
   return (
     <SiteProvider value={info}>
      <Auth>
-      <div data-site-theme={info.theme} className="flex min-h-screen flex-col">
-        <header className={crimson ? "sticky top-0 z-40 text-paper shadow-md" : "sticky top-0 z-40 border-b border-rule bg-paper/90 backdrop-blur"} style={crimson ? { backgroundImage: "linear-gradient(100deg, #4E0119 0%, #7A0328 70%, #A6093D 100%)" } : undefined}>
+      <div data-site-theme={info.theme} className={`flex min-h-screen flex-col ${clean ? "bg-card" : ""}`} style={paletteVars(site?.palette, tier) as React.CSSProperties}>
+        <header className={crimson ? "sticky top-0 z-40 text-paper shadow-md" : clean ? "sticky top-0 z-40 border-b border-rule bg-card/95 backdrop-blur" : "sticky top-0 z-40 border-b border-rule bg-paper/90 backdrop-blur"} style={crimson ? { backgroundImage: BAND_GRADIENT } : undefined}>
           <div className="mx-auto flex max-w-5xl items-center justify-between gap-4 px-4 py-4 sm:px-6">
             <Link href={base || "/"} className="flex min-w-0 items-center gap-3">
               {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -84,6 +98,7 @@ export default async function SiteLayout({ children, params }: Props) {
             <div className="flex shrink-0 items-center gap-5">
               <SiteNav />
               <SiteAccount />
+              {cta && <a href={buttonHref(cta, base, `Hello ${p.displayName}, `)} className="hidden rounded-full bg-crimson px-4 py-2 font-ui text-sm font-bold text-paper hover:bg-crimson-bright sm:inline-flex" {...(cta.kind === "link" || cta.kind === "whatsapp" ? { target: "_blank", rel: "noopener noreferrer" } : {})}>{cta.label}</a>}
             </div>
           </div>
         </header>

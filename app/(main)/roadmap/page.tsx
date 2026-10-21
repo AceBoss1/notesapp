@@ -215,7 +215,7 @@ export default function RoadmapPage() {
               <li><Link href="/shop" className="text-crimson underline">Notes Market</Link>: every #NotesApp store in one place, For you first, then the most viewed and the newest</li>
               <li><Link href="/academy" className="text-crimson underline">Notes Academy</Link>: free courses from any publisher, with lessons from their own YouTube that play right here, and paid courses on Pro and above (uploaded videos on Business and Enterprise); co-tutors, organisations, likes, saves and reviews</li>
               <li><Link href="/certificates" className="text-crimson underline">Certificates</Link> anyone can check by ID or QR code, in the teacher&apos;s academy name and logo, to add to LinkedIn or save as a PDF or picture</li>
-              <li>Your site for Business and Enterprise: the Legacy, Aurora or Maroon theme, Journals, Shop and Courses on or off, and About and Contact pages</li>
+              <li><Link href="/help/your-site" className="text-crimson underline">Your own site</Link> from Free Basic at /s/your-name (your own domain on Business and Enterprise): kits for Personal and creators, Fashion, Food &amp; baking, Services, Healthcare, Schools and Churches/NGOs; the Clean, Legacy, Aurora and Maroon looks with colour sets (your own brand colour on Pro); a banner with WhatsApp, Call and Book buttons, hours and contacts, prices, a gallery, testimonials, team and answers, in your order; and About and Contact pages</li>
               <li>The #NotesApp Weekly Digest on Sunday evenings (with the most viewed and most bought in Notes Market and Notes Academy), and a notification when someone @mentions you</li>
               <li>Paid 1:1 sessions on each publisher&apos;s own rate and availability, paid through Paystack, with a bookings dashboard, rescheduling and a clear cancellation policy</li>
               <li>Paid monthly journal subscriptions that unlock premium entries</li>
@@ -245,7 +245,7 @@ export default function RoadmapPage() {
             <p className="font-ui text-sm font-bold text-ink">○ On the roadmap, not live</p>
             <ul className="mt-3 space-y-2 text-sm text-slate">
               <li>Quizzes on courses, and the two Enterprise course packages</li>
-              <li>Sites for everyone: kits by type of business (Personal, Fashion, Food &amp; baking, Services, Healthcare, School, Church/NGO), the Clean and Scholar looks with colour sets, and Publications, Awards, Talks and In the news sections; a site at /s/your-name from Free Basic</li>
+              <li>For sites: the Scholar look (with dark mode) and Publications, Awards, Talks (on a globe) and In the news sections, from Free Basic; then more kits</li>
               <li>WhatsApp reminders alongside email and the bell</li>
               <li><Link href="/community" className="text-crimson underline">Community</Link> for churches, NGOs, schools and clubs: public and members-only Spaces, a General announcement channel, private Circles, and <Link href="/events" className="text-crimson underline">Events</Link> for every account with reminders and Join live links (free up to 200 members; our own live streaming later, as a paid add-on)</li>
               <li>For logistics providers: API and webhooks on Enterprise, and Nana suggesting delivery rates</li>

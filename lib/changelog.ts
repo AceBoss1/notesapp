@@ -11,6 +11,18 @@ export type Release = {
 
 export const CHANGELOG: Release[] = [
   {
+    version: "v0.63.0",
+    bump: "minor",
+    date: "2026-10-21",
+    changes: [
+      { kind: "added", text: "Your own site now comes with Free Basic and Pro too, at notesapp.name.ng/s/your-name (your own domain stays with Business and Enterprise). Set it up on Your site, under Edit profile." },
+      { kind: "added", text: "Kits: start your site from one made for what you do: Personal and creators (Free Basic), Fashion, Food & baking, Services and Healthcare (Pro), and Schools and Churches/NGOs (Business). A kit sets the look, colours, sections and starter words; it never overwrites what you've written." },
+      { kind: "added", text: "The Clean look: white and rounded, with your main button in the header and a big banner with your picture. Every look now has colour sets (crimson, green, blue, purple, orange, gold, charcoal), and on Pro you can use your own brand colour." },
+      { kind: "added", text: "New sections for any site: a banner with buttons (Book now, Order on WhatsApp, Call us, Shop, Contact or a link), opening hours and contacts with a map link, services and prices, a gallery, testimonials, your team and questions and answers. Switch each on or off and put them in your own order." },
+      { kind: "changed", text: "Which pages a site shows follows the plan: Journals and Courses from Free Basic, Shop from Pro, Track from Business. The Legacy and Clean looks come with Free Basic; Aurora and Maroon with Pro." },
+    ],
+  },
+  {
     version: "v0.62.0",
     bump: "minor",
     date: "2026-10-20",

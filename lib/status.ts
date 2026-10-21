@@ -62,7 +62,7 @@ export async function checkServices(): Promise<ServiceStatus[]> {
     timed(async () => {
       await getAdminDb().collection("settings").limit(1).get();
       return true;
-    }).then((r) => toStatus("database", "Database", "Journals, profiles, bookings, stores, courses, shipments, the logistics network and members' analytics (Firestore)", r))
+    }).then((r) => toStatus("database", "Database", "Journals, profiles, bookings, stores, courses, shipments, the logistics network, members' sites and analytics (Firestore)", r))
   );
 
   const apiKey = setting("NEXT_PUBLIC_FIREBASE_API_KEY");

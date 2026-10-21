@@ -1,7 +1,10 @@
-// What a Business or Enterprise member's own site shows (Journals, Shop, Courses, Track) and its About and Contact pages.
+// What a member's own site shows (Journals, Shop, Courses, Track) and its About and Contact pages (Free Basic and above; docs/SITES.md).
 // Both live on users/{uid} and are written only by the server (/api/site/sections, /api/site/pages) after the plan check.
 import type { UserProfile } from "./users";
 import { ACADEMY_LIVE } from "./courses";
+import { effectiveTier } from "./effective-tier";
+import { meetsTier } from "./site-themes";
+import { SECTION_MIN_TIER } from "./site-kits";
 
 export const SITE_SECTIONS = [
   { id: "journals", name: "Journals", blurb: "Your notes, on Home and on the Notes page." },
@@ -23,6 +26,15 @@ export const siteSectionsOf = (p: Pick<UserProfile, "siteSections"> | null | und
   courses: p?.siteSections?.courses !== false,
   track: p?.siteSections?.track === true,
 });
+
+// What a visitor actually gets: the member's choice, less any section their plan no longer covers (Shop needs Pro, Track Business:
+// lib/site-kits.ts SECTION_MIN_TIER). A downgrade hides a section without forgetting the choice.
+export const siteSectionsShown = (p: Pick<UserProfile, "siteSections" | "username" | "role" | "accountTier"> | null | undefined): SiteSections => {
+  const s = siteSectionsOf(p);
+  if (!p) return s;
+  const tier = effectiveTier(p);
+  return Object.fromEntries((Object.keys(s) as SiteSectionId[]).map((k) => [k, s[k] && meetsTier(tier, SECTION_MIN_TIER[k])])) as SiteSections;
+};
 
 // A valid choice from a request body: every section a true/false (Track may be left out: off), and at least one on. Null otherwise.
 export function cleanSiteSections(v: unknown): SiteSections | null {

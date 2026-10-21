@@ -4,8 +4,8 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { onAuthStateChanged } from "firebase/auth";
 import { auth } from "@/lib/firebase";
-import { getUserByUid, type UserProfile } from "@/lib/users";
-import { canChooseSiteTheme } from "@/lib/site-themes";
+import { effectiveTier, getUserByUid, type UserProfile } from "@/lib/users";
+import { meetsTier } from "@/lib/site-themes";
 import { missingSitePages, type SitePageId } from "@/lib/site-settings";
 
 // "Your site has no About page yet": what's missing, in words.
@@ -25,7 +25,8 @@ export default function SiteReminder({ profile, className = "" }: { profile?: Us
     return onAuthStateChanged(auth, (u) => { if (u) getUserByUid(u.uid).then(setP).catch(() => setP(null)); else setP(null); });
   }, [profile]);
 
-  const missing = p && canChooseSiteTheme(p) ? missingSitePages(p) : [];
+  // Business and Enterprise, whose site is their business's own website (Free Basic and Pro sites aren't nagged about it).
+  const missing = p && meetsTier(effectiveTier(p), "business") ? missingSitePages(p) : [];
   const key = p ? `notesapp:site-reminder:${p.uid}:${missing.join(",")}` : "";
   useEffect(() => {
     if (!key || missing.length === 0) return;

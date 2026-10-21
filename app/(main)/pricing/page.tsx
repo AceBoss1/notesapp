@@ -28,7 +28,7 @@ export const revalidate = 60;
 type Row = { label: string; href?: string; render: (t: (typeof TIERS)[number], L: LimitTable) => string; show?: boolean };
 // No setting holds the certificate minimum yet (docs/COURSES.md, decision 3), so it is written here once.
 const TEAM_HUB_NOTE = "The Team hub and team messages are coming as a paid add-on for Business and Enterprise after our internal testing";
-const YOUR_SITE = "Your site: the Legacy, Aurora or Maroon theme, Journals, Shop and Courses on or off, and About and Contact pages.";
+const YOUR_SITE = "Your site: every kit, the Clean, Legacy, Aurora or Maroon look with your colours, your sections, Journals, Shop, Courses and Track, and About and Contact pages.";
 const mins = (s: number) => (s % 60 === 0 ? `${s / 60} minute${s === 60 ? "" : "s"}` : `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`);
 
 const ROWS: Row[] = [
@@ -140,6 +140,18 @@ const ROWS: Row[] = [
     render: (t) => (!t.canPublish ? "—" : t.customDomain ? "Book shipments for your customers, rider hand-off links, and a Track page on your own site · list your business in the logistics network so stores can choose you · deliveries are paid by the customer" : `The logistics add-on: ${logisticsAddonPrice()}/month, with a ${logisticsTrialDays()}-day free trial and no card · shipments, rider hand-off links and a listing in the logistics network`),
   },
   {
+    label: "Your own site",
+    href: "/help/your-site",
+    render: (t) =>
+      !t.canPublish
+        ? "—"
+        : t.tier === "basic"
+          ? `At ${ROOT_DOMAIN}/s/username: the Personal kit, the Clean and Legacy looks with colour sets, a banner with buttons, hours, prices, gallery, testimonials, team and answers, Journals and Courses`
+          : t.tier === "pro"
+            ? "Also the Fashion, Food & baking, Services and Healthcare kits, the Aurora and Maroon looks, your own brand colour, and Shop"
+            : "Every kit, including Schools and Churches/NGOs, and Track, on your own domain too",
+  },
+  {
     label: "Your own domain",
     render: (t) =>
       !t.canPublish
@@ -148,7 +160,7 @@ const ROWS: Row[] = [
           ? t.tier === "business"
             ? `Serve your page, journals and store on notes.yourbrand.com or yourbrand.com — your /u/username page stays the default home, and you can switch back any time. ${YOUR_SITE} Semi white-label: the footer reads “Your name is powered by #NotesApp” and emails go out under #NotesApp's name on your behalf`
             : `Serve your page, journals and store on notes.yourbrand.com or yourbrand.com — your /u/username page stays the default home, and you can switch back any time. ${YOUR_SITE} Full white label: visitors sign in and sign up in a window in your name and logo (still clearly a NotesApp account), and their password and confirmation emails come in your name. Checkout and bookings still open on #NotesApp for now`
-          : `Your page lives at ${ROOT_DOMAIN}/u/username`,
+          : "With Business and Enterprise; until then your site is at /s/username",
   },
   {
     label: "Files in messages",

@@ -2,13 +2,16 @@ import { NextRequest, NextResponse } from "next/server";
 import { friendlyMessage } from "@/lib/api-errors";
 import { getAdminDb, verifySignedInRequest } from "@/lib/firebase-admin";
 import { rateLimit } from "@/lib/rate-limit";
-import { canChooseSiteTheme } from "@/lib/site-themes";
+import { canHaveSite, meetsTier, tierName } from "@/lib/site-themes";
+import { SECTION_MIN_TIER } from "@/lib/site-kits";
+import { effectiveTier } from "@/lib/users";
 import { cleanSiteSections } from "@/lib/site-settings";
 import type { UserProfile } from "@/lib/users";
 
 export const dynamic = "force-dynamic";
 
-// Business and Enterprise members: POST { sections: { journals, shop, courses } } chooses what their own site shows (at least one).
+// Members with a site: POST { sections: { journals, shop, courses, track } } chooses what their own site shows (at least one); Shop needs Pro and
+// Track Business (lib/site-kits.ts SECTION_MIN_TIER).
 // Written here (not from the browser) so the plan is checked on the server.
 export async function POST(req: NextRequest) {
   try {
@@ -23,7 +26,10 @@ export async function POST(req: NextRequest) {
     const snap = await db.doc(`users/${user.uid}`).get();
     const p = snap.data() as UserProfile | undefined;
     if (!p) return NextResponse.json({ error: "Profile not found." }, { status: 404 });
-    if (!canChooseSiteTheme(p)) return NextResponse.json({ error: "Choosing what your site shows is on the Business and Enterprise plans." }, { status: 403 });
+    if (!canHaveSite(p)) return NextResponse.json({ error: "Your own site comes with Free Basic and above." }, { status: 403 });
+    const tier = effectiveTier(p);
+    const over = (Object.keys(SECTION_MIN_TIER) as (keyof typeof SECTION_MIN_TIER)[]).find((k) => sections[k] && !meetsTier(tier, SECTION_MIN_TIER[k]));
+    if (over) return NextResponse.json({ error: `${over[0].toUpperCase()}${over.slice(1)} on your site comes with ${tierName(SECTION_MIN_TIER[over])} and above.` }, { status: 403 });
     await db.doc(`users/${user.uid}`).update({ siteSections: sections });
     return NextResponse.json({ sections });
   } catch (err) {

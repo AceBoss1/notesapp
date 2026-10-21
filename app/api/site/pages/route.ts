@@ -3,13 +3,13 @@ import { FieldValue } from "firebase-admin/firestore";
 import { friendlyMessage } from "@/lib/api-errors";
 import { getAdminDb, verifySignedInRequest } from "@/lib/firebase-admin";
 import { rateLimit } from "@/lib/rate-limit";
-import { canChooseSiteTheme } from "@/lib/site-themes";
+import { canHaveSite } from "@/lib/site-themes";
 import { SITE_PAGE_MAX, isSitePage } from "@/lib/site-settings";
 import type { UserProfile } from "@/lib/users";
 
 export const dynamic = "force-dynamic";
 
-// Business and Enterprise members: POST { page: "about" | "contact", markdown } saves that page of their own site.
+// Members with a site (Free Basic and above): POST { page: "about" | "contact", markdown } saves that page of their own site.
 // An empty page is removed (the site then has no link to it). Written here so the plan and the length are checked on the server.
 export async function POST(req: NextRequest) {
   try {
@@ -26,7 +26,7 @@ export async function POST(req: NextRequest) {
     const snap = await db.doc(`users/${user.uid}`).get();
     const p = snap.data() as UserProfile | undefined;
     if (!p) return NextResponse.json({ error: "Profile not found." }, { status: 404 });
-    if (!canChooseSiteTheme(p)) return NextResponse.json({ error: "About and Contact pages are on the Business and Enterprise plans." }, { status: 403 });
+    if (!canHaveSite(p)) return NextResponse.json({ error: "Your own site comes with Free Basic and above." }, { status: 403 });
     const updatedAt = new Date().toISOString();
     await db.doc(`users/${user.uid}`).update({ [`sitePages.${b.page}`]: markdown || FieldValue.delete(), "sitePages.updatedAt": updatedAt });
     return NextResponse.json({ page: b.page, markdown, updatedAt });

@@ -1,9 +1,8 @@
 # Sites: looks, sections, kits and analytics
 
 The plan for growing Your site into sites for every kind of member and business, and for giving members their own analytics. The owner's
-decisions of 20 Oct 2026 are below; nothing here is built until its phase starts. Today's Your site (`lib/site-themes.ts`,
-`lib/site-settings.ts`) has three looks (Legacy, Aurora, Maroon) and four sections (Journals, Shop, Courses, Track), on Business and
-Enterprise only.
+decisions of 20 Oct 2026 are below. Phase 1 (analytics, v0.62.0) and phase 2 (sections, the Clean look, colour sets and the first kits,
+v0.63.0) are built; phases 3 and 4 are next.
 
 ## Decisions (owner, 20 Oct 2026)
 
@@ -77,3 +76,31 @@ An Analytics page for every member who sells, teaches, books sessions or publish
   seller.
 - A date range and a chart; a download of the sales (Pro and above).
 - New: daily visit counts per page for each site and store, and where visitors came from (Business and above see them).
+
+## Phase 2: sections, the Clean look, colour sets and kits (built, v0.63.0)
+
+- **Who has a site:** Free Basic and above, at `/s/<username>` (`canHaveSite`); readers don't. Own domain stays Business and Enterprise.
+- **Looks** (`lib/site-themes.ts`): Legacy and **Clean** from Free Basic; Aurora and Maroon from Pro (our choice, for the owner to
+  confirm). A look the plan no longer covers shows as Legacy.
+- **Colour sets:** crimson, forest, ocean, royal, sunset, gold, charcoal on every look; a custom brand colour from Pro (too-light colours are
+  darkened). The site sets three CSS variables (`--c-crimson`, `--c-crimson-bright`, `--c-crimson-deep`) that the Tailwind crimson colours
+  read, with today's values as the fallback, so the main site never changes.
+- **Sections** (`lib/site-kits.ts`, stored in `sites/{uid}`, written only by `lib/site-server.ts`): top banner with up to two buttons (Book
+  now, Order on WhatsApp, Call us, Shop, Contact, a link), hours and contacts strip with a Google Maps link, services and prices, gallery
+  (opens larger), testimonials, team, questions and answers; each on or off, in the member's order, shown only once filled in. Every
+  section is open from Free Basic. Pages: Journals and Courses from Free Basic, Shop from Pro, Track from Business.
+- **Kits:** Personal and creators (Free Basic); Fashion, Food & baking, Services, Healthcare (Pro); School, Church/NGO (Business). A kit
+  sets the look, colour set, pages, sections and their order, and fills only empty parts with starter words: it never overwrites the
+  member's words.
+- **Settings:** Your site has five steps: kit, look and colours, what shows (with order arrows), words prices and pictures, About and
+  Contact. Help → "Your own site".
+
+## Phase 3: Scholar and the academic sections (next)
+
+The Scholar look (plain and academic, with dark mode) and the Publications, Awards, Talks (on a globe) and In the news sections, open from
+Free Basic.
+
+## Phase 4: more kits (next)
+
+More kits by type of member and business (for example salons, events, real estate, photographers), each in the same shape as the first
+seven.

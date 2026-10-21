@@ -1,0 +1,74 @@
+// Sites (lib/site-themes.ts, lib/site-kits.ts): who has a site and which looks, colour sets, content made safe, what visitors see, buttons,
+// and kits that never wipe the member's words. Run: npm run test:sites → "ALL OK".
+import assert from "node:assert/strict";
+import { canHaveSite, meetsTier, paletteRgb, paletteVars, themeAllowed } from "../../lib/site-themes";
+import { KITS, applyKitTo, buttonHref, cleanBlocks, cleanButton, cleanOrder, cleanPalette, kitAllowed, kitOf, resolveButton, siteDocOf, visibleBlocks } from "../../lib/site-kits";
+import { siteSectionsShown } from "../../lib/site-settings";
+
+const u = (accountTier: string, role = "publisher") => ({ username: "x", role, accountTier }) as never;
+// Who has a site, and the looks
+assert.equal(canHaveSite(u("standard", "reader")), false);
+assert.equal(canHaveSite(u("basic")), true); assert.equal(canHaveSite(u("pro")), true);
+assert.equal(themeAllowed("clean", "basic"), true); assert.equal(themeAllowed("legacy", "basic"), true);
+assert.equal(themeAllowed("aurora", "basic"), false); assert.equal(themeAllowed("maroon", "pro"), true);
+assert.ok(meetsTier("enterprise", "business")); assert.ok(!meetsTier("pro", "business"));
+
+// Colour sets: presets for all, a custom colour from Pro, too-light colours darkened
+assert.deepEqual(paletteVars(null, "basic"), { "--c-crimson": "122 3 40", "--c-crimson-bright": "166 9 61", "--c-crimson-deep": "78 1 25" }, "the default is #NotesApp's own crimson");
+assert.equal(paletteVars({ id: "forest" }, "basic")["--c-crimson"], "16 110 74");
+assert.equal(paletteVars({ id: "forest", custom: "#123456" }, "basic")["--c-crimson"], "16 110 74", "Free Basic can't use a custom colour");
+assert.equal(paletteVars({ id: "forest", custom: "#123456" }, "pro")["--c-crimson"], "18 52 86");
+const light = paletteRgb({ custom: "#ffff66" }, "pro").base;
+assert.ok((0.2126 * light[0] + 0.7152 * light[1] + 0.0722 * light[2]) / 255 <= 0.56, "a pale yellow is darkened so white text stays readable");
+assert.deepEqual(cleanPalette({ id: "nope", custom: "red" }), { id: "crimson" });
+
+// Content made safe
+const b = cleanBlocks({
+  hero: { on: true, headline: "  Fresh   cakes ", subline: "x".repeat(500), image: "javascript:alert(1)", button: { kind: "whatsapp", label: "", value: "0803 123 4567" }, second: { kind: "link", value: "http://insecure" } },
+  info: { on: true, hours: "Mon–Sat", whatsapp: "+234 803 000 0000", mapUrl: "https://evil.example/maps" },
+  services: { on: true, items: [{ name: "Cake", price: "₦25,000" }, { name: "" }, ...Array.from({ length: 50 }, (_, i) => ({ name: `S${i}` }))] },
+  gallery: { on: true, items: [{ image: "https://media.notesapp.name.ng/a.jpg", caption: "Shop" }, { image: "data:image/png;base64,xx" }] },
+  faq: { on: true, items: [{ q: "Q?", a: "" }, { q: "Delivery?", a: "Yes" }] },
+  extra: { on: true },
+});
+assert.equal(b.hero.headline, "Fresh cakes"); assert.equal(b.hero.subline.length, 240); assert.equal(b.hero.image, "", "only https pictures");
+assert.deepEqual(b.hero.button, { kind: "whatsapp", label: "Order on WhatsApp", value: "08031234567" });
+assert.equal(b.hero.second, null, "an http link is refused");
+assert.equal(b.info.whatsapp, "+2348030000000"); assert.equal(b.info.mapUrl, "", "only Google Maps links");
+assert.equal(b.services.items.length, 40, "empty rows dropped, then the limit"); assert.equal(b.services.items[0].name, "Cake");
+assert.equal(b.gallery.items.length, 1); assert.deepEqual(b.faq.items, [{ q: "Delivery?", a: "Yes" }]);
+assert.equal((b as unknown as Record<string, unknown>).extra, undefined);
+assert.deepEqual(cleanOrder(["faq", "faq", "nope", "hero"]).slice(0, 3), ["faq", "hero", "info"]);
+assert.equal(cleanButton({ kind: "link", value: "" }), null);
+assert.deepEqual(cleanButton({ kind: "call", value: "" }), { kind: "call", label: "Call us", value: "" }, "a Call button may use the strip's number");
+
+// Buttons
+const info = { on: true, hours: "", whatsapp: "08031234567", phone: "", address: "", mapUrl: "" };
+assert.equal(buttonHref(resolveButton({ kind: "whatsapp", label: "x", value: "" }, info)!, ""), "https://wa.me/2348031234567");
+assert.equal(resolveButton({ kind: "call", label: "x", value: "" }, { ...info, whatsapp: "" }), null, "no number anywhere: no button");
+assert.equal(buttonHref({ kind: "book", label: "", value: "" }, "/s/apex"), "/s/apex/#book");
+assert.equal(buttonHref({ kind: "shop", label: "", value: "" }, ""), "/shop");
+
+// What visitors see: switched on, filled in, covered by the plan, in order
+const d = siteDocOf({ blocks: { ...b, team: { on: true, items: [{ name: "Ada" }] } }, order: ["faq", "team", "hero"] });
+assert.deepEqual(visibleBlocks(d, "basic"), ["faq", "team", "hero", "info", "services", "gallery"], "every section is open from Free Basic (docs/SITES.md)");
+assert.deepEqual(visibleBlocks(d, "standard"), [], "no site below Free Basic");
+assert.deepEqual(siteSectionsShown({ ...(u("basic") as object), siteSections: { journals: true, shop: true, courses: true, track: true } } as never), { journals: true, shop: false, courses: true, track: false }, "Shop needs Pro, Track Business");
+
+// Kits
+assert.equal(KITS.length, 7);
+assert.deepEqual(KITS.filter((k) => kitAllowed(k, "basic")).map((k) => k.id), ["personal"], "Free Basic: the Personal kit only");
+assert.deepEqual(KITS.filter((k) => kitAllowed(k, "pro")).map((k) => k.id), ["personal", "fashion", "food", "services", "healthcare"]);
+assert.equal(KITS.filter((k) => kitAllowed(k, "business")).length, 7);
+const mine = siteDocOf({ blocks: { hero: { headline: "My own words" }, services: { items: [{ name: "Mine", price: "₦1" }] } } });
+const r = applyKitTo(mine, kitOf("food")!, "pro");
+assert.equal(r.theme, "clean"); assert.equal(r.site.kit, "food"); assert.equal(r.site.palette.id, "sunset");
+assert.equal(r.site.blocks.hero.headline, "My own words", "the member's words are kept");
+assert.equal(r.site.blocks.hero.subline, kitOf("food")!.starter.subline, "empty parts get starter words");
+assert.deepEqual(r.site.blocks.services.items, [{ name: "Mine", price: "₦1", note: "" }]);
+assert.equal(r.site.blocks.hero.on && r.site.blocks.services.on && !r.site.blocks.faq.on, true);
+assert.deepEqual(r.sections, { journals: false, shop: true, courses: false, track: false });
+const r2 = applyKitTo(siteDocOf({}), kitOf("healthcare")!, "basic");
+assert.equal(r2.site.blocks.team.on, true);
+assert.equal(applyKitTo(siteDocOf({}), kitOf("food")!, "basic").sections.shop, false, "a page the plan doesn't cover (Shop below Pro) stays off");
+console.log("ALL OK");

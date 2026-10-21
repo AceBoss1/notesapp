@@ -4,6 +4,7 @@ import { createContext, useContext } from "react";
 import type { SocialLinks } from "@/lib/admin";
 import type { SiteThemeId } from "@/lib/site-themes";
 import type { SiteSections } from "@/lib/site-settings";
+import type { BlockId, Blocks } from "@/lib/site-kits";
 
 // What every page of a member's branded site needs to know. `base` is "" on their own domain and
 // "/s/<username>" when the same site is previewed on www.notesapp.name.ng.
@@ -21,6 +22,8 @@ export type SiteInfo = {
   sections: SiteSections; // what they chose to show (lib/site-settings.ts)
   pages: { about: boolean; contact: boolean }; // whether they wrote an About and a Contact page
   services: string[]; // a logistics business with Track on: the services it offers, by name (lib/shipments.ts); otherwise none
+  blocks: Blocks; // the content sections (lib/site-kits.ts): banner, hours and contacts, services, gallery, testimonials, team, questions
+  shownBlocks: BlockId[]; // the ones a visitor sees, in the member's order (switched on, filled in, covered by the plan)
 };
 
 const Ctx = createContext<SiteInfo | null>(null);

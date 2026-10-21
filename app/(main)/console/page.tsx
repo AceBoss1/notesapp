@@ -219,7 +219,7 @@ export default function ConsolePage() {
       <h2 className="mt-12 font-display text-2xl text-ink">Your own domain</h2>
       {access.domainAllowed && <p className="mt-2 text-sm text-slate">Your site&apos;s theme, what it shows and its About and Contact pages are on <Link href="/profile/site" className="text-crimson underline">Your site</Link>.</p>}
       {!access.domainAllowed ? (
-        <Locked>A branded site on your own domain (Home, Notes and Shop) is a Business and Enterprise feature. Until then your page lives at <span className="font-mono">{ROOT_DOMAIN}/u/{access.username}</span>. See <Link href="/pricing" className="text-crimson underline">Pricing</Link>.</Locked>
+        <Locked>A branded site on your own domain (Home, Notes and Shop) is a Business and Enterprise feature. Until then your site lives at <span className="font-mono">{ROOT_DOMAIN}/s/{access.username}</span> (from Free Basic; set it up on <Link href="/profile/site" className="text-crimson underline">Your site</Link>). See <Link href="/pricing" className="text-crimson underline">Pricing</Link>.</Locked>
       ) : !domain ? (
         <form className="card mt-4 p-5" onSubmit={(e) => { e.preventDefault(); act(async () => { await call(user, "/api/console/domain", { method: "POST", body: JSON.stringify({ host }) }); setHost(""); }, "Domain added — now add the DNS records below."); }}>
           <label className="text-xs text-slate">Domain<input value={host} onChange={(e) => setHost(e.target.value)} placeholder="notes.yourbrand.com  or  yourbrand.com" className={`${field} font-mono`} /></label>

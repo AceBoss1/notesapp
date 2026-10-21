@@ -1066,3 +1066,14 @@ test("notifications and comments: only the server creates them; members read and
   await assertFails(deleteDoc(doc(as("bob"), "notes/pub1/comments/c1")));
   await assertSucceeds(deleteDoc(doc(as("alice"), "notes/pub1/comments/c1")));
 });
+
+test("sites: a member's site content is public to read; only the server writes it", async () => {
+  await env.withSecurityRulesDisabled(async (ctx) => {
+    await setDoc(doc(ctx.firestore(), "sites/pub"), { uid: "pub", kit: "food", blocks: {}, order: [] });
+  });
+  await assertSucceeds(getDoc(doc(anon(), "sites/pub")));
+  await assertSucceeds(getDoc(doc(as("bob"), "sites/pub")));
+  await assertFails(setDoc(doc(as("pub"), "sites/pub"), { uid: "pub", kit: "school" })); // not even the owner: plans are checked on the server
+  await assertFails(updateDoc(doc(as("pub"), "sites/pub"), { kit: "school" }));
+  await assertFails(setDoc(doc(as("alice"), "sites/alice"), { uid: "alice" }));
+});
