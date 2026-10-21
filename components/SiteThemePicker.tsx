@@ -31,7 +31,7 @@ export default function SiteThemePicker({ current, username, tier, title = "Your
     <section className="card mt-10 p-6" aria-labelledby="theme-h">
       <h2 id="theme-h" className="font-display text-xl text-ink">{title}</h2>
       <p className="mt-1 text-sm text-slate">The look of your whole site. You can switch at any time. <a href={`/s/${username}`} className="text-crimson underline" target="_blank" rel="noopener noreferrer">Preview your site</a></p>
-      <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4" role="radiogroup" aria-label="Site theme">
+      <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3" role="radiogroup" aria-label="Site theme">
         {SITE_THEMES.map((t) => { const open = themeAllowed(t.id, tier); return (
           <button key={t.id} type="button" role="radio" aria-checked={theme === t.id} disabled={busy || !open} onClick={() => choose(t.id)}
             className={`rounded-2xl border p-4 text-left disabled:cursor-not-allowed ${theme === t.id ? "border-crimson ring-2 ring-crimson/30" : "border-rule hover:border-crimson"} ${open ? "" : "opacity-60"}`}>
@@ -41,6 +41,18 @@ export default function SiteThemePicker({ current, username, tier, title = "Your
                 <span className="block h-5" style={{ backgroundImage: BAND_GRADIENT }} />
                 <span className="mx-3 mt-2 block h-3 rounded border border-rule bg-card" />
                 <span className="mx-3 mt-1.5 block h-3 rounded border border-rule bg-card" />
+              </span>
+            ) : t.id === "scholar" ? (
+              // A narrow column of lines, half light and half dark (it has a dark mode)
+              <span className="mb-3 flex h-16 overflow-hidden rounded-lg border border-rule" aria-hidden="true">
+                {[false, true].map((d) => (
+                  <span key={String(d)} className="flex-1 space-y-1 p-2" style={{ background: d ? "#141211" : "#FFFFFF" }}>
+                    <span className="block h-1.5 w-3/4 rounded" style={{ background: d ? "#ECE5E0" : "#1A1210" }} />
+                    <span className="block h-1 w-full rounded bg-crimson/50" />
+                    <span className="block h-1 w-5/6 rounded" style={{ background: d ? "#3C3633" : "#E7DAD3" }} />
+                    <span className="block h-1 w-2/3 rounded" style={{ background: d ? "#3C3633" : "#E7DAD3" }} />
+                  </span>
+                ))}
               </span>
             ) : t.id === "clean" ? (
               // White, a coloured button at the top right, words beside a picture

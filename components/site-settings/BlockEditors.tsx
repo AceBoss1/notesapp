@@ -4,6 +4,7 @@ import { useState } from "react";
 import { uploadToR2 } from "@/lib/upload";
 import { BLOCKS, BUTTON_KINDS, LIMITS, blockAllowed, type BlockId, type Blocks, type SiteButton } from "@/lib/site-kits";
 import { tierName } from "@/lib/site-themes";
+import { PLACE_NAMES, placeCoords } from "@/lib/places";
 
 // Step 4 on Your site: what goes in each content section (lib/site-kits.ts). One panel per section that's switched on; Save sends them all.
 const field = "mt-1 w-full rounded-xl border border-rule bg-card px-3 py-2 text-sm outline-none focus:border-crimson";
@@ -130,6 +131,48 @@ export default function BlockEditors({ tier, value, onChange }: { tier: string; 
         <details open className="rounded-2xl border border-rule p-4"><summary className="cursor-pointer font-ui text-sm font-bold text-ink">{name("faq")}</summary>
           <div className="mt-3"><Rows items={value.faq.items} max={LIMITS.faq} blank={{ q: "", a: "" }} addLabel="Add a question" onChange={(items) => set("faq", { ...value.faq, items })}
             render={(x, s) => <div className="grid gap-2"><input aria-label="Question" placeholder="The question" value={x.q} maxLength={160} onChange={(e) => s({ ...x, q: e.target.value })} className={field} /><textarea aria-label="Answer" placeholder="Your answer" value={x.a} maxLength={800} rows={2} onChange={(e) => s({ ...x, a: e.target.value })} className={field} /></div>} /></div>
+        </details>
+      )}
+      {value.publications.on && (
+        <details open className="rounded-2xl border border-rule p-4"><summary className="cursor-pointer font-ui text-sm font-bold text-ink">{name("publications")}</summary>
+          <div className="mt-3"><Rows items={value.publications.items} max={LIMITS.publications} blank={{ title: "", authors: "", venue: "", year: "", url: "", note: "" }} addLabel="Add a publication" onChange={(items) => set("publications", { ...value.publications, items })}
+            render={(x, s) => <div className="grid gap-2"><input aria-label="Title" placeholder="Title" value={x.title} maxLength={300} onChange={(e) => s({ ...x, title: e.target.value })} className={field} /><input aria-label="Authors" placeholder="Authors, as they appear (your name is shown in bold)" value={x.authors} maxLength={600} onChange={(e) => s({ ...x, authors: e.target.value })} className={field} /><div className="grid gap-2 sm:grid-cols-[1fr,7rem]"><input aria-label="Journal, conference or publisher" placeholder="Journal, conference or publisher" value={x.venue} maxLength={200} onChange={(e) => s({ ...x, venue: e.target.value })} className={field} /><input aria-label="Year" placeholder="Year" value={x.year} maxLength={20} onChange={(e) => s({ ...x, year: e.target.value })} className={field} /></div><div className="grid gap-2 sm:grid-cols-[1fr,12rem]"><input aria-label="Link" placeholder="Link: https://doi.org/… (optional)" value={x.url} onChange={(e) => s({ ...x, url: e.target.value })} className={field} /><input aria-label="Label" placeholder="Label, e.g. Best paper" value={x.note} maxLength={120} onChange={(e) => s({ ...x, note: e.target.value })} className={field} /></div></div>} />
+            <p className="mt-2 text-xs text-slate">Shown by year, newest first; within a year, in this order.</p></div>
+        </details>
+      )}
+      {value.awards.on && (
+        <details open className="rounded-2xl border border-rule p-4"><summary className="cursor-pointer font-ui text-sm font-bold text-ink">{name("awards")}</summary>
+          <div className="mt-3"><Rows items={value.awards.items} max={LIMITS.awards} blank={{ title: "", by: "", year: "", note: "" }} addLabel="Add an award" onChange={(items) => set("awards", { ...value.awards, items })}
+            render={(x, s) => <div className="grid gap-2"><div className="grid gap-2 sm:grid-cols-[1fr,7rem]"><input aria-label="Award" placeholder="Award, grant or fellowship" value={x.title} maxLength={200} onChange={(e) => s({ ...x, title: e.target.value })} className={field} /><input aria-label="Year" placeholder="Year" value={x.year} maxLength={20} onChange={(e) => s({ ...x, year: e.target.value })} className={field} /></div><div className="grid gap-2 sm:grid-cols-2"><input aria-label="Given by" placeholder="Given by" value={x.by} maxLength={160} onChange={(e) => s({ ...x, by: e.target.value })} className={field} /><input aria-label="Note" placeholder="A short note (optional)" value={x.note} maxLength={200} onChange={(e) => s({ ...x, note: e.target.value })} className={field} /></div></div>} /></div>
+        </details>
+      )}
+      {value.talks.on && (
+        <details open className="rounded-2xl border border-rule p-4"><summary className="cursor-pointer font-ui text-sm font-bold text-ink">{name("talks")}</summary>
+          <datalist id="talk-places">{PLACE_NAMES.map((p) => <option key={p} value={p} />)}</datalist>
+          <div className="mt-3"><Rows items={value.talks.items} max={LIMITS.talks} blank={{ title: "", event: "", place: "", year: "", url: "", lat: null, lng: null }} addLabel="Add a talk" onChange={(items) => set("talks", { ...value.talks, items })}
+            render={(x, s) => {
+              const known = placeCoords(x.place);
+              const num = (v: string) => (v.trim() === "" || Number.isNaN(Number(v)) ? null : Number(v));
+              return (
+                <div className="grid gap-2">
+                  <div className="grid gap-2 sm:grid-cols-[1fr,7rem]"><input aria-label="Talk" placeholder="Title of the talk" value={x.title} maxLength={200} onChange={(e) => s({ ...x, title: e.target.value })} className={field} /><input aria-label="Year" placeholder="Year" value={x.year} maxLength={20} onChange={(e) => s({ ...x, year: e.target.value })} className={field} /></div>
+                  <div className="grid gap-2 sm:grid-cols-2"><input aria-label="Event" placeholder="Event or host" value={x.event} maxLength={160} onChange={(e) => s({ ...x, event: e.target.value })} className={field} />
+                    <input aria-label="Where" list="talk-places" placeholder="City, country (e.g. Lagos, Nigeria)" value={x.place} maxLength={80} onChange={(e) => { const c = placeCoords(e.target.value); s({ ...x, place: e.target.value, lat: c ? c[0] : null, lng: c ? c[1] : null }); }} className={field} /></div>
+                  <input aria-label="Link" placeholder="Link to slides or a video: https://… (optional)" value={x.url} onChange={(e) => s({ ...x, url: e.target.value })} className={field} />
+                  {known || (x.lat !== null && x.lng !== null)
+                    ? <p className="text-xs text-slate">📍 On the globe.</p>
+                    : <div className="flex flex-wrap items-center gap-2 text-xs text-slate"><span>Not on the globe yet: pick a city from the list, or add where it is:</span>
+                        <input aria-label="Latitude" inputMode="decimal" placeholder="Latitude" defaultValue={x.lat ?? ""} onBlur={(e) => s({ ...x, lat: num(e.target.value) })} className="w-24 rounded-lg border border-rule bg-card px-2 py-1" />
+                        <input aria-label="Longitude" inputMode="decimal" placeholder="Longitude" defaultValue={x.lng ?? ""} onBlur={(e) => s({ ...x, lng: num(e.target.value) })} className="w-24 rounded-lg border border-rule bg-card px-2 py-1" /></div>}
+                </div>
+              );
+            }} /></div>
+        </details>
+      )}
+      {value.news.on && (
+        <details open className="rounded-2xl border border-rule p-4"><summary className="cursor-pointer font-ui text-sm font-bold text-ink">{name("news")}</summary>
+          <div className="mt-3"><Rows items={value.news.items} max={LIMITS.news} blank={{ title: "", outlet: "", year: "", url: "" }} addLabel="Add an article" onChange={(items) => set("news", { ...value.news, items })}
+            render={(x, s) => <div className="grid gap-2"><input aria-label="Headline" placeholder="Headline" value={x.title} maxLength={200} onChange={(e) => s({ ...x, title: e.target.value })} className={field} /><div className="grid gap-2 sm:grid-cols-[1fr,7rem]"><input aria-label="Outlet" placeholder="Newspaper, site or show" value={x.outlet} maxLength={100} onChange={(e) => s({ ...x, outlet: e.target.value })} className={field} /><input aria-label="Year" placeholder="Year" value={x.year} maxLength={20} onChange={(e) => s({ ...x, year: e.target.value })} className={field} /></div><input aria-label="Link" placeholder="https://…" value={x.url} onChange={(e) => s({ ...x, url: e.target.value })} className={field} /></div>} /></div>
         </details>
       )}
       {BLOCKS.filter((b) => value[b.id].on && !blockAllowed(b.id, tier)).map((b) => <p key={b.id} className="text-xs text-slate">🔒 {b.name} comes with {tierName(b.minTier)}.</p>)}

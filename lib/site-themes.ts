@@ -7,6 +7,7 @@ import { effectiveTier } from "./effective-tier";
 export const SITE_THEMES = [
   { id: "legacy", name: "Legacy", blurb: "The original look: a light page, a simple header and a clean list of your notes and shop.", minTier: "basic" },
   { id: "clean", name: "Clean", blurb: "White and rounded, with your main button at the top (Book now, Order on WhatsApp, Call us), a banner with your picture, and your opening hours and contacts in a strip.", minTier: "basic" },
+  { id: "scholar", name: "Scholar", blurb: "Plain and academic, made for reading: a narrow page with your photo and links, your publications by year, awards, talks on a globe and news, with a dark mode.", minTier: "basic" },
   { id: "aurora", name: "Aurora", blurb: "A deep colour band with your profile on a card, shop categories, a featured item and a reading page with your booking card beside it.", minTier: "pro" },
   { id: "maroon", name: "Maroon", blurb: "Like the #NotesApp journal feed: a coloured header, your profile on a card, and your notes as posts on white cards that readers can like, share and save.", minTier: "pro" },
 ] as const;
@@ -70,10 +71,17 @@ export const backgroundOf = (palette: { bg?: string } | null | undefined, theme:
   isBackground(palette?.bg) ? palette!.bg as SiteBackground : theme === "clean" ? "white" : "paper";
 export function paletteVars(palette: { id?: string; custom?: string; bg?: string } | null | undefined, tier: string, theme = "legacy"): Record<string, string> {
   const { base, bright, deep } = paletteRgb(palette, tier);
-  const vars: Record<string, string> = { "--c-crimson": base.join(" "), "--c-crimson-bright": bright.join(" "), "--c-crimson-deep": deep.join(" ") };
+  // --c-crimson-light and --c-crimson-lighter are the accent on a dark page (the Scholar look's dark mode, app/globals.css).
+  const vars: Record<string, string> = {
+    "--c-crimson": base.join(" "), "--c-crimson-bright": bright.join(" "), "--c-crimson-deep": deep.join(" "),
+    "--c-crimson-light": mix(base, 255, 0.45).join(" "), "--c-crimson-lighter": mix(base, 255, 0.6).join(" "),
+  };
   if (backgroundOf(palette, theme) === "white") vars["--c-paper"] = "255 255 255"; // tailwind.config.ts: paper reads --c-paper
   return vars;
 }
+// Where a visitor's light or dark choice for Scholar sites is kept on their device (components/site/SiteDarkToggle.tsx; read before the first
+// paint by the site layout, so it has to live outside the client component).
+export const SITE_DARK_KEY = "site-dark";
 // The crimson-style band and header, in the site's colours.
 export const BAND_GRADIENT = "linear-gradient(100deg, rgb(var(--c-crimson-deep, 78 1 25)) 0%, rgb(var(--c-crimson, 122 3 40)) 70%, rgb(var(--c-crimson-bright, 166 9 61)) 100%)";
 

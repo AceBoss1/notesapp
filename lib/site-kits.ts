@@ -1,4 +1,4 @@
-// Sites (docs/SITES.md, phase 2): the content sections a member's site can switch on beyond Journals, Shop, Courses and Track, what each needs,
+// Sites (docs/SITES.md, phases 2 and 3): the content sections a member's site can switch on beyond Journals, Shop, Courses and Track, what each needs,
 // the colour set, and the kits (one-tap starting points by type of member). Pure: checked on the server (lib/site-server.ts), drawn by
 // components/site/SiteBlocks.tsx, edited on /profile/site.
 //
@@ -6,6 +6,7 @@
 // order: BlockId[], updatedAt }. The look stays users/{uid}.siteTheme and the four page sections users/{uid}.siteSections.
 import { formatSlot } from "./booking-time";
 import { HEX_RE, isBackground, isPalette, meetsTier, type PaletteId, type SiteBackground, type SiteThemeId } from "./site-themes";
+import { placeCoords } from "./places";
 
 // ── Sections and what they need ──
 // The page sections (users/{uid}.siteSections) and what each needs (owner's decisions, 20 Oct 2026).
@@ -18,6 +19,11 @@ export const BLOCKS = [
   { id: "testimonials", name: "Testimonials", blurb: "What your customers or students say about you.", minTier: "basic" },
   { id: "team", name: "Team", blurb: "The people behind your business, with their roles.", minTier: "basic" },
   { id: "faq", name: "Questions and answers", blurb: "The questions people ask you most, answered once.", minTier: "basic" },
+  // The academic sections (phase 3), open from Free Basic (owner, 20 Oct 2026).
+  { id: "publications", name: "Publications", blurb: "Your papers, books and chapters, by year, with links.", minTier: "basic" },
+  { id: "awards", name: "Awards", blurb: "Prizes, grants, fellowships and honours.", minTier: "basic" },
+  { id: "talks", name: "Talks", blurb: "Where you've spoken, on a globe, with the event and a link.", minTier: "basic" },
+  { id: "news", name: "In the news", blurb: "Articles, interviews and features about you or your work.", minTier: "basic" },
 ] as const;
 export type BlockId = (typeof BLOCKS)[number]["id"];
 export const isBlockId = (v: unknown): v is BlockId => BLOCKS.some((b) => b.id === v);
@@ -43,21 +49,39 @@ export type Picture = { image: string; caption: string };
 export type Testimonial = { quote: string; name: string; role: string };
 export type Person = { name: string; role: string; photo: string };
 export type Qa = { q: string; a: string };
+export type Publication = { title: string; authors: string; venue: string; year: string; url: string; note: string };
+export type Award = { title: string; by: string; year: string; note: string };
+// lat/lng: from the place's name (lib/places.ts) or typed in; without them the talk is listed but has no dot on the globe.
+export type Talk = { title: string; event: string; place: string; year: string; url: string; lat: number | null; lng: number | null };
+export type NewsItem = { title: string; outlet: string; year: string; url: string };
 export type Blocks = {
   hero: Hero; info: Info;
   services: { on: boolean; items: ServiceItem[] }; gallery: { on: boolean; items: Picture[] };
   testimonials: { on: boolean; items: Testimonial[] }; team: { on: boolean; items: Person[] }; faq: { on: boolean; items: Qa[] };
+  publications: { on: boolean; items: Publication[] }; awards: { on: boolean; items: Award[] };
+  talks: { on: boolean; items: Talk[] }; news: { on: boolean; items: NewsItem[] };
 };
 export type SitePalette = { id: PaletteId; custom?: string; bg?: SiteBackground };
 // bookBelowPosts: a booking card under every post on the site (owner, 21 Oct 2026).
 export type SiteDoc = { kit: string; palette: SitePalette; blocks: Blocks; order: BlockId[]; bookBelowPosts: boolean; updatedAt?: string };
 
-export const LIMITS = { services: 40, gallery: 24, testimonials: 12, team: 24, faq: 20 } as const;
+export const LIMITS = { services: 40, gallery: 24, testimonials: 12, team: 24, faq: 20, publications: 200, awards: 60, talks: 80, news: 60 } as const;
 const t = (v: unknown, max: number) => String(v ?? "").replace(/\s+/g, " ").trim().slice(0, max);
 const para = (v: unknown, max: number) => String(v ?? "").replace(/\r/g, "").replace(/\n{3,}/g, "\n\n").trim().slice(0, max);
 // Pictures come from our own uploads (lib/upload.ts) or any https address; nothing else (no javascript:, data: or http:).
 const img = (v: unknown) => { const s = t(v, 600); return /^https:\/\/[^\s"'<>]+$/i.test(s) ? s : ""; };
 const digits = (v: unknown) => t(v, 30).replace(/[^\d+]/g, "").slice(0, 16);
+const link = (v: unknown) => { const s = t(v, 500); return /^https:\/\/[^\s"'<>]+$/i.test(s) ? s : ""; };
+// A year (or "2024–2025", "Forthcoming"): kept short; the four digits are what lists sort by.
+const year = (v: unknown) => t(v, 20);
+const coord = (v: unknown, max: number) => { const n = typeof v === "number" ? v : typeof v === "string" && v.trim() ? Number(v) : NaN; return Number.isFinite(n) && Math.abs(n) <= max ? Math.round(n * 100) / 100 : null; };
+// Where a talk was: typed coordinates win, else the place's name if we know it.
+function talkCoords(x: Record<string, unknown>, place: string): { lat: number | null; lng: number | null } {
+  const lat = coord(x.lat, 90), lng = coord(x.lng, 180);
+  if (lat !== null && lng !== null) return { lat, lng };
+  const c = placeCoords(place);
+  return c ? { lat: c[0], lng: c[1] } : { lat: null, lng: null };
+}
 
 export function cleanButton(v: unknown): SiteButton | null {
   if (!v || typeof v !== "object") return null;
@@ -77,6 +101,7 @@ export const emptyBlocks = (): Blocks => ({
   hero: { on: false, headline: "", subline: "", image: "", button: null, second: null },
   info: { on: false, hours: "", bookingHours: false, whatsapp: "", phone: "", address: "", mapUrl: "" },
   services: { on: false, items: [] }, gallery: { on: false, items: [] }, testimonials: { on: false, items: [] }, team: { on: false, items: [] }, faq: { on: false, items: [] },
+  publications: { on: false, items: [] }, awards: { on: false, items: [] }, talks: { on: false, items: [] }, news: { on: false, items: [] },
 });
 const list = <T,>(v: unknown, max: number, each: (x: Record<string, unknown>) => T | null): T[] =>
   (Array.isArray(v) ? v : []).slice(0, max * 4).map((x) => (x && typeof x === "object" ? each(x as Record<string, unknown>) : null)).filter((x): x is T => x !== null).slice(0, max);
@@ -94,9 +119,13 @@ export function cleanBlocks(v: unknown): Blocks {
     testimonials: { on: on(o.testimonials), items: list(o.testimonials?.items, LIMITS.testimonials, (x) => (t(x.quote, 400) && t(x.name, 60) ? { quote: para(x.quote, 400), name: t(x.name, 60), role: t(x.role, 80) } : null)) },
     team: { on: on(o.team), items: list(o.team?.items, LIMITS.team, (x) => (t(x.name, 60) ? { name: t(x.name, 60), role: t(x.role, 80), photo: img(x.photo) } : null)) },
     faq: { on: on(o.faq), items: list(o.faq?.items, LIMITS.faq, (x) => (t(x.q, 160) && para(x.a, 800) ? { q: t(x.q, 160), a: para(x.a, 800) } : null)) },
+    publications: { on: on(o.publications), items: list(o.publications?.items, LIMITS.publications, (x) => (t(x.title, 300) ? { title: t(x.title, 300), authors: t(x.authors, 600), venue: t(x.venue, 200), year: year(x.year), url: link(x.url), note: t(x.note, 120) } : null)) },
+    awards: { on: on(o.awards), items: list(o.awards?.items, LIMITS.awards, (x) => (t(x.title, 200) ? { title: t(x.title, 200), by: t(x.by, 160), year: year(x.year), note: t(x.note, 200) } : null)) },
+    talks: { on: on(o.talks), items: list(o.talks?.items, LIMITS.talks, (x) => { const place = t(x.place, 80); return t(x.title, 200) ? { title: t(x.title, 200), event: t(x.event, 160), place, year: year(x.year), url: link(x.url), ...talkCoords(x, place) } : null; }) },
+    news: { on: on(o.news), items: list(o.news?.items, LIMITS.news, (x) => (t(x.title, 200) ? { title: t(x.title, 200), outlet: t(x.outlet, 100), year: year(x.year), url: link(x.url) } : null)) },
   };
 }
-export const DEFAULT_ORDER: BlockId[] = ["hero", "info", "services", "gallery", "testimonials", "team", "faq"];
+export const DEFAULT_ORDER: BlockId[] = ["hero", "info", "services", "gallery", "testimonials", "team", "faq", "publications", "awards", "talks", "news"];
 export function cleanOrder(v: unknown): BlockId[] {
   const seen = (Array.isArray(v) ? v : []).filter(isBlockId).filter((x, i, a) => a.indexOf(x) === i);
   return [...seen, ...DEFAULT_ORDER.filter((b) => !seen.includes(b))];
@@ -122,6 +151,8 @@ export function visibleBlocks(d: SiteDoc, tier: string): BlockId[] {
     hero: b.hero.on && !!(b.hero.headline || b.hero.subline || b.hero.image), info: b.info.on && !!(b.info.hours || b.info.bookingHours || b.info.whatsapp || b.info.phone || b.info.address),
     services: b.services.on && b.services.items.length > 0, gallery: b.gallery.on && b.gallery.items.length > 0,
     testimonials: b.testimonials.on && b.testimonials.items.length > 0, team: b.team.on && b.team.items.length > 0, faq: b.faq.on && b.faq.items.length > 0,
+    publications: b.publications.on && b.publications.items.length > 0, awards: b.awards.on && b.awards.items.length > 0,
+    talks: b.talks.on && b.talks.items.length > 0, news: b.news.on && b.news.items.length > 0,
   };
   return d.order.filter((id) => has[id] && blockAllowed(id, tier));
 }
@@ -146,6 +177,18 @@ export function bookingHoursText(availability: unknown, minutes: number): string
     else if (s) runs.push({ from: d, to: d, s });
   }
   return runs.map((r) => `${DAY[r.from]}${r.to !== r.from ? `–${DAY[r.to]}` : ""}, ${r.s}`).join(" · ");
+}
+// Publications grouped by year, newest first ("Forthcoming" and other words before the years, no year last); each year keeps the member's order.
+export function byYear<T extends { year: string }>(items: T[]): { year: string; items: T[] }[] {
+  const groups = new Map<string, T[]>();
+  for (const x of items) { const y = x.year || ""; groups.set(y, [...(groups.get(y) ?? []), x]); }
+  const num = (y: string) => { const m = y.match(/\d{4}/g); return m ? Number(m[m.length - 1]) : null; };
+  return [...groups.entries()].sort(([a], [b]) => {
+    if (!a || !b) return a ? -1 : b ? 1 : 0;
+    const na = num(a), nb = num(b);
+    if (na === null || nb === null) return na === null ? (nb === null ? 0 : -1) : 1;
+    return nb - na;
+  }).map(([year, items]) => ({ year, items }));
 }
 // A button as the visitor gets it: a WhatsApp or Call button without its own number takes the one in the strip; with neither, no button.
 export function resolveButton(b: SiteButton | null, info: Info): SiteButton | null {
@@ -179,6 +222,13 @@ export const KITS: Kit[] = [
     sections: { journals: true, shop: false, courses: true, track: false }, blocks: ["hero", "gallery", "testimonials", "faq"],
     starter: { headline: "Hi, I'm glad you're here.", subline: "What I write about, what I make, and how to work with me.", button: btn("contact", "Get in touch"),
       faq: [{ q: "How can we work together?", a: "Tell me what you have in mind through my Contact page, and I'll get back to you." }] },
+  },
+  {
+    // A personal kit too (Free Basic), in the Scholar look.
+    id: "scholar", name: "Academics and researchers", emoji: "📚", minTier: "basic", theme: "scholar", palette: "ocean",
+    blurb: "For researchers, lecturers and students: who you are and what you work on, your publications by year, awards, talks on a globe and news.",
+    sections: { journals: true, shop: false, courses: true, track: false }, blocks: ["hero", "publications", "talks", "awards", "news"],
+    starter: { headline: "Hello, and welcome.", subline: "What I research and teach, where I've published and spoken, and how to reach me.", button: btn("contact", "Get in touch") },
   },
   {
     id: "fashion", name: "Fashion and accessories", emoji: "👗", minTier: "pro", theme: "clean", palette: "royal",

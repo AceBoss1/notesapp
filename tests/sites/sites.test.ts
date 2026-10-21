@@ -2,8 +2,10 @@
 // and kits that never wipe the member's words. Run: npm run test:sites → "ALL OK".
 import assert from "node:assert/strict";
 import { backgroundOf, canHaveSite, meetsTier, paletteRgb, paletteVars, themeAllowed } from "../../lib/site-themes";
-import { KITS, applyKitTo, bookingHoursText, buttonHref, cleanBlocks, cleanButton, cleanOrder, cleanPalette, kitAllowed, kitOf, resolveButton, siteDocOf, visibleBlocks } from "../../lib/site-kits";
+import { KITS, applyKitTo, bookingHoursText, buttonHref, byYear, cleanBlocks, cleanButton, cleanOrder, cleanPalette, kitAllowed, kitOf, resolveButton, siteDocOf, visibleBlocks } from "../../lib/site-kits";
 import { siteSectionsShown } from "../../lib/site-settings";
+import { placeCoords } from "../../lib/places";
+import { landDots } from "../../lib/globe-land";
 
 const u = (accountTier: string, role = "publisher") => ({ username: "x", role, accountTier }) as never;
 // Who has a site, and the looks
@@ -14,7 +16,7 @@ assert.equal(themeAllowed("aurora", "basic"), false); assert.equal(themeAllowed(
 assert.ok(meetsTier("enterprise", "business")); assert.ok(!meetsTier("pro", "business"));
 
 // Colour sets: presets for all, a custom colour from Pro, too-light colours darkened
-assert.deepEqual(paletteVars(null, "basic"), { "--c-crimson": "122 3 40", "--c-crimson-bright": "166 9 61", "--c-crimson-deep": "78 1 25" }, "the default is #NotesApp's own crimson");
+{ const v = paletteVars(null, "basic"); assert.deepEqual([v["--c-crimson"], v["--c-crimson-bright"], v["--c-crimson-deep"]], ["122 3 40", "166 9 61", "78 1 25"], "the default is #NotesApp's own crimson"); }
 assert.equal(paletteVars({ id: "forest" }, "basic")["--c-crimson"], "16 110 74");
 assert.equal(paletteVars({ id: "forest", custom: "#123456" }, "basic")["--c-crimson"], "16 110 74", "Free Basic can't use a custom colour");
 assert.equal(paletteVars({ id: "forest", custom: "#123456" }, "pro")["--c-crimson"], "18 52 86");
@@ -56,10 +58,10 @@ assert.deepEqual(visibleBlocks(d, "standard"), [], "no site below Free Basic");
 assert.deepEqual(siteSectionsShown({ ...(u("basic") as object), siteSections: { journals: true, shop: true, courses: true, track: true } } as never), { journals: true, shop: false, courses: true, track: false }, "Shop needs Pro, Track Business");
 
 // Kits
-assert.equal(KITS.length, 7);
-assert.deepEqual(KITS.filter((k) => kitAllowed(k, "basic")).map((k) => k.id), ["personal"], "Free Basic: the Personal kit only");
-assert.deepEqual(KITS.filter((k) => kitAllowed(k, "pro")).map((k) => k.id), ["personal", "fashion", "food", "services", "healthcare"]);
-assert.equal(KITS.filter((k) => kitAllowed(k, "business")).length, 7);
+assert.equal(KITS.length, 8);
+assert.deepEqual(KITS.filter((k) => kitAllowed(k, "basic")).map((k) => k.id), ["personal", "scholar"], "Free Basic: the personal kits only (Personal and creators, Academics)");
+assert.deepEqual(KITS.filter((k) => kitAllowed(k, "pro")).map((k) => k.id), ["personal", "scholar", "fashion", "food", "services", "healthcare"]);
+assert.equal(KITS.filter((k) => kitAllowed(k, "business")).length, 8);
 const mine = siteDocOf({ blocks: { hero: { headline: "My own words" }, services: { items: [{ name: "Mine", price: "₦1" }] } } });
 const r = applyKitTo(mine, kitOf("food")!, "pro");
 assert.equal(r.theme, "clean"); assert.equal(r.site.kit, "food"); assert.equal(r.site.palette.id, "sunset");
@@ -89,4 +91,30 @@ assert.equal(paletteVars({ id: "crimson", bg: "white" }, "basic", "maroon")["--c
 assert.equal(paletteVars({ id: "crimson" }, "basic", "aurora")["--c-paper"], undefined, "paper: the usual background");
 assert.equal(applyKitTo(siteDocOf({ palette: { id: "gold", bg: "paper" } }), kitOf("personal")!, "basic").site.palette.bg, "paper", "a kit keeps the background choice");
 assert.equal(siteDocOf({}).bookBelowPosts, false); assert.equal(siteDocOf({ bookBelowPosts: true }).bookBelowPosts, true);
+
+// Phase 3: the Scholar look and the academic sections, open from Free Basic
+assert.equal(themeAllowed("scholar", "basic"), true);
+assert.equal(placeCoords("Lagos")?.[0], 6.52); assert.deepEqual(placeCoords("sao paulo, brazil"), [-23.55, -46.63]); assert.equal(placeCoords("Atlantis"), null);
+assert.equal(placeCoords("Cambridge")?.[1], 0.12, "the first of two Cambridges is the UK one");
+const ac = cleanBlocks({
+  publications: { on: true, items: [{ title: "Graph learning for drug repurposing", authors: "A. Obi, B. Ade", venue: "Nature", year: "2025", url: "javascript:alert(1)" }, { title: "" }, { title: "Preprint", year: "Forthcoming", url: "https://arxiv.org/abs/1" }] },
+  awards: { on: true, items: [{ title: "Rhodes Scholarship", by: "Rhodes Trust", year: "2023" }] },
+  talks: { on: true, items: [{ title: "AI in medicine", place: "Lagos, Nigeria", year: "2024" }, { title: "Keynote", place: "Somewhere small", lat: "10.5", lng: 7.4 }, { title: "Bad", place: "Nowhere", lat: 200, lng: 5 }, { title: "Moved", place: "Accra", lat: null }] },
+  news: { on: true, items: [{ title: "Young scientist of the year", outlet: "The Guardian", url: "https://guardian.ng/x" }] },
+});
+assert.equal(ac.publications.items.length, 2, "empty rows dropped"); assert.equal(ac.publications.items[0].url, "", "only https links");
+assert.deepEqual([ac.talks.items[0].lat, ac.talks.items[0].lng], [6.52, 3.38], "a known place gets its dot");
+assert.deepEqual([ac.talks.items[1].lat, ac.talks.items[1].lng], [10.5, 7.4], "typed coordinates");
+assert.deepEqual([ac.talks.items[2].lat, ac.talks.items[2].lng], [null, null], "impossible coordinates: listed, no dot");
+assert.equal(ac.talks.items[3].lat, 5.6);
+assert.deepEqual(visibleBlocks(siteDocOf({ blocks: ac }), "basic"), ["publications", "awards", "talks", "news"]);
+assert.deepEqual(byYear([{ year: "2023" }, { year: "" }, { year: "2025" }, { year: "Forthcoming" }, { year: "2023–2024" }, { year: "2025" }]).map((g) => [g.year, g.items.length]),
+  [["Forthcoming", 1], ["2025", 2], ["2023–2024", 1], ["2023", 1], ["", 1]]);
+const sch = applyKitTo(siteDocOf({}), kitOf("scholar")!, "basic");
+assert.equal(sch.theme, "scholar"); assert.deepEqual(sch.site.order.slice(0, 3), ["hero", "publications", "talks"]); assert.equal(sch.site.blocks.publications.on, true);
+assert.deepEqual(paletteVars({ id: "ocean" }, "basic", "scholar")["--c-crimson-light"].split(" ").length, 3, "a light accent for dark mode");
+const dots = landDots();
+assert.ok(dots.length > 3000 && dots.length < 5000, `land dots: ${dots.length}`);
+const near = (lat: number, lng: number) => dots.some(([a, b]) => Math.abs(a - lat) <= 2 && Math.abs(b - lng) <= 2);
+assert.ok(near(9, 8), "Nigeria is land"); assert.ok(!near(0, -30), "the middle of the Atlantic isn't");
 console.log("ALL OK");

@@ -2,7 +2,7 @@
 
 The plan for growing Your site into sites for every kind of member and business, and for giving members their own analytics. The owner's
 decisions of 20 Oct 2026 are below. Phase 1 (analytics, v0.63.0) and phase 2 (sections, the Clean look, colour sets and the first kits,
-v0.64.0) are built; phases 3 and 4 are next.
+v0.64.0) and phase 3 (the Scholar look and the academic sections, v0.65.0) are built; phase 4 is next.
 
 ## Decisions (owner, 20 Oct 2026)
 
@@ -98,10 +98,16 @@ An Analytics page for every member who sells, teaches, books sessions or publish
 - **Settings:** Your site has five steps: kit, look and colours, what shows (with order arrows), words prices and pictures, About and
   Contact. Help → "Your own site".
 
-## Phase 3: Scholar and the academic sections (next)
+## Phase 3: Scholar and the academic sections (built, v0.65.0)
 
-The Scholar look (plain and academic, with dark mode) and the Publications, Awards, Talks (on a globe) and In the news sections, open from
-Free Basic.
+- **Scholar look** (Free Basic): a narrow reading column, the name in the serif face, the academic sections before journals, and a light and
+  dark switch in the header. Dark mode follows the visitor's device until they choose, and remembers their choice on that device
+  (`SITE_DARK_KEY`); an inline script sets it before the first paint. The page colours are CSS variables, turned round under
+  `[data-site-dark]`, and the accent takes lighter shades of the colour set.
+- **Sections** (Free Basic): Publications (by year, newest first; the member's name in bold among the authors; link and label), Awards,
+  Talks (a canvas dot-globe that turns slowly, pauses off screen, doesn't move for reduced motion; drag to turn, tap a dot; a place from
+  `lib/places.ts` or typed coordinates), In the news.
+- **Kit:** Academics and researchers, a personal kit, so free with Free Basic like Personal and creators.
 
 ## Phase 4: more kits (next)
 

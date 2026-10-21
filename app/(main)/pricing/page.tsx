@@ -146,7 +146,7 @@ const ROWS: Row[] = [
       !t.canPublish
         ? "—"
         : t.tier === "basic"
-          ? `At ${ROOT_DOMAIN}/s/username: the Personal kit, the Clean and Legacy looks with colour sets, a banner with buttons, hours, prices, gallery, testimonials, team and answers, Journals and Courses`
+          ? `At ${ROOT_DOMAIN}/s/username: the Personal and Academics kits, the Clean, Scholar and Legacy looks with colour sets, a banner with buttons, hours, prices, gallery, testimonials, team, answers, publications, awards, talks and news, Journals and Courses`
           : t.tier === "pro"
             ? "Also the Fashion, Food & baking, Services and Healthcare kits, the Aurora and Maroon looks, your own brand colour, and Shop"
             : "Every kit, including Schools and Churches/NGOs, and Track, on your own domain too",

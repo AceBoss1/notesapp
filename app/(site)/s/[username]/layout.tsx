@@ -14,7 +14,8 @@ import { badgesOf } from "@/lib/name-badges";
 import SiteNav from "@/components/site/SiteNav";
 import SiteAccount from "@/components/site/SiteAccount";
 import { SiteAuthProvider } from "@/components/site/SiteAuth";
-import { BAND_GRADIENT, canHaveSite, isCrimsonTheme, paletteVars, siteThemeOf, themeAllowed } from "@/lib/site-themes";
+import SiteDarkToggle from "@/components/site/SiteDarkToggle";
+import { BAND_GRADIENT, SITE_DARK_KEY, canHaveSite, isCrimsonTheme, paletteVars, siteThemeOf, themeAllowed } from "@/lib/site-themes";
 import { missingSitePages, siteSectionsShown } from "@/lib/site-settings";
 import { buttonHref, emptyBlocks, resolveButton, visibleBlocks } from "@/lib/site-kits";
 import { bookingOf, readSite } from "@/lib/site-server";
@@ -79,6 +80,7 @@ export default async function SiteLayout({ children, params }: Props) {
     booking,
   };
   const clean = info.theme === "clean";
+  const scholar = info.theme === "scholar"; // plain and academic, with a dark mode
   // Clean: the main button of their banner sits at the top right of every page.
   const cta = clean && info.shownBlocks.includes("hero") ? resolveButton(info.blocks.hero.button, info.blocks.info) : null;
   const crimson = isCrimsonTheme(info.theme); // Aurora and Maroon: the crimson header
@@ -89,24 +91,27 @@ export default async function SiteLayout({ children, params }: Props) {
   return (
     <SiteProvider value={info}>
      <Auth>
-      <div data-site-theme={info.theme} className="flex min-h-screen flex-col bg-paper" style={paletteVars(site?.palette, tier, info.theme) as React.CSSProperties}>
+      <div data-site-theme={info.theme} className="flex min-h-screen flex-col bg-paper" style={paletteVars(site?.palette, tier, info.theme) as React.CSSProperties} suppressHydrationWarning>
+        {/* Scholar: light or dark before the first paint, from the visitor's last choice or their device's setting. */}
+        {scholar && <script dangerouslySetInnerHTML={{ __html: `try{var e=document.currentScript.parentElement,v=localStorage.getItem(${JSON.stringify(SITE_DARK_KEY)});e.setAttribute("data-site-dark",v==="true"||v==="false"?v:String(matchMedia("(prefers-color-scheme: dark)").matches))}catch(_){}` }} />}
         <header className={crimson ? "sticky top-0 z-40 text-paper shadow-md" : clean ? "sticky top-0 z-40 border-b border-rule bg-paper/95 backdrop-blur" : "sticky top-0 z-40 border-b border-rule bg-paper/90 backdrop-blur"} style={crimson ? { backgroundImage: BAND_GRADIENT } : undefined}>
           <div className="mx-auto flex max-w-5xl items-center justify-between gap-4 px-4 py-4 sm:px-6">
             <Link href={base || "/"} className="flex min-w-0 items-center gap-3">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src={avatar} alt="" className={`h-9 w-9 shrink-0 object-cover ${pic}`} />
-              <span className={`truncate font-ui text-lg font-extrabold tracking-tight ${crimson ? "text-paper" : "text-ink"}`}>{p.displayName}</span>
+              <span className={`truncate ${scholar ? "font-display text-xl" : "font-ui text-lg font-extrabold tracking-tight"} ${crimson ? "text-paper" : "text-ink"}`}>{p.displayName}</span>
               <NameBadgeIcons username={p.username} size={16} badges={badgesOf(p)} />
             </Link>
             <div className="flex shrink-0 items-center gap-5">
               <SiteNav />
               <SiteAccount />
+              {scholar && <SiteDarkToggle />}
               {cta && <a href={buttonHref(cta, base, `Hello ${p.displayName}, `)} className="hidden rounded-full bg-crimson px-4 py-2 font-ui text-sm font-bold text-paper hover:bg-crimson-bright sm:inline-flex" {...(cta.kind === "link" || cta.kind === "whatsapp" ? { target: "_blank", rel: "noopener noreferrer" } : {})}>{cta.label}</a>}
             </div>
           </div>
         </header>
         <main className="flex-1">{children}</main>
-        <footer className="mt-20 border-t border-rule bg-ink text-paper">
+        <footer data-site-footer className="mt-20 border-t border-rule bg-ink text-paper">
           <div className="mx-auto flex max-w-5xl flex-col items-start justify-between gap-4 px-4 py-8 sm:flex-row sm:items-center sm:px-6">
             <div>
               <p className="font-ui text-sm font-bold">{p.displayName}</p>

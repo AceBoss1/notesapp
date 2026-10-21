@@ -103,7 +103,11 @@ export default function SiteHome() {
         </section>
   );
   // A logistics business (the Track section): tracking comes first, right under who they are.
-  const sections = <>{site.sections.track && <TrackBox />}{shopFirst ? <>{itemsSection}{notesSection}</> : <>{notesSection}{itemsSection}</>}{coursesSection}<SiteContentBlocks /></>;
+  // Scholar puts their work (publications, talks…) before their journals.
+  const pages = <>{shopFirst ? <>{itemsSection}{notesSection}</> : <>{notesSection}{itemsSection}</>}{coursesSection}</>;
+  const sections = site.theme === "scholar"
+    ? <>{site.sections.track && <TrackBox />}<SiteContentBlocks />{pages}</>
+    : <>{site.sections.track && <TrackBox />}{pages}<SiteContentBlocks /></>;
   const hero = site.shownBlocks.includes("hero"), strip = site.shownBlocks.includes("info");
 
   // Booking runs right here: pick a time, sign in if needed (the visitor is brought back signed in), pay with Paystack.
@@ -140,6 +144,19 @@ export default function SiteHome() {
         {strip && <SiteInfoStrip />}
         {sections}
         {hero && <div className="card mt-14 p-6"><SiteProfileHeader /></div>}
+        {booking}
+      </div>
+    );
+  }
+
+  // Scholar: a narrow reading column; who they are, a few words, then their work (publications, talks, awards, news in their order).
+  if (site.theme === "scholar") {
+    return (
+      <div className="mx-auto max-w-3xl px-4 py-12 sm:px-6">
+        <SiteProfileHeader />
+        {hero && <SiteHero clean={false} plain />}
+        {strip && <SiteInfoStrip />}
+        {sections}
         {booking}
       </div>
     );

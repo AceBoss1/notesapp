@@ -11,6 +11,16 @@ export type Release = {
 
 export const CHANGELOG: Release[] = [
   {
+    version: "v0.65.0",
+    bump: "minor",
+    date: "2026-10-21",
+    changes: [
+      { kind: "added", text: "The Scholar look for your site: plain and academic, a narrow page made for reading, with a light and dark switch that remembers each visitor's choice (and follows their phone's setting until they choose). From Free Basic, with every colour set." },
+      { kind: "added", text: "Academic sections for any site, from Free Basic: Publications (by year, newest first, your name in bold among the authors, with links and labels such as Best paper), Awards, Talks on a globe visitors can turn (type the city and its dot appears), and In the news." },
+      { kind: "added", text: "An Academics and researchers kit, free with Free Basic like Personal and creators: the Scholar look with your publications, talks, awards and news ready to fill in." },
+    ],
+  },
+  {
     version: "v0.64.0",
     bump: "minor",
     date: "2026-10-21",

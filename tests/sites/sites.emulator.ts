@@ -57,6 +57,12 @@ const fails = async (p: Promise<unknown>, status: number, re: RegExp) => {
   const d = await saveSite(db, "pro", { blocks: { hero: { headline: "Still mine" } } });
   assert.equal(d.palette.custom, undefined); assert.equal(d.palette.id, "ocean");
 
+  // Free Basic: the Academics kit and the academic sections (phase 3).
+  const sc = await applyKit(db, "basic", "scholar");
+  assert.equal(sc.theme, "scholar"); assert.equal((await db.doc("users/basic").get()).data()!.siteTheme, "scholar");
+  const pub = await saveSite(db, "basic", { blocks: { ...sc.site.blocks, talks: { on: true, items: [{ title: "Keynote", place: "Nairobi, Kenya" }] } } });
+  assert.equal(pub.blocks.talks.items[0].lat, -1.29);
+
   // Background, "Book me" under posts, and the booking calendar's hours.
   const w = await saveSite(db, "basic", { palette: { id: "forest", bg: "white" }, bookBelowPosts: true });
   assert.deepEqual(w.palette, { id: "forest", bg: "white" }); assert.equal(w.bookBelowPosts, true);
