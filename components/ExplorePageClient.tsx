@@ -22,9 +22,10 @@ import type { MarketItem } from "@/lib/shop-directory";
 
 // Explore (/explore, Moda redesign): what used to be the Topics, People and Channels tabs of Journals, now that Journals is the feed,
 // plus Market and Academy: the most looked-at items and courses this week, searchable here, with a way into each.
-type Tab = "topics" | "people" | "channels" | "market" | "academy";
+type Tab = "topics" | "people" | "channels" | "communities" | "market" | "academy";
+type CommunityRow = { id: string; name: string; tagline: string; avatar: string; memberCount: number; verified: boolean; joinMode: string };
 const TABS: { id: Tab; label: string }[] = [
-  { id: "topics", label: "Topics" }, { id: "people", label: "People" }, { id: "channels", label: "Channels" }, { id: "market", label: "Market" }, { id: "academy", label: "Academy" },
+  { id: "topics", label: "Topics" }, { id: "people", label: "People" }, { id: "channels", label: "Channels" }, { id: "communities", label: "Communities" }, { id: "market", label: "Market" }, { id: "academy", label: "Academy" },
 ];
 const SHOW = 24;
 
@@ -37,6 +38,12 @@ export default function ExplorePageClient() {
   const { interests } = useInterests();
   const [market, setMarket] = useState<MarketItem[] | null>(null);
   const courses = useAcademy(undefined, tab === "academy");
+  // Communities: every one that isn't invite-only (lib/community.ts isDiscoverable), most members first.
+  const [communities, setCommunities] = useState<CommunityRow[] | null>(null);
+  useEffect(() => {
+    if (tab !== "communities" || communities) return;
+    fetch("/api/community").then((r) => (r.ok ? r.json() : Promise.reject())).then((d) => setCommunities(d.communities ?? [])).catch(() => setCommunities([]));
+  }, [tab, communities]);
   useEffect(() => {
     if (tab !== "market" || market) return;
     fetch("/api/public/market").then((r) => (r.ok ? r.json() : Promise.reject())).then((d) => setMarket(d.items ?? [])).catch(() => setMarket([]));
@@ -72,13 +79,14 @@ export default function ExplorePageClient() {
   const courseList = useMemo(() => (courses ?? [])
     .filter((c) => !q || c.title.toLowerCase().includes(q) || c.ownerName.toLowerCase().includes(q) || c.topics.some((t) => t.includes(q)))
     .sort((a, b) => b.viewsWeek - a.viewsWeek || b.enrolCount - a.enrolCount).slice(0, SHOW), [courses, q]);
+  const communityList = useMemo(() => (communities ?? []).filter((c) => !q || c.name.toLowerCase().includes(q) || c.tagline.toLowerCase().includes(q)), [communities, q]);
   const match = <P extends { displayName: string; username: string }>(list: P[]) => (q ? list.filter((p) => p.displayName.toLowerCase().includes(q) || p.username.toLowerCase().includes(q)) : list);
 
   return (
     <div className="px-4 py-6 lg:px-0">
       <h1 className="font-display text-4xl text-ink">Explore</h1>
-      <p className="mt-1 text-sm text-slate">Topics, people, channels, things to buy and courses on #NotesApp.</p>
-      <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder={tab === "market" ? "Find products and stores" : tab === "academy" ? "Find courses and teachers" : "Find people and channels"} aria-label="Search Explore"
+      <p className="mt-1 text-sm text-slate">Topics, people, channels, communities, things to buy and courses on #NotesApp.</p>
+      <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder={tab === "market" ? "Find products and stores" : tab === "academy" ? "Find courses and teachers" : tab === "communities" ? "Find communities" : "Find people and channels"} aria-label="Search Explore"
         className="mt-4 w-full max-w-md rounded-full border border-rule bg-card px-5 py-2.5 text-sm outline-none focus:border-crimson" />
       <div className="mt-5 flex gap-2 overflow-x-auto" role="tablist">
         {TABS.map((t) => (
@@ -106,6 +114,21 @@ export default function ExplorePageClient() {
                 {market === null ? <p className="py-10 text-center text-sm text-slate">Loading…</p> : items.length
                   ? <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-4">{items.map((i) => <MarketCard key={i.id} item={i} />)}</div>
                   : <p className="py-10 text-center text-sm text-slate">{q ? "Nothing matches that search." : "No items yet."}</p>}
+              </Shelf>
+            )}
+            {tab === "communities" && (
+              <Shelf title="Communities" why={<>Churches, schools, clubs and businesses on #NotesApp that anyone can find. <Link href="/trending?tab=communities" className="font-semibold text-crimson">Trending communities →</Link></>}>
+                {communities === null ? <p className="py-10 text-center text-sm text-slate">Loading…</p> : communityList.length ? (
+                  <ul className="grid gap-3 sm:grid-cols-2">
+                    {communityList.slice(0, SHOW).map((c) => (
+                      <li key={c.id}><Link href={`/c/${c.id}`} className="card flex items-center gap-3 p-4 hover:border-crimson">
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img src={c.avatar || "/images/headshots/default-avatar.png"} alt="" className="h-12 w-12 rounded-xl object-cover" />
+                        <span className="min-w-0 flex-1"><span className="block truncate font-ui text-sm font-bold text-ink">{c.name}{c.verified ? " ✔" : ""}</span><span className="block truncate text-xs text-slate">{c.tagline}</span><span className="text-xs text-slate">{c.memberCount.toLocaleString("en-NG")} {c.memberCount === 1 ? "member" : "members"} · {c.joinMode === "open" ? "anyone can join" : "ask to join"}</span></span>
+                      </Link></li>
+                    ))}
+                  </ul>
+                ) : <p className="py-10 text-center text-sm text-slate">{q ? "No communities match that search." : <>No communities yet. <Link href="/community" className="font-semibold text-crimson">Start one</Link>.</>}</p>}
               </Shelf>
             )}
             {tab === "academy" && (

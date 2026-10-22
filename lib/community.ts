@@ -58,6 +58,11 @@ export const JOIN_MODES = [
   { id: "invite", label: "Only with an invite link" },
 ] as const;
 export type JoinMode = (typeof JOIN_MODES)[number]["id"];
+// Discoverable: shown in the directory, Explore and Trending. A community joined "only with an invite link" stays private: only its
+// members see it listed.
+export const isDiscoverable = (c: { joinMode: JoinMode }) => c.joinMode !== "invite";
+// Trending communities: activity in the window. A new member counts most, then a post, then a comment.
+export const trendScore = (a: { posts: number; comments: number; joined: number }) => a.joined * 4 + a.posts * 3 + a.comments * 2;
 // What people who aren't members see (the admins choose; the home page, with the name, picture and a short description, always shows).
 export type PublicView = { general: boolean; about: boolean; contact: boolean; events: boolean; members: boolean; join: boolean };
 export const DEFAULT_PUBLIC: PublicView = { general: true, about: true, contact: true, events: true, members: false, join: true };

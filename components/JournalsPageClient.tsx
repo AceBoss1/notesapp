@@ -15,6 +15,7 @@ import { beacon, useBoostImpression, type Boost } from "@/components/BoostedStri
 import FeedPost from "@/components/feed/FeedPost";
 import { feedAuthorOf, type FeedAuthor } from "@/lib/feed-author";
 import { MostRead, WhoToFollow, type FollowRow } from "@/components/feed/FeedModules";
+import LifeFeedCard from "@/components/life/LifeFeedCard";
 import { PenIcon } from "@/components/shell/icons";
 import { useBottomTabs } from "@/components/shell/BottomTabs";
 import { useMember } from "@/lib/member-client";
@@ -176,6 +177,7 @@ export default function JournalsPageClient() {
       {PROMO_AT.indexOf(i) >= 0 && promoted[PROMO_AT.indexOf(i)] && <Promoted boost={promoted[PROMO_AT.indexOf(i)].b}>{post(promoted[PROMO_AT.indexOf(i)].n, "Promoted")}</Promoted>}
       {i === 2 && <div className="lg:hidden"><WhoToFollow rows={toFollow} following={following} onFollow={follow} /></div>}
       {i === 3 && <div className="border-b-[10px] border-[#F3ECE7] bg-card px-4 py-5 empty:hidden lg:hidden"><BadgePitchCard /></div>}
+      {i === 5 && !query && <LifeFeedCard place="between" />}
       {query && (i === 2 || (i === page.length - 1 && page.length < 3)) && <div className={`bg-card px-4 empty:hidden lg:px-6 ${GAP}`}><AdSlot placement="search" /></div>}
       {i === 4 && !query && <div className={`bg-card px-4 empty:hidden lg:px-6 ${GAP}`}><AdSlot placement="journals" /></div>}
     </>
@@ -209,8 +211,10 @@ export default function JournalsPageClient() {
 
       {/* The right column on a computer */}
       <aside className="hidden lg:block">
-        <div className="sticky top-24 space-y-5">
+        {/* Sticky, and scrolls on its own when it's taller than the window, so nothing at the bottom is out of reach. */}
+        <div className="sticky top-24 max-h-[calc(100vh-7rem)] space-y-5 overflow-y-auto overscroll-contain pb-4 [scrollbar-width:thin]">
           <MostRead rows={mostRead} card />
+          <LifeFeedCard place="aside" />
           <WhoToFollow rows={toFollow} following={following} onFollow={follow} card />
           <BadgePitchCard />
           <p className="px-1 text-xs leading-relaxed text-slate">

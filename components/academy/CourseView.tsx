@@ -1,5 +1,6 @@
 "use client";
 
+import PlaysLife from "@/components/life/PlaysLife";
 import AdSlot from "@/components/AdSlot";
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
@@ -149,6 +150,7 @@ export default function CourseView({ slug, site }: { slug: string; site?: { base
                   <span className="block font-mono text-xs text-paper/75">{tutors.length === 1 ? `@${course.ownerUsername} · ${course.isOrg ? "Organisation" : "Teacher"}` : `${course.isOrg ? course.ownerName : "Co-taught"} · ${plural(tutors.length, "tutor")}`}</span>
                 </span>
               </Link>
+              <PlaysLife uid={course.ownerUid} className="mt-2 !bg-white/15 !text-paper hover:!bg-white/25" />
               {social && showsRating(social.rating) && (
                 <button type="button" onClick={() => openTab("reviews")} className="flex w-fit items-center gap-2 text-sm">
                   <Stars value={social.rating.average} size="text-base !text-amber-300" /><strong>{social.rating.average.toFixed(1)}</strong>

@@ -355,7 +355,9 @@ Calls are free. Planned: paid calls inside Notes Life (₦5 a minute voice, ₦1
 
 **Online and last seen:** on Messages, in a conversation and on profiles you can see whether someone is **Online** now or when they were **last seen**, but only for people who follow you and whom you follow back. It updates about every three minutes. "Last seen: not recorded yet" means they haven't opened NotesApp since this was switched on.
 
-**Your two switches** (both on to start with) are under [Account settings](/profile/account) and in your message settings on [Messages](/messages): *Show when I'm online and when I was last seen*, and *Let signed-in members see who follows me and who I follow*. The rule is the same for both: if you switch yours off, you can't see other people's either.`),
+**Your two switches** (both on to start with) are under [Account settings](/profile/account) and in your message settings on [Messages](/messages): *Show when I'm online and when I was last seen*, and *Let signed-in members see who follows me and who I follow*. The rule is the same for both: if you switch yours off, you can't see other people's either.
+**On the rest of NotesApp:** a "Need a 5-minute break?" card about Notes Life shows in the journal feed at most twice a day (✕ hides it for a week), with the people you follow who play. On a profile, store or course page you may see **🎮 Plays Notes Life**: only between people who follow each other, and only if that person keeps **Show that I play Notes Life** on. Both switches are in Account → Privacy; in teen mode both are off and nobody is shown as a player to or about a teen.
+`),
     A("links-and-mentions", "Links and @mentions", "Publishing and earning", `
 **Links:** type a web address anywhere you write on #NotesApp (a journal, a comment or reply, a message, a moment caption, a review, a recommendation, your bio or Notes Life chat) and it becomes a link people can tap. It works with full addresses (https://…), www.… and plain names such as candelluximperialhotel.com. In Messages, a message with a web address shows a preview card under it: the page's picture, title and description.
 
@@ -547,6 +549,8 @@ It costs the same on every plan: ${money(GOLD_PRICING.personal.monthlyKobo)} a m
 **The feed:** General and every Space look like a group's wall: **Create a note…** opens the composer (words and a photo), and each post has **Like**, **Comment** and **Share** (a link to the post), comments with each writer's picture, and a **⋯** menu for moderators to pin or remove. Home shows the About card (open, approved or by invitation; members; who runs it), the members' faces, upcoming events and Spaces.
 
 **Joining:** open to anyone, by approval (with up to 5 join questions, such as "Which branch?"), or only by invite link. Anyone with the invite link joins straight away; make a new link to stop the old one.
+
+**Being found:** a community anyone can join, or ask to join, is listed in the Community directory, in **Explore → Communities** and, when it's busy, in **Trending → Communities** (ranked by new members, then posts, then comments, for today, 7 days or 30 days). A community joined **only by invite link** is private: it isn't listed anywhere except for its own members.
 
 **Admin tools (Admin tab):** approve or decline requests with their answers; settings (name, logo and cover, about, contact, how people join, what non-members see, slow mode, Spaces); the invite link; banned members; and **insights** (members, new joins this week and month, posts, comments, active members, the most active). On the Members tab, admins make moderators, the owner makes admins, and moderators and admins remove or ban those below them. Moderators and admins pin and remove posts. **Slow mode** makes members wait between posts and comments (moderators and admins aren't slowed).
 

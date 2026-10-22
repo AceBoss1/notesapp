@@ -147,6 +147,26 @@ const user = (uid: string, tier = "basic", extra = {}) => db.doc(`users/${uid}`)
   assert.equal((await chat.get()).size, 0, "the chat goes with the room");
   assert.equal((await db.doc(`communityRooms/${room.id}`).get()).data()!.status, "ended", "the host leaving ends the room");
   await fails(R.joinRoom(db, "m6", room.id), 410);
+  // Discovery: an invite-only community is private (not in the directory, Explore or Trending, except for its own members); the
+  // others trend by new members, posts and comments in the window
+  const base = { ownerUid: "zed", tagline: "", about: "", contact: "", avatar: "", cover: "", questions: [], publicView: { general: true, about: true, contact: true, events: true, members: false, join: true }, slowModeSec: 0, spaces: [], inviteCode: "x", memberCount: 3, verified: false, createdAt: new Date().toISOString() };
+  await db.doc("communities/trend-open").set({ ...base, id: "trend-open", name: "Trend Open", joinMode: "open" });
+  await db.doc("communities/trend-ask").set({ ...base, id: "trend-ask", name: "Trend Ask", joinMode: "approval" });
+  await db.doc("communities/trend-secret").set({ ...base, id: "trend-secret", name: "Trend Secret", joinMode: "invite" });
+  const nowIso = new Date().toISOString(), oldIso = new Date(Date.now() - 40 * 86_400_000).toISOString();
+  for (const [cid, n] of [["trend-open", 3], ["trend-ask", 1], ["trend-secret", 9]] as const) for (let i = 0; i < n; i++) await db.collection("communityPosts").add({ cid, createdAt: nowIso });
+  await db.collection("communityPosts").add({ cid: "trend-ask", createdAt: oldIso });
+  await db.doc("communityMembers/trend-ask_n1").set({ cid: "trend-ask", uid: "n1", role: "member", status: "active", joinedAt: nowIso });
+  await db.doc("communityMembers/trend-ask_n2").set({ cid: "trend-ask", uid: "n2", role: "member", status: "active", joinedAt: nowIso });
+  await db.doc("communityMembers/trend-secret_zed").set({ cid: "trend-secret", uid: "zed", role: "owner", status: "active", joinedAt: oldIso });
+  const tr = await C.trendingCommunities(db, 7);
+  const ids = tr.map((x) => x.id);
+  assert.ok(!ids.includes("trend-secret"), "invite-only communities don't trend");
+  assert.ok(ids.indexOf("trend-ask") >= 0 && ids.indexOf("trend-ask") < ids.indexOf("trend-open"), "two new members and a post (11) beat three posts (9)");
+  assert.equal(tr.find((x) => x.id === "trend-ask")!.posts, 1, "posts outside the window don't count");
+  assert.ok(!(await C.directory(db, null)).some((x) => x.id === "trend-secret"), "not listed for everyone");
+  assert.ok((await C.directory(db, "zed")).some((x) => x.id === "trend-secret"), "listed for its own members");
+
   console.log("ALL OK");
   process.exit(0);
 })().catch((e) => { console.error(e); process.exit(1); });

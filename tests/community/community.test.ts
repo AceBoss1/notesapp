@@ -1,5 +1,6 @@
 // Community and events, the pure rules (lib/community.ts, lib/events.ts). Run: npm run test:community → "ALL OK".
 import assert from "node:assert/strict";
+import { isDiscoverable, trendScore } from "../../lib/community";
 import {
   DEFAULT_PUBLIC, can, canActOn, canGiveRole, canPostIn, cleanSettings, cleanSlug, cleanSpaces, effectiveRole, isPublicPost, readableChannels, slowWait, tabsFor,
   type Community,
@@ -60,4 +61,7 @@ const ev: EventDoc & { id: string } = { id: "e1", hostUid: "h", hostName: "Grace
 const ics = toIcs(ev, "https://www.notesapp.name.ng/events/e1", at);
 assert.match(ics, /BEGIN:VEVENT\r\nUID:e1@notesapp\.name\.ng/); assert.match(ics, /DTSTART:20261025T080000Z/); assert.ok(ics.includes("SUMMARY:Service\\, with\\; commas"), "commas and semicolons escaped"); assert.match(ics, /RRULE:FREQ=WEEKLY/);
 assert.ok(ics.split("\r\n").every((l) => l.length <= 75), "lines folded");
+// discoverable unless invite-only; a new member outweighs a post, a post a comment
+assert.equal(isDiscoverable({ joinMode: "open" }), true); assert.equal(isDiscoverable({ joinMode: "approval" }), true); assert.equal(isDiscoverable({ joinMode: "invite" }), false);
+assert.ok(trendScore({ joined: 1, posts: 0, comments: 0 }) > trendScore({ joined: 0, posts: 1, comments: 0 }) && trendScore({ joined: 0, posts: 1, comments: 0 }) > trendScore({ joined: 0, posts: 0, comments: 1 }));
 console.log("ALL OK");

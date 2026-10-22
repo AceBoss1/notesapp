@@ -11,6 +11,18 @@ export type Release = {
 
 export const CHANGELOG: Release[] = [
   {
+    version: "v0.81.0",
+    bump: "minor",
+    date: "2026-10-22",
+    changes: [
+      { kind: "added", text: "Communities in Explore: a Communities tab lists every community anyone can join or ask to join, with search. Invite-only communities stay private and are listed only for their members." },
+      { kind: "added", text: "Trending → Communities: the busiest communities today, this week or this month, ranked by new members, then posts, then comments." },
+      { kind: "added", text: "Notes Life in the journal feed: a “Need a 5-minute break?” card, at most twice a day, with the people you follow who play; ✕ hides it for a week. It sits between posts on a phone and in the right column on a computer." },
+      { kind: "added", text: "🎮 Plays Notes Life on profiles, stores and course pages, between people who follow each other; tapping it opens the game with them as your inviter." },
+      { kind: "added", text: "Two new switches in Account → Privacy: Show that I play Notes Life, and Notes Life card in my feed. In teen mode both are off and can't be turned on." },
+    ],
+  },
+  {
     version: "v0.80.1",
     bump: "patch",
     date: "2026-10-22",

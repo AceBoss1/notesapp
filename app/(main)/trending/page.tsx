@@ -18,8 +18,9 @@ type Publisher = { username: string; displayName: string; avatar: string; views:
 type Item = { id: string; title: string; price: string; image: string; digital: boolean; seller: string; sellerUsername: string; sellerIsOrg: boolean; views: number; favs: number; rating?: number; reviews?: number };
 type Course = { id: string; slug: string; title: string; cover: string; teacher: string; teacherUsername: string; lessons: number; enrolled: number; views: number };
 type Data = { basis: string; posts: Post[]; publishers: Publisher[]; items: Item[]; courses?: Course[] };
-type Tab = "notes" | "store" | "courses" | "publishers";
-const TABS: { id: Tab; label: string }[] = [{ id: "notes", label: "Notes" }, { id: "store", label: "Store" }, { id: "courses", label: "Courses" }, { id: "publishers", label: "Publishers" }];
+type Tab = "notes" | "store" | "courses" | "communities" | "publishers";
+const TABS: { id: Tab; label: string }[] = [{ id: "notes", label: "Notes" }, { id: "store", label: "Store" }, { id: "courses", label: "Courses" }, { id: "communities", label: "Communities" }, { id: "publishers", label: "Publishers" }];
+type TrendingCommunity = { id: string; name: string; tagline: string; avatar: string; memberCount: number; verified: boolean; posts: number; comments: number; joined: number; score: number };
 
 export default function TrendingPage() {
   const [data, setData] = useState<Data | null>(null);
@@ -28,6 +29,12 @@ export default function TrendingPage() {
   const [topic, setTopic] = useState<string | null>(null);
   const [days, setDays] = useState(7);
   const { interests } = useInterests();
+  const [communities, setCommunities] = useState<TrendingCommunity[] | null>(null);
+  useEffect(() => {
+    if (tab !== "communities") return;
+    setCommunities(null);
+    fetch(`/api/community?trending=${days}`).then((r) => (r.ok ? r.json() : Promise.reject())).then((d) => setCommunities(d.communities ?? [])).catch(() => setCommunities([]));
+  }, [tab, days]);
 
   useEffect(() => {
     const t = new URLSearchParams(window.location.search).get("tab");
@@ -60,7 +67,7 @@ export default function TrendingPage() {
         <div className="mx-auto max-w-6xl px-5 py-10 sm:px-8 sm:py-14">
           <p className="font-mono text-xs uppercase tracking-eyebrow text-paper/80">Trending</p>
           <h1 className="mt-3 font-display text-[2.6rem] leading-[1.1] sm:text-5xl">Most visited on #NotesApp</h1>
-          <p className="mt-4 max-w-2xl text-[17px] text-paper/90 sm:text-base">{days === 1 ? "Today" : "This week"}, across journals, stores and courses. Refreshed every few minutes.</p>
+          <p className="mt-4 max-w-2xl text-[17px] text-paper/90 sm:text-base">{days === 1 ? "Today" : "This week"}, across journals, stores, courses and communities. Refreshed every few minutes.</p>
           <label className="relative mt-6 inline-flex">
             <span className="sr-only">Period</span>
             <select value={days} onChange={(e) => setDays(Number(e.target.value))} className="appearance-none rounded-full bg-card py-3 pl-16 pr-20 font-ui text-base font-semibold text-ink outline-none sm:py-2.5 sm:pl-10 sm:pr-12 sm:text-sm">
@@ -120,6 +127,15 @@ export default function TrendingPage() {
           </div>
         )}
 
+        {tab === "communities" && (
+          <>
+            <p className="mb-3 text-xs text-slate">Communities anyone can find, ranked by what happened in them: new members count most, then posts, then comments. Invite-only communities aren&apos;t listed. <Link href="/explore?tab=communities" className="font-semibold text-crimson">All communities</Link></p>
+            {communities === null ? <p className="py-6 text-sm text-slate">Loading…</p> : communities.length === 0 ? <p className="py-6 text-sm text-slate">No community activity in this period yet. <Link href="/community" className="font-semibold text-crimson">Start a community</Link>.</p> : (
+              <RankedList rows={communities.map((c) => ({ key: c.id, href: `/c/${c.id}`, title: `${c.name}${c.verified ? " ✔" : ""}`, image: c.avatar || undefined, count: c.joined + c.posts + c.comments, unit: "activity", sub: <>{plural(c.memberCount, "member")}{c.joined ? ` · ${c.joined} joined` : ""}{c.posts ? ` · ${plural(c.posts, "post")}` : ""}{c.comments ? ` · ${plural(c.comments, "comment")}` : ""}</> }))} />
+            )}
+          </>
+        )}
+
         {data && tab === "publishers" && (
           <ol className="divide-y divide-rule overflow-hidden rounded-2xl border border-rule bg-card">
             {data.publishers.length === 0 && <li className="px-4 py-6 text-sm text-slate">No visits recorded yet.</li>}
@@ -138,7 +154,7 @@ export default function TrendingPage() {
             ))}
           </ol>
         )}
-        {data && <p className="mt-4 text-xs text-slate">Views in the {data.basis}.</p>}
+        {data && tab !== "communities" && <p className="mt-4 text-xs text-slate">Views in the {data.basis}.</p>}
         <BadgeToast />
       </section>
     </>

@@ -1,5 +1,6 @@
 "use client";
 
+import PlaysLife from "@/components/life/PlaysLife";
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -107,6 +108,7 @@ export default function StorePageClient({ params }: { params: { username: string
               <p className="mt-1 text-sm text-slate">
                 {visible.length} item{visible.length === 1 ? "" : "s"}{totalSaved > 0 ? ` · ♥ ${totalSaved} saved` : ""}{profile.bio ? ` · ${profile.bio.slice(0, 90)}${profile.bio.length > 90 ? "…" : ""}` : ""}
               </p>
+              <PlaysLife uid={profile.uid} className="mt-1.5" />
             </div>
           </div>
           <div className="flex flex-wrap gap-2">

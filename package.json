@@ -35,6 +35,8 @@
     "test:ads": "npx -y tsx tests/ads/ads.test.ts",
     "test:kiswahili": "npx -y tsx tests/kiswahili/kiswahili.test.ts",
     "test:kiswahili-server": "NEXT_PUBLIC_FIREBASE_API_KEY=x NEXT_PUBLIC_FIREBASE_PROJECT_ID=demo-notesapp NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=x NEXT_PUBLIC_FIREBASE_APP_ID=x npx firebase-tools@13 emulators:exec --only firestore --project demo-notesapp \"npx -y tsx tests/kiswahili/kiswahili.emulator.ts\"",
+    "test:life-social": "npx -y tsx tests/life/social.test.ts",
+    "test:life-social-server": "NEXT_PUBLIC_FIREBASE_API_KEY=x NEXT_PUBLIC_FIREBASE_PROJECT_ID=demo-notesapp NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=x NEXT_PUBLIC_FIREBASE_APP_ID=x npx firebase-tools@13 emulators:exec --only firestore --project demo-notesapp \"npx -y tsx tests/life/social.emulator.ts\"",
     "test:exam-prep": "npx -y tsx tests/exam-prep/exam-prep.test.ts",
     "test:exam-prep-server": "PAYSTACK_SECRET_KEY=sk_test_standin NEXT_PUBLIC_FIREBASE_API_KEY=x NEXT_PUBLIC_FIREBASE_PROJECT_ID=demo-notesapp NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=x NEXT_PUBLIC_FIREBASE_APP_ID=x npx firebase-tools@13 emulators:exec --only firestore --project demo-notesapp \"npx -y tsx tests/exam-prep/exam-prep.emulator.ts\"",
     "test:cardtap": "npx -y tsx tests/life/cardtap.test.ts && npx -y tsx tests/cardtap/topup.test.ts",
