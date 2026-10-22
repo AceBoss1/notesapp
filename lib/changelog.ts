@@ -11,6 +11,15 @@ export type Release = {
 
 export const CHANGELOG: Release[] = [
   {
+    version: "v0.78.0",
+    bump: "minor",
+    date: "2026-10-22",
+    changes: [
+      { kind: "added", text: "Your community, inside your own site: once you link a community you run on Your site, it opens at /community on your site (and on your own domain), with a Community link in your menu. Visitors join, read and post, members chat and join audio rooms, all without leaving your site; invite and share links point there too." },
+      { kind: "added", text: "A Community switch under Choose what shows on Your site, for anyone who runs a community: link one there, or turn its page on and off." },
+    ],
+  },
+  {
     version: "v0.77.0",
     bump: "minor",
     date: "2026-10-22",

@@ -4,7 +4,6 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { isCrimsonTheme } from "@/lib/site-themes";
 import { COURSES_LIVE } from "@/lib/site-settings";
-import { MAIN_HOST } from "@/lib/host";
 import { useSite, type SiteInfo } from "./SiteContext";
 
 type Key = "home" | "track" | "notes" | "shop" | "courses" | "community" | "about" | "contact";
@@ -15,8 +14,8 @@ const LINKS: { key: Key; label: string; path: string; extra?: boolean; shown: (s
   { key: "notes", label: "Notes", path: "/notes", shown: (s) => s.sections.journals },
   { key: "shop", label: "Shop", path: "/shop", shown: (s) => s.sections.shop },
   { key: "courses", label: "Courses", path: "/courses", shown: (s) => COURSES_LIVE && s.sections.courses },
-  // The community they linked on Your site lives on #NotesApp (/c/<id>): on their own domain this link leaves for www; under /s/<username> it's /c/<id>.
-  { key: "community", label: "Community", path: "", shown: (s) => !!s.community },
+  // The community they linked on Your site, shown inside the site (app/(site)/s/[username]/community).
+  { key: "community", label: "Community", path: "/community", shown: (s) => !!s.community },
   { key: "about", label: "About", path: "/about", extra: true, shown: (s) => s.pages.about },
   { key: "contact", label: "Contact", path: "/contact", extra: true, shown: (s) => s.pages.contact },
 ];
@@ -26,7 +25,7 @@ function current(pathname: string): Key {
   const seg = pathname.split("/").filter(Boolean);
   if (seg.includes("notes") || seg.includes("journals")) return "notes";
   if (seg.includes("shop") || seg.includes("store")) return "shop";
-  for (const k of ["track", "courses", "about", "contact"] as const) if (seg.includes(k)) return k;
+  for (const k of ["track", "courses", "community", "about", "contact"] as const) if (seg.includes(k)) return k;
   return "home";
 }
 
@@ -40,7 +39,7 @@ export default function SiteNav({ footer = false }: { footer?: boolean }) {
       {LINKS.filter((l) => l.shown(site)).map((l) => (
         <Link
           key={l.key}
-          href={l.key === "community" ? `${base ? "" : `https://${MAIN_HOST}`}/c/${site.community}` : `${base}${l.path}` || "/"}
+          href={`${base}${l.path}` || "/"}
           aria-current={!footer && active === l.key ? "page" : undefined}
           className={footer ? "hover:text-paper" : `${l.extra ? "hidden md:inline " : ""}border-b-2 pb-0.5 transition-colors ${dark ? `hover:text-white ${active === l.key ? "border-paper text-white" : "border-transparent"}` : `hover:text-crimson ${active === l.key ? "border-crimson text-crimson" : "border-transparent"}`}`}
         >

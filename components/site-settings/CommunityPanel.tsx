@@ -11,7 +11,8 @@ type Run = { id: string; name: string; avatar: string; memberCount: number; role
 
 // On "Your site", under the kits, for sites on a kit that opens Community (lib/site-kits.ts COMMUNITY_KITS: Churches and NGOs; owner,
 // 22 Oct 2026). Start the organisation's community right here (name, address and line filled in from the profile and the site's banner),
-// or link one they already run; a linked community gets a Community link in the site's menu (/api/site/community).
+// or link one they already run; a linked community opens inside the site at /community (on their own domain too), with a link in the
+// site's menu (/api/site/community).
 export default function CommunityPanel({ linked, name, username, tagline, onLinked }: {
   linked: string; name: string; username: string; tagline: string; onLinked: (cid: string) => Promise<void>;
 }) {
@@ -26,7 +27,7 @@ export default function CommunityPanel({ linked, name, username, tagline, onLink
 
   async function link(cid: string) {
     setBusy(cid || "unlink"); setErr(""); setMsg("");
-    try { await onLinked(cid); setMsg(cid ? "Linked: your site's menu now has a Community link." : "Unlinked: the Community link is off your site's menu."); }
+    try { await onLinked(cid); setMsg(cid ? "Linked: it now opens inside your site, at /community, with a link in your menu." : "Unlinked: the Community page is off your site."); }
     catch (e) { setErr(e instanceof Error ? e.message : "Couldn't do that."); }
     finally { setBusy(""); }
   }
@@ -49,14 +50,14 @@ export default function CommunityPanel({ linked, name, username, tagline, onLink
       <p className="mt-1 text-sm text-slate">
         A home for your members on #NotesApp, run by your own admins:{" "}
         {COMMUNITY_FEATURES.map((f, i) => <span key={f.slug}>{i ? (i === COMMUNITY_FEATURES.length - 1 ? " and " : ", ") : ""}<Link href={`/community/${f.slug}`} className="text-crimson underline" target="_blank">{f.name}</Link></span>)}
-        . Link it here and your site&apos;s menu gets a Community link.
+        . Link it here and it opens inside your site (on your own domain too), with a Community link in your menu.
       </p>
 
       {run === null ? <p className="mt-4 text-sm text-slate">Loading…</p> : current ? (
         <div className="mt-4 flex flex-col gap-3 rounded-2xl bg-paper p-4 sm:flex-row sm:items-center">
           <div className="min-w-0 flex-1">
             <p className="font-ui text-sm font-bold text-ink">✓ {current.name}</p>
-            <p className="text-xs text-slate">{ROOT_DOMAIN}/c/{current.id} · {current.memberCount.toLocaleString()} {current.memberCount === 1 ? "member" : "members"} · linked to your site</p>
+            <p className="text-xs text-slate">{ROOT_DOMAIN}/c/{current.id} · {current.memberCount.toLocaleString()} {current.memberCount === 1 ? "member" : "members"} · on your site at /community</p>
           </div>
           <div className="flex shrink-0 items-center gap-3">
             <Link href={`/c/${current.id}`} className="btn-primary !px-4 !py-2 text-xs">Open it</Link>

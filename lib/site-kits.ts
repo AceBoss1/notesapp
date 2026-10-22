@@ -80,7 +80,9 @@ export type SiteFocus = (typeof SITE_FOCUS)[number]["id"];
 export const cleanFocus = (v: unknown): SiteFocus => (SITE_FOCUS.some((f) => f.id === v) ? v as SiteFocus : "mix");
 // community: the id of a community the member runs (lib/community.ts), linked to their site from "Your site" (owner, 22 Oct 2026: choosing the
 // Churches and NGOs kit should open Community: start one there, or link the one they run). The site's menu then has a Community link.
-export type SiteDoc = { kit: string; palette: SitePalette; blocks: Blocks; order: BlockId[]; bookBelowPosts: boolean; orcid: OrcidLink | null; cover: string; announce?: string; focus?: SiteFocus; community?: string; updatedAt?: string };
+// communityPage: the linked community shows inside their site at <site>/community, on their own domain too (owner, 22 Oct 2026); on by
+// default, switched off under "Choose what shows".
+export type SiteDoc = { kit: string; palette: SitePalette; blocks: Blocks; order: BlockId[]; bookBelowPosts: boolean; orcid: OrcidLink | null; cover: string; announce?: string; focus?: SiteFocus; community?: string; communityPage?: boolean; updatedAt?: string };
 // The kits that open Community on "Your site" (start one, or link one you run).
 export const COMMUNITY_KITS = ["church"];
 export const cleanCommunityLink = (v: unknown) => { const s = String(v ?? ""); return /^[a-z0-9](?:[a-z0-9-]{1,38})[a-z0-9]$/.test(s) ? s : ""; };
@@ -183,7 +185,7 @@ const orcidOf = (v: unknown): OrcidLink | null => {
 };
 export function siteDocOf(raw: unknown): SiteDoc {
   const o = (raw && typeof raw === "object" ? raw : {}) as Record<string, unknown>;
-  return { kit: t(o.kit, 30), palette: cleanPalette(o.palette), blocks: cleanBlocks(o.blocks), order: cleanOrder(o.order), bookBelowPosts: o.bookBelowPosts === true, orcid: orcidOf(o.orcid), cover: img(o.cover), announce: cleanAnnounce(o.announce), focus: cleanFocus(o.focus), community: cleanCommunityLink(o.community), updatedAt: typeof o.updatedAt === "string" ? o.updatedAt : undefined };
+  return { kit: t(o.kit, 30), palette: cleanPalette(o.palette), blocks: cleanBlocks(o.blocks), order: cleanOrder(o.order), bookBelowPosts: o.bookBelowPosts === true, orcid: orcidOf(o.orcid), cover: img(o.cover), announce: cleanAnnounce(o.announce), focus: cleanFocus(o.focus), community: cleanCommunityLink(o.community), communityPage: o.communityPage !== false, updatedAt: typeof o.updatedAt === "string" ? o.updatedAt : undefined };
 }
 // What a visitor sees: only the sections switched on, with something in them, that the plan still covers (after a downgrade, a section waits
 // switched off rather than vanishing from the settings).

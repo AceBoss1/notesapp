@@ -103,6 +103,10 @@ const fails = async (p: Promise<unknown>, status: number, re: RegExp) => {
   assert.equal((await linkCommunity(db, "biz", "grace-chapel")).community, "grace-chapel");
   await saveSite(db, "biz", { palette: { id: "forest" } });
   assert.equal((await applyKit(db, "biz", "church")).site.community, "grace-chapel", "kept by saves and kits");
+  assert.equal((await linkCommunity(db, "biz", "grace-chapel", new Date(), false)).communityPage, false, "the page switched off");
+  assert.equal((await linkCommunity(db, "biz", "grace-chapel")).communityPage, false, "and it stays off when nothing is said");
+  assert.equal((await saveSite(db, "biz", { palette: { id: "forest" } })).communityPage, false, "other saves keep it");
+  assert.equal((await linkCommunity(db, "biz", "grace-chapel", new Date(), true)).communityPage, true);
   assert.equal((await linkCommunity(db, "biz", "")).community, "", "unlinked");
   assert.equal(await setOrcid(db, "basic", { orcid: null }), null);
   assert.equal((await readSite(db, "basic")).orcid, null);

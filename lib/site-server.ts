@@ -65,7 +65,7 @@ export async function applyKit(db: Firestore, uid: string, kitId: unknown, now =
 }
 
 // Links a community the member runs (owner or admin) to their site, or unlinks it (cid empty). Their site's menu then has a Community link.
-export async function linkCommunity(db: Firestore, uid: string, cid: unknown, now = new Date()): Promise<SiteDoc> {
+export async function linkCommunity(db: Firestore, uid: string, cid: unknown, now = new Date(), page?: unknown): Promise<SiteDoc> {
   await owner(db, uid);
   const id = cleanCommunityLink(cid);
   if (cid && !id) throw new SiteError(400, "That community wasn't found.");
@@ -74,7 +74,7 @@ export async function linkCommunity(db: Firestore, uid: string, cid: unknown, no
     if (!m || m.status !== "active" || (m.role !== "owner" && m.role !== "admin")) throw new SiteError(403, "Only a community's owner or admins can link it to their site.");
   }
   const cur = await readSite(db, uid);
-  const next: SiteDoc = { ...cur, community: id, updatedAt: now.toISOString() };
+  const next: SiteDoc = { ...cur, community: id, communityPage: typeof page === "boolean" ? page : cur.communityPage !== false, updatedAt: now.toISOString() };
   await db.doc(`sites/${uid}`).set({ ...next, uid }, { merge: false });
   return next;
 }

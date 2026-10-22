@@ -34,6 +34,9 @@ export default function CommunityPage() {
           <li id="giving" className="card p-4"><strong className="text-ink">Giving (later)</strong><p className="mt-1 text-slate">Offerings, tithes and campaigns with a goal, paid out to your organisation&apos;s verified bank account. Charges like a bank transfer, and cheaper from the NotesApp wallet.</p></li>
         </ul>
 
+        <h2 className="mt-12 font-display text-2xl text-ink">On your own site</h2>
+        <p className="mt-3 text-sm text-slate">Have a site on #NotesApp? Link your community on <Link href="/profile/site" className="text-crimson underline">Your site</Link> and it opens inside it, at /community, on your own domain too: your members join, post, chat and go live without leaving your site.</p>
+
         <h2 className="mt-12 font-display text-2xl text-ink">Who can start one</h2>
         <p className="mt-3 text-sm text-slate">Any account can start a community. Until we&apos;ve verified the organisation behind it, the community shows this notice: <em>&ldquo;{UNVERIFIED_COMMUNITY_NOTICE}&rdquo;</em> <Link href="/organisations" className="text-crimson underline">Verification</Link> removes it.</p>
 

@@ -77,6 +77,8 @@ assert.deepEqual(shopCollections([{}, { badge: "  " }]), []);
 assert.equal(siteDocOf({ community: "grace-chapel" }).community, "grace-chapel");
 assert.equal(siteDocOf({ community: "../../users/x" }).community, "");
 assert.equal(siteDocOf({}).community, "");
+assert.equal(siteDocOf({ community: "grace-chapel" }).communityPage, true, "a linked community shows as a page unless switched off");
+assert.equal(siteDocOf({ community: "grace-chapel", communityPage: false }).communityPage, false);
 const mine = siteDocOf({ blocks: { hero: { headline: "My own words" }, services: { items: [{ name: "Mine", price: "₦1" }] } } });
 const r = applyKitTo(mine, kitOf("food")!, "pro");
 assert.equal(r.theme, "luxe"); assert.equal(r.site.kit, "food"); assert.equal(r.site.palette.id, "sunset");
