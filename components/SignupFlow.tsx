@@ -174,7 +174,10 @@ export default function SignupFlow({ embedded = false, onSwitch, onStarted }: { 
         [...chosen].map((username) => followJournal(newUser.uid, username, false))
       );
       const me = auth.currentUser;
-      if (!(me && (await goBack(me)))) router.push(kind === "organisation" ? "/organisation" : `/u/${newUsername}`);
+      // The page that asked (?next=, e.g. Exam Prep's sign-up) comes first; otherwise their new profile.
+      const next = new URLSearchParams(window.location.search).get("next") || "";
+      const asked = next.startsWith("/") && !next.startsWith("//") ? next : "";
+      if (!(me && (await goBack(me)))) router.push(kind === "organisation" ? "/organisation" : asked || `/u/${newUsername}`);
     } finally {
       setFinishing(false);
     }

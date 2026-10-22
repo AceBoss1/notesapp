@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { APP_HOST, LIFE_HOST, MAIN_HOST, ROOT_DOMAIN, familyHost, familyOf, isMainHost, ourRoot, roleOf, type Family } from "@/lib/host";
+import { APP_HOST, LIFE_HOST, MAIN_HOST, PREP_HOST, ROOT_DOMAIN, familyHost, familyOf, isMainHost, ourRoot, roleOf, type Family } from "@/lib/host";
 
 // Custom domains (Enterprise). On our own hosts this does nothing. On a member's domain it serves their branded site
 // (app/(site)/s/[username]: header with their name, Home, Notes, Shop, "Powered by #NotesApp" footer) and sends everything
@@ -51,7 +51,7 @@ function ours(req: NextRequest, host: string, fam: Family) {
   const { pathname } = req.nextUrl;
   if (fam.root !== ROOT_DOMAIN && !pathname.startsWith("/api/") && !pathname.startsWith("/_next") && !PUBLIC_FILE.test(pathname) && !res.headers.get("location")) {
     const role = roleOf(fam);
-    const primary = role === "app" ? APP_HOST : role === "life" ? LIFE_HOST : MAIN_HOST;
+    const primary = role === "app" ? APP_HOST : role === "life" ? LIFE_HOST : role === "prep" ? PREP_HOST : MAIN_HOST;
     res.headers.set("Link", `<https://${primary}${pathname}>; rel="canonical"`);
   }
   return res;
@@ -74,6 +74,27 @@ function route(req: NextRequest, host: string, fam: Family) {
     if (pathname === "/play" || pathname === "/life/play") return NextResponse.redirect(`https://${main}/life/play${search}`, 307);
     if (pathname === "/life" || pathname.startsWith("/life/") || pathname.startsWith("/_next") || pathname.startsWith("/api/") || PUBLIC_FILE.test(pathname)) return NextResponse.next();
     return NextResponse.redirect(`https://${main}${pathname}${search}`, 307);
+  }
+  // prep.<domain>: Naija Exam Prep at its root (app/exam-prep). Its own sign-in and sign-up (Firebase sign-in belongs to one
+  // address, so a student signs in here, not on the main site); its files and API calls load as usual; anything else is the
+  // main site's.
+  if (role === "prep") {
+    if (pathname === "/") return NextResponse.rewrite(new URL(`/exam-prep${search}`, req.url));
+    if (pathname === "/exam-prep" || pathname.startsWith("/exam-prep/") || pathname.startsWith("/_next") || pathname.startsWith("/api/") || PUBLIC_FILE.test(pathname)) return NextResponse.next();
+    if (pathname === "/login" || pathname === "/signup" || pathname === "/forgot-password") {
+      const u = new URL("/exam-prep/signin", req.url);
+      u.searchParams.set("auth", pathname === "/signup" ? "signup" : "signin");
+      const next = req.nextUrl.searchParams.get("next");
+      if (next) u.searchParams.set("next", next);
+      return NextResponse.rewrite(u);
+    }
+    if (/^\/(jamb|waec|neco|saved|progress|pay|paid|confirm|review|signin)(\/|$)/.test(pathname)) return NextResponse.rewrite(new URL(`/exam-prep${pathname}${search}`, req.url));
+    return NextResponse.redirect(`https://${main}${pathname}${search}`, 307);
+  }
+  // The main site and the app send Exam Prep to its own address (in production; one host on localhost and previews).
+  if (pathname === "/exam-prep" || pathname.startsWith("/exam-prep/")) {
+    const prep = familyHost(host, "prep");
+    if (prep !== host) return NextResponse.redirect(`https://${prep}${pathname.replace(/^\/exam-prep/, "") || "/"}${search}`, 308);
   }
   if (role === "app") {
     // The app address: the home page is a splash to sign up or sign in (a signed-in member goes straight to the journal);

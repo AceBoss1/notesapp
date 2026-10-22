@@ -6,6 +6,8 @@ import { NOTESAPP_POSTS } from "@/lib/notesapp-posts";
 import { SITE } from "@/lib/site";
 import { getAcademy } from "@/lib/courses-server";
 import { ACADEMY_LIVE } from "@/lib/courses";
+import { PREP_URL } from "@/lib/host";
+import { EXAM_IDS } from "@/lib/exam-prep";
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const staticPages: MetadataRoute.Sitemap = [
@@ -15,6 +17,9 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { url: `${SITE.url}/shop`, changeFrequency: "daily", priority: 0.7 },
     ...(ACADEMY_LIVE ? [{ url: `${SITE.url}/academy`, changeFrequency: "daily" as const, priority: 0.7 }] : []),
     { url: `${SITE.url}/pricing`, changeFrequency: "monthly", priority: 0.7 },
+    // Naija Exam Prep lives on its own address (lib/host.ts PREP_HOST)
+    { url: PREP_URL, changeFrequency: "weekly", priority: 0.8 },
+    ...EXAM_IDS.map((e) => ({ url: `${PREP_URL}/${e}`, changeFrequency: "weekly" as const, priority: 0.7 })),
     { url: `${SITE.url}/boost`, changeFrequency: "monthly", priority: 0.6 },
     { url: `${SITE.url}/badges`, changeFrequency: "monthly", priority: 0.5 },
     { url: `${SITE.url}/gifts`, changeFrequency: "monthly", priority: 0.6 },

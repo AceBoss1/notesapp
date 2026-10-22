@@ -1,0 +1,2253 @@
+{
+ "version": 1,
+ "note": "Original practice questions, AI-assisted drafts for review. Built by scripts/exam-prep-starter.mjs.",
+ "questions": [
+  {
+   "id": "jamb-maths-01",
+   "exam": "jamb",
+   "subject": "mathematics",
+   "topic": "number-and-numeration",
+   "stem": "Convert 101101₂ to a base ten number.",
+   "options": [
+    "43",
+    "90",
+    "53",
+    "45"
+   ],
+   "answer": "D",
+   "explanation": "Write the place values from the right: 1×1 + 0×2 + 1×4 + 1×8 + 0×16 + 1×32 = 1 + 4 + 8 + 32 = 45.",
+   "whyNot": {
+    "A": "43 comes from misreading a digit; add the place values carefully.",
+    "B": "90 is 101101 read as base ten and halved, not a conversion."
+   },
+   "difficulty": 1,
+   "access": "free"
+  },
+  {
+   "id": "jamb-maths-02",
+   "exam": "jamb",
+   "subject": "mathematics",
+   "topic": "number-and-numeration",
+   "stem": "Simplify (0.0024 × 0.5) ÷ 0.03",
+   "options": [
+    "0.04",
+    "0.004",
+    "0.4",
+    "4"
+   ],
+   "answer": "A",
+   "explanation": "0.0024 × 0.5 = 0.0012. Then 0.0012 ÷ 0.03 = 12 ÷ 300 = 0.04 (multiply top and bottom by 10,000 to clear the decimals).",
+   "difficulty": 2,
+   "access": "free"
+  },
+  {
+   "id": "jamb-maths-03",
+   "exam": "jamb",
+   "subject": "mathematics",
+   "topic": "number-and-numeration",
+   "stem": "Given that log₁₀2 = 0.3010, find log₁₀8.",
+   "options": [
+    "0.6020",
+    "2.4080",
+    "0.9030",
+    "0.0903"
+   ],
+   "answer": "C",
+   "explanation": "8 = 2³, so log₁₀8 = 3 × log₁₀2 = 3 × 0.3010 = 0.9030.",
+   "whyNot": {
+    "A": "0.6020 is 2 × log₁₀2, which is log₁₀4.",
+    "B": "2.4080 is 8 × 0.3010: the power multiplies the log, not the number 8."
+   },
+   "difficulty": 2,
+   "access": "pack"
+  },
+  {
+   "id": "jamb-maths-04",
+   "exam": "jamb",
+   "subject": "mathematics",
+   "topic": "number-and-numeration",
+   "stem": "A trader sold an article for ₦2,750 and made a profit of 10%. What was the cost price?",
+   "options": [
+    "₦2,725",
+    "₦3,025",
+    "₦2,500",
+    "₦2,475"
+   ],
+   "answer": "C",
+   "explanation": "Selling price = 110% of cost price. Cost price = 2,750 ÷ 1.1 = ₦2,500.",
+   "whyNot": {
+    "D": "₦2,475 takes 10% off the selling price, but the profit is 10% of the cost price.",
+    "B": "₦3,025 adds 10% to the selling price."
+   },
+   "difficulty": 2,
+   "access": "pack"
+  },
+  {
+   "id": "jamb-maths-05",
+   "exam": "jamb",
+   "subject": "mathematics",
+   "topic": "algebra",
+   "stem": "Solve 3x − 7 = 2x + 5.",
+   "options": [
+    "x = −2",
+    "x = −12",
+    "x = 2",
+    "x = 12"
+   ],
+   "answer": "D",
+   "explanation": "Subtract 2x from both sides: x − 7 = 5. Add 7: x = 12. Check: 3(12) − 7 = 29 and 2(12) + 5 = 29.",
+   "difficulty": 1,
+   "access": "free"
+  },
+  {
+   "id": "jamb-maths-06",
+   "exam": "jamb",
+   "subject": "mathematics",
+   "topic": "algebra",
+   "stem": "Find the roots of x² − 5x + 6 = 0.",
+   "options": [
+    "x = 2 or x = 3",
+    "x = 1 or x = 6",
+    "x = −2 or x = −3",
+    "x = −1 or x = 6"
+   ],
+   "answer": "A",
+   "explanation": "Factorise: x² − 5x + 6 = (x − 2)(x − 3). So x − 2 = 0 or x − 3 = 0, giving x = 2 or x = 3.",
+   "whyNot": {
+    "C": "The signs are wrong: (x + 2)(x + 3) would give x² + 5x + 6.",
+    "B": "1 and 6 multiply to 6 but add to 7, not 5."
+   },
+   "difficulty": 2,
+   "access": "free"
+  },
+  {
+   "id": "jamb-maths-07",
+   "exam": "jamb",
+   "subject": "mathematics",
+   "topic": "algebra",
+   "stem": "If f(x) = 2x² − 3x + 1, find f(−2).",
+   "options": [
+    "11",
+    "15",
+    "3",
+    "−1"
+   ],
+   "answer": "B",
+   "explanation": "f(−2) = 2(−2)² − 3(−2) + 1 = 2(4) + 6 + 1 = 15.",
+   "whyNot": {
+    "C": "3 comes from taking (−2)² as −4. A square is never negative."
+   },
+   "difficulty": 2,
+   "access": "pack"
+  },
+  {
+   "id": "jamb-maths-08",
+   "exam": "jamb",
+   "subject": "mathematics",
+   "topic": "algebra",
+   "stem": "Find the sum of the first 10 terms of the arithmetic progression 3, 7, 11, …",
+   "options": [
+    "195",
+    "420",
+    "210",
+    "39"
+   ],
+   "answer": "C",
+   "explanation": "a = 3, d = 4, n = 10. Sₙ = n/2 × [2a + (n − 1)d] = 5 × [6 + 36] = 5 × 42 = 210.",
+   "whyNot": {
+    "D": "39 is the 10th term (3 + 9 × 4), not the sum."
+   },
+   "difficulty": 2,
+   "access": "pack"
+  },
+  {
+   "id": "jamb-maths-09",
+   "exam": "jamb",
+   "subject": "mathematics",
+   "topic": "geometry-and-trigonometry",
+   "stem": "What is the sum of the interior angles of a hexagon?",
+   "options": [
+    "540°",
+    "360°",
+    "1080°",
+    "720°"
+   ],
+   "answer": "D",
+   "explanation": "Sum of interior angles = (n − 2) × 180°. A hexagon has 6 sides: (6 − 2) × 180° = 720°.",
+   "whyNot": {
+    "A": "540° is for a pentagon (5 sides).",
+    "B": "360° is the sum of the exterior angles of any polygon."
+   },
+   "difficulty": 1,
+   "access": "free"
+  },
+  {
+   "id": "jamb-maths-10",
+   "exam": "jamb",
+   "subject": "mathematics",
+   "topic": "geometry-and-trigonometry",
+   "stem": "If sin θ = 3/5 and θ is acute, find tan θ.",
+   "options": [
+    "4/3",
+    "3/4",
+    "5/4",
+    "4/5"
+   ],
+   "answer": "B",
+   "explanation": "Draw a right-angled triangle with opposite = 3 and hypotenuse = 5. The adjacent side is √(5² − 3²) = 4. tan θ = opposite/adjacent = 3/4.",
+   "whyNot": {
+    "D": "4/5 is cos θ.",
+    "A": "4/3 is adjacent/opposite, which is 1/tan θ."
+   },
+   "difficulty": 2,
+   "access": "pack"
+  },
+  {
+   "id": "jamb-maths-11",
+   "exam": "jamb",
+   "subject": "mathematics",
+   "topic": "geometry-and-trigonometry",
+   "stem": "Find the distance between the points (2, 3) and (5, 7).",
+   "options": [
+    "√7",
+    "7",
+    "5",
+    "25"
+   ],
+   "answer": "C",
+   "explanation": "Distance = √[(5 − 2)² + (7 − 3)²] = √(9 + 16) = √25 = 5.",
+   "whyNot": {
+    "D": "25 is the square of the distance; take the square root."
+   },
+   "difficulty": 2,
+   "access": "pack"
+  },
+  {
+   "id": "jamb-maths-12",
+   "exam": "jamb",
+   "subject": "mathematics",
+   "topic": "geometry-and-trigonometry",
+   "stem": "A chord 8 cm long is 3 cm from the centre of a circle. Find the radius of the circle.",
+   "options": [
+    "√55 cm",
+    "11 cm",
+    "4 cm",
+    "5 cm"
+   ],
+   "answer": "D",
+   "explanation": "The perpendicular from the centre bisects the chord, giving a right-angled triangle with sides 4 cm (half the chord) and 3 cm. Radius = √(4² + 3²) = 5 cm.",
+   "whyNot": {
+    "A": "√55 uses the whole chord (8² − 3²); use half the chord."
+   },
+   "difficulty": 2,
+   "access": "pack"
+  },
+  {
+   "id": "jamb-maths-13",
+   "exam": "jamb",
+   "subject": "mathematics",
+   "topic": "calculus",
+   "stem": "Find dy/dx if y = 3x⁴ − 2x² + 5.",
+   "options": [
+    "12x³ − 4x",
+    "12x⁴ − 4x²",
+    "3x³ − 2x",
+    "12x³ − 4x + 5"
+   ],
+   "answer": "A",
+   "explanation": "Differentiate term by term: d/dx(3x⁴) = 12x³, d/dx(−2x²) = −4x, and the constant 5 gives 0. So dy/dx = 12x³ − 4x.",
+   "whyNot": {
+    "D": "The derivative of a constant (5) is 0."
+   },
+   "difficulty": 2,
+   "access": "free"
+  },
+  {
+   "id": "jamb-maths-14",
+   "exam": "jamb",
+   "subject": "mathematics",
+   "topic": "calculus",
+   "stem": "Evaluate ∫(4x³ + 2x) dx.",
+   "options": [
+    "12x² + 2 + c",
+    "x⁴ + 2x² + c",
+    "x⁴ + x² + c",
+    "4x⁴ + 2x² + c"
+   ],
+   "answer": "C",
+   "explanation": "Raise each power by one and divide by the new power: ∫4x³ dx = x⁴ and ∫2x dx = x². So the answer is x⁴ + x² + c.",
+   "whyNot": {
+    "A": "12x² + 2 is the derivative, not the integral."
+   },
+   "difficulty": 2,
+   "access": "pack"
+  },
+  {
+   "id": "jamb-maths-15",
+   "exam": "jamb",
+   "subject": "mathematics",
+   "topic": "calculus",
+   "stem": "Find the gradient of the curve y = x² − 4x + 1 at the point where x = 3.",
+   "options": [
+    "2",
+    "5",
+    "−2",
+    "6"
+   ],
+   "answer": "A",
+   "explanation": "dy/dx = 2x − 4. At x = 3: 2(3) − 4 = 2.",
+   "whyNot": {
+    "C": "−2 is the value of y at x = 3 (9 − 12 + 1), not the gradient."
+   },
+   "difficulty": 2,
+   "access": "pack"
+  },
+  {
+   "id": "jamb-maths-16",
+   "exam": "jamb",
+   "subject": "mathematics",
+   "topic": "calculus",
+   "stem": "Find the minimum value of y = x² − 6x + 10.",
+   "options": [
+    "10",
+    "−1",
+    "3",
+    "1"
+   ],
+   "answer": "D",
+   "explanation": "dy/dx = 2x − 6 = 0 gives x = 3. Then y = 9 − 18 + 10 = 1. (Or complete the square: y = (x − 3)² + 1, which is least when x = 3.)",
+   "whyNot": {
+    "C": "3 is the value of x at the minimum, not the minimum value of y."
+   },
+   "difficulty": 2,
+   "access": "pack"
+  },
+  {
+   "id": "jamb-maths-17",
+   "exam": "jamb",
+   "subject": "mathematics",
+   "topic": "statistics",
+   "stem": "Find the mean of 4, 7, 9, 3 and 7.",
+   "options": [
+    "6",
+    "30",
+    "5",
+    "7"
+   ],
+   "answer": "A",
+   "explanation": "Mean = sum ÷ number of values = (4 + 7 + 9 + 3 + 7) ÷ 5 = 30 ÷ 5 = 6.",
+   "whyNot": {
+    "D": "7 is the mode (the most frequent value)."
+   },
+   "difficulty": 1,
+   "access": "free"
+  },
+  {
+   "id": "jamb-maths-18",
+   "exam": "jamb",
+   "subject": "mathematics",
+   "topic": "statistics",
+   "stem": "Find the median of 12, 5, 8, 15, 10 and 7.",
+   "options": [
+    "8",
+    "9.5",
+    "9",
+    "10"
+   ],
+   "answer": "C",
+   "explanation": "Arrange in order: 5, 7, 8, 10, 12, 15. With six values, the median is the mean of the 3rd and 4th: (8 + 10) ÷ 2 = 9.",
+   "whyNot": {
+    "D": "Don't pick a middle value from the unsorted list: sort first."
+   },
+   "difficulty": 2,
+   "access": "pack"
+  },
+  {
+   "id": "jamb-maths-19",
+   "exam": "jamb",
+   "subject": "mathematics",
+   "topic": "statistics",
+   "stem": "A fair die is thrown once. What is the probability of getting a number greater than 4?",
+   "options": [
+    "1/3",
+    "2/3",
+    "1/2",
+    "1/6"
+   ],
+   "answer": "A",
+   "explanation": "The numbers greater than 4 are 5 and 6: 2 outcomes out of 6. Probability = 2/6 = 1/3.",
+   "whyNot": {
+    "D": "1/6 is the chance of one particular number."
+   },
+   "difficulty": 2,
+   "access": "free"
+  },
+  {
+   "id": "jamb-maths-20",
+   "exam": "jamb",
+   "subject": "mathematics",
+   "topic": "statistics",
+   "stem": "Find the range of 23, 17, 31, 9 and 26.",
+   "options": [
+    "14",
+    "31",
+    "22",
+    "9"
+   ],
+   "answer": "C",
+   "explanation": "Range = highest − lowest = 31 − 9 = 22.",
+   "difficulty": 1,
+   "access": "pack"
+  },
+  {
+   "id": "waec-maths-01",
+   "exam": "waec",
+   "subject": "mathematics",
+   "topic": "number-and-numeration",
+   "stem": "Express 0.000357 in standard form.",
+   "options": [
+    "3.57 × 10⁻³",
+    "3.57 × 10⁻⁴",
+    "3.57 × 10⁴",
+    "35.7 × 10⁻⁵"
+   ],
+   "answer": "B",
+   "explanation": "Move the decimal point 4 places to the right to get 3.57, a number between 1 and 10. So 0.000357 = 3.57 × 10⁻⁴.",
+   "whyNot": {
+    "D": "35.7 × 10⁻⁵ has the right value, but standard form needs a number from 1 to less than 10 in front."
+   },
+   "difficulty": 1,
+   "access": "free"
+  },
+  {
+   "id": "waec-maths-02",
+   "exam": "waec",
+   "subject": "mathematics",
+   "topic": "number-and-numeration",
+   "stem": "Simplify 2⅓ + 1¾.",
+   "options": [
+    "4 1/12",
+    "4 1/7",
+    "3 7/12",
+    "3 1/12"
+   ],
+   "answer": "A",
+   "explanation": "2⅓ + 1¾ = 7/3 + 7/4 = 28/12 + 21/12 = 49/12 = 4 1/12.",
+   "whyNot": {
+    "B": "Fractions can't be added by adding tops and bottoms; use a common denominator (12)."
+   },
+   "difficulty": 2,
+   "access": "free"
+  },
+  {
+   "id": "waec-maths-03",
+   "exam": "waec",
+   "subject": "mathematics",
+   "topic": "number-and-numeration",
+   "stem": "Find the simple interest on ₦5,000 for 3 years at 4% per annum.",
+   "options": [
+    "₦624.32",
+    "₦200",
+    "₦5,600",
+    "₦600"
+   ],
+   "answer": "D",
+   "explanation": "Simple interest = (P × R × T) ÷ 100 = (5,000 × 4 × 3) ÷ 100 = ₦600.",
+   "whyNot": {
+    "A": "₦624.32 is compound interest, not simple interest.",
+    "C": "₦5,600 is the amount (principal plus interest)."
+   },
+   "difficulty": 2,
+   "access": "pack"
+  },
+  {
+   "id": "waec-maths-04",
+   "exam": "waec",
+   "subject": "mathematics",
+   "topic": "number-and-numeration",
+   "stem": "Evaluate 27^(2/3).",
+   "options": [
+    "3",
+    "18",
+    "9",
+    "81"
+   ],
+   "answer": "C",
+   "explanation": "27^(2/3) = (∛27)² = 3² = 9. Take the cube root first, then square.",
+   "whyNot": {
+    "A": "3 is only the cube root; the power 2 still has to be applied."
+   },
+   "difficulty": 2,
+   "access": "pack"
+  },
+  {
+   "id": "waec-maths-05",
+   "exam": "waec",
+   "subject": "mathematics",
+   "topic": "algebraic-processes",
+   "stem": "Factorise 6x² + x − 2.",
+   "options": [
+    "(2x + 1)(3x − 2)",
+    "(2x − 1)(3x + 2)",
+    "(3x − 1)(2x + 2)",
+    "(6x − 1)(x + 2)"
+   ],
+   "answer": "B",
+   "explanation": "Find two numbers that multiply to 6 × (−2) = −12 and add to 1: 4 and −3. 6x² + 4x − 3x − 2 = 2x(3x + 2) − 1(3x + 2) = (2x − 1)(3x + 2).",
+   "whyNot": {
+    "A": "(2x + 1)(3x − 2) = 6x² − x − 2: the middle sign is wrong."
+   },
+   "difficulty": 2,
+   "access": "free"
+  },
+  {
+   "id": "waec-maths-06",
+   "exam": "waec",
+   "subject": "mathematics",
+   "topic": "algebraic-processes",
+   "stem": "Solve the simultaneous equations x + y = 7 and x − y = 1.",
+   "options": [
+    "x = 4, y = 3",
+    "x = 5, y = 2",
+    "x = 4, y = −3",
+    "x = 3, y = 4"
+   ],
+   "answer": "A",
+   "explanation": "Add the equations: 2x = 8, so x = 4. Then 4 + y = 7, so y = 3. Check: 4 − 3 = 1.",
+   "whyNot": {
+    "D": "x = 3, y = 4 gives x − y = −1, not 1."
+   },
+   "difficulty": 1,
+   "access": "free"
+  },
+  {
+   "id": "waec-maths-07",
+   "exam": "waec",
+   "subject": "mathematics",
+   "topic": "algebraic-processes",
+   "stem": "Make r the subject of the formula V = πr²h.",
+   "options": [
+    "r = V ÷ πh",
+    "r = √(Vπh)",
+    "r = (V ÷ πh)²",
+    "r = √(V ÷ πh)"
+   ],
+   "answer": "D",
+   "explanation": "Divide both sides by πh: r² = V ÷ πh. Take the square root: r = √(V ÷ πh).",
+   "whyNot": {
+    "A": "V ÷ πh is r², not r."
+   },
+   "difficulty": 2,
+   "access": "pack"
+  },
+  {
+   "id": "waec-maths-08",
+   "exam": "waec",
+   "subject": "mathematics",
+   "topic": "algebraic-processes",
+   "stem": "Solve the inequality 2x − 3 > 7.",
+   "options": [
+    "x > 5",
+    "x < 5",
+    "x > 2",
+    "x > 10"
+   ],
+   "answer": "A",
+   "explanation": "Add 3 to both sides: 2x > 10. Divide by 2: x > 5. (The sign only flips when you multiply or divide by a negative number.)",
+   "whyNot": {
+    "B": "We divided by a positive number, so the sign stays the same."
+   },
+   "difficulty": 1,
+   "access": "pack"
+  },
+  {
+   "id": "waec-maths-09",
+   "exam": "waec",
+   "subject": "mathematics",
+   "topic": "mensuration",
+   "stem": "Find the area of a circle of radius 7 cm. (Take π = 22/7.)",
+   "options": [
+    "308 cm²",
+    "154 cm²",
+    "44 cm²",
+    "22 cm²"
+   ],
+   "answer": "B",
+   "explanation": "Area = πr² = 22/7 × 7 × 7 = 22 × 7 = 154 cm².",
+   "whyNot": {
+    "C": "44 cm is the circumference (2πr), not the area."
+   },
+   "difficulty": 1,
+   "access": "free"
+  },
+  {
+   "id": "waec-maths-10",
+   "exam": "waec",
+   "subject": "mathematics",
+   "topic": "mensuration",
+   "stem": "Find the volume of a cuboid measuring 5 cm by 4 cm by 3 cm.",
+   "options": [
+    "94 cm³",
+    "12 cm³",
+    "47 cm³",
+    "60 cm³"
+   ],
+   "answer": "D",
+   "explanation": "Volume = length × breadth × height = 5 × 4 × 3 = 60 cm³.",
+   "whyNot": {
+    "A": "94 cm² is the total surface area, not the volume."
+   },
+   "difficulty": 1,
+   "access": "pack"
+  },
+  {
+   "id": "waec-maths-11",
+   "exam": "waec",
+   "subject": "mathematics",
+   "topic": "mensuration",
+   "stem": "Find the curved surface area of a cylinder of radius 3.5 cm and height 10 cm. (Take π = 22/7.)",
+   "options": [
+    "220 cm²",
+    "385 cm²",
+    "297 cm²",
+    "110 cm²"
+   ],
+   "answer": "A",
+   "explanation": "Curved surface area = 2πrh = 2 × 22/7 × 3.5 × 10 = 220 cm².",
+   "whyNot": {
+    "B": "385 is the volume (πr²h) in cm³.",
+    "D": "110 cm² is πrh: the 2 is missing."
+   },
+   "difficulty": 2,
+   "access": "pack"
+  },
+  {
+   "id": "waec-maths-12",
+   "exam": "waec",
+   "subject": "mathematics",
+   "topic": "mensuration",
+   "stem": "Find the perimeter of a sector of a circle of radius 7 cm with an angle of 90° at the centre. (Take π = 22/7.)",
+   "options": [
+    "11 cm",
+    "25 cm",
+    "18 cm",
+    "38.5 cm"
+   ],
+   "answer": "B",
+   "explanation": "Arc length = 90/360 × 2 × 22/7 × 7 = 11 cm. The perimeter adds the two radii: 11 + 7 + 7 = 25 cm.",
+   "whyNot": {
+    "A": "11 cm is the arc alone; the two radii are part of the perimeter.",
+    "D": "38.5 cm² is the area of the sector."
+   },
+   "difficulty": 2,
+   "access": "pack"
+  },
+  {
+   "id": "waec-maths-13",
+   "exam": "waec",
+   "subject": "mathematics",
+   "topic": "geometry-and-trigonometry",
+   "stem": "Each exterior angle of a regular polygon is 40°. How many sides has the polygon?",
+   "options": [
+    "10",
+    "8",
+    "9",
+    "7"
+   ],
+   "answer": "C",
+   "explanation": "The exterior angles of any polygon add up to 360°. Number of sides = 360° ÷ 40° = 9.",
+   "difficulty": 2,
+   "access": "free"
+  },
+  {
+   "id": "waec-maths-14",
+   "exam": "waec",
+   "subject": "mathematics",
+   "topic": "geometry-and-trigonometry",
+   "stem": "The two shorter sides of a right-angled triangle are 6 cm and 8 cm. Find the hypotenuse.",
+   "options": [
+    "14 cm",
+    "12 cm",
+    "7 cm",
+    "10 cm"
+   ],
+   "answer": "D",
+   "explanation": "By Pythagoras: hypotenuse² = 6² + 8² = 36 + 64 = 100. Hypotenuse = 10 cm.",
+   "whyNot": {
+    "A": "14 cm just adds the sides; square them first."
+   },
+   "difficulty": 1,
+   "access": "pack"
+  },
+  {
+   "id": "waec-maths-15",
+   "exam": "waec",
+   "subject": "mathematics",
+   "topic": "geometry-and-trigonometry",
+   "stem": "What is the value of cos 60°?",
+   "options": [
+    "1/2",
+    "1",
+    "√3",
+    "√3/2"
+   ],
+   "answer": "A",
+   "explanation": "In an equilateral triangle of side 2 cut in half, the side next to the 60° angle is 1 and the hypotenuse is 2. cos 60° = 1/2.",
+   "whyNot": {
+    "D": "√3/2 is sin 60° (or cos 30°)."
+   },
+   "difficulty": 1,
+   "access": "pack"
+  },
+  {
+   "id": "waec-maths-16",
+   "exam": "waec",
+   "subject": "mathematics",
+   "topic": "geometry-and-trigonometry",
+   "stem": "What is the angle at the circumference subtended by a diameter of a circle?",
+   "options": [
+    "180°",
+    "90°",
+    "60°",
+    "45°"
+   ],
+   "answer": "B",
+   "explanation": "The angle in a semicircle is a right angle: the angle at the centre is 180°, and the angle at the circumference is half of it, 90°.",
+   "whyNot": {
+    "A": "180° is the angle at the centre (a straight line)."
+   },
+   "difficulty": 1,
+   "access": "pack"
+  },
+  {
+   "id": "waec-maths-17",
+   "exam": "waec",
+   "subject": "mathematics",
+   "topic": "statistics-and-probability",
+   "stem": "Find the mode of 2, 3, 3, 5, 7, 3, 5.",
+   "options": [
+    "4",
+    "5",
+    "3",
+    "7"
+   ],
+   "answer": "C",
+   "explanation": "The mode is the value that appears most often. 3 appears three times, more than any other value.",
+   "difficulty": 1,
+   "access": "free"
+  },
+  {
+   "id": "waec-maths-18",
+   "exam": "waec",
+   "subject": "mathematics",
+   "topic": "statistics-and-probability",
+   "stem": "A bag contains 4 red balls and 6 blue balls. A ball is picked at random. What is the probability that it is red?",
+   "options": [
+    "2/3",
+    "1/4",
+    "3/5",
+    "2/5"
+   ],
+   "answer": "D",
+   "explanation": "There are 4 + 6 = 10 balls and 4 are red. Probability = 4/10 = 2/5.",
+   "whyNot": {
+    "A": "2/3 is red compared with blue (4 : 6); probability compares red with all the balls.",
+    "C": "3/5 is the probability of blue."
+   },
+   "difficulty": 2,
+   "access": "free"
+  },
+  {
+   "id": "waec-maths-19",
+   "exam": "waec",
+   "subject": "mathematics",
+   "topic": "statistics-and-probability",
+   "stem": "In a pie chart of 60 students, what angle represents 15 students?",
+   "options": [
+    "90°",
+    "45°",
+    "60°",
+    "15°"
+   ],
+   "answer": "A",
+   "explanation": "Angle = (15 ÷ 60) × 360° = 1/4 × 360° = 90°.",
+   "difficulty": 2,
+   "access": "pack"
+  },
+  {
+   "id": "waec-maths-20",
+   "exam": "waec",
+   "subject": "mathematics",
+   "topic": "statistics-and-probability",
+   "stem": "The mean of x, x + 2 and x + 4 is 10. Find x.",
+   "options": [
+    "6",
+    "4",
+    "8",
+    "10"
+   ],
+   "answer": "C",
+   "explanation": "(x + x + 2 + x + 4) ÷ 3 = 10, so 3x + 6 = 30, 3x = 24 and x = 8. Check: 8, 10, 12 have mean 10.",
+   "whyNot": {
+    "D": "10 is the mean, which here is the middle value x + 2."
+   },
+   "difficulty": 2,
+   "access": "pack"
+  },
+  {
+   "id": "neco-maths-01",
+   "exam": "neco",
+   "subject": "mathematics",
+   "topic": "number-and-numeration",
+   "stem": "Convert 234 (base five) to a base ten number.",
+   "options": [
+    "234",
+    "59",
+    "69",
+    "64"
+   ],
+   "answer": "C",
+   "explanation": "2 × 5² + 3 × 5 + 4 × 1 = 50 + 15 + 4 = 69.",
+   "difficulty": 2,
+   "access": "free"
+  },
+  {
+   "id": "neco-maths-02",
+   "exam": "neco",
+   "subject": "mathematics",
+   "topic": "number-and-numeration",
+   "stem": "Write 0.0045672 correct to 3 significant figures.",
+   "options": [
+    "0.00456",
+    "0.00457",
+    "0.0046",
+    "0.005"
+   ],
+   "answer": "B",
+   "explanation": "The first significant figure is the 4. Keep three: 4, 5, 6, then look at the next digit (7). It is 5 or more, so round up: 0.00457.",
+   "whyNot": {
+    "A": "0.00456 drops the 7 instead of rounding up.",
+    "C": "0.0046 is 2 significant figures."
+   },
+   "difficulty": 2,
+   "access": "free"
+  },
+  {
+   "id": "neco-maths-03",
+   "exam": "neco",
+   "subject": "mathematics",
+   "topic": "number-and-numeration",
+   "stem": "A man spends 2/5 of his salary on rent and 1/3 on food. What fraction of his salary is left?",
+   "options": [
+    "4/15",
+    "3/8",
+    "11/15",
+    "1/5"
+   ],
+   "answer": "A",
+   "explanation": "Spent: 2/5 + 1/3 = 6/15 + 5/15 = 11/15. Left: 1 − 11/15 = 4/15.",
+   "whyNot": {
+    "C": "11/15 is what he spends, not what is left."
+   },
+   "difficulty": 2,
+   "access": "pack"
+  },
+  {
+   "id": "neco-maths-04",
+   "exam": "neco",
+   "subject": "mathematics",
+   "topic": "number-and-numeration",
+   "stem": "Share ₦600 in the ratio 2 : 3. What is the larger share?",
+   "options": [
+    "₦240",
+    "₦300",
+    "₦400",
+    "₦360"
+   ],
+   "answer": "D",
+   "explanation": "Total parts = 2 + 3 = 5. One part = 600 ÷ 5 = ₦120. Larger share = 3 × 120 = ₦360.",
+   "whyNot": {
+    "A": "₦240 is the smaller share."
+   },
+   "difficulty": 1,
+   "access": "pack"
+  },
+  {
+   "id": "neco-maths-05",
+   "exam": "neco",
+   "subject": "mathematics",
+   "topic": "algebraic-processes",
+   "stem": "Expand (2x + 3)².",
+   "options": [
+    "4x² + 6x + 9",
+    "2x² + 12x + 9",
+    "4x² + 12x + 9",
+    "4x² + 9"
+   ],
+   "answer": "C",
+   "explanation": "(2x + 3)² = (2x + 3)(2x + 3) = 4x² + 6x + 6x + 9 = 4x² + 12x + 9.",
+   "whyNot": {
+    "D": "Squaring a sum gives a middle term too: (a + b)² = a² + 2ab + b².",
+    "A": "The middle term is 2 × 2x × 3 = 12x."
+   },
+   "difficulty": 2,
+   "access": "free"
+  },
+  {
+   "id": "neco-maths-06",
+   "exam": "neco",
+   "subject": "mathematics",
+   "topic": "algebraic-processes",
+   "stem": "Solve 2^(x + 1) = 16.",
+   "options": [
+    "7",
+    "3",
+    "4",
+    "8"
+   ],
+   "answer": "B",
+   "explanation": "16 = 2⁴, so 2^(x + 1) = 2⁴. Equate the powers: x + 1 = 4, so x = 3.",
+   "whyNot": {
+    "C": "4 is x + 1, not x."
+   },
+   "difficulty": 2,
+   "access": "free"
+  },
+  {
+   "id": "neco-maths-07",
+   "exam": "neco",
+   "subject": "mathematics",
+   "topic": "algebraic-processes",
+   "stem": "Find the sum of the roots of 2x² − 7x + 3 = 0.",
+   "options": [
+    "7/2",
+    "−7/2",
+    "3/2",
+    "7"
+   ],
+   "answer": "A",
+   "explanation": "For ax² + bx + c = 0, the sum of the roots is −b/a = 7/2. (The roots are 3 and 1/2, which add to 7/2.)",
+   "whyNot": {
+    "C": "3/2 is the product of the roots (c/a)."
+   },
+   "difficulty": 2,
+   "access": "pack"
+  },
+  {
+   "id": "neco-maths-08",
+   "exam": "neco",
+   "subject": "mathematics",
+   "topic": "algebraic-processes",
+   "stem": "y varies directly as x, and y = 12 when x = 4. Find y when x = 7.",
+   "options": [
+    "28",
+    "19",
+    "3",
+    "21"
+   ],
+   "answer": "D",
+   "explanation": "y = kx. 12 = 4k gives k = 3. When x = 7, y = 3 × 7 = 21.",
+   "whyNot": {
+    "C": "3 is the constant k, not y."
+   },
+   "difficulty": 2,
+   "access": "pack"
+  },
+  {
+   "id": "neco-maths-09",
+   "exam": "neco",
+   "subject": "mathematics",
+   "topic": "mensuration",
+   "stem": "Find the area of a triangle with base 10 cm and height 6 cm.",
+   "options": [
+    "30 cm²",
+    "16 cm²",
+    "15 cm²",
+    "60 cm²"
+   ],
+   "answer": "A",
+   "explanation": "Area = ½ × base × height = ½ × 10 × 6 = 30 cm².",
+   "whyNot": {
+    "D": "60 cm² leaves out the ½."
+   },
+   "difficulty": 1,
+   "access": "free"
+  },
+  {
+   "id": "neco-maths-10",
+   "exam": "neco",
+   "subject": "mathematics",
+   "topic": "mensuration",
+   "stem": "Find the volume of a cone of radius 3 cm and height 7 cm. (Take π = 22/7.)",
+   "options": [
+    "22 cm³",
+    "198 cm³",
+    "66 cm³",
+    "132 cm³"
+   ],
+   "answer": "C",
+   "explanation": "Volume = ⅓πr²h = ⅓ × 22/7 × 9 × 7 = ⅓ × 198 = 66 cm³.",
+   "whyNot": {
+    "B": "198 cm³ is the volume of a cylinder with the same radius and height; a cone is a third of it."
+   },
+   "difficulty": 2,
+   "access": "pack"
+  },
+  {
+   "id": "neco-maths-11",
+   "exam": "neco",
+   "subject": "mathematics",
+   "topic": "mensuration",
+   "stem": "Find the total surface area of a cube of edge 4 cm.",
+   "options": [
+    "64 cm²",
+    "96 cm²",
+    "48 cm²",
+    "16 cm²"
+   ],
+   "answer": "B",
+   "explanation": "A cube has 6 square faces, each 4 × 4 = 16 cm². Total = 6 × 16 = 96 cm².",
+   "whyNot": {
+    "A": "64 is the volume in cm³.",
+    "D": "16 cm² is one face."
+   },
+   "difficulty": 1,
+   "access": "pack"
+  },
+  {
+   "id": "neco-maths-12",
+   "exam": "neco",
+   "subject": "mathematics",
+   "topic": "mensuration",
+   "stem": "Find the area of a trapezium whose parallel sides are 8 cm and 12 cm and whose height is 5 cm.",
+   "options": [
+    "50 cm²",
+    "25 cm²",
+    "60 cm²",
+    "100 cm²"
+   ],
+   "answer": "A",
+   "explanation": "Area = ½ × (sum of parallel sides) × height = ½ × (8 + 12) × 5 = 50 cm².",
+   "whyNot": {
+    "D": "100 cm² leaves out the ½."
+   },
+   "difficulty": 2,
+   "access": "pack"
+  },
+  {
+   "id": "neco-maths-13",
+   "exam": "neco",
+   "subject": "mathematics",
+   "topic": "geometry-and-trigonometry",
+   "stem": "Two angles of a triangle are 47° and 68°. Find the third angle.",
+   "options": [
+    "75°",
+    "115°",
+    "55°",
+    "65°"
+   ],
+   "answer": "D",
+   "explanation": "Angles in a triangle add up to 180°. Third angle = 180° − 47° − 68° = 65°.",
+   "whyNot": {
+    "B": "115° is the sum of the two angles given."
+   },
+   "difficulty": 1,
+   "access": "free"
+  },
+  {
+   "id": "neco-maths-14",
+   "exam": "neco",
+   "subject": "mathematics",
+   "topic": "geometry-and-trigonometry",
+   "stem": "Town B is due east of town A. What is the bearing of B from A?",
+   "options": [
+    "090°",
+    "000°",
+    "180°",
+    "270°"
+   ],
+   "answer": "A",
+   "explanation": "Bearings are measured clockwise from north, in three figures. East is a quarter turn clockwise from north: 090°.",
+   "whyNot": {
+    "D": "270° is due west."
+   },
+   "difficulty": 1,
+   "access": "pack"
+  },
+  {
+   "id": "neco-maths-15",
+   "exam": "neco",
+   "subject": "mathematics",
+   "topic": "geometry-and-trigonometry",
+   "stem": "If tan x = 1 and 0° < x < 90°, find x.",
+   "options": [
+    "90°",
+    "45°",
+    "30°",
+    "60°"
+   ],
+   "answer": "B",
+   "explanation": "tan x = 1 means the opposite and adjacent sides are equal, as in a right-angled isosceles triangle, so x = 45°.",
+   "difficulty": 1,
+   "access": "pack"
+  },
+  {
+   "id": "neco-maths-16",
+   "exam": "neco",
+   "subject": "mathematics",
+   "topic": "geometry-and-trigonometry",
+   "stem": "Find the gradient of the line joining (1, 2) and (3, 8).",
+   "options": [
+    "3",
+    "−3",
+    "5",
+    "1/3"
+   ],
+   "answer": "A",
+   "explanation": "Gradient = (change in y) ÷ (change in x) = (8 − 2) ÷ (3 − 1) = 6 ÷ 2 = 3.",
+   "whyNot": {
+    "D": "1/3 divides the change in x by the change in y: it's the other way round."
+   },
+   "difficulty": 2,
+   "access": "pack"
+  },
+  {
+   "id": "neco-maths-17",
+   "exam": "neco",
+   "subject": "mathematics",
+   "topic": "statistics-and-probability",
+   "stem": "Find the median of 3, 9, 4, 7 and 5.",
+   "options": [
+    "5.6",
+    "4",
+    "7",
+    "5"
+   ],
+   "answer": "D",
+   "explanation": "In order: 3, 4, 5, 7, 9. The middle (3rd) value is 5.",
+   "whyNot": {
+    "A": "5.6 is the mean."
+   },
+   "difficulty": 1,
+   "access": "free"
+  },
+  {
+   "id": "neco-maths-18",
+   "exam": "neco",
+   "subject": "mathematics",
+   "topic": "statistics-and-probability",
+   "stem": "Two fair coins are tossed together. What is the probability of getting two heads?",
+   "options": [
+    "3/4",
+    "1/2",
+    "1/4",
+    "1/3"
+   ],
+   "answer": "C",
+   "explanation": "The outcomes are HH, HT, TH and TT, all equally likely. Only HH is two heads: 1 out of 4.",
+   "whyNot": {
+    "D": "1/3 treats 'one head and one tail' as a single outcome, but HT and TH are different."
+   },
+   "difficulty": 2,
+   "access": "free"
+  },
+  {
+   "id": "neco-maths-19",
+   "exam": "neco",
+   "subject": "mathematics",
+   "topic": "statistics-and-probability",
+   "stem": "The scores 1, 2 and 3 have frequencies 2, 5 and 3. Find the mean score.",
+   "options": [
+    "2",
+    "2.1",
+    "3",
+    "7"
+   ],
+   "answer": "B",
+   "explanation": "Mean = Σfx ÷ Σf = (1×2 + 2×5 + 3×3) ÷ (2 + 5 + 3) = 21 ÷ 10 = 2.1.",
+   "whyNot": {
+    "A": "2 is the mode (it has the highest frequency)."
+   },
+   "difficulty": 2,
+   "access": "pack"
+  },
+  {
+   "id": "neco-maths-20",
+   "exam": "neco",
+   "subject": "mathematics",
+   "topic": "statistics-and-probability",
+   "stem": "A number is chosen at random from 1 to 20. What is the probability that it is a multiple of 5?",
+   "options": [
+    "1/4",
+    "4/5",
+    "1/5",
+    "1/20"
+   ],
+   "answer": "C",
+   "explanation": "The multiples of 5 are 5, 10, 15 and 20: 4 out of 20. Probability = 4/20 = 1/5.",
+   "difficulty": 2,
+   "access": "pack"
+  },
+  {
+   "id": "jamb-eng-01",
+   "exam": "jamb",
+   "subject": "use-of-english",
+   "topic": "comprehension",
+   "context": "When the rains failed for a second year, the farmers of Ogbede did not wait for help from the city. They dug shallow wells along the dry riverbed, shared the water by turns, and planted beans, which need less water than yams. The elders, who had at first doubted the plan, were soon its loudest supporters. By harvest time the village had food to sell as well as to eat. Visitors who came expecting to find hunger found, instead, a market.",
+   "stem": "Why did the farmers plant beans?",
+   "options": [
+    "The elders preferred beans",
+    "Beans sell for more than yams",
+    "Beans need less water than yams",
+    "Yams had been banned"
+   ],
+   "answer": "C",
+   "explanation": "The passage says they planted beans, “which need less water than yams”: in a drought, that was the reason.",
+   "whyNot": {
+    "B": "The passage says nothing about prices.",
+    "A": "The elders doubted the plan at first; beans weren't their idea."
+   },
+   "difficulty": 1,
+   "access": "free"
+  },
+  {
+   "id": "jamb-eng-02",
+   "exam": "jamb",
+   "subject": "use-of-english",
+   "topic": "comprehension",
+   "context": "When the rains failed for a second year, the farmers of Ogbede did not wait for help from the city. They dug shallow wells along the dry riverbed, shared the water by turns, and planted beans, which need less water than yams. The elders, who had at first doubted the plan, were soon its loudest supporters. By harvest time the village had food to sell as well as to eat. Visitors who came expecting to find hunger found, instead, a market.",
+   "stem": "“The farmers … did not wait for help from the city” suggests that they were",
+   "options": [
+    "impatient with the elders",
+    "unaware of the city",
+    "ungrateful",
+    "self-reliant"
+   ],
+   "answer": "D",
+   "explanation": "Not waiting for outside help, and solving the problem themselves, shows self-reliance.",
+   "difficulty": 2,
+   "access": "free"
+  },
+  {
+   "id": "jamb-eng-03",
+   "exam": "jamb",
+   "subject": "use-of-english",
+   "topic": "comprehension",
+   "context": "When the rains failed for a second year, the farmers of Ogbede did not wait for help from the city. They dug shallow wells along the dry riverbed, shared the water by turns, and planted beans, which need less water than yams. The elders, who had at first doubted the plan, were soon its loudest supporters. By harvest time the village had food to sell as well as to eat. Visitors who came expecting to find hunger found, instead, a market.",
+   "stem": "How did the elders' attitude to the plan change?",
+   "options": [
+    "From doubt to strong support",
+    "It was hostile throughout",
+    "It stayed doubtful",
+    "From support to doubt"
+   ],
+   "answer": "A",
+   "explanation": "The elders “had at first doubted the plan” but “were soon its loudest supporters”.",
+   "difficulty": 2,
+   "access": "free"
+  },
+  {
+   "id": "jamb-eng-04",
+   "exam": "jamb",
+   "subject": "use-of-english",
+   "topic": "comprehension",
+   "context": "When the rains failed for a second year, the farmers of Ogbede did not wait for help from the city. They dug shallow wells along the dry riverbed, shared the water by turns, and planted beans, which need less water than yams. The elders, who had at first doubted the plan, were soon its loudest supporters. By harvest time the village had food to sell as well as to eat. Visitors who came expecting to find hunger found, instead, a market.",
+   "stem": "The visitors “found, instead, a market”. This implies that the village",
+   "options": [
+    "was visited by traders from the city",
+    "had run out of food",
+    "had more food than it needed and could sell some",
+    "had always been rich"
+   ],
+   "answer": "C",
+   "explanation": "A market where hunger was expected means the village had a surplus: “food to sell as well as to eat”.",
+   "difficulty": 2,
+   "access": "pack"
+  },
+  {
+   "id": "jamb-eng-05",
+   "exam": "jamb",
+   "subject": "use-of-english",
+   "topic": "comprehension",
+   "context": "When the rains failed for a second year, the farmers of Ogbede did not wait for help from the city. They dug shallow wells along the dry riverbed, shared the water by turns, and planted beans, which need less water than yams. The elders, who had at first doubted the plan, were soon its loudest supporters. By harvest time the village had food to sell as well as to eat. Visitors who came expecting to find hunger found, instead, a market.",
+   "stem": "As used in the passage, “shared the water by turns” means that the water was",
+   "options": [
+    "kept by the elders",
+    "sold to the highest bidder",
+    "used by each person in a fixed order",
+    "poured away"
+   ],
+   "answer": "C",
+   "explanation": "Taking turns means each person uses it one after another, in an agreed order, so everyone gets some.",
+   "difficulty": 2,
+   "access": "pack"
+  },
+  {
+   "id": "jamb-eng-06",
+   "exam": "jamb",
+   "subject": "use-of-english",
+   "topic": "comprehension",
+   "context": "When the rains failed for a second year, the farmers of Ogbede did not wait for help from the city. They dug shallow wells along the dry riverbed, shared the water by turns, and planted beans, which need less water than yams. The elders, who had at first doubted the plan, were soon its loudest supporters. By harvest time the village had food to sell as well as to eat. Visitors who came expecting to find hunger found, instead, a market.",
+   "stem": "Which of these is the most suitable title for the passage?",
+   "options": [
+    "A Visit to the City",
+    "Why Yams Fail",
+    "The Elders of Ogbede",
+    "How Ogbede Beat the Drought"
+   ],
+   "answer": "D",
+   "explanation": "The whole passage is about how the village coped with failed rains and ended with food to sell.",
+   "whyNot": {
+    "C": "The elders are only part of the story."
+   },
+   "difficulty": 2,
+   "access": "pack"
+  },
+  {
+   "id": "jamb-eng-07",
+   "exam": "jamb",
+   "subject": "use-of-english",
+   "topic": "lexis-and-structure",
+   "stem": "Choose the option nearest in meaning to the word in capitals: The minister gave a CANDID account of the crisis.",
+   "options": [
+    "frank",
+    "confused",
+    "false",
+    "brief"
+   ],
+   "answer": "A",
+   "explanation": "Candid means honest and direct, without hiding anything: frank.",
+   "difficulty": 2,
+   "access": "free"
+  },
+  {
+   "id": "jamb-eng-08",
+   "exam": "jamb",
+   "subject": "use-of-english",
+   "topic": "lexis-and-structure",
+   "stem": "Choose the option opposite in meaning to the word in capitals: The new manager is very FRUGAL with money.",
+   "options": [
+    "careful",
+    "extravagant",
+    "stingy",
+    "honest"
+   ],
+   "answer": "B",
+   "explanation": "Frugal means careful not to waste money. Its opposite is extravagant: spending freely or wastefully.",
+   "whyNot": {
+    "A": "Careful is close in meaning to frugal, not opposite.",
+    "C": "Stingy is also close in meaning (if negative)."
+   },
+   "difficulty": 2,
+   "access": "free"
+  },
+  {
+   "id": "jamb-eng-09",
+   "exam": "jamb",
+   "subject": "use-of-english",
+   "topic": "lexis-and-structure",
+   "stem": "Neither the teacher nor the students ___ aware of the change.",
+   "options": [
+    "is",
+    "was",
+    "were",
+    "has been"
+   ],
+   "answer": "C",
+   "explanation": "With neither … nor, the verb agrees with the nearer subject. “Students” is plural, so “were”.",
+   "whyNot": {
+    "B": "“Was” would agree with “teacher”, but the verb follows the subject nearer to it."
+   },
+   "difficulty": 2,
+   "access": "free"
+  },
+  {
+   "id": "jamb-eng-10",
+   "exam": "jamb",
+   "subject": "use-of-english",
+   "topic": "lexis-and-structure",
+   "stem": "He has been living in Kano ___ 2019.",
+   "options": [
+    "from",
+    "by",
+    "since",
+    "for"
+   ],
+   "answer": "C",
+   "explanation": "Use “since” with a point in time (2019) and “for” with a length of time (for five years).",
+   "difficulty": 1,
+   "access": "pack"
+  },
+  {
+   "id": "jamb-eng-11",
+   "exam": "jamb",
+   "subject": "use-of-english",
+   "topic": "lexis-and-structure",
+   "stem": "After the argument, the brothers decided to BURY THE HATCHET. This means they decided to",
+   "options": [
+    "fight again",
+    "leave home",
+    "hide their tools",
+    "make peace"
+   ],
+   "answer": "D",
+   "explanation": "“Bury the hatchet” is an idiom meaning to end a quarrel and become friends again.",
+   "difficulty": 2,
+   "access": "pack"
+  },
+  {
+   "id": "jamb-eng-12",
+   "exam": "jamb",
+   "subject": "use-of-english",
+   "topic": "lexis-and-structure",
+   "stem": "Choose the correctly spelt word.",
+   "options": [
+    "accommodation",
+    "acommodation",
+    "accomodation",
+    "accommadation"
+   ],
+   "answer": "A",
+   "explanation": "Accommodation has a double c and a double m: ac-com-mo-da-tion.",
+   "difficulty": 2,
+   "access": "pack"
+  },
+  {
+   "id": "jamb-eng-13",
+   "exam": "jamb",
+   "subject": "use-of-english",
+   "topic": "lexis-and-structure",
+   "stem": "The committee ___ submitted its report.",
+   "options": [
+    "have",
+    "were",
+    "has",
+    "are"
+   ],
+   "answer": "C",
+   "explanation": "Here the committee acts as one body (“its report”), so it takes a singular verb: has.",
+   "difficulty": 2,
+   "access": "pack"
+  },
+  {
+   "id": "jamb-eng-14",
+   "exam": "jamb",
+   "subject": "use-of-english",
+   "topic": "lexis-and-structure",
+   "stem": "If I ___ you, I would accept the offer.",
+   "options": [
+    "will be",
+    "had been being",
+    "were",
+    "am"
+   ],
+   "answer": "C",
+   "explanation": "For an imagined situation (“if I were you”), standard English uses “were” with every subject.",
+   "difficulty": 2,
+   "access": "pack"
+  },
+  {
+   "id": "jamb-eng-15",
+   "exam": "jamb",
+   "subject": "use-of-english",
+   "topic": "oral-forms",
+   "stem": "Which word has a different vowel sound from the others?",
+   "options": [
+    "seat",
+    "heat",
+    "meet",
+    "sit"
+   ],
+   "answer": "D",
+   "explanation": "Seat, meet and heat have the long vowel /iː/. Sit has the short vowel /ɪ/.",
+   "difficulty": 1,
+   "access": "free"
+  },
+  {
+   "id": "jamb-eng-16",
+   "exam": "jamb",
+   "subject": "use-of-english",
+   "topic": "oral-forms",
+   "stem": "Choose the word that has the same vowel sound as the one in “food”.",
+   "options": [
+    "rude",
+    "foot",
+    "good",
+    "flood"
+   ],
+   "answer": "A",
+   "explanation": "Food and rude have the long vowel /uː/. Good and foot have the short /ʊ/; flood has /ʌ/.",
+   "difficulty": 2,
+   "access": "free"
+  },
+  {
+   "id": "jamb-eng-17",
+   "exam": "jamb",
+   "subject": "use-of-english",
+   "topic": "oral-forms",
+   "stem": "Which word is stressed on the second syllable?",
+   "options": [
+    "water",
+    "photography",
+    "photograph",
+    "table"
+   ],
+   "answer": "B",
+   "explanation": "pho-TOG-ra-phy is stressed on the second syllable. PHO-to-graph, TA-ble and WA-ter are stressed on the first.",
+   "difficulty": 2,
+   "access": "pack"
+  },
+  {
+   "id": "jamb-eng-18",
+   "exam": "jamb",
+   "subject": "use-of-english",
+   "topic": "oral-forms",
+   "stem": "Which word has the same consonant sound as the “ch” in “machine”?",
+   "options": [
+    "shoe",
+    "chair",
+    "character",
+    "church"
+   ],
+   "answer": "A",
+   "explanation": "The “ch” in machine is /ʃ/, as in shoe. Church and chair have /tʃ/; character has /k/.",
+   "difficulty": 2,
+   "access": "pack"
+  },
+  {
+   "id": "jamb-eng-19",
+   "exam": "jamb",
+   "subject": "use-of-english",
+   "topic": "oral-forms",
+   "stem": "In which word is the “b” silent?",
+   "options": [
+    "rubber",
+    "able",
+    "bulb",
+    "climb"
+   ],
+   "answer": "D",
+   "explanation": "In climb, the final b is not pronounced: /klaɪm/. In the others, the b is heard.",
+   "difficulty": 1,
+   "access": "pack"
+  },
+  {
+   "id": "jamb-eng-20",
+   "exam": "jamb",
+   "subject": "use-of-english",
+   "topic": "oral-forms",
+   "stem": "Which word rhymes with “weight”?",
+   "options": [
+    "height",
+    "wheat",
+    "wet",
+    "late"
+   ],
+   "answer": "D",
+   "explanation": "Weight is pronounced /weɪt/, which rhymes with late /leɪt/. Height has /aɪ/, despite the similar spelling.",
+   "difficulty": 2,
+   "access": "pack"
+  },
+  {
+   "id": "waec-eng-01",
+   "exam": "waec",
+   "subject": "english-language",
+   "topic": "comprehension",
+   "context": "Kemi had saved for months to buy a second-hand sewing machine. In the first week she made only two dresses, and one of them had a crooked hem. Her neighbour laughed and told her to go back to selling oranges. Kemi said nothing. She unpicked the hem, sewed it again, and hung the dress in her window as a reminder. A year later, three girls from the street were learning the trade from her, and the neighbour had become a customer.",
+   "stem": "Why did Kemi hang the dress in her window?",
+   "options": [
+    "As a reminder of her early mistake and how she put it right",
+    "To annoy her neighbour",
+    "Because it was her best work",
+    "Because no one would buy it"
+   ],
+   "answer": "A",
+   "explanation": "The passage says she hung it “as a reminder”, after fixing the crooked hem: a reminder of the mistake and of not giving up.",
+   "difficulty": 2,
+   "access": "free"
+  },
+  {
+   "id": "waec-eng-02",
+   "exam": "waec",
+   "subject": "english-language",
+   "topic": "comprehension",
+   "context": "Kemi had saved for months to buy a second-hand sewing machine. In the first week she made only two dresses, and one of them had a crooked hem. Her neighbour laughed and told her to go back to selling oranges. Kemi said nothing. She unpicked the hem, sewed it again, and hung the dress in her window as a reminder. A year later, three girls from the street were learning the trade from her, and the neighbour had become a customer.",
+   "stem": "Kemi's response to her neighbour's laughter shows that she was",
+   "options": [
+    "careless",
+    "determined",
+    "angry",
+    "ashamed"
+   ],
+   "answer": "B",
+   "explanation": "She “said nothing” and simply fixed the hem and carried on: that shows quiet determination.",
+   "whyNot": {
+    "C": "Nothing in her response shows anger: she didn't argue back."
+   },
+   "difficulty": 2,
+   "access": "free"
+  },
+  {
+   "id": "waec-eng-03",
+   "exam": "waec",
+   "subject": "english-language",
+   "topic": "comprehension",
+   "context": "Kemi had saved for months to buy a second-hand sewing machine. In the first week she made only two dresses, and one of them had a crooked hem. Her neighbour laughed and told her to go back to selling oranges. Kemi said nothing. She unpicked the hem, sewed it again, and hung the dress in her window as a reminder. A year later, three girls from the street were learning the trade from her, and the neighbour had become a customer.",
+   "stem": "When the neighbour told Kemi to “go back to selling oranges”, she meant that Kemi",
+   "options": [
+    "would not succeed at sewing",
+    "sold very good oranges",
+    "should open a fruit shop",
+    "was already rich"
+   ],
+   "answer": "A",
+   "explanation": "Telling her to go back to her old trade was a way of saying the new one would fail.",
+   "difficulty": 2,
+   "access": "free"
+  },
+  {
+   "id": "waec-eng-04",
+   "exam": "waec",
+   "subject": "english-language",
+   "topic": "comprehension",
+   "context": "Kemi had saved for months to buy a second-hand sewing machine. In the first week she made only two dresses, and one of them had a crooked hem. Her neighbour laughed and told her to go back to selling oranges. Kemi said nothing. She unpicked the hem, sewed it again, and hung the dress in her window as a reminder. A year later, three girls from the street were learning the trade from her, and the neighbour had become a customer.",
+   "stem": "What had changed a year later?",
+   "options": [
+    "Kemi had sold the sewing machine",
+    "The neighbour was teaching Kemi",
+    "Kemi had gone back to selling oranges",
+    "Kemi was training others and the neighbour bought from her"
+   ],
+   "answer": "D",
+   "explanation": "“Three girls … were learning the trade from her, and the neighbour had become a customer.”",
+   "difficulty": 2,
+   "access": "pack"
+  },
+  {
+   "id": "waec-eng-05",
+   "exam": "waec",
+   "subject": "english-language",
+   "topic": "comprehension",
+   "context": "Kemi had saved for months to buy a second-hand sewing machine. In the first week she made only two dresses, and one of them had a crooked hem. Her neighbour laughed and told her to go back to selling oranges. Kemi said nothing. She unpicked the hem, sewed it again, and hung the dress in her window as a reminder. A year later, three girls from the street were learning the trade from her, and the neighbour had become a customer.",
+   "stem": "As used in the passage, “unpicked” means",
+   "options": [
+    "took out the stitches",
+    "cleaned",
+    "cut into pieces",
+    "chose again"
+   ],
+   "answer": "A",
+   "explanation": "To unpick a hem is to remove its stitches so it can be sewn again.",
+   "difficulty": 2,
+   "access": "pack"
+  },
+  {
+   "id": "waec-eng-06",
+   "exam": "waec",
+   "subject": "english-language",
+   "topic": "comprehension",
+   "context": "Kemi had saved for months to buy a second-hand sewing machine. In the first week she made only two dresses, and one of them had a crooked hem. Her neighbour laughed and told her to go back to selling oranges. Kemi said nothing. She unpicked the hem, sewed it again, and hung the dress in her window as a reminder. A year later, three girls from the street were learning the trade from her, and the neighbour had become a customer.",
+   "stem": "The main lesson of the passage is that",
+   "options": [
+    "neighbours are always unkind",
+    "patience and hard work lead to success",
+    "selling oranges pays better than sewing",
+    "sewing machines are expensive"
+   ],
+   "answer": "B",
+   "explanation": "Kemi kept going after a poor start and a year later was teaching others: steady effort paid off.",
+   "difficulty": 2,
+   "access": "pack"
+  },
+  {
+   "id": "waec-eng-07",
+   "exam": "waec",
+   "subject": "english-language",
+   "topic": "lexis-and-structure",
+   "stem": "Choose the option nearest in meaning to the word in capitals: The judge was IMPARTIAL in the case.",
+   "options": [
+    "fair",
+    "harsh",
+    "absent",
+    "late"
+   ],
+   "answer": "A",
+   "explanation": "Impartial means not favouring either side: fair.",
+   "difficulty": 1,
+   "access": "free"
+  },
+  {
+   "id": "waec-eng-08",
+   "exam": "waec",
+   "subject": "english-language",
+   "topic": "lexis-and-structure",
+   "stem": "Choose the option opposite in meaning to the word in capitals: His speech was VERBOSE.",
+   "options": [
+    "long",
+    "loud",
+    "boring",
+    "concise"
+   ],
+   "answer": "D",
+   "explanation": "Verbose means using more words than needed. The opposite is concise: short and clear.",
+   "whyNot": {
+    "A": "Long is close in meaning to verbose."
+   },
+   "difficulty": 2,
+   "access": "free"
+  },
+  {
+   "id": "waec-eng-09",
+   "exam": "waec",
+   "subject": "english-language",
+   "topic": "lexis-and-structure",
+   "stem": "Each of the boys ___ given a book.",
+   "options": [
+    "was",
+    "are",
+    "have been",
+    "were"
+   ],
+   "answer": "A",
+   "explanation": "“Each” is singular, so it takes a singular verb: “Each of the boys was given a book.”",
+   "difficulty": 2,
+   "access": "pack"
+  },
+  {
+   "id": "waec-eng-10",
+   "exam": "waec",
+   "subject": "english-language",
+   "topic": "lexis-and-structure",
+   "stem": "She is good ___ mathematics.",
+   "options": [
+    "on",
+    "in",
+    "at",
+    "with"
+   ],
+   "answer": "C",
+   "explanation": "We say “good at” a subject or skill.",
+   "difficulty": 1,
+   "access": "free"
+  },
+  {
+   "id": "waec-eng-11",
+   "exam": "waec",
+   "subject": "english-language",
+   "topic": "lexis-and-structure",
+   "stem": "The thief was caught RED-HANDED. This means he was caught",
+   "options": [
+    "with blood on his hands",
+    "in the act of stealing",
+    "wearing red",
+    "after a long chase"
+   ],
+   "answer": "B",
+   "explanation": "“Caught red-handed” is an idiom: caught while doing something wrong.",
+   "difficulty": 2,
+   "access": "pack"
+  },
+  {
+   "id": "waec-eng-12",
+   "exam": "waec",
+   "subject": "english-language",
+   "topic": "lexis-and-structure",
+   "stem": "Choose the correctly punctuated sentence.",
+   "options": [
+    "“Where are you going?” she asked.",
+    "“Where are you going” she asked?",
+    "“Where are you going”? she asked.",
+    "“Where are you going,” she asked?"
+   ],
+   "answer": "A",
+   "explanation": "The question mark belongs to the question, inside the quotation marks; the sentence ends with a full stop after “asked”.",
+   "difficulty": 2,
+   "access": "pack"
+  },
+  {
+   "id": "waec-eng-13",
+   "exam": "waec",
+   "subject": "english-language",
+   "topic": "lexis-and-structure",
+   "stem": "I look forward to ___ from you.",
+   "options": [
+    "heard",
+    "have heard",
+    "hear",
+    "hearing"
+   ],
+   "answer": "D",
+   "explanation": "In “look forward to”, “to” is a preposition, so it is followed by the -ing form: hearing.",
+   "difficulty": 2,
+   "access": "pack"
+  },
+  {
+   "id": "waec-eng-14",
+   "exam": "waec",
+   "subject": "english-language",
+   "topic": "lexis-and-structure",
+   "stem": "What is the plural of “passer-by”?",
+   "options": [
+    "passers-bys",
+    "passer-bys",
+    "passers-by",
+    "passer-by's"
+   ],
+   "answer": "C",
+   "explanation": "In a compound like passer-by, the main word (passer) takes the plural: passers-by.",
+   "difficulty": 2,
+   "access": "pack"
+  },
+  {
+   "id": "waec-eng-15",
+   "exam": "waec",
+   "subject": "english-language",
+   "topic": "oral-english",
+   "stem": "Which word contains the vowel sound /æ/, as in “cat”?",
+   "options": [
+    "bet",
+    "bat",
+    "bait",
+    "but"
+   ],
+   "answer": "B",
+   "explanation": "Bat has /æ/. Bet has /e/, but has /ʌ/, and bait has /eɪ/.",
+   "difficulty": 1,
+   "access": "free"
+  },
+  {
+   "id": "waec-eng-16",
+   "exam": "waec",
+   "subject": "english-language",
+   "topic": "oral-english",
+   "stem": "Choose the word that has the same vowel sound as the one in “boat”.",
+   "options": [
+    "note",
+    "but",
+    "bout",
+    "bought"
+   ],
+   "answer": "A",
+   "explanation": "Boat and note have the diphthong /əʊ/. Bought has /ɔː/, bout has /aʊ/, but has /ʌ/.",
+   "difficulty": 2,
+   "access": "free"
+  },
+  {
+   "id": "waec-eng-17",
+   "exam": "waec",
+   "subject": "english-language",
+   "topic": "oral-english",
+   "stem": "Which word is stressed on the first syllable?",
+   "options": [
+    "agree",
+    "hotel",
+    "begin",
+    "record (a noun: a written account)"
+   ],
+   "answer": "D",
+   "explanation": "The noun REcord is stressed on the first syllable (the verb reCORD on the second). beGIN, aGREE and hoTEL are stressed on the second.",
+   "difficulty": 2,
+   "access": "pack"
+  },
+  {
+   "id": "waec-eng-18",
+   "exam": "waec",
+   "subject": "english-language",
+   "topic": "oral-english",
+   "stem": "Which word has the same sound as the “th” in “think”?",
+   "options": [
+    "thin",
+    "then",
+    "this",
+    "that"
+   ],
+   "answer": "A",
+   "explanation": "Think and thin have the voiceless /θ/. This, then and that have the voiced /ð/.",
+   "difficulty": 2,
+   "access": "pack"
+  },
+  {
+   "id": "waec-eng-19",
+   "exam": "waec",
+   "subject": "english-language",
+   "topic": "oral-english",
+   "stem": "Which word rhymes with “cough”?",
+   "options": [
+    "tough",
+    "though",
+    "off",
+    "through"
+   ],
+   "answer": "C",
+   "explanation": "Cough is /kɒf/, which rhymes with off /ɒf/. Tough is /tʌf/, through /θruː/, though /ðəʊ/: same spelling, different sounds.",
+   "difficulty": 2,
+   "access": "pack"
+  },
+  {
+   "id": "waec-eng-20",
+   "exam": "waec",
+   "subject": "english-language",
+   "topic": "oral-english",
+   "stem": "In which word is the “k” silent?",
+   "options": [
+    "kite",
+    "knee",
+    "kick",
+    "bake"
+   ],
+   "answer": "B",
+   "explanation": "In knee (and knife, know), the k before n is not pronounced: /niː/.",
+   "difficulty": 1,
+   "access": "pack"
+  },
+  {
+   "id": "neco-eng-01",
+   "exam": "neco",
+   "subject": "english-language",
+   "topic": "comprehension",
+   "context": "Every morning before school, Tunde walked his younger sister to the bus stop. The road was busy and the pavement was broken in places, so he always walked on the outside, nearest the traffic, holding her hand. One day she asked him why. “Because if anything comes too close,” he said, “it should meet me first.” She did not fully understand until years later, when she found herself walking her own son along the same road, holding his hand the same way.",
+   "stem": "Why did Tunde walk on the side nearest the traffic?",
+   "options": [
+    "Because he was left-handed",
+    "Because the pavement was smooth there",
+    "To protect his sister from danger",
+    "So that his sister could see the buses"
+   ],
+   "answer": "C",
+   "explanation": "He explains: if anything came too close, “it should meet me first”. He was shielding her.",
+   "difficulty": 1,
+   "access": "free"
+  },
+  {
+   "id": "neco-eng-02",
+   "exam": "neco",
+   "subject": "english-language",
+   "topic": "comprehension",
+   "context": "Every morning before school, Tunde walked his younger sister to the bus stop. The road was busy and the pavement was broken in places, so he always walked on the outside, nearest the traffic, holding her hand. One day she asked him why. “Because if anything comes too close,” he said, “it should meet me first.” She did not fully understand until years later, when she found herself walking her own son along the same road, holding his hand the same way.",
+   "stem": "“It should meet me first” shows that Tunde was",
+   "options": [
+    "protective",
+    "careless",
+    "boastful",
+    "fearful"
+   ],
+   "answer": "A",
+   "explanation": "He was willing to put himself between his sister and danger: protective.",
+   "difficulty": 2,
+   "access": "free"
+  },
+  {
+   "id": "neco-eng-03",
+   "exam": "neco",
+   "subject": "english-language",
+   "topic": "comprehension",
+   "context": "Every morning before school, Tunde walked his younger sister to the bus stop. The road was busy and the pavement was broken in places, so he always walked on the outside, nearest the traffic, holding her hand. One day she asked him why. “Because if anything comes too close,” he said, “it should meet me first.” She did not fully understand until years later, when she found herself walking her own son along the same road, holding his hand the same way.",
+   "stem": "When did his sister fully understand his reason?",
+   "options": [
+    "When she started school",
+    "When Tunde explained it again",
+    "The same day",
+    "Years later, when she walked her own son along the road"
+   ],
+   "answer": "D",
+   "explanation": "“She did not fully understand until years later, when she found herself walking her own son along the same road.”",
+   "difficulty": 2,
+   "access": "pack"
+  },
+  {
+   "id": "neco-eng-04",
+   "exam": "neco",
+   "subject": "english-language",
+   "topic": "comprehension",
+   "context": "Every morning before school, Tunde walked his younger sister to the bus stop. The road was busy and the pavement was broken in places, so he always walked on the outside, nearest the traffic, holding her hand. One day she asked him why. “Because if anything comes too close,” he said, “it should meet me first.” She did not fully understand until years later, when she found herself walking her own son along the same road, holding his hand the same way.",
+   "stem": "How is the road described?",
+   "options": [
+    "Busy, with the pavement broken in places",
+    "Newly built",
+    "Quiet and safe",
+    "Closed to traffic"
+   ],
+   "answer": "A",
+   "explanation": "“The road was busy and the pavement was broken in places.”",
+   "difficulty": 1,
+   "access": "free"
+  },
+  {
+   "id": "neco-eng-05",
+   "exam": "neco",
+   "subject": "english-language",
+   "topic": "comprehension",
+   "context": "Every morning before school, Tunde walked his younger sister to the bus stop. The road was busy and the pavement was broken in places, so he always walked on the outside, nearest the traffic, holding her hand. One day she asked him why. “Because if anything comes too close,” he said, “it should meet me first.” She did not fully understand until years later, when she found herself walking her own son along the same road, holding his hand the same way.",
+   "stem": "In the last sentence, “the same way” refers to",
+   "options": [
+    "taking the bus",
+    "walking fast",
+    "walking on the side nearest the traffic, holding the child's hand",
+    "leaving for school early"
+   ],
+   "answer": "C",
+   "explanation": "She walks her son just as Tunde walked her: on the traffic side, holding his hand.",
+   "difficulty": 2,
+   "access": "pack"
+  },
+  {
+   "id": "neco-eng-06",
+   "exam": "neco",
+   "subject": "english-language",
+   "topic": "comprehension",
+   "context": "Every morning before school, Tunde walked his younger sister to the bus stop. The road was busy and the pavement was broken in places, so he always walked on the outside, nearest the traffic, holding her hand. One day she asked him why. “Because if anything comes too close,” he said, “it should meet me first.” She did not fully understand until years later, when she found herself walking her own son along the same road, holding his hand the same way.",
+   "stem": "The main idea of the passage is that",
+   "options": [
+    "care for others is passed on from one generation to the next",
+    "children should walk to school alone",
+    "buses are often late",
+    "roads are always dangerous"
+   ],
+   "answer": "A",
+   "explanation": "The sister does for her son what her brother did for her: the care is handed down.",
+   "difficulty": 2,
+   "access": "pack"
+  },
+  {
+   "id": "neco-eng-07",
+   "exam": "neco",
+   "subject": "english-language",
+   "topic": "lexis-and-structure",
+   "stem": "Choose the option nearest in meaning to the word in capitals: The villagers were HOSTILE to the strangers.",
+   "options": [
+    "kind",
+    "generous",
+    "curious",
+    "unfriendly"
+   ],
+   "answer": "D",
+   "explanation": "Hostile means unfriendly or aggressive.",
+   "difficulty": 1,
+   "access": "free"
+  },
+  {
+   "id": "neco-eng-08",
+   "exam": "neco",
+   "subject": "english-language",
+   "topic": "lexis-and-structure",
+   "stem": "Choose the option opposite in meaning to the word in capitals: Water is SCARCE in the village this season.",
+   "options": [
+    "plentiful",
+    "rare",
+    "dirty",
+    "cold"
+   ],
+   "answer": "A",
+   "explanation": "Scarce means in short supply. The opposite is plentiful.",
+   "whyNot": {
+    "B": "Rare is close in meaning to scarce."
+   },
+   "difficulty": 2,
+   "access": "pack"
+  },
+  {
+   "id": "neco-eng-09",
+   "exam": "neco",
+   "subject": "english-language",
+   "topic": "lexis-and-structure",
+   "stem": "The news ___ good.",
+   "options": [
+    "are",
+    "have been",
+    "is",
+    "were"
+   ],
+   "answer": "C",
+   "explanation": "“News” looks plural but is an uncountable noun and takes a singular verb: “The news is good.”",
+   "difficulty": 1,
+   "access": "free"
+  },
+  {
+   "id": "neco-eng-10",
+   "exam": "neco",
+   "subject": "english-language",
+   "topic": "lexis-and-structure",
+   "stem": "He apologised ___ coming late.",
+   "options": [
+    "of",
+    "with",
+    "on",
+    "for"
+   ],
+   "answer": "D",
+   "explanation": "We apologise to someone for something: “He apologised for coming late.”",
+   "difficulty": 2,
+   "access": "free"
+  },
+  {
+   "id": "neco-eng-11",
+   "exam": "neco",
+   "subject": "english-language",
+   "topic": "lexis-and-structure",
+   "stem": "TO LET THE CAT OUT OF THE BAG means",
+   "options": [
+    "to cause trouble on purpose",
+    "to go shopping",
+    "to reveal a secret",
+    "to free an animal"
+   ],
+   "answer": "C",
+   "explanation": "“Let the cat out of the bag” is an idiom: to tell a secret, often by accident.",
+   "difficulty": 2,
+   "access": "pack"
+  },
+  {
+   "id": "neco-eng-12",
+   "exam": "neco",
+   "subject": "english-language",
+   "topic": "lexis-and-structure",
+   "stem": "Choose the correctly spelt word.",
+   "options": [
+    "neccesary",
+    "necessary",
+    "neccessary",
+    "necesary"
+   ],
+   "answer": "B",
+   "explanation": "Necessary has one c and a double s: ne-ces-sa-ry.",
+   "difficulty": 2,
+   "access": "pack"
+  },
+  {
+   "id": "neco-eng-13",
+   "exam": "neco",
+   "subject": "english-language",
+   "topic": "lexis-and-structure",
+   "stem": "She ___ in Abuja for five years before she moved to Lagos.",
+   "options": [
+    "had lived",
+    "lives",
+    "has lived",
+    "is living"
+   ],
+   "answer": "A",
+   "explanation": "The living in Abuja happened before another past action (moving to Lagos), so it takes the past perfect: had lived.",
+   "difficulty": 2,
+   "access": "pack"
+  },
+  {
+   "id": "neco-eng-14",
+   "exam": "neco",
+   "subject": "english-language",
+   "topic": "lexis-and-structure",
+   "stem": "This is the boy ___ bag was stolen.",
+   "options": [
+    "who's",
+    "which",
+    "whom",
+    "whose"
+   ],
+   "answer": "D",
+   "explanation": "“Whose” shows possession (the boy's bag). “Who's” means “who is”.",
+   "difficulty": 2,
+   "access": "pack"
+  },
+  {
+   "id": "neco-eng-15",
+   "exam": "neco",
+   "subject": "english-language",
+   "topic": "oral-english",
+   "stem": "Which word has a different vowel sound from the others?",
+   "options": [
+    "look",
+    "cook",
+    "boot",
+    "book"
+   ],
+   "answer": "C",
+   "explanation": "Book, look and cook have the short /ʊ/. Boot has the long /uː/.",
+   "difficulty": 1,
+   "access": "free"
+  },
+  {
+   "id": "neco-eng-16",
+   "exam": "neco",
+   "subject": "english-language",
+   "topic": "oral-english",
+   "stem": "Choose the word that has the same vowel sound as the one in “bird”.",
+   "options": [
+    "bead",
+    "bud",
+    "word",
+    "bard"
+   ],
+   "answer": "C",
+   "explanation": "Bird and word have /ɜː/. Bead has /iː/, bard /ɑː/ and bud /ʌ/.",
+   "difficulty": 2,
+   "access": "free"
+  },
+  {
+   "id": "neco-eng-17",
+   "exam": "neco",
+   "subject": "english-language",
+   "topic": "oral-english",
+   "stem": "Which word is stressed on the second syllable?",
+   "options": [
+    "police",
+    "teacher",
+    "market",
+    "mother"
+   ],
+   "answer": "A",
+   "explanation": "poLICE is stressed on the second syllable. MARket, TEAcher and MOther are stressed on the first.",
+   "difficulty": 2,
+   "access": "pack"
+  },
+  {
+   "id": "neco-eng-18",
+   "exam": "neco",
+   "subject": "english-language",
+   "topic": "oral-english",
+   "stem": "Which word has the same consonant sound as the “s” in “pleasure”?",
+   "options": [
+    "pressure",
+    "sure",
+    "sugar",
+    "measure"
+   ],
+   "answer": "D",
+   "explanation": "The “s” in pleasure and measure is /ʒ/. Pressure, sugar and sure have /ʃ/.",
+   "difficulty": 2,
+   "access": "pack"
+  },
+  {
+   "id": "neco-eng-19",
+   "exam": "neco",
+   "subject": "english-language",
+   "topic": "oral-english",
+   "stem": "Which word rhymes with “bread”?",
+   "options": [
+    "braid",
+    "bride",
+    "said",
+    "bead"
+   ],
+   "answer": "C",
+   "explanation": "Bread /bred/ rhymes with said /sed/: different spellings, the same /e/ sound.",
+   "difficulty": 2,
+   "access": "pack"
+  },
+  {
+   "id": "neco-eng-20",
+   "exam": "neco",
+   "subject": "english-language",
+   "topic": "oral-english",
+   "stem": "In which word is the “w” silent?",
+   "options": [
+    "away",
+    "window",
+    "write",
+    "wet"
+   ],
+   "answer": "C",
+   "explanation": "In write (and wrong, wrap), the w before r is not pronounced: /raɪt/.",
+   "difficulty": 1,
+   "access": "pack"
+  }
+ ]
+}

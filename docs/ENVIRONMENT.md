@@ -51,6 +51,12 @@ Environment Variables (mark secrets Sensitive), then redeploy: `NEXT_PUBLIC_*` v
 | `AUTO_PAYOUTS` | no | off pauses automatic payout release. |
 | `ACCOUNT_DATA_KEY` | **yes** | Encrypts stored bank details, Granola and social tokens: base64 of 32 random bytes, made once. |
 
+## Naija Exam Prep
+
+| Setting | Secret | What it does |
+|---|---|---|
+| `EXAM_PREP_PASS_KEY` | **yes** | A P-256 private key (PKCS#8 PEM, or its base64) that signs the offline pass for saved packs with paid questions. Make one with: node -e "const{generateKeyPairSync:g}=require('crypto');console.log(g('ec',{namedCurve:'P-256'}).privateKey.export({type:'pkcs8',format:'pem'}))". Without it, only free questions can be saved for offline use. |
+
 ## Kiswahili (NKENNEAi)
 
 | Setting | Secret | What it does |
