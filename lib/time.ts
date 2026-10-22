@@ -230,7 +230,7 @@ export type WeekSummary = {
   firstInAvg: string; days: DayAttendance[];
 };
 
-// Hours, billable and assigned shares and attendance for one person's week. Weekdays up to `today` are due; a day with time tracked
+// Hours, billable and assigned shares and attendance for one person's week. Weekdays before `today` are due (today once it has time on it); a day with time tracked
 // is present, and so is a day of approved leave that counts towards attendance.
 export function weekSummary(week: string, entries: Pick<TimeEntry, "day" | "minutes" | "billable" | "kind" | "startedAt" | "source">[], leave: Pick<Leave, "from" | "to" | "kind" | "counts" | "status">[], today: string): WeekSummary {
   const days = weekDays(week).map((day): DayAttendance => {
@@ -241,7 +241,8 @@ export function weekSummary(week: string, entries: Pick<TimeEntry, "day" | "minu
     const l = leave.find((x) => x.status === "approved" && x.from <= day && day <= x.to && isWeekday(day));
     return { day, minutes, firstIn, late: !!firstIn && firstIn > LATE_AFTER, ...(l ? { leave: l.kind } : {}), counts: !!l?.counts };
   });
-  const due = days.filter((d) => isWeekday(d.day) && d.day <= today);
+  // Today is due only once there's time (or counted leave) on it, so nobody is "absent" before their day starts.
+  const due = days.filter((d) => isWeekday(d.day) && (d.day < today || (d.day === today && (d.minutes > 0 || d.counts))));
   const present = due.filter((d) => d.minutes > 0 || d.counts);
   const firsts = days.filter((d) => d.firstIn).map((d) => Number(d.firstIn.slice(0, 2)) * 60 + Number(d.firstIn.slice(3)));
   const avg = firsts.length ? Math.round(firsts.reduce((a, b) => a + b, 0) / firsts.length) : -1;

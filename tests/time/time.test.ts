@@ -79,7 +79,8 @@ const rows = weekRows(entries);
 assert.equal(rows.length, 2); assert.equal(rows[0].days["2026-10-20"], 90, "corrections net off"); assert.equal(rows[0].total, 240);
 const sum = weekSummary("2026-10-19", entries, [{ from: "2026-10-22", to: "2026-10-22", kind: "sick", counts: true, status: "approved" }, { from: "2026-10-23", to: "2026-10-23", kind: "annual", counts: false, status: "approved" }], "2026-10-23");
 assert.deepEqual([sum.tracked, sum.billable, sum.assigned, sum.target], [300, 240, 240, WEEK_MINUTES]);
-assert.deepEqual([sum.daysPresent, sum.daysDue, sum.late, sum.leaveDays], [4, 5, 1, 2], "Thu sick leave counts; Fri annual leave doesn't");
+assert.deepEqual([sum.daysPresent, sum.daysDue, sum.late, sum.leaveDays], [4, 4, 1, 2], "Thu sick leave counts; Fri (today) has no time and uncounted leave, so isn't due yet");
+assert.equal(weekSummary("2026-10-19", entries, [], "2026-10-24").daysDue, 5, "after Friday, Friday is due");
 assert.equal(sum.firstInAvg, "09:06");
 
 // Pay by the hour, approved weeks only, split by month
@@ -99,6 +100,6 @@ assert.equal(fridayNudgeDue(new Date("2026-10-23T14:59:00Z")), false); assert.eq
 
 // CSV
 const csv = teamCsv([{ name: "Okafor, Ada", depts: "engineering", s: sum, status: "approved", payKobo: 1_000_000 }]);
-assert.match(csv, /^Name,Departments,Week/); assert.match(csv, /"Okafor, Ada",engineering,2026-10-19,5\.00,4\.00,4\.00,4,5,1,2,approved,10000\.00/);
+assert.match(csv, /^Name,Departments,Week/); assert.match(csv, /"Okafor, Ada",engineering,2026-10-19,5\.00,4\.00,4\.00,4,4,1,2,approved,10000\.00/);
 
 console.log("ALL OK");
