@@ -121,6 +121,8 @@ export default function AcademyPageClient() {
         query={query} onQuery={setQuery} placeholder="Search courses and teachers" tabs={TABS} tab={tab} onTab={setTab}>
         <div className="mt-4 flex flex-wrap items-center gap-2">
           <Link href="/academy/teach" className="mr-2 rounded-full bg-white px-4 py-1.5 font-ui text-sm font-bold text-crimson hover:bg-paper">Teach a course</Link>
+          {/* JAMB, WAEC and NECO practice: its own address (middleware.ts sends /exam-prep there) */}
+          <a href="/exam-prep" className="mr-2 rounded-full bg-[#0F2747] px-4 py-1.5 font-ui text-sm font-bold text-white hover:bg-[#0b1d36]">Naija Exam Prep</a>
           {(chips.starred.length > 0 || chips.rest.length > 0) && (
             <>
               <button onClick={() => pickTopic(null)} aria-pressed={!topic} className={chip(!topic)}>All topics</button>

@@ -34,6 +34,7 @@ export const SETTINGS = {
   PAYLONY_CARDTAP_TERMINAL_ID: { group: "Payments", secret: false, about: "Our CardTap terminal ID (Paylony dashboard): wallet top-ups with CardTap are offered only when this and PAYLONY_SECRET_KEY are set." },
   AUTO_PAYOUTS: { group: "Payments", secret: false, about: "off pauses automatic payout release." },
   ACCOUNT_DATA_KEY: { group: "Payments", secret: true, about: "Encrypts stored bank details, Granola and social tokens: base64 of 32 random bytes, made once." },
+  EXAM_PREP_PASS_KEY: { group: "Naija Exam Prep", secret: true, about: "A P-256 private key (PKCS#8 PEM, or its base64) that signs the offline pass for saved packs with paid questions. Make one with: node -e \"const{generateKeyPairSync:g}=require('crypto');console.log(g('ec',{namedCurve:'P-256'}).privateKey.export({type:'pkcs8',format:'pem'}))\". Without it, only free questions can be saved for offline use." },
   NKENNE_API_KEY: { group: "Kiswahili (NKENNEAi)", secret: true, about: "NKENNEAi developer API key (Developer Tools → API Keys): Kiswahili reading, listening and voice-note translation. Without it the Kiswahili buttons don't show." },
   NKENNE_API_URL: { group: "Kiswahili (NKENNEAi)", secret: false, about: "NKENNEAi API base address; defaults to https://developers-api.nkenne.ai." },
   RESEND_API_KEY: { group: "Email", secret: true, about: "Resend key; without it emails are skipped (bells still arrive)." },

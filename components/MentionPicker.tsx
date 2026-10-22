@@ -16,7 +16,7 @@ const found = new Map<string, Person[]>();
 async function search(q: string): Promise<Person[]> {
   if (found.has(q)) return found.get(q)!;
   const snap = await getDocs(query(collection(db, "users"), where("username", ">=", q), where("username", "<=", `${q}`), orderBy("username"), limit(8)));
-  const people = snap.docs.map((d) => d.data()).filter((u) => u.username && u.suspended !== true)
+  const people = snap.docs.map((d) => d.data()).filter((u) => u.username && u.suspended !== true && u.teen !== true) // teen mode: under-18s aren't suggested
     .map((u) => ({ username: String(u.username), displayName: String(u.displayName || u.username), avatar: String(u.avatar || "") }));
   if (CHANNEL.username.startsWith(q) && !people.some((p) => p.username === CHANNEL.username)) people.push(CHANNEL);
   const out = people.slice(0, 6);

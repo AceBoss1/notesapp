@@ -11,6 +11,21 @@ export type Release = {
 
 export const CHANGELOG: Release[] = [
   {
+    version: "v0.79.0",
+    bump: "minor",
+    date: "2026-10-22",
+    changes: [
+      { kind: "added", text: "Naija Exam Prep, in Notes Academy at prep.notesapp.name.ng: JAMB, WAEC and NECO practice. Free questions in every subject, marked straight away with a full explanation and why each wrong option is wrong. Use of English (JAMB), English Language (WAEC and NECO) and Mathematics to start." },
+      { kind: "added", text: "Timed mocks of 10, 20 or 40 questions. The clock runs on our side, so leaving the page or changing your phone's time doesn't stop it, and the mock is marked when you submit or when time runs out, with every answer to go through." },
+      { kind: "added", text: "Exam packs: ₦1,000 opens every question in one exam, all subjects, for 12 months, paid with Paystack. Buying again adds 12 months. A full refund within 7 days if you haven't opened any pack question yet. Restore my pack checks again with Paystack if a payment didn't open it." },
+      { kind: "added", text: "Ask someone to pay: a link for a parent, sponsor or friend, good for 14 days. They pay without an account and the pack opens on your account; you choose the name they see." },
+      { kind: "added", text: "Save a pack to your phone and practise, or do a timed mock, with no data. Pack questions open offline for up to 30 days at a time for your account only; your answers sync when you're back online." },
+      { kind: "added", text: "Your progress: questions answered, right first time, mocks, days in a row and how you're doing in each topic, only from what you actually did (never a predicted score). Join the weekly effort board with a nickname if you like; it counts practice, not scores." },
+      { kind: "added", text: "Teen mode for students under 18: hidden from people search and the member directory, messages and group invitations only from people they follow, a nickname on the board, and a parent or guardian asked to confirm by email." },
+      { kind: "added", text: "Every question is original, checked by a reviewer before it's published, and has a Report button. Reviewers join by invite link and see the review queue only. Admin → Naija Exam Prep has the questions, spreadsheet import, subjects, reviewers, reports, packs, access, grants, refunds and usage." },
+    ],
+  },
+  {
     version: "v0.78.0",
     bump: "minor",
     date: "2026-10-22",

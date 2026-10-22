@@ -145,6 +145,12 @@ export async function sendMessage(db: Firestore, fromUid: string, toUid: string,
   // Same message as a missing account, so a block doesn't tell the sender they were blocked.
   if (blocked.exists) throw new MessageError(404, "That member wasn't found.");
   if (iBlocked.exists) throw new MessageError(403, "You've blocked this member. Unblock them to send a message.");
+  // Teen mode (Naija Exam Prep): an under-18 gets messages only from people they follow.
+  if (to.data()?.teen === true) {
+    const fromUsername = String(from.data()?.username ?? "");
+    const follows = fromUsername ? await db.doc(`follows/${toUid}_${fromUsername}`).get() : null;
+    if (!follows?.exists) throw new MessageError(403, "This member only gets messages from people they follow.");
+  }
 
   const attachments = ids.length ? await claimAttachments(db, fromUid, ids, files) : [];
   const preview = (text || (attachments.length ? attachmentLabel(attachments) : "🖼 Sticker")).slice(0, 120);

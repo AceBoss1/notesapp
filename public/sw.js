@@ -69,3 +69,28 @@ self.addEventListener("notificationclick", (event) => {
     })
   );
 });
+
+// Naija Exam Prep offline (prep.<domain>, or /exam-prep on one host). Nothing else on #NotesApp is touched: other pages and every
+// API call go to the network as usual. Prep pages: the network first, then the copy saved when a pack was saved (lib/exam-prep-
+// local.ts cachePages), then the offline hub. Their scripts and styles: the saved copy first (file names change with each release).
+const PREP_CACHE = "prep-pages-v1";
+const isPrepHost = () => self.location.hostname.startsWith("prep.");
+const prepPage = (url) => url.origin === self.location.origin && (url.pathname === "/exam-prep" || url.pathname.startsWith("/exam-prep/") || (isPrepHost() && !url.pathname.startsWith("/api/")));
+self.addEventListener("fetch", (event) => {
+  const req = event.request;
+  if (req.method !== "GET") return;
+  const url = new URL(req.url);
+  if (url.origin !== self.location.origin || url.pathname.startsWith("/api/")) return;
+  if (url.pathname.startsWith("/_next/static/")) {
+    let fromPrep = isPrepHost();
+    try { fromPrep = fromPrep || new URL(req.referrer).pathname.startsWith("/exam-prep"); } catch (e) { /* no referrer */ }
+    if (!fromPrep) return;
+    event.respondWith(caches.open(PREP_CACHE).then((c) => c.match(req).then((hit) => hit || fetch(req).then((res) => { if (res.ok) c.put(req, res.clone()); return res; }))));
+    return;
+  }
+  if (req.mode !== "navigate" || !prepPage(url)) return;
+  const hub = isPrepHost() ? "/saved" : "/exam-prep/saved";
+  event.respondWith(
+    fetch(req).catch(() => caches.open(PREP_CACHE).then(async (c) => (await c.match(url.pathname, { ignoreSearch: true })) || (await c.match(hub)) || new Response("<h1>You're offline</h1><p>Save a pack on Naija Exam Prep while you have data to use it offline.</p>", { headers: { "Content-Type": "text/html" } })))
+  );
+});

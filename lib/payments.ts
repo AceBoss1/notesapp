@@ -20,6 +20,8 @@ import { courseShares, fulfilCourseInTransaction, type SaleShare } from "./cours
 import { extendAddon, type Carrier } from "./logistics-server";
 import { extendInventoryAddon, lowStockAlert, recordSale } from "./inventory-server";
 import { SITE_URL } from "@/lib/host";
+import { grantPackInTransaction } from "./exam-prep-server";
+import { EXAMS, type ExamId } from "./exam-prep";
 
 // Server-only. All money-state changes happen here, via the Admin SDK
 // (Firestore rules make payments/bookings/ledger/subscriptions
@@ -27,7 +29,7 @@ import { SITE_URL } from "@/lib/host";
 
 export type PaymentRecord = {
   reference: string;
-  kind: "booking" | "subscription" | "boost" | "gift" | "tier" | "badge" | "gold_deposit" | "gold" | "merch" | "ad" | "store" | "digital" | "wallet_topup" | "life_naira" | "nana_credit" | "certificate" | "course" | "logistics_addon" | "inventory_addon" | "store_cart";
+  kind: "booking" | "subscription" | "boost" | "gift" | "tier" | "badge" | "gold_deposit" | "gold" | "merch" | "ad" | "store" | "digital" | "wallet_topup" | "life_naira" | "nana_credit" | "certificate" | "course" | "logistics_addon" | "inventory_addon" | "store_cart" | "exam_pack";
   uid: string; // the payer
   email: string;
   amountKobo: number;
@@ -94,6 +96,7 @@ export type PaymentRecord = {
   topup?: { bonusKobo: number };
   // A Nana credit pack (lib/nana-meter.ts): which pack, and the AI credit it adds (fixed at checkout).
   nanaPack?: { packId: string; name: string; creditKobo: number };
+  examPack?: { pack: ExamId; forUid: string; months: number; via: "self" | "paylink"; payLink?: string }; // Naija Exam Prep (lib/exam-prep-server.ts)
   // A Notes Academy certificate (lib/certificates-server.ts): the course, the name to print, the price fixed at checkout and the
   // teacher's part of it (their margin and its share of any late claim fee); issuedId once it's issued.
   certificate?: { courseId: string; courseTitle: string; learnerName: string; startKobo: number; lateKobo: number; teacherKobo: number; issuedId?: string };
@@ -397,6 +400,10 @@ export async function fulfillPayment(reference: string, paidWith?: { cartRef: st
       // A month of the logistics add-on (Free Basic and Pro): runs on from the trial or the month already paid.
       const acc = (await t.get(db.doc(`users/${current.uid}`))).data()?.logisticsAccount;
       extendAddon(t, db, current.uid, acc, new Date(now));
+    } else if (current.kind === "exam_pack") {
+      // Naija Exam Prep: platform revenue (no ledger). The pack's months go to the account it was bought for; the same reference
+      // never adds twice (lib/exam-prep-server.ts).
+      await grantPackInTransaction(t, db, current, now);
     } else if (current.kind === "inventory_addon") {
       // A month of inventory on Free Basic or Pro: runs on from the trial or the month already paid.
       const acc = (await t.get(db.doc(`users/${current.uid}`))).data()?.inventoryAccount;
@@ -617,6 +624,10 @@ async function notifyPaid(p: PaymentRecord) {
   if (p.kind === "certificate" && p.certificate?.issuedId) {
     await notifyBell({ uid: p.uid, type: "plan", linkHref: `/certificates/${p.certificate.issuedId}`, message: `Your certificate for “${p.certificate.courseTitle}” is ready. Share it or add it to LinkedIn.` });
     if (p.publisherUid && p.publisherUid !== p.uid) await notifyBell({ uid: p.publisherUid, type: "plan", linkHref: "/academy/teach", message: `${p.certificate.learnerName} got their certificate for “${p.certificate.courseTitle}”.` });
+    return;
+  }
+  if (p.kind === "exam_pack" && p.examPack) {
+    await notifyBell({ uid: p.examPack.forUid, type: "plan", linkHref: `/exam-prep/${p.examPack.pack}`, message: `Your ${EXAMS[p.examPack.pack].name} pack is open for ${p.examPack.months} months. Built for your next breakthrough.` });
     return;
   }
   if (p.kind === "inventory_addon") {
