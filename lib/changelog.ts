@@ -15,7 +15,8 @@ export const CHANGELOG: Release[] = [
     bump: "patch",
     date: "2026-10-22",
     changes: [
-      { kind: "added", text: "Help articles for Naija Exam Prep, which Nana reads too: practice, mocks, packs, refunds, pay links and offline use; teen mode and parents; and reviewing questions. Naija Exam Prep is also on the roadmap and in what you can do on NotesApp." },
+      { kind: "added", text: "Help articles for Naija Exam Prep, which Nana reads too: practice, mocks, packs, refunds, pay links and offline use; teen mode and parents; and reviewing questions. Naija Exam Prep is also on the roadmap." },
+      { kind: "changed", text: "What you can do on NotesApp (About, search results and Nana) now names Naija Exam Prep, Community and Events, and messages and free calls, with Notes Life and Notes Academy." },
     ],
   },
   {
