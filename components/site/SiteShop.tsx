@@ -5,7 +5,7 @@ import Link from "next/link";
 import { STORE_CATEGORIES, categoryOf, isStoreCategory } from "@/lib/store-meta";
 import { getStoreStats, type StoreStat } from "@/lib/store-social";
 import { isCrimsonTheme } from "@/lib/site-themes";
-import { SHOP_SORTS, isShopSort, shopStyleOf, sortItems, type ShopSort } from "@/lib/site-kits";
+import { SHOP_SORTS, collectionKey, collectionLabelOf, collectionSourceOf, isShopSort, shopCollections, shopStyleOf, sortItems, type ShopSort } from "@/lib/site-kits";
 import { useSite } from "./SiteContext";
 import { useOwnItems } from "./useOwnItems";
 import AuroraBand from "./AuroraBand";
@@ -19,6 +19,7 @@ export default function SiteShop() {
   const { base, theme, uid, kit, displayName } = useSite();
   const items = useOwnItems();
   const [filter, setFilter] = useState("All");
+  const [col, setCol] = useState(""); // a collection (their subcategories, else their items' badges: lib/site-kits.ts shopCollections), by key
   const [sort, setSort] = useState<ShopSort>("new");
   const [q, setQ] = useState("");
   const [stats, setStats] = useState<Record<string, StoreStat>>({});
@@ -28,29 +29,34 @@ export default function SiteShop() {
     const u = new URLSearchParams(window.location.search);
     const c = u.get("cat"), so = u.get("sort");
     if (c && isStoreCategory(c)) setFilter(c);
+    setCol(u.get("c") ?? "");
     if (isShopSort(so)) setSort(so);
     setQ(u.get("q") ?? "");
   }, []);
   useEffect(() => {
     const u = new URLSearchParams();
     if (filter !== "All") u.set("cat", filter);
+    if (col) u.set("c", col);
     if (sort !== "new") u.set("sort", sort);
     if (q.trim()) u.set("q", q.trim());
     const next = `${window.location.pathname}${u.size ? `?${u}` : ""}`;
     if (next !== `${window.location.pathname}${window.location.search}`) window.history.replaceState(null, "", next);
-  }, [filter, sort, q]);
+  }, [filter, sort, q, col]);
   const aurora = isCrimsonTheme(theme); // Aurora and Maroon keep their crimson band
   const style = shopStyleOf(kit);
   useEffect(() => { getStoreStats(uid).then(setStats).catch(() => {}); }, [uid]);
 
   const list = items ?? [];
   const counts = STORE_CATEGORIES.map((c) => ({ c, n: list.filter((i) => categoryOf(i) === c).length })).filter((x) => x.n > 0);
-  const inCategory = filter !== "All" ? list.filter((i) => categoryOf(i) === filter) : list;
+  const cols = shopCollections(list);
+  const colFrom = collectionSourceOf(list);
+  const TOP = 5; // collection links across the top; the rest are chips under the bar
+  const inCategory = (filter !== "All" ? list.filter((i) => categoryOf(i) === filter) : list).filter((i) => !col || collectionKey(collectionLabelOf(i, colFrom)) === col);
   const views = Object.fromEntries(Object.entries(stats).map(([id, st]) => [id, st.views]));
   const shown = sortItems(inCategory, sort, q, views);
-  const pick = (cat: string, so: ShopSort) => { setFilter(cat); setSort(so); setQ(""); };
+  const pick = (cat: string, so: ShopSort, c = "") => { setFilter(cat); setSort(so); setQ(""); setCol(c); };
   const buyable = list.filter((i) => i.id && (i.kind === "digital" || (i.stock ?? 0) > 0));
-  const browsing = filter === "All" && !q.trim();
+  const browsing = filter === "All" && !col && !q.trim();
   const featured = browsing && buyable.length >= 3 ? buyable.find((i) => i.featured) ?? [...buyable].sort((a, b) => (stats[b.id!]?.views ?? 0) - (stats[a.id!]?.views ?? 0))[0] : null;
 
   return (
@@ -72,9 +78,11 @@ export default function SiteShop() {
           <>
             <nav className="-mx-4 mt-6 flex gap-6 overflow-x-auto px-4 font-ui text-xs font-semibold uppercase tracking-[0.2em] text-ink sm:mx-0 sm:justify-center sm:gap-10 sm:px-0" aria-label="Collections">
               {[
-                { label: "New arrivals", on: filter === "All" && sort === "new" && !q, go: () => pick("All", "new") },
-                ...counts.slice(0, 3).map((x) => ({ label: x.c, on: filter === x.c, go: () => pick(x.c, sort) })),
-                { label: "Most popular", on: filter === "All" && sort === "popular", go: () => pick("All", "popular") },
+                { label: "New arrivals", on: filter === "All" && !col && sort === "new" && !q, go: () => pick("All", "new") },
+                // what they label their items most (or, with no labels yet, their top categories)
+                ...(cols.length ? cols.slice(0, TOP).map((x) => ({ label: x.label, on: col === x.key, go: () => pick("All", sort, x.key) }))
+                  : counts.slice(0, 3).map((x) => ({ label: x.c, on: filter === x.c, go: () => pick(x.c, sort) }))),
+                { label: "Most popular", on: filter === "All" && !col && sort === "popular", go: () => pick("All", "popular") },
               ].map((l) => <button key={l.label} type="button" onClick={l.go} className={`shrink-0 border-b-2 pb-1 ${l.on ? "border-crimson" : "border-transparent hover:border-rule"}`}>{l.label}</button>)}
             </nav>
             {featured && (
@@ -102,7 +110,16 @@ export default function SiteShop() {
                   {SHOP_SORTS.map((s) => <option key={s.id} value={s.id}>{s.label}</option>)}
                 </select>
               </div>
-              {counts.length > 3 && ( // with three or fewer, the links above already list every category
+              {cols.length > TOP && (
+                <div className="-mx-1 mt-3 flex gap-2 overflow-x-auto px-1 pb-1" aria-label="More collections">
+                  {cols.slice(TOP).map((x) => (
+                    <button key={x.key} type="button" aria-pressed={col === x.key} onClick={() => pick("All", sort, col === x.key ? "" : x.key)} className={`shrink-0 rounded-full border px-4 py-1.5 text-sm ${col === x.key ? "border-crimson bg-crimson text-white" : "border-rule bg-card text-ink hover:border-crimson"}`}>
+                      {x.label} <span className="font-mono text-xs opacity-70">{x.n}</span>
+                    </button>
+                  ))}
+                </div>
+              )}
+              {(cols.length ? counts.length > 1 : counts.length > 3) && ( // categories as chips, unless the links above already list them all
                 <div className="-mx-1 mt-3 flex gap-2 overflow-x-auto px-1 pb-1" aria-label="Browse by category">
                   {[{ c: "All", n: list.length }, ...counts].map((x) => (
                     <button key={x.c} type="button" aria-pressed={filter === x.c} onClick={() => setFilter(x.c)} className={`shrink-0 rounded-full border px-4 py-1.5 text-sm ${filter === x.c ? "border-crimson bg-crimson text-white" : "border-rule bg-card text-ink hover:border-crimson"}`}>
@@ -113,7 +130,7 @@ export default function SiteShop() {
               )}
             </div>
             <div className="mt-6">
-              {shown.length ? <ProductGrid items={shown} base={base} style={style} big={big} /> : <p className="card p-6 text-sm text-slate">Nothing matches that. <button type="button" className="font-semibold text-crimson" onClick={() => { setQ(""); setFilter("All"); }}>See everything</button></p>}
+              {shown.length ? <ProductGrid items={shown} base={base} style={style} big={big} /> : <p className="card p-6 text-sm text-slate">Nothing matches that. <button type="button" className="font-semibold text-crimson" onClick={() => { setQ(""); setFilter("All"); setCol(""); }}>See everything</button></p>}
             </div>
           </>
         )}

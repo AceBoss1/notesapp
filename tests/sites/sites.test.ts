@@ -2,7 +2,7 @@
 // and kits that never wipe the member's words. Run: npm run test:sites → "ALL OK".
 import assert from "node:assert/strict";
 import { backgroundOf, canHaveSite, meetsTier, paletteRgb, paletteVars, themeAllowed } from "../../lib/site-themes";
-import { KITS, applyKitTo, cleanEmail, cleanFocus, durationText, isBeautyKit, bookingHoursText, buttonHref, byYear, cleanBlocks, cleanButton, cleanOrder, cleanPalette, kitAllowed, kitOf, resolveButton, shopStyleOf, siteDocOf, sortItems, visibleBlocks } from "../../lib/site-kits";
+import { KITS, applyKitTo, collectionKey, shopCollections, cleanEmail, cleanFocus, durationText, isBeautyKit, bookingHoursText, buttonHref, byYear, cleanBlocks, cleanButton, cleanOrder, cleanPalette, kitAllowed, kitOf, resolveButton, shopStyleOf, siteDocOf, sortItems, visibleBlocks } from "../../lib/site-kits";
 import { siteSectionsShown } from "../../lib/site-settings";
 import { placeCoords } from "../../lib/places";
 import { landDots } from "../../lib/globe-land";
@@ -62,6 +62,17 @@ assert.equal(KITS.length, 18);
 assert.deepEqual(KITS.filter((k) => kitAllowed(k, "basic")).map((k) => k.id), ["personal", "scholar"], "Free Basic: the personal kits only (Personal and creators, Academics)");
 assert.deepEqual(KITS.filter((k) => kitAllowed(k, "pro")).map((k) => k.id), ["personal", "scholar", "fashion", "food", "services", "healthcare", "beauty-spa", "beauty-massage", "beauty-hair", "beauty-nails", "fitness", "events", "electronics", "motor", "solar", "realestate"]);
 assert.equal(KITS.filter((k) => kitAllowed(k, "business")).length, 18);
+// Shop collections: the publisher's own labels (badge, else subcategory), spellings grouped, most used first, in their most used spelling.
+assert.equal(collectionKey("OCASION WEAR"), collectionKey("Occasion wears"));
+assert.equal(collectionKey("Dress"), collectionKey("Dresses"));
+assert.notEqual(collectionKey("Dinner gown"), collectionKey("Dinner party gown"));
+// No subcategories anywhere: each item's badge.
+const byBadge = shopCollections([{ badge: "OCASION WEAR" }, { badge: "OCASION WEAR" }, { badge: "OCASION WEAR" }, { badge: "OCCASION WEAR" }, { badge: "OCCASION WEARS" }, { badge: "DINNER GOWN" }, {}]);
+assert.deepEqual(byBadge.map((c) => [c.label, c.n]), [["OCCASION WEAR", 5], ["DINNER GOWN", 1]], "the typo is used most, the full spelling shows");
+// Subcategories first, as soon as the publisher uses any (badges then don't make links).
+const bySub = shopCollections([{ subcategory: "Gowns", badge: "OCASION WEAR" }, { subcategory: "Gowns" }, { subcategory: "Bags", badge: "NEW" }, { badge: "DINNER GOWN" }]);
+assert.deepEqual(bySub.map((c) => [c.label, c.n]), [["Gowns", 2], ["Bags", 1]]);
+assert.deepEqual(shopCollections([{}, { badge: "  " }]), []);
 // A linked community (lib/site-kits.ts): a community address or nothing.
 assert.equal(siteDocOf({ community: "grace-chapel" }).community, "grace-chapel");
 assert.equal(siteDocOf({ community: "../../users/x" }).community, "");

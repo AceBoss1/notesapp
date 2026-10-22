@@ -2,13 +2,14 @@ import { COMMENT_MAX, COMMUNITY_FREE_MEMBERS, POST_MAX, SLOW_MODES, SPACES_MAX }
 import { GROUP_MEMBERS_MAX } from "./messages-rules";
 import { GROUP_CALL_MAX } from "./group-calls";
 import { ROOM_CHAT_MAX, ROOM_LISTENERS_MAX_P2P, ROOM_SPEAKERS_MAX } from "./rooms";
+import { REPEATS } from "./events";
 
 // The four parts of a community, each with its own page at /community/<slug> (owner, 22 Oct 2026: "they would all have more details or
 // own page, don't cluster them inside the community page as sections alone, though they all need to be linked"). The numbers come from
 // the code that enforces them, so a page can't promise more than the product does. Each page links the help article of the same name,
 // which is what Nana reads.
 export type CommunityFeature = {
-  slug: "general" | "spaces" | "circles" | "audio-rooms";
+  slug: "general" | "spaces" | "circles" | "audio-rooms" | "events";
   name: string;
   eyebrow: string;
   title: string;
@@ -139,6 +140,36 @@ export const COMMUNITY_FEATURES: CommunityFeature[] = [
       ] },
     ],
     help: "community-audio-rooms",
+  },
+  {
+    slug: "events", name: "Events", eyebrow: "Community · Events", title: "Your services, meetings and outreaches, with reminders",
+    intro: "Put your community's programme on its Events tab: Sunday service, the workers' meeting, the harvest, an outreach. Members tap Going or Interested, get reminded before it starts, and can add it to their calendar or join it live.",
+    shots: { desktop: "/images/community/events-desktop.webp", phone: "/images/community/events-phone.webp", alt: "Grace Chapel Lekki's Events tab: Sunday service every week, a members-only Workers' meeting on Google Meet, and the harvest" },
+    facts: [
+      { label: "Who adds them", value: "The owner and admins (any account can add its own on Events)" },
+      { label: "Who sees them", value: "Everyone, or members only (you choose per event)" },
+      { label: "Repeats", value: REPEATS.map((r) => r.label).join(", ") },
+      { label: "Reminders", value: "24 hours and 1 hour before: bell, phone and email" },
+      { label: "Join live", value: "YouTube Live, Facebook Live, Zoom, Google Meet, Teams or any https link" },
+      { label: "How far ahead", value: "Up to a year; an event can last up to 14 days" },
+    ],
+    sections: [
+      { h: "Adding an event", items: [
+        "On the community's Events tab, admins tap Add an event: a name, when it starts and ends (Lagos time), where it is (with the city and state), and a Join live link if it's streamed or online.",
+        "Choose who sees it: Anyone (it's listed on #NotesApp's Events page, by state and city) or Members only (only your members see it, and only they get the Join live link).",
+        "Make it repeat every week or every month, until a date if you like: set Sunday service once.",
+      ] },
+      { h: "Going and Interested", items: [
+        "Members tap Going or Interested; the event shows how many of each.",
+        "Everyone going or interested gets a reminder 24 hours and 1 hour before: a notification, a phone notification and an email.",
+        "Public events have Add to calendar. If you change or cancel an event, everyone going or interested is told.",
+      ] },
+      { h: "Live", items: [
+        "An event's Join live link opens YouTube Live, Facebook Live, Zoom, Google Meet or any https link, shown only to that event's audience.",
+        "To talk live inside your community instead, start an Audio room. Our own live streaming comes later, as a paid add-on.",
+      ] },
+    ],
+    help: "events",
   },
 ];
 

@@ -48,8 +48,8 @@ export default function CommunityPanel({ linked, name, username, tagline, onLink
       <h2 id="community-h" className="mt-1 font-display text-xl text-ink">Bring your members together</h2>
       <p className="mt-1 text-sm text-slate">
         A home for your members on #NotesApp, run by your own admins:{" "}
-        {COMMUNITY_FEATURES.map((f, i) => <span key={f.slug}>{i ? ", " : ""}<Link href={`/community/${f.slug}`} className="text-crimson underline" target="_blank">{f.name}</Link></span>)}
-        {" "}and <Link href="/events" className="text-crimson underline" target="_blank">Events</Link>. Link it here and your site&apos;s menu gets a Community link.
+        {COMMUNITY_FEATURES.map((f, i) => <span key={f.slug}>{i ? (i === COMMUNITY_FEATURES.length - 1 ? " and " : ", ") : ""}<Link href={`/community/${f.slug}`} className="text-crimson underline" target="_blank">{f.name}</Link></span>)}
+        . Link it here and your site&apos;s menu gets a Community link.
       </p>
 
       {run === null ? <p className="mt-4 text-sm text-slate">Loading…</p> : current ? (
