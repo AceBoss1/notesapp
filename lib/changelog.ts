@@ -11,6 +11,16 @@ export type Release = {
 
 export const CHANGELOG: Release[] = [
   {
+    version: "v0.76.0",
+    bump: "minor",
+    date: "2026-10-22",
+    changes: [
+      { kind: "changed", text: "The links across the top of your site's shop now come from your own labels: your subcategories when you use any, otherwise the words you put on your items' pictures, most used first, up to five, with any more as buttons under the search bar. Spellings of one label count together, so Ocasion wear, Occasion wear and Occasion wears are one link, shown as Occasion wear." },
+      { kind: "added", text: "Your site's Notes page has links to the topics you write about most, so visitors can read one topic at a time." },
+      { kind: "added", text: "Events has its own page in Community (Community → Events), with pictures, the limits and how reminders and Join live work, linked with General, Spaces, Circles and Audio rooms and from the footer." },
+    ],
+  },
+  {
     version: "v0.75.0",
     bump: "minor",
     date: "2026-10-22",

@@ -465,9 +465,37 @@ export const isShopSort = (v: unknown): v is ShopSort => SHOP_SORTS.some((s) => 
 // Items in the order a visitor asked for, after a search (title, description and category). Items without a price in kobo go last
 // when sorting by price; "popular" goes by views (`views`, by item id); "new" puts the most recently added first (createdAt, an ISO date or a Firestore time; undated ones last).
 const addedAt = (v: unknown): number => (typeof v === "string" ? Date.parse(v) || 0 : v && typeof (v as { toMillis?: unknown }).toMillis === "function" ? (v as { toMillis: () => number }).toMillis() : 0);
-export function sortItems<T extends { id?: string; title: string; subtitle?: string; category?: string; subcategory?: string; priceKobo?: number; createdAt?: unknown }>(items: T[], sort: ShopSort, search = "", views: Record<string, number> = {}): T[] {
+// The shop's collection links (owner, 22 Oct 2026): the publisher's subcategories when they use any ("if sub categories are available
+// for the publisher, it should use it first"), otherwise each item's own badge (the label on its picture). Spellings of one label count
+// together ("Ocasion wear", "Occasion wear", "Occasion wears"); most used first, shown in their fullest spelling ("Occasion wear").
+export const collectionKey = (label: string) => label.toLowerCase().replace(/[^a-z0-9]+/g, "")
+  .replace(/(ss|x|ch|sh)es$/, "$1").replace(/([^s])s$/, "$1") // one dress, two dresses; wear, wears
+  .replace(/(.)\1+/g, "$1"); // "ocasion" and "occasion" are one label
+export type CollectionSource = "subcategory" | "badge";
+export const collectionSourceOf = (items: { subcategory?: string }[]): CollectionSource => (items.some((i) => i.subcategory?.trim()) ? "subcategory" : "badge");
+export const collectionLabelOf = (i: { badge?: string; subcategory?: string }, from: CollectionSource) => ((from === "subcategory" ? i.subcategory : i.badge)?.trim() ?? "");
+export function shopCollections(items: { badge?: string; subcategory?: string }[]): { key: string; label: string; n: number }[] {
+  const from = collectionSourceOf(items);
+  const groups = new Map<string, Map<string, number>>();
+  for (const i of items) {
+    const label = collectionLabelOf(i, from);
+    const key = label && collectionKey(label);
+    if (!key) continue;
+    const g = groups.get(key) ?? new Map<string, number>();
+    g.set(label, (g.get(label) ?? 0) + 1);
+    groups.set(key, g);
+  }
+  return [...groups].map(([key, g]) => {
+    // The fullest spelling (a typo usually drops a letter: "Ocasion"), singular ("wear", not "wears"), then the one used most.
+    const full = (s: string) => s.replace(/s$/i, "").length;
+    const spellings = [...g].sort((a, b) => full(b[0]) - full(a[0]) || b[1] - a[1]);
+    return { key, label: spellings[0][0], n: [...g.values()].reduce((x, y) => x + y, 0) };
+  }).sort((a, b) => b.n - a.n || a.label.localeCompare(b.label));
+}
+
+export function sortItems<T extends { id?: string; title: string; subtitle?: string; category?: string; subcategory?: string; badge?: string; priceKobo?: number; createdAt?: unknown }>(items: T[], sort: ShopSort, search = "", views: Record<string, number> = {}): T[] {
   const words = search.toLowerCase().split(/\s+/).filter(Boolean);
-  const found = words.length ? items.filter((i) => { const hay = `${i.title} ${i.subtitle ?? ""} ${i.category ?? ""} ${i.subcategory ?? ""}`.toLowerCase(); return words.every((w) => hay.includes(w)); }) : [...items];
+  const found = words.length ? items.filter((i) => { const hay = `${i.title} ${i.subtitle ?? ""} ${i.category ?? ""} ${i.subcategory ?? ""} ${i.badge ?? ""}`.toLowerCase(); return words.every((w) => hay.includes(w)); }) : [...items];
   const price = (i: T, missing: number) => (typeof i.priceKobo === "number" ? i.priceKobo : missing);
   if (sort === "low") return found.sort((a, b) => price(a, Infinity) - price(b, Infinity));
   if (sort === "high") return found.sort((a, b) => price(b, -Infinity) - price(a, -Infinity));

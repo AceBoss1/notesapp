@@ -27,7 +27,7 @@ export default function CommunityPage() {
           {COMMUNITY_PARTS.map((p) => (
             <li key={p.id} id={p.id} className="card p-4">
               <strong className="text-ink">{p.name}</strong><p className="mt-1 text-slate">{p.blurb}</p>
-              {p.page ? <Link href={`/community/${p.page}`} className="mt-2 inline-block font-semibold text-crimson">See how {p.name} works →</Link> : p.id === "events" ? <Link href="/events" className="mt-2 inline-block font-semibold text-crimson">See events →</Link> : null}
+              {p.page ? <Link href={`/community/${p.page}`} className="mt-2 inline-block font-semibold text-crimson">See how {p.name} works →</Link> : null}
             </li>
           ))}
           <li id="live" className="card p-4"><strong className="text-ink">Live</strong><p className="mt-1 text-slate">An event carries a Join live link to YouTube Live, Facebook Live, Zoom or Google Meet, shown only to that event&apos;s audience. Our own live streaming comes later, as a paid add-on.</p></li>

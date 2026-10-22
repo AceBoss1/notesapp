@@ -33,7 +33,6 @@ export default function CommunityFeaturePage({ params }: { params: { feature: st
             <Link key={x.slug} href={`/community/${x.slug}`} aria-current={x.slug === f.slug ? "page" : undefined}
               className={`shrink-0 rounded-full border px-4 py-1.5 text-sm ${x.slug === f.slug ? "border-crimson bg-crimson text-paper" : "border-rule text-ink hover:border-crimson"}`}>{x.name}</Link>
           ))}
-          <Link href="/events" className="shrink-0 rounded-full border border-rule px-4 py-1.5 text-sm text-ink hover:border-crimson">Events</Link>
         </nav>
 
         {/* What it looks like: on a computer, and on a phone beside it (under it on a phone). */}
@@ -65,7 +64,7 @@ export default function CommunityFeaturePage({ params }: { params: { feature: st
         </div>
 
         <h2 className="mt-14 font-display text-2xl text-ink">The rest of Community</h2>
-        <ul className="mt-4 grid gap-3 sm:grid-cols-3">
+        <ul className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
           {others.map((x) => (
             <li key={x.slug}><Link href={`/community/${x.slug}`} className="card block h-full p-4 hover:border-crimson">
               <strong className="font-ui text-sm text-ink">{x.name} →</strong><p className="mt-1 line-clamp-3 text-sm text-slate">{x.intro}</p>

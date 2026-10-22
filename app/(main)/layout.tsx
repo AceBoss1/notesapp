@@ -83,6 +83,7 @@ const CONNECT = [
   { href: "/community/spaces", label: "Spaces" },
   { href: "/community/circles", label: "Circles" },
   { href: "/community/audio-rooms", label: "Audio rooms" },
+  { href: "/community/events", label: "Community events" },
   { href: "/calls#one-to-one", label: "Encrypted 1-on-1 calls" },
   { href: "/calls#group", label: "Encrypted group calls" },
   { href: "/explore", label: "Explore" },
