@@ -5,6 +5,8 @@ a one-tap share of that certificate. Free courses grow the audience; paid course
 turned into a build plan, with the owner's decisions at the end. **Steps 1 to 3 are built** (free courses, certificates, paid
 courses with co-tutors and organisations; see `docs/BUILD_LOG.md`, v0.42 to v0.55); quizzes and Enterprise courses are next.
 
+**Naija Exam Prep** (JAMB, WAEC and NECO practice at prep.notesapp.name.ng, v0.79.0) is part of Notes Academy but is not built on courses: it has its own questions, packs and reviewers (`lib/exam-prep.ts`, HANDOVER items 41–42).
+
 ## Who can do what
 
 | | Free courses | Paid courses |

@@ -42,6 +42,7 @@ export const WHAT_YOU_CAN_DO = [
   "Take bookings for private 1:1 sessions",
   "Sell physical goods, digital downloads, PDFs and video courses, in your own store and in Notes Market",
   "Teach free and paid courses in Notes Academy, on your own, with co-tutors or as an organisation, and give learners certificates anyone can check",
+  "Prepare for JAMB, WAEC and NECO with Naija Exam Prep: free practice questions with explanations, timed mocks and packs that work offline",
   "Ask Nana, our AI helper, about the platform, and let her suggest topics, summarise and translate chats",
   "Earn from journal subscriptions and gifts",
   "Run it all under your own name, with your own site from Free Basic and your own domain on Business and Enterprise plans",

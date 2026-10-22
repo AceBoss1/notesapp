@@ -1,4 +1,4 @@
-import { APP_HOST, LIFE_HOST } from "@/lib/host";
+import { APP_HOST, LIFE_HOST, PREP_HOST } from "@/lib/host";
 import Link from "next/link";
 import NotesLifeCard from "@/components/NotesLifeCard";
 import type { Metadata } from "next";
@@ -24,6 +24,13 @@ const ITEMS: { title: string; tag: string; body: string; detail: string; link?: 
     body: "Live now: free and paid courses, co-tutors, organisations teaching as themselves, likes, saves and reviews, and certificates. Any publisher can teach free courses, with lessons from their own YouTube that play inside #NotesApp, plus text lessons; on Pro and above, courses can be paid, with PDFs too, and Business and Enterprise upload their own videos. Learners keep their progress, and finishers get a certificate anyone can check and add to LinkedIn. Next, in this order: quizzes, then the Enterprise packages.",
     get detail() { return `Free courses are free to publish and to take. Certificates on free courses are paid: the learner pays from ${certificateMin()} plus the margin the teacher sets. Paid courses carry text lessons, PDFs and YouTube on Pro, and uploaded videos on Business and Enterprise, kept private and played only for learners who paid, with the viewer's @username and email drawn faintly over the video. Learners keep a paid course on up to 2 devices and can get a refund within 7 days if they haven't started it. Up to 4 co-tutors can teach a course, each paid their share at their own plan's fee, and a paid course can include its certificate in the price. Our fee on paid courses is the same as on digital store items. For organisations, two packages sit on top of Enterprise: Enterprise Courses, and the Enterprise Academy API for a white-label academy of their own. Prices are on the pricing page.`; },
     link: { href: "/academy", label: "Visit Notes Academy →" },
+  },
+  {
+    title: "Naija Exam Prep: JAMB, WAEC and NECO practice",
+    tag: "Courses",
+    body: `Live now at ${PREP_HOST}, part of Notes Academy: free practice questions in every subject with full explanations, timed mocks marked on the spot, and a pack per exam (every subject, 12 months) that works offline. Students can ask a parent or sponsor to pay with a link, and under-18s use it in teen mode.`,
+    detail: "Every question is original and checked by a reviewer before it's published; reviewers join by invite link for the subjects they know. Next: access codes and class boards for schools, Nana as a study helper, and more subjects.",
+    link: { href: "/exam-prep", label: "Open Naija Exam Prep →" },
   },
   {
     title: "Notes Life: a life game on NotesApp",

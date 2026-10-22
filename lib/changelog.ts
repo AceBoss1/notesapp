@@ -11,6 +11,14 @@ export type Release = {
 
 export const CHANGELOG: Release[] = [
   {
+    version: "v0.80.1",
+    bump: "patch",
+    date: "2026-10-22",
+    changes: [
+      { kind: "added", text: "Help articles for Naija Exam Prep, which Nana reads too: practice, mocks, packs, refunds, pay links and offline use; teen mode and parents; and reviewing questions. Naija Exam Prep is also on the roadmap and in what you can do on NotesApp." },
+    ],
+  },
+  {
     version: "v0.80.0",
     bump: "minor",
     date: "2026-10-22",
