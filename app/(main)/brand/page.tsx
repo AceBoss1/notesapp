@@ -76,6 +76,18 @@ export default function BrandPage() {
         </div>
       </div>
 
+      {/* Product marks */}
+      <div className="mt-14">
+        <p className="eyebrow">Product marks</p>
+        <div className="card mt-5 flex flex-col items-center gap-6 p-8 sm:flex-row">
+          <Image src="/images/exam-prep/logo.svg" alt="Naija Exam Prep mark" width={120} height={120} unoptimized className="h-[120px] w-[120px]" />
+          <div>
+            <p className="font-ui text-sm font-semibold text-ink">Naija Exam Prep</p>
+            <p className="mt-1 max-w-xl text-xs text-slate">The sun rising over an open book: “Built for your next breakthrough.” Navy #0F2747 and gold #C9A227 on white, for Naija Exam Prep (prep.notesapp.name.ng) only. It&apos;s in the logo pack.</p>
+          </div>
+        </div>
+      </div>
+
       {/* Campaign graphic */}
       <div className="mt-14">
         <p className="eyebrow">Campaign graphic</p>
@@ -169,7 +181,7 @@ export default function BrandPage() {
       {/* Logo pack */}
       <section id="logo-pack" className="mt-14 card scroll-mt-24 p-8">
         <p className="eyebrow">Logo pack</p>
-        <p className="mt-3 max-w-2xl text-sm text-slate">One zip with the icon (PNG and WebP, up to 512 px), the full wordmark, the app icons, the #1MillionNairaNotesAppChallenge artwork and these guidelines as a text file. Version {BRAND_PACK.version}. The seasonal marks aren&apos;t in it: they&apos;re for NotesApp&apos;s own channels.</p>
+        <p className="mt-3 max-w-2xl text-sm text-slate">One zip with the icon (PNG and WebP, up to 512 px), the full wordmark, the app icons, the #1MillionNairaNotesAppChallenge artwork, the Naija Exam Prep mark and these guidelines as a text file. Version {BRAND_PACK.version}. The seasonal marks aren&apos;t in it: they&apos;re for NotesApp&apos;s own channels.</p>
         <BrandPackDownload />
       </section>
 

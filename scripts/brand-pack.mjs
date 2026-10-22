@@ -14,7 +14,9 @@ const files = {
   "app-icons/apple-touch-icon.png": "apple-touch-icon.png", "app-icons/icon-192.png": "icon-192.png", "app-icons/icon-maskable-512.png": "icon-maskable-512.png",
   "campaign/1MillionNairaNotesAppChallenge.webp": "challenge-graphic.webp",
 };
+const products = { "naija-exam-prep/naija-exam-prep.svg": "exam-prep/logo.svg", "naija-exam-prep/naija-exam-prep-512.png": "exam-prep/icon-512.png" };
 for (const [to, from] of Object.entries(files)) { mkdirSync(join(pack, to, ".."), { recursive: true }); cpSync(join(root, "public/images/brand", from), join(pack, to)); }
+for (const [to, from] of Object.entries(products)) { mkdirSync(join(pack, to, ".."), { recursive: true }); cpSync(join(root, "public/images", from), join(pack, to)); }
 const text = [
   `NotesApp brand guidelines (logo pack ${BRAND_PACK.version})`, "Full guidelines: https://www.notesapp.name.ng/brand", "",
   "INTRODUCTION", ...BRAND_INTRO, "",

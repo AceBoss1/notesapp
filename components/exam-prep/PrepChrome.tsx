@@ -25,7 +25,8 @@ export default function PrepChrome({ mainUrl, children }: { mainUrl: string; chi
       <header className="sticky top-0 z-30 border-b border-[#0F2747]/10 bg-[#0F2747] text-white">
         <div className="mx-auto flex max-w-5xl items-center gap-3 px-4 py-3">
           <PLink href="/" className="flex items-center gap-2">
-            <span aria-hidden className="grid h-8 w-8 place-items-center rounded-lg bg-[#C9A227] text-sm font-black text-[#0F2747]">NE</span>
+            {/* eslint-disable-next-line @next/next/no-img-element -- a small SVG, no optimising needed */}
+            <img src="/images/exam-prep/logo.svg" alt="" width={34} height={34} className="h-[34px] w-[34px]" />
             <span className="font-display text-[17px] font-bold leading-tight">{PREP_NAME}</span>
           </PLink>
           <a href={mainUrl} className="hidden rounded-full bg-white/10 px-2 py-0.5 text-[11px] font-semibold text-white/80 hover:bg-white/20 sm:inline">by NotesApp</a>
