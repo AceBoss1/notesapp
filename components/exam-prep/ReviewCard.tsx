@@ -17,7 +17,7 @@ export default function ReviewCard({ q, onReview, actions }: { q: Question; onRe
     <div className={card}>
       <div className="flex flex-wrap items-center gap-1.5 text-xs">
         <Pill>{EXAMS[q.exam]?.short}</Pill><Pill tone="grey">{q.subject} · {q.topic}</Pill><Pill tone={q.access === "free" ? "green" : "gold"}>{q.access}</Pill>
-        <Pill tone="grey">difficulty {q.difficulty}</Pill><Pill tone="grey">{q.provenance.by === "ai-draft" ? "AI-assisted draft" : `by ${q.provenance.authorName ?? "editor"}`}</Pill>
+        <Pill tone="grey">difficulty {q.difficulty}</Pill><Pill tone="grey">{q.provenance.by === "ai-draft" ? "Nana AI-assisted draft" : `by ${q.provenance.authorName ?? "editor"}`}</Pill>
         <span className="ml-auto font-mono text-[11px] text-[#0F2747]/50">{q.id}</span>
       </div>
       {q.context && <div className="mt-3 whitespace-pre-line rounded-xl bg-[#0F2747]/5 p-3 text-sm">{q.context}</div>}

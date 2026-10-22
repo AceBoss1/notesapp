@@ -358,27 +358,70 @@ export async function reportQuestion(db: Firestore, uid: string | null, input: {
 
 // ---------------------------------------------------------------- editorial: editors, reviewers, publishing
 export type Editor = { uid: string; name: string };
-export async function isReviewer(db: Firestore, uid: string): Promise<boolean> {
-  const r = (await db.doc(`prepReviewers/${uid}`).get()).data();
-  return !!r && r.active !== false;
+// A reviewer reviews only the subjects their invite named (keys "exam_subject", e.g. "jamb_mathematics"). Each review is counted
+// on their record (reviews, reviewsByMonth), ready for paying reviewers into their NotesApp wallet later.
+export type Reviewer = { uid: string; name: string; active: boolean; subjects: string[]; reviews?: number; reviewsByMonth?: Record<string, number>; at: string };
+export async function reviewerOf(db: Firestore, uid: string): Promise<Reviewer | null> {
+  const r = (await db.doc(`prepReviewers/${uid}`).get()).data() as Reviewer | undefined;
+  return r && r.active !== false ? { ...r, subjects: Array.isArray(r.subjects) ? r.subjects : [] } : null;
 }
-// An invite link for an outside reviewer: single use, 14 days. Reviewers see the review queue only.
-export async function createInvite(db: Firestore, admin: Editor, note: unknown, now = new Date()) {
+export const isReviewer = async (db: Firestore, uid: string) => !!(await reviewerOf(db, uid));
+
+// Invites. Choose the subjects first. "single": one person, 14 days. "open": a link to share with volunteers (a WhatsApp group,
+// a staff room), good until its date and up to its number of reviewers, and closable at any time.
+export type InviteInput = { subjects: unknown; kind?: unknown; days?: unknown; maxUses?: unknown; note?: unknown };
+export async function createInvite(db: Firestore, admin: Editor, input: InviteInput, now = new Date()) {
+  const known = new Set((await allSubjects(db)).map((x) => subjectKey(x.exam, x.id)));
+  const subjects = Array.from(new Set((Array.isArray(input.subjects) ? input.subjects : []).map(String))).filter((k) => known.has(k));
+  if (!subjects.length) throw new PrepError("Choose at least one subject to review.");
+  const kind = input.kind === "open" ? "open" : "single";
+  const days = kind === "open" ? Number(input.days ?? 30) : 14;
+  if (![7, 14, 30, 90].includes(days)) throw new PrepError("Choose 7, 14, 30 or 90 days.");
+  const maxUses = kind === "open" ? Number(input.maxUses ?? 50) : 1;
+  if (!Number.isInteger(maxUses) || maxUses < 1 || maxUses > 500) throw new PrepError("Up to 500 reviewers per link.");
   const t = token(18);
-  await db.doc(`prepInvites/${hash(t)}`).set({ createdBy: admin.uid, createdByName: admin.name, note: String(note ?? "").slice(0, 200), createdAt: iso(now), expiresAt: new Date(now.getTime() + 14 * 86_400_000).toISOString() });
-  return { token: t };
+  await db.doc(`prepInvites/${hash(t)}`).set({ kind, subjects, maxUses, uses: 0, acceptedBy: [], active: true, createdBy: admin.uid, createdByName: admin.name, note: String(input.note ?? "").slice(0, 200), createdAt: iso(now), expiresAt: new Date(now.getTime() + days * 86_400_000).toISOString() });
+  return { token: t, kind, subjects, maxUses, expiresAt: new Date(now.getTime() + days * 86_400_000).toISOString() };
+}
+async function inviteDoc(db: Firestore, tok: unknown) {
+  const ref = db.doc(`prepInvites/${hash(String(tok ?? ""))}`);
+  return { ref, inv: (await ref.get()).data() };
+}
+const inviteProblem = (inv: Record<string, unknown> | undefined, uid: string | null, nowIso: string) => {
+  if (!inv) return { status: 404, why: "That invite link isn't valid." };
+  if (inv.active === false) return { status: 410, why: "This invite link has been closed." };
+  if (String(inv.expiresAt) <= nowIso) return { status: 410, why: "That invite link has expired. Ask for a new one." };
+  const accepted = (inv.acceptedBy as string[] | undefined) ?? (inv.usedBy ? [String(inv.usedBy)] : []);
+  if (uid && accepted.includes(uid)) return null;
+  if (accepted.length >= Number(inv.maxUses ?? 1)) return { status: 410, why: inv.kind === "open" ? "This link has all the reviewers it needs. Thank you!" : "That invite link has been used." };
+  return null;
+};
+// What the invite page shows before accepting: the subjects, and whether the link still works.
+export async function inviteInfo(db: Firestore, tok: unknown, now = new Date()) {
+  const { inv } = await inviteDoc(db, tok);
+  const p = inviteProblem(inv, null, iso(now));
+  if (!inv) throw new PrepError(p!.why, p!.status);
+  const subs = await allSubjects(db);
+  return { kind: String(inv.kind ?? "single"), subjects: (inv.subjects as string[] ?? []).map((k) => { const x = subs.find((y) => subjectKey(y.exam, y.id) === k); return x ? `${EXAMS[x.exam].short} ${x.name}` : k; }), ok: !p, why: p?.why ?? null };
 }
 export async function acceptInvite(db: Firestore, me: Editor, tok: unknown, now = new Date()) {
   const ref = db.doc(`prepInvites/${hash(String(tok ?? ""))}`);
   return db.runTransaction(async (t) => {
     const inv = (await t.get(ref)).data();
-    if (!inv) throw new PrepError("That invite link isn't valid.", 404);
-    if (inv.usedBy && inv.usedBy !== me.uid) throw new PrepError("That invite link has been used.", 410);
-    if (String(inv.expiresAt) <= iso(now)) throw new PrepError("That invite link has expired. Ask for a new one.", 410);
-    t.update(ref, { usedBy: me.uid, usedAt: iso(now) });
-    t.set(db.doc(`prepReviewers/${me.uid}`), { uid: me.uid, name: me.name, active: true, invitedBy: inv.createdBy, at: iso(now) }, { merge: true });
-    return { reviewer: true };
+    const p = inviteProblem(inv, me.uid, iso(now));
+    if (p) throw new PrepError(p.why, p.status);
+    const accepted: string[] = (inv!.acceptedBy as string[] | undefined) ?? [];
+    const revRef = db.doc(`prepReviewers/${me.uid}`);
+    const cur = (await t.get(revRef)).data() as Reviewer | undefined;
+    const subjects = Array.from(new Set([...(cur?.subjects ?? []), ...((inv!.subjects as string[]) ?? [])]));
+    if (!accepted.includes(me.uid)) t.update(ref, { acceptedBy: [...accepted, me.uid], uses: accepted.length + 1, ...(inv!.kind === "open" ? {} : { usedBy: me.uid, usedAt: iso(now) }) });
+    t.set(revRef, { uid: me.uid, name: me.name, active: true, subjects, invitedBy: inv!.createdBy, at: cur?.at ?? iso(now) }, { merge: true });
+    return { reviewer: true, subjects };
   });
+}
+export async function closeInvite(db: Firestore, id: unknown) {
+  await db.doc(`prepInvites/${String(id ?? "x").replace(/[^a-f0-9]/g, "")}`).update({ active: false });
+  return { closed: true };
 }
 async function subjectOf(db: Firestore, exam: ExamId, subject: string): Promise<Subject | null> {
   return ((await db.doc(`prepSubjects/${subjectKey(exam, subject)}`).get()).data() as Subject | undefined) ?? null;
@@ -417,7 +460,7 @@ export async function importQuestions(db: Firestore, editor: Editor, rows: { inp
 }
 // A reviewer approves or asks for changes. Nobody reviews a question they wrote. Enough approvals (the subject's number) make it
 // approved; publishing is a separate step.
-export async function reviewQuestion(db: Firestore, reviewer: Editor, id: unknown, decision: unknown, note: unknown, now = new Date()) {
+export async function reviewQuestion(db: Firestore, reviewer: Editor & { subjects?: string[] | null }, id: unknown, decision: unknown, note: unknown, now = new Date()) {
   if (decision !== "approve" && decision !== "changes") throw new PrepError("Approve it or ask for changes.");
   const text = String(note ?? "").trim().slice(0, 1_000);
   if (decision === "changes" && text.length < 3) throw new PrepError("Say what needs changing.");
@@ -427,9 +470,11 @@ export async function reviewQuestion(db: Firestore, reviewer: Editor, id: unknow
     if (!q) throw new PrepError("That question wasn't found.", 404);
     if (q.status !== "in_review") throw new PrepError("That question isn't waiting for review.", 409);
     if (q.provenance.authorUid === reviewer.uid) throw new PrepError("You wrote this question, so someone else reviews it.", 403);
+    if (reviewer.subjects && !reviewer.subjects.includes(subjectKey(q.exam, q.subject))) throw new PrepError("That question isn't in a subject you review.", 403);
     if (q.reviews.some((r) => r.uid === reviewer.uid && r.decision === "approve" && r.at >= q.updatedAt)) throw new PrepError("You've approved this version already.", 409);
     const sub = await subjectOf(db, q.exam, q.subject);
     const reviews = [...q.reviews, { uid: reviewer.uid, name: reviewer.name, decision, note: text, at: iso(now) }];
+    if (reviewer.subjects) t.set(db.doc(`prepReviewers/${reviewer.uid}`), { reviews: FieldValue.increment(1), reviewsByMonth: { [iso(now).slice(0, 7)]: FieldValue.increment(1) }, lastReviewAt: iso(now) }, { merge: true });
     if (decision === "changes") { t.update(ref, { reviews, status: "changes", approvals: 0 }); return { status: "changes" as const }; }
     const approvals = q.approvals + 1;
     const done = approvals >= Math.max(1, sub?.approvalsNeeded ?? 1);
@@ -449,10 +494,10 @@ export async function publishQuestion(db: Firestore, id: unknown, publish: boole
   await ref.update({ status: "published", publishedAt: iso(now) });
   return { status: "published" };
 }
-export async function reviewQueue(db: Firestore, filter: { status?: unknown; exam?: unknown }) {
+export async function reviewQueue(db: Firestore, filter: { status?: unknown; exam?: unknown; subjects?: string[] | null }) {
   const status = ["draft", "in_review", "changes", "approved", "published", "retired"].includes(String(filter.status)) ? String(filter.status) : "in_review";
   const snap = await db.collection("prepQuestions").where("status", "==", status).limit(500).get();
-  return snap.docs.map((d) => ({ ...(d.data() as Question), id: d.id })).filter((q) => !isExamId(filter.exam) || q.exam === filter.exam).sort((a, b) => `${a.exam}${a.subject}${a.topic}${a.id}`.localeCompare(`${b.exam}${b.subject}${b.topic}${b.id}`));
+  return snap.docs.map((d) => ({ ...(d.data() as Question), id: d.id })).filter((q) => (!isExamId(filter.exam) || q.exam === filter.exam) && (!filter.subjects || filter.subjects.includes(subjectKey(q.exam, q.subject)))).sort((a, b) => `${a.exam}${a.subject}${a.topic}${a.id}`.localeCompare(`${b.exam}${b.subject}${b.topic}${b.id}`));
 }
 
 // ---------------------------------------------------------------- admin: access, grants, refunds

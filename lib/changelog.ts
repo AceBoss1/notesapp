@@ -18,6 +18,8 @@ export const CHANGELOG: Release[] = [
       { kind: "changed", text: "The writing boxes now talk about notes: Create a note… on Journals, in Community (General and every Space) and for Moments; Reply a note… under journals, community and Space posts and moments; Drop a note… in Messages (the chats of Circles too), audio-room chat and Notes Life." },
       { kind: "added", text: "Brand guidelines on the brand page, below the marks and colours: an introduction, general guidelines (writing the name, clear space, smallest sizes), prohibited uses, FAQ and legal notes." },
       { kind: "added", text: "The NotesApp logo pack: one zip with the icon, the wordmark, app icons, the challenge artwork and the guidelines, downloaded once you accept the guidelines." },
+      { kind: "changed", text: "Naija Exam Prep reviewers: choose the subjects first, then make a link for one person or an open link to share with volunteers (for 7 to 90 days, up to 500 reviewers, closable any time). Reviewers see and review only their subjects, and every review is counted for them." },
+      { kind: "added", text: "Admin → Naija Exam Prep → Questions: Approve all shown, for Editorial, recorded as the reviewer on each. Starter questions are labelled Nana AI-assisted draft." },
     ],
   },
   {
