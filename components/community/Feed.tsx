@@ -7,6 +7,7 @@ import { can, type Role } from "@/lib/community";
 import { DEFAULT_AVATAR } from "@/lib/admin";
 import { useMember } from "@/lib/member-client";
 import { capi, field, ago } from "./api";
+import { communityUrl, mainHref } from "./place";
 
 // A channel of a community (General or a Space), laid out like a Facebook group: a "Write something…" box that opens into the composer
 // (words and a photo), then posts newest first (pinned on top), each with the author, the words, the photo edge to edge, the counts, and
@@ -123,16 +124,16 @@ function PostCard({ p, cid, role, me, as, onChange }: { p: Post; cid: string; ro
   const act = async (body: Record<string, unknown>, then = onChange) => { setErr(""); try { await capi("/api/community", body); then(); } catch (e) { setErr(e instanceof Error ? e.message : "Couldn't do that."); } };
   const canManage = member && (can(role, "pin") || p.authorUid === me);
   const share = async () => {
-    const url = `${window.location.origin}/c/${cid}#post-${p.id}`;
+    const url = communityUrl(cid, `#post-${p.id}`);
     try { if (navigator.share) await navigator.share({ url }); else { await navigator.clipboard.writeText(url); setCopied(true); setTimeout(() => setCopied(false), 1800); } } catch { /* closed the sheet */ }
   };
   return (
     <li id={`post-${p.id}`} className={`scroll-mt-24 overflow-hidden rounded-2xl border bg-card shadow-sm ${p.pinned ? "border-crimson/40" : "border-rule"}`}>
       {p.pinned && <p className="bg-crimson/5 px-4 py-1.5 font-ui text-[11px] font-semibold uppercase tracking-wide text-crimson">📌 Pinned by the admins</p>}
       <div className="flex items-center gap-3 px-4 pt-4">
-        <Link href={`/u/${p.authorUsername}`} className="shrink-0"><Face src={p.authorAvatar} /></Link>
+        <Link href={mainHref(`/u/${p.authorUsername}`)} className="shrink-0"><Face src={p.authorAvatar} /></Link>
         <div className="min-w-0 flex-1">
-          <Link href={`/u/${p.authorUsername}`} className="block truncate font-ui text-sm font-bold text-ink hover:underline">{p.authorName}</Link>
+          <Link href={mainHref(`/u/${p.authorUsername}`)} className="block truncate font-ui text-sm font-bold text-ink hover:underline">{p.authorName}</Link>
           <p className="text-xs text-slate">{ago(p.createdAt)} · 🌍</p>
         </div>
         {canManage && (
@@ -168,7 +169,7 @@ function PostCard({ p, cid, role, me, as, onChange }: { p: Post; cid: string; ro
               <li key={c.id} className="flex gap-2">
                 <Face src={c.authorAvatar} size={32} />
                 <div className="min-w-0">
-                  <div className="rounded-2xl bg-card px-3 py-2 ring-1 ring-rule"><Link href={`/u/${c.authorUsername}`} className="block font-ui text-xs font-bold text-ink hover:underline">{c.authorName}</Link><p className="whitespace-pre-line text-sm text-ink">{c.text}</p></div>
+                  <div className="rounded-2xl bg-card px-3 py-2 ring-1 ring-rule"><Link href={mainHref(`/u/${c.authorUsername}`)} className="block font-ui text-xs font-bold text-ink hover:underline">{c.authorName}</Link><p className="whitespace-pre-line text-sm text-ink">{c.text}</p></div>
                   <p className="mt-0.5 px-3 text-[11px] text-slate">{ago(c.createdAt)}{(c.authorUid === me || can(role, "remove_post")) && <> · <button type="button" className="underline" onClick={() => act({ action: "remove_comment", commentId: c.id }, () => { loadComments(); onChange(); })}>Remove</button></>}</p>
                 </div>
               </li>

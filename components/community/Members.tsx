@@ -6,6 +6,7 @@ import { DEFAULT_AVATAR } from "@/lib/admin";
 import { GROUP_MEMBERS_MAX } from "@/lib/messages-rules";
 import { can, canActOn, canGiveRole, roleName, type Role } from "@/lib/community";
 import { capi, field, small } from "./api";
+import { mainHref } from "./place";
 
 // The member list (members only, unless the admins show it publicly): roles first, then names, never phone numbers. Moderators and
 // admins can remove or ban those below them; admins make moderators; the owner makes admins.
@@ -34,7 +35,7 @@ export default function Members({ cid, role, me, as }: { cid: string; role: Role
             <li key={m.uid} className="flex flex-wrap items-center gap-3 p-3">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src={m.avatar || DEFAULT_AVATAR} alt="" className="h-9 w-9 rounded-full object-cover" />
-              <Link href={`/u/${m.username}`} className="min-w-0 flex-1"><span className="block truncate font-ui text-sm font-bold text-ink">{m.displayName}</span><span className="text-xs text-slate">@{m.username}{m.role !== "member" ? ` · ${roleName(m.role)}` : ""}</span></Link>
+              <Link href={mainHref(`/u/${m.username}`)} className="min-w-0 flex-1"><span className="block truncate font-ui text-sm font-bold text-ink">{m.displayName}</span><span className="text-xs text-slate">@{m.username}{m.role !== "member" ? ` · ${roleName(m.role)}` : ""}</span></Link>
               {m.uid !== me && canActOn(role, m.role) && (
                 <span className="flex flex-wrap gap-2">
                   {can(role, "set_role") && (
@@ -76,7 +77,7 @@ export function Circles({ cid, role, allowed, as, me }: { cid: string; role: Rol
         <ul className="mt-4 grid gap-3 sm:grid-cols-2">{list.map((c) => (
           <li key={c.id} className="card flex items-center gap-3 p-4">
             <span className="min-w-0 flex-1"><span className="block font-ui text-sm font-bold text-ink">{c.title}</span><span className="text-xs text-slate">{c.members} {c.members === 1 ? "person" : "people"}</span></span>
-            {c.mine && <Link href={`/messages/${c.id}`} className={small}>Open chat</Link>}
+            {c.mine && <Link href={mainHref(`/messages/${c.id}`)} className={small}>Open chat</Link>}
           </li>
         ))}</ul>
       )}

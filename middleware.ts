@@ -10,6 +10,7 @@ import { APP_HOST, LIFE_HOST, MAIN_HOST, ROOT_DOMAIN, familyHost, familyOf, isMa
 //   /terms, /privacy      → their own legal pages, with a "powered by #NotesApp" block
 //   /about, /contact      → the About and Contact pages they wrote
 //   /courses, /courses/<slug> → their Notes Academy courses, each opening inside their site (its lessons stay on the main site)
+//   /community            → the community they linked on /profile/site, inside their site (its API, events and uploads pass through)
 //   /track, /track/<id>   → logistics businesses (Track on /profile/site): look up and follow their shipments
 //   /login, /signup       → Enterprise: a branded sign-in / sign-up window on their domain; Business: the main-site page, then back here
 // A note or item that isn't theirs is sent to the main site instead.
@@ -36,7 +37,7 @@ async function resolve(host: string, check?: string): Promise<Resolved> {
 
 // Files and the API calls a member's site makes on its own domain (journals/save and notify/like: the Maroon theme's feed posts;
 // academy/…: a course page inside their site — enrol, buy, like, save, review; logistics: the delivery price for an item or the basket).
-const PASS = /^\/(_next\/|favicon|robots\.txt|sitemap|images\/|fonts\/|api\/(views|trending|boosts|ads|public|status|consent|booking\/slots|auth\/branded|paystack\/(initialize|verify)|journals\/save|notify\/like|recommendations|track|logistics|academy\/(enrol|social|links|purchase|view|reviews|courses))\b)/;
+const PASS = /^\/(_next\/|favicon|robots\.txt|sitemap|images\/|fonts\/|api\/(views|trending|boosts|ads|public|status|consent|booking\/slots|auth\/branded|paystack\/(initialize|verify)|journals\/save|notify\/like|recommendations|track|logistics|community|events|upload|academy\/(enrol|social|links|purchase|view|reviews|courses))\b)/;
 // Pages the app domain doesn't carry: it sends them to the main site (MAIN_HOST). (Explore, Help, Terms and Privacy stay on the app domain.)
 const APP_TO_MAIN = /^\/(about|pricing|roadmap|status|docs|changelog|security|brand|challenge|advertise|domains|organisations|store-selling|logistics|merchstore|contact|coauthoring|gifts|boost|badges|track)(\/|$)/;
 const PUBLIC_FILE = /\.[a-z0-9]{2,5}$/i;
@@ -122,7 +123,7 @@ export async function middleware(req: NextRequest) {
   if (pathname === `/u/${d.username}`) return rewrite(site);
   if (pathname === "/auth/handoff" || pathname === "/booking/confirm" || pathname === "/auth/action") return rewrite(`${site}${pathname}`);
   if (pathname === "/terms" || pathname === "/privacy") return rewrite(`${site}${pathname}`); // the member's own legal pages
-  if (pathname === "/about" || pathname === "/contact" || pathname === "/courses" || pathname === "/cart") return rewrite(`${site}${pathname}`); // pages from /profile/site, and the basket
+  if (pathname === "/about" || pathname === "/contact" || pathname === "/courses" || pathname === "/cart" || pathname === "/community") return rewrite(`${site}${pathname}`); // pages from /profile/site, the basket, and their community
   if (/^\/courses\/[a-z0-9-]{1,80}\/?$/.test(pathname)) return rewrite(`${site}${pathname.replace(/\/$/, "")}`); // one of their courses (only theirs show)
   if (pathname === "/track" || /^\/track\/[A-Za-z0-9-]{8,12}\/?$/.test(pathname)) return rewrite(`${site}${pathname.replace(/\/$/, "")}`); // the Track section
 

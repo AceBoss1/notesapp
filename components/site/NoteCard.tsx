@@ -7,7 +7,7 @@ export default function NoteCard({ note, base }: { note: NoteWithComputed; base:
     <Link href={`${base}/notes/${note.slug}`} className="card flex flex-col overflow-hidden transition-shadow hover:shadow-md">
       {note.featured_image && (
         // eslint-disable-next-line @next/next/no-img-element
-        <img src={note.featured_image} alt="" className="aspect-[16/9] w-full object-cover" />
+        <img src={note.featured_image} alt="" loading="lazy" decoding="async" className="aspect-[16/9] w-full object-cover" />
       )}
       <div className="flex flex-1 flex-col p-5">
         <p className="font-mono text-[10px] uppercase tracking-eyebrow text-crimson-bright">

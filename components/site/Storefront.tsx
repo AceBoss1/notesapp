@@ -27,10 +27,10 @@ export function ProductTile({ item, href, style, onAdd }: { item: StoreItem; hre
       <div className={`relative overflow-hidden rounded-2xl ${style.fit === "contain" ? "bg-white ring-1 ring-rule" : "bg-rule/40"} ${ratio}`}>
         <Link href={href} tabIndex={-1} aria-hidden="true" className="absolute inset-0">
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={item.image} alt="" loading="lazy" className={`absolute inset-0 h-full w-full ${fit} transition duration-500 group-hover:scale-[1.03] ${second ? "group-hover:opacity-0" : ""} ${sold ? "opacity-60" : ""}`} />
+          <img src={item.image} alt="" loading="lazy" decoding="async" className={`absolute inset-0 h-full w-full ${fit} transition duration-500 group-hover:scale-[1.03] ${second ? "group-hover:opacity-0" : ""} ${sold ? "opacity-60" : ""}`} />
           {second && (
             // eslint-disable-next-line @next/next/no-img-element
-            <img src={second} alt="" loading="lazy" className={`absolute inset-0 h-full w-full ${fit} opacity-0 transition duration-500 group-hover:opacity-100`} />
+            <img src={second} alt="" loading="lazy" decoding="async" className={`absolute inset-0 h-full w-full ${fit} opacity-0 transition duration-500 group-hover:opacity-100`} />
           )}
         </Link>
         {badge && (

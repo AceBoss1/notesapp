@@ -16,6 +16,7 @@ import RichTextEditor from "@/components/RichTextEditor";
 import SiteThemePicker from "@/components/SiteThemePicker";
 import KitPicker from "@/components/site-settings/KitPicker";
 import CommunityPanel from "@/components/site-settings/CommunityPanel";
+import CommunityPageCard from "@/components/site-settings/CommunityPageCard";
 import PalettePicker from "@/components/site-settings/PalettePicker";
 import BlockEditors, { Picture } from "@/components/site-settings/BlockEditors";
 import { missingPagesText } from "@/components/SiteReminder";
@@ -219,6 +220,10 @@ export default function YourSitePage() {
               );
             })}
           </div>
+          {user && site && (
+            <CommunityPageCard linked={site.community ?? ""} page={site.communityPage !== false} domain={domain?.status === "active" ? domain.host : null}
+              onSave={async (cid, page) => { const d = await call(user, "/api/site/community", { cid, page }); setSite(d.site); }} />
+          )}
           <label className={`${field} mt-3 flex cursor-pointer items-start gap-3 ${bookBelow ? "border-crimson" : ""}`}>
             <input type="checkbox" checked={bookBelow} onChange={(e) => setBookBelow(e.target.checked)} className="mt-1" />
             <span>

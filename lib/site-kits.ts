@@ -80,7 +80,9 @@ export type SiteFocus = (typeof SITE_FOCUS)[number]["id"];
 export const cleanFocus = (v: unknown): SiteFocus => (SITE_FOCUS.some((f) => f.id === v) ? v as SiteFocus : "mix");
 // community: the id of a community the member runs (lib/community.ts), linked to their site from "Your site" (owner, 22 Oct 2026: choosing the
 // Churches and NGOs kit should open Community: start one there, or link the one they run). The site's menu then has a Community link.
-export type SiteDoc = { kit: string; palette: SitePalette; blocks: Blocks; order: BlockId[]; bookBelowPosts: boolean; orcid: OrcidLink | null; cover: string; announce?: string; focus?: SiteFocus; community?: string; updatedAt?: string };
+// communityPage: the linked community shows inside their site at <site>/community, on their own domain too (owner, 22 Oct 2026); on by
+// default, switched off under "Choose what shows".
+export type SiteDoc = { kit: string; palette: SitePalette; blocks: Blocks; order: BlockId[]; bookBelowPosts: boolean; orcid: OrcidLink | null; cover: string; announce?: string; focus?: SiteFocus; community?: string; communityPage?: boolean; updatedAt?: string };
 // The kits that open Community on "Your site" (start one, or link one you run).
 export const COMMUNITY_KITS = ["church"];
 export const cleanCommunityLink = (v: unknown) => { const s = String(v ?? ""); return /^[a-z0-9](?:[a-z0-9-]{1,38})[a-z0-9]$/.test(s) ? s : ""; };
@@ -183,7 +185,7 @@ const orcidOf = (v: unknown): OrcidLink | null => {
 };
 export function siteDocOf(raw: unknown): SiteDoc {
   const o = (raw && typeof raw === "object" ? raw : {}) as Record<string, unknown>;
-  return { kit: t(o.kit, 30), palette: cleanPalette(o.palette), blocks: cleanBlocks(o.blocks), order: cleanOrder(o.order), bookBelowPosts: o.bookBelowPosts === true, orcid: orcidOf(o.orcid), cover: img(o.cover), announce: cleanAnnounce(o.announce), focus: cleanFocus(o.focus), community: cleanCommunityLink(o.community), updatedAt: typeof o.updatedAt === "string" ? o.updatedAt : undefined };
+  return { kit: t(o.kit, 30), palette: cleanPalette(o.palette), blocks: cleanBlocks(o.blocks), order: cleanOrder(o.order), bookBelowPosts: o.bookBelowPosts === true, orcid: orcidOf(o.orcid), cover: img(o.cover), announce: cleanAnnounce(o.announce), focus: cleanFocus(o.focus), community: cleanCommunityLink(o.community), communityPage: o.communityPage !== false, updatedAt: typeof o.updatedAt === "string" ? o.updatedAt : undefined };
 }
 // What a visitor sees: only the sections switched on, with something in them, that the plan still covers (after a downgrade, a section waits
 // switched off rather than vanishing from the settings).
@@ -253,6 +255,7 @@ export function buttonHref(b: SiteButton, base: string): string {
 type Starter = { headline: string; subline: string; button: SiteButton; second?: SiteButton; services?: ServiceItem[]; faq?: Qa[]; hours?: string; heroStyle?: "photo"; eyebrow?: string };
 export type Kit = {
   id: string; name: string; emoji: string; blurb: string; minTier: string; theme: SiteThemeId; palette: PaletteId;
+  bestFor?: string; // who it suits, on its card in the kit picker
   sections: { journals: boolean; shop: boolean; courses: boolean; track: boolean }; blocks: BlockId[]; starter: Starter;
   // Kits that are flavours of one (Beauty and wellness: Spa, Massage, Hair, Nails) show as one card with a choice.
   family?: { id: string; name: string; flavour: string };
@@ -303,6 +306,7 @@ const OLD_KITS: Record<string, string> = { spa: "beauty-spa", salon: "beauty-hai
 export const KITS: Kit[] = [
   {
     id: "personal", name: "Personal and creators", emoji: "✍️", minTier: "basic", theme: "clean", palette: "crimson",
+    bestFor: "Writers, creators, speakers, artists and anyone who wants a site of their own.",
     blurb: "For you as a person, a writer or a content creator: who you are, your journals, your work in pictures, what people say, and how to reach you.",
     sections: { journals: true, shop: false, courses: true, track: false }, blocks: ["hero", "gallery", "testimonials", "faq"],
     starter: { headline: "Hi, I'm glad you're here.", subline: "What I write about, what I make, and how to work with me.", button: btn("contact", "Get in touch"),
@@ -311,12 +315,14 @@ export const KITS: Kit[] = [
   {
     // A personal kit too (Free Basic), in the Scholar look.
     id: "scholar", name: "Academics and researchers", emoji: "📚", minTier: "basic", theme: "scholar", palette: "ocean",
+    bestFor: "Researchers, lecturers, PhD students and scientists.",
     blurb: "For researchers, lecturers and students: who you are and what you work on, your publications by year, awards, talks on a globe and news.",
     sections: { journals: true, shop: false, courses: true, track: false }, blocks: ["hero", "publications", "talks", "awards", "news"],
     starter: { headline: "Hello, and welcome.", subline: "What I research and teach, where I've published and spoken, and how to reach me.", button: btn("contact", "Get in touch") },
   },
   {
     id: "fashion", name: "Fashion: clothes, bags, shoes and jewellery", emoji: "👗", minTier: "pro", theme: "luxe", palette: "royal",
+    bestFor: "Boutiques, designers, tailors, and bag, shoe and jewellery sellers.",
     blurb: "Your collection up front (clothes, bags, shoes, jewellery), prices and delivery, safe checkout, and pictures from your shoots.",
     sections: { journals: false, shop: true, courses: false, track: false }, blocks: ["hero", "gallery", "testimonials", "faq", "info"],
     starter: { heroStyle: "photo", eyebrow: "New collection", headline: "New styles, made to be worn.", subline: "Shop the latest pieces, delivered anywhere in Nigeria.", button: btn("shop"), second: btn("shop", "New arrivals"),
@@ -324,99 +330,242 @@ export const KITS: Kit[] = [
       faq: [{ q: "Do you deliver outside my state?", a: "Yes. Delivery is worked out at checkout for your address." }, { q: "Can I return an item?", a: "Tell us within 48 hours of delivery and we'll sort it out." }] },
   },
   {
-    id: "food", name: "Food and baking", emoji: "🍰", minTier: "pro", theme: "clean", palette: "sunset",
-    blurb: "Your menu with prices to order and pay online, opening hours, and pictures that make people hungry.",
-    sections: { journals: false, shop: true, courses: false, track: false }, blocks: ["hero", "info", "services", "gallery", "testimonials"],
-    starter: { headline: "Freshly made, every day.", subline: "Cakes, small chops and meals for every occasion. Order ahead and we'll have it ready.", button: btn("shop", "Order now"), second: btn("call"),
-      hours: "Mon–Sat, 8am to 6pm",
-      services: [{ name: "Birthday cake (8 inch)", price: "₦25,000", note: "Order 2 days ahead" }, { name: "Small chops (per pack)", price: "₦6,000", note: "" }] },
+    id: "food", name: "Food and baking", emoji: "🍰", minTier: "pro", theme: "luxe", palette: "sunset",
+    bestFor: "Bakers, caterers, small chops, restaurants, home cooks and drinks makers.",
+    blurb: "Opens with a photo of your food, then your menu in tabs (cakes, small chops, meals, drinks) with prices and how far ahead to order, ordering and paying online, delivery or pick-up, and your hours.",
+    sections: { journals: false, shop: true, courses: false, track: false }, blocks: ["hero", "services", "gallery", "info", "testimonials", "faq"],
+    starter: { heroStyle: "photo", eyebrow: "Fresh from our kitchen", headline: "Freshly made, every day.", subline: "Cakes, small chops, trays and meals for birthdays, offices and owambe. Order ahead, pay online, and pick up or get it delivered.", button: btn("shop", "Order now"), second: btn("services", "See the menu"),
+      hours: "Mon–Sat, 8am to 7pm · Sun, 12pm to 6pm",
+      services: [
+        { group: "Cakes", name: "Birthday cake (8 inch, 2 layers)", price: "From ₦25,000", note: "Order 2 days ahead" },
+        { group: "Cakes", name: "Wedding cake (3 tiers)", price: "From ₦180,000", note: "Tasting on request" },
+        { group: "Small chops", name: "Small chops pack (20 pieces)", price: "₦6,000", note: "Puff-puff, samosa, spring rolls, peppered chicken" },
+        { group: "Small chops", name: "Party tray (100 pieces)", price: "₦45,000", note: "Order 3 days ahead" },
+        { group: "Meals", name: "Jollof rice and chicken", price: "₦3,500", note: "" },
+        { group: "Meals", name: "Soup bowl (2 litres)", price: "From ₦15,000", note: "Egusi, efo riro or ofe onugbu" },
+        { group: "Drinks", name: "Zobo or chapman (1 litre)", price: "₦2,500", note: "" },
+      ],
+      faq: [
+        { q: "How far ahead should I order?", a: "Two days for cakes, three for party trays and catering. Same-day orders are taken while we have stock." },
+        { q: "Do you deliver?", a: "Yes. Delivery is worked out at checkout for your address, or pick up from us at no cost." },
+        { q: "Can you cater for my event?", a: "Yes, from 30 guests. Tell us the date, the number of guests and the menu through our Contact page." },
+        { q: "Can you work around allergies?", a: "Tell us when you order. We'll say honestly what we can make safely." },
+      ] },
   },
   {
     id: "services", name: "Services and freelancers", emoji: "🛠️", minTier: "pro", theme: "clean", palette: "ocean",
-    blurb: "What you do and what it costs, how to book you, past work, and what clients say.",
-    sections: { journals: true, shop: false, courses: false, track: false }, blocks: ["hero", "services", "gallery", "testimonials", "faq"],
-    starter: { headline: "Your work, done properly.", subline: "Clear prices, on time, and easy to reach.", button: btn("book"), second: btn("call"),
-      services: [{ name: "Consultation (1 hour)", price: "₦15,000", note: "Online or in person" }],
-      faq: [{ q: "How do I book?", a: "Tap Book now, pick a time and pay to confirm." }] },
+    bestFor: "Consultants, designers, developers, writers, lawyers, accountants, coaches and other professionals.",
+    blurb: "What you do and what it costs in tabs (consultations, projects, retainers) with how long each takes, booking a call and paying online, your past work, your team and what clients say.",
+    sections: { journals: true, shop: false, courses: false, track: false }, blocks: ["hero", "services", "gallery", "testimonials", "team", "faq", "info"],
+    starter: { headline: "Your work, done properly.", subline: "Clear prices, honest timelines and one person you can always reach. Book a call to get started.", button: btn("book", "Book a call"), second: btn("services", "See prices"),
+      hours: "Mon–Fri, 9am to 5pm",
+      services: [
+        { group: "Consultations", name: "Discovery call", minutes: 30, price: "Free", note: "Online" },
+        { group: "Consultations", name: "Consultation", minutes: 60, price: "₦15,000", note: "Online or in person" },
+        { group: "Projects", name: "Starter project", price: "From ₦80,000", note: "Scope and timeline agreed in writing" },
+        { group: "Projects", name: "Full project", price: "From ₦250,000", note: "Paid in stages" },
+        { group: "Retainers", name: "Monthly retainer", price: "From ₦150,000 a month", note: "A set number of hours each month" },
+      ],
+      faq: [
+        { q: "How do I book?", a: "Tap Book a call, pick a time and pay to confirm. You get a reminder before it." },
+        { q: "How do payments work for projects?", a: "We agree the scope and price first, then you pay in stages as the work is delivered." },
+        { q: "What if I need to cancel a call?", a: "See the cancellation policy on the booking card before you pay." },
+      ] },
   },
   {
     id: "healthcare", name: "Healthcare and clinics", emoji: "🩺", minTier: "pro", theme: "clean", palette: "ocean",
-    blurb: "Your services, how to book an appointment, opening hours and where to find you, and your team.",
-    sections: { journals: true, shop: false, courses: false, track: false }, blocks: ["hero", "info", "services", "team", "faq"],
-    starter: { headline: "Care you can count on.", subline: "Book an appointment, see our services and opening hours, and find us easily.", button: btn("book", "Book an appointment"), second: btn("call"),
-      hours: "Mon–Fri, 8am to 5pm · Sat, 9am to 1pm",
-      services: [{ name: "General consultation", price: "₦10,000", note: "" }, { name: "Lab tests", price: "From ₦5,000", note: "" }],
-      faq: [{ q: "Do I need an appointment?", a: "Appointments are best; walk-ins are seen when a doctor is free." }] },
+    bestFor: "Clinics, hospitals, pharmacies, dentists, physiotherapists, labs and private doctors.",
+    blurb: "Book an appointment first, then your services in tabs (consultations, tests, online and home visits) with times and fees, opening hours and where to find you, your doctors, and answers about HMOs and emergencies.",
+    sections: { journals: true, shop: false, courses: false, track: false }, blocks: ["hero", "info", "services", "team", "faq", "testimonials"],
+    starter: { headline: "Care you can count on.", subline: "Book an appointment online, see our services and fees, and find us easily. Walk-ins welcome when a doctor is free.", button: btn("book", "Book an appointment"), second: btn("call", "Call the clinic"),
+      hours: "Mon–Fri, 8am to 6pm · Sat, 9am to 2pm",
+      services: [
+        { group: "Consultations", name: "General consultation", minutes: 20, price: "₦10,000", note: "" },
+        { group: "Consultations", name: "Children's consultation", minutes: 20, price: "₦12,000", note: "" },
+        { group: "Consultations", name: "Specialist consultation", minutes: 30, price: "From ₦20,000", note: "By referral or appointment" },
+        { group: "Tests", name: "Full blood count", price: "₦6,000", note: "Results the same day" },
+        { group: "Tests", name: "Malaria test", price: "₦3,000", note: "Results in 30 minutes" },
+        { group: "Online and home", name: "Video consultation", minutes: 15, price: "₦7,000", note: "From anywhere" },
+        { group: "Online and home", name: "Home visit", price: "From ₦25,000", note: "Within our area" },
+      ],
+      faq: [
+        { q: "Do I need an appointment?", a: "Appointments are best; walk-ins are seen when a doctor is free." },
+        { q: "Do you take HMOs?", a: "Yes. Ask us which HMOs we accept before your visit, and bring your HMO card." },
+        { q: "What about emergencies?", a: "In an emergency, go straight to the nearest emergency unit or call 112. Don't wait for a booking." },
+        { q: "How do I get my results?", a: "Most results are ready the same day; we'll tell you when and how you'll get yours." },
+      ] },
   },
   // Phase 4 (owner, 21 Oct 2026): more kits by type of business, Pro like the others.
   ...beautyKits(),
   {
-    id: "fitness", name: "Fitness trainers", emoji: "💪", minTier: "pro", theme: "clean", palette: "sunset",
-    blurb: "Your training plans and prices, results your clients got, booking sessions, and your workouts and tips.",
-    sections: { journals: true, shop: false, courses: true, track: false }, blocks: ["hero", "services", "testimonials", "gallery", "faq"],
-    starter: { headline: "Get stronger, one session at a time.", subline: "Personal training in person or online, with a plan made for you.", button: btn("book", "Book a session"), second: btn("call"),
-      services: [{ name: "Personal training (1 hour)", price: "₦15,000", note: "" }, { name: "Monthly plan (12 sessions)", price: "₦150,000", note: "With a nutrition guide" }],
-      faq: [{ q: "I'm a beginner. Is that fine?", a: "Yes. We start where you are and build up safely." }] },
+    id: "fitness", name: "Fitness trainers", emoji: "💪", minTier: "pro", theme: "luxe", palette: "sunset",
+    bestFor: "Personal trainers, gyms, yoga and dance instructors, bootcamps and online coaches.",
+    blurb: "Opens with a photo of you training, then sessions, plans and classes in tabs with times and prices, booking a session, your clients' results, your workouts and tips, and courses you sell.",
+    sections: { journals: true, shop: false, courses: true, track: false }, blocks: ["hero", "services", "testimonials", "gallery", "info", "faq"],
+    starter: { heroStyle: "photo", eyebrow: "Train with", headline: "Get stronger, one session at a time.", subline: "Personal training in person or online, with a plan made for your body and your goals.", button: btn("book", "Book a session"), second: btn("services", "See plans"),
+      hours: "Mon–Sat, 5:30am to 8pm",
+      services: [
+        { group: "Training", name: "Personal training", minutes: 60, price: "₦15,000", note: "At the gym or your home" },
+        { group: "Training", name: "Couples session", minutes: 60, price: "₦25,000", note: "" },
+        { group: "Training", name: "Online coaching (a month)", price: "₦40,000", note: "Weekly plan and check-ins" },
+        { group: "Plans", name: "12 sessions", price: "₦150,000", note: "With a nutrition guide" },
+        { group: "Plans", name: "8-week body transformation", price: "₦280,000", note: "Training, meals and progress checks" },
+        { group: "Classes", name: "Bootcamp class", minutes: 45, price: "₦5,000", note: "Saturdays" },
+      ],
+      faq: [
+        { q: "I'm a beginner. Is that fine?", a: "Yes. We start where you are and build up safely." },
+        { q: "What should I bring?", a: "Comfortable clothes, trainers, a towel and water." },
+        { q: "I have an injury. Can I still train?", a: "Tell us before your first session; we'll adapt every exercise, or ask you to see a doctor first." },
+      ] },
   },
   {
-    id: "events", name: "Events and photography", emoji: "📸", minTier: "pro", theme: "clean", palette: "charcoal",
-    blurb: "Your best work first, your packages and prices, what clients say, and booking a date.",
-    sections: { journals: true, shop: false, courses: false, track: false }, blocks: ["hero", "gallery", "services", "testimonials", "faq"],
-    starter: { headline: "Moments worth keeping.", subline: "Weddings, birthdays, corporate events and portraits, planned and captured beautifully.", button: btn("book", "Book a date"), second: btn("contact"),
-      services: [{ name: "Portrait session", price: "₦40,000", note: "1 hour, 15 edited photos" }, { name: "Wedding coverage", price: "From ₦350,000", note: "Photo and video" }],
-      faq: [{ q: "How soon do we get our pictures?", a: "Portraits in a week; weddings in about four weeks." }] },
+    id: "events", name: "Events and photography", emoji: "📸", minTier: "pro", theme: "luxe", palette: "charcoal",
+    bestFor: "Photographers, videographers, event planners, decorators, DJs, MCs and makeup for events.",
+    blurb: "Your best pictures first on a full photo, then packages in tabs (portraits, weddings, events) with times and prices, booking a date with a deposit, what clients say, and answers about delivery and travel.",
+    sections: { journals: true, shop: false, courses: false, track: false }, blocks: ["hero", "gallery", "services", "testimonials", "faq", "info"],
+    starter: { heroStyle: "photo", eyebrow: "Photography and events", headline: "Moments worth keeping.", subline: "Weddings, birthdays, corporate events and portraits, planned and captured beautifully.", button: btn("book", "Book a date"), second: btn("services", "See packages"),
+      hours: "Mon–Sat, 9am to 6pm · Events any day",
+      services: [
+        { group: "Portraits", name: "Portrait session", minutes: 60, price: "₦40,000", note: "15 edited photos" },
+        { group: "Portraits", name: "Birthday or family shoot", minutes: 120, price: "₦80,000", note: "30 edited photos, 2 outfits" },
+        { group: "Weddings", name: "Traditional wedding coverage", price: "From ₦250,000", note: "Photo, full day" },
+        { group: "Weddings", name: "White wedding, photo and video", price: "From ₦350,000", note: "With a highlight film" },
+        { group: "Events", name: "Corporate event (half day)", price: "From ₦150,000", note: "Photo, same-week delivery" },
+        { group: "Events", name: "Event planning and decor", price: "From ₦200,000", note: "Vendors, decor and coordination" },
+      ],
+      faq: [
+        { q: "How do we hold our date?", a: "Book the date and pay the deposit; the rest is due a week before the event." },
+        { q: "How soon do we get our pictures?", a: "Portraits in a week, events in two, weddings in about four." },
+        { q: "Do you travel?", a: "Yes, anywhere in Nigeria. Travel and lodging outside our city are added to the quote." },
+      ] },
   },
   {
     id: "electronics", name: "Electronics and mobile devices", emoji: "📱", minTier: "pro", theme: "clean", palette: "ocean",
-    blurb: "Phones, laptops and accessories in your shop, repairs and their prices with booking, and opening hours.",
-    sections: { journals: false, shop: true, courses: false, track: false }, blocks: ["hero", "info", "services", "testimonials", "faq"],
-    starter: { headline: "Genuine devices. Honest repairs.", subline: "Phones, laptops and accessories with warranty, and repairs done while you wait.", button: btn("shop"), second: btn("book", "Book a repair"),
+    bestFor: "Phone and laptop shops, gadget stores, accessories sellers and repair centres.",
+    blurb: "Your devices in the shop shown whole on white (new, UK-used or refurbished), repairs in tabs (phones, laptops) with times and prices, booking a repair, warranty answers and opening hours.",
+    sections: { journals: false, shop: true, courses: false, track: false }, blocks: ["hero", "services", "info", "testimonials", "faq"],
+    starter: { headline: "Genuine devices. Honest repairs.", subline: "Phones, laptops and accessories with warranty, and most repairs done while you wait.", button: btn("shop", "Shop devices"), second: btn("book", "Book a repair"),
       hours: "Mon–Sat, 9am to 7pm",
-      services: [{ name: "Screen replacement", price: "From ₦25,000", note: "Same day" }, { name: "Battery replacement", price: "From ₦12,000", note: "" }],
-      faq: [{ q: "Do your devices have a warranty?", a: "Yes. New devices carry the maker's warranty; repairs have our 30-day warranty." }] },
+      services: [
+        { group: "Phone repairs", name: "Screen replacement", minutes: 60, price: "From ₦25,000", note: "Same day" },
+        { group: "Phone repairs", name: "Battery replacement", minutes: 30, price: "From ₦12,000", note: "" },
+        { group: "Phone repairs", name: "Charging port", minutes: 45, price: "From ₦8,000", note: "" },
+        { group: "Laptop repairs", name: "Keyboard replacement", price: "From ₦30,000", note: "1 to 2 days" },
+        { group: "Laptop repairs", name: "Windows reinstall and data backup", minutes: 120, price: "₦15,000", note: "" },
+        { group: "Trade-in", name: "Swap your old device", price: "Priced after we check it", note: "Bring it in" },
+      ],
+      faq: [
+        { q: "Do your devices have a warranty?", a: "Yes. New devices carry the maker's warranty; UK-used and refurbished ones have our own, and repairs have 30 days." },
+        { q: "Is it new or used?", a: "Every item in our shop says whether it's new, UK-used or refurbished." },
+        { q: "What happens to my data during a repair?", a: "Back up first if you can. We never open your files, and we'll tell you before anything that could erase them." },
+      ] },
   },
   {
     id: "motor", name: "Motor and motorcycle spare parts", emoji: "🔧", minTier: "pro", theme: "clean", palette: "charcoal",
-    blurb: "Parts for cars and motorcycles in your shop, what you fit and service, and where to find you.",
-    sections: { journals: false, shop: true, courses: false, track: false }, blocks: ["hero", "info", "services", "faq", "testimonials"],
-    starter: { headline: "The right part, first time.", subline: "Genuine and quality spare parts for cars and motorcycles. Tell us your model and we'll find it.", button: btn("shop", "Shop parts"), second: btn("contact", "Ask for a part"),
+    bestFor: "Spare parts dealers, mechanics, auto electricians, tyre shops and motorcycle workshops.",
+    blurb: "Parts for cars and motorcycles shown whole on white, servicing and fitting in tabs with prices, asking for a part you can't see, delivery by waybill, and where to find you.",
+    sections: { journals: false, shop: true, courses: false, track: false }, blocks: ["hero", "services", "info", "faq", "testimonials"],
+    starter: { headline: "The right part, first time.", subline: "Genuine and quality spare parts for cars and motorcycles. Tell us your make, model and year and we'll find it.", button: btn("shop", "Shop parts"), second: btn("contact", "Ask for a part"),
       hours: "Mon–Sat, 8am to 6pm",
-      services: [{ name: "Brake pads (fitted)", price: "From ₦18,000", note: "" }, { name: "Oil change and service", price: "From ₦15,000", note: "" }],
-      faq: [{ q: "Can you find a part I can't see in the shop?", a: "Yes. Send us your vehicle's make, model and year from our Contact page." }] },
+      services: [
+        { group: "Servicing", name: "Oil change and service", minutes: 60, price: "From ₦15,000", note: "Oil and filter included" },
+        { group: "Servicing", name: "Full service", price: "From ₦45,000", note: "Plugs, filters, fluids and checks" },
+        { group: "Fitting", name: "Brake pads (fitted)", minutes: 60, price: "From ₦18,000", note: "" },
+        { group: "Fitting", name: "Shock absorbers (pair, fitted)", price: "From ₦40,000", note: "" },
+        { group: "Motorcycles", name: "Motorcycle service", minutes: 45, price: "From ₦8,000", note: "" },
+      ],
+      faq: [
+        { q: "Can you find a part I can't see in the shop?", a: "Yes. Send us your vehicle's make, model and year (and a photo of the old part) from our Contact page." },
+        { q: "Are your parts genuine?", a: "Each part says whether it's original, OEM or a quality aftermarket part." },
+        { q: "Do you deliver outside our city?", a: "Yes. Delivery is worked out at checkout, by courier or waybill to the park nearest you." },
+        { q: "What if it's the wrong part?", a: "Tell us within 48 hours, unused and in its packaging, and we'll swap it." },
+      ] },
   },
   {
     id: "solar", name: "Solar and energy solutions", emoji: "☀️", minTier: "pro", theme: "clean", palette: "gold",
-    blurb: "Your solar and inverter packages with prices, installations you've done, what customers say, and site visits you can book.",
-    sections: { journals: true, shop: true, courses: false, track: false }, blocks: ["hero", "services", "gallery", "testimonials", "faq"],
-    starter: { headline: "Steady power, lower bills.", subline: "Solar panels, inverters and batteries for homes and businesses, installed and looked after.", button: btn("shop", "See packages"), second: btn("book", "Book a site visit"),
-      services: [{ name: "Home starter (1.5 kVA)", price: "From ₦650,000", note: "Inverter, batteries and panels" }, { name: "Maintenance visit", price: "₦20,000", note: "" }],
-      faq: [{ q: "How long does installation take?", a: "Most homes are done in a day, after a free site visit." }] },
+    bestFor: "Solar installers, inverter and battery sellers, and energy engineers.",
+    blurb: "Your packages in tabs (homes, businesses) with what each can power and its price, products shown whole on white, booking a site visit, installations you've done, and answers about warranty and payment.",
+    sections: { journals: true, shop: true, courses: false, track: false }, blocks: ["hero", "services", "gallery", "testimonials", "info", "faq"],
+    starter: { headline: "Steady power, lower bills.", subline: "Solar panels, inverters and batteries for homes and businesses, installed properly and looked after.", button: btn("book", "Book a site visit"), second: btn("shop", "See products"),
+      hours: "Mon–Sat, 8am to 6pm",
+      services: [
+        { group: "Homes", name: "Starter (1.5 kVA)", price: "From ₦650,000", note: "Lights, fans, TV, phones and a small fridge" },
+        { group: "Homes", name: "Family (3.5 kVA)", price: "From ₦1,800,000", note: "Adds a freezer, pumping machine and more" },
+        { group: "Businesses", name: "Shop or office (5 kVA)", price: "From ₦3,200,000", note: "Computers, POS, lights and a cooler" },
+        { group: "Businesses", name: "Commercial (10 kVA and up)", price: "From ₦6,500,000", note: "Designed after a site visit" },
+        { group: "Services", name: "Site visit and load check", minutes: 60, price: "₦15,000", note: "We size the system for you" },
+        { group: "Services", name: "Maintenance visit", minutes: 90, price: "₦20,000", note: "Cleaning and battery check" },
+      ],
+      faq: [
+        { q: "How long does installation take?", a: "Most homes are done in a day, after the site visit." },
+        { q: "What warranty do I get?", a: "Panels, inverters and batteries carry the makers' warranties, and our installation has its own. Ask us for the details of your package." },
+        { q: "Can I pay in parts?", a: "Ask us: we'll tell you the options for your package before you commit." },
+      ] },
   },
   {
-    id: "realestate", name: "Real estate", emoji: "🏠", minTier: "pro", theme: "clean", palette: "forest",
-    blurb: "Properties to rent or buy in pictures, prices and locations, inspections you can book, and your team.",
-    sections: { journals: true, shop: false, courses: false, track: false }, blocks: ["hero", "gallery", "services", "info", "team", "testimonials", "faq"],
-    starter: { headline: "Find your next home.", subline: "Verified properties to rent and buy, and inspections at a time that suits you.", button: btn("book", "Book an inspection"), second: btn("call"),
+    id: "realestate", name: "Real estate", emoji: "🏠", minTier: "pro", theme: "luxe", palette: "forest",
+    bestFor: "Estate agents, developers, property managers, shortlet hosts and land sellers.",
+    blurb: "Opens with a photo of a property, then listings in tabs (to let, for sale, shortlet) with prices and locations, booking an inspection, your team, and answers about fees and title documents.",
+    sections: { journals: true, shop: false, courses: false, track: false }, blocks: ["hero", "services", "gallery", "info", "team", "testimonials", "faq"],
+    starter: { heroStyle: "photo", eyebrow: "Homes and land", headline: "Find your next home.", subline: "Verified properties to rent and buy, shortlets for your stay, and inspections at a time that suits you.", button: btn("book", "Book an inspection"), second: btn("services", "See listings"),
       hours: "Mon–Sat, 9am to 6pm",
-      services: [{ name: "2-bedroom flat, Lekki", price: "₦4,500,000 a year", note: "To let" }, { name: "Land (600 sqm), Ibeju-Lekki", price: "₦18,000,000", note: "For sale, C of O" }],
-      faq: [{ q: "Do you charge for inspections?", a: "Tell us which property and we'll confirm any inspection fee before you come." }] },
+      services: [
+        { group: "To let", name: "2-bedroom flat, Lekki Phase 1", price: "₦4,500,000 a year", note: "Serviced, with parking" },
+        { group: "To let", name: "Mini flat, Yaba", price: "₦1,800,000 a year", note: "" },
+        { group: "For sale", name: "4-bedroom terrace, Ikate", price: "₦180,000,000", note: "Governor's consent" },
+        { group: "For sale", name: "Land (600 sqm), Ibeju-Lekki", price: "₦18,000,000", note: "C of O" },
+        { group: "Shortlet", name: "1-bedroom apartment, Victoria Island", price: "₦85,000 a night", note: "Wi-Fi, power and cleaning" },
+        { group: "Services", name: "Property management", price: "10% of the rent", note: "Tenants, rent and repairs handled" },
+      ],
+      faq: [
+        { q: "Do you charge for inspections?", a: "Tell us which property and we'll confirm any inspection fee before you come." },
+        { q: "What fees will I pay?", a: "We'll tell you the agency, legal and caution fees in writing before you pay anything." },
+        { q: "What title documents do your properties have?", a: "Each listing says: C of O, Governor's consent, deed of assignment or others. Your lawyer can check them before you buy." },
+        { q: "I live abroad. Can I still buy?", a: "Yes. We do video inspections and work with your lawyer here." },
+      ] },
   },
   {
     id: "school", name: "Schools and academies", emoji: "🎓", minTier: "business", theme: "clean", palette: "royal",
-    blurb: "What you teach, admissions, your courses, your teachers, news from the school and answers for parents.",
-    sections: { journals: true, shop: false, courses: true, track: false }, blocks: ["hero", "info", "services", "team", "testimonials", "faq"],
-    starter: { headline: "Learning for a brighter future.", subline: "A safe, caring school with teachers who know every learner by name.", button: btn("contact", "Apply now"), second: btn("call"),
-      hours: "Mon–Fri, 7:30am to 3pm",
-      services: [{ name: "Primary", price: "", note: "Classes 1 to 6" }, { name: "Secondary", price: "", note: "JSS 1 to SSS 3" }],
-      faq: [{ q: "When do admissions open?", a: "Admissions are open all year; contact us to book a visit." }] },
+    bestFor: "Nursery, primary and secondary schools, tutorial centres, training academies and coding schools.",
+    blurb: "Opens with a photo of your school, then your classes in tabs (nursery, primary, secondary, after-school) with ages, admissions and visits, your teachers, courses you teach online, news, and answers for parents.",
+    sections: { journals: true, shop: false, courses: true, track: false }, blocks: ["hero", "services", "info", "team", "testimonials", "gallery", "faq"],
+    starter: { heroStyle: "photo", eyebrow: "Admissions open", headline: "Learning for a brighter future.", subline: "A safe, caring school with small classes and teachers who know every learner by name.", button: btn("contact", "Apply now"), second: btn("book", "Book a visit"),
+      hours: "Mon–Fri, 7:30am to 3pm · After-school to 5pm",
+      services: [
+        { group: "Nursery", name: "Creche and playgroup", price: "Fees on request", note: "6 months to 2 years" },
+        { group: "Nursery", name: "Nursery 1 and 2", price: "Fees on request", note: "Ages 3 to 5" },
+        { group: "Primary", name: "Primary 1 to 6", price: "Fees on request", note: "Ages 6 to 11" },
+        { group: "Secondary", name: "JSS 1 to SSS 3", price: "Fees on request", note: "WAEC and NECO" },
+        { group: "After school", name: "After-school club", price: "Fees on request", note: "Homework help until 5pm" },
+        { group: "After school", name: "Holiday coding camp", price: "Fees on request", note: "Ages 8 to 16" },
+      ],
+      faq: [
+        { q: "When do admissions open?", a: "Admissions are open all year. Book a visit, then the entrance assessment." },
+        { q: "Is there an entrance exam?", a: "A short assessment in English and maths, so we place your child in the right class." },
+        { q: "Do you run a school bus?", a: "Yes, on set routes. Ask us whether we cover your area." },
+        { q: "What curriculum do you follow?", a: "The Nigerian curriculum, with extra reading, coding and the arts." },
+      ] },
   },
   {
     id: "church", name: "Churches and NGOs", emoji: "🤝", minTier: "business", theme: "clean", palette: "forest",
-    blurb: "Who you are and what you do, service or programme times, news, your team and how to get involved. Opens Community too: start one for your members, or link the one you run; Giving comes later.",
-    sections: { journals: true, shop: false, courses: false, track: false }, blocks: ["hero", "info", "gallery", "team", "faq"],
-    starter: { headline: "Stronger communities, brighter futures.", subline: "Join us, volunteer, or support the work we do.", button: btn("contact", "Get involved"),
-      hours: "Sundays, 8am and 10am · Wednesdays, 6pm",
-      faq: [{ q: "How can I get involved?", a: "Reach us through the Contact page and tell us how you'd like to help." }] },
+    bestFor: "Churches, mosques, NGOs, foundations, associations and community groups.",
+    blurb: "Opens with a photo of your people, then service and programme times in tabs, how to get involved, your team and pictures, and answers for first-time visitors. Opens Community too: start one for your members, or link the one you run; Giving comes later.",
+    sections: { journals: true, shop: false, courses: false, track: false }, blocks: ["hero", "services", "info", "gallery", "team", "faq"],
+    starter: { heroStyle: "photo", eyebrow: "Welcome to", headline: "Stronger communities, brighter futures.", subline: "Join us on Sunday, volunteer with us, or support the work we do in our city.", button: btn("contact", "Get involved"), second: btn("services", "Service times"),
+      hours: "Sundays, 8am and 10:30am · Wednesdays, 6pm",
+      services: [
+        { group: "Sunday", name: "First service", price: "", note: "8am to 10am" },
+        { group: "Sunday", name: "Second service", price: "", note: "10:30am to 12:30pm, with children's church" },
+        { group: "Midweek", name: "Bible study", price: "", note: "Wednesdays, 6pm (in person and online)" },
+        { group: "Fellowships", name: "Youth fellowship", price: "", note: "Saturdays, 4pm" },
+        { group: "Fellowships", name: "Women's and men's fellowships", price: "", note: "First Saturday of the month" },
+        { group: "Outreach", name: "Food bank", price: "", note: "Last Saturday of the month: volunteers welcome" },
+      ],
+      faq: [
+        { q: "I'm visiting for the first time. What should I expect?", a: "A warm welcome, about two hours of worship and teaching, and someone to show you around. Come as you are." },
+        { q: "Is there something for my children?", a: "Yes. Children's church runs during the second service, by age group." },
+        { q: "How can I get involved?", a: "Join a fellowship, volunteer at an outreach, or tell us how you'd like to help through our Contact page." },
+      ] },
   },
 ];
 export const kitOf = (id: unknown) => KITS.find((k) => k.id === (typeof id === "string" && OLD_KITS[id] ? OLD_KITS[id] : id)) ?? null;
@@ -452,6 +601,15 @@ export function applyKitTo(d: SiteDoc, k: Kit, tier: string): { site: SiteDoc; t
 // How a shop shows its pictures, by kit: clothes and beauty (every flavour) as tall photos filling the tile; gadgets, parts and panels whole on
 // white (product shots); food and everything else as square photos. Sorting and filtering are the same everywhere (sortItems).
 export type ShopStyle = { ratio: "portrait" | "square"; fit: "cover" | "contain" };
+// What the button on each card of a services menu says and where it goes, by kit: Book now (to the booking card, while sessions are on) for
+// most; Order (to the shop) for food; Apply (to Contact) for schools; none for churches and NGOs, whose "menu" is their programme.
+export type MenuAction = { label: string; to: "book" | "shop" | "contact" } | null;
+export function menuActionOf(kit: string): MenuAction {
+  if (kit === "food") return { label: "Order", to: "shop" };
+  if (kit === "school") return { label: "Apply", to: "contact" };
+  if (kit === "church") return null;
+  return { label: "Book now", to: "book" };
+}
 export function shopStyleOf(kit: string): ShopStyle {
   if (kit === "fashion" || isBeautyKit(kit)) return { ratio: "portrait", fit: "cover" };
   if (kit === "electronics" || kit === "motor" || kit === "solar") return { ratio: "square", fit: "contain" };

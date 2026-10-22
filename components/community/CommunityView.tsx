@@ -8,6 +8,7 @@ import { auth } from "@/lib/firebase";
 import { DEFAULT_AVATAR } from "@/lib/admin";
 import { can, roleName, type Role, type Tab, type PublicView, type Space } from "@/lib/community";
 import { capi, field, small } from "./api";
+import { communityUrl, mainHref, useCommunityPlace } from "./place";
 import Feed from "./Feed";
 import Members, { Circles, useMembers } from "./Members";
 import Admin from "./Admin";
@@ -31,6 +32,7 @@ const TAB_NAMES: Record<Tab, string> = { home: "Home", general: "General", space
 export default function CommunityView({ id }: { id: string }) {
   const router = useRouter();
   const params = useSearchParams();
+  const place = useCommunityPlace(id);
   const [user, setUser] = useState<User | null | undefined>(undefined);
   const [v, setV] = useState<View | null>(null);
   const [err, setErr] = useState("");
@@ -47,7 +49,7 @@ export default function CommunityView({ id }: { id: string }) {
   if (err) return <div className="mx-auto max-w-3xl px-4 py-16"><p className="card p-6 text-sm text-crimson">{err}</p></div>;
   if (!v) return <div className="mx-auto max-w-5xl px-4 py-16 text-sm text-slate">Loading…</div>;
   const c = v.community;
-  const go = (t: Tab) => router.replace(`/c/${id}?tab=${t}${invite ? `&invite=${invite}` : ""}`, { scroll: false });
+  const go = (t: Tab) => router.replace(`${place.path}?tab=${t}${invite ? `&invite=${invite}` : ""}`, { scroll: false });
   const shownTab: Tab = v.tabs.includes(tab) ? tab : "home";
   const spaceChannels = v.channels.filter((ch) => ch.id !== "general");
 
@@ -62,7 +64,7 @@ export default function CommunityView({ id }: { id: string }) {
           <div className="min-w-0 flex-1 sm:pt-3">
             <h1 className="font-display text-3xl text-ink sm:text-4xl">{c.name}{c.verified && <span className="ml-2 align-middle text-base text-crimson" title="Verified">✔</span>}</h1>
             {c.tagline && <p className="mt-1 text-slate">{c.tagline}</p>}
-            <p className="mt-1 text-xs text-slate">{c.memberCount.toLocaleString()} {c.memberCount === 1 ? "member" : "members"} · run by <Link href={`/u/${c.ownerUsername}`} className="underline">{c.ownerName}</Link>{v.realRole ? ` · you're ${v.realRole === "member" ? "a member" : `${v.realRole === "admin" || v.realRole === "owner" ? "an" : "a"} ${roleName(v.realRole).toLowerCase()}`}` : ""}</p>
+            <p className="mt-1 text-xs text-slate">{c.memberCount.toLocaleString()} {c.memberCount === 1 ? "member" : "members"} · run by <Link href={mainHref(`/u/${c.ownerUsername}`)} className="underline">{c.ownerName}</Link>{v.realRole ? ` · you're ${v.realRole === "member" ? "a member" : `${v.realRole === "admin" || v.realRole === "owner" ? "an" : "a"} ${roleName(v.realRole).toLowerCase()}`}` : ""}</p>
           </div>
           <div className="sm:pt-4"><JoinBox v={v} user={user ?? null} invite={invite} onChange={load} /></div>
         </div>
@@ -98,6 +100,7 @@ export default function CommunityView({ id }: { id: string }) {
 
 // Join, ask to join (with the join questions), the invite link, or leave.
 function JoinBox({ v, user, invite, onChange }: { v: View; user: User | null; invite: string; onChange: () => void }) {
+  const place = useCommunityPlace(v.community.id);
   const c = v.community;
   const [answers, setAnswers] = useState<string[]>(c.questions.map(() => ""));
   const [asking, setAsking] = useState(false);
@@ -107,14 +110,15 @@ function JoinBox({ v, user, invite, onChange }: { v: View; user: User | null; in
   if (v.realRole) {
     return (
       <div className="flex flex-wrap gap-2">
-        {c.inviteCode && <button className={small} onClick={() => { navigator.clipboard?.writeText(`${window.location.origin}/c/${c.id}?invite=${c.inviteCode}`); setCopied(true); }}>{copied ? "Link copied" : "Invite people"}</button>}
+        {c.inviteCode && <button className={small} onClick={() => { navigator.clipboard?.writeText(communityUrl(c.id, `?invite=${c.inviteCode}`)); setCopied(true); }}>{copied ? "Link copied" : "Invite people"}</button>}
         {v.realRole !== "owner" && <button className={small} onClick={() => confirm(`Leave ${c.name}?`) && act({ action: "leave" })}>Leave</button>}
       </div>
     );
   }
   if (v.status === "pending") return <p className="text-sm font-semibold text-slate">Asked to join · waiting for an admin</p>;
   if (v.status === "banned") return null;
-  if (!user) return <Link href={`/login?next=${encodeURIComponent(`/c/${c.id}${invite ? `?invite=${invite}` : ""}`)}`} className="btn-primary !px-4 !py-2 text-xs">Sign in to join</Link>;
+  // Back to this community after signing in, wherever it's shown (on a member's own domain, /login is their site's sign-in).
+  if (!user) return <Link href={`/login?next=${encodeURIComponent(`${place.path}${invite ? `?invite=${invite}` : ""}`)}`} className="btn-primary !px-4 !py-2 text-xs">Sign in to join</Link>;
   const invited = !!invite;
   if (!invited && !v.canJoin) return c.joinMode === "invite" ? <p className="text-xs text-slate">By invitation</p> : null;
   const needsAnswers = c.joinMode === "approval" && !invited && c.questions.length > 0;
@@ -153,7 +157,7 @@ function Home({ v, as, me, go, onRoom }: { v: View; as: string; me: string | nul
           <ul className="mt-3 space-y-2 text-sm text-ink">
             <li className="flex gap-2"><span aria-hidden>{c.joinMode === "open" ? "🌍" : "🔒"}</span><span><b>{c.joinMode === "open" ? "Open" : c.joinMode === "approval" ? "Members approved" : "By invitation"}</b><span className="block text-xs text-slate">{c.joinMode === "open" ? "Anyone can join." : c.joinMode === "approval" ? "Anyone can ask to join; admins approve." : "Only people with an invite link can join."}</span></span></li>
             <li className="flex gap-2"><span aria-hidden>👥</span><span><b>{c.memberCount.toLocaleString()}</b> {c.memberCount === 1 ? "member" : "members"}</span></li>
-            <li className="flex gap-2"><span aria-hidden>⭐</span><span>Run by <Link href={`/u/${c.ownerUsername}`} className="font-semibold hover:underline">{c.ownerName}</Link>{c.verified ? " ✔" : ""}</span></li>
+            <li className="flex gap-2"><span aria-hidden>⭐</span><span>Run by <Link href={mainHref(`/u/${c.ownerUsername}`)} className="font-semibold hover:underline">{c.ownerName}</Link>{c.verified ? " ✔" : ""}</span></li>
           </ul>
           {v.tabs.includes("about") && <button className="mt-3 w-full rounded-lg bg-paper py-2 font-ui text-xs font-semibold text-ink hover:bg-rule/40" onClick={() => go("about")}>Read more</button>}
         </div>
@@ -189,7 +193,7 @@ function MembersPreview({ cid, as, count, onAll }: { cid: string; as: string; co
       <ul className="mt-3 grid grid-cols-4 gap-3">
         {list.slice(0, 8).map((m) => (
           <li key={m.uid} className="text-center">
-            <Link href={`/u/${m.username}`} title={m.displayName}>
+            <Link href={mainHref(`/u/${m.username}`)} title={m.displayName}>
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src={m.avatar || DEFAULT_AVATAR} alt="" className="mx-auto h-12 w-12 rounded-full object-cover" />
               <span className="mt-1 block truncate text-[11px] text-slate">{m.displayName.split(" ")[0]}</span>

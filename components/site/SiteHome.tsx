@@ -132,7 +132,8 @@ export default function SiteHome() {
   // The beauty kits' banner as a full photo (hero style "photo"): edge to edge at the top, on the Clean look; it takes the place of the shop banner.
   // Luxe always opens with it; Clean when the banner's style is Full photo. The cover photo stands in for a banner picture.
   const photoHero = hero && !!(site.blocks.hero.image || site.cover) && (site.theme === "luxe" || (site.theme === "clean" && site.blocks.hero.style === "photo"));
-  const banner = !photoHero && shop && !!site.cover && (shopFirst || !journals) && site.theme !== "scholar";
+  // Only when the shop leads Home, or a shop without journals has no banner words of its own (a parts or gadget shop's headline comes first).
+  const banner = !photoHero && shop && !!site.cover && (shopFirst || (!journals && !hero)) && site.theme !== "scholar";
   const storeBanner = banner && <StoreBanner />;
 
   // Booking runs right here: pick a time, sign in if needed (the visitor is brought back signed in), pay with Paystack.
@@ -234,7 +235,7 @@ function ShopByCategory({ items, centred = false }: { items: StoreItem[]; centre
         {cats.slice(0, 8).map(({ c, first }) => (
           <Link key={c} href={`${base}/shop?cat=${encodeURIComponent(c)}`} className="group relative w-40 shrink-0 snap-start overflow-hidden rounded-2xl sm:w-auto">
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={first!.image} alt="" className="aspect-[3/4] w-full object-cover transition duration-500 group-hover:scale-105" />
+            <img src={first!.image} alt="" loading="lazy" decoding="async" className="aspect-[3/4] w-full object-cover transition duration-500 group-hover:scale-105" />
             <span className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/70 to-transparent p-3 pt-10 font-ui text-sm font-bold text-white">{c}</span>
           </Link>
         ))}

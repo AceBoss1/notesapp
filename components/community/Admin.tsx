@@ -1,4 +1,5 @@
 "use client";
+import { communityUrl } from "./place";
 
 import { useCallback, useEffect, useState } from "react";
 import { uploadToR2 } from "@/lib/upload";
@@ -136,7 +137,7 @@ function SettingsForm({ cid, initial, onSaved }: { cid: string; initial: Setting
 function InviteCard({ cid, code: initial }: { cid: string; code?: string }) {
   const [code, setCode] = useState(initial ?? "");
   const [copied, setCopied] = useState(false);
-  const link = typeof window !== "undefined" && code ? `${window.location.origin}/c/${cid}?invite=${code}` : "";
+  const link = typeof window !== "undefined" && code ? communityUrl(cid, `?invite=${code}`) : "";
   return (
     <section className="card p-5">
       <h3 className="font-display text-xl text-ink">Invite link</h3>
