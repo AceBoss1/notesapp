@@ -33,6 +33,7 @@ export default function KitPicker({ tier, current, onApply }: { tier: string; cu
               <li key={k.family.id} className={`flex flex-col rounded-2xl border p-4 sm:col-span-2 ${using ? "border-crimson ring-2 ring-crimson/30" : "border-rule"}`}>
                 <p className="font-ui text-sm font-bold text-ink"><span aria-hidden className="mr-1.5">{flavours.map((f) => f.emoji).join("")}</span>{k.family.name}{using ? ` · ${using.family!.flavour} in use` : ""}</p>
                 <p className="mt-1 text-xs text-slate">A full photo up top, your services as a menu with times and prices, and Book your appointment on every page. Choose yours:</p>
+                <p className="mt-1 text-xs text-ink"><strong>Best for:</strong> spas, massage therapists, hair salons, barbers, wig makers and nail studios.</p>
                 {open ? (
                   <div className="mt-3 flex flex-wrap gap-2">
                     {flavours.map((f) => (
@@ -50,6 +51,7 @@ export default function KitPicker({ tier, current, onApply }: { tier: string; cu
             <li key={k.id} className={`flex flex-col rounded-2xl border p-4 ${current === k.id ? "border-crimson ring-2 ring-crimson/30" : "border-rule"}`}>
               <p className="font-ui text-sm font-bold text-ink"><span aria-hidden className="mr-1.5">{k.emoji}</span>{k.name}{current === k.id ? " · in use" : ""}</p>
               <p className="mt-1 flex-1 text-xs text-slate">{k.blurb}</p>
+              {k.bestFor && <p className="mt-2 text-xs text-ink"><strong>Best for:</strong> {k.bestFor}</p>}
               {open
                 ? <button type="button" disabled={!!busy} onClick={() => use(k)} className="btn-primary mt-3 self-start !px-4 !py-2 text-xs disabled:opacity-50">{busy === k.id ? "Setting up…" : current === k.id ? "Apply again" : "Use this kit"}</button>
                 : <p className="mt-3 text-xs font-semibold text-slate">🔒 Comes with {tierName(k.minTier)} · <Link href="/pricing" className="text-crimson underline">See plans</Link></p>}

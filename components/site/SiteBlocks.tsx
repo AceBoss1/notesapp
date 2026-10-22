@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import SocialLinksRow from "@/components/SocialLinksRow";
-import { buttonHref, byYear, durationText, resolveButton, type BlockId, type SiteButton } from "@/lib/site-kits";
+import { buttonHref, byYear, durationText, menuActionOf, resolveButton, type BlockId, type SiteButton } from "@/lib/site-kits";
 import TalksGlobe from "./TalksGlobe";
 import { MAIN_HOST } from "@/lib/host";
 import { useSite } from "./SiteContext";
@@ -117,7 +117,8 @@ function Heading({ children }: { children: React.ReactNode }) {
 // Services and prices. With times, tabs or pictures (the beauty kits' menu, like a spa's), they show as cards in tabs (All, Facials,
 // Massages …), each with its time, its price and Book now while the member's sessions are on; otherwise as a simple price list.
 function Services() {
-  const { blocks, booking, base } = useSite();
+  const { blocks, booking, base, kit } = useSite();
+  const action = menuActionOf(kit);
   const items = blocks.services.items;
   const [tab, setTab] = useState("All");
   const menu = items.some((x) => x.minutes || x.group || x.image);
@@ -154,7 +155,7 @@ function Services() {
         {shown.map((x, n) => (
           <li key={`${x.name}${n}`} className="card flex flex-col overflow-hidden">
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            {x.image && <img src={x.image} alt="" loading="lazy" className="aspect-[4/3] w-full object-cover" />}
+            {x.image && <img src={x.image} alt="" loading="lazy" decoding="async" className="aspect-[4/3] w-full object-cover" />}
             <div className="flex flex-1 flex-col p-5">
               {x.group && <p className="text-[11px] font-semibold uppercase tracking-wide text-slate">{x.group}</p>}
               <p className="mt-1 font-display text-xl leading-snug text-ink">{x.name}</p>
@@ -163,7 +164,7 @@ function Services() {
                 {x.minutes ? <span className="text-slate">{durationText(x.minutes)}</span> : null}
                 {x.price && <span className="font-bold text-ink">{x.price}</span>}
               </p>
-              {booking.offered && <a href={`${base}/#book`} className="mt-4 inline-flex w-fit items-center rounded-full border border-crimson px-4 py-2 font-ui text-xs font-bold uppercase tracking-wide text-crimson hover:bg-crimson hover:text-paper">Book now</a>}
+              {action && (action.to !== "book" || booking.offered) && <a href={action.to === "book" ? `${base}/#book` : `${base}/${action.to}`} className="mt-4 inline-flex w-fit items-center rounded-full border border-crimson px-4 py-2 font-ui text-xs font-bold uppercase tracking-wide text-crimson hover:bg-crimson hover:text-paper">{action.label}</a>}
             </div>
           </li>
         ))}
@@ -182,7 +183,7 @@ function Gallery() {
         {items.map((g, n) => (
           <button key={n} type="button" onClick={() => setOpen(n)} className="group overflow-hidden rounded-2xl text-left" aria-label={g.caption || `Picture ${n + 1}`}>
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={g.image} alt={g.caption} loading="lazy" className="aspect-square w-full object-cover transition-transform group-hover:scale-105" />
+            <img src={g.image} alt={g.caption} loading="lazy" decoding="async" className="aspect-square w-full object-cover transition-transform group-hover:scale-105" />
           </button>
         ))}
       </div>
@@ -225,7 +226,7 @@ function Team() {
           <li key={n} className="card p-4 text-center">
             {x.photo
               // eslint-disable-next-line @next/next/no-img-element
-              ? <img src={x.photo} alt="" loading="lazy" className="mx-auto h-20 w-20 rounded-full object-cover" />
+              ? <img src={x.photo} alt="" loading="lazy" decoding="async" className="mx-auto h-20 w-20 rounded-full object-cover" />
               : <span aria-hidden className="mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-crimson/10 font-display text-2xl text-crimson">{x.name.split(/\s+/).slice(0, 2).map((w) => w[0]).join("").toUpperCase()}</span>}
             {/* Tagged: their name links to their #NotesApp profile. */}
             {x.username

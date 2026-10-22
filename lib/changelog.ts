@@ -11,6 +11,18 @@ export type Release = {
 
 export const CHANGELOG: Release[] = [
   {
+    version: "v0.77.0",
+    bump: "minor",
+    date: "2026-10-22",
+    changes: [
+      { kind: "changed", text: "Eleven site kits are redone for their trade: Food and baking, Services and freelancers, Healthcare and clinics, Fitness, Events and photography, Electronics, Motor parts, Solar, Real estate, Schools, and Churches and NGOs. Each starts with a menu in tabs (cakes, small chops, meals; consultations, tests, home visits; to let, for sale, shortlet; nursery to secondary; Sunday, midweek, fellowships…) with times and prices, answers to what their customers ask (HMOs and emergencies, deposits, title documents, warranties, waybill delivery, entrance exams, first visits), opening hours and two buttons." },
+      { kind: "changed", text: "Food, Fitness, Events and Real estate now open with a full photo (the Luxe look), and Schools and Churches with a full photo on the Clean look. Each kit's card says who it's best for." },
+      { kind: "changed", text: "The buttons on a menu fit the trade: Order on a food menu (to your shop), Apply on a school's classes, none on a church's programme, and Book now everywhere else." },
+      { kind: "changed", text: "A shop's cover photo fills the top of Home when the shop leads Home (or there are no banner words): gadget and parts shops now open with their headline and buttons." },
+      { kind: "fixed", text: "Faster member sites: journal cards, basket pictures and category tiles load as you scroll, and pictures further down are decoded without holding up the page." },
+    ],
+  },
+  {
     version: "v0.76.0",
     bump: "minor",
     date: "2026-10-22",

@@ -75,7 +75,7 @@ export default function SiteBasket() {
                 <li key={k} className="flex gap-4 p-4">
                   <Link href={`${base}/shop/${l.itemId}`} className="shrink-0">
                     {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={l.image} alt="" className="h-24 w-20 rounded-xl object-cover" />
+                    <img src={l.image} alt="" loading="lazy" decoding="async" className="h-24 w-20 rounded-xl object-cover" />
                   </Link>
                   <div className="min-w-0 flex-1">
                     <Link href={`${base}/shop/${l.itemId}`} className="font-ui text-sm font-semibold text-ink hover:text-crimson">{l.title}</Link>

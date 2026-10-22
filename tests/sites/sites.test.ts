@@ -2,7 +2,7 @@
 // and kits that never wipe the member's words. Run: npm run test:sites → "ALL OK".
 import assert from "node:assert/strict";
 import { backgroundOf, canHaveSite, meetsTier, paletteRgb, paletteVars, themeAllowed } from "../../lib/site-themes";
-import { KITS, applyKitTo, collectionKey, shopCollections, cleanEmail, cleanFocus, durationText, isBeautyKit, bookingHoursText, buttonHref, byYear, cleanBlocks, cleanButton, cleanOrder, cleanPalette, kitAllowed, kitOf, resolveButton, shopStyleOf, siteDocOf, sortItems, visibleBlocks } from "../../lib/site-kits";
+import { KITS, applyKitTo, menuActionOf, collectionKey, shopCollections, cleanEmail, cleanFocus, durationText, isBeautyKit, bookingHoursText, buttonHref, byYear, cleanBlocks, cleanButton, cleanOrder, cleanPalette, kitAllowed, kitOf, resolveButton, shopStyleOf, siteDocOf, sortItems, visibleBlocks } from "../../lib/site-kits";
 import { siteSectionsShown } from "../../lib/site-settings";
 import { placeCoords } from "../../lib/places";
 import { landDots } from "../../lib/globe-land";
@@ -79,11 +79,21 @@ assert.equal(siteDocOf({ community: "../../users/x" }).community, "");
 assert.equal(siteDocOf({}).community, "");
 const mine = siteDocOf({ blocks: { hero: { headline: "My own words" }, services: { items: [{ name: "Mine", price: "₦1" }] } } });
 const r = applyKitTo(mine, kitOf("food")!, "pro");
-assert.equal(r.theme, "clean"); assert.equal(r.site.kit, "food"); assert.equal(r.site.palette.id, "sunset");
+assert.equal(r.theme, "luxe"); assert.equal(r.site.kit, "food"); assert.equal(r.site.palette.id, "sunset");
 assert.equal(r.site.blocks.hero.headline, "My own words", "the member's words are kept");
 assert.equal(r.site.blocks.hero.subline, kitOf("food")!.starter.subline, "empty parts get starter words");
 assert.deepEqual(r.site.blocks.services.items, [{ name: "Mine", price: "₦1", note: "" }]);
-assert.equal(r.site.blocks.hero.on && r.site.blocks.services.on && !r.site.blocks.faq.on, true);
+assert.equal(r.site.blocks.hero.on && r.site.blocks.services.on && r.site.blocks.faq.on && !r.site.blocks.team.on, true);
+assert.deepEqual([menuActionOf("food"), menuActionOf("school"), menuActionOf("church"), menuActionOf("healthcare")?.label], [{ label: "Order", to: "shop" }, { label: "Apply", to: "contact" }, null, "Book now"]);
+// Every kit says who it's for; the business kits (owner, 22 Oct 2026: "better performance and details regarding the industry") start with a
+// menu in tabs and at least three answers for their industry.
+for (const k of KITS) assert.ok(k.bestFor || k.family, `${k.id} says who it's for`);
+for (const id of ["food", "services", "healthcare", "fitness", "events", "electronics", "motor", "solar", "realestate", "school", "church"]) {
+  const k = kitOf(id)!;
+  assert.ok(new Set((k.starter.services ?? []).map((x) => x.group).filter(Boolean)).size >= 2, `${id} has a menu in tabs`);
+  assert.ok((k.starter.faq ?? []).length >= 3, `${id} has answers for its industry`);
+  assert.ok(k.starter.hours && k.starter.second, `${id} has hours and a second button`);
+}
 assert.deepEqual(r.sections, { journals: false, shop: true, courses: false, track: false });
 const r2 = applyKitTo(siteDocOf({}), kitOf("healthcare")!, "basic");
 assert.equal(r2.site.blocks.team.on, true);
