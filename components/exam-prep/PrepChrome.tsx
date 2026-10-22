@@ -7,6 +7,8 @@ import { AFFILIATION, PREP_NAME } from "@/lib/exam-prep";
 import { useMe, useOnline, usePrepHref } from "@/lib/exam-prep-client";
 import { PLink } from "./ui";
 
+const PREP_COLOURS = { "--c-crimson": "30 142 90", "--c-crimson-bright": "30 142 90", "--c-crimson-deep": "24 122 77", "--c-ink": "15 39 71", "--c-paper": "255 255 255", "--c-card": "255 255 255", "--c-rule": "221 227 234", "--c-slate": "77 92 112" } as React.CSSProperties;
+
 // Header and footer of every Exam Prep page. The service worker is registered here so saved packs open with no connection.
 export default function PrepChrome({ mainUrl, children }: { mainUrl: string; children: React.ReactNode }) {
   const me = useMe();
@@ -17,7 +19,9 @@ export default function PrepChrome({ mainUrl, children }: { mainUrl: string; chi
   const nav = [{ href: "/", label: "Exams" }, { href: "/progress", label: "Progress" }, { href: "/saved", label: "Saved" }];
   const here = (p: string) => (p === "/" ? path === h("/") || path === "/" : path.startsWith(h(p)));
   return (
-    <div className="flex min-h-screen flex-col bg-[#FBF8F2] text-[#0F2747]">
+    // NotesApp's shared pieces inside Exam Prep (the sign-in and sign-up forms) take its colours: green where NotesApp is crimson,
+    // navy text, white fields (tailwind.config.ts reads these variables).
+    <div style={PREP_COLOURS} className="flex min-h-screen flex-col bg-[#FBF8F2] text-[#0F2747]">
       <header className="sticky top-0 z-30 border-b border-[#0F2747]/10 bg-[#0F2747] text-white">
         <div className="mx-auto flex max-w-5xl items-center gap-3 px-4 py-3">
           <PLink href="/" className="flex items-center gap-2">
