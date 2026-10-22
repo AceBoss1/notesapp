@@ -1,5 +1,6 @@
 "use client";
 
+import PlaysLife from "@/components/life/PlaysLife";
 import LinkedText from "@/components/LinkedText";
 import { headline } from "@/lib/profile-work";
 import { useEffect, useState } from "react";
@@ -285,6 +286,7 @@ export default function ProfilePageClient({ params }: { params: { username: stri
             </p>
           )}
           <p className="mx-auto mt-2 max-w-lg break-words text-base text-slate sm:mx-0 sm:text-sm"><LinkedText text={profile.bio} /></p>
+          {!suspended && <PlaysLife uid={profileUid} className="mt-2" />}
           {!suspended && badge === "gold" && goldKindOf(realProfile) && (
             <p className="mt-1 text-xs font-semibold text-slate">{GOLD_BADGE_TITLE[goldKindOf(realProfile)!].replace("Gold badge — ", "Gold ✔ · ")}</p>
           )}

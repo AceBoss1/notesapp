@@ -5,7 +5,7 @@ import { effectiveTier, type UserProfile } from "./users";
 import { orgVerified } from "./org";
 import { notifyBell } from "./email";
 import { GROUP_MEMBERS_MAX } from "./messages-rules";
-import {
+import { isDiscoverable, trendScore,
   DEFAULT_PUBLIC, UNVERIFIED_COMMUNITY_NOTICE, atLeast, can, canActOn, canGiveRole, canPostIn, circlesAllowed, cleanAnswers, cleanComment,
   cleanPost, cleanSettings, cleanSlug, effectiveRole, isPublicPost, isRole, memberLimit, readableChannels, roleName, slowWait, tabsFor,
   type Community, type Role,
@@ -409,8 +409,32 @@ export async function directory(db: Firestore, viewerUid: string | null) {
   const all = await db.collection("communities").orderBy("memberCount", "desc").limit(60).get().catch(() => db.collection("communities").limit(60).get());
   const mine = viewerUid ? await db.collection("communityMembers").where("uid", "==", viewerUid).get() : null;
   const myIds = new Map((mine?.docs ?? []).map((d) => [String(d.data().cid), String(d.data().status)]));
-  return all.docs.map((d) => {
+  // Invite-only communities are private: listed only for their own members.
+  return all.docs.filter((d) => isDiscoverable(d.data() as Community) || myIds.has(d.id)).map((d) => {
     const c = d.data() as Community;
     return { id: d.id, name: c.name, tagline: c.tagline, avatar: c.avatar, memberCount: c.memberCount, verified: !!c.verified, joinMode: c.joinMode, status: myIds.get(d.id) ?? null };
   });
+}
+
+// Trending communities (Trending → Communities): the discoverable ones with the most going on in the last `days` days, by new members,
+// posts and comments (lib/community.ts trendScore). Each query is on one field, so no extra index is needed.
+export async function trendingCommunities(db: Firestore, days: number, now = new Date()) {
+  const d = [1, 7, 30].includes(days) ? days : 7;
+  const since = new Date(now.getTime() - d * 86_400_000).toISOString();
+  const [posts, comments, joined] = await Promise.all([
+    db.collection("communityPosts").where("createdAt", ">=", since).limit(3000).get(),
+    db.collection("communityComments").where("createdAt", ">=", since).limit(5000).get(),
+    db.collection("communityMembers").where("joinedAt", ">=", since).limit(5000).get(),
+  ]);
+  const act = new Map<string, { posts: number; comments: number; joined: number }>();
+  const add = (cid: unknown, k: "posts" | "comments" | "joined") => { const id = String(cid ?? ""); if (!id) return; const a = act.get(id) ?? { posts: 0, comments: 0, joined: 0 }; a[k]++; act.set(id, a); };
+  posts.docs.forEach((x) => add(x.data().cid, "posts"));
+  comments.docs.forEach((x) => add(x.data().cid, "comments"));
+  joined.docs.forEach((x) => { const m = x.data(); if (m.status === "active" && m.role !== "owner") add(m.cid, "joined"); });
+  const ids = [...act.keys()];
+  const snaps = ids.length ? await db.getAll(...ids.slice(0, 300).map((id) => db.doc(`communities/${id}`))) : [];
+  return snaps.filter((x) => x.exists && isDiscoverable(x.data() as Community)).map((x) => {
+    const c = x.data() as Community, a = act.get(x.id)!;
+    return { id: x.id, name: c.name, tagline: c.tagline, avatar: c.avatar, memberCount: c.memberCount, verified: !!c.verified, joinMode: c.joinMode, ...a, score: trendScore(a) };
+  }).sort((a, b) => b.score - a.score || b.memberCount - a.memberCount).slice(0, 30);
 }

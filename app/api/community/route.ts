@@ -3,7 +3,7 @@ import { friendlyMessage } from "@/lib/api-errors";
 import { getAdminDb, verifySignedInRequest } from "@/lib/firebase-admin";
 import { rateLimit } from "@/lib/rate-limit";
 import {
-  CommunityError, addComment, communitiesIRun, createCircle, createCommunity, createPost, decide, directory, insights, join, leave, like, listCircles,
+  CommunityError, addComment, communitiesIRun, createCircle, createCommunity, createPost, decide, directory, trendingCommunities, insights, join, leave, like, listCircles,
   listComments, listMembers, listPosts, pinPost, removeComment, removeMember, removePost, rotateInvite, setCircleMembers, setRole, unban,
   updateSettings, viewCommunity,
 } from "@/lib/community-server";
@@ -18,7 +18,8 @@ const fail = (err: unknown, what: string) => {
 const ok = (body: unknown) => NextResponse.json(body, { headers: { "Cache-Control": "no-store" } });
 
 // Communities (lib/community-server.ts). Signed out is fine for what non-members may see; `as` is an admin's "View as".
-//   GET                       → { communities }: the directory, with my status in each
+//   GET                       → { communities }: the directory (invite-only ones only for their members), with my status in each
+//   GET ?trending=1|7|30      → { communities }: the discoverable ones with the most activity in that window
 //   GET ?id=                  → the community as this person (or `as`) sees it: details, role, tabs, channels
 //   GET ?id=&posts=<channel>  → { posts }
 //   GET ?comments=<postId>    → { comments }
@@ -32,6 +33,8 @@ export async function GET(req: NextRequest) {
     const id = q.get("id") ?? "", as = q.get("as") ?? undefined;
     if (q.get("run")) return ok({ communities: uid ? await communitiesIRun(db, uid) : [] });
     if (q.get("comments")) return ok({ comments: await listComments(db, uid, q.get("comments")!, as) });
+    // The same for everyone, so the CDN keeps it 5 minutes (it reads a week of posts, comments and joins).
+    if (q.get("trending")) return NextResponse.json({ communities: await trendingCommunities(db, Number(q.get("trending"))) }, { headers: { "Cache-Control": "public, s-maxage=300, stale-while-revalidate=600" } });
     if (!id) return ok({ communities: await directory(db, uid) });
     if (q.get("posts")) return ok(await listPosts(db, uid, id, q.get("posts")!, as));
     if (q.get("members")) return ok({ members: await listMembers(db, uid, id, as, q.get("members") as "active" | "pending" | "banned") });
