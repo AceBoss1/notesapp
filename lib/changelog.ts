@@ -11,6 +11,21 @@ export type Release = {
 
 export const CHANGELOG: Release[] = [
   {
+    version: "v0.75.0",
+    bump: "minor",
+    date: "2026-10-22",
+    changes: [
+      { kind: "added", text: "Audio rooms in Community, like Clubhouse: admins and moderators go live with a room, bring up to 4 members on stage to speak, and everyone else listens and can raise a hand. A green ring shows who's talking. Members only, phone to phone, nothing recorded, up to 20 listeners for now." },
+      { kind: "added", text: "Room chat: everyone in an audio room can type while it's on (questions, prayer points, amens). Beside the room on a computer, behind 💬 Chat on a phone with a count of what you missed. The host or a moderator can remove a message; the chat goes when the room ends." },
+      { kind: "added", text: "Choose the Churches and NGOs kit for your site (Business) and Community opens right under it: start your community there, with its name, address and line filled in for you, or link one you already run. A linked community gets a Community link in your site's menu." },
+      { kind: "added", text: "General, Spaces, Circles and Audio rooms each have their own page (Community → General, Spaces, Circles, Audio rooms), with pictures on a computer and a phone, the limits and how each works, all linked to each other and from the footer." },
+      { kind: "added", text: "New help articles, which Nana reads too: General, Spaces, Circles, Audio rooms, the shop and basket on your site, your site's looks and kits, the Beauty and wellness kit, courses on your site, academic sites and publications, journals in Kiswahili, photos and media in a chat, and pictures you upload (WebP)." },
+      { kind: "fixed", text: "Leaving a community, or being removed from it, now takes you out of its Circles too." },
+      { kind: "fixed", text: "Community: the header says \"you're an owner\", and the New Circle list no longer offers you to yourself." },
+      { kind: "changed", text: "Community looks and works like a group: Write something… to post (with a photo), Like, Comment and Share on every post, comments with pictures, a ⋯ menu to pin or remove, and an About card and the members' faces on Home." },
+    ],
+  },
+  {
     version: "v0.74.0",
     bump: "minor",
     date: "2026-10-22",

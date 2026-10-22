@@ -17,7 +17,7 @@ export class CommunityError extends Error { constructor(public status: number, m
 
 export type Member = { cid: string; uid: string; username: string; displayName: string; avatar: string; role: Role; status: "active" | "pending" | "banned"; answers?: string[]; joinedAt: string; lastPostAt?: string };
 export type Post = { id: string; cid: string; channel: string; authorUid: string; authorName: string; authorUsername: string; authorAvatar: string; text: string; image: string; pinned: boolean; likes: number; comments: number; public: boolean; createdAt: string };
-export type Comment = { id: string; postId: string; cid: string; authorUid: string; authorName: string; authorUsername: string; text: string; createdAt: string };
+export type Comment = { id: string; postId: string; cid: string; authorUid: string; authorName: string; authorUsername: string; authorAvatar?: string; text: string; createdAt: string };
 
 const MAX_OWNED = 5;
 const userOf = async (db: Firestore, uid: string) => (await db.doc(`users/${uid}`).get()).data() as UserProfile | undefined;
@@ -34,7 +34,7 @@ export async function memberOf(db: Firestore, cid: string, uid: string | null): 
   if (!uid) return null;
   return ((await memberRef(db, cid, uid).get()).data() as Member | undefined) ?? null;
 }
-const activeRole = (m: Member | null): Role | null => (m && m.status === "active" ? m.role : null);
+export const activeRole = (m: Member | null): Role | null => (m && m.status === "active" ? m.role : null);
 async function actor(db: Firestore, cid: string, uid: string): Promise<{ c: Community; me: Member; role: Role }> {
   const [c, me] = await Promise.all([readCommunity(db, cid), memberOf(db, cid, uid)]);
   if (!me || me.status !== "active") throw new CommunityError(403, "Join the community first.");
@@ -149,6 +149,18 @@ export async function leave(db: Firestore, uid: string, cid: string) {
   batch.delete(memberRef(db, cid, uid));
   if (me.status === "active") batch.update(db.doc(`communities/${cid}`), { memberCount: FieldValue.increment(-1) });
   await batch.commit();
+  await leaveCircles(db, cid, uid);
+}
+// Out of the community, out of its Circles: a private chat is for members only.
+async function leaveCircles(db: Firestore, cid: string, uid: string) {
+  const snap = await db.collection("conversations").where("communityId", "==", cid).get();
+  const mine = snap.docs.filter((d) => ((d.data().participants as string[] | undefined) ?? []).includes(uid));
+  if (!mine.length) return;
+  const { syncMembers } = await import("./groups-server");
+  for (const d of mine) {
+    const keep = (d.data().participants as string[]).filter((u) => u !== uid);
+    if (keep.length) await syncMembers(db, d.id, keep); else await d.ref.update({ participants: [], adminUids: [] });
+  }
 }
 // Approving or declining a request to join.
 export async function decide(db: Firestore, uid: string, cid: string, targetUid: string, approve: boolean, now = new Date()) {
@@ -191,6 +203,7 @@ export async function removeMember(db: Firestore, uid: string, cid: string, targ
   if (ban) batch.update(memberRef(db, cid, targetUid), { status: "banned", role: "member" }); else batch.delete(memberRef(db, cid, targetUid));
   if (them.status === "active") batch.update(db.doc(`communities/${cid}`), { memberCount: FieldValue.increment(-1) });
   await batch.commit();
+  await leaveCircles(db, cid, targetUid);
 }
 export async function unban(db: Firestore, uid: string, cid: string, targetUid: string) {
   const { role } = await actor(db, cid, uid);
@@ -293,7 +306,7 @@ export async function addComment(db: Firestore, uid: string, postId: string, raw
   const text = cleanComment(raw);
   if (!text) throw new CommunityError(400, "Write a comment.");
   const ref = db.collection("communityComments").doc();
-  const cm: Comment = { id: ref.id, postId, cid: p.cid, authorUid: uid, authorName: me.displayName, authorUsername: me.username, text, createdAt: now.toISOString() };
+  const cm: Comment = { id: ref.id, postId, cid: p.cid, authorUid: uid, authorName: me.displayName, authorUsername: me.username, authorAvatar: me.avatar ?? "", text, createdAt: now.toISOString() };
   const batch = db.batch();
   batch.set(ref, cm);
   batch.update(db.doc(`communityPosts/${postId}`), { comments: FieldValue.increment(1) });
@@ -352,6 +365,18 @@ export async function setCircleMembers(db: Firestore, uid: string, cid: string, 
   if (!keep.length) throw new CommunityError(400, "A Circle needs at least one person.");
   const { syncMembers } = await import("./groups-server");
   await syncMembers(db, circleId, keep);
+}
+
+// The communities someone runs (owner or admin), for "Your site" (link one to the site) and anywhere else that needs them.
+export async function communitiesIRun(db: Firestore, uid: string) {
+  const mine = await db.collection("communityMembers").where("uid", "==", uid).get();
+  const run = mine.docs.map((d) => d.data() as Member).filter((m) => m.status === "active" && (m.role === "owner" || m.role === "admin"));
+  if (!run.length) return [];
+  const docs = await db.getAll(...run.map((m) => db.doc(`communities/${m.cid}`)));
+  return docs.filter((d) => d.exists).map((d) => {
+    const c = d.data() as Community;
+    return { id: d.id, name: c.name, avatar: c.avatar, memberCount: c.memberCount, role: run.find((m) => m.cid === d.id)!.role };
+  });
 }
 
 // ---- Insights (admins) ----

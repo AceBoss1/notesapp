@@ -3,7 +3,7 @@ import { friendlyMessage } from "@/lib/api-errors";
 import { getAdminDb, verifySignedInRequest } from "@/lib/firebase-admin";
 import { rateLimit } from "@/lib/rate-limit";
 import {
-  CommunityError, addComment, createCircle, createCommunity, createPost, decide, directory, insights, join, leave, like, listCircles,
+  CommunityError, addComment, communitiesIRun, createCircle, createCommunity, createPost, decide, directory, insights, join, leave, like, listCircles,
   listComments, listMembers, listPosts, pinPost, removeComment, removeMember, removePost, rotateInvite, setCircleMembers, setRole, unban,
   updateSettings, viewCommunity,
 } from "@/lib/community-server";
@@ -23,13 +23,14 @@ const ok = (body: unknown) => NextResponse.json(body, { headers: { "Cache-Contro
 //   GET ?id=&posts=<channel>  → { posts }
 //   GET ?comments=<postId>    → { comments }
 //   GET ?id=&members=active|pending|banned → { members }
-//   GET ?id=&insights=1 · ?id=&circles=1
+//   GET ?id=&insights=1 · ?id=&circles=1 · ?run=1 → { communities } I own or help run (for linking one to my site)
 export async function GET(req: NextRequest) {
   try {
     const uid = await viewer(req);
     const db = getAdminDb();
     const q = req.nextUrl.searchParams;
     const id = q.get("id") ?? "", as = q.get("as") ?? undefined;
+    if (q.get("run")) return ok({ communities: uid ? await communitiesIRun(db, uid) : [] });
     if (q.get("comments")) return ok({ comments: await listComments(db, uid, q.get("comments")!, as) });
     if (!id) return ok({ communities: await directory(db, uid) });
     if (q.get("posts")) return ok(await listPosts(db, uid, id, q.get("posts")!, as));

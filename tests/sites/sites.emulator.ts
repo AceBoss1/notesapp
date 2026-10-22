@@ -3,7 +3,7 @@
 import assert from "node:assert/strict";
 import { initializeApp } from "firebase-admin/app";
 import { getFirestore } from "firebase-admin/firestore";
-import { SiteError, applyKit, bookingOf, readSite, saveSite } from "../../lib/site-server";
+import { SiteError, applyKit, bookingOf, linkCommunity, readSite, saveSite } from "../../lib/site-server";
 import { setOrcid, syncOrcidFor, syncOrcidSites } from "../../lib/publications-server";
 
 initializeApp({ projectId: "demo-notesapp" });
@@ -94,6 +94,16 @@ const fails = async (p: Promise<unknown>, status: number, re: RegExp) => {
   assert.equal((await saveSite(db, "basic", { cover: "https://img.test/cover.jpg" })).cover, "https://img.test/cover.jpg");
   assert.equal((await saveSite(db, "basic", { palette: { id: "gold" } })).cover, "https://img.test/cover.jpg", "kept by other saves");
   assert.equal((await applyKit(db, "basic", "personal")).site.cover, "https://img.test/cover.jpg", "and by a kit");
+  // Churches and NGOs: link a community the member runs (owner or admin); a plain member can't; other saves keep the link.
+  await db.doc("communityMembers/grace-chapel_biz").set({ cid: "grace-chapel", uid: "biz", role: "owner", status: "active" });
+  await db.doc("communityMembers/youth-club_biz").set({ cid: "youth-club", uid: "biz", role: "member", status: "active" });
+  assert.equal((await applyKit(db, "biz", "church")).site.kit, "church");
+  await fails(linkCommunity(db, "biz", "youth-club"), 403, /owner or admins/);
+  await fails(linkCommunity(db, "biz", "Not A Slug!"), 400, /wasn't found/);
+  assert.equal((await linkCommunity(db, "biz", "grace-chapel")).community, "grace-chapel");
+  await saveSite(db, "biz", { palette: { id: "forest" } });
+  assert.equal((await applyKit(db, "biz", "church")).site.community, "grace-chapel", "kept by saves and kits");
+  assert.equal((await linkCommunity(db, "biz", "")).community, "", "unlinked");
   assert.equal(await setOrcid(db, "basic", { orcid: null }), null);
   assert.equal((await readSite(db, "basic")).orcid, null);
   console.log("ALL OK");

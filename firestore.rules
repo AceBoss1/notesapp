@@ -820,6 +820,45 @@ service cloud.firestore {
 
     // Group calls (lib/group-calls.ts). The server starts, joins and ends them; the group's members may read the call. Each connection between
     // two people is a link: the newcomer writes it with an offer, the other person adds the answer; only those two read it and its candidates.
+    // Audio rooms in a community (lib/rooms.ts): the room is written only by the server and read by the people in it; each connection
+    // between two people in it (lib/rooms.ts linksFor) is read and written only by those two, like group calls.
+    match /communityRooms/{roomId} {
+      allow read: if isSignedIn() && request.auth.uid in resource.data.joined;
+      allow write: if false;
+      function room() { return get(/databases/$(database)/documents/communityRooms/$(roomId)).data; }
+      function inRoom() { return isSignedIn() && room().status == 'live' && request.auth.uid in room().joined; }
+      // The room's chat (lib/rooms.ts): read and written by the people in the room, as themselves (their name and picture as the room has
+      // them), up to 500 characters; never edited; the host or a moderator removes through the server.
+      match /chat/{messageId} {
+        allow read: if inRoom();
+        allow create: if inRoom() && request.resource.data.keys().hasOnly(['from', 'name', 'avatar', 'text', 'at'])
+          && request.resource.data.from == request.auth.uid
+          && request.resource.data.name == room().joined[request.auth.uid].name && request.resource.data.avatar == room().joined[request.auth.uid].avatar
+          && request.resource.data.text is string && request.resource.data.text.size() > 0 && request.resource.data.text.size() <= 500
+          && request.resource.data.at is string;
+        allow update, delete: if false;
+      }
+      match /links/{linkId} {
+        allow read: if isSignedIn() && (resource.data.from == request.auth.uid || resource.data.to == request.auth.uid);
+        allow create: if inRoom() && request.resource.data.from == request.auth.uid
+          && request.resource.data.to is string && request.resource.data.to != request.auth.uid && request.resource.data.to in room().joined
+          && request.resource.data.keys().hasOnly(['from', 'to', 'at', 'kind', 'offer']) && request.resource.data.kind in ['stage', 'listen'] && request.resource.data.offer is map;
+        allow update: if inRoom() && resource.data.to == request.auth.uid
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['answer']) && request.resource.data.answer is map;
+        allow delete: if false;
+        function rlink() { return get(/databases/$(database)/documents/communityRooms/$(roomId)/links/$(linkId)).data; }
+        match /fromCandidates/{c} {
+          allow read: if isSignedIn() && (rlink().from == request.auth.uid || rlink().to == request.auth.uid);
+          allow create: if inRoom() && rlink().from == request.auth.uid;
+          allow update, delete: if false;
+        }
+        match /toCandidates/{c} {
+          allow read: if isSignedIn() && (rlink().from == request.auth.uid || rlink().to == request.auth.uid);
+          allow create: if inRoom() && rlink().to == request.auth.uid;
+          allow update, delete: if false;
+        }
+      }
+    }
     match /groupCalls/{callId} {
       allow read: if isSignedIn() && request.auth.uid in resource.data.memberUids;
       allow write: if false;

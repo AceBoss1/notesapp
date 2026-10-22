@@ -28,6 +28,7 @@ export type SiteInfo = {
   booking: { offered: boolean; hours: string };
   focus: SiteFocus; // what Home leads with (lib/site-kits.ts SITE_FOCUS): their shop, services, courses or notes, or a mix
   kit: string; // the kit they started from (lib/site-kits.ts), which sets how the shop shows its pictures (shopStyleOf)
+  community: string; // a community they run, linked from Your site (lib/site-kits.ts): the menu links to it on #NotesApp; "" for none
   cover: string; // the wide picture behind their profile header, if any (lib/site-kits.ts) // the ones a visitor sees, in the member's order (switched on, filled in, covered by the plan)
 };
 

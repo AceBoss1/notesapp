@@ -25,7 +25,10 @@ export default function CommunityPage() {
         <h2 className="mt-14 font-display text-2xl text-ink">What a community has</h2>
         <ul className="mt-4 grid gap-3 text-sm sm:grid-cols-2">
           {COMMUNITY_PARTS.map((p) => (
-            <li key={p.id} id={p.id} className="card p-4"><strong className="text-ink">{p.name}</strong><p className="mt-1 text-slate">{p.blurb}</p></li>
+            <li key={p.id} id={p.id} className="card p-4">
+              <strong className="text-ink">{p.name}</strong><p className="mt-1 text-slate">{p.blurb}</p>
+              {p.page ? <Link href={`/community/${p.page}`} className="mt-2 inline-block font-semibold text-crimson">See how {p.name} works →</Link> : p.id === "events" ? <Link href="/events" className="mt-2 inline-block font-semibold text-crimson">See events →</Link> : null}
+            </li>
           ))}
           <li id="live" className="card p-4"><strong className="text-ink">Live</strong><p className="mt-1 text-slate">An event carries a Join live link to YouTube Live, Facebook Live, Zoom or Google Meet, shown only to that event&apos;s audience. Our own live streaming comes later, as a paid add-on.</p></li>
           <li id="giving" className="card p-4"><strong className="text-ink">Giving (later)</strong><p className="mt-1 text-slate">Offerings, tithes and campaigns with a goal, paid out to your organisation&apos;s verified bank account. Charges like a bank transfer, and cheaper from the NotesApp wallet.</p></li>
@@ -36,7 +39,7 @@ export default function CommunityPage() {
 
         <h2 className="mt-12 font-display text-2xl text-ink">What it costs</h2>
         <ul className="mt-4 space-y-3 text-sm text-slate">
-          <li className="card p-4"><strong className="text-ink">Free</strong> up to {COMMUNITY_FREE_MEMBERS} members: Spaces, the General channel and Events.</li>
+          <li className="card p-4"><strong className="text-ink">Free</strong> up to {COMMUNITY_FREE_MEMBERS} members: the General channel, Spaces, Audio rooms and Events.</li>
           <li className="card p-4"><strong className="text-ink">Business ({planPrice("business")}/month)</strong>: as many members as you have, and private Circles.</li>
           <li className="card p-4"><strong className="text-ink">Live streaming</strong>: a paid add-on, once our own streaming is ready. Join live links to other services are free.</li>
         </ul>

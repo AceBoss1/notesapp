@@ -1,7 +1,7 @@
 import type { Firestore } from "firebase-admin/firestore";
 import { effectiveTier, type UserProfile } from "./users";
 import { canCustomColour, canHaveSite, tierName } from "./site-themes";
-import { applyKitTo, blockAllowed, bookingHoursText, cleanAnnounce, cleanCover, cleanFocus, cleanBlocks, cleanOrder, cleanPalette, DEFAULT_ORDER, kitAllowed, kitOf, siteDocOf, type SiteDoc } from "./site-kits";
+import { applyKitTo, blockAllowed, bookingHoursText, cleanAnnounce, cleanCommunityLink, cleanCover, cleanFocus, cleanBlocks, cleanOrder, cleanPalette, DEFAULT_ORDER, kitAllowed, kitOf, siteDocOf, type SiteDoc } from "./site-kits";
 
 // Sites (lib/site-kits.ts): the server's side of sites/{uid}, the content sections, colour set and kit of a member's site. Every write is
 // checked against the member's plan here; the security rules let anyone read sites/{uid} (it is a public website) and nobody write it.
@@ -62,4 +62,19 @@ export async function applyKit(db: Firestore, uid: string, kitId: unknown, now =
   batch.update(db.doc(`users/${uid}`), { siteTheme: r.theme, siteSections: r.sections });
   await batch.commit();
   return { site, theme: r.theme, sections: r.sections };
+}
+
+// Links a community the member runs (owner or admin) to their site, or unlinks it (cid empty). Their site's menu then has a Community link.
+export async function linkCommunity(db: Firestore, uid: string, cid: unknown, now = new Date()): Promise<SiteDoc> {
+  await owner(db, uid);
+  const id = cleanCommunityLink(cid);
+  if (cid && !id) throw new SiteError(400, "That community wasn't found.");
+  if (id) {
+    const m = (await db.doc(`communityMembers/${id}_${uid}`).get()).data();
+    if (!m || m.status !== "active" || (m.role !== "owner" && m.role !== "admin")) throw new SiteError(403, "Only a community's owner or admins can link it to their site.");
+  }
+  const cur = await readSite(db, uid);
+  const next: SiteDoc = { ...cur, community: id, updatedAt: now.toISOString() };
+  await db.doc(`sites/${uid}`).set({ ...next, uid }, { merge: false });
+  return next;
 }

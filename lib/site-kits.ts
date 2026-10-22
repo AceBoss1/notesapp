@@ -78,7 +78,12 @@ export const SITE_FOCUS = [
 ] as const;
 export type SiteFocus = (typeof SITE_FOCUS)[number]["id"];
 export const cleanFocus = (v: unknown): SiteFocus => (SITE_FOCUS.some((f) => f.id === v) ? v as SiteFocus : "mix");
-export type SiteDoc = { kit: string; palette: SitePalette; blocks: Blocks; order: BlockId[]; bookBelowPosts: boolean; orcid: OrcidLink | null; cover: string; announce?: string; focus?: SiteFocus; updatedAt?: string };
+// community: the id of a community the member runs (lib/community.ts), linked to their site from "Your site" (owner, 22 Oct 2026: choosing the
+// Churches and NGOs kit should open Community: start one there, or link the one they run). The site's menu then has a Community link.
+export type SiteDoc = { kit: string; palette: SitePalette; blocks: Blocks; order: BlockId[]; bookBelowPosts: boolean; orcid: OrcidLink | null; cover: string; announce?: string; focus?: SiteFocus; community?: string; updatedAt?: string };
+// The kits that open Community on "Your site" (start one, or link one you run).
+export const COMMUNITY_KITS = ["church"];
+export const cleanCommunityLink = (v: unknown) => { const s = String(v ?? ""); return /^[a-z0-9](?:[a-z0-9-]{1,38})[a-z0-9]$/.test(s) ? s : ""; };
 
 export const LIMITS = { services: 40, gallery: 24, testimonials: 12, team: 24, faq: 20, publications: 200, awards: 60, talks: 80, news: 60 } as const;
 const t = (v: unknown, max: number) => String(v ?? "").replace(/\s+/g, " ").trim().slice(0, max);
@@ -178,7 +183,7 @@ const orcidOf = (v: unknown): OrcidLink | null => {
 };
 export function siteDocOf(raw: unknown): SiteDoc {
   const o = (raw && typeof raw === "object" ? raw : {}) as Record<string, unknown>;
-  return { kit: t(o.kit, 30), palette: cleanPalette(o.palette), blocks: cleanBlocks(o.blocks), order: cleanOrder(o.order), bookBelowPosts: o.bookBelowPosts === true, orcid: orcidOf(o.orcid), cover: img(o.cover), announce: cleanAnnounce(o.announce), focus: cleanFocus(o.focus), updatedAt: typeof o.updatedAt === "string" ? o.updatedAt : undefined };
+  return { kit: t(o.kit, 30), palette: cleanPalette(o.palette), blocks: cleanBlocks(o.blocks), order: cleanOrder(o.order), bookBelowPosts: o.bookBelowPosts === true, orcid: orcidOf(o.orcid), cover: img(o.cover), announce: cleanAnnounce(o.announce), focus: cleanFocus(o.focus), community: cleanCommunityLink(o.community), updatedAt: typeof o.updatedAt === "string" ? o.updatedAt : undefined };
 }
 // What a visitor sees: only the sections switched on, with something in them, that the plan still covers (after a downgrade, a section waits
 // switched off rather than vanishing from the settings).
@@ -407,7 +412,7 @@ export const KITS: Kit[] = [
   },
   {
     id: "church", name: "Churches and NGOs", emoji: "🤝", minTier: "business", theme: "clean", palette: "forest",
-    blurb: "Who you are and what you do, service or programme times, news, your team and how to get involved. Start a Community for your members too; Giving comes later.",
+    blurb: "Who you are and what you do, service or programme times, news, your team and how to get involved. Opens Community too: start one for your members, or link the one you run; Giving comes later.",
     sections: { journals: true, shop: false, courses: false, track: false }, blocks: ["hero", "info", "gallery", "team", "faq"],
     starter: { headline: "Stronger communities, brighter futures.", subline: "Join us, volunteer, or support the work we do.", button: btn("contact", "Get involved"),
       hours: "Sundays, 8am and 10am · Wednesdays, 6pm",
