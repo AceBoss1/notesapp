@@ -21,7 +21,7 @@ export default function PrepSignIn() {
         <h1 className="font-display text-2xl font-bold">{mode === "signin" ? `Sign in to ${PREP_NAME}` : "Create your free account"}</h1>
         <p className="mt-1 text-sm text-[#0F2747]/70">It's a NotesApp account: one account for {PREP_NAME} and everything on NotesApp. Your progress and packs stay with it.</p>
         <div className="mt-4">
-          <Suspense>{mode === "signin" ? <LoginForm embedded onSwitch={() => setMode("signup")} /> : <SignupFlow embedded onSwitch={() => setMode("signin")} />}</Suspense>
+          <Suspense>{mode === "signin" ? <LoginForm embedded onSwitch={() => setMode("signup")} /> : <SignupFlow embedded young onSwitch={() => setMode("signin")} />}</Suspense>
         </div>
       </div>
     </div>
