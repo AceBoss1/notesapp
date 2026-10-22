@@ -37,7 +37,7 @@ export default function Feed({ cid, channel, canPost, role, me, as, slowModeSec 
       {posts === null ? <PostSkeleton /> : !posts.length ? (
         <div className="rounded-2xl border border-rule bg-card p-8 text-center">
           <p className="font-display text-xl text-ink">Nothing here yet</p>
-          <p className="mt-1 text-sm text-slate">{canPost ? "Start the conversation: say hello, share news or ask a question." : "Posts will show here."}</p>
+          <p className="mt-1 text-sm text-slate">{canPost ? "Create the first note: say hello, share news or ask a question." : "Notes will show here."}</p>
         </div>
       ) : (
         <ul className="space-y-4">{posts.map((p) => <PostCard key={p.id} p={p} cid={cid} role={role} me={me} as={as} onChange={load} />)}</ul>

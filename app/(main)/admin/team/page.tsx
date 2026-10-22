@@ -116,7 +116,7 @@ function ItemCard({ item, people, today, me, send, fetchComments }: { item: Team
       )}
       {showC && (
         <div className="mt-2 border-t border-rule pt-2">
-          {comments === null ? <p className="text-xs text-slate">Loading…</p> : comments.length === 0 ? <p className="text-xs text-slate">No comments yet.</p> : (
+          {comments === null ? <p className="text-xs text-slate">Loading…</p> : comments.length === 0 ? <p className="text-xs text-slate">No notes yet.</p> : (
             <ul className="space-y-1.5">
               {comments.map((c) => (
                 <li key={c.id} className="flex items-start justify-between gap-2 text-xs">
