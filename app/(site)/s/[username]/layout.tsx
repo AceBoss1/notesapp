@@ -83,6 +83,7 @@ export default async function SiteLayout({ children, params }: Props) {
     cover: site?.cover ?? "",
     kit: site?.kit ?? "",
     focus: site?.focus ?? (domain?.home === "store" ? "shop" : "mix"),
+    community: site?.community ?? "",
   };
   const clean = isCleanLike(info.theme);
   // Night background (lib/site-themes.ts): the dark colours Scholar uses in dark mode, always on (Scholar keeps its own switch).

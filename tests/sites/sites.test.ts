@@ -62,6 +62,10 @@ assert.equal(KITS.length, 18);
 assert.deepEqual(KITS.filter((k) => kitAllowed(k, "basic")).map((k) => k.id), ["personal", "scholar"], "Free Basic: the personal kits only (Personal and creators, Academics)");
 assert.deepEqual(KITS.filter((k) => kitAllowed(k, "pro")).map((k) => k.id), ["personal", "scholar", "fashion", "food", "services", "healthcare", "beauty-spa", "beauty-massage", "beauty-hair", "beauty-nails", "fitness", "events", "electronics", "motor", "solar", "realestate"]);
 assert.equal(KITS.filter((k) => kitAllowed(k, "business")).length, 18);
+// A linked community (lib/site-kits.ts): a community address or nothing.
+assert.equal(siteDocOf({ community: "grace-chapel" }).community, "grace-chapel");
+assert.equal(siteDocOf({ community: "../../users/x" }).community, "");
+assert.equal(siteDocOf({}).community, "");
 const mine = siteDocOf({ blocks: { hero: { headline: "My own words" }, services: { items: [{ name: "Mine", price: "₦1" }] } } });
 const r = applyKitTo(mine, kitOf("food")!, "pro");
 assert.equal(r.theme, "clean"); assert.equal(r.site.kit, "food"); assert.equal(r.site.palette.id, "sunset");

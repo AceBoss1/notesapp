@@ -367,6 +367,18 @@ export async function setCircleMembers(db: Firestore, uid: string, cid: string, 
   await syncMembers(db, circleId, keep);
 }
 
+// The communities someone runs (owner or admin), for "Your site" (link one to the site) and anywhere else that needs them.
+export async function communitiesIRun(db: Firestore, uid: string) {
+  const mine = await db.collection("communityMembers").where("uid", "==", uid).get();
+  const run = mine.docs.map((d) => d.data() as Member).filter((m) => m.status === "active" && (m.role === "owner" || m.role === "admin"));
+  if (!run.length) return [];
+  const docs = await db.getAll(...run.map((m) => db.doc(`communities/${m.cid}`)));
+  return docs.filter((d) => d.exists).map((d) => {
+    const c = d.data() as Community;
+    return { id: d.id, name: c.name, avatar: c.avatar, memberCount: c.memberCount, role: run.find((m) => m.cid === d.id)!.role };
+  });
+}
+
 // ---- Insights (admins) ----
 export async function insights(db: Firestore, uid: string, cid: string, now = new Date()) {
   const { c, role } = await actor(db, cid, uid);

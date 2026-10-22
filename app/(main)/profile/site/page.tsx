@@ -9,12 +9,13 @@ import { effectiveTier, getUserByUid, UserProfile } from "@/lib/users";
 import { MAIN_HOST } from "@/lib/host";
 import { canHaveSite, meetsTier, siteThemeOf, tierName, type SiteThemeId } from "@/lib/site-themes";
 import { SITE_PAGES, SITE_PAGE_MAX, SITE_SECTIONS, siteSectionsOf, type SitePageId, type SiteSections } from "@/lib/site-settings";
-import { ANNOUNCE_MAX, BLOCKS, SECTION_MIN_TIER, SITE_FOCUS, blockAllowed, emptyBlocks, DEFAULT_ORDER, type BlockId, type Blocks, type Kit, type SiteDoc } from "@/lib/site-kits";
+import { ANNOUNCE_MAX, BLOCKS, COMMUNITY_KITS, SECTION_MIN_TIER, SITE_FOCUS, blockAllowed, emptyBlocks, DEFAULT_ORDER, type BlockId, type Blocks, type Kit, type SiteDoc } from "@/lib/site-kits";
 import { getTierConfig } from "@/lib/tiers";
 import PageHero from "@/components/PageHero";
 import RichTextEditor from "@/components/RichTextEditor";
 import SiteThemePicker from "@/components/SiteThemePicker";
 import KitPicker from "@/components/site-settings/KitPicker";
+import CommunityPanel from "@/components/site-settings/CommunityPanel";
 import PalettePicker from "@/components/site-settings/PalettePicker";
 import BlockEditors, { Picture } from "@/components/site-settings/BlockEditors";
 import { missingPagesText } from "@/components/SiteReminder";
@@ -73,6 +74,8 @@ export default function YourSitePage() {
     if (!user) return;
     const d = await call(user, "/api/site/kit", { kit: k.id });
     applyDoc(d.site); setTheme(d.theme); setSections(d.sections);
+    // Churches and NGOs: Community opens right under the kits (start one, or link one they run).
+    if (COMMUNITY_KITS.includes(k.id)) window.setTimeout(() => document.getElementById("community-panel")?.scrollIntoView({ behavior: "smooth", block: "start" }), 150);
   }
 
   async function saveSections() {
@@ -178,6 +181,10 @@ export default function YourSitePage() {
         </div>
 
         <KitPicker tier={tier} current={site?.kit ?? ""} onApply={applyKit} />
+        {user && site && COMMUNITY_KITS.includes(site.kit) && (
+          <CommunityPanel linked={site.community ?? ""} name={profile.displayName ?? ""} username={profile.username ?? ""} tagline={blocks.hero.subline ?? ""}
+            onLinked={async (cid) => { const d = await call(user, "/api/site/community", { cid }); setSite(d.site); }} />
+        )}
 
         <SiteThemePicker key={theme} current={theme} username={profile.username} tier={tier} title="2. Choose its look and colours" onChange={setTheme}>
           {site && <PalettePicker key={`${site.palette.id}${site.palette.custom ?? ""}${site.palette.bg ?? ""}${theme}`} tier={tier} theme={theme} value={site.palette} onSave={async (palette) => { if (!user) return; const d = await call(user, "/api/site/content", { palette }); applyDoc(d.site); }} />}
