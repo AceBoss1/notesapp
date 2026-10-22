@@ -543,7 +543,7 @@ It costs the same on every plan: ${money(GOLD_PRICING.personal.monthlyKobo)} a m
 
 **Room chat:** while a room is on, everyone in it can type: questions for the speakers, prayer points, amens, links. On a computer the chat sits beside the room; on a phone tap **💬 Chat** (a red number shows what you missed). The host and speakers are marked, the host or a moderator can **Remove** a message, and the chat goes when the room ends: nothing is kept.
 
-**The feed:** General and every Space look like a group's wall: **Write something…** opens the composer (words and a photo), and each post has **Like**, **Comment** and **Share** (a link to the post), comments with each writer's picture, and a **⋯** menu for moderators to pin or remove. Home shows the About card (open, approved or by invitation; members; who runs it), the members' faces, upcoming events and Spaces.
+**The feed:** General and every Space look like a group's wall: **Create a note…** opens the composer (words and a photo), and each post has **Like**, **Comment** and **Share** (a link to the post), comments with each writer's picture, and a **⋯** menu for moderators to pin or remove. Home shows the About card (open, approved or by invitation; members; who runs it), the members' faces, upcoming events and Spaces.
 
 **Joining:** open to anyone, by approval (with up to 5 join questions, such as "Which branch?"), or only by invite link. Anyone with the invite link joins straight away; make a new link to stop the old one.
 
@@ -561,7 +561,7 @@ People tap **Going** or **Interested** and get a reminder **24 hours and 1 hour 
     A("community-general", "General: your community's announcement channel", "Teams and organisations", `
 **General** is the announcement channel of a [community](/help/community). Every member is in it from the day they join; there's nothing to subscribe to. See it with pictures on [the General page](/community/general).
 
-**Who posts:** the owner and admins. They tap **Write something…** at the top of General, write up to ${n(POST_MAX)} characters, add a photo if they like, and post. Members get a notification and see it in General and on the community's Home.
+**Who posts:** the owner and admins. They tap **Create a note for every member…** at the top of General, write up to ${n(POST_MAX)} characters, add a photo if they like, and post. Members get a notification and see it in General and on the community's Home.
 
 **What members do:** **Like**, **Comment** (up to ${n(COMMENT_MAX)} characters, with their picture beside it) and **Share** (a link to the post). Moderators and admins can **pin** a post to the top, or **remove** a post or a comment, from its **⋯** menu.
 

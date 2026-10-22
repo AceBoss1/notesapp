@@ -11,6 +11,16 @@ export type Release = {
 
 export const CHANGELOG: Release[] = [
   {
+    version: "v0.80.0",
+    bump: "minor",
+    date: "2026-10-22",
+    changes: [
+      { kind: "changed", text: "The writing boxes now talk about notes: Create a note… on Journals, in Community and for Moments; Reply a note… under journals, community posts and moments; Drop a note… in Messages, audio-room chat and Notes Life." },
+      { kind: "added", text: "Brand guidelines on the brand page, below the marks and colours: an introduction, general guidelines (writing the name, clear space, smallest sizes), prohibited uses, FAQ and legal notes." },
+      { kind: "added", text: "The NotesApp logo pack: one zip with the icon, the wordmark, app icons, the challenge artwork and the guidelines, downloaded once you accept the guidelines." },
+    ],
+  },
+  {
     version: "v0.79.0",
     bump: "minor",
     date: "2026-10-22",

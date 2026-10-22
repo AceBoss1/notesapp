@@ -75,7 +75,7 @@ function Composer({ cid, channel, onDone }: { cid: string; channel: string; onDo
     catch (e) { setErr(e instanceof Error ? e.message : "Couldn't post."); }
     finally { setBusy(false); }
   }
-  const prompt = channel === "general" ? "Share an announcement with every member…" : "Write something…";
+  const prompt = channel === "general" ? "Create a note for every member…" : "Create a note…";
   return (
     <div className="rounded-2xl border border-rule bg-card p-4 shadow-sm">
       <div className="flex items-start gap-3">
@@ -178,7 +178,7 @@ function PostCard({ p, cid, role, me, as, onChange }: { p: Post; cid: string; ro
           {member ? (
             <form className="mt-3 flex items-center gap-2" onSubmit={(e) => { e.preventDefault(); if (text.trim()) act({ action: "comment", postId: p.id, text }, () => { setText(""); loadComments(); onChange(); }); }}>
               <Face src={profile?.avatar} size={32} />
-              <input ref={input} value={text} onChange={(e) => setText(e.target.value)} maxLength={1000} placeholder="Write a comment…" aria-label="Comment" className="min-w-0 flex-1 rounded-full border border-rule bg-card px-4 py-2 text-sm text-ink placeholder:text-slate focus:border-crimson focus:outline-none" />
+              <input ref={input} value={text} onChange={(e) => setText(e.target.value)} maxLength={1000} placeholder="Reply a note…" aria-label="Reply a note" className="min-w-0 flex-1 rounded-full border border-rule bg-card px-4 py-2 text-sm text-ink placeholder:text-slate focus:border-crimson focus:outline-none" />
               <button className="font-ui text-sm font-bold text-crimson disabled:opacity-40" disabled={!text.trim()}>Send</button>
             </form>
           ) : <p className="mt-2 text-xs text-slate">Join the community to comment.</p>}

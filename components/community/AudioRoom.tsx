@@ -341,7 +341,7 @@ function RoomChatPanel({ id, me, room, canRemove, open, onClose, onNew, remove }
         <div ref={end} />
       </div>
       <form onSubmit={send} className="flex items-center gap-2 border-t border-white/10 p-3 pb-[calc(env(safe-area-inset-bottom)_+_0.75rem)]">
-        <input value={text} onChange={(e) => setText(e.target.value)} maxLength={ROOM_CHAT_MAX} placeholder="Message the room…" aria-label="Message the room" className="min-w-0 flex-1 rounded-full bg-white/10 px-4 py-2.5 text-sm text-white placeholder:text-white/40 focus:bg-white/15 focus:outline-none" />
+        <input value={text} onChange={(e) => setText(e.target.value)} maxLength={ROOM_CHAT_MAX} placeholder="Drop a note in the room…" aria-label="Drop a note in the room" className="min-w-0 flex-1 rounded-full bg-white/10 px-4 py-2.5 text-sm text-white placeholder:text-white/40 focus:bg-white/15 focus:outline-none" />
         <button className="rounded-full bg-white px-4 py-2.5 font-ui text-sm font-bold text-ink disabled:opacity-40" disabled={!text.trim()}>Send</button>
       </form>
       {err && <p className="px-4 pb-2 text-xs text-[#FF6B6B]" role="alert">{err}</p>}

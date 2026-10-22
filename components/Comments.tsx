@@ -312,7 +312,7 @@ export default function Comments({
               placeholder={
                 postAsBrand
                   ? `Reply as @${NA_NOTESAPP_PROFILE.username}…`
-                  : "Share your thoughts…"
+                  : "Reply a note…"
               }
               className="w-full border border-rule bg-card px-4 py-3 font-body focus:border-crimson outline-none"
             />
@@ -371,7 +371,7 @@ export default function Comments({
                   placeholder={
                     replyAsBrand
                       ? `Reply as @${NA_NOTESAPP_PROFILE.username}…`
-                      : `Reply to ${c.authorDisplayName}…`
+                      : `Reply a note to ${c.authorDisplayName}…`
                   }
                   className="flex-1 border border-rule bg-card px-3 py-2 text-sm focus:border-crimson outline-none"
                 />
