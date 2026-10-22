@@ -1,4 +1,4 @@
-import { APP_HOST, APP_URL, LIFE_HOST, LIFE_URL, ROOT_DOMAIN } from "./host";
+import { APP_HOST, APP_URL, LIFE_HOST, LIFE_URL, PREP_HOST, ROOT_DOMAIN } from "./host";
 import { AD_PACKAGES } from "./ad-packages";
 import { WHAT_IS_INTRO, WHAT_YOU_CAN_DO, WHAT_IS_FREE, WHAT_IS_TIERS } from "./site";
 import { BOOST_PACKAGES, GIFT_MAX_KOBO, GIFT_MIN_KOBO } from "./boost-config";
@@ -23,6 +23,7 @@ import { COMMENT_MAX, COMMUNITY_FREE_MEMBERS, POST_MAX, SPACES_MAX } from "./com
 import { GROUP_MEMBERS_MAX } from "./messages-rules";
 import { GROUP_CALL_MAX } from "./group-calls";
 import { ROOM_CHAT_MAX, ROOM_LISTENERS_MAX_P2P, ROOM_SPEAKERS_MAX } from "./rooms";
+import { BOARD_DAILY_CAP, DEFAULT_PACK_KOBO, DEFAULT_PACK_MONTHS, MOCK_SIZES, OFFLINE_PASS_DAYS, PAYLINK_DAYS, PREP_NAME, PREP_TAGLINE, REFUND_DAYS } from "./exam-prep";
 import type { KbArticle } from "./kb";
 
 // The built-in help articles. Prices, rates and limits are read from the same code the rest of the site uses, so these cannot disagree with
@@ -717,6 +718,43 @@ You connect the domain in the Console by adding the DNS records we show. Buying 
 Open [Your site](/profile/site) (also linked from Edit profile and the Console): your domain shows there once it's connected, and the preview at ${ROOT_DOMAIN}/s/your-username always works. Choosing a kit, a look, colours and sections is in [Your own site](/help/your-site).`),
     A("api-and-console", "The API and Console (Enterprise)", "Teams and organisations", `
 Enterprise accounts can use a server-to-server API (switched on per account by our team) to publish posts and read bookings, orders and earnings, with signed webhooks for events like a booking or a paid order. Keys and webhooks are managed in the Console. Ask for access on the [contact page](/contact); the documentation is public at [API docs](/docs). Questions about the API or the MCP server can go to our [Discord](${SITE.discord}), where API changes are announced too.`),
+    A("naija-exam-prep", `${PREP_NAME}: JAMB, WAEC and NECO practice`, "Getting started", `
+${PREP_NAME} (${PREP_HOST}) is NotesApp's exam practice, part of Notes Academy. ${PREP_TAGLINE} It uses your NotesApp account.
+
+**Practice:** choose JAMB, WAEC or NECO, then a subject and a topic. Each question is marked straight away, with the explanation and, for wrong options, why they're wrong. Every subject has free questions; questions you haven't got right yet come first.
+
+**Timed mocks:** ${MOCK_SIZES.join(", ")} questions picked at random, on a clock that runs on our side (leaving the page or changing your phone's time doesn't stop it). It's marked when you submit or when time runs out, and you can go through every answer. A mock score is practice only, never a prediction of your exam result.
+
+**The pack:** ${money(DEFAULT_PACK_KOBO)} opens every question in one exam, all its subjects, for ${DEFAULT_PACK_MONTHS} months (the price on the pack page is the one that applies). Pay with Paystack: card, bank transfer or USSD. Buying again adds the same months. You need a verified email to buy. If a payment went through but the pack didn't open, tap **Restore my pack** on the pack page: it checks again with Paystack and never charges twice.
+
+**Refunds:** in full if you ask within ${REFUND_DAYS} days of paying and haven't opened any pack question yet; after that, or once a pack question has been opened, a pack can't be refunded. Write to us from the contact page.
+
+**Ask someone to pay:** on the pack page, make a link for a parent, sponsor or friend. It lasts ${PAYLINK_DAYS} days; they pay with Paystack without an account, and the pack opens on your account. They see only the name you choose.
+
+**Offline:** on an exam's page, tap **Save for offline** to keep its questions on your phone, then practise or do a mock with no data from **Saved**. Pack questions open offline for up to ${OFFLINE_PASS_DAYS} days at a time, for your account only; save again online to renew. Your answers sync when you're back online.
+
+**Progress and the board:** **Progress** shows what you actually did: questions answered, right first time, mocks, days in a row and each topic (strong after at least 5 answers with 70% right). The weekly effort board is optional: join with a nickname; it counts questions practised (each once a day, up to ${n(BOARD_DAILY_CAP)} a day), not scores, and starts again every Monday.
+
+**Report a problem:** every question has **Report a problem** (wrong answer, unclear, typo). ${PREP_NAME} is not affiliated with JAMB, WAEC or NECO; all questions are original practice questions, checked by a reviewer before they're published.
+`),
+    A("naija-exam-prep-teen-mode", `${PREP_NAME}: teen mode and parents`, "Safety and your data", `
+Students under 18 can use ${PREP_NAME}. After signing up, tap **Yes, I'm under 18** and give a parent's or guardian's email.
+
+**Teen mode:** you don't appear in people search or the member directory; only people you follow can message you or add you to a group; and the weekly board shows only your nickname, never your name.
+
+**Parents and guardians** get an email asking them to confirm, with a link. The address is kept only to confirm the account and to contact them about it; it's never shown on the profile. A student can practise, and buy a pack or send a pay link, before the parent confirms. A parent can ask for a refund under the pack's refund rule (within ${REFUND_DAYS} days, no pack question opened) or for the account to be closed, from the contact page.
+
+No ads are shown to students in teen mode, and their data isn't sold or used to market to them.
+`),
+    A("naija-exam-prep-reviewers", `Reviewing questions for ${PREP_NAME}`, "Teams and organisations", `
+Every ${PREP_NAME} question is checked by a reviewer before students see it.
+
+**Joining:** reviewers come by invite link. NotesApp staff choose the subjects first, then make either a link for one person (14 days, used once) or an open link for volunteers (7 to 90 days, up to 500 reviewers, closable at any time). Open the link, sign in or create a NotesApp account, and tap **Accept the invite**. A later link for other subjects adds them.
+
+**Reviewing:** the review queue (${PREP_HOST}/review) shows only questions in your subjects. For each one, check that the marked answer is right, the explanation is clear and correct, and the question is fair. **Approve** it, or **Ask for changes** with a note saying what to fix. You can't review a question you wrote. Starter questions are labelled **Nana AI-assisted draft**: check them as carefully as any other.
+
+**After review:** an approved question is published by NotesApp's editors; a question sent back is fixed and returns to the queue. Your reviews are counted (in total and per month), so reviewers can be paid into their NotesApp wallet when that starts. Reviewers see the review queue only: never payments or students.
+`),
     A("mcp-ai-assistants", "MCP: use #NotesApp from your AI assistant", "Teams and organisations", `
 MCP (Model Context Protocol) is a standard way for AI assistants such as Claude and ChatGPT to use other services. #NotesApp has an MCP server, so you can ask your own assistant to find things on #NotesApp for you.
 

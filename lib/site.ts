@@ -42,10 +42,13 @@ export const WHAT_YOU_CAN_DO = [
   "Take bookings for private 1:1 sessions",
   "Sell physical goods, digital downloads, PDFs and video courses, in your own store and in Notes Market",
   "Teach free and paid courses in Notes Academy, on your own, with co-tutors or as an organisation, and give learners certificates anyone can check",
+  "Prepare for JAMB, WAEC and NECO with Naija Exam Prep: free practice questions with explanations, timed mocks and packs that work offline",
+  "Run a community for your church, school, club or business, with announcements, Spaces, private Circles, audio rooms and events",
+  "Message people and groups, and make free voice and video calls",
   "Ask Nana, our AI helper, about the platform, and let her suggest topics, summarise and translate chats",
   "Earn from journal subscriptions and gifts",
   "Run it all under your own name, with your own site from Free Basic and your own domain on Business and Enterprise plans",
-  "Play Notes Life, our free life game",
+  "Play Notes Life, our free life game, with your NotesApp account",
 ];
 export const WHAT_IS_FREE = "Anyone can read, comment, book a session or buy from a shop for free.";
 export const WHAT_IS_TIERS = "To publish and earn, you start on the free Basic tier and can move up to Pro, Business or Enterprise as you grow.";
