@@ -7,7 +7,7 @@ import { getFirestore } from "firebase-admin/firestore";
 import { generateKeyPairSync, createPublicKey, verify as edVerify } from "node:crypto";
 process.env.EXAM_PREP_PASS_KEY = generateKeyPairSync("ec", { namedCurve: "P-256" }).privateKey.export({ type: "pkcs8", format: "pem" }).toString();
 import {
-  acceptInvite, adminGrant, adminRefund, board, catalogue, confirmPackPayment, createInvite, createPayLink, importQuestions, joinBoard, lookupAccess,
+  acceptInvite, closeInvite, inviteInfo, reviewerOf, adminGrant, adminRefund, board, catalogue, confirmPackPayment, createInvite, createPayLink, importQuestions, joinBoard, lookupAccess,
   mockStatus, packForSaving, payLinkInfo, practiceSet, publishQuestion, recordAttempt, reportQuestion, restorePurchases, reviewQuestion, reviewQueue,
   saveMockAnswers, saveQuestion, setTeen, confirmTeen, startMock, startPackCheckout, startPayLinkCheckout, submitMock, syncProgress, teenStatus,
 } from "../../lib/exam-prep-server";
@@ -203,12 +203,26 @@ const Q = (id: string, access: "free" | "pack", topic = "algebra", answer = "B")
   await reportQuestion(db, null, { questionId: "t_free1", reason: "wrong-answer", note: "B looks wrong" });
   await rejects(reportQuestion(db, null, { questionId: "t_free1", reason: "spam" }), 400);
 
-  // reviewers come by invite link, once
-  const inv = await createInvite(db, editor, "English teacher");
+  // reviewers come by invite link, for the subjects chosen first: one person, or an open link for volunteers
+  await rejects(createInvite(db, editor, { subjects: [] }), 400, /at least one subject/);
+  const inv = await createInvite(db, editor, { subjects: ["jamb_mathematics", "nope_subject"], note: "Maths teacher" });
+  assert.deepEqual(inv.subjects, ["jamb_mathematics"], "unknown subjects are dropped");
+  assert.equal((await inviteInfo(db, inv.token)).subjects[0], "JAMB Mathematics");
   await acceptInvite(db, { uid: "u_rev3", name: "Mrs Eze" }, inv.token);
-  assert.equal((await db.doc("prepReviewers/u_rev3").get()).data()!.active, true);
-  await rejects(acceptInvite(db, { uid: "u_rev4", name: "X" }, inv.token), 410);
+  assert.deepEqual((await db.doc("prepReviewers/u_rev3").get()).data()!.subjects, ["jamb_mathematics"]);
+  await acceptInvite(db, { uid: "u_rev3", name: "Mrs Eze" }, inv.token); // opening it again changes nothing
+  await rejects(acceptInvite(db, { uid: "u_rev4", name: "X" }, inv.token), 410, /used/);
   await rejects(acceptInvite(db, { uid: "u_rev4", name: "X" }, "nope"), 404);
+  const open = await createInvite(db, editor, { subjects: ["waec_english-language"], kind: "open", days: 30, maxUses: 2 });
+  await acceptInvite(db, { uid: "u_vol1", name: "Vol One" }, open.token);
+  await acceptInvite(db, { uid: "u_rev3", name: "Mrs Eze" }, open.token);
+  assert.deepEqual((await db.doc("prepReviewers/u_rev3").get()).data()!.subjects.sort(), ["jamb_mathematics", "waec_english-language"], "a second link adds its subjects");
+  await rejects(acceptInvite(db, { uid: "u_vol3", name: "Vol Three" }, open.token), 410, /all the reviewers/);
+  const open2 = await createInvite(db, editor, { subjects: ["neco_mathematics"], kind: "open" });
+  const id2 = (await db.collection("prepInvites").where("subjects", "array-contains", "neco_mathematics").get()).docs[0].id;
+  await closeInvite(db, id2);
+  await rejects(acceptInvite(db, { uid: "u_vol4", name: "Vol Four" }, open2.token), 410, /closed/);
+  assert.equal((await inviteInfo(db, open2.token)).ok, false);
 
   // teen mode: the flag on the profile, the parent's email kept privately, confirmation by link
   let sentTo = "", link2 = "";
@@ -237,6 +251,15 @@ const Q = (id: string, access: "free" | "pack", topic = "algebra", answer = "B")
   assert.equal((await importQuestions(db, editor, rows, "ai-draft")).added, 0, "importing the starter set twice adds nothing");
   const sample = (await db.doc(`prepQuestions/${rows[0].input.id}`).get()).data()!;
   assert.deepEqual([sample.status, sample.provenance.by], ["in_review", "ai-draft"]);
+
+  // a reviewer sees and reviews only their subjects; each review is counted for them
+  const vol = (await reviewerOf(db, "u_vol1"))!;
+  const queue = await reviewQueue(db, { status: "in_review", subjects: vol.subjects });
+  assert.ok(queue.length > 0 && queue.every((q) => q.exam === "waec" && q.subject === "english-language"), "only WAEC English in the volunteer's queue");
+  await rejects(reviewQuestion(db, { uid: "u_vol1", name: "Vol One", subjects: vol.subjects }, "jamb-maths-01", "approve", ""), 403, /subject you review/);
+  await reviewQuestion(db, { uid: "u_vol1", name: "Vol One", subjects: vol.subjects }, queue[0].id, "approve", "");
+  const counted = (await db.doc("prepReviewers/u_vol1").get()).data()!;
+  assert.equal(counted.reviews, 1); assert.equal(Object.values(counted.reviewsByMonth as Record<string, number>)[0], 1);
 
   console.log("EXAM PREP OK");
   process.exit(0);

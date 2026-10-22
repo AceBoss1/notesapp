@@ -241,7 +241,7 @@ export default function MomentViewer({ moments, onClose, onChanged, groups, onSe
                 className="flex gap-2"
                 onSubmit={(e) => { e.preventDefault(); act(async () => { await api(`/api/moments/${m.id}`, { body: { action: "reply", text: reply } }); setReply(""); setNote("Sent to their inbox."); }); }}
               >
-                <input value={reply} onChange={(e) => setReply(e.target.value)} placeholder={`💬 Reply to @${m.ownerUsername}`} maxLength={2000} className="min-w-0 flex-1 rounded-full border border-white/40 bg-black/30 px-4 py-2 text-sm placeholder:text-white/50" />
+                <input value={reply} onChange={(e) => setReply(e.target.value)} placeholder={`💬 Reply a note to @${m.ownerUsername}`} maxLength={2000} className="min-w-0 flex-1 rounded-full border border-white/40 bg-black/30 px-4 py-2 text-sm placeholder:text-white/50" />
                 <button disabled={busy || !reply.trim()} className="rounded-full bg-crimson px-5 py-2 text-sm font-bold disabled:opacity-50">Send</button>
               </form>
             </>

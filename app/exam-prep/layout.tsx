@@ -10,7 +10,9 @@ export const metadata: Metadata = {
   title: { default: `${PREP_NAME}: JAMB, WAEC and NECO practice`, template: `%s · ${PREP_NAME}` },
   description: `${PREP_TAGLINE} Free JAMB, WAEC and NECO practice questions with explanations, timed mocks and packs you can use offline. By NotesApp.`,
   alternates: { canonical: PREP_URL },
-  openGraph: { siteName: PREP_NAME, title: PREP_NAME, description: PREP_TAGLINE },
+  openGraph: { siteName: PREP_NAME, title: PREP_NAME, description: PREP_TAGLINE, images: ["/images/exam-prep/icon-512.png"] },
+  icons: { icon: [{ url: "/images/exam-prep/logo.svg", type: "image/svg+xml" }, { url: "/images/exam-prep/favicon-48.png", sizes: "48x48" }], apple: "/images/exam-prep/apple-touch-icon.png" },
+  appleWebApp: { capable: true, title: "Exam Prep", statusBarStyle: "default" },
 };
 
 // Exam Prep's own frame (not the NotesApp masthead). On prep.<domain> its pages are at the root; elsewhere under /exam-prep.

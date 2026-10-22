@@ -11,6 +11,20 @@ export type Release = {
 
 export const CHANGELOG: Release[] = [
   {
+    version: "v0.80.0",
+    bump: "minor",
+    date: "2026-10-22",
+    changes: [
+      { kind: "changed", text: "The writing boxes now talk about notes: Create a note… on Journals, in Community (General and every Space) and for Moments; Reply a note… under journals, community and Space posts and moments; Drop a note… in Messages (the chats of Circles too), audio-room chat and Notes Life." },
+      { kind: "added", text: "Brand guidelines on the brand page, below the marks and colours: an introduction, general guidelines (writing the name, clear space, smallest sizes), prohibited uses, FAQ and legal notes." },
+      { kind: "added", text: "The NotesApp logo pack: one zip with the icon, the wordmark, app icons, the challenge artwork and the guidelines, downloaded once you accept the guidelines." },
+      { kind: "changed", text: "Naija Exam Prep reviewers: choose the subjects first, then make a link for one person or an open link to share with volunteers (for 7 to 90 days, up to 500 reviewers, closable any time). Reviewers see and review only their subjects, and every review is counted for them." },
+      { kind: "added", text: "Admin → Naija Exam Prep → Questions: Approve all shown, for Editorial, recorded as the reviewer on each. Starter questions are labelled Nana AI-assisted draft." },
+      { kind: "changed", text: "Naija Exam Prep's sign-in and create-account screens are in its own white and green, and its sign-up no longer asks students to say they're 18 or older: under-18s join and are offered teen mode, with a parent or guardian asked to confirm." },
+      { kind: "added", text: "Naija Exam Prep has its own logo, the sun rising over an open book, in its header, as its browser and phone icon, on the brand page and in the logo pack." },
+    ],
+  },
+  {
     version: "v0.79.0",
     bump: "minor",
     date: "2026-10-22",

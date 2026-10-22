@@ -23,7 +23,7 @@ export const MOMENT_TEXT_MAX = 280;
 // Video moments per ISO week by plan, counted separately from post videos (same numbers, so Free Standard has none).
 export const MOMENT_VIDEO_WEEKLY_LIMIT: Record<AccountTier, number> = { standard: 0, basic: 2, pro: 7, business: 14, enterprise: 30 };
 export const MOMENT_DAILY_LIMIT = 10; // new moments per member per day (reshares don't count)
-export const MOMENT_HINT = "Share your moment with your followers";
+export const MOMENT_HINT = "Create a note for your followers";
 
 export type MomentKind = "image" | "video" | "text";
 export const isMomentKind = (v: unknown): v is MomentKind => v === "image" || v === "video" || v === "text";

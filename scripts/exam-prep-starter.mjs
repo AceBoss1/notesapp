@@ -1,5 +1,5 @@
 // Builds content/exam-prep/starter.json: Naija Exam Prep's starter questions (JAMB, WAEC and NECO; English and Maths).
-// Original questions, imported as "AI-assisted draft" and in review: none reaches students until a reviewer approves it and an
+// Original questions, imported as "Nana AI-assisted draft" and in review: none reaches students until a reviewer approves it and an
 // editor publishes it. Every maths answer is worked out here and checked against the option marked correct, so a wrong key
 // stops the build. Run: node scripts/exam-prep-starter.mjs   (then commit the JSON; npm run test:exam-prep checks it too)
 import { writeFileSync } from "node:fs";
@@ -181,5 +181,5 @@ add("neco", "english-language", [
 
 const ids = new Set(out.map((q) => q.id));
 if (ids.size !== out.length) throw new Error("Two questions share an id.");
-writeFileSync(new URL("../content/exam-prep/starter.json", import.meta.url), JSON.stringify({ version: 1, note: "Original practice questions, AI-assisted drafts for review. Built by scripts/exam-prep-starter.mjs.", questions: out }, null, 1) + "\n");
+writeFileSync(new URL("../content/exam-prep/starter.json", import.meta.url), JSON.stringify({ version: 1, note: "Original practice questions, Nana AI-assisted drafts for review. Built by scripts/exam-prep-starter.mjs.", questions: out }, null, 1) + "\n");
 console.log(`${out.length} starter questions written (${out.filter((q) => q.access === "free").length} free).`);

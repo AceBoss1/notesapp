@@ -69,6 +69,18 @@ function Questions({ api }: { api: Api }) {
     setE(bad.length ? bad.map((b) => `${b.id}: ${b.error}`).join(" · ") : "");
     load();
   }
+  const [busy, setBusy] = useState(false);
+  async function approveAll(ids: string[]) {
+    if (!confirm(`Approve all ${ids.length} questions shown? You'll be recorded as the reviewer on each. Check them first: students see them once they're published.`)) return;
+    setBusy(true); setE("");
+    try {
+      const r = await api<{ approved: number; results: { id: string; status?: string; error?: string }[] }>("", { action: "approve_all", ids });
+      const bad = r.results.filter((x) => x.error);
+      const waiting = r.results.filter((x) => x.status === "in_review").length;
+      setE([`${r.approved} approved.`, waiting ? `${waiting} need another reviewer (their subject needs two approvals).` : "", bad.length ? bad.map((b) => `${b.id}: ${b.error}`).join(" · ") : "", r.approved ? "Next: switch to Approved and Publish all." : ""].filter(Boolean).join(" "));
+      load();
+    } catch (x) { setE((x as Error).message); } finally { setBusy(false); }
+  }
   async function review(id: string, decision: string, note: string) {
     const token = await (await import("@/lib/firebase")).auth.currentUser!.getIdToken();
     const r = await fetch("/api/exam-prep/review", { method: "POST", headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" }, body: JSON.stringify({ id, decision, note }) });
@@ -82,6 +94,7 @@ function Questions({ api }: { api: Api }) {
         <select className="rounded-lg border border-rule px-2 py-1.5 text-sm" value={exam} onChange={(x) => setExam(x.target.value as ExamId | "")}><option value="">All exams</option>{EXAM_IDS.map((x) => <option key={x} value={x}>{EXAMS[x].short}</option>)}</select>
         <span className="text-sm text-slate">{qs?.length ?? "…"} questions</span>
         {status === "approved" && qs && qs.length > 0 && <button onClick={() => publish(qs.map((q) => q.id), true)} className="rounded-lg bg-[#1E8E5A] px-3 py-1.5 text-sm font-semibold text-white">Publish all {qs.length}</button>}
+        {status === "in_review" && qs && qs.length > 0 && <button onClick={() => approveAll(qs.map((q) => q.id))} disabled={busy} className="rounded-lg bg-[#1E8E5A] px-3 py-1.5 text-sm font-semibold text-white disabled:opacity-50">{busy ? "Approving…" : `Approve all ${qs.length} shown`}</button>}
         <button onClick={() => setEditing("new")} className="ml-auto rounded-lg bg-ink px-3 py-1.5 text-sm text-paper">New question</button>
       </div>
       <Err e={e} />
@@ -111,7 +124,7 @@ function Import({ api }: { api: Api }) {
     <div className="space-y-6">
       <div className="card p-4">
         <p className="font-semibold">Starter set</p>
-        <p className="mt-1 text-sm text-slate">{starter ?? "…"} original questions for JAMB, WAEC and NECO English and Maths (content/exam-prep/starter.json), labelled “AI-assisted draft”. They go in as in review; nothing is published until a reviewer approves it and you publish. Importing twice adds nothing twice.</p>
+        <p className="mt-1 text-sm text-slate">{starter ?? "…"} original questions for JAMB, WAEC and NECO English and Maths (content/exam-prep/starter.json), labelled “Nana AI-assisted draft”. They go in as in review; nothing is published until a reviewer approves it and you publish. Importing twice adds nothing twice.</p>
         <button disabled={busy} onClick={() => run({ action: "import_starter" })} className="mt-3 rounded-lg bg-ink px-3 py-1.5 text-sm text-paper">Import the starter set</button>
       </div>
       <div className="card p-4">
@@ -150,32 +163,69 @@ function Subjects({ api }: { api: Api }) {
   );
 }
 
+type Inv = { id: string; kind: "single" | "open"; subjects: string[]; uses: number; maxUses: number; active: boolean; createdAt: string; expiresAt: string; note: string; by: string };
+type Rev = { uid: string; name: string; active: boolean; subjects: string[]; reviews: number; reviewsByMonth: Record<string, number>; lastReviewAt: string | null; at: string };
 function Reviewers({ api }: { api: Api }) {
-  const [data, setData] = useState<{ reviewers: { uid: string; name: string; active: boolean; at: string }[]; invites: { createdAt: string; expiresAt: string; note: string; used: boolean; by: string }[] } | null>(null);
+  const [data, setData] = useState<{ reviewers: Rev[]; invites: Inv[] } | null>(null);
+  const [subjects, setSubjects] = useState<Subject[]>([]);
+  const [pick, setPick] = useState<string[]>([]);
+  const [kind, setKind] = useState<"single" | "open">("open");
+  const [days, setDays] = useState(30);
+  const [maxUses, setMaxUses] = useState(50);
   const [note, setNote] = useState("");
   const [link, setLink] = useState("");
   const [e, setE] = useState("");
   const load = useCallback(() => api<NonNullable<typeof data>>("?view=reviewers").then(setData).catch((x) => setE(x.message)), [api]);
-  useEffect(() => { load(); }, [load]);
+  useEffect(() => { load(); api<{ subjects: Subject[] }>("?view=subjects").then((r) => setSubjects(r.subjects)).catch(() => undefined); }, [load, api]);
+  const key = (s: Subject) => `${s.exam}_${s.id}`;
+  const label = (k: string) => { const s = subjects.find((x) => key(x) === k); return s ? `${EXAMS[s.exam].short} ${s.name}` : k; };
+  const toggle = (k: string) => setPick((p) => (p.includes(k) ? p.filter((x) => x !== k) : [...p, k]));
+  const month = new Date().toISOString().slice(0, 7);
   async function invite() {
-    setE("");
-    try { const r = await api<{ token: string }>("", { action: "invite", note }); setLink(`https://prep.notesapp.name.ng/review/invite?t=${r.token}`); setNote(""); load(); } catch (x) { setE((x as Error).message); }
+    setE(""); setLink("");
+    try { const r = await api<{ token: string }>("", { action: "invite", subjects: pick, kind, days, maxUses, note }); setLink(`https://prep.notesapp.name.ng/review/invite?t=${r.token}`); setNote(""); load(); } catch (x) { setE((x as Error).message); }
   }
   return (
     <div>
       <div className="card p-4">
-        <p className="font-semibold">Invite a reviewer</p>
-        <p className="mt-1 text-sm text-slate">A link for one person, good for 14 days. They sign in (or sign up) and see the review queue only: never payments or students.</p>
-        <div className="mt-2 flex gap-2"><input className="flex-1 rounded-lg border border-rule px-2 py-1.5 text-sm" value={note} onChange={(x) => setNote(x.target.value)} placeholder="Who it's for (only you see this)" /><button onClick={invite} className="rounded-lg bg-ink px-3 py-1.5 text-sm text-paper">Make a link</button></div>
-        {link && <p className="mt-2 break-all rounded bg-black/5 p-2 font-mono text-xs">{link}</p>}
-        {link && <p className="mt-1 text-xs text-slate">Copy it now: it isn't shown again.</p>}
+        <p className="font-semibold">Invite reviewers</p>
+        <p className="mt-1 text-sm text-slate">1. Choose the subjects they&apos;ll review. 2. Choose a link for one person, or an open link to share with volunteers (a WhatsApp group, a staff room). Reviewers see only the review queue for their subjects: never payments or students.</p>
+        <div className="mt-3 grid gap-2 sm:grid-cols-3">
+          {EXAM_IDS.map((ex) => (
+            <div key={ex} className="rounded-lg border border-rule p-2 text-sm">
+              <p className="font-semibold">{EXAMS[ex].short}</p>
+              {subjects.filter((s) => s.exam === ex).map((s) => <label key={key(s)} className="mt-1 flex items-center gap-2"><input type="checkbox" checked={pick.includes(key(s))} onChange={() => toggle(key(s))} />{s.name}</label>)}
+            </div>
+          ))}
+        </div>
+        <div className="mt-3 flex flex-wrap items-center gap-3 text-sm">
+          <label className="flex items-center gap-1"><input type="radio" checked={kind === "open"} onChange={() => setKind("open")} />Open link for volunteers</label>
+          <label className="flex items-center gap-1"><input type="radio" checked={kind === "single"} onChange={() => setKind("single")} />One person (14 days)</label>
+          {kind === "open" && <>
+            <label>for <select className="rounded border px-1" value={days} onChange={(x) => setDays(Number(x.target.value))}>{[7, 14, 30, 90].map((d) => <option key={d} value={d}>{d} days</option>)}</select></label>
+            <label>up to <input type="number" min={1} max={500} className="w-20 rounded border px-1" value={maxUses} onChange={(x) => setMaxUses(Number(x.target.value))} /> reviewers</label>
+          </>}
+        </div>
+        <div className="mt-3 flex gap-2"><input className="flex-1 rounded-lg border border-rule px-2 py-1.5 text-sm" value={note} onChange={(x) => setNote(x.target.value)} placeholder="Who it's for (only staff see this)" /><button onClick={invite} disabled={!pick.length} className="rounded-lg bg-ink px-3 py-1.5 text-sm text-paper disabled:opacity-40">Make the link</button></div>
+        {link && <><p className="mt-2 break-all rounded bg-black/5 p-2 font-mono text-xs">{link}</p><div className="mt-1 flex gap-3 text-xs"><button className="underline" onClick={() => navigator.clipboard.writeText(link)}>Copy</button><a className="underline" target="_blank" rel="noopener noreferrer" href={`https://wa.me/?text=${encodeURIComponent(`Help Nigerian students prepare for JAMB, WAEC and NECO: review practice questions on Naija Exam Prep. ${link}`)}`}>Share on WhatsApp</a><span className="text-slate">Copy it now: it isn&apos;t shown again.</span></div></>}
       </div>
       <Err e={e} />
+      <h3 className="mt-6 font-semibold">Links</h3>
+      {data?.invites.length === 0 && <p className="text-sm text-slate">None yet.</p>}
+      {data?.invites.map((i) => {
+        const live = i.active && i.expiresAt > new Date().toISOString() && i.uses < i.maxUses;
+        return <div key={i.id} className="mt-2 flex flex-wrap items-center gap-2 text-sm"><b>{i.kind === "open" ? "Open link" : "One person"}</b><span>{i.subjects.map(label).join(", ")}</span><span className="text-slate">{i.uses}/{i.maxUses} joined · until {i.expiresAt.slice(0, 10)} · {i.note || "no note"}</span>{live ? <button onClick={async () => { await api("", { action: "close_invite", id: i.id }); load(); }} className="rounded border border-rule px-2 py-0.5 text-xs">Close</button> : <span className="text-xs text-slate">{i.active ? "ended" : "closed"}</span>}</div>;
+      })}
       <h3 className="mt-6 font-semibold">Reviewers</h3>
+      <p className="text-xs text-slate">Reviews are counted per reviewer and per month, ready for paying reviewers into their NotesApp wallet later.</p>
       {data?.reviewers.length === 0 && <p className="text-sm text-slate">None yet.</p>}
-      {data?.reviewers.map((r) => <div key={r.uid} className="mt-2 flex items-center justify-between text-sm"><span>{r.name} <span className="text-slate">since {r.at?.slice(0, 10)}</span></span><label className="flex items-center gap-1"><input type="checkbox" checked={r.active !== false} onChange={async (x) => { await api("", { action: "reviewer_active", uid: r.uid, active: x.target.checked }); load(); }} />Active</label></div>)}
-      <h3 className="mt-6 font-semibold">Recent invites</h3>
-      {data?.invites.map((i, n) => <p key={n} className="text-sm text-slate">{i.createdAt.slice(0, 10)} by {i.by} · {i.note || "no note"} · {i.used ? "used" : i.expiresAt < new Date().toISOString() ? "expired" : "open"}</p>)}
+      {data?.reviewers.map((r) => (
+        <div key={r.uid} className="mt-2 flex flex-wrap items-center gap-2 text-sm">
+          <b>{r.name}</b><span>{r.subjects.length ? r.subjects.map(label).join(", ") : <i>no subjects</i>}</span>
+          <span className="text-slate">{r.reviews} reviews · {r.reviewsByMonth?.[month] ?? 0} this month{r.lastReviewAt ? ` · last ${r.lastReviewAt.slice(0, 10)}` : ""}</span>
+          <label className="ml-auto flex items-center gap-1"><input type="checkbox" checked={r.active} onChange={async (x) => { await api("", { action: "reviewer_active", uid: r.uid, active: x.target.checked }); load(); }} />Active</label>
+        </div>
+      ))}
     </div>
   );
 }

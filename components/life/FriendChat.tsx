@@ -102,7 +102,7 @@ export default function FriendChat({ user, friend, here, where, social, gains, o
       {error && <p className="mt-1 text-xs text-crimson">{error}</p>}
       <form className="relative mt-2 flex gap-2" onSubmit={(e) => { e.preventDefault(); void send(); }}>
         <MentionPicker target={field} value={text} onChange={(v) => setText(v.slice(0, MESSAGE_MAX))} place="above" />
-        <input ref={field} value={text} onChange={(e) => setText(e.target.value.slice(0, MESSAGE_MAX))} placeholder={`Message ${first}…`} className="min-w-0 flex-1 rounded-full border px-4 py-2.5 text-sm" />
+        <input ref={field} value={text} onChange={(e) => setText(e.target.value.slice(0, MESSAGE_MAX))} placeholder={`Drop ${first} a note…`} className="min-w-0 flex-1 rounded-full border px-4 py-2.5 text-sm" />
         <button disabled={busy || !text.trim()} className="rounded-full bg-emerald-600 px-4 py-2.5 text-sm font-extrabold text-white disabled:opacity-50">Send</button>
       </form>
       <p className="mt-2 text-center text-[10px] text-slate">Also in your <a href={`/messages/${cid}`} target="_blank" rel="noreferrer" className="underline">NotesApp Messages</a> · only friends who follow each other</p>

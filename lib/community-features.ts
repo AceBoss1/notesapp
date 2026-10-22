@@ -36,7 +36,7 @@ export const COMMUNITY_FEATURES: CommunityFeature[] = [
     ],
     sections: [
       { h: "How it works", items: [
-        "Admins tap Write something… at the top of General, add a photo if they like, and post. Members get it in General and on the community's Home.",
+        "Admins tap Create a note for every member… at the top of General, add a photo if they like, and post. Members get it in General and on the community's Home.",
         "Members like, comment (with their picture beside it) and share a post. Moderators and admins can pin a post to the top, or remove a post or a comment, from its ⋯ menu.",
         `Slow mode keeps a busy channel calm: admins can make members wait ${slow} between comments. Moderators and admins are never slowed.`,
       ] },

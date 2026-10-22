@@ -768,7 +768,7 @@ export default function Thread({ id, to, embedded = false }: { id?: string; to?:
             <MentionPicker target={box} value={text} onChange={typed} place="above" />
             {/* Grows with what's typed where the browser can (field-sizing), up to a few lines, then scrolls. */}
             <textarea
-              ref={box} value={text} rows={1} maxLength={MESSAGE_MAX} placeholder="Start or reply a conversation" onChange={(e) => typed(e.target.value)} onBlur={stopTyping}
+              ref={box} value={text} rows={1} maxLength={MESSAGE_MAX} placeholder="Drop a note…" onChange={(e) => typed(e.target.value)} onBlur={stopTyping}
               onKeyDown={(e) => {
                 const k = e.key.toLowerCase();
                 if ((e.ctrlKey || e.metaKey) && (k === "b" || k === "i" || k === "u")) { e.preventDefault(); format(k === "b" ? "**" : k === "i" ? "_" : "__"); }

@@ -28,7 +28,8 @@ function normalizeUsername(v: string) {
 
 // The sign-up form and the follow-5-journals step. `embedded` drops the page header and padding so it fits inside a card (the app address's welcome screen);
 // `onSwitch` swaps "Already have an account? Sign in" for an in-place switch; `onStarted` tells the host the account is being created (so it doesn't redirect mid-onboarding).
-export default function SignupFlow({ embedded = false, onSwitch, onStarted }: { embedded?: boolean; onSwitch?: () => void; onStarted?: () => void }) {
+// `young` (Naija Exam Prep): students under 18 may join; they're asked about teen mode right after (components/exam-prep/TeenCard.tsx).
+export default function SignupFlow({ embedded = false, onSwitch, onStarted, young = false }: { embedded?: boolean; onSwitch?: () => void; onStarted?: () => void; young?: boolean }) {
   const [step, setStep] = useState<"account" | "follow">("account");
 
   // Step 1 — account
@@ -361,9 +362,10 @@ export default function SignupFlow({ embedded = false, onSwitch, onStarted }: { 
         <label className="flex items-start gap-3 text-sm text-slate">
           <input type="checkbox" checked={agreed} onChange={(e) => setAgreed(e.target.checked)} className="mt-1" />
           <span>
-            I'm 18 or older and agree to the{" "}
+            {young ? "I agree to the" : "I'm 18 or older and agree to the"}{" "}
             <a href="/terms" target="_blank" className="text-crimson-bright underline">Terms of Service</a> and{" "}
             <a href="/privacy" target="_blank" className="text-crimson-bright underline">Privacy Policy</a>.
+            {young && " Under 18? We'll turn on teen mode and ask a parent or guardian to confirm."}
           </span>
         </label>
         {error && <p className="text-sm text-red-700">{error}</p>}

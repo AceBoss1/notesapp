@@ -1,12 +1,17 @@
 import Image from "next/image";
 import type { Metadata } from "next";
 import { SEASONAL } from "@/lib/brand-marks";
+import Link from "next/link";
 import PageHero from "@/components/PageHero";
+import BrandPackDownload from "@/components/BrandPackDownload";
+import { BRAND_FAQ, BRAND_GENERAL, BRAND_INTRO, BRAND_LEGAL, BRAND_PACK, BRAND_PROHIBITED } from "@/lib/brand-guidelines";
+
+const SECTIONS = [["introduction", "Introduction"], ["marks", "Marks"], ["guidelines", "General guidelines"], ["logo-pack", "Logo pack"], ["prohibited", "Prohibited uses"], ["faq", "FAQ"], ["legal", "Legal"]] as const;
 
 export const metadata: Metadata = {
   title: "Brand",
   description:
-    "The #NotesApp brand system — primary mark, palette, and every seasonal/festival logo variant, with usage notes.",
+    "The #NotesApp brand system — primary mark, palette, every seasonal/festival logo variant, usage notes, guidelines, the logo pack, prohibited uses, FAQ and legal.",
 };
 
 
@@ -23,8 +28,18 @@ export default function BrandPage() {
       </PageHero>
       <div className="mx-auto max-w-5xl px-4 py-12 sm:px-6 lg:px-8">
 
+      <nav aria-label="On this page" className="flex flex-wrap gap-2">
+        {SECTIONS.map(([id, label]) => <a key={id} href={`#${id}`} className="rounded-full border border-rule px-3 py-1 font-ui text-xs font-semibold text-ink hover:border-crimson hover:text-crimson">{label}</a>)}
+      </nav>
+
+      {/* Introduction */}
+      <section id="introduction" className="mt-10 scroll-mt-24">
+        <p className="eyebrow">Introduction</p>
+        {BRAND_INTRO.map((p) => <p key={p} className="mt-3 max-w-3xl text-sm text-slate">{p}</p>)}
+      </section>
+
       {/* Primary marks */}
-      <div className="mt-14 grid grid-cols-1 gap-8 sm:grid-cols-2">
+      <div id="marks" className="mt-14 scroll-mt-24 grid grid-cols-1 gap-8 sm:grid-cols-2">
         <div className="card p-8 text-center">
           <div className="mx-auto flex h-40 items-center justify-center">
             <Image
@@ -58,6 +73,18 @@ export default function BrandPage() {
           <p className="mt-1 text-xs text-slate">
             Use in headers, decks, and anywhere the name needs to be read.
           </p>
+        </div>
+      </div>
+
+      {/* Product marks */}
+      <div className="mt-14">
+        <p className="eyebrow">Product marks</p>
+        <div className="card mt-5 flex flex-col items-center gap-6 p-8 sm:flex-row">
+          <Image src="/images/exam-prep/logo.svg" alt="Naija Exam Prep mark" width={120} height={120} unoptimized className="h-[120px] w-[120px]" />
+          <div>
+            <p className="font-ui text-sm font-semibold text-ink">Naija Exam Prep</p>
+            <p className="mt-1 max-w-xl text-xs text-slate">The sun rising over an open book: “Built for your next breakthrough.” Navy #0F2747 and gold #C9A227 on white, for Naija Exam Prep (prep.notesapp.name.ng) only. It&apos;s in the logo pack.</p>
+          </div>
         </div>
       </div>
 
@@ -143,6 +170,48 @@ export default function BrandPage() {
           <li>Don't stretch, rotate, or add drop shadows beyond what's shown here.</li>
         </ul>
       </div>
+      {/* General guidelines */}
+      <section id="guidelines" className="mt-14 scroll-mt-24">
+        <p className="eyebrow">General guidelines</p>
+        <div className="mt-5 grid grid-cols-1 gap-4 sm:grid-cols-2">
+          {BRAND_GENERAL.map((g) => <div key={g.t} className="card p-5"><p className="font-ui text-sm font-bold text-ink">{g.t}</p><p className="mt-1 text-sm text-slate">{g.d}</p></div>)}
+        </div>
+      </section>
+
+      {/* Logo pack */}
+      <section id="logo-pack" className="mt-14 card scroll-mt-24 p-8">
+        <p className="eyebrow">Logo pack</p>
+        <p className="mt-3 max-w-2xl text-sm text-slate">One zip with the icon (PNG and WebP, up to 512 px), the full wordmark, the app icons, the #1MillionNairaNotesAppChallenge artwork, the Naija Exam Prep mark and these guidelines as a text file. Version {BRAND_PACK.version}. The seasonal marks aren&apos;t in it: they&apos;re for NotesApp&apos;s own channels.</p>
+        <BrandPackDownload />
+      </section>
+
+      {/* Prohibited uses */}
+      <section id="prohibited" className="mt-14 scroll-mt-24">
+        <p className="eyebrow">Prohibited uses</p>
+        <p className="mt-3 text-sm text-slate">Please don&apos;t:</p>
+        <ul className="mt-3 list-disc space-y-2 pl-5 text-sm text-slate">{BRAND_PROHIBITED.map((x) => <li key={x}>{x}</li>)}</ul>
+      </section>
+
+      {/* FAQ */}
+      <section id="faq" className="mt-14 scroll-mt-24">
+        <p className="eyebrow">FAQ</p>
+        <div className="mt-4 divide-y divide-rule rounded-xl2 border border-rule bg-card">
+          {BRAND_FAQ.map((f) => (
+            <details key={f.q} className="group px-5 py-4">
+              <summary className="cursor-pointer list-none font-ui text-sm font-semibold text-ink">{f.q}<span className="float-right text-slate group-open:rotate-45">+</span></summary>
+              <p className="mt-2 text-sm text-slate">{f.a}</p>
+            </details>
+          ))}
+        </div>
+        <p className="mt-3 text-sm text-slate">Something else? <Link href="/contact" className="text-crimson underline">Ask us from the contact page</Link>.</p>
+      </section>
+
+      {/* Legal */}
+      <section id="legal" className="mt-14 scroll-mt-24 pb-6">
+        <p className="eyebrow">Legal</p>
+        {BRAND_LEGAL.map((p) => <p key={p} className="mt-3 max-w-3xl text-sm text-slate">{p}</p>)}
+        <p className="mt-3 text-sm"><Link href="/terms" className="text-crimson underline">Terms of Service</Link></p>
+      </section>
     </div>
     </>
   );

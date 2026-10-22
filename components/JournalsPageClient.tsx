@@ -156,7 +156,7 @@ export default function JournalsPageClient() {
     <form onSubmit={startWriting} className={`flex items-center gap-3 bg-card px-4 py-4 lg:px-6 ${GAP}`}>
       {profile ? <Avatar src={profile.avatar} alt="" size={44} square={profile.accountKind === "organisation"} /> : <span className="h-11 w-11 shrink-0 rounded-full bg-rule" />}
       <input value={draft} onChange={(e) => setDraft(e.target.value)} onFocus={() => { if (user === null) router.push("/login?next=/write/new"); }}
-        placeholder="Share a thought or start a journal…" aria-label="Share a thought or start a journal"
+        placeholder="Create a note…" aria-label="Create a note"
         className="min-w-0 flex-1 bg-transparent font-body text-base text-ink outline-none placeholder:text-slate" />
       <button type="submit" className="shrink-0 rounded-full bg-crimson-bright px-6 py-2.5 font-ui text-sm font-bold text-paper hover:bg-crimson"><span className="lg:hidden">Write</span><span className="hidden lg:inline">Post</span></button>
     </form>

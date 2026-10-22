@@ -4,7 +4,7 @@ import { verifyAdminRequest } from "@/lib/firebase-admin";
 import { fulfillPayment } from "@/lib/payments";
 import { refundPayment } from "@/lib/refunds";
 import {
-  PrepError, adminGrant, adminRefund, allPacks, allSubjects, createInvite, importQuestions, lookupAccess, prepMetrics, publishQuestion, reviewQueue, saveQuestion,
+  PrepError, adminGrant, adminRefund, allPacks, allSubjects, closeInvite, createInvite, importQuestions, reviewQuestion, lookupAccess, prepMetrics, publishQuestion, reviewQueue, saveQuestion,
 } from "@/lib/exam-prep-server";
 import { EXAMS, isExamId, parseCsv, rowsToInputs, slug, subjectKey, type ExamId, type QuestionInput, type Subject } from "@/lib/exam-prep";
 import starter from "@/content/exam-prep/starter.json";
@@ -39,8 +39,11 @@ export async function GET(req: NextRequest) {
     if (view === "subjects") { await adminFor(req, "content"); return ok({ subjects: await allSubjects(db()), starter: (starter as { questions: unknown[] }).questions.length }); }
     if (view === "reviewers") {
       await adminFor(req, "content");
-      const [revs, invites] = await Promise.all([db().collection("prepReviewers").get(), db().collection("prepInvites").orderBy("createdAt", "desc").limit(20).get()]);
-      return ok({ reviewers: revs.docs.map((d) => d.data()), invites: invites.docs.map((d) => ({ createdAt: d.data().createdAt, expiresAt: d.data().expiresAt, note: d.data().note, used: !!d.data().usedBy, by: d.data().createdByName })) });
+      const [revs, invites] = await Promise.all([db().collection("prepReviewers").get(), db().collection("prepInvites").orderBy("createdAt", "desc").limit(30).get()]);
+      return ok({
+        reviewers: revs.docs.map((d) => { const r = d.data(); return { uid: d.id, name: r.name, active: r.active !== false, subjects: r.subjects ?? [], reviews: r.reviews ?? 0, reviewsByMonth: r.reviewsByMonth ?? {}, lastReviewAt: r.lastReviewAt ?? null, at: r.at }; }),
+        invites: invites.docs.map((d) => { const i = d.data(); return { id: d.id, kind: i.kind ?? "single", subjects: i.subjects ?? [], uses: i.uses ?? (i.usedBy ? 1 : 0), maxUses: i.maxUses ?? 1, active: i.active !== false, createdAt: i.createdAt, expiresAt: i.expiresAt, note: i.note, by: i.createdByName }; }),
+      });
     }
     if (view === "reports") {
       await adminFor(req, "content");
@@ -92,7 +95,24 @@ export async function POST(req: NextRequest) {
       await db().doc(`prepSubjects/${subjectKey(exam as ExamId, id)}`).set(sub);
       return ok({ subject: sub });
     }
-    if (action === "invite") { const a = await adminFor(req, "content"); return ok(await createInvite(db(), a, b.note)); }
+    if (action === "invite") { const a = await adminFor(req, "content"); return ok(await createInvite(db(), a, { subjects: b.subjects, kind: b.kind, days: b.days, maxUses: b.maxUses, note: b.note })); }
+    // Approve all shown: a content admin approves every in-review question on their list in one go, recorded as the reviewer on each
+    // (the usual rules apply: not a question they wrote, and only questions still in review).
+    if (action === "approve_all") {
+      const a = await adminFor(req, "content");
+      const ids = (Array.isArray(b.ids) ? b.ids : []).map(String).slice(0, 500);
+      const results: { id: string; status?: string; error?: string }[] = [];
+      for (const id of ids) results.push(await reviewQuestion(db(), a, id, "approve", "").then((r) => ({ id, status: r.status })).catch((e) => ({ id, error: String((e as Error).message) })));
+      return ok({ approved: results.filter((r) => r.status === "approved").length, results });
+    }
+    if (action === "close_invite") { await adminFor(req, "content"); return ok(await closeInvite(db(), b.id)); }
+    if (action === "reviewer_subjects") {
+      await adminFor(req, "content");
+      const known = new Set((await allSubjects(db())).map((x) => subjectKey(x.exam, x.id)));
+      const subjects = (Array.isArray(b.subjects) ? b.subjects : []).map(String).filter((k: string) => known.has(k));
+      await db().doc(`prepReviewers/${String(b.uid).replace(/\//g, "")}`).set({ subjects }, { merge: true });
+      return ok({ subjects });
+    }
     if (action === "reviewer_active") { await adminFor(req, "content"); await db().doc(`prepReviewers/${String(b.uid).replace(/\//g, "")}`).set({ active: b.active === true }, { merge: true }); return ok({ ok: true }); }
     if (action === "resolve_report") { const a = await adminFor(req, "content"); await db().doc(`prepReports/${String(b.id).replace(/\//g, "")}`).update({ status: "resolved", resolvedBy: a.name, resolution: String(b.note ?? "").slice(0, 500), resolvedAt: new Date().toISOString() }); return ok({ ok: true }); }
     if (action === "save_pack") {
