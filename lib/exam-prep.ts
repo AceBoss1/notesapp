@@ -103,7 +103,8 @@ export const defaultPack = (exam: ExamId): Pack => ({ id: exam, exam, name: `${E
 export const REFUND_DAYS = 7; // full refund within 7 days if no paid question was opened
 export const PAYLINK_DAYS = 14;
 
-export type AccessSource = { kind: "payment" | "admin"; ref: string; months: number; at: string; by?: string; refundedAt?: string };
+// "school": a class code from a school on the pilot (lib/prep-schools.ts); it ends (endedAt) when the student leaves the class or is removed.
+export type AccessSource = { kind: "payment" | "admin" | "school"; ref: string; months: number; at: string; by?: string; refundedAt?: string; endedAt?: string };
 export type AccessDoc = { uid: string; pack: ExamId; expiresAt: string; startedAt: string; sources: AccessSource[]; firstPaidQuestionAt?: string };
 
 // Months added the way people count them: 21 Oct + 12 months = 21 Oct next year (the last day of a shorter month when needed).
@@ -125,11 +126,11 @@ export function applySource(cur: AccessDoc | null, uid: string, pack: ExamId, sr
     changed: true,
   };
 }
-// The expiry again from the sources that still count (after a refund), in the order they were added.
+// The expiry again from the sources that still count (after a refund, or a school place ending), in the order they were added.
 export function recomputeExpiry(doc: AccessDoc): string {
   let exp = "";
   for (const s of doc.sources) {
-    if (s.refundedAt) continue;
+    if (s.refundedAt || s.endedAt) continue;
     const base = exp && exp > s.at ? exp : s.at;
     exp = addMonths(base, s.months);
   }

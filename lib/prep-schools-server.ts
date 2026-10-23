@@ -3,7 +3,9 @@ import { getAuth } from "firebase-admin/auth";
 import { getAdminApp } from "./firebase-admin";
 import { sendEmail } from "./email";
 import { isKidUid } from "./kids";
-import { SchoolError, cleanClass, cleanSchool, classCode, isCode, normaliseCode, studentLabel, studentWeek, type School, type SchoolClass } from "./prep-schools";
+import { SCHOOL_PACK_MONTHS, SchoolError, cleanClass, cleanSchool, cleanSeats, classCode, isCode, normaliseCode, schoolRef, seatsLeft, studentLabel, studentWeek, type School, type SchoolClass } from "./prep-schools";
+import { accessRef } from "./exam-prep-server";
+import { applySource, recomputeExpiry, type AccessDoc } from "./exam-prep";
 
 // Server side of schools on Naija Exam Prep (lib/prep-schools.ts has the rules). Collections, server-only (prep* are closed in
 // firestore.rules): prepSchools/{id}, prepClasses/{id}, prepClassCodes/{code} → the class, prepClassMembers/{classId_uid},
@@ -88,7 +90,7 @@ export async function createClass(db: Firestore, me: Me, schoolId: unknown, b: R
       const cr = db.doc(`${CODES}/${code}`);
       if ((await t.get(cr)).exists) return false;
       t.set(cr, { classId: ref.id, schoolId: school.id });
-      t.set(ref, { ...c, schoolId: school.id, teacherUid, teacherName, code, createdAt: now.toISOString() });
+      t.set(ref, { ...c, members: 0, schoolId: school.id, teacherUid, teacherName, code, createdAt: now.toISOString() });
       return true;
     });
     if (ok) return { id: ref.id, code };
@@ -96,17 +98,33 @@ export async function createClass(db: Firestore, me: Me, schoolId: unknown, b: R
   throw new SchoolError("Couldn't make a code just now. Try again.", 503);
 }
 
-// A student joins with the code their teacher gives them.
+// A student joins with the code their teacher gives them: a place in the class, and the school pack for that exam (12 months, free
+// during the pilot). Joining again changes nothing; a full class says so.
 export async function joinClass(db: Firestore, uid: string, code: unknown, now = new Date()) {
   const c = normaliseCode(code);
   if (!isCode(c)) throw new SchoolError("Check the class code: it looks like GFC-SS3G-7KQ.");
   const map = (await db.doc(`${CODES}/${c}`).get()).data();
   if (!map) throw new SchoolError("That class code wasn't found. Check it with your teacher.", 404);
-  const cls = toClass(map.classId, (await db.doc(`${CLASSES}/${map.classId}`).get()).data()!);
-  const school = (await db.doc(`${SCHOOLS}/${cls.schoolId}`).get()).data();
+  const school = (await db.doc(`${SCHOOLS}/${map.schoolId}`).get()).data();
   if (!school?.signature) throw new SchoolError("That class isn't open yet.", 409);
-  await db.doc(`${MEMBERS}/${cls.id}_${uid}`).set({ classId: cls.id, schoolId: cls.schoolId, uid, joinedAt: now.toISOString() });
-  return { className: cls.name, school: String(school.name) };
+  const at = now.toISOString();
+  return db.runTransaction(async (t) => {
+    const cRef = db.doc(`${CLASSES}/${map.classId}`), mRef = db.doc(`${MEMBERS}/${map.classId}_${uid}`);
+    const [cs, ms] = await Promise.all([t.get(cRef), t.get(mRef)]);
+    const cls = toClass(cRef.id, cs.data()!);
+    const aRef = accessRef(db, uid, cls.exam);
+    const cur = ((await t.get(aRef)).data() as AccessDoc | undefined) ?? null;
+    if (!ms.exists) {
+      if (!cls.seats) throw new SchoolError("Your school needs to set the class size first. Ask your teacher.", 409);
+      if (!seatsLeft(cls)) throw new SchoolError(`${cls.name} is full (${cls.seats} places). Ask your teacher to make room.`, 409);
+      t.set(mRef, { classId: cls.id, schoolId: cls.schoolId, uid, joinedAt: at });
+      t.update(cRef, { members: FieldValue.increment(1) });
+    }
+    const src = { kind: "school" as const, ref: schoolRef(cls.id), months: SCHOOL_PACK_MONTHS, at, by: `${String(school.name)} · ${cls.name}` };
+    const r = applySource(cur, uid, cls.exam, src, at);
+    if (r.changed) t.set(aRef, r.doc);
+    return { className: cls.name, school: String(school.name), exam: cls.exam, packUntil: r.doc.expiresAt };
+  });
 }
 export async function myClasses(db: Firestore, uid: string) {
   const s = await db.collection(MEMBERS).where("uid", "==", uid).get();
@@ -118,18 +136,53 @@ export async function myClasses(db: Firestore, uid: string) {
   }
   return out;
 }
-export async function leaveClass(db: Firestore, uid: string, classId: unknown) {
-  await db.doc(`${MEMBERS}/${String(classId ?? "x").replace(/\//g, "")}_${uid}`).delete();
+// Leaving (the student) or removal (the class's teacher or the school's lead): the place is freed and the school pack ends.
+async function endPlace(db: Firestore, classId: string, uid: string, now: Date) {
+  await db.runTransaction(async (t) => {
+    const cRef = db.doc(`${CLASSES}/${classId}`), mRef = db.doc(`${MEMBERS}/${classId}_${uid}`);
+    const [cs, ms] = await Promise.all([t.get(cRef), t.get(mRef)]);
+    if (!ms.exists) return;
+    const exam = cs.data()?.exam;
+    const aRef = exam ? accessRef(db, uid, exam) : null;
+    const a = aRef ? ((await t.get(aRef)).data() as AccessDoc | undefined) : undefined;
+    t.delete(mRef);
+    if (cs.exists) t.update(cRef, { members: FieldValue.increment(-1) });
+    if (aRef && a?.sources.some((x) => x.ref === schoolRef(classId) && !x.endedAt)) {
+      const doc = { ...a, sources: a.sources.map((x) => (x.ref === schoolRef(classId) && !x.endedAt ? { ...x, endedAt: now.toISOString() } : x)) };
+      t.set(aRef, { ...doc, expiresAt: recomputeExpiry(doc) });
+    }
+  });
 }
-
-// The teacher's view: each student by first name and initial, this week's questions, score and weakest topic, and the board.
-export async function classView(db: Firestore, uid: string, classId: unknown, now = new Date()) {
+export async function leaveClass(db: Firestore, uid: string, classId: unknown, now = new Date()) {
+  await endPlace(db, String(classId ?? "x").replace(/\//g, ""), uid, now);
+}
+async function teacherOf(db: Firestore, uid: string, classId: unknown) {
   const ref = db.doc(`${CLASSES}/${String(classId ?? "x").replace(/\//g, "")}`);
   const d = (await ref.get()).data();
   if (!d) throw new SchoolError("That class wasn't found.", 404);
   const cls = toClass(ref.id, d);
   const { school } = await staffOf(db, uid, cls.schoolId);
   if (school.staff[uid] !== "lead" && cls.teacherUid !== uid) throw new SchoolError("That's another teacher's class.", 403);
+  return { ref, cls, school };
+}
+export async function removeStudent(db: Firestore, uid: string, classId: unknown, studentUid: unknown, now = new Date()) {
+  const { cls } = await teacherOf(db, uid, classId);
+  await endPlace(db, cls.id, String(studentUid ?? "x").replace(/\//g, ""), now);
+}
+// The class size: never below the students already in it.
+export async function setSeats(db: Firestore, uid: string, classId: unknown, seats: unknown) {
+  const { ref } = await teacherOf(db, uid, classId);
+  return db.runTransaction(async (t) => {
+    const d = (await t.get(ref)).data()!;
+    const n = cleanSeats(seats, Number(d.members ?? 0));
+    t.update(ref, { seats: n });
+    return { seats: n };
+  });
+}
+
+// The teacher's view: each student by first name and initial, this week's questions, score and weakest topic, and the board.
+export async function classView(db: Firestore, uid: string, classId: unknown, now = new Date()) {
+  const { cls, school } = await teacherOf(db, uid, classId);
   const since = new Date(now.getTime() - 7 * 86_400_000).toISOString();
   const members = (await db.collection(MEMBERS).where("classId", "==", cls.id).get()).docs.map((m) => String(m.data().uid));
   const [users, progress, boards] = await Promise.all(["users", "prepProgress", "prepBoard"].map((c) => (members.length ? db.getAll(...members.map((u) => db.doc(`${c}/${u}`))) : Promise.resolve([]))));

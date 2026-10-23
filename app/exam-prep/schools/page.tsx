@@ -2,7 +2,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { EXAM_IDS, EXAMS, type ExamId } from "@/lib/exam-prep";
 import { loadCatalogue, prepApi, useMe, usePrepHref } from "@/lib/exam-prep-client";
-import { AGREEMENT_POINTS, PILOT_NOTE, SCHOOL_ROLES, type School, type SchoolClass } from "@/lib/prep-schools";
+import { AGREEMENT_POINTS, MAX_SEATS, PILOT_NOTE, SCHOOL_PACK_MONTHS, SCHOOL_ROLES, type School, type SchoolClass } from "@/lib/prep-schools";
 import { btnGo, btnLine, card, input, Note, PLink, Spinner } from "@/components/exam-prep/ui";
 
 type Mine = { schools: School[]; classes: SchoolClass[]; agreement: { version: string; text: string } | null };
@@ -18,7 +18,7 @@ export default function SchoolsPage() {
   const [busy, setBusy] = useState(false);
   const [f, setF] = useState({ name: "", state: "", address: "", leadName: "", leadRole: "", phone: "", students: "" });
   const [sign, setSign] = useState({ name: "", agree: false });
-  const [cls, setCls] = useState<{ name: string; exam: ExamId; subjects: string[] }>({ name: "", exam: "waec", subjects: [] });
+  const [cls, setCls] = useState<{ name: string; exam: ExamId; subjects: string[]; seats: string }>({ name: "", exam: "waec", subjects: [], seats: "" });
   const [teacher, setTeacher] = useState("");
   const [subjects, setSubjects] = useState<{ exam: ExamId; id: string; name: string }[]>([]);
   const load = useCallback(() => prepApi<Mine>("schools").then(setD).catch((e) => setMsg({ tone: "error", text: e.message })), []);
@@ -92,18 +92,20 @@ export default function SchoolsPage() {
           <div className="space-y-2">
             {d.classes.map((c) => (
               <PLink key={c.id} href={`/class/${c.id}`} className="flex items-center justify-between rounded-xl border border-[#0F2747]/15 p-3 text-sm hover:border-[#1E8E5A]">
-                <span><b>{c.name}</b> · {EXAMS[c.exam].short}{c.subjects.length ? ` · ${c.subjects.length} subject${c.subjects.length === 1 ? "" : "s"}` : ""}{c.teacherName ? ` · ${c.teacherName}` : ""}</span>
+                <span><b>{c.name}</b> · {EXAMS[c.exam].short} · {c.members ?? 0} of {c.seats ?? "?"} students{c.subjects.length ? ` · ${c.subjects.length} subject${c.subjects.length === 1 ? "" : "s"}` : ""}{c.teacherName ? ` · ${c.teacherName}` : ""}</span>
                 <span className="font-mono font-bold">{c.code}</span>
               </PLink>
             ))}
             {!d.classes.length && <p className="text-sm text-[#0F2747]/60">No classes yet.</p>}
           </div>
           {lead && (
-            <form className="space-y-2 border-t border-[#0F2747]/10 pt-3" onSubmit={(e) => { e.preventDefault(); void run({ action: "class", schoolId: school.id, ...cls }, "Class made. Its code is {code}: give it to the students."); }}>
-              <div className="grid gap-2 sm:grid-cols-2">
+            <form className="space-y-2 border-t border-[#0F2747]/10 pt-3" onSubmit={(e) => { e.preventDefault(); void run({ action: "class", schoolId: school.id, ...cls, seats: Number(cls.seats) }, "Class made. Its code is {code}: give it to the students. Each one who joins gets the school pack."); }}>
+              <div className="grid gap-2 sm:grid-cols-3">
                 <input className={input} required placeholder="Class name, for example SS3 Gold" value={cls.name} onChange={(e) => setCls({ ...cls, name: e.target.value })} />
                 <select className={input} value={cls.exam} onChange={(e) => setCls({ ...cls, exam: e.target.value as ExamId, subjects: [] })} aria-label="Exam">{EXAM_IDS.map((x) => <option key={x} value={x}>{EXAMS[x].short}</option>)}</select>
+                <input className={input} required type="number" min={1} max={MAX_SEATS} inputMode="numeric" placeholder="Students, for example 41" aria-label="Number of students" value={cls.seats} onChange={(e) => setCls({ ...cls, seats: e.target.value })} />
               </div>
+              <p className="text-xs text-[#0F2747]/65">The school pack: each student who joins with the class code gets the full {EXAMS[cls.exam].short} pack for {SCHOOL_PACK_MONTHS} months, free during the pilot, up to the number of students you give.</p>
               <div className="flex flex-wrap gap-x-4 gap-y-1 text-sm">{subjects.filter((s) => s.exam === cls.exam).map((s) => <label key={s.id} className="flex items-center gap-1.5"><input type="checkbox" checked={cls.subjects.includes(s.id)} onChange={(e) => setCls({ ...cls, subjects: e.target.checked ? [...cls.subjects, s.id] : cls.subjects.filter((x) => x !== s.id) })} /> {s.name}</label>)}</div>
               <button disabled={busy} className={btnGo}>Make the class</button>
             </form>
