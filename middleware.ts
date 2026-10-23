@@ -88,7 +88,7 @@ function route(req: NextRequest, host: string, fam: Family) {
       if (next) u.searchParams.set("next", next);
       return NextResponse.rewrite(u);
     }
-    if (/^\/(jamb|waec|neco|saved|progress|pay|paid|confirm|review|signin)(\/|$)/.test(pathname)) return NextResponse.rewrite(new URL(`/exam-prep${pathname}${search}`, req.url));
+    if (/^\/(jamb|waec|neco|saved|progress|pay|paid|confirm|review|signin|schools|class)(\/|$)/.test(pathname)) return NextResponse.rewrite(new URL(`/exam-prep${pathname}${search}`, req.url));
     return NextResponse.redirect(`https://${main}${pathname}${search}`, 307);
   }
   // The main site and the app send Exam Prep to its own address (in production; one host on localhost and previews).

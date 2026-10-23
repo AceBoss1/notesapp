@@ -5,6 +5,7 @@ import { loadCatalogue, prepApi, shortDate, useMe, usePrepHref } from "@/lib/exa
 import { localProgress } from "@/lib/exam-prep-local";
 import { syncProgress } from "@/lib/exam-prep-sync";
 import { btnGo, card, input, Note, Pill, Spinner } from "@/components/exam-prep/ui";
+import ClassCode from "@/components/exam-prep/ClassCode";
 
 // Progress: only what the student actually did (no score predictions), and the weekly effort board, which they join by choice
 // with a nickname. Signed out, it's this phone's progress; signed in, the phone and the account merged.
@@ -27,6 +28,7 @@ export default function ProgressPage() {
   return (
     <div className="mx-auto max-w-3xl">
       <h1 className="font-display text-2xl font-bold">Your progress</h1>
+      <ClassCode />
       {!me && <div className="mt-3"><Note>This is the progress on this phone. <a className="font-semibold underline" href={h(`/signin?next=${encodeURIComponent(h("/progress"))}`)}>Sign in</a> to keep it on your account and see it on any phone.</Note></div>}
       <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
         {[["Questions answered", s.answered], ["Right first time", `${s.firstTimePct}%`], ["Mocks done", s.mocks], ["Days in a row", s.streak]].map(([l, v]) => (

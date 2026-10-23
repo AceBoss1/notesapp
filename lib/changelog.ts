@@ -11,13 +11,59 @@ export type Release = {
 
 export const CHANGELOG: Release[] = [
   {
-    version: "v0.84.0",
+    version: "v0.88.0",
     bump: "minor",
     date: "2026-10-23",
     changes: [
       { kind: "added", text: "Team hub → Time → Invoices: one invoice a month per billable project, from approved billable hours × the project's rate, numbered NA-INV-2026-001 onwards, due in 14 days and emailed to the client with a link." },
       { kind: "added", text: "Clients pay online from that link: Paylony first (a one-time account to transfer to, or CardTap), then card through Paystack, or a plain bank transfer that finance marks paid. Every paid invoice goes into the money ledger as money in." },
       { kind: "added", text: "A sent invoice locks its hours (a week it bills can't be returned until it's voided), and the client gets one reminder 3 days after the due date. VAT at 7.5% can be switched on in the invoice settings." },
+    ],
+  },
+  {
+    version: "v0.87.0",
+    bump: "minor",
+    date: "2026-10-23",
+    changes: [
+      { kind: "added", text: "Naija Exam Prep for schools: a key member of staff applies at prep.notesapp.name.ng/schools and, once we approve the school, signs the onboarding data agreement for it. Free during the pilot." },
+      { kind: "added", text: "Classes with access codes (like GFC-SS3G-7KQ) that students enter under Progress, teachers added by email, and a class view for each teacher: students by first name and initial, this week's questions, score and weakest topic, a nickname board and a CSV export." },
+    ],
+  },
+  {
+    version: "v0.86.0",
+    bump: "minor",
+    date: "2026-10-23",
+    changes: [
+      { kind: "added", text: "Turning 18: on their 18th birthday a student in teen mode gets a bell and a one-time “You're 18 now” screen. Every switch stays off until they turn it on, and whatever they leave off stays protected on their account." },
+      { kind: "added", text: "They agree to the Terms and Privacy Policy themselves, can download their data or delete their day-by-day practice log (progress, scores and certificates stay), and their parent or guardian is told the account is now theirs, with their email removed." },
+      { kind: "changed", text: "Students in teen mode no longer get the weekly digest." },
+    ],
+  },
+  {
+    version: "v0.85.0",
+    bump: "minor",
+    date: "2026-10-23",
+    changes: [
+      { kind: "added", text: "Child profiles for under-13s: a parent adds them from My account → Family and opens them on their own device. A child never has a login; getting back to the parent's account takes the parent's PIN." },
+      { kind: "added", text: "A child sees only what the parent switches on: Naija Exam Prep practice, free Academy courses, reading journals with no comments, and Notes Life in kids' Notesville (only its residents, no real players, no invites or Bonus Credits) for a daily play time. Never messages, moments, comments, a public profile or buying." },
+      { kind: "added", text: "Every Sunday evening the parent gets an email of what each child practised, with scores by topic, and can delete a child's profile and everything in it at any time." },
+    ],
+  },
+  {
+    version: "v0.83.0",
+    bump: "minor",
+    date: "2026-10-23",
+    changes: [
+      { kind: "added", text: "Teen mode: only people a teen follows can reply to their journals and comments, and a teen's moments are seen only by people they follow back, never in public." },
+      { kind: "added", text: "Teen mode asks the month and year you were born (kept privately, never shown) so it can end on your 18th birthday. It's for ages 13 to 17; under 13, a parent sets you up from their own account." },
+    ],
+  },
+  {
+    version: "v0.82.1",
+    bump: "patch",
+    date: "2026-10-23",
+    changes: [
+      { kind: "changed", text: "Naija Exam Prep's new logo: a student rising out of an open book under a graduation cap, on a white rounded square, with the name in the logo's rounded lettering and “Built for your next breakthrough.” under it. It's the header, the browser and phone icon, and on the brand page and in the logo pack." },
     ],
   },
   {

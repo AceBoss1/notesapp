@@ -3,7 +3,7 @@ import { useEffect } from "react";
 import { usePathname } from "next/navigation";
 import { signOut } from "firebase/auth";
 import { auth } from "@/lib/firebase";
-import { AFFILIATION, PREP_NAME } from "@/lib/exam-prep";
+import { AFFILIATION, PREP_NAME, PREP_TAGLINE } from "@/lib/exam-prep";
 import { useMe, useOnline, usePrepHref } from "@/lib/exam-prep-client";
 import { PLink } from "./ui";
 
@@ -24,10 +24,15 @@ export default function PrepChrome({ mainUrl, children }: { mainUrl: string; chi
     <div style={PREP_COLOURS} className="flex min-h-screen flex-col bg-[#FBF8F2] text-[#0F2747]">
       <header className="sticky top-0 z-30 border-b border-[#0F2747]/10 bg-[#0F2747] text-white">
         <div className="mx-auto flex max-w-5xl items-center gap-3 px-4 py-3">
-          <PLink href="/" className="flex items-center gap-2">
-            {/* eslint-disable-next-line @next/next/no-img-element -- a small SVG, no optimising needed */}
-            <img src="/images/exam-prep/logo.svg" alt="" width={34} height={34} className="h-[34px] w-[34px]" />
-            <span className="font-display text-[17px] font-bold leading-tight">{PREP_NAME}</span>
+          {/* The rounded-square mark and the wordmark in the logo's rounded type (Fredoka, loaded in app/exam-prep/layout.tsx):
+              Naija in white (navy in the logo), Exam in green, Prep in white, with the line under it from a small tablet up. */}
+          <PLink href="/" className="flex items-center gap-2.5" aria-label={PREP_NAME}>
+            {/* eslint-disable-next-line @next/next/no-img-element -- a small PNG, no optimising needed */}
+            <img src="/images/exam-prep/logo.png" alt="" width={38} height={38} className="h-[38px] w-[38px] rounded-[9px]" />
+            <span className="leading-none">
+              <span className="block text-[19px] font-bold tracking-tight" style={{ fontFamily: "Fredoka, 'Manrope', sans-serif" }}>Naija <span className="text-[#3CC37A]">Exam</span> Prep</span>
+              <span className="mt-0.5 hidden text-[11px] italic text-white/75 sm:block">{PREP_TAGLINE}</span>
+            </span>
           </PLink>
           <a href={mainUrl} className="hidden rounded-full bg-white/10 px-2 py-0.5 text-[11px] font-semibold text-white/80 hover:bg-white/20 sm:inline">by NotesApp</a>
           <nav className="ml-auto hidden items-center gap-1 sm:flex">
@@ -48,6 +53,7 @@ export default function PrepChrome({ mainUrl, children }: { mainUrl: string; chi
         <div className="mx-auto max-w-5xl space-y-2">
           <p>{AFFILIATION}</p>
           <p>
+            <PLink className="underline" href="/schools">For schools</PLink> ·{" "}
             {PREP_NAME} is part of <a className="underline" href={mainUrl}>NotesApp</a> by <a className="underline" href="https://adams.com.ng" target="_blank" rel="noopener">Adams Consults</a>. ·{" "}
             <a className="underline" href={`${mainUrl}/terms`}>Terms</a> · <a className="underline" href={`${mainUrl}/privacy`}>Privacy</a>
           </p>

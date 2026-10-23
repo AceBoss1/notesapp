@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { AD_TEXT_MAX, AD_TITLE_MAX } from "@/lib/ad-config";
 import { friendlyMessage } from "@/lib/api-errors";
 import { getAdminDb, verifySignedInRequest } from "@/lib/firebase-admin";
+import { isKidUid } from "@/lib/kids";
 import { slotLockId, initializeTransaction, newReference } from "@/lib/paystack";
 import { PaymentRecord } from "@/lib/payments";
 import { loadPublisher } from "@/lib/publishers";
@@ -47,6 +48,7 @@ export async function POST(req: NextRequest) {
     const idToken = req.headers.get("authorization")?.replace(/^Bearer\s+/i, "");
     const user = await verifySignedInRequest(idToken).catch(() => null);
     if (!user) return NextResponse.json({ error: "Sign in to pay." }, { status: 401 });
+    if (isKidUid(user.uid)) return NextResponse.json({ error: "A child profile can't buy. Ask your parent." }, { status: 403 });
     if (!user.email) return NextResponse.json({ error: "Your account needs an email to pay." }, { status: 400 });
 
     if (!user.emailVerified) {

@@ -11,6 +11,11 @@ service cloud.firestore {
       return request.auth != null;
     }
 
+    // A child profile (kids mode, lib/kids.ts): its sign-in carries kid: true. It never has a public profile, a username or follows.
+    function isKid() {
+      return request.auth != null && request.auth.token.get('kid', false) == true;
+    }
+
     // Admin = Firebase custom claim `admin: true` (set with
     // scripts/set-admin-claims.mjs or /api/admin/set-admin). An email
     // address alone grants nothing.
@@ -290,6 +295,7 @@ service cloud.firestore {
       // Standard: tier, badges, organisation and trial fields are granted
       // by the server (or an admin), never self-assigned at creation.
       allow create: if isSignedIn()
+        && !isKid()
         && request.auth.uid == uid
         && !('email' in request.resource.data)
         && (
@@ -330,6 +336,7 @@ service cloud.firestore {
         // --------------------------------------------------------
         || (
           isSignedIn()
+          && !isKid()
           && request.auth.uid == uid
           && request.resource.data.diff(resource.data)
               .affectedKeys()
@@ -441,6 +448,10 @@ service cloud.firestore {
     match /invoiceCounters/{id} { allow read, write: if false; }
     match /invoicePays/{id} { allow read, write: if false; }
     match /invoiceSettings/{id} { allow read, write: if false; }
+    // Kids mode (/api/kids, lib/kids-server.ts): child profiles, play time and the weekly reports. Server only.
+    match /kidProfiles/{id} { allow read, write: if false; }
+    match /kidPlay/{id} { allow read, write: if false; }
+    match /kidReports/{id} { allow read, write: if false; }
     match /payrollRuns/{id} { allow read, write: if false; }
     match /payrollSecrets/{id} { allow read, write: if false; }
     // Staff library and message hub (through /api/admin/staff-library and /api/admin/hub): server-only.
@@ -566,6 +577,7 @@ service cloud.firestore {
       // "notesapp" is blocked anywhere in the username to prevent
       // platform impersonation.
       allow create: if isSignedIn()
+        && !isKid()
         && request.resource.data.uid == request.auth.uid
         && !username.lower().matches('.*notesapp.*');
 
@@ -962,8 +974,9 @@ service cloud.firestore {
       allow get: if isSignedIn() && followId.matches(request.auth.uid + '_.*');
       allow list: if isSignedIn() && resource.data.followerUid == request.auth.uid;
 
-      // A user can create a follow only for themselves.
+      // A user can create a follow only for themselves (never a child profile).
       allow create: if isSignedIn()
+        && !isKid()
         && request.resource.data.followerUid == request.auth.uid;
 
       // Follow records cannot be edited.

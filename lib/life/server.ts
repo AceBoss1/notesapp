@@ -354,14 +354,16 @@ export async function act(db: Firestore, uid: string, a: Action, now = Date.now(
 // The Billionaires List: the top players by net worth (Notesville Naira plus what they own), and where you stand.
 // The Billionaires List: real players, and (unless realOnly) the residents with a fortune, marked npc so the screen shows 🤖.
 // `rank` counts everyone shown; `realRank` counts real players only.
-export async function richList(db: Firestore, uid: string, limit = 20, realOnly = false) {
-  const top = await db.collection("lifePlayers").orderBy("netWorth", "desc").limit(limit).get();
+// Child profiles (kids mode) are never on anyone's list; a child sees only the residents and themselves (`kidView`).
+export async function richList(db: Firestore, uid: string, limit = 20, realOnly = false, kidView = false) {
+  const top = kidView ? { docs: [] as FirebaseFirestore.QueryDocumentSnapshot[] } : await db.collection("lifePlayers").orderBy("netWorth", "desc").limit(limit + 10).get();
   const me = (await ref(db, uid).get()).data();
   let realRank: number | null = null;
-  if (me) realRank = (await db.collection("lifePlayers").where("netWorth", ">", num(me.netWorth)).count().get()).data().count + 1;
+  if (me && !kidView) realRank = (await db.collection("lifePlayers").where("netWorth", ">", num(me.netWorth)).count().get()).data().count + 1;
   type Row = { rank: number; uid: string; username: string; name: string; avatar: string; city: string; netWorth: number; owned: string[]; npc?: { role: string; area: string; icons: string } };
-  const real: Row[] = top.docs.map((d) => { const x = d.data(); return { rank: 0, uid: d.id, username: String(x.username ?? ""), name: String(x.name ?? ""), avatar: String(x.avatar ?? ""), city: String(x.city ?? CITY.id), netWorth: num(x.netWorth), owned: (x.owned as string[] | undefined)?.filter((i) => (ITEM(i)?.price ?? 0) >= 100_000) ?? [] }; });
+  const real: Row[] = top.docs.filter((d) => !d.id.startsWith("kid_")).slice(0, limit).map((d) => { const x = d.data(); return { rank: 0, uid: d.id, username: String(x.username ?? ""), name: String(x.name ?? ""), avatar: String(x.avatar ?? ""), city: String(x.city ?? CITY.id), netWorth: num(x.netWorth), owned: (x.owned as string[] | undefined)?.filter((i) => (ITEM(i)?.price ?? 0) >= 100_000) ?? [] }; });
   const npcs: Row[] = realOnly ? [] : RESIDENTS.filter((r) => r.netWorth).map((r) => ({ rank: 0, uid: `npc:${r.id}`, username: "", name: r.name, avatar: r.photo ?? "", city: CITY.id, netWorth: r.netWorth!, owned: [], npc: { role: r.role, area: r.area, icons: r.owned ?? "" } }));
+  if (kidView && me) real.push({ rank: 0, uid, username: "", name: String(me.name ?? "You"), avatar: "", city: String(me.city ?? CITY.id), netWorth: num(me.netWorth), owned: [] });
   const rows = [...real, ...npcs].sort((a, b) => b.netWorth - a.netWorth).slice(0, limit).map((r, i) => ({ ...r, rank: i + 1 }));
   const npcAbove = me ? npcs.filter((n) => n.netWorth > num(me.netWorth)).length : 0;
   return { rows, me: me ? { rank: realRank === null ? null : realRank + npcAbove, realRank, netWorth: num(me.netWorth) } : null };
