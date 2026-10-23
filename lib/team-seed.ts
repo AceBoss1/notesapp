@@ -164,11 +164,11 @@ export const PREP_YOUNG_BACKLOG: Seed[] = [
   { key: "brand-page-review", title: "Growth: review the new brand guidelines and logo pack on /brand", detail: "Introduction, General guidelines, Logo pack (zip), Prohibited uses, FAQ and Legal were added below the existing marks. Rebuild the zip with npx -y tsx scripts/brand-pack.mjs after changing any logo file.", status: "todo", horizon: "week", depts: ["growth"] },
 ];
 
-// Time in the team hub (v0.82.0, lib/time.ts): the setup it needs, and the follow-on the owner approved for later.
+// Time in the team hub (v0.82.0, lib/time.ts) and client invoices (v0.84.0, lib/invoices.ts): the setup they need.
 export const TIME_BACKLOG: Seed[] = [
   { key: "time-leads", title: "Time: choose the team leads", detail: "Team hub → Time → Setup → Team leads. A lead approves timesheets and leave for the departments they lead (never their own). Until there are leads, super admins approve everything.", status: "todo", horizon: "today", owner: "founder" },
   { key: "time-rates", title: "Payroll: set everyone's hourly rate and link their staff login", detail: "Everyone is paid by the hour for now: Payroll → Edit each person → Paid: by the hour, the rate, and their staff login (so their approved timesheet hours count). People added before v0.82.0 are on a monthly salary until switched.", status: "todo", horizon: "week", depts: ["finance"] },
   { key: "time-projects", title: "Time: add the billable projects with client, rate and budget", detail: "Team hub → Time → Setup → Add a project: client, the hourly rate charged to them, and a budget in hours. The Team tab shows hours against budget and the billable amount.", status: "todo", horizon: "week", depts: ["growth", "finance"] },
   { key: "time-holidays", title: "Time: add the public holidays for the rest of 2026", detail: "Team hub → Time → Setup → Public holidays (for example Christmas Day, Boxing Day). They count towards everyone's attendance.", status: "todo", horizon: "week", owner: "founder" },
-  { key: "time-invoices", title: "Build later: client invoices from a project's billable hours", detail: "Approved, for later (owner, 22 Oct 2026): an invoice per project and month from approved billable hours × the project's rate, sent to the client and recorded as money in on the ledger when paid.", status: "todo", horizon: "later", depts: ENG },
+  { key: "time-invoice-setup", title: "Invoices: add the bank account and each billable client's email", detail: "Team hub → Time → Invoices → Invoice settings: the bank, account name and number shown for a plain transfer. Each billable project (Setup) needs the client's email. Switch VAT on only once NotesApp Technologies is VAT-registered.", status: "todo", horizon: "week", depts: ["finance"] },
 ];

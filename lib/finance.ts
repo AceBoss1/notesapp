@@ -17,6 +17,7 @@ export const CATEGORIES: Record<EntryKind, { key: string; label: string }[]> = {
     { key: "grant", label: "Grant or funding" },
     { key: "sponsorship", label: "Sponsorship or partnership" },
     { key: "direct", label: "Direct sale or bank transfer" },
+    { key: "client_invoice", label: "Client invoice (billable hours)" },
     { key: "refund", label: "Refund received" },
     { key: "other_income", label: "Other income" },
   ],

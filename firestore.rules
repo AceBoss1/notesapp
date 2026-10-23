@@ -436,6 +436,11 @@ service cloud.firestore {
     match /timeProjects/{id} { allow read, write: if false; }
     match /timeLeads/{id} { allow read, write: if false; }
     match /timeNudges/{id} { allow read, write: if false; }
+    // Client invoices (/api/admin/invoices for finance, /api/invoices for the client's link; lib/invoices-server.ts): server only.
+    match /invoices/{id} { allow read, write: if false; }
+    match /invoiceCounters/{id} { allow read, write: if false; }
+    match /invoicePays/{id} { allow read, write: if false; }
+    match /invoiceSettings/{id} { allow read, write: if false; }
     match /payrollRuns/{id} { allow read, write: if false; }
     match /payrollSecrets/{id} { allow read, write: if false; }
     // Staff library and message hub (through /api/admin/staff-library and /api/admin/hub): server-only.
