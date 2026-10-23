@@ -12,6 +12,9 @@ export type NkenneConfig = { key: string; base?: string; fetch?: typeof fetch; t
 export type Lang = "English" | "Swahili";
 export type Voice = { id: string; name: string; gender: string };
 export const NKENNE_BASE = "https://developers-api.nkenne.ai";
+// The key as NKENNEAi expects it: just the key. A value pasted into Vercel with spaces, a line break, quotes or "Bearer " in
+// front is refused by the API with 401, so those are taken off.
+export const cleanKey = (v: string | undefined) => (v ?? "").trim().replace(/^["']|["']$/g, "").replace(/^Bearer\s+/i, "").trim();
 export const AUDIO_MAX_BYTES = 25 * 1024 * 1024; // the API's limit per file
 
 export class NkenneError extends Error {

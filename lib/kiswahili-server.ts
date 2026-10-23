@@ -2,7 +2,7 @@ import { createHash } from "node:crypto";
 import type { Firestore } from "firebase-admin/firestore";
 import { FieldValue } from "firebase-admin/firestore";
 import { setting } from "@/lib/config";
-import { NkenneError, speak, translateSpeech, translateText, transcribe, voices as listVoices, type NkenneConfig } from "./nkenne";
+import { NkenneError, cleanKey, speak, translateSpeech, translateText, transcribe, voices as listVoices, type NkenneConfig } from "./nkenne";
 import { audioParts, sourceOf, translateAll, type Block } from "./kiswahili";
 import { wavSeconds } from "./wav";
 
@@ -14,9 +14,9 @@ import { wavSeconds } from "./wav";
 export class KiswahiliError extends Error {
   constructor(message: string, public status = 400) { super(message); }
 }
-export const kiswahiliReady = () => !!setting("NKENNE_API_KEY");
+export const kiswahiliReady = () => !!cleanKey(setting("NKENNE_API_KEY"));
 const config = (): NkenneConfig => {
-  const key = setting("NKENNE_API_KEY");
+  const key = cleanKey(setting("NKENNE_API_KEY"));
   if (!key) throw new KiswahiliError("Kiswahili isn't switched on yet.", 409);
   return { key, base: setting("NKENNE_API_URL") || undefined };
 };

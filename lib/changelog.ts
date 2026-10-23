@@ -11,6 +11,14 @@ export type Release = {
 
 export const CHANGELOG: Release[] = [
   {
+    version: "v0.89.1",
+    bump: "patch",
+    date: "2026-10-23",
+    changes: [
+      { kind: "fixed", text: "Kiswahili: the NKENNEAi key is read without the spaces, line breaks, quotes or \"Bearer\" a pasted value can carry, which the service refused." },
+    ],
+  },
+  {
     version: "v0.89.0",
     bump: "minor",
     date: "2026-10-23",
