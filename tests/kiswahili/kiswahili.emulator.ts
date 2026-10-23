@@ -33,12 +33,12 @@ const count = (p: string) => asked.filter((a) => a.path === p).length;
   const note = (id: string, data: object) => db.doc(`notes/${id}`).set({ title: "Five questions", content: "# Ask first\n\nShort answers.\n\n- Fees\n- Time", status: "published", authorUid: "ka", offerSwahili: true, ...data });
   await note("n1", {}); await note("n2", { offerSwahili: false }); await note("n3", { premium: true }); await note("n4", { status: "draft" });
 
-  // first reader: translated (title and four blocks in one call), kept; second reader: from what was kept, no call
+  // first reader: translated (the title and four blocks, one call each), kept; second reader: from what was kept, no call
   const a = await swahiliNote(db, "n1", deps);
   assert.equal(a.title, "[sw] Five questions"); assert.deepEqual(a.blocks.map((b) => b.kind), ["h1", "p", "li", "li"]); assert.equal(a.fromKept, false);
-  assert.equal(count("/api/translate/with-api-key"), 1);
+  assert.equal(count("/api/translate/with-api-key"), 5);
   const b = await swahiliNote(db, "n1", deps);
-  assert.equal(b.fromKept, true); assert.equal(count("/api/translate/with-api-key"), 1, "no second call");
+  assert.equal(b.fromKept, true); assert.equal(count("/api/translate/with-api-key"), 5, "no second call");
   // only what the author offers: not switched on, subscriber-only, unpublished
   await assert.rejects(swahiliNote(db, "n2", deps), /hasn't offered/); await assert.rejects(swahiliNote(db, "n3", deps), /Subscriber-only/); await assert.rejects(swahiliNote(db, "n4", deps), /wasn't found/);
   // a reader arriving while another is translating is asked to wait, not charged twice
@@ -59,7 +59,7 @@ const count = (p: string) => asked.filter((a) => a.path === p).length;
   // the journal changes: translated again, and the old audio isn't reused
   await db.doc("notes/n1").update({ content: "# Ask first\n\nNew answers." });
   const c = await swahiliNote(db, "n1", deps);
-  assert.equal(c.fromKept, false); assert.equal(c.blocks.length, 2); assert.equal(count("/api/translate/with-api-key"), 2);
+  assert.equal(c.fromKept, false); assert.equal(c.blocks.length, 2); assert.equal(count("/api/translate/with-api-key"), 8, "the title and two blocks again");
   assert.equal(((await db.doc("swahili/note_n1").get()).data()!.audio as object | undefined) && Object.keys((await db.doc("swahili/note_n1").get()).data()!.audio).length, 0);
 
   // voice notes: only people in the chat, only voice notes, a WAV we can read, and kept on the message
