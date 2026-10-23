@@ -16,6 +16,16 @@ export const CHANGELOG: Release[] = [
     date: "2026-10-23",
     changes: [
       { kind: "changed", text: "Naija Exam Prep's new logo: a student rising out of an open book under a graduation cap, on a white rounded square, with the name in the logo's rounded lettering and “Built for your next breakthrough.” under it. It's the header, the browser and phone icon, and on the brand page and in the logo pack." },
+    version: "v0.82.0",
+    bump: "minor",
+    date: "2026-10-22",
+    changes: [
+      { kind: "added", text: "Team hub → Time: a timer for staff on work items, projects, meetings or other work, with billable time, notes and time added by hand. One timer at a time." },
+      { kind: "added", text: "Time checks: a running timer asks “still working?” every 30 minutes, on any page, with a sound, a browser notification and a bell. No answer in 10 minutes stops it and the last half hour isn't counted; a meeting waits for its planned length. A timer still running at midnight stops itself." },
+      { kind: "added", text: "Weekly timesheets against a 20-hour week (4 hours, Monday to Friday): change any day, submit for approval, and the week locks. Friday 4 pm brings a reminder if it isn't submitted." },
+      { kind: "added", text: "Team leads, chosen by super admins: they approve timesheets and leave for their departments (never their own) and see their teams' hours, attendance, billable share and projects against budget, with a CSV export." },
+      { kind: "added", text: "Leave requests (annual, sick, public holiday, other), each set to count towards attendance or not, and public holidays for the whole team." },
+      { kind: "changed", text: "Payroll pays by the hour: approved timesheet hours in the month × each person's hourly rate. Monthly salaries still work for anyone set up that way." },
     ],
   },
   {

@@ -7,11 +7,11 @@ import { useAdminCall } from "@/lib/useAdminCall";
 import { naira } from "@/lib/finance";
 import type { PayLine, PayRun, PayStaff } from "@/lib/payroll";
 
-type Data = { staff: PayStaff[]; runs: (PayRun & { totals: { total: number; paid: number; people: number; open: number } })[]; cryptoReady: boolean; monthlyTotalKobo: number };
+type Data = { people: { uid: string; name: string; email: string }[]; staff: PayStaff[]; runs: (PayRun & { totals: { total: number; paid: number; people: number; open: number } })[]; cryptoReady: boolean; monthlyTotalKobo: number };
 const field = "mt-1 block w-full rounded-lg border border-rule bg-card px-2 py-1.5 text-sm";
 const btn = "rounded-full bg-crimson px-4 py-2 font-ui text-xs font-semibold text-paper hover:bg-crimson-bright disabled:opacity-50";
 const ghost = "rounded-full border border-rule px-3 py-1.5 font-ui text-xs font-semibold hover:border-crimson disabled:opacity-50";
-const blank = { name: "", role: "", monthly: "", payDay: "28", startedOn: "", bankName: "", accountName: "", accountNumber: "", note: "" };
+const blank = { name: "", role: "", uid: "", basis: "hourly", hourly: "", monthly: "", payDay: "28", startedOn: "", bankName: "", accountName: "", accountNumber: "", note: "" };
 const thisMonth = () => new Date().toLocaleDateString("en-CA", { timeZone: "Africa/Lagos" }).slice(0, 7);
 const monthLabel = (p: string) => new Date(`${p}-15T12:00:00Z`).toLocaleDateString("en-NG", { month: "long", year: "numeric" });
 
@@ -44,7 +44,7 @@ export default function PayrollPage() {
         <div className="flex flex-wrap items-center gap-3">
           <div className="min-w-0 flex-1">
             <p className="font-ui text-sm font-bold text-ink">{l.name}{l.role ? <span className="font-normal text-slate"> · {l.role}</span> : null}</p>
-            <p className="text-xs text-slate">{l.adjustKobo ? `${naira(l.baseKobo)} ${l.adjustKobo > 0 ? "+" : "−"} ${naira(Math.abs(l.adjustKobo))} (${l.adjustNote})` : "Monthly pay"}{l.paidOn ? ` · paid ${l.paidOn}` : ""}</p>
+            <p className="text-xs text-slate">{l.adjustKobo ? `${naira(l.baseKobo)} ${l.adjustKobo > 0 ? "+" : "−"} ${naira(Math.abs(l.adjustKobo))} (${l.adjustNote})` : l.minutes !== undefined ? `${(l.minutes / 60).toFixed(2)} approved hours × ${naira(l.rateKobo ?? 0)}` : "Monthly pay"}{l.paidOn ? ` · paid ${l.paidOn}` : ""}</p>
           </div>
           <p className="font-display text-lg text-ink">{naira(l.amountKobo)}</p>
           {l.status === "paid" ? <span className="rounded-full bg-emerald-100 px-2.5 py-0.5 font-ui text-[11px] font-semibold text-emerald-800">paid</span> : (
@@ -71,7 +71,7 @@ export default function PayrollPage() {
       <Link href="/admin/team" className="font-ui text-xs font-semibold text-crimson">← Team hub</Link>
       <h1 className="mt-2 font-display text-4xl text-ink">Payroll</h1>
       <p className="mt-2 max-w-3xl text-sm text-slate">
-        Staff pay, a monthly run, and who has been paid. Only finance and super admins see this page. Marking someone paid writes a Payroll entry into the <Link href="/admin/team/finance" className="text-crimson underline">money ledger</Link>;
+        Staff pay, a monthly run, and who has been paid. Hourly staff are paid the hours approved on their <Link href="/admin/team/time" className="text-crimson underline">timesheets</Link> in the month × their rate, so link their staff login. Only finance and super admins see this page. Marking someone paid writes a Payroll entry into the <Link href="/admin/team/finance" className="text-crimson underline">money ledger</Link>;
         the bank transfer itself is made by hand for now. Account numbers are stored encrypted and shown only when you ask, and each time is logged.
       </p>
       {error && <p className="mt-4 whitespace-pre-line text-sm text-red-700" role="alert">{error}</p>}
@@ -81,7 +81,7 @@ export default function PayrollPage() {
           {!data.cryptoReady && <p className="mt-4 rounded-xl border border-amber-300 bg-amber-50 p-3 text-sm text-ink">Account numbers can&apos;t be saved yet: <code>ACCOUNT_DATA_KEY</code> isn&apos;t set. Everything else works.</p>}
           <div className="mt-6 grid grid-cols-2 gap-4 sm:grid-cols-3">
             <div className="card p-4"><p className="eyebrow">People on payroll</p><p className="mt-2 font-display text-xl text-ink">{data.staff.filter((s) => s.active).length}</p></div>
-            <div className="card p-4"><p className="eyebrow">Monthly pay</p><p className="mt-2 font-display text-xl text-ink">{naira(data.monthlyTotalKobo)}</p></div>
+            <div className="card p-4"><p className="eyebrow">Monthly salaries</p><p className="mt-2 font-display text-xl text-ink">{naira(data.monthlyTotalKobo)}</p></div>
             <div className="card p-4"><p className="eyebrow">Latest run</p><p className="mt-2 font-display text-xl text-ink">{data.runs[0] ? `${monthLabel(data.runs[0].period)}: ${data.runs[0].totals.open ? `${data.runs[0].totals.open} to pay` : "all paid"}` : "None yet"}</p></div>
           </div>
 
@@ -119,7 +119,11 @@ export default function PayrollPage() {
               }}>
                 <label className="text-xs">Name<input className={field} required value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} /></label>
                 <label className="text-xs">Role<input className={field} value={form.role} onChange={(e) => setForm({ ...form, role: e.target.value })} /></label>
-                <label className="text-xs">Monthly pay, ₦<input className={field} required inputMode="decimal" value={form.monthly} onChange={(e) => setForm({ ...form, monthly: e.target.value })} /></label>
+                <label className="text-xs">Paid<select className={field} value={form.basis} onChange={(e) => setForm({ ...form, basis: e.target.value })}><option value="hourly">By the hour (approved timesheet hours)</option><option value="monthly">A monthly salary</option></select></label>
+                {form.basis === "hourly"
+                  ? <label className="text-xs">Hourly rate, ₦<input className={field} required inputMode="decimal" value={form.hourly} onChange={(e) => setForm({ ...form, hourly: e.target.value })} /></label>
+                  : <label className="text-xs">Monthly pay, ₦<input className={field} required inputMode="decimal" value={form.monthly} onChange={(e) => setForm({ ...form, monthly: e.target.value })} /></label>}
+                <label className="text-xs">Staff login <span className="text-slate">{form.basis === "hourly" ? "(needed: their timesheet hours)" : "(optional)"}</span><select className={field} required={form.basis === "hourly"} value={form.uid} onChange={(e) => setForm({ ...form, uid: e.target.value })}><option value="">Not linked</option>{data?.people.map((p) => <option key={p.uid} value={p.uid}>{p.name} · {p.email}</option>)}</select></label>
                 <label className="text-xs">Pay day (1 to 28)<input className={field} type="number" min={1} max={28} value={form.payDay} onChange={(e) => setForm({ ...form, payDay: e.target.value })} /></label>
                 <label className="text-xs">Started on<input className={field} type="date" required value={form.startedOn} onChange={(e) => setForm({ ...form, startedOn: e.target.value })} /></label>
                 <label className="text-xs">Bank<input className={field} value={form.bankName} onChange={(e) => setForm({ ...form, bankName: e.target.value })} /></label>
@@ -135,12 +139,12 @@ export default function PayrollPage() {
                   <div className="flex flex-wrap items-center gap-3">
                     <div className="min-w-0 flex-1">
                       <p className="font-ui text-sm font-bold text-ink">{s.name}{s.role ? <span className="font-normal text-slate"> · {s.role}</span> : null}{!s.active && <span className="ml-2 text-xs font-normal text-slate">(not on payroll)</span>}</p>
-                      <p className="text-xs text-slate">Paid on the {s.payDay}th · since {s.startedOn}{s.bankName ? ` · ${s.bankName}` : ""}{s.hasAccount ? ` · account ending ${s.accountLast4}` : " · no account saved"}</p>
+                      <p className="text-xs text-slate">{s.basis === "hourly" ? (s.uid ? "By the hour · " : "By the hour · link their staff login · ") : ""}Paid on the {s.payDay}th · since {s.startedOn}{s.bankName ? ` · ${s.bankName}` : ""}{s.hasAccount ? ` · account ending ${s.accountLast4}` : " · no account saved"}</p>
                     </div>
-                    <p className="font-display text-lg text-ink">{naira(s.monthlyKobo)}</p>
+                    <p className="font-display text-lg text-ink">{s.basis === "hourly" ? `${naira(s.hourlyKobo)}/h` : naira(s.monthlyKobo)}</p>
                     <span className="flex gap-2">
                       {s.hasAccount && <button className={ghost} disabled={busy} onClick={async () => { const r = await run({ action: "reveal", id: s.id }, "Shown below. This was logged."); if (r) setShown({ id: s.id, ...r }); }}>Show account</button>}
-                      <button className={ghost} onClick={() => setForm({ id: s.id, name: s.name, role: s.role, monthly: String(s.monthlyKobo / 100), payDay: String(s.payDay), startedOn: s.startedOn, bankName: s.bankName, accountName: s.accountName, accountNumber: "", note: s.note })}>Edit</button>
+                      <button className={ghost} onClick={() => setForm({ id: s.id, name: s.name, role: s.role, uid: s.uid ?? "", basis: s.basis, hourly: s.hourlyKobo ? String(s.hourlyKobo / 100) : "", monthly: s.monthlyKobo ? String(s.monthlyKobo / 100) : "", payDay: String(s.payDay), startedOn: s.startedOn, bankName: s.bankName, accountName: s.accountName, accountNumber: "", note: s.note })}>Edit</button>
                       <button className={ghost} disabled={busy} onClick={() => run({ action: "updateStaff", id: s.id, staff: {}, active: !s.active }, s.active ? "Taken off payroll. Past runs are unchanged." : "Back on payroll.")}>{s.active ? "Take off payroll" : "Put back"}</button>
                     </span>
                   </div>
