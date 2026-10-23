@@ -22,6 +22,7 @@ import { syncOrcidSites } from "@/lib/publications-server";
 import { sendEventReminders } from "@/lib/events-server";
 import { fridayNudges, sweepTimers } from "@/lib/time-server";
 import { sendKidReports } from "@/lib/kids-server";
+import { birthdayBells } from "@/lib/young-server";
 
 // Run every ~15 minutes by an external scheduler with
 //   Authorization: Bearer $CRON_SECRET
@@ -99,6 +100,8 @@ export async function GET(req: NextRequest) {
   await job("timeFridayNudge", () => fridayNudges(db));
   // Kids mode: Sundays from 5 PM Lagos, each parent gets their child's week on Naija Exam Prep, once (lib/kids-server.ts).
   await job("kidReports", () => sendKidReports(db));
+  // Teen mode: on an 18th birthday, one bell to the "You're 18 now" screen (lib/young-server.ts).
+  await job("birthday18", () => birthdayBells(db));
   // Sundays from 5 PM Lagos, in batches across runs, once WEEKLY_DIGEST=on (lib/digest-server.ts).
   await job("weeklyDigest", () => sendWeeklyDigests(db));
   // Events: reminders 24 hours and 1 hour before each start to everyone going or interested (lib/events-server.ts).

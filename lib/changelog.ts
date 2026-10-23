@@ -11,6 +11,16 @@ export type Release = {
 
 export const CHANGELOG: Release[] = [
   {
+    version: "v0.86.0",
+    bump: "minor",
+    date: "2026-10-23",
+    changes: [
+      { kind: "added", text: "Turning 18: on their 18th birthday a student in teen mode gets a bell and a one-time “You're 18 now” screen. Every switch stays off until they turn it on, and whatever they leave off stays protected on their account." },
+      { kind: "added", text: "They agree to the Terms and Privacy Policy themselves, can download their data or delete their day-by-day practice log (progress, scores and certificates stay), and their parent or guardian is told the account is now theirs, with their email removed." },
+      { kind: "changed", text: "Students in teen mode no longer get the weekly digest." },
+    ],
+  },
+  {
     version: "v0.85.0",
     bump: "minor",
     date: "2026-10-23",

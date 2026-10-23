@@ -36,3 +36,22 @@ export function teenBirth(month: unknown, year: unknown, today: string): string 
 }
 
 export const MONTHS = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+
+// ── Turning 18 (the graduation flow) ─────────────────────────────────────────────────────────────────────────────────────────────
+// On their 18th birthday a teen gets a one-time screen. Everything stays as it was in teen mode until they switch it on; whatever
+// they leave off is kept as a protection of their own (the keep* flags on users/{uid}), so nothing opens up without their say.
+export const graduationDue = (birth: string | undefined | null, today: string) => !!birth && isBirth(birth) && ageOn(birth, today) >= ADULT_AT;
+export type GraduationChoice = { search: boolean; messages: boolean; replies: boolean; realName: boolean; offers: boolean };
+export const CHOICE_LABEL: Record<keyof GraduationChoice, string> = {
+  search: "Show me in people search and the directory",
+  messages: "Messages and group invites from anyone, not only people I follow",
+  replies: "Replies and moments open to everyone, not only people I follow",
+  realName: "My real name on the Exam Prep board, not my nickname",
+  offers: "NotesApp's weekly digest, newsletters and offers",
+};
+export function cleanChoice(b: Record<string, unknown>): GraduationChoice {
+  if (b.consent !== true) throw new YoungError("Agree to the Terms and Privacy Policy yourself to make the account yours.");
+  return { search: b.search === true, messages: b.messages === true, replies: b.replies === true, realName: b.realName === true, offers: b.offers === true };
+}
+// What each choice left off keeps on the account.
+export const keepFlags = (c: GraduationChoice) => ({ keepHidden: !c.search, keepDmFollowers: !c.messages, keepRepliesFollowers: !c.replies });

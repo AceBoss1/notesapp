@@ -38,7 +38,7 @@ async function whoIs(db: Firestore, uid: string): Promise<Who & { suspended: boo
 export async function teenGate(db: Firestore, me: { uid: string; username: string }, uids: (string | null | undefined)[]): Promise<void> {
   for (const t of Array.from(new Set(uids.filter((u): u is string => !!u && u !== me.uid)))) {
     const u = (await db.doc(`users/${t}`).get()).data();
-    if (u?.teen !== true) continue;
+    if (u?.teen !== true && u?.keepRepliesFollowers !== true) continue; // teen mode, or kept on turning 18
     if (!(await db.doc(`follows/${t}_${me.username}`).get()).exists) throw new CommentError(`Only people ${String(u.displayName || u.username || "they")} follows can reply to them.`, 403);
   }
 }

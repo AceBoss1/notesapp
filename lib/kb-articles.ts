@@ -759,7 +759,9 @@ Students aged 13 to 17 can use ${PREP_NAME}. After signing up, tap **Yes, I'm un
 
 **Parents and guardians** get an email asking them to confirm, with a link. The address is kept only to confirm the account and to contact them about it; it's never shown on the profile. A student can practise, and buy a pack or send a pay link, before the parent confirms. A parent can ask for a refund under the pack's refund rule (within ${REFUND_DAYS} days, no pack question opened) or for the account to be closed, from the contact page.
 
-No ads are shown to students in teen mode, and their data isn't sold or used to market to them.
+No ads are shown to students in teen mode, and their data isn't sold or used to market to them; they don't get the weekly digest or offers.
+
+**On your 18th birthday** you get a one-time screen, "You're 18 now": everything stays as it was until you switch it on (people search, messages from anyone, replies and moments from anyone, your real name on the board, the digest and offers). You agree to the Terms and Privacy Policy yourself, can download your data or delete your day-by-day practice log, and we tell your parent or guardian the account is now yours and remove their email.
 `),
     A("naija-exam-prep-reviewers", `Reviewing questions for ${PREP_NAME}`, "Teams and organisations", `
 Every ${PREP_NAME} question is checked by a reviewer before students see it.

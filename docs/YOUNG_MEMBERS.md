@@ -39,7 +39,7 @@ identity `kid_<id>` minted only for the owning parent (claims kid, kidId, parent
 keeping it to the areas switched on, kids' Notesville in Notes Life (residents only, play time per day), the Sunday email to the
 parent, and firestore.rules refusing a child profile any profile edit, username or follow.
 
-## Turning 18 (the graduation flow, to build)
+## Turning 18 (the graduation flow, built in v0.86.0: `lib/young-server.ts`, `/api/young`, `/eighteen`)
 
 1. The birth year (or date) is kept on the server at sign-up in kids or teen mode, never shown.
 2. On the 18th birthday, a one-time **"You're 18 now"** screen. The student switches on what they want: appearing in search,
@@ -51,6 +51,12 @@ parent, and firestore.rules refusing a child profile any profile edit, username 
 5. The parent is told the account is now the student's, and is unlinked.
 6. Then the case on merit: exam history carried over, a free Pro trial, Academy courses for university and a first job, a
    portfolio site, the CardTap wallet.
+
+Built as: a bell and a banner on the birthday (from the birth month in `prepTeens`), the `/eighteen` screen with five switches all off
+(search and directory, messages from anyone, replies and moments from anyone, real name on the board, digest and offers), their own
+consent (`users.consent.own`), a download of their data and, if asked, deleting the day-by-day practice log. Whatever stays off is
+kept as `users.keepHidden`, `keepDmFollowers`, `keepRepliesFollowers` (honoured wherever teen mode is); the parent is emailed and
+`prepTeens` (their email, the birth month) is deleted. Instead of a free month of Pro, the existing 15-day Pro trial is offered.
 
 ## While they're young
 

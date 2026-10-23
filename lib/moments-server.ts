@@ -62,7 +62,7 @@ export async function getMomentPrefs(db: Firestore, uid: string): Promise<{ mome
 }
 export async function setMomentPrefs(db: Firestore, uid: string, value: unknown): Promise<void> {
   if (typeof value !== "boolean") throw new MomentError(400, "Choose who can see your moments.");
-  if (value && (await db.doc(`users/${uid}`).get()).data()?.teen === true) throw new MomentError(403, "In teen mode your moments are for people you follow back.");
+  if (value && ((await db.doc(`users/${uid}`).get()).data()?.teen === true || (await db.doc(`users/${uid}`).get()).data()?.keepRepliesFollowers === true)) throw new MomentError(403, "In teen mode your moments are for people you follow back.");
   await db.doc(`userPrefs/${uid}`).set({ uid, momentsPublic: value }, { merge: true });
 }
 
@@ -74,7 +74,7 @@ async function canSee(db: Firestore, viewerUid: string, m: MomentDoc): Promise<b
   if (a.exists || b.exists) return false;
   // Teen mode: a teen's moments are for people they follow back, never public, whatever the setting says.
   const owner = (await db.doc(`users/${m.ownerUid}`).get()).data();
-  if (owner?.teen === true) return teenSees(db, m.ownerUid, m.ownerUsername, viewerUid);
+  if (owner?.teen === true || owner?.keepRepliesFollowers === true) return teenSees(db, m.ownerUid, m.ownerUsername, viewerUid);
   return (await follows(db, viewerUid, m.ownerUsername)) || momentsPublic(db, m.ownerUid);
 }
 
@@ -213,7 +213,7 @@ export async function listFeed(db: Firestore, viewer: { uid: string; username: s
   const owners = ownerIds.length ? await db.getAll(...ownerIds.map((u) => db.doc(`users/${u}`))) : [];
   // A teen's moments only when they follow the viewer back (teen mode).
   const teenOk = new Map<string, boolean>();
-  for (const o of owners) if (o.data()?.teen === true && o.id !== viewer.uid) teenOk.set(o.id, (await db.doc(`follows/${o.id}_${viewer.username}`).get()).exists);
+  for (const o of owners) if ((o.data()?.teen === true || o.data()?.keepRepliesFollowers === true) && o.id !== viewer.uid) teenOk.set(o.id, (await db.doc(`follows/${o.id}_${viewer.username}`).get()).exists);
   const visible = unblocked.filter((d) => teenOk.get(d.m.ownerUid) !== false);
   const liked = await likedSet(db, viewer.uid, visible.map((d) => d.id));
   const who = new Map(owners.map((o) => [o.id, { displayName: String(o.data()?.displayName ?? ""), avatar: String(o.data()?.avatar ?? ""), isOrg: o.data()?.accountKind === "organisation" }]));

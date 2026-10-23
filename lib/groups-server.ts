@@ -45,7 +45,7 @@ async function checkAddable(db: Firestore, adder: { uid: string; username: strin
     ]);
     if (blocked.exists) throw new MessageError(404, "One of those members wasn't found.");
     // Teen mode (Naija Exam Prep): an under-18 joins a group only when they follow the person adding them.
-    if (u?.teen === true && !theyFollow.exists) throw new MessageError(403, `${u?.displayName ?? "That member"} can only be added by people they follow.`);
+    if ((u?.teen === true || u?.keepDmFollowers === true) && !theyFollow.exists) throw new MessageError(403, `${u?.displayName ?? "That member"} can only be added by people they follow.`);
     if (!theyFollow.exists && !iFollow.exists && !isAutoFollowed(adder.username) && !isAutoFollowed(String(u?.username ?? ""))) throw new MessageError(403, `You can add people you follow or who follow you. ${u?.displayName ?? "That member"} is neither.`);
   }
 }

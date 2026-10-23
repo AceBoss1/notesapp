@@ -240,7 +240,8 @@ export async function countSends(db: Firestore, sends: Map<string, number>, now 
 // `left` counts go down by one for each, so a batch never carries a boost past its daily cap.
 export async function buildDigest(db: Firestore, uid: string, pool: PoolStory[], market: PoolItem[] = [], courses: PoolItem[] = [], sponsors?: Sponsors): Promise<DigestEmail | null> {
   const u = (await db.doc(`users/${uid}`).get()).data();
-  if (!u || u.suspended === true || !u.username || NO_INBOX.has(String(u.username))) return null;
+  // Teen mode: no growth emails to the student (docs/YOUNG_MEMBERS.md).
+  if (!u || u.suspended === true || u.teen === true || !u.username || NO_INBOX.has(String(u.username))) return null;
   const follows = await db.collection("follows").where("followerUid", "==", uid).limit(500).get();
   const interests = Array.isArray(u.interests) ? u.interests.map(String) : [];
   const stories = pickStories(pool, { uid, follows: new Set(follows.docs.map((d) => String(d.data().username))), interests });

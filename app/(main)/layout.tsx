@@ -8,6 +8,7 @@ import VerifyEmailBanner from "@/components/VerifyEmailBanner";
 import WorkPrompt from "@/components/WorkPrompt";
 import TimeCheck from "@/components/TimeCheck";
 import KidGuard from "@/components/KidGuard";
+import EighteenBanner from "@/components/EighteenBanner";
 import NanaChat from "@/components/NanaChat";
 import FooterCta from "@/components/FooterCta";
 import PushPrompt from "@/components/messages/PushPrompt";
@@ -119,6 +120,7 @@ const site = await getSiteSettingsCached();
           <ChallengeBanner />
           <VerifyEmailBanner />
           <KidGuard />
+          <EighteenBanner />
           <WorkPrompt />
           <TimeCheck />
           <PushPrompt />

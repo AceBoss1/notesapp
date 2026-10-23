@@ -325,7 +325,9 @@ export async function recordAttempt(db: Firestore, uid: string | null, questionI
     const ids = d?.ids ?? [];
     if (ids.includes(qid) || ids.length >= BOARD_DAILY_CAP) return { counted: false };
     t.set(dayRef, { ids: [...ids, qid], day: today(now) });
-    if (member?.joined) t.set(db.doc(`prepBoardWeeks/${weekId(iso(now))}/entries/${uid}`), { nickname: member.nickname, count: FieldValue.increment(1) }, { merge: true });
+    // An adult who chose their real name on turning 18 (prepBoard.realName) shows it; everyone else, the nickname.
+    const shown = member?.realName === true ? String((await db.doc(`users/${uid}`).get()).data()?.displayName || member.nickname) : member?.nickname;
+    if (member?.joined) t.set(db.doc(`prepBoardWeeks/${weekId(iso(now))}/entries/${uid}`), { nickname: shown, count: FieldValue.increment(1) }, { merge: true });
     return { counted: !!member?.joined };
   });
 }
