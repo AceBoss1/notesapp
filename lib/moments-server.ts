@@ -62,6 +62,7 @@ export async function getMomentPrefs(db: Firestore, uid: string): Promise<{ mome
 }
 export async function setMomentPrefs(db: Firestore, uid: string, value: unknown): Promise<void> {
   if (typeof value !== "boolean") throw new MomentError(400, "Choose who can see your moments.");
+  if (value && (await db.doc(`users/${uid}`).get()).data()?.teen === true) throw new MomentError(403, "In teen mode your moments are for people you follow back.");
   await db.doc(`userPrefs/${uid}`).set({ uid, momentsPublic: value }, { merge: true });
 }
 
@@ -71,7 +72,18 @@ async function canSee(db: Firestore, viewerUid: string, m: MomentDoc): Promise<b
   // A block either way hides the moments (and the reshares that point at them).
   const [a, b] = await Promise.all([db.doc(`dmBlocks/${m.ownerUid}_${viewerUid}`).get(), db.doc(`dmBlocks/${viewerUid}_${m.ownerUid}`).get()]);
   if (a.exists || b.exists) return false;
+  // Teen mode: a teen's moments are for people they follow back, never public, whatever the setting says.
+  const owner = (await db.doc(`users/${m.ownerUid}`).get()).data();
+  if (owner?.teen === true) return teenSees(db, m.ownerUid, m.ownerUsername, viewerUid);
   return (await follows(db, viewerUid, m.ownerUsername)) || momentsPublic(db, m.ownerUid);
+}
+
+// Both ways: the viewer follows the teen, and the teen follows the viewer.
+async function teenSees(db: Firestore, ownerUid: string, ownerUsername: string, viewerUid: string, viewerUsername?: string): Promise<boolean> {
+  const name = viewerUsername ?? String((await db.doc(`users/${viewerUid}`).get()).data()?.username ?? "");
+  if (!name) return false;
+  const [a, b] = await Promise.all([db.doc(`follows/${viewerUid}_${ownerUsername}`).get(), db.doc(`follows/${ownerUid}_${name}`).get()]);
+  return a.exists && b.exists;
 }
 
 function toView(id: string, m: MomentDoc, viewerUid: string, liked: boolean, deps: MomentDeps): MomentView {
@@ -195,11 +207,15 @@ export async function listFeed(db: Firestore, viewer: { uid: string; username: s
   // Hide anyone who blocked the viewer, or whom the viewer blocked.
   const [byMe, onMe] = await Promise.all([db.collection("dmBlocks").where("blocker", "==", viewer.uid).get(), db.collection("dmBlocks").where("blocked", "==", viewer.uid).get()]);
   const hidden = new Set([...byMe.docs.map((d) => d.data().blocked as string), ...onMe.docs.map((d) => d.data().blocker as string)]);
-  const visible = docs.filter((d) => !hidden.has(d.m.ownerUid));
-  const liked = await likedSet(db, viewer.uid, visible.map((d) => d.id));
+  const unblocked = docs.filter((d) => !hidden.has(d.m.ownerUid));
   // Names and pictures for the tiles (one read for each member who has something up).
-  const ownerIds = Array.from(new Set(visible.map((d) => d.m.ownerUid)));
+  const ownerIds = Array.from(new Set(unblocked.map((d) => d.m.ownerUid)));
   const owners = ownerIds.length ? await db.getAll(...ownerIds.map((u) => db.doc(`users/${u}`))) : [];
+  // A teen's moments only when they follow the viewer back (teen mode).
+  const teenOk = new Map<string, boolean>();
+  for (const o of owners) if (o.data()?.teen === true && o.id !== viewer.uid) teenOk.set(o.id, (await db.doc(`follows/${o.id}_${viewer.username}`).get()).exists);
+  const visible = unblocked.filter((d) => teenOk.get(d.m.ownerUid) !== false);
+  const liked = await likedSet(db, viewer.uid, visible.map((d) => d.id));
   const who = new Map(owners.map((o) => [o.id, { displayName: String(o.data()?.displayName ?? ""), avatar: String(o.data()?.avatar ?? ""), isOrg: o.data()?.accountKind === "organisation" }]));
   const groups = new Map<string, MomentGroup>();
   for (const { id, m } of visible.sort((a, b) => (a.m.createdAt < b.m.createdAt ? -1 : 1))) {

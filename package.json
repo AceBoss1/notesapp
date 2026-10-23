@@ -38,6 +38,8 @@
     "test:life-social": "npx -y tsx tests/life/social.test.ts",
     "test:life-social-server": "NEXT_PUBLIC_FIREBASE_API_KEY=x NEXT_PUBLIC_FIREBASE_PROJECT_ID=demo-notesapp NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=x NEXT_PUBLIC_FIREBASE_APP_ID=x npx firebase-tools@13 emulators:exec --only firestore --project demo-notesapp \"npx -y tsx tests/life/social.emulator.ts\"",
     "test:exam-prep": "npx -y tsx tests/exam-prep/exam-prep.test.ts",
+    "test:young": "npx -y tsx tests/young/young.test.ts",
+    "test:young-server": "NEXT_PUBLIC_FIREBASE_API_KEY=x NEXT_PUBLIC_FIREBASE_PROJECT_ID=demo-notesapp NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=x NEXT_PUBLIC_FIREBASE_APP_ID=x npx firebase-tools@13 emulators:exec --only firestore --project demo-notesapp \"npx -y tsx tests/young/teen.emulator.ts\"",
     "test:exam-prep-server": "PAYSTACK_SECRET_KEY=sk_test_standin NEXT_PUBLIC_FIREBASE_API_KEY=x NEXT_PUBLIC_FIREBASE_PROJECT_ID=demo-notesapp NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=x NEXT_PUBLIC_FIREBASE_APP_ID=x npx firebase-tools@13 emulators:exec --only firestore --project demo-notesapp \"npx -y tsx tests/exam-prep/exam-prep.emulator.ts\"",
     "test:cardtap": "npx -y tsx tests/life/cardtap.test.ts && npx -y tsx tests/cardtap/topup.test.ts",
     "test:cardtap-server": "NEXT_PUBLIC_WALLET_LIVE=true PAYLONY_SECRET_KEY=sk_test_x PAYLONY_CARDTAP_TERMINAL_ID=T-TEST NEXT_PUBLIC_FIREBASE_API_KEY=x NEXT_PUBLIC_FIREBASE_PROJECT_ID=demo-notesapp NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=x NEXT_PUBLIC_FIREBASE_APP_ID=x npx firebase-tools@13 emulators:exec --only firestore --project demo-notesapp \"npx -y tsx tests/cardtap/topup.emulator.ts\"",

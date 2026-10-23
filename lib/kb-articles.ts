@@ -742,9 +742,9 @@ ${PREP_NAME} (${PREP_HOST}) is NotesApp's exam practice, part of Notes Academy. 
 **Report a problem:** every question has **Report a problem** (wrong answer, unclear, typo). ${PREP_NAME} is not affiliated with JAMB, WAEC or NECO; all questions are original practice questions, checked by a reviewer before they're published.
 `),
     A("naija-exam-prep-teen-mode", `${PREP_NAME}: teen mode and parents`, "Safety and your data", `
-Students under 18 can use ${PREP_NAME}. After signing up, tap **Yes, I'm under 18** and give a parent's or guardian's email.
+Students aged 13 to 17 can use ${PREP_NAME}. After signing up, tap **Yes, I'm under 18**, choose the month and year you were born, and give a parent's or guardian's email. The month and year are kept privately, never shown, so teen mode ends on your 18th birthday. Under 13, a parent or guardian sets you up from their own account.
 
-**Teen mode:** you don't appear in people search or the member directory; only people you follow can message you or add you to a group; and the weekly board shows only your nickname, never your name.
+**Teen mode:** you don't appear in people search or the member directory; only people you follow can message you, add you to a group, or reply to your journals and comments; your moments are seen only by people you follow who follow you back (never public); and the weekly board shows only your nickname, never your name.
 
 **Parents and guardians** get an email asking them to confirm, with a link. The address is kept only to confirm the account and to contact them about it; it's never shown on the profile. A student can practise, and buy a pack or send a pay link, before the parent confirms. A parent can ask for a refund under the pack's refund rule (within ${REFUND_DAYS} days, no pack question opened) or for the account to be closed, from the contact page.
 

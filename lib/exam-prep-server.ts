@@ -8,6 +8,7 @@ import {
   type AccessDoc, type ExamId, type Pack, type Progress, type Question, type QuestionInput, type StudentQuestion, type Subject, type OfflinePass,
 } from "./exam-prep";
 import { DEFAULT_SUBJECTS } from "./exam-prep-catalog";
+import { YoungError, teenBirth } from "./young";
 
 // Server-only. Naija Exam Prep (lib/exam-prep.ts has the rules and the shape of everything). Every function takes the database so
 // the emulator tests run them as they are.
@@ -547,12 +548,19 @@ export async function adminRefund(db: Firestore, reference: unknown, refund: (re
 // ---------------------------------------------------------------- teen mode
 // Under 18: hidden from people search and the directory, messages only from people they follow, a nickname on the board. A parent
 // or guardian is asked to confirm by email; the address is kept here, never on the public profile.
-export async function setTeen(db: Firestore, uid: string, parentEmail: unknown, send: (to: string, link: string) => Promise<boolean>, origin: string, now = new Date()) {
+// The birth month and year (lib/young.ts) is kept here too, never on the profile: it's how we know when they turn 18.
+const birthOf = (month: unknown, year: unknown, now: Date) => {
+  try { return teenBirth(month, year, iso(now).slice(0, 10)); } catch (e) { throw e instanceof YoungError ? new PrepError(e.message) : e; }
+};
+export async function setTeen(db: Firestore, uid: string, parentEmail: unknown, send: (to: string, link: string) => Promise<boolean>, origin: string, now = new Date(), birth?: { month: unknown; year: unknown }) {
   const email = String(parentEmail ?? "").trim().toLowerCase();
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email) || email.length > 200) throw new PrepError("Enter your parent's or guardian's email address.");
+  // Resending to a new address keeps the month and year given before.
+  const had = (await db.doc(`prepTeens/${uid}`).get()).data()?.birth;
+  const born = !birth?.month && !birth?.year && had ? String(had) : birthOf(birth?.month, birth?.year, now);
   const t = token(18);
   await db.doc(`users/${uid}`).set({ teen: true }, { merge: true });
-  await db.doc(`prepTeens/${uid}`).set({ uid, parentEmail: email, tokenHash: hash(t), askedAt: iso(now), confirmedAt: null }, { merge: true });
+  await db.doc(`prepTeens/${uid}`).set({ uid, parentEmail: email, birth: born, tokenHash: hash(t), askedAt: iso(now), confirmedAt: null }, { merge: true });
   const sent = await send(email, `${origin}/exam-prep/confirm?t=${encodeURIComponent(t)}&u=${encodeURIComponent(uid)}`).catch(() => false);
   await db.doc(`prepTeens/${uid}`).update({ emailSent: sent });
   return { teen: true, emailSent: sent };
@@ -566,7 +574,14 @@ export async function confirmTeen(db: Firestore, uid: unknown, tok: unknown, now
 }
 export async function teenStatus(db: Firestore, uid: string) {
   const [u, t] = await Promise.all([db.doc(`users/${uid}`).get(), db.doc(`prepTeens/${uid}`).get()]);
-  return { teen: u.data()?.teen === true, confirmed: !!t.data()?.confirmedAt, emailSent: t.data()?.emailSent ?? null };
+  return { teen: u.data()?.teen === true, confirmed: !!t.data()?.confirmedAt, emailSent: t.data()?.emailSent ?? null, hasBirth: !!t.data()?.birth };
+}
+// Teen mode turned on before we asked: the month and year, once.
+export async function setTeenBirth(db: Firestore, uid: string, month: unknown, year: unknown, now = new Date()) {
+  const ref = db.doc(`prepTeens/${uid}`);
+  if (!(await ref.get()).exists) throw new PrepError("Teen mode isn't on for this account.", 409);
+  await ref.update({ birth: birthOf(month, year, now) });
+  return { hasBirth: true };
 }
 
 // ---------------------------------------------------------------- admin metrics

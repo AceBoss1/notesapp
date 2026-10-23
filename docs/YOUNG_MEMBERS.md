@@ -26,13 +26,14 @@ Legal checks these points (team hub, Legal & compliance): the Terms clause, the 
 | Who opens the account | A parent, who owns it | The student; a parent confirms by email | The member |
 | People search and directory | Hidden | Hidden | Their choice |
 | Messages and group invites | None | Only from people they follow | Anyone (their settings) |
-| Comments and moments | Off | Replies only from people they follow (to build) | Their settings |
+| Comments and moments | Off | Replies only from people they follow; moments only for mutual follows, never public (v0.83.0) | Their settings |
 | Board and public name | Nickname only | Nickname only | Their choice |
 | Ads, offers, newsletters | Never | Never to the student; anything goes to the parent | Opt in |
 | Paying | The parent | Allowed, refundable, parent told | Normal |
 
-Teen mode is built (v0.79.0: `users.teen`, `prepTeens`, `serverPublicUsers`, `sendMessage`, `checkAddable`). Kids mode and
-teen mode on Moments are next.
+Teen mode is built (v0.79.0: `users.teen`, `prepTeens`, `serverPublicUsers`, `sendMessage`, `checkAddable`). v0.83.0 adds the
+birth month and year (`prepTeens.birth`, `lib/young.ts`; 13 to 17 only), replies only from people the teen follows (`teenGate` in
+`lib/comments-server.ts`) and moments only for mutual follows (`lib/moments-server.ts`). Kids mode is next.
 
 ## Turning 18 (the graduation flow, to build)
 

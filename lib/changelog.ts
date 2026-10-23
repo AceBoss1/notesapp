@@ -11,6 +11,15 @@ export type Release = {
 
 export const CHANGELOG: Release[] = [
   {
+    version: "v0.83.0",
+    bump: "minor",
+    date: "2026-10-23",
+    changes: [
+      { kind: "added", text: "Teen mode: only people a teen follows can reply to their journals and comments, and a teen's moments are seen only by people they follow back, never in public." },
+      { kind: "added", text: "Teen mode asks the month and year you were born (kept privately, never shown) so it can end on your 18th birthday. It's for ages 13 to 17; under 13, a parent sets you up from their own account." },
+    ],
+  },
+  {
     version: "v0.81.0",
     bump: "minor",
     date: "2026-10-22",
