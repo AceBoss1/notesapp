@@ -16,6 +16,7 @@ export const CHANGELOG: Release[] = [
     date: "2026-10-23",
     changes: [
       { kind: "fixed", text: "Kiswahili: the NKENNEAi key is read without the spaces, line breaks, quotes or \"Bearer\" a pasted value can carry, which the service refused." },
+      { kind: "changed", text: "Kiswahili: when the firewall in front of NKENNEAi blocks our server, members see that plainly and the usage log says it was the firewall (no tokens used), not a page of HTML." },
     ],
   },
   {
