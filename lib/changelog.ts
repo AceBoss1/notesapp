@@ -16,6 +16,9 @@ export const CHANGELOG: Release[] = [
     date: "2026-10-23",
     changes: [
       { kind: "changed", text: "Naija Exam Prep's new logo: a student rising out of an open book under a graduation cap, on a white rounded square, with the name in the logo's rounded lettering and “Built for your next breakthrough.” under it. It's the header, the browser and phone icon, and on the brand page and in the logo pack." },
+    ],
+  },
+  {
     version: "v0.82.0",
     bump: "minor",
     date: "2026-10-22",
