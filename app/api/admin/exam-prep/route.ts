@@ -4,7 +4,7 @@ import { verifyAdminRequest } from "@/lib/firebase-admin";
 import { fulfillPayment } from "@/lib/payments";
 import { refundPayment } from "@/lib/refunds";
 import {
-  PrepError, adminGrant, adminRefund, allPacks, allSubjects, closeInvite, createInvite, importQuestions, reviewQuestion, lookupAccess, prepMetrics, publishQuestion, reviewQueue, saveQuestion,
+  PrepError, addMissingSubjects, adminGrant, adminRefund, allPacks, allSubjects, closeInvite, createInvite, importQuestions, reviewQuestion, lookupAccess, prepMetrics, publishQuestion, reviewQueue, saveQuestion,
 } from "@/lib/exam-prep-server";
 import { EXAMS, isExamId, parseCsv, rowsToInputs, slug, subjectKey, type ExamId, type QuestionInput, type Subject } from "@/lib/exam-prep";
 import starter from "@/content/exam-prep/starter.json";
@@ -82,8 +82,9 @@ export async function POST(req: NextRequest) {
     }
     if (action === "import_starter") {
       const a = await adminFor(req, "content");
+      const subjectsAdded = await addMissingSubjects(db());
       const rows = (starter as { questions: (QuestionInput & { id: string })[] }).questions.map((input, i) => ({ input, line: i + 1 }));
-      return ok(await importQuestions(db(), a, rows, "ai-draft"));
+      return ok({ ...(await importQuestions(db(), a, rows, "ai-draft")), subjectsAdded });
     }
     if (action === "publish") { await adminFor(req, "content"); const ids = (Array.isArray(b.ids) ? b.ids : [b.id]).map(String).slice(0, 200); const out = []; for (const id of ids) out.push(await publishQuestion(db(), id, b.publish !== false).then((r) => ({ id, ...r })).catch((e) => ({ id, error: String((e as Error).message) }))); return ok({ results: out }); }
     if (action === "save_subject") {

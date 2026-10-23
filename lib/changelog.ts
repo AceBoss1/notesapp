@@ -11,6 +11,15 @@ export type Release = {
 
 export const CHANGELOG: Release[] = [
   {
+    version: "v0.89.0",
+    bump: "minor",
+    date: "2026-10-23",
+    changes: [
+      { kind: "added", text: "Naija Exam Prep has five more subjects for JAMB, WAEC and NECO: Physics, Chemistry, Biology, Economics and Government, each with its syllabus topics. They appear to students once their first questions are reviewed and published." },
+      { kind: "added", text: "300 new original starter questions, 20 per subject and exam with 8 free, each with a worked explanation. Every calculation is checked when the set is built, and the correct letter is spread evenly." },
+    ],
+  },
+  {
     version: "v0.88.0",
     bump: "minor",
     date: "2026-10-23",

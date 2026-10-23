@@ -115,7 +115,7 @@ function Questions({ api }: { api: Api }) {
 
 function Import({ api }: { api: Api }) {
   const [csv, setCsv] = useState("");
-  const [res, setRes] = useState<{ added: number; skipped: number; errors: { line: number; errors: string[] }[] } | null>(null);
+  const [res, setRes] = useState<{ added: number; skipped: number; errors: { line: number; errors: string[] }[]; subjectsAdded?: string[] } | null>(null);
   const [starter, setStarter] = useState<number | null>(null);
   const [e, setE] = useState("");
   const [busy, setBusy] = useState(false);
@@ -125,7 +125,7 @@ function Import({ api }: { api: Api }) {
     <div className="space-y-6">
       <div className="card p-4">
         <p className="font-semibold">Starter set</p>
-        <p className="mt-1 text-sm text-slate">{starter ?? "…"} original questions for JAMB, WAEC and NECO English and Maths (content/exam-prep/starter.json), labelled “Nana AI-assisted draft”. They go in as in review; nothing is published until a reviewer approves it and you publish. Importing twice adds nothing twice.</p>
+        <p className="mt-1 text-sm text-slate">{starter ?? "…"} original questions for JAMB, WAEC and NECO: English, Maths, Physics, Chemistry, Biology, Economics and Government (content/exam-prep/starter.json). Subjects you don’t have yet are added first, labelled “Nana AI-assisted draft”. They go in as in review; nothing is published until a reviewer approves it and you publish. Importing twice adds nothing twice.</p>
         <button disabled={busy} onClick={() => run({ action: "import_starter" })} className="mt-3 rounded-lg bg-ink px-3 py-1.5 text-sm text-paper">Import the starter set</button>
       </div>
       <div className="card p-4">
@@ -136,7 +136,7 @@ function Import({ api }: { api: Api }) {
         <button disabled={busy || !csv.trim()} onClick={() => run({ action: "import_csv", csv })} className="mt-2 rounded-lg bg-ink px-3 py-1.5 text-sm text-paper">Import</button>
       </div>
       <Err e={e} />
-      {res && <div className="card p-4 text-sm"><p><b>{res.added}</b> added · {res.skipped} already there · {res.errors.length} with problems</p>{res.errors.slice(0, 50).map((x) => <p key={x.line} className="text-crimson">Line {x.line}: {x.errors.join(" ")}</p>)}</div>}
+      {res && <div className="card p-4 text-sm"><p><b>{res.added}</b> added · {res.skipped} already there · {res.errors.length} with problems</p>{!!res.subjectsAdded?.length && <p className="mt-1 text-slate">{res.subjectsAdded.length} new subjects added: {res.subjectsAdded.join(", ")}</p>}{res.errors.slice(0, 50).map((x) => <p key={x.line} className="text-crimson">Line {x.line}: {x.errors.join(" ")}</p>)}</div>}
     </div>
   );
 }

@@ -39,6 +39,15 @@ export async function ensureCatalog(db: Firestore): Promise<void> {
     await b.commit();
   }
 }
+// Subjects added to the defaults after the catalogue was first written (Physics to Government, 23 Oct 2026) go in when the
+// starter set is imported. A subject that's already there is left as the editors made it.
+export async function addMissingSubjects(db: Firestore): Promise<string[]> {
+  await ensureCatalog(db);
+  const have = new Set((await db.collection("prepSubjects").get()).docs.map((d) => d.id));
+  const missing = DEFAULT_SUBJECTS.filter((sub) => !have.has(subjectKey(sub.exam, sub.id)));
+  if (missing.length) { const b = db.batch(); for (const sub of missing) b.set(db.doc(`prepSubjects/${subjectKey(sub.exam, sub.id)}`), sub); await b.commit(); }
+  return missing.map((sub) => subjectKey(sub.exam, sub.id));
+}
 export async function allSubjects(db: Firestore): Promise<Subject[]> {
   await ensureCatalog(db);
   return (await db.collection("prepSubjects").get()).docs.map((d) => d.data() as Subject).sort((a, b) => a.exam.localeCompare(b.exam) || a.order - b.order);
