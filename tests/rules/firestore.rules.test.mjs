@@ -931,7 +931,7 @@ test("a child profile can't make itself public: no profile edits, username or fo
 });
 
 test("team time collections are server-only, even for super admins", async () => {
-  for (const path of ["timeTimers/alice", "timeEntries/x", "timeSheets/alice_2026-10-12", "timeLeave/x", "timeProjects/x", "timeLeads/alice", "timeNudges/2026-10-12"]) {
+  for (const path of ["timeTimers/alice", "timeEntries/x", "timeSheets/alice_2026-10-12", "timeLeave/x", "timeProjects/x", "timeLeads/alice", "timeNudges/2026-10-12", "invoices/x", "invoiceCounters/2026", "invoicePays/x", "invoiceSettings/main"]) {
     await assertFails(getDoc(doc(as("alice", { admin: true }), path)));
     await assertFails(setDoc(doc(as("alice", { admin: true }), path), { a: 1 }));
     await assertFails(getDoc(doc(anon(), path)));

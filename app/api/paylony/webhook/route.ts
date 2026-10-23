@@ -4,6 +4,7 @@ import { getAdminDb } from "@/lib/firebase-admin";
 import { PaylonyWebhook, webhookAuthorised } from "@/lib/paylony";
 import { reconcilePaylonyPayouts } from "@/lib/paylony-payouts";
 import { checkCardtap } from "@/lib/cardtap-topup-server";
+import { checkPay } from "@/lib/invoices-server";
 import { clientIp, rateLimit } from "@/lib/rate-limit";
 import { setting } from "@/lib/config";
 
@@ -14,7 +15,8 @@ export const dynamic = "force-dynamic";
 //   "collection" — money paid into one of our reserved (virtual) accounts
 //   "payout"     — a transfer we sent through the API changed state (pending → success or failed)
 // and a CardTap payment (whatever event name it carries): when its reference is one of our CardTap top-ups, we ask Paylony about
-// it by that reference (checkCardtap) and credit the wallet only if Paylony says it's paid. The webhook's word alone credits nothing.
+// it by that reference (checkCardtap) and credit the wallet only if Paylony says it's paid; a client invoice the same way (checkPay,
+// lib/invoices-server.ts). The webhook's word alone credits nothing.
 // Every event is stored once, keyed by Paylony's `trx` (a repeat delivery is acknowledged and not stored again). Paylony only
 // settles an instant-settlement collection when we answer with the plain text "success", so we answer that only after the
 // event is safely stored. Crediting an order or paying out a seller from these events is added with the features that need them.
@@ -45,6 +47,7 @@ export async function POST(req: NextRequest) {
     if (event.event === "payout") await reconcilePaylonyPayouts({ ageMs: 0 }).catch((e) => console.error("[paylony] reconcile failed", e));
     else for (const r of new Set([event.reference, event.trx].filter((x): x is string => typeof x === "string" && /^[A-Za-z0-9_-]{6,80}$/.test(x)))) {
       await checkCardtap(getAdminDb(), r).catch(() => {}); // not one of ours, or not paid yet: nothing to do
+      await checkPay(getAdminDb(), r, typeof event.trx === "string" ? event.trx : undefined).catch(() => {}); // a client invoice paid with Paylony
     }
     return new NextResponse("success", { status: 200, headers: { "Content-Type": "text/plain" } });
   } catch (err) {

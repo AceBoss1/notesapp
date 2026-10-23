@@ -2,6 +2,7 @@ import { FieldValue, type Firestore } from "firebase-admin/firestore";
 import { notifyBell } from "./email";
 import { addDays, canSeeMeeting, isOwner, lagosDate, weekStart, type TeamItem } from "./team";
 import { listTeamPeople, type Person } from "./team-server";
+import { weekInvoiced } from "./invoices-server";
 import {
   EVERYONE, TimeError, approvedMinutesInMonth, asking, answerBy, canApprove, canSee, cleanLeads, cleanLeave, cleanManual, cleanNote, cleanProject,
   cleanTargetInput, confirmTimer, parseDuration, entryFromTimer, isApprover, isDay, isWeek, lagosClock, leaveDays, locked, payFor, rowKey, settle, startTimer,
@@ -74,7 +75,7 @@ export async function choices(db: Firestore, uid: string, now = new Date()) {
 }
 
 const toProject = (id: string, d: FirebaseFirestore.DocumentData): Project & { minutes: number; billableMinutes: number } => ({
-  id, name: d.name, client: d.client ?? "", dept: d.dept ?? "", billable: !!d.billable, rateKobo: d.rateKobo ?? 0, budgetHours: d.budgetHours ?? 0, active: d.active !== false, createdAt: d.createdAt ?? "",
+  id, name: d.name, client: d.client ?? "", clientEmail: d.clientEmail ?? "", dept: d.dept ?? "", billable: !!d.billable, rateKobo: d.rateKobo ?? 0, budgetHours: d.budgetHours ?? 0, active: d.active !== false, createdAt: d.createdAt ?? "",
   minutes: d.minutes ?? 0, billableMinutes: d.billableMinutes ?? 0,
 });
 
@@ -317,6 +318,8 @@ export async function decideSheet(db: Firestore, v: Viewer, b: Record<string, un
   }
   if (b.decision === "return") {
     if (cur === "draft") throw new TimeError("That week is still a draft.", 409);
+    const billed = await weekInvoiced(db, uid, week);
+    if (billed) throw new TimeError(`This week's billable hours are on invoice ${billed}. Void the invoice first (Time → Invoices), then return the week.`, 409);
     const note = cleanNote(b.note);
     await ref.set({ uid, week, status: "draft", decidedBy: v.uid, decidedAt: now.toISOString(), returnNote: note }, { merge: true });
     await quiet(notify({ uid, type: "team", linkHref: `${PAGE}?tab=sheet&week=${week}`, message: `Your timesheet for the week of ${week} was returned to you${note ? `: ${note}` : ""}. Change it and submit it again.` }));
