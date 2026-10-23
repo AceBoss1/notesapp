@@ -33,7 +33,11 @@ Legal checks these points (team hub, Legal & compliance): the Terms clause, the 
 
 Teen mode is built (v0.79.0: `users.teen`, `prepTeens`, `serverPublicUsers`, `sendMessage`, `checkAddable`). v0.83.0 adds the
 birth month and year (`prepTeens.birth`, `lib/young.ts`; 13 to 17 only), replies only from people the teen follows (`teenGate` in
-`lib/comments-server.ts`) and moments only for mutual follows (`lib/moments-server.ts`). Kids mode is next.
+`lib/comments-server.ts`) and moments only for mutual follows (`lib/moments-server.ts`). Kids mode is built in v0.85.0: a child
+profile on the parent's account (`lib/kids.ts`, `lib/kids-server.ts`, `/api/kids`, My account → Family, `/kids`), its own sign-in
+identity `kid_<id>` minted only for the owning parent (claims kid, kidId, parentUid), back to the parent with a PIN, `KidGuard`
+keeping it to the areas switched on, kids' Notesville in Notes Life (residents only, play time per day), the Sunday email to the
+parent, and firestore.rules refusing a child profile any profile edit, username or follow.
 
 ## Turning 18 (the graduation flow, to build)
 

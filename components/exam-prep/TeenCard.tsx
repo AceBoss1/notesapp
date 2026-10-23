@@ -21,7 +21,7 @@ export default function TeenCard() {
     if (!me) return;
     let answered = false;
     try { answered = localStorage.getItem(`${KEY}:${me.uid}`) === "1"; } catch { /* private window */ }
-    prepApi<{ teen: boolean; confirmed: boolean; emailSent: boolean | null; hasBirth?: boolean }>("teen").then((s) => { setState(s); setHidden(answered && !s.teen ? true : s.teen && s.confirmed && s.hasBirth === true); }).catch(() => undefined);
+    prepApi<{ teen: boolean; kid?: boolean; confirmed: boolean; emailSent: boolean | null; hasBirth?: boolean }>("teen").then((s) => { setState(s); setHidden(s.kid === true || (answered && !s.teen ? true : s.teen && s.confirmed && s.hasBirth === true)); }).catch(() => undefined);
   }, [me]);
   if (!me || !state || hidden) return null;
   const remember = () => { try { localStorage.setItem(`${KEY}:${me.uid}`, "1"); } catch { /* fine */ } };

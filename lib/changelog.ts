@@ -11,6 +11,16 @@ export type Release = {
 
 export const CHANGELOG: Release[] = [
   {
+    version: "v0.85.0",
+    bump: "minor",
+    date: "2026-10-23",
+    changes: [
+      { kind: "added", text: "Child profiles for under-13s: a parent adds them from My account → Family and opens them on their own device. A child never has a login; getting back to the parent's account takes the parent's PIN." },
+      { kind: "added", text: "A child sees only what the parent switches on: Naija Exam Prep practice, free Academy courses, reading journals with no comments, and Notes Life in kids' Notesville (only its residents, no real players, no invites or Bonus Credits) for a daily play time. Never messages, moments, comments, a public profile or buying." },
+      { kind: "added", text: "Every Sunday evening the parent gets an email of what each child practised, with scores by topic, and can delete a child's profile and everything in it at any time." },
+    ],
+  },
+  {
     version: "v0.83.0",
     bump: "minor",
     date: "2026-10-23",

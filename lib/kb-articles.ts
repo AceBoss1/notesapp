@@ -741,6 +741,17 @@ ${PREP_NAME} (${PREP_HOST}) is NotesApp's exam practice, part of Notes Academy. 
 
 **Report a problem:** every question has **Report a problem** (wrong answer, unclear, typo). ${PREP_NAME} is not affiliated with JAMB, WAEC or NECO; all questions are original practice questions, checked by a reviewer before they're published.
 `),
+    A("child-profiles", "Child profiles for under-13s (kids mode)", "Safety and your data", `
+Children under 13 don't get their own NotesApp account. A parent or guardian adds them from **My account → Family**, as a **child profile** on the parent's own account: a nickname, the month and year they were born (kept privately, never shown), and a 4-digit PIN.
+
+**Opening it:** tap **Open [name]'s profile** on your device. Your child sees only what you switched on: Naija Exam Prep practice, free Academy courses, reading journals (with no comments), and Notes Life in **kids' Notesville**, where they only meet Notesville's residents, never real players, with no invites or Bonus Credits, and only for the play time you set each day.
+
+**Never in a child profile:** messages, moments, comments, a public profile, a username, following people, buying, or ads chosen for them. To buy an Exam Prep pack for them, use a pay link.
+
+**Getting back to your account** takes your PIN (five wrong tries and it waits 15 minutes). Every Sunday evening you get an email of what they practised, with scores by topic. You can change what they can use, or **delete their profile and everything in it**, at any time.
+
+When they turn 13, they can have their own account in teen mode instead.
+`),
     A("naija-exam-prep-teen-mode", `${PREP_NAME}: teen mode and parents`, "Safety and your data", `
 Students aged 13 to 17 can use ${PREP_NAME}. After signing up, tap **Yes, I'm under 18**, choose the month and year you were born, and give a parent's or guardian's email. The month and year are kept privately, never shown, so teen mode ends on your 18th birthday. Under 13, a parent or guardian sets you up from their own account.
 

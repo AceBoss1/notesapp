@@ -574,7 +574,7 @@ export async function confirmTeen(db: Firestore, uid: unknown, tok: unknown, now
 }
 export async function teenStatus(db: Firestore, uid: string) {
   const [u, t] = await Promise.all([db.doc(`users/${uid}`).get(), db.doc(`prepTeens/${uid}`).get()]);
-  return { teen: u.data()?.teen === true, confirmed: !!t.data()?.confirmedAt, emailSent: t.data()?.emailSent ?? null, hasBirth: !!t.data()?.birth };
+  return { teen: u.data()?.teen === true, kid: u.data()?.kid === true, confirmed: !!t.data()?.confirmedAt, emailSent: t.data()?.emailSent ?? null, hasBirth: !!t.data()?.birth };
 }
 // Teen mode turned on before we asked: the month and year, once.
 export async function setTeenBirth(db: Firestore, uid: string, month: unknown, year: unknown, now = new Date()) {

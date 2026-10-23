@@ -7,6 +7,7 @@ import { MemberProvider } from "@/lib/member-client";
 import VerifyEmailBanner from "@/components/VerifyEmailBanner";
 import WorkPrompt from "@/components/WorkPrompt";
 import TimeCheck from "@/components/TimeCheck";
+import KidGuard from "@/components/KidGuard";
 import NanaChat from "@/components/NanaChat";
 import FooterCta from "@/components/FooterCta";
 import PushPrompt from "@/components/messages/PushPrompt";
@@ -117,6 +118,7 @@ const site = await getSiteSettingsCached();
           <CelebrationBanner />
           <ChallengeBanner />
           <VerifyEmailBanner />
+          <KidGuard />
           <WorkPrompt />
           <TimeCheck />
           <PushPrompt />
