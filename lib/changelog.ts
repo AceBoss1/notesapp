@@ -11,6 +11,15 @@ export type Release = {
 
 export const CHANGELOG: Release[] = [
   {
+    version: "v0.90.0",
+    bump: "minor",
+    date: "2026-10-23",
+    changes: [
+      { kind: "added", text: "The school pack on Naija Exam Prep: a school gives each class its size (for example SS3 Gold, 41 students), and every student who joins with the class code gets that exam's full pack for 12 months, free during the pilot. A full class says so." },
+      { kind: "added", text: "Teachers see how many places are taken, can change the class size and remove a student, which frees the place. Leaving or being removed ends the school pack; a pack the student paid for is kept." },
+    ],
+  },
+  {
     version: "v0.89.0",
     bump: "minor",
     date: "2026-10-23",
