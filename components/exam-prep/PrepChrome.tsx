@@ -48,6 +48,7 @@ export default function PrepChrome({ mainUrl, children }: { mainUrl: string; chi
         <div className="mx-auto max-w-5xl space-y-2">
           <p>{AFFILIATION}</p>
           <p>
+            <PLink className="underline" href="/schools">For schools</PLink> ·{" "}
             {PREP_NAME} is part of <a className="underline" href={mainUrl}>NotesApp</a> by <a className="underline" href="https://adams.com.ng" target="_blank" rel="noopener">Adams Consults</a>. ·{" "}
             <a className="underline" href={`${mainUrl}/terms`}>Terms</a> · <a className="underline" href={`${mainUrl}/privacy`}>Privacy</a>
           </p>

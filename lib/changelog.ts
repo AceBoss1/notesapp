@@ -11,6 +11,15 @@ export type Release = {
 
 export const CHANGELOG: Release[] = [
   {
+    version: "v0.87.0",
+    bump: "minor",
+    date: "2026-10-23",
+    changes: [
+      { kind: "added", text: "Naija Exam Prep for schools: a key member of staff applies at prep.notesapp.name.ng/schools and, once we approve the school, signs the onboarding data agreement for it. Free during the pilot." },
+      { kind: "added", text: "Classes with access codes (like GFC-SS3G-7KQ) that students enter under Progress, teachers added by email, and a class view for each teacher: students by first name and initial, this week's questions, score and weakest topic, a nickname board and a CSV export." },
+    ],
+  },
+  {
     version: "v0.86.0",
     bump: "minor",
     date: "2026-10-23",

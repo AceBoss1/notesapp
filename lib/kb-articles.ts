@@ -752,6 +752,15 @@ Children under 13 don't get their own NotesApp account. A parent or guardian add
 
 When they turn 13, they can have their own account in teen mode instead.
 `),
+    A("naija-exam-prep-schools", `${PREP_NAME} for schools`, "Naija Exam Prep", `
+A school joins ${PREP_NAME} through a key member of staff (the principal, the proprietor or another senior role) at **prep.notesapp.name.ng/schools**. We review the school, then the staff member signs the onboarding data agreement on the school's behalf, and a copy is emailed to them.
+
+**Classes:** the lead makes classes (for example SS3 Gold, JAMB, Maths) and each gets an access code like **GFC-SS3G-7KQ**. Students type it under **Progress → Have a class code?**. Teachers are added by the email of their NotesApp account.
+
+**What teachers see:** their own classes only, each student by first name and initial, with the questions they answered this week, their score and their weakest topic, a board of nicknames for students who joined the board, and a CSV export. Nothing is sold, shared for marketing or used for ads. Under-18s still use teen mode.
+
+**Price:** free during the pilot. After it, a price per student per year, agreed with each school before anything is charged.
+`),
     A("naija-exam-prep-teen-mode", `${PREP_NAME}: teen mode and parents`, "Safety and your data", `
 Students aged 13 to 17 can use ${PREP_NAME}. After signing up, tap **Yes, I'm under 18**, choose the month and year you were born, and give a parent's or guardian's email. The month and year are kept privately, never shown, so teen mode ends on your 18th birthday. Under 13, a parent or guardian sets you up from their own account.
 

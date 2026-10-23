@@ -172,3 +172,9 @@ export const TIME_BACKLOG: Seed[] = [
   { key: "time-holidays", title: "Time: add the public holidays for the rest of 2026", detail: "Team hub → Time → Setup → Public holidays (for example Christmas Day, Boxing Day). They count towards everyone's attendance.", status: "todo", horizon: "week", owner: "founder" },
   { key: "time-invoices", title: "Build later: client invoices from a project's billable hours", detail: "Approved, for later (owner, 22 Oct 2026): an invoice per project and month from approved billable hours × the project's rate, sent to the client and recorded as money in on the ledger when paid.", status: "todo", horizon: "later", depts: ENG },
 ];
+
+// Schools on Naija Exam Prep (v0.87.0, lib/prep-schools.ts): the agreement is Legal's, and nothing opens for schools until it's set.
+export const PREP_SCHOOLS_BACKLOG: Seed[] = [
+  { key: "schools-agreement", title: "Legal: finalise the schools onboarding data agreement and set it in Admin", detail: "The draft is with Emmanuel (kept out of the code). Decide controller and processor roles under the NDPA, whether schools may enrol under-13s, and the retention period; then Admin → Naija Exam Prep → Schools → Onboarding data agreement: a version and the full text. Approved schools can't sign until it's there.", status: "todo", horizon: "week", depts: ["legal"] },
+  { key: "schools-pilot", title: "Exam Prep: invite two or three pilot schools", detail: "They apply at prep.notesapp.name.ng/schools (a key staff member). Approve them in Admin → Naija Exam Prep → Schools once the agreement is set. Free during the pilot; agree a per-student-per-year price before charging anything.", status: "todo", horizon: "later", depts: ["growth", "content"] },
+];

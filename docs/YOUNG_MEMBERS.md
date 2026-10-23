@@ -62,5 +62,5 @@ kept as `users.keepHidden`, `keepDmFollowers`, `keepRepliesFollowers` (honoured 
 
 - No targeted ads, no data sales, no growth emails to the child; anything promotional goes to the parent.
 - No streaks or patterns built to hook them. The effort board counts practice, capped at 300 a day.
-- Schools sign a data agreement before access codes and class boards (next Exam Prep release).
+- Schools sign a data agreement before access codes and class boards (built in v0.87.0; the agreement's text is Legal's, set in Admin → Naija Exam Prep → Schools, never in the code).
 - A short public page, "How we treat young members", with the DPO contact.
