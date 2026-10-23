@@ -19,6 +19,14 @@ export const CHANGELOG: Release[] = [
     ],
   },
   {
+    version: "v0.90.1",
+    bump: "patch",
+    date: "2026-10-23",
+    changes: [
+      { kind: "fixed", text: "Kiswahili: translations and transcripts are read from whichever field NKENNEAi's answer uses, and an answer without text is a clear failure that keeps what came back in the usage log." },
+    ],
+  },
+  {
     version: "v0.90.0",
     bump: "minor",
     date: "2026-10-23",
