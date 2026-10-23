@@ -19,7 +19,7 @@ const rejects = (p: Promise<unknown>, re: RegExp) => assert.rejects(p, (e: Error
   assert.equal((await graduationStatus(db, "u_kemi", new Date("2026-10-31T12:00:00Z"))).due, false, "17 until November");
   await rejects(graduate(db, "u_kemi", { consent: true }, new Date("2026-10-31T12:00:00Z")), /18th birthday/);
   const bells: string[] = [];
-  const notify = async (n: { uid: string; message: string }) => { bells.push(`${n.uid}:${n.message}`); };
+  const notify = async (n: { uid?: string | null; message: string }) => { bells.push(`${n.uid}:${n.message}`); };
   assert.equal(await birthdayBells(db, new Date("2026-10-31T12:00:00Z"), notify), 0);
   assert.equal(await birthdayBells(db, new Date("2026-11-01T08:00:00Z"), notify), 1);
   assert.equal(await birthdayBells(db, new Date("2026-11-02T08:00:00Z"), notify), 0, "once");
