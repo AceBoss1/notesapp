@@ -21,6 +21,7 @@ import { setting } from "@/lib/config";
 import { syncOrcidSites } from "@/lib/publications-server";
 import { sendEventReminders } from "@/lib/events-server";
 import { fridayNudges, sweepTimers } from "@/lib/time-server";
+import { sendInvoiceReminders } from "@/lib/invoices-server";
 import { sendKidReports } from "@/lib/kids-server";
 import { birthdayBells } from "@/lib/young-server";
 
@@ -98,6 +99,8 @@ export async function GET(req: NextRequest) {
   // check, and on Fridays from 4 PM Lagos, one reminder to submit the week's timesheet (lib/time-server.ts).
   await job("timeTimers", async () => { const r = await sweepTimers(db); return r.stopped + r.asked; });
   await job("timeFridayNudge", () => fridayNudges(db));
+  // Client invoices: one reminder to the client 3 days after the due date (lib/invoices-server.ts).
+  await job("invoiceReminders", () => sendInvoiceReminders(db));
   // Kids mode: Sundays from 5 PM Lagos, each parent gets their child's week on Naija Exam Prep, once (lib/kids-server.ts).
   await job("kidReports", () => sendKidReports(db));
   // Teen mode: on an 18th birthday, one bell to the "You're 18 now" screen (lib/young-server.ts).

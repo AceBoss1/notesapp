@@ -6,6 +6,7 @@ import { useAdminAuth } from "@/lib/useAdminAuth";
 import { useAdminCall } from "@/lib/useAdminCall";
 import { DEPARTMENTS, DEPT_LABEL, type Dept } from "@/lib/admin-access";
 import { naira } from "@/lib/finance";
+import InvoicesTab from "@/components/time/InvoicesTab";
 import { addDays } from "@/lib/team";
 import {
   CHECK_EVERY_MIN, KIND_LABEL, LATE_AFTER, LEAVE_LABEL, MEETING_LENGTHS, WEEK_MINUTES, answerBy, asking, clock, hm, lagosClock, leadsLabel, leaveDays, locked, pct, weekDays,
@@ -23,7 +24,7 @@ type Team = {
   week: string; rows: TeamRow[]; leaveToDecide: (Leave & { name: string; days: number })[]; projects: (Project & { minutes: number; billableMinutes: number })[];
   leads: { uid: string; depts: string[] }[]; people: { uid: string; name: string; depts: string[] }[]; holidays: Leave[];
 };
-type Tab = "now" | "sheet" | "leave" | "team" | "setup";
+type Tab = "now" | "sheet" | "leave" | "team" | "setup" | "invoices";
 
 const field = "mt-1 block w-full rounded-lg border border-rule bg-card px-3 py-2 text-sm";
 const btn = "rounded-full bg-crimson px-5 py-2.5 font-ui text-sm font-bold text-paper hover:bg-crimson-bright disabled:opacity-50";
@@ -98,7 +99,7 @@ export default function TimePage() {
   useEffect(() => {
     const sp = new URLSearchParams(window.location.search);
     const t = sp.get("tab"), w = sp.get("week");
-    if (t && ["now", "sheet", "leave", "team", "setup"].includes(t)) setTab(t as Tab);
+    if (t && ["now", "sheet", "leave", "team", "setup", "invoices"].includes(t)) setTab(t as Tab);
     if (w && /^\d{4}-\d{2}-\d{2}$/.test(w)) setWeek(w);
   }, []);
   useEffect(() => { const i = setInterval(() => setNow(Date.now()), 1000); return () => clearInterval(i); }, []);
@@ -134,7 +135,7 @@ export default function TimePage() {
   const sheet = mine?.week.sheet;
   const isLocked = locked(sheet?.status);
   const viewer = mine?.viewer;
-  const tabs: { id: Tab; label: string }[] = [{ id: "now", label: "Timer" }, { id: "sheet", label: "Timesheet" }, { id: "leave", label: "Leave" }, ...(viewer?.approver ? [{ id: "team" as Tab, label: "Team" }, { id: "setup" as Tab, label: "Setup" }] : [])];
+  const tabs: { id: Tab; label: string }[] = [{ id: "now", label: "Timer" }, { id: "sheet", label: "Timesheet" }, { id: "leave", label: "Leave" }, ...(viewer?.approver ? [{ id: "team" as Tab, label: "Team" }, { id: "setup" as Tab, label: "Setup" }] : []), ...(viewer?.finance ? [{ id: "invoices" as Tab, label: "Invoices" }] : [])];
 
   if (loading || !user) return <div className="px-6 py-24 text-center text-slate">Loading…</div>;
 
@@ -396,6 +397,8 @@ export default function TimePage() {
             </div>
           )}
 
+          {tab === "invoices" && viewer?.finance && <InvoicesTab user={user} today={today} />}
+
           {tab === "setup" && viewer?.approver && (
             <SetupTab team={team} viewer={viewer} busy={busy} run={(b, ok) => run(b, ok, true)} />
           )}
@@ -406,7 +409,7 @@ export default function TimePage() {
 }
 
 function SetupTab({ team, viewer, busy, run }: { team: Team | null; viewer: Mine["viewer"]; busy: boolean; run: (b: Record<string, unknown>, ok: string) => Promise<unknown> }) {
-  const blank = { id: "", name: "", client: "", dept: viewer.superAdmin ? "" : viewer.leads[0] ?? "", billable: true, rate: "", budgetHours: "" };
+  const blank = { id: "", name: "", client: "", clientEmail: "", dept: viewer.superAdmin ? "" : viewer.leads[0] ?? "", billable: true, rate: "", budgetHours: "" };
   const [p, setP] = useState(blank);
   const [lead, setLead] = useState<{ uid: string; depts: string[] }>({ uid: "", depts: [] });
   const [hol, setHol] = useState({ from: "", to: "", note: "" });
@@ -420,6 +423,7 @@ function SetupTab({ team, viewer, busy, run }: { team: Team | null; viewer: Mine
         <form className="mt-2 grid gap-2 sm:grid-cols-2" onSubmit={async (e) => { e.preventDefault(); const r = await run({ action: "project", ...p }, p.id ? "Saved." : "Project added."); if (r) setP(blank); }}>
           <label className="text-xs sm:col-span-2">Name<input className={field} required value={p.name} onChange={(e) => setP({ ...p, name: e.target.value })} /></label>
           <label className="text-xs">Client<input className={field} value={p.client} onChange={(e) => setP({ ...p, client: e.target.value })} /></label>
+          <label className="text-xs">Client&apos;s email <span className="text-slate">(for invoices)</span><input className={field} type="email" value={p.clientEmail} onChange={(e) => setP({ ...p, clientEmail: e.target.value })} /></label>
           <label className="text-xs">Department<select className={field} value={p.dept} onChange={(e) => setP({ ...p, dept: e.target.value })} required={!viewer.superAdmin}>{viewer.superAdmin && <option value="">Whole team</option>}{depts.map((d) => <option key={d} value={d}>{DEPT_LABEL[d as Dept] ?? d}</option>)}</select></label>
           <label className="flex items-center gap-2 text-sm sm:col-span-2"><input type="checkbox" checked={p.billable} onChange={(e) => setP({ ...p, billable: e.target.checked })} /> Billable to the client</label>
           {p.billable && <label className="text-xs">Hourly rate to the client, ₦<input className={field} inputMode="decimal" required value={p.rate} onChange={(e) => setP({ ...p, rate: e.target.value })} /></label>}
@@ -431,8 +435,8 @@ function SetupTab({ team, viewer, busy, run }: { team: Team | null; viewer: Mine
             <li key={x.id} className={`flex items-center justify-between gap-2 py-2 ${x.active ? "" : "opacity-60"}`}>
               <span><b>{x.name}</b><br /><span className="text-xs text-slate">{x.dept ? DEPT_LABEL[x.dept as Dept] : "Whole team"} · {x.billable ? `${naira(x.rateKobo)}/h` : "internal"}{x.budgetHours ? ` · ${x.budgetHours}h budget` : ""} · {hm(x.minutes)} logged</span></span>
               <span className="flex gap-2">
-                <button className={ghost} onClick={() => setP({ id: x.id, name: x.name, client: x.client, dept: x.dept, billable: x.billable, rate: x.rateKobo ? String(x.rateKobo / 100) : "", budgetHours: String(x.budgetHours || "") })}>Edit</button>
-                <button className={ghost} disabled={busy} onClick={() => run({ action: "project", id: x.id, name: x.name, client: x.client, dept: x.dept, billable: x.billable, rate: x.rateKobo / 100, budgetHours: x.budgetHours, active: !x.active }, x.active ? "Closed." : "Reopened.")}>{x.active ? "Close" : "Reopen"}</button>
+                <button className={ghost} onClick={() => setP({ id: x.id, name: x.name, client: x.client, clientEmail: x.clientEmail ?? "", dept: x.dept, billable: x.billable, rate: x.rateKobo ? String(x.rateKobo / 100) : "", budgetHours: String(x.budgetHours || "") })}>Edit</button>
+                <button className={ghost} disabled={busy} onClick={() => run({ action: "project", id: x.id, name: x.name, client: x.client, clientEmail: x.clientEmail ?? "", dept: x.dept, billable: x.billable, rate: x.rateKobo / 100, budgetHours: x.budgetHours, active: !x.active }, x.active ? "Closed." : "Reopened.")}>{x.active ? "Close" : "Reopen"}</button>
               </span>
             </li>
           ))}

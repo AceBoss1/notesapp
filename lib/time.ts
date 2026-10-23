@@ -66,7 +66,7 @@ export const isLeaveKind = (k: unknown): k is LeaveKind => k === "annual" || k =
 export type Leave = { id: string; uid: string; kind: LeaveKind; from: string; to: string; counts: boolean; note: string; status: "pending" | "approved" | "declined"; decidedBy?: string; createdAt: string };
 export const EVERYONE = "*"; // a public holiday set for the whole team
 
-export type Project = { id: string; name: string; client: string; dept: string; billable: boolean; rateKobo: number; budgetHours: number; active: boolean; createdAt: string };
+export type Project = { id: string; name: string; client: string; clientEmail: string; dept: string; billable: boolean; rateKobo: number; budgetHours: number; active: boolean; createdAt: string };
 
 // ── Times and days ───────────────────────────────────────────────────────────────────────────────────────────────────────────────
 
@@ -187,7 +187,9 @@ export function cleanProject(b: Record<string, unknown>): Omit<Project, "id" | "
   if (billable && rate <= 0) throw new TimeError("A billable project needs an hourly rate.");
   const budget = Number(b.budgetHours ?? 0);
   if (!Number.isFinite(budget) || budget < 0 || budget > 100_000) throw new TimeError("Enter the budget in hours, or 0 for none.");
-  return { name, client: clip(b.client, 80), dept, billable, rateKobo: billable ? Math.round(rate * 100) : 0, budgetHours: Math.round(budget) };
+  const clientEmail = String(b.clientEmail ?? "").trim().toLowerCase().slice(0, 200);
+  if (clientEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(clientEmail)) throw new TimeError("Check the client's email address.");
+  return { name, client: clip(b.client, 80), clientEmail, dept, billable, rateKobo: billable ? Math.round(rate * 100) : 0, budgetHours: Math.round(budget) };
 }
 
 // ── Who sees and approves ────────────────────────────────────────────────────────────────────────────────────────────────────────

@@ -443,6 +443,11 @@ service cloud.firestore {
     match /timeProjects/{id} { allow read, write: if false; }
     match /timeLeads/{id} { allow read, write: if false; }
     match /timeNudges/{id} { allow read, write: if false; }
+    // Client invoices (/api/admin/invoices for finance, /api/invoices for the client's link; lib/invoices-server.ts): server only.
+    match /invoices/{id} { allow read, write: if false; }
+    match /invoiceCounters/{id} { allow read, write: if false; }
+    match /invoicePays/{id} { allow read, write: if false; }
+    match /invoiceSettings/{id} { allow read, write: if false; }
     // Kids mode (/api/kids, lib/kids-server.ts): child profiles, play time and the weekly reports. Server only.
     match /kidProfiles/{id} { allow read, write: if false; }
     match /kidPlay/{id} { allow read, write: if false; }

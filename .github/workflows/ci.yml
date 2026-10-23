@@ -47,6 +47,7 @@ jobs:
       - run: npm run test:prep-schools
       - run: npm run test:kids
       - run: npm run test:time
+      - run: npm run test:invoices
       - run: npm run test:shipments
       - run: npm run test:logistics
       - run: npm run test:calls
@@ -67,6 +68,7 @@ jobs:
       - run: npm run test:prep-schools-server
       - run: npm run test:kids-server
       - run: npm run test:time-server
+      - run: npm run test:invoices-server
       - run: npm run test:certificates-server
       - run: npm run test:nana-server
       - run: npm run test:mcp-server

@@ -22,7 +22,7 @@ export function cardtapQuote(topupKobo: number, waived: boolean) {
 type Obj = Record<string, unknown>;
 const obj = (v: unknown): Obj => (v && typeof v === "object" ? (v as Obj) : {});
 const layers = (body: unknown): Obj[] => { const b = obj(body); return [b, obj(b.data), obj(obj(b.data).transaction), obj(b.transaction)]; };
-const pick = (body: unknown, keys: string[]): unknown => {
+export const pick = (body: unknown, keys: string[]): unknown => {
   for (const l of layers(body)) for (const k of keys) if (l[k] !== undefined && l[k] !== null && l[k] !== "") return l[k];
   return undefined;
 };

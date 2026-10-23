@@ -11,6 +11,16 @@ export type Release = {
 
 export const CHANGELOG: Release[] = [
   {
+    version: "v0.88.0",
+    bump: "minor",
+    date: "2026-10-23",
+    changes: [
+      { kind: "added", text: "Team hub → Time → Invoices: one invoice a month per billable project, from approved billable hours × the project's rate, numbered NA-INV-2026-001 onwards, due in 14 days and emailed to the client with a link." },
+      { kind: "added", text: "Clients pay online from that link: Paylony first (a one-time account to transfer to, or CardTap), then card through Paystack, or a plain bank transfer that finance marks paid. Every paid invoice goes into the money ledger as money in." },
+      { kind: "added", text: "A sent invoice locks its hours (a week it bills can't be returned until it's voided), and the client gets one reminder 3 days after the due date. VAT at 7.5% can be switched on in the invoice settings." },
+    ],
+  },
+  {
     version: "v0.87.0",
     bump: "minor",
     date: "2026-10-23",
