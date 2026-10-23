@@ -80,10 +80,11 @@ export default function BrandPage() {
       <div className="mt-14">
         <p className="eyebrow">Product marks</p>
         <div className="card mt-5 flex flex-col items-center gap-6 p-8 sm:flex-row">
-          <Image src="/images/exam-prep/logo.svg" alt="Naija Exam Prep mark" width={120} height={120} unoptimized className="h-[120px] w-[120px]" />
+          <Image src="/images/exam-prep/logo.png" alt="Naija Exam Prep mark" width={120} height={120} className="h-[120px] w-[120px] rounded-[26px] shadow-sm ring-1 ring-rule" />
+          <Image src="/images/exam-prep/wordmark.png" alt="Naija Exam Prep: Built for your next breakthrough." width={1200} height={437} className="h-auto w-full max-w-[330px]" />
           <div>
             <p className="font-ui text-sm font-semibold text-ink">Naija Exam Prep</p>
-            <p className="mt-1 max-w-xl text-xs text-slate">The sun rising over an open book: “Built for your next breakthrough.” Navy #0F2747 and gold #C9A227 on white, for Naija Exam Prep (prep.notesapp.name.ng) only. It&apos;s in the logo pack.</p>
+            <p className="mt-1 max-w-xl text-xs text-slate">A student rising out of an open book under a graduation cap, with a gold tick: “Built for your next breakthrough.” Navy #0F2747, green #1E8E5A and gold #C9A227 on white. The mark sits on a white rounded square; for Naija Exam Prep (prep.notesapp.name.ng) only. Both are in the logo pack.</p>
           </div>
         </div>
       </div>
