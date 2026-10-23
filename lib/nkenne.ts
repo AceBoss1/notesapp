@@ -12,6 +12,9 @@ export type NkenneConfig = { key: string; base?: string; fetch?: typeof fetch; t
 export type Lang = "English" | "Swahili";
 export type Voice = { id: string; name: string; gender: string };
 export const NKENNE_BASE = "https://developers-api.nkenne.ai";
+// The key as NKENNEAi expects it: just the key. A value pasted into Vercel with spaces, a line break, quotes or "Bearer " in
+// front is refused by the API with 401, so those are taken off.
+export const cleanKey = (v: string | undefined) => (v ?? "").trim().replace(/^["']|["']$/g, "").replace(/^Bearer\s+/i, "").trim();
 export const AUDIO_MAX_BYTES = 25 * 1024 * 1024; // the API's limit per file
 
 export class NkenneError extends Error {
@@ -20,7 +23,10 @@ export class NkenneError extends Error {
 }
 
 // What a member sees for each kind of failure; `detail` keeps NKENNEAi's own words for the usage log.
-function failure(status: number, detail: string): NkenneError {
+// Cloudflare in front of the API can answer a request from a server with its "Just a moment..." check page instead of the API.
+export const isFirewallPage = (status: number, body: string, mitigated?: string | null) => status === 403 && (!!mitigated || /<title>Just a moment|cf-chl|challenge-platform/i.test(body));
+function failure(status: number, detail: string, mitigated?: string | null): NkenneError {
+  if (isFirewallPage(status, detail, mitigated)) return new NkenneError("Kiswahili isn't available right now (the translation service's firewall blocked our server).", status, "Blocked by Cloudflare's check page in front of NKENNEAi, before the API saw the request (no tokens used). NKENNEAi needs to let API calls from servers through.");
   const said = detail.slice(0, 300);
   if (status === 401 || status === 403) return new NkenneError("Kiswahili isn't available right now (the translation service refused our key).", status, said);
   if (status === 402 || status === 429) return new NkenneError("Kiswahili is busy right now. Try again in a little while.", status, said);
@@ -34,8 +40,8 @@ async function send(cfg: NkenneConfig, path: string, init: RequestInit): Promise
   const ctl = new AbortController();
   const timer = setTimeout(() => ctl.abort(), cfg.timeoutMs ?? 60_000);
   try {
-    const res = await f(`${(cfg.base || NKENNE_BASE).replace(/\/$/, "")}${path}`, { ...init, headers: { Authorization: cfg.key, ...(init.headers || {}) }, signal: ctl.signal, cache: "no-store" });
-    if (!res.ok) throw failure(res.status, await res.text().catch(() => ""));
+    const res = await f(`${(cfg.base || NKENNE_BASE).replace(/\/$/, "")}${path}`, { ...init, headers: { Authorization: cfg.key, Accept: "application/json, audio/*", "User-Agent": "NotesApp/1.0 (+https://notesapp.name.ng)", ...(init.headers || {}) }, signal: ctl.signal, cache: "no-store" });
+    if (!res.ok) throw failure(res.status, await res.text().catch(() => ""), res.headers?.get?.("cf-mitigated"));
     return res;
   } catch (e) {
     if (e instanceof NkenneError) throw e;

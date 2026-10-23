@@ -2,7 +2,7 @@
 // stand-in `fetch` here (no network, no tokens): these test our side of each call. Run: npm run test:kiswahili → "ALL OK".
 import assert from "node:assert/strict";
 import { audioParts, blocksOf, groupsOf, plainInline, sourceOf, splitBack, translateAll, MAX_SOURCE_CHARS } from "../../lib/kiswahili";
-import { NkenneError, speak, transcribe, translateSpeech, translateText, voices } from "../../lib/nkenne";
+import { NkenneError, cleanKey, isFirewallPage, speak, transcribe, translateSpeech, translateText, voices } from "../../lib/nkenne";
 import { encodeWav, resample, wavSeconds } from "../../lib/wav";
 
 (async () => {
@@ -60,5 +60,9 @@ import { encodeWav, resample, wavSeconds } from "../../lib/wav";
   const w = encodeWav(resample(new Float32Array(48000 * 2), 48000));
   assert.equal(wavSeconds(w), 2); assert.equal(wavSeconds(new ArrayBuffer(10)), null); assert.equal(wavSeconds(new TextEncoder().encode("x".repeat(60)).buffer), null);
 
-  console.log("ALL OK");
+  for (const v of ["nk_live_abc123", " nk_live_abc123\n", "\"nk_live_abc123\"", "Bearer nk_live_abc123", "'nk_live_abc123' "]) assert.equal(cleanKey(v), "nk_live_abc123", `key ${JSON.stringify(v)}`);
+assert.equal(cleanKey(undefined), "");
+assert.ok(isFirewallPage(403, "<!DOCTYPE html><html lang=\"en-US\"><head><title>Just a moment...</title>")); assert.ok(isFirewallPage(403, "", "challenge"));
+assert.ok(!isFirewallPage(403, "{\"message\":\"Forbidden\"}")); assert.ok(!isFirewallPage(401, "<title>Just a moment</title>"));
+console.log("ALL OK");
 })().catch((e) => { console.error(e); process.exit(1); });
