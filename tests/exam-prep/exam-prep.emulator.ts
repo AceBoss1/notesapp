@@ -7,7 +7,7 @@ import { getFirestore } from "firebase-admin/firestore";
 import { generateKeyPairSync, createPublicKey, verify as edVerify } from "node:crypto";
 process.env.EXAM_PREP_PASS_KEY = generateKeyPairSync("ec", { namedCurve: "P-256" }).privateKey.export({ type: "pkcs8", format: "pem" }).toString();
 import {
-  acceptInvite, closeInvite, inviteInfo, reviewerOf, adminGrant, adminRefund, board, catalogue, confirmPackPayment, createInvite, createPayLink, importQuestions, joinBoard, lookupAccess,
+  acceptInvite, addMissingSubjects, closeInvite, inviteInfo, reviewerOf, adminGrant, adminRefund, board, catalogue, confirmPackPayment, createInvite, createPayLink, importQuestions, joinBoard, lookupAccess,
   mockStatus, packForSaving, payLinkInfo, practiceSet, publishQuestion, recordAttempt, reportQuestion, restorePurchases, reviewQuestion, reviewQueue,
   saveMockAnswers, saveQuestion, setTeen, confirmTeen, startMock, startPackCheckout, startPayLinkCheckout, submitMock, syncProgress, teenStatus,
 } from "../../lib/exam-prep-server";
@@ -246,6 +246,13 @@ const Q = (id: string, access: "free" | "pack", topic = "algebra", answer = "B")
   await db.doc("follows/u_teen_other").set({ followerUid: "u_teen", username: "other" });
   assert.ok((await sendMessage(db, "u_other", "u_teen", { text: "Hi" }, new Date(), quiet)).conversationId, "once the teen follows them, they can message");
   assert.ok((await sendMessage(db, "u_student", "u_other", { text: "Hi" }, new Date(), quiet)).conversationId, "adults' messages are unchanged");
+
+  // subjects added to the defaults later (a site whose catalogue was written before them) go in on import; edited ones stay
+  await db.doc("prepSubjects/waec_physics").delete();
+  await db.doc("prepSubjects/jamb_mathematics").update({ name: "Maths (edited)" });
+  assert.deepEqual(await addMissingSubjects(db), ["waec_physics"], "only the missing subject is added");
+  assert.equal((await db.doc("prepSubjects/jamb_mathematics").get()).data()!.name, "Maths (edited)", "an edited subject is left alone");
+  assert.deepEqual(await addMissingSubjects(db), [], "nothing missing the second time");
 
   // the starter set goes in for review, labelled as AI-assisted drafts, once
   const rows = (starter.questions as (QuestionInput & { id: string })[]).map((input, i) => ({ input, line: i + 1 }));

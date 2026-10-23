@@ -17,7 +17,10 @@ const CODE = { mathematics: "maths", "use-of-english": "eng", "english-language"
 const seed = (s) => [...s].reduce((h, c) => (Math.imul(h ^ c.charCodeAt(0), 16777619) >>> 0), 2166136261);
 function shuffle(xs, h) { const a = [...xs]; for (let i = a.length - 1; i > 0; i--) { h = (Math.imul(h, 1103515245) + 12345) >>> 0; const j = h % (i + 1); [a[i], a[j]] = [a[j], a[i]]; } return a; }
 const out = [];
-function add(exam, subject, list, freeIdx) {
+// balanced: each letter is correct equally often in the list (5 times in 20), in an order that looks random. Used for the subjects
+// added on 23 Oct 2026; the English and Maths sets keep the order they were first imported with.
+function add(exam, subject, list, freeIdx, balanced = false) {
+  const slots = balanced ? shuffle(list.map((_, i) => i % 4), seed(`${exam}-${subject}`) ^ 0x9e3779b9) : null;
   list.forEach((q, i) => {
     const answer = KEYS[q.ans]; // as written, before shuffling
     if (subject === "mathematics" && q.check === undefined) throw new Error(`${exam} maths #${i + 1} has no working to check`);
@@ -25,7 +28,8 @@ function add(exam, subject, list, freeIdx) {
     const id = `${exam}-${CODE[subject]}-${String(i + 1).padStart(2, "0")}`;
     // Options are written with the answer first (so the working above is easy to check), then shuffled the same way every
     // build, so the correct letter varies and students can't learn a pattern.
-    const order = shuffle(q.o.map((_, k) => k), seed(id));
+    let order = shuffle(q.o.map((_, k) => k), seed(id));
+    if (slots) { order = order.filter((k) => k !== q.ans); order.splice(slots[i], 0, q.ans); } // the answer lands in its slot
     const letter = (k) => KEYS[order.indexOf(k)];
     const whyNot = Object.fromEntries(Object.entries(q.why ?? {}).map(([k, v]) => [letter(KEYS.indexOf(k)), v]));
     out.push({
@@ -185,7 +189,7 @@ add("neco", "english-language", [
 // ------------------------------------------------------------------ Physics, Chemistry, Biology, Economics and Government
 for (const subject of ["physics", "chemistry", "biology", "economics", "government"]) {
   const sets = (await import(`./exam-prep-questions/${subject}.mjs`)).default;
-  for (const exam of ["jamb", "waec", "neco"]) add(exam, subject, sets[exam].list, sets[exam].free);
+  for (const exam of ["jamb", "waec", "neco"]) add(exam, subject, sets[exam].list, sets[exam].free, true);
 }
 
 const ids = new Set(out.map((q) => q.id));
