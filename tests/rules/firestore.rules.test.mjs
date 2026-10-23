@@ -919,6 +919,17 @@ test("payroll, staff library and message hub collections are server-only", async
   }
 });
 
+test("a child profile can't make itself public: no profile edits, username or follows", async () => {
+  await env.withSecurityRulesDisabled(async (ctx) => {
+    await setDoc(doc(ctx.firestore(), "users/kid_abc"), { uid: "kid_abc", displayName: "Ada-Star", kid: true, teen: true });
+  });
+  const kid = env.authenticatedContext("kid_abc", { kid: true }).firestore();
+  await assertFails(updateDoc(doc(kid, "users/kid_abc"), { bio: "hi" }));
+  await assertFails(setDoc(doc(kid, "usernames/adastar"), { uid: "kid_abc" }));
+  await assertFails(setDoc(doc(kid, "follows/kid_abc_pub"), { followerUid: "kid_abc", username: "pub", followedAt: "x" }));
+  for (const path of ["kidProfiles/abc", "kidPlay/kid_abc_2026-10-23", "kidReports/x"]) await assertFails(getDoc(doc(kid, path)));
+});
+
 test("team time collections are server-only, even for super admins", async () => {
   for (const path of ["timeTimers/alice", "timeEntries/x", "timeSheets/alice_2026-10-12", "timeLeave/x", "timeProjects/x", "timeLeads/alice", "timeNudges/2026-10-12"]) {
     await assertFails(getDoc(doc(as("alice", { admin: true }), path)));

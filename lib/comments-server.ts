@@ -34,6 +34,15 @@ async function whoIs(db: Firestore, uid: string): Promise<Who & { suspended: boo
   return { uid, username: String(u.username), displayName: String(u.displayName || u.username), avatar: String(u.avatar ?? ""), suspended: u.suspended === true };
 }
 
+// A teen (users.teen, set by teen mode) hears only from people they follow: throws when one of `uids` is a teen who doesn't follow `me`.
+export async function teenGate(db: Firestore, me: { uid: string; username: string }, uids: (string | null | undefined)[]): Promise<void> {
+  for (const t of Array.from(new Set(uids.filter((u): u is string => !!u && u !== me.uid)))) {
+    const u = (await db.doc(`users/${t}`).get()).data();
+    if (u?.teen !== true && u?.keepRepliesFollowers !== true) continue; // teen mode, or kept on turning 18
+    if (!(await db.doc(`follows/${t}_${me.username}`).get()).exists) throw new CommentError(`Only people ${String(u.displayName || u.username || "they")} follows can reply to them.`, 403);
+  }
+}
+
 // POST /api/comments. `asBrand`: a moderator posting as @na-notesapp (the comment still records their own uid).
 export async function postComment(db: Firestore, uid: string, input: { noteId?: unknown; content?: unknown; parentCommentId?: unknown; asBrand?: unknown }, canModerate: boolean): Promise<{ id: string }> {
   const noteId = typeof input.noteId === "string" && /^[A-Za-z0-9_-]{1,128}$/.test(input.noteId) ? input.noteId : "";
@@ -50,6 +59,11 @@ export async function postComment(db: Firestore, uid: string, input: { noteId?: 
   const parent = parentId ? (await noteRef.collection("comments").doc(parentId).get()).data() : null;
   if (parentId && !parent) throw new CommentError("That comment was deleted.", 404);
 
+  // Teen mode: only people a teen follows can reply to them, on their journals and under their comments (moderators aside).
+  const authorUid = await noteAuthorUid(db, note).catch(() => null);
+  const parentUid = parent?.authorUid ? String(parent.authorUid) : null;
+  if (!canModerate) await teenGate(db, me, [authorUid, parentUid]);
+
   const shown: Who = input.asBrand === true && canModerate
     ? { uid, username: NA_NOTESAPP_PROFILE.username, displayName: NA_NOTESAPP_PROFILE.displayName, avatar: NA_NOTESAPP_PROFILE.avatar }
     : me;
@@ -60,8 +74,6 @@ export async function postComment(db: Firestore, uid: string, input: { noteId?: 
   });
 
   const href = `/journals/${String(note.slug ?? noteId)}#comments`;
-  const authorUid = await noteAuthorUid(db, note).catch(() => null);
-  const parentUid = parent?.authorUid ? String(parent.authorUid) : null;
   const jobs: Promise<unknown>[] = [];
   if (authorUid && authorUid !== uid && authorUid !== parentUid) jobs.push(bell(db, { recipientUid: authorUid, type: "comment", message: `${shown.displayName} commented on "${title}"`, actor: shown, linkHref: href }));
   if (parentUid && parentUid !== uid) jobs.push(bell(db, { recipientUid: parentUid, type: "reply", message: `${shown.displayName} replied to your comment on "${title}"`, actor: shown, linkHref: href }));

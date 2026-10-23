@@ -7,6 +7,9 @@ import { MemberProvider } from "@/lib/member-client";
 import VerifyEmailBanner from "@/components/VerifyEmailBanner";
 import WorkPrompt from "@/components/WorkPrompt";
 import TimeCheck from "@/components/TimeCheck";
+import KidGuard from "@/components/KidGuard";
+import AdultOnly from "@/components/AdultOnly";
+import EighteenBanner from "@/components/EighteenBanner";
 import NanaChat from "@/components/NanaChat";
 import FooterCta from "@/components/FooterCta";
 import PushPrompt from "@/components/messages/PushPrompt";
@@ -114,12 +117,14 @@ const site = await getSiteSettingsCached();
     <MemberProvider>
         <RememberReturn />
         <ChromeGate>
-          <CelebrationBanner />
-          <ChallengeBanner />
-          <VerifyEmailBanner />
-          <WorkPrompt />
+          <AdultOnly><CelebrationBanner /></AdultOnly>
+          <AdultOnly><ChallengeBanner /></AdultOnly>
+          <AdultOnly><VerifyEmailBanner /></AdultOnly>
+          <KidGuard />
+          <EighteenBanner />
+          <AdultOnly><WorkPrompt /></AdultOnly>
           <TimeCheck />
-          <PushPrompt />
+          <AdultOnly><PushPrompt /></AdultOnly>
         </ChromeGate>
         <PresenceBeat />
         <CallManager />
@@ -231,7 +236,7 @@ const site = await getSiteSettingsCached();
         </footer>
         </FooterGate>
       <BottomTabs />
-      <NanaChat />
+      <AdultOnly><NanaChat /></AdultOnly>
     </MemberProvider>
   );
 }

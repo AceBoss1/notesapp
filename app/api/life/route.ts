@@ -5,6 +5,9 @@ import { rateLimit } from "@/lib/rate-limit";
 import { LIFE_LIVE } from "@/lib/life/catalog";
 import { LifeError, act, friends, invites, mutate, richList, statement, view, type Action } from "@/lib/life/server";
 import { awardReferral } from "@/lib/life/referral";
+import { isKidUid } from "@/lib/kids";
+import { lifeGate } from "@/lib/kids-server";
+import { YoungError } from "@/lib/young";
 
 export const dynamic = "force-dynamic";
 
@@ -17,7 +20,7 @@ async function who(req: NextRequest) {
   return me;
 }
 function fail(err: unknown) {
-  if (err instanceof LifeError) return NextResponse.json({ error: err.message }, { status: err.status });
+  if (err instanceof LifeError || err instanceof YoungError) return NextResponse.json({ error: err.message }, { status: err.status });
   const f = friendlyMessage(err, "Notes Life couldn't do that");
   return NextResponse.json({ error: f.message }, { status: f.status });
 }
@@ -28,14 +31,18 @@ export async function GET(req: NextRequest) {
     const limited = await rateLimit(req, "life-get", me.uid, 60, 60);
     if (limited) return limited;
     const db = getAdminDb();
+    // A child profile plays kids' Notesville: only if the parent allowed it, within today's play time, with no real players.
+    const kid = isKidUid(me.uid);
+    if (kid) await lifeGate(db, me.uid);
     const v = req.nextUrl.searchParams.get("view");
-    if (v === "rich") return NextResponse.json(await richList(db, me.uid, 20, req.nextUrl.searchParams.get("real") === "1"));
+    if (kid && (v === "friends" || v === "invites")) return NextResponse.json(v === "friends" ? { friends: [] } : { invites: [], paid: 0 });
+    if (v === "rich") return NextResponse.json(await richList(db, me.uid, 20, !kid && req.nextUrl.searchParams.get("real") === "1", kid));
     if (v === "friends") return NextResponse.json(await friends(db, me.uid));
     if (v === "tx") return NextResponse.json(await statement(db, me.uid));
     if (v === "invites") return NextResponse.json(await invites(db, me.uid));
     // ?ref=<username>: the friend who invited you, kept only if this is your first time and they play Notes Life themselves.
     const ref = (req.nextUrl.searchParams.get("ref") || "").trim().toLowerCase().replace(/^@/, "");
-    let inviter = /^[a-z0-9_.-]{2,30}$/.test(ref) ? String((await db.doc(`usernames/${ref}`).get()).data()?.uid ?? "") || null : null;
+    let inviter = !kid && /^[a-z0-9_.-]{2,30}$/.test(ref) ? String((await db.doc(`usernames/${ref}`).get()).data()?.uid ?? "") || null : null;
     if (inviter && !(await db.doc(`lifePlayers/${inviter}`).get()).exists) inviter = null;
     const { player } = await mutate(db, me.uid, () => null, Date.now(), inviter);
     return NextResponse.json({ player: view(player) });
@@ -51,10 +58,14 @@ export async function POST(req: NextRequest) {
     if (limited) return limited;
     const body = (await req.json().catch(() => ({}))) as Action;
     const db = getAdminDb();
+    if (isKidUid(me.uid)) {
+      await lifeGate(db, me.uid);
+      if (body.action === "dw_giveaway") throw new LifeError(403, "Kids' Notesville skips the VIP bar.");
+    }
     const { player, result } = await act(db, me.uid, body);
     const r = result as { referral?: string | null };
     let referral: string | null = null;
-    if (r?.referral) referral = await awardReferral(db, me.uid, r.referral).catch((e) => { console.error("referral bonus failed", e); return null; });
+    if (r?.referral && !isKidUid(me.uid)) referral = await awardReferral(db, me.uid, r.referral).catch((e) => { console.error("referral bonus failed", e); return null; });
     return NextResponse.json({ player: view(player), result: referral ? { ...result, referralBonus: referral } : result });
   } catch (err) {
     return fail(err);

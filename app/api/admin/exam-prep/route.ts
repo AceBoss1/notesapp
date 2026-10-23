@@ -9,6 +9,8 @@ import {
 import { EXAMS, isExamId, parseCsv, rowsToInputs, slug, subjectKey, type ExamId, type QuestionInput, type Subject } from "@/lib/exam-prep";
 import starter from "@/content/exam-prep/starter.json";
 import { bearer, body, db, fail, ok } from "@/lib/exam-prep-api";
+import { adminSchools, decideSchool, setAgreement } from "@/lib/prep-schools-server";
+import { SchoolError } from "@/lib/prep-schools";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
@@ -45,6 +47,7 @@ export async function GET(req: NextRequest) {
         invites: invites.docs.map((d) => { const i = d.data(); return { id: d.id, kind: i.kind ?? "single", subjects: i.subjects ?? [], uses: i.uses ?? (i.usedBy ? 1 : 0), maxUses: i.maxUses ?? 1, active: i.active !== false, createdAt: i.createdAt, expiresAt: i.expiresAt, note: i.note, by: i.createdByName }; }),
       });
     }
+    if (view === "schools") { await adminFor(req, "content"); return ok(await adminSchools(db())); }
     if (view === "reports") {
       await adminFor(req, "content");
       const snap = await db().collection("prepReports").where("status", "==", q.get("status") === "resolved" ? "resolved" : "open").limit(200).get();
@@ -67,6 +70,9 @@ export async function POST(req: NextRequest) {
   try {
     const b = await body(req);
     const action = String(b.action ?? "");
+    // Schools: approving one, and Legal's onboarding data agreement (its text lives only in Firestore).
+    if (action === "school_decide") { const a = await adminFor(req, "content"); try { return ok(await decideSchool(db(), a.uid, b.id, b.decision)); } catch (e) { if (e instanceof SchoolError) throw new PrepError(e.message, e.status); throw e; } }
+    if (action === "school_agreement") { const a = await adminFor(req, "content"); try { return ok(await setAgreement(db(), a.uid, b)); } catch (e) { if (e instanceof SchoolError) throw new PrepError(e.message, e.status); throw e; } }
     if (action === "save_question") { const a = await adminFor(req, "content"); return ok(await saveQuestion(db(), a, b.question as QuestionInput & { draft?: boolean }, b.id ? String(b.id) : undefined)); }
     if (action === "import_csv") {
       const a = await adminFor(req, "content");

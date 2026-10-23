@@ -377,7 +377,7 @@ async function readUsersFromFirestore(): Promise<UserProfile[]> {
 // private fields such as email stripped). The admin screen needs the real
 // documents and uses getAllUsersForAdmin().
 // Teen mode (Naija Exam Prep, lib/exam-prep-server.ts setTeen): under-18s aren't listed in the directory, search or suggestions.
-const serverPublicUsers = ttlCache(5 * 60_000, async () => (await readUsersFromFirestore()).filter((u) => (u as { teen?: boolean }).teen !== true));
+const serverPublicUsers = ttlCache(5 * 60_000, async () => (await readUsersFromFirestore()).filter((u) => (u as { teen?: boolean }).teen !== true && (u as { keepHidden?: boolean }).keepHidden !== true));
 const browserPublicUsers = ttlCache(2 * 60_000, async () => {
   const res = await fetch("/api/public/users");
   if (!res.ok) throw new Error("Couldn't load people right now.");

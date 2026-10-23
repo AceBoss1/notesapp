@@ -8,10 +8,10 @@ import QuestionEditor, { draftOf, type Draft } from "@/components/exam-prep/Ques
 
 // Admin → Naija Exam Prep. Editorial (questions, import, publishing, subjects, reviewers, reports) for content; packs, access,
 // grants and refunds for finance; usage for product. The API checks the same departments (app/api/admin/exam-prep).
-type Tab = "questions" | "import" | "subjects" | "reviewers" | "reports" | "packs" | "access" | "usage";
+type Tab = "questions" | "import" | "subjects" | "reviewers" | "reports" | "schools" | "packs" | "access" | "usage";
 const TABS: { key: Tab; label: string; dept: "content" | "finance" | "product" }[] = [
   { key: "questions", label: "Questions", dept: "content" }, { key: "import", label: "Import", dept: "content" }, { key: "subjects", label: "Subjects", dept: "content" },
-  { key: "reviewers", label: "Reviewers", dept: "content" }, { key: "reports", label: "Reports", dept: "content" },
+  { key: "reviewers", label: "Reviewers", dept: "content" }, { key: "reports", label: "Reports", dept: "content" }, { key: "schools", label: "Schools", dept: "content" },
   { key: "packs", label: "Packs", dept: "finance" }, { key: "access", label: "Access & refunds", dept: "finance" }, { key: "usage", label: "Usage", dept: "product" },
 ];
 const STATUSES = ["in_review", "changes", "approved", "published", "draft", "retired"] as const;
@@ -42,6 +42,7 @@ export default function AdminExamPrep() {
         {tab === "subjects" && <Subjects api={api} />}
         {tab === "reviewers" && <Reviewers api={api} />}
         {tab === "reports" && <Reports api={api} />}
+        {tab === "schools" && <Schools api={api} />}
         {tab === "packs" && <Packs api={api} />}
         {tab === "access" && <AccessTab api={api} />}
         {tab === "usage" && <Usage api={api} />}
@@ -331,6 +332,42 @@ function Usage({ api }: { api: Api }) {
           <p className="mt-3 text-xs text-slate">Daily counts only: no student is identified in them.</p>
         </>
       )}
+    </div>
+  );
+}
+
+// Schools (lib/prep-schools.ts): approve a school's application, and keep Legal's onboarding data agreement (version and text).
+type SchoolRow = { id: string; name: string; state: string; students: number; leadName: string; leadRole: string; leadEmail: string; status: string; signature?: { version: string; name: string; at: string }; createdAt: string };
+function Schools({ api }: { api: <T>(q: string, body?: unknown) => Promise<T> }) {
+  const [d, setD] = useState<{ schools: SchoolRow[]; agreement: { version: string; text: string } | null } | null>(null);
+  const [msg, setMsg] = useState("");
+  const [ag, setAg] = useState({ version: "", text: "" });
+  const load = useCallback(() => api<{ schools: SchoolRow[]; agreement: { version: string; text: string } | null }>("?view=schools").then((x) => { setD(x); if (x.agreement) setAg(x.agreement); }).catch((e) => setMsg(e.message)), [api]);
+  useEffect(() => { void load(); }, [load]);
+  const act = async (b: Record<string, unknown>, ok: string) => { setMsg(""); try { await api("", b); setMsg(ok); await load(); } catch (e) { setMsg((e as Error).message); } };
+  if (!d) return <p className="text-sm text-slate">Loading…</p>;
+  return (
+    <div className="space-y-6">
+      {msg && <p className="text-sm text-slate" role="status">{msg}</p>}
+      <div className="space-y-2">
+        {d.schools.map((s) => (
+          <div key={s.id} className="card flex flex-wrap items-center justify-between gap-3 p-4 text-sm">
+            <div><p className="font-semibold text-ink">{s.name} <span className="font-normal text-slate">· {s.state} · about {s.students} students</span></p><p className="text-xs text-slate">{s.leadName} ({s.leadRole}) · {s.leadEmail} · applied {s.createdAt.slice(0, 10)}{s.signature ? ` · signed ${s.signature.version} by ${s.signature.name} on ${s.signature.at.slice(0, 10)}` : ""}</p></div>
+            <div className="flex items-center gap-2">
+              <span className="rounded-full border border-rule px-2 py-0.5 text-xs">{s.status}</span>
+              {s.status === "pending" && <><button className="rounded-full bg-ink px-3 py-1 text-xs text-paper" onClick={() => act({ action: "school_decide", id: s.id, decision: "approve" }, "Approved; the lead has been emailed.")}>Approve</button><button className="rounded-full border border-rule px-3 py-1 text-xs" onClick={() => act({ action: "school_decide", id: s.id, decision: "decline" }, "Declined.")}>Decline</button></>}
+            </div>
+          </div>
+        ))}
+        {!d.schools.length && <p className="text-sm text-slate">No school has applied yet. Schools apply at prep.notesapp.name.ng/schools.</p>}
+      </div>
+      <form className="card space-y-2 p-4" onSubmit={(e) => { e.preventDefault(); void act({ action: "school_agreement", ...ag }, "Agreement saved. Approved schools can sign it now."); }}>
+        <p className="font-semibold text-ink">Onboarding data agreement</p>
+        <p className="text-xs text-slate">Legal&apos;s text. Schools sign the version shown here; a new version means schools sign again. {d.agreement ? `Current: ${d.agreement.version}.` : "Not set yet: approved schools can't sign until it is."}</p>
+        <input className="w-full rounded-lg border border-rule px-3 py-2 text-sm" placeholder="Version, for example 2026-11-01" value={ag.version} onChange={(e) => setAg({ ...ag, version: e.target.value })} />
+        <textarea className="h-48 w-full rounded-lg border border-rule px-3 py-2 text-sm" placeholder="The full agreement text" value={ag.text} onChange={(e) => setAg({ ...ag, text: e.target.value })} />
+        <button className="rounded-full bg-ink px-4 py-2 text-xs text-paper">Save the agreement</button>
+      </form>
     </div>
   );
 }

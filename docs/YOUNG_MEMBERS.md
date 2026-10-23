@@ -26,15 +26,20 @@ Legal checks these points (team hub, Legal & compliance): the Terms clause, the 
 | Who opens the account | A parent, who owns it | The student; a parent confirms by email | The member |
 | People search and directory | Hidden | Hidden | Their choice |
 | Messages and group invites | None | Only from people they follow | Anyone (their settings) |
-| Comments and moments | Off | Replies only from people they follow (to build) | Their settings |
+| Comments and moments | Off | Replies only from people they follow; moments only for mutual follows, never public (v0.83.0) | Their settings |
 | Board and public name | Nickname only | Nickname only | Their choice |
 | Ads, offers, newsletters | Never | Never to the student; anything goes to the parent | Opt in |
 | Paying | The parent | Allowed, refundable, parent told | Normal |
 
-Teen mode is built (v0.79.0: `users.teen`, `prepTeens`, `serverPublicUsers`, `sendMessage`, `checkAddable`). Kids mode and
-teen mode on Moments are next.
+Teen mode is built (v0.79.0: `users.teen`, `prepTeens`, `serverPublicUsers`, `sendMessage`, `checkAddable`). v0.83.0 adds the
+birth month and year (`prepTeens.birth`, `lib/young.ts`; 13 to 17 only), replies only from people the teen follows (`teenGate` in
+`lib/comments-server.ts`) and moments only for mutual follows (`lib/moments-server.ts`). Kids mode is built in v0.85.0: a child
+profile on the parent's account (`lib/kids.ts`, `lib/kids-server.ts`, `/api/kids`, My account → Family, `/kids`), its own sign-in
+identity `kid_<id>` minted only for the owning parent (claims kid, kidId, parentUid), back to the parent with a PIN, `KidGuard`
+keeping it to the areas switched on, kids' Notesville in Notes Life (residents only, play time per day), the Sunday email to the
+parent, and firestore.rules refusing a child profile any profile edit, username or follow.
 
-## Turning 18 (the graduation flow, to build)
+## Turning 18 (the graduation flow, built in v0.86.0: `lib/young-server.ts`, `/api/young`, `/eighteen`)
 
 1. The birth year (or date) is kept on the server at sign-up in kids or teen mode, never shown.
 2. On the 18th birthday, a one-time **"You're 18 now"** screen. The student switches on what they want: appearing in search,
@@ -47,9 +52,15 @@ teen mode on Moments are next.
 6. Then the case on merit: exam history carried over, a free Pro trial, Academy courses for university and a first job, a
    portfolio site, the CardTap wallet.
 
+Built as: a bell and a banner on the birthday (from the birth month in `prepTeens`), the `/eighteen` screen with five switches all off
+(search and directory, messages from anyone, replies and moments from anyone, real name on the board, digest and offers), their own
+consent (`users.consent.own`), a download of their data and, if asked, deleting the day-by-day practice log. Whatever stays off is
+kept as `users.keepHidden`, `keepDmFollowers`, `keepRepliesFollowers` (honoured wherever teen mode is); the parent is emailed and
+`prepTeens` (their email, the birth month) is deleted. Instead of a free month of Pro, the existing 15-day Pro trial is offered.
+
 ## While they're young
 
 - No targeted ads, no data sales, no growth emails to the child; anything promotional goes to the parent.
 - No streaks or patterns built to hook them. The effort board counts practice, capped at 300 a day.
-- Schools sign a data agreement before access codes and class boards (next Exam Prep release).
+- Schools sign a data agreement before access codes and class boards (built in v0.87.0; the agreement's text is Legal's, set in Admin → Naija Exam Prep → Schools, never in the code).
 - A short public page, "How we treat young members", with the DPO contact.

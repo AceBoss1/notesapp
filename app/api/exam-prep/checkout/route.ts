@@ -4,12 +4,14 @@ import { LEGAL_VERSION } from "@/lib/legal";
 import { callbackOrigin } from "@/lib/origin";
 import { PrepError, startPackCheckout } from "@/lib/exam-prep-server";
 import { body, db, fail, limit, needUser, ok } from "@/lib/exam-prep-api";
+import { isKidUid } from "@/lib/kids";
 
 export const dynamic = "force-dynamic";
 // POST { exam } → a Paystack checkout for that one pack, on this account. The price and months are read from the pack here.
 export async function POST(req: NextRequest) {
   try {
     const u = await needUser(req);
+    if (isKidUid(u.uid)) throw new PrepError("A child profile can't buy. Make a pay link and send it to your parent instead.", 403);
     if (!u.email) throw new PrepError("Your account needs an email to pay.");
     if (!u.emailVerified) throw new PrepError("Verify your email first: check your inbox for the link.", 403);
     const limited = await limit(req, "checkout", u.uid, 10, 600);

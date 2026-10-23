@@ -226,7 +226,10 @@ const Q = (id: string, access: "free" | "pack", topic = "algebra", answer = "B")
 
   // teen mode: the flag on the profile, the parent's email kept privately, confirmation by link
   let sentTo = "", link2 = "";
-  const tm = await setTeen(db, "u_teen", "Parent@Example.com", async (to, l) => { sentTo = to; link2 = l; return true; }, "https://prep.test");
+  await rejects(setTeen(db, "u_teen", "parent@example.com", async () => true, "https://prep.test", new Date("2026-10-23T12:00:00Z"), { month: 3, year: 2005 }), 400); // 21: not needed
+  await rejects(setTeen(db, "u_teen", "parent@example.com", async () => true, "https://prep.test", new Date("2026-10-23T12:00:00Z"), { month: 3, year: 2015 }), 400); // 11: a child profile
+  const tm = await setTeen(db, "u_teen", "Parent@Example.com", async (to, l) => { sentTo = to; link2 = l; return true; }, "https://prep.test", new Date("2026-10-23T12:00:00Z"), { month: 11, year: 2010 });
+  assert.equal((await db.doc("prepTeens/u_teen").get()).data()!.birth, "2010-11", "kept with the parent's email, off the profile");
   assert.equal(tm.emailSent, true); assert.equal(sentTo, "parent@example.com");
   const prof = (await db.doc("users/u_teen").get()).data()!;
   assert.equal(prof.teen, true); assert.equal(JSON.stringify(prof).includes("parent@"), false, "the parent's email isn't on the profile");

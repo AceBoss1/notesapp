@@ -11,6 +11,44 @@ export type Release = {
 
 export const CHANGELOG: Release[] = [
   {
+    version: "v0.87.0",
+    bump: "minor",
+    date: "2026-10-23",
+    changes: [
+      { kind: "added", text: "Naija Exam Prep for schools: a key member of staff applies at prep.notesapp.name.ng/schools and, once we approve the school, signs the onboarding data agreement for it. Free during the pilot." },
+      { kind: "added", text: "Classes with access codes (like GFC-SS3G-7KQ) that students enter under Progress, teachers added by email, and a class view for each teacher: students by first name and initial, this week's questions, score and weakest topic, a nickname board and a CSV export." },
+    ],
+  },
+  {
+    version: "v0.86.0",
+    bump: "minor",
+    date: "2026-10-23",
+    changes: [
+      { kind: "added", text: "Turning 18: on their 18th birthday a student in teen mode gets a bell and a one-time “You're 18 now” screen. Every switch stays off until they turn it on, and whatever they leave off stays protected on their account." },
+      { kind: "added", text: "They agree to the Terms and Privacy Policy themselves, can download their data or delete their day-by-day practice log (progress, scores and certificates stay), and their parent or guardian is told the account is now theirs, with their email removed." },
+      { kind: "changed", text: "Students in teen mode no longer get the weekly digest." },
+    ],
+  },
+  {
+    version: "v0.85.0",
+    bump: "minor",
+    date: "2026-10-23",
+    changes: [
+      { kind: "added", text: "Child profiles for under-13s: a parent adds them from My account → Family and opens them on their own device. A child never has a login; getting back to the parent's account takes the parent's PIN." },
+      { kind: "added", text: "A child sees only what the parent switches on: Naija Exam Prep practice, free Academy courses, reading journals with no comments, and Notes Life in kids' Notesville (only its residents, no real players, no invites or Bonus Credits) for a daily play time. Never messages, moments, comments, a public profile or buying." },
+      { kind: "added", text: "Every Sunday evening the parent gets an email of what each child practised, with scores by topic, and can delete a child's profile and everything in it at any time." },
+    ],
+  },
+  {
+    version: "v0.83.0",
+    bump: "minor",
+    date: "2026-10-23",
+    changes: [
+      { kind: "added", text: "Teen mode: only people a teen follows can reply to their journals and comments, and a teen's moments are seen only by people they follow back, never in public." },
+      { kind: "added", text: "Teen mode asks the month and year you were born (kept privately, never shown) so it can end on your 18th birthday. It's for ages 13 to 17; under 13, a parent sets you up from their own account." },
+    ],
+  },
+  {
     version: "v0.82.1",
     bump: "patch",
     date: "2026-10-23",

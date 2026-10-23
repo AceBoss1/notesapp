@@ -741,14 +741,36 @@ ${PREP_NAME} (${PREP_HOST}) is NotesApp's exam practice, part of Notes Academy. 
 
 **Report a problem:** every question has **Report a problem** (wrong answer, unclear, typo). ${PREP_NAME} is not affiliated with JAMB, WAEC or NECO; all questions are original practice questions, checked by a reviewer before they're published.
 `),
-    A("naija-exam-prep-teen-mode", `${PREP_NAME}: teen mode and parents`, "Safety and your data", `
-Students under 18 can use ${PREP_NAME}. After signing up, tap **Yes, I'm under 18** and give a parent's or guardian's email.
+    A("child-profiles", "Child profiles for under-13s (kids mode)", "Safety and your data", `
+Children under 13 don't get their own NotesApp account. A parent or guardian adds them from **My account → Family**, as a **child profile** on the parent's own account: a nickname, the month and year they were born (kept privately, never shown), and a 4-digit PIN.
 
-**Teen mode:** you don't appear in people search or the member directory; only people you follow can message you or add you to a group; and the weekly board shows only your nickname, never your name.
+**Opening it:** tap **Open [name]'s profile** on your device. Your child sees only what you switched on: Naija Exam Prep practice, free Academy courses, reading journals (with no comments), and Notes Life in **kids' Notesville**, where they only meet Notesville's residents, never real players, with no invites or Bonus Credits, and only for the play time you set each day.
+
+**Never in a child profile:** messages, moments, comments, a public profile, a username, following people, buying, or ads chosen for them. To buy an Exam Prep pack for them, use a pay link.
+
+**Getting back to your account** takes your PIN (five wrong tries and it waits 15 minutes). Every Sunday evening you get an email of what they practised, with scores by topic. You can change what they can use, or **delete their profile and everything in it**, at any time.
+
+When they turn 13, they can have their own account in teen mode instead.
+`),
+    A("naija-exam-prep-schools", `${PREP_NAME} for schools`, "Teams and organisations", `
+A school joins ${PREP_NAME} through a key member of staff (the principal, the proprietor or another senior role) at **prep.notesapp.name.ng/schools**. We review the school, then the staff member signs the onboarding data agreement on the school's behalf, and a copy is emailed to them.
+
+**Classes:** the lead makes classes (for example SS3 Gold, JAMB, Maths) and each gets an access code like **GFC-SS3G-7KQ**. Students type it under **Progress → Have a class code?**. Teachers are added by the email of their NotesApp account.
+
+**What teachers see:** their own classes only, each student by first name and initial, with the questions they answered this week, their score and their weakest topic, a board of nicknames for students who joined the board, and a CSV export. Nothing is sold, shared for marketing or used for ads. Under-18s still use teen mode.
+
+**Price:** free during the pilot. After it, a price per student per year, agreed with each school before anything is charged.
+`),
+    A("naija-exam-prep-teen-mode", `${PREP_NAME}: teen mode and parents`, "Safety and your data", `
+Students aged 13 to 17 can use ${PREP_NAME}. After signing up, tap **Yes, I'm under 18**, choose the month and year you were born, and give a parent's or guardian's email. The month and year are kept privately, never shown, so teen mode ends on your 18th birthday. Under 13, a parent or guardian sets you up from their own account.
+
+**Teen mode:** you don't appear in people search or the member directory; only people you follow can message you, add you to a group, or reply to your journals and comments; your moments are seen only by people you follow who follow you back (never public); and the weekly board shows only your nickname, never your name.
 
 **Parents and guardians** get an email asking them to confirm, with a link. The address is kept only to confirm the account and to contact them about it; it's never shown on the profile. A student can practise, and buy a pack or send a pay link, before the parent confirms. A parent can ask for a refund under the pack's refund rule (within ${REFUND_DAYS} days, no pack question opened) or for the account to be closed, from the contact page.
 
-No ads are shown to students in teen mode, and their data isn't sold or used to market to them.
+No ads are shown to students in teen mode, and their data isn't sold or used to market to them; they don't get the weekly digest or offers.
+
+**On your 18th birthday** you get a one-time screen, "You're 18 now": everything stays as it was until you switch it on (people search, messages from anyone, replies and moments from anyone, your real name on the board, the digest and offers). You agree to the Terms and Privacy Policy yourself, can download your data or delete your day-by-day practice log, and we tell your parent or guardian the account is now yours and remove their email.
 `),
     A("naija-exam-prep-reviewers", `Reviewing questions for ${PREP_NAME}`, "Teams and organisations", `
 Every ${PREP_NAME} question is checked by a reviewer before students see it.

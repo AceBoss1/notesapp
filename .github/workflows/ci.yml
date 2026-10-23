@@ -43,6 +43,9 @@ jobs:
       - run: npm run test:kiswahili
       - run: npm run test:exam-prep
       - run: npm run test:life-social
+      - run: npm run test:young
+      - run: npm run test:prep-schools
+      - run: npm run test:kids
       - run: npm run test:time
       - run: npm run test:shipments
       - run: npm run test:logistics
@@ -60,6 +63,9 @@ jobs:
       - run: npm run test:kiswahili-server
       - run: npm run test:exam-prep-server
       - run: npm run test:life-social-server
+      - run: npm run test:young-server
+      - run: npm run test:prep-schools-server
+      - run: npm run test:kids-server
       - run: npm run test:time-server
       - run: npm run test:certificates-server
       - run: npm run test:nana-server
