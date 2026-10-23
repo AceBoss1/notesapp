@@ -752,7 +752,7 @@ Children under 13 don't get their own NotesApp account. A parent or guardian add
 
 When they turn 13, they can have their own account in teen mode instead.
 `),
-    A("naija-exam-prep-schools", `${PREP_NAME} for schools`, "Naija Exam Prep", `
+    A("naija-exam-prep-schools", `${PREP_NAME} for schools`, "Teams and organisations", `
 A school joins ${PREP_NAME} through a key member of staff (the principal, the proprietor or another senior role) at **prep.notesapp.name.ng/schools**. We review the school, then the staff member signs the onboarding data agreement on the school's behalf, and a copy is emailed to them.
 
 **Classes:** the lead makes classes (for example SS3 Gold, JAMB, Maths) and each gets an access code like **GFC-SS3G-7KQ**. Students type it under **Progress → Have a class code?**. Teachers are added by the email of their NotesApp account.
