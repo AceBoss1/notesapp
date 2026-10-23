@@ -20,6 +20,7 @@ import { announceReleases } from "@/lib/discord";
 import { setting } from "@/lib/config";
 import { syncOrcidSites } from "@/lib/publications-server";
 import { sendEventReminders } from "@/lib/events-server";
+import { fridayNudges, sweepTimers } from "@/lib/time-server";
 
 // Run every ~15 minutes by an external scheduler with
 //   Authorization: Bearer $CRON_SECRET
@@ -91,6 +92,10 @@ export async function GET(req: NextRequest) {
   await job("dueReminders", () => sendDueReminders(db));
   // Work board deadlines: to each item's owner 3 days and 1 day before, on the day, and once when overdue.
   await job("workReminders", () => sendWorkReminders(db));
+  // Team time: timers whose "still working?" went unanswered (or that ran to midnight) stop, the check-in bell goes out once per
+  // check, and on Fridays from 4 PM Lagos, one reminder to submit the week's timesheet (lib/time-server.ts).
+  await job("timeTimers", async () => { const r = await sweepTimers(db); return r.stopped + r.asked; });
+  await job("timeFridayNudge", () => fridayNudges(db));
   // Sundays from 5 PM Lagos, in batches across runs, once WEEKLY_DIGEST=on (lib/digest-server.ts).
   await job("weeklyDigest", () => sendWeeklyDigests(db));
   // Events: reminders 24 hours and 1 hour before each start to everyone going or interested (lib/events-server.ts).

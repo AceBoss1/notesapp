@@ -427,6 +427,15 @@ service cloud.firestore {
     match /integrationClients/{id} { allow read, write: if false; }
     // Payroll (finance only, through /api/admin/payroll): staff pay details, monthly runs and the encrypted account numbers.
     match /payrollStaff/{id} { allow read, write: if false; }
+    // Team time (/api/admin/time, lib/time-server.ts): timers, tracked time, timesheets, leave, projects, team leads and the Friday
+    // reminders. Server only: staff see their own time, team leads their departments, super admins everyone, all through the API.
+    match /timeTimers/{id} { allow read, write: if false; }
+    match /timeEntries/{id} { allow read, write: if false; }
+    match /timeSheets/{id} { allow read, write: if false; }
+    match /timeLeave/{id} { allow read, write: if false; }
+    match /timeProjects/{id} { allow read, write: if false; }
+    match /timeLeads/{id} { allow read, write: if false; }
+    match /timeNudges/{id} { allow read, write: if false; }
     match /payrollRuns/{id} { allow read, write: if false; }
     match /payrollSecrets/{id} { allow read, write: if false; }
     // Staff library and message hub (through /api/admin/staff-library and /api/admin/hub): server-only.

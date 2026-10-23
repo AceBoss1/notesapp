@@ -919,6 +919,14 @@ test("payroll, staff library and message hub collections are server-only", async
   }
 });
 
+test("team time collections are server-only, even for super admins", async () => {
+  for (const path of ["timeTimers/alice", "timeEntries/x", "timeSheets/alice_2026-10-12", "timeLeave/x", "timeProjects/x", "timeLeads/alice", "timeNudges/2026-10-12"]) {
+    await assertFails(getDoc(doc(as("alice", { admin: true }), path)));
+    await assertFails(setDoc(doc(as("alice", { admin: true }), path), { a: 1 }));
+    await assertFails(getDoc(doc(anon(), path)));
+  }
+});
+
 test("calls: only the two people read it; caller writes the offer, callee answers; nobody else", async () => {
   await env.withSecurityRulesDisabled(async (ctx) => {
     await setDoc(doc(ctx.firestore(), "calls/c1"), { callerUid: "alice", calleeUid: "pub", kind: "audio", status: "ringing", cid: "alice_pub", createdAt: "x" });
