@@ -11,6 +11,14 @@ export type Release = {
 
 export const CHANGELOG: Release[] = [
   {
+    version: "v0.90.2",
+    bump: "patch",
+    date: "2026-10-23",
+    changes: [
+      { kind: "changed", text: "Kiswahili: journals are translated block by block. NKENNEAi merges paragraph breaks, so a grouped request could never be split back and was a wasted call; now every request counts." },
+    ],
+  },
+  {
     version: "v0.90.1",
     bump: "patch",
     date: "2026-10-23",
