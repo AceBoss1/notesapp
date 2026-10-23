@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useState } from "react";
 import { prepApi, useMe } from "@/lib/exam-prep-client";
+import { EXAMS, type ExamId } from "@/lib/exam-prep";
 import { btnGo, card, input, Note } from "./ui";
 
 // "Have a class code?" A student joins their school class (schools, lib/prep-schools.ts) so their teacher sees their practice.
@@ -13,7 +14,7 @@ export default function ClassCode() {
   if (!me || joined === null) return null;
   const join = async (e: React.FormEvent) => {
     e.preventDefault(); setMsg(null);
-    try { const r = await prepApi<{ className: string; school: string }>("schools", { body: { action: "join", code } }); setMsg({ tone: "ok", text: `You've joined ${r.className} at ${r.school}. Your teacher sees your practice, by your first name and initial.` }); setCode(""); setJoined((await prepApi<{ joined: typeof joined }>("schools")).joined); }
+    try { const r = await prepApi<{ className: string; school: string; exam: ExamId; packUntil: string }>("schools", { body: { action: "join", code } }); setMsg({ tone: "ok", text: `You've joined ${r.className} at ${r.school}. Your school's ${EXAMS[r.exam].short} pack is open until ${new Date(r.packUntil).toLocaleDateString("en-NG", { day: "numeric", month: "long", year: "numeric" })}: every question, free. Your teacher sees your practice, by your first name and initial.` }); setCode(""); setJoined((await prepApi<{ joined: typeof joined }>("schools")).joined); }
     catch (err) { setMsg({ tone: "error", text: (err as Error).message }); }
   };
   return (

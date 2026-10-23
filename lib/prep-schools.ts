@@ -27,7 +27,21 @@ export type School = {
   id: string; name: string; state: string; address: string; phone: string; students: number; leadUid: string; leadName: string; leadRole: string;
   staff: Record<string, "lead" | "teacher">; staffUids: string[]; status: SchoolStatus; signature?: Signature; createdAt: string;
 };
-export type SchoolClass = { id: string; schoolId: string; name: string; exam: ExamId; subjects: string[]; teacherUid: string; teacherName: string; code: string; createdAt: string };
+export type SchoolClass = { id: string; schoolId: string; name: string; exam: ExamId; subjects: string[]; teacherUid: string; teacherName: string; code: string; seats: number; members?: number; createdAt: string };
+
+// The school pack: a class code opens that exam's full pack for a year, free during the pilot, for as many students as the class
+// has places (the size the school gives). Leaving the class, or being removed by the teacher, frees the place and ends it; a pack the
+// student paid for themselves is kept.
+export const SCHOOL_PACK_MONTHS = 12;
+export const MAX_SEATS = 300;
+export const schoolRef = (classId: string) => `school:${classId}`;
+export function cleanSeats(v: unknown, taken = 0): number {
+  const n = Number(v);
+  if (!Number.isInteger(n) || n < 1 || n > MAX_SEATS) throw new SchoolError(`How many students are in the class? (1 to ${MAX_SEATS})`);
+  if (n < taken) throw new SchoolError(`${taken} students have already joined. Remove some first, or keep at least ${taken} places.`);
+  return n;
+}
+export const seatsLeft = (c: Pick<SchoolClass, "seats" | "members">) => Math.max(0, (c.seats ?? 0) - (c.members ?? 0));
 
 const clip = (v: unknown, n: number) => String(v ?? "").replace(/\s+/g, " ").trim().slice(0, n);
 
@@ -48,7 +62,7 @@ export function cleanClass(b: Record<string, unknown>) {
   if (name.length < 2) throw new SchoolError("Name the class, for example SS3 Gold.");
   if (!isExamId(b.exam)) throw new SchoolError("Choose the exam.");
   const subjects = Array.from(new Set((Array.isArray(b.subjects) ? b.subjects : []).map((s) => clip(s, 40)).filter(Boolean))).slice(0, 12);
-  return { name, exam: b.exam as ExamId, subjects };
+  return { name, exam: b.exam as ExamId, subjects, seats: cleanSeats(b.seats) };
 }
 
 // An access code like GFC-SS3G-7KQ: the school's initials, the class, and three characters that are easy to read aloud.
