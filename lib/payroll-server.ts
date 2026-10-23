@@ -5,6 +5,8 @@ import { accountCryptoConfigured, decryptAccountNumber, encryptAccountNumber } f
 import { adjustLine, buildLines, cleanStaff, runTotals, type PayLine, type PayRun, type PayStaff, type StaffInput } from "./payroll";
 import { lagosDate } from "./team";
 import { isMonth } from "./finance";
+import { approvedMinutesByUid } from "./time-server";
+import { listTeamPeople } from "./team-server";
 
 // Server side of Payroll. Collections (all server-only in firestore.rules): payrollStaff, payrollRuns (id = YYYY-MM), payrollSecrets (the
 // encrypted full account numbers, one per person). Finance and super admins only.
@@ -13,7 +15,7 @@ const need = (cond: boolean, msg: string, status = 403) => { if (!cond) throw ne
 const gate = (c: Caller) => need(c.finance, "Payroll is for the finance team.");
 
 const toStaff = (id: string, d: FirebaseFirestore.DocumentData): PayStaff => ({
-  id, name: d.name, role: d.role ?? "", uid: d.uid || undefined, monthlyKobo: d.monthlyKobo, payDay: d.payDay ?? 28, bankName: d.bankName ?? "", accountName: d.accountName ?? "",
+  id, name: d.name, role: d.role ?? "", uid: d.uid || undefined, basis: d.basis === "hourly" ? "hourly" : "monthly", monthlyKobo: d.monthlyKobo ?? 0, hourlyKobo: d.hourlyKobo ?? 0, payDay: d.payDay ?? 28, bankName: d.bankName ?? "", accountName: d.accountName ?? "",
   accountLast4: d.accountLast4 ?? "", hasAccount: !!d.hasAccount, startedOn: d.startedOn, active: d.active !== false, note: d.note ?? "", createdAt: d.createdAt ?? "",
 });
 const toRun = (id: string, d: FirebaseFirestore.DocumentData): PayRun => ({ id, period: id, lines: d.lines ?? [], createdAt: d.createdAt ?? "", createdByEmail: d.createdByEmail ?? "" });
@@ -22,12 +24,12 @@ async function log(db: Firestore, c: Caller, action: string, detail: string, now
   await db.collection("financeLog").add({ at: now.toISOString(), byUid: c.uid, byEmail: c.email, action: `payroll:${action}`, entryId: "", detail: detail.slice(0, 400) });
 }
 
-export async function payrollView(db: Firestore, c: Caller): Promise<{ staff: PayStaff[]; runs: (PayRun & { totals: ReturnType<typeof runTotals> })[]; cryptoReady: boolean; monthlyTotalKobo: number }> {
+export async function payrollView(db: Firestore, c: Caller): Promise<{ people: { uid: string; name: string; email: string }[]; staff: PayStaff[]; runs: (PayRun & { totals: ReturnType<typeof runTotals> })[]; cryptoReady: boolean; monthlyTotalKobo: number }> {
   gate(c);
-  const [s, r] = await Promise.all([db.collection(STAFF).get(), db.collection(RUNS).get()]);
+  const [s, r, team] = await Promise.all([db.collection(STAFF).get(), db.collection(RUNS).get(), listTeamPeople(db).catch(() => [])]);
   const staff = s.docs.map((d) => toStaff(d.id, d.data())).sort((a, b) => Number(b.active) - Number(a.active) || a.name.localeCompare(b.name));
   const runs = r.docs.map((d) => toRun(d.id, d.data())).sort((a, b) => b.period.localeCompare(a.period)).slice(0, 12).map((x) => ({ ...x, totals: runTotals(x) }));
-  return { staff, runs, cryptoReady: accountCryptoConfigured(), monthlyTotalKobo: staff.filter((p) => p.active).reduce((t, p) => t + p.monthlyKobo, 0) };
+  return { people: team.map((p) => ({ uid: p.uid, name: p.name, email: p.email })), staff, runs, cryptoReady: accountCryptoConfigured(), monthlyTotalKobo: staff.filter((p) => p.active && p.basis === "monthly").reduce((t, p) => t + p.monthlyKobo, 0) };
 }
 
 export async function addStaff(db: Firestore, c: Caller, input: StaffInput, now = new Date()): Promise<PayStaff> {
@@ -58,7 +60,7 @@ export async function updateStaff(db: Firestore, c: Caller, id: unknown, input: 
   }
   if (rest.uid === "") patch.uid = FieldValue.delete();
   await ref.update(patch);
-  await log(db, c, "update", `${s.data()!.name}${patch.monthlyKobo ? ` pay ${naira(Number(patch.monthlyKobo))}` : ""}${input.active !== undefined ? (patch.active ? " reactivated" : " deactivated") : ""}`, now);
+  await log(db, c, "update", `${s.data()!.name}${patch.monthlyKobo ? ` pay ${naira(Number(patch.monthlyKobo))}` : ""}${patch.hourlyKobo ? ` rate ${naira(Number(patch.hourlyKobo))}/h` : ""}${input.active !== undefined ? (patch.active ? " reactivated" : " deactivated") : ""}`, now);
 }
 
 // The full account number, shown on request to finance and logged each time (the transfer is made by hand).
@@ -79,8 +81,9 @@ export async function startRun(db: Firestore, c: Caller, period: unknown, now = 
   need(p <= lagosDate(now).slice(0, 7), "You can't start a run for a month that hasn't begun.", 400);
   const ref = db.collection(RUNS).doc(p);
   const staff = (await db.collection(STAFF).get()).docs.map((d) => toStaff(d.id, d.data()));
-  const lines = buildLines(staff, p);
-  need(lines.length > 0, "No active staff are due pay in that month. Add people first.", 400);
+  const hourly = staff.filter((s) => s.active && s.basis === "hourly" && s.uid).map((s) => s.uid!);
+  const lines = buildLines(staff, p, hourly.length ? await approvedMinutesByUid(db, hourly, p) : new Map());
+  need(lines.length > 0, "No one is due pay in that month: add people, or approve hourly staff's timesheets first.", 400);
   const doc = { lines, createdAt: now.toISOString(), createdByEmail: c.email };
   await db.runTransaction(async (t) => {
     need(!(await t.get(ref)).exists, `The ${p} run already exists.`, 409);

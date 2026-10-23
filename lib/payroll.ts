@@ -2,12 +2,16 @@ import { FinanceError, MAX_AMOUNT_KOBO, isMonth, toKobo } from "./finance";
 
 // Payroll under Accounts: who is paid, how much, on which day, and a monthly run that is marked paid one person at a time. Marking a line
 // paid writes a Payroll entry into the money ledger. Only finance and super admins see any of it. Transfers stay manual for now.
+// Pay is by the month or by the hour. Hourly staff (everyone, for now: owner, 22 Oct 2026) are paid their approved timesheet hours in
+// the month × their hourly rate (lib/time.ts), so a run for them needs their staff login linked.
 export type PayStaff = {
   id: string;
   name: string;
   role: string;
   uid?: string; // their staff login, when they have one
-  monthlyKobo: number;
+  basis: PayBasis;
+  monthlyKobo: number; // monthly staff
+  hourlyKobo: number; // hourly staff
   payDay: number; // 1 to 28, the day of the month they are paid
   bankName: string;
   accountName: string;
@@ -18,10 +22,11 @@ export type PayStaff = {
   note: string;
   createdAt: string;
 };
-export type PayLine = { staffId: string; name: string; role: string; baseKobo: number; adjustKobo: number; adjustNote: string; amountKobo: number; status: "pending" | "paid"; paidOn?: string; paidEntryId?: string };
+export type PayBasis = "monthly" | "hourly";
+export type PayLine = { staffId: string; name: string; role: string; minutes?: number; rateKobo?: number; baseKobo: number; adjustKobo: number; adjustNote: string; amountKobo: number; status: "pending" | "paid"; paidOn?: string; paidEntryId?: string };
 export type PayRun = { id: string; period: string; lines: PayLine[]; createdAt: string; createdByEmail: string };
 
-export type StaffInput = { name?: unknown; role?: unknown; uid?: unknown; monthly?: unknown; payDay?: unknown; bankName?: unknown; accountName?: unknown; accountNumber?: unknown; startedOn?: unknown; note?: unknown };
+export type StaffInput = { name?: unknown; role?: unknown; uid?: unknown; basis?: unknown; monthly?: unknown; hourly?: unknown; payDay?: unknown; bankName?: unknown; accountName?: unknown; accountNumber?: unknown; startedOn?: unknown; note?: unknown };
 
 export function cleanStaff(input: StaffInput, partial = false): Partial<Omit<PayStaff, "id" | "hasAccount" | "active" | "createdAt" | "accountLast4">> & { accountNumber?: string } {
   const out: ReturnType<typeof cleanStaff> = {};
@@ -29,11 +34,20 @@ export function cleanStaff(input: StaffInput, partial = false): Partial<Omit<Pay
   if (!partial || has("name")) { out.name = String(input.name ?? "").trim().slice(0, 100); if (!out.name) throw new FinanceError("Enter the person's name."); }
   if (!partial || has("role")) out.role = String(input.role ?? "").trim().slice(0, 100);
   if (has("uid")) out.uid = String(input.uid ?? "").trim().slice(0, 128);
-  if (!partial || has("monthly")) {
+  if (!partial || has("basis")) out.basis = input.basis === "monthly" ? "monthly" : "hourly";
+  if (partial && out.basis === "hourly" && !String(input.hourly ?? "").trim()) throw new FinanceError("Enter the hourly rate in naira, for example 2000.");
+  if (partial && out.basis === "monthly" && !String(input.monthly ?? "").trim()) throw new FinanceError("Enter the monthly pay in naira, for example 50000.");
+  if ((!partial && out.basis === "monthly") || (partial && has("monthly") && String(input.monthly ?? "").trim())) {
     const k = toKobo(input.monthly);
     if (!k) throw new FinanceError("Enter the monthly pay in naira, for example 50000.");
     if (k > MAX_AMOUNT_KOBO) throw new FinanceError("That amount looks too large. Check for an extra zero.");
     out.monthlyKobo = k;
+  }
+  if ((!partial && out.basis === "hourly") || (partial && has("hourly") && String(input.hourly ?? "").trim())) {
+    const k = toKobo(input.hourly);
+    if (!k) throw new FinanceError("Enter the hourly rate in naira, for example 2000.");
+    if (k > 10_000_000) throw new FinanceError("That hourly rate looks too large. Check for an extra zero.");
+    out.hourlyKobo = k;
   }
   if (!partial || has("payDay")) {
     const d = Number(input.payDay ?? 28);
@@ -59,11 +73,16 @@ export function cleanStaff(input: StaffInput, partial = false): Partial<Omit<Pay
 // Staff in a run: active, and started on or before the last day of the month.
 export const inRun = (s: Pick<PayStaff, "active" | "startedOn">, period: string) => s.active && s.startedOn.slice(0, 7) <= period;
 
-export function buildLines(staff: PayStaff[], period: string): PayLine[] {
+// Monthly staff get their monthly pay; hourly staff their approved minutes in the month (by staff login) × their rate, and no line when
+// they have none (or no login linked, so no timesheet to count).
+export function buildLines(staff: PayStaff[], period: string, approvedMinutes: Map<string, number> = new Map()): PayLine[] {
   if (!isMonth(period)) throw new FinanceError("Enter the month as YYYY-MM.");
-  return staff.filter((s) => inRun(s, period)).sort((a, b) => a.name.localeCompare(b.name)).map((s) => ({
-    staffId: s.id, name: s.name, role: s.role, baseKobo: s.monthlyKobo, adjustKobo: 0, adjustNote: "", amountKobo: s.monthlyKobo, status: "pending" as const,
-  }));
+  return staff.filter((s) => inRun(s, period)).sort((a, b) => a.name.localeCompare(b.name)).flatMap((s): PayLine[] => {
+    if (s.basis !== "hourly") return [{ staffId: s.id, name: s.name, role: s.role, baseKobo: s.monthlyKobo, adjustKobo: 0, adjustNote: "", amountKobo: s.monthlyKobo, status: "pending" }];
+    const minutes = s.uid ? approvedMinutes.get(s.uid) ?? 0 : 0;
+    const base = Math.round((minutes * s.hourlyKobo) / 60);
+    return base > 0 ? [{ staffId: s.id, name: s.name, role: s.role, minutes, rateKobo: s.hourlyKobo, baseKobo: base, adjustKobo: 0, adjustNote: "", amountKobo: base, status: "pending" }] : [];
+  });
 }
 
 // An adjustment (a deduction or an extra) of up to ±the monthly pay; the line total can't go to zero or below.

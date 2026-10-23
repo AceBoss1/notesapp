@@ -282,6 +282,7 @@ export default function AdminTeamPage() {
           <Link href="/admin/team/vision" className="btn-ghost !px-4 !py-2 text-xs">Vision model →</Link>
           <Link href="/admin/team/messages" className="btn-ghost !px-4 !py-2 text-xs">Message hub →</Link>
           <Link href="/admin/team/library" className="btn-ghost !px-4 !py-2 text-xs">Staff library →</Link>
+          <Link href="/admin/team/time" className="btn-ghost !px-4 !py-2 text-xs">Time →</Link>
           {hasAnyDept(access, ["finance"]) && <Link href="/admin/team/payroll" className="btn-ghost !px-4 !py-2 text-xs">Payroll →</Link>}
           {hasAnyDept(access, ["finance", "product"]) && <Link href="/admin/team/finance" className="btn-ghost !px-4 !py-2 text-xs">Money ledger →</Link>}
           <label className="flex items-center gap-2">Show

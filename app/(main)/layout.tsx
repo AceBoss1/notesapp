@@ -6,6 +6,7 @@ import { AppFrame, ChromeGate, FooterGate } from "@/components/shell/Frame";
 import { MemberProvider } from "@/lib/member-client";
 import VerifyEmailBanner from "@/components/VerifyEmailBanner";
 import WorkPrompt from "@/components/WorkPrompt";
+import TimeCheck from "@/components/TimeCheck";
 import NanaChat from "@/components/NanaChat";
 import FooterCta from "@/components/FooterCta";
 import PushPrompt from "@/components/messages/PushPrompt";
@@ -117,6 +118,7 @@ const site = await getSiteSettingsCached();
           <ChallengeBanner />
           <VerifyEmailBanner />
           <WorkPrompt />
+          <TimeCheck />
           <PushPrompt />
         </ChromeGate>
         <PresenceBeat />
