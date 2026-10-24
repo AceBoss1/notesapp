@@ -130,3 +130,15 @@ Admin → Weekly digest (`/admin/digest`, owner and super admins): status, previ
   `certificates/{id}` (NA-C-…, QR); claim and pay at `/api/academy/certificate` (late fee after 7 days; `included` on paid
   courses that carry it in the price), verify at `/certificates`, PNG and PDF, revoke in Admin.
 - **Webhooks**: `course.sold` (Enterprise). **Tests**: `tests/courses/paid.emulator.ts`, `courses.test.ts`, the rules tests.
+
+## Backups and restoring (v0.93.0)
+
+- **Admin → Backups** (`app/(main)/admin/backups`, the owner only): the owner signs in with Google in the page (Google Identity
+  Services token, scope `datastore`, kept in the tab's memory) and the page calls Google's Firestore Admin API directly
+  (`lib/backups-client.ts`; requests and rules in `lib/backups.ts`): the database (PITR, delete protection), backup schedules,
+  backups (`locations/-`), `databases:restore` and `databases:clone`, and their operations. The server key never holds these
+  rights; `/api/admin/backups` only gates the page and writes `backupLog`.
+- **Which database the site uses:** `NEXT_PUBLIC_FIRESTORE_DATABASE_ID` ((default) when unset), read by `lib/firebase.ts`
+  (browser) and `getAdminDb()` (server), so a recovery switches the whole site with one setting.
+- **Tests**: `npm run test:backups` (a stand-in fetch checks every request).
+

@@ -55,6 +55,7 @@ jobs:
       - run: npm run test:sites
       - run: npm run test:trials
       - run: npm run test:inventory
+      - run: npm run test:backups
       - run: npm run test:community
       - run: npm run test:courses-server
       - run: npm run test:team-server

@@ -82,6 +82,7 @@ export const ADMIN_SECTIONS: Section[] = [
   { href: "/admin/limits", label: "Limits", need: ["product", "engineering"], group: "Platform" },
   { href: "/admin/settings", label: "Settings", need: ["product", "engineering"], group: "Platform" },
   { href: "/admin/maintenance", label: "Maintenance", need: "super", group: "Admin" },
+  { href: "/admin/backups", label: "Backups", need: "super", group: "Admin" }, // the owner only; the page says so to other super admins
   { href: "/admin/seed", label: "Seed", need: "super", group: "Admin" },
   { href: "/admin/access", label: "Team access", need: "super", group: "Admin" },
 ];

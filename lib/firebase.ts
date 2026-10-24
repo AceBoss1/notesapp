@@ -13,7 +13,9 @@ const firebaseConfig = {
 };
 
 export const app = getApps().length ? getApp() : initializeApp(firebaseConfig);
-export const db = getFirestore(app);
+// The live database, or a restored one after a recovery (NEXT_PUBLIC_FIRESTORE_DATABASE_ID, Admin → Backups).
+export const DATABASE_ID = setting("NEXT_PUBLIC_FIRESTORE_DATABASE_ID")?.trim() || "(default)";
+export const db = DATABASE_ID === "(default)" ? getFirestore(app) : getFirestore(app, DATABASE_ID);
 // Local development, CI and screenshots: point Firestore at the emulator (never set on the live site). Each copy of the SDK
 // (the browser, server components, API routes) connects its own instance; connecting one twice throws, which is ignored.
 const emulator = setting("NEXT_PUBLIC_FIRESTORE_EMULATOR_HOST");
