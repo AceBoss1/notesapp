@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
+import { Masked } from "@/components/admin/Masked";
 import { NameBadgeIcons } from "@/components/PersonName";
 import { badgesOf } from "@/lib/name-badges";
 import { useAdminAuth } from "@/lib/useAdminAuth";
@@ -45,7 +46,7 @@ export default function AdminUsersPage() {
         const list = rawList.map((u) => ({ ...u, suspension: suspensions[u.uid] ?? u.suspension }));
         setUsers(list);
         getAllBadgeRequests().then(setBadgeRequests).catch(() => {});
-        // Emails come from Firebase Auth via an admin-only endpoint.
+        // Emails come from Firebase Auth via an admin-only endpoint, masked; Show reveals one with a logged reason.
         try {
           const res = await fetch("/api/admin/user-emails", {
             method: "POST",
@@ -243,7 +244,7 @@ export default function AdminUsersPage() {
                           @{u.username}
                         </span>
                       </p>
-                      <p className="text-xs text-slate mt-0.5">{emails[u.uid] || "—"}</p>
+                      <p className="text-xs text-slate mt-0.5"><Masked kind="member-email" subject={u.uid} masked={emails[u.uid]} page="Users" /></p>
                       {(headline(u) || isIndustry(u.industry)) && (
                         <p className="mt-0.5 text-xs text-ink">{[headline(u), isIndustry(u.industry) ? INDUSTRY_LABEL[u.industry] : ""].filter(Boolean).join(" · ")}</p>
                       )}

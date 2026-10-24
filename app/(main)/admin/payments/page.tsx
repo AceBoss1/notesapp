@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { collection, getDocs, limit, orderBy, query, where } from "firebase/firestore";
+import { Masked } from "@/components/admin/Masked";
 import { db } from "@/lib/firebase";
 import { useAdminAuth } from "@/lib/useAdminAuth";
 import { formatNaira } from "@/lib/booking-time";
@@ -19,18 +20,23 @@ export default function AdminPaymentsPage() {
 
   async function load() {
     // Every entry that can still be acted on (held, disputed, transferring), plus the newest 300 of the rest: the whole ledger
-    // used to be read on every visit.
+    // used to be read on every visit. Payments come through the API with payers' emails masked (lib/pii.ts).
+    const paid = fetch("/api/admin/payments", { headers: { Authorization: `Bearer ${await user!.getIdToken()}` } }).then(async (r) => {
+      const j = await r.json();
+      if (!r.ok) throw new Error(j.error || "Couldn't load payments");
+      return j as { conflicts: PaymentRecord[]; payments: PaymentRecord[] };
+    });
     const [open, recent, c] = await Promise.all([
       getDocs(query(collection(db, "ledger"), where("status", "in", ["held", "disputed", "transferring"]))),
       getDocs(query(collection(db, "ledger"), orderBy("createdAt", "desc"), limit(300))),
-      getDocs(query(collection(db, "payments"), where("status", "==", "paid_slot_conflict"))),
+      paid,
     ]);
     const byRef = new Map<string, LedgerEntry>();
     for (const d of [...open.docs, ...recent.docs]) byRef.set(d.id, d.data() as LedgerEntry);
     setLedger([...byRef.values()].sort((a, b) => String(b.createdAt ?? "").localeCompare(String(a.createdAt ?? ""))));
     getDocs(query(collection(db, "boosts"), orderBy("createdAt", "desc"), limit(300))).then((b) => setBoosts(b.docs.map((d) => d.data()))).catch(() => {});
-    setConflicts(c.docs.map((d) => d.data() as PaymentRecord));
-    getDocs(query(collection(db, "payments"), orderBy("createdAt", "desc"), limit(300))).then((p) => setAll(p.docs.map((d) => d.data() as PaymentRecord))).catch(() => setAll([]));
+    setConflicts(c.conflicts);
+    setAll(c.payments);
   }
 
   useEffect(() => {
@@ -77,7 +83,7 @@ export default function AdminPaymentsPage() {
           <p className="eyebrow">Needs refund — slot double-booked</p>
           {conflicts.map((c) => (
             <div key={c.reference} className="mt-3 flex items-center justify-between text-sm">
-              <span>{c.email} · {formatNaira(c.amountKobo)} · {c.booking?.date} {c.booking?.slot} · {c.reference}</span>
+              <span><Masked kind="payment-email" subject={c.reference} masked={c.email} page="Payments" /> · {formatNaira(c.amountKobo)} · {c.booking?.date} {c.booking?.slot} · {c.reference}</span>
               <button className={btn} disabled={!!busy} onClick={() => act("refund", c.reference)}>Refund</button>
             </div>
           ))}
@@ -133,7 +139,7 @@ export default function AdminPaymentsPage() {
               <tr key={p.reference}>
                 <td className="py-2">{(p.paidAt || p.createdAt || "").slice(0, 10)}</td>
                 <td>{p.kind}</td>
-                <td className="max-w-[180px] truncate">{p.email}</td>
+                <td className="max-w-[220px]"><Masked kind="payment-email" subject={p.reference} masked={p.email} page="Payments" /></td>
                 <td>{formatNaira(p.amountKobo)}</td>
                 <td className={p.status === "paid" ? "text-green-700" : p.status === "pending" ? "text-amber-700" : ""}>{p.status.replace("_", " ")}</td>
                 <td className="font-mono text-[11px] text-slate">{p.reference}</td>
