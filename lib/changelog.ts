@@ -11,6 +11,15 @@ export type Release = {
 
 export const CHANGELOG: Release[] = [
   {
+    version: "v0.92.0",
+    bump: "minor",
+    date: "2026-10-24",
+    changes: [
+      { kind: "added", text: "Admin dashboard → When to grow the infrastructure: five numbers, each against the line that starts the next stage of our plan. Scheduled jobs cut off by the time limit and partners blocking our calls; ledger entries and how long the revenue report takes; page and feed load time; daily active members and database reads per member; search speed, the biggest live room and video stored. For super admins, product and engineering." },
+      { kind: "added", text: "To measure page, feed and search speed, a quarter of visits send their load times without anything about the visitor." },
+    ],
+  },
+  {
     version: "v0.90.2",
     bump: "patch",
     date: "2026-10-23",
