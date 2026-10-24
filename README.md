@@ -92,5 +92,6 @@ npm run test:courses-server        # Notes Academy on the emulator: create, less
 npm run test:preview               # link-preview safety (listens on port 80)
 npm run test:smoke                 # Playwright smoke test against a running site (SMOKE_BASE_URL)
 npx -y tsx scripts/settings-doc.ts --check   # settings read only through lib/config.ts; docs/ENVIRONMENT.md current
+gitleaks git --config .gitleaks.toml --redact .  # no keys or tokens anywhere in the history (CI job "secrets")
 ```
 CI runs all of them on every pull request (`.github/workflows/ci.yml`).

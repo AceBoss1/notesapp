@@ -177,6 +177,12 @@ npm run test:smoke             # Playwright, against a running site (SMOKE_BASE_
 ```
 The emulator-based tests start their own emulator on port 8080, so stop any emulator you started yourself first.
 
+**Secret scanning:** the CI job `secrets` runs gitleaks (v8.30.1, the default rules) over the whole git history on every pull request
+and push, with values redacted in the log. `.gitleaks.toml` lists the only three known non-secrets (an example key, a test value, a
+storage key name). On 24 Oct 2026 the full history (446 commits, every branch) had nothing else. A real hit: rotate the key first
+(`docs/DEPLOY.md`, "If a key leaks"), then remove it; never add a real key to the allowlist. Locally:
+`go install github.com/zricethezav/gitleaks/v8@v8.30.1 && gitleaks git --config .gitleaks.toml --redact .`
+
 ## 6. Known gaps and things to check
 
 - **v0.36.0 was not tried in the live game.** Check once deployed: check in to the suite, leave and come back before 11 AM,
