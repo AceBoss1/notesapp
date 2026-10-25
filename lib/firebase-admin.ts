@@ -61,16 +61,16 @@ export async function verifyPublisherRequest(idToken: string | undefined): Promi
   const app = getAdminApp();
   const decoded = await getAuth(app).verifyIdToken(idToken);
   if (isAdminToken(decoded)) return decoded.uid;
-  const snap = await getFirestore(app).doc(`users/${decoded.uid}`).get();
+  const snap = await getAdminDb().doc(`users/${decoded.uid}`).get();
   const u = snap.data();
   if (!u || u.suspended === true) throw new Error("Not allowed to upload");
   if (u.role === "staff" || u.role === "volunteer" || (u.accountTier && u.accountTier !== "standard")) {
     return decoded.uid;
   }
   // A team member writing for an organisation on Business/Enterprise.
-  const mem = await getFirestore(app).collection("orgMembers").where("memberUid", "==", decoded.uid).get();
+  const mem = await getAdminDb().collection("orgMembers").where("memberUid", "==", decoded.uid).get();
   for (const m of mem.docs) {
-    const org = (await getFirestore(app).doc(`users/${m.data().orgUid}`).get()).data();
+    const org = (await getAdminDb().doc(`users/${m.data().orgUid}`).get()).data();
     if (org && org.suspended !== true && ["business", "enterprise"].includes(org.accountTier)) return decoded.uid;
   }
   throw new Error("Your account tier can't publish or upload");
@@ -114,8 +114,11 @@ export async function setAdminClaim(uid: string, admin: boolean): Promise<void> 
   await auth.setCustomUserClaims(uid, { ...existing, admin });
 }
 
+// The live database, or a restored one after a recovery (NEXT_PUBLIC_FIRESTORE_DATABASE_ID, Admin → Backups): the same setting
+// as the browser's lib/firebase.ts, so both always read and write the same database.
 export function getAdminDb() {
-  return getFirestore(getAdminApp());
+  const id = setting("NEXT_PUBLIC_FIRESTORE_DATABASE_ID")?.trim() || "(default)";
+  return id === "(default)" ? getFirestore(getAdminApp()) : getFirestore(getAdminApp(), id);
 }
 
 // Any signed-in user (payments — no publisher/admin requirement).
