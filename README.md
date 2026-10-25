@@ -86,6 +86,9 @@ npm run test:digest                # weekly digest
 npm run test:authors               # journal author backfill
 npm run test:shared                # shared rate limits and cache
 npm run test:topics                # topics, hashtags and the topic backfill
+npm run test:pii                   # masked emails and phones in admin pages
+npm run test:pii-server            # reveal with a reason, the view log (emulators)
+npm run test:maintenance           # backfills: dry run, plan check, before-images, undo (emulator)
 npm run test:discovery             # For you, Most viewed and Recent shelves
 npm run test:courses               # Notes Academy: YouTube ids, slugs, progress
 npm run test:courses-server        # Notes Academy on the emulator: create, lessons, publish, enrol, progress

@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import { useAdminAuth } from "@/lib/useAdminAuth";
 import { useAdminCall } from "@/lib/useAdminCall";
-import type { Backfill, BackfillResult } from "@/lib/backfills";
+import type { Backfill, BackfillResult, Run, UndoResult } from "@/lib/backfills";
 
 type JobStatus = { checkedAt: string | null; pending: number | null; appliedAt: string | null; applied: number | null; appliedBy: string };
 const JOBS: { key: Backfill; title: string; what: string; flags: string }[] = [
@@ -16,13 +16,17 @@ const SHOW = 100;
 type Bank = { answers: number; hits: number; days: number; top: { q: string; hits: number; gem: string }[] };
 
 // Admin → Maintenance: the one-off fixes for older journals (lib/backfills.ts), each a dry run first (lists what would change,
-// touches nothing), then Apply. Owner and super admins only. The same jobs run from the command line (scripts/backfill-*.ts).
+// touches nothing), then Apply once a backup is ticked. Apply writes only the list the dry run showed, and every run can be undone
+// from Recent runs. Owner and super admins only. The same jobs run from the command line (scripts/backfill-*.ts).
 export default function AdminMaintenancePage() {
   const { user, loading } = useAdminAuth();
   const call = useAdminCall(user, "/api/admin/maintenance");
   const [jobs, setJobs] = useState<Record<string, JobStatus>>({});
   const [bank, setBank] = useState<Bank | null>(null);
   const [results, setResults] = useState<Partial<Record<Backfill, BackfillResult>>>({});
+  const [backup, setBackup] = useState<Partial<Record<Backfill, boolean>>>({});
+  const [runs, setRuns] = useState<Run[]>([]);
+  const [undone, setUndone] = useState<UndoResult | null>(null);
   const [busy, setBusy] = useState("");
   const [error, setError] = useState("");
 
@@ -30,19 +34,36 @@ export default function AdminMaintenancePage() {
     setBusy(label); setError("");
     try { await fn(); } catch (e) { setError(e instanceof Error ? e.message : "Something went wrong"); } finally { setBusy(""); }
   }, []);
-  useEffect(() => { if (user) void run("load", async () => { const j = await call(); setJobs(j.jobs); setBank(j.bank); }); }, [user, call, run]);
+  useEffect(() => { if (user) void run("load", async () => { const j = await call(); setJobs(j.jobs); setRuns(j.runs); setBank(j.bank); }); }, [user, call, run]);
 
-  const go = (job: Backfill, apply: boolean) => run(`${job}:${apply ? "apply" : "dry"}`, async () => {
-    const r = await call({ job, apply });
+  const dry = async (job: Backfill) => {
+    const r = await call({ job, apply: false });
     setJobs(r.jobs);
     setResults((x) => ({ ...x, [job]: r }));
+  };
+  const go = (job: Backfill, apply: boolean) => run(`${job}:${apply ? "apply" : "dry"}`, async () => {
+    if (!apply) return dry(job);
+    try {
+      const r = await call({ job, apply: true, planHash: results[job]?.planHash, backupConfirmed: backup[job] === true });
+      setJobs(r.jobs); setRuns(r.runs);
+      setResults((x) => ({ ...x, [job]: r }));
+      setBackup((x) => ({ ...x, [job]: false }));
+    } catch (e) {
+      // The journals changed since the dry run: show the new list, so the next Apply matches what's on screen.
+      if (e instanceof Error && e.message.startsWith("The journals changed")) await dry(job);
+      throw e;
+    }
+  });
+  const undo = (r: Run) => run(`undo:${r.id}`, async () => {
+    const j = await call({ job: "undo", runId: r.id });
+    setRuns(j.runs); setUndone(j.undone);
   });
 
   if (loading || !user) return <div className="px-6 py-24 text-center text-slate">Loading…</div>;
   return (
     <section className="mx-auto max-w-3xl px-4 py-14">
       <h1 className="font-display text-4xl">Maintenance</h1>
-      <p className="mt-2 text-sm text-slate">One-off fixes for older journals, and Nana&apos;s answer bank. Run the dry run first: it lists every change and touches nothing. Apply writes exactly that list. Both are safe to run again; they only fill what&apos;s missing.</p>
+      <p className="mt-2 text-sm text-slate">One-off fixes for older journals, and Nana&apos;s answer bank. Run the dry run first: it lists every change and touches nothing. Take a backup, then Apply writes exactly that list, keeping each journal&apos;s old values so the run can be undone below. Both are safe to run again; they only fill what&apos;s missing.</p>
       {error && <p className="mt-4 text-sm text-crimson">{error}</p>}
 
       {JOBS.map((j) => {
@@ -57,12 +78,18 @@ export default function AdminMaintenancePage() {
               <li>{s?.appliedAt ? `✓ Applied ${when(s.appliedAt)}${s.appliedBy ? ` by ${s.appliedBy}` : ""}: ${s.applied} journal${s.applied === 1 ? "" : "s"} updated` : "Not applied yet"}</li>
               {s?.checkedAt && <li className="text-slate">Last checked {when(s.checkedAt)}: {s.pending ? `${s.pending} to update` : "nothing to update"}</li>}
             </ul>
+            {dryDone && r!.changes.length > 0 && (
+              <label className="mt-4 flex items-start gap-2 rounded-xl border border-amber-200 bg-amber-50/60 p-3 text-xs text-ink">
+                <input type="checkbox" className="mt-0.5" checked={backup[j.key] === true} onChange={(e) => setBackup((x) => ({ ...x, [j.key]: e.target.checked }))} />
+                <span>I&apos;ve taken a backup of Firestore today (Firebase console → Firestore → Backups or Import/Export) and, where we have one, tried this on staging first.</span>
+              </label>
+            )}
             <div className="mt-4 flex flex-wrap gap-2">
               <button disabled={!!busy} onClick={() => go(j.key, false)} className="btn-ghost !px-4 !py-2 text-xs">{busy === `${j.key}:dry` ? "Checking…" : "Dry run"}</button>
               <button
-                disabled={!!busy || !dryDone || r!.changes.length === 0}
-                title={dryDone ? undefined : "Run the dry run first"}
-                onClick={() => { if (confirm(`Apply to ${r!.changes.length} journal${r!.changes.length === 1 ? "" : "s"}? This writes the changes listed below.`)) void go(j.key, true); }}
+                disabled={!!busy || !dryDone || r!.changes.length === 0 || backup[j.key] !== true}
+                title={!dryDone ? "Run the dry run first" : backup[j.key] !== true ? "Tick the backup box first" : undefined}
+                onClick={() => { if (confirm(`Apply to ${r!.changes.length} journal${r!.changes.length === 1 ? "" : "s"}? This writes the changes listed below, and keeps the old values so you can undo it.`)) void go(j.key, true); }}
                 className="btn-primary !px-4 !py-2 text-xs"
               >
                 {busy === `${j.key}:apply` ? "Applying…" : dryDone && r!.changes.length ? `Apply to ${r!.changes.length}` : "Apply"}
@@ -101,6 +128,40 @@ export default function AdminMaintenancePage() {
           </div>
         );
       })}
+
+      <div className="card mt-6 p-5">
+        <h2 className="font-ui text-lg font-bold text-ink">Recent runs</h2>
+        <p className="mt-1 text-sm text-slate">Every Apply, from here or the command line. Undo puts back each journal&apos;s old values; a journal edited since the run is left as it is and listed.</p>
+        {runs.length === 0 ? <p className="mt-3 text-sm text-slate">No runs yet.</p> : (
+          <ul className="mt-3 divide-y divide-rule rounded-xl border border-rule text-sm">
+            {runs.map((x) => (
+              <li key={x.id} className="flex flex-wrap items-center justify-between gap-2 px-3 py-2">
+                <span className="min-w-0">
+                  <span className="font-semibold text-ink">{JOBS.find((j) => j.key === x.job)?.title ?? x.job}</span>
+                  <span className="block text-xs text-slate">
+                    {x.at ? when(x.at) : "–"}{x.byName ? ` · ${x.byName}` : ""} · {x.written} of {x.count} journal{x.count === 1 ? "" : "s"}{x.backupConfirmed ? " · backup ticked" : ""}
+                    {x.status === "applying" && " · cut short"}
+                    {x.status === "undone" && ` · undone${x.undoneAt ? ` ${when(x.undoneAt)}` : ""}${x.undoneByName ? ` by ${x.undoneByName}` : ""}: ${x.restored ?? 0} put back${x.kept ? `, ${x.kept} left as edited` : ""}`}
+                  </span>
+                </span>
+                {x.status !== "undone" && (
+                  <button disabled={!!busy} onClick={() => { if (confirm(`Undo this run? ${x.written} journal${x.written === 1 ? "" : "s"} get their old values back, unless edited since.`)) void undo(x); }} className="btn-ghost !px-3 !py-1.5 text-xs">{busy === `undo:${x.id}` ? "Undoing…" : "Undo"}</button>
+                )}
+              </li>
+            ))}
+          </ul>
+        )}
+        {undone && (
+          <div className="mt-3 text-sm">
+            <p className="font-semibold text-emerald-800">Undone: {undone.restored} journal{undone.restored === 1 ? "" : "s"} put back.</p>
+            {undone.kept.length > 0 && (
+              <ul className="mt-2 max-h-60 divide-y divide-rule overflow-y-auto rounded-xl border border-amber-200 bg-amber-50/50 text-xs">
+                {undone.kept.slice(0, SHOW).map((f) => <li key={f.id} className="px-3 py-2"><Title id={f.id} slug={f.slug} title={f.title} /><span className="block text-slate">{f.note}</span></li>)}
+              </ul>
+            )}
+          </div>
+        )}
+      </div>
 
       <div className="card mt-6 p-5">
         <h2 className="font-ui text-lg font-bold text-ink">Nana&apos;s answer bank</h2>

@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { FieldValue } from "firebase-admin/firestore";
 import { getAdminDb, verifyAdminRequest } from "@/lib/firebase-admin";
-import { BACKFILLS, isBackfill, runBackfill } from "@/lib/backfills";
+import { BACKFILLS, PlanChanged, isBackfill, listRuns, runBackfill, undoRun } from "@/lib/backfills";
 import { bankClear, bankDays, bankStats } from "@/lib/nana-bank";
 
 export const dynamic = "force-dynamic";
@@ -9,7 +9,9 @@ export const maxDuration = 300;
 
 // Admin → Maintenance (app/(main)/admin/maintenance). Owner and super admins only: these write to every journal.
 // GET → when each backfill last ran (maintenance/<job>). POST { job, apply } → runs it (lib/backfills.ts): a dry run lists what
-// it would change and touches nothing; apply: true writes the same list. Safe to re-run: both only fill what's missing.
+// it would change and touches nothing (with its planHash); apply: true writes the same list, only with that planHash (409 with
+// the fresh list if the journals changed since) and backupConfirmed: true. Each apply is a run with before-images (GET runs);
+// POST { job: "undo", runId } puts one back. Safe to re-run: both only fill what's missing.
 // Nana's answer bank (lib/nana-bank.ts): GET includes its size and most asked; POST { job: "bank-clear" } empties it.
 async function admin(req: NextRequest) {
   return verifyAdminRequest(req.headers.get("authorization")?.replace(/^Bearer\s+/i, ""), "super");
@@ -28,23 +30,43 @@ const bank = async () => ({ ...(await bankStats(getAdminDb(), new Date())), days
 
 export async function GET(req: NextRequest) {
   try { await admin(req); } catch { return NextResponse.json({ error: "Owner and super admins only." }, { status: 403 }); }
-  return NextResponse.json({ jobs: await status(), bank: await bank() }, { headers: { "Cache-Control": "no-store" } });
+  return NextResponse.json({ jobs: await status(), runs: await listRuns(getAdminDb()), bank: await bank() }, { headers: { "Cache-Control": "no-store" } });
 }
 
 export async function POST(req: NextRequest) {
   let uid: string;
   try { uid = await admin(req); } catch { return NextResponse.json({ error: "Owner and super admins only." }, { status: 403 }); }
-  const { job, apply } = (await req.json().catch(() => ({}))) as { job?: unknown; apply?: unknown };
+  const { job, apply, planHash, backupConfirmed, runId } = (await req.json().catch(() => ({}))) as { job?: unknown; apply?: unknown; planHash?: unknown; backupConfirmed?: unknown; runId?: unknown };
   if (job === "bank-clear") {
     const cleared = await bankClear(getAdminDb());
     return NextResponse.json({ cleared, bank: await bank() });
   }
-  if (!isBackfill(job)) return NextResponse.json({ error: "Unknown job." }, { status: 400 });
   const db = getAdminDb();
-  const result = await runBackfill(db, job, apply === true);
-  const who = String((await db.doc(`users/${uid}`).get()).data()?.displayName ?? "");
+  const by = { uid, name: String((await db.doc(`users/${uid}`).get()).data()?.displayName ?? "") };
+  if (job === "undo") {
+    if (typeof runId !== "string" || !/^[\w-]{1,80}$/.test(runId)) return NextResponse.json({ error: "Which run?" }, { status: 400 });
+    try {
+      const undone = await undoRun(db, runId, by);
+      return NextResponse.json({ undone, runs: await listRuns(db) });
+    } catch (e) {
+      return NextResponse.json({ error: e instanceof Error ? e.message : "Couldn't undo that run." }, { status: 409 });
+    }
+  }
+  if (!isBackfill(job)) return NextResponse.json({ error: "Unknown job." }, { status: 400 });
+  if (apply === true) {
+    if (typeof planHash !== "string") return NextResponse.json({ error: "Run the dry run first." }, { status: 400 });
+    if (backupConfirmed !== true) return NextResponse.json({ error: "Take a backup first, then tick the box." }, { status: 400 });
+  }
+  let result;
+  try {
+    result = await runBackfill(db, job, apply === true, { planHash: planHash as string | undefined, by, backupConfirmed: backupConfirmed === true });
+  } catch (e) {
+    if (!(e instanceof PlanChanged)) throw e;
+    await db.doc(`maintenance/${job}`).set({ checkedAt: FieldValue.serverTimestamp(), pending: e.fresh.changes.length }, { merge: true });
+    return NextResponse.json({ error: e.message, fresh: e.fresh, jobs: await status() }, { status: 409 });
+  }
   await db.doc(`maintenance/${job}`).set(apply === true
-    ? { appliedAt: FieldValue.serverTimestamp(), applied: result.changes.length, appliedBy: uid, appliedByName: who, checkedAt: FieldValue.serverTimestamp(), pending: 0 }
+    ? { appliedAt: FieldValue.serverTimestamp(), applied: result.changes.length, appliedBy: uid, appliedByName: by.name, checkedAt: FieldValue.serverTimestamp(), pending: 0 }
     : { checkedAt: FieldValue.serverTimestamp(), pending: result.changes.length }, { merge: true });
-  return NextResponse.json({ ...result, jobs: await status() });
+  return NextResponse.json({ ...result, jobs: await status(), runs: await listRuns(db) });
 }
