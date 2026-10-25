@@ -20,6 +20,25 @@ export const CHANGELOG: Release[] = [
     ],
   },
   {
+    version: "v0.92.0",
+    bump: "minor",
+    date: "2026-10-24",
+    changes: [
+      { kind: "added", text: "Admin dashboard → When to grow the infrastructure: five numbers, each against the line that starts the next stage of our plan. Scheduled jobs cut off by the time limit and partners blocking our calls; ledger entries and how long the revenue report takes; page and feed load time; daily active members and database reads per member; search speed, the biggest live room and video stored. For super admins, product and engineering." },
+      { kind: "added", text: "To measure page, feed and search speed, a quarter of visits send their load times without anything about the visitor." },
+    ],
+  },
+  {
+    version: "v0.91.0",
+    bump: "minor",
+    date: "2026-10-24",
+    changes: [
+      { kind: "added", text: "Your email and phone number are now hidden in our staff's admin pages. A team member who needs one to help you gives a reason to show it, and every look is recorded with who, when and why. See Who at #NotesApp can see your email and phone in Help." },
+      { kind: "added", text: "Admin → View log: every time staff showed a member's email or phone, with the reason. For the founder and Legal & compliance." },
+      { kind: "changed", text: "Admin → Maintenance: a fix for older journals applies only after a backup is ticked and only the list its dry run showed (if the journals changed since, it shows the new list instead). Every run keeps each journal's old values and can be undone from Recent runs; a journal edited since is left as it is." },
+    ],
+  },
+  {
     version: "v0.90.2",
     bump: "patch",
     date: "2026-10-23",

@@ -86,6 +86,11 @@ npm run test:digest                # weekly digest
 npm run test:authors               # journal author backfill
 npm run test:shared                # shared rate limits and cache
 npm run test:topics                # topics, hashtags and the topic backfill
+npm run test:ops                   # the stage-trigger numbers' arithmetic
+npm run test:ops-server            # gathering the stage-trigger numbers (emulator)
+npm run test:pii                   # masked emails and phones in admin pages
+npm run test:pii-server            # reveal with a reason, the view log (emulators)
+npm run test:maintenance           # backfills: dry run, plan check, before-images, undo (emulator)
 npm run test:backups               # Admin → Backups: names, limits and the requests sent to Google
 npm run test:discovery             # For you, Most viewed and Recent shelves
 npm run test:courses               # Notes Academy: YouTube ids, slugs, progress
@@ -93,5 +98,6 @@ npm run test:courses-server        # Notes Academy on the emulator: create, less
 npm run test:preview               # link-preview safety (listens on port 80)
 npm run test:smoke                 # Playwright smoke test against a running site (SMOKE_BASE_URL)
 npx -y tsx scripts/settings-doc.ts --check   # settings read only through lib/config.ts; docs/ENVIRONMENT.md current
+gitleaks git --config .gitleaks.toml --redact .  # no keys or tokens anywhere in the history (CI job "secrets")
 ```
 CI runs all of them on every pull request (`.github/workflows/ci.yml`).

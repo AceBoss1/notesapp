@@ -1,13 +1,4 @@
-import {
-  addDoc,
-  collection,
-  getDocs,
-  doc,
-  updateDoc,
-  deleteDoc,
-  query,
-  orderBy,
-} from "firebase/firestore";
+import { addDoc, collection } from "firebase/firestore";
 import { db } from "./firebase";
 
 const LEADS = "leads";
@@ -63,16 +54,4 @@ export async function submitLead(data: {
   });
 }
 
-export async function getAllLeads(): Promise<Lead[]> {
-  const q = query(collection(db, LEADS), orderBy("createdAt", "desc"));
-  const snap = await getDocs(q);
-  return snap.docs.map((d) => ({ id: d.id, ...d.data() }) as Lead);
-}
-
-export async function markLeadStatus(id: string, status: Lead["status"]): Promise<void> {
-  await updateDoc(doc(db, LEADS, id), { status });
-}
-
-export async function deleteLead(id: string): Promise<void> {
-  await deleteDoc(doc(db, LEADS, id));
-}
+// Staff read and manage leads through /api/admin/leads (masked emails; leads are server-only to staff browsers since v0.91.0).

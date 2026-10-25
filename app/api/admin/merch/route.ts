@@ -5,11 +5,24 @@ import { notifyBell, sendEmail } from "@/lib/email";
 import { FieldValue } from "firebase-admin/firestore";
 import type { MerchOrder } from "@/lib/merch";
 import { cleanText, isHolderType, isHttpsUrl, normalizePhone } from "@/lib/orders";
+import { maskContacts } from "@/lib/pii";
 import { ensureMerchParcel, expireLinks, hashToken, holderUrl, newLinkToken, parcelStatusForMerch, sendMerchStatusEmail } from "@/lib/orders-server";
 
 export const dynamic = "force-dynamic";
 
 const FLOW = ["preordered", "printed", "shipped", "delivered"] as const;
+
+// GET → { orders }: every merch order, newest first, with the buyer's email and phone masked (lib/pii.ts). The delivery
+// address stays readable for fulfilment; the real email or phone is shown with a reason through /api/admin/reveal.
+export async function GET(req: NextRequest) {
+  try {
+    await verifyAdminRequest(req.headers.get("authorization")?.replace(/^Bearer\s+/i, ""), ["finance", "support"]);
+  } catch {
+    return NextResponse.json({ error: "Finance and customer care only." }, { status: 403 });
+  }
+  const snap = await getAdminDb().collection("merchOrders").orderBy("createdAt", "desc").get();
+  return NextResponse.json({ orders: maskContacts(snap.docs.map((d) => d.data())) }, { headers: { "Cache-Control": "no-store" } });
+}
 
 // Admin-only: move a merch pre-order along preordered → printed → shipped →
 // delivered. Refunded orders are handled from /admin/payments.

@@ -19,6 +19,7 @@ import LifeFeedCard from "@/components/life/LifeFeedCard";
 import { PenIcon } from "@/components/shell/icons";
 import { useBottomTabs } from "@/components/shell/BottomTabs";
 import { useMember } from "@/lib/member-client";
+import { reportTiming } from "@/lib/perf-client";
 import { hashtag, isTopic, topicLabel, topicsOf } from "@/lib/topics";
 import { useInterests } from "@/lib/interests-client";
 import { useWeeklyViews } from "@/lib/weekly-views-client";
@@ -74,7 +75,8 @@ export default function JournalsPageClient() {
     else if (OLD_TABS[t0]) setTab(OLD_TABS[t0]);
     if (topic0 && isTopic(topic0)) setTopic(topic0);
     if (q0) setQuery(q0.slice(0, 80));
-    getAllNotes({ publishedOnly: true }).then(setNotes).catch((e) => setError(e.message));
+    const feedStart = performance.now(); // the feed's own loading time, for the admin dashboard (lib/perf-client.ts)
+    getAllNotes({ publishedOnly: true }).then((n) => { setNotes(n); reportTiming("feed", performance.now() - feedStart); }).catch((e) => setError(e.message));
     getAllUsers().then(setUsers).catch(() => setUsers([]));
     fetch("/api/boosts/active?kind=post&limit=feed").then((r) => r.json()).then((d) => setBoosts(d.boosts || [])).catch(() => {});
   }, [router]);

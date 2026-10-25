@@ -249,6 +249,34 @@
           "order": "ASCENDING"
         }
       ]
+    },
+    {
+      "collectionGroup": "adminViewLog",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "subject",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "at",
+          "order": "DESCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "adminViewLog",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "adminUid",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "at",
+          "order": "DESCENDING"
+        }
+      ]
     }
   ],
   "fieldOverrides": [

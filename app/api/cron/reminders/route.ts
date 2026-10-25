@@ -24,6 +24,7 @@ import { fridayNudges, sweepTimers } from "@/lib/time-server";
 import { sendInvoiceReminders } from "@/lib/invoices-server";
 import { sendKidReports } from "@/lib/kids-server";
 import { birthdayBells } from "@/lib/young-server";
+import { trackJob } from "@/lib/ops-metrics-server";
 
 // Run every ~15 minutes by an external scheduler with
 //   Authorization: Bearer $CRON_SECRET
@@ -38,6 +39,12 @@ export async function GET(req: NextRequest) {
   if (!secret || req.headers.get("authorization") !== `Bearer ${secret}`) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
+  // Counted when it starts and when it finishes (opsDaily): a start with no finish is a run the time limit cut off, the
+  // admin dashboard's Stage 1 number (lib/ops-metrics.ts).
+  return trackJob(getAdminDb(), () => run());
+}
+
+async function run() {
   const db = getAdminDb();
   const now = Date.now();
   const soon = new Date(now + 25 * 3_600_000).toISOString();
