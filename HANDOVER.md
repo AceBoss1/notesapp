@@ -3,7 +3,7 @@
 **Date:** 17 October 2026 · **Latest version:** v0.43.0 · **Repository:** `AceBoss1/notesapp`
 **Owner:** the founder and CEO of NotesApp Technologies Ltd (product decisions, approvals, deploys that need console access).
 
-Start with `README.md` (what is live, the docs index, the checks); settings are in `docs/ENVIRONMENT.md`, deploying in
+Read `docs/ENGINEERING_GUIDE.md` first for where the platform is going and why. Start with `README.md` (what is live, the docs index, the checks); settings are in `docs/ENVIRONMENT.md`, deploying in
 `docs/DEPLOY.md`, how the newer pieces work in `docs/ARCHITECTURE.md`, the full history in `docs/BUILD_LOG.md`.
 This note covers how the work is done, what's in flight, and what to watch.
 
