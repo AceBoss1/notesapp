@@ -1,4 +1,5 @@
 import ErrorReporter from "@/components/ErrorReporter";
+import WebVitals from "@/components/WebVitals";
 import type { Metadata, Viewport } from "next";
 import { SITE, WHAT_IS_NOTESAPP } from "@/lib/site";
 import "./globals.css";
@@ -74,6 +75,7 @@ export default async function RootLayout({
       </head>
       <body>
         <ErrorReporter />
+        <WebVitals />
         <PricingHydrator config={pricing}>{children}</PricingHydrator>
       </body>
     </html>

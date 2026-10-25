@@ -6,6 +6,7 @@ import { getAllNotes, NoteWithComputed } from "@/lib/firestore-notes";
 import { getAllUsers, UserProfile } from "@/lib/users";
 import { CHANNEL_JOURNALS } from "@/lib/journals-directory";
 import { topicLabel, topicsOf } from "@/lib/topics";
+import { reportTiming } from "@/lib/perf-client";
 
 // `className` sizes the box and `inputClassName` restyles the field (the phone header and the app header draw it as a wide pill).
 export default function SearchBar({ className = "w-full max-w-xs", inputClassName, placeholder = "Search journals, people, topics…" }: { className?: string; inputClassName?: string; placeholder?: string } = {}) {
@@ -21,8 +22,12 @@ export default function SearchBar({ className = "w-full max-w-xs", inputClassNam
   // counts grow past what fits in one query.
   useEffect(() => {
     if (!open || notes !== null) return;
-    getAllNotes({ publishedOnly: true }).then(setNotes).catch(() => setNotes([]));
-    getAllUsers().then(setPeople).catch(() => setPeople([]));
+    // How long search takes to be ready, for the admin dashboard (lib/perf-client.ts); only when both loads worked.
+    const t0 = performance.now();
+    Promise.all([
+      getAllNotes({ publishedOnly: true }).then((n) => (setNotes(n), true)).catch(() => (setNotes([]), false)),
+      getAllUsers().then((u) => (setPeople(u), true)).catch(() => (setPeople([]), false)),
+    ]).then((ok) => { if (ok.every(Boolean)) reportTiming("search", performance.now() - t0); });
   }, [open, notes]);
 
   useEffect(() => {

@@ -11,6 +11,24 @@ export type Release = {
 
 export const CHANGELOG: Release[] = [
   {
+    version: "v0.93.0",
+    bump: "minor",
+    date: "2026-10-24",
+    changes: [
+      { kind: "added", text: "Admin → Backups, for the owner: switch on point-in-time recovery (any minute of the last 7 days) and delete protection, add daily and weekly backups (kept up to 14 weeks), see every backup, and restore one, or copy the database as it was at a chosen minute, into a new database beside the live one. It works with the owner's own Google sign-in, never with the site's server key, and every action is recorded." },
+      { kind: "added", text: "The site can be switched to a restored database with one setting (NEXT_PUBLIC_FIRESTORE_DATABASE_ID) after a recovery." },
+    ],
+  },
+  {
+    version: "v0.92.0",
+    bump: "minor",
+    date: "2026-10-24",
+    changes: [
+      { kind: "added", text: "Admin dashboard → When to grow the infrastructure: five numbers, each against the line that starts the next stage of our plan. Scheduled jobs cut off by the time limit and partners blocking our calls; ledger entries and how long the revenue report takes; page and feed load time; daily active members and database reads per member; search speed, the biggest live room and video stored. For super admins, product and engineering." },
+      { kind: "added", text: "To measure page, feed and search speed, a quarter of visits send their load times without anything about the visitor." },
+    ],
+  },
+  {
     version: "v0.91.0",
     bump: "minor",
     date: "2026-10-24",

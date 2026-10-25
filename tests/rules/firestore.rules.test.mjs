@@ -925,7 +925,7 @@ test("maintenance runs, their before-images and the admin view log are server-on
 });
 
 test("payroll, staff library and message hub collections are server-only", async () => {
-  for (const path of ["payrollStaff/x", "payrollRuns/2026-10", "payrollSecrets/x", "staffDocs/x", "hubMessages/x", "convMutes/a_b"]) {
+  for (const path of ["payrollStaff/x", "payrollRuns/2026-10", "payrollSecrets/x", "staffDocs/x", "hubMessages/x", "convMutes/a_b", "opsDaily/2026-10-24", "backupLog/x"]) {
     await assertFails(getDoc(doc(as("alice", { admin: true }), path)));
     await assertFails(setDoc(doc(as("alice", { admin: true }), path), { a: 1 }));
     await assertFails(getDoc(doc(anon(), path)));

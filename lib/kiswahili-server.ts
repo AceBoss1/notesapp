@@ -5,6 +5,7 @@ import { setting } from "@/lib/config";
 import { NkenneError, cleanKey, speak, translateSpeech, translateText, transcribe, voices as listVoices, type NkenneConfig } from "./nkenne";
 import { audioParts, sourceOf, translateAll, type Block } from "./kiswahili";
 import { wavSeconds } from "./wav";
+import { bumpDaily } from "./ops-metrics-server";
 
 // Server-only. Kiswahili journals and voice notes with NKENNEAi (lib/nkenne.ts), made once and kept:
 //   swahili/note_{id}   the translation of a journal (sourceHash says which version of it) and its audio parts per voice
@@ -48,6 +49,8 @@ async function logged<T>(db: Firestore, log: CallLog, run: () => Promise<T>, now
     await Promise.all([
       db.collection("nkenneCalls").add({ ...log, ok: false, httpStatus: status, detail: e instanceof NkenneError ? e.detail : String(e).slice(0, 300), ms: Date.now() - start, at: now.toISOString() }),
       stats.set({ calls: FieldValue.increment(1), failures: FieldValue.increment(1), updatedAt: now.toISOString() }, { merge: true }),
+      // NKENNEAi's firewall turning our server away: the admin dashboard's Stage 1 number (lib/ops-metrics.ts)
+      status === 403 && e instanceof NkenneError && /firewall/i.test(e.message) ? bumpDaily(db, "partnerBlocks", now) : null,
     ]).catch(() => {});
     if (e instanceof NkenneError) throw new KiswahiliError(e.message, status === 0 ? 502 : status >= 500 ? 502 : status === 401 || status === 403 ? 503 : status);
     throw e;

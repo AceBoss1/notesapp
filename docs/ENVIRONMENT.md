@@ -23,6 +23,8 @@ Environment Variables (mark secrets Sensitive), then redeploy: `NEXT_PUBLIC_*` v
 | `NEXT_PUBLIC_FIREBASE_APP_ID` | no | Firebase web config. |
 | `NEXT_PUBLIC_FIRESTORE_EMULATOR_HOST` | no | Development, CI and screenshots only: host:port of the Firestore emulator for the browser (127.0.0.1:8080). Never set on the live site. |
 | `NEXT_PUBLIC_AUTH_EMULATOR_HOST` | no | Development, CI and screenshots only: host:port of the Auth emulator for the browser (127.0.0.1:9099); the server reads FIREBASE_AUTH_EMULATOR_HOST. Never set on the live site. |
+| `NEXT_PUBLIC_FIRESTORE_DATABASE_ID` | no | Which Firestore database the site uses: (default) when unset. Set it to a restored database's id (Admin → Backups) only to switch the whole site over after a recovery, once that database has the rules and indexes (HANDOVER, "Restoring"); then redeploy. |
+| `NEXT_PUBLIC_GOOGLE_OAUTH_CLIENT_ID` | no | OAuth web client id (Google Cloud → APIs & Services → Credentials) for the owner's Google sign-in on Admin → Backups, which switches on recovery, schedules backups and restores with the owner's own Google rights. |
 | `FIREBASE_SERVICE_ACCOUNT_KEY` | **yes** | Service-account JSON as one line; every server route needs it. |
 | `GOOGLE_APPLICATION_CREDENTIALS` | no | Local only: path to a service-account file, instead of FIREBASE_SERVICE_ACCOUNT_KEY. |
 
