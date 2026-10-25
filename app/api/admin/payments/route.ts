@@ -9,6 +9,23 @@ import type { LedgerEntry } from "@/lib/payments";
 import { BoostCancelError, cancelBoost } from "@/lib/boost-cancel";
 import { confirmOrder, notifyBackInStock, returnStock } from "@/lib/orders-server";
 import { recordReturn } from "@/lib/inventory-server";
+import { maskContacts } from "@/lib/pii";
+
+// GET → { conflicts, payments }: slot double-bookings to refund and the newest 300 payments, emails and phones masked
+// (lib/pii.ts; the real one is shown with a reason through /api/admin/reveal). Members still read their own payments directly.
+export async function GET(req: NextRequest) {
+  try {
+    await verifyAdminRequest(req.headers.get("authorization")?.replace(/^Bearer\s+/i, ""), ["finance"]);
+  } catch {
+    return NextResponse.json({ error: "Finance only." }, { status: 403 });
+  }
+  const db = getAdminDb();
+  const [c, all] = await Promise.all([
+    db.collection("payments").where("status", "==", "paid_slot_conflict").get(),
+    db.collection("payments").orderBy("createdAt", "desc").limit(300).get(),
+  ]);
+  return NextResponse.json({ conflicts: maskContacts(c.docs.map((d) => d.data())), payments: maskContacts(all.docs.map((d) => d.data())) }, { headers: { "Cache-Control": "no-store" } });
+}
 
 // Admin-only money actions on a payment reference:
 //   release  — pay the publisher (only after releaseAfter has passed)

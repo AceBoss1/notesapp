@@ -3,21 +3,27 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useAdminAuth } from "@/lib/useAdminAuth";
-import { getAllLeads, markLeadStatus, deleteLead, Lead, LEAD_CATEGORIES } from "@/lib/leads";
+import { useAdminCall } from "@/lib/useAdminCall";
+import { Masked } from "@/components/admin/Masked";
+import { Lead, LEAD_CATEGORIES } from "@/lib/leads";
 
 const CATEGORY_LABEL: Record<string, string> = Object.fromEntries(LEAD_CATEGORIES.map((c) => [c.value, c.label]));
 
 export default function AdminLeadsPage() {
   const { user, loading } = useAdminAuth();
+  const call = useAdminCall(user, "/api/admin/leads");
   const [leads, setLeads] = useState<Lead[] | null>(null);
   const [error, setError] = useState("");
   const [filter, setFilter] = useState<"all" | Lead["status"]>("all");
 
+  // Through /api/admin/leads: senders' emails arrive masked (lib/pii.ts); Show reveals one with a logged reason.
   function reload() {
-    getAllLeads()
-      .then(setLeads)
+    call()
+      .then((j) => setLeads(j.leads))
       .catch((err) => setError(err instanceof Error ? err.message : "Failed to load leads"));
   }
+  const act = (id: string, action: "read" | "archived" | "delete") =>
+    call({ id, action }).then(reload).catch((err) => setError(err instanceof Error ? err.message : "Failed"));
 
   useEffect(() => {
     if (!user) return;
@@ -77,7 +83,7 @@ export default function AdminLeadsPage() {
                 <div>
                   <p className="font-ui font-semibold text-ink">
                     {l.name}{" "}
-                    <span className="font-mono text-xs text-crimson-bright">{l.email}</span>
+                    <Masked kind="lead-email" subject={l.id} masked={l.email} page="Leads" className="font-mono text-xs text-crimson-bright" />
                   </p>
                   <p className="mt-1 flex items-center gap-2 font-mono text-[10px] uppercase tracking-wideish text-slate">
                     <span className="rounded-full bg-crimson/10 px-2 py-0.5 text-crimson-bright">
@@ -89,7 +95,7 @@ export default function AdminLeadsPage() {
                 <div className="flex gap-2">
                   {l.status !== "read" && (
                     <button
-                      onClick={() => markLeadStatus(l.id, "read").then(reload)}
+                      onClick={() => act(l.id, "read")}
                       className="border border-rule px-3 py-1.5 font-ui text-xs font-semibold hover:border-crimson"
                     >
                       Mark Read
@@ -97,7 +103,7 @@ export default function AdminLeadsPage() {
                   )}
                   {l.status !== "archived" && (
                     <button
-                      onClick={() => markLeadStatus(l.id, "archived").then(reload)}
+                      onClick={() => act(l.id, "archived")}
                       className="border border-rule px-3 py-1.5 font-ui text-xs font-semibold hover:border-crimson"
                     >
                       Archive
@@ -105,7 +111,7 @@ export default function AdminLeadsPage() {
                   )}
                   <button
                     onClick={() => {
-                      if (confirm("Delete this lead permanently?")) deleteLead(l.id).then(reload);
+                      if (confirm("Delete this lead permanently?")) act(l.id, "delete");
                     }}
                     className="border border-rule px-3 py-1.5 font-ui text-xs font-semibold text-red-700 hover:border-red-700"
                   >
