@@ -2,6 +2,7 @@ import type { Firestore } from "firebase-admin/firestore";
 import { computeRevenue, type RevenueReport } from "./revenue";
 
 import { storedSnapshot } from "./stat-cache";
+import { recordTiming } from "./ops-metrics-server";
 
 // How old a stored revenue report may be before it's built again (see lib/stat-cache.ts).
 export const REVENUE_MAX_AGE_MS = 15 * 60_000;
@@ -40,8 +41,11 @@ async function readRevenueInput(db: Firestore): Promise<Parameters<typeof comput
 export const REVENUE_RANGES = [7, 30, 90, 365, 0] as const;
 export async function loadRevenue(db: Firestore, days: number, fresh = false): Promise<{ report: RevenueReport; asOf: string }> {
   const all = await storedSnapshot(db, "revenue", REVENUE_MAX_AGE_MS, async () => {
+    const t0 = Date.now();
     const input = await readRevenueInput(db);
-    return Object.fromEntries(REVENUE_RANGES.map((r) => [String(r), computeRevenue({ ...input, days: r })])) as Record<string, RevenueReport>;
+    const out = Object.fromEntries(REVENUE_RANGES.map((r) => [String(r), computeRevenue({ ...input, days: r })])) as Record<string, RevenueReport>;
+    await recordTiming("report", Date.now() - t0); // the finance-report number on the admin dashboard (lib/ops-metrics.ts)
+    return out;
   }, { fresh });
   return { report: all.data[String(days)] ?? all.data["30"], asOf: all.asOf };
 }

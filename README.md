@@ -86,6 +86,8 @@ npm run test:digest                # weekly digest
 npm run test:authors               # journal author backfill
 npm run test:shared                # shared rate limits and cache
 npm run test:topics                # topics, hashtags and the topic backfill
+npm run test:ops                   # the stage-trigger numbers' arithmetic
+npm run test:ops-server            # gathering the stage-trigger numbers (emulator)
 npm run test:pii                   # masked emails and phones in admin pages
 npm run test:pii-server            # reveal with a reason, the view log (emulators)
 npm run test:maintenance           # backfills: dry run, plan check, before-images, undo (emulator)

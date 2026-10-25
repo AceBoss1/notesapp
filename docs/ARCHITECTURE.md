@@ -144,3 +144,17 @@ Admin → Weekly digest (`/admin/digest`, owner and super admins): status, previ
   `maintenanceRuns/{runId}` with `changes/{noteId}` `{ before, missing, after }`, written in the same batch as the journal, so
   a run cut short can still be undone; `undoRun` restores only journals whose fields still equal `after`. Server-only.
 - **Tests**: `npm run test:pii`, `test:pii-server`, `test:maintenance`, and the rules tests.
+## The stage-trigger numbers (v0.92.0)
+
+The speed and infrastructure plan starts each stage when a number crosses its line; the admin dashboard shows the five
+(`components/admin/StageTriggers.tsx`, `/api/admin/triggers`, super admins, product and engineering).
+- **Lines and statuses** (`lib/ops-metrics.ts`, pure): `LINES`, `against` (crossed at the line, near from 70%), nearest-rank
+  `percentile`.
+- **Gathering** (`lib/ops-metrics-server.ts`, `storedTriggers`, cached 30 minutes in `statCache/triggers`): timings from Upstash
+  Redis (`perf:<metric>:<day>`, 1,000 a day, 35 days; in memory without Redis); `opsDaily/<day>` counters (`trackJob`,
+  `bumpDaily`); a count of `ledger`; presence in the last 24 hours; `communityRooms.peak` over 30 days; Cloud Monitoring
+  Firestore reads per day (Monitoring Viewer role); Cloudflare Stream storage usage.
+- **Timings from browsers**: `components/WebVitals.tsx` (LCP), the journal feed and the search box, through
+  `lib/perf-client.ts` (a quarter of tabs, `sendBeacon`) to `/api/perf` (rate limited, metric and milliseconds only).
+- **Tests**: `npm run test:ops`, `test:ops-server`.
+

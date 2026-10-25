@@ -7,6 +7,7 @@ import { collection, getCountFromServer, collectionGroup } from "firebase/firest
 import { auth, db } from "@/lib/firebase";
 import { useAdminAuth } from "@/lib/useAdminAuth";
 import { allowedSections, pathAllowed, hasAnyDept, hasDept, roleLabel, deptSummary } from "@/lib/admin-access";
+import StageTriggers from "@/components/admin/StageTriggers";
 import { getAllNotes, NoteWithComputed } from "@/lib/firestore-notes";
 import { topicLabel, topicsOf } from "@/lib/topics";
 
@@ -98,6 +99,7 @@ export default function AdminDashboard() {
   const { user, access, loading } = useAdminAuth();
   const canNotes = hasAnyDept(access, ["content", "moderation"]);
   const canUsers = hasAnyDept(access, ["support", "moderation", "finance"]);
+  const canTriggers = hasAnyDept(access, ["product", "engineering"]); // and super admins: the stage-trigger numbers
   const [noteStats, setNoteStats] = useState<NoteStats | null>(null);
   const [allNotes, setAllNotes] = useState<NoteWithComputed[]>([]);
   const [topByViews, setTopByViews] = useState<NoteWithComputed[]>([]);
@@ -249,6 +251,7 @@ export default function AdminDashboard() {
             {mine.map((x) => <Link key={x.href} href={x.href} className="border border-rule bg-card p-5 font-display text-lg hover:border-crimson">{x.label}</Link>)}
           </div>
         )}
+        {canTriggers && <StageTriggers user={user} />}
       </section>
     );
   }
@@ -415,6 +418,8 @@ export default function AdminDashboard() {
           </div>
         ))}
       </div>
+
+      {canTriggers && <StageTriggers user={user} />}
 
       {/* ── Top Journals by Views ─────────────────────────────── */}
       <div className="mt-12">

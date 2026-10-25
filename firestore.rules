@@ -809,6 +809,7 @@ service cloud.firestore {
       match /{sub=**} { allow read, write: if false; }
     }
     match /teamMilestones/{id} { allow read, write: if false; }
+    match /opsDaily/{day} { allow read, write: if false; } // the admin dashboard's stage-trigger counters (lib/ops-metrics-server.ts)
     // Admin → Maintenance: backfill status, runs with their before-images (lib/backfills.ts) and the admin view log (lib/pii.ts).
     // Server-only, even for admins: they go through /api/admin/maintenance and /api/admin/reveal.
     match /maintenance/{id} { allow read, write: if false; }
