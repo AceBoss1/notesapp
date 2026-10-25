@@ -4,12 +4,14 @@ import { isSuper } from "@/lib/admin-access";
 import { listStaff } from "@/lib/admin-access-server";
 import { CreditError, canTopUp, recentTopUps, searchMembers, setTopUpAdmins, topUp, topUpAdmins, type Admin } from "@/lib/admin-credits";
 import { cardtapConfig, cardtapReady, setCardtapFeeWaived } from "@/lib/cardtap-topup-server";
+import { maskContacts } from "@/lib/pii";
 
 export const dynamic = "force-dynamic";
 
 // Admin → Credits (app/(main)/admin/credits; lib/admin-credits.ts). Super admins only; adding credit is the owner's, and the super admins
 // they allow.
-// GET → { canTopUp, owner, supers: [{ uid, name, email, allowed }], log }; GET ?q= → { members } (search by email, username or name).
+// GET → { canTopUp, owner, supers: [{ uid, name, email, allowed }], log }; GET ?q= → { members } (search by email, username or name;
+// members' emails masked, lib/pii.ts).
 // POST { action: "topup", uid, kind: "nana" | "wallet", naira, reason } → { member, log }
 // POST { action: "allow", uids } (owner only) → { allowed }
 // POST { action: "cardtap_fee", waived } (whoever may add credit) → { cardtap } — the CardTap launch offer: we pay Paylony's fee.
@@ -28,7 +30,7 @@ export async function GET(req: NextRequest) {
   try { a = await admin(req); } catch (e) { return fail(e); }
   const db = getAdminDb();
   const q = req.nextUrl.searchParams.get("q");
-  if (q !== null) return NextResponse.json({ members: await searchMembers(db, q.slice(0, 100)) }, { headers: { "Cache-Control": "no-store" } });
+  if (q !== null) return NextResponse.json({ members: maskContacts(await searchMembers(db, q.slice(0, 100))) }, { headers: { "Cache-Control": "no-store" } });
   const [allowed, staff, log, ct] = await Promise.all([topUpAdmins(db), listStaff(db), recentTopUps(db), cardtapConfig(db)]);
   const supers = staff.filter((s) => s.role === "super" && !s.owner).map((s) => ({ uid: s.uid, name: s.name, email: s.email, allowed: allowed.includes(s.uid) }));
   return NextResponse.json({ canTopUp: await canTopUp(db, a), owner: a.owner, supers, log, cardtap: { ready: cardtapReady(), feeWaived: ct.feeWaived, at: ct.at ?? null } }, { headers: { "Cache-Control": "no-store" } });
@@ -44,7 +46,7 @@ export async function POST(req: NextRequest) {
       const supers = (await listStaff(db)).filter((s) => s.role === "super");
       return NextResponse.json({ allowed: await setTopUpAdmins(db, a, body.uids, supers) });
     }
-    if (body.action === "topup") return NextResponse.json(await topUp(db, a, body));
+    if (body.action === "topup") { const r = await topUp(db, a, body); return NextResponse.json({ ...r, member: maskContacts(r.member) }); }
     if (body.action === "cardtap_fee") {
       if (!(await canTopUp(db, a))) throw new CreditError(403, "Only the owner, and the super admins they allow, can change this.");
       await setCardtapFeeWaived(db, body.waived === true, a.uid);

@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { collection, doc, getDoc, getDocs, orderBy, query } from "firebase/firestore";
+import { doc, getDoc } from "firebase/firestore";
+import { Masked } from "@/components/admin/Masked";
 import { db } from "@/lib/firebase";
 import { useAdminAuth } from "@/lib/useAdminAuth";
 import { formatNaira } from "@/lib/booking-time";
@@ -30,8 +31,11 @@ export default function AdminMerchPage() {
   const [error, setError] = useState("");
 
   async function load() {
-    const snap = await getDocs(query(collection(db, "merchOrders"), orderBy("createdAt", "desc")));
-    setOrders(snap.docs.map((d) => d.data() as Order));
+    // Through the API: buyers' emails and phones arrive masked (lib/pii.ts); the address stays readable for delivery.
+    const r = await fetch("/api/admin/merch", { headers: { Authorization: `Bearer ${await user!.getIdToken()}` } });
+    const j = await r.json();
+    if (!r.ok) throw new Error(j.error || "Couldn't load orders");
+    setOrders(j.orders as Order[]);
   }
   useEffect(() => {
     if (user) load().catch((e) => setError(e.message));
@@ -156,9 +160,9 @@ export default function AdminMerchPage() {
                 <span className="rounded-full bg-paper px-3 py-0.5 font-mono text-[11px] uppercase">{o.status}</span>
               </div>
               <p className="mt-1 text-slate">
-                {o.address.fullName} · {o.address.phone} · {o.address.street}, {o.address.city}, {o.address.state}
+                {o.address.fullName} · <Masked kind="order-phone" subject={o.reference} masked={o.address.phone} page="Merch" /> · {o.address.street}, {o.address.city}, {o.address.state}
               </p>
-              <p className="mt-1 font-mono text-[11px] text-slate">{o.email} · {o.reference} · {new Date(o.createdAt).toLocaleDateString("en-NG")}</p>
+              <p className="mt-1 font-mono text-[11px] text-slate"><Masked kind="order-email" subject={o.reference} masked={o.email} page="Merch" /> · {o.reference} · {new Date(o.createdAt).toLocaleDateString("en-NG")}</p>
               {o.parcelId && (
                 <p className="mt-1 text-xs text-slate">
                   Parcel <a href={`/track/${o.parcelId}`} target="_blank" rel="noopener noreferrer" className="font-mono text-crimson underline">{o.parcelId}</a> — what the buyer sees at /track

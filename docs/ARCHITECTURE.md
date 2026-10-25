@@ -131,6 +131,19 @@ Admin → Weekly digest (`/admin/digest`, owner and super admins): status, previ
   courses that carry it in the price), verify at `/certificates`, PNG and PDF, revoke in Admin.
 - **Webhooks**: `course.sold` (Enterprise). **Tests**: `tests/courses/paid.emulator.ts`, `courses.test.ts`, the rules tests.
 
+## Staff and members' details; safe backfills (v0.91.0)
+
+- **Masking** (`lib/pii.ts` pure, `lib/pii-server.ts`): admin APIs send members' emails and phones masked (`maskContacts`:
+  every `email`/`…Email` and `phone`/`…Phone` field at any depth). `payments`, `merchOrders` and `leads` are closed to staff
+  browsers by the rules, so Payments, Merch and Leads read through `/api/admin/payments`, `/api/admin/merch` and
+  `/api/admin/leads`. `<Masked>` (`components/admin/Masked.tsx`) shows one with a reason through `/api/admin/reveal`, which
+  checks the department (`REVEALS`), reads the value from its one source and writes `adminViewLog` (server-only). Admin →
+  View log reads it (super admins and Legal). Payout bank numbers were already encrypted with the last four shown.
+- **Backfills** (`lib/backfills.ts`): a dry run returns the change list and its `planHash`; apply recomputes the plan and refuses
+  a different hash (`PlanChanged`, 409 with the fresh list) and needs `backupConfirmed`. Each apply is a
+  `maintenanceRuns/{runId}` with `changes/{noteId}` `{ before, missing, after }`, written in the same batch as the journal, so
+  a run cut short can still be undone; `undoRun` restores only journals whose fields still equal `after`. Server-only.
+- **Tests**: `npm run test:pii`, `test:pii-server`, `test:maintenance`, and the rules tests.
 ## The stage-trigger numbers (v0.92.0)
 
 The speed and infrastructure plan starts each stage when a number crosses its line; the admin dashboard shows the five

@@ -56,11 +56,13 @@ jobs:
       - run: npm run test:trials
       - run: npm run test:inventory
       - run: npm run test:ops
+      - run: npm run test:pii
       - run: npm run test:community
       - run: npm run test:courses-server
       - run: npm run test:team-server
       - run: npm run test:maintenance
       - run: npm run test:ops-server
+      - run: npm run test:pii-server
       - run: npm run test:credits
       - run: npm run test:cardtap-server
       - run: npm run test:kiswahili-server

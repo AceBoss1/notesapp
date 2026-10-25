@@ -519,7 +519,7 @@ test("merch orders are readable by the buyer and admins only", async () => {
   await assertSucceeds(getDoc(doc(as("alice"), "merchOrders/ref1")));
   await assertFails(getDoc(doc(as("pub"), "merchOrders/ref1")));
   await assertFails(getDoc(doc(anon(), "merchOrders/ref1")));
-  await assertSucceeds(getDoc(doc(as("boss", { admin: true }), "merchOrders/ref1")));
+  await assertFails(getDoc(doc(as("boss", { admin: true }), "merchOrders/ref1"))); // staff go through /api/admin/merch (masked)
 });
 
 test("ad campaigns are readable by the advertiser and admins, never writable", async () => {
@@ -814,10 +814,10 @@ test("staff roles: each department reaches its own collections and not the other
     await setDoc(doc(d, "settings/site"), { email: "x" });
   });
   const reads = { // path → the departments allowed to read it (a super admin always can)
-    "notes/draft1": ["content", "moderation"], "leads/l1": ["support", "growth"], "suspensions/alice": ["support", "moderation"],
-    "merchOrders/m1": ["finance", "support"], "storeOrders/o1": ["finance", "support"], "adRevenue/r1": ["finance"], "adCampaigns/a1": ["growth", "finance"],
+    "notes/draft1": ["content", "moderation"], "suspensions/alice": ["support", "moderation"],
+    "storeOrders/o1": ["finance", "support"], "adRevenue/r1": ["finance"], "adCampaigns/a1": ["growth", "finance"],
     "adCreatives/c1": ["growth"], "orgMembers/o_p": ["support", "growth"], "badgeRequests/alice": ["support", "moderation"],
-    "payments/ref1": ["finance"], "ledger/ref1": ["finance"], "payoutAccounts/pub": ["finance"], "bookings/ref1": ["support", "finance"], "gifts/g1": ["finance", "support"],
+    "ledger/ref1": ["finance"], "payoutAccounts/pub": ["finance"], "bookings/ref1": ["support", "finance"], "gifts/g1": ["finance", "support"],
     "boosts/b1": ["growth", "finance"], "tierSubscriptions/pub": ["finance", "support"],
   };
   const all = ["support", "moderation", "finance", "growth", "content", "product"];
@@ -830,7 +830,7 @@ test("staff roles: each department reaches its own collections and not the other
     await assertSucceeds(getDoc(doc(legacyAdmin(), path))).catch((e) => { throw new Error(`legacy reading ${path}: ${e.message}`); }); // accounts set up before roles existed stay super admins
     await assertFails(getDoc(doc(staff(), path))).catch((e) => { throw new Error(`no-department reading ${path}: ${e.message}`); }); // an admin with no department sees none of it
     await assertFails(getDoc(doc(as("nobody", { adminRole: "super" }), path))).catch((e) => { throw new Error(`role-only reading ${path}: ${e.message}`); }); // a role claim without `admin` is nothing
-    await assertFails(getDoc(doc(as("odd", { admin: true, adminRole: "weird", depts: ["finance"] }), path.replace(/.*/, "leads/l1")))); // an unknown role is the safe reading (depts, not super)
+    await assertFails(getDoc(doc(as("odd", { admin: true, adminRole: "weird", depts: ["finance"] }), path.replace(/.*/, "suspensions/alice")))); // an unknown role is the safe reading (depts, not super)
   }
   // Writing: each department only where it belongs.
   await assertSucceeds(updateDoc(doc(staff("content"), "notes/pub1"), { title: "edited" }));
@@ -842,8 +842,13 @@ test("staff roles: each department reaches its own collections and not the other
   await assertFails(setDoc(doc(staff("support"), "settings/site"), { email: "y" }));
   await assertSucceeds(setDoc(doc(staff("growth"), "adCreatives/c2"), { title: "y" }));
   await assertFails(setDoc(doc(staff("finance"), "adCreatives/c3"), { title: "y" }));
-  await assertSucceeds(updateDoc(doc(staff("support"), "leads/l1"), { status: "read" }));
-  await assertFails(updateDoc(doc(staff("moderation"), "leads/l1"), { status: "read" }));
+  // Members' contact details reach staff only through admin APIs, masked (lib/pii.ts): no department, not even a super admin,
+  // reads leads, payments or merch orders from the browser.
+  for (const path of ["leads/l1", "payments/ref1", "merchOrders/m1"]) {
+    for (const who of [staff("support"), staff("growth"), staff("finance"), superAdmin(), legacyAdmin()]) await assertFails(getDoc(doc(who, path)));
+  }
+  await assertFails(updateDoc(doc(staff("support"), "leads/l1"), { status: "read" }));
+  await assertFails(deleteDoc(doc(superAdmin(), "leads/l1")));
   await assertSucceeds(updateDoc(doc(staff("moderation"), "badgeRequests/alice"), { status: "approved" }));
   await assertFails(updateDoc(doc(staff("growth"), "badgeRequests/alice"), { status: "approved" }));
   // Members' profiles: customer care and trust & safety can suspend and reinstate, nothing else; finance and super admins can change tiers.
@@ -909,6 +914,14 @@ test("follow records: you can read your own, nobody can list someone else's or a
   await assertFails(getDocs(query(collection(a, "follows"), where("username", "==", "pub"))));
   await assertFails(getDocs(query(collection(a, "follows"), where("followerUid", "==", "pub"))));
   await assertFails(getDocs(query(collection(anon(), "follows"), where("followerUid", "==", "alice"))));
+});
+
+test("maintenance runs, their before-images and the admin view log are server-only, even for super admins", async () => {
+  for (const path of ["maintenance/topics", "maintenanceRuns/r1", "maintenanceRuns/r1/changes/n1", "adminViewLog/v1"]) {
+    await assertFails(getDoc(doc(superAdmin(), path)));
+    await assertFails(setDoc(doc(superAdmin(), path), { a: 1 }));
+    await assertFails(getDoc(doc(anon(), path)));
+  }
 });
 
 test("payroll, staff library and message hub collections are server-only", async () => {
