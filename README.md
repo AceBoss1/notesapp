@@ -10,6 +10,7 @@ Router) on Vercel, Firebase (Auth, Firestore), Cloudflare R2 and Stream, Paystac
 | `HANDOVER.md` | The state of the code, what's waiting on the owner, how the work is done, map of the code, tests, known gaps |
 | `docs/ENVIRONMENT.md` | Every setting (environment variable), made from `lib/config.ts` |
 | `docs/DEPLOY.md` | Deploy checklist, where to look when something's wrong, scripts |
+| `docs/ENGINEERING_GUIDE.md` | The founder's guide for the engineering team: principles, the Na- names, the stages and their dashboard triggers, recovery from a breach, Nana and the platform at scale |
 | `docs/ARCHITECTURE.md` | How the newer pieces work: addresses, bells, digest, server-owned writes, shared limits, settings |
 | `docs/DOMAIN_SWITCH.md` | Moving the primary address to notesapp.tech |
 | `docs/STAGING.md` | The staging copy and how a release goes |
