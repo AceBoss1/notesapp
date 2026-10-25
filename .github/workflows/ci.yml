@@ -86,6 +86,21 @@ jobs:
       # the link-preview safety test listens on port 80, which needs root on the runner
       - run: sudo -E env "PATH=$PATH" npx -y tsx tests/link-preview/safety.ts
 
+  # Secret scanning: the whole history, every pull request and push (a few seconds). Fails on anything that looks like a key or
+  # token; values are redacted in the log. Known non-secrets are listed in .gitleaks.toml. A real leak means rotating the key
+  # first (docs/DEPLOY.md), then removing it from the code.
+  secrets:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with: { fetch-depth: 0 }
+      - uses: actions/setup-go@v5
+        with: { go-version: "1.24", cache: false }
+      # Pinned; the Go checksum database verifies the module.
+      - run: go install github.com/zricethezav/gitleaks/v8@v8.30.1
+      - run: "$(go env GOPATH)/bin/gitleaks git --config .gitleaks.toml --redact --no-banner --verbose ."
+
   smoke:
     runs-on: ubuntu-latest
     timeout-minutes: 45

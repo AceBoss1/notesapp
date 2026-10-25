@@ -39,3 +39,13 @@ changes for this demo. #NotesApp is a second, differently-branded UI
 over data Precheks already owns; "journal" is what this UI calls a
 note, nothing more.
 
+## If a key leaks
+
+A key found in the code, a log, a screenshot or a chat (the CI job `secrets` fails on one in the git history):
+
+1. Rotate it first, at the service that issued it (Firebase service account, Paystack, Paylony, Resend, Cloudflare R2 or Stream,
+   Upstash, Anthropic, NKENNEAi, the Discord webhook), and put the new value in Vercel's environment variables, marked Sensitive.
+2. Redeploy, then check the old key no longer works.
+3. Remove it from the code. A key already in the git history stays readable there: rotating it, not rewriting history, is what
+   makes it harmless.
+4. Note what leaked, when and how in the team hub, and check the service's logs for use of the old key.
