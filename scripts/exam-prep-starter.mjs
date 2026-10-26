@@ -3,7 +3,8 @@
 // Original questions, imported as "Nana AI-assisted draft" and in review: none reaches students until a reviewer approves it and an
 // editor publishes it. Every maths answer is worked out here and checked against the option marked correct, so a wrong key
 // stops the build. Run: node scripts/exam-prep-starter.mjs   (then commit the JSON; npm run test:exam-prep checks it too)
-import { writeFileSync } from "node:fs";
+import { existsSync, writeFileSync } from "node:fs";
+import { SSCE } from "./exam-prep-questions/ssce/topics.mjs";
 
 const close = (a, b) => Math.abs(a - b) < 1e-9;
 const at = (f, g) => [-2, -1, 0.5, 1, 2, 3.7].every((x) => close(f(x), g(x))); // two expressions agree everywhere we try
@@ -13,19 +14,20 @@ const mode = (xs) => xs.reduce((best, x) => (xs.filter((y) => y === x).length > 
 const median = (xs) => { const s = [...xs].sort((a, b) => a - b), m = s.length >> 1; return s.length % 2 ? s[m] : (s[m - 1] + s[m]) / 2; };
 const KEYS = ["A", "B", "C", "D", "E"];
 // The short code in each question id (ids never change once imported: importing twice adds nothing twice).
-const CODE = { mathematics: "maths", "use-of-english": "eng", "english-language": "eng", physics: "phy", chemistry: "chem", biology: "bio", economics: "econ", government: "gov" };
+const CODE = { "use-of-english": "eng", ...Object.fromEntries(Object.entries(SSCE).map(([id, s]) => [id, s.code])) };
 const seed = (s) => [...s].reduce((h, c) => (Math.imul(h ^ c.charCodeAt(0), 16777619) >>> 0), 2166136261);
 function shuffle(xs, h) { const a = [...xs]; for (let i = a.length - 1; i > 0; i--) { h = (Math.imul(h, 1103515245) + 12345) >>> 0; const j = h % (i + 1); [a[i], a[j]] = [a[j], a[i]]; } return a; }
 const out = [];
 // balanced: each letter is correct equally often in the list (5 times in 20), in an order that looks random. Used for the subjects
 // added on 23 Oct 2026; the English and Maths sets keep the order they were first imported with.
-function add(exam, subject, list, freeIdx, balanced = false) {
-  const slots = balanced ? shuffle(list.map((_, i) => i % 4), seed(`${exam}-${subject}`) ^ 0x9e3779b9) : null;
+// start: how many of this exam and subject are already in the set (ids carry on from there: WAEC Physics 21 to 50 after 1 to 20).
+function add(exam, subject, list, freeIdx, balanced = false, start = 0) {
+  const slots = balanced ? shuffle(list.map((_, i) => i % 4), seed(`${exam}-${subject}${start ? `-${start}` : ""}`) ^ 0x9e3779b9) : null;
   list.forEach((q, i) => {
     const answer = KEYS[q.ans]; // as written, before shuffling
-    if (subject === "mathematics" && q.check === undefined) throw new Error(`${exam} maths #${i + 1} has no working to check`);
+    if (subject === "mathematics" && q.check === undefined && !start) throw new Error(`${exam} maths #${i + 1} has no working to check`);
     if (q.check !== undefined && q.check !== true) throw new Error(`${exam}/${subject} #${i + 1}: the working doesn't give option ${answer} (${q.stem})`);
-    const id = `${exam}-${CODE[subject]}-${String(i + 1).padStart(2, "0")}`;
+    const id = `${exam}-${CODE[subject]}-${String(start + i + 1).padStart(2, "0")}`;
     // Options are written with the answer first (so the working above is easy to check), then shuffled the same way every
     // build, so the correct letter varies and students can't learn a pattern.
     let order = shuffle(q.o.map((_, k) => k), seed(id));
@@ -190,6 +192,15 @@ add("neco", "english-language", [
 for (const subject of ["physics", "chemistry", "biology", "economics", "government"]) {
   const sets = (await import(`./exam-prep-questions/${subject}.mjs`)).default;
   for (const exam of ["jamb", "waec", "neco"]) add(exam, subject, sets[exam].list, sets[exam].free, true);
+}
+
+// ------------------------------------------------------------------ 50 a subject for WAEC and NECO (owner, 26 Oct 2026)
+// One file a subject in exam-prep-questions/ssce/ (checked by ssce/check.mjs): 30 more for the seven subjects above, 50 for the rest.
+for (const subject of Object.keys(SSCE)) {
+  const file = new URL(`./exam-prep-questions/ssce/${subject}.mjs`, import.meta.url);
+  if (!existsSync(file)) continue;
+  const sets = (await import(file.href)).default;
+  for (const exam of ["waec", "neco"]) add(exam, subject, sets[exam].list, sets[exam].free, true, out.filter((q) => q.exam === exam && q.subject === subject).length);
 }
 
 const ids = new Set(out.map((q) => q.id));

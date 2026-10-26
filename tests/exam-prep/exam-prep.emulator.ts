@@ -259,6 +259,9 @@ const Q = (id: string, access: "free" | "pack", topic = "algebra", answer = "B")
   const first = await importQuestions(db, editor, rows, "ai-draft");
   assert.deepEqual([first.added, first.errors.length], [rows.length, 0], "every starter question imports");
   assert.equal((await importQuestions(db, editor, rows, "ai-draft")).added, 0, "importing the starter set twice adds nothing");
+  // the queue filters by exam and subject in the query, so a big queue (more than its 500 limit) still shows every exam
+  assert.equal((await reviewQueue(db, { status: "in_review", exam: "waec", subject: "history" })).length, 50, "WAEC History's 50 are all in the queue");
+  assert.ok((await reviewQueue(db, { status: "in_review", exam: "neco" })).every((q) => q.exam === "neco"), "the exam filter holds");
   const sample = (await db.doc(`prepQuestions/${rows[0].input.id}`).get()).data()!;
   assert.deepEqual([sample.status, sample.provenance.by], ["in_review", "ai-draft"]);
 

@@ -11,6 +11,17 @@ export type Release = {
 
 export const CHANGELOG: Release[] = [
   {
+    version: "v0.94.0",
+    bump: "minor",
+    date: "2026-10-26",
+    changes: [
+      { kind: "added", text: "Naija Exam Prep adds 11 WAEC and NECO subjects, each with its syllabus topics: Literature in English, Geography, Agricultural Science, Civic Education, Commerce, Financial Accounting, Christian Religious Studies, Islamic Studies, Further Mathematics, Computer Studies and History." },
+      { kind: "added", text: "1,520 new original practice questions: every WAEC and NECO subject now has 50 for WAEC and 50 for NECO (20 free in each), with explanations and why the wrong options are wrong. They go to our subject reviewers first and show to students only once approved and published." },
+      { kind: "changed", text: "Importing questions in Admin → Naija Exam Prep is faster: large sets go in batches, so the full starter set imports in one go." },
+      { kind: "fixed", text: "The Exam Prep review queue showed only the first 500 questions before filtering by exam, so with a big queue whole exams looked empty. It now filters first, and admins can also pick a subject." },
+    ],
+  },
+  {
     version: "v0.93.0",
     bump: "minor",
     date: "2026-10-24",

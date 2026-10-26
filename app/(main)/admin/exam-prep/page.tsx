@@ -57,11 +57,12 @@ const toInput = (d: Draft) => ({ ...d, options: d.options.filter((o) => o.trim()
 function Questions({ api }: { api: Api }) {
   const [status, setStatus] = useState<(typeof STATUSES)[number]>("in_review");
   const [exam, setExam] = useState<ExamId | "">("");
+  const [subject, setSubject] = useState("");
   const [qs, setQs] = useState<Question[] | null>(null);
   const [subjects, setSubjects] = useState<Subject[]>([]);
   const [editing, setEditing] = useState<Question | "new" | null>(null);
   const [e, setE] = useState("");
-  const load = useCallback(() => { setE(""); api<{ questions: Question[] }>(`?view=questions&status=${status}${exam ? `&exam=${exam}` : ""}`).then((r) => setQs(r.questions)).catch((x) => setE(x.message)); }, [api, status, exam]);
+  const load = useCallback(() => { setE(""); api<{ questions: Question[] }>(`?view=questions&status=${status}${exam ? `&exam=${exam}` : ""}${subject ? `&subject=${subject}` : ""}`).then((r) => setQs(r.questions)).catch((x) => setE(x.message)); }, [api, status, exam, subject]);
   useEffect(load, [load]);
   useEffect(() => { api<{ subjects: Subject[] }>("?view=subjects").then((r) => setSubjects(r.subjects)).catch(() => undefined); }, [api]);
   async function publish(ids: string[], on: boolean) {
@@ -93,7 +94,8 @@ function Questions({ api }: { api: Api }) {
       <div className="flex flex-wrap items-center gap-2">
         <select className="rounded-lg border border-rule px-2 py-1.5 text-sm" value={status} onChange={(x) => setStatus(x.target.value as typeof status)}>{STATUSES.map((s) => <option key={s} value={s}>{s.replace("_", " ")}</option>)}</select>
         <select className="rounded-lg border border-rule px-2 py-1.5 text-sm" value={exam} onChange={(x) => setExam(x.target.value as ExamId | "")}><option value="">All exams</option>{EXAM_IDS.map((x) => <option key={x} value={x}>{EXAMS[x].short}</option>)}</select>
-        <span className="text-sm text-slate">{qs?.length ?? "…"} questions</span>
+        <select className="rounded-lg border border-rule px-2 py-1.5 text-sm" value={subject} onChange={(x) => setSubject(x.target.value)} aria-label="Subject"><option value="">All subjects</option>{Array.from(new Map(subjects.filter((x) => !exam || x.exam === exam).map((x) => [x.id, x.name])).entries()).sort((a, b) => a[1].localeCompare(b[1])).map(([id, name]) => <option key={id} value={id}>{name}</option>)}</select>
+        <span className="text-sm text-slate">{qs?.length ?? "…"} questions{qs?.length === 500 ? " (the first 500: pick an exam or subject)" : ""}</span>
         {status === "approved" && qs && qs.length > 0 && <button onClick={() => publish(qs.map((q) => q.id), true)} className="rounded-lg bg-[#1E8E5A] px-3 py-1.5 text-sm font-semibold text-white">Publish all {qs.length}</button>}
         {status === "in_review" && qs && qs.length > 0 && <button onClick={() => approveAll(qs.map((q) => q.id))} disabled={busy} className="rounded-lg bg-[#1E8E5A] px-3 py-1.5 text-sm font-semibold text-white disabled:opacity-50">{busy ? "Approving…" : `Approve all ${qs.length} shown`}</button>}
         <button onClick={() => setEditing("new")} className="ml-auto rounded-lg bg-ink px-3 py-1.5 text-sm text-paper">New question</button>
@@ -125,7 +127,7 @@ function Import({ api }: { api: Api }) {
     <div className="space-y-6">
       <div className="card p-4">
         <p className="font-semibold">Starter set</p>
-        <p className="mt-1 text-sm text-slate">{starter ?? "…"} original questions for JAMB, WAEC and NECO: English, Maths, Physics, Chemistry, Biology, Economics and Government (content/exam-prep/starter.json). Subjects you don’t have yet are added first, labelled “Nana AI-assisted draft”. They go in as in review; nothing is published until a reviewer approves it and you publish. Importing twice adds nothing twice.</p>
+        <p className="mt-1 text-sm text-slate">{starter ?? "…"} original questions (content/exam-prep/starter.json): JAMB English, Maths, Physics, Chemistry, Biology, Economics and Government; WAEC and NECO 50 each in 18 subjects (those seven plus Literature, Geography, Agricultural Science, Civic Education, Commerce, Financial Accounting, CRS, IRS, Further Maths, Computer Studies and History). Questions already there are skipped. Subjects you don’t have yet are added first, labelled “Nana AI-assisted draft”. They go in as in review; nothing is published until a reviewer approves it and you publish. Importing twice adds nothing twice.</p>
         <button disabled={busy} onClick={() => run({ action: "import_starter" })} className="mt-3 rounded-lg bg-ink px-3 py-1.5 text-sm text-paper">Import the starter set</button>
       </div>
       <div className="card p-4">

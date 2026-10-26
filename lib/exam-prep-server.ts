@@ -460,13 +460,22 @@ export async function importQuestions(db: Firestore, editor: Editor, rows: { inp
   const subjects = await allSubjects(db);
   const errors: { line: number; errors: string[] }[] = [];
   let added = 0, skipped = 0;
-  for (const r of rows) {
-    const checked = checkQuestion(r.input, subjects);
-    if (!checked.ok) { errors.push({ line: r.line, errors: checked.errors }); continue; }
-    const ref = r.input.id ? db.doc(`prepQuestions/${String(r.input.id).replace(/[^\w-]/g, "")}`) : db.collection("prepQuestions").doc();
-    if (r.input.id && (await ref.get()).exists) { skipped++; continue; }
-    await ref.set({ ...checked.value, status: "in_review", reviews: [], approvals: 0, provenance: { kind: "original", by, ...(by === "editor" ? { authorUid: editor.uid, authorName: editor.name } : {}) }, createdAt: iso(now), updatedAt: iso(now), version: 1 } satisfies Omit<Question, "id">);
-    added++;
+  // In chunks: which ids are already there in one read, then one batched write (the starter set is about 2,000 questions, and
+  // the request has a minute).
+  for (let k = 0; k < rows.length; k += 400) {
+    const chunk = rows.slice(k, k + 400).map((r) => ({ r, checked: checkQuestion(r.input, subjects), ref: r.input.id ? db.doc(`prepQuestions/${String(r.input.id).replace(/[^\w-]/g, "")}`) : db.collection("prepQuestions").doc() }));
+    const withId = chunk.filter((c) => c.r.input.id);
+    const there = new Set((withId.length ? await db.getAll(...withId.map((c) => c.ref)) : []).filter((d) => d.exists).map((d) => d.ref.path));
+    const batch = db.batch();
+    let writes = 0;
+    for (const { r, checked, ref } of chunk) {
+      if (!checked.ok) { errors.push({ line: r.line, errors: checked.errors }); continue; }
+      if (r.input.id && there.has(ref.path)) { skipped++; continue; }
+      there.add(ref.path); // the same id twice in one file goes in once
+      batch.set(ref, { ...checked.value, status: "in_review", reviews: [], approvals: 0, provenance: { kind: "original", by, ...(by === "editor" ? { authorUid: editor.uid, authorName: editor.name } : {}) }, createdAt: iso(now), updatedAt: iso(now), version: 1 } satisfies Omit<Question, "id">);
+      writes++; added++;
+    }
+    if (writes) await batch.commit();
   }
   return { added, skipped, errors };
 }
@@ -506,10 +515,19 @@ export async function publishQuestion(db: Firestore, id: unknown, publish: boole
   await ref.update({ status: "published", publishedAt: iso(now) });
   return { status: "published" };
 }
-export async function reviewQueue(db: Firestore, filter: { status?: unknown; exam?: unknown; subjects?: string[] | null }) {
+export async function reviewQueue(db: Firestore, filter: { status?: unknown; exam?: unknown; subject?: unknown; subjects?: string[] | null }) {
   const status = ["draft", "in_review", "changes", "approved", "published", "retired"].includes(String(filter.status)) ? String(filter.status) : "in_review";
-  const snap = await db.collection("prepQuestions").where("status", "==", status).limit(500).get();
-  return snap.docs.map((d) => ({ ...(d.data() as Question), id: d.id })).filter((q) => (!isExamId(filter.exam) || q.exam === filter.exam) && (!filter.subjects || filter.subjects.includes(subjectKey(q.exam, q.subject)))).sort((a, b) => `${a.exam}${a.subject}${a.topic}${a.id}`.localeCompare(`${b.exam}${b.subject}${b.topic}${b.id}`));
+  const exam = isExamId(filter.exam) ? filter.exam : null;
+  const subject = typeof filter.subject === "string" && /^[a-z0-9-]{1,60}$/.test(filter.subject) ? filter.subject : null;
+  // The exam and subject filters go into the query, not after the limit: with the full starter set (1,940 in review) filtering
+  // afterwards hid whole exams. A reviewer's queue is one query per subject they review.
+  const base = db.collection("prepQuestions").where("status", "==", status);
+  const pick = (e: string | null, s: string | null) => { let q = base; if (e) q = q.where("exam", "==", e); if (s) q = q.where("subject", "==", s); return q.limit(500); };
+  const queries = filter.subjects
+    ? filter.subjects.map((k) => [k.slice(0, k.indexOf("_")), k.slice(k.indexOf("_") + 1)]).filter(([e, s]) => (!exam || e === exam) && (!subject || s === subject)).slice(0, 30).map(([e, s]) => pick(e, s))
+    : [pick(exam, subject)];
+  const snaps = await Promise.all(queries.map((q) => q.get()));
+  return snaps.flatMap((x) => x.docs).map((d) => ({ ...(d.data() as Question), id: d.id })).sort((a, b) => `${a.exam}${a.subject}${a.topic}${a.id}`.localeCompare(`${b.exam}${b.subject}${b.topic}${b.id}`));
 }
 
 // ---------------------------------------------------------------- admin: access, grants, refunds

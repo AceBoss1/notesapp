@@ -100,10 +100,15 @@ assert.equal(new Set(sq.map((q) => q.id)).size, sq.length, "unique ids");
 for (const q of sq) { const c = checkQuestion(q, DEFAULT_SUBJECTS, true); assert.ok(c.ok, `${q.id}: ${c.ok ? "" : c.errors.join(" ")}`); }
 for (const s of DEFAULT_SUBJECTS) {
   const mine = sq.filter((q) => q.exam === s.exam && q.subject === s.id);
-  assert.ok(mine.length >= 20, `${s.exam} ${s.id}: 20 questions`);
+  // WAEC and NECO: 50 a subject (owner, 26 Oct 2026); JAMB: 20.
+  const want = s.exam === "jamb" ? 20 : 50;
+  assert.ok(mine.length >= want, `${s.exam} ${s.id}: ${want} questions (has ${mine.length})`);
   assert.ok(mine.filter((q) => q.access === "free").length >= 8, `${s.exam} ${s.id}: 8 free`);
   for (const t of s.topics) assert.ok(mine.some((q) => q.topic === t.id), `${s.exam} ${s.id}: a question in ${t.id}`);
 }
+// No two questions the same in one exam and subject.
+const seen = new Set<string>();
+for (const q of sq) { const k = `${q.exam}|${q.subject}|${q.context ?? ""}|${q.stem.toLowerCase().replace(/\W+/g, " ").trim()}`; assert.ok(!seen.has(k), `${q.id}: a repeat`); seen.add(k); }
 const letters = new Set(sq.map((q) => q.answer));
 assert.ok(letters.size === 4, "answers spread over A to D");
 console.log("ALL OK");
