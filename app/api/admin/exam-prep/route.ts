@@ -37,7 +37,7 @@ export async function GET(req: NextRequest) {
   try {
     const q = req.nextUrl.searchParams;
     const view = q.get("view");
-    if (view === "questions") { await adminFor(req, "content"); return ok({ questions: await reviewQueue(db(), { status: q.get("status"), exam: q.get("exam") }) }); }
+    if (view === "questions") { await adminFor(req, "content"); return ok({ questions: await reviewQueue(db(), { status: q.get("status"), exam: q.get("exam"), subject: q.get("subject") }) }); }
     if (view === "subjects") { await adminFor(req, "content"); return ok({ subjects: await allSubjects(db()), starter: (starter as { questions: unknown[] }).questions.length }); }
     if (view === "reviewers") {
       await adminFor(req, "content");

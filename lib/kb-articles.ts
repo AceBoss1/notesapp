@@ -727,6 +727,8 @@ ${PREP_NAME} (${PREP_HOST}) is NotesApp's exam practice, part of Notes Academy. 
 
 **Practice:** choose JAMB, WAEC or NECO, then a subject and a topic. Each question is marked straight away, with the explanation and, for wrong options, why they're wrong. Every subject has free questions; questions you haven't got right yet come first.
 
+**Subjects:** JAMB: Use of English, Mathematics, Physics, Chemistry, Biology, Economics and Government. WAEC and NECO: those seven plus Literature in English, Geography, Agricultural Science, Civic Education, Commerce, Financial Accounting, Christian Religious Studies, Islamic Studies, Further Mathematics, Computer Studies and History. New questions appear once a subject reviewer has approved them.
+
 **Timed mocks:** ${MOCK_SIZES.join(", ")} questions picked at random, on a clock that runs on our side (leaving the page or changing your phone's time doesn't stop it). It's marked when you submit or when time runs out, and you can go through every answer. A mock score is practice only, never a prediction of your exam result.
 
 **The pack:** ${money(DEFAULT_PACK_KOBO)} opens every question in one exam, all its subjects, for ${DEFAULT_PACK_MONTHS} months (the price on the pack page is the one that applies). Pay with Paystack: card, bank transfer or USSD. Buying again adds the same months. You need a verified email to buy. If a payment went through but the pack didn't open, tap **Restore my pack** on the pack page: it checks again with Paystack and never charges twice.

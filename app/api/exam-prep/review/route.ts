@@ -22,7 +22,7 @@ export async function GET(req: NextRequest) {
     const status = r.admin ? q.get("status") : "in_review";
     const subs = await allSubjects(db());
     const labels = r.subjects?.map((k) => { const x = subs.find((y) => `${y.exam}_${y.id}` === k); return x ? `${x.exam.toUpperCase()} ${x.name}` : k; }) ?? null;
-    return ok({ me: { name: r.name, admin: r.admin, subjects: labels, reviews: r.reviews }, questions: await reviewQueue(db(), { status, exam: q.get("exam"), subjects: r.subjects }) });
+    return ok({ me: { name: r.name, admin: r.admin, subjects: labels, reviews: r.reviews }, questions: await reviewQueue(db(), { status, exam: q.get("exam"), subject: q.get("subject"), subjects: r.subjects }) });
   } catch (e) { return fail(e); }
 }
 // POST { id, decision: approve | changes, note } → a review.
