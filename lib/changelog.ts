@@ -11,6 +11,16 @@ export type Release = {
 
 export const CHANGELOG: Release[] = [
   {
+    version: "v0.97.0",
+    bump: "minor",
+    date: "2026-10-27",
+    changes: [
+      { kind: "added", text: "Notes Life: LUXNAS, the fashion brand from Nnewi led by CEO Chinasa Odina, opens on Wuse Market (Zone 4). Deliver its orders, learn tailoring, embroidery or bespoke African fashion design at LUXNAS Academy, then work there as a tailor, embroiderer, designer or supervisor, or open your own LUXNAS tailoring studio. Find the real LUXNAS at @luxnas on NotesApp." },
+      { kind: "added", text: "The Wuse streets have billboards (on the rooftops in Zone 4 and along the crescent in Wuse II) and red LED message boards that scroll the street names." },
+      { kind: "changed", text: "People in Notes Life now walk with swinging legs and arms; ladies wear short dresses, skirts or gowns, and more people walk the Wuse pavements." },
+    ],
+  },
+  {
     version: "v0.96.0",
     bump: "minor",
     date: "2026-10-27",

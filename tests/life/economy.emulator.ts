@@ -46,7 +46,7 @@ const rej = async (p: Promise<unknown>, re: RegExp) => { await assert.rejects(p,
   assert.equal(sanitize({ tank: 9999 }).tank, 1000);
   advance({ ...ft, delivery: { at: 10, hunger: 50, keep: 2 } }, 20).s.plates === 5 || assert.fail("delivery kept for later");
   // outlets: profit a game day near the agreed figures, half sales in blackouts without backup, takings held 30 game days at most
-  assert.deepEqual(OUTLETS.map((t) => outletProfitPerDay(t, "wuse")), [72200, 213600, 47000, 181600]);
+  assert.deepEqual(OUTLETS.map((t) => outletProfitPerDay(t, "wuse")), [72200, 213600, 47000, 181600, 89500]);
   assert.equal(outletPrice(OUTLET("chef_kiosk")!, "garki"), 2_800_000);
   const k0: Outlet = { kind: "chef_kiosk", area: "wuse", openedAt: WORLD_EPOCH, lastCollectAt: WORLD_EPOCH, earned: 0, backup: true };
   assert.ok(Math.abs(outletTakings(k0, WORLD_EPOCH + GAME_DAY_MS).takings - Math.round(110000 * 0.96 * 0.72 - 7000)) < 2);
@@ -334,5 +334,22 @@ const rej = async (p: Promise<unknown>, re: RegExp) => { await assert.rejects(p,
   assert.deepEqual(tapCharge({ action: "restroom", at: "market_wc" }, { jobId: null }), { payee: "Wuse Market mobile WC", what: "Mobile WC (emergency)", amount: 500 });
   assert.equal(tapCharge({ action: "restroom", at: "chef_wc" }, { jobId: null }), null, "free restrooms show no terminal");
   console.log("restrooms ok");
+  // LUXNAS: academy (enrol, a class at a time, 9 AM to 6 PM, certificate), jobs that need the certificate, shifts count, the studio
+  await db.doc("users/p13").set({ username: "tailor", displayName: "TAILOR" });
+  const L0 = atH(10, 150);
+  await mutate(db, "p13", (pl) => { pl.naira = 5_000_000; pl.reputation = 3; }, L0);
+  await rej(act(db, "p13", { action: "job_apply", job: "lux_tailor" }, L0), /LUXNAS Academy Tailoring and custom fit certificate/);
+  await rej(act(db, "p13", { action: "lux_class", course: "lux_tailoring" }, L0), /Pay for the/);
+  await act(db, "p13", { action: "lux_enroll", course: "lux_tailoring" }, L0);
+  await rej(act(db, "p13", { action: "lux_class", course: "lux_tailoring" }, atH(20, 150)), /9 AM to 6 PM/);
+  let lr: Awaited<ReturnType<typeof act>> | null = null;
+  for (let k = 0; k < 4; k++) lr = await act(db, "p13", { action: "lux_class", course: "lux_tailoring" }, L0 + k * 2 * GAME_HOUR_MS + 10_000);
+  assert.equal((lr!.result as { cert: boolean }).cert, true); assert.deepEqual(lr!.player.luxCerts, ["lux_tailoring"]); assert.deepEqual(lr!.player.certs, [], "a LUXNAS certificate is not a Digital Witch one");
+  await act(db, "p13", { action: "job_apply", job: "lux_tailor" }, atH(11, 151));
+  await rej(act(db, "p13", { action: "outlet_open", outlet: "luxnas_studio", area: "wuse" }, atH(11, 151)), /10 LUXNAS shifts/);
+  for (let k = 0; k < 10; k++) { const t0 = atH(9, 152 + k); await act(db, "p13", { action: "shift_start", needsLow: false }, t0); await act(db, "p13", { action: "shift_finish" }, t0 + SHIFT_MS); }
+  lr = await act(db, "p13", { action: "outlet_open", outlet: "luxnas_studio", area: "wuse" }, atH(9, 163)); assert.ok(lr.player.outlets.some((o) => o.kind === "luxnas_studio")); assert.equal(lr.player.luxShifts, 10);
+  assert.deepEqual(tapCharge({ action: "lux_enroll", course: "lux_design" }, { jobId: null }), { payee: "LUXNAS Academy", what: "Bespoke African fashion design", amount: 90_000 });
+  console.log("luxnas ok");
   console.log("ALL OK");
 })().catch((e) => { console.log("FAIL", e); process.exit(1); });

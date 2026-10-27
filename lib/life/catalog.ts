@@ -123,9 +123,9 @@ export const PLACES: { id: PlaceId; name: string; area: string; icon: string }[]
 ];
 
 // ---- Jobs (they mirror NotesApp careers; Chef Adams is a partner brand) ----
-export type Brand = "chef_adams" | "itel" | "candellux";
+export type Brand = "chef_adams" | "itel" | "candellux" | "luxnas";
 export type Job = {
-  id: string; title: string; employer: string; icon: string; pay: number; place: "home" | "work" | "chef" | "itel" | "hotel";
+  id: string; title: string; employer: string; icon: string; pay: number; place: "home" | "work" | "chef" | "itel" | "hotel" | "market";
   ladder?: string; needItem?: string[]; needCooking?: number; needBrandShifts?: number; needReputation?: number; needHygiene?: number; needFitness?: boolean;
   brand?: Brand; usesBike?: boolean; soon?: boolean;
   extra?: { label: string; min: number; max: number; step: number }; // paid on top when the shift ends: tips, a bonus on what you sold
@@ -133,6 +133,7 @@ export type Job = {
   meal?: number; // a free staff meal at the end of the shift (Hunger)
   needCert?: string; // a Digital Witch certificate: a course id, or "any"
   tech?: boolean; // a tech job: its shifts count towards Cynthia's graduate giveaway
+  needLuxCert?: string; // a LUXNAS Academy certificate (a LUX_COURSES id)
 };
 export const SHIFT_HOURS = 4;
 export const SHIFT_MS = SHIFT_HOURS * GAME_HOUR_MS; // 8 real minutes
@@ -167,8 +168,14 @@ export const JOBS: Job[] = [
   { id: "hotel_gym", title: "Gym instructor", employer: "Candellux · classes and personal training", icon: "🏋", pay: 8_500, place: "hotel", brand: "candellux", needGymSessions: 10 },
   { id: "hotel_cook", title: "Restaurant cook", employer: "Candellux · the 24-hour kitchen", icon: "👨‍🍳", pay: 7_500, place: "hotel", brand: "candellux", needCooking: 4 },
   { id: "hotel_manager", title: "Duty manager", employer: "Candellux · run the hotel for a shift", icon: "👑", pay: 15_000, place: "hotel", brand: "candellux", needBrandShifts: 15, needReputation: 4, ladder: "Front desk → Supervisor → Manager" },
+  // LUXNAS (partner, from 27 October 2026): custom tailoring and bespoke African fashion, Wuse Market (Zone 4). Train at LUXNAS Academy.
+  { id: "lux_rider", title: "Delivery rider", employer: "LUXNAS · finished orders to customers around Abuja", icon: "🛍", pay: 4_500, place: "market", brand: "luxnas", usesBike: true, needItem: ["bicycle", "ebike"], ladder: "E-bike: 2× more deliveries" },
+  { id: "lux_tailor", title: "Tailor", employer: "LUXNAS · Senator suits, Agbadas, Kaftans and custom-fit jeans", icon: "🧵", pay: 7_000, place: "market", brand: "luxnas", needLuxCert: "lux_tailoring", ladder: "Tailor → Designer → Studio owner" },
+  { id: "lux_embroider", title: "Embroiderer", employer: "LUXNAS · embroidery on Agbadas, Kaftans and bridal wear", icon: "🪡", pay: 8_000, place: "market", brand: "luxnas", needLuxCert: "lux_embroidery" },
+  { id: "lux_designer", title: "Fashion designer", employer: "LUXNAS · Ankara sets, Asoebi and bridal, bespoke pieces · tips from happy clients", icon: "👗", pay: 12_000, place: "market", brand: "luxnas", needLuxCert: "lux_design", extra: { label: "Client tips", min: 0, max: 3_000, step: 500 } },
+  { id: "lux_super", title: "Studio supervisor", employer: "LUXNAS · run the studio, train the tailors", icon: "⭐", pay: 13_000, place: "market", brand: "luxnas", needBrandShifts: 10, needLuxCert: "lux_tailoring" },
 ];
-export const BRAND_NAME: Record<Brand, string> = { chef_adams: "Chef Adams", itel: "itel Energy", candellux: "Candellux" };
+export const BRAND_NAME: Record<Brand, string> = { chef_adams: "Chef Adams", itel: "itel Energy", candellux: "Candellux", luxnas: "LUXNAS" };
 // Real players work shifts at the brands' own outlets; outlets players own are staffed by residents (🤖) only, for now.
 export const STAFF_PERKS = { itelDiscount: 0.2, hotelHalf: ["pool", "gym", "vipbar", "poolbar"] }; // itel staff: 20% off itel products; Candellux staff: half price
 export const isStaff = (jobId: string | null, brand: Brand) => !!jobId && JOB(jobId)?.brand === brand;
@@ -181,8 +188,8 @@ export function shiftPay(job: Job, owned: string[], needsLow: boolean): number {
   if (needsLow) pay *= LOW_PAY_FACTOR;
   return Math.round(pay);
 }
-export type JobCheck = { owned: string[]; cooking: number; chefShifts: number; itelShifts?: number; hotelShifts?: number; reputation: number; fit?: boolean; swim?: number; gymSessions?: number; certs?: string[] };
-export const brandShifts = (p: Pick<JobCheck, "chefShifts" | "itelShifts" | "hotelShifts">, b: Brand) => (b === "chef_adams" ? p.chefShifts : b === "itel" ? p.itelShifts ?? 0 : p.hotelShifts ?? 0);
+export type JobCheck = { owned: string[]; cooking: number; chefShifts: number; itelShifts?: number; hotelShifts?: number; luxShifts?: number; luxCerts?: string[]; reputation: number; fit?: boolean; swim?: number; gymSessions?: number; certs?: string[] };
+export const brandShifts = (p: Pick<JobCheck, "chefShifts" | "itelShifts" | "hotelShifts" | "luxShifts">, b: Brand) => (b === "chef_adams" ? p.chefShifts : b === "itel" ? p.itelShifts ?? 0 : b === "luxnas" ? p.luxShifts ?? 0 : p.hotelShifts ?? 0);
 export function jobBlocker(job: Job, p: JobCheck): string | null {
   if (job.soon) return "Coming soon";
   if (job.needItem && !job.needItem.some((i) => p.owned.includes(i))) return `Needs ${job.needItem.map((i) => ITEM(i)?.name.toLowerCase()).join(" or ")}`;
@@ -192,6 +199,7 @@ export function jobBlocker(job: Job, p: JobCheck): string | null {
   if (job.needFitness && !p.fit) return "Needs fitness: train at the Candellux gym first";
   if (job.needSwim && (p.swim ?? 0) < job.needSwim) return `Needs swimming skill ${job.needSwim} (you have ${p.swim ?? 0})`;
   if (job.needGymSessions && (p.gymSessions ?? 0) < job.needGymSessions) return `After ${job.needGymSessions} gym sessions (${p.gymSessions ?? 0} so far)`;
+  if (job.needLuxCert && !(p.luxCerts ?? []).includes(job.needLuxCert)) return `Needs the LUXNAS Academy ${LUX_COURSE(job.needLuxCert)?.name ?? ""} certificate`;
   if (job.needCert) {
     const certs = p.certs ?? [];
     if (job.needCert === "any" ? !certs.length : !certs.includes(job.needCert)) return job.needCert === "any" ? "Needs a Digital Witch certificate" : `Needs the Digital Witch ${DW_COURSE(job.needCert)?.name ?? ""} certificate`;
@@ -205,9 +213,9 @@ export const shiftExtra = (job: Job, rand: () => number) => (job.extra ? job.ext
 // Takings wait up to 30 game days (about a real day); after that the outlet stops selling until you collect. Without backup power it
 // sells half during NEPA's blackouts, and quality slips while takings sit uncollected. Agreed 14 October 2026: Chef Adams keeps 8% of
 // sales as the brand fee; itel earns from the stock you buy at partner prices. ----
-export type OutletKind = "chef_kiosk" | "chef_shop" | "itel_home" | "itel_mall";
+export type OutletKind = "chef_kiosk" | "chef_shop" | "itel_home" | "itel_mall" | "luxnas_studio";
 export type OutletType = {
-  id: OutletKind; brand: "chef_adams" | "itel"; name: string; short: string; icon: string; price: number; salesPerDay: number;
+  id: OutletKind; brand: "chef_adams" | "itel" | "luxnas"; name: string; short: string; icon: string; price: number; salesPerDay: number;
   feeRate: number; stockRate: number; staff: number; wage: number; ticket: number; staffRole: string;
   needs: { brandShifts?: number; reputation?: number; item?: string; outlet?: OutletKind; outletDays?: number; quality?: number };
 };
@@ -216,6 +224,7 @@ export const OUTLETS: OutletType[] = [
   { id: "chef_shop", brand: "chef_adams", name: "Chef Adams Mini Dine-In Shop", short: "Mini Dine-In Shop", icon: "🍽", price: 8_000_000, salesPerDay: 330_000, feeRate: 0.08, stockRate: 0.2, staff: 6, wage: 4_000, ticket: 2_600, staffRole: "cook or waiter", needs: { outlet: "chef_kiosk", outletDays: 7, quality: 80, reputation: 4 } },
   { id: "itel_home", brand: "itel", name: "itel Home Store", short: "Home Store", icon: "🏪", price: 1_500_000, salesPerDay: 150_000, feeRate: 0, stockRate: 0.66, staff: 1, wage: 4_000, ticket: 30_000, staffRole: "sales attendant", needs: { brandShifts: 5, item: "power_go" } },
   { id: "itel_mall", brand: "itel", name: "itel Mall Store", short: "Mall Store", icon: "🏬", price: 7_000_000, salesPerDay: 560_000, feeRate: 0, stockRate: 0.64, staff: 4, wage: 5_000, ticket: 45_000, staffRole: "sales or CarlCare", needs: { outlet: "itel_home", outletDays: 7, reputation: 4 } },
+  { id: "luxnas_studio", brand: "luxnas", name: "LUXNAS Tailoring Studio", short: "Tailoring Studio", icon: "🧵", price: 3_000_000, salesPerDay: 150_000, feeRate: 0.1, stockRate: 0.25, staff: 2, wage: 4_000, ticket: 25_000, staffRole: "tailor", needs: { brandShifts: 10, reputation: 3 } },
 ];
 export const OUTLET = (id: string) => OUTLETS.find((o) => o.id === id);
 export type OutletArea = "wuse" | "garki";
@@ -223,7 +232,8 @@ export const OUTLET_AREAS: Record<OutletArea, { name: string; k: number }> = { w
 export const OUTLET_HOLD_DAYS = 30;
 export const OUTLET_BACKUP = { price: 620_000, name: "itel Power Tank 1000 and two 650W bifacial panels" };
 export const OUTLET_STAFF = ["Emeka", "Halima", "Tunde", "Aisha", "Chinedu", "Ngozi", "Musa", "Ifeoma"];
-export const REAL_PARTNER: Record<"chef_adams" | "itel", string> = {
+export const REAL_PARTNER: Record<"chef_adams" | "itel" | "luxnas", string> = {
+  luxnas: "https://www.notesapp.name.ng/s/luxnas",
   chef_adams: `/journals/own-a-chef-adams-franchise-in-your-choice-location`,
   itel: "https://www.itel-life.com/ng/itel-home/about-itel-home",
 };
@@ -253,11 +263,11 @@ export function outletTakings(o: Outlet, now: number): { takings: number; days: 
   const quality = outletQuality(o, now);
   return { takings: Math.max(0, Math.round(gross * margin - t.staff * t.wage * days)), days, quality, capped: now >= o.lastCollectAt + OUTLET_HOLD_DAYS * GAME_DAY_MS, customers: Math.round((t.salesPerDay * k * quality) / 100 / t.ticket) };
 }
-export type OutletCheck = { owned: string[]; chefShifts: number; itelShifts: number; reputation: number; outlets: Outlet[] };
+export type OutletCheck = { owned: string[]; chefShifts: number; itelShifts: number; luxShifts?: number; reputation: number; outlets: Outlet[] };
 export function outletBlocker(t: OutletType, p: OutletCheck, now: number): string | null {
   const n = t.needs;
   if (p.outlets.some((o) => o.kind === t.id)) return "You already own one";
-  const shifts = t.brand === "chef_adams" ? p.chefShifts : p.itelShifts;
+  const shifts = t.brand === "chef_adams" ? p.chefShifts : t.brand === "luxnas" ? p.luxShifts ?? 0 : p.itelShifts;
   if (n.brandShifts && shifts < n.brandShifts) return `After ${n.brandShifts} ${BRAND_NAME[t.brand]} shifts (you have ${shifts})`;
   if (n.item && !p.owned.includes(n.item)) return `Own a ${ITEM(n.item)?.name ?? n.item} first`;
   if (n.outlet) {
@@ -493,6 +503,9 @@ export const RESIDENTS: Resident[] = [
   { id: "emerald", name: "Emerald Ezurukam", role: "The mind behind Notes Life · Emerald Towers, Wuse II", area: "Wuse II", look: ["#047857", "#5b3520", "#111827", false], netWorth: 12_000_000_000, owned: "💎 🏙 ✈️ 🚙",
     story: "Emerald dreamed up Notesville, its streets and its rules when we were kids. Notes Life is his teenage game, brought to life.",
     lines: L(["Welcome to Notesville! I dreamed this city up when I was a kid. Now you live in it.", "Every rule in this town started as a game I played in my head. Enjoy it!"], ["Eat first, plan second. Nobody builds anything hungry.", "Mama Nkechi's pepper soup is the best on this street. I've been eating it since I was small."], ["Start with one errand, then one shift, then one shop. That's how every fortune here started.", "Reputation is the real money in Notesville. Keep your word and the deals come."], ["NEPA taught me to always have a plan B. Solar is mine.", "When the light goes, the hustlers keep moving."], ["Don't chase the list. Build something, and the list will find you.", "Save some, spend some, invest the rest. I made that rule up as a teenager and I still keep it."]) },
+  // A real partner: Chinasa Odina, CEO of LUXNAS (@luxnas, @chinasa on NotesApp). Her photo comes later.
+  { id: "chinasa", name: "Chinasa Odina", role: "CEO, LUXNAS · custom tailoring and bespoke African fashion", area: "Wuse", look: ["#0a0a0a", "#7a4a2c", "#0a0a0a", true], partner: "luxnas",
+    lines: L(["Welcome to LUXNAS! Senator, Agbada, Kaftan or something for the ladies?", "Hello! Every piece here is tailored to you, not off a rack."], ["Eat well before a fitting. We take your measurements properly!"], ["Learn at LUXNAS Academy: tailoring, embroidery, then design. Then work with us, or open your own studio.", "Deliveries first, then the tape measure. That's how my best tailors started."], ["NEPA or no NEPA, our machines keep running. Customers don't wait for light."], ["From Nnewi to the world: we ship worldwide. Quality travels.", "Bespoke pays. One good Asoebi order can pay your rent."]) },
   { id: "sani", name: "Mallam Sani", role: "Suya man, Wuse Market (Zone 4)", area: "Wuse", look: ["#f8fafc", "#4e2c17", "#f8fafc", false], netWorth: 310_000,
     lines: L(["Sannu! Suya dey ready from evening.", "My friend, you don chop suya today?"], ["Beef suya with onion and yaji. Na medicine for hunger!"], ["Come help me for the grill at night. I go pay you and give you suya."], ["NEPA no fit stop suya. Na charcoal we dey use!"], ["Small small, the grill don build my house for village."]) },
   { id: "bose", name: "Iya Bose", role: "POS agent, Wuse Market (Zone 4)", area: "Wuse", look: ["#ea580c", "#6b3f22", "#1f2937", true], netWorth: 520_000,
@@ -504,7 +517,7 @@ export const RESIDENT = (id: string) => RESIDENTS.find((r) => r.id === id);
 // Where a resident stands on the Billionaires List among the residents (1 = the richest), or null without a fortune.
 export const residentRank = (id: string) => { const r = RESIDENT(id); return r?.netWorth ? RESIDENTS.filter((x) => (x.netWorth ?? 0) > r.netWorth!).length + 1 : null; };
 // Which residents you meet where.
-export const RESIDENTS_AT: Partial<Record<PlaceId | "street", string[]>> = { street: ["nkechi", "tunde", "halima", "emeka"], chef: ["halima", "emeka"], itel: ["dauda", "aisha", "chinedu"], hotel: ["musa", "ifeoma"], home: ["nkechi"], dw: ["aisha"], market: ["nkechi", "halima", "chinedu", "bose", "sani", "aisha"], wuse2: ["emerald", "musa", "ifeoma"] };
+export const RESIDENTS_AT: Partial<Record<PlaceId | "street", string[]>> = { street: ["nkechi", "tunde", "halima", "emeka"], chef: ["halima", "emeka"], itel: ["dauda", "aisha", "chinedu"], hotel: ["musa", "ifeoma"], home: ["nkechi"], dw: ["aisha"], market: ["chinasa", "nkechi", "halima", "chinedu", "bose", "sani", "aisha"], wuse2: ["emerald", "musa", "ifeoma"] };
 
 // ---- The Wuse streets (from 27 October 2026), beside the first street: Wuse Market in Zone 4 (Abuja's biggest open market, the Bureau De
 // Change operators, stalls and errands) and Aminu Kano Crescent in Wuse II (the premium strip: office plazas, a bank, restaurants and
@@ -516,7 +529,7 @@ export type MarketSpot = "keke" | "pharmacy" | "tailor" | "phones" | "soup" | "b
 export const MARKET_SHOPS: Record<MarketSpot, { place: StreetPlace; name: string; icon: string; who?: string }> = {
   keke: { place: "market", name: "Keke park and market stalls", icon: "🛺" },
   pharmacy: { place: "market", name: "WuseCare Pharmacy", icon: "💊" },
-  tailor: { place: "market", name: "Halima Stitches", icon: "🧵", who: "halima" },
+  tailor: { place: "market", name: "LUXNAS", icon: "🧵", who: "chinasa" },
   phones: { place: "market", name: "Chinedu Phones & Accessories", icon: "📱", who: "chinedu" },
   soup: { place: "market", name: "Mama Nkechi's Pepper Soup", icon: "🍲", who: "nkechi" },
   barber: { place: "market", name: "Fresh Cut Barbers", icon: "💈" },
@@ -562,7 +575,7 @@ export const BARBER_STREET_MS = GAME_DAY_MS / 2;
 // Errands: once a game day each, paid when done (the server checks the hours and the day). Sanitation pays in reputation, not naira.
 export type Errand = { id: string; spot: MarketSpot; who?: string; title: string; icon: string; minutes: number; pay: number; effect: Partial<Record<Need, number>>; hours?: Hours; weekday?: number; reputation?: number; needReputation?: number; needHygiene?: number; note: string };
 export const ERRANDS: Errand[] = [
-  { id: "asoebi", spot: "tailor", who: "halima", title: "Deliver Halima's aso-ebi orders", icon: "🧵", minutes: 45, pay: 2_500, effect: { energy: -8, social: 8 }, hours: [8, 18], note: "Six wrapped parcels to customers around the market" },
+  { id: "luxnas", spot: "tailor", who: "chinasa", title: "Deliver LUXNAS orders", icon: "🛍", minutes: 45, pay: 2_500, effect: { energy: -8, social: 8 }, hours: [8, 18], note: "Senator suits, Ankara sets and an Asoebi order, wrapped, to customers around Wuse" },
   { id: "stall", spot: "phones", who: "chinedu", title: "Mind Chinedu's phone stall", icon: "📱", minutes: 60, pay: 2_200, effect: { fun: -4, social: 6 }, hours: [9, 19], note: "Sell screen guards and chargers while he restocks in Jabi" },
   { id: "pos", spot: "pos", who: "bose", title: "Run Iya Bose's POS stand for the lunch rush", icon: "💳", minutes: 60, pay: 2_400, effect: { energy: -6, social: 5 }, hours: [11, 15], note: "Cash-outs and transfers, 11 AM to 3 PM" },
   { id: "porter", spot: "keke", title: "Carry loads for market women", icon: "🧺", minutes: 30, pay: 1_200, effect: { energy: -12, hygiene: -10 }, hours: [7, 18], note: "Baskets of tomatoes and yams from the kekes to the stalls" },
@@ -638,3 +651,18 @@ export function restroomBoost(r: Restroom, p: { hotelUntil: number; lastSwimAt: 
   const full = r.id === "suite_wc" || r.id === "suite_bath" || r.id === "market_wc" || r.id === "market_shower" || (r.id === "pool_shower" && recent(p.lastSwimAt)) || (r.id === "vip_wc" && recent(p.lastVipAt));
   return { need: r.need, pct: full ? 100 : 50, price: r.price };
 }
+
+// ---- LUXNAS (partner, from 27 October 2026): a boutique lifestyle, business and fashion brand from Nnewi, led by CEO Chinasa Odina.
+// Custom tailoring, embroidery, ready-to-wear and bespoke African fashion; it ships worldwide. In Notesville its shop is on Wuse Market
+// (Zone 4): deliver its orders, learn at LUXNAS Academy, then work there or open your own LUXNAS studio. ----
+export const LUXNAS = { name: "LUXNAS", handle: "luxnas", shop: "https://www.notesapp.name.ng/s/luxnas", instagram: "https://www.instagram.com/fw_diamondstitches/", ceo: "Chinasa Odina", ceoHandle: "chinasa", origin: "Nnewi",
+  offers: ["Senator suits, custom Agbadas and Kaftans for men", "Ankara two-piece sets, long dresses, office looks, Asoebi and bridal wear", "Custom denim, custom-fit jeans and chinos", "Worldwide orders with international shipping"] };
+export type LuxCourse = { id: string; name: string; icon: string; price: number; classes: number; job: string };
+export const LUX_COURSES: LuxCourse[] = [
+  { id: "lux_tailoring", name: "Tailoring and custom fit", icon: "🧵", price: 50_000, classes: 4, job: "lux_tailor" },
+  { id: "lux_embroidery", name: "Embroidery", icon: "🪡", price: 60_000, classes: 4, job: "lux_embroider" },
+  { id: "lux_design", name: "Bespoke African fashion design", icon: "👗", price: 90_000, classes: 5, job: "lux_designer" },
+];
+export const LUX_COURSE = (id: string) => LUX_COURSES.find((c) => c.id === id);
+export const LUX_CLASS_HOURS = 2;
+export const LUX_CLASS_EFFECT: Partial<Record<Need, number>> = { energy: -10, fun: 5 };
