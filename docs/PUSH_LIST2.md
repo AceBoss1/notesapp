@@ -9,6 +9,7 @@ HANDOVER.
 
 | Item | Branch | What | Needs | Status |
 |---|---|---|---|---|
+| Notes Life: restrooms away from home (v0.96.0) | `push/life-restrooms` | 🚻 Restroom: Candellux suite WC and bath (lodged, 100%), outdoor pool shower (100% within 24 game h of a swim, else +50), VIP restroom (100% within 24 game h of the VIP bar, else +50), pool bar +50; itel, Chef Adams, Emerald Towers, Digital Witch Bladder +50; Wuse Market mobile WC N$ 500 / shower N$ 800; docs | Nothing | Pushed |
 | Notes Life: Wuse streets, errands, Emerald (v0.95.0) | `push/life-streets` | Wuse Market Zone 4 and Aminu Kano Crescent Wuse II as new walkable 3D streets (first street kept); 14 server-paid errands once a game day; street food, barber, data, lounge; Emerald Ezurukam #1 with his story; his convoy at the Wuse bus stand (8 AM, 1 PM, 6 PM) gives N$ 100,000 once per 30 game days; docs and shots | `firebase deploy --only firestore:rules`; Emerald's photo when ready (HANDOVER 57) | Merged (#206) |
 | Exam Prep WAEC/NECO bank (v0.94.0) | `push/exam-prep-bank` | 11 new WAEC/NECO subjects; 1,520 new original questions so all 18 subjects have 50 WAEC + 50 NECO (20 free each), 1,940 in the starter set; batched import; review queue filters exam/subject in the query (it hid whole exams past 500) plus a subject filter; docs | Admin → Naija Exam Prep → Import → Import the starter set on production; reviewers per new subject (HANDOVER 56) | Merged (#205) |
 
