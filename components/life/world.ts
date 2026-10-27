@@ -539,6 +539,13 @@ export function createWorld(canvas: HTMLCanvasElement) {
     const swim = (x: number, z: number, shirt: string, rot = 0, flat = false) => { const p = person(x, z, shirt, rot, flat ? 0.2 : -1.1); if (flat) { p.rotation.set(-Math.PI / 2, 0, rot); p.position.set(x, 0.22, z); } return p; };
     swim(-4.6, PZ + 1, "#ec4899", 0.4); swim(-2.2, PZ - 1.2, "#2563eb", -0.3); swim(2.2, PZ + 0.8, "#14b8a6", 2.6, true); swim(0.5, PZ + 1.5, "#f59e0b", 3.1);
     if (s.swim) player = swim(-3.2, PZ - 0.2, s.outfit, Math.PI / 2, true);
+    // the outdoor shower stand on the grass by the shallow end: a tiled pad, a steel column with a rain head, a towel rail
+    { const SX = -10.2, SZ = PZ + 3.2; box(1.4, 0.06, 1.4, "#cbd5e1", SX, 0.1, SZ); cyl(0.06, 2.4, "#d1d5db", SX - 0.45, 0.16, SZ - 0.45);
+      rod(new THREE.Vector3(SX - 0.45, 2.5, SZ - 0.45), new THREE.Vector3(SX, 2.5, SZ), "#d1d5db", 0.04); cyl(0.22, 0.06, "#9ca3af", SX, 2.42, SZ);
+      box(0.9, 0.06, 0.06, "#d1d5db", SX + 0.2, 1.4, SZ - 0.62); box(0.7, 0.5, 0.02, "#f472b6", SX + 0.2, 0.92, SZ - 0.6);
+      const drops = Array.from({ length: 8 }, (_, k) => { const m = new THREE.Mesh(new THREE.SphereGeometry(0.03, 6, 4), new THREE.MeshBasicMaterial({ color: "#bae6fd" })); scene.add(m); return [m, k] as const; });
+      anims.push((t) => drops.forEach(([m, k]) => { const p = ((t / 700) + k / 8) % 1; m.position.set(SX + Math.cos(k * 2.4) * 0.14, 2.35 - p * 2.2, SZ + Math.sin(k * 2.4) * 0.14); }));
+      tag("shower", SX, 2.9, SZ); }
     // the lifeguard's high chair by the deep end
     for (const [a, b] of [[-0.35, -0.35], [0.35, -0.35], [-0.35, 0.35], [0.35, 0.35]]) box(0.07, 1.9, 0.07, "#f8fafc", 6.2 + a, 0.1, PZ + b); box(0.9, 0.1, 0.9, "#ef4444", 6.2, 2.0, PZ);
     person(6.2, PZ, "#ef4444", -Math.PI / 2, 2.1);
@@ -644,11 +651,12 @@ export function createWorld(canvas: HTMLCanvasElement) {
   // ---------- the Wuse streets: Wuse Market (Zone 4) and Aminu Kano Crescent (Wuse II) ----------
   // A shop-lined strip you walk along: tap a shop and you walk to it, the camera following. Traffic runs both ways, hawkers walk the
   // pavement, the barber's pole turns and the suya grill smokes; at night the signs, windows and street lamps light up.
-  type Front = { spot?: MarketSpot; x: number; w: number; floors: number; wall: string; band?: string; sign?: [string, string, string]; acs?: boolean; glass?: string; stall?: "umbrella" | "kiosk" | "grill" | "tap" | "stalls" | "cars"; stand?: number }; // stand: where you stand, from x
+  type Front = { spot?: MarketSpot; x: number; w: number; floors: number; wall: string; band?: string; sign?: [string, string, string]; acs?: boolean; glass?: string; stall?: "umbrella" | "kiosk" | "grill" | "tap" | "stalls" | "cars" | "loo"; stand?: number }; // stand: where you stand, from x
   const STRIPS: Record<StreetPlace, { title: string; fronts: Front[]; median?: boolean; vehicles: ("keke" | "car" | "taxi" | "bus")[] }> = {
     market: {
       title: "WUSE MARKET · ZONE 4",
       fronts: [
+        { x: -37.6, w: 0, floors: 0, wall: "#0284c7", stall: "loo" },
         { spot: "keke", x: -31, w: 9, floors: 0, wall: "#a8a29e", stall: "stalls", stand: 5.2 },
         { spot: "pharmacy", x: -22.5, w: 5, floors: 2, wall: "#f1f5f9", band: "#15803d", sign: ["WuseCare Pharmacy  ✚", "#15803d", "#ffffff"], acs: true },
         { spot: "tailor", x: -17, w: 5, floors: 2, wall: "#fde68a", band: "#be185d", sign: ["Halima Stitches\nTailoring · Aso-ebi", "#be185d", "#ffffff"], acs: true },
@@ -769,6 +777,10 @@ export function createWorld(canvas: HTMLCanvasElement) {
           const puffs = Array.from({ length: 6 }, (_, k) => { const m = new THREE.Mesh(new THREE.SphereGeometry(0.18, 8, 6), new THREE.MeshStandardMaterial({ color: "#e5e7eb", transparent: true, opacity: 0.45 })); m.position.set(f.x, 1.1 + k * 0.4, -0.6); scene.add(m); return m; });
           anims.push((t) => puffs.forEach((m, k) => { const p = ((t / 2600) + k / puffs.length) % 1; m.position.set(f.x + Math.sin(p * 6 + k) * 0.25, 1.1 + p * 2.6, -0.6); m.scale.setScalar(0.6 + p * 1.6); (m.material as THREE.MeshStandardMaterial).opacity = 0.5 * (1 - p); }));
         }
+      }
+      if (f.stall === "loo") { // the emergency mobile WC and shower units: blue cabins with white roofs and green "vacant" signs
+        [[-1.0, "WC"], [0.4, "WC"], [1.8, "SHOWER"]].forEach(([dx, t]) => { const x = f.x + (dx as number); box(1.2, 2.3, 1.2, t === "SHOWER" ? "#0369a1" : f.wall, x, 0.14, -1.0); box(1.3, 0.1, 1.3, "#f8fafc", x, 2.44, -1.0); box(0.8, 1.8, 0.04, "#075985", x, 0.24, -0.38); box(0.25, 0.1, 0.03, "#22c55e", x + 0.2, 1.4, -0.35); });
+        sign("Emergency WC & Shower\nWC N$ 500 · Shower N$ 800", "#0c4a6e", "#ffffff", 4.2, 0.8, f.x + 0.4, 2.95, -0.36, 70); tag("restroom", f.x + 0.4, 3.9, -1.0);
       }
       if (f.stall === "tap") { box(1.2, 0.9, 0.9, "#94a3b8", f.x, 0.14, -1.0); cyl(0.05, 0.6, "#475569", f.x, 1.04, -1.0); for (let k = 0; k < 4; k++) box(0.34, 0.5, 0.26, "#facc15", f.x - 0.9 + k * 0.6, 0.14, -0.1); sign("Borehole\nwater", "#0369a1", "#ffffff", 1.1, 0.6, f.x, 1.35, -0.54, 90); }
       if (f.stall === "stalls") { // market stalls under zinc roofs, with tomatoes, peppers and yams, and the keke park

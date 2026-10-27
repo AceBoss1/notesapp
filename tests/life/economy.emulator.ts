@@ -314,5 +314,25 @@ const rej = async (p: Promise<unknown>, re: RegExp) => { await assert.rejects(p,
   const wG1 = (await act(db, "p11", { action: "convoy_gift" }, atH(13, 128))).player.naira; assert.ok(wG1 >= wG0 + 100_000 - 60_000, "30 game days later he gives again (rent may have come out)");
   const tx = await db.collection("lifeTx").where("uid", "==", "p11").where("kind", "==", "gift").get(); assert.equal(tx.size, 2);
   console.log("wuse streets ok");
+  // restrooms away from home: suite for guests, pool shower and VIP restroom full only after a swim / VIP visit in 24 game hours
+  await db.doc("users/p12").set({ username: "fresh", displayName: "FRESH" });
+  const R0 = atH(10, 140), rr = async (at: string, t = R0) => (await act(db, "p12", { action: "restroom", at }, t)).result as { need: string; pct: number };
+  await mutate(db, "p12", (pl) => { pl.naira = 600_000; }, R0);
+  await rej(act(db, "p12", { action: "restroom", at: "suite_bath" }, R0), /guests staying in a suite/);
+  assert.deepEqual(await rr("pool_shower"), { need: "hygiene", pct: 50 });
+  assert.deepEqual(await rr("vip_wc"), { need: "bladder", pct: 50 });
+  assert.deepEqual(await rr("itel_wc"), { need: "bladder", pct: 50 });
+  await act(db, "p12", { action: "hotel", service: "pool" }, R0);
+  await act(db, "p12", { action: "hotel", service: "vipbar" }, R0);
+  assert.deepEqual(await rr("pool_shower", R0 + GAME_HOUR_MS), { need: "hygiene", pct: 100 });
+  assert.deepEqual(await rr("vip_wc", R0 + GAME_HOUR_MS), { need: "bladder", pct: 100 });
+  assert.equal((await rr("pool_shower", R0 + 25 * GAME_HOUR_MS)).pct, 50, "more than 24 game hours after the swim");
+  await act(db, "p12", { action: "hotel", service: "suite" }, R0 + 26 * GAME_HOUR_MS);
+  assert.deepEqual(await rr("suite_bath", R0 + 27 * GAME_HOUR_MS), { need: "hygiene", pct: 100 });
+  const m0 = (await act(db, "p12", { action: "restroom", at: "market_wc" }, R0 + 28 * GAME_HOUR_MS)).player.naira;
+  const m1 = (await act(db, "p12", { action: "restroom", at: "market_shower" }, R0 + 28 * GAME_HOUR_MS)).player.naira; assert.equal(m0 - m1, 800);
+  assert.deepEqual(tapCharge({ action: "restroom", at: "market_wc" }, { jobId: null }), { payee: "Wuse Market mobile WC", what: "Mobile WC (emergency)", amount: 500 });
+  assert.equal(tapCharge({ action: "restroom", at: "chef_wc" }, { jobId: null }), null, "free restrooms show no terminal");
+  console.log("restrooms ok");
   console.log("ALL OK");
 })().catch((e) => { console.log("FAIL", e); process.exit(1); });

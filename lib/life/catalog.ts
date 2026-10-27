@@ -608,3 +608,33 @@ export function convoyAt(now = Date.now()): { on: boolean; until: number; next: 
 // When this player can next be given a gift (0: now).
 export const convoyNextFor = (lastAt: number) => (lastAt ? lastAt + CONVOY.everyDays * GAME_DAY_MS : 0);
 export const BUS_STAND_WAIT_MINUTES = 45;
+
+// ---- Hygiene and Bladder away from home (the owner, 27 October 2026). A boost of 100 fills the need; 50 adds 50 points. ----
+// Candellux: a lodged guest's suite WC and bathroom fill both. The outdoor shower by the pool fills Hygiene for anyone who swam in
+// the last 24 game hours, otherwise +50. The VIP bar's restroom fills Bladder for anyone who used the VIP bar in the last 24 game hours,
+// otherwise +50. The regular hotel bar, itel Energy, Chef Adams, Emerald Towers and Digital Witch: Bladder +50. Wuse Market: mobile
+// WC and shower units, paid, that fill the need.
+export type RestroomId = "suite_wc" | "suite_bath" | "pool_shower" | "vip_wc" | "hotel_wc" | "itel_wc" | "chef_wc" | "emerald_wc" | "dw_wc" | "market_wc" | "market_shower";
+export type Restroom = { id: RestroomId; place: PlaceId; need: "bladder" | "hygiene"; name: string; icon: string; price: number; note: string };
+export const RESTROOMS: Restroom[] = [
+  { id: "suite_wc", place: "hotel", need: "bladder", name: "Your suite's WC", icon: "🚽", price: 0, note: "Guests only · Bladder to 100%" },
+  { id: "suite_bath", place: "hotel", need: "hygiene", name: "Your suite's bathroom", icon: "🛁", price: 0, note: "Guests only · Hygiene to 100%" },
+  { id: "pool_shower", place: "hotel", need: "hygiene", name: "Outdoor shower by the pool", icon: "🚿", price: 0, note: "Hygiene to 100% if you swam in the last 24 game hours, otherwise +50" },
+  { id: "vip_wc", place: "hotel", need: "bladder", name: "VIP bar restroom", icon: "👑", price: 0, note: "Bladder to 100% if you used the VIP bar in the last 24 game hours, otherwise +50" },
+  { id: "hotel_wc", place: "hotel", need: "bladder", name: "Pool bar restroom", icon: "🚻", price: 0, note: "Bladder +50" },
+  { id: "itel_wc", place: "itel", need: "bladder", name: "itel Energy staff restroom", icon: "🚻", price: 0, note: "Bladder +50" },
+  { id: "chef_wc", place: "chef", need: "bladder", name: "Chef Adams restroom", icon: "🚻", price: 0, note: "Bladder +50" },
+  { id: "emerald_wc", place: "wuse2", need: "bladder", name: "Emerald Towers lobby restroom", icon: "🚻", price: 0, note: "Bladder +50" },
+  { id: "dw_wc", place: "dw", need: "bladder", name: "Digital Witch hub restroom", icon: "🚻", price: 0, note: "Bladder +50" },
+  { id: "market_wc", place: "market", need: "bladder", name: "Mobile WC (emergency)", icon: "🚽", price: 500, note: "Bladder to 100%" },
+  { id: "market_shower", place: "market", need: "hygiene", name: "Mobile shower (emergency)", icon: "🚿", price: 800, note: "Hygiene to 100%" },
+];
+export const RESTROOM = (id: string) => RESTROOMS.find((r) => r.id === id);
+export const RESTROOM_RECENT_MS = 24 * GAME_HOUR_MS;
+// What a restroom gives this player now: the need, 100 (fill it) or 50 (add 50), and the price; or why it isn't open to them.
+export function restroomBoost(r: Restroom, p: { hotelUntil: number; lastSwimAt: number; lastVipAt: number }, now = Date.now()): { need: Restroom["need"]; pct: 100 | 50; price: number } | { blocked: string } {
+  const recent = (t: number) => t > 0 && now - t < RESTROOM_RECENT_MS;
+  if ((r.id === "suite_wc" || r.id === "suite_bath") && !lodged(p.hotelUntil, now)) return { blocked: "For guests staying in a suite" };
+  const full = r.id === "suite_wc" || r.id === "suite_bath" || r.id === "market_wc" || r.id === "market_shower" || (r.id === "pool_shower" && recent(p.lastSwimAt)) || (r.id === "vip_wc" && recent(p.lastVipAt));
+  return { need: r.need, pct: full ? 100 : 50, price: r.price };
+}
