@@ -110,7 +110,7 @@ export const TRANSPORT: { id: TransportId; name: string; icon: string; minutes: 
 export const TRANSPORT_OF = (id: string) => TRANSPORT.find((t) => t.id === id);
 export const EBIKE_PROMPT_AFTER = 3; // after this many bicycle rides, suggest an e-bike
 
-export type PlaceId = "home" | "work" | "chef" | "hotel" | "itel" | "dw";
+export type PlaceId = "home" | "work" | "chef" | "hotel" | "itel" | "dw" | "market" | "wuse2";
 export const PLACES: { id: PlaceId; name: string; area: string; icon: string }[] = [
   { id: "home", name: "Home", area: "Wuse", icon: "🏠" },
   { id: "chef", name: "Chef Adams", area: "Wuse", icon: "🍽" },
@@ -118,6 +118,8 @@ export const PLACES: { id: PlaceId; name: string; area: string; icon: string }[]
   { id: "itel", name: "itel Energy", area: "Wuse", icon: "⚡" },
   { id: "work", name: "Work", area: "Garki", icon: "💼" },
   { id: "dw", name: "Digital Witch hub", area: "CBD", icon: "🎓" },
+  { id: "market", name: "Wuse Market, Zone 4", area: "Wuse", icon: "🛍" },
+  { id: "wuse2", name: "Aminu Kano Crescent, Wuse II", area: "Wuse II", icon: "🌃" },
 ];
 
 // ---- Jobs (they mirror NotesApp careers; Chef Adams is a partner brand) ----
@@ -464,7 +466,7 @@ export function nepaAt(now = Date.now()): { out: boolean; id: string | null; unt
 
 // ---- Residents: computer players of Notesville, always marked 🤖. They live in the scenes, chat (kept on your device only), and a few
 // sit on the Billionaires List so new players have someone to chase. ----
-export type Resident = { id: string; name: string; role: string; area: string; look: [string, string, string, boolean]; netWorth?: number; owned?: string; photo?: string; partner?: string; lines: Record<"greet" | "food" | "work" | "nepa" | "money", string[]> };
+export type Resident = { id: string; name: string; role: string; area: string; look: [string, string, string, boolean]; netWorth?: number; owned?: string; photo?: string; partner?: string; story?: string; lines: Record<"greet" | "food" | "work" | "nepa" | "money", string[]> };
 const L = (greet: string[], food: string[], work: string[], nepa: string[], money: string[]) => ({ greet, food, work, nepa, money });
 export const RESIDENTS: Resident[] = [
   { id: "nkechi", name: "Mama Nkechi", role: "Your neighbour · pepper soup seller", area: "Wuse", look: ["#7c3aed", "#5b3520", "#1f2937", true], netWorth: 230_000,
@@ -486,9 +488,123 @@ export const RESIDENTS: Resident[] = [
   // A real partner: Ekwutosi Cynthia Okeh, founder of Digital Witch (her photo, with her permission through the partnership).
   { id: "cynthia", name: "Ekwutosi Cynthia Okeh", role: "Founder, Digital Witch · on-demand skills coach", area: "Central Business District", look: ["#111827", "#6b3f22", "#111827", false], netWorth: 7_500_000_000, owned: "🎓 🏙 🚙", photo: "/images/life/partners/cynthia-okeh.webp", partner: "digital_witch",
     lines: L(["Welcome! Are you ready to learn a skill that pays in dollars?", "Hello, my dear! Remember: your background doesn't decide your future."], ["Feed your body, then feed your brain. Class starts at 9!"], ["Get certified, then get hired. Remote work doesn't care where you live.", "Pick one skill, master it, and the world becomes your office."], ["NEPA can take light, but nobody can take your skill. Charge your laptop and keep learning."], ["Learn, earn, repeat. My graduates who do well get a giveaway from me now and then.", "Skills first. The money will follow."]) },
+  // Emerald Ezurukam dreamed up Notesville and its rules as a teenager; Notes Life brings his game to life (the owner, 27 October 2026).
+  // He's #1 on the Billionaires List and works from Emerald Towers on Wuse Market Street. His real photo comes later (`photo`).
+  { id: "emerald", name: "Emerald Ezurukam", role: "The mind behind Notes Life · Emerald Towers, Wuse II", area: "Wuse II", look: ["#047857", "#5b3520", "#111827", false], netWorth: 12_000_000_000, owned: "💎 🏙 ✈️ 🚙",
+    story: "Emerald dreamed up Notesville, its streets and its rules when we were kids. Notes Life is his teenage game, brought to life.",
+    lines: L(["Welcome to Notesville! I dreamed this city up when I was a kid. Now you live in it.", "Every rule in this town started as a game I played in my head. Enjoy it!"], ["Eat first, plan second. Nobody builds anything hungry.", "Mama Nkechi's pepper soup is the best on this street. I've been eating it since I was small."], ["Start with one errand, then one shift, then one shop. That's how every fortune here started.", "Reputation is the real money in Notesville. Keep your word and the deals come."], ["NEPA taught me to always have a plan B. Solar is mine.", "When the light goes, the hustlers keep moving."], ["Don't chase the list. Build something, and the list will find you.", "Save some, spend some, invest the rest. I made that rule up as a teenager and I still keep it."]) },
+  { id: "sani", name: "Mallam Sani", role: "Suya man, Wuse Market (Zone 4)", area: "Wuse", look: ["#f8fafc", "#4e2c17", "#f8fafc", false], netWorth: 310_000,
+    lines: L(["Sannu! Suya dey ready from evening.", "My friend, you don chop suya today?"], ["Beef suya with onion and yaji. Na medicine for hunger!"], ["Come help me for the grill at night. I go pay you and give you suya."], ["NEPA no fit stop suya. Na charcoal we dey use!"], ["Small small, the grill don build my house for village."]) },
+  { id: "bose", name: "Iya Bose", role: "POS agent, Wuse Market (Zone 4)", area: "Wuse", look: ["#ea580c", "#6b3f22", "#1f2937", true], netWorth: 520_000,
+    lines: L(["Cash out, transfer, airtime! How I fit help you?", "My customer! Welcome."], ["I dey chop puff-puff for that stall every morning."], ["Lunch time na rush hour for POS. Come help me make I share you money."], ["When NEPA take light, network dey misbehave. Customers dey vex!"], ["Every transfer get small charge. Na so the money dey gather."]) },
   { id: "aisha", name: "Aisha", role: "Student", area: "Wuse", look: ["#16a34a", "#8a5a3b", "#1f2937", true],
     lines: L(["Hi! Exams soon, I'm reading every night."], ["Noodles and egg is my survival meal."], ["Tutoring pays well if your needs are green."], ["I bought Power GO to read at night. Best decision."], ["I'm saving for a laptop."]) },
 ];
 export const RESIDENT = (id: string) => RESIDENTS.find((r) => r.id === id);
+// Where a resident stands on the Billionaires List among the residents (1 = the richest), or null without a fortune.
+export const residentRank = (id: string) => { const r = RESIDENT(id); return r?.netWorth ? RESIDENTS.filter((x) => (x.netWorth ?? 0) > r.netWorth!).length + 1 : null; };
 // Which residents you meet where.
-export const RESIDENTS_AT: Partial<Record<PlaceId | "street", string[]>> = { street: ["nkechi", "tunde", "halima", "emeka"], chef: ["halima", "emeka"], itel: ["dauda", "aisha", "chinedu"], hotel: ["musa", "ifeoma"], home: ["nkechi"], dw: ["aisha"] };
+export const RESIDENTS_AT: Partial<Record<PlaceId | "street", string[]>> = { street: ["nkechi", "tunde", "halima", "emeka"], chef: ["halima", "emeka"], itel: ["dauda", "aisha", "chinedu"], hotel: ["musa", "ifeoma"], home: ["nkechi"], dw: ["aisha"], market: ["nkechi", "halima", "chinedu", "bose", "sani", "aisha"], wuse2: ["emerald", "musa", "ifeoma"] };
+
+// ---- The Wuse streets (from 27 October 2026), beside the first street: Wuse Market in Zone 4 (Abuja's biggest open market, the Bureau De
+// Change operators, stalls and errands) and Aminu Kano Crescent in Wuse II (the premium strip: office plazas, a bank, restaurants and
+// nightlife). You walk from shop to shop; residents give errands (short paid tasks, each once a game day); the shops sell food, a
+// haircut, data and a night out. ----
+export type StreetPlace = "market" | "wuse2";
+export type MarketSpot = "keke" | "pharmacy" | "tailor" | "phones" | "soup" | "barber" | "data" | "pos" | "bdc" | "lesson" | "puff" | "suya" | "water"
+  | "park" | "plaza" | "bank" | "emerald" | "cafe" | "grill" | "lounge";
+export const MARKET_SHOPS: Record<MarketSpot, { place: StreetPlace; name: string; icon: string; who?: string }> = {
+  keke: { place: "market", name: "Keke park and market stalls", icon: "🛺" },
+  pharmacy: { place: "market", name: "WuseCare Pharmacy", icon: "💊" },
+  tailor: { place: "market", name: "Halima Stitches", icon: "🧵", who: "halima" },
+  phones: { place: "market", name: "Chinedu Phones & Accessories", icon: "📱", who: "chinedu" },
+  soup: { place: "market", name: "Mama Nkechi's Pepper Soup", icon: "🍲", who: "nkechi" },
+  barber: { place: "market", name: "Fresh Cut Barbers", icon: "💈" },
+  data: { place: "market", name: "Recharge & Data", icon: "📶" },
+  pos: { place: "market", name: "Iya Bose POS", icon: "💳", who: "bose" },
+  bdc: { place: "market", name: "Bureau De Change", icon: "💱" },
+  lesson: { place: "market", name: "Bright Minds Lesson Centre", icon: "📚", who: "aisha" },
+  puff: { place: "market", name: "Puff-puff & Zobo", icon: "🥤" },
+  suya: { place: "market", name: "Mallam Sani Suya", icon: "🍢", who: "sani" },
+  water: { place: "market", name: "Borehole tap", icon: "🪣" },
+  park: { place: "wuse2", name: "Crescent car park", icon: "🚕" },
+  plaza: { place: "wuse2", name: "Crescent Plaza (offices)", icon: "🏢", who: "ifeoma" },
+  bank: { place: "wuse2", name: "Notesville Trust Bank", icon: "🏦", who: "musa" },
+  emerald: { place: "wuse2", name: "Emerald Towers", icon: "💎", who: "emerald" },
+  cafe: { place: "wuse2", name: "Crescent Café", icon: "☕" },
+  grill: { place: "wuse2", name: "The Crescent Grill", icon: "🥩" },
+  lounge: { place: "wuse2", name: "Skyline Lounge", icon: "🍸" },
+};
+export const MARKET_SPOTS = Object.keys(MARKET_SHOPS) as MarketSpot[];
+export const spotsOf = (place: StreetPlace) => MARKET_SPOTS.filter((k) => MARKET_SHOPS[k].place === place);
+export const STREET_ENTRY: Record<StreetPlace, MarketSpot> = { market: "keke", wuse2: "park" };
+export const isStreetPlace = (p: string): p is StreetPlace => p === "market" || p === "wuse2";
+// Open from `from` to `to` o'clock, game time (to may be 24).
+export type Hours = [number, number];
+export const openAt = (h: Hours | undefined, now = Date.now()) => { if (!h) return true; const x = worldTime(now).hour; return x >= h[0] && x < h[1]; };
+export const hoursLabel = (h: Hours) => { const f = (n: number) => (n % 24 === 0 ? "midnight" : n === 12 ? "noon" : n < 12 ? `${n} AM` : `${n - 12} PM`); return `${f(h[0])} to ${f(h[1])}`; };
+
+export type StreetService = { id: string; spot: MarketSpot; name: string; icon: string; price: number; minutes: number; effect: Partial<Record<Need, number>>; hours?: Hours; note: string; barber?: boolean };
+export const STREET: StreetService[] = [
+  { id: "pepper_soup", spot: "soup", name: "Goat meat pepper soup", icon: "🍲", price: 1_800, minutes: 25, effect: { hunger: 35, social: 5 }, hours: [10, 23], note: "Hunger +35 · Social +5 · hot, with plenty of utazi" },
+  { id: "suya", spot: "suya", name: "Beef suya with onions and yaji", icon: "🍢", price: 1_500, minutes: 10, effect: { hunger: 25, fun: 5 }, hours: [18, 24], note: "Hunger +25 · Fun +5 · from 6 PM" },
+  { id: "puff", spot: "puff", name: "Puff-puff and chilled zobo", icon: "🥤", price: 600, minutes: 5, effect: { hunger: 12, fun: 3 }, hours: [7, 20], note: "Hunger +12 · Fun +3" },
+  { id: "haircut", spot: "barber", name: "A clean low cut", icon: "💈", price: 2_000, minutes: 30, effect: { hygiene: 15, fun: 5 }, hours: [8, 21], barber: true, note: "Hygiene +15 · Fun +5 · looking sharp for 12 game hours: deals say yes more often" },
+  { id: "vitamins", spot: "pharmacy", name: "Multivitamins and ORS", icon: "💊", price: 2_500, minutes: 5, effect: { energy: 15 }, hours: [8, 22], note: "Energy +15" },
+  { id: "data", spot: "data", name: "2 GB data bundle", icon: "📶", price: 1_000, minutes: 2, effect: { social: 15 }, note: "Social +15 · call and chat with family" },
+  { id: "coffee", spot: "cafe", name: "Cappuccino and a croissant", icon: "☕", price: 2_800, minutes: 20, effect: { hunger: 15, fun: 8, energy: 5 }, hours: [7, 21], note: "Hunger +15 · Fun +8 · Energy +5" },
+  { id: "grill_lunch", spot: "grill", name: "Peppered steak, chips and salad", icon: "🥩", price: 6_500, minutes: 45, effect: { hunger: 60, fun: 10, social: 5 }, hours: [11, 23], note: "Hunger +60 · Fun +10 · Social +5" },
+  { id: "night_out", spot: "lounge", name: "A night out at Skyline Lounge", icon: "🍸", price: 8_000, minutes: 90, effect: { fun: 35, social: 30, energy: -10 }, hours: [20, 24], note: "8 PM to midnight · Fun +35 · Social +30 · Energy −10" },
+];
+export const STREET_OF = (id: string) => STREET.find((x) => x.id === id);
+export const BARBER_STREET_MS = GAME_DAY_MS / 2;
+
+// Errands: once a game day each, paid when done (the server checks the hours and the day). Sanitation pays in reputation, not naira.
+export type Errand = { id: string; spot: MarketSpot; who?: string; title: string; icon: string; minutes: number; pay: number; effect: Partial<Record<Need, number>>; hours?: Hours; weekday?: number; reputation?: number; needReputation?: number; needHygiene?: number; note: string };
+export const ERRANDS: Errand[] = [
+  { id: "asoebi", spot: "tailor", who: "halima", title: "Deliver Halima's aso-ebi orders", icon: "🧵", minutes: 45, pay: 2_500, effect: { energy: -8, social: 8 }, hours: [8, 18], note: "Six wrapped parcels to customers around the market" },
+  { id: "stall", spot: "phones", who: "chinedu", title: "Mind Chinedu's phone stall", icon: "📱", minutes: 60, pay: 2_200, effect: { fun: -4, social: 6 }, hours: [9, 19], note: "Sell screen guards and chargers while he restocks in Jabi" },
+  { id: "pos", spot: "pos", who: "bose", title: "Run Iya Bose's POS stand for the lunch rush", icon: "💳", minutes: 60, pay: 2_400, effect: { energy: -6, social: 5 }, hours: [11, 15], note: "Cash-outs and transfers, 11 AM to 3 PM" },
+  { id: "porter", spot: "keke", title: "Carry loads for market women", icon: "🧺", minutes: 30, pay: 1_200, effect: { energy: -12, hygiene: -10 }, hours: [7, 18], note: "Baskets of tomatoes and yams from the kekes to the stalls" },
+  { id: "water", spot: "water", who: "nkechi", title: "Fetch water for Mama Nkechi", icon: "🪣", minutes: 20, pay: 600, effect: { energy: -8, social: 10 }, hours: [6, 19], note: "Four jerrycans from the borehole to her kitchen" },
+  { id: "grill", spot: "suya", who: "sani", title: "Help Mallam Sani at the suya grill", icon: "🔥", minutes: 90, pay: 3_000, effect: { energy: -10, hygiene: -10, hunger: 20 }, hours: [18, 23], needHygiene: 50, note: "Slice, spice and wrap, 6 PM to 11 PM · a free stick of suya at the end" },
+  { id: "lesson", spot: "lesson", who: "aisha", title: "Teach the compound kids with Aisha", icon: "📚", minutes: 60, pay: 3_000, effect: { energy: -6, fun: 8 }, hours: [16, 19], note: "Evening lesson, 4 PM to 7 PM: reading and times tables" },
+  { id: "bdc", spot: "bdc", title: "Count and bundle notes at the Bureau De Change", icon: "💱", minutes: 45, pay: 2_000, effect: { fun: -6 }, hours: [9, 17], needReputation: 1, note: "Dollars, pounds and naira, all counted twice · needs reputation 1★" },
+  { id: "courier", spot: "plaza", who: "ifeoma", title: "Courier documents between Crescent offices", icon: "📨", minutes: 45, pay: 2_800, effect: { energy: -8 }, hours: [9, 17], note: "Envelopes to the plazas along Aminu Kano Crescent" },
+  { id: "queue", spot: "bank", who: "musa", title: "Hold Alhaji Musa's place in the bank queue", icon: "🏦", minutes: 40, pay: 1_800, effect: { fun: -8 }, hours: [9, 16], note: "He's in a meeting; you keep his place till the teller calls" },
+  { id: "flyers", spot: "grill", title: "Hand out lunch-special flyers for The Crescent Grill", icon: "📄", minutes: 30, pay: 1_500, effect: { energy: -5, social: 6 }, hours: [11, 15], note: "11 AM to 3 PM, to the office crowd" },
+  { id: "valet", spot: "lounge", title: "Park cars at Skyline Lounge", icon: "🔑", minutes: 90, pay: 4_000, effect: { energy: -10 }, hours: [20, 24], needHygiene: 60, needReputation: 1, note: "8 PM to midnight · needs reputation 1★ and a clean look (Hygiene 60+)" },
+  { id: "proposal", spot: "emerald", who: "emerald", title: "Deliver a proposal for Emerald Ezurukam", icon: "📜", minutes: 60, pay: 6_000, effect: { energy: -8, social: 10 }, hours: [10, 16], needReputation: 2, note: "To a partner across Wuse II, 10 AM to 4 PM · needs reputation 2★: he only trusts people who keep their word" },
+  { id: "sanitation", spot: "keke", title: "Saturday sanitation: clear the gutters", icon: "🧹", minutes: 60, pay: 0, effect: { energy: -10, hygiene: -15, social: 15 }, hours: [7, 10], weekday: 5, reputation: 0.3, note: "Saturdays 7 AM to 10 AM, with the whole street · no pay, Reputation +0.3" },
+];
+export const ERRAND = (id: string) => ERRANDS.find((e) => e.id === id);
+// Why an errand can't start now (null when it can): today's done list, the hours, the weekday, reputation and hygiene.
+export function errandBlocker(e: Errand, p: { done: string[]; reputation: number; hygiene?: number }, now = Date.now()): string | null {
+  if (p.done.includes(e.id)) return "Done today · back tomorrow";
+  if (e.weekday !== undefined && weekdayOf(now) !== e.weekday) return `${WEEKDAYS[e.weekday]}s only`;
+  if (!openAt(e.hours, now)) return `${hoursLabel(e.hours!)}`;
+  if (e.needReputation && p.reputation < e.needReputation) return `Needs reputation ${e.needReputation}★`;
+  if (e.needHygiene && p.hygiene !== undefined && p.hygiene < e.needHygiene) return `Freshen up first (Hygiene ${e.needHygiene}+)`;
+  return null;
+}
+
+// ---- Emerald's convoy (the owner, 27 October 2026): three times a game day Emerald Ezurukam's convoy passes the Wuse bus stand on the
+// first street. It stops for half a game hour, and he gives N$ 100,000 to each stranger waiting there, but never to the same person
+// again within 30 game days. ----
+export const CONVOY = { gift: 100_000, everyDays: 30, hours: [8, 13, 18], minutes: 30 } as const;
+const clockMinute = (now: number) => Math.floor(((((now - WORLD_EPOCH) % GAME_DAY_MS) + GAME_DAY_MS) % GAME_DAY_MS) / GAME_MIN_MS + 6 * 60) % (24 * 60);
+// Whether the convoy is at the bus stand now, until when, and when it next arrives.
+export function convoyAt(now = Date.now()): { on: boolean; until: number; next: number } {
+  const m = clockMinute(now), base = now - (((now - WORLD_EPOCH) % GAME_MIN_MS) + GAME_MIN_MS) % GAME_MIN_MS;
+  let on = false, until = 0, next = Infinity;
+  for (const h of CONVOY.hours) {
+    const since = (m - h * 60 + 1440) % 1440;
+    if (since < CONVOY.minutes) { on = true; until = base + (CONVOY.minutes - since) * GAME_MIN_MS; }
+    const to = (h * 60 - m + 1440) % 1440 || 1440;
+    next = Math.min(next, base + to * GAME_MIN_MS);
+  }
+  return { on, until, next };
+}
+// When this player can next be given a gift (0: now).
+export const convoyNextFor = (lastAt: number) => (lastAt ? lastAt + CONVOY.everyDays * GAME_DAY_MS : 0);
+export const BUS_STAND_WAIT_MINUTES = 45;

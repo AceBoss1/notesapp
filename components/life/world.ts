@@ -4,7 +4,7 @@
 // frame so the page can draw tappable labels over them. Built from the approved mockups.
 import * as THREE from "three";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
-import { RESIDENT, RESIDENTS_AT } from "@/lib/life/catalog";
+import { MARKET_SHOPS, MARKET_SPOTS, RESIDENT, RESIDENTS_AT, STREET_ENTRY, type MarketSpot, type StreetPlace } from "@/lib/life/catalog";
 
 // Power in your room: from NEPA (grid), none (a blackout), the Power GO, or a generator.
 export type Power = "grid" | "out" | "go" | "gen" | "tank";
@@ -13,10 +13,11 @@ export type Other = { uid: string; outfit: string };
 export type SceneSpec =
   | { id: "room"; owned: string[]; rug: string; outfit: string; night: boolean; ringing: boolean; at: RoomSpot; sleeping: boolean; power: Power }
   | { id: "itel"; outfit: string; night: boolean; others: Other[]; mine?: Mine[] }
-  | { id: "street"; outfit: string; night: boolean; riding: string | null; others: Other[]; ad?: { src: string } | null } // ad: an advertiser's billboard (Notes Life spot)
+  | { id: "street"; outfit: string; night: boolean; riding: string | null; others: Other[]; ad?: { src: string } | null; convoy?: boolean } // convoy: Emerald's convoy stopped at the bus stand; ad: an advertiser's billboard (Notes Life spot)
   | { id: "chef"; outfit: string; night: boolean; others: Other[]; mine?: Mine[] }
   | { id: "hotel"; outfit: string; others: Other[]; night?: boolean; view?: "front" | "pool" | "aerial"; swim?: boolean; vips?: string[] }
-  | { id: "dw"; outfit: string; others: Other[]; night?: boolean; cynthia?: boolean; learning?: boolean };
+  | { id: "dw"; outfit: string; others: Other[]; night?: boolean; cynthia?: boolean; learning?: boolean }
+  | { id: "strip"; place: StreetPlace; outfit: string; night: boolean; others: Other[]; at?: MarketSpot; suya?: boolean }; // the Wuse streets: Zone 4 market and Wuse II
 export type RoomSpot = "rug" | "bed" | "desk" | "bath" | "wc" | "wardrobe" | "cooker" | "phone";
 export type Tag = { key: string; x: number; y: number; visible: boolean };
 
@@ -39,7 +40,9 @@ export function createWorld(canvas: HTMLCanvasElement) {
   let scene = new THREE.Scene();
   let anchors: { key: string; v: THREE.Vector3 }[] = [];
   let player: THREE.Group | null = null;
-  let tween: { from: THREE.Vector3; to: THREE.Vector3; rot: number; t0: number; ms: number } | null = null;
+  let tween: { from: THREE.Vector3; to: THREE.Vector3; rot: number; t0: number; ms: number; bob?: boolean } | null = null;
+  let anims: ((t: number) => void)[] = []; // things that move in the scene (traffic, hawkers, smoke), run every frame
+  let follow = false; // the camera follows the player (the Wuse streets)
   let disposed = false;
   let listeners: ((tags: Tag[]) => void)[] = [];
   const texCache = new Map<string, Promise<HTMLImageElement | null>>();
@@ -105,6 +108,7 @@ export function createWorld(canvas: HTMLCanvasElement) {
   function residents(where: keyof typeof RESIDENTS_AT, spots: [number, number, number, number][]) { (RESIDENTS_AT[where] ?? []).forEach((id, i) => { const p = spots[i]; if (p) npc(id, p[0], p[1], p[2], p[3]); }); }
   // Real players here now: their outfit, a tag the page draws with their name.
   function others(list: Other[], spots: [number, number, number, number][]) { list.slice(0, spots.length).forEach((o, i) => { const [x, z, rot, y] = spots[i]; person(x, z, /^#[0-9a-f]{6}$/i.test(o.outfit) ? o.outfit : "#64748b", rot, y); tag("player:" + o.uid, x, y + 2.35, z); }); }
+  function palm(x: number, z: number) { cyl(0.1, 2.0, "#7c5a3a", x, 0, z, 0.14); for (let k = 0; k < 7; k++) { const lf = new THREE.Mesh(new THREE.ConeGeometry(0.16, 1.4, 5), mat("#2f855a")); lf.position.set(x + Math.cos(k) * 0.5, 2.1, z + Math.sin(k) * 0.5); lf.rotation.z = Math.cos(k) * 1.2; lf.rotation.x = Math.sin(k) * 1.2; scene.add(lf); } }
   function tree(x: number, z: number, s = 1) { cyl(0.12 * s, 1.2 * s, "#6d4c41", x, 0, z); const c = new THREE.Mesh(new THREE.SphereGeometry(0.75 * s, 14, 10), mat("#3f8f4f")); c.position.set(x, 1.7 * s, z); c.castShadow = true; scene.add(c); }
   function plant(x: number, z: number) { cyl(0.2, 0.35, "#b45309", x, 0, z, 0.15); const c = new THREE.Mesh(new THREE.IcosahedronGeometry(0.33, 0), mat("#2f855a")); c.position.set(x, 0.65, z); c.castShadow = true; scene.add(c); }
   function wheel(x: number, y: number, z: number, rad = 0.33) { const t = new THREE.Mesh(new THREE.TorusGeometry(rad, 0.045, 8, 24), mat("#111827")); t.position.set(x, y, z); t.castShadow = true; scene.add(t); }
@@ -277,6 +281,13 @@ export function createWorld(canvas: HTMLCanvasElement) {
     controls.minDistance = 10; controls.maxDistance = 45;
     residents("street", [[-8.2, -1.6, 0.3, 0.14], [3.8, -1.4, -0.4, 0.14], [-1.6, -2.0, 0.2, 0.14], [8.6, -1.3, -0.8, 0.14]]);
     others(s.others, [[-3.2, -1.5, 0.2, 0.14], [5.4, -2.0, -0.3, 0.14], [-10, -1.4, 0.4, 0.14]]);
+    if (s.convoy) { // Emerald's convoy: three black SUVs pulled up at the bus stand, Emerald out with his security, handing out gifts
+      [-11.6, -7.6, -3.6].forEach((x, k) => { const v = vehicle("car", k === 1 ? "#064e3b" : "#0b0f19"); v.scale.set(1.12, 1.25, 1.12); v.position.set(x, 0, 0.75); scene.add(v); });
+      const flash = new THREE.Mesh(new THREE.SphereGeometry(0.12, 8, 6), new THREE.MeshBasicMaterial({ color: "#3b82f6" })); flash.position.set(-11.6, 1.8, 0.75); scene.add(flash); anims.push((t) => { flash.visible = Math.floor(t / 300) % 2 === 0; });
+      npc("emerald", -6.2, -1.3, 0.5, 0.14);
+      for (const dx of [-1.2, 1.2]) { const g = person(-6.2 + dx, -1.8, "#111827", 0.3, 0.14, "#4e2c17", "#111827"); g.scale.setScalar(1.05); }
+      tag("convoy", -7.6, 2.9, 0.75);
+    }
     tag("bike", 1.2, 1.6, -0.6); tag("bus", -4.5, 2.6, 3.2); tag("keke", 6.2, 2.0, 3.0); tag("ev", 11.8, 1.9, 0.3); tag("shop", 16.5, 3.4, -3.0); tag("stop", -7, 2.9, -2.3);
   }
 
@@ -630,20 +641,206 @@ export function createWorld(canvas: HTMLCanvasElement) {
     controls.minDistance = 8; controls.maxDistance = 46;
   }
 
+  // ---------- the Wuse streets: Wuse Market (Zone 4) and Aminu Kano Crescent (Wuse II) ----------
+  // A shop-lined strip you walk along: tap a shop and you walk to it, the camera following. Traffic runs both ways, hawkers walk the
+  // pavement, the barber's pole turns and the suya grill smokes; at night the signs, windows and street lamps light up.
+  type Front = { spot?: MarketSpot; x: number; w: number; floors: number; wall: string; band?: string; sign?: [string, string, string]; acs?: boolean; glass?: string; stall?: "umbrella" | "kiosk" | "grill" | "tap" | "stalls" | "cars"; stand?: number }; // stand: where you stand, from x
+  const STRIPS: Record<StreetPlace, { title: string; fronts: Front[]; median?: boolean; vehicles: ("keke" | "car" | "taxi" | "bus")[] }> = {
+    market: {
+      title: "WUSE MARKET · ZONE 4",
+      fronts: [
+        { spot: "keke", x: -31, w: 9, floors: 0, wall: "#a8a29e", stall: "stalls", stand: 5.2 },
+        { spot: "pharmacy", x: -22.5, w: 5, floors: 2, wall: "#f1f5f9", band: "#15803d", sign: ["WuseCare Pharmacy  ✚", "#15803d", "#ffffff"], acs: true },
+        { spot: "tailor", x: -17, w: 5, floors: 2, wall: "#fde68a", band: "#be185d", sign: ["Halima Stitches\nTailoring · Aso-ebi", "#be185d", "#ffffff"], acs: true },
+        { spot: "phones", x: -11.5, w: 5, floors: 2, wall: "#e0f2fe", band: "#0369a1", sign: ["Chinedu Phones\n& Accessories", "#0369a1", "#ffffff"], acs: true },
+        { spot: "soup", x: -6, w: 5, floors: 1, wall: "#fed7aa", band: "#b91c1c", sign: ["Mama Nkechi's\nPepper Soup", "#b91c1c", "#fef3c7"] },
+        { spot: "barber", x: -0.8, w: 4.6, floors: 2, wall: "#ede9fe", band: "#111827", sign: ["FRESH CUT\nBarbers", "#111827", "#facc15"], acs: true },
+        { spot: "bdc", x: 4.4, w: 4.6, floors: 2, wall: "#dcfce7", band: "#065f46", sign: ["Bureau De Change\n$ £ € ₦", "#065f46", "#ffffff"], acs: true },
+        { x: 10.2, w: 6.4, floors: 2, wall: "#e7e5e4", band: "#78716c", acs: true },
+        { spot: "data", x: 8.6, w: 0, floors: 0, wall: "#facc15", stall: "kiosk", sign: ["Recharge\n& Data", "#facc15", "#111827"] },
+        { spot: "pos", x: 11.6, w: 0, floors: 0, wall: "#ea580c", stall: "umbrella", sign: ["POS · Cash out", "#ea580c", "#ffffff"] },
+        { spot: "lesson", x: 16.4, w: 5, floors: 2, wall: "#fef3c7", band: "#1d4ed8", sign: ["Bright Minds\nLesson Centre", "#1d4ed8", "#ffffff"], acs: true },
+        { x: 23.2, w: 7.6, floors: 1, wall: "#d6d3d1", band: "#57534e" },
+        { spot: "puff", x: 21, w: 0, floors: 0, wall: "#dc2626", stall: "umbrella", sign: ["Puff-puff & Zobo", "#dc2626", "#ffffff"] },
+        { spot: "suya", x: 25.4, w: 0, floors: 0, wall: "#7c2d12", stall: "grill", sign: ["Mallam Sani Suya", "#111827", "#fb923c"] },
+        { spot: "water", x: 30, w: 0, floors: 0, wall: "#94a3b8", stall: "tap" },
+        { x: 32.5, w: 7, floors: 3, wall: "#f5f5f4", band: "#1e3a8a", sign: ["Zone 4 Guest Inn", "#1e3a8a", "#ffffff"], acs: true },
+      ],
+      vehicles: ["keke", "car", "keke", "bus", "taxi", "keke"],
+    },
+    wuse2: {
+      title: "AMINU KANO CRESCENT · WUSE II",
+      fronts: [
+        { spot: "park", x: -30, w: 10, floors: 0, wall: "#cbd5e1", stall: "cars", stand: 5.6 },
+        { spot: "plaza", x: -19, w: 12, floors: 4, wall: "#f8fafc", band: "#1d4ed8", glass: "#bfdbfe", sign: ["CRESCENT PLAZA", "#1d4ed8", "#ffffff"], acs: true },
+        { spot: "bank", x: -8, w: 7, floors: 3, wall: "#e2e8f0", band: "#1e1b4b", glass: "#93c5fd", sign: ["Notesville Trust Bank", "#1e1b4b", "#fbbf24"] },
+        { spot: "emerald", x: 2.6, w: 9, floors: 9, wall: "#064e3b", band: "#10b981", glass: "#6ee7b7", sign: ["◆ EMERALD TOWERS", "#022c22", "#6ee7b7"] },
+        { spot: "cafe", x: 11.6, w: 5, floors: 2, wall: "#fef3c7", band: "#78350f", glass: "#fde68a", sign: ["Crescent Café", "#78350f", "#fef3c7"] },
+        { spot: "grill", x: 18, w: 6.4, floors: 2, wall: "#292524", band: "#b45309", glass: "#fcd34d", sign: ["THE CRESCENT GRILL", "#1c1917", "#f59e0b"] },
+        { spot: "lounge", x: 25.4, w: 6.4, floors: 3, wall: "#1e1b4b", band: "#a21caf", glass: "#f0abfc", sign: ["SKYLINE LOUNGE", "#0f0a2e", "#f0abfc"] },
+        { x: 32.4, w: 6.4, floors: 4, wall: "#fafaf9", band: "#b91c1c", glass: "#fecaca", sign: ["Crescent Mall", "#b91c1c", "#ffffff"], acs: true },
+      ],
+      median: true,
+      vehicles: ["car", "taxi", "car", "car", "bus", "car"],
+    },
+  };
+  const SPOT_Z = 0.7;
+  const spotX = (place: StreetPlace, spot: MarketSpot) => { const f = STRIPS[place].fronts.find((x) => x.spot === spot); return f ? f.x + (f.stand ?? 0) : 0; };
+  // Groups for things that move: built off-scene, then added.
+  function gbox(g: THREE.Object3D, w: number, h: number, d: number, c: string, x: number, y: number, z: number, o?: THREE.MeshStandardMaterialParameters) { const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), mat(c, o)); m.position.set(x, y + h / 2, z); m.castShadow = true; g.add(m); return m; }
+  function gwheel(g: THREE.Object3D, x: number, z: number, r0 = 0.28) { const w = new THREE.Mesh(new THREE.CylinderGeometry(r0, r0, 0.16, 14), mat("#111827")); w.rotation.x = Math.PI / 2; w.position.set(x, r0, z); g.add(w); }
+  function vehicle(kind: "keke" | "car" | "taxi" | "bus", colour: string) {
+    const g = new THREE.Group();
+    if (kind === "keke") { gbox(g, 1.7, 0.7, 1.1, "#16a34a", 0, 0.3, 0); gbox(g, 1.5, 0.08, 1.15, "#facc15", 0, 1.55, 0); for (const [a, b] of [[-0.7, -0.5], [-0.7, 0.5], [0.6, 0]]) gbox(g, 0.06, 0.6, 0.06, "#111827", a, 1.0, b); gwheel(g, -0.6, -0.5, 0.22); gwheel(g, -0.6, 0.5, 0.22); gwheel(g, 0.75, 0, 0.22); }
+    else if (kind === "bus") { gbox(g, 4.6, 1.5, 1.7, "#facc15", 0, 0.35, 0); gbox(g, 4.62, 0.12, 1.72, "#111827", 0, 1.35, 0); gbox(g, 4.0, 0.5, 1.74, "#1f2937", 0.1, 1.05, 0); for (const x of [-1.6, 1.6]) { gwheel(g, x, -0.85); gwheel(g, x, 0.85); } }
+    else { gbox(g, 3.4, 0.6, 1.5, kind === "taxi" ? "#16a34a" : colour, 0, 0.3, 0); gbox(g, 1.9, 0.55, 1.36, kind === "taxi" ? "#facc15" : "#0f172a", -0.15, 0.9, 0, { roughness: 0.3, metalness: 0.3 }); for (const x of [-1.1, 1.1]) { gwheel(g, x, -0.75); gwheel(g, x, 0.75); } if (kind === "taxi") gbox(g, 3.42, 0.1, 1.52, "#facc15", 0, 0.62, 0); }
+    return g;
+  }
+  async function strip(s: Extract<SceneSpec, { id: "strip" }>) {
+    const L = STRIPS[s.place], night = s.night, two = s.place === "wuse2";
+    scene.background = new THREE.Color(night ? "#131a33" : two ? "#c7dff0" : "#cfe6f2"); lights(night ? 0.32 : 1);
+    if (!night) scene.fog = new THREE.Fog(two ? "#c7dff0" : "#cfe6f2", 55, 110);
+    const ground = new THREE.Mesh(new THREE.PlaneGeometry(140, 80), mat(night ? "#3f5a2c" : "#8fbf5a")); ground.rotation.x = -Math.PI / 2; ground.receiveShadow = true; scene.add(ground);
+    // the city behind: rows of roofs and blocks (red roofs and greenery in Zone 4, taller offices in Wuse II), and Abuja's hills
+    for (let row = 0; row < 2; row++) for (let x = -44; x < 46; x += 4.2 + ((x * 7) % 3 + 3) % 3) {
+      const h = two ? 4 + ((x * 13 + row * 5) % 9 + 9) % 9 * (row ? 1.6 : 1.1) : 2.4 + ((x * 11 + row * 3) % 5 + 5) % 5 * 0.9, z = -11 - row * 7 - (((x * 3) % 4) + 4) % 4;
+      box(3.6, h, 3.6, two ? ["#e2e8f0", "#cbd5e1", "#f8fafc", "#bfdbfe"][Math.abs(Math.round(x)) % 4] : ["#f5f5f4", "#fde68a", "#e7e5e4", "#fecaca"][Math.abs(Math.round(x)) % 4], x, 0, z);
+      if (!two) { const roof = new THREE.Mesh(new THREE.ConeGeometry(2.8, 1.1, 4), mat(["#b91c1c", "#9a3412", "#475569"][Math.abs(Math.round(x)) % 3])); roof.position.set(x, h + 0.55, z); roof.rotation.y = Math.PI / 4; scene.add(roof); }
+      else if (night) { const w = new THREE.Mesh(new THREE.PlaneGeometry(2.6, h * 0.7), new THREE.MeshBasicMaterial({ color: "#fcd34d", transparent: true, opacity: 0.35 })); w.position.set(x, h * 0.55, z + 1.82); scene.add(w); }
+      if ((Math.round(x) + row) % 3 === 0) tree(x + 2.1, z + 1.5, 1.2);
+    }
+    for (const [hx, hz, r] of [[-38, -48, 14], [-10, -55, 18], [24, -50, 15], [46, -46, 12]] as const) { const hill = new THREE.Mesh(new THREE.SphereGeometry(r, 18, 10, 0, Math.PI * 2, 0, Math.PI / 2), mat(night ? "#1e293b" : "#6b8f5e")); hill.scale.y = 0.45; hill.position.set(hx, 0, hz); scene.add(hill); }
+    // pavement of interlocking pavers, a covered gutter, a striped kerb, the road (Wuse II: a dual carriageway with a planted median), the far pavement
+    const pav = canvasTex(512, 128, (g, w, h) => { g.fillStyle = two ? "#d6d3d1" : "#c9b8a0"; g.fillRect(0, 0, w, h); g.strokeStyle = two ? "#a8a29e" : "#9c8468"; g.lineWidth = 3; for (let y = 0; y < h; y += 32) for (let x = (y / 32) % 2 ? 0 : 24; x < w; x += 48) g.strokeRect(x, y, 48, 32); });
+    pav.wrapS = pav.wrapT = THREE.RepeatWrapping; pav.repeat.set(26, 2);
+    box(80, 0.14, 4.2, two ? "#d6d3d1" : "#c9b8a0", 0, 0, -0.1); plane(80, 4.2, pav, 0, 0.145, -0.1, -Math.PI / 2);
+    box(80, 0.08, 0.55, "#3f3f46", 0, 0, 2.25); for (let x = -39; x < 40; x += 1.6) box(1.45, 0.1, 0.5, "#a1a1aa", x, 0.02, 2.25);
+    const kerb = canvasTex(256, 32, (g, w, h) => { for (let x = 0; x < w; x += 64) { g.fillStyle = "#111827"; g.fillRect(x, 0, 32, h); g.fillStyle = "#facc15"; g.fillRect(x + 32, 0, 32, h); } });
+    kerb.wrapS = THREE.RepeatWrapping; kerb.repeat.set(40, 1);
+    const kb = new THREE.Mesh(new THREE.BoxGeometry(80, 0.24, 0.24), new THREE.MeshStandardMaterial({ map: kerb })); kb.position.set(0, 0.12, 2.64); scene.add(kb);
+    box(80, 0.02, 7.2, "#3b4048", 0, 0, 6.35);
+    if (L.median) { box(80, 0.24, 1.0, "#9ca3af", 0, 0, 6.35); box(79.6, 0.05, 0.8, "#4d7c0f", 0, 0.24, 6.35); for (let x = -36; x < 40; x += 9) palm(x, 6.35); }
+    else for (let x = -38; x < 40; x += 4) box(1.6, 0.03, 0.14, "#f9fafb", x, 0.01, 6.35);
+    box(80, 0.14, 2.6, two ? "#d6d3d1" : "#c9b8a0", 0, 0, 11.2);
+    // shopfronts (one row, facing the road; nothing across it, so the camera sees the whole street): walls, a band of the brand colour, windows with AC units on the upper floors, the shopfront and its lit sign
+    const winLit = new THREE.MeshStandardMaterial({ color: "#fde68a", emissive: "#fbbf24", emissiveIntensity: night ? 0.9 : 0 });
+    function building(f: Front, z: number, facing: 1 | -1) {
+      const H = 0.6 + Math.max(1, f.floors) * 2.6, D = 6, cz = z - facing * D / 2;
+      box(f.w, H, D, f.wall, f.x, 0.14, cz);
+      if (f.band) box(f.w + 0.06, 0.34, D + 0.06, f.band, f.x, 0.14 + H - 0.34, cz);
+      const fz = z + facing * 0.02;
+      for (let fl = 1; fl < Math.max(1, f.floors); fl++) {
+        const y = 0.14 + fl * 2.6 + 0.4;
+        if (f.band) box(f.w + 0.04, 0.16, D + 0.04, f.band, f.x, y - 0.5, cz);
+        const n = Math.max(1, Math.floor(f.w / 1.6));
+        for (let i = 0; i < n; i++) {
+          const wx = f.x - f.w / 2 + (i + 0.5) * (f.w / n);
+          const lit = night && (i * 7 + fl * 3 + Math.round(f.x)) % 3 !== 0;
+          const w = new THREE.Mesh(new THREE.PlaneGeometry(f.w / n - 0.5, 1.3), lit ? winLit : mat(f.glass ?? "#64748b", { roughness: 0.2, metalness: 0.3 }));
+          w.position.set(wx, y + 0.65, fz); w.rotation.y = facing === 1 ? 0 : Math.PI; scene.add(w);
+          if (f.acs && i % 2 === 0 && i < n - 1) box(0.6, 0.42, 0.32, "#f1f5f9", wx + f.w / n / 2, y + 0.45, z + facing * 0.18); // split ACs between the windows, clear of the sign
+        }
+      }
+      // the ground floor: a glass shopfront (or roller shutter after closing), an awning, the sign
+      const shop = new THREE.Mesh(new THREE.PlaneGeometry(f.w - 0.8, 2.0), mat(f.glass ?? "#1e293b", { roughness: 0.15, metalness: 0.35, emissive: night ? (f.glass ?? "#fde68a") : "#000000", emissiveIntensity: night ? 0.35 : 0 }));
+      shop.position.set(f.x, 1.2, fz); shop.rotation.y = facing === 1 ? 0 : Math.PI; scene.add(shop);
+      if (f.sign) {
+        const sg = sign(f.sign[0], f.sign[1], f.sign[2], Math.min(f.w - 0.4, 6.4), f.sign[0].includes("\n") ? 1.1 : 0.75, f.x, 2.85, fz + facing * 0.04, f.sign[0].includes("\n") ? 74 : 96);
+        sg.rotation.y = facing === 1 ? 0 : Math.PI;
+      }
+      if (facing === 1 && f.floors <= 2) { const aw = box(f.w - 0.3, 0.08, 1.3, f.band ?? "#475569", f.x, 2.28, z + 0.6); aw.rotation.x = 0.22; }
+    }
+    for (const f of L.fronts) if (!f.stall && f.w > 0) building(f, -2.25, 1);
+    // stalls, kiosks and open spaces in front
+    for (const f of L.fronts) {
+      if (f.stall === "umbrella") {
+        cyl(0.05, 2.3, "#e5e7eb", f.x, 0.14, -0.6); const um = new THREE.Mesh(new THREE.ConeGeometry(1.5, 0.6, 10, 1, true), mat(f.wall, { side: THREE.DoubleSide })); um.position.set(f.x, 2.6, -0.6); um.castShadow = true; scene.add(um);
+        box(1.6, 0.8, 0.8, "#78350f", f.x, 0.14, -0.4); if (f.sign) sign(f.sign[0], f.sign[1], f.sign[2], 1.5, 0.4, f.x, 0.6, 0.02, 90);
+        if (f.spot === "puff") { cyl(0.3, 0.25, "#374151", f.x - 0.4, 0.94, -0.4); for (let k = 0; k < 6; k++) { const b = new THREE.Mesh(new THREE.SphereGeometry(0.07, 8, 6), mat("#b45309")); b.position.set(f.x + 0.2 + (k % 3) * 0.15, 1.0, -0.5 + Math.floor(k / 3) * 0.15); scene.add(b); } }
+        if (f.spot === "pos") box(0.3, 0.2, 0.22, "#111827", f.x + 0.3, 0.94, -0.4);
+      }
+      if (f.stall === "kiosk") { box(1.6, 2.2, 1.4, f.wall, f.x, 0.14, -1.2); box(1.8, 0.1, 1.6, "#111827", f.x, 2.34, -1.2); if (f.sign) sign(f.sign[0], f.sign[1], f.sign[2], 1.4, 0.7, f.x, 1.7, -0.48, 80); box(1.2, 0.6, 0.06, "#0f172a", f.x, 0.8, -0.47); }
+      if (f.stall === "grill") {
+        box(1.8, 0.85, 0.7, "#44403c", f.x, 0.14, -0.6); const coals = new THREE.Mesh(new THREE.BoxGeometry(1.6, 0.05, 0.5), new THREE.MeshStandardMaterial({ color: "#7c2d12", emissive: "#f97316", emissiveIntensity: s.suya ? 1.2 : 0.1 })); coals.position.set(f.x, 1.0, -0.6); scene.add(coals);
+        for (let k = 0; k < 7; k++) box(0.04, 0.03, 0.6, "#92400e", f.x - 0.6 + k * 0.2, 1.04, -0.6);
+        cyl(0.04, 2.4, "#57534e", f.x + 1.1, 0.14, -1.1); if (f.sign) sign(f.sign[0], f.sign[1], f.sign[2], 2.0, 0.5, f.x, 2.4, -0.9, 90);
+        if (night) { const l = new THREE.PointLight("#fb923c", 3, 7); l.position.set(f.x, 2.2, -0.4); scene.add(l); }
+        if (s.suya) { // smoke curling up from the coals
+          const puffs = Array.from({ length: 6 }, (_, k) => { const m = new THREE.Mesh(new THREE.SphereGeometry(0.18, 8, 6), new THREE.MeshStandardMaterial({ color: "#e5e7eb", transparent: true, opacity: 0.45 })); m.position.set(f.x, 1.1 + k * 0.4, -0.6); scene.add(m); return m; });
+          anims.push((t) => puffs.forEach((m, k) => { const p = ((t / 2600) + k / puffs.length) % 1; m.position.set(f.x + Math.sin(p * 6 + k) * 0.25, 1.1 + p * 2.6, -0.6); m.scale.setScalar(0.6 + p * 1.6); (m.material as THREE.MeshStandardMaterial).opacity = 0.5 * (1 - p); }));
+        }
+      }
+      if (f.stall === "tap") { box(1.2, 0.9, 0.9, "#94a3b8", f.x, 0.14, -1.0); cyl(0.05, 0.6, "#475569", f.x, 1.04, -1.0); for (let k = 0; k < 4; k++) box(0.34, 0.5, 0.26, "#facc15", f.x - 0.9 + k * 0.6, 0.14, -0.1); sign("Borehole\nwater", "#0369a1", "#ffffff", 1.1, 0.6, f.x, 1.35, -0.54, 90); }
+      if (f.stall === "stalls") { // market stalls under zinc roofs, with tomatoes, peppers and yams, and the keke park
+        for (let k = 0; k < 3; k++) { const sx = f.x - 3 + k * 3; box(2.4, 0.8, 1.2, "#92400e", sx, 0.14, -1.4); const roof = box(2.8, 0.06, 1.8, "#9ca3af", sx, 2.3, -1.4); roof.rotation.x = 0.12; for (const dx of [-1.2, 1.2]) cyl(0.05, 2.2, "#6b7280", sx + dx, 0.14, -0.7);
+          ["#dc2626", "#ea580c", "#a16207", "#16a34a"].forEach((c, j) => { for (let q = 0; q < 3; q++) { const b = new THREE.Mesh(new THREE.SphereGeometry(0.1, 8, 6), mat(c)); b.position.set(sx - 0.9 + j * 0.6 + q * 0.12, 1.02, -1.3 + (q % 2) * 0.15); scene.add(b); } }); }
+        for (let k = 0; k < 3; k++) { const v = vehicle("keke", ""); v.position.set(f.x - 3 + k * 2.4, 0.14, 1.2); v.rotation.y = Math.PI / 2; scene.add(v); }
+        sign(L.title, "#14532d", "#fef08a", 6.0, 0.7, f.x, 3.4, -2.2, 80);
+      }
+      if (f.stall === "cars") { ["#e5e7eb", "#111827", "#991b1b", "#1d4ed8"].forEach((c, k) => { const v = vehicle("car", c); v.position.set(f.x - 3.6 + k * 2.4, 0.14, -0.8); v.rotation.y = Math.PI / 2; scene.add(v); }); sign(L.title, "#0f172a", "#e2e8f0", 6.4, 0.7, f.x, 3.0, -2.6, 80); for (const dx of [-3.2, 3.2]) cyl(0.06, 2.6, "#475569", f.x + dx, 0.14, -2.5); }
+    }
+    // the barber's pole turns
+    const bx = spotX(s.place, "barber");
+    if (s.place === "market") { const stripes = canvasTex(64, 256, (g, w, h) => { for (let y = -h; y < h * 2; y += 48) { g.fillStyle = "#dc2626"; g.beginPath(); g.moveTo(0, y); g.lineTo(w, y + 32); g.lineTo(w, y + 52); g.lineTo(0, y + 20); g.fill(); g.fillStyle = "#1d4ed8"; g.beginPath(); g.moveTo(0, y + 24); g.lineTo(w, y + 56); g.lineTo(w, y + 64); g.lineTo(0, y + 32); g.fill(); } });
+      const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.12, 0.9, 16), new THREE.MeshStandardMaterial({ color: "#ffffff", map: stripes })); pole.position.set(bx + 2.1, 1.6, -2.0); scene.add(pole); anims.push((t) => { pole.rotation.y = t / 500; }); }
+    // palms (Wuse II) and trees, street lamps and electric poles with sagging wires (Zone 4)
+    // greenery off the walking line: palms in front of the plaza and the grill, trees across the road
+    if (two) for (const x of [-22.2, -15.8, 21.3]) palm(x, -1.5);
+    for (const x of two ? [-33, -6, 16, 36] : [-36, -18, 7, 28]) tree(x, 10.6, 1.0);
+    const lamps: number[] = []; for (let x = -34; x < 38; x += 8.5) lamps.push(x);
+    for (const x of lamps) { cyl(0.06, 4.6, "#374151", x, 0.14, 2.0); box(0.9, 0.08, 0.2, "#374151", x - 0.4, 4.7, 2.0); const bulb = new THREE.Mesh(new THREE.SphereGeometry(0.14, 10, 8), new THREE.MeshStandardMaterial({ color: "#fef9c3", emissive: "#fde68a", emissiveIntensity: night ? 1.6 : 0 })); bulb.position.set(x - 0.8, 4.62, 2.0); scene.add(bulb); }
+    if (night) for (const x of [-20, -2, 16, 30]) { const l = new THREE.PointLight("#ffe7b0", 4, 16); l.position.set(x, 4.4, 2.6); scene.add(l); }
+    if (!two) { const poles = [-36, -24, -12, 0, 12, 24, 36]; for (const x of poles) { cyl(0.09, 6.2, "#78716c", x, 0.14, 2.5); box(1.2, 0.08, 0.08, "#57534e", x, 6.0, 2.5); }
+      for (let i = 0; i < poles.length - 1; i++) for (const dz of [-0.4, 0.4]) { const a = poles[i], b = poles[i + 1], pts = Array.from({ length: 9 }, (_, k) => new THREE.Vector3(a + (b - a) * k / 8, 6.1 - Math.sin(Math.PI * k / 8) * 0.6, 2.5 + dz)); scene.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts), new THREE.LineBasicMaterial({ color: "#1f2937" }))); } }
+    // traffic both ways, and hawkers along the pavement
+    L.vehicles.forEach((k, i) => {
+      const v = vehicle(k, ["#e5e7eb", "#111827", "#991b1b", "#1d4ed8", "#a3a3a3", "#0f766e"][i % 6]); const east = i % 2 === 0, lane = east ? (L.median ? 8.4 : 7.9) : (L.median ? 4.3 : 4.8);
+      v.rotation.y = east ? 0 : Math.PI; v.position.set(0, 0, lane); scene.add(v);
+      const speed = (k === "keke" ? 3.2 : k === "bus" ? 3.6 : 5.2) * (east ? 1 : -1), off = i * 13;
+      anims.push((t) => { v.position.x = ((((t / 1000) * speed + off) % 84) + 84) % 84 - 42; });
+    });
+    const hawkers = two ? [["#0ea5e9", -14], ["#f59e0b", 9]] as const : [["#16a34a", -18], ["#e11d48", 2], ["#7c3aed", 20]] as const;
+    hawkers.forEach(([c, x0], i) => {
+      const h = person(x0, 1.4, c, Math.PI / 2, 0.14, i % 2 ? "#7a4a2c" : "#5b3520", "#1f2937", i % 2 === 1);
+      if (!two) { const tray = new THREE.Mesh(new THREE.CylinderGeometry(0.42, 0.36, 0.1, 14), mat("#a16207")); tray.position.set(0, 2.12, 0); h.add(tray); for (let k = 0; k < 5; k++) { const o = new THREE.Mesh(new THREE.SphereGeometry(0.09, 8, 6), mat(["#fb923c", "#facc15"][k % 2])); o.position.set(Math.cos(k) * 0.22, 2.22, Math.sin(k) * 0.22); h.add(o); } }
+      anims.push((t) => { const p = Math.sin(t / 5200 + i * 2); h.position.x = x0 + p * 5; h.rotation.y = Math.cos(t / 5200 + i * 2) > 0 ? Math.PI / 2 : -Math.PI / 2; h.position.y = 0.14 + Math.abs(Math.sin(t / 180)) * 0.04; });
+    });
+    // residents at their shops; Emerald at the door of Emerald Towers; two Bureau De Change operators with their bags at the kerb
+    for (const spot of MARKET_SPOTS) { const shop = MARKET_SHOPS[spot]; if (shop.place !== s.place) continue; const x = L.fronts.find((f) => f.spot === spot)?.x ?? 0;
+      if (shop.who) npc(shop.who, x + 1.0, -0.9, 0.2, 0.14);
+      tag("m:" + spot, x, spot === "emerald" ? 5.4 : 4.0, -1.4); }
+    if (s.place === "market") { const bdc = spotX("market", "bdc"); for (const dx of [-0.6, 0.7]) { const g = person(bdc + dx, 1.6, dx < 0 ? "#f8fafc" : "#1e3a8a", 0.3, 0.14); const bag = new THREE.Mesh(new THREE.BoxGeometry(0.34, 0.24, 0.12), mat("#111827")); bag.position.set(0.36, 0.9, 0.1); g.add(bag); } }
+    others(s.others, [[-16, 1.1, 0.6, 0.14], [6, 1.2, -0.4, 0.14], [18, 1.0, 0.3, 0.14]]);
+    // you, at the spot you walked to
+    const at = s.at && MARKET_SHOPS[s.at]?.place === s.place ? s.at : STREET_ENTRY[s.place];
+    player = person(spotX(s.place, at), SPOT_Z, s.outfit, Math.PI, 0.14);
+    follow = true;
+    const phone = innerWidth < 700, px = player.position.x;
+    // an overview from above the road (like the first street), looking a little up the street; it follows you as you walk
+    cam.position.set(px + (phone ? -1 : -4), phone ? 17 : 14, phone ? 27 : 22); controls.target.set(px + (phone ? 0.5 : 2), phone ? 2.2 : 1.6, -1.5);
+    controls.minDistance = 8; controls.maxDistance = 42;
+  }
+  // Walks you along the pavement to a shop on the Wuse streets (the camera follows), turning to face it when you get there.
+  function goTo(place: StreetPlace, spot: MarketSpot) {
+    if (!player) return; const to = new THREE.Vector3(spotX(place, spot), player.position.y, SPOT_Z); const d = to.distanceTo(player.position); if (d < 0.05) return;
+    player.rotation.y = Math.atan2(to.x - player.position.x, to.z - player.position.z);
+    tween = { from: player.position.clone(), to, rot: Math.PI, t0: performance.now(), ms: Math.min(5200, 260 * d), bob: true };
+  }
+
   // ---------- running it ----------
   function clear() {
     scene.traverse((o) => { const m = o as THREE.Mesh; if (m.geometry) m.geometry.dispose(); const mm = m.material as THREE.Material | THREE.Material[] | undefined; (Array.isArray(mm) ? mm : mm ? [mm] : []).forEach((x) => { (x as THREE.MeshStandardMaterial).map?.dispose(); x.dispose(); }); });
-    scene = new THREE.Scene(); anchors = []; player = null; tween = null;
+    scene = new THREE.Scene(); anchors = []; player = null; tween = null; anims = []; follow = false;
   }
   let current = "";
   async function show(s: SceneSpec) {
     // Moving around the room is a walk, not a new scene: the spot isn't part of what the scene is built from.
     const { at, ...rest } = s as SceneSpec & { at?: RoomSpot };
     const key = JSON.stringify(rest);
-    if (key === current) { if (s.id === "room" && at && !s.sleeping) walkTo(at); return; }
+    if (key === current) { if (s.id === "room" && at && !s.sleeping) walkTo(at); if (s.id === "strip" && at) goTo(s.place, at as MarketSpot); return; }
     current = key;
     clear();
-    if (s.id === "room") await room(s); else if (s.id === "itel") await itel(s); else if (s.id === "street") await street(s); else if (s.id === "chef") await chef(s); else if (s.id === "dw") await dw(s); else await hotel(s);
+    if (s.id === "room") await room(s); else if (s.id === "itel") await itel(s); else if (s.id === "street") await street(s); else if (s.id === "chef") await chef(s); else if (s.id === "dw") await dw(s); else if (s.id === "strip") await strip(s); else await hotel(s);
     controls.update(); resize();
   }
   function walkTo(spot: RoomSpot) { if (!player) return; const [x, z, rot] = ROOM_SPOTS[spot]; const to = new THREE.Vector3(x, player.position.y, z); if (to.distanceTo(player.position) < 0.05) return; tween = { from: player.position.clone(), to, rot, t0: performance.now(), ms: 550 }; }
@@ -655,7 +852,10 @@ export function createWorld(canvas: HTMLCanvasElement) {
   function frame() {
     if (disposed) return;
     controls.update();
-    if (tween && player) { const k = Math.min(1, (performance.now() - tween.t0) / tween.ms); player.position.lerpVectors(tween.from, tween.to, k); if (k >= 1) { player.rotation.y = tween.rot; tween = null; } }
+    const t = performance.now();
+    if (tween && player) { const k = Math.min(1, (t - tween.t0) / tween.ms); player.position.lerpVectors(tween.from, tween.to, k); if (tween.bob) player.position.y = tween.to.y + Math.abs(Math.sin(t / 140)) * 0.07; if (k >= 1) { player.position.y = tween.to.y; player.rotation.y = tween.rot; tween = null; } }
+    for (const f of anims) f(t);
+    if (follow && player) { const dx = (player.position.x - controls.target.x) * 0.06; if (Math.abs(dx) > 0.0005) { controls.target.x += dx; cam.position.x += dx; } }
     r.render(scene, cam);
     if (listeners.length) {
       const w = canvas.clientWidth, h = canvas.clientHeight;
@@ -669,6 +869,8 @@ export function createWorld(canvas: HTMLCanvasElement) {
     show,
     // Walks the player to a spot in the room (the next show() with the new spot then matches).
     walk: walkTo,
+    // Walks the player to a shop on the Wuse streets.
+    goTo,
     onTags(f: (tags: Tag[]) => void) { listeners.push(f); return () => { listeners = listeners.filter((x) => x !== f); }; },
     dispose() { disposed = true; ro.disconnect(); controls.dispose(); clear(); r.dispose(); },
   };

@@ -6,7 +6,7 @@ export type Needs = Record<Need, number>;
 export const START_NEEDS: Needs = { hunger: 70, energy: 90, fun: 65, social: 60, hygiene: 85, bladder: 80 };
 
 export type Activity = {
-  kind: "sleep" | "wc" | "bath" | "read" | "cook" | "eat" | "travel" | "shift" | "dinein" | "hotel" | "wait" | "class";
+  kind: "sleep" | "wc" | "bath" | "read" | "cook" | "eat" | "travel" | "shift" | "dinein" | "hotel" | "wait" | "class" | "errand" | "street";
   label: string; icon: string; startedAt: number; endsAt: number;
   perHour?: Partial<Needs>; // applied steadily while it runs (sleep, reading)
   end?: Partial<Needs>; // applied when it finishes
@@ -122,7 +122,7 @@ export function sanitize(raw: unknown, now = Date.now()): SaveState {
   const needs = { ...f.needs };
   for (const x of NEEDS) { const v = (r.needs as Needs | undefined)?.[x.id]; if (typeof v === "number" && isFinite(v)) needs[x.id] = clamp(v); }
   const num = (v: unknown, d: number) => (typeof v === "number" && isFinite(v) ? v : d);
-  const places: PlaceId[] = ["home", "work", "chef", "hotel", "itel", "dw"];
+  const places: PlaceId[] = ["home", "work", "chef", "hotel", "itel", "dw", "market", "wuse2"];
   return {
     ...f, needs,
     tickAt: num(r.tickAt, now), difficulty: r.difficulty && r.difficulty in DIFFICULTY ? r.difficulty : "normal",

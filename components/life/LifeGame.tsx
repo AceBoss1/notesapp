@@ -27,11 +27,11 @@ import { SITE } from "@/lib/site";
 type Player = LifePlayer & { cooking: number; swimming: number; serverNow: number };
 type Panel =
   | "welcome" | "needs" | "sleep" | "desk" | "outfit" | "cook" | "deal" | "go" | "food" | "hotel" | "phone" | "jobs" | "friends"
-  | "invite" | "bank" | "rich" | "settings" | "cardtap" | "ebike" | "nepa" | "power" | "itel" | "product" | "business" | "kitchen" | "arrive" | "hotelpool" | "vip" | "dw" | { shop: C.ItemCat } | { chat: string } | { player: Present }
+  | "invite" | "bank" | "rich" | "settings" | "cardtap" | "ebike" | "nepa" | "power" | "itel" | "product" | "business" | "kitchen" | "arrive" | "hotelpool" | "vip" | "dw" | "errands" | "convoy" | "busstand" | { market: C.MarketSpot } | { shop: C.ItemCat } | { chat: string } | { player: Present }
   | { jobs: C.Brand } | { partner: "chef_adams" | "itel" } | { outlet: C.OutletKind } | null;
 type Toast = { text: string; share?: string; tone?: "ok" | "warn" } | null;
 type Friend = { uid: string; username: string; name: string; avatar: string; plays: boolean; netWorth: number };
-type RichRow = { rank: number; uid: string; username: string; name: string; avatar: string; city: string; netWorth: number; owned: string[]; npc?: { role: string; area: string; icons: string } };
+type RichRow = { rank: number; uid: string; username: string; name: string; avatar: string; city: string; netWorth: number; owned: string[]; npc?: { role: string; area: string; icons: string; story?: string } };
 type RichData = { rows: RichRow[]; me: { rank: number | null; realRank?: number | null; netWorth: number } | null };
 
 const OUTFITS = ["#f59e0b", "#e53935", "#2563eb", "#16a34a", "#7c3aed", "#0f766e", "#111827", "#f472b6"];
@@ -66,6 +66,7 @@ export default function LifeGame() {
     try { navigator.sendBeacon?.("/api/ads/track", new Blob([JSON.stringify({ adId, event, placement: "life" })], { type: "application/json" })); } catch { /* never breaks the game */ }
   };
   const [spot, setSpot] = useState<RoomSpot>("rug");
+  const [mspot, setMspot] = useState<C.MarketSpot | null>(null); // where you're standing on the Wuse streets
   const [savedAt, setSavedAt] = useState(0);
   const [, setNow] = useState(Date.now());
   // What the bigger panels hold (destination, food order, lists): kept here so the once-a-second re-render doesn't reset it, and loaded
@@ -232,21 +233,26 @@ export default function LifeGame() {
   const mineKey = mine.map((m) => m.kind).join();
   const vipKey = C.vipsAt(Date.now() + offset.current).in.join() + (C.cynthiaAt(Date.now() + offset.current) ?? "");
   const othersKey = others.map((o) => o.uid + o.outfit).join();
+  const suyaOn = C.openAt(C.STREET_OF("suya")?.hours, Date.now() + offset.current);
+  const convoy = C.convoyAt(Date.now() + offset.current);
+  const BUS_WAIT = "Waiting at the Wuse bus stand";
   const spec: SceneSpec | null = useMemo(() => {
     if (!save || !player) return null;
     const a = save.activity;
     const o = others.map((x) => ({ uid: x.uid, outfit: x.outfit }));
     const ad = lifeAd?.billboard ? { src: `/_next/image?url=${encodeURIComponent(lifeAd.billboard)}&w=1920&q=80` } : null; // same-origin, so the 3D board can draw it
-    if (a?.kind === "travel") return { id: "street", outfit: save.outfit, night, riding: a.icon === "🛵" ? "ebike" : null, others: o, ad };
+    if (a?.kind === "travel") return { id: "street", outfit: save.outfit, night, riding: a.icon === "🛵" ? "ebike" : null, others: o, ad, convoy: convoy.on };
+    if (a?.kind === "wait" && a.label === BUS_WAIT) return { id: "street", outfit: save.outfit, night, riding: null, others: o, ad, convoy: convoy.on };
     const vips = C.vipsAt(Date.now() + offset.current).in;
     if (a?.kind === "hotel" && /Swimming|lesson|Pool bar|VIP bar|Gym/.test(a.label)) return { id: "hotel", outfit: save.outfit, others: o, night, view: "pool", swim: /Swimming|lesson/.test(a.label), vips };
     if (save.place === "chef") return { id: "chef", outfit: save.outfit, night, others: o, mine };
     if (save.place === "itel") return { id: "itel", outfit: save.outfit, night, others: o, mine };
     if (save.place === "hotel") return { id: "hotel", outfit: save.outfit, others: o, night, vips: C.vipsAt(Date.now() + offset.current).in };
     if (save.place === "dw") return { id: "dw", outfit: save.outfit, others: o, night, cynthia: C.cynthiaAt(Date.now() + offset.current) === "dw", learning: a?.kind === "class" };
-    if (save.place === "work") return { id: "street", outfit: save.outfit, night, riding: player.owned.includes("ebike") ? "ebike" : null, others: o, ad };
+    if (C.isStreetPlace(save.place)) return { id: "strip", place: save.place, outfit: save.outfit, night, others: o, at: mspot ?? C.STREET_ENTRY[save.place], suya: suyaOn };
+    if (save.place === "work") return { id: "street", outfit: save.outfit, night, riding: player.owned.includes("ebike") ? "ebike" : null, others: o, ad, convoy: convoy.on };
     return { id: "room", owned: player.owned, rug: save.rug, outfit: save.outfit, night, ringing: player.deal?.state === "offered", at: spot, sleeping: a?.kind === "sleep", power: roomPower };
-  }, [save?.place, save?.activity?.kind, save?.activity?.label, save?.outfit, save?.rug, player?.owned.join(), player?.deal?.state, night, spot, roomPower, othersKey, mineKey, vipKey, lifeAd?.id]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [save?.place, save?.activity?.kind, save?.activity?.label, save?.outfit, save?.rug, player?.owned.join(), player?.deal?.state, night, spot, mspot, suyaOn, convoy.on, roomPower, othersKey, mineKey, vipKey, lifeAd?.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Where you are, for other players (lifePresence), and who else is here: every 45 s, and when you move.
   const presencePlace: PresencePlace | null = !save ? null : save.activity?.kind === "travel" ? "ride" : (save.place as PresencePlace);
@@ -275,7 +281,7 @@ export default function LifeGame() {
   // A soft tune, and no NEPA noise, in your hotel suite, at the VIP bar and in class at the Digital Witch hub.
   const act0 = save?.activity, calm = panel === "vip" || act0?.kind === "class" || (act0?.kind === "hotel" && (act0.label.startsWith(SUITE_LABEL) || act0.label.startsWith("Room service") || act0.label === C.HOTEL_OF("vipbar")?.name));
   calmRef.current = calm;
-  const ambience: Ambience = calm ? "calm" : !spec ? "none" : spec.id === "room" ? (night ? "room-night" : "room") : spec.id === "street" || spec.id === "chef" || spec.id === "dw" ? (night ? "street-night" : "street") : spec.id === "hotel" ? (spec.view === "pool" ? "pool" : "hotel") : "pool";
+  const ambience: Ambience = calm ? "calm" : !spec ? "none" : spec.id === "room" ? (night ? "room-night" : "room") : spec.id === "street" || spec.id === "chef" || spec.id === "dw" || spec.id === "strip" ? (night ? "street-night" : "street") : spec.id === "hotel" ? (spec.view === "pool" ? "pool" : "hotel") : "pool";
   useEffect(() => { snd.current?.ambience(ambience); }, [ambience]);
   useEffect(() => { snd.current?.generators(!calm && src === "gen" && save?.place === "home" ? (player?.owned.includes("gen_big") ? "big" : "small") : null, nepa.out && !calm); }, [src, save?.place, nepa.out, player?.owned, calm]); // eslint-disable-line react-hooks/exhaustive-deps
   const ringing = player?.deal?.state === "offered" && save?.place === "home";
@@ -297,6 +303,25 @@ export default function LifeGame() {
       if (r.result.referralBonus === "paid") window.setTimeout(() => say("🎁 Welcome bonus: Bonus Credits added to your NotesApp wallet, and to your friend's."), 4600);
     } catch (e) { say(e instanceof Error ? e.message : "Couldn't finish the shift.", undefined, "warn"); }
   }, [user, say, shareText]);
+  const finishErrand = useCallback(async () => {
+    if (!user) return;
+    try {
+      const r = await call<{ player: Player; result: { pay: number; reputation: number; title: string; who: string | null } }>(user, "POST", { action: "errand_finish" });
+      gotPlayer(r.player);
+      sfx("success");
+      const who = r.result.who ? C.RESIDENT(r.result.who)?.name.split(" ")[0] : null;
+      say(r.result.pay ? `🧺 Errand done: ${C.fmtN(r.result.pay)} paid${who ? `. ${who} says thank you!` : "."}` : `🧹 ${r.result.title}: done. Reputation +${r.result.reputation}. The street noticed.`);
+    } catch (e) { say(e instanceof Error ? e.message : "Couldn't finish the errand.", undefined, "warn"); }
+  }, [user, say]);
+
+  // Emerald's convoy: when it stops at the bus stand while you're on the street, he comes over (once a pass).
+  const convoySeen = useRef(0);
+  useEffect(() => {
+    if (spec?.id !== "street" || !spec.convoy || convoySeen.current === convoy.until) return;
+    convoySeen.current = convoy.until;
+    sfx("bonus");
+    setPanel((cur) => cur ?? "convoy");
+  }, [spec?.id, convoy.on]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     if (!save || !user) return;
@@ -333,8 +358,10 @@ export default function LifeGame() {
       if (f) {
         if (f.kind !== "shift") sfx("done");
         if (f.kind === "shift") void finishShift();
+        else if (f.kind === "errand") void finishErrand();
         else if (f.kind === "travel") {
           say(`You've arrived: ${C.PLACES.find((p) => p.id === f.to)?.name ?? "there"}.`);
+          if (f.to && C.isStreetPlace(f.to)) setMspot(null);
           const p = playerRef.current;
           if (f.icon === "🚲" && p && !p.owned.includes("ebike") && r.s.bikeRides >= C.EBIKE_PROMPT_AFTER && now - r.s.ebikeAskedAt > 6 * 3_600_000) { setSave((x) => (x ? { ...x, ebikeAskedAt: now } : x)); setPanel((cur) => cur ?? "ebike"); }
         } else if (f.kind === "cook") say(`${f.label.replace("Cooking: ", "")} is ready. Tap the cooker to eat.`);
@@ -346,7 +373,7 @@ export default function LifeGame() {
     const hide = () => { const s = saveRef.current; if (document.visibilityState === "hidden" && s) { saveLocal(user.uid, s); saveCloud(user.uid, s).then(() => setSavedAt(Date.now())).catch(() => {}); } };
     document.addEventListener("visibilitychange", hide);
     return () => { window.clearInterval(t); document.removeEventListener("visibilitychange", hide); };
-  }, [save !== null, user, finishShift, say]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [save !== null, user, finishShift, finishErrand, say]); // eslint-disable-line react-hooks/exhaustive-deps
   // Back to NotesApp: save first (the device save at once, the account save for up to 1.5 s), then go.
   const leave = useCallback(async () => {
     const s = saveRef.current;
@@ -431,6 +458,7 @@ export default function LifeGame() {
   function stop() {
     const s = saveRef.current; if (!s?.activity) return;
     if (s.activity.kind === "shift") { if (!confirm("Stop your shift now? You won't be paid for it.")) return; void act({ action: "shift_cancel" }); }
+    if (s.activity.kind === "errand") { if (!confirm("Stop this errand now? You won't be paid for it.")) return; void act({ action: "errand_cancel" }); }
     if (s.activity.kind === "travel") return say("You're on the way: it can't be stopped.", undefined, "warn");
     update((x) => ({ ...x, activity: null }));
   }
@@ -449,6 +477,36 @@ export default function LifeGame() {
     if (!r) return;
     update((x) => ({ ...x, bikeRides: x.bikeRides + (mode === "bicycle" ? 1 : 0), needs: applyNeeds(x.needs, { energy: r.energy }) }));
     start({ kind: "travel", label: `${tr.name.replace(/^Your /, "")} to ${C.PLACES.find((p) => p.id === to)?.name}`, icon: tr.icon, to }, r.minutes);
+  }
+  // ---- the Wuse streets: the stalls and errands ----
+  async function streetBuy(x: C.StreetService) {
+    if (saveRef.current?.activity) return say(`Finish what you're doing first: ${saveRef.current.activity.label}`, undefined, "warn");
+    const r = await act<{ minutes: number; effect: Partial<Record<C.Need, number>> }>({ action: "street", service: x.id });
+    if (!r) return;
+    start({ kind: "street", label: x.name, icon: x.icon, end: r.effect }, r.minutes);
+  }
+  const errandsDone = () => { const pl = playerRef.current; return pl && pl.errandDay === C.worldDay(Date.now() + offset.current) ? pl.errandsDone : []; };
+  const errandBlock = (e: C.Errand) => C.errandBlocker(e, { done: errandsDone(), reputation: playerRef.current?.reputation ?? 0, hygiene: saveRef.current?.needs.hygiene }, Date.now() + offset.current);
+  async function convoyGift() {
+    const r = await act<{ gift: number }>({ action: "convoy_gift" });
+    if (!r) return;
+    sfx("success");
+    setPanel(null);
+    say(`💎 Emerald Ezurukam gave you ${C.fmtN(r.gift)}! “Use it well. Build something.”`, shareText(`Emerald Ezurukam's convoy stopped at the Wuse bus stand in Notes Life and he gave me ${C.fmtN(r.gift)} 💎`));
+  }
+  function waitAtStand() {
+    const pl = saveRef.current?.place;
+    if (pl && !["home", "market", "chef", "itel", "work"].includes(pl)) return say("The bus stand is in Wuse. Ride back to Wuse first.", undefined, "warn");
+    start({ kind: "wait", label: BUS_WAIT, icon: "🚏" }, C.BUS_STAND_WAIT_MINUTES);
+  }
+  async function startErrand(e: C.Errand) {
+    const s0 = saveRef.current; if (!s0) return;
+    if (s0.activity) return say(`Finish what you're doing first: ${s0.activity.label}`, undefined, "warn");
+    const b = errandBlock(e); if (b) return say(b, undefined, "warn");
+    const r = await act<{ minutes: number }>({ action: "errand_start", errand: e.id });
+    if (!r) return;
+    setMspot(e.spot);
+    start({ kind: "errand", label: e.title, icon: e.icon, end: e.effect }, r.minutes);
   }
   async function order(mode: C.FoodMode, items: Record<string, number>, keep = false) {
     const list = Object.entries(items).filter(([, q]) => q > 0).map(([id, qty]) => ({ id, qty }));
@@ -585,7 +643,12 @@ export default function LifeGame() {
   // ---- what each tag in the scene says and does ----
   const tagInfo = (key: string): { label: string; up?: boolean; go: () => void } | null => {
     if (!player || !save) return null;
-    if (key.startsWith("npc:")) { const r = C.RESIDENT(key.slice(4)); return r ? { label: `${r.name} 🤖${r.id === "cynthia" ? " · #1" : ""}`, go: () => setPanel({ chat: r.id }) } : null; }
+    if (key.startsWith("npc:")) { const r = C.RESIDENT(key.slice(4)); return r ? { label: `${r.name} 🤖${C.residentRank(r.id) === 1 ? " · #1" : ""}`, up: r.id === "emerald", go: () => setPanel({ chat: r.id }) } : null; }
+    if (spec?.id === "strip" && key.startsWith("m:")) {
+      const sp = key.slice(2) as C.MarketSpot, shop = C.MARKET_SHOPS[sp];
+      const open = C.ERRANDS.filter((e) => e.spot === sp && !errandBlock(e)).length;
+      return { label: `${shop.icon} ${shop.name}${open ? ` · 🧺 ${open}` : ""}`, up: open > 0 || sp === "emerald", go: () => { setMspot(sp); setPanel({ market: sp }); } };
+    }
     if (key === "bb:paylony") return { label: "📣 Paylony · Pay with CardTap", go: () => setPanel("cardtap") };
     if (key === "bb:ad") return lifeAd
       ? { label: `📣 ${lifeAd.title} · Sponsored`, go: () => { adTrack("click", lifeAd.id); window.open(lifeAd.href, "_blank", "noopener"); } }
@@ -648,6 +711,8 @@ export default function LifeGame() {
     if (spec?.id === "street") {
       if (key === "shop") return { label: "🛵 Green Wheels", up: true, go: () => setPanel({ shop: "transport" }) };
       if (key === "bike" && save.place === "work") return { label: save.activity?.kind === "shift" ? "💼 At work" : "💼 Work", up: true, go: () => setPanel("jobs") };
+      if (key === "convoy") return { label: `💎 Emerald's convoy · ${C.fmtShort(C.CONVOY.gift)} gifts`, up: true, go: () => setPanel("convoy") };
+      if (key === "stop") return { label: "🚏 Wuse bus stand", up: convoy.on, go: () => setPanel("busstand") };
       if (["bus", "keke", "stop", "ev"].includes(key)) return { label: ({ bus: "🚌 Metro N$ 200", keke: "🛺 Keke N$ 400", stop: "🚏 Wuse stop", ev: "⚡ EV point" } as Record<string, string>)[key], go: () => setPanel("go") };
     }
     return null;
@@ -896,7 +961,7 @@ export default function LifeGame() {
     }
 
     if (panel === "phone") return (<div>{close}<p className="text-lg font-extrabold">📱 Phone</p>
-      <div className="mt-3 grid grid-cols-4 gap-3 text-center text-[11px] font-semibold">{([["💼", "Jobs", "bg-emerald-500", () => setPanel("jobs")], ["👥", "Friends", "bg-crimson", () => setPanel("friends")], ["🎁", "Invite", "bg-pink-500", () => setPanel("invite")], ["☎️", "Deals", "bg-sky-500", () => setPanel("deal")], ["🏦", "Bank", "bg-amber-500", () => setPanel("bank")], ["🛺", "Go", "bg-teal-600", () => setPanel("go")], ["CHEF", "Chef Adams", "bg-[#292929]", () => setPanel("food")], ["👑", "Candellux", "bg-[#262b6b]", () => setPanel("hotel")], ["⚡", "itel Energy", "bg-[#e8173f]", () => setPanel("itel")], ["DW", "Digital Witch", "bg-[#0b1442]", () => { setDwTab("courses"); setPanel("dw"); }], ["🏪", "Businesses", "bg-[#F2B544]", () => setPanel("business")], ["👑", "Rich list", "bg-slate-800", () => setPanel("rich")], ["🛋", "Shop", "bg-orange-500", () => setPanel({ shop: "rug" })], ["📰", "NotesApp", "bg-[#7A0328]", () => void leave()], ["⚙️", "Settings", "bg-slate-400", () => setPanel("settings")]] as [string, string, string, () => void][]).map(([i, n, c, f]) => (
+      <div className="mt-3 grid grid-cols-4 gap-3 text-center text-[11px] font-semibold">{([["💼", "Jobs", "bg-emerald-500", () => setPanel("jobs")], ["👥", "Friends", "bg-crimson", () => setPanel("friends")], ["🎁", "Invite", "bg-pink-500", () => setPanel("invite")], ["☎️", "Deals", "bg-sky-500", () => setPanel("deal")], ["🏦", "Bank", "bg-amber-500", () => setPanel("bank")], ["🧺", "Errands", "bg-lime-600", () => setPanel("errands")], ["🛺", "Go", "bg-teal-600", () => setPanel("go")], ["CHEF", "Chef Adams", "bg-[#292929]", () => setPanel("food")], ["👑", "Candellux", "bg-[#262b6b]", () => setPanel("hotel")], ["⚡", "itel Energy", "bg-[#e8173f]", () => setPanel("itel")], ["DW", "Digital Witch", "bg-[#0b1442]", () => { setDwTab("courses"); setPanel("dw"); }], ["🏪", "Businesses", "bg-[#F2B544]", () => setPanel("business")], ["👑", "Rich list", "bg-slate-800", () => setPanel("rich")], ["🛋", "Shop", "bg-orange-500", () => setPanel({ shop: "rug" })], ["📰", "NotesApp", "bg-[#7A0328]", () => void leave()], ["⚙️", "Settings", "bg-slate-400", () => setPanel("settings")]] as [string, string, string, () => void][]).map(([i, n, c, f]) => (
         <button key={n + i} onClick={f} className="relative">{n === "Friends" && friendUnread > 0 && <span className="absolute right-1 top-0 z-10 rounded-full bg-rose-600 px-1.5 text-[10px] font-extrabold text-white">{friendUnread}</span>}<span className={`mx-auto flex h-14 w-14 items-center justify-center overflow-hidden rounded-2xl ${c} text-2xl text-white shadow`}>{i === "CHEF" ? <img src="/images/life/partners/chef-emblem.webp" alt="" className="h-12 w-12 object-contain" /> : i === "DW" ? <img src="/images/life/partners/digitalwitch-logo.webp" alt="" className="h-14 w-14 object-cover" /> : i}</span><span className="mt-1 block">{n}</span></button>
       ))}</div></div>);
 
@@ -982,10 +1047,12 @@ export default function LifeGame() {
       const r = C.RESIDENT(chatId);
       if (!r) return null;
       const tNow = Date.now() + offset.current;
-      return (<div>{close}<div className="flex items-center gap-3">{r.photo ? <img src={r.photo} alt="" className="h-14 w-14 shrink-0 rounded-full object-cover ring-2 ring-amber-400" /> : <span className="flex h-14 w-14 items-center justify-center rounded-full text-lg font-bold text-white" style={{ background: r.look[0] }}>{r.name.split(" ").map((w) => w[0]).slice(0, 2).join("")}</span>}<div><b className="block text-lg leading-tight">{r.name}</b><span className="text-[11px] text-slate">🤖 Resident · {r.role}</span>{r.id === "cynthia" && <span className="mt-0.5 block text-[11px] font-bold text-amber-700">👑 #1 on the Billionaires List · {C.fmtShort(r.netWorth ?? 0)}</span>}</div></div>
+      return (<div>{close}<div className="flex items-center gap-3">{r.photo ? <img src={r.photo} alt="" className="h-14 w-14 shrink-0 rounded-full object-cover ring-2 ring-amber-400" /> : <span className="flex h-14 w-14 items-center justify-center rounded-full text-lg font-bold text-white" style={{ background: r.look[0] }}>{r.name.split(" ").map((w) => w[0]).slice(0, 2).join("")}</span>}<div><b className="block text-lg leading-tight">{r.name}</b><span className="text-[11px] text-slate">🤖 Resident · {r.role}</span>{(C.residentRank(r.id) ?? 99) <= 3 && <span className="mt-0.5 block text-[11px] font-bold text-amber-700">👑 #{C.residentRank(r.id)} on the Billionaires List · {C.fmtShort(r.netWorth ?? 0)}</span>}</div></div>
+        {r.story && <p className="mt-3 rounded-2xl bg-emerald-50 p-3 text-xs text-emerald-900">💎 {r.story}</p>}
         <div className="mt-3 max-h-64 space-y-2 overflow-y-auto text-sm">{chat.length === 0 ? <p className="max-w-[85%] rounded-2xl rounded-tl-sm bg-slate-100 px-3 py-2">{r.lines.greet[0]}</p> : chat.map((l, i) => <p key={i} className={`max-w-[85%] rounded-2xl px-3 py-2 ${l.me ? "ml-auto rounded-tr-sm bg-emerald-500 text-white" : "rounded-tl-sm bg-slate-100"}`}>{l.text}</p>)}</div>
         <div className="mt-3 flex flex-wrap gap-2 text-xs font-bold">{TOPICS.map((t) => <button key={t.id} onClick={() => askResident(r.id, t.id)} className="rounded-full border px-3 py-1.5">{t.label}</button>)}</div>
         {r.id === "cynthia" && cynthiaBox(tNow)}
+        {C.ERRANDS.some((e) => e.who === r.id) && <div className="mt-3 space-y-2">{C.ERRANDS.filter((e) => e.who === r.id).map(errandRow)}</div>}
         <p className="mt-2 text-[10px] text-slate">Residents are computer players, marked 🤖. Chats with them stay on this device only.</p></div>);
     }
     if (panel && typeof panel === "object" && "player" in panel) {
@@ -999,6 +1066,9 @@ export default function LifeGame() {
     }
     if (panel === "friends") return friendsPanel(close);
     if (panel === "dw") return dwPanel(close);
+    if (panel === "errands") return errandsPanel(close);
+    if (panel === "convoy" || panel === "busstand") return convoyPanel(close);
+    if (panel && typeof panel === "object" && "market" in panel) return marketPanel(close, panel.market);
     if (panel === "invite") return invitePanel(close);
     if (panel === "bank") return bankPanel(close);
     if (panel === "rich") return richPanel(close);
@@ -1228,13 +1298,52 @@ export default function LifeGame() {
         <label className="mt-3 flex items-center justify-between gap-3 rounded-2xl border p-3 text-xs"><span><b className="block text-sm">Tap to pay with CardTap</b>Off: payments go straight through, no tap.</span>
           <input type="checkbox" checked={tapOn} onChange={(e) => setTapPref(e.target.checked)} className="h-5 w-5 accent-[#1d4ed8]" /></label></div>);
     }
+    // An errand as a row: what it pays, and Start, or why not now (or how to get there).
+    function errandRow(e: C.Errand) {
+      const place = C.MARKET_SHOPS[e.spot].place, here = s.place === place, b = errandBlock(e), on = s.activity?.kind === "errand" && s.activity.label === e.title;
+      return <Row key={e.id} icon={e.icon} title={e.title} note={<>{e.pay ? `${C.fmtN(e.pay)} · ` : ""}{e.minutes} game min · {e.note}{b ? <b className="block text-amber-700">{b}</b> : null}</>}
+        right={on ? <span className="text-[11px] font-bold text-emerald-700">On it</span> : !here ? <button onClick={(ev) => { ev.stopPropagation(); setGoTo(place); setPanel("go"); }} className="rounded-full border px-3 py-1 text-xs font-bold">Go</button> : <button disabled={busy || !!b || !!s.activity} onClick={(ev) => { ev.stopPropagation(); void startErrand(e); }} className="rounded-full bg-lime-600 px-3 py-1 text-xs font-bold text-white disabled:opacity-40">Start</button>} />;
+    }
+    // The Wuse bus stand and Emerald's convoy: when it next passes, waiting for it, and his gift when it stops.
+    function convoyPanel(close: ReactNode) {
+      const e = C.RESIDENT("emerald")!, tNow = Date.now() + offset.current, next = C.convoyNextFor(p.convoyAt), mine = tNow >= next;
+      const waiting = s.activity?.kind === "wait" && s.activity.label === BUS_WAIT, there = spec?.id === "street";
+      return (<div>{close}<p className="text-[11px] font-bold uppercase tracking-widest text-emerald-700">🚏 Wuse bus stand</p>
+        <div className="mt-1 flex items-center gap-3">{e.photo ? <img src={e.photo} alt="" className="h-14 w-14 rounded-full object-cover ring-2 ring-emerald-500" /> : <span className="flex h-14 w-14 items-center justify-center rounded-full text-lg font-bold text-white ring-2 ring-emerald-300" style={{ background: e.look[0] }}>EE</span>}
+          <div><h2 className="text-xl font-extrabold leading-tight">{convoy.on ? "Emerald's convoy has stopped!" : "Emerald's convoy"}</h2><p className="text-[11px] text-slate">💎 {e.name} · #1 on the {C.RICH_TITLE}</p></div></div>
+        <p className="mt-3 text-sm">{convoy.on ? `Three black SUVs pull up at the bus stand. Emerald steps out and hands ${C.fmtN(C.CONVOY.gift)} to every stranger waiting here.` : `His convoy passes the Wuse bus stand at 8 AM, 1 PM and 6 PM and stops for half an hour. Anyone waiting gets ${C.fmtN(C.CONVOY.gift)}, once every ${C.CONVOY.everyDays} game days.`}</p>
+        {convoy.on && there && mine && <div className="mt-3"><Btn tone="green" onClick={convoyGift}>💎 Collect {C.fmtN(C.CONVOY.gift)}</Btn></div>}
+        {convoy.on && there && !mine && <p className="mt-3 rounded-2xl bg-amber-50 p-3 text-xs text-amber-900">“Ah, my friend, I remember you!” He waves: he gives each person once every {C.CONVOY.everyDays} game days. You can be lucky again from day {C.lifeDay(p.startedAt, next)}.</p>}
+        {convoy.on && !there && <p className="mt-3 rounded-2xl bg-slate-50 p-3 text-xs">You need to be at the bus stand: tap Wait below (it&apos;s outside your house in Wuse).</p>}
+        {!convoy.on && <p className="mt-3 rounded-2xl bg-slate-50 p-3 text-xs">Next pass: <b>{C.worldTime(convoy.next).label}</b>, in {Math.max(1, Math.round((convoy.next - tNow) / C.GAME_MIN_MS))} game minutes. {mine ? "You haven't had a gift yet this month." : `You had yours: next from day ${C.lifeDay(p.startedAt, next)}.`}</p>}
+        <div className="mt-3 flex flex-wrap gap-2">{waiting ? <span className="text-xs font-semibold">🚏 You&apos;re waiting at the stand…</span> : <Btn tone="ghost" disabled={!!s.activity} onClick={waitAtStand}>🚏 Wait at the bus stand · {C.BUS_STAND_WAIT_MINUTES} game min</Btn>}<Btn tone="ghost" onClick={() => setPanel("go")}>🛺 Ride somewhere</Btn></div></div>);
+    }
+    function errandsPanel(close: ReactNode) {
+      return (<div>{close}<p className="text-[11px] font-bold uppercase tracking-widest text-lime-700">🧺 Errands in Wuse</p><h2 className="text-xl font-extrabold">Help your neighbours, get paid</h2>
+        <p className="text-[11px] text-slate">Short tasks from the people who live and work in Wuse. Each errand once a game day; some only at certain hours. {p.errands ? `${p.errands} done so far.` : ""}</p>
+        {(["market", "wuse2"] as C.StreetPlace[]).map((pl) => <div key={pl} className="mt-3"><p className="text-[11px] font-bold uppercase tracking-wider text-slate">{C.PLACES.find((x) => x.id === pl)?.icon} {C.PLACES.find((x) => x.id === pl)?.name}</p>
+          <div className="mt-1 grid gap-2">{C.ERRANDS.filter((e) => C.MARKET_SHOPS[e.spot].place === pl).map(errandRow)}</div></div>)}</div>);
+    }
+    function marketPanel(close: ReactNode, sp: C.MarketSpot) {
+      const shop = C.MARKET_SHOPS[sp], r = shop.who ? C.RESIDENT(shop.who) : null, tNow = Date.now() + offset.current;
+      const sells = C.STREET.filter((x) => x.spot === sp), jobs = C.ERRANDS.filter((e) => e.spot === sp);
+      const street = C.PLACES.find((x) => x.id === shop.place);
+      return (<div>{close}<p className="text-[11px] font-bold uppercase tracking-widest text-slate">{street?.icon} {street?.name}</p><h2 className="text-xl font-extrabold">{shop.icon} {shop.name}</h2>
+        {r && <button onClick={() => setPanel({ chat: r.id })} className="mt-2 flex w-full items-center gap-3 rounded-2xl bg-slate-50 p-2.5 text-left">{r.photo ? <img src={r.photo} alt="" className="h-10 w-10 rounded-full object-cover" /> : <span className="flex h-10 w-10 items-center justify-center rounded-full text-sm font-bold text-white" style={{ background: r.look[0] }}>{r.name.split(" ").map((w) => w[0]).slice(0, 2).join("")}</span>}<span className="min-w-0 flex-1 text-sm"><b className="block">{r.name} 🤖</b><span className="text-[11px] text-slate">{r.role}</span></span><span className="text-xs font-bold">💬 Talk</span></button>}
+        {sp === "emerald" && r?.story && <p className="mt-2 rounded-2xl bg-emerald-50 p-3 text-xs text-emerald-900">💎 {r.story} He&apos;s #1 on the {C.RICH_TITLE}.</p>}
+        {sells.length > 0 && <><p className="mt-3 text-[11px] font-bold uppercase tracking-wider text-slate">On sale</p><div className="mt-1 grid gap-2">{sells.map((x) => { const open = C.openAt(x.hours, tNow); return <Row key={x.id} icon={x.icon} title={x.name} note={<>{x.note}{!open && x.hours ? <b className="block text-amber-700">Open {C.hoursLabel(x.hours)}</b> : null}</>} right={<button disabled={busy || !open || !!s.activity} onClick={(ev) => { ev.stopPropagation(); void streetBuy(x); }} className="rounded-full bg-ink px-3 py-1 text-xs font-bold text-white disabled:opacity-40">{C.fmtShort(x.price)}</button>} />; })}</div></>}
+        {jobs.length > 0 && <><p className="mt-3 text-[11px] font-bold uppercase tracking-wider text-slate">Errands</p><div className="mt-1 grid gap-2">{jobs.map(errandRow)}</div></>}
+        {!sells.length && !jobs.length && <p className="mt-3 text-sm text-slate">{sp === "park" ? "Taxis wait here for the offices and the lounges. Tap Go to ride elsewhere." : "Nothing for you here right now."}</p>}
+        <p className="mt-3 text-[11px] font-bold uppercase tracking-wider text-slate">Walk to</p>
+        <div className="mt-1 flex flex-wrap gap-1.5">{C.spotsOf(shop.place).filter((k) => k !== sp).map((k) => <button key={k} onClick={() => { setMspot(k); setPanel({ market: k }); }} className="rounded-full border px-2.5 py-1 text-[11px] font-semibold">{C.MARKET_SHOPS[k].icon} {C.MARKET_SHOPS[k].name}</button>)}</div></div>);
+    }
     function richPanel(close: ReactNode) {
       const data = rich, pop = richPop, setPop = setRichPop;
       const brag = data?.me?.rank ? `I'm #${data.me.rank} on the Notes Life Billionaires List with ${C.fmtShort(data.me.netWorth)} 😎` : "I'm climbing the Notes Life Billionaires List 😎";
       if (pop) return (<div className="text-center"><div className="text-5xl">🧑‍⚖️</div><h3 className="mt-2 text-xl font-extrabold">Welcome to the official <span className="rounded bg-ink px-1.5 text-white">[REDACTED BY LAWYERS]</span> Rich List!</h3><p className="mt-2 text-sm text-slate">Our lawyers asked us to call it the {C.RICH_TITLE}. Net worth = your Notesville Naira plus everything you own.</p><div className="mt-4"><Btn onClick={() => { setPop(false); update((x) => ({ ...x, seenRich: true })); }}>Show me the money</Btn></div></div>);
       return (<div>{close}<p className="text-[11px] font-bold uppercase tracking-widest text-amber-600">👑 {C.RICH_TITLE}</p><h2 className="text-2xl font-extrabold">{C.RICH_SUBTITLE}</h2><p className="text-xs text-slate">Net worth = Notesville Naira + what you own. 🤖 = resident (computer player).</p>
         <div className="mt-2 grid grid-cols-2 gap-1 rounded-full bg-slate-100 p-1 text-center text-[11px] font-bold">{[[false, "Everyone"], [true, "Real players only"]].map(([v, l]) => <button key={String(v)} onClick={() => setRichReal(v as boolean)} className={`rounded-full py-1.5 ${richReal === v ? "bg-ink text-white" : ""}`}>{l as string}</button>)}</div>
-        {!data ? <p className="mt-3 text-sm text-slate">Loading…</p> : <ol className="mt-2 divide-y">{data.rows.map((r) => <li key={r.uid} className={`flex items-center gap-2.5 py-2 ${r.uid === p.uid ? "rounded-xl bg-amber-50 px-2" : ""}`}><b className={`w-6 text-center ${r.rank <= 3 ? "text-amber-600" : ""}`}>{r.rank}</b>{r.npc && r.avatar ? <img src={r.avatar} alt="" className="h-9 w-9 rounded-full object-cover ring-2 ring-amber-400" /> : r.npc ? <span className="flex h-9 w-9 items-center justify-center rounded-full bg-slate-200">🤖</span> : r.avatar ? <img src={r.avatar} alt="" className="h-9 w-9 rounded-full object-cover" /> : <span className="flex h-9 w-9 items-center justify-center rounded-full bg-emerald-100 text-xs font-bold">{r.name[0]}</span>}<span className="min-w-0 flex-1"><span className="flex min-w-0 items-center text-sm"><b className="truncate">{r.name}</b>{!r.npc && <NameBadgeIcons username={r.username} size={13} />}</span><span className="text-[10px] text-slate">{r.npc ? `🤖 Resident · ${r.npc.role} ${r.npc.icons}` : `@${r.username} · Abuja ${r.owned.map((o) => C.ITEM(o)?.icon).join(" ")}`}</span></span><b className="text-sm">{C.fmtShort(r.netWorth)}</b></li>)}</ol>}
+        {!data ? <p className="mt-3 text-sm text-slate">Loading…</p> : <ol className="mt-2 divide-y">{data.rows.map((r) => <li key={r.uid} className={`flex items-center gap-2.5 py-2 ${r.uid === p.uid ? "rounded-xl bg-amber-50 px-2" : ""}`}><b className={`w-6 text-center ${r.rank <= 3 ? "text-amber-600" : ""}`}>{r.rank}</b>{r.npc && r.avatar ? <img src={r.avatar} alt="" className="h-9 w-9 rounded-full object-cover ring-2 ring-amber-400" /> : r.npc ? <span className="flex h-9 w-9 items-center justify-center rounded-full bg-slate-200">🤖</span> : r.avatar ? <img src={r.avatar} alt="" className="h-9 w-9 rounded-full object-cover" /> : <span className="flex h-9 w-9 items-center justify-center rounded-full bg-emerald-100 text-xs font-bold">{r.name[0]}</span>}<span className="min-w-0 flex-1"><span className="flex min-w-0 items-center text-sm"><b className="truncate">{r.name}</b>{!r.npc && <NameBadgeIcons username={r.username} size={13} />}</span><span className="text-[10px] text-slate">{r.npc ? `🤖 Resident · ${r.npc.role} ${r.npc.icons}` : `@${r.username} · Abuja ${r.owned.map((o) => C.ITEM(o)?.icon).join(" ")}`}</span>{r.npc?.story && <span className="block text-[10px] font-semibold text-emerald-700">💎 {r.npc.story}</span>}</span><b className="text-sm">{C.fmtShort(r.netWorth)}</b></li>)}</ol>}
         {data?.me && <p className="mt-2 text-center text-xs">You: <b>#{data.me.rank}</b>{!richReal && data.me.realRank ? <> · <b>#{data.me.realRank}</b> of real players</> : null} · {C.fmtShort(data.me.netWorth)}</p>}
         <a href={WA(shareText(brag))} target="_blank" rel="noreferrer" className="mt-3 block rounded-full bg-amber-500 py-3 text-center font-bold text-white">😎 Brag on WhatsApp</a></div>);
     }

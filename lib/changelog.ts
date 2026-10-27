@@ -11,6 +11,16 @@ export type Release = {
 
 export const CHANGELOG: Release[] = [
   {
+    version: "v0.95.0",
+    bump: "minor",
+    date: "2026-10-27",
+    changes: [
+      { kind: "added", text: "Notes Life: two new Wuse streets beside the first one. Wuse Market in Zone 4 (stalls, kekes, a pharmacy, tailor, phone shop, pepper soup, barber, Bureau De Change, POS stand, lesson centre, puff-puff and zobo, a suya grill at night and the borehole) and Aminu Kano Crescent in Wuse II (office plazas, a bank, Emerald Towers, a café, a grill and Skyline Lounge). Tap a shop to walk to it; traffic, hawkers and night lights bring the street to life." },
+      { kind: "added", text: "Notes Life errands: 14 short paid tasks from the people who live and work in Wuse, each once a game day, from fetching water for Mama Nkechi to parking cars at Skyline Lounge, plus Saturday sanitation for reputation. Phone → Errands lists them all." },
+      { kind: "added", text: "Emerald Ezurukam, the mind behind Notes Life, is #1 on the Billionaires List. His convoy stops at the Wuse bus stand at 8 AM, 1 PM and 6 PM, and he gives N$ 100,000 to everyone waiting (once every 30 game days each)." },
+    ],
+  },
+  {
     version: "v0.94.0",
     bump: "minor",
     date: "2026-10-26",
