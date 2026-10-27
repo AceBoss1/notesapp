@@ -11,6 +11,14 @@ export type Release = {
 
 export const CHANGELOG: Release[] = [
   {
+    version: "v0.98.0",
+    bump: "minor",
+    date: "2026-10-27",
+    changes: [
+      { kind: "changed", text: "Notes Life: every outdoor scene now moves. Traffic drives the first street, Chef Adams, itel Energy, the Digital Witch plaza and the road past the Candellux, and people walk the pavements with swinging legs and arms. At the Candellux pool, ladies swim and sunbathe in bikinis and stroll the poolside." },
+    ],
+  },
+  {
     version: "v0.97.0",
     bump: "minor",
     date: "2026-10-27",
