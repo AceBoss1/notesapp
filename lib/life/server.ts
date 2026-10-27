@@ -4,6 +4,7 @@ import {
   CITY, DEALS, FOOD, FOOD_MODES, GAME_DAY_MS, GAME_HOUR_MS, HOTEL_OF, ITEM, JOB, MONTH_DAYS, NEGOTIATE_CHANCE, ORDER_MAX_ITEMS, RECIPE, RENT_NAIRA,
   SHIFT_MS, START_NAIRA, STARTER_ITEMS, TRANSPORT_OF, bestOwned, cookingSkill, fmtN, jobBlocker, netWorth, shiftPay, FUEL_NAIRA, RESIDENTS, nepaAt, type FoodMode,
   swimSkill, hotelCheckout, lodged, worldTime, DW_COURSE, DW_CLASS_HOURS, DW_CLASS_MS, DW_CLASS_EFFECT, dwOpen, giveawayOn, giveawayEligible, giveawayWeek, giveawayPrize, GIVEAWAY, OUTLET, OUTLET_AREAS, OUTLET_BACKUP, STAFF_PERKS, isStaff, itemPrice, hotelPrice, outletBlocker, outletPrice, outletTakings, shiftExtra, type Outlet, type OutletArea,
+  ERRAND, STREET_OF, BARBER_STREET_MS, errandBlocker, worldDay, MARKET_SHOPS, CONVOY, convoyAt, convoyNextFor, lifeDay,
 } from "./catalog";
 
 // Server-only. Notes Life money and ownership: lifePlayers/{uid} (the player, read by the owner, written only here) and lifeTx/{id}
@@ -20,6 +21,7 @@ export type LifePlayer = {
   outlets: Outlet[]; swimLessons: number; swims: number; gymSessions: number; cityNotify: string[];
   certs: string[]; dwCourses: Record<string, number>; dwClassAt: number; techShifts: number; giveawayWeek: number; // Digital Witch: certificates, classes done per course enrolled, last class, tech shifts, last giveaway week
   hotelUntil: number; // a Candellux suite: yours till this checkout time (11 AM game time), 0 when you have none
+  errand: { id: string; endsAt: number; pay: number } | null; errandDay: number; errandsDone: string[]; errands: number; convoyAt: number; // convoyAt: when Emerald's convoy last gave you a gift. Errands: the one running, today's (game day) done list, all done
 
   jobId: string | null; shift: { jobId: string; startedAt: number; endsAt: number; pay: number } | null;
   deal: Deal | null; lastDealAt: number; rentMonths: number; rentOwed: number; barberUntil: number; gymUntil: number;
@@ -48,7 +50,9 @@ function fromDoc(uid: string, d: FirebaseFirestore.DocumentData | undefined, pro
     swimLessons: num(d?.swimLessons), swims: num(d?.swims), gymSessions: num(d?.gymSessions),
     certs: Array.isArray(d?.certs) ? (d!.certs as string[]).filter((c) => !!DW_COURSE(c)) : [],
     dwCourses: Object.fromEntries(Object.entries((d?.dwCourses ?? {}) as Record<string, unknown>).filter(([k]) => !!DW_COURSE(k)).map(([k, v]) => [k, num(v)])),
-    dwClassAt: num(d?.dwClassAt), techShifts: num(d?.techShifts), giveawayWeek: num(d?.giveawayWeek, -1), hotelUntil: num(d?.hotelUntil), cityNotify: Array.isArray(d?.cityNotify) ? (d!.cityNotify as string[]).filter((c) => COMING_CITY_IDS.includes(c)) : [],
+    dwClassAt: num(d?.dwClassAt), techShifts: num(d?.techShifts), giveawayWeek: num(d?.giveawayWeek, -1), hotelUntil: num(d?.hotelUntil),
+    errand: d?.errand && ERRAND(String(d.errand.id)) ? { id: String(d.errand.id), endsAt: num(d.errand.endsAt), pay: num(d.errand.pay) } : null, errandDay: num(d?.errandDay, -1), errandsDone: Array.isArray(d?.errandsDone) ? (d!.errandsDone as unknown[]).map(String).filter((x) => !!ERRAND(x)) : [], errands: num(d?.errands), convoyAt: num(d?.convoyAt),
+    cityNotify: Array.isArray(d?.cityNotify) ? (d!.cityNotify as string[]).filter((c) => COMING_CITY_IDS.includes(c)) : [],
     jobId: typeof d?.jobId === "string" ? d.jobId : null, shift: d?.shift ?? null, deal: d?.deal ?? null, lastDealAt: num(d?.lastDealAt, now),
     rentMonths: num(d?.rentMonths), rentOwed: num(d?.rentOwed), barberUntil: num(d?.barberUntil), gymUntil: num(d?.gymUntil),
     netWorth: 0, updatedAt: now, createdAt: fresh ? now : num(d?.createdAt, now),
@@ -124,7 +128,12 @@ export type Action =
   | { action: "city_notify"; city: string }
   | { action: "dw_enroll"; course: string }
   | { action: "dw_class"; course: string }
-  | { action: "dw_giveaway" };
+  | { action: "dw_giveaway" }
+  | { action: "errand_start"; errand: string }
+  | { action: "errand_finish" }
+  | { action: "errand_cancel" }
+  | { action: "street"; service: string }
+  | { action: "convoy_gift" };
 
 export async function act(db: Firestore, uid: string, a: Action, now = Date.now(), rand: () => number = Math.random) {
   return mutate(db, uid, (p, lines) => {
@@ -208,6 +217,7 @@ export async function act(db: Firestore, uid: string, a: Action, now = Date.now(
         const j = p.jobId ? JOB(p.jobId) : undefined;
         if (!j) throw new LifeError(409, "Get a job first (Phone → Jobs).");
         if (p.shift) throw new LifeError(409, "You're already on a shift.");
+        if (p.errand) throw new LifeError(409, "Finish your errand first.");
         // NEPA: the old desktop needs power. A laptop runs on its own battery; a Power GO or a generator keeps the desktop going.
         const backup = ["power_go", "power_tank", "gen_small", "gen_big", "home_kit"].some((i) => p.owned.includes(i));
         if (j.place === "home" && nepaAt(now).out && !backup && !p.owned.includes("pc_laptop") && !p.owned.includes("pc_aio"))
@@ -339,6 +349,53 @@ export async function act(db: Firestore, uid: string, a: Action, now = Date.now(
         if (prize > 0) credit(p, lines, prize, "Cynthia Okeh's graduate giveaway (Digital Witch)", "giveaway");
         return { prize };
       }
+      // ---- Wuse Market Street: errands (paid when done, each once a game day) and the stalls ----
+      case "errand_start": {
+        const e = ERRAND(String(a.errand));
+        if (!e) throw new LifeError(400, "That errand doesn't exist.");
+        if (p.shift) throw new LifeError(409, "Finish your shift first.");
+        if (p.errand) throw new LifeError(409, "Finish the errand you're on first.");
+        const day = worldDay(now);
+        if (p.errandDay !== day) { p.errandDay = day; p.errandsDone = []; }
+        const block = errandBlocker(e, { done: p.errandsDone, reputation: p.reputation }, now);
+        if (block) throw new LifeError(409, block);
+        p.errand = { id: e.id, endsAt: now + e.minutes * GAME_HOUR_MS / 60, pay: e.pay };
+        return { endsAt: p.errand.endsAt, minutes: e.minutes };
+      }
+      case "errand_finish": {
+        if (!p.errand) throw new LifeError(409, "You're not on an errand.");
+        if (now < p.errand.endsAt - 3_000) throw new LifeError(409, "The errand isn't done yet.");
+        const e = ERRAND(p.errand.id)!;
+        const day = worldDay(now);
+        if (p.errandDay !== day) { p.errandDay = day; p.errandsDone = []; }
+        if (p.errand.pay > 0) credit(p, lines, p.errand.pay, `Errand: ${e.title}`, "pay");
+        if (e.reputation) p.reputation = Math.min(5, Math.round((p.reputation + e.reputation) * 10) / 10);
+        if (!p.errandsDone.includes(e.id)) p.errandsDone.push(e.id);
+        p.errands += 1;
+        const pay = p.errand.pay;
+        p.errand = null;
+        return { pay, reputation: e.reputation ?? 0, title: e.title, who: e.who ?? null };
+      }
+      case "errand_cancel": {
+        p.errand = null;
+        return { message: "Errand stopped. No pay for an errand you didn't finish." };
+      }
+      case "street": {
+        const x = STREET_OF(String(a.service));
+        if (!x) throw new LifeError(400, "That isn't sold here.");
+        if (x.hours && !(worldTime(now).hour >= x.hours[0] && worldTime(now).hour < x.hours[1])) throw new LifeError(409, `${MARKET_SHOPS[x.spot].name} is closed now.`);
+        debit(p, lines, x.price, `${MARKET_SHOPS[x.spot].name} · ${x.name}`, "food");
+        if (x.barber) p.barberUntil = Math.max(p.barberUntil, now + BARBER_STREET_MS);
+        return { minutes: x.minutes, effect: x.effect };
+      }
+      case "convoy_gift": {
+        if (!convoyAt(now).on) throw new LifeError(409, "Emerald's convoy isn't at the Wuse bus stand right now.");
+        const next = convoyNextFor(p.convoyAt);
+        if (now < next) throw new LifeError(409, `Emerald already gave you a gift. He gives each person once every ${CONVOY.everyDays} game days: you can be lucky again from day ${lifeDay(p.startedAt, next)}.`);
+        p.convoyAt = now;
+        credit(p, lines, CONVOY.gift, "Gift from Emerald Ezurukam at the Wuse bus stand", "gift");
+        return { gift: CONVOY.gift };
+      }
       case "city_notify": {
         const c = String(a.city);
         if (!COMING_CITY_IDS.includes(c)) throw new LifeError(400, "That city isn't coming yet.");
@@ -360,9 +417,9 @@ export async function richList(db: Firestore, uid: string, limit = 20, realOnly 
   const me = (await ref(db, uid).get()).data();
   let realRank: number | null = null;
   if (me && !kidView) realRank = (await db.collection("lifePlayers").where("netWorth", ">", num(me.netWorth)).count().get()).data().count + 1;
-  type Row = { rank: number; uid: string; username: string; name: string; avatar: string; city: string; netWorth: number; owned: string[]; npc?: { role: string; area: string; icons: string } };
+  type Row = { rank: number; uid: string; username: string; name: string; avatar: string; city: string; netWorth: number; owned: string[]; npc?: { role: string; area: string; icons: string; story?: string } };
   const real: Row[] = top.docs.filter((d) => !d.id.startsWith("kid_")).slice(0, limit).map((d) => { const x = d.data(); return { rank: 0, uid: d.id, username: String(x.username ?? ""), name: String(x.name ?? ""), avatar: String(x.avatar ?? ""), city: String(x.city ?? CITY.id), netWorth: num(x.netWorth), owned: (x.owned as string[] | undefined)?.filter((i) => (ITEM(i)?.price ?? 0) >= 100_000) ?? [] }; });
-  const npcs: Row[] = realOnly ? [] : RESIDENTS.filter((r) => r.netWorth).map((r) => ({ rank: 0, uid: `npc:${r.id}`, username: "", name: r.name, avatar: r.photo ?? "", city: CITY.id, netWorth: r.netWorth!, owned: [], npc: { role: r.role, area: r.area, icons: r.owned ?? "" } }));
+  const npcs: Row[] = realOnly ? [] : RESIDENTS.filter((r) => r.netWorth).map((r) => ({ rank: 0, uid: `npc:${r.id}`, username: "", name: r.name, avatar: r.photo ?? "", city: CITY.id, netWorth: r.netWorth!, owned: [], npc: { role: r.role, area: r.area, icons: r.owned ?? "", ...(r.story ? { story: r.story } : {}) } }));
   if (kidView && me) real.push({ rank: 0, uid, username: "", name: String(me.name ?? "You"), avatar: "", city: String(me.city ?? CITY.id), netWorth: num(me.netWorth), owned: [] });
   const rows = [...real, ...npcs].sort((a, b) => b.netWorth - a.netWorth).slice(0, limit).map((r, i) => ({ ...r, rank: i + 1 }));
   const npcAbove = me ? npcs.filter((n) => n.netWorth > num(me.netWorth)).length : 0;

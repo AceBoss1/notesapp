@@ -1,6 +1,6 @@
 import {
   DIGITAL_WITCH, FOOD, FOOD_MODES, FUEL_NAIRA, HOTEL_OF, ITEM, ORDER_MAX_ITEMS, OUTLET, OUTLET_BACKUP, RECIPE, TRANSPORT_OF, DW_COURSE,
-  BRAND_NAME, hotelPrice, itemPrice, outletPrice, type FoodMode,
+  BRAND_NAME, MARKET_SHOPS, STREET_OF, hotelPrice, itemPrice, outletPrice, type FoodMode,
 } from "./catalog";
 
 // Paylony CardTap (partner, from 18 October 2026): in Notes Life every Notesville Naira payment at a counter is a tap of the player's
@@ -48,6 +48,10 @@ export function tapCharge(a: { action: string } & Record<string, unknown>, ctx: 
     case "hotel": {
       const h = HOTEL_OF(String(a.service));
       return h && !h.soon ? out("Candellux Imperial", h.name, hotelPrice(h, ctx.jobId)) : null;
+    }
+    case "street": {
+      const x = STREET_OF(String(a.service));
+      return x ? out(MARKET_SHOPS[x.spot].name, x.name, x.price) : null;
     }
     case "fuel": {
       const litres = Math.floor(Number(a.litres));

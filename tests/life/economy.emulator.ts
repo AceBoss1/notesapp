@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { initializeApp } from "firebase-admin/app";
 import { FieldValue, getFirestore } from "firebase-admin/firestore";
 import { act, mutate, richList, friends, statement, invites } from "../../lib/life/server";
-import { hotelCheckout, GAME_DAY_MS, GAME_HOUR_MS, SHIFT_MS, START_NAIRA, WORLD_EPOCH, worldTime, shiftPay, JOB, nepaAt, outagesOfDay, OUTLET, OUTLETS, outletTakings, outletProfitPerDay, outletPrice, jobBlocker, swimSkill, vipsAt, HOTEL, FOODS, cynthiaAt, dwOpen, giveawayOn, giveawayPrize, giveawayEligible, weekdayOf, DW_CLASS_MS, GIVEAWAY, RESIDENTS, type Outlet } from "../../lib/life/catalog";
+import { hotelCheckout, GAME_DAY_MS, GAME_HOUR_MS, SHIFT_MS, START_NAIRA, WORLD_EPOCH, worldTime, shiftPay, JOB, nepaAt, outagesOfDay, OUTLET, OUTLETS, outletTakings, outletProfitPerDay, outletPrice, jobBlocker, swimSkill, vipsAt, convoyAt, HOTEL, FOODS, cynthiaAt, dwOpen, giveawayOn, giveawayPrize, giveawayEligible, weekdayOf, DW_CLASS_MS, GIVEAWAY, RESIDENTS, type Outlet } from "../../lib/life/catalog";
 import { advance, freshSave, sanitize, powerStep, powerSource, fridgeCold, chatSocial, CHAT_SOCIAL } from "../../lib/life/play";
 import { payFromWallet, creditTopup } from "../../lib/wallet-server";
 import { fulfillPayment, type PaymentRecord } from "../../lib/payments";
@@ -77,7 +77,7 @@ const rej = async (p: Promise<unknown>, re: RegExp) => { await assert.rejects(p,
   assert.equal(chatSocial(cs, "send", H + 3_600_000).gain, 8, "a new hour, a new allowance");
   assert.equal(sanitize({ chatHour: 5, chatGained: 12 }).chatGained, 12);
   // Digital Witch: Cynthia is #1, at the hub by day and the VIP bar in the evening; certificates open tech jobs; the Saturday giveaway
-  assert.equal([...RESIDENTS].sort((a, b) => (b.netWorth ?? 0) - (a.netWorth ?? 0))[0].id, "cynthia");
+  assert.equal([...RESIDENTS].sort((a, b) => (b.netWorth ?? 0) - (a.netWorth ?? 0))[0].id, "emerald");
   const atH = (h: number, dayOffset = 0) => { let t = WORLD_EPOCH + dayOffset * GAME_DAY_MS; while (worldTime(t).hour !== h) t += GAME_HOUR_MS / 4; return t; };
   assert.equal(cynthiaAt(atH(10)), "dw"); assert.equal(cynthiaAt(atH(20)), "hotel"); assert.equal(cynthiaAt(atH(2)), null);
   assert.ok(dwOpen(atH(9)) && !dwOpen(atH(18)) && !dwOpen(atH(7)));
@@ -162,7 +162,7 @@ const rej = async (p: Promise<unknown>, re: RegExp) => { await assert.rejects(p,
   r = await act(db, "p6", { action: "shift_start", needsLow: false }, outT); assert.ok((r.result as { pay: number }).pay > 0);
   // rich list and friends
   const rl = await richList(db, "p2", 20, true); assert.equal(rl.rows[0].uid, "p2"); assert.equal(rl.me?.rank, 1);
-  const rlAll = await richList(db, "p2"); assert.equal(rlAll.rows[0].uid, "npc:cynthia"); assert.match(rlAll.rows[0].avatar, /cynthia-okeh/); assert.equal(rlAll.rows[1].uid, "npc:musa"); assert.ok(rlAll.rows.some((x) => x.uid === "p2" && !x.npc)); assert.equal(rlAll.me?.realRank, 1); assert.ok((rlAll.me?.rank ?? 0) > 1);
+  const rlAll = await richList(db, "p2"); assert.equal(rlAll.rows[0].uid, "npc:emerald"); assert.match(rlAll.rows[0].npc?.story ?? "", /dreamed up Notesville/); assert.equal(rlAll.rows[1].uid, "npc:cynthia"); assert.match(rlAll.rows[1].avatar, /cynthia-okeh/); assert.equal(rlAll.rows[2].uid, "npc:musa"); assert.ok(rlAll.rows.some((x) => x.uid === "p2" && !x.npc)); assert.equal(rlAll.me?.realRank, 1); assert.ok((rlAll.me?.rank ?? 0) > 1);
   await db.doc("follows/p1_bola").set({ followerUid: "p1", username: "bola" }); await db.doc("follows/p2_ada").set({ followerUid: "p2", username: "ada" }); await db.doc("follows/p3_ada").set({ followerUid: "p3", username: "ada" });
   const fr = await friends(db, "p1"); assert.deepEqual(fr.friends.map((f) => f.username), ["bola"]); assert.equal(fr.friends[0].plays, true);
   const st = await statement(db, "p2"); assert.ok(st.lines.some((l) => l.kind === "buy_naira"));
@@ -283,5 +283,36 @@ const rej = async (p: Promise<unknown>, re: RegExp) => { await assert.rejects(p,
   assert.equal((r.result as { set: unknown }).set, null, "after checkout the restaurant is the restaurant again");
   r = await act(db, "p10", { action: "hotel", service: "suite" }, atH(12, 81)); assert.ok(r.player.hotelUntil > atH(12, 81), "book again after checkout");
   console.log("hotel stay ok");
+  // the Wuse streets: errands once a game day, in their hours; street food; Emerald's convoy gift once every 30 game days
+  await db.doc("users/p11").set({ username: "wuse", displayName: "WUSE" });
+  await rej(act(db, "p11", { action: "errand_start", errand: "pos" }, atH(8, 90)), /11 AM to 3 PM/);
+  r = await act(db, "p11", { action: "errand_start", errand: "pos" }, atH(12, 90));
+  await rej(act(db, "p11", { action: "errand_finish" }, atH(12, 90) + 1000), /isn't done yet/);
+  await rej(act(db, "p11", { action: "shift_start", needsLow: false }, atH(12, 90) + 1000), /Get a job first|errand/);
+  const wBefore = r.player.naira;
+  r = await act(db, "p11", { action: "errand_finish" }, atH(12, 90) + 61 * 2000);
+  assert.equal(r.player.naira, wBefore + 2_400); assert.deepEqual(r.player.errandsDone, ["pos"]);
+  await rej(act(db, "p11", { action: "errand_start", errand: "pos" }, atH(13, 90)), /Done today/);
+  r = await act(db, "p11", { action: "errand_start", errand: "pos" }, atH(12, 91)); assert.ok(r.player.errand, "a new game day: the errand is open again");
+  await act(db, "p11", { action: "errand_cancel" }, atH(12, 91) + 1000);
+  await rej(act(db, "p11", { action: "errand_start", errand: "proposal" }, atH(11, 91)), /reputation 2/);
+  await rej(act(db, "p11", { action: "errand_start", errand: "sanitation" }, atH(8, 91)), /Saturdays only/);
+  const wSat = atH(8, 96); // day 96 is a Saturday (day 0 was a Monday)
+  r = await act(db, "p11", { action: "errand_start", errand: "sanitation" }, wSat); const rep0 = r.player.reputation;
+  r = await act(db, "p11", { action: "errand_finish" }, wSat + 61 * 2000); assert.equal(r.player.reputation, Math.round((rep0 + 0.3) * 10) / 10); assert.equal((r.result as { pay: number }).pay, 0);
+  await rej(act(db, "p11", { action: "street", service: "suya" }, atH(12, 97)), /closed/);
+  const wN0 = r.player.naira; r = await act(db, "p11", { action: "street", service: "suya" }, atH(19, 97)); assert.equal(r.player.naira, wN0 - 1_500);
+  r = await act(db, "p11", { action: "street", service: "haircut" }, atH(10, 97)); assert.ok(r.player.barberUntil > atH(10, 97));
+  assert.deepEqual(tapCharge({ action: "street", service: "night_out" }, { jobId: null }), { payee: "Skyline Lounge", what: "A night out at Skyline Lounge", amount: 8_000 });
+  // the convoy: at the bus stand at 8 AM, 1 PM and 6 PM for 30 game minutes
+  assert.equal(convoyAt(atH(8, 98)).on, true); assert.equal(convoyAt(atH(10, 98)).on, false); assert.ok(convoyAt(atH(10, 98)).next > atH(10, 98));
+  assert.equal(convoyAt(atH(8, 98) + 40 * 2000).on, false, "gone after half an hour");
+  await rej(act(db, "p11", { action: "convoy_gift" }, atH(10, 98)), /isn't at the Wuse bus stand/);
+  const wG0 = (await act(db, "p11", { action: "convoy_gift" }, atH(13, 98))).player.naira;
+  await rej(act(db, "p11", { action: "convoy_gift" }, atH(18, 98)), /once every 30 game days/);
+  await rej(act(db, "p11", { action: "convoy_gift" }, atH(8, 120)), /once every 30 game days/);
+  const wG1 = (await act(db, "p11", { action: "convoy_gift" }, atH(13, 128))).player.naira; assert.ok(wG1 >= wG0 + 100_000 - 60_000, "30 game days later he gives again (rent may have come out)");
+  const tx = await db.collection("lifeTx").where("uid", "==", "p11").where("kind", "==", "gift").get(); assert.equal(tx.size, 2);
+  console.log("wuse streets ok");
   console.log("ALL OK");
 })().catch((e) => { console.log("FAIL", e); process.exit(1); });
