@@ -310,6 +310,9 @@ export function createWorld(canvas: HTMLCanvasElement) {
       for (const dx of [-1.2, 1.2]) { const g = person(-6.2 + dx, -1.8, "#111827", 0.3, 0.14, "#4e2c17", "#111827"); g.scale.setScalar(1.05); }
       tag("convoy", -7.6, 2.9, 0.75);
     }
+    // traffic in the free lane, people on the pavement (an office worker, a lady in a short dress, a hawker with oranges)
+    traffic([["car", 1.65, 1], ["keke", 1.65, 1], ["taxi", 1.65, 1]]);
+    walkers([["#0ea5e9", -12, -2.4, false, false], ["#f472b6", 4, -2.5, "skirt", false], ["#16a34a", 14, -1.8, false, true], ["#a855f7", -2, -2.6, "gown", false]]);
     tag("bike", 1.2, 1.6, -0.6); tag("bus", -4.5, 2.6, 3.2); tag("keke", 6.2, 2.0, 3.0); tag("ev", 11.8, 1.9, 0.3); tag("shop", 16.5, 3.4, -3.0); tag("stop", -7, 2.9, -2.3);
   }
 
@@ -371,6 +374,8 @@ export function createWorld(canvas: HTMLCanvasElement) {
     const phone = innerWidth < 700;
     cam.position.set(...(phone ? [0.3, 13.5, 28.5] : [-0.5, 7.5, 17.5]) as [number, number, number]); controls.target.set(phone ? 0.3 : -0.5, phone ? 1 : 1.7, phone ? -1.6 : -2.6);
     controls.minDistance = 8; controls.maxDistance = 40;
+    traffic([["car", 3.9, -1], ["keke", 3.9, -1], ["taxi", 3.9, -1]]);
+    walkers([["#f472b6", -12, -0.9, "skirt", false], ["#0ea5e9", 12, -1.0, false, false], ["#e11d48", 16, -1.5, false, true]]);
     tag("dinein", X, 4.25, FZ); tag("kiosk", KX, 4.35, KZ + 0.4); tag("rider", RX - 0.5, 2.25, RZ); tag("home", -10, 1.5, 1.0);
   }
 
@@ -435,6 +440,8 @@ export function createWorld(canvas: HTMLCanvasElement) {
     const phone = innerWidth < 700;
     cam.position.set(...(phone ? [2.2, 7.5, 21] : [0.5, 7.5, 17.5]) as [number, number, number]); controls.target.set(phone ? 1.6 : 0.5, phone ? 1.6 : 1.7, phone ? -3.2 : -2.6);
     controls.minDistance = 8; controls.maxDistance = 40;
+    traffic([["taxi", 3.9, 1], ["car", 3.9, 1], ["keke", 3.9, 1]]);
+    walkers([["#0ea5e9", -13, -0.9, false, false], ["#f472b6", 11, -1.0, "skirt", false], ["#7c3aed", 15, -1.6, "gown", false]]);
     tag("shop", X, 4.3, FZ); tag("go", X + 2.2, 1.95, FZ - 1.0); tag("kit", SX, 3.1, SZ - 0.2); tag("inverter", X - 2.0, 2.9, Z - 1.6);
   }
 
@@ -558,8 +565,11 @@ export function createWorld(canvas: HTMLCanvasElement) {
     for (const x of [-9, -4, 5, 9]) box(1.1, 2.0, 0.08, "#7c4a2a", x, 0, back - 0.05);
     for (const x of [-11, -6.5, 1.5, 3.2, 7]) box(0.8, 0.5, 0.4, "#e5e7eb", x, 2.6, back - 0.25);
     // swimmers (residents and players): head and shoulders above the water, one doing laps
-    const swim = (x: number, z: number, shirt: string, rot = 0, flat = false) => { const p = person(x, z, shirt, rot, flat ? 0.2 : -1.1); if (flat) { p.rotation.set(-Math.PI / 2, 0, rot); p.position.set(x, 0.22, z); } return p; };
-    swim(-4.6, PZ + 1, "#ec4899", 0.4); swim(-2.2, PZ - 1.2, "#2563eb", -0.3); swim(2.2, PZ + 0.8, "#14b8a6", 2.6, true); swim(0.5, PZ + 1.5, "#f59e0b", 3.1);
+    const swim = (x: number, z: number, shirt: string, rot = 0, flat = false, dress: Dress = false) => { const p = person(x, z, shirt, rot, flat ? 0.2 : -1.1, "#6b3f22", "#1f2937", dress); if (flat) { p.rotation.set(-Math.PI / 2, 0, rot); p.position.set(x, 0.22, z); } return p; };
+    swim(-4.6, PZ + 1, "#ec4899", 0.4, false, "bikini"); swim(-2.2, PZ - 1.2, "#2563eb", -0.3); swim(2.2, PZ + 0.8, "#14b8a6", 2.6, true); swim(0.5, PZ + 1.5, "#f59e0b", 3.1, false, "bikini");
+    // poolside: a lady in a bikini strolling along the edge, two sunbathers on loungers
+    walkers([["#ef4444", -2, PZ + 3.3, "bikini", false], ["#2563eb", 1, PZ - 3.2, false, false]], 0.1);
+    for (const [lx, c] of [[-3.6, "#a855f7"], [-1.4, "#f59e0b"]] as [number, string][]) { box(0.8, 0.3, 2.0, "#f8fafc", lx, 0.1, PZ - 4.8); const sb = person(lx, PZ - 4.8, c, 0, 0.5, "#7a4a2c", "#1f2937", "bikini"); sb.rotation.set(-Math.PI / 2, 0, 0); sb.position.set(lx, 0.62, PZ - 5.6); }
     if (s.swim) player = swim(-3.2, PZ - 0.2, s.outfit, Math.PI / 2, true);
     // the outdoor shower stand on the grass by the shallow end: a tiled pad, a steel column with a rain head, a towel rail
     { const SX = -10.2, SZ = PZ + 3.2; box(1.4, 0.06, 1.4, "#cbd5e1", SX, 0.1, SZ); cyl(0.06, 2.4, "#d1d5db", SX - 0.45, 0.16, SZ - 0.45);
@@ -605,6 +615,9 @@ export function createWorld(canvas: HTMLCanvasElement) {
     else if (s.view === "pool") { cam.position.set(...(phone ? [4, 24, -56] : [9, 17, -50]) as [number, number, number]); controls.target.set(-0.5, phone ? 0.5 : 1.5, PZ - 1); }
     else { cam.position.set(...(phone ? [-7, 7, 33] : [-13, 5.8, 25]) as [number, number, number]); controls.target.set(phone ? -0.5 : 0, phone ? 5 : 5, -5); }
     controls.minDistance = 10; controls.maxDistance = 55;
+    // Garki traffic both ways past the gate, and guests and passers-by outside the wall
+    traffic([["car", 6.5, 1], ["taxi", 8.6, -1], ["car", 6.5, 1], ["bus", 8.6, -1]]);
+    walkers([["#111827", -9, 3.4, false, false], ["#be185d", 7, 4.2, "gown", false], ["#f472b6", 1, 3.8, "skirt", false]], 0.02);
     tag("sign", -6.6, 5.6, 2.6); tag("gate", -0.2, 2.6, WZ); tag("roof", 0, 12.6, BZ + 3.4); tag("pool", -1, 1.2, PZ); tag("guard", 6.2, 4.4, PZ); tag("gym", -15.6, 3.8, back - 2.4); tag("bar", 0, 2.9, back - 1.0); tag("vip", 8.6, 3.4, back - 1.5);
   }
   // Digital Witch training hub: the ground floor of a glass skyscraper plaza in the Central Business District, with a fountain plaza,
@@ -664,6 +677,8 @@ export function createWorld(canvas: HTMLCanvasElement) {
     person(-2.6, HZ + 1.1, "#4f46e5", 0.4, 0.14, "#7a4a2c", "#1f2937", true); person(4.4, HZ + 1.6, "#0ea5e9", -0.3, 0.14);
     others(s.others, [[-4.4, -2.6, Math.PI, 0.14], [6.2, -2.4, Math.PI, 0.14]]);
     player = s.learning ? person(-1.6, HZ - 1.0, s.outfit, Math.PI, 0.14) : person(-0.6, -2.8, s.outfit, Math.PI, 0.14);
+    traffic([["car", 3.9, 1], ["taxi", 3.9, 1], ["car", 3.9, 1]]);
+    walkers([["#111827", -10, -1.0, false, false], ["#f472b6", 9, -1.4, "skirt", false], ["#0ea5e9", 2, -0.8, false, false]]);
     tag("hub", 0, 4.9, HZ + 0.3); tag("tower", 0, 8.4, -12.4); tag("fountain", FX, 1.8, FZ); tag("class", -1.6, 2.3, HZ - 1.6);
     const phone = innerWidth < 700;
     cam.position.set(...(phone ? [4, 15, 44] : [2.5, 12, 32]) as [number, number, number]); controls.target.set(phone ? 0.8 : 0.5, phone ? 8 : 7, phone ? -8 : -8);
@@ -751,6 +766,25 @@ export function createWorld(canvas: HTMLCanvasElement) {
     const fr = new THREE.Mesh(new THREE.BoxGeometry(w + 0.24, h + 0.24, 0.18), mat("#111827")); fr.position.set(0, up + h / 2, -0.12); g0.add(fr);
     const face = new THREE.Mesh(new THREE.PlaneGeometry(w, h), new THREE.MeshBasicMaterial({ map: canvasTex(1600, Math.round(1600 * h / w), draw) })); face.position.set(0, up + h / 2, 0); g0.add(face);
     tag(key, x, up + h + 0.5, z);
+  }
+  // Life on the move, shared by every outdoor scene: people walking back and forth with swinging limbs (shirt, start x, lane z, dress,
+  // a hawker's tray), and vehicles looping along road lanes (kind, lane z, direction).
+  type Walker = [string, number, number, Dress, boolean];
+  function walkers(list: Walker[], y = 0.14) {
+    list.forEach(([c, x0, lz, dr, tray], i) => {
+      const h = person(x0, lz, c, Math.PI / 2, y, i % 2 ? "#7a4a2c" : "#5b3520", dr ? "#1f2937" : ["#1f2937", "#1e3a8a", "#374151"][i % 3], dr);
+      if (tray) { const tr = new THREE.Mesh(new THREE.CylinderGeometry(0.42, 0.36, 0.1, 14), mat("#a16207")); tr.position.set(0, 2.12, 0); h.add(tr); for (let k = 0; k < 5; k++) { const o = new THREE.Mesh(new THREE.SphereGeometry(0.09, 8, 6), mat(["#fb923c", "#facc15"][k % 2])); o.position.set(Math.cos(k) * 0.22, 2.22, Math.sin(k) * 0.22); h.add(o); } }
+      const span = 5 + (i % 3) * 2, per = 5200 + i * 700;
+      anims.push((t) => { const ph = t / per + i * 2; h.position.x = x0 + Math.sin(ph) * span; h.rotation.y = Math.cos(ph) > 0 ? Math.PI / 2 : -Math.PI / 2; walkCycle(h, t / 160 + i, Math.min(1, Math.abs(Math.cos(ph)) * 3)); });
+    });
+  }
+  function traffic(list: (readonly ["keke" | "car" | "taxi" | "bus", number, 1 | -1])[]) {
+    list.forEach(([k, lane, dir], i) => {
+      const v = vehicle(k, ["#e5e7eb", "#111827", "#991b1b", "#1d4ed8", "#a3a3a3", "#0f766e"][i % 6]);
+      v.rotation.y = dir > 0 ? 0 : Math.PI; v.position.set(0, 0, lane); scene.add(v);
+      const speed = (k === "keke" ? 3.2 : k === "bus" ? 3.6 : 5.2) * dir, off = i * 13;
+      anims.push((t) => { v.position.x = ((((t / 1000) * speed + off) % 84) + 84) % 84 - 42; });
+    });
   }
   async function strip(s: Extract<SceneSpec, { id: "strip" }>) {
     const L = STRIPS[s.place], night = s.night, two = s.place === "wuse2";
@@ -865,25 +899,13 @@ export function createWorld(canvas: HTMLCanvasElement) {
     if (night) for (const x of [-20, -2, 16, 30]) { const l = new THREE.PointLight("#ffe7b0", 4, 16); l.position.set(x, 4.4, 2.6); scene.add(l); }
     if (!two) { const poles = [-36, -24, -12, 0, 12, 24, 36]; for (const x of poles) { cyl(0.09, 6.2, "#78716c", x, 0.14, 2.5); box(1.2, 0.08, 0.08, "#57534e", x, 6.0, 2.5); }
       for (let i = 0; i < poles.length - 1; i++) for (const dz of [-0.4, 0.4]) { const a = poles[i], b = poles[i + 1], pts = Array.from({ length: 9 }, (_, k) => new THREE.Vector3(a + (b - a) * k / 8, 6.1 - Math.sin(Math.PI * k / 8) * 0.6, 2.5 + dz)); scene.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts), new THREE.LineBasicMaterial({ color: "#1f2937" }))); } }
-    // traffic both ways, and hawkers along the pavement
-    L.vehicles.forEach((k, i) => {
-      const v = vehicle(k, ["#e5e7eb", "#111827", "#991b1b", "#1d4ed8", "#a3a3a3", "#0f766e"][i % 6]); const east = i % 2 === 0, lane = east ? (L.median ? 8.4 : 7.9) : (L.median ? 4.3 : 4.8);
-      v.rotation.y = east ? 0 : Math.PI; v.position.set(0, 0, lane); scene.add(v);
-      const speed = (k === "keke" ? 3.2 : k === "bus" ? 3.6 : 5.2) * (east ? 1 : -1), off = i * 13;
-      anims.push((t) => { v.position.x = ((((t / 1000) * speed + off) % 84) + 84) % 84 - 42; });
-    });
+    // traffic both ways
+    traffic(L.vehicles.map((v, i) => [v, i % 2 === 0 ? (L.median ? 8.4 : 7.9) : (L.median ? 4.3 : 4.8), i % 2 === 0 ? 1 : -1] as const));
     // people walking the pavement both ways, legs and arms swinging: hawkers with trays in Zone 4, office workers in Wuse II, ladies in
     // short dresses, skirts and gowns
-    type Walker = [string, number, number, Dress, boolean]; // shirt, start x, lane z, dress, tray
-    const walkers: Walker[] = two
+    walkers(two
       ? [["#0ea5e9", -14, 1.3, false, false], ["#f472b6", 6, 0.9, "skirt", false], ["#111827", 18, 1.6, false, false], ["#a855f7", -4, 1.1, "skirt", false], ["#f59e0b", 26, 0.6, "gown", false]]
-      : [["#16a34a", -18, 1.4, false, true], ["#e11d48", 2, 1.2, "gown", true], ["#7c3aed", 20, 1.5, false, true], ["#f472b6", -8, 0.9, "skirt", false], ["#0ea5e9", 12, 1.0, false, false], ["#f59e0b", 28, 1.3, "skirt", false]];
-    walkers.forEach(([c, x0, lz, dr, tray], i) => {
-      const h = person(x0, lz, c, Math.PI / 2, 0.14, i % 2 ? "#7a4a2c" : "#5b3520", dr ? "#1f2937" : ["#1f2937", "#1e3a8a", "#374151"][i % 3], dr);
-      if (tray) { const tr = new THREE.Mesh(new THREE.CylinderGeometry(0.42, 0.36, 0.1, 14), mat("#a16207")); tr.position.set(0, 2.12, 0); h.add(tr); for (let k = 0; k < 5; k++) { const o = new THREE.Mesh(new THREE.SphereGeometry(0.09, 8, 6), mat(["#fb923c", "#facc15"][k % 2])); o.position.set(Math.cos(k) * 0.22, 2.22, Math.sin(k) * 0.22); h.add(o); } }
-      const span = 5 + (i % 3) * 2, per = 5200 + i * 700;
-      anims.push((t) => { const ph = t / per + i * 2; h.position.x = x0 + Math.sin(ph) * span; h.rotation.y = Math.cos(ph) > 0 ? Math.PI / 2 : -Math.PI / 2; walkCycle(h, t / 160 + i, Math.min(1, Math.abs(Math.cos(ph)) * 3)); });
-    });
+      : [["#16a34a", -18, 1.4, false, true], ["#e11d48", 2, 1.2, "gown", true], ["#7c3aed", 20, 1.5, false, true], ["#f472b6", -8, 0.9, "skirt", false], ["#0ea5e9", 12, 1.0, false, false], ["#f59e0b", 28, 1.3, "skirt", false]]);
     // residents at their shops; Emerald at the door of Emerald Towers; two Bureau De Change operators with their bags at the kerb
     for (const spot of MARKET_SPOTS) { const shop = MARKET_SHOPS[spot]; if (shop.place !== s.place) continue; const x = L.fronts.find((f) => f.spot === spot)?.x ?? 0;
       if (shop.who) npc(shop.who, x + 1.0, -0.9, 0.2, 0.14);
