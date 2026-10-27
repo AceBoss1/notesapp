@@ -28,12 +28,18 @@ type Player = LifePlayer & { cooking: number; swimming: number; serverNow: numbe
 type Panel =
   | "welcome" | "needs" | "sleep" | "desk" | "outfit" | "cook" | "deal" | "go" | "food" | "hotel" | "phone" | "jobs" | "friends"
   | "invite" | "bank" | "rich" | "settings" | "cardtap" | "ebike" | "nepa" | "power" | "itel" | "product" | "business" | "kitchen" | "arrive" | "hotelpool" | "vip" | "dw" | "errands" | "convoy" | "busstand" | "restroom" | { market: C.MarketSpot } | { shop: C.ItemCat } | { chat: string } | { player: Present }
-  | { jobs: C.Brand } | { partner: "chef_adams" | "itel" } | { outlet: C.OutletKind } | null;
+  | { jobs: C.Brand } | { partner: "chef_adams" | "itel" | "luxnas" } | { outlet: C.OutletKind } | null;
 type Toast = { text: string; share?: string; tone?: "ok" | "warn" } | null;
 type Friend = { uid: string; username: string; name: string; avatar: string; plays: boolean; netWorth: number };
 type RichRow = { rank: number; uid: string; username: string; name: string; avatar: string; city: string; netWorth: number; owned: string[]; npc?: { role: string; area: string; icons: string; story?: string } };
 type RichData = { rows: RichRow[]; me: { rank: number | null; realRank?: number | null; netWorth: number } | null };
 
+// How each partner's "Become a Partner" card looks and reads.
+const PS = {
+  chef_adams: { box: "border-[#F2B544] bg-[#292929]", gold: "#F2B544", label: "text-[#F2B544]", own: "Own a Chef Adams outlet", blurb: "One brand. Standardised recipes, training and quality control in every outlet.", fee: `Chef Adams keeps ${Math.round(C.OUTLETS[0].feeRate * 100)}% of sales as the brand fee.`, real: "Own a Chef Adams franchise in your choice location", realBox: "border-[#F2B544] bg-[#fffbeb]" },
+  itel: { box: "border-[#FF073C] bg-[#1a0a0e]", gold: "#ff6b86", label: "text-[#ff6b86]", own: "Own an itel retail outlet", blurb: "Sell itel phones, Power GO, Power Tank and solar. Stock from itel at partner prices, CarlCare after-sales behind you.", fee: "itel earns from the stock you buy at partner prices.", real: "Open a real itel Home store", realBox: "border-[#FF073C]/30 bg-[#fff1f3]" },
+  luxnas: { box: "border-[#d4af37] bg-[#0a0a0a]", gold: "#d4af37", label: "text-[#d4af37]", own: "Own a LUXNAS tailoring studio", blurb: "Custom tailoring under the LUXNAS name: Senator suits, Agbadas, Ankara and Asoebi, made to measure by tailors you hire.", fee: `LUXNAS keeps ${Math.round((C.OUTLET("luxnas_studio")?.feeRate ?? 0) * 100)}% of sales as the brand fee.`, real: `Visit LUXNAS on NotesApp (@${C.LUXNAS.handle})`, realBox: "border-[#d4af37] bg-[#fffbeb]" },
+} as const;
 const OUTFITS = ["#f59e0b", "#e53935", "#2563eb", "#16a34a", "#7c3aed", "#0f766e", "#111827", "#f472b6"];
 // "Back to NotesApp": the app's journal feed, on the visitor's own domain (lib/host.ts)
 const notesAppHome = () => `${window.location.protocol}//${familyHost(window.location.host, "app")}/journals`;
@@ -553,6 +559,15 @@ export default function LifeGame() {
     if (r.cert) { sfx("success"); say(`🎓 Final class! You're Digital Witch certified in ${c.name}. ${C.JOB(c.job)?.title} is open to you (Phone → Jobs).`, shareText(`I just got Digital Witch certified in ${c.name} in Notes Life 🎓`)); }
     else say(`📚 Class ${r.done} of ${r.of}: ${c.name}.`);
   }
+  async function luxClass(c: C.LuxCourse) {
+    if (saveRef.current?.place !== "market") return say("LUXNAS Academy classes are at the LUXNAS shop on Wuse Market (Zone 4). Go there first.", undefined, "warn");
+    const r = await act<{ minutes: number; effect: Partial<Record<C.Need, number>>; done: number; of: number; cert: boolean }>({ action: "lux_class", course: c.id });
+    if (!r) return;
+    setPanel(null);
+    start({ kind: "class", label: `LUXNAS · ${c.name} · class ${r.done} of ${r.of}`, icon: c.icon, end: r.effect }, r.minutes);
+    if (r.cert) { sfx("success"); say(`🧵 Final class! You're LUXNAS certified in ${c.name}. ${C.JOB(c.job)?.title} at LUXNAS is open to you.`, shareText(`I just got LUXNAS Academy certified in ${c.name} in Notes Life 🧵`)); }
+    else say(`🧵 Class ${r.done} of ${r.of}: ${c.name}.`);
+  }
   async function giveaway() {
     const r = await act<{ prize: number }>({ action: "dw_giveaway" });
     if (!r) return;
@@ -570,7 +585,7 @@ export default function LifeGame() {
     const j = C.JOB(p.jobId)!;
     if (j.place === "home" && s.place !== "home") return setErr("This job is at your desk at home. Go home first.");
     if (j.place === "work" && s.place !== "work") { setPanel("go"); return setErr("Get to work first: choose how to go."); }
-    if ((j.place === "chef" || j.place === "itel" || j.place === "hotel") && s.place !== j.place) { setPanel("go"); return setErr(`Your job is at ${C.PLACES.find((x) => x.id === j.place)?.name} in ${C.PLACES.find((x) => x.id === j.place)?.area}. Go there first.`); }
+    if ((j.place === "chef" || j.place === "itel" || j.place === "hotel" || j.place === "market") && s.place !== j.place) { setPanel("go"); return setErr(`Your job is at ${C.PLACES.find((x) => x.id === j.place)?.name} in ${C.PLACES.find((x) => x.id === j.place)?.area}. Go there first.`); }
     if (s.activity) return setErr(`Finish what you're doing first: ${s.activity.label}`);
     const r = await act<{ endsAt: number; pay: number }>({ action: "shift_start", needsLow: needsLow(s.needs) });
     if (!r) return;
@@ -652,6 +667,7 @@ export default function LifeGame() {
   const tagInfo = (key: string): { label: string; up?: boolean; go: () => void } | null => {
     if (!player || !save) return null;
     if (key.startsWith("npc:")) { const r = C.RESIDENT(key.slice(4)); return r ? { label: `${r.name} 🤖${C.residentRank(r.id) === 1 ? " · #1" : ""}`, up: r.id === "emerald", go: () => setPanel({ chat: r.id }) } : null; }
+    if (key === "bb:luxnas") return { label: "📣 LUXNAS · bespoke African fashion", up: true, go: () => { setMspot("tailor"); setPanel({ market: "tailor" }); } };
     if (key === "restroom") return { label: "🚻 Mobile WC & shower", up: true, go: () => setPanel("restroom") };
     if (key === "shower") return { label: "🚿 Outdoor shower", go: () => setPanel("restroom") };
     if (spec?.id === "strip" && key.startsWith("m:")) {
@@ -980,7 +996,7 @@ export default function LifeGame() {
       {job && <div className="mt-3 rounded-2xl border-2 border-emerald-400 bg-emerald-50 p-3"><b className="block">{job.icon} Your job: {job.title}</b><span className="text-[11px] text-slate">{job.employer} · {C.fmtN(C.shiftPay(job, p.owned, needsLow(s.needs)))} a shift{needsLow(s.needs) ? " (a need is low)" : ""} · {p.shifts} shifts done</span>
         <div className="mt-2 flex gap-2">{p.shift ? <span className="text-xs font-semibold">On shift now</span> : <><Btn tone="green" onClick={startShift}>Start a shift</Btn><Btn tone="ghost" onClick={() => act({ action: "job_quit" })}>Quit</Btn></>}</div></div>}
       {([[undefined, "Around town"], ["tech", "Tech · remote · need a Digital Witch certificate"], ["chef_adams", "Chef Adams"], ["itel", "itel Energy"], ["candellux", "Candellux"]] as [C.Brand | "tech" | undefined, string][]).map(([b, title]) => <div key={title}><p className="mt-3 text-[10px] font-bold uppercase tracking-wider text-slate">{title}</p><div className="mt-1 grid gap-1.5">{C.JOBS.filter((j) => j.id !== job?.id && (b === "tech" ? !!j.tech : !j.tech && j.brand === b)).map(jobRow)}</div></div>)}
-      <div className="mt-3 grid grid-cols-2 gap-2">{partnerCard("chef_adams")}{partnerCard("itel")}</div></div>);
+      <div className="mt-3 grid grid-cols-2 gap-2">{partnerCard("chef_adams")}{partnerCard("itel")}{partnerCard("luxnas")}</div></div>);
 
     if (typeof panel === "object" && panel && "jobs" in panel) {
       const b = panel.jobs;
@@ -1091,35 +1107,36 @@ export default function LifeGame() {
     // --- brands: a header and tabs (Eat or Shop or Services · Jobs · Partner), job rows, partner outlets ---
     function brandHead(b: C.Brand) {
       if (b === "chef_adams") return <div className="flex items-center gap-2"><img src="/images/life/partners/chef-emblem.webp" alt="" className="h-12 w-12 object-contain" /><div><img src="/images/life/partners/chef-wordmark.webp" alt="Chef Adams" className="h-7 object-contain" /><span className="block text-[10px] text-slate">@chef_adams · Wuse, Abuja · <span className="font-bold">PARTNER</span></span></div></div>;
+      if (b === "luxnas") return <div className="flex items-center gap-3"><span className="flex h-12 w-12 items-center justify-center rounded-full bg-[#0a0a0a] font-serif text-lg font-bold text-[#d4af37]">LX</span><div><span className="font-serif text-2xl font-bold tracking-[0.2em] text-[#b8932c]">LUXNAS</span><span className="block text-[10px] text-slate">@{C.LUXNAS.handle} · Wuse Market, Zone 4 · from {C.LUXNAS.origin} · <span className="font-bold">PARTNER</span></span></div></div>;
       if (b === "itel") return <div><div className="flex items-center gap-3"><img src="/images/life/partners/itel-logo.svg" alt="itel" className="h-9" /><span className="rounded-full bg-[#FF073C]/10 px-2 py-0.5 text-[10px] font-bold text-[#FF073C]">PARTNER</span></div><p className="mt-0.5 text-[10px] text-slate">{C.ITEL.note}</p></div>;
       return <div className="flex items-center gap-3"><img src="/images/life/partners/candellux-logo.webp" alt="" className="h-12 w-12 rounded-full object-cover" /><div><p className="font-serif text-xl font-bold italic leading-tight text-[#262b6b]">Candellux</p><p className="text-[11px] font-bold tracking-wider text-[#262b6b]">IMPERIAL HOTEL &amp; SUITES <span className="rounded-full bg-[#e3b23c]/20 px-1.5 py-0.5 text-[9px] text-[#8a6a12]">PARTNER</span></p><p className="text-[10px] text-slate">Garki, Abuja · {C.CANDELLUX.tagline}</p></div></div>;
     }
     function brandTabs(b: C.Brand, on: "main" | "jobs" | "partner" | "pool") {
-      const col = b === "chef_adams" ? "#292929" : b === "itel" ? "#FF073C" : "#262b6b";
-      const main: Panel = b === "chef_adams" ? "food" : b === "itel" ? "itel" : "hotel";
-      const tabs: [string, "main" | "jobs" | "partner" | "pool", Panel][] = [[b === "chef_adams" ? "Eat" : b === "itel" ? "Shop" : "Services", "main", main], ...(b === "candellux" ? [["Pool", "pool", "hotelpool"] as [string, "pool", Panel]] : []), ["Jobs", "jobs", { jobs: b }], ...(b === "candellux" ? [] : [["Partner", "partner", { partner: b }] as [string, "partner", Panel]])];
+      const col = b === "chef_adams" ? "#292929" : b === "itel" ? "#FF073C" : b === "luxnas" ? "#0a0a0a" : "#262b6b";
+      const main: Panel = b === "chef_adams" ? "food" : b === "itel" ? "itel" : b === "luxnas" ? { market: "tailor" } : "hotel";
+      const tabs: [string, "main" | "jobs" | "partner" | "pool", Panel][] = [[b === "chef_adams" ? "Eat" : b === "itel" ? "Shop" : b === "luxnas" ? "Studio" : "Services", "main", main], ...(b === "candellux" ? [["Pool", "pool", "hotelpool"] as [string, "pool", Panel]] : []), ["Jobs", "jobs", { jobs: b }], ...(b === "candellux" ? [] : [["Partner", "partner", { partner: b }] as [string, "partner", Panel]])];
       return <div className="mt-3 grid gap-1 rounded-full bg-slate-100 p-1 text-center text-xs font-bold" style={{ gridTemplateColumns: `repeat(${tabs.length},1fr)` }}>{tabs.map(([l, k, to]) => <button key={k} onClick={() => setPanel(to)} className="rounded-full py-1.5" style={k === on ? { background: col, color: "#fff" } : undefined}>{l}</button>)}</div>;
     }
     function jobRow(j: C.Job) {
-      const block = C.jobBlocker(j, { owned: p.owned, cooking: p.cooking, chefShifts: p.chefShifts, itelShifts: p.itelShifts, hotelShifts: p.hotelShifts, reputation: p.reputation, fit: p.gymUntil > Date.now() + offset.current, swim: p.swimming, gymSessions: p.gymSessions, certs: p.certs });
+      const block = C.jobBlocker(j, { owned: p.owned, cooking: p.cooking, chefShifts: p.chefShifts, itelShifts: p.itelShifts, hotelShifts: p.hotelShifts, luxShifts: p.luxShifts, luxCerts: p.luxCerts, reputation: p.reputation, fit: p.gymUntil > Date.now() + offset.current, swim: p.swimming, gymSessions: p.gymSessions, certs: p.certs });
       const icon = j.brand === "chef_adams" ? <img src="/images/life/partners/chef-emblem.webp" alt="" className="h-9 w-9 object-contain" /> : j.icon;
       return <Row key={j.id} icon={icon} title={<>{j.title}</>} note={<>{j.employer}{block ? <b className="block text-crimson">🔒 {block}</b> : j.ladder ? <span className="block">{j.ladder}</span> : null}</>}
         right={<><b className="block text-emerald-700">{j.pay ? `${C.fmtN(j.pay)}/shift` : ""}</b>{j.extra && <span className="block text-[10px] text-slate">+ {j.extra.label.toLowerCase()}</span>}{!block && !p.shift && <button disabled={busy} onClick={async () => { const r = await act<{ message: string }>({ action: "job_apply", job: j.id }); if (r) say(r.message, shareText(`I just got a job as ${j.title} in Notes Life 💼`)); }} className="mt-1 rounded-full bg-ink px-2.5 py-1 text-[11px] font-bold text-white">Take it</button>}</>} />;
     }
-    function partnerCard(b: "chef_adams" | "itel") {
+    function partnerCard(b: "chef_adams" | "itel" | "luxnas") {
       const list = C.OUTLETS.filter((o) => o.brand === b);
-      return <button onClick={() => setPanel({ partner: b })} className={`rounded-2xl border-2 p-2.5 text-left text-white ${b === "chef_adams" ? "border-[#F2B544] bg-[#292929]" : "border-[#FF073C] bg-[#1a0a0e]"}`}><p className={`text-[9px] font-bold uppercase tracking-widest ${b === "chef_adams" ? "text-[#F2B544]" : "text-[#ff6b86]"}`}>🤝 Become a Partner</p><b className="block text-[12px] leading-tight">Own {b === "chef_adams" ? "a Chef Adams" : "an itel"} outlet</b>{list.map((o) => <span key={o.id} className="block text-[10px] opacity-80">{o.short} from {C.fmtShort(o.price)}</span>)}</button>;
+      return <button onClick={() => setPanel({ partner: b })} className={`rounded-2xl border-2 p-2.5 text-left text-white ${PS[b].box}`}><p className={`text-[9px] font-bold uppercase tracking-widest ${PS[b].label}`}>🤝 Become a Partner</p><b className="block text-[12px] leading-tight">{PS[b].own}</b>{list.map((o) => <span key={o.id} className="block text-[10px] opacity-80">{o.short} from {C.fmtShort(o.price)}</span>)}</button>;
     }
-    function partnerPanel(close: ReactNode, b: "chef_adams" | "itel") {
-      const now = Date.now() + offset.current, chef = b === "chef_adams";
-      const gold = chef ? "#F2B544" : "#ff6b86";
-      const check: C.OutletCheck = { owned: p.owned, chefShifts: p.chefShifts, itelShifts: p.itelShifts, reputation: p.reputation, outlets: p.outlets };
+    function partnerPanel(close: ReactNode, b: "chef_adams" | "itel" | "luxnas") {
+      const now = Date.now() + offset.current, st = PS[b];
+      const gold = st.gold;
+      const check: C.OutletCheck = { owned: p.owned, chefShifts: p.chefShifts, itelShifts: p.itelShifts, luxShifts: p.luxShifts, reputation: p.reputation, outlets: p.outlets };
       const list = C.OUTLETS.filter((o) => o.brand === b);
       const open = list.find((t) => !C.outletBlocker(t, check, now));
       return (<div>{close}{brandHead(b)}{brandTabs(b, "partner")}
-        <div className={`mt-3 rounded-2xl border-2 p-3 text-white ${chef ? "border-[#F2B544] bg-[#292929]" : "border-[#FF073C] bg-[#1a0a0e]"}`}>
-          <p className="text-[10px] font-bold uppercase tracking-widest" style={{ color: gold }}>🤝 Become a Partner</p><p className="text-[15px] font-bold">{chef ? "Own a Chef Adams outlet" : "Own an itel retail outlet"}</p>
-          <p className="mt-1 text-[11px] opacity-80">{chef ? "One brand. Standardised recipes, training and quality control in every outlet." : "Sell itel phones, Power GO, Power Tank and solar. Stock from itel at partner prices, CarlCare after-sales behind you."}</p>
+        <div className={`mt-3 rounded-2xl border-2 p-3 text-white ${st.box}`}>
+          <p className="text-[10px] font-bold uppercase tracking-widest" style={{ color: gold }}>🤝 Become a Partner</p><p className="text-[15px] font-bold">{st.own}</p>
+          <p className="mt-1 text-[11px] opacity-80">{st.blurb}</p>
           <div className="mt-2 grid grid-cols-2 gap-1 rounded-full bg-white/10 p-1 text-center text-[11px] font-bold">{(Object.keys(C.OUTLET_AREAS) as C.OutletArea[]).map((a) => <button key={a} onClick={() => setOutletArea(a)} className="rounded-full py-1" style={outletArea === a ? { background: gold, color: "#111" } : undefined}>{C.OUTLET_AREAS[a].name}</button>)}</div>
           <div className="mt-2 grid gap-2">{list.map((t) => {
             const own = p.outlets.find((o) => o.kind === t.id), block = own ? null : C.outletBlocker(t, check, now);
@@ -1137,20 +1154,20 @@ export default function LifeGame() {
                 : !block && <button disabled={busy} onClick={() => openOutlet(t.id, outletArea)} className="mt-2 w-full rounded-full py-2 text-sm font-extrabold disabled:opacity-40" style={{ background: gold, color: "#111" }}>Open · {C.fmtN(C.outletPrice(t, outletArea))}</button>}</div>;
           })}</div>
           {!open && !list.some((t) => p.outlets.find((o) => o.kind === t.id)) && <p className="mt-2 text-[10px] opacity-80">Work shifts at {C.BRAND_NAME[b]} to qualify: <button className="font-bold underline" onClick={() => setPanel({ jobs: b })}>see the jobs</button>.</p>}
-          <p className="mt-2 text-[10px] opacity-80">{chef ? `Chef Adams keeps ${Math.round(C.OUTLETS[0].feeRate * 100)}% of sales as the brand fee.` : "itel earns from the stock you buy at partner prices."} Takings wait up to {C.OUTLET_HOLD_DAYS} game days (about a real day). Without backup power an outlet sells half in a blackout.</p>
+          <p className="mt-2 text-[10px] opacity-80">{st.fee} Takings wait up to {C.OUTLET_HOLD_DAYS} game days (about a real day). Without backup power an outlet sells half in a blackout.</p>
         </div>
-        <a href={C.REAL_PARTNER[b]} target="_blank" rel="noreferrer" className={`mt-3 flex items-center justify-between rounded-2xl border p-3 text-[12px] ${chef ? "border-[#F2B544] bg-[#fffbeb]" : "border-[#FF073C]/30 bg-[#fff1f3]"}`}><span><b className="block">Become a real partner ↗</b>{chef ? "Own a Chef Adams franchise in your choice location" : "Open a real itel Home store"}</span><span className="text-lg">🤝</span></a>
+        <a href={C.REAL_PARTNER[b]} target="_blank" rel="noreferrer" className={`mt-3 flex items-center justify-between rounded-2xl border p-3 text-[12px] ${st.realBox}`}><span><b className="block">{b === "luxnas" ? "The real LUXNAS ↗" : "Become a real partner ↗"}</b>{st.real}</span><span className="text-lg">🤝</span></a>
         <p className="mt-2 text-center text-[10px] text-slate">Your outlet appears in Notesville with your name on it, and its value counts on the Billionaires List.</p></div>);
     }
     function outletPanel(close: ReactNode, kind: C.OutletKind) {
       const t = C.OUTLET(kind)!, o = p.outlets.find((x) => x.kind === kind);
       if (!o) return partnerPanel(close, t.brand);
-      const now = Date.now() + offset.current, r = C.outletTakings(o, now), chef = t.brand === "chef_adams";
+      const now = Date.now() + offset.current, r = C.outletTakings(o, now), chef = t.brand === "chef_adams", lux = t.brand === "luxnas";
       const day = Math.floor((now - o.openedAt) / C.GAME_DAY_MS) + 1, nextInspect = 7 - ((day - 1) % 7);
       const up = C.OUTLETS.find((x) => x.needs.outlet === kind);
       const staff = Array.from({ length: t.staff }, (_, i) => C.OUTLET_STAFF[(i + (chef ? 0 : 3)) % C.OUTLET_STAFF.length]);
-      return (<div>{close}<div className="flex items-center gap-3">{chef ? <img src="/images/life/partners/chef-emblem.webp" alt="" className="h-11 w-11 object-contain" /> : <img src="/images/life/partners/itel-logo.svg" alt="itel" className="h-8" />}<div><p className="text-[10px] font-bold uppercase tracking-widest" style={{ color: chef ? "#E53935" : "#FF073C" }}>Your outlet · day {day}</p><h2 className="text-xl font-extrabold leading-tight">{p.name.split(" ")[0]}&apos;s {t.short} · {C.OUTLET_AREAS[o.area].name}</h2></div></div>
-        <div className={`mt-3 rounded-2xl p-3 text-white ${chef ? "bg-[#292929]" : "bg-[#1a0a0e]"}`}><div className="flex items-end justify-between gap-2"><div><span className="text-[10px] opacity-75">Takings waiting</span><b className="block text-2xl">{C.fmtN(r.takings)}</b><span className="text-[10px] opacity-75">{r.capped ? `Held ${C.OUTLET_HOLD_DAYS} game days: it stopped selling until you collect` : `${r.days.toFixed(1)} game days · after ${chef ? "the brand fee, stock" : "itel stock"} and wages`}</span></div><button disabled={busy || r.takings <= 0} onClick={() => collect(kind)} className="rounded-full px-4 py-2 text-sm font-extrabold text-ink disabled:opacity-40" style={{ background: chef ? "#F2B544" : "#ff6b86" }}>Collect</button></div>
+      return (<div>{close}<div className="flex items-center gap-3">{chef ? <img src="/images/life/partners/chef-emblem.webp" alt="" className="h-11 w-11 object-contain" /> : lux ? <span className="flex h-11 w-11 items-center justify-center rounded-full bg-[#0a0a0a] font-serif font-bold text-[#d4af37]">LX</span> : <img src="/images/life/partners/itel-logo.svg" alt="itel" className="h-8" />}<div><p className="text-[10px] font-bold uppercase tracking-widest" style={{ color: chef ? "#E53935" : lux ? "#b8932c" : "#FF073C" }}>Your outlet · day {day}</p><h2 className="text-xl font-extrabold leading-tight">{p.name.split(" ")[0]}&apos;s {t.short} · {C.OUTLET_AREAS[o.area].name}</h2></div></div>
+        <div className={`mt-3 rounded-2xl p-3 text-white ${chef ? "bg-[#292929]" : lux ? "bg-[#0a0a0a]" : "bg-[#1a0a0e]"}`}><div className="flex items-end justify-between gap-2"><div><span className="text-[10px] opacity-75">Takings waiting</span><b className="block text-2xl">{C.fmtN(r.takings)}</b><span className="text-[10px] opacity-75">{r.capped ? `Held ${C.OUTLET_HOLD_DAYS} game days: it stopped selling until you collect` : `${r.days.toFixed(1)} game days · after ${chef ? "the brand fee, stock" : "itel stock"} and wages`}</span></div><button disabled={busy || r.takings <= 0} onClick={() => collect(kind)} className="rounded-full px-4 py-2 text-sm font-extrabold text-ink disabled:opacity-40" style={{ background: chef ? "#F2B544" : "#ff6b86" }}>Collect</button></div>
           <div className="mt-2 grid grid-cols-4 gap-1 text-center text-[10px]">{[[String(r.customers), "customers a day"], [`${Math.round(r.quality)}%`, "quality"], [C.fmtShort(C.outletValue(o)), "value"], [C.fmtShort(o.earned), "earned"]].map(([a2, b2]) => <span key={b2} className="rounded-xl bg-white/10 p-1.5"><b className="block text-[12px]">{a2}</b>{b2}</span>)}</div></div>
         {r.quality < 80 && <p className="mt-2 rounded-xl bg-red-50 px-3 py-2 text-[11px] text-red-800">Quality is slipping: takings have sat uncollected too long. Collect to bring it back up.</p>}
         <p className="mt-3 text-[11px] font-bold uppercase tracking-wider text-slate">Staff · {t.staff} residents 🤖</p>
@@ -1158,8 +1175,8 @@ export default function LifeGame() {
         <p className="mt-3 text-[11px] font-bold uppercase tracking-wider text-slate">Power</p>
         <div className="mt-1">{o.backup ? <Row icon="🔋" title="Backup power fitted" note={`${C.OUTLET_BACKUP.name}: sells through every blackout`} right={<b className="text-emerald-700">OK</b>} />
           : <Row icon="⚡" title={nepa.out ? "NEPA has taken light: selling half" : "No backup power"} note={`Fit ${C.OUTLET_BACKUP.name}: full sales in blackouts, quality up`} right={<button disabled={busy} onClick={() => outletBackup(kind)} className="rounded-full bg-[#FF073C] px-3 py-1 font-bold text-white disabled:opacity-40">{C.fmtShort(C.OUTLET_BACKUP.price)}</button>} pick={nepa.out} />}</div>
-        <p className="mt-3 rounded-xl bg-slate-50 px-3 py-2 text-[11px] text-slate">🔍 {C.BRAND_NAME[t.brand]} inspection in {nextInspect} game day{nextInspect === 1 ? "" : "s"}: {chef ? "standard recipes, hygiene and stock" : "stock, displays and CarlCare service"}. Keep quality at 80% or more.</p>
-        {up && !p.outlets.some((x) => x.kind === up.id) && <div className="mt-3 rounded-2xl border-2 border-dashed p-2.5 text-[11px]" style={{ borderColor: chef ? "#F2B544" : "#FF073C" }}><b>Next: {up.icon} {up.short} · from {C.fmtShort(up.price)}.</b> {C.outletBlocker(up, { owned: p.owned, chefShifts: p.chefShifts, itelShifts: p.itelShifts, reputation: p.reputation, outlets: p.outlets }, now) ?? "You qualify now."} <button className="font-bold underline" onClick={() => setPanel({ partner: t.brand })}>See it</button></div>}
+        <p className="mt-3 rounded-xl bg-slate-50 px-3 py-2 text-[11px] text-slate">🔍 {C.BRAND_NAME[t.brand]} inspection in {nextInspect} game day{nextInspect === 1 ? "" : "s"}: {chef ? "standard recipes, hygiene and stock" : lux ? "fit, finishing and delivery times" : "stock, displays and CarlCare service"}. Keep quality at 80% or more.</p>
+        {up && !p.outlets.some((x) => x.kind === up.id) && <div className="mt-3 rounded-2xl border-2 border-dashed p-2.5 text-[11px]" style={{ borderColor: chef ? "#F2B544" : lux ? "#d4af37" : "#FF073C" }}><b>Next: {up.icon} {up.short} · from {C.fmtShort(up.price)}.</b> {C.outletBlocker(up, { owned: p.owned, chefShifts: p.chefShifts, itelShifts: p.itelShifts, reputation: p.reputation, outlets: p.outlets }, now) ?? "You qualify now."} <button className="font-bold underline" onClick={() => setPanel({ partner: t.brand })}>See it</button></div>}
       </div>);
     }
     function businessPanel(close: ReactNode) {
@@ -1346,6 +1363,23 @@ export default function LifeGame() {
         {(["market", "wuse2"] as C.StreetPlace[]).map((pl) => <div key={pl} className="mt-3"><p className="text-[11px] font-bold uppercase tracking-wider text-slate">{C.PLACES.find((x) => x.id === pl)?.icon} {C.PLACES.find((x) => x.id === pl)?.name}</p>
           <div className="mt-1 grid gap-2">{C.ERRANDS.filter((e) => C.MARKET_SHOPS[e.spot].place === pl).map(errandRow)}</div></div>)}</div>);
     }
+    // LUXNAS at its shop: who they are, LUXNAS Academy, the jobs, and owning a studio.
+    function luxnasBox(tNow: number) {
+      const open = C.dwOpen(tNow), inClass = s.activity?.kind === "class";
+      return (<div className="mt-3 space-y-3">
+        <div className="rounded-2xl bg-[#0a0a0a] p-3 text-white">{brandHead("luxnas")}<p className="mt-2 text-[11px] text-white/80">A boutique lifestyle, business and fashion brand from {C.LUXNAS.origin}, led by CEO {C.LUXNAS.ceo} (@{C.LUXNAS.ceoHandle}). Custom tailoring, embroidery, ready-to-wear and bespoke African fashion.</p>
+          <ul className="mt-1 list-disc pl-4 text-[11px] text-white/80">{C.LUXNAS.offers.map((o) => <li key={o}>{o}</li>)}</ul>
+          <div className="mt-2 flex flex-wrap gap-1.5 text-[11px] font-bold"><a href={C.LUXNAS.shop} target="_blank" rel="noreferrer" className="rounded-full bg-[#d4af37] px-3 py-1 text-[#0a0a0a]">LUXNAS on NotesApp ↗</a><a href={`/u/${C.LUXNAS.ceoHandle}`} target="_blank" rel="noreferrer" className="rounded-full border border-white/30 px-3 py-1">@{C.LUXNAS.ceoHandle}</a><a href={C.LUXNAS.instagram} target="_blank" rel="noreferrer" className="rounded-full border border-white/30 px-3 py-1">Instagram ↗</a></div></div>
+        <div><p className="text-[11px] font-bold uppercase tracking-wider text-slate">🎓 LUXNAS Academy · classes {open ? "on now" : "9 AM to 6 PM"}</p>
+          <div className="mt-1 grid gap-2">{C.LUX_COURSES.map((c) => { const cert = p.luxCerts.includes(c.id), done = p.luxCourses[c.id], enrolled = done !== undefined;
+            return <Row key={c.id} icon={c.icon} title={c.name} note={cert ? `✓ Certified · ${C.JOB(c.job)?.title} is open to you` : enrolled ? `${done} of ${c.classes} classes done` : `${c.classes} classes of ${C.LUX_CLASS_HOURS} game hours · then ${C.JOB(c.job)?.title}`}
+              right={cert ? <span className="text-[11px] font-bold text-emerald-700">Certified</span> : !enrolled ? <button disabled={busy} onClick={(ev) => { ev.stopPropagation(); void act({ action: "lux_enroll", course: c.id }).then((r) => r && say(`🧵 ${(r as { message?: string }).message ?? "Enrolled."}`)); }} className="rounded-full bg-[#0a0a0a] px-3 py-1 text-xs font-bold text-[#d4af37]">{C.fmtShort(c.price)}</button>
+                : <button disabled={busy || !open || inClass || !!s.activity} onClick={(ev) => { ev.stopPropagation(); void luxClass(c); }} className="rounded-full bg-[#d4af37] px-3 py-1 text-xs font-bold text-[#0a0a0a] disabled:opacity-40">Class</button>} />; })}</div></div>
+        <div><p className="text-[11px] font-bold uppercase tracking-wider text-slate">💼 Work at LUXNAS</p><div className="mt-1 grid gap-2">{C.JOBS.filter((j) => j.brand === "luxnas").map(jobRow)}</div>
+          {job?.brand === "luxnas" && <div className="mt-2">{p.shift ? <span className="text-xs font-semibold">On shift now</span> : <Btn tone="green" onClick={startShift}>Start a LUXNAS shift</Btn>}</div>}</div>
+        {partnerCard("luxnas")}
+      </div>);
+    }
     function marketPanel(close: ReactNode, sp: C.MarketSpot) {
       const shop = C.MARKET_SHOPS[sp], r = shop.who ? C.RESIDENT(shop.who) : null, tNow = Date.now() + offset.current;
       const sells = C.STREET.filter((x) => x.spot === sp), jobs = C.ERRANDS.filter((e) => e.spot === sp);
@@ -1355,6 +1389,7 @@ export default function LifeGame() {
         {sp === "emerald" && r?.story && <p className="mt-2 rounded-2xl bg-emerald-50 p-3 text-xs text-emerald-900">💎 {r.story} He&apos;s #1 on the {C.RICH_TITLE}.</p>}
         {sells.length > 0 && <><p className="mt-3 text-[11px] font-bold uppercase tracking-wider text-slate">On sale</p><div className="mt-1 grid gap-2">{sells.map((x) => { const open = C.openAt(x.hours, tNow); return <Row key={x.id} icon={x.icon} title={x.name} note={<>{x.note}{!open && x.hours ? <b className="block text-amber-700">Open {C.hoursLabel(x.hours)}</b> : null}</>} right={<button disabled={busy || !open || !!s.activity} onClick={(ev) => { ev.stopPropagation(); void streetBuy(x); }} className="rounded-full bg-ink px-3 py-1 text-xs font-bold text-white disabled:opacity-40">{C.fmtShort(x.price)}</button>} />; })}</div></>}
         {jobs.length > 0 && <><p className="mt-3 text-[11px] font-bold uppercase tracking-wider text-slate">Errands</p><div className="mt-1 grid gap-2">{jobs.map(errandRow)}</div></>}
+        {sp === "tailor" && luxnasBox(tNow)}
         {!sells.length && !jobs.length && <p className="mt-3 text-sm text-slate">{sp === "park" ? "Taxis wait here for the offices and the lounges. Tap Go to ride elsewhere." : "Nothing for you here right now."}</p>}
         <p className="mt-3 text-[11px] font-bold uppercase tracking-wider text-slate">Walk to</p>
         <div className="mt-1 flex flex-wrap gap-1.5">{C.spotsOf(shop.place).filter((k) => k !== sp).map((k) => <button key={k} onClick={() => { setMspot(k); setPanel({ market: k }); }} className="rounded-full border px-2.5 py-1 text-[11px] font-semibold">{C.MARKET_SHOPS[k].icon} {C.MARKET_SHOPS[k].name}</button>)}</div></div>);

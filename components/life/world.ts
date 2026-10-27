@@ -60,17 +60,39 @@ export function createWorld(canvas: HTMLCanvasElement) {
     const sun = new THREE.DirectionalLight("#fff4e0", 1.5 * day); sun.position.set(7, 14, 8); sun.castShadow = true; sun.shadow.mapSize.set(1024, 1024);
     Object.assign(sun.shadow.camera, { left: -16, right: 16, top: 16, bottom: -16 }); scene.add(sun);
   }
-  function person(x: number, z: number, shirt: string, rot = 0, y = 0, skin = "#6b3f22", legs = "#1f2937", dress = false, hair = "#111") {
+  // A person. Legs and arms hang from the hip and shoulder (g.userData.limbs) so they can swing when walking (walkCycle).
+  // dress: false (trousers), true or "gown" (a long gown, feet showing), "skirt" (a short skirt or dress, legs showing), "bikini".
+  type Dress = boolean | "gown" | "skirt" | "bikini";
+  function person(x: number, z: number, shirt: string, rot = 0, y = 0, skin = "#6b3f22", legs = "#1f2937", dress: Dress = false, hair = "#111") {
     const g = new THREE.Group();
-    const add = (geo: THREE.BufferGeometry, c: string, px: number, py: number, pz: number) => { const m = new THREE.Mesh(geo, mat(c)); m.position.set(px, py, pz); m.castShadow = true; g.add(m); };
-    if (dress) { add(new THREE.CylinderGeometry(0.22, 0.38, 0.85, 14), shirt, 0, 0.45, 0); add(new THREE.CylinderGeometry(0.06, 0.06, 0.1, 8), skin, -0.12, 0.03, 0); add(new THREE.CylinderGeometry(0.06, 0.06, 0.1, 8), skin, 0.12, 0.03, 0); }
-    else { add(new THREE.CylinderGeometry(0.11, 0.1, 0.8, 10), legs, -0.13, 0.4, 0); add(new THREE.CylinderGeometry(0.11, 0.1, 0.8, 10), legs, 0.13, 0.4, 0); }
-    add(new THREE.BoxGeometry(0.55, 0.7, 0.3), shirt, 0, 1.15, 0);
-    add(new THREE.CylinderGeometry(0.07, 0.07, 0.6, 8), skin, -0.36, 1.12, 0); add(new THREE.CylinderGeometry(0.07, 0.07, 0.6, 8), skin, 0.36, 1.12, 0);
+    const add = (geo: THREE.BufferGeometry, c: string, px: number, py: number, pz: number, to: THREE.Object3D = g) => { const m = new THREE.Mesh(geo, mat(c)); m.position.set(px, py, pz); m.castShadow = true; to.add(m); return m; };
+    const style = dress === true ? "gown" : dress;
+    const limb = (px: number, py: number) => { const h = new THREE.Group(); h.position.set(px, py, 0); g.add(h); return h; };
+    // legs from the hip (y 0.8): trousers, or skin under a skirt or a bikini; shoes at the end
+    const legL = limb(-0.13, 0.8), legR = limb(0.13, 0.8);
+    for (const leg of [legL, legR]) {
+      const bare = style === "skirt" || style === "bikini" || style === "gown";
+      add(new THREE.CylinderGeometry(bare ? 0.08 : 0.11, bare ? 0.07 : 0.1, 0.8, 10), bare ? skin : legs, 0, -0.4, 0, leg);
+      add(new THREE.BoxGeometry(0.2, 0.08, 0.32), style === "gown" || style === "skirt" ? shirt : "#f8fafc", 0, -0.76, 0.04, leg);
+    }
+    if (style === "gown") add(new THREE.CylinderGeometry(0.22, 0.4, 0.82, 14), shirt, 0, 0.47, 0);
+    if (style === "skirt") add(new THREE.CylinderGeometry(0.24, 0.34, 0.36, 14), shirt, 0, 0.7, 0);
+    if (style === "bikini") { add(new THREE.BoxGeometry(0.5, 0.16, 0.28), shirt, 0, 0.82, 0); add(new THREE.BoxGeometry(0.5, 0.42, 0.26), skin, 0, 1.1, 0); add(new THREE.BoxGeometry(0.52, 0.16, 0.3), shirt, 0, 1.3, 0.01); add(new THREE.BoxGeometry(0.5, 0.16, 0.26), skin, 0, 1.44, 0); }
+    else add(new THREE.BoxGeometry(0.55, 0.7, 0.3), shirt, 0, 1.15, 0);
+    // arms from the shoulder (y 1.42)
+    const armL = limb(-0.36, 1.42), armR = limb(0.36, 1.42);
+    for (const arm of [armL, armR]) add(new THREE.CylinderGeometry(0.07, 0.07, 0.6, 8), skin, 0, -0.3, 0, arm);
     add(new THREE.SphereGeometry(0.24, 20, 14), skin, 0, 1.75, 0); add(new THREE.SphereGeometry(0.245, 20, 14, 0, Math.PI * 2, 0, 1.2), hair, 0, 1.78, 0);
-    if (dress) { const gele = new THREE.Mesh(new THREE.TorusGeometry(0.2, 0.09, 8, 16), mat(shirt === "#ffffff" ? "#e53935" : shirt)); gele.rotation.x = Math.PI / 2.4; gele.position.set(0, 1.98, -0.02); g.add(gele); }
-    add(new THREE.BoxGeometry(0.2, 0.08, 0.32), "#f8fafc", -0.13, 0.04, 0.04); add(new THREE.BoxGeometry(0.2, 0.08, 0.32), "#f8fafc", 0.13, 0.04, 0.04);
+    if (style === "gown") { const gele = new THREE.Mesh(new THREE.TorusGeometry(0.2, 0.09, 8, 16), mat(shirt === "#ffffff" ? "#e53935" : shirt)); gele.rotation.x = Math.PI / 2.4; gele.position.set(0, 1.98, -0.02); g.add(gele); }
+    if (style === "skirt" || style === "bikini") { const bun = new THREE.Mesh(new THREE.SphereGeometry(0.13, 12, 10), mat(hair)); bun.position.set(0, 1.98, -0.12); g.add(bun); }
+    g.userData.limbs = { legL, legR, armL, armR };
     g.position.set(x, y, z); g.rotation.y = rot; scene.add(g); return g;
+  }
+  // Swings a person's legs and arms (phase in radians, amount 0 to stand still).
+  function walkCycle(g: THREE.Object3D, phase: number, amount = 1) {
+    const l = g.userData.limbs as { legL: THREE.Group; legR: THREE.Group; armL: THREE.Group; armR: THREE.Group } | undefined; if (!l) return;
+    const a = Math.sin(phase) * 0.55 * amount;
+    l.legL.rotation.x = a; l.legR.rotation.x = -a; l.armL.rotation.x = -a * 0.8; l.armR.rotation.x = a * 0.8;
   }
   // A roadside billboard: two posts, a dark frame, the advert lit like a backlit board (a tag sits on it so it can be tapped).
   // src null: the house board, "Your advert here", for the advertisers' billboard when no campaign is running.
@@ -659,7 +681,7 @@ export function createWorld(canvas: HTMLCanvasElement) {
         { x: -37.6, w: 0, floors: 0, wall: "#0284c7", stall: "loo" },
         { spot: "keke", x: -31, w: 9, floors: 0, wall: "#a8a29e", stall: "stalls", stand: 5.2 },
         { spot: "pharmacy", x: -22.5, w: 5, floors: 2, wall: "#f1f5f9", band: "#15803d", sign: ["WuseCare Pharmacy  ✚", "#15803d", "#ffffff"], acs: true },
-        { spot: "tailor", x: -17, w: 5, floors: 2, wall: "#fde68a", band: "#be185d", sign: ["Halima Stitches\nTailoring · Aso-ebi", "#be185d", "#ffffff"], acs: true },
+        { spot: "tailor", x: -17, w: 5, floors: 2, wall: "#f5f5f4", band: "#0a0a0a", glass: "#fde68a", sign: ["LUXNAS\nBespoke African fashion", "#0a0a0a", "#d4af37"], acs: true },
         { spot: "phones", x: -11.5, w: 5, floors: 2, wall: "#e0f2fe", band: "#0369a1", sign: ["Chinedu Phones\n& Accessories", "#0369a1", "#ffffff"], acs: true },
         { spot: "soup", x: -6, w: 5, floors: 1, wall: "#fed7aa", band: "#b91c1c", sign: ["Mama Nkechi's\nPepper Soup", "#b91c1c", "#fef3c7"] },
         { spot: "barber", x: -0.8, w: 4.6, floors: 2, wall: "#ede9fe", band: "#111827", sign: ["FRESH CUT\nBarbers", "#111827", "#facc15"], acs: true },
@@ -703,6 +725,32 @@ export function createWorld(canvas: HTMLCanvasElement) {
     else if (kind === "bus") { gbox(g, 4.6, 1.5, 1.7, "#facc15", 0, 0.35, 0); gbox(g, 4.62, 0.12, 1.72, "#111827", 0, 1.35, 0); gbox(g, 4.0, 0.5, 1.74, "#1f2937", 0.1, 1.05, 0); for (const x of [-1.6, 1.6]) { gwheel(g, x, -0.85); gwheel(g, x, 0.85); } }
     else { gbox(g, 3.4, 0.6, 1.5, kind === "taxi" ? "#16a34a" : colour, 0, 0.3, 0); gbox(g, 1.9, 0.55, 1.36, kind === "taxi" ? "#facc15" : "#0f172a", -0.15, 0.9, 0, { roughness: 0.3, metalness: 0.3 }); for (const x of [-1.1, 1.1]) { gwheel(g, x, -0.75); gwheel(g, x, 0.75); } if (kind === "taxi") gbox(g, 3.42, 0.1, 1.52, "#facc15", 0, 0.62, 0); }
     return g;
+  }
+  // A red LED message board on a black ground: dot-matrix text that scrolls right to left, lit day and night.
+  function ledSign(text: string, w: number, h: number, x: number, y: number, z: number, speed = 0.06) {
+    // the canvas is a whole number of message widths, so the scroll loops without a seam
+    const font = "bold 92px monospace", line = `${text}   ◆   `;
+    const probe = document.createElement("canvas").getContext("2d")!; probe.font = font;
+    const tw = Math.ceil(probe.measureText(line).width), n = Math.max(1, Math.round(2048 / tw)), CW = tw * n, CH = 128;
+    const tex = canvasTex(CW, CH, (g, cw, ch) => {
+      g.fillStyle = "#050505"; g.fillRect(0, 0, cw, ch);
+      g.font = font; g.textBaseline = "middle"; g.shadowColor = "#ff1a1a"; g.shadowBlur = 18; g.fillStyle = "#ff2b2b";
+      for (let k = 0; k < n; k++) g.fillText(line, k * tw, ch / 2 + 4);
+      g.shadowBlur = 0; g.fillStyle = "rgba(0,0,0,0.55)"; for (let gx = 0; gx < cw; gx += 8) g.fillRect(gx, 0, 3, ch); for (let gy = 0; gy < ch; gy += 8) g.fillRect(0, gy, cw, 3);
+    });
+    tex.wrapS = THREE.RepeatWrapping; tex.repeat.set((w / h) / (CW / CH), 1);
+    box(w + 0.2, h + 0.2, 0.18, "#111827", x, y - h / 2 - 0.1, z - 0.1);
+    const m = new THREE.Mesh(new THREE.PlaneGeometry(w, h), new THREE.MeshBasicMaterial({ map: tex })); m.position.set(x, y, z + 0.01); scene.add(m);
+    anims.push((t) => { tex.offset.x = ((t / 1000) * speed * (tw / CW) * 6) % 1; });
+    return m;
+  }
+  // A billboard drawn here (no image file): a partner's message on the board.
+  function textBoard(key: string, draw: (g: CanvasRenderingContext2D, w: number, h: number) => void, x: number, z: number, w: number, h: number, up: number) {
+    const g0 = new THREE.Group(); g0.position.set(x, 0.14, z); scene.add(g0);
+    for (const dx of [-w * 0.3, w * 0.3]) { const p = new THREE.Mesh(new THREE.BoxGeometry(0.16, up, 0.16), mat("#374151")); p.position.set(dx, up / 2, -0.12); g0.add(p); }
+    const fr = new THREE.Mesh(new THREE.BoxGeometry(w + 0.24, h + 0.24, 0.18), mat("#111827")); fr.position.set(0, up + h / 2, -0.12); g0.add(fr);
+    const face = new THREE.Mesh(new THREE.PlaneGeometry(w, h), new THREE.MeshBasicMaterial({ map: canvasTex(1600, Math.round(1600 * h / w), draw) })); face.position.set(0, up + h / 2, 0); g0.add(face);
+    tag(key, x, up + h + 0.5, z);
   }
   async function strip(s: Extract<SceneSpec, { id: "strip" }>) {
     const L = STRIPS[s.place], night = s.night, two = s.place === "wuse2";
@@ -787,10 +835,23 @@ export function createWorld(canvas: HTMLCanvasElement) {
         for (let k = 0; k < 3; k++) { const sx = f.x - 3 + k * 3; box(2.4, 0.8, 1.2, "#92400e", sx, 0.14, -1.4); const roof = box(2.8, 0.06, 1.8, "#9ca3af", sx, 2.3, -1.4); roof.rotation.x = 0.12; for (const dx of [-1.2, 1.2]) cyl(0.05, 2.2, "#6b7280", sx + dx, 0.14, -0.7);
           ["#dc2626", "#ea580c", "#a16207", "#16a34a"].forEach((c, j) => { for (let q = 0; q < 3; q++) { const b = new THREE.Mesh(new THREE.SphereGeometry(0.1, 8, 6), mat(c)); b.position.set(sx - 0.9 + j * 0.6 + q * 0.12, 1.02, -1.3 + (q % 2) * 0.15); scene.add(b); } }); }
         for (let k = 0; k < 3; k++) { const v = vehicle("keke", ""); v.position.set(f.x - 3 + k * 2.4, 0.14, 1.2); v.rotation.y = Math.PI / 2; scene.add(v); }
-        sign(L.title, "#14532d", "#fef08a", 6.0, 0.7, f.x, 3.4, -2.2, 80);
+        ledSign(L.title, 6.4, 0.7, f.x, 3.5, -2.2);
       }
-      if (f.stall === "cars") { ["#e5e7eb", "#111827", "#991b1b", "#1d4ed8"].forEach((c, k) => { const v = vehicle("car", c); v.position.set(f.x - 3.6 + k * 2.4, 0.14, -0.8); v.rotation.y = Math.PI / 2; scene.add(v); }); sign(L.title, "#0f172a", "#e2e8f0", 6.4, 0.7, f.x, 3.0, -2.6, 80); for (const dx of [-3.2, 3.2]) cyl(0.06, 2.6, "#475569", f.x + dx, 0.14, -2.5); }
+      if (f.stall === "cars") { ["#e5e7eb", "#111827", "#991b1b", "#1d4ed8"].forEach((c, k) => { const v = vehicle("car", c); v.position.set(f.x - 3.6 + k * 2.4, 0.14, -0.8); v.rotation.y = Math.PI / 2; scene.add(v); }); ledSign(L.title, 6.8, 0.7, f.x, 3.1, -2.55); for (const dx of [-3.2, 3.2]) cyl(0.06, 2.6, "#475569", f.x + dx, 0.14, -2.5); }
     }
+    // billboards on the rooftops (Zone 4) and along the crescent (Wuse II): partners, the challenge, and LUXNAS
+    const roofUp = (f: Front) => 0.6 + Math.max(1, f.floors) * 2.6 + 0.4;
+    const filler = L.fronts.filter((f) => !f.spot && f.w > 0);
+    if (s.place === "market") {
+      await Promise.all([billboard("bb:itel", IMG(BB.itelSun), filler[0].x, -4.2, 2.3, 2.88, 0, roofUp(filler[0])), billboard("bb:chef2", IMG(BB.shawarma), filler[1].x - 1.6, -4.2, 2.4, 3.0, 0, roofUp(filler[1])), billboard("bb:paylony", IMG(BB.paylony), filler[1].x + 1.8, -4.2, 2.4, 3.0, 0, roofUp(filler[1]))]);
+      const lux = L.fronts.find((f) => f.spot === "tailor")!;
+      textBoard("bb:luxnas", (g, w, h) => { g.fillStyle = "#0a0a0a"; g.fillRect(0, 0, w, h); g.strokeStyle = "#d4af37"; g.lineWidth = 14; g.strokeRect(20, 20, w - 40, h - 40); g.fillStyle = "#d4af37"; g.textAlign = "center"; g.font = "bold 210px serif"; g.fillText("LUXNAS", w / 2, h * 0.42); g.font = "64px serif"; g.fillStyle = "#f5f5f4"; g.fillText("Custom tailoring · Bespoke African fashion", w / 2, h * 0.62); g.font = "52px sans-serif"; g.fillStyle = "#d4af37"; g.fillText("@luxnas on NotesApp · ships worldwide", w / 2, h * 0.8); }, lux.x, -4.4, 4.6, 2.3, roofUp(lux));
+    } else {
+      const mall = L.fronts[L.fronts.length - 1];
+      await Promise.all([billboard("bb:challenge", CHALLENGE, -36.5, -1.4, 4.6, 2.6, 0.25, 2.2), billboard("bb:digitalwitch2", IMG(BB.digitalWitchWide), mall.x, -4.4, 4.6, 2.6, 0, roofUp(mall)), billboard("bb:itel2", IMG(BB.itelTank), L.fronts.find((f) => f.spot === "cafe")!.x, -4.4, 2.4, 3.0, 0, roofUp(L.fronts.find((f) => f.spot === "cafe")!))]);
+    }
+    // LUXNAS: two mannequins in the window, a Senator suit and an Ankara gown
+    if (s.place === "market") { const lx = L.fronts.find((f) => f.spot === "tailor")!.x; person(lx - 1.6, -1.75, "#14532d", 0, 0.14, "#e7e5e4", "#14532d"); person(lx - 0.6, -1.75, "#c2410c", 0, 0.14, "#e7e5e4", "#1f2937", "gown"); }
     // the barber's pole turns
     const bx = spotX(s.place, "barber");
     if (s.place === "market") { const stripes = canvasTex(64, 256, (g, w, h) => { for (let y = -h; y < h * 2; y += 48) { g.fillStyle = "#dc2626"; g.beginPath(); g.moveTo(0, y); g.lineTo(w, y + 32); g.lineTo(w, y + 52); g.lineTo(0, y + 20); g.fill(); g.fillStyle = "#1d4ed8"; g.beginPath(); g.moveTo(0, y + 24); g.lineTo(w, y + 56); g.lineTo(w, y + 64); g.lineTo(0, y + 32); g.fill(); } });
@@ -811,11 +872,17 @@ export function createWorld(canvas: HTMLCanvasElement) {
       const speed = (k === "keke" ? 3.2 : k === "bus" ? 3.6 : 5.2) * (east ? 1 : -1), off = i * 13;
       anims.push((t) => { v.position.x = ((((t / 1000) * speed + off) % 84) + 84) % 84 - 42; });
     });
-    const hawkers = two ? [["#0ea5e9", -14], ["#f59e0b", 9]] as const : [["#16a34a", -18], ["#e11d48", 2], ["#7c3aed", 20]] as const;
-    hawkers.forEach(([c, x0], i) => {
-      const h = person(x0, 1.4, c, Math.PI / 2, 0.14, i % 2 ? "#7a4a2c" : "#5b3520", "#1f2937", i % 2 === 1);
-      if (!two) { const tray = new THREE.Mesh(new THREE.CylinderGeometry(0.42, 0.36, 0.1, 14), mat("#a16207")); tray.position.set(0, 2.12, 0); h.add(tray); for (let k = 0; k < 5; k++) { const o = new THREE.Mesh(new THREE.SphereGeometry(0.09, 8, 6), mat(["#fb923c", "#facc15"][k % 2])); o.position.set(Math.cos(k) * 0.22, 2.22, Math.sin(k) * 0.22); h.add(o); } }
-      anims.push((t) => { const p = Math.sin(t / 5200 + i * 2); h.position.x = x0 + p * 5; h.rotation.y = Math.cos(t / 5200 + i * 2) > 0 ? Math.PI / 2 : -Math.PI / 2; h.position.y = 0.14 + Math.abs(Math.sin(t / 180)) * 0.04; });
+    // people walking the pavement both ways, legs and arms swinging: hawkers with trays in Zone 4, office workers in Wuse II, ladies in
+    // short dresses, skirts and gowns
+    type Walker = [string, number, number, Dress, boolean]; // shirt, start x, lane z, dress, tray
+    const walkers: Walker[] = two
+      ? [["#0ea5e9", -14, 1.3, false, false], ["#f472b6", 6, 0.9, "skirt", false], ["#111827", 18, 1.6, false, false], ["#a855f7", -4, 1.1, "skirt", false], ["#f59e0b", 26, 0.6, "gown", false]]
+      : [["#16a34a", -18, 1.4, false, true], ["#e11d48", 2, 1.2, "gown", true], ["#7c3aed", 20, 1.5, false, true], ["#f472b6", -8, 0.9, "skirt", false], ["#0ea5e9", 12, 1.0, false, false], ["#f59e0b", 28, 1.3, "skirt", false]];
+    walkers.forEach(([c, x0, lz, dr, tray], i) => {
+      const h = person(x0, lz, c, Math.PI / 2, 0.14, i % 2 ? "#7a4a2c" : "#5b3520", dr ? "#1f2937" : ["#1f2937", "#1e3a8a", "#374151"][i % 3], dr);
+      if (tray) { const tr = new THREE.Mesh(new THREE.CylinderGeometry(0.42, 0.36, 0.1, 14), mat("#a16207")); tr.position.set(0, 2.12, 0); h.add(tr); for (let k = 0; k < 5; k++) { const o = new THREE.Mesh(new THREE.SphereGeometry(0.09, 8, 6), mat(["#fb923c", "#facc15"][k % 2])); o.position.set(Math.cos(k) * 0.22, 2.22, Math.sin(k) * 0.22); h.add(o); } }
+      const span = 5 + (i % 3) * 2, per = 5200 + i * 700;
+      anims.push((t) => { const ph = t / per + i * 2; h.position.x = x0 + Math.sin(ph) * span; h.rotation.y = Math.cos(ph) > 0 ? Math.PI / 2 : -Math.PI / 2; walkCycle(h, t / 160 + i, Math.min(1, Math.abs(Math.cos(ph)) * 3)); });
     });
     // residents at their shops; Emerald at the door of Emerald Towers; two Bureau De Change operators with their bags at the kerb
     for (const spot of MARKET_SPOTS) { const shop = MARKET_SHOPS[spot]; if (shop.place !== s.place) continue; const x = L.fronts.find((f) => f.spot === spot)?.x ?? 0;
@@ -865,7 +932,7 @@ export function createWorld(canvas: HTMLCanvasElement) {
     if (disposed) return;
     controls.update();
     const t = performance.now();
-    if (tween && player) { const k = Math.min(1, (t - tween.t0) / tween.ms); player.position.lerpVectors(tween.from, tween.to, k); if (tween.bob) player.position.y = tween.to.y + Math.abs(Math.sin(t / 140)) * 0.07; if (k >= 1) { player.position.y = tween.to.y; player.rotation.y = tween.rot; tween = null; } }
+    if (tween && player) { const k = Math.min(1, (t - tween.t0) / tween.ms); player.position.lerpVectors(tween.from, tween.to, k); if (tween.bob) { player.position.y = tween.to.y + Math.abs(Math.sin(t / 140)) * 0.04; walkCycle(player, t / 140); } if (k >= 1) { player.position.y = tween.to.y; player.rotation.y = tween.rot; walkCycle(player, 0, 0); tween = null; } }
     for (const f of anims) f(t);
     if (follow && player) { const dx = (player.position.x - controls.target.x) * 0.06; if (Math.abs(dx) > 0.0005) { controls.target.x += dx; cam.position.x += dx; } }
     r.render(scene, cam);

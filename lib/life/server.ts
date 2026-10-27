@@ -4,7 +4,7 @@ import {
   CITY, DEALS, FOOD, FOOD_MODES, GAME_DAY_MS, GAME_HOUR_MS, HOTEL_OF, ITEM, JOB, MONTH_DAYS, NEGOTIATE_CHANCE, ORDER_MAX_ITEMS, RECIPE, RENT_NAIRA,
   SHIFT_MS, START_NAIRA, STARTER_ITEMS, TRANSPORT_OF, bestOwned, cookingSkill, fmtN, jobBlocker, netWorth, shiftPay, FUEL_NAIRA, RESIDENTS, nepaAt, type FoodMode,
   swimSkill, hotelCheckout, lodged, worldTime, DW_COURSE, DW_CLASS_HOURS, DW_CLASS_MS, DW_CLASS_EFFECT, dwOpen, giveawayOn, giveawayEligible, giveawayWeek, giveawayPrize, GIVEAWAY, OUTLET, OUTLET_AREAS, OUTLET_BACKUP, STAFF_PERKS, isStaff, itemPrice, hotelPrice, outletBlocker, outletPrice, outletTakings, shiftExtra, type Outlet, type OutletArea,
-  ERRAND, STREET_OF, BARBER_STREET_MS, errandBlocker, worldDay, MARKET_SHOPS, CONVOY, convoyAt, convoyNextFor, lifeDay, RESTROOM, restroomBoost,
+  ERRAND, STREET_OF, BARBER_STREET_MS, errandBlocker, worldDay, MARKET_SHOPS, CONVOY, convoyAt, convoyNextFor, lifeDay, RESTROOM, restroomBoost, LUX_COURSE, LUX_CLASS_HOURS, LUX_CLASS_EFFECT,
 } from "./catalog";
 
 // Server-only. Notes Life money and ownership: lifePlayers/{uid} (the player, read by the owner, written only here) and lifeTx/{id}
@@ -21,7 +21,7 @@ export type LifePlayer = {
   outlets: Outlet[]; swimLessons: number; swims: number; gymSessions: number; cityNotify: string[];
   certs: string[]; dwCourses: Record<string, number>; dwClassAt: number; techShifts: number; giveawayWeek: number; // Digital Witch: certificates, classes done per course enrolled, last class, tech shifts, last giveaway week
   hotelUntil: number; // a Candellux suite: yours till this checkout time (11 AM game time), 0 when you have none
-  errand: { id: string; endsAt: number; pay: number } | null; errandDay: number; errandsDone: string[]; errands: number; convoyAt: number; lastSwimAt: number; lastVipAt: number; // last swim (pool or lesson) and last VIP bar visit, for the restrooms; // convoyAt: when Emerald's convoy last gave you a gift. Errands: the one running, today's (game day) done list, all done
+  errand: { id: string; endsAt: number; pay: number } | null; errandDay: number; errandsDone: string[]; errands: number; convoyAt: number; lastSwimAt: number; lastVipAt: number; luxShifts: number; luxCourses: Record<string, number>; luxCerts: string[]; luxClassAt: number; // LUXNAS: shifts, academy classes per course, certificates, last class; // last swim (pool or lesson) and last VIP bar visit, for the restrooms; // convoyAt: when Emerald's convoy last gave you a gift. Errands: the one running, today's (game day) done list, all done
 
   jobId: string | null; shift: { jobId: string; startedAt: number; endsAt: number; pay: number } | null;
   deal: Deal | null; lastDealAt: number; rentMonths: number; rentOwed: number; barberUntil: number; gymUntil: number;
@@ -51,7 +51,8 @@ function fromDoc(uid: string, d: FirebaseFirestore.DocumentData | undefined, pro
     certs: Array.isArray(d?.certs) ? (d!.certs as string[]).filter((c) => !!DW_COURSE(c)) : [],
     dwCourses: Object.fromEntries(Object.entries((d?.dwCourses ?? {}) as Record<string, unknown>).filter(([k]) => !!DW_COURSE(k)).map(([k, v]) => [k, num(v)])),
     dwClassAt: num(d?.dwClassAt), techShifts: num(d?.techShifts), giveawayWeek: num(d?.giveawayWeek, -1), hotelUntil: num(d?.hotelUntil),
-    errand: d?.errand && ERRAND(String(d.errand.id)) ? { id: String(d.errand.id), endsAt: num(d.errand.endsAt), pay: num(d.errand.pay) } : null, errandDay: num(d?.errandDay, -1), errandsDone: Array.isArray(d?.errandsDone) ? (d!.errandsDone as unknown[]).map(String).filter((x) => !!ERRAND(x)) : [], errands: num(d?.errands), convoyAt: num(d?.convoyAt), lastSwimAt: num(d?.lastSwimAt), lastVipAt: num(d?.lastVipAt),
+    errand: d?.errand && ERRAND(String(d.errand.id)) ? { id: String(d.errand.id), endsAt: num(d.errand.endsAt), pay: num(d.errand.pay) } : null, errandDay: num(d?.errandDay, -1), errandsDone: Array.isArray(d?.errandsDone) ? (d!.errandsDone as unknown[]).map(String).filter((x) => !!ERRAND(x)) : [], errands: num(d?.errands), convoyAt: num(d?.convoyAt), lastSwimAt: num(d?.lastSwimAt), lastVipAt: num(d?.lastVipAt), luxShifts: num(d?.luxShifts), luxClassAt: num(d?.luxClassAt),
+    luxCourses: Object.fromEntries(Object.entries((d?.luxCourses ?? {}) as Record<string, unknown>).filter(([k]) => !!LUX_COURSE(k)).map(([k, v]) => [k, num(v)])), luxCerts: Array.isArray(d?.luxCerts) ? (d!.luxCerts as unknown[]).map(String).filter((c) => !!LUX_COURSE(c)) : [],
     cityNotify: Array.isArray(d?.cityNotify) ? (d!.cityNotify as string[]).filter((c) => COMING_CITY_IDS.includes(c)) : [],
     jobId: typeof d?.jobId === "string" ? d.jobId : null, shift: d?.shift ?? null, deal: d?.deal ?? null, lastDealAt: num(d?.lastDealAt, now),
     rentMonths: num(d?.rentMonths), rentOwed: num(d?.rentOwed), barberUntil: num(d?.barberUntil), gymUntil: num(d?.gymUntil),
@@ -134,7 +135,9 @@ export type Action =
   | { action: "errand_cancel" }
   | { action: "street"; service: string }
   | { action: "convoy_gift" }
-  | { action: "restroom"; at: string };
+  | { action: "restroom"; at: string }
+  | { action: "lux_enroll"; course: string }
+  | { action: "lux_class"; course: string };
 
 export async function act(db: Firestore, uid: string, a: Action, now = Date.now(), rand: () => number = Math.random) {
   return mutate(db, uid, (p, lines) => {
@@ -198,7 +201,7 @@ export async function act(db: Firestore, uid: string, a: Action, now = Date.now(
         const j = JOB(String(a.job));
         if (!j) throw new LifeError(400, "That job doesn't exist.");
         if (p.shift) throw new LifeError(409, "Finish your shift first.");
-        const block = jobBlocker(j, { owned: p.owned, cooking: cookingSkill(p.cooks), chefShifts: p.chefShifts, itelShifts: p.itelShifts, hotelShifts: p.hotelShifts, reputation: p.reputation, fit: p.gymUntil > now, swim: swimSkill(p.swimLessons, p.swims), gymSessions: p.gymSessions, certs: p.certs });
+        const block = jobBlocker(j, { owned: p.owned, cooking: cookingSkill(p.cooks), chefShifts: p.chefShifts, itelShifts: p.itelShifts, hotelShifts: p.hotelShifts, luxShifts: p.luxShifts, luxCerts: p.luxCerts, reputation: p.reputation, fit: p.gymUntil > now, swim: swimSkill(p.swimLessons, p.swims), gymSessions: p.gymSessions, certs: p.certs });
         if (block) throw new LifeError(403, block);
         p.jobId = j.id;
         return { message: `You're hired: ${j.title}, ${j.employer.split(" · ")[0]}.` };
@@ -239,6 +242,7 @@ export async function act(db: Firestore, uid: string, a: Action, now = Date.now(
         if (j?.brand === "chef_adams") p.chefShifts += 1;
         if (j?.brand === "itel") p.itelShifts += 1;
         if (j?.brand === "candellux") p.hotelShifts += 1;
+        if (j?.brand === "luxnas") p.luxShifts += 1;
         if (j?.tech) p.techShifts += 1;
         const pay = p.shift.pay + extra;
         p.shift = null;
@@ -406,6 +410,30 @@ export async function act(db: Firestore, uid: string, a: Action, now = Date.now(
         if ("blocked" in b) throw new LifeError(403, b.blocked);
         debit(p, lines, b.price, `Wuse Market · ${r.name}`, "food");
         return { need: b.need, pct: b.pct };
+      }
+      // ---- LUXNAS Academy: pay once for a course, then a class at a time at the LUXNAS shop (9 AM to 6 PM); the last class certifies ----
+      case "lux_enroll": {
+        const c = LUX_COURSE(String(a.course));
+        if (!c) throw new LifeError(400, "Choose a course.");
+        if (p.luxCerts.includes(c.id)) throw new LifeError(409, `You're already LUXNAS certified in ${c.name}.`);
+        if (c.id in p.luxCourses) throw new LifeError(409, `You're already on the ${c.name} course.`);
+        debit(p, lines, c.price, `LUXNAS Academy · ${c.name}`, "dw");
+        p.luxCourses = { ...p.luxCourses, [c.id]: 0 };
+        return { message: `You're enrolled: ${c.name}, ${c.classes} classes at LUXNAS, Wuse Market.` };
+      }
+      case "lux_class": {
+        const c = LUX_COURSE(String(a.course));
+        if (!c) throw new LifeError(400, "Choose a course.");
+        if (p.luxCerts.includes(c.id)) throw new LifeError(409, `You're already certified in ${c.name}.`);
+        if (!(c.id in p.luxCourses)) throw new LifeError(403, `Pay for the ${c.name} course first.`);
+        if (!dwOpen(now)) throw new LifeError(409, "LUXNAS Academy classes run from 9 AM to 6 PM.");
+        if (now < p.luxClassAt + LUX_CLASS_HOURS * GAME_HOUR_MS - 3_000) throw new LifeError(409, "You're in a class already. One class at a time.");
+        const done = (p.luxCourses[c.id] ?? 0) + 1;
+        p.luxCourses = { ...p.luxCourses, [c.id]: done };
+        p.luxClassAt = now;
+        const cert = done >= c.classes;
+        if (cert) p.luxCerts = [...p.luxCerts, c.id];
+        return { minutes: LUX_CLASS_HOURS * 60, effect: LUX_CLASS_EFFECT, done, of: c.classes, cert };
       }
       case "city_notify": {
         const c = String(a.city);
