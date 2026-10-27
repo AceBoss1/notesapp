@@ -11,6 +11,15 @@ export type Release = {
 
 export const CHANGELOG: Release[] = [
   {
+    version: "v0.96.0",
+    bump: "minor",
+    date: "2026-10-27",
+    changes: [
+      { kind: "added", text: "Notes Life: Hygiene and Bladder away from home. Tap 🚻 Restroom wherever you are. At the Candellux, a suite guest's WC and bathroom fill both; the new outdoor shower by the pool fills Hygiene if you swam in the last 24 game hours (otherwise +50); the VIP bar restroom fills Bladder if you used the VIP bar in that time (otherwise +50); the pool bar restroom gives Bladder +50." },
+      { kind: "added", text: "Bladder +50 at itel Energy, Chef Adams, Emerald Towers and the Digital Witch hub, and emergency mobile WC (N$ 500) and shower (N$ 800) units at Wuse Market that fill the need." },
+    ],
+  },
+  {
     version: "v0.95.0",
     bump: "minor",
     date: "2026-10-27",

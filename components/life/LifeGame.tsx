@@ -27,7 +27,7 @@ import { SITE } from "@/lib/site";
 type Player = LifePlayer & { cooking: number; swimming: number; serverNow: number };
 type Panel =
   | "welcome" | "needs" | "sleep" | "desk" | "outfit" | "cook" | "deal" | "go" | "food" | "hotel" | "phone" | "jobs" | "friends"
-  | "invite" | "bank" | "rich" | "settings" | "cardtap" | "ebike" | "nepa" | "power" | "itel" | "product" | "business" | "kitchen" | "arrive" | "hotelpool" | "vip" | "dw" | "errands" | "convoy" | "busstand" | { market: C.MarketSpot } | { shop: C.ItemCat } | { chat: string } | { player: Present }
+  | "invite" | "bank" | "rich" | "settings" | "cardtap" | "ebike" | "nepa" | "power" | "itel" | "product" | "business" | "kitchen" | "arrive" | "hotelpool" | "vip" | "dw" | "errands" | "convoy" | "busstand" | "restroom" | { market: C.MarketSpot } | { shop: C.ItemCat } | { chat: string } | { player: Present }
   | { jobs: C.Brand } | { partner: "chef_adams" | "itel" } | { outlet: C.OutletKind } | null;
 type Toast = { text: string; share?: string; tone?: "ok" | "warn" } | null;
 type Friend = { uid: string; username: string; name: string; avatar: string; plays: boolean; netWorth: number };
@@ -494,6 +494,14 @@ export default function LifeGame() {
     setPanel(null);
     say(`💎 Emerald Ezurukam gave you ${C.fmtN(r.gift)}! “Use it well. Build something.”`, shareText(`Emerald Ezurukam's convoy stopped at the Wuse bus stand in Notes Life and he gave me ${C.fmtN(r.gift)} 💎`));
   }
+  // Restrooms away from home: the server works out the boost (and charges the Wuse Market units); 100 fills the need, 50 adds 50.
+  async function useRestroom(r: C.Restroom) {
+    const r0 = await act<{ need: C.Need; pct: number }>({ action: "restroom", at: r.id });
+    if (!r0) return;
+    update((x) => ({ ...x, needs: r0.pct >= 100 ? applyNeeds(x.needs, undefined, { [r0.need]: 100 }) : applyNeeds(x.needs, { [r0.need]: 50 }) }));
+    sfx("water");
+    say(`${r.icon} ${r.name}: ${r0.need === "bladder" ? "Bladder" : "Hygiene"} ${r0.pct >= 100 ? "to 100%" : "+50"}.`);
+  }
   function waitAtStand() {
     const pl = saveRef.current?.place;
     if (pl && !["home", "market", "chef", "itel", "work"].includes(pl)) return say("The bus stand is in Wuse. Ride back to Wuse first.", undefined, "warn");
@@ -644,6 +652,8 @@ export default function LifeGame() {
   const tagInfo = (key: string): { label: string; up?: boolean; go: () => void } | null => {
     if (!player || !save) return null;
     if (key.startsWith("npc:")) { const r = C.RESIDENT(key.slice(4)); return r ? { label: `${r.name} 🤖${C.residentRank(r.id) === 1 ? " · #1" : ""}`, up: r.id === "emerald", go: () => setPanel({ chat: r.id }) } : null; }
+    if (key === "restroom") return { label: "🚻 Mobile WC & shower", up: true, go: () => setPanel("restroom") };
+    if (key === "shower") return { label: "🚿 Outdoor shower", go: () => setPanel("restroom") };
     if (spec?.id === "strip" && key.startsWith("m:")) {
       const sp = key.slice(2) as C.MarketSpot, shop = C.MARKET_SHOPS[sp];
       const open = C.ERRANDS.filter((e) => e.spot === sp && !errandBlock(e)).length;
@@ -756,6 +766,7 @@ export default function LifeGame() {
           <span className="pill px-3 py-1">☁️ {savedAt ? `Saved ${Math.max(1, Math.round((Date.now() - savedAt) / 1000))}s ago` : "Saved on this device"}</span>
           <span className="pill px-3 py-1">📅 Day {day}{player.rentOwed ? <b className="text-crimson"> · rent owed {C.fmtN(player.rentOwed)}</b> : ` · rent day ${(Math.floor((day - 1) / C.MONTH_DAYS) + 1) * C.MONTH_DAYS + 1}`}</span>
           {nepa.out && <button onClick={() => setPanel(save.place === "home" ? "power" : "nepa")} className={`pill pointer-events-auto px-3 py-1 font-bold ${src === "none" ? "text-red-700" : "text-amber-700"}`}>⚡ NEPA off{src === "go" ? ` · 🔋 Power GO ${Math.round((save.battery / C.POWER_GO.wh) * 100)}%` : src === "tank" ? ` · 🔋 Power Tank ${Math.round((save.tank / C.POWER_TANK.wh) * 100)}%` : src === "gen" ? ` · ⛽ ${save.fuel.toFixed(1)} L` : ""}</button>}
+          {a?.kind !== "travel" && C.RESTROOMS.some((r) => r.place === save.place) && <button onClick={() => setPanel("restroom")} className="pill pointer-events-auto px-3 py-1 font-bold text-sky-700">🚻 Restroom</button>}
           <button onClick={() => setPanel("invite")} className="pill pointer-events-auto px-3 py-1 font-bold text-pink-600">🎁 Invite · {`₦${C.REFERRAL_BONUS_KOBO / 100}`} each</button>
           {takingsAll >= 1_000 && <button onClick={() => setPanel("business")} className="pill pointer-events-auto px-3 py-1 font-bold text-amber-700">💼 {C.fmtShort(takingsAll)} to collect</button>}
           {save.delivery && <span className="pill px-3 py-1">🛵 Food in {Math.max(1, Math.ceil((save.delivery.at - Date.now()) / C.GAME_MIN_MS))} min</span>}
@@ -1068,6 +1079,7 @@ export default function LifeGame() {
     if (panel === "dw") return dwPanel(close);
     if (panel === "errands") return errandsPanel(close);
     if (panel === "convoy" || panel === "busstand") return convoyPanel(close);
+    if (panel === "restroom") return restroomPanel(close);
     if (panel && typeof panel === "object" && "market" in panel) return marketPanel(close, panel.market);
     if (panel === "invite") return invitePanel(close);
     if (panel === "bank") return bankPanel(close);
@@ -1317,6 +1329,16 @@ export default function LifeGame() {
         {convoy.on && !there && <p className="mt-3 rounded-2xl bg-slate-50 p-3 text-xs">You need to be at the bus stand: tap Wait below (it&apos;s outside your house in Wuse).</p>}
         {!convoy.on && <p className="mt-3 rounded-2xl bg-slate-50 p-3 text-xs">Next pass: <b>{C.worldTime(convoy.next).label}</b>, in {Math.max(1, Math.round((convoy.next - tNow) / C.GAME_MIN_MS))} game minutes. {mine ? "You haven't had a gift yet this month." : `You had yours: next from day ${C.lifeDay(p.startedAt, next)}.`}</p>}
         <div className="mt-3 flex flex-wrap gap-2">{waiting ? <span className="text-xs font-semibold">🚏 You&apos;re waiting at the stand…</span> : <Btn tone="ghost" disabled={!!s.activity} onClick={waitAtStand}>🚏 Wait at the bus stand · {C.BUS_STAND_WAIT_MINUTES} game min</Btn>}<Btn tone="ghost" onClick={() => setPanel("go")}>🛺 Ride somewhere</Btn></div></div>);
+    }
+    function restroomPanel(close: ReactNode) {
+      const here = C.RESTROOMS.filter((r) => r.place === s.place), tNow = Date.now() + offset.current, where = C.PLACES.find((x) => x.id === s.place);
+      return (<div>{close}<p className="text-[11px] font-bold uppercase tracking-widest text-sky-700">🚻 Restrooms · {where?.name}</p><h2 className="text-xl font-extrabold">Freshen up</h2>
+        <p className="text-[11px] text-slate">Hygiene {Math.round(s.needs.hygiene)}% · Bladder {Math.round(s.needs.bladder)}%. Away from home some places fill a need, others top it up by 50.</p>
+        {here.length === 0 ? <p className="mt-3 text-sm text-slate">No restroom here. Use your WC and bath at home, or the mobile units at Wuse Market.</p> : <div className="mt-3 grid gap-2">{here.map((r) => {
+          const b = C.restroomBoost(r, p, tNow), blocked = "blocked" in b ? b.blocked : null;
+          return <Row key={r.id} icon={r.icon} title={r.name} note={<>{blocked ?? `${r.need === "bladder" ? "Bladder" : "Hygiene"} ${"pct" in b && b.pct >= 100 ? "to 100%" : "+50"} now`}<span className="block">{r.note}</span></>}
+            right={<button disabled={busy || !!blocked} onClick={(ev) => { ev.stopPropagation(); void useRestroom(r); }} className="rounded-full bg-sky-600 px-3 py-1 text-xs font-bold text-white disabled:opacity-40">{r.price ? C.fmtShort(r.price) : "Use"}</button>} />;
+        })}</div>}</div>);
     }
     function errandsPanel(close: ReactNode) {
       return (<div>{close}<p className="text-[11px] font-bold uppercase tracking-widest text-lime-700">🧺 Errands in Wuse</p><h2 className="text-xl font-extrabold">Help your neighbours, get paid</h2>
