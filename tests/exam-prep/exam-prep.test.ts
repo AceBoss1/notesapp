@@ -101,7 +101,7 @@ for (const q of sq) { const c = checkQuestion(q, DEFAULT_SUBJECTS, true); assert
 for (const s of DEFAULT_SUBJECTS) {
   const mine = sq.filter((q) => q.exam === s.exam && q.subject === s.id);
   // WAEC and NECO: 50 a subject (owner, 26 Oct 2026); JAMB: 20.
-  const want = s.exam === "jamb" ? 20 : 50;
+  const want = s.exam === "jamb" ? 70 : 100;
   assert.ok(mine.length >= want, `${s.exam} ${s.id}: ${want} questions (has ${mine.length})`);
   assert.ok(mine.filter((q) => q.access === "free").length >= 8, `${s.exam} ${s.id}: 8 free`);
   for (const t of s.topics) assert.ok(mine.some((q) => q.topic === t.id), `${s.exam} ${s.id}: a question in ${t.id}`);

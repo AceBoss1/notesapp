@@ -127,7 +127,7 @@ function Import({ api }: { api: Api }) {
     <div className="space-y-6">
       <div className="card p-4">
         <p className="font-semibold">Starter set</p>
-        <p className="mt-1 text-sm text-slate">{starter ?? "…"} original questions (content/exam-prep/starter.json): JAMB English, Maths, Physics, Chemistry, Biology, Economics and Government; WAEC and NECO 50 each in 18 subjects (those seven plus Literature, Geography, Agricultural Science, Civic Education, Commerce, Financial Accounting, CRS, IRS, Further Maths, Computer Studies and History). Questions already there are skipped. Subjects you don’t have yet are added first, labelled “Nana AI-assisted draft”. They go in as in review; nothing is published until a reviewer approves it and you publish. Importing twice adds nothing twice.</p>
+        <p className="mt-1 text-sm text-slate">{starter ?? "…"} original questions (content/exam-prep/starter.json): JAMB 70 each in English, Maths, Physics, Chemistry, Biology, Economics and Government; WAEC and NECO 100 each in 18 subjects (those seven plus Literature, Geography, Agricultural Science, Civic Education, Commerce, Financial Accounting, CRS, IRS, Further Maths, Computer Studies and History). Questions already there are skipped. Subjects you don’t have yet are added first, labelled “Nana AI-assisted draft”. They go in as in review; nothing is published until a reviewer approves it and you publish. Importing twice adds nothing twice.</p>
         <button disabled={busy} onClick={() => run({ action: "import_starter" })} className="mt-3 rounded-lg bg-ink px-3 py-1.5 text-sm text-paper">Import the starter set</button>
       </div>
       <div className="card p-4">

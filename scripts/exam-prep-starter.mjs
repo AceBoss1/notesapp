@@ -5,6 +5,7 @@
 // stops the build. Run: node scripts/exam-prep-starter.mjs   (then commit the JSON; npm run test:exam-prep checks it too)
 import { existsSync, writeFileSync } from "node:fs";
 import { SSCE } from "./exam-prep-questions/ssce/topics.mjs";
+import { BATCH2 } from "./exam-prep-questions/batch2/topics.mjs";
 
 const close = (a, b) => Math.abs(a - b) < 1e-9;
 const at = (f, g) => [-2, -1, 0.5, 1, 2, 3.7].every((x) => close(f(x), g(x))); // two expressions agree everywhere we try
@@ -201,6 +202,15 @@ for (const subject of Object.keys(SSCE)) {
   if (!existsSync(file)) continue;
   const sets = (await import(file.href)).default;
   for (const exam of ["waec", "neco"]) add(exam, subject, sets[exam].list, sets[exam].free, true, out.filter((q) => q.exam === exam && q.subject === subject).length);
+}
+
+// ------------------------------------------------------------------ 50 more a subject in every exam body (owner, 28 Oct 2026)
+// One file a subject in exam-prep-questions/batch2/ (checked by batch2/check.mjs): JAMB to 70 a subject, WAEC and NECO to 100.
+for (const [subject, exams] of Object.entries(BATCH2)) {
+  const file = new URL(`./exam-prep-questions/batch2/${subject}.mjs`, import.meta.url);
+  if (!existsSync(file)) continue;
+  const sets = (await import(file.href)).default;
+  for (const exam of Object.keys(exams)) add(exam, subject, sets[exam].list, sets[exam].free, true, out.filter((q) => q.exam === exam && q.subject === subject).length);
 }
 
 const ids = new Set(out.map((q) => q.id));

@@ -28,7 +28,7 @@ const ITEMS: { title: string; tag: string; body: string; detail: string; link?: 
   {
     title: "Naija Exam Prep: JAMB, WAEC and NECO practice",
     tag: "Courses",
-    body: `Live now at ${PREP_HOST}, part of Notes Academy: free practice questions in every subject (7 for JAMB, 18 for WAEC and NECO) with full explanations, timed mocks marked on the spot, and a pack per exam (every subject, 12 months) that works offline. Students can ask a parent or sponsor to pay with a link, and under-18s use it in teen mode.`,
+    body: `Live now at ${PREP_HOST}, part of Notes Academy: free practice questions in every subject (7 for JAMB, 18 for WAEC and NECO; a starter bank of 4,090 now going through review, up to 70 a subject for JAMB and 100 for WAEC and NECO) with full explanations, timed mocks marked on the spot, and a pack per exam (every subject, 12 months) that works offline. Students can ask a parent or sponsor to pay with a link, and under-18s use it in teen mode.`,
     detail: "Every question is original and checked by a reviewer before it's published; reviewers join by invite link for the subjects they know. Next: access codes and class boards for schools, Nana as a study helper, and more subjects.",
     link: { href: "/exam-prep", label: "Open Naija Exam Prep →" },
   },

@@ -519,7 +519,7 @@ export async function reviewQueue(db: Firestore, filter: { status?: unknown; exa
   const status = ["draft", "in_review", "changes", "approved", "published", "retired"].includes(String(filter.status)) ? String(filter.status) : "in_review";
   const exam = isExamId(filter.exam) ? filter.exam : null;
   const subject = typeof filter.subject === "string" && /^[a-z0-9-]{1,60}$/.test(filter.subject) ? filter.subject : null;
-  // The exam and subject filters go into the query, not after the limit: with the full starter set (1,940 in review) filtering
+  // The exam and subject filters go into the query, not after the limit: with the full starter set (4,090 in review) filtering
   // afterwards hid whole exams. A reviewer's queue is one query per subject they review.
   const base = db.collection("prepQuestions").where("status", "==", status);
   const pick = (e: string | null, s: string | null) => { let q = base; if (e) q = q.where("exam", "==", e); if (s) q = q.where("subject", "==", s); return q.limit(500); };

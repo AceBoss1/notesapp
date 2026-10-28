@@ -11,6 +11,14 @@ export type Release = {
 
 export const CHANGELOG: Release[] = [
   {
+    version: "v0.99.0",
+    bump: "minor",
+    date: "2026-10-28",
+    changes: [
+      { kind: "added", text: "Naija Exam Prep: 2,150 more original practice questions, 50 more in every subject of every exam. JAMB subjects now have 70 questions each, and WAEC and NECO subjects 100 each (20 more free in each), all with explanations. They go to our subject reviewers first and reach students once approved and published." },
+    ],
+  },
+  {
     version: "v0.98.0",
     bump: "minor",
     date: "2026-10-27",
