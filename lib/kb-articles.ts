@@ -751,7 +751,7 @@ ${PREP_NAME} (${PREP_HOST}) is NotesApp's exam practice, part of Notes Academy. 
 
 **Progress and the board:** **Progress** shows what you actually did: questions answered, right first time, mocks, days in a row and each topic (strong after at least 5 answers with 70% right). The weekly effort board is optional: join with a nickname; it counts questions practised (each once a day, up to ${n(BOARD_DAILY_CAP)} a day), not scores, and starts again every Monday.
 
-**Report a problem:** every question has **Report a problem** (wrong answer, unclear, typo). ${PREP_NAME} is not affiliated with JAMB, WAEC or NECO; all questions are original practice questions, checked by a reviewer before they're published.
+**Report a problem:** every question has **Report a problem** (wrong answer, unclear, typo). ${PREP_NAME} is not affiliated with JAMB, WAEC or NECO; all questions are original practice questions, checked by a reviewer before they're published. The bank keeps growing: the starter set alone has 4,090 (70 a subject for JAMB, 100 a subject for WAEC and NECO); each shows to students once it's published.
 `),
     A("child-profiles", "Child profiles for under-13s (kids mode)", "Safety and your data", `
 Children under 13 don't get their own NotesApp account. A parent or guardian adds them from **My account → Family**, as a **child profile** on the parent's own account: a nickname, the month and year they were born (kept privately, never shown), and a 4-digit PIN.
