@@ -1,0 +1,17 @@
+{
+  "appId": "tech.notesapp.app",
+  "appName": "NotesApp",
+  "webDir": "www",
+  "server": {
+    "url": "https://app.notesapp.name.ng",
+    "cleartext": false,
+    "allowNavigation": ["notesapp.name.ng", "*.notesapp.name.ng", "notesapp.tech", "*.notesapp.tech", "checkout.paystack.com", "*.paylony.com"]
+  },
+  "ios": { "contentInset": "always", "scheme": "NotesApp" },
+  "android": { "allowMixedContent": false },
+  "plugins": {
+    "SplashScreen": { "launchShowDuration": 800, "backgroundColor": "#FBF6F2", "androidScaleType": "CENTER_CROP", "showSpinner": false },
+    "PushNotifications": { "presentationOptions": ["badge", "sound", "alert"] },
+    "StatusBar": { "overlaysWebView": false, "style": "DARK", "backgroundColor": "#7A0328" }
+  }
+}

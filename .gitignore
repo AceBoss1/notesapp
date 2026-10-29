@@ -35,3 +35,4 @@ playwright-report/
 
 # screenshot set-up only (never shipped)
 public/demo-cert/
+/mobile/node_modules

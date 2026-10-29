@@ -11,6 +11,15 @@ export type Release = {
 
 export const CHANGELOG: Release[] = [
   {
+    version: "v0.100.2",
+    bump: "patch",
+    date: "2026-10-29",
+    changes: [
+      { kind: "changed", text: "On the roadmap: payments across Africa. Paystack keeps cards and subscriptions and backs up payouts, Paylony takes bank transfers and Tap2Pay, and Flutterwave comes with Ghana and Kenya (mobile money, M-Pesa, more currencies)." },
+      { kind: "changed", text: "On the roadmap: the iOS and Android apps are being prepared. They wrap the same #NotesApp as the web, and follow NotesApp Inc, our US company." },
+    ],
+  },
+  {
     version: "v0.100.1",
     bump: "patch",
     date: "2026-10-29",
