@@ -14,6 +14,7 @@ Router) on Vercel, Firebase (Auth, Firestore), Cloudflare R2 and Stream, Paystac
 | `docs/ARCHITECTURE.md` | How the newer pieces work: addresses, bells, digest, server-owned writes, shared limits, settings |
 | `docs/DOMAIN_SWITCH.md` | Moving the primary address to notesapp.tech |
 | `docs/STAGING.md` | The staging copy and how a release goes |
+| `docs/SEND-NA.md` | Send-Na by NotesApp: email, WhatsApp and SMS priced in Naira (plan only), and the WhatsApp and SMS channel booking reminders need |
 | `docs/COURSES.md` | The course platform plan (free YouTube courses, paid courses, certificates) |
 | `docs/BUILD_LOG.md` | The full history, in order (what used to be this README) |
 | `lib/changelog.ts` | Release notes, shown at `/changelog` |
@@ -58,7 +59,7 @@ Router) on Vercel, Firebase (Auth, Firestore), Cloudflare R2 and Stream, Paystac
 | Company | NOTESAPP TECHNOLOGIES LTD (RC and TIN in `lib/site.ts`; SMEDAN number pending) | "Company identity" |
 
 ### Not built yet
-**The rest of Courses** (`docs/COURSES.md`: quizzes, Enterprise Courses and the Enterprise Academy API) ·
+**Send-Na** (`docs/SEND-NA.md`: email, WhatsApp and SMS priced in Naira; WhatsApp booking reminders come with its phase 0) · **The rest of Courses** (`docs/COURSES.md`: quizzes, Enterprise Courses and the Enterprise Academy API) ·
 **Paid add-ons for Business and Enterprise, after internal testing:** the team hub and team messaging, company finance tools (runway calculator, CAC and MRR, burn and revenue analytics, cap table and vesting), the investor and partner data room, and LinkedIn advertising (Advertising API development tier approved; advertisers boost a post on LinkedIn from their own ad account, with campaign stats) · WhatsApp reminders (plan: Meta WhatsApp Cloud API directly; booking reminders + delivery updates; needs Meta Business
 verification and approved templates) · publishing to Facebook, Instagram and TikTok (LinkedIn and X are built) · MCP write tools (drafts from your AI assistant) and the Nana operator
 (scoped; the work is on the team hub as the agent-layer backlog; MCP phase 1, read-only, is live) · AI notetaker ·

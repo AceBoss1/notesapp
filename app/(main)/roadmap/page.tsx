@@ -81,7 +81,14 @@ const ITEMS: { title: string; tag: string; body: string; detail: string; link?: 
     tag: "Booking",
     body: "Booking, Paystack payment, per-publisher rates, email reminders, client rescheduling (free, up to twice, 24 hours or more ahead), cancellation under a published refund policy, \"report a problem\" after a session, and automatic payouts 24 hours after a session ends are all live. What's left is WhatsApp reminders.",
     detail:
-      "WhatsApp reminders alongside email and the bell. Everything else in this item is built: see the booking policy on the booking pages and in the Terms.",
+      "WhatsApp reminders alongside email and the bell, with SMS when WhatsApp doesn't arrive, for clients and publishers. They come with Send-Na (below), which builds the WhatsApp and SMS channel once for bookings, events and codes. Everything else in this item is built: see the booking policy on the booking pages and in the Terms.",
+  },
+  {
+    title: "Send-Na by NotesApp: email, WhatsApp and SMS, priced in Naira",
+    tag: "Messaging · Coming soon",
+    body: "An email service for Nigerian builders and businesses, priced and paid in Naira with no dollar card and no exchange-rate surprises: a ₦15,000 plan stays ₦15,000. Receipts, sign-in codes (and later wallet codes) and newsletters from one dashboard, on separate routes so a newsletter never delays a password reset, and when email is slow or ignored, the message goes by WhatsApp or SMS instead.",
+    detail:
+      "First, our own email, sign-in codes and WhatsApp booking reminders move onto it. Then it becomes an add-on on every NotesApp plan: members send receipts, booking messages and newsletters from their own domain, with WhatsApp and SMS for Community and Events reminders, and wallet codes later. After that, a public platform for developers: an API, SDKs for Node.js, Python, PHP and Go, an SMTP relay, test keys that work before your domain is verified, a timeline for every message (queued, delivered, opened, clicked or bounced, with the exact error), the SPF, DKIM and DMARC records written for you, and send tools on our MCP server for AI agents. Planned prices: Free, 3,000 emails a month with no card (and the first 3,000 free on every plan); Pearl ₦1,500, Emerald ₦12,500 and Ruby ₦40,000 a month, the same as an add-on on NotesApp. Prices change at most once a year, with notice.",
   },
   {
     title: "Gold badge — endorsements and identity checks",
@@ -256,7 +263,8 @@ export default function RoadmapPage() {
             <ul className="mt-3 space-y-2 text-sm text-slate">
               <li>Quizzes on courses, and the two Enterprise course packages</li>
               <li>Giving, paid event tickets and our own live streaming for communities</li>
-              <li>WhatsApp reminders alongside email and the bell</li>
+              <li>WhatsApp reminders alongside email and the bell, with SMS when WhatsApp doesn&apos;t arrive</li>
+              <li><strong className="text-ink">Send-Na by NotesApp</strong>: email for developers and businesses, priced in Naira, with WhatsApp and SMS when email is slow (our own email and booking reminders first, then members&apos; own domains, then a public API)</li>
               <li>For logistics providers: API and webhooks on Enterprise, and Nana suggesting delivery rates</li>
               {GOLD_KIND_LIVE.identity ? null : <li>Automatic identity-checked gold badge (all built; NIN + face check for people, CAC for organisations awaiting final tests)</li>}
               <li>Full white label for Enterprise (sign-in, sign-up and emails in the member&apos;s name are live; checkout and bookings on their own site, and their own sending address, are next)</li>

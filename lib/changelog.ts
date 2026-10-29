@@ -11,6 +11,14 @@ export type Release = {
 
 export const CHANGELOG: Release[] = [
   {
+    version: "v0.99.1",
+    bump: "patch",
+    date: "2026-10-29",
+    changes: [
+      { kind: "added", text: "On the roadmap: Send-Na by NotesApp, email for Nigerian developers and businesses priced and paid in Naira, with WhatsApp and SMS when email is slow. Our own email, sign-in codes and WhatsApp booking reminders move onto it first; then it becomes an add-on on every NotesApp plan (Free 3,000 emails a month, Pearl ₦1,500, Emerald ₦12,500, Ruby ₦40,000); then a public API." },
+    ],
+  },
+  {
     version: "v0.99.0",
     bump: "minor",
     date: "2026-10-28",
