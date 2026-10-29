@@ -11,6 +11,14 @@ export type Release = {
 
 export const CHANGELOG: Release[] = [
   {
+    version: "v0.100.4",
+    bump: "patch",
+    date: "2026-10-29",
+    changes: [
+      { kind: "changed", text: "On the roadmap: payments across Africa start in Kenya, with M-Pesa and shilling prices (a pilot with our Kenyan members in December, open to everyone in January 2027), then Ghana." },
+    ],
+  },
+  {
     version: "v0.100.3",
     bump: "patch",
     date: "2026-10-29",

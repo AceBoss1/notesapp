@@ -48,10 +48,12 @@ The payout switch that already exists (Paystack or Paylony) is the first piece o
 
 ## 4. Flutterwave and the move across Africa
 
-Comes after NotesApp Inc is set up (§5), in this order:
+In this order (the owner's decision, 29 October 2026: Kenya first, because Kenyan members are already on #NotesApp). It doesn't
+wait for NotesApp Inc, which is for dollars and the app stores:
 
-1. **Ghana:** cedi cards and mobile money (MTN MoMo, Telecel Cash, AirtelTigo).
-2. **Kenya:** M-Pesa and shilling cards (this sits well with Kiswahili, which we already have through NKENNEAi).
+1. **Kenya:** M-Pesa (the customer approves the payment on their phone) and shilling cards; it sits well with Kiswahili, which we
+   already have through NKENNEAi.
+2. **Ghana:** cedi cards and mobile money (MTN MoMo, Telecel Cash, AirtelTigo), four to six weeks after Kenya opens.
 3. **Then by demand:** South Africa, Uganda, Tanzania, Rwanda and others, as members arrive.
 
 For each country: prices in the local currency (set in the admin like the Naira prices, never converted on the fly at checkout),
@@ -74,5 +76,11 @@ The owner is incorporating **NotesApp Inc** in Delaware, due in about two weeks.
 
 1. Paylony virtual accounts: switch them on for wallet top-ups first, then for payments.
 2. When the payout switch should go automatic (for example, Paylony first and Paystack after one failure).
-3. Flutterwave: the first country (Ghana suggested), and the date, after NotesApp Inc is set up.
+3. Flutterwave: **Kenya first, then Ghana (decided, 29 October 2026), on this timeline:**
+   - **Now:** open the Flutterwave business account under NOTESAPP TECHNOLOGIES LTD and start its checks.
+   - **November:** build the one payment layer (§3), then Flutterwave behind it with M-Pesa and shilling cards, tested in its
+     sandbox; shilling prices set in the admin.
+   - **Early December:** a quiet pilot with the Kenyan members already on #NotesApp: real money, small amounts.
+   - **January 2027:** open to everyone in Kenya. Ghana four to six weeks later.
+   - Until then, Kenyan members can pay by card in Naira through Paystack.
 4. Dollars: Flutterwave or Stripe for the Inc.
