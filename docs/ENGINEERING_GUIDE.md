@@ -12,6 +12,20 @@ NotesApp is built to become one of Africa's largest platforms. The way there is 
 
 Read it in order once. After that, use it as a reference: the stages, the names and the targets are the parts you'll return to.
 
+## Our vision and mission
+
+**Vision: Africa's knowledge, shared, valued and rewarded.**
+
+**Mission:** #NotesApp gives Africa's creators, teachers, professionals and businesses one home to share what they know, teach it, sell it and get paid for it, in their own currency and, in time, their own language.
+
+- **Share:** journals, communities, messages and calls take what people know to the people who need it.
+- **Learn:** Notes Academy, Naija Exam Prep and certificates anyone can check turn knowledge into qualifications.
+- **Earn:** bookings, subscriptions, gifts, Notes Market and course sales pay out in Naira, with our commissions set out in the open.
+- **Belong:** everyone is welcome as family: readers become buyers, learners become teachers, customers become creators.
+- **Include:** built for African realities: phone-first, light on data, local payments, and African languages, starting with Kiswahili.
+
+What it means for engineering: a feature earns its place when it helps a member share, learn or earn; it has to work on a mid-range Android phone on a slow, costly connection; payments are Naira first; and every word we show can later be translated. The same words are on the About page and in `lib/site.ts` (`VISION`, `MISSION`), so change them there and here together.
+
 ## Principles we build by
 
 1. **Measure, then move.** Nothing is rebuilt because it might be slow. Five numbers on the admin dashboard decide when each stage starts.

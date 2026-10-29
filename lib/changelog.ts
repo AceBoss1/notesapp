@@ -11,11 +11,19 @@ export type Release = {
 
 export const CHANGELOG: Release[] = [
   {
-    version: "v0.100.3",
+    version: "v0.100.4",
     bump: "patch",
     date: "2026-10-29",
     changes: [
       { kind: "changed", text: "On the roadmap: payments across Africa start in Kenya, with M-Pesa and shilling prices (a pilot with our Kenyan members in December, open to everyone in January 2027), then Ghana." },
+    ],
+  },
+  {
+    version: "v0.100.3",
+    bump: "patch",
+    date: "2026-10-29",
+    changes: [
+      { kind: "added", text: "Our vision and mission on the About page: Africa\u2019s knowledge, shared, valued and rewarded. #NotesApp gives Africa\u2019s creators, teachers, professionals and businesses one home to share what they know, teach it, sell it and get paid for it." },
     ],
   },
   {
