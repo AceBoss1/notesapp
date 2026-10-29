@@ -191,11 +191,17 @@ const ITEMS: { title: string; tag: string; body: string; detail: string; link?: 
     link: { href: "/challenge", label: "See the challenge page for the details →" },
   },
   {
+    title: "Payments across Africa",
+    tag: "Payments",
+    body: "Paystack keeps cards and subscriptions, and stands behind payouts as the backup. Paylony takes bank transfers (your own account number for wallet top-ups and payments) and Tap2Pay. Flutterwave comes as #NotesApp opens in Ghana and Kenya: cedi and shilling prices, mobile money and M-Pesa, and more African currencies after.",
+    detail: "No member needs to do anything: plans and saved cards stay as they are. Each country gets prices in its own currency, set by us rather than converted at checkout, and payouts to local banks or mobile money. Dollar payments come with NotesApp Inc, our US company.",
+  },
+  {
     title: "Mobile apps — iOS and Android",
     tag: "Apps",
-    body: "#NotesApp isn't complete until it runs as a real app on the devices people use: native-feeling iOS and Android apps for reading, publishing, booking sessions, getting paid, and managing your journal from your phone.",
+    body: "#NotesApp isn't complete until it runs as a real app on the devices people use: iOS and Android apps for reading, publishing, booking sessions, getting paid, and managing your journal from your phone. Being prepared now: the apps wrap the same #NotesApp you use on the web, so every update reaches them the same day, and they follow NotesApp Inc, our US company, which will hold the App Store and Google Play accounts. Nigeria first, then Ghana and Kenya.",
     detail:
-      "Planned with the apps: push notifications (bookings, reminders, gifts, new posts), in-app payments through Paystack, offline drafts, and — for ads — Google AdMob and other app ad networks, which only run inside mobile apps and sit alongside the NotesApp banners labelled \"Sponsored\". Tablet and desktop-installable (PWA) versions follow the phone apps.",
+      "Planned with the apps: push notifications (messages, calls, bookings, reminders, gifts, new posts), the camera and the share sheet, Sign in with Apple, Face ID or fingerprint for the wallet, bookings and shop orders paid through Paystack and Paylony, offline drafts and Exam Prep packs, and — for ads — Google AdMob and other app ad networks, which only run inside mobile apps and sit alongside the NotesApp banners labelled \"Sponsored\". Tablet and desktop-installable (PWA) versions follow the phone apps.",
   },
   {
     title: "Trust, safety & account basics",
@@ -273,7 +279,8 @@ export default function RoadmapPage() {
               {!WALLET_LIVE && <li>NotesApp Credit and Bonus Credits</li>}
               <li>Paylony for real-money payments and payouts, and Tap-to-Pay (CardTap already pays in Notes Life, with game money)</li>
               <li><Link href="/challenge" className="text-crimson underline">#1MillionNairaNotesAppChallenge</Link> for influencers (coming soon)</li>
-              <li>iOS and Android apps</li>
+              <li>iOS and Android apps (being prepared, with NotesApp Inc)</li>
+              <li>Payments across Africa: Paylony for bank transfers and Tap2Pay, Flutterwave for Ghana, Kenya (M-Pesa), mobile money and other currencies; Paystack keeps cards and subscriptions</li>
               <li><strong className="text-ink">Paid add-ons for Business and Enterprise, after our internal testing:</strong> the <Link href="/teams" className="text-crimson underline">Team hub</Link> and team messages, company finance tools (runway, acquisition cost, burn, cap table), the investor and partner data room, and advertising on LinkedIn from #NotesApp</li>
               <li>AI notetaker, and your own AI assistant writing drafts through MCP (reading is live)</li>
               <li>Voice: Listen to a journal, Nana that speaks, voice transcripts</li>

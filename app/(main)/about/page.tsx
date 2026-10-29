@@ -171,7 +171,7 @@ export default async function AboutPage() {
           <h2 className="mt-2 font-display text-3xl leading-tight">Help us build it faster</h2>
           <p className="mt-4 text-lg text-slate">
             Next on the <Link href="/roadmap" className="text-crimson underline underline-offset-2">roadmap</Link>: giving, tickets
-            and our own live streaming for communities, with bigger meetings; iOS and Android apps; WhatsApp reminders; Send-Na, our email, WhatsApp and SMS service priced in Naira; and the Team hub
+            and our own live streaming for communities, with bigger meetings; iOS and Android apps, with NotesApp Inc, our US company; payments across Africa (Ghana and Kenya first); WhatsApp reminders; Send-Na, our email, WhatsApp and SMS service priced in Naira; and the Team hub
             and finance tools for Business and Enterprise. We&apos;ve built lean and in the open, and we&apos;re now looking for
             investors, accelerators and partners who want to build Africa&apos;s home for creators and the people they serve.
           </p>
