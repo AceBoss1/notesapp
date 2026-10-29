@@ -71,7 +71,8 @@
   --c-paper: 251 246 242;
 }
 /* Journals and pages in dark mode: the typography plugin's colours follow the page. */
-[data-site-dark="true"] .prose {
+[data-site-dark="true"] .prose,
+html[data-theme="night"] .prose {
   --tw-prose-body: rgb(var(--c-ink));
   --tw-prose-headings: rgb(var(--c-ink));
   --tw-prose-lead: rgb(var(--c-slate));
@@ -87,3 +88,73 @@
   --tw-prose-td-borders: rgb(var(--c-rule));
   --tw-prose-links: rgb(var(--c-crimson-bright));
 }
+
+/* ── Day and Night (lib/theme.ts) ──────────────────────────────────────────────────────────────────────────────────────────────────
+   Night turns the page colours round on <html>: the paper becomes #NotesApp maroon and the ink warm ivory. Members' sites, Exam Prep,
+   the Notes Life game and print pages keep their own colours ([data-site-theme], [data-theme-off]). */
+html[data-theme="night"] {
+  color-scheme: dark;
+  --c-ink: 251 246 242;
+  --c-paper: 52 5 21;
+  --c-card: 72 9 31;
+  --c-field: 88 16 42;
+  --c-slate: 226 202 198;
+  --c-rule: 108 34 58;
+  --c-crimson: 166 9 61;
+  --c-crimson-bright: 196 28 86;
+  --c-crimson-deep: 122 3 40;
+}
+html[data-theme="night"] :is([data-site-theme], [data-theme-off]) {
+  color-scheme: light;
+  --c-ink: 26 18 16;
+  --c-paper: 251 246 242;
+  --c-card: 255 255 255;
+  --c-field: 243 236 231;
+  --c-slate: 92 83 78;
+  --c-rule: 231 218 211;
+  --c-crimson: 122 3 40;
+  --c-crimson-bright: 166 9 61;
+  --c-crimson-deep: 78 1 25;
+}
+/* Ivory words on crimson (buttons, badges, the footer and page heads) stay ivory. */
+html[data-theme="night"] :is([class*="text-paper"], .btn-primary):not(:is([data-site-theme], [data-theme-off]) *) { --c-paper: 251 246 242; }
+/* Crimson words, lines and rings take a light rose so they read on maroon; crimson fills (buttons, own chat bubbles) stay crimson, and
+   the deep crimson stays deep (it is mostly a fill). */
+html[data-theme="night"] :is([class*="text-crimson"], [class*="border-crimson"], [class*="decoration-crimson"], [class*="ring-crimson"], [class*="outline-crimson"], .eyebrow):not(:is([data-site-theme], [data-theme-off]) *) {
+  --c-crimson: 247 164 190;
+  --c-crimson-bright: 252 192 210;
+}
+/* White panels become cards; dark overlays (calls, audio rooms, viewers) stay dark. */
+html[data-theme="night"] .bg-white:not(:is([data-site-theme], [data-theme-off]) *) { background-color: rgb(var(--c-card)); }
+html[data-theme="night"] .text-black:not(:is([data-site-theme], [data-theme-off]) *) { color: rgb(var(--c-ink)); }
+html[data-theme="night"] [class*="bg-ink"]:not(:is([data-site-theme], [data-theme-off]) *) { --c-ink: 20 6 11; }
+/* Pale notices (amber, green, red, blue…) become a soft maroon field, and their dark words a light shade of the same colour. */
+html[data-theme="night"] :is([class*="bg-amber-50"], [class*="bg-amber-100"], [class*="bg-yellow-50"], [class*="bg-orange-50"], [class*="bg-emerald-50"], [class*="bg-emerald-100"], [class*="bg-green-50"], [class*="bg-green-100"], [class*="bg-red-50"], [class*="bg-red-100"], [class*="bg-rose-50"], [class*="bg-blue-50"], [class*="bg-sky-50"], [class*="bg-gray-50"], [class*="bg-gray-100"], [class*="bg-slate-50"], [class*="bg-slate-100"]):not(:is([data-site-theme], [data-theme-off]) *) { background-color: rgb(var(--c-field)); }
+html[data-theme="night"] :is([class*="text-amber-7"], [class*="text-amber-8"], [class*="text-amber-9"], [class*="text-yellow-7"], [class*="text-yellow-8"], [class*="text-orange-7"], [class*="text-orange-8"]):not(:is([data-site-theme], [data-theme-off]) *) { color: #fcd34d; }
+html[data-theme="night"] :is([class*="text-emerald-6"], [class*="text-emerald-7"], [class*="text-emerald-8"], [class*="text-emerald-9"], [class*="text-green-6"], [class*="text-green-7"], [class*="text-green-8"], [class*="text-moss"]):not(:is([data-site-theme], [data-theme-off]) *) { color: #6ee7b7; }
+html[data-theme="night"] :is([class*="text-red-6"], [class*="text-red-7"], [class*="text-red-8"], [class*="text-red-9"], [class*="text-rose-7"]):not(:is([data-site-theme], [data-theme-off]) *) { color: #fca5a5; }
+html[data-theme="night"] :is([class*="text-blue-6"], [class*="text-blue-7"], [class*="text-blue-8"], [class*="text-sky-7"]):not(:is([data-site-theme], [data-theme-off]) *) { color: #93c5fd; }
+html[data-theme="night"] :is([class*="text-gray-6"], [class*="text-gray-7"], [class*="text-gray-8"], [class*="text-gray-9"]):not(:is([data-site-theme], [data-theme-off]) *) { color: rgb(var(--c-slate)); }
+
+/* ── The #NotesApp African pattern (scripts/african-pattern.mjs) ───────────────────────────────────────────────────────────────────
+   Line drawings of music, art, business and everyday life: maroon on warm ivory by Day, ivory on maroon by Night. Behind chats
+   (Messages, Circles, the team room) and wherever a cover or banner has no picture. */
+.na-pattern {
+  background-color: #fbf6f2;
+  background-image: url("/images/patterns/africa-day.svg"), linear-gradient(135deg, #fbf6f2 0%, #f6e8e0 55%, #f1dfd2 100%);
+  background-size: 840px 840px, 100% 100%;
+}
+.na-pattern-cover { background-size: 560px 560px, 100% 100%; }
+html[data-theme="night"] .na-pattern:not(:is([data-site-theme], [data-theme-off]) *),
+[data-site-dark="true"] .na-pattern {
+  background-color: #3e0517;
+  background-image: url("/images/patterns/africa-night.svg"), linear-gradient(135deg, #5a0820 0%, #3e0517 55%, #2a030f 100%);
+}
+
+/* Pack emojis (lib/emoji-packs.ts, components/NotesAppEmoji.tsx): maroon crimson by Day, warm ivory by Night, and the bubble's own colour
+   inside a crimson bubble. The Noto Emoji font draws everyday emojis in one colour. */
+.na-emoji { color: #7a0328; }
+.na-emoji-glyph { font-family: "Noto Emoji", sans-serif; font-weight: 500; font-variant-emoji: text; }
+html[data-theme="night"] .na-emoji:not(:is([data-site-theme], [data-theme-off]) *) { color: #fbf6f2; }
+.bg-crimson .na-emoji { color: inherit; }
+.na-emoji-flag { font-family: "Noto Color Emoji", sans-serif; }

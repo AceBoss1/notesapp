@@ -38,7 +38,7 @@ export default function LifeFeedCard({ place }: { place: "between" | "aside" }) 
   const f = card.friends;
   const friendsLine = f.count ? `${f.sample[0]?.name.split(" ")[0]}${f.count > 1 ? ` and ${f.count - 1} ${f.count - 1 === 1 ? "other person" : "other people"} you follow` : ""} ${f.count > 1 ? "play" : "plays"}` : "";
   const href = card.playing ? "/life/play" : "/life";
-  const shell = place === "aside" ? "card p-5" : "border-b-[10px] border-[#F3ECE7] bg-card px-4 py-5 lg:hidden";
+  const shell = place === "aside" ? "card p-5" : "border-b-[10px] border-field bg-card px-4 py-5 lg:hidden";
   return (
     <div className={shell}>
       <div className="flex items-center gap-2">

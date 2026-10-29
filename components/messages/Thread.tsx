@@ -21,6 +21,9 @@ import { KNOWN_ROOTS } from "@/lib/host";
 import FormattedText from "./FormattedText";
 import { Emoji } from "@/components/NotesAppEmoji";
 import LinkPreview from "@/components/LinkPreview";
+import { useChatBackground, useNight } from "@/lib/chat-background-client";
+import { chatBackgroundStyle } from "@/lib/chat-background";
+import CountrySuggest from "@/components/CountrySuggest";
 import MentionPicker from "@/components/MentionPicker";
 import { firstUrl } from "@/lib/linkify";
 import MessageAttachments from "./MessageAttachments";
@@ -103,6 +106,9 @@ export default function Thread({ id, to, embedded = false }: { id?: string; to?:
   const [files, setFiles] = useState<File[]>([]);
   const [allowed, setAllowed] = useState<{ maxBytes: number; maxCount: number; maxVoiceSeconds: number } | null>(null);
   const box = useRef<HTMLTextAreaElement>(null);
+  // Your own background behind the messages (Pro and above), or the African pattern.
+  const [chatBg] = useChatBackground();
+  const bgLook = chatBackgroundStyle(chatBg, useNight());
   const picker = useRef<HTMLInputElement>(null);
   const { dragging, bind } = useFileDrop((f) => pick(f), true);
   const voiceLength = useRef(new WeakMap<File, number>()); // how long each recorded voice note is
@@ -479,6 +485,7 @@ export default function Thread({ id, to, embedded = false }: { id?: string; to?:
             { label: "Media, links and docs", icon: "▦", onClick: () => setLibrary(true), hidden: !cid },
             { label: "Summarise with Nana", icon: "✨", onClick: () => { const list = missed.length >= 3 ? missed : messages.slice(-50); setSummary({ context: asLines(list), count: list.length }); } },
             { label: "Select messages", icon: "☑️", onClick: () => setSelected([]) },
+            { label: "Chat background", icon: "🖼️", href: "/profile/account#chat-background" },
             { label: "Members", icon: "👥", onClick: () => setShowMembers(true) },
             { label: group.adminUids.includes(user?.uid ?? "") && group.scope !== "team" ? "Group settings" : "", icon: "⚙️", onClick: () => setShowMembers(true), hidden: !(group.adminUids.includes(user?.uid ?? "") && group.scope !== "team") },
             { label: "Create group", icon: "➕", href: "/messages/new-group", divider: true },
@@ -507,6 +514,7 @@ export default function Thread({ id, to, embedded = false }: { id?: string; to?:
             { label: "Media, links and docs", icon: "▦", onClick: () => setLibrary(true), hidden: !cid },
             { label: "Summarise with Nana", icon: "✨", onClick: () => { const list = missed.length >= 3 ? missed : messages.slice(-50); setSummary({ context: asLines(list), count: list.length }); } },
             { label: "Select messages", icon: "☑️", onClick: () => setSelected([]) },
+            { label: "Chat background", icon: "🖼️", href: "/profile/account#chat-background" },
             { label: "View profile", icon: "👤", href: `/u/${who.username}`, divider: true },
             { label: "View moments", icon: "✨", onClick: viewMoments, hidden: !MOMENTS_LIVE },
             { label: "Create group", icon: "➕", href: "/messages/new-group", divider: true },
@@ -545,7 +553,7 @@ export default function Thread({ id, to, embedded = false }: { id?: string; to?:
           ); })}
         </div>
       )}
-      <div className={embedded ? "min-h-[40vh] px-4 py-4 lg:px-7" : "min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 py-4 lg:px-7 lg:py-5"}>
+      <div className={`${bgLook.className} ${embedded ? "min-h-[40vh] px-4 py-4 lg:px-7" : "min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 py-4 lg:px-7 lg:py-5"}`} style={bgLook.style}>
         {messages.map((m, idx) => {
           const mine = m.from === user?.uid;
           const person = people[m.from];
@@ -766,6 +774,7 @@ export default function Thread({ id, to, embedded = false }: { id?: string; to?:
           )}
           <div className="relative flex items-end gap-1.5 border-t border-rule bg-card px-4 py-2.5 lg:gap-3 lg:border-0 lg:bg-transparent lg:p-0">
             <MentionPicker target={box} value={text} onChange={typed} place="above" />
+            <CountrySuggest target={box} value={text} onChange={typed} />
             {/* Grows with what's typed where the browser can (field-sizing), up to a few lines, then scrolls. */}
             <textarea
               ref={box} value={text} rows={1} maxLength={MESSAGE_MAX} placeholder="Drop a note…" onChange={(e) => typed(e.target.value)} onBlur={stopTyping}

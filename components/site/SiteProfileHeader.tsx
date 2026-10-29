@@ -32,17 +32,17 @@ export default function SiteProfileHeader({ noCover = false }: { noCover?: boole
   const joinedAt = profile?.createdAt ? new Date(profile.createdAt) : null;
   const joined = joinedAt && !Number.isNaN(joinedAt.getTime()) ? joinedAt.toLocaleDateString("en-NG", { month: "long", year: "numeric" }) : "";
 
-  // With a cover photo (every look): the picture across the top, the logo overlapping its lower edge.
+  // A cover across the top, the logo overlapping its lower edge: the member's photo, or the #NotesApp African pattern until they add one.
   return (
     <div>
-    {site.cover && (
+    {site.cover ? (
       // eslint-disable-next-line @next/next/no-img-element
       <img src={site.cover} alt="" className="aspect-[3/1] w-full rounded-2xl object-cover sm:aspect-[4/1]" />
-    )}
-    <section className={`flex flex-col items-start gap-6 sm:flex-row ${site.cover ? "px-2 sm:px-6" : "sm:items-center"}`}>
+    ) : <div aria-hidden className="na-pattern na-pattern-cover aspect-[3/1] w-full rounded-2xl border border-rule sm:aspect-[4/1]" />}
+    <section className={`flex flex-col items-start gap-6 sm:flex-row px-2 sm:px-6`}>
       {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img src={site.avatar} alt={site.displayName} className={`h-28 w-28 shrink-0 border object-cover ${site.cover ? "relative -mt-14 border-4 border-paper bg-paper shadow-sm" : "border-rule"} ${site.isOrg ? "rounded-2xl" : "rounded-full"}`} />
-      <div className={`min-w-0 ${site.cover ? "sm:pt-4" : ""}`}>
+      <img src={site.avatar} alt={site.displayName} className={`h-28 w-28 shrink-0 border object-cover relative -mt-14 border-4 border-paper bg-paper shadow-sm ${site.isOrg ? "rounded-2xl" : "rounded-full"}`} />
+      <div className="min-w-0 sm:pt-4">
         <h1 className="flex flex-wrap items-center gap-2 font-display text-4xl text-ink">
           {site.displayName}
           <NameBadgeIcons username={site.username} size={22} badges={profile ? badgesOf(profile) : NO_BADGES} />
@@ -61,7 +61,7 @@ export default function SiteProfileHeader({ noCover = false }: { noCover?: boole
           </p>
         )}
       </div>
-      <div className={`flex shrink-0 flex-wrap gap-3 sm:ml-auto ${site.cover ? "sm:pt-4" : ""}`}>
+      <div className="flex shrink-0 flex-wrap gap-3 sm:ml-auto sm:pt-4">
         <FollowButton username={site.username} />
         <GiftButton username={site.username} publisherUid={site.uid} />
       </div>

@@ -57,7 +57,7 @@ export default function CommunityView({ id }: { id: string }) {
     <div>
       <div className="mx-auto max-w-5xl px-4 pt-6 sm:px-6">
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        {c.cover ? <img src={c.cover} alt="" className="aspect-[3/1] w-full rounded-2xl object-cover sm:aspect-[4/1]" /> : <div className="aspect-[5/1] w-full rounded-2xl" style={{ backgroundImage: "linear-gradient(120deg, #4E0119 0%, #7A0328 60%, #A6093D 100%)" }} />}
+        {c.cover ? <img src={c.cover} alt="" className="aspect-[3/1] w-full rounded-2xl object-cover sm:aspect-[4/1]" /> : <div aria-hidden className="na-pattern na-pattern-cover aspect-[4/1] w-full rounded-2xl border border-rule" />}
         <div className="flex flex-col gap-4 px-2 sm:flex-row sm:px-6">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src={c.avatar || DEFAULT_AVATAR} alt="" className="-mt-12 h-24 w-24 shrink-0 rounded-2xl border-4 border-paper bg-paper object-cover shadow-sm" />

@@ -88,7 +88,7 @@ export default function FeedPost({ note, author, user, views, saved, onSave, fol
   const btn = "flex items-center gap-1.5 text-[15px] text-slate hover:text-crimson";
 
   return (
-    <article className="border-b-[10px] border-[#F3ECE7] bg-card px-4 py-5 lg:border-b lg:border-rule lg:px-6 lg:py-6">
+    <article className="border-b-[10px] border-field bg-card px-4 py-5 lg:border-b lg:border-rule lg:px-6 lg:py-6">
       <header className="flex items-start gap-3">
         {author.username
           ? <Link href={`/u/${author.username}`} className="shrink-0"><Avatar src={author.avatar} alt={note.author} size={44} square={author.isOrg} /></Link>

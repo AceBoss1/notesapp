@@ -16,7 +16,7 @@ export default async function CertificatePrint({ params }: { params: { id: strin
   if (!c || c.status === "revoked") notFound();
   const url = verifyUrlFor(c.id);
   return (
-    <main className="flex min-h-screen items-center justify-center bg-white p-0 print:block">
+    <main data-theme-off className="flex min-h-screen items-center justify-center bg-white p-0 print:block">
       <style>{"@page { size: A4 landscape; margin: 0 } @media print { html, body { background: #fff } }"}</style>
       <div className="w-[min(100vw,141.4vh)] print:w-[297mm]"><Certificate face={faceOnly(c)} verifyUrl={url} qr={await qrSvg(url)} /></div>
       <PrintNow />

@@ -1,5 +1,6 @@
 "use client";
 
+import ThemeSwitch from "@/components/theme/ThemeSwitch";
 import { WALLET_LIVE } from "@/lib/wallet";
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
@@ -85,7 +86,7 @@ export default function AuthNav({ onDark = false, compact = false }: { onDark?: 
           </button>
         )}
         {open && (
-          <div role="menu" className="absolute right-0 z-50 mt-2 w-52 border border-rule bg-card py-1 shadow-lg" onClick={() => setOpen(false)}>
+          <div role="menu" className="absolute right-0 z-50 mt-2 w-60 border border-rule bg-card py-1 shadow-lg" onClick={() => setOpen(false)}>
             {profile && <Link href={`/u/${profile.username}`} className={item}>My profile</Link>}
             {profile && canPublish(profile) && <Link href="/write" className={item}>My journal (write)</Link>}
             <Link href="/profile/edit" className={item}>Edit profile</Link>
@@ -107,6 +108,7 @@ export default function AuthNav({ onDark = false, compact = false }: { onDark?: 
             {profile?.accountKind === "organisation" && <Link href="/organisation" className={item}>Organisation setup</Link>}
             <Link href="/advertise/campaigns" className={item}>My ad campaigns</Link>
             <Link href="/badges" className={item}>Verification badges</Link>
+            <div className="border-t border-rule px-3 py-2"><ThemeSwitch compact /></div>
             <button onClick={() => signOut(auth)} className={`${item} w-full border-t border-rule`}>
               Sign out
             </button>

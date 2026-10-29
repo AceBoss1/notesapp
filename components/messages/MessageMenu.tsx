@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { NOTESAPP_EMOJI, REACTIONS, isReaction } from "@/lib/messages-rules";
+import { BRAND_EMOJI, NOTESAPP_EMOJI, REACTIONS, isReaction } from "@/lib/messages-rules";
 import { useQuickReactions } from "@/lib/quick-reactions-client";
 import { Emoji } from "@/components/NotesAppEmoji";
 import { EMOJIS } from "./EmojiPicker";
@@ -116,7 +116,7 @@ function SwapReactions({ sheet, onDone }: { sheet: boolean; onDone: () => void }
       </div>
       <p className="mt-3 px-1 font-ui text-[11px] font-bold uppercase tracking-wider text-slate">#NotesApp</p>
       <div className="mt-1 flex gap-1">
-        {Object.entries(NOTESAPP_EMOJI).map(([code, x]) => (
+        {Object.entries(BRAND_EMOJI).map(([code, x]) => (
           <button key={code} type="button" onClick={() => put(code)} aria-label={`Use ${x.label}`} className={`rounded-lg p-1.5 text-2xl leading-none hover:bg-paper ${quick.includes(code) ? "bg-crimson/10" : ""}`}><Emoji e={code} /></button>
         ))}
       </div>
