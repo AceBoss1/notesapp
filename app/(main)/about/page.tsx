@@ -171,7 +171,7 @@ export default async function AboutPage() {
           <h2 className="mt-2 font-display text-3xl leading-tight">Help us build it faster</h2>
           <p className="mt-4 text-lg text-slate">
             Next on the <Link href="/roadmap" className="text-crimson underline underline-offset-2">roadmap</Link>: giving, tickets
-            and our own live streaming for communities, with bigger meetings; iOS and Android apps; WhatsApp reminders; and the Team hub
+            and our own live streaming for communities, with bigger meetings; iOS and Android apps; WhatsApp reminders; Send-Na, our email, WhatsApp and SMS service priced in Naira; and the Team hub
             and finance tools for Business and Enterprise. We&apos;ve built lean and in the open, and we&apos;re now looking for
             investors, accelerators and partners who want to build Africa&apos;s home for creators and the people they serve.
           </p>
@@ -183,7 +183,7 @@ export default async function AboutPage() {
         <p className="eyebrow">What you can do today</p>
         <FeatureMosaic className="mt-5" items={LIVE} />
         <p className="mt-4 text-sm text-slate">
-          Still to come: giving, tickets and live streaming for <Link href="/community" className="text-crimson underline underline-offset-2">communities</Link>, quizzes and the Enterprise course packages, WhatsApp reminders, iOS and Android apps, sharing
+          Still to come: giving, tickets and live streaming for <Link href="/community" className="text-crimson underline underline-offset-2">communities</Link>, quizzes and the Enterprise course packages, WhatsApp reminders, Send-Na (email, WhatsApp and SMS for builders, priced in Naira), iOS and Android apps, sharing
           to more social networks (LinkedIn and X are live), and Google and Meta ads
           alongside our own. The Team hub, company finance tools, an investor data room and advertising on LinkedIn
           are being tested by our own team and will be paid add-ons for Business and Enterprise once that testing is done — see the{" "}
