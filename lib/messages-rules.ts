@@ -1,4 +1,6 @@
 // Direct messages: client-safe constants and helpers.
+import { EMOJI_PACKS, PACK_EMOJI } from "./emoji-packs";
+
 export const MESSAGE_MAX = 2000;
 export const MESSAGES_PER_MINUTE = 20; // per sender, per instance (see lib/rate-limit.ts)
 
@@ -37,16 +39,21 @@ export type ThreadMessage = {
   voiceText?: Record<string, Record<string, string>>; // per voice note: its Kiswahili transcript or translation (lib/kiswahili-server.ts)
 };
 
-// #NotesApp's own emojis: typed as :na:, :academy: or :football: and drawn as small pictures inside #NotesApp (components/NotesAppEmoji.tsx).
+// #NotesApp's own emojis: typed as :na:, :academy: or :football: and drawn as small pictures inside #NotesApp (components/NotesAppEmoji.tsx),
+// and the emoji packs (lib/emoji-packs.ts), typed as :x-talking-drum: or :x-grin: and drawn in one colour that follows Day and Night.
 // Anywhere that only shows text (the inbox, a bell, an email) they read as their label.
-export const NOTESAPP_EMOJI: Record<string, { src: string; label: string }> = {
+export type NotesAppEmojiInfo = { label: string; src?: string; drawing?: string; glyph?: string; flag?: boolean; pack?: string };
+export const BRAND_EMOJI: Record<string, NotesAppEmojiInfo> = {
   ":na:": { src: "/images/emoji/na.png", label: "#NotesApp" },
   ":academy:": { src: "/images/emoji/academy.svg", label: "Notes Academy" },
   ":football:": { src: "/images/emoji/football.png", label: "Football" },
 };
-export const NOTESAPP_EMOJI_RE = /:(?:na|academy|football):/g;
+export const NOTESAPP_EMOJI: Record<string, NotesAppEmojiInfo> = { ...BRAND_EMOJI, ...PACK_EMOJI };
+export const NOTESAPP_EMOJI_RE = /:(?:na|academy|football|x-[a-z0-9-]+):/g;
 export const isNotesAppEmoji = (e: unknown): e is string => typeof e === "string" && Object.prototype.hasOwnProperty.call(NOTESAPP_EMOJI, e);
-export const emojiAsText = (s: string) => s.replace(NOTESAPP_EMOJI_RE, (t) => NOTESAPP_EMOJI[t].label);
+// The pack emojis in some text (for the server's unlock check).
+export const packCodesIn = (s: string) => Array.from(s.matchAll(NOTESAPP_EMOJI_RE), (m) => m[0]).filter((c) => c.startsWith(":x-"));
+export const emojiAsText = (s: string) => s.replace(NOTESAPP_EMOJI_RE, (t) => NOTESAPP_EMOJI[t]?.label ?? t);
 
 // Reactions: one per person per message. Any single emoji, or one of ours; each member keeps their own quick set of QUICK_COUNT along
 // the top of the message menu (userPrefs/{uid}.quickReactions), starting from these.
@@ -60,7 +67,9 @@ function oneEmoji(s: string): boolean {
   if (typeof Intl.Segmenter === "function") return Array.from(new Intl.Segmenter(undefined, { granularity: "grapheme" }).segment(s)).length === 1;
   return !LETTER.test(s.replace(/^[#*0-9]/, ""));
 }
-export const isReaction = (e: unknown): e is string => typeof e === "string" && (isNotesAppEmoji(e) || oneEmoji(e));
+// Our emojis react too: the #NotesApp three and the free packs (a paid pack's emojis go in messages, where the sender's plan is checked).
+const FREE_PACKS = new Set(EMOJI_PACKS.filter((p) => p.free).map((p) => p.id));
+export const isReaction = (e: unknown): e is string => typeof e === "string" && (Object.prototype.hasOwnProperty.call(BRAND_EMOJI, e) || (isNotesAppEmoji(e) && FREE_PACKS.has(NOTESAPP_EMOJI[e].pack ?? "")) || oneEmoji(e));
 // A member's quick set: QUICK_COUNT different reactions, or nothing (the default).
 export function cleanQuickReactions(v: unknown): string[] | null {
   if (!Array.isArray(v) || v.length !== QUICK_COUNT || !v.every(isReaction) || new Set(v).size !== v.length) return null;

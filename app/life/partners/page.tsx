@@ -67,7 +67,7 @@ const partners: { name: string; logo: string; logoClass: string; shot: string; w
 // Partner with Notes Life: served at life.notesapp.name.ng/partners (middleware.ts) and at /life/partners.
 export default function LifePartnersPage() {
   return (
-    <div className="min-h-screen bg-gradient-to-b from-sky-200 via-sky-50 to-amber-50 text-ink">
+    <div data-theme-off className="min-h-screen bg-gradient-to-b from-sky-200 via-sky-50 to-amber-50 text-ink">
       <header className="mx-auto flex max-w-6xl items-center justify-between px-4 py-5 sm:px-6">
         <a href={HOME} className="font-ui text-xl font-extrabold tracking-tight">Notes <span className="text-emerald-600">Life</span></a>
         <a href={PLAY} className="rounded-full bg-emerald-600 px-4 py-2 font-ui text-xs font-bold text-white shadow-sm">▶ Play free</a>

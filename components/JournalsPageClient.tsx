@@ -38,7 +38,7 @@ const TABS: { id: Tab; label: string }[] = [
 const OLD_TABS: Record<string, Tab> = { viewed: "top", recent: "latest" };
 const MOVED = new Set(["topics", "people", "channels"]);
 const PAGE = 15;
-const GAP = "border-b-[10px] border-[#F3ECE7] lg:border-b lg:border-rule";
+const GAP = "border-b-[10px] border-field lg:border-b lg:border-rule";
 type Shelved = NoteWithComputed & Shelfable;
 const uniq = <T extends { id: string }>(list: T[]) => { const seen = new Set<string>(); return list.filter((x) => !seen.has(x.id) && !!seen.add(x.id)); };
 
@@ -178,7 +178,7 @@ export default function JournalsPageClient() {
       {i === 1 && <div className="lg:hidden"><MostRead rows={mostRead} /></div>}
       {PROMO_AT.indexOf(i) >= 0 && promoted[PROMO_AT.indexOf(i)] && <Promoted boost={promoted[PROMO_AT.indexOf(i)].b}>{post(promoted[PROMO_AT.indexOf(i)].n, "Promoted")}</Promoted>}
       {i === 2 && <div className="lg:hidden"><WhoToFollow rows={toFollow} following={following} onFollow={follow} /></div>}
-      {i === 3 && <div className="border-b-[10px] border-[#F3ECE7] bg-card px-4 py-5 empty:hidden lg:hidden"><BadgePitchCard /></div>}
+      {i === 3 && <div className="border-b-[10px] border-field bg-card px-4 py-5 empty:hidden lg:hidden"><BadgePitchCard /></div>}
       {i === 5 && !query && <LifeFeedCard place="between" />}
       {query && (i === 2 || (i === page.length - 1 && page.length < 3)) && <div className={`bg-card px-4 empty:hidden lg:px-6 ${GAP}`}><AdSlot placement="search" /></div>}
       {i === 4 && !query && <div className={`bg-card px-4 empty:hidden lg:px-6 ${GAP}`}><AdSlot placement="journals" /></div>}

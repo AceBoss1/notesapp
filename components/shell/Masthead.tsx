@@ -44,10 +44,10 @@ export default function Masthead({ links, appLinks }: { links: L[]; appLinks: L[
             <Image src="/images/brand/notesapp-icon.webp" alt="#NotesApp" width={40} height={40} className="h-10 w-10 rounded-xl" />
           </Link>
           <SearchBar className="min-w-0 flex-1" placeholder="Search journals, people, #topics"
-            inputClassName="w-full rounded-full border border-transparent bg-[#F3ECE7] px-4 py-2.5 font-body text-[15px] text-ink placeholder:text-slate/80 outline-none focus:border-crimson focus:bg-card" />
+            inputClassName="w-full rounded-full border border-transparent bg-field px-4 py-2.5 font-body text-[15px] text-ink placeholder:text-slate/80 outline-none focus:border-crimson focus:bg-card" />
           {user ? (
             <>
-              <NotificationBell user={user} buttonClassName="relative flex h-10 w-10 items-center justify-center rounded-full bg-[#F3ECE7] text-lg" panelClassName="fixed inset-x-3 top-[4.25rem]" />
+              <NotificationBell user={user} buttonClassName="relative flex h-10 w-10 items-center justify-center rounded-full bg-field text-lg" panelClassName="fixed inset-x-3 top-[4.25rem]" />
               <button type="button" onClick={() => setSheet(true)} aria-label="Open menu" aria-expanded={sheet} className="shrink-0 rounded-full">
                 {profile ? <Avatar src={profile.avatar} alt={profile.displayName} size={40} square={profile.accountKind === "organisation"} /> : <span className="block h-10 w-10 rounded-full bg-crimson" />}
               </button>

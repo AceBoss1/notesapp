@@ -2,7 +2,9 @@ import type { Firestore } from "firebase-admin/firestore";
 import { FieldValue } from "firebase-admin/firestore";
 import { getAuth } from "firebase-admin/auth";
 import { randomBytes } from "crypto";
-import { GROUP_MEMBERS_MAX, GROUP_TITLE_MAX, MESSAGE_MAX, attachmentLabel, newGroupId, type GroupInfo, type GroupScope } from "./messages-rules";
+import { GROUP_MEMBERS_MAX, GROUP_TITLE_MAX, MESSAGE_MAX, attachmentLabel, newGroupId, packCodesIn, type GroupInfo, type GroupScope } from "./messages-rules";
+import { lockedPackIn } from "./emoji-packs";
+import { effectiveTier } from "./effective-tier";
 import { dropKept } from "./message-kept";
 import { MessageError, claimAttachments, groupInfoOf, mutedAmong, quoteOf, type FileDeps, type Notify, type SendInput } from "./messages-server";
 import { notifyBell } from "./email";
@@ -54,7 +56,7 @@ async function userOf(db: Firestore, uid: string) {
   const u = (await db.doc(`users/${uid}`).get()).data();
   if (!u) throw new MessageError(404, "Your account wasn't found.");
   if (u.suspended === true) throw new MessageError(403, "Your account can't do that right now.");
-  return { uid, username: String(u.username ?? ""), displayName: String(u.displayName ?? "A member") };
+  return { uid, username: String(u.username ?? ""), displayName: String(u.displayName ?? "A member"), tier: effectiveTier({ username: String(u.username ?? ""), role: u.role, accountTier: u.accountTier }) };
 }
 
 const GROUP_REPEAT_MS = 2 * 60_000;
@@ -116,6 +118,8 @@ export async function sendGroupMessage(
   if (!text && !ids.length && !sticker) throw new MessageError(400, "Write a message first.");
   if (text.length > MESSAGE_MAX) throw new MessageError(413, `Messages can be up to ${MESSAGE_MAX} characters.`);
   const me = await userOf(db, fromUid);
+  const locked = lockedPackIn(text, me.tier, packCodesIn);
+  if (locked) throw new MessageError(403, `The ${locked.name} emojis come with Pro, Business and Enterprise. Unlock them on the Pricing page.`);
   const { ref, c, info } = await groupOf(db, cid, fromUid);
   if (info.sendLocked && !info.adminUids.includes(fromUid)) throw new MessageError(403, "Only group admins can send messages in this group right now.");
 

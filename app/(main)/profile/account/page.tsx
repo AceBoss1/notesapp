@@ -1,5 +1,6 @@
 "use client";
 
+import ThemeSwitch from "@/components/theme/ThemeSwitch";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
@@ -177,6 +178,11 @@ export default function AccountPage() {
         <p className="mt-3 text-xs text-slate">Forgot it? <Link href="/forgot-password" className="text-crimson">Reset by email</Link>.</p>
       </form>
 
+      <section id="appearance" className="mx-auto mt-10 max-w-2xl scroll-mt-6 px-6">
+        <h2 className="font-display text-2xl text-ink">Day or night</h2>
+        <p className="mt-1 text-sm text-slate">How #NotesApp looks on this device: warm ivory paper by Day, #NotesApp maroon by Night, or Auto to follow the clock. Your site keeps its own look.</p>
+        <div className="mt-4"><ThemeSwitch /></div>
+      </section>
       {user && (
         <section id="email" className="mx-auto mt-10 max-w-2xl scroll-mt-6 px-6">
           <h2 className="font-display text-2xl text-ink">Emails</h2>

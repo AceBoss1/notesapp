@@ -21,6 +21,7 @@ import { KNOWN_ROOTS } from "@/lib/host";
 import FormattedText from "./FormattedText";
 import { Emoji } from "@/components/NotesAppEmoji";
 import LinkPreview from "@/components/LinkPreview";
+import CountrySuggest from "@/components/CountrySuggest";
 import MentionPicker from "@/components/MentionPicker";
 import { firstUrl } from "@/lib/linkify";
 import MessageAttachments from "./MessageAttachments";
@@ -545,7 +546,7 @@ export default function Thread({ id, to, embedded = false }: { id?: string; to?:
           ); })}
         </div>
       )}
-      <div className={embedded ? "min-h-[40vh] px-4 py-4 lg:px-7" : "min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 py-4 lg:px-7 lg:py-5"}>
+      <div className={`na-pattern ${embedded ? "min-h-[40vh] px-4 py-4 lg:px-7" : "min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 py-4 lg:px-7 lg:py-5"}`}>
         {messages.map((m, idx) => {
           const mine = m.from === user?.uid;
           const person = people[m.from];
@@ -766,6 +767,7 @@ export default function Thread({ id, to, embedded = false }: { id?: string; to?:
           )}
           <div className="relative flex items-end gap-1.5 border-t border-rule bg-card px-4 py-2.5 lg:gap-3 lg:border-0 lg:bg-transparent lg:p-0">
             <MentionPicker target={box} value={text} onChange={typed} place="above" />
+            <CountrySuggest target={box} value={text} onChange={typed} />
             {/* Grows with what's typed where the browser can (field-sizing), up to a few lines, then scrolls. */}
             <textarea
               ref={box} value={text} rows={1} maxLength={MESSAGE_MAX} placeholder="Drop a note…" onChange={(e) => typed(e.target.value)} onBlur={stopTyping}

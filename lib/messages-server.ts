@@ -1,7 +1,7 @@
 import type { Firestore } from "firebase-admin/firestore";
 import { FieldValue } from "firebase-admin/firestore";
 import { randomBytes } from "crypto";
-import { MESSAGE_MAX, QUICK_COUNT, cleanQuickReactions, attachmentLabel, attachmentTypeOf, conversationId, type GroupInfo, type GroupScope, type MessageAttachment, type MomentRef, type ThreadMessage } from "./messages-rules";
+import { MESSAGE_MAX, QUICK_COUNT, cleanQuickReactions, packCodesIn, attachmentLabel, attachmentTypeOf, conversationId, type GroupInfo, type GroupScope, type MessageAttachment, type MomentRef, type ThreadMessage } from "./messages-rules";
 import { isMomentExpired } from "./moments-rules";
 import { notifyBell, sendEmail } from "./email";
 import { getAdminDb, getUserEmail } from "./firebase-admin";
@@ -10,6 +10,7 @@ import { effectiveTier } from "./users";
 import { getTierConfig } from "./tiers";
 import { limit } from "./limits-server";
 import { stickerById } from "./stickers";
+import { lockedPackIn } from "./emoji-packs";
 import { stripFormat } from "./message-format";
 import { safeFileName } from "./private-files";
 import { SITE_URL } from "@/lib/host";
@@ -141,6 +142,9 @@ export async function sendMessage(db: Firestore, fromUid: string, toUid: string,
   ]);
   if (!to.exists) throw new MessageError(404, "That member wasn't found.");
   if (from.data()?.suspended === true) throw new MessageError(403, "Your account can't send messages right now.");
+  const sender = from.data();
+  const locked = sender ? lockedPackIn(text, effectiveTier({ username: String(sender.username ?? ""), role: sender.role, accountTier: sender.accountTier }), packCodesIn) : null;
+  if (locked) throw new MessageError(403, `The ${locked.name} emojis come with Pro, Business and Enterprise. Unlock them on the Pricing page.`);
   if (to.data()?.suspended === true) throw new MessageError(404, "That member wasn't found.");
   // Same message as a missing account, so a block doesn't tell the sender they were blocked.
   if (blocked.exists) throw new MessageError(404, "That member wasn't found.");
