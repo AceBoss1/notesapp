@@ -56,7 +56,7 @@ Check the stores' current rules with the release, since they keep changing.
 | 5 | Store listings (drafts in `mobile/store/`), screenshots in Day and Night, the privacy answers | Engineering and owner |
 | 6 | Internal testing: TestFlight (iPhone) and Google Play internal testing, the team first | Team |
 | 7 | Closed test with members (Google asks for 12 testers over 14 days for a new personal account; an organisation account skips this) | Team |
-| 8 | Release in Nigeria first, then Ghana and Kenya with Flutterwave (`docs/PAYMENTS.md` §4), then everywhere | Owner |
+| 8 | Release in Nigeria first, then Kenya and Ghana with Flutterwave (`docs/PAYMENTS.md` §4), then everywhere | Owner |
 
 ## 5. Decided (29 October 2026)
 
