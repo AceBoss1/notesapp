@@ -11,6 +11,14 @@ export type Release = {
 
 export const CHANGELOG: Release[] = [
   {
+    version: "v0.99.2",
+    bump: "patch",
+    date: "2026-10-29",
+    changes: [
+      { kind: "changed", text: "On the roadmap: WhatsApp booking reminders will be a paid add-on that publishers switch on. Email and bell reminders stay free on every plan." },
+    ],
+  },
+  {
     version: "v0.99.1",
     bump: "patch",
     date: "2026-10-29",

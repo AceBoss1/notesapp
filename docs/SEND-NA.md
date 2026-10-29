@@ -1,6 +1,6 @@
 # Send-Na by NotesApp — the plan
 
-> Status: **plan only, nothing built.** Written 29 October 2026 from the owner's brief: an email platform for Nigerian builders, priced in Naira, from NOTESAPP TECHNOLOGIES LTD. It also carries the **WhatsApp and SMS** channel that booking reminders need, so that work is planned once, here. Updated the same day with the owner's answers: sign-in codes now and wallet codes later, new-account limits, and the Pearl, Emerald and Ruby prices, also sold as a NotesApp add-on.
+> Status: **plan only, nothing built.** Written 29 October 2026 from the owner's brief: an email platform for Nigerian builders, priced in Naira, from NOTESAPP TECHNOLOGIES LTD. It also carries the **WhatsApp and SMS** channel that booking reminders need, so that work is planned once, here. Updated the same day with the owner's answers: sign-in codes now and wallet codes later, new-account limits, and the Pearl, Emerald and Ruby prices, also sold as a NotesApp add-on. Updated again on 29 October 2026: the email counts, the SMS gateway, who verifies WhatsApp, who owns deliverability and abuse, and WhatsApp booking reminders as a paid add-on (§9).
 
 ## 1. What Send-Na is
 
@@ -94,11 +94,23 @@ Every attempt goes into the same timeline as email, so the sender sees one messa
 
 ### SMS
 
-- **We use a Nigerian SMS gateway** that offers a transactional route which reaches numbers on the DND (do not disturb) list, and registers sender IDs with the networks as NCC rules require. **Supplier to be chosen** (§8).
+- **We use a Nigerian SMS gateway** that offers a transactional route which reaches numbers on the DND (do not disturb) list, and registers sender IDs with the networks as NCC rules require.
+- **Suggested: Termii first, Africa's Talking as the backup.**
+  - **Termii** is a Lagos company, bills in Naira, and has a DND-cleared transactional route, a one-time-code API (with voice codes) and sender ID registration. It also sells WhatsApp, which could serve as a fallback for Meta.
+  - **Africa's Talking** reaches the rest of Africa when we grow past Nigeria, and keeps codes flowing if Termii has a bad day.
+  - Before signing, get written quotes from both, and from one local gateway (for example Multitexter or SmartSMSSolutions) to compare. Then test how fast each delivers to MTN, Airtel, Glo and 9mobile numbers on DND.
 - **Sender IDs:** NotesApp first. Members on Business and Enterprise can register their own name, which takes the networks a few days.
 - **Content rules:** SMS is for codes, reminders and alerts only. No marketing over SMS in the first phases.
 
 ### Booking reminders, concretely (phase 0)
+
+**WhatsApp booking reminders are a paid add-on** (the owner's decision, 29 October 2026). Email and bell reminders stay free on every plan, as they are today.
+
+- **Who switches it on:** the publisher, on their booking settings.
+- **Who gets the reminders:** their clients (and the publisher, for their side of the session).
+- **How it's billed:** a monthly add-on with a reminder allowance. Anything past the allowance comes from WhatsApp and SMS credit (§6). The price is set once Meta's and the SMS gateway's rates are confirmed.
+
+Once a publisher has it on:
 
 1. The booking form asks for a WhatsApp number (pre-filled from the profile) and offers "Remind me on WhatsApp", ticked when the person has already agreed to WhatsApp messages.
 2. The 24-hour and 1-hour reminders that already send by email and the bell (`reminder24Sent`, `reminder1Sent` in `lib/bookings-server.ts`) also go to WhatsApp. They fall back to SMS when WhatsApp isn't delivered.
@@ -161,16 +173,16 @@ Fixed Naira prices mean **NotesApp carries the exchange-rate risk**. The plans s
 
 **Free is in every plan.** The first 3,000 emails each month are free on every account and are used first; a paid plan's emails come on top. A free account sends up to 100 a day.
 
-| Plan | Price a month | Plan emails (suggested) | With the free 3,000 | Per plan email | Extras |
+| Plan | Price a month | Plan emails (recommended) | With the free 3,000 | Per plan email | Extras |
 |---|---|---|---|---|---|
 | Free | ₦0, no card needed | — | 3,000 (100 a day) | — | 1 domain, sandbox, 3 days of logs |
-| **Pearl** | ₦1,500 | 5,000 | **8,000** | ₦0.30 | 3 domains, 15 days of logs |
+| **Pearl** | ₦1,500 | 4,000 | **7,000** | ₦0.375 | 3 domains, 15 days of logs |
 | **Emerald** | ₦12,500 | 50,000 | **53,000** | ₦0.25 | 10 domains, marketing route, 30 days of logs, webhooks |
 | **Ruby** | ₦40,000 | 175,000 | **178,000** | ₦0.23 | unlimited domains, 90 days of logs, priority support, dedicated IP as an add-on |
 
 - **Over the plan:** ₦0.35 an email, or move up a plan in the middle of a month (you pay the difference for the days left).
 - **Bigger than Ruby:** agreed terms, from ₦120,000 a month for 750,000+.
-- **Against SendByte** (₦2,000 for 6,000, ₦15,000 for 50,000, ₦45,000 for 200,000, 3,000 free): Pearl gives 8,000 for ₦1,500, Emerald 53,000 for ₦12,500 and Ruby 178,000 for ₦40,000. That is cheaper or level at each step, and nearer on Ruby, where SendByte's ₦0.225 an email sits close to what SES costs us.
+- **Against SendByte** (₦2,000 for 6,000, ₦15,000 for 50,000, ₦45,000 for 200,000, 3,000 free): Pearl gives 7,000 for ₦1,500, Emerald 53,000 for ₦12,500 and Ruby 178,000 for ₦40,000. That is cheaper or level at each step, and nearer on Ruby, where SendByte's ₦0.225 an email sits close to what SES costs us.
 - The names match Nana's three gems, so members already know the order.
 
 ### The cost behind the counts
@@ -179,15 +191,18 @@ Amazon SES charges **$0.10 per 1,000 emails**: about **₦0.16 an email** at a w
 
 | Plan | Emails at most | SES cost at ₦1,600 | Left for logs, support and margin | The plan stops paying at |
 |---|---|---|---|---|
-| Pearl | 8,000 | ₦1,280 | ₦220 (15%) | about ₦1,875 to the dollar |
+| Pearl | 7,000 | ₦1,120 | ₦380 (25%) | about ₦2,140 to the dollar |
 | Emerald | 53,000 | ₦8,480 | ₦4,020 (32%) | about ₦2,360 |
 | Ruby | 178,000 | ₦28,480 | ₦11,520 (29%) | about ₦2,250 |
 
 What this means:
 
-- **These counts work today but leave little room for a falling Naira, Pearl least of all.** The free 3,000 is most of Pearl's cost. Most accounts won't use their full allowance, which helps, but we shouldn't count on it.
+- **Recommended counts:** Pearl 4,000 (7,000 with the free 3,000), Emerald 50,000 and Ruby 175,000.
+  - All three plans stop paying at about the same exchange rate, ₦2,140 to ₦2,360 to the dollar.
+  - Pearl still beats SendByte's cheapest plan (6,000 for ₦2,000).
+  - The free 3,000 is most of Pearl's cost. Most accounts won't use their full allowance, which helps, but we shouldn't count on it.
 - **Our own mail servers fix this.** In phase 3, servers we run (a few hundred dollars a month, whatever the volume) carry the marketing route and then more, and the cost of each email falls far below SES. Until then, Emerald and Ruby carry the margin.
-- **If the owner wants more room now:** Pearl at 4,000 plan emails (7,000 in all) makes ₦380 at today's rate. Or keep the counts and raise Pearl to ₦2,000 at the first yearly review.
+- **If the Naira falls past about ₦2,100 to the dollar before our own servers are running:** raise Pearl to ₦2,000 at the first yearly review, rather than cutting its emails.
 
 ### As a NotesApp add-on
 
@@ -204,11 +219,10 @@ These are **credit packs in Naira**, paid from the NotesApp Credit wallet or by 
 
 **What NotesApp pays for itself:**
 
-- reminders for NotesApp bookings;
 - NotesApp's own sign-in codes;
 - later, wallet one-time codes.
 
-Members never pay for these.
+Members never pay for these. **WhatsApp booking reminders are not on this list:** they are the publisher's paid add-on (§3).
 
 ## 7. How it's built (for the engineering team; nothing built yet)
 
@@ -236,18 +250,29 @@ Members never pay for these.
 
 ## 9. What the owner decides
 
-1. **The name and address:** Send-Na, at `send.notesapp.name.ng` first and later its own domain. Check the trademark and the domains before anything public.
-2. **Prices:**
-   - **Decided:** Free (3,000 a month, used first on every plan), Pearl ₦1,500, Emerald ₦12,500, Ruby ₦40,000, also sold as a NotesApp add-on.
-   - **Still to confirm:** the suggested email counts (5,000, 50,000 and 175,000 on top of the free 3,000), Pearl's thin margin (§6), and the Naira price for each WhatsApp and SMS message once suppliers quote.
-3. **Suppliers:**
-   - SES as the first email sender;
-   - the second email provider;
-   - which Nigerian SMS gateway;
-   - who registers our WhatsApp Business number and completes Meta's verification (the CAC documents are in `lib/site.ts`).
-4. **People:** who owns deliverability, and who owns abuse review, from phase 0.
-5. **Free booking reminders:** whether WhatsApp booking reminders are free on every plan. Recommended: free for the client on every plan; the publisher's own reminders free on Business and above.
-6. **When phase 2 opens to the public:** only after phase 0 and phase 1 have run cleanly for at least two months.
+**Decided (29 October 2026):**
+
+1. **Prices:**
+   - Free: 3,000 a month, used first on every plan.
+   - Pearl ₦1,500, Emerald ₦12,500 and Ruby ₦40,000, also sold as a NotesApp add-on.
+   - Recommended counts: 4,000, 50,000 and 175,000 on top of the free 3,000 (§6).
+2. **WhatsApp verification:** NotesApp (NOTESAPP TECHNOLOGIES LTD) registers the WhatsApp Business number and completes Meta's business verification. The CAC documents are in `lib/site.ts`.
+3. **People:**
+   - The **NotesApp team** owns deliverability: Postmaster Tools, SNDS, warm-up and the dashboards in §4.
+   - The **NotesApp compliance department** reviews abuse: flagged accounts, pauses, identity and CAC checks (§5).
+   - Both start in phase 0.
+4. **WhatsApp booking reminders:** a paid add-on for publishers. Email and bell reminders stay free (§3).
+
+**Suggested, for the owner's yes:**
+
+5. **SMS gateway:** Termii first, Africa's Talking as the backup, after quotes and a delivery test (§3).
+6. **Second email provider:** Resend, which already sends our mail today, so the fallback costs no new integration.
+
+**Still open:**
+
+7. **The name and address:** Send-Na, at `send.notesapp.name.ng` first and later its own domain. Check the trademark and the domains before anything public.
+8. **Message prices:** the Naira price for each WhatsApp and SMS message, and for the reminders add-on, once suppliers quote.
+9. **When phase 2 opens to the public:** only after phase 0 and phase 1 have run cleanly for at least two months.
 
 ## 10. Risks
 
