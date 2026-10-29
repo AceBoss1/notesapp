@@ -1,5 +1,5 @@
 import PageHero from "@/components/PageHero";
-import { SITE, WHAT_IS_INTRO, WHAT_IS_NOTESAPP, WHAT_YOU_CAN_DO, WHAT_IS_FREE, WHAT_IS_TIERS } from "@/lib/site";
+import { SITE, VISION, MISSION, MISSION_PILLARS, VALUES, WHAT_IS_INTRO, WHAT_IS_NOTESAPP, WHAT_YOU_CAN_DO, WHAT_IS_FREE, WHAT_IS_TIERS } from "@/lib/site";
 import FeatureMosaic from "@/components/FeatureMosaic";
 import { WALLET_LIVE } from "@/lib/wallet";
 import NotesLifeCard from "@/components/NotesLifeCard";
@@ -100,6 +100,29 @@ export default async function AboutPage() {
       <NotesLifeCard className="mt-10" />
 
       <div className="mt-12 space-y-12 font-body text-ink">
+        <section id="vision">
+          <p className="eyebrow">Our vision</p>
+          <h2 className="mt-2 font-display text-4xl leading-tight text-crimson sm:text-5xl">{VISION}</h2>
+          <p className="eyebrow mt-8">Our mission</p>
+          <p className="mt-2 text-xl text-ink">{MISSION}</p>
+          <div className="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            {MISSION_PILLARS.map((p) => (
+              <div key={p.title} className="card p-4">
+                <p className="font-display text-xl text-crimson">{p.title}</p>
+                <p className="mt-1 text-sm text-slate">{p.copy}</p>
+              </div>
+            ))}
+          </div>
+          <p className="eyebrow mt-8">What we value</p>
+          <ul className="mt-3 space-y-2 text-base text-slate">
+            {VALUES.map((v) => (
+              <li key={v.title}>
+                <span className="font-semibold text-ink">{v.title}.</span> {v.copy}
+              </li>
+            ))}
+          </ul>
+        </section>
+
         <section>
           <p className="eyebrow">The pain we started with</p>
           <h2 className="mt-2 font-display text-3xl leading-tight">Five tools to do one job</h2>

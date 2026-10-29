@@ -50,6 +50,24 @@ export const WHAT_YOU_CAN_DO = [
   "Run it all under your own name, with your own site from Free Basic and your own domain on Business and Enterprise plans",
   "Play Notes Life, our free life game, with your NotesApp account",
 ];
+// Our vision and mission (owner, 29 Oct 2026). The About page, the engineering guide and the investor deck use these words.
+export const VISION = "Africa\u2019s knowledge, shared, valued and rewarded.";
+export const MISSION =
+  "#NotesApp gives Africa\u2019s creators, teachers, professionals and businesses one home to share what they know, teach it, sell it and get paid for it, in their own currency and, in time, their own language.";
+export const MISSION_PILLARS = [
+  { title: "Share", copy: "Journals, communities, messages and calls take what people know to the people who need it." },
+  { title: "Learn", copy: "Notes Academy, Naija Exam Prep and certificates anyone can check turn knowledge into qualifications." },
+  { title: "Earn", copy: "Bookings, subscriptions, gifts, Notes Market and course sales pay out in Naira, with our commissions set out in the open." },
+  { title: "Belong", copy: "Everyone is welcome as family: readers become buyers, learners become teachers, customers become creators." },
+  { title: "Include", copy: "Built for African realities: phone-first, light on data, local payments, and African languages, starting with Kiswahili." },
+];
+export const VALUES = [
+  { title: "Members first", copy: "Every feature has to help someone be heard, learn, sell or get paid." },
+  { title: "Knowledge earns", copy: "What people know has value, and the people who share it deserve a fair share of what it makes." },
+  { title: "Trust and safety", copy: "We protect young members, check credentials, keep data private and keep a copy nobody can reach." },
+  { title: "Built for Africa", copy: "Naira first, mobile first and data-light, growing country by country across the continent." },
+  { title: "Open by default", copy: "Our prices, commissions, status and changelog are public, and we build in the open." },
+];
 export const WHAT_IS_FREE = "Anyone can read, comment, book a session or buy from a shop for free.";
 export const WHAT_IS_TIERS = "To publish and earn, you start on the free Basic tier and can move up to Pro, Business or Enterprise as you grow.";
 const lower = (t: string) => t.charAt(0).toLowerCase() + t.slice(1);
