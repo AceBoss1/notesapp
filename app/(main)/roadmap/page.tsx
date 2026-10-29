@@ -81,7 +81,7 @@ const ITEMS: { title: string; tag: string; body: string; detail: string; link?: 
     tag: "Booking",
     body: "Booking, Paystack payment, per-publisher rates, email reminders, client rescheduling (free, up to twice, 24 hours or more ahead), cancellation under a published refund policy, \"report a problem\" after a session, and automatic payouts 24 hours after a session ends are all live. What's left is WhatsApp reminders.",
     detail:
-      "WhatsApp reminders alongside email and the bell, with SMS when WhatsApp doesn't arrive, for clients and publishers. They come with Send-Na (below), which builds the WhatsApp and SMS channel once for bookings, events and codes. Everything else in this item is built: see the booking policy on the booking pages and in the Terms.",
+      "WhatsApp reminders alongside email and the bell, with SMS when WhatsApp doesn't arrive, for clients and publishers: a paid add-on the publisher switches on (email and bell reminders stay free). They come with Send-Na (below), which builds the WhatsApp and SMS channel once for bookings, events and codes. Everything else in this item is built: see the booking policy on the booking pages and in the Terms.",
   },
   {
     title: "Send-Na by NotesApp: email, WhatsApp and SMS, priced in Naira",
@@ -264,7 +264,7 @@ export default function RoadmapPage() {
             <ul className="mt-3 space-y-2 text-sm text-slate">
               <li>Quizzes on courses, and the two Enterprise course packages</li>
               <li>Giving, paid event tickets and our own live streaming for communities</li>
-              <li>WhatsApp reminders alongside email and the bell, with SMS when WhatsApp doesn&apos;t arrive</li>
+              <li>WhatsApp reminders alongside email and the bell, with SMS when WhatsApp doesn&apos;t arrive (a paid add-on for publishers)</li>
               <li><strong className="text-ink">Send-Na by NotesApp</strong>: email for developers and businesses, priced in Naira, with WhatsApp and SMS when email is slow (our own email and booking reminders first, then members&apos; own domains, then a public API)</li>
               <li>For logistics providers: API and webhooks on Enterprise, and Nana suggesting delivery rates</li>
               {GOLD_KIND_LIVE.identity ? null : <li>Automatic identity-checked gold badge (all built; NIN + face check for people, CAC for organisations awaiting final tests)</li>}
