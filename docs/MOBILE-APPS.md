@@ -31,9 +31,8 @@ and booked sessions with a person can keep using Paystack and Paylony.
 The plan for the first release:
 
 - **Bookings, shop orders and merch:** Paystack and Paylony, as on the web.
-- **Plans and other digital purchases:** not sold inside the first release. The app says "Manage your plan on notesapp.name.ng";
-  where the store allows a link out to the web (the US App Store does today), it links to it.
-- **Later, if it pays:** add store billing for plans, priced to cover the store's share.
+- **Plans and other digital purchases:** never sold inside the apps (the owner's decision). The app says "Manage your plan on the
+  web"; where the store allows a link out to the web (the US App Store does today), it links to it.
 
 Check the stores' current rules with the release, since they keep changing.
 
@@ -59,9 +58,11 @@ Check the stores' current rules with the release, since they keep changing.
 | 7 | Closed test with members (Google asks for 12 testers over 14 days for a new personal account; an organisation account skips this) | Team |
 | 8 | Release in Nigeria first, then Ghana and Kenya with Flutterwave (`docs/PAYMENTS.md` §4), then everywhere | Owner |
 
-## 5. What the owner decides
+## 5. Decided (29 October 2026)
 
-1. The app ID (`tech.notesapp.app` suggested).
-2. The store name: "#NotesApp" may not be allowed with the "#"; "NotesApp" with the subtitle "Publish. Book. Get paid." is the
-   suggestion.
-3. Whether plans are sold in the apps through store billing later, or only on the web.
+1. **App ID:** `tech.notesapp.app` on both stores. The owner is buying notesapp.tech (`docs/DOMAIN_SWITCH.md`); the app opens the
+   current app address until the switch, then the new one (`server.url` in `mobile/capacitor.config.json`).
+2. **Store name:** "NotesApp", with the line **"Publish. Book. Sell. Connect. Get paid."** Apple's subtitle holds 30 characters,
+   so there it is "Publish. Book. Sell. Get paid." (exactly 30) and the full line opens the description and the promotional text;
+   Google's short description takes the full line.
+3. **Plans:** sold only on the web, never inside the apps (§2): no store billing.

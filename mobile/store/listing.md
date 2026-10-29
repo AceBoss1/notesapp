@@ -1,10 +1,14 @@
-# Store listing drafts (owner to approve)
+# Store listing (name and line approved by the owner, 29 October 2026)
 
 **Name:** NotesApp
-**Subtitle (Apple, 30 characters):** Publish. Book. Get paid.
-**Short description (Google, 80 characters):** Journals, bookings, courses, a shop and payments in Naira, in one African app.
+**The line:** Publish. Book. Sell. Connect. Get paid.
+**Subtitle (Apple, 30 characters):** Publish. Book. Sell. Get paid.
+**Promotional text (Apple, 170 characters):** Publish. Book. Sell. Connect. Get paid. Journals, bookings, courses, a shop and payments in Naira, all in one African app.
+**Short description (Google, 80 characters):** Publish. Book. Sell. Connect. Get paid. All in one African app.
 
 **Description:**
+Publish. Book. Sell. Connect. Get paid.
+
 #NotesApp is where African creators, coaches, consultants and businesses publish, teach, sell and get paid, all in one place.
 
 - Write journals and grow followers, with a feed made for your interests.

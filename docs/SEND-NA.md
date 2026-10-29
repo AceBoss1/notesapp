@@ -263,16 +263,18 @@ Members never pay for these. **WhatsApp booking reminders are not on this list:*
    - Both start in phase 0.
 4. **WhatsApp booking reminders:** a paid add-on for publishers. Email and bell reminders stay free (§3).
 
+5. **SMS gateway:** Termii first (the owner's yes, 29 October 2026), Africa's Talking as the backup, after quotes and a delivery test (§3).
+
 **Suggested, for the owner's yes:**
 
-5. **SMS gateway:** Termii first, Africa's Talking as the backup, after quotes and a delivery test (§3).
 6. **Second email provider:** Resend, which already sends our mail today, so the fallback costs no new integration.
+7. **Pearl's count:** 4,000 emails a month on top of the free 3,000 (7,000 in all for ₦1,500), §6.
 
 **Still open:**
 
-7. **The name and address:** Send-Na, at `send.notesapp.name.ng` first and later its own domain. Check the trademark and the domains before anything public.
-8. **Message prices:** the Naira price for each WhatsApp and SMS message, and for the reminders add-on, once suppliers quote.
-9. **When phase 2 opens to the public:** only after phase 0 and phase 1 have run cleanly for at least two months.
+8. **The name and address:** Send-Na, at `send.notesapp.name.ng` first and later its own domain. Check the trademark and the domains before anything public.
+9. **Message prices:** the Naira price for each WhatsApp and SMS message, and for the reminders add-on, once suppliers quote.
+10. **When phase 2 opens to the public:** only after phase 0 and phase 1 have run cleanly for at least two months.
 
 ## 10. Risks
 

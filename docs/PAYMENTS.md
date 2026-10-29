@@ -74,5 +74,10 @@ The owner is incorporating **NotesApp Inc** in Delaware, due in about two weeks.
 
 1. Paylony virtual accounts: switch them on for wallet top-ups first, then for payments.
 2. When the payout switch should go automatic (for example, Paylony first and Paystack after one failure).
-3. Flutterwave: the first country (Ghana suggested), and the date, after NotesApp Inc is set up.
+3. Flutterwave: **Ghana first (decided, 29 October 2026).** Suggested timing, for the owner's yes:
+   - **Now:** open the Flutterwave business account under NOTESAPP TECHNOLOGIES LTD and start its checks (Ghana doesn't need to
+     wait for NotesApp Inc, which is for dollars and the app stores).
+   - **November:** build the one payment layer (§3), then Flutterwave behind it, tested in its sandbox; cedi prices set in the admin.
+   - **December:** a quiet pilot with invited Ghanaian creators and their customers, real money, small amounts.
+   - **January 2027:** open to everyone in Ghana. Kenya (M-Pesa) about three months later, once Ghana runs cleanly.
 4. Dollars: Flutterwave or Stripe for the Inc.
