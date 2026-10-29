@@ -21,6 +21,8 @@ import { KNOWN_ROOTS } from "@/lib/host";
 import FormattedText from "./FormattedText";
 import { Emoji } from "@/components/NotesAppEmoji";
 import LinkPreview from "@/components/LinkPreview";
+import { useChatBackground, useNight } from "@/lib/chat-background-client";
+import { chatBackgroundStyle } from "@/lib/chat-background";
 import CountrySuggest from "@/components/CountrySuggest";
 import MentionPicker from "@/components/MentionPicker";
 import { firstUrl } from "@/lib/linkify";
@@ -104,6 +106,9 @@ export default function Thread({ id, to, embedded = false }: { id?: string; to?:
   const [files, setFiles] = useState<File[]>([]);
   const [allowed, setAllowed] = useState<{ maxBytes: number; maxCount: number; maxVoiceSeconds: number } | null>(null);
   const box = useRef<HTMLTextAreaElement>(null);
+  // Your own background behind the messages (Pro and above), or the African pattern.
+  const [chatBg] = useChatBackground();
+  const bgLook = chatBackgroundStyle(chatBg, useNight());
   const picker = useRef<HTMLInputElement>(null);
   const { dragging, bind } = useFileDrop((f) => pick(f), true);
   const voiceLength = useRef(new WeakMap<File, number>()); // how long each recorded voice note is
@@ -480,6 +485,7 @@ export default function Thread({ id, to, embedded = false }: { id?: string; to?:
             { label: "Media, links and docs", icon: "▦", onClick: () => setLibrary(true), hidden: !cid },
             { label: "Summarise with Nana", icon: "✨", onClick: () => { const list = missed.length >= 3 ? missed : messages.slice(-50); setSummary({ context: asLines(list), count: list.length }); } },
             { label: "Select messages", icon: "☑️", onClick: () => setSelected([]) },
+            { label: "Chat background", icon: "🖼️", href: "/profile/account#chat-background" },
             { label: "Members", icon: "👥", onClick: () => setShowMembers(true) },
             { label: group.adminUids.includes(user?.uid ?? "") && group.scope !== "team" ? "Group settings" : "", icon: "⚙️", onClick: () => setShowMembers(true), hidden: !(group.adminUids.includes(user?.uid ?? "") && group.scope !== "team") },
             { label: "Create group", icon: "➕", href: "/messages/new-group", divider: true },
@@ -508,6 +514,7 @@ export default function Thread({ id, to, embedded = false }: { id?: string; to?:
             { label: "Media, links and docs", icon: "▦", onClick: () => setLibrary(true), hidden: !cid },
             { label: "Summarise with Nana", icon: "✨", onClick: () => { const list = missed.length >= 3 ? missed : messages.slice(-50); setSummary({ context: asLines(list), count: list.length }); } },
             { label: "Select messages", icon: "☑️", onClick: () => setSelected([]) },
+            { label: "Chat background", icon: "🖼️", href: "/profile/account#chat-background" },
             { label: "View profile", icon: "👤", href: `/u/${who.username}`, divider: true },
             { label: "View moments", icon: "✨", onClick: viewMoments, hidden: !MOMENTS_LIVE },
             { label: "Create group", icon: "➕", href: "/messages/new-group", divider: true },
@@ -546,7 +553,7 @@ export default function Thread({ id, to, embedded = false }: { id?: string; to?:
           ); })}
         </div>
       )}
-      <div className={`na-pattern ${embedded ? "min-h-[40vh] px-4 py-4 lg:px-7" : "min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 py-4 lg:px-7 lg:py-5"}`}>
+      <div className={`${bgLook.className} ${embedded ? "min-h-[40vh] px-4 py-4 lg:px-7" : "min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 py-4 lg:px-7 lg:py-5"}`} style={bgLook.style}>
         {messages.map((m, idx) => {
           const mine = m.from === user?.uid;
           const person = people[m.from];

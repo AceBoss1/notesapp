@@ -11,6 +11,8 @@ import { getTierConfig } from "./tiers";
 import { limit } from "./limits-server";
 import { stickerById } from "./stickers";
 import { lockedPackIn } from "./emoji-packs";
+import { setting } from "./config";
+import { DEFAULT_CHAT_BACKGROUND, canChooseChatBackground, chatPicturePrefix, cleanChatBackground, type ChatBackground } from "./chat-background";
 import { stripFormat } from "./message-format";
 import { safeFileName } from "./private-files";
 import { SITE_URL } from "@/lib/host";
@@ -317,13 +319,27 @@ export async function emailsAllowed(db: Firestore, uid: string): Promise<boolean
   return getTierConfig(effectiveTier({ username: u.username ?? "", role: u.role ?? "reader", accountTier: u.accountTier ?? "standard" })).messageEmails === true;
 }
 
-export type MessagePrefs = { emailMessages: boolean; emailAllowed: boolean; quickReactions: string[] | null };
-export async function getPrefs(db: Firestore, uid: string): Promise<MessagePrefs> {
-  const [emailAllowed, p] = await Promise.all([emailsAllowed(db, uid), db.doc(`userPrefs/${uid}`).get().then((d) => d.data())]);
-  // Off unless switched on, and never on for a plan that doesn't include it. quickReactions: null = the default set.
-  return { emailMessages: emailAllowed && p?.emailMessages === true, emailAllowed, quickReactions: cleanQuickReactions(p?.quickReactions) };
+export type MessagePrefs = { emailMessages: boolean; emailAllowed: boolean; quickReactions: string[] | null; chatBackground: ChatBackground; chatBackgroundAllowed: boolean };
+async function tierOfUid(db: Firestore, uid: string) {
+  const u = (await db.doc(`users/${uid}`).get()).data();
+  return u ? effectiveTier({ username: u.username ?? "", role: u.role ?? "reader", accountTier: u.accountTier ?? "standard" }) : undefined;
 }
-export async function setPrefs(db: Firestore, uid: string, prefs: { emailMessages?: unknown; quickReactions?: unknown }): Promise<void> {
+export async function getPrefs(db: Firestore, uid: string): Promise<MessagePrefs> {
+  const [emailAllowed, p, tier] = await Promise.all([emailsAllowed(db, uid), db.doc(`userPrefs/${uid}`).get().then((d) => d.data()), tierOfUid(db, uid)]);
+  // Off unless switched on, and never on for a plan that doesn't include it. quickReactions: null = the default set.
+  // A chat background chosen on Pro or above goes back to the pattern if the plan lapses (it's kept, and comes back with the plan).
+  const chatBackgroundAllowed = canChooseChatBackground(tier);
+  const chatBackground = (chatBackgroundAllowed && cleanChatBackground(p?.chatBackground)) || DEFAULT_CHAT_BACKGROUND;
+  return { emailMessages: emailAllowed && p?.emailMessages === true, emailAllowed, quickReactions: cleanQuickReactions(p?.quickReactions), chatBackground, chatBackgroundAllowed };
+}
+export async function setPrefs(db: Firestore, uid: string, prefs: { emailMessages?: unknown; quickReactions?: unknown; chatBackground?: unknown }): Promise<void> {
+  if (prefs.chatBackground !== undefined) {
+    if (!canChooseChatBackground(await tierOfUid(db, uid))) throw new MessageError(403, "Your own chat background comes with Pro, Business and Enterprise.");
+    const media = setting("NEXT_PUBLIC_R2_PUBLIC_URL") || "";
+    const bg = cleanChatBackground(prefs.chatBackground, media ? chatPicturePrefix(media, uid) : "no-media-bucket:"); // without a bucket no picture can match
+    if (!bg) throw new MessageError(400, "Choose a background from the list, or one of your own pictures.");
+    await db.doc(`userPrefs/${uid}`).set({ chatBackground: bg }, { merge: true });
+  }
   if (prefs.quickReactions !== undefined) {
     // null puts the default set back.
     const list = prefs.quickReactions === null ? null : cleanQuickReactions(prefs.quickReactions);

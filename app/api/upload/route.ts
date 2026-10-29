@@ -27,7 +27,8 @@ export async function POST(req: NextRequest) {
     const isAd = purpose === "ad"; // advertiser creative: any verified member, image only, small
     const isMoment = purpose === "moment"; // a moment's picture: same rules as an ad creative, in the member's own folder
     const isAcademy = purpose === "academy"; // certificate logos and signatures (academy setup): same rules, in the teacher's folder
-    const uid = isAd || isMoment || isAcademy
+    const isChat = purpose === "chat"; // a member's own chat background (lib/chat-background.ts): same rules, in their own folder
+    const uid = isAd || isMoment || isAcademy || isChat
       ? await (async () => {
           const me = await verifySignedInRequest(idToken);
           if (!me.emailVerified) throw new Error("Verify your email first");
@@ -49,14 +50,14 @@ export async function POST(req: NextRequest) {
     if (kind !== "image") {
       return NextResponse.json({ error: "Videos are uploaded from the post editor." }, { status: 400 });
     }
-    if ((isAvatar || isAd || isMoment || isAcademy) && kind !== "image") {
+    if ((isAvatar || isAd || isMoment || isAcademy || isChat) && kind !== "image") {
       return NextResponse.json({ error: "Avatars must be images" }, { status: 400 });
     }
-    if (!Number.isInteger(size) || size <= 0 || size > maxUploadBytes(kind, isAvatar || isAd || isMoment || isAcademy)) {
+    if (!Number.isInteger(size) || size <= 0 || size > maxUploadBytes(kind, isAvatar || isAd || isMoment || isAcademy || isChat)) {
       return NextResponse.json({ error: "File is too large." }, { status: 413 });
     }
 
-    const key = `${isAd ? `ads/${uid}` : isMoment ? `moments/${uid}` : isAcademy ? `academy/${uid}` : isAvatar ? `avatars/${uid}` : "journals"}/${Date.now()}-${filename.replace(/[^a-zA-Z0-9._-]/g, "_")}`;
+    const key = `${isAd ? `ads/${uid}` : isMoment ? `moments/${uid}` : isChat ? `chatbg/${uid}` : isAcademy ? `academy/${uid}` : isAvatar ? `avatars/${uid}` : "journals"}/${Date.now()}-${filename.replace(/[^a-zA-Z0-9._-]/g, "_")}`;
     const client = getR2Client();
     const command = new PutObjectCommand({
       Bucket: R2_BUCKET,

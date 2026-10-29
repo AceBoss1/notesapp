@@ -255,7 +255,7 @@ export default function RoadmapPage() {
               <li>Verification badges: the maroon ✔ for accounts in good standing and the <strong className="text-ink">gold ✔ for endorsed accounts</strong>{GOLD_KIND_LIVE.identity ? " and identity-checked accounts" : ""} — see <Link href="/badges" className="text-crimson underline">Verification badges</Link></li>
               <li>Publisher payouts to a verified bank account, released automatically after the session</li>
               <li>Email confirmations and reminders · password reset and email verification</li>
-              <li>Day, Night or Auto for the whole app, the #NotesApp African pattern behind chats and on empty covers, emoji packs (Afro culture, Faces and Flags free; Summer, Spooky and Celebrate with Pro and above), and flags and maps offered as you type a country — see <Link href="/help/day-night-emojis" className="text-crimson underline">the help article</Link></li>
+              <li>Day, Night or Auto for the whole app (a ☀ / ☽ / ◐ button in the header), the #NotesApp African pattern behind chats and on empty covers, your own chat background on Pro and above, emoji packs (Afro culture, Faces and Flags free; Summer, Spooky and Celebrate with Pro and above), and flags and maps offered as you type a country — see <Link href="/help/day-night-emojis" className="text-crimson underline">the help article</Link></li>
               <li>Comments, likes, shares, follow — all real, all working</li>
             </ul>
           </div>
