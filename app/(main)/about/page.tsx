@@ -183,6 +183,7 @@ export default async function AboutPage() {
         <p className="eyebrow">What you can do today</p>
         <FeatureMosaic className="mt-5" items={LIVE} />
         <p className="mt-4 text-sm text-slate">
+          New: Day, Night or Auto for the whole app, our African pattern behind every chat, and emoji packs with Afro culture drawings and flags.
           Still to come: giving, tickets and live streaming for <Link href="/community" className="text-crimson underline underline-offset-2">communities</Link>, quizzes and the Enterprise course packages, WhatsApp reminders, Send-Na (email, WhatsApp and SMS for builders, priced in Naira), iOS and Android apps, sharing
           to more social networks (LinkedIn and X are live), and Google and Meta ads
           alongside our own. The Team hub, company finance tools, an investor data room and advertising on LinkedIn

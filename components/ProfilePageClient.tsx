@@ -251,7 +251,8 @@ export default function ProfilePageClient({ params }: { params: { username: stri
   const isOrgAcct = realProfile?.accountKind === "organisation";
   return (
     <div>
-      <div className="h-44 bg-crimson-deep sm:h-40" style={{ backgroundImage: "radial-gradient(50rem 20rem at 85% -30%, rgba(166,9,61,0.7), transparent 70%), linear-gradient(135deg, #4E0119 0%, #7A0328 100%)" }} aria-hidden="true" />
+      {/* The band across the top: the #NotesApp African pattern (ivory by Day, maroon by Night). */}
+      <div className="na-pattern na-pattern-cover h-44 border-b border-rule sm:h-40" aria-hidden="true" />
     <div className="mx-auto max-w-5xl px-4 pb-16 sm:px-6 lg:px-8">
       {/* Moda redesign: centred on a phone, the picture and words on the left and the buttons on the right on a computer. */}
       <div className="card -mt-32 flex flex-col items-center gap-5 rounded-[1.75rem] p-6 text-center shadow-sm sm:-mt-16 sm:flex-row sm:items-center sm:gap-8 sm:p-8 sm:text-left">

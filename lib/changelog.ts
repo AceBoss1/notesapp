@@ -11,11 +11,24 @@ export type Release = {
 
 export const CHANGELOG: Release[] = [
   {
-    version: "v0.99.2",
+    version: "v0.100.1",
     bump: "patch",
     date: "2026-10-29",
     changes: [
       { kind: "changed", text: "On the roadmap: WhatsApp booking reminders will be a paid add-on that publishers switch on. Email and bell reminders stay free on every plan." },
+    ],
+  },
+  {
+    version: "v0.100.0",
+    bump: "minor",
+    date: "2026-10-29",
+    changes: [
+      { kind: "added", text: "Day, Night or Auto for the whole app: Day is the warm ivory paper, Night is #NotesApp maroon with ivory writing, and Auto follows the clock (Night from 6:30 pm to 6:30 am). Choose it in Account settings or the menu; it stays on your device and applies before the page draws. Members' sites, Naija Exam Prep and the Notes Life game keep their own looks." },
+      { kind: "added", text: "The #NotesApp African pattern: line drawings of talking drums, the ogene and agogo gongs, the kora and shekere, Nok and Benin bronze heads, an Igbo-Ukwu bronze vase, Queen Idia's mask, kente and adinkra, an old lantern, danfos and kekes, the naira and maps of Africa, Nigeria, Ghana, Kenya, South Africa and Egypt. It sits behind every chat (messages, groups, Circles, the team room) and is the cover on profiles, communities and sites until a picture is added." },
+      { kind: "added", text: "Emoji packs in chats, maroon crimson by Day and warm ivory by Night: Afro culture (our own drawings), Faces and Flags (every African country and many more) are free; Summer, Spooky and Celebrate come with Pro and above, with a lock and Unlock for everyone else." },
+      { kind: "added", text: "Type a country's name or its code in capitals in a chat and a row offers its flag, and its map when there is one." },
+      { kind: "added", text: "A round ☀ / ☽ / ◐ button in the header, next to a shorter search box, taps through Day, Night and Auto." },
+      { kind: "added", text: "On Pro, Business and Enterprise, choose your own chat background: the African pattern, plain, one of six colours (Kente gold, Adire indigo, Forest, Sahel sand, Atlantic, Hibiscus) or your own picture. Only you see it, in every chat and on every device, with a soft wash so messages stay readable by Day and Night." },
     ],
   },
   {

@@ -43,7 +43,7 @@ const shots: { src: string; title: string; text: string }[] = [
 // (?ref=username) is passed on to the game, so the friend who invited you gets their bonus when you finish your first shift.
 export default function LifePage() {
   return (
-    <div className="min-h-screen bg-gradient-to-b from-sky-200 via-sky-50 to-amber-50 text-ink">
+    <div data-theme-off className="min-h-screen bg-gradient-to-b from-sky-200 via-sky-50 to-amber-50 text-ink">
       <header className="mx-auto flex max-w-6xl items-center justify-between px-4 py-5 sm:px-6">
         <p className="shrink-0 whitespace-nowrap font-ui text-xl font-extrabold tracking-tight">Notes <span className="text-emerald-600">Life</span></p>
         <div className="flex items-center gap-1.5 sm:gap-2">

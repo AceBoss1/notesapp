@@ -47,6 +47,8 @@ jobs:
       - run: npm run test:prep-schools
       - run: npm run test:kids
       - run: npm run test:time
+      - run: npm run test:theme
+      - run: npm run test:emoji
       - run: npm run test:invoices
       - run: npm run test:shipments
       - run: npm run test:logistics

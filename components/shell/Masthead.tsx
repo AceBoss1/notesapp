@@ -1,5 +1,6 @@
 "use client";
 
+import ThemeQuick from "@/components/theme/ThemeQuick";
 import { useCallback, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
@@ -44,10 +45,11 @@ export default function Masthead({ links, appLinks }: { links: L[]; appLinks: L[
             <Image src="/images/brand/notesapp-icon.webp" alt="#NotesApp" width={40} height={40} className="h-10 w-10 rounded-xl" />
           </Link>
           <SearchBar className="min-w-0 flex-1" placeholder="Search journals, people, #topics"
-            inputClassName="w-full rounded-full border border-transparent bg-[#F3ECE7] px-4 py-2.5 font-body text-[15px] text-ink placeholder:text-slate/80 outline-none focus:border-crimson focus:bg-card" />
+            inputClassName="w-full rounded-full border border-transparent bg-field px-4 py-2.5 font-body text-[15px] text-ink placeholder:text-slate/80 outline-none focus:border-crimson focus:bg-card" />
+          <ThemeQuick className="bg-field text-crimson" />
           {user ? (
             <>
-              <NotificationBell user={user} buttonClassName="relative flex h-10 w-10 items-center justify-center rounded-full bg-[#F3ECE7] text-lg" panelClassName="fixed inset-x-3 top-[4.25rem]" />
+              <NotificationBell user={user} buttonClassName="relative flex h-10 w-10 items-center justify-center rounded-full bg-field text-lg" panelClassName="fixed inset-x-3 top-[4.25rem]" />
               <button type="button" onClick={() => setSheet(true)} aria-label="Open menu" aria-expanded={sheet} className="shrink-0 rounded-full">
                 {profile ? <Avatar src={profile.avatar} alt={profile.displayName} size={40} square={profile.accountKind === "organisation"} /> : <span className="block h-10 w-10 rounded-full bg-crimson" />}
               </button>
@@ -67,8 +69,9 @@ export default function Masthead({ links, appLinks }: { links: L[]; appLinks: L[
         {app ? (
           <div className="mx-auto flex max-w-[90rem] items-center gap-6 px-8 py-3.5">
             <div className="w-[15rem] shrink-0"><Logo /></div>
-            <SearchBar className="min-w-0 flex-1" placeholder="Search journals, people, #topics…"
+            <SearchBar className="min-w-0 max-w-2xl flex-1" placeholder="Search journals, people, #topics…"
               inputClassName="w-full rounded-full bg-card px-6 py-3 text-center font-body text-sm text-ink placeholder:text-slate outline-none focus:text-left focus:ring-2 focus:ring-paper/60" />
+            <ThemeQuick className="ml-auto bg-paper/15 text-paper hover:bg-paper/25" />
             {user ? (
               <>
                 <Link href="/write/new" className="flex shrink-0 items-center gap-2 rounded-full bg-card px-8 py-2.5 font-ui text-sm font-bold text-crimson hover:bg-paper"><PenIcon className="h-4 w-4" /> Write</Link>
@@ -81,7 +84,8 @@ export default function Masthead({ links, appLinks }: { links: L[]; appLinks: L[
             <Logo />
             <nav className="flex items-center gap-5 font-ui text-sm font-semibold text-paper xl:gap-7">
               <NavLinks links={links} appLinks={appLinks} />
-              <SearchBar />
+              <SearchBar className="w-full max-w-[15rem]" />
+              <ThemeQuick className="bg-paper/15 text-paper hover:bg-paper/25" />
               <span className="h-4 w-px bg-paper/30" />
               <AuthNav onDark />
             </nav>

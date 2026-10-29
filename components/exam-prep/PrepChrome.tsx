@@ -21,7 +21,7 @@ export default function PrepChrome({ mainUrl, children }: { mainUrl: string; chi
   return (
     // NotesApp's shared pieces inside Exam Prep (the sign-in and sign-up forms) take its colours: green where NotesApp is crimson,
     // navy text, white fields (tailwind.config.ts reads these variables).
-    <div style={PREP_COLOURS} className="flex min-h-screen flex-col bg-[#FBF8F2] text-[#0F2747]">
+    <div data-theme-off style={PREP_COLOURS} className="flex min-h-screen flex-col bg-[#FBF8F2] text-[#0F2747]">
       <header className="sticky top-0 z-30 border-b border-[#0F2747]/10 bg-[#0F2747] text-white">
         <div className="mx-auto flex max-w-5xl items-center gap-3 px-4 py-3">
           {/* The rounded-square mark and the wordmark in the logo's rounded type (Fredoka, loaded in app/exam-prep/layout.tsx):

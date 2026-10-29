@@ -1,3 +1,5 @@
+import { THEME_SCRIPT } from "@/lib/theme";
+import ThemeWatcher from "@/components/theme/ThemeWatcher";
 import ErrorReporter from "@/components/ErrorReporter";
 import WebVitals from "@/components/WebVitals";
 import type { Metadata, Viewport } from "next";
@@ -60,8 +62,10 @@ export default async function RootLayout({
   const pricing = await savedPricing();
   if (pricing) applyPricing(pricing); // this server render's own copy (the client copy is set by PricingHydrator)
   return (
-    <html lang="en">
+    // The <head> script sets Day or Night (lib/theme.ts) before the first paint, so React finds attributes it didn't write.
+    <html lang="en" suppressHydrationWarning>
       <head>
+        <script dangerouslySetInnerHTML={{ __html: THEME_SCRIPT }} />
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link
           rel="preconnect"
@@ -72,8 +76,11 @@ export default async function RootLayout({
           href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;0,6..72,600;1,6..72,500&family=Manrope:wght@500;600;700;800&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&family=Mrs+Saint+Delafield&display=swap"
           rel="stylesheet"
         />
+        {/* The emoji packs' fonts (lib/emoji-packs.ts). "block": a pack emoji waits for its font rather than showing in another colour first. */}
+        <link href="https://fonts.googleapis.com/css2?family=Noto+Emoji:wght@500&family=Noto+Color+Emoji&display=block" rel="stylesheet" />
       </head>
       <body>
+        <ThemeWatcher />
         <ErrorReporter />
         <WebVitals />
         <PricingHydrator config={pricing}>{children}</PricingHydrator>

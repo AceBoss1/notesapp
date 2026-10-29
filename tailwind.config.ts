@@ -22,6 +22,7 @@ const config: Config = {
         slate: "rgb(var(--c-slate, 92 83 78) / <alpha-value>)", // #5C534E secondary text
         rule: "rgb(var(--c-rule, 231 218 211) / <alpha-value>)", // #E7DAD3 hairline dividers
         card: "rgb(var(--c-card, 255 255 255) / <alpha-value>)", // #FFFFFF
+        field: "rgb(var(--c-field, 243 236 231) / <alpha-value>)", // #F3ECE7 search boxes and soft circles in the header (maroon at Night)
       },
       fontFamily: {
         display: ["Newsreader", "serif"],

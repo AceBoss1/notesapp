@@ -70,6 +70,18 @@ const quiet = async () => {};
   assert.equal((await getPrefs(db, "ra")).quickReactions, null);
   assert.equal((await getPrefs(db, "rb")).quickReactions, null, "nothing saved: the default");
 
+  // your own chat background: Pro and above only; checked on save; a lapsed plan shows the pattern again and keeps the choice
+  assert.deepEqual((await getPrefs(db, "ra")).chatBackground, { kind: "pattern" }, "the African pattern by default");
+  await assert.rejects(setPrefs(db, "ra", { chatBackground: { kind: "colour", id: "kente" } }), /Pro, Business and Enterprise/);
+  await db.doc("users/ra").update({ accountTier: "pro" });
+  await setPrefs(db, "ra", { chatBackground: { kind: "colour", id: "kente" } });
+  assert.deepEqual((await getPrefs(db, "ra")).chatBackground, { kind: "colour", id: "kente" });
+  await assert.rejects(setPrefs(db, "ra", { chatBackground: { kind: "colour", id: "#000" } }), /Choose a background/);
+  await assert.rejects(setPrefs(db, "ra", { chatBackground: { kind: "picture", url: "https://evil.example/x.webp" } }), /Choose a background/);
+  await db.doc("users/ra").update({ accountTier: "standard" });
+  assert.deepEqual((await getPrefs(db, "ra")).chatBackground, { kind: "pattern" }, "a lapsed plan shows the pattern");
+  assert.equal((await db.doc("userPrefs/ra").get()).data()!.chatBackground.id, "kente", "the choice is kept for when the plan comes back");
+
   // deleting a message takes its reactions with it
   await changeMessage(db, "ra", "ra_rb", "r1", "delete", null, quiet, new Date(), quiet);
   const gone = (await db.doc("conversations/ra_rb/messages/r1").get()).data()!;

@@ -1,5 +1,6 @@
 "use client";
 
+import ThemeSwitch from "@/components/theme/ThemeSwitch";
 import { useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -83,6 +84,8 @@ export default function AccountSheet({ open, onClose, links }: { open: boolean; 
             ))}
           </ul>
         )}
+        <p className="px-5 pt-4 font-mono text-[11px] uppercase tracking-eyebrow text-slate">Day or night</p>
+        <div className="px-5 pt-2"><ThemeSwitch compact /></div>
         <p className="px-5 pt-4 font-mono text-[11px] uppercase tracking-eyebrow text-slate">#NotesApp</p>
         <ul className="py-2">{more.map((l) => <li key={l.href}><Link href={l.href} className={row}>{l.label}</Link></li>)}</ul>
         {user && <button type="button" onClick={() => { signOut(auth); onClose(); }} className={`${row} mt-auto w-full border-t border-rule text-left text-crimson`}>Sign out</button>}

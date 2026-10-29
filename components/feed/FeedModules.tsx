@@ -11,7 +11,7 @@ export type MostReadRow = { href: string; title: string; author: string; views: 
 export function MostRead({ rows, seeAll = "/trending", card = false }: { rows: MostReadRow[]; seeAll?: string; card?: boolean }) {
   if (!rows.length) return null;
   return (
-    <section className={card ? "rounded-2xl border border-rule bg-card p-5" : "border-b-[10px] border-[#F3ECE7] bg-card px-4 py-6"}>
+    <section className={card ? "rounded-2xl border border-rule bg-card p-5" : "border-b-[10px] border-field bg-card px-4 py-6"}>
       <div className="flex items-baseline justify-between">
         <h2 className={`font-display text-ink ${card ? "text-[1.4rem]" : "text-[1.75rem]"}`}>Most read this week</h2>
         {!card && <Link href={seeAll} className="font-ui text-[15px] font-semibold text-crimson-bright">See all</Link>}
@@ -36,7 +36,7 @@ export type FollowRow = { username: string; displayName: string; avatar: string;
 export function WhoToFollow({ rows, following, onFollow, card = false }: { rows: FollowRow[]; following: Set<string>; onFollow: (username: string) => void; card?: boolean }) {
   if (!rows.length) return null;
   return (
-    <section className={card ? "rounded-2xl border border-rule bg-card p-5" : "border-b-[10px] border-[#F3ECE7] bg-card px-4 py-6"}>
+    <section className={card ? "rounded-2xl border border-rule bg-card p-5" : "border-b-[10px] border-field bg-card px-4 py-6"}>
       <h2 className={`font-display text-ink ${card ? "text-[1.4rem]" : "text-[1.75rem]"}`}>Who to follow</h2>
       <ul className="mt-4 space-y-4">
         {rows.map((p) => (
