@@ -7,7 +7,7 @@ Environment Variables (mark secrets Sensitive), then redeploy: `NEXT_PUBLIC_*` v
 
 | Setting | Secret | What it does |
 |---|---|---|
-| `NEXT_PUBLIC_ROOT_DOMAIN` | no | The primary address (lib/host.ts): notesapp.name.ng when unset, notesapp.tech after the move. Emails, share links, webhooks, sign-in callbacks and search engines use it; every domain on the Vercel project still shows the site under its own name. See docs/DOMAIN_SWITCH.md. |
+| `NEXT_PUBLIC_ROOT_DOMAIN` | no | The primary address (lib/host.ts): notesapp.name.ng when unset, naapp.tech after the move. Emails, share links, webhooks, sign-in callbacks and search engines use it; every domain on the Vercel project still shows the site under its own name. See docs/DOMAIN_SWITCH.md. |
 | `NEXT_PUBLIC_SITE_URL` | no | Only for local development and previews (localhost, *.vercel.app); ignored on the live site, which always uses https://www.<root>. |
 | `NEXT_PUBLIC_CONTACT_EMAIL` | no | Public contact address (footer, legal pages, status). Default hello@notesapp.name.ng; change it once mail works on the new domain. |
 

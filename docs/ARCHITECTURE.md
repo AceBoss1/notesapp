@@ -7,7 +7,7 @@ explains the pieces added from v0.37.0 on.
 - **Addresses:** `lib/host.ts`. Every domain on the Vercel project serves the site under its own name (no redirects between
   our domains; `www.`, `app.`, `life.` and any subdomain). `NEXT_PUBLIC_ROOT_DOMAIN` picks the primary address used by
   emails, share links, webhooks, sign-in callbacks and the `rel=canonical` header that other domains send. Moving to
-  notesapp.tech: `docs/DOMAIN_SWITCH.md`. In page code, use relative links, `FamilyLink` / `useFamilyUrl` to reach app. or
+  naapp.tech: `docs/DOMAIN_SWITCH.md`. In page code, use relative links, `FamilyLink` / `useFamilyUrl` to reach app. or
   life. on the visitor's own domain, and `SITE_URL` only for things that leave the site (emails, shares).
 - **@mention bells:** `lib/mentions-server.ts` (once per person per thing in `mentionNotices`, server-only; blocks respected;
   max 10). Comments and journals are saved by the browser, which then calls `POST /api/notify/mentions` (the server reads what

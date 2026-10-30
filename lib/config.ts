@@ -6,7 +6,7 @@
 export type SettingDef = { group: string; secret: boolean; about: string };
 
 export const SETTINGS = {
-  NEXT_PUBLIC_ROOT_DOMAIN: { group: "Addresses", secret: false, about: "The primary address (lib/host.ts): notesapp.name.ng when unset, notesapp.tech after the move. Emails, share links, webhooks, sign-in callbacks and search engines use it; every domain on the Vercel project still shows the site under its own name. See docs/DOMAIN_SWITCH.md." },
+  NEXT_PUBLIC_ROOT_DOMAIN: { group: "Addresses", secret: false, about: "The primary address (lib/host.ts): notesapp.name.ng when unset, naapp.tech after the move. Emails, share links, webhooks, sign-in callbacks and search engines use it; every domain on the Vercel project still shows the site under its own name. See docs/DOMAIN_SWITCH.md." },
   NEXT_PUBLIC_SITE_URL: { group: "Addresses", secret: false, about: "Only for local development and previews (localhost, *.vercel.app); ignored on the live site, which always uses https://www.<root>." },
   NEXT_PUBLIC_CONTACT_EMAIL: { group: "Addresses", secret: false, about: "Public contact address (footer, legal pages, status). Default hello@notesapp.name.ng; change it once mail works on the new domain." },
   NEXT_PUBLIC_FIREBASE_API_KEY: { group: "Firebase", secret: false, about: "Firebase web config." },

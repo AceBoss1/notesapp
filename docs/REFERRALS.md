@@ -70,7 +70,7 @@ How it stays safe:
 
 **Every verified member gets:**
 
-- A link, `notesapp.tech/r/<username>`, and a short code (`ADA20`).
+- A link, `naapp.tech/r/<username>`, and a short code (`ADA20`).
 - A link is remembered for 30 days. A code typed at checkout wins over a link clicked earlier. Sign-up records who referred the
   new member.
 
