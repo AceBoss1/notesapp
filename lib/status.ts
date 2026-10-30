@@ -191,8 +191,8 @@ export async function checkServices(): Promise<ServiceStatus[]> {
       ? timed(async (signal) => {
           const res = await fetch("https://api.paystack.co/bank?perPage=1", { headers: { Authorization: `Bearer ${paystack}` }, signal, cache: "no-store" });
           return res.ok;
-        }).then((r) => toStatus("payments", "Payments & payouts", "Paystack checkout, refunds and transfers", r))
-      : Promise.resolve(notConfigured("payments", "Payments & payouts", "Paystack checkout, refunds and transfers"))
+        }).then((r) => toStatus("payments", "Payments & payouts", "Paystack checkout, refunds and transfers (sales, sessions and referral earnings)", r))
+      : Promise.resolve(notConfigured("payments", "Payments & payouts", "Paystack checkout, refunds and transfers (sales, sessions and referral earnings)"))
   );
 
   // Paylony (bank payouts and virtual accounts): only listed once its key is set. A wallet-balance read proves key + network.

@@ -94,7 +94,7 @@ export async function autoReleasePayouts(opts: { transfer?: typeof initiateTrans
   const due = snap.docs
     .map((d) => d.data() as LedgerEntry & { autoAttempts?: number })
     .filter((l) => {
-      const due = l.kind === "booking" ? dueBefore : l.kind === "digital" || l.kind === "course" ? now : -Infinity;
+      const due = l.kind === "booking" ? dueBefore : l.kind === "digital" || l.kind === "course" || l.kind === "affiliate" ? now : -Infinity;
       return new Date(l.releaseAfter).getTime() <= due && (l.autoAttempts ?? 0) < AUTO_MAX_ATTEMPTS;
     })
     .slice(0, AUTO_BATCH);
@@ -107,16 +107,21 @@ export async function autoReleasePayouts(opts: { transfer?: typeof initiateTrans
         started++;
         await ref.update({ autoReleasedAt: new Date(now).toISOString() });
         const to = await getUserEmail(l.publisherUid);
-        if (!to) await notifyBell({ uid: l.publisherUid, type: "booking", linkHref: "/profile/publishing", message: `Payout of ${formatNaira(l.netKobo)} for your ${l.kind === "digital" || l.kind === "course" ? "sale" : "session"} is on its way.` });
+        const what = l.kind === "affiliate" ? { subject: "Your referral earnings are on their way", for: "from referrals and affiliate links", short: "referral earnings", link: "/profile/referrals" }
+          : l.kind === "course" ? { subject: "Your course sale payout is on its way", for: "for a course sale", short: "sale", link: "/profile/publishing" }
+          : l.kind === "digital" ? { subject: "Your download sale payout is on its way", for: "for a download sale", short: "sale", link: "/profile/publishing" }
+          : { subject: "Your session payout is on its way", for: "for a completed session", short: "session", link: "/profile/publishing" };
+        const bell = { uid: l.publisherUid, type: "booking" as const, linkHref: what.link, message: `Payout of ${formatNaira(l.netKobo)} for your ${what.short} is on its way.` };
+        if (!to) await notifyBell(bell);
         else await sendEmail({
           to,
-          subject: l.kind === "course" ? "Your course sale payout is on its way" : l.kind === "digital" ? "Your download sale payout is on its way" : "Your session payout is on its way",
-          text: `Your earnings of ${formatNaira(l.netKobo)} for ${l.kind === "course" ? "a course sale" : l.kind === "digital" ? "a download sale" : "a completed session"} are being paid to your bank account now. Transfers usually arrive within minutes.\nReference: ${l.reference}\n\n#NotesApp`,
-          bell: { uid: l.publisherUid, type: "booking", linkHref: "/profile/publishing", message: `Payout of ${formatNaira(l.netKobo)} for your ${l.kind === "digital" || l.kind === "course" ? "sale" : "session"} is on its way.` },
+          subject: what.subject,
+          text: `Your earnings of ${formatNaira(l.netKobo)} ${what.for} are being paid to your bank account now. Transfers usually arrive within minutes.\nReference: ${l.reference}\n\n#NotesApp`,
+          bell,
         }).catch(() => {});
       } else if (r.error === "Publisher has no payout account.") {
         await ref.update({ failureReason: r.error, autoAttempts: AUTO_MAX_ATTEMPTS });
-        await notifyBell({ uid: l.publisherUid, type: "booking", linkHref: "/profile/publishing", message: `We couldn't pay your session earnings of ${formatNaira(l.netKobo)} — add your bank account under Rates & payouts.` });
+        await notifyBell({ uid: l.publisherUid, type: "booking", linkHref: "/profile/publishing", message: `We couldn't pay your ${l.kind === "affiliate" ? "referral" : "session"} earnings of ${formatNaira(l.netKobo)} — add your bank account under Rates & payouts.` });
       }
     } catch (err) {
       const attempts = (l.autoAttempts ?? 0) + 1;

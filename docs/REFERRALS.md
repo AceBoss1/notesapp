@@ -1,6 +1,6 @@
 # Discount codes, referrals and affiliates
 
-> Status: **plan, decided by the owner on 30 October 2026; nothing built yet.** One discount engine on the server, used by #NotesApp
+> Status: **built (30 October 2026): discount codes in v0.101.0, referral links and affiliates in v0.102.0** (§8). One discount engine on the server, used by #NotesApp
 > for its own products and by every publisher for theirs; referral links and affiliates sit on top of it.
 
 ## 1. What's decided
@@ -70,7 +70,7 @@ How it stays safe:
 
 **Every verified member gets:**
 
-- A link, `notesapp.tech/r/<username>`, and a short code (`ADA20`).
+- A link, `naapp.tech/r/<username>`, and a short code (`ADA20`).
 - A link is remembered for 30 days. A code typed at checkout wins over a link clicked earlier. Sign-up records who referred the
   new member.
 
@@ -112,3 +112,20 @@ How it stays safe:
 2. **Referral links:** sign-up attribution, the free first month on plans (§3), rewards in cash or Credit.
 3. **Affiliates:** the 20%-for-12-months programme on plans, publisher affiliates, payouts.
 4. **Later:** codes in shillings and cedi (Kenya, then Ghana), and bulk codes for schools and organisations.
+
+## 8. What was built (v0.101.0, v0.102.0)
+
+- **Links:** `/r/<username>` (optionally `?to=/shop/<id>` or `/academy/<slug>`) remembers the referrer for 30 days in an httpOnly
+  `na_ref` cookie. Sign-up (and the Referrals page, for Google sign-ups) records it in a private `referrals/{uid}` doc, only for an
+  account a week old at most that has never paid for a plan. A referrer must have a verified email and not be suspended, a teen or a kid.
+- **The friend's first plan:** card only. Monthly: a ₦100 card check now, refunded once Paystack's subscription is created on that
+  card to start when the free month ends. Yearly: the year less one month, paid now; the yearly plan starts a year on. If Paystack
+  refuses, the friend keeps the period and `tierSubscriptions.subscriptionError` says so.
+- **Plan earnings:** 20% of each real plan payment (not the card check) for 12 months from the first, written after the payment.
+- **Affiliates:** a publisher sets a share (1 to 50%) per product in `affiliateOffers`; at checkout the share is worked out on what the
+  buyer pays (after any code) and taken out of the publisher's ledger net; never on your own purchase or your own product.
+- **Holds and payouts:** 7 days (14 for delivered shop items). Cash from ₦2,000 becomes an `affiliate` ledger entry that the usual
+  payout run sends; Credit (any amount) adds 10% as Bonus Credits. A refund reverses earnings not yet taken out.
+- **No cap:** a week at ₦50,000 or more and 3× the member's usual week is flagged once a week (email to support, `/admin/referrals`),
+  where Finance or Growth can hold that member's earnings for review.
+- **Not yet:** #NotesApp discount codes on plans, and codes in shillings and cedi (§7, step 4).

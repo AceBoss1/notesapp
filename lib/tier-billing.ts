@@ -11,6 +11,7 @@ import type { AccountTier } from "./users";
 import { SITE_URL } from "@/lib/host";
 import { setting } from "@/lib/config";
 import { afterTrialTier, planName } from "./trials";
+import { recordPlanEarning } from "./referrals-server";
 
 // Server-only. Pro / Business plan billing: one Paystack plan per
 // (tier, interval), a `tierSubscriptions/{uid}` record per paying
@@ -29,6 +30,9 @@ export type TierSubscription = {
   status: "active" | "cancelled" | "expired";
   subscribedAt: string;
   currentPeriodEnd: string;
+  referralFirst?: boolean; // started with a referred friend's free month (lib/referrals-server.ts)
+  subscriptionPending?: boolean; // Paystack's subscription for after that month is not confirmed yet
+  subscriptionCode?: string;
 };
 
 const GRACE_DAYS = 3; // renewal-failure slack before a downgrade
@@ -136,7 +140,10 @@ export async function fulfillTierRenewal(data: {
   const higherTrial = !!u?.trialUntil && new Date(u.trialUntil).getTime() > Date.now() && rankOf(u.trialTier) > rankOf(sub.tier);
   batch.update(db.doc(`users/${sub.uid}`), { ...(higherTrial ? {} : { accountTier: sub.tier }), lastPaidAt: new Date().toISOString() });
   batch.set(seen, { reference: data.reference, uid: sub.uid, kind: "tier", amountKobo: pricePaidKobo(tx), at: new Date().toISOString() });
+  if (sub.referralFirst) batch.update(doc.ref, { subscriptionPending: false });
   await batch.commit();
+  // 20% to whoever brought this member, for 12 months from their first real payment (lib/referrals-server.ts).
+  await recordPlanEarning(db, sub.uid, data.reference, pricePaidKobo(tx), `${sub.tier === "pro" ? "Pro" : "Business"} plan`).catch((e) => console.error("plan earning", data.reference, e));
   return true;
 }
 

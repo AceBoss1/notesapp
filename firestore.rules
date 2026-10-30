@@ -430,6 +430,12 @@ service cloud.firestore {
       allow read, write: if false;
     }
     // Granola (team hub): each staff member's encrypted tokens, one-time sign-in states and our registered client id. Server-only.
+    // Referrals and affiliates (lib/referrals-server.ts): who brought whom, earnings, withdrawals and products open to affiliates. Server-only.
+    match /referrals/{id} { allow read, write: if false; }
+    match /referralEarnings/{id} { allow read, write: if false; }
+    match /referralWithdrawals/{id} { allow read, write: if false; }
+    match /affiliateOffers/{id} { allow read, write: if false; }
+    match /referralAlerts/{id} { allow read, write: if false; }
     // Discount codes and their uses (lib/discounts-server.ts): server-only; owners manage theirs through /api/discounts.
     match /discountCodes/{id} { allow read, write: if false; }
     match /discountRedemptions/{id} { allow read, write: if false; }

@@ -1,11 +1,11 @@
 {
-  "appId": "tech.notesapp.app",
+  "appId": "tech.naapp.app",
   "appName": "NotesApp",
   "webDir": "www",
   "server": {
     "url": "https://app.notesapp.name.ng",
     "cleartext": false,
-    "allowNavigation": ["notesapp.name.ng", "*.notesapp.name.ng", "notesapp.tech", "*.notesapp.tech", "checkout.paystack.com", "*.paylony.com"]
+    "allowNavigation": ["notesapp.name.ng", "*.notesapp.name.ng", "naapp.tech", "*.naapp.tech", "checkout.paystack.com", "*.paylony.com"]
   },
   "ios": { "contentInset": "always", "scheme": "NotesApp" },
   "android": { "allowMixedContent": false },

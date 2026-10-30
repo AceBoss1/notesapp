@@ -29,7 +29,7 @@ If a `NEXT_PUBLIC_` switch seems ignored, delete `.next` and start the dev serve
    no `RESEND_API_KEY` (so staging never emails anyone; bells still arrive), `WEEKLY_DIGEST` unset. Everything else from
    `docs/ENVIRONMENT.md` as needed. Leave `NEXT_PUBLIC_ROOT_DOMAIN` unset: a preview's own `*.vercel.app` address is used.
 3. **Vercel → Settings → Git**: make sure Preview deployments are on for `staging` (`vercel.json` only switches off
-   `claude/*` branches). Optionally give it a fixed address: Domains → `staging.notesapp.tech` → Git branch `staging`.
+   `claude/*` branches). Optionally give it a fixed address: Domains → `staging.naapp.tech` → Git branch `staging`.
 4. **Some data**: sign up two test members on staging, publish a journal, add a store item. (A seed script can come later.)
 5. **GitHub → Settings → Secrets and variables → Actions**: add `STAGING_URL` (the staging address) to run the smoke test
    against staging from CI once it exists (add `SMOKE_BASE_URL: ${{ vars.STAGING_URL }}` to a job on the `staging` branch).

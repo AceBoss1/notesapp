@@ -54,6 +54,9 @@ export function initializeTransaction(params: {
 
 export type PaystackTx = {
   status: string;
+  // The card used and the customer, for a subscription started later on the same card (lib/referrals-server.ts).
+  authorization?: { authorization_code?: string; reusable?: boolean };
+  customer?: { customer_code?: string; email?: string };
   // What the customer was charged. If the Paystack account makes the CUSTOMER
   // bear transaction fees, this includes the fee (e.g. ₦3,000 price → ₦3,147.21).
   amount: number;
@@ -94,6 +97,14 @@ export function createPlan(params: { name: string; amountKobo: number; interval?
   return paystack<{ plan_code: string }>("/plan", {
     method: "POST",
     body: JSON.stringify({ name: params.name, amount: params.amountKobo, interval: params.interval || "monthly", currency: "NGN" }),
+  });
+}
+
+// A subscription that starts on a later date, on a card already authorised (a referred friend's first month free, lib/referrals-server.ts).
+export function createSubscription(params: { customer: string; plan: string; authorization: string; startDate: string }) {
+  return paystack<{ subscription_code: string; email_token?: string; next_payment_date?: string }>("/subscription", {
+    method: "POST",
+    body: JSON.stringify({ customer: params.customer, plan: params.plan, authorization: params.authorization, start_date: params.startDate }),
   });
 }
 

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { friendlyMessage } from "@/lib/api-errors";
-import { getAdminDb, verifyPublisherRequest } from "@/lib/firebase-admin";
+import { getAdminDb, verifyPublisherRequest, verifySignedInRequest } from "@/lib/firebase-admin";
 import { createTransferRecipient, resolveAccount } from "@/lib/paystack";
 import { rateLimit } from "@/lib/rate-limit";
 import { accountCryptoConfigured, encryptAccountNumber } from "@/lib/account-crypto";
@@ -12,11 +12,20 @@ import { paylonyBankCodeFor } from "@/lib/paylony-payouts";
 // recipient code are stored in the account record (the owner can read those, nobody else). When ACCOUNT_DATA_KEY is set we also
 // keep the full number, encrypted, in payoutSecrets/{uid} (no client can read it) so a payout can be sent through Paylony, and
 // Paylony's own bank code, found by the bank's name.
+// A member who isn't a publisher can add one too once they have referral or affiliate earnings to take as cash (lib/referrals.ts).
+async function affiliateUid(idToken: string | undefined): Promise<string | null> {
+  const u = await verifySignedInRequest(idToken).catch(() => null);
+  if (!u?.emailVerified) return null;
+  const earned = await getAdminDb().collection("referralEarnings").where("uid", "==", u.uid).limit(1).get();
+  return earned.empty ? null : u.uid;
+}
+
 export async function POST(req: NextRequest) {
   try {
     const idToken = req.headers.get("authorization")?.replace(/^Bearer\s+/i, "");
-    const uid = await verifyPublisherRequest(idToken).catch(() => null);
-    if (!uid) return NextResponse.json({ error: "Only publishing accounts can add payout details." }, { status: 403 });
+    const publisherUid = await verifyPublisherRequest(idToken).catch(() => null);
+    const uid = publisherUid ?? (await affiliateUid(idToken));
+    if (!uid) return NextResponse.json({ error: "Only publishing accounts, and members with referral earnings, can add payout details." }, { status: 403 });
     const limited = await rateLimit(req, "payout-acct", uid, 5, 3600);
     if (limited) return limited;
 
@@ -47,8 +56,8 @@ export async function POST(req: NextRequest) {
     await db.doc(`payoutAccounts/${uid}`).set({ ...record, ...(paylonyBankCode ? { paylonyBankCode } : {}) });
     if (accountCryptoConfigured()) await db.doc(`payoutSecrets/${uid}`).set({ accountNumberEnc: encryptAccountNumber(String(accountNumber)), updatedAt: record.updatedAt });
     else await db.doc(`payoutSecrets/${uid}`).delete().catch(() => {}); // never leave an old number behind for a changed account
-    const username = (await db.doc(`users/${uid}`).get()).data()?.username;
-    await db.doc(`publisherSettings/${uid}`).set({ uid, username, payoutReady: true }, { merge: true });
+    const username = publisherUid ? (await db.doc(`users/${uid}`).get()).data()?.username : "";
+    if (publisherUid) await db.doc(`publisherSettings/${uid}`).set({ uid, username, payoutReady: true }, { merge: true });
     return NextResponse.json({ ok: true, accountName: record.accountName, bankName: record.bankName, accountLast4: record.accountLast4 });
   } catch (err) {
     console.error("Payout account failed:", err);

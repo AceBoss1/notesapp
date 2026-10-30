@@ -3,7 +3,7 @@
 The iOS and Android apps wrap the app address with [Capacitor](https://capacitorjs.com). The plan, the store rules and the release
 steps are in `docs/MOBILE-APPS.md`; this folder is the starting point, not a finished app.
 
-- `capacitor.config.json`: the app ID (`tech.notesapp.app`, to be confirmed: it can't change after release), the name, the address
+- `capacitor.config.json`: the app ID (`tech.naapp.app`, confirmed 30 Oct 2026: it can't change after release), the name, the address
   it opens (`server.url`), the hosts it may open inside the app (checkout pages too), the splash and status bar colours.
 - `www/index.html`: the offline page, shown only when the app address can't be reached.
 - `store/listing.md`: draft store texts.
