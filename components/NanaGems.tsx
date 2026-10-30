@@ -5,6 +5,7 @@ import Link from "next/link";
 import { onAuthStateChanged, type User } from "firebase/auth";
 import { auth } from "@/lib/firebase";
 import { startCheckout } from "@/lib/checkout";
+import DiscountCodeField from "@/components/DiscountCodeField";
 import { EFFORTS, EFFORT_INFO, GEMS, GEM_INFO, planName, type Effort, type Gem } from "@/lib/nana-gems";
 import type { AccountTier } from "@/lib/users";
 
@@ -129,10 +130,11 @@ export function NanaAllowance() {
   const { user, account, refresh } = useNanaAccount();
   const [busy, setBusy] = useState("");
   const [error, setError] = useState("");
+  const [disc, setDisc] = useState<{ code: string; discountKobo: number } | null>(null);
   async function buy(p: NanaAccountView["packs"][number]) {
     if (!user) return;
     setBusy(p.id); setError("");
-    try { await startCheckout(user, { kind: "nana_credit", packId: p.id }, { amountKobo: p.priceKobo }); void refresh(); }
+    try { await startCheckout(user, { kind: "nana_credit", packId: p.id, ...(disc ? { code: disc.code } : {}) }, { amountKobo: Math.max(0, p.priceKobo - (disc?.discountKobo ?? 0)) }); void refresh(); }
     catch (e) { if (e instanceof Error && e.message) setError(e.message); }
     finally { setBusy(""); }
   }
@@ -164,6 +166,7 @@ export function NanaAllowance() {
       <div className="card p-5">
         <p className="font-ui text-sm font-bold text-ink">Buy Nana credit</p>
         <p className="mt-1 text-sm text-slate">For when your free allowance runs out. Anyone can buy it, on any plan; it never expires and carries over.</p>
+        {user && !!account?.packs.length && <DiscountCodeField target="nana_credit" subtotalKobo={Math.min(...account.packs.map((p) => p.priceKobo))} onChange={setDisc} className="mt-3" />}
         {error && <p className="mt-2 text-xs text-red-700" role="alert">{error}</p>}
         <div className="mt-4 grid gap-3 sm:grid-cols-3">
           {(account?.packs ?? []).map((p) => (

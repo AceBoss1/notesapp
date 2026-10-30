@@ -8,6 +8,7 @@ import { auth } from "@/lib/firebase";
 import PageHero from "@/components/PageHero";
 import { startCheckout } from "@/lib/checkout";
 import { formatNaira } from "@/lib/booking-time";
+import DiscountCodeField from "@/components/DiscountCodeField";
 import { MANUAL_REASONS, reasonLabel, stockState, toCsv, type ImportChange, type InventoryAccess, type InventoryDoc, type Move, type StockLine } from "@/lib/inventory";
 
 // Inventory (lib/inventory.ts): every physical item and option with its stock, SKU, cost and low-stock level; restock or correct a count
@@ -21,6 +22,7 @@ type Filter = "all" | "low" | "out";
 const field = "w-full rounded-lg border border-rule bg-card px-2 py-1.5 text-sm outline-none focus:border-crimson";
 const small = "rounded-full border border-rule px-3 py-1 text-xs font-semibold text-ink hover:border-crimson disabled:opacity-40";
 const option = (v?: string) => (v ? v.replace(/\|/g, " · ") : "");
+const kobo = (price: string) => Math.round(Number(price.replace(/[^\d.]/g, "")) * 100) || 0; // "₦1,500" from the API
 
 async function call(user: User, url: string, body?: unknown) {
   const res = await fetch(url, { method: body ? "POST" : "GET", headers: { "Content-Type": "application/json", Authorization: `Bearer ${await user.getIdToken()}` }, ...(body ? { body: JSON.stringify(body) } : {}) });
@@ -39,6 +41,7 @@ export default function InventoryPage() {
   const [q, setQ] = useState("");
   const [open, setOpen] = useState<string | null>(null); // the item whose details and history are open
   const [msg, setMsg] = useState("");
+  const [disc, setDisc] = useState<{ code: string; discountKobo: number } | null>(null);
 
   const load = useCallback(async (u: User, o: string) => {
     try { setData(await call(u, `/api/inventory${o ? `?owner=${encodeURIComponent(o)}` : ""}`)); setError(""); }
@@ -81,8 +84,9 @@ export default function InventoryPage() {
         {data && !data.access.ok && <GetIt user={user} data={data} onDone={reload} />}
         {data?.access.ok && data.summary && (
           <>
+            {data.access.via !== "plan" && data.access.until && <DiscountCodeField target="inventory_addon" subtotalKobo={kobo(data.price)} onChange={setDisc} className="mb-2" />}
             {data.access.via !== "plan" && data.access.until && (
-              <p className="mb-4 text-xs text-slate">{data.access.via === "trial" ? "Free trial" : "Inventory add-on"} until {new Date(data.access.until).toDateString()}. <button onClick={() => startCheckout(user, { kind: "inventory_addon" }).catch((e) => setMsg(e.message))} className="text-crimson underline">Add a month ({data.price})</button></p>
+              <p className="mb-4 text-xs text-slate">{data.access.via === "trial" ? "Free trial" : "Inventory add-on"} until {new Date(data.access.until).toDateString()}. <button onClick={() => startCheckout(user, { kind: "inventory_addon", ...(disc ? { code: disc.code } : {}) }).catch((e) => setMsg(e.message))} className="text-crimson underline">Add a month ({disc ? formatNaira(Math.max(0, kobo(data.price) - disc.discountKobo)) : data.price})</button></p>
             )}
             <div className="grid grid-cols-2 gap-3 sm:grid-cols-5">
               {[["Items and options", data.summary.lines.toLocaleString()], ["Units in stock", data.summary.units.toLocaleString()], ["Stock value at cost", formatNaira(data.summary.costKobo)], ["Running low", String(data.summary.low)], ["Sold out", String(data.summary.out)]].map(([k, v]) => (
@@ -134,15 +138,17 @@ export default function InventoryPage() {
 // Without inventory: the trial, the add-on, or Business.
 function GetIt({ user, data, onDone }: { user: User; data: Data; onDone: () => void }) {
   const [err, setErr] = useState("");
+  const [disc, setDisc] = useState<{ code: string; discountKobo: number } | null>(null);
   const a = data.access as { ok: false; canTrial: boolean };
   if (data.tier === "standard") return <div className="card p-6 text-sm text-slate">Inventory is for members who sell. <Link href="/profile/publishing" className="text-crimson underline">Start publishing on Free Basic</Link>, then add it.</div>;
   return (
     <div className="card p-6">
       <p className="font-display text-xl text-ink">Inventory comes with Business</p>
       <p className="mt-1 text-sm text-slate">On Free Basic and Pro, add it for {data.price} a month{a.canTrial ? `, after a free ${data.trialDays}-day trial (no card)` : ""}. Or move to Business, which includes it.</p>
+      <DiscountCodeField target="inventory_addon" subtotalKobo={kobo(data.price)} onChange={setDisc} className="mt-3" />
       <div className="mt-4 flex flex-wrap gap-2">
         {a.canTrial && <button className="btn-primary !px-4 !py-2 text-xs" onClick={() => call(user, "/api/inventory", { action: "trial" }).then(onDone).catch((e) => setErr(e.message))}>Start the free trial</button>}
-        <button className={a.canTrial ? small : "btn-primary !px-4 !py-2 text-xs"} onClick={() => startCheckout(user, { kind: "inventory_addon" }).catch((e) => setErr(e.message))}>Add inventory · {data.price}/month</button>
+        <button className={a.canTrial ? small : "btn-primary !px-4 !py-2 text-xs"} onClick={() => startCheckout(user, { kind: "inventory_addon", ...(disc ? { code: disc.code } : {}) }).catch((e) => setErr(e.message))}>Add inventory · {disc ? formatNaira(Math.max(0, kobo(data.price) - disc.discountKobo)) : data.price}/month</button>
         <Link href="/pricing" className={small}>See Business</Link>
       </div>
       {err && <p className="mt-2 text-sm text-crimson" role="alert">{err}</p>}

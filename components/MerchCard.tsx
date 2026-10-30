@@ -18,6 +18,7 @@ import {
   validateAddress,
 } from "@/lib/merch";
 import MerchMockup from "@/components/MerchMockup";
+import DiscountCodeField from "@/components/DiscountCodeField";
 
 const field = "mt-1 w-full rounded-lg border border-rule bg-card px-3 py-2 font-body text-sm focus:border-crimson outline-none";
 const EMPTY: DeliveryAddress = { fullName: "", phone: "", street: "", city: "", state: "" };
@@ -32,6 +33,7 @@ export default function MerchCard({ item }: { item: MerchItem }) {
   const [addr, setAddr] = useState<DeliveryAddress>(EMPTY);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
+  const [disc, setDisc] = useState<{ code: string; discountKobo: number } | null>(null);
   const batchOpen = merchBatchOpen();
 
   useEffect(() => onAuthStateChanged(auth, setUser), []);
@@ -46,7 +48,7 @@ export default function MerchCard({ item }: { item: MerchItem }) {
     if (!user) return;
     setBusy(true);
     try {
-      await startCheckout(user, { kind: "merch", itemId: item.id, logoId, size: size || undefined, quantity: qty, address: addr });
+      await startCheckout(user, { kind: "merch", itemId: item.id, logoId, size: size || undefined, quantity: qty, address: addr, ...(disc ? { code: disc.code } : {}) });
     } catch (err) {
       setError(err instanceof Error ? err.message : "Couldn't start payment.");
       setBusy(false);
@@ -114,9 +116,10 @@ export default function MerchCard({ item }: { item: MerchItem }) {
                 </select>
               </label>
             </div>
+            <div><DiscountCodeField target="merch" itemId={item.id} subtotalKobo={item.priceKobo * qty} extraKobo={MERCH_DELIVERY_KOBO} onChange={setDisc} className="mt-3" /></div>
             {error && <p className="text-sm text-crimson">{error}</p>}
             <button disabled={busy} className="btn-primary mt-1 !py-2 text-xs">
-              {busy ? "Starting…" : `Pay ${formatNaira(total)}`}
+              {busy ? "Starting…" : `Pay ${formatNaira(Math.max(0, total - (disc?.discountKobo ?? 0)))}`}
             </button>
             <p className="text-[11px] text-slate">
               {formatNaira(item.priceKobo)} × {qty} + {formatNaira(MERCH_DELIVERY_KOBO)} delivery. {MERCH_BATCH.deliveryNote} Refunds are available until the batch is printed.

@@ -62,6 +62,7 @@ export const ADMIN_SECTIONS: Section[] = [
   { href: "/admin/payments", label: "Payments", need: ["finance"], group: "Money" },
   { href: "/admin/team/payroll", label: "Payroll", need: ["finance"], group: "Money" },
   { href: "/admin/merch", label: "Merch", need: ["finance", "support"], group: "Money" },
+  { href: "/admin/discounts", label: "Discount codes", need: ["growth", "finance"], group: "Growth" },
   { href: "/admin/ads", label: "Ads", need: ["growth", "finance"], group: "Growth" },
   { href: "/admin/ad-share", label: "Ad share", need: ["finance"], group: "Money" },
   { href: "/admin/help", label: "Help & Nana", need: ["support", "product"], group: "People & trust" },

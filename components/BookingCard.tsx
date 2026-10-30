@@ -6,6 +6,7 @@ import { doc, getDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { startCheckout } from "@/lib/checkout";
 import { POLICY_TEXT } from "@/lib/cancellation";
+import DiscountCodeField from "@/components/DiscountCodeField";
 import { formatNaira, formatSlot, PublisherSettings } from "@/lib/booking-time";
 
 type Slots = { bookable: boolean; slots: string[]; priceKobo?: number; minutes?: number };
@@ -33,6 +34,7 @@ export default function BookingCard({
   const [slot, setSlot] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [disc, setDisc] = useState<{ code: string; discountKobo: number } | null>(null);
   // A link with ?date=2026-10-20&time=14:00 (an assistant sharing an open time, lib/mcp/tools.ts) opens the card on that slot.
   const wanted = useRef<string | null>(null);
   useEffect(() => {
@@ -72,7 +74,7 @@ export default function BookingCard({
     if (!date || !slot) return setError("Pick a date and a time.");
     setBusy(true);
     try {
-      await startCheckout(viewer, { kind: "booking", username, date, slot }, { amountKobo: offered?.priceKobo });
+      await startCheckout(viewer, { kind: "booking", username, date, slot, ...(disc ? { code: disc.code } : {}) }, { amountKobo: offered ? Math.max(0, offered.priceKobo - (disc?.discountKobo ?? 0)) : undefined });
     } catch (e) {
       setError(e instanceof Error ? e.message : "Couldn't start payment.");
       setBusy(false);
@@ -117,13 +119,14 @@ export default function BookingCard({
         </div>
       )}
       <p className="mt-4 text-xs text-slate">{POLICY_TEXT}</p>
+      {slot && viewer && <DiscountCodeField target="booking" seller={username} subtotalKobo={offered.priceKobo} onChange={setDisc} className="mt-3" />}
       {slot && (
         <div className="mt-6 flex flex-col items-start justify-between gap-4 rounded-xl2 border border-rule bg-paper p-5 sm:flex-row sm:items-center">
           <div>
             <p className="font-ui text-sm font-semibold text-ink">
               {date} · {formatSlot(slot)} · {offered.minutes} min
             </p>
-            <p className="font-mono text-xs text-slate">{formatNaira(offered.priceKobo)} · secure checkout via Paystack</p>
+            <p className="font-mono text-xs text-slate">{disc ? `You pay ${formatNaira(Math.max(0, offered.priceKobo - disc.discountKobo))}` : formatNaira(offered.priceKobo)} · secure checkout via Paystack</p>
             {error && <p className="mt-1 text-xs text-crimson">{error}</p>}
           </div>
           <button onClick={pay} disabled={busy} className="btn-primary !px-5 !py-2 text-xs disabled:opacity-50">

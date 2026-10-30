@@ -11,19 +11,21 @@ import { STORE_MAX_QTY } from "@/lib/orders";
 import { lineKey } from "@/lib/cart";
 import { useBasket } from "@/lib/cart-client";
 import { useSite } from "./SiteContext";
+import DiscountCodeField from "@/components/DiscountCodeField";
 
 const field = "mt-1 w-full rounded-xl border border-rule bg-card px-3 py-2 text-sm text-ink";
 
 // The basket (lib/cart.ts): what's in it, quantities, the delivery to the buyer's address (one for the whole basket, priced like the
 // checkout prices it: lib/cart-server.ts), and one card payment. Each item then becomes its own order on My orders.
 export default function SiteBasket() {
-  const { uid, base, displayName } = useSite();
+  const { uid, base, displayName, username } = useSite();
   const { lines, setQuantity, remove, clear, count, subtotalKobo } = useBasket(uid);
   const [user, setUser] = useState<User | null | undefined>(undefined);
   const [addr, setAddr] = useState<DeliveryAddress>({ fullName: "", phone: "", street: "", city: "", state: "" });
   const [ship, setShip] = useState<{ deliveryKobo: number; carrier: { name: string } | null } | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
+  const [disc, setDisc] = useState<{ code: string; discountKobo: number } | null>(null);
   useEffect(() => onAuthStateChanged(auth, setUser), []);
   // The delivery for this basket and address (asked again when either changes).
   const items = lines.map((l) => `${l.itemId}:${l.quantity}`).join(",");
@@ -39,6 +41,7 @@ export default function SiteBasket() {
 
   const delivery = ship?.deliveryKobo ?? 0;
   const total = subtotalKobo + delivery;
+  const toPay = Math.max(0, total - (disc?.discountKobo ?? 0));
   const set = (k: keyof DeliveryAddress) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => setAddr((a) => ({ ...a, [k]: e.target.value }));
 
   async function pay(e: React.FormEvent) {
@@ -49,7 +52,7 @@ export default function SiteBasket() {
     if (problem) return setError(problem);
     setBusy(true);
     try {
-      await startCheckout(user, { kind: "store_cart", lines: lines.map(({ itemId, quantity, variant }) => ({ itemId, quantity, ...(variant ? { variant } : {}) })), address: addr }, { amountKobo: total, payWith: "card" });
+      await startCheckout(user, { kind: "store_cart", lines: lines.map(({ itemId, quantity, variant }) => ({ itemId, quantity, ...(variant ? { variant } : {}) })), address: addr, ...(disc ? { code: disc.code } : {}) }, { amountKobo: toPay, payWith: "card" });
       clear(); // on its way to the payment page: the orders are made, with the stock held for 30 minutes
     } catch (err) {
       setError(err instanceof Error ? err.message : "Couldn't start payment.");
@@ -109,11 +112,12 @@ export default function SiteBasket() {
                 <select value={addr.state} onChange={set("state")} className={field}><option value="">Choose…</option>{NIGERIAN_STATES.map((s) => <option key={s} value={s}>{s}</option>)}</select>
               </label>
             </div>
+            {user && <DiscountCodeField target="store" seller={username} itemIds={lines.map((l) => l.itemId)} subtotalKobo={subtotalKobo} extraKobo={delivery} onChange={setDisc} className="mt-3" />}
             {error && <p className="mt-3 text-sm text-crimson" role="alert">{error}</p>}
             {user === null ? (
               <Link href={`/login?next=${encodeURIComponent(`${base}/cart`)}`} className="btn-primary mt-4 block text-center">Sign in to pay</Link>
             ) : (
-              <button disabled={busy || user === undefined} className="btn-primary mt-4 w-full">{busy ? "Please wait…" : `Pay ${formatNaira(total)}`}</button>
+              <button disabled={busy || user === undefined} className="btn-primary mt-4 w-full">{busy ? "Please wait…" : `Pay ${formatNaira(toPay)}`}</button>
             )}
             <p className="mt-3 text-xs text-slate">One payment by card or bank for the whole basket, with one delivery. Your money is held by #NotesApp until you confirm each item arrived. Each item becomes its own order you can follow on My orders.</p>
           </form>

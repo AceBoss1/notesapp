@@ -13,6 +13,7 @@ const LINKS = [
   { href: "/profile/analytics", label: "Analytics" },
   { href: "/bookings", label: "Bookings" },
   { href: "/profile/inventory", label: "Inventory" },
+  { href: "/profile/discounts", label: "Discount codes" },
   { href: "/boost", label: "Boost", exact: true },
   ...(WALLET_LIVE ? [{ href: "/profile/wallet", label: "Wallet" }] : []),
 ];

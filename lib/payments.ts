@@ -22,6 +22,7 @@ import { extendInventoryAddon, lowStockAlert, recordSale } from "./inventory-ser
 import { SITE_URL } from "@/lib/host";
 import { grantPackInTransaction } from "./exam-prep-server";
 import { EXAMS, type ExamId } from "./exam-prep";
+import { readCodeForRedemption, writeRedemption, type PaymentDiscount } from "./discounts-server";
 
 // Server-only. All money-state changes happen here, via the Admin SDK
 // (Firestore rules make payments/bookings/ledger/subscriptions
@@ -64,6 +65,7 @@ export type PaymentRecord = {
     variant?: string;
     variantLabel?: string;
     unitKobo: number;
+    discountKobo?: number; // taken off the goods by a discount code (the delivery is never discounted)
     deliveryKobo: number;
     address: { fullName: string; phone: string; street: string; city: string; state: string };
     // Delivered by the store's delivery partner (lib/logistics.ts): deliveryKobo is the partner's fee from its rate card, paid to the
@@ -82,6 +84,9 @@ export type PaymentRecord = {
   // Store orders reserve stock while the buyer pays; an unpaid reservation is returned later.
   reservedUntil?: string;
   reservationReleased?: boolean;
+  // A discount code used on this purchase (lib/discounts-server.ts): amountKobo is already the lower price; fullKobo is what it
+  // would have been. On a basket it sits on the basket's own record, and each order carries its share in store.discountKobo.
+  discount?: PaymentDiscount;
   createdAt: string;
   paidAt?: string;
   // Paid from the NotesApp Credit wallet instead of Paystack (lib/wallet-server.ts): what was taken, and how much has gone back.
@@ -239,6 +244,8 @@ export async function fulfillPayment(reference: string, paidWith?: { cartRef: st
     const freshPay = await t.get(payRef);
     const current = freshPay.data() as PaymentRecord;
     if (current.status !== "pending") return { payment: current, fresh: false };
+    // A discount code's running totals: read now (every read comes before any write), written with the paid status below.
+    const codeRead = await readCodeForRedemption(t, db, current.discount);
 
     if (current.kind === "booking" && current.booking) {
       const { username, date, slot, minutes } = current.booking;
@@ -278,7 +285,7 @@ export async function fulfillPayment(reference: string, paidWith?: { cartRef: st
       const item = (await t.get(itemRef)).data();
       const seller = (await t.get(db.doc(`users/${current.publisherUid}`))).data();
       const parcelId = newParcelId();
-      const goodsKobo = st.unitKobo * st.quantity;
+      const goodsKobo = st.unitKobo * st.quantity - (st.discountKobo ?? 0); // commission on what the buyer paid for the goods
       const commissionKobo = Math.round(goodsKobo * current.commissionRate);
       // Stock was reserved when checkout started. If that reservation was already given
       // back (the buyer paid very late), take it again — or, if it's gone, flag a refund.
@@ -507,6 +514,7 @@ export async function fulfillPayment(reference: string, paidWith?: { cartRef: st
       const hold = new Date(Date.now() + SUBSCRIPTION_HOLD_DAYS * 86_400_000);
       t.set(db.doc(`ledger/${reference}`), ledgerFor(current, current.amountKobo, hold, now));
     }
+    writeRedemption(t, db, codeRead, current, now);
     t.update(payRef, { status: "paid", paidAt: now });
     return { payment: { ...current, status: "paid" as const, paidAt: now }, fresh: true };
   });

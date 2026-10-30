@@ -11,6 +11,8 @@ import { hashtag } from "@/lib/topics";
 import { subtopicHashtag } from "@/lib/subtopics";
 import { countCourseView, useCourse, useCourseLinks, useCoursePurchase } from "@/lib/courses-client";
 import { startCheckout } from "@/lib/checkout";
+import DiscountCodeField from "@/components/DiscountCodeField";
+import { naira } from "@/lib/discounts";
 import AcademyFaq from "./AcademyFaq";
 import { useBottomTabs } from "@/components/shell/BottomTabs";
 import ShareRow from "./ShareRow";
@@ -35,6 +37,7 @@ export default function CourseView({ slug, site }: { slug: string; site?: { base
   const { course, lessons, enrolment, user, preview } = c;
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
+  const [disc, setDisc] = useState<{ code: string; discountKobo: number } | null>(null);
   const [tab, setTab] = useState<Tab>("overview");
   const counted = useRef(false);
   const tabsRef = useRef<HTMLDivElement>(null);
@@ -71,7 +74,7 @@ export default function CourseView({ slug, site }: { slug: string; site?: { base
     if (!user || !course) return;
     setBusy(true);
     setError("");
-    try { await startCheckout(user, { kind: "course", courseId: course.id }, { amountKobo: course.priceKobo }); }
+    try { await startCheckout(user, { kind: "course", courseId: course.id, ...(disc ? { code: disc.code } : {}) }, { amountKobo: course.priceKobo != null ? Math.max(0, course.priceKobo - (disc?.discountKobo ?? 0)) : undefined }); }
     catch (e) { if (e instanceof Error && e.message) setError(e.message); setBusy(false); }
   }
   async function askRefund() {
@@ -195,6 +198,8 @@ export default function CourseView({ slug, site }: { slug: string; site?: { base
                 <p className="mt-4 text-sm text-slate">Checking your progress…</p>
               ) : (
                 <>
+                  {paid && user && !mine && !preview && <DiscountCodeField target="course" seller={course.ownerUsername} itemId={course.id} subtotalKobo={course.priceKobo ?? 0} onChange={setDisc} className="mt-3" />}
+                  {disc && <p className="mt-2 text-sm text-ink">You pay <strong>{naira(Math.max(0, (course.priceKobo ?? 0) - disc.discountKobo))}</strong></p>}
                   <div className="mt-4">{mainAction}</div>
                   {firstPreview && <Link href={lessonHref(slug, firstPreview.id)} className="btn-ghost mt-2 w-full !py-2.5">{paid ? "Watch the free preview" : "Watch the first lesson"}</Link>}
                   <p className="mt-3 text-center text-xs text-slate">{paid ? `Card, bank transfer or wallet · Refund within ${COURSE_REFUND_DAYS} days if you haven't started` : user ? "Your progress is saved as you go." : "Sign in (or join free) and you'll come straight back here."}</p>
@@ -323,7 +328,7 @@ export default function CourseView({ slug, site }: { slug: string; site?: { base
       {/* Phones: the price and the main button stay in reach, above the tab bar. */}
       {mainAction && !preview && (
         <div className={`fixed inset-x-0 ${tabBar ? "bottom-[calc(env(safe-area-inset-bottom)+4.5rem)]" : "bottom-0 pb-[calc(env(safe-area-inset-bottom)+0.75rem)]"} z-30 flex items-center justify-between gap-4 border-t border-rule bg-card px-4 py-3 shadow-[0_-6px_20px_rgba(0,0,0,0.06)] lg:hidden`}>
-          <span className={`font-ui text-xl font-extrabold ${paid ? "text-ink" : "text-emerald-700"}`}>{priceLabel(course)}</span>
+          <span className={`font-ui text-xl font-extrabold ${paid ? "text-ink" : "text-emerald-700"}`}>{disc ? naira(Math.max(0, (course.priceKobo ?? 0) - disc.discountKobo)) : priceLabel(course)}</span>
           <div className="w-44">{mainAction}</div>
         </div>
       )}
