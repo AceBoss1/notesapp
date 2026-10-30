@@ -57,8 +57,8 @@ or resold**. Any stage is welcome. After 10 years we renew at our own cost.
 **About the startup (paste the company paragraph above, then):**
 
 > We will make naapp.tech the home of NotesApp within four months of receiving it: the web app, every member's profile and shop
-> link, our referral and affiliate links, company email and the mobile apps all move to it. Our current domain will forward to
-> naapp.tech, not the other way round. The short name matters to us: our members share their links on WhatsApp, Instagram and
+> link, our referral and affiliate links, company email and the mobile apps all move to it. Our current domain stays only for people
+> who already use it; nothing we publish will point anywhere but naapp.tech. The short name matters to us: our members share their links on WhatsApp, Instagram and
 > flyers across Nigeria and Kenya, and naapp.tech is short enough to say out loud and type on a phone.
 
 **Founder track record (short):**
@@ -67,9 +67,11 @@ or resold**. Any stage is welcome. After 10 years we renew at our own cost.
 > with delivery, encrypted calls and an AI assistant (Nana). NotesApp's Swahili work was recognised at the Build With NKENNEAi
 > Hackathon (October 2026). `[add prior roles or companies]`
 
-**Before the move (engineering, when it's granted):** the app reads its address from `SITE_URL` (`lib/host.ts`), so the move is a
-setting, DNS, the Firebase Auth authorised domains, Paystack and Paylony callback URLs, email sender domain (SPF, DKIM, DMARC) and a
-permanent redirect from notesapp.name.ng to naapp.tech. Start it the week the domain arrives; the 4 months run from then.
+**Before the move (engineering, when it's granted):** follow `docs/DOMAIN_SWITCH.md` (on `push/naapp` it names naapp.tech). One
+setting, `NEXT_PUBLIC_ROOT_DOMAIN=naapp.tech` (`lib/host.ts`), makes it the address everything we send out uses; before that come
+DNS on Vercel, the Firebase Auth authorised domains, the email sender domain (SPF, DKIM, DMARC), and after it the Paystack, Paylony
+and Dojah webhooks, the LinkedIn and X callbacks and cron-job.org. notesapp.name.ng keeps working for people who already use it.
+Start the week the domain arrives; the 4 months run from then.
 
 ---
 
