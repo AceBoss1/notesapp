@@ -50,6 +50,23 @@ export async function claimReferral(db: Firestore, uid: string, refUsername: unk
   });
 }
 
+// A member's referral code, typed at a plan's checkout instead of following their link: the code is their username. It records
+// the referral the same way the link does (a week-old account at most, never paid for a plan), and wins over a link clicked
+// earlier as long as nothing has been recorded yet. Returns the referrer, or throws ReferralError with what the buyer sees.
+export async function referralByCode(db: Firestore, uid: string, code: unknown, now = new Date()): Promise<Referrer> {
+  const ref = await referrerByUsername(db, String(code ?? "").trim().toLowerCase().replace(/^@/, ""), uid);
+  if (!ref) throw new ReferralError(404, "That code isn't valid here.");
+  const r = await claimReferral(db, uid, ref.username, now);
+  if (r.claimed) return ref;
+  if (r.reason === "already") {
+    const by = (await db.doc(`referrals/${uid}`).get()).data()?.referredBy;
+    if (by === ref.uid) return ref;
+    throw new ReferralError(409, "You joined through someone else's invitation, so their offer is the one you have.");
+  }
+  if (r.reason === "too-old") throw new ReferralError(409, "Referral codes are for new accounts, in their first week.");
+  throw new ReferralError(409, "Referral codes are for members who haven't had a plan before.");
+}
+
 // A referred friend's first plan: the free month (or a month off a year) only before they've ever paid for one.
 export async function referralOfferFor(db: Firestore, uid: string): Promise<{ referrerUid: string; referrerUsername: string } | null> {
   const [u, r, sub] = await Promise.all([db.doc(`users/${uid}`).get(), db.doc(`referrals/${uid}`).get(), db.doc(`tierSubscriptions/${uid}`).get()]);
@@ -205,11 +222,12 @@ export async function holdForReview(db: Firestore, uid: string, days: number, no
 // ---- a referred friend's first plan ----
 
 // After the first payment (fulfillPayment): Paystack's subscription for the plan, on the card just used, starting when the free
-// month (or the discounted year) ends; then the monthly card check is given back. If Paystack refuses, the friend keeps the period
+// month (or the discounted year, or the period a #NotesApp code paid for) ends; then a referred friend's monthly card check is
+// given back (never a real payment made with a code). If Paystack refuses, the friend keeps the period
 // they have, and the record says so for finance (they can subscribe again from the pricing page when it ends).
 export async function startReferralSubscription(
   db: Firestore,
-  p: { reference: string; uid: string; tier?: { interval: "monthly" | "annually"; planCode: string } },
+  p: { reference: string; uid: string; tier?: { interval: "monthly" | "annually"; planCode: string; referralFirst?: boolean } },
   tx: { authorization?: { authorization_code?: string; reusable?: boolean }; customer?: { customer_code?: string } } | null,
   deps: { create?: typeof createSubscription; refund?: typeof refundTransaction } = {},
 ): Promise<"started" | "failed"> {
@@ -226,7 +244,7 @@ export async function startReferralSubscription(
   } catch (e) {
     await subRef.update({ subscriptionError: e instanceof Error ? e.message : String(e) }).catch(() => {});
   }
-  if (p.tier?.interval === "monthly") {
+  if (p.tier?.referralFirst && p.tier.interval === "monthly") {
     try { await refund(p.reference); await db.doc(`payments/${p.reference}`).update({ cardCheckRefunded: true }); }
     catch (e) { await db.doc(`payments/${p.reference}`).update({ cardCheckRefundError: e instanceof Error ? e.message : String(e) }).catch(() => {}); }
   }

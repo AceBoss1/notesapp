@@ -9,9 +9,11 @@ import { getFirestore } from "firebase-admin/firestore";
 import { fulfillPayment, type PaymentRecord } from "../../lib/payments";
 import {
   ReferralError, affiliateFor, alertIfJump, claimReferral, listOffers, offerIdFor, offerPercent, ownProducts, recordPlanEarning,
-  referralOfferFor, referrerByUsername, reverseEarningsFor, setOffer, startReferralSubscription, summary, withdraw,
+  referralByCode, referralOfferFor, referrerByUsername, reverseEarningsFor, setOffer, startReferralSubscription, summary, withdraw,
 } from "../../lib/referrals-server";
 import { creditEarnings } from "../../lib/wallet-server";
+import { applyCode, saveCode } from "../../lib/discounts-server";
+import { DiscountError } from "../../lib/discounts";
 initializeApp({ projectId: "demo-notesapp" });
 const db = getFirestore();
 const DAY = 86_400_000;
@@ -48,7 +50,7 @@ async function member(uid: string, username: string, extra: Record<string, unkno
   await db.doc("tierSubscriptions/ada").set({ uid: "ada", tier: "pro", interval: "monthly", status: "active", currentPeriodEnd: periodEnd, referralFirst: true, subscriptionPending: true });
   await db.doc("payments/CHECK1").set({ reference: "CHECK1", uid: "ada", kind: "tier", amountKobo: 10_000, status: "paid" });
   const calls: string[] = [];
-  const started = await startReferralSubscription(db, { reference: "CHECK1", uid: "ada", tier: { interval: "monthly", planCode: "PLN_pro_m" } },
+  const started = await startReferralSubscription(db, { reference: "CHECK1", uid: "ada", tier: { interval: "monthly", planCode: "PLN_pro_m", referralFirst: true } },
     { authorization: { authorization_code: "AUTH_x", reusable: true }, customer: { customer_code: "CUS_x" } },
     { create: (async (a: { startDate: string }) => { calls.push(`sub@${a.startDate}`); return { subscription_code: "SUB_1" }; }) as never, refund: (async (r: string) => { calls.push(`refund:${r}`); return {}; }) as never });
   assert.equal(started, "started");
@@ -131,6 +133,32 @@ async function member(uid: string, username: string, extra: Record<string, unkno
   assert.equal(await alertIfJump(db, "shop", new Date(), async (subject) => { sent.push(subject); }), true);
   assert.equal(await alertIfJump(db, "shop", new Date(), async (subject) => { sent.push(subject); }), false, "once a week");
   assert.deepEqual(sent, ["Referral earnings jumped: @stylebyamaka"]);
+
+  // Step 3: codes typed at a plan's checkout.
+  // A member's referral code is their username; it records the referral like their link, for new accounts only.
+  await member("bola", "bola");
+  await member("chi", "chi");
+  await rejects(referralByCode(db, "bola", "nobody-here"), /isn't valid here/);
+  assert.deepEqual(await referralByCode(db, "bola", "@AMAKA"), { uid: "amaka", username: "amaka" });
+  assert.equal((await db.doc("referrals/bola").get()).data()?.referredBy, "amaka");
+  assert.deepEqual(await referralByCode(db, "bola", "amaka"), { uid: "amaka", username: "amaka" }, "the same code again is fine");
+  await rejects(referralByCode(db, "bola", "stylebyamaka"), /someone else's invitation/);
+  await rejects(referralByCode(db, "old", "amaka"), /first week/);
+  await rejects(referralByCode(db, "chi", "chi"), /isn't valid here/);
+  // A #NotesApp code on plans: the first payment at its price.
+  await saveCode(db, "notesapp", "admin", { create: true, code: "LAUNCH50", kind: "percent", percent: 50, targets: ["plan"] });
+  const half = await applyCode(db, "notesapp", "launch50", "chi", { target: "plan", subtotalKobo: 500_000, itemId: "pro" });
+  assert.equal(half.discountKobo, 250_000);
+  await assert.rejects(applyCode(db, "notesapp", "LAUNCH50", "chi", { target: "boost", subtotalKobo: 500_000 }), (e: unknown) => e instanceof DiscountError && /doesn't work on this/.test(e.message));
+  // ...and its subscription starts after that month, on the card, and the payment is never given back (only a card check is).
+  const end2 = new Date(Date.now() + 30 * DAY).toISOString();
+  await db.doc("tierSubscriptions/chi").set({ uid: "chi", tier: "pro", interval: "monthly", status: "active", currentPeriodEnd: end2, couponFirst: true, subscriptionPending: true });
+  await db.doc("payments/COUP1").set({ reference: "COUP1", uid: "chi", kind: "tier", amountKobo: 250_000, status: "paid" });
+  const calls2: string[] = [];
+  assert.equal(await startReferralSubscription(db, { reference: "COUP1", uid: "chi", tier: { interval: "monthly", planCode: "PLN_pro_m" } },
+    { authorization: { authorization_code: "AUTH_y", reusable: true }, customer: { customer_code: "CUS_y" } },
+    { create: (async (a: { startDate: string }) => { calls2.push(`sub@${a.startDate}`); return { subscription_code: "SUB_2" }; }) as never, refund: (async (r: string) => { calls2.push(`refund:${r}`); return {}; }) as never }), "started");
+  assert.deepEqual(calls2, [`sub@${end2}`], "no refund of a real payment");
 
   console.log("REFERRALS SERVER OK");
   process.exit(0);
