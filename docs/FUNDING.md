@@ -24,15 +24,15 @@ get paid for it, in their own currency.
 > NotesApp is where Africa's knowledge is shared, valued and rewarded. Creators, teachers, coaches, consultants and small businesses
 > today stitch together WhatsApp, a booking link, a blog, a shop page and bank transfers to earn from what they know, and they lose
 > sales and trust in the gaps. NotesApp puts it in one place: a public journal, a booking calendar, paid courses (Notes Academy), a
-> shop with delivery, communities, encrypted calls and payouts in Naira, with M-Pesa in Kenya next. It is live in Nigeria, with
-> members already in Kenya; its Exam Prep has 2,150+ WAEC and NECO practice questions in 18 subjects (some free, the rest ₦1,000 for a year), and its Swahili translation and
+> shop with delivery, communities, encrypted calls and payouts in Naira, with M-Pesa in Kenya next. It is live, with members in
+> Nigeria and Kenya; its Exam Prep has 2,150+ WAEC and NECO practice questions in 18 subjects (some free, the rest ₦1,000 for a year), and its Swahili translation and
 > speech work earned a Special Recognition at the Build With NKENNEAi Hackathon (October 2026). NotesApp Technologies Ltd
 > (RC 9825642) runs it from Nigeria; NotesApp Inc (Delaware) is being incorporated for the iOS and Android apps. Founder: Emmanuel
 > Adams, Adams Consults.
 
 **Vision:** Africa's knowledge, shared, valued and rewarded. (`lib/site.ts`, `VISION`)
 
-**Numbers to fill before sending:** members `[ ]`, publishers `[ ]`, paid transactions in the last 90 days `[ ]`, Kenyan members `[ ]`.
+**Numbers to fill before sending:** members `[ ]` (Nigeria `[ ]`, Kenya `[ ]`), publishers `[ ]`, paid transactions in the last 90 days `[ ]`.
 Take them from `/admin` on the day.
 
 ---
@@ -90,8 +90,8 @@ solving?" (500 characters), and "I agree to switch to a .tech domain if selected
 
 > Africa's creators, teachers and professionals have knowledge people will pay for, but no single place to publish it, teach it,
 > sell it and get paid. They stitch together WhatsApp, a booking link, a blog and bank transfers, and lose sales and trust. NotesApp
-> gives them one home: a journal, bookings, courses, a shop, and payouts in local currency. Live in Nigeria with members in Kenya
-> (M-Pesa next), 2,150+ WAEC/NECO practice questions, and an NKENNEAi hackathon award.
+> gives them one home: a journal, bookings, courses, a shop, and payouts in local currency. Live with members in Nigeria and
+> Kenya (M-Pesa next), 2,150+ WAEC/NECO practice questions, and an NKENNEAi hackathon award.
 
 **If selected to pitch (prepare now):** a 3-minute story.
 1. **The problem (30 s):** a Lagos hair stylist, an Abuja tutor and a Nairobi coach each run their business across five apps and
@@ -100,7 +100,7 @@ solving?" (500 characters), and "I agree to switch to a .tech domain if selected
    payout.
 3. **Why now and why us (30 s):** mobile money and instant bank transfers are everywhere, creators are growing fast, and nobody has
    built the whole home for them in naira and shillings. We have, and it's live.
-4. **Traction (30 s):** `[members]`, `[publishers]`, `[paid transactions]`, Kenyan members already joining, the NKENNEAi award.
+4. **Traction (30 s):** `[members in Nigeria and Kenya]`, `[publishers]`, `[paid transactions]`, the NKENNEAi award.
 5. **The ask (30 s):** what we'd do with the prize: Kenya launch (M-Pesa) and the mobile apps.
 
 Reuse the investor deck (it opens with the vision slide; HANDOVER item 65).
@@ -129,7 +129,7 @@ listing mentions nationality rules that Mercatus's own page doesn't show).
 > teachers earn from what they know without leaving their classrooms; and it shows that African knowledge can be shared, valued and
 > rewarded at the same time, which is what NotesApp is for.
 >
-> NotesApp is live in Nigeria, with members in Kenya, and its Swahili translation and speech work was recognised at the Build With
+> NotesApp is live, with members in Nigeria and Kenya, and its Swahili translation and speech work was recognised at the Build With
 > NKENNEAi Hackathon (October 2026). The same model (free for learners, paid for the teachers who write it) works for KCSE in Kenya
 > next.
 
