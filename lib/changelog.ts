@@ -11,6 +11,14 @@ export type Release = {
 
 export const CHANGELOG: Release[] = [
   {
+    version: "v0.101.1",
+    bump: "patch",
+    date: "2026-10-30",
+    changes: [
+      { kind: "fixed", text: "Admin → Ads: adding or saving a house ad now says what happened beside its button (a missing headline, link or placement, an end date before the start, a save that failed, or \"Ad added\"), instead of a message at the top of the page that was out of view." },
+    ],
+  },
+  {
     version: "v0.101.0",
     bump: "minor",
     date: "2026-10-30",
