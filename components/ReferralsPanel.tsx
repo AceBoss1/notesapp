@@ -129,8 +129,11 @@ export default function ReferralsPanel() {
               <code className="min-w-0 flex-1 truncate rounded-lg border border-rule bg-field px-3 py-2 text-sm text-ink">{link}</code>
               <CopyLink url={link} />
             </div>
-            <p className="mt-3 text-sm text-slate">
-              Friends who join with it get their first month of a plan free. You earn {Math.round(PLAN_SHARE * 100)}% of what they pay for their plan for {PLAN_MONTHS} months, from their first payment.
+            <p className="mt-3 text-sm text-ink">
+              Or give them your code: <b className="font-mono text-crimson">{s.username.toUpperCase()}</b>. They type it under &quot;Have a discount code?&quot; when they choose a plan.
+            </p>
+            <p className="mt-2 text-sm text-slate">
+              Friends who join with your link or code get their first month of a plan free. You earn {Math.round(PLAN_SHARE * 100)}% of what they pay for their plan for {PLAN_MONTHS} months, from their first payment.
               To earn on products, find one on the <Link href="/affiliates" className="text-crimson underline">affiliate marketplace</Link> and share its link.
             </p>
           </>

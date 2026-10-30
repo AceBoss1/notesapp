@@ -11,6 +11,15 @@ export type Release = {
 
 export const CHANGELOG: Release[] = [
   {
+    version: "v0.103.0",
+    bump: "minor",
+    date: "2026-10-30",
+    changes: [
+      { kind: "added", text: "Codes on plans: under Pro or Business on the pricing page, \"Have a discount code?\" takes #NotesApp's plan codes off your first payment (a month, or a year). The plan then renews at its usual price on the same card." },
+      { kind: "added", text: "Referral codes: your code is your username (Account → Referrals). A friend who types it when choosing a plan gets the same as your link: the first month free, or a month off a year, and you earn 20% of their plan payments for 12 months." },
+    ],
+  },
+  {
     version: "v0.102.1",
     bump: "patch",
     date: "2026-10-30",

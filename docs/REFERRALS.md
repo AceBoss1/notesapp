@@ -1,6 +1,6 @@
 # Discount codes, referrals and affiliates
 
-> Status: **built (30 October 2026): discount codes in v0.101.0, referral links and affiliates in v0.102.0** (§8). One discount engine on the server, used by #NotesApp
+> Status: **built (30 October 2026): discount codes in v0.101.0, referral links and affiliates in v0.102.0, codes on plans and referral codes in v0.103.0** (§8). One discount engine on the server, used by #NotesApp
 > for its own products and by every publisher for theirs; referral links and affiliates sit on top of it.
 
 ## 1. What's decided
@@ -128,4 +128,11 @@ How it stays safe:
   payout run sends; Credit (any amount) adds 10% as Bonus Credits. A refund reverses earnings not yet taken out.
 - **No cap:** a week at ₦50,000 or more and 3× the member's usual week is flagged once a week (email to support, `/admin/referrals`),
   where Finance or Growth can hold that member's earnings for review.
-- **Not yet:** #NotesApp discount codes on plans, and codes in shillings and cedi (§7, step 4).
+- **Codes on plans (v0.103.0):** a #NotesApp code with the "Plans (first payment)" target takes its discount off the first month
+  or year, charged without a Paystack plan; `startReferralSubscription` then starts the plan on that card for the period's end
+  (`tierSubscriptions.couponFirst`), and never refunds it (only a friend's ₦100 card check is refunded). A code replaces a friend's
+  free month (one code per order). Plan earnings are 20% of what was actually paid.
+- **Referral codes (v0.103.0):** a member's code is their username. Typed at a plan's checkout (or "Apply"), a code that isn't
+  #NotesApp's is tried as a referral code (`referralByCode`), which records the referral the same way the link does; the first
+  referral recorded wins.
+- **Not yet:** codes in shillings and cedi, and bulk codes for schools and organisations (§7, step 4).

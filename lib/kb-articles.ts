@@ -66,6 +66,8 @@ Start at [Journals](/journals) to look around, or [create a free account](/signu
     A("referrals", "Referrals and affiliates", "Publishing and earning", `
 **Your link:** go to **Account → Referrals** ([/profile/referrals](/profile/referrals)) and copy your link (it looks like \`/r/yourname\`). Verify your email first: links only earn for verified members.
 
+**Your code:** the same page shows your code, which is your username in capitals. A friend can type it under **Have a discount code?** when they choose a plan, instead of using your link; it counts the same. If a friend uses your code and someone else's link, the first one recorded wins.
+
 **What a friend gets:** if they join through your link within 30 days, their first month of Pro or Business is free. They add a card, which is checked with ₦100 that is given straight back, and the plan is billed from the second month. On a yearly plan they get one month's value off the first year instead.
 
 **What you earn on plans:** 20% of what your friend pays for their plan, every payment, for 12 months from their first real payment. Nothing is earned on the free month.
@@ -91,7 +93,9 @@ You see how many times each code was used, how much it took off and what buyers 
 
 **The money:** the discount comes off your price, and #NotesApp's commission is worked out on what the buyer actually paid. On a basket the discount is shared across the items in proportion to their prices.
 
-**Using a code as a buyer:** at checkout choose **Have a discount code?**, type it and **Apply**. You see what it takes off before you pay; the price is checked again when you pay. #NotesApp's own codes work on boosts, Nana credit, merch and the logistics and inventory add-ons.`),
+**Using a code as a buyer:** at checkout choose **Have a discount code?**, type it and **Apply**. You see what it takes off before you pay; the price is checked again when you pay. #NotesApp's own codes work on boosts, Nana credit, merch and the logistics and inventory add-ons.
+
+**Codes on Pro and Business:** on the pricing page, choose **Have a discount code?** under the plan. A #NotesApp plan code takes its discount off your first payment (a month or a year, whichever you choose); the plan then renews at its usual price on the same card. You can also type a member's referral code there (see Referrals and affiliates). One code per order.`),
     A("create-an-account", "Creating an account", "Getting started", `
 Go to [Sign up](/signup). Choose **Personal** for a person, or **Organisation** for a company, NGO, church, school or club (organisations also enter their CAC registration number). Pick a display name, a username, an email and a password, tick that you are 18 or older and agree to the [Terms](/terms) and [Privacy Policy](/privacy), and you are in.
 

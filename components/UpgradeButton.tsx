@@ -7,6 +7,7 @@ import { auth } from "@/lib/firebase";
 import { getUserByUid, AccountTier } from "@/lib/users";
 import { startCheckout } from "@/lib/checkout";
 import { api } from "@/lib/moments-client";
+import DiscountCodeField from "@/components/DiscountCodeField";
 
 // A referred friend's first-month offer (lib/referrals.ts), asked once per page however many plan buttons there are.
 let offerAsk: Promise<{ from: string } | null> | null = null;
@@ -20,6 +21,7 @@ export default function UpgradeButton({ tier, label }: { tier: "pro" | "business
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [offer, setOffer] = useState<{ from: string } | null>(null);
+  const [code, setCode] = useState<string | null>(null);
 
   useEffect(
     () =>
@@ -50,7 +52,7 @@ export default function UpgradeButton({ tier, label }: { tier: "pro" | "business
     setBusy(true);
     setError(null);
     try {
-      await startCheckout(user, { kind: "tier", tier, interval });
+      await startCheckout(user, { kind: "tier", tier, interval, ...(code ? { code } : {}) });
     } catch (e) {
       setError(e instanceof Error ? e.message : "Couldn't start payment.");
       setBusy(false);
@@ -64,8 +66,8 @@ export default function UpgradeButton({ tier, label }: { tier: "pro" | "business
           <button
             key={i}
             type="button"
-            onClick={() => setInterval(i)}
-            className={`flex-1 px-3 py-1 ${interval === i ? "bg-crimson text-paper" : "text-ink"}`}
+            onClick={() => { setInterval(i); setCode(null); }}
+            className={`flex-1 px-3 py-1 ${interval === i ? "bg-crimson text-paper" : "text-paper/80"}`}
           >
             {i === "monthly" ? "Monthly" : "Yearly"}
           </button>
@@ -74,8 +76,9 @@ export default function UpgradeButton({ tier, label }: { tier: "pro" | "business
       <button onClick={go} disabled={busy} className="btn-primary mt-2 w-full !px-4 !py-2 text-xs disabled:opacity-50">
         {busy ? "Redirecting…" : `Get ${label}`}
       </button>
-      {offer && (
-        <p className="mt-1 text-[11px] font-normal text-moss">
+      <DiscountCodeField key={interval} target="plan" subtotalKobo={0} plan={{ tier, interval }} onDark onChange={(c) => setCode(c?.code ?? null)} className="mt-2 text-xs" />
+      {offer && !code && (
+        <p className="mt-1 text-[11px] font-normal opacity-90">
           Invited by @{offer.from}: {interval === "monthly" ? "your first month is free (a ₦100 card check, given back)" : "one month off your first year"}.
         </p>
       )}

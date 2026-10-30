@@ -31,6 +31,7 @@ export type TierSubscription = {
   subscribedAt: string;
   currentPeriodEnd: string;
   referralFirst?: boolean; // started with a referred friend's free month (lib/referrals-server.ts)
+  couponFirst?: boolean; // started with a #NotesApp code on the first payment
   subscriptionPending?: boolean; // Paystack's subscription for after that month is not confirmed yet
   subscriptionCode?: string;
 };
@@ -140,7 +141,7 @@ export async function fulfillTierRenewal(data: {
   const higherTrial = !!u?.trialUntil && new Date(u.trialUntil).getTime() > Date.now() && rankOf(u.trialTier) > rankOf(sub.tier);
   batch.update(db.doc(`users/${sub.uid}`), { ...(higherTrial ? {} : { accountTier: sub.tier }), lastPaidAt: new Date().toISOString() });
   batch.set(seen, { reference: data.reference, uid: sub.uid, kind: "tier", amountKobo: pricePaidKobo(tx), at: new Date().toISOString() });
-  if (sub.referralFirst) batch.update(doc.ref, { subscriptionPending: false });
+  if (sub.referralFirst || sub.couponFirst) batch.update(doc.ref, { subscriptionPending: false });
   await batch.commit();
   // 20% to whoever brought this member, for 12 months from their first real payment (lib/referrals-server.ts).
   await recordPlanEarning(db, sub.uid, data.reference, pricePaidKobo(tx), `${sub.tier === "pro" ? "Pro" : "Business"} plan`).catch((e) => console.error("plan earning", data.reference, e));

@@ -44,7 +44,9 @@ export type PaymentRecord = {
   boost?: { noteId?: string; itemId?: string; packageId: string }; // a post, or a store item
   // referralFirst: a referred friend's first plan (lib/referrals.ts firstPeriodOffer): the card check or the year less a month now,
   // and the plan's subscription started on Paystack for the end of that first period.
-  tier?: { tier: "pro" | "business"; interval: "monthly" | "annually"; planCode: string; referralFirst?: boolean };
+  // couponFirst: a #NotesApp code on the first payment (lib/discounts.ts "plan"): that period at the lower price now, and the
+  // subscription started on Paystack for its end in the same way.
+  tier?: { tier: "pro" | "business"; interval: "monthly" | "annually"; planCode: string; referralFirst?: boolean; couponFirst?: boolean };
   // An affiliate link brought this sale (lib/referrals-server.ts): their share, taken out of the publisher's net.
   affiliate?: PaymentAffiliate;
   badge?: { planCode: string };
@@ -406,6 +408,7 @@ export async function fulfillPayment(reference: string, paidWith?: { cartRef: st
         currentPeriodEnd: periodEndFrom(Date.now(), tr.interval),
         // A referred friend's first period: Paystack's subscription is started for its end (startReferralSubscription, below).
         ...(tr.referralFirst ? { referralFirst: true, subscriptionPending: true } : {}),
+        ...(tr.couponFirst ? { couponFirst: true, subscriptionPending: true } : {}),
       });
       if (tr.referralFirst) t.set(db.doc(`referrals/${current.uid}`), { offerUsed: true }, { merge: true });
     } else if (current.kind === "wallet_topup") {
@@ -541,7 +544,7 @@ export async function fulfillPayment(reference: string, paidWith?: { cartRef: st
     if (result.payment.affiliate) await alertIfJump(db, result.payment.affiliate.uid).catch(() => false);
     if (result.payment.kind === "tier" && result.payment.tier) {
       const p = result.payment;
-      if (p.tier!.referralFirst) await startReferralSubscription(db, p, tx).catch((e) => console.error("referral subscription", p.reference, e));
+      if (p.tier!.referralFirst || p.tier!.couponFirst) await startReferralSubscription(db, p, tx).catch((e) => console.error("referral subscription", p.reference, e));
       // The free month's card check is not a real payment; a referred friend's discounted year is.
       const real = !(p.tier!.referralFirst && p.tier!.interval === "monthly");
       if (real) await recordPlanEarning(db, p.uid, p.reference, p.amountKobo, `${p.tier!.tier === "pro" ? "Pro" : "Business"} plan`).catch((e) => console.error("plan earning", p.reference, e));

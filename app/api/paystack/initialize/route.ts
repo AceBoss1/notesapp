@@ -41,7 +41,7 @@ import { basketDelivery } from "@/lib/cart-server";
 import { DiscountError, NOTESAPP_OWNER, spreadDiscount, type DiscountTarget } from "@/lib/discounts";
 import { applyCode, paymentDiscount } from "@/lib/discounts-server";
 import { REFERRAL_COOKIE, firstPeriodOffer } from "@/lib/referrals";
-import { affiliateFor, offerIdFor, offerPercent, referralOfferFor, referrerByUsername, type Referrer } from "@/lib/referrals-server";
+import { ReferralError, affiliateFor, offerIdFor, offerPercent, referralByCode, referralOfferFor, referrerByUsername, type Referrer } from "@/lib/referrals-server";
 
 // Starts a Paystack checkout for a 1:1 session or a monthly journal
 // subscription. Price, slots and plan all come from the publisher's
@@ -636,22 +636,36 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ error: "Your account is already on a higher plan." }, { status: 409 });
       }
       const { planCode, amountKobo: planKobo } = await getTierPlanCode(tier, interval);
-      // A friend who joined through a member's link (lib/referrals.ts): their first month free (a card check, given back) or a
-      // month off their first year, charged once now; the plan's subscription starts on Paystack when that period ends.
-      const offer = payWith === "card" ? await referralOfferFor(db, user.uid) : null;
+      // A code typed at checkout: a #NotesApp code for plans (the first payment at its price), or else a member's referral code
+      // (their username), which records the referral the way their link does. One code per order, so a #NotesApp code replaces a
+      // friend's free month; either way the plan's subscription starts on Paystack, on this card, when the first period ends.
+      let coupon: Awaited<ReturnType<typeof applyCode>> | null = null;
+      if (wantsCode) {
+        try { coupon = await applyCode(db, NOTESAPP_OWNER, body.code, user.uid, { target: "plan", subtotalKobo: planKobo, itemId: tier }); }
+        catch (e) {
+          if (!(e instanceof DiscountError && e.status === 404)) throw e;
+          try { await referralByCode(db, user.uid, body.code); }
+          catch (r) { if (r instanceof ReferralError) throw new DiscountError(r.status, r.message); throw r; }
+        }
+      }
+      // A friend who joined through a member's link or code (lib/referrals.ts): their first month free (a card check, given back)
+      // or a month off their first year, charged once now.
+      const offer = payWith === "card" && !coupon ? await referralOfferFor(db, user.uid) : null;
       const first = offer ? firstPeriodOffer(interval, tierPrice(tier, "monthly") ?? planKobo, tierPrice(tier, "annually") ?? planKobo) : null;
-      const amountKobo = first ? first.chargeKobo : planKobo;
+      const amountKobo = first ? first.chargeKobo : coupon ? planKobo - coupon.discountKobo : planKobo;
+      const deferred = !!first || !!coupon;
       const reference = newReference();
       const origin = await callbackOrigin(req);
       const tx = await initTx({
-        ...(first ? {} : { plan: planCode }), email: user.email, amountKobo, reference,
+        ...(deferred ? {} : { plan: planCode }), email: user.email, amountKobo, reference,
         callbackUrl: `${origin}/booking/confirm`,
-        metadata: { kind, tier, interval, uid: user.uid, ...(first ? { referralFirst: true } : {}) },
+        metadata: { kind, tier, interval, uid: user.uid, ...(first ? { referralFirst: true } : {}), ...(coupon ? { couponFirst: true } : {}) },
       });
       const record: PaymentRecord = {
         reference, kind: "tier", uid: user.uid, email: user.email, amountKobo,
         status: "pending", publisherUid: user.uid, publisherUsername: "", commissionRate: 0,
-        tier: { tier, interval, planCode, ...(first ? { referralFirst: true } : {}) }, createdAt: new Date().toISOString(),
+        tier: { tier, interval, planCode, ...(first ? { referralFirst: true } : {}), ...(coupon ? { couponFirst: true } : {}) },
+        ...(coupon ? { discount: paymentDiscount(coupon, planKobo) } : {}), createdAt: new Date().toISOString(),
       };
       await savePayment(record);
       return NextResponse.json({ authorizationUrl: tx.authorization_url, reference });
