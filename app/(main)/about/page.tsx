@@ -41,6 +41,7 @@ const LIVE = [
   { href: "/gifts", title: "Gifts", copy: "Readers can send you a gift on your profile or on any post." },
   ...(WALLET_LIVE ? [{ href: "/profile/wallet", title: "NotesApp Credit wallet", copy: "Top up once and pay for boosts, badges, adverts, gifts, shop items and sessions without entering your card each time. Top-ups of ₦5,000 and more add Bonus Credits. Credit can't be cashed out; sellers are still paid to their banks." }] : []),
   { href: "/coauthoring", title: "Co-authoring", copy: "Write a post with other members, agree each person's share of its earnings, and share the byline." },
+  { href: "/profile/coupons", title: "Coupons", copy: "Discount codes as coupons in shops and as shareable cards, a My coupons list, codes affiliates share as their own, and Nana applying the best coupon at every checkout." },
   { href: "/affiliates", title: "Referrals & affiliates", copy: "Invite friends with your link or code (their first month of a plan free, 20% of their plan payments to you for 12 months) and promote publishers' products from the affiliate marketplace for a share of each sale." },
   { href: "/boost", title: "Boost", copy: "Promote a post or a store item and pay only for validated impressions." },
   { href: "/badges", title: "Verification badges", copy: "A verified ✔ for accounts in good standing, and a gold ✔ for accounts we endorse or identity-check." },

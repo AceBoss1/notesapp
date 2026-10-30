@@ -43,6 +43,8 @@ export type DiscountCode = {
   endsAt?: string | null;
   minOrderKobo?: number | null;
   firstOrderOnly?: boolean; // only a member who hasn't paid this owner before
+  showInShop?: boolean; // shown as a coupon on the owner's shop and product pages, and offered to every buyer at their checkout (#NotesApp's: offered at ours)
+  allowAffiliates?: boolean; // affiliates may share it as their own code, <USERNAME>-<CODE>, and earn on the sale
   active: boolean;
   uses: number;
   discountGivenKobo: number; // money taken off so far
@@ -65,7 +67,7 @@ export class DiscountError extends Error {
 }
 
 // What an owner sends to create or change a code, checked. Throws DiscountError with a message the owner can act on.
-export type CodeInput = Pick<DiscountCode, "code" | "kind" | "percent" | "amountKobo" | "targets" | "itemIds" | "maxUses" | "perBuyer" | "startsAt" | "endsAt" | "minOrderKobo" | "firstOrderOnly" | "active">;
+export type CodeInput = Pick<DiscountCode, "code" | "kind" | "percent" | "amountKobo" | "targets" | "itemIds" | "maxUses" | "perBuyer" | "startsAt" | "endsAt" | "minOrderKobo" | "firstOrderOnly" | "showInShop" | "allowAffiliates" | "active">;
 export function cleanCodeInput(raw: Record<string, unknown>, ownerIsNotesApp: boolean): CodeInput {
   const code = normalizeCode(raw.code);
   if (!CODE_RE.test(code)) throw new DiscountError(400, "A code is 3 to 20 letters, numbers or dashes, starting with a letter or number.");
@@ -104,6 +106,7 @@ export function cleanCodeInput(raw: Record<string, unknown>, ownerIsNotesApp: bo
   return {
     code, kind, ...(percent !== undefined ? { percent } : {}), ...(amountKobo !== undefined ? { amountKobo } : {}),
     targets, itemIds, maxUses, perBuyer, startsAt, endsAt, minOrderKobo, firstOrderOnly: raw.firstOrderOnly === true, active: raw.active !== false,
+    showInShop: raw.showInShop === true, ...(ownerIsNotesApp ? {} : { allowAffiliates: raw.allowAffiliates === true }),
   };
 }
 
@@ -152,3 +155,33 @@ export function spreadDiscount(goodsKobo: number[], discountKobo: number): numbe
 
 export const naira = (kobo: number) => `₦${(kobo / 100).toLocaleString("en-NG", { maximumFractionDigits: 2 })}`;
 export const describeCode = (c: Pick<DiscountCode, "kind" | "percent" | "amountKobo">) => (c.kind === "percent" ? `${c.percent}% off` : `${naira(c.amountKobo ?? 0)} off`);
+
+// ---- coupons (docs/REFERRALS.md, step 3) ----
+
+// What anyone may see of a code shown as a coupon: never its use counts or takings.
+export type PublicCoupon = {
+  code: string; ownerUsername: string; label: string; targets: DiscountTarget[]; itemIds: string[];
+  endsAt: string | null; minOrderKobo: number | null; firstOrderOnly: boolean; allowAffiliates: boolean;
+};
+export const publicCoupon = (c: DiscountCode, ownerUsername: string): PublicCoupon => ({
+  code: c.code, ownerUsername, label: describeCode(c), targets: c.targets, itemIds: c.itemIds ?? [], endsAt: c.endsAt ?? null,
+  minOrderKobo: c.minOrderKobo ?? null, firstOrderOnly: !!c.firstOrderOnly, allowAffiliates: !!c.allowAffiliates,
+});
+// Open now: active, started, not ended, not used up (a buyer's own limits are checked at checkout).
+export const couponOpen = (c: DiscountCode, now: Date) =>
+  c.active && (!c.startsAt || new Date(c.startsAt) <= now) && (!c.endsAt || new Date(c.endsAt) > now) && (c.maxUses == null || c.uses < c.maxUses);
+
+// An affiliate's code is their username, a dash, and the publisher's code: TOLU-AMAKA10. Usernames and codes can both contain
+// dashes, so every split is a candidate (the username part first as typed); the server keeps the one that names a real code.
+export function affiliateCodeSplits(raw: unknown): { username: string; code: string }[] {
+  const s = normalizeCode(raw);
+  const out: { username: string; code: string }[] = [];
+  for (let i = s.indexOf("-"); i > 0; i = s.indexOf("-", i + 1)) {
+    const username = s.slice(0, i).toLowerCase(), code = s.slice(i + 1);
+    if (/^[a-z0-9_-]{2,30}$/.test(username) && CODE_RE.test(code)) out.push({ username, code });
+  }
+  return out;
+}
+export const affiliateCode = (username: string, code: string) => `${username.toUpperCase()}-${normalizeCode(code)}`;
+// A coupon's own page (its card): /coupon/<owner username>/<CODE>.
+export const couponPath = (ownerUsername: string, code: string) => `/coupon/${encodeURIComponent(ownerUsername)}/${encodeURIComponent(normalizeCode(code))}`;

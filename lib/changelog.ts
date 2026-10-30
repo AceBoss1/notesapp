@@ -11,6 +11,18 @@ export type Release = {
 
 export const CHANGELOG: Release[] = [
   {
+    version: "v0.104.0",
+    bump: "minor",
+    date: "2026-10-30",
+    changes: [
+      { kind: "added", text: "Nana picks your coupon: at every checkout, the coupon that takes the most off (from your saved coupons and the ones the store offers) is applied for you, marked as Nana's pick. Remove it, or type another code, any time." },
+      { kind: "added", text: "Coupons in shops: publishers can show a discount code as a coupon on their shop and product pages. Tap Save to keep it in My coupons (Account → My coupons)." },
+      { kind: "added", text: "Share a code as a coupon card: Share on any of your codes gives a link whose preview is the coupon's card, for WhatsApp, Instagram and the rest, with Save, Copy and Shop now on it." },
+      { kind: "added", text: "Affiliate codes: a publisher can let affiliates share a code as their own (TOLU-AMAKA10). Buyers get the same discount and the affiliate earns the product's affiliate share, with or without the link." },
+      { kind: "changed", text: "A coupon only works in the store it belongs to. Typing another store's coupon (or a #NotesApp coupon in a store) says so: \"Input a coupon from this store.\"" },
+    ],
+  },
+  {
     version: "v0.103.0",
     bump: "minor",
     date: "2026-10-30",

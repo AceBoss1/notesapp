@@ -39,6 +39,7 @@
     "test:time": "npx -y tsx tests/time/time.test.ts",
     "test:discounts": "npx -y tsx tests/discounts/discounts.test.ts",
     "test:discounts-server": "NEXT_PUBLIC_FIREBASE_API_KEY=x NEXT_PUBLIC_FIREBASE_PROJECT_ID=demo-notesapp NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=x NEXT_PUBLIC_FIREBASE_APP_ID=x npx firebase-tools@13 emulators:exec --only firestore --project demo-notesapp \"npx -y tsx tests/discounts/discounts.emulator.ts\"",
+    "test:coupons-server": "NEXT_PUBLIC_FIREBASE_API_KEY=x NEXT_PUBLIC_FIREBASE_PROJECT_ID=demo-notesapp NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=x NEXT_PUBLIC_FIREBASE_APP_ID=x npx firebase-tools@13 emulators:exec --only firestore,auth --project demo-notesapp \"npx -y tsx tests/discounts/coupons.emulator.ts\"",
     "test:referrals": "npx -y tsx tests/referrals/referrals.test.ts",
     "test:referrals-server": "NEXT_PUBLIC_FIREBASE_API_KEY=x NEXT_PUBLIC_FIREBASE_PROJECT_ID=demo-notesapp NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=x NEXT_PUBLIC_FIREBASE_APP_ID=x npx firebase-tools@13 emulators:exec --only firestore,auth --project demo-notesapp \"npx -y tsx tests/referrals/referrals.emulator.ts\"",
     "test:theme": "npx -y tsx tests/theme/theme.test.ts && npx -y tsx tests/theme/chat-background.test.ts",

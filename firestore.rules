@@ -439,6 +439,7 @@ service cloud.firestore {
     // Discount codes and their uses (lib/discounts-server.ts): server-only; owners manage theirs through /api/discounts.
     match /discountCodes/{id} { allow read, write: if false; }
     match /discountRedemptions/{id} { allow read, write: if false; }
+    match /savedCoupons/{id} { allow read, write: if false; }
     match /granolaConnections/{id} { allow read, write: if false; }
     match /granolaStates/{id} { allow read, write: if false; }
     match /integrationClients/{id} { allow read, write: if false; }

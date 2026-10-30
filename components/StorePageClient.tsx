@@ -15,6 +15,7 @@ import StoreManager from "@/components/StoreManager";
 import { digitalReady, getStoreItems, StoreItem } from "@/lib/store";
 import { useMemberships } from "@/lib/useMemberships";
 import ItemCard from "@/components/StoreItemCard";
+import CouponStrip from "@/components/CouponStrip";
 import BoostedStrip from "@/components/BoostedStrip";
 import MessageButton from "@/components/messages/MessageButton";
 import FavoriteButton from "@/components/FavoriteButton";
@@ -117,6 +118,7 @@ export default function StorePageClient({ params }: { params: { username: string
             <Link href={`/u/${profile.username}`} className="btn-ghost shrink-0">Back to profile</Link>
           </div>
         </div>
+        <CouponStrip seller={profile.username} className="mt-5" />
 
         {ownerCanEdit && <StoreManager profile={profile} items={items} onChanged={() => loadItems(profile)} />}
         {isOwner && !ownerCanEdit && (
