@@ -14,8 +14,9 @@
 | Publisher discount codes | On **every plan**, Free Basic included |
 | Who can be an affiliate | **Any member with a verified email** |
 
-Still to set: the Credit bonus (suggested +10%), the minimum cash payout (suggested ₦5,000), and the monthly cap per referrer
-(suggested 20, as in Notes Life).
+| The bonus for taking NotesApp Credit instead of cash | **+10%** |
+| The minimum cash payout | **₦2,000** (Credit: any amount) |
+| A monthly cap on rewarded referrals | **None.** The other rules in §6 do the guarding instead, and admin watches for unusual patterns |
 
 ## 2. How plans are billed today (what this builds on)
 
@@ -91,15 +92,16 @@ How it stays safe:
 **How earnings are paid:**
 
 - Earnings wait in the ledger until the hold passes, and are reversed if the sale is refunded.
-- **Cash:** paid out through Paylony (Paystack as the backup) once they reach the minimum.
-- **Or NotesApp Credit with the bonus:** at any amount, straight into the wallet.
+- **Cash:** paid out through Paylony (Paystack as the backup) once they reach **₦2,000**.
+- **Or NotesApp Credit with a 10% bonus:** any amount, straight into the wallet (₦1,000 earned becomes ₦1,100 of Credit).
 
 ## 6. Stopping abuse
 
 - **No self-referral:** blocked when the two accounts share a device, a payout bank account or a card.
 - **No commission on your own purchases.**
 - **Rewards only after** a verified email and a payment that has gone through and passed the hold.
-- **A monthly cap** per referrer.
+- **No monthly cap** (the owner's decision): instead, admin is alerted when one referrer's rewards jump in a week, and can hold
+  them for review before they're paid.
 - **Not for children or teen-mode accounts** (as in Notes Life).
 - **Publishers can pause a leaked code**; admin sees unusual patterns (many sign-ups from one device, codes on coupon sites).
 

@@ -193,7 +193,7 @@ const ITEMS: { title: string; tag: string; body: string; detail: string; link?: 
   {
     title: "Discount codes, referrals and affiliates",
     tag: "Growth",
-    body: "Discount codes for everyone: #NotesApp's own offers, and codes every publisher can make for their shop, courses and sessions, on every plan. Invite a friend with your link and they get their first month of a plan free; you earn cash, or NotesApp Credit with a bonus. Any verified member can become an affiliate: 20% of the plan payments of the people they bring, for 12 months, and a share set by the publisher on courses and products they promote.",
+    body: "Discount codes for everyone: #NotesApp's own offers, and codes every publisher can make for their shop, courses and sessions, on every plan. Invite a friend with your link and they get their first month of a plan free; you earn cash (paid from ₦2,000), or NotesApp Credit with a 10% bonus. Any verified member can become an affiliate: 20% of the plan payments of the people they bring, for 12 months, and a share set by the publisher on courses and products they promote.",
     detail: "Codes are checked by #NotesApp when you pay, so the price is always right, and #NotesApp's commission is worked out on what the buyer actually paid. Rewards are paid once the friend's first payment has gone through, never on your own purchases.",
   },
   {
