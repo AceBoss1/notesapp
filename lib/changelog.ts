@@ -20,6 +20,14 @@ export const CHANGELOG: Release[] = [
     ],
   },
   {
+    version: "v0.102.1",
+    bump: "patch",
+    date: "2026-10-30",
+    changes: [
+      { kind: "added", text: "#NotesApp won Special Recognition at the Build With NKENNEAi Hackathon for our Kiswahili journals, translation and speech. It is on the About page now." },
+    ],
+  },
+  {
     version: "v0.102.0",
     bump: "minor",
     date: "2026-10-30",

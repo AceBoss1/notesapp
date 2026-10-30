@@ -220,6 +220,18 @@ export default async function AboutPage() {
       <PartnersStrip className="mt-10" />
       <ProgramThanks className="mt-14" />
 
+      <section className="mt-14" aria-labelledby="recognition-h">
+        <p id="recognition-h" className="eyebrow">Recognition</p>
+        <div className="card mt-3 p-5">
+          <p className="font-ui text-base font-bold text-ink">Special Recognition, Build With NKENNEAi Hackathon</p>
+          <p className="mt-1 font-mono text-[11px] uppercase tracking-eyebrow text-slate">October 2026</p>
+          <p className="mt-3 text-sm text-slate">
+            For #NotesApp in Kiswahili: journals and lessons translated, read aloud and transcribed with NKENNEAi, so readers in
+            Kenya and across East Africa can read and listen in their own language. Thank you, NKENNEAi.
+          </p>
+        </div>
+      </section>
+
       <div className="mt-14 rounded-2xl p-8 text-paper sm:p-10" style={{ backgroundImage: "linear-gradient(160deg, #1A1210 0%, #2a0a14 100%)" }}>
         <p className="font-mono text-[11px] uppercase tracking-eyebrow text-pink-300">How we make money — in the open</p>
         <div className="prose mt-4 max-w-none text-sm text-paper/85 [&_a]:!text-white [&_p]:text-paper/85">
