@@ -28,6 +28,8 @@ export default function AdminAdsPage() {
   const [cropping, setCropping] = useState<{ file: File; for: "image" | "billboard" } | null>(null);
   const bannerDrop = useFileDrop((fs) => { const f = fs.find((x) => x.type.startsWith("image/")); if (f) setCropping({ file: f, for: "image" }); }, true);
   const [error, setError] = useState("");
+  // The form's own result, shown beside its button: the page-level error sits above the settings, out of view.
+  const [formMsg, setFormMsg] = useState<{ ok: boolean; text: string } | null>(null);
   const [camps, setCamps] = useState<AdCampaign[]>([]);
 
   async function loadCamps() {
@@ -100,10 +102,13 @@ export default function AdminAdsPage() {
   async function save(e: React.FormEvent) {
     e.preventDefault();
     setError("");
-    if (!/^https:\/\//i.test(form.href.trim())) return setError("Link must start with https://");
-    if (!form.title.trim()) return setError("Add a headline.");
-    if (form.placements.length === 0) return setError("Pick at least one placement.");
-    if (form.placements.includes("life") && !form.billboard) return setError("Notes Life needs a billboard picture (1600 × 900).");
+    setFormMsg(null);
+    const fail = (text: string) => setFormMsg({ ok: false, text });
+    if (!form.title.trim()) return fail("Add a headline.");
+    if (!/^https:\/\//i.test(form.href.trim())) return fail("Link must start with https://");
+    if (form.placements.length === 0) return fail("Pick at least one placement.");
+    if (form.placements.includes("life") && !form.billboard) return fail("Notes Life needs a billboard picture (1600 × 900).");
+    if (form.startsAt && form.endsAt && form.endsAt < form.startsAt) return fail("The end date is before the start date.");
     setBusy(true);
     try {
       const data = {
@@ -121,11 +126,13 @@ export default function AdminAdsPage() {
       };
       if (editing) await updateDoc(doc(db, "adCreatives", editing), data);
       else await addDoc(collection(db, "adCreatives"), { ...data, createdAt: new Date().toISOString() });
+      setFormMsg({ ok: true, text: editing ? "Changes saved." : "Ad added. It reaches visitors within about 5 minutes." });
       setForm(EMPTY);
       setEditing(null);
       await load();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Couldn't save");
+      const msg = err instanceof Error ? err.message : "";
+      fail(/permission/i.test(msg) ? "Couldn't save: your account isn't allowed to change ads (permission denied)." : `Couldn't save${msg ? `: ${msg}` : "."}`);
     } finally {
       setBusy(false);
     }
@@ -208,9 +215,10 @@ export default function AdminAdsPage() {
           <input type="date" value={form.endsAt} onChange={(e) => setForm({ ...form, endsAt: e.target.value })} className={field} />
         </label>
         <div className="flex gap-3 sm:col-span-2">
-          <button disabled={busy} className="btn-primary !px-4 !py-2 text-xs">{editing ? "Save changes" : "Add ad"}</button>
-          {editing && <button type="button" onClick={() => { setEditing(null); setForm(EMPTY); }} className="btn-ghost !px-4 !py-2 text-xs">Cancel</button>}
+          <button type="submit" disabled={busy} className="btn-primary !px-4 !py-2 text-xs">{busy ? "Working…" : editing ? "Save changes" : "Add ad"}</button>
+          {editing && <button type="button" onClick={() => { setEditing(null); setForm(EMPTY); setFormMsg(null); }} className="btn-ghost !px-4 !py-2 text-xs">Cancel</button>}
         </div>
+        {formMsg && <p role={formMsg.ok ? "status" : "alert"} className={`text-sm sm:col-span-2 ${formMsg.ok ? "text-ink" : "text-crimson"}`}>{formMsg.text}</p>}
       </form>
 
       <div className="card mt-10 p-5">
