@@ -14,6 +14,7 @@ Router) on Vercel, Firebase (Auth, Firestore), Cloudflare R2 and Stream, Paystac
 | `docs/ARCHITECTURE.md` | How the newer pieces work: addresses, bells, digest, server-owned writes, shared limits, settings |
 | `docs/DOMAIN_SWITCH.md` | Moving the primary address to notesapp.tech |
 | `docs/STAGING.md` | The staging copy and how a release goes |
+| `docs/REFERRALS.md` | Discount codes (#NotesApp and every publisher), referral links and affiliates: the owner's decisions, how plans are billed today, the order of work |
 | `docs/PAYMENTS.md` | Who takes which payment: Paystack (cards, subscriptions, payout backup), Paylony (bank transfers, Tap2Pay), Flutterwave (across Africa, later); the one payment layer to build; NotesApp Inc |
 | `docs/MOBILE-APPS.md` | The iOS and Android release plan (Capacitor around the app address, store rules, accounts under NotesApp Inc); scaffold in `mobile/` |
 | `docs/SEND-NA.md` | Send-Na by NotesApp: email, WhatsApp and SMS priced in Naira (plan only), and the WhatsApp and SMS channel booking reminders need |
