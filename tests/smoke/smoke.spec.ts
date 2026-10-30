@@ -30,7 +30,7 @@ test("domains: life. shows Notes Life under its own name; other domains name the
   expect(await life.text()).toContain("Notes Life");
   const play = await request.get("/play", { headers: { host: "life.naapp.tech" }, maxRedirects: 0 });
   expect([307, 308]).toContain(play.status());
-  expect(play.headers().location).toMatch(/^https:\/\/www\.notesapp\.tech\/life\/play/);
+  expect(play.headers().location).toMatch(/^https:\/\/www\.naapp\.tech\/life\/play/);
 });
 
 test("server-only writes refuse people who aren't signed in", async ({ request }) => {
