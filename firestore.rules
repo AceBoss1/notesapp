@@ -440,6 +440,7 @@ service cloud.firestore {
     match /discountCodes/{id} { allow read, write: if false; }
     match /discountRedemptions/{id} { allow read, write: if false; }
     match /savedCoupons/{id} { allow read, write: if false; }
+    match /couponReminders/{id} { allow read, write: if false; }
     match /granolaConnections/{id} { allow read, write: if false; }
     match /granolaStates/{id} { allow read, write: if false; }
     match /integrationClients/{id} { allow read, write: if false; }

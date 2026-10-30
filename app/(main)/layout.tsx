@@ -5,6 +5,7 @@ import BottomTabs from "@/components/shell/BottomTabs";
 import { AppFrame, ChromeGate, FooterGate } from "@/components/shell/Frame";
 import { MemberProvider } from "@/lib/member-client";
 import VerifyEmailBanner from "@/components/VerifyEmailBanner";
+import CouponReminder from "@/components/CouponReminder";
 import WorkPrompt from "@/components/WorkPrompt";
 import TimeCheck from "@/components/TimeCheck";
 import KidGuard from "@/components/KidGuard";
@@ -122,6 +123,7 @@ const site = await getSiteSettingsCached();
           <AdultOnly><VerifyEmailBanner /></AdultOnly>
           <KidGuard />
           <EighteenBanner />
+          <AdultOnly><CouponReminder /></AdultOnly>
           <AdultOnly><WorkPrompt /></AdultOnly>
           <TimeCheck />
           <AdultOnly><PushPrompt /></AdultOnly>

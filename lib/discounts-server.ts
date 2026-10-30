@@ -1,10 +1,11 @@
 import type { Firestore, Transaction } from "firebase-admin/firestore";
 import { FieldValue } from "firebase-admin/firestore";
 import {
-  DiscountError, NOTESAPP_OWNER, NOTESAPP_TARGETS, affiliateCodeSplits, cleanCodeInput, codeId, couponOpen, discountFor, normalizeCode,
+  DiscountError, NOTESAPP_OWNER, NOTESAPP_TARGETS, affiliateCodeSplits, cleanCodeInput, codeId, couponOpen, discountFor, endingSoon, endsInWords, normalizeCode,
   publicCoupon, type CodeUse, type DiscountCode, type DiscountTarget, type PublicCoupon,
 } from "./discounts";
 import { referrerByUsername, type Referrer } from "./referrals-server";
+import { notifyBell } from "./email";
 
 // Server-only. Discount codes (lib/discounts.ts has the rules): looking one up for a buyer at checkout, recording each use when the
 // payment lands (inside fulfillPayment's transaction), and an owner's list. Collections, both server-only (firestore.rules):
@@ -235,4 +236,32 @@ export async function bestCoupon(
     } catch { /* this one doesn't work here */ }
   }
   return best;
+}
+
+// The cron (app/api/cron/reminders): a bell for each saved coupon that's still open and ends within COUPON_REMIND_DAYS, once a day
+// per coupon (couponReminders/{savedCoupon id}_{yyyy-mm-dd}, created first, so a rerun the same day sends nothing). Returns bells sent.
+export async function remindExpiringCoupons(db: Firestore, now = new Date(), bell: typeof notifyBell = notifyBell): Promise<number> {
+  const day = now.toISOString().slice(0, 10);
+  const codes = await db.collection("discountCodes").where("endsAt", ">", now.toISOString()).get();
+  let sent = 0;
+  for (const cd of codes.docs) {
+    const c = { ...(cd.data() as DiscountCode), id: cd.id };
+    if (!endingSoon(c.endsAt, now) || !couponOpen(c, now)) continue;
+    const saved = await db.collection("savedCoupons").where("codeId", "==", c.id).limit(500).get();
+    for (const s of saved.docs) {
+      const d = s.data();
+      try { await db.doc(`couponReminders/${s.id}_${day}`).create({ uid: d.uid, codeId: c.id, at: now.toISOString() }); }
+      catch { continue; } // already reminded today
+      await bell({ uid: String(d.uid), type: "coupon", linkHref: "/profile/coupons",
+        message: `Your coupon ${c.code} (${describeLabel(c)}) at @${d.ownerUsername} ${endsInWords(String(c.endsAt), now)}. Use it before it goes.` });
+      sent++;
+    }
+  }
+  return sent;
+}
+const describeLabel = (c: DiscountCode) => publicCoupon(c, "").label;
+
+// For the once-a-day prompt: this member's saved coupons that are open and end within COUPON_REMIND_DAYS.
+export async function expiringCoupons(db: Firestore, uid: string, now = new Date()): Promise<(SavedCoupon & { endsIn: string })[]> {
+  return (await myCoupons(db, uid, now)).filter((c) => c.open && endingSoon(c.endsAt, now)).map((c) => ({ ...c, endsIn: endsInWords(String(c.endsAt), now) }));
 }

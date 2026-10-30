@@ -6,7 +6,7 @@ import { initializeApp } from "firebase-admin/app";
 import { getAuth } from "firebase-admin/auth";
 import { getFirestore } from "firebase-admin/firestore";
 import { DiscountError } from "../../lib/discounts";
-import { affiliateCodes, applyCode, bestCoupon, couponCard, myCoupons, removeCoupon, saveCode, saveCoupon, setCodeActive, shopCoupons } from "../../lib/discounts-server";
+import { affiliateCodes, applyCode, bestCoupon, couponCard, expiringCoupons, myCoupons, remindExpiringCoupons, removeCoupon, saveCode, saveCoupon, setCodeActive, shopCoupons } from "../../lib/discounts-server";
 initializeApp({ projectId: "demo-notesapp" });
 const db = getFirestore();
 const rejects = (p: Promise<unknown>, re: RegExp) => assert.rejects(p, (e: unknown) => e instanceof DiscountError && re.test(e.message));
@@ -87,6 +87,28 @@ async function member(uid: string, username: string, verified = true) {
   await saveCode(db, "notesapp", "admin", { create: true, code: "BOOST20", kind: "percent", percent: 20, targets: ["boost"], showInShop: true });
   await saveCode(db, "notesapp", "admin", { create: true, code: "SECRET50", kind: "percent", percent: 50, targets: ["boost"] });
   assert.deepEqual(await bestCoupon(db, "ada", "notesapp", { target: "boost", subtotalKobo: 500_000 }), { code: "BOOST20", discountKobo: 100_000, label: "20% off", source: "shop" });
+
+  // saved coupons ending within 3 days: one bell a day each, and the same list for the once-a-day prompt
+  const now = new Date();
+  const in2days = new Date(now.getTime() + 2 * 86_400_000).toISOString(), in10days = new Date(now.getTime() + 10 * 86_400_000).toISOString();
+  await saveCode(db, "shop", "shop", { create: true, code: "LASTCALL", kind: "percent", percent: 20, targets: ["store"], showInShop: true, endsAt: in2days });
+  await saveCode(db, "shop", "shop", { create: true, code: "LATER", kind: "percent", percent: 5, targets: ["store"], showInShop: true, endsAt: in10days });
+  await saveCoupon(db, "ada", "stylebyamaka", "LASTCALL");
+  await saveCoupon(db, "ada", "stylebyamaka", "LATER");
+  await saveCoupon(db, "tolu", "stylebyamaka", "LASTCALL");
+  const bells: { uid: string; message: string; linkHref?: string }[] = [];
+  const bell = async (b: { uid?: string | null; message: string; linkHref?: string }) => { bells.push({ uid: String(b.uid), message: b.message, linkHref: b.linkHref }); };
+  assert.equal(await remindExpiringCoupons(db, now, bell as never), 2, "ada and tolu, for LASTCALL only");
+  assert.deepEqual(bells.map((b) => b.uid).sort(), ["ada", "tolu"]);
+  assert.match(bells[0].message, /LASTCALL \(20% off\) at @stylebyamaka ends in 2 days/);
+  assert.equal(bells[0].linkHref, "/profile/coupons");
+  assert.equal(await remindExpiringCoupons(db, new Date(now.getTime() + 60_000), bell as never), 0, "once a day");
+  assert.equal(await remindExpiringCoupons(db, new Date(now.getTime() + 86_400_000), bell as never), 2, "and again the next day");
+  await setCodeActive(db, "shop", "LASTCALL", false);
+  assert.equal(await remindExpiringCoupons(db, new Date(now.getTime() + 2 * 86_400_000 - 3_600_000), bell as never), 0, "not for a paused coupon");
+  await setCodeActive(db, "shop", "LASTCALL", true);
+  assert.deepEqual((await expiringCoupons(db, "ada", now)).map((c) => [c.code, c.endsIn]), [["LASTCALL", "ends in 2 days"]]);
+  assert.deepEqual(await expiringCoupons(db, "shop", now), []);
 
   console.log("COUPONS SERVER OK");
   process.exit(0);

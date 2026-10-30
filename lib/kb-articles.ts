@@ -104,6 +104,8 @@ You see how many times each code was used, how much it took off and what buyers 
 
 **Nana's pick:** at checkout, Nana applies the coupon that takes the most off: from the coupons you saved (**Account → My coupons**) and the ones the store offers. It shows as Nana's pick; remove it or type another code if you like.
 
+**Coupons ending soon:** when a coupon in My coupons ends within 3 days, your bell tells you once a day, and a bar under the header reminds you the first time you open #NotesApp each day and whenever you sign in.
+
 **One store, its own coupons:** a store's coupon only works in that store. Type another store's coupon (or a #NotesApp coupon in a store) and you'll see "Input a coupon from this store."`),
     A("create-an-account", "Creating an account", "Getting started", `
 Go to [Sign up](/signup). Choose **Personal** for a person, or **Organisation** for a company, NGO, church, school or club (organisations also enter their CAC registration number). Pick a display name, a username, an email and a password, tick that you are 18 or older and agree to the [Terms](/terms) and [Privacy Policy](/privacy), and you are in.

@@ -19,6 +19,7 @@ export const CHANGELOG: Release[] = [
       { kind: "added", text: "Coupons in shops: publishers can show a discount code as a coupon on their shop and product pages. Tap Save to keep it in My coupons (Account → My coupons)." },
       { kind: "added", text: "Share a code as a coupon card: Share on any of your codes gives a link whose preview is the coupon's card, for WhatsApp, Instagram and the rest, with Save, Copy and Shop now on it." },
       { kind: "added", text: "Affiliate codes: a publisher can let affiliates share a code as their own (TOLU-AMAKA10). Buyers get the same discount and the affiliate earns the product's affiliate share, with or without the link." },
+      { kind: "added", text: "Reminders for saved coupons: when one in My coupons ends within 3 days, the bell tells you once a day, and a bar under the header reminds you on your first visit of the day and each time you sign in." },
       { kind: "changed", text: "A coupon only works in the store it belongs to. Typing another store's coupon (or a #NotesApp coupon in a store) says so: \"Input a coupon from this store.\"" },
     ],
   },

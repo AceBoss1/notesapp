@@ -183,5 +183,15 @@ export function affiliateCodeSplits(raw: unknown): { username: string; code: str
   return out;
 }
 export const affiliateCode = (username: string, code: string) => `${username.toUpperCase()}-${normalizeCode(code)}`;
+// Saved coupons ending within this many days are reminded about: a bell each day, and a prompt on the first visit of the day.
+export const COUPON_REMIND_DAYS = 3;
+export const endingSoon = (endsAt: string | null | undefined, now: Date) =>
+  !!endsAt && new Date(endsAt) > now && new Date(endsAt).getTime() - now.getTime() <= COUPON_REMIND_DAYS * 86_400_000;
+export function endsInWords(endsAt: string, now: Date): string {
+  const hours = Math.max(0, (new Date(endsAt).getTime() - now.getTime()) / 3_600_000);
+  if (hours < 24) return "ends today";
+  const days = Math.ceil(hours / 24);
+  return days === 1 ? "ends tomorrow" : `ends in ${days} days`;
+}
 // A coupon's own page (its card): /coupon/<owner username>/<CODE>.
 export const couponPath = (ownerUsername: string, code: string) => `/coupon/${encodeURIComponent(ownerUsername)}/${encodeURIComponent(normalizeCode(code))}`;

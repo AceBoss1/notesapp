@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAdminDb, verifySignedInRequest } from "@/lib/firebase-admin";
 import { DiscountError } from "@/lib/discounts";
-import { couponCard, myCoupons, removeCoupon, saveCoupon, shopCoupons } from "@/lib/discounts-server";
+import { couponCard, expiringCoupons, myCoupons, removeCoupon, saveCoupon, shopCoupons } from "@/lib/discounts-server";
 import { rateLimit } from "@/lib/rate-limit";
 
 export const dynamic = "force-dynamic";
@@ -10,6 +10,7 @@ export const dynamic = "force-dynamic";
 //   GET ?seller=<username>[&item=<id>]   the coupons a publisher shows in their shop (anyone)
 //   GET ?seller=<username>&code=<CODE>   one coupon for its card, if it's open (anyone)
 //   GET ?mine=1                          the signed-in member's saved coupons
+//   GET ?ending=1                        the signed-in member's saved coupons ending soon (the once-a-day prompt)
 //   POST { action: "save", seller, code } | { action: "remove", id }
 const me = (req: NextRequest) => verifySignedInRequest(req.headers.get("authorization")?.replace(/^Bearer\s+/i, "")).catch(() => null);
 const fail = (e: unknown) => {
@@ -22,6 +23,11 @@ export async function GET(req: NextRequest) {
   try {
     const db = getAdminDb();
     const q = req.nextUrl.searchParams;
+    if (q.get("ending") === "1") {
+      const u = await me(req);
+      if (!u) return NextResponse.json({ coupons: [] });
+      return NextResponse.json({ coupons: await expiringCoupons(db, u.uid) }, { headers: { "Cache-Control": "no-store" } });
+    }
     if (q.get("mine") === "1") {
       const u = await me(req);
       if (!u) return NextResponse.json({ error: "Sign in first." }, { status: 401 });
