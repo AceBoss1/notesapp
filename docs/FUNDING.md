@@ -7,7 +7,8 @@
 |---|---|---|---|---|---|
 | 1 | .tech startup programme: **naapp.tech**, sponsored for 10 years | [startup.tech](https://startup.tech/) | none (do it this week) | nothing | first: the pitch form asks for our .tech domain |
 | 2 | .tech pitch competition | [pitch.tech](https://pitch.tech/) | **20 November 2026** | nothing | second |
-| 3 | Emergent Ventures (Mercatus Center), Africa & Caribbean | [mercatus.org/emergentventures](https://www.mercatus.org/emergentventures) | none (funds are limited: soon) | nothing | third |
+| 3 | .tech **No Excuses Fund** (grants up to USD 1 million) | [pitch.tech](https://pitch.tech/) | **15 December 2026**, 23:59 US Pacific; decisions by 15 January 2027 | nothing | after naapp.tech is our primary site: the product must run on .tech, and stay there 24 months (team hub tasks `fund-*`, HANDOVER item 6) |
+| 4 | Emergent Ventures (Mercatus Center), Africa & Caribbean | [mercatus.org/emergentventures](https://www.mercatus.org/emergentventures) | none (funds are limited: soon) | nothing | third |
 
 Declined for now: **Peachscore** (its "grant" is applied toward an enrollment fee; apply only if it's confirmed in writing that we pay
 nothing).
@@ -50,7 +51,7 @@ or resold**. Any stage is welcome. After 10 years we renew at our own cost.
 | Startup | NotesApp |
 | Stage | Live product, bootstrapped (pre-seed) |
 | Category | SaaS / creator economy / edtech, for Africa |
-| Current website | notesapp.com.ng |
+| Current website | notesapp.name.ng |
 | How we'll use it | As the primary domain of the app, the website and company email, and in the iOS and Android apps' links |
 
 **About the startup (paste the company paragraph above, then):**
@@ -68,7 +69,7 @@ or resold**. Any stage is welcome. After 10 years we renew at our own cost.
 
 **Before the move (engineering, when it's granted):** the app reads its address from `SITE_URL` (`lib/host.ts`), so the move is a
 setting, DNS, the Firebase Auth authorised domains, Paystack and Paylony callback URLs, email sender domain (SPF, DKIM, DMARC) and a
-permanent redirect from notesapp.com.ng to naapp.tech. Start it the week the domain arrives; the 4 months run from then.
+permanent redirect from notesapp.name.ng to naapp.tech. Start it the week the domain arrives; the 4 months run from then.
 
 ---
 
@@ -149,7 +150,7 @@ students practising each month; `[N]` teachers paid; the KCSE version started in
 > publishing, bookings, courses, a shop with delivery, encrypted calls, payouts and an AI assistant. `[add your background: education,
 > prior work, anything unusual]`
 
-**Links:** notesapp.com.ng (later naapp.tech) · Exam Prep (`/exam-prep`) · NKENNEAi results (Discord
+**Links:** notesapp.name.ng (later naapp.tech) · Exam Prep (`/exam-prep`) · NKENNEAi results (Discord
 announcement, 2026) · `[LinkedIn]`.
 
 **What else should we know:** an honest line on what's hard, e.g. "the hard part is quality: one wrong answer in an exam bank costs
