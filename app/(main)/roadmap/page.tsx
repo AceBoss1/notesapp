@@ -193,7 +193,7 @@ const ITEMS: { title: string; tag: string; body: string; detail: string; link?: 
   {
     title: "Payments across Africa",
     tag: "Payments",
-    body: "Paystack keeps cards and subscriptions, and stands behind payouts as the backup. Paylony takes bank transfers (your own account number for wallet top-ups and payments) and Tap2Pay. Flutterwave comes as #NotesApp opens in Kenya (from January 2027, with a pilot in December), then Ghana: shilling and cedi prices, M-Pesa and mobile money, and more African currencies after.",
+    body: "Paystack keeps cards and subscriptions, and stands behind payouts as the backup. Paylony takes bank transfers (your own account number for wallet top-ups and payments) and Tap2Pay. Flutterwave comes when #NotesApp opens in Kenya, then Ghana, when we're ready to launch there: shilling and cedi prices, M-Pesa and mobile money, and more African currencies after.",
     detail: "No member needs to do anything: plans and saved cards stay as they are. Each country gets prices in its own currency, set by us rather than converted at checkout, and payouts to local banks or mobile money. Dollar payments come with NotesApp Inc, our US company.",
   },
   {

@@ -11,6 +11,14 @@ export type Release = {
 
 export const CHANGELOG: Release[] = [
   {
+    version: "v0.104.1",
+    bump: "patch",
+    date: "2026-10-30",
+    changes: [
+      { kind: "changed", text: "On the roadmap: payments in Kenya, then Ghana, now come when we're ready to launch there, rather than on set dates. Members in Kenya keep paying by card in Naira." },
+    ],
+  },
+  {
     version: "v0.103.0",
     bump: "minor",
     date: "2026-10-30",
