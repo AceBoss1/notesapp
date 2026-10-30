@@ -11,6 +11,16 @@ export type Release = {
 
 export const CHANGELOG: Release[] = [
   {
+    version: "v0.106.0",
+    bump: "minor",
+    date: "2026-10-30",
+    changes: [
+      { kind: "added", text: "Giving in communities: admins switch it on under Admin → Giving and name their funds (Tithe, Offering, Building fund). Members tap Give, choose the amount and fund, add a note or give anonymously, and see the charges and the total before paying. Charges are like a bank transfer (₦10 up to ₦5,000, ₦25 up to ₦50,000, ₦50 above), plus Paystack's card charge at cost by card; the wallet has no card charge. No commission, and givers can cover the charges so the community gets the whole gift." },
+      { kind: "added", text: "Every gift gets a receipt by email and under My giving (/giving). Admins see each gift and the totals per fund. Gifts are paid to the organisation's bank account a day later, on one run; each gift is capped at ₦20,000 until the community is verified." },
+      { kind: "added", text: "Paid event tickets: an event's organiser adds ticket types with a price and how many. Buyers pay by card and get a QR code per ticket under My tickets (/tickets) and by email. The organiser checks tickets in at the door by typing or scanning the code, and is paid after the event, less their plan's commission." },
+    ],
+  },
+  {
     version: "v0.103.0",
     bump: "minor",
     date: "2026-10-30",

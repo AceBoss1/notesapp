@@ -27,8 +27,15 @@ members. Phase 1 is live (v0.74.0); audio rooms and the group-style feed came in
    - Join live links on events.
 2. **Bigger rooms, giving and tickets.**
    - Circles without the 50-person cap. That needs a channel model: membership kept in its own collection rather than the `participants` array, and push sent in batches.
-   - Giving.
-   - Paid event tickets with QR check-in, reusing checkout and the ledger.
+   - Giving (**built, v0.106.0**): admins switch it on under Admin → Giving and name funds; a Give button for members (and signed-in
+     visitors to a listed community); the charges below (`lib/giving.ts`), with the choice to cover them; payment kind `giving`, a
+     receipt (email and `/giving`), a `giving` ledger entry to the owner held 24 hours and paid on the next 10:00 run; the admins see
+     each gift and the totals per fund. Capped at ₦20,000 a gift until verified (`communityVerified`). Server: `lib/giving-server.ts`,
+     `/api/giving`. Not yet: campaigns with a goal, Admin → Pricing for the bands, one transfer for many gifts.
+   - Paid event tickets with QR check-in (**built, v0.106.0**): ticket types on the event page (`eventTickets`), payment kind `ticket`
+     through the usual checkout, one `tickets/{code}` per admission with a QR, `/tickets` for buyers, check-in at
+     `/events/<id>/checkin` (typed or scanned), a `ticket` ledger entry with the host's commission released after the event. Server:
+     `lib/tickets.ts`, `lib/tickets-server.ts`, `/api/tickets`.
 3. **Our own live streaming, then group meetings.**
    - Live streaming through Cloudflare Stream Live: RTMPS or SRT from OBS or a phone, WHIP from the browser, HLS to viewers, and the recording kept as a replay in the members-only Space. Cost is per minute watched, so it is the add-on.
    - Group video meetings need an SFU (LiveKit, Cloudflare Realtime, Daily).
@@ -44,4 +51,4 @@ members. Phase 1 is live (v0.74.0); audio rooms and the group-style feed came in
 - **Commission:** none on top of the bands. Admin → Pricing would hold the bands.
 - **Receipts:** every gift gets one.
 - **Payouts:** only to the organisation's verified bank account.
-- **Unverified communities:** giving waits for verification, or is capped until then.
+- **Unverified communities:** giving waits for verification, or is capped until then. (Built as a cap: ₦20,000 a gift.)

@@ -100,6 +100,8 @@ export default function AuthNav({ onDark = false, compact = false }: { onDark?: 
             <Link href="/bookings" className={item}>Bookings</Link>
             <Link href="/profile/family" className={item}>👨‍👩‍👧 Family (child profiles)</Link>
             <Link href="/orders" className={item}>Orders &amp; parcels</Link>
+            <Link href="/tickets" className={item}>🎟 My tickets</Link>
+            <Link href="/giving" className={item}>My giving</Link>
             {profile && canPublish(profile) && <Link href="/shipments" className={item}>Shipments (logistics)</Link>}
             {WALLET_LIVE && <Link href="/profile/wallet" className={item}>💳 Wallet</Link>}
             <Link href="/saved" className={item}>♥ Saved items</Link>

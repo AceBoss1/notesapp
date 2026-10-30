@@ -718,6 +718,12 @@ service cloud.firestore {
     match /communityLikes/{id} { allow read, write: if false; }
     match /events/{id} { allow read, write: if false; }
     match /eventRsvps/{id} { allow read, write: if false; }
+    // Giving and paid tickets (lib/giving-server.ts, lib/tickets-server.ts): receipts, ticket types with their sold counts, and the
+    // tickets themselves are written only by the payment code; givers, buyers, admins and organisers read them through /api/giving and
+    // /api/tickets.
+    match /communityGifts/{id} { allow read, write: if false; }
+    match /eventTickets/{id} { allow read, write: if false; }
+    match /tickets/{code} { allow read, write: if false; }
     match /eventReminders/{id} { allow read, write: if false; }
     // Inventory (lib/inventory-server.ts): SKUs, cost prices, low-stock levels and the stock history are private to the store and written
     // only by the server; the page reads them through /api/inventory.

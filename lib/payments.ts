@@ -23,6 +23,9 @@ import { SITE_URL } from "@/lib/host";
 import { grantPackInTransaction } from "./exam-prep-server";
 import { EXAMS, type ExamId } from "./exam-prep";
 import { readCodeForRedemption, writeRedemption, type PaymentDiscount } from "./discounts-server";
+import { writeGiftReceipt } from "./giving-server";
+import { givingReleaseAfter } from "./giving";
+import { readForTickets, writeTickets } from "./tickets-server";
 import { alertIfJump, recordPlanEarning, startReferralSubscription, writeProductEarning, type PaymentAffiliate } from "./referrals-server";
 
 // Server-only. All money-state changes happen here, via the Admin SDK
@@ -31,7 +34,7 @@ import { alertIfJump, recordPlanEarning, startReferralSubscription, writeProduct
 
 export type PaymentRecord = {
   reference: string;
-  kind: "booking" | "subscription" | "boost" | "gift" | "tier" | "badge" | "gold_deposit" | "gold" | "merch" | "ad" | "store" | "digital" | "wallet_topup" | "life_naira" | "nana_credit" | "certificate" | "course" | "logistics_addon" | "inventory_addon" | "store_cart" | "exam_pack";
+  kind: "booking" | "subscription" | "boost" | "gift" | "tier" | "badge" | "gold_deposit" | "gold" | "merch" | "ad" | "store" | "digital" | "wallet_topup" | "life_naira" | "nana_credit" | "certificate" | "course" | "logistics_addon" | "inventory_addon" | "store_cart" | "exam_pack" | "giving" | "ticket";
   uid: string; // the payer
   email: string;
   amountKobo: number;
@@ -113,6 +116,11 @@ export type PaymentRecord = {
   // teacher's part of it (their margin and its share of any late claim fee); issuedId once it's issued.
   certificate?: { courseId: string; courseTitle: string; learnerName: string; startKobo: number; lateKobo: number; teacherKobo: number; issuedId?: string };
   topupReversedKobo?: number;
+  // A gift to a community (lib/giving.ts): the fund, the note, the charges fixed at checkout and what the community receives. amountKobo is
+  // what the giver paid (the gift, plus the charges when they covered them). publisherUid is the community's owner.
+  giving?: { cid: string; communityName: string; fund: string; note: string; anonymous: boolean; giverName: string; giftKobo: number; bandKobo: number; cardChargeKobo: number; netKobo: number; covered: boolean };
+  // Paid event tickets (lib/tickets.ts): the type, how many, and the occurrence they are for. publisherUid is the event's host.
+  ticket?: { eventId: string; eventTitle: string; typeId: string; typeName: string; quantity: number; unitKobo: number; startsAt: string; endsAt: string; holderName: string };
 };
 
 // held      = collected, waiting for releaseAfter (session end / dispute window)
@@ -125,7 +133,8 @@ export type LedgerEntry = {
   reference: string; // ledger doc id (the payment reference, or `<ref>_<uid>` for a co-author's share)
   paymentReference?: string; // the Paystack payment this entry belongs to (set on split entries)
   sharePercent?: number; // this author's % of a co-authored post's gift
-  kind: "booking" | "subscription" | "gift" | "adshare" | "order" | "digital" | "certificate" | "course" | "shipping" | "affiliate";
+  kind: "booking" | "subscription" | "gift" | "adshare" | "order" | "digital" | "certificate" | "course" | "shipping" | "affiliate" | "giving" | "ticket";
+  cardChargeKobo?: number; // giving by card: Paystack's charge at cost, passed on (grossKobo is already after it)
   affiliateKobo?: number; // an affiliate's share of this sale, already taken out of netKobo
   publisherUid: string;
   publisherUsername: string;
@@ -256,6 +265,7 @@ export async function fulfillPayment(reference: string, paidWith?: { cartRef: st
     if (current.status !== "pending") return { payment: current, fresh: false };
     // A discount code's running totals: read now (every read comes before any write), written with the paid status below.
     const codeRead = await readCodeForRedemption(t, db, current.discount);
+    const ticketRead = current.kind === "ticket" && current.ticket ? await readForTickets(t, db, current) : null;
 
     if (current.kind === "booking" && current.booking) {
       const { username, date, slot, minutes } = current.booking;
@@ -364,6 +374,26 @@ export async function fulfillPayment(reference: string, paidWith?: { cartRef: st
       // A paid course: the learner has it straight away; the tutors' shares are held for the refund window, then paid out.
       await fulfilCourseInTransaction(t, db, current, courseSplit, now);
       writeProductEarning(t, db, current, "course", current.course.courseTitle, current.course.courseId, now);
+    } else if (current.kind === "giving" && current.giving) {
+      // A gift to a community: a receipt the giver can see, and the community's money (after the charges) held a day, then paid out to
+      // the owner's verified bank account with that day's other gifts. Our band charge is the commission; Paystack's card charge is
+      // passed on at cost.
+      const g = current.giving;
+      writeGiftReceipt(t, db, current, now);
+      t.set(db.doc(`ledger/${reference}`), {
+        reference, kind: "giving", publisherUid: current.publisherUid, publisherUsername: current.publisherUsername, payerUid: current.uid,
+        grossKobo: current.amountKobo - g.cardChargeKobo, commissionKobo: g.bandKobo, netKobo: g.netKobo,
+        ...(g.cardChargeKobo ? { cardChargeKobo: g.cardChargeKobo } : {}),
+        status: "held", releaseAfter: givingReleaseAfter(new Date(now)).toISOString(), createdAt: now,
+      } satisfies LedgerEntry);
+    } else if (current.kind === "ticket" && current.ticket && ticketRead) {
+      // Event tickets: one per admission, the sold count moved here. Not enough left (bought at the same moment as the last ones) →
+      // flagged for a refund, like a sold-out shop order. The host's money, less their commission, is held until the event ends.
+      if (!writeTickets(t, db, current, ticketRead, now)) {
+        t.update(payRef, { status: "paid_slot_conflict", paidAt: now });
+        return { payment: { ...current, status: "paid_slot_conflict" as const, paidAt: now }, fresh: true };
+      }
+      t.set(db.doc(`ledger/${reference}`), ledgerFor(current, current.amountKobo, new Date(current.ticket.endsAt), now));
     } else if (current.kind === "boost" && current.boost) {
       // Boosts are platform revenue: no ledger entry, just an active campaign.
       const pk = getBoostPackage(current.boost.packageId);
@@ -651,6 +681,8 @@ async function emitSaleWebhooks(p: PaymentRecord): Promise<void> {
 
 async function notifyPaid(p: PaymentRecord) {
   if (p.kind === "gift" && p.gift) return notifyGift(p);
+  if (p.kind === "giving" && p.giving) return notifyGiving(p);
+  if (p.kind === "ticket" && p.ticket) return notifyTickets(p);
   if (p.kind === "life_naira") {
     await notifyBell({ uid: p.uid, type: "plan", linkHref: "/life/play", message: `N$ ${p.amountKobo.toLocaleString("en-NG")} added to Notes Life.` });
     return;
@@ -920,4 +952,47 @@ async function notifyGift(p: PaymentRecord) {
       text: `${who} sent you a gift of ${formatNaira(p.amountKobo)}${about}.${p.gift.message ? `\n\n"${p.gift.message}"` : ""}\n\nYour share after commission (${formatNaira(net)}) is released after a 7-day dispute window, to your verified bank account.\nReference: ${p.reference}\n\n#NotesApp`,
     });
   }
+}
+
+// A gift to a community: the receipt to the giver (email and bell; it stays under My giving), and a bell for the community's owner.
+async function notifyGiving(p: PaymentRecord) {
+  const g = p.giving!;
+  const lines = [
+    `Receipt for your gift to ${g.communityName}`,
+    "",
+    `Fund: ${g.fund}`,
+    `Gift: ${formatNaira(g.giftKobo)}`,
+    ...(g.cardChargeKobo ? [`Card charge (Paystack): ${formatNaira(g.cardChargeKobo)}`] : []),
+    `Charge: ${formatNaira(g.bandKobo)}`,
+    `You paid: ${formatNaira(p.amountKobo)}${p.payWith === "wallet" ? " (from your wallet)" : ""}`,
+    `${g.communityName} receives: ${formatNaira(g.netKobo)}${g.covered ? " (you covered the charges)" : " (the charges came out of the gift)"}`,
+    ...(g.note ? [`Your note: ${g.note}`] : []),
+    ...(g.anonymous ? ["Given anonymously: the community's admins don't see your name."] : []),
+    `Date: ${new Date(p.paidAt ?? Date.now()).toLocaleString("en-NG", { timeZone: "Africa/Lagos", dateStyle: "medium", timeStyle: "short" })} (Lagos time)`,
+    `Receipt number: ${p.reference}`,
+  ];
+  await sendEmail({
+    to: p.email,
+    subject: `Receipt: your gift to ${g.communityName}`,
+    bell: { uid: p.uid, type: "community", linkHref: "/giving", message: `Thank you: ${formatNaira(g.giftKobo)} to ${g.communityName} (${g.fund}). Your receipt is under My giving.` },
+    text: `${lines.join("\n")}\n\nAll your receipts are at ${SITE_URL}/giving.\n\n#NotesApp`,
+    action: { label: "My giving", url: `${SITE_URL}/giving` },
+  });
+  await notifyBell({ uid: p.publisherUid, type: "community", linkHref: `/c/${g.cid}?tab=admin`, message: `${g.anonymous ? "Someone" : g.giverName} gave ${formatNaira(g.giftKobo)} to ${g.fund} in ${g.communityName}.` }).catch(() => {});
+}
+
+// Event tickets: the buyer's email lists the codes (the QR codes are on the Tickets page); the host hears about the sale.
+async function notifyTickets(p: PaymentRecord) {
+  const tk = p.ticket!;
+  const codes = (await getAdminDb().collection("tickets").where("reference", "==", p.reference).get()).docs.map((d) => String(d.data().code));
+  const shown = codes.map((c) => `${c.slice(0, 5)}-${c.slice(5)}`);
+  const when = new Date(tk.startsAt).toLocaleString("en-NG", { timeZone: "Africa/Lagos", dateStyle: "full", timeStyle: "short" });
+  await sendEmail({
+    to: p.email,
+    subject: `Your tickets: ${tk.eventTitle}`,
+    bell: { uid: p.uid, type: "event", linkHref: "/tickets", message: `Your ${tk.quantity} × ${tk.typeName} ${tk.quantity === 1 ? "ticket" : "tickets"} for ${tk.eventTitle} ${tk.quantity === 1 ? "is" : "are"} ready.` },
+    text: `Thanks! ${tk.quantity} × ${tk.typeName} for ${tk.eventTitle}, ${when} (Lagos time). Paid: ${formatNaira(p.amountKobo)}.\n\nShow the QR code on each ticket at the door (open ${SITE_URL}/tickets on your phone), or read out the code:\n${shown.join("\n")}\n\nEach ticket lets one person in, once.\nReference: ${p.reference}\n\n#NotesApp`,
+    action: { label: "My tickets", url: `${SITE_URL}/tickets` },
+  });
+  await notifyBell({ uid: p.publisherUid, type: "event", linkHref: `/events/${tk.eventId}/checkin`, message: `Sold: ${tk.quantity} × ${tk.typeName} for ${tk.eventTitle} (${formatNaira(p.amountKobo)}). Paid out after the event, less commission.` }).catch(() => {});
 }

@@ -50,7 +50,7 @@ const LIVE = [
   { href: "/store-selling", title: "Parcel tracking for riders & drivers", copy: "A chain-of-custody log for every parcel: record each holder — bike rider, bus driver, park agent — and they update the location or hand on to the next person from a short link, with no login." },
   { href: "/logistics", title: "Shipments & the logistics network", copy: "Logistics businesses book shipments, hand them rider to rider and give customers a Track page on their own site. Stores pick a delivery partner from the logistics network, and buyers pay its price at checkout. Business and Enterprise, or the logistics add-on for Free Basic and Pro." },
   { href: "/help/inventory", title: "Inventory", copy: "Stock per item and option, SKUs, cost prices, low-stock alerts, the history of every change and spreadsheet import and export. Included on Business and Enterprise; an add-on on Free Basic and Pro." },
-  { href: "/community", title: "Community & Events", copy: "For churches, NGOs, schools and clubs: Clubhouse-style audio rooms with a live chat, a General announcement channel, public and members-only Spaces, private Circles on Business, admin tools with View as, and you choose what non-members see. Events for every account, with reminders and Join live links." },
+  { href: "/community", title: "Community & Events", copy: "For churches, NGOs, schools and clubs: Clubhouse-style audio rooms with a live chat, a General announcement channel, public and members-only Spaces, private Circles on Business, admin tools with View as, and you choose what non-members see. Giving with named funds and receipts, charged like a bank transfer with no commission. Events for every account, with reminders, Join live links and paid tickets with QR check-in at the door." },
   { href: "/organisations", title: "Team seats & your own site", copy: "Business includes 4 seats (owner plus three team members) and your own domain with a semi white-label site; Enterprise has as many as you need, an API and the lowest commissions." },
   { href: "/merchstore", title: "Merch store", copy: "Official #NotesApp merch with your choice of logo — pre-order in batches, delivered in Nigeria." },
   { href: "/trending", title: "Trending", copy: "The most visited notes, store items, courses and publishers on #NotesApp." },
@@ -194,8 +194,8 @@ export default async function AboutPage() {
           <p className="eyebrow">Where we&apos;re going</p>
           <h2 className="mt-2 font-display text-3xl leading-tight">Help us build it faster</h2>
           <p className="mt-4 text-lg text-slate">
-            Next on the <Link href="/roadmap" className="text-crimson underline underline-offset-2">roadmap</Link>: giving, tickets
-            and our own live streaming for communities, with bigger meetings; iOS and Android apps, with NotesApp Inc, our US company; payments across Africa (Kenya first, then Ghana); WhatsApp reminders; Send-Na, our email, WhatsApp and SMS service priced in Naira; and the Team hub
+            Next on the <Link href="/roadmap" className="text-crimson underline underline-offset-2">roadmap</Link>: our own
+            live streaming for communities, with bigger meetings; iOS and Android apps, with NotesApp Inc, our US company; payments across Africa (Kenya first, then Ghana); WhatsApp reminders; Send-Na, our email, WhatsApp and SMS service priced in Naira; and the Team hub
             and finance tools for Business and Enterprise. We&apos;ve built lean and in the open, and we&apos;re now looking for
             investors, accelerators and partners who want to build Africa&apos;s home for creators and the people they serve.
           </p>
@@ -208,7 +208,7 @@ export default async function AboutPage() {
         <FeatureMosaic className="mt-5" items={LIVE} />
         <p className="mt-4 text-sm text-slate">
           New: Day, Night or Auto for the whole app, our African pattern behind every chat, and emoji packs with Afro culture drawings and flags.
-          Still to come: giving, tickets and live streaming for <Link href="/community" className="text-crimson underline underline-offset-2">communities</Link>, quizzes and the Enterprise course packages, WhatsApp reminders, Send-Na (email, WhatsApp and SMS for builders, priced in Naira), iOS and Android apps, sharing
+          New too: giving and paid event tickets with QR check-in for communities. Still to come: live streaming for <Link href="/community" className="text-crimson underline underline-offset-2">communities</Link>, quizzes and the Enterprise course packages, WhatsApp reminders, Send-Na (email, WhatsApp and SMS for builders, priced in Naira), iOS and Android apps, sharing
           to more social networks (LinkedIn and X are live), and Google and Meta ads
           alongside our own. The Team hub, company finance tools, an investor data room and advertising on LinkedIn
           are being tested by our own team and will be paid add-ons for Business and Enterprise once that testing is done — see the{" "}

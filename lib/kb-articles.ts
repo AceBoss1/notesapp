@@ -20,6 +20,7 @@ import { academyFaq } from "./academy-faq";
 const CERTIFICATE_LATE_TEXT = () => { const l = currentPricing().certificateLate; return { grace: l.graceDays, weekly: `${Math.round(l.weeklyRate * 100)}%`, cap: `${Math.round(l.capRate * 100)}%` }; };
 import { VIDEO_MAX_SECONDS } from "./video-rules";
 import { COMMENT_MAX, COMMUNITY_FREE_MEMBERS, POST_MAX, SPACES_MAX } from "./community";
+import { TICKETS_PER_ORDER_MAX } from "./tickets";
 import { GROUP_MEMBERS_MAX } from "./messages-rules";
 import { GROUP_CALL_MAX } from "./group-calls";
 import { ROOM_CHAT_MAX, ROOM_LISTENERS_MAX_P2P, ROOM_SPEAKERS_MAX } from "./rooms";
@@ -609,13 +610,37 @@ It costs the same on every plan: ${money(GOLD_PRICING.personal.monthlyKobo)} a m
 
 **View as:** admins can preview the community as a non-member, a member or a moderator (the owner, as an admin too) before changing anything. Nothing you do while previewing changes your role.
 
+**Giving and tickets:** take offerings, tithes and donations with [Giving](/help/giving), and sell [paid event tickets](/help/event-tickets) with QR check-in.
+
 **More on each part:** [General](/help/community-general), [Spaces](/help/community-spaces), [Circles](/help/community-circles) and [Audio rooms](/help/community-audio-rooms), each with its own page on [Community](/community).`),
     A("events", "Events", "Teams and organisations", `
 [Events](/events) are for every account: services, meetings, launches, classes and outreaches. Add one on the Events page (for yourself) or on your community's Events tab (for the community, open to everyone or members only).
 
 An event has a start and end (Lagos time), where it is, and or a **Join live** link (YouTube Live, Facebook Live, Zoom, Google Meet or any https link). It can repeat **every week** or **every month**, until a date if you like.
 
-People tap **Going** or **Interested** and get a reminder **24 hours and 1 hour before** (a notification, a phone notification and an email), and can **Add to calendar**. Public events are listed under Upcoming, by state and city. If you change or cancel an event, everyone going or interested is told.`),
+People tap **Going** or **Interested** and get a reminder **24 hours and 1 hour before** (a notification, a phone notification and an email), and can **Add to calendar**. Public events are listed under Upcoming, by state and city. If you change or cancel an event, everyone going or interested is told.
+
+**Paid tickets:** on your event's page, under **Tickets**, add ticket types (Regular, VIP …), each with a price (from ₦100) and how many. With none, the event stays a free RSVP. Paid tickets need your bank account under Rates & payouts. More in [Paid event tickets](/help/event-tickets).`),
+    A("event-tickets", "Paid event tickets and check-in", "Teams and organisations", `
+**For organisers:** whoever can edit an event (its host, or a community's admins for the community's events) adds **ticket types** on the event's page: a name, a price in naira and how many. A type that has sold can't be removed or set below what's sold; set its number to what's sold to stop selling it. You're paid after the event ends (and the 24-hour window for problems), to your bank account under Rates & payouts, less your plan's usual commission, the same as for sessions.
+
+**For buyers:** choose the type and how many (up to ${TICKETS_PER_ORDER_MAX} at a time) and pay by card or bank through Paystack. Each ticket gets its own code and **QR code**, under [My tickets](/tickets), on the event's page, and in your confirmation email. Each lets one person in, once. When a type is sold out, it says so before you pay.
+
+**Check-in at the door:** the organiser taps **Check-in** on the event (or opens /events/<event>/checkin) and types a code, or taps **Scan QR codes** where the browser can read them (Chrome on Android, for example). Pointing any phone camera at a ticket's QR also opens the check-in page and checks it. The page answers **Valid — Ada Obi, Regular**, **Already checked in at 18:05**, **Not a ticket for this event**, or **Not valid: refunded**, and counts who is in.
+
+**Refunds:** a refunded ticket stops working straight away and goes back on sale.`),
+    A("giving", "Giving to a community", "Teams and organisations", `
+Churches, NGOs, schools and clubs can take offerings, tithes and donations in their [community](/help/community).
+
+**For admins:** open your community's **Admin** tab, find **Giving**, tick **Take gifts** and name your funds (Tithe, Offering, Building fund; "Donation" if you name none). Gifts are paid to the bank account of the community's owner under Rates & payouts, so add it first. Below the settings you see every gift (an anonymous giver's name hidden), and the totals per fund. Card details never reach us or you.
+
+**For givers:** tap **Give** on the community (members, and anyone signed in when the community is listed). Choose the amount (from ₦100), the fund, add a note if you like, and choose whether to give anonymously and whether to **cover the charges**. You see the charges and the total before you pay. Every gift gets a receipt by email, and all your receipts are under [My giving](/giving).
+
+**Charges, like a bank transfer:** ₦10 on gifts up to ₦5,000, ₦25 up to ₦50,000, and ₦50 above. By card or bank, Paystack's own charge is added at cost and shown as the **card charge** (1.5% plus ₦100, the ₦100 waived under ₦2,500, at most ₦2,000). From the NotesApp Credit wallet there's no card charge, so it costs less. There's no commission on top. If you cover the charges, you pay the gift plus the charges and the community gets the whole gift; otherwise the charges come out of the gift.
+
+**Payouts:** each gift is held for a day, then paid out with that day's other gifts on the next payout run, only to the owner's verified bank account.
+
+**Before verification:** until a community, or the organisation that runs it, is [verified](/organisations), each gift is capped at ₦20,000.`),
     A("community-general", "General: your community's announcement channel", "Teams and organisations", `
 **General** is the announcement channel of a [community](/help/community). Every member is in it from the day they join; there's nothing to subscribe to. See it with pictures on [the General page](/community/general).
 
@@ -907,7 +932,7 @@ You can also ask the team and other members on our Discord community, **na-notes
     A("about-and-status", "About #NotesApp, status and updates", "Company", `
 #NotesApp is run by ${COMPANY_INFO.legalName} (RC ${COMPANY_INFO.rcNumber}), a private company limited by shares registered in Nigeria. Read [About](/about), see live service health on [Status](/status), what changed on the [Changelog](/changelog) (each release is also posted to #announcements on our [Discord](${SITE.discord})) and what is coming on the [roadmap](/roadmap). Our domain partner is Whogohost (go54), and we connect to services such as Paystack, Paylony, Cloudflare, Firebase, Vercel, Resend and Dojah.`),
     A("roadmap-whats-coming", "What is coming next", "Company", `
-Not live yet, with no promised dates: quizzes on courses, and the Enterprise course packages; meetings bigger than 6 people; giving and paid event tickets in communities; our own live streaming; publishing to Facebook, Instagram and TikTok (LinkedIn and X are live); AI drafting from your past notes (your AI assistant can already read #NotesApp through our MCP server); domain sales and DNS management inside #NotesApp; ${WALLET_LIVE ? "paid calls in Notes Life (the NotesApp Credit wallet itself is live)" : "NotesApp Credit and Bonus Credits"}; Paylony for real-money payments and Tap-to-Pay (Paylony CardTap already pays at every counter in Notes Life, with game money); WhatsApp reminders (with SMS when WhatsApp doesn't arrive); Send-Na, our email, WhatsApp and SMS service for developers and businesses, priced in Naira; fuller identity checks; and iOS and Android apps (being prepared, with NotesApp Inc, our US company); payments across Africa with Flutterwave (Kenya first, then Ghana) and bank transfers with Paylony. Details and the latest are on the [roadmap](/roadmap).
+Not live yet, with no promised dates: quizzes on courses, and the Enterprise course packages; meetings bigger than 6 people; our own live streaming; publishing to Facebook, Instagram and TikTok (LinkedIn and X are live); AI drafting from your past notes (your AI assistant can already read #NotesApp through our MCP server); domain sales and DNS management inside #NotesApp; ${WALLET_LIVE ? "paid calls in Notes Life (the NotesApp Credit wallet itself is live)" : "NotesApp Credit and Bonus Credits"}; Paylony for real-money payments and Tap-to-Pay (Paylony CardTap already pays at every counter in Notes Life, with game money); WhatsApp reminders (with SMS when WhatsApp doesn't arrive); Send-Na, our email, WhatsApp and SMS service for developers and businesses, priced in Naira; fuller identity checks; and iOS and Android apps (being prepared, with NotesApp Inc, our US company); payments across Africa with Flutterwave (Kenya first, then Ghana) and bank transfers with Paylony. Details and the latest are on the [roadmap](/roadmap).
 
 ${ADD_ONS_LINE}`),
     A("million-naira-challenge", "The #1MillionNairaNotesAppChallenge", "Company", `

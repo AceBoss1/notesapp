@@ -24,7 +24,7 @@ export const COMMUNITY_PARTS = [
 
 export const COMMUNITY_PHASES = [
   { n: "1", title: "Community, Spaces and Events", body: "Members and roles, public and members-only Spaces, the General announcement channel, private Circles of up to 50 people on Business, Events for every account, and Join live links to YouTube Live, Facebook Live, Zoom or Google Meet." },
-  { n: "2", title: "Bigger rooms, giving and tickets", body: "Circles with no member limit, giving (offerings, tithes and campaigns with a goal), and paid event tickets with check-in at the door." },
+  { n: "2", title: "Bigger rooms, giving and tickets", body: "Live: giving (offerings, tithes and named funds, with receipts) and paid event tickets with QR check-in at the door. Next: Circles with no member limit." },
   { n: "3", title: "Our own live streaming, then group meetings", body: "Go live from your phone or studio and stream to your members on #NotesApp, with the replay kept in your members-only Space (a paid add-on). Then group video meetings." },
 ] as const;
 
@@ -39,11 +39,12 @@ export const roleName = (r: string) => ({ member: "Member", moderator: "Moderato
 // What each role may do (Facebook-group admin tools, made simpler): moderators keep order, admins run the community, the owner owns it.
 export type Action =
   | "post_general" | "post_space" | "comment" | "pin" | "remove_post" | "approve" | "remove_member" | "ban" | "set_role" | "settings"
-  | "events" | "circles" | "insights" | "invite" | "view_as" | "rooms";
+  | "events" | "circles" | "insights" | "invite" | "view_as" | "rooms" | "giving";
 const NEEDS: Record<Action, Role> = {
   post_general: "admin", post_space: "member", comment: "member", pin: "moderator", remove_post: "moderator", approve: "moderator",
   remove_member: "moderator", ban: "moderator", set_role: "admin", settings: "admin", events: "admin", circles: "admin", insights: "admin",
   invite: "member", view_as: "admin", rooms: "moderator", // audio rooms (lib/rooms.ts): moderators and up host them
+  giving: "admin", // switching giving on, naming funds, and seeing the gifts (lib/giving-server.ts)
 };
 export const can = (role: Role | null | undefined, action: Action) => atLeast(role, NEEDS[action]);
 // Acting on another member: only on someone below you (an admin can't remove another admin; only the owner can), never on the owner.
@@ -74,6 +75,7 @@ export type Community = {
   id: string; name: string; ownerUid: string; tagline: string; about: string; contact: string; avatar: string; cover: string;
   joinMode: JoinMode; questions: string[]; publicView: PublicView; slowModeSec: number; spaces: Space[];
   inviteCode: string; memberCount: number; verified: boolean; createdAt: string; updatedAt?: string;
+  giving?: { enabled: boolean; funds: string[] }; // lib/giving.ts: admins switch it on and name the funds
 };
 
 const t = (v: unknown, max: number) => String(v ?? "").replace(/\s+/g, " ").trim().slice(0, max);
