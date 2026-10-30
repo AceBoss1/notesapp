@@ -9,6 +9,9 @@ HANDOVER.
 
 | Item | Branch | What | Needs | Status |
 |---|---|---|---|---|
+| Kenya and Ghana wait (v0.104.1) | `push/kenya-later` | Roadmap drops the December pilot and January 2027 dates; PAYMENTS.md §6 and HANDOVER 73 record the decision | Nothing to deploy | Pushed, PR when asked |
+| Quizzes on courses (v0.105.0) | `push/quizzes` | In progress | — | Building |
+| Community giving + paid event tickets (v0.106.0) | `push/giving-tickets` | In progress | — | Building |
 | Coupons + Nana's pick (v0.104.0) | `push/coupon-cards` (on top of `push/coupons`) | Coupons in shops (show + Save), My coupons, coupon cards with share image, affiliate codes (TOLU-AMAKA10), Nana applies the best coupon at every checkout, store A's coupon refused in store B ("Input a coupon from this store"); tests in CI; help, changelog, roadmap, home, About, README, HANDOVER 72 | `firebase deploy --only firestore` (savedCoupons + couponReminders rules); merge after #224 | PR #226 |
 | Codes on plans + referral codes, step 3 (v0.103.0) | `push/coupons` | #NotesApp codes on Pro/Business take the first month or year off (plan then starts on the card at period end, never refunded); a member's username works as a referral code at plan checkout; "Have a discount code?" on the pricing table; code shown on Referrals; tests; help, changelog, roadmap, home, About, README, HANDOVER 70 | Same Paystack test (subscription with a start date) | Merged (#224) |
 | Funding applications on the team hub | `push/funding-tasks` | `FUNDING_APPS_BACKLOG`: fill numbers (2 Nov), startup.tech (6 Nov), pitch.tech (18 Nov, closes 20 Nov), Emergent Ventures (27 Nov); No Excuses Fund stays `fund-submit` (8 Dec, closes 15 Dec); HANDOVER 69 | Seeds once when a super admin opens the hub | Merged (#225) |
