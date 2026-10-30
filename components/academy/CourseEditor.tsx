@@ -16,6 +16,7 @@ import type { AccountTier } from "@/lib/users";
 import {
   COURSE_LANGUAGES, COURSE_LEVELS, COURSE_PRICE_MIN_KOBO, COURSE_SUMMARY_MAX, COURSE_TITLE_MAX, LESSON_MINUTES_MAX, LESSON_TITLE_MAX, MAX_COURSE_TOPICS, MAX_CO_TUTORS,
   MAX_LESSONS, MAX_MODULES, MAX_OUTCOMES, MAX_REQUIREMENTS, MIN_LEAD_TUTOR_PERCENT, PDF_MAX_BYTES,
+  QUIZ_EXPLAIN_MAX, QUIZ_MAX_OPTIONS, QUIZ_MAX_QUESTIONS, QUIZ_MIN_OPTIONS, QUIZ_OPTION_MAX, QUIZ_PASS_DEFAULT, QUIZ_PROMPT_MAX,
   courseHref, durationLabel, groupByModule, includesOf, isPaid, lessonKindLabel, nairaLabel, plural, publishProblems, youtubeId, youtubeThumb,
   type Course, type CourseFormat, type CourseModule, type Lesson, type LessonKind, type TutorInvite,
 } from "@/lib/courses";
@@ -255,7 +256,7 @@ export default function CourseEditor({ courseId }: { courseId: string }) {
           <span className="text-xs text-slate">{modules.length ? `${plural(modules.length, "module")} · ` : ""}{plural(lessons.length, "lesson")}{minutes ? ` · ${durationLabel(minutes)}` : ""}</span>
         </div>
         <Modules modules={modules} busy={busy} onSave={(m) => run("modules", async () => { const c = await patch({ modules: m }); flash("Modules saved."); void load(); return c; })} />
-        {lessons.length === 0 && !form && <p className="mt-3 text-sm text-slate">No lessons yet. Add your first: a video from your YouTube, or a text lesson{paid ? ", or upload a video or PDF" : ""}.</p>}
+        {lessons.length === 0 && !form && <p className="mt-3 text-sm text-slate">No lessons yet. Add your first: a video from your YouTube, a text lesson or a quiz{paid ? ", or upload a video or PDF" : ""}.</p>}
         {groupByModule(lessons, modules).map((g) => (
           <div key={g.module?.id ?? "loose"} className="mt-4">
             {g.module && <p className="mb-1.5 font-mono text-[10px] uppercase tracking-widest text-slate">Module {modules.findIndex((m) => m.id === g.module!.id) + 1} · {g.module.title}</p>}
@@ -267,10 +268,10 @@ export default function CourseEditor({ courseId }: { courseId: string }) {
                     {l.kind === "youtube" && l.youtubeId
                       // eslint-disable-next-line @next/next/no-img-element
                       ? <img src={youtubeThumb(l.youtubeId)} alt="" className="aspect-video w-20 shrink-0 rounded object-cover" />
-                      : <span aria-hidden className={`flex aspect-video w-20 shrink-0 items-center justify-center rounded font-mono text-[10px] uppercase tracking-eyebrow ${l.kind === "video" ? "bg-ink/90 text-white" : l.kind === "pdf" ? "bg-amber-50 text-amber-800" : "bg-crimson/[0.07] text-crimson"}`}>{l.kind === "video" ? "▶ Video" : l.kind === "pdf" ? "PDF" : "Text"}</span>}
+                      : <span aria-hidden className={`flex aspect-video w-20 shrink-0 items-center justify-center rounded font-mono text-[10px] uppercase tracking-eyebrow ${l.kind === "video" ? "bg-ink/90 text-white" : l.kind === "pdf" ? "bg-amber-50 text-amber-800" : l.kind === "quiz" ? "bg-emerald-50 text-emerald-800" : "bg-crimson/[0.07] text-crimson"}`}>{l.kind === "video" ? "▶ Video" : l.kind === "pdf" ? "PDF" : l.kind === "quiz" ? "? Quiz" : "Text"}</span>}
                     <span className="min-w-0">
                       <span className="block truncate font-ui text-sm font-semibold text-ink">{l.title}</span>
-                      <span className="block text-xs text-slate">{lessonKindLabel(l.kind)}{l.kind === "video" ? " · uploaded" : ""}{l.minutes ? ` · ${durationLabel(l.minutes)}` : ""}{paid && l.preview ? " · " : ""}{paid && l.preview && <b className="text-emerald-700">Free preview</b>}</span>
+                      <span className="block text-xs text-slate">{lessonKindLabel(l.kind)}{l.kind === "video" ? " · uploaded" : ""}{l.kind === "quiz" && l.quiz ? ` · ${plural(l.quiz.questions.length, "question")} · pass ${l.quiz.passPercent}%` : ""}{l.minutes ? ` · ${durationLabel(l.minutes)}` : ""}{paid && l.preview ? " · " : ""}{paid && l.preview && <b className="text-emerald-700">Free preview</b>}</span>
                     </span>
                   </div>
                   <div className="mt-2 flex gap-1.5 pl-9 sm:mt-0 sm:pl-0">
@@ -290,6 +291,7 @@ export default function CourseEditor({ courseId }: { courseId: string }) {
           <div className="mt-4 grid gap-2 sm:grid-cols-2">
             <button onClick={() => setForm({ kind: "youtube" })} className="btn-primary !py-2.5">+ Add a YouTube video</button>
             <button onClick={() => setForm({ kind: "text" })} className="btn-ghost !py-2.5">+ Add a text lesson</button>
+            <button onClick={() => setForm({ kind: "quiz" })} className="btn-ghost !py-2.5">+ Add a quiz</button>
             {paid && v.plan.canUploadVideo && <button onClick={() => setForm({ kind: "video" })} className="btn-ghost !py-2.5">+ Upload a video</button>}
             {paid && v.plan.canSell && <button onClick={() => setForm({ kind: "pdf" })} className="btn-ghost !py-2.5">+ Upload a PDF</button>}
           </div>
@@ -461,7 +463,8 @@ function Modules({ modules, busy, onSave }: { modules: CourseModule[]; busy: str
 
 // Adding or editing one lesson. YouTube: paste the link and see its picture. Text: the journal editor (Markdown, with a draft kept in
 // this browser until it's saved). Upload (paid courses): a video goes straight to Cloudflare Stream, a PDF to the private bucket, with
-// progress; the lesson is saved once it has arrived.
+// progress; the lesson is saved once it has arrived. Quiz: multiple-choice questions, each with its right answer and an optional
+// explanation, and the pass mark; learners never see the answers until they submit, and the lesson counts as done once they pass.
 function LessonForm({ courseId, kind, lesson, modules, paid, onSaved, onCancel }: {
   courseId: string; kind: LessonKind; lesson?: Lesson; modules: CourseModule[]; paid: boolean; onSaved: (l: Lesson) => void; onCancel: () => void;
 }) {
@@ -471,6 +474,8 @@ function LessonForm({ courseId, kind, lesson, modules, paid, onSaved, onCancel }
   const [body, setBody] = useState(lesson?.body ?? "");
   const [moduleId, setModuleId] = useState(lesson?.moduleId ?? "");
   const [preview, setPreview] = useState(!!lesson?.preview);
+  const [passPercent, setPassPercent] = useState(String(lesson?.quiz?.passPercent ?? QUIZ_PASS_DEFAULT));
+  const [questions, setQuestions] = useState<QuizDraft[]>(() => lesson?.quiz?.questions.map((q) => ({ id: q.id, prompt: q.prompt, options: [...q.options], answer: q.answer ?? null, explain: q.explain ?? "" })) ?? [blankQuestion()]);
   const [file, setFile] = useState<File | null>(null);
   const [pct, setPct] = useState<number | null>(null);
   const [busy, setBusy] = useState(false);
@@ -497,6 +502,10 @@ function LessonForm({ courseId, kind, lesson, modules, paid, onSaved, onCancel }
     if (kind === "youtube" && !vid) return setError("Paste a link to a YouTube video first.");
     if (upload && !file && !lesson) return setError(kind === "video" ? "Choose the video to upload." : "Choose the PDF to upload.");
     if (kind === "pdf" && file && file.size > PDF_MAX_BYTES) return setError(`A PDF can be up to ${PDF_MAX_BYTES / 1024 / 1024} MB.`);
+    if (kind === "quiz") {
+      const n = questions.findIndex((q) => !q.prompt.trim() || q.options.some((o) => !o.trim()) || q.answer === null);
+      if (n >= 0) return setError(`Question ${n + 1}: write the question, fill in every answer and pick the right one.`);
+    }
     setBusy(true);
     setError("");
     try {
@@ -507,7 +516,7 @@ function LessonForm({ courseId, kind, lesson, modules, paid, onSaved, onCancel }
         await send(s.uploadUrl, file, kind === "video" ? "POST" : "PUT");
         up = kind === "video" ? { streamUid: s.streamUid } : { fileKey: s.fileKey, fileName: file.name };
       } else if (upload && lesson) up = kind === "video" ? { streamUid: lesson.streamUid } : { fileKey: lesson.fileKey, fileName: lesson.fileName };
-      const payload = { kind, title, minutes: minutes.trim() || null, preview, moduleId: moduleId || undefined, ...(kind === "youtube" ? { url } : kind === "text" ? { body } : up) };
+      const payload = { kind, title, minutes: minutes.trim() || null, preview, moduleId: moduleId || undefined, ...(kind === "youtube" ? { url } : kind === "text" ? { body } : kind === "quiz" ? { quiz: { passPercent: passPercent.trim() || QUIZ_PASS_DEFAULT, questions } } : up) };
       const r = lesson
         ? await api<{ lesson: Lesson }>(`/api/academy/courses/${courseId}/lessons/${lesson.id}`, { method: "PATCH", body: payload })
         : await api<{ lesson: Lesson }>(`/api/academy/courses/${courseId}/lessons`, { body: payload });
@@ -520,7 +529,7 @@ function LessonForm({ courseId, kind, lesson, modules, paid, onSaved, onCancel }
     }
   }
 
-  const heading = lesson ? "Edit lesson" : kind === "youtube" ? "New YouTube video lesson" : kind === "video" ? "Upload a video" : kind === "pdf" ? "Upload a PDF" : "New text lesson";
+  const heading = lesson ? "Edit lesson" : kind === "youtube" ? "New YouTube video lesson" : kind === "video" ? "Upload a video" : kind === "pdf" ? "Upload a PDF" : kind === "quiz" ? "New quiz" : "New text lesson";
   return (
     <form onSubmit={save} className="mt-4 rounded-xl border border-crimson/30 bg-paper p-4 sm:p-5">
       <p className="font-ui text-base font-bold text-ink">{heading}</p>
@@ -547,7 +556,7 @@ function LessonForm({ courseId, kind, lesson, modules, paid, onSaved, onCancel }
         </label>
       )}
       <label className="mt-3 block"><span className={label}>Lesson title</span>
-        <input value={title} onChange={(e) => setTitle(e.target.value)} maxLength={LESSON_TITLE_MAX} className={input} placeholder={kind === "text" ? "e.g. Reading a balance sheet" : "e.g. Formulas you'll use every day"} />
+        <input value={title} onChange={(e) => setTitle(e.target.value)} maxLength={LESSON_TITLE_MAX} className={input} placeholder={kind === "text" ? "e.g. Reading a balance sheet" : kind === "quiz" ? "e.g. Check what you've learnt" : "e.g. Formulas you'll use every day"} />
       </label>
       <div className="mt-3 grid gap-3 sm:grid-cols-2">
         <label className="block"><span className={label}>Minutes <span className="font-normal text-slate">(optional{kind === "video" ? ": we read it from the video" : ""})</span></span>
@@ -566,6 +575,7 @@ function LessonForm({ courseId, kind, lesson, modules, paid, onSaved, onCancel }
           <div className="mt-1"><RichTextEditor value={body} onChange={setBody} draftKey={draftKey} /></div>
         </div>
       )}
+      {kind === "quiz" && <QuizBuilder questions={questions} setQuestions={setQuestions} passPercent={passPercent} setPassPercent={setPassPercent} />}
       {error && <p className="mt-3 text-sm text-crimson">{error}</p>}
       <div className="mt-4 flex flex-col gap-2 sm:flex-row">
         <button type="submit" disabled={busy} className="btn-primary !py-2.5 disabled:opacity-50">{busy ? (pct !== null && pct < 100 ? "Uploading…" : "Saving…") : lesson ? "Save lesson" : upload ? "Upload and add" : "Add lesson"}</button>
@@ -573,5 +583,53 @@ function LessonForm({ courseId, kind, lesson, modules, paid, onSaved, onCancel }
       </div>
       <p className="mt-3 text-xs text-slate">Minutes are up to {LESSON_MINUTES_MAX}; they add up to the course&apos;s length.</p>
     </form>
+  );
+}
+
+// ---- the quiz builder ----
+type QuizDraft = { id?: string; prompt: string; options: string[]; answer: number | null; explain: string };
+const blankQuestion = (): QuizDraft => ({ prompt: "", options: ["", ""], answer: null, explain: "" });
+function QuizBuilder({ questions, setQuestions, passPercent, setPassPercent }: {
+  questions: QuizDraft[]; setQuestions: React.Dispatch<React.SetStateAction<QuizDraft[]>>; passPercent: string; setPassPercent: (v: string) => void;
+}) {
+  const edit = (i: number, fn: (q: QuizDraft) => QuizDraft) => setQuestions((qs) => qs.map((q, j) => (j === i ? fn(q) : q)));
+  return (
+    <div className="mt-4">
+      <label className="block max-w-[14rem]"><span className={label}>Pass mark (%)</span>
+        <input value={passPercent} onChange={(e) => setPassPercent(e.target.value.replace(/[^0-9]/g, "").slice(0, 3))} inputMode="numeric" placeholder={String(QUIZ_PASS_DEFAULT)} className={input} />
+      </label>
+      <p className="mt-1 text-xs text-slate">Learners see the questions, never the answers, until they submit. The lesson counts as done once they score at least this; they can try again as often as they like.</p>
+      <ol className="mt-3 space-y-3">
+        {questions.map((q, i) => (
+          <li key={i} className="rounded-xl border border-rule bg-white p-3 sm:p-4">
+            <div className="flex items-center justify-between gap-2">
+              <p className="font-ui text-sm font-bold text-ink">Question {i + 1}</p>
+              {questions.length > 1 && <button type="button" onClick={() => setQuestions((qs) => qs.filter((_, j) => j !== i))} className="text-xs text-crimson underline">Remove question</button>}
+            </div>
+            <textarea value={q.prompt} onChange={(e) => edit(i, (x) => ({ ...x, prompt: e.target.value }))} maxLength={QUIZ_PROMPT_MAX} rows={2} placeholder="e.g. Which function adds up a range of cells?" className={input} />
+            <p className="mt-2 text-xs text-slate">Answers: tick the right one.</p>
+            <ul className="mt-1 space-y-1.5">
+              {q.options.map((o, k) => (
+                <li key={k} className="flex items-center gap-2">
+                  <input type="radio" name={`quiz-answer-${i}`} checked={q.answer === k} onChange={() => edit(i, (x) => ({ ...x, answer: k }))} aria-label={`Answer ${k + 1} is right`} className="h-4 w-4 shrink-0 accent-crimson" />
+                  <input value={o} onChange={(e) => edit(i, (x) => ({ ...x, options: x.options.map((y, m) => (m === k ? e.target.value : y)) }))} maxLength={QUIZ_OPTION_MAX} placeholder={`Answer ${k + 1}`} className={`${input} !mt-0`} />
+                  {q.options.length > QUIZ_MIN_OPTIONS && (
+                    <button type="button" aria-label={`Remove answer ${k + 1}`} onClick={() => edit(i, (x) => ({ ...x, options: x.options.filter((_, m) => m !== k), answer: x.answer === null || x.answer === k ? null : x.answer > k ? x.answer - 1 : x.answer }))}
+                      className="h-9 w-9 shrink-0 rounded-full border border-rule text-slate hover:border-crimson hover:text-crimson">×</button>
+                  )}
+                </li>
+              ))}
+            </ul>
+            {q.options.length < QUIZ_MAX_OPTIONS && <button type="button" onClick={() => edit(i, (x) => ({ ...x, options: [...x.options, ""] }))} className="mt-2 text-xs font-semibold text-crimson">+ Add an answer</button>}
+            <label className="mt-2 block"><span className="text-xs text-slate">Explanation (optional): shown after they submit</span>
+              <textarea value={q.explain} onChange={(e) => edit(i, (x) => ({ ...x, explain: e.target.value }))} maxLength={QUIZ_EXPLAIN_MAX} rows={2} placeholder="e.g. SUM adds every number in the range; COUNT only counts them." className={input} />
+            </label>
+          </li>
+        ))}
+      </ol>
+      {questions.length < QUIZ_MAX_QUESTIONS
+        ? <button type="button" onClick={() => setQuestions((qs) => [...qs, blankQuestion()])} className="btn-ghost mt-3 !py-2 text-sm">+ Add a question</button>
+        : <p className="mt-3 text-xs text-slate">A quiz can have up to {QUIZ_MAX_QUESTIONS} questions.</p>}
+    </div>
   );
 }
