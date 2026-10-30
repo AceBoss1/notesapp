@@ -81,9 +81,12 @@ export async function fulfilCourseInTransaction(t: Transaction, db: Firestore, p
   shares.forEach((s, i) => {
     const commissionKobo = Math.round(grosses[i] * s.rate);
     const id = i === 0 ? p.reference : `${p.reference}_${s.uid}`;
+    // An affiliate's share (lib/referrals-server.ts) comes out of the lead tutor's part, who set it.
+    const affiliateKobo = i === 0 ? p.affiliate?.kobo ?? 0 : 0;
     const entry: LedgerEntry = {
       reference: id, kind: "course", publisherUid: s.uid, publisherUsername: s.username, payerUid: p.uid,
-      grossKobo: grosses[i], commissionKobo, netKobo: grosses[i] - commissionKobo, status: "held", releaseAfter, createdAt: now,
+      grossKobo: grosses[i], commissionKobo, netKobo: grosses[i] - commissionKobo - affiliateKobo, ...(affiliateKobo ? { affiliateKobo } : {}),
+      status: "held", releaseAfter, createdAt: now,
       ...(shares.length > 1 ? { paymentReference: p.reference, sharePercent: s.percent } : {}),
     };
     t.set(db.doc(`ledger/${id}`), entry);

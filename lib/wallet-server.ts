@@ -86,6 +86,18 @@ export async function creditTopup(t: Transaction, db: Firestore, p: PaymentRecor
   } satisfies WalletTx);
 }
 
+// Referral and affiliate earnings taken as NotesApp Credit (lib/referrals-server.ts withdraw): the earnings as credit, and the 10%
+// on top as Bonus Credits. Inside the caller's transaction, which has made no writes yet.
+export async function creditEarnings(t: Transaction, db: Firestore, uid: string, creditKobo: number, bonusKobo: number, id: string, now: Date): Promise<void> {
+  const ref = walletDoc(db, uid);
+  const w = walletOf((await t.get(ref)).data());
+  const lots = liveLots(w, now);
+  if (bonusKobo > 0) lots.push({ id, kobo: bonusKobo, expiresAt: new Date(now.getTime() + BONUS_DAYS * 86_400_000).toISOString(), source: "adjust" });
+  expiredLine(t, db, uid, w, now);
+  t.set(ref, { creditKobo: w.creditKobo + creditKobo, bonusLots: lots, updatedAt: now.toISOString() });
+  t.set(db.doc(`walletTx/${id}`), { uid, type: "topup", creditKobo, bonusKobo, label: "Referral earnings", reference: id, kind: "referral", at: now.toISOString() } satisfies WalletTx);
+}
+
 // A refund of a wallet payment (all of it when amountKobo is left out) goes back to the wallet, the bonus share as a new bonus lot.
 export async function refundToWallet(db: Firestore, reference: string, amountKobo?: number, label?: string, now = new Date()): Promise<number> {
   const payRef = db.doc(`payments/${reference}`);
