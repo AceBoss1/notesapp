@@ -108,6 +108,12 @@ export default function SignupFlow({ embedded = false, onSwitch, onStarted, youn
           console.warn("Organisation registration failed:", e);
         }
       }
+      // Whoever's referral link brought them (an httpOnly cookie the server reads). Non-fatal: nothing to claim is the usual case.
+      fetch("/api/referrals", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${await cred.user.getIdToken()}` },
+        body: JSON.stringify({ action: "claim" }),
+      }).catch(() => {});
       // Non-fatal: the banner offers a resend if this fails.
       sendEmailVerification(cred.user).catch((e) => console.warn("Verification email failed:", e));
       setNewUser(cred.user);

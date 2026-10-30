@@ -11,6 +11,17 @@ export type Release = {
 
 export const CHANGELOG: Release[] = [
   {
+    version: "v0.102.0",
+    bump: "minor",
+    date: "2026-10-30",
+    changes: [
+      { kind: "added", text: "Referrals (Account → Referrals): share your link, and a friend who joins with it gets their first month of a plan free (on a yearly plan, one month off). You earn 20% of what they pay for their plan for 12 months, from their first payment." },
+      { kind: "added", text: "The affiliate marketplace (/affiliates): browse shop items, downloads and courses whose publishers pay a share to members who promote them, copy your link for any of them and share it with your audience. You earn that share of every sale through your link." },
+      { kind: "added", text: "Publishers: set an affiliate share (up to 50%) on any shop item, download or paid course under Account → Referrals, and it goes on the marketplace. The share comes out of your part of the sale, worked out on what the buyer actually paid." },
+      { kind: "added", text: "Take your earnings as cash to your bank account (from ₦2,000) or as NotesApp Credit with 10% more. Earnings wait 7 days (14 for delivered shop items) so payments can clear, and a refund takes back what it earned." },
+    ],
+  },
+  {
     version: "v0.101.1",
     bump: "patch",
     date: "2026-10-30",

@@ -23,6 +23,7 @@ import { SITE_URL } from "@/lib/host";
 import { grantPackInTransaction } from "./exam-prep-server";
 import { EXAMS, type ExamId } from "./exam-prep";
 import { readCodeForRedemption, writeRedemption, type PaymentDiscount } from "./discounts-server";
+import { alertIfJump, recordPlanEarning, startReferralSubscription, writeProductEarning, type PaymentAffiliate } from "./referrals-server";
 
 // Server-only. All money-state changes happen here, via the Admin SDK
 // (Firestore rules make payments/bookings/ledger/subscriptions
@@ -41,7 +42,11 @@ export type PaymentRecord = {
   booking?: { username: string; date: string; slot: string; minutes: number };
   subscription?: { username: string; planCode: string };
   boost?: { noteId?: string; itemId?: string; packageId: string }; // a post, or a store item
-  tier?: { tier: "pro" | "business"; interval: "monthly" | "annually"; planCode: string };
+  // referralFirst: a referred friend's first plan (lib/referrals.ts firstPeriodOffer): the card check or the year less a month now,
+  // and the plan's subscription started on Paystack for the end of that first period.
+  tier?: { tier: "pro" | "business"; interval: "monthly" | "annually"; planCode: string; referralFirst?: boolean };
+  // An affiliate link brought this sale (lib/referrals-server.ts): their share, taken out of the publisher's net.
+  affiliate?: PaymentAffiliate;
   badge?: { planCode: string };
   ad?: { campaignId: string; packageId: string };
   merch?: {
@@ -118,7 +123,8 @@ export type LedgerEntry = {
   reference: string; // ledger doc id (the payment reference, or `<ref>_<uid>` for a co-author's share)
   paymentReference?: string; // the Paystack payment this entry belongs to (set on split entries)
   sharePercent?: number; // this author's % of a co-authored post's gift
-  kind: "booking" | "subscription" | "gift" | "adshare" | "order" | "digital" | "certificate" | "course" | "shipping";
+  kind: "booking" | "subscription" | "gift" | "adshare" | "order" | "digital" | "certificate" | "course" | "shipping" | "affiliate";
+  affiliateKobo?: number; // an affiliate's share of this sale, already taken out of netKobo
   publisherUid: string;
   publisherUsername: string;
   payerUid: string;
@@ -149,6 +155,7 @@ export { commissionRateFor };
 
 function ledgerFor(p: PaymentRecord, grossKobo: number, releaseAfter: Date, now: string): LedgerEntry {
   const commissionKobo = Math.round(grossKobo * p.commissionRate);
+  const affiliateKobo = p.affiliate?.kobo ?? 0;
   return {
     reference: p.reference,
     kind: p.kind as LedgerEntry["kind"], // boosts never reach the ledger
@@ -157,7 +164,8 @@ function ledgerFor(p: PaymentRecord, grossKobo: number, releaseAfter: Date, now:
     payerUid: p.uid,
     grossKobo,
     commissionKobo,
-    netKobo: grossKobo - commissionKobo,
+    netKobo: grossKobo - commissionKobo - affiliateKobo,
+    ...(affiliateKobo ? { affiliateKobo } : {}),
     status: "held",
     releaseAfter: releaseAfter.toISOString(),
     createdAt: now,
@@ -328,8 +336,10 @@ export async function fulfillPayment(reference: string, paidWith?: { cartRef: st
       const releaseAfter = new Date(Date.now() + ESCROW_PLACEHOLDER_DAYS * 86_400_000).toISOString();
       t.set(db.doc(`ledger/${reference}`), {
         reference, kind: "order", publisherUid: current.publisherUid, publisherUsername: current.publisherUsername, payerUid: current.uid,
-        grossKobo: sellerGross, commissionKobo, netKobo: sellerGross - commissionKobo, status: "held", releaseAfter, createdAt: now,
+        grossKobo: sellerGross, commissionKobo, netKobo: sellerGross - commissionKobo - (current.affiliate?.kobo ?? 0),
+        ...(current.affiliate ? { affiliateKobo: current.affiliate.kobo } : {}), status: "held", releaseAfter, createdAt: now,
       } satisfies LedgerEntry);
+      writeProductEarning(t, db, current, "store", st.itemTitle, st.itemId, now);
       if (carrier) {
         t.set(db.doc(`ledger/${shippingRef(reference)}`), {
           reference: shippingRef(reference), paymentReference: reference, kind: "shipping", publisherUid: carrier.uid, publisherUsername: carrier.username,
@@ -347,9 +357,11 @@ export async function fulfillPayment(reference: string, paidWith?: { cartRef: st
         downloads: 0, createdAt: now,
       });
       t.set(db.doc(`ledger/${reference}`), ledgerFor(current, current.amountKobo, new Date(Date.now() + DIGITAL_HOLD_DAYS * 86_400_000), now));
+      writeProductEarning(t, db, current, "digital", dg.itemTitle, dg.itemId, now);
     } else if (current.kind === "course" && current.course) {
       // A paid course: the learner has it straight away; the tutors' shares are held for the refund window, then paid out.
       await fulfilCourseInTransaction(t, db, current, courseSplit, now);
+      writeProductEarning(t, db, current, "course", current.course.courseTitle, current.course.courseId, now);
     } else if (current.kind === "boost" && current.boost) {
       // Boosts are platform revenue: no ledger entry, just an active campaign.
       const pk = getBoostPackage(current.boost.packageId);
@@ -392,7 +404,10 @@ export async function fulfillPayment(reference: string, paidWith?: { cartRef: st
         status: "active",
         subscribedAt: now,
         currentPeriodEnd: periodEndFrom(Date.now(), tr.interval),
+        // A referred friend's first period: Paystack's subscription is started for its end (startReferralSubscription, below).
+        ...(tr.referralFirst ? { referralFirst: true, subscriptionPending: true } : {}),
       });
+      if (tr.referralFirst) t.set(db.doc(`referrals/${current.uid}`), { offerUsed: true }, { merge: true });
     } else if (current.kind === "wallet_topup") {
       await creditTopup(t, db, current, new Date(now));
     } else if (current.kind === "certificate" && current.certificate) {
@@ -523,6 +538,14 @@ export async function fulfillPayment(reference: string, paidWith?: { cartRef: st
     await notifyPaid(result.payment).catch((e) => console.error("notifyPaid failed", e));
     await emitSaleWebhooks(result.payment);
     if (shares.length > 1 && result.payment.gift) await notifyGiftShares(result.payment, shares).catch((e) => console.error("notifyGiftShares failed", e));
+    if (result.payment.affiliate) await alertIfJump(db, result.payment.affiliate.uid).catch(() => false);
+    if (result.payment.kind === "tier" && result.payment.tier) {
+      const p = result.payment;
+      if (p.tier!.referralFirst) await startReferralSubscription(db, p, tx).catch((e) => console.error("referral subscription", p.reference, e));
+      // The free month's card check is not a real payment; a referred friend's discounted year is.
+      const real = !(p.tier!.referralFirst && p.tier!.interval === "monthly");
+      if (real) await recordPlanEarning(db, p.uid, p.reference, p.amountKobo, `${p.tier!.tier === "pro" ? "Pro" : "Business"} plan`).catch((e) => console.error("plan earning", p.reference, e));
+    }
     if (result.payment.kind === "tier" && result.payment.tier?.tier === "business") {
       await cancelBadgeIfCovered(result.payment.uid);
     }

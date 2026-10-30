@@ -10,7 +10,7 @@ import { weekdayOf } from "@/lib/booking-time";
 import { LEGAL_VERSION } from "@/lib/legal";
 import { GIFT_MAX_KOBO, GIFT_MESSAGE_MAX, GIFT_MIN_KOBO, getBoostPackage } from "@/lib/boost-config";
 import { verifyAdminRequest } from "@/lib/firebase-admin";
-import { getTierPlanCode, getBadgePlanCode, getGoldPlanCode } from "@/lib/tier-billing";
+import { getTierPlanCode, getBadgePlanCode, getGoldPlanCode, tierPrice } from "@/lib/tier-billing";
 import { GOLD_PRICING, isGoldKind, isGoldTrack } from "@/lib/gold";
 import { getAdPackage } from "@/lib/ad-packages";
 import { ensurePricing } from "@/lib/pricing-server";
@@ -40,6 +40,8 @@ import { cartAmounts, cartChildRef, cleanCartLines } from "@/lib/cart";
 import { basketDelivery } from "@/lib/cart-server";
 import { DiscountError, NOTESAPP_OWNER, spreadDiscount, type DiscountTarget } from "@/lib/discounts";
 import { applyCode, paymentDiscount } from "@/lib/discounts-server";
+import { REFERRAL_COOKIE, firstPeriodOffer } from "@/lib/referrals";
+import { affiliateFor, offerIdFor, offerPercent, referralOfferFor, referrerByUsername, type Referrer } from "@/lib/referrals-server";
 
 // Starts a Paystack checkout for a 1:1 session or a monthly journal
 // subscription. Price, slots and plan all come from the publisher's
@@ -94,6 +96,15 @@ export async function POST(req: NextRequest) {
     const wantsCode = typeof body.code === "string" && body.code.trim() !== "";
     const codeFor = async (owner: string, target: DiscountTarget, subtotalKobo: number, more: { itemId?: string; itemIds?: string[]; extraKobo?: number } = {}) =>
       wantsCode ? applyCode(db, owner, body.code, user.uid, { target, subtotalKobo, ...more }) : null;
+    // An affiliate link the buyer came through (the na_ref cookie, set by /r/<username>, 30 days): looked up once, only when a
+    // product with an affiliate share is being bought.
+    let referrer: Referrer | null | undefined;
+    const affiliate = async (sellerUid: string, offerId: string, paidKobo: number) => {
+      const percent = await offerPercent(db, offerId, sellerUid);
+      if (!(percent > 0)) return null;
+      if (referrer === undefined) referrer = await referrerByUsername(db, req.cookies.get(REFERRAL_COOKIE)?.value, user.uid);
+      return affiliateFor(referrer, { buyerUid: user.uid, sellerUid, percent, paidKobo });
+    };
 
     // ---- NotesApp Credit top-up (Paystack only) ----
     if (kind === "wallet_topup") {
@@ -153,6 +164,7 @@ export async function POST(req: NextRequest) {
         publisherUid: co.course.ownerUid, publisherUsername: String(co.owner.username ?? ""), commissionRate: co.commissionRate,
         course: { courseId: co.course.id, courseTitle: co.course.title, courseSlug: co.course.slug },
         ...(code ? { discount: paymentDiscount(code, fullKobo) } : {}),
+        ...await (async () => { const a = await affiliate(co.course.ownerUid, offerIdFor("course", co.course.id), amountKobo); return a ? { affiliate: a } : {}; })(),
         createdAt: new Date().toISOString(),
       };
       await savePayment(record);
@@ -363,6 +375,7 @@ export async function POST(req: NextRequest) {
       const now = new Date().toISOString();
       const reservedUntil = new Date(Date.now() + RESERVATION_MINUTES * 60_000).toISOString();
       const commissionRate = physicalCommissionRateFor((seller.accountTier as AccountTier) || "basic", seller.customRates);
+      const lineAff = await Promise.all(lines.map((l, i) => affiliate(sellerUid, offerIdFor("item", l.itemSnap.id), goods[i] - lineOff[i])));
       const children: PaymentRecord[] = lines.map((l, i) => ({
         reference: cartChildRef(reference, i), cartRef: reference, reservedUntil, kind: "store", uid: user.uid, email: user.email!, amountKobo: amounts[i],
         status: "pending", publisherUid: sellerUid, publisherUsername: seller.username || "", commissionRate,
@@ -371,6 +384,7 @@ export async function POST(req: NextRequest) {
           ...(l.variant ? { variant: l.variant, variantLabel: l.variantLabel } : {}),
           unitKobo: l.item.priceKobo, ...(lineOff[i] ? { discountKobo: lineOff[i] } : {}), deliveryKobo: i === 0 ? deliveryKobo : 0, address, ...(carrier && i === 0 ? { carrier } : {}),
         },
+        ...(lineAff[i] ? { affiliate: lineAff[i]! } : {}),
         createdAt: now,
       }));
       let tx;
@@ -455,6 +469,7 @@ export async function POST(req: NextRequest) {
           unitKobo: item.priceKobo, ...(code ? { discountKobo: code.discountKobo } : {}), deliveryKobo, address, ...(carrier ? { carrier } : {}),
         },
         ...(code ? { discount: paymentDiscount(code, goodsKobo + deliveryKobo) } : {}),
+        ...await (async () => { const a = await affiliate(String(item.ownerUid), offerIdFor("item", itemSnap.id), goodsKobo - (code?.discountKobo ?? 0)); return a ? { affiliate: a } : {}; })(),
         createdAt: new Date().toISOString(),
       };
       try {
@@ -495,6 +510,7 @@ export async function POST(req: NextRequest) {
       });
       const record: PaymentRecord = {
         reference, kind: "digital", uid: user.uid, email: user.email, amountKobo, ...(code ? { discount: paymentDiscount(code, item.priceKobo) } : {}),
+        ...await (async () => { const a = await affiliate(String(item.ownerUid), offerIdFor("item", itemSnap.id), amountKobo); return a ? { affiliate: a } : {}; })(),
         status: "pending", publisherUid: item.ownerUid, publisherUsername: seller.username || "",
         commissionRate: digitalCommissionRateFor((seller.accountTier as AccountTier) || "basic", seller.customRates),
         digital: { itemId: itemSnap.id, itemTitle: String(item.title), itemImage: String(item.image || "") },
@@ -619,18 +635,23 @@ export async function POST(req: NextRequest) {
       if (rank.indexOf(currentTier) > rank.indexOf(tier) && rank.indexOf(currentTier) >= 2) {
         return NextResponse.json({ error: "Your account is already on a higher plan." }, { status: 409 });
       }
-      const { planCode, amountKobo } = await getTierPlanCode(tier, interval);
+      const { planCode, amountKobo: planKobo } = await getTierPlanCode(tier, interval);
+      // A friend who joined through a member's link (lib/referrals.ts): their first month free (a card check, given back) or a
+      // month off their first year, charged once now; the plan's subscription starts on Paystack when that period ends.
+      const offer = payWith === "card" ? await referralOfferFor(db, user.uid) : null;
+      const first = offer ? firstPeriodOffer(interval, tierPrice(tier, "monthly") ?? planKobo, tierPrice(tier, "annually") ?? planKobo) : null;
+      const amountKobo = first ? first.chargeKobo : planKobo;
       const reference = newReference();
       const origin = await callbackOrigin(req);
       const tx = await initTx({
-        plan: planCode, email: user.email, amountKobo, reference,
+        ...(first ? {} : { plan: planCode }), email: user.email, amountKobo, reference,
         callbackUrl: `${origin}/booking/confirm`,
-        metadata: { kind, tier, interval, uid: user.uid },
+        metadata: { kind, tier, interval, uid: user.uid, ...(first ? { referralFirst: true } : {}) },
       });
       const record: PaymentRecord = {
         reference, kind: "tier", uid: user.uid, email: user.email, amountKobo,
         status: "pending", publisherUid: user.uid, publisherUsername: "", commissionRate: 0,
-        tier: { tier, interval, planCode }, createdAt: new Date().toISOString(),
+        tier: { tier, interval, planCode, ...(first ? { referralFirst: true } : {}) }, createdAt: new Date().toISOString(),
       };
       await savePayment(record);
       return NextResponse.json({ authorizationUrl: tx.authorization_url, reference });
