@@ -1,0 +1,62 @@
+"use client";
+
+import { useState } from "react";
+import { api } from "@/lib/moments-client";
+import { naira, type DiscountTarget } from "@/lib/discounts";
+
+// "Have a discount code?" at a checkout (lib/discounts.ts). Apply checks the code with the server and shows what it takes off;
+// the checkout then sends the code along and the server prices the order itself. onChange(null) when the code is removed.
+export default function DiscountCodeField({ target, seller, itemId, itemIds, subtotalKobo, extraKobo, onChange, className = "" }: {
+  target: DiscountTarget;
+  seller?: string; // the publisher's username, for their products
+  itemId?: string;
+  itemIds?: string[];
+  subtotalKobo: number; // the price the code works on (no delivery)
+  extraKobo?: number;
+  onChange: (applied: { code: string; discountKobo: number } | null) => void;
+  className?: string;
+}) {
+  const [open, setOpen] = useState(false);
+  const [text, setText] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+  const [applied, setApplied] = useState<{ code: string; discountKobo: number; label: string } | null>(null);
+
+  async function apply() {
+    if (!text.trim()) return;
+    setBusy(true); setError("");
+    try {
+      const r = await api<{ code: string; discountKobo: number; label: string }>("/api/discounts/check", {
+        body: { code: text, target, seller, itemId, itemIds, subtotalKobo, extraKobo },
+      });
+      setApplied(r);
+      onChange({ code: r.code, discountKobo: r.discountKobo });
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "That code didn't work.");
+    } finally { setBusy(false); }
+  }
+  function remove() { setApplied(null); setText(""); onChange(null); }
+
+  if (applied) {
+    return (
+      <div className={`flex items-center justify-between gap-2 rounded-lg border border-crimson/30 bg-crimson/5 px-3 py-2 text-sm ${className}`}>
+        <span><b className="font-mono text-crimson">{applied.code}</b> <span className="text-ink">· {applied.label} · −{naira(applied.discountKobo)}</span></span>
+        <button type="button" onClick={remove} className="font-ui text-xs font-semibold text-slate underline">Remove</button>
+      </div>
+    );
+  }
+  if (!open) {
+    return <button type="button" onClick={() => setOpen(true)} className={`font-ui text-sm font-semibold text-crimson underline ${className}`}>Have a discount code?</button>;
+  }
+  return (
+    <div className={className}>
+      <div className="flex gap-2">
+        <input value={text} onChange={(e) => { setText(e.target.value.toUpperCase()); setError(""); }} onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); void apply(); } }}
+          placeholder="Discount code" aria-label="Discount code" maxLength={20} autoCapitalize="characters"
+          className="min-w-0 flex-1 rounded-lg border border-rule bg-card px-3 py-2 font-mono text-sm uppercase text-ink outline-none focus:border-crimson" />
+        <button type="button" onClick={apply} disabled={busy || !text.trim()} className="rounded-lg bg-crimson px-4 py-2 font-ui text-sm font-semibold text-white disabled:opacity-50">{busy ? "Checking…" : "Apply"}</button>
+      </div>
+      {error && <p className="mt-1 text-xs text-crimson" role="alert">{error}</p>}
+    </div>
+  );
+}

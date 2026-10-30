@@ -11,6 +11,16 @@ export type Release = {
 
 export const CHANGELOG: Release[] = [
   {
+    version: "v0.101.0",
+    bump: "minor",
+    date: "2026-10-30",
+    changes: [
+      { kind: "added", text: "Discount codes. On every plan, make codes for your shop, downloads, courses and booked sessions (Account → Discount codes): a percentage or a naira amount off, for some or all of your products, with optional limits (total uses, uses per member, dates, a minimum order, first order only). See how often each was used and what it took off; pause one at any time." },
+      { kind: "added", text: "At checkout, \"Have a discount code?\" shows what a code takes off before you pay. #NotesApp's own codes work on boosts, Nana credit, merch and the logistics and inventory add-ons." },
+      { kind: "changed", text: "Commission on a discounted sale is worked out on what the buyer actually paid, and a code never touches the delivery fee." },
+    ],
+  },
+  {
     version: "v0.100.4",
     bump: "patch",
     date: "2026-10-29",

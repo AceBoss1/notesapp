@@ -25,6 +25,7 @@ import { countView, useSavedItems } from "@/lib/store-social";
 import { categoryOf } from "@/lib/store-meta";
 import { useSiteOptional } from "@/components/site/SiteContext";
 import { useBasket } from "@/lib/cart-client";
+import DiscountCodeField from "@/components/DiscountCodeField";
 
 const field = "mt-1 w-full border border-rule bg-card px-3 py-2 text-sm outline-none focus:border-crimson";
 
@@ -51,6 +52,7 @@ export default function ShopItemPage() {
   // The store's delivery partner (lib/logistics.ts): its price for this address replaces the item's own delivery fee.
   const [ship, setShip] = useState<{ partner: { name: string; username: string } | null; carrier: { name: string; feeKobo: number } | null } | null>(null);
   const [owned, setOwned] = useState(false); // this buyer already bought this download
+  const [disc, setDisc] = useState<{ code: string; discountKobo: number } | null>(null);
   // On a seller's own domain (Enterprise) we only show the item; signing in and paying happen on the main site.
   const [customHost, setCustomHost] = useState(false);
   const [backTo, setBackTo] = useState<{ host: string; username: string } | null>(null);
@@ -127,6 +129,7 @@ export default function ShopItemPage() {
   const unitsLeft = selectedStock ?? inStock;
   const qty = Math.min(quantity, maxQty);
   const total = unit * qty + delivery;
+  const off = disc?.discountKobo ?? 0;
   const partnerName = ship?.partner?.name;
   const set = (k: keyof typeof addr) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => setAddr((a) => ({ ...a, [k]: e.target.value }));
 
@@ -136,7 +139,7 @@ export default function ShopItemPage() {
     if (!agreed) return setError("Tick the box to confirm you understand a download is final.");
     setBusy(true);
     try {
-      await startCheckout(user, { kind: "digital", itemId, acceptFinal: true }, { amountKobo: item?.priceKobo ?? undefined });
+      await startCheckout(user, { kind: "digital", itemId, acceptFinal: true, ...(disc ? { code: disc.code } : {}) }, { amountKobo: item?.priceKobo != null ? Math.max(0, item.priceKobo - off) : undefined });
     } catch (err) {
       setError(err instanceof Error ? err.message : "Couldn't start payment.");
       setBusy(false);
@@ -166,7 +169,7 @@ export default function ShopItemPage() {
     if (problem) return setError(problem);
     setBusy(true);
     try {
-      await startCheckout(user, { kind: "store", itemId, quantity: qty, ...(options.length ? { variant: selection } : {}), address: addr }, { amountKobo: unit * qty + delivery });
+      await startCheckout(user, { kind: "store", itemId, quantity: qty, ...(options.length ? { variant: selection } : {}), address: addr, ...(disc ? { code: disc.code } : {}) }, { amountKobo: Math.max(0, unit * qty + delivery - off) });
     } catch (err) {
       setError(err instanceof Error ? err.message : "Couldn't start payment.");
       setBusy(false);
@@ -285,8 +288,9 @@ export default function ShopItemPage() {
               <input type="checkbox" checked={agreed} onChange={(e) => setAgreed(e.target.checked)} className="mt-0.5" />
               <span>{viewOnly ? "I understand this is view-only, works on 2 devices, and once I open it the purchase is final and can't be refunded." : "I understand this is a digital download: once I download it the purchase is final and can't be refunded."} See <Link href="/terms" className="text-crimson underline">Terms 5g</Link>.</span>
             </label>
+            {user && <DiscountCodeField target="digital" seller={seller?.username} itemId={itemId} subtotalKobo={unit} onChange={setDisc} className="mt-3" />}
             {error && <p className="mt-3 text-sm text-crimson">{error}</p>}
-            <button onClick={payDigital} disabled={busy} className="btn-primary mt-4">{busy ? "Please wait…" : user ? `Pay ${formatNaira(unit)}` : "Sign in to buy"}</button>
+            <button onClick={payDigital} disabled={busy} className="btn-primary mt-4">{busy ? "Please wait…" : user ? `Pay ${formatNaira(Math.max(0, unit - off))}` : "Sign in to buy"}</button>
           </div>
         )
       ) : inStock <= 0 ? (
@@ -325,8 +329,9 @@ export default function ShopItemPage() {
           {unitsLeft <= 5 && <>Only {unitsLeft} left{selectedStock !== null ? " in that option" : ""} — we reserve your quantity for 30 minutes while you pay. </>}Your payment is held by #NotesApp until you confirm the parcel arrived (or 7 days after it&apos;s marked delivered). You get a parcel ID to track it, and you can report a problem.
           #NotesApp is not the seller or the carrier — see <Link href="/terms" className="text-crimson underline">Terms 5g</Link>.
         </p>
+        {user && <div className="sm:col-span-2"><DiscountCodeField target="store" seller={seller?.username} itemId={itemId} subtotalKobo={unit * qty} extraKobo={delivery} onChange={setDisc} className="mt-3" /></div>}
         {error && <p className="sm:col-span-2 text-sm text-crimson">{error}</p>}
-        <button disabled={busy} className="btn-primary sm:col-span-2">{busy ? "Please wait…" : user ? `${site ? "Buy now: pay" : "Pay"} ${formatNaira(total)}` : "Sign in to buy"}</button>
+        <button disabled={busy} className="btn-primary sm:col-span-2">{busy ? "Please wait…" : user ? `${site ? "Buy now: pay" : "Pay"} ${formatNaira(Math.max(0, total - off))}` : "Sign in to buy"}</button>
       </form>
       )}
         </div>

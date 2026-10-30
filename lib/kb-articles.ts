@@ -63,6 +63,20 @@ Start at [Journals](/journals) to look around, or [create a free account](/signu
 **Emoji packs:** open 😊 in a chat. **Everyday** has the usual emojis and ours (:na:). **Afro culture** has our own drawings (the drums, gongs, bronzes and maps), **Faces** has everyday faces in one colour, and **Flags** has every African country's flag and many more. These are free on every plan. **Summer**, **Spooky** and **Celebrate** come with Pro, Business and Enterprise: they show a 🔒 and **Unlock**, which opens [Plans and prices](/pricing). Pack emojis are maroon crimson by Day and warm ivory by Night (flags keep their own colours), and white inside your own crimson bubbles. Anywhere that only shows words, like the inbox or an email, they read as their name.
 
 **Flags and maps as you type:** type a country's name ("Nigeria", or just "Nig") or its code in capitals ("NG", "GHA") and a row above the box offers its flag, and its map when there is one. Tap to put it in: a code turns into the flag, and a name keeps its word (finished for you if you cut it short). Codes only count in capitals, so words like "in" or "us" never set it off.`),
+    A("discount-codes", "Discount codes", "Publishing and earning", `
+**Make a code for your own products (every plan):** go to **Account → Discount codes** ([/profile/discounts](/profile/discounts)) and choose **New code**.
+- **The code:** 3 to 20 letters, numbers or dashes, like \`WELCOME10\`. Buyers type it at checkout; capitals don't matter.
+- **The discount:** a percentage (1% to 90%) or a naira amount off.
+- **What it works on:** your shop items, downloads, courses and booked sessions; or only some of them (paste their links).
+- **Limits, all optional:** total uses, uses per member (one by default), a start and an end date, a minimum order, and "only for a first order from you".
+
+You see how many times each code was used, how much it took off and what buyers paid. You never see who used it. **Pause** a code at any time, for example if it's shared somewhere you didn't mean.
+
+**What a code never does:** take the price under ₦100, touch the delivery fee, or work on someone else's products. You can't use your own code.
+
+**The money:** the discount comes off your price, and #NotesApp's commission is worked out on what the buyer actually paid. On a basket the discount is shared across the items in proportion to their prices.
+
+**Using a code as a buyer:** at checkout choose **Have a discount code?**, type it and **Apply**. You see what it takes off before you pay; the price is checked again when you pay. #NotesApp's own codes work on boosts, Nana credit, merch and the logistics and inventory add-ons.`),
     A("create-an-account", "Creating an account", "Getting started", `
 Go to [Sign up](/signup). Choose **Personal** for a person, or **Organisation** for a company, NGO, church, school or club (organisations also enter their CAC registration number). Pick a display name, a username, an email and a password, tick that you are 18 or older and agree to the [Terms](/terms) and [Privacy Policy](/privacy), and you are in.
 

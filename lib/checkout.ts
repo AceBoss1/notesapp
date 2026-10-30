@@ -26,7 +26,8 @@ async function post(user: User, body: unknown) {
 // Privacy Policy once, then the checkout is retried.
 export async function startCheckout(
   user: User,
-  body:
+  // `code`: a discount code the buyer applied (components/DiscountCodeField.tsx); the server checks it again and prices the order.
+  body: { code?: string } & (
     | { kind: "booking"; username: string; date: string; slot: string }
     | { kind: "subscription"; username: string }
     | { kind: "boost"; noteId: string; packageId: string }
@@ -47,7 +48,7 @@ export async function startCheckout(
     | { kind: "nana_credit"; packId: string }
     | { kind: "logistics_addon" }
     | { kind: "inventory_addon" }
-    | { kind: "certificate"; courseId: string; learnerName: string },
+    | { kind: "certificate"; courseId: string; learnerName: string }),
   // payWith: the buyer already chose (Notes Life has its own Wallet and Card buttons, and no chooser on its page).
   opts: { amountKobo?: number; payWith?: "wallet" | "card" } = {},
 ): Promise<void> {

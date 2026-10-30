@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import type { User } from "firebase/auth";
 import { startCheckout } from "@/lib/checkout";
+import DiscountCodeField from "@/components/DiscountCodeField";
 import { formatNaira } from "@/lib/booking-time";
 import { NIGERIAN_STATES } from "@/lib/merch";
 import { ALL_STATES, WEIGHT_BANDS_KG, ZONES, cleanProfile, type ProviderAccess, type ProviderProfile, type Zone } from "@/lib/logistics";
@@ -51,6 +52,7 @@ const toProfile = (f: Form) => ({
 export function AccessCard({ me, user, onChange }: { me: Me; user: User; onChange: () => void }) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
+  const [disc, setDisc] = useState<{ code: string; discountKobo: number } | null>(null);
   const a = me.access;
   async function trial() {
     setBusy(true); setError("");
@@ -58,18 +60,20 @@ export function AccessCard({ me, user, onChange }: { me: Me; user: User; onChang
   }
   async function pay() {
     setBusy(true); setError("");
-    try { await startCheckout(user, { kind: "logistics_addon" }, { amountKobo: me.price }); } catch (e) { setError(e instanceof Error ? e.message : "Couldn't start payment."); setBusy(false); }
+    try { await startCheckout(user, { kind: "logistics_addon", ...(disc ? { code: disc.code } : {}) }, { amountKobo: Math.max(0, me.price - (disc?.discountKobo ?? 0)) }); } catch (e) { setError(e instanceof Error ? e.message : "Couldn't start payment."); setBusy(false); }
   }
-  const payBtn = <button disabled={busy} onClick={pay} className="btn-primary !px-4 !py-2 text-xs">{a.ok ? "Add a month" : "Get the add-on"} · {formatNaira(me.price)}</button>;
+  const payBtn = <button disabled={busy} onClick={pay} className="btn-primary !px-4 !py-2 text-xs">{a.ok ? "Add a month" : "Get the add-on"} · {formatNaira(Math.max(0, me.price - (disc?.discountKobo ?? 0)))}</button>;
+  const codeField = <DiscountCodeField target="logistics_addon" subtotalKobo={me.price} onChange={setDisc} className="mt-3" />;
   return (
     <section className="card mb-6 p-5 text-sm">
       {a.ok && a.via === "plan" && <p className="text-ink"><b>Logistics tools:</b> included in your plan. You&apos;re in the network once your listing is saved and payouts are set up.</p>}
-      {a.ok && a.via === "trial" && <><p className="text-ink"><b>Logistics add-on: free trial</b> until {day(a.until)}. Add the add-on to carry on after that: {formatNaira(me.price)} a month, and paying early loses nothing.</p><div className="mt-3">{payBtn}</div></>}
-      {a.ok && a.via === "addon" && <><p className="text-ink"><b>Logistics add-on</b> paid until {day(a.until)}.</p><div className="mt-3">{payBtn}</div></>}
+      {a.ok && a.via === "trial" && <><p className="text-ink"><b>Logistics add-on: free trial</b> until {day(a.until)}. Add the add-on to carry on after that: {formatNaira(me.price)} a month, and paying early loses nothing.</p>{codeField}<div className="mt-3">{payBtn}</div></>}
+      {a.ok && a.via === "addon" && <><p className="text-ink"><b>Logistics add-on</b> paid until {day(a.until)}.</p>{codeField}<div className="mt-3">{payBtn}</div></>}
       {!a.ok && (
         <>
           <p className="font-display text-xl text-ink">Run deliveries? Join the logistics network</p>
           <p className="mt-1 text-slate">Book shipments for your customers, hand them rider to rider, and be listed where stores choose a delivery partner: their buyers pay your prices at checkout. Business and Enterprise include it; on Free Basic and Pro it&apos;s the logistics add-on, {formatNaira(me.price)} a month.</p>
+          {(me.tier === "basic" || me.tier === "pro") && codeField}
           <div className="mt-3 flex flex-wrap gap-3">
             {a.canTrial && <button disabled={busy} onClick={trial} className="btn-primary !px-4 !py-2 text-xs">Start the free {me.trialDays}-day trial (no card)</button>}
             {(me.tier === "basic" || me.tier === "pro") && payBtn}

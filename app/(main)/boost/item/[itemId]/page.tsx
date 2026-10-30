@@ -8,6 +8,7 @@ import { doc, getDoc } from "firebase/firestore";
 import { auth, db } from "@/lib/firebase";
 import { BOOST_PACKAGES } from "@/lib/boost-config";
 import { startCheckout } from "@/lib/checkout";
+import DiscountCodeField from "@/components/DiscountCodeField";
 import { formatNaira } from "@/lib/booking-time";
 import type { StoreItem } from "@/lib/store";
 
@@ -21,6 +22,7 @@ export default function BoostItemPage() {
   const [storeUsername, setStoreUsername] = useState("");
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState("");
+  const [disc, setDisc] = useState<{ code: string; discountKobo: number } | null>(null);
 
   useEffect(
     () =>
@@ -42,8 +44,9 @@ export default function BoostItemPage() {
     if (!user) return;
     setBusy(packageId);
     setError("");
+    const price = BOOST_PACKAGES.find((p) => p.id === packageId)?.priceKobo;
     try {
-      await startCheckout(user, { kind: "boost", itemId, packageId }, { amountKobo: BOOST_PACKAGES.find((p) => p.id === packageId)?.priceKobo });
+      await startCheckout(user, { kind: "boost", itemId, packageId, ...(disc ? { code: disc.code } : {}) }, { amountKobo: price === undefined ? undefined : Math.max(0, price - (disc?.discountKobo ?? 0)) });
     } catch (e) {
       setError(e instanceof Error ? e.message : "Couldn't start payment.");
       setBusy(null);
@@ -65,6 +68,7 @@ export default function BoostItemPage() {
         visitor per day (bots and your own views excluded). Delivery is spread over several days, and any impressions not delivered by the end of
         the window are refunded pro-rata.
       </p>
+      <DiscountCodeField target="boost" subtotalKobo={Math.min(...BOOST_PACKAGES.map((p) => p.priceKobo))} onChange={setDisc} className="mt-3" />
       <div className="mt-8 grid gap-5 sm:grid-cols-3">
         {BOOST_PACKAGES.map((p) => (
           <div key={p.id} className="card flex flex-col p-6">

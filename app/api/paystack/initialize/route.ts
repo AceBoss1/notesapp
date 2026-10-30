@@ -38,6 +38,8 @@ import { accessFor as inventoryAccessFor } from "@/lib/inventory-server";
 import { itemKg } from "@/lib/logistics";
 import { cartAmounts, cartChildRef, cleanCartLines } from "@/lib/cart";
 import { basketDelivery } from "@/lib/cart-server";
+import { DiscountError, NOTESAPP_OWNER, spreadDiscount, type DiscountTarget } from "@/lib/discounts";
+import { applyCode, paymentDiscount } from "@/lib/discounts-server";
 
 // Starts a Paystack checkout for a 1:1 session or a monthly journal
 // subscription. Price, slots and plan all come from the publisher's
@@ -87,6 +89,11 @@ export async function POST(req: NextRequest) {
       // If this fails for a moment, the confirmation page the buyer lands on finishes it (the money is already set aside).
       await fulfillPayment(record.reference).catch((e) => console.error("wallet payment: fulfil will be retried", record.reference, e));
     };
+    // A discount code (lib/discounts.ts), when the buyer typed one: checked against the owner's codes (the seller's, or #NotesApp's
+    // for our own products) and worked out on the server's price. A bad code throws DiscountError, answered below with its reason.
+    const wantsCode = typeof body.code === "string" && body.code.trim() !== "";
+    const codeFor = async (owner: string, target: DiscountTarget, subtotalKobo: number, more: { itemId?: string; itemIds?: string[]; extraKobo?: number } = {}) =>
+      wantsCode ? applyCode(db, owner, body.code, user.uid, { target, subtotalKobo, ...more }) : null;
 
     // ---- NotesApp Credit top-up (Paystack only) ----
     if (kind === "wallet_topup") {
@@ -135,7 +142,9 @@ export async function POST(req: NextRequest) {
       let co: Awaited<ReturnType<typeof courseCheckout>>;
       try { co = await courseCheckout(db, user.uid, body.courseId); }
       catch (e) { if (e instanceof CourseError) return NextResponse.json({ error: e.message }, { status: e.status }); throw e; }
-      const amountKobo = co.course.priceKobo!;
+      const fullKobo = co.course.priceKobo!;
+      const code = await codeFor(co.course.ownerUid, "course", fullKobo, { itemId: co.course.id });
+      const amountKobo = fullKobo - (code?.discountKobo ?? 0);
       const reference = newReference();
       const origin = await callbackOrigin(req);
       const tx = await initTx({ email: user.email, amountKobo, reference, callbackUrl: `${origin}/booking/confirm`, metadata: { kind, uid: user.uid, courseId: co.course.id } });
@@ -143,6 +152,7 @@ export async function POST(req: NextRequest) {
         reference, kind: "course", uid: user.uid, email: user.email, amountKobo, status: "pending",
         publisherUid: co.course.ownerUid, publisherUsername: String(co.owner.username ?? ""), commissionRate: co.commissionRate,
         course: { courseId: co.course.id, courseTitle: co.course.title, courseSlug: co.course.slug },
+        ...(code ? { discount: paymentDiscount(code, fullKobo) } : {}),
         createdAt: new Date().toISOString(),
       };
       await savePayment(record);
@@ -157,13 +167,15 @@ export async function POST(req: NextRequest) {
       const access = await accessOf(db, me as Parameters<typeof accessOf>[1]);
       if (access.ok && access.via === "plan") return NextResponse.json({ error: "Your plan already includes the logistics tools." }, { status: 409 });
       if (!["basic", "pro"].includes(String(me.accountTier))) return NextResponse.json({ error: "The logistics add-on is for Free Basic and Pro accounts that publish." }, { status: 403 });
-      const amount = currentPricing().logistics.addonMonthlyKobo;
+      const full = currentPricing().logistics.addonMonthlyKobo;
+      const code = await codeFor(NOTESAPP_OWNER, "logistics_addon", full);
+      const amount = full - (code?.discountKobo ?? 0);
       const reference = newReference();
       const origin = await callbackOrigin(req);
       const tx = await initTx({ email: user.email, amountKobo: amount, reference, callbackUrl: `${origin}/booking/confirm`, metadata: { kind, uid: user.uid } });
       const record: PaymentRecord = {
         reference, kind: "logistics_addon", uid: user.uid, email: user.email, amountKobo: amount, status: "pending",
-        publisherUid: user.uid, publisherUsername: "", commissionRate: 0, createdAt: new Date().toISOString(),
+        publisherUid: user.uid, publisherUsername: "", commissionRate: 0, ...(code ? { discount: paymentDiscount(code, full) } : {}), createdAt: new Date().toISOString(),
       };
       await savePayment(record);
       return NextResponse.json({ authorizationUrl: tx.authorization_url, reference, paid: payWith === "wallet" });
@@ -176,13 +188,15 @@ export async function POST(req: NextRequest) {
       const access = inventoryAccessFor(me as Parameters<typeof inventoryAccessFor>[0]);
       if (access.ok && access.via === "plan") return NextResponse.json({ error: "Your plan already includes inventory." }, { status: 409 });
       if (!["basic", "pro"].includes(String(me.accountTier))) return NextResponse.json({ error: "The inventory add-on is for Free Basic and Pro; Business and Enterprise include it." }, { status: 403 });
-      const amount = currentPricing().inventory.addonMonthlyKobo;
+      const full = currentPricing().inventory.addonMonthlyKobo;
+      const code = await codeFor(NOTESAPP_OWNER, "inventory_addon", full);
+      const amount = full - (code?.discountKobo ?? 0);
       const reference = newReference();
       const origin = await callbackOrigin(req);
       const tx = await initTx({ email: user.email, amountKobo: amount, reference, callbackUrl: `${origin}/booking/confirm`, metadata: { kind, uid: user.uid } });
       const record: PaymentRecord = {
         reference, kind: "inventory_addon", uid: user.uid, email: user.email, amountKobo: amount, status: "pending",
-        publisherUid: user.uid, publisherUsername: "", commissionRate: 0, createdAt: new Date().toISOString(),
+        publisherUid: user.uid, publisherUsername: "", commissionRate: 0, ...(code ? { discount: paymentDiscount(code, full) } : {}), createdAt: new Date().toISOString(),
       };
       await savePayment(record);
       return NextResponse.json({ authorizationUrl: tx.authorization_url, reference, paid: payWith === "wallet" });
@@ -191,12 +205,15 @@ export async function POST(req: NextRequest) {
     if (kind === "nana_credit") {
       const pack = currentPricing().nana.topUps.find((p) => p.id === body.packId);
       if (!pack) return NextResponse.json({ error: "Choose a Nana credit pack." }, { status: 400 });
+      const code = await codeFor(NOTESAPP_OWNER, "nana_credit", pack.priceKobo);
+      const amountKobo = pack.priceKobo - (code?.discountKobo ?? 0);
       const reference = newReference();
       const origin = await callbackOrigin(req);
-      const tx = await initTx({ email: user.email, amountKobo: pack.priceKobo, reference, callbackUrl: `${origin}/booking/confirm`, metadata: { kind, uid: user.uid, packId: pack.id } });
+      const tx = await initTx({ email: user.email, amountKobo, reference, callbackUrl: `${origin}/booking/confirm`, metadata: { kind, uid: user.uid, packId: pack.id } });
       const record: PaymentRecord = {
-        reference, kind: "nana_credit", uid: user.uid, email: user.email, amountKobo: pack.priceKobo, status: "pending",
-        publisherUid: user.uid, publisherUsername: "", commissionRate: 0, nanaPack: { packId: pack.id, name: pack.name, creditKobo: pack.creditKobo }, createdAt: new Date().toISOString(),
+        reference, kind: "nana_credit", uid: user.uid, email: user.email, amountKobo, status: "pending",
+        publisherUid: user.uid, publisherUsername: "", commissionRate: 0, nanaPack: { packId: pack.id, name: pack.name, creditKobo: pack.creditKobo },
+        ...(code ? { discount: paymentDiscount(code, pack.priceKobo) } : {}), createdAt: new Date().toISOString(),
       };
       await savePayment(record);
       return NextResponse.json({ authorizationUrl: tx.authorization_url, reference, paid: payWith === "wallet" });
@@ -318,7 +335,13 @@ export async function POST(req: NextRequest) {
       const address = { fullName: String(a.fullName).trim(), phone: String(a.phone).replace(/[\s-]/g, ""), street: String(a.street).trim(), city: String(a.city).trim(), state: String(a.state) };
       // One delivery for the whole basket (lib/cart-server.ts).
       const { carrier, deliveryKobo } = await basketDelivery(db, sellerUid, lines, address);
-      const amounts = cartAmounts(lines.map((l) => ({ unitKobo: l.item.priceKobo, quantity: l.quantity })), deliveryKobo);
+      const goods = lines.map((l) => l.item.priceKobo * l.quantity);
+      const fullAmounts = cartAmounts(lines.map((l) => ({ unitKobo: l.item.priceKobo, quantity: l.quantity })), deliveryKobo);
+      const fullKobo = fullAmounts.reduce((x, y) => x + y, 0);
+      // A code takes money off the goods (never the delivery), shared across the orders in proportion to each one's goods.
+      const code = await codeFor(sellerUid, "store", goods.reduce((x, y) => x + y, 0), { itemIds: lines.map((l) => l.itemSnap.id), extraKobo: deliveryKobo });
+      const lineOff = spreadDiscount(goods, code?.discountKobo ?? 0);
+      const amounts = fullAmounts.map((a, i) => a - lineOff[i]);
       const amountKobo = amounts.reduce((x, y) => x + y, 0);
       if (amountKobo > STORE_ITEM_MAX_KOBO * 2) return NextResponse.json({ error: "That order is too large." }, { status: 400 });
       const reference = newReference();
@@ -346,7 +369,7 @@ export async function POST(req: NextRequest) {
         store: {
           itemId: l.itemSnap.id, itemTitle: String(l.item.title), itemImage: String(l.item.image || ""), quantity: l.quantity,
           ...(l.variant ? { variant: l.variant, variantLabel: l.variantLabel } : {}),
-          unitKobo: l.item.priceKobo, deliveryKobo: i === 0 ? deliveryKobo : 0, address, ...(carrier && i === 0 ? { carrier } : {}),
+          unitKobo: l.item.priceKobo, ...(lineOff[i] ? { discountKobo: lineOff[i] } : {}), deliveryKobo: i === 0 ? deliveryKobo : 0, address, ...(carrier && i === 0 ? { carrier } : {}),
         },
         createdAt: now,
       }));
@@ -362,7 +385,7 @@ export async function POST(req: NextRequest) {
         for (const c of children) batch.set(db.doc(`payments/${c.reference}`), c);
         batch.set(db.doc(`payments/${reference}`), {
           reference, kind: "store_cart", uid: user.uid, email: user.email, amountKobo, status: "pending", publisherUid: sellerUid, publisherUsername: seller.username || "",
-          commissionRate, cart: { orders: children.map((c) => c.reference) }, createdAt: now,
+          commissionRate, cart: { orders: children.map((c) => c.reference) }, ...(code ? { discount: paymentDiscount(code, fullKobo) } : {}), createdAt: now,
         } satisfies PaymentRecord);
         await batch.commit();
       } catch (e) {
@@ -396,7 +419,9 @@ export async function POST(req: NextRequest) {
       // doesn't cover the address, the item's own delivery fee applies as before.
       const carrier = await partnerQuote(db, item.ownerUid, address, itemKg(item.weightKg) * quantity);
       const deliveryKobo = carrier ? carrier.feeKobo : Number(item.deliveryKobo) || 0;
-      const amountKobo = item.priceKobo * quantity + deliveryKobo;
+      const goodsKobo = item.priceKobo * quantity;
+      const code = await codeFor(String(item.ownerUid), "store", goodsKobo, { itemId: itemSnap.id, extraKobo: deliveryKobo });
+      const amountKobo = goodsKobo - (code?.discountKobo ?? 0) + deliveryKobo;
       if (amountKobo > STORE_ITEM_MAX_KOBO * 2) return NextResponse.json({ error: "That order is too large." }, { status: 400 });
       const reference = newReference();
       const origin = await callbackOrigin(req);
@@ -427,8 +452,9 @@ export async function POST(req: NextRequest) {
         store: {
           itemId: itemSnap.id, itemTitle: String(item.title), itemImage: String(item.image || ""), quantity,
           ...(variant ? { variant, variantLabel } : {}),
-          unitKobo: item.priceKobo, deliveryKobo, address, ...(carrier ? { carrier } : {}),
+          unitKobo: item.priceKobo, ...(code ? { discountKobo: code.discountKobo } : {}), deliveryKobo, address, ...(carrier ? { carrier } : {}),
         },
+        ...(code ? { discount: paymentDiscount(code, goodsKobo + deliveryKobo) } : {}),
         createdAt: new Date().toISOString(),
       };
       try {
@@ -461,12 +487,14 @@ export async function POST(req: NextRequest) {
       if (!payout?.recipientCode) return NextResponse.json({ error: "This seller hasn't set up payouts yet, so they can't take orders." }, { status: 409 });
       const reference = newReference();
       const origin = await callbackOrigin(req);
+      const code = await codeFor(String(item.ownerUid), "digital", item.priceKobo, { itemId: itemSnap.id });
+      const amountKobo = item.priceKobo - (code?.discountKobo ?? 0);
       const tx = await initTx({
-        email: user.email, amountKobo: item.priceKobo, reference, callbackUrl: `${origin}/booking/confirm`,
+        email: user.email, amountKobo, reference, callbackUrl: `${origin}/booking/confirm`,
         metadata: { kind, itemId: itemSnap.id, uid: user.uid },
       });
       const record: PaymentRecord = {
-        reference, kind: "digital", uid: user.uid, email: user.email, amountKobo: item.priceKobo,
+        reference, kind: "digital", uid: user.uid, email: user.email, amountKobo, ...(code ? { discount: paymentDiscount(code, item.priceKobo) } : {}),
         status: "pending", publisherUid: item.ownerUid, publisherUsername: seller.username || "",
         commissionRate: digitalCommissionRateFor((seller.accountTier as AccountTier) || "basic", seller.customRates),
         digital: { itemId: itemSnap.id, itemTitle: String(item.title), itemImage: String(item.image || "") },
@@ -497,7 +525,8 @@ export async function POST(req: NextRequest) {
         city: String(a.city).trim(),
         state: String(a.state),
       };
-      const amountKobo = item.priceKobo * quantity + MERCH_DELIVERY_KOBO;
+      const code = await codeFor(NOTESAPP_OWNER, "merch", item.priceKobo * quantity, { itemId: item.id, extraKobo: MERCH_DELIVERY_KOBO });
+      const amountKobo = item.priceKobo * quantity - (code?.discountKobo ?? 0) + MERCH_DELIVERY_KOBO;
       const reference = newReference();
       const origin = await callbackOrigin(req);
       const tx = await initTx({
@@ -507,6 +536,7 @@ export async function POST(req: NextRequest) {
       const record: PaymentRecord = {
         reference, kind: "merch", uid: user.uid, email: user.email, amountKobo,
         status: "pending", publisherUid: user.uid, publisherUsername: "", commissionRate: 0,
+        ...(code ? { discount: paymentDiscount(code, item.priceKobo * quantity + MERCH_DELIVERY_KOBO) } : {}),
         merch: {
           itemId: item.id, itemName: item.name, logoId: logo.id, logoLabel: logo.label,
           ...(size ? { size } : {}), quantity, unitKobo: item.priceKobo, deliveryKobo: MERCH_DELIVERY_KOBO,
@@ -639,14 +669,16 @@ export async function POST(req: NextRequest) {
       }
       const reference = newReference();
       const origin = await callbackOrigin(req);
+      const code = await codeFor(NOTESAPP_OWNER, "boost", pk.priceKobo);
+      const amountKobo = pk.priceKobo - (code?.discountKobo ?? 0);
       const tx = await initTx({
-        email: user.email, amountKobo: pk.priceKobo, reference,
+        email: user.email, amountKobo, reference,
         callbackUrl: `${origin}/booking/confirm`,
         metadata: { kind, ...(itemId ? { itemId } : { noteId }), packageId: pk.id, uid: user.uid },
       });
       const record: PaymentRecord = {
-        reference, kind: "boost", uid: user.uid, email: user.email, amountKobo: pk.priceKobo,
-        status: "pending", publisherUid: user.uid, publisherUsername: "", commissionRate: 0,
+        reference, kind: "boost", uid: user.uid, email: user.email, amountKobo,
+        status: "pending", publisherUid: user.uid, publisherUsername: "", commissionRate: 0, ...(code ? { discount: paymentDiscount(code, pk.priceKobo) } : {}),
         boost: { ...(itemId ? { itemId } : { noteId }), packageId: pk.id }, createdAt: new Date().toISOString(),
       };
       await savePayment(record);
@@ -683,8 +715,10 @@ export async function POST(req: NextRequest) {
       if ((await db.doc(`slotLocks/${slotLockId(username, date, slot)}`).get()).exists) {
         return NextResponse.json({ error: "That slot was just taken — pick another." }, { status: 409 });
       }
+      const code = await codeFor(pub.uid, "booking", s.priceKobo);
       record = {
-        reference, kind: "booking", uid: user.uid, email: user.email, amountKobo: s.priceKobo,
+        reference, kind: "booking", uid: user.uid, email: user.email, amountKobo: s.priceKobo - (code?.discountKobo ?? 0),
+        ...(code ? { discount: paymentDiscount(code, s.priceKobo) } : {}),
         status: "pending", publisherUid: pub.uid, publisherUsername: username,
         commissionRate: pub.commissionRate,
         booking: { username, date, slot, minutes: s.minutes },
@@ -745,6 +779,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ authorizationUrl: tx.authorization_url, reference });
   } catch (err) {
     if (err instanceof WalletError) return NextResponse.json({ error: err.message }, { status: err.status });
+    if (err instanceof DiscountError) return NextResponse.json({ error: err.message, code: "discount" }, { status: err.status });
     console.error("Paystack initialize failed:", err);
     { const f = friendlyMessage(err, "Couldn't start payment"); return NextResponse.json({ error: f.message }, { status: f.status }); }
   }
