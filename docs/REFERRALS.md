@@ -141,4 +141,5 @@ How it stays safe:
   affiliate, ahead of a link). At every checkout `bestCoupon` (Nana's pick) applies the coupon that takes the most off, from the
   buyer's saved ones and the ones on show; the buyer can remove it. A store's code only works in its store: another store's code (or
   a #NotesApp code in a store) says so.
-- **Not yet:** codes in shillings and cedi, and bulk codes for schools and organisations (§7, step 4).
+- **Not yet (step 4, §7):** codes in shillings and cedi, and bulk codes for schools and organisations. The owner decided on 30 October
+  2026 to leave step 4 until we launch in Kenya and Ghana.
