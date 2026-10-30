@@ -71,6 +71,14 @@ export const FUND_BACKLOG: Seed[] = [
   { key: "fund-submit", title: "Submit the No Excuses Fund application", detail: "Working build on naapp.tech, the problem, what we built, traction, where it's going. Applications close 15 Dec 2026, 23:59 US Pacific; decisions by 15 Jan 2027. Answer their questions within 3 business days (terms 4.4).", status: "todo", horizon: "later", depts: ["growth", "product"], due: "2026-12-08", ...FOUNDER },
 ];
 
+// The funding applications in docs/FUNDING.md (owner, 30 Oct 2026). The No Excuses Fund itself is FUND_BACKLOG's "fund-submit".
+export const FUNDING_APPS_BACKLOG: Seed[] = [
+  { key: "apps-numbers", title: "Funding: fill the [brackets] in docs/FUNDING.md", detail: "Members in Nigeria and Kenya, publishers, paid transactions in the last 90 days (from /admin on the day), your background and LinkedIn, and the latest WAEC and NECO registration figures. Never send a number we can't show.", status: "todo", horizon: "week", depts: ["growth"], due: "2026-11-02", ...FOUNDER },
+  { key: "apps-startup-tech", title: "Apply for naapp.tech at startup.tech (sponsored for 10 years)", detail: "docs/FUNDING.md §2 has the answers. Conditions: naapp.tech becomes our primary domain, in use within 4 months of receiving it, never redirected, parked or resold. The pitch.tech form asks for our .tech domain, so this goes first.", status: "todo", horizon: "week", depts: ["growth", "engineering"], due: "2026-11-06", ...FOUNDER },
+  { key: "apps-pitch-tech", title: "Submit the pitch.tech application (closes 20 Nov 2026)", detail: "docs/FUNDING.md §3: the form's answers and the 470-character problem statement; tick 'I agree to switch to a .tech domain'. If naapp.tech isn't granted yet, use 'Not using a .tech domain? Apply anyway'. Prepare the 3-minute pitch in case we're selected.", status: "todo", horizon: "later", depts: ["growth"], due: "2026-11-18", ...FOUNDER },
+  { key: "apps-emergent-ventures", title: "Apply to Emergent Ventures (Africa & Caribbean)", detail: "docs/FUNDING.md §4: free exam prep written by paid teachers. No deadline, but funds are limited. Decide first whether every Exam Prep question becomes free if the grant comes. Check the form's eligibility for the Africa track.", status: "todo", horizon: "later", depts: ["growth", "product"], due: "2026-11-27", ...FOUNDER },
+];
+
 // Going live with v0.37.0 (the weekly digest, mention bells) and the server-owned writes that follow it.
 export const LAUNCH_BACKLOG: Seed[] = [
   { key: "ops-digest-live", title: "Turn the weekly digest on", detail: "Admin → Weekly digest: Preview, Send me a test, then Turn on. Unsubscribe links are signed with CRON_SECRET unless EMAIL_LINK_SECRET is set. Check the Resend plan first: the free plan is 100 emails a day for everything.", status: "todo", horizon: "week", depts: ["engineering", "product"], due: "2026-10-30" },

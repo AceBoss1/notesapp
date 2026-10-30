@@ -8,7 +8,7 @@ import { GranolaError, askGranola } from "@/lib/granola";
 import { granolaQuestion, onlyNew, parseGranolaSections, suggestFromChat } from "@/lib/meeting-extract";
 import { NanaError } from "@/lib/nana";
 import { rateLimit } from "@/lib/rate-limit";
-import { AGENT_LAYER_BACKLOG, AGENT_SCOPE_DOC, BIMI_BACKLOG, ENGINEERING_BACKLOG, COURSES_BACKLOG, FUND_BACKLOG, LAUNCH_BACKLOG, TOPICS_BACKLOG, LIFE_PARTNER_BACKLOG, PREP_YOUNG_BACKLOG, TIME_BACKLOG, PREP_SCHOOLS_BACKLOG, seedDocOnce, seedOnce } from "@/lib/team-seed";
+import { AGENT_LAYER_BACKLOG, AGENT_SCOPE_DOC, BIMI_BACKLOG, ENGINEERING_BACKLOG, COURSES_BACKLOG, FUND_BACKLOG, FUNDING_APPS_BACKLOG, LAUNCH_BACKLOG, TOPICS_BACKLOG, LIFE_PARTNER_BACKLOG, PREP_YOUNG_BACKLOG, TIME_BACKLOG, PREP_SCHOOLS_BACKLOG, seedDocOnce, seedOnce } from "@/lib/team-seed";
 
 export const dynamic = "force-dynamic";
 const bearer = (req: NextRequest) => req.headers.get("authorization")?.replace(/^Bearer\s+/i, "");
@@ -53,6 +53,7 @@ export async function GET(req: NextRequest) {
       await seedOnce(db, "agent-layer-backlog-2026-10", AGENT_LAYER_BACKLOG, me).catch(() => 0);
       await seedDocOnce(db, "agent-layer-scope-doc-2026-10", AGENT_SCOPE_DOC, me).catch(() => false);
       await seedOnce(db, "no-excuses-fund-2026-10", FUND_BACKLOG, me).catch(() => 0);
+      await seedOnce(db, "funding-apps-2026-10", FUNDING_APPS_BACKLOG, me).catch(() => 0);
       await seedOnce(db, "launch-v037-2026-10", LAUNCH_BACKLOG, me).catch(() => 0);
       await seedOnce(db, "courses-plan-2026-10", COURSES_BACKLOG, me).catch(() => 0);
       await seedOnce(db, "topics-launch-2026-10", TOPICS_BACKLOG, me).catch(() => 0);
