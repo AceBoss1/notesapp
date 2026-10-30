@@ -191,6 +191,12 @@ const ITEMS: { title: string; tag: string; body: string; detail: string; link?: 
     link: { href: "/challenge", label: "See the challenge page for the details →" },
   },
   {
+    title: "Discount codes, referrals and affiliates",
+    tag: "Growth",
+    body: "Discount codes for everyone: #NotesApp's own offers, and codes every publisher can make for their shop, courses and sessions, on every plan. Invite a friend with your link and they get their first month of a plan free; you earn cash (paid from ₦2,000), or NotesApp Credit with a 10% bonus. Any verified member can become an affiliate: 20% of the plan payments of the people they bring, for 12 months, and a share set by the publisher on courses and products they promote.",
+    detail: "Codes are checked by #NotesApp when you pay, so the price is always right, and #NotesApp's commission is worked out on what the buyer actually paid. Rewards are paid once the friend's first payment has gone through, never on your own purchases.",
+  },
+  {
     title: "Payments across Africa",
     tag: "Payments",
     body: "Paystack keeps cards and subscriptions, and stands behind payouts as the backup. Paylony takes bank transfers (your own account number for wallet top-ups and payments) and Tap2Pay. Flutterwave comes as #NotesApp opens in Kenya (from January 2027, with a pilot in December), then Ghana: shilling and cedi prices, M-Pesa and mobile money, and more African currencies after.",
@@ -280,6 +286,7 @@ export default function RoadmapPage() {
               <li>Paylony for real-money payments and payouts, and Tap-to-Pay (CardTap already pays in Notes Life, with game money)</li>
               <li><Link href="/challenge" className="text-crimson underline">#1MillionNairaNotesAppChallenge</Link> for influencers (coming soon)</li>
               <li>iOS and Android apps (being prepared, with NotesApp Inc)</li>
+              <li>Discount codes for #NotesApp and every publisher, referral links (a friend's first month free; cash or Credit with a bonus for you) and affiliates (20% of plan payments for 12 months)</li>
               <li>Payments across Africa: Paylony for bank transfers and Tap2Pay, Flutterwave for Kenya (M-Pesa) first, then Ghana, mobile money and other currencies; Paystack keeps cards and subscriptions</li>
               <li><strong className="text-ink">Paid add-ons for Business and Enterprise, after our internal testing:</strong> the <Link href="/teams" className="text-crimson underline">Team hub</Link> and team messages, company finance tools (runway, acquisition cost, burn, cap table), the investor and partner data room, and advertising on LinkedIn from #NotesApp</li>
               <li>AI notetaker, and your own AI assistant writing drafts through MCP (reading is live)</li>

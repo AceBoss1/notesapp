@@ -11,6 +11,14 @@ export type Release = {
 
 export const CHANGELOG: Release[] = [
   {
+    version: "v0.100.5",
+    bump: "patch",
+    date: "2026-10-30",
+    changes: [
+      { kind: "changed", text: "On the roadmap: discount codes for #NotesApp and every publisher, referral links (a friend's first month of a plan free; cash, or NotesApp Credit with a bonus, for you) and affiliates (20% of the plan payments of the people you bring, for 12 months)." },
+    ],
+  },
+  {
     version: "v0.100.4",
     bump: "patch",
     date: "2026-10-29",
