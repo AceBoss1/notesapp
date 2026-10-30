@@ -12,7 +12,7 @@ Router) on Vercel, Firebase (Auth, Firestore), Cloudflare R2 and Stream, Paystac
 | `docs/DEPLOY.md` | Deploy checklist, where to look when something's wrong, scripts |
 | `docs/ENGINEERING_GUIDE.md` | The founder's guide for the engineering team: principles, the Na- names, the stages and their dashboard triggers, recovery from a breach, Nana and the platform at scale |
 | `docs/ARCHITECTURE.md` | How the newer pieces work: addresses, bells, digest, server-owned writes, shared limits, settings |
-| `docs/DOMAIN_SWITCH.md` | Moving the primary address to notesapp.tech |
+| `docs/DOMAIN_SWITCH.md` | Moving the primary address to naapp.tech |
 | `docs/STAGING.md` | The staging copy and how a release goes |
 | `docs/REFERRALS.md` | Discount codes (#NotesApp and every publisher), referral links and affiliates: the owner's decisions, how plans are billed today, the order of work |
 | `docs/FUNDING.md` | Funding applications (internal drafts): the .tech startup programme for naapp.tech, the pitch.tech answers (due 20 Nov 2026), Emergent Ventures, and a reusable company summary |

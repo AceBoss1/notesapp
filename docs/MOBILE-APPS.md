@@ -9,7 +9,7 @@
 calls). The store apps wrap that same app with **Capacitor**, so every change we ship on the web reaches the apps the same day, with
 no second codebase to keep in step.
 
-The wrapper opens the app address (`app.notesapp.name.ng`, later on `notesapp.tech`) and adds what only a store app can do. Apple
+The wrapper opens the app address (`app.notesapp.name.ng`, later on `naapp.tech`) and adds what only a store app can do. Apple
 turns down apps that are only a website in a frame, so these come in the first release, not later:
 
 | Native piece | Why |
@@ -42,7 +42,7 @@ Check the stores' current rules with the release, since they keep changing.
 2. **Apple Developer Program** as an organisation ($99 a year), in NotesApp Inc's name, with the D-U-N-S number.
 3. **Google Play Console** as an organisation ($25 once), in NotesApp Inc's name.
 4. **Firebase Cloud Messaging and an APNs key** for push (our Firebase project already exists).
-5. **App IDs:** `tech.notesapp.app` on both stores (it follows the notesapp.tech domain we're moving to, `docs/DOMAIN_SWITCH.md`).
+5. **App IDs:** `tech.naapp.app` on both stores (it follows the naapp.tech domain we're moving to, `docs/DOMAIN_SWITCH.md`).
    An app ID can never change after release, so the owner confirms it first.
 
 ## 4. Release steps
@@ -60,7 +60,7 @@ Check the stores' current rules with the release, since they keep changing.
 
 ## 5. Decided (29 October 2026)
 
-1. **App ID:** `tech.notesapp.app` on both stores. The owner is buying notesapp.tech (`docs/DOMAIN_SWITCH.md`); the app opens the
+1. **App ID:** `tech.naapp.app` on both stores. Decided 30 October 2026, with naapp.tech as the primary domain (applied for through the .tech startup programme, `docs/FUNDING.md`; `docs/DOMAIN_SWITCH.md`); the app opens the
    current app address until the switch, then the new one (`server.url` in `mobile/capacitor.config.json`).
 2. **Store name:** "NotesApp", with the line **"Publish. Book. Sell. Connect. Get paid."** Apple's subtitle holds 30 characters,
    so there it is "Publish. Book. Sell. Get paid." (exactly 30) and the full line opens the description and the promotional text;

@@ -15,7 +15,7 @@ export const LEGACY_ROOT_DOMAIN = "notesapp.name.ng";
 export const ROOT_DOMAIN = clean(setting("NEXT_PUBLIC_ROOT_DOMAIN")) || LEGACY_ROOT_DOMAIN;
 // Our domains we know of, so they work without a lookup. A domain added to Vercel later works too: middleware.ts checks it
 // isn't a member's and then treats it as ours.
-const OTHER_ROOTS = [LEGACY_ROOT_DOMAIN, "notesapp.tech"].filter((r) => r !== ROOT_DOMAIN);
+const OTHER_ROOTS = [LEGACY_ROOT_DOMAIN, "naapp.tech"].filter((r) => r !== ROOT_DOMAIN);
 // Short domains that open the app itself (the bare domain and www. act like app.<domain>).
 export const APP_SHORT_DOMAINS = ["notesapp.ng"];
 export const KNOWN_ROOTS = [ROOT_DOMAIN, ...OTHER_ROOTS];

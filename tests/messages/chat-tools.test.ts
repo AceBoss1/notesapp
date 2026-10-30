@@ -69,9 +69,9 @@ assert.ok(isNotesAppEmoji(":football:"));
 assert.equal(emojiAsText("ratio 1:na:2"), "ratio 1#NotesApp2");
 
 // #NotesApp links that get a card: our domains only, the four kinds, not pages like /academy/teach
-const roots = ["notesapp.name.ng", "notesapp.tech"];
+const roots = ["notesapp.name.ng", "naapp.tech"];
 assert.deepEqual(parseCardLink("https://www.notesapp.name.ng/journals/Minding-The-Pay-Gap", roots), { kind: "journal", id: "minding-the-pay-gap" });
-assert.deepEqual(parseCardLink("https://notesapp.tech/shop/AbC_123", roots), { kind: "item", id: "AbC_123" });
+assert.deepEqual(parseCardLink("https://naapp.tech/shop/AbC_123", roots), { kind: "item", id: "AbC_123" });
 assert.deepEqual(parseCardLink("https://app.notesapp.name.ng/academy/excel-everyday/", roots), { kind: "course", id: "excel-everyday" });
 assert.deepEqual(parseCardLink("https://www.notesapp.name.ng/u/Emmanuel?ref=x", roots), { kind: "profile", id: "emmanuel" });
 assert.equal(parseCardLink("https://www.notesapp.name.ng/academy/teach", roots), null);
