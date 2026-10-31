@@ -37,6 +37,7 @@ const FEATURES = [
   { title: "Native booking calendar", copy: "Built into your profile page, running on your own weekly availability. No redirect, no second login — and clients can cancel or reschedule under a clear refund policy." },
   { title: "Your rates, your payouts", copy: "Set your own session price and monthly subscription price. Paystack collects in Naira; earnings are paid to your verified bank account after each session." },
   { title: "Booking confirmations & reminders", copy: "Email confirmations and 24-hour and 1-hour reminders are live today. WhatsApp reminders are coming next." },
+  { title: "Coupons, and Nana picks the best", copy: "Shops show coupons and share them as cards; save the ones you like to My coupons, and at every checkout Nana applies the one that saves you the most." },
   { title: "Referrals and affiliates", copy: "Share your link or your code: friends get their first month of a plan free and you earn 20% of their plan payments for a year. Or pick products from the affiliate marketplace, promote them to your audience and earn the publisher's share of each sale, as cash or as Credit with 10% more." },
   { title: "Boost a post or a store item", copy: "Put a post or a product in front of more readers. You pay only for validated impressions, delivered over several days — undelivered ones are refunded." },
   { title: "Gifts", copy: "Readers can send you a gift with Gift me on your profile, or on any single post — from ₦200 up to ₦500,000, with a note if they like. Add your payout account and the button switches on." },

@@ -3,6 +3,7 @@
 import AppLink, { useAppPush } from "@/components/AppLink";
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import CouponStrip from "@/components/CouponStrip";
 import { useParams } from "next/navigation";
 import { onAuthStateChanged, User } from "firebase/auth";
 import { collection, doc, getDocs, getDoc, limit, query, where } from "firebase/firestore";
@@ -220,6 +221,7 @@ export default function ShopItemPage() {
             </div>
           )}
           <p className="mt-4 font-mono text-2xl text-crimson-bright">{formatNaira(unit)}</p>
+          {seller && <CouponStrip seller={seller.username} itemId={itemId} className="mt-3" />}
           <ul className="mt-3 space-y-1 text-sm text-slate">
             {!digital && <li>📍 {item.shipsFrom ? <>Ships from <strong className="text-ink">{item.shipsFrom}</strong></> : "Ships from: the seller will confirm after your order"}</li>}
             {!digital && <li>🚚 {ship?.carrier ? <>{formatNaira(delivery)} delivery by <strong className="text-ink">{ship.carrier.name}</strong> to {addr.city || addr.state}</> : partnerName ? <>Delivered by <strong className="text-ink">{partnerName}</strong>: the price shows when you enter your address</> : delivery ? `${formatNaira(delivery)} delivery` : "Delivery arranged by the seller"}</li>}

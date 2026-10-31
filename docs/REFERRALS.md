@@ -1,6 +1,6 @@
 # Discount codes, referrals and affiliates
 
-> Status: **built (30 October 2026): discount codes in v0.101.0, referral links and affiliates in v0.102.0, codes on plans and referral codes in v0.103.0** (§8). One discount engine on the server, used by #NotesApp
+> Status: **built (30 October 2026): discount codes in v0.101.0, referral links and affiliates in v0.102.0, codes on plans and referral codes in v0.103.0, coupons and Nana's pick in v0.104.0** (§8). One discount engine on the server, used by #NotesApp
 > for its own products and by every publisher for theirs; referral links and affiliates sit on top of it.
 
 ## 1. What's decided
@@ -135,4 +135,11 @@ How it stays safe:
 - **Referral codes (v0.103.0):** a member's code is their username. Typed at a plan's checkout (or "Apply"), a code that isn't
   #NotesApp's is tried as a referral code (`referralByCode`), which records the referral the same way the link does; the first
   referral recorded wins.
-- **Not yet:** codes in shillings and cedi, and bulk codes for schools and organisations (§7, step 4).
+- **Coupons (v0.104.0):** a code can be shown in its owner's shop (`showInShop`; for #NotesApp's codes, offered at its checkouts),
+  shared as a card (`/coupon/<username>/<CODE>`, picture at `/api/coupons/card`), saved by buyers (`savedCoupons`, My coupons), and
+  shared by affiliates as their own (`allowAffiliates`: `<USERNAME>-<CODE>` gives the same discount and makes that member the sale's
+  affiliate, ahead of a link). At every checkout `bestCoupon` (Nana's pick) applies the coupon that takes the most off, from the
+  buyer's saved ones and the ones on show; the buyer can remove it. A store's code only works in its store: another store's code (or
+  a #NotesApp code in a store) says so.
+- **Not yet (step 4, §7):** codes in shillings and cedi, and bulk codes for schools and organisations. The owner decided on 30 October
+  2026 to leave step 4 until we launch in Kenya and Ghana.

@@ -14,6 +14,7 @@ const LINKS = [
   { href: "/bookings", label: "Bookings" },
   { href: "/profile/inventory", label: "Inventory" },
   { href: "/profile/discounts", label: "Discount codes" },
+  { href: "/profile/coupons", label: "My coupons" },
   { href: "/profile/referrals", label: "Referrals" },
   { href: "/boost", label: "Boost", exact: true },
   ...(WALLET_LIVE ? [{ href: "/profile/wallet", label: "Wallet" }] : []),

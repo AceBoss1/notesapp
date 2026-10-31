@@ -32,11 +32,13 @@ export async function POST(req: NextRequest) {
     if (target === "plan") {
       const tier = b.tier === "business" ? "business" : "pro", interval = b.interval === "annually" ? "annually" : "monthly";
       const price = tierPrice(tier, interval) ?? 0, month = tierPrice(tier, "monthly") ?? 0;
+      let notOurs: DiscountError | null = null;
       try {
         const r = await applyCode(db, NOTESAPP_OWNER, b.code, me.uid, { target: "plan", subtotalKobo: price, itemId: tier });
         return NextResponse.json({ code: r.code.code, discountKobo: r.discountKobo, label: `${describeCode(r.code)} your first ${interval === "monthly" ? "month" : "year"}` });
       } catch (e) {
         if (!(e instanceof DiscountError && e.status === 404)) throw e;
+        notOurs = e;
       }
       try {
         const ref = await referralByCode(db, me.uid, b.code);
@@ -45,7 +47,7 @@ export async function POST(req: NextRequest) {
           label: interval === "monthly" ? `@${ref.username} invited you: first month free (a ₦100 card check, given back)` : `@${ref.username} invited you: one month off your first year`,
         });
       } catch (e) {
-        if (e instanceof ReferralError) return NextResponse.json({ error: e.message }, { status: e.status });
+        if (e instanceof ReferralError) return NextResponse.json({ error: e.status === 404 && notOurs ? notOurs.message : e.message }, { status: e.status });
         throw e;
       }
     }
@@ -55,7 +57,7 @@ export async function POST(req: NextRequest) {
       ...(typeof b.itemId === "string" ? { itemId: b.itemId } : {}),
       ...(Array.isArray(b.itemIds) ? { itemIds: b.itemIds.map(String) } : {}),
     } as Parameters<typeof applyCode>[4]);
-    return NextResponse.json({ code: r.code.code, discountKobo: r.discountKobo, label: describeCode(r.code) });
+    return NextResponse.json({ code: String(b.code).trim().toUpperCase(), discountKobo: r.discountKobo, label: describeCode(r.code) + (r.affiliate ? ` · shared by @${r.affiliate.username}` : "") });
   } catch (e) {
     if (e instanceof DiscountError) return NextResponse.json({ error: e.message }, { status: e.status });
     console.error("discount check", e);
