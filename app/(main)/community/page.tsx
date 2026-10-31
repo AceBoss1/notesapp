@@ -31,7 +31,7 @@ export default function CommunityPage() {
             </li>
           ))}
           <li id="live" className="card p-4"><strong className="text-ink">Live</strong><p className="mt-1 text-slate">An event carries a Join live link to YouTube Live, Facebook Live, Zoom or Google Meet, shown only to that event&apos;s audience. Our own live streaming comes later, as a paid add-on.</p></li>
-          <li id="giving" className="card p-4"><strong className="text-ink">Giving (later)</strong><p className="mt-1 text-slate">Offerings, tithes and campaigns with a goal, paid out to your organisation&apos;s verified bank account. Charges like a bank transfer, and cheaper from the NotesApp wallet.</p></li>
+          <li id="giving" className="card p-4"><strong className="text-ink">Giving</strong><p className="mt-1 text-slate">Switch it on under Admin and name your funds (Tithe, Offering, Building fund). Members give with a Give button and get a receipt; you see the gifts and totals per fund. Charges like a bank transfer (₦10 up to ₦5,000, ₦25 up to ₦50,000, ₦50 above, plus the card charge at cost by card; cheaper from the NotesApp wallet), no commission, and givers can cover them. Paid out to your verified bank account a day later, in one run. Each gift is capped at ₦20,000 until your community is verified.</p></li>
         </ul>
 
         <h2 className="mt-12 font-display text-2xl text-ink">On your own site</h2>
