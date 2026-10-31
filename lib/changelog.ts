@@ -21,6 +21,15 @@ export const CHANGELOG: Release[] = [
     ],
   },
   {
+    version: "v0.105.0",
+    bump: "minor",
+    date: "2026-10-30",
+    changes: [
+      { kind: "added", text: "Quizzes on Notes Academy courses: tutors can add a quiz lesson to any course, free or paid. Write multiple-choice questions (2 to 6 answers each), tick the right answer, add an explanation if you like, and set the pass mark (70% unless you change it)." },
+      { kind: "added", text: "Learners answer a quiz and get it marked straight away: the score, whether they passed, the right answer to each question and the tutor's explanation. They can try again as often as they like, and the quiz lesson is ticked off once they pass, so finishing the course (and the certificate) follows." },
+    ],
+  },
+  {
     version: "v0.104.0",
     bump: "minor",
     date: "2026-10-30",

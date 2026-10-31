@@ -6,8 +6,8 @@ import { AcademyIcon } from "@/components/shell/icons";
 import { remark } from "remark";
 import html from "remark-html";
 import { remarkLinkify } from "@/lib/linkify";
-import { fetchLesson, useCourse, type LessonContent } from "@/lib/courses-client";
-import { courseHref, durationLabel, isPaid, lessonHref, nairaLabel, progressOf, youtubeEmbed, type Lesson } from "@/lib/courses";
+import { fetchLesson, submitQuiz, useCourse, type LessonContent } from "@/lib/courses-client";
+import { courseHref, durationLabel, isPaid, lessonHref, nairaLabel, plural, progressOf, youtubeEmbed, type Enrolment, type Lesson, type Quiz, type QuizGrade } from "@/lib/courses";
 import { deviceLabel, getDeviceId } from "@/lib/device";
 import dynamic from "next/dynamic";
 import type { User } from "firebase/auth";
@@ -19,7 +19,8 @@ const PdfViewer = dynamic(() => import("@/components/PdfViewer"), { ssr: false, 
 // /academy/<slug>/<lessonId>: one lesson. A YouTube video plays in YouTube's privacy-enhanced player and an uploaded video (paid
 // courses) in Cloudflare Stream's, with the viewer's @username and email drifting faintly across it; each is ticked off by itself
 // once the learner has watched about 90% of it, and "Mark as done" is always there too. A text lesson ends with the button; a PDF
-// opens in the page's own viewer. A free course's lessons come straight from Firestore; a paid course's (and any upload) from
+// opens in the page's own viewer. A quiz is answered here and marked by the server (POST /api/academy/quiz): it's ticked off only
+// once the learner passes, and they see what they got wrong, with the right answers and the tutor's explanations. A free course's lessons come straight from Firestore; a paid course's (and any upload) from
 // POST /api/academy/lesson, which opens free previews to anyone and the rest to buyers on up to two devices. The course's lessons
 // sit beside the player on a computer and below it on a phone.
 export default function LessonPlayer({ slug, lessonId }: { slug: string; lessonId: string }) {
@@ -56,6 +57,7 @@ export default function LessonPlayer({ slug, lessonId }: { slug: string; lessonI
   }
   const mark = (on: boolean) => act(() => c.mark(lesson.id, on));
   const watched = enrolment && !done ? () => { void c.mark(lesson.id, true).catch(() => {}); } : undefined;
+  const quizProps = { courseId: course.id, lessonId: lesson.id, canSubmit: !!enrolment && inCourse, passed: done, onPassed: c.took };
   const back = `/academy/${slug}/${lesson.id}`;
   const joinBox = paid ? (
     <div className="card p-5">
@@ -85,7 +87,8 @@ export default function LessonPlayer({ slug, lessonId }: { slug: string; lessonI
         <div className="mt-4 grid gap-8 lg:grid-cols-[1fr_340px]">
           <div className="min-w-0">
             {!open ? joinBox
-              : remote ? <RemoteLesson key={lesson.id} user={user} courseId={course.id} lesson={lesson} onWatched={watched} />
+              : remote ? <RemoteLesson key={lesson.id} user={user} courseId={course.id} lesson={lesson} onWatched={watched} quizProps={quizProps} />
+              : lesson.kind === "quiz" && lesson.quiz ? <QuizLesson key={lesson.id} quiz={lesson.quiz} {...quizProps} />
               : lesson.kind === "youtube" && lesson.youtubeId ? <YouTubeLesson key={lesson.id} videoId={lesson.youtubeId} onWatched={watched} />
               : <TextLesson key={lesson.id} body={lesson.body ?? ""} />}
 
@@ -96,6 +99,7 @@ export default function LessonPlayer({ slug, lessonId }: { slug: string; lessonI
               <div className="mt-5 flex flex-wrap items-center gap-3">
                 {done
                   ? <><span className="inline-flex items-center gap-2 rounded-full bg-emerald-50 px-4 py-2 font-ui text-sm font-semibold text-emerald-800">✓ Done</span><button onClick={() => mark(false)} disabled={busy} className="text-sm text-slate underline hover:text-ink">Mark as not done</button></>
+                  : lesson.kind === "quiz" ? <span className="text-sm text-slate">Pass the quiz to tick this lesson off.</span>
                   : <button onClick={() => mark(true)} disabled={busy} className="btn-primary !py-2.5 disabled:opacity-50">{busy ? "Saving…" : "Mark as done"}</button>}
                 {(lesson.kind === "youtube" || lesson.kind === "video") && !done && <span className="text-xs text-slate">Ticked off by itself once you&apos;ve watched most of the video.</span>}
               </div>
@@ -130,7 +134,8 @@ export default function LessonPlayer({ slug, lessonId }: { slug: string; lessonI
 }
 
 // ---- lessons opened through the server: paid courses, and uploads ----
-function RemoteLesson({ user, courseId, lesson, onWatched }: { user: User | null | undefined; courseId: string; lesson: Lesson; onWatched?: () => void }) {
+type QuizProps = { courseId: string; lessonId: string; canSubmit: boolean; passed: boolean; onPassed: (e: Enrolment) => void };
+function RemoteLesson({ user, courseId, lesson, onWatched, quizProps }: { user: User | null | undefined; courseId: string; lesson: Lesson; onWatched?: () => void; quizProps: QuizProps }) {
   const [got, setGot] = useState<LessonContent | null>(null);
   const [fail, setFail] = useState<{ message: string; devices?: { id: string; label: string; lastAt: string }[]; ref?: string } | null>(null);
   const [tries, setTries] = useState(0);
@@ -175,6 +180,7 @@ function RemoteLesson({ user, courseId, lesson, onWatched }: { user: User | null
   const mark = got.watermark ? [got.watermark.username, got.watermark.email].filter(Boolean).join(" · ") : "";
   if (got.kind === "video" && got.playerUrl) return <StreamLesson src={got.playerUrl} watermark={mark} onWatched={onWatched} />;
   if (got.kind === "youtube" && got.youtubeId) return <YouTubeLesson videoId={got.youtubeId} onWatched={onWatched} />;
+  if (got.kind === "quiz" && got.quiz) return <QuizLesson quiz={got.quiz} {...quizProps} />;
   if (got.kind === "pdf") {
     const load = async () => {
       const r = await fetch("/api/academy/lesson", { method: "POST", headers: { "Content-Type": "application/json", ...(user ? { Authorization: `Bearer ${await user.getIdToken()}` } : {}) }, body: JSON.stringify({ courseId, lessonId: lesson.id, deviceId: getDeviceId(), deviceLabel: deviceLabel(), bytes: true }) });
@@ -226,6 +232,65 @@ function StreamLesson({ src, watermark, onWatched }: { src: string; watermark: s
       )}
       <button type="button" aria-label="Full screen" onClick={() => { const el = box.current; if (!el) return; if (document.fullscreenElement) void document.exitFullscreen(); else void el.requestFullscreen?.(); }}
         className="absolute right-2 top-2 rounded-full bg-black/45 px-2.5 py-1 font-ui text-xs font-bold text-white hover:bg-black/70">⛶</button>
+    </div>
+  );
+}
+
+// ---- quizzes: pick one answer per question, submit, see the score and what was right ----
+function QuizLesson({ quiz, courseId, lessonId, canSubmit, passed, onPassed }: { quiz: Quiz } & QuizProps) {
+  const [picked, setPicked] = useState<(number | null)[]>(() => quiz.questions.map(() => null));
+  const [grade, setGrade] = useState<QuizGrade | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+  const left = picked.filter((x) => x === null).length;
+  async function send() {
+    if (left) return setError(`Answer every question first (${plural(left, "question")} left).`);
+    setBusy(true); setError("");
+    try {
+      const r = await submitQuiz(courseId, lessonId, picked as number[]);
+      setGrade(r.grade);
+      if (r.grade.passed) onPassed(r.enrolment);
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    } catch (e) { setError(e instanceof Error ? e.message : "Couldn't mark your quiz."); } finally { setBusy(false); }
+  }
+  const again = () => { setGrade(null); setPicked(quiz.questions.map(() => null)); setError(""); };
+  return (
+    <div className="rounded-2xl border border-rule bg-card p-5 sm:p-8">
+      {grade ? (
+        <div className={`rounded-xl p-4 ${grade.passed ? "bg-emerald-50" : "bg-crimson/[0.06]"}`}>
+          <p className={`font-display text-2xl ${grade.passed ? "text-emerald-800" : "text-crimson"}`}>{grade.passed ? "Passed" : "Not yet"} · {grade.percent}%</p>
+          <p className="mt-1 text-sm text-ink">{grade.correct} of {grade.total} right. The pass mark is {grade.passPercent}%.{grade.passed ? " This lesson is ticked off." : " Read the explanations below, then try again."}</p>
+          <button type="button" onClick={again} className="btn-ghost mt-3 !py-2 text-sm">Try again</button>
+        </div>
+      ) : (
+        <p className="text-sm text-slate">{plural(quiz.questions.length, "question")} · pass mark {quiz.passPercent}%{passed ? " · you've passed this quiz already" : ""}. Choose one answer for each.</p>
+      )}
+      <ol className="mt-5 space-y-5">
+        {quiz.questions.map((q, i) => {
+          const r = grade?.results[i];
+          return (
+            <li key={q.id || i} className={r ? `rounded-xl border p-3 ${r.correct ? "border-emerald-200" : "border-crimson/30"}` : ""}>
+              <p className="font-ui text-base font-semibold text-ink"><span className="mr-1 text-crimson-bright">{i + 1}.</span> <span className="whitespace-pre-line">{q.prompt}</span>{r && <span className={`ml-2 text-sm ${r.correct ? "text-emerald-700" : "text-crimson"}`}>{r.correct ? "✓ Right" : "✗ Wrong"}</span>}</p>
+              <div className="mt-2 space-y-1.5">
+                {q.options.map((o, k) => {
+                  const right = r && r.answer === k, wrongPick = r && !r.correct && picked[i] === k;
+                  return (
+                    <label key={k} className={`flex cursor-pointer items-start gap-2 rounded-lg border px-3 py-2 text-sm ${right ? "border-emerald-300 bg-emerald-50" : wrongPick ? "border-crimson/40 bg-crimson/[0.05]" : picked[i] === k ? "border-crimson" : "border-rule"} ${grade ? "cursor-default" : "hover:border-crimson"}`}>
+                      <input type="radio" name={`q-${lessonId}-${i}`} checked={picked[i] === k} disabled={!!grade || busy} onChange={() => setPicked((p) => p.map((x, j) => (j === i ? k : x)))} className="mt-0.5 h-4 w-4 shrink-0 accent-crimson" />
+                      <span className="text-ink">{o}{right ? <b className="ml-1 text-emerald-700">· right answer</b> : wrongPick ? <span className="ml-1 text-crimson">· your answer</span> : null}</span>
+                    </label>
+                  );
+                })}
+              </div>
+              {r?.explain && <p className="mt-2 whitespace-pre-line rounded-lg bg-paper px-3 py-2 text-sm text-slate">{r.explain}</p>}
+            </li>
+          );
+        })}
+      </ol>
+      {!grade && (canSubmit
+        ? <button type="button" onClick={send} disabled={busy} className="btn-primary mt-6 !py-2.5 disabled:opacity-50">{busy ? "Marking…" : "Submit answers"}</button>
+        : <p className="mt-6 text-sm text-slate">Enrol in the course to submit your answers and get them marked.</p>)}
+      {error && <p className="mt-3 text-sm text-crimson">{error}</p>}
     </div>
   );
 }
