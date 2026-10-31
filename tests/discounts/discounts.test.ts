@@ -1,7 +1,7 @@
 // Discount codes (lib/discounts.ts): what a code takes off, when it can't be used, and how a basket shares it.
 // Run: npm run test:discounts → "DISCOUNTS OK".
 import assert from "node:assert/strict";
-import { DiscountError, MIN_PAYABLE_KOBO, cleanCodeInput, codeId, describeCode, discountFor, normalizeCode, spreadDiscount, type DiscountCode, type DiscountTarget } from "../../lib/discounts";
+import { DiscountError, MIN_PAYABLE_KOBO, cleanCodeInput, codeId, describeCode, discountFor, normalizeCode, spreadDiscount, type DiscountCode, type DiscountTarget, affiliateCodeSplits, affiliateCode, couponOpen, couponPath, publicCoupon } from "../../lib/discounts";
 
 const base: DiscountCode = {
   id: "shop_SAVE10", owner: "shop", code: "SAVE10", kind: "percent", percent: 10, targets: ["store", "digital"], itemIds: [],
@@ -51,4 +51,21 @@ bad({ percent: 95 }, /from 1 to 90/);
 bad({ kind: "amount", amountKobo: 5_050, percent: undefined }, /whole naira/);
 bad({ targets: ["boost"] }, /what the code works on/);
 bad({ startsAt: "2026-12-01", endsAt: "2026-11-01" }, /after the start/);
+// coupons (step 3)
+{
+  assert.deepEqual(affiliateCodeSplits("tolu-amaka10"), [{ username: "tolu", code: "AMAKA10" }]);
+  assert.deepEqual(affiliateCodeSplits("ada-obi-SALE-10").map((x) => x.username), ["ada", "ada-obi"], "every split that leaves a valid code (10 is too short)");
+  assert.deepEqual(affiliateCodeSplits("AMAKA10"), [], "no dash, no affiliate");
+  assert.equal(affiliateCode("tolu", "amaka10"), "TOLU-AMAKA10");
+  assert.equal(couponPath("stylebyamaka", "amaka10"), "/coupon/stylebyamaka/AMAKA10");
+  const base = { id: "x_C", owner: "x", code: "C10", kind: "percent" as const, percent: 10, targets: ["store" as const], perBuyer: 1, active: true, uses: 3, discountGivenKobo: 0, revenueKobo: 0, createdAt: "", createdBy: "", updatedAt: "" };
+  const now = new Date("2026-11-01T00:00:00Z");
+  assert.equal(couponOpen(base, now), true);
+  assert.equal(couponOpen({ ...base, active: false }, now), false);
+  assert.equal(couponOpen({ ...base, maxUses: 3 }, now), false, "used up");
+  assert.equal(couponOpen({ ...base, endsAt: "2026-10-31T23:59:59Z" }, now), false, "ended");
+  assert.equal(couponOpen({ ...base, startsAt: "2026-11-02T00:00:00Z" }, now), false, "not yet");
+  const pc = publicCoupon(base, "amaka");
+  assert.equal(pc.label, "10% off"); assert.ok(!("uses" in pc), "never the counts");
+}
 console.log("DISCOUNTS OK");

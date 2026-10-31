@@ -27,7 +27,7 @@ const rejects = (p: Promise<unknown>, re: RegExp) => assert.rejects(p, (e: unkno
 
   // where it can't be used
   await rejects(applyCode(db, "shop", "AMAKA10", "shop", { target: "store", subtotalKobo: 3_500_000 }), /your own code/);
-  await rejects(applyCode(db, "notesapp", "AMAKA10", "buyer", { target: "boost", subtotalKobo: 500_000 }), /isn't valid here/);
+  await rejects(applyCode(db, "notesapp", "AMAKA10", "buyer", { target: "boost", subtotalKobo: 500_000 }), /from a store on #NotesApp/);
   await rejects(applyCode(db, "shop", "NOPE", "buyer", { target: "store", subtotalKobo: 3_500_000 }), /isn't valid here/);
   await rejects(applyCode(db, "shop", "AMAKA10", "buyer", { target: "course", subtotalKobo: 3_500_000 }), /doesn't work on this/);
 
@@ -87,7 +87,7 @@ const rejects = (p: Promise<unknown>, re: RegExp) => assert.rejects(p, (e: unkno
   // #NotesApp's own codes work only on our products
   await saveCode(db, "notesapp", "staff", { create: true, code: "BOOST20", kind: "percent", percent: 20, targets: ["boost", "nana_credit"] });
   assert.equal((await applyCode(db, "notesapp", "boost20", "buyer", { target: "boost", subtotalKobo: 500_000 })).discountKobo, 100_000);
-  await rejects(applyCode(db, "shop", "BOOST20", "buyer", { target: "store", subtotalKobo: 500_000 }), /isn't valid here/);
+  await rejects(applyCode(db, "shop", "BOOST20", "buyer", { target: "store", subtotalKobo: 500_000 }), /#NotesApp coupon, for #NotesApp's own products\. Input a coupon from this store/);
   console.log("DISCOUNTS SERVER OK");
   process.exit(0);
 })().catch((e) => { console.error(e); process.exit(1); });

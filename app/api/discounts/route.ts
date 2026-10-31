@@ -33,8 +33,9 @@ export async function GET(req: NextRequest) {
   try {
     const { owner } = await ownerFor(req, req.nextUrl.searchParams.get("owner"));
     const db = getAdminDb();
-    const [codes, uses] = await Promise.all([listCodes(db, owner), recentUses(db, owner)]);
-    return NextResponse.json({ codes, uses }, { headers: { "Cache-Control": "no-store" } });
+    const [codes, uses, username] = await Promise.all([listCodes(db, owner), recentUses(db, owner),
+      owner === "notesapp" ? Promise.resolve("") : db.doc(`users/${owner}`).get().then((d) => String(d.data()?.username ?? ""))]);
+    return NextResponse.json({ codes, uses, username }, { headers: { "Cache-Control": "no-store" } });
   } catch (e) { return fail(e); }
 }
 

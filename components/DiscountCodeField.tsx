@@ -1,12 +1,18 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { onAuthStateChanged } from "firebase/auth";
 import { api } from "@/lib/moments-client";
+import { auth } from "@/lib/firebase";
 import { naira, type DiscountTarget } from "@/lib/discounts";
 
 // "Have a discount code?" at a checkout (lib/discounts.ts). Apply checks the code with the server and shows what it takes off;
 // the checkout then sends the code along and the server prices the order itself. onChange(null) when the code is removed.
-export default function DiscountCodeField({ target, seller, itemId, itemIds, subtotalKobo, extraKobo, plan, onDark = false, onChange, className = "" }: {
+// Nana's pick: on any checkout, the coupon that takes the most off (the buyer's saved coupons and the ones on show, for this
+// seller or #NotesApp; /api/coupons/best) is applied for them, marked as Nana's, and worked out again when the order changes.
+// Removing it keeps it off; a code the buyer types always wins.
+type Applied = { code: string; discountKobo: number; label: string; nana?: boolean };
+export default function DiscountCodeField({ target, seller, itemId, itemIds, subtotalKobo, extraKobo, plan, onDark = false, autoPick = true, onChange, className = "" }: {
   target: DiscountTarget;
   seller?: string; // the publisher's username, for their products
   itemId?: string;
@@ -15,6 +21,7 @@ export default function DiscountCodeField({ target, seller, itemId, itemIds, sub
   extraKobo?: number;
   plan?: { tier: "pro" | "business"; interval: "monthly" | "annually" }; // a plan's checkout: the server prices it, and takes members' referral codes too
   onDark?: boolean; // on a dark panel (the pricing table): light text
+  autoPick?: boolean; // false where something better already applies (a referred friend's free month)
   onChange: (applied: { code: string; discountKobo: number } | null) => void;
   className?: string;
 }) {
@@ -22,22 +29,45 @@ export default function DiscountCodeField({ target, seller, itemId, itemIds, sub
   const [text, setText] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
-  const [applied, setApplied] = useState<{ code: string; discountKobo: number; label: string } | null>(null);
+  const [applied, setApplied] = useState<Applied | null>(null);
+  const [dismissed, setDismissed] = useState(false); // the buyer removed Nana's pick
+  const [signedIn, setSignedIn] = useState(false);
+  useEffect(() => onAuthStateChanged(auth, (u) => setSignedIn(!!u)), []);
+  const basket = (itemIds ?? []).join(",");
+  const manual = !!applied && !applied.nana;
+  useEffect(() => {
+    if (!signedIn || !autoPick || dismissed || manual || (!plan && subtotalKobo <= 0)) return;
+    let gone = false;
+    api<{ best: { code: string; discountKobo: number; label: string; source: string } | null }>("/api/coupons/best", {
+      body: { seller, target, itemId, itemIds: basket ? basket.split(",") : undefined, subtotalKobo, extraKobo, ...plan },
+    }).then((r) => {
+      if (gone) return;
+      if (r.best) {
+        setApplied({ code: r.best.code, discountKobo: r.best.discountKobo, label: `${r.best.label} · Nana's pick${r.best.source === "saved" ? " from your coupons" : ""}`, nana: true });
+        onChange({ code: r.best.code, discountKobo: r.best.discountKobo });
+      } else {
+        setApplied((a) => { if (a?.nana) onChange(null); return a?.nana ? null : a; });
+      }
+    }).catch(() => {});
+    return () => { gone = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [signedIn, autoPick, dismissed, manual, seller, target, itemId, basket, subtotalKobo, extraKobo, plan?.tier, plan?.interval]);
 
-  async function apply() {
-    if (!text.trim()) return;
+  async function apply(codeText = text) {
+    if (!codeText.trim()) return;
     setBusy(true); setError("");
     try {
       const r = await api<{ code: string; discountKobo: number; label: string }>("/api/discounts/check", {
-        body: { code: text, target, seller, itemId, itemIds, subtotalKobo, extraKobo, ...plan },
+        body: { code: codeText, target, seller, itemId, itemIds, subtotalKobo, extraKobo, ...plan },
       });
       setApplied(r);
       onChange({ code: r.code, discountKobo: r.discountKobo });
     } catch (e) {
       setError(e instanceof Error ? e.message : "That code didn't work.");
+      setOpen(true);
     } finally { setBusy(false); }
   }
-  function remove() { setApplied(null); setText(""); onChange(null); }
+  function remove() { if (applied?.nana) setDismissed(true); setApplied(null); setText(""); onChange(null); }
 
   if (applied && onDark) {
     return (
@@ -63,9 +93,9 @@ export default function DiscountCodeField({ target, seller, itemId, itemIds, sub
     <div className={className}>
       <div className="flex gap-2">
         <input value={text} onChange={(e) => { setText(e.target.value.toUpperCase()); setError(""); }} onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); void apply(); } }}
-          placeholder={plan ? "Discount or referral code" : "Discount code"} aria-label="Discount code" maxLength={plan ? 30 : 20} autoCapitalize="characters"
+          placeholder={plan ? "Discount or referral code" : "Discount code"} aria-label="Discount code" maxLength={40} autoCapitalize="characters"
           className="min-w-0 flex-1 rounded-lg border border-rule bg-card px-3 py-2 font-mono text-sm uppercase text-ink outline-none focus:border-crimson" />
-        <button type="button" onClick={apply} disabled={busy || !text.trim()} className="rounded-lg bg-crimson px-4 py-2 font-ui text-sm font-semibold text-white disabled:opacity-50">{busy ? "Checking…" : "Apply"}</button>
+        <button type="button" onClick={() => apply()} disabled={busy || !text.trim()} className="rounded-lg bg-crimson px-4 py-2 font-ui text-sm font-semibold text-white disabled:opacity-50">{busy ? "Checking…" : "Apply"}</button>
       </div>
       {error && <p className={`mt-1 text-xs ${onDark ? "text-paper" : "text-crimson"}`} role="alert">{error}</p>}
     </div>
