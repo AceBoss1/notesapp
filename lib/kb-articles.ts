@@ -340,6 +340,8 @@ Calls are free. Planned: paid calls inside Notes Life (₦5 a minute voice, ₦1
       : []),
     ...(LIFE_LIVE
       ? [A("notes-life", "Notes Life: the NotesApp life game", "Publishing and earning", `
+**Slow or freezing?** Tap **HD** at the top of the game to switch to **LOW RES** (or **Settings → Low res**): fewer pixels, no shadows and at most 30 frames a second, so the game stays smooth on computers with big screens and modest graphics. It's remembered on that device; tap again for the full look.
+
 **Notes Life** is a free life game you play in your browser with your NotesApp account, at [${LIFE_HOST}](${LIFE_URL}) or [Play Notes Life](/life/play). The first playable version is set in **Wuse, Abuja**. Lagos and Port Harcourt come later.
 
 **Starting out:** you begin on day 1 with **N$ 100,000** (Notesville Naira) in a room with sage walls: a bed, a bedside lamp and a deal phone, a wardrobe, a WC and bath, a desk with an old big desktop, a standing fan, a bicycle and the maroon NotesApp rug. Rent is **N$ 60,000 every 30 game days**, paid to your landlord, Alhaji Bello. It is taken automatically when it falls due; if you can't pay, it waits as rent owed until you can.
