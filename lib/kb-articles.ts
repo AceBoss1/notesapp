@@ -81,7 +81,7 @@ Start at [Journals](/journals) to look around, or [create a free account](/signu
 
 **Fair play:** there's no monthly cap. If someone's earnings jump suddenly, our team checks before they're paid, and links used to refer yourself or fake accounts are taken back.
 `),
-    A("discount-codes", "Discount codes", "Publishing and earning", `
+    A("discount-codes", "Discount codes and coupons", "Publishing and earning", `
 **Make a code for your own products (every plan):** go to **Account → Discount codes** ([/profile/discounts](/profile/discounts)) and choose **New code**.
 - **The code:** 3 to 20 letters, numbers or dashes, like \`WELCOME10\`. Buyers type it at checkout; capitals don't matter.
 - **The discount:** a percentage (1% to 90%) or a naira amount off.
@@ -96,7 +96,18 @@ You see how many times each code was used, how much it took off and what buyers 
 
 **Using a code as a buyer:** at checkout choose **Have a discount code?**, type it and **Apply**. You see what it takes off before you pay; the price is checked again when you pay. #NotesApp's own codes work on boosts, Nana credit, merch and the logistics and inventory add-ons.
 
-**Codes on Pro and Business:** on the pricing page, choose **Have a discount code?** under the plan. A #NotesApp plan code takes its discount off your first payment (a month or a year, whichever you choose); the plan then renews at its usual price on the same card. You can also type a member's referral code there (see Referrals and affiliates). One code per order.`),
+**Codes on Pro and Business:** on the pricing page, choose **Have a discount code?** under the plan. A #NotesApp plan code takes its discount off your first payment (a month or a year, whichever you choose); the plan then renews at its usual price on the same card. You can also type a member's referral code there (see Referrals and affiliates). One code per order.
+
+**Coupons:** a code can also be a coupon.
+- **In your shop:** tick **Show it as a coupon in my shop** on a code. Buyers see it on your shop and product pages and can **Save** it.
+- **As a card:** **Share** on a code gives a link whose preview is the coupon's card (good for WhatsApp and Instagram). Whoever opens it can save it, copy the code, or go straight to your shop.
+- **For affiliates:** tick **Affiliates can share it**. Each affiliate then has their own version on the affiliate marketplace, like \`TOLU-AMAKA10\`: buyers get the same discount, and the affiliate earns your affiliate share on what they sell.
+
+**Nana's pick:** at checkout, Nana applies the coupon that takes the most off: from the coupons you saved (**Account → My coupons**) and the ones the store offers. It shows as Nana's pick; remove it or type another code if you like.
+
+**Coupons ending soon:** when a coupon in My coupons ends within 3 days, your bell tells you once a day, and a bar under the header reminds you the first time you open #NotesApp each day and whenever you sign in.
+
+**One store, its own coupons:** a store's coupon only works in that store. Type another store's coupon (or a #NotesApp coupon in a store) and you'll see "Input a coupon from this store."`),
     A("create-an-account", "Creating an account", "Getting started", `
 Go to [Sign up](/signup). Choose **Personal** for a person, or **Organisation** for a company, NGO, church, school or club (organisations also enter their CAC registration number). Pick a display name, a username, an email and a password, tick that you are 18 or older and agree to the [Terms](/terms) and [Privacy Policy](/privacy), and you are in.
 

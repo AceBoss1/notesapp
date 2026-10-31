@@ -1,3 +1,4 @@
+import { remindExpiringCoupons } from "@/lib/discounts-server";
 import { NextRequest, NextResponse } from "next/server";
 import { getAdminDb, getUserEmail } from "@/lib/firebase-admin";
 import { sendEmail } from "@/lib/email";
@@ -116,6 +117,7 @@ async function run() {
   await job("weeklyDigest", () => sendWeeklyDigests(db));
   // Events: reminders 24 hours and 1 hour before each start to everyone going or interested (lib/events-server.ts).
   await job("eventReminders", () => sendEventReminders(db));
+  await job("couponReminders", () => remindExpiringCoupons(db)); // saved coupons ending within 3 days: one bell a day each
   // Researchers who linked ORCID with sync on: their new works are added to their site's Publications (lib/publications-server.ts).
   await job("syncOrcidSites", () => syncOrcidSites(db));
   await job("discordChangelog", () => announceReleases(db).then((v) => v.length)); // new releases to the Discord #announcements channel

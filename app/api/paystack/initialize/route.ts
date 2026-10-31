@@ -98,11 +98,15 @@ export async function POST(req: NextRequest) {
     // A discount code (lib/discounts.ts), when the buyer typed one: checked against the owner's codes (the seller's, or #NotesApp's
     // for our own products) and worked out on the server's price. A bad code throws DiscountError, answered below with its reason.
     const wantsCode = typeof body.code === "string" && body.code.trim() !== "";
-    const codeFor = async (owner: string, target: DiscountTarget, subtotalKobo: number, more: { itemId?: string; itemIds?: string[]; extraKobo?: number } = {}) =>
-      wantsCode ? applyCode(db, owner, body.code, user.uid, { target, subtotalKobo, ...more }) : null;
     // An affiliate link the buyer came through (the na_ref cookie, set by /r/<username>, 30 days): looked up once, only when a
-    // product with an affiliate share is being bought.
+    // product with an affiliate share is being bought. An affiliate's code (TOLU-AMAKA10) names its affiliate instead, and wins.
     let referrer: Referrer | null | undefined;
+    const codeFor = async (owner: string, target: DiscountTarget, subtotalKobo: number, more: { itemId?: string; itemIds?: string[]; extraKobo?: number } = {}) => {
+      if (!wantsCode) return null;
+      const r = await applyCode(db, owner, body.code, user.uid, { target, subtotalKobo, ...more });
+      if (r.affiliate && r.affiliate.uid !== user.uid) referrer = r.affiliate;
+      return r;
+    };
     const affiliate = async (sellerUid: string, offerId: string, paidKobo: number) => {
       const percent = await offerPercent(db, offerId, sellerUid);
       if (!(percent > 0)) return null;
@@ -682,7 +686,7 @@ export async function POST(req: NextRequest) {
         catch (e) {
           if (!(e instanceof DiscountError && e.status === 404)) throw e;
           try { await referralByCode(db, user.uid, body.code); }
-          catch (r) { if (r instanceof ReferralError) throw new DiscountError(r.status, r.message); throw r; }
+          catch (r) { if (r instanceof ReferralError) throw r.status === 404 ? e : new DiscountError(r.status, r.message); throw r; }
         }
       }
       // A friend who joined through a member's link or code (lib/referrals.ts): their first month free (a card check, given back)

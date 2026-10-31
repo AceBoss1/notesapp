@@ -7,11 +7,11 @@ import { CopyLink } from "@/components/ReferralsPanel";
 import { api } from "@/lib/moments-client";
 import { useMember } from "@/lib/member-client";
 import { affiliateKobo, referralLink } from "@/lib/referrals";
-import { naira } from "@/lib/discounts";
+import { affiliateCode, naira, type PublicCoupon } from "@/lib/discounts";
 
 // The affiliate marketplace: every product whose publisher pays a share to members who promote it (lib/referrals-server.ts
 // setOffer). A member picks one, copies their link (/r/<username>?to=<the product>) and shares it with their audience.
-type Offer = { id: string; itemId: string; ownerUsername: string; percent: number; title: string; image: string; priceKobo: number; path: string; kind: "store" | "digital" | "course" };
+type Offer = { id: string; itemId: string; ownerUsername: string; percent: number; title: string; image: string; priceKobo: number; path: string; kind: "store" | "digital" | "course"; codes?: PublicCoupon[] };
 const KINDS = [["all", "Everything"], ["store", "Shop"], ["digital", "Downloads"], ["course", "Courses"]] as const;
 const KIND_LABEL = { store: "Shop", digital: "Download", course: "Course" };
 
@@ -85,6 +85,12 @@ export default function AffiliatesPage() {
                         <CopyLink url={referralLink(origin, me.username, o.path)} label="Get my link" />
                       </div>
                     ) : <Link href={user ? "/profile/referrals" : "/login?next=/affiliates"} className="btn-ghost !px-4 !py-2 text-sm">Get my link</Link>}
+                    {me?.verified && me.username && (o.codes ?? []).map((c) => (
+                      <div key={c.code} className="mt-2 flex items-center gap-2 text-xs">
+                        <span className="min-w-0 flex-1 text-slate">Or your code, <b className="font-mono text-ink">{affiliateCode(me.username, c.code)}</b>: {c.label} for your buyers</span>
+                        <CopyLink url={affiliateCode(me.username, c.code)} label="Copy" />
+                      </div>
+                    ))}
                   </div>
                 </div>
               </li>

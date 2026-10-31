@@ -76,7 +76,7 @@ export default function UpgradeButton({ tier, label }: { tier: "pro" | "business
       <button onClick={go} disabled={busy} className="btn-primary mt-2 w-full !px-4 !py-2 text-xs disabled:opacity-50">
         {busy ? "Redirecting…" : `Get ${label}`}
       </button>
-      <DiscountCodeField key={interval} target="plan" subtotalKobo={0} plan={{ tier, interval }} onDark onChange={(c) => setCode(c?.code ?? null)} className="mt-2 text-xs" />
+      <DiscountCodeField key={interval} target="plan" subtotalKobo={0} plan={{ tier, interval }} onDark autoPick={!offer} onChange={(c) => setCode(c?.code ?? null)} className="mt-2 text-xs" />
       {offer && !code && (
         <p className="mt-1 text-[11px] font-normal opacity-90">
           Invited by @{offer.from}: {interval === "monthly" ? "your first month is free (a ₦100 card check, given back)" : "one month off your first year"}.

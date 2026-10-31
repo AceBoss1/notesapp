@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { api } from "@/lib/moments-client";
 import {
-  MAX_PERCENT, NOTESAPP_TARGETS, PUBLISHER_TARGETS, TARGET_LABEL, describeCode, naira,
+  MAX_PERCENT, NOTESAPP_TARGETS, PUBLISHER_TARGETS, TARGET_LABEL, couponPath, describeCode, naira,
   type DiscountCode, type DiscountTarget,
 } from "@/lib/discounts";
 
@@ -13,19 +13,21 @@ type Use = { code: string; kind: DiscountTarget; discountKobo: number; paidKobo:
 type Form = {
   code: string; kind: "percent" | "amount"; percent: string; amountNaira: string; targets: DiscountTarget[]; items: string;
   maxUses: string; perBuyer: string; startsAt: string; endsAt: string; minNaira: string; firstOrderOnly: boolean;
+  showInShop: boolean; allowAffiliates: boolean;
 };
 const field = "w-full rounded-lg border border-rule bg-card px-3 py-2 text-sm text-ink outline-none focus:border-crimson";
 const label = "mb-1 block font-ui text-xs font-semibold text-slate";
 
-const blank = (targets: readonly DiscountTarget[]): Form => ({
+const blank = (targets: readonly DiscountTarget[], owner: "me" | "notesapp" = "me"): Form => ({
   code: "", kind: "percent", percent: "10", amountNaira: "", targets: [...targets], items: "",
-  maxUses: "", perBuyer: "1", startsAt: "", endsAt: "", minNaira: "", firstOrderOnly: false,
+  maxUses: "", perBuyer: "1", startsAt: "", endsAt: "", minNaira: "", firstOrderOnly: false, showInShop: owner === "me", allowAffiliates: false,
 });
 const fromCode = (c: DiscountCode): Form => ({
   code: c.code, kind: c.kind, percent: String(c.percent ?? ""), amountNaira: c.amountKobo ? String(c.amountKobo / 100) : "",
   targets: c.targets, items: (c.itemIds ?? []).join("\n"), maxUses: c.maxUses == null ? "" : String(c.maxUses), perBuyer: String(c.perBuyer ?? 1),
   startsAt: c.startsAt ? c.startsAt.slice(0, 10) : "", endsAt: c.endsAt ? c.endsAt.slice(0, 10) : "",
   minNaira: c.minOrderKobo ? String(c.minOrderKobo / 100) : "", firstOrderOnly: !!c.firstOrderOnly,
+  showInShop: !!c.showInShop, allowAffiliates: !!c.allowAffiliates,
 });
 // A pasted link or an id: the last part of a product or course link is its id.
 const itemIdsFrom = (s: string) => s.split(/[\s,]+/).map((x) => x.trim().replace(/[?#].*$/, "").replace(/\/+$/, "").split("/").pop() ?? "").filter(Boolean);
@@ -39,11 +41,13 @@ export default function DiscountCodesManager({ owner }: { owner: "me" | "notesap
   const [editing, setEditing] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
+  const [username, setUsername] = useState("");
+  const [shared, setShared] = useState<string | null>(null); // the code whose card link was just copied
 
   const load = useCallback(async () => {
     try {
-      const r = await api<{ codes: DiscountCode[]; uses: Use[] }>(`/api/discounts${q}`);
-      setCodes(r.codes); setUses(r.uses);
+      const r = await api<{ codes: DiscountCode[]; uses: Use[]; username: string }>(`/api/discounts${q}`);
+      setCodes(r.codes); setUses(r.uses); setUsername(r.username);
     } catch (e) { setError(e instanceof Error ? e.message : "Couldn't load your codes."); setCodes([]); }
   }, [q]);
   useEffect(() => { void load(); }, [load]);
@@ -59,6 +63,7 @@ export default function DiscountCodesManager({ owner }: { owner: "me" | "notesap
         targets: form.targets, itemIds: itemIdsFrom(form.items), maxUses: form.maxUses || null, perBuyer: form.perBuyer || 1,
         startsAt: form.startsAt || null, endsAt: form.endsAt ? `${form.endsAt}T23:59:59` : null,
         minOrderKobo: form.minNaira ? Math.round(Number(form.minNaira) * 100) : null, firstOrderOnly: form.firstOrderOnly,
+        showInShop: form.showInShop, allowAffiliates: form.allowAffiliates,
       } });
       setForm(null); await load();
     } catch (e) { setError(e instanceof Error ? e.message : "Couldn't save that code."); }
@@ -69,13 +74,22 @@ export default function DiscountCodesManager({ owner }: { owner: "me" | "notesap
     try { await api("/api/discounts", { body: { ...(owner === "notesapp" ? { owner: "notesapp" } : {}), action: "active", code: c.code, active: !c.active } }); await load(); }
     catch (e) { setError(e instanceof Error ? e.message : "Couldn't change that code."); }
   }
+  // Share a code as its coupon card: the link (its preview is the card's picture), straight to WhatsApp, or copied.
+  async function share(c: DiscountCode) {
+    const url = `${window.location.origin}${couponPath(username, c.code)}`;
+    const text = `${describeCode(c)} at my shop on #NotesApp with ${c.code}: ${url}`;
+    if (navigator.share) { try { await navigator.share({ title: `Coupon ${c.code}`, text, url }); return; } catch { /* closed */ } }
+    try { await navigator.clipboard.writeText(url); setShared(c.code); }
+    catch { window.prompt("Copy the coupon link", url); }
+  }
   const set = (patch: Partial<Form>) => setForm((f) => (f ? { ...f, ...patch } : f));
 
   return (
     <div>
       {error && <p className="mb-3 rounded-lg bg-crimson/10 px-3 py-2 text-sm text-crimson" role="alert">{error}</p>}
+      {shared && <p className="mb-3 rounded-lg bg-moss/10 px-3 py-2 text-sm text-moss" role="status">Copied the link to {shared}&apos;s coupon card; its preview shows the card. <a href={couponPath(username, shared)} className="underline">See it</a></p>}
       {!form && (
-        <button type="button" onClick={() => { setEditing(false); setForm(blank(targets)); }} className="btn-primary !px-5 !py-2.5 text-sm">+ New code</button>
+        <button type="button" onClick={() => { setEditing(false); setForm(blank(targets, owner)); }} className="btn-primary !px-5 !py-2.5 text-sm">+ New code</button>
       )}
 
       {form && (
@@ -140,6 +154,24 @@ export default function DiscountCodesManager({ owner }: { owner: "me" | "notesap
               <input type="checkbox" checked={form.firstOrderOnly} onChange={(e) => set({ firstOrderOnly: e.target.checked })} />
               Only for a first order {owner === "me" ? "from you" : "with #NotesApp"}
             </label>
+            {owner === "notesapp" && (
+              <label className="flex items-start gap-2 text-sm text-ink sm:col-span-2">
+                <input type="checkbox" className="mt-1" checked={form.showInShop} onChange={(e) => set({ showInShop: e.target.checked })} />
+                <span>Offer it at checkout<span className="block text-xs text-slate">Nana applies it for every buyer of what it works on, when it&apos;s the best coupon they have.</span></span>
+              </label>
+            )}
+            {owner === "me" && (
+              <>
+                <label className="flex items-start gap-2 text-sm text-ink">
+                  <input type="checkbox" className="mt-1" checked={form.showInShop} onChange={(e) => set({ showInShop: e.target.checked })} />
+                  <span>Show it as a coupon in my shop<span className="block text-xs text-slate">Buyers see it on your shop and product pages and can save it, and Nana applies it at your checkout when it&apos;s their best coupon.</span></span>
+                </label>
+                <label className="flex items-start gap-2 text-sm text-ink">
+                  <input type="checkbox" className="mt-1" checked={form.allowAffiliates} onChange={(e) => set({ allowAffiliates: e.target.checked })} />
+                  <span>Affiliates can share it<span className="block text-xs text-slate">Each affiliate gets their own version (TOLU-{form.code || "CODE"}): same discount, and they earn your affiliate share on what they sell.</span></span>
+                </label>
+              </>
+            )}
           </div>
           <p className="mt-3 text-xs text-slate">A code never takes the price under ₦100, never touches delivery, and #NotesApp&apos;s commission is worked out on what the buyer actually pays.</p>
           <div className="mt-4 flex gap-2">
@@ -164,12 +196,16 @@ export default function DiscountCodesManager({ owner }: { owner: "me" | "notesap
                   <p className="mt-1 text-sm text-ink">{describeCode(c)} · {c.targets.map((t) => TARGET_LABEL[t]).join(", ")}{c.itemIds?.length ? ` · ${c.itemIds.length} item${c.itemIds.length > 1 ? "s" : ""}` : ""}</p>
                   <p className="mt-0.5 text-xs text-slate">
                     Used {c.uses}{c.maxUses != null ? ` of ${c.maxUses}` : ""} · took off {naira(c.discountGivenKobo)} · buyers paid {naira(c.revenueKobo)}
+                    {c.showInShop ? (owner === "me" ? " · in your shop" : " · offered at checkout") : ""}{c.allowAffiliates ? " · affiliates can share" : ""}
                     {c.endsAt ? ` · ends ${new Date(c.endsAt).toLocaleDateString("en-NG", { day: "numeric", month: "short", year: "numeric" })}` : ""}
                   </p>
                 </div>
                 <div className="flex gap-2">
                   <button type="button" onClick={() => { setEditing(true); setForm(fromCode(c)); }} className="rounded-full border border-rule px-3 py-1.5 font-ui text-xs font-semibold text-ink hover:border-crimson">Edit</button>
                   <button type="button" onClick={() => toggle(c)} className="rounded-full border border-rule px-3 py-1.5 font-ui text-xs font-semibold text-ink hover:border-crimson">{c.active ? "Pause" : "Turn on"}</button>
+                  {owner === "me" && username && c.active && (
+                    <button type="button" onClick={() => share(c)} className="rounded-full bg-crimson px-3 py-1.5 font-ui text-xs font-semibold text-white">Share</button>
+                  )}
                 </div>
               </li>
             ))}
