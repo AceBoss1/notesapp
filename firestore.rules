@@ -771,6 +771,8 @@ service cloud.firestore {
     match /courseSlugs/{slug} { allow read, write: if false; }
     match /courseLinks/{courseId} { allow read, write: if false; } // the live class and learners' group links (GET /api/academy/links)
     match /courseTutorInvites/{id} { allow read, write: if false; } // co-tutor invitations and their agreed shares
+    match /quizKeys/{id} { allow read, write: if false; } // a quiz lesson's answers and explanations (never sent before a learner submits)
+    match /quizAttempts/{id} { allow read, write: if false; } // each learner's quiz attempts, best score and when they passed
     match /coursePurchases/{ref} { allow read: if isSignedIn() && resource.data.buyerUid == request.auth.uid; allow write: if false; }
     match /enrolments/{id} {
       allow read: if isSignedIn() && resource.data.uid == request.auth.uid;

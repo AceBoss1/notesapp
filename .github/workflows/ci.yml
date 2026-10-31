@@ -64,6 +64,7 @@ jobs:
       - run: npm run test:backups
       - run: npm run test:community
       - run: npm run test:courses-server
+      - run: npm run test:quizzes-server
       - run: npm run test:team-server
       - run: npm run test:maintenance
       - run: npm run test:ops-server
