@@ -30,7 +30,7 @@ export default function CommunityPage() {
               {p.page ? <Link href={`/community/${p.page}`} className="mt-2 inline-block font-semibold text-crimson">See how {p.name} works →</Link> : null}
             </li>
           ))}
-          <li id="live" className="card p-4"><strong className="text-ink">Live</strong><p className="mt-1 text-slate">An event carries a Join live link to YouTube Live, Facebook Live, Zoom or Google Meet, shown only to that event&apos;s audience. Our own live streaming comes later, as a paid add-on.</p></li>
+          <li id="live" className="card p-4"><strong className="text-ink">Live</strong><p className="mt-1 text-slate">Talk live with your members in an <Link href="/community/audio-rooms" className="text-crimson underline underline-offset-2">audio room</Link> on #NotesApp. For video or a bigger audience, an event carries a Join live link (YouTube Live, Zoom, Google Meet or any https link), shown only to that event&apos;s audience, until our own live streaming comes as a paid add-on.</p></li>
           <li id="giving" className="card p-4"><strong className="text-ink">Giving</strong><p className="mt-1 text-slate">Switch it on under Admin and name your funds (Tithe, Offering, Building fund). Members give with a Give button and get a receipt; you see the gifts and totals per fund. Charges like a bank transfer (₦10 up to ₦5,000, ₦25 up to ₦50,000, ₦50 above, plus the card charge at cost by card; cheaper from the NotesApp wallet), no commission, and givers can cover them. Paid out to your verified bank account a day later, in one run. Each gift is capped at ₦20,000 until your community is verified.</p></li>
         </ul>
 

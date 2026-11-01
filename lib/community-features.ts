@@ -150,7 +150,7 @@ export const COMMUNITY_FEATURES: CommunityFeature[] = [
       { label: "Who sees them", value: "Everyone, or members only (you choose per event)" },
       { label: "Repeats", value: REPEATS.map((r) => r.label).join(", ") },
       { label: "Reminders", value: "24 hours and 1 hour before: bell, phone and email" },
-      { label: "Join live", value: "YouTube Live, Facebook Live, Zoom, Google Meet, Teams or any https link" },
+      { label: "Live", value: "Talks in an audio room on #NotesApp; for video or a big audience, a Join live link (YouTube Live, Zoom, Meet or any https link)" },
       { label: "How far ahead", value: "Up to a year; an event can last up to 14 days" },
     ],
     sections: [
@@ -165,8 +165,8 @@ export const COMMUNITY_FEATURES: CommunityFeature[] = [
         "Public events have Add to calendar. If you change or cancel an event, everyone going or interested is told.",
       ] },
       { h: "Live", items: [
-        "An event's Join live link opens YouTube Live, Facebook Live, Zoom, Google Meet or any https link, shown only to that event's audience.",
-        "To talk live inside your community instead, start an Audio room. Our own live streaming comes later, as a paid add-on.",
+        `To talk live with your members, start an Audio room on #NotesApp: the host, up to ${ROOM_SPEAKERS_MAX} speakers and ${ROOM_LISTENERS_MAX_P2P} listening, with a chat.`,
+        "For video, or an audience bigger than a room holds, an event's Join live link opens YouTube Live, Facebook Live, Zoom, Google Meet or any https link, shown only to that event's audience. Our own live streaming comes later, as a paid add-on.",
       ] },
     ],
     help: "events",

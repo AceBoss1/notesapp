@@ -6,7 +6,7 @@ import { collection, getDocs, limit, orderBy, query, where } from "firebase/fire
 import { db } from "./firebase";
 import { api } from "./moments-client";
 import { useMember } from "./member-client";
-import { isPaid, orderedLessons, type Course, type CourseListing, type Enrolment, type Lesson, type Quiz, type QuizGrade } from "./courses";
+import { isPaid, orderedLessons, type Course, type CourseGroup, type CourseListing, type Enrolment, type Lesson, type Quiz, type QuizGrade } from "./courses";
 import { visitSource } from "./track";
 
 // Notes Academy in the browser. Published courses (and a free course's lessons) are read straight from Firestore (the rules allow
@@ -114,14 +114,16 @@ export function useCourse(slug: string) {
   return { ...s, enrol, mark, refresh, took };
 }
 
-// The live class and community links (only for people who enrolled or bought, and the tutors). null: none to show.
+// The live class link and the course group (only for people who enrolled or bought, and the tutors). null: none to show.
+// The course group (lib/courses.ts) comes with its invite code, so "Join the course group" joins in one tap.
+export type LearnerLinks = { classUrl: string; communityUrl: string; group: CourseGroup | null };
 export function useCourseLinks(courseId: string | undefined, enabled: boolean) {
   const { user } = useMember();
-  const [links, setLinks] = useState<{ classUrl: string; communityUrl: string } | null>(null);
+  const [links, setLinks] = useState<LearnerLinks | null>(null);
   useEffect(() => {
     if (!courseId || !enabled || !user) { setLinks(null); return; }
     let alive = true;
-    api<{ links: { classUrl: string; communityUrl: string } | null }>(`/api/academy/links?courseId=${encodeURIComponent(courseId)}`).then((r) => { if (alive) setLinks(r.links); }).catch(() => {});
+    api<{ links: LearnerLinks | null }>(`/api/academy/links?courseId=${encodeURIComponent(courseId)}`).then((r) => { if (alive) setLinks(r.links); }).catch(() => {});
     return () => { alive = false; };
   }, [courseId, enabled, user]);
   return links;

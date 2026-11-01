@@ -11,6 +11,19 @@ export type Release = {
 
 export const CHANGELOG: Release[] = [
   {
+    version: "v0.108.0",
+    bump: "minor",
+    date: "2026-11-01",
+    changes: [
+      { kind: "added", text: "Course groups on #NotesApp: under About the course, teachers link one of their communities and a Space in it as the course's group, add a members-only Space for the course to a community they run, or start a community for the course in one tap (joined only by invite link). Learners who enrolled or bought get a Join the course group button that joins them and opens the Space." },
+      { kind: "changed", text: "The course editor no longer asks for a WhatsApp or Telegram group. A group link saved on an older course keeps showing to its learners, labelled as before, until the teacher links a course group (which replaces it) or removes it; new outside group links aren't accepted." },
+      { kind: "changed", text: "Live classes: the editor suggests an audio room in the course group (up to 25 people: the host, 4 speakers and 20 listening) and keeps an optional meeting link for video or bigger classes. Events say the same about Join live links." },
+      { kind: "added", text: "Swipe Nana's suggestions: swipe a suggested topic, subtopic or Market category right to add it, left to remove it, with Undo for a few seconds. Tapping still adds, the ✕ removes, Enter and Delete work from the keyboard, and removed suggestions stay away for that title until you tap Refresh." },
+      { kind: "added", text: "Nana suggests lines for a course's What learners will learn and Requirements from its title and summary, on a tap; swipe each one in or out." },
+      { kind: "changed", text: "Nana AI suggests #NotesApp's own tools first (Community, calls and audio rooms, Booking, the Store, Events) rather than setting something up on another platform." },
+    ],
+  },
+  {
     version: "v0.106.0",
     bump: "minor",
     date: "2026-10-30",

@@ -35,6 +35,7 @@ What it means for engineering: a feature earns its place when it helps a member 
 5. **Every change can be undone.** Dry runs before writes, before-images before backfills, the old path kept ready for one release.
 6. **Buy the specialist, build the core.** Search engines, media servers and payment rails are bought; what makes NotesApp NotesApp is ours.
 7. **Write it down.** Every feature ships with its changelog line, its help article, its docs and its tests.
+8. **Our own tools first.** Never suggest setting up something on an outside platform that #NotesApp already does (groups → Community, Spaces, Circles; calls → our calls and audio rooms; booking → Booking; …). Suggest ours with its link and help article (owner, 1 Nov 2026).
 
 ## Our names
 
