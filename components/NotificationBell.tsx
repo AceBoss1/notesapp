@@ -36,6 +36,8 @@ const ICON: Record<NotificationType, string> = {
   community: "👥",
   event: "📅",
   coupon: "🏷️",
+  announcement: "📢",
+  volunteer: "🙌",
   course: "🎓",
   review: "★",
   recommendation: "💬",

@@ -1,4 +1,4 @@
-import { APP_HOST, APP_URL, LIFE_HOST, LIFE_URL, PREP_HOST, ROOT_DOMAIN } from "./host";
+import { APP_HOST, APP_URL, LIFE_HOST, LIFE_URL, PREP_HOST, PREP_URL, ROOT_DOMAIN } from "./host";
 import { AD_PACKAGES } from "./ad-packages";
 import { WHAT_IS_INTRO, WHAT_YOU_CAN_DO, WHAT_IS_FREE, WHAT_IS_TIERS } from "./site";
 import { BOOST_PACKAGES, GIFT_MAX_KOBO, GIFT_MIN_KOBO } from "./boost-config";
@@ -540,6 +540,24 @@ When there's something to show, the digest also has four items from [Notes Marke
 
 You need a confirmed email address to get it, and it only comes when there's something to read.
 `),
+    A("feedback", "Give us feedback", "Getting started", `
+Tell us how #NotesApp is going for you: open [Contact → Feedback](/contact?topic=feedback) (or choose **Feedback** in the contact form's list). Five quick questions:
+
+- how your time on #NotesApp has been, from 😞 to 😍 (1 to 5);
+- what you love;
+- what's missing or broken;
+- how likely you are to recommend us to a friend (0 to 10);
+- whether we can contact you about your answers (yes or no).
+
+It works whether you're signed in or not. Signed in, your name and email are filled in and your reply is linked to your account. It goes straight to our team's inbox, and we read every one. To report a bug that needs a reply, or a post or account, use the contact form's other topics.
+`),
+    A("announcements", "News and announcements from #NotesApp", "Getting started", `
+Now and then we send every member a short message: what's new, what's coming, and ways to take part (like our one-month update on 1 November 2026). It comes to your bell (📢) and, if you like, by email. Tap the bell to read it on its own page.
+
+**Turning the emails off:** every announcement email has an **Unsubscribe from announcements** link at the bottom (your email app's own Unsubscribe button works too), or switch **News and announcements from #NotesApp** off under **Emails** in [Account settings](/profile/account#email). The bell still shows them. If you switched the [weekly digest](/help/weekly-digest) off before announcements existed, we take that as a no to announcement emails too, until you switch them on.
+
+Students in teen mode and child profiles never get them by email. Emails about your bookings, orders, payments and account always come, whatever you choose.
+`),
     A("social-sharing", "Sharing posts to social media", "Publishing and earning", `
 Every post has a share menu (WhatsApp, X, Facebook, LinkedIn, copy link) that works without connecting anything. You can also connect LinkedIn and X once and publish an excerpt of your post there, with a link back to the full journal on #NotesApp. You always see and can edit the words first (Nana can write them for you), and nothing goes out until you press Post. LinkedIn connections last about 60 days before you reconnect. Facebook, Instagram and TikTok are on the [roadmap](/roadmap).`),
     // ── Selling
@@ -873,7 +891,11 @@ No ads are shown to students in teen mode, and their data isn't sold or used to 
     A("naija-exam-prep-reviewers", `Reviewing questions for ${PREP_NAME}`, "Teams and organisations", `
 Every ${PREP_NAME} question is checked by a reviewer before students see it.
 
-**Joining:** reviewers come by invite link. NotesApp staff choose the subjects first, then make either a link for one person (14 days, used once) or an open link for volunteers (7 to 90 days, up to 500 reviewers, closable at any time). Open the link, sign in or create a NotesApp account, and tap **Accept the invite**. A later link for other subjects adds them.
+**Volunteer:** anyone can offer to review at [${PREP_HOST}/reviewers](${PREP_URL}/reviewers): choose the subjects you know (any of the 18), the exams (JAMB, WAEC, NECO), your background (teacher, examiner, graduate in the subject or student) and your years of experience; a phone number is optional. Signed in, your name and email are filled in. We look at every sign-up ourselves. Once you're approved, your reviewer access is switched on if you have a NotesApp account with that email, or you get an invite link to create one; either way we email you.
+
+**The reviewers' community (optional):** tick **Join the reviewers' community** when you sign up and you'll get the invite link to the private Naija Exam Prep Reviewers community with your approval. It has Spaces for Start here, Sciences, Arts and humanities, Commercial, and Questions to discuss. You can review without joining.
+
+**Joining by invite link:** NotesApp staff choose the subjects first, then make either a link for one person (14 days, used once) or an open link for volunteers (7 to 90 days, up to 500 reviewers, closable at any time). Open the link, sign in or create a NotesApp account, and tap **Accept the invite**. A later link for other subjects adds them.
 
 **Reviewing:** the review queue (${PREP_HOST}/review) shows only questions in your subjects. For each one, check that the marked answer is right, the explanation is clear and correct, and the question is fair. **Approve** it, or **Ask for changes** with a note saying what to fix. You can't review a question you wrote. Starter questions are labelled **Nana AI-assisted draft**: check them as carefully as any other.
 

@@ -11,6 +11,18 @@ export type Release = {
 
 export const CHANGELOG: Release[] = [
   {
+    version: "v0.113.0",
+    bump: "minor",
+    date: "2026-11-01",
+    changes: [
+      { kind: "added", text: "#NotesApp is one month old. Tell us how it's been: Contact → Feedback (/contact?topic=feedback) asks five quick questions, how your first month went (1 to 5), what you love, what's missing or broken, how likely you are to recommend us (0 to 10), and whether we can contact you. It works signed in or not; members' name and email are filled in." },
+      { kind: "added", text: "Volunteer to review Naija Exam Prep questions (prep.notesapp.name.ng/reviewers): choose the subjects you know (all 18), the exams (JAMB, WAEC, NECO), your background and years of experience. Once we approve you, your reviewer access is switched on (or you get an invite link to create an account). Linked from the Exam Prep home page and footer." },
+      { kind: "added", text: "The Naija Exam Prep Reviewers community: a private community for reviewers, with Spaces for Start here, Sciences, Arts and humanities, Commercial, and Questions to discuss. Joining is optional; reviewers who ask to join get the invite link when they're approved." },
+      { kind: "added", text: "News and announcements from #NotesApp: now and then a message to every member, in the bell and by email, readable on its own page. Switch the emails off in Account settings or with the link in any announcement; the bell still shows them." },
+      { kind: "added", text: "For the team: Admin → Announcements, to write a message to every member (bell words, email subject, preheader and body, a button), preview it as members will see it, send yourself a test, then send to everyone, in batches, once per member. Admin → Leads has Feedback (with average scores and NPS) and Exam Prep reviewers (approve or decline, and set up the reviewers' community with one tap)." },
+    ],
+  },
+  {
     version: "v0.107.0",
     bump: "minor",
     date: "2026-11-01",

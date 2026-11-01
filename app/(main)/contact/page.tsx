@@ -5,10 +5,11 @@ import { DiscordIcon, FacebookIcon, LinkedInIcon, MailIcon, NotesAppIcon } from 
 import { DISCORD_LABEL, SITE } from "@/lib/site";
 import PageHero from "@/components/PageHero";
 import { ROOT_DOMAIN } from "@/lib/host";
+import { FEEDBACK_PATH } from "@/lib/feedback";
 
 export const metadata: Metadata = {
   title: "Contact",
-  description: "Contact #NotesApp, or ask Nana AI and browse the help centre first — bookings and payments help, store orders and parcels, advertising campaigns, organisation accounts and CAC verification, boosts and gifts, reporting a post or account, partnerships, press or investment.",
+  description: "Contact #NotesApp, or ask Nana AI and browse the help centre first — bookings and payments help, store orders and parcels, advertising campaigns, organisation accounts and CAC verification, boosts and gifts, reporting a post or account, feedback on your first month, partnerships, press or investment.",
 };
 
 export default async function ContactPage() {
@@ -19,7 +20,7 @@ export default async function ContactPage() {
         <p>Help with a booking, payment, payout or refund; a store order, a
         parcel or a delivery problem; an advertising campaign; setting up an
         organisation account, CAC verification or your team; boosts and gifts;
-        the gold badge; reporting a post or account (a moment or a conversation can also be reported with the Report button in the app); partnerships, press,
+        the gold badge; reporting a post or account (a moment or a conversation can also be reported with the Report button in the app); feedback on how #NotesApp is going; partnerships, press,
         investment — or anything else. Pick the topic in the form below and it
         goes straight to admins, not a shared inbox someone has to remember to
         check. For a parcel, include its ID (it looks like NA-7K2M9QXD) — you
@@ -31,6 +32,11 @@ export default async function ContactPage() {
         the <a href="/help" className="font-semibold text-crimson underline">help centre</a>. She links you to the right page and passes you to a person if she
         can&apos;t help.
       </p>
+      <div className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-crimson/30 bg-crimson/5 p-4 text-sm text-ink">
+        <p><strong>#NotesApp is one month old.</strong> How has it been for you? Five quick questions: what you love, what&apos;s missing, and whether you&apos;d recommend us.</p>
+        {/* A full page load, so the form below opens on Feedback even when you're already on this page. */}
+        <a href={`${FEEDBACK_PATH}#feedback`} className="btn-primary !px-4 !py-2 text-xs">Give feedback</a>
+      </div>
       <div className="card mt-8 grid gap-5 p-7 sm:grid-cols-2">
         <div>
           <p className="font-ui text-sm font-semibold text-ink">Email</p>
@@ -76,7 +82,7 @@ export default async function ContactPage() {
         )}
       </div>
 
-      <ContactForm />
+      <div id="feedback" className="scroll-mt-24"><ContactForm /></div>
     </div>
     </>
   );
