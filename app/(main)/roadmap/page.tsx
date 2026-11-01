@@ -40,6 +40,13 @@ const ITEMS: { title: string; tag: string; body: string; detail: string; link?: 
     link: { href: "/life", label: "Play Notes Life →" },
   },
   {
+    title: "Notes Life: a pixel look and an HD look with a city map",
+    tag: "Social",
+    body: "Coming soon. Two looks to choose from, with the same game: a light pixel-art look (characters and places in pixel art, smooth on any computer or phone), and an HD look where you choose your own look in a dressing room, chat beside the scene, work jobs with a timer, and travel on an illustrated Abuja map where you can buy properties with game money.",
+    detail: "Today the HD / LOW RES button already makes the game lighter on computers. The pixel look and the HD look come in steps, starting with the room and the Wuse street.",
+    link: { href: "/life", label: "Play Notes Life →" },
+  },
+  {
     title: "Install NotesApp on your phone or computer",
     tag: "App",
     body: `Live now: the app address (${APP_HOST}) has its own welcome screen with sign-in and sign-up built in, and a Download button that says Download on mobile, PC or Mac and opens the steps for your device. Next: working offline for reading, and push notifications on installed apps.`,
@@ -271,6 +278,7 @@ export default function RoadmapPage() {
             <p className="font-ui text-sm font-bold text-ink">○ On the roadmap, not live</p>
             <ul className="mt-3 space-y-2 text-sm text-slate">
               <li>The two Enterprise course packages</li>
+              <li>Notes Life: a pixel look, and an HD look with your own avatar and a city map of Abuja with properties</li>
               <li>Our own live streaming for communities</li>
               <li>WhatsApp reminders alongside email and the bell, with SMS when WhatsApp doesn&apos;t arrive (a paid add-on for publishers)</li>
               <li><strong className="text-ink">Send-Na by NotesApp</strong>: email for developers and businesses, priced in Naira, with WhatsApp and SMS when email is slow (our own email and booking reminders first, then members&apos; own domains, then a public API)</li>

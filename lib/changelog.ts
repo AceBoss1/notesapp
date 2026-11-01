@@ -22,6 +22,26 @@ export const CHANGELOG: Release[] = [
     ],
   },
   {
+    version: "v0.107.0",
+    bump: "minor",
+    date: "2026-11-01",
+    changes: [
+      { kind: "changed", text: "Notes Academy (/academy) has a new home page: what you can build, quizzes and verifiable certificates side by side with how they look, the Teach, Sell, Grow and Learn tabs, why tutors choose it, live numbers (courses published, enrolments, teachers and lessons), who it's for, help articles, and a last call to start teaching. The course catalogue, with search, topics, filters and Naija Exam Prep, is still there under Browse courses." },
+      { kind: "added", text: "Questions learners and teachers ask, answered on the Academy page, with a link straight to the help centre. Learners' questions now cover quizzes, on every course page and in the help centre too." },
+      { kind: "fixed", text: "The Academy page no longer lists quizzes as coming next: they've been live since v0.105.0." },
+    ],
+  },
+  {
+    version: "v0.106.1",
+    bump: "patch",
+    date: "2026-10-31",
+    changes: [
+      { kind: "added", text: "Notes Life: a Low res button (HD / LOW RES at the top, and in Settings) for computers where the game was slow or froze. It draws fewer pixels, no shadows and at most 30 frames a second, and is remembered on that device." },
+      { kind: "fixed", text: "Notes Life no longer keeps drawing while its tab is hidden." },
+      { kind: "changed", text: "On the roadmap: Notes Life's pixel look and an HD look with your own avatar, chat beside the scene, jobs on screen and a city map of Abuja with properties to buy (game money)." },
+    ],
+  },
+  {
     version: "v0.106.0",
     bump: "minor",
     date: "2026-10-30",
