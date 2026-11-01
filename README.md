@@ -16,6 +16,7 @@ Router) on Vercel, Firebase (Auth, Firestore), Cloudflare R2 and Stream, Paystac
 | `docs/STAGING.md` | The staging copy and how a release goes |
 | `docs/REFERRALS.md` | Discount codes (#NotesApp and every publisher), referral links and affiliates: the owner's decisions, how plans are billed, what was built |
 | `docs/FUNDING.md` | Funding applications (internal drafts): the .tech startup programme for naapp.tech, the pitch.tech answers (due 20 Nov 2026), Emergent Ventures, and a reusable company summary |
+| `docs/NOTES-LIFE-LOOKS.md` | Notes Life's two looks (plan): a pixel look (what Low res becomes) and an HD look with your own avatar, chat beside the scene, jobs on screen and a city map with properties; the build steps |
 | `docs/PAYMENTS.md` | Who takes which payment: Paystack (cards, subscriptions, payout backup), Paylony (bank transfers, Tap2Pay), Flutterwave (across Africa, later); the one payment layer to build; NotesApp Inc |
 | `docs/MOBILE-APPS.md` | The iOS and Android release plan (Capacitor around the app address, store rules, accounts under NotesApp Inc); scaffold in `mobile/` |
 | `docs/SEND-NA.md` | Send-Na by NotesApp: email, WhatsApp and SMS priced in Naira (plan only), and the WhatsApp and SMS channel booking reminders need |

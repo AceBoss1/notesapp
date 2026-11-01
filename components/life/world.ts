@@ -29,10 +29,17 @@ const BR = { coral: "#FF8F83", red: "#E53935", char: "#292929", cream: "#FFF9F0"
 const CL = { navy: "#262b6b", gold: "#e3b23c" };
 const IMG = (n: string) => `/images/life/${n}`;
 
-export function createWorld(canvas: HTMLCanvasElement) {
-  const r = new THREE.WebGLRenderer({ antialias: true, canvas, powerPreference: "high-performance" });
-  r.setPixelRatio(Math.min(2, window.devicePixelRatio || 1));
-  r.shadowMap.enabled = true; r.shadowMap.type = THREE.PCFSoftShadowMap; r.outputColorSpace = THREE.SRGBColorSpace;
+// Low res (the player's choice, on any device; computers with big screens and modest graphics struggle most): fewer pixels, no
+// shadows, no edge smoothing, and at most 30 frames a second. A big, sharp screen is what makes the full look heavy.
+export const LOW_RES_KEY = "notesLife:lowRes";
+export const loadLowRes = () => { try { return localStorage.getItem(LOW_RES_KEY) === "on"; } catch { return false; } };
+export const saveLowRes = (on: boolean) => { try { localStorage.setItem(LOW_RES_KEY, on ? "on" : "off"); } catch { /* fine */ } };
+
+export function createWorld(canvas: HTMLCanvasElement, opts: { low?: boolean } = {}) {
+  const low = opts.low === true;
+  const r = new THREE.WebGLRenderer({ antialias: !low, canvas, powerPreference: "high-performance" });
+  r.setPixelRatio(low ? 0.6 : Math.min(2, window.devicePixelRatio || 1));
+  r.shadowMap.enabled = !low; r.shadowMap.type = THREE.PCFSoftShadowMap; r.outputColorSpace = THREE.SRGBColorSpace;
   const cam = new THREE.PerspectiveCamera(36, 1, 0.1, 250);
   const controls = new OrbitControls(cam, canvas);
   controls.enablePan = false; controls.enableDamping = true; controls.dampingFactor = 0.12;
@@ -950,10 +957,14 @@ export function createWorld(canvas: HTMLCanvasElement) {
     r.setSize(w, h, false); cam.aspect = w / h; cam.fov = w < 700 ? 44 : 34; cam.updateProjectionMatrix();
   }
   const ro = new ResizeObserver(resize); ro.observe(canvas);
+  let lastDrawn = 0;
   function frame() {
     if (disposed) return;
-    controls.update();
     const t = performance.now();
+    // Low res: at most 30 frames a second; a hidden tab draws nothing.
+    if ((low && t - lastDrawn < 32) || document.hidden) { requestAnimationFrame(frame); return; }
+    lastDrawn = t;
+    controls.update();
     if (tween && player) { const k = Math.min(1, (t - tween.t0) / tween.ms); player.position.lerpVectors(tween.from, tween.to, k); if (tween.bob) { player.position.y = tween.to.y + Math.abs(Math.sin(t / 140)) * 0.04; walkCycle(player, t / 140); } if (k >= 1) { player.position.y = tween.to.y; player.rotation.y = tween.rot; walkCycle(player, 0, 0); tween = null; } }
     for (const f of anims) f(t);
     if (follow && player) { const dx = (player.position.x - controls.target.x) * 0.06; if (Math.abs(dx) > 0.0005) { controls.target.x += dx; cam.position.x += dx; } }
