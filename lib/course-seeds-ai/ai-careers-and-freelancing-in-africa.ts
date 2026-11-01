@@ -1,8 +1,8 @@
 // Course 6 of lib/course-seeds-ai.ts: AI Careers and Freelancing in Africa. Videos checked with YouTube oEmbed on 1 November 2026.
 // Platform facts were checked on 1 November 2026 (sources in the lesson text); they change often, so re-check before seeding again.
-import type { AiSeedCourse, AiSeedLesson } from "../course-seeds-ai";
+import type { SeedCourse, SeedLesson } from "../course-seeds";
 
-const LESSONS: AiSeedLesson[] = [
+const LESSONS: SeedLesson[] = [
   {
     id: "ca-01-welcome", moduleId: "caskill", kind: "text", minutes: 8, title: "Welcome: real AI opportunities, honestly",
     body: `Welcome. I'm Emmanuel Adams from LWB academy. This course is for young people, graduates, career changers and anyone in Africa who wants to earn with AI skills: the NYSC member in Kwara with a laptop and ideas, the secretary in Port Harcourt who wants to become a virtual assistant, the writer in Nairobi, the student in Accra.
@@ -392,7 +392,7 @@ Africa has some of the world's most talented, hard-working young people. AI won'
   },
 ];
 
-export const AI_CAREERS: AiSeedCourse = {
+export const AI_CAREERS: SeedCourse = {
   key: "ai-careers-freelancing-africa",
   ownerUsername: "lwb", byline: "Emmanuel Adams",
   slug: "ai-careers-and-freelancing-in-africa",

@@ -1,8 +1,8 @@
 // Course 5 of lib/course-seeds-ai.ts: AI for NGOs, Churches and Public Organisations. Videos checked with YouTube oEmbed on
 // 1 November 2026. The "Tech in Yoruba " credit keeps the trailing space oEmbed returned (cleanVideoCredit trims it when seeded).
-import type { AiSeedCourse, AiSeedLesson } from "../course-seeds-ai";
+import type { SeedCourse, SeedLesson } from "../course-seeds";
 
-const LESSONS: AiSeedLesson[] = [
+const LESSONS: SeedLesson[] = [
   {
     id: "ng-01-welcome", moduleId: "ngwrite", kind: "text", minutes: 8, title: "Welcome: AI for organisations that serve people",
     body: `Welcome. I'm Emmanuel Adams from LWB academy. This course is for people who serve others: NGO staff and volunteers, church and mosque administrators, community development associations, cooperatives, school boards, local government staff and public servants.
@@ -387,7 +387,7 @@ The best organisations combine good hearts with good systems. AI can strengthen 
   },
 ];
 
-export const AI_NGOS: AiSeedCourse = {
+export const AI_NGOS: SeedCourse = {
   key: "ai-ngos-churches-public",
   ownerUsername: "lwb", byline: "Emmanuel Adams",
   slug: "ai-for-ngos-churches-and-public-organisations",

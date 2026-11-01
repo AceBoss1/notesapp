@@ -1,7 +1,7 @@
 // Course 3 of lib/course-seeds-ai.ts: AI for Farmers and Agribusiness. Videos checked with YouTube oEmbed on 1 November 2026.
-import type { AiSeedCourse, AiSeedLesson } from "../course-seeds-ai";
+import type { SeedCourse, SeedLesson } from "../course-seeds";
 
-const LESSONS: AiSeedLesson[] = [
+const LESSONS: SeedLesson[] = [
   {
     id: "fa-01-welcome", moduleId: "fagrow", kind: "text", minutes: 8, title: "Welcome: AI on the farm",
     body: `Welcome. I'm Emmanuel Adams from LWB academy. This course is for farmers, farm managers, cooperative leaders, agro-processors and young people going into agribusiness: the cassava farmer in Ogun, the poultry keeper in Kaduna, the rice grower in Kebbi, the woman processing palm oil in Imo, and the graduate starting a fish farm.
@@ -364,7 +364,7 @@ Your work feeds the nation. AI is just another tool in your hands, like a good h
   },
 ];
 
-export const AI_FARMERS: AiSeedCourse = {
+export const AI_FARMERS: SeedCourse = {
   key: "ai-farmers-agribusiness",
   ownerUsername: "lwb", byline: "Emmanuel Adams",
   slug: "ai-for-farmers-and-agribusiness",

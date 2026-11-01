@@ -1,7 +1,7 @@
 // Course 2 of lib/course-seeds-ai.ts: AI for Small Businesses and Traders. Videos checked with YouTube oEmbed on 1 November 2026.
-import type { AiSeedCourse, AiSeedLesson } from "../course-seeds-ai";
+import type { SeedCourse, SeedLesson } from "../course-seeds";
 
-const LESSONS: AiSeedLesson[] = [
+const LESSONS: SeedLesson[] = [
   {
     id: "sb-01-welcome", moduleId: "sbstart", kind: "text", minutes: 8, title: "Welcome: what AI can do for a small business",
     body: `Welcome. I'm Emmanuel Adams from LWB academy. This course is for the people who keep Africa's economy moving: the provision-shop owner, the fabric seller at Onitsha main market, the caterer in Port Harcourt, the phone-accessories trader at Computer Village, the hair stylist with a small salon, and everyone selling from home with a phone and a dream.
@@ -379,7 +379,7 @@ On **Notes Academy**, look for courses on marketing, bookkeeping and selling onl
   },
 ];
 
-export const AI_SMALL_BUSINESS: AiSeedCourse = {
+export const AI_SMALL_BUSINESS: SeedCourse = {
   key: "ai-small-businesses-traders",
   ownerUsername: "lwb", byline: "Emmanuel Adams",
   slug: "ai-for-small-businesses-and-traders",

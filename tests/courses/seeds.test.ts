@@ -2,7 +2,7 @@
 // carries its creator's credit, and the safety lines are there. Run: npm run test:courses → "ALL OK".
 import assert from "node:assert/strict";
 import { existsSync } from "node:fs";
-import { COURSE_SEEDS, IT_SUPPORT_COURSE, RESTART_COURSE, seedByKey, seedSummary } from "../../lib/course-seeds";
+import { ALL_COURSE_SEEDS, COURSE_SEEDS, IT_SUPPORT_COURSE, RESTART_COURSE, seedByKey, seedSummary } from "../../lib/course-seeds";
 import { COURSE_SUMMARY_MAX, MAX_COURSE_TOPICS, cleanCourseFields, cleanLesson, slugify } from "../../lib/courses";
 
 for (const c of COURSE_SEEDS) {
@@ -35,6 +35,21 @@ for (const c of COURSE_SEEDS) {
   assert.equal(seedByKey(c.key), c);
 }
 assert.equal(seedByKey("nope"), null);
+// Every seed, LWB Academy's seven included: unique keys and addresses, its own cover on disk, an owner and a byline, and lessons that
+// pass the editor's checks. The seven are the @lwb organisation's, made by @emmanuel.
+assert.equal(ALL_COURSE_SEEDS.length, 9);
+assert.equal(new Set(ALL_COURSE_SEEDS.map((c) => c.key)).size, 9); assert.equal(new Set(ALL_COURSE_SEEDS.map((c) => c.slug)).size, 9);
+for (const c of ALL_COURSE_SEEDS) {
+  assert.ok(existsSync(`public${c.cover}`), `${c.title}: cover ${c.cover} is in public/`);
+  assert.ok(c.ownerUsername && c.byline, `${c.title}: owner and byline`);
+  assert.equal(seedByKey(c.key), c);
+  for (const l of c.lessons) {
+    const input = cleanLesson({ kind: l.kind, title: l.title, minutes: l.minutes, body: l.body, url: l.youtubeId, videoCredit: l.videoCredit, moduleId: l.moduleId, quiz: l.quiz });
+    assert.ok(typeof input !== "string", `${c.title} / ${l.title}: ${input}`);
+    if (l.kind === "youtube") assert.ok(input.videoCredit, `${c.title} / ${l.title}: credited`);
+  }
+}
+for (const c of ALL_COURSE_SEEDS.filter((x) => x.ownerUsername === "lwb")) { assert.equal(c.teacherUsername, "emmanuel"); assert.equal(c.group, "LWB Academy"); assert.equal(c.byline, "Emmanuel Adams"); }
 // Course A: a new draft at its own address, with the safety lines up front
 assert.equal(RESTART_COURSE.slug, slugify(RESTART_COURSE.title));
 assert.equal(RESTART_COURSE.lessons.filter((l) => /^Strategy \d:/.test(l.title)).length, 9, "nine strategies");

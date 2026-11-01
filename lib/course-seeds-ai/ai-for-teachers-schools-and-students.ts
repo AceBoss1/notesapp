@@ -1,7 +1,7 @@
 // Course 4 of lib/course-seeds-ai.ts: AI for Teachers, Schools and Students. Videos checked with YouTube oEmbed on 1 November 2026.
-import type { AiSeedCourse, AiSeedLesson } from "../course-seeds-ai";
+import type { SeedCourse, SeedLesson } from "../course-seeds";
 
-const LESSONS: AiSeedLesson[] = [
+const LESSONS: SeedLesson[] = [
   {
     id: "te-01-welcome", moduleId: "teplan", kind: "text", minutes: 8, title: "Welcome: AI in our classrooms",
     body: `Welcome. I'm Emmanuel Adams from LWB academy. This course is for teachers, head teachers, school owners, lesson teachers and students: the primary school teacher in Ilorin with 70 pupils and no projector, the SS3 student in Owerri preparing for WAEC, the private school proprietor in Abuja wondering what rules to set, and the lesson teacher who coaches evening classes.
@@ -342,7 +342,7 @@ Hold a short parents' meeting or send a letter explaining the policy. Many paren
   },
 ];
 
-export const AI_TEACHERS: AiSeedCourse = {
+export const AI_TEACHERS: SeedCourse = {
   key: "ai-teachers-schools-students",
   ownerUsername: "lwb", byline: "Emmanuel Adams",
   slug: "ai-for-teachers-schools-and-students",

@@ -4,6 +4,7 @@
 // remark). A YouTube lesson's notes are the same Markdown, and its credit is what YouTube's oEmbed returned for the video, word for word
 // (checked on 1 Nov 2026). Never add a video whose id hasn't been checked that way.
 import type { CourseLevel, CourseModule, VideoCredit } from "./courses";
+import { AI_COURSE_SEEDS } from "./course-seeds-ai";
 
 export const SEED_OWNER_USERNAME = "emmanuel";
 
@@ -16,7 +17,12 @@ export type SeedLesson = {
   quiz?: { passPercent: number; questions: SeedQuestion[] };
 };
 export type SeedCourse = {
-  key: "restart-after-breakdown" | "it-support-training";
+  key: string;
+  ownerUsername: string; // who the course belongs to: a member, or an organisation's account
+  byline: string; // who wrote it, as people know them
+  // For an organisation's course: the team member (admin or writer) who makes it, credited as its teacher. Defaults to the owner.
+  teacherUsername?: string;
+  group?: string; // the heading on the admin card (an organisation's academy); defaults to the owner
   existingId?: string; // a course already in production that this seed rewrites in place (kept published, with its id and address)
   slug: string; title: string; summary: string; cover: string; topics: string[]; subtopics: { parent: string; label: string }[];
   level: CourseLevel; language: string; format: "self"; outcomes: string[]; requirements: string[];
@@ -473,6 +479,7 @@ With you on the journey,
 
 export const RESTART_COURSE: SeedCourse = {
   key: "restart-after-breakdown",
+  ownerUsername: SEED_OWNER_USERNAME, byline: "Emmanuel Adams",
   slug: "how-to-restart-your-life-after-a-breakdown",
   title: "How to Restart Your Life After a Breakdown",
   cover: "/images/academy/covers/how-to-restart-your-life-after-a-breakdown.webp", // original art (rising sun, kente band), 1600x900
@@ -1158,6 +1165,7 @@ const IT_ORDERED: SeedLesson[] = (() => {
 
 export const IT_SUPPORT_COURSE: SeedCourse = {
   key: "it-support-training",
+  ownerUsername: SEED_OWNER_USERNAME, byline: "Emmanuel Adams",
   existingId: "wLQCJdqolPh6A3WbvEZL",
   slug: "it-support-staff-training",
   title: "IT Support Training",
@@ -1196,8 +1204,10 @@ What you'll be able to do:
   lessons: IT_ORDERED,
 };
 
+// Emmanuel's own two courses, then LWB Academy's seven on AI (lib/course-seeds-ai.ts, owned by the @lwb organisation).
 export const COURSE_SEEDS: SeedCourse[] = [RESTART_COURSE, IT_SUPPORT_COURSE];
-export const seedByKey = (key: unknown) => COURSE_SEEDS.find((c) => c.key === key) ?? null;
+export const ALL_COURSE_SEEDS: SeedCourse[] = [...COURSE_SEEDS, ...AI_COURSE_SEEDS];
+export const seedByKey = (key: unknown) => ALL_COURSE_SEEDS.find((c) => c.key === key) ?? null;
 
 // What a seed holds, for the admin card and the dry run.
 export function seedSummary(c: SeedCourse) {

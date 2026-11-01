@@ -1,8 +1,8 @@
 // Course 7 of lib/course-seeds-ai.ts: AI for Professionals (lawyers, accountants, HR and healthcare staff). Videos checked with YouTube
 // oEmbed on 1 November 2026. Cases and guidance named here were checked the same day (sources in the lesson text).
-import type { AiSeedCourse, AiSeedLesson } from "../course-seeds-ai";
+import type { SeedCourse, SeedLesson } from "../course-seeds";
 
-const LESSONS: AiSeedLesson[] = [
+const LESSONS: SeedLesson[] = [
   {
     id: "pr-01-welcome", moduleId: "prbase", kind: "text", minutes: 9, title: "Welcome: AI in professional work",
     body: `Welcome. I'm Emmanuel Adams from LWB academy. This course is for professionals whose work carries responsibility for other people: **lawyers, accountants, HR practitioners and healthcare staff**, in Nigeria and across Africa. If you're in another profession (engineering, banking, consulting, pharmacy, public administration), most of what follows applies to you too.
@@ -347,7 +347,7 @@ The professionals who thrive with AI will be the ones who combine its speed with
   },
 ];
 
-export const AI_PROFESSIONALS: AiSeedCourse = {
+export const AI_PROFESSIONALS: SeedCourse = {
   key: "ai-professionals",
   ownerUsername: "lwb", byline: "Emmanuel Adams",
   slug: "ai-for-professionals",

@@ -1,7 +1,7 @@
 // Course 1 of lib/course-seeds-ai.ts: AI for Everyday Africans. Videos checked with YouTube oEmbed on 1 November 2026.
-import type { AiSeedCourse, AiSeedLesson } from "../course-seeds-ai";
+import type { SeedCourse, SeedLesson } from "../course-seeds";
 
-const LESSONS: AiSeedLesson[] = [
+const LESSONS: SeedLesson[] = [
   {
     id: "ev-01-welcome", moduleId: "evmeet", kind: "text", minutes: 8, title: "Welcome: what AI is, in plain words",
     body: `Welcome. My name is Emmanuel Adams, and I'm part of the team at LWB academy. I wrote this course for everyone: the trader in Balogun market, the nurse on night shift, the student preparing for WAEC, the retired teacher in Enugu, and the young person in Kano who keeps hearing "AI, AI, AI" and wonders what all the noise is about.
@@ -400,7 +400,7 @@ AI is a tool, like a cutlass, a car or a phone. In good hands it saves time and 
   },
 ];
 
-export const AI_EVERYDAY: AiSeedCourse = {
+export const AI_EVERYDAY: SeedCourse = {
   key: "ai-everyday-africans",
   ownerUsername: "lwb", byline: "Emmanuel Adams",
   slug: "ai-for-everyday-africans",
