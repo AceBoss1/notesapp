@@ -6,6 +6,12 @@ turned into a build plan, with the owner's decisions at the end. **Steps 1 to 3 
 courses with co-tutors and organisations; see `docs/BUILD_LOG.md`, v0.42 to v0.55), and quiz lessons are built (v0.105.0: answers in server-only `quizKeys`, attempts in `quizAttempts`, a quiz
 ticked off only once passed); Enterprise courses are next.
 
+**The Notes Academy page** (`/academy`, v0.107.0) is a product page around the catalogue: the hero, three feature blocks
+(building a course, quizzes, verifiable certificates), the Teach/Sell/Grow/Learn tabs, why Notes Academy, live numbers counted
+from the published courses (no number is shown while it's 0), "Notes Academy for…", help-article cards, the learners' and
+teachers' questions (`lib/academy-faq.ts`) with a link to the help centre, and a closing call to teach
+(`components/academy/AcademyLanding.tsx`). The catalogue sits in the middle at `#courses`.
+
 **YouTube lessons with notes and a credit (v0.110.0):** a YouTube lesson may also have `body` (the same Markdown as a text lesson, shown
 under the video as "Lesson notes") and `videoCredit: { title, name, url }`, filled by the server from YouTube's oEmbed
 (`https://www.youtube.com/oembed?url=…&format=json`: `title`, `author_name`, `author_url`) whenever the lesson is saved, never from the
@@ -128,7 +134,19 @@ Each step ships with phone and desktop screenshots first (`HANDOVER.md`), the he
    the learner hasn't started (opening a paid lesson counts as starting).
 7. **Co-tutors:** a course can have one tutor or co-tutors. Sales are split like a co-authored post's gifts: each co-tutor's agreed
    percent, the lead keeps the rest, each share at its own plan's commission. Organisations' admins and writers can teach as the organisation.
+   **Access (v0.109.0, owner 1 Nov 2026):** the lead chooses per co-tutor **Can view** (the course and every lesson, draft or published,
+   read-only: the preview at `/academy/<slug>` through `GET /api/academy/courses?slug=`; the editor and uploads are refused) or **Can view
+   and edit** (details, About, modules and lessons). Publishing, the price and certificate, the shares, invitations and deleting stay with
+   the lead (`editable(…, "lead")`). The co-tutor accepts on `/invites/course/<courseId>_<uid>`, agreeing to the terms shown
+   (`agreedAt`, `agreedTerms` on `courseTutorInvites`, the full record in `inviteAgreements`). The lead may change access or share at any
+   time, published or not: less access applies at once; more access or a new share is a `change` the co-tutor must agree to. A 0% share
+   is allowed for both levels (credited without a share), as before. Co-tutors who accepted before access levels keep edit access
+   (`Tutor.access` missing reads as edit). The rules in plain words live in `lib/invite-terms.ts`.
 8. **Course details for every course**, free or paid (from the partner review of digitalwitchng.com): level, language, format (live
-   classes with recordings), what you'll learn, requirements, how it works, modules, This course includes, Share, and private class and
-   community links shown only to people who enrolled or bought.
+   classes with recordings), what you'll learn, requirements, how it works, modules, This course includes, Share, and a private class
+   link and course group shown only to people who enrolled or bought.
+   - **Course group (v0.108.0, owner 1 Nov 2026: our own tools first):** a Space in one of the publisher's communities instead of a
+     WhatsApp or Telegram group: linked, added to a community they run, or a new invite-only community started in one tap. Learners get
+     the invite with the links and join in one tap. Outside links saved before still show until replaced or removed; new ones are refused.
+     Live classes: an audio room (host, 4 speakers, 20 listeners) or a meeting link for video and bigger classes.
 

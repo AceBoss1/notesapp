@@ -2,10 +2,11 @@ import Link from "next/link";
 import type { Metadata } from "next";
 import { TIERS, formatPercent } from "@/lib/tiers";
 import PageHero from "@/components/PageHero";
+import { MAX_AFFILIATE_PERCENT } from "@/lib/referrals";
 
 export const metadata: Metadata = {
   title: "Sell physical goods & digital downloads",
-  description: "Sell physical goods, digital downloads and view-only video courses from your #NotesApp store: buyers pay on-platform, the money is held until delivery is confirmed, and every parcel gets a tracking ID.",
+  description: "Sell physical goods, digital downloads and view-only video courses from your #NotesApp store: buyers pay on-platform, the money is held until delivery is confirmed, and every parcel gets a tracking ID. Make discount codes and coupons on every plan, and let affiliates promote your products for a share of each sale.",
 };
 
 export default function StoreSellingPage() {
@@ -56,6 +57,24 @@ export default function StoreSellingPage() {
       </ul>
       <p className="mt-3 text-sm text-slate">
         Want to teach a full course, with progress for learners? <Link href="/academy" className="text-crimson underline">Notes Academy</Link> has free courses, with lessons from your own YouTube, and paid courses on Pro and above, with the same fee as your digital items: text lessons and PDFs, and on Business and Enterprise your own uploaded videos.
+      </p>
+
+      <h2 id="discount-codes" className="mt-12 scroll-mt-24 font-display text-2xl text-ink">Discount codes and coupons</h2>
+      <p className="mt-3 text-sm text-slate">
+        On every plan, make codes for your shop items, downloads, courses and booked sessions under <Link href="/profile/discounts" className="text-crimson underline">Account → Discount codes</Link>: a percentage or a naira amount off, for some or all of your products, with optional limits (total uses, uses per member, dates, a minimum order, first order only). Pause one at any time, and see how often each was used and what it took off.
+      </p>
+      <ul className="mt-3 list-disc space-y-1 pl-5 text-sm text-slate">
+        <li>Buyers choose &ldquo;Have a discount code?&rdquo; at checkout and see what it takes off before they pay. A code never touches your delivery fee.</li>
+        <li>Our commission is worked out on what the buyer actually paid.</li>
+        <li><strong className="text-ink">Coupons:</strong> tick &ldquo;Show it as a coupon in my shop&rdquo; and buyers see it on your shop and product pages and can save it to My coupons. <strong className="text-ink">Share</strong> gives a link whose preview is the coupon&apos;s card, for WhatsApp, Instagram and the rest.</li>
+        <li><strong className="text-ink">Nana&apos;s pick:</strong> at checkout, the coupon that takes the most off (from the buyer&apos;s saved coupons and the ones your store offers) is applied for them. They can remove it or type another code.</li>
+        <li>Your coupon works only in your store. Buyers who saved one get a reminder when it ends within 3 days.</li>
+      </ul>
+      <p className="mt-3 text-sm text-slate">More in the help centre: <Link href="/help/discount-codes" className="text-crimson underline">Discount codes and coupons</Link>.</p>
+
+      <h2 id="affiliates" className="mt-12 scroll-mt-24 font-display text-2xl text-ink">Affiliates</h2>
+      <p className="mt-3 text-sm text-slate">
+        Set an affiliate share (up to {MAX_AFFILIATE_PERCENT}%) on any shop item, download or paid course under <Link href="/profile/referrals" className="text-crimson underline">Account → Referrals</Link> and it goes on the <Link href="/affiliates" className="text-crimson underline">affiliate marketplace</Link>, where members copy their link and promote it to their audience. They earn your share of every sale through their link; it comes out of your part of the sale, worked out on what the buyer paid. Tick &ldquo;Affiliates can share it&rdquo; on a code and each affiliate gets their own version of it (like TOLU-AMAKA10): buyers get the same discount, and the affiliate earns your share. See <Link href="/help/referrals" className="text-crimson underline">Referrals and affiliates</Link>.
       </p>
 
       <h2 className="mt-12 font-display text-2xl text-ink">Boost your items</h2>

@@ -3,6 +3,8 @@
 // server (lib/courses-server.ts); browsers only read published courses, their lessons and their own enrolments.
 import { setting } from "@/lib/config";
 import { MAX_NOTE_TOPICS, cleanTopics } from "./topics";
+import { heldPercent, type InviteAccess, type InviteAgreementFields } from "./invite-terms";
+import { ROOM_LISTENERS_MAX_P2P, ROOM_SPEAKERS_MAX } from "./rooms";
 
 // On unless NEXT_PUBLIC_ACADEMY_LIVE=false: then /academy shows the opening-soon page, /academy/teach is closed and courses are
 // hidden everywhere else (profiles, Trending, member sites, the digest).
@@ -39,7 +41,9 @@ export type CourseModule = { id: string; title: string };
 // without showing what's in them.
 export type OutlineItem = { id: string; title: string; kind: LessonKind; minutes?: number; preview?: boolean; moduleId?: string };
 // Who teaches it. The lead is the course's owner (a member, or an organisation's account); co-tutors accepted an invitation.
-export type Tutor = { uid: string; username: string; name: string; avatar: string; role: "lead" | "co" };
+// access: what an accepted co-tutor may do (lib/invite-terms.ts): "view" sees the course and its lessons, "edit" also edits them.
+// Missing on co-tutors who accepted before access levels: they could already edit, so it reads as "edit".
+export type Tutor = { uid: string; username: string; name: string; avatar: string; role: "lead" | "co"; access?: InviteAccess };
 
 // Paid courses (docs/COURSES.md step 3). Prices in kobo; 0 is a free course.
 export const COURSE_PRICE_MIN_KOBO = 50_000; // ₦500
@@ -63,6 +67,7 @@ export type Course = {
   level?: CourseLevel | ""; language?: string; format?: CourseFormat; outcomes?: string[]; requirements?: string[]; runsFor?: string; schedule?: string;
   modules?: CourseModule[]; outline?: OutlineItem[];
   hasClassLink?: boolean; hasCommunityLink?: boolean; communityKind?: string; // the links themselves are private (courseLinks/{id})
+  hasGroup?: boolean; // linked to a #NotesApp course group (a community Space): which one is private too (courseLinks/{id})
   tutors?: Tutor[]; tutorUids?: string[]; // accepted co-tutors (the lead is the owner)
   isOrg?: boolean; createdByUid?: string; // published by an organisation; who on its team made it
 };
@@ -119,7 +124,22 @@ export function includesOf(c: Pick<Course, "format" | "schedule" | "certificateI
   out.push(isPaid(c) ? (c.certificateIncluded ? "Verifiable certificate, included" : "Verifiable certificate") : "Verifiable certificate, when you finish");
   return out;
 }
-// What kind of group a community link is ("WhatsApp", "Telegram"…), for the course page.
+// The course group (owner, 1 Nov 2026: "we should never suggest users to setup or add what we have to external platforms"). A course links
+// to a place on #NotesApp for its learners: one of the publisher's communities, usually a members-only Space in it. Only people who
+// enrolled (or bought) and the tutors are told which, and get the community's invite code, so an invite-only community (the kind
+// "Start one for this course" creates) is joined only by the course's learners and whoever its admins invite.
+// Old courses may still carry a WhatsApp or Telegram link saved before (courseLinks/{id}.communityUrl): it keeps showing to their
+// learners, labelled as before, until the publisher switches to a course group or removes it. New outside links aren't accepted.
+export type CourseGroupRef = { communityId: string; spaceId: string };
+export type CourseGroup = CourseGroupRef & { name: string; avatar: string; spaceName: string; joinMode: string; inviteCode: string };
+// Where "Join the course group" goes: the community with its invite, opened on the course's Space.
+export const courseGroupHref = (g: Pick<CourseGroup, "communityId" | "spaceId" | "inviteCode">) =>
+  `/c/${g.communityId}?${[g.inviteCode ? `invite=${encodeURIComponent(g.inviteCode)}` : "", g.spaceId ? `tab=spaces&space=${encodeURIComponent(g.spaceId)}` : "tab=home"].filter(Boolean).join("&")}`;
+// Live classes on #NotesApp: an audio room in the course group holds the host, this many speakers and this many listeners (lib/rooms.ts).
+// A bigger class, or one on video, still needs a meeting link: the editor says so plainly.
+export const COURSE_ROOM_SEATS = { speakers: ROOM_SPEAKERS_MAX, listeners: ROOM_LISTENERS_MAX_P2P, total: 1 + ROOM_SPEAKERS_MAX + ROOM_LISTENERS_MAX_P2P };
+
+// What kind of group a community link saved before is ("WhatsApp", "Telegram"…), to label it as before on the course page.
 export function communityKindOf(url: string): string {
   const h = (() => { try { return new URL(url).hostname.toLowerCase(); } catch { return ""; } })();
   if (/whatsapp\.com$/.test(h)) return "WhatsApp";
@@ -128,6 +148,26 @@ export function communityKindOf(url: string): string {
   if (/slack\.com$/.test(h)) return "Slack";
   if (/facebook\.com$/.test(h)) return "Facebook";
   return "";
+}
+
+// Nana's line ideas for "What learners will learn" and "Requirements" (POST /api/nana/suggest, kind "course-lines"): from the reply's
+// JSON, short plain lines, no bullets or numbering, no repeats, within the editor's limits.
+export type CourseLineSuggestion = { outcomes: string[]; requirements: string[] };
+export function parseCourseLines(text: string): CourseLineSuggestion {
+  const m = String(text ?? "").match(/\{[\s\S]*\}/);
+  let j: { outcomes?: unknown; requirements?: unknown } | null = null;
+  try { j = m ? JSON.parse(m[0]) : null; } catch { j = null; }
+  const tidy = (v: unknown, max: number) => {
+    const out: string[] = [];
+    for (const x of Array.isArray(v) ? v : []) {
+      const line = String(x ?? "").replace(/^\s*(?:[-*•✓✔]|\d+[.)])\s*/, "").replace(/\s+/g, " ").trim().replace(/\.$/, "");
+      if (line.length < 3 || line.length > OUTCOME_MAX || out.some((y) => y.toLowerCase() === line.toLowerCase())) continue;
+      out.push(line);
+      if (out.length >= max) break;
+    }
+    return out;
+  };
+  return { outcomes: tidy(j?.outcomes, 6), requirements: tidy(j?.requirements, 4) };
 }
 
 // A published course on a shelf (GET /api/public/academy), with its teacher as they are now and this week's visits.
@@ -430,17 +470,19 @@ export function progressOf(lessonIds: string[], e: Pick<Enrolment, "done"> | nul
 }
 
 // ---- co-tutors ----
-// The course's lead (its owner) invites other members; each accepts before they're listed. A co-tutor can edit the course's
-// content and lessons; the price, the tutors, publishing and deleting stay with the lead. Sales are split like a co-authored
-// post's gifts (lib/payments.ts): each co-tutor's agreed percent, the lead keeps the rest, every share at its own plan's commission.
+// The course's lead (its owner) invites other members with an access level and a share; each accepts (agreeing to the terms on
+// /invites/course/<id>) before they're listed. "Can view" sees the course and every lesson, draft or published, read-only; "Can view
+// and edit" also edits the course's details, About, modules and lessons. The price, the shares, the tutors, publishing and deleting
+// stay with the lead. Sales are split like a co-authored post's gifts (lib/payments.ts): each co-tutor's agreed percent (0% credits
+// them without a share), the lead keeps the rest, every share at its own plan's commission.
 export const MAX_CO_TUTORS = 4;
 export const MIN_LEAD_TUTOR_PERCENT = 10;
 export type TutorInviteStatus = "pending" | "accepted" | "declined" | "removed";
-export type TutorInvite = {
+export type TutorInvite = InviteAgreementFields & {
   courseId: string; courseTitle: string; courseSlug: string; ownerUid: string; ownerName: string;
   uid: string; username: string; name: string; avatar: string; percent: number; status: TutorInviteStatus;
   invitedByUid: string; createdAt: string; respondedAt?: string;
 };
 export const tutorInviteId = (courseId: string, uid: string) => `${courseId}_${uid}`;
-export const leadTutorPercent = (invites: Pick<TutorInvite, "percent" | "status">[]) =>
-  100 - invites.filter((i) => i.status === "pending" || i.status === "accepted").reduce((n, i) => n + i.percent, 0);
+export const leadTutorPercent = (invites: (Pick<TutorInvite, "percent" | "status"> & Pick<InviteAgreementFields, "change">)[]) =>
+  100 - invites.filter((i) => i.status === "pending" || i.status === "accepted").reduce((n, i) => n + heldPercent(i), 0);

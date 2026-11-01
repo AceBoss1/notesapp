@@ -8,7 +8,8 @@ import { SubtopicError, suggestFor } from "@/lib/subtopics-server";
 export const dynamic = "force-dynamic";
 export const maxDuration = 30;
 
-// Signed-in members: POST { kind: "journal" | "course" | "item", title, summary? } → Nana's topics and subtopics (journals, courses) or
+// Signed-in members: POST { kind: "journal" | "course" | "item" | "course-lines", title, summary? } → Nana's topics and subtopics (journals, courses),
+// lines for a course's "What learners will learn" and "Requirements" (course-lines), or
 // categories and subcategories (Market items) for it (lib/subtopics-server.ts). On #NotesApp's own AI, never the member's allowance.
 export async function POST(req: NextRequest) {
   try {

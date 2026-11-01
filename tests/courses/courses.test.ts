@@ -2,7 +2,7 @@
 import { breakdownOf, cleanRecommendation, recommendationSummary } from "../../lib/reviews";
 import assert from "node:assert/strict";
 import { youtubeCredit } from "../../lib/youtube-oembed";
-import { cleanVideoCredit, youtubeOembedUrl, cleanPrice, cleanLink, communityKindOf, groupByModule, priceLabel, canSellCourses, canUploadVideo, cleanCourseFields, cleanLesson, courseRating, durationLabel, progressOf, reviewProgress, showsRating, publishProblems, slugify, youtubeEmbed, youtubeId, LESSON_BODY_MAX } from "../../lib/courses";
+import { cleanVideoCredit, youtubeOembedUrl, cleanPrice, cleanLink, communityKindOf, groupByModule, priceLabel, canSellCourses, canUploadVideo, cleanCourseFields, cleanLesson, courseRating, durationLabel, progressOf, reviewProgress, showsRating, publishProblems, slugify, youtubeEmbed, youtubeId, LESSON_BODY_MAX, courseGroupHref, parseCourseLines, COURSE_ROOM_SEATS } from "../../lib/courses";
 
 // every form of YouTube link gives the 11-character id; anything else gives nothing
 const ID = "Vl0H-qTclOg";
@@ -79,6 +79,15 @@ assert.equal(typeof cleanPrice({ priceNaira: "300" }), "string", "at least ₦50
 assert.equal(priceLabel({ priceKobo: 4_000_000 }), "₦40,000"); assert.equal(priceLabel({}), "Free");
 assert.equal(cleanLink("http://zoom.us/j/1"), null); assert.equal(cleanLink(""), ""); assert.equal(cleanLink("https://zoom.us/j/1"), "https://zoom.us/j/1");
 assert.equal(communityKindOf("https://chat.whatsapp.com/x"), "WhatsApp"); assert.equal(communityKindOf("https://t.me/x"), "Telegram");
+// the course group on #NotesApp
+assert.equal(courseGroupHref({ communityId: "excel-101", spaceId: "learners", inviteCode: "ab_C-1" }), "/c/excel-101?invite=ab_C-1&tab=spaces&space=learners");
+assert.equal(courseGroupHref({ communityId: "excel-101", spaceId: "", inviteCode: "" }), "/c/excel-101?tab=home");
+assert.equal(COURSE_ROOM_SEATS.total, 1 + COURSE_ROOM_SEATS.speakers + COURSE_ROOM_SEATS.listeners);
+// Nana's lines for "What learners will learn" and "Requirements"
+const lines = parseCourseLines(`Sure! {"outcomes": ["1. Set up a help desk.", "- Handle angry customers", "set up a help desk", "x", "${"a".repeat(130)}"], "requirements": ["• A phone or laptop"]}`);
+assert.deepEqual(lines, { outcomes: ["Set up a help desk", "Handle angry customers"], requirements: ["A phone or laptop"] }, "bullets, numbers, repeats and over-long lines go");
+assert.deepEqual(parseCourseLines("no json"), { outcomes: [], requirements: [] });
+assert.equal(parseCourseLines(JSON.stringify({ outcomes: Array.from({ length: 10 }, (_, i) => `Outcome number ${i}`) })).outcomes.length, 6, "up to 6 ideas");
 assert.ok(canSellCourses("pro") && !canSellCourses("basic") && canUploadVideo("business") && !canUploadVideo("pro"));
 assert.deepEqual(groupByModule([{ id: "a", moduleId: "m1" }, { id: "b" }], [{ id: "m1", title: "One" }]).map((g) => [g.module?.title ?? null, g.items.map((x) => x.id)]), [[null, ["b"]], ["One", ["a"]]]);
 assert.equal(typeof cleanCourseFields({ level: "expert" }), "string");

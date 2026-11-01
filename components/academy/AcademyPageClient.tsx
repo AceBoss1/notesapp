@@ -2,7 +2,6 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import DiscoveryHero from "@/components/DiscoveryHero";
 import Shelf from "@/components/Shelf";
 import AdSlot from "@/components/AdSlot";
 import CourseCard, { courseCardOf } from "@/components/CourseCard";
@@ -13,20 +12,21 @@ import { useMember } from "@/lib/member-client";
 import { byForYou, byMostViewed, byRecent, shelves, type Shelfable } from "@/lib/discovery";
 import { courseHref, lessonHref, progressOf, type CourseListing, type Enrolment } from "@/lib/courses";
 import { myEnrolments, useAcademy } from "@/lib/courses-client";
+import { academyFaq, academyTeachFaq } from "@/lib/academy-faq";
+import AcademyFaq from "./AcademyFaq";
+import { AcademyAdvantages, AcademyAudiences, AcademyCta, AcademyFeatures, AcademyHelp, AcademyHero, AcademyPublishers, AcademyResources, AcademyStats, AcademyWhy } from "./AcademyLanding";
 
-// Notes Academy (/academy): every published course, free and paid, arranged like Journals and Notes Market (lib/discovery.ts): the
+// Notes Academy (/academy): a product page (components/academy/AcademyLanding.tsx: the hero, what it does, the advantage tabs, why,
+// live numbers, who it's for, help articles, questions and a last call to teach) with the course catalogue in the middle, at
+// #courses. The catalogue is every published course, free and paid, arranged like Journals and Notes Market (lib/discovery.ts): the
 // learner's own courses to continue, then their interests, what most people opened this week, and what's new. On a computer a
 // Topics list (with how many courses each topic and subtopic has) and Level and Price filters sit beside them; on a phone, chips.
+// A link with ?tab= or ?topic= (the shelves' "See all") opens straight at the catalogue.
 type Tab = "all" | "foryou" | "viewed" | "new";
 const TABS: { id: Tab; label: string }[] = [{ id: "all", label: "All" }, { id: "foryou", label: "For you" }, { id: "viewed", label: "Most viewed" }, { id: "new", label: "New" }];
 type Shelved = Omit<CourseListing, "viewsWeek"> & Shelfable;
 const grid = "grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3";
 
-// What comes next (docs/COURSES.md). Amounts are set by the owner in Admin → Pricing.
-const ACADEMY_NEXT = [
-  { t: "Quizzes", d: "Short quizzes in a lesson or at the end, with a pass mark the tutor sets." },
-  { t: "For organisations", d: "Enterprise courses for your team or customers, under your brand, with cohorts and bulk invites. Talk to us." },
-];
 type Level = "" | "beginner" | "intermediate" | "advanced";
 type Price = "" | "free" | "paid";
 
@@ -47,6 +47,7 @@ export default function AcademyPageClient() {
     const t0 = p.get("tab");
     if (TABS.some((t) => t.id === t0)) setTab(t0 as Tab);
     if (p.get("topic")) setTopic(p.get("topic"));
+    if (p.get("tab") || p.get("topic")) requestAnimationFrame(() => document.getElementById("courses")?.scrollIntoView());
   }, []);
   useEffect(() => { if (user) myEnrolments(user.uid).then(setMine); else setMine([]); }, [user]);
 
@@ -117,25 +118,46 @@ export default function AcademyPageClient() {
 
   return (
     <div>
-      <DiscoveryHero eyebrow="Notes Academy" title="Learn from people who've done it" sub="Free and paid courses from #NotesApp tutors and organisations. Lessons play right here, your progress is saved as you go, and you finish with a certificate anyone can check."
-        query={query} onQuery={setQuery} placeholder="Search courses and teachers" tabs={TABS} tab={tab} onTab={setTab}>
-        <div className="mt-4 flex flex-wrap items-center gap-2">
-          <Link href="/academy/teach" className="mr-2 rounded-full bg-white px-4 py-1.5 font-ui text-sm font-bold text-crimson hover:bg-paper">Teach a course</Link>
-          {/* JAMB, WAEC and NECO practice: its own address (middleware.ts sends /exam-prep there) */}
-          <a href="/exam-prep" className="mr-2 rounded-full bg-[#0F2747] px-4 py-1.5 font-ui text-sm font-bold text-white hover:bg-[#0b1d36]">Naija Exam Prep</a>
-          {(chips.starred.length > 0 || chips.rest.length > 0) && (
-            <>
-              <button onClick={() => pickTopic(null)} aria-pressed={!topic} className={chip(!topic)}>All topics</button>
-              {chips.starred.map((t) => <button key={t} onClick={() => pickTopic(t)} aria-pressed={topic === t} className={chip(topic === t)}>★ {hashtag(t)}</button>)}
-              {chips.rest.map((t) => <button key={t} onClick={() => pickTopic(t)} aria-pressed={topic === t} className={chip(topic === t)}>{hashtag(t)}</button>)}
-              <span className="flex gap-2 lg:hidden">
-                <select value={price} onChange={(e) => setPrice(e.target.value as Price)} aria-label="Price" className="rounded-full border-0 bg-white/15 px-3 py-1 text-xs font-semibold text-paper"><option value="" className="text-ink">Free and paid</option><option value="free" className="text-ink">Free</option><option value="paid" className="text-ink">Paid</option></select>
-                <select value={level} onChange={(e) => setLevel(e.target.value as Level)} aria-label="Level" className="rounded-full border-0 bg-white/15 px-3 py-1 text-xs font-semibold text-paper"><option value="" className="text-ink">Any level</option><option value="beginner" className="text-ink">Beginner</option><option value="intermediate" className="text-ink">Intermediate</option><option value="advanced" className="text-ink">Advanced</option></select>
-              </span>
-            </>
-          )}
+      <AcademyHero courses={courses} />
+      <AcademyPublishers courses={courses} />
+      <AcademyFeatures />
+
+      <section id="courses" aria-labelledby="courses-h" className="scroll-mt-16 border-t border-rule bg-paper">
+        <div className="bg-gradient-to-br from-crimson-deep via-crimson to-crimson-bright text-paper">
+          <div className="mx-auto max-w-6xl px-4 py-10 sm:px-8 sm:py-12">
+            <p className="font-mono text-xs uppercase tracking-eyebrow text-paper/70">Browse courses</p>
+            <h2 id="courses-h" className="mt-2 font-display text-4xl sm:text-5xl">Find your next course</h2>
+            <p className="mt-2 max-w-2xl text-paper/85">Free and paid courses from #NotesApp tutors and organisations. Lessons play right here, your progress is saved as you go, and you finish with a certificate anyone can check.</p>
+            <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search courses and teachers" aria-label="Search courses and teachers"
+              className="mt-5 w-full max-w-xl rounded-full border border-white/30 bg-white px-5 py-3 text-sm text-ink outline-none placeholder:text-slate focus:border-white" />
+            <div className="mt-4 flex flex-wrap items-center gap-2">
+              <Link href="/academy/teach" className="mr-2 rounded-full bg-white px-4 py-1.5 font-ui text-sm font-bold text-crimson hover:bg-paper">Teach a course</Link>
+              {/* JAMB, WAEC and NECO practice: its own address (middleware.ts sends /exam-prep there) */}
+              <a href="/exam-prep" className="mr-2 rounded-full bg-[#0F2747] px-4 py-1.5 font-ui text-sm font-bold text-white hover:bg-[#0b1d36]">Naija Exam Prep</a>
+              {(chips.starred.length > 0 || chips.rest.length > 0) && (
+                <>
+                  <button onClick={() => pickTopic(null)} aria-pressed={!topic} className={chip(!topic)}>All topics</button>
+                  {chips.starred.map((t) => <button key={t} onClick={() => pickTopic(t)} aria-pressed={topic === t} className={chip(topic === t)}>★ {hashtag(t)}</button>)}
+                  {chips.rest.map((t) => <button key={t} onClick={() => pickTopic(t)} aria-pressed={topic === t} className={chip(topic === t)}>{hashtag(t)}</button>)}
+                  <span className="flex gap-2 lg:hidden">
+                    <select value={price} onChange={(e) => setPrice(e.target.value as Price)} aria-label="Price" className="rounded-full border-0 bg-white/15 px-3 py-1 text-xs font-semibold text-paper"><option value="" className="text-ink">Free and paid</option><option value="free" className="text-ink">Free</option><option value="paid" className="text-ink">Paid</option></select>
+                    <select value={level} onChange={(e) => setLevel(e.target.value as Level)} aria-label="Level" className="rounded-full border-0 bg-white/15 px-3 py-1 text-xs font-semibold text-paper"><option value="" className="text-ink">Any level</option><option value="beginner" className="text-ink">Beginner</option><option value="intermediate" className="text-ink">Intermediate</option><option value="advanced" className="text-ink">Advanced</option></select>
+                  </span>
+                </>
+              )}
+            </div>
+          </div>
         </div>
-      </DiscoveryHero>
+        <div className="border-b border-rule bg-paper">
+          <div className="mx-auto flex max-w-6xl gap-2 overflow-x-auto px-4 py-3 sm:px-8" role="tablist">
+            {TABS.map((t) => (
+              <button key={t.id} role="tab" aria-selected={tab === t.id} onClick={() => setTab(t.id)}
+                className={`flex-shrink-0 rounded-full px-4 py-1.5 font-ui text-sm font-semibold transition-colors ${tab === t.id ? "bg-crimson text-paper" : "border border-rule text-ink hover:border-crimson"}`}>
+                {t.label}
+              </button>
+            ))}
+          </div>
+        </div>
 
       <div className="mx-auto max-w-6xl px-4 py-10 sm:px-8">
         {!courses ? <p className="py-16 text-center text-sm text-slate">Loading courses…</p> : courses.length === 0 ? (
@@ -174,19 +196,24 @@ export default function AcademyPageClient() {
           </div>
         )}
 
-        <Shelf title="What's coming" why="Free and paid courses are open now. Next:">
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-            {ACADEMY_NEXT.map((p) => <div key={p.t} className="card p-5"><p className="font-ui font-bold text-ink">{p.t}</p><p className="mt-1 text-sm text-slate">{p.d}</p></div>)}
-          </div>
-        </Shelf>
-        <div className="card flex flex-wrap items-center justify-between gap-4 p-6">
-          <div>
-            <p className="font-display text-xl text-ink">Want to teach?</p>
-            <p className="mt-1 text-sm text-slate">Any publishing account can teach a free course: lessons from your own YouTube, or written right here. Sell courses on Pro (text, PDFs, YouTube) and Business (your own uploaded videos too), alone, with co-tutors or for your organisation.</p>
-          </div>
-          <Link href="/academy/teach" className="btn-primary !px-5 !py-2 text-sm">Teach a course</Link>
-        </div>
       </div>
+      </section>
+
+      <AcademyAdvantages />
+      <AcademyWhy />
+      <AcademyStats courses={courses} />
+      <AcademyAudiences />
+      <AcademyResources />
+      <section className="bg-paper py-16 sm:py-20">
+        <div className="mx-auto grid max-w-6xl gap-8 px-4 sm:px-8 lg:grid-cols-2">
+          <AcademyFaq items={academyFaq()} title="Questions learners ask" id="faq" className="" />
+          <div>
+            <AcademyFaq items={academyTeachFaq()} title="Questions teachers ask" id="faq-teach" className="" />
+            <AcademyHelp />
+          </div>
+        </div>
+      </section>
+      <AcademyCta />
     </div>
   );
 }
