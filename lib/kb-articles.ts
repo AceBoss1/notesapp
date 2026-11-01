@@ -15,7 +15,7 @@ import { ORG_TRIAL_DAYS } from "./org";
 import { TRIAL_DAYS } from "./trials";
 import { COMPANY_INFO, SITE } from "./site";
 import { BADGE_PRICE_KOBO, TIERS, formatPercent } from "./tiers";
-import { academyApiFrom, certificateMin, currentPricing, enterpriseCoursesPrice, inventoryAddonPrice, inventoryTrialDays, logisticsAddonPrice, logisticsTrialDays } from "./pricing";
+import { academyApiFrom, certificateMin, currentPricing, enterpriseCoursesPrice, inventoryAddonPrice, inventoryTrialDays, logisticsAddonPrice, logisticsTrialDays, coversPerDay } from "./pricing";
 import { academyFaq } from "./academy-faq";
 const CERTIFICATE_LATE_TEXT = () => { const l = currentPricing().certificateLate; return { grace: l.graceDays, weekly: `${Math.round(l.weeklyRate * 100)}%`, cap: `${Math.round(l.capRate * 100)}%` }; };
 import { VIDEO_MAX_SECONDS } from "./video-rules";
@@ -146,6 +146,8 @@ You can also choose how long Nana thinks before answering: **Quick** on every pl
 **Nana credit.** Anyone, on any plan, can buy Nana credit on the [Nana page](/nana#credit), by card or from your NotesApp Credit wallet. Your free allowance is always used first, then your credit. Credit never expires and carries over. When both run out, Nana answers from the help centre until your allowance refreshes.
 
 **Answer bank.** When you open a chat with a general question someone has asked before (for example "How do I get paid?"), Nana may answer straight away from her answer bank. That's free and doesn't use your allowance. Only general questions go in, never anything personal.
+
+**Course covers.** Making a course cover with Nana in Notes Academy uses a little of your allowance too (Pearl designs it; drawing the picture is free). When your allowance and credit are used up, covers stop until the allowance refreshes. Your plan's daily number of covers applies either way.
 
 With [your own AI account connected](/help/connect-your-own-ai) there is no allowance and no limit from us.`),
     A("connect-your-own-ai", "Connect your own AI account", "Getting started", `
@@ -480,6 +482,7 @@ Calls are free. Planned: paid calls inside Notes Life (₦5 a minute voice, ₦1
 - Any publishing account can teach a free course, including the free Basic plan. If you don't publish yet, start at [Rates & payouts](/profile/publishing). On an organisation's team (Business or Enterprise), choose **Teach as** your organisation when you start a course: it's published under the organisation's name, and its admins can edit it too.
 - Go to [Teach a course](/academy/teach) and tap **New course**. A working title is all you need to start.
 - **1. Describe it:** a clear title, a short summary of what learners will be able to do, up to 3 topics and a wide cover picture. The course's address follows the title until you first publish.
+- **Make a cover with Nana:** no picture? Under the cover, tap **✨ Make a cover with Nana**, say what it should show if you like ("a farmer with a phone, green and gold"), and Nana designs one from your course: our own African patterns (adire, kente-like stripes, mud cloth), an icon, your title in bold type and a small Notes Academy mark. Tap **Use as cover**, **Edit** it ("make it green", "add a laptop", "shorter headline") or **Try another**; your last few covers stay there to go back to. It works on free and paid courses, for the lead, co-tutors and admins. Each new cover or edit counts one of the day's covers: Free Basic ${coversPerDay("basicDaily")}, Pro ${coversPerDay("proDaily")}, Business ${coversPerDay("businessDaily")}, Enterprise ${coversPerDay("enterpriseDaily")} a day, starting again at midnight Lagos time (so on Free Basic, one cover and two edits, or three different ones). Nana's design comes from your Nana allowance, then your Nana credit; when both are used up, covers stop until the allowance refreshes, and the editor says when.
 - **About the course:** the level, language and format (self-paced, or live classes with recordings), what learners will learn and the requirements (one per line), how long it runs and when classes are, and two private links: the live class (Zoom, Meet or Teams) and the learners' group (WhatsApp or Telegram). Only learners who enrolled or bought see the links.
 - **Price:** free, or paid on Pro (text lessons, PDFs and YouTube) and on Business or Enterprise (your own uploaded videos too). You get the price less the same fee as your digital items, paid to your bank 7 days after each sale; add your bank account in Rates & payouts before you publish. Tick **Certificate included** to include it in the price.
 - **Tutors:** teach alone, or invite up to 4 co-tutors by @username with their share of each sale. Each one accepts first, can then edit the course's content and lessons, and is paid their share at their own plan's fee. The price, the tutors and publishing stay with the lead.

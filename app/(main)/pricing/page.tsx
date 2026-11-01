@@ -14,7 +14,7 @@ import { getAdminDb } from "@/lib/firebase-admin";
 import { getLimitTable } from "@/lib/limits-server";
 import { CALLS_LIVE, MESSAGES_LIVE, MOMENTS_LIVE } from "@/lib/moments-rules";
 import { WALLET_LIVE } from "@/lib/wallet";
-import { academyApiFrom, certificateMin, enterpriseCoursesPrice, enterpriseFrom, logisticsAddonPrice, logisticsTrialDays, planPrice, planRate, pct, breakEven , inventoryAddonPrice, inventoryTrialDays } from "@/lib/pricing";
+import { academyApiFrom, certificateMin, enterpriseCoursesPrice, enterpriseFrom, logisticsAddonPrice, logisticsTrialDays, planPrice, planRate, pct, breakEven , inventoryAddonPrice, inventoryTrialDays, coversPerDay } from "@/lib/pricing";
 import { ROOT_DOMAIN } from "@/lib/host";
 
 export const metadata: Metadata = {
@@ -113,6 +113,14 @@ const ROWS: Row[] = [
             : t.tier === "pro"
               ? `Free courses, and paid courses with text lessons, PDFs and YouTube, for the same fee as your digital items (${formatPercent(t.digitalCommission, t.digitalCommissionFloor)})`
               : `Free and paid courses, including your own uploaded videos, for the same fee as your digital items (${formatPercent(t.digitalCommission, t.digitalCommissionFloor)}); teach as your organisation, with co-tutors`,
+  },
+  {
+    label: "Course covers by Nana",
+    href: "/academy/teach",
+    render: (t) => {
+      const n = coversPerDay(t.tier === "basic" ? "basicDaily" : t.tier === "pro" ? "proDaily" : t.tier === "business" ? "businessDaily" : t.tier === "enterprise" ? "enterpriseDaily" : "freeDaily");
+      return !t.canPublish || n <= 0 ? "—" : `${n} a day for your courses, free or paid (each edit counts one); Nana's design uses your Nana allowance`;
+    },
   },
   {
     label: "Links out to other shops",
@@ -341,6 +349,7 @@ export default async function PricingPage() {
       <section className="card mt-6 p-6" aria-labelledby="courses-pricing">
         <p id="courses-pricing" className="font-ui text-sm font-bold text-ink">Courses in Notes Academy</p>
         <ul className="mt-3 list-disc space-y-2 pl-5 text-sm text-slate">
+          <li><strong className="text-ink">Covers made with Nana</strong> for any course, free or paid: {coversPerDay("basicDaily")} a day on Free Basic, {coversPerDay("proDaily")} on Pro, {coversPerDay("businessDaily")} on Business and {coversPerDay("enterpriseDaily")} on Enterprise. Each new cover and each edit counts one, and Nana&apos;s design comes from your Nana allowance (then credit).</li>
           <li><strong className="text-ink">Free courses are free to publish</strong> on every publishing plan, with lessons from your own YouTube that play inside #NotesApp, and free for learners to take.</li>
           <li><strong className="text-ink">Certificates on free courses are paid:</strong> the learner pays from {certificateMin()}, plus the margin you set. We keep {certificateMin()} and our usual commission on your margin; the rest of the margin is yours.</li>
           <li><strong className="text-ink">Paid courses</strong>, with the same fee as your digital items: on Pro ({planRate("pro", "digital")}) with text lessons, PDFs and YouTube; on Business ({planRate("business", "digital")}) and Enterprise with your own uploaded videos too. Lessons stay private and play only for learners who paid, on up to two devices, with each viewer&apos;s details drifting across the video. Learners can get a refund within 7 days if they haven&apos;t started.</li>

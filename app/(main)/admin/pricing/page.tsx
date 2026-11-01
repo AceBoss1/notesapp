@@ -23,7 +23,7 @@ function convert(v: Any, key: string, toForm: boolean): Any {
   if (typeof v === "number" || typeof v === "string") {
     if (KOBO_KEYS.has(key)) return toForm ? String(Number(v) / 100) : Math.round(Number(v) * 100);
     if (RATE_KEYS.has(key) || RATE_EXTRA.has(key)) return toForm ? String(Math.round(Number(v) * 10000) / 100) : Number(v) / 100;
-    if (key === "impressions" || key === "graceDays" || key === "trialDays" || key === "inUsd" || key === "outUsd") return toForm ? String(v) : Number(v);
+    if (key === "impressions" || key === "graceDays" || key === "trialDays" || key === "inUsd" || key === "outUsd" || key.endsWith("Daily")) return toForm ? String(v) : Number(v);
   }
   return v;
 }
@@ -131,6 +131,16 @@ export default function PricingPage() {
             <div className="mt-3 grid gap-3 text-sm sm:grid-cols-2">
               <div className="flex items-center justify-between gap-3"><span>Add-on for Free Basic and Pro, per month, ₦</span>{input(["inventory", "addonMonthlyKobo"], "", "Inventory add-on monthly price")}</div>
               <div className="flex items-center justify-between gap-3"><span>Free trial, no card</span>{input(["inventory", "trialDays"], "days", "Inventory add-on trial days")}</div>
+            </div>
+          </section>
+
+          <section className="card mt-6 p-5">
+            <h2 className="font-display text-2xl text-ink">Course covers by Nana</h2>
+            <p className="mt-1 text-xs text-slate">How many covers a member can make a day for their courses (free or paid), on each plan. A new cover counts 1 and each edit counts 1; the count starts again at midnight Lagos time. Nana&apos;s Pearl writes the design from the member&apos;s Nana allowance (then credit), so covers also stop when that runs out. Free can&apos;t publish, so it is normally 0. Admins always get at least Enterprise&apos;s number.</p>
+            <div className="mt-3 grid gap-3 text-sm sm:grid-cols-2">
+              {([["freeDaily", "Free"], ["basicDaily", "Free Basic"], ["proDaily", "Pro"], ["businessDaily", "Business"], ["enterpriseDaily", "Enterprise"]] as const).map(([k, name]) => (
+                <div key={k} className="flex items-center justify-between gap-3"><span>{name}, covers a day</span>{input(["academyCovers", k], "", `Course covers a day ${name}`)}</div>
+              ))}
             </div>
           </section>
 

@@ -11,6 +11,16 @@ export type Release = {
 
 export const CHANGELOG: Release[] = [
   {
+    version: "v0.111.0",
+    bump: "minor",
+    date: "2026-11-01",
+    changes: [
+      { kind: "added", text: "Make a cover with Nana: in the course editor, publishers can have Nana design a cover for any course, free or paid. Say what it should show (or leave it blank), then Use it, Edit it (\"make it green\", \"add a laptop\", \"shorter headline\") or Try another; the last few stay to go back to. Covers are our own artwork: eight templates in Crimson, Ivory, Ink, Moss, Indigo, Gold, Teal and Earth, with adire, kente-like, mud cloth and other patterns we drew, a set of simple icons, your title in bold type and a small Notes Academy mark, saved as WebP like an uploaded picture." },
+      { kind: "added", text: "Covers a day by plan: Free Basic 3, Pro 10, Business 25, Enterprise 50 (a new cover and each edit count one, so one cover and two edits is three). The count starts again at midnight Lagos time, and the editor shows how many are left. Nana's Pearl writes the design from your Nana allowance, then your Nana credit, like her writing help; when both are used up, covers stop until the allowance refreshes. Members with their own AI key use it instead. Drawing the picture costs nothing." },
+      { kind: "added", text: "Admin → Pricing has a Course covers by Nana section for the daily numbers, and /pricing lists them." },
+    ],
+  },
+  {
     version: "v0.107.0",
     bump: "minor",
     date: "2026-11-01",
