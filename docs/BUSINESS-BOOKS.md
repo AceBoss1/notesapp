@@ -4,6 +4,8 @@
 > Night) come first, for approval, before any code. The owner's brief: "plan Business books, add import your existing data, if we do
 > not support it yet then suggest to support". This plan has the owner's earlier suggestions in it too: Nana bookkeeping from a short
 > message, honest reporting, and "import your Tralo or Excel stock list" for the Ghana launch.
+> **Decided 1 Nov 2026:** customers who aren't #NotesApp members get receipts and debt reminders by WhatsApp (SMS through Send-Na when
+> the seller opts in), each with a short #NotesApp line. This is an approved exception to "our own tools first" (section 2).
 
 ## 1. Who it's for and the problem
 
@@ -36,10 +38,13 @@ The screens are in the mockups (section 9). In short:
   - change the quantity and the price (a discount);
   - choose how they paid: **Cash, Transfer, POS or Credit**;
   - a **Customer owes** toggle with the customer, the part paid now and a due date. The rest goes to *Money owed to you*.
-- **Receipts** without WhatsApp-only flows (the owner's rule: our own tools first). Each sale gets an unguessable link,
-  `naapp.tech/r/<code>`. The receipt page shows the shop's name and logo, the items, the total, how it was paid and what is still owed,
-  but never the seller's or buyer's phone number. The seller shares the link any way they like (copy, the phone's share sheet, our
-  messages, email). **Receipt PDF** uses the browser's Save as PDF on a print page, as certificates and giving receipts do today
+- **Receipts.** Each sale gets an unguessable link, `naapp.tech/r/<code>`. The receipt page shows the shop's name and logo, the items,
+  the total, how it was paid and what is still owed, but never the seller's or buyer's phone number.
+  - **A customer who is a #NotesApp member** gets it by email and bell, as planned.
+  - **A customer who isn't a member** gets it by **WhatsApp**: **Send receipt by WhatsApp** opens WhatsApp on the seller's phone with
+    the message already written, ending with the #NotesApp line (see *Customers who aren't on #NotesApp* below).
+  - **SMS** goes too when the seller has switched on Send-Na.
+  - The seller can still copy the link or share it any other way. **Receipt PDF** uses the browser's Save as PDF on a print page, as certificates and giving receipts do today
   (`components/academy/PrintNow.tsx`, `components/community/MyGiving.tsx`), so we add no PDF library. A small QR on the printed
   receipt opens the same link.
 
@@ -60,11 +65,53 @@ The screens are in the mockups (section 9). In short:
 ### Money owed to you and money you owe
 - **Owed to you (debtors):** each customer with an open balance, what for, since when, the due date, and *late* in red once it passes.
   Record a payment (all or part) in two taps.
-- **Reminders:** by **email** when we have the customer's address, and by **bell** when the customer is a #NotesApp member. The
-  reminder links to their statement, where they can **pay by card or transfer through our checkout** (a new payment kind, `debt`,
-  paid to the seller like any sale). **SMS** comes with Send-Na (`docs/SEND-NA.md`): we have no SMS sending today, so the mockup shows
-  it as "With Send-Na". Reminders can repeat (every 3 days, at most 3 times). One a day per person at most, and the customer can turn
-  them off from the link.
+- **Reminders.** Each reminder links to the customer's statement, where they can **pay by card or transfer through our checkout** (a
+  new payment kind, `debt`, paid to the seller like any sale).
+  - **Members** get it by **email and bell**.
+  - **Non-members** get it by **WhatsApp**: **Remind by WhatsApp** opens a prefilled message on the seller's phone, ending with the
+    #NotesApp line.
+  - **SMS** goes as well when the seller has opted in to Send-Na (`docs/SEND-NA.md`). We have no SMS sending today, so the mockup
+    shows SMS greyed out, "with Send-Na".
+  - Automatic reminders (email and bell, and SMS once Send-Na is on) can repeat every 3 days, at most 3 times. A WhatsApp reminder is
+    sent by the seller's own tap, so Books only *prompts* the seller when the next one is due.
+  - One reminder a day per person at most, and the customer can turn reminders off from the statement link.
+
+### Customers who aren't on #NotesApp: WhatsApp and SMS, with a #NotesApp line (owner's decision, 1 Nov 2026)
+Most people who owe a market trader aren't #NotesApp members, so email and the bell don't reach them. The owner approved an
+**exception to "our own tools first"**: debt reminders and receipts to **non-members** go by WhatsApp (and SMS through Send-Na), and
+each one ends with a short #NotesApp line. Our own tools can't reach these people, and every message is a small invitation to join,
+so it doubles as a growth channel. Members keep email and the bell.
+
+The line, the same on every message:
+
+> Sent with #NotesApp Business books. Keep your own books free: naapp.tech/books
+
+The link carries the seller's referral code, so the seller earns if the customer joins (`docs/REFERRALS.md`; open question 10).
+
+**Two ways to send by WhatsApp:**
+
+| | Click to send (`wa.me`) | WhatsApp Business API |
+|---|---|---|
+| How | Books builds a `https://wa.me/<customer's number>?text=<the message>` link. Tapping it opens WhatsApp on the seller's own phone with the message written. The seller taps Send. | #NotesApp sends from its own verified WhatsApp Business number through Meta's Cloud API (or a provider), with no tap from the seller. |
+| Cost to us | Free | Meta charges per message. Each message is a template Meta must approve first. |
+| Comes from | The seller's own number, which the customer already knows and trusts | A #NotesApp number |
+| What we know | Only that the seller opened WhatsApp, not that they sent it. Books records "WhatsApp opened" with the time. | Sent, delivered and read |
+| Repeats | The seller taps each time; Books reminds the seller when the next one is due | Automatic |
+| Risks | None on our side | Meta's rules: the customer must have agreed to receive messages, and a template with a promotional line can be charged at the dearer marketing rate. Check the current rules before building. |
+
+**Recommendation:** start with **click-to-send**. It's free, it needs no approval from Meta, and the message comes from someone the
+customer knows. Look at the Business API later, together with Send-Na's WhatsApp channel (`docs/SEND-NA.md`), if sellers ask for
+automatic reminders.
+
+**SMS (Send-Na):**
+- When the seller opts in to Send-Na (once it's built), reminders and receipts to non-members also go by SMS. The seller pays per SMS.
+- Each SMS ends with a short line, "Sent via #NotesApp naapp.tech", short enough to keep the message in as few SMS parts as possible.
+
+**Rules for all of these:**
+- Only a customer's phone number goes into the message link. No balances of other customers and no profit.
+- The message is short and polite, with the amount, what it was for, the due date and the statement link (example in the mockups).
+- One message a day per person at most.
+- The customer can stop reminders from the statement link. A seller who keeps sending after that is warned.
 - **You owe (creditors):** suppliers, what you owe them and when it's due, with a bell to the seller the day before.
 
 ### Profit and loss
@@ -198,7 +245,7 @@ Today: Inventory is included on Business and Enterprise. On Free Basic and Pro i
 | Walk-in sales and expenses | **150 entries a month** (sales + expenses), then read-only until the 1st | Unlimited | Unlimited | Unlimited |
 | Online orders in Books | Always (never count toward the cap) | ✓ | ✓ | ✓ |
 | Money owed and suppliers | Up to 20 open customers | Unlimited | Unlimited | Unlimited |
-| Reminders | Email and bell | Email and bell, repeating | + SMS when Send-Na is live (pay per SMS) | Same |
+| Reminders and receipts | Members: email and bell. Non-members: WhatsApp click-to-send with the #NotesApp line | Same, with repeating email and bell reminders | + SMS through Send-Na when it's live (pay per SMS, with the #NotesApp line) | Same |
 | P&L | Day and week | Day, week, month, any range | Same | Same |
 | Receipts (link and PDF) | ✓ | ✓, with logo | ✓ | ✓, white label |
 | Import | Templates, up to 500 rows a file | Everything in section 3 | Same | Same + API |
@@ -235,7 +282,7 @@ dates (`YYYY-MM-DD`) plus an ISO time.
 | `bookParties/{id}` | Customers and suppliers: `{ ownerUid, kind: customer \| supplier, name, phone?, email?, memberUid?, balanceKobo, lastPaidAt?, remindersOff? }`. `balanceKobo` is only written by the server, in the same transaction as the entry. |
 | `bookDays/{ownerUid_YYYY-MM-DD}`, `bookMonths/{ownerUid_YYYY-MM}` | Running totals (sales, cost, expenses by category, cash in and out, counts), updated in the entry's transaction, so Books home and the P&L read one document instead of hundreds. |
 | `bookReceipts/{code}` | What the public receipt page shows: shop name and logo, lines, total, paid, still owed, date. No phone numbers or emails. The code is random (like ticket codes, `lib/tickets.ts`). |
-| `bookReminders/{id}` | Each reminder sent: party, channel, when. Used for the one-a-day limit and the "reminded 28 Oct" line. |
+| `bookReminders/{id}` | Each reminder or receipt sent: party, channel (`email \| bell \| whatsapp_link \| whatsapp_api \| sms`), when. For WhatsApp click-to-send it records that WhatsApp was opened, not that the message went. Used for the one-a-day limit and the "reminded 28 Oct" line. |
 | `bookImports/{id}` | `{ ownerUid, source, kind, fileName, rows, created: { entries, items, parties }, undoUntil, status }` |
 | `bookReports/{uid_YYYY-MM}` | The monthly email, sent once. |
 | `users/{uid}.books` | Settings: categories, opening float, whether profit shows in emails, cap counters (`entriesThisMonth`). |
@@ -266,7 +313,7 @@ the app), except the activity figures, which came to us in the brief and which w
 | Price | Free tier with "all essential features"; "Premium features may be available in the future" | Free Basic with a monthly cap (recommended), Pro and Business for more |
 | Offline | "An internet connection is required … we're working on offline capabilities for future updates." | Offline entry on phones from the start (section 2) |
 | Credit sales | Yes (credit sales, money owed) | Yes, with email and bell reminders, and the customer can pay the debt online |
-| Receipts | Shares by WhatsApp, email and SMS | Our own receipt link and PDF, shared any way the seller likes |
+| Receipts | Shares by WhatsApp, email and SMS | Our own receipt link and PDF. Email and bell to members, WhatsApp to non-members (and SMS with Send-Na), each with a #NotesApp line that invites them to join |
 | Import | Inventory CSV (its own template) and a past-sales CSV upload | Section 3: Tralo's own exports, Excel/CSV, Shopify, WooCommerce, Paystack, bank CSV, a paper-ledger photo |
 | Export | Sales history, inventory and inventory history as CSV | CSV, Excel and a PDF report |
 | Getting paid | — (not checked) | Naira card, transfer and wallet payments, payouts to the seller's bank |
@@ -284,11 +331,12 @@ Each step ships with its tests, help article, changelog line, roadmap update, RE
 `docs/ENGINEERING_GUIDE.md`), and phone and desktop screenshots from the real code.
 
 1. **This plan** (v0.115.0): the doc, the roadmap item and the changelog line. ✓
-2. **Mockups for approval**: the seven screens below. The owner approves or changes them.
+2. **Mockups for approval**: the screens below. The owner approves or changes them.
 3. **Walk-in sales and expenses**: `lib/books.ts`, `/api/books`, `/profile/books` (Books home, Record a sale, Add expense), receipts
    (link and PDF), online orders flowing in, stock moves, Free Basic cap. Rules and emulator tests.
 4. **Profit and loss**: day, week and month, cash in hand, best sellers, running totals, PDF report and CSV.
-5. **Money owed**: customers and suppliers, record payments, reminders by email and bell, paying a debt online (payment kind `debt`).
+5. **Money owed**: customers and suppliers, record payments, reminders by email and bell (members) and WhatsApp click-to-send with
+   the #NotesApp line (non-members, receipts too), paying a debt online (payment kind `debt`). SMS when Send-Na is live.
 6. **Imports**: the wizard, templates, presets (Tralo, Shopify, WooCommerce, Paystack), dry run, dedupe, undo for 24 hours. Excel files
    once the library is approved. Bank CSV and paper-ledger photos last.
 7. **Nana entries**: typed first, then voice notes. Pearl, metered.
@@ -298,6 +346,9 @@ Each step ships with its tests, help article, changelog line, roadmap update, RE
 
 ## 8. Open questions for the owner
 
+Answered on 1 Nov 2026: non-members get receipts and reminders by WhatsApp (and SMS through Send-Na once the seller opts in), each
+with a #NotesApp line (section 2).
+
 1. **Pricing:** Option A (free with a cap of 150 entries a month), B (a Books add-on or a ₦2,500 bundle with Inventory) or C (all free)?
    And is 150 the right cap?
 2. **Name:** "Business books", or "Books", "Shop books" or "My books"? (Books could be confused with e-books in the store.)
@@ -305,13 +356,14 @@ Each step ships with its tests, help article, changelog line, roadmap update, RE
 4. **Cashiers on Free Basic and Pro:** should a market trader without a Business team be able to add one cashier (a helper seat)?
 5. **Paying a debt online:** OK to add a `debt` payment kind, with the seller's normal commission, or no commission because it's an
    offline sale?
-6. **SMS reminders:** wait for Send-Na, or buy SMS from a provider sooner for this one use?
-7. **Libraries:** may we add a vetted library to read and write Excel files (for example `exceljs` or `read-excel-file` plus a writer)?
+6. **Libraries:** may we add a vetted library to read and write Excel files (for example `exceljs` or `read-excel-file` plus a writer)?
    Without it, import and export are CSV only.
-8. **Ghana:** should the Tralo import wait for cedi prices, or come sooner, converting cedis to naira at the day's rate (we'd rather
+7. **Ghana:** should the Tralo import wait for cedi prices, or come sooner, converting cedis to naira at the day's rate (we'd rather
    not)?
-9. **Public numbers:** do we publish totals across sellers at all (sales recorded and expenses recorded), and from when?
-10. **Paper ledger photos:** allow Emerald for hard handwriting (dearer, from the allowance), or Pearl only?
+8. **Public numbers:** do we publish totals across sellers at all (sales recorded and expenses recorded), and from when?
+9. **Paper ledger photos:** allow Emerald for hard handwriting (dearer, from the allowance), or Pearl only?
+10. **The #NotesApp line:** should its link carry the seller's referral code (the seller earns if the customer joins)? And may
+    Business and Enterprise sellers (white label) turn the line off?
 
 ## 9. Mockups
 
@@ -323,8 +375,10 @@ outside the repo and shared with the owner for approval:
 2. Record a sale: item search from inventory, quantities, Cash / Transfer / POS / Credit, the *Customer owes* toggle, receipt link and PDF.
 3. Nana entry: "Sold 3 bags of rice ₦45,000 to Mama Bisi on credit" and the parsed entry to confirm.
 4. Profit and loss for October.
-5. Money owed to you, with a reminder.
+5. Money owed to you, with **Remind by WhatsApp** and **Send receipt by WhatsApp** (SMS greyed out, "with Send-Na") and a preview of
+   the message with the #NotesApp line.
 6. The import wizard: choose a source, match columns, preview, import.
 7. The monthly summary email.
+8. The WhatsApp reminder as the customer sees it (phone).
 
 The example shop is Kemi's Store & Salon in Ojota, Lagos: rice, garri, Ankara, airtime and knotless braids.

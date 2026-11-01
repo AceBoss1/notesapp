@@ -74,6 +74,13 @@ export default function StoreSellingPage() {
         liability stay with the organisation either way.
       </p>
 
+      <h2 id="business-books" className="mt-12 font-display text-2xl text-ink">Coming soon: Business books</h2>
+      <p className="mt-3 text-sm text-slate">
+        <strong className="text-ink">Not live yet.</strong> For the sales you make in person: record a walk-in sale in a few taps (cash, transfer, POS or on credit) beside your online orders, with a
+        receipt link, expenses with receipt photos, stock that goes down with each sale, money owed to you with reminders, and profit for a day, a week or a month. Bring in your records from Excel and
+        other tools, or tell Nana &ldquo;Sold 3 bags of rice ₦45,000 to Mama Bisi on credit&rdquo;. See the <Link href="/roadmap" className="text-crimson underline">roadmap</Link>.
+      </p>
+
       <h2 className="mt-12 font-display text-2xl text-ink">Who&apos;s responsible</h2>
       <p className="mt-3 text-sm text-slate">
         You are the seller and arrange delivery; #NotesApp isn&apos;t the carrier. Holders&apos; phone numbers are shown only to the buyer, to you, or to someone who gives the parcel ID

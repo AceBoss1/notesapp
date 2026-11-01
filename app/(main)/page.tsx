@@ -59,6 +59,7 @@ const FEATURES = [
   { title: "Open about what's live", copy: "A public status page with response times and incident updates, and a changelog of every release, so you always know what changed." },
   { title: "Analytics for your business", copy: "See what you earned, your orders and average order, your best sellers and what's running low, and your visits, with a day-by-day chart. Pro adds 90 days, your customers and a sales download; Business adds visits by page and where visitors came from." },
   { title: "Community & Events", copy: "For churches, NGOs, schools and clubs: live audio rooms where you choose who speaks and everyone can chat, post to everyone or to members only, announce to the whole community, run private Circles, and publish events with reminders, a Join live link and paid tickets checked in by QR code. Take offerings, tithes and donations with charges like a bank transfer and receipts for every giver. You choose what non-members see. Free up to 200 members." },
+  { title: "Business books (coming)", copy: "Not live yet: walk-in sales with receipts, expenses, stock, money owed to you and profit by day, week or month, beside your online orders, with import from Excel and other tools." },
   { title: "Bring your own transcription (coming)", copy: "Connect Otter.ai or Whisper for session notes. We integrate; we don't lock you into one AI vendor." },
 ];
 
