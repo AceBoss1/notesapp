@@ -31,7 +31,7 @@ export type MomentKind = "image" | "video" | "text" | "link";
 export type ComposedMomentKind = Exclude<MomentKind, "link">;
 export const isMomentKind = (v: unknown): v is ComposedMomentKind => v === "image" || v === "video" || v === "text";
 // The card a "link" moment carries: what was shared, where it lives, and who made it (credited on the moment).
-export type MomentLink = { kind: string; id: string; title: string; path: string; image?: string; creatorUsername?: string; creatorName?: string; label: string };
+export type MomentLink = { kind: string; id: string; title: string; path: string; image?: string; creatorUsername?: string; creatorName?: string; label: string; price?: string };
 export const isMomentHours = (v: unknown): v is MomentHours => MOMENT_HOURS.includes(v as MomentHours);
 
 export const momentExpiry = (createdAt: Date, hours: MomentHours) => new Date(createdAt.getTime() + hours * 3_600_000);

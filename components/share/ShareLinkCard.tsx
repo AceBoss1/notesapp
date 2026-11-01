@@ -11,6 +11,7 @@ export default function ShareLinkCard({ link, compact = false, asLink = true }: 
       <span className="block p-4">
         <span className="block font-mono text-[10px] uppercase tracking-eyebrow text-crimson">{link.label}</span>
         <span className={`mt-1 block font-display font-semibold leading-snug text-ink ${compact ? "text-lg" : "text-xl"}`}>{link.title}</span>
+        {link.price && <span className="mt-1 block font-mono text-sm font-bold text-crimson">{link.price}</span>}
         <span className="mt-1.5 block text-xs text-slate">{creditLine(link)}{link.creatorUsername && link.creatorName ? ` · ${link.creatorName}` : ""}</span>
         {!compact && <span className="mt-3 inline-block rounded-full bg-crimson px-4 py-1.5 font-ui text-xs font-bold text-white">Open</span>}
       </span>

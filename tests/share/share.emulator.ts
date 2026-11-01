@@ -71,6 +71,29 @@ const T = "sh"; // ids in this run
   await db.doc(`courses/${T}c1`).update({ status: "published" });
   assert.equal((await resolveShareCard(db, { kind: "course", id: `${T}c1` }))?.path, `/academy/${T}-excel`);
 
+  // Shop items, services and events.
+  await db.doc(`storeItems/${T}it1`).set({ ownerUid: `${T}_ada`, title: "Ankara tote", sellable: true, priceKobo: 1_200_000, image: "https://cdn.test/tote.webp", kind: "physical", stock: 0 });
+  await db.doc(`storeItems/${T}it2`).set({ ownerUid: `${T}_ada`, title: "On Amazon", sellable: false, link: "https://amazon.test" });
+  const tote = await shareToMoment(db, bisi, { share: { kind: "item", id: `${T}it1` }, text: "Sold out but restocking" }, deps, resolveShareCard);
+  assert.equal(tote.link?.price, "₦12,000");
+  assert.equal(tote.link?.creatorUsername, `${T}ada`);
+  await fails(shareToMoment(db, bisi, { share: { kind: "item", id: `${T}it2` } }, deps, resolveShareCard), 404);
+  await db.doc(`users/${T}_ada`).update({ shopHidden: true });
+  assert.equal(await resolveShareCard(db, { kind: "item", id: `${T}it1` }), null, "a shop an admin switched off");
+  await db.doc(`users/${T}_ada`).update({ shopHidden: false });
+  await db.doc(`usernames/${T}ada`).set({ uid: `${T}_ada` });
+  await db.doc(`publisherSettings/${T}_ada`).set({ uid: `${T}_ada`, username: `${T}ada`, session: { enabled: true, priceKobo: 1_500_000, minutes: 45, availability: {} } });
+  assert.equal((await shareToMoment(db, bisi, { share: { kind: "service", id: `${T}ada` } }, deps, resolveShareCard)).link?.price, "₦15,000 · 45 min");
+  await db.doc(`publisherSettings/${T}_ada`).update({ "session.enabled": false });
+  await fails(shareToMoment(db, bisi, { share: { kind: "service", id: `${T}ada` } }, deps, resolveShareCard), 404);
+  await db.doc(`sites/${T}_ada`).set({ uid: `${T}_ada`, blocks: { services: { on: true, items: [{ name: "Braids", price: "20,000", note: "" }] } } });
+  assert.equal((await resolveShareCard(db, { kind: "service", id: `${T}ada~0` }))?.path, `/s/${T}ada#services`);
+  assert.equal(await resolveShareCard(db, { kind: "service", id: `${T}ada~1` }), null);
+  await db.doc(`events/${T}ev1`).set({ title: "Book launch", visibility: "public", hostUsername: `${T}ada`, hostName: "Ada Obi", startsAt: "2026-11-20T15:00:00.000Z" });
+  await db.doc(`events/${T}ev2`).set({ title: "Members' meeting", visibility: "members", hostUsername: `${T}ada` });
+  assert.equal((await shareToMoment(db, bisi, { share: { kind: "event", id: `${T}ev1` } }, deps, resolveShareCard)).link?.path, `/events/${T}ev1`);
+  await fails(shareToMoment(db, bisi, { share: { kind: "event", id: `${T}ev2` } }, deps, resolveShareCard), 404);
+
   // 4. Moments rules: hours, caption length, a child profile, teen mode, the daily limit.
   await fails(shareToMoment(db, bisi, { share: { kind: "journal", id: `${T}n1` }, hours: 12 }, deps, resolveShareCard), 400, /24, 48 or 72/);
   await fails(shareToMoment(db, bisi, { share: { kind: "journal", id: `${T}n1` }, text: "x".repeat(281) }, deps, resolveShareCard), 413);

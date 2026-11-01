@@ -164,3 +164,18 @@ export function ShareMenu({ shareRef, url, title, onClose, onShared }: { shareRe
     </div></Layer>
   );
 }
+
+// A Share button for pages that had none (shop items, services, events): opens ShareMenu. `path` is the item's page on this site.
+export function ShareButton({ shareRef, path, title, className, label = "Share" }: { shareRef: ShareRef | null; path: string; title: string; className?: string; label?: string }) {
+  const [open, setOpen] = useState(false);
+  const url = typeof window === "undefined" ? path : new URL(path, window.location.href).toString();
+  return (
+    <>
+      <button type="button" onClick={(e) => { e.preventDefault(); e.stopPropagation(); setOpen(true); }} aria-label={`Share ${title}`}
+        className={className ?? "inline-flex items-center gap-1.5 rounded-full border border-rule bg-card px-4 py-2 font-ui text-xs font-bold text-ink hover:border-crimson"}>
+        <span aria-hidden>↗</span>{label}
+      </button>
+      {open && <ShareMenu shareRef={shareRef} url={url} title={title} onClose={() => setOpen(false)} />}
+    </>
+  );
+}

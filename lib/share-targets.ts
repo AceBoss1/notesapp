@@ -7,7 +7,7 @@
 // The card is always built on the server from the item as it is now (lib/share-targets-server.ts): drafts, private and members-only
 // things, revoked certificates and ended coupons have no card, so they can't be shared this way.
 
-export const SHARE_KINDS = ["journal", "course", "certificate", "coupon", "post"] as const;
+export const SHARE_KINDS = ["journal", "course", "certificate", "coupon", "post", "item", "service", "event"] as const;
 export type ShareKind = (typeof SHARE_KINDS)[number];
 export const isShareKind = (v: unknown): v is ShareKind => SHARE_KINDS.includes(v as ShareKind);
 
@@ -24,9 +24,10 @@ export type ShareCard = {
   creatorUsername?: string; // credited as "@creator"
   creatorName?: string;
   label: string; // "Journal", "Course", …
+  price?: string; // shop items and services: "₦15,000" (a session also says how long)
 };
 
-export const SHARE_LABEL: Record<ShareKind, string> = { journal: "Journal", course: "Course", certificate: "Certificate", coupon: "Coupon", post: "Community post" };
+export const SHARE_LABEL: Record<ShareKind, string> = { journal: "Journal", course: "Course", certificate: "Certificate", coupon: "Coupon", post: "Community post", item: "Shop item", service: "Service", event: "Event" };
 export const SHARE_TITLE_MAX = 140;
 
 const clean = (v: unknown, max: number) => String(v ?? "").replace(/\s+/g, " ").trim().slice(0, max);
@@ -42,6 +43,8 @@ export function cleanShareRef(v: unknown): ShareRef | null {
   if (!isShareKind(o.kind)) return null;
   const id = String(o.id ?? "");
   if (o.kind === "coupon") { const [seller, code, extra] = id.split("/"); return handle(seller) && /^[A-Z0-9_-]{2,40}$/i.test(code ?? "") && extra === undefined ? { kind: "coupon", id: `${seller.toLowerCase()}/${code.toUpperCase()}` } : null; }
+  // A service is "<username>" (their 1:1 sessions) or "<username>~<n>" (the n-th line of the services on their site).
+  if (o.kind === "service") { const m = /^([a-z0-9._-]{1,40})(~(\d{1,2}))?$/i.exec(id); return m ? { kind: "service", id: `${m[1].toLowerCase()}${m[2] ?? ""}` } : null; }
   return ID.test(id) ? { kind: o.kind, id } : null;
 }
 
@@ -76,6 +79,42 @@ export function postCard(id: string, p: { cid?: string; text?: string; image?: s
   return { kind: "post", id, title, path: `/c/${p.cid}#post-${id}`, image: safeImage(p.image), creatorUsername: handle(p.authorUsername), creatorName: clean(p.authorName, 80) || undefined, label: SHARE_LABEL.post };
 }
 
+// ---- Shop items, services and events (owner, 1 Nov 2026: "sharing to moments and journal should include shop items, services, courses").
+
+const naira = (kobo: number) => `₦${(kobo / 100).toLocaleString("en-NG")}`;
+
+// A store item sold through #NotesApp (physical or a download), whether in stock or not. Not: items that only link out (not sellable),
+// a shop an admin switched off, or a suspended seller.
+export function itemCard(id: string, i: { title?: string; sellable?: boolean; priceKobo?: number; image?: string; images?: string[]; kind?: string; access?: string } | undefined, seller: { username?: string; displayName?: string; suspended?: boolean; shopHidden?: boolean } | undefined): ShareCard | null {
+  if (!i || i.sellable !== true || !i.title || !seller || seller.suspended === true || seller.shopHidden === true) return null;
+  const label = i.kind === "digital" ? (i.access === "view" ? "Video and PDF lessons" : "Digital download") : SHARE_LABEL.item;
+  return { kind: "item", id, title: clean(i.title, SHARE_TITLE_MAX), path: `/shop/${id}`, image: safeImage(i.image || i.images?.[0]), creatorUsername: handle(seller.username), creatorName: clean(seller.displayName, 80) || undefined, label, ...(typeof i.priceKobo === "number" && i.priceKobo > 0 ? { price: naira(i.priceKobo) } : {}) };
+}
+
+// A member's 1:1 sessions (switched on in Rates & payouts): the price and length from their settings.
+export function sessionCard(username: string, owner: { displayName?: string; avatar?: string; suspended?: boolean } | undefined, session: { enabled?: boolean; priceKobo?: number; minutes?: number } | undefined): ShareCard | null {
+  if (!owner || owner.suspended === true || !session || session.enabled !== true || !handle(username)) return null;
+  const name = clean(owner.displayName, 80) || `@${username}`;
+  const price = [typeof session.priceKobo === "number" && session.priceKobo > 0 ? naira(session.priceKobo) : "", session.minutes ? `${session.minutes} min` : ""].filter(Boolean).join(" · ");
+  return { kind: "service", id: username, title: clean(`Book a 1:1 session with ${name}`, SHARE_TITLE_MAX), path: `/u/${username}#book`, image: safeImage(owner.avatar), creatorUsername: username, creatorName: clean(owner.displayName, 80) || undefined, label: SHARE_LABEL.service, ...(price ? { price } : {}) };
+}
+
+// One line of the "Services and prices" section on a member's site, while that section is switched on.
+export function siteServiceCard(username: string, n: number, owner: { displayName?: string; suspended?: boolean } | undefined, services: { on?: boolean; items?: { name?: string; price?: string; note?: string; minutes?: number; image?: string }[] } | undefined): ShareCard | null {
+  const x = services?.items?.[n];
+  if (!owner || owner.suspended === true || services?.on !== true || !x?.name || !handle(username)) return null;
+  const rawPrice = clean(x.price, 40);
+  const price = [rawPrice && /^\d[\d,.]*$/.test(rawPrice) ? `₦${rawPrice}` : rawPrice, x.minutes ? `${x.minutes} min` : ""].filter(Boolean).join(" · ");
+  return { kind: "service", id: `${username}~${n}`, title: clean(x.name, SHARE_TITLE_MAX), path: `/s/${username}#services`, image: safeImage(x.image), creatorUsername: username, creatorName: clean(owner.displayName, 80) || undefined, label: SHARE_LABEL.service, ...(price ? { price } : {}) };
+}
+
+// A public event that hasn't been cancelled (members-only events stay inside their community).
+export function eventCard(id: string, e: { title?: string; visibility?: string; cancelled?: boolean; hostUsername?: string; hostName?: string; communityName?: string; startsAt?: string } | undefined): ShareCard | null {
+  if (!e || e.visibility !== "public" || e.cancelled === true || !e.title) return null;
+  const when = e.startsAt && !Number.isNaN(Date.parse(e.startsAt)) ? new Date(e.startsAt).toLocaleDateString("en-NG", { day: "numeric", month: "short", year: "numeric", timeZone: "Africa/Lagos" }) : "";
+  return { kind: "event", id, title: clean(e.title, SHARE_TITLE_MAX), path: `/events/${id}`, creatorUsername: handle(e.hostUsername), creatorName: clean(e.communityName || e.hostName, 80) || undefined, label: when ? `Event · ${when}` : SHARE_LABEL.event };
+}
+
 // ---- What each share makes.
 
 export const absolute = (base: string, path: string) => (/^https?:\/\//i.test(path) ? path : `${base.replace(/\/$/, "")}${path}`);
@@ -90,7 +129,7 @@ export const creditLine = (c: Pick<ShareCard, "creatorUsername" | "creatorName">
 export function journalDraftFromCard(card: ShareCard, base: string): { content: string; status: "draft"; from: "share"; shared: ShareRef } {
   const url = absolute(base, card.path);
   const lines = [
-    `> **${card.label}: [${mdText(card.title)}](${url})**`,
+    `> **${card.label}: [${mdText(card.title)}](${url})**${card.price ? ` · ${mdText(card.price)}` : ""}`,
     ...(card.image ? [">", `> ![${mdText(card.title)}](${absolute(base, card.image)})`] : []),
     ">",
     `> ${creditLine(card)}${card.creatorUsername && card.creatorName ? ` (${mdText(card.creatorName)})` : ""}`,

@@ -1,7 +1,7 @@
 // Share to Moments / Share to Journals: the share-target builder (lib/share-targets.ts). Pure, no emulator.
 // Run: npm run test:share → "SHARE OK".
 import assert from "node:assert/strict";
-import { certificateCard, cleanShareRef, courseCard, couponCard, creditLine, journalCard, journalDraftFromCard, postCard, shareHref, signInHref } from "../../lib/share-targets";
+import { certificateCard, cleanShareRef, courseCard, couponCard, creditLine, eventCard, itemCard, journalCard, journalDraftFromCard, postCard, sessionCard, shareHref, signInHref, siteServiceCard } from "../../lib/share-targets";
 
 // Refs: only known kinds and safe ids; a coupon is seller/CODE, tidied.
 assert.deepEqual(cleanShareRef({ kind: "journal", id: "abc_123" }), { kind: "journal", id: "abc_123" });
@@ -61,6 +61,35 @@ assert.ok(tricky.content.includes("[a\\](javascript:x) \\[b](https://n.test/jour
 assert.ok(!tricky.content.includes("!["));
 // Relative covers become absolute.
 assert.ok(journalDraftFromCard(cert, "https://n.test/").content.includes("(https://n.test/certificates/NA-C-2/image.png)"));
+
+// Shop items: sold through #NotesApp (in stock or not), price in naira; not link-out items, hidden shops or suspended sellers.
+const seller = { username: "apexglitz", displayName: "ApexGlitz boutique" };
+const gown = itemCard("it1", { title: "Royal Blue Maxi Gown", sellable: true, priceKobo: 13_000_000, image: "https://cdn.test/g.webp", kind: "physical" }, seller)!;
+assert.deepEqual(gown, { kind: "item", id: "it1", title: "Royal Blue Maxi Gown", path: "/shop/it1", image: "https://cdn.test/g.webp", creatorUsername: "apexglitz", creatorName: "ApexGlitz boutique", label: "Shop item", price: "₦130,000" });
+assert.equal(itemCard("it2", { title: "Sold out gown", sellable: true, priceKobo: 100_00 }, seller)!.price, "₦100");
+assert.equal(itemCard("it3", { title: "Amazon book", sellable: false }, seller), null);
+assert.equal(itemCard("it1", { title: "x", sellable: true }, { ...seller, shopHidden: true }), null);
+assert.equal(itemCard("it1", { title: "x", sellable: true }, { ...seller, suspended: true }), null);
+assert.equal(itemCard("it4", { title: "Excel templates", sellable: true, priceKobo: 500_000, kind: "digital" }, seller)!.label, "Digital download");
+// Services: 1:1 sessions while they're on, and a line of the site's services while that section is on.
+const sess = sessionCard("adaobi", { displayName: "Ada Obi" }, { enabled: true, priceKobo: 1_500_000, minutes: 45 })!;
+assert.equal(sess.title, "Book a 1:1 session with Ada Obi");
+assert.equal(sess.price, "₦15,000 · 45 min");
+assert.equal(sess.path, "/u/adaobi#book");
+assert.equal(sessionCard("adaobi", { displayName: "Ada" }, { enabled: false, priceKobo: 1 }), null);
+const svc = { on: true, items: [{ name: "Deep tissue massage", price: "25,000", minutes: 60 }, { name: "Facial", price: "₦18,000" }] };
+assert.deepEqual(siteServiceCard("glow", 0, { displayName: "Glow Spa" }, svc), { kind: "service", id: "glow~0", title: "Deep tissue massage", path: "/s/glow#services", image: undefined, creatorUsername: "glow", creatorName: "Glow Spa", label: "Service", price: "₦25,000 · 60 min" });
+assert.equal(siteServiceCard("glow", 1, { displayName: "Glow Spa" }, svc)!.price, "₦18,000");
+assert.equal(siteServiceCard("glow", 5, { displayName: "Glow Spa" }, svc), null);
+assert.equal(siteServiceCard("glow", 0, { displayName: "Glow Spa" }, { ...svc, on: false }), null);
+assert.deepEqual(cleanShareRef({ kind: "service", id: "Glow~3" }), { kind: "service", id: "glow~3" });
+assert.equal(cleanShareRef({ kind: "service", id: "glow~x" }), null);
+// Events: public and not cancelled.
+assert.equal(eventCard("e1", { title: "Book launch", visibility: "members" }), null);
+assert.equal(eventCard("e1", { title: "Book launch", visibility: "public", cancelled: true }), null);
+assert.equal(eventCard("e1", { title: "Book launch", visibility: "public", hostUsername: "adaobi", startsAt: "2026-11-20T15:00:00.000Z" })!.label, "Event · 20 Nov 2026");
+// The journal quote carries the price.
+assert.ok(journalDraftFromCard(gown, "https://n.test").content.startsWith("> **Shop item: [Royal Blue Maxi Gown](https://n.test/shop/it1)** · ₦130,000"));
 
 // Where visitors and members' own domains finish.
 assert.equal(shareHref("moment", { kind: "coupon", id: "ada/SAVE10" }), "/share?to=moment&kind=coupon&id=ada%2FSAVE10");
