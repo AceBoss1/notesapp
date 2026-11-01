@@ -150,6 +150,7 @@ export default function LifePage() {
           <dl className="mt-4 divide-y divide-white rounded-3xl bg-white/70 px-5">
             {[
               ["Is it free?", "Yes, free to play in your browser on your phone or computer. Nothing to download."],
+              ["It's slow on my computer", "Tap HD at the top of the game to switch to LOW RES (or Settings → Low res): fewer pixels and no shadows, so it stays smooth. Coming soon: a pixel-art look for any device, and an HD look where you choose your own avatar and travel on a city map."],
               ["Do I need an account?", "You play with your NotesApp account, so your friends, your photo and your progress go with you."],
               ["Is the money real?", "Notesville Naira is game money, just for fun. It can't be cashed out. Some quests give Bonus Credits you can use on NotesApp."],
               ["Can I play now?", "Yes. Abuja is open, with NEPA power cuts, partner jobs and outlets you can own. Lagos, Port Harcourt, the market and calls from your game phone come in later updates. Follow @na-notesapp, or join our Discord, for news."],

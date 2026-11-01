@@ -21,6 +21,16 @@ export const CHANGELOG: Release[] = [
     ],
   },
   {
+    version: "v0.106.1",
+    bump: "patch",
+    date: "2026-10-31",
+    changes: [
+      { kind: "added", text: "Notes Life: a Low res button (HD / LOW RES at the top, and in Settings) for computers where the game was slow or froze. It draws fewer pixels, no shadows and at most 30 frames a second, and is remembered on that device." },
+      { kind: "fixed", text: "Notes Life no longer keeps drawing while its tab is hidden." },
+      { kind: "changed", text: "On the roadmap: Notes Life's pixel look and an HD look with your own avatar, chat beside the scene, jobs on screen and a city map of Abuja with properties to buy (game money)." },
+    ],
+  },
+  {
     version: "v0.106.0",
     bump: "minor",
     date: "2026-10-30",
