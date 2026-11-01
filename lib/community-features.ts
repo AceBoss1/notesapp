@@ -179,6 +179,15 @@ export const COMMUNITY_FEATURES: CommunityFeature[] = [
       { h: "Giving", items: [
         "Take offerings, tithes and donations on the same community: switch on Giving under Admin, name your funds, and members give with a Give button and get a receipt. See Community for the charges.",
       ] },
+      { h: "Paid tickets", items: [
+        "On the event's page, under Tickets, add ticket types (Regular, VIP …), each with a price and how many. With none, the event stays a free RSVP. Paid tickets need a bank account under Rates & payouts.",
+        `Buyers pay by card, up to ${TICKETS_PER_ORDER_MAX} tickets at a time, and get a QR code for each under My tickets and in their email. Each lets one person in, once.`,
+        "At the door, tap Check-in on the event and scan or type the code: it says whether the ticket is valid, already used or refunded, and counts who is in.",
+        "You're paid after the event, less your plan's usual commission. A refunded ticket stops working and goes back on sale.",
+      ] },
+      { h: "Giving", items: [
+        "Take offerings, tithes and donations on the same community: switch on Giving under Admin, name your funds, and members give with a Give button and get a receipt. See Community for the charges.",
+      ] },
     ],
     help: "events",
   },
