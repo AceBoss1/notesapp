@@ -1,7 +1,8 @@
 // Notes Academy checks (lib/courses.ts): YouTube links, addresses, lessons, publishing and progress. Run: npm run test:courses → "ALL OK".
 import { breakdownOf, cleanRecommendation, recommendationSummary } from "../../lib/reviews";
 import assert from "node:assert/strict";
-import { cleanPrice, cleanLink, communityKindOf, groupByModule, priceLabel, canSellCourses, canUploadVideo, cleanCourseFields, cleanLesson, courseRating, durationLabel, progressOf, reviewProgress, showsRating, publishProblems, slugify, youtubeEmbed, youtubeId, LESSON_BODY_MAX } from "../../lib/courses";
+import { youtubeCredit } from "../../lib/youtube-oembed";
+import { cleanVideoCredit, youtubeOembedUrl, cleanPrice, cleanLink, communityKindOf, groupByModule, priceLabel, canSellCourses, canUploadVideo, cleanCourseFields, cleanLesson, courseRating, durationLabel, progressOf, reviewProgress, showsRating, publishProblems, slugify, youtubeEmbed, youtubeId, LESSON_BODY_MAX } from "../../lib/courses";
 
 // every form of YouTube link gives the 11-character id; anything else gives nothing
 const ID = "Vl0H-qTclOg";
@@ -82,4 +83,29 @@ assert.ok(canSellCourses("pro") && !canSellCourses("basic") && canUploadVideo("b
 assert.deepEqual(groupByModule([{ id: "a", moduleId: "m1" }, { id: "b" }], [{ id: "m1", title: "One" }]).map((g) => [g.module?.title ?? null, g.items.map((x) => x.id)]), [[null, ["b"]], ["One", ["a"]]]);
 assert.equal(typeof cleanCourseFields({ level: "expert" }), "string");
 assert.deepEqual((cleanCourseFields({ modules: [{ title: " One " }, { id: "m1aaaaaa", title: "Two" }] }) as { modules: { id: string; title: string }[] }).modules.map((m) => m.title), ["One", "Two"]);
-console.log("ALL OK");
+// YouTube lessons: optional notes (the text-lesson Markdown) and the creator's credit (from oEmbed); older lessons need neither
+const yt = cleanLesson({ kind: "youtube", title: "Watch", url: `https://youtu.be/${ID}`, body: "  ## Notes\r\nRead this.  " });
+assert.ok(typeof yt !== "string" && yt.body === "## Notes\nRead this." && yt.videoCredit === undefined, "notes are tidied like a text lesson");
+const plain = cleanLesson({ kind: "youtube", title: "Watch", url: `https://youtu.be/${ID}` });
+assert.ok(typeof plain !== "string" && !("body" in plain) && !("videoCredit" in plain), "a video without notes is as before");
+assert.equal(typeof cleanLesson({ kind: "youtube", title: "Watch", url: ID, body: "x".repeat(LESSON_BODY_MAX + 1) }), "string", "notes are limited like a text lesson");
+assert.equal(typeof cleanLesson({ kind: "youtube", title: "Watch", url: ID, body: 42 }), "string", "notes must be text");
+const credit = { title: "Microsoft Excel Tutorial for Beginners - Full Course", name: "freeCodeCamp.org", url: "https://www.youtube.com/@freecodecamp" };
+const withCredit = cleanLesson({ kind: "youtube", title: "Watch", url: ID, videoCredit: credit });
+assert.ok(typeof withCredit !== "string" && withCredit.videoCredit?.name === "freeCodeCamp.org");
+assert.equal(typeof cleanLesson({ kind: "youtube", title: "Watch", url: ID, videoCredit: { ...credit, url: "https://evil.example/@x" } }), "string", "a creator's address is a YouTube page");
+assert.equal(typeof cleanLesson({ kind: "youtube", title: "Watch", url: ID, videoCredit: { ...credit, name: "" } }), "string", "a credit names the creator");
+const txt = cleanLesson({ kind: "text", title: "Read", body: "Hi", videoCredit: credit });
+assert.ok(typeof txt !== "string" && !("videoCredit" in txt), "only YouTube lessons carry a credit");
+assert.deepEqual(cleanVideoCredit({ title: " A  talk ", author_name: "TED", author_url: "https://www.youtube.com/@TED" }), { title: "A talk", name: "TED", url: "https://www.youtube.com/@TED" }, "oEmbed's own field names");
+assert.equal(cleanVideoCredit({ title: "x", name: "y", url: "http://www.youtube.com/@y" }), null, "https only");
+assert.equal(cleanVideoCredit(null), null);
+assert.equal(youtubeOembedUrl(ID), `https://www.youtube.com/oembed?url=https%3A%2F%2Fwww.youtube.com%2Fwatch%3Fv%3D${ID}&format=json`);
+
+(async () => {
+  const answer = (status: number, body: unknown) => (async () => new Response(JSON.stringify(body), { status })) as unknown as typeof fetch;
+  assert.deepEqual(await youtubeCredit(ID, answer(200, { title: "T", author_name: "C", author_url: "https://www.youtube.com/@c" })), { title: "T", name: "C", url: "https://www.youtube.com/@c" });
+  assert.equal(await youtubeCredit(ID, answer(401, { error: "private" })), null, "a private or removed video has no credit");
+  assert.equal(await youtubeCredit(ID, (async () => { throw new Error("offline"); }) as unknown as typeof fetch), null, "YouTube not answering is not an error");
+  console.log("ALL OK");
+})();

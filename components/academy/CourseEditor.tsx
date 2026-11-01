@@ -516,11 +516,11 @@ function LessonForm({ courseId, kind, lesson, modules, paid, onSaved, onCancel }
         await send(s.uploadUrl, file, kind === "video" ? "POST" : "PUT");
         up = kind === "video" ? { streamUid: s.streamUid } : { fileKey: s.fileKey, fileName: file.name };
       } else if (upload && lesson) up = kind === "video" ? { streamUid: lesson.streamUid } : { fileKey: lesson.fileKey, fileName: lesson.fileName };
-      const payload = { kind, title, minutes: minutes.trim() || null, preview, moduleId: moduleId || undefined, ...(kind === "youtube" ? { url } : kind === "text" ? { body } : kind === "quiz" ? { quiz: { passPercent: passPercent.trim() || QUIZ_PASS_DEFAULT, questions } } : up) };
+      const payload = { kind, title, minutes: minutes.trim() || null, preview, moduleId: moduleId || undefined, ...(kind === "youtube" ? { url, body } : kind === "text" ? { body } : kind === "quiz" ? { quiz: { passPercent: passPercent.trim() || QUIZ_PASS_DEFAULT, questions } } : up) };
       const r = lesson
         ? await api<{ lesson: Lesson }>(`/api/academy/courses/${courseId}/lessons/${lesson.id}`, { method: "PATCH", body: payload })
         : await api<{ lesson: Lesson }>(`/api/academy/courses/${courseId}/lessons`, { body: payload });
-      if (kind === "text") try { localStorage.removeItem(`notesapp:draft:${draftKey}`); } catch {}
+      if (kind === "text" || kind === "youtube") try { localStorage.removeItem(`notesapp:draft:${draftKey}`); } catch {}
       onSaved(r.lesson);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Couldn't save the lesson.");
@@ -546,6 +546,7 @@ function LessonForm({ courseId, kind, lesson, modules, paid, onSaved, onCancel }
               <p className="text-xs text-slate">Is this the right video? If the picture is blank, the video may be private or removed.</p>
             </div>
           )}
+          <p className="mt-2 text-xs text-slate">{lesson?.videoCredit && lesson.youtubeId === vid ? <>Credited to <b>{lesson.videoCredit.name}</b> under the video. </> : null}We credit the video&apos;s creator under it, from YouTube, when you save.</p>
         </>
       )}
       {upload && (
@@ -572,6 +573,12 @@ function LessonForm({ courseId, kind, lesson, modules, paid, onSaved, onCancel }
       {kind === "text" && (
         <div className="mt-3">
           <p className={label}>Lesson</p>
+          <div className="mt-1"><RichTextEditor value={body} onChange={setBody} draftKey={draftKey} /></div>
+        </div>
+      )}
+      {kind === "youtube" && (
+        <div className="mt-3">
+          <p className={label}>Lesson notes <span className="font-normal text-slate">(optional: shown under the video)</span></p>
           <div className="mt-1"><RichTextEditor value={body} onChange={setBody} draftKey={draftKey} /></div>
         </div>
       )}

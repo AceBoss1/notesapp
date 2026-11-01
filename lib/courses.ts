@@ -72,8 +72,12 @@ export const lessonKindLabel = (k: LessonKind) => (k === "text" ? "Reading" : k 
 // live in quizKeys/{courseId}_{lessonId} (server-only). answer and explain are filled in only for the course's tutors (the editor).
 export type QuizQuestion = { id: string; prompt: string; options: string[]; answer?: number; explain?: string };
 export type Quiz = { passPercent: number; questions: QuizQuestion[] };
+// Who made a YouTube lesson's video, as YouTube's oEmbed gives it (title, author_name, author_url), filled in by the server when the
+// lesson is saved. The player credits them under the video.
+export type VideoCredit = { title: string; name: string; url: string };
 export type Lesson = {
-  id: string; order: number; title: string; kind: LessonKind; youtubeId?: string; minutes?: number; body?: string;
+  id: string; order: number; title: string; kind: LessonKind; youtubeId?: string; minutes?: number; body?: string; // body: a text lesson, or a YouTube lesson's notes
+  videoCredit?: VideoCredit; // kind "youtube"
   preview?: boolean; moduleId?: string;
   streamUid?: string; fileKey?: string; fileName?: string; // uploads (paid courses): never public
   quiz?: Quiz; // kind "quiz"
@@ -171,6 +175,19 @@ export function youtubeId(input: string): string | null {
     else id = /^\/(?:shorts|embed|live|v)\/([^/?#]+)/.exec(u.pathname)?.[1] ?? null;
   }
   return id && YT_ID.test(id) ? id : null;
+}
+export const youtubeWatch = (id: string) => `https://www.youtube.com/watch?v=${id}`;
+export const youtubeOembedUrl = (id: string) => `https://www.youtube.com/oembed?url=${encodeURIComponent(youtubeWatch(id))}&format=json`;
+export const VIDEO_TITLE_MAX = 200;
+export const VIDEO_CREATOR_MAX = 100;
+// A creator's address: a page on YouTube itself (their channel), https only.
+const youtubePage = (v: string) => { try { const u = new URL(v); return u.protocol === "https:" && /^(www\.|m\.)?youtube\.com$/i.test(u.hostname) ? u.toString() : null; } catch { return null; } };
+// A video credit from YouTube's oEmbed answer, or one sent with a lesson ({ title, name, url }); null when it isn't a usable credit.
+export function cleanVideoCredit(v: unknown): VideoCredit | null {
+  if (!v || typeof v !== "object") return null;
+  const o = v as Record<string, unknown>;
+  const title = oneLine(o.title, VIDEO_TITLE_MAX), name = oneLine(o.name ?? o.author_name, VIDEO_CREATOR_MAX), url = youtubePage(String(o.url ?? o.author_url ?? "").trim());
+  return title && name && url ? { title, name, url } : null;
 }
 export const youtubeThumb = (id: string) => `https://i.ytimg.com/vi/${id}/hqdefault.jpg`;
 // YouTube's privacy-enhanced player: no cookies until the learner plays the video.
@@ -275,6 +292,7 @@ export function cleanLink(v: unknown): string | null {
 
 export type LessonInput = {
   title: string; kind: LessonKind; youtubeId?: string; minutes: number | null; body?: string; preview: boolean; moduleId?: string;
+  videoCredit?: VideoCredit; // a YouTube lesson's credit (the server fills it from oEmbed; see cleanLesson)
   streamUid?: string; fileKey?: string; fileName?: string;
   quiz?: { passPercent: number; questions: (QuizQuestion & { answer: number })[] }; // with the answers: the server splits them off
 };
@@ -355,7 +373,13 @@ export function cleanLesson(b: Record<string, unknown>): LessonInput | string {
   if (kind === "youtube") {
     const id = youtubeId(String(b.url ?? b.youtubeId ?? ""));
     if (!id) return "Paste a link to a YouTube video (for example https://www.youtube.com/watch?v=… or https://youtu.be/…).";
-    return { title, kind, youtubeId: id, minutes, ...extra };
+    // Optional notes under the video, in the same Markdown as a text lesson, and the creator's credit when one came with it.
+    const notes = b.body === undefined || b.body === null ? "" : text(b.body);
+    if (notes === undefined) return "The lesson notes must be text.";
+    if (notes.length > LESSON_BODY_MAX) return `Keep the lesson notes under ${LESSON_BODY_MAX.toLocaleString("en-GB")} characters (they have ${notes.length.toLocaleString("en-GB")}).`;
+    if (b.videoCredit !== undefined && b.videoCredit !== null && !cleanVideoCredit(b.videoCredit)) return "The video credit needs the video's title, its creator and their YouTube address.";
+    const credit = cleanVideoCredit(b.videoCredit);
+    return { title, kind, youtubeId: id, minutes, ...(notes ? { body: notes } : {}), ...(credit ? { videoCredit: credit } : {}), ...extra };
   }
   if (kind === "video") {
     const uid = String(b.streamUid ?? "");
