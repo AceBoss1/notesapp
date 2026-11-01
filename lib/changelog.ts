@@ -11,6 +11,53 @@ export type Release = {
 
 export const CHANGELOG: Release[] = [
   {
+    version: "v0.110.0",
+    bump: "minor",
+    date: "2026-11-01",
+    changes: [
+      { kind: "added", text: "Notes Academy: a YouTube lesson can have lesson notes under the video, written like a text lesson, and credits the video's creator: \"Video: <title> by <creator>, on YouTube. Shared here with credit to the original creator.\" The credit is filled in from YouTube when the lesson is saved." },
+      { kind: "added", text: "New course from Emmanuel Adams: How to Restart Your Life After a Breakdown, 9 strategies to get you moving again. Free, with a short exercise in every lesson and a reflection quiz. It isn't a substitute for a doctor, psychologist or counsellor; if you feel unsafe, call 112 or go to the nearest hospital." },
+      { kind: "changed", text: "IT Support Training is rewritten: ten lessons in six modules (troubleshooting, remote tools, customer service scripts, Zendesk, Intercom and HubSpot, Microsoft Azure, lead generation, Upwork and Fiverr, Clockify and getting paid in Nigeria, a capstone checklist), four module quizzes and new cover art. Learners keep their enrolments, reviews and certificates." },
+    ],
+  },
+  {
+    version: "v0.109.0",
+    bump: "minor",
+    date: "2026-11-01",
+    changes: [
+      { kind: "added", text: "Choose what a co-author or co-tutor can do when you invite them: Can view (read the unpublished journal, or see the course and every lesson, to review it) or Can view and edit (edit the journal draft's title and text, or the course's details, About, modules and lessons). Publishing, the price, the split and invitations always stay with you." },
+      { kind: "added", text: "A clear invitation page, from the bell and the email: who invited you, the title and cover, your access in plain words (what you can and can't do), your share and how it's paid, the credit, that the lead keeps publishing control, how to leave, and the help article. Accept and agree records the terms you agreed to, and the lead sees \"Accepted on\" with the date." },
+      { kind: "added", text: "Co-authors who can view or edit open the draft from their invites page. A co-author's save goes straight into the draft, and the lead is warned before saving over it." },
+      { kind: "added", text: "Change a co-author's or co-tutor's access or share later. Less access applies at once and they're told; more access or a different share is sent for them to agree, and their current terms stay until they do." },
+      { kind: "added", text: "Co-authors can leave a post before it's published. Removals, changes, acceptances and departures all arrive in the bell and by email." },
+      { kind: "changed", text: "A view-only co-author can be credited with a 0% share; a co-author who edits still gets at least 5%. Invitations sent before today keep what they had: journal co-authors are credited and paid without seeing the draft, and co-tutors can edit the course." },
+    ],
+  },
+  {
+    version: "v0.108.0",
+    bump: "minor",
+    date: "2026-11-01",
+    changes: [
+      { kind: "added", text: "Course groups on #NotesApp: under About the course, teachers link one of their communities and a Space in it as the course's group, add a members-only Space for the course to a community they run, or start a community for the course in one tap (joined only by invite link). Learners who enrolled or bought get a Join the course group button that joins them and opens the Space." },
+      { kind: "changed", text: "The course editor no longer asks for a WhatsApp or Telegram group. A group link saved on an older course keeps showing to its learners, labelled as before, until the teacher links a course group (which replaces it) or removes it; new outside group links aren't accepted." },
+      { kind: "changed", text: "Live classes: the editor suggests an audio room in the course group (up to 25 people: the host, 4 speakers and 20 listening) and keeps an optional meeting link for video or bigger classes. Events say the same about Join live links." },
+      { kind: "added", text: "Swipe Nana's suggestions: swipe a suggested topic, subtopic or Market category right to add it, left to remove it, with Undo for a few seconds. Tapping still adds, the ✕ removes, Enter and Delete work from the keyboard, and removed suggestions stay away for that title until you tap Refresh." },
+      { kind: "added", text: "Nana suggests lines for a course's What learners will learn and Requirements from its title and summary, on a tap; swipe each one in or out." },
+      { kind: "changed", text: "Nana AI suggests #NotesApp's own tools first (Community, calls and audio rooms, Booking, the Store, Events) rather than setting something up on another platform." },
+    ],
+  },
+  {
+    version: "v0.107.1",
+    bump: "patch",
+    date: "2026-11-01",
+    changes: [
+      { kind: "changed", text: "Pricing now lists discount codes and coupons, referrals, the affiliate marketplace, quizzes on courses, paid event tickets (your plan's commission) and giving in communities (no commission, a charge like a bank transfer) for every plan, and explains \"Have a discount code?\" under Pro and Business." },
+      { kind: "changed", text: "Store selling has new sections on discount codes, coupons, Nana's pick and affiliates. Community, Community events, Events and Organisations describe paid tickets with QR check-in and giving, with their charges and links to My tickets and the help articles." },
+      { kind: "changed", text: "Home, About, the roadmap and the status page describe discount codes and coupons, referrals, giving and tickets; the footer links Affiliates, Discount codes & coupons, Community giving, My tickets, My giving and My coupons." },
+      { kind: "changed", text: "Help articles on plans, commission, payouts, selling, Notes Academy, referrals, discount codes, tickets and giving now cover the new features and link to each other. Notes Academy's questions add quizzes and discount codes." },
+    ],
+  },
+  {
     version: "v0.107.0",
     bump: "minor",
     date: "2026-11-01",

@@ -3,11 +3,11 @@
 import CoAuthorsPanel from "@/components/CoAuthorsPanel";
 import { canLeadCoAuthors } from "@/lib/coauthors";
 import Link from "next/link";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import NanaAssist from "./NanaAssist";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
-import { Note, slugify, createNote, updateNote, slugTaken } from "@/lib/firestore-notes";
+import { Note, slugify, createNote, updateNote, slugTaken, getNoteById } from "@/lib/firestore-notes";
 import { deleteField } from "firebase/firestore";
 import VideoUploader, { VideoValue, videoFromNote } from "@/components/VideoUploader";
 import { uploadToR2 } from "@/lib/upload";
@@ -89,6 +89,7 @@ export default function NoteForm({ noteId, initial, self, org }: Props) {
   const [authorName, setAuthorName] = useState(
     initial?.author || AUTHORS[0].name
   );
+  const seenCoEdit = useRef(initial?.coEditedAt); // the co-author save this editor was opened with (or the lead last overrode)
   const [status, setStatus] = useState<"draft" | "published">(
     initial?.status || "draft"
   );
@@ -182,6 +183,16 @@ export default function NoteForm({ noteId, initial, self, org }: Props) {
     try {
       let savedId = noteId;
       if (noteId) {
+        // A co-author who can edit may have saved into this draft since it was opened (/write/<id>/shared): don't replace their
+        // words without asking.
+        const now = await getNoteById(noteId).catch(() => null);
+        if (now?.coEditedAt && now.coEditedAt !== seenCoEdit.current) {
+          if (!window.confirm(`${now.coEditedByName || "A co-author"} saved changes to this draft since you opened it. Saving now replaces their changes. Save anyway? (Cancel, then reload the page to see their version first.)`)) {
+            setSaving(false);
+            return null;
+          }
+          seenCoEdit.current = now.coEditedAt;
+        }
         await updateNote(noteId, payload);
       } else {
         savedId = await createNote(payload);
