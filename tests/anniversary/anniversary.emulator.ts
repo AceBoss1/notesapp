@@ -120,7 +120,7 @@ async function member(uid: string, extra: Record<string, unknown> = {}, auth: { 
   let a = (await db.doc(`announcements/${ANNIVERSARY_SEED}`).get()).data()!;
   assert.equal(a.status, "draft"); assert.equal(a.subject, ANNIVERSARY_DRAFT.subject);
   const e = renderAnnouncementEmail(a as never, { uid: "ada", name: "Ada Okafor" });
-  assert.match(e.text, /^Hello Ada,/); assert.match(e.html, /50 of you joined/); assert.match(e.html, /display:none[^>]*>50 members in our first month/, "the preheader");
+  assert.match(e.text, /^Hello Ada,/); assert.match(e.html, /<strong>Business books<\/strong> for sellers/); assert.match(e.html, /50 of you joined/); assert.match(e.html, /display:none[^>]*>50 members in our first month/, "the preheader");
   assert.match(e.headers["List-Unsubscribe"], /\/api\/announcements\/unsubscribe\?u=ada&t=/); assert.match(e.html, /Unsubscribe from announcements/);
   assert.ok(validAnnouncementsToken("ada", announcementsToken("ada"))); assert.ok(!validAnnouncementsToken("tunde", announcementsToken("ada")));
 

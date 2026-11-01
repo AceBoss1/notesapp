@@ -152,6 +152,7 @@ On our roadmap, coming soon (not live yet):
 - Notes Life in a new pixel look, and an HD look with your own avatar.
 - The #1MillionNairaNotesAppChallenge for influencers.
 - WhatsApp reminders alongside email and the bell.
+- **Business books** for sellers: record walk-in sales and expenses, track stock and money owed to you, see your profit, and import your existing records from Excel and other tools.
 
 ## Volunteers wanted: review Naija Exam Prep questions
 
