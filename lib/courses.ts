@@ -3,6 +3,7 @@
 // server (lib/courses-server.ts); browsers only read published courses, their lessons and their own enrolments.
 import { setting } from "@/lib/config";
 import { MAX_NOTE_TOPICS, cleanTopics } from "./topics";
+import { heldPercent, type InviteAccess, type InviteAgreementFields } from "./invite-terms";
 
 // On unless NEXT_PUBLIC_ACADEMY_LIVE=false: then /academy shows the opening-soon page, /academy/teach is closed and courses are
 // hidden everywhere else (profiles, Trending, member sites, the digest).
@@ -39,7 +40,9 @@ export type CourseModule = { id: string; title: string };
 // without showing what's in them.
 export type OutlineItem = { id: string; title: string; kind: LessonKind; minutes?: number; preview?: boolean; moduleId?: string };
 // Who teaches it. The lead is the course's owner (a member, or an organisation's account); co-tutors accepted an invitation.
-export type Tutor = { uid: string; username: string; name: string; avatar: string; role: "lead" | "co" };
+// access: what an accepted co-tutor may do (lib/invite-terms.ts): "view" sees the course and its lessons, "edit" also edits them.
+// Missing on co-tutors who accepted before access levels: they could already edit, so it reads as "edit".
+export type Tutor = { uid: string; username: string; name: string; avatar: string; role: "lead" | "co"; access?: InviteAccess };
 
 // Paid courses (docs/COURSES.md step 3). Prices in kobo; 0 is a free course.
 export const COURSE_PRICE_MIN_KOBO = 50_000; // ₦500
@@ -406,17 +409,19 @@ export function progressOf(lessonIds: string[], e: Pick<Enrolment, "done"> | nul
 }
 
 // ---- co-tutors ----
-// The course's lead (its owner) invites other members; each accepts before they're listed. A co-tutor can edit the course's
-// content and lessons; the price, the tutors, publishing and deleting stay with the lead. Sales are split like a co-authored
-// post's gifts (lib/payments.ts): each co-tutor's agreed percent, the lead keeps the rest, every share at its own plan's commission.
+// The course's lead (its owner) invites other members with an access level and a share; each accepts (agreeing to the terms on
+// /invites/course/<id>) before they're listed. "Can view" sees the course and every lesson, draft or published, read-only; "Can view
+// and edit" also edits the course's details, About, modules and lessons. The price, the shares, the tutors, publishing and deleting
+// stay with the lead. Sales are split like a co-authored post's gifts (lib/payments.ts): each co-tutor's agreed percent (0% credits
+// them without a share), the lead keeps the rest, every share at its own plan's commission.
 export const MAX_CO_TUTORS = 4;
 export const MIN_LEAD_TUTOR_PERCENT = 10;
 export type TutorInviteStatus = "pending" | "accepted" | "declined" | "removed";
-export type TutorInvite = {
+export type TutorInvite = InviteAgreementFields & {
   courseId: string; courseTitle: string; courseSlug: string; ownerUid: string; ownerName: string;
   uid: string; username: string; name: string; avatar: string; percent: number; status: TutorInviteStatus;
   invitedByUid: string; createdAt: string; respondedAt?: string;
 };
 export const tutorInviteId = (courseId: string, uid: string) => `${courseId}_${uid}`;
-export const leadTutorPercent = (invites: Pick<TutorInvite, "percent" | "status">[]) =>
-  100 - invites.filter((i) => i.status === "pending" || i.status === "accepted").reduce((n, i) => n + i.percent, 0);
+export const leadTutorPercent = (invites: (Pick<TutorInvite, "percent" | "status"> & Pick<InviteAgreementFields, "change">)[]) =>
+  100 - invites.filter((i) => i.status === "pending" || i.status === "accepted").reduce((n, i) => n + heldPercent(i), 0);

@@ -20,6 +20,7 @@ import {
   courseHref, durationLabel, groupByModule, includesOf, isPaid, lessonKindLabel, nairaLabel, plural, publishProblems, youtubeId, youtubeThumb,
   type Course, type CourseFormat, type CourseModule, type Lesson, type LessonKind, type TutorInvite,
 } from "@/lib/courses";
+import { accessLabel, accessOf, accessRank, helpHref, type InviteAccess } from "@/lib/invite-terms";
 
 // /academy/teach/<id>: everything about one course on one page, phone first. Details (title, summary, topics, cover), About the
 // course (level, language, format, what learners will learn, requirements, how it runs, the private class and community links),
@@ -385,47 +386,109 @@ function PriceSection({ course, plan, lead, busy, onSave }: { course: Course; pl
   );
 }
 
-// The lead tutor (the course's owner) invites co-tutors with their share of each sale; each accepts first. A co-tutor sees who
-// teaches it and can leave.
+// The lead tutor (the course's owner) invites co-tutors with an access level ("Can view", or "Can view and edit") and their share of
+// each sale; each accepts and agrees to the terms first (/invites/course/<id>). The lead can change a co-tutor's access or share: less
+// access applies at once, more access or a new share waits for them to agree. A co-tutor sees who teaches it and can leave.
 function TutorsSection({ course, invites, lead, me, busy, run, onChanged, onLeft, flash }: {
   course: Course; invites: TutorInvite[]; lead: boolean; me: string; busy: string | null;
   run: <T>(what: string, fn: () => Promise<T>) => Promise<T | null>; onChanged: () => void; onLeft: () => void; flash: (m: string) => void;
 }) {
   const [username, setUsername] = useState("");
   const [percent, setPercent] = useState("0");
+  const [access, setAccess] = useState<InviteAccess>("edit");
+  const [editing, setEditing] = useState<string | null>(null);
   const share = 100 - invites.reduce((n, i) => n + i.percent, 0);
-  const call = (body: Record<string, unknown>) => api(`/api/academy/courses/${course.id}/tutors`, { body });
+  const call = (body: Record<string, unknown>) => api<{ applied?: boolean; proposed?: boolean }>(`/api/academy/courses/${course.id}/tutors`, { body });
+  const day = (iso: string) => new Date(iso).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
   return (
     <section className="card mt-6 p-5 sm:p-6">
       <h2 className="font-display text-2xl text-ink">4. Tutors</h2>
-      <p className="mt-1 text-sm text-slate">A single tutor, or up to {MAX_CO_TUTORS} co-tutors. Each co-tutor accepts first; their share of each sale is paid to them at their own plan&apos;s commission.</p>
-      <ul className="mt-4 space-y-2 text-sm">
-        <li className="flex items-center gap-3"><Avatar src={course.ownerAvatar} alt={course.ownerName} size={36} /><span className="min-w-0 flex-1"><b>{course.ownerName}</b> <span className="text-slate">@{course.ownerUsername} · {course.isOrg ? "publisher" : "lead tutor"}</span></span><span className="text-xs text-slate">{isPaid(course) ? `${share}%` : ""}</span></li>
-        {invites.map((i) => (
-          <li key={i.uid} className="flex items-center gap-3">
-            <Avatar src={i.avatar} alt={i.name} size={36} />
-            <span className="min-w-0 flex-1"><b>{i.name}</b> <span className="text-slate">@{i.username} · {i.status === "pending" ? "invited" : "co-tutor"}</span></span>
-            <span className="text-xs text-slate">{isPaid(course) ? `${i.percent}%` : ""}</span>
-            {(lead || i.uid === me) && (
-              <button type="button" disabled={busy !== null} onClick={() => run("tutor", async () => {
-                if (i.uid === me && !window.confirm("Leave this course? You won't be able to edit it any more.")) return null;
-                await call({ action: "remove", uid: i.uid });
-                if (i.uid === me) onLeft(); else { flash(i.status === "pending" ? "Invitation withdrawn." : "Co-tutor removed."); onChanged(); }
-                return true;
-              })} className="rounded-full border border-rule px-3 py-1 text-xs text-crimson hover:border-crimson">{i.uid === me ? "Leave" : i.status === "pending" ? "Withdraw" : "Remove"}</button>
-            )}
-          </li>
-        ))}
+      <p className="mt-1 text-sm text-slate">A single tutor, or up to {MAX_CO_TUTORS} co-tutors. Choose what each can do: <b>Can view</b> (see the course and every lesson, draft or published, to review it) or <b>Can view and edit</b> (also edit the details, About, modules and lessons). Publishing, the price, the shares and invitations stay with the lead. Each co-tutor reads the terms and agrees before they&apos;re listed; their share of each sale is paid at their own plan&apos;s commission. <Link href={helpHref("course")} className="font-semibold text-crimson">How co-teaching works</Link></p>
+      <ul className="mt-4 space-y-3 text-sm">
+        <li className="flex items-center gap-3"><Avatar src={course.ownerAvatar} alt={course.ownerName} size={36} /><span className="min-w-0 flex-1"><b>{course.ownerName}</b> <span className="text-slate">@{course.ownerUsername} · {course.isOrg ? "publisher" : "lead tutor"}</span></span><span className="text-xs text-slate">{share}%</span></li>
+        {invites.map((i) => {
+          const a = accessOf("course", i);
+          return (
+            <li key={i.uid} className="rounded-xl border border-rule p-3">
+              <div className="flex items-center gap-3">
+                <Avatar src={i.avatar} alt={i.name} size={36} />
+                <span className="min-w-0 flex-1">
+                  <b>{i.name}</b> <span className="text-slate">@{i.username} · {i.status === "pending" ? "invited, waiting" : "co-tutor"}</span>
+                  <span className="block text-xs text-slate">{accessLabel(a)} · {i.percent}% of each sale{i.agreedAt ? ` · Accepted on ${day(i.agreedAt)}` : i.status === "accepted" ? " · Accepted before terms were recorded" : ""}</span>
+                  {i.change && <span className="block text-xs font-semibold text-amber-800">Proposed: {accessLabel(i.change.access).toLowerCase()}, {i.change.percent}%. Waiting for them to agree.</span>}
+                </span>
+              </div>
+              <div className="mt-2 flex flex-wrap gap-2 pl-12">
+                {lead && <button type="button" disabled={busy !== null} onClick={() => setEditing(editing === i.uid ? null : i.uid)} className="rounded-full border border-rule px-3 py-1 text-xs text-ink hover:border-crimson">{editing === i.uid ? "Close" : "Change access or share"}</button>}
+                {(lead || i.uid === me) && (
+                  <button type="button" disabled={busy !== null} onClick={() => run("tutor", async () => {
+                    if (i.uid === me && !window.confirm("Leave this course? You won't be able to see or edit it any more, and your share of later sales ends.")) return null;
+                    await call({ action: "remove", uid: i.uid });
+                    if (i.uid === me) onLeft(); else { flash(i.status === "pending" ? "Invitation withdrawn." : "Co-tutor removed. They've been told."); onChanged(); }
+                    return true;
+                  })} className="rounded-full border border-rule px-3 py-1 text-xs text-crimson hover:border-crimson">{i.uid === me ? "Leave" : i.status === "pending" ? "Withdraw" : "Remove"}</button>
+                )}
+              </div>
+              {lead && editing === i.uid && (
+                <ChangeTutor invite={i} busy={busy} onSave={(b) => run("tutor", async () => {
+                  const r = await call({ action: "change", uid: i.uid, ...b });
+                  setEditing(null);
+                  flash(r.proposed ? "Sent: they'll be asked to agree. Their current terms stay until they do." : r.applied ? "Changed. They've been told." : "Nothing changed.");
+                  onChanged();
+                  return true;
+                })} />
+              )}
+            </li>
+          );
+        })}
       </ul>
       {lead && invites.length < MAX_CO_TUTORS && (
-        <form className="mt-4 grid gap-2 sm:grid-cols-[1fr_8rem_auto] sm:items-end" onSubmit={(e) => { e.preventDefault(); void run("tutor", async () => { await call({ action: "invite", username, percent: Number(percent) || 0 }); setUsername(""); setPercent("0"); flash("Invitation sent."); onChanged(); return true; }); }}>
-          <label className="block"><span className={label}>Invite a co-tutor</span><input value={username} onChange={(e) => setUsername(e.target.value)} className={input} placeholder="@username" autoComplete="off" /></label>
-          <label className="block"><span className={label}>Their share</span><span className="relative block"><input value={percent} onChange={(e) => setPercent(e.target.value.replace(/[^\d]/g, "").slice(0, 2))} inputMode="numeric" className={`${input} pr-7`} /><span className="absolute right-3 top-1/2 mt-0.5 -translate-y-1/2 text-sm text-slate">%</span></span></label>
-          <button disabled={busy !== null || username.trim().length < 2} className="btn-ghost !py-2.5 disabled:opacity-50">{busy === "tutor" ? "Sending…" : "Invite"}</button>
-          <p className="text-xs text-slate sm:col-span-3">The lead keeps at least {MIN_LEAD_TUTOR_PERCENT}%. A share of 0% credits them as a tutor without a part of the sales.</p>
+        <form className="mt-5 grid gap-3 rounded-xl bg-paper p-4" onSubmit={(e) => { e.preventDefault(); void run("tutor", async () => { await call({ action: "invite", username, percent: Number(percent) || 0, access }); setUsername(""); setPercent("0"); flash("Invitation sent. They'll see the terms before they accept."); onChanged(); return true; }); }}>
+          <p className="font-ui text-sm font-bold text-ink">Invite a co-tutor</p>
+          <label className="block"><span className={label}>Their @username</span><input value={username} onChange={(e) => setUsername(e.target.value)} className={input} placeholder="@username" autoComplete="off" /></label>
+          <AccessChoice value={access} onChange={setAccess} />
+          <div className="grid gap-2 sm:grid-cols-[8rem_auto] sm:items-end">
+            <label className="block"><span className={label}>Their share</span><span className="relative block"><input value={percent} onChange={(e) => setPercent(e.target.value.replace(/[^\d]/g, "").slice(0, 2))} inputMode="numeric" className={`${input} pr-7`} /><span className="absolute right-3 top-1/2 mt-0.5 -translate-y-1/2 text-sm text-slate">%</span></span></label>
+            <button disabled={busy !== null || username.trim().length < 2} className="btn-primary !py-2.5 disabled:opacity-50">{busy === "tutor" ? "Sending…" : "Send invitation"}</button>
+          </div>
+          <p className="text-xs text-slate">The lead keeps at least {MIN_LEAD_TUTOR_PERCENT}%. A share of 0% credits them as a tutor without a part of the sales.</p>
         </form>
       )}
     </section>
+  );
+}
+
+// "Can view" or "Can view and edit", with what each means.
+function AccessChoice({ value, onChange }: { value: InviteAccess; onChange: (a: InviteAccess) => void }) {
+  return (
+    <fieldset>
+      <legend className={label}>What they can do</legend>
+      <div className="mt-1 grid gap-2 sm:grid-cols-2" role="radiogroup">
+        {(["view", "edit"] as const).map((a) => (
+          <button key={a} type="button" role="radio" aria-checked={value === a} onClick={() => onChange(a)}
+            className={`rounded-xl px-3 py-2.5 text-left text-sm ${value === a ? "border-2 border-crimson bg-white" : "border border-rule bg-white"}`}>
+            <b className="font-ui">{accessLabel(a)}</b>
+            <span className="block text-xs text-slate">{a === "view" ? "See the course and every lesson, draft or published, to review it. No editing." : "Also edit the details, About, modules and lessons. Not the price, shares or publishing."}</span>
+          </button>
+        ))}
+      </div>
+    </fieldset>
+  );
+}
+
+function ChangeTutor({ invite, busy, onSave }: { invite: TutorInvite; busy: string | null; onSave: (b: { access: InviteAccess; percent: number }) => void }) {
+  const cur = accessOf("course", invite);
+  const [access, setAccess] = useState<InviteAccess>(invite.change?.access ?? (cur === "view" ? "view" : "edit"));
+  const [percent, setPercent] = useState(String(invite.change?.percent ?? invite.percent));
+  const p = Number(percent) || 0;
+  const asks = invite.status === "accepted" && (accessRank(access) > accessRank(cur) || p !== invite.percent);
+  return (
+    <div className="mt-3 grid gap-3 rounded-xl bg-paper p-3">
+      <AccessChoice value={access} onChange={setAccess} />
+      <label className="block w-32"><span className={label}>Their share</span><span className="relative block"><input value={percent} onChange={(e) => setPercent(e.target.value.replace(/[^\d]/g, "").slice(0, 2))} inputMode="numeric" className={`${input} pr-7`} /><span className="absolute right-3 top-1/2 mt-0.5 -translate-y-1/2 text-sm text-slate">%</span></span></label>
+      <p className="text-xs text-slate">{invite.status === "pending" ? "They haven't answered yet: the invitation is updated and they're told." : asks ? "More access or a different share needs their agreement: they're asked, and their current terms stay until they agree." : "Less access applies straight away, and they're told."}</p>
+      <button type="button" disabled={busy !== null} onClick={() => onSave({ access, percent: p })} className="btn-primary w-full !py-2 text-sm disabled:opacity-50 sm:w-auto">{asks ? "Ask them to agree" : "Save"}</button>
+    </div>
   );
 }
 

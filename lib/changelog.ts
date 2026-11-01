@@ -11,6 +11,19 @@ export type Release = {
 
 export const CHANGELOG: Release[] = [
   {
+    version: "v0.109.0",
+    bump: "minor",
+    date: "2026-11-01",
+    changes: [
+      { kind: "added", text: "Choose what a co-author or co-tutor can do when you invite them: Can view (read the unpublished journal, or see the course and every lesson, to review it) or Can view and edit (edit the journal draft's title and text, or the course's details, About, modules and lessons). Publishing, the price, the split and invitations always stay with you." },
+      { kind: "added", text: "A clear invitation page, from the bell and the email: who invited you, the title and cover, your access in plain words (what you can and can't do), your share and how it's paid, the credit, that the lead keeps publishing control, how to leave, and the help article. Accept and agree records the terms you agreed to, and the lead sees \"Accepted on\" with the date." },
+      { kind: "added", text: "Co-authors who can view or edit open the draft from their invites page. A co-author's save goes straight into the draft, and the lead is warned before saving over it." },
+      { kind: "added", text: "Change a co-author's or co-tutor's access or share later. Less access applies at once and they're told; more access or a different share is sent for them to agree, and their current terms stay until they do." },
+      { kind: "added", text: "Co-authors can leave a post before it's published. Removals, changes, acceptances and departures all arrive in the bell and by email." },
+      { kind: "changed", text: "A view-only co-author can be credited with a 0% share; a co-author who edits still gets at least 5%. Invitations sent before today keep what they had: journal co-authors are credited and paid without seeing the draft, and co-tutors can edit the course." },
+    ],
+  },
+  {
     version: "v0.106.0",
     bump: "minor",
     date: "2026-10-30",

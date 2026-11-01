@@ -126,7 +126,9 @@ export default function CourseView({ slug, site }: { slug: string; site?: { base
     <>
       {preview && (
         <div className="bg-amber-100 px-4 py-2 text-center text-sm text-amber-900">
-          Preview: this course is a draft, so only its tutors can see it. <Link href={`/academy/teach/${course.id}`} className="font-semibold underline">Back to the editor</Link>
+          Preview: this course is a draft, so only its tutors can see it. {course.tutors?.find((t) => t.uid === user?.uid)?.access === "view"
+            ? <>You can view it (read-only): send the lead tutor your comments.</>
+            : <Link href={`/academy/teach/${course.id}`} className="font-semibold underline">Back to the editor</Link>}
         </div>
       )}
       <section className="bg-gradient-to-br from-crimson-deep via-crimson to-crimson-bright text-paper">

@@ -79,7 +79,9 @@ export default function LessonPlayer({ slug, lessonId }: { slug: string; lessonI
     <>
       {preview && (
         <div className="bg-amber-100 px-4 py-2 text-center text-sm text-amber-900">
-          Preview of a draft: only its tutors can see it. <Link href={`/academy/teach/${course.id}`} className="font-semibold underline">Back to the editor</Link>
+          Preview of a draft: only its tutors can see it. {course.tutors?.find((t) => t.uid === user?.uid)?.access === "view"
+            ? <>You can view it (read-only).</>
+            : <Link href={`/academy/teach/${course.id}`} className="font-semibold underline">Back to the editor</Link>}
         </div>
       )}
       <div className="mx-auto max-w-6xl px-4 py-6 sm:px-8 sm:py-8">

@@ -41,7 +41,7 @@ const ROWS: Row[] = [
       !t.canPublish
         ? "Accept an invite once you have Free Basic"
         : t.tier === "pro" || t.tier === "business" || t.tier === "enterprise"
-          ? "Yes — lead posts with up to 4 co-authors, or join one"
+          ? "Yes — lead posts with up to 4 co-authors (view or edit the draft), or join one"
           : "Join as a co-author when invited",
   },
   {
@@ -344,7 +344,7 @@ export default async function PricingPage() {
           <li><strong className="text-ink">Free courses are free to publish</strong> on every publishing plan, with lessons from your own YouTube that play inside #NotesApp, and free for learners to take.</li>
           <li><strong className="text-ink">Certificates on free courses are paid:</strong> the learner pays from {certificateMin()}, plus the margin you set. We keep {certificateMin()} and our usual commission on your margin; the rest of the margin is yours.</li>
           <li><strong className="text-ink">Paid courses</strong>, with the same fee as your digital items: on Pro ({planRate("pro", "digital")}) with text lessons, PDFs and YouTube; on Business ({planRate("business", "digital")}) and Enterprise with your own uploaded videos too. Lessons stay private and play only for learners who paid, on up to two devices, with each viewer&apos;s details drifting across the video. Learners can get a refund within 7 days if they haven&apos;t started.</li>
-          <li><strong className="text-ink">Co-tutors and organisations:</strong> teach alone, invite co-tutors with their share of each sale (each paid at their own plan&apos;s fee), or teach as your organisation with your team.</li>
+          <li><strong className="text-ink">Co-tutors and organisations:</strong> teach alone, invite co-tutors who can view or also edit the course, with their share of each sale (each paid at their own plan&apos;s fee, agreed by them before they&apos;re listed), or teach as your organisation with your team.</li>
         </ul>
         <p className="mt-3 text-sm"><Link href="/academy" className="text-crimson underline underline-offset-2">Visit Notes Academy →</Link></p>
       </section>

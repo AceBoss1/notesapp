@@ -9,7 +9,7 @@ import { dropUpload } from "@/lib/course-uploads-server";
 export const dynamic = "force-dynamic";
 type Ctx = { params: { id: string } };
 
-// One course, for its tutors only (the course editor, /academy/teach/<id>).
+// One course, for its tutors who can edit (the course editor, /academy/teach/<id>).
 // GET → { course, lessons, access, links, invites, plan }. PATCH { title?, summary?, topics?, cover?, level?, language?, format?, outcomes?,
 // requirements?, runsFor?, schedule?, modules?, classUrl?, communityUrl?; the lead also priceNaira?, certificateIncluded? } → { course }.
 // DELETE → { ok } (with its lessons, uploads and learners' progress; not once it's been bought). POST { action: "publish" | "unpublish" }
@@ -26,7 +26,8 @@ export async function GET(req: NextRequest, { params }: Ctx) {
   try {
     const t = await teacherUid(req, "academy-read", 120);
     if (typeof t !== "string") return t;
-    return NextResponse.json(await courseForOwner(getAdminDb(), t, { id: params.id }), { headers: NO_STORE });
+    // The editor: co-tutors who can only view are sent to the course's preview instead (GET /api/academy/courses?slug=…).
+    return NextResponse.json(await courseForOwner(getAdminDb(), t, { id: params.id }, "tutor"), { headers: NO_STORE });
   } catch (err) {
     return academyError(err, "Couldn't load the course");
   }

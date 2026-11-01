@@ -6,9 +6,10 @@ import type { Subtopic } from "./subtopics";
 import { weeklyViews } from "./discovery-server";
 import { canPublish, effectiveTier, type AccountTier, type UserProfile } from "./users";
 import { canHaveTeam, isOrganisation } from "./org";
-import { notifyBell } from "./email";
 import { ownerVisitData, ownerVisitRef } from "./visits-server";
 import type { Source } from "./analytics";
+import { accessLabel, accessOf, accessRank, invitePath, isInviteAccess, type InviteAccess } from "./invite-terms";
+import { InviteTermsError, checkAgreement, recordAgreement, tellMember, termsOnOffer, type InviteAnswer } from "./invite-agreements-server";
 import {
   MAX_COURSES_PER_MEMBER, MAX_CO_TUTORS, MAX_LESSONS, MIN_LEAD_TUTOR_PERCENT, canSellCourses, canUploadVideo, cleanCourseFields, cleanLesson, cleanLink, cleanPrice,
   communityKindOf, courseRating, gradeQuiz, isPaid, leadTutorPercent, orderedLessons, publishProblems, quizAttemptId, quizForLearner, quizKeyId, slugify, tutorInviteId,
@@ -114,16 +115,20 @@ async function orgForMember(db: Firestore, uid: string, orgUid: string): Promise
   return { org, role };
 }
 
-// "lead": the course's owner, or for an organisation's course its admins and the team member who made it. "tutor": an accepted co-tutor.
-export type CourseAccess = "lead" | "tutor";
-export async function accessTo(db: Firestore, uid: string, c: Pick<Course, "ownerUid" | "isOrg" | "createdByUid" | "tutorUids">): Promise<CourseAccess | null> {
+// "lead": the course's owner, or for an organisation's course its admins and the team member who made it. "tutor": an accepted
+// co-tutor who can view and edit. "viewer": an accepted co-tutor who can view (the course and every lesson, read-only).
+export type CourseAccess = "lead" | "tutor" | "viewer";
+const RANK: Record<CourseAccess, number> = { viewer: 1, tutor: 2, lead: 3 };
+// What an accepted co-tutor's entry on the course allows (no access field: they accepted before access levels, and could edit).
+export const tutorAccess = (t: Pick<Tutor, "access"> | undefined): CourseAccess => (t?.access === "view" ? "viewer" : "tutor");
+export async function accessTo(db: Firestore, uid: string, c: Pick<Course, "ownerUid" | "isOrg" | "createdByUid" | "tutorUids" | "tutors">): Promise<CourseAccess | null> {
   if (!uid) return null;
   if (c.ownerUid === uid) return "lead";
   if (c.isOrg) {
     const role = (await db.doc(`orgMembers/${c.ownerUid}_${uid}`).get()).data()?.role;
     if (role === "admin" || (role === "writer" && c.createdByUid === uid)) return "lead";
   }
-  return c.tutorUids?.includes(uid) ? "tutor" : null;
+  return c.tutorUids?.includes(uid) ? tutorAccess(c.tutors?.find((x) => x.uid === uid)) : null;
 }
 
 async function editable(db: Firestore, uid: string, id: string, need: CourseAccess, t?: Transaction): Promise<{ ref: DocumentReference; c: Course; access: CourseAccess }> {
@@ -134,7 +139,10 @@ async function editable(db: Firestore, uid: string, id: string, need: CourseAcce
   const c = courseOf(snap.id, snap.data()!);
   const access = await accessTo(db, uid, c);
   if (!access) throw new CourseError("Only the course's tutors can change it.", 403);
-  if (need === "lead" && access !== "lead") throw new CourseError(c.isOrg ? "Only the organisation's admins and the course's maker can do that." : "Only the course's lead tutor can do that.", 403);
+  if (RANK[access] < RANK[need]) {
+    if (need === "lead") throw new CourseError(c.isOrg ? "Only the organisation's admins and the course's maker can do that." : "Only the course's lead tutor can do that.", 403);
+    throw new CourseError("You can view this course, but not edit it. Ask the lead tutor for edit access.", 403);
+  }
   return { ref, c, access };
 }
 // The member making a change: not suspended; a personal lead or co-tutor needs a publishing account (an organisation's team member
@@ -202,7 +210,7 @@ export async function myCourses(db: Firestore, uid: string): Promise<MyCourse[]>
   for (const [i, s] of snaps.entries()) for (const d of s.docs) {
     if (seen.has(d.id)) continue;
     const c = courseOf(d.id, d.data());
-    const access: CourseAccess = i === 2 && c.ownerUid !== uid && c.createdByUid !== uid && !adminOf.includes(c.ownerUid) ? "tutor" : "lead";
+    const access: CourseAccess = i === 2 && c.ownerUid !== uid && c.createdByUid !== uid && !adminOf.includes(c.ownerUid) ? tutorAccess(c.tutors?.find((x) => x.uid === uid)) : "lead";
     // A writer who left the organisation no longer edits its courses.
     if (i === 1 && c.isOrg && !(await accessTo(db, uid, c))) continue;
     seen.set(d.id, { ...c, access });
@@ -219,12 +227,13 @@ export type EditorView = {
   course: Course; lessons: Lesson[]; access: CourseAccess; links: CourseLinks; invites: TutorInvite[];
   plan: { tier: AccountTier; canSell: boolean; canUploadVideo: boolean; payoutsReady: boolean };
 };
-// One of the member's courses with its lessons in order (the editor, and the preview of a draft), by id or by address.
-export async function courseForOwner(db: Firestore, uid: string, by: { id?: string; slug?: string }): Promise<EditorView> {
+// One of the member's courses with its lessons in order (the editor, and the preview of a draft), by id or by address. Co-tutors who
+// can only view get it too (the preview); `need: "tutor"` is for the editor and uploads, which they can't use.
+export async function courseForOwner(db: Firestore, uid: string, by: { id?: string; slug?: string }, need: CourseAccess = "viewer"): Promise<EditorView> {
   let id = by.id;
   if (!id && by.slug) id = (await db.doc(`courseSlugs/${by.slug}`).get()).data()?.courseId;
   if (!id) throw new CourseError("That course doesn't exist (any more).", 404);
-  const { ref, c, access } = await editable(db, uid, id, "tutor");
+  const { ref, c, access } = await editable(db, uid, id, need);
   const [ls, links, inv, owner, payout] = await Promise.all([
     ref.collection("lessons").orderBy("order").get(), linksOf(db, id), db.collection("courseTutorInvites").where("courseId", "==", id).get(),
     db.doc(`users/${c.ownerUid}`).get(), db.doc(`payoutAccounts/${c.ownerUid}`).get(),
@@ -452,13 +461,15 @@ export async function reorderLessons(db: Firestore, uid: string, courseId: strin
 }
 
 // ---- co-tutors ----
-export async function inviteTutor(db: Firestore, uid: string, courseId: string, body: { username?: unknown; percent?: unknown }, now = new Date()): Promise<TutorInvite> {
-  const { c, access } = await editable(db, uid, courseId, "lead");
-  const me = await actor(db, uid, c, access);
+// body.access: "view" or "edit" (an older client sends none: co-tutors could always edit, so that's what it means).
+export async function inviteTutor(db: Firestore, uid: string, courseId: string, body: { username?: unknown; percent?: unknown; access?: unknown }, now = new Date()): Promise<TutorInvite> {
+  const { c, access: mine } = await editable(db, uid, courseId, "lead");
+  const me = await actor(db, uid, c, mine);
   const username = String(body.username ?? "").trim().replace(/^@/, "").toLowerCase();
   if (!/^[a-z0-9_.-]{2,40}$/.test(username)) throw new CourseError("Type their @username.");
   const percent = Number(body.percent ?? 0);
   if (!Number.isInteger(percent) || percent < 0 || percent > 100 - MIN_LEAD_TUTOR_PERCENT) throw new CourseError(`Their share: a whole percent from 0 to ${100 - MIN_LEAD_TUTOR_PERCENT}.`);
+  const access: InviteAccess = isInviteAccess(body.access) ? body.access : "edit";
   const found = await db.collection("users").where("username", "==", username).limit(1).get();
   const who = found.docs[0];
   if (!who) throw new CourseError("No member has that username.", 404);
@@ -473,51 +484,136 @@ export async function inviteTutor(db: Firestore, uid: string, courseId: string, 
   if (leadTutorPercent([...live, { percent, status: "pending" }]) < MIN_LEAD_TUTOR_PERCENT) throw new CourseError(`The lead keeps at least ${MIN_LEAD_TUTOR_PERCENT}% of each sale. Lower the shares.`);
   const inv: TutorInvite = {
     courseId, courseTitle: c.title, courseSlug: c.slug, ownerUid: c.ownerUid, ownerName: c.ownerName,
-    uid: who.id, username: p.username, name: p.displayName || p.username, avatar: p.avatar || "", percent, status: "pending", invitedByUid: uid, createdAt: iso(now),
+    uid: who.id, username: p.username, name: p.displayName || p.username, avatar: p.avatar || "", percent, access, status: "pending", invitedByUid: uid, createdAt: iso(now),
   };
-  await db.doc(`courseTutorInvites/${tutorInviteId(courseId, who.id)}`).set(inv);
-  await notifyBell({ uid: who.id, type: "course", linkHref: "/academy/teach", message: `${me.displayName || me.username} invited you to co-teach "${c.title}"${percent ? ` for ${percent}% of each sale` : ""}. Accept or decline on Teach.` });
+  const iid = tutorInviteId(courseId, who.id);
+  await db.doc(`courseTutorInvites/${iid}`).set(inv);
+  await tellMember(db, {
+    uid: who.id, kind: "course", linkHref: invitePath("course", iid), actor: { username: me.username, displayName: me.displayName || me.username, avatar: me.avatar },
+    subject: `${me.displayName || me.username} invited you to co-teach "${c.title}"`,
+    message: `${me.displayName || me.username} invited you to co-teach "${c.title}" (${accessLabel(access).toLowerCase()}${percent ? `, ${percent}% of each sale` : ", no share of the sales"}). Read the terms, then accept or decline.`,
+  });
   return inv;
 }
 
+// Invitations waiting for the member: new ones, and changes a lead proposed to a course they already teach.
 export async function myTutorInvites(db: Firestore, uid: string): Promise<TutorInvite[]> {
-  const s = await db.collection("courseTutorInvites").where("uid", "==", uid).where("status", "==", "pending").get();
-  return s.docs.map((d) => d.data() as TutorInvite);
+  const [pending, accepted] = await Promise.all([
+    db.collection("courseTutorInvites").where("uid", "==", uid).where("status", "==", "pending").get(),
+    db.collection("courseTutorInvites").where("uid", "==", uid).where("status", "==", "accepted").get(),
+  ]);
+  return [...pending.docs, ...accepted.docs.filter((d) => !!d.data().change)].map((d) => d.data() as TutorInvite);
 }
 
-export async function respondTutor(db: Firestore, uid: string, courseId: string, accept: boolean, now = new Date()): Promise<void> {
+// The invited member answers on /invites/course/<id>: accepting needs the agreement (lib/invite-agreements-server.ts). The same answer
+// covers a change the lead proposed to an accepted co-tutor: accepting applies it, declining keeps the terms already agreed.
+// `answer: true` (an accept with no agreement) is refused: there is no way to accept without seeing the terms.
+export async function respondTutor(db: Firestore, uid: string, courseId: string, answer: boolean | InviteAnswer, now = new Date()): Promise<void> {
   if (!safeId(courseId)) throw new CourseError("Which course?");
-  if (accept) await teacher(db, uid); // a share of the sales is paid out to a publishing account
-  const iref = db.doc(`courseTutorInvites/${tutorInviteId(courseId, uid)}`), cref = db.doc(`courses/${courseId}`);
+  const a: InviteAnswer = typeof answer === "boolean" ? { accept: answer } : answer;
+  if (a.accept) await teacher(db, uid); // a share of the sales is paid out to a publishing account
+  const iid = tutorInviteId(courseId, uid);
+  const iref = db.doc(`courseTutorInvites/${iid}`), cref = db.doc(`courses/${courseId}`);
   const p = await profileOf(db, uid);
-  const inv = await db.runTransaction(async (t) => {
+  const { inv, offer, isChange } = await db.runTransaction(async (t) => {
     const [is, cs] = await Promise.all([t.get(iref), t.get(cref)]);
     const i = is.data() as TutorInvite | undefined;
-    if (!i || i.status !== "pending") throw new CourseError("That invitation isn't open any more.", 404);
+    const offer = i ? termsOnOffer("course", i) : null;
+    if (!i || !offer) throw new CourseError("That invitation isn't open any more.", 404);
     if (!cs.exists) throw new CourseError("That course doesn't exist (any more).", 404);
-    t.update(iref, { status: accept ? "accepted" : "declined", respondedAt: iso(now) });
-    if (accept) {
-      const tutor: Tutor = { uid, username: p.username, name: p.displayName || p.username, avatar: p.avatar || "", role: "co" };
-      const tutors = ((cs.data()!.tutors as Tutor[] | undefined) ?? []).filter((x) => x.uid !== uid);
-      t.update(cref, { tutors: [...tutors, tutor], tutorUids: FieldValue.arrayUnion(uid) });
+    const isChange = i.status === "accepted";
+    try { checkAgreement(a, offer); } catch (e) { if (e instanceof InviteTermsError) throw new CourseError(e.message, e.status); throw e; }
+    if (!a.accept) {
+      t.update(iref, isChange ? { change: FieldValue.delete() } : { status: "declined", respondedAt: iso(now) });
+      return { inv: i, offer, isChange };
     }
-    return i;
+    const access: InviteAccess = offer.access === "view" ? "view" : "edit";
+    const course = cs.data()!;
+    const agreed = recordAgreement(db, t, "course", iid, uid, { title: String(course.title ?? i.courseTitle), leadName: String(course.ownerName ?? i.ownerName), access, percent: offer.percent }, a.userAgent, now);
+    t.update(iref, { status: "accepted", respondedAt: iso(now), access, percent: offer.percent, change: FieldValue.delete(), ...agreed });
+    const tutor: Tutor = { uid, username: p.username, name: p.displayName || p.username, avatar: p.avatar || "", role: "co", access };
+    const tutors = ((course.tutors as Tutor[] | undefined) ?? []).filter((x) => x.uid !== uid);
+    t.update(cref, { tutors: [...tutors, tutor], tutorUids: FieldValue.arrayUnion(uid) });
+    return { inv: i, offer, isChange };
   });
-  await notifyBell({ uid: inv.invitedByUid, type: "course", linkHref: `/academy/teach/${courseId}`, message: `${p.displayName || p.username} ${accept ? "accepted" : "declined"} your invitation to co-teach "${inv.courseTitle}".` });
+  const what = isChange ? `the new terms for "${inv.courseTitle}"` : `your invitation to co-teach "${inv.courseTitle}"`;
+  await tellMember(db, {
+    uid: inv.invitedByUid, kind: "course", linkHref: `/academy/teach/${courseId}`, actor: { username: p.username, displayName: p.displayName || p.username, avatar: p.avatar },
+    message: a.accept
+      ? `${p.displayName || p.username} accepted and agreed to ${what} (${accessLabel(offer.access).toLowerCase()}, ${offer.percent}% of each sale).`
+      : `${p.displayName || p.username} declined ${what}.${isChange ? " Their earlier terms still apply." : ""}`,
+  });
 }
+
+// The lead changes a co-tutor's access or share. A pending invitation simply takes the new terms. For an accepted co-tutor, less access
+// applies at once (and they're told); more access, or a different share, is proposed and waits for them to agree, with the terms they
+// agreed to still in force until then.
+export async function changeTutor(db: Firestore, uid: string, courseId: string, body: { uid?: unknown; access?: unknown; percent?: unknown }, now = new Date()): Promise<{ applied: boolean; proposed: boolean }> {
+  const { c, access: mine } = await editable(db, uid, courseId, "lead");
+  const me = await actor(db, uid, c, mine);
+  const tutorUid = String(body.uid ?? "");
+  if (!safeId(tutorUid)) throw new CourseError("Which tutor?");
+  if (!isInviteAccess(body.access)) throw new CourseError("Choose Can view or Can view and edit.");
+  const access = body.access, percent = Number(body.percent ?? 0);
+  if (!Number.isInteger(percent) || percent < 0 || percent > 100 - MIN_LEAD_TUTOR_PERCENT) throw new CourseError(`Their share: a whole percent from 0 to ${100 - MIN_LEAD_TUTOR_PERCENT}.`);
+  const iid = tutorInviteId(courseId, tutorUid);
+  const iref = db.doc(`courseTutorInvites/${iid}`), cref = db.doc(`courses/${courseId}`);
+  const all = (await db.collection("courseTutorInvites").where("courseId", "==", courseId).get()).docs.map((d) => d.data() as TutorInvite);
+  const others = all.filter((i) => (i.status === "pending" || i.status === "accepted") && i.uid !== tutorUid);
+  if (leadTutorPercent([...others, { percent, status: "pending" }]) < MIN_LEAD_TUTOR_PERCENT) throw new CourseError(`The lead keeps at least ${MIN_LEAD_TUTOR_PERCENT}% of each sale. Lower the shares.`);
+  const result = await db.runTransaction(async (t) => {
+    const [is, cs] = await Promise.all([t.get(iref), t.get(cref)]);
+    const i = is.data() as TutorInvite | undefined;
+    if (!i || (i.status !== "pending" && i.status !== "accepted")) throw new CourseError("They aren't a tutor on this course.", 404);
+    const was = accessOf("course", i);
+    if (i.status === "pending") {
+      if (access === was && percent === i.percent) return { applied: false, proposed: false, lower: false, i };
+      t.update(iref, { access, percent, change: FieldValue.delete() });
+      return { applied: true, proposed: false, lower: false, pendingChanged: true, i };
+    }
+    const lower = accessRank(access) < accessRank(was);
+    const needsYes = accessRank(access) > accessRank(was) || percent !== i.percent;
+    if (!lower && !needsYes) { if (i.change) t.update(iref, { change: FieldValue.delete() }); return { applied: false, proposed: false, lower: false, i }; }
+    t.update(iref, { ...(lower ? { access } : {}), change: needsYes ? { access, percent, proposedAt: iso(now) } : FieldValue.delete() });
+    if (lower && cs.exists) t.update(cref, { tutors: ((cs.data()!.tutors as Tutor[] | undefined) ?? []).map((x) => (x.uid === tutorUid ? { ...x, access } : x)) });
+    return { applied: lower, proposed: needsYes, lower, i };
+  });
+  const who = { username: me.username, displayName: me.displayName || me.username, avatar: me.avatar };
+  if ("pendingChanged" in result) {
+    await tellMember(db, { uid: tutorUid, kind: "course", linkHref: invitePath("course", iid), actor: who, message: `${who.displayName} changed your invitation to co-teach "${c.title}": ${accessLabel(access).toLowerCase()}${percent ? `, ${percent}% of each sale` : ", no share"}. Read the new terms before you answer.` });
+  }
+  if (result.lower) {
+    await tellMember(db, { uid: tutorUid, kind: "course", linkHref: courseHrefOf(c.slug), actor: who, message: `${who.displayName} changed your access to "${c.title}" to ${accessLabel(access).toLowerCase()}. This applies now; your share is unchanged.` });
+  }
+  if (result.proposed) {
+    await tellMember(db, { uid: tutorUid, kind: "course", linkHref: invitePath("course", iid), actor: who, subject: `${who.displayName} asks you to agree to new terms for "${c.title}"`, message: `${who.displayName} proposes new terms for "${c.title}": ${accessLabel(access).toLowerCase()}, ${percent ? `${percent}% of each sale` : "no share of the sales"}. Your current terms stay until you agree.` });
+  }
+  return { applied: result.applied, proposed: result.proposed };
+}
+const courseHrefOf = (slug: string) => `/academy/${slug}`;
 
 // The lead removes a co-tutor, or a co-tutor leaves (tutorUid = themselves). A pending invitation is withdrawn the same way.
 export async function removeTutor(db: Firestore, uid: string, courseId: string, tutorUid: string, now = new Date()): Promise<void> {
   if (!safeId(courseId) || !safeId(tutorUid)) throw new CourseError("Which tutor?");
   if (tutorUid !== uid) await editable(db, uid, courseId, "lead");
   const iref = db.doc(`courseTutorInvites/${tutorInviteId(courseId, tutorUid)}`), cref = db.doc(`courses/${courseId}`);
-  await db.runTransaction(async (t) => {
+  const i = await db.runTransaction(async (t) => {
     const [is, cs] = await Promise.all([t.get(iref), t.get(cref)]);
     const i = is.data() as TutorInvite | undefined;
     if (!i || (i.status !== "pending" && i.status !== "accepted")) throw new CourseError("They aren't a tutor on this course.", 404);
-    t.update(iref, { status: "removed", respondedAt: iso(now) });
+    t.update(iref, { status: "removed", respondedAt: iso(now), change: FieldValue.delete(), ...(tutorUid === uid ? { leftAt: iso(now) } : {}) });
     if (cs.exists) t.update(cref, { tutors: ((cs.data()!.tutors as Tutor[] | undefined) ?? []).filter((x) => x.uid !== tutorUid), tutorUids: FieldValue.arrayRemove(tutorUid) });
+    return i;
   });
+  const by = await profileOf(db, uid).catch(() => null);
+  const name = by?.displayName || by?.username || "Someone";
+  if (tutorUid === uid) {
+    await tellMember(db, { uid: i.invitedByUid, kind: "course", linkHref: `/academy/teach/${courseId}`, message: `${name} left as a co-tutor of "${i.courseTitle}". Their share of later sales is yours again.` });
+  } else {
+    await tellMember(db, { uid: tutorUid, kind: "course", linkHref: "/academy/teach", message: i.status === "accepted"
+      ? `${name} removed you as a co-tutor of "${i.courseTitle}". You no longer see or edit it, and your share of later sales ends.`
+      : `${name} withdrew the invitation to co-teach "${i.courseTitle}".` });
+  }
 }
 
 // ---- learners ----
