@@ -4,11 +4,13 @@ import Directory from "@/components/community/Directory";
 import type { Metadata } from "next";
 import PageHero from "@/components/PageHero";
 import { planPrice } from "@/lib/pricing";
+import { GIVING_BANDS } from "@/lib/giving";
+import { formatNaira } from "@/lib/booking-time";
 import { COMMUNITY_FREE_MEMBERS, COMMUNITY_PARTS, COMMUNITY_PHASES, UNVERIFIED_COMMUNITY_NOTICE } from "@/lib/community";
 
 export const metadata: Metadata = {
   title: "Community for organisations",
-  description: `Churches, NGOs, schools, clubs and associations bring their members together on #NotesApp: public and members-only Spaces, a General announcement channel, private Circles, Events with reminders, and Join live links. Free up to ${COMMUNITY_FREE_MEMBERS} members.`,
+  description: `Churches, NGOs, schools, clubs and associations bring their members together on #NotesApp: public and members-only Spaces, a General announcement channel, private Circles, Events with reminders, paid tickets and Join live links, and giving with receipts. Free up to ${COMMUNITY_FREE_MEMBERS} members.`,
 };
 
 // Communities (lib/community.ts, docs/COMMUNITY.md): the directory and Start a community, then what a community has and costs. Like a
@@ -31,7 +33,8 @@ export default function CommunityPage() {
             </li>
           ))}
           <li id="live" className="card p-4"><strong className="text-ink">Live</strong><p className="mt-1 text-slate">An event carries a Join live link to YouTube Live, Facebook Live, Zoom or Google Meet, shown only to that event&apos;s audience. Our own live streaming comes later, as a paid add-on.</p></li>
-          <li id="giving" className="card p-4"><strong className="text-ink">Giving</strong><p className="mt-1 text-slate">Switch it on under Admin and name your funds (Tithe, Offering, Building fund). Members give with a Give button and get a receipt; you see the gifts and totals per fund. Charges like a bank transfer (₦10 up to ₦5,000, ₦25 up to ₦50,000, ₦50 above, plus the card charge at cost by card; cheaper from the NotesApp wallet), no commission, and givers can cover them. Paid out to your verified bank account a day later, in one run. Each gift is capped at ₦20,000 until your community is verified.</p></li>
+          <li id="giving" className="card p-4"><strong className="text-ink">Giving</strong><p className="mt-1 text-slate">Switch it on under Admin and name your funds (Tithe, Offering, Building fund). Members give with a Give button and get a receipt; you see the gifts and totals per fund. Charges like a bank transfer (₦10 up to ₦5,000, ₦25 up to ₦50,000, ₦50 above, plus the card charge at cost by card; cheaper from the NotesApp wallet), no commission, and givers can cover them. Paid out to your verified bank account a day later, in one run. Each gift is capped at ₦20,000 until your community is verified. <Link href="/help/giving" className="text-crimson underline">How giving works</Link>.</p></li>
+          <li id="tickets" className="card p-4"><strong className="text-ink">Paid tickets</strong><p className="mt-1 text-slate">Add ticket types (Regular, VIP …) to any of your events, with a price and how many. Buyers pay by card and get a QR code per ticket under My tickets and by email; you check them in at the door by scanning or typing the code. You&apos;re paid after the event, less your plan&apos;s commission. <Link href="/help/event-tickets" className="text-crimson underline">How tickets work</Link>.</p></li>
         </ul>
 
         <h2 className="mt-12 font-display text-2xl text-ink">On your own site</h2>
@@ -44,6 +47,8 @@ export default function CommunityPage() {
         <ul className="mt-4 space-y-3 text-sm text-slate">
           <li className="card p-4"><strong className="text-ink">Free</strong> up to {COMMUNITY_FREE_MEMBERS} members: the General channel, Spaces, Audio rooms and Events.</li>
           <li className="card p-4"><strong className="text-ink">Business ({planPrice("business")}/month)</strong>: as many members as you have, and private Circles.</li>
+          <li className="card p-4"><strong className="text-ink">Giving</strong>: no commission, on every plan. Each gift has a charge like a bank transfer ({GIVING_BANDS.map((b) => `${formatNaira(b.chargeKobo)} ${Number.isFinite(b.uptoKobo) ? `up to ${formatNaira(b.uptoKobo)}` : "above"}`).join(", ")}), plus the card charge at cost when paid by card; givers can choose to cover it.</li>
+          <li className="card p-4"><strong className="text-ink">Paid event tickets</strong>: your plan&apos;s usual commission on sessions, taken from each ticket sold (<Link href="/pricing#compare" className="text-crimson underline">see the rates</Link>). Free events stay free.</li>
           <li className="card p-4"><strong className="text-ink">Live streaming</strong>: a paid add-on, once our own streaming is ready. Join live links to other services are free.</li>
         </ul>
 

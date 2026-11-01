@@ -19,6 +19,7 @@ export function academyFaq(): { q: string; a: string }[] {
     { q: "Can I watch this course offline?", a: "No. Lessons stream on #NotesApp and can't be downloaded, which keeps teachers' work safe from piracy. You can still watch on a bigger screen by casting or connecting your phone, tablet or computer to a TV." },
     { q: "Help! The videos won't play.", a: "It's usually the internet connection or the browser. Try another browser or connection, and turn off any data saver or ad blocker for #NotesApp. Still stuck? Ask Nana or contact our team." },
     { q: "Where are the course resources?", a: "If a lesson has worksheets, templates or other downloads, the teacher links them in the lesson. Paid extras are in the teacher's shop on Notes Market." },
+    { q: "Can I use a discount code?", a: "Yes, on a paid course, when the teacher has one. Choose Have a discount code? before you pay and you see what it takes off. If you saved one of the teacher's coupons, Nana applies the best one for you." },
     { q: "Can I get a refund?", a: "A paid course: yes, within 7 days of buying it, as long as you haven't started it (opening a paid lesson counts as starting). Tap get a refund on the course's page; the money goes back the way you paid. A certificate on a free course: ask within 7 days of buying it and we'll refund it; the certificate is then revoked." },
   ];
 }

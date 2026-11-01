@@ -16,6 +16,9 @@ import { CALLS_LIVE, MESSAGES_LIVE, MOMENTS_LIVE } from "@/lib/moments-rules";
 import { WALLET_LIVE } from "@/lib/wallet";
 import { academyApiFrom, certificateMin, enterpriseCoursesPrice, enterpriseFrom, logisticsAddonPrice, logisticsTrialDays, planPrice, planRate, pct, breakEven , inventoryAddonPrice, inventoryTrialDays } from "@/lib/pricing";
 import { ROOT_DOMAIN } from "@/lib/host";
+import { GIVING_BANDS, UNVERIFIED_GIFT_CAP_KOBO } from "@/lib/giving";
+import { TICKET_PRICE_MIN_KOBO } from "@/lib/tickets";
+import { CREDIT_BONUS, MAX_AFFILIATE_PERCENT, MIN_CASH_KOBO, PLAN_MONTHS, PLAN_SHARE } from "@/lib/referrals";
 
 export const metadata: Metadata = {
   title: "Pricing",
@@ -30,6 +33,9 @@ type Row = { label: string; href?: string; render: (t: (typeof TIERS)[number], L
 // No setting holds the certificate minimum yet (docs/COURSES.md, decision 3), so it is written here once.
 const TEAM_HUB_NOTE = "The Team hub and team messages are coming as a paid add-on for Business and Enterprise after our internal testing";
 const YOUR_SITE = "Your site: every kit, the Clean, Legacy, Aurora or Maroon look with your colours, your sections, Journals, Shop, Courses and Track, and About and Contact pages.";
+// Giving's charges, like a bank transfer: "₦10 up to ₦5,000, ₦25 up to ₦50,000, ₦50 above" (lib/giving.ts).
+const GIVING_CHARGES = GIVING_BANDS.map((b) => `${formatNaira(b.chargeKobo)} ${Number.isFinite(b.uptoKobo) ? `up to ${formatNaira(b.uptoKobo)}` : "above"}`).join(", ");
+const SHARE = `${Math.round(PLAN_SHARE * 100)}%`;
 const mins = (s: number) => (s % 60 === 0 ? `${s / 60} minute${s === 60 ? "" : "s"}` : `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`);
 
 const ROWS: Row[] = [
@@ -82,8 +88,23 @@ const ROWS: Row[] = [
     render: (t) => (t.canPublish ? `From ${formatNaira(BOOST_PACKAGES[0].priceKobo)} · no commission · undelivered impressions refunded` : "—"),
   },
   {
+    label: "Discount codes & coupons",
+    href: "/help/discount-codes",
+    render: (t) => (t.canPublish ? "Make codes for your products, show them as coupons and share them as cards · commission on what the buyer paid" : "Use codes and save coupons; Nana applies the best one at checkout"),
+  },
+  {
+    label: "Referrals",
+    href: "/help/referrals",
+    render: () => `A friend's first month of a plan free; you earn ${SHARE} of their plan payments for ${PLAN_MONTHS} months`,
+  },
+  {
+    label: "Affiliate marketplace",
+    href: "/affiliates",
+    render: (t) => `Promote products for a share of each sale${t.canPublish ? `; set your own share (up to ${MAX_AFFILIATE_PERCENT}%) on yours` : ""} · cash from ${formatNaira(MIN_CASH_KOBO)}, or Credit with ${Math.round(CREDIT_BONUS * 100)}% more`,
+  },
+  {
     label: "Payouts to your bank",
-    render: (t) => (t.canPublish ? "Sessions after they happen · subscriptions & gifts after 7 days" : "—"),
+    render: (t) => (t.canPublish ? "Sessions after they happen · subscriptions & gifts after 7 days · event tickets after the event" : "—"),
   },
   {
     label: "Physical goods sold in your store",
@@ -115,6 +136,11 @@ const ROWS: Row[] = [
               : `Free and paid courses, including your own uploaded videos, for the same fee as your digital items (${formatPercent(t.digitalCommission, t.digitalCommissionFloor)}); teach as your organisation, with co-tutors`,
   },
   {
+    label: "Quizzes on courses",
+    href: "/help/academy",
+    render: (t) => (t.canPublish ? "Add quizzes with a pass mark to any course, free or paid; marked straight away" : "Take quizzes, marked straight away; try again as often as you like"),
+  },
+  {
     label: "Links out to other shops",
     render: (t) => (t.canPublish ? "Only your one profile link and links inside your posts — stores sell through #NotesApp checkout" : "—"),
   },
@@ -134,6 +160,16 @@ const ROWS: Row[] = [
     label: "Parcel tracking & escrow",
     href: "/store-selling",
     render: (t) => (t.canPublish ? "Buyer's money held until delivery · parcel ID · no-login hand-over links for riders and drivers" : "—"),
+  },
+  {
+    label: "Paid event tickets",
+    href: "/help/event-tickets",
+    render: (t) => (t.canPublish ? `From ${formatNaira(TICKET_PRICE_MIN_KOBO)}, a QR code each, check-in at the door · NotesApp takes ${formatPercent(t.sessionAndUnlockCommission, t.sessionAndUnlockCommissionFloor)}` : "Buy tickets, each with its own QR code"),
+  },
+  {
+    label: "Giving in communities",
+    href: "/community#giving",
+    render: () => `No commission: a charge like a bank transfer (${GIVING_CHARGES}), plus the card charge at cost by card · up to ${formatNaira(UNVERIFIED_GIFT_CAP_KOBO)} a gift until verified`,
   },
   {
     label: "Inventory",
@@ -308,7 +344,9 @@ export default async function PricingPage() {
             yearly (two months free), renewing automatically through
             Paystack. Cancel any time under Rates &amp; payouts: you keep the
             plan until the period you paid for ends, with no partial
-            refunds. Enterprise starts at {enterpriseFrom()}/month with rates agreed with us —{" "}
+            refunds. Have a code? Choose &ldquo;Have a discount code?&rdquo; under Pro or Business: a #NotesApp plan code comes off your first payment
+            (a month or a year), and a member&apos;s referral code gives you the first month free (a month off a yearly plan); the plan then renews at
+            its usual price (<Link href="/help/discount-codes" className="text-crimson underline underline-offset-2">how codes work</Link>). Enterprise starts at {enterpriseFrom()}/month with rates agreed with us —{" "}
             <Link href="/contact" className="text-crimson underline underline-offset-2">
               contact us
             </Link>
@@ -388,6 +426,10 @@ export default async function PricingPage() {
             ["/gifts", "Gifts"],
             ["/boost", "Boost a post (packages and prices)"],
             ["/coauthoring", "Co-authoring and earnings splits"],
+            ["/help/discount-codes", "Discount codes and coupons — for your products, and #NotesApp's own"],
+            ["/affiliates", "The affiliate marketplace — promote products for a share of each sale"],
+            ["/community", "Community — giving with named funds and receipts"],
+            ["/events", "Events — paid tickets with QR check-in"],
             ["/badges", "Verification badges — verified and gold, with prices"],
             ["/shop", "Notes Market — every #NotesApp store in one place"],
             ["/academy", "Notes Academy — free and paid courses, and certificates anyone can verify"],

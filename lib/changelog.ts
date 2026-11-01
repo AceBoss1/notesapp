@@ -11,6 +11,17 @@ export type Release = {
 
 export const CHANGELOG: Release[] = [
   {
+    version: "v0.107.1",
+    bump: "patch",
+    date: "2026-11-01",
+    changes: [
+      { kind: "changed", text: "Pricing now lists discount codes and coupons, referrals, the affiliate marketplace, quizzes on courses, paid event tickets (your plan's commission) and giving in communities (no commission, a charge like a bank transfer) for every plan, and explains \"Have a discount code?\" under Pro and Business." },
+      { kind: "changed", text: "Store selling has new sections on discount codes, coupons, Nana's pick and affiliates. Community, Community events, Events and Organisations describe paid tickets with QR check-in and giving, with their charges and links to My tickets and the help articles." },
+      { kind: "changed", text: "Home, About, the roadmap and the status page describe discount codes and coupons, referrals, giving and tickets; the footer links Affiliates, Discount codes & coupons, Community giving, My tickets, My giving and My coupons." },
+      { kind: "changed", text: "Help articles on plans, commission, payouts, selling, Notes Academy, referrals, discount codes, tickets and giving now cover the new features and link to each other. Notes Academy's questions add quizzes and discount codes." },
+    ],
+  },
+  {
     version: "v0.107.0",
     bump: "minor",
     date: "2026-11-01",
