@@ -13,7 +13,7 @@ const PARTS = [
   ["Who can see it", "Public, or members only for a community's events."],
   ["Going and Interested", "People tap Going or Interested, get a bell, a phone notification and an email 24 hours and 1 hour before, and can add it to their calendar."],
   ["Repeating events", "Weekly services, monthly meetings: set it once and it repeats."],
-  ["Join live", "Add a link to YouTube Live, Facebook Live, Zoom or Google Meet. Our own live streaming comes later."],
+  ["Join live", "Talks for a community's members run in its audio rooms on #NotesApp. For video or a big audience, add a Join live link (YouTube Live, Zoom, Google Meet or any https link) until our own live streaming comes."],
   ["Paid tickets", "Add ticket types (Regular, VIP …) with a price and how many. Buyers pay by card through #NotesApp checkout and get a QR code per ticket under My tickets; you check them in at the door by scanning or typing the code. You're paid after the event, less your plan's commission."],
 ];
 

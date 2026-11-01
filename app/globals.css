@@ -52,6 +52,8 @@
 /* Boosted strip: each new set of boosts fades in (components/BoostedStrip.tsx). */
 @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
 @media (prefers-reduced-motion: reduce) { .animate-\[fadeIn_\.5s_ease\] { animation: none !important; } }
+/* "✓ Added" on a swiped-in suggestion (components/SwipeChip.tsx); the chip itself doesn't animate with reduced motion. */
+@keyframes fadeUp { 0% { opacity: 0; transform: translateY(4px); } 20% { opacity: 1; transform: none; } 80% { opacity: 1; } 100% { opacity: 0; transform: translateY(-4px); } }
 
 /* A member's site in the Scholar look, dark mode (lib/site-themes.ts; the switch is components/site/SiteDarkToggle.tsx). The page colours
    turn round, and the accent takes the lighter shades of the site's colour set so links stay readable. `!important` because the colour

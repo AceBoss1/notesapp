@@ -123,6 +123,10 @@ Each step ships with phone and desktop screenshots first (`HANDOVER.md`), the he
 7. **Co-tutors:** a course can have one tutor or co-tutors. Sales are split like a co-authored post's gifts: each co-tutor's agreed
    percent, the lead keeps the rest, each share at its own plan's commission. Organisations' admins and writers can teach as the organisation.
 8. **Course details for every course**, free or paid (from the partner review of digitalwitchng.com): level, language, format (live
-   classes with recordings), what you'll learn, requirements, how it works, modules, This course includes, Share, and private class and
-   community links shown only to people who enrolled or bought.
+   classes with recordings), what you'll learn, requirements, how it works, modules, This course includes, Share, and a private class
+   link and course group shown only to people who enrolled or bought.
+   - **Course group (v0.108.0, owner 1 Nov 2026: our own tools first):** a Space in one of the publisher's communities instead of a
+     WhatsApp or Telegram group: linked, added to a community they run, or a new invite-only community started in one tap. Learners get
+     the invite with the links and join in one tap. Outside links saved before still show until replaced or removed; new ones are refused.
+     Live classes: an audio room (host, 4 speakers, 20 listeners) or a meeting link for video and bigger classes.
 

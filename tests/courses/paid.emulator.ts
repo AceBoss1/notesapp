@@ -4,12 +4,13 @@ import assert from "node:assert/strict";
 import { initializeApp } from "firebase-admin/app";
 import { getFirestore } from "firebase-admin/firestore";
 import {
-  CourseError, accessTo, addLesson, courseForOwner, createCourse, deleteCourse, enrol, inviteTutor, linksFor, markLesson, myCourses, removeTutor, respondTutor,
+  CourseError, accessTo, addLesson, courseForOwner, createCourse, createCourseGroup, deleteCourse, enrol, inviteTutor, linksFor, markLesson, myCourses, removeTutor, respondTutor,
   setPublished, updateCourse, type UploadChecks,
 } from "../../lib/courses-server";
 import { DeviceLimit, claimIncludedCertificate, courseCheckout, courseShares, fulfilCourseInTransaction, myPurchase, openLesson, refundable, splitGross, undoCoursePurchase, type LessonDeps } from "../../lib/course-sales-server";
 import { includesOf, orderedLessons, type Course } from "../../lib/courses";
 import type { PaymentRecord } from "../../lib/payments";
+import { join } from "../../lib/community-server";
 initializeApp({ projectId: "demo-notesapp" });
 const db = getFirestore();
 const fails = async (p: Promise<unknown>, status: number, why: string) => {
@@ -64,10 +65,11 @@ const buy = async (ref: string, c: Course, buyer: string, rate = 0.04) => {
   const free = await createCourse(db, "u_basic", { title: "Free Course" });
   const d = await updateCourse(db, "u_basic", free.id, {
     level: "beginner", language: "Yoruba", format: "live", outcomes: "- Set up a help desk\n\n✓ Handle calls\n", requirements: ["A phone"], runsFor: "6 weeks", schedule: "Tue, Thu · 9 am",
-    classUrl: "https://zoom.us/j/123", communityUrl: "https://chat.whatsapp.com/abc",
+    classUrl: "https://zoom.us/j/123",
   });
   assert.deepEqual(d.outcomes, ["Set up a help desk", "Handle calls"], "outcomes are tidied, one per line");
-  assert.equal(d.format, "live"); assert.equal(d.hasClassLink, true); assert.equal(d.communityKind, "WhatsApp");
+  assert.equal(d.format, "live"); assert.equal(d.hasClassLink, true); assert.equal(d.hasCommunityLink, false);
+  await fails(updateCourse(db, "u_basic", free.id, { communityUrl: "https://chat.whatsapp.com/abc" }), 400, "no new outside group links (owner, 1 Nov 2026)");
   const pub = (await db.doc(`courses/${free.id}`).get()).data()!;
   assert.equal(JSON.stringify(pub).includes("zoom.us"), false, "the class link isn't on the public course");
   await fails(updateCourse(db, "u_basic", free.id, { level: "expert" }), 400, "levels come from the list");
@@ -95,6 +97,38 @@ const buy = async (ref: string, c: Course, buyer: string, rate = 0.04) => {
   await enrol(db, "u_l", free.id);
   assert.equal((await linksFor(db, "u_l", free.id))?.classUrl, "https://zoom.us/j/123");
 
+  // ---- the course group on #NotesApp (our own tools first), and an outside link saved before ----
+  await db.doc(`courseLinks/${free.id}`).set({ courseId: free.id, classUrl: "https://zoom.us/j/123", communityUrl: "https://chat.whatsapp.com/abc" }); // an old course
+  assert.equal((await linksFor(db, "u_l", free.id))?.communityUrl, "https://chat.whatsapp.com/abc", "an outside link saved before still shows to learners");
+  await updateCourse(db, "u_basic", free.id, { classUrl: "https://zoom.us/j/123", communityUrl: "https://chat.whatsapp.com/abc" }); // kept as it is: fine
+  await fails(updateCourse(db, "u_basic", free.id, { communityUrl: "https://t.me/newgroup" }), 400, "an outside link can't be changed to another");
+  const g1 = await createCourseGroup(db, "u_basic", free.id);
+  assert.equal(g1.course.hasGroup, true); assert.equal(g1.course.hasCommunityLink, false);
+  assert.equal(g1.links.communityUrl, "", "switching to a course group drops the outside link");
+  const gid = g1.links.group!.communityId;
+  const com = (await db.doc(`communities/${gid}`).get()).data()!;
+  assert.equal(com.joinMode, "invite", "a course's own community is joined only by invite link");
+  assert.equal(com.ownerUid, "u_basic"); assert.equal(g1.links.group!.spaceId, "learners");
+  assert.ok(com.spaces.every((x: { visibility: string }) => x.visibility === "members"), "its Spaces are for members only");
+  assert.equal(JSON.stringify((await db.doc(`courses/${free.id}`).get()).data()).includes(com.inviteCode), false, "the invite never goes on the public course");
+  const lg = await linksFor(db, "u_l", free.id);
+  assert.equal(lg?.group?.inviteCode, com.inviteCode, "an enrolled learner gets the invite");
+  assert.equal(await linksFor(db, "u_l2", free.id), null, "not enrolled: no group");
+  const joined = await join(db, "u_l", gid, { invite: lg!.group!.inviteCode });
+  assert.equal(joined.status, "active", "the learner joins with the invite in one tap");
+  await fails(updateCourse(db, "u_pro", (await createCourse(db, "u_pro", { title: "Someone else" })).id, { group: { communityId: gid, spaceId: "" } }), 403, "only a community you run");
+  await fails(updateCourse(db, "u_basic", free.id, { group: { communityId: gid, spaceId: "nope" } }), 404, "a Space that isn't there");
+  const g2 = await createCourseGroup(db, "u_basic", free.id, { communityId: gid });
+  assert.equal(g2.links.group!.spaceId, "free-course", "one tap adds a Space named after the course to a community you run");
+  assert.ok((await db.doc(`communities/${gid}`).get()).data()!.spaces.some((x: { id: string; visibility: string }) => x.id === "free-course" && x.visibility === "members"));
+  const g3 = await createCourseGroup(db, "u_basic", free.id, { communityId: gid });
+  assert.equal((await db.doc(`communities/${gid}`).get()).data()!.spaces.filter((x: { id: string }) => x.id === "free-course").length, 1, "and reuses it next time");
+  assert.equal(g3.links.group!.spaceName, "Free Course");
+  const ed = await courseForOwner(db, "u_basic", { id: free.id });
+  assert.ok(ed.communities.some((c) => c.id === gid), "the editor lists the communities you run");
+  assert.equal((await updateCourse(db, "u_basic", free.id, { group: null })).hasGroup, false, "unlinked");
+  assert.equal((await linksFor(db, "u_l", free.id))?.group, null);
+
   // ---- price: Pro and up; uploads: paid courses, video on Business ----
   await fails(updateCourse(db, "u_basic", free.id, { priceNaira: "5000" }), 403, "Basic can't sell");
   const proC = await createCourse(db, "u_pro", { title: "Pro Course" });
@@ -110,7 +144,10 @@ const buy = async (ref: string, c: Course, buyer: string, rate = 0.04) => {
   await fails(setPublished(db, "u_pro", proC.id, true), 409, "no payout account: can't publish a paid course");
 
   const course = await createCourse(db, "u_biz", { title: "Customer Support Mastery" });
-  await updateCourse(db, "u_biz", course.id, { summary: "Support.", priceNaira: "40000", communityUrl: "https://chat.whatsapp.com/xyz" });
+  await updateCourse(db, "u_biz", course.id, { summary: "Support.", priceNaira: "40000" });
+  // a course from before the course group, with a WhatsApp group saved
+  await db.doc(`courseLinks/${course.id}`).set({ courseId: course.id, classUrl: "", communityUrl: "https://chat.whatsapp.com/xyz" });
+  await db.doc(`courses/${course.id}`).update({ hasCommunityLink: true, communityKind: "WhatsApp" });
   await fails(addLesson(db, "u_biz", course.id, { kind: "video", title: "Not mine", streamUid: VID2 }, new Date(), checks), 404, "someone else's Stream video");
   const intro = await addLesson(db, "u_biz", course.id, { kind: "text", title: "Welcome", body: "Hello", preview: true }, new Date(), checks);
   const vid = await addLesson(db, "u_biz", course.id, { kind: "video", title: "Angry customers", streamUid: VID }, new Date(), checks);
