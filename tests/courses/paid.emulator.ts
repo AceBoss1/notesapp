@@ -4,14 +4,20 @@ import assert from "node:assert/strict";
 import { initializeApp } from "firebase-admin/app";
 import { getFirestore } from "firebase-admin/firestore";
 import {
-  CourseError, accessTo, addLesson, courseForOwner, createCourse, deleteCourse, enrol, inviteTutor, linksFor, markLesson, myCourses, removeTutor, respondTutor,
-  setPublished, updateCourse, type UploadChecks,
+  CourseError, accessTo, addLesson, changeTutor, deleteLesson, courseForOwner, createCourse, createCourseGroup, deleteCourse, enrol, inviteTutor, linksFor, markLesson, myCourses, myTutorInvites,
+  removeTutor, respondTutor, setPublished, updateCourse, updateLesson, type UploadChecks,
 } from "../../lib/courses-server";
+import { setInviteMailer } from "../../lib/invite-agreements-server";
+import { inviteView } from "../../lib/invites-server";
+import { INVITE_TERMS_VERSION } from "../../lib/invite-terms";
 import { DeviceLimit, claimIncludedCertificate, courseCheckout, courseShares, fulfilCourseInTransaction, myPurchase, openLesson, refundable, splitGross, undoCoursePurchase, type LessonDeps } from "../../lib/course-sales-server";
 import { includesOf, orderedLessons, type Course } from "../../lib/courses";
 import type { PaymentRecord } from "../../lib/payments";
+import { join } from "../../lib/community-server";
 initializeApp({ projectId: "demo-notesapp" });
 const db = getFirestore();
+setInviteMailer(async () => {}); // the bell is still written (and read below); no email in tests
+const agree = (access: string, percent: number) => ({ accept: true, agree: true, termsVersion: INVITE_TERMS_VERSION, seen: { access, percent } });
 const fails = async (p: Promise<unknown>, status: number, why: string) => {
   const e = await p.then(() => null, (x) => x);
   assert.ok(e instanceof CourseError, `${why}: expected a CourseError, got ${e}`);
@@ -64,10 +70,11 @@ const buy = async (ref: string, c: Course, buyer: string, rate = 0.04) => {
   const free = await createCourse(db, "u_basic", { title: "Free Course" });
   const d = await updateCourse(db, "u_basic", free.id, {
     level: "beginner", language: "Yoruba", format: "live", outcomes: "- Set up a help desk\n\n✓ Handle calls\n", requirements: ["A phone"], runsFor: "6 weeks", schedule: "Tue, Thu · 9 am",
-    classUrl: "https://zoom.us/j/123", communityUrl: "https://chat.whatsapp.com/abc",
+    classUrl: "https://zoom.us/j/123",
   });
   assert.deepEqual(d.outcomes, ["Set up a help desk", "Handle calls"], "outcomes are tidied, one per line");
-  assert.equal(d.format, "live"); assert.equal(d.hasClassLink, true); assert.equal(d.communityKind, "WhatsApp");
+  assert.equal(d.format, "live"); assert.equal(d.hasClassLink, true); assert.equal(d.hasCommunityLink, false);
+  await fails(updateCourse(db, "u_basic", free.id, { communityUrl: "https://chat.whatsapp.com/abc" }), 400, "no new outside group links (owner, 1 Nov 2026)");
   const pub = (await db.doc(`courses/${free.id}`).get()).data()!;
   assert.equal(JSON.stringify(pub).includes("zoom.us"), false, "the class link isn't on the public course");
   await fails(updateCourse(db, "u_basic", free.id, { level: "expert" }), 400, "levels come from the list");
@@ -95,6 +102,38 @@ const buy = async (ref: string, c: Course, buyer: string, rate = 0.04) => {
   await enrol(db, "u_l", free.id);
   assert.equal((await linksFor(db, "u_l", free.id))?.classUrl, "https://zoom.us/j/123");
 
+  // ---- the course group on #NotesApp (our own tools first), and an outside link saved before ----
+  await db.doc(`courseLinks/${free.id}`).set({ courseId: free.id, classUrl: "https://zoom.us/j/123", communityUrl: "https://chat.whatsapp.com/abc" }); // an old course
+  assert.equal((await linksFor(db, "u_l", free.id))?.communityUrl, "https://chat.whatsapp.com/abc", "an outside link saved before still shows to learners");
+  await updateCourse(db, "u_basic", free.id, { classUrl: "https://zoom.us/j/123", communityUrl: "https://chat.whatsapp.com/abc" }); // kept as it is: fine
+  await fails(updateCourse(db, "u_basic", free.id, { communityUrl: "https://t.me/newgroup" }), 400, "an outside link can't be changed to another");
+  const g1 = await createCourseGroup(db, "u_basic", free.id);
+  assert.equal(g1.course.hasGroup, true); assert.equal(g1.course.hasCommunityLink, false);
+  assert.equal(g1.links.communityUrl, "", "switching to a course group drops the outside link");
+  const gid = g1.links.group!.communityId;
+  const com = (await db.doc(`communities/${gid}`).get()).data()!;
+  assert.equal(com.joinMode, "invite", "a course's own community is joined only by invite link");
+  assert.equal(com.ownerUid, "u_basic"); assert.equal(g1.links.group!.spaceId, "learners");
+  assert.ok(com.spaces.every((x: { visibility: string }) => x.visibility === "members"), "its Spaces are for members only");
+  assert.equal(JSON.stringify((await db.doc(`courses/${free.id}`).get()).data()).includes(com.inviteCode), false, "the invite never goes on the public course");
+  const lg = await linksFor(db, "u_l", free.id);
+  assert.equal(lg?.group?.inviteCode, com.inviteCode, "an enrolled learner gets the invite");
+  assert.equal(await linksFor(db, "u_l2", free.id), null, "not enrolled: no group");
+  const joined = await join(db, "u_l", gid, { invite: lg!.group!.inviteCode });
+  assert.equal(joined.status, "active", "the learner joins with the invite in one tap");
+  await fails(updateCourse(db, "u_pro", (await createCourse(db, "u_pro", { title: "Someone else" })).id, { group: { communityId: gid, spaceId: "" } }), 403, "only a community you run");
+  await fails(updateCourse(db, "u_basic", free.id, { group: { communityId: gid, spaceId: "nope" } }), 404, "a Space that isn't there");
+  const g2 = await createCourseGroup(db, "u_basic", free.id, { communityId: gid });
+  assert.equal(g2.links.group!.spaceId, "free-course", "one tap adds a Space named after the course to a community you run");
+  assert.ok((await db.doc(`communities/${gid}`).get()).data()!.spaces.some((x: { id: string; visibility: string }) => x.id === "free-course" && x.visibility === "members"));
+  const g3 = await createCourseGroup(db, "u_basic", free.id, { communityId: gid });
+  assert.equal((await db.doc(`communities/${gid}`).get()).data()!.spaces.filter((x: { id: string }) => x.id === "free-course").length, 1, "and reuses it next time");
+  assert.equal(g3.links.group!.spaceName, "Free Course");
+  const ed = await courseForOwner(db, "u_basic", { id: free.id });
+  assert.ok(ed.communities.some((c) => c.id === gid), "the editor lists the communities you run");
+  assert.equal((await updateCourse(db, "u_basic", free.id, { group: null })).hasGroup, false, "unlinked");
+  assert.equal((await linksFor(db, "u_l", free.id))?.group, null);
+
   // ---- price: Pro and up; uploads: paid courses, video on Business ----
   await fails(updateCourse(db, "u_basic", free.id, { priceNaira: "5000" }), 403, "Basic can't sell");
   const proC = await createCourse(db, "u_pro", { title: "Pro Course" });
@@ -110,7 +149,10 @@ const buy = async (ref: string, c: Course, buyer: string, rate = 0.04) => {
   await fails(setPublished(db, "u_pro", proC.id, true), 409, "no payout account: can't publish a paid course");
 
   const course = await createCourse(db, "u_biz", { title: "Customer Support Mastery" });
-  await updateCourse(db, "u_biz", course.id, { summary: "Support.", priceNaira: "40000", communityUrl: "https://chat.whatsapp.com/xyz" });
+  await updateCourse(db, "u_biz", course.id, { summary: "Support.", priceNaira: "40000" });
+  // a course from before the course group, with a WhatsApp group saved
+  await db.doc(`courseLinks/${course.id}`).set({ courseId: course.id, classUrl: "", communityUrl: "https://chat.whatsapp.com/xyz" });
+  await db.doc(`courses/${course.id}`).update({ hasCommunityLink: true, communityKind: "WhatsApp" });
   await fails(addLesson(db, "u_biz", course.id, { kind: "video", title: "Not mine", streamUid: VID2 }, new Date(), checks), 404, "someone else's Stream video");
   const intro = await addLesson(db, "u_biz", course.id, { kind: "text", title: "Welcome", body: "Hello", preview: true }, new Date(), checks);
   const vid = await addLesson(db, "u_biz", course.id, { kind: "video", title: "Angry customers", streamUid: VID }, new Date(), checks);
@@ -126,13 +168,52 @@ const buy = async (ref: string, c: Course, buyer: string, rate = 0.04) => {
   await fails(inviteTutor(db, "u_biz", course.id, { username: "cotwo", percent: 65 }), 400, "the lead keeps at least 10%");
   await fails(inviteTutor(db, "u_co", course.id, { username: "cotwo", percent: 5 }), 403, "only the lead invites");
   assert.equal(await accessTo(db, "u_co", (await courseForOwner(db, "u_biz", { id: course.id })).course), null, "not a tutor until they accept");
-  await respondTutor(db, "u_co", course.id, true);
+  assert.equal(inv.access, "edit", "an invite without an access level means what co-tutors always had: edit");
+  await fails(respondTutor(db, "u_co", course.id, true), 400, "accepting needs the agreement on the accept screen");
+  await fails(respondTutor(db, "u_co", course.id, agree("view", 30)), 409, "the terms seen must be the terms offered");
+  await respondTutor(db, "u_co", course.id, agree("edit", 30));
   const asTutor = await courseForOwner(db, "u_co", { id: course.id });
   assert.equal(asTutor.access, "tutor");
+  const agreed = asTutor.invites.find((x) => x.uid === "u_co")!;
+  assert.ok(agreed.agreedAt, "the agreement is on the invite");
+  assert.equal(agreed.agreedTerms?.percent, 30); assert.equal(agreed.agreedTerms?.access, "edit"); assert.equal(agreed.agreedTerms?.termsVersion, INVITE_TERMS_VERSION);
+  assert.equal((await db.collection("inviteAgreements").where("inviteId", "==", `${course.id}_u_co`).get()).size, 1);
   await updateCourse(db, "u_co", course.id, { outcomes: "Calm angry customers" });
   await fails(updateCourse(db, "u_co", course.id, { priceNaira: "1000" }), 403, "a co-tutor doesn't set the price");
   await fails(setPublished(db, "u_co", course.id, false), 403, "a co-tutor doesn't unpublish");
   assert.ok((await myCourses(db, "u_co")).some((x) => x.id === course.id && x.access === "tutor"), "co-taught courses are on Teach");
+
+  // ---- a co-tutor who can view: the course and lessons, read-only, enforced by the server ----
+  await inviteTutor(db, "u_biz", course.id, { username: "cotwo", percent: 0, access: "view" });
+  const ivw = await inviteView(db, "u_co2", "course", `${course.id}_u_co2`);
+  assert.deepEqual(ivw.offer, { access: "view", percent: 0 }); assert.equal(ivw.lead.name, "Biz Teacher");
+  await respondTutor(db, "u_co2", course.id, agree("view", 0));
+  const asViewer = await courseForOwner(db, "u_co2", { slug: course.slug });
+  assert.equal(asViewer.access, "viewer"); assert.ok(asViewer.lessons.length >= 2, "a viewer sees every lesson");
+  await fails(courseForOwner(db, "u_co2", { id: course.id }, "tutor"), 403, "but not the editor");
+  await fails(updateCourse(db, "u_co2", course.id, { summary: "Mine" }), 403, "a viewer can't edit the course");
+  await fails(addLesson(db, "u_co2", course.id, { kind: "text", title: "Sneaky", body: "x" }, new Date(), checks), 403, "or add lessons");
+  await fails(updateLesson(db, "u_co2", course.id, intro.id, { kind: "text", title: "Hacked", body: "x" }, new Date(), checks), 403, "or edit them");
+  assert.equal(await accessTo(db, "u_co2", (await courseForOwner(db, "u_biz", { id: course.id })).course), "viewer");
+  assert.ok((await myCourses(db, "u_co2")).some((x) => x.id === course.id && x.access === "viewer"));
+  // more access waits for their agreement; until then they still can't edit
+  assert.deepEqual(await changeTutor(db, "u_biz", course.id, { uid: "u_co2", access: "edit", percent: 0 }), { applied: false, proposed: true });
+  await fails(updateCourse(db, "u_co2", course.id, { summary: "Mine" }), 403, "not before they agree");
+  assert.ok((await myTutorInvites(db, "u_co2")).some((x) => x.change?.access === "edit"), "the change is waiting on Teach");
+  await fails(changeTutor(db, "u_co", course.id, { uid: "u_co2", access: "edit", percent: 50 }), 403, "only the lead changes terms");
+  await respondTutor(db, "u_co2", course.id, agree("edit", 0));
+  const theirs = await addLesson(db, "u_co2", course.id, { kind: "text", title: "From the co-tutor", body: "Hi" }, new Date(), checks);
+  await deleteLesson(db, "u_co2", course.id, theirs.id); // a contributor adds and removes lessons (and leaves the course as it was)
+  await fails(setPublished(db, "u_co2", course.id, false), 403, "a contributor doesn't unpublish");
+  await fails(updateCourse(db, "u_co2", course.id, { priceNaira: "1000" }), 403, "or set the price");
+  // less access applies at once, and they're told
+  assert.deepEqual(await changeTutor(db, "u_biz", course.id, { uid: "u_co2", access: "view", percent: 0 }), { applied: true, proposed: false });
+  await fails(updateCourse(db, "u_co2", course.id, { summary: "Mine" }), 403, "edit access is gone at once");
+  const told = (await db.collection("notifications").where("recipientUid", "==", "u_co2").get()).docs.map((d) => String(d.data().message));
+  assert.ok(told.some((m) => m.includes("changed your access")), "the co-tutor is told");
+  assert.ok((await db.collection("notifications").where("recipientUid", "==", "u_biz").get()).docs.some((d) => String(d.data().message).includes("accepted and agreed")), "the lead is told of each acceptance");
+  await removeTutor(db, "u_biz", course.id, "u_co2");
+  assert.equal(await accessTo(db, "u_co2", (await courseForOwner(db, "u_biz", { id: course.id })).course), null);
 
   // ---- checkout, the split, and what the payment creates ----
   await fails(courseCheckout(db, "u_co", course.id), 409, "tutors don't buy their own course");

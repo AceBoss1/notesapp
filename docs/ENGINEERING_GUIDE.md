@@ -35,6 +35,7 @@ What it means for engineering: a feature earns its place when it helps a member 
 5. **Every change can be undone.** Dry runs before writes, before-images before backfills, the old path kept ready for one release.
 6. **Buy the specialist, build the core.** Search engines, media servers and payment rails are bought; what makes NotesApp NotesApp is ours.
 7. **Write it down.** Every feature ships with its changelog line, its help article, its docs and its tests.
+8. **Our own tools first.** Never suggest setting up something on an outside platform that #NotesApp already does (groups → Community, Spaces, Circles; calls → our calls and audio rooms; booking → Booking; …). Suggest ours with its link and help article (owner, 1 Nov 2026).
 
 ## Our names
 
@@ -316,6 +317,7 @@ Every decision adds a new place data lives or travels, so each ships with its co
 - **Settings:** read only through `setting()` in `lib/config.ts`; `docs/ENVIRONMENT.md` is generated from it.
 - **Screens:** a new page or redesign is shown as phone and desktop screenshots, rendered from the real code, before it ships; game features get mockups first.
 - **Docs:** every feature ships with its changelog line, help article (Nana answers from these), README and architecture notes, and a handover note with any deploy steps.
+- **Public pages ship with the feature:** every new feature or change updates, in the same push, the changelog and every public page that describes that area (home, About, pricing, the feature's own page, the roadmap's live and not-live lists, status, help articles, footer links). A feature isn't done until its public pages say so (owner, 1 Nov 2026).
 - **Secrets:** never in code, chat or email; the scanner fails any change that carries one; a leaked key is rotated first, then removed.
 - **Production data:** only through admin pages, with masking and the view log; never copied to laptops; backfills only with a dry run, a backup and before-images.
 - **Writing:** short, plain sentences, British spelling, prices in **₦**.

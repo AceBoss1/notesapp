@@ -129,12 +129,13 @@ service cloud.firestore {
 
       // Admins can create anything.
       // Writers can create only notes authored by themselves.
-      // coAuthors / coAuthorUids are written only by /api/coauthors (consent).
+      // coAuthors / coAuthorUids are written only by /api/coauthors (consent), and coEdited* only by /api/coauthors/draft (a
+      // co-author's save; co-authors never read or write drafts from a browser).
       allow create: if adminHas('content')
         || (
           isPublisher()
           && request.resource.data.authorUid == request.auth.uid
-          && !request.resource.data.keys().hasAny(['coAuthors', 'coAuthorUids', 'writerUid'])
+          && !request.resource.data.keys().hasAny(['coAuthors', 'coAuthorUids', 'writerUid', 'coEditedAt', 'coEditedBy', 'coEditedByName'])
           && videoValid(request.resource.data)
         )
         // A team member writing for their organisation: the org is the author,
@@ -144,7 +145,7 @@ service cloud.firestore {
           && request.resource.data.get('writerUid', '') == request.auth.uid
           && orgRole(request.resource.data.authorUid) in ['writer', 'admin']
           && orgCanPublish(request.resource.data.authorUid)
-          && !request.resource.data.keys().hasAny(['coAuthors', 'coAuthorUids'])
+          && !request.resource.data.keys().hasAny(['coAuthors', 'coAuthorUids', 'coEditedAt', 'coEditedBy', 'coEditedByName'])
           && videoValid(request.resource.data)
         );
 
@@ -170,7 +171,7 @@ service cloud.firestore {
           && resource.data.authorUid == request.auth.uid
           && !request.resource.data.diff(resource.data)
               .affectedKeys()
-              .hasAny(['coAuthors', 'coAuthorUids', 'writerUid', 'authorUid'])
+              .hasAny(['coAuthors', 'coAuthorUids', 'writerUid', 'authorUid', 'coEditedAt', 'coEditedBy', 'coEditedByName'])
           && videoOkOnEdit(request.resource.data, resource.data)
         )
         // Team members: a writer edits their own posts for the organisation, an
@@ -184,7 +185,7 @@ service cloud.firestore {
           )
           && !request.resource.data.diff(resource.data)
               .affectedKeys()
-              .hasAny(['coAuthors', 'coAuthorUids', 'writerUid', 'authorUid'])
+              .hasAny(['coAuthors', 'coAuthorUids', 'writerUid', 'authorUid', 'coEditedAt', 'coEditedBy', 'coEditedByName'])
           && videoOkOnEdit(request.resource.data, resource.data)
         )
         || request.resource.data.diff(resource.data)
@@ -399,6 +400,11 @@ service cloud.firestore {
         || (isSignedIn() && (resource.data.leadUid == request.auth.uid || resource.data.inviteeUid == request.auth.uid));
       allow write: if false;
     }
+
+    // Each agreement to a co-author or co-tutor invite's terms (the wording, the version and the browser), and the once-an-hour
+    // "edited the draft" bell's marker: server-only (lib/invite-agreements-server.ts, lib/coauthors-server.ts).
+    match /inviteAgreements/{id} { allow read, write: if false; }
+    match /coAuthorEditPings/{id} { allow read, write: if false; }
 
     // Store orders (physical goods). The buyer, the seller and admins read; every
     // change goes through /api/store/orders (parcels and their no-login links are

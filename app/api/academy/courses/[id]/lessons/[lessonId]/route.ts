@@ -3,6 +3,7 @@ import { getAdminDb } from "@/lib/firebase-admin";
 import { rateLimit } from "@/lib/rate-limit";
 import { ACADEMY_LIVE } from "@/lib/courses";
 import { deleteLesson, updateLesson } from "@/lib/courses-server";
+import { youtubeCredit } from "@/lib/youtube-oembed";
 import { academyClosed, academyError, signInFirst, signedInUid } from "@/lib/academy-api";
 import { dropUpload, uploadChecks } from "@/lib/course-uploads-server";
 
@@ -19,7 +20,7 @@ export async function PATCH(req: NextRequest, { params }: Ctx) {
     const limited = await rateLimit(req, "academy-write", uid, 120, 600);
     if (limited) return limited;
     const b = await req.json().catch(() => ({}));
-    const { lesson, replaced } = await updateLesson(getAdminDb(), uid, params.id, params.lessonId, b, new Date(), uploadChecks);
+    const { lesson, replaced } = await updateLesson(getAdminDb(), uid, params.id, params.lessonId, { ...b, videoCredit: undefined }, new Date(), uploadChecks, youtubeCredit);
     if (replaced) await dropUpload(replaced);
     return NextResponse.json({ lesson });
   } catch (err) {

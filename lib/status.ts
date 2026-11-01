@@ -64,7 +64,7 @@ export async function checkServices(): Promise<ServiceStatus[]> {
     timed(async () => {
       await getAdminDb().collection("settings").limit(1).get();
       return true;
-    }).then((r) => toStatus("database", "Database", "Journals, profiles, bookings, stores, courses, shipments, the logistics network, members' sites and analytics, communities and events (Firestore)", r))
+    }).then((r) => toStatus("database", "Database", "Journals, profiles, bookings, stores, courses and quizzes, discount codes and coupons, referrals, shipments, the logistics network, members' sites and analytics, communities, giving, events and tickets (Firestore)", r))
   );
 
   const apiKey = setting("NEXT_PUBLIC_FIREBASE_API_KEY");
@@ -191,8 +191,8 @@ export async function checkServices(): Promise<ServiceStatus[]> {
       ? timed(async (signal) => {
           const res = await fetch("https://api.paystack.co/bank?perPage=1", { headers: { Authorization: `Bearer ${paystack}` }, signal, cache: "no-store" });
           return res.ok;
-        }).then((r) => toStatus("payments", "Payments & payouts", "Paystack checkout, refunds and transfers (sales, sessions and referral earnings)", r))
-      : Promise.resolve(notConfigured("payments", "Payments & payouts", "Paystack checkout, refunds and transfers (sales, sessions and referral earnings)"))
+        }).then((r) => toStatus("payments", "Payments & payouts", "Paystack checkout, refunds and transfers (sales, sessions, event tickets, gifts to communities and referral earnings)", r))
+      : Promise.resolve(notConfigured("payments", "Payments & payouts", "Paystack checkout, refunds and transfers (sales, sessions, event tickets, gifts to communities and referral earnings)"))
   );
 
   // Paylony (bank payouts and virtual accounts): only listed once its key is set. A wallet-balance read proves key + network.
@@ -258,8 +258,8 @@ export async function checkServices(): Promise<ServiceStatus[]> {
       ? timed(async (signal) => {
           const res = await fetch("https://api.resend.com/domains", { headers: { Authorization: `Bearer ${resend}` }, signal, cache: "no-store" });
           return res.status < 500; // a restricted send-only key returns 401 but proves the API is up
-        }).then((r) => toStatus("email", "Email", "Booking confirmations, reminders, the Weekly Digest and the team's report alerts (Resend)", r))
-      : Promise.resolve(notConfigured("email", "Email", "Booking confirmations, reminders, the Weekly Digest and the team's report alerts (Resend)"))
+        }).then((r) => toStatus("email", "Email", "Booking confirmations, reminders, gift receipts and event tickets, the Weekly Digest and the team's report alerts (Resend)", r))
+      : Promise.resolve(notConfigured("email", "Email", "Booking confirmations, reminders, gift receipts and event tickets, the Weekly Digest and the team's report alerts (Resend)"))
   );
 
   // Identity checks for the gold badge (Dojah hosted widget) — only once enabled.
@@ -275,13 +275,13 @@ export async function checkServices(): Promise<ServiceStatus[]> {
   // this catches the scheduler silently stopping (escrow never released, trials never expiring).
   checks.push(
     getAdminDb().collection("cronRuns").doc("reminders").get().then((snap): ServiceStatus => {
-      const id = "cron", name = "Scheduled jobs", description = "Session reminders, plan expiry, order releases, moment clean-up, the daily reports digest, the Sunday Weekly Digest, the monthly referrals report (the 1st, from 8 AM) and timed-suspension lifts";
+      const id = "cron", name = "Scheduled jobs", description = "Session and event reminders, plan expiry, order releases, payouts, saved-coupon reminders, moment clean-up, the daily reports digest, the Sunday Weekly Digest, the monthly referrals report (the 1st, from 8 AM) and timed-suspension lifts";
       const d = snap.data();
       if (!d?.at) return notConfigured(id, name, description);
       const ageMin = (Date.now() - new Date(d.at).getTime()) / 60_000;
       const state: ServiceState = ageMin > CRON_DOWN_MIN ? "down" : ageMin > CRON_SLOW_MIN || d.ok === false ? "degraded" : "operational";
       return { id, name, description, state };
-    }).catch(() => ({ id: "cron", name: "Scheduled jobs", description: "Session reminders, plan expiry, order releases, moment clean-up, the daily reports digest, the Sunday Weekly Digest, the monthly referrals report (the 1st, from 8 AM) and timed-suspension lifts", state: "down" as ServiceState }))
+    }).catch(() => ({ id: "cron", name: "Scheduled jobs", description: "Session and event reminders, plan expiry, order releases, payouts, saved-coupon reminders, moment clean-up, the daily reports digest, the Sunday Weekly Digest, the monthly referrals report (the 1st, from 8 AM) and timed-suspension lifts", state: "down" as ServiceState }))
   );
 
   return Promise.all(checks);
