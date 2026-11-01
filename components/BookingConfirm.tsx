@@ -11,7 +11,9 @@ import { forgetReturnHost, rememberedReturnHost } from "@/lib/return-to";
 
 type Result = {
   status: string;
-  kind: "booking" | "subscription" | "boost" | "gift" | "tier" | "badge" | "gold" | "gold_deposit" | "merch" | "ad" | "store" | "digital" | "wallet_topup" | "life_naira" | "nana_credit" | "certificate";
+  kind: "booking" | "subscription" | "boost" | "gift" | "tier" | "badge" | "gold" | "gold_deposit" | "merch" | "ad" | "store" | "digital" | "wallet_topup" | "life_naira" | "nana_credit" | "certificate" | "giving" | "ticket";
+  giving?: { cid: string; communityName: string; fund: string; giftKobo: number };
+  ticket?: { eventId: string; eventTitle: string; quantity: number; typeName: string };
   soldOut?: string[]; // a basket: items that sold out before the payment landed (refunded)
   amountKobo?: number;
   payWith?: "wallet";
@@ -169,6 +171,26 @@ function Confirm() {
           <AppLink href="/profile/boosts" className="btn-primary mt-6 inline-block !px-5 !py-2 text-xs">
             See boost results
           </AppLink>
+        </>
+      ) : result.status === "paid" && result.kind === "giving" && result.giving ? (
+        <>
+          <p className="font-display text-2xl text-ink">Thank you 🙏</p>
+          <p className="mt-3 text-sm text-slate">Your gift of {formatNaira(result.giving.giftKobo)} to {result.giving.communityName} ({result.giving.fund}) is received. Your receipt is on its way by email and stays under My giving.</p>
+          <div className="mt-6 flex flex-wrap justify-center gap-2">
+            <AppLink href="/giving" className="btn-primary inline-block !px-5 !py-2 text-xs">My giving</AppLink>
+            <Link href={`/c/${result.giving.cid}`} className="inline-block rounded-full border border-rule px-5 py-2 text-xs font-semibold text-ink">Back to {result.giving.communityName}</Link>
+          </div>
+        </>
+      ) : result.status === "paid" && result.kind === "ticket" && result.ticket ? (
+        <>
+          <p className="font-display text-2xl text-ink">You&apos;re going 🎟</p>
+          <p className="mt-3 text-sm text-slate">{result.ticket.quantity} × {result.ticket.typeName} for {result.ticket.eventTitle}. Show the QR code on each ticket at the door. Your tickets are on their way by email too.</p>
+          <AppLink href="/tickets" className="btn-primary mt-6 inline-block !px-5 !py-2 text-xs">My tickets</AppLink>
+        </>
+      ) : result.kind === "ticket" ? (
+        <>
+          <p className="font-display text-2xl text-ink">Those tickets sold out</p>
+          <p className="mt-3 text-sm text-slate">Your payment went through just after the last ones were taken. We&apos;ll refund you in full — contact us with reference {reference} if it doesn&apos;t arrive.</p>
         </>
       ) : result.status === "paid" && result.kind === "gift" && result.gift ? (
         <>

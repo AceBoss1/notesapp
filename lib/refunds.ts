@@ -3,11 +3,23 @@ import { refundTransaction } from "./paystack";
 import { refundToWallet, restoreTopup, reverseTopup } from "./wallet-server";
 import { revokeForPayment } from "./certificates-server";
 import { reverseEarningsFor } from "./referrals-server";
+import { voidTicketsFor } from "./tickets-server";
 
 // Every refund goes through here. A payment made from the NotesApp Credit wallet goes back to the wallet (never to a card, since
 // nothing was charged to one); a wallet top-up refunded to the card first takes the unspent credit (and its bonus) back out;
 // anything else is refunded through Paystack as before. amountKobo left out = the whole payment.
 export async function refundPayment(reference: string, amountKobo?: number): Promise<void> {
+  await moveRefund(reference, amountKobo);
+  // Once the money has gone back: a refunded ticket purchase's tickets stop being valid (and go back on sale); a refunded gift's
+  // receipt says so. A part refund leaves them as they are.
+  const db = getAdminDb();
+  const p = (await db.doc(`payments/${reference}`).get()).data();
+  const whole = amountKobo === undefined || amountKobo >= Number(p?.amountKobo ?? 0);
+  if (whole && p?.kind === "ticket") await voidTicketsFor(db, reference);
+  if (whole && p?.kind === "giving") await db.doc(`communityGifts/${reference}`).update({ status: "refunded" }).catch(() => {});
+}
+
+async function moveRefund(reference: string, amountKobo?: number): Promise<void> {
   const db = getAdminDb();
   const p = (await db.doc(`payments/${reference}`).get()).data();
   // Notesville Naira has already been spent in the game, maybe; it is game money and final (Terms, Notes Life).

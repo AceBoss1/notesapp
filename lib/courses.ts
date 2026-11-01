@@ -66,12 +66,17 @@ export type Course = {
   tutors?: Tutor[]; tutorUids?: string[]; // accepted co-tutors (the lead is the owner)
   isOrg?: boolean; createdByUid?: string; // published by an organisation; who on its team made it
 };
-export type LessonKind = "youtube" | "text" | "video" | "pdf";
-export const lessonKindLabel = (k: LessonKind) => (k === "text" ? "Reading" : k === "pdf" ? "PDF" : "Video");
+export type LessonKind = "youtube" | "text" | "video" | "pdf" | "quiz";
+export const lessonKindLabel = (k: LessonKind) => (k === "text" ? "Reading" : k === "pdf" ? "PDF" : k === "quiz" ? "Quiz" : "Video");
+// A quiz lesson: multiple-choice questions. The lesson document holds the questions WITHOUT answers; the answers and explanations
+// live in quizKeys/{courseId}_{lessonId} (server-only). answer and explain are filled in only for the course's tutors (the editor).
+export type QuizQuestion = { id: string; prompt: string; options: string[]; answer?: number; explain?: string };
+export type Quiz = { passPercent: number; questions: QuizQuestion[] };
 export type Lesson = {
   id: string; order: number; title: string; kind: LessonKind; youtubeId?: string; minutes?: number; body?: string;
   preview?: boolean; moduleId?: string;
   streamUid?: string; fileKey?: string; fileName?: string; // uploads (paid courses): never public
+  quiz?: Quiz; // kind "quiz"
 };
 export type Enrolment = {
   courseId: string; uid: string; enrolledAt: string; done: Record<string, string>; lastLessonId: string | null; completedAt: string | null; certificateId?: string;
@@ -99,11 +104,12 @@ export function groupByModule<T extends { moduleId?: string }>(items: T[], modul
 export function includesOf(c: Pick<Course, "format" | "schedule" | "certificateIncluded" | "priceKobo">, items: { kind: LessonKind; minutes?: number }[]): string[] {
   const sum = (k: LessonKind[]) => items.filter((l) => k.includes(l.kind)).reduce((n, l) => n + (l.minutes ?? 0), 0);
   const count = (k: LessonKind) => items.filter((l) => l.kind === k).length;
-  const video = sum(["youtube", "video"]), reading = sum(["text"]), pdfs = count("pdf"), texts = count("text");
+  const video = sum(["youtube", "video"]), reading = sum(["text"]), pdfs = count("pdf"), texts = count("text"), quizzes = count("quiz");
   const out: string[] = [];
   if (video) out.push(`${durationLabel(video)} on-demand video`);
   else if (count("youtube") + count("video")) out.push(plural(count("youtube") + count("video"), "video lesson"));
   if (texts || pdfs) out.push([reading ? `${durationLabel(reading)} of text lessons` : texts ? plural(texts, "text lesson") : "", pdfs ? plural(pdfs, "PDF") : ""].filter(Boolean).join(" and "));
+  if (quizzes) out.push(plural(quizzes, "quiz", "quizzes"));
   if (c.format === "live") out.push(c.schedule ? `Live classes: ${c.schedule}, recorded` : "Live classes, recorded");
   out.push("Lifetime access", "Phone and computer");
   out.push(isPaid(c) ? (c.certificateIncluded ? "Verifiable certificate, included" : "Verifiable certificate") : "Verifiable certificate, when you finish");
@@ -270,12 +276,72 @@ export function cleanLink(v: unknown): string | null {
 export type LessonInput = {
   title: string; kind: LessonKind; youtubeId?: string; minutes: number | null; body?: string; preview: boolean; moduleId?: string;
   streamUid?: string; fileKey?: string; fileName?: string;
+  quiz?: { passPercent: number; questions: (QuizQuestion & { answer: number })[] }; // with the answers: the server splits them off
 };
+
+// ---- quizzes ----
+export const QUIZ_MAX_QUESTIONS = 50;
+export const QUIZ_MIN_OPTIONS = 2;
+export const QUIZ_MAX_OPTIONS = 6;
+export const QUIZ_PROMPT_MAX = 500;
+export const QUIZ_OPTION_MAX = 200;
+export const QUIZ_EXPLAIN_MAX = 500;
+export const QUIZ_PASS_DEFAULT = 70;
+// quizKeys/{courseId}_{lessonId}: the right option per question and its explanation ("" for none).
+export type QuizKey = { answers: number[]; explain: string[]; passPercent?: number };
+export const quizKeyId = (courseId: string, lessonId: string) => `${courseId}_${lessonId}`;
+export const quizAttemptId = (courseId: string, lessonId: string, uid: string) => `${courseId}_${lessonId}_${uid}`;
+export type QuizGrade = {
+  correct: number; total: number; percent: number; passed: boolean; passPercent: number;
+  results: { correct: boolean; answer: number; explain?: string }[];
+};
+// Marks a learner's answers (an option's index per question; anything else counts as wrong) against the key.
+export function gradeQuiz(key: QuizKey, answers: unknown[], passPercent = key.passPercent ?? QUIZ_PASS_DEFAULT): QuizGrade {
+  const total = key.answers.length;
+  const results = key.answers.map((a, i) => ({ correct: answers[i] === a, answer: a, ...(key.explain[i] ? { explain: key.explain[i] } : {}) }));
+  const correct = results.filter((r) => r.correct).length;
+  const percent = total ? Math.round((correct / total) * 100) : 0;
+  return { correct, total, percent, passed: total > 0 && percent >= passPercent, passPercent, results };
+}
+// The questions as a learner may see them: no answers, no explanations.
+export const quizForLearner = (q: Quiz): Quiz => ({ passPercent: q.passPercent, questions: q.questions.map((x) => ({ id: x.id, prompt: x.prompt, options: [...x.options] })) });
+const questionIdOk = (id: unknown) => typeof id === "string" && /^[a-z0-9]{4,16}$/.test(id);
+// A quiz as sent by the editor: { passPercent?, questions: [{ id?, prompt, options[], answer, explain? }] }.
+export function cleanQuiz(b: { passPercent?: unknown; questions?: unknown }): NonNullable<LessonInput["quiz"]> | string {
+  let passPercent = QUIZ_PASS_DEFAULT;
+  if (b.passPercent !== undefined && b.passPercent !== null && b.passPercent !== "") {
+    const p = Number(b.passPercent);
+    if (!Number.isFinite(p) || p < 1 || p > 100) return "Pass mark: a percentage from 1 to 100.";
+    passPercent = Math.round(p);
+  }
+  if (!Array.isArray(b.questions) || b.questions.length === 0) return "Add at least one question.";
+  if (b.questions.length > QUIZ_MAX_QUESTIONS) return `A quiz can have up to ${QUIZ_MAX_QUESTIONS} questions.`;
+  const questions: (QuizQuestion & { answer: number })[] = [];
+  for (const [i, raw] of (b.questions as Record<string, unknown>[]).entries()) {
+    const n = i + 1;
+    const q = raw && typeof raw === "object" ? raw : {};
+    const prompt = text(q.prompt) ?? "";
+    if (!prompt) return `Question ${n}: write the question.`;
+    if (prompt.length > QUIZ_PROMPT_MAX) return `Question ${n}: keep it under ${QUIZ_PROMPT_MAX} characters.`;
+    if (!Array.isArray(q.options)) return `Question ${n}: add the answers to choose from.`;
+    const options = q.options.map((o) => oneLine(o, 10_000));
+    if (options.some((o) => !o)) return `Question ${n}: fill in every answer, or remove the empty ones.`;
+    if (options.length < QUIZ_MIN_OPTIONS || options.length > QUIZ_MAX_OPTIONS) return `Question ${n}: give ${QUIZ_MIN_OPTIONS} to ${QUIZ_MAX_OPTIONS} answers to choose from.`;
+    if (options.some((o) => o.length > QUIZ_OPTION_MAX)) return `Question ${n}: keep each answer under ${QUIZ_OPTION_MAX} characters.`;
+    const answer = Number(q.answer);
+    if (q.answer === null || q.answer === undefined || q.answer === "" || !Number.isInteger(answer) || answer < 0 || answer >= options.length) return `Question ${n}: pick the right answer.`;
+    const explain = text(q.explain) ?? "";
+    if (explain.length > QUIZ_EXPLAIN_MAX) return `Question ${n}: keep the explanation under ${QUIZ_EXPLAIN_MAX} characters.`;
+    const id = questionIdOk(q.id) && !questions.some((x) => x.id === q.id) ? String(q.id) : newModuleId();
+    questions.push({ id, prompt, options, answer, ...(explain ? { explain } : {}) });
+  }
+  return { passPercent, questions };
+}
 // A lesson as sent by the editor ({ kind, title, url or youtubeId, minutes, body, preview, moduleId; uploads: streamUid or fileKey }),
 // checked; an error to show otherwise. Whether an upload is really the course's is checked on the server.
 export function cleanLesson(b: Record<string, unknown>): LessonInput | string {
   const kind = b.kind;
-  if (kind !== "youtube" && kind !== "text" && kind !== "video" && kind !== "pdf") return "Choose a video, a text lesson or a PDF.";
+  if (kind !== "youtube" && kind !== "text" && kind !== "video" && kind !== "pdf" && kind !== "quiz") return "Choose a video, a text lesson, a PDF or a quiz.";
   const title = text(b.title)?.replace(/\s+/g, " ") ?? "";
   if (!title) return "Give the lesson a title.";
   if (title.length > LESSON_TITLE_MAX) return `Keep the lesson title under ${LESSON_TITLE_MAX} characters.`;
@@ -295,6 +361,11 @@ export function cleanLesson(b: Record<string, unknown>): LessonInput | string {
     const uid = String(b.streamUid ?? "");
     if (!/^[a-f0-9]{32}$/i.test(uid)) return "Upload the video first.";
     return { title, kind, streamUid: uid, minutes, ...extra };
+  }
+  if (kind === "quiz") {
+    const quiz = cleanQuiz(b.quiz && typeof b.quiz === "object" ? (b.quiz as Record<string, unknown>) : { passPercent: b.passPercent, questions: b.questions });
+    if (typeof quiz === "string") return quiz;
+    return { title, kind, quiz, minutes, ...extra };
   }
   if (kind === "pdf") {
     const key = String(b.fileKey ?? "");

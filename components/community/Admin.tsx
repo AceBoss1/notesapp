@@ -5,6 +5,7 @@ import { useCallback, useEffect, useState } from "react";
 import { uploadToR2 } from "@/lib/upload";
 import { JOIN_MODES, QUESTIONS_MAX, SLOW_MODES, SPACES_MAX, can, type PublicView, type Role, type Space } from "@/lib/community";
 import { capi, field, small, ago } from "./api";
+import { GivingAdmin } from "./Give";
 
 // The admin tools (what Facebook gives a group's admins, made simpler): requests to join with their answers, settings (name, pictures,
 // about and contact, how people join, join questions, what non-members see, slow mode, Spaces), the invite link, banned members and
@@ -13,13 +14,14 @@ type Settings = { name: string; tagline: string; about: string; contact: string;
 type Req = { uid: string; username: string; displayName: string; avatar: string; joinedAt: string; answers?: string[] };
 type Insights = { members: number; pending: number; banned: number; joined7: number; joined30: number; posts30: number; comments30: number; activeMembers30: number; topContributors: { name: string; n: number }[] };
 
-export default function Admin({ cid, role, questions, initial, inviteCode, onSaved }: { cid: string; role: Role; questions: string[]; initial: Settings | null; inviteCode?: string; onSaved: () => void }) {
+export default function Admin({ cid, role, questions, initial, inviteCode, onSaved, giving, verified }: { cid: string; role: Role; questions: string[]; initial: Settings | null; inviteCode?: string; onSaved: () => void; giving?: { enabled: boolean; funds: string[] }; verified: boolean }) {
   return (
     <div className="space-y-8">
       <Requests cid={cid} questions={questions} onChange={onSaved} />
       {can(role, "insights") && <InsightsCard cid={cid} />}
       {can(role, "settings") && initial && <SettingsForm cid={cid} initial={initial} onSaved={onSaved} />}
       {can(role, "settings") && <InviteCard cid={cid} code={inviteCode} />}
+      {can(role, "giving") && giving && <GivingAdmin cid={cid} initial={giving} verified={verified} onSaved={onSaved} />}
       <Banned cid={cid} />
     </div>
   );

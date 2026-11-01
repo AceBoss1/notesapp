@@ -549,7 +549,7 @@ export const KITS: Kit[] = [
   {
     id: "church", name: "Churches and NGOs", emoji: "🤝", minTier: "business", theme: "clean", palette: "forest",
     bestFor: "Churches, mosques, NGOs, foundations, associations and community groups.",
-    blurb: "Opens with a photo of your people, then service and programme times in tabs, how to get involved, your team and pictures, and answers for first-time visitors. Opens Community too: start one for your members, or link the one you run; Giving comes later.",
+    blurb: "Opens with a photo of your people, then service and programme times in tabs, how to get involved, your team and pictures, and answers for first-time visitors. Opens Community too: start one for your members, or link the one you run, and switch on Giving there.",
     sections: { journals: true, shop: false, courses: false, track: false }, blocks: ["hero", "services", "info", "gallery", "team", "faq"],
     starter: { heroStyle: "photo", eyebrow: "Welcome to", headline: "Stronger communities, brighter futures.", subline: "Join us on Sunday, volunteer with us, or support the work we do in our city.", button: btn("contact", "Get involved"), second: btn("services", "Service times"),
       hours: "Sundays, 8am and 10:30am · Wednesdays, 6pm",

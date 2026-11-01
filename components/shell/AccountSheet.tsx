@@ -39,6 +39,8 @@ export default function AccountSheet({ open, onClose, links }: { open: boolean; 
     ...(MESSAGES_LIVE ? [{ href: "/messages", label: "Messages", badge: unreadDms }] : []),
     { href: "/bookings", label: "Bookings" },
     { href: "/orders", label: "Orders & parcels" },
+    { href: "/tickets", label: "My tickets" },
+    { href: "/giving", label: "My giving" },
     ...(canPublish(profile) ? [{ href: "/shipments", label: "Shipments (logistics)" }] : []),
     ...(WALLET_LIVE ? [{ href: "/profile/wallet", label: "Wallet" }] : []),
     { href: "/saved", label: "Saved" },

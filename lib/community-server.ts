@@ -5,6 +5,7 @@ import { effectiveTier, type UserProfile } from "./users";
 import { orgVerified } from "./org";
 import { notifyBell } from "./email";
 import { GROUP_MEMBERS_MAX } from "./messages-rules";
+import { DEFAULT_FUNDS, UNVERIFIED_GIFT_CAP_KOBO } from "./giving";
 import { isDiscoverable, trendScore,
   DEFAULT_PUBLIC, UNVERIFIED_COMMUNITY_NOTICE, atLeast, can, canActOn, canGiveRole, canPostIn, circlesAllowed, cleanAnswers, cleanComment,
   cleanPost, cleanSettings, cleanSlug, effectiveRole, isPublicPost, isRole, memberLimit, readableChannels, roleName, slowWait, tabsFor,
@@ -23,6 +24,11 @@ const MAX_OWNED = 5;
 const userOf = async (db: Firestore, uid: string) => (await db.doc(`users/${uid}`).get()).data() as UserProfile | undefined;
 const tierOf = (p: UserProfile) => effectiveTier({ username: p.username ?? "", role: p.role ?? "reader", accountTier: p.accountTier ?? "standard" });
 const isVerified = (p: UserProfile | undefined) => !!p && (orgVerified(p) || p.verified === true || !!p.goldBadge);
+// A community counts as verified when #NotesApp verified it (communities/{id}.verified) or the account that owns it is: an organisation
+// whose registration is confirmed (org.rcStatus "verified"), a verified account, or a gold badge. Giving is capped until then.
+export async function communityVerified(db: Firestore, c: Pick<Community, "verified" | "ownerUid">): Promise<boolean> {
+  return !!c.verified || isVerified(await userOf(db, c.ownerUid));
+}
 
 export async function readCommunity(db: Firestore, cid: string): Promise<Community> {
   const c = (await db.doc(`communities/${cid}`).get()).data() as Community | undefined;
@@ -86,6 +92,14 @@ export async function viewCommunity(db: Firestore, cid: string, viewerUid: strin
       memberLimit: Number.isFinite(memberLimit(owner ? tierOf(owner) : "standard")) ? memberLimit(owner ? tierOf(owner) : "standard") : null,
     },
     notice: c.verified || isVerified(owner) ? "" : UNVERIFIED_COMMUNITY_NOTICE,
+    // Giving (lib/giving.ts): who may give (members, and signed-in visitors when the community is discoverable), the funds, and the cap
+    // on each gift until the community is verified. Admins also get the settings.
+    giving: c.giving?.enabled ? {
+      funds: c.giving.funds?.length ? c.giving.funds : DEFAULT_FUNDS,
+      capKobo: c.verified || isVerified(owner) ? null : UNVERIFIED_GIFT_CAP_KOBO,
+      canGive: !!viewerUid && me?.status !== "banned" && (!!real || isDiscoverable(c)),
+    } : null,
+    ...(can(role, "giving") ? { givingSettings: { enabled: !!c.giving?.enabled, funds: c.giving?.funds?.length ? c.giving.funds : DEFAULT_FUNDS } } : {}),
     role, realRole: real, status: me?.status ?? null, viewingAs: role !== real,
     tabs: tabsFor(c, role),
     channels: readableChannels(c, role).map((id) => ({ id, name: id === "general" ? "General" : c.spaces.find((s) => s.id === id)!.name, canPost: canPostIn(c, role, id) })),

@@ -6,7 +6,7 @@ import { collection, getDocs, limit, orderBy, query, where } from "firebase/fire
 import { db } from "./firebase";
 import { api } from "./moments-client";
 import { useMember } from "./member-client";
-import { isPaid, orderedLessons, type Course, type CourseListing, type Enrolment, type Lesson } from "./courses";
+import { isPaid, orderedLessons, type Course, type CourseListing, type Enrolment, type Lesson, type Quiz, type QuizGrade } from "./courses";
 import { visitSource } from "./track";
 
 // Notes Academy in the browser. Published courses (and a free course's lessons) are read straight from Firestore (the rules allow
@@ -108,7 +108,10 @@ export function useCourse(slug: string) {
     setS((o) => ({ ...o, enrolment: r.enrolment }));
   }, [courseId]);
 
-  return { ...s, enrol, mark, refresh };
+  // A newer enrolment from the server (a passed quiz ticks its lesson off).
+  const took = useCallback((enrolment: Enrolment) => setS((o) => ({ ...o, enrolment })), []);
+
+  return { ...s, enrol, mark, refresh, took };
 }
 
 // The live class and community links (only for people who enrolled or bought, and the tutors). null: none to show.
@@ -139,7 +142,12 @@ export function useCoursePurchase(courseId: string | undefined, enabled: boolean
 }
 
 // One lesson's content through the server (paid courses, uploads). Throws with .code "device_limit" (and .devices) on a third device.
-export type LessonContent = { id: string; title: string; kind: Lesson["kind"]; preview: boolean; body?: string; youtubeId?: string; playerUrl?: string; pdf?: boolean; watermark?: { username: string; email: string } };
+export type LessonContent = { id: string; title: string; kind: Lesson["kind"]; preview: boolean; body?: string; youtubeId?: string; playerUrl?: string; pdf?: boolean; quiz?: Quiz; watermark?: { username: string; email: string } };
+
+// A learner's answers to a quiz lesson: marked by the server, which ticks the lesson off on a pass.
+export async function submitQuiz(courseId: string, lessonId: string, answers: number[]): Promise<{ grade: QuizGrade; attempt: { attempts: number; best: number; passedAt?: string }; enrolment: Enrolment }> {
+  return api("/api/academy/quiz", { body: { courseId, lessonId, answers } });
+}
 export async function fetchLesson(user: User | null | undefined, courseId: string, lessonId: string, deviceId: string, deviceLabel: string): Promise<{ lesson: LessonContent; purchaseRef: string | null }> {
   const r = await fetch("/api/academy/lesson", {
     method: "POST", headers: { "Content-Type": "application/json", ...(user ? { Authorization: `Bearer ${await user.getIdToken()}` } : {}) },

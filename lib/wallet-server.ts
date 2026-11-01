@@ -26,7 +26,7 @@ function expiredLine(t: Transaction, db: Firestore, uid: string, w: Wallet, now:
   if (gone > 0) t.set(db.doc(`walletTx/exp_${uid}_${now.getTime()}`), { uid, type: "bonus_expired", creditKobo: 0, bonusKobo: -gone, label: "Bonus Credits ended", at: now.toISOString() } satisfies WalletTx);
 }
 
-export function paymentLabel(p: Pick<PaymentRecord, "kind" | "publisherUsername" | "store" | "digital" | "booking" | "gift" | "boost"> & { course?: PaymentRecord["course"] }): string {
+export function paymentLabel(p: Pick<PaymentRecord, "kind" | "publisherUsername" | "store" | "digital" | "booking" | "gift" | "boost"> & { course?: PaymentRecord["course"]; giving?: PaymentRecord["giving"] }): string {
   switch (p.kind) {
     case "boost": return p.boost?.itemId ? "Boost for a store item" : "Boost for a post";
     case "ad": return "Advert campaign";
@@ -38,6 +38,7 @@ export function paymentLabel(p: Pick<PaymentRecord, "kind" | "publisherUsername"
     case "nana_credit": return "Nana AI credit";
     case "certificate": return "Notes Academy certificate";
     case "course": return `${p.course?.courseTitle ?? "Course"} · Notes Academy`;
+    case "giving": return `Gift to ${p.giving?.communityName ?? "a community"}${p.giving ? ` · ${p.giving.fund}` : ""}`;
     case "booking": return `Session with @${p.booking?.username ?? p.publisherUsername}${p.booking ? ` · ${p.booking.date} ${p.booking.slot}` : ""}`;
     default: return "Payment";
   }

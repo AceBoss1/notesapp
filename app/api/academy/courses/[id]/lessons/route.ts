@@ -11,7 +11,8 @@ type Ctx = { params: { id: string } };
 
 // A course's lessons, for its tutors only.
 // POST { kind: "youtube", title, url } | { kind: "text", title, body } | { kind: "video", title, streamUid } | { kind: "pdf", title, fileKey,
-//   fileName }, each with minutes?, preview?, moduleId? → { lesson }: added at the end (uploads: paid courses, after /upload).
+//   fileName } | { kind: "quiz", title, quiz: { passPercent?, questions: [{ prompt, options, answer, explain? }] } } (the answers are stored
+//   apart, in quizKeys), each with minutes?, preview?, moduleId? → { lesson }: added at the end (uploads: paid courses, after /upload).
 // PUT { ids } → { ids }: every lesson's id, in the new order.
 export async function POST(req: NextRequest, { params }: Ctx) {
   if (!ACADEMY_LIVE) return academyClosed();

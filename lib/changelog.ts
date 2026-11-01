@@ -17,6 +17,26 @@ export const CHANGELOG: Release[] = [
     changes: [
       { kind: "added", text: "Notes Life: a Low res button (HD / LOW RES at the top, and in Settings) for computers where the game was slow or froze. It draws fewer pixels, no shadows and at most 30 frames a second, and is remembered on that device." },
       { kind: "fixed", text: "Notes Life no longer keeps drawing while its tab is hidden." },
+      { kind: "changed", text: "On the roadmap: Notes Life's pixel look and an HD look with your own avatar, chat beside the scene, jobs on screen and a city map of Abuja with properties to buy (game money)." },
+    ],
+  },
+  {
+    version: "v0.106.0",
+    bump: "minor",
+    date: "2026-10-30",
+    changes: [
+      { kind: "added", text: "Giving in communities: admins switch it on under Admin → Giving and name their funds (Tithe, Offering, Building fund). Members tap Give, choose the amount and fund, add a note or give anonymously, and see the charges and the total before paying. Charges are like a bank transfer (₦10 up to ₦5,000, ₦25 up to ₦50,000, ₦50 above), plus Paystack's card charge at cost by card; the wallet has no card charge. No commission, and givers can cover the charges so the community gets the whole gift." },
+      { kind: "added", text: "Every gift gets a receipt by email and under My giving (/giving). Admins see each gift and the totals per fund. Gifts are paid to the organisation's bank account a day later, on one run; each gift is capped at ₦20,000 until the community is verified." },
+      { kind: "added", text: "Paid event tickets: an event's organiser adds ticket types with a price and how many. Buyers pay by card and get a QR code per ticket under My tickets (/tickets) and by email. The organiser checks tickets in at the door by typing or scanning the code, and is paid after the event, less their plan's commission." },
+    ],
+  },
+  {
+    version: "v0.105.0",
+    bump: "minor",
+    date: "2026-10-30",
+    changes: [
+      { kind: "added", text: "Quizzes on Notes Academy courses: tutors can add a quiz lesson to any course, free or paid. Write multiple-choice questions (2 to 6 answers each), tick the right answer, add an explanation if you like, and set the pass mark (70% unless you change it)." },
+      { kind: "added", text: "Learners answer a quiz and get it marked straight away: the score, whether they passed, the right answer to each question and the tutor's explanation. They can try again as often as they like, and the quiz lesson is ticked off once they pass, so finishing the course (and the certificate) follows." },
     ],
   },
   {

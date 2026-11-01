@@ -94,7 +94,9 @@ export async function autoReleasePayouts(opts: { transfer?: typeof initiateTrans
   const due = snap.docs
     .map((d) => d.data() as LedgerEntry & { autoAttempts?: number })
     .filter((l) => {
-      const due = l.kind === "booking" ? dueBefore : l.kind === "digital" || l.kind === "course" || l.kind === "affiliate" ? now : -Infinity;
+      // Event tickets wait like sessions (the event's end plus the problem-report window); gifts to a community wait their day
+      // (releaseAfter, lib/giving.ts) and then go out on the same run.
+      const due = l.kind === "booking" || l.kind === "ticket" ? dueBefore : l.kind === "digital" || l.kind === "course" || l.kind === "affiliate" || l.kind === "giving" ? now : -Infinity;
       return new Date(l.releaseAfter).getTime() <= due && (l.autoAttempts ?? 0) < AUTO_MAX_ATTEMPTS;
     })
     .slice(0, AUTO_BATCH);
@@ -107,7 +109,9 @@ export async function autoReleasePayouts(opts: { transfer?: typeof initiateTrans
         started++;
         await ref.update({ autoReleasedAt: new Date(now).toISOString() });
         const to = await getUserEmail(l.publisherUid);
-        const what = l.kind === "affiliate" ? { subject: "Your referral earnings are on their way", for: "from referrals and affiliate links", short: "referral earnings", link: "/profile/referrals" }
+        const what = l.kind === "giving" ? { subject: "Gifts to your community are on their way", for: "from gifts to your community (after the charges)", short: "community gifts", link: "/community" }
+          : l.kind === "ticket" ? { subject: "Your ticket sales payout is on its way", for: "for event tickets", short: "ticket sales", link: "/events" }
+          : l.kind === "affiliate" ? { subject: "Your referral earnings are on their way", for: "from referrals and affiliate links", short: "referral earnings", link: "/profile/referrals" }
           : l.kind === "course" ? { subject: "Your course sale payout is on its way", for: "for a course sale", short: "sale", link: "/profile/publishing" }
           : l.kind === "digital" ? { subject: "Your download sale payout is on its way", for: "for a download sale", short: "sale", link: "/profile/publishing" }
           : { subject: "Your session payout is on its way", for: "for a completed session", short: "session", link: "/profile/publishing" };
@@ -121,7 +125,7 @@ export async function autoReleasePayouts(opts: { transfer?: typeof initiateTrans
         }).catch(() => {});
       } else if (r.error === "Publisher has no payout account.") {
         await ref.update({ failureReason: r.error, autoAttempts: AUTO_MAX_ATTEMPTS });
-        await notifyBell({ uid: l.publisherUid, type: "booking", linkHref: "/profile/publishing", message: `We couldn't pay your ${l.kind === "affiliate" ? "referral" : "session"} earnings of ${formatNaira(l.netKobo)} — add your bank account under Rates & payouts.` });
+        await notifyBell({ uid: l.publisherUid, type: "booking", linkHref: "/profile/publishing", message: `We couldn't pay your ${l.kind === "affiliate" ? "referral" : l.kind === "giving" ? "community gifts" : l.kind === "ticket" ? "ticket sales" : "session"} earnings of ${formatNaira(l.netKobo)} — add your bank account under Rates & payouts.` });
       }
     } catch (err) {
       const attempts = (l.autoAttempts ?? 0) + 1;

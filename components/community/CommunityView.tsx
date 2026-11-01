@@ -12,6 +12,7 @@ import { communityUrl, mainHref, useCommunityPlace } from "./place";
 import Feed from "./Feed";
 import Members, { Circles, useMembers } from "./Members";
 import Admin from "./Admin";
+import { GiveButton, type GivingView } from "./Give";
 import { RoomScreen, RoomsCard } from "./AudioRoom";
 import { EventList, NewEventButton } from "@/components/events/Events";
 
@@ -26,6 +27,7 @@ type View = {
   };
   notice: string; role: Role | null; realRole: Role | null; status: string | null; viewingAs: boolean; tabs: Tab[];
   channels: { id: string; name: string; canPost: boolean }[]; canJoin: boolean;
+  giving: GivingView | null; givingSettings?: { enabled: boolean; funds: string[] };
 };
 const TAB_NAMES: Record<Tab, string> = { home: "Home", general: "General", spaces: "Spaces", events: "Events", members: "Members", about: "About", contact: "Contact", circles: "Circles", admin: "Admin" };
 
@@ -66,7 +68,10 @@ export default function CommunityView({ id }: { id: string }) {
             {c.tagline && <p className="mt-1 text-slate">{c.tagline}</p>}
             <p className="mt-1 text-xs text-slate">{c.memberCount.toLocaleString()} {c.memberCount === 1 ? "member" : "members"} · run by <Link href={mainHref(`/u/${c.ownerUsername}`)} className="underline">{c.ownerName}</Link>{v.realRole ? ` · you're ${v.realRole === "member" ? "a member" : `${v.realRole === "admin" || v.realRole === "owner" ? "an" : "a"} ${roleName(v.realRole).toLowerCase()}`}` : ""}</p>
           </div>
-          <div className="sm:pt-4"><JoinBox v={v} user={user ?? null} invite={invite} onChange={load} /></div>
+          <div className="flex flex-wrap items-start gap-2 sm:pt-4">
+            {v.giving && !v.viewingAs && <GiveButton cid={c.id} name={c.name} giving={v.giving} signedIn={!!user} loginHref={`/login?next=${encodeURIComponent(place.path)}`} />}
+            <JoinBox v={v} user={user ?? null} invite={invite} onChange={load} />
+          </div>
         </div>
         {v.notice && <p className="mt-4 rounded-xl border border-rule bg-card px-4 py-2 text-xs text-slate">⚠ {v.notice}</p>}
         {can(v.realRole, "view_as") && (
@@ -91,7 +96,7 @@ export default function CommunityView({ id }: { id: string }) {
         {shownTab === "about" && <p className="card whitespace-pre-line p-6 text-sm text-ink">{c.about}</p>}
         {shownTab === "contact" && <p className="card whitespace-pre-line p-6 text-sm text-ink">{c.contact}</p>}
         {shownTab === "circles" && <Circles cid={id} role={v.viewingAs ? null : v.role} allowed={c.circlesAllowed} as={as} me={user?.uid ?? null} />}
-        {shownTab === "admin" && v.role && <Admin cid={id} role={v.role} questions={c.questions} inviteCode={c.inviteCode} onSaved={load}
+        {shownTab === "admin" && v.role && <Admin cid={id} role={v.role} questions={c.questions} inviteCode={c.inviteCode} onSaved={load} giving={v.givingSettings} verified={c.verified}
           initial={c.publicView ? { name: c.name, tagline: c.tagline, about: c.about, contact: c.contact, avatar: c.avatar, cover: c.cover, joinMode: c.joinMode, questions: c.questions, publicView: c.publicView, slowModeSec: c.slowModeSec, spaces: c.allSpaces ?? c.spaces } : null} />}
       </div>
     </div>

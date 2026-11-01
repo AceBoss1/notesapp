@@ -41,6 +41,10 @@ import { basketDelivery } from "@/lib/cart-server";
 import { DiscountError, NOTESAPP_OWNER, spreadDiscount, type DiscountTarget } from "@/lib/discounts";
 import { applyCode, paymentDiscount } from "@/lib/discounts-server";
 import { REFERRAL_COOKIE, firstPeriodOffer } from "@/lib/referrals";
+import { giftCheckout } from "@/lib/giving-server";
+import { CommunityError } from "@/lib/community-server";
+import { ticketCheckout } from "@/lib/tickets-server";
+import { EventError } from "@/lib/events-server";
 import { ReferralError, affiliateFor, offerIdFor, offerPercent, referralByCode, referralOfferFor, referrerByUsername, type Referrer } from "@/lib/referrals-server";
 
 // Starts a Paystack checkout for a 1:1 session or a monthly journal
@@ -173,6 +177,39 @@ export async function POST(req: NextRequest) {
       };
       await savePayment(record);
       return NextResponse.json({ authorizationUrl: tx.authorization_url, reference, paid: payWith === "wallet" });
+    }
+
+    // ---- a gift to a community (lib/giving.ts): no discount codes; the charges are fixed now, by how it's paid ----
+    if (kind === "giving") {
+      let g: Awaited<ReturnType<typeof giftCheckout>>;
+      try { g = await giftCheckout(db, user.uid, body, payWith); }
+      catch (e) { if (e instanceof CommunityError) return NextResponse.json({ error: e.message }, { status: e.status }); throw e; }
+      const reference = newReference();
+      const origin = await callbackOrigin(req);
+      const tx = await initTx({ email: user.email, amountKobo: g.payKobo, reference, callbackUrl: `${origin}/booking/confirm`, metadata: { kind, uid: user.uid, cid: g.info.cid } });
+      const record: PaymentRecord = {
+        reference, kind: "giving", uid: user.uid, email: user.email, amountKobo: g.payKobo, status: "pending",
+        publisherUid: g.ownerUid, publisherUsername: g.ownerUsername, commissionRate: 0, giving: g.info, createdAt: new Date().toISOString(),
+      };
+      await savePayment(record);
+      return NextResponse.json({ authorizationUrl: tx.authorization_url, reference, paid: payWith === "wallet" });
+    }
+
+    // ---- paid event tickets (lib/tickets.ts): by card; refused here when sold out; the host's usual commission ----
+    if (kind === "ticket") {
+      if (payWith === "wallet") return NextResponse.json({ error: "Pay for tickets by card or bank." }, { status: 400 });
+      let tk: Awaited<ReturnType<typeof ticketCheckout>>;
+      try { tk = await ticketCheckout(db, user.uid, body); }
+      catch (e) { if (e instanceof EventError) return NextResponse.json({ error: e.message }, { status: e.status }); throw e; }
+      const reference = newReference();
+      const origin = await callbackOrigin(req);
+      const tx = await initTx({ email: user.email, amountKobo: tk.amountKobo, reference, callbackUrl: `${origin}/booking/confirm`, metadata: { kind, uid: user.uid, eventId: tk.info.eventId } });
+      const record: PaymentRecord = {
+        reference, kind: "ticket", uid: user.uid, email: user.email, amountKobo: tk.amountKobo, status: "pending",
+        publisherUid: tk.hostUid, publisherUsername: tk.hostUsername, commissionRate: tk.commissionRate, ticket: tk.info, createdAt: new Date().toISOString(),
+      };
+      await savePayment(record);
+      return NextResponse.json({ authorizationUrl: tx.authorization_url, reference });
     }
 
     // ---- Nana AI credit pack (lib/nana-meter.ts), from the wallet or by card; anyone signed in can buy one ----

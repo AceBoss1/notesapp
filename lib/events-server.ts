@@ -7,6 +7,7 @@ import { SITE_URL } from "./host";
 import { sendPush } from "./push-server";
 import { can, type Role } from "./community";
 import { CommunityError, memberOf, readCommunity } from "./community-server";
+import { ticketsLeft, type TicketType } from "./tickets";
 import { cleanEvent, nextOccurrence, reminderDue, whenText, type EventDoc, type EventInput, type Rsvp } from "./events";
 
 // Events on the server (the rules are lib/events.ts). events/{id} carries `nextStartAt` (the next start, kept up to date by the cron) so
@@ -21,11 +22,11 @@ async function roleIn(db: Firestore, cid: string, uid: string | null): Promise<R
   const m = await memberOf(db, cid, uid);
   return m && m.status === "active" ? m.role : null;
 }
-async function mayManage(db: Firestore, e: EventDoc, uid: string) {
+export async function mayManage(db: Firestore, e: EventDoc, uid: string) {
   if (e.hostUid === uid) return true;
   return !!e.cid && can(await roleIn(db, e.cid, uid), "events");
 }
-async function mayView(db: Firestore, e: EventDoc, uid: string | null) {
+export async function mayView(db: Firestore, e: EventDoc, uid: string | null) {
   return e.visibility === "public" || (!!e.cid && !!(await roleIn(db, e.cid, uid)));
 }
 
@@ -50,7 +51,7 @@ export async function createEvent(db: Firestore, uid: string, raw: EventInput & 
   await ref.set(doc);
   return { ...doc, id: ref.id };
 }
-async function eventOf(db: Firestore, id: string): Promise<Ev> {
+export async function eventOf(db: Firestore, id: string): Promise<Ev> {
   const e = (await db.doc(`events/${id}`).get()).data() as Ev | undefined;
   if (!e) throw new EventError(404, "That event wasn't found.");
   return { ...e, id };
@@ -80,7 +81,13 @@ export async function getEvent(db: Firestore, id: string, viewerUid: string | nu
   const e = await eventOf(db, id);
   if (!(await mayView(db, e, viewerUid))) throw new EventError(403, "This event is for the community's members.");
   const mine = viewerUid ? ((await db.doc(`eventRsvps/${id}_${viewerUid}`).get()).data()?.status as Rsvp | undefined) ?? null : null;
-  return { event: e, next: nextOccurrence(e, now), rsvp: mine, canManage: viewerUid ? await mayManage(db, e, viewerUid) : false };
+  // Paid tickets (lib/tickets.ts): each type's name, price and how many are left. None = free RSVP, as before.
+  const types = (((await db.doc(`eventTickets/${id}`).get()).data()?.types ?? []) as TicketType[]);
+  const canManage = viewerUid ? await mayManage(db, e, viewerUid) : false;
+  return {
+    event: e, next: nextOccurrence(e, now), rsvp: mine, canManage,
+    tickets: types.map((t) => ({ id: t.id, name: t.name, priceKobo: t.priceKobo, left: ticketsLeft(t), ...(canManage ? { quantity: t.quantity, sold: t.sold } : {}) })),
+  };
 }
 
 // Upcoming events: public ones (by state and city), a community's (members see its members-only ones), a host's, or what I'm going to.

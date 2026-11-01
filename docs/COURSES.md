@@ -3,7 +3,8 @@
 A course is a set of lessons a member teaches on #NotesApp, with progress, a certificate at the end that anyone can verify, and
 a one-tap share of that certificate. Free courses grow the audience; paid courses earn. This is the owner's spec (17 Oct 2026)
 turned into a build plan, with the owner's decisions at the end. **Steps 1 to 3 are built** (free courses, certificates, paid
-courses with co-tutors and organisations; see `docs/BUILD_LOG.md`, v0.42 to v0.55); quizzes and Enterprise courses are next.
+courses with co-tutors and organisations; see `docs/BUILD_LOG.md`, v0.42 to v0.55), and quiz lessons are built (v0.105.0: answers in server-only `quizKeys`, attempts in `quizAttempts`, a quiz
+ticked off only once passed); Enterprise courses are next.
 
 **Naija Exam Prep** (JAMB, WAEC and NECO practice at prep.notesapp.name.ng, v0.79.0) is part of Notes Academy but is not built on courses: it has its own questions, packs and reviewers (`lib/exam-prep.ts`, HANDOVER items 41–42).
 
@@ -85,7 +86,7 @@ youtube | video | pdf | text | quiz, the YouTube id or the private file key, dur
 2. **Certificates**: issue on completion, the verification page, sharing, the PDF.
 3. **Paid courses** (Pro, Business): uploads to private R2, playback (the decision above), checkout, payouts, two-device limit.
    Built in v0.55.0, with publishing for an organisation, co-tutors, and course details (level, format, outcomes, modules) for every course.
-4. **Quizzes**, reviews, "continue learning" in the feed and the digest.
+4. **Quizzes** (built in v0.105.0), reviews, "continue learning" in the feed and the digest.
 5. **Enterprise courses** (from ₦100,000 a month): branded certificates, cohorts, bulk invites, reports for the organisation.
 
 Each step ships with phone and desktop screenshots first (`HANDOVER.md`), the help article, the changelog and tests.

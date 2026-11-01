@@ -11,13 +11,15 @@ import { ownerVisitData, ownerVisitRef } from "./visits-server";
 import type { Source } from "./analytics";
 import {
   MAX_COURSES_PER_MEMBER, MAX_CO_TUTORS, MAX_LESSONS, MIN_LEAD_TUTOR_PERCENT, canSellCourses, canUploadVideo, cleanCourseFields, cleanLesson, cleanLink, cleanPrice,
-  communityKindOf, courseRating, isPaid, leadTutorPercent, orderedLessons, publishProblems, slugify, tutorInviteId,
-  type Course, type CourseListing, type CourseModule, type Enrolment, type Lesson, type LessonInput, type OutlineItem, type Tutor, type TutorInvite,
+  communityKindOf, courseRating, gradeQuiz, isPaid, leadTutorPercent, orderedLessons, publishProblems, quizAttemptId, quizForLearner, quizKeyId, slugify, tutorInviteId,
+  QUIZ_PASS_DEFAULT,
+  type Course, type CourseListing, type CourseModule, type Enrolment, type Lesson, type LessonInput, type OutlineItem, type Quiz, type QuizGrade, type QuizKey, type Tutor, type TutorInvite,
 } from "./courses";
 
 // Server-only. Notes Academy courses (docs/COURSES.md): every write to courses/{id}, courses/{id}/lessons/{lessonId},
 // enrolments/{courseId}_{uid}, the slug reservations (courseSlugs/{slug}), the private links (courseLinks/{id}) and co-tutor
-// invitations (courseTutorInvites/{courseId}_{uid}) happens here, called by the /api/academy routes. Paid courses' sales,
+// invitations (courseTutorInvites/{courseId}_{uid}) happens here, called by the /api/academy routes. Quiz lessons keep their answers
+// apart, in quizKeys/{courseId}_{lessonId}, and each learner's attempts in quizAttempts/{courseId}_{lessonId}_{uid} (both server-only). Paid courses' sales,
 // lesson access and refunds are in lib/course-sales-server.ts.
 export class CourseError extends Error {
   constructor(message: string, public status = 400) { super(message); }
@@ -50,13 +52,30 @@ export function courseOf(id: string, d: FirebaseFirestore.DocumentData): Course 
   };
 }
 export function lessonOf(id: string, d: FirebaseFirestore.DocumentData): Lesson {
-  const kind = d.kind === "text" || d.kind === "video" || d.kind === "pdf" ? d.kind : "youtube";
+  const kind = d.kind === "text" || d.kind === "video" || d.kind === "pdf" || d.kind === "quiz" ? d.kind : "youtube";
   return {
     id, order: Number(d.order) || 0, title: String(d.title ?? ""), kind,
     ...(d.youtubeId ? { youtubeId: String(d.youtubeId) } : {}), ...(Number(d.minutes) > 0 ? { minutes: Number(d.minutes) } : {}), ...(typeof d.body === "string" ? { body: d.body } : {}),
     ...(d.preview === true ? { preview: true } : {}), ...(d.moduleId ? { moduleId: String(d.moduleId) } : {}),
     ...(d.streamUid ? { streamUid: String(d.streamUid) } : {}), ...(d.fileKey ? { fileKey: String(d.fileKey), fileName: String(d.fileName ?? "") } : {}),
+    ...(kind === "quiz" ? { quiz: quizOf(d.quiz) } : {}),
   };
+}
+// A quiz lesson's questions as stored (never with answers).
+function quizOf(q: unknown): Quiz {
+  const o = (q && typeof q === "object" ? q : {}) as { passPercent?: unknown; questions?: unknown };
+  const questions = Array.isArray(o.questions) ? (o.questions as Record<string, unknown>[]) : [];
+  return quizForLearner({
+    passPercent: Number(o.passPercent) || QUIZ_PASS_DEFAULT,
+    questions: questions.map((x) => ({ id: String(x?.id ?? ""), prompt: String(x?.prompt ?? ""), options: strings(x?.options) })),
+  });
+}
+const keyOf = (d: FirebaseFirestore.DocumentData | undefined): QuizKey | null =>
+  d && Array.isArray(d.answers) ? { answers: d.answers.map(Number), explain: strings(d.explain), ...(Number(d.passPercent) > 0 ? { passPercent: Number(d.passPercent) } : {}) } : null;
+// The quiz with its answers and explanations, for the course's tutors (the editor) only.
+function withKey(l: Lesson, key: QuizKey | null): Lesson {
+  if (l.kind !== "quiz" || !l.quiz || !key) return l;
+  return { ...l, quiz: { ...l.quiz, questions: l.quiz.questions.map((q, i) => ({ ...q, ...(key.answers[i] !== undefined ? { answer: key.answers[i] } : {}), ...(key.explain[i] ? { explain: key.explain[i] } : {}) })) } };
 }
 export const enrolmentOf = (d: FirebaseFirestore.DocumentData): Enrolment => ({
   courseId: String(d.courseId), uid: String(d.uid), enrolledAt: String(d.enrolledAt ?? ""), done: d.done && typeof d.done === "object" ? d.done : {},
@@ -210,7 +229,11 @@ export async function courseForOwner(db: Firestore, uid: string, by: { id?: stri
     ref.collection("lessons").orderBy("order").get(), linksOf(db, id), db.collection("courseTutorInvites").where("courseId", "==", id).get(),
     db.doc(`users/${c.ownerUid}`).get(), db.doc(`payoutAccounts/${c.ownerUid}`).get(),
   ]);
-  const lessons = orderedLessons(ls.docs.map((d) => lessonOf(d.id, d.data())), c.modules);
+  const plain = orderedLessons(ls.docs.map((d) => lessonOf(d.id, d.data())), c.modules);
+  const quizzes = plain.filter((l) => l.kind === "quiz");
+  const keys = quizzes.length ? await db.getAll(...quizzes.map((l) => db.doc(`quizKeys/${quizKeyId(id!, l.id)}`))) : [];
+  const keyFor = new Map(keys.map((k, i) => [quizzes[i].id, keyOf(k.data())]));
+  const lessons = plain.map((l) => withKey(l, keyFor.get(l.id) ?? null));
   const tier = tierOf(owner.data() as UserProfile | undefined);
   return {
     course: c, lessons, access, links,
@@ -295,6 +318,8 @@ export async function deleteCourse(db: Firestore, uid: string, id: string, deps:
   }
   const invites = await db.collection("courseTutorInvites").where("courseId", "==", id).get();
   await Promise.all(invites.docs.map((d) => d.ref.delete()));
+  const attempts = await db.collection("quizAttempts").where("courseId", "==", id).get();
+  await Promise.all([...lessons.filter((l) => l.kind === "quiz").map((l) => db.doc(`quizKeys/${quizKeyId(id, l.id)}`).delete()), ...attempts.docs.map((d) => d.ref.delete())]);
   await db.recursiveDelete(ref); // the course and its lessons
   await Promise.all([db.doc(`courseSlugs/${c.slug}`).delete().catch(() => {}), db.doc(`courseLinks/${id}`).delete().catch(() => {})]);
   if (deps.dropUpload) for (const l of lessons) if (l.streamUid || l.fileKey) await deps.dropUpload(l).catch(() => {});
@@ -358,6 +383,11 @@ const lessonFields = (l: LessonInput, order: number): Omit<Lesson, "id"> => ({
   order, title: l.title, kind: l.kind, ...(l.youtubeId ? { youtubeId: l.youtubeId } : {}), ...(l.minutes ? { minutes: l.minutes } : {}), ...(l.body ? { body: l.body } : {}),
   ...(l.preview ? { preview: true } : {}), ...(l.moduleId ? { moduleId: l.moduleId } : {}),
   ...(l.streamUid ? { streamUid: l.streamUid } : {}), ...(l.fileKey ? { fileKey: l.fileKey, fileName: l.fileName ?? "" } : {}),
+  ...(l.quiz ? { quiz: quizForLearner(l.quiz) } : {}), // the questions only: the answers go to quizKeys
+});
+// A quiz's answers and explanations, kept apart from the lesson (written in the same transaction).
+const quizKeyFields = (l: LessonInput, courseId: string, lessonId: string, now: Date) => ({
+  courseId, lessonId, answers: l.quiz!.questions.map((q) => q.answer), explain: l.quiz!.questions.map((q) => q.explain ?? ""), passPercent: l.quiz!.passPercent, updatedAt: iso(now),
 });
 const moduleOk = (c: Course, l: LessonInput): LessonInput => (l.moduleId && !(c.modules ?? []).some((m) => m.id === l.moduleId) ? { ...l, moduleId: undefined } : l);
 
@@ -373,6 +403,7 @@ export async function addLesson(db: Firestore, uid: string, courseId: string, bo
     const fields = lessonFields(l, (lessons.reduce((m, x) => Math.max(m, x.order), -1)) + 1);
     t.set(lr, fields);
     const lesson: Lesson = { id: lr.id, ...fields };
+    if (l.quiz) { const k = quizKeyFields(l, courseId, lr.id, now); t.set(db.doc(`quizKeys/${quizKeyId(courseId, lr.id)}`), k); return { lessons: [...lessons, lesson], result: withKey(lesson, k) }; }
     return { lessons: [...lessons, lesson], result: lesson };
   });
 }
@@ -391,7 +422,10 @@ export async function updateLesson(db: Firestore, uid: string, courseId: string,
     t.set(ref.collection("lessons").doc(lessonId), fields);
     const lesson: Lesson = { id: lessonId, ...fields };
     const replaced = (old.streamUid && old.streamUid !== lesson.streamUid) || (old.fileKey && old.fileKey !== lesson.fileKey) ? old : null;
-    return { lessons: lessons.map((x) => (x.id === lessonId ? lesson : x)), result: { lesson, replaced } };
+    const keyRef = db.doc(`quizKeys/${quizKeyId(courseId, lessonId)}`);
+    let k: QuizKey | null = null;
+    if (l.quiz) { k = quizKeyFields(l, courseId, lessonId, now); t.set(keyRef, k); } else if (old.kind === "quiz") t.delete(keyRef);
+    return { lessons: lessons.map((x) => (x.id === lessonId ? lesson : x)), result: { lesson: withKey(lesson, k), replaced } };
   });
 }
 
@@ -400,6 +434,7 @@ export async function deleteLesson(db: Firestore, uid: string, courseId: string,
     const old = lessons.find((x) => x.id === lessonId);
     if (!old) throw new CourseError("That lesson doesn't exist (any more).", 404);
     t.delete(ref.collection("lessons").doc(lessonId));
+    if (old.kind === "quiz") t.delete(db.doc(`quizKeys/${quizKeyId(courseId, lessonId)}`));
     return { lessons: lessons.filter((x) => x.id !== lessonId), result: old };
   });
 }
@@ -511,26 +546,74 @@ export async function enrol(db: Firestore, uid: string, courseId: string, now = 
   });
 }
 
-// Ticks a lesson off (or back on). Completed when every lesson the course has now is done.
+// The course and the learner's enrolment, read in a transaction, with the checks every tick (and every quiz) needs.
+async function learnerIn(db: Firestore, t: Transaction, uid: string, courseId: string, lessonId: string, access: CourseAccess | null) {
+  const ref = db.doc(`courses/${courseId}`), eref = db.doc(`enrolments/${courseId}_${uid}`);
+  const [cs, es] = await Promise.all([t.get(ref), t.get(eref)]);
+  if (!cs.exists) throw new CourseError("That course doesn't exist (any more).", 404);
+  const c = courseOf(cs.id, cs.data()!);
+  if (c.status !== "published" && !access) throw new CourseError("That course isn't open.", 404);
+  if (!es.exists) throw new CourseError(isPaid(c) ? "Buy the course to start it." : "Enrol first (it's free).", 403);
+  if (!c.lessonIds.includes(lessonId)) throw new CourseError("That lesson isn't in this course any more.", 404);
+  return { c, e: enrolmentOf(es.data()!), eref };
+}
+// Writes the tick (after every read of the transaction). Completed when every lesson the course has now is done.
+function tick(t: Transaction, c: Course, e: Enrolment, eref: DocumentReference, lessonId: string, done: boolean, now: Date): Enrolment {
+  const map = { ...e.done };
+  if (done) map[lessonId] = map[lessonId] || iso(now); else delete map[lessonId];
+  const complete = c.lessonIds.length > 0 && c.lessonIds.every((id) => !!map[id]);
+  const next: Enrolment = { ...e, done: map, lastLessonId: lessonId, completedAt: complete ? e.completedAt || iso(now) : null };
+  t.set(eref, { done: map, lastLessonId: lessonId, completedAt: next.completedAt }, { merge: true });
+  return next;
+}
+async function kindIn(db: Firestore, t: Transaction, c: Course, lessonId: string): Promise<string> {
+  const o = c.outline?.find((x) => x.id === lessonId);
+  if (o) return o.kind;
+  return String((await t.get(db.doc(`courses/${c.id}/lessons/${lessonId}`))).data()?.kind ?? "");
+}
+
+// Ticks a lesson off (or back on). Completed when every lesson the course has now is done. A quiz is ticked off only once the
+// learner has passed it (submitQuiz does it then); un-ticking is always fine.
 export async function markLesson(db: Firestore, uid: string, courseId: string, lessonId: string, done: boolean, now = new Date()): Promise<Enrolment> {
   if (!safeId(courseId) || !safeId(lessonId)) throw new CourseError("Which lesson?");
-  const ref = db.doc(`courses/${courseId}`), eref = db.doc(`enrolments/${courseId}_${uid}`);
-  const pre = await ref.get();
+  const pre = await db.doc(`courses/${courseId}`).get();
   const access = pre.exists ? await accessTo(db, uid, courseOf(pre.id, pre.data()!)) : null;
   return db.runTransaction(async (t) => {
-    const [cs, es] = await Promise.all([t.get(ref), t.get(eref)]);
-    if (!cs.exists) throw new CourseError("That course doesn't exist (any more).", 404);
-    const c = courseOf(cs.id, cs.data()!);
-    if (c.status !== "published" && !access) throw new CourseError("That course isn't open.", 404);
-    if (!es.exists) throw new CourseError(isPaid(c) ? "Buy the course to start it." : "Enrol first (it's free).", 403);
-    if (!c.lessonIds.includes(lessonId)) throw new CourseError("That lesson isn't in this course any more.", 404);
-    const e = enrolmentOf(es.data()!);
-    const map = { ...e.done };
-    if (done) map[lessonId] = map[lessonId] || iso(now); else delete map[lessonId];
-    const complete = c.lessonIds.length > 0 && c.lessonIds.every((id) => !!map[id]);
-    const next: Enrolment = { ...e, done: map, lastLessonId: lessonId, completedAt: complete ? e.completedAt || iso(now) : null };
-    t.set(eref, { done: map, lastLessonId: lessonId, completedAt: next.completedAt }, { merge: true });
-    return next;
+    const { c, e, eref } = await learnerIn(db, t, uid, courseId, lessonId, access);
+    if (done && !e.done[lessonId] && (await kindIn(db, t, c, lessonId)) === "quiz") {
+      const a = (await t.get(db.doc(`quizAttempts/${quizAttemptId(courseId, lessonId, uid)}`))).data();
+      if (!a?.passedAt) throw new CourseError("Pass the quiz to tick this lesson off.", 409);
+    }
+    return tick(t, c, e, eref, lessonId, done, now);
+  });
+}
+
+// ---- quizzes ----
+export type QuizAttempt = { courseId: string; lessonId: string; uid: string; attempts: number; best: number; lastPercent: number; lastAt: string; passedAt?: string };
+// A learner's answers to a quiz lesson (an option's index per question, in order): marked here, the attempt recorded, and on a pass
+// the lesson ticked off. Returns the grade with each question's right answer and explanation. Retakes are unlimited.
+export async function submitQuiz(db: Firestore, uid: string, courseId: string, lessonId: string, answers: unknown, now = new Date()): Promise<{ grade: QuizGrade; attempt: QuizAttempt; enrolment: Enrolment }> {
+  if (!safeId(courseId) || !safeId(lessonId)) throw new CourseError("Which quiz?");
+  if (!Array.isArray(answers) || answers.length > 100) throw new CourseError("Send your answers.");
+  const pre = await db.doc(`courses/${courseId}`).get();
+  const access = pre.exists ? await accessTo(db, uid, courseOf(pre.id, pre.data()!)) : null;
+  return db.runTransaction(async (t) => {
+    const { c, e, eref } = await learnerIn(db, t, uid, courseId, lessonId, access);
+    const aref = db.doc(`quizAttempts/${quizAttemptId(courseId, lessonId, uid)}`);
+    const [ls, ks, as] = await Promise.all([t.get(db.doc(`courses/${courseId}/lessons/${lessonId}`)), t.get(db.doc(`quizKeys/${quizKeyId(courseId, lessonId)}`)), t.get(aref)]);
+    const lesson = ls.exists ? lessonOf(ls.id, ls.data()!) : null;
+    const key = keyOf(ks.data());
+    if (!lesson || lesson.kind !== "quiz" || !lesson.quiz || !key) throw new CourseError("That lesson isn't a quiz.", 404);
+    if (answers.length !== key.answers.length || answers.some((a) => !Number.isInteger(a))) throw new CourseError("Answer every question first.");
+    const grade = gradeQuiz(key, answers, lesson.quiz.passPercent);
+    const old = as.data();
+    const attempt: QuizAttempt = {
+      courseId, lessonId, uid, attempts: (Number(old?.attempts) || 0) + 1, best: Math.max(Number(old?.best) || 0, grade.percent), lastPercent: grade.percent, lastAt: iso(now),
+      ...(old?.passedAt ? { passedAt: String(old.passedAt) } : grade.passed ? { passedAt: iso(now) } : {}),
+    };
+    t.set(aref, attempt);
+    const enrolment = grade.passed ? tick(t, c, e, eref, lessonId, true, now) : e;
+    return { grade, attempt, enrolment };
   });
 }
 

@@ -48,7 +48,9 @@ export async function startCheckout(
     | { kind: "nana_credit"; packId: string }
     | { kind: "logistics_addon" }
     | { kind: "inventory_addon" }
-    | { kind: "certificate"; courseId: string; learnerName: string }),
+    | { kind: "certificate"; courseId: string; learnerName: string }
+    | { kind: "giving"; cid: string; amountNaira: number; fund: string; note?: string; anonymous?: boolean; cover?: boolean }
+    | { kind: "ticket"; eventId: string; typeId: string; quantity: number }),
   // payWith: the buyer already chose (Notes Life has its own Wallet and Card buttons, and no chooser on its page).
   opts: { amountKobo?: number; payWith?: "wallet" | "card" } = {},
 ): Promise<void> {
