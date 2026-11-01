@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAdminDb } from "@/lib/firebase-admin";
 import { rateLimit } from "@/lib/rate-limit";
-import { createMoment, listFeed, listForOwner } from "@/lib/moments-server";
+import { createMoment, listFeed, listForOwner, shareToMoment } from "@/lib/moments-server";
+import { resolveShareCard } from "@/lib/share-targets-server";
 import { authed, fail, momentDeps } from "@/lib/moments-api";
 
 export const dynamic = "force-dynamic";
@@ -23,12 +24,14 @@ export async function GET(req: NextRequest) {
 }
 
 // POST { kind: "text"|"image"|"video", text?, hours?: 24|48|72, imageKey?, videoUploadId? }
+// POST { share: { kind, id }, text?, hours? }  → Share to Moments: a moment carrying that item's card (lib/share-targets.ts)
 export async function POST(req: NextRequest) {
   try {
     const me = await authed(req, "moments", true);
     const limited = await rateLimit(req, "moment", me.uid, 20, 600);
     if (limited) return limited;
     const body = await req.json().catch(() => ({}));
+    if (body && typeof body === "object" && "share" in body) return NextResponse.json({ moment: await shareToMoment(getAdminDb(), me, body, momentDeps, resolveShareCard) });
     return NextResponse.json({ moment: await createMoment(getAdminDb(), me, body, momentDeps) });
   } catch (err) {
     return fail(err, "Couldn't share the moment");

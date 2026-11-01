@@ -15,7 +15,8 @@ export default function NewEntryPage() {
   const [postAs, setPostAs] = useState("me");
   const [orgProfile, setOrgProfile] = useState<UserProfile | null>(null);
   // A message sent on from a chat ("Start a journal draft"): it becomes the start of the entry, once.
-  const [fromChat, setFromChat] = useState<{ content: string } | null>(null);
+  // Share to Journals (lib/share-targets.ts) uses the same hand-over, with from: "share": the draft starts with the quoted item.
+  const [fromChat, setFromChat] = useState<{ content: string; from?: string } | null>(null);
   useEffect(() => {
     try {
       const raw = sessionStorage.getItem("notesapp:chatDraft");
@@ -39,7 +40,7 @@ export default function NewEntryPage() {
     <section className="mx-auto max-w-3xl px-4 py-14 sm:px-6">
       <Link href="/write" className="block font-ui text-xs font-semibold uppercase tracking-wideish text-crimson-bright">← My journal</Link>
       <h1 className="mt-4 font-display text-4xl">New entry</h1>
-      {fromChat && <p className="mt-3 rounded-lg bg-amber-50 px-3 py-2 text-sm text-ink">Started from your message. Add a title, shape it, and save it as a draft or publish it when you&apos;re ready.</p>}
+      {fromChat && <p className="mt-3 rounded-lg bg-amber-50 px-3 py-2 text-sm text-ink">{fromChat.from === "share" ? <>Started from what you shared: it&apos;s quoted at the top with a link and credit to its creator. Add a title and your thoughts below it, then save it as a draft or publish it when you&apos;re ready.</> : <>Started from your message. Add a title, shape it, and save it as a draft or publish it when you&apos;re ready.</>}</p>}
       {teamOrgs.length > 0 && (
         <label className="mt-6 block text-xs text-slate">Post as
           <select

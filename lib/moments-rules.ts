@@ -25,8 +25,13 @@ export const MOMENT_VIDEO_WEEKLY_LIMIT: Record<AccountTier, number> = { standard
 export const MOMENT_DAILY_LIMIT = 10; // new moments per member per day (reshares don't count)
 export const MOMENT_HINT = "Create a note for your followers";
 
-export type MomentKind = "image" | "video" | "text";
-export const isMomentKind = (v: unknown): v is MomentKind => v === "image" || v === "video" || v === "text";
+// "link" is a moment made by Share to Moments (lib/share-targets.ts): an item's card with an optional caption. Only shareToMoment in
+// lib/moments-server.ts makes one; the composer's own kinds are the other three.
+export type MomentKind = "image" | "video" | "text" | "link";
+export type ComposedMomentKind = Exclude<MomentKind, "link">;
+export const isMomentKind = (v: unknown): v is ComposedMomentKind => v === "image" || v === "video" || v === "text";
+// The card a "link" moment carries: what was shared, where it lives, and who made it (credited on the moment).
+export type MomentLink = { kind: string; id: string; title: string; path: string; image?: string; creatorUsername?: string; creatorName?: string; label: string };
 export const isMomentHours = (v: unknown): v is MomentHours => MOMENT_HOURS.includes(v as MomentHours);
 
 export const momentExpiry = (createdAt: Date, hours: MomentHours) => new Date(createdAt.getTime() + hours * 3_600_000);

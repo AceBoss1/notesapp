@@ -89,7 +89,7 @@ export default function CommunityView({ id }: { id: string }) {
       <div className="mx-auto max-w-5xl px-4 py-8 sm:px-6">
         {shownTab === "home" && <Home v={v} as={as} me={user?.uid ?? null} go={go} onRoom={(rid, title) => setRoom({ id: rid, title })} />}
         {room && user && <RoomScreen id={room.id} title={room.title} me={user.uid} onDone={() => setRoom(null)} />}
-        {shownTab === "general" && <Feed cid={id} channel="general" canPost={!v.viewingAs && !!v.channels.find((ch) => ch.id === "general")?.canPost} role={v.role} me={user?.uid ?? null} as={as} slowModeSec={c.slowModeSec} />}
+        {shownTab === "general" && <Feed shareable={v.community.joinMode !== "invite"} cid={id} channel="general" canPost={!v.viewingAs && !!v.channels.find((ch) => ch.id === "general")?.canPost} role={v.role} me={user?.uid ?? null} as={as} slowModeSec={c.slowModeSec} />}
         {shownTab === "spaces" && <SpacesTab v={v} id={id} as={as} me={user?.uid ?? null} channels={spaceChannels} />}
         {shownTab === "events" && <div>{can(v.role, "events") && !v.viewingAs && <NewEventButton cid={id} onSaved={load} />}<EventList query={`cid=${id}`} empty="No upcoming events." /></div>}
         {shownTab === "members" && <Members cid={id} role={v.viewingAs ? null : v.role} me={user?.uid ?? null} as={as} />}
@@ -151,7 +151,7 @@ function Home({ v, as, me, go, onRoom }: { v: View; as: string; me: string | nul
         {v.tabs.includes("general") ? (
           <>
             <div className="flex items-center justify-between"><p className="font-ui text-sm font-bold text-ink">General · announcements</p><button className="text-xs text-crimson underline" onClick={() => go("general")}>See all</button></div>
-            <Feed cid={c.id} channel="general" canPost={!v.viewingAs && !!v.channels.find((ch) => ch.id === "general")?.canPost} role={v.role} me={me} as={as} slowModeSec={0} />
+            <Feed shareable={v.community.joinMode !== "invite"} cid={c.id} channel="general" canPost={!v.viewingAs && !!v.channels.find((ch) => ch.id === "general")?.canPost} role={v.role} me={me} as={as} slowModeSec={0} />
           </>
         ) : <p className="card p-6 text-sm text-slate">{v.role ? "Welcome." : "Join to see what members share."}</p>}
       </div>
@@ -183,7 +183,7 @@ function SpacesTab({ v, id, as, me, channels }: { v: View; id: string; as: strin
     <div>
       <div className="flex flex-wrap gap-2">{channels.map((x) => <button key={x.id} onClick={() => setSel(x.id)} className={`rounded-full border px-3 py-1 text-xs font-semibold ${x.id === ch.id ? "border-crimson bg-crimson text-paper" : "border-rule text-ink"}`}>{x.name}</button>)}</div>
       <p className="mt-2 text-xs text-slate">{vis === "members" ? "Members only: never shown outside the community." : "Public: anyone can read it."}</p>
-      <div className="mt-4"><Feed cid={id} channel={ch.id} canPost={!v.viewingAs && ch.canPost} role={v.role} me={me} as={as} slowModeSec={v.community.slowModeSec} /></div>
+      <div className="mt-4"><Feed shareable={v.community.joinMode !== "invite"} cid={id} channel={ch.id} canPost={!v.viewingAs && ch.canPost} role={v.role} me={me} as={as} slowModeSec={v.community.slowModeSec} /></div>
     </div>
   );
 }
