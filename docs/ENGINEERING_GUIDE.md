@@ -316,6 +316,7 @@ Every decision adds a new place data lives or travels, so each ships with its co
 - **Settings:** read only through `setting()` in `lib/config.ts`; `docs/ENVIRONMENT.md` is generated from it.
 - **Screens:** a new page or redesign is shown as phone and desktop screenshots, rendered from the real code, before it ships; game features get mockups first.
 - **Docs:** every feature ships with its changelog line, help article (Nana answers from these), README and architecture notes, and a handover note with any deploy steps.
+- **Public pages ship with the feature:** every new feature or change updates, in the same push, the changelog and every public page that describes that area (home, About, pricing, the feature's own page, the roadmap's live and not-live lists, status, help articles, footer links). A feature isn't done until its public pages say so (owner, 1 Nov 2026).
 - **Secrets:** never in code, chat or email; the scanner fails any change that carries one; a leaked key is rotated first, then removed.
 - **Production data:** only through admin pages, with masking and the view log; never copied to laptops; backfills only with a dry run, a backup and before-images.
 - **Writing:** short, plain sentences, British spelling, prices in **₦**.

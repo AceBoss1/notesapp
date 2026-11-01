@@ -11,7 +11,7 @@ import { certificateMin } from "@/lib/pricing";
 export const metadata: Metadata = {
   title: "Roadmap",
   description:
-    "What's live and what's next for #NotesApp — the journal feed, Explore, Notes Market, free and paid courses with quizzes and certificates in Notes Academy, Your site, the Weekly Digest, messages, free calls, Nana AI, the MCP server and publishing to LinkedIn and X are live; the Enterprise course packages, full white label, Paylony payments and more are next, and the Team hub, company finance tools, the data room and LinkedIn advertising come as paid add-ons for Business and Enterprise after internal testing.",
+    "What's live and what's next for #NotesApp — the journal feed, Explore, Notes Market, free and paid courses with quizzes and certificates in Notes Academy, Your site, the Weekly Digest, messages, free calls, Nana AI, the MCP server, publishing to LinkedIn and X, discount codes and coupons, referrals and affiliates, and giving and event tickets in communities are live; the Enterprise course packages, full white label, Paylony payments and more are next, and the Team hub, company finance tools, the data room and LinkedIn advertising come as paid add-ons for Business and Enterprise after internal testing.",
 };
 
 // The four tools our own team is testing before Business and Enterprise can add them for a fee.
@@ -216,7 +216,7 @@ export default function RoadmapPage() {
   return (
     <>
       <PageHero eyebrow="Coming Soon" title={<>What's next for #NotesApp</>}>
-        <p>The core loop — publish, book, get paid — is live, and so is a lot around it: the journal feed with your interests, Explore and Saved, Notes Market, free and paid courses, quizzes and certificates in Notes Academy, Your site for Business and Enterprise, the Weekly Digest, Nana AI and the help centre, the MCP server for AI assistants, publishing to LinkedIn and X, messages and free calls, paid sessions, subscriptions, boosts, gifts, the paid plans, organisation accounts and stores with parcel tracking. Below is what&apos;s live in each area and what comes next; the list on the right is decided and documented, not yet built. Last updated 19 October 2026.</p>
+        <p>The core loop — publish, book, get paid — is live, and so is a lot around it: the journal feed with your interests, Explore and Saved, Notes Market, free and paid courses, quizzes and certificates in Notes Academy, Your site for Business and Enterprise, the Weekly Digest, Nana AI and the help centre, the MCP server for AI assistants, publishing to LinkedIn and X, messages and free calls, paid sessions, subscriptions, boosts, gifts, the paid plans, organisation accounts, stores with parcel tracking, discount codes and coupons, referrals and the affiliate marketplace, and giving and paid event tickets in communities. Below is what&apos;s live in each area and what comes next; the list on the right is decided and documented, not yet built. Last updated 1 November 2026.</p>
       </PageHero>
       <div className="mx-auto max-w-4xl px-4 py-12 sm:px-6 lg:px-8">
 
