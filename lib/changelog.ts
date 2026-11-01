@@ -11,6 +11,16 @@ export type Release = {
 
 export const CHANGELOG: Release[] = [
   {
+    version: "v0.107.0",
+    bump: "minor",
+    date: "2026-11-01",
+    changes: [
+      { kind: "changed", text: "Notes Academy (/academy) has a new home page: what you can build, quizzes and verifiable certificates side by side with how they look, the Teach, Sell, Grow and Learn tabs, why tutors choose it, live numbers (courses published, enrolments, teachers and lessons), who it's for, help articles, and a last call to start teaching. The course catalogue, with search, topics, filters and Naija Exam Prep, is still there under Browse courses." },
+      { kind: "added", text: "Questions learners and teachers ask, answered on the Academy page, with a link straight to the help centre. Learners' questions now cover quizzes, on every course page and in the help centre too." },
+      { kind: "fixed", text: "The Academy page no longer lists quizzes as coming next: they've been live since v0.105.0." },
+    ],
+  },
+  {
     version: "v0.106.1",
     bump: "patch",
     date: "2026-10-31",

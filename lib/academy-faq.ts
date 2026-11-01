@@ -1,7 +1,7 @@
 import { currentPricing } from "./pricing";
 
-// The questions on every course page (components/academy/AcademyFaq.tsx) and in the help centre (lib/kb-articles.ts, so Nana knows
-// them too). Prices come from Admin → Pricing when the page is drawn.
+// The questions on every course page and on Notes Academy itself (components/academy/AcademyFaq.tsx) and in the help centre
+// (lib/kb-articles.ts, so Nana knows them too). Prices come from Admin → Pricing when the page is drawn.
 export function academyFaq(): { q: string; a: string }[] {
   const p = currentPricing();
   const min = `₦${(p.coursePackages.certificateMinKobo / 100).toLocaleString("en-NG")}`;
@@ -10,6 +10,7 @@ export function academyFaq(): { q: string; a: string }[] {
     { q: "How and when do I get my certificate?", a: "As soon as you've finished every lesson, a Get your certificate button appears on the course page. Check your name, pay, and it's issued straight away with its own ID and QR code. You'll find it again on the course page." },
     { q: "What does the certificate cost?", a: `On a paid course it's usually included in the price: the course page says so. On a free course, the certificate costs ${min} (#NotesApp's part) plus the teacher's own margin; you see the total before you pay, by card or from your NotesApp Credit wallet. Claim it within ${l.graceDays} days of finishing: after that a late claim fee of ${Math.round(l.weeklyRate * 100)}% of the price is added each week, up to ${Math.round(l.capRate * 100)}% more.` },
     { q: "Can employers check my certificate?", a: "Yes. Anyone can scan its QR code, or enter its ID (NA-C-…) at notesapp.name.ng/certificates, and see that it's genuine. You can add it to your LinkedIn profile, share it, or save it as a PDF." },
+    { q: "Do courses have quizzes?", a: "Some do: the teacher decides. Choose one answer for each question and tap Submit answers. It's marked straight away, and you see your score, whether you passed, the right answer to each question and the teacher's explanation. Didn't pass? Try again as often as you like. A quiz counts as done once you pass it, and you need every lesson done for your certificate." },
     { q: "Can I change the name on my certificate?", a: "Check the spelling before you pay: once it's issued, the name can't be changed. If something went wrong, contact us and we'll help." },
     { q: "How long do I have access to this course?", a: "For good: a paid course you've bought stays yours even if the teacher stops selling it, and a free one for as long as the teacher keeps it on Notes Academy. Every update and new lesson comes at no extra cost, and your progress and your certificate stay yours." },
     { q: "On how many devices can I watch a paid course?", a: "Two: your phone and your computer, say. To watch on a third, remove one of the others when it asks (you can do that twice a month). Your @username and email drift faintly across uploaded videos, so a recording can always be traced back." },
@@ -19,5 +20,15 @@ export function academyFaq(): { q: string; a: string }[] {
     { q: "Help! The videos won't play.", a: "It's usually the internet connection or the browser. Try another browser or connection, and turn off any data saver or ad blocker for #NotesApp. Still stuck? Ask Nana or contact our team." },
     { q: "Where are the course resources?", a: "If a lesson has worksheets, templates or other downloads, the teacher links them in the lesson. Paid extras are in the teacher's shop on Notes Market." },
     { q: "Can I get a refund?", a: "A paid course: yes, within 7 days of buying it, as long as you haven't started it (opening a paid lesson counts as starting). Tap get a refund on the course's page; the money goes back the way you paid. A certificate on a free course: ask within 7 days of buying it and we'll refund it; the certificate is then revoked." },
+  ];
+}
+
+// The teachers' questions, on the Notes Academy page (/academy) beside the learners' ones. Plain facts from docs/COURSES.md.
+export function academyTeachFaq(): { q: string; a: string }[] {
+  return [
+    { q: "Who can teach on Notes Academy?", a: "Any publishing account can teach free courses, including the free Basic plan. Paid courses are on Pro (text lessons, PDFs and YouTube) and on Business and Enterprise (your own uploaded videos too). Organisations on Business and Enterprise can teach as themselves. Start at [Teach a course](/academy/teach)." },
+    { q: "How do I get paid for a paid course?", a: "You get the price less your plan's fee for digital items, paid in naira to your bank account 7 days after each sale. Add your bank account under Rates & payouts before you publish. Co-tutors are paid their own share at their own plan's fee. See [Getting paid](/help/payouts)." },
+    { q: "Can I add quizzes and a certificate?", a: "Yes, on any course, free or paid. Add a quiz lesson with multiple-choice questions, explanations and a pass mark; learners must pass it to finish. Set up [your academy](/academy/teach/setup) once to put your name, logo and signature on certificates, and set your margin on certificates for free courses." },
+    { q: "How do I promote my course?", a: "Courses reach learners through their topics on Notes Academy, Trending, Explore and the weekly digest. You can also make [discount codes](/help/discount-codes) for a course, and set a share for affiliates so they promote it on the [affiliate marketplace](/affiliates)." },
   ];
 }

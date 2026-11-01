@@ -6,6 +6,12 @@ turned into a build plan, with the owner's decisions at the end. **Steps 1 to 3 
 courses with co-tutors and organisations; see `docs/BUILD_LOG.md`, v0.42 to v0.55), and quiz lessons are built (v0.105.0: answers in server-only `quizKeys`, attempts in `quizAttempts`, a quiz
 ticked off only once passed); Enterprise courses are next.
 
+**The Notes Academy page** (`/academy`, v0.107.0) is a product page around the catalogue: the hero, three feature blocks
+(building a course, quizzes, verifiable certificates), the Teach/Sell/Grow/Learn tabs, why Notes Academy, live numbers counted
+from the published courses (no number is shown while it's 0), "Notes Academy for…", help-article cards, the learners' and
+teachers' questions (`lib/academy-faq.ts`) with a link to the help centre, and a closing call to teach
+(`components/academy/AcademyLanding.tsx`). The catalogue sits in the middle at `#courses`.
+
 **Naija Exam Prep** (JAMB, WAEC and NECO practice at prep.notesapp.name.ng, v0.79.0) is part of Notes Academy but is not built on courses: it has its own questions, packs and reviewers (`lib/exam-prep.ts`, HANDOVER items 41–42).
 
 ## Who can do what
