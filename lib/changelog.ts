@@ -24,6 +24,50 @@ export const CHANGELOG: Release[] = [
     ],
   },
   {
+    version: "v0.108.0",
+    bump: "minor",
+    date: "2026-11-01",
+    changes: [
+      { kind: "added", text: "Course groups on #NotesApp: under About the course, teachers link one of their communities and a Space in it as the course's group, add a members-only Space for the course to a community they run, or start a community for the course in one tap (joined only by invite link). Learners who enrolled or bought get a Join the course group button that joins them and opens the Space." },
+      { kind: "changed", text: "The course editor no longer asks for a WhatsApp or Telegram group. A group link saved on an older course keeps showing to its learners, labelled as before, until the teacher links a course group (which replaces it) or removes it; new outside group links aren't accepted." },
+      { kind: "changed", text: "Live classes: the editor suggests an audio room in the course group (up to 25 people: the host, 4 speakers and 20 listening) and keeps an optional meeting link for video or bigger classes. Events say the same about Join live links." },
+      { kind: "added", text: "Swipe Nana's suggestions: swipe a suggested topic, subtopic or Market category right to add it, left to remove it, with Undo for a few seconds. Tapping still adds, the ✕ removes, Enter and Delete work from the keyboard, and removed suggestions stay away for that title until you tap Refresh." },
+      { kind: "added", text: "Nana suggests lines for a course's What learners will learn and Requirements from its title and summary, on a tap; swipe each one in or out." },
+      { kind: "changed", text: "Nana AI suggests #NotesApp's own tools first (Community, calls and audio rooms, Booking, the Store, Events) rather than setting something up on another platform." },
+    ],
+  },
+  {
+    version: "v0.107.1",
+    bump: "patch",
+    date: "2026-11-01",
+    changes: [
+      { kind: "changed", text: "Pricing now lists discount codes and coupons, referrals, the affiliate marketplace, quizzes on courses, paid event tickets (your plan's commission) and giving in communities (no commission, a charge like a bank transfer) for every plan, and explains \"Have a discount code?\" under Pro and Business." },
+      { kind: "changed", text: "Store selling has new sections on discount codes, coupons, Nana's pick and affiliates. Community, Community events, Events and Organisations describe paid tickets with QR check-in and giving, with their charges and links to My tickets and the help articles." },
+      { kind: "changed", text: "Home, About, the roadmap and the status page describe discount codes and coupons, referrals, giving and tickets; the footer links Affiliates, Discount codes & coupons, Community giving, My tickets, My giving and My coupons." },
+      { kind: "changed", text: "Help articles on plans, commission, payouts, selling, Notes Academy, referrals, discount codes, tickets and giving now cover the new features and link to each other. Notes Academy's questions add quizzes and discount codes." },
+    ],
+  },
+  {
+    version: "v0.107.0",
+    bump: "minor",
+    date: "2026-11-01",
+    changes: [
+      { kind: "changed", text: "Notes Academy (/academy) has a new home page: what you can build, quizzes and verifiable certificates side by side with how they look, the Teach, Sell, Grow and Learn tabs, why tutors choose it, live numbers (courses published, enrolments, teachers and lessons), who it's for, help articles, and a last call to start teaching. The course catalogue, with search, topics, filters and Naija Exam Prep, is still there under Browse courses." },
+      { kind: "added", text: "Questions learners and teachers ask, answered on the Academy page, with a link straight to the help centre. Learners' questions now cover quizzes, on every course page and in the help centre too." },
+      { kind: "fixed", text: "The Academy page no longer lists quizzes as coming next: they've been live since v0.105.0." },
+    ],
+  },
+  {
+    version: "v0.106.1",
+    bump: "patch",
+    date: "2026-10-31",
+    changes: [
+      { kind: "added", text: "Notes Life: a Low res button (HD / LOW RES at the top, and in Settings) for computers where the game was slow or froze. It draws fewer pixels, no shadows and at most 30 frames a second, and is remembered on that device." },
+      { kind: "fixed", text: "Notes Life no longer keeps drawing while its tab is hidden." },
+      { kind: "changed", text: "On the roadmap: Notes Life's pixel look and an HD look with your own avatar, chat beside the scene, jobs on screen and a city map of Abuja with properties to buy (game money)." },
+    ],
+  },
+  {
     version: "v0.106.0",
     bump: "minor",
     date: "2026-10-30",

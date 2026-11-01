@@ -6,6 +6,12 @@ turned into a build plan, with the owner's decisions at the end. **Steps 1 to 3 
 courses with co-tutors and organisations; see `docs/BUILD_LOG.md`, v0.42 to v0.55), and quiz lessons are built (v0.105.0: answers in server-only `quizKeys`, attempts in `quizAttempts`, a quiz
 ticked off only once passed); Enterprise courses are next.
 
+**The Notes Academy page** (`/academy`, v0.107.0) is a product page around the catalogue: the hero, three feature blocks
+(building a course, quizzes, verifiable certificates), the Teach/Sell/Grow/Learn tabs, why Notes Academy, live numbers counted
+from the published courses (no number is shown while it's 0), "Notes Academy for…", help-article cards, the learners' and
+teachers' questions (`lib/academy-faq.ts`) with a link to the help centre, and a closing call to teach
+(`components/academy/AcademyLanding.tsx`). The catalogue sits in the middle at `#courses`.
+
 **Naija Exam Prep** (JAMB, WAEC and NECO practice at prep.notesapp.name.ng, v0.79.0) is part of Notes Academy but is not built on courses: it has its own questions, packs and reviewers (`lib/exam-prep.ts`, HANDOVER items 41–42).
 
 ## Who can do what
@@ -125,6 +131,10 @@ Each step ships with phone and desktop screenshots first (`HANDOVER.md`), the he
    is allowed for both levels (credited without a share), as before. Co-tutors who accepted before access levels keep edit access
    (`Tutor.access` missing reads as edit). The rules in plain words live in `lib/invite-terms.ts`.
 8. **Course details for every course**, free or paid (from the partner review of digitalwitchng.com): level, language, format (live
-   classes with recordings), what you'll learn, requirements, how it works, modules, This course includes, Share, and private class and
-   community links shown only to people who enrolled or bought.
+   classes with recordings), what you'll learn, requirements, how it works, modules, This course includes, Share, and a private class
+   link and course group shown only to people who enrolled or bought.
+   - **Course group (v0.108.0, owner 1 Nov 2026: our own tools first):** a Space in one of the publisher's communities instead of a
+     WhatsApp or Telegram group: linked, added to a community they run, or a new invite-only community started in one tap. Learners get
+     the invite with the links and join in one tap. Outside links saved before still show until replaced or removed; new ones are refused.
+     Live classes: an audio room (host, 4 speakers, 20 listeners) or a meeting link for video and bigger classes.
 

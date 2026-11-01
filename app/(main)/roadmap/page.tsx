@@ -11,7 +11,7 @@ import { certificateMin } from "@/lib/pricing";
 export const metadata: Metadata = {
   title: "Roadmap",
   description:
-    "What's live and what's next for #NotesApp — the journal feed, Explore, Notes Market, free and paid courses with quizzes and certificates in Notes Academy, Your site, the Weekly Digest, messages, free calls, Nana AI, the MCP server and publishing to LinkedIn and X are live; the Enterprise course packages, full white label, Paylony payments and more are next, and the Team hub, company finance tools, the data room and LinkedIn advertising come as paid add-ons for Business and Enterprise after internal testing.",
+    "What's live and what's next for #NotesApp — the journal feed, Explore, Notes Market, free and paid courses with quizzes and certificates in Notes Academy, Your site, the Weekly Digest, messages, free calls, Nana AI, the MCP server, publishing to LinkedIn and X, discount codes and coupons, referrals and affiliates, and giving and event tickets in communities are live; the Enterprise course packages, full white label, Paylony payments and more are next, and the Team hub, company finance tools, the data room and LinkedIn advertising come as paid add-ons for Business and Enterprise after internal testing.",
 };
 
 // The four tools our own team is testing before Business and Enterprise can add them for a fee.
@@ -37,6 +37,13 @@ const ITEMS: { title: string; tag: string; body: string; detail: string; link?: 
     tag: "Social",
     body: `Live now, first playable: a browser game at ${LIFE_HOST} that you play with your NotesApp sign-in. Start in a room in Wuse, Abuja with N$ 100,000, keep your needs up, work general and Chef Adams jobs, take deal calls, eat at Chef Adams, relax at Candellux Imperial, walk Wuse Market (Zone 4) and Aminu Kano Crescent (Wuse II) doing errands for the neighbours, wait at the bus stand for Emerald Ezurukam's convoy, invite friends for Bonus Credits and climb the Billionaires List. Also live: NEPA power cuts with itel Energy's Power GO Pro, Power Tank 1000, solar and generators; a fridge, microwave and food that spoils; jobs at itel Energy and Candellux; owning a Chef Adams or itel outlet (Become a Partner); billboards on the roads; a city picker (Abuja open); the new Candellux with its pool, swimming lessons, pool bar, VIP bar and gym; shawarma, pizza and smoothies at Chef Adams; chatting with friends inside the game for Social; Digital Witch courses, certificates and tech jobs with its founder Cynthia Okeh as #1 on the list; residents (computer players) and seeing real players at the same place; and paying at every counter with a tap of your Paylony CardTap card (game money only). Next: real players working at outlets other players own, Lagos and Port Harcourt, the market street with real NotesApp stores, and calling friends from your game phone.`,
     detail: "Your NotesApp profile picture is your portrait in the game. Notesville Naira is game money: earn it from jobs and deals, or buy it with NotesApp Credit (₦1 = N$ 100). It can't be cashed out. Inviting a friend who finishes their first shift gives you both ₦250 in Bonus Credits. Planned later: your own shop stall, events at the Candellux conference hall, and paid calls from NotesApp Credit.",
+    link: { href: "/life", label: "Play Notes Life →" },
+  },
+  {
+    title: "Notes Life: a pixel look and an HD look with a city map",
+    tag: "Social",
+    body: "Coming soon. Two looks to choose from, with the same game: a light pixel-art look (characters and places in pixel art, smooth on any computer or phone), and an HD look where you choose your own look in a dressing room, chat beside the scene, work jobs with a timer, and travel on an illustrated Abuja map where you can buy properties with game money.",
+    detail: "Today the HD / LOW RES button already makes the game lighter on computers. The pixel look and the HD look come in steps, starting with the room and the Wuse street.",
     link: { href: "/life", label: "Play Notes Life →" },
   },
   {
@@ -216,7 +223,7 @@ export default function RoadmapPage() {
   return (
     <>
       <PageHero eyebrow="Coming Soon" title={<>What's next for #NotesApp</>}>
-        <p>The core loop — publish, book, get paid — is live, and so is a lot around it: the journal feed with your interests, Explore and Saved, Notes Market, free and paid courses, quizzes and certificates in Notes Academy, Your site for Business and Enterprise, the Weekly Digest, Nana AI and the help centre, the MCP server for AI assistants, publishing to LinkedIn and X, messages and free calls, paid sessions, subscriptions, boosts, gifts, the paid plans, organisation accounts and stores with parcel tracking. Below is what&apos;s live in each area and what comes next; the list on the right is decided and documented, not yet built. Last updated 19 October 2026.</p>
+        <p>The core loop — publish, book, get paid — is live, and so is a lot around it: the journal feed with your interests, Explore and Saved, Notes Market, free and paid courses, quizzes and certificates in Notes Academy, Your site for Business and Enterprise, the Weekly Digest, Nana AI and the help centre, the MCP server for AI assistants, publishing to LinkedIn and X, messages and free calls, paid sessions, subscriptions, boosts, gifts, the paid plans, organisation accounts, stores with parcel tracking, discount codes and coupons, referrals and the affiliate marketplace, and giving and paid event tickets in communities. Below is what&apos;s live in each area and what comes next; the list on the right is decided and documented, not yet built. Last updated 1 November 2026.</p>
       </PageHero>
       <div className="mx-auto max-w-4xl px-4 py-12 sm:px-6 lg:px-8">
 
@@ -271,6 +278,7 @@ export default function RoadmapPage() {
             <p className="font-ui text-sm font-bold text-ink">○ On the roadmap, not live</p>
             <ul className="mt-3 space-y-2 text-sm text-slate">
               <li>The two Enterprise course packages</li>
+              <li>Notes Life: a pixel look, and an HD look with your own avatar and a city map of Abuja with properties</li>
               <li>Our own live streaming for communities</li>
               <li>WhatsApp reminders alongside email and the bell, with SMS when WhatsApp doesn&apos;t arrive (a paid add-on for publishers)</li>
               <li><strong className="text-ink">Send-Na by NotesApp</strong>: email for developers and businesses, priced in Naira, with WhatsApp and SMS when email is slow (our own email and booking reminders first, then members&apos; own domains, then a public API)</li>

@@ -10,11 +10,13 @@ import { ownerVisitData, ownerVisitRef } from "./visits-server";
 import type { Source } from "./analytics";
 import { accessLabel, accessOf, accessRank, invitePath, isInviteAccess, type InviteAccess } from "./invite-terms";
 import { InviteTermsError, checkAgreement, recordAgreement, tellMember, termsOnOffer, type InviteAnswer } from "./invite-agreements-server";
+import { CommunityError, communitiesIRun, createCommunity, memberOf, readCommunity } from "./community-server";
+import { SPACES_MAX, cleanSlug, cleanSpaceName, type Community, type Space } from "./community";
 import {
   MAX_COURSES_PER_MEMBER, MAX_CO_TUTORS, MAX_LESSONS, MIN_LEAD_TUTOR_PERCENT, canSellCourses, canUploadVideo, cleanCourseFields, cleanLesson, cleanLink, cleanPrice,
   communityKindOf, courseRating, gradeQuiz, isPaid, leadTutorPercent, orderedLessons, publishProblems, quizAttemptId, quizForLearner, quizKeyId, slugify, tutorInviteId,
   QUIZ_PASS_DEFAULT,
-  type Course, type CourseListing, type CourseModule, type Enrolment, type Lesson, type LessonInput, type OutlineItem, type Quiz, type QuizGrade, type QuizKey, type Tutor, type TutorInvite,
+  type Course, type CourseGroup, type CourseGroupRef, type CourseListing, type CourseModule, type Enrolment, type Lesson, type LessonInput, type OutlineItem, type Quiz, type QuizGrade, type QuizKey, type Tutor, type TutorInvite,
 } from "./courses";
 
 // Server-only. Notes Academy courses (docs/COURSES.md): every write to courses/{id}, courses/{id}/lessons/{lessonId},
@@ -47,7 +49,7 @@ export function courseOf(id: string, d: FirebaseFirestore.DocumentData): Course 
     outcomes: strings(d.outcomes), requirements: strings(d.requirements), runsFor: String(d.runsFor ?? ""), schedule: String(d.schedule ?? ""),
     modules: Array.isArray(d.modules) ? (d.modules as CourseModule[]).map((m) => ({ id: String(m.id), title: String(m.title) })) : [],
     outline: Array.isArray(d.outline) ? (d.outline as OutlineItem[]) : undefined,
-    hasClassLink: d.hasClassLink === true, hasCommunityLink: d.hasCommunityLink === true, communityKind: String(d.communityKind ?? ""),
+    hasClassLink: d.hasClassLink === true, hasCommunityLink: d.hasCommunityLink === true, communityKind: String(d.communityKind ?? ""), hasGroup: d.hasGroup === true,
     tutors: Array.isArray(d.tutors) ? (d.tutors as Tutor[]) : [], tutorUids: strings(d.tutorUids),
     isOrg: d.isOrg === true, createdByUid: String(d.createdByUid ?? d.ownerUid ?? ""),
   };
@@ -218,14 +220,37 @@ export async function myCourses(db: Firestore, uid: string): Promise<MyCourse[]>
   return Array.from(seen.values()).sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
 }
 
-export type CourseLinks = { classUrl: string; communityUrl: string };
-export async function linksOf(db: Firestore, courseId: string): Promise<CourseLinks> {
+// courseLinks/{id}: the live class link, the course group (communityId, spaceId) and, on older courses, an outside group link
+// (communityUrl: WhatsApp, Telegram…) saved before the course group existed. Kept and shown to learners as before; never added anew.
+export type CourseLinks = { classUrl: string; communityUrl: string; group: CourseGroup | null };
+async function rawLinks(db: Firestore, courseId: string) {
   const d = (await db.doc(`courseLinks/${courseId}`).get()).data();
-  return { classUrl: String(d?.classUrl ?? ""), communityUrl: String(d?.communityUrl ?? "") };
+  return { classUrl: String(d?.classUrl ?? ""), communityUrl: String(d?.communityUrl ?? ""), communityId: String(d?.communityId ?? ""), spaceId: String(d?.spaceId ?? "") };
+}
+// The course group as it is now (null when it was never set, or its community or Space has gone).
+async function groupOf(db: Firestore, ref: CourseGroupRef): Promise<CourseGroup | null> {
+  if (!ref.communityId) return null;
+  const c = await readCommunity(db, ref.communityId).catch(() => null);
+  if (!c) return null;
+  const space = ref.spaceId ? c.spaces.find((x) => x.id === ref.spaceId) : null;
+  if (ref.spaceId && !space) return null;
+  return { communityId: c.id, spaceId: space?.id ?? "", name: c.name, avatar: c.avatar ?? "", spaceName: space?.name ?? "", joinMode: c.joinMode, inviteCode: c.inviteCode ?? "" };
+}
+export async function linksOf(db: Firestore, courseId: string): Promise<CourseLinks> {
+  const r = await rawLinks(db, courseId);
+  return { classUrl: r.classUrl, communityUrl: r.communityUrl, group: await groupOf(db, r) };
+}
+// The communities the editor runs (owner or admin), with their Spaces, to link one to the course.
+export type GroupChoice = { id: string; name: string; joinMode: string; spaces: Pick<Space, "id" | "name" | "visibility">[] };
+async function groupChoices(db: Firestore, uid: string): Promise<GroupChoice[]> {
+  const run = await communitiesIRun(db, uid).catch(() => []);
+  const all = await Promise.all(run.map((r) => readCommunity(db, r.id).catch(() => null)));
+  return all.filter((c): c is Community => !!c).map((c) => ({ id: c.id, name: c.name, joinMode: c.joinMode, spaces: c.spaces.map((x) => ({ id: x.id, name: x.name, visibility: x.visibility })) }));
 }
 export type EditorView = {
   course: Course; lessons: Lesson[]; access: CourseAccess; links: CourseLinks; invites: TutorInvite[];
   plan: { tier: AccountTier; canSell: boolean; canUploadVideo: boolean; payoutsReady: boolean };
+  communities: GroupChoice[];
 };
 // One of the member's courses with its lessons in order (the editor, and the preview of a draft), by id or by address. Co-tutors who
 // can only view get it too (the preview); `need: "tutor"` is for the editor and uploads, which they can't use.
@@ -234,9 +259,9 @@ export async function courseForOwner(db: Firestore, uid: string, by: { id?: stri
   if (!id && by.slug) id = (await db.doc(`courseSlugs/${by.slug}`).get()).data()?.courseId;
   if (!id) throw new CourseError("That course doesn't exist (any more).", 404);
   const { ref, c, access } = await editable(db, uid, id, need);
-  const [ls, links, inv, owner, payout] = await Promise.all([
+  const [ls, links, inv, owner, payout, communities] = await Promise.all([
     ref.collection("lessons").orderBy("order").get(), linksOf(db, id), db.collection("courseTutorInvites").where("courseId", "==", id).get(),
-    db.doc(`users/${c.ownerUid}`).get(), db.doc(`payoutAccounts/${c.ownerUid}`).get(),
+    db.doc(`users/${c.ownerUid}`).get(), db.doc(`payoutAccounts/${c.ownerUid}`).get(), groupChoices(db, uid),
   ]);
   const plain = orderedLessons(ls.docs.map((d) => lessonOf(d.id, d.data())), c.modules);
   const quizzes = plain.filter((l) => l.kind === "quiz");
@@ -248,6 +273,7 @@ export async function courseForOwner(db: Firestore, uid: string, by: { id?: stri
     course: c, lessons, access, links,
     invites: inv.docs.map((d) => d.data() as TutorInvite).filter((i) => i.status === "pending" || i.status === "accepted").sort((a, b) => a.createdAt.localeCompare(b.createdAt)),
     plan: { tier, canSell: canSellCourses(tier), canUploadVideo: canUploadVideo(tier), payoutsReady: !!payout.data()?.recipientCode },
+    communities,
   };
 }
 
@@ -282,15 +308,9 @@ export async function updateCourse(db: Firestore, uid: string, id: string, body:
     patch.free = price === 0;
     if (price > 0 && !isPaid(c) && f.certificateIncluded === undefined) patch.certificateIncluded = true; // the usual choice for a paid course
   }
-  // The live class and the learners' group: private, shown only to people who enrolled or bought (and the tutors).
-  if (body.classUrl !== undefined || body.communityUrl !== undefined) {
-    const cur = await linksOf(db, id);
-    const classUrl = body.classUrl !== undefined ? cleanLink(body.classUrl) : cur.classUrl;
-    const communityUrl = body.communityUrl !== undefined ? cleanLink(body.communityUrl) : cur.communityUrl;
-    if (classUrl === null) throw new CourseError("The class link must be a full https:// address (Zoom, Google Meet, Teams…).");
-    if (communityUrl === null) throw new CourseError("The community link must be a full https:// address (a WhatsApp or Telegram group…).");
-    await db.doc(`courseLinks/${id}`).set({ courseId: id, classUrl, communityUrl, updatedAt: iso(now) });
-    Object.assign(patch, { hasClassLink: !!classUrl, hasCommunityLink: !!communityUrl, communityKind: communityUrl ? communityKindOf(communityUrl) : "" });
+  // The live class link and the course group: private, shown only to people who enrolled or bought (and the tutors).
+  if (body.classUrl !== undefined || body.communityUrl !== undefined || body.group !== undefined) {
+    Object.assign(patch, await saveLinks(db, uid, id, body, now));
   }
   // Subtopics under the course's topics (Nana's suggestions): any new one is created now (lib/subtopics-server.ts).
   if (body.subtopics !== undefined) {
@@ -311,6 +331,79 @@ export async function updateCourse(db: Firestore, uid: string, id: string, body:
     });
   } else await ref.update(patch);
   return courseOf(id, { ...c, ...patch });
+}
+
+// The class link, the course group, and an outside group link saved before (which can only be kept or removed, never added or changed:
+// the owner's rule, 1 Nov 2026). Linking a course group replaces the outside link. Returns the course's public flags.
+async function saveLinks(db: Firestore, uid: string, id: string, body: Record<string, unknown>, now: Date) {
+  const cur = await rawLinks(db, id);
+  const classUrl = body.classUrl !== undefined ? cleanLink(body.classUrl) : cur.classUrl;
+  if (classUrl === null) throw new CourseError("The class link must be a full https:// address.");
+  let communityUrl = cur.communityUrl;
+  if (body.communityUrl !== undefined) {
+    const next = String(body.communityUrl ?? "").trim();
+    if (next && next !== cur.communityUrl) throw new CourseError("Outside group links (WhatsApp, Telegram…) can't be added any more. Link a course group on #NotesApp instead: one of your community's Spaces.");
+    communityUrl = next;
+  }
+  let group: CourseGroupRef = { communityId: cur.communityId, spaceId: cur.spaceId };
+  if (body.group !== undefined) {
+    const g = (body.group && typeof body.group === "object" ? body.group : null) as { communityId?: unknown; spaceId?: unknown } | null;
+    group = g && g.communityId ? await checkGroup(db, uid, { communityId: String(g.communityId), spaceId: String(g.spaceId ?? "") }) : { communityId: "", spaceId: "" };
+    if (group.communityId) communityUrl = ""; // switched to #NotesApp: the old outside link stops showing
+  }
+  await db.doc(`courseLinks/${id}`).set({ courseId: id, classUrl, communityUrl, communityId: group.communityId, spaceId: group.spaceId, updatedAt: iso(now) });
+  return { hasClassLink: !!classUrl, hasCommunityLink: !!communityUrl, communityKind: communityUrl ? communityKindOf(communityUrl) : "", hasGroup: !!group.communityId };
+}
+// A course group must be a community the member runs (owner or admin), and a Space in it (or "" for the whole community).
+async function checkGroup(db: Firestore, uid: string, g: CourseGroupRef): Promise<CourseGroupRef> {
+  const c = cleanSlug(g.communityId) === g.communityId ? await readCommunity(db, g.communityId).catch(() => null) : null;
+  if (!c) throw new CourseError("That community wasn't found.", 404);
+  const me = await memberOf(db, c.id, uid);
+  if (!me || me.status !== "active" || (me.role !== "owner" && me.role !== "admin")) throw new CourseError("Link a community you run (as its owner or an admin).", 403);
+  if (g.spaceId && !c.spaces.some((x) => x.id === g.spaceId)) throw new CourseError("That Space isn't in the community any more.", 404);
+  return { communityId: c.id, spaceId: g.spaceId };
+}
+
+// "Start a course group" in one tap. With a community the member runs: a members-only Space named after the course is added to it
+// (or the one already there is reused). With none: a community for the course is started, joined only by invite link (so only the
+// course's learners, who get the link, and whoever its admins invite), with a members-only Space for the learners. Either way it's linked.
+export async function createCourseGroup(db: Firestore, uid: string, id: string, body: { communityId?: unknown } = {}, now = new Date()): Promise<{ course: Course; links: CourseLinks }> {
+  const { c, access } = await editable(db, uid, id, "tutor");
+  await actor(db, uid, c, access);
+  const spaceName = cleanSpaceName(c.title) || "Learners";
+  let ref: CourseGroupRef;
+  try {
+    if (body.communityId) {
+      const g = await checkGroup(db, uid, { communityId: String(body.communityId), spaceId: "" });
+      const com = await readCommunity(db, g.communityId);
+      const sid = cleanSlug(spaceName) || `course-${id.slice(0, 8).toLowerCase()}`;
+      const have = com.spaces.find((x) => x.id === sid);
+      if (!have) {
+        if (com.spaces.length >= SPACES_MAX) throw new CourseError(`${com.name} has ${SPACES_MAX} Spaces already. Remove one, or link one of its Spaces.`, 409);
+        await db.doc(`communities/${com.id}`).update({ spaces: [...com.spaces, { id: sid, name: spaceName, visibility: "members", whoPosts: "members" }], updatedAt: iso(now) });
+      }
+      ref = { communityId: com.id, spaceId: sid };
+    } else {
+      let made: Community | null = null;
+      const name = c.title.length >= 3 ? c.title.slice(0, 60) : `${c.title} learners`.slice(0, 60);
+      const base = cleanSlug(c.title) || `course-${id.slice(0, 8).toLowerCase()}`;
+      for (let i = 1; i <= 5 && !made; i++) {
+        const cid = (i === 1 ? base : `${base.slice(0, 36)}-${i}`).replace(/-+$/, "");
+        made = await createCommunity(db, uid, { name, id: cid, tagline: `The group for learners of ${c.title} on Notes Academy.` }, now)
+          .catch((e) => { if (e instanceof CommunityError && e.status === 409 && /address/i.test(e.message)) return null; throw e; });
+      }
+      if (!made) throw new CourseError("Couldn't find a free address for the community. Start one on Community, then link it here.", 409);
+      const spaces: Space[] = [{ id: "learners", name: "Learners' corner", visibility: "members", whoPosts: "members" }, { id: "updates", name: "Updates", visibility: "members", whoPosts: "admins" }];
+      await db.doc(`communities/${made.id}`).update({ joinMode: "invite", spaces, publicView: { ...made.publicView, general: false, members: false, join: false }, updatedAt: iso(now) });
+      ref = { communityId: made.id, spaceId: "learners" };
+    }
+  } catch (e) {
+    if (e instanceof CommunityError) throw new CourseError(e.message, e.status);
+    throw e;
+  }
+  const flags = await saveLinks(db, uid, id, { group: ref }, now);
+  await db.doc(`courses/${id}`).update({ ...flags, updatedAt: iso(now) });
+  return { course: courseOf(id, { ...c, ...flags }), links: await linksOf(db, id) };
 }
 
 export async function deleteCourse(db: Firestore, uid: string, id: string, deps: { dropUpload?: (l: Lesson) => Promise<void> } = {}): Promise<void> {

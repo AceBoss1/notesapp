@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import RichTextEditor from "@/components/RichTextEditor";
 import TopicPicker from "@/components/TopicPicker";
-import { SubtopicChips, TopicSuggestions } from "@/components/NanaSuggest";
+import { CourseLineSuggestions, SubtopicChips, TopicSuggestions } from "@/components/NanaSuggest";
 import Avatar from "@/components/Avatar";
 import type { Subtopic } from "@/lib/subtopics";
 import { useMember } from "@/lib/member-client";
@@ -17,21 +17,23 @@ import {
   COURSE_LANGUAGES, COURSE_LEVELS, COURSE_PRICE_MIN_KOBO, COURSE_SUMMARY_MAX, COURSE_TITLE_MAX, LESSON_MINUTES_MAX, LESSON_TITLE_MAX, MAX_COURSE_TOPICS, MAX_CO_TUTORS,
   MAX_LESSONS, MAX_MODULES, MAX_OUTCOMES, MAX_REQUIREMENTS, MIN_LEAD_TUTOR_PERCENT, PDF_MAX_BYTES,
   QUIZ_EXPLAIN_MAX, QUIZ_MAX_OPTIONS, QUIZ_MAX_QUESTIONS, QUIZ_MIN_OPTIONS, QUIZ_OPTION_MAX, QUIZ_PASS_DEFAULT, QUIZ_PROMPT_MAX,
-  courseHref, durationLabel, groupByModule, includesOf, isPaid, lessonKindLabel, nairaLabel, plural, publishProblems, youtubeId, youtubeThumb,
-  type Course, type CourseFormat, type CourseModule, type Lesson, type LessonKind, type TutorInvite,
+  COURSE_ROOM_SEATS, communityKindOf, courseGroupHref, courseHref, durationLabel, groupByModule, includesOf, isPaid, lessonKindLabel, nairaLabel, plural, publishProblems, youtubeId, youtubeThumb,
+  type Course, type CourseFormat, type CourseGroup, type CourseModule, type Lesson, type LessonKind, type TutorInvite,
 } from "@/lib/courses";
 import { accessLabel, accessOf, accessRank, helpHref, type InviteAccess } from "@/lib/invite-terms";
 
 // /academy/teach/<id>: everything about one course on one page, phone first. Details (title, summary, topics, cover), About the
-// course (level, language, format, what learners will learn, requirements, how it runs, the private class and community links),
+// course (level, language, format, what learners will learn, requirements, how it runs, the private class link and the course group on
+// #NotesApp: a Space in one of the publisher's communities, never an outside WhatsApp or Telegram group),
 // the price (paid courses: Pro and up), the tutors (co-tutors and their share of each sale), the curriculum (modules and lessons:
 // YouTube, text, and on paid courses uploaded videos and PDFs), then Publish. Every change is saved by the server
 // (/api/academy/courses/<id>…), which checks who may make it: co-tutors edit the content; the price, tutors and publishing are the lead's.
 const input = "mt-1 w-full rounded-lg border border-rule bg-white px-3 py-2.5 text-base outline-none focus:border-crimson sm:text-sm";
 const label = "font-ui text-sm font-semibold text-ink";
-type Links = { classUrl: string; communityUrl: string };
+type Links = { classUrl: string; communityUrl: string; group: CourseGroup | null };
+type GroupChoice = { id: string; name: string; joinMode: string; spaces: { id: string; name: string; visibility: "public" | "members" }[] };
 type Plan = { tier: AccountTier; canSell: boolean; canUploadVideo: boolean; payoutsReady: boolean };
-type View = { course: Course; lessons: Lesson[]; access: "lead" | "tutor"; links: Links; invites: TutorInvite[]; plan: Plan };
+type View = { course: Course; lessons: Lesson[]; access: "lead" | "tutor"; links: Links; invites: TutorInvite[]; plan: Plan; communities?: GroupChoice[] };
 const lines = (a?: string[]) => (a ?? []).join("\n");
 
 export default function CourseEditor({ courseId }: { courseId: string }) {
@@ -45,7 +47,7 @@ export default function CourseEditor({ courseId }: { courseId: string }) {
   const [topics, setTopics] = useState<string[]>([]);
   const [subtopics, setSubtopics] = useState<Subtopic[]>([]);
   const [cover, setCover] = useState("");
-  const [about, setAbout] = useState({ level: "", language: "English", format: "self" as CourseFormat, outcomes: "", requirements: "", runsFor: "", schedule: "", classUrl: "", communityUrl: "" });
+  const [about, setAbout] = useState({ level: "", language: "English", format: "self" as CourseFormat, outcomes: "", requirements: "", runsFor: "", schedule: "", classUrl: "" });
   const [uploading, setUploading] = useState(false);
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState("");
@@ -57,12 +59,12 @@ export default function CourseEditor({ courseId }: { courseId: string }) {
     setV(r); setLessons(r.lessons);
     const c = r.course;
     setTitle(c.title); setSummary(c.summary); setTopics(c.topics); setSubtopics(c.subtopics ?? []); setCover(c.cover);
-    setAbout({ level: c.level ?? "", language: c.language || "English", format: c.format ?? "self", outcomes: lines(c.outcomes), requirements: lines(c.requirements), runsFor: c.runsFor ?? "", schedule: c.schedule ?? "", classUrl: r.links.classUrl, communityUrl: r.links.communityUrl });
+    setAbout({ level: c.level ?? "", language: c.language || "English", format: c.format ?? "self", outcomes: lines(c.outcomes), requirements: lines(c.requirements), runsFor: c.runsFor ?? "", schedule: c.schedule ?? "", classUrl: r.links.classUrl });
   }
   const load = () => api<View>(`/api/academy/courses/${courseId}`).then(take).catch((e) => setLoadError(e.message));
   useEffect(() => { if (user) void load(); }, [user, courseId]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const aboutSaved = course && v ? { level: course.level ?? "", language: course.language || "English", format: course.format ?? "self", outcomes: lines(course.outcomes), requirements: lines(course.requirements), runsFor: course.runsFor ?? "", schedule: course.schedule ?? "", classUrl: v.links.classUrl, communityUrl: v.links.communityUrl } : null;
+  const aboutSaved = course && v ? { level: course.level ?? "", language: course.language || "English", format: course.format ?? "self", outcomes: lines(course.outcomes), requirements: lines(course.requirements), runsFor: course.runsFor ?? "", schedule: course.schedule ?? "", classUrl: v.links.classUrl } : null;
   const aboutDirty = !!aboutSaved && JSON.stringify(aboutSaved) !== JSON.stringify({ ...about, outcomes: about.outcomes.split("\n").map((x) => x.trim()).filter(Boolean).join("\n"), requirements: about.requirements.split("\n").map((x) => x.trim()).filter(Boolean).join("\n") });
   const dirty = !!course && (title.trim() !== course.title || summary.trim() !== course.summary || cover !== course.cover || topics.join() !== course.topics.join() || subtopics.map((x) => x.slug).join() !== (course.subtopics ?? []).map((x) => x.slug).join());
   const missing = useMemo(() => publishProblems({ title, summary }, lessons.length), [title, summary, lessons.length]);
@@ -75,7 +77,7 @@ export default function CourseEditor({ courseId }: { courseId: string }) {
   }
   const patch = async (body: Record<string, unknown>) => {
     const r = await api<{ course: Course }>(`/api/academy/courses/${courseId}`, { method: "PATCH", body });
-    setV((o) => (o ? { ...o, course: r.course, links: body.classUrl !== undefined ? { classUrl: String(body.classUrl), communityUrl: String(body.communityUrl) } : o.links } : o));
+    setV((o) => (o ? { ...o, course: r.course, links: body.classUrl !== undefined ? { ...o.links, classUrl: String(body.classUrl) } : o.links } : o));
     return r.course;
   };
   const saveDetails = () => run("details", async () => {
@@ -225,6 +227,8 @@ export default function CourseEditor({ courseId }: { courseId: string }) {
             <textarea value={about.requirements} onChange={(e) => setAbout({ ...about, requirements: e.target.value })} rows={6} className={input} placeholder={"A phone or laptop\nNo experience needed"} />
           </label>
         </div>
+        <div className="mt-2"><CourseLineSuggestions title={title} summary={summary} outcomes={about.outcomes} requirements={about.requirements} maxOutcomes={MAX_OUTCOMES} maxRequirements={MAX_REQUIREMENTS}
+          onAdd={(field, line) => setAbout((a) => ({ ...a, [field]: [...a[field].split("\n").map((x) => x.trim()).filter(Boolean), line].join("\n") }))} /></div>
         <div className="mt-4 grid gap-3 sm:grid-cols-[1fr_2fr]">
           <label className="block"><span className={label}>Runs for <span className="font-normal text-slate">(optional)</span></span>
             <input value={about.runsFor} onChange={(e) => setAbout({ ...about, runsFor: e.target.value })} maxLength={40} className={input} placeholder="e.g. 6 weeks" />
@@ -234,14 +238,16 @@ export default function CourseEditor({ courseId }: { courseId: string }) {
           </label>
         </div>
         {about.format === "live" && (
-          <label className="mt-4 block"><span className={label}>Class link</span> <span className="text-xs text-slate">Zoom, Google Meet or Teams; only learners who {paid ? "bought" : "enrolled"} see it</span>
-            <input value={about.classUrl} onChange={(e) => setAbout({ ...about, classUrl: e.target.value })} inputMode="url" className={input} placeholder="https://zoom.us/j/…" />
-          </label>
+          <div className="mt-4">
+            <p className="text-sm text-slate"><span className={label}>Live classes.</span> Hold them in an <Link href="/help/community-audio-rooms" className="font-semibold text-crimson">audio room</Link> in your course group on #NotesApp, for up to {COURSE_ROOM_SEATS.total} people (you, {COURSE_ROOM_SEATS.speakers} speakers on stage and {COURSE_ROOM_SEATS.listeners} listening). For video, or a bigger class, paste a meeting link below.</p>
+            <label className="mt-2 block"><span className={label}>Meeting link <span className="font-normal text-slate">(optional)</span></span> <span className="text-xs text-slate">only learners who {paid ? "bought" : "enrolled"} see it</span>
+              <input value={about.classUrl} onChange={(e) => setAbout({ ...about, classUrl: e.target.value })} inputMode="url" className={input} placeholder="https://…" />
+            </label>
+          </div>
         )}
-        <label className="mt-4 block"><span className={label}>Community link</span> <span className="text-xs text-slate">a WhatsApp or Telegram group; only learners who {paid ? "bought" : "enrolled"} see it</span>
-          <input value={about.communityUrl} onChange={(e) => setAbout({ ...about, communityUrl: e.target.value })} inputMode="url" className={input} placeholder="https://chat.whatsapp.com/…" />
-        </label>
         <SaveRow onSave={saveAbout} dirty={aboutDirty} busy={busy === "about"} disabled={busy !== null} />
+        <CourseGroupBox courseId={courseId} links={v.links} communities={v.communities ?? []} paid={paid} busy={busy} run={run}
+          onSaved={(r, m) => { setV((o) => (o ? { ...o, course: r.course, links: r.links } : o)); flash(m); }} />
       </section>
 
       {/* 3. Price */}
@@ -336,6 +342,80 @@ export default function CourseEditor({ courseId }: { courseId: string }) {
 function Shell({ children }: { children: React.ReactNode }) {
   return <div className="mx-auto max-w-3xl px-4 py-8 sm:px-8 sm:py-10">{children}</div>;
 }
+// The course group (the owner's rule, 1 Nov 2026: our own tools first): a place on #NotesApp for the course's learners, a Space in one of
+// the publisher's communities. Linked, changed or started in one tap; an outside group link saved before can only be kept or removed.
+function CourseGroupBox({ courseId, links, communities, paid, busy, run, onSaved }: {
+  courseId: string; links: Links; communities: GroupChoice[]; paid: boolean; busy: string | null;
+  run: <T>(what: string, fn: () => Promise<T>) => Promise<T | null>; onSaved: (r: { course: Course; links: Links }, message: string) => void;
+}) {
+  const g = links.group;
+  const [changing, setChanging] = useState(false);
+  const [cid, setCid] = useState(communities[0]?.id ?? "");
+  const [sid, setSid] = useState("");
+  const pick = communities.find((c) => c.id === cid) ?? communities[0];
+  const who = paid ? "bought" : "enrolled";
+  const reload = () => api<View>(`/api/academy/courses/${courseId}`);
+  const link = (group: { communityId: string; spaceId: string } | null, m: string) => run("group", async () => {
+    const r = await api<{ course: Course }>(`/api/academy/courses/${courseId}`, { method: "PATCH", body: { group } });
+    const v = await reload();
+    onSaved({ course: r.course, links: v.links }, m); setChanging(false);
+  });
+  const start = (communityId?: string) => run("group", async () => {
+    const r = await api<{ course: Course; links: Links }>(`/api/academy/courses/${courseId}`, { body: { action: "group", ...(communityId ? { communityId } : {}) } });
+    onSaved(r, communityId ? "A Space for this course is ready, and linked." : "Your course's community is ready, and linked."); setChanging(false);
+  });
+  const dropOld = () => run("group", async () => {
+    const r = await api<{ course: Course }>(`/api/academy/courses/${courseId}`, { method: "PATCH", body: { communityUrl: "" } });
+    onSaved({ course: r.course, links: { ...links, communityUrl: "" } }, "The old group link is removed.");
+  });
+  const off = busy !== null;
+  return (
+    <div className="mt-6 rounded-2xl border border-rule bg-paper p-4 sm:p-5" id="course-group">
+      <p className={label}>Course group on #NotesApp</p>
+      <p className="mt-1 text-xs text-slate">Where your learners meet: questions, support and networking. Only learners who {who} see it, with a <b>Join the course group</b> button.</p>
+      {g && !changing ? (
+        <div className="mt-3 rounded-xl border border-rule bg-card p-3">
+          <p className="font-ui text-sm font-bold text-ink">{g.name}{g.spaceName ? <> › {g.spaceName}</> : null}</p>
+          <p className="mt-0.5 text-xs text-slate">{g.joinMode === "invite" ? "Joined only by invite link: your learners get it on the course page." : "Anyone can join this community, so its members-only Spaces are open to all its members, not only your learners."}</p>
+          {g.joinMode !== "invite" && <p className="mt-1 text-xs text-slate">For a group only your learners join, set it to join by invite link (its Admin → settings), or start a new one for this course.</p>}
+          <div className="mt-2 flex flex-wrap gap-2">
+            <Link href={courseGroupHref({ ...g, inviteCode: "" })} className="btn-ghost !px-3 !py-1.5 text-xs">Open it</Link>
+            <button type="button" onClick={() => setChanging(true)} disabled={off} className="btn-ghost !px-3 !py-1.5 text-xs">Change</button>
+            <button type="button" onClick={() => link(null, "The course group is unlinked.")} disabled={off} className="btn-ghost !px-3 !py-1.5 text-xs text-crimson">Unlink</button>
+          </div>
+        </div>
+      ) : (
+        <div className="mt-3 space-y-3">
+          {communities.length > 0 && pick ? (
+            <div className="grid gap-2 sm:grid-cols-[1fr_1fr_auto] sm:items-end">
+              <label className="block text-xs text-slate">Your community<select value={pick.id} onChange={(e) => { setCid(e.target.value); setSid(""); }} className={input}>{communities.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}</select></label>
+              <label className="block text-xs text-slate">Space<select value={sid} onChange={(e) => setSid(e.target.value)} className={input}>
+                <option value="">The whole community</option>
+                {pick.spaces.map((x) => <option key={x.id} value={x.id}>{x.name}{x.visibility === "members" ? " (members only)" : " (public)"}</option>)}
+              </select></label>
+              <button type="button" onClick={() => link({ communityId: pick.id, spaceId: sid }, "The course group is linked.")} disabled={off} className="btn-primary !px-4 !py-2.5 text-sm">{busy === "group" ? "Saving…" : "Link it"}</button>
+            </div>
+          ) : (
+            <p className="text-sm text-ink">Start a Space or Circle for your learners. <Link href="/community" className="font-semibold text-crimson">Start a community</Link> · <Link href="/help/community-spaces" className="font-semibold text-crimson">How Spaces work</Link> · <Link href="/help/community-circles" className="font-semibold text-crimson">Circles</Link></p>
+          )}
+          <div className="flex flex-wrap gap-2">
+            {pick && <button type="button" onClick={() => start(pick.id)} disabled={off} className="btn-ghost !px-3 !py-2 text-xs">+ Add a members-only Space for this course to {pick.name}</button>}
+            <button type="button" onClick={() => start()} disabled={off} className={`${communities.length ? "btn-ghost" : "btn-primary"} !px-3 !py-2 text-xs`}>+ Start a community for this course, in one tap</button>
+            {g && <button type="button" onClick={() => setChanging(false)} className="text-xs font-semibold text-slate underline">Cancel</button>}
+          </div>
+          <p className="text-xs text-slate">A new one is joined only by invite link, and your learners get the link, so it&apos;s theirs. <Link href="/help/community-spaces" className="text-crimson underline">Spaces</Link> hold every member; <Link href="/help/community-circles" className="text-crimson underline">Circles</Link> are private chats of up to 50 on Business that admins fill by hand, so they suit a small cohort rather than a course anyone can take.</p>
+        </div>
+      )}
+      {links.communityUrl && (
+        <div className="mt-3 rounded-xl bg-amber-50 p-3 text-xs text-amber-900">
+          <p><b>Saved before:</b> your learners&apos; {communityKindOf(links.communityUrl) || "outside"} group (<span className="break-all">{links.communityUrl}</span>). Learners who {who} still see it. Link a course group on #NotesApp and it stops showing; outside group links can&apos;t be added any more.</p>
+          <button type="button" onClick={dropOld} disabled={off} className="mt-2 font-semibold text-crimson underline">Remove the old link</button>
+        </div>
+      )}
+    </div>
+  );
+}
+
 function SaveRow({ onSave, dirty, busy, disabled }: { onSave: () => void; dirty: boolean; busy: boolean; disabled: boolean }) {
   return (
     <div className="mt-6 flex flex-wrap items-center gap-3">

@@ -4,12 +4,13 @@ import Shelf from "@/components/Shelf";
 import AcademyPageClient from "@/components/academy/AcademyPageClient";
 import { ACADEMY_LIVE } from "@/lib/courses";
 
-// Notes Academy: courses on #NotesApp (docs/COURSES.md). Free courses are open (components/academy/AcademyPageClient.tsx: the
-// same shelves as Journals and Notes Market, the reader's interests first). With NEXT_PUBLIC_ACADEMY_LIVE=false the page says
+// Notes Academy: courses on #NotesApp (docs/COURSES.md). Free and paid courses are open (components/academy/AcademyPageClient.tsx:
+// a product page, components/academy/AcademyLanding.tsx, around the same shelves as Journals and Notes Market, the reader's
+// interests first). With NEXT_PUBLIC_ACADEMY_LIVE=false the page says
 // what's coming instead, as it did before courses opened.
 export const metadata: Metadata = {
   title: "Notes Academy",
-  description: "Free and paid courses from African creators, professionals and organisations, with lessons that play right on #NotesApp, your progress saved as you go, and certificates anyone can check.",
+  description: "Teach and learn on Notes Academy: free and paid courses from African tutors, professionals and organisations, with lessons that play right on #NotesApp, quizzes, live classes and certificates anyone can check.",
   alternates: { canonical: "/academy" },
 };
 

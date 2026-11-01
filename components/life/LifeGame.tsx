@@ -9,7 +9,7 @@ import * as C from "@/lib/life/catalog";
 import type { InviteRow, LifePlayer } from "@/lib/life/server";
 import { CHAT_SOCIAL, advance, applyNeeds, chatSocial, fridgeCold, mood, needsLow, powerSource, powerStep, type Activity, type SaveState } from "@/lib/life/play";
 import { loadSave, restorePoint, restorePoints, saveCloud, saveLocal, type RestorePoint } from "./save";
-import { createWorld, type Power, type RoomSpot, type SceneSpec, type Tag, type World } from "./world";
+import { createWorld, loadLowRes, saveLowRes, type Power, type RoomSpot, type SceneSpec, type Tag, type World } from "./world";
 import { announce, hide, setShowMe, showMe, whoIsHere, type Present, type PresencePlace } from "./presence";
 import { TOPICS, chatWith, say as chatSay, type Line as ChatLine, type Topic } from "./chats";
 import VipPano from "./VipPano";
@@ -221,14 +221,18 @@ export default function LifeGame() {
     })();
   }, [user]);
 
-  // ---- the 3D world ----
+  // ---- the 3D world (rebuilt when Low res is switched, then the current place shown again) ----
+  const [lowRes, setLowRes] = useState(() => (typeof window === "undefined" ? false : loadLowRes()));
+  const specRef = useRef<SceneSpec | null>(null);
   useEffect(() => {
     if (!canvas.current || !save || world.current) return;
-    const w = createWorld(canvas.current);
+    const w = createWorld(canvas.current, { low: lowRes });
     world.current = w;
     const off = w.onTags(setTags);
+    if (specRef.current) void w.show(specRef.current);
     return () => { off(); w.dispose(); world.current = null; };
-  }, [save !== null]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [save !== null, lowRes]); // eslint-disable-line react-hooks/exhaustive-deps
+  const toggleLowRes = () => setLowRes((v) => { saveLowRes(!v); return !v; });
 
   const night = C.worldTime(Date.now() + offset.current).night;
   // NEPA: the same blackout for everyone (lib/life/catalog.ts nepaAt), and what powers your room through it.
@@ -274,6 +278,7 @@ export default function LifeGame() {
     const t = window.setInterval(tick, 45_000);
     return () => { alive = false; window.clearInterval(t); };
   }, [user, presencePlace, showMeOn]);
+  specRef.current = spec;
   useEffect(() => { if (spec && world.current) void world.current.show(spec); }, [spec]);
   // The billboard is seen when the street is on screen with it: one impression per advert per visit (the server keeps it to
   // one per person per day).
@@ -776,6 +781,7 @@ export default function LifeGame() {
             <span>{wt.night ? "🌙" : "☀️"}</span><b className="whitespace-nowrap">{wt.label}</b><span className="text-slate">·</span><span title="Difficulty">{diff.icon}</span><span className="hidden text-[11px] text-slate sm:inline">{diff.label}</span><span className="ml-auto truncate font-mono text-[11px] text-slate">{save.place === "hotel" ? "Garki" : "Wuse"}<span className="hidden sm:inline">, Abuja</span></span>
           </button>
           <button onClick={() => setPanel("bank")} className="pill pointer-events-auto flex items-center gap-2 py-1 pl-3 pr-1 text-sm"><b>{window.innerWidth < 700 ? C.fmtShort(player.naira) : C.fmtN(player.naira)}</b><span className="flex h-7 w-7 items-center justify-center rounded-full bg-emerald-500 font-bold text-white">+</span></button>
+          <button onClick={toggleLowRes} className={`pill pointer-events-auto flex h-10 shrink-0 items-center justify-center px-3 text-xs font-bold ${lowRes ? "!bg-emerald-500 !text-white" : ""}`} aria-pressed={lowRes} aria-label={lowRes ? "Low res is on: switch to full look" : "Switch to low res (smoother on slow computers)"} title={lowRes ? "Low res on" : "Low res: smoother on slow computers"}>{lowRes ? "LOW RES" : "HD"}</button>
           <button onClick={() => setSoundPrefs((p) => ({ ...p, on: !p.on }))} className="pill pointer-events-auto flex h-10 w-10 shrink-0 items-center justify-center text-lg" aria-label={soundPrefs.on ? "Mute sound" : "Turn sound on"} title={soundPrefs.on ? "Mute" : "Sound on"}>{soundPrefs.on ? "🔊" : "🔇"}</button>
         </div>
         <div className="mx-auto mt-2 flex flex-wrap justify-center gap-2 text-[11px]">
@@ -1422,6 +1428,8 @@ export default function LifeGame() {
           <button onClick={() => snd.current?.test()} className="justify-self-start rounded-full border px-3 py-1 text-xs font-bold">▶ Test sound</button>
           <p className="text-[10px] text-slate">No sound? Turn your phone's volume up (media volume) and, on iPhone, the silent switch off.</p>
         </div>
+        <div className="mt-3 flex items-center justify-between gap-3 rounded-2xl border p-3 text-xs"><span><b className="block text-sm">Low res</b>Fewer pixels, no shadows and a steadier picture: turn it on if the game is slow or freezes, often on a computer with a big screen. Saved on this device.</span>
+          <button onClick={toggleLowRes} aria-pressed={lowRes} className={`shrink-0 rounded-full px-3 py-1 text-xs font-bold ${lowRes ? "bg-emerald-500 text-white" : "border"}`}>{lowRes ? "On" : "Off"}</button></div>
         <label className="mt-3 flex items-center justify-between gap-3 rounded-2xl border p-3 text-xs"><span><b className="block text-sm">Tap to pay with CardTap</b>Pay at every counter by tapping your Paylony CardTap card. Off: payments go straight through.</span>
           <input type="checkbox" checked={tapOn} onChange={(e) => setTapPref(e.target.checked)} className="h-5 w-5 accent-emerald-600" /></label>
         <label className="mt-3 flex items-center justify-between gap-3 rounded-2xl border p-3 text-xs"><span><b className="block text-sm">Show me to other players</b>Players at the same place see your name and outfit, and can message you on NotesApp.</span>

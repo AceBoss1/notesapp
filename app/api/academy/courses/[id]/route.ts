@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getAdminDb } from "@/lib/firebase-admin";
 import { rateLimit } from "@/lib/rate-limit";
 import { ACADEMY_LIVE } from "@/lib/courses";
-import { courseForOwner, deleteCourse, setPublished, updateCourse } from "@/lib/courses-server";
+import { courseForOwner, createCourseGroup, deleteCourse, setPublished, updateCourse } from "@/lib/courses-server";
 import { NO_STORE, academyClosed, academyError, signInFirst, signedInUid } from "@/lib/academy-api";
 import { dropUpload } from "@/lib/course-uploads-server";
 
@@ -11,9 +11,13 @@ type Ctx = { params: { id: string } };
 
 // One course, for its tutors who can edit (the course editor, /academy/teach/<id>).
 // GET → { course, lessons, access, links, invites, plan }. PATCH { title?, summary?, topics?, cover?, level?, language?, format?, outcomes?,
-// requirements?, runsFor?, schedule?, modules?, classUrl?, communityUrl?; the lead also priceNaira?, certificateIncluded? } → { course }.
+// requirements?, runsFor?, schedule?, modules?, classUrl?, group? ({ communityId, spaceId } | null: the course group on #NotesApp),
+// communityUrl? (only "" to remove an outside group link saved before; new ones are refused); the lead also priceNaira?,
+// certificateIncluded? } → { course }.
 // DELETE → { ok } (with its lessons, uploads and learners' progress; not once it's been bought). POST { action: "publish" | "unpublish" }
-// → { course }: publishing needs a title, a summary and a lesson (and for a paid course, a payout account).
+// → { course }: publishing needs a title, a summary and a lesson (and for a paid course, a payout account). POST { action: "group",
+// communityId? } → { course, links }: start a course group in one tap (a members-only Space in that community, or a new invite-only
+// community for the course).
 // The signed-in member's id, or the response to send instead (not signed in, or too many requests).
 async function teacherUid(req: NextRequest, bucket: string, max: number): Promise<string | NextResponse> {
   const uid = await signedInUid(req);
@@ -62,7 +66,9 @@ export async function POST(req: NextRequest, { params }: Ctx) {
   try {
     const t = await teacherUid(req, "academy-write", 120);
     if (typeof t !== "string") return t;
-    const { action } = await req.json().catch(() => ({}));
+    const b = await req.json().catch(() => ({}));
+    const action = b?.action;
+    if (action === "group") return NextResponse.json(await createCourseGroup(getAdminDb(), t, params.id, { communityId: b.communityId }));
     if (action !== "publish" && action !== "unpublish") return NextResponse.json({ error: "Publish or unpublish?" }, { status: 400 });
     return NextResponse.json({ course: await setPublished(getAdminDb(), t, params.id, action === "publish") });
   } catch (err) {
