@@ -11,6 +11,16 @@ export type Release = {
 
 export const CHANGELOG: Release[] = [
   {
+    version: "v0.112.0",
+    bump: "minor",
+    date: "2026-11-01",
+    changes: [
+      { kind: "added", text: "A monthly referrals and affiliate report by email, on the 1st of each month from 8 AM Lagos time, only to members who had referral activity the month before: friends who joined with your link or code, paid conversions, affiliate sales, what you earned that month and your available, pending and withdrawn balances, a table of the month's sign-ups and sales (buyers are never named), your link and code, and a tip. No activity, no email. A bell with the month's summary comes with it." },
+      { kind: "added", text: "Monthly referrals report in Account settings → Email (on by default), and a one-click link in each report to turn it off." },
+      { kind: "added", text: "Admin → Referrals: send yourself any member's monthly report as a preview, and send last month's due reports now if the scheduled run was missed." },
+    ],
+  },
+  {
     version: "v0.107.0",
     bump: "minor",
     date: "2026-11-01",

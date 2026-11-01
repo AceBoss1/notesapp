@@ -436,6 +436,9 @@ service cloud.firestore {
     match /referralWithdrawals/{id} { allow read, write: if false; }
     match /affiliateOffers/{id} { allow read, write: if false; }
     match /referralAlerts/{id} { allow read, write: if false; }
+    // The monthly referrals report (lib/referral-report-server.ts): one marker per member and month, and each month's run. Server-only.
+    match /referralReports/{id} { allow read, write: if false; }
+    match /referralReportRuns/{id} { allow read, write: if false; }
     // Discount codes and their uses (lib/discounts-server.ts): server-only; owners manage theirs through /api/discounts.
     match /discountCodes/{id} { allow read, write: if false; }
     match /discountRedemptions/{id} { allow read, write: if false; }
