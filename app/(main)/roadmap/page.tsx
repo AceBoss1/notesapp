@@ -283,6 +283,7 @@ export default function RoadmapPage() {
               <li>WhatsApp reminders alongside email and the bell, with SMS when WhatsApp doesn&apos;t arrive (a paid add-on for publishers)</li>
               <li><strong className="text-ink">Send-Na by NotesApp</strong>: email for developers and businesses, priced in Naira, with WhatsApp and SMS when email is slow (our own email and booking reminders first, then members&apos; own domains, then a public API)</li>
               <li>For logistics providers: API and webhooks on Enterprise, and Nana suggesting delivery rates</li>
+              <li><strong className="text-ink">Business books</strong>: sales, expenses, stock, money owed and profit, with import from Excel and other tools (planned)</li>
               {GOLD_KIND_LIVE.identity ? null : <li>Automatic identity-checked gold badge (all built; NIN + face check for people, CAC for organisations awaiting final tests)</li>}
               <li>Full white label for Enterprise (sign-in, sign-up and emails in the member&apos;s name are live; checkout and bookings on their own site, and their own sending address, are next)</li>
               <li><Link href="/domains" className="text-crimson underline">Domain sales and DNS management</Link> through Whogohost (now go54), for Business and Enterprise</li>

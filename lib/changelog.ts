@@ -11,6 +11,14 @@ export type Release = {
 
 export const CHANGELOG: Release[] = [
   {
+    version: "v0.115.0",
+    bump: "patch",
+    date: "2026-11-01",
+    changes: [
+      { kind: "changed", text: "On the roadmap: Business books, for shops, market traders, salons and anyone who sells in person. Record a walk-in sale in a few taps (cash, transfer, POS or on credit) with a receipt link or PDF, and expenses with receipt photos. Stock goes down with each sale and online store orders come in by themselves. See who owes you and send reminders, and see what you owe suppliers. Profit for a day, a week or a month. Import from Excel and other tools (planned), plus offline entry on phones and telling Nana \"Sold 3 bags of rice ₦45,000 to Mama Bisi on credit\"." },
+    ],
+  },
+  {
     version: "v0.107.0",
     bump: "minor",
     date: "2026-11-01",
