@@ -50,7 +50,7 @@ export default function TeachDashboard() {
       <div className="mx-auto max-w-4xl px-4 py-10 sm:px-8 sm:py-12">
         <p className="font-mono text-xs uppercase tracking-eyebrow text-paper/70">Notes Academy</p>
         <h1 className="mt-2 font-display text-4xl sm:text-5xl">Teach a course</h1>
-        <p className="mt-2 max-w-2xl text-paper/85">Free courses with lessons from your own YouTube or written right here, and paid courses (Pro and up) with your own uploaded videos and PDFs. Teach alone, with co-tutors, or for your organisation.</p>
+        <p className="mt-2 max-w-2xl text-paper/85">Free courses with lessons from your own YouTube or written right here, and paid courses (Pro and up) with your own uploaded videos and PDFs. Teach alone, with co-tutors, or for your organisation, and let Nana design each course a cover in a tap.</p>
       </div>
     </section>
   );

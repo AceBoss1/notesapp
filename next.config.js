@@ -1,9 +1,12 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  // The certificate picture (app/(main)/certificates/[id]/image.png, lib/certificate-image.tsx) reads its fonts and our badges from the disk.
+  // The certificate picture (app/(main)/certificates/[id]/image.png, lib/certificate-image.tsx) and course covers (lib/cover-render.tsx)
+  // read their fonts and our badges from the disk.
   experimental: {
     outputFileTracingIncludes: {
       "/certificates/[id]/image.png": ["./assets/fonts/**", "./assets/certificate-logo.png", "./public/images/academy/*.png", "./public/images/brand/icon-512.png"],
+      // Course covers made with Nana (lib/cover-render.tsx): the fonts, our mark, and Next's own WebP encoder (WebAssembly).
+      "/api/academy/covers": ["./assets/fonts/**", "./public/images/brand/icon-512.png", "./node_modules/next/dist/server/lib/squoosh/**"],
     },
   },
   // pdf.js (the view-only PDF viewer, components/PdfViewer.tsx) has an optional Node "canvas" import it never uses in the browser.

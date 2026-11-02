@@ -1265,5 +1265,14 @@ service cloud.firestore {
       allow delete: if false;
     }
 
+    // ============================================================
+    // COURSE COVERS MADE WITH NANA (lib/covers-server.ts)
+    // ============================================================
+    // The recent covers per course, each member's daily count, and (development only) the pictures themselves: all written and read
+    // by the server, through /api/academy/covers, which checks the member teaches the course. No browser reads them directly.
+    match /courseCovers/{courseId} { allow read, write: if false; }
+    match /coverCounts/{countId} { allow read, write: if false; }
+    match /coverImages/{imageId} { allow read, write: if false; }
+
   }
 }
