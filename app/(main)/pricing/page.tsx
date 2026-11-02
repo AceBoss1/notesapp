@@ -177,6 +177,16 @@ const ROWS: Row[] = [
     render: (t) => (!t.canPublish ? "—" : t.tier === "basic" ? `Free: ${booksCaps().freeEntries} walk-in sales and expenses a month (online orders never count), up to ${booksCaps().freeCustomers} customers owing, profit and loss for the day and week, receipts, WhatsApp reminders, CSV import (${booksCaps().freeImportRows} rows a file) and export` : "No limits: sales, expenses and customers owing, profit and loss for the day, week and month, receipts, reminders, CSV import (5,000 rows a file, undo for 24 hours) and export"),
   },
   {
+    label: "Business books staff (cashier, manager)",
+    href: "/help/business-books",
+    render: (t) => (!t.canPublish ? "—" : t.tier === "enterprise" ? "Cashiers and managers, as many as agreed with us" : t.tier === "business" ? `Up to ${booksCaps().staffSeatsBusiness} cashiers and managers: cashiers record sales and payments only, managers everything but settings and staff` : t.tier === "pro" && booksCaps().staffSeatsPro > 0 ? `Up to ${booksCaps().staffSeatsPro} ${booksCaps().staffSeatsPro === 1 ? "cashier or manager" : "cashiers and managers"}` : "— (Business and Enterprise)"),
+  },
+  {
+    label: "Customers paying what they owe online",
+    href: "/help/business-books",
+    render: (t) => (!t.canPublish ? "—" : booksCaps().debtCommission === "none" ? "Pay now on their statement link, by card or transfer; no commission" : "Pay now on their statement link, by card or transfer; your normal commission on store sales"),
+  },
+  {
     label: "Inventory",
     href: "/help/inventory",
     render: (t) => (!t.canPublish ? "—" : t.tier === "business" || t.tier === "enterprise" ? "Included: stock per item and option, SKUs, cost prices, low-stock alerts, the history of every change, spreadsheet in and out" : `Add-on: ${inventoryAddonPrice()}/month after a free ${inventoryTrialDays()}-day trial`),

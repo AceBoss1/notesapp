@@ -11,6 +11,19 @@ export type Release = {
 
 export const CHANGELOG: Release[] = [
   {
+    version: "v0.119.0",
+    bump: "minor",
+    date: "2026-11-02",
+    changes: [
+      { kind: "added", text: "Tell Nana in Business books: type or say \"Sold 3 bags of rice ₦45,000 to Mama Bisi on credit, due Friday\" and Nana writes the entries for you to check: sales, expenses, payments received and purchases, with your own items, customers, amounts like 5k or 45 thousand, and due dates. Nothing is saved until you tap Save. It uses a little of your Nana allowance; typing an entry yourself is always free." },
+      { kind: "added", text: "Business books works with no connection on your phone: sales, expenses, purchases and payments are kept on the phone (\"3 waiting to sync\") and sent when you're back online, each saved once. If an item sold more than was in stock, or a customer was new, Books tells you when it syncs." },
+      { kind: "added", text: "Staff on your books (Business and Enterprise): invite a Cashier, who records sales and payments received and shares receipts but never sees profit, costs or expenses, or a Manager, who does everything but settings and staff. Every entry shows who recorded it, and you can see each person's sales." },
+      { kind: "added", text: "Customers can pay what they owe online: Pay now on their statement link, all of it or part, by card or bank transfer. It's recorded in your books straight away (oldest sales first), you get an email and a bell, they get a receipt, and the money is paid out to you like a store sale." },
+      { kind: "added", text: "A monthly Business books email on the 1st: last month's sales (walk-in and online), expenses, profit, best sellers, money owed and what's late, and what's running low. Only when your books had entries; turn it off in Email settings or from the email." },
+      { kind: "added", text: "Record a purchase (restock): what you bought goes up in stock and into expenses under Stock purchases, and can update the cost price." },
+    ],
+  },
+  {
     version: "v0.118.0",
     bump: "minor",
     date: "2026-11-02",
