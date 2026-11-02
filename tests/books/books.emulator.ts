@@ -1,8 +1,12 @@
 // Business books against the emulators (lib/books-server.ts): who may keep a seller's books, a walk-in sale with its receipt and the
 // stock it lowers, an expense, customers owing and paying back, reminders (email and bell for members, WhatsApp for others, one a day),
-// online orders flowing in (and refunds), the Free Basic caps, an import with its dry run and duplicates, and undo.
+// online orders flowing in (and refunds), the Free Basic caps, an import with its dry run and duplicates, and undo. Then (v0.119.0): staff
+// roles (each role's limits on the server), Nana entries with a stubbed model and the allowance, offline entries synced once (every kind),
+// a purchase, paying a debt online with a stubbed Paystack (webhook-safe), and the monthly email (once per seller and month).
 // Run: npm run test:books-server → "ALL OK".
 import assert from "node:assert/strict";
+process.env.ANTHROPIC_API_KEY = "test-key"; // Nana on "our" account; the model itself is stubbed below
+process.env.PAYSTACK_SECRET_KEY = "sk_test_standin"; // Paystack is stubbed below: no network, no money
 import { initializeApp } from "firebase-admin/app";
 import { getAuth } from "firebase-admin/auth";
 import { getFirestore } from "firebase-admin/firestore";
@@ -12,6 +16,29 @@ import {
 } from "../../lib/books-server";
 import { lagosDay } from "../../lib/books";
 import { templateCsv } from "../../lib/books-import";
+import { booksRoleOf, recordPurchase } from "../../lib/books-server";
+import { answerStaffInvite, cashierHome, catalogFor, inviteStaff, removeStaff, revokeInvite, setStaffRole, staffView } from "../../lib/books-staff-server";
+import { nanaEntries } from "../../lib/books-nana-server";
+import { syncOutbox } from "../../lib/books-sync-server";
+import { checkDebtPayment, startDebtPayment } from "../../lib/books-debt-server";
+import { monthlyBooksReports } from "../../lib/books-report-server";
+import { fulfillPayment } from "../../lib/payments";
+import { periodKey } from "../../lib/nana-gems";
+import { currentPricing } from "../../lib/pricing";
+import type { CompleteArgs, NanaDeps } from "../../lib/nana-server";
+
+// Paystack stand-in: what verify says for each reference.
+const paystack = new Map<string, { status: string; amount: number }>();
+const realFetch = globalThis.fetch;
+globalThis.fetch = (async (url: string | URL | Request, init?: RequestInit) => {
+  const u = String(url);
+  if (u.startsWith("https://api.paystack.co/transaction/verify/")) {
+    const ref = decodeURIComponent(u.split("/").pop()!);
+    const t = paystack.get(ref);
+    return new Response(JSON.stringify(t ? { status: true, data: { ...t, currency: "NGN", reference: ref } } : { status: false, message: "Transaction reference not found" }), { status: t ? 200 : 400 });
+  }
+  return realFetch(url as string, init);
+}) as typeof fetch;
 
 initializeApp({ projectId: "demo-notesapp" });
 const db = getFirestore();
@@ -275,6 +302,242 @@ Bad row,,Foodstuff,7000,9500,-2,bag`;
   const files = await exportAll(k3);
   assert.deepEqual(files.map((f) => f.name), ["sales.csv", "expenses.csv", "payments-received.csv", "money-owed-to-you.csv", "money-you-owe.csv", "stock.csv"]);
   assert.ok(files[0].csv.includes("Knotless braids") && files[4].csv.includes("Alhaji Sani Rice Depot"));
+
+  // ======== v0.119.0 ========
+  for (const [uid, name] of [["cash1", "Blessing"], ["mgr1", "Tunde"], ["st3", "Three"], ["st4", "Four"], ["st5", "Five"]]) {
+    await db.doc(`users/${uid}`).set({ uid, username: uid, displayName: name, role: "reader", accountTier: "standard" });
+    await db.doc(`usernames/${uid}`).set({ uid });
+  }
+  await db.doc("storeItems/orgrice").set({ ownerUid: "org", title: "Rice 10kg", sellable: true, kind: "physical", stock: 10, priceKobo: 1_500_000 });
+  await db.doc("inventory/orgrice").set({ ownerUid: "org", sku: "ORG-RICE", variantSku: {}, costKobo: 1_200_000, lowAt: 2 });
+  const sent: { to: string; subject: string; html?: string; headers?: Record<string, string> }[] = [];
+  const send = async (m: { to: string; subject: string; text: string; html?: string; headers?: Record<string, string> }) => { sent.push(m); return true; };
+
+  // ---- Staff roles: invited by the owner (or an admin), accepted by the member, checked on the server for every action ----
+  const orgOwner = await context(db, "org", "org");
+  await fails(inviteStaff(k, { identifier: "@cash1", role: "cashier" }), 402, "staff_plan"); // Free Basic has no staff seats
+  await fails(inviteStaff(pro, { identifier: "@cash1", role: "cashier" }), 402, "staff_plan"); // nor Pro, until open question 4 is answered
+  await fails(inviteStaff(orgOwner, { identifier: "@cash1", role: "owner" }), 400);
+  await fails(inviteStaff(orgOwner, { identifier: "@nobody-here", role: "cashier" }), 404);
+  const inv1 = await inviteStaff(orgOwner, { identifier: "@cash1", role: "cashier" }, send);
+  assert.equal(inv1.status, "pending"); assert.equal(await booksRoleOf(db, "cash1", "org"), null, "not before they accept");
+  assert.ok((await db.collection("notifications").where("recipientUid", "==", "cash1").get()).docs.some((d) => String(d.data().linkHref).startsWith("/invites/books/")), "a bell with the accept link");
+  await fails(inviteStaff(orgOwner, { identifier: "cash1", role: "manager" }), 409);
+  await answerStaffInvite(db, "cash1", inv1.id, true);
+  // An organisation's admin can invite too.
+  const orgAdmin = await context(db, "admin1", "org");
+  const inv2 = await inviteStaff(orgAdmin, { identifier: "mgr1", role: "manager" }, send);
+  await fails(answerStaffInvite(db, "cash1", inv2.id, true), 404, undefined); // not theirs to answer
+  await answerStaffInvite(db, "mgr1", inv2.id, true);
+  assert.equal(await booksRoleOf(db, "cash1", "org"), "cashier");
+  assert.equal(await booksRoleOf(db, "mgr1", "org"), "manager");
+  assert.equal(await booksRoleOf(db, "admin1", "org"), "admin");
+  assert.equal(await booksRoleOf(db, "staff1", "org"), null, "store access alone still isn't the books");
+  assert.equal(await booksRoleOf(db, "cash1", "kemi"), null);
+  // Seats: Business has 4, and waiting invitations count.
+  await inviteStaff(orgOwner, { identifier: "st3", role: "cashier" });
+  const inv4 = await inviteStaff(orgOwner, { identifier: "st4", role: "cashier" });
+  await fails(inviteStaff(orgOwner, { identifier: "st5", role: "cashier" }), 409, "staff_seats");
+  await revokeInvite(orgOwner, inv4.id);
+  assert.equal((await staffView(orgOwner)).used, 3);
+  // The cashier: sales and payments received; their own today; no costs.
+  const cashier = await context(db, "cash1", "org");
+  assert.equal(cashier.role, "cashier");
+  assert.ok((await catalogFor(cashier)).every((x) => x.costKobo === 0), "no cost prices for a cashier");
+  assert.equal((await catalogFor(orgOwner)).find((x) => x.itemId === "orgrice")!.costKobo, 1_200_000);
+  const cSale = await recordSale(cashier, { clientId: "cashier-sale-1", method: "cash", lines: [{ ref: "i:orgrice:", qty: 1, unitKobo: 1_500_000 }] });
+  assert.equal(cSale.entry.by, "cash1", "every entry keeps who made it");
+  const mSale = await recordSale(await context(db, "mgr1", "org"), { clientId: "manager-sale-1", method: "transfer", lines: [{ title: "Delivery", qty: 1, unitKobo: 100_000 }] });
+  const ch = await cashierHome(cashier);
+  assert.deepEqual(ch.entries.map((e) => e.id), [cSale.entry.id], "a cashier sees only what they recorded today");
+  assert.equal(ch.mine.salesKobo, 1_500_000);
+  assert.ok(!("pnl" in ch) && ch.entries.every((e) => e.lines.every((l) => l.costKobo === 0)), "no profit or costs");
+  await fails(voidEntry(cashier, mSale.entry.id, "not mine"), 403);
+  await fails(shareReceipt(cashier, mSale.entry.id, "whatsapp", "08031234567"), 403);
+  assert.equal((await shareReceipt(cashier, cSale.entry.id, "whatsapp", "08031234567")).channel, "whatsapp_link");
+  // The seller filters by who recorded it.
+  assert.deepEqual((await entriesView(orgOwner, "sale", "day", 0, "cash1")).entries.map((e) => e.id), [cSale.entry.id]);
+  assert.deepEqual((await entriesView(orgOwner, "sale", "day", 0, "mgr1")).entries.map((e) => e.id), [mSale.entry.id]);
+  // A role change, and removal; staff lose the books when the seller's plan loses staff seats.
+  await setStaffRole(orgOwner, "cash1", "manager");
+  assert.equal(await booksRoleOf(db, "cash1", "org"), "manager");
+  await setStaffRole(orgOwner, "cash1", "cashier");
+  await db.doc("users/org").update({ accountTier: "pro" });
+  assert.equal(await booksRoleOf(db, "cash1", "org"), null, "Pro has no staff seats (by default)");
+  await db.doc("users/org").update({ accountTier: "business" });
+  await removeStaff(orgOwner, "mgr1");
+  assert.equal(await booksRoleOf(db, "mgr1", "org"), null);
+  await fails(context(db, "mgr1", "org"), 403);
+
+  // ---- Nana entries: Pearl (stubbed), on the owner's allowance; nothing saved until the seller does ----
+  const calls: CompleteArgs[] = [];
+  let reply = "";
+  const deps: NanaDeps = { now: () => now, complete: async (a) => { calls.push(a); return { text: reply, refused: false, usage: { input_tokens: 1500, output_tokens: 200 } }; } };
+  reply = JSON.stringify({ entries: [
+    { kind: "sale", items: [{ name: "rice", qty: 3, unit_price: null, total: 45000 }], amount: 45000, paid: 0, method: null, on_credit: true, customer: "Mama Bisi", due: later, category: null, note: null, unsure: [] },
+    { kind: "expense", items: [], amount: 18000, method: "cash", customer: null, category: "power", note: "Diesel" },
+  ] });
+  const before = (await db.collection("bookEntries").where("ownerUid", "==", "kemi").get()).size;
+  const n1 = await nanaEntries(k, "Sold 3 bags of rice ₦45,000 to Mama Bisi on credit, due soon. Bought diesel 18k cash", deps);
+  assert.equal(n1.via, "platform");
+  assert.deepEqual(n1.drafts.map((d) => [d.kind, d.totalKobo]), [["sale", 4_500_000], ["expense", 1_800_000]]);
+  assert.equal(n1.drafts[0].lines[0].ref, "i:rice:", "matched to the seller's own item by name and price");
+  assert.equal(calls[0].model, "claude-haiku-5-5"); assert.equal(calls[0].effort, "low");
+  assert.ok(String(calls[0].messages[0].content).includes("Rice 10kg (Mama Gold) [RICE-MG-10]: ₦15,000"), "Pearl sees the item and its price");
+  assert.ok(!String(calls[0].messages[0].content).includes("0803"), "never a phone number");
+  assert.equal((await db.collection("bookEntries").where("ownerUid", "==", "kemi").get()).size, before, "nothing saved");
+  assert.ok(((await db.doc("nanaAccounts/kemi").get()).data()?.usedKobo ?? 0) > 0, "charged to the owner's Nana allowance");
+  // A cashier gets only what a cashier may save; the shop's allowance pays.
+  calls.length = 0;
+  const n2 = await nanaEntries(await context(db, "cash1", "org"), "Sold 3 rice 45k, bought diesel 18k", deps);
+  assert.deepEqual(n2.drafts.map((d) => d.kind), ["sale"]); assert.equal(n2.dropped, 1);
+  assert.ok(((await db.doc("nanaAccounts/org").get()).data()?.usedKobo ?? 0) > 0 && !(await db.doc("nanaAccounts/cash1").get()).exists, "the shop pays, not the cashier");
+  // A reply that isn't the JSON asked for, and nothing to find.
+  reply = "Sure, here you go!";
+  await fails(nanaEntries(k, "Sold 2 garri 5k", deps), 422);
+  reply = '{"entries":[]}';
+  assert.match((await nanaEntries(k, "Good morning", deps)).note ?? "", /didn't find/);
+  await fails(nanaEntries(k, "   ", deps), 400);
+  await fails(nanaEntries(k, "x".repeat(700), deps), 400);
+  // Out of allowance (and no credit): a clear message, and the model isn't called.
+  const n = currentPricing().nana;
+  await db.doc("nanaAccounts/kemi").set({ period: periodKey(now, n.resetEvery), usedKobo: 10_000_000, creditKobo: 0 });
+  calls.length = 0;
+  await fails(nanaEntries(k, "Sold 2 garri 5k", deps), 402, "nana_allowance");
+  assert.equal(calls.length, 0);
+
+  // ---- Offline entries: synced once, whatever kind; their own day; stock and customers checked at sync time ----
+  const k4 = await context(db, "kemi", "kemi", now);
+  const riceStock = (await db.doc("storeItems/rice").get()).data()!.stock as number;
+  const yesterday = new Date(now.getTime() - 86_400_000).toISOString();
+  const musaId = (await db.collection("bookParties").where("ownerUid", "==", "kemi").where("name", "==", "Alhaji Musa Danladi").get()).docs[0].id;
+  const items = [
+    { clientId: "off-sale-0001", action: "sale", at: yesterday, body: { method: "cash", lines: [{ ref: "i:rice:", qty: riceStock + 2, unitKobo: 1_500_000 }] } },
+    { clientId: "off-exp-00001", action: "expense", at: yesterday, body: { amountKobo: 300_000, method: "cash", category: "transport", note: "Okada" } },
+    { clientId: "off-pay-00001", action: "payment", at: yesterday, body: { partyId: musaId, partyName: "Alhaji Musa Danladi", amountKobo: 100_000, method: "cash" } },
+    { clientId: "off-sale-0002", action: "sale", body: { method: "cash", owes: true, paidKobo: 0, partyId: "gone-customer", partyName: "Ngozi Eze", lines: [{ title: "Braids", qty: 1, unitKobo: 500_000 }] } },
+    { clientId: "off-pay-00002", action: "payment", body: { partyId: "gone-customer", partyName: "Ngozi", amountKobo: 100, method: "cash" } },
+    { clientId: "off-buy-00001", action: "purchase", body: { method: "transfer", lines: [{ ref: "i:garri:", qty: 10, unitKobo: 200_000 }] } },
+    { clientId: "off-bad-00001", action: "refund", body: {} },
+  ];
+  const r1 = await syncOutbox(k4, items);
+  assert.deepEqual(r1.map((x) => x.status), ["saved", "saved", "saved", "saved", "failed", "saved", "failed"]);
+  assert.match(r1[0].notes.join(" "), /Item out of stock: Rice 10kg \(Mama Gold\): only \d+ were in stock/);
+  assert.equal((await db.doc("storeItems/rice").get()).data()!.stock, 0, "the sale is never dropped; stock stops at 0 and the seller counts it");
+  assert.match(r1[3].notes.join(" "), /Ngozi Eze wasn't in your customers, so they were added/);
+  assert.match(r1[4].error ?? "", /Customer not found/); assert.equal(r1[4].retry, undefined);
+  const offSale = (await db.doc("bookEntries/kemi_off-sale-0001").get()).data()!;
+  assert.equal(offSale.on, lagosDay(new Date(yesterday)), "recorded yesterday, so it's yesterday's");
+  assert.equal(offSale.offline, true);
+  assert.match(r1[0].receiptUrl ?? "", /\/receipt\//);
+  // Sent again (Background Sync and the page both trying): already saved, nothing twice.
+  const count = async () => (await db.collection("bookEntries").where("ownerUid", "==", "kemi").get()).size;
+  const n0 = await count();
+  const r2 = await syncOutbox(k4, items.slice(0, 6));
+  assert.deepEqual(r2.map((x) => x.status), ["duplicate", "duplicate", "duplicate", "duplicate", "failed", "duplicate"]);
+  assert.equal(await count(), n0);
+  // Each kind is de-duplicated by its clientId when sent straight too.
+  const e1 = await recordExpense(k4, { clientId: "dup-exp-0001", amountKobo: 100_000, method: "cash", category: "data" });
+  const e2 = await recordExpense(k4, { clientId: "dup-exp-0001", amountKobo: 999_999, method: "cash", category: "rent" });
+  assert.equal(e2.id, e1.id); assert.equal(e2.totalKobo, 100_000);
+  const p1 = await recordPurchase(k4, { clientId: "dup-buy-0001", method: "cash", lines: [{ title: "Nylon bags", qty: 5, unitKobo: 10_000 }] });
+  assert.equal((await recordPurchase(k4, { clientId: "dup-buy-0001", method: "cash", lines: [{ title: "Nylon bags", qty: 5, unitKobo: 10_000 }] })).id, p1.id);
+  // A cashier's sync can't carry an expense.
+  const rc = await syncOutbox(await context(db, "cash1", "org"), [{ clientId: "cash-exp-0001", action: "expense", body: { amountKobo: 100, method: "cash", category: "other" } }]);
+  assert.equal(rc[0].status, "failed"); assert.match(rc[0].error ?? "", /role/);
+
+  // ---- A purchase (restock): stock up through Inventory, an expense under Stock purchases; voided, it comes back down ----
+  const garri0 = (await db.doc("storeItems/garri").get()).data()!.stock as number;
+  const buy = await recordPurchase(k4, { method: "transfer", updateCost: true, lines: [{ ref: "i:garri:", qty: 20, unitKobo: 210_000 }] });
+  assert.equal(buy.kind, "expense"); assert.equal(buy.category, "stock"); assert.equal(buy.totalKobo, 4_200_000);
+  assert.equal((await db.doc("storeItems/garri").get()).data()!.stock, garri0 + 20);
+  assert.equal((await db.doc("inventory/garri").get()).data()!.costKobo, 210_000, "the cost price, when ticked");
+  assert.ok((await db.collection("inventoryMoves").where("bookRef", "==", buy.id).get()).docs.some((d) => d.data().reason === "restock"));
+  await voidEntry(k4, buy.id, "entered twice");
+  assert.equal((await db.doc("storeItems/garri").get()).data()!.stock, garri0);
+
+  // ---- Paying a debt online: Pay now on the statement, Paystack (stubbed), recorded once whoever confirms first ----
+  const musaParty = (await db.doc(`bookParties/${musaId}`).get()).data()!;
+  const owes0 = Number(musaParty.balanceKobo);
+  assert.ok(owes0 > 0);
+  const inits: { amountKobo: number; channels?: string[]; callbackUrl: string }[] = [];
+  const init = (async (p: { amountKobo: number; channels?: string[]; callbackUrl: string }) => { inits.push(p); return { authorization_url: "https://checkout.paystack.test/abc", reference: "x" }; }) as unknown as Parameters<typeof startDebtPayment>[3];
+  const scode = String(musaParty.statementCode);
+  await fails(startDebtPayment(db, { code: scode, amount: (owes0 + 100) / 100, email: "musa@example.com" }, now, init), 400);
+  await fails(startDebtPayment(db, { code: scode, amount: 50, email: "musa@example.com" }, now, init), 400);
+  await fails(startDebtPayment(db, { code: scode, amount: 100, email: "not-an-email" }, now, init), 400);
+  await fails(startDebtPayment(db, { code: "NOTACODE00", amount: 100, email: "musa@example.com" }, now, init), 404);
+  const st1 = await startDebtPayment(db, { code: scode, amount: 2_000, email: "musa@example.com" }, now, init);
+  assert.equal(st1.url, "https://checkout.paystack.test/abc");
+  assert.deepEqual(inits[0].channels, ["card", "bank_transfer"]);
+  assert.ok(inits[0].callbackUrl.endsWith(`/statement/${scode}?ref=${st1.reference}`));
+  const pay1 = (await db.doc(`payments/${st1.reference}`).get()).data()!;
+  assert.equal(pay1.kind, "debt"); assert.equal(pay1.amountKobo, 200_000); assert.equal(pay1.publisherUid, "kemi"); assert.equal(pay1.uid, "");
+  assert.equal(pay1.commissionRate, (await import("../../lib/tiers")).physicalCommissionRateFor("basic"), "the store's commission rule (open question 5)");
+  // Not paid yet: nothing recorded.
+  paystack.set(st1.reference, { status: "abandoned", amount: 200_000 });
+  assert.equal((await checkDebtPayment(db, scode, st1.reference, fulfillPayment)).status, "pending");
+  assert.equal((await db.doc(`bookEntries/debt_${st1.reference}`).get()).exists, false);
+  // Paid: the return page and the webhook both confirm; it's recorded once.
+  paystack.set(st1.reference, { status: "success", amount: 200_000 });
+  const done1 = await checkDebtPayment(db, scode, st1.reference, fulfillPayment);
+  assert.equal(done1.status, "paid"); assert.match(done1.receiptUrl ?? "", /\/receipt\/[2-9A-HJKMNP-Z]{10}$/);
+  await fulfillPayment(st1.reference); // the webhook, late
+  const de = (await db.doc(`bookEntries/debt_${st1.reference}`).get()).data()!;
+  assert.equal(de.kind, "payment"); assert.equal(de.source, "online"); assert.equal(de.totalKobo, 200_000); assert.equal(de.partyId, musaId);
+  assert.equal((await db.collection("bookEntries").where("paymentRef", "==", st1.reference).get()).size, 1, "once");
+  assert.equal((await db.doc(`bookParties/${musaId}`).get()).data()!.balanceKobo, owes0 - 200_000);
+  const led = (await db.doc(`ledger/${st1.reference}`).get()).data()!;
+  assert.equal(led.kind, "debt"); assert.equal(led.status, "held"); assert.equal(led.grossKobo, 200_000);
+  assert.equal(led.commissionKobo, Math.round(200_000 * pay1.commissionRate)); assert.equal(led.netKobo, 200_000 - led.commissionKobo);
+  assert.equal(Math.round((Date.parse(led.releaseAfter) - Date.parse(led.createdAt)) / 86_400_000), 7, "held 7 days, then paid out");
+  const debtRcpt = await publicReceipt(db, done1.receiptUrl!.split("/").pop()!);
+  assert.equal(debtRcpt!.totalKobo, 200_000); assert.equal(debtRcpt!.owesKobo, owes0 - 200_000);
+  assert.ok((await db.collection("notifications").where("recipientUid", "==", "kemi").get()).docs.some((d) => /paid ₦2,000 of what they owe you, online/.test(String(d.data().message))), "the seller's bell");
+  assert.equal((await publicStatement(db, scode))!.owesKobo, owes0 - 200_000);
+  // A wrong code can't confirm someone else's payment; the rest of it, paid in full, settles it.
+  await fails(checkDebtPayment(db, "NOTACODE00", st1.reference, fulfillPayment), 404);
+  const st2 = await startDebtPayment(db, { code: scode, amount: (owes0 - 200_000) / 100, email: "musa@example.com" }, now, init);
+  paystack.set(st2.reference, { status: "success", amount: owes0 - 200_000 });
+  await fulfillPayment(st2.reference);
+  assert.equal((await db.doc(`bookParties/${musaId}`).get()).data()!.balanceKobo, 0);
+  assert.equal((await publicStatement(db, scode))!.owesKobo, 0);
+  // Paystack said a different amount: refused, nothing recorded.
+  const bisiCode = String((await db.collection("bookParties").where("ownerUid", "==", "kemi").where("memberUid", "==", "bisi").get()).docs[0]?.data().statementCode ?? "");
+  if (bisiCode && (await publicStatement(db, bisiCode))!.owesKobo >= 10_000) {
+    const st3 = await startDebtPayment(db, { code: bisiCode, amount: 100, email: "b@example.com" }, now, init);
+    paystack.set(st3.reference, { status: "success", amount: 5 });
+    await assert.rejects(fulfillPayment(st3.reference));
+    assert.equal((await db.doc(`bookEntries/debt_${st3.reference}`).get()).exists, false);
+  }
+
+  // ---- The monthly email: the 1st from 08:00 Lagos, once per seller and month, only with entries ----
+  const lagosNow = new Date(now.getTime() + 3_600_000);
+  const firstNext = Date.UTC(lagosNow.getUTCFullYear(), lagosNow.getUTCMonth() + 1, 1) - 3_600_000; // 00:00 Lagos on the 1st of next month
+  const at0830 = new Date(firstNext + 8.5 * 3_600_000), at0700 = new Date(firstNext + 7 * 3_600_000);
+  await db.doc("emailPrefs/prox").set({ booksReport: false }); // the Pro seller turned it off
+  const mail: typeof sent = [];
+  const bells: string[] = [];
+  const deps2 = { send: async (m: { to: string; subject: string; text: string; html?: string; headers?: Record<string, string> }) => { mail.push(m); return true; }, emailOf: async (uid: string) => `${uid}@example.com`, bell: async (b: { uid: string; message: string }) => { bells.push(`${b.uid}: ${b.message}`); } };
+  assert.equal(await monthlyBooksReports(db, at0700, deps2 as never), 0, "not before 08:00");
+  const sentN = await monthlyBooksReports(db, at0830, deps2 as never);
+  const to = mail.map((m) => m.to).sort();
+  assert.ok(to.includes("kemi@example.com") && to.includes("org@example.com"), to.join(","));
+  assert.ok(!to.includes("prox@example.com"), "turned off");
+  assert.ok(!to.some((t) => /stranger|cash1|mgr1|free/.test(t)), "no entries, no email; staff never get it");
+  assert.equal(sentN, mail.length);
+  const km = mail.find((m) => m.to === "kemi@example.com")!;
+  assert.match(km.subject, /^Kemi's Store & Salon's books for /);
+  for (const want of ["Walk-in", "Online store", "BEST SELLERS", "MONEY OWED TO YOU", "profit and loss"]) assert.ok(km.html!.includes(want), want);
+  assert.ok(km.headers?.["List-Unsubscribe-Post"] === "List-Unsubscribe=One-Click" || !km.headers, "one-click unsubscribe when the link is signed");
+  assert.ok(bells.some((b) => b.startsWith("kemi: Your books for")));
+  // Run again (the next cron tick, or two at once): nobody gets it twice.
+  assert.equal(await monthlyBooksReports(db, new Date(at0830.getTime() + 15 * 60_000), deps2 as never), 0);
+  assert.equal(mail.length, sentN);
+  const monthId = new Date(now.getTime() + 3_600_000).toISOString().slice(0, 7);
+  assert.equal((await db.doc(`bookReports/kemi_${monthId}`).get()).data()!.status, "sent");
+  assert.equal((await db.doc(`bookReportRuns/${monthId}`).get()).data()!.done, true);
+  assert.equal((await db.doc(`bookReports/prox_${monthId}`).get()).exists, false);
 
   console.log("ALL OK");
   process.exit(0);

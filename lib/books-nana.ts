@@ -158,7 +158,7 @@ Rules
 export function nanaPrompt(text: string, today: string, items: NanaItem[], customers: NanaCustomer[]): string {
   const list = items.slice(0, NANA_ITEMS_MAX).map((i) => `- ${i.title}${i.sku ? ` [${i.sku}]` : ""}: ${naira(i.priceKobo)}`).join("\n") || "(none yet)";
   const people = customers.slice(0, NANA_CUSTOMERS_MAX).map((c) => firstName(c.name)).filter((v, i, a) => a.indexOf(v) === i).join(", ") || "(none yet)";
-  return `TODAY: ${today} (${DOW[new Date(`${today}T00:00:00Z`).getUTCDay()]})\n\nITEMS (name: price each)\n${list}\n\nCUSTOMERS (first names)\n${people}\n\nMESSAGE\n${text}`;
+  return `TODAY: ${today} (${((d) => d[0].toUpperCase() + d.slice(1))(DOW[new Date(`${today}T00:00:00Z`).getUTCDay()])})\n\nITEMS (name: price each)\n${list}\n\nCUSTOMERS (first names)\n${people}\n\nMESSAGE\n${text}`;
 }
 
 // The answer, read strictly: a JSON object with an "entries" array, found even if Pearl wrapped it in a code fence.

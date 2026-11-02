@@ -121,6 +121,6 @@ export async function notifyDebtPaid(p: { reference: string; amountKobo: number;
 export async function checkDebtPayment(db: Firestore, code: string, reference: string, fulfil: (ref: string) => Promise<{ status: string; debt?: DebtInfo }>) {
   const p = (await db.doc(`payments/${reference}`).get()).data();
   if (!p || p.kind !== "debt" || p.debt?.code !== code.toUpperCase()) throw new BooksError(404, "Payment not found.");
-  const done = p.status === "pending" ? await fulfil(reference).catch((e) => { console.error("debt verify", reference, e); return { status: "pending" } as { status: string; debt?: DebtInfo }; }) : (p as { status: string; debt?: DebtInfo });
+  const done = p.status === "pending" ? await fulfil(reference).catch((e) => { if (!/not successful/i.test(String((e as Error)?.message))) console.error("debt verify", reference, e); return { status: "pending" } as { status: string; debt?: DebtInfo }; }) : (p as { status: string; debt?: DebtInfo });
   return { status: done.status, amountKobo: Number(p.amountKobo), receiptUrl: done.debt?.receiptCode ? receiptUrl(done.debt.receiptCode) : null };
 }

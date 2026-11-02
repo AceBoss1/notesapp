@@ -1,5 +1,7 @@
 // Business books, the pure parts (lib/books.ts, lib/books-import.ts): kobo maths, periods, the P&L, cash in hand, the Free Basic caps,
-// paying back oldest first, the debtors list, the WhatsApp messages, and CSV reading, column matching and duplicates.
+// paying back oldest first, the debtors list, the WhatsApp messages, and CSV reading, column matching and duplicates. Then (v0.119.0)
+// Nana entries (lib/books-nana.ts) read from sample phrases with a stubbed model answer and the stand-in reader, the offline outbox
+// (lib/books-outbox.ts), staff roles, paying a debt online and the monthly summary (lib/books-report.ts).
 // Run: npm run test:books → "ALL OK".
 import assert from "node:assert/strict";
 import {
@@ -8,6 +10,10 @@ import {
 } from "../../lib/books";
 import { FIELDS, PRESETS, csvOf, customerKey, dedupe, expenseKey, guessMapping, missingRequired, parseDay, parseMethod, readRows, readSheet, saleKey, templateCsv, cleanMapping, type Sheet } from "../../lib/books-import";
 import { DEFAULT_PRICING } from "../../lib/pricing";
+import { can, debtAmount, debtCommissionKobo, staffSeats, type BooksAct } from "../../lib/books";
+import { cleanDrafts, matchItem, nanaPrompt, parseDue, parseNaira, readReply, standInEntries, type NanaItem } from "../../lib/books-nana";
+import { applyResults, backoff, badgeText, batchFailed, due, enqueue, prune, recordedAt, resultText, retry, waitingCount, type OutboxItem } from "../../lib/books-outbox";
+import { inSendWindow, monthById, previousMonth, renderReportHtml, renderReportText, reportBell, reportFrom, reportMonth, reportSubject } from "../../lib/books-report";
 
 const caps = DEFAULT_PRICING.books;
 let n = 0;
@@ -206,5 +212,192 @@ const cust = dedupe([{ phone: "2348031234567", name: "Bisi" }, { phone: "", name
 assert.deepEqual(cust.fresh.map((r) => r.name), ["Chinedu"]);
 // Exports escape what a spreadsheet would run.
 assert.equal(csvOf([["=SUM(A1)", "-5", "a,b", "ok"]]), "'=SUM(A1),'-5,\"a,b\",ok\n");
+
+// ---- Nana entries (lib/books-nana.ts) ----
+// Naija money: "5k", "₦45,000", "45 thousand", "1.5m", "N3,500"; words and nonsense are refused.
+assert.equal(parseNaira("5k"), 500_000);
+assert.equal(parseNaira("₦45,000"), 4_500_000);
+assert.equal(parseNaira("45 thousand"), 4_500_000);
+assert.equal(parseNaira("1.5m"), 150_000_000);
+assert.equal(parseNaira("2 million"), 200_000_000);
+assert.equal(parseNaira("N3,500"), 350_000);
+assert.equal(parseNaira("NGN 3500"), 350_000);
+assert.equal(parseNaira(45000), 4_500_000, "a model's plain number is naira");
+assert.equal(parseNaira("five k"), 500_000);
+assert.equal(parseNaira("plenty"), null);
+assert.equal(parseNaira("-5k"), null);
+// Dates from "today" (Monday 2 November 2026): "Friday" is the next Friday, "the 15th" the next 15th.
+const mon = "2026-11-02";
+assert.equal(parseDue("Friday", mon), "2026-11-06");
+assert.equal(parseDue("monday", mon), "2026-11-09", "the same weekday means next week's");
+assert.equal(parseDue("tomorrow", mon), "2026-11-03");
+assert.equal(parseDue("on the 15th", mon), "2026-11-15");
+assert.equal(parseDue("the 1st", mon), "2026-12-01", "a day already past this month is next month's");
+assert.equal(parseDue("20 Jan", mon), "2027-01-20");
+assert.equal(parseDue("end of the month", mon), "2026-11-30");
+assert.equal(parseDue("2026-10-01", mon), null, "never a day already past");
+assert.equal(parseDue("someday", mon), null);
+// Matching items: words, then the price each when two items share a name ("₦15,000 a bag" is the 10kg rice).
+const items: NanaItem[] = [
+  { ref: "i:rice10:", title: "Rice 10kg (Mama Gold)", sku: "RICE-MG-10", priceKobo: 1_500_000 }, { ref: "i:rice50:", title: "Rice 50kg (Mama Gold)", priceKobo: 7_800_000 },
+  { ref: "i:garri:", title: "Garri, white (50kg bag)", priceKobo: 4_200_000 }, { ref: "b:ank", title: "Ankara, Blue Lagoon (6 yards)", priceKobo: 1_800_000 },
+];
+const customersN = [{ id: "p1", name: "Mama Bisi (Bisi Adebayo)" }, { id: "p2", name: "Chinedu Okafor" }, { id: "p3", name: "Funke Alade" }, { id: "p4", name: "Funke Bello" }];
+assert.equal(matchItem("rice", items, 1_500_000).ref, "i:rice10:");
+assert.equal(matchItem("rice", items).match, "unsure", "two rice items and no price: Nana says so");
+assert.deepEqual(matchItem("rice", items).options?.map((o) => o.ref), ["i:rice10:", "i:rice50:"]);
+assert.equal(matchItem("RICE-MG-10", items).ref, "i:rice10:", "a SKU");
+assert.equal(matchItem("ankara", items).ref, "b:ank");
+assert.equal(matchItem("knotless braids", items).match, "typed");
+
+// A stubbed model answer (what Pearl replies), read strictly and checked field by field.
+const ctxN = { today: mon, items, customers: customersN };
+const pearl = (o: unknown) => "```json\n" + JSON.stringify(o) + "\n```";
+const entries = readReply(pearl({ entries: [
+  { kind: "sale", items: [{ name: "rice", qty: 3, unit_price: null, total: 45000 }], amount: 45000, paid: 0, method: null, on_credit: true, customer: "Mama Bisi", due: "2026-11-06", category: null, note: null, unsure: [] },
+  { kind: "expense", items: [], amount: "18k", paid: null, method: "cash", on_credit: false, customer: null, due: null, category: "power", note: "Diesel", unsure: [] },
+  { kind: "payment", items: [], amount: 20000, paid: null, method: "transfer", on_credit: false, customer: "Chinedu", due: null, category: null, note: null, unsure: [] },
+  { kind: "purchase", items: [{ name: "garri", qty: 10, unit_price: 52000, total: null }], amount: null, paid: null, method: null, on_credit: false, customer: null, due: null, category: null, note: null, unsure: [] },
+  { kind: "refund", items: [], amount: 5000 }, // not a kind Books takes from Nana: dropped
+  { kind: "sale", items: [{ name: "garri", qty: 2.5, total: 84000 }], amount: 84000, paid: "half", on_credit: true, customer: "Funke", due: "yesterday" },
+] }));
+assert.ok(entries);
+const drafts = cleanDrafts(entries!, ctxN);
+assert.equal(drafts.length, 5, "the refund is dropped");
+assert.deepEqual(drafts[0], {
+  kind: "sale", lines: [{ ref: "i:rice10:", title: "Rice 10kg (Mama Gold)", qty: 3, unitKobo: 1_500_000, match: "item" }], totalKobo: 4_500_000, paidKobo: 0, method: null, owes: true,
+  customer: { name: "Mama Bisi (Bisi Adebayo)", partyId: "p1", match: "found" }, dueOn: "2026-11-06", unsure: [],
+});
+assert.deepEqual([drafts[1].kind, drafts[1].totalKobo, drafts[1].method, drafts[1].category, drafts[1].note], ["expense", 1_800_000, "cash", "power", "Diesel"]);
+assert.deepEqual([drafts[2].kind, drafts[2].totalKobo, drafts[2].customer?.partyId], ["payment", 2_000_000, "p2"]);
+assert.deepEqual([drafts[3].kind, drafts[3].lines[0].ref, drafts[3].lines[0].unitKobo, drafts[3].totalKobo, drafts[3].category], ["purchase", "i:garri:", 5_200_000, 52_000_000, "stock"]);
+// A quantity that isn't whole, a "paid" Books can't read, two Funkes and a past due date: each one said on the card, nothing guessed silently.
+const odd = drafts[4];
+assert.equal(odd.lines[0].qty, 1); assert.equal(odd.customer?.match, "unsure"); assert.equal(odd.dueOn, undefined);
+assert.ok(odd.unsure.some((u) => /quantity/.test(u)) && odd.unsure.some((u) => /More than one customer/.test(u)) && odd.unsure.some((u) => /due date/.test(u)), odd.unsure.join(" | "));
+// Not JSON, or no entries array: nothing (the server says "couldn't read that").
+assert.equal(readReply("Sure! Here are your entries."), null);
+assert.equal(readReply('{"items":[]}'), null);
+assert.deepEqual(cleanDrafts(readReply('{"entries":[]}')!, ctxN), []);
+// A payment needs someone; a sale with no amount and no price is dropped rather than saved at ₦0.
+assert.deepEqual(cleanDrafts([{ kind: "payment", amount: 5000 }, { kind: "sale", items: [{ name: "knotless braids", qty: 1 }] }], ctxN), []);
+// What Pearl sees: item names, SKUs and prices, and first names only.
+const prompt = nanaPrompt("Sold 3 rice", mon, items, customersN);
+assert.ok(prompt.includes("TODAY: 2026-11-02 (Monday)") && prompt.includes("Rice 10kg (Mama Gold) [RICE-MG-10]: ₦15,000") && prompt.includes("Bisi, Chinedu, Funke"));
+assert.ok(!prompt.includes("Okafor") && !prompt.includes("Adebayo"), "no surnames");
+
+// The stand-in reader (development with no AI key) on the owner's own phrases, through the same checks.
+const say = (t: string) => cleanDrafts(standInEntries(t, mon), ctxN);
+const s1 = say("Sold 3 bags of rice ₦45,000 to Mama Bisi on credit, due Friday");
+assert.deepEqual([s1[0].kind, s1[0].lines[0].ref, s1[0].lines[0].qty, s1[0].totalKobo, s1[0].paidKobo, s1[0].owes, s1[0].customer?.partyId, s1[0].dueOn], ["sale", "i:rice10:", 3, 4_500_000, 0, true, "p1", "2026-11-06"]);
+const s2 = say("Bought diesel 18k cash");
+assert.deepEqual([s2[0].kind, s2[0].totalKobo, s2[0].method, s2[0].category], ["expense", 1_800_000, "cash", "power"]);
+const s3 = say("Chinedu paid 20k");
+assert.deepEqual([s3[0].kind, s3[0].totalKobo, s3[0].customer?.partyId], ["payment", 2_000_000, "p2"]);
+const s4 = say("Bought 10 bags garri at 52k each");
+assert.deepEqual([s4[0].kind, s4[0].lines[0].qty, s4[0].lines[0].unitKobo, s4[0].totalKobo], ["purchase", 10, 5_200_000, 52_000_000]);
+const s5 = say("Sold 1 rice 50kg 78k to Funke Alade, she paid half, balance on the 15th");
+assert.deepEqual([s5[0].lines[0].ref, s5[0].totalKobo, s5[0].paidKobo, s5[0].owes, s5[0].customer?.partyId, s5[0].dueOn], ["i:rice50:", 7_800_000, 3_900_000, true, "p3", "2026-11-15"]);
+const s6 = say("sold 2 garri 84k transfer. paid 3k for transport");
+assert.deepEqual(s6.map((d) => [d.kind, d.totalKobo, d.method ?? "", d.category ?? ""]), [["sale", 8_400_000, "transfer", ""], ["expense", 300_000, "", "transport"]]);
+const s7 = say("Sold 2 ankara 45 thousand to Ngozi on credit");
+assert.deepEqual([s7[0].totalKobo, s7[0].customer?.match], [4_500_000, "new"]);
+assert.ok(s7[0].unsure.some((u) => /isn't in your customers/.test(u)));
+assert.deepEqual(say("Good morning, how far?"), [], "nothing in it is an entry");
+
+// ---- The offline outbox (lib/books-outbox.ts) ----
+const T0 = Date.parse("2026-11-02T10:00:00Z");
+const q = (n: number, action: OutboxItem["action"] = "sale") => ({ clientId: `client-000${n}`, owner: "kemi", action, body: { method: "cash" }, at: new Date(T0 + n * 1000).toISOString(), label: `Sale ${n}`, totalKobo: 100_000 * n });
+let box: OutboxItem[] = [];
+box = enqueue(box, q(1)); box = enqueue(box, q(2, "expense")); box = enqueue(box, q(3, "payment"));
+box = enqueue(box, q(1)); // a double tap: once
+assert.equal(box.length, 3);
+assert.deepEqual(box[0].body, { method: "cash", clientId: "client-0001", action: "sale" }, "the clientId travels with the entry");
+assert.throws(() => enqueue(box, { ...q(4), action: "void" as OutboxItem["action"] }), /can't be saved offline/);
+assert.throws(() => enqueue(box, { ...q(4), clientId: "x" }), /clientId/);
+assert.equal(badgeText(box), "3 waiting to sync");
+assert.equal(waitingCount(box, "someone-else"), 0, "per books");
+assert.deepEqual(due(box, T0, 2).map((x) => x.clientId), ["client-0001", "client-0002"], "oldest first, a batch at a time");
+// The server's answers: saved, already saved (sent twice), not saved (a payment bigger than what's owed now), busy (try later).
+box = applyResults(box, [
+  { clientId: "client-0001", status: "saved", notes: ["Item out of stock: Rice 10kg: only 2 were in stock. The sale is saved; count the shelf"] },
+  { clientId: "client-0002", status: "duplicate", notes: [] },
+  { clientId: "client-0003", status: "failed", notes: [], error: "Chinedu owes ₦5,000. Enter that or less." },
+], T0);
+assert.deepEqual(box.map((x) => x.state), ["done", "done", "stuck"]);
+assert.equal(badgeText(box), "1 needs a look");
+assert.equal(resultText(box[0].result!), "Saved. Item out of stock: Rice 10kg: only 2 were in stock. The sale is saved; count the shelf");
+assert.equal(resultText(box[1].result!), "Already saved");
+assert.equal(resultText({ clientId: "c", status: "saved", notes: ["Funke wasn't in your customers, so they were added"] }), "Saved. Funke wasn't in your customers, so they were added");
+box = retry(box, "client-0003", { amountKobo: 500_000 });
+assert.equal(box[2].state, "waiting"); assert.equal(box[2].body.amountKobo, 500_000);
+// No connection (or a 5xx): the batch waits, longer each time, never more than 30 minutes.
+box = batchFailed(box, ["client-0003"], "No connection.", T0);
+assert.equal(box[2].tries, 1); assert.equal(box[2].nextTryAt, T0 + 15_000);
+assert.deepEqual(due(box, T0 + 1000), [], "not before its time");
+assert.equal(backoff(1), 15_000); assert.equal(backoff(3), 60_000); assert.equal(backoff(40), 30 * 60_000);
+box = applyResults(box, [{ clientId: "client-0003", status: "failed", notes: [], error: "busy", retry: true }], T0 + 20_000);
+assert.equal(box[2].state, "waiting"); assert.equal(box[2].tries, 2);
+// Done entries stay three days, so the seller can see what happened, then go.
+assert.equal(prune(box, T0 + 2 * 86_400_000).length, 3);
+assert.equal(prune(box, T0 + 4 * 86_400_000).length, 1);
+// The day an offline entry belongs to: when it was recorded, unless the phone's clock is in the future or it's too old.
+const syncNow = new Date(T0);
+assert.equal(recordedAt("2026-11-01T18:00:00Z", syncNow).toISOString(), "2026-11-01T18:00:00.000Z");
+assert.equal(recordedAt("2026-11-09T18:00:00Z", syncNow).getTime(), T0, "a clock in the future");
+assert.equal(recordedAt("2026-10-01T18:00:00Z", syncNow).getTime(), T0, "older than 14 days");
+assert.equal(recordedAt("nonsense", syncNow).getTime(), T0);
+
+// ---- Staff roles (lib/books.ts can, staffSeats) ----
+const acts: BooksAct[] = ["home", "pnl", "sales", "expenses", "owed", "customers", "catalog", "costs", "imports", "export", "sale", "payment", "expense", "purchase", "void", "party", "supplier", "remind", "receipt", "photo", "import", "nana", "sync", "settings", "staff"];
+const allowed = (r: Parameters<typeof can>[0]) => acts.filter((a) => can(r, a));
+assert.deepEqual(allowed("owner"), acts);
+assert.deepEqual(allowed("admin"), acts, "an organisation's admins keep the books like the owner");
+assert.deepEqual(allowed("manager"), acts.filter((a) => a !== "settings" && a !== "staff"), "a manager: everything but settings and staff");
+assert.deepEqual(allowed("cashier"), ["home", "sales", "customers", "catalog", "sale", "payment", "void", "party", "receipt", "nana", "sync"]);
+for (const a of ["pnl", "expenses", "costs", "export", "import", "settings", "staff", "expense", "purchase", "owed"] as BooksAct[]) assert.equal(can("cashier", a), false, `a cashier can't ${a}`);
+const seats = { staffSeatsPro: DEFAULT_PRICING.books.staffSeatsPro, staffSeatsBusiness: DEFAULT_PRICING.books.staffSeatsBusiness };
+assert.equal(staffSeats("business", seats), 4); assert.equal(staffSeats("enterprise", seats), null);
+assert.equal(staffSeats("pro", seats), 0, "Pro: none until open question 4 is answered");
+assert.equal(staffSeats("pro", { ...seats, staffSeatsPro: 1 }), 1);
+assert.equal(staffSeats("basic", seats), 0);
+
+// ---- Paying a debt online ----
+assert.deepEqual(debtAmount("20,000", 3_850_000), { ok: true, kobo: 2_000_000 });
+assert.deepEqual(debtAmount(38_500, 3_850_000), { ok: true, kobo: 3_850_000 });
+assert.equal(debtAmount("40000", 3_850_000).ok, false, "never more than owed");
+assert.equal(debtAmount("50", 3_850_000).ok, false, "at least ₦100");
+assert.deepEqual(debtAmount("50", 5_000), { ok: true, kobo: 5_000 }, "unless less is owed");
+assert.equal(debtAmount("abc", 3_850_000).ok, false);
+assert.equal(debtCommissionKobo(2_000_000, 0.05, "store"), 100_000);
+assert.equal(debtCommissionKobo(2_000_000, 0.05, "none"), 0);
+
+// ---- The monthly summary (lib/books-report.ts) ----
+const rm = reportMonth(new Date("2026-11-01T07:30:00Z")); // 08:30 Lagos on the 1st
+assert.deepEqual([rm.id, rm.label, rm.start, rm.end], ["2026-10", "October 2026", "2026-10-01", "2026-10-31"]);
+assert.equal(new Date(rm.sendFrom).toISOString(), "2026-11-01T07:00:00.000Z", "08:00 Lagos on the 1st");
+assert.equal(inSendWindow(rm, new Date("2026-11-01T06:59:00Z")), false);
+assert.equal(inSendWindow(rm, new Date("2026-11-03T12:00:00Z")), true, "a missed run catches up");
+assert.equal(inSendWindow(rm, new Date("2026-11-04T07:00:00Z")), false, "three days at most");
+assert.equal(reportMonth(new Date("2026-01-01T09:00:00Z")).id, "2025-12");
+assert.equal(previousMonth(monthById("2026-01")!).id, "2025-12");
+const octP = pnl([entry({ kind: "sale", totalKobo: 900_000, paidKobo: 900_000, lines: [{ title: "Rice", qty: 6, unitKobo: 150_000, costKobo: 128_000 }] }), entry({ kind: "sale", source: "online", totalKobo: 300_000, feeKobo: 15_000, lines: [{ title: "Ankara", qty: 1, unitKobo: 300_000, costKobo: 200_000 }] }), entry({ kind: "expense", totalKobo: 100_000, category: "power" })]);
+const rep = reportFrom(octP, null, {
+  name: "Kemi", shop: "Kemi's Store & Salon", month: { id: "2026-10", label: "October 2026" }, asOf: "1 November 2026", entries: 3,
+  owed: { totalKobo: 6_000_000, overdueKobo: 3_850_000, people: 2, late: [{ name: "Chinedu Okafor", kobo: 3_850_000, daysLate: 6 }] }, low: [{ title: "Garri, white (50kg bag)", stock: 2 }],
+  pnlUrl: "https://naapp.tech/profile/books?tab=pnl&period=month&back=1", booksUrl: "https://naapp.tech/profile/books", settingsUrl: "s", unsubscribeUrl: "u", site: "https://naapp.tech", company: "Adams Consults",
+});
+assert.deepEqual([rep.sales.totalKobo, rep.sales.walkinKobo, rep.sales.onlineKobo, rep.expensesKobo, rep.profitKobo], [1_200_000, 900_000, 300_000, 115_000, 1_200_000 - 768_000 - 200_000 - 115_000]);
+assert.equal(rep.owed.late[0].name, "Chinedu", "first names only");
+assert.equal(reportSubject(rep), "Kemi's Store & Salon's books for October 2026: ₦12,000 in sales, ₦1,170 profit");
+assert.equal(reportBell(rep), "Your books for October 2026: ₦12,000 in sales, ₦1,170 profit, ₦38,500 owed is late.");
+const html = renderReportHtml(rep), text = renderReportText(rep);
+for (const want of ["Walk-in", "Online store", "BEST SELLERS", "MONEY OWED TO YOU", "RUNNING LOW", "profit and loss", "Turn off the monthly books email"]) assert.ok(html.includes(want), want);
+assert.ok(text.includes("- Walk-in: ₦9,000") && text.includes("Chinedu: ₦38,500, 6 days late") && text.includes("Garri, white (50kg bag): 2 left"));
+assert.ok(!html.includes("<script"), "no scripts in an email");
+// A seller who turned "show profit in emails" off: no profit anywhere in it.
+const noProfit = reportFrom(octP, null, { ...rep, owed: rep.owed, low: rep.low }, false);
+assert.equal(noProfit.profitKobo, null);
+assert.ok(!renderReportHtml(noProfit).includes("PROFIT IN") && !reportSubject(noProfit).includes("profit"));
 
 console.log("ALL OK");
