@@ -275,13 +275,13 @@ export async function checkServices(): Promise<ServiceStatus[]> {
   // this catches the scheduler silently stopping (escrow never released, trials never expiring).
   checks.push(
     getAdminDb().collection("cronRuns").doc("reminders").get().then((snap): ServiceStatus => {
-      const id = "cron", name = "Scheduled jobs", description = "Session and event reminders, plan expiry, order releases, payouts, saved-coupon reminders, moment clean-up, the daily reports digest, the Sunday Weekly Digest and timed-suspension lifts";
+      const id = "cron", name = "Scheduled jobs", description = "Session and event reminders, plan expiry, order releases, payouts, saved-coupon reminders, moment clean-up, the daily reports digest, the Sunday Weekly Digest, the monthly referrals report (the 1st, from 8 AM) and timed-suspension lifts";
       const d = snap.data();
       if (!d?.at) return notConfigured(id, name, description);
       const ageMin = (Date.now() - new Date(d.at).getTime()) / 60_000;
       const state: ServiceState = ageMin > CRON_DOWN_MIN ? "down" : ageMin > CRON_SLOW_MIN || d.ok === false ? "degraded" : "operational";
       return { id, name, description, state };
-    }).catch(() => ({ id: "cron", name: "Scheduled jobs", description: "Session and event reminders, plan expiry, order releases, payouts, saved-coupon reminders, moment clean-up, the daily reports digest, the Sunday Weekly Digest and timed-suspension lifts", state: "down" as ServiceState }))
+    }).catch(() => ({ id: "cron", name: "Scheduled jobs", description: "Session and event reminders, plan expiry, order releases, payouts, saved-coupon reminders, moment clean-up, the daily reports digest, the Sunday Weekly Digest, the monthly referrals report (the 1st, from 8 AM) and timed-suspension lifts", state: "down" as ServiceState }))
   );
 
   return Promise.all(checks);

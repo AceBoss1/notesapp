@@ -79,6 +79,8 @@ Start at [Journals](/journals) to look around, or [create a free account](/signu
 
 **Getting paid:** earnings wait 7 days (14 for delivered shop items) so payments can clear; a refund takes back what it earned. Then take them as **cash** to your bank account, from ₦2,000 (add one on the Referrals page if you don't sell), or as **NotesApp Credit** with 10% more, any amount.
 
+**Your monthly report:** on the 1st of each month we email you a report on the month before, but only if something happened: friends who joined, paid conversions, affiliate sales, what you earned, and your available, pending and withdrawn balances, with a table of the month's sign-ups and sales. Buyers and friends are never named. Turn it off under **Account settings → Email** ([/profile/account#email](/profile/account#email)) or with the link at the bottom of the email; your Referrals page always has the same numbers.
+
 **Fair play:** there's no monthly cap. If someone's earnings jump suddenly, our team checks before they're paid, and links used to refer yourself or fake accounts are taken back.
 
 **Affiliate codes:** a publisher can also let affiliates share one of their discount codes as their own; see [Discount codes and coupons](/help/discount-codes). Publishers: [Store selling](/store-selling#affiliates) has the short version.
