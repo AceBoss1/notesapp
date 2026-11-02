@@ -20,6 +20,16 @@ export const CHANGELOG: Release[] = [
     ],
   },
   {
+    version: "v0.115.0",
+    bump: "minor",
+    date: "2026-11-01",
+    changes: [
+      { kind: "changed", text: "Planned: Business books, for shops, market traders, salons and anyone who sells in person. Record a walk-in sale in a few taps (cash, transfer, POS or on credit) with a receipt link or PDF, and expenses with receipt photos. Stock goes down with each sale and online store orders come in by themselves. See who owes you and send reminders and receipts: by email and the bell to #NotesApp members, and by WhatsApp (or SMS, once Send-Na is live) to customers who aren't on #NotesApp yet. See what you owe suppliers too. Profit for a day, a week or a month. Import from Excel and other tools (planned), plus offline entry on phones and telling Nana \"Sold 3 bags of rice ₦45,000 to Mama Bisi on credit\"." },
+      { kind: "added", text: "Join the Business books waitlist at /books: see what it will do, with early designs, and tell us your kind of business, what you sell, how you keep your books today and your city. You get a thank-you email (and a bell if you're a member), and an email when it opens if you ask for one. It isn't open yet and no date is promised." },
+      { kind: "changed", text: "Store selling, the home page, the roadmap and the Inventory and Selling physical goods help articles now link to the Business books waitlist." },
+    ],
+  },
+  {
     version: "v0.114.0",
     bump: "minor",
     date: "2026-11-01",

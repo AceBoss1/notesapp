@@ -1227,9 +1227,10 @@ service cloud.firestore {
         && request.resource.data.name is string
         && request.resource.data.email is string
         && request.resource.data.category is string
-        // The one-month feedback and the Naija Exam Prep reviewer sign-up come only through their rate-limited server routes
-        // (/api/feedback, /api/exam-prep/reviewers; lib/leads-server.ts), never straight from a browser.
-        && !(request.resource.data.category in ['feedback', 'volunteer'])
+        // The one-month feedback, the Naija Exam Prep reviewer sign-up and the Business books waitlist come only through their
+        // rate-limited server routes (/api/feedback, /api/exam-prep/reviewers, /api/books/waitlist; lib/leads-server.ts), never
+        // straight from a browser.
+        && !(request.resource.data.category in ['feedback', 'volunteer', 'books-waitlist'])
         && request.resource.data.message is string;
 
       // Lead information is private. Customer care and growth read and manage leads through /api/admin/leads, with the

@@ -8,12 +8,14 @@ import { Masked } from "@/components/admin/Masked";
 import { Lead, LEAD_LABEL } from "@/lib/leads";
 import { MOOD_SCALE, average, nps } from "@/lib/feedback";
 import { BACKGROUNDS, examsLabel, subjectName } from "@/lib/prep-reviewers";
+import { BUSINESS_TYPES, businessTypeLabel, keepsBooksLabel } from "@/lib/books-waitlist";
 
-type Kind = "all" | "messages" | "feedback" | "volunteers";
+type Kind = "all" | "messages" | "feedback" | "volunteers" | "books";
 const KINDS: { id: Kind; label: string }[] = [
-  { id: "all", label: "Everything" }, { id: "messages", label: "Messages" }, { id: "feedback", label: "Feedback" }, { id: "volunteers", label: "Exam Prep reviewers" },
+  { id: "all", label: "Everything" }, { id: "messages", label: "Messages" }, { id: "feedback", label: "Feedback" }, { id: "volunteers", label: "Exam Prep reviewers" }, { id: "books", label: "Business books waitlist" },
 ];
-const ofKind = (l: Lead, k: Kind) => k === "all" || (k === "feedback" ? l.category === "feedback" : k === "volunteers" ? l.category === "volunteer" : l.category !== "feedback" && l.category !== "volunteer");
+const SERVER_KINDS: Record<string, Kind> = { feedback: "feedback", volunteer: "volunteers", "books-waitlist": "books" };
+const ofKind = (l: Lead, k: Kind) => k === "all" || (k === "messages" ? !(l.category in SERVER_KINDS) : SERVER_KINDS[l.category] === k);
 const pill = (on: boolean) => `rounded-full px-4 py-1.5 font-ui text-xs font-semibold transition-colors ${on ? "bg-crimson text-paper" : "border border-rule text-ink hover:border-crimson"}`;
 const small = "border border-rule px-3 py-1.5 font-ui text-xs font-semibold hover:border-crimson disabled:opacity-50";
 
@@ -60,6 +62,8 @@ export default function AdminLeadsPage() {
   const moods = feedback.map((l) => l.feedback!.mood), recs = feedback.map((l) => l.feedback!.recommend);
   const npsNow = nps(recs);
   const waiting = (leads ?? []).filter((l) => l.category === "volunteer" && !l.approval).length;
+  const books = (leads ?? []).filter((l) => l.category === "books-waitlist" && l.booksWaitlist);
+  const count = (pick: (l: Lead) => string) => Object.entries(books.reduce<Record<string, number>>((m, l) => { const k = pick(l); m[k] = (m[k] ?? 0) + 1; return m; }, {})).sort((a, b) => b[1] - a[1]);
 
   return (
     <section className="mx-auto max-w-4xl px-4 sm:px-6 lg:px-8 py-14">
@@ -67,14 +71,14 @@ export default function AdminLeadsPage() {
       <p className="eyebrow mt-6">{leads ? `${leads.filter((l) => l.status === "new").length} new` : ""}</p>
       <h1 className="font-display text-4xl mt-3">Leads</h1>
       <p className="mt-3 text-sm text-slate max-w-xl">
-        Every /contact submission — general enquiries, support, bug reports — plus the one-month feedback form and Naija Exam Prep
-        reviewer sign-ups, routed here rather than a shared inbox someone has to remember to check.
+        Every /contact submission — general enquiries, support, bug reports — plus the one-month feedback form, Naija Exam Prep
+        reviewer sign-ups and the Business books waitlist, routed here rather than a shared inbox someone has to remember to check.
       </p>
 
       <div className="mt-6 flex flex-wrap gap-2">
         {KINDS.map((k) => (
           <button key={k.id} onClick={() => setKind(k.id)} className={pill(kind === k.id)}>
-            {k.label}{k.id === "feedback" && feedback.length ? ` (${feedback.length})` : ""}{k.id === "volunteers" && waiting ? ` (${waiting} waiting)` : ""}
+            {k.label}{k.id === "feedback" && feedback.length ? ` (${feedback.length})` : ""}{k.id === "volunteers" && waiting ? ` (${waiting} waiting)` : ""}{k.id === "books" && books.length ? ` (${books.length})` : ""}
           </button>
         ))}
       </div>
@@ -117,6 +121,15 @@ export default function AdminLeadsPage() {
         </div>
       )}
 
+      {kind === "books" && (
+        <div className="card mt-6 grid gap-4 p-5 text-sm sm:grid-cols-3">
+          <div><p className="eyebrow">On the waitlist</p><p className="mt-1 font-display text-3xl text-ink">{books.length}</p><p className="text-[11px] text-slate">{books.filter((l) => l.booksWaitlist!.notify).length} want an email when it opens</p></div>
+          <div><p className="eyebrow">Kinds of business</p><ul className="mt-1 space-y-0.5 text-slate">{count((l) => businessTypeLabel(l.booksWaitlist!.businessType)).slice(0, BUSINESS_TYPES.length).map(([k, n]) => <li key={k}>{k}: <b className="text-ink">{n}</b></li>)}</ul></div>
+          <div><p className="eyebrow">Keep books today in</p><ul className="mt-1 space-y-0.5 text-slate">{count((l) => keepsBooksLabel(l.booksWaitlist!.keepsBooks)).map(([k, n]) => <li key={k}>{k}: <b className="text-ink">{n}</b></li>)}</ul></div>
+          <p className="text-xs text-slate sm:col-span-3">From <Link className="text-crimson underline" href="/books">/books</Link>. Business books isn&apos;t built yet (docs/BUSINESS-BOOKS.md); these answers shape what comes first.</p>
+        </div>
+      )}
+
       {error && <p className="mt-6 text-sm text-red-700">{error}</p>}
       {note && <p className="mt-6 text-sm text-emerald-800">{note}</p>}
 
@@ -156,6 +169,12 @@ export default function AdminLeadsPage() {
                   </div>
                   {l.feedback.love && <p className="font-body text-ink"><b className="font-ui text-xs uppercase tracking-wideish text-slate">Loves</b><br />{l.feedback.love}</p>}
                   {l.feedback.missing && <p className="font-body text-ink"><b className="font-ui text-xs uppercase tracking-wideish text-slate">Missing or broken</b><br />{l.feedback.missing}</p>}
+                </div>
+              ) : l.booksWaitlist ? (
+                <div className="mt-3 space-y-1 text-sm">
+                  <p className="text-ink"><b>{businessTypeLabel(l.booksWaitlist.businessType)}</b> · {l.booksWaitlist.city}</p>
+                  <p className="text-ink"><b>Sells:</b> {l.booksWaitlist.sells}</p>
+                  <p className="text-slate">Keeps books today in: {keepsBooksLabel(l.booksWaitlist.keepsBooks, l.booksWaitlist.otherApp)} · {l.booksWaitlist.notify ? "wants an email when it opens" : "no email when it opens"}</p>
                 </div>
               ) : l.volunteer ? (
                 <div className="mt-3 space-y-2 text-sm">

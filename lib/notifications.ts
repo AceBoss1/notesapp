@@ -48,6 +48,7 @@ export type NotificationType =
   | "coupon" // a saved coupon (My coupons) ending soon
   | "announcement" // news from #NotesApp to every member (Admin → Announcements)
   | "volunteer" // a Naija Exam Prep reviewer sign-up: received, approved
+  | "books" // Business books: you joined the waitlist
   | "referral"; // the monthly referrals and affiliate report
 
 export type AppNotification = {
