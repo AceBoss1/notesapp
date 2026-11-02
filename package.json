@@ -32,6 +32,7 @@
     "test:uploads": "npx -y tsx tests/uploads/webp.test.ts",
     "test:cart": "npx -y tsx tests/cart/cart.test.ts",
     "test:mcp": "npx -y tsx tests/mcp/protocol.test.ts",
+    "test:agents": "npx -y tsx tests/agents/agents.test.ts && npx -y tsx tests/agents/domains.test.ts && NEXT_PUBLIC_ROOT_DOMAIN=naapp.tech npx -y tsx tests/agents/domains.test.ts",
     "test:pricing": "npx -y tsx tests/pricing/pricing.test.ts",
     "test:host": "npx -y tsx tests/host/host.test.ts && NEXT_PUBLIC_ROOT_DOMAIN=naapp.tech npx -y tsx tests/host/host.test.ts",
     "test:covers": "npx -y tsx tests/covers/covers.test.ts",
