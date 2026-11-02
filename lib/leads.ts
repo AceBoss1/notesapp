@@ -26,10 +26,17 @@ export const LEAD_CATEGORIES = [
   { value: "partnership", label: "Partnership" },
   { value: "press", label: "Press" },
   { value: "investment", label: "Investment" },
+  { value: "feedback", label: "Feedback: how's #NotesApp so far?" },
   { value: "other", label: "Other" },
 ] as const;
 
-export type LeadCategory = (typeof LEAD_CATEGORIES)[number]["value"];
+// Leads that come from their own forms through the server (rate-limited, never the browser's addDoc; firestore.rules refuses
+// them from a browser): the one-month feedback form (/contact?topic=feedback, lib/feedback.ts) and the Naija Exam Prep reviewer
+// sign-up (/exam-prep/reviewers, lib/prep-reviewers.ts). "feedback" is also in the contact form's list, where it opens the
+// feedback form instead of the message box.
+export const SERVER_LEAD_CATEGORIES = ["feedback", "volunteer"] as const;
+export type LeadCategory = (typeof LEAD_CATEGORIES)[number]["value"] | "volunteer";
+export const LEAD_LABEL: Record<string, string> = { ...Object.fromEntries(LEAD_CATEGORIES.map((c) => [c.value, c.label])), feedback: "Feedback", volunteer: "Exam Prep reviewer" };
 
 export type Lead = {
   id: string;
@@ -39,12 +46,16 @@ export type Lead = {
   message: string;
   createdAt: string;
   status: "new" | "read" | "archived";
+  uid?: string; // the member who sent it, when signed in
+  feedback?: import("./feedback").FeedbackAnswers; // category "feedback"
+  volunteer?: import("./prep-reviewers").VolunteerAnswers; // category "volunteer"
+  approval?: { status: "approved" | "declined"; at: string; byUid: string; byName: string; how: "granted" | "invited" | "declined"; subjects: string[]; note?: string };
 };
 
 export async function submitLead(data: {
   name: string;
   email: string;
-  category: LeadCategory;
+  category: Exclude<LeadCategory, "feedback" | "volunteer">;
   message: string;
 }): Promise<void> {
   await addDoc(collection(db, LEADS), {

@@ -1,4 +1,4 @@
-import { APP_HOST, APP_URL, LIFE_HOST, LIFE_URL, PREP_HOST, ROOT_DOMAIN } from "./host";
+import { APP_HOST, APP_URL, LIFE_HOST, LIFE_URL, PREP_HOST, PREP_URL, ROOT_DOMAIN } from "./host";
 import { AD_PACKAGES } from "./ad-packages";
 import { WHAT_IS_INTRO, WHAT_YOU_CAN_DO, WHAT_IS_FREE, WHAT_IS_TIERS } from "./site";
 import { BOOST_PACKAGES, GIFT_MAX_KOBO, GIFT_MIN_KOBO } from "./boost-config";
@@ -15,7 +15,7 @@ import { ORG_TRIAL_DAYS } from "./org";
 import { TRIAL_DAYS } from "./trials";
 import { COMPANY_INFO, SITE } from "./site";
 import { BADGE_PRICE_KOBO, TIERS, formatPercent } from "./tiers";
-import { academyApiFrom, certificateMin, currentPricing, enterpriseCoursesPrice, inventoryAddonPrice, inventoryTrialDays, logisticsAddonPrice, logisticsTrialDays } from "./pricing";
+import { academyApiFrom, certificateMin, currentPricing, enterpriseCoursesPrice, inventoryAddonPrice, inventoryTrialDays, logisticsAddonPrice, logisticsTrialDays, coversPerDay } from "./pricing";
 import { academyFaq } from "./academy-faq";
 const CERTIFICATE_LATE_TEXT = () => { const l = currentPricing().certificateLate; return { grace: l.graceDays, weekly: `${Math.round(l.weeklyRate * 100)}%`, cap: `${Math.round(l.capRate * 100)}%` }; };
 import { VIDEO_MAX_SECONDS } from "./video-rules";
@@ -78,6 +78,8 @@ Start at [Journals](/journals) to look around, or [create a free account](/signu
 **For publishers:** under **Account → Referrals**, set a share (up to 50%) on any shop item on sale here, download or paid course. It goes on the marketplace at once; set 0 to take it off. The share comes out of your part of the sale, and #NotesApp's commission is worked out as usual.
 
 **Getting paid:** earnings wait 7 days (14 for delivered shop items) so payments can clear; a refund takes back what it earned. Then take them as **cash** to your bank account, from ₦2,000 (add one on the Referrals page if you don't sell), or as **NotesApp Credit** with 10% more, any amount.
+
+**Your monthly report:** on the 1st of each month we email you a report on the month before, but only if something happened: friends who joined, paid conversions, affiliate sales, what you earned, and your available, pending and withdrawn balances, with a table of the month's sign-ups and sales. Buyers and friends are never named. Turn it off under **Account settings → Email** ([/profile/account#email](/profile/account#email)) or with the link at the bottom of the email; your Referrals page always has the same numbers.
 
 **Fair play:** there's no monthly cap. If someone's earnings jump suddenly, our team checks before they're paid, and links used to refer yourself or fake accounts are taken back.
 
@@ -150,6 +152,8 @@ You can also choose how long Nana thinks before answering: **Quick** on every pl
 **Nana credit.** Anyone, on any plan, can buy Nana credit on the [Nana page](/nana#credit), by card or from your NotesApp Credit wallet. Your free allowance is always used first, then your credit. Credit never expires and carries over. When both run out, Nana answers from the help centre until your allowance refreshes.
 
 **Answer bank.** When you open a chat with a general question someone has asked before (for example "How do I get paid?"), Nana may answer straight away from her answer bank. That's free and doesn't use your allowance. Only general questions go in, never anything personal.
+
+**Course covers.** Making a course cover with Nana in Notes Academy uses a little of your allowance too (Pearl designs it; drawing the picture is free). When your allowance and credit are used up, covers stop until the allowance refreshes. Your plan's daily number of covers applies either way.
 
 With [your own AI account connected](/help/connect-your-own-ai) there is no allowance and no limit from us.`),
     A("connect-your-own-ai", "Connect your own AI account", "Getting started", `
@@ -231,6 +235,8 @@ Once you have a publishing account (Free Basic or above), write from [Write](/wr
 You can add one video per post (MP4 or WebM, up to ${VIDEO_MAX_SECONDS / 60} minutes), played in our own player. How many videos you can upload a week depends on your plan.
 
 Pick up to 3 topics for each journal (and add your own hashtags), so readers who chose those topics see it first in their feed and their weekly digest; see [Choosing your interests and topics](/help/interests-and-topics).
+
+**Share to Journals:** on a journal, a course, a shop item, a service, a public event, a certificate, a coupon or a public community post, tap **Share** and choose **Share to Journals**. A new draft opens with it quoted at the top: its title as a link, its cover and "Shared from @name", crediting whoever made it. Add a title and your thoughts, then save the draft or publish it when you're ready: nothing is published for you. You need a publishing account to write, and to be signed in (visitors are asked to sign in and come back to finish).
 
 Readers can follow your journal, comment, like, share and save. You can also [boost a post](/help/boost-a-post) to reach more readers, or [co-author](/help/co-authoring) with other members. Browse examples on [Journals](/journals).`),
     A("kiswahili-journals", "Journals and voice notes in Kiswahili", "Publishing and earning", `
@@ -338,7 +344,9 @@ At the top of every conversation is the person's picture, their name with any ba
 
 **Group chats:** start a group from Messages with up to 50 people you follow or who follow you. The top of a group shows its picture and how many members it has. Group admins see a **⚙️ Manage** button at the top of the group. From there they can rename it, set the group picture, add and remove people, make others admin, **switch member messages off** (then only admins can write and everyone else can still read) and back on, and **ban** someone who misbehaves: they are removed and can't be added back until an admin unbans them. Admins can also tap **Remove** under any message to take it out of the group: everyone then sees "Message removed by a group admin" in its place, and any files in it are deleted. If you don't see these options, you aren't an admin of that group: the members list marks who is. Anyone can leave or mute a group, and any message from someone else can be reported to #NotesApp; if we act on a report, the message is removed ("Message removed by #NotesApp").` : ""}
 
-${MOMENTS_LIVE ? `**Moments:** share a picture, a video of up to 90 seconds or a line of text on your profile picture for 24, 48 or 72 hours. Followers see them in the Moments row on [Journals](/journals); you choose whether only followers, or everyone, can see yours. A moment is not your profile picture: to change your picture, tap + on your own picture and choose **Update profile picture**, or go to [Edit profile](/profile/edit).` : ""}`)]
+${MOMENTS_LIVE ? `**Moments:** share a picture, a video of up to 90 seconds or a line of text on your profile picture for 24, 48 or 72 hours. Followers see them in the Moments row on [Journals](/journals); you choose whether only followers, or everyone, can see yours. A moment is not your profile picture: to change your picture, tap + on your own picture and choose **Update profile picture**, or go to [Edit profile](/profile/edit).
+
+**Share to Moments:** on a journal, a course, a shop item, a service (someone's 1:1 sessions or a service on their site), a public event, a certificate, a coupon or a public community post, tap **Share** and choose **Share to Moments**. You see its card (title, cover, the price for an item or a service, and who made it), can add a caption, pick 24, 48 or 72 hours and tap **Post**. The moment links to the item and credits its creator ("Shared from @name"); the same people see it as your other moments, it counts towards your moments for the day, and in teen mode it is only for people you follow back. It isn't offered on drafts, members-only posts or anything you can't see.` : ""}`)]
       : []),
     ...(MESSAGES_LIVE
       ? [A("chat-photos-and-media", "Photos, videos, links and docs in a chat", "Publishing and earning", `
@@ -523,6 +531,7 @@ Calls are free. Planned: paid calls inside Notes Life (₦5 a minute voice, ₦1
 - Any publishing account can teach a free course, including the free Basic plan. If you don't publish yet, start at [Rates & payouts](/profile/publishing). On an organisation's team (Business or Enterprise), choose **Teach as** your organisation when you start a course: it's published under the organisation's name, with **Taught by** and your name under it on the course page, and its admins can edit it too.
 - Go to [Teach a course](/academy/teach) and tap **New course**. A working title is all you need to start.
 - **1. Describe it:** a clear title, a short summary of what learners will be able to do, up to 3 topics and a wide cover picture. The course's address follows the title until you first publish.
+- **Make a cover with Nana:** no picture? Under the cover, tap **✨ Make a cover with Nana**, say what it should show if you like ("a farmer with a phone, green and gold"), and Nana designs one from your course: our own African patterns (adire, kente-like stripes, mud cloth), an icon, your title in bold type and a small Notes Academy mark. Tap **Use as cover**, **Edit** it ("make it green", "add a laptop", "shorter headline") or **Try another**; your last few covers stay there to go back to. It works on free and paid courses, for the lead, co-tutors and admins. Each new cover or edit counts one of the day's covers: Free Basic ${coversPerDay("basicDaily")}, Pro ${coversPerDay("proDaily")}, Business ${coversPerDay("businessDaily")}, Enterprise ${coversPerDay("enterpriseDaily")} a day, starting again at midnight Lagos time (so on Free Basic, one cover and two edits, or three different ones). Nana's design comes from your Nana allowance, then your Nana credit; when both are used up, covers stop until the allowance refreshes, and the editor says when.
 - **About the course:** the level, language and format (self-paced, or live classes with recordings), what learners will learn and the requirements (one per line), how long it runs and when classes are, and, for live classes, an optional meeting link. Hold live classes in an [audio room](/help/community-audio-rooms) in your course group, for up to ${1 + ROOM_SPEAKERS_MAX + ROOM_LISTENERS_MAX_P2P} people (you, ${ROOM_SPEAKERS_MAX} speakers and ${ROOM_LISTENERS_MAX_P2P} listening); for video, or a bigger class, paste a meeting link. Only learners who enrolled or bought see it.
 - **Course group:** a place on #NotesApp for your learners, instead of a WhatsApp or Telegram group. Under About the course, link one of your communities and a Space in it, tap **Add a members-only Space for this course** to one you run, or tap **Start a community for this course**: it's joined only by invite link, and your learners get the link with a **Join the course group** button. No community yet? Start one on [Community](/community); see [Spaces](/help/community-spaces) and [Circles](/help/community-circles). If your community is open to anyone, its members-only Spaces are open to all its members, not only your learners. A WhatsApp or Telegram link saved on an older course keeps showing to its learners until you link a course group (which replaces it) or remove it; new outside group links can't be added.
 - **Price:** free, or paid on Pro (text lessons, PDFs and YouTube) and on Business or Enterprise (your own uploaded videos too). You get the price less the same fee as your digital items, paid to your bank 7 days after each sale; add your bank account in Rates & payouts before you publish. Tick **Certificate included** to include it in the price.
@@ -585,8 +594,26 @@ When there's something to show, the digest also has four items from [Notes Marke
 
 You need a confirmed email address to get it, and it only comes when there's something to read.
 `),
+    A("feedback", "Give us feedback", "Getting started", `
+Tell us how #NotesApp is going for you: open [Contact → Feedback](/contact?topic=feedback) (or choose **Feedback** in the contact form's list). Five quick questions:
+
+- how your time on #NotesApp has been, from 😞 to 😍 (1 to 5);
+- what you love;
+- what's missing or broken;
+- how likely you are to recommend us to a friend (0 to 10);
+- whether we can contact you about your answers (yes or no).
+
+It works whether you're signed in or not. Signed in, your name and email are filled in and your reply is linked to your account. It goes straight to our team's inbox, and we read every one. To report a bug that needs a reply, or a post or account, use the contact form's other topics.
+`),
+    A("announcements", "News and announcements from #NotesApp", "Getting started", `
+Now and then we send every member a short message: what's new, what's coming, and ways to take part (like our one-month update on 1 November 2026). It comes to your bell (📢) and, if you like, by email. Tap the bell to read it on its own page.
+
+**Turning the emails off:** every announcement email has an **Unsubscribe from announcements** link at the bottom (your email app's own Unsubscribe button works too), or switch **News and announcements from #NotesApp** off under **Emails** in [Account settings](/profile/account#email). The bell still shows them. If you switched the [weekly digest](/help/weekly-digest) off before announcements existed, we take that as a no to announcement emails too, until you switch them on.
+
+Students in teen mode and child profiles never get them by email. Emails about your bookings, orders, payments and account always come, whatever you choose.
+`),
     A("social-sharing", "Sharing posts to social media", "Publishing and earning", `
-Every post has a share menu (WhatsApp, X, Facebook, LinkedIn, copy link) that works without connecting anything. You can also connect LinkedIn and X once and publish an excerpt of your post there, with a link back to the full journal on #NotesApp. You always see and can edit the words first (Nana can write them for you), and nothing goes out until you press Post. LinkedIn connections last about 60 days before you reconnect. Facebook, Instagram and TikTok are on the [roadmap](/roadmap).`),
+Every post has a share menu (WhatsApp, X, Facebook, LinkedIn, copy link) that works without connecting anything. On #NotesApp itself, the same menus (on journals, courses, shop items, services, public events, certificates, coupons and public community posts) offer **Share to Moments** (a moment that links to it, with an optional caption) and **Share to Journals** (a journal draft that quotes it, for your own thoughts); both credit the creator and are for signed-in members. You can also connect LinkedIn and X once and publish an excerpt of your post there, with a link back to the full journal on #NotesApp. You always see and can edit the words first (Nana can write them for you), and nothing goes out until you press Post. LinkedIn connections last about 60 days before you reconnect. Facebook, Instagram and TikTok are on the [roadmap](/roadmap).`),
     // ── Selling
     A("inventory", "Inventory: your stock, SKUs and alerts", "Selling", `
 [Inventory](/profile/inventory), under My account, keeps your store's stock in one place.
@@ -924,7 +951,11 @@ No ads are shown to students in teen mode, and their data isn't sold or used to 
     A("naija-exam-prep-reviewers", `Reviewing questions for ${PREP_NAME}`, "Teams and organisations", `
 Every ${PREP_NAME} question is checked by a reviewer before students see it.
 
-**Joining:** reviewers come by invite link. NotesApp staff choose the subjects first, then make either a link for one person (14 days, used once) or an open link for volunteers (7 to 90 days, up to 500 reviewers, closable at any time). Open the link, sign in or create a NotesApp account, and tap **Accept the invite**. A later link for other subjects adds them.
+**Volunteer:** anyone can offer to review at [${PREP_HOST}/reviewers](${PREP_URL}/reviewers): choose the subjects you know (any of the 18), the exams (JAMB, WAEC, NECO), your background (teacher, examiner, graduate in the subject or student) and your years of experience; a phone number is optional. Signed in, your name and email are filled in. We look at every sign-up ourselves. Once you're approved, your reviewer access is switched on if you have a NotesApp account with that email, or you get an invite link to create one; either way we email you.
+
+**The reviewers' community (optional):** tick **Join the reviewers' community** when you sign up and you'll get the invite link to the private Naija Exam Prep Reviewers community with your approval. It has Spaces for Start here, Sciences, Arts and humanities, Commercial, and Questions to discuss. You can review without joining.
+
+**Joining by invite link:** NotesApp staff choose the subjects first, then make either a link for one person (14 days, used once) or an open link for volunteers (7 to 90 days, up to 500 reviewers, closable at any time). Open the link, sign in or create a NotesApp account, and tap **Accept the invite**. A later link for other subjects adds them.
 
 **Reviewing:** the review queue (${PREP_HOST}/review) shows only questions in your subjects. For each one, check that the marked answer is right, the explanation is clear and correct, and the question is fair. **Approve** it, or **Ask for changes** with a note saying what to fix. You can't review a question you wrote. Starter questions are labelled **Nana AI-assisted draft**: check them as carefully as any other.
 
@@ -1035,6 +1066,12 @@ The [Staff library](/admin/team/library) holds SOPs, the employee handbook, poli
 The [Message hub](/admin/team/messages) is for messages between staff: **To**, optional **Cc**, a subject, the message and up to 10 files. Messages always stay in the hub; tick **Also send by email** to email everyone as well. Files go only to the people in **To** (and the sender): people in Cc get the message and are told the files went to To, which is how personal material stays personal. Inbox, Copied to me and Sent are separate tabs, with unread dots and Reply. Everyday group conversation stays in the Team room in Messages.`),
     A("hub-roles", "Staff roles and departments", `
 Staff are either a **super admin** (sees everything) or an **admin** with one or more departments: Customer care, Trust & safety, Finance, Growth & partnerships, Editorial, Product & tech, Legal & compliance, Engineering. An admin sees only the pages of their departments. At [Team access](/admin/access) the owner appoints and removes super admins, and other super admins appoint and remove admins and choose their departments. The person needs a #NotesApp account first. Nobody can change their own access or the owner's.`),
+    A("hub-payout-otp", "Payouts that wait for a Paystack OTP", `
+When "Transfers OTP" is on in Paystack, a payout that is released (by **Release** on [Payments & payouts](/admin/payments) or by the scheduled release) doesn't move until someone types the code Paystack emails the business. It shows at the top of Payments & payouts under **Awaiting OTP**, and as "awaiting OTP" in the table, with the amount, the publisher and the reference from Paystack's email (payout_…).
+
+Type the 6-digit code in that payout's field and tap **Confirm**. Each code works only for its own payout, so with several waiting, each has its own field. A code lasts 30 minutes from when Paystack sent it (the time left is shown); if it has run out, or the email didn't come, tap **Resend OTP** and use the newest email. After 5 wrong codes, resend for a new one. Once confirmed, the payout follows the usual path: Paystack's result arrives by webhook and the entry becomes paid out (or back to held with the reason if it failed).
+
+Finance only. Who confirmed or resent each code, and the result, is recorded; the code itself is never stored. To pay out with no OTP at all, the owner can switch Transfers OTP off in the Paystack dashboard (Settings → Preferences): safer to keep on, because then nobody with the API key alone can move money.`),
     A("hub-help-admin", "Writing help articles and reading Nana's chats", `
 At [Help & Nana](/admin/help) the team writes the help articles that visitors read at the help centre and that Nana answers from. An article with the same address as a built-in one replaces it. The Chats tab shows what people asked Nana, highlights questions she could not answer and requests for a person (these also appear in the Leads inbox), and lets you mark a chat as followed up or turn a gap into a new article.`),
   ];

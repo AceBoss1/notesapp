@@ -19,6 +19,8 @@ function Preview({ group }: { group: MomentGroup | undefined }): ReactNode {
   const latest = group?.moments[group.moments.length - 1];
   if (latest?.kind === "image" && latest.imageUrl) return <div className="absolute inset-0 bg-cover bg-center" style={{ backgroundImage: `url(${latest.imageUrl})` }} aria-hidden />;
   if (latest?.kind === "text") return <div className="absolute inset-0 bg-gradient-to-br from-crimson to-crimson-deep p-3 pt-14 text-[11px] leading-snug text-white/90" aria-hidden><span className="line-clamp-4">{latest.text}</span></div>;
+  if (latest?.kind === "link" && latest.link?.image) return <div className="absolute inset-0 bg-cover bg-center" style={{ backgroundImage: `url(${latest.link.image})` }} aria-hidden />;
+  if (latest?.kind === "link") return <div className="absolute inset-0 bg-gradient-to-br from-ink to-crimson-deep p-3 pt-14 text-[11px] leading-snug text-white/90" aria-hidden><span className="line-clamp-4">↗ {latest.link?.title}</span></div>;
   if (latest?.kind === "video") return <div className="absolute inset-0 flex items-center justify-center bg-ink pt-8 text-2xl text-white/80" aria-hidden>▶</div>;
   return <div className="absolute inset-0 bg-gradient-to-br from-paper to-rule" aria-hidden />;
 }

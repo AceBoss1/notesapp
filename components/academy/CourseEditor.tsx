@@ -11,6 +11,7 @@ import type { Subtopic } from "@/lib/subtopics";
 import { useMember } from "@/lib/member-client";
 import { api } from "@/lib/moments-client";
 import { uploadToR2 } from "@/lib/upload";
+import CoverMaker from "@/components/academy/CoverMaker";
 import { digitalCommissionRateFor } from "@/lib/tiers";
 import type { AccountTier } from "@/lib/users";
 import {
@@ -189,7 +190,7 @@ export default function CourseEditor({ courseId }: { courseId: string }) {
         <div className="mt-2"><p className={label}>Topics</p><p className="mb-2 text-xs text-slate">Up to {MAX_COURSE_TOPICS}: they bring the course to learners interested in them.</p><TopicPicker value={topics} onChange={(t) => { setTopics(t); setSubtopics((s) => s.filter((x) => t.includes(x.parent))); }} max={MAX_COURSE_TOPICS} compact /><SubtopicChips subtopics={subtopics} onRemove={(x) => setSubtopics((s) => s.filter((y) => y !== x))} /></div>
         <div className="mt-5">
           <p className={label}>Cover picture</p>
-          <p className="text-xs text-slate">Wide (16:9) works best. JPEG, PNG or WebP.</p>
+          <p className="text-xs text-slate">Wide (16:9) works best. JPEG, PNG or WebP, or make one with Nana.</p>
           <div className="mt-2 flex flex-col gap-3 sm:flex-row sm:items-center">
             {cover
               // eslint-disable-next-line @next/next/no-img-element
@@ -200,6 +201,7 @@ export default function CourseEditor({ courseId }: { courseId: string }) {
               {cover && <button type="button" onClick={() => setCover("")} className="btn-ghost !px-4 !py-2 text-sm">Remove</button>}
             </div>
           </div>
+          <CoverMaker courseId={courseId} cover={cover} onUse={async (url) => { await patch({ cover: url }); setCover(url); }} />
         </div>
         <SaveRow onSave={saveDetails} dirty={dirty} busy={busy === "details"} disabled={busy !== null || uploading} />
       </section>

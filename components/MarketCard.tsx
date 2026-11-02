@@ -1,4 +1,7 @@
+"use client";
+
 import Link from "next/link";
+import { ShareButton } from "@/components/share/ShareToNotesApp";
 import Avatar from "@/components/Avatar";
 import { NameBadgeIcons } from "@/components/PersonName";
 import type { MarketItem } from "@/lib/shop-directory";
@@ -13,7 +16,9 @@ export default function MarketCard({ item }: { item: MarketItem }) {
       </Link>
       <div className="flex flex-1 flex-col p-3">
         <Link href={item.href} className="line-clamp-2 font-ui text-sm font-bold leading-snug text-ink hover:text-crimson">{item.title}</Link>
-        <p className="mt-1 font-mono text-sm text-crimson-bright">{item.price}</p>
+        <p className="mt-1 flex items-center justify-between gap-2 font-mono text-sm text-crimson-bright">{item.price}
+          <ShareButton shareRef={{ kind: "item", id: item.id }} path={`/shop/${item.id}`} title={item.title} label="" className="-mr-1 rounded-full px-1.5 py-0.5 font-ui text-base leading-none text-slate hover:bg-paper hover:text-crimson" />
+        </p>
         <Link href={`/u/${item.sellerUsername}/store`} className="mt-auto flex min-w-0 items-center gap-1.5 pt-2 text-xs text-slate hover:text-ink">
           <Avatar src={item.sellerAvatar} alt="" size={18} square={item.sellerIsOrg} />
           <span className="truncate">{item.sellerName}</span>

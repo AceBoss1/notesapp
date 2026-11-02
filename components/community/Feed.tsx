@@ -8,12 +8,13 @@ import { DEFAULT_AVATAR } from "@/lib/admin";
 import { useMember } from "@/lib/member-client";
 import { capi, field, ago } from "./api";
 import { communityUrl, mainHref } from "./place";
+import { ShareMenu } from "@/components/share/ShareToNotesApp";
 
 // A channel of a community (General or a Space), laid out like a Facebook group: a "Write something…" box that opens into the composer
 // (words and a photo), then posts newest first (pinned on top), each with the author, the words, the photo edge to edge, the counts, and
 // Like · Comment · Share; comments as bubbles with their writers' pictures. Moderators and admins pin and remove from a post's ⋯ menu.
 // General is an announcement channel: admins post, members react and comment.
-type Post = { id: string; authorUid: string; authorName: string; authorUsername: string; authorAvatar: string; text: string; image: string; pinned: boolean; likes: number; comments: number; createdAt: string; liked: boolean };
+type Post = { id: string; authorUid: string; authorName: string; authorUsername: string; authorAvatar: string; text: string; image: string; pinned: boolean; likes: number; comments: number; createdAt: string; liked: boolean; public?: boolean };
 type Comment = { id: string; authorUid: string; authorName: string; authorUsername: string; authorAvatar?: string; text: string; createdAt: string };
 
 const Face = ({ src, size = 40 }: { src?: string; size?: number }) => (
@@ -21,7 +22,8 @@ const Face = ({ src, size = 40 }: { src?: string; size?: number }) => (
   <img src={src || DEFAULT_AVATAR} alt="" width={size} height={size} className="shrink-0 rounded-full object-cover" style={{ width: size, height: size }} />
 );
 
-export default function Feed({ cid, channel, canPost, role, me, as, slowModeSec }: { cid: string; channel: string; canPost: boolean; role: Role | null; me: string | null; as: string; slowModeSec: number }) {
+// shareable: the community can be found by anyone (not invite-only), so its public posts can go to Moments and journals.
+export default function Feed({ cid, channel, canPost, role, me, as, slowModeSec, shareable = false }: { cid: string; channel: string; canPost: boolean; role: Role | null; me: string | null; as: string; slowModeSec: number; shareable?: boolean }) {
   const [posts, setPosts] = useState<Post[] | null>(null);
   const [err, setErr] = useState("");
   const load = useCallback(async () => {
@@ -40,7 +42,7 @@ export default function Feed({ cid, channel, canPost, role, me, as, slowModeSec 
           <p className="mt-1 text-sm text-slate">{canPost ? "Create the first note: say hello, share news or ask a question." : "Notes will show here."}</p>
         </div>
       ) : (
-        <ul className="space-y-4">{posts.map((p) => <PostCard key={p.id} p={p} cid={cid} role={role} me={me} as={as} onChange={load} />)}</ul>
+        <ul className="space-y-4">{posts.map((p) => <PostCard key={p.id} p={p} cid={cid} role={role} me={me} as={as} onChange={load} shareable={shareable} />)}</ul>
       )}
     </div>
   );
@@ -107,7 +109,7 @@ const Action = ({ on, label, icon, onClick, disabled }: { on?: boolean; label: s
   </button>
 );
 
-function PostCard({ p, cid, role, me, as, onChange }: { p: Post; cid: string; role: Role | null; me: string | null; as: string; onChange: () => void }) {
+function PostCard({ p, cid, role, me, as, onChange, shareable }: { p: Post; cid: string; role: Role | null; me: string | null; as: string; onChange: () => void; shareable: boolean }) {
   const { profile } = useMember();
   const [open, setOpen] = useState(false);
   const [menu, setMenu] = useState(false);
@@ -123,10 +125,9 @@ function PostCard({ p, cid, role, me, as, onChange }: { p: Post; cid: string; ro
   useEffect(() => { if (open) loadComments(); }, [open, loadComments]);
   const act = async (body: Record<string, unknown>, then = onChange) => { setErr(""); try { await capi("/api/community", body); then(); } catch (e) { setErr(e instanceof Error ? e.message : "Couldn't do that."); } };
   const canManage = member && (can(role, "pin") || p.authorUid === me);
-  const share = async () => {
-    const url = communityUrl(cid, `#post-${p.id}`);
-    try { if (navigator.share) await navigator.share({ url }); else { await navigator.clipboard.writeText(url); setCopied(true); setTimeout(() => setCopied(false), 1800); } } catch { /* closed the sheet */ }
-  };
+  const [sharing, setSharing] = useState(false);
+  // A public post in a community anyone can find also goes to Moments and journals; a members-only one only to another app or a copied link.
+  const share = () => setSharing(true);
   return (
     <li id={`post-${p.id}`} className={`scroll-mt-24 overflow-hidden rounded-2xl border bg-card shadow-sm ${p.pinned ? "border-crimson/40" : "border-rule"}`}>
       {p.pinned && <p className="bg-crimson/5 px-4 py-1.5 font-ui text-[11px] font-semibold uppercase tracking-wide text-crimson">📌 Pinned by the admins</p>}
@@ -162,6 +163,7 @@ function PostCard({ p, cid, role, me, as, onChange }: { p: Post; cid: string; ro
         <Action icon="💬" label="Comment" onClick={() => { setOpen(true); setTimeout(() => input.current?.focus(), 50); }} />
         <Action icon="↗" label={copied ? "Link copied" : "Share"} onClick={share} />
       </div>
+      {sharing && <ShareMenu shareRef={shareable && p.public ? { kind: "post", id: p.id } : null} url={communityUrl(cid, `#post-${p.id}`)} title={p.text.slice(0, 60) || `A post by ${p.authorName}`} onClose={() => setSharing(false)} onShared={() => { setCopied(true); setTimeout(() => setCopied(false), 1800); }} />}
       {open && (
         <div className="border-t border-rule bg-paper/40 px-4 py-3">
           {comments === null ? <p className="text-xs text-slate">Loading…</p> : (

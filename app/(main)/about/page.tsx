@@ -200,7 +200,10 @@ export default async function AboutPage() {
             and finance tools for Business and Enterprise. We&apos;ve built lean and in the open, and we&apos;re now looking for
             investors, accelerators and partners who want to build Africa&apos;s home for creators and the people they serve.
           </p>
-          <Link href="/contact" className="btn-primary mt-6 inline-flex">Talk to us</Link>
+          <div className="mt-6 flex flex-wrap gap-3">
+            <Link href="/contact" className="btn-primary inline-flex">Talk to us</Link>
+            <a href="/contact?topic=feedback#feedback" className="btn-ghost inline-flex">Tell us how we&apos;re doing</a>
+          </div>
         </section>
       </div>
 
