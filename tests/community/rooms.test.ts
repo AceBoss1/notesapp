@@ -30,10 +30,11 @@ for (const a of stageOf(r, now)) for (const l of linksFor(r, a, now).filter((x) 
 assert.deepEqual(linksFor(r, "l1", now), [{ peer: "h", kind: "listen", offer: false }]);
 assert.deepEqual(linksFor(room([], { h: 120_000, l1: 0 }), "l1", now), []);
 
-// full at 20 listeners (phone to phone)
+// full at 20 listeners (phone to phone, the default cap); a bigger cap (the relay's) lets more in
 const many = room([], { h: 0, ...Object.fromEntries(Array.from({ length: ROOM_LISTENERS_MAX_P2P }, (_, i) => [`l${i}`, 0])) });
-assert.equal(roomIsFull(many, now), true);
-assert.equal(roomIsFull(room([], { h: 0, l1: 0 }), now), false);
+assert.equal(roomIsFull(many, ROOM_LISTENERS_MAX_P2P, now), true);
+assert.equal(roomIsFull(many, 500, now), false);
+assert.equal(roomIsFull(room([], { h: 0, l1: 0 }), ROOM_LISTENERS_MAX_P2P, now), false);
 assert.equal(cleanRoomTitle("  Sunday   Q&A  "), "Sunday Q&A");
 assert.equal(cleanRoomTitle("x".repeat(200)).length, 80);
 console.log("ALL OK");

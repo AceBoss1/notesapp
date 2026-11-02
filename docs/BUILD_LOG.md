@@ -2597,3 +2597,29 @@ the recommendation is not to apply and to share nothing. `ACCELERATORS_BACKLOG` 
 run from `app/api/admin/team/route.ts`) adds five founder-owned items: NotesApp Inc and the cap table first (6 Nov), the Alliance
 stablecoin pitch (7 Nov; the owner decided on 2 Nov to pitch it) and application (13 Nov), Village Global (20 Nov), and Legal's SAFE,
 dilution and stablecoin-licence check before anything is signed (13 Nov). Capital Wings stays a "don't engage" note in FUNDING.md §7. Internal only, so there's no changelog entry.
+
+**Audio rooms on the Cloudflare relay (v0.124.0, 2 Nov 2026)** — Rooms ran phone to phone: the stage in a mesh and every listener fed by
+the host's phone, so 20 listeners. The relay mode puts Cloudflare Realtime's Serverless SFU in the middle: the host and each speaker
+push their microphone once, and everyone pulls the other stage tracks (the stage is at most 5, so everyone pulls all of it; no
+"active speaker" selection was needed). `lib/rooms-relay-server.ts` is the only code that talks to Cloudflare (sessions/new, tracks/new
+local with the browser's offer, tracks/new remote with the SFU's offer, renegotiate, tracks/close with force), written from the OpenAPI
+file `realtime-api-2024-05-21.yaml` and tested against a stand-in fetch; its errors are worded like the TURN ones in
+`lib/calls-server.ts`. The browser keeps one RTCPeerConnection per room and sends each step to `/api/community/rooms` (action
+"relay"); `relayStep` in `lib/rooms-server.ts` checks the caller is in the room and on stage before a push, that the track it wants
+belongs to a stage member who is sending before a pull, and keeps each person's Cloudflare session id and track in the server-only
+`communityRooms/{id}/relay/{uid}` (the room doc says only who is sending, `published`, so a listener can't name someone else's session).
+The host moving a speaker off stage cuts their track at Cloudflare server-side, so a demoted speaker can't keep talking. A room keeps
+the mode it opened with (`chooseRoomMode`: both keys and the Admin switch); if Cloudflare doesn't answer at start, the room opens phone
+to phone with a note to the host, and the failure is recorded in `serverConfig/roomsRelay` for /status. Scale (the coordinator's
+point during the build): a Firestore document takes about one write a second, so 500 listeners beating every 20 s into the room doc
+would fail. In relay rooms only the stage stays in `joined`; listeners live in `communityRooms/{id}/people/{uid}` (server-written,
+readable only by that person), their heartbeat goes there, the room doc carries a `listening` count re-counted at most every 15 s
+(a transaction claims each window; a count() aggregation does the counting), moving on or off stage moves the person between the two,
+the screen shows the count and a paged "People here" list, and the chat goes through the server with slow mode past a setting (the
+rules refuse a browser's own chat write in a relay room). The settings (relay switch, 500 / 20 listeners, slow mode above 200, 10 s)
+follow the Nana-and-agents pattern (`serverConfig/rooms`, 30-second cache, an "Audio rooms" section in Admin → Limits), not the
+per-plan table, because they're the same for every plan. Every figure people read (the help, `/community/audio-rooms` and the events
+page, course live classes, the Start a room form, Nana's prompt) now comes from the settings (`roomFigures`), and `/api/limits` serves
+them to client pages. The Team hub reminder now reads "rooms run phone to phone … switches on when the keys are set" and goes once they
+are; /status gained "Audio rooms relay". Emulator and rules tests ran from a temporary copy on port 8209.
+

@@ -11,7 +11,8 @@ import {
   milestoneProgress, type Milestone, type TeamItem, type Status, workReminders, workReminderLine, ownersOf, nextMonthly,
 } from "./team";
 import { SITE_URL } from "@/lib/host";
-import { setting } from "@/lib/config";
+import { relayConfigured } from "./rooms-relay-server";
+import { getRoomSettings } from "./rooms-server";
 
 // Server side of the team hub. Everything lives in two server-only collections (teamItems, teamMilestones); only signed-in admins reach
 // them, through /api/admin/team.
@@ -41,9 +42,13 @@ export async function teamSignals(db: Firestore): Promise<Signal[]> {
     count(db.collection("leads").where("status", "==", "new")).then((n) => (n > 0 ? { id: "leads", label: "New contact messages and leads", count: n, href: "/admin/leads" } : null)),
     count(db.collection("ledger").where("status", "==", "disputed")).then((n) => (n > 0 ? { id: "disputes", label: "Disputed payouts", count: n, href: "/admin/payments", urgent: true } : null)),
     count(db.collection("errorLogs").where("lastSeenAt", ">=", since)).then((n) => (n > 0 ? { id: "errors", label: "Errors in the last 24 hours", count: n, href: "/admin/errors" } : null)),
-    // A standing reminder (owner, 22 Oct 2026): audio rooms run phone to phone for up to 20 listeners until the Cloudflare relay's keys are
-    // added (lib/rooms.ts, docs/ENVIRONMENT.md). It goes away by itself once they are.
-    Promise.resolve(setting("CLOUDFLARE_REALTIME_APP_ID") && setting("CLOUDFLARE_REALTIME_APP_TOKEN") ? null : { id: "rooms-relay", label: "Audio rooms: add the Cloudflare relay keys (CLOUDFLARE_REALTIME_APP_ID and _TOKEN) to go past 20 listeners", count: 1, href: "/help/community" }),
+    // A standing reminder (owner, 22 Oct 2026): the Cloudflare relay for audio rooms is built (v0.124.0) and stays off until its keys are
+    // set (lib/rooms.ts, docs/ENVIRONMENT.md, HANDOVER item 96). It goes away by itself once they are; after that, relay trouble shows on
+    // /status ("Audio rooms relay"), never here, and switching the relay off in Admin → Limits doesn't nag either.
+    relayConfigured() ? Promise.resolve(null) : getRoomSettings(db).then((s) => ({
+      id: "rooms-relay", label: `Audio rooms run phone to phone (up to ${s.p2pListeners} listeners): the Cloudflare relay is built and switches on when CLOUDFLARE_REALTIME_APP_ID and _TOKEN are set in Vercel (up to ${s.relayListeners.toLocaleString("en-GB")})`,
+      count: 1, href: "/admin/limits",
+    })),
   ];
   const settled = await Promise.allSettled(jobs);
   return settled.flatMap((r) => (r.status === "fulfilled" && r.value ? [r.value] : []));

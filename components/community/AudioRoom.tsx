@@ -6,21 +6,27 @@ import { db } from "@/lib/firebase";
 import Avatar from "@/components/Avatar";
 import { MicIcon } from "@/components/calls/CallViews";
 import { duration } from "@/lib/calls";
-import { ROOM_BEAT_MS, ROOM_CHAT_MAX, ROOM_LISTENERS_MAX_P2P, ROOM_SPEAKERS_MAX, linksFor, listenersOf, presentIn, roomRole, stageOf, type RoomChat, type RoomDoc, type RoomLink, type RoomLinkKind } from "@/lib/rooms";
+import { DEFAULT_ROOM_FIGURES, ROOM_BEAT_MS, ROOM_CHAT_MAX, ROOM_SPEAKERS_MAX, linksFor, listenerCount, listenersOf, pullsFor, roomRole, stageOf, type RoomChat, type RoomDoc, type RoomFigures, type RoomLink, type RoomLinkKind, type RoomMode } from "@/lib/rooms";
 import { ago, capi, field } from "./api";
 
-// Audio rooms (lib/rooms.ts): the live rooms on a community's Home, and the room itself. On stage, phones connect to each other; each
-// listener connects to the host, whose phone mixes the stage (Web Audio) into the one stream it sends them.
+// Audio rooms (lib/rooms.ts): the live rooms on a community's Home, and the room itself. A room runs in the mode it opened with:
+// - "p2p": on stage, phones connect to each other; each listener connects to the host, whose phone mixes the stage (Web Audio) into the
+//   one stream it sends them.
+// - "relay": one connection per person to the Cloudflare relay. The host and speakers send their microphone up once (push); everyone
+//   receives the other stage microphones from the relay (pull). Every step goes through /api/community/rooms (action "relay"), which
+//   checks who may send and receive; the browser never holds Cloudflare's token or anyone's session.
 
 type Ice = { urls: string | string[]; username?: string; credential?: string }[];
 type Card = { id: string; title: string; hostName: string; listening: number; speakers: string[]; faces: { name: string; avatar: string }[] };
+type RelayRes = { answer?: RTCSessionDescriptionInit; offer?: RTCSessionDescriptionInit | null; renegotiate?: boolean; tracks?: { uid: string; mid: string }[] };
 
 export function RoomsCard({ cid, canHost, onOpen }: { cid: string; canHost: boolean; onOpen: (id: string, title?: string) => void }) {
   const [rooms, setRooms] = useState<Card[] | null>(null);
+  const [figures, setFigures] = useState<RoomFigures>(DEFAULT_ROOM_FIGURES);
   const [title, setTitle] = useState("");
   const [open, setOpen] = useState(false);
   const [err, setErr] = useState("");
-  const load = useCallback(() => capi<{ rooms: Card[] }>(`/api/community/rooms?cid=${cid}`).then((d) => setRooms(d.rooms)).catch(() => setRooms([])), [cid]);
+  const load = useCallback(() => capi<{ rooms: Card[]; figures?: RoomFigures }>(`/api/community/rooms?cid=${cid}`).then((d) => { setRooms(d.rooms); if (d.figures) setFigures(d.figures); }).catch(() => setRooms([])), [cid]);
   useEffect(() => { load(); const t = setInterval(load, 20_000); return () => clearInterval(t); }, [load]);
   if (rooms === null || (!rooms.length && !canHost)) return null;
   return (
@@ -39,7 +45,7 @@ export function RoomsCard({ cid, canHost, onOpen }: { cid: string; canHost: bool
           <button className="btn-primary !px-4 !py-2 text-xs" disabled={title.trim().length < 3}>Go live</button>
           <button type="button" className="text-xs text-slate underline" onClick={() => setOpen(false)}>Cancel</button>
           {err && <p className="w-full text-sm text-crimson" role="alert">{err}</p>}
-          <p className="w-full text-xs text-slate">You host: bring up to {ROOM_SPEAKERS_MAX} members on stage to speak; everyone else listens and can raise a hand. Up to {ROOM_LISTENERS_MAX_P2P} listeners for now. Nothing is recorded.</p>
+          <p className="w-full text-xs text-slate">You host: bring up to {ROOM_SPEAKERS_MAX} members on stage to speak; everyone else listens and can raise a hand. Up to {figures.listeners.toLocaleString("en-GB")} listeners{figures.relay ? "" : " for now"}. Nothing is recorded.</p>
         </form>
       )}
       {rooms.length ? (
@@ -74,6 +80,8 @@ export function RoomScreen({ id, me, title, onDone }: { id: string; me: string; 
   const micRef = useRef<MediaStream | null>(null); // for the mute button
   const [chatOpen, setChatOpen] = useState(false); // the chat sheet on phones (always beside the room on a computer)
   const [unread, setUnread] = useState(0);
+  const [mode, setMode] = useState<RoomMode>("p2p");
+  const [cap, setCap] = useState(0); // how many may listen in this room (from the setting, sent on join)
 
   useEffect(() => {
     let over = false, ice: Ice = [], myAt = "", micOn = false;
@@ -85,7 +93,21 @@ export function RoomScreen({ id, me, title, onDone }: { id: string; me: string; 
     let ctx: AudioContext | null = null, mixOut: MediaStreamAudioDestinationNode | null = null;
     const mixIn = new Map<string, MediaStreamAudioSourceNode>();
     const meters = new Map<string, AnalyserNode>();
-    const show = () => setStreams(Object.fromEntries([...conns].filter(([, c]) => c.stream).map(([u, c]) => [u, c.stream!])));
+    // Relay rooms: my one connection to Cloudflare, what I send, and what I receive (by the mid Cloudflare gave each track).
+    let relayMode = false, rpc: RTCPeerConnection | null = null, fresh = true, pushed: RTCRtpTransceiver | null = null;
+    const relayStreams = new Map<string, MediaStream>();
+    // Relay rooms: a listener is in the room while their people doc exists (lib/rooms.ts); the stage is in the room doc. Moving on or off
+    // stage swaps one for the other, so "gone from both" is only believed after a few seconds.
+    let meHere = false, goneTimer: ReturnType<typeof setTimeout> | undefined;
+    const inRoomNow = (r: RoomDoc) => !!r.joined?.[me] || meHere;
+    const checkGone = () => {
+      clearTimeout(goneTimer);
+      if (!latest || inRoomNow(latest)) return;
+      goneTimer = setTimeout(() => { if (latest && !inRoomNow(latest)) finish("You left the room."); }, 4000);
+    };
+    const midToUid = new Map<string, string>();
+    const pulled = new Map<string, { uid: string; mid: string }>(); // "uid@when they went up" → the track I receive
+    const show = () => setStreams({ ...Object.fromEntries([...conns].filter(([, c]) => c.stream).map(([u, c]) => [u, c.stream!])), ...Object.fromEntries(relayStreams) });
     const audio = () => {
       if (!ctx) { ctx = new AudioContext(); mixOut = ctx.createMediaStreamDestination(); }
       void ctx.resume().catch(() => {});
@@ -103,8 +125,9 @@ export function RoomScreen({ id, me, title, onDone }: { id: string; me: string; 
     const finish = (message = "") => {
       if (over) return;
       over = true;
-      unsubs.forEach((u) => u()); clearInterval(beat); clearInterval(tick); clearInterval(levelTimer);
+      unsubs.forEach((u) => u()); clearInterval(beat); clearInterval(tick); clearInterval(levelTimer); clearTimeout(goneTimer);
       conns.forEach((c) => c.pc.close()); conns.clear();
+      rpc?.close(); rpc = null;
       mic?.getTracks().forEach((t) => t.stop());
       void ctx?.close().catch(() => {});
       setNote(message || "You left the room.");
@@ -162,6 +185,84 @@ export function RoomScreen({ id, me, title, onDone }: { id: string; me: string; 
       await updateDoc(doc(db, "communityRooms", id, "links", linkId), { answer: { type: a.type, sdp: a.sdp ?? "" } });
     };
 
+    // ── The relay ──
+    // Steps with Cloudflare one at a time (each SDP exchange must finish before the next), through our server.
+    let queue: Promise<unknown> = Promise.resolve();
+    const serial = <T,>(fn: () => Promise<T>): Promise<T> => { const p = queue.then(fn, fn); queue = p.catch(() => {}); return p; };
+    const relay = async (body: Record<string, unknown>): Promise<RelayRes> => {
+      const r = await capi<RelayRes>("/api/community/rooms", { action: "relay", id, ...body, ...(fresh ? { fresh: true } : {}) });
+      fresh = false; // the server opened my session: later steps use it
+      return r;
+    };
+    const relayPc = () => {
+      if (rpc) return rpc;
+      const pc = new RTCPeerConnection({ iceServers: ice, bundlePolicy: "max-bundle" });
+      pc.ontrack = (e) => {
+        const uid = e.transceiver?.mid ? midToUid.get(e.transceiver.mid) : undefined;
+        if (!uid) return;
+        const st = new MediaStream([e.track]);
+        relayStreams.set(uid, st); meters.delete(uid); meter(uid, st); show();
+      };
+      pc.onconnectionstatechange = () => { if (pc.connectionState === "failed" && !over) setNote("Lost the connection to the room's relay. Leave and join again."); };
+      rpc = pc;
+      return pc;
+    };
+    // On stage: my microphone goes up once.
+    const startPush = () => serial(async () => {
+      const track = mic?.getAudioTracks()[0];
+      if (pushed || !track || over) return;
+      const pc = relayPc();
+      const tx = pc.addTransceiver(track, { direction: "sendonly" });
+      const offer = await pc.createOffer();
+      await pc.setLocalDescription(offer);
+      try {
+        const r = await relay({ op: "push", offer: { type: offer.type, sdp: offer.sdp ?? "" }, mid: tx.mid });
+        if (r.answer) await pc.setRemoteDescription(r.answer);
+        pushed = tx;
+      } catch (e) {
+        await tx.sender.replaceTrack(null).catch(() => {});
+        throw e;
+      }
+    });
+    // Off stage: stop sending (the server cuts it at Cloudflare too).
+    const stopPush = () => serial(async () => {
+      if (!pushed) return;
+      await pushed.sender.replaceTrack(null).catch(() => {});
+      pushed = null;
+      if (!over) await relay({ op: "unpush" }).catch(() => {});
+    });
+    // Receive the other stage microphones that are up (lib/rooms.ts pullsFor); let go of the ones that aren't.
+    const relaySync = (r: RoomDoc) => serial(async () => {
+      if (over) return;
+      const want = pullsFor(r, me);
+      const keys = new Set(want.map((w) => w.key));
+      const gone = [...pulled].filter(([k]) => !keys.has(k));
+      for (const [k, v] of gone) { pulled.delete(k); midToUid.delete(v.mid); relayStreams.delete(v.uid); meters.delete(v.uid); }
+      if (gone.length) { show(); await relay({ op: "close", mids: gone.map(([, v]) => v.mid) }).catch(() => {}); }
+      const add = want.filter((w) => !pulled.has(w.key));
+      if (!add.length) return;
+      const pc = relayPc();
+      const res = await relay({ op: "pull", uids: add.map((a) => a.uid) }).catch(() => null); // someone just stepped down: tried again on the next change
+      if (!res?.tracks?.length) return;
+      for (const t of res.tracks) { const w = add.find((a) => a.uid === t.uid); if (w) { pulled.set(w.key, t); midToUid.set(t.mid, t.uid); } }
+      if (res.offer) {
+        await pc.setRemoteDescription(res.offer);
+        const a = await pc.createAnswer();
+        await pc.setLocalDescription(a);
+        if (res.renegotiate) await relay({ op: "answer", answer: { type: a.type, sdp: a.sdp ?? "" } });
+      }
+    }).catch(() => {});
+    const relayReconcile = async (r: RoomDoc) => {
+      const onStage = roomRole(r, me) !== "listener";
+      if (onStage && !micOn) {
+        micOn = true;
+        try { await ensureMic(); await startPush(); }
+        catch (e) { setNote(e instanceof Error && !/Permission|NotAllowed/i.test(e.name + e.message) ? e.message : "Allow the microphone to speak."); }
+      }
+      if (!onStage && micOn) { micOn = false; await stopPush(); stopMic(); }
+      void relaySync(r);
+    };
+
     // The connections I should have now (lib/rooms.ts linksFor): wrong ones are closed, missing ones I start are offered; the ones the
     // other side starts arrive as links to me (below).
     const reconcile = async (r: RoomDoc) => {
@@ -179,29 +280,35 @@ export function RoomScreen({ id, me, title, onDone }: { id: string; me: string; 
     let beat: ReturnType<typeof setInterval> | undefined, tick: ReturnType<typeof setInterval> | undefined, levelTimer: ReturnType<typeof setInterval> | undefined;
     (async () => {
       try {
-        const r = await capi<{ iceServers: Ice }>("/api/community/rooms", { action: "join", id });
+        const r = await capi<{ iceServers: Ice; mode?: RoomMode; cap?: number }>("/api/community/rooms", { action: "join", id });
         ice = r.iceServers;
+        relayMode = r.mode === "relay"; setMode(relayMode ? "relay" : "p2p"); setCap(r.cap ?? 0);
       } catch (e) { finish(e instanceof Error ? e.message : "Couldn't join the room."); return; }
       if (over) return;
       let first = true;
+      if (relayMode) unsubs.push(onSnapshot(doc(db, "communityRooms", id, "people", me), (s) => { meHere = s.exists(); checkGone(); }, () => {}));
       unsubs.push(onSnapshot(doc(db, "communityRooms", id), (s) => {
         const r = s.data() as RoomDoc | undefined;
         if (!r || r.status !== "live") { finish("The room has ended."); return; }
-        if (!r.joined?.[me]) { if (!first) finish("You left the room."); return; }
+        if (!relayMode && !r.joined?.[me]) { if (!first) finish("You left the room."); return; }
         latest = r; setRoom(r);
+        if (relayMode) checkGone();
         if (first) {
-          first = false; myAt = r.joined[me].at;
+          first = false; myAt = r.joined[me]?.at ?? new Date().toISOString();
           const t0 = Date.parse(r.createdAt); tick = setInterval(() => setSecs(Math.round((Date.now() - t0) / 1000)), 1000);
-          unsubs.push(onSnapshot(query(collection(db, "communityRooms", id, "links"), where("to", "==", me)), (snap) => snap.docChanges().forEach((ch) => {
+          if (!relayMode) unsubs.push(onSnapshot(query(collection(db, "communityRooms", id, "links"), where("to", "==", me)), (snap) => snap.docChanges().forEach((ch) => {
             const l = ch.doc.data() as RoomLink;
             if (ch.type !== "added" || !l.offer || l.answer || Date.parse(l.at) < Date.parse(myAt) - 30_000 || !latest) return;
             const w = linksFor(latest, me).find((x) => x.peer === l.from && x.kind === l.kind && !x.offer);
             if (w) void answer(ch.doc.id, l, latest.joined[l.from]?.at ?? "").catch(() => drop(l.from));
           }), () => {}));
         }
-        void reconcile(r);
+        void (relayMode ? relayReconcile(r) : reconcile(r));
       }, () => finish("The room has ended.")));
-      beat = setInterval(() => { capi<{ live: boolean }>("/api/community/rooms", { action: "beat", id }).then((x) => { if (!x.live) finish("The room has ended."); }).catch(() => {}); }, ROOM_BEAT_MS);
+      beat = setInterval(() => {
+        capi<{ live: boolean }>("/api/community/rooms", { action: "beat", id }).then((x) => { if (!x.live) finish("The room has ended."); }).catch(() => {});
+        if (relayMode && latest) void relaySync(latest); // picks up a pull that failed in a race
+      }, ROOM_BEAT_MS);
       // Who is talking: a ring round their picture while their sound is above a whisper.
       const buf = new Uint8Array(128);
       levelTimer = setInterval(() => {
@@ -218,8 +325,13 @@ export function RoomScreen({ id, me, title, onDone }: { id: string; me: string; 
   const act = async (body: Record<string, unknown>, tag = "") => { setBusy(tag); try { await capi("/api/community/rooms", { id, ...body }); } catch (e) { setNote(e instanceof Error ? e.message : "Couldn't do that."); setTimeout(() => setNote(""), 2500); } finally { setBusy(""); } };
   const role = room ? roomRole(room, me) : "listener";
   const stage = room ? stageOf(room) : [];
-  const listeners = room ? listenersOf(room) : [];
-  const hands = room ? Object.entries(room.hands ?? {}).filter(([u]) => listeners.includes(u)).sort((a, b) => a[1].localeCompare(b[1])) : [];
+  const relayRoom = room?.mode === "relay";
+  const listeners = room && !relayRoom ? listenersOf(room) : []; // phone to phone: the list; on the relay, the count and "People here"
+  const listening = room ? listenerCount(room) : 0;
+  const full = cap > 0 && listening >= cap;
+  const [peopleOpen, setPeopleOpen] = useState(false);
+  const who = (u: string) => room?.joined[u] ?? room?.handInfo?.[u];
+  const hands = room ? Object.entries(room.hands ?? {}).filter(([u]) => (relayRoom ? !stage.includes(u) && !!room.handInfo?.[u] : listeners.includes(u))).sort((a, b) => a[1].localeCompare(b[1])) : [];
   const handUp = !!room?.hands?.[me];
   const toggleMute = () => { const m = !muted; micRef.current?.getAudioTracks().forEach((t) => { t.enabled = !m; }); setMuted(m); };
 
@@ -231,7 +343,8 @@ export function RoomScreen({ id, me, title, onDone }: { id: string; me: string; 
         <div className="min-w-0">
           <p className="font-ui text-[11px] font-semibold uppercase tracking-[0.25em] text-white/55">{room?.communityName ?? "Audio room"} · <span className="text-[#FF6B6B]">● Live</span> {room ? duration(secs) : ""}</p>
           <h1 className="mt-1 font-display text-2xl leading-tight sm:text-3xl">{room?.title ?? title ?? "Joining…"}</h1>
-          <p className="mt-1 text-xs text-white/50" aria-live="polite">{note || (room ? `${stage.length} on stage · ${listeners.length} listening · phone to phone, nothing recorded` : "Connecting…")}</p>
+          <p className="mt-1 text-xs text-white/50" aria-live="polite">{note || (room ? `${stage.length} on stage · ${listening.toLocaleString("en-GB")}${cap ? ` of ${cap.toLocaleString("en-GB")}` : ""} listening${full ? " (full)" : ""} · ${mode === "relay" ? "through the relay" : "phone to phone"}, nothing recorded` : "Connecting…")}</p>
+          {role === "host" && room?.note && <p className="mt-1 text-xs text-[#FFB4A2]" role="status">{room.note}</p>}
         </div>
         <button type="button" onClick={() => leaveRef.current()} className="shrink-0 rounded-full bg-white/10 px-4 py-2 font-ui text-xs font-semibold hover:bg-white/20">Leave quietly</button>
       </header>
@@ -250,8 +363,8 @@ export function RoomScreen({ id, me, title, onDone }: { id: string; me: string; 
             <ul className="mt-3 space-y-2">
               {hands.map(([u]) => (
                 <li key={u} className="flex items-center gap-3">
-                  <Avatar src={room!.joined[u]?.avatar ?? ""} alt="" size={36} className="!h-9 !w-9 rounded-full" />
-                  <span className="min-w-0 flex-1 truncate text-sm">{room!.joined[u]?.name}</span>
+                  <Avatar src={who(u)?.avatar ?? ""} alt="" size={36} className="!h-9 !w-9 rounded-full" />
+                  <span className="min-w-0 flex-1 truncate text-sm">{who(u)?.name}</span>
                   <button type="button" disabled={busy === u || room!.speakers.length >= ROOM_SPEAKERS_MAX} onClick={() => act({ action: "speaker", uid: u, on: true }, u)} className="rounded-full bg-white px-3 py-1.5 font-ui text-xs font-bold text-ink disabled:opacity-40">Bring up</button>
                 </li>
               ))}
@@ -259,7 +372,12 @@ export function RoomScreen({ id, me, title, onDone }: { id: string; me: string; 
             {room!.speakers.length >= ROOM_SPEAKERS_MAX && <p className="mt-2 text-xs text-white/55">The stage is full ({ROOM_SPEAKERS_MAX} speakers besides you). Move someone to listeners first.</p>}
           </div>
         )}
-        <p className="mt-8 font-ui text-xs font-semibold uppercase tracking-[0.2em] text-white/45">Listening · {listeners.length}</p>
+        <p className="mt-8 font-ui text-xs font-semibold uppercase tracking-[0.2em] text-white/45">Listening · {listening.toLocaleString("en-GB")}{cap ? ` of ${cap.toLocaleString("en-GB")}` : ""}{full ? " · the room is full" : ""}</p>
+        {relayRoom && (
+          peopleOpen
+            ? <RoomPeople id={id} me={me} canInvite={role === "host"} busy={busy} invite={(u) => act({ action: "speaker", uid: u, on: true }, u)} onClose={() => setPeopleOpen(false)} />
+            : <button type="button" onClick={() => setPeopleOpen(true)} className="mt-3 rounded-full bg-white/10 px-4 py-2 font-ui text-xs font-semibold hover:bg-white/20">People here</button>
+        )}
         <ul className="mt-3 grid grid-cols-4 gap-3 sm:grid-cols-8">
           {listeners.map((u) => (
             <Person key={u} name={u === me ? "You" : room!.joined[u]?.name ?? "Someone"} avatar={room!.joined[u]?.avatar ?? ""} hand={!!room!.hands?.[u]}
@@ -287,7 +405,7 @@ export function RoomScreen({ id, me, title, onDone }: { id: string; me: string; 
       </div>
       {room && (
         <aside className={`${chatOpen ? "fixed inset-x-0 bottom-0 z-10 flex h-[75vh] rounded-t-3xl shadow-2xl" : "hidden"} flex-col border-white/10 bg-[#211816] lg:static lg:flex lg:h-auto lg:w-96 lg:rounded-none lg:border-l lg:shadow-none`} aria-label="Room chat">
-          <RoomChatPanel id={id} me={me} room={room} canRemove={role === "host"} open={chatOpen} onClose={() => setChatOpen(false)} onNew={() => { if (!chatOpen) setUnread((n) => n + 1); }} remove={(mid) => act({ action: "unchat", messageId: mid })} />
+          <RoomChatPanel id={id} me={me} room={room} relay={relayRoom} canRemove={role === "host"} open={chatOpen} onClose={() => setChatOpen(false)} onNew={() => { if (!chatOpen) setUnread((n) => n + 1); }} remove={(mid) => act({ action: "unchat", messageId: mid })} />
         </aside>
       )}
     </div>
@@ -295,7 +413,7 @@ export function RoomScreen({ id, me, title, onDone }: { id: string; me: string; 
 }
 
 // The room's chat (lib/rooms.ts): everyone in the room types here while it's on; host and speakers are marked. The newest stays in view.
-function RoomChatPanel({ id, me, room, canRemove, open, onClose, onNew, remove }: { id: string; me: string; room: RoomDoc; canRemove: boolean; open: boolean; onClose: () => void; onNew: () => void; remove: (messageId: string) => void }) {
+function RoomChatPanel({ id, me, room, relay, canRemove, open, onClose, onNew, remove }: { id: string; me: string; room: RoomDoc; relay: boolean; canRemove: boolean; open: boolean; onClose: () => void; onNew: () => void; remove: (messageId: string) => void }) {
   const [msgs, setMsgs] = useState<(RoomChat & { id: string })[]>([]);
   const [text, setText] = useState("");
   const [err, setErr] = useState("");
@@ -314,8 +432,11 @@ function RoomChatPanel({ id, me, room, canRemove, open, onClose, onNew, remove }
   async function send(e: React.FormEvent) {
     e.preventDefault();
     const t = text.trim();
-    if (!t || !mine) return;
+    if (!t || (!mine && !relay)) return;
     setText(""); setErr("");
+    // Relay rooms: through the server, which holds slow mode in big rooms (lib/rooms-server.ts sendRoomChat).
+    if (relay) { try { await capi("/api/community/rooms", { action: "chat", id, text: t.slice(0, ROOM_CHAT_MAX) }); } catch (x) { setErr(x instanceof Error ? x.message : "Couldn't send. Try again."); setText(t); } return; }
+    if (!mine) return;
     try { await addDoc(collection(db, "communityRooms", id, "chat"), { from: me, name: mine.name, avatar: mine.avatar, text: t.slice(0, ROOM_CHAT_MAX), at: new Date().toISOString() } satisfies RoomChat); }
     catch { setErr("Couldn't send. Try again."); setText(t); }
   }
@@ -344,8 +465,38 @@ function RoomChatPanel({ id, me, room, canRemove, open, onClose, onNew, remove }
         <input value={text} onChange={(e) => setText(e.target.value)} maxLength={ROOM_CHAT_MAX} placeholder="Drop a note in the room…" aria-label="Drop a note in the room" className="min-w-0 flex-1 rounded-full bg-white/10 px-4 py-2.5 text-sm text-white placeholder:text-white/40 focus:bg-white/15 focus:outline-none" />
         <button className="rounded-full bg-white px-4 py-2.5 font-ui text-sm font-bold text-ink disabled:opacity-40" disabled={!text.trim()}>Send</button>
       </form>
+      {relay && (room.chatSlow ?? 0) > 0 && room.hostUid !== me && !room.speakers.includes(me) && <p className="px-4 pb-2 text-xs text-white/45">Slow mode: a big room, so one message every {room.chatSlow} seconds each.</p>}
       {err && <p className="px-4 pb-2 text-xs text-[#FF6B6B]" role="alert">{err}</p>}
     </>
+  );
+}
+
+// Relay rooms: who is listening, a page at a time from the server (a big room's listeners aren't on the room doc). The host can invite
+// anyone here to speak.
+function RoomPeople({ id, me, canInvite, busy, invite, onClose }: { id: string; me: string; canInvite: boolean; busy: string; invite: (uid: string) => void; onClose: () => void }) {
+  const [people, setPeople] = useState<{ uid: string; name: string; avatar: string; hand: boolean }[]>([]);
+  const [next, setNext] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
+  const load = useCallback(async (after: string | null) => {
+    setLoading(true);
+    try {
+      const r = await capi<{ people: typeof people; next: string | null }>("/api/community/rooms", { action: "people", id, after });
+      setPeople((p) => (after ? [...p, ...r.people] : r.people)); setNext(r.next);
+    } catch { /* the count above still shows */ } finally { setLoading(false); }
+  }, [id]);
+  useEffect(() => { void load(null); }, [load]);
+  return (
+    <div className="mt-3 rounded-2xl bg-white/[0.06] p-4">
+      <div className="flex items-center justify-between"><p className="font-ui text-sm font-bold">People here</p><button type="button" onClick={onClose} className="text-xs text-white/60 underline">Hide</button></div>
+      <ul className="mt-3 grid grid-cols-4 gap-3 sm:grid-cols-8">
+        {people.map((p) => (
+          <Person key={p.uid} name={p.uid === me ? "You" : p.name} avatar={p.avatar} hand={p.hand}
+            action={canInvite && p.uid !== me ? { label: "Invite to speak", run: () => invite(p.uid) } : undefined} busy={busy === p.uid} />
+        ))}
+      </ul>
+      {next && <button type="button" disabled={loading} onClick={() => load(next)} className="mt-3 rounded-full bg-white/10 px-4 py-2 font-ui text-xs font-semibold hover:bg-white/20 disabled:opacity-40">More</button>}
+      {!loading && !people.length && <p className="text-xs text-white/50">Nobody is listening yet.</p>}
+    </div>
   );
 }
 

@@ -3,22 +3,28 @@ import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import PageHero from "@/components/PageHero";
 import { COMMUNITY_FEATURES, communityFeature } from "@/lib/community-features";
+import { getAdminDb } from "@/lib/firebase-admin";
+import { liveRoomFigures } from "@/lib/rooms-server";
+import { DEFAULT_ROOM_FIGURES } from "@/lib/rooms";
 
 // /community/general, /community/spaces, /community/circles and /community/audio-rooms: one page for each part of a community
 // (lib/community-features.ts), with real screenshots on a computer and a phone, the limits, how it works, and links to the other parts,
 // to Community and to the help article Nana reads.
-export const dynamicParams = false;
+// Audio room sizes are admin settings (Admin → Limits → Audio rooms), so each page is rendered on its first visit (not at build, where
+// there is no database) and refreshed every few minutes to show the live figures, like the help articles. Unknown parts are a 404.
+export const revalidate = 300;
+const figures = async () => { try { return await liveRoomFigures(getAdminDb()); } catch { return DEFAULT_ROOM_FIGURES; } };
 export function generateStaticParams() {
-  return COMMUNITY_FEATURES.map((f) => ({ feature: f.slug }));
+  return [];
 }
-export function generateMetadata({ params }: { params: { feature: string } }): Metadata {
-  const f = communityFeature(params.feature);
+export async function generateMetadata({ params }: { params: { feature: string } }): Promise<Metadata> {
+  const f = communityFeature(params.feature, await figures());
   if (!f) return {};
   return { title: `${f.name} in Community`, description: f.intro, alternates: { canonical: `/community/${f.slug}` } };
 }
 
-export default function CommunityFeaturePage({ params }: { params: { feature: string } }) {
-  const f = communityFeature(params.feature);
+export default async function CommunityFeaturePage({ params }: { params: { feature: string } }) {
+  const f = communityFeature(params.feature, await figures());
   if (!f) notFound();
   const others = COMMUNITY_FEATURES.filter((x) => x.slug !== f.slug);
   return (
