@@ -7,11 +7,13 @@ import { collection, getDocs, query, where } from "firebase/firestore";
 import { auth, db } from "@/lib/firebase";
 import Link from "next/link";
 import { CoAuthorInvite, canAcceptCoAuthor } from "@/lib/coauthors";
+import { accessLabel, accessOf, invitePath } from "@/lib/invite-terms";
 import { getUserByUid, UserProfile } from "@/lib/users";
 import { useMemberships } from "@/lib/useMemberships";
 import PageHero from "@/components/PageHero";
 
-// Co-author invitations addressed to the signed-in member.
+// Co-author invitations addressed to the signed-in member. Each opens the accept screen (/invites/journal/<id>) with the terms; an
+// accepted one opens the draft (when they can see it) and can be left before the post is published.
 export default function InvitesPage() {
   const router = useRouter();
   const [user, setUser] = useState<User | null>(null);
@@ -55,15 +57,15 @@ export default function InvitesPage() {
     [router, load]
   );
 
-  async function respond(i: CoAuthorInvite, accept: boolean) {
-    if (!user) return;
+  async function leave(i: CoAuthorInvite) {
+    if (!user || !window.confirm(`Leave "${i.noteTitle}"? You won't see the draft any more, and you won't be credited or share its earnings.`)) return;
     setBusy(i.noteId);
     setError("");
     try {
       const res = await fetch("/api/coauthors", {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${await user.getIdToken()}` },
-        body: JSON.stringify({ action: "respond", inviteId: `${i.noteId}_${i.inviteeUid}`, accept }),
+        body: JSON.stringify({ action: "leave", inviteId: `${i.noteId}_${i.inviteeUid}` }),
       });
       const json = await res.json();
       if (!res.ok) throw new Error(json.error || "Failed");
@@ -79,8 +81,8 @@ export default function InvitesPage() {
   return (
     <>
       <PageHero eyebrow="Co-authoring" title={<>Co-author invites</>}>
-        <p>If you accept, you&apos;re listed as a co-author when the post is published and receive the share shown of what that post
-        earns. The split is locked at publishing.</p>
+        <p>Open an invite to read exactly what you&apos;d agree to: your access to the draft, your share of what the post earns and the
+        credit. The split is locked at publishing. Co-tutor invitations for courses are on <Link href="/academy/teach">Teach</Link>.</p>
       </PageHero>
       <section className="mx-auto max-w-2xl px-4 py-12 sm:px-6">
       {profile && !canAcceptCoAuthor(profile) && (
@@ -121,14 +123,24 @@ export default function InvitesPage() {
             <li key={`${i.noteId}_${i.inviteeUid}`} className="card p-5 text-sm">
               <p className="font-semibold text-ink">&ldquo;{i.noteTitle}&rdquo;</p>
               <p className="mt-1 text-slate">
-                From {i.leadName} (@{i.leadUsername}) · your share <strong className="text-ink">{i.percent}%</strong> · {i.status}
+                From {i.leadName} (@{i.leadUsername}) · {accessLabel(accessOf("journal", i))} · your share <strong className="text-ink">{i.percent}%</strong> · {i.status}
+                {i.agreedAt ? ` on ${new Date(i.agreedAt).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}` : ""}
               </p>
-              {i.status === "pending" && (
-                <div className="mt-3 flex gap-2">
-                  <button disabled={busy === i.noteId || (!!profile && !canAcceptCoAuthor(profile))} onClick={() => respond(i, true)} className="btn-primary !px-4 !py-2 text-xs disabled:opacity-50">Accept</button>
-                  <button disabled={busy === i.noteId} onClick={() => respond(i, false)} className="btn-ghost !px-4 !py-2 text-xs disabled:opacity-50">Decline</button>
-                </div>
-              )}
+              {i.change && <p className="mt-1 text-xs font-semibold text-amber-800">New terms proposed: {accessLabel(i.change.access).toLowerCase()}, {i.change.percent}%.</p>}
+              <div className="mt-3 flex flex-wrap gap-2">
+                {(i.status === "pending" || i.change) && (
+                  <Link href={invitePath("journal", `${i.noteId}_${i.inviteeUid}`)} className="btn-primary !px-4 !py-2 text-xs">Review and answer</Link>
+                )}
+                {i.status === "accepted" && accessOf("journal", i) !== "credit" && (
+                  <Link href={`/write/${i.noteId}/shared`} className="btn-ghost !px-4 !py-2 text-xs">{accessOf("journal", i) === "edit" ? "Open the draft" : "Read the draft"}</Link>
+                )}
+                {i.status === "accepted" && (
+                  <Link href={invitePath("journal", `${i.noteId}_${i.inviteeUid}`)} className="btn-ghost !px-4 !py-2 text-xs">Your terms</Link>
+                )}
+                {i.status === "accepted" && (
+                  <button disabled={busy === i.noteId} onClick={() => leave(i)} className="text-xs text-slate underline hover:text-crimson disabled:opacity-50">Leave</button>
+                )}
+              </div>
             </li>
           ))}
         </ul>

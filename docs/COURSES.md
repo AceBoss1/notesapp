@@ -122,6 +122,14 @@ Each step ships with phone and desktop screenshots first (`HANDOVER.md`), the he
    the learner hasn't started (opening a paid lesson counts as starting).
 7. **Co-tutors:** a course can have one tutor or co-tutors. Sales are split like a co-authored post's gifts: each co-tutor's agreed
    percent, the lead keeps the rest, each share at its own plan's commission. Organisations' admins and writers can teach as the organisation.
+   **Access (v0.109.0, owner 1 Nov 2026):** the lead chooses per co-tutor **Can view** (the course and every lesson, draft or published,
+   read-only: the preview at `/academy/<slug>` through `GET /api/academy/courses?slug=`; the editor and uploads are refused) or **Can view
+   and edit** (details, About, modules and lessons). Publishing, the price and certificate, the shares, invitations and deleting stay with
+   the lead (`editable(…, "lead")`). The co-tutor accepts on `/invites/course/<courseId>_<uid>`, agreeing to the terms shown
+   (`agreedAt`, `agreedTerms` on `courseTutorInvites`, the full record in `inviteAgreements`). The lead may change access or share at any
+   time, published or not: less access applies at once; more access or a new share is a `change` the co-tutor must agree to. A 0% share
+   is allowed for both levels (credited without a share), as before. Co-tutors who accepted before access levels keep edit access
+   (`Tutor.access` missing reads as edit). The rules in plain words live in `lib/invite-terms.ts`.
 8. **Course details for every course**, free or paid (from the partner review of digitalwitchng.com): level, language, format (live
    classes with recordings), what you'll learn, requirements, how it works, modules, This course includes, Share, and a private class
    link and course group shown only to people who enrolled or bought.

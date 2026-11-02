@@ -4,15 +4,20 @@ import assert from "node:assert/strict";
 import { initializeApp } from "firebase-admin/app";
 import { getFirestore } from "firebase-admin/firestore";
 import {
-  CourseError, accessTo, addLesson, courseForOwner, createCourse, createCourseGroup, deleteCourse, enrol, inviteTutor, linksFor, markLesson, myCourses, removeTutor, respondTutor,
-  setPublished, updateCourse, type UploadChecks,
+  CourseError, accessTo, addLesson, changeTutor, deleteLesson, courseForOwner, createCourse, createCourseGroup, deleteCourse, enrol, inviteTutor, linksFor, markLesson, myCourses, myTutorInvites,
+  removeTutor, respondTutor, setPublished, updateCourse, updateLesson, type UploadChecks,
 } from "../../lib/courses-server";
+import { setInviteMailer } from "../../lib/invite-agreements-server";
+import { inviteView } from "../../lib/invites-server";
+import { INVITE_TERMS_VERSION } from "../../lib/invite-terms";
 import { DeviceLimit, claimIncludedCertificate, courseCheckout, courseShares, fulfilCourseInTransaction, myPurchase, openLesson, refundable, splitGross, undoCoursePurchase, type LessonDeps } from "../../lib/course-sales-server";
 import { includesOf, orderedLessons, type Course } from "../../lib/courses";
 import type { PaymentRecord } from "../../lib/payments";
 import { join } from "../../lib/community-server";
 initializeApp({ projectId: "demo-notesapp" });
 const db = getFirestore();
+setInviteMailer(async () => {}); // the bell is still written (and read below); no email in tests
+const agree = (access: string, percent: number) => ({ accept: true, agree: true, termsVersion: INVITE_TERMS_VERSION, seen: { access, percent } });
 const fails = async (p: Promise<unknown>, status: number, why: string) => {
   const e = await p.then(() => null, (x) => x);
   assert.ok(e instanceof CourseError, `${why}: expected a CourseError, got ${e}`);
@@ -163,13 +168,52 @@ const buy = async (ref: string, c: Course, buyer: string, rate = 0.04) => {
   await fails(inviteTutor(db, "u_biz", course.id, { username: "cotwo", percent: 65 }), 400, "the lead keeps at least 10%");
   await fails(inviteTutor(db, "u_co", course.id, { username: "cotwo", percent: 5 }), 403, "only the lead invites");
   assert.equal(await accessTo(db, "u_co", (await courseForOwner(db, "u_biz", { id: course.id })).course), null, "not a tutor until they accept");
-  await respondTutor(db, "u_co", course.id, true);
+  assert.equal(inv.access, "edit", "an invite without an access level means what co-tutors always had: edit");
+  await fails(respondTutor(db, "u_co", course.id, true), 400, "accepting needs the agreement on the accept screen");
+  await fails(respondTutor(db, "u_co", course.id, agree("view", 30)), 409, "the terms seen must be the terms offered");
+  await respondTutor(db, "u_co", course.id, agree("edit", 30));
   const asTutor = await courseForOwner(db, "u_co", { id: course.id });
   assert.equal(asTutor.access, "tutor");
+  const agreed = asTutor.invites.find((x) => x.uid === "u_co")!;
+  assert.ok(agreed.agreedAt, "the agreement is on the invite");
+  assert.equal(agreed.agreedTerms?.percent, 30); assert.equal(agreed.agreedTerms?.access, "edit"); assert.equal(agreed.agreedTerms?.termsVersion, INVITE_TERMS_VERSION);
+  assert.equal((await db.collection("inviteAgreements").where("inviteId", "==", `${course.id}_u_co`).get()).size, 1);
   await updateCourse(db, "u_co", course.id, { outcomes: "Calm angry customers" });
   await fails(updateCourse(db, "u_co", course.id, { priceNaira: "1000" }), 403, "a co-tutor doesn't set the price");
   await fails(setPublished(db, "u_co", course.id, false), 403, "a co-tutor doesn't unpublish");
   assert.ok((await myCourses(db, "u_co")).some((x) => x.id === course.id && x.access === "tutor"), "co-taught courses are on Teach");
+
+  // ---- a co-tutor who can view: the course and lessons, read-only, enforced by the server ----
+  await inviteTutor(db, "u_biz", course.id, { username: "cotwo", percent: 0, access: "view" });
+  const ivw = await inviteView(db, "u_co2", "course", `${course.id}_u_co2`);
+  assert.deepEqual(ivw.offer, { access: "view", percent: 0 }); assert.equal(ivw.lead.name, "Biz Teacher");
+  await respondTutor(db, "u_co2", course.id, agree("view", 0));
+  const asViewer = await courseForOwner(db, "u_co2", { slug: course.slug });
+  assert.equal(asViewer.access, "viewer"); assert.ok(asViewer.lessons.length >= 2, "a viewer sees every lesson");
+  await fails(courseForOwner(db, "u_co2", { id: course.id }, "tutor"), 403, "but not the editor");
+  await fails(updateCourse(db, "u_co2", course.id, { summary: "Mine" }), 403, "a viewer can't edit the course");
+  await fails(addLesson(db, "u_co2", course.id, { kind: "text", title: "Sneaky", body: "x" }, new Date(), checks), 403, "or add lessons");
+  await fails(updateLesson(db, "u_co2", course.id, intro.id, { kind: "text", title: "Hacked", body: "x" }, new Date(), checks), 403, "or edit them");
+  assert.equal(await accessTo(db, "u_co2", (await courseForOwner(db, "u_biz", { id: course.id })).course), "viewer");
+  assert.ok((await myCourses(db, "u_co2")).some((x) => x.id === course.id && x.access === "viewer"));
+  // more access waits for their agreement; until then they still can't edit
+  assert.deepEqual(await changeTutor(db, "u_biz", course.id, { uid: "u_co2", access: "edit", percent: 0 }), { applied: false, proposed: true });
+  await fails(updateCourse(db, "u_co2", course.id, { summary: "Mine" }), 403, "not before they agree");
+  assert.ok((await myTutorInvites(db, "u_co2")).some((x) => x.change?.access === "edit"), "the change is waiting on Teach");
+  await fails(changeTutor(db, "u_co", course.id, { uid: "u_co2", access: "edit", percent: 50 }), 403, "only the lead changes terms");
+  await respondTutor(db, "u_co2", course.id, agree("edit", 0));
+  const theirs = await addLesson(db, "u_co2", course.id, { kind: "text", title: "From the co-tutor", body: "Hi" }, new Date(), checks);
+  await deleteLesson(db, "u_co2", course.id, theirs.id); // a contributor adds and removes lessons (and leaves the course as it was)
+  await fails(setPublished(db, "u_co2", course.id, false), 403, "a contributor doesn't unpublish");
+  await fails(updateCourse(db, "u_co2", course.id, { priceNaira: "1000" }), 403, "or set the price");
+  // less access applies at once, and they're told
+  assert.deepEqual(await changeTutor(db, "u_biz", course.id, { uid: "u_co2", access: "view", percent: 0 }), { applied: true, proposed: false });
+  await fails(updateCourse(db, "u_co2", course.id, { summary: "Mine" }), 403, "edit access is gone at once");
+  const told = (await db.collection("notifications").where("recipientUid", "==", "u_co2").get()).docs.map((d) => String(d.data().message));
+  assert.ok(told.some((m) => m.includes("changed your access")), "the co-tutor is told");
+  assert.ok((await db.collection("notifications").where("recipientUid", "==", "u_biz").get()).docs.some((d) => String(d.data().message).includes("accepted and agreed")), "the lead is told of each acceptance");
+  await removeTutor(db, "u_biz", course.id, "u_co2");
+  assert.equal(await accessTo(db, "u_co2", (await courseForOwner(db, "u_biz", { id: course.id })).course), null);
 
   // ---- checkout, the split, and what the payment creates ----
   await fails(courseCheckout(db, "u_co", course.id), 409, "tutors don't buy their own course");

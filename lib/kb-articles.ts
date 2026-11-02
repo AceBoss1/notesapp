@@ -5,7 +5,7 @@ import { BOOST_PACKAGES, GIFT_MAX_KOBO, GIFT_MIN_KOBO } from "./boost-config";
 import { LIMITS, formatNaira } from "./booking-time";
 import { GOLD_KIND_LIVE } from "./badges";
 import { POLICY_TEXT } from "./cancellation";
-import { MAX_CO_AUTHORS, MIN_CO_PERCENT, MIN_LEAD_PERCENT } from "./coauthors";
+import { MAX_CO_AUTHORS, MIN_CO_PERCENT, MIN_LEAD_PERCENT, MIN_VIEW_PERCENT } from "./coauthors";
 import { GOLD_PRICING } from "./gold";
 import { MERCH_DELIVERY_KOBO } from "./merch";
 import { LIFE_LIVE } from "./life/catalog";
@@ -287,9 +287,35 @@ ${BOOST_PACKAGES.map((p) => `- **${p.name}**: ${money(p.priceKobo)} for ${n(p.im
 
 Boosts have no commission, and anything not delivered by the end is refunded pro rata. You can also cancel a running boost under Boost performance: impressions already delivered are spent, you get half of the undelivered share back and forfeit the other half. If #NotesApp cancels a boost, the whole undelivered share is refunded and you are told why. See [Boost](/boost).`),
     A("co-authoring", "Co-authoring a post", "Publishing and earning", `
-Pro, Business and Enterprise publishers can write a post with other members. The lead invites up to ${MAX_CO_AUTHORS} co-authors by username on a draft and sets each person's share of what the post earns (the lead keeps at least ${MIN_LEAD_PERCENT}%, each co-author at least ${MIN_CO_PERCENT}%). Everyone must accept before being listed, and the split locks when you publish.
+Pro, Business and Enterprise publishers can write a post with other members. The lead invites up to ${MAX_CO_AUTHORS} co-authors by username on a draft, and for each one chooses **what they can do** and **their share** of what the post earns (the lead keeps at least ${MIN_LEAD_PERCENT}%).
 
-Co-authors need a publishing account (Free Basic or above) to accept, because their share is paid to a bank account. Gifts on the post are split in the agreed percentages; sessions stay personal to each author. See [Co-authoring](/coauthoring).`),
+**Access levels**
+- **Can view:** they read the draft before it's published (read-only), to review it and send you their comments. The share can be anything from ${MIN_VIEW_PERCENT}%: a reviewer can be credited without a share.
+- **Can view and edit:** they also edit the draft's title and text, from **Read the draft / Open the draft** on their [invites page](/invites). Their save goes straight into the draft; if you have the draft open, the editor warns you before you save over their changes. Each co-author who edits gets at least ${MIN_CO_PERCENT}%.
+- Either way, **you keep** publishing, the address, topics, picture and video, the split and the invitations. Nothing about the post or its co-authors changes once it's published.
+
+**Accepting means agreeing.** The invitation arrives in the bell and by email and opens a page that shows who invited you, the title and cover, your access in plain words (what you can and can't do), your share and how it's paid, the credit, that the lead keeps publishing control, and how to leave. **Accept and agree** records the terms you saw (with the date and the terms version); the lead's panel then shows "Accepted on" that date. **Decline** says no. To accept you need a publishing account (Free Basic or above), because your share is paid to a bank account.
+
+**Changing it later (while it's a draft):** the lead can change a co-author's access or share. Less access applies at once and the co-author is told. More access, or a different share, is sent to them to agree on the same page; until they do, the terms they agreed to stay in force. Declining a change keeps the old terms.
+
+**Leaving and removal:** a co-author can **Leave** from their invites page before the post is published, and the lead can remove a co-author or withdraw an invite before publishing. Either way the credit and the share end, and the other person is told. Invites still waiting at publishing expire.
+
+Invites sent before access levels existed keep what they had: those co-authors are credited and paid but don't see the draft, until the lead offers them access and they agree. Gifts on the post are split in the agreed percentages; sessions stay personal to each author. See [Co-authoring](/coauthoring).`),
+    A("co-teaching", "Co-teaching a course", "Publishing and earning", `
+On [Teach a course](/academy/teach), a course's lead (its owner, or for an organisation's course its admins and the team member who made it) can invite up to 4 co-tutors by @username under **4. Tutors**, choosing for each one **what they can do** and **their share of each sale** (from 0%; the lead keeps at least 10%).
+
+**Access levels**
+- **Can view:** they see the course and every lesson, draft or published, read-only (open it from Teach with **Preview**), to review it and send the lead their comments. No editing.
+- **Can view and edit:** they also edit the course's details, About, modules and lessons, including quizzes and uploads.
+- Either way, **the lead keeps** publishing and unpublishing, the price and certificate, the shares, invitations and deleting the course.
+
+**Accepting means agreeing.** The invitation arrives in the bell and by email and opens a page with who invited you, the course's title and cover, your access in plain words, your share (paid to your bank 7 days after each sale, less your own plan's commission; a refunded sale is refunded from every share), the credit (listed as a co-tutor on the course page), that the lead keeps publishing control, and how to leave. **Accept and agree** records the terms you saw, with the date; the lead sees "Accepted on" that date under Tutors. To accept you need a publishing account (Free Basic or above).
+
+**Changing it later:** the lead taps **Change access or share**. Less access applies at once and the co-tutor is told. More access, or a different share, is sent for them to agree (it waits on their Teach page and in the bell); their current terms stay until they do. Courses can be changed after publishing too.
+
+**Leaving and removal:** a co-tutor taps **Leave** under Tutors; the lead taps **Remove** (or **Withdraw** for an invite still waiting). Credit and the share of later sales end then, and the other person is told.
+
+Co-tutors who joined before access levels existed keep what they had: they can view and edit. See [Teaching and learning on Notes Academy](/help/academy).`),
     A("ads-and-ad-share", "Ads and ad share", "Publishing and earning", `
 **Advertising on #NotesApp:** anyone can buy a banner campaign, paid online and priced by validated impressions:
 ${AD_PACKAGES.map((p) => `- **${p.name}**: ${money(p.priceKobo)} for ${n(p.impressions)} impressions, up to ${p.windowDays} days.`).join("\n")}
@@ -500,7 +526,7 @@ Calls are free. Planned: paid calls inside Notes Life (₦5 a minute voice, ₦1
 - **About the course:** the level, language and format (self-paced, or live classes with recordings), what learners will learn and the requirements (one per line), how long it runs and when classes are, and, for live classes, an optional meeting link. Hold live classes in an [audio room](/help/community-audio-rooms) in your course group, for up to ${1 + ROOM_SPEAKERS_MAX + ROOM_LISTENERS_MAX_P2P} people (you, ${ROOM_SPEAKERS_MAX} speakers and ${ROOM_LISTENERS_MAX_P2P} listening); for video, or a bigger class, paste a meeting link. Only learners who enrolled or bought see it.
 - **Course group:** a place on #NotesApp for your learners, instead of a WhatsApp or Telegram group. Under About the course, link one of your communities and a Space in it, tap **Add a members-only Space for this course** to one you run, or tap **Start a community for this course**: it's joined only by invite link, and your learners get the link with a **Join the course group** button. No community yet? Start one on [Community](/community); see [Spaces](/help/community-spaces) and [Circles](/help/community-circles). If your community is open to anyone, its members-only Spaces are open to all its members, not only your learners. A WhatsApp or Telegram link saved on an older course keeps showing to its learners until you link a course group (which replaces it) or remove it; new outside group links can't be added.
 - **Price:** free, or paid on Pro (text lessons, PDFs and YouTube) and on Business or Enterprise (your own uploaded videos too). You get the price less the same fee as your digital items, paid to your bank 7 days after each sale; add your bank account in Rates & payouts before you publish. Tick **Certificate included** to include it in the price.
-- **Tutors:** teach alone, or invite up to 4 co-tutors by @username with their share of each sale. Each one accepts first, can then edit the course's content and lessons, and is paid their share at their own plan's fee. The price, the tutors and publishing stay with the lead.
+- **Tutors:** teach alone, or invite up to 4 co-tutors by @username with what they can do (**Can view**, or **Can view and edit** the course's content and lessons) and their share of each sale. Each one reads the terms and agrees before they're listed, and is paid their share at their own plan's fee. The price, the shares, the tutors and publishing stay with the lead. See [Co-teaching a course](/help/co-teaching).
 - **Add lessons:** paste a link to a video on your own YouTube and check the picture to make sure it's the right one (keep videos public or unlisted, not private, or they won't play), or write a text lesson in the journal editor. On a paid course you can also upload videos (Business and Enterprise, up to 200 MB each) and PDFs (up to 50 MB), and tick **Free preview** on the lessons anyone may open before buying. Group lessons in **modules** if you like. Add the minutes; they add up to the course's length. Use ↑ and ↓ to put lessons in order.
 - **Publish:** a course needs a title, a summary and at least one lesson. Use **Preview** first if you like; only its tutors can see a draft.
 - You can keep editing after publishing. To remove the last lesson of a published course, unpublish it first. Deleting a course removes its lessons and its learners' progress; a course people have bought can't be deleted (unpublish it instead, and they keep it).
