@@ -14,6 +14,8 @@ import { whogohostConfigured, wgCredits } from "./whogohost";
 import { PROVIDERS, providerConfigured } from "./social-server";
 import { nanaConfigured } from "./nana-config";
 import { cloudflareTurn, cloudflareTurnConfigured } from "./calls-server";
+import { relayCheck, relayConfigured } from "./rooms-relay-server";
+import { getRoomSettings } from "./rooms-server";
 import { redis, sharedStoreConfigured } from "./shared-store";
 import { SITE_URL } from "@/lib/host";
 import { setting } from "@/lib/config";
@@ -224,7 +226,7 @@ export async function checkServices(): Promise<ServiceStatus[]> {
   // Free voice and video calls in Messages. The relay (TURN) carries calls on networks that block direct connections; this asks
   // Cloudflare for credentials exactly as a call does, so a wrong key shows here instead of in a failed call.
   const callsName = "Calls and audio rooms";
-  const callsDesc = "Free one-to-one and group calls in Messages and audio rooms in Community (phone to phone), with the Cloudflare relay for networks that block direct connections";
+  const callsDesc = "Free one-to-one and group calls in Messages and audio rooms in Community, with the Cloudflare TURN relay for networks that block direct connections";
   const ownTurn = !!((setting("TURN_URLS") || "").trim() && setting("TURN_USERNAME") && setting("TURN_CREDENTIAL"));
   checks.push(
     !CALLS_LIVE
@@ -241,6 +243,26 @@ export async function checkServices(): Promise<ServiceStatus[]> {
               const st = toStatus("calls", callsName, why ? `${callsDesc} (${why})` : `${callsDesc} (relay ready)`, r);
               return st.state === "down" ? { ...st, state: "degraded" as ServiceState } : st;
             })()
+  );
+  // The audio rooms relay (Cloudflare Realtime SFU, lib/rooms-relay-server.ts): only listed once its two keys are set. This opens a session
+  // the way a room does (free; an unused session expires), so a wrong app id or token shows here, in words that say what to fix. A
+  // relay trouble a real room met in the last half hour (serverConfig/roomsRelay) shows too. Rooms fall back to phone to phone when the
+  // relay fails, so trouble is "slow", not "down".
+  const relayName = "Audio rooms relay", relayDesc = "Big community audio rooms through the Cloudflare relay";
+  checks.push(
+    !relayConfigured()
+      ? Promise.resolve(notConfigured("rooms-relay", relayName, `${relayDesc} (not set up: rooms run phone to phone until CLOUDFLARE_REALTIME_APP_ID and CLOUDFLARE_REALTIME_APP_TOKEN are set in Vercel)`))
+      : (async () => {
+          const db = getAdminDb();
+          const settings = await getRoomSettings(db).catch(() => null);
+          if (settings && settings.relayOn === 0) return { id: "rooms-relay", name: relayName, description: `${relayDesc} (switched off in Admin → Limits → Audio rooms: new rooms run phone to phone)`, state: "operational" } as ServiceStatus;
+          let why = "";
+          const r = await timed(async (signal) => { const c = await relayCheck(fetch, signal); why = c.why ?? ""; return c.ok; });
+          const last = (await db.doc("serverConfig/roomsRelay").get().catch(() => null))?.data() as { ok?: boolean; why?: string; at?: string } | undefined;
+          const recent = last && last.ok === false && last.why && Date.now() - Date.parse(last.at ?? "") < 30 * 60_000 ? last.why : "";
+          const st = toStatus("rooms-relay", relayName, why ? `${relayDesc} (${why})` : recent ? `${relayDesc} (a room met trouble in the last half hour: ${recent})` : `${relayDesc} (relay ready)`, r);
+          return st.state === "down" ? { ...st, state: "degraded" as ServiceState } : !why && recent ? { ...st, state: "degraded" as ServiceState } : st;
+        })()
   );
   // Device notifications need the three VAPID settings; this only confirms they are present.
   checks.push(

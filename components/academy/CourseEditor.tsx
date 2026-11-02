@@ -7,6 +7,7 @@ import RichTextEditor from "@/components/RichTextEditor";
 import TopicPicker from "@/components/TopicPicker";
 import { CourseLineSuggestions, SubtopicChips, TopicSuggestions } from "@/components/NanaSuggest";
 import Avatar from "@/components/Avatar";
+import { useRoomFigures } from "@/components/community/useRoomFigures";
 import type { Subtopic } from "@/lib/subtopics";
 import { useMember } from "@/lib/member-client";
 import { api } from "@/lib/moments-client";
@@ -18,7 +19,7 @@ import {
   COURSE_LANGUAGES, COURSE_LEVELS, COURSE_PRICE_MIN_KOBO, COURSE_SUMMARY_MAX, COURSE_TITLE_MAX, LESSON_MINUTES_MAX, LESSON_TITLE_MAX, MAX_COURSE_TOPICS, MAX_CO_TUTORS,
   MAX_LESSONS, MAX_MODULES, MAX_OUTCOMES, MAX_REQUIREMENTS, MIN_LEAD_TUTOR_PERCENT, PDF_MAX_BYTES,
   QUIZ_EXPLAIN_MAX, QUIZ_MAX_OPTIONS, QUIZ_MAX_QUESTIONS, QUIZ_MIN_OPTIONS, QUIZ_OPTION_MAX, QUIZ_PASS_DEFAULT, QUIZ_PROMPT_MAX,
-  COURSE_ROOM_SEATS, communityKindOf, courseGroupHref, courseHref, durationLabel, groupByModule, includesOf, isPaid, lessonKindLabel, nairaLabel, plural, publishProblems, youtubeId, youtubeThumb,
+  courseRoomSeats, communityKindOf, courseGroupHref, courseHref, durationLabel, groupByModule, includesOf, isPaid, lessonKindLabel, nairaLabel, plural, publishProblems, youtubeId, youtubeThumb,
   type Course, type CourseFormat, type CourseGroup, type CourseModule, type Lesson, type LessonKind, type TutorInvite,
 } from "@/lib/courses";
 import { accessLabel, accessOf, accessRank, helpHref, type InviteAccess } from "@/lib/invite-terms";
@@ -56,6 +57,7 @@ export default function CourseEditor({ courseId }: { courseId: string }) {
   const [error, setError] = useState("");
   const [note, setNote] = useState("");
   const [form, setForm] = useState<{ kind: LessonKind; lesson?: Lesson } | null>(null);
+  const seats = courseRoomSeats(useRoomFigures().listeners); // live classes in an audio room: the room size is an admin setting
 
   const course = v?.course ?? null;
   function take(r: View) {
@@ -243,7 +245,7 @@ export default function CourseEditor({ courseId }: { courseId: string }) {
         </div>
         {about.format === "live" && (
           <div className="mt-4">
-            <p className="text-sm text-slate"><span className={label}>Live classes.</span> Hold them in an <Link href="/help/community-audio-rooms" className="font-semibold text-crimson">audio room</Link> in your course group on #NotesApp, for up to {COURSE_ROOM_SEATS.total} people (you, {COURSE_ROOM_SEATS.speakers} speakers on stage and {COURSE_ROOM_SEATS.listeners} listening). For video, or a bigger class, paste a meeting link below.</p>
+            <p className="text-sm text-slate"><span className={label}>Live classes.</span> Hold them in an <Link href="/help/community-audio-rooms" className="font-semibold text-crimson">audio room</Link> in your course group on #NotesApp, for up to {seats.total.toLocaleString("en-GB")} people (you, {seats.speakers} speakers on stage and {seats.listeners.toLocaleString("en-GB")} listening). For video, or a bigger class, paste a meeting link below.</p>
             <label className="mt-2 block"><span className={label}>Meeting link <span className="font-normal text-slate">(optional)</span></span> <span className="text-xs text-slate">only learners who {paid ? "bought" : "enrolled"} see it</span>
               <input value={about.classUrl} onChange={(e) => setAbout({ ...about, classUrl: e.target.value })} inputMode="url" className={input} placeholder="https://…" />
             </label>

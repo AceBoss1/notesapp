@@ -1066,6 +1066,59 @@ test("audio rooms: people in the room read it; a connection is written by its tw
   await assertFails(addDoc(collection(l, "communityRooms/r1/chat"), msg("lis"))); // the room is over
 });
 
+test("audio rooms on the relay: Cloudflare sessions, the room settings and the relay's health are server-only", async () => {
+  const seen = { name: "x", avatar: "", at: "2026-10-22T10:00:00Z", seen: "2026-10-22T10:00:00Z" };
+  await env.withSecurityRulesDisabled(async (ctx) => {
+    const f = ctx.firestore();
+    await setDoc(doc(f, "communityRooms/r2"), { cid: "grace", communityName: "Grace", title: "Town hall", hostUid: "host", hostName: "H", speakers: ["spk"], hands: {}, joined: { host: seen, spk: seen, lis: seen }, status: "live", mode: "relay", createdAt: seen.at, published: { host: seen.at } });
+    await setDoc(doc(f, "communityRooms/r2/relay/host"), { sessionId: "cf-session-host", at: seen.at, push: { trackName: "host-mic", mid: "0" } });
+    await setDoc(doc(f, "serverConfig/rooms"), { overrides: { relayListeners: 300 } });
+    await setDoc(doc(f, "serverConfig/roomsRelay"), { ok: false, why: "x", at: seen.at });
+  });
+  const h = as("host"), s = as("spk"), l = as("lis"), x = as("stranger"), boss = as("boss", { admin: true });
+  await assertSucceeds(getDoc(doc(l, "communityRooms/r2"))); // who is sending is in the room (published), never their session
+  for (const db of [h, s, l, x, boss]) {
+    await assertFails(getDoc(doc(db, "communityRooms/r2/relay/host"))); // not even the host reads their own session
+    await assertFails(getDocs(collection(db, "communityRooms/r2/relay")));
+  }
+  await assertFails(setDoc(doc(s, "communityRooms/r2/relay/spk"), { sessionId: "mine", at: "t", push: { trackName: "spk-mic", mid: "0" } })); // nobody claims a track
+  await assertFails(updateDoc(doc(h, "communityRooms/r2/relay/host"), { push: null }));
+  await assertFails(deleteDoc(doc(h, "communityRooms/r2/relay/host")));
+  await assertFails(updateDoc(doc(s, "communityRooms/r2"), { [`published.spk`]: "t" })); // only the server marks someone as sending
+  await assertFails(updateDoc(doc(h, "communityRooms/r2"), { mode: "p2p" }));
+  for (const path of ["serverConfig/rooms", "serverConfig/roomsRelay"]) {
+    await assertFails(getDoc(doc(boss, path)));
+    await assertFails(setDoc(doc(boss, path), { overrides: {} }));
+  }
+});
+
+test("audio rooms on the relay: listeners live in people/ (server-written, each reads their own), and the chat goes through the server", async () => {
+  const seen = { name: "x", avatar: "", at: "2026-10-22T10:00:00Z", seen: "2026-10-22T10:00:00Z" };
+  await env.withSecurityRulesDisabled(async (ctx) => {
+    const f = ctx.firestore();
+    // The stage is on the room doc; the listener "lis" is only in people/.
+    await setDoc(doc(f, "communityRooms/r3"), { cid: "grace", communityName: "Grace", title: "Big talk", hostUid: "host", hostName: "H", speakers: [], hands: {}, joined: { host: seen }, status: "live", mode: "relay", createdAt: seen.at, listening: 1, countedAt: seen.at, chatSlow: 0 });
+    await setDoc(doc(f, "communityRooms/r3/people/lis"), { ...seen, name: "Lis" });
+  });
+  const h = as("host"), l = as("lis"), x = as("stranger");
+  await assertSucceeds(getDoc(doc(l, "communityRooms/r3"))); // a listener reads the stage and the count
+  await assertSucceeds(getDoc(doc(h, "communityRooms/r3")));
+  await assertFails(getDoc(doc(x, "communityRooms/r3")));
+  await assertSucceeds(getDoc(doc(l, "communityRooms/r3/people/lis"))); // their own presence
+  await assertFails(getDoc(doc(h, "communityRooms/r3/people/lis"))); // nobody else's (the host pages through the server)
+  await assertFails(getDocs(collection(l, "communityRooms/r3/people")));
+  await assertFails(setDoc(doc(x, "communityRooms/r3/people/stranger"), seen)); // nobody lets themselves in
+  await assertFails(updateDoc(doc(l, "communityRooms/r3/people/lis"), { seen: "2030-01-01T00:00:00Z" })); // heartbeats go through the server
+  await assertFails(updateDoc(doc(l, "communityRooms/r3/people/lis"), { chatAt: "" })); // nor does anyone reset their slow mode
+  await assertFails(deleteDoc(doc(l, "communityRooms/r3/people/lis")));
+  // chat: everyone here reads; nobody writes from the browser (the server holds slow mode)
+  await assertSucceeds(getDocs(collection(l, "communityRooms/r3/chat")));
+  await assertFails(getDocs(collection(x, "communityRooms/r3/chat")));
+  await assertFails(addDoc(collection(l, "communityRooms/r3/chat"), { from: "lis", name: "Lis", avatar: "", text: "Amen", at: "t" }));
+  await assertFails(addDoc(collection(h, "communityRooms/r3/chat"), { from: "host", name: "x", avatar: "", text: "Hi", at: "t" }));
+  await assertFails(updateDoc(doc(l, "communityRooms/r3"), { listening: 0 })); // the count is the server's
+});
+
 test("wallet: a member reads only their own balance and statement; nobody writes from a browser", async () => {
   await env.withSecurityRulesDisabled(async (ctx) => {
     const f = ctx.firestore();

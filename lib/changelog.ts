@@ -11,6 +11,17 @@ export type Release = {
 
 export const CHANGELOG: Release[] = [
   {
+    version: "v0.124.0",
+    bump: "minor",
+    date: "2026-11-02",
+    changes: [
+      { kind: "added", text: "Bigger audio rooms in Community: rooms can now run through our relay, run by Cloudflare, where the host and each speaker send their sound once and everyone listening hears the stage from there, for hundreds of listeners instead of a phone-to-phone room's handful. It switches on for new rooms as soon as the relay is connected; rooms already open carry on as they started, and if the relay can't be reached when a room starts, that room runs phone to phone and the host is told." },
+      { kind: "added", text: "In a big room, the screen shows how many are listening and how many the room holds, with People here to see who's in, a page at a time (the host can invite anyone from there to speak). The room chat goes into slow mode once a room is very big, so everyone can still follow it; the host and speakers are never slowed." },
+      { kind: "changed", text: "How many can listen in a room is now a setting the team can change, and the help, the Audio rooms page, course live classes and events all show the current figure." },
+      { kind: "added", text: "For the team: Admin → Limits has an Audio rooms section (use the relay, listeners per room with the relay and phone to phone, and when slow mode starts), and /status shows whether the relay is working and, if not, what to fix." },
+    ],
+  },
+  {
     version: "v0.123.1",
     bump: "patch",
     date: "2026-11-02",

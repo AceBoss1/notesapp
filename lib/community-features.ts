@@ -1,7 +1,7 @@
 import { COMMENT_MAX, COMMUNITY_FREE_MEMBERS, POST_MAX, SLOW_MODES, SPACES_MAX } from "./community";
 import { GROUP_MEMBERS_MAX } from "./messages-rules";
 import { GROUP_CALL_MAX } from "./group-calls";
-import { ROOM_CHAT_MAX, ROOM_LISTENERS_MAX_P2P, ROOM_SPEAKERS_MAX } from "./rooms";
+import { DEFAULT_ROOM_FIGURES, ROOM_CHAT_MAX, ROOM_SPEAKERS_MAX, type RoomFigures } from "./rooms";
 import { REPEATS } from "./events";
 import { TICKETS_PER_ORDER_MAX } from "./tickets";
 import { bandsText } from "./giving";
@@ -10,7 +10,8 @@ import { formatNaira } from "./booking-time";
 // The four parts of a community, each with its own page at /community/<slug> (owner, 22 Oct 2026: "they would all have more details or
 // own page, don't cluster them inside the community page as sections alone, though they all need to be linked"). The numbers come from
 // the code that enforces them, so a page can't promise more than the product does. Each page links the help article of the same name,
-// which is what Nana reads.
+// which is what Nana reads. Audio room sizes are admin settings (Admin → Limits → Audio rooms), so the page passes the live figures in
+// (communityFeature(slug, figures)); without them the defaults apply.
 export type CommunityFeature = {
   slug: "general" | "spaces" | "circles" | "audio-rooms" | "events";
   name: string;
@@ -25,7 +26,9 @@ export type CommunityFeature = {
 
 const slow = SLOW_MODES.filter((s) => s > 0).map((s) => (s < 60 ? `${s} seconds` : s < 3600 ? `${s / 60} min` : "1 hour")).join(", ");
 
-export const COMMUNITY_FEATURES: CommunityFeature[] = [
+export function communityFeatures(rooms: RoomFigures = DEFAULT_ROOM_FIGURES): CommunityFeature[] {
+  const listening = rooms.listeners.toLocaleString("en-GB");
+  return [
   {
     slug: "general", name: "General", eyebrow: "Community · General", title: "One channel every member hears",
     intro: "General is your community's announcement channel. Every member is in it from the day they join. Your admins post; members like, comment and share. It's where Sunday's service times, the outreach report and the harvest notice go.",
@@ -117,7 +120,7 @@ export const COMMUNITY_FEATURES: CommunityFeature[] = [
     facts: [
       { label: "Who hosts", value: "The owner, admins and moderators" },
       { label: "On stage", value: `The host and up to ${ROOM_SPEAKERS_MAX} speakers at a time` },
-      { label: "Listening", value: `Up to ${ROOM_LISTENERS_MAX_P2P} for now; hundreds with our relay, later` },
+      { label: "Listening", value: rooms.relay ? `Up to ${listening} a room, through our relay` : `Up to ${listening} for now; hundreds with our relay, later` },
       { label: "Room chat", value: `Everyone in the room, up to ${ROOM_CHAT_MAX} characters a message` },
       { label: "Who can join", value: "Members of the community" },
       { label: "Recording", value: "None: nothing is recorded or kept" },
@@ -137,9 +140,12 @@ export const COMMUNITY_FEATURES: CommunityFeature[] = [
         "On a computer the chat sits beside the room. On a phone, tap 💬 Chat; a red number shows what you missed while it was closed.",
         "The host and speakers are marked in the chat. The host or a moderator can remove a message. The chat goes when the room ends.",
       ] },
-      { h: "How the sound travels", items: [
+      { h: "How the sound travels", items: rooms.relay ? [
+        "Through our relay, run by Cloudflare: the host and each speaker send their microphone once, and everyone in the room hears the stage from the relay. The sound passes through Cloudflare on its way and is never recorded or kept.",
+        `So a room holds up to ${listening} listeners, and the host's phone carries no more than a speaker's.`,
+      ] : [
         "For now, rooms run phone to phone: the people on stage connect straight to each other, and each listener connects to the host, whose phone sends everyone the mix. Nothing passes through #NotesApp's servers.",
-        `That keeps it private but puts the host's phone in the middle, so a room holds ${ROOM_LISTENERS_MAX_P2P} listeners. A host on Wi-Fi or a strong 4G connection works best. Bigger rooms come with our relay.`,
+        `That keeps it private but puts the host's phone in the middle, so a room holds ${listening} listeners. A host on Wi-Fi or a strong 4G connection works best. Bigger rooms come with our relay.`,
       ] },
     ],
     help: "community-audio-rooms",
@@ -169,7 +175,7 @@ export const COMMUNITY_FEATURES: CommunityFeature[] = [
         "Public events have Add to calendar. If you change or cancel an event, everyone going or interested is told.",
       ] },
       { h: "Live", items: [
-        `To talk live with your members, start an Audio room on #NotesApp: the host, up to ${ROOM_SPEAKERS_MAX} speakers and ${ROOM_LISTENERS_MAX_P2P} listening, with a chat.`,
+        `To talk live with your members, start an Audio room on #NotesApp: the host, up to ${ROOM_SPEAKERS_MAX} speakers and ${listening} listening, with a chat.`,
         "For video, or an audience bigger than a room holds, an event's Join live link opens YouTube Live, Facebook Live, Zoom, Google Meet or any https link, shown only to that event's audience. Our own live streaming comes later, as a paid add-on.",
       ] },
       { h: "Paid tickets", items: [
@@ -193,6 +199,8 @@ export const COMMUNITY_FEATURES: CommunityFeature[] = [
     ],
     help: "events",
   },
-];
-
-export const communityFeature = (slug: string) => COMMUNITY_FEATURES.find((f) => f.slug === slug);
+  ];
+}
+// The parts' names, slugs and pictures (the same whatever the figures).
+export const COMMUNITY_FEATURES: CommunityFeature[] = communityFeatures();
+export const communityFeature = (slug: string, rooms?: RoomFigures) => communityFeatures(rooms).find((f) => f.slug === slug);

@@ -1,6 +1,7 @@
 import type { Firestore } from "firebase-admin/firestore";
 import { KbError, cleanArticle, type KbArticle } from "./kb";
 import { builtInArticles } from "./kb-articles";
+import { liveRoomFigures } from "./rooms-server";
 
 // The knowledge base the Help centre and Nana AI read: the built-in articles plus whatever staff have written at Admin → Help & Nana.
 // A staff article with the same slug as a built-in one replaces it (that is how staff correct or extend a built-in answer); unpublish or
@@ -21,7 +22,9 @@ export async function staffArticles(db: Firestore): Promise<(StaffDoc & { id: st
 export async function getArticles(db: Firestore, now = Date.now()): Promise<KbArticle[]> {
   if (cache && now - cache.at < 60_000) return cache.list;
   const staff = (await staffArticles(db).catch(() => [])).filter((a) => a.published);
-  const bySlug = new Map<string, KbArticle>(builtInArticles().map((a) => [a.slug, a]));
+  // Figures admins set (audio room sizes) are read live, so the help says what a room opened now holds.
+  const rooms = await liveRoomFigures(db).catch(() => undefined);
+  const bySlug = new Map<string, KbArticle>(builtInArticles({ rooms }).map((a) => [a.slug, a]));
   for (const s of staff) bySlug.set(s.slug, { slug: s.slug, title: s.title, category: s.category, body: s.body, updatedAt: s.updatedAt, source: "staff" });
   const list = [...bySlug.values()];
   cache = { at: now, list };

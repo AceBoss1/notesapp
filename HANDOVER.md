@@ -285,6 +285,35 @@ on `main` that isn't understood is raised with the owner first.
     listeners: Cloudflare relay (Realtime SFU)", due 9 Nov, with the Cloudflare steps for `CLOUDFLARE_REALTIME_APP_ID` /
     `_TOKEN` and the TURN keys; the standing "rooms-relay" signal in `lib/team-server.ts` is unchanged. Tests: `test:team`,
     `test:team-server`.
+96. **Audio rooms on the Cloudflare relay (v0.124.0, branch `push/rooms-relay`; 95 is reserved for PR #251):** built and **off until
+    the keys are set**: without `CLOUDFLARE_REALTIME_APP_ID` and `CLOUDFLARE_REALTIME_APP_TOKEN` every room runs phone to phone exactly
+    as before (20 listeners). **Owner steps:** (1) dash.cloudflare.com → Realtime → Serverless SFU → Create application (e.g.
+    notesapp-audio-rooms). (2) Vercel → Settings → Environment Variables, Production: `CLOUDFLARE_REALTIME_APP_ID` = the App ID,
+    `CLOUDFLARE_REALTIME_APP_TOKEN` = the App Token (shown once; mark it **Sensitive**). (3) While in Realtime → TURN Server: the Turn
+    Token ID into `CLOUDFLARE_TURN_KEY_ID` and its API token into `CLOUDFLARE_TURN_API_TOKEN` (same place, Production, token
+    Sensitive); /status → "Calls and audio rooms" says exactly which is wrong if they don't match. (4) Redeploy. (5) `firebase deploy
+    --only firestore:rules` (new server-only `communityRooms/{id}/relay/{uid}` and `communityRooms/{id}/people/{uid}`, listeners in
+    people/ may read the room, and a relay room's chat is written only by the server). No new indexes (single-field only). (6) Check
+    /status → "Audio rooms relay" says "relay ready" (it opens a free Cloudflare session to prove the App ID and token), then start a
+    test room: the room line says "through the relay". The Team hub's standing "rooms-relay" reminder disappears once both keys are
+    set; after that, relay trouble shows on /status only (with the reason a real room met in the last half hour).
+    **Settings** (Admin → Limits → Audio rooms, `serverConfig/rooms`): "Use the Cloudflare relay" (on by default; only with the keys),
+    listeners per room with the relay (500), phone to phone (20), slow mode above (200 listeners) and its gap (10 s). Rooms already open
+    keep their mode; a room whose start can't reach Cloudflare runs phone to phone and the host sees why. **What limits a relay room is
+    Firestore, not Cloudflare:** every person in a room keeps a live read on the room doc and on the chat, so each change to either is
+    read by everyone in it. To keep that bounded, in relay rooms only the stage (host and speakers, at most 5) beats into the room doc;
+    each listener's presence is its own `people/{uid}` doc; the listener count on the room doc is re-counted at most every 15 s
+    (claimed in a transaction, one recount per window); listeners see the count and open a paged "People here" list; the chat goes
+    through the server with slow mode past the setting. Roughly: a 500-listener room reads ~0.4 room-doc changes a second × 500 ≈ 200
+    reads/s, plus 500 reads per chat message, so watch Firestore reads (Firebase console → Firestore → Usage, and the team hub's reads-per-member trigger) before raising the listener setting much past 500,
+    and lower "slow mode above" if chat gets busy. Cloudflare bills egress only (first 1,000 GB a month free); a 500-listener hour is
+    roughly 500 × ~25 MB. **Unverified until the keys exist:** the calls were written against Cloudflare's OpenAPI
+    (`realtime-api-2024-05-21`: sessions/new, tracks/new local and remote, renegotiate, tracks/close with `force`) and tested against a
+    stand-in; the exact error codes for a wrong App ID or token, and real audio through the SFU in browsers (Safari especially), need
+    one live test room. Tests: `test:rooms` (mode choice, push/pull permissions, cap, settings, the count window, slow mode, the help
+    and public page figures, the Cloudflare client against a stand-in fetch), `test:rooms-server` (emulator: the server flow with a
+    stand-in Cloudflare, the fallback, the cap, people/, the recount, slow mode, the Team hub reminder), `test:rules` (two new tests),
+    `test:community`, `test:community-server`.
 
 All of these are on the team hub board with departments and dates (`lib/team-seed.ts`: `FUND_BACKLOG`, `LAUNCH_BACKLOG`, `COURSES_BACKLOG`, `TOPICS_BACKLOG`, `BIMI_BACKLOG`). Items can have several people (`ownerUids`; `ownerUid` stays as the first of them for older readers) and can repeat monthly (`repeat: "monthly"`: done moves the due date on a month).
 
