@@ -373,15 +373,27 @@ on `main` that isn't understood is raised with the owner first.
     read by everyone in it (10,000 listeners = 10,000 reads a message). Now each relay room opened while it's on (`edge: true` on the
     room doc) has one Durable Object (`workers/live-rooms`, class `LiveRoom`, WebSocket Hibernation API) holding everyone's socket: it
     broadcasts the chat (slow mode at the edge: automatic past the "slow mode above" setting, or the host's own switch; a rate limit per
-    connection; 2 KB per frame), the live listener count, raised hands, stage moves and a video on/off signal (for step 2a), and lets
-    the host and moderators remove a message, mute or ban for the room. Firestore stays the source of truth: a socket needs a 10-minute
+    connection; 2 KB per frame), the live listener count, raised hands, stage moves and camera on/off (mirrored from step 2a's server
+    state: `markVideoOn`/`markVideoOff` tell the room; browsers can't), and lets the host and moderators remove a message, mute and
+    unmute, or ban for the room. Firestore stays the source of truth: a socket needs a 10-minute
     token our server mints only for someone the room already let in (`/api/community/rooms` action `livetoken`; joining still holds the
     cap), stage moves and the end are pushed by our server (signed), and the room sends back, signed, the chat in batches (every 3 s or
     50 messages) to `/api/community/rooms/edge`, which writes `communityRooms/{id}/chat` (the record, and what anyone on the fallback
-    polls), removals, bans (`communityRooms/{id}/edge/state`, server-only by the existing rules) and the count (onto the room doc at
-    most every 15 s; while it reports, the people/ recount stands aside, and the cap takes the higher of the two). The browser
-    reconnects with backoff and, after 3 failures, polls Firestore for new chat every 10 s and sends through the server (which also
-    forwards to the room) while it keeps trying. **Owner steps:** (1) Cloudflare → Workers & Pages → Plans: the **Workers Paid** plan
+    polls), removals, and into `communityRooms/{id}/edge/state` (server-only by the existing rules): bans, raised hands (the host's
+    beat returns them, so they survive a socket failure) and the exact count every 15 s (the cap's count; Live mode's
+    `noteListenerSample` runs on each report, so drop prompts work). The room doc, which everyone in the room reads, gets the count only
+    once a minute (`edgeAt`). **Listeners on the worker don't heartbeat:** they write their people/ doc once on join; the worker reports
+    each person's sessions (first tab in, last tab out), which mark people/`edgeIn` and add up in `communityRooms/{id}/listenTime/{uid}`
+    (server-only: ms, sessions, first/last, role; one write per person per batch, kept after the room ends for the challenge's counted
+    listeners; open sessions are closed at the end). "Here" for such a listener is `edgeIn` while the worker reports (`listenerPresent`
+    in `lib/rooms.ts`); if it stops reporting for 150 s, listeners' apps (already on the fallback) heartbeat again and the people/
+    recount takes over. The host's beat (and its `hostLive` minutes and prompts) is unchanged. The browser reconnects with backoff and,
+    after 3 failures, polls Firestore for new chat every 10 s, heartbeats, and sends through the server (which also forwards to the
+    room) while it keeps trying. **Still a live read:** everyone in an edge room still listens to the room doc (the stage, cameras,
+    the poster and pulls come from it), so its writes are read by everyone: the stage's heartbeats (up to 5 people every 20 s), stage
+    moves, cameras and the count once a minute, about 16 writes a minute, so roughly 160,000 reads a minute in a 10,000-listener room.
+    Moving the stage and cameras onto the socket too (the room doc read once on join) would remove that, but it means reworking how
+    the room screen pulls audio and video, which step 2a just built; left for a follow-up. **Owner steps:** (1) Cloudflare → Workers & Pages → Plans: the **Workers Paid** plan
     ($5 a month; Durable Objects with WebSockets need it for this load). (2) My Profile → API Tokens → Create Token → "Edit Cloudflare
     Workers" template (Account: Workers Scripts: Edit, which includes Durable Objects; your account only) → copy it; note the Account
     ID from the Workers overview. (3) GitHub → the repository → Settings → Secrets and variables → Actions: add `CLOUDFLARE_API_TOKEN`
@@ -391,7 +403,8 @@ on `main` that isn't understood is raised with the owner first.
     `cd workers/live-rooms && npx wrangler@4.40.0 secret put LIVE_ROOMS_SECRET` (skip if you added the repository secret in 3);
     `https://…workers.dev/health` then answers `ok`. (7) Vercel → Settings → Environment Variables, Production: `LIVE_ROOMS_SECRET` =
     the same value (**Sensitive**), and `NEXT_PUBLIC_LIVE_ROOMS_URL` = `wss://notesapp-live-rooms.<subdomain>.workers.dev`. (8)
-    Redeploy. Start a test room: the help's "Chat in big rooms" paragraph appears, and the host sees "Slow mode (automatic: off)" under
+    Redeploy. /status → "Live room chat" says "worker ready" (it reaches the worker and proves both secrets match, or says which is
+    wrong). Start a test room: the help's "Chat in big rooms" paragraph appears, and the host sees "Slow mode (automatic: off)" under
     the chat. No new Firestore rules or indexes (the `edge` subcollection is denied to browsers by default; the settings push queries
     `status ==` and `edge ==`, equality only). Without the workflow: `npx wrangler deploy` from `workers/live-rooms`
     (`workers/live-rooms/README.md`). The worker deploys again by itself on pushes to `main` that touch it, and skips (green) while the

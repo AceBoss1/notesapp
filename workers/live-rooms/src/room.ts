@@ -4,13 +4,14 @@
 //   connection and a size limit per frame; host and moderators remove messages, mute and ban for the room;
 // - broadcasts raised hands, stage moves (pushed by our server, never taken from a browser) and the stage's video on/off;
 // - counts the listeners connected now (distinct people) and broadcasts it at most every 2 s;
-// - sends the chat, removals, bans and the count to our server in signed batches (config.callback), for the record in Firestore.
+// - sends the chat, removals, bans, raised hands, each person's connected time (sessions) and the count to our server in signed batches
+//   (config.callback), for the record in Firestore; camera on/off comes from our server (it decides), and is only broadcast here.
 // Everything that must survive hibernation is in storage or in each socket's attachment; nothing important lives only in memory.
 import { LIVE_SIG_HEADER, signBody, verifyBody, verifyLiveToken, type LiveRole } from "../../../lib/live-token";
 import {
-  LIVE_BATCH_MS, LIVE_CHAT_RATE, LIVE_COUNT_BROADCAST_MS, LIVE_COUNT_KEEPALIVE_MS, LIVE_COUNT_PUSH_MS, LIVE_FRAME_MAX, LIVE_PENDING_MAX, LIVE_RECENT, LIVE_SIGNAL_RATE,
+  LIVE_BATCH_MS, LIVE_SESSIONS_BATCH, LIVE_SESSIONS_MAX, LIVE_CHAT_RATE, LIVE_COUNT_BROADCAST_MS, LIVE_COUNT_KEEPALIVE_MS, LIVE_COUNT_PUSH_MS, LIVE_FRAME_MAX, LIVE_PENDING_MAX, LIVE_RECENT, LIVE_SIGNAL_RATE,
   batchDue, cleanLiveText, countPushDue, isLiveChatId, liveChatId, liveSlow, liveWait, retryDelay, take,
-  type Bucket, type LiveBatch, type LiveChat, type LiveClientMsg, type LiveConfig, type LiveHand, type LiveServerMsg, type LiveServerOp,
+  type Bucket, type LiveBatch, type LiveChat, type LiveClientMsg, type LiveConfig, type LiveHand, type LiveSession, type LiveServerMsg, type LiveServerOp,
 } from "../../../lib/live-rooms";
 import type { CfDurableObjectState, CfWebSocket, Env } from "./cf";
 
@@ -26,8 +27,11 @@ export type Meta = {
   // Someone connected, left or changed role since the last count; and how many people were connected at the last count. Messages
   // never walk every socket (a 10,000 room): only the alarm counts, at most every LIVE_COUNT_BROADCAST_MS.
   countDirty: boolean; connected: number;
+  // For our server: raised hands' changes since the last batch (uid → the hand, or null for down), and how many session events wait
+  // (the events themselves are under "sess"; each person's open session is marked under "o:<uid>").
+  handsOut: Record<string, LiveHand | null>; sessCount: number;
 };
-const META0: Meta = { config: null, ended: false, hostSlow: null, hands: {}, video: {}, roles: {}, muted: [], banned: [], bansOut: [], removed: [], pendingIds: [], peak: 0, fails: 0, countAt: 0, countSent: -1, countDirty: false, connected: 0 };
+const META0: Meta = { config: null, ended: false, hostSlow: null, hands: {}, video: {}, roles: {}, muted: [], banned: [], bansOut: [], removed: [], pendingIds: [], peak: 0, fails: 0, countAt: 0, countSent: -1, countDirty: false, connected: 0, handsOut: {}, sessCount: 0 };
 const HANDS_MAX = 500;
 const ROOM_ID = /^[A-Za-z0-9_-]{1,80}$/;
 const json = (status: number, body: unknown) => new Response(JSON.stringify(body), { status, headers: { "content-type": "application/json" } });
@@ -104,11 +108,12 @@ export class LiveRoom {
     // The stage as our server last told us beats the role in an older token.
     const role = m.roles[claims.u] ?? claims.role;
     const att: Attachment = { u: claims.u, role, n: claims.n, a: claims.a, mod: claims.mod };
+    await this.sessionIn(m, claims.u, role);
     this.state.acceptWebSocket(server, [claims.u]);
     server.serializeAttachment(att);
     m.countDirty = true;
     const recent = (await this.loadRecent()).filter((x) => !m.removed.includes(x.id));
-    this.send(server, { t: "hello", you: { uid: claims.u, role, mod: claims.mod, muted: m.muted.includes(claims.u) }, count: Math.max(0, m.countSent), hands: m.hands, video: m.video, recent, slow: this.slowNow(m), hostSlow: m.hostSlow });
+    this.send(server, { t: "hello", you: { uid: claims.u, role, mod: claims.mod, muted: m.muted.includes(claims.u) }, ...(claims.mod || role === "host" ? { mutedList: m.muted } : {}), count: Math.max(0, m.countSent), hands: m.hands, video: m.video, recent, slow: this.slowNow(m), hostSlow: m.hostSlow });
     await this.save();
     await this.schedule();
     return response();
@@ -119,6 +124,7 @@ export class LiveRoom {
     if (body.length > 64_000 || !(await verifyBody(this.env.LIVE_ROOMS_SECRET, body, req.headers.get(LIVE_SIG_HEADER), this.now()))) return json(401, { error: "bad signature" });
     let op: LiveServerOp;
     try { op = JSON.parse(body) as LiveServerOp; } catch { return json(400, { error: "bad body" }); }
+    if (op.op === "ping") return json(200, { ok: true });
     const m = await this.load();
     switch (op.op) {
       case "config": {
@@ -136,8 +142,7 @@ export class LiveRoom {
           const a = ws.deserializeAttachment() as Attachment;
           ws.serializeAttachment({ ...a, role: op.role });
         }
-        if (op.role !== "listener" && m.hands[op.uid]) { delete m.hands[op.uid]; this.broadcast({ t: "hand", uid: op.uid, up: false }); }
-        if (op.role === "listener" && m.video[op.uid]) { delete m.video[op.uid]; this.broadcast({ t: "video", uid: op.uid, on: false }); }
+        if (op.role !== "listener" && m.hands[op.uid]) this.handDown(m, op.uid);
         this.broadcast({ t: "stage", uid: op.uid, role: op.role });
         break;
       }
@@ -146,6 +151,12 @@ export class LiveRoom {
         if (!op.m || !isLiveChatId(op.m.id)) return json(400, { error: "bad message" });
         await this.remember(op.m);
         this.broadcast({ t: "chat", m: op.m });
+        break;
+      }
+      case "video": {
+        if (!op.uid) return json(400, { error: "bad uid" });
+        if (op.on === true) m.video[op.uid] = true; else delete m.video[op.uid];
+        this.broadcast({ t: "video", uid: op.uid, on: op.on === true });
         break;
       }
       case "unchat": {
@@ -205,18 +216,11 @@ export class LiveRoom {
         if (msg.up === true && a.role === "listener") {
           if (Object.keys(m.hands).length >= HANDS_MAX && !m.hands[a.u]) { this.send(ws, { t: "err", msg: "Lots of hands are up already: try again in a moment." }); return; }
           const h: LiveHand = { name: a.n, avatar: a.a, at: new Date(now).toISOString() };
-          m.hands[a.u] = h;
+          m.hands[a.u] = h; m.handsOut[a.u] = h; m.oldestPending ??= now;
           this.broadcast({ t: "hand", uid: a.u, up: true, ...h });
         } else if (msg.up === false && m.hands[a.u]) {
-          delete m.hands[a.u];
-          this.broadcast({ t: "hand", uid: a.u, up: false });
+          this.handDown(m, a.u);
         } else return;
-        break;
-      }
-      case "video": {
-        if (a.role === "listener" || !this.signal(ws, a, now)) return;
-        if (msg.on === true) m.video[a.u] = true; else delete m.video[a.u];
-        this.broadcast({ t: "video", uid: a.u, on: msg.on === true });
         break;
       }
       case "del": {
@@ -233,10 +237,11 @@ export class LiveRoom {
       }
       case "ban": {
         if (!staff || typeof msg.uid !== "string" || !msg.uid || msg.uid === m.config?.hostUid || msg.uid === a.u) return;
-        if (!m.banned.includes(msg.uid)) { m.banned.push(msg.uid); m.bansOut.push(msg.uid); }
+        if (!m.banned.includes(msg.uid)) { m.banned.push(msg.uid); m.bansOut.push(msg.uid); m.oldestPending ??= now; }
         m.countDirty = true;
-        if (m.hands[msg.uid]) { delete m.hands[msg.uid]; this.broadcast({ t: "hand", uid: msg.uid, up: false }); }
+        if (m.hands[msg.uid]) this.handDown(m, msg.uid);
         for (const s of this.state.getWebSockets(msg.uid)) { this.send(s, { t: "err", msg: "You've been removed from this room." }); try { s.close(4003, "removed"); } catch { /* gone */ } }
+        await this.sessionOut(m, msg.uid);
         break;
       }
       case "slow": {
@@ -256,8 +261,11 @@ export class LiveRoom {
     const a = ws.deserializeAttachment() as Attachment | null;
     const m = await this.load();
     m.countDirty = true;
-    // Their last tab gone: their hand goes down (a hand from someone not here can't be brought up).
-    if (a && m.hands[a.u] && !this.state.getWebSockets(a.u).some((s) => s !== ws)) { delete m.hands[a.u]; this.broadcast({ t: "hand", uid: a.u, up: false }); }
+    // Their last tab gone: their session ends, and their hand goes down (a hand from someone not here can't be brought up).
+    if (a && !this.state.getWebSockets(a.u).some((s) => s !== ws)) {
+      if (m.hands[a.u]) this.handDown(m, a.u);
+      await this.sessionOut(m, a.u);
+    }
     await this.save();
     await this.schedule();
   }
@@ -269,6 +277,34 @@ export class LiveRoom {
     if (!r.ok) this.send(ws, { t: "err", msg: "Slow down a little." });
     return r.ok;
   }
+  private handDown(m: Meta, uid: string) {
+    delete m.hands[uid]; m.handsOut[uid] = null; m.oldestPending ??= this.now();
+    this.broadcast({ t: "hand", uid, up: false });
+  }
+  // Sessions: "in" when someone's first tab connects, "out" when their last closes (or they're removed, or the room ends). The open mark
+  // under "o:<uid>" keeps a second tab or a repeated close from counting twice.
+  private async sessionIn(m: Meta, uid: string, role: LiveRole) {
+    if (await this.state.storage.get(`o:${uid}`)) return;
+    const at = this.now();
+    await this.state.storage.put(`o:${uid}`, { at, role });
+    await this.addSession(m, { u: uid, e: "in", at, role });
+  }
+  private async sessionOut(m: Meta, uid: string) {
+    const open = await this.state.storage.get<{ at: number; role: LiveRole }>(`o:${uid}`);
+    if (!open) return;
+    await this.state.storage.delete(`o:${uid}`);
+    await this.addSession(m, { u: uid, e: "out", at: this.now(), role: open.role });
+  }
+  private async addSession(m: Meta, ev: LiveSession) {
+    const list = (await this.state.storage.get<LiveSession[]>("sess")) ?? [];
+    list.push(ev);
+    if (list.length > LIVE_SESSIONS_MAX) list.splice(0, list.length - LIVE_SESSIONS_MAX);
+    await this.state.storage.put("sess", list);
+    m.sessCount = list.length;
+    m.oldestPending ??= ev.at;
+  }
+  private outstanding(m: Meta) { return m.pendingIds.length > 0 || m.removed.length > 0 || m.bansOut.length > 0 || m.sessCount > 0 || Object.keys(m.handsOut).length > 0; }
+
   private async remember(item: LiveChat) {
     const recent = await this.loadRecent();
     recent.push(item);
@@ -281,8 +317,9 @@ export class LiveRoom {
     const recent = await this.loadRecent();
     const i = recent.findIndex((x) => x.id === id);
     if (i >= 0) { recent.splice(i, 1); await this.state.storage.put("recent", recent); }
-    if (m.pendingIds.includes(id)) { m.pendingIds = m.pendingIds.filter((x) => x !== id); await this.state.storage.delete(`p:${id}`); if (!m.pendingIds.length) m.oldestPending = undefined; }
-    if (report && !m.removed.includes(id)) m.removed.push(id);
+    if (m.pendingIds.includes(id)) { m.pendingIds = m.pendingIds.filter((x) => x !== id); await this.state.storage.delete(`p:${id}`); }
+    if (report && !m.removed.includes(id)) { m.removed.push(id); m.oldestPending ??= this.now(); }
+    if (!this.outstanding(m)) m.oldestPending = undefined;
   }
 
   // ── the alarm: batches to our server, the count to our server and to the sockets ──
@@ -295,7 +332,7 @@ export class LiveRoom {
     // To our server only once it has told us where (config), and never before a failed send's wait is over.
     if (m.config?.callback) {
       const gate = (t: number) => Math.max(t, m.retryAt ?? 0);
-      if (m.pendingIds.length || m.removed.length || m.bansOut.length) times.push(gate((m.oldestPending ?? now) + (m.pendingIds.length >= 50 ? 0 : LIVE_BATCH_MS)));
+      if (this.outstanding(m)) times.push(gate((m.oldestPending ?? now) + (m.pendingIds.length >= 50 || m.sessCount >= LIVE_SESSIONS_BATCH ? -LIVE_BATCH_MS : 0) + LIVE_BATCH_MS));
       if (m.connected > 0 || m.pushed?.n) times.push(gate((m.pushed?.at ?? 0) + (m.pushed && m.pushed.n === m.countSent ? LIVE_COUNT_KEEPALIVE_MS : LIVE_COUNT_PUSH_MS)));
     }
     if (!times.length) return;
@@ -319,9 +356,8 @@ export class LiveRoom {
       if (before !== after) this.broadcast({ t: "slow", slow: after, hostSlow: m.hostSlow });
       m.countSent = listeners; m.countAt = now;
     }
-    const outstanding = m.pendingIds.length > 0 || m.removed.length > 0 || m.bansOut.length > 0;
     const waiting = m.retryAt !== undefined && now < m.retryAt; // our server failed: nothing goes until the wait is over
-    const chatDue = outstanding && !waiting && (batchDue(m.pendingIds.length, m.oldestPending, now) || (!m.pendingIds.length && (m.removed.length > 0 || m.bansOut.length > 0)));
+    const chatDue = this.outstanding(m) && !waiting && (batchDue(m.pendingIds.length, m.oldestPending, now) || m.sessCount >= LIVE_SESSIONS_BATCH || (m.oldestPending !== undefined && now - m.oldestPending >= LIVE_BATCH_MS));
     const countDue = !waiting && countPushDue(m.pushed, listeners, now) && (m.connected > 0 || (m.pushed?.n ?? 0) > 0);
     if (chatDue || countDue) await this.flush(m, countDue ? listeners : undefined, false);
     await this.save();
@@ -335,7 +371,13 @@ export class LiveRoom {
     const ids = m.pendingIds.slice(0, 50);
     const chat: LiveChat[] = [];
     for (const id of ids) { const c = await this.state.storage.get<LiveChat>(`p:${id}`); if (c) chat.push(c); }
-    const batch: LiveBatch = { roomId: m.config.roomId, chat, removed: m.removed.slice(0, 200), banned: m.bansOut.slice(0, 200), ...(count !== undefined ? { count, peak: m.peak } : {}), ...(final ? { final: true, peak: m.peak } : {}) };
+    const sess = ((await this.state.storage.get<LiveSession[]>("sess")) ?? []).slice(0, LIVE_SESSIONS_BATCH);
+    const hands = { ...m.handsOut };
+    const batch: LiveBatch = {
+      roomId: m.config.roomId, chat, removed: m.removed.slice(0, 200), banned: m.bansOut.slice(0, 200),
+      ...(sess.length ? { sessions: sess } : {}), ...(Object.keys(hands).length ? { hands } : {}),
+      ...(count !== undefined ? { count, peak: m.peak } : {}), ...(final ? { final: true, peak: m.peak } : {}),
+    };
     const body = JSON.stringify(batch);
     let ok = false;
     try {
@@ -346,10 +388,16 @@ export class LiveRoom {
     m.fails = 0; m.retryAt = undefined;
     for (const id of ids) await this.state.storage.delete(`p:${id}`);
     m.pendingIds = m.pendingIds.slice(ids.length);
-    m.oldestPending = m.pendingIds.length ? now : undefined;
+    if (sess.length) {
+      const rest = ((await this.state.storage.get<LiveSession[]>("sess")) ?? []).slice(sess.length);
+      await this.state.storage.put("sess", rest);
+      m.sessCount = rest.length;
+    }
+    for (const [u, h] of Object.entries(hands)) if (m.handsOut[u] === h) delete m.handsOut[u];
     m.removed = m.removed.slice(batch.removed.length);
     m.bansOut = m.bansOut.slice(batch.banned.length);
     if (count !== undefined) m.pushed = { at: now, n: count };
+    m.oldestPending = this.outstanding(m) ? now : undefined;
     return true;
   }
 
@@ -357,10 +405,12 @@ export class LiveRoom {
   // storage is cleared, keeping only "ended" so old tokens can't reconnect.
   private async end(m: Meta) {
     m.peak = Math.max(m.peak, this.counts().all);
+    // Everyone still here: their session ends now (our server also closes any it still has open when the final batch arrives).
+    for (const u of new Set(this.sockets().map((x) => x.a.u))) await this.sessionOut(m, u);
     m.ended = true;
     this.broadcast({ t: "ended" });
     for (const ws of this.state.getWebSockets()) { try { ws.close(4000, "ended"); } catch { /* gone */ } }
-    for (let i = 0; i < 20 && (m.pendingIds.length || m.removed.length || m.bansOut.length || i === 0); i++) if (!(await this.flush(m, 0, true))) break;
+    for (let i = 0; i < 20 && (this.outstanding(m) || i === 0); i++) if (!(await this.flush(m, 0, true))) break;
     await this.state.storage.deleteAlarm();
     await this.state.storage.deleteAll();
     this.meta = { ...META0, ended: true, config: m.config, peak: m.peak };

@@ -72,6 +72,7 @@ const runAlarm = async () => { assert.ok(state.storage.alarm !== null, "an alarm
   await runAlarm();
   assert.equal(host.last("count")!.n, 3); assert.equal(l1b.last("count")!.n, 3);
   assert.deepEqual([posts.length, posts[0].body.count, posts[0].body.peak], [1, 3, 5]);
+  assert.deepEqual((posts[0].body.sessions ?? []).map((e) => `${e.u}:${e.e}:${e.role}`), ["host:in:host", "spk:in:speaker", "l1:in:listener", "l2:in:listener", "mod:in:listener"], "each person's first tab opens their session");
   posts.length = 0;
 
   // ── chat: broadcast to everyone, kept for our server ──
@@ -106,16 +107,20 @@ const runAlarm = async () => { assert.ok(state.storage.alarm !== null, "an alarm
   await say(l2, { t: "hand", up: true });
   assert.deepEqual(host.last("hand"), { t: "hand", uid: "l2", up: true, name: "L2", avatar: "", at: new Date(clock).toISOString() });
   await say(spk, { t: "hand", up: true }); assert.equal(host.last("hand")!.uid, "l2", "the stage doesn't raise hands");
-  await say(l1, { t: "video", on: true }); assert.equal(host.last("video"), undefined, "listeners have no video");
-  await say(spk, { t: "video", on: true }); assert.deepEqual(l1.last("video"), { t: "video", uid: "spk", on: true });
+  // cameras: our server decides (lib/rooms-live-server.ts markVideoOn/Off) and tells the room; a browser can't say so itself
+  await say(spk, { t: "video", on: true }); assert.equal(host.last("video"), undefined, "a browser's own video signal is ignored");
+  await server({ op: "video", uid: "spk", on: true }); assert.deepEqual(l1.last("video"), { t: "video", uid: "spk", on: true });
   assert.equal((await server({ op: "role", uid: "l2", role: "speaker" })).status, 200);
   assert.deepEqual(l1.last("stage"), { t: "stage", uid: "l2", role: "speaker" });
   assert.deepEqual(l1.last("hand"), { t: "hand", uid: "l2", up: false }, "brought up: the hand goes down");
   assert.equal((l2.deserializeAttachment() as { role: string }).role, "speaker", "their socket knows");
   assert.equal(room.counts().listeners, 2, "a speaker isn't a listener");
-  await say(l2, { t: "video", on: true }); assert.equal(host.last("video")!.uid, "l2");
+  await server({ op: "video", uid: "l2", on: true }); assert.equal(host.last("video")!.uid, "l2");
   await server({ op: "role", uid: "l2", role: "listener" });
-  assert.deepEqual(host.last("video"), { t: "video", uid: "l2", on: false }, "back to listening: video off");
+  await server({ op: "video", uid: "l2", on: false });
+  assert.deepEqual(host.last("video"), { t: "video", uid: "l2", on: false }, "back to listening: our server takes the camera down");
+  assert.deepEqual(l1.last("hello")!.video, {}, "l1 joined before any camera");
+  assert.equal((await server({ op: "ping" })).status, 200, "the /status check touches nothing");
   // a reconnect with an older token still gets the role our server gave last
   await server({ op: "role", uid: "l1", role: "speaker" });
   const l1c = (await connect("l1", "listener")).ws!;
@@ -133,6 +138,12 @@ const runAlarm = async () => { assert.ok(state.storage.alarm !== null, "an alarm
   clock += 20_000;
   await say(l2, { t: "chat", text: "can I?" });
   assert.match(l2.last("err")!.msg, /muted/);
+  assert.deepEqual((await connect("mod", "listener", { mod: true })).ws!.last("hello")!.mutedList, ["l2"], "moderators see who is muted (to unmute)");
+  assert.equal(l1c.last("hello")!.mutedList, undefined, "listeners don't");
+  await say(mod, { t: "mute", uid: "l2", on: false });
+  assert.deepEqual(host.last("muted"), { t: "muted", uid: "l2", on: false });
+  await say(l2, { t: "chat", text: "unmuted" }); assert.equal(host.last("chat")!.m.text, "unmuted");
+  await say(host, { t: "mute", uid: "l2", on: true });
   await say(l2, { t: "hand", up: true }); // a hand, then a ban
   await say(mod, { t: "ban", uid: "l2" });
   assert.deepEqual(l2.closed, { code: 4003, reason: "removed" });
@@ -147,6 +158,11 @@ const runAlarm = async () => { assert.ok(state.storage.alarm !== null, "an alarm
   assert.equal(p1.url, config.callback); assert.ok(p1.sigOk, "signed with the shared secret");
   assert.ok(p1.body.chat.length >= 5 && p1.body.chat.every((c) => c.id !== target.id), "the chat, without the removed one");
   assert.deepEqual(p1.body.banned, ["l2"]); assert.equal(p1.body.count, 2); assert.equal(p1.body.peak, 5, "everyone at once");
+  // raised hands' changes, for our server to keep: l2's hand went up, came down when brought up, went up again, came down at the ban
+  assert.deepEqual(p1.body.hands, { l2: null });
+  // sessions: l1c (a reconnect while l1 was still connected) and the second mod tab didn't open new sessions; the ban closed l2's
+  const ev = (b: LiveBatch) => (b.sessions ?? []).map((e) => `${e.u}:${e.e}`);
+  assert.deepEqual(ev(p1.body), ["l2:out"]);
   assert.equal([...state.storage.map.keys()].filter((k) => k.startsWith("p:")).length, 0, "sent: no longer waiting");
 
   // our server down: kept, tried again later with a growing wait
@@ -197,6 +213,10 @@ const runAlarm = async () => { assert.ok(state.storage.alarm !== null, "an alarm
   assert.deepEqual(host.last("ended"), { t: "ended" }); assert.equal(host.closed?.code, 4000);
   const fin = posts[n];
   assert.equal(fin.body.final, true); assert.equal(fin.body.peak, 5, "the most at once: host, spk, l1, l2, mod"); assert.equal(fin.body.chat[0].text, "last word");
+  const all = posts.flatMap((p) => ev(p.body));
+  assert.ok(all.includes("late:in") && all.includes("late:out"), "late came and went");
+  for (const u of ["host", "spk", "mod", "l1"]) assert.ok(ev(fin.body).includes(`${u}:out`), `the end closes ${u}'s session`);
+  assert.equal([...state.storage.map.keys()].filter((k) => k.startsWith("o:")).length, 0);
   assert.equal((await connect("l1", "listener")).res.status, 410);
   assert.equal(state.storage.alarm, null);
   console.log("ALL OK");

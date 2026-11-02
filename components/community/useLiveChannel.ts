@@ -10,7 +10,8 @@ import type { RoomChat, RoomDoc } from "@/lib/rooms";
 import { capi } from "./api";
 
 // A relay room's chat and live signals over the live-rooms worker (lib/live-rooms.ts, v0.126.0): one WebSocket to the room's Durable
-// Object for the chat, the live listener count, raised hands and stage/video signals, so nobody reads Firestore for every message.
+// Object for the chat, the live listener count, raised hands and stage/video signals (camera on/off is decided by our server and only
+// mirrored here), so nobody reads Firestore for every message.
 // Used only when NEXT_PUBLIC_LIVE_ROOMS_URL is set and the room was opened on the worker (room.edge); otherwise `on` is false and the
 // room screen keeps its Firestore path unchanged. The socket reconnects with backoff (a fresh 10-minute token each time, from
 // /api/community/rooms action "livetoken"); after LIVE_FALLBACK_AFTER failures in a row `status` is "fallback": the chat is polled from
@@ -20,12 +21,13 @@ export type LiveChannel = {
   on: boolean; status: LiveStatus;
   count: number | null; // listeners connected now (null: use the room doc's count)
   hands: Record<string, LiveHand> | null; // null: use the room doc's hands
-  video: Record<string, boolean>;
+  video: Record<string, boolean>; // cameras up (our server decides: lib/rooms-live-server.ts; the room doc's videoOn stays the truth)
   msgs: LiveChat[]; slow: number; hostSlow: boolean | null;
   you: { role: LiveRole; mod: boolean; muted: boolean } | null;
+  mutedList: string[]; // the host and moderators: who is muted in the chat (to unmute)
   err: string; gone: string; // the last refusal (slow mode, rate), and why the room closed on us (ended, removed)
   send: (text: string) => boolean; // false: not connected (send through the server instead)
-  remove: (id: string) => boolean; raise: (up: boolean) => boolean; setVideo: (on: boolean) => boolean;
+  remove: (id: string) => boolean; raise: (up: boolean) => boolean;
   mute: (uid: string, on: boolean) => boolean; ban: (uid: string) => boolean; setSlow: (on: boolean | null) => boolean;
 };
 const POLL_MS = 10_000;
@@ -44,6 +46,7 @@ export function useLiveChannel(id: string, me: string, room: RoomDoc | null): Li
   const [slow, setSlow] = useState(0);
   const [hostSlow, setHostSlow] = useState<boolean | null>(null);
   const [you, setYou] = useState<LiveChannel["you"]>(null);
+  const [mutedList, setMutedList] = useState<string[]>([]);
   const [err, setErr] = useState("");
   const [gone, setGone] = useState("");
   const wsRef = useRef<WebSocket | null>(null);
@@ -75,7 +78,7 @@ export function useLiveChannel(id: string, me: string, room: RoomDoc | null): Li
       switch (m.t) {
         case "hello":
           fails = 0; fallback(false); setStatus("live");
-          setYou(m.you); setCount(m.count); setHands(m.hands); setVideo(m.video); setSlow(m.slow); setHostSlow(m.hostSlow);
+          setYou(m.you); setMutedList(m.mutedList ?? []); setCount(m.count); setHands(m.hands); setVideo(m.video); setSlow(m.slow); setHostSlow(m.hostSlow);
           setMsgs((cur) => byId([...cur, ...m.recent]));
           return;
         case "chat": setMsgs((cur) => byId([...cur, m.m])); return;
@@ -85,7 +88,10 @@ export function useLiveChannel(id: string, me: string, room: RoomDoc | null): Li
         case "video": setVideo((cur) => { const next = { ...cur }; if (m.on) next[m.uid] = true; else delete next[m.uid]; return next; }); return;
         case "stage": if (m.uid === me) setYou((y) => (y ? { ...y, role: m.role } : y)); return;
         case "slow": setSlow(m.slow); setHostSlow(m.hostSlow); return;
-        case "muted": if (m.uid === me) setYou((y) => (y ? { ...y, muted: m.on } : y)); return;
+        case "muted":
+          if (m.uid === me) setYou((y) => (y ? { ...y, muted: m.on } : y));
+          setMutedList((cur) => (m.on ? [...new Set([...cur, m.uid])] : cur.filter((u) => u !== m.uid)));
+          return;
         case "err": setErr(m.msg); clearTimeout(errTimer); errTimer = setTimeout(() => setErr(""), 4000); return;
         case "ended": setGone("The room has ended."); return;
         default: return;
@@ -129,11 +135,10 @@ export function useLiveChannel(id: string, me: string, room: RoomDoc | null): Li
     return true;
   };
   return {
-    on, status, count, hands, video, msgs, slow, hostSlow, you, err, gone,
+    on, status, count, hands, video, msgs, slow, hostSlow, you, mutedList, err, gone,
     send: (text) => out({ t: "chat", text }),
     remove: (mid) => out({ t: "del", id: mid }),
     raise: (up) => out({ t: "hand", up }),
-    setVideo: (v) => out({ t: "video", on: v }),
     mute: (uid, v) => out({ t: "mute", uid, on: v }),
     ban: (uid) => out({ t: "ban", uid }),
     setSlow: (v) => out({ t: "slow", on: v }),

@@ -16,9 +16,8 @@ export const LIVE_PENDING_MAX = 1_000; // kept while our server can't be reached
 export const LIVE_RECENT = 50; // the last messages a new socket is given
 export const LIVE_COUNT_PUSH_MS = ROOM_COUNT_EVERY_MS; // the count to our server at most this often…
 export const LIVE_COUNT_KEEPALIVE_MS = 45_000; // …and at least this often while anyone is connected (so our server knows the edge is alive)
-export const LIVE_EDGE_STALE_MS = 3 * LIVE_COUNT_PUSH_MS; // our server goes back to counting people/ if the edge hasn't reported for this long
-// Whether the worker is reporting this room's count (so our server leaves the count to it instead of counting people/).
-export const edgeFresh = (r: { edge?: boolean; edgeAt?: string }, now: number) => !!r.edge && !!r.edgeAt && now - Date.parse(r.edgeAt) < LIVE_EDGE_STALE_MS;
+// Whether the worker is reporting this room's count (so our server leaves the count to it instead of counting people/): lib/rooms.ts.
+export { edgeFresh, EDGE_DOC_COUNT_MS, EDGE_STALE_MS } from "./rooms";
 export const LIVE_COUNT_BROADCAST_MS = 2_000; // the count to the sockets at most this often (not on every join in a 10,000 room)
 // Per connection: chat (a burst of 5, then one every 2 s) and signals (hands, video: a burst of 10, then one a second).
 export const LIVE_CHAT_RATE: Rate = { burst: 5, perSec: 0.5 };
@@ -33,7 +32,6 @@ export type LiveConfig = { roomId: string; callback: string; hostUid: string; sl
 export type LiveClientMsg =
   | { t: "chat"; text: string; nonce?: string }
   | { t: "hand"; up: boolean }
-  | { t: "video"; on: boolean }
   | { t: "del"; id: string }
   | { t: "mute"; uid: string; on: boolean }
   | { t: "ban"; uid: string }
@@ -41,7 +39,7 @@ export type LiveClientMsg =
   | { t: "ping" };
 // Room → browser.
 export type LiveServerMsg =
-  | { t: "hello"; you: { uid: string; role: LiveRole; mod: boolean; muted: boolean }; count: number; hands: Record<string, LiveHand>; video: Record<string, boolean>; recent: LiveChat[]; slow: number; hostSlow: boolean | null }
+  | { t: "hello"; you: { uid: string; role: LiveRole; mod: boolean; muted: boolean }; mutedList?: string[]; count: number; hands: Record<string, LiveHand>; video: Record<string, boolean>; recent: LiveChat[]; slow: number; hostSlow: boolean | null }
   | { t: "chat"; m: LiveChat }
   | { t: "del"; id: string }
   | { t: "count"; n: number }
@@ -60,9 +58,19 @@ export type LiveServerOp =
   | { op: "role"; uid: string; role: LiveRole }
   | { op: "chat"; m: LiveChat }
   | { op: "unchat"; id: string }
-  | { op: "end" };
+  | { op: "video"; uid: string; on: boolean } // a camera went up or down (lib/rooms-live-server.ts markVideoOn/markVideoOff: our server decides)
+  | { op: "end" }
+  | { op: "ping" }; // /status: proves the address answers and both sides hold the same secret (no state is touched)
 // Room → our server (signed), POST to config.callback.
-export type LiveBatch = { roomId: string; chat: LiveChat[]; removed: string[]; banned: string[]; count?: number; peak?: number; final?: boolean };
+// sessions: each person's time connected (the first tab opening, the last one closing), for the listening-time summary; hands: the
+// raised hands' changes (up with name and picture, or null for down), kept by our server so they outlive the room's sockets.
+export type LiveSession = { u: string; e: "in" | "out"; at: number; role: LiveRole };
+export type LiveBatch = {
+  roomId: string; chat: LiveChat[]; removed: string[]; banned: string[]; count?: number; peak?: number; final?: boolean;
+  sessions?: LiveSession[]; hands?: Record<string, LiveHand | null>;
+};
+export const LIVE_SESSIONS_MAX = 2_000; // events kept while our server can't be reached (the oldest go first)
+export const LIVE_SESSIONS_BATCH = 500; // events per batch
 
 // ── Rate limits: a token bucket per connection, kept in the socket's attachment (so it survives hibernation) ──
 export type Rate = { burst: number; perSec: number };

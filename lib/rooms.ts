@@ -63,7 +63,8 @@ export type RoomDoc = {
   hostUsername?: string; hostBooks?: boolean;
 };
 // Relay rooms: one listener (communityRooms/{id}/people/{uid}, server-written). chatAt: their last chat message (for slow mode).
-export type RoomPersonDoc = RoomPerson & { chatAt?: string };
+// edgeIn (v0.126.0): in a room on the live-rooms worker, the worker last reported this listener connected (they don't heartbeat there).
+export type RoomPersonDoc = RoomPerson & { chatAt?: string; edgeIn?: boolean };
 // Server-only (communityRooms/{id}/relay/{uid}): the person's Cloudflare session and the microphone track they send, if any.
 // video: the camera track they send (Live mode), if any.
 export type RoomRelayRecord = { sessionId: string; at: string; push?: { trackName: string; mid: string } | null; video?: { trackName: string; mid: string } | null };
@@ -178,6 +179,14 @@ export const DEFAULT_ROOM_FIGURES = roomFigures();
 
 // ── Presence and the count in relay rooms ──
 export const isFresh = (p: Pick<RoomPerson, "seen"> | undefined, now = Date.now()) => !!p && now - Date.parse(p.seen) < ROOM_GONE_MS;
+// Rooms on the live-rooms worker (v0.126.0, lib/live-rooms.ts): the worker reports the count to the room doc at most every
+// EDGE_DOC_COUNT_MS (edgeAt); after EDGE_STALE_MS without a report our server counts people/ again and listeners heartbeat again.
+export const EDGE_DOC_COUNT_MS = 60_000;
+export const EDGE_STALE_MS = 150_000;
+export const edgeFresh = (r: Pick<RoomDoc, "edge" | "edgeAt">, now = Date.now()) => !!r.edge && !!r.edgeAt && now - Date.parse(r.edgeAt) < EDGE_STALE_MS;
+// A relay listener here now: heard from recently (their heartbeat or their join), or, on the live-rooms worker while it reports,
+// connected to it (edgeIn), since listeners there don't heartbeat.
+export const listenerPresent = (p: RoomPersonDoc | undefined, r: Pick<RoomDoc, "edge" | "edgeAt">, now = Date.now()) => !!p && (isFresh(p, now) || (!!p.edgeIn && edgeFresh(r, now)));
 // Whether the count on the room doc is due to be refreshed.
 export const countDue = (r: Pick<RoomDoc, "countedAt">, now = Date.now()) => !r.countedAt || now - Date.parse(r.countedAt) >= ROOM_COUNT_EVERY_MS;
 // Everyone in a room: phone to phone, everyone in `joined`; on the relay, the stage here plus the counted listeners.

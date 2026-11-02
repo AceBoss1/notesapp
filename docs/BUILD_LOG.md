@@ -2664,3 +2664,16 @@ it polls Firestore for new chat every 10 s and sends through the server. Deploy:
 (cloudflare/wrangler-action, skips green without the two repository secrets) or `npx wrangler deploy`. Tested without Cloudflare: the
 object against in-memory fakes (including a second instance on the same state as the "woken" object) and end to end against the
 Firestore emulator with our server's code on both sides.
+
+Second round (same release, after merging step 2a): listeners in rooms on the worker no longer heartbeat their people/ doc. The worker
+reports each person's sessions (first tab in, last tab out, deduplicated by an "o:<uid>" mark in the object's storage) in the signed
+batches; our server sets people/`edgeIn` and adds the time up per person in `listenTime/{uid}` (one write per person per batch, never
+per heartbeat), closing anything still open when the room ends. Presence for those listeners is `edgeIn` while the worker reports
+(`listenerPresent`, 150 s), so tokens, pulls, Bring up and People here keep working without heartbeats, and a dead worker puts
+everyone back on heartbeats through the client's fallback. The exact count goes to `edge/state` every 15 s (the cap) and the room doc
+only once a minute, since everyone reads it; Live mode's `noteListenerSample` now runs on the worker's counts. Raised hands are kept in
+`edge/state` too and come back on the host's beat; chat mutes can be undone; camera on/off over the socket is told by our server from
+`markVideoOn`/`markVideoOff` instead of trusted from the browser. /status gained "Live room chat" (a signed ping proves both secrets
+match). The room doc is still a live read for everyone in the room (the stage and cameras drive the pulls); moving that onto the socket
+was left for a follow-up because it means reworking the pull logic step 2a just built.
+

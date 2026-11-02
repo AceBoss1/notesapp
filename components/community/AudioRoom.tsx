@@ -11,6 +11,7 @@ import { AUDIO_ONLY_KEY, CHALLENGE_POSTER, anyVideo, canVideo, chooseAudioOnly, 
 import { uploadToR2 } from "@/lib/upload";
 import { ago, capi, field } from "./api";
 import { useLiveChannel, type LiveChannel } from "./useLiveChannel";
+import type { LiveHand } from "@/lib/live-rooms";
 
 // Audio rooms (lib/rooms.ts): the live rooms on a community's Home, and the room itself. A room runs in the mode it opened with:
 // - "p2p": on stage, phones connect to each other; each listener connects to the host, whose phone mixes the stage (Web Audio) into the
@@ -101,6 +102,8 @@ export function RoomScreen({ id, me, title, onDone }: { id: string; me: string; 
   // Relay rooms on the live-rooms worker: the chat, the live count and raised hands over one WebSocket (useLiveChannel.ts); off, or
   // while it can't connect, everything below falls back to the room doc and Firestore as before.
   const live = useLiveChannel(id, me, room);
+  const liveUpRef = useRef(false); liveUpRef.current = live.status === "live";
+  const [edgeHands, setEdgeHands] = useState<Record<string, LiveHand> | null>(null); // the host's beat: hands the worker reported
   useEffect(() => { if (/removed/i.test(live.gone)) leaveRef.current(live.gone); }, [live.gone]);
   // Live mode: the cameras I receive, my own camera (a preview), the camera limits, Audio only, and the host's minutes and prompt.
   const [videos, setVideos] = useState<Record<string, MediaStream>>({});
@@ -394,7 +397,9 @@ export function RoomScreen({ id, me, title, onDone }: { id: string; me: string; 
         void (relayMode ? relayReconcile(r) : reconcile(r));
       }, () => finish("The room has ended.")));
       beat = setInterval(() => {
-        capi<{ live: boolean; host?: HostLive }>("/api/community/rooms", { action: "beat", id }).then((x) => { if (!x.live) finish("The room has ended."); tookLive(x.host); }).catch(() => {});
+        // A listener connected to the live-rooms worker doesn't heartbeat: the worker says they're here (and tells them when it ends).
+        const skip = liveUpRef.current && !!latest && roomRole(latest, me) === "listener";
+        if (!skip) capi<{ live: boolean; host?: HostLive; hands?: Record<string, LiveHand> }>("/api/community/rooms", { action: "beat", id }).then((x) => { if (!x.live) finish("The room has ended."); tookLive(x.host); setEdgeHands(x.hands ?? null); }).catch(() => {});
         if (relayMode && latest) { void relaySync(latest); void videoSync(latest); } // picks up a pull that failed in a race
       }, ROOM_BEAT_MS);
       // Who is talking: a ring round their picture while their sound is above a whisper.
@@ -426,8 +431,10 @@ export function RoomScreen({ id, me, title, onDone }: { id: string; me: string; 
     const t = setTimeout(() => void liveRef.current.stopVideo().catch(() => {}), Math.max(0, Date.parse(graceUntil) - Date.now()));
     return () => clearTimeout(t);
   }, [graceUntil, myCam]);
-  const who = (u: string) => room?.joined[u] ?? live.hands?.[u] ?? room?.handInfo?.[u];
-  const hands = live.hands ? Object.entries(live.hands).filter(([u]) => !stage.includes(u)).map(([u, h]) => [u, h.at] as [string, string]).sort((a, b) => a[1].localeCompare(b[1]))
+  // Hands: over the socket; while it's down, the ones the worker reported (on the host's beat) with any raised through the server.
+  const liveHands = live.hands ?? (edgeHands ? { ...edgeHands, ...Object.fromEntries(Object.entries(room?.handInfo ?? {}).filter(([u]) => room?.hands?.[u]).map(([u, h]) => [u, { ...h, at: room!.hands[u] }])) } : null);
+  const who = (u: string) => room?.joined[u] ?? liveHands?.[u] ?? room?.handInfo?.[u];
+  const hands = liveHands ? Object.entries(liveHands).filter(([u]) => !stage.includes(u)).map(([u, h]) => [u, h.at] as [string, string]).sort((a, b) => a[1].localeCompare(b[1]))
     : room ? Object.entries(room.hands ?? {}).filter(([u]) => (relayRoom ? !stage.includes(u) && !!room.handInfo?.[u] : listeners.includes(u))).sort((a, b) => a[1].localeCompare(b[1])) : [];
   const handUp = live.hands ? !!live.hands[me] : !!room?.hands?.[me];
   const toggleMute = () => { const m = !muted; micRef.current?.getAudioTracks().forEach((t) => { t.enabled = !m; }); setMuted(m); };
@@ -609,7 +616,9 @@ function RoomChatPanel({ id, me, room, relay, live, canRemove, open, onClose, on
             {canRemove && m.from !== me && (
               <span className="flex flex-col items-end gap-0.5 self-start opacity-0 group-hover:opacity-100 focus-within:opacity-100">
                 <button type="button" onClick={() => { if (!live.remove(m.id)) remove(m.id); }} className="text-[11px] text-white/40 hover:text-white">Remove</button>
-                {live.status === "live" && m.from !== room.hostUid && <button type="button" onClick={() => live.mute(m.from, true)} className="text-[11px] text-white/40 hover:text-white">Mute</button>}
+                {live.status === "live" && m.from !== room.hostUid && (live.mutedList.includes(m.from)
+                  ? <button type="button" onClick={() => live.mute(m.from, false)} className="text-[11px] text-white/40 hover:text-white">Unmute</button>
+                  : <button type="button" onClick={() => live.mute(m.from, true)} className="text-[11px] text-white/40 hover:text-white">Mute</button>)}
                 {live.status === "live" && m.from !== room.hostUid && <button type="button" onClick={() => confirm(`Remove ${m.name} from this room?`) && live.ban(m.from)} className="text-[11px] text-white/40 hover:text-white">Remove from room</button>}
               </span>
             )}
@@ -628,6 +637,11 @@ function RoomChatPanel({ id, me, room, relay, live, canRemove, open, onClose, on
         </p>
       )}
       {live.you?.muted && <p className="px-4 pb-2 text-xs text-white/45">The host has muted you in this chat.</p>}
+      {canRemove && live.status === "live" && live.mutedList.length > 0 && (
+        <p className="flex flex-wrap items-center gap-1.5 px-4 pb-2 text-xs text-white/55">Muted in the chat:
+          {live.mutedList.map((u) => <button key={u} type="button" onClick={() => live.mute(u, false)} className="rounded-full bg-white/10 px-2 py-0.5 hover:bg-white/20" aria-label={`Unmute ${msgs.find((x) => x.from === u)?.name ?? "them"}`}>{msgs.find((x) => x.from === u)?.name ?? "Someone"} · Unmute</button>)}
+        </p>
+      )}
       {live.status === "fallback" && <p className="px-4 pb-2 text-xs text-white/45">Reconnecting the live chat… new messages show every few seconds meanwhile.</p>}
       {(err || live.err) && <p className="px-4 pb-2 text-xs text-[#FF6B6B]" role="alert">{err || live.err}</p>}
     </>

@@ -11,7 +11,10 @@ import * as R from "../../lib/rooms-server";
 import * as S from "../../lib/live-rooms-server";
 import { liveRoomsOn, setLiveTransport } from "../../lib/live-rooms-edge";
 import { LIVE_SIG_HEADER, signBody, verifyLiveToken } from "../../lib/live-token";
-import { LIVE_EDGE_STALE_MS, type LiveBatch, type LiveServerOp } from "../../lib/live-rooms";
+import type { LiveBatch, LiveServerOp } from "../../lib/live-rooms";
+import { EDGE_STALE_MS } from "../../lib/rooms";
+import { markVideoOff, markVideoOn, readLive } from "../../lib/rooms-live-server";
+import type { ListenTime } from "../../lib/live-rooms-server";
 import type { RelayClient } from "../../lib/rooms-relay-server";
 import type { RoomDoc } from "../../lib/rooms";
 import { LiveRoom } from "../../workers/live-rooms/src/room";
@@ -100,7 +103,11 @@ const batch = async (b: Partial<LiveBatch> & { roomId: string }, at = Date.now()
   // the worker reports the count, so our server doesn't recount people/ while it's fresh, and does once it isn't
   const later = new Date(Date.now() + 16_000);
   assert.equal(await R.recount(db, id, later), null, "the edge's count stands");
-  assert.equal(await R.recount(db, id, new Date(Date.now() + LIVE_EDGE_STALE_MS + 1000)), 3, "the edge went quiet: counted from people/ again");
+  // the edge went quiet: listeners' apps heartbeat again (they fall back), and our server counts people/ again
+  const quiet = new Date(Date.now() + EDGE_STALE_MS + 1000);
+  for (const u of ["host", "l1", "mod", "l2"]) assert.equal((await R.beatRoom(db, u, id, quiet, deps)).live, true);
+  assert.equal(await R.recount(db, id, quiet, true), 3, "counted from people/ again");
+  assert.ok((await readLive(db, id)).samples.length >= 1, "Live mode's drop prompt got its samples from the worker's counts");
 
   // ── chat batches: the record in Firestore, removals, bans ──
   const t0 = Date.now();
@@ -116,9 +123,35 @@ const batch = async (b: Partial<LiveBatch> & { roomId: string }, at = Date.now()
   assert.ok((await S.mintLiveToken(db, "host", id)).token, "the host can't be banned");
   assert.equal((await batch({ roomId: "1_unknown" })).ignored, "not a live-rooms room", "a room we don't know: accepted and ignored, so the worker stops");
 
+  // ── presence without heartbeats: the worker's join/leave reports, and each person's listening time ──
+  const s0 = Date.now();
+  const ses = (u: string, e: "in" | "out", at: number) => ({ u, e, at, role: "listener" as const });
+  const sr = await batch({ roomId: id, count: 2, sessions: [ses("l1", "in", s0), ses("mod", "in", s0), ses("l1", "out", s0 + 60_000), ses("l1", "in", s0 + 70_000), ses("mod", "out", s0 + 5_000), ses("bad/uid", "in", s0)] });
+  assert.equal(sr.sessions, 5, "a bad uid is skipped");
+  const lt = async (u: string) => (await db.doc(`communityRooms/${id}/listenTime/${u}`).get()).data() as ListenTime;
+  assert.deepEqual([(await lt("l1")).ms, (await lt("l1")).sessions, (await lt("l1")).open], [60_000, 2, true], "l1: a minute, then back in");
+  assert.deepEqual([(await lt("mod")).ms, (await lt("mod")).open], [5_000, false]);
+  const person = async (u: string) => (await db.doc(`communityRooms/${id}/people/${u}`).get()).data()!;
+  assert.equal((await person("l1")).edgeIn, true); assert.equal((await person("mod")).edgeIn, false);
+  assert.equal((await db.doc(`communityRooms/${id}/edge/state`).get()).data()!.count, 2, "the exact count, for the cap");
+  assert.equal((await roomDoc(id)).listening, 3, "the room doc (read by everyone) only every minute");
+  // a connected listener's beat writes nothing; minutes later they're still here (tokens, pulls, Bring up) without a heartbeat
+  const seenBefore = (await person("l1")).seen;
+  const in90 = new Date(Date.now() + 90_000);
+  assert.deepEqual(await R.beatRoom(db, "l1", id, in90, deps), { live: true });
+  assert.equal((await person("l1")).seen, seenBefore, "no heartbeat write");
+  assert.ok((await S.mintLiveToken(db, "l1", id, in90)).token, "still here: connected to the worker");
+  await fails(S.mintLiveToken(db, "mod", id, new Date(Date.now() + 10 * 60_000)), 409, /Join/, );
+  // raised hands are kept by our server, and the host's beat brings them (for when the host's socket is down)
+  const hand = { name: "L1", avatar: "", at: new Date().toISOString() };
+  await batch({ roomId: id, hands: { l1: hand, mod: hand } });
+  await batch({ roomId: id, hands: { mod: null } });
+  assert.deepEqual((await R.beatRoom(db, "host", id, new Date(), deps)).hands, { l1: hand }, "the host's beat carries the hands");
+
   // ── what our server pushes: the stage, chat sent through the server, removals ──
   await R.setSpeaker(db, "host", id, "l1", true, new Date(), deps);
   assert.deepEqual(lastOp(), { op: "role", uid: "l1", role: "speaker" });
+  assert.equal((await db.doc(`communityRooms/${id}/edge/state`).get()).data()!.hands?.l1, undefined, "brought up: the kept hand goes");
   assert.equal((await verifyLiveToken(SECRET, (await S.mintLiveToken(db, "l1", id)).token))!.role, "speaker");
   await R.setSpeaker(db, "host", id, "l1", false, new Date(), deps);
   assert.deepEqual(lastOp(), { op: "role", uid: "l1", role: "listener" });
@@ -128,6 +161,12 @@ const batch = async (b: Partial<LiveBatch> & { roomId: string }, at = Date.now()
   assert.ok(sent?.op === "chat" && (await chatIds(id)).includes(sent.m.id), "the same id as in Firestore (so a removal finds it)");
   await R.removeChat(db, "host", id, sent?.op === "chat" ? sent.m.id : "");
   assert.deepEqual(lastOp(), { op: "unchat", id: sent?.op === "chat" ? sent.m.id : "" });
+  // cameras: 2a's server state decides, and the worker mirrors it
+  const settings = await R.getRoomSettings(db);
+  await markVideoOn(db, id, "host", settings);
+  assert.deepEqual(lastOp(), { op: "video", uid: "host", on: true });
+  await markVideoOff(db, id, ["host"]);
+  assert.deepEqual(lastOp(), { op: "video", uid: "host", on: false });
   // the worker down: the room carries on through Firestore
   workerUp = false;
   await R.sendRoomChat(db, "mod", id, "Worker down, still sent");
@@ -169,7 +208,7 @@ const batch = async (b: Partial<LiveBatch> & { roomId: string }, at = Date.now()
   await new Promise((res) => setTimeout(res, 5));
   await lr.alarm(); // the count, the first time
   const keptAfterFirst = await chatIds(id);
-  assert.equal((await roomDoc(id)).listening, 2, "l1 and mod connected as listeners (l3 is on stage)");
+  assert.equal((await db.doc(`communityRooms/${id}/edge/state`).get()).data()!.count, 2, "l1 and mod connected as listeners (l3 is on stage)");
   await lr.webSocketMessage(hs, JSON.stringify({ t: "del", id: doomed }));
   lr.now = () => Date.now() + 4000; await lr.alarm();
   const ids = await chatIds(id);
@@ -185,6 +224,8 @@ const batch = async (b: Partial<LiveBatch> & { roomId: string }, at = Date.now()
   assert.equal((await roomDoc(id)).status, "ended");
   assert.ok(((await db.doc(`communityRooms/${id}/edge/state`).get()).data()?.finalPeak ?? 0) >= 4, "the room's final peak, for the records");
   await fails(S.mintLiveToken(db, "l1", id), 410);
+  assert.equal((await db.collection(`communityRooms/${id}/listenTime`).where("open", "==", true).get()).size, 0, "every session closed at the end");
+  assert.ok((await lt("l1")).ms >= 60_000 && (await lt("host")).sessions >= 1, "listening time kept after the room (for the challenge's records)");
   forward = null;
 
   // ── switched off (no secret): new rooms don't use the worker, and nothing is signed or accepted ──

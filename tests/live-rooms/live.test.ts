@@ -4,7 +4,7 @@ import assert from "node:assert/strict";
 import * as T from "../../lib/live-token";
 import * as L from "../../lib/live-rooms";
 import { builtInArticles } from "../../lib/kb-articles";
-import { DEFAULT_ROOM_FIGURES, roomFigures, roomSettings } from "../../lib/rooms";
+import { DEFAULT_ROOM_FIGURES, listenerPresent, roomFigures, roomSettings } from "../../lib/rooms";
 
 const SECRET = "test-secret-test-secret-test";
 (async () => {
@@ -91,8 +91,16 @@ const SECRET = "test-secret-test-secret-test";
   assert.equal(L.countPushDue({ at: now - 30_000, n: 5 }, 5, now), false, "unchanged");
   assert.equal(L.countPushDue({ at: now - L.LIVE_COUNT_KEEPALIVE_MS, n: 5 }, 5, now), true, "keepalive");
   assert.equal(L.edgeFresh({ edge: true, edgeAt: new Date(now - 10_000).toISOString() }, now), true);
-  assert.equal(L.edgeFresh({ edge: true, edgeAt: new Date(now - L.LIVE_EDGE_STALE_MS).toISOString() }, now), false, "stale: our server counts again");
+  assert.equal(L.edgeFresh({ edge: true, edgeAt: new Date(now - L.EDGE_STALE_MS).toISOString() }, now), false, "stale: our server counts again");
   assert.equal(L.edgeFresh({ edge: false, edgeAt: new Date(now).toISOString() }, now), false);
+  // presence of a listener on the worker: their join, or connected while the worker reports (no heartbeats)
+  const edgeRoom = { edge: true, edgeAt: new Date(now - 30_000).toISOString() };
+  const joinedLongAgo = { name: "A", avatar: "", at: "x", seen: new Date(now - 5 * 60_000).toISOString() };
+  assert.equal(listenerPresent({ ...joinedLongAgo, edgeIn: true }, edgeRoom, now), true, "connected, no heartbeat needed");
+  assert.equal(listenerPresent({ ...joinedLongAgo, edgeIn: false }, edgeRoom, now), false, "left the worker");
+  assert.equal(listenerPresent({ ...joinedLongAgo, edgeIn: true }, { edge: true, edgeAt: new Date(now - L.EDGE_STALE_MS).toISOString() }, now), false, "the worker went quiet: heartbeats count again");
+  assert.equal(listenerPresent({ ...joinedLongAgo, seen: new Date(now - 1000).toISOString() }, { edge: false }, now), true, "a heartbeat");
+  assert.equal(listenerPresent(undefined, edgeRoom, now), false);
 
   // ── the browser ──
   assert.equal(L.liveSocketUrl("wss://w.example.workers.dev/", "r 1", "a.b"), "wss://w.example.workers.dev/rooms/r%201/ws?t=a.b");
