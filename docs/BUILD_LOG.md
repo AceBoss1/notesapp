@@ -2591,6 +2591,6 @@ apply-or-skip as a decision. Village Global Velocity (villageglobal.vc now redir
 pre-seed and any country; the instrument and cap aren't published, and the drafts answer the questions of its live application form.
 Capital Wings: an introducer registered in Bahrain with nobody named, no registration number or licence and placeholder legal pages;
 the recommendation is not to apply and to share nothing. `ACCELERATORS_BACKLOG` in `lib/team-seed.ts` (seed `accelerators-2026-11`,
-run from `app/api/admin/team/route.ts`) adds six founder-owned items: NotesApp Inc and the cap table first (6 Nov), the Alliance
-decision (7 Nov) and application (13 Nov), Village Global (20 Nov), the Capital Wings hold, and Legal's SAFE and dilution check before
-anything is signed (13 Nov). Internal only, so there's no changelog entry.
+run from `app/api/admin/team/route.ts`) adds five founder-owned items: NotesApp Inc and the cap table first (6 Nov), the Alliance
+stablecoin pitch (7 Nov; the owner decided on 2 Nov to pitch it) and application (13 Nov), Village Global (20 Nov), and Legal's SAFE,
+dilution and stablecoin-licence check before anything is signed (13 Nov). Capital Wings stays a "don't engage" note in FUNDING.md §7. Internal only, so there's no changelog entry.

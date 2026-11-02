@@ -167,7 +167,7 @@ a student marks, so every question is reviewed by a second teacher before it goe
 ## 5. Alliance (crypto and fintech accelerator, New York)
 
 > Status: **draft, not applied (2 November 2026).** Apply by **18 November 2026** for ALL19, after NotesApp Inc exists and after
-> the stablecoin decision below. Team hub: `accel-*` tasks (seed `accelerators-2026-11`).
+> the stablecoin decision below. **Decided (owner, 2 November 2026): we pitch the stablecoin payouts angle.** Team hub: `accel-*` tasks (seed `accelerators-2026-11`).
 
 **Published terms** (alliance.xyz home page and FAQ, read 2 November 2026; the application page alliance.xyz/apply the same day):
 
