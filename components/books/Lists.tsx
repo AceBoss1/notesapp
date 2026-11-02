@@ -32,11 +32,15 @@ export function EntriesTab({ api, kind, monthOk, categories, onChanged, onAdd }:
   const [back, setBack] = useState(0);
   const [data, setData] = useState<{ period: Period; entries: Entry[]; more: boolean } | null>(null);
   const [err, setErr] = useState("");
+  // Who recorded it: the seller can see one person's entries (the owner, admins and staff; online orders are "order").
+  const [by, setBy] = useState("");
+  const [keepers, setKeepers] = useState<{ uid: string; name: string; role: string }[]>([]);
+  useEffect(() => { api<{ keepers: { uid: string; name: string; role: string }[] }>("view=keepers").then((r) => setKeepers(r.keepers)).catch(() => setKeepers([])); }, [api]);
   const load = useCallback(() => {
     if (period === "month" && !monthOk) { setErr("The month's list comes with Pro. Free Basic has the day and the week."); setData(null); return; }
     setErr("");
-    api<{ period: Period; entries: Entry[]; more: boolean }>(`view=entries&kind=${kind}&period=${period}&back=${back}`).then(setData).catch((e) => setErr(e.message));
-  }, [api, kind, period, back, monthOk]);
+    api<{ period: Period; entries: Entry[]; more: boolean }>(`view=entries&kind=${kind}&period=${period}&back=${back}${by ? `&by=${encodeURIComponent(by)}` : ""}`).then(setData).catch((e) => setErr(e.message));
+  }, [api, kind, period, back, monthOk, by]);
   useEffect(load, [load]);
   const live = (data?.entries ?? []).filter((e) => !e.voidedAt);
   const total = live.reduce((n, e) => n + (e.kind === "refund" ? -e.totalKobo : e.totalKobo), 0);
@@ -46,7 +50,15 @@ export function EntriesTab({ api, kind, monthOk, categories, onChanged, onAdd }:
         <div><p className="eyebrow">{kind === "sale" ? "Sales" : "Expenses"}</p><h1 className="mt-1 font-display text-4xl text-ink">{data?.period.label ?? (kind === "sale" ? "Sales" : "Expenses")}</h1></div>
         <button onClick={onAdd} className="btn-primary"><Icon name="plus" className="h-4 w-4" />{kind === "sale" ? "Record a sale" : "Add expense"}</button>
       </div>
-      <div className="mt-4"><PeriodPicker kind={period} back={back} setKind={setPeriod} setBack={setBack} monthOk={monthOk} /></div>
+      <div className="mt-4 flex flex-wrap items-center gap-3"><PeriodPicker kind={period} back={back} setKind={setPeriod} setBack={setBack} monthOk={monthOk} />
+        {keepers.length > 1 && (
+          <select value={by} onChange={(e) => setBy(e.target.value)} aria-label="Recorded by" className="rounded-full border border-rule bg-card px-3 py-2 text-sm text-ink">
+            <option value="">Everyone</option>
+            {keepers.map((k) => <option key={k.uid} value={k.uid}>{k.name} ({k.role})</option>)}
+            {kind === "sale" && <option value="order">Online orders</option>}
+          </select>
+        )}
+      </div>
       {err && <p className="card mt-4 p-4 text-sm text-slate">{err} <Link href="/pricing" className="text-crimson underline">See Pro</Link></p>}
       {data && (
         <section className="card mt-4 p-5">

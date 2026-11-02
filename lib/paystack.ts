@@ -37,6 +37,7 @@ export function initializeTransaction(params: {
   reference: string;
   callbackUrl: string;
   metadata: Record<string, unknown>;
+  channels?: ("card" | "bank_transfer" | "ussd" | "bank")[]; // which ways to pay Paystack offers; all of them when left out
 }) {
   return paystack<{ authorization_url: string; reference: string }>("/transaction/initialize", {
     method: "POST",
@@ -48,6 +49,7 @@ export function initializeTransaction(params: {
       reference: params.reference,
       callback_url: params.callbackUrl,
       metadata: params.metadata,
+      ...(params.channels ? { channels: params.channels } : {}),
     }),
   });
 }

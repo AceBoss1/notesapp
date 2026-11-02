@@ -52,7 +52,7 @@ const grace = clone(); grace.certificateLate.graceDays = -1;
 assert.throws(() => cleanPricing(grace), PricingError);
 // Business books (option A, 2 Nov 2026): 150 entries a month, 20 customers owing and 500 rows an import on Free Basic; added later, so an
 // older config keeps the defaults; an admin can change them within limits.
-assert.deepEqual(DEFAULT_PRICING.books, { freeEntries: 150, freeCustomers: 20, freeImportRows: 500 });
+assert.deepEqual(DEFAULT_PRICING.books, { freeEntries: 150, freeCustomers: 20, freeImportRows: 500, staffSeatsPro: 0, staffSeatsBusiness: 4, debtCommission: "store", debtHoldDays: 7 });
 const noBooks = clone(); delete noBooks.books;
 assert.deepEqual(cleanPricing(noBooks).books, DEFAULT_PRICING.books);
 const moreBooks = clone(); moreBooks.books.freeEntries = 200;
@@ -61,4 +61,18 @@ const noEntries = clone(); noEntries.books.freeEntries = 0;
 assert.throws(() => cleanPricing(noEntries), PricingError, "at least 10 entries");
 const hugeImport = clone(); hugeImport.books.freeImportRows = 9_000;
 assert.throws(() => cleanPricing(hugeImport), PricingError, "a file is never more than 5,000 rows");
+// Staff seats and paying a debt online (v0.119.0): added later still, so a config saved before them keeps the defaults (Business 4
+// seats, Pro none until open question 4 is answered; a debt paid online takes the store's commission and is held 7 days).
+const oldBooks = clone(); oldBooks.books = { freeEntries: 150, freeCustomers: 20, freeImportRows: 500 };
+assert.deepEqual(cleanPricing(oldBooks).books, DEFAULT_PRICING.books);
+const proSeat = clone(); proSeat.books.staffSeatsPro = 1;
+assert.equal(cleanPricing(proSeat).books.staffSeatsPro, 1, "an admin can give Pro a helper seat");
+const noDebtCut = clone(); noDebtCut.books.debtCommission = "none";
+assert.equal(cleanPricing(noDebtCut).books.debtCommission, "none");
+const badCut = clone(); badCut.books.debtCommission = "half";
+assert.throws(() => cleanPricing(badCut), PricingError, "the store's commission or none");
+const longHold = clone(); longHold.books.debtHoldDays = 90;
+assert.throws(() => cleanPricing(longHold), PricingError, "60 days at most");
+const manySeats = clone(); manySeats.books.staffSeatsPro = -1;
+assert.throws(() => cleanPricing(manySeats), PricingError);
 console.log("ALL OK");

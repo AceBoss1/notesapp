@@ -752,6 +752,13 @@ service cloud.firestore {
     match /bookReminders/{id} { allow read, write: if false; }
     match /bookImports/{id} { allow read, write: if false; }
     match /bookSettings/{uid} { allow read, write: if false; }
+    // Staff on a seller's books (lib/books-staff-server.ts): cashiers and managers, and the invitations to them. Server-only, so nobody can
+    // give themselves a role from the browser; every Books API action checks the role on the server (lib/books.ts can).
+    match /bookStaff/{id} { allow read, write: if false; }
+    match /bookStaffInvites/{id} { allow read, write: if false; }
+    // The monthly Business books summary (lib/books-report-server.ts): one marker per seller and month, and each month's run. Server-only.
+    match /bookReports/{id} { allow read, write: if false; }
+    match /bookReportRuns/{id} { allow read, write: if false; }
     // Reviews of store items and profile recommendations: server-only; pages read them through /api/store/reviews and /api/recommendations.
     match /storeReviews/{id} { allow read, write: if false; }
     // Subtopics (under our topics) and Market subcategories, created by members as they save (lib/subtopics-server.ts): public lists.

@@ -216,6 +216,7 @@ export function cashInHand(entries: Entry[], floatKobo = 0): Cash {
     if (e.voidedAt) continue;
     const received = e.kind === "sale" || e.kind === "payment" ? e.paidKobo : 0;
     if (e.kind === "sale" && e.source === "online") { c.onlineKobo += e.totalKobo; continue; }
+    if (e.kind === "payment" && e.source === "online") { c.onlineKobo += e.totalKobo; continue; } // a debt paid online: held by #NotesApp, then paid out
     if (e.source === "import") continue; // the past isn't in today's drawer
     if (received) {
       if (e.method === "cash") c.inKobo += received;
@@ -300,3 +301,48 @@ export const cleanName = (v: unknown) => cleanText(v, 80);
 export const cleanQty = (v: unknown) => { const n = Number(v); return Number.isInteger(n) && n >= 1 && n <= MAX_QTY ? n : null; };
 export const cleanKobo = (v: unknown) => { const n = Number(v); return Number.isInteger(n) && n >= 0 && n <= MAX_KOBO ? n : null; };
 export const cleanCategory = (v: unknown) => cleanText(v, 40).toLowerCase().replace(/[^a-z0-9 _-]/g, "").trim() || "other";
+
+// ---- Staff and roles (docs/BUSINESS-BOOKS.md, step 10) ----
+// The seller ("owner") and an organisation's admins ("admin") keep the books. A seller on a team plan can invite staff to their books
+// (bookStaff/{owner}_{uid}): a Cashier records sales and payments received, sees the sales they recorded today, and prints or shares
+// receipts; no profit, expenses, costs, exports or settings. A Manager does everything except settings and staff.
+export type BooksRole = "owner" | "admin" | "manager" | "cashier";
+export type StaffRole = "cashier" | "manager";
+export const isStaffRole = (v: unknown): v is StaffRole => v === "cashier" || v === "manager";
+export const ROLE_LABEL: Record<BooksRole, string> = { owner: "Owner", admin: "Admin", manager: "Manager", cashier: "Cashier" };
+// Every action in /api/books, by what it touches.
+export type BooksAct =
+  | "home" | "pnl" | "sales" | "expenses" | "owed" | "customers" | "catalog" | "costs" | "imports" | "export" | "staffView"
+  | "sale" | "payment" | "expense" | "purchase" | "void" | "party" | "supplier" | "remind" | "receipt" | "photo" | "import" | "nana" | "sync"
+  | "settings" | "staff";
+const CASHIER: BooksAct[] = ["home", "sales", "customers", "catalog", "sale", "payment", "party", "receipt", "void", "nana", "sync"];
+export function can(role: BooksRole, act: BooksAct): boolean {
+  if (role === "owner" || role === "admin") return true;
+  if (role === "manager") return act !== "settings" && act !== "staff";
+  return CASHIER.includes(act);
+}
+export const roleRefusal = (role: BooksRole) =>
+  role === "cashier" ? "Cashiers record sales and payments received. Ask the owner for anything else." : "Only the owner changes settings and staff.";
+// Staff seats on the books by the OWNER's plan (lib/pricing.ts books.staffSeatsPro and staffSeatsBusiness): Business and Enterprise; Pro only when the admin
+// sets seats for it (open question 4, unanswered: 0 by default); Free Basic never. null means no fixed limit.
+export function staffSeats(tier: string, seats: { staffSeatsPro: number; staffSeatsBusiness: number }): number | null {
+  if (tier === "enterprise") return null;
+  if (tier === "business") return seats.staffSeatsBusiness;
+  if (tier === "pro") return seats.staffSeatsPro;
+  return 0;
+}
+
+// ---- Paying a debt online (payment kind "debt", docs/BUSINESS-BOOKS.md open question 5) ----
+// The customer pays all or part of what they owe from their statement link, by card or transfer through Paystack. At least ₦100, and
+// never more than they owe. Our commission follows lib/pricing.ts books.debtCommission: "store" (the seller's physical-goods rate,
+// the same as a store sale, the default) or "none".
+export const DEBT_MIN_KOBO = 100 * 100;
+export function debtAmount(raw: unknown, owesKobo: number): { ok: true; kobo: number } | { ok: false; error: string } {
+  const k = toKobo(raw);
+  if (k === null || k <= 0) return { ok: false, error: "Enter how much you'd like to pay." };
+  if (owesKobo <= 0) return { ok: false, error: "There's nothing to pay." };
+  if (k > owesKobo) return { ok: false, error: `You owe ${naira(owesKobo)}. Enter that or less.` };
+  if (k < Math.min(DEBT_MIN_KOBO, owesKobo)) return { ok: false, error: `The least you can pay online is ${naira(Math.min(DEBT_MIN_KOBO, owesKobo))}.` };
+  return { ok: true, kobo: k };
+}
+export const debtCommissionKobo = (amountKobo: number, rate: number, rule: "store" | "none") => (rule === "none" ? 0 : Math.round(amountKobo * rate));

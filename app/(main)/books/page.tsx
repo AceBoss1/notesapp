@@ -20,7 +20,7 @@ const DOES = [
   { t: "Stock that keeps up", d: "A walk-in sale takes the item off your inventory, voiding it puts it back, and Books home shows what's running low." },
   { t: "Money owed to you, and what you owe", d: "Who owes you, since when and what's late, with Record payment and reminders. Your suppliers and when you pay them." },
   { t: "Profit for a day, a week or a month", d: "Sales, the cost of what you sold, expenses and profit, cash in hand and your best sellers, with a PDF report and a CSV." },
-  { t: "Bring your records", d: "Import a stock list, past sales, expenses or customers from a CSV (Excel, Google Sheets, Tralo). Check a dry run first, and undo for 24 hours." },
+  { t: "Bring your records", d: "Import a stock list, past sales, expenses or customers from a CSV (Excel, Google Sheets, Tralo, Shopify, WooCommerce, Selar, Bumpa, Paystack) or a bank statement. Check a dry run first, and undo for 24 hours." },
 ];
 
 const SHOTS = [
@@ -73,7 +73,7 @@ export default function BooksPage() {
         <div className="mx-auto max-w-6xl px-4 py-12 sm:px-6 lg:px-8">
           <p className="eyebrow">A look inside</p>
           <h2 className="mt-2 font-display text-3xl text-ink">Books home, a sale and your profit</h2>
-          <p className="mt-2 max-w-2xl text-sm text-slate">From the approved designs, so a few details differ from the app (Tell Nana isn&apos;t open yet). The shop and the numbers are made up.</p>
+          <p className="mt-2 max-w-2xl text-sm text-slate">From the approved designs, so a few details differ from the app. The shop and the numbers are made up.</p>
           <div className="mt-8 grid items-start gap-6 lg:grid-cols-[0.42fr,1fr]">
             <Image src="/images/books/books-home-phone.webp" width={780} height={1688} alt="Books home on a phone: today's profit, sales, expenses, cash in hand, money owed and a Record a sale button" className="mx-auto w-full max-w-[300px] rounded-[2rem] border border-rule shadow-sm" />
             <div className="grid gap-6">
@@ -83,8 +83,9 @@ export default function BooksPage() {
             </div>
           </div>
           <p className="mt-8 text-sm text-slate">
-            Coming next: entries from a sentence with Nana, entry with no signal, a monthly summary email and cashier and manager roles. See
-            the <Link href="/roadmap" className="text-crimson underline">roadmap</Link>.
+            Also in it: Tell Nana (type a sentence, check the entries she writes), entry with no signal, a monthly summary email, Cashier and
+            Manager staff on Business and Enterprise, and Pay now on statements so customers pay what they owe online. See what&apos;s next
+            on the <Link href="/roadmap" className="text-crimson underline">roadmap</Link>.
           </p>
         </div>
       </section>

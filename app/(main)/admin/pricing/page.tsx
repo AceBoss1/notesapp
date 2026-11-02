@@ -23,7 +23,7 @@ function convert(v: Any, key: string, toForm: boolean): Any {
   if (typeof v === "number" || typeof v === "string") {
     if (KOBO_KEYS.has(key)) return toForm ? String(Number(v) / 100) : Math.round(Number(v) * 100);
     if (RATE_KEYS.has(key) || RATE_EXTRA.has(key)) return toForm ? String(Math.round(Number(v) * 10000) / 100) : Number(v) / 100;
-    if (key === "impressions" || key === "graceDays" || key === "trialDays" || key === "freeEntries" || key === "freeCustomers" || key === "freeImportRows" || key === "inUsd" || key === "outUsd" || key.endsWith("Daily")) return toForm ? String(v) : Number(v);
+    if (key === "impressions" || key === "graceDays" || key === "trialDays" || key === "freeEntries" || key === "freeCustomers" || key === "freeImportRows" || key === "staffSeatsPro" || key === "staffSeatsBusiness" || key === "debtHoldDays" || key === "inUsd" || key === "outUsd" || key.endsWith("Daily")) return toForm ? String(v) : Number(v);
   }
   return v;
 }
@@ -141,7 +141,14 @@ export default function PricingPage() {
               <div className="flex items-center justify-between gap-3"><span>Free Basic: sales and expenses a month</span>{input(["books", "freeEntries"], "", "Business books Free Basic entries a month")}</div>
               <div className="flex items-center justify-between gap-3"><span>Free Basic: customers owing at once</span>{input(["books", "freeCustomers"], "", "Business books Free Basic customers owing")}</div>
               <div className="flex items-center justify-between gap-3"><span>Free Basic: rows per import</span>{input(["books", "freeImportRows"], "rows", "Business books Free Basic rows per import")}</div>
+              <div className="flex items-center justify-between gap-3"><span>Staff seats (cashiers, managers) on Business</span>{input(["books", "staffSeatsBusiness"], "", "Business books staff seats on Business")}</div>
+              <div className="flex items-center justify-between gap-3"><span>Staff seats on Pro (0 = none)</span>{input(["books", "staffSeatsPro"], "", "Business books staff seats on Pro")}</div>
+              <div className="flex items-center justify-between gap-3"><span>Debt paid online: held before payout</span>{input(["books", "debtHoldDays"], "days", "Business books days a debt paid online is held")}</div>
+              <div className="flex items-center justify-between gap-3"><span>Debt paid online: our commission</span>
+                <select aria-label="Business books commission on a debt paid online" className={`${field} !w-40 !text-left`} value={form.books?.debtCommission ?? "store"} onChange={(e) => set(["books", "debtCommission"], e.target.value)}><option value="store">the store&apos;s rate</option><option value="none">none</option></select>
+              </div>
             </div>
+            <p className="mt-2 text-xs text-slate">Enterprise has no fixed staff limit and Free Basic none. A customer paying what they owe from their statement link pays the seller like a store sale: by default with the seller&apos;s physical-goods commission, held, then paid out.</p>
           </section>
 
           <section className="card mt-6 p-5">
