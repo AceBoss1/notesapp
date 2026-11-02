@@ -79,8 +79,9 @@ const tool = async (name: string, args: object = {}, headers: Record<string, str
   r = await tool("search_store", { query: "lamp" }); assert.equal(r.isError, false);
   r = await tool("search_courses", {}); assert.equal(r.isError, false);
 
-  // member tools: need a key; the key's scopes apply
-  r = await tool("my_profile"); assert.equal(r.isError, true); assert.match(r.content[0].text, /API key/);
+  // member tools: need a key (or a connected assistant's token: tests/agents); with none, HTTP 401 and the OAuth discovery header
+  const noKey = await call({ jsonrpc: "2.0", id: 1, method: "tools/call", params: { name: "my_profile", arguments: {} } }, { "mcp-protocol-version": "2025-06-18" });
+  assert.equal(noKey.status, 401); assert.match(noKey.body.error.message, /API key/); assert.match(noKey.headers.get("www-authenticate") ?? "", /oauth-protected-resource/);
   r = await tool("my_profile", {}, { authorization: "Bearer nak_bad.bad" }); assert.equal(r.isError, true);
   const key = await createApiKey("u_ada", "MCP test", ["read:posts"]);
   r = await tool("my_profile", {}, { authorization: `Bearer ${key.token}` });

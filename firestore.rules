@@ -1295,5 +1295,21 @@ service cloud.firestore {
     match /coverCounts/{countId} { allow read, write: if false; }
     match /coverImages/{imageId} { allow read, write: if false; }
 
+    // ============================================================
+    // AGENT LAYER: NANA'S INBOX AND CONNECTED ASSISTANTS (lib/agents, docs/AGENT_LAYER.md)
+    // ============================================================
+    // Grants (what a member let an assistant do, with the token's hash), connect requests and pairing codes, registered assistants,
+    // daily action counts, proposals (Nana's inbox), the activity log, Nana's job settings and voice, and queued events: all read and
+    // written by the server only, through /api/agents, /api/nana/inbox, /api/console/agents and the MCP server. No browser touches them.
+    match /agentGrants/{id} { allow read, write: if false; }
+    match /agentAuthRequests/{id} { allow read, write: if false; }
+    match /agentCodes/{code} { allow read, write: if false; }
+    match /agentClients/{id} { allow read, write: if false; }
+    match /agentUsage/{id} { allow read, write: if false; }
+    match /agentProposals/{id} { allow read, write: if false; }
+    match /agentActions/{id} { allow read, write: if false; }
+    match /agentEvents/{id} { allow read, write: if false; }
+    match /nanaOps/{uid} { allow read, write: if false; }
+
   }
 }

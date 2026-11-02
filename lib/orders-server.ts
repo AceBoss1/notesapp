@@ -14,6 +14,19 @@ export const hashToken = (t: string) => createHash("sha256").update(t).digest("h
 export const newLinkToken = () => randomBytes(18).toString("base64url");
 export const holderUrl = (token: string) => `${site()}/p/${token}`;
 
+// The seller hands a paid order to a courier (Orders → Set courier, or an approved "mark shipped" from Nana's inbox): the order and its
+// parcel are on their way and, the first time, the buyer is told with the tracking link. Checks are the caller's (who may act, status).
+export async function dispatchWithCourier(order: StoreOrder, courier: { name: string; trackingNumber: string; trackingUrl: string }): Promise<void> {
+  const db = getAdminDb();
+  const now = new Date().toISOString();
+  const batch = db.batch();
+  batch.update(db.doc(`storeOrders/${order.reference}`), { status: "dispatched", mode: "courier", courier, ...(order.dispatchedAt ? {} : { dispatchedAt: now }) });
+  batch.update(db.doc(`parcels/${order.parcelId}`), { status: "dispatched", mode: "courier", courier });
+  await batch.commit();
+  const to = order.buyerEmail;
+  if (!order.dispatchedAt && to) await sendEmail({ to, bell: { uid: order.buyerUid, type: "order", linkHref: `/track/${order.parcelId}`, message: `Your order is on its way: ${order.itemTitle}` }, subject: "Your #NotesApp order is on its way", text: `${order.itemTitle} was handed to ${courier.name} (tracking ${courier.trackingNumber}).\nFollow it with parcel ID ${order.parcelId} at ${site()}/track/${order.parcelId}, and confirm delivery at ${site()}/orders when it arrives.\n\n#NotesApp`, action: { label: "Track your parcel", url: `${site()}/track/${order.parcelId}` } }).catch(() => {});
+}
+
 // Buyer confirmed (or the 7 days ran out, or an admin resolved a dispute): the
 // seller's money stops being held and becomes payable.
 export async function confirmOrder(reference: string, by: "buyer" | "auto" | "admin"): Promise<void> {

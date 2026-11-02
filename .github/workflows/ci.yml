@@ -39,6 +39,7 @@ jobs:
       - run: npm run test:discounts
       - run: npm run test:referrals
       - run: npm run test:mcp
+      - run: npm run test:agents
       - run: npm run test:pricing
       - run: npm run test:host
       - run: npm run test:ads
@@ -85,6 +86,7 @@ jobs:
       - run: npm run test:certificates-server
       - run: npm run test:nana-server
       - run: npm run test:mcp-server
+      - run: npm run test:agents-server
       - run: npm run test:shipments-server
       - run: npm run test:logistics-server
       - run: npm run test:cart-server
