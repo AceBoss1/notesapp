@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { SALE_METHODS, naira, type Method } from "@/lib/books";
+import { SALE_METHODS, firstName, naira, type Method } from "@/lib/books";
 import { Icon, Sheet, WhatsAppIcon, field, koboToInput, nairaInput, newClientId, pill, type Api } from "./shared";
 
 // Record a sale (the mockup's quick sheet): items from the store and Books-only items (search by name or SKU), or a one-off typed in;
@@ -160,7 +160,7 @@ export default function RecordSale({ api, today, onClose, onSaved }: { api: Api;
       <dl className="mt-4 space-y-1.5 text-[15px]">
         <div className="flex justify-between text-slate"><dt>{lines.length} {lines.length === 1 ? "item" : "items"} · {units} {units === 1 ? "unit" : "units"}</dt><dd className="font-semibold text-ink">{naira(total)}</dd></div>
         {owes && <div className="flex justify-between text-slate"><dt>Paid now</dt><dd className="font-semibold text-ink">{naira(paid)}</dd></div>}
-        {owes && <div className="flex justify-between"><dt className="font-ui font-bold text-ink">{whoName ? `${whoName.split(" ")[0]} owes` : "Owes"}</dt><dd className="font-ui text-2xl font-bold text-amber-700">{naira(total - paid)}</dd></div>}
+        {owes && <div className="flex justify-between"><dt className="font-ui font-bold text-ink">{whoName ? `${firstName(whoName)} owes` : "Owes"}</dt><dd className="font-ui text-2xl font-bold text-amber-700">{naira(total - paid)}</dd></div>}
       </dl>
       {lines.some((l) => l.ref) && (
         <p className="mt-3 flex gap-2 rounded-2xl bg-field p-3 text-sm text-slate"><Icon name="box" className="mt-0.5 h-4 w-4 shrink-0" />

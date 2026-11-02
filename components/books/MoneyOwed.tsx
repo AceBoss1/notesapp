@@ -122,7 +122,7 @@ function Remind({ api, d, onChanged }: { api: Api; d: Debtor; onChanged: () => v
         </div>
       )}
       <p className="mt-4 text-sm font-semibold text-ink">They&apos;ll read</p>
-      <div className="mt-2 whitespace-pre-line rounded-2xl bg-field p-4 text-[15px] leading-relaxed text-ink">
+      <div className="mt-2 whitespace-pre-line rounded-2xl bg-field p-4 [overflow-wrap:anywhere] text-[15px] leading-relaxed text-ink">
         {d.preview.split("\n\n")[0]}
         <div className="mt-3 border-t border-rule pt-3 text-sm text-slate">{d.preview.split("\n\n").slice(1).join("\n\n")}</div>
       </div>

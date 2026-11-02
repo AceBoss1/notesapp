@@ -141,6 +141,15 @@ export async function saveParty(c: Ctx, raw: Record<string, unknown>): Promise<P
     await ref.update(fields);
     return partyOf(await ref.get());
   }
+  // The same customer added again (same number, or the same name with no number) is the one already in the books.
+  const same = (await db.collection("bookParties").where("ownerUid", "==", owner).where("kind", "==", kind).get()).docs.map(partyOf)
+    .find((x) => (phone && x.phone === phone) || (!phone && x.name.trim().toLowerCase() === name.toLowerCase()));
+  if (same) {
+    const add: Record<string, unknown> = {};
+    if (member && !same.memberUid) { add.memberUid = member.uid; add.memberUsername = member.username; }
+    if (Object.keys(add).length) await db.doc(`bookParties/${same.id}`).update(add);
+    return { ...same, ...add };
+  }
   const ref = db.collection("bookParties").doc();
   const doc = { ownerUid: owner, kind, balanceKobo: 0, statementCode: kind === "customer" ? newCode() : "", createdAt: iso(c.now), ...fields };
   await ref.set(doc);

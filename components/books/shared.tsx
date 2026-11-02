@@ -46,7 +46,7 @@ export function entryBadge(e: Pick<Entry, "kind" | "source" | "method" | "owesKo
   if (e.kind === "sale" && e.owesKobo - (e.settledKobo || 0) > 0) return <Badge tone="owes">Owes</Badge>;
   return <Badge>{methodLabel(e.method)}</Badge>;
 }
-export const timeOf = (iso: string) => new Date(iso).toLocaleTimeString("en-NG", { hour: "numeric", minute: "2-digit", timeZone: "Africa/Lagos" }).toLowerCase();
+export const timeOf = (iso: string) => new Date(iso).toLocaleTimeString("en-NG", { hour: "numeric", minute: "2-digit", hour12: true, timeZone: "Africa/Lagos" }).toLowerCase();
 
 // A sheet: from the bottom on phones, a dialog on bigger screens. Escape or the × closes it.
 export function Sheet({ title, eyebrow, onClose, children, wide }: { title: string; eyebrow?: string; onClose: () => void; children: ReactNode; wide?: boolean }) {

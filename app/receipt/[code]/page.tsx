@@ -40,7 +40,7 @@ export default async function ReceiptPage({ params, searchParams }: { params: { 
         </table>
         <dl className="mt-3 space-y-1.5 border-t-2 border-[#1A1210] pt-3 text-[15px]">
           <div className="flex justify-between font-bold"><dt>Total</dt><dd className="tabular-nums">{naira(r.totalKobo)}</dd></div>
-          <div className="flex justify-between text-[#5C534E]"><dt>Paid{r.paidKobo ? ` (${methodLabel(r.method).toLowerCase()} and since)` : ""}</dt><dd className="tabular-nums">{naira(r.paidKobo)}</dd></div>
+          <div className="flex justify-between text-[#5C534E]"><dt>Paid so far{r.paidKobo ? ` (${methodLabel(r.method).toLowerCase()} first)` : ""}</dt><dd className="tabular-nums">{naira(r.paidKobo)}</dd></div>
           {r.owesKobo > 0 && <div className="flex justify-between font-semibold text-[#B45309]"><dt>Still to pay{r.dueOn ? ` by ${shortDate(r.dueOn)}` : ""}</dt><dd className="tabular-nums">{naira(r.owesKobo)}</dd></div>}
           {r.owesKobo === 0 && !r.voided && <div className="flex justify-between font-semibold text-[#3D5A45]"><dt>Paid in full</dt><dd>✓</dd></div>}
         </dl>

@@ -151,6 +151,7 @@ const later = new Date(Date.parse(`${today}T00:00:00Z`) + 10 * 86_400_000).toISO
   const bell = await db.collection("notifications").where("recipientUid", "==", "bisi").get();
   assert.ok(bell.docs.some((d) => d.data().type === "books" && /₦45,000/.test(d.data().message)));
   await fails(saveParty(k, { kind: "customer", name: "X", username: "nobody-here" }), 400);
+  assert.equal((await saveParty(k, { kind: "customer", name: "Musa D.", phone: "+234 803 123 4417" })).id, musa.party.id, "the same number is the same customer");
   // The customer stops reminders from the statement link: email stops, WhatsApp asks the seller first.
   const bisiParty = (await db.doc(`bookParties/${bisi.id}`).get()).data()!;
   const st = await publicStatement(db, bisiParty.statementCode);

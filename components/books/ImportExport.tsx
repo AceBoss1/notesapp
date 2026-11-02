@@ -12,7 +12,7 @@ import { Icon, download, field, pill, type Api } from "./shared";
 type Plan = { kind: ImportKind; headers: string[]; mapping: string[]; samples: string[]; rows: number; counts: { fresh: number; updates: number; dupes: number; problems: number }; problems: { row: number; message: string }[]; notes: { row: number; message: string }[]; missing: string[] };
 type Imp = { id: string; kind: string; fileName: string; rows: number; at: string; undoUntil: string; status: string; canUndo: boolean; created: { entries: number; items: number; parties: number; updates: number } };
 const SOURCES = [
-  { id: "csv", label: "Excel or CSV", hint: "Stock list, sales, expenses, customers, debtors", badge: "Most used", icon: "TB" },
+  { id: "csv", label: "Excel or CSV", hint: "Stock list, sales, expenses, customers, debtors", badge: "Most used", icon: "" },
   { id: "sheets", label: "Google Sheets", hint: "File → Download → CSV, then upload", icon: "GS" },
   { id: "tralo", label: "Tralo", hint: "Its inventory and sales CSV exports", icon: "TR" },
 ];
@@ -81,12 +81,12 @@ export default function ImportExport({ api, maxRows, inventory }: { api: Api; ma
       </ol>
 
       <div className="mt-5 grid gap-5 lg:grid-cols-[0.8fr_1.2fr]">
-        <div>
+        <div className="min-w-0">
           <p className="text-sm font-semibold text-ink">1 · Where is it coming from?</p>
           <div className="mt-2 space-y-2">
             {SOURCES.map((s) => (
               <button key={s.id} onClick={() => { setSource(s.id); if (s.id === "tralo" && kind !== "stock" && kind !== "sales") setKind("stock"); }} className={`flex w-full items-center gap-3 rounded-2xl border bg-card p-4 text-left ${source === s.id ? "border-crimson ring-1 ring-crimson" : "border-rule"}`}>
-                <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-field font-ui text-xs font-bold text-crimson">{s.icon}</span>
+                <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-field font-ui text-xs font-bold text-crimson">{s.icon || <Icon name="card" />}</span>
                 <span className="min-w-0 flex-1"><span className="block font-ui font-bold text-ink">{s.label}</span><span className="block text-[13px] text-slate">{s.hint}</span></span>
                 {s.badge && <span className="rounded-full bg-crimson/10 px-2.5 py-0.5 text-xs font-semibold text-crimson">{s.badge}</span>}
               </button>
@@ -105,7 +105,7 @@ export default function ImportExport({ api, maxRows, inventory }: { api: Api; ma
           {source === "sheets" && <p className="mt-3 rounded-2xl bg-field p-3 text-sm text-slate">In Google Sheets: File → Download → Comma-separated values (.csv). Then upload that file here.</p>}
         </div>
 
-        <div className="space-y-4">
+        <div className="min-w-0 space-y-4">
           <section className="card p-5">
             <p className="text-sm font-semibold text-ink">2 · What is it, and the file</p>
             <div className="mt-2 flex flex-wrap gap-2">
