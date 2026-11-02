@@ -2579,3 +2579,19 @@ the editor, Teach page and pricing page name the plans from the settings (`plans
 copy that promises it.
 
 **Team hub "+ New task" and the rooms relay task (v0.123.1, 2 Nov 2026)** — The owner said there was no way to create a task in the team hub. There was one: a one-line "Add work" row (title, when, people) below the numbers, the Needs you card, Granola and expenses, easy to miss and short of fields. A "+ New task" button now sits first beside the title (`NewTaskForm` in `app/(main)/admin/team/page.tsx`), opening a card with everything an item carries: title, details, due date with Today / In 1 week / In 2 weeks chips (a date also picks the horizon, `horizonForDue` in `lib/team.ts`, the same seven-day window as the board's This week), when, status (To do, Doing, Needs a decision with its question, Blocked with what it's on), departments, people (`PeoplePicker`) and the monthly repeat. It uses the existing `createItem`; `cleanItem` already accepted every field, so the server is unchanged. Items have no link field, so links go in the details, which now render through `components/LinkedText.tsx` (links open in a new tab; React text, never HTML). The quick row stays for one-liners, and each item's Edit already changes title, details, due date, people and the rest. The owner's next task is seeded once as `ROOMS_RELAY_BACKLOG` (seed `rooms-relay-2026-11`): moving audio rooms past 20 listeners with Cloudflare Realtime (Serverless SFU), the dashboard steps for the app ID and token (and the TURN keys while there), and the build. The standing "rooms-relay" signal in `teamSignals` is left as it is. Tests: `test:team` (full create, `horizonForDue`) and `test:team-server` (the full create and the seed).
+
+**Accelerators: Alliance, Village Global Velocity, Capital Wings (2 Nov 2026)** — The owner asked for three programmes to be checked on
+their own sites and the application material drafted, without applying or contacting anyone. `docs/FUNDING.md` gained §5–§7 and three
+rows in its table. Alliance (alliance.xyz, read 2 Nov 2026): USD 400k on a SAFE at a USD 4M post-money valuation with a 1:1 token side
+letter, cohort ALL19 from 11 January 2027 with Regular Admission closing 18 November, funding before the cohort possible; the owner's
+"USD 400k for up to 7%" doesn't match that price (400k at 4M post is 10%; 7% for 400k is about 5.71M post), and a second "USD 400k
+follow-on at seed" appeared on only one of two versions of the page (it runs an A/B test), so it's marked unconfirmed, as are the
+entity rule and the form's questions (the form loads them only after an email is entered, so none was entered). Fit is weak to
+moderate because NotesApp has no crypto; the section names the one honest stablecoin angle (cross-border creator payouts) and leaves
+apply-or-skip as a decision. Village Global Velocity (villageglobal.vc now redirects to villageglobal.com): up to USD 1M, rolling,
+pre-seed and any country; the instrument and cap aren't published, and the drafts answer the questions of its live application form.
+Capital Wings: an introducer registered in Bahrain with nobody named, no registration number or licence and placeholder legal pages;
+the recommendation is not to apply and to share nothing. `ACCELERATORS_BACKLOG` in `lib/team-seed.ts` (seed `accelerators-2026-11`,
+run from `app/api/admin/team/route.ts`) adds five founder-owned items: NotesApp Inc and the cap table first (6 Nov), the Alliance
+stablecoin pitch (7 Nov; the owner decided on 2 Nov to pitch it) and application (13 Nov), Village Global (20 Nov), and Legal's SAFE,
+dilution and stablecoin-licence check before anything is signed (13 Nov). Capital Wings stays a "don't engage" note in FUNDING.md §7. Internal only, so there's no changelog entry.

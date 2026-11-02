@@ -10,7 +10,7 @@
 
 | When | What | Team hub task |
 |---|---|---|
-| 2 Nov 2026 | Registered ✓. The first part is saved (who we are, what NotesApp does, why us, the company), and the draft stops at "show us". | `fund-timeline` |
+| 2 Nov 2026 | Registered ✓ ("you're in", cohort one, 14:57). This is the registration, not a decision: we still submit by 8 Dec. The first part is saved (who we are, what NotesApp does, why us, the company), and the draft stops at "show us". | `fund-timeline` |
 | by 22 Nov | Pitch deck **or** walkthrough video (one is enough) | `fund-deck-video` |
 | by 26 Nov | The remaining answers drafted (below) | `fund-answers` |
 | by 29 Nov | NotesApp checked working on **naapp.tech** | `fund-live-check`, `fund-site-live` |
