@@ -1,3 +1,4 @@
+import { queueMessageEvent } from "./agents/events-server";
 import type { Firestore } from "firebase-admin/firestore";
 import { FieldValue } from "firebase-admin/firestore";
 import { randomBytes } from "crypto";
@@ -185,6 +186,9 @@ export async function sendMessage(db: Firestore, fromUid: string, toUid: string,
     });
   });
   for (const id of ids) await db.doc(`messageUploads/${id}`).update({ used: true }).catch(() => {});
+  // Nana's operator (Business and Enterprise, switched on by the recipient): the first message of a burst is queued for Nana to draft a
+  // reply in Nana's inbox (lib/agents/events-server.ts). Written text only; never blocks sending.
+  if (prevUnread === 0 && text) await queueMessageEvent(db, { toUid, to: to.data(), fromUid, cid, messageId }, now).catch((e) => console.error("[nana] queue failed", e instanceof Error ? e.message : e));
   // One bell, one push and (at most hourly, unless switched off) one email per burst: nothing new while the last message is still
   // unread. None of them carries what was written, only who it's from.
   if (prevUnread === 0 && !(await isMuted(db, toUid, cid))) {

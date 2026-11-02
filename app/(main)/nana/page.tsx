@@ -8,7 +8,7 @@ import { nanaConfigured } from "@/lib/nana-config";
 
 export const metadata: Metadata = {
   title: "Nana AI",
-  description: "Meet Nana, #NotesApp's helper: ask her anything about the platform and get answers with links, get writing help for drafts, sharing and messages, topic suggestions, chat summaries and translations, with a free weekly allowance on every plan and Nana credit to top it up.",
+  description: "Meet Nana, #NotesApp's helper: ask her anything about the platform and get answers with links, get writing help for drafts, sharing and messages, topic suggestions, chat summaries and translations, with a free weekly allowance on every plan and Nana credit to top it up. On Business and Enterprise she also prepares booking replies, customer answers, journal drafts and a weekly summary in Nana's inbox, for you to approve.",
 };
 export const revalidate = 3600; // static text; nanaConfigured() is checked again each hour
 
@@ -17,6 +17,8 @@ const DOES = [
   { title: "Writing help in your drafts", body: "In the journal composer, ask Nana to improve, shorten or expand your writing, make it friendlier or more professional, or turn rough notes into a first draft." },
   { title: "Posts for LinkedIn and X", body: "When you share a post, ask Nana to write the words for LinkedIn or X, and edit them before anything goes out." },
   { title: "Help with messages", body: "In a conversation, ask Nana to suggest a reply or polish what you wrote. You always read and send it yourself. Summarise tells you what you missed in a busy chat, and Translate puts a message into English, Pidgin, Yorùbá, Igbo or Hausa." },
+  { title: "Nana's inbox and jobs (Business and Enterprise)", body: "Switch on Nana's jobs and she prepares the routine work: replies to people asking about a session, with your booking link; answers to customers' questions; a thank-you to everyone who books and pays; journal drafts from your notes; a nudge when an order hasn't shipped in 3 days; and a summary every Monday at 07:00. In your voice, waiting in Nana's inbox (pinned in Messages) for you to approve, edit or decline. She never publishes for you and never moves money." },
+  { title: "Your AI assistant, with your permission", body: "Connect Claude, ChatGPT or another assistant to your account with Connect NotesApp: choose what it may see and do and whether it asks you first. Publishing and price changes always ask you, no assistant can move money, and Console → Connected agents shows everything it did." },
   { title: "Topics from your title", body: "Type a journal's or course's title and Nana suggests topics and subtopics to tap; for a Market item, its category and subcategory. Free, and not taken from your allowance." },
   { title: "Gems, allowance and credit", body: "Choose Pearl (fast, every plan), Emerald (deeper, Business and Enterprise) or Ruby (our most capable, Enterprise), and how long she thinks. Every plan has a free allowance that refreshes weekly; Nana credit tops it up and never expires. A general question asked before is answered free from her answer bank." },
   { title: "In the team hub", body: "Our own team asks Nana what to focus on and how the admin tools work. She comes with the Team hub, which will be a paid add-on for Business and Enterprise after our internal testing." },

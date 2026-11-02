@@ -11,6 +11,19 @@ export type Release = {
 
 export const CHANGELOG: Release[] = [
   {
+    version: "v0.123.0",
+    bump: "minor",
+    date: "2026-11-02",
+    changes: [
+      { kind: "added", text: "Nana's inbox, pinned in Messages under Nana's conversation and on its own page: what Nana and your connected assistants have prepared (Needs you), what was done for you (Done by Nana, with Undo) and Nana's jobs. Edit a draft before it goes, make it shorter, warmer, more formal or Pidgin, approve, decline or dismiss. Anything you don't answer expires after 48 hours; nothing leaves your account until you approve it." },
+      { kind: "added", text: "Nana's jobs for Business and Enterprise: replies to people asking about a session (with your booking link and open times), answers to customers' questions, a thank-you to everyone who books and pays (sent without asking if you allow it, with 24 hours to undo), journal drafts from your notes (never published by Nana), a nudge with an update for the buyer when an order is unshipped for 3 days, and a weekly summary on Mondays at 07:00. Written in your voice, learnt from your own messages and journals, which you can edit. Other plans see what Nana could do and keep receiving their assistants' requests." },
+      { kind: "added", text: "Connect NotesApp: let an AI assistant such as Claude or ChatGPT work on your account. Check the code it shows, choose what it may see (earnings and messages are off unless you switch them on) and what it may do, and whether it asks you first; set its limits (actions a day, the biggest discount it may offer, how long access lasts). Publishing and price changes always ask you. No assistant can move money, Nana included." },
+      { kind: "added", text: "Connected assistants can save journal drafts, ask to publish, reply about bookings, change store items and mark orders shipped, within your rules; what needs you arrives in Nana's inbox and on your phone. Assistants without a sign-in screen show an 8-character code to type at /link." },
+      { kind: "changed", text: "Console has tabs: API keys, Webhooks, Your domain and Connected agents, where you see each assistant's permissions and week, the activity log with filters and a CSV, and can edit permissions, pause or disconnect it, or pause all of Nana's jobs. The log keeps what was asked and what happened for 12 months, never the content." },
+      { kind: "changed", text: "The MCP server's address shown everywhere follows the domain you're on. Calling an account tool without signing in now asks the assistant to connect (OAuth), instead of only returning an error." },
+    ],
+  },
+  {
     version: "v0.121.0",
     bump: "minor",
     date: "2026-11-02",

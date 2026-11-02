@@ -2550,3 +2550,17 @@ The monthly email follows the referrals report exactly: the reminders cron, the 
 **Teen mode on Moments and Notes Life (v0.121.0, 2 Nov 2026)** — The team hub item "young-moments" said teen mode didn't restrict Moments yet. Audience was already mutual follows (v0.83.0); what was open was replies, @mentions and reshares (a reshare put a teen's moment on someone else's ring, for their audience). Now replies and mentions need the teen to follow the person, a teen's moment can't be reshared and older reshares keep to the teen's audience, and mention bells anywhere reach a teen only from people they follow. Notes Life got the same: teens off the Billionaires List except for people they follow back, out of presence both ways (firestore.rules), and unnamed on a stranger's invite list. The rules are pure helpers in `lib/young.ts`, reused by both, so turning 18 with "keep" switched on keeps the same behaviour (`keepRepliesFollowers`, `keepHidden`). Notes Life has no gifting or trading between players, so there was nothing to stop there.
 
 **No Excuses Fund submission timeline (2 Nov 2026)** — The owner registered on the fund's site and asked for the submission timeline as a team hub task with the link, assigned to them. `FUND_SUBMIT_BACKLOG` in `lib/team-seed.ts` (seed `no-excuses-submit-2026-11`, run from `app/api/admin/team/route.ts` like the other seeds) adds five items owned by the founder: the timeline itself (in progress, due 8 Dec), the deck or video (22 Nov), the remaining answers (26 Nov), checking NotesApp works on naapp.tech (29 Nov) and the final read-through and submit (8 Dec). The dates, the questions from the fund's form and a draft answer are in `docs/NO_EXCUSES_APPLICATION.md`, which `docs/FUNDING.md` links. Internal only, so there's no changelog entry.
+
+**Nana operator and Connect NotesApp, agent layer phase 1 (v0.123.0, 2 Nov 2026)** — Built to the three approved mockups (Nana's
+inbox, Connect NotesApp, Console → Connected agents) and the owner's decisions of 2 Nov 2026 (`docs/AGENT_LAYER.md`). Built in steps:
+pure rules first (`lib/agents/config.ts`, `scopes.ts`, `proposals.ts`, `pairing.ts`, `voice.ts`, `time.ts`, `urls.ts`), where every
+number is a setting and publishing, prices and money are fixed in `decide()`; then the server (OAuth 2.1 with PKCE and dynamic
+registration, a device flow that is also the MCP tool `connect_account`, grants with scopes, rules, limits and expiry, the MCP server
+checking every call and counting it per Lagos day, idempotent proposals with approve, edit, decline, dismiss, undo and expiry, all logged
+without content); then Nana's job runner (`/api/cron/agents`: message events queued by `sendMessage`, paid-booking confirmations,
+shipping nudges, the Monday summary, metered on the member's Nana allowance with a template fallback); then the screens. The MCP
+address everywhere comes from `lib/host.ts` (`mcpOrigin`, `mcpServerUrl`, `familyHost(host, "mcp")`) and the request's host;
+`tests/agents/domains.test.ts` fails if any agent-layer file writes a domain in. Reading tools for a connected assistant reuse the
+`/api/v1` handlers through an internal marker rather than a second copy of each query. The courier hand-off moved into
+`dispatchWithCourier` so an approved "mark shipped" runs the same code as the Orders page. Emulator tests ran on a separate emulator
+port (8197) with a temporary config.

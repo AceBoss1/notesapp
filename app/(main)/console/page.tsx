@@ -7,9 +7,13 @@ import { onAuthStateChanged, User } from "firebase/auth";
 import { auth } from "@/lib/firebase";
 import { ROOT_DOMAIN, MAIN_HOST } from "@/lib/host";
 import SiteReminder from "@/components/SiteReminder";
+import ConnectedAgents from "@/components/agents/ConnectedAgents";
 
-// The Console: API keys, webhooks and your own domain. Keys and webhooks are switched on per account by our team
-// (Enterprise); the domain section needs a plan that includes your own domain (Business and Enterprise).
+// The Console, in tabs: API keys, webhooks, your own domain, and Connected agents (?tab=agents: the AI assistants you've let work on your
+// account, components/agents/ConnectedAgents.tsx). Keys and webhooks are switched on per account by our team (Enterprise); the domain
+// section needs a plan that includes your own domain (Business and Enterprise); connected agents are for every plan that may connect one.
+type Tab = "keys" | "webhooks" | "domain" | "agents";
+const TABS: [Tab, string][] = [["keys", "API keys"], ["webhooks", "Webhooks"], ["domain", "Your domain"], ["agents", "Connected agents"]];
 type Key = { id: string; name: string; prefix: string; scopes: string[]; createdAt: string; lastUsedAt: string | null; revokedAt: string | null };
 type Endpoint = { id: string; url: string; events: string[]; active: boolean; createdAt: string };
 type Delivery = { id: string; endpointId: string; url: string; event: string; ok: boolean; status: number | null; error: string; durationMs: number; at: string };
@@ -70,6 +74,11 @@ export default function ConsolePage() {
   const [hookUrl, setHookUrl] = useState("");
   const [hookEvents, setHookEvents] = useState<string[]>([]);
   const [host, setHost] = useState("");
+  const [tab, setTabState] = useState<Tab>("keys");
+  const [agentCount, setAgentCount] = useState<number | null>(null);
+  useEffect(() => { const t = new URLSearchParams(window.location.search).get("tab"); if (t && TABS.some(([id]) => id === t)) setTabState(t as Tab); }, []);
+  const setTab = (t: Tab) => { setTabState(t); window.history.replaceState(null, "", t === "keys" ? "/console" : `/console?tab=${t}`); };
+  useEffect(() => { if (user) call(user, "/api/console/agents").then((j) => setAgentCount(j.agents.length)).catch(() => setAgentCount(null)); }, [user]);
 
   useEffect(() => onAuthStateChanged(auth, (u) => (u ? setUser(u) : router.push("/login"))), [router]);
 
@@ -110,19 +119,29 @@ export default function ConsolePage() {
   }
 
   return (
-    <section className="mx-auto max-w-3xl px-4 py-14 sm:px-6">
+    <section className={`mx-auto px-4 py-14 sm:px-6 ${tab === "agents" ? "max-w-[1160px]" : "max-w-3xl"}`}>
       <span className="eyebrow">Console</span>
-      <h1 className="mt-3 font-display text-4xl text-ink">API, webhooks &amp; your domain</h1>
-      <p className="mt-3 text-slate">
+      <h1 className="mt-3 font-display text-4xl text-ink">{tab === "agents" ? "Connected agents" : "API, webhooks & your domain"}</h1>
+      {tab !== "agents" && <p className="mt-3 text-slate">
         Build on #NotesApp from your own systems. Read the <Link href="/docs" className="text-crimson underline">Docs</Link> for every endpoint. Prices and plan details are on <Link href="/pricing" className="text-crimson underline">Pricing</Link>.
-      </p>
+      </p>}
+      <nav className="mt-6 flex gap-1 overflow-x-auto border-b border-rule" role="tablist" aria-label="Console">
+        {TABS.map(([id, label]) => (
+          <button key={id} type="button" role="tab" aria-selected={tab === id} onClick={() => setTab(id)}
+            className={`-mb-px shrink-0 border-b-2 px-2 py-2.5 font-ui text-sm sm:px-3 ${tab === id ? "border-crimson font-bold text-crimson" : "border-transparent font-semibold text-ink hover:text-crimson"}`}>
+            {label}{id === "agents" && agentCount ? <span className="ml-1.5 rounded bg-crimson/10 px-1.5 font-mono text-[11px]">{agentCount}</span> : null}
+          </button>
+        ))}
+      </nav>
+      {tab === "agents" ? <div className="mt-6"><ConnectedAgents user={user} /></div> : <>
       <SiteReminder className="mt-6" />
       {error && <p className="mt-6 border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-900">{error}</p>}
       {msg && <p className="mt-6 border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-900">{msg}</p>}
       {secret && <Secret label={secret.label} value={secret.value} onClose={() => setSecret(null)} />}
 
       {/* ---------------- API keys ---------------- */}
-      <h2 className="mt-12 font-display text-2xl text-ink">API keys</h2>
+      {tab === "keys" && <>
+      <h2 className="mt-10 font-display text-2xl text-ink">API keys</h2>
       {!access.apiAccess ? (
         <Locked>
           {access.apiPlan === false ? (
@@ -165,8 +184,10 @@ export default function ConsolePage() {
         </>
       )}
 
+      </>}
       {/* ---------------- Webhooks ---------------- */}
-      <h2 className="mt-12 font-display text-2xl text-ink">Webhooks</h2>
+      {tab === "webhooks" && <>
+      <h2 className="mt-10 font-display text-2xl text-ink">Webhooks</h2>
       {!access.apiAccess ? (
         <Locked>Webhooks come with API access.</Locked>
       ) : (
@@ -215,8 +236,10 @@ export default function ConsolePage() {
         </>
       )}
 
+      </>}
       {/* ---------------- Domain ---------------- */}
-      <h2 className="mt-12 font-display text-2xl text-ink">Your own domain</h2>
+      {tab === "domain" && <>
+      <h2 className="mt-10 font-display text-2xl text-ink">Your own domain</h2>
       {access.domainAllowed && <p className="mt-2 text-sm text-slate">Your site&apos;s theme, what it shows and its About and Contact pages are on <Link href="/profile/site" className="text-crimson underline">Your site</Link>.</p>}
       {!access.domainAllowed ? (
         <Locked>A branded site on your own domain (Home, Notes and Shop) is a Business and Enterprise feature. Until then your site lives at <span className="font-mono">{ROOT_DOMAIN}/s/{access.username}</span> (from Free Basic; set it up on <Link href="/profile/site" className="text-crimson underline">Your site</Link>). See <Link href="/pricing" className="text-crimson underline">Pricing</Link>.</Locked>
@@ -264,6 +287,8 @@ export default function ConsolePage() {
           <button disabled={busy} className="mt-4 text-xs text-crimson underline" onClick={() => confirm(`Remove ${domain.host}?`) && act(() => call(user, "/api/console/domain", { method: "DELETE" }), "Domain removed.")}>Remove domain</button>
         </div>
       )}
+      </>}
+      </>}
     </section>
   );
 }

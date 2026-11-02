@@ -1021,11 +1021,37 @@ MCP (Model Context Protocol) is a standard way for AI assistants such as Claude 
 
 **It only reads.** Booking, buying and paying always happen on #NotesApp itself, never inside the assistant.
 
-**How to add it:** in your assistant's settings, add a remote MCP server (also called a custom connector or Streamable HTTP server) with the address \`https://mcp.notesapp.name.ng\` (\`https://www.notesapp.name.ng/api/mcp\` works too). The [API docs](/docs#mcp) list every tool, with an example.
+**How to add it:** in your assistant's settings, add a remote MCP server (also called a custom connector or Streamable HTTP server) with the address \`https://mcp.${ROOT_DOMAIN}\` (on another of our domains, its own mcp. address works the same). The [API docs](/docs#mcp) list every tool, with an example.
 
-**Your own account:** with an API key (the [API and Console](/help/api-and-console), for Enterprise accounts), your assistant can also read your own profile, journals, bookings, orders and earnings. Send the key as a Bearer token; its permissions apply. Every call is logged for 12 months, without the key itself.
+**Your own account:** connect your assistant with [Connect NotesApp](/help/connect-an-ai-assistant): you choose what it may see and do, and it can then read your profile, journals, bookings and orders, save drafts, ask to publish, reply about bookings, edit store items and mark orders shipped, within your rules. Enterprise accounts can also use an API key from the [API and Console](/help/api-and-console). Every call is logged for 12 months, never the content or a key.`),
+    A("connect-an-ai-assistant", "Connect an AI assistant to your account (Connect NotesApp)", "Teams and organisations", `
+You can let an AI assistant such as Claude or ChatGPT work on your #NotesApp account: read your bookings, write journal drafts, answer booking requests. You decide exactly what it may do, and it never moves money.
 
-**Coming next:** signing in with your #NotesApp account instead of a key, and tools that can draft posts and reply to bookings, always with your approval. There's no date yet.`),
+**How to connect:** in your assistant, add a connector (some call it an MCP server) with our MCP address, \`https://mcp.${ROOT_DOMAIN}\` (the address for the domain you use is shown in Console → Connected agents). The assistant then sends you to the **Connect NotesApp** page, or shows you an 8-character code: type it at [/link](/link). Codes last 10 minutes and work once.
+
+**Check the code.** The Connect page shows the code the assistant should be showing you. If they don't match, close the page: someone else may be trying to connect.
+
+**What it can see:** your profile and plan, your journals and drafts, your bookings and open times, and your orders are on by default. Your **earnings** and your **messages** are off unless you switch them on. Clients' phone numbers, emails and street addresses are never shared.
+
+**What it can do, and whether it asks you first:** save journal drafts (just saved, by default), publish journals (**always asks you**), reply to booking requests (asks, except thank-you confirmations to people who have paid), edit store items (off by default; **price changes always ask you**), mark orders as shipped (off by default). What needs you arrives in [Nana's inbox](/help/nanas-inbox) and on your phone.
+
+**Money never moves through an assistant.** Refunds, payouts, withdrawals, Boost and purchases stay with you, and an assistant can spend ₦0.
+
+**Limits:** actions a day (100 by default; reading counts too; resets at midnight, Lagos time), the biggest discount it may mention (₦2,000 by default), and how long access lasts (90 days by default; then it asks again).
+
+**Afterwards:** Console → Connected agents shows each assistant, what it may do and everything it did (filters and a CSV download). Edit its permissions, pause it, or disconnect it there; disconnecting stops it at once. #NotesApp never asks for your password inside another app.`),
+    A("nanas-inbox", "Nana's inbox: what Nana prepared, what she did, and her jobs", "Teams and organisations", `
+Nana's inbox is where Nana, and any AI assistant you've connected, leave work for you to approve. It's pinned in **Messages** under Nana's conversation, and at [/nana/inbox](/nana/inbox).
+
+**Needs you:** drafts and requests waiting for you: a reply to someone asking about a session (with your booking link), an answer to a customer's question, a journal to publish, a store change, an update for a buyer whose order hasn't shipped. Edit the text, make it shorter, warmer, more formal or Pidgin, then **Approve and send**, **Decline** or **Dismiss**. Anything you don't answer expires after 48 hours. Nothing leaves your account until you approve it.
+
+**Done by Nana:** what was done for you, with **Undo**: a sent reply for 2 minutes, and what Nana did on her own (like a thank-you to someone who booked and paid) for 24 hours.
+
+**Nana's jobs (Business and Enterprise):** switch them on once, then choose: booking replies, the weekly summary (Mondays, 07:00), customer questions, journal drafts from your notes (Nana never publishes) and shipping nudges (after 3 days unshipped). **Pause all** stops everything at once. On other plans you still get your connected assistants' requests here.
+
+**Writes like you:** Nana learns how you write from your own messages and journals (never other people's). Read what she learnt, edit it in your own words, or ask her to learn again.
+
+**Safe by design:** what customers write is shown to Nana as information, never as instructions; she can't send links, offer discounts or move money because a message asks her to. Nana uses your Nana allowance (or your own AI account if you connected one), and everything she does is in Console → Connected agents, kept for 12 months.`),
     A("team-hub", "Team hub and team messaging (paid add-on, after internal testing)", "Teams and organisations", `
 A shared workspace for your team: a work board, milestones, a morning summary, a weekly review, meetings, a money ledger, payroll, a staff library and team messages. Our own team is testing it now. Once that testing is done, it will be offered as a **paid add-on for Business and Enterprise**. It is not available yet, and there is no price or date. See the [Team hub page](/teams) and the [roadmap](/roadmap).`),
     A("paid-add-ons", "Paid add-ons for Business and Enterprise", "Teams and organisations", `

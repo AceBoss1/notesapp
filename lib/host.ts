@@ -76,13 +76,27 @@ export function roleOf(f: Family): "app" | "life" | "prep" | "main" {
 }
 // The main site, the app or Notes Life in the same family as `hostname` (the short app domains' main site is the primary one).
 // On localhost and previews everything is one host, so that host is returned.
-export function familyHost(hostname: string, role: "main" | "app" | "life" | "prep"): string {
+export function familyHost(hostname: string, role: "main" | "app" | "life" | "prep" | "mcp"): string {
   const h = bare(hostname);
   if (isLocal(h)) return hostname;
   const { root } = familyOf(h);
-  if (APP_SHORT_DOMAINS.includes(root)) return role === "app" ? h : role === "life" ? LIFE_HOST : role === "prep" ? PREP_HOST : MAIN_HOST;
+  if (APP_SHORT_DOMAINS.includes(root)) return role === "app" ? h : role === "life" ? LIFE_HOST : role === "prep" ? PREP_HOST : role === "mcp" ? MCP_HOST : MAIN_HOST;
   return `${role === "main" ? "www" : role}.${root}`;
 }
+
+// The MCP server (and the Connect NotesApp screen beside it) for the family being viewed: mcp.naapp.tech from www.naapp.tech,
+// mcp.notesapp.name.ng from app.notesapp.name.ng. Localhost and previews: that same address (the server is /api/mcp there, the
+// screens are /connect and /link). Members' own domains, unknown domains or no host: the primary mcp.<root>.
+export function mcpOrigin(hostname: string | null | undefined): string {
+  const h = bare(hostname || "");
+  if (h && isLocal(h)) return `${h === "localhost" || h === "127.0.0.1" ? "http" : "https"}://${String(hostname).toLowerCase().replace(/\.$/, "")}`;
+  return `https://${h && ourRoot(h) ? familyHost(h, "mcp") : MCP_HOST}`;
+}
+export function mcpServerUrl(hostname: string | null | undefined): string {
+  const h = bare(hostname || "");
+  return h && isLocal(h) ? `${mcpOrigin(hostname)}/api/mcp` : mcpOrigin(hostname);
+}
+export const isLocalHost = (hostname: string) => isLocal(bare(hostname));
 
 // A link to the main site from a page served on `hostname`, in the visitor's own family: prep.naapp.tech → https://www.naapp.tech/terms,
 // prep.notesapp.name.ng → https://www.notesapp.name.ng/terms (the owner, 2 Nov 2026: "by notesapp was hard coded on prep.naapp.tech").
