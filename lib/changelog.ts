@@ -11,6 +11,16 @@ export type Release = {
 
 export const CHANGELOG: Release[] = [
   {
+    version: "v0.110.0",
+    bump: "minor",
+    date: "2026-11-01",
+    changes: [
+      { kind: "added", text: "Notes Academy: a YouTube lesson can have lesson notes under the video, written like a text lesson, and credits the video's creator: \"Video: <title> by <creator>, on YouTube. Shared here with credit to the original creator.\" The credit is filled in from YouTube when the lesson is saved." },
+      { kind: "added", text: "New course from Emmanuel Adams: How to Restart Your Life After a Breakdown, 9 strategies to get you moving again. Free, with a short exercise in every lesson and a reflection quiz. It isn't a substitute for a doctor, psychologist or counsellor; if you feel unsafe, call 112 or go to the nearest hospital." },
+      { kind: "changed", text: "IT Support Training is rewritten: ten lessons in six modules (troubleshooting, remote tools, customer service scripts, Zendesk, Intercom and HubSpot, Microsoft Azure, lead generation, Upwork and Fiverr, Clockify and getting paid in Nigeria, a capstone checklist), four module quizzes and new cover art. Learners keep their enrolments, reviews and certificates." },
+    ],
+  },
+  {
     version: "v0.109.0",
     bump: "minor",
     date: "2026-11-01",

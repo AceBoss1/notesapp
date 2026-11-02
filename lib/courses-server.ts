@@ -14,9 +14,9 @@ import { CommunityError, communitiesIRun, createCommunity, memberOf, readCommuni
 import { SPACES_MAX, cleanSlug, cleanSpaceName, type Community, type Space } from "./community";
 import {
   MAX_COURSES_PER_MEMBER, MAX_CO_TUTORS, MAX_LESSONS, MIN_LEAD_TUTOR_PERCENT, canSellCourses, canUploadVideo, cleanCourseFields, cleanLesson, cleanLink, cleanPrice,
-  communityKindOf, courseRating, gradeQuiz, isPaid, leadTutorPercent, orderedLessons, publishProblems, quizAttemptId, quizForLearner, quizKeyId, slugify, tutorInviteId,
+  cleanVideoCredit, communityKindOf, courseRating, gradeQuiz, isPaid, leadTutorPercent, orderedLessons, publishProblems, quizAttemptId, quizForLearner, quizKeyId, slugify, tutorInviteId,
   QUIZ_PASS_DEFAULT,
-  type Course, type CourseGroup, type CourseGroupRef, type CourseListing, type CourseModule, type Enrolment, type Lesson, type LessonInput, type OutlineItem, type Quiz, type QuizGrade, type QuizKey, type Tutor, type TutorInvite,
+  type Course, type CourseListing, type CourseModule, type Enrolment, type Lesson, type LessonInput, type OutlineItem, type VideoCredit, type Quiz, type QuizGrade, type QuizKey, type Tutor, type TutorInvite, type CourseGroup, type CourseGroupRef,
 } from "./courses";
 
 // Server-only. Notes Academy courses (docs/COURSES.md): every write to courses/{id}, courses/{id}/lessons/{lessonId},
@@ -60,6 +60,7 @@ export function lessonOf(id: string, d: FirebaseFirestore.DocumentData): Lesson 
     id, order: Number(d.order) || 0, title: String(d.title ?? ""), kind,
     ...(d.youtubeId ? { youtubeId: String(d.youtubeId) } : {}), ...(Number(d.minutes) > 0 ? { minutes: Number(d.minutes) } : {}), ...(typeof d.body === "string" ? { body: d.body } : {}),
     ...(d.preview === true ? { preview: true } : {}), ...(d.moduleId ? { moduleId: String(d.moduleId) } : {}),
+    ...(kind === "youtube" && cleanVideoCredit(d.videoCredit) ? { videoCredit: cleanVideoCredit(d.videoCredit)! } : {}),
     ...(d.streamUid ? { streamUid: String(d.streamUid) } : {}), ...(d.fileKey ? { fileKey: String(d.fileKey), fileName: String(d.fileName ?? "") } : {}),
     ...(kind === "quiz" ? { quiz: quizOf(d.quiz) } : {}),
   };
@@ -102,7 +103,7 @@ async function teacher(db: Firestore, uid: string): Promise<UserProfile> {
   if (!canPublish(p)) throw new CourseError("Teaching is for publishing accounts. Start publishing (it's free on Basic), then come back.", 403);
   return p;
 }
-const ownerFields = (p: UserProfile) => ({ ownerUsername: p.username, ownerName: p.displayName || p.username, ownerAvatar: p.avatar || "" });
+export const ownerFields = (p: UserProfile) => ({ ownerUsername: p.username, ownerName: p.displayName || p.username, ownerAvatar: p.avatar || "" });
 export const tierOf = (p: Pick<UserProfile, "username" | "role" | "accountTier"> | undefined): AccountTier =>
   p ? effectiveTier({ username: p.username ?? "", role: p.role ?? "reader", accountTier: p.accountTier ?? "standard" }) : "standard";
 
@@ -157,7 +158,7 @@ async function actor(db: Firestore, uid: string, c: Course, access: CourseAccess
 }
 
 // A free address under /academy: the title's slug, then -2, -3 … Reserved atomically (create fails when it's taken).
-async function reserveSlug(db: Firestore, title: string, courseId: string): Promise<string> {
+export async function reserveSlug(db: Firestore, title: string, courseId: string): Promise<string> {
   const base = slugify(title);
   for (let i = 1; i <= 30; i++) {
     const slug = i === 1 ? base : `${base}-${i}`;
@@ -278,7 +279,7 @@ export async function courseForOwner(db: Firestore, uid: string, by: { id?: stri
 }
 
 // The lessons in their course order, with the fields the course document keeps in step with them.
-function lessonSummary(list: Lesson[], modules: CourseModule[] = []) {
+export function lessonSummary(list: Lesson[], modules: CourseModule[] = []) {
   const ordered = orderedLessons(list, modules);
   return { lessonIds: ordered.map((l) => l.id), outline: ordered.map(outlineOf), lessonCount: ordered.length, minutes: ordered.reduce((n, l) => n + (l.minutes ?? 0), 0) };
 }
@@ -481,23 +482,34 @@ async function editLessons<T>(db: Firestore, uid: string, courseId: string, now:
     return out.result;
   });
 }
-const lessonFields = (l: LessonInput, order: number): Omit<Lesson, "id"> => ({
+export const lessonFields = (l: LessonInput, order: number): Omit<Lesson, "id"> => ({
   order, title: l.title, kind: l.kind, ...(l.youtubeId ? { youtubeId: l.youtubeId } : {}), ...(l.minutes ? { minutes: l.minutes } : {}), ...(l.body ? { body: l.body } : {}),
+  ...(l.kind === "youtube" && l.videoCredit ? { videoCredit: l.videoCredit } : {}),
   ...(l.preview ? { preview: true } : {}), ...(l.moduleId ? { moduleId: l.moduleId } : {}),
   ...(l.streamUid ? { streamUid: l.streamUid } : {}), ...(l.fileKey ? { fileKey: l.fileKey, fileName: l.fileName ?? "" } : {}),
   ...(l.quiz ? { quiz: quizForLearner(l.quiz) } : {}), // the questions only: the answers go to quizKeys
 });
 // A quiz's answers and explanations, kept apart from the lesson (written in the same transaction).
-const quizKeyFields = (l: LessonInput, courseId: string, lessonId: string, now: Date) => ({
+export const quizKeyFields = (l: LessonInput, courseId: string, lessonId: string, now: Date) => ({
   courseId, lessonId, answers: l.quiz!.questions.map((q) => q.answer), explain: l.quiz!.questions.map((q) => q.explain ?? ""), passPercent: l.quiz!.passPercent, updatedAt: iso(now),
 });
+// A YouTube lesson's credit: what YouTube's oEmbed says now (the route passes the lookup; a credit typed by the editor is never
+// trusted then), or, when YouTube doesn't answer, the credit the lesson already had for the same video, or none.
+export type CreditLookup = (youtubeId: string) => Promise<VideoCredit | null>;
+async function withCredit(l: LessonInput, old: Lesson | null, lookup?: CreditLookup): Promise<LessonInput> {
+  if (l.kind !== "youtube" || !l.youtubeId) return { ...l, videoCredit: undefined };
+  if (!lookup) return l;
+  const found = await lookup(l.youtubeId).catch(() => null);
+  const kept = old?.kind === "youtube" && old.youtubeId === l.youtubeId ? old.videoCredit : undefined;
+  return { ...l, videoCredit: found ?? kept ?? undefined };
+}
 const moduleOk = (c: Course, l: LessonInput): LessonInput => (l.moduleId && !(c.modules ?? []).some((m) => m.id === l.moduleId) ? { ...l, moduleId: undefined } : l);
 
-export async function addLesson(db: Firestore, uid: string, courseId: string, body: Record<string, unknown>, now = new Date(), checks?: UploadChecks): Promise<Lesson> {
+export async function addLesson(db: Firestore, uid: string, courseId: string, body: Record<string, unknown>, now = new Date(), checks?: UploadChecks, credit?: CreditLookup): Promise<Lesson> {
   const raw = cleanLesson(body);
   if (typeof raw === "string") throw new CourseError(raw);
   const { c } = await editable(db, uid, courseId, "tutor");
-  const l = moduleOk(c, await checkUpload(db, c, raw, checks));
+  const l = await withCredit(moduleOk(c, await checkUpload(db, c, raw, checks)), null, credit);
   return editLessons(db, uid, courseId, now, (t, { ref, lessons }) => {
     if (lessons.length >= MAX_LESSONS) throw new CourseError(`A course can have up to ${MAX_LESSONS} lessons.`, 409);
     if (l.streamUid && lessons.some((x) => x.streamUid === l.streamUid)) throw new CourseError("That video is already a lesson.", 409);
@@ -511,11 +523,12 @@ export async function addLesson(db: Firestore, uid: string, courseId: string, bo
 }
 
 // Returns the lesson and, when an upload was replaced, the old one (for the route to delete from Stream or the bucket).
-export async function updateLesson(db: Firestore, uid: string, courseId: string, lessonId: string, body: Record<string, unknown>, now = new Date(), checks?: UploadChecks): Promise<{ lesson: Lesson; replaced: Lesson | null }> {
+export async function updateLesson(db: Firestore, uid: string, courseId: string, lessonId: string, body: Record<string, unknown>, now = new Date(), checks?: UploadChecks, credit?: CreditLookup): Promise<{ lesson: Lesson; replaced: Lesson | null }> {
   const raw = cleanLesson(body);
   if (typeof raw === "string") throw new CourseError(raw);
   const { c } = await editable(db, uid, courseId, "tutor");
-  const l = moduleOk(c, await checkUpload(db, c, raw, checks));
+  const before = safeId(lessonId) ? await db.doc(`courses/${courseId}/lessons/${lessonId}`).get() : null;
+  const l = await withCredit(moduleOk(c, await checkUpload(db, c, raw, checks)), before?.exists ? lessonOf(before.id, before.data()!) : null, credit);
   return editLessons(db, uid, courseId, now, (t, { ref, lessons }) => {
     const old = lessons.find((x) => x.id === lessonId);
     if (!old) throw new CourseError("That lesson doesn't exist (any more).", 404);

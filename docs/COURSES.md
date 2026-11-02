@@ -12,6 +12,18 @@ from the published courses (no number is shown while it's 0), "Notes Academy for
 teachers' questions (`lib/academy-faq.ts`) with a link to the help centre, and a closing call to teach
 (`components/academy/AcademyLanding.tsx`). The catalogue sits in the middle at `#courses`.
 
+**YouTube lessons with notes and a credit (v0.110.0):** a YouTube lesson may also have `body` (the same Markdown as a text lesson, shown
+under the video as "Lesson notes") and `videoCredit: { title, name, url }`, filled by the server from YouTube's oEmbed
+(`https://www.youtube.com/oembed?url=…&format=json`: `title`, `author_name`, `author_url`) whenever the lesson is saved, never from the
+request. The player shows "Video: <title> by <creator>, on YouTube. Shared here with credit to the original creator." Older lessons
+have neither and play as before. Tutors using another creator's public video should credit them in the notes too.
+
+**Seeded courses (v0.110.0):** `lib/course-seeds.ts` holds two courses written for the owner (as @emmanuel): *How to Restart Your Life
+After a Breakdown* (a new draft) and *IT Support Training* (rewrites the published course `wLQCJdqolPh6A3WbvEZL` in place). Admin →
+Academy → Seed courses shows a dry run, then writes them (`lib/course-seeds-server.ts`). Seeded lessons have fixed ids, so seeding again
+never duplicates. A rewrite keeps the course's id, address, status, enrolments, reviews and certificates; learners' progress shows the
+new lessons (see HANDOVER item 80).
+
 **Naija Exam Prep** (JAMB, WAEC and NECO practice at prep.notesapp.name.ng, v0.79.0) is part of Notes Academy but is not built on courses: it has its own questions, packs and reviewers (`lib/exam-prep.ts`, HANDOVER items 41–42).
 
 ## Who can do what
