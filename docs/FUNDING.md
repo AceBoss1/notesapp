@@ -439,7 +439,48 @@ then: never pay a fee before money arrives from an investor, and never send ID o
 
 ---
 
-## 8. After submitting
+## 8. Paystack startup perk: NotesApp for Paystack's founders
+
+> Status: **draft, not sent (2 November 2026).** Paystack confirmed we can feature our product as a perk for the startups in their
+> programme: email startups@paystack.com. Team hub: `accel-paystack-perk`. NotesApp already runs on Paystack (checkout, payouts,
+> transfers), which is the reason they'd list us.
+
+**Offer (owner to pick):** A (recommended) Business free for 3 months (₦45,000), then 20% off for the rest of the first year;
+B Pro free for 6 months (₦30,000); C 50% off Business for 12 months (₦90,000). Delivered with a plan code from Admin (codes on plans,
+v0.103.0): Business only, a redemption cap and an expiry.
+
+**Draft email** (from an @naapp.tech address):
+
+> **Subject:** Startup perk for Paystack founders: NotesApp Business free for 3 months
+>
+> Hi Paystack Startups team,
+>
+> I'm Emmanuel Adams, founder of NotesApp (naapp.tech). We'd like to offer a perk to the founders in your startup programme.
+>
+> **What NotesApp is:** one home for African founders, creators and small businesses to publish, sell and get paid. That means a
+> website and journal, bookings, courses, a shop with delivery, invoices, and Business books (sales, expenses, stock, money owed and a
+> monthly report). An AI assistant, Nana, drafts replies and keeps the books. Payments, payouts and transfers run on Paystack.
+>
+> **The perk:** NotesApp Business free for 3 months (worth ₦45,000), then 20% off for the rest of the first year. Founders redeem it
+> with a code at naapp.tech/pricing, with no card needed for the free months.
+>
+> **Why it fits your founders:** early-stage teams can sell, take bookings and keep their books from day one, in Naira, on Paystack.
+> They don't need to stitch together five tools.
+>
+> We're happy to send a logo, a one-line description and the redemption code in whatever format your perks page uses, and to report
+> redemptions monthly.
+>
+> NotesApp Technologies Ltd (RC 9825642) · [phone] · naapp.tech
+>
+> Best,
+> Emmanuel Adams, Founder
+
+**Also ask:** whether the USD 25k startup offer applies to NotesApp itself, and whether a Paystack partner badge or directory listing
+is possible.
+
+---
+
+## 9. After submitting
 
 - Log each one here with the date and what was sent.
 - Use the same numbers everywhere; keep the filled-in version off the public repo if it holds private figures.
