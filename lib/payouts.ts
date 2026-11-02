@@ -84,6 +84,7 @@ const AUTO_BATCH = 100;
 // (releaseAfter, set at purchase) has passed. Skips anything an admin froze ("disputed"), publishers
 // without a payout account, and entries that already failed AUTO_MAX_ATTEMPTS times (those
 // wait for a manual release, with the reason shown on /admin/payments). Set
+// Business books debts paid online (kind "debt") go once their hold (books.debtHoldDays) is over, like a download sale. Set
 // AUTO_PAYOUTS=off in the environment to pause it. Returns how many transfers were started.
 export async function autoReleasePayouts(opts: { transfer?: typeof initiateTransfer; now?: number } = {}): Promise<number> {
   if (setting("AUTO_PAYOUTS") === "off") return 0;
@@ -96,7 +97,7 @@ export async function autoReleasePayouts(opts: { transfer?: typeof initiateTrans
     .filter((l) => {
       // Event tickets wait like sessions (the event's end plus the problem-report window); gifts to a community wait their day
       // (releaseAfter, lib/giving.ts) and then go out on the same run.
-      const due = l.kind === "booking" || l.kind === "ticket" ? dueBefore : l.kind === "digital" || l.kind === "course" || l.kind === "affiliate" || l.kind === "giving" ? now : -Infinity;
+      const due = l.kind === "booking" || l.kind === "ticket" ? dueBefore : l.kind === "digital" || l.kind === "course" || l.kind === "affiliate" || l.kind === "giving" || l.kind === "debt" ? now : -Infinity;
       return new Date(l.releaseAfter).getTime() <= due && (l.autoAttempts ?? 0) < AUTO_MAX_ATTEMPTS;
     })
     .slice(0, AUTO_BATCH);
@@ -114,6 +115,7 @@ export async function autoReleasePayouts(opts: { transfer?: typeof initiateTrans
           : l.kind === "affiliate" ? { subject: "Your referral earnings are on their way", for: "from referrals and affiliate links", short: "referral earnings", link: "/profile/referrals" }
           : l.kind === "course" ? { subject: "Your course sale payout is on its way", for: "for a course sale", short: "sale", link: "/profile/publishing" }
           : l.kind === "digital" ? { subject: "Your download sale payout is on its way", for: "for a download sale", short: "sale", link: "/profile/publishing" }
+          : l.kind === "debt" ? { subject: "Money a customer paid you online is on its way", for: "that a customer paid towards what they owe (Business books)", short: "Business books payment", link: "/profile/books?tab=owed" }
           : { subject: "Your session payout is on its way", for: "for a completed session", short: "session", link: "/profile/publishing" };
         const bell = { uid: l.publisherUid, type: "booking" as const, linkHref: what.link, message: `Payout of ${formatNaira(l.netKobo)} for your ${what.short} is on its way.` };
         if (!to) await notifyBell(bell);

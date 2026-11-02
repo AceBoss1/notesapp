@@ -1239,4 +1239,21 @@ test("business books: entries, customers, receipts, imports and settings are pri
   await assertFails(setDoc(doc(owner, "bookReminders/r1"), { ownerUid: "pub", partyId: "p1", channel: "whatsapp_link" }));
   await assertFails(setDoc(doc(owner, "bookImports/i1"), { ownerUid: "pub", status: "done" }));
   await assertFails(getDocs(query(collection(owner, "bookEntries"), where("ownerUid", "==", "pub"))));
+  // Staff roles are written by the server only: nobody can make themselves a cashier or a manager, or accept an invitation, from the
+  // browser; nor read or write the monthly summary's markers.
+  await env.withSecurityRulesDisabled(async (ctx) => {
+    const f = ctx.firestore();
+    await setDoc(doc(f, "bookStaff/pub_alice"), { ownerUid: "pub", uid: "alice", role: "cashier" });
+    await setDoc(doc(f, "bookStaffInvites/pub_bob"), { ownerUid: "pub", inviteeUid: "bob", role: "manager", status: "pending" });
+  });
+  for (const who of [owner, as("alice"), as("bob"), anon()]) {
+    await assertFails(getDoc(doc(who, "bookStaff/pub_alice")));
+    await assertFails(getDoc(doc(who, "bookStaffInvites/pub_bob")));
+    await assertFails(getDoc(doc(who, "bookReports/pub_2026-10")));
+  }
+  await assertFails(updateDoc(doc(as("alice"), "bookStaff/pub_alice"), { role: "manager" }));
+  await assertFails(setDoc(doc(as("bob"), "bookStaff/pub_bob"), { ownerUid: "pub", uid: "bob", role: "manager" }));
+  await assertFails(updateDoc(doc(as("bob"), "bookStaffInvites/pub_bob"), { status: "accepted" }));
+  await assertFails(setDoc(doc(owner, "bookReports/pub_2026-10"), { status: "sent" }));
+  await assertFails(setDoc(doc(owner, "bookReportRuns/2026-10"), { done: true }));
 });

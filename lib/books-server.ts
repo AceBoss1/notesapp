@@ -10,9 +10,9 @@ import { accessFor as inventoryAccessFor, bookStockMove, lowStockAlert } from ".
 import { cleanSku, inventoryDocOf, stockLines, stockState, type InventoryAccount } from "./inventory";
 import {
   BOOKS_UNDO_HOURS, DEFAULT_CATEGORIES, MAX_LINES, MAX_RECEIPT_PHOTOS, RECEIPT_PHOTO_MAX_BYTES, RECEIPT_PHOTO_TYPES, SALE_METHODS,
-  booksAccess, canAddDebtor, capState, cashInHand, categoryLabel, changePct, cleanCategory, cleanKobo, cleanName, cleanQty, cleanText,
+  booksAccess, canAddDebtor, staffSeats, capState, cashInHand, categoryLabel, changePct, cleanCategory, cleanKobo, cleanName, cleanQty, cleanText,
   debtors, firstName, isDay, isMethod, lagosDay, linesCost, linesTotal, naira, openKobo, periodOf, pnl, receiptText, reminderText, settleFifo, usageFor,
-  waLink, waPhone, whatOf, type BooksAccess, type Caps, type Entry, type Line, type Method, type Party, type PeriodKind, type Usage,
+  waLink, waPhone, whatOf, type BooksAccess, type BooksRole, type Caps, type Entry, type Line, type Method, type Party, type PeriodKind, type Usage,
 } from "./books";
 import {
   FIELDS, cleanMapping, csvOf, customerKey, dedupe, expenseKey, guessMapping, missingRequired, presetOf, readRows, readSheet, saleKey,
@@ -29,11 +29,12 @@ import {
 //   bookReminders/{id}  each reminder or receipt sent: the customer, the channel (email, bell, whatsapp_link) and when
 //   bookImports/{id}    each import, with what it changed, so it can be undone for 24 hours
 //   bookSettings/{uid}  the seller's settings and this month's count of entries toward Free Basic's cap. Not on users/{uid}, which is public.
+//   bookStaff/{owner}_{uid}  a cashier or manager on the seller's books (lib/books-staff-server.ts), and bookStaffInvites/{owner}_{uid}
 export class BooksError extends Error { constructor(public status: number, message: string, public code?: string) { super(message); } }
 
 type Profile = { uid?: string; username?: string; displayName?: string; avatar?: string; role?: string; accountTier?: string; suspended?: boolean; inventoryAccount?: InventoryAccount };
 export type Settings = { floatKobo?: number; categories?: { id: string; label: string }[]; usage?: Usage; onlineSyncedAt?: string; mappings?: Record<string, Mapping> };
-export type Ctx = { db: Firestore; actor: string; owner: string; profile: Profile; tier: string; caps: Caps; access: Extract<BooksAccess, { ok: true }>; inventory: boolean; settings: Settings; now: Date; today: string };
+export type Ctx = { db: Firestore; actor: string; owner: string; role: BooksRole; profile: Profile; tier: string; caps: Caps; access: Extract<BooksAccess, { ok: true }>; inventory: boolean; settings: Settings; now: Date; today: string };
 
 const iso = (d: Date) => d.toISOString();
 const newCode = () => makeTicketCode((n) => randomBytes(n));
@@ -43,25 +44,44 @@ const shopName = (p: Profile) => p.displayName || (p.username ? `@${p.username}`
 const entryOf = (d: DocumentSnapshot): Entry => ({ ...(d.data() as Omit<Entry, "id">), id: d.id });
 const partyOf = (d: DocumentSnapshot): Party => ({ ...(d.data() as Omit<Party, "id">), id: d.id });
 
-// ---- Who may use a seller's books: the seller, and an organisation's admins (while the organisation is on a team plan) ----
-export async function canUseBooks(db: Firestore, actor: string, owner: string): Promise<boolean> {
-  if (!actor || !owner) return false;
-  if (actor === owner) return true;
-  const m = (await db.doc(`orgMembers/${owner}_${actor}`).get()).data();
-  if (!m || m.role !== "admin") return false;
+// ---- Who may use a seller's books, and as what ----
+// The seller ("owner"); an organisation's admins while it's on a team plan ("admin"); and staff the seller invited, while the seller's
+// plan has staff seats (lib/books.ts staffSeats: Business and Enterprise, Pro only if the admin gives it seats) as "manager" or "cashier".
+const TEAM_PLANS = ["business", "enterprise"];
+const planOf = (u: FirebaseFirestore.DocumentData | undefined) => effectiveTier({ username: u?.username ?? "", role: (u?.role ?? "reader") as "reader", accountTier: (u?.accountTier ?? "standard") as "standard" });
+export async function booksRoleOf(db: Firestore, actor: string, owner: string): Promise<BooksRole | null> {
+  if (!actor || !owner) return null;
+  if (actor === owner) return "owner";
+  const [m, st] = await Promise.all([db.doc(`orgMembers/${owner}_${actor}`).get(), db.doc(`bookStaff/${owner}_${actor}`).get()]);
+  const isAdmin = m.data()?.role === "admin", staff = st.data();
+  if (!isAdmin && !staff) return null;
   const org = (await db.doc(`users/${owner}`).get()).data();
-  return !!org && org.suspended !== true && ["business", "enterprise"].includes(org.accountTier);
+  if (!org || org.suspended === true) return null;
+  if (isAdmin && TEAM_PLANS.includes(org.accountTier)) return "admin";
+  if (staff && (staff.role === "manager" || staff.role === "cashier") && staffSeats(planOf(org), booksCaps()) !== 0) return staff.role;
+  return null;
 }
-// The organisations whose books this person may keep (for the account switcher), besides their own.
-export async function booksAccounts(db: Firestore, uid: string): Promise<{ uid: string; name: string }[]> {
-  const memberOf = await db.collection("orgMembers").where("memberUid", "==", uid).get().catch(() => null);
-  const orgs = (memberOf?.docs ?? []).map((d) => d.data()).filter((m) => m.role === "admin").map((m) => String(m.orgUid));
-  const names = orgs.length ? await db.getAll(...orgs.map((u) => db.doc(`users/${u}`))) : [];
-  return [{ uid, name: "My books" }, ...names.filter((d) => d.exists && ["business", "enterprise"].includes(d.data()?.accountTier)).map((d) => ({ uid: d.id, name: String(d.data()?.displayName ?? d.id) }))];
+export async function canUseBooks(db: Firestore, actor: string, owner: string): Promise<boolean> {
+  return (await booksRoleOf(db, actor, owner)) !== null;
+}
+// The books this person may keep (for the account switcher), besides their own: organisations they're an admin of, and sellers whose
+// staff they are.
+export async function booksAccounts(db: Firestore, uid: string): Promise<{ uid: string; name: string; role?: BooksRole }[]> {
+  const [memberOf, staffOf] = await Promise.all([
+    db.collection("orgMembers").where("memberUid", "==", uid).get().catch(() => null),
+    db.collection("bookStaff").where("uid", "==", uid).get().catch(() => null),
+  ]);
+  const want = new Map<string, BooksRole>();
+  for (const m of (memberOf?.docs ?? []).map((d) => d.data()).filter((m) => m.role === "admin")) want.set(String(m.orgUid), "admin");
+  for (const st of (staffOf?.docs ?? []).map((d) => d.data())) if (!want.has(String(st.ownerUid))) want.set(String(st.ownerUid), st.role === "manager" ? "manager" : "cashier");
+  const ids = [...want.keys()];
+  const names = ids.length ? await db.getAll(...ids.map((u) => db.doc(`users/${u}`))) : [];
+  return [{ uid, name: "My books" }, ...names.filter((d) => d.exists && d.data()?.suspended !== true && (want.get(d.id) === "admin" ? TEAM_PLANS.includes(d.data()?.accountTier) : staffSeats(planOf(d.data()), booksCaps()) !== 0)).map((d) => ({ uid: d.id, name: String(d.data()?.displayName ?? d.id), role: want.get(d.id) }))];
 }
 
 export async function context(db: Firestore, actor: string, owner: string, now = new Date()): Promise<Ctx> {
-  if (!(await canUseBooks(db, actor, owner))) throw new BooksError(403, "You can't see these books.");
+  const role = await booksRoleOf(db, actor, owner);
+  if (!role) throw new BooksError(403, "You can't see these books.");
   const [p, s] = await Promise.all([db.doc(`users/${owner}`).get(), db.doc(`bookSettings/${owner}`).get()]);
   const profile = p.data() as Profile | undefined;
   if (!profile) throw new BooksError(404, "Account not found.");
@@ -70,7 +90,7 @@ export async function context(db: Firestore, actor: string, owner: string, now =
   const access = booksAccess(tier, caps, profile.suspended === true);
   if (!access.ok) throw new BooksError(402, access.reason);
   const inventory = inventoryAccessFor(profile as Parameters<typeof inventoryAccessFor>[0], now).ok;
-  return { db, actor, owner, profile, tier, caps, access, inventory, settings: (s.data() as Settings) ?? {}, now, today: lagosDay(now) };
+  return { db, actor, owner, role, profile, tier, caps, access, inventory, settings: (s.data() as Settings) ?? {}, now, today: lagosDay(now) };
 }
 const categoriesOf = (c: Ctx) => [...DEFAULT_CATEGORIES, ...(c.settings.categories ?? [])];
 
@@ -318,6 +338,68 @@ export async function recordExpense(c: Ctx, raw: Record<string, unknown>): Promi
   });
 }
 
+// ---- A purchase (restock): goods bought to resell. An expense under Stock purchases, with its lines, that puts the stock up ----
+// Store items go up through Inventory (reason restock, with this entry's reference); Books-only items in the same transaction. Ticking
+// "update cost" also sets each item's cost price to what was paid for one. Typed lines (not in the shop) are only recorded.
+export async function recordPurchase(c: Ctx, raw: Record<string, unknown>): Promise<Entry> {
+  const { db, owner } = c;
+  const rawLines = Array.isArray(raw.lines) ? raw.lines.slice(0, MAX_LINES + 1) : [];
+  if (!rawLines.length) throw new BooksError(400, "Add what you bought.");
+  if (rawLines.length > MAX_LINES) throw new BooksError(400, `A purchase can have up to ${MAX_LINES} lines.`);
+  if (!isMethod(raw.method)) throw new BooksError(400, "Choose how you paid: cash, transfer, POS or card.");
+  const cat = rawLines.some((l) => (l as { ref?: unknown })?.ref) ? await catalog(c) : [];
+  const lines: Line[] = rawLines.map((r, n) => {
+    const l = (r ?? {}) as Record<string, unknown>;
+    const qty = cleanQty(l.qty);
+    if (qty === null) throw new BooksError(400, `Line ${n + 1}: the quantity is a whole number, 1 or more.`);
+    const unitKobo = cleanKobo(l.unitKobo);
+    if (!unitKobo) throw new BooksError(400, `Line ${n + 1}: enter what one cost.`);
+    if (l.ref) {
+      const it = cat.find((x) => x.ref === l.ref);
+      if (!it) throw new BooksError(400, `Line ${n + 1}: that item isn't in your shop any more.`);
+      return { ...(it.itemId ? { itemId: it.itemId } : {}), ...(it.variant ? { variant: it.variant } : {}), ...(it.bookItemId ? { bookItemId: it.bookItemId } : {}), title: it.title, qty, unitKobo, costKobo: unitKobo };
+    }
+    const title = cleanText(l.title, 120);
+    if (!title) throw new BooksError(400, `Line ${n + 1}: say what you bought.`);
+    return { title, qty, unitKobo, costKobo: unitKobo };
+  });
+  const totalKobo = linesTotal(lines);
+  const clientId = cleanClientId(raw.clientId);
+  const ref = clientId ? db.doc(`bookEntries/${owner}_${clientId}`) : db.collection("bookEntries").doc();
+  const setRef = db.doc(`bookSettings/${owner}`);
+  const month = c.today.slice(0, 7);
+  const updateCost = raw.updateCost === true;
+  const bookItemRefs = c.inventory ? [...new Set(lines.filter((l) => l.bookItemId).map((l) => l.bookItemId!))].map((id) => db.doc(`bookItems/${id}`)) : [];
+  const res = await db.runTransaction(async (t) => {
+    const existing = await t.get(ref);
+    if (existing.exists) return { entry: entryOf(existing), fresh: false };
+    const st = (await t.get(setRef)).data() as Settings | undefined;
+    const used = usageFor(st?.usage, month);
+    if (capState(c.access, c.caps, used).full) throw new BooksError(402, `Free Basic records ${c.caps.freeEntries} sales and expenses a month, and this month's are used. Move to Pro for no limit, or carry on on the 1st.`, "entries_cap");
+    const bSnaps = bookItemRefs.length ? await t.getAll(...bookItemRefs) : [];
+    const entry: Omit<Entry, "id"> = {
+      ownerUid: owner, kind: "expense", source: "walkin", on: c.today, at: iso(c.now), by: c.actor, lines, totalKobo, paidKobo: totalKobo, method: raw.method as Method,
+      owesKobo: 0, settledKobo: 0, open: false, category: "stock", note: cleanText(raw.note, 200) || `Restock: ${whatOf(lines)}`, files: [], counts: true, ...(clientId ? { clientId } : {}),
+    };
+    t.set(ref, { ...entry, purchase: true });
+    t.set(setRef, { usage: { month, entries: used + 1 } }, { merge: true });
+    for (const b of bSnaps) {
+      const d = b.data();
+      if (!d || d.ownerUid !== owner) continue;
+      const ls = lines.filter((l) => l.bookItemId === b.id);
+      t.update(b.ref, { ...(Number.isInteger(d.stock) ? { stock: d.stock + ls.reduce((n, l) => n + l.qty, 0) } : {}), ...(updateCost ? { costKobo: ls[ls.length - 1].unitKobo } : {}) });
+    }
+    return { entry: { ...entry, id: ref.id }, fresh: true };
+  });
+  if (res.fresh && c.inventory) {
+    for (const l of lines.filter((x) => x.itemId)) {
+      await bookStockMove(db, { ownerUid: owner, itemId: l.itemId!, variant: l.variant, delta: l.qty, reason: "restock", note: "Purchase (Business books)", by: c.actor, bookRef: ref.id }).catch((e) => console.error("books restock failed", ref.id, e));
+      if (updateCost) await db.doc(`inventory/${l.itemId}`).set({ ownerUid: owner, costKobo: l.unitKobo, updatedAt: iso(c.now) }, { merge: true }).catch(() => {});
+    }
+  }
+  return res.entry;
+}
+
 // ---- A customer pays what they owe (all or part): oldest sales first ----
 export async function recordPayment(c: Ctx, raw: Record<string, unknown>): Promise<Entry> {
   const { db, owner } = c;
@@ -366,6 +448,7 @@ export async function voidEntry(c: Ctx, id: string, reason: unknown): Promise<En
   const e0 = before.exists ? entryOf(before) : null;
   if (!e0 || e0.ownerUid !== owner) throw new BooksError(404, "Entry not found.");
   if (e0.source === "online") throw new BooksError(400, "Online orders follow the order: refund it from Orders.");
+  if (c.role === "cashier" && (e0.by !== c.actor || e0.on !== c.today || (e0.kind !== "sale" && e0.kind !== "payment"))) throw new BooksError(403, "Cashiers can void only the sales and payments they recorded today. Ask the owner.");
   if (e0.voidedAt) return e0;
   const e = await db.runTransaction(async (t) => {
     const e = entryOf(await t.get(ref));
@@ -375,7 +458,8 @@ export async function voidEntry(c: Ctx, id: string, reason: unknown): Promise<En
     const ps = partyRef ? await t.get(partyRef) : null;
     const applied = ((e as Entry & { applied?: { id: string; kobo: number }[] }).applied ?? []);
     const settledSnaps = e.kind === "payment" && applied.length ? await t.getAll(...applied.map((a) => db.doc(`bookEntries/${a.id}`))) : [];
-    const bookItemSnaps = e.kind === "sale" && c.inventory ? await Promise.all([...new Set(e.lines.filter((l) => l.bookItemId).map((l) => l.bookItemId!))].map((bid) => t.get(db.doc(`bookItems/${bid}`)))) : [];
+    const restock = e.kind === "expense" && e.lines.length > 0; // a purchase: its stock comes back down
+    const bookItemSnaps = (e.kind === "sale" || restock) && c.inventory ? await Promise.all([...new Set(e.lines.filter((l) => l.bookItemId).map((l) => l.bookItemId!))].map((bid) => t.get(db.doc(`bookItems/${bid}`)))) : [];
     t.update(ref, { voidedAt: iso(c.now), voidedBy: c.actor, voidReason: why, open: false });
     if (e.receiptCode) t.set(db.doc(`bookReceipts/${e.receiptCode}`), { voided: true }, { merge: true });
     if (ps?.exists) {
@@ -391,13 +475,18 @@ export async function voidEntry(c: Ctx, id: string, reason: unknown): Promise<En
     }
     for (const s of bookItemSnaps) {
       const b = s.data();
-      if (b && Number.isInteger(b.stock)) t.update(s.ref, { stock: b.stock + e.lines.filter((l) => l.bookItemId === s.id).reduce((n, l) => n + l.qty, 0) });
+      const q = e.lines.filter((l) => l.bookItemId === s.id).reduce((n, l) => n + l.qty, 0);
+      if (b && Number.isInteger(b.stock)) t.update(s.ref, { stock: restock ? Math.max(0, b.stock - q) : b.stock + q });
     }
     return { ...e, voidedAt: iso(c.now) };
   });
   // A voided walk-in sale goes back on the shelf.
   if (e.kind === "sale" && e.source === "walkin" && c.inventory) {
     for (const l of e.lines.filter((x) => x.itemId)) await bookStockMove(db, { ownerUid: owner, itemId: l.itemId!, variant: l.variant, delta: l.qty, reason: "return", note: `Walk-in sale voided: ${why}`, by: c.actor, bookRef: id }).catch(() => {});
+  }
+  // A voided purchase comes back off the shelf.
+  if (e.kind === "expense" && e.lines.length && c.inventory) {
+    for (const l of e.lines.filter((x) => x.itemId)) await bookStockMove(db, { ownerUid: owner, itemId: l.itemId!, variant: l.variant, delta: -l.qty, reason: "other", note: `Purchase voided: ${why}`, by: c.actor, bookRef: id }).catch(() => {});
   }
   return e;
 }
@@ -524,9 +613,10 @@ export async function pnlView(c: Ctx, kind: PeriodKind, back: number) {
   };
 }
 
-export async function entriesView(c: Ctx, kind: "sale" | "expense" | "all", period: PeriodKind, back: number) {
+// `by`: only the entries one person recorded (the seller's filter by staff; online orders are "order").
+export async function entriesView(c: Ctx, kind: "sale" | "expense" | "all", period: PeriodKind, back: number, by?: string) {
   const p = periodOf(period, c.today, Math.max(0, Math.min(36, Math.floor(back) || 0)));
-  const es = sortNewest((await entriesBetween(c.db, c.owner, p.start, p.end)).filter((e) => kind === "all" || e.kind === kind || (kind === "sale" && e.kind === "refund")));
+  const es = sortNewest((await entriesBetween(c.db, c.owner, p.start, p.end)).filter((e) => (kind === "all" || e.kind === kind || (kind === "sale" && e.kind === "refund")) && (!by || e.by === by)));
   return { period: p, entries: es.slice(0, 500).map(publicEntry), more: es.length > 500, categories: categoriesOf(c) };
 }
 
@@ -594,6 +684,7 @@ export async function shareReceipt(c: Ctx, entryId: string, channel: ReminderCha
   const e = s.exists ? entryOf(s) : null;
   if (!e || e.ownerUid !== owner || e.kind !== "sale" || !e.receiptCode) throw new BooksError(404, "Receipt not found.");
   if (e.voidedAt) throw new BooksError(400, "That sale was voided.");
+  if (c.role === "cashier" && e.by !== c.actor) throw new BooksError(403, "Cashiers share receipts for the sales they recorded.");
   const party = e.partyId ? partyOf(await db.doc(`bookParties/${e.partyId}`).get()) : null;
   const link = receiptUrl(e.receiptCode);
   const text = receiptText({ customer: party?.name, shop: shopName(c.profile), totalKobo: e.totalKobo, what: whatOf(e.lines), paidKobo: e.paidKobo + (e.settledKobo || 0), method: e.method, owesKobo: openKobo(e), dueOn: e.dueOn, link, domain: ROOT_DOMAIN });

@@ -1,8 +1,9 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { SALE_METHODS, firstName, naira, type Method } from "@/lib/books";
+import { SALE_METHODS, firstName, naira, whatOf, type Method } from "@/lib/books";
 import { Icon, Sheet, WhatsAppIcon, field, koboToInput, nairaInput, newClientId, pill, type Api } from "./shared";
+import { kvGet, kvSet, saveOrQueue, useOutbox } from "./outbox";
 
 // Record a sale (the mockup's quick sheet): items from the store and Books-only items (search by name or SKU), or a one-off typed in;
 // quantity and price; cash, transfer or POS; and Customer owes, with who, the part paid now and a due date. Then the receipt: a link,
@@ -28,11 +29,17 @@ export default function RecordSale({ api, today, onClose, onSaved }: { api: Api;
   const [err, setErr] = useState("");
   const [saved, setSaved] = useState<Saved | null>(null);
   const [clientId, setClientId] = useState(newClientId);
+  const [queued, setQueued] = useState(false);
+  const outbox = useOutbox();
+  const snap = outbox?.owner ?? "";
 
+  // The items and customers, kept on the phone too, so a sale can be recorded with no connection.
   useEffect(() => {
-    api<{ items: CatItem[]; inventory: boolean }>("view=catalog").then((r) => { setCat(r.items); setInventory(r.inventory); }).catch(() => setCat([]));
-    api<{ customers: Customer[] }>("view=owed").then((r) => setCustomers(r.customers)).catch(() => {});
-  }, [api]);
+    api<{ items: CatItem[]; inventory: boolean }>("view=catalog").then((r) => { setCat(r.items); setInventory(r.inventory); void kvSet(`catalog:${snap}`, r); })
+      .catch(async () => { const r = await kvGet<{ items: CatItem[]; inventory: boolean }>(`catalog:${snap}`); setCat(r?.items ?? []); setInventory(!!r?.inventory); });
+    api<{ customers: Customer[] }>("view=customers").then((r) => { setCustomers(r.customers); void kvSet(`customers:${snap}`, r.customers); })
+      .catch(async () => setCustomers((await kvGet<Customer[]>(`customers:${snap}`)) ?? []));
+  }, [api, snap]);
 
   const matches = useMemo(() => {
     const s = q.trim().toLowerCase();
@@ -63,17 +70,20 @@ export default function RecordSale({ api, today, onClose, onSaved }: { api: Api;
     if (owes && !who) return setErr("Who owes? Choose or add the customer.");
     setBusy(true);
     try {
-      const r = await api<Saved>("", {
+      const body = {
         action: "sale", clientId, method, owes, paidKobo: paid, dueOn: owes ? dueOn : "",
-        ...(owes ? (who === "new" ? { party: { name: newName, phone: newPhone, username: newUser } } : { partyId: who }) : {}),
+        ...(owes ? (who === "new" ? { party: { name: newName, phone: newPhone, username: newUser } } : { partyId: who, partyName: customer?.name ?? "" }) : {}),
         lines: lines.map((l) => ({ ...(l.ref ? { ref: l.ref } : { title: l.title }), qty: l.qty, unitKobo: nairaInput(l.price) ?? 0 })),
-      });
-      setSaved({ ...r, hasPhone: who === "new" ? !!newPhone.trim() : !!customer?.hasPhone, member: who === "new" ? !!newUser.trim() : !!customer?.member });
+      };
+      const r = await saveOrQueue(outbox, () => api<Saved>("", body), "sale", body, `Sale · ${whatOf(lines)}${owes && whoName ? ` · ${firstName(whoName)} owes` : ""}`, total);
+      if (r.queued) setQueued(true);
+      else setSaved({ ...r.result, hasPhone: who === "new" ? !!newPhone.trim() : !!customer?.hasPhone, member: who === "new" ? !!newUser.trim() : !!customer?.member });
       onSaved();
     } catch (e) { setErr((e as Error).message); } finally { setBusy(false); }
   };
-  const again = () => { setSaved(null); setLines([]); setOwes(false); setWho(""); setPaidNow("0"); setDueOn(""); setNewName(""); setNewPhone(""); setNewUser(""); setClientId(newClientId()); };
+  const again = () => { setSaved(null); setQueued(false); setLines([]); setOwes(false); setWho(""); setPaidNow("0"); setDueOn(""); setNewName(""); setNewPhone(""); setNewUser(""); setClientId(newClientId()); };
 
+  if (queued) return <Sheet title="Saved on this phone" eyebrow="New entry · waiting to sync" onClose={onClose}><QueuedNote total={total} onAgain={again} onClose={onClose} /></Sheet>;
   if (saved) return <Sheet title="Sale saved" eyebrow="New entry · walk-in" onClose={onClose}><SavedSale api={api} saved={saved} onAgain={again} onClose={onClose} /></Sheet>;
 
   return (
@@ -171,6 +181,22 @@ export default function RecordSale({ api, today, onClose, onSaved }: { api: Api;
       <button onClick={save} disabled={busy || !lines.length} className="btn-primary mt-4 w-full !py-4 !text-base">{busy ? "Saving…" : `Save sale · ${naira(total)}`}</button>
       <p className="mt-3 text-center text-xs text-slate">A receipt link and PDF are ready as soon as it&apos;s saved.</p>
     </Sheet>
+  );
+}
+
+// Saved with no connection: it's on the phone and syncs by itself. The receipt link comes once it has.
+export function QueuedNote({ total, onAgain, onClose }: { total: number; onAgain?: () => void; onClose: () => void }) {
+  return (
+    <div>
+      <div className="rounded-2xl bg-amber-50 p-4 text-amber-900">
+        <p className="font-ui text-2xl font-bold">{naira(total)}</p>
+        <p className="mt-1 text-sm">You&apos;re offline, so this is kept on this phone and sent as soon as you&apos;re back online. Nothing is lost if you close Books. A receipt link comes once it syncs.</p>
+      </div>
+      <div className="mt-4 flex gap-2">
+        {onAgain && <button onClick={onAgain} className="btn-primary flex-1">Record another</button>}
+        <button onClick={onClose} className="btn-ghost flex-1">Done</button>
+      </div>
+    </div>
   );
 }
 

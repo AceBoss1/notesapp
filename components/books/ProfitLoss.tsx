@@ -15,9 +15,11 @@ type View = {
 };
 const short = (k: number) => { const n = k / 100; return n >= 1_000_000 ? `₦${(n / 1_000_000).toFixed(2).replace(/\.?0+$/, "")}m` : n >= 1_000 ? `₦${Math.round(n / 1_000)}k` : `₦${Math.round(n)}`; };
 
-export default function ProfitLoss({ api, monthOk, shop }: { api: Api; monthOk: boolean; shop: string }) {
-  const [kind, setKind] = useState<PeriodKind>(monthOk ? "month" : "week");
-  const [back, setBack] = useState(0);
+// `start`: the period a link asked for (the monthly email opens last month's: ?tab=pnl&period=month&back=1).
+export default function ProfitLoss({ api, monthOk, shop, start }: { api: Api; monthOk: boolean; shop: string; start?: { period?: string; back?: number } }) {
+  const asked = start?.period === "day" || start?.period === "week" || (start?.period === "month" && monthOk) ? (start.period as PeriodKind) : null;
+  const [kind, setKind] = useState<PeriodKind>(asked ?? (monthOk ? "month" : "week"));
+  const [back, setBack] = useState(asked ? Math.max(0, start?.back ?? 0) : 0);
   const [v, setV] = useState<View | null>(null);
   const [err, setErr] = useState<{ message: string; code?: string } | null>(null);
   useEffect(() => { setErr(null); api<View>(`view=pnl&period=${kind}&back=${back}`).then(setV).catch((e) => { setV(null); setErr(e); }); }, [api, kind, back]);

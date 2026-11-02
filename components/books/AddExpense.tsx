@@ -3,6 +3,8 @@
 import { useState } from "react";
 import { EXPENSE_METHODS, MAX_RECEIPT_PHOTOS, type Method } from "@/lib/books";
 import { Icon, Sheet, field, nairaInput, newClientId, type Api } from "./shared";
+import { saveOrQueue, useOutbox } from "./outbox";
+import { QueuedNote } from "./RecordSale";
 
 // Add an expense: the amount, the day, how it was paid, a category (or a new one) and a note, with up to 3 receipt photos kept privately.
 export default function AddExpense({ api, today, categories, onClose, onSaved }: { api: Api; today: string; categories: { id: string; label: string }[]; onClose: () => void; onSaved: () => void }) {
@@ -16,6 +18,8 @@ export default function AddExpense({ api, today, categories, onClose, onSaved }:
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState("");
   const [clientId] = useState(newClientId);
+  const [queued, setQueued] = useState(0);
+  const outbox = useOutbox();
 
   const save = async () => {
     setErr("");
@@ -24,7 +28,10 @@ export default function AddExpense({ api, today, categories, onClose, onSaved }:
     if (!category) return setErr("Choose a category.");
     setBusy(true);
     try {
-      const { entry } = await api<{ entry: { id: string } }>("", { action: "expense", clientId, amountKobo: k, on, method, category: category === "new" ? newCat : category, note });
+      const body = { action: "expense", clientId, amountKobo: k, on, method, category: category === "new" ? newCat : category, note };
+      const r = await saveOrQueue(outbox, () => api<{ entry: { id: string } }>("", body), "expense", body, `Expense · ${note || (category === "new" ? newCat : categories.find((c) => c.id === category)?.label) || "Expense"}`, k);
+      if (r.queued) { setQueued(k); onSaved(); setBusy(false); return; }
+      const { entry } = r.result;
       const failed: string[] = [];
       for (const f of files) {
         try {
@@ -40,6 +47,7 @@ export default function AddExpense({ api, today, categories, onClose, onSaved }:
     } catch (e) { setErr((e as Error).message); setBusy(false); }
   };
 
+  if (queued) return <Sheet title="Saved on this phone" eyebrow="New entry · waiting to sync" onClose={onClose}><QueuedNote total={queued} onClose={onClose} />{files.length > 0 && <p className="mt-3 text-sm text-slate">Receipt photos need a connection: add them to the expense once it has synced.</p>}</Sheet>;
   return (
     <Sheet title="Add an expense" eyebrow="New entry · money out" onClose={onClose}>
       <div className="grid grid-cols-2 gap-3">

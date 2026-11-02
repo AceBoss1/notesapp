@@ -40,6 +40,7 @@ export function Badge({ children, tone = "plain" }: { children: ReactNode; tone?
 export function entryBadge(e: Pick<Entry, "kind" | "source" | "method" | "owesKobo" | "settledKobo" | "voidedAt">) {
   if (e.voidedAt) return <Badge tone="void">Voided</Badge>;
   if (e.kind === "refund") return <Badge tone="late">Refund</Badge>;
+  if (e.kind === "payment" && e.source === "online") return <Badge tone="store">Paid back · online</Badge>;
   if (e.source === "online") return <Badge tone="store">Store</Badge>;
   if (e.kind === "payment") return <Badge>Paid back · {methodLabel(e.method)}</Badge>;
   if (e.kind === "opening") return <Badge tone="owes">Owes</Badge>;
