@@ -4,6 +4,7 @@ import { BOOST_PACKAGES } from "@/lib/boost-config";
 import { formatNaira } from "@/lib/booking-time";
 import BoostablePosts from "@/components/BoostablePosts";
 import PageHero from "@/components/PageHero";
+import { loadLivePricing } from "@/lib/pricing-server";
 
 export const metadata: Metadata = {
   title: "Boost",
@@ -18,7 +19,11 @@ const STEPS = [
   { t: "Pay for what's delivered", d: "Anything not delivered by the end is refunded pro-rata." },
 ];
 
-export default function BoostPage() {
+// Shows prices and rates an admin can change: applied on every render and redrawn each minute (the page used to be built once).
+export const revalidate = 60;
+
+export default async function BoostPage() {
+  await loadLivePricing(); // prices and rates as saved in Admin → Pricing, not the built-in defaults
   return (
     <>
       <PageHero eyebrow="Product" title={<>Boost a post or a product. Pay for real attention.</>}>

@@ -4,7 +4,7 @@ import { getAdminDb, verifyAdminAccess } from "@/lib/firebase-admin";
 import { hasAnyDept } from "@/lib/admin-access";
 import { KB_CATEGORIES, KbError } from "@/lib/kb";
 import { builtInArticles } from "@/lib/kb-articles";
-import { deleteArticle, saveArticle, setPublished, staffArticles } from "@/lib/kb-server";
+import { deleteArticle, loadKbLive, saveArticle, setPublished, staffArticles } from "@/lib/kb-server";
 import { rateLimit } from "@/lib/rate-limit";
 
 export const dynamic = "force-dynamic";
@@ -44,7 +44,7 @@ export async function GET(req: NextRequest) {
     const mine = await staffArticles(db);
     return NextResponse.json({
       categories: KB_CATEGORIES,
-      builtIn: builtInArticles().map((a) => ({ slug: a.slug, title: a.title, category: a.category, body: a.body })),
+      builtIn: builtInArticles(await loadKbLive(db)).map((a) => ({ slug: a.slug, title: a.title, category: a.category, body: a.body })),
       staff: mine,
     }, { headers: { "Cache-Control": "no-store" } });
   } catch (err) {

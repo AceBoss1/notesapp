@@ -1,5 +1,6 @@
 "use client";
 
+import { useLivePricing } from "@/lib/useLivePricing";
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { onAuthStateChanged, User } from "firebase/auth";
@@ -15,6 +16,7 @@ import { startCheckout } from "@/lib/checkout";
 // Gold badge (/badges): apply → (identity: pay deposit) → admin review →
 // approved → subscribe. Same prices on every plan tier. Text only — no ID uploads.
 export default function GoldBadgeApplication() {
+  useLivePricing(); // prices as set in Admin → Pricing, not the defaults bundled with this screen
   const [user, setUser] = useState<User | null | undefined>(undefined);
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [request, setRequest] = useState<BadgeRequest | null>(null);

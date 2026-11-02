@@ -1,4 +1,4 @@
-import { BADGE_PRICE_KOBO, TIERS, setBadgePriceKobo } from "./tiers";
+import { BADGE_PRICE_KOBO, TIERS, formatPercent, setBadgePriceKobo, type TierConfig } from "./tiers";
 import { GOLD_PRICING } from "./gold";
 import { BOOST_PACKAGES } from "./boost-config";
 import { AD_PACKAGES } from "./ad-packages";
@@ -138,7 +138,9 @@ export function certificatePrice(startKobo: number, completedAt: string, now: Da
 
 const group = (n: number) => String(Math.round(n)).replace(/\B(?=(\d{3})+(?!\d))/g, ",");
 export const nairaText = (kobo: number) => `₦${group(kobo / 100)}`;
-const monthsFree = (monthly: number, yearly: number) => { const f = 12 - yearly / monthly; return Number.isInteger(f) && f >= 1 ? ` (${f} month${f === 1 ? "" : "s"} free)` : ""; };
+// Whole months free on a yearly price (0 when it isn't a whole number of months).
+export const freeMonths = (monthly: number, yearly: number) => { const f = 12 - yearly / monthly; return Number.isInteger(f) && f >= 1 ? f : 0; };
+const monthsFree = (monthly: number, yearly: number) => { const f = freeMonths(monthly, yearly); return f ? ` (${f} month${f === 1 ? "" : "s"} free)` : ""; };
 
 // Writes a config into the live objects. Safe to call repeatedly with the same values.
 export function applyPricing(c: PricingConfig): void {
@@ -317,5 +319,25 @@ export const breakEven = (tierName: "pro" | "business") => {
 export const inventoryAddonPrice = () => nairaText(INVENTORY.addonMonthlyKobo);
 export const inventoryTrialDays = () => INVENTORY.trialDays;
 export const booksCaps = () => ({ ...BOOKS });
+// The pricing table's commission row (app/(main)/pricing/page.tsx), here so tests can check it with a saved config applied. One rate covers
+// paid sessions, journal subscriptions and gifts to the publisher; community giving and event tickets have no commission, a flat charge.
+export const COMMISSION_ROW_LABEL = "Commission: paid sessions, journal subscriptions and gifts to you";
+export const commissionCell = (t: TierConfig) =>
+  t.canPublish
+    ? `NotesApp takes ${formatPercent(t.sessionAndUnlockCommission, t.sessionAndUnlockCommissionFloor)} of each${t.tier === "enterprise" ? ", or the rate agreed for your account" : ""} · community giving and event tickets: no commission, a flat charge`
+    : "—";
+// "two months free" for a paid plan's yearly price, read when rendering ("" when the yearly price saves no whole month).
+const WORDS = ["", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine", "ten", "eleven"];
+export const yearlyFreeText = (tierName: "pro" | "business") => {
+  const t = TIERS.find((x) => x.tier === tierName)!, f = freeMonths(t.monthlyKobo!, t.yearlyKobo!);
+  return f ? `${WORDS[f] ?? f} month${f === 1 ? "" : "s"} free` : "";
+};
+// How often the free Nana allowance refreshes, in words for the help ("every week, on Monday").
+export const nanaResetText = () => (NANA.resetEvery === "day" ? "every day, at midnight" : NANA.resetEvery === "month" ? "on the first of every month" : "every week, on Monday");
+// What a browser may be sent of the live config (lib/useLivePricing.ts): everything shown on pages, but not the site-wide Nana ceiling or
+// the naira-to-dollar rate we use for AI costs, which stay on the server (the defaults stand in for them).
+export function publicPricing(c: PricingConfig = currentPricing()): PricingConfig {
+  return { ...c, nana: { ...c.nana, siteCeilingKobo: DEFAULT_PRICING.nana.siteCeilingKobo, usdKobo: DEFAULT_PRICING.nana.usdKobo } };
+}
 // Course covers a day on a plan (lib/covers.ts), for the pricing page and the help.
 export const coversPerDay = (k: keyof CoverLimits) => ACADEMY_COVERS[k];

@@ -3,6 +3,9 @@ import type { Metadata } from "next";
 import { POLICY_TEXT } from "@/lib/cancellation";
 import { LIMITS, formatNaira } from "@/lib/booking-time";
 import PageHero from "@/components/PageHero";
+import MyCommission from "@/components/MyCommission";
+import { TIERS, formatPercent } from "@/lib/tiers";
+import { loadLivePricing } from "@/lib/pricing-server";
 
 export const metadata: Metadata = {
   title: "Booking",
@@ -10,7 +13,11 @@ export const metadata: Metadata = {
     "A native booking calendar on every publishing profile — the publisher's own rate and availability, paid through Paystack, with email reminders and a clear cancellation policy.",
 };
 
-export default function BookingPage() {
+// The commission per plan is set in Admin → Pricing: applied on every render (this page used to be built once), redrawn each minute.
+export const revalidate = 60;
+
+export default async function BookingPage() {
+  await loadLivePricing();
   return (
     <>
       <PageHero compact max="max-w-4xl" eyebrow="Product" title={<>Booking that lives where the content does</>}>
@@ -42,9 +49,19 @@ export default function BookingPage() {
             Set your session price ({formatNaira(LIMITS.sessionMinKobo)}–{formatNaira(LIMITS.sessionMaxKobo)}), length and weekly
             availability, and add your bank account. Your earnings are
             released after each session, minus NotesApp's commission for
-            your tier — see{" "}
+            your plan — see{" "}
             <Link href="/pricing" className="text-crimson underline underline-offset-2">pricing</Link>.
           </p>
+          <ul className="mt-3 divide-y divide-rule text-sm" aria-label="Commission on each paid session, by plan">
+            {TIERS.filter((t) => t.canPublish).map((t) => (
+              <li key={t.tier} className="flex justify-between gap-3 py-1.5">
+                <span className="text-ink">{t.label}</span>
+                <span className="text-right text-slate">NotesApp takes {formatPercent(t.sessionAndUnlockCommission, t.sessionAndUnlockCommissionFloor)}</span>
+              </li>
+            ))}
+          </ul>
+          <p className="mt-2 text-xs text-slate">The same rate applies to journal subscriptions and gifts to you. Enterprise accounts pay the rate agreed with us.</p>
+          <MyCommission kind="session" className="mt-3 text-sm font-semibold text-ink" />
         </div>
         <div className="card p-6">
           <p className="font-ui text-sm font-bold text-ink">Cancellations &amp; refunds</p>

@@ -6,6 +6,7 @@ import { formatNaira } from "@/lib/booking-time";
 import { getTierConfig } from "@/lib/tiers";
 import PageHero from "@/components/PageHero";
 import { academyApiFrom, enterpriseCoursesPrice, enterpriseFrom, planPrice, planRate, pct } from "@/lib/pricing";
+import { loadLivePricing } from "@/lib/pricing-server";
 
 export const metadata: Metadata = {
   title: "Organisations",
@@ -30,7 +31,11 @@ const ENTERPRISE = [
   ["Seats and onboarding", "A team size that fits you, with the maroon ✔ included, and onboarding help from us to set up your channel, domain and payouts."],
 ];
 
-export default function OrganisationsPage() {
+// Shows prices and rates an admin can change: applied on every render and redrawn each minute (the page used to be built once).
+export const revalidate = 60;
+
+export default async function OrganisationsPage() {
+  await loadLivePricing(); // prices and rates as saved in Admin → Pricing, not the built-in defaults
   const e = getTierConfig("enterprise");
   return (
     <>

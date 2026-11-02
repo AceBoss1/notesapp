@@ -4,10 +4,15 @@ import { POLICY_TEXT } from "@/lib/cancellation";
 import { LEGAL_CONTACT, LEGAL_VERSION } from "@/lib/legal";
 import { COMPANY_INFO } from "@/lib/site";
 import { TIERS, formatPercent } from "@/lib/tiers";
+import { loadLivePricing } from "@/lib/pricing-server";
 
 export const metadata: Metadata = { title: "Terms of Service" };
 
-export default function TermsPage() {
+// Shows prices and rates an admin can change: applied on every render and redrawn each minute (the page used to be built once).
+export const revalidate = 60;
+
+export default async function TermsPage() {
+  await loadLivePricing(); // prices and rates as saved in Admin → Pricing, not the built-in defaults
   const rates = TIERS.filter((t) => t.canPublish)
     .map((t) => `${t.label}: ${formatPercent(t.sessionAndUnlockCommission, t.sessionAndUnlockCommissionFloor)}`)
     .join(" · ");

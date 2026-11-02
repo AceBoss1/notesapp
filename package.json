@@ -35,6 +35,7 @@
     "test:agents": "npx -y tsx tests/agents/agents.test.ts && npx -y tsx tests/agents/domains.test.ts && NEXT_PUBLIC_ROOT_DOMAIN=naapp.tech npx -y tsx tests/agents/domains.test.ts",
     "test:pricing": "npx -y tsx tests/pricing/pricing.test.ts",
     "test:limits": "npx -y tsx tests/limits/limits.test.ts",
+    "test:help": "NEXT_PUBLIC_MESSAGES_LIVE=true NEXT_PUBLIC_FIREBASE_API_KEY=x NEXT_PUBLIC_FIREBASE_PROJECT_ID=demo-notesapp NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=x NEXT_PUBLIC_FIREBASE_APP_ID=x npx -y tsx tests/help/live-figures.test.ts",
     "test:host": "npx -y tsx tests/host/host.test.ts && NEXT_PUBLIC_ROOT_DOMAIN=naapp.tech npx -y tsx tests/host/host.test.ts",
     "test:covers": "npx -y tsx tests/covers/covers.test.ts",
     "test:covers-server": "ANTHROPIC_API_KEY=sk-ant-test-standin NEXT_PUBLIC_FIREBASE_API_KEY=x NEXT_PUBLIC_FIREBASE_PROJECT_ID=demo-notesapp NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=x NEXT_PUBLIC_FIREBASE_APP_ID=x npx firebase-tools@13 emulators:exec --only firestore --project demo-notesapp \"npx -y tsx tests/covers/covers.emulator.ts\"",

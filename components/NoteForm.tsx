@@ -1,6 +1,9 @@
 "use client";
 
 import CoAuthorsPanel from "@/components/CoAuthorsPanel";
+import { BOOST_PACKAGES } from "@/lib/boost-config";
+import { formatNaira } from "@/lib/booking-time";
+import { useLivePricing } from "@/lib/useLivePricing";
 import { canLeadCoAuthors } from "@/lib/coauthors";
 import Link from "next/link";
 import { useRef, useState } from "react";
@@ -67,6 +70,7 @@ function selfRoleLabel(p: UserProfile): string {
 }
 
 export default function NoteForm({ noteId, initial, self, org }: Props) {
+  useLivePricing(); // the boost price below, as set in Admin → Pricing
   const router = useRouter();
   const [title, setTitle] = useState(initial?.title || "");
   const [slug, setSlug] = useState(initial?.slug || "");
@@ -349,7 +353,7 @@ export default function NoteForm({ noteId, initial, self, org }: Props) {
           <span>
             Boost this post after saving
             <span className="block text-xs text-slate">
-              Choose an impressions package next (from ₦3,000). You pay only for validated impressions delivered over several days.
+              Choose an impressions package next (from {formatNaira(Math.min(...BOOST_PACKAGES.map((p) => p.priceKobo)))}). You pay only for validated impressions delivered over several days.
             </span>
           </span>
         </label>

@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import PageHero from "@/components/PageHero";
 import { SHIPMENT_SERVICES } from "@/lib/shipments";
 import { logisticsAddonPrice, logisticsTrialDays } from "@/lib/pricing";
+import { loadLivePricing } from "@/lib/pricing-server";
 
 export const metadata: Metadata = {
   title: "For logistics businesses: tracking and your own website",
@@ -23,7 +24,11 @@ Phone or WhatsApp:
 
 // Selling shipments and tracking to small logistics businesses (lib/shipments.ts). Prices are on /pricing (the Business plan), so
 // nothing here goes stale when they change.
-export default function LogisticsPage() {
+// Shows prices and rates an admin can change: applied on every render and redrawn each minute (the page used to be built once).
+export const revalidate = 60;
+
+export default async function LogisticsPage() {
+  await loadLivePricing(); // prices and rates as saved in Admin → Pricing, not the built-in defaults
   return (
     <>
       <PageHero eyebrow="For logistics businesses" title={<>Tracking your customers can follow, and a website that&apos;s yours</>}>
