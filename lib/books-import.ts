@@ -73,17 +73,17 @@ export const presetOf = (id: unknown) => PRESETS.find((p) => p.id === id);
 // The column each heading goes into ("" = don't import): the preset's, else the closest heading words, each field used once.
 export type Mapping = string[];
 export function guessMapping(headers: string[], kind: ImportKind, preset?: Preset): Mapping {
-  const used = new Set<string>();
+  const used = new Set<string>(), fixed = new Set<number>();
   const out = headers.map(() => "");
   if (preset && preset.kind === kind) {
+    // The preset's columns (including ones it leaves out on purpose); any other heading is guessed as usual.
     const byHead = new Map(Object.entries(preset.columns).map(([h, f]) => [squash(h), f]));
-    headers.forEach((h, i) => { const f = byHead.get(squash(h)); if (f && !used.has(f)) { out[i] = f; used.add(f); } });
-    if (used.size) return out;
+    headers.forEach((h, i) => { const f = byHead.get(squash(h)); if (f === undefined) return; fixed.add(i); if (f && !used.has(f)) { out[i] = f; used.add(f); } });
   }
   // Exact heading words first, then a heading that contains a field's word (longest words first, so "cost price" beats "price").
   const words = FIELDS[kind].flatMap((f) => f.words.map((w) => ({ f: f.id, w: squash(w) }))).sort((a, b) => b.w.length - a.w.length);
-  headers.forEach((h, i) => { const s = squash(h); const hit = words.find((x) => x.w === s && !used.has(x.f)); if (hit) { out[i] = hit.f; used.add(hit.f); } });
-  headers.forEach((h, i) => { if (out[i]) return; const s = squash(h); const hit = words.find((x) => x.w.length >= 3 && s.includes(x.w) && !used.has(x.f)); if (hit) { out[i] = hit.f; used.add(hit.f); } });
+  headers.forEach((h, i) => { if (fixed.has(i)) return; const s = squash(h); const hit = words.find((x) => x.w === s && !used.has(x.f)); if (hit) { out[i] = hit.f; used.add(hit.f); } });
+  headers.forEach((h, i) => { if (out[i] || fixed.has(i)) return; const s = squash(h); const hit = words.find((x) => x.w.length >= 3 && s.includes(x.w) && !used.has(x.f)); if (hit) { out[i] = hit.f; used.add(hit.f); } });
   return out;
 }
 export function cleanMapping(raw: unknown, headers: string[], kind: ImportKind): Mapping {

@@ -461,9 +461,11 @@ const stockValue = (cat: CatalogItem[]) => cat.reduce((n, x) => n + (x.stock ?? 
 async function customers(db: Firestore, owner: string) { return (await db.collection("bookParties").where("ownerUid", "==", owner).get()).docs.map(partyOf); }
 async function openEntries(db: Firestore, owner: string) { return (await db.collection("bookEntries").where("ownerUid", "==", owner).where("open", "==", true).get()).docs.map(entryOf).filter((e) => openKobo(e) > 0); }
 
-export async function homeView(c: Ctx) {
+export async function homeView(ctx: Ctx) {
+  let c = ctx;
   const { db, owner, today } = c;
   await syncOnlineOrders(c).catch((e) => console.error("books online sync failed", owner, e));
+  c = { ...c, settings: ((await db.doc(`bookSettings/${owner}`).get()).data() as Settings) ?? {} }; // the month's count as it is now
   const week = periodOf("week", today);
   const weekAgo = periodOf("day", today, 7).start;
   const [entries, cat, parties, open] = await Promise.all([entriesBetween(db, owner, weekAgo < week.start ? weekAgo : week.start, today), catalog(c), customers(db, owner), openEntries(db, owner)]);
@@ -727,7 +729,7 @@ async function planStock(c: Ctx, rows: ReturnType<typeof readRows<"stock">>["row
     if (r.sku && !hit.sku) { set.sku = r.sku; before.sku = ""; }
     if (hit.bookItemId && r.priceKobo !== undefined && r.priceKobo !== hit.priceKobo) { set.priceKobo = r.priceKobo; before.priceKobo = hit.priceKobo; }
     if (!Object.keys(set).length) { dupes++; continue; }
-    changes.push({ row: r.row, target: { itemId: hit.itemId, variant: hit.variant, bookItemId: hit.bookItemId }, name: hit.title, set, before });
+    changes.push({ row: r.row, target: { ...(hit.itemId ? { itemId: hit.itemId } : {}), ...(hit.variant ? { variant: hit.variant } : {}), ...(hit.bookItemId ? { bookItemId: hit.bookItemId } : {}) }, name: hit.title, set, before });
     if (notes.length < 40) notes.push({ row: r.row, message: `${hit.sku || hit.title} is already in your ${hit.bookItemId ? "books" : "shop"}: ${Object.keys(set).map((k) => k === "stock" ? `stock ${before.stock} → ${set.stock}` : k === "costKobo" ? `cost ${naira(before.costKobo as number)} → ${naira(set.costKobo as number)}` : k === "priceKobo" ? `price ${naira(before.priceKobo as number)} → ${naira(set.priceKobo as number)}` : k === "lowAt" ? `low-stock level ${before.lowAt} → ${set.lowAt}` : `SKU ${set.sku}`).join(", ")}.` });
   }
   return { changes, notes, dupes };
@@ -885,7 +887,7 @@ export async function applyImport(c: Ctx, raw: { kind?: unknown; csv?: unknown; 
       await db.runTransaction(async (t) => { const s = await t.get(ref); t.set(ref, { balanceKobo: (Number(s.data()?.balanceKobo) || 0) + k }, { merge: true }); });
     }
   }
-  await importRef.update({ status: "done", created, undo: undo.items.map((x) => ({ target: x.target, before: x.before })) });
+  await importRef.update({ status: "done", created, undo: JSON.parse(JSON.stringify(undo.items.map((x) => ({ target: x.target, before: x.before })))) });
   return { importId: importRef.id, created, undoUntil: new Date(c.now.getTime() + BOOKS_UNDO_HOURS * 3_600_000).toISOString() };
 }
 

@@ -1215,3 +1215,28 @@ test("communities and events: read and written only through the server, which ch
   await assertFails(updateDoc(doc(owner, "communities/grace"), { memberCount: 9999 }));
   await assertFails(setDoc(doc(as("bob"), "eventRsvps/e1_bob"), { eventId: "e1", uid: "bob", status: "going" }));
 });
+
+test("business books: entries, customers, receipts, imports and settings are private; only the server reads and writes them", async () => {
+  await env.withSecurityRulesDisabled(async (ctx) => {
+    const f = ctx.firestore();
+    await setDoc(doc(f, "bookEntries/e1"), { ownerUid: "pub", kind: "sale", source: "walkin", totalKobo: 4500000, lines: [] });
+    await setDoc(doc(f, "bookParties/p1"), { ownerUid: "pub", kind: "customer", name: "Chinedu", phone: "2348031234417", balanceKobo: 3850000 });
+    await setDoc(doc(f, "bookReceipts/ABCDEFGHJK"), { ownerUid: "pub", shopName: "Pub", totalKobo: 4500000 });
+    await setDoc(doc(f, "bookSettings/pub"), { usage: { month: "2026-11", entries: 3 } });
+  });
+  const owner = as("pub");
+  // Even the seller goes through /api/books (which checks the owner and the organisation's admins), so no one can change a balance
+  // or the month's count from the browser.
+  for (const path of ["bookEntries/e1", "bookParties/p1", "bookReceipts/ABCDEFGHJK", "bookSettings/pub"]) {
+    await assertFails(getDoc(doc(owner, path)));
+    await assertFails(getDoc(doc(as("alice"), path)));
+    await assertFails(getDoc(doc(anon(), path)));
+  }
+  await assertFails(setDoc(doc(owner, "bookEntries/e2"), { ownerUid: "pub", kind: "sale", totalKobo: 1 }));
+  await assertFails(updateDoc(doc(owner, "bookParties/p1"), { balanceKobo: 0 }));
+  await assertFails(setDoc(doc(owner, "bookSettings/pub"), { usage: { month: "2026-11", entries: 0 } }));
+  await assertFails(setDoc(doc(owner, "bookItems/i1"), { ownerUid: "pub", name: "Rice", stock: 9 }));
+  await assertFails(setDoc(doc(owner, "bookReminders/r1"), { ownerUid: "pub", partyId: "p1", channel: "whatsapp_link" }));
+  await assertFails(setDoc(doc(owner, "bookImports/i1"), { ownerUid: "pub", status: "done" }));
+  await assertFails(getDocs(query(collection(owner, "bookEntries"), where("ownerUid", "==", "pub"))));
+});
