@@ -7,7 +7,7 @@
 |---|---|---|---|---|---|
 | 1 | .tech startup programme: **naapp.tech**, sponsored for 10 years | [startup.tech](https://startup.tech/) | none (do it this week) | nothing | first: the pitch form asks for our .tech domain |
 | 2 | .tech pitch competition | [pitch.tech](https://pitch.tech/) | **20 November 2026** | nothing | second |
-| 3 | .tech **No Excuses Fund** (grants up to USD 1 million) | [pitch.tech](https://pitch.tech/) | **15 December 2026**, 23:59 US Pacific; decisions by 15 January 2027 | nothing | after naapp.tech is our primary site: the product must run on .tech, and stay there 24 months (team hub tasks `fund-*`, HANDOVER item 6) |
+| 3 | .tech **No Excuses Fund** (grants up to USD 1 million): registered 2 Nov 2026, steps in `docs/NO_EXCUSES_APPLICATION.md` | [our dashboard](https://noexcuses.get.tech/apply/dashboard) | **15 December 2026**, 23:59 US Pacific; decisions by 15 January 2027 | nothing | after naapp.tech is our primary site: the product must run on .tech, and stay there 24 months (team hub tasks `fund-*`, HANDOVER item 6) |
 | 4 | Emergent Ventures (Mercatus Center), Africa & Caribbean | [mercatus.org/emergentventures](https://www.mercatus.org/emergentventures) | none (funds are limited: soon) | nothing | third |
 
 Declined for now: **Peachscore** (its "grant" is applied toward an enrollment fee; apply only if it's confirmed in writing that we pay
