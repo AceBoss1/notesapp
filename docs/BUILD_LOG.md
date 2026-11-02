@@ -2454,6 +2454,64 @@ A browser life game at **life.notesapp.name.ng**, its own look, **NotesApp sign-
 **Team hub → Time (v0.82.0)** — The owner's brief (track hours across assigned and unassigned work; productivity, attendance and billable hours; a simple timer and timesheet) with the answers they gave: a 20-hour week (4 h × Monday to Friday), late after 9:00 am Lagos but hours are what count, everyone paid by the hour, approvals by department leads or super admins, a new team lead role. `lib/time.ts` (pure): the timer (`startTimer`, `confirmTimer`, `settle`: a check every 30 minutes, 10 minutes to answer, unanswered stops at the last answer so the unanswered half hour is dropped; a meeting's first check is its planned end and its time counts; Lagos midnight stops it), entries, the week grid (`weekRows`, corrections kept as `adjust` entries), `weekSummary` (tracked, billable, assigned share, days present with leave that counts, first in, late), leave days, projects, who sees and approves (`canSee`, `canApprove`), pay (`payFor`, `approvedMinutesInMonth`), the CSV and the Friday reminder. `lib/time-server.ts` and `/api/admin/time`; `/admin/team/time` (Timer, Timesheet, Leave, and for leads and super admins Team and Setup); `components/TimeCheck.tsx` in the main layout shows the check on any page with a chime and a browser notification, and the cron sends the bell and stops what wasn't answered. Payroll gains `basis` and `hourlyKobo`; a run pays approved hours × rate. No screenshots or keystrokes are ever recorded.
 
 
+**Naija Exam Prep's new logo (v0.82.1)** — A student rising out of an open book under a graduation cap, with “Built for your next breakthrough.” In `public/images/exam-prep/` (header mark, favicons, app icons), drawn by `components/exam-prep/PrepChrome.tsx` with the Fredoka wordmark.
+
+**Teen mode (v0.83.0)** — Ages 13 to 17 (`lib/young.ts`, `/api/young`): only people a teen follows reply to their journals and comments, their moments are seen only by people they follow back, and the month and year of birth are kept privately so it ends on their 18th birthday.
+
+**Child profiles (v0.85.0)** — Under-13s are added by a parent under My account → Family (`lib/kids.ts`, `lib/kids-server.ts`, `/api/kids`, `/kids`): no login, the parent's PIN to leave, only what the parent switches on (Exam Prep, free courses, journals without comments, kids' Notesville), and a Sunday email of what each child practised.
+
+**Turning 18 (v0.86.0)** — A bell and a one-time “You're 18 now” screen (`/eighteen`); every switch stays off until they turn it on; they accept the Terms themselves and can download or delete their practice log; the parent is told. Teens no longer get the digest.
+
+**Exam Prep for schools (v0.87.0)** — A key member of staff applies at `prep.<domain>/schools` and signs the onboarding data agreement once approved (`lib/prep-schools.ts`, `lib/prep-schools-server.ts`, `/api/exam-prep/schools`); classes with access codes, teachers by email, and a class board per teacher (`app/exam-prep/class/[id]`).
+
+**Client invoices (v0.88.0)** — Team hub → Time → Invoices (`lib/invoices.ts`, `lib/invoices-server.ts`, `/invoice/<id>`): one invoice a month per billable project from approved hours × rate, paid online (Paylony, then Paystack, or a marked bank transfer), locked hours, one reminder, optional 7.5% VAT.
+
+**Five sciences and social sciences on Exam Prep (v0.89.0)** — Physics, Chemistry, Biology, Economics and Government with syllabus topics, and 300 checked starter questions (`scripts/exam-prep-starter.mjs`).
+
+**Kiswahili fixes (v0.89.1, v0.90.1, v0.90.2)** — The NKENNEAi key is cleaned of pasted spaces, quotes and "Bearer"; a firewall block is reported as such; answers are read from whichever field NKENNEAi uses; journals are translated block by block (`lib/nkenne.ts`, `lib/kiswahili-server.ts`).
+
+**The school pack (v0.90.0)** — A class has a size; every student who joins with its code gets that exam's full pack for 12 months, free in the pilot; leaving or removal ends it (a paid pack is kept).
+
+**Backfill safety and masked details (v0.91.0)** — Emails and phone numbers are masked in admin pages (`lib/pii.ts`, `lib/pii-server.ts`, `components/admin/Masked.tsx`); showing one needs a reason and is logged (Admin → View log); Maintenance runs only after a backup is ticked and only on the dry run's list, keeping before-images (`lib/backfills.ts`).
+
+**Stage triggers (v0.92.0)** — Five numbers on the admin dashboard against the line that starts each stage of the engineering guide (`lib/ops-metrics.ts`, `lib/ops-metrics-server.ts`, `components/admin/StageTriggers.tsx`), and anonymous page speed from a quarter of visits (`components/WebVitals.tsx`, `/api/perf`).
+
+**Admin → Backups (v0.93.0)** — Point-in-time recovery, delete protection, daily and weekly backups and restores with the owner's own Google rights (`lib/backups.ts`, `/api/admin/backups`); `NEXT_PUBLIC_FIRESTORE_DATABASE_ID` switches the site to a restored database.
+
+**More Exam Prep subjects (v0.94.0, v0.99.0)** — 11 more WAEC and NECO subjects and 1,520 questions, then 2,150 more (JAMB 70 a subject, WAEC and NECO 100), all through review first; imports in batches; the review queue filters before its limit.
+
+**Notes Life: Wuse (v0.95.0 to v0.98.0)** — Wuse Market (Zone 4) and Aminu Kano Crescent (Wuse II), 14 errands, Emerald Ezurukam's convoy; Hygiene and Bladder away from home; LUXNAS on Wuse Market with its academy and jobs, billboards and LED boards; traffic and walking people in every outdoor scene (`lib/life/catalog.ts`, `components/life/world.ts`).
+
+**Send-Na plan (v0.99.1, v0.100.1)** — Email, WhatsApp and SMS priced in Naira, and the owner's decisions on it (`docs/SEND-NA.md`). Plan only.
+
+**Day, Night and Auto (v0.100.0)** — An app-wide theme (`lib/theme.ts`, `components/theme/*`), the #NotesApp African pattern (`lib/africa-drawings.ts`), emoji packs and flags in chats (`lib/emoji-packs.ts`, `lib/countries.ts`, `lib/country-suggest.ts`) and chat backgrounds on Pro and above (`lib/chat-background.ts`). Members' sites, Exam Prep and Notes Life keep their own looks.
+
+**Plans and decisions (v0.100.2 to v0.100.5)** — The payments plan and mobile apps scaffold (`docs/PAYMENTS.md`, `docs/MOBILE-APPS.md`, `mobile/`), the vision and mission on About and in the engineering guide, Kenya first for payments across Africa, and the discount codes, referrals and affiliates plan (`docs/REFERRALS.md`). Roadmap only.
+
+**Discount codes (v0.101.0, v0.101.1)** — Codes for every publisher and for #NotesApp (`lib/discounts.ts`, `lib/discounts-server.ts`, `/api/discounts`, `components/DiscountCodeField.tsx`); commission is worked out on what the buyer paid; never on delivery. Admin → Ads shows its result beside the button.
+
+**Referrals and affiliates (v0.102.0)** — Referral links (`/r/<username>`: a friend's first month free, 20% of their plan payments for 12 months), the affiliate marketplace (`/affiliates`), publisher shares up to 50%, cash or NotesApp Credit with 10% more (`lib/referrals.ts`, `lib/referrals-server.ts`). The same day naapp.tech was chosen as the next primary domain (`lib/host.ts`, `docs/DOMAIN_SWITCH.md`).
+
+**NKENNEAi Special Recognition (v0.102.1)** — On the About page.
+
+**Codes on plans and referral codes (v0.103.0)** — Plan codes off the first payment; a member's username is their referral code.
+
+**Coupons and Nana's pick (v0.104.0)** — Coupons shown in shops and saved under My coupons, the best one applied at checkout as Nana's pick (`/api/coupons/best`), coupon cards for sharing (`/coupon/<username>/<code>`), affiliate codes, reminders before a saved coupon ends.
+
+**Quizzes (v0.105.0)** — Quiz lessons on any course, marked straight away (`/api/academy/quiz`), with a pass mark and explanations.
+
+**Giving and paid event tickets (v0.106.0)** — Giving with funds, receipts and the bands in `lib/giving.ts`; paid tickets with QR codes and check-in (`lib/tickets.ts`, `lib/tickets-server.ts`, `/tickets`, `/events/<id>/checkin`). Tickets then carried the plan's session commission.
+
+**Notes Life Low res (v0.106.1)** — A pixel ratio of 0.6, no shadows and 30 frames a second for computers that froze (`createWorld(canvas, { low })`); the next looks are planned in `docs/NOTES-LIFE-LOOKS.md`.
+
+**The Notes Academy home page (v0.107.0)** — `/academy` is a product page around the catalogue (`components/academy/AcademyLanding.tsx`), with live numbers and the teachers' questions.
+
+**Public pages caught up (v0.107.1)** — Pricing, Store selling, Community, Events, Organisations, home, About, the roadmap, status, the footer and help articles describe v0.101 to v0.106.
+
+**Our own tools first (v0.108.0)** — Course groups in a community the teacher runs instead of WhatsApp or Telegram links, swiping Nana's suggestions (`components/SwipeChip.tsx`), and Nana suggesting #NotesApp's own tools first.
+
+**Co-author and co-tutor access (v0.109.0)** — Can view or Can view and edit, an invitation page with the terms, agreed changes, leaving before publishing (`lib/invite-terms.ts`, `lib/invites-server.ts`, `lib/invite-agreements-server.ts`, `lib/coauthors-server.ts`).
+
 **Business books plan and waitlist (v0.115.0)** — The plan is `docs/BUSINESS-BOOKS.md`, for the owner's approval, with mockups for phone and desktop in Day and Night. It covers walk-in sales and receipts, expenses, stock linked to inventory, money owed to you and money you owe, profit and loss, offline entry, roles, Nana entries, the monthly email and honest numbers. It also lists what can be imported today and how we'd import from Excel, Tralo, Shopify, WooCommerce, Selar, Paystack, bank CSV and paper-ledger photos, plus pricing options. Owner's decisions: customers who aren't members get receipts and debt reminders by WhatsApp (click-to-send through `wa.me`) or SMS through Send-Na, with a short #NotesApp line (1 Nov); and Business books has a waitlist, never a "coming soon" label (2 Nov). Built for the waitlist:
 - `/books` (`app/(main)/books/page.tsx`, three mockups as WebP in `public/images/books/`, in the sitemap and in `APP_TO_MAIN`).
 - `components/BooksWaitlistForm.tsx`, which asks for name, email (filled in for members), kind of business, what they sell, how they keep books today, city and "email me when it opens".
@@ -2464,3 +2522,5 @@ A browser life game at **life.notesapp.name.ng**, its own look, **NotesApp sign-
 - Admin → Leads → **Business books waitlist**, with counts by kind of business and by how people keep books today.
 - Links to `/books` from the roadmap, `/store-selling#business-books`, the home features and the Inventory and Selling physical goods help articles.
 - Tests: `tests/books/waitlist.emulator.ts` (`npm run test:books-server`) and the rules test.
+
+**No written-in domains; tickets like gifts; events on Explore and Trending (v0.117.0)** — The owner, 2 Nov 2026. `mainSiteUrl(host, path)` in `lib/host.ts` gives the main site of the domain being viewed (prep.naapp.tech → www.naapp.tech), or the primary address elsewhere; Exam Prep's header and footer and members' "Powered by #NotesApp" use it, and other links that named a domain now come from `lib/host.ts` (`npm run test:host`). Tickets: no commission, giving's band per ticket plus the card charge (`quoteTickets` in `lib/tickets.ts`), recorded on the payment; older tickets keep their commission. Explore and Trending get Events tabs (`listedEvents`, `trendingEvents` in `lib/events-server.ts`; public, upcoming, not cancelled, not from invite-only communities; tickets ×5, RSVPs ×3, visits). From now on every release adds an entry here (HANDOVER §3).

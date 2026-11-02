@@ -34,7 +34,7 @@ members. Phase 1 is live (v0.74.0); audio rooms and the group-style feed came in
      `/api/giving`. Not yet: campaigns with a goal, Admin → Pricing for the bands, one transfer for many gifts.
    - Paid event tickets with QR check-in (**built, v0.106.0**): ticket types on the event page (`eventTickets`), payment kind `ticket`
      through the usual checkout, one `tickets/{code}` per admission with a QR, `/tickets` for buyers, check-in at
-     `/events/<id>/checkin` (typed or scanned), a `ticket` ledger entry with the host's commission released after the event. Server:
+     `/events/<id>/checkin` (typed or scanned), a `ticket` ledger entry released after the event. No commission since v0.117.0 (owner, 2 Nov 2026): like giving, a band per ticket plus the card charge (`quoteTickets`). Server:
      `lib/tickets.ts`, `lib/tickets-server.ts`, `/api/tickets`.
 3. **Our own live streaming, then group meetings.**
    - Live streaming through Cloudflare Stream Live: RTMPS or SRT from OBS or a phone, WHIP from the browser, HLS to viewers, and the recording kept as a replay in the members-only Space. Cost is per minute watched, so it is the add-on.

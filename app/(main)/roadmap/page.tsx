@@ -121,7 +121,7 @@ const ITEMS: { title: string; tag: string; body: string; detail: string; link?: 
     title: "Community and Events",
     tag: "Social",
     body: "Live: a community for churches, NGOs, schools, clubs and associations, run by the organisation's own admins, like a Facebook group with a channel. Public and members-only Spaces, a General announcement channel where admins post and members react and comment, and private Circles on Business. Events for every account: RSVP (Going or Interested), reminders a day and an hour before, repeating events, and Join live links to YouTube Live, Facebook Live, Zoom or Google Meet. Giving to a community, and paid event tickets with QR check-in at the door.",
-    detail: "Free up to 200 members; Business has unlimited members and private Circles. Members and roles (owner, admins, moderators, members), joining open, by approval or by invite link. Members-only posts never appear in Explore, search, link previews, the Weekly Digest, Nana or the MCP server. Giving (charges like a bank transfer, no commission) and paid event tickets with QR check-in are live. Later, in this order: bigger Circles, then our own live streaming as a paid add-on. No date yet.",
+    detail: "Free up to 200 members; Business has unlimited members and private Circles. Members and roles (owner, admins, moderators, members), joining open, by approval or by invite link. Members-only posts never appear in Explore, search, link previews, the Weekly Digest, Nana or the MCP server. Giving and paid event tickets with QR check-in are live, both with no commission, only a charge like a bank transfer. Later, in this order: bigger Circles, then our own live streaming as a paid add-on. No date yet.",
     link: { href: "/community", label: "See Community →" },
   },
   {
@@ -264,7 +264,7 @@ export default function RoadmapPage() {
               <li>Publishing a post to your connected LinkedIn and X from the post itself</li>
               <li>Download your data or delete your account yourself, under Account → Your data</li>
               <li><Link href="/profile/analytics" className="text-crimson underline">Analytics</Link> for every member who sells, teaches or publishes: earnings, orders, best sellers, stock running low and visits; customers and a sales download on Pro; visits by page and where visitors came from on Business</li>
-              <li>Trending (Notes, Store, Courses and Publishers), a live <Link href="/status" className="text-crimson underline">status page</Link> and a public <Link href="/changelog" className="text-crimson underline">changelog</Link></li>
+              <li>Trending (Notes, Store, Courses, Events, Communities and Publishers) and public events in Explore, a live <Link href="/status" className="text-crimson underline">status page</Link> and a public <Link href="/changelog" className="text-crimson underline">changelog</Link></li>
               <li>Verification badges: the maroon ✔ for accounts in good standing and the <strong className="text-ink">gold ✔ for endorsed accounts</strong>{GOLD_KIND_LIVE.identity ? " and identity-checked accounts" : ""} — see <Link href="/badges" className="text-crimson underline">Verification badges</Link></li>
               <li>Publisher payouts to a verified bank account, released automatically after the session</li>
               <li>Email confirmations and reminders · password reset and email verification</li>

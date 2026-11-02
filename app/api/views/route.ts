@@ -18,7 +18,7 @@ export async function POST(req: NextRequest) {
     }
     const body = await req.json();
     const { kind, id } = body;
-    if ((kind !== "note" && kind !== "profile") || typeof id !== "string" || !/^[A-Za-z0-9_-]{1,80}$/.test(id)) {
+    if ((kind !== "note" && kind !== "profile" && kind !== "event") || typeof id !== "string" || !/^[A-Za-z0-9_-]{1,80}$/.test(id)) {
       return NextResponse.json({ error: "Invalid" }, { status: 400 });
     }
     if (await rateLimit(req, "view-ip", clientIp(req), 120, 600)) return NextResponse.json({ ok: true, counted: false });
@@ -36,6 +36,11 @@ export async function POST(req: NextRequest) {
       const note = (await getAllNotes({ publishedOnly: true })).find((n) => n.id === id);
       if (!note) return NextResponse.json({ ok: true, counted: false });
       ownerUid = note.authorUid || (note.authorUsername ? (await getAllUsers()).find((u) => u.username === note.authorUsername)?.uid ?? "" : "");
+    } else if (kind === "event") {
+      // Only a public event that isn't cancelled is counted (Trending → Events); the host gets it in their analytics.
+      const e = (await db.doc(`events/${id}`).get()).data();
+      if (!e || e.visibility !== "public" || e.cancelled) return NextResponse.json({ ok: true, counted: false });
+      ownerUid = String(e.hostUid ?? "");
     } else {
       const user = (await getAllUsers()).find((u) => u.username === id);
       if (!user) return NextResponse.json({ ok: true, counted: false });

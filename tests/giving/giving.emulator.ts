@@ -1,6 +1,7 @@
 // Community giving and paid event tickets against the Firestore emulator (lib/giving-server.ts, lib/tickets-server.ts, lib/payments.ts):
 // a gift settles with a receipt and a ledger entry net of the charges; a ticket purchase writes tickets, moves the sold count and holds
-// the host's money less commission; check-in; sold out; a refund voids tickets; the payout run picks both up when due.
+// the host's money net of giving's charges (no commission; an older ticket keeps its commission); check-in; sold out; a refund voids
+// tickets; the payout run picks both up when due; Explore and Trending list only public, upcoming events from findable communities.
 // payWith "wallet" only stands in for "the card payment was checked" (it skips asking Paystack), as in tests/discounts.
 // Run: npm run test:giving-server → "GIVING SERVER OK".
 import assert from "node:assert/strict";
@@ -13,7 +14,7 @@ import { checkIn, checkInStats, myTickets, setTicketTypes, ticketCheckout, voidT
 import { fulfillPayment, type PaymentRecord } from "../../lib/payments";
 import { autoReleasePayouts } from "../../lib/payouts";
 import { quoteGift } from "../../lib/giving";
-import { showCode } from "../../lib/tickets";
+import { quoteTickets, showCode } from "../../lib/tickets";
 
 initializeApp({ projectId: "demo-notesapp" });
 const db = getFirestore();
@@ -108,10 +109,21 @@ const now = () => new Date().toISOString();
   assert.notEqual(mine[0].code, mine[1].code);
   shown = await E.getEvent(db, ev.id, "host");
   assert.deepEqual(shown.tickets[0], { id: "regular", name: "Regular", priceKobo: 500_000, left: 1, quantity: 3, sold: 2 }, "the sold count moved");
+  // Like a gift (owner, 2 Nov 2026): no commission, even on Pro. 2 × ₦5,000: ₦10 a ticket, and the card charge on ₦10,000 (₦250).
   led = (await db.doc("ledger/TIX1").get()).data()!;
-  const commission = Math.round(1_000_000 * tk.commissionRate);
-  assert.ok(tk.commissionRate > 0);
-  assert.deepEqual([led.kind, led.publisherUid, led.grossKobo, led.commissionKobo, led.netKobo, led.releaseAfter], ["ticket", "host", 1_000_000, commission, 1_000_000 - commission, tk.info.endsAt]);
+  assert.equal(tk.commissionRate, 0);
+  assert.deepEqual([tk.info.bandKobo, tk.info.cardChargeKobo, tk.info.netKobo], [2_000, 25_000, 973_000]);
+  assert.deepEqual(quoteTickets(500_000, 2), { grossKobo: 1_000_000, bandKobo: 2_000, cardChargeKobo: 25_000, netKobo: 973_000 });
+  assert.deepEqual([led.kind, led.publisherUid, led.grossKobo, led.commissionKobo, led.netKobo, led.cardChargeKobo, led.releaseAfter], ["ticket", "host", 975_000, 2_000, 973_000, 25_000, tk.info.endsAt]);
+  assert.equal(led.grossKobo - led.commissionKobo, led.netKobo, "nothing beyond the band");
+
+  // A ticket bought before the change (no charges on its payment) keeps the commission it was sold with.
+  const old = await ticketCheckout(db, "bisi", { eventId: ev2.id, typeId: "regular", quantity: 1 });
+  const { bandKobo: _b, cardChargeKobo: _c, netKobo: _n, ...oldInfo } = old.info;
+  await db.doc("payments/TIXOLD").set({ ...tp, reference: "TIXOLD", uid: "bisi", amountKobo: old.amountKobo, commissionRate: 0.25, ticket: oldInfo } satisfies PaymentRecord);
+  assert.equal((await fulfillPayment("TIXOLD")).status, "paid");
+  const oldLed = (await db.doc("ledger/TIXOLD").get()).data()!;
+  assert.deepEqual([oldLed.grossKobo, oldLed.commissionKobo, oldLed.netKobo, "cardChargeKobo" in oldLed], [200_000, 50_000, 150_000, false]);
 
   // check-in: valid → already checked in → not for this event → not a ticket
   await fails(checkIn(db, "ada", ev.id, mine[0].code), 403);
@@ -147,10 +159,36 @@ const now = () => new Date().toISOString();
   assert.deepEqual(await checkIn(db, "host", ev.id, mine[1].code), { state: "refunded", name: "Ada Obi", type: "Regular" });
   assert.equal((await E.getEvent(db, ev.id, "ada")).tickets[0].left, 3, "back on sale");
 
+  // ---- Explore and Trending list events ----
+  // Listed: public, upcoming, not cancelled, not from an invite-only community. Not listed: members-only, cancelled, over, invite-only.
+  const membersOnly = await E.createEvent(db, "pastor", { cid: c.id, title: "Members' meeting", startsAt: new Date(Date.now() + 2 * 86_400_000).toISOString(), place: "Hall", visibility: "members" });
+  const chapelOpen = await E.createEvent(db, "pastor", { cid: c.id, title: "Open service", startsAt: new Date(Date.now() + 5 * 86_400_000).toISOString(), place: "Chapel" });
+  const cancelled = await E.createEvent(db, "host", { title: "Called off", startsAt: new Date(Date.now() + 86_400_000).toISOString(), place: "Hall" });
+  await E.cancelEvent(db, "host", cancelled.id);
+  const past = await E.createEvent(db, "host", { title: "Last week", startsAt: new Date(Date.now() + 86_400_000).toISOString(), place: "Hall" });
+  await db.doc(`events/${past.id}`).update({ startsAt: new Date(Date.now() - 30 * 3_600_000).toISOString(), endsAt: new Date(Date.now() - 28 * 3_600_000).toISOString(), nextStartAt: new Date(Date.now() - 30 * 3_600_000).toISOString() });
+  const hidden = await C.createCommunity(db, "org", { name: "Board room" });
+  await db.doc(`communities/${hidden.id}`).update({ joinMode: "invite" });
+  const secret = await E.createEvent(db, "org", { cid: hidden.id, title: "Board dinner", startsAt: new Date(Date.now() + 2 * 86_400_000).toISOString(), place: "Lounge" });
+  const listed = (await E.listedEvents(db)).map((e) => e.title);
+  assert.deepEqual(listed, ["Gospel concert", "Another night", "Open service"], "soonest first, only what anyone may see");
+  for (const x of [membersOnly, cancelled, past, secret]) assert.ok(!listed.includes(x.title), `${x.title} isn't listed`);
+  // Trending: a ticket counts 5, an RSVP 3, a visit 1, in the period. Events with no interest yet follow, soonest first.
+  await E.rsvp(db, "ada", chapelOpen.id, "going");
+  await E.rsvp(db, "bisi", chapelOpen.id, "interested");
+  const tr = await E.trendingEvents(db, 7, new Map([[ev2.id, 4], [secret.id, 99]]));
+  assert.deepEqual(tr.map((e) => [e.title, e.tickets, e.rsvps, e.views, e.score]), [
+    ["Another night", 1, 0, 4, 9], // the older ticket (TIXOLD) and 4 visits
+    ["Open service", 0, 2, 0, 6],
+    ["Gospel concert", 1, 0, 0, 5], // TIX1 was refunded; TIX2 (VIP) still counts
+  ]);
+  assert.ok(!tr.some((e) => e.id === secret.id), "an invite-only community's event never trends");
+
   // the payout run: gifts once their day has passed, tickets once the event is over (plus the report window)
   const sent: string[] = [];
   const transfer = async (a: { reference: string }) => { sent.push(a.reference); return { transfer_code: `TRF_${a.reference}`, status: "success" } as never; };
   await db.doc("ledger/TIX1").update({ status: "refunded" });
+  await db.doc("ledger/TIXOLD").update({ status: "refunded" });
   assert.equal(await autoReleasePayouts({ transfer }), 0, "nothing due yet");
   const day = 86_400_000;
   await db.doc("ledger/GIVE1").update({ releaseAfter: new Date(Date.now() - 60_000).toISOString() });

@@ -6,7 +6,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { effectiveTier, getUserByUsername } from "@/lib/users";
 import { getTierConfig } from "@/lib/tiers";
-import { MAIN_HOST, isMainHost } from "@/lib/host";
+import { isMainHost, mainSiteUrl } from "@/lib/host";
 import { domainForUid } from "@/lib/domains";
 import { SiteProvider } from "@/components/site/SiteContext";
 import SiteBasketButton from "@/components/site/SiteBasketButton";
@@ -53,7 +53,7 @@ export default async function SiteLayout({ children, params }: Props) {
     return (
       <div className="mx-auto max-w-md px-4 py-24 text-center">
         <p className="font-display text-2xl text-ink">This site isn&apos;t available.</p>
-        <a href={`https://${MAIN_HOST}`} className="mt-4 inline-block text-sm text-crimson underline">Go to #NotesApp</a>
+        <a href={mainSiteUrl(headers().get("host"))} className="mt-4 inline-block text-sm text-crimson underline">Go to #NotesApp</a>
       </div>
     );
   }
@@ -61,6 +61,9 @@ export default async function SiteLayout({ children, params }: Props) {
   const avatar = p.avatar || DEFAULT_AVATAR;
   const host = (headers().get("host") || "").toLowerCase().replace(/:\d+$/, "");
   const base = isMainHost(host) ? `/s/${p.username}` : "";
+  // "Powered by #NotesApp" goes to the main site of the domain being viewed (www.naapp.tech/s/<user> → www.naapp.tech); on a member's
+  // own domain, to the primary address from NEXT_PUBLIC_ROOT_DOMAIN (lib/host.ts mainSiteUrl). Never a written-in domain.
+  const notesappUrl = mainSiteUrl(host);
   // Business: "Name is powered by [na] #NotesApp". Enterprise: "Name, powered by [na]" — just the icon.
   const fullLabel = getTierConfig(effectiveTier(p)).whiteLabel === "full";
   const tier = effectiveTier(p);
@@ -147,7 +150,7 @@ export default async function SiteLayout({ children, params }: Props) {
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src={avatar} alt="" className="h-4 w-4 shrink-0 rounded object-cover" />
               <span>{fullLabel ? `${p.displayName}, powered by` : `${p.displayName} is powered by`}</span>
-              <a href={`https://${MAIN_HOST}`} aria-label="#NotesApp" className="inline-flex items-center gap-1.5 font-semibold text-paper/80 hover:text-paper">
+              <a href={notesappUrl} aria-label="#NotesApp" className="inline-flex items-center gap-1.5 font-semibold text-paper/80 hover:text-paper">
                 <Image src="/images/brand/notesapp-icon.webp" alt="" width={16} height={16} className="h-4 w-4 rounded" />
                 {!fullLabel && "#NotesApp"}
               </a>

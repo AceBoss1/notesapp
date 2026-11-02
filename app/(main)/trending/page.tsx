@@ -10,16 +10,20 @@ import { NameBadgeIcons } from "@/components/PersonName";
 import { hashtag } from "@/lib/topics";
 import { useInterests } from "@/lib/interests-client";
 import { ACADEMY_LIVE, courseHref, plural } from "@/lib/courses";
+import { whenText } from "@/lib/events";
 
 // Trending (/trending): the most visited journals, store items, courses and publishers, with the same tabs as profiles (Notes ·
-// Store · Courses) plus Publishers. Journals can be narrowed to a topic, the reader's interests first.
+// Store · Courses) plus Events, Communities and Publishers. Events: public and upcoming, by tickets sold, RSVPs and visits in the period. Journals can be narrowed to a topic, the reader's interests first.
 type Post = { id: string; slug: string; title: string; author: string; authorUsername?: string; views: number; date: string; topics?: string[]; featured_image?: string };
 type Publisher = { username: string; displayName: string; avatar: string; views: number; posts: number };
 type Item = { id: string; title: string; price: string; image: string; digital: boolean; seller: string; sellerUsername: string; sellerIsOrg: boolean; views: number; favs: number; rating?: number; reviews?: number };
 type Course = { id: string; slug: string; title: string; cover: string; teacher: string; teacherUsername: string; lessons: number; enrolled: number; views: number };
-type Data = { basis: string; posts: Post[]; publishers: Publisher[]; items: Item[]; courses?: Course[] };
-type Tab = "notes" | "store" | "courses" | "communities" | "publishers";
-const TABS: { id: Tab; label: string }[] = [{ id: "notes", label: "Notes" }, { id: "store", label: "Store" }, { id: "courses", label: "Courses" }, { id: "communities", label: "Communities" }, { id: "publishers", label: "Publishers" }];
+type TrendingEvent = { id: string; title: string; nextStartAt: string; startsAt: string; endsAt: string; place: string; city: string; state: string; hostName: string; communityName?: string; going: number; views: number; rsvps: number; tickets: number; score: number };
+type Data = { basis: string; posts: Post[]; publishers: Publisher[]; items: Item[]; courses?: Course[]; events?: TrendingEvent[] };
+type Tab = "notes" | "store" | "courses" | "events" | "communities" | "publishers";
+const TABS: { id: Tab; label: string }[] = [{ id: "notes", label: "Notes" }, { id: "store", label: "Store" }, { id: "courses", label: "Courses" }, { id: "events", label: "Events" }, { id: "communities", label: "Communities" }, { id: "publishers", label: "Publishers" }];
+// An event's next start and end, for the line under its title.
+const eventWhen = (e: TrendingEvent) => { const s = new Date(e.nextStartAt); return whenText(s, new Date(s.getTime() + new Date(e.endsAt).getTime() - new Date(e.startsAt).getTime())); };
 type TrendingCommunity = { id: string; name: string; tagline: string; avatar: string; memberCount: number; verified: boolean; posts: number; comments: number; joined: number; score: number };
 
 export default function TrendingPage() {
@@ -67,7 +71,7 @@ export default function TrendingPage() {
         <div className="mx-auto max-w-6xl px-5 py-10 sm:px-8 sm:py-14">
           <p className="font-mono text-xs uppercase tracking-eyebrow text-paper/80">Trending</p>
           <h1 className="mt-3 font-display text-[2.6rem] leading-[1.1] sm:text-5xl">Most visited on #NotesApp</h1>
-          <p className="mt-4 max-w-2xl text-[17px] text-paper/90 sm:text-base">{days === 1 ? "Today" : "This week"}, across journals, stores, courses and communities. Refreshed every few minutes.</p>
+          <p className="mt-4 max-w-2xl text-[17px] text-paper/90 sm:text-base">{days === 1 ? "Today" : "This week"}, across journals, stores, courses, events and communities. Refreshed every few minutes.</p>
           <label className="relative mt-6 inline-flex">
             <span className="sr-only">Period</span>
             <select value={days} onChange={(e) => setDays(Number(e.target.value))} className="appearance-none rounded-full bg-card py-3 pl-16 pr-20 font-ui text-base font-semibold text-ink outline-none sm:py-2.5 sm:pl-10 sm:pr-12 sm:text-sm">
@@ -127,6 +131,15 @@ export default function TrendingPage() {
           </div>
         )}
 
+        {data && tab === "events" && (
+          <>
+            <p className="mb-3 text-xs text-slate">Public events that haven&apos;t happened yet, ranked by interest in this period: a ticket sold counts most, then a Going or Interested, then a visit. Members-only events aren&apos;t listed. <Link href="/events" className="font-semibold text-crimson">All upcoming events</Link></p>
+            {(data.events ?? []).length === 0 ? <p className="py-6 text-sm text-slate">No upcoming public events yet. <Link href="/events" className="font-semibold text-crimson">Add one</Link>.</p> : (
+              <RankedList rows={(data.events ?? []).map((e) => ({ key: e.id, href: `/events/${e.id}`, title: e.title, count: e.views + e.rsvps + e.tickets, unit: "activity", sub: <>{eventWhen(e)}{e.city ? ` · ${e.city}` : ""} · {e.communityName || e.hostName}{e.going ? ` · ${e.going} going` : ""}{e.tickets ? ` · ${plural(e.tickets, "ticket")} sold` : ""}</> }))} />
+            )}
+          </>
+        )}
+
         {tab === "communities" && (
           <>
             <p className="mb-3 text-xs text-slate">Communities anyone can find, ranked by what happened in them: new members count most, then posts, then comments. Invite-only communities aren&apos;t listed. <Link href="/explore?tab=communities" className="font-semibold text-crimson">All communities</Link></p>
@@ -154,7 +167,7 @@ export default function TrendingPage() {
             ))}
           </ol>
         )}
-        {data && tab !== "communities" && <p className="mt-4 text-xs text-slate">Views in the {data.basis}.</p>}
+        {data && tab !== "communities" && tab !== "events" && <p className="mt-4 text-xs text-slate">Views in the {data.basis}.</p>}
         <BadgeToast />
       </section>
     </>
