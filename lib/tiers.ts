@@ -47,6 +47,12 @@ export type TierConfig = {
   // Email for new messages (Business and Enterprise only, off until switched on, at most one an hour): every email counts against our
   // sending quota, so it is a paid feature. The bell, and device notifications, stay free for everyone.
   messageEmails?: boolean;
+  // Notes Academy (docs/COURSES.md): free courses on every publishing plan, paid courses (text lessons, PDFs and YouTube) on Pro and
+  // up, and uploaded video lessons on paid courses for Business and Enterprise. These are the built-in defaults: an admin turns each
+  // on or off per plan in Admin → Limits (lib/limits.ts, the "Courses" rows), so read them through lib/limits.ts, not from here.
+  freeCourses?: boolean;
+  paidCourses?: boolean;
+  courseVideoUploads?: boolean;
 };
 
 export const TIERS: TierConfig[] = [
@@ -67,6 +73,7 @@ export const TIERS: TierConfig[] = [
     price: "₦0",
     priceNote: "free forever",
     canPublish: true,
+    freeCourses: true,
     adRevenueShare: 0,
     sessionAndUnlockCommission: 0.35,
     physicalCommission: 0.06,
@@ -80,6 +87,8 @@ export const TIERS: TierConfig[] = [
     monthlyKobo: 5_000 * 100,
     yearlyKobo: 50_000 * 100,
     canPublish: true,
+    freeCourses: true,
+    paidCourses: true,
     adRevenueShare: 0.25,
     sessionAndUnlockCommission: 0.25,
     physicalCommission: 0.04,
@@ -96,6 +105,9 @@ export const TIERS: TierConfig[] = [
     whiteLabel: "partial",
     messageEmails: true,
     canPublish: true,
+    freeCourses: true,
+    paidCourses: true,
+    courseVideoUploads: true,
     adRevenueShare: 0.45,
     sessionAndUnlockCommission: 0.15,
     physicalCommission: 0.025,
@@ -118,6 +130,9 @@ export const TIERS: TierConfig[] = [
     apiAccess: true,
     whiteLabel: "full",
     messageEmails: true,
+    freeCourses: true,
+    paidCourses: true,
+    courseVideoUploads: true,
   },
 ];
 

@@ -231,6 +231,20 @@ on `main` that isn't understood is raised with the owner first.
     dependency) by `statementFromPdfLines`; a scan asks for CSV. **Open question:** Bumpa's customer export (and some bank apps) give
     Excel only; there's still no xlsx reader, so the wizard asks for CSV. The owner decided on 2 Nov 2026: no Excel library; sellers save Excel files as CSV (the wizard says how). Fixtures
     in `tests/books/fixtures/`, tests in `test:books` and `test:books-server`.
+92. **Courses step 3: course plans and limits in Admin → Limits (v0.122.0, branch `push/course-limits`):** no deploy step (no new
+    collections or indexes; `serverConfig/limits` already exists and is server-only; course lessons gain `fileBytes` on PDFs and
+    `videoSeconds` on videos, written by the server). `lib/limits.ts` has a Courses group: three switches (`freeCourses`,
+    `paidCourses`, `courseVideoUploads`, `kind: "switch"`, 0/1, shown as tick boxes) whose defaults come from the new flags in
+    `lib/tiers.ts`, and `coursesPerMember` (30), `coursesPerOrganisation` (90), `courseStorageGB` and `courseVideoHours` (0 = no limit,
+    `noLimitAt0`). `canSellCourses` / `canUploadVideo` / `canTeachFreeCourses` / `canMakeCourses` / `courseCap` in `lib/courses.ts`
+    take the saved overrides; with none they give exactly the old answers. Enforced in `lib/courses-server.ts` (`createCourse`,
+    `updateCourse` price, `setPublished` free and paid, `checkUploadStart` for the upload route, `checkUpload` on lesson save with
+    `uploadUse` across all the owner's courses; an edit that keeps the same upload is never stopped) and `courseCheckout`. Messages
+    name the plans from the settings (`onPlans`), as do the editor, the Teach page (`maxCourses` from `teachingStatus`) and the
+    pricing page's courses row and section. PDFs and videos uploaded before v0.122.0 have no measured size: a PDF counts as 0 bytes and
+    a video by its minutes, which only matters once an admin sets a storage or hours cap. Marketing copy elsewhere (about, roadmap,
+    Academy landing, FAQ) still describes the defaults in words. Tests: `test:limits` (new, in CI), `test:courses`,
+    `test:courses-server` (adds `tests/courses/limits.emulator.ts`).
 
 All of these are on the team hub board with departments and dates (`lib/team-seed.ts`: `FUND_BACKLOG`, `LAUNCH_BACKLOG`, `COURSES_BACKLOG`, `TOPICS_BACKLOG`, `BIMI_BACKLOG`). Items can have several people (`ownerUids`; `ownerUid` stays as the first of them for older readers) and can repeat monthly (`repeat: "monthly"`: done moves the due date on a month).
 

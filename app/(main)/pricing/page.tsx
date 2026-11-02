@@ -10,6 +10,8 @@ import UpgradeButton from "@/components/UpgradeButton";
 import TrialButton from "@/components/TrialButton";
 import { LIMITS, formatNaira } from "@/lib/booking-time";
 import { limitTable, type LimitTable } from "@/lib/limits";
+import { onPlans } from "@/lib/courses";
+import { canHaveTeam } from "@/lib/org";
 import { getAdminDb } from "@/lib/firebase-admin";
 import { getLimitTable } from "@/lib/limits-server";
 import { CALLS_LIVE, MESSAGES_LIVE, MOMENTS_LIVE } from "@/lib/moments-rules";
@@ -30,6 +32,21 @@ export const metadata: Metadata = {
 export const revalidate = 60;
 
 type Row = { label: string; href?: string; render: (t: (typeof TIERS)[number], L: LimitTable) => string; show?: boolean };
+// The courses row, from the plan switches and numbers set in Admin → Limits (the defaults in lib/tiers.ts and lib/limits.ts).
+function courseRow(t: (typeof TIERS)[number], L: LimitTable): string {
+  const learn = `Take free courses, or buy paid ones by card, bank transfer or wallet; a certificate on a free course costs from ${certificateMin()}`;
+  const free = L.freeCourses[t.tier] > 0, paid = L.paidCourses[t.tier] > 0, video = paid && L.courseVideoUploads[t.tier] > 0;
+  if (!t.canPublish || (!free && !paid)) return t.canPublish ? `${learn}. Teaching courses comes with an upgrade` : learn;
+  const fee = formatPercent(t.digitalCommission, t.digitalCommissionFloor);
+  const kinds = !paid
+    ? `Free courses, free to publish, with lessons from your own YouTube. Learners pay from ${certificateMin()} plus your margin for the certificate`
+    : `${free ? "Free and paid courses" : "Paid courses"}, paid ones with text lessons, PDFs and YouTube${video ? ", and your own uploaded videos" : ""}, for the same fee as your digital items (${fee})`;
+  const caps = [`up to ${L.coursesPerMember[t.tier]} courses${canHaveTeam(t.tier) ? ` (${L.coursesPerOrganisation[t.tier]} as an organisation, with co-tutors)` : ""}`];
+  if (paid && L.courseStorageGB[t.tier] > 0) caps.push(`${L.courseStorageGB[t.tier]} GB of PDFs`);
+  if (video && L.courseVideoHours[t.tier] > 0) caps.push(`${L.courseVideoHours[t.tier]} hours of uploaded video`);
+  const extra = t.tier === "enterprise" ? `. Two packages on top of Enterprise: Enterprise Courses (${enterpriseCoursesPrice()}/month) and the Enterprise Academy API (from ${academyApiFrom()}/month plus usage)` : "";
+  return `${kinds}; ${caps.join(", ")}${extra}`;
+}
 // No setting holds the certificate minimum yet (docs/COURSES.md, decision 3), so it is written here once.
 const TEAM_HUB_NOTE = "The Team hub and team messages are coming as a paid add-on for Business and Enterprise after our internal testing";
 const YOUR_SITE = "Your site: every kit, the Clean, Legacy, Aurora or Maroon look with your colours, your sections, Journals, Shop, Courses and Track, and About and Contact pages.";
@@ -125,16 +142,7 @@ const ROWS: Row[] = [
   {
     label: "Courses in Notes Academy",
     href: "/academy",
-    render: (t) =>
-      !t.canPublish
-        ? `Take free courses, or buy paid ones by card, bank transfer or wallet; a certificate on a free course costs from ${certificateMin()}`
-        : t.tier === "basic"
-          ? `Free courses, free to publish, with lessons from your own YouTube. Learners pay from ${certificateMin()} plus your margin for the certificate`
-          : t.tier === "enterprise"
-            ? `Free and paid courses, and two packages on top of Enterprise: Enterprise Courses (${enterpriseCoursesPrice()}/month) and the Enterprise Academy API (from ${academyApiFrom()}/month plus usage)`
-            : t.tier === "pro"
-              ? `Free courses, and paid courses with text lessons, PDFs and YouTube, for the same fee as your digital items (${formatPercent(t.digitalCommission, t.digitalCommissionFloor)})`
-              : `Free and paid courses, including your own uploaded videos, for the same fee as your digital items (${formatPercent(t.digitalCommission, t.digitalCommissionFloor)}); teach as your organisation, with co-tutors`,
+    render: (t, L) => courseRow(t, L),
   },
   {
     label: "Quizzes on courses",
@@ -404,9 +412,9 @@ export default async function PricingPage() {
         <p id="courses-pricing" className="font-ui text-sm font-bold text-ink">Courses in Notes Academy</p>
         <ul className="mt-3 list-disc space-y-2 pl-5 text-sm text-slate">
           <li><strong className="text-ink">Covers made with Nana</strong> for any course, free or paid: {coversPerDay("basicDaily")} a day on Free Basic, {coversPerDay("proDaily")} on Pro, {coversPerDay("businessDaily")} on Business and {coversPerDay("enterpriseDaily")} on Enterprise. Each new cover and each edit counts one, and Nana&apos;s design comes from your Nana allowance (then credit).</li>
-          <li><strong className="text-ink">Free courses are free to publish</strong> on every publishing plan, with lessons from your own YouTube that play inside #NotesApp, and free for learners to take.</li>
+          <li><strong className="text-ink">Free courses are free to publish</strong> {onPlans("freeCourses", L)}, with lessons from your own YouTube that play inside #NotesApp, and free for learners to take.</li>
           <li><strong className="text-ink">Certificates on free courses are paid:</strong> the learner pays from {certificateMin()}, plus the margin you set. We keep {certificateMin()} and our usual commission on your margin; the rest of the margin is yours.</li>
-          <li><strong className="text-ink">Paid courses</strong>, with the same fee as your digital items: on Pro ({planRate("pro", "digital")}) with text lessons, PDFs and YouTube; on Business ({planRate("business", "digital")}) and Enterprise with your own uploaded videos too. Lessons stay private and play only for learners who paid, on up to two devices, with each viewer&apos;s details drifting across the video. Learners can get a refund within 7 days if they haven&apos;t started.</li>
+          <li><strong className="text-ink">Paid courses</strong>, with the same fee as your digital items (Pro {planRate("pro", "digital")}, Business {planRate("business", "digital")}): text lessons, PDFs and YouTube {onPlans("paidCourses", L)}, and your own uploaded videos too {onPlans("courseVideoUploads", L)}. How many courses, and any cap on PDF storage or video hours, is in the table above. Lessons stay private and play only for learners who paid, on up to two devices, with each viewer&apos;s details drifting across the video. Learners can get a refund within 7 days if they haven&apos;t started.</li>
           <li><strong className="text-ink">Co-tutors and organisations:</strong> teach alone, invite co-tutors who can view or also edit the course, with their share of each sale (each paid at their own plan&apos;s fee, agreed by them before they&apos;re listed), or teach as your organisation with your team.</li>
         </ul>
         <p className="mt-3 text-sm"><Link href="/academy" className="text-crimson underline underline-offset-2">Visit Notes Academy →</Link></p>

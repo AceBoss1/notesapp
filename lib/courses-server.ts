@@ -6,6 +6,8 @@ import type { Subtopic } from "./subtopics";
 import { weeklyViews } from "./discovery-server";
 import { canPublish, effectiveTier, type AccountTier, type UserProfile } from "./users";
 import { canHaveTeam, isOrganisation } from "./org";
+import { capOf, type LimitOverrides } from "./limits";
+import { getLimitOverrides } from "./limits-server";
 import { ownerVisitData, ownerVisitRef } from "./visits-server";
 import type { Source } from "./analytics";
 import { accessLabel, accessOf, accessRank, invitePath, isInviteAccess, type InviteAccess } from "./invite-terms";
@@ -13,10 +15,10 @@ import { InviteTermsError, checkAgreement, recordAgreement, tellMember, termsOnO
 import { CommunityError, communitiesIRun, createCommunity, memberOf, readCommunity } from "./community-server";
 import { SPACES_MAX, cleanSlug, cleanSpaceName, type Community, type Space } from "./community";
 import {
-  MAX_COURSES_PER_MEMBER, MAX_CO_TUTORS, MAX_LESSONS, MIN_LEAD_TUTOR_PERCENT, canSellCourses, canUploadVideo, cleanCourseFields, cleanLesson, cleanLink, cleanPrice,
+  MAX_CO_TUTORS, MAX_LESSONS, MIN_LEAD_TUTOR_PERCENT, canMakeCourses, canSellCourses, canTeachFreeCourses, canUploadVideo, courseCap, onPlans, uploadRoomProblem, cleanCourseFields, cleanLesson, cleanLink, cleanPrice,
   cleanVideoCredit, communityKindOf, courseRating, gradeQuiz, isPaid, leadTutorPercent, orderedLessons, publishProblems, quizAttemptId, quizForLearner, quizKeyId, slugify, tutorInviteId,
   QUIZ_PASS_DEFAULT,
-  type Course, type CourseListing, type CourseModule, type Enrolment, type Lesson, type LessonInput, type OutlineItem, type VideoCredit, type Quiz, type QuizGrade, type QuizKey, type Tutor, type TutorInvite, type CourseGroup, type CourseGroupRef,
+  type UploadUse, type Course, type CourseListing, type CourseModule, type Enrolment, type Lesson, type LessonInput, type OutlineItem, type VideoCredit, type Quiz, type QuizGrade, type QuizKey, type Tutor, type TutorInvite, type CourseGroup, type CourseGroupRef,
 } from "./courses";
 
 // Server-only. Notes Academy courses (docs/COURSES.md): every write to courses/{id}, courses/{id}/lessons/{lessonId},
@@ -32,7 +34,6 @@ const safeId = (id: unknown) => typeof id === "string" && /^[A-Za-z0-9_-]{1,64}$
 const iso = (now: Date) => now.toISOString();
 const dayKey = (now: Date) => now.toISOString().slice(0, 10);
 const strings = (v: unknown) => (Array.isArray(v) ? v.map(String) : []);
-const MAX_COURSES_PER_ORG = MAX_COURSES_PER_MEMBER * 3;
 
 export function courseOf(id: string, d: FirebaseFirestore.DocumentData): Course {
   const priceKobo = Number(d.priceKobo) || 0;
@@ -63,6 +64,7 @@ export function lessonOf(id: string, d: FirebaseFirestore.DocumentData): Lesson 
     ...(d.preview === true ? { preview: true } : {}), ...(d.moduleId ? { moduleId: String(d.moduleId) } : {}),
     ...(kind === "youtube" && cleanVideoCredit(d.videoCredit) ? { videoCredit: cleanVideoCredit(d.videoCredit)! } : {}),
     ...(d.streamUid ? { streamUid: String(d.streamUid) } : {}), ...(d.fileKey ? { fileKey: String(d.fileKey), fileName: String(d.fileName ?? "") } : {}),
+    ...(Number(d.fileBytes) > 0 ? { fileBytes: Number(d.fileBytes) } : {}), ...(Number(d.videoSeconds) > 0 ? { videoSeconds: Number(d.videoSeconds) } : {}),
     ...(kind === "quiz" ? { quiz: quizOf(d.quiz) } : {}),
   };
 }
@@ -187,9 +189,12 @@ export async function createCourse(db: Firestore, uid: string, body: Record<stri
     ownerUid = body.orgUid;
   } else owner = await teacher(db, uid);
   const isOrg = ownerUid !== uid;
+  // The owner's plan, as set in Admin → Limits: may it make courses, and how many.
+  const o = await getLimitOverrides(db), tier = tierOf(owner);
+  if (!canMakeCourses(tier, o)) throw new CourseError(`Courses are ${onPlans("freeCourses", o)}. Upgrade to teach${isOrg ? " as this organisation" : ""}.`, 403);
+  const max = courseCap(tier, isOrg, o);
   const mine = await db.collection("courses").where("ownerUid", "==", ownerUid).count().get();
-  const max = isOrg ? MAX_COURSES_PER_ORG : MAX_COURSES_PER_MEMBER;
-  if (mine.data().count >= max) throw new CourseError(`${isOrg ? "An organisation" : "You"} can have up to ${max} courses. Delete one you no longer need first.`, 409);
+  if (mine.data().count >= max) throw new CourseError(`${isOrg ? "An organisation" : "You"} can have up to ${max} course${max === 1 ? "" : "s"} on ${isOrg ? "its" : "your"} plan. Delete one you no longer need first.`, 409);
   const ref = db.collection("courses").doc();
   const slug = await reserveSlug(db, f.title, ref.id);
   const data = {
@@ -253,7 +258,8 @@ async function groupChoices(db: Firestore, uid: string): Promise<GroupChoice[]> 
 }
 export type EditorView = {
   course: Course; lessons: Lesson[]; access: CourseAccess; links: CourseLinks; invites: TutorInvite[];
-  plan: { tier: AccountTier; canSell: boolean; canUploadVideo: boolean; payoutsReady: boolean };
+  // What the owner's plan allows (Admin → Limits), and which plans have it, for the editor's copy ("on Pro, Business and Enterprise plans").
+  plan: { tier: AccountTier; canSell: boolean; canUploadVideo: boolean; payoutsReady: boolean; paidPlans: string; videoPlans: string };
   communities: GroupChoice[];
 };
 // One of the member's courses with its lessons in order (the editor, and the preview of a draft), by id or by address. Co-tutors who
@@ -263,9 +269,9 @@ export async function courseForOwner(db: Firestore, uid: string, by: { id?: stri
   if (!id && by.slug) id = (await db.doc(`courseSlugs/${by.slug}`).get()).data()?.courseId;
   if (!id) throw new CourseError("That course doesn't exist (any more).", 404);
   const { ref, c, access } = await editable(db, uid, id, need);
-  const [ls, links, inv, owner, payout, communities] = await Promise.all([
+  const [ls, links, inv, owner, payout, communities, o] = await Promise.all([
     ref.collection("lessons").orderBy("order").get(), linksOf(db, id), db.collection("courseTutorInvites").where("courseId", "==", id).get(),
-    db.doc(`users/${c.ownerUid}`).get(), db.doc(`payoutAccounts/${c.ownerUid}`).get(), groupChoices(db, uid),
+    db.doc(`users/${c.ownerUid}`).get(), db.doc(`payoutAccounts/${c.ownerUid}`).get(), groupChoices(db, uid), getLimitOverrides(db),
   ]);
   const plain = orderedLessons(ls.docs.map((d) => lessonOf(d.id, d.data())), c.modules);
   const quizzes = plain.filter((l) => l.kind === "quiz");
@@ -276,7 +282,10 @@ export async function courseForOwner(db: Firestore, uid: string, by: { id?: stri
   return {
     course: c, lessons, access, links,
     invites: inv.docs.map((d) => d.data() as TutorInvite).filter((i) => i.status === "pending" || i.status === "accepted").sort((a, b) => a.createdAt.localeCompare(b.createdAt)),
-    plan: { tier, canSell: canSellCourses(tier), canUploadVideo: canUploadVideo(tier), payoutsReady: !!payout.data()?.recipientCode },
+    plan: {
+      tier, canSell: canSellCourses(tier, o), canUploadVideo: canUploadVideo(tier, o), payoutsReady: !!payout.data()?.recipientCode,
+      paidPlans: onPlans("paidCourses", o), videoPlans: onPlans("courseVideoUploads", o),
+    },
     communities,
   };
 }
@@ -303,7 +312,8 @@ export async function updateCourse(db: Firestore, uid: string, id: string, body:
   if (body.priceKobo !== undefined || body.priceNaira !== undefined) {
     const price = cleanPrice(body as { priceKobo?: unknown; priceNaira?: unknown });
     if (typeof price === "string") throw new CourseError(price);
-    if (price > 0 && !canSellCourses(tierOf(owner))) throw new CourseError("Paid courses are for Pro, Business and Enterprise plans. Upgrade to sell this course, or keep it free.", 403);
+    const o = await getLimitOverrides(db);
+    if (price > 0 && !canSellCourses(tierOf(owner), o)) throw new CourseError(`Paid courses are ${onPlans("paidCourses", o)}. Upgrade to sell this course, or keep it free.`, 403);
     if (price === 0 && isPaid(c)) {
       const uploads = (await ref.collection("lessons").where("kind", "in", ["video", "pdf"]).limit(1).get()).size;
       if (uploads) throw new CourseError("Uploaded videos and PDFs are for paid courses. Remove them (or use YouTube links) before making the course free.", 409);
@@ -438,8 +448,10 @@ export async function setPublished(db: Firestore, uid: string, id: string, publi
   if (publish) {
     const missing = publishProblems(c, c.lessonIds.length);
     if (missing.length) throw new CourseError(`Before publishing, add ${missing.join(", ").replace(/, ([^,]*)$/, " and $1")}.`);
+    const o = await getLimitOverrides(db);
+    if (!isPaid(c) && !canTeachFreeCourses(tierOf(owner), o)) throw new CourseError(`Publishing free courses is ${onPlans("freeCourses", o)}. Upgrade to publish this course.`, 403);
     if (isPaid(c)) {
-      if (!canSellCourses(tierOf(owner))) throw new CourseError("Paid courses are for Pro, Business and Enterprise plans. Upgrade, or make the course free.", 403);
+      if (!canSellCourses(tierOf(owner), o)) throw new CourseError(`Paid courses are ${onPlans("paidCourses", o)}. Upgrade, or make the course free.`, 403);
       const payout = (await db.doc(`payoutAccounts/${c.ownerUid}`).get()).data();
       if (!payout?.recipientCode) throw new CourseError("Add the bank account your earnings are paid to first (Rates & payouts), then publish.", 409);
     }
@@ -455,20 +467,62 @@ export type UploadChecks = {
   video: (uid: string) => Promise<{ creator?: string; duration?: number } | null>;
   file: (key: string) => Promise<{ size: number } | null>;
 };
-async function checkUpload(db: Firestore, c: Course, l: LessonInput, checks?: UploadChecks): Promise<LessonInput> {
+// The PDFs and uploaded video already on the owner's courses (all of them, drafts too), for the plan's storage and video hours.
+// except: a lesson ("courseId/lessonId") being replaced, so it isn't counted twice.
+export async function uploadUse(db: Firestore, ownerUid: string, except = ""): Promise<UploadUse> {
+  const courses = await db.collection("courses").where("ownerUid", "==", ownerUid).select().get();
+  const lists = await Promise.all(courses.docs.map((c) => c.ref.collection("lessons").where("kind", "in", ["video", "pdf"]).get()));
+  const use: UploadUse = { pdfBytes: 0, videoMinutes: 0 };
+  lists.forEach((ls, i) => ls.docs.forEach((d) => {
+    if (`${courses.docs[i].id}/${d.id}` === except) return;
+    const l = lessonOf(d.id, d.data());
+    if (l.kind === "pdf") use.pdfBytes += l.fileBytes ?? 0;
+    else use.videoMinutes += l.videoSeconds ? l.videoSeconds / 60 : l.minutes ?? 0;
+  }));
+  return use;
+}
+// Throws when one more upload wouldn't fit the owner's plan (Admin → Limits: course storage and video hours). Nothing is read when the
+// plan has no limit (the default).
+export async function checkUploadRoom(db: Firestore, ownerUid: string, tier: AccountTier, kind: "video" | "pdf", add: Partial<UploadUse>, except = "", o?: LimitOverrides): Promise<void> {
+  const ov = o ?? await getLimitOverrides(db);
+  const cap = { storageGB: capOf("courseStorageGB", tier, ov), videoHours: capOf("courseVideoHours", tier, ov) };
+  if (!Number.isFinite(kind === "pdf" ? cap.storageGB : cap.videoHours)) return;
+  const problem = uploadRoomProblem(kind, await uploadUse(db, ownerUid, except), add, cap);
+  if (problem) throw new CourseError(problem, 409);
+}
+// The upload route's checks before handing out an upload address: the plan allows it, and there's room for it (a video's length isn't
+// known yet, so it needs room for at least a minute).
+export async function checkUploadStart(db: Firestore, c: Course, kind: unknown, bytes: number): Promise<void> {
+  if (kind !== "video" && kind !== "pdf") return;
+  const [owner, o] = await Promise.all([profileOf(db, c.ownerUid), getLimitOverrides(db)]);
+  const tier = tierOf(owner);
+  if (kind === "video" && !canUploadVideo(tier, o)) throw new CourseError(`Uploading videos is ${onPlans("courseVideoUploads", o)}. Add a YouTube link, a text lesson or a PDF instead.`, 403);
+  if (kind === "pdf" && !canSellCourses(tier, o)) throw new CourseError(`Uploading PDFs is ${onPlans("paidCourses", o)}.`, 403);
+  await checkUploadRoom(db, c.ownerUid, tier, kind, kind === "pdf" ? { pdfBytes: Math.max(0, bytes) || 0 } : { videoMinutes: 1 }, "", o);
+}
+async function checkUpload(db: Firestore, c: Course, l: LessonInput, checks?: UploadChecks, before?: Lesson | null): Promise<LessonInput> {
   if (l.kind !== "video" && l.kind !== "pdf") return l;
   if (!isPaid(c)) throw new CourseError("Uploaded videos and PDFs are for paid courses. Set a price first, or use a YouTube link.", 409);
-  const tier = tierOf(await profileOf(db, c.ownerUid));
-  if (l.kind === "video" && !canUploadVideo(tier)) throw new CourseError("Uploading videos is on Business and Enterprise plans. On Pro, add text lessons, PDFs or YouTube links.", 403);
-  if (l.kind === "pdf" && !canSellCourses(tier)) throw new CourseError("Uploading PDFs is on Pro, Business and Enterprise plans.", 403);
+  const [owner, o] = await Promise.all([profileOf(db, c.ownerUid), getLimitOverrides(db)]);
+  const tier = tierOf(owner);
+  if (l.kind === "video" && !canUploadVideo(tier, o)) throw new CourseError(`Uploading videos is ${onPlans("courseVideoUploads", o)}. Add text lessons, PDFs or YouTube links instead.`, 403);
+  if (l.kind === "pdf" && !canSellCourses(tier, o)) throw new CourseError(`Uploading PDFs is ${onPlans("paidCourses", o)}.`, 403);
   if (!checks) throw new CourseError("Uploads aren't available right now.", 503);
+  // The same upload kept on an edited lesson (a new title, say) adds nothing, so it's never stopped by a limit lowered since.
+  const same = !!before && (l.kind === "video" ? before.streamUid === l.streamUid : before.fileKey === l.fileKey);
+  const except = before ? `${c.id}/${before.id}` : "";
   if (l.kind === "video") {
     const v = await checks.video(l.streamUid!);
     if (!v || (v.creator && v.creator !== c.ownerUid)) throw new CourseError("That video wasn't found. Upload it again.", 404);
-    return { ...l, minutes: l.minutes ?? (v.duration && v.duration > 0 ? Math.max(1, Math.round(v.duration / 60)) : null) };
+    const seconds = v.duration && v.duration > 0 ? Math.round(v.duration) : 0;
+    if (!same) await checkUploadRoom(db, c.ownerUid, tier, "video", { videoMinutes: seconds ? seconds / 60 : l.minutes ?? 1 }, except, o);
+    return { ...l, minutes: l.minutes ?? (seconds ? Math.max(1, Math.round(seconds / 60)) : null), ...(seconds ? { videoSeconds: seconds } : {}) };
   }
-  if (!l.fileKey!.startsWith(`courses/${c.id}/`) || !(await checks.file(l.fileKey!))) throw new CourseError("That PDF wasn't found. Upload it again.", 404);
-  return l;
+  if (!l.fileKey!.startsWith(`courses/${c.id}/`)) throw new CourseError("That PDF wasn't found. Upload it again.", 404);
+  const f = await checks.file(l.fileKey!);
+  if (!f) throw new CourseError("That PDF wasn't found. Upload it again.", 404);
+  if (!same) await checkUploadRoom(db, c.ownerUid, tier, "pdf", { pdfBytes: f.size || 0 }, except, o);
+  return { ...l, ...(f.size > 0 ? { fileBytes: f.size } : {}) };
 }
 
 async function editLessons<T>(db: Firestore, uid: string, courseId: string, now: Date,
@@ -490,6 +544,7 @@ export const lessonFields = (l: LessonInput, order: number): Omit<Lesson, "id"> 
   ...(l.kind === "youtube" && l.videoCredit ? { videoCredit: l.videoCredit } : {}),
   ...(l.preview ? { preview: true } : {}), ...(l.moduleId ? { moduleId: l.moduleId } : {}),
   ...(l.streamUid ? { streamUid: l.streamUid } : {}), ...(l.fileKey ? { fileKey: l.fileKey, fileName: l.fileName ?? "" } : {}),
+  ...(l.kind === "pdf" && l.fileBytes ? { fileBytes: l.fileBytes } : {}), ...(l.kind === "video" && l.videoSeconds ? { videoSeconds: l.videoSeconds } : {}),
   ...(l.quiz ? { quiz: quizForLearner(l.quiz) } : {}), // the questions only: the answers go to quizKeys
 });
 // A quiz's answers and explanations, kept apart from the lesson (written in the same transaction).
@@ -531,7 +586,8 @@ export async function updateLesson(db: Firestore, uid: string, courseId: string,
   if (typeof raw === "string") throw new CourseError(raw);
   const { c } = await editable(db, uid, courseId, "tutor");
   const before = safeId(lessonId) ? await db.doc(`courses/${courseId}/lessons/${lessonId}`).get() : null;
-  const l = await withCredit(moduleOk(c, await checkUpload(db, c, raw, checks)), before?.exists ? lessonOf(before.id, before.data()!) : null, credit);
+  const was = before?.exists ? lessonOf(before.id, before.data()!) : null;
+  const l = await withCredit(moduleOk(c, await checkUpload(db, c, raw, checks, was)), was, credit);
   return editLessons(db, uid, courseId, now, (t, { ref, lessons }) => {
     const old = lessons.find((x) => x.id === lessonId);
     if (!old) throw new CourseError("That lesson doesn't exist (any more).", 404);
@@ -878,6 +934,12 @@ const listing = ttlCache(60_000, () => buildListing(getAdminDb()));
 export const getAcademy = (): Promise<CourseListing[]> => listing().catch(() => []);
 
 // Whether the member may teach now, and if not, why (the Teach page shows it).
-export async function teachingStatus(db: Firestore, uid: string): Promise<{ canTeach: boolean; reason?: string }> {
-  try { await teacher(db, uid); return { canTeach: true }; } catch (e) { return { canTeach: false, reason: e instanceof Error ? e.message : undefined }; }
+// maxCourses: how many courses the member's own plan allows (Admin → Limits), for the Teach page.
+export async function teachingStatus(db: Firestore, uid: string): Promise<{ canTeach: boolean; reason?: string; maxCourses?: number }> {
+  try {
+    const p = await teacher(db, uid);
+    const o = await getLimitOverrides(db), tier = tierOf(p);
+    if (!canMakeCourses(tier, o)) return { canTeach: false, reason: `Courses are ${onPlans("freeCourses", o)}.` };
+    return { canTeach: true, maxCourses: courseCap(tier, false, o) };
+  } catch (e) { return { canTeach: false, reason: e instanceof Error ? e.message : undefined }; }
 }
