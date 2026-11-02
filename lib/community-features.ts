@@ -123,6 +123,8 @@ export function communityFeatures(rooms: RoomFigures = DEFAULT_ROOM_FIGURES): Co
       { label: "Listening", value: rooms.relay ? `Up to ${listening} a room, through our relay` : `Up to ${listening} for now; hundreds with our relay, later` },
       { label: "Room chat", value: `Everyone in the room, up to ${ROOM_CHAT_MAX} characters a message` },
       { label: "Who can join", value: "Members of the community" },
+      { label: "Video", value: rooms.live.video ? (rooms.relay ? `The host can turn video on and off (${rooms.live.budgetMinutes} video minutes a live); a poster shows while it's off` : "With our relay, later: the host's poster shows meanwhile") : "Sound only, with the host's poster" },
+      { label: "Data saver", value: "Audio only: never downloads the video (on by itself on slow connections)" },
       { label: "Recording", value: "None: nothing is recorded or kept" },
     ],
     sections: [
@@ -139,6 +141,16 @@ export function communityFeatures(rooms: RoomFigures = DEFAULT_ROOM_FIGURES): Co
         "While a room is on, everyone in it can type: questions for the speakers, prayer points, amens, links.",
         "On a computer the chat sits beside the room. On a phone, tap 💬 Chat; a red number shows what you missed while it was closed.",
         "The host and speakers are marked in the chat. The host or a moderator can remove a message. The chat goes when the room ends.",
+      ] },
+      { h: "Live: video, the poster and Audio only", items: [
+        "The host picks a poster when they start the room (a picture they upload, their profile picture or the challenge art) and can change it any time. While no camera is on, everyone sees it. A poster is only a picture: it's never sent as video.",
+        ...(rooms.live.video ? [
+          `In a room through our relay, the host taps 🎥 Video to turn the camera on and 🎥 Video off to go back to sound, without anyone reconnecting. The host can let speakers turn video on too. Video is kept light: ${rooms.live.height}p at ${rooms.live.fps} frames a second.`,
+          `Each live has ${rooms.live.budgetMinutes} video minutes, and the host sees how many are left. When they're used up, video turns off by itself ${rooms.live.graceSeconds} seconds after the host is told; the room carries on with sound.`,
+          `The host gets gentle tips: when listeners fall by ${rooms.live.dropPercent}% within ${rooms.live.dropWindowMinutes} minutes, "Try ${rooms.live.tryMinutes} minutes of video?"; after ${rooms.live.burstMinutes} minutes of video in a row, "Back to audio to keep your video minutes."`,
+        ] : ["Video is switched off for now: rooms are sound only, with the poster."]),
+        "Listeners can tap Audio only to save data: the video isn't downloaded at all. On a slow connection it starts that way, and the choice is remembered on the device.",
+        "If the host offers paid sessions, Book a session stays at the top of the room for everyone listening.",
       ] },
       { h: "How the sound travels", items: rooms.relay ? [
         "Through our relay, run by Cloudflare: the host and each speaker send their microphone once, and everyone in the room hears the stage from the relay. The sound passes through Cloudflare on its way and is never recorded or kept.",

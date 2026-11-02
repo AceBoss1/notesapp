@@ -336,8 +336,40 @@ on `main` that isn't understood is raised with the owner first.
     stand-in Cloudflare, the fallback, the cap, people/, the recount, slow mode, the Team hub reminder), `test:rules` (two new tests),
     `test:community`, `test:community-server`.
 
-100. **Live recording and replays, step 2c (v0.127.0, branch `push/live-replays`, cut from `push/rooms-relay`; 97 to 99 are reserved for
-    pending PRs, including steps 2a live mode and 2b chat on the edge):** built and **off until the recorder is set up**: without
+98. **Live mode in audio rooms: video, poster, Audio only, video-minutes budget, host prompts (v0.125.0, branch `push/live-mode`, cut
+    from `push/rooms-relay`; 96 is PR #253 and 97 is reserved for the calls PR):** needs item 96 merged and the relay's keys set; on
+    phone-to-phone rooms only the poster applies. **Deploy:** `firebase deploy --only firestore:rules` (new server-only
+    `communityRooms/{id}/live/{doc}`); no new indexes; no new env vars (posters use the existing R2 upload, new purpose `poster`, kept
+    under `posters/{uid}/`). **Settings** (Admin → Limits → Audio rooms → Live mode, `serverConfig/rooms`, read live in the help and on
+    /community/audio-rooms): video on (on), video minutes per live (15; each camera on counts), grace when they run out (30 s), "back to
+    audio" when this many minutes are left (2) or after a burst of (3 min), the drop prompt's suggested minutes (2), drop share (10%)
+    and window (2 min), and the camera caps (600 kbps, 24 fps, 480p). The relay listener setting's ceiling went from 5,000 to 10,000
+    (default still 500). **How it works:** `lib/rooms-live.ts` (pure: who may send/pull video, the minutes, samples, prompts, Audio
+    only's default) and `lib/rooms-live-server.ts` (the shared state behind small functions: `noteListenerSample`, `markVideoOn`,
+    `markVideoOff`, `stopVideo`, `enforceVideoBudget`, `hostLive`, `closeLive`, so step 2b can move the transport). The camera goes up
+    through `/api/community/rooms` action "relay", op `video` (host; speakers only when the host ticks "Speakers can turn video on",
+    `stageVideo`) as a second track on the person's existing Cloudflare session (track name on `relay/{uid}.video`), op `unvideo` closes
+    it with `force` (no reconnect); `pull` with `video: true` pulls cameras (a viewer on Audio only never asks). The room doc carries only
+    `videoOn` (uid → when), `stageVideo`, `poster`, `hostUsername`/`hostBooks`, and `videoUsedMs` when it ends; the minutes, open
+    cameras, listener samples (one per 15-second count window, taken in `recount`) and prompt times are in `live/state`. The host's beat
+    returns `host` (minutes left, prompt, grace); a speaker's beat with a camera up enforces the budget; listeners' beats never touch it.
+    Budget: a camera can't go up once the minutes are used (checked before Cloudflare and again in the transaction); once used with a
+    camera up, the grace starts and the next host or sending-speaker beat after it cuts every camera at Cloudflare. Posters: action
+    "poster" (source upload | profile | challenge | none; an upload must be in the host's own `posters/{uid}/` folder), also accepted
+    on "start". Audio only: `localStorage` "rooms.audioOnly", default on for `navigator.connection.effectiveType` slow-2g/2g/3g or
+    `saveData`. **Teen mode:** rooms are community-scoped (members only, no follower audience), so a teen moderator hosting is unchanged
+    from before; nothing new to mirror from `lib/young.ts`. **Scale:** nothing writes per listener or sends the full listener list;
+    each camera on/off is one room-doc write (read by everyone in the room); samples and prompts go to `live/state`. **Step 2b**
+    (`push/live-chat-edge`): the count and beats moving to a Durable Object should keep calling `noteListenerSample` (or its
+    replacement) and pass the host's `hostLive` back on its beat; the camera ops stay on the relay route. **Untested live:** real video
+    through Cloudflare's SFU in browsers (the `sendEncodings` caps, a second transceiver on the same connection, `replaceTrack(null)`
+    then a new transceiver for the next burst, Safari), and the prompts' feel in a real room. Tests: `test:rooms` (new
+    `rooms-live.test.ts`), `test:rooms-server` (new `rooms-live.emulator.ts`: video on/off, speakers, pulls, minutes, drop prompt,
+    budget grace and refusal, posters, clean-up), `test:rules` (one new test), `test:help` (Live figures from a saved config),
+    `test:limits`, `test:uploads`.
+
+100. **Live recording and replays, step 2c (v0.127.0, branch `push/live-replays`, cut from `push/rooms-relay`, with 2a `push/live-mode` (98) merged in; 97 and
+    99 are reserved for pending PRs, including step 2b chat on the edge):** built and **off until the recorder is set up**: without
     `RECORDER_URL` and `RECORDER_SECRET` the Record this live switch is hidden (with a note), nothing is recorded and every room works as
     before. **Owner steps:** (1) Deploy the recorder on Google Cloud Run (Google Cloud credits) following `docs/RECORDER.md`: build
     `services/room-recorder` (Dockerfile included), deploy with CPU always allocated, at least 2 GiB memory, a 60-minute request timeout
@@ -375,10 +407,13 @@ on `main` that isn't understood is raised with the owner first.
     **Settings:** Admin → Limits → Live recording (`serverConfig/recording`): days to keep (30), longest recording (4 hours), record
     every relay room (off); plan switches "Audio rooms and live" in the limits table: who can record and who can publish replays (every
     plan by default). The help reads all of them live (`tests/help/live-figures.test.ts`).
-    **Merging with 2a and 2b:** `lib/rooms-server.ts` and `components/community/AudioRoom.tsx` got small additive edits (the start
-    switch, the notice banner and the speaker's agreement, `startRoom`'s last `opts` argument, `endRoom`'s `deps`). The recorder page
-    receives whatever tracks `pullsFor` lists; when 2a adds the host's video as a relay track and a poster, make sure the recorder's pull
-    list includes the video track and that the poster lives in a `poster` string field on the room (or map it in `recorderState`).
+    **With 2a (Live mode, merged into this branch):** the recorder page pulls every stage microphone and every camera that's up
+    (`videoPullsFor`, pulled with `video: true`; the host's camera and those of speakers the host allows, side by side on the canvas)
+    and draws the room's `poster` while every camera is off (else a title card). In a recorded room a speaker's camera, like their
+    microphone, waits for their agreement. The recorder has no `people/` doc and no heartbeat, so it's in no listener count, drop prompt
+    or challenge figure, and pulling cameras never touches the video-minutes budget (it counts cameras up, not viewers). `startRoom`'s
+    arguments are now `(…, deps, poster?, opts: { record })`. **With 2b (chat on the edge, to merge after):** nothing of the recorder
+    goes through the chat or the count; keep it out of any listener presence the Durable Object adds.
     **Unverified until it runs for real:** the recorder in Cloud Run's headless Chromium against the real relay (audio mixing,
     MediaRecorder in headless mode, Cloud Run keeping CPU between requests), R2 multipart against the real bucket, Stream's copy-from-URL
     of a WebM with a still picture, and NKENNEAi with WebM. Tests: `test:recording` (consent and notice, whether a room records, keep

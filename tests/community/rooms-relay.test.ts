@@ -20,7 +20,11 @@ const base = (extra: Partial<RoomDoc> = {}): RoomDoc => ({
 });
 
 // ── settings: defaults, ranges, what an admin may save ──
-assert.deepEqual(ROOM_DEFAULTS, { relayOn: 1, relayListeners: ROOM_LISTENERS_MAX_RELAY, p2pListeners: ROOM_LISTENERS_MAX_P2P, chatSlowAbove: 200, chatSlowSeconds: 10 });
+assert.deepEqual(ROOM_DEFAULTS, {
+  relayOn: 1, relayListeners: ROOM_LISTENERS_MAX_RELAY, p2pListeners: ROOM_LISTENERS_MAX_P2P, chatSlowAbove: 200, chatSlowSeconds: 10,
+  // Live mode (tests/community/rooms-live.test.ts)
+  videoOn: 1, videoBudgetMinutes: 15, videoGraceSeconds: 30, videoNearlyLeftMinutes: 2, videoBurstMinutes: 3, videoTryMinutes: 2, dropPercent: 10, dropWindowMinutes: 2, videoKbps: 600, videoFps: 24, videoHeight: 480,
+});
 assert.equal(ROOM_LISTENERS_MAX_P2P, 20); assert.equal(ROOM_LISTENERS_MAX_RELAY, 500);
 for (const s of ROOM_SETTINGS) assert.ok(s.def >= s.min && s.def <= s.max, `${s.key} default in range`);
 assert.deepEqual(cleanRoomOverrides(ROOM_DEFAULTS), {}, "the defaults save as no overrides");
@@ -85,7 +89,7 @@ assert.equal(canPull(big, "l9", "h", now), false, "a relay listener isn't in joi
 assert.equal(canPull({ ...big, published: { h: "t" } }, "l9", "h", now, true), true, "…so the server passes what it read from people/");
 
 // ── what the pages and help say: from the settings, never fixed numbers ──
-assert.deepEqual(DEFAULT_ROOM_FIGURES, { relay: false, listeners: 20, p2pListeners: 20, relayListeners: 500, speakers: 4, chatSlowAbove: 200, chatSlowSeconds: 10 });
+assert.deepEqual({ ...DEFAULT_ROOM_FIGURES, live: undefined }, { relay: false, listeners: 20, p2pListeners: 20, relayListeners: 500, speakers: 4, chatSlowAbove: 200, chatSlowSeconds: 10, live: undefined });
 const relayFig = roomFigures(roomSettings({ relayListeners: 750, p2pListeners: 15 }), true);
 assert.equal(relayFig.relay, true); assert.equal(relayFig.listeners, 750);
 const room = (f = DEFAULT_ROOM_FIGURES) => builtInArticles({ rooms: f }).find((a) => a.slug === "community-audio-rooms")!.body;

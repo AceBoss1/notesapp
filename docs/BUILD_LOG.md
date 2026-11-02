@@ -2623,6 +2623,23 @@ page, course live classes, the Start a room form, Nana's prompt) now comes from 
 them to client pages. The Team hub reminder now reads "rooms run phone to phone … switches on when the keys are set" and goes once they
 are; /status gained "Audio rooms relay". Emulator and rules tests ran from a temporary copy on port 8209.
 
+**Live mode in audio rooms (v0.125.0, 2 Nov 2026)** — Step 2a of the owner's live plan, on top of the Cloudflare relay (v0.124.0).
+The owner's decisions: the host (and speakers if the host allows) turns video on and off during a relay room, as a second track
+through the relay capped at 480p, about 600 kbps and 24 fps; off goes back to audio without reconnecting; while it's off everyone sees
+the host's poster (an upload, the profile picture or the challenge art; a picture, never video, never counted); viewers get Audio only,
+on by default on slow connections and remembered per device; each live has a video-minutes budget (15 by default) counted by the
+server, with a 30-second grace before video turns off; and the host is prompted when listeners drop ("Try 2 minutes of video?") or a
+burst runs long ("Back to audio to keep your video minutes."). Every number is a setting in a new Live mode group under Admin → Limits
+→ Audio rooms, quoted live by the help and /community/audio-rooms. Design: the room doc is read by everyone in the room, so it gains
+only who has a camera up (`videoOn`), `stageVideo`, the poster and the host's booking flag; the minutes, the open cameras, the listener
+samples and the prompt times live in a server-only `live/state` doc behind a handful of functions in `lib/rooms-live-server.ts`, so the
+parallel step 2b (chat and live signals on a Durable Object) can change the transport. Minutes are counted per camera from idempotent
+on/off events (a second on keeps the first start, an off for a camera that isn't up changes nothing); the samples ride on the
+existing 15-second recount, so the drop prompt costs one small write per window. The host's minutes and prompts come back on their
+own beat, so no listener read is added. Enforcement is server-side: a camera is refused before Cloudflare hears of it once the minutes
+are used, and after the grace the next stage beat cuts every camera at Cloudflare. The relay listener ceiling went to 10,000 (default
+500) after checking nothing writes per listener. Rooms are community-scoped, so teen mode's follower rules have nothing to add here.
+Emulator and rules tests ran from a temporary config on port 8213.
 
 **Live recording and replays (v0.127.0, 2 Nov 2026, step 2c of lives; off until the recorder is set up)** — The decided rule ("Recording for safety review, with the host's consent … Kept 30 days, then deleted unless the host publishes the
 replay") and the owner's choices of 2 November: the host switches recording on before going live (off by default; Admin can force it
@@ -2653,4 +2670,4 @@ a pluggable step (`Transcriber` in `lib/live-recording-server.ts`) that is off u
 summary needs the transcript. Teen mode: a host or a speaker in teen mode keeps the replay inside the community and off every list
 (`audienceFor`). Settings follow the rooms pattern (`serverConfig/recording`, a 30-second cache, its own section in Admin → Limits so
 the audio room settings stay untouched for parallel work), with two plan switches in the limits table for who can record and publish.
-Emulator and rules tests ran from temporary copies on ports 8217 and 8218.
+Merged with 2a (Live mode) on the same day: the recorder pulls each camera that's up as a video track and draws the poster while every camera is off; a speaker's camera in a recorded room waits for their agreement like their microphone; the recorder is never a listener (no people/ doc), so it's in no count and costs no video minutes. Emulator and rules tests ran from temporary copies on ports 8217, 8218 and 8227.

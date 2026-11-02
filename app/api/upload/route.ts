@@ -5,6 +5,7 @@ import { getR2Client, R2_BUCKET, r2PublicUrl } from "@/lib/r2";
 import { verifyPublisherRequest, verifyAvatarUploadRequest, verifySignedInRequest } from "@/lib/firebase-admin";
 import { rateLimit } from "@/lib/rate-limit";
 import { ALLOWED_TYPES, maxUploadBytes } from "@/lib/upload-rules";
+import { POSTER_FOLDER } from "@/lib/rooms-live";
 
 // Presigned-URL pattern, not a proxy upload: the browser asks this
 // route for a one-time signed URL, then PUTs the file bytes directly
@@ -28,7 +29,8 @@ export async function POST(req: NextRequest) {
     const isMoment = purpose === "moment"; // a moment's picture: same rules as an ad creative, in the member's own folder
     const isAcademy = purpose === "academy"; // certificate logos and signatures (academy setup): same rules, in the teacher's folder
     const isChat = purpose === "chat"; // a member's own chat background (lib/chat-background.ts): same rules, in their own folder
-    const uid = isAd || isMoment || isAcademy || isChat
+    const isPoster = purpose === "poster"; // an audio room's poster (lib/rooms-live.ts): same rules, in the host's posters/ folder
+    const uid = isAd || isMoment || isAcademy || isChat || isPoster
       ? await (async () => {
           const me = await verifySignedInRequest(idToken);
           if (!me.emailVerified) throw new Error("Verify your email first");
@@ -50,14 +52,14 @@ export async function POST(req: NextRequest) {
     if (kind !== "image") {
       return NextResponse.json({ error: "Videos are uploaded from the post editor." }, { status: 400 });
     }
-    if ((isAvatar || isAd || isMoment || isAcademy || isChat) && kind !== "image") {
+    if ((isAvatar || isAd || isMoment || isAcademy || isChat || isPoster) && kind !== "image") {
       return NextResponse.json({ error: "Avatars must be images" }, { status: 400 });
     }
-    if (!Number.isInteger(size) || size <= 0 || size > maxUploadBytes(kind, isAvatar || isAd || isMoment || isAcademy || isChat)) {
+    if (!Number.isInteger(size) || size <= 0 || size > maxUploadBytes(kind, isAvatar || isAd || isMoment || isAcademy || isChat || isPoster)) {
       return NextResponse.json({ error: "File is too large." }, { status: 413 });
     }
 
-    const key = `${isAd ? `ads/${uid}` : isMoment ? `moments/${uid}` : isChat ? `chatbg/${uid}` : isAcademy ? `academy/${uid}` : isAvatar ? `avatars/${uid}` : "journals"}/${Date.now()}-${filename.replace(/[^a-zA-Z0-9._-]/g, "_")}`;
+    const key = `${isAd ? `ads/${uid}` : isMoment ? `moments/${uid}` : isChat ? `chatbg/${uid}` : isPoster ? `${POSTER_FOLDER}/${uid}` : isAcademy ? `academy/${uid}` : isAvatar ? `avatars/${uid}` : "journals"}/${Date.now()}-${filename.replace(/[^a-zA-Z0-9._-]/g, "_")}`;
     const client = getR2Client();
     const command = new PutObjectCommand({
       Bucket: R2_BUCKET,

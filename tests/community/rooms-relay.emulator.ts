@@ -45,7 +45,7 @@ const step = (uid: string, id: string, body: Record<string, unknown>) => R.relay
   assert.equal(p2p.mode, "p2p"); assert.equal(log.length, 0, "no keys: no Cloudflare call");
   assert.equal((await R.joinRoom(db, "l1", p2p.id)).cap, 20);
   await fails(step("host", p2p.id, { op: "push", offer, mid: "0", fresh: true }), 409, /phone to phone/);
-  assert.deepEqual(await R.liveRoomFigures(db), { relay: false, listeners: 20, p2pListeners: 20, relayListeners: 500, speakers: 4, chatSlowAbove: 200, chatSlowSeconds: 10 });
+  assert.deepEqual({ ...(await R.liveRoomFigures(db)), live: undefined }, { relay: false, listeners: 20, p2pListeners: 20, relayListeners: 500, speakers: 4, chatSlowAbove: 200, chatSlowSeconds: 10, live: undefined });
   // the Team hub's standing reminder: while the keys are missing, with the figures from the settings
   const reminder = async () => (await teamSignals(db)).find((x) => x.id === "rooms-relay");
   assert.match((await reminder())!.label, /phone to phone \(up to 20 listeners\).*CLOUDFLARE_REALTIME_APP_ID.*up to 500/);

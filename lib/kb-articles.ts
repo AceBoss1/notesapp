@@ -36,6 +36,7 @@ import { GROUP_MEMBERS_MAX } from "./messages-rules";
 import { GROUP_CALL_MAX } from "./group-calls";
 import { DEFAULT_ROOM_FIGURES, ROOM_CHAT_MAX, ROOM_SPEAKERS_MAX, type RoomFigures } from "./rooms";
 import { DEFAULT_RECORDING_FIGURES, RECORDING_NOTICE, type RecordingFigures } from "./live-recording";
+import { minutesLeftText } from "./rooms-live";
 import { BOARD_DAILY_CAP, DEFAULT_PACK_KOBO, DEFAULT_PACK_MONTHS, MOCK_SIZES, OFFLINE_PASS_DAYS, PAYLINK_DAYS, PREP_NAME, PREP_TAGLINE, REFUND_DAYS } from "./exam-prep";
 import type { KbArticle } from "./kb";
 
@@ -52,7 +53,8 @@ const ADD_ONS_LINE = "The Team hub, company finance tools, the investor and part
 
 // What an admin can change outside Admin → Pricing, passed in by lib/kb-server.ts after reading it: the plan limits (Admin → Limits) and
 // the Nana and connected-agent settings. Prices and rates are read from the live objects, so call this after ensurePricing().
-// Audio rooms: how many can listen in a room opened now (the relay's setting once it's on, otherwise the phone-to-phone one).
+// Audio rooms: how many can listen in a room opened now (the relay's setting once it's on, otherwise the phone-to-phone one), and Live
+// mode's figures (rooms.live: video minutes, the prompts' thresholds, the video's size).
 // Live recording: the keep days, the longest recording and whether the recorder is set up (lib/live-recording.ts).
 export type KbLive = { limits?: LimitOverrides; agents?: AgentSettings; rooms?: RoomFigures; recording?: RecordingFigures };
 const WORD = ["no", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine", "ten"];
@@ -69,6 +71,7 @@ export function builtInArticles(live: KbLive = {}): KbArticle[] {
   const rec = live.recording ?? DEFAULT_RECORDING_FIGURES;
   // The plans whose hosts may record, and publish replays (Admin → Limits, "Audio rooms and live").
   const planList = (k: LimitKey) => { const p = LIMIT_TIERS.filter((x) => limitFor(k, x, live.limits) > 0); return p.length === LIMIT_TIERS.length ? "every plan" : p.length ? (p.length === 1 ? LIMIT_TIER_LABEL[p[0]] : `${p.slice(0, -1).map((x) => LIMIT_TIER_LABEL[x]).join(", ")} and ${LIMIT_TIER_LABEL[p[p.length - 1]]}`) : "no plan for now"; };
+  const rlive = room.live ?? DEFAULT_ROOM_FIGURES.live; // Live mode (lib/rooms-live.ts)
   const lim = (k: LimitKey, tier: (typeof LIMIT_TIERS)[number]) => limitFor(k, tier, live.limits);
   // A plan limit over the plans that publish: "30", or "10 to 50" when the plans differ (byPlan says so).
   const values = (k: LimitKey) => LIMIT_TIERS.filter((x) => t(x).canPublish).map((x) => lim(k, x));
@@ -890,13 +893,23 @@ A **Circle** is a private group chat inside a [community](/help/community) for t
   ? `through our relay, run by Cloudflare. The host and each speaker send their microphone once to the relay, and everyone in the room hears the stage from there, so a room holds up to ${roomListeners} listeners and the host's phone carries no more than a speaker's. The sound passes through Cloudflare on its way and isn't kept there; only a room the host chose to record is recorded, by our own recorder. A room that was already open before the relay was switched on keeps running phone to phone (up to ${n(room.p2pListeners)} listeners), and if the relay can't be reached when a room starts, that room runs phone to phone and the host is told. In a relay room the screen shows how many are listening; tap **People here** to see who (the host can invite anyone from there to speak). Once a room passes ${n(room.chatSlowAbove)} listeners its chat goes into slow mode: each listener can send one message every ${room.chatSlowSeconds} seconds (the host and speakers are never slowed).`
   : `phone to phone. The people on stage connect straight to each other, and each listener connects to the host, whose phone sends everyone the mix; nothing passes through #NotesApp's servers. That's why a room holds ${roomListeners} listeners for now, and why a host on Wi-Fi or strong 4G works best. Bigger rooms, for hundreds, come with our relay.`}
 
+**Live: video, a poster and Audio only:** ${rlive.video ? `${room.relay ? "In a room that runs through our relay" : "Once rooms run through our relay"}, the host can tap **🎥 Video** to turn their camera on, and **🎥 Video off** to go back to sound only without anyone reconnecting. The host can tick **Speakers can turn video on** to let the speakers do the same. Video is kept light (${rlive.height}p, ${rlive.fps} frames a second). While nobody's camera is on, everyone sees the host's **poster**: a picture the host uploads, their profile picture or the challenge art, chosen when they start the room or with **🖼 Poster** during it. A poster is only a picture, never video.
+
+**Saving data:** tap **📺 Video when on** to switch to **🔈 Audio only**, and the video isn't downloaded at all (you still see the poster). On a slow connection (2G or 3G) or with your browser's data saver on, a room starts on Audio only; your choice is remembered on that phone or computer.
+
+**Video minutes:** each live has **${rlive.budgetMinutes} video minutes** (each camera that's on counts), and the host sees how many are left, like "${minutesLeftText(Math.max(0, rlive.budgetMinutes - 3))}". When they're used up, the host is told and video turns off by itself ${rlive.graceSeconds} seconds later; the room carries on with sound and the poster.
+
+**Tips for the host:** if listeners fall by ${rlive.dropPercent}% or more within ${rlive.dropWindowMinutes} minute${rlive.dropWindowMinutes === 1 ? "" : "s"} while video is off, you'll see "Listeners are dropping. Try ${rlive.tryMinutes} minute${rlive.tryMinutes === 1 ? "" : "s"} of video?". Once video has been on for ${rlive.burstMinutes} minute${rlive.burstMinutes === 1 ? "" : "s"} in a row, or ${rlive.nearlyLeftMinutes} or fewer video minutes are left, you'll see "Back to audio to keep your video minutes."` : "Video in audio rooms is switched off for now: rooms are sound only, with the host's poster."}${room.relay ? "" : " Rooms run phone to phone for now, so video isn't on yet."}
+
+**Book a session:** if the host offers paid sessions, **📅 Book a session** stays at the top of the room, with or without video; it opens their booking card in a new tab, so you don't leave the room.
+
 **Can't hear?** Check your phone isn't on silent and the browser has permission to play sound; on a speaker's phone, allow the microphone. If you joined on a weak network, leave and join again.`),
     A("live-recording-and-replays", "Recording a live, and replays", "Teams and organisations", `
 **Recording is off unless the host switches it on.** ${rec.available ? "" : "Recording isn't available on #NotesApp yet; this is how it will work. "}When you start an [audio room](/help/community-audio-rooms), tick **Record this live** before **Go live** (hosts on ${planList("liveRecording")} can). Only rooms that run through our relay can be recorded; if a room runs phone to phone, it isn't, and the host is told.${rec.forced ? " For now every relay room is recorded for safety review, whatever the host chooses, and everyone is told the same way." : ""}
 
-**Everyone is told.** In a recorded room everyone sees **${RECORDING_NOTICE}** at the top of the room, and the room shows **● Recorded** on the community's Home before you join. When the host brings you on stage, your mic stays off until you tap **I agree, turn my mic on** (or **Back to listening**). Listeners aren't recorded unless they speak on stage; the room chat isn't recorded.
+**Everyone is told.** In a recorded room everyone sees **${RECORDING_NOTICE}** at the top of the room, and the room shows **● Recorded** on the community's Home before you join. When the host brings you on stage, your mic (and your camera, if the host lets speakers use video) stays off until you tap **I agree, turn my mic on** (or **Back to listening**). Listeners aren't recorded unless they speak on stage; the room chat isn't recorded.
 
-**What's recorded and how:** the sound from the stage (the host and speakers), and the host's video if it's on, by a recorder that joins the room on our own servers, never on anyone's phone. It records for up to ${rec.maxHours} hour${rec.maxHours === 1 ? "" : "s"}.
+**What's recorded and how:** the sound from the stage (the host and speakers), the cameras of the host and of speakers the host lets use video while they're on, and the room's poster while every camera is off, by a recorder that joins the room on our own servers, never on anyone's phone; it isn't counted as a listener and uses none of the live's video minutes. It records for up to ${rec.maxHours} hour${rec.maxHours === 1 ? "" : "s"}.
 
 **Kept ${rec.keepDays} day${rec.keepDays === 1 ? "" : "s"}, then deleted.** A recording is kept for ${rec.keepDays} day${rec.keepDays === 1 ? "" : "s"} after the live ends so it can be checked if someone reports something (our Trust & safety team can play any recording; the host can play their own), then deleted for good, unless the host publishes it as a replay. Nobody else can download it.
 

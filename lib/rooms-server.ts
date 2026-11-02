@@ -9,6 +9,10 @@ import {
 } from "./rooms";
 import { RelayError, cleanSdp, relayClient, relayConfigured, type RelayClient } from "./rooms-relay-server";
 import { recordingPlan, startRoomRecording, stopRoomRecording, type RecordingDeps } from "./live-recording-server";
+import { hasConsented } from "./live-recording";
+import { CHALLENGE_POSTER, POSTER_FOLDER, canPullVideo, canVideo, type HostLive, type PosterSource } from "./rooms-live";
+import { closeLive, enforceVideoBudget, hostLive, markVideoOff, markVideoOn, noteListenerSample, stopVideo, videoBudgetLeft } from "./rooms-live-server";
+import { r2PublicUrl } from "./r2";
 
 // Audio rooms (lib/rooms.ts). The server opens, joins, keeps and closes them and decides who is on stage; in a phone-to-phone room the
 // phones connect through communityRooms/{id}/links, and in a relay room through Cloudflare, with every step passing through relayStep
@@ -87,6 +91,8 @@ export async function recount(db: Firestore, roomId: string, now = new Date(), f
   const settings = await getRoomSettings(db);
   const r = (await ref.get()).data() as RoomDoc;
   await ref.update({ listening, chatSlow: chatSlowFor(listening, settings), peak: Math.max(r.peak ?? 1, headcount({ ...r, listening }, now.getTime())) });
+  // Live mode: a sample for the host's drop prompt (lib/rooms-live.ts), at most one per count window like the count itself.
+  await noteListenerSample(db, roomId, listening, settings, now).catch(() => {});
   return listening;
 }
 
@@ -103,7 +109,7 @@ export async function liveRooms(db: Firestore, uid: string, cid: string, now = n
 // A new room uses the relay when its keys are set and the switch is on (lib/rooms.ts chooseRoomMode). Cloudflare is asked for a session
 // first; if it doesn't answer, the room opens phone to phone with a note to the host, and /status shows why.
 // record: the host's recording switch (lib/live-recording.ts); the room records only on the relay, with the recorder set up.
-export async function startRoom(db: Firestore, uid: string, cid: unknown, title: unknown, now = new Date(), deps: RoomDeps = defaultDeps, opts: { record?: unknown } = {}): Promise<{ id: string; mode: RoomMode; note?: string; recording?: boolean }> {
+export async function startRoom(db: Firestore, uid: string, cid: unknown, title: unknown, now = new Date(), deps: RoomDeps = defaultDeps, poster?: { source?: unknown; url?: unknown }, opts: { record?: unknown } = {}): Promise<{ id: string; mode: RoomMode; note?: string; recording?: boolean }> {
   const c = await readCommunity(db, String(cid ?? "")).catch(() => null);
   if (!c) throw new CommunityError(404, "That community wasn't found.");
   if (!can(await roleIn(db, c.id, uid), "rooms")) throw new CommunityError(403, "Admins and moderators start audio rooms.");
@@ -113,6 +119,9 @@ export async function startRoom(db: Firestore, uid: string, cid: unknown, title:
   const mine = await db.collection("communityRooms").where("hostUid", "==", uid).where("status", "==", "live").limit(5).get();
   for (const d of mine.docs) await endRoom(db, d.id, now, deps);
   const me = await person(db, uid);
+  // Chosen with the room (optional): checked like a later change (setPoster). A bad one is refused before the room opens.
+  const posterUrl = poster?.source ? await posterFor(db, uid, poster.source, poster.url) : "";
+  const host = await hostExtras(db, uid);
   const id = `${now.getTime()}_${randomBytes(5).toString("hex")}`;
   const at = now.toISOString();
   const settings = await getRoomSettings(db);
@@ -132,7 +141,8 @@ export async function startRoom(db: Firestore, uid: string, cid: unknown, title:
   const r: RoomDoc = {
     ...(rec.state ? { recording: rec.state, consent: { [uid]: at } } : {}),
     cid: c.id, communityName: c.name, title: t, hostUid: uid, hostName: me.name, speakers: [], hands: {}, joined: { [uid]: { ...me, at, seen: at } }, status: "live", mode, createdAt: at, peak: 1,
-    ...(mode === "relay" ? { published: {}, listening: 0, countedAt: at, chatSlow: 0, handInfo: {} } : {}), ...(note ? { note } : {}),
+    ...(mode === "relay" ? { published: {}, listening: 0, countedAt: at, chatSlow: 0, handInfo: {}, videoOn: {}, stageVideo: false } : {}), ...(note ? { note } : {}),
+    ...(posterUrl ? { poster: posterUrl } : {}), ...host,
   };
   await db.doc(`communityRooms/${id}`).set(r);
   if (rec.state) await startRoomRecording(db, id, now, deps.recording).catch((e) => console.error("[rooms] recording didn't start", e));
@@ -172,7 +182,7 @@ export async function joinRoom(db: Firestore, uid: string, id: unknown, now = ne
   });
 }
 
-export async function beatRoom(db: Firestore, uid: string, id: unknown, now = new Date()): Promise<{ live: boolean }> {
+export async function beatRoom(db: Firestore, uid: string, id: unknown, now = new Date(), deps: RoomDeps = defaultDeps): Promise<{ live: boolean; host?: HostLive }> {
   const { ref, r } = await roomOf(db, id);
   if (r.status !== "live") return { live: false };
   const pref = peopleOf(ref).doc(uid);
@@ -184,6 +194,10 @@ export async function beatRoom(db: Firestore, uid: string, id: unknown, now = ne
   if (listener) await pref.update({ seen: now.toISOString() });
   else await ref.update({ [`joined.${uid}.seen`]: now.toISOString() });
   if (r.mode === "relay" && countDue(r, now.getTime())) await recount(db, ref.id, now).catch(() => null);
+  // Live mode: the host's beat brings their minutes and prompts (and enforces the budget); a speaker sending video enforces it too.
+  // Listeners' beats never touch it, so a big room costs nothing more.
+  if (r.mode === "relay" && uid === r.hostUid) return { live: true, host: await hostLive(db, ref.id, await getRoomSettings(db), deps.relay, now) };
+  if (r.mode === "relay" && r.videoOn?.[uid]) await enforceVideoBudget(db, ref.id, await getRoomSettings(db), deps.relay, now).catch(() => null);
   return { live: true };
 }
 
@@ -198,6 +212,7 @@ export async function leaveRoom(db: Firestore, uid: string, id: unknown, now = n
   }
   if (r.mode === "relay") {
     await stopPush(db, ref.id, uid, deps).catch(() => {});
+    await stopVideo(db, ref.id, uid, deps.relay, now).catch(() => {});
     await ref.collection("relay").doc(uid).delete().catch(() => {});
     await peopleOf(ref).doc(uid).delete().catch(() => {});
     await recount(db, ref.id, now).catch(() => null);
@@ -255,7 +270,7 @@ export async function setSpeaker(db: Firestore, uid: string, id: unknown, who: u
     return { speakers, relay, error: "" };
   }).then(async (x) => {
     if (x.error) throw new CommunityError(409, x.error);
-    if (on === false && x.relay) await stopPush(db, ref.id, target, deps).catch(() => {});
+    if (on === false && x.relay) { await stopPush(db, ref.id, target, deps).catch(() => {}); await stopVideo(db, ref.id, target, deps.relay, now).catch(() => {}); }
     return { speakers: x.speakers };
   });
 }
@@ -317,10 +332,11 @@ export async function closeRoom(db: Firestore, uid: string, id: unknown, now = n
 }
 export async function endRoom(db: Firestore, id: string, now = new Date(), deps: Pick<RoomDeps, "recording"> = {}): Promise<void> {
   const ref = db.doc(`communityRooms/${id}`);
+  const videoUsedMs = await closeLive(db, id, now).catch(() => 0); // Live mode: the video minutes this live used, kept for replays (2c)
   const ended = await db.runTransaction(async (t) => {
     const r = (await t.get(ref)).data() as RoomDoc | undefined;
     if (!r || r.status !== "live") return null;
-    t.update(ref, { status: "ended", endedAt: now.toISOString(), joined: {}, hands: {}, speakers: [], ...(r.mode === "relay" ? { published: {}, handInfo: {}, listening: 0 } : {}) });
+    t.update(ref, { status: "ended", endedAt: now.toISOString(), joined: {}, hands: {}, speakers: [], ...(r.mode === "relay" ? { published: {}, handInfo: {}, listening: 0, videoOn: {}, videoUsedMs } : {}) });
     return r;
   });
   if (!ended) return;
@@ -332,7 +348,7 @@ export async function endRoom(db: Firestore, id: string, now = new Date(), deps:
     more = chat.size === 400;
   }
   // Relay rooms: the Cloudflare session records and the listeners go (the sessions themselves close when the browsers do).
-  for (const sub of ["relay", "people"]) {
+  for (const sub of ["relay", "people", "live"]) {
     for (let more = true; more;) {
       const snap = await db.collection(`communityRooms/${id}/${sub}`).limit(400).get();
       if (!snap.empty) { const b = db.batch(); snap.docs.forEach((d) => b.delete(d.ref)); await b.commit(); }
@@ -357,7 +373,12 @@ export async function endRoom(db: Firestore, id: string, now = new Date(), deps:
 //   pull  { uids }        → { offer?, renegotiate, tracks: [{ uid, mid }] }   anyone in the room, from stage members who are sending
 //   answer { answer }                           the browser's answer to Cloudflare's offer after a pull
 //   close { mids }                              stop receiving those tracks (someone left the stage)
-export type RelayStepResult = { answer?: { type: string; sdp: string }; offer?: { type: string; sdp: string } | null; renegotiate?: boolean; tracks?: { uid: string; mid: string }[]; ok?: true };
+// Live mode (lib/rooms-live.ts):
+//   video { offer, mid } → { answer, host? }    the host (and speakers when allowed): their camera goes up as a second track on the same
+//                                               session; refused when Live mode is off or this live's video minutes are used up
+//   unvideo              → { ok, host? }        camera off, back to sound only (no reconnecting); its minutes stop counting
+//   pull { uids, video: true }                  receive cameras instead of microphones (a viewer on Audio only never asks)
+export type RelayStepResult = { answer?: { type: string; sdp: string }; offer?: { type: string; sdp: string } | null; renegotiate?: boolean; tracks?: { uid: string; mid: string; kind?: "audio" | "video" }[]; ok?: true; host?: HostLive };
 
 export async function relayStep(db: Firestore, uid: string, id: unknown, body: Record<string, unknown>, now = new Date(), deps: RoomDeps = defaultDeps): Promise<RelayStepResult> {
   const { ref, r } = await roomOf(db, id);
@@ -404,22 +425,48 @@ export async function relayStep(db: Firestore, uid: string, id: unknown, body: R
         return { ok: true };
       }
       case "pull": {
+        const video = body.video === true;
         const want = (Array.isArray(body.uids) ? body.uids : []).map(String).slice(0, ROOM_SPEAKERS_MAX + 1);
-        const allowed = want.filter((u) => canPull(r, uid, u, now.getTime(), !!listener));
-        if (!allowed.length) throw new CommunityError(409, "Nobody on stage is sending sound right now.");
+        const allowed = want.filter((u) => (video ? canPullVideo(r, uid, u, now.getTime(), !!listener) : canPull(r, uid, u, now.getTime(), !!listener)));
+        const none = video ? "Nobody on stage has video on right now." : "Nobody on stage is sending sound right now.";
+        if (!allowed.length) throw new CommunityError(409, none);
         const records = await db.getAll(...allowed.map((u) => ref.collection("relay").doc(u)));
         const from = records.flatMap((d, i) => {
           const rec = d.data() as RoomRelayRecord | undefined;
-          return rec?.sessionId && rec.push?.trackName ? [{ uid: allowed[i], sessionId: rec.sessionId, trackName: rec.push.trackName }] : [];
+          const track = video ? rec?.video?.trackName : rec?.push?.trackName;
+          return rec?.sessionId && track ? [{ uid: allowed[i], sessionId: rec.sessionId, trackName: track }] : [];
         });
-        if (!from.length) throw new CommunityError(409, "Nobody on stage is sending sound right now.");
+        if (!from.length) throw new CommunityError(409, none);
         const sessionId = await session();
         const res = await relay.pull(sessionId, from.map((f) => ({ sessionId: f.sessionId, trackName: f.trackName })));
         const tracks = res.tracks.flatMap((t) => {
           const f = from.find((x) => x.trackName === t.trackName);
-          return f && t.mid && !t.errorCode ? [{ uid: f.uid, mid: t.mid }] : [];
+          return f && t.mid && !t.errorCode ? [{ uid: f.uid, mid: t.mid, ...(video ? { kind: "video" as const } : {}) }] : [];
         });
         return { offer: res.offer, renegotiate: res.renegotiate, tracks };
+      }
+      case "video": {
+        const settings = await getRoomSettings(db);
+        // A recorded room: a speaker's camera, like their microphone, waits for their agreement (lib/live-recording.ts).
+        if (!hasConsented(r, uid)) throw new CommunityError(403, "Agree to speak on the record first.");
+        if (!canVideo(r, uid, settings, now.getTime())) throw new CommunityError(403, settings.videoOn > 0 ? "Only the host, and speakers when the host allows it, can turn video on." : "Video is switched off for audio rooms right now.");
+        const offer = cleanSdp(body.offer, "offer");
+        const mid = String(body.mid ?? "").slice(0, 32);
+        if (!offer || !mid) throw new CommunityError(400, "The camera's offer is missing.");
+        // The budget is checked before Cloudflare hears of it, and again (atomically) when the camera is marked up below.
+        await videoBudgetLeft(db, ref.id, uid, settings, now);
+        const sessionId = await session();
+        const trackName = `${uid.slice(0, 40)}-cam-${now.getTime().toString(36)}`;
+        const res = await relay.push(sessionId, offer, [{ mid, trackName }]);
+        await mineRef.set({ video: { trackName, mid } }, { merge: true });
+        try { await markVideoOn(db, ref.id, uid, settings, now); }
+        catch (e) { await stopVideo(db, ref.id, uid, deps.relay, now).catch(() => {}); throw e; }
+        await noteRelay(db, null, now);
+        return { answer: res.answer, ...(uid === r.hostUid ? { host: await hostLive(db, ref.id, settings, deps.relay, now) } : {}) };
+      }
+      case "unvideo": {
+        await stopVideo(db, ref.id, uid, deps.relay, now);
+        return { ok: true, ...(uid === r.hostUid ? { host: await hostLive(db, ref.id, await getRoomSettings(db), deps.relay, now) } : {}) };
       }
       case "answer": {
         const answer = cleanSdp(body.answer, "answer");
@@ -435,6 +482,7 @@ export async function relayStep(db: Firestore, uid: string, id: unknown, body: R
         if (!cur?.sessionId || !mids.length) return { ok: true };
         await relay.close(cur.sessionId, mids);
         if (cur.push && mids.includes(cur.push.mid)) { await mineRef.set({ push: null }, { merge: true }); await ref.update({ [`published.${uid}`]: FieldValue.delete() }); }
+        if (cur.video && mids.includes(cur.video.mid)) { await mineRef.set({ video: null }, { merge: true }); await markVideoOff(db, ref.id, [uid], now); }
         return { ok: true };
       }
       default: throw new CommunityError(400, "Unknown relay step.");
@@ -456,4 +504,65 @@ async function stopPush(db: Firestore, roomId: string, uid: string, deps: RoomDe
   if (!cur?.sessionId || !cur.push?.mid) return;
   await ref.set({ push: null }, { merge: true });
   await deps.relay().close(cur.sessionId, [cur.push.mid]);
+}
+
+// ── Live mode (lib/rooms-live.ts): the poster, speakers' video, the host's minutes and prompts ──
+// The host's extras on the room: their @username and whether they take paid sessions, so "Book a session" stays in view in the room.
+async function hostExtras(db: Firestore, uid: string): Promise<{ hostUsername?: string; hostBooks: boolean }> {
+  const [u, ps] = await Promise.all([db.doc(`users/${uid}`).get(), db.doc(`publisherSettings/${uid}`).get()]);
+  const username = String(u.data()?.username ?? "");
+  return { ...(username ? { hostUsername: username } : {}), hostBooks: !!username && ps.data()?.session?.enabled === true };
+}
+// The poster's picture: one the host uploaded (only from their own posters folder in our storage, made WebP by the usual upload), their
+// profile picture, or the challenge art; "none" takes it away. Anything else is refused.
+export async function posterFor(db: Firestore, uid: string, source: unknown, url: unknown): Promise<string> {
+  switch (source as PosterSource) {
+    case "none": return "";
+    case "challenge": return CHALLENGE_POSTER;
+    case "profile": {
+      const avatar = String((await db.doc(`users/${uid}`).get()).data()?.avatar ?? "");
+      if (!avatar) throw new CommunityError(400, "Add a profile picture first, or upload a poster.");
+      return avatar;
+    }
+    case "upload": {
+      let mine = "";
+      try { mine = r2PublicUrl(`${POSTER_FOLDER}/${uid}/`); } catch { throw new CommunityError(503, "Uploads aren't set up right now."); }
+      const u = String(url ?? "");
+      if (!u.startsWith(mine) || u.length > 600 || /[\s"'<>]/.test(u)) throw new CommunityError(400, "Upload the poster from the room first.");
+      return u;
+    }
+    default: throw new CommunityError(400, "Choose a poster: upload one, your profile picture, or the challenge art.");
+  }
+}
+// The host changes the poster during the room (one write to the room doc).
+export async function setPoster(db: Firestore, uid: string, id: unknown, source: unknown, url: unknown): Promise<{ poster: string }> {
+  const { ref, r } = await roomOf(db, id);
+  if (r.status !== "live") throw new CommunityError(410, "The room has ended.");
+  if (uid !== r.hostUid) throw new CommunityError(403, "Only the host chooses the poster.");
+  const poster = await posterFor(db, uid, source, url);
+  await ref.update({ poster: poster || FieldValue.delete() });
+  return { poster };
+}
+// The host lets speakers turn video on, or not; turning it off takes the speakers' cameras down at once.
+export async function setStageVideo(db: Firestore, uid: string, id: unknown, on: unknown, now = new Date(), deps: RoomDeps = defaultDeps): Promise<{ stageVideo: boolean }> {
+  const { ref, r } = await roomOf(db, id);
+  if (r.mode !== "relay") throw new CommunityError(409, "Video needs a room on the relay.");
+  if (r.status !== "live") throw new CommunityError(410, "The room has ended.");
+  if (uid !== r.hostUid) throw new CommunityError(403, "Only the host decides who can use video.");
+  const stageVideo = on === true;
+  if ((r.stageVideo === true) !== stageVideo) await ref.update({ stageVideo });
+  if (!stageVideo) for (const u of r.speakers) if (r.videoOn?.[u]) await stopVideo(db, ref.id, u, deps.relay, now).catch(() => {});
+  return { stageVideo };
+}
+// The host's minutes and prompt on demand (the beat brings them too).
+export async function roomLiveStatus(db: Firestore, uid: string, id: unknown, now = new Date(), deps: RoomDeps = defaultDeps): Promise<HostLive> {
+  const { ref, r } = await roomOf(db, id);
+  if (r.mode !== "relay") throw new CommunityError(409, "Video needs a room on the relay.");
+  if (uid !== r.hostUid) throw new CommunityError(403, "Only the host sees the video minutes.");
+  return hostLive(db, ref.id, await getRoomSettings(db), deps.relay, now);
+}
+// The sender's limits for a relay room's cameras (sent on join), from the settings.
+export async function liveVideoConfig(db: Firestore): Promise<{ on: boolean; kbps: number; fps: number; height: number }> {
+  const s = await getRoomSettings(db).catch(() => roomSettings());
+  return { on: s.videoOn > 0, kbps: s.videoKbps, fps: s.videoFps, height: s.videoHeight };
 }

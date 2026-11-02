@@ -15,6 +15,7 @@ import * as S from "../../lib/live-recording-server";
 import { DAY_MS, type RecordingDoc, type ReplayDoc } from "../../lib/live-recording";
 import { RelayError, type RelayClient, type Sdp } from "../../lib/rooms-relay-server";
 import type { RoomDoc } from "../../lib/rooms";
+import { CHALLENGE_POSTER } from "../../lib/rooms-live";
 
 initializeApp({ projectId: "demo-notesapp" });
 const db = getFirestore();
@@ -92,7 +93,7 @@ const user = (uid: string, extra: Record<string, unknown> = {}) => db.doc(`users
   // ── Without the recorder: the switch is unavailable and asking does nothing (the host is told) ──
   delete process.env.RECORDER_URL; delete process.env.RECORDER_SECRET;
   assert.equal((await S.recordingChoice(db, "host")).canRecord, false);
-  const plain = await R.startRoom(db, "host", c.id, "Not recorded", new Date(), roomDeps, { record: true });
+  const plain = await R.startRoom(db, "host", c.id, "Not recorded", new Date(), roomDeps, undefined, { record: true });
   assert.equal(plain.recording, undefined); assert.match(plain.note ?? "", /Recording isn't available yet/);
   assert.equal((await roomDoc(plain.id)).recording, undefined);
   assert.equal(calls.length, 0);
@@ -101,7 +102,7 @@ const user = (uid: string, extra: Record<string, unknown> = {}) => db.doc(`users
   assert.deepEqual(await S.recordingChoice(db, "host"), { available: true, forced: false, keepDays: 30, maxHours: 4, transcripts: false, canRecord: true });
   // Phone to phone (the relay didn't answer): not recorded, and the host is told why.
   relayDown = true;
-  const p2p = await R.startRoom(db, "host", c.id, "Fallback", new Date(), roomDeps, { record: true });
+  const p2p = await R.startRoom(db, "host", c.id, "Fallback", new Date(), roomDeps, undefined, { record: true });
   assert.equal(p2p.mode, "p2p"); assert.match(p2p.note ?? "", /phone to phone, which can't be recorded/);
   relayDown = false;
   // Off by default: a relay room without the switch isn't recorded.
@@ -110,7 +111,7 @@ const user = (uid: string, extra: Record<string, unknown> = {}) => db.doc(`users
 
   // ── A recorded room: the recorder is asked to join, signed, with a receive-only page token ──
   const t0 = new Date();
-  const room = await R.startRoom(db, "host", c.id, "Town hall", t0, roomDeps, { record: true });
+  const room = await R.startRoom(db, "host", c.id, "Town hall", t0, roomDeps, undefined, { record: true });
   assert.equal(room.mode, "relay"); assert.equal(room.recording, true);
   const r0 = await roomDoc(room.id);
   assert.equal(r0.recording?.on, true); assert.equal(r0.recording?.status, "starting"); assert.ok(r0.consent?.host, "the host agreed by switching it on");
@@ -142,10 +143,30 @@ const user = (uid: string, extra: Record<string, unknown> = {}) => db.doc(`users
   await R.setSpeaker(db, "host", room.id, "spk", true, new Date(), roomDeps);
   await fails(R.relayStep(db, "spk", room.id, { op: "push", offer, mid: "0", fresh: true }, new Date(), roomDeps), 403);
   await fails(S.consentToRecording(db, "l1", room.id), 409, /not on stage/);
+  // Live mode (2a): the speaker's camera waits for their agreement too.
+  await R.setStageVideo(db, "host", room.id, true);
+  await fails(R.relayStep(db, "spk", room.id, { op: "video", offer, mid: "1", fresh: true }, new Date(), roomDeps), 403, /Agree to speak on the record/);
   await S.consentToRecording(db, "spk", room.id);
   assert.ok((await roomDoc(room.id)).consent?.spk);
   await R.relayStep(db, "spk", room.id, { op: "push", offer, mid: "0", fresh: true }, new Date(), roomDeps);
   assert.deepEqual((await recDoc(rid)).stage, ["host", "spk"]); assert.equal((await recDoc(rid)).teenOnStage, undefined);
+
+  // ── Live mode (2a) in the recording: the poster while cameras are off, each camera pulled as video when it's up ──
+  await R.setPoster(db, "host", room.id, "challenge", undefined);
+  let rs = await S.recorderState(db, token);
+  assert.equal(rs.poster, CHALLENGE_POSTER, "the poster the room shows"); assert.deepEqual(rs.videoPulls, []);
+  await R.relayStep(db, "host", room.id, { op: "video", offer, mid: "1" }, new Date(), roomDeps);
+  await R.relayStep(db, "spk", room.id, { op: "video", offer, mid: "1" }, new Date(), roomDeps);
+  rs = await S.recorderState(db, token);
+  assert.deepEqual(rs.videoPulls.map((p) => p.uid).sort(), ["host", "spk"], "the host's and the allowed speaker's cameras");
+  const cam = await S.recorderRelay(db, token, { op: "pull", uids: ["host", "spk"], video: true }, deps);
+  assert.deepEqual((cam.tracks ?? []).map((t) => [t.uid, t.kind]), [["host", "video"], ["spk", "video"]]);
+  assert.equal((await db.doc(`communityRooms/${room.id}/people/${S.RECORDER_UID}`).get()).exists, false, "the recorder is no listener");
+  assert.equal(await R.recount(db, room.id, new Date(), true), 1, "only l1 is counted");
+  await R.relayStep(db, "spk", room.id, { op: "unvideo" }, new Date(), roomDeps);
+  await R.relayStep(db, "host", room.id, { op: "unvideo" }, new Date(), roomDeps);
+  assert.deepEqual((await S.recorderState(db, token)).videoPulls, [], "cameras off: back to the poster");
+  await fails(S.recorderRelay(db, token, { op: "pull", uids: ["host"], video: true }, deps), 409, /video on/);
 
   // ── Chunks: small ones wait, then become a 5 MiB+ part; a retry is taken once ──
   assert.equal((await S.ingestChunk(db, rid, "stage", 1, bytes(3 * MiB, 1), deps)).parts, 0);
@@ -186,7 +207,7 @@ const user = (uid: string, extra: Record<string, unknown> = {}) => db.doc(`users
   assert.equal((await S.myRecordings(db, "l1")).length, 0);
 
   // ── A second recording, left unpublished, for the keep-days cron ──
-  const room2 = await R.startRoom(db, "host", c.id, "Midweek", new Date(), roomDeps, { record: true });
+  const room2 = await R.startRoom(db, "host", c.id, "Midweek", new Date(), roomDeps, undefined, { record: true });
   const rid2 = (await roomDoc(room2.id)).recording!.rid;
   await S.ingestChunk(db, rid2, "stage", 1, bytes(2048), deps);
   await R.closeRoom(db, "host", room2.id, new Date(), { recording: deps });
@@ -253,7 +274,7 @@ const user = (uid: string, extra: Record<string, unknown> = {}) => db.doc(`users
   assert.equal((await db.doc(`notes/${j.noteId}`).get()).exists, false); assert.equal(streamVideos.size, 0);
 
   // ── Teen mode: a teen on stage keeps the replay inside the community ──
-  const room3 = await R.startRoom(db, "host", c.id, "Youth hour", new Date(), roomDeps, { record: true });
+  const room3 = await R.startRoom(db, "host", c.id, "Youth hour", new Date(), roomDeps, undefined, { record: true });
   const rid3 = (await roomDoc(room3.id)).recording!.rid;
   await R.joinRoom(db, "teen", room3.id);
   await R.setSpeaker(db, "host", room3.id, "teen", true, new Date(), roomDeps);
@@ -272,7 +293,7 @@ const user = (uid: string, extra: Record<string, unknown> = {}) => db.doc(`users
 
   // ── The recorder can't start: the room goes on, the host is told, the recording is kept as a failed note ──
   recorderDown = true;
-  const room4 = await R.startRoom(db, "host", c.id, "Recorder down", new Date(), roomDeps, { record: true });
+  const room4 = await R.startRoom(db, "host", c.id, "Recorder down", new Date(), roomDeps, undefined, { record: true });
   const r4 = await roomDoc(room4.id);
   assert.equal(r4.status, "live"); assert.equal(r4.recording?.status, "failed"); assert.match(r4.recording?.why ?? "", /couldn't join/);
   assert.equal((await recDoc(r4.recording!.rid)).status, "failed");

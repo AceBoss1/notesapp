@@ -15,11 +15,25 @@ export const CHANGELOG: Release[] = [
     bump: "minor",
     date: "2026-11-02",
     changes: [
-      { kind: "added", text: "Recording a live: a host can tick Record this live before starting an audio room that runs through our relay (off by default). Everyone in the room sees \"This live is being recorded\", the room shows ● Recorded before you join, and anyone brought on stage taps once to agree before their mic goes on. The recording is made by our own recorder on our servers, never on anyone's phone." },
+      { kind: "added", text: "Recording a live: a host can tick Record this live before starting an audio room that runs through our relay (off by default). Everyone in the room sees \"This live is being recorded\", the room shows ● Recorded before you join, and anyone brought on stage taps once to agree before their mic goes on. The recording is made by our own recorder on our servers, never on anyone's phone. With Live mode it records the cameras that are on (the host's, and speakers' when the host allows) and the room's poster while they're off; a speaker's camera also waits for their agreement." },
       { kind: "added", text: "Recordings are kept in private storage for a set number of days after the live (30 to start with), then deleted unless the host publishes the replay. Hosts play, publish or delete them in the new Media area (My account → Media), with the days left on each." },
       { kind: "added", text: "Replays: a published recording streams like a video, for everyone (shown on Explore and Trending, each with a new Replays tab), for the host's journal subscribers, or for the community's members only. If the host or a speaker is in teen mode, the replay stays inside the community. Replays can be shared to Moments, a journal, a chat or other apps, and carry a Book a session button." },
       { kind: "added", text: "Share to Journal on a replay makes a draft journal post with the replay, plus a transcript and a summary with chapters drafted by Nana when transcripts are switched on, to edit and publish like any post. Unpublishing a replay removes its post too." },
       { kind: "added", text: "For the team: Admin → Limits has a Live recording section (days to keep, longest recording, and a switch to record every relay room for safety review) and plan switches for who can record and who can publish replays; Admin → Live recordings lists every recording for safety review." },
+    ],
+  },
+  {
+    version: "v0.125.0",
+    bump: "minor",
+    date: "2026-11-02",
+    changes: [
+      { kind: "added", text: "Live mode in Community audio rooms: in a room through our relay, the host can turn their camera on and off during the room (and let speakers do the same), without anyone reconnecting. Video is kept light so it works on ordinary phone data." },
+      { kind: "added", text: "A poster for every room: the host picks a picture when they start (one they upload, their profile picture or the challenge art) and can change it any time. Everyone sees it while video is off. It's only a picture, so it never uses video data." },
+      { kind: "added", text: "Audio only for listeners: one tap stops downloading the video to save data. On a slow connection or with data saver on, rooms start on Audio only, and your choice is remembered on that device." },
+      { kind: "added", text: "Each live has a set number of video minutes, and the host sees how many are left. When they run out the host is told and video turns off by itself shortly after; the room carries on with sound and the poster." },
+      { kind: "added", text: "Gentle tips for the host: when listeners start dropping while video is off, a suggestion to try a short burst of video; after a long stretch of video, or when few minutes are left, a reminder to go back to audio." },
+      { kind: "added", text: "If the host offers paid sessions, Book a session stays at the top of the room for everyone listening, and opens in a new tab so you don't leave." },
+      { kind: "added", text: "For the team: Admin → Limits → Audio rooms has a Live mode section (video on or off, video minutes per live, the grace when they run out, when each tip shows, and the video's size, frame rate and quality cap), and the help and the Audio rooms page quote what's saved there. Rooms can now be set to hold up to 10,000 listeners." },
     ],
   },
   {

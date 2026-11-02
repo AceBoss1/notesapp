@@ -8,7 +8,8 @@ import { limitFor } from "./limits";
 import { memberTier } from "./nana-meter";
 import { getTierConfig } from "./tiers";
 import { slugify } from "./firestore-notes";
-import { pullsFor, presentIn, type RoomDoc } from "./rooms";
+import { pullsFor, presentIn, type RoomDoc, type RoomRelayRecord } from "./rooms";
+import { videoPullsFor } from "./rooms-live";
 import { RelayError, cleanSdp, relayClient, type RelayClient } from "./rooms-relay-server";
 import { readRecorderToken, recorderToken, signBody } from "./recorder-sign";
 import {
@@ -238,18 +239,23 @@ async function tokenRoom(db: Firestore, token: unknown) {
   if (!r || r.recording?.rid !== t.rid) throw fail(404, "That room wasn't found.");
   return { t, ref, r };
 }
-// What the page needs to record: whether the room is still on, the stage (names for the title card), the poster when the host's video
-// is off (a room field the live-video work adds; a title card otherwise) and which tracks to receive.
+// What the page needs to record: whether the room is still on, the stage (names for the title card), the poster shown while no camera is
+// up (Live mode's `poster`: an upload, the host's picture or the challenge art; a title card when there's none), and which tracks to
+// receive: every stage microphone that's up, and every stage camera that's up (Live mode puts each camera up as its own track, `videoOn`).
+// The recorder isn't a listener: it never has a people/ doc or a heartbeat, so it's in no listener count, no drop prompt and no
+// challenge figure, and pulling cameras never touches the video-minutes budget (that counts cameras up, not viewers).
 export async function recorderState(db: Firestore, token: unknown, now = new Date()) {
   const { r } = await tokenRoom(db, token);
-  const poster = typeof (r as unknown as { poster?: unknown }).poster === "string" ? String((r as unknown as { poster: string }).poster) : "";
+  const poster = typeof r.poster === "string" ? r.poster : "";
   return {
     live: r.status === "live", mode: r.mode, title: r.title, communityName: r.communityName, hostName: r.hostName, poster,
     stage: [r.hostUid, ...r.speakers].filter((u) => r.joined?.[u]).map((u) => ({ uid: u, name: r.joined[u].name })),
     pulls: r.status === "live" ? pullsFor(r, RECORDER_UID, now.getTime()) : [],
+    videoPulls: r.status === "live" && r.mode === "relay" ? videoPullsFor(r, RECORDER_UID, false, now.getTime()) : [],
+    hostUid: r.hostUid,
   };
 }
-// The page's steps with Cloudflare: pull, answer and close only. It can never send.
+// The page's steps with Cloudflare: pull (sound, or cameras with video: true), answer and close only. It can never send.
 export async function recorderRelay(db: Firestore, token: unknown, body: Record<string, unknown>, deps: Pick<RecordingDeps, "relay"> = realRecordingDeps(), now = new Date()) {
   const { ref, r } = await tokenRoom(db, token);
   if (r.status !== "live" || r.mode !== "relay") throw fail(410, "The room has ended.");
@@ -258,16 +264,21 @@ export async function recorderRelay(db: Firestore, token: unknown, body: Record<
   try {
     switch (body.op) {
       case "pull": {
+        const video = body.video === true;
         const want = (Array.isArray(body.uids) ? body.uids : []).map(String).slice(0, 10);
-        const stage = new Set(pullsFor(r, RECORDER_UID, now.getTime()).map((p) => p.uid));
+        const stage = new Set((video ? videoPullsFor(r, RECORDER_UID, false, now.getTime()) : pullsFor(r, RECORDER_UID, now.getTime())).map((p) => p.uid));
         const allowed = want.filter((u) => stage.has(u));
         const records = allowed.length ? await db.getAll(...allowed.map((u) => ref.collection("relay").doc(u))) : [];
-        const from = records.flatMap((d, i) => { const x = d.data(); return x?.sessionId && x.push?.trackName ? [{ uid: allowed[i], sessionId: String(x.sessionId), trackName: String(x.push.trackName) }] : []; });
-        if (!from.length) throw fail(409, "Nobody on stage is sending sound right now.");
+        const from = records.flatMap((d, i) => {
+          const x = d.data() as RoomRelayRecord | undefined;
+          const track = video ? x?.video?.trackName : x?.push?.trackName;
+          return x?.sessionId && track ? [{ uid: allowed[i], sessionId: String(x.sessionId), trackName: String(track) }] : [];
+        });
+        if (!from.length) throw fail(409, video ? "Nobody on stage has video on right now." : "Nobody on stage is sending sound right now.");
         let sessionId = String((await mine.get()).data()?.sessionId ?? "");
         if (!sessionId || body.fresh === true) { sessionId = await relay.newSession(); await mine.set({ sessionId, at: now.toISOString(), push: null }); }
         const res = await relay.pull(sessionId, from.map((f) => ({ sessionId: f.sessionId, trackName: f.trackName })));
-        const tracks = res.tracks.flatMap((t) => { const f = from.find((x) => x.trackName === t.trackName); return f && t.mid && !t.errorCode ? [{ uid: f.uid, mid: t.mid }] : []; });
+        const tracks = res.tracks.flatMap((t) => { const f = from.find((x) => x.trackName === t.trackName); return f && t.mid && !t.errorCode ? [{ uid: f.uid, mid: t.mid, ...(video ? { kind: "video" as const } : {}) }] : []; });
         return { offer: res.offer, renegotiate: res.renegotiate, tracks };
       }
       case "answer": {
