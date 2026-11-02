@@ -1,4 +1,4 @@
-import { LIFE_URL } from "@/lib/host";
+import { LIFE_URL, SITE_URL } from "@/lib/host";
 import { setting } from "@/lib/config";
 // Notes Life: the game's rules and everything that can be bought, eaten, worked or ridden. Shared by the server (which owns money and
 // ownership: lib/life/server.ts), the game screens and the tests. Prices are in Notesville Naira (N$), whole numbers.
@@ -233,7 +233,7 @@ export const OUTLET_HOLD_DAYS = 30;
 export const OUTLET_BACKUP = { price: 620_000, name: "itel Power Tank 1000 and two 650W bifacial panels" };
 export const OUTLET_STAFF = ["Emeka", "Halima", "Tunde", "Aisha", "Chinedu", "Ngozi", "Musa", "Ifeoma"];
 export const REAL_PARTNER: Record<"chef_adams" | "itel" | "luxnas", string> = {
-  luxnas: "https://www.notesapp.name.ng/s/luxnas",
+  luxnas: `${SITE_URL}/s/luxnas`,
   chef_adams: `/journals/own-a-chef-adams-franchise-in-your-choice-location`,
   itel: "https://www.itel-life.com/ng/itel-home/about-itel-home",
 };
@@ -655,7 +655,7 @@ export function restroomBoost(r: Restroom, p: { hotelUntil: number; lastSwimAt: 
 // ---- LUXNAS (partner, from 27 October 2026): a boutique lifestyle, business and fashion brand from Nnewi, led by CEO Chinasa Odina.
 // Custom tailoring, embroidery, ready-to-wear and bespoke African fashion; it ships worldwide. In Notesville its shop is on Wuse Market
 // (Zone 4): deliver its orders, learn at LUXNAS Academy, then work there or open your own LUXNAS studio. ----
-export const LUXNAS = { name: "LUXNAS", handle: "luxnas", shop: "https://www.notesapp.name.ng/s/luxnas", instagram: "https://www.instagram.com/fw_diamondstitches/", ceo: "Chinasa Odina", ceoHandle: "chinasa", origin: "Nnewi",
+export const LUXNAS = { name: "LUXNAS", handle: "luxnas", shop: `${SITE_URL}/s/luxnas`, instagram: "https://www.instagram.com/fw_diamondstitches/", ceo: "Chinasa Odina", ceoHandle: "chinasa", origin: "Nnewi",
   offers: ["Senator suits, custom Agbadas and Kaftans for men", "Ankara two-piece sets, long dresses, office looks, Asoebi and bridal wear", "Custom denim, custom-fit jeans and chinos", "Worldwide orders with international shipping"] };
 export type LuxCourse = { id: string; name: string; icon: string; price: number; classes: number; job: string };
 export const LUX_COURSES: LuxCourse[] = [

@@ -2,6 +2,8 @@ import Link from "next/link";
 import type { Metadata } from "next";
 import PageHero from "@/components/PageHero";
 import EventsHub from "@/components/events/EventsHub";
+import { bandsText } from "@/lib/giving";
+import { formatNaira } from "@/lib/booking-time";
 
 export const metadata: Metadata = {
   title: "Events",
@@ -14,7 +16,7 @@ const PARTS = [
   ["Going and Interested", "People tap Going or Interested, get a bell, a phone notification and an email 24 hours and 1 hour before, and can add it to their calendar."],
   ["Repeating events", "Weekly services, monthly meetings: set it once and it repeats."],
   ["Join live", "Talks for a community's members run in its audio rooms on #NotesApp. For video or a big audience, add a Join live link (YouTube Live, Zoom, Google Meet or any https link) until our own live streaming comes."],
-  ["Paid tickets", "Add ticket types (Regular, VIP …) with a price and how many. Buyers pay by card through #NotesApp checkout and get a QR code per ticket under My tickets; you check them in at the door by scanning or typing the code. You're paid after the event, less your plan's commission."],
+  ["Paid tickets", `Add ticket types (Regular, VIP …) with a price and how many. Buyers pay by card through #NotesApp checkout and get a QR code per ticket under My tickets; you check them in at the door by scanning or typing the code. You're paid after the event with no commission: like gifts to a community, each ticket has a small charge (${bandsText(formatNaira)}) plus the card charge at cost.`],
 ];
 
 // Events (lib/events.ts, docs/COMMUNITY.md): for every account, and the events part of Community.

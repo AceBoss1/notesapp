@@ -4,6 +4,8 @@ import { GROUP_CALL_MAX } from "./group-calls";
 import { ROOM_CHAT_MAX, ROOM_LISTENERS_MAX_P2P, ROOM_SPEAKERS_MAX } from "./rooms";
 import { REPEATS } from "./events";
 import { TICKETS_PER_ORDER_MAX } from "./tickets";
+import { bandsText } from "./giving";
+import { formatNaira } from "./booking-time";
 
 // The four parts of a community, each with its own page at /community/<slug> (owner, 22 Oct 2026: "they would all have more details or
 // own page, don't cluster them inside the community page as sections alone, though they all need to be linked"). The numbers come from
@@ -174,7 +176,7 @@ export const COMMUNITY_FEATURES: CommunityFeature[] = [
         "On the event's page, under Tickets, add ticket types (Regular, VIP …), each with a price and how many. With none, the event stays a free RSVP. Paid tickets need a bank account under Rates & payouts.",
         `Buyers pay by card, up to ${TICKETS_PER_ORDER_MAX} tickets at a time, and get a QR code for each under My tickets and in their email. Each lets one person in, once.`,
         "At the door, tap Check-in on the event and scan or type the code: it says whether the ticket is valid, already used or refunded, and counts who is in.",
-        "You're paid after the event, less your plan's usual commission. A refunded ticket stops working and goes back on sale.",
+        `You're paid after the event, with no commission: like giving, each ticket has a small charge (${bandsText(formatNaira)}) plus the card charge at cost. A refunded ticket stops working and goes back on sale.`,
       ] },
       { h: "Giving", items: [
         "Take offerings, tithes and donations on the same community: switch on Giving under Admin, name your funds, and members give with a Give button and get a receipt. See Community for the charges.",
@@ -183,7 +185,7 @@ export const COMMUNITY_FEATURES: CommunityFeature[] = [
         "On the event's page, under Tickets, add ticket types (Regular, VIP …), each with a price and how many. With none, the event stays a free RSVP. Paid tickets need a bank account under Rates & payouts.",
         `Buyers pay by card, up to ${TICKETS_PER_ORDER_MAX} tickets at a time, and get a QR code for each under My tickets and in their email. Each lets one person in, once.`,
         "At the door, tap Check-in on the event and scan or type the code: it says whether the ticket is valid, already used or refunded, and counts who is in.",
-        "You're paid after the event, less your plan's usual commission. A refunded ticket stops working and goes back on sale.",
+        `You're paid after the event, with no commission: like giving, each ticket has a small charge (${bandsText(formatNaira)}) plus the card charge at cost. A refunded ticket stops working and goes back on sale.`,
       ] },
       { h: "Giving", items: [
         "Take offerings, tithes and donations on the same community: switch on Giving under Admin, name your funds, and members give with a Give button and get a receipt. See Community for the charges.",

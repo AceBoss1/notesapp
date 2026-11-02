@@ -3,7 +3,7 @@ import { friendlyMessage } from "@/lib/api-errors";
 import { getAdminDb, verifySignedInRequest } from "@/lib/firebase-admin";
 import { rateLimit } from "@/lib/rate-limit";
 import { CommunityError } from "@/lib/community-server";
-import { EventError, cancelEvent, createEvent, getEvent, rsvp, updateEvent, upcoming } from "@/lib/events-server";
+import { EventError, cancelEvent, createEvent, getEvent, listedEvents, rsvp, updateEvent, upcoming } from "@/lib/events-server";
 
 export const dynamic = "force-dynamic";
 const viewer = async (req: NextRequest) => (await verifySignedInRequest(req.headers.get("authorization")?.replace(/^Bearer\s+/i, "")).catch(() => null))?.uid ?? null;
@@ -13,12 +13,14 @@ const fail = (err: unknown, what: string) => {
   return NextResponse.json({ error: f.message }, { status: f.status });
 };
 
-// GET ?id= → one event · GET ?state=&city=&cid=&host=&mine=1 → { events } (lib/events-server.ts)
+// GET ?id= → one event · GET ?state=&city=&cid=&host=&mine=1 → { events } · GET ?explore=1 → { events }: Explore's Events tab, every
+// listed event soonest first (public, upcoming, not cancelled, not from an invite-only community) (lib/events-server.ts)
 export async function GET(req: NextRequest) {
   try {
     const uid = await viewer(req);
     const q = req.nextUrl.searchParams;
     const db = getAdminDb();
+    if (q.get("explore")) return NextResponse.json({ events: (await listedEvents(db)).slice(0, 60) }, { headers: { "Cache-Control": "public, s-maxage=300, stale-while-revalidate=600" } });
     if (q.get("id")) return NextResponse.json(await getEvent(db, q.get("id")!, uid), { headers: { "Cache-Control": "no-store" } });
     const events = await upcoming(db, { state: q.get("state") ?? undefined, city: q.get("city") ?? undefined, cid: q.get("cid") ?? undefined, host: q.get("host") ?? undefined, mine: q.get("mine") === "1" }, uid);
     return NextResponse.json({ events }, { headers: { "Cache-Control": "no-store" } });

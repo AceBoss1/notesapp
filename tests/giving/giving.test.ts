@@ -1,8 +1,11 @@
 // Community giving and event tickets, the pure rules (lib/giving.ts, lib/tickets.ts): the charge bands, the card charge, covering the
-// charges or not, the cap before verification, when gifts are paid out, ticket types and codes. Run: npm run test:giving → "GIVING OK".
+// charges or not, the cap before verification, when gifts are paid out, ticket types, ticket charges and codes, and which events Explore
+// and Trending list. Run: npm run test:giving → "GIVING OK".
 import assert from "node:assert/strict";
-import { GIVING_MIN_KOBO, UNVERIFIED_GIFT_CAP_KOBO, bandChargeKobo, cardChargeKobo, cleanGivingSettings, giftProblem, givingReleaseAfter, quoteGift } from "../../lib/giving";
-import { cleanTicketTypes, makeTicketCode, readTicketCode, showCode, ticketsLeft } from "../../lib/tickets";
+import { GIVING_MIN_KOBO, UNVERIFIED_GIFT_CAP_KOBO, bandChargeKobo, bandsText, cardChargeKobo, cleanGivingSettings, giftProblem, givingReleaseAfter, quoteGift } from "../../lib/giving";
+import { cleanTicketTypes, makeTicketCode, quoteTickets, readTicketCode, showCode, ticketsLeft } from "../../lib/tickets";
+import { eventTrendScore, isListedEvent } from "../../lib/events";
+import { formatNaira } from "../../lib/booking-time";
 
 const N = (naira: number) => naira * 100;
 
@@ -73,6 +76,28 @@ r = cleanTicketTypes([{ id: "vip", name: "VIP", priceNaira: 25000, quantity: 8 }
 assert.ok(r.ok && r.types[0].sold === 8 && r.types[0].priceKobo === N(25_000) && r.types[2].id === "regular-2");
 assert.ok(!cleanTicketTypes([{ name: "Cheap", priceNaira: 50, quantity: 5 }], []).ok, "₦100 at least");
 assert.ok(!cleanTicketTypes([{ name: "", priceNaira: 500, quantity: 5 }], []).ok);
+
+// Ticket charges, like giving (owner, 2 Nov 2026): no commission, giving's band per ticket by its price, the card charge on the payment.
+assert.deepEqual(quoteTickets(N(5_000), 1), { grossKobo: N(5_000), bandKobo: N(10), cardChargeKobo: N(175), netKobo: N(4_815) }, "₦5,000 on any plan: ₦4,815 (was ₦3,750 on Pro at 25%)");
+assert.deepEqual(quoteTickets(N(5_000), 2), { grossKobo: N(10_000), bandKobo: N(20), cardChargeKobo: N(250), netKobo: N(9_730) });
+assert.deepEqual(quoteTickets(N(20_000), 1), { grossKobo: N(20_000), bandKobo: N(25), cardChargeKobo: N(400), netKobo: N(19_575) });
+assert.deepEqual(quoteTickets(N(100_000), 3), { grossKobo: N(300_000), bandKobo: N(150), cardChargeKobo: N(2_000), netKobo: N(297_850) }, "card charge capped");
+assert.deepEqual(quoteTickets(N(100), 1), { grossKobo: N(100), bandKobo: N(10), cardChargeKobo: 150, netKobo: N(90) - 150 }, "the cheapest ticket still leaves the organiser most of it");
+for (const price of [N(100), N(5_000), N(5_001), N(50_000), N(50_001), N(1_000_000)]) assert.equal(quoteTickets(price, 1).bandKobo, bandChargeKobo(price), "the same bands as giving");
+assert.equal(bandsText(formatNaira), "₦10 up to ₦5,000, ₦25 up to ₦50,000, ₦50 above");
+
+// Explore and Trending: only public, upcoming, not cancelled events, from communities anyone can find.
+const at = new Date("2026-11-02T12:00:00Z");
+const ev = { startsAt: "2026-11-05T17:00:00Z", endsAt: "2026-11-05T19:00:00Z", repeat: "none" as const, visibility: "public" as const };
+assert.equal(isListedEvent(ev, at, false), true);
+assert.equal(isListedEvent({ ...ev, visibility: "members", cid: "c1" }, at, true), false, "members only");
+assert.equal(isListedEvent({ ...ev, cancelled: true }, at, false), false, "cancelled");
+assert.equal(isListedEvent({ ...ev, cid: "c1" }, at, false), false, "an invite-only community's");
+assert.equal(isListedEvent({ ...ev, cid: "c1" }, at, true), true);
+assert.equal(isListedEvent({ ...ev, startsAt: "2026-11-01T10:00:00Z", endsAt: "2026-11-01T12:00:00Z" }, at, false), false, "over");
+assert.equal(isListedEvent({ ...ev, startsAt: "2026-11-02T11:00:00Z", endsAt: "2026-11-02T13:00:00Z" }, at, false), true, "on now");
+assert.equal(isListedEvent({ ...ev, startsAt: "2026-10-26T17:00:00Z", endsAt: "2026-10-26T19:00:00Z", repeat: "weekly" }, at, false), true, "repeats");
+assert.equal(eventTrendScore({ views: 4, rsvps: 2, tickets: 1 }), 4 + 6 + 5);
 
 // Codes: unambiguous letters and digits, read back from the code, its dashed form or the check-in link.
 const code = makeTicketCode((n) => Uint8Array.from({ length: n }, (_, i) => i * 7));

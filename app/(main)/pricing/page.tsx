@@ -16,7 +16,7 @@ import { CALLS_LIVE, MESSAGES_LIVE, MOMENTS_LIVE } from "@/lib/moments-rules";
 import { WALLET_LIVE } from "@/lib/wallet";
 import { academyApiFrom, certificateMin, enterpriseCoursesPrice, enterpriseFrom, logisticsAddonPrice, logisticsTrialDays, planPrice, planRate, pct, breakEven , inventoryAddonPrice, inventoryTrialDays, booksCaps, coversPerDay } from "@/lib/pricing";
 import { ROOT_DOMAIN } from "@/lib/host";
-import { GIVING_BANDS, UNVERIFIED_GIFT_CAP_KOBO } from "@/lib/giving";
+import { UNVERIFIED_GIFT_CAP_KOBO, bandsText } from "@/lib/giving";
 import { TICKET_PRICE_MIN_KOBO } from "@/lib/tickets";
 import { CREDIT_BONUS, MAX_AFFILIATE_PERCENT, MIN_CASH_KOBO, PLAN_MONTHS, PLAN_SHARE } from "@/lib/referrals";
 
@@ -34,7 +34,8 @@ type Row = { label: string; href?: string; render: (t: (typeof TIERS)[number], L
 const TEAM_HUB_NOTE = "The Team hub and team messages are coming as a paid add-on for Business and Enterprise after our internal testing";
 const YOUR_SITE = "Your site: every kit, the Clean, Legacy, Aurora or Maroon look with your colours, your sections, Journals, Shop, Courses and Track, and About and Contact pages.";
 // Giving's charges, like a bank transfer: "₦10 up to ₦5,000, ₦25 up to ₦50,000, ₦50 above" (lib/giving.ts).
-const GIVING_CHARGES = GIVING_BANDS.map((b) => `${formatNaira(b.chargeKobo)} ${Number.isFinite(b.uptoKobo) ? `up to ${formatNaira(b.uptoKobo)}` : "above"}`).join(", ");
+// Event tickets carry the same bands per ticket (lib/tickets.ts).
+const GIVING_CHARGES = bandsText(formatNaira);
 const SHARE = `${Math.round(PLAN_SHARE * 100)}%`;
 const mins = (s: number) => (s % 60 === 0 ? `${s / 60} minute${s === 60 ? "" : "s"}` : `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`);
 
@@ -172,7 +173,7 @@ const ROWS: Row[] = [
   {
     label: "Paid event tickets",
     href: "/help/event-tickets",
-    render: (t) => (t.canPublish ? `From ${formatNaira(TICKET_PRICE_MIN_KOBO)}, a QR code each, check-in at the door · NotesApp takes ${formatPercent(t.sessionAndUnlockCommission, t.sessionAndUnlockCommissionFloor)}` : "Buy tickets, each with its own QR code"),
+    render: (t) => (t.canPublish ? `From ${formatNaira(TICKET_PRICE_MIN_KOBO)}, a QR code each, check-in at the door · no commission: a charge per ticket like giving (${GIVING_CHARGES}), plus the card charge at cost` : "Buy tickets, each with its own QR code"),
   },
   {
     label: "Giving in communities",

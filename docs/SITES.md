@@ -1,8 +1,10 @@
 # Sites: looks, sections, kits and analytics
 
 The plan for growing Your site into sites for every kind of member and business, and for giving members their own analytics. The owner's
-decisions of 20 Oct 2026 are below. Phase 1 (analytics, v0.64.0) and phase 2 (sections, the Clean look, colour sets and the first kits,
-v0.65.0) phase 3 (the Scholar look and the academic sections, v0.66.0) and phase 4 (more kits and the cover photo, v0.70.0) are built.
+decisions of 20 Oct 2026 are below. Phase 1 (analytics, v0.64.0), phase 2 (sections, the Clean look, colour sets and the first kits,
+v0.65.0), phase 3 (the Scholar look and the academic sections, v0.66.0), phase 4 (more kits and the cover photo, v0.70.0) and phase 5
+(the storefront, the Luxe look, community and courses inside the site, v0.72.0 to v0.78.0) are built. [What's live and what's
+planned](#whats-live-and-whats-planned) is the summary; updated 2 Nov 2026 (v0.117.0).
 
 ## Decisions (owner, 20 Oct 2026)
 
@@ -120,3 +122,52 @@ An Analytics page for every member who sells, teaches, books sessions or publish
 - **Cover photo** on every look (`sites/{uid}.cover`), behind the profile header, with the logo over its edge and the social links under
   the name.
 - **Team tags**: a person's @username links their name to their #NotesApp profile. A mention only: seats are Business and above.
+
+## Phase 5: storefront, Luxe, courses and community inside the site (built, v0.72.0 to v0.78.0)
+
+- **Courses on the site** (v0.72.0): `/s/<username>/courses` and `/courses/<slug>` on the member's own domain open inside the site;
+  lessons and certificates still open on #NotesApp.
+- **Storefront and basket** (v0.72.0): the shop looks like a shop on every look (New arrivals, categories, Most popular, a featured
+  piece, search, sorting, tile sizes, Sold out and Only a few left); a basket (`/cart`, `components/site/SiteBasket.tsx`) pays for many
+  items at once with one delivery, each item its own held order; an announcement bar (`sites/{uid}.announce`). No Order on WhatsApp
+  buttons (owner, 21 Oct 2026): a saved one shows as Contact us.
+- **Luxe look** (Pro, v0.73.0): a full photo with the words and buttons over it, then centred titles. A **Night background** for every
+  look but Scholar. Services can carry minutes, a tab and a picture, and then show as a menu of cards; a Check our services button.
+- **Beauty and wellness kit** (Pro, v0.73.0) in four flavours (Spa, Massage, Hair, Nails), with Book your appointment on every page.
+- **Kits for their trade** (v0.77.0): eleven kits redone (Food and baking, Services, Healthcare, Fitness, Events and photography,
+  Electronics, Motor parts, Solar, Real estate, Schools, Churches and NGOs), each with a menu in tabs and a "best for" line; Food,
+  Fitness, Events and Real estate open on Luxe. Pictures load as you scroll.
+- **Shop and Notes links** (v0.76.0): the shop's top links come from the member's own labels; the Notes page links the topics they
+  write about most.
+- **Community inside the site** (v0.75.0, v0.78.0): the Churches and NGOs kit opens Community (start one, or link one they run;
+  `sites/{uid}.community`). A linked community opens at `<site>/community`, on the member's own domain too, with a Community link in the
+  menu (`communityPage`, a switch under Choose what shows).
+- **Day, Night and Auto** (v0.100.0): members' sites keep their own look; the app-wide switch doesn't change them.
+
+## The "Powered by #NotesApp" link (v0.117.0)
+
+The footer mark ("Name is powered by #NotesApp" on Business, "Name, powered by [na]" on Enterprise), the legal pages' Powered by block
+(`components/site/PoweredBy.tsx`), "Go to #NotesApp" on an unavailable site and team tags all go through `mainSiteUrl(host)` in
+`lib/host.ts` (`useMainSiteUrl()` in the browser), never a written-in domain:
+
+- previewed on our domains (`www.naapp.tech/s/<username>`, `www.notesapp.name.ng/s/<username>`): the main site of that domain;
+- on a member's own domain, on localhost and on previews: the primary address, `https://www.<NEXT_PUBLIC_ROOT_DOMAIN>` (docs/DOMAIN_SWITCH.md).
+
+So once `NEXT_PUBLIC_ROOT_DOMAIN=naapp.tech` is set in Vercel, every member's own domain links to `www.naapp.tech`.
+
+## What's live and what's planned
+
+| | Status |
+|---|---|
+| A site for Free Basic and above at `/s/<username>`; own domain for Business and Enterprise | Live |
+| Looks: Legacy, Clean, Scholar (Free Basic); Luxe, Aurora, Maroon (Pro); colour sets; brand colour (Pro); white, paper or Night background | Live |
+| Sections: banner, info strip, services menu, gallery, testimonials, team (with @tags), FAQ, academic sections with import | Live |
+| Pages: Journals (with topic links), Shop (storefront, basket), Courses, Track (Business), About, Contact, Terms and Privacy (own domain) | Live |
+| 18 kits (`KITS` in `lib/site-kits.ts`; Beauty and wellness in four flavours), including Schools and Churches and NGOs | Live |
+| Community inside the site (`/community`), on the own domain too | Live |
+| Analytics (visits by page and source on Business and above) | Live |
+| "Powered by #NotesApp" following the domain being viewed, or the primary address | Live (v0.117.0) |
+| Events and Giving as sections of the site itself (today they live in the linked community) | Planned |
+| Community live streaming as a paid add-on | Planned |
+| "Set it up for me" (our team fills a kit) and premium looks | Planned, no date |
+

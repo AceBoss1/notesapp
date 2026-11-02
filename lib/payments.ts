@@ -121,7 +121,9 @@ export type PaymentRecord = {
   // what the giver paid (the gift, plus the charges when they covered them). publisherUid is the community's owner.
   giving?: { cid: string; communityName: string; fund: string; note: string; anonymous: boolean; giverName: string; giftKobo: number; bandKobo: number; cardChargeKobo: number; netKobo: number; covered: boolean };
   // Paid event tickets (lib/tickets.ts): the type, how many, and the occurrence they are for. publisherUid is the event's host.
-  ticket?: { eventId: string; eventTitle: string; typeId: string; typeName: string; quantity: number; unitKobo: number; startsAt: string; endsAt: string; holderName: string };
+  // bandKobo / cardChargeKobo / netKobo: the charges fixed at checkout (lib/tickets.ts quoteTickets, since v0.117.0); a ticket bought
+  // before then has none and keeps the commission recorded in commissionRate.
+  ticket?: { eventId: string; eventTitle: string; typeId: string; typeName: string; quantity: number; unitKobo: number; startsAt: string; endsAt: string; holderName: string; bandKobo?: number; cardChargeKobo?: number; netKobo?: number };
 };
 
 // held      = collected, waiting for releaseAfter (session end / dispute window)
@@ -135,7 +137,7 @@ export type LedgerEntry = {
   paymentReference?: string; // the Paystack payment this entry belongs to (set on split entries)
   sharePercent?: number; // this author's % of a co-authored post's gift
   kind: "booking" | "subscription" | "gift" | "adshare" | "order" | "digital" | "certificate" | "course" | "shipping" | "affiliate" | "giving" | "ticket";
-  cardChargeKobo?: number; // giving by card: Paystack's charge at cost, passed on (grossKobo is already after it)
+  cardChargeKobo?: number; // giving and tickets by card: Paystack's charge at cost, passed on (grossKobo is already after it)
   affiliateKobo?: number; // an affiliate's share of this sale, already taken out of netKobo
   publisherUid: string;
   publisherUsername: string;
@@ -397,12 +399,20 @@ export async function fulfillPayment(reference: string, paidWith?: { cartRef: st
       } satisfies LedgerEntry);
     } else if (current.kind === "ticket" && current.ticket && ticketRead) {
       // Event tickets: one per admission, the sold count moved here. Not enough left (bought at the same moment as the last ones) →
-      // flagged for a refund, like a sold-out shop order. The host's money, less their commission, is held until the event ends.
+      // flagged for a refund, like a sold-out shop order. The host's money, after the charges, is held until the event ends: like a
+      // gift, the band is our commission and the card charge is passed on at cost. A ticket bought before v0.117.0 has no charges on
+      // its payment and keeps the commission it was sold with.
       if (!writeTickets(t, db, current, ticketRead, now)) {
         t.update(payRef, { status: "paid_slot_conflict", paidAt: now });
         return { payment: { ...current, status: "paid_slot_conflict" as const, paidAt: now }, fresh: true };
       }
-      t.set(db.doc(`ledger/${reference}`), ledgerFor(current, current.amountKobo, new Date(current.ticket.endsAt), now));
+      const tk = current.ticket;
+      t.set(db.doc(`ledger/${reference}`), typeof tk.bandKobo === "number" && typeof tk.netKobo === "number" ? {
+        reference, kind: "ticket", publisherUid: current.publisherUid, publisherUsername: current.publisherUsername, payerUid: current.uid,
+        grossKobo: current.amountKobo - (tk.cardChargeKobo ?? 0), commissionKobo: tk.bandKobo, netKobo: tk.netKobo,
+        ...(tk.cardChargeKobo ? { cardChargeKobo: tk.cardChargeKobo } : {}),
+        status: "held", releaseAfter: new Date(tk.endsAt).toISOString(), createdAt: now,
+      } satisfies LedgerEntry : ledgerFor(current, current.amountKobo, new Date(tk.endsAt), now));
     } else if (current.kind === "boost" && current.boost) {
       // Boosts are platform revenue: no ledger entry, just an active campaign.
       const pk = getBoostPackage(current.boost.packageId);
