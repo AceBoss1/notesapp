@@ -1,0 +1,9 @@
+Reference,Amount,Currency,Status,Channel,Fees,Customer Email,Customer Name,Customer Phone,Paid At,Created At
+T812345678901,10000.00,NGN,success,card,150.00,kunle@example.com,Kunle Ade,,2026-10-10 10:00:00,2026-10-10 09:59:00
+T812345678902,25000.00,NGN,success,bank_transfer,375.00,esther@example.com,,,2026-10-10 15:30:00,2026-10-10 15:28:00
+T812345678903,5000.00,NGN,failed,card,0.00,sam@example.com,,,,2026-10-11 08:00:00
+T812345678904,5000.00,NGN,abandoned,card,0.00,sam@example.com,,,,2026-10-11 08:05:00
+T812345678905,8000.00,NGN,reversed,card,120.00,joy@example.com,,,2026-10-11 12:00:00,2026-10-11 12:00:00
+na_1760180000000_a1b2c3d4e5f6,18500.00,NGN,success,card,277.50,buyer@example.com,,,2026-10-11 13:00:00,2026-10-11 13:00:00
+ORDER-REF-ONLINE,7000.00,NGN,success,card,105.00,old@example.com,,,2026-10-11 14:00:00,2026-10-11 14:00:00
+T812345678906,3000.00,NGN,success,ussd,45.00,musa@example.com,Musa Bello,,2026-10-12 09:00:00,2026-10-12 09:00:00

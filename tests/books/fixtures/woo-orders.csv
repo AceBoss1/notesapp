@@ -1,0 +1,6 @@
+order_id,order_number,date,status,shipping_total,fee_total,tax_total,discount_total,order_total,refunded_total,order_currency,payment_method,shipping_method,customer_id,billing_first_name,billing_last_name,billing_email,billing_phone,item_id,item_name,item_sku,item_quantity,item_subtotal,item_total,customer_note
+501,501,2026-10-20 10:15:00,completed,1500,200,,,6700,0,NGN,paystack,,,Femi,Ade,femi@example.com,08034445555,1,"Garri, white (5 litre)",GARRI-5L,2,5000,5000,
+502,502,2026-10-21 12:00:00,processing,,,,,22000,0,NGN,bacs,,,Halima,Musa,halima@example.com,,2,Hoodie - Blue,HOODIE-BLU,1,,12000,
+502,502,2026-10-21 12:00:00,processing,,,,,22000,,NGN,,,,,,,,3,Hoodie - Black,HOODIE-BLK,1,,10000,
+503,503,2026-10-22 09:00:00,cancelled,,,,,2500,,NGN,,,,Ola,,,,,"Garri, white (5 litre)",,1,,2500,
+504,504,2026-10-22 13:00:00,refunded,,,,,2500,2500,NGN,,,,Sade,,sade@example.com,,,"Garri, white (5 litre)",,1,,2500,

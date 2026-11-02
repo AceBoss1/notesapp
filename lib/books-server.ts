@@ -15,8 +15,8 @@ import {
   waLink, waPhone, whatOf, type BooksAccess, type Caps, type Entry, type Line, type Method, type Party, type PeriodKind, type Usage,
 } from "./books";
 import {
-  FIELDS, cleanMapping, csvOf, customerKey, dedupe, expenseKey, guessMapping, missingRequired, presetOf, readRows, readSheet, saleKey,
-  type ImportKind, type Mapping, type Problem, type Sheet,
+  FIELDS, categoryFrom, cleanMapping, csvOf, customerKey, dedupe, expenseKey, guessMapping, missingRequired, presetOf, readRows, readSheet, refKey, saleKey,
+  sourceOf, type BankRow, type ImportKind, type Mapping, type Problem, type SaleRow, type Sheet,
 } from "./books-import";
 
 // Business books on the server (docs/BUSINESS-BOOKS.md; the rules are lib/books.ts and lib/books-import.ts). Everything here is
@@ -709,10 +709,14 @@ export async function exportAll(c: Ctx, from?: string, to?: string): Promise<{ n
 }
 
 // ---- Import (docs/BUSINESS-BOOKS.md section 3): dry run, import, undo for 24 hours ----
+// Sources (lib/books-import.ts PRESETS): a spreadsheet, Tralo, Shopify, WooCommerce, Selar, Bumpa, Paystack and bank statements. Rows with
+// the source's own order number or reference are matched by it first (Entry.extRef), so importing the same export again adds nothing,
+// and an order refunded since only adds its refund.
+export type BankLine = Pick<BankRow, "row" | "on" | "narration" | "ref" | "inKobo" | "outKobo" | "as" | "category" | "tick" | "why"> & { dupe: boolean };
 export type ImportPlan = {
-  kind: ImportKind; headers: string[]; mapping: Mapping; samples: string[]; rows: number;
-  counts: { fresh: number; updates: number; dupes: number; problems: number };
-  problems: Problem[]; notes: { row: number; message: string }[]; missing: string[];
+  kind: ImportKind; source: string; headers: string[]; mapping: Mapping; samples: string[]; rows: number;
+  counts: { fresh: number; updates: number; dupes: number; problems: number; skipped: number };
+  problems: Problem[]; notes: { row: number; message: string }[]; skipped: Problem[]; missing: string[]; bank?: BankLine[];
 };
 type StockChange = { row: number; target: { itemId?: string; variant?: string; bookItemId?: string } | null; name: string; set: Record<string, unknown>; before: Record<string, unknown> };
 type Plan<T> = { plan: ImportPlan; work: T };
@@ -744,50 +748,104 @@ async function planStock(c: Ctx, rows: ReturnType<typeof readRows<"stock">>["row
   return { changes, notes, dupes };
 }
 
+// What's already in the books for those days: each entry's import reference (extRef), and for those without one the day + amount + item
+// (sales) or description (expenses). Refunds only by their reference.
 async function existingKeys(c: Ctx, on: string[], kind: "sale" | "expense") {
   if (!on.length) return new Set<string>();
   const sorted = [...on].sort();
-  const es = (await entriesBetween(c.db, c.owner, sorted[0], sorted[sorted.length - 1])).filter((e) => !e.voidedAt && e.kind === kind);
-  return new Set(es.map((e) => (kind === "sale" ? saleKey(e.on, e.totalKobo, e.lines[0]?.title ?? "") : expenseKey(e.on, e.totalKobo, e.note || categoryLabel(e.category, categoriesOf(c))))));
+  const es = (await entriesBetween(c.db, c.owner, sorted[0], sorted[sorted.length - 1])).filter((e) => !e.voidedAt && (e.kind === kind || (kind === "sale" && e.kind === "refund")));
+  const keys = new Set<string>();
+  for (const e of es) {
+    if (e.extRef) keys.add(`ref:${e.extRef}`);
+    if (e.kind === "refund") continue;
+    keys.add(kind === "sale" ? saleKey(e.on, e.totalKobo, e.lines[0]?.title ?? "") : expenseKey(e.on, e.totalKobo, e.note || categoryLabel(e.category, categoriesOf(c))));
+  }
+  return keys;
 }
+const saleRef = (src: string, r: Pick<SaleRow, "ref">) => (r.ref ? refKey(src, r.ref) : "");
+const extRefOf = (key: string) => key.replace(/^ref:/, "");
 
-export async function planImport(c: Ctx, raw: { kind?: unknown; csv?: unknown; mapping?: unknown; preset?: unknown }): Promise<Plan<{ sheet: Sheet; stock?: StockChange[]; fresh?: unknown[] }>> {
+export async function planImport(c: Ctx, raw: { kind?: unknown; csv?: unknown; mapping?: unknown; preset?: unknown }): Promise<Plan<{ sheet: Sheet; stock?: StockChange[]; fresh?: unknown[]; refunds?: SaleRow[] }>> {
   const kind = raw.kind as ImportKind;
   if (!FIELDS[kind]) throw new BooksError(400, "Choose what you're importing.");
   const sheet = readSheet(String(raw.csv ?? ""));
   if ("error" in sheet) throw new BooksError(400, sheet.error);
   if (sheet.rows.length > c.access.importRows) throw new BooksError(402, `Free Basic imports up to ${c.access.importRows} rows a file. Split the file, or move to Pro for up to 5,000.`, "import_rows");
   const preset = presetOf(raw.preset);
+  const src = preset && preset.kind === kind ? preset.source : kind === "bank" ? "bank" : "csv";
   const saved = c.settings.mappings?.[`${kind}:${sheet.headers.join("|").toLowerCase()}`];
   const mapping = raw.mapping ? cleanMapping(raw.mapping, sheet.headers, kind) : saved ? cleanMapping(saved, sheet.headers, kind) : guessMapping(sheet.headers, kind, preset);
   const samples = sheet.headers.map((_, i) => (sheet.rows.find((r) => (r[i] ?? "").trim())?.[i] ?? "").slice(0, 40));
   const missing = missingRequired(mapping, kind);
-  const empty: ImportPlan = { kind, headers: sheet.headers, mapping, samples, rows: sheet.rows.length, counts: { fresh: 0, updates: 0, dupes: 0, problems: 0 }, problems: [], notes: [], missing };
+  const empty: ImportPlan = { kind, source: src, headers: sheet.headers, mapping, samples, rows: sheet.rows.length, counts: { fresh: 0, updates: 0, dupes: 0, problems: 0, skipped: 0 }, problems: [], notes: [], skipped: [], missing };
   if (missing.length) return { plan: empty, work: { sheet } };
-  const { rows, problems } = readRows(sheet, mapping, kind, c.today);
-  const plan = { ...empty, problems: problems.slice(0, 200), counts: { ...empty.counts, problems: problems.length } };
+  const { rows, problems, skipped, notes: readNotes } = readRows(sheet, mapping, kind, c.today, preset);
+  const plan: ImportPlan = { ...empty, problems: problems.slice(0, 200), skipped: skipped.slice(0, 200), counts: { ...empty.counts, problems: problems.length, skipped: skipped.length } };
   if (kind === "stock") {
     const s = await planStock(c, rows as ReturnType<typeof readRows<"stock">>["rows"]);
-    plan.counts.fresh = s.changes.filter((x) => !x.target).length; plan.counts.updates = s.changes.length - plan.counts.fresh; plan.counts.dupes = s.dupes; plan.notes = s.notes;
+    plan.counts.fresh = s.changes.filter((x) => !x.target).length; plan.counts.updates = s.changes.length - plan.counts.fresh; plan.counts.dupes = s.dupes; plan.notes = [...readNotes, ...s.notes];
     return { plan, work: { sheet, stock: s.changes } };
   }
-  if (kind === "sales" || kind === "expenses") {
-    const typed = rows as { on: string; totalKobo?: number; amountKobo?: number; title?: string; description?: string; category?: string }[];
-    const have = await existingKeys(c, typed.map((r) => r.on), kind === "sales" ? "sale" : "expense");
-    const { fresh, dupes } = dedupe(typed, (r) => (kind === "sales" ? saleKey(r.on, r.totalKobo!, r.title!) : expenseKey(r.on, r.amountKobo!, r.description || categoryLabel(r.category, categoriesOf(c)))), have);
-    plan.counts.fresh = fresh.length; plan.counts.dupes = dupes.length;
-    plan.notes = dupes.slice(0, 40).map((r) => ({ row: (r as unknown as { row: number }).row, message: "Already in your books (same day, amount and item), so it's skipped." }));
-    if (kind === "sales") {
-      const credit = (fresh as unknown as { customer: string; totalKobo: number; paidKobo: number }[]).filter((r) => r.paidKobo < r.totalKobo);
-      if (credit.length) plan.notes.unshift({ row: 0, message: `${credit.length} ${credit.length === 1 ? "sale was" : "sales were"} on credit, so ${naira(credit.reduce((n, r) => n + r.totalKobo - r.paidKobo, 0))} goes to Money owed to you.` });
+  if (kind === "sales") {
+    let sales = rows as SaleRow[];
+    const have = await existingKeys(c, sales.map((r) => r.on), "sale");
+    // Paystack: a payment that was a #NotesApp order is already in the books (bookEntries/online_<reference>).
+    if (preset?.rules?.ourRefs) {
+      const refs = [...new Set(sales.map((r) => r.ref ?? "").filter((r) => r && !r.includes("/")))];
+      const ours = new Set<string>();
+      for (let i = 0; i < refs.length; i += 200) {
+        const snaps = await c.db.getAll(...refs.slice(i, i + 200).map((r) => c.db.doc(`bookEntries/online_${r}`)));
+        snaps.forEach((s) => { if (s.exists && s.data()?.ownerUid === c.owner) ours.add(s.id.slice("online_".length)); });
+      }
+      const mine = sales.filter((r) => r.ref && ours.has(r.ref));
+      for (const r of mine) plan.skipped.push({ row: r.row, message: `${r.ref} was a #NotesApp order: it's already in your books.` });
+      plan.counts.skipped += mine.length;
+      sales = sales.filter((r) => !(r.ref && ours.has(r.ref)));
     }
+    const { fresh, dupes } = dedupe(sales, (r) => saleRef(src, r) || saleKey(r.on, r.totalKobo, r.title), have);
+    // An order already in the books that has been refunded since: only its refund comes in.
+    const refunds = dupes.filter((r) => r.ref && r.refundKobo && have.has(saleRef(src, r)) && !have.has(`${saleRef(src, r)}:refund`));
+    plan.counts.fresh = fresh.length; plan.counts.updates = refunds.length; plan.counts.dupes = dupes.length - refunds.length;
+    const notes: ImportPlan["notes"] = [];
+    const credit = fresh.filter((r) => r.paidKobo < r.totalKobo);
+    if (credit.length) notes.push({ row: 0, message: `${credit.length} ${credit.length === 1 ? "sale was" : "sales were"} on credit, so ${naira(credit.reduce((n, r) => n + r.totalKobo - r.paidKobo, 0))} goes to Money owed to you.` });
+    const refunded = fresh.filter((r) => r.refundKobo);
+    if (refunded.length) notes.push({ row: 0, message: `${refunded.length} ${refunded.length === 1 ? "order was" : "orders were"} refunded: ${naira(refunded.reduce((n, r) => n + (r.refundKobo ?? 0), 0))} comes in as refunds, so your sales stay right.` });
+    const fees = fresh.filter((r) => r.feeKobo);
+    if (fees.length) notes.push({ row: 0, message: `${naira(fees.reduce((n, r) => n + (r.feeKobo ?? 0), 0))} in ${sourceOf(src)?.label ?? "payment"} fees comes in as expenses (Bank and POS charges), one a day.` });
+    const buyers = new Set(fresh.map((r) => r.customer).filter(Boolean));
+    if (buyers.size && preset?.rules?.online) notes.push({ row: 0, message: `${buyers.size} ${buyers.size === 1 ? "buyer is" : "buyers are"} added to your customers (or matched to ones you have).` });
+    for (const r of refunds) notes.push({ row: r.row, message: `${r.ref} is already in your books and was refunded since: its refund of ${naira(r.refundKobo!)} comes in.` });
+    for (const r of dupes.filter((x) => !refunds.includes(x)).slice(0, 40)) notes.push({ row: r.row, message: r.ref ? `${r.ref} is already in your books, so it's skipped.` : "Already in your books (same day, amount and item), so it's skipped." });
+    plan.notes = [...notes, ...readNotes];
+    return { plan, work: { sheet, fresh, refunds } };
+  }
+  if (kind === "expenses") {
+    const typed = rows as ReturnType<typeof readRows<"expenses">>["rows"];
+    const have = await existingKeys(c, typed.map((r) => r.on), "expense");
+    const { fresh, dupes } = dedupe(typed, (r) => expenseKey(r.on, r.amountKobo, r.description || categoryLabel(r.category, categoriesOf(c))), have);
+    plan.counts.fresh = fresh.length; plan.counts.dupes = dupes.length;
+    plan.notes = dupes.slice(0, 40).map((r) => ({ row: r.row, message: "Already in your books (same day, amount and item), so it's skipped." }));
+    return { plan, work: { sheet, fresh } };
+  }
+  if (kind === "bank") {
+    // Every line goes back to the seller to tick and label; lines already in the books (same reference, or same day, amount and
+    // narration) are shown greyed out and never imported.
+    const lines = rows as BankRow[];
+    const ons = lines.map((r) => r.on);
+    const have = new Set([...(await existingKeys(c, ons, "sale")), ...(await existingKeys(c, ons, "expense"))]);
+    const { fresh, dupes } = dedupe(lines, (r) => [r.ref ? refKey("bank", r.ref) : "", r.inKobo ? saleKey(r.on, r.inKobo, r.narration) : expenseKey(r.on, r.outKobo, r.narration)], have);
+    const dupe = new Set(dupes);
+    plan.counts.fresh = fresh.length; plan.counts.dupes = dupes.length;
+    plan.bank = lines.map((r) => ({ row: r.row, on: r.on, narration: r.narration, ref: r.ref, inKobo: r.inKobo, outKobo: r.outKobo, as: r.as, category: r.category, tick: r.tick && !dupe.has(r), why: r.why, dupe: dupe.has(r) }));
+    plan.notes = readNotes;
     return { plan, work: { sheet, fresh } };
   }
   const parties = await customers(c.db, c.owner);
-  const have = new Set(parties.filter((p) => p.kind === "customer").flatMap((p) => [p.phone ? customerKey(p.phone, "") : "", customerKey("", p.name)]).filter(Boolean));
-  const { fresh, dupes } = dedupe(rows as ReturnType<typeof readRows<"customers">>["rows"], (r) => [r.phone ? customerKey(r.phone, "") : "", customerKey("", r.name)], have);
+  const have = new Set(parties.filter((p) => p.kind === "customer").flatMap((p) => [p.phone ? customerKey(p.phone, "") : "", p.email ? customerKey("", "", p.email) : "", customerKey("", p.name)]).filter(Boolean));
+  const { fresh, dupes } = dedupe(rows as ReturnType<typeof readRows<"customers">>["rows"], (r) => [r.phone ? customerKey(r.phone, "") : "", r.email ? customerKey("", "", r.email) : "", customerKey("", r.name)], have);
   plan.counts.fresh = fresh.length; plan.counts.dupes = dupes.length;
-  plan.notes = dupes.slice(0, 40).map((r) => ({ row: r.row, message: `${r.name} is already in your customers, so this row is skipped.` }));
+  plan.notes = [...readNotes, ...dupes.slice(0, 40).map((r) => ({ row: r.row, message: `${r.name} is already in your customers, so this row is skipped.` }))];
   return { plan, work: { sheet, fresh } };
 }
 
@@ -795,12 +853,25 @@ const commitBatches = async (db: Firestore, writes: ((b: FirebaseFirestore.Write
   for (let i = 0; i < writes.length; i += 400) { const b = db.batch(); writes.slice(i, i + 400).forEach((w) => w(b)); await b.commit(); }
 };
 
-export async function applyImport(c: Ctx, raw: { kind?: unknown; csv?: unknown; mapping?: unknown; preset?: unknown; fileName?: unknown }) {
+// A bank import's choices: for each line the seller ticked, what it is (a sale for money in, an expense with its category for money out).
+type BankChoice = { row: number; as: "sale" | "expense"; category?: string };
+const bankChoices = (raw: unknown): Map<number, BankChoice> => {
+  const out = new Map<number, BankChoice>();
+  for (const x of Array.isArray(raw) ? raw.slice(0, 6000) : []) {
+    const row = Number((x as BankChoice)?.row), as = (x as BankChoice)?.as;
+    if (Number.isInteger(row) && (as === "sale" || as === "expense")) out.set(row, { row, as, category: typeof (x as BankChoice).category === "string" ? String((x as BankChoice).category).slice(0, 40) : undefined });
+  }
+  return out;
+};
+
+export async function applyImport(c: Ctx, raw: { kind?: unknown; csv?: unknown; mapping?: unknown; preset?: unknown; fileName?: unknown; choices?: unknown }) {
   const { db, owner } = c;
   const { plan, work } = await planImport(c, raw);
   if (plan.missing.length) throw new BooksError(400, `Match a column to: ${plan.missing.join(", ")}.`);
   if (plan.counts.problems) throw new BooksError(400, "Fix or remove the rows with problems first (or take them out of the file).");
-  const kind = plan.kind;
+  const kind = plan.kind, src = plan.source;
+  const choices = kind === "bank" ? bankChoices(raw.choices) : new Map<number, BankChoice>();
+  if (kind === "bank" && !(work.fresh as BankRow[]).some((r) => choices.has(r.row))) throw new BooksError(400, "Tick the lines to bring in first.");
   const importRef = db.collection("bookImports").doc();
   const at = iso(c.now);
   const writes: ((b: FirebaseFirestore.WriteBatch) => void)[] = [];
@@ -809,7 +880,8 @@ export async function applyImport(c: Ctx, raw: { kind?: unknown; csv?: unknown; 
   // Saved for next time a file with the same headings comes from the same place.
   await db.doc(`bookSettings/${owner}`).set({ mappings: { [`${kind}:${plan.headers.join("|").toLowerCase()}`]: plan.mapping } }, { merge: true });
   // The import's record first (status running), so an import that stops halfway can still be undone.
-  await importRef.set({ ownerUid: owner, kind, source: presetOf(raw.preset)?.id ?? "csv", fileName: cleanText(raw.fileName, 120) || `${kind}.csv`, rows: plan.rows, by: c.actor, at, undoUntil: new Date(c.now.getTime() + BOOKS_UNDO_HOURS * 3_600_000).toISOString(), status: "running", created });
+  await importRef.set({ ownerUid: owner, kind, source: src, ...(presetOf(raw.preset) ? { preset: presetOf(raw.preset)!.id } : {}), fileName: cleanText(raw.fileName, 120) || `${kind}.csv`, rows: plan.rows, by: c.actor, at, undoUntil: new Date(c.now.getTime() + BOOKS_UNDO_HOURS * 3_600_000).toISOString(), status: "running", created });
+  const base = { ownerUid: owner, source: "import" as const, by: c.actor, files: [], counts: false, importId: importRef.id };
 
   if (kind === "stock") {
     for (const ch of work.stock ?? []) {
@@ -841,21 +913,40 @@ export async function applyImport(c: Ctx, raw: { kind?: unknown; csv?: unknown; 
   } else if (kind === "expenses") {
     for (const r of (work.fresh ?? []) as ReturnType<typeof readRows<"expenses">>["rows"]) {
       const ref = db.collection("bookEntries").doc();
-      writes.push((b) => b.set(ref, { ownerUid: owner, kind: "expense", source: "import", on: r.on, at: `${r.on}T12:00:00.000Z`, by: c.actor, lines: [], totalKobo: r.amountKobo, paidKobo: r.amountKobo, method: r.method, owesKobo: 0, settledKobo: 0, open: false, category: r.category, ...(r.description ? { note: r.description } : {}), files: [], counts: false, importId: importRef.id } satisfies Omit<Entry, "id">));
+      writes.push((b) => b.set(ref, { ...base, kind: "expense", on: r.on, at: `${r.on}T12:00:00.000Z`, lines: [], totalKobo: r.amountKobo, paidKobo: r.amountKobo, method: r.method, owesKobo: 0, settledKobo: 0, open: false, category: r.category, ...(r.description ? { note: r.description } : {}) } satisfies Omit<Entry, "id">));
       created.entries++;
     }
     await commitBatches(db, writes);
+  } else if (kind === "bank") {
+    // The lines the seller ticked: money in as a sale (paid by transfer), money out as an expense in the category they chose.
+    const cats = new Set(categoriesOf(c).map((x) => x.id));
+    for (const r of (work.fresh ?? []) as BankRow[]) {
+      const ch = choices.get(r.row);
+      if (!ch) continue;
+      const ref = db.collection("bookEntries").doc();
+      const ext = r.ref ? { extRef: extRefOf(refKey("bank", r.ref)) } : {};
+      if (ch.as === "sale" && r.inKobo) {
+        writes.push((b) => b.set(ref, { ...base, kind: "sale", on: r.on, at: r.at, lines: [{ title: r.narration, qty: 1, unitKobo: r.inKobo, costKobo: 0 }], totalKobo: r.inKobo, paidKobo: r.inKobo, method: "transfer", owesKobo: 0, settledKobo: 0, open: false, note: "From a bank statement", ...ext } satisfies Omit<Entry, "id">));
+        created.entries++;
+      } else if (ch.as === "expense" && r.outKobo) {
+        const category = ch.category && cats.has(ch.category) ? ch.category : categoryFrom(ch.category ?? "");
+        writes.push((b) => b.set(ref, { ...base, kind: "expense", on: r.on, at: r.at, lines: [], totalKobo: r.outKobo, paidKobo: r.outKobo, method: "transfer", owesKobo: 0, settledKobo: 0, open: false, category: cats.has(category) ? category : "other", note: r.narration, ...ext } satisfies Omit<Entry, "id">));
+        created.entries++;
+      }
+    }
+    await commitBatches(db, writes);
   } else {
-    // Sales and customers: the customers first (matched by phone, then exact name), then the entries, then each customer's balance.
+    // Sales and customers: the customers first (matched by phone, email, then exact name), then the entries, then each customer's balance.
     const parties = await customers(c.db, owner);
-    const find = (phone: string, name: string) => parties.find((p) => p.kind === "customer" && ((phone && p.phone === phone) || p.name.trim().toLowerCase() === name.trim().toLowerCase()));
+    const same = (a: string, b: string) => a.trim().toLowerCase() === b.trim().toLowerCase();
+    const find = (phone: string, name: string, email: string) => parties.find((p) => p.kind === "customer" && ((phone && p.phone === phone) || (email && p.email && same(p.email, email)) || same(p.name, name)));
     const owing = new Set(parties.filter((p) => p.kind === "customer" && p.balanceKobo > 0).map((p) => p.id));
     const add = new Map<string, number>();
-    const partyFor = (name: string, phone: string): Party => {
-      const hit = find(phone, name);
+    const partyFor = (name: string, phone: string, email = ""): Party => {
+      const hit = find(phone, name, email);
       if (hit) return hit;
       const ref = db.collection("bookParties").doc();
-      const p: Party = { id: ref.id, ownerUid: owner, kind: "customer", name, phone, balanceKobo: 0, statementCode: newCode(), createdAt: at, importId: importRef.id };
+      const p: Party = { id: ref.id, ownerUid: owner, kind: "customer", name, phone, balanceKobo: 0, statementCode: newCode(), createdAt: at, importId: importRef.id, ...(email ? { email } : {}) };
       parties.push(p);
       const { id: _id, ...doc } = p; void _id;
       writes.push((b) => b.set(ref, doc));
@@ -864,30 +955,57 @@ export async function applyImport(c: Ctx, raw: { kind?: unknown; csv?: unknown; 
     };
     const cat = kind === "sales" ? await catalog(c) : [];
     const byTitle = new Map(cat.map((x) => [x.title.trim().toLowerCase(), x]));
-    const rows = (work.fresh ?? []) as (ReturnType<typeof readRows<"sales">>["rows"][number] | ReturnType<typeof readRows<"customers">>["rows"][number])[];
+    const linesOf = (r: SaleRow): Line[] => {
+      const lines: Line[] = (r.lines ?? [{ title: r.title, qty: r.qty, unitKobo: r.unitKobo }]).map((l) => {
+        // Shops name an option's line "Title - Option" (Shopify, Woo); stock lists name the item "Title (Option)".
+        const t = l.title.trim().toLowerCase();
+        const it = byTitle.get(t) ?? byTitle.get(t.replace(/^(.+) - (.+)$/, "$1 ($2)"));
+        return { ...(it?.itemId ? { itemId: it.itemId } : {}), ...(it?.variant ? { variant: it.variant } : {}), ...(it?.bookItemId ? { bookItemId: it.bookItemId } : {}), title: l.title, qty: l.qty, unitKobo: l.unitKobo, costKobo: it?.costKobo ?? 0 };
+      });
+      // Shipping, taxes and discounts: the difference between the lines and the total.
+      const gap = r.totalKobo - linesTotal(lines);
+      if (gap) lines.push({ title: gap < 0 ? "Discount" : "Other (delivery, tax)", qty: 1, unitKobo: gap, costKobo: 0 });
+      return lines;
+    };
+    const refund = (r: SaleRow, party: Party | null) => {
+      const ref = db.collection("bookEntries").doc();
+      const full = r.refundKobo === r.totalKobo;
+      const lines = full ? linesOf(r) : [{ title: `Refund: ${r.title}`.slice(0, 120), qty: 1, unitKobo: r.refundKobo!, costKobo: 0 }];
+      writes.push((b) => b.set(ref, { ...base, kind: "refund", on: r.on, at: r.at, lines, totalKobo: r.refundKobo!, paidKobo: r.refundKobo!, method: r.method, owesKobo: 0, settledKobo: 0, open: false, ...(party ? { partyId: party.id, partyName: party.name } : {}), ...(r.ref ? { extRef: `${extRefOf(saleRef(src, r))}:refund` } : {}) } satisfies Omit<Entry, "id">));
+      created.entries++;
+    };
+    const fees = new Map<string, { kobo: number; n: number }>();
+    const rows = (work.fresh ?? []) as (SaleRow | ReturnType<typeof readRows<"customers">>["rows"][number])[];
     for (const r of rows) {
       const owes = "totalKobo" in r ? r.totalKobo - r.paidKobo : r.owesKobo;
       const name = "customer" in r ? r.customer : r.name;
-      const party = name ? partyFor(name, r.phone) : null;
+      const party = name ? partyFor(name, r.phone, r.email ?? "") : null;
       if (owes > 0 && party && !owing.has(party.id)) {
         if (!canAddDebtor(c.access, c.caps, owing.size, false)) throw new BooksError(402, `Free Basic keeps up to ${c.caps.freeCustomers} customers owing at once, and this file would go over. Import fewer debtors, or move to Pro.`, "customers_cap");
         owing.add(party.id);
       }
       if (owes > 0 && party) add.set(party.id, (add.get(party.id) ?? 0) + owes);
       if ("totalKobo" in r) {
-        const it = byTitle.get(r.title.trim().toLowerCase());
-        const line: Line = { ...(it?.itemId ? { itemId: it.itemId } : {}), ...(it?.variant ? { variant: it.variant } : {}), ...(it?.bookItemId ? { bookItemId: it.bookItemId } : {}), title: r.title, qty: r.qty, unitKobo: r.unitKobo, costKobo: it?.costKobo ?? 0 };
-        const lines: Line[] = [line];
-        const gap = r.totalKobo - linesTotal(lines);
-        if (gap) lines.push({ title: gap < 0 ? "Discount" : "Other", qty: 1, unitKobo: gap, costKobo: 0 });
         const ref = db.collection("bookEntries").doc();
-        writes.push((b) => b.set(ref, { ownerUid: owner, kind: "sale", source: "import", on: r.on, at: r.at, by: c.actor, lines, totalKobo: r.totalKobo, paidKobo: r.paidKobo, method: r.method, owesKobo: owes, settledKobo: 0, open: owes > 0, ...(party ? { partyId: party.id, partyName: party.name } : {}), ...(r.dueOn ? { dueOn: r.dueOn } : {}), ...(r.note ? { note: r.note } : {}), files: [], counts: false, importId: importRef.id } satisfies Omit<Entry, "id">));
+        const lines = linesOf(r);
+        writes.push((b) => b.set(ref, { ...base, kind: "sale", on: r.on, at: r.at, lines, totalKobo: r.totalKobo, paidKobo: r.paidKobo, method: r.method, owesKobo: owes, settledKobo: 0, open: owes > 0, ...(party ? { partyId: party.id, partyName: party.name } : {}), ...(r.dueOn ? { dueOn: r.dueOn } : {}), ...(r.note ? { note: r.note } : {}), ...(r.ref ? { extRef: extRefOf(saleRef(src, r)) } : {}) } satisfies Omit<Entry, "id">));
         created.entries++;
+        if (r.refundKobo) refund(r, party);
+        if (r.feeKobo) { const f = fees.get(r.on) ?? { kobo: 0, n: 0 }; f.kobo += r.feeKobo; f.n++; fees.set(r.on, f); }
       } else if (owes > 0 && party) {
         const ref = db.collection("bookEntries").doc();
-        writes.push((b) => b.set(ref, { ownerUid: owner, kind: "opening", source: "import", on: c.today, at, by: c.actor, lines: [], totalKobo: owes, paidKobo: 0, method: "cash", owesKobo: owes, settledKobo: 0, open: true, partyId: party.id, partyName: party.name, ...(r.dueOn ? { dueOn: r.dueOn } : {}), note: r.note || "Opening balance", files: [], counts: false, importId: importRef.id } satisfies Omit<Entry, "id">));
+        writes.push((b) => b.set(ref, { ...base, kind: "opening", on: c.today, at, lines: [], totalKobo: owes, paidKobo: 0, method: "cash", owesKobo: owes, settledKobo: 0, open: true, partyId: party.id, partyName: party.name, ...(r.dueOn ? { dueOn: r.dueOn } : {}), note: r.note || "Opening balance" } satisfies Omit<Entry, "id">));
         created.entries++;
       }
+    }
+    // Orders already in the books that were refunded since.
+    for (const r of work.refunds ?? []) { refund(r, r.customer ? partyFor(r.customer, r.phone, r.email ?? "") : null); created.updates++; created.entries--; }
+    // The payment app's fees: one expense a day, under Bank and POS charges.
+    const label = sourceOf(src)?.label ?? "Payment";
+    for (const [on, f] of fees) {
+      const ref = db.collection("bookEntries").doc();
+      writes.push((b) => b.set(ref, { ...base, kind: "expense", on, at: `${on}T12:00:00.000Z`, lines: [], totalKobo: f.kobo, paidKobo: f.kobo, method: "transfer", owesKobo: 0, settledKobo: 0, open: false, category: "bank", note: `${label} fees · ${f.n} ${f.n === 1 ? "payment" : "payments"}` } satisfies Omit<Entry, "id">));
+      created.entries++;
     }
     await commitBatches(db, writes.map((w) => (b: FirebaseFirestore.WriteBatch) => w(b)));
     // Balances: read now and add, outside the batches (one small transaction each).
@@ -902,7 +1020,7 @@ export async function applyImport(c: Ctx, raw: { kind?: unknown; csv?: unknown; 
 
 export async function importsView(c: Ctx) {
   const s = await c.db.collection("bookImports").where("ownerUid", "==", c.owner).get();
-  return s.docs.map((d) => ({ id: d.id, ...(d.data() as Record<string, unknown>) }) as Record<string, unknown> & { id: string }).map((x) => ({ id: x.id, kind: x.kind, fileName: x.fileName, rows: x.rows, at: x.at, undoUntil: x.undoUntil, status: x.status, created: x.created, canUndo: x.status !== "undone" && String(x.undoUntil) > iso(c.now) }))
+  return s.docs.map((d) => ({ id: d.id, ...(d.data() as Record<string, unknown>) }) as Record<string, unknown> & { id: string }).map((x) => ({ id: x.id, kind: x.kind, source: x.source, fileName: x.fileName, rows: x.rows, at: x.at, undoUntil: x.undoUntil, status: x.status, created: x.created, canUndo: x.status !== "undone" && String(x.undoUntil) > iso(c.now) }))
     .sort((a, b) => String(b.at).localeCompare(String(a.at))).slice(0, 20);
 }
 

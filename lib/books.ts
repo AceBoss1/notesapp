@@ -62,6 +62,7 @@ export type Entry = {
   category?: string; note?: string; files?: { key: string; name: string; type: string; size: number }[];
   feeKobo?: number; // online orders: our commission on it (an expense line in the P&L)
   orderRef?: string; importId?: string; clientId?: string; receiptCode?: string;
+  extRef?: string; // imports: the source's own order number or reference (`shopify:#1001`, `paystack:t12…`, `…:refund`), matched first on re-import
   counts?: boolean; // counts toward Free Basic's monthly cap (walk-in sales and expenses)
   voidedAt?: string; voidedBy?: string; voidReason?: string;
 };
@@ -231,7 +232,7 @@ export function cashInHand(entries: Entry[], floatKobo = 0): Cash {
 export type Party = {
   id: string; ownerUid: string; kind: "customer" | "supplier"; name: string; phone?: string; memberUid?: string; memberUsername?: string;
   balanceKobo: number; dueOn?: string; note?: string; statementCode?: string; remindersOff?: boolean; lastRemindedAt?: string; lastRemindedOn?: string; lastRemindedBy?: string;
-  createdAt: string; importId?: string;
+  createdAt: string; importId?: string; email?: string; // email: from an import (a Selar or Paystack buyer), to match them again
 };
 export type Debtor = { party: Party; openKobo: number; overdueKobo: number; since: string; dueOn?: string; daysLate: number; what: string; entries: { id: string; on: string; openKobo: number; dueOn?: string; title: string }[] };
 // One row per customer who owes, latest-due first among the late ones: late (longest first), then due soonest.

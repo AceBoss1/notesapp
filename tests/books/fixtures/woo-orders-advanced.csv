@@ -1,0 +1,2 @@
+Order Number,Order Status,Order Date,First Name (Billing),Last Name (Billing),Email (Billing),Phone (Billing),Payment Method Title,Order Shipping Amount,Order Refund Amount,Order Total Amount,SKU,Item #,Item Name,Quantity,Item Cost
+610,Completed,2026-10-18 15:20,Ifeoma,Nwosu,ifeoma@example.com,08067778888,Direct bank transfer,0,0,5000,GARRI-5L,1,"Garri, white (5 litre)",2,2500
