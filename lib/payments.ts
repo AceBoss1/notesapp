@@ -153,6 +153,13 @@ export type LedgerEntry = {
   transferStartedAt?: string;
   paylonyAttempts?: number;
   failureReason?: string;
+  // Paystack with "Transfers OTP" on: the transfer exists (transferCode) but waits for the OTP Paystack emailed the business. Shown as
+  // "Awaiting OTP" on /admin/payments; the status stays "transferring" so it can't be released twice. Never holds the OTP itself.
+  awaitingOtp?: boolean;
+  otpSentAt?: string; // when Paystack sent the current OTP (the transfer was made, or Resend OTP); it lasts PAYSTACK_OTP_MINUTES
+  otpTries?: number; // codes tried since that OTP was sent (lib/payout-otp-server.ts caps them)
+  otpResends?: number;
+  otpConfirmedBy?: { uid: string; name: string; at: string };
 };
 
 // A delivery partner's share of a store order: its own ledger entry next to the store's.
@@ -197,6 +204,7 @@ async function giftShares(p: PaymentRecord): Promise<Share[]> {
   const co: Share[] = [];
   for (const d of inv.docs) {
     const i = d.data();
+    if (!(Number(i.percent) > 0)) continue; // a view-only reviewer credited without a share
     const u = (await db.doc(`users/${i.inviteeUid}`).get()).data();
     if (!u || u.suspended) continue; // their share stays with the lead
     co.push({ uid: i.inviteeUid, username: i.inviteeUsername, percent: Number(i.percent), rate: commissionRateFor((u.accountTier as AccountTier) || "basic", u.customRates) });

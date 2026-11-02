@@ -8,13 +8,14 @@ import { useMember } from "@/lib/member-client";
 import { api } from "@/lib/moments-client";
 import { useMemberships } from "@/lib/useMemberships";
 import Avatar from "@/components/Avatar";
-import { COURSE_TITLE_MAX, MAX_COURSES_PER_MEMBER, courseHref, durationLabel, isPaid, plural, priceLabel, type Course, type TutorInvite } from "@/lib/courses";
+import { COURSE_TITLE_MAX, MAX_COURSES_PER_MEMBER, courseHref, durationLabel, isPaid, plural, priceLabel, tutorInviteId, type Course, type TutorInvite } from "@/lib/courses";
+import { accessLabel, accessOf, invitePath } from "@/lib/invite-terms";
 
-type MyCourse = Course & { access: "lead" | "tutor" };
+type MyCourse = Course & { access: "lead" | "tutor" | "viewer" };
 type Data = { courses: MyCourse[]; invites: TutorInvite[]; canTeach: boolean; reason?: string };
 
 // /academy/teach: the member's courses (their own, their organisations', and ones they co-teach), drafts and published, newest
-// change first; co-tutor invitations to accept or decline; and "New course" (a title is all it takes), as themselves or as an
+// change first; co-tutor invitations (each opens the accept screen, /invites/course/<id>, with the terms); and "New course" (a title is all it takes), as themselves or as an
 // organisation they write for. Members who can't publish yet are shown how to start.
 export default function TeachDashboard() {
   const { user, profile } = useMember();
@@ -29,11 +30,6 @@ export default function TeachDashboard() {
 
   const load = () => api<Data>("/api/academy/courses").then(setData).catch((e) => setError(e.message));
   useEffect(() => { if (user) void load(); }, [user]); // eslint-disable-line react-hooks/exhaustive-deps
-  async function answer(i: TutorInvite, accept: boolean) {
-    setError("");
-    try { await api(`/api/academy/courses/${i.courseId}/tutors`, { body: { action: accept ? "accept" : "decline" } }); await load(); }
-    catch (e) { setError(e instanceof Error ? e.message : "Couldn't answer the invitation."); }
-  }
 
   async function create(e: React.FormEvent) {
     e.preventDefault();
@@ -54,7 +50,7 @@ export default function TeachDashboard() {
       <div className="mx-auto max-w-4xl px-4 py-10 sm:px-8 sm:py-12">
         <p className="font-mono text-xs uppercase tracking-eyebrow text-paper/70">Notes Academy</p>
         <h1 className="mt-2 font-display text-4xl sm:text-5xl">Teach a course</h1>
-        <p className="mt-2 max-w-2xl text-paper/85">Free courses with lessons from your own YouTube or written right here, and paid courses (Pro and up) with your own uploaded videos and PDFs. Teach alone, with co-tutors, or for your organisation.</p>
+        <p className="mt-2 max-w-2xl text-paper/85">Free courses with lessons from your own YouTube or written right here, and paid courses (Pro and up) with your own uploaded videos and PDFs. Teach alone, with co-tutors, or for your organisation, and let Nana design each course a cover in a tap.</p>
       </div>
     </section>
   );
@@ -91,11 +87,10 @@ export default function TeachDashboard() {
           <ul className="mt-3 space-y-3">
             {data.invites.map((i) => (
               <li key={i.courseId} className="flex flex-col gap-3 sm:flex-row sm:items-center">
-                <p className="min-w-0 flex-1 text-sm"><b>{i.ownerName}</b> invited you to co-teach <Link href={courseHref(i.courseSlug)} className="font-semibold text-crimson">{i.courseTitle}</Link>{i.percent ? <>, for <b>{i.percent}%</b> of each sale</> : <>, credited as a tutor</>}.</p>
-                <span className="flex gap-2">
-                  <button onClick={() => answer(i, true)} className="btn-primary !px-4 !py-1.5 text-sm">Accept</button>
-                  <button onClick={() => answer(i, false)} className="btn-ghost !px-4 !py-1.5 text-sm">Decline</button>
-                </span>
+                {i.status === "accepted" && i.change
+                  ? <p className="min-w-0 flex-1 text-sm"><b>{i.ownerName}</b> proposes new terms for <b>{i.courseTitle}</b>: {accessLabel(i.change.access).toLowerCase()}, {i.change.percent}% of each sale. Your current terms stay until you agree.</p>
+                  : <p className="min-w-0 flex-1 text-sm"><b>{i.ownerName}</b> invited you to co-teach <b>{i.courseTitle}</b>: {accessLabel(accessOf("course", i)).toLowerCase()}{i.percent ? <>, <b>{i.percent}%</b> of each sale</> : <>, credited as a tutor</>}.</p>}
+                <Link href={invitePath("course", tutorInviteId(i.courseId, i.uid))} className="btn-primary !px-4 !py-1.5 text-center text-sm">Review and answer</Link>
               </li>
             ))}
           </ul>
@@ -142,12 +137,12 @@ export default function TeachDashboard() {
                   <span className="font-ui font-bold text-ink">{c.title}</span>
                   <span className={`rounded-full px-2 py-0.5 font-mono text-[10px] uppercase tracking-eyebrow ${c.status === "published" ? "bg-emerald-100 text-emerald-800" : "bg-rule text-slate"}`}>{c.status === "published" ? "Published" : "Draft"}</span>
                   {c.isOrg && <span className="rounded-full bg-paper px-2 py-0.5 font-mono text-[10px] uppercase tracking-eyebrow text-slate ring-1 ring-rule">{c.ownerName}</span>}
-                  {c.access === "tutor" && <span className="rounded-full bg-amber-100 px-2 py-0.5 font-mono text-[10px] uppercase tracking-eyebrow text-amber-900">Co-tutor</span>}
+                  {c.access !== "lead" && <span className="rounded-full bg-amber-100 px-2 py-0.5 font-mono text-[10px] uppercase tracking-eyebrow text-amber-900">{c.access === "viewer" ? "Co-tutor · can view" : "Co-tutor"}</span>}
                 </p>
                 <p className="mt-1 text-xs text-slate"><span className={isPaid(c) ? "font-semibold text-ink" : "text-emerald-700"}>{priceLabel(c)}</span> · {plural(c.lessonCount, "lesson")}{c.minutes ? ` · ${durationLabel(c.minutes)}` : ""} · {plural(c.enrolCount, "learner")} · {plural(c.viewCount, "view")}</p>
               </div>
               <div className="flex gap-2">
-                <Link href={`/academy/teach/${c.id}`} className="btn-primary flex-1 !px-4 !py-1.5 text-center text-sm sm:flex-none">Edit</Link>
+                {c.access !== "viewer" && <Link href={`/academy/teach/${c.id}`} className="btn-primary flex-1 !px-4 !py-1.5 text-center text-sm sm:flex-none">Edit</Link>}
                 <Link href={courseHref(c.slug)} className="btn-ghost flex-1 !px-4 !py-1.5 text-center text-sm sm:flex-none">{c.status === "published" ? "View" : "Preview"}</Link>
               </div>
             </li>

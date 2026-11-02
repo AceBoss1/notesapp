@@ -15,6 +15,9 @@ export default function AdminReferralsPage() {
   const [rows, setRows] = useState<Row[] | null>(null);
   const [error, setError] = useState("");
   const [note, setNote] = useState("");
+  const [who, setWho] = useState("");
+  const [month, setMonth] = useState("");
+  const [busy, setBusy] = useState("");
   const load = useCallback(() => api<{ rows: Row[] }>("/api/admin/referrals").then((r) => setRows(r.rows)).catch((e) => setError(e.message)), []);
   useEffect(() => { if (user) void load(); }, [user, load]);
 
@@ -26,6 +29,22 @@ export default function AdminReferralsPage() {
       const x = await api<{ held: number }>("/api/admin/referrals", { body: { uid: r.uid, days } });
       setNote(`Held ${x.held} earning${x.held === 1 ? "" : "s"} of @${r.username} for ${days} days.`);
     } catch (e) { setError(e instanceof Error ? e.message : "Couldn't hold."); }
+  }
+
+  // The monthly referrals report: one member's, sent to you; or last month's that are still due, now (super admins).
+  async function report(action: "report_preview" | "report_send_now") {
+    if (action === "report_send_now" && !window.confirm("Send last month's referrals reports that haven't gone yet? Each member still gets one at most.")) return;
+    setError(""); setNote(""); setBusy(action);
+    try {
+      if (action === "report_preview") {
+        const x = await api<{ to: string; active: boolean; month: string }>("/api/admin/referrals", { body: { action, username: who, month: month || undefined } });
+        setNote(`Sent @${who.replace(/^@/, "")}'s ${x.month} report to ${x.to}.${x.active ? "" : " They had no activity that month, so they wouldn't get it."}`);
+      } else {
+        const x = await api<{ sent: number; month: string }>("/api/admin/referrals", { body: { action } });
+        setNote(`Sent ${x.sent} ${x.month} report${x.sent === 1 ? "" : "s"}.`);
+      }
+    } catch (e) { setError(e instanceof Error ? e.message : "Couldn't send."); }
+    setBusy("");
   }
 
   if (loading || !user) return <section className="mx-auto max-w-4xl px-6 py-10 text-sm text-slate">Loading…</section>;
@@ -53,6 +72,21 @@ export default function AdminReferralsPage() {
           </table>
         </div>
       )}
+      <div className="card mt-10 p-5">
+        <h2 className="font-display text-2xl text-ink">Monthly report</h2>
+        <p className="mt-1 text-sm text-slate">On the 1st of each month from 8 AM Lagos time, members with referral activity in the month before get one email (and a bell). Send yourself any member&apos;s report to check it.</p>
+        <div className="mt-4 flex flex-wrap items-end gap-2">
+          <label className="text-xs text-slate">Member
+            <input value={who} onChange={(e) => setWho(e.target.value)} placeholder="@username" className="mt-1 block w-44 rounded-lg border border-rule px-3 py-2 text-sm text-ink" />
+          </label>
+          <label className="text-xs text-slate">Month
+            <input type="month" value={month} onChange={(e) => setMonth(e.target.value)} className="mt-1 block rounded-lg border border-rule px-3 py-2 text-sm text-ink" />
+          </label>
+          <button type="button" disabled={!who.trim() || !!busy} onClick={() => report("report_preview")} className="btn-primary !px-4 !py-2 text-sm disabled:opacity-50">{busy === "report_preview" ? "Sending…" : "Send me a preview"}</button>
+          <button type="button" disabled={!!busy} onClick={() => report("report_send_now")} className="btn-ghost !px-4 !py-2 text-sm disabled:opacity-50">{busy === "report_send_now" ? "Sending…" : "Send due reports now"}</button>
+        </div>
+        <p className="mt-2 text-xs text-slate">Month: last month if left empty. &quot;Send due reports now&quot; is for the owner and super admins, if the scheduled run was missed.</p>
+      </div>
     </section>
   );
 }

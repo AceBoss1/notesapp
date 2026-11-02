@@ -5,7 +5,7 @@ import MentionPicker from "@/components/MentionPicker";
 import { auth } from "@/lib/firebase";
 import { uploadToR2WithKey } from "@/lib/upload";
 import { api } from "@/lib/moments-client";
-import { MOMENT_DEFAULT_HOURS, MOMENT_HINT, MOMENT_HOURS, MOMENT_TEXT_MAX, MOMENT_VIDEO_MAX_SECONDS, MOMENT_VIDEO_SOURCE_MAX_SECONDS, momentVideoClips, momentVideoParts, type MomentHours, type MomentKind } from "@/lib/moments-rules";
+import { MOMENT_DEFAULT_HOURS, MOMENT_HINT, MOMENT_HOURS, MOMENT_TEXT_MAX, MOMENT_VIDEO_MAX_SECONDS, MOMENT_VIDEO_SOURCE_MAX_SECONDS, momentVideoClips, momentVideoParts, type MomentHours, type ComposedMomentKind as MomentKind } from "@/lib/moments-rules";
 import { VIDEO_ACCEPT } from "@/lib/video-rules";
 import VoiceOverRecorder, { uploadVoiceOver, type VoiceOver } from "./VoiceOverRecorder";
 

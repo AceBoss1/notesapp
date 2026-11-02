@@ -1,6 +1,7 @@
 import { FieldValue, type Firestore } from "firebase-admin/firestore";
 import { TOPICS } from "./topics";
 import { STORE_CATEGORIES } from "./store-meta";
+import { parseCourseLines, type CourseLineSuggestion } from "./courses";
 import { aiCandidates, gemModel, realDeps, type NanaDeps } from "./nana-server";
 import {
   MAX_SUBTOPICS, cleanSubtopicLabel, docIdOf, fallbackCategorySuggestion, fallbackTopicSuggestion, parseCategorySuggestion, parseTopicSuggestion,
@@ -87,7 +88,8 @@ function categoryPrompt(existing: Subtopic[]) {
   ].join("\n");
 }
 
-export async function suggestFor(db: Firestore, input: SuggestInput, deps: NanaDeps = realDeps()): Promise<(TopicSuggestion | CategorySuggestion) & { via: "ai" | "words" }> {
+export async function suggestFor(db: Firestore, input: SuggestInput, deps: NanaDeps = realDeps()): Promise<(TopicSuggestion | CategorySuggestion | CourseLineSuggestion) & { via: "ai" | "words" }> {
+  if (input.kind === "course-lines") return suggestCourseLines(db, input, deps);
   const kind = input.kind === "item" ? "category" : input.kind === "journal" || input.kind === "course" ? "topic" : null;
   if (!kind) throw new SubtopicError("What is it for?");
   const title = String(input.title ?? "").replace(/\s+/g, " ").trim().slice(0, 200);
@@ -116,6 +118,42 @@ export async function suggestFor(db: Firestore, input: SuggestInput, deps: NanaD
   } catch (e) {
     console.error("[suggest] Nana failed, using words", e instanceof Error ? e.message : e);
     return fallback();
+  }
+}
+
+// "What learners will learn" and "Requirements" lines for a course, from its title and summary (kind "course-lines"). The same small
+// call on Pearl (#NotesApp's key, 300 tokens, kept an hour per title and summary). Without AI there's nothing honest to guess from the
+// words alone, so it answers with no lines and the editor shows nothing.
+const lineCache = new Map<string, { at: number; v: CourseLineSuggestion }>();
+async function suggestCourseLines(db: Firestore, input: SuggestInput, deps: NanaDeps): Promise<CourseLineSuggestion & { via: "ai" | "words" }> {
+  const title = String(input.title ?? "").replace(/\s+/g, " ").trim().slice(0, 200);
+  const summary = String(input.summary ?? "").replace(/\s+/g, " ").trim().slice(0, 600);
+  if (title.length < SUGGEST_TITLE_MIN) throw new SubtopicError("Type a few more words of the title first.");
+  const key = `${title.toLowerCase()}|${summary.toLowerCase()}`;
+  const hit = lineCache.get(key);
+  if (hit && Date.now() - hit.at < 3_600_000) return { ...hit.v, via: "ai" };
+  const none = { outcomes: [], requirements: [], via: "words" as const };
+  const platform = (await aiCandidates(db)).find((c) => c.source === "platform");
+  if (!platform) return none;
+  try {
+    const c = await deps.complete({
+      apiKey: platform.apiKey, model: gemModel("pearl"), maxTokens: 300,
+      system: [{ type: "text", text: [
+        "You help a teacher on Notes Academy (#NotesApp, Nigeria) describe a course. From its title and summary, write what learners will be able to do, and what they need first.",
+        "Answer with JSON only: {\"outcomes\": [\"...\"], \"requirements\": [\"...\"]}",
+        "Rules: 4 to 6 outcomes and 1 to 3 requirements. Each a short plain line, under 80 characters, starting with a verb for outcomes (\"Set up a help desk\"),",
+        "no numbering, no full stop, British English. Only what the title and summary support: never invent certificates, prices, dates or tools.",
+      ].join("\n") }],
+      messages: [{ role: "user", content: `Title: ${title}${summary ? `\nSummary: ${summary}` : ""}` }],
+    });
+    const v = parseCourseLines(c.text);
+    if (!v.outcomes.length && !v.requirements.length) return none;
+    lineCache.set(key, { at: Date.now(), v });
+    if (lineCache.size > 500) lineCache.delete(lineCache.keys().next().value!);
+    return { ...v, via: "ai" };
+  } catch (e) {
+    console.error("[suggest] course lines failed", e instanceof Error ? e.message : e);
+    return none;
   }
 }
 
