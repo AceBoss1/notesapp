@@ -7,6 +7,8 @@ import Avatar from "@/components/Avatar";
 import { MicIcon } from "@/components/calls/CallViews";
 import { duration } from "@/lib/calls";
 import { DEFAULT_ROOM_FIGURES, ROOM_BEAT_MS, ROOM_CHAT_MAX, ROOM_SPEAKERS_MAX, linksFor, listenerCount, listenersOf, pullsFor, roomRole, stageOf, type RoomChat, type RoomDoc, type RoomFigures, type RoomLink, type RoomLinkKind, type RoomMode } from "@/lib/rooms";
+import { AUDIO_ONLY_KEY, CHALLENGE_POSTER, anyVideo, canVideo, chooseAudioOnly, minutesLeftText, videoConstraints, videoEncoding, videoPullsFor, type HostLive, type NetInfo, type PosterSource } from "@/lib/rooms-live";
+import { uploadToR2 } from "@/lib/upload";
 import { ago, capi, field } from "./api";
 import { useLiveChannel, type LiveChannel } from "./useLiveChannel";
 
@@ -16,10 +18,21 @@ import { useLiveChannel, type LiveChannel } from "./useLiveChannel";
 // - "relay": one connection per person to the Cloudflare relay. The host and speakers send their microphone up once (push); everyone
 //   receives the other stage microphones from the relay (pull). Every step goes through /api/community/rooms (action "relay"), which
 //   checks who may send and receive; the browser never holds Cloudflare's token or anyone's session.
+// - Live mode (relay rooms, lib/rooms-live.ts): the host (and speakers, if the host allows) can turn a camera on as a second track on the
+//   same connection, capped by the settings, and off again without reconnecting. While no camera is up, everyone sees the host's poster
+//   (a picture, never video). A viewer on Audio only never pulls the cameras. The host's beat brings their video minutes and prompts.
 
 type Ice = { urls: string | string[]; username?: string; credential?: string }[];
 type Card = { id: string; title: string; hostName: string; listening: number; speakers: string[]; faces: { name: string; avatar: string }[] };
-type RelayRes = { answer?: RTCSessionDescriptionInit; offer?: RTCSessionDescriptionInit | null; renegotiate?: boolean; tracks?: { uid: string; mid: string }[] };
+type RelayRes = { answer?: RTCSessionDescriptionInit; offer?: RTCSessionDescriptionInit | null; renegotiate?: boolean; tracks?: { uid: string; mid: string; kind?: "audio" | "video" }[]; host?: HostLive };
+type VideoCfg = { on: boolean; kbps: number; fps: number; height: number };
+// Audio only, from this device's choice or its connection (lib/rooms-live.ts chooseAudioOnly). Storage can be missing: then the default.
+const readAudioOnly = () => {
+  let stored: string | null = null;
+  try { stored = localStorage.getItem(AUDIO_ONLY_KEY); } catch { /* private window */ }
+  const net = typeof navigator !== "undefined" ? (navigator as Navigator & { connection?: NetInfo }).connection : undefined;
+  return chooseAudioOnly(stored, net);
+};
 
 export function RoomsCard({ cid, canHost, onOpen }: { cid: string; canHost: boolean; onOpen: (id: string, title?: string) => void }) {
   const [rooms, setRooms] = useState<Card[] | null>(null);
@@ -27,6 +40,7 @@ export function RoomsCard({ cid, canHost, onOpen }: { cid: string; canHost: bool
   const [title, setTitle] = useState("");
   const [open, setOpen] = useState(false);
   const [err, setErr] = useState("");
+  const [poster, setPoster] = useState<{ source: PosterSource; url?: string; preview?: string }>({ source: "none" });
   const load = useCallback(() => capi<{ rooms: Card[]; figures?: RoomFigures }>(`/api/community/rooms?cid=${cid}`).then((d) => { setRooms(d.rooms); if (d.figures) setFigures(d.figures); }).catch(() => setRooms([])), [cid]);
   useEffect(() => { load(); const t = setInterval(load, 20_000); return () => clearInterval(t); }, [load]);
   if (rooms === null || (!rooms.length && !canHost)) return null;
@@ -39,14 +53,15 @@ export function RoomsCard({ cid, canHost, onOpen }: { cid: string; canHost: bool
       {open && (
         <form className="flex flex-wrap items-center gap-2 border-b border-rule p-4" onSubmit={async (e) => {
           e.preventDefault(); setErr("");
-          try { const r = await capi<{ id: string }>("/api/community/rooms", { action: "start", cid, title }); setOpen(false); setTitle(""); onOpen(r.id, title); }
+          try { const r = await capi<{ id: string }>("/api/community/rooms", { action: "start", cid, title, ...(poster.source !== "none" ? { poster: { source: poster.source, url: poster.url } } : {}) }); setOpen(false); setTitle(""); setPoster({ source: "none" }); onOpen(r.id, title); }
           catch (x) { setErr(x instanceof Error ? x.message : "Couldn't start the room."); }
         }}>
           <input value={title} onChange={(e) => setTitle(e.target.value)} maxLength={80} placeholder="What's it about? e.g. Sunday Q&A" aria-label="Room name" className={`${field} min-w-0 flex-1`} />
           <button className="btn-primary !px-4 !py-2 text-xs" disabled={title.trim().length < 3}>Go live</button>
           <button type="button" className="text-xs text-slate underline" onClick={() => setOpen(false)}>Cancel</button>
           {err && <p className="w-full text-sm text-crimson" role="alert">{err}</p>}
-          <p className="w-full text-xs text-slate">You host: bring up to {ROOM_SPEAKERS_MAX} members on stage to speak; everyone else listens and can raise a hand. Up to {figures.listeners.toLocaleString("en-GB")} listeners{figures.relay ? "" : " for now"}. Nothing is recorded.</p>
+          <div className="w-full"><PosterChoice value={poster} onChange={setPoster} onError={setErr} light /></div>
+          <p className="w-full text-xs text-slate">You host: bring up to {ROOM_SPEAKERS_MAX} members on stage to speak; everyone else listens and can raise a hand. Up to {figures.listeners.toLocaleString("en-GB")} listeners{figures.relay ? "" : " for now"}. Nothing is recorded.{figures.relay && figures.live?.video ? ` You can turn video on during the room (${figures.live.budgetMinutes} video minutes a live); the poster shows while it's off.` : ""}</p>
         </form>
       )}
       {rooms.length ? (
@@ -87,6 +102,18 @@ export function RoomScreen({ id, me, title, onDone }: { id: string; me: string; 
   // while it can't connect, everything below falls back to the room doc and Firestore as before.
   const live = useLiveChannel(id, me, room);
   useEffect(() => { if (/removed/i.test(live.gone)) leaveRef.current(live.gone); }, [live.gone]);
+  // Live mode: the cameras I receive, my own camera (a preview), the camera limits, Audio only, and the host's minutes and prompt.
+  const [videos, setVideos] = useState<Record<string, MediaStream>>({});
+  const [myCam, setMyCam] = useState<MediaStream | null>(null);
+  const [videoCfg, setVideoCfg] = useState<VideoCfg>({ on: false, kbps: 0, fps: 0, height: 0 });
+  const [audioOnly, setAudioOnly] = useState(false);
+  const audioOnlyRef = useRef(false);
+  const [hostLive, setHostLive] = useState<HostLive | null>(null);
+  const [prompt, setPrompt] = useState<HostLive["prompt"]>(null);
+  const [posterOpen, setPosterOpen] = useState(false);
+  const liveRef = useRef<{ startVideo: () => Promise<void>; stopVideo: (tell?: boolean) => Promise<void>; resync: () => void }>({ startVideo: async () => {}, stopVideo: async () => {}, resync: () => {} });
+  const tookLive = useCallback((h: HostLive | undefined) => { if (!h) return; setHostLive(h); if (h.prompt) setPrompt(h.prompt); }, []);
+  useEffect(() => { const a = readAudioOnly(); audioOnlyRef.current = a; setAudioOnly(a); }, []);
 
   useEffect(() => {
     let over = false, ice: Ice = [], myAt = "", micOn = false;
@@ -112,6 +139,11 @@ export function RoomScreen({ id, me, title, onDone }: { id: string; me: string; 
     };
     const midToUid = new Map<string, string>();
     const pulled = new Map<string, { uid: string; mid: string }>(); // "uid@when they went up" → the track I receive
+    // Live mode: the cameras I receive (keyed like pulled), and mine.
+    const vpulled = new Map<string, { uid: string; mid: string }>();
+    const videoMap = new Map<string, MediaStream>();
+    const showVideo = () => setVideos(Object.fromEntries(videoMap));
+    let cam: MediaStream | null = null, camTx: RTCRtpTransceiver | null = null, camAt = 0, vcfg: VideoCfg = { on: false, kbps: 0, fps: 0, height: 0 };
     const show = () => setStreams({ ...Object.fromEntries([...conns].filter(([, c]) => c.stream).map(([u, c]) => [u, c.stream!])), ...Object.fromEntries(relayStreams) });
     const audio = () => {
       if (!ctx) { ctx = new AudioContext(); mixOut = ctx.createMediaStreamDestination(); }
@@ -134,6 +166,7 @@ export function RoomScreen({ id, me, title, onDone }: { id: string; me: string; 
       conns.forEach((c) => c.pc.close()); conns.clear();
       rpc?.close(); rpc = null;
       mic?.getTracks().forEach((t) => t.stop());
+      cam?.getTracks().forEach((t) => t.stop()); cam = null;
       void ctx?.close().catch(() => {});
       setNote(message || "You left the room.");
       setTimeout(onDone, message ? 1800 : 300);
@@ -206,6 +239,7 @@ export function RoomScreen({ id, me, title, onDone }: { id: string; me: string; 
         const uid = e.transceiver?.mid ? midToUid.get(e.transceiver.mid) : undefined;
         if (!uid) return;
         const st = new MediaStream([e.track]);
+        if (e.track.kind === "video") { videoMap.set(uid, st); showVideo(); return; }
         relayStreams.set(uid, st); meters.delete(uid); meter(uid, st); show();
       };
       pc.onconnectionstatechange = () => { if (pc.connectionState === "failed" && !over) setNote("Lost the connection to the room's relay. Leave and join again."); };
@@ -246,17 +280,62 @@ export function RoomScreen({ id, me, title, onDone }: { id: string; me: string; 
       if (gone.length) { show(); await relay({ op: "close", mids: gone.map(([, v]) => v.mid) }).catch(() => {}); }
       const add = want.filter((w) => !pulled.has(w.key));
       if (!add.length) return;
-      const pc = relayPc();
       const res = await relay({ op: "pull", uids: add.map((a) => a.uid) }).catch(() => null); // someone just stepped down: tried again on the next change
       if (!res?.tracks?.length) return;
       for (const t of res.tracks) { const w = add.find((a) => a.uid === t.uid); if (w) { pulled.set(w.key, t); midToUid.set(t.mid, t.uid); } }
-      if (res.offer) {
-        await pc.setRemoteDescription(res.offer);
-        const a = await pc.createAnswer();
-        await pc.setLocalDescription(a);
-        if (res.renegotiate) await relay({ op: "answer", answer: { type: a.type, sdp: a.sdp ?? "" } });
-      }
+      await takeOffer(res);
     }).catch(() => {});
+    // Cloudflare's offer after a pull: answered on the same connection.
+    const takeOffer = async (res: RelayRes) => {
+      const pc = relayPc();
+      if (!res.offer) return;
+      await pc.setRemoteDescription(res.offer);
+      const a = await pc.createAnswer();
+      await pc.setLocalDescription(a);
+      if (res.renegotiate) await relay({ op: "answer", answer: { type: a.type, sdp: a.sdp ?? "" } });
+    };
+    // Live mode: the cameras up on stage (none on Audio only, lib/rooms-live.ts videoPullsFor); the same steps as the microphones.
+    const videoSync = (r: RoomDoc) => serial(async () => {
+      if (over) return;
+      const want = videoPullsFor(r, me, audioOnlyRef.current);
+      const keys = new Set(want.map((w) => w.key));
+      const gone = [...vpulled].filter(([k]) => !keys.has(k));
+      for (const [k, v] of gone) { vpulled.delete(k); midToUid.delete(v.mid); videoMap.delete(v.uid); }
+      if (gone.length) { showVideo(); await relay({ op: "close", mids: gone.map(([, v]) => v.mid) }).catch(() => {}); }
+      const add = want.filter((w) => !vpulled.has(w.key));
+      if (!add.length) return;
+      relayPc();
+      const res = await relay({ op: "pull", uids: add.map((a) => a.uid), video: true }).catch(() => null);
+      if (!res?.tracks?.length) return;
+      for (const t of res.tracks) { const w = add.find((a) => a.uid === t.uid); if (w) { vpulled.set(w.key, t); midToUid.set(t.mid, t.uid); } }
+      await takeOffer(res);
+    }).catch(() => {});
+    // My camera: a second track on the same connection, capped by the settings; off again without reconnecting.
+    const startVideo = () => serial(async () => {
+      if (camTx || over || !relayMode) return;
+      const stream = await navigator.mediaDevices.getUserMedia({ video: videoConstraints({ videoHeight: vcfg.height, videoFps: vcfg.fps }) });
+      const pc = relayPc();
+      const tx = pc.addTransceiver(stream.getVideoTracks()[0], { direction: "sendonly", streams: [stream], sendEncodings: [videoEncoding({ videoKbps: vcfg.kbps, videoFps: vcfg.fps })] });
+      try {
+        const offer = await pc.createOffer();
+        await pc.setLocalDescription(offer);
+        const r = await relay({ op: "video", offer: { type: offer.type, sdp: offer.sdp ?? "" }, mid: tx.mid });
+        if (r.answer) await pc.setRemoteDescription(r.answer);
+        cam = stream; camTx = tx; camAt = Date.now(); setMyCam(stream); tookLive(r.host);
+      } catch (e) {
+        await tx.sender.replaceTrack(null).catch(() => {});
+        stream.getTracks().forEach((t) => t.stop());
+        throw e;
+      }
+    });
+    // tell: false when the server already took it down (the budget, or off the stage).
+    const stopVideo = (tell = true) => serial(async () => {
+      if (!camTx) return;
+      await camTx.sender.replaceTrack(null).catch(() => {});
+      camTx = null; cam?.getTracks().forEach((t) => t.stop()); cam = null; setMyCam(null);
+      if (tell && !over) tookLive((await relay({ op: "unvideo" }).catch(() => null as RelayRes | null))?.host);
+    });
+    liveRef.current = { startVideo, stopVideo, resync: () => { if (latest && relayMode) void videoSync(latest); } };
     const relayReconcile = async (r: RoomDoc) => {
       const onStage = roomRole(r, me) !== "listener";
       if (onStage && !micOn) {
@@ -265,7 +344,10 @@ export function RoomScreen({ id, me, title, onDone }: { id: string; me: string; 
         catch (e) { setNote(e instanceof Error && !/Permission|NotAllowed/i.test(e.name + e.message) ? e.message : "Allow the microphone to speak."); }
       }
       if (!onStage && micOn) { micOn = false; await stopPush(); stopMic(); }
+      // My camera taken down by the server (the budget ran out, the host turned speakers' video off, or I left the stage).
+      if (camTx && Date.now() - camAt > 5000 && !r.videoOn?.[me]) void stopVideo(false);
       void relaySync(r);
+      void videoSync(r);
     };
 
     // The connections I should have now (lib/rooms.ts linksFor): wrong ones are closed, missing ones I start are offered; the ones the
@@ -285,8 +367,9 @@ export function RoomScreen({ id, me, title, onDone }: { id: string; me: string; 
     let beat: ReturnType<typeof setInterval> | undefined, tick: ReturnType<typeof setInterval> | undefined, levelTimer: ReturnType<typeof setInterval> | undefined;
     (async () => {
       try {
-        const r = await capi<{ iceServers: Ice; mode?: RoomMode; cap?: number }>("/api/community/rooms", { action: "join", id });
+        const r = await capi<{ iceServers: Ice; mode?: RoomMode; cap?: number; video?: VideoCfg }>("/api/community/rooms", { action: "join", id });
         ice = r.iceServers;
+        if (r.video) { vcfg = r.video; setVideoCfg(r.video); }
         relayMode = r.mode === "relay"; setMode(relayMode ? "relay" : "p2p"); setCap(r.cap ?? 0);
       } catch (e) { finish(e instanceof Error ? e.message : "Couldn't join the room."); return; }
       if (over) return;
@@ -311,8 +394,8 @@ export function RoomScreen({ id, me, title, onDone }: { id: string; me: string; 
         void (relayMode ? relayReconcile(r) : reconcile(r));
       }, () => finish("The room has ended.")));
       beat = setInterval(() => {
-        capi<{ live: boolean }>("/api/community/rooms", { action: "beat", id }).then((x) => { if (!x.live) finish("The room has ended."); }).catch(() => {});
-        if (relayMode && latest) void relaySync(latest); // picks up a pull that failed in a race
+        capi<{ live: boolean; host?: HostLive }>("/api/community/rooms", { action: "beat", id }).then((x) => { if (!x.live) finish("The room has ended."); tookLive(x.host); }).catch(() => {});
+        if (relayMode && latest) { void relaySync(latest); void videoSync(latest); } // picks up a pull that failed in a race
       }, ROOM_BEAT_MS);
       // Who is talking: a ring round their picture while their sound is above a whisper.
       const buf = new Uint8Array(128);
@@ -335,11 +418,39 @@ export function RoomScreen({ id, me, title, onDone }: { id: string; me: string; 
   const listening = live.count ?? (room ? listenerCount(room) : 0);
   const full = cap > 0 && listening >= cap;
   const [peopleOpen, setPeopleOpen] = useState(false);
+  const [camBusy, setCamBusy] = useState(false);
+  // The budget ran out: my camera goes down when the grace ends (the server takes it down then too).
+  const graceUntil = hostLive?.graceUntil ?? null;
+  useEffect(() => {
+    if (!graceUntil || !myCam) return;
+    const t = setTimeout(() => void liveRef.current.stopVideo().catch(() => {}), Math.max(0, Date.parse(graceUntil) - Date.now()));
+    return () => clearTimeout(t);
+  }, [graceUntil, myCam]);
   const who = (u: string) => room?.joined[u] ?? live.hands?.[u] ?? room?.handInfo?.[u];
   const hands = live.hands ? Object.entries(live.hands).filter(([u]) => !stage.includes(u)).map(([u, h]) => [u, h.at] as [string, string]).sort((a, b) => a[1].localeCompare(b[1]))
     : room ? Object.entries(room.hands ?? {}).filter(([u]) => (relayRoom ? !stage.includes(u) && !!room.handInfo?.[u] : listeners.includes(u))).sort((a, b) => a[1].localeCompare(b[1])) : [];
   const handUp = live.hands ? !!live.hands[me] : !!room?.hands?.[me];
   const toggleMute = () => { const m = !muted; micRef.current?.getAudioTracks().forEach((t) => { t.enabled = !m; }); setMuted(m); };
+  // Live mode.
+  const flash = (m: string) => { setNote(m); setTimeout(() => setNote(""), 3000); };
+  const mayVideo = !!room && relayRoom && videoCfg.on && canVideo(room, me, { videoOn: 1 });
+  const videoUp = !!room && anyVideo(room);
+  const toggleVideo = async () => {
+    setCamBusy(true);
+    try { if (myCam) await liveRef.current.stopVideo(); else await liveRef.current.startVideo(); }
+    catch (e) { flash(e instanceof Error && /Permission|NotAllowed/i.test(e.name + e.message) ? "Allow the camera to turn video on." : e instanceof Error ? e.message : "Couldn't turn video on."); }
+    finally { setCamBusy(false); }
+  };
+  // Every camera down: mine, and the speakers' (by taking back their permission to use video).
+  const backToAudio = async () => {
+    if (myCam) await liveRef.current.stopVideo().catch(() => {});
+    if (room?.stageVideo && room.speakers.some((u) => room.videoOn?.[u])) await act({ action: "stagevideo", on: false });
+  };
+  const toggleAudioOnly = () => {
+    const a = !audioOnly; audioOnlyRef.current = a; setAudioOnly(a);
+    try { localStorage.setItem(AUDIO_ONLY_KEY, a ? "1" : "0"); } catch { /* remembered for this visit only */ }
+    liveRef.current.resync();
+  };
 
   return (
     <div className="fixed inset-0 z-[130] flex bg-ink text-white" role="dialog" aria-modal="true" aria-label={`Audio room: ${room?.title ?? title ?? ""}`}
@@ -351,11 +462,33 @@ export function RoomScreen({ id, me, title, onDone }: { id: string; me: string; 
           <h1 className="mt-1 font-display text-2xl leading-tight sm:text-3xl">{room?.title ?? title ?? "Joining…"}</h1>
           <p className="mt-1 text-xs text-white/50" aria-live="polite">{note || (room ? `${stage.length} on stage · ${listening.toLocaleString("en-GB")}${cap ? ` of ${cap.toLocaleString("en-GB")}` : ""} listening${full ? " (full)" : ""} · ${mode === "relay" ? "through the relay" : "phone to phone"}, nothing recorded` : "Connecting…")}</p>
           {role === "host" && room?.note && <p className="mt-1 text-xs text-[#FFB4A2]" role="status">{room.note}</p>}
+          {role === "host" && relayRoom && videoCfg.on && hostLive && <p className="mt-1 text-xs text-white/60">🎥 {minutesLeftText(hostLive.minutesLeft)}</p>}
+          {role !== "host" && room?.hostBooks && room.hostUsername && <a href={`/u/${room.hostUsername}#book`} target="_blank" rel="noopener noreferrer" className="mt-2 inline-block rounded-full bg-white px-3 py-1.5 font-ui text-xs font-bold text-ink">📅 Book a session with {room.hostName}</a>}
         </div>
         <button type="button" onClick={() => leaveRef.current()} className="shrink-0 rounded-full bg-white/10 px-4 py-2 font-ui text-xs font-semibold hover:bg-white/20">Leave quietly</button>
       </header>
 
       <div className="flex-1 overflow-y-auto px-5 pb-6 pt-6">
+        {role === "host" && prompt && !(prompt.kind === "drop" && myCam) && !(prompt.kind !== "drop" && !videoUp) && (
+          <div className="mb-4 flex flex-wrap items-center gap-2 rounded-2xl bg-[#FFB4A2]/15 p-3" role="status">
+            <p className="min-w-0 flex-1 text-sm">{prompt.text}</p>
+            {prompt.kind === "drop" && <button type="button" disabled={camBusy} onClick={() => { setPrompt(null); void toggleVideo(); }} className="rounded-full bg-white px-3 py-1.5 font-ui text-xs font-bold text-ink">Turn video on</button>}
+            {prompt.kind !== "drop" && <button type="button" disabled={camBusy} onClick={() => { setPrompt(null); void backToAudio(); }} className="rounded-full bg-white px-3 py-1.5 font-ui text-xs font-bold text-ink">{prompt.kind === "budget" ? "Turn video off now" : "Back to audio"}</button>}
+            {prompt.kind !== "budget" && <button type="button" onClick={() => setPrompt(null)} className="text-xs text-white/60 underline">{prompt.kind === "drop" ? "Not now" : "Keep video"}</button>}
+          </div>
+        )}
+        {room && (relayRoom || room.poster) && (
+          <LiveScreen videos={videos} myCam={myCam} poster={room.poster ?? ""} audioOnly={audioOnly} videoUp={videoUp} nameOf={(u) => (u === me ? "You" : room.joined[u]?.name ?? "")} />
+        )}
+        {role === "host" && (
+          <div className="mb-4 flex flex-wrap items-center gap-3 text-xs">
+            <button type="button" onClick={() => setPosterOpen((v) => !v)} className="rounded-full bg-white/10 px-3 py-1.5 font-ui font-semibold hover:bg-white/20">🖼 Poster</button>
+            {relayRoom && videoCfg.on && (
+              <label className="flex items-center gap-2 text-white/70"><input type="checkbox" checked={room?.stageVideo === true} onChange={(e) => act({ action: "stagevideo", on: e.target.checked })} className="h-4 w-4" />Speakers can turn video on</label>
+            )}
+            {posterOpen && <div className="w-full"><PosterChoice value={{ source: "none" }} onError={flash} onChange={(p) => { setPosterOpen(false); void act({ action: "poster", source: p.source, url: p.url }); }} /></div>}
+          </div>
+        )}
         <p className="font-ui text-xs font-semibold uppercase tracking-[0.2em] text-white/45">On stage</p>
         <ul className="mt-3 grid grid-cols-3 gap-4 sm:grid-cols-5">
           {stage.map((u) => (
@@ -400,9 +533,11 @@ export function RoomScreen({ id, me, title, onDone }: { id: string; me: string; 
         ) : (
           <>
             <MuteButton muted={muted} onToggle={toggleMute} />
+            {mayVideo && <button type="button" disabled={camBusy} onClick={() => void toggleVideo()} aria-pressed={!!myCam} className={`rounded-full px-4 py-3 font-ui text-sm font-semibold ${myCam ? "bg-white text-ink" : "bg-white/10 hover:bg-white/20"} disabled:opacity-40`}>{myCam ? "🎥 Video off" : "🎥 Video"}</button>}
             {role === "speaker" && <button type="button" onClick={() => act({ action: "speaker", uid: me, on: false })} className="rounded-full bg-white/10 px-4 py-3 font-ui text-sm hover:bg-white/20">Back to listening</button>}
           </>
         )}
+        {relayRoom && !myCam && <button type="button" onClick={toggleAudioOnly} aria-pressed={audioOnly} title="Data saver: don't download video" className={`rounded-full px-4 py-3 font-ui text-sm ${audioOnly ? "bg-white text-ink" : "bg-white/10 hover:bg-white/20"}`}>{audioOnly ? "🔈 Audio only" : "📺 Video when on"}</button>}
         <button type="button" onClick={() => { setChatOpen(true); setUnread(0); }} aria-label={`Chat${unread ? `, ${unread} new` : ""}`} className="relative flex h-12 items-center gap-2 rounded-full bg-white/10 px-4 font-ui text-sm font-semibold hover:bg-white/20 lg:hidden">
           💬 Chat{unread > 0 && <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-[#E5383B] px-1 text-[10px] font-bold">{unread}</span>}
         </button>
@@ -553,5 +688,62 @@ function Person({ name, avatar, big, talking, badge, hand, action, busy }: { nam
         <button type="button" disabled={busy} onClick={() => { setMenu(false); action.run(); }} className="absolute top-full z-10 mt-1 whitespace-nowrap rounded-full bg-white px-3 py-1.5 font-ui text-xs font-bold text-ink shadow-lg">{action.label}</button>
       )}
     </li>
+  );
+}
+
+// Live mode: the cameras up on stage, or the poster while none is (or on Audio only). A poster is only a picture.
+function LiveScreen({ videos, myCam, poster, audioOnly, videoUp, nameOf }: { videos: Record<string, MediaStream>; myCam: MediaStream | null; poster: string; audioOnly: boolean; videoUp: boolean; nameOf: (uid: string) => string }) {
+  const tiles = [...Object.entries(videos), ...(myCam ? [["me", myCam] as [string, MediaStream]] : [])];
+  if (tiles.length && !(audioOnly && !myCam)) {
+    return (
+      <div className={`mb-6 grid gap-2 ${tiles.length > 1 ? "grid-cols-2" : "grid-cols-1"}`}>
+        {tiles.map(([u, st]) => <VideoTile key={u} stream={st} mine={u === "me"} label={u === "me" ? "You" : nameOf(u)} />)}
+      </div>
+    );
+  }
+  if (!poster && !(audioOnly && videoUp)) return null;
+  return (
+    <div className="relative mb-6 overflow-hidden rounded-2xl bg-white/[0.06]">
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      {poster ? <img src={poster} alt="The room's poster" className="max-h-[45vh] w-full object-cover" /> : <div className="h-40" />}
+      {audioOnly && videoUp && <p className="absolute inset-x-0 bottom-0 bg-black/55 px-3 py-2 text-xs">Video is on. You&apos;re on Audio only to save data: tap 🔈 Audio only to watch.</p>}
+    </div>
+  );
+}
+
+function VideoTile({ stream, mine, label }: { stream: MediaStream; mine: boolean; label: string }) {
+  const ref = useRef<HTMLVideoElement>(null);
+  useEffect(() => { if (ref.current && ref.current.srcObject !== stream) ref.current.srcObject = stream; }, [stream]);
+  return (
+    <div className="relative overflow-hidden rounded-2xl bg-black">
+      <video ref={ref} autoPlay playsInline muted className={`aspect-video w-full object-cover ${mine ? "-scale-x-100" : ""}`} />
+      {label && <span className="absolute bottom-2 left-2 rounded bg-black/55 px-2 py-0.5 font-ui text-[11px]">{label}</span>}
+    </div>
+  );
+}
+
+// The poster: upload a picture (made WebP and kept in our storage, like any upload), the profile picture, the challenge art, or none.
+function PosterChoice({ value, onChange, onError, light }: { value: { source: PosterSource; url?: string; preview?: string }; onChange: (p: { source: PosterSource; url?: string; preview?: string }) => void; onError: (m: string) => void; light?: boolean }) {
+  const [busy, setBusy] = useState(false);
+  const file = useRef<HTMLInputElement>(null);
+  const chip = (on: boolean) => `rounded-full px-3 py-1 font-ui text-xs font-semibold ${light ? (on ? "bg-crimson text-paper" : "border border-rule text-ink") : on ? "bg-white text-ink" : "bg-white/10 hover:bg-white/20"}`;
+  const upload = async (f: File | undefined) => {
+    if (!f) return;
+    setBusy(true);
+    try { const url = await uploadToR2(f, "poster"); onChange({ source: "upload", url, preview: url }); }
+    catch (e) { onError(e instanceof Error ? e.message : "Couldn't upload the poster."); }
+    finally { setBusy(false); if (file.current) file.current.value = ""; }
+  };
+  return (
+    <div className="flex flex-wrap items-center gap-2">
+      <span className={`text-xs ${light ? "text-slate" : "text-white/60"}`}>Poster (shown while video is off):</span>
+      <button type="button" disabled={busy} onClick={() => file.current?.click()} className={chip(value.source === "upload")}>{busy ? "Uploading…" : "Upload"}</button>
+      <button type="button" onClick={() => onChange({ source: "profile" })} className={chip(value.source === "profile")}>My profile picture</button>
+      <button type="button" onClick={() => onChange({ source: "challenge", preview: CHALLENGE_POSTER })} className={chip(value.source === "challenge")}>Challenge art</button>
+      <button type="button" onClick={() => onChange({ source: "none" })} className={chip(value.source === "none")}>None</button>
+      <input ref={file} type="file" accept="image/jpeg,image/png,image/webp" className="hidden" onChange={(e) => void upload(e.target.files?.[0])} />
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      {value.preview && <img src={value.preview} alt="" className="h-10 w-16 rounded object-cover" />}
+    </div>
   );
 }

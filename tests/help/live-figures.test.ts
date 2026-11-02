@@ -16,6 +16,7 @@ import { commissionLine, myRates } from "../../lib/my-rates";
 import { resetLimitCache } from "../../lib/limits-server";
 import { resetAgentSettingsCache } from "../../lib/agents/config-server";
 import { PLAN_SHARE } from "../../lib/referrals";
+import { resetRoomSettingsCache } from "../../lib/rooms-server";
 
 const ROOT = join(__dirname, "..", "..");
 const defaults = builtInArticles();
@@ -40,6 +41,8 @@ const saved: Record<string, unknown> = {
   "platformSettings/pricing": { config: cfg },
   "serverConfig/limits": { overrides: limits },
   "serverConfig/agents": { overrides: agents },
+  // Audio rooms' Live mode (Admin → Limits → Audio rooms → Live): the help quotes these, never the defaults.
+  "serverConfig/rooms": { overrides: { videoBudgetMinutes: 22, videoGraceSeconds: 40, dropPercent: 15, dropWindowMinutes: 4, videoBurstMinutes: 6, videoTryMinutes: 3 } },
 };
 // Just enough of Firestore for the loaders: doc(path).get() and an empty kbArticles collection.
 const db = {
@@ -49,7 +52,7 @@ const db = {
 
 (async () => {
   assert.deepEqual(cleanPricing(structuredClone(cfg)), cfg, "the test config passes the admin form's checks");
-  clearKbCache(); resetLimitCache(); resetAgentSettingsCache();
+  clearKbCache(); resetLimitCache(); resetAgentSettingsCache(); resetRoomSettingsCache();
   const live = await getArticles(db);
 
   // Commission on paid sessions, subscriptions and gifts (one rate), per plan.
@@ -81,6 +84,10 @@ const db = {
   assert.ok(!connect.includes("100 by default") && !connect.includes("₦2,000 by default"), "no default agent limits");
   const inbox = body(live, "nanas-inbox");
   assert.ok(inbox.includes("Wednesdays, 07:00") && inbox.includes("expires after 3 days") && inbox.includes("(Pro, Business and Enterprise)"), "Nana's jobs settings");
+  // Audio rooms' Live mode.
+  const rooms = body(live, "community-audio-rooms");
+  for (const x of ["22 video minutes", "40 seconds later", "fall by 15% or more within 4 minutes", "Try 3 minutes of video?", "for 6 minutes in a row"]) assert.ok(rooms.includes(x), `audio rooms help: ${x}`);
+  for (const x of ["15 video minutes", "30 seconds later", "Try 2 minutes"]) assert.ok(!rooms.includes(x), `audio rooms help has no default: ${x}`);
   // Fixed in code (not an admin setting) but quoted from the constant: the referral share.
   assert.ok(body(live, "referrals").includes(`${Math.round(PLAN_SHARE * 100)}% of what your friend pays`));
   // The defaults really were different (so the checks above prove something).

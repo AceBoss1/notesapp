@@ -336,6 +336,37 @@ on `main` that isn't understood is raised with the owner first.
     stand-in Cloudflare, the fallback, the cap, people/, the recount, slow mode, the Team hub reminder), `test:rules` (two new tests),
     `test:community`, `test:community-server`.
 
+98. **Live mode in audio rooms: video, poster, Audio only, video-minutes budget, host prompts (v0.125.0, branch `push/live-mode`, cut
+    from `push/rooms-relay`; 96 is PR #253 and 97 is reserved for the calls PR):** needs item 96 merged and the relay's keys set; on
+    phone-to-phone rooms only the poster applies. **Deploy:** `firebase deploy --only firestore:rules` (new server-only
+    `communityRooms/{id}/live/{doc}`); no new indexes; no new env vars (posters use the existing R2 upload, new purpose `poster`, kept
+    under `posters/{uid}/`). **Settings** (Admin → Limits → Audio rooms → Live mode, `serverConfig/rooms`, read live in the help and on
+    /community/audio-rooms): video on (on), video minutes per live (15; each camera on counts), grace when they run out (30 s), "back to
+    audio" when this many minutes are left (2) or after a burst of (3 min), the drop prompt's suggested minutes (2), drop share (10%)
+    and window (2 min), and the camera caps (600 kbps, 24 fps, 480p). The relay listener setting's ceiling went from 5,000 to 10,000
+    (default still 500). **How it works:** `lib/rooms-live.ts` (pure: who may send/pull video, the minutes, samples, prompts, Audio
+    only's default) and `lib/rooms-live-server.ts` (the shared state behind small functions: `noteListenerSample`, `markVideoOn`,
+    `markVideoOff`, `stopVideo`, `enforceVideoBudget`, `hostLive`, `closeLive`, so step 2b can move the transport). The camera goes up
+    through `/api/community/rooms` action "relay", op `video` (host; speakers only when the host ticks "Speakers can turn video on",
+    `stageVideo`) as a second track on the person's existing Cloudflare session (track name on `relay/{uid}.video`), op `unvideo` closes
+    it with `force` (no reconnect); `pull` with `video: true` pulls cameras (a viewer on Audio only never asks). The room doc carries only
+    `videoOn` (uid → when), `stageVideo`, `poster`, `hostUsername`/`hostBooks`, and `videoUsedMs` when it ends; the minutes, open
+    cameras, listener samples (one per 15-second count window, taken in `recount`) and prompt times are in `live/state`. The host's beat
+    returns `host` (minutes left, prompt, grace); a speaker's beat with a camera up enforces the budget; listeners' beats never touch it.
+    Budget: a camera can't go up once the minutes are used (checked before Cloudflare and again in the transaction); once used with a
+    camera up, the grace starts and the next host or sending-speaker beat after it cuts every camera at Cloudflare. Posters: action
+    "poster" (source upload | profile | challenge | none; an upload must be in the host's own `posters/{uid}/` folder), also accepted
+    on "start". Audio only: `localStorage` "rooms.audioOnly", default on for `navigator.connection.effectiveType` slow-2g/2g/3g or
+    `saveData`. **Teen mode:** rooms are community-scoped (members only, no follower audience), so a teen moderator hosting is unchanged
+    from before; nothing new to mirror from `lib/young.ts`. **Scale:** nothing writes per listener or sends the full listener list;
+    each camera on/off is one room-doc write (read by everyone in the room); samples and prompts go to `live/state`. **Step 2b**
+    (`push/live-chat-edge`): the count and beats moving to a Durable Object should keep calling `noteListenerSample` (or its
+    replacement) and pass the host's `hostLive` back on its beat; the camera ops stay on the relay route. **Untested live:** real video
+    through Cloudflare's SFU in browsers (the `sendEncodings` caps, a second transceiver on the same connection, `replaceTrack(null)`
+    then a new transceiver for the next burst, Safari), and the prompts' feel in a real room. Tests: `test:rooms` (new
+    `rooms-live.test.ts`), `test:rooms-server` (new `rooms-live.emulator.ts`: video on/off, speakers, pulls, minutes, drop prompt,
+    budget grace and refusal, posters, clean-up), `test:rules` (one new test), `test:help` (Live figures from a saved config),
+    `test:limits`, `test:uploads`.
 99. **Live chat and signals for big audio rooms on a Cloudflare Durable Object (v0.126.0, branch `push/live-chat-edge`, cut from
     `push/rooms-relay`; 97 and 98 are reserved for pending PRs):** built and **off until the worker is deployed and both settings are
     set**; until then relay rooms keep the Firestore chat and count exactly as in item 96. Why: in a relay room every chat message is
@@ -344,7 +375,7 @@ on `main` that isn't understood is raised with the owner first.
     broadcasts the chat (slow mode at the edge: automatic past the "slow mode above" setting, or the host's own switch; a rate limit per
     connection; 2 KB per frame), the live listener count, raised hands, stage moves and a video on/off signal (for step 2a), and lets
     the host and moderators remove a message, mute or ban for the room. Firestore stays the source of truth: a socket needs a 10-minute
-    token our server mints only for someone the room already let in (`/api/community/rooms` action `live`; joining still holds the
+    token our server mints only for someone the room already let in (`/api/community/rooms` action `livetoken`; joining still holds the
     cap), stage moves and the end are pushed by our server (signed), and the room sends back, signed, the chat in batches (every 3 s or
     50 messages) to `/api/community/rooms/edge`, which writes `communityRooms/{id}/chat` (the record, and what anyone on the fallback
     polls), removals, bans (`communityRooms/{id}/edge/state`, server-only by the existing rules) and the count (onto the room doc at

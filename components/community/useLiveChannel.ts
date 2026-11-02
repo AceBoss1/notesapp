@@ -13,7 +13,7 @@ import { capi } from "./api";
 // Object for the chat, the live listener count, raised hands and stage/video signals, so nobody reads Firestore for every message.
 // Used only when NEXT_PUBLIC_LIVE_ROOMS_URL is set and the room was opened on the worker (room.edge); otherwise `on` is false and the
 // room screen keeps its Firestore path unchanged. The socket reconnects with backoff (a fresh 10-minute token each time, from
-// /api/community/rooms action "live"); after LIVE_FALLBACK_AFTER failures in a row `status` is "fallback": the chat is polled from
+// /api/community/rooms action "livetoken"); after LIVE_FALLBACK_AFTER failures in a row `status` is "fallback": the chat is polled from
 // Firestore (only what's new, every POLL_MS) and sent through the server, and the count comes from the room doc, while it keeps trying.
 export type LiveStatus = "off" | "connecting" | "live" | "fallback";
 export type LiveChannel = {
@@ -94,7 +94,7 @@ export function useLiveChannel(id: string, me: string, room: RoomDoc | null): Li
     async function connect() {
       if (stop) return;
       let t: { url: string; token: string };
-      try { t = await capi<{ url: string; token: string }>("/api/community/rooms", { action: "live", id }); }
+      try { t = await capi<{ url: string; token: string }>("/api/community/rooms", { action: "livetoken", id }); }
       catch (e) {
         const msg = e instanceof Error ? e.message : "";
         if (/removed from this room/i.test(msg)) { setGone(msg); stop = true; fallback(true); return; }

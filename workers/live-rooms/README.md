@@ -6,7 +6,7 @@ part of the Next.js build (the app's `tsconfig.json` excludes `workers/`); wrang
 `lib/live-token.ts`, `lib/live-rooms.ts` and `lib/rooms.ts`.
 
 - `GET /health` → `ok` once `LIVE_ROOMS_SECRET` is set.
-- `GET /rooms/<id>/ws?t=<token>` → the room's WebSocket (a 10-minute token from `/api/community/rooms`, action `live`).
+- `GET /rooms/<id>/ws?t=<token>` → the room's WebSocket (a 10-minute token from `/api/community/rooms`, action `livetoken`).
 - `POST /rooms/<id>/server` → our server's signed calls (config, stage moves, chat sent through the server, removals, the end).
 - The room reports to our server (`/api/community/rooms/edge`, signed) with the chat in batches, removals, bans and the count.
 
