@@ -1215,3 +1215,23 @@ test("communities and events: read and written only through the server, which ch
   await assertFails(updateDoc(doc(owner, "communities/grace"), { memberCount: 9999 }));
   await assertFails(setDoc(doc(as("bob"), "eventRsvps/e1_bob"), { eventId: "e1", uid: "bob", status: "going" }));
 });
+
+test("one-month feedback, reviewer sign-ups and announcements: only through the server", async () => {
+  // The contact form still writes its own leads from the browser…
+  await assertSucceeds(setDoc(doc(anon(), "leads/c1"), { name: "n", email: "e@x.com", category: "support", message: "m", status: "new", createdAt: "x" }));
+  // …but feedback and volunteer sign-ups come only through their rate-limited routes, with their scores.
+  await assertFails(setDoc(doc(anon(), "leads/f1"), { name: "n", email: "e@x.com", category: "feedback", message: "5/5", status: "new", createdAt: "x" }));
+  await assertFails(setDoc(doc(as("alice"), "leads/v1"), { name: "n", email: "e@x.com", category: "volunteer", message: "m", status: "new", createdAt: "x" }));
+  await assertFails(setDoc(doc(anon(), "leads/f2"), { name: "n", email: "e@x.com", category: "support", message: "m", status: "new", createdAt: "x", feedback: { mood: 5 } }));
+  await env.withSecurityRulesDisabled(async (ctx) => {
+    const f = ctx.firestore();
+    await setDoc(doc(f, "announcements/a1"), { title: "x", status: "draft" });
+    await setDoc(doc(f, "announcementSends/a1_alice"), { uid: "alice" });
+  });
+  for (const who of [anon(), as("alice"), superAdmin(), staff("growth")]) {
+    await assertFails(getDoc(doc(who, "announcements/a1")));
+    await assertFails(getDoc(doc(who, "announcementSends/a1_alice")));
+    await assertFails(setDoc(doc(who, "announcements/a2"), { title: "y", status: "sending" }));
+  }
+  await assertFails(getDoc(doc(as("alice"), "emailPrefs/alice")));
+});

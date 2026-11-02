@@ -5,12 +5,13 @@ import { onAuthStateChanged } from "firebase/auth";
 import { auth } from "@/lib/firebase";
 import { api } from "@/lib/moments-client";
 
-// Email choices on Account settings (/profile/account#email; the weekly digest's and the referrals report's "Email settings" links
-// land here): the #NotesApp Weekly Digest (lib/digest-server.ts) and the monthly referrals report (lib/referral-report-server.ts),
-// each on unless switched off.
-type Prefs = { weeklyDigest: boolean; referralReport: boolean };
+// Email choices on Account settings (/profile/account#email; the weekly digest's, announcements' and the referrals report's
+// "Email settings" links land here): the #NotesApp Weekly Digest (lib/digest-server.ts), #NotesApp announcements
+// (lib/announcements-server.ts) and the monthly referrals report (lib/referral-report-server.ts), each on unless switched off.
+type Prefs = { weeklyDigest: boolean; announcements: boolean; referralReport: boolean };
 const CHOICES: { key: keyof Prefs; label: string; about: string }[] = [
   { key: "weeklyDigest", label: "#NotesApp Weekly Digest", about: "Every Sunday evening: up to ten journals from the week, your interests first with people you follow mixed in, plus four Notes Market items and four Notes Academy courses." },
+  { key: "announcements", label: "News and announcements from #NotesApp", about: "Now and then: what's new, what's coming, and ways to take part. They still reach your bell if you switch the email off." },
   { key: "referralReport", label: "Monthly referrals report", about: "On the 1st of each month: who joined with your link or code, your affiliate sales, what you earned and your balances. Only sent when something happened that month." },
 ];
 

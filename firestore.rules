@@ -1226,12 +1226,21 @@ service cloud.firestore {
         && request.resource.data.name is string
         && request.resource.data.email is string
         && request.resource.data.category is string
+        // The one-month feedback and the Naija Exam Prep reviewer sign-up come only through their rate-limited server routes
+        // (/api/feedback, /api/exam-prep/reviewers; lib/leads-server.ts), never straight from a browser.
+        && !(request.resource.data.category in ['feedback', 'volunteer'])
         && request.resource.data.message is string;
 
       // Lead information is private. Customer care and growth read and manage leads through /api/admin/leads, with the
       // sender's email masked (lib/pii.ts); no browser reads them directly.
       allow read, update, delete: if false;
     }
+
+    // Announcements to every member (Admin → Announcements, /api/admin/announcements, lib/announcements-server.ts) and the record of
+    // who each one reached (one per member, so a send is never repeated): server only. Members read a sent one at
+    // /announcements/{id}, rendered by the server.
+    match /announcements/{id} { allow read, write: if false; }
+    match /announcementSends/{id} { allow read, write: if false; }
 
     // ============================================================
     // NOTIFICATIONS — NOTESAPP
