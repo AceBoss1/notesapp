@@ -55,3 +55,45 @@ export function cleanChoice(b: Record<string, unknown>): GraduationChoice {
 }
 // What each choice left off keeps on the account.
 export const keepFlags = (c: GraduationChoice) => ({ keepHidden: !c.search, keepDmFollowers: !c.messages, keepRepliesFollowers: !c.replies });
+
+// ── Teen mode on Moments and Notes Life (v0.121.0) ──────────────────────────────────────────────────────────────────────────────
+// The same rule as replies on journals (teenGate in lib/comments-server.ts): a teen hears only from people they follow. On turning
+// 18 a member may keep it (users.keepRepliesFollowers). Kids' profiles carry teen: true too, so they're covered the same way.
+export type YoungFlags = { teen?: unknown; keepRepliesFollowers?: unknown; [k: string]: unknown } | null | undefined;
+export const hearsOnlyFromFollowed = (u: YoungFlags) => u?.teen === true || u?.keepRepliesFollowers === true;
+
+// May `from` reply to, or @mention, this member? Always themselves; anyone, unless the member is protected; then only if the
+// member follows them.
+export const mayReach = (o: { target: YoungFlags; self: boolean; targetFollowsThem: boolean }) =>
+  o.self || !hearsOnlyFromFollowed(o.target) || o.targetFollowsThem;
+
+// Who sees a protected member's moments (and their row on the Notes Life Billionaires List): themselves, and people they follow
+// back (both ways), the audience teen mode has had since v0.83.0. Never anyone signed out.
+export const teenAudience = (o: { signedIn: boolean; self: boolean; viewerFollows: boolean; followsViewer: boolean }) =>
+  o.signedIn && (o.self || (o.viewerFollows && o.followsViewer));
+
+// A protected member's moment stays with their own audience: nobody can reshare it onto a ring that other people see.
+export const mayReshare = (rootOwner: YoungFlags) => !hearsOnlyFromFollowed(rootOwner);
+
+// The friendly words for the person who was stopped.
+export const firstName = (u: { displayName?: unknown; username?: unknown } | null | undefined, fallback = "This member") =>
+  String(u?.displayName || u?.username || fallback).split(" ")[0];
+export const REPLY_BLOCKED = (name: string) => `Only people ${name} follows can reply to their moments. You can still like it.`;
+export const MENTION_BLOCKED = (username: string) => `@${username} only hears from people they follow, so they can't be mentioned here. Take out the mention and share it again.`;
+export const RESHARE_BLOCKED = "This moment stays with the people its owner follows back, so it can't be reshared.";
+
+// Notes Life lists (the Billionaires List, the friends who joined from your invite link). Teen mode keeps a member out of people
+// search and the directory (serverPublicUsers in lib/users.ts), and so does keepHidden after 18: the same goes for these lists.
+export type ListFlags = { teen?: unknown; keepHidden?: unknown; [k: string]: unknown } | null | undefined;
+export const keptOffLists = (u: ListFlags) => u?.teen === true || u?.keepHidden === true;
+
+// A row on the Billionaires List: shown to the player themselves, and for a member kept off lists, to people they follow back.
+export const lifeRowShown = (o: { user: ListFlags; self: boolean; viewerFollows: boolean; followsViewer: boolean }) =>
+  !keptOffLists(o.user) || teenAudience({ signedIn: true, self: o.self, viewerFollows: o.viewerFollows, followsViewer: o.followsViewer });
+
+// A friend who joined from your invite link and is kept off lists shows without their name, picture or account id unless they
+// follow you (your invite still counts). `key` stands in for the id, so the list still has one per row.
+export const TEEN_INVITEE = "A friend in teen mode";
+export function inviteeShown<T extends { uid: string; username: string; name: string; avatar: string }>(row: T, invitee: ListFlags, followsInviter: boolean, key: string): T {
+  return !keptOffLists(invitee) || followsInviter ? row : { ...row, uid: key, username: "", name: TEEN_INVITEE, avatar: "" };
+}

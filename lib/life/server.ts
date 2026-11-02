@@ -6,6 +6,7 @@ import {
   swimSkill, hotelCheckout, lodged, worldTime, DW_COURSE, DW_CLASS_HOURS, DW_CLASS_MS, DW_CLASS_EFFECT, dwOpen, giveawayOn, giveawayEligible, giveawayWeek, giveawayPrize, GIVEAWAY, OUTLET, OUTLET_AREAS, OUTLET_BACKUP, STAFF_PERKS, isStaff, itemPrice, hotelPrice, outletBlocker, outletPrice, outletTakings, shiftExtra, type Outlet, type OutletArea,
   ERRAND, STREET_OF, BARBER_STREET_MS, errandBlocker, worldDay, MARKET_SHOPS, CONVOY, convoyAt, convoyNextFor, lifeDay, RESTROOM, restroomBoost, LUX_COURSE, LUX_CLASS_HOURS, LUX_CLASS_EFFECT,
 } from "./catalog";
+import { inviteeShown, keptOffLists, lifeRowShown } from "@/lib/young";
 
 // Server-only. Notes Life money and ownership: lifePlayers/{uid} (the player, read by the owner, written only here) and lifeTx/{id}
 // (their Notesville Naira statement). Every price comes from lib/life/catalog.ts, never from the browser; earnings are time-checked.
@@ -457,7 +458,19 @@ export async function richList(db: Firestore, uid: string, limit = 20, realOnly 
   let realRank: number | null = null;
   if (me && !kidView) realRank = (await db.collection("lifePlayers").where("netWorth", ">", num(me.netWorth)).count().get()).data().count + 1;
   type Row = { rank: number; uid: string; username: string; name: string; avatar: string; city: string; netWorth: number; owned: string[]; npc?: { role: string; area: string; icons: string; story?: string } };
-  const real: Row[] = top.docs.filter((d) => !d.id.startsWith("kid_")).slice(0, limit).map((d) => { const x = d.data(); return { rank: 0, uid: d.id, username: String(x.username ?? ""), name: String(x.name ?? ""), avatar: String(x.avatar ?? ""), city: String(x.city ?? CITY.id), netWorth: num(x.netWorth), owned: (x.owned as string[] | undefined)?.filter((i) => (ITEM(i)?.price ?? 0) >= 100_000) ?? [] }; });
+  // Teen mode (and keepHidden after 18) keeps a player off the list, except for themselves and people they follow back.
+  const cands = top.docs.filter((d) => !d.id.startsWith("kid_"));
+  const people = cands.length ? await db.getAll(...cands.map((d) => db.doc(`users/${d.id}`))) : [];
+  const myName = cands.some((d) => d.id !== uid) ? String((await db.doc(`users/${uid}`).get()).data()?.username ?? "") : "";
+  const shown = await Promise.all(cands.map(async (d, i) => {
+    const u = people[i].data();
+    if (!keptOffLists(u) || d.id === uid) return true;
+    const theirName = String(u?.username ?? "");
+    if (!myName || !theirName) return false;
+    const [a, b] = await db.getAll(db.doc(`follows/${uid}_${theirName}`), db.doc(`follows/${d.id}_${myName}`));
+    return lifeRowShown({ user: u, self: false, viewerFollows: a.exists, followsViewer: b.exists });
+  }));
+  const real: Row[] = cands.filter((_, i) => shown[i]).slice(0, limit).map((d) => { const x = d.data(); return { rank: 0, uid: d.id, username: String(x.username ?? ""), name: String(x.name ?? ""), avatar: String(x.avatar ?? ""), city: String(x.city ?? CITY.id), netWorth: num(x.netWorth), owned: (x.owned as string[] | undefined)?.filter((i) => (ITEM(i)?.price ?? 0) >= 100_000) ?? [] }; });
   const npcs: Row[] = realOnly ? [] : RESIDENTS.filter((r) => r.netWorth).map((r) => ({ rank: 0, uid: `npc:${r.id}`, username: "", name: r.name, avatar: r.photo ?? "", city: CITY.id, netWorth: r.netWorth!, owned: [], npc: { role: r.role, area: r.area, icons: r.owned ?? "", ...(r.story ? { story: r.story } : {}) } }));
   if (kidView && me) real.push({ rank: 0, uid, username: "", name: String(me.name ?? "You"), avatar: "", city: String(me.city ?? CITY.id), netWorth: num(me.netWorth), owned: [] });
   const rows = [...real, ...npcs].sort((a, b) => b.netWorth - a.netWorth).slice(0, limit).map((r, i) => ({ ...r, rank: i + 1 }));
@@ -469,10 +482,17 @@ export async function richList(db: Firestore, uid: string, limit = 20, realOnly 
 export type InviteRow = { uid: string; username: string; name: string; avatar: string; joinedAt: number; status: "paid" | "shift" | "verify" | "limit" };
 export async function invites(db: Firestore, uid: string): Promise<{ invites: InviteRow[]; paid: number }> {
   const snap = await db.collection("lifePlayers").where("referredBy", "==", uid).limit(200).get();
-  const rows: InviteRow[] = snap.docs.map((d) => {
+  // Teen mode (and keepHidden after 18): a friend who doesn't follow you shows without their name or picture.
+  const people = snap.size ? await db.getAll(...snap.docs.map((d) => db.doc(`users/${d.id}`))) : [];
+  const myName = String((await db.doc(`users/${uid}`).get()).data()?.username ?? "");
+  const guarded = snap.docs.map((d, i) => (keptOffLists(people[i].data()) ? i : -1)).filter((i) => i >= 0);
+  const back = guarded.length && myName ? await db.getAll(...guarded.map((i) => db.doc(`follows/${snap.docs[i].id}_${myName}`))) : [];
+  const followsMe = new Set(guarded.filter((_, k) => back[k]?.exists));
+  const rows: InviteRow[] = snap.docs.map((d, i) => {
     const x = d.data();
     const status: InviteRow["status"] = x.referralPaid === true ? (x.referralNote ? "limit" : "paid") : num(x.shifts) > 0 ? "verify" : "shift";
-    return { uid: d.id, username: String(x.username ?? ""), name: String(x.name ?? x.username ?? ""), avatar: String(x.avatar ?? ""), joinedAt: num(x.startedAt), status };
+    const row = { uid: d.id, username: String(x.username ?? ""), name: String(x.name ?? x.username ?? ""), avatar: String(x.avatar ?? ""), joinedAt: num(x.startedAt), status };
+    return inviteeShown(row, people[i].data(), followsMe.has(i), `hidden-${i}`);
   }).sort((a, b) => b.joinedAt - a.joinedAt);
   return { invites: rows.slice(0, 100), paid: rows.filter((r) => r.status === "paid").length };
 }

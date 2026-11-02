@@ -1121,6 +1121,21 @@ test("Notes Life presence: you write only your own place, outfit and time; signe
   await assertSucceeds(deleteDoc(doc(as("alice"), "lifePresence/alice")));
 });
 
+test("Notes Life presence: teen mode keeps a player out of it both ways", async () => {
+  await env.withSecurityRulesDisabled(async (ctx) => {
+    const db = ctx.firestore();
+    await setDoc(doc(db, "users/teen1"), { uid: "teen1", username: "teen1", displayName: "Teen", teen: true });
+    await setDoc(doc(db, "lifePresence/alice"), { place: "chef", outfit: "#f59e0b", at: Date.now() });
+    await setDoc(doc(db, "lifePresence/teen1"), { place: "chef", outfit: "#f59e0b", at: Date.now() });
+  });
+  const pres = { place: "chef", outfit: "#f59e0b", at: Date.now() };
+  await assertFails(setDoc(doc(as("teen1"), "lifePresence/teen1"), pres));
+  await assertFails(getDoc(doc(as("teen1"), "lifePresence/alice")));
+  await assertFails(getDocs(query(collection(as("teen1"), "lifePresence"), where("place", "==", "chef"))));
+  await assertSucceeds(deleteDoc(doc(as("teen1"), "lifePresence/teen1")));
+  await assertSucceeds(getDoc(doc(as("pub"), "lifePresence/alice")));
+});
+
 test("Messages: typing is written only by yourself in your own conversations; chat pins are yours to read and only the server writes them", async () => {
   await env.withSecurityRulesDisabled(async (ctx) => {
     const db = ctx.firestore();

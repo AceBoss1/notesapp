@@ -216,6 +216,7 @@ on `main` that isn't understood is raised with the owner first.
       `"none"`, editable on Admin → Pricing → Business books until the owner answers open question 5.
     - Tests: `test:books`, `test:books-server` (both extended), `test:pricing`, `test:rules`. Plan and what's left:
       `docs/BUSINESS-BOOKS.md` section 10.
+
 90. **Business books imports from other apps (v0.120.0, branch `push/books-imports`):** no deploy step (no new collections or
     indexes; entries gain `extRef`, customers `email`). `lib/books-import.ts` has a preset per source with the export headings and
     where they were checked: Shopify products and orders (help.shopify.com, verified), WooCommerce products (the Product CSV schema,
@@ -231,6 +232,21 @@ on `main` that isn't understood is raised with the owner first.
     dependency) by `statementFromPdfLines`; a scan asks for CSV. **Open question:** Bumpa's customer export (and some bank apps) give
     Excel only; there's still no xlsx reader, so the wizard asks for CSV. The owner decided on 2 Nov 2026: no Excel library; sellers save Excel files as CSV (the wizard says how). Fixtures
     in `tests/books/fixtures/`, tests in `test:books` and `test:books-server`.
+
+91. **Teen mode on Moments and Notes Life (v0.121.0, branch `push/teen-moments-life`):** deploy `firebase deploy --only
+    firestore:rules` (`lifePresence`: a member with `users.teen` or a child profile can't read or write it; they can still delete
+    their own entry). No new indexes or collections. Closes the team hub item `young-moments`. `lib/young.ts` has the pure rules
+    (`hearsOnlyFromFollowed` = `teen` or `keepRepliesFollowers`, `mayReach`, `teenAudience`, `mayReshare`, `keptOffLists` = `teen` or
+    `keepHidden`, `lifeRowShown`, `inviteeShown`). `lib/moments-server.ts`: `mentionGate` (a moment @mentioning a teen who doesn't
+    follow the author is refused with a friendly message), `replyToMoment` checks the owner's follow, `reshare` refuses a teen's
+    moment or a teen's reshare, and `rootOk` keeps older reshares of a teen's moment to the teen's audience in `canSee`,
+    `listForOwner` (which now checks reshares one by one) and `listFeed`. `lib/mentions-server.ts` `notifyMentions`: no bell to a
+    teen from someone they don't follow (every kind). `lib/life/server.ts`: `richList` drops teens (and `keepHidden`) for anyone but
+    themselves and people they follow back (one `users` read per listed player, plus two follow reads per teen); `invites` masks
+    teens who don't follow the inviter. Moments were already signed-in only (no public route), so nothing changed for signed-out
+    pages. Not built because there's nothing to restrict: player-to-player gifts or trades, calls and room visits in Notes Life.
+    Tests: `npm run test:young-social` (pure), `npm run test:young-server` (moments, mentions, the Billionaires List and invites
+    against the emulator), `npm run test:rules` (presence).
 
 93. **Nana operator and Connect NotesApp, agent layer phase 1 (v0.123.0, branch `push/agent-operator`; 91 and 92 are reserved for
     other pending PRs):** design, decisions and code map in `docs/AGENT_LAYER.md`. **Deploy steps:** (1) `firebase deploy --only
