@@ -1,0 +1,8 @@
+Name,Email,Financial Status,Paid at,Fulfillment Status,Fulfilled at,Accepts Marketing,Currency,Subtotal,Shipping,Taxes,Total,Discount Code,Discount Amount,Shipping Method,Created at,Lineitem quantity,Lineitem name,Lineitem price,Lineitem compare-at price,Lineitem SKU,Lineitem requires shipping,Lineitem taxable,Lineitem fulfillment status,Billing Name,Billing Street,Billing City,Billing Phone,Notes,Payment Method,Refunded Amount,Vendor,Outstanding Balance,Id,Tags,Phone
+#1001,bisi@example.com,paid,2026-10-12 14:06:10 +0100,fulfilled,,,NGN,40500.00,2500.00,0.00,43000.00,,,,2026-10-12 14:05:33 +0100,2,Ankara Gown - S,18500.00,,ANK-GWN-S,,,,Bisi Adebayo,,Lagos,+2348031110001,,Paystack,0.00,,0.00,5550001,,
+#1001,,,,,,,,,,,,,,,,1,Shea Butter 250g,3500.00,,SHEA-250,,,,,,,,,,,,,,,
+#1002,chinedu@example.com,refunded,,,,,NGN,,,,3500.00,,,,2026-10-13 09:12:00 +0100,1,Shea Butter 250g,3500.00,,,,,,Chinedu Okafor,,,,,Paystack,3500.00,,0.00,5550002,,
+#1003,amaka@example.com,partially_refunded,,,,,NGN,,,,37000.00,,,,2026-10-14 11:00:00 +0100,2,Ankara Gown - M,18500.00,,,,,,Amaka Obi,,,,,Paystack,18500.00,,0.00,5550003,,
+#1004,tunde@example.com,partially_paid,,,,,NGN,,,,19500.00,,,,2026-10-15 16:30:00 +0100,1,Ankara Gown - L,19500.00,,,,,,Tunde Bakare,,,08051112222,,Bank Deposit,0.00,,9500.00,5550004,,
+#1005,ngozi@example.com,pending,,,,,NGN,,,,3500.00,,,,2026-10-16 08:00:00 +0100,1,Shea Butter 250g,3500.00,,,,,,Ngozi Eze,,,,,Cash on Delivery (COD),,,,5550005,,
+#1006,,voided,,,,,NGN,,,,3500.00,,,,2026-10-16 09:00:00 +0100,1,Shea Butter 250g,3500.00,,,,,,,,,,,,,,,5550006,,
