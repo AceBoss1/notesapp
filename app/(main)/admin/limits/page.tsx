@@ -5,9 +5,10 @@ import { useAdminAuth } from "@/lib/useAdminAuth";
 import { LIMITS, LIMIT_TIERS, LIMIT_TIER_LABEL, type LimitTable } from "@/lib/limits";
 import { AGENT_DEFAULTS, AGENT_SETTINGS, type AgentSettings } from "@/lib/agents/config";
 
-// Size and count limits by plan (message files, moments), the plan flags for Nana's operator and connected agents (tick boxes), and the
-// numbers behind Nana's jobs and agents (undo windows, expiry, defaults on the Connect screen). Saved numbers apply sitewide within about
-// 30 seconds; "Reset" puts the built-in defaults back in the boxes (nothing changes until you save).
+// Size and count limits by plan (message files, moments, courses), the plan switches for Notes Academy (free courses, paid courses,
+// uploaded video) and for Nana's operator and connected agents, shown as tick boxes, and the numbers behind Nana's jobs and agents
+// (undo windows, expiry, defaults on the Connect screen). Saved numbers apply sitewide within about 30 seconds; "Reset" puts the
+// built-in defaults back in the boxes (nothing changes until you save).
 export default function AdminLimitsPage() {
   const { user, loading } = useAdminAuth();
   const [table, setTable] = useState<LimitTable | null>(null);
@@ -38,7 +39,7 @@ export default function AdminLimitsPage() {
   return (
     <div className="mx-auto max-w-5xl px-4 py-12">
       <h1 className="font-display text-3xl text-ink">Limits by plan</h1>
-      <p className="mt-2 text-sm text-slate">Sizes and counts for each plan. A saved change applies sitewide within about 30 seconds; people already over a new, lower limit just can&apos;t add more until they&apos;re under it. Whole numbers only.</p>
+      <p className="mt-2 text-sm text-slate">Sizes, counts and switches for each plan. Ticked means the plan has it; a 0 in a row marked &ldquo;0 = no limit&rdquo; means no limit. A saved change applies sitewide within about 30 seconds; people already over a new, lower limit just can&apos;t add more until they&apos;re under it. Whole numbers only.</p>
       {error && <p className="mt-4 text-sm text-red-700" role="alert">{error}</p>}
       {saved && <p className="mt-4 text-sm text-green-700" role="status">Saved. It&apos;s live.</p>}
       {table && (
@@ -55,11 +56,12 @@ export default function AdminLimitsPage() {
                 <Fragment key={l.key}>
                   {(i === 0 || LIMITS[i - 1].group !== l.group) && <tr><td colSpan={6} className="pt-5 font-mono text-xs uppercase tracking-wide text-slate">{l.group}</td></tr>}
                   <tr className="border-b border-rule">
-                    <td className="py-2 pr-4">{l.label} <span className="text-slate">({l.kind === "flag" ? "ticked = included" : `${l.unit}, ${l.min}–${l.max}`})</span></td>
+                    <td className="py-2 pr-4">{l.label} {l.kind !== "switch" && <span className="text-slate">({l.unit}, {l.min}–{l.max})</span>}</td>
                     {LIMIT_TIERS.map((t) => (
                       <td key={t} className="px-2 py-2">
-                        {l.kind === "flag" ? (
-                          <input type="checkbox" checked={table[l.key][t] > 0} onChange={(e) => set(l.key, t, e.target.checked ? "1" : "0")} aria-label={`${l.label}, ${LIMIT_TIER_LABEL[t]}`} className="h-4 w-4 accent-crimson" />
+                        {l.kind === "switch" ? (
+                          <input type="checkbox" checked={table[l.key][t] > 0} onChange={(e) => set(l.key, t, e.target.checked ? "1" : "0")}
+                            aria-label={`${l.label}, ${LIMIT_TIER_LABEL[t]}`} className="h-4 w-4 accent-crimson" />
                         ) : (
                         <input type="number" inputMode="numeric" min={l.min} max={l.max} step={1} value={Number.isNaN(table[l.key][t]) ? "" : table[l.key][t]}
                           onChange={(e) => set(l.key, t, e.target.value)} aria-label={`${l.label}, ${LIMIT_TIER_LABEL[t]}`} className="w-20 rounded border border-rule px-2 py-1" />

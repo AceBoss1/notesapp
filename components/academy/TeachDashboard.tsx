@@ -12,7 +12,8 @@ import { COURSE_TITLE_MAX, MAX_COURSES_PER_MEMBER, courseHref, durationLabel, is
 import { accessLabel, accessOf, invitePath } from "@/lib/invite-terms";
 
 type MyCourse = Course & { access: "lead" | "tutor" | "viewer" };
-type Data = { courses: MyCourse[]; invites: TutorInvite[]; canTeach: boolean; reason?: string };
+// maxCourses: the member's own plan's number of courses (Admin → Limits).
+type Data = { courses: MyCourse[]; invites: TutorInvite[]; canTeach: boolean; reason?: string; maxCourses?: number };
 
 // /academy/teach: the member's courses (their own, their organisations', and ones they co-teach), drafts and published, newest
 // change first; co-tutor invitations (each opens the accept screen, /invites/course/<id>, with the terms); and "New course" (a title is all it takes), as themselves or as an
@@ -78,7 +79,8 @@ export default function TeachDashboard() {
     );
   }
 
-  const full = !as && data.courses.filter((c) => c.ownerUid === user.uid).length >= MAX_COURSES_PER_MEMBER;
+  const maxCourses = data.maxCourses ?? MAX_COURSES_PER_MEMBER;
+  const full = !as && data.courses.filter((c) => c.ownerUid === user.uid).length >= maxCourses;
   return wrap(
     <>
       {data.invites.length > 0 && (
@@ -115,7 +117,7 @@ export default function TeachDashboard() {
             className="min-w-0 flex-1 rounded-lg border border-rule bg-white px-3 py-2.5 text-base outline-none focus:border-crimson sm:text-sm" />
           <button type="submit" disabled={busy || full} className="btn-primary !px-6 !py-2.5 text-sm disabled:opacity-50">{busy ? "Creating…" : "Create course"}</button>
         </div>
-        {full && <p className="mt-2 text-xs text-slate">You have {MAX_COURSES_PER_MEMBER} courses, the most for now. Delete one to start another.</p>}
+        {full && <p className="mt-2 text-xs text-slate">You have {maxCourses} courses, the most on your plan. Delete one to start another.</p>}
         {error && <p className="mt-2 text-sm text-crimson">{error}</p>}
       </form>
 

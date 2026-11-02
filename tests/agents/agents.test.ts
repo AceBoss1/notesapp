@@ -26,7 +26,7 @@ assert.equal(planHas("nanaOperator", "business"), true); assert.equal(planHas("n
 for (const t of ["standard", "basic", "pro"] as const) assert.equal(planHas("nanaOperator", t), false, t);
 assert.equal(planHas("nanaOperator", "pro", { nanaOperator: { pro: 1 } }), true, "an admin can switch it on for Pro");
 assert.equal(limitFor("nanaJobsPerDay", "business"), 60);
-assert.ok(LIMITS.filter((l) => l.kind === "flag").every((l) => l.min === 0 && l.max === 1));
+assert.ok(LIMITS.filter((l) => l.kind === "switch").every((l) => l.min === 0 && l.max === 1));
 
 // ---- the Connect screen's defaults (mockup as approved)
 const g = defaultGrant(s);

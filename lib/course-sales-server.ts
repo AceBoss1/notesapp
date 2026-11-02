@@ -3,6 +3,7 @@ import { digitalCommissionRateFor, type CustomRates } from "./tiers";
 import { cleanLearnerName, AcademyError } from "./certificates";
 import { issueInTransaction } from "./certificates-server";
 import { CourseError, accessTo, courseOf, enrolmentOf, lessonOf, tierOf } from "./courses-server";
+import { getLimitOverrides } from "./limits-server";
 import { COURSE_REFUND_DAYS, canSellCourses, isPaid, quizForLearner, type Course, type Lesson, type Quiz, type VideoCredit } from "./courses";
 import type { LedgerEntry, PaymentRecord } from "./payments";
 import type { AccountTier, UserProfile } from "./users";
@@ -29,7 +30,7 @@ export async function courseCheckout(db: Firestore, uid: string, courseId: unkno
   const owned = (await db.doc(`enrolments/${course.id}_${uid}`).get()).data();
   if (owned?.purchaseRef) throw new CourseError("You already have this course: open it from its page.", 409);
   const owner = (await db.doc(`users/${course.ownerUid}`).get()).data() as UserProfile | undefined;
-  if (!owner || owner.suspended === true || !canSellCourses(tierOf(owner))) throw new CourseError("This course isn't on sale right now.", 409);
+  if (!owner || owner.suspended === true || !canSellCourses(tierOf(owner), await getLimitOverrides(db))) throw new CourseError("This course isn't on sale right now.", 409);
   const payout = (await db.doc(`payoutAccounts/${course.ownerUid}`).get()).data();
   if (!payout?.recipientCode) throw new CourseError("This course isn't on sale right now: its teacher hasn't set up payouts yet.", 409);
   return { course, owner, commissionRate: digitalCommissionRateFor((owner.accountTier as AccountTier) || "basic", (owner as UserProfile & { customRates?: CustomRates }).customRates) };

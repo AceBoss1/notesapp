@@ -2565,4 +2565,17 @@ address everywhere comes from `lib/host.ts` (`mcpOrigin`, `mcpServerUrl`, `famil
 `dispatchWithCourier` so an approved "mark shipped" runs the same code as the Orders page. Emulator tests ran on a separate emulator
 port (8197) with a temporary config.
 
+**Courses step 3: course plans and limits in Admin → Limits (v0.122.0, 2 Nov 2026)** — Paid courses shipped in v0.55.0 with the plans
+hard-coded (`canSellCourses`, `canUploadVideo` in `lib/courses.ts`) and a fixed 30 courses a member (90 an organisation), while
+`docs/COURSES.md` had always said these belong in `lib/tiers.ts` and `lib/limits.ts` so an admin can change them. The flags went into
+`TierConfig` (`freeCourses`, `paidCourses`, `courseVideoUploads`) as the source of the defaults, and became on/off rows in the existing
+limits table rather than a second settings document: one place to edit (Admin → Limits, now with tick boxes for switches), one
+server-only document (`serverConfig/limits`), the same 30-second cache, the same "only what differs from the default is saved". Course
+counts, PDF storage and video hours are ordinary rows; storage and hours default to 0 = no limit, because there was no cap before and
+nobody should lose anything. Usage is counted across every course the owner has (drafts too) only when a cap is set, so the default
+costs no extra reads. To make video hours honest, a video lesson now keeps Stream's own length (`videoSeconds`) beside the minutes the
+tutor types, and a PDF its size from the bucket (`fileBytes`); older uploads count by their minutes and as 0 bytes. Every message and
+the editor, Teach page and pricing page name the plans from the settings (`plansWith`/`onPlans`), so turning a switch off can't leave
+copy that promises it.
+
 **Team hub "+ New task" and the rooms relay task (v0.123.1, 2 Nov 2026)** — The owner said there was no way to create a task in the team hub. There was one: a one-line "Add work" row (title, when, people) below the numbers, the Needs you card, Granola and expenses, easy to miss and short of fields. A "+ New task" button now sits first beside the title (`NewTaskForm` in `app/(main)/admin/team/page.tsx`), opening a card with everything an item carries: title, details, due date with Today / In 1 week / In 2 weeks chips (a date also picks the horizon, `horizonForDue` in `lib/team.ts`, the same seven-day window as the board's This week), when, status (To do, Doing, Needs a decision with its question, Blocked with what it's on), departments, people (`PeoplePicker`) and the monthly repeat. It uses the existing `createItem`; `cleanItem` already accepted every field, so the server is unchanged. Items have no link field, so links go in the details, which now render through `components/LinkedText.tsx` (links open in a new tab; React text, never HTML). The quick row stays for one-liners, and each item's Edit already changes title, details, due date, people and the rest. The owner's next task is seeded once as `ROOMS_RELAY_BACKLOG` (seed `rooms-relay-2026-11`): moving audio rooms past 20 listeners with Cloudflare Realtime (Serverless SFU), the dashboard steps for the app ID and token (and the TURN keys while there), and the build. The standing "rooms-relay" signal in `teamSignals` is left as it is. Tests: `test:team` (full create, `horizonForDue`) and `test:team-server` (the full create and the seed).

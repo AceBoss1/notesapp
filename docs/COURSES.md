@@ -111,8 +111,11 @@ minute stored and watched, so it belongs in the paid plans' price.
 - Builds on **view-only lessons** (Pro and above today: `components/LessonsEditor.tsx`, `lib/stream.ts`, `lib/private-files.ts`,
   `components/PdfViewer.tsx`, two devices per purchase, the buyer's email stamped on the content). A view-only item with
   several lessons is already a simple paid course; Courses add free courses, YouTube lessons, progress, quizzes and certificates.
-- Plans: new flags in `lib/tiers.ts` (`freeCourses` for every publishing tier, `paidCourses` for Pro and up) and limits in
-  `lib/limits.ts` (courses per plan, storage, video hours), so they're set in Admin → Limits.
+- Plans (built in v0.122.0): flags in `lib/tiers.ts` (`freeCourses` for every publishing tier, `paidCourses` for Pro and up,
+  `courseVideoUploads` for Business and Enterprise) are the defaults of the on/off rows in `lib/limits.ts`'s Courses group, next to
+  courses per member (30) and per organisation (90), PDF storage (GB) and uploaded video (hours), both 0 = no limit by default. All are
+  set per plan in Admin → Limits (`serverConfig/limits`, read through `lib/limits-server.ts`'s 30-second cache) and enforced by
+  `lib/courses-server.ts` (create, price, publish, upload start and lesson save) and `lib/course-sales-server.ts` (checkout).
 - Topics: a course is filed under topics (`lib/topics.ts`) like a journal, so it reaches readers interested in them and the weekly digest.
 - Settings through `lib/config.ts`; all writes on the server (courses, enrolments, progress, certificates); tests with each step.
 
@@ -126,6 +129,8 @@ youtube | video | pdf | text | quiz, the YouTube id or the private file key, dur
 2. **Certificates**: issue on completion, the verification page, sharing, the PDF.
 3. **Paid courses** (Pro, Business): uploads to private R2, playback (the decision above), checkout, payouts, two-device limit.
    Built in v0.55.0, with publishing for an organisation, co-tutors, and course details (level, format, outcomes, modules) for every course.
+   **Complete (v0.122.0):** which plans may teach free courses, sell courses and upload video, and the courses, storage and video
+   hours per plan, are settings in Admin → Limits instead of hard-coded, with the v0.55.0 behaviour as the defaults.
 4. **Quizzes** (built in v0.105.0), reviews, "continue learning" in the feed and the digest.
 5. **Enterprise courses** (from ₦100,000 a month): branded certificates, cohorts, bulk invites, reports for the organisation.
 
