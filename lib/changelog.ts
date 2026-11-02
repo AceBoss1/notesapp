@@ -21,6 +21,17 @@ export const CHANGELOG: Release[] = [
     ],
   },
   {
+    version: "v0.121.0",
+    bump: "minor",
+    date: "2026-11-02",
+    changes: [
+      { kind: "added", text: "Teen mode on Moments: only people a teen follows can reply to their moments or @mention them in a moment, and anyone else is told why and asked to take the mention out. A teen's moment can't be reshared, and reshares made before today stay with the teen's own audience." },
+      { kind: "added", text: "Teen mode in Notes Life: teens are on the Billionaires List only for people they follow back, aren't shown to (and don't see) other players at the same place, and show as \"A friend in teen mode\" on the invite list of someone they don't follow (the invite still counts)." },
+      { kind: "changed", text: "@mention notifications reach someone in teen mode only from people they follow, wherever the mention is. Members who kept replies to people they follow on turning 18 get the same." },
+      { kind: "changed", text: "The teen mode help article, Messages and moments, Links and @mentions, Notes Life help and the teen mode card and parent confirmation page say so." },
+    ],
+  },
+  {
     version: "v0.120.0",
     bump: "minor",
     date: "2026-11-02",

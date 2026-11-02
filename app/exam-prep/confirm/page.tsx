@@ -16,7 +16,7 @@ export default function ConfirmTeen() {
       {state === "busy" ? <Spinner label="Confirming…" /> : state === "ok" ? (
         <div className={card}>
           <h1 className="font-display text-2xl font-bold">Thank you, confirmed</h1>
-          <p className="mt-2 text-[15px] text-[#0F2747]/80">Your child's {PREP_NAME} account is in teen mode: they don't appear in people search, only people they follow can message them, and the practice board shows only a nickname.</p>
+          <p className="mt-2 text-[15px] text-[#0F2747]/80">Your child's {PREP_NAME} account is in teen mode: they don't appear in people search, only people they follow can message them, reply to them or @mention them, their moments are seen only by people they follow back, Notes Life keeps them off its public lists, and the practice board shows only a nickname.</p>
           <p className="mt-2 text-sm text-[#0F2747]/65">Questions or worries? Reply to the email or write to us from the NotesApp contact page.</p>
         </div>
       ) : <Note tone="error">{state}</Note>}

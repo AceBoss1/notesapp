@@ -1069,9 +1069,15 @@ service cloud.firestore {
       allow write: if false;
     }
     // Where a player is in the game right now, so players at the same place see each other (names come from their public profile).
+    // Teen mode (users.teen, and every child profile) keeps a player out of presence both ways: not shown to strangers at the
+    // same place, and not shown them (the same as "plays Notes Life", lib/life/social.ts). Their own entry can still be removed.
     match /lifePresence/{uid} {
-      allow read: if isSignedIn();
-      allow create, update: if isSignedIn() && request.auth.uid == uid
+      function inTeenMode() {
+        return isKid() || (exists(/databases/$(database)/documents/users/$(request.auth.uid))
+          && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.get('teen', false) == true);
+      }
+      allow read: if isSignedIn() && !inTeenMode();
+      allow create, update: if isSignedIn() && request.auth.uid == uid && !inTeenMode()
         && request.resource.data.keys().hasOnly(['place', 'outfit', 'at'])
         && request.resource.data.place in ['home', 'work', 'chef', 'hotel', 'itel', 'dw', 'market', 'wuse2', 'ride']
         && request.resource.data.outfit is string && request.resource.data.outfit.size() <= 9
