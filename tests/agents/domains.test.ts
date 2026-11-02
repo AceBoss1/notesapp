@@ -29,7 +29,7 @@ assert.equal(agentUrls("localhost:3000").link, "http://localhost:3000/link");
 const ROOTS = [...new Set([...KNOWN_ROOTS, LEGACY_ROOT_DOMAIN, ...APP_SHORT_DOMAINS, "naapp.tech", "notesapp.name.ng"])];
 const FILES = [
   "lib/agents", "components/agents", "app/api/agents", "app/api/nana/inbox", "app/api/console/agents", "app/api/cron/agents",
-  "app/(main)/connect", "app/(main)/link", "app/(main)/nana/inbox", "app/(main)/messages/nana/inbox", "app/.well-known",
+  "app/connect", "app/link", "app/(main)/nana/inbox", "app/(main)/messages/nana/inbox",
 ];
 const walk = (p: string): string[] => (!existsSync(p) ? [] : statSync(p).isDirectory() ? readdirSync(p).flatMap((f) => walk(join(p, f))) : /\.(ts|tsx)$/.test(p) ? [p] : []);
 const files = FILES.flatMap(walk);

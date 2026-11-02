@@ -1,8 +1,8 @@
 import { familyHost, isLocalHost, mainSiteUrl, mcpOrigin, mcpServerUrl } from "@/lib/host";
 
 // Every address the agent layer shows (Connect screen, link page, Console, emails, the MCP server's own answers), worked out from the
-// host being viewed so it stays in the visitor's family: on www.naapp.tech the MCP server is https://mcp.naapp.tech, on
-// app.notesapp.name.ng it is https://mcp.notesapp.name.ng. Nothing here is written in (tests/agents/domains.test.ts checks).
+// host being viewed so it stays in the visitor's family: on www.<root> or app.<root> the MCP server is https://mcp.<root>, whichever
+// of our domains <root> is. Nothing here is written in (tests/agents/domains.test.ts checks).
 export type AgentUrls = { mcp: string; connect: string; link: string; linkLabel: string; console: string; docs: string; inbox: string; help: string };
 
 export function agentUrls(hostname: string | null | undefined): AgentUrls {
