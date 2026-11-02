@@ -286,6 +286,22 @@ on `main` that isn't understood is raised with the owner first.
     `_TOKEN` and the TURN keys; the standing "rooms-relay" signal in `lib/team-server.ts` is unchanged. Tests: `test:team`,
     `test:team-server`.
 
+97. **Calls: earpiece for voice, speaker for video, and a Sound picker (v0.124.1, branch `push/call-audio-route`; 95 and 96 are
+    reserved for pending PRs, as are v0.123.2 and v0.124.0):** nothing to deploy. Root cause: iPhone Safari routes a page that has
+    the microphone open to the loudspeaker unless `navigator.audioSession.type` is "play-and-record" (and Notes Life's game sound sets
+    "playback"); Android Chrome, left on the "default" microphone, picks wired > USB > Bluetooth > speakerphone and only uses the
+    earpiece when the microphone called "Headset earpiece" is opened. Also, 1:1 video played the remote voice through both the
+    `<video>` and the `<audio>` element. Now `lib/call-audio.ts` (pure rules, `tests/calls/audio.test.ts` in `test:calls`) and
+    `components/calls/useCallAudio.ts` (used by `CallManager.tsx` and `GroupCall.tsx`): iPhone sets the audio session for the call
+    ("play-and-record" = earpiece, "auto" = speaker; the previous type comes back afterwards); Android opens Chrome's route by
+    microphone id (with echo cancellation, which puts Android in call mode) and swaps it in with `replaceTrack`; computers use
+    `setSinkId` for speakers (Firefox: "Choose another speaker…" via `selectAudioOutput`) and a separate microphone list. Remote
+    sound always plays through `<audio>` elements (videos are muted). Headsets win on `devicechange` unless the person picked
+    something in this call; choices are remembered per device in `localStorage` (`na-call-sound`). Can't be done from a web page:
+    choosing AirPods/Bluetooth on iPhone (Control Centre), any route on iPad (no earpiece), and Android browsers other than Chrome
+    (no route names: the note says so). Untested on real phones from here: please try a voice and a video call on an iPhone and an
+    Android phone, with and without headphones.
+
 All of these are on the team hub board with departments and dates (`lib/team-seed.ts`: `FUND_BACKLOG`, `LAUNCH_BACKLOG`, `COURSES_BACKLOG`, `TOPICS_BACKLOG`, `BIMI_BACKLOG`). Items can have several people (`ownerUids`; `ownerUid` stays as the first of them for older readers) and can repeat monthly (`repeat: "monthly"`: done moves the due date on a month).
 
 ## 3. How the work is done (please keep these)

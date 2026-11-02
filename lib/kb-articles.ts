@@ -364,6 +364,13 @@ ${MOMENTS_LIVE ? `**Moments:** share a picture, a video of up to 90 seconds or a
 
 **Make a call:** open the conversation and tap the **phone** (voice) or **camera** (video) at the top. It rings on the other person's phone or computer wherever they are on #NotesApp, for up to 45 seconds. During a call you can mute, turn your camera off and on, and end the call. In a video call, drag your own small picture to any corner, tap it to swap it with the other person's, and tap **🔄** to switch between your front and back camera.
 
+**Earpiece or speaker:** a voice call plays through your phone's earpiece, like a phone call, so hold the phone to your ear; a video call plays through the speaker. Headphones and Bluetooth take over when they're plugged in or connected, even in the middle of a call. To change it, tap **Sound** (the speaker button) during a call, in one-to-one and group calls:
+- **iPhone:** choose **Earpiece** or **Speaker**. For AirPods, Bluetooth or a car, pick it in Control Centre (the AirPlay button on the music card); the call follows it. iPads have no earpiece, so calls use the speaker or whatever you pick in Control Centre.
+- **Android (Chrome and the installed app):** choose **Earpiece**, **Speaker**, **Headphones** or **Bluetooth**. The microphone moves with it (Bluetooth uses the headset's microphone). Other Android browsers don't let a web page switch, so use your phone's own controls there.
+- **Computers:** choose which speakers or headphones the call plays through and which microphone it uses. In Firefox, tap **Choose another speaker…**.
+
+Your choice is remembered on that device for the next call of the same kind. The Sound button only shows when there's something to choose.
+
 **Share your screen (computers):** in a video call on a computer, tap **Screen** and choose a window, tab or your whole screen. The other person sees all of it; tap **Screen** again, or **Stop sharing** in your browser, and your camera comes back. Phones can't share their screen: phone browsers (and the app installed from them) don't allow it.
 
 **Check it's private:** once a call connects, tap **🔒 End-to-end encrypted** to see a 12-digit safety code. The other person sees a code too: read yours out to each other. If they match, the call is encrypted between your two devices and nobody in between, not even #NotesApp, can listen in or watch. If they don't match, end the call.

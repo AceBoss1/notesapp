@@ -11,6 +11,16 @@ export type Release = {
 
 export const CHANGELOG: Release[] = [
   {
+    version: "v0.124.1",
+    bump: "patch",
+    date: "2026-11-02",
+    changes: [
+      { kind: "fixed", text: "Voice calls on phones play through the earpiece, like a phone call, instead of the loudspeaker. Video calls still use the speaker. Headphones and Bluetooth take over when they're plugged in or connected, even during a call." },
+      { kind: "added", text: "A Sound button in one-to-one and group calls: choose Earpiece or Speaker (iPhone), Earpiece, Speaker, Headphones or Bluetooth (Android), or which speakers and microphone to use (computers). Your choice is remembered on that device. On iPhone, AirPods and Bluetooth are picked in Control Centre." },
+      { kind: "fixed", text: "In a video call, the other person's voice no longer plays twice on some browsers." },
+    ],
+  },
+  {
     version: "v0.123.1",
     bump: "patch",
     date: "2026-11-02",

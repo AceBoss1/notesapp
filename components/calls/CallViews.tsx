@@ -4,6 +4,7 @@ import { useEffect, useRef, useState, type ReactNode, type Ref } from "react";
 import Avatar from "@/components/Avatar";
 import { DEFAULT_AVATAR } from "@/lib/admin";
 import type { CallKind } from "@/lib/calls";
+import type { Mic, Route } from "@/lib/call-audio";
 
 // The call screens, drawn from plain props (CallManager owns the call itself). Also renderable on their own with made-up values.
 
@@ -27,6 +28,9 @@ export const CameraIcon = ({ off }: { off?: boolean }) => (
 const ScreenIcon = ({ on }: { on?: boolean }) => (
   <Icon><rect x="2.5" y="4" width="19" height="12.5" rx="1.5" /><path d="M8.5 20.5h7M12 16.5v4" />{on ? <path d="M9 8l6 5M15 8l-6 5" /> : <path d="M12 13V7.5M9.5 10L12 7.5l2.5 2.5" />}</Icon>
 );
+export const SpeakerIcon = () => (
+  <Icon><path d="M4 9.5h3.5L12 5.5v13l-4.5-4H4z" /><path d="M15.5 9a4 4 0 010 6M18 6.5a7.5 7.5 0 010 11" /></Icon>
+);
 const LockIcon = () => <Icon className="h-3.5 w-3.5"><rect x="5" y="10.5" width="14" height="10" rx="2" /><path d="M8 10.5V7.5a4 4 0 018 0v3" /></Icon>;
 export const CrossIcon = ({ className }: { className?: string }) => <Icon className={className}><path d="M6 6l12 12M18 6L6 18" /></Icon>;
 const PhoneIcon = ({ className }: { className?: string }) => (
@@ -48,9 +52,10 @@ function CallAvatar({ src, name, ring }: { src: string; name: string; ring: "gol
 
 // A round control; the label under it only shows on phones (desktop has the tooltip).
 function CallButton({ label, aria, onClick, disabled, pressed, end, children }: { label: string; aria: string; onClick: () => void; disabled?: boolean; pressed?: boolean; end?: boolean; children: ReactNode }) {
-  const look = end ? "h-[72px] w-[72px] bg-[#E5383B] hover:bg-[#D12F32] lg:h-16 lg:w-16" : `h-16 w-16 lg:h-14 lg:w-14 ${pressed ? "bg-white text-ink" : "bg-white/[0.12] hover:bg-white/20"}`;
+  // Narrow phones (under 400px) get slightly smaller buttons so five fit in a row (Mute, Sound, Flip, Camera, End).
+  const look = end ? "h-16 w-16 bg-[#E5383B] hover:bg-[#D12F32] min-[400px]:h-[72px] min-[400px]:w-[72px] lg:!h-16 lg:!w-16" : `h-14 w-14 min-[400px]:h-16 min-[400px]:w-16 lg:!h-14 lg:!w-14 ${pressed ? "bg-white text-ink" : "bg-white/[0.12] hover:bg-white/20"}`;
   return (
-    <div className="flex w-[72px] flex-col items-center gap-2.5 lg:w-auto">
+    <div className="flex w-[60px] flex-col items-center gap-2.5 min-[400px]:w-[72px] lg:w-auto">
       <div className="flex h-[72px] items-center lg:h-16">
         <button type="button" onClick={onClick} disabled={disabled} aria-pressed={pressed} aria-label={aria} title={aria}
           className={`flex items-center justify-center rounded-full transition-colors disabled:opacity-40 ${look}`}>
@@ -70,10 +75,46 @@ export type CallStageProps = {
   // The safety code both people compare (empty until the call is up); screen sharing (computers only).
   safetyCode?: string; canShare?: boolean; sharing?: boolean; theirShare?: boolean; onShare?: () => void;
   remoteVideo?: Ref<HTMLVideoElement>; localVideo?: Ref<HTMLVideoElement>; remoteAudio?: Ref<HTMLAudioElement>;
+  // Where the sound plays and which microphone (components/calls/useCallAudio.ts); the Sound button shows when there's a choice.
+  sound?: SoundChoice;
 };
 
-export function CallStage({ kind, name, avatar, status, live, over, muted, camOff, canFlip, facing, onMute, onFlip, onCam, onEnd, safetyCode, canShare, sharing, theirShare, onShare, remoteVideo, localVideo, remoteAudio }: CallStageProps) {
+export type SoundChoice = { routes: Route[]; mics: Mic[]; note: string; routeKey: string; micId: string; available: boolean; pickRoute: (r: Route) => void; pickMic: (deviceId: string) => void };
+
+// The Sound panel, above the call buttons: where the sound plays (Earpiece / Speaker / Headphones / Bluetooth, or the computer's speakers)
+// and, where it can be chosen separately, the microphone.
+export function SoundSheet({ sound, onClose }: { sound: SoundChoice; onClose: () => void }) {
+  const row = (on: boolean) => `flex w-full items-center justify-between gap-3 rounded-xl px-3 py-2.5 text-left text-sm ${on ? "bg-white text-ink" : "bg-white/[0.08] hover:bg-white/15"}`;
+  const micOn = (id: string) => (sound.micId || "default") === id || (!sound.micId && !sound.mics.some((m) => m.deviceId === "default") && sound.mics[0]?.deviceId === id);
+  return (
+    <div className="absolute inset-x-3 bottom-[calc(env(safe-area-inset-bottom)_+_8.5rem)] z-30 mx-auto max-w-sm rounded-2xl border border-white/10 bg-[#2A2321] p-4 font-ui text-white shadow-2xl lg:bottom-28" role="dialog" aria-label="Sound">
+      <div className="flex items-center justify-between">
+        <p className="text-[15px] font-semibold">Sound</p>
+        <button type="button" onClick={onClose} aria-label="Close" className="flex h-8 w-8 items-center justify-center rounded-full hover:bg-white/10"><CrossIcon className="h-4 w-4" /></button>
+      </div>
+      {sound.routes.length > 1 && <>
+        <p className="mt-2 text-xs text-white/55">Sound plays through</p>
+        <div className="mt-1.5 grid gap-1.5">
+          {sound.routes.map((r) => {
+            const on = r.key === sound.routeKey || (!sound.routeKey && r.kind === "default");
+            return <button key={r.key} type="button" aria-pressed={on} onClick={() => sound.pickRoute(r)} className={row(on)}>{r.label}{on && <span aria-hidden>✓</span>}</button>;
+          })}
+        </div>
+      </>}
+      {sound.mics.length > 1 && <>
+        <p className="mt-3 text-xs text-white/55">Microphone</p>
+        <div className="mt-1.5 grid gap-1.5">
+          {sound.mics.map((m) => { const on = micOn(m.deviceId); return <button key={m.deviceId} type="button" aria-pressed={on} onClick={() => sound.pickMic(m.deviceId)} className={row(on)}><span className="truncate">{m.label}</span>{on && <span aria-hidden>✓</span>}</button>; })}
+        </div>
+      </>}
+      {sound.note && <p className="mt-3 text-xs text-white/55">{sound.note}</p>}
+    </div>
+  );
+}
+
+export function CallStage({ kind, name, avatar, status, live, over, muted, camOff, canFlip, facing, onMute, onFlip, onCam, onEnd, safetyCode, canShare, sharing, theirShare, onShare, remoteVideo, localVideo, remoteAudio, sound }: CallStageProps) {
   const [swapped, setSwapped] = useState(false); // you big, them small
+  const [soundOpen, setSoundOpen] = useState(false);
   const [showCode, setShowCode] = useState(false);
   const [pos, setPos] = useState<{ x: number; y: number } | null>(null); // where the small picture was dragged to
   const drag = useRef<{ dx: number; dy: number; moved: boolean } | null>(null);
@@ -103,7 +144,8 @@ export function CallStage({ kind, name, avatar, status, live, over, muted, camOf
         return <>
           <div className={swapped ? small : big} style={swapped ? smallStyle : undefined} {...(swapped ? handlers : {})}>
             {/* A shared screen is shown whole, not cropped to fill. */}
-            <video ref={remoteVideo} autoPlay playsInline className={`h-full w-full ${theirShare ? "bg-black object-contain" : "object-cover"}`} />
+            {/* Muted: their sound plays once, through the <audio> below, so the earpiece/speaker choice applies to it. */}
+            <video ref={remoteVideo} autoPlay playsInline muted className={`h-full w-full ${theirShare ? "bg-black object-contain" : "object-cover"}`} />
           </div>
           <div className={swapped ? big : small} style={swapped ? undefined : smallStyle} {...(swapped ? {} : handlers)}>
             {!swapped && <span className="absolute inset-0 flex items-center justify-center font-ui text-sm text-white/60">You</span>}
@@ -135,8 +177,10 @@ export function CallStage({ kind, name, avatar, status, live, over, muted, camOf
         )}
       </div>
 
-      <div className="relative z-10 flex items-start justify-center gap-4 px-4 pb-[calc(env(safe-area-inset-bottom)_+_1.75rem)] sm:gap-6 lg:items-center lg:gap-5 lg:pb-10">
+      {sound?.available && soundOpen && !over && <SoundSheet sound={sound} onClose={() => setSoundOpen(false)} />}
+      <div className="relative z-10 flex items-start justify-center gap-2 px-4 pb-[calc(env(safe-area-inset-bottom)_+_1.75rem)] min-[400px]:gap-4 sm:gap-6 lg:items-center lg:gap-5 lg:pb-10">
         <CallButton label="Mute" aria={muted ? "Unmute" : "Mute"} pressed={muted} onClick={onMute} disabled={over}><MicIcon off={muted} /></CallButton>
+        {sound?.available && <CallButton label="Sound" aria="Choose where the sound plays and which microphone" pressed={soundOpen} onClick={() => setSoundOpen((v) => !v)} disabled={over}><SpeakerIcon /></CallButton>}
         {kind === "video" && canFlip && <CallButton label="Flip" aria={facing === "user" ? "Switch to the back camera" : "Switch to the front camera"} onClick={onFlip} disabled={over || camOff}><FlipIcon /></CallButton>}
         {kind === "video" && canShare && <span className="hidden lg:contents"><CallButton label="Screen" aria={sharing ? "Stop sharing your screen" : "Share your screen"} pressed={sharing} onClick={() => onShare?.()} disabled={over}><ScreenIcon on={sharing} /></CallButton></span>}
         {kind === "video" && <CallButton label="Camera" aria={camOff ? "Turn camera on" : "Turn camera off"} pressed={camOff} onClick={onCam} disabled={over}><CameraIcon off={camOff} /></CallButton>}

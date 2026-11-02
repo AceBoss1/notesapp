@@ -2595,3 +2595,20 @@ the recommendation is not to apply and to share nothing. `ACCELERATORS_BACKLOG` 
 run from `app/api/admin/team/route.ts`) adds five founder-owned items: NotesApp Inc and the cap table first (6 Nov), the Alliance
 stablecoin pitch (7 Nov; the owner decided on 2 Nov to pitch it) and application (13 Nov), Village Global (20 Nov), and Legal's SAFE,
 dilution and stablecoin-licence check before anything is signed (13 Nov). Capital Wings stays a "don't engage" note in FUNDING.md §7. Internal only, so there's no changelog entry.
+
+**Calls: earpiece for voice, speaker for video, and a Sound picker (v0.124.1, 2 Nov 2026)** — The owner reported that one-to-one voice
+calls played through the loudspeaker; only video should, and people should be able to choose the sound's input and output like the
+front/back camera. Why it happened: on iPhone, WebKit plays a page that has the microphone open through the loudspeaker unless the page
+sets `navigator.audioSession.type = "play-and-record"` (Safari 16.4+), and Notes Life's game sound sets "playback"; on Android, Chrome
+chooses the call route from the microphone that was opened, and for "default" it picks a wired headset, then USB, then Bluetooth, then
+the speakerphone, never the earpiece (Chromium `CommunicationDeviceSelector.java`). Chrome's microphone list on Android holds the routes
+by name ("Headset earpiece", "Speakerphone", "Wired headset", "Bluetooth headset", "USB audio"), and its speaker list only "default",
+so `setSinkId` can't move a call there; opening the "Headset earpiece" microphone (with echo cancellation, which switches Android to call
+mode) does. Also, a 1:1 video call attached the other person's stream to an unmuted `<video>` as well as the `<audio>`, so the voice
+played twice. `lib/call-audio.ts` holds the rules (platform, device labels, the choices each platform allows, which route to use:
+picked in this call > a headset that's there unless the remembered choice is a headset > remembered > earpiece for voice, speaker for
+video), and `components/calls/useCallAudio.ts` applies them in both call screens: the iPhone audio session set before the microphone
+opens and restored after, Android routes and computer microphones swapped in with `RTCRtpSender.replaceTrack` (no reconnect), computer
+speakers by `setSinkId` on every remote `<audio>` (group video tiles now play sound through a hidden `<audio>` too), and the list
+reloaded on `devicechange`. The Sound button shows only where there's a real choice; iPad has no earpiece, and on iPhone AirPods and
+Bluetooth are chosen in Control Centre. Narrow phones get slightly smaller call buttons so five fit in a row. Tests: `test:calls`.

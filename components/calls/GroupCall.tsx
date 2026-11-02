@@ -5,8 +5,10 @@ import { addDoc, collection, doc, onSnapshot, query, updateDoc, where } from "fi
 import { db } from "@/lib/firebase";
 import { api } from "@/lib/moments-client";
 import Avatar from "@/components/Avatar";
-import { CameraIcon, CrossIcon, MicIcon } from "@/components/calls/CallViews";
+import { CameraIcon, CrossIcon, MicIcon, SoundSheet, SpeakerIcon } from "@/components/calls/CallViews";
 import { duration, safetyCode, sdpFingerprint, type CallKind } from "@/lib/calls";
+import { micConstraints } from "@/lib/call-audio";
+import { applySink, useCallAudio } from "@/components/calls/useCallAudio";
 import { GROUP_BEAT_MS, GROUP_CALL_MAX, present, type GroupCallDoc, type GroupLink } from "@/lib/group-calls";
 
 // Group calls in a group chat (lib/group-calls.ts): everyone connects straight to everyone else. CallManager keeps the list of live calls
@@ -40,11 +42,17 @@ export function GroupCallScreen({ start, me, onDone }: { start: GroupStart; me: 
   const local = useRef<MediaStream | null>(null);
   const localVideo = useRef<HTMLVideoElement>(null);
   const leaveRef = useRef<() => void>(() => {});
+  const connsRef = useRef<Map<string, Peer>>(new Map());
+  // Where the sound plays (earpiece on voice calls, speaker on video) and which microphone, for every person in the call: lib/call-audio.ts.
+  const [micOn, setMicOn] = useState(false);
+  const [soundOpen, setSoundOpen] = useState(false);
+  const sound = useCallAudio({ kind, ready: micOn, stream: local, senders: () => [...connsRef.current.values()].flatMap((p) => p.pc.getSenders()), muted });
 
   useEffect(() => {
     let over = false, callId = start.id ?? "", myAt = "";
     let ice: Ice = [];
     const conns = new Map<string, Peer>();
+    connsRef.current = conns;
     const unsubs: (() => void)[] = [];
     let beat: ReturnType<typeof setInterval> | undefined, tick: ReturnType<typeof setInterval> | undefined;
     const show = () => setPeers(Object.fromEntries([...conns].map(([u, p]) => [u, { stream: p.stream, code: p.code }])));
@@ -104,8 +112,9 @@ export function GroupCallScreen({ start, me, onDone }: { start: GroupStart; me: 
 
     (async () => {
       try {
-        local.current = await navigator.mediaDevices.getUserMedia({ audio: true, video: kind === "video" ? { facingMode: "user", width: { ideal: 480 }, height: { ideal: 360 }, frameRate: { ideal: 15 } } : false });
+        local.current = await navigator.mediaDevices.getUserMedia({ audio: micConstraints(), video: kind === "video" ? { facingMode: "user", width: { ideal: 480 }, height: { ideal: 360 }, frameRate: { ideal: 15 } } : false });
         if (localVideo.current && kind === "video") localVideo.current.srcObject = local.current;
+        if (!over) setMicOn(true);
       } catch { finish(kind === "video" ? "Allow the camera and microphone to join video calls." : "Allow the microphone to join calls."); return; }
       if (over) return;
       try {
@@ -171,11 +180,13 @@ export function GroupCallScreen({ start, me, onDone }: { start: GroupStart; me: 
         <Tile name="You" kind={kind} stream={null} videoRef={localVideo} mirror muted={muted} avatar={call?.joined?.[me]?.avatar ?? ""} />
         {people.map((u) => (
           <Tile key={u} name={call?.joined?.[u]?.name ?? "Someone"} avatar={call?.joined?.[u]?.avatar ?? ""} kind={kind} stream={peers[u]?.stream ?? null}
-            code={peers[u]?.code ?? ""} showCode={codeFor === u} onTap={() => setCodeFor((v) => (v === u ? "" : u))} />
+            sinkId={sound.sinkId} code={peers[u]?.code ?? ""} showCode={codeFor === u} onTap={() => setCodeFor((v) => (v === u ? "" : u))} />
         ))}
       </div>
+      {soundOpen && sound.available && <SoundSheet sound={sound} onClose={() => setSoundOpen(false)} />}
       <div className="flex items-center justify-center gap-5 px-4 pb-[calc(env(safe-area-inset-bottom)_+_1.75rem)] pt-2">
         <Round label={muted ? "Unmute" : "Mute"} pressed={muted} onClick={toggleMute}><MicIcon off={muted} /></Round>
+        {sound.available && <Round label="Choose where the sound plays and which microphone" pressed={soundOpen} onClick={() => setSoundOpen((v) => !v)}><SpeakerIcon /></Round>}
         {kind === "video" && <Round label={camOff ? "Turn camera on" : "Turn camera off"} pressed={camOff} onClick={toggleCam}><CameraIcon off={camOff} /></Round>}
         <button type="button" onClick={() => leaveRef.current()} aria-label="Leave the call" title="Leave the call" className="flex h-16 w-16 items-center justify-center rounded-full bg-[#E5383B] hover:bg-[#D12F32]"><CrossIcon className="h-7 w-7" /></button>
       </div>
@@ -188,18 +199,24 @@ function Round({ label, pressed, onClick, children }: { label: string; pressed: 
 }
 
 // One person in the call: their video (or picture, on a voice call), their name, and the safety code with them on a tap.
-function Tile({ name, avatar, kind, stream, videoRef, mirror, muted, code, showCode, onTap }: {
+// Their sound always plays through an <audio> element (their video, if any, is muted), so the chosen speaker applies to everyone.
+function Tile({ name, avatar, kind, stream, videoRef, mirror, muted, sinkId = "", code, showCode, onTap }: {
   name: string; avatar: string; kind: CallKind; stream: MediaStream | null; videoRef?: React.RefObject<HTMLVideoElement>; mirror?: boolean; muted?: boolean;
-  code?: string; showCode?: boolean; onTap?: () => void;
+  sinkId?: string; code?: string; showCode?: boolean; onTap?: () => void;
 }) {
-  const media = useRef<HTMLVideoElement & HTMLAudioElement>(null);
-  useEffect(() => { if (media.current && stream && media.current.srcObject !== stream) media.current.srcObject = stream; }, [stream]);
+  const media = useRef<HTMLVideoElement>(null);
+  const sound = useRef<HTMLAudioElement>(null);
+  useEffect(() => {
+    [media.current, sound.current].forEach((el) => { if (el && stream && el.srcObject !== stream) el.srcObject = stream; });
+  }, [stream]);
+  useEffect(() => { applySink(sound.current, sinkId); }, [sinkId, stream]);
   const video = kind === "video";
   return (
     <button type="button" onClick={onTap} disabled={!onTap} className={`relative overflow-hidden rounded-2xl bg-white/10 text-left ${video ? "aspect-video" : "flex aspect-square flex-col items-center justify-center p-3"}`}>
       {video
-        ? <video ref={videoRef ?? media} autoPlay playsInline muted={!!videoRef} className="h-full w-full object-cover" style={mirror ? { transform: "scaleX(-1)" } : undefined} />
-        : <><Avatar src={avatar} alt="" size={72} className="!h-16 !w-16" />{!videoRef && <audio ref={media} autoPlay className="hidden" />}</>}
+        ? <video ref={videoRef ?? media} autoPlay playsInline muted className="h-full w-full object-cover" style={mirror ? { transform: "scaleX(-1)" } : undefined} />
+        : <Avatar src={avatar} alt="" size={72} className="!h-16 !w-16" />}
+      {!videoRef && <audio ref={sound} autoPlay className="hidden" />}
       <span className={`${video ? "absolute bottom-2 left-2 rounded-full bg-black/50 px-2 py-0.5" : "mt-2"} font-ui text-xs`}>{name}{muted ? " · muted" : ""}{!videoRef && !stream ? " · connecting…" : ""}</span>
       {code && !showCode && <span className="absolute right-2 top-2 rounded-full bg-black/40 px-2 py-0.5 font-ui text-[10px] text-white/70">🔒 code</span>}
       {code && showCode && (
