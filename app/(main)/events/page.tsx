@@ -5,7 +5,7 @@ import EventsHub from "@/components/events/EventsHub";
 
 export const metadata: Metadata = {
   title: "Events",
-  description: "Publish events on #NotesApp — services, meetings, launches, classes and outreaches — with Going and Interested, reminders, repeating events and a Join live link, on your profile and in Explore.",
+  description: "Publish events on #NotesApp — services, meetings, launches, classes and outreaches — with Going and Interested, reminders, repeating events, a Join live link and paid tickets with QR check-in, on your profile and in Explore.",
 };
 
 const PARTS = [
@@ -13,7 +13,7 @@ const PARTS = [
   ["Who can see it", "Public, or members only for a community's events."],
   ["Going and Interested", "People tap Going or Interested, get a bell, a phone notification and an email 24 hours and 1 hour before, and can add it to their calendar."],
   ["Repeating events", "Weekly services, monthly meetings: set it once and it repeats."],
-  ["Join live", "Add a link to YouTube Live, Facebook Live, Zoom or Google Meet. Our own live streaming comes later."],
+  ["Join live", "Talks for a community's members run in its audio rooms on #NotesApp. For video or a big audience, add a Join live link (YouTube Live, Zoom, Google Meet or any https link) until our own live streaming comes."],
   ["Paid tickets", "Add ticket types (Regular, VIP …) with a price and how many. Buyers pay by card through #NotesApp checkout and get a QR code per ticket under My tickets; you check them in at the door by scanning or typing the code. You're paid after the event, less your plan's commission."],
 ];
 
@@ -30,7 +30,8 @@ export default function EventsPage() {
         <ul className="mt-4 grid gap-3 text-sm sm:grid-cols-2">
           {PARTS.map(([h, t]) => <li key={h} className="card p-4"><strong className="text-ink">{h}</strong><p className="mt-1 text-slate">{t}</p></li>)}
         </ul>
-        <p className="mt-10 text-sm text-slate">Running a church, NGO, school or club? Start a <Link href="/community" className="text-crimson underline">Community</Link> and add its events there, for everyone or for members only.</p>
+        <p className="mt-6 text-sm text-slate">Bought a ticket? It&apos;s under <Link href="/tickets" className="text-crimson underline">My tickets</Link>, with its QR code. Selling them? Read <Link href="/help/event-tickets" className="text-crimson underline">Paid event tickets and check-in</Link>.</p>
+        <p className="mt-4 text-sm text-slate">Running a church, NGO, school or club? Start a <Link href="/community" className="text-crimson underline">Community</Link> and add its events there, for everyone or for members only, and take offerings and donations with <Link href="/community#giving" className="text-crimson underline">Giving</Link>.</p>
       </div>
     </>
   );

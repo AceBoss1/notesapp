@@ -90,7 +90,7 @@ export default function CommunityView({ id }: { id: string }) {
         {shownTab === "home" && <Home v={v} as={as} me={user?.uid ?? null} go={go} onRoom={(rid, title) => setRoom({ id: rid, title })} />}
         {room && user && <RoomScreen id={room.id} title={room.title} me={user.uid} onDone={() => setRoom(null)} />}
         {shownTab === "general" && <Feed cid={id} channel="general" canPost={!v.viewingAs && !!v.channels.find((ch) => ch.id === "general")?.canPost} role={v.role} me={user?.uid ?? null} as={as} slowModeSec={c.slowModeSec} />}
-        {shownTab === "spaces" && <SpacesTab v={v} id={id} as={as} me={user?.uid ?? null} channels={spaceChannels} />}
+        {shownTab === "spaces" && <SpacesTab v={v} id={id} as={as} me={user?.uid ?? null} channels={spaceChannels} initial={params.get("space") ?? ""} />}
         {shownTab === "events" && <div>{can(v.role, "events") && !v.viewingAs && <NewEventButton cid={id} onSaved={load} />}<EventList query={`cid=${id}`} empty="No upcoming events." /></div>}
         {shownTab === "members" && <Members cid={id} role={v.viewingAs ? null : v.role} me={user?.uid ?? null} as={as} />}
         {shownTab === "about" && <p className="card whitespace-pre-line p-6 text-sm text-ink">{c.about}</p>}
@@ -174,8 +174,9 @@ function Home({ v, as, me, go, onRoom }: { v: View; as: string; me: string | nul
   );
 }
 
-function SpacesTab({ v, id, as, me, channels }: { v: View; id: string; as: string; me: string | null; channels: { id: string; name: string; canPost: boolean }[] }) {
-  const [sel, setSel] = useState(channels[0]?.id ?? "");
+// `initial`: the Space to open on (?space=, as "Join the course group" links do).
+function SpacesTab({ v, id, as, me, channels, initial = "" }: { v: View; id: string; as: string; me: string | null; channels: { id: string; name: string; canPost: boolean }[]; initial?: string }) {
+  const [sel, setSel] = useState(channels.some((x) => x.id === initial) ? initial : channels[0]?.id ?? "");
   if (!channels.length) return <p className="card p-6 text-sm text-slate">{v.role ? "No Spaces yet." : "This community's Spaces are for members."}</p>;
   const ch = channels.find((x) => x.id === sel) ?? channels[0];
   const vis = v.community.spaces.find((s) => s.id === ch.id)?.visibility;

@@ -353,6 +353,32 @@ test("courses: published ones and their lessons are public, drafts and every wri
   await assertFails(setDoc(doc(as("pub"), "courseSlugs/taken"), { courseId: "x" }));
 });
 
+test("co-authors: invites are read by the lead and the invitee only; drafts, agreements and co-edit marks stay with the server", async () => {
+  await env.withSecurityRulesDisabled(async (ctx) => {
+    const db = ctx.firestore();
+    await setDoc(doc(db, "notes/shared1"), { authorUid: "pub", title: "t", content: "x", status: "draft", coAuthorUids: ["alice"] });
+    await setDoc(doc(db, "coAuthorInvites/shared1_alice"), { noteId: "shared1", leadUid: "pub", inviteeUid: "alice", percent: 20, access: "edit", status: "accepted", agreedAt: "2026-11-01T10:00:00.000Z" });
+    await setDoc(doc(db, "inviteAgreements/a1"), { kind: "journal", inviteId: "shared1_alice", uid: "alice", userAgent: "x" });
+  });
+  // A co-author (even one who can edit) never reads or writes the draft from a browser: /api/coauthors/draft does it.
+  await assertFails(getDoc(doc(as("alice"), "notes/shared1")));
+  await assertFails(updateDoc(doc(as("alice"), "notes/shared1"), { content: "mine now" }));
+  // The invite (with the agreement snapshot) is the lead's and the invitee's to read; nobody writes it from a browser.
+  await assertSucceeds(getDoc(doc(as("alice"), "coAuthorInvites/shared1_alice")));
+  await assertSucceeds(getDoc(doc(as("pub"), "coAuthorInvites/shared1_alice")));
+  await assertFails(getDoc(doc(as("stranger"), "coAuthorInvites/shared1_alice")));
+  await assertFails(updateDoc(doc(as("alice"), "coAuthorInvites/shared1_alice"), { access: "edit", percent: 80 }));
+  await assertFails(updateDoc(doc(as("pub"), "coAuthorInvites/shared1_alice"), { agreedAt: "2026-01-01T00:00:00.000Z" }));
+  // The full agreement records (with the browser) are server-only, for both people.
+  await assertFails(getDoc(doc(as("alice"), "inviteAgreements/a1")));
+  await assertFails(getDoc(doc(as("pub"), "inviteAgreements/a1")));
+  await assertFails(setDoc(doc(as("alice"), "inviteAgreements/a2"), { kind: "journal", uid: "alice" }));
+  await assertFails(setDoc(doc(as("alice"), "coAuthorEditPings/shared1_alice"), { at: "x" }));
+  // The lead can't fake a co-author's save mark.
+  await assertSucceeds(updateDoc(doc(as("pub"), "notes/shared1"), { content: "lead edit" }));
+  await assertFails(updateDoc(doc(as("pub"), "notes/shared1"), { coEditedBy: "alice", coEditedAt: "2026-11-01T10:00:00.000Z" }));
+});
+
 test("paid courses: the course is public, its lessons never are; links, invitations and purchases stay private", async () => {
   await env.withSecurityRulesDisabled(async (ctx) => {
     const db = ctx.firestore();
@@ -867,7 +893,7 @@ test("staff roles: each department reaches its own collections and not the other
     await assertFails(setDoc(doc(who, "financeEntries/e2"), { kind: "expense" }));
     await assertFails(getDoc(doc(who, "financeLog/l1")));
     // Nana AI's chats hold visitors' names and emails; the knowledge base and the daily counter are written by the server too.
-    for (const c of ["nanaChats", "kbArticles", "nanaUsage", "nanaAccounts", "nanaSpend", "nanaBank", "creditTopups", "academies", "certificates", "aiConnections", "grants", "financeDues", "granolaConnections", "granolaStates", "integrationClients", "platformSettings", "pricingLog", "storeReviews", "recommendations"]) {
+    for (const c of ["nanaChats", "kbArticles", "nanaUsage", "nanaAccounts", "nanaSpend", "nanaBank", "creditTopups", "academies", "certificates", "aiConnections", "grants", "financeDues", "granolaConnections", "granolaStates", "integrationClients", "platformSettings", "pricingLog", "storeReviews", "recommendations", "referralReports", "referralReportRuns"]) {
       await assertFails(getDoc(doc(who, `${c}/x1`)));
       await assertFails(setDoc(doc(who, `${c}/x2`), { a: 1 }));
     }
