@@ -33,7 +33,9 @@ const input = "mt-1 w-full rounded-lg border border-rule bg-white px-3 py-2.5 te
 const label = "font-ui text-sm font-semibold text-ink";
 type Links = { classUrl: string; communityUrl: string; group: CourseGroup | null };
 type GroupChoice = { id: string; name: string; joinMode: string; spaces: { id: string; name: string; visibility: "public" | "members" }[] };
-type Plan = { tier: AccountTier; canSell: boolean; canUploadVideo: boolean; payoutsReady: boolean };
+// From the server (lib/courses-server.ts courseForOwner): what the owner's plan allows, as set in Admin → Limits, and which plans
+// have it ("on Pro, Business and Enterprise plans") so the copy here never names plans itself.
+type Plan = { tier: AccountTier; canSell: boolean; canUploadVideo: boolean; payoutsReady: boolean; paidPlans: string; videoPlans: string };
 type View = { course: Course; lessons: Lesson[]; access: "lead" | "tutor"; links: Links; invites: TutorInvite[]; plan: Plan; communities?: GroupChoice[] };
 const lines = (a?: string[]) => (a ?? []).join("\n");
 
@@ -305,7 +307,7 @@ export default function CourseEditor({ courseId }: { courseId: string }) {
             {paid && v.plan.canSell && <button onClick={() => setForm({ kind: "pdf" })} className="btn-ghost !py-2.5">+ Upload a PDF</button>}
           </div>
         ) : <p className="mt-4 text-xs text-slate">A course can have up to {MAX_LESSONS} lessons.</p>}
-        {paid && !v.plan.canUploadVideo && <p className="mt-3 text-xs text-slate">Uploading videos is on Business and Enterprise plans. On {v.plan.tier === "pro" ? "Pro" : "your plan"}, add YouTube links, text lessons and PDFs.</p>}
+        {paid && !v.plan.canUploadVideo && <p className="mt-3 text-xs text-slate">Uploading videos is {v.plan.videoPlans}. On your plan, add YouTube links, text lessons and PDFs.</p>}
         {lessons.length > 0 && (
           <div className="mt-5 rounded-xl bg-paper p-4 text-sm">
             <p className="font-ui font-bold text-ink">This course includes <span className="font-normal text-slate">(worked out for you)</span></p>
@@ -445,9 +447,9 @@ function PriceSection({ course, plan, lead, busy, onSave }: { course: Course; pl
         <>
           <div className="mt-4 flex flex-col gap-3 sm:flex-row">
             <button type="button" onClick={() => setPaid(false)} className={radio(!paid)}><span className={`h-4 w-4 shrink-0 rounded-full ${!paid ? "border-[5px] border-crimson" : "border border-slate"}`} /><span><b className="font-ui">Free</b><span className="block text-xs text-slate">Lessons from your YouTube; learners pay only for a certificate</span></span></button>
-            <button type="button" onClick={() => plan.canSell && setPaid(true)} disabled={!plan.canSell} className={`${radio(paid)} disabled:opacity-60`}><span className={`h-4 w-4 shrink-0 rounded-full ${paid ? "border-[5px] border-crimson" : "border border-slate"}`} /><span><b className="font-ui">Paid</b><span className="block text-xs text-slate">{plan.canSell ? plan.canUploadVideo ? "Upload your videos and PDFs to #NotesApp" : "Text lessons, PDFs and YouTube (uploaded video: Business)" : "Pro, Business and Enterprise plans"}</span></span></button>
+            <button type="button" onClick={() => plan.canSell && setPaid(true)} disabled={!plan.canSell} className={`${radio(paid)} disabled:opacity-60`}><span className={`h-4 w-4 shrink-0 rounded-full ${paid ? "border-[5px] border-crimson" : "border border-slate"}`} /><span><b className="font-ui">Paid</b><span className="block text-xs text-slate">{plan.canSell ? plan.canUploadVideo ? "Upload your videos and PDFs to #NotesApp" : "Text lessons, PDFs and YouTube" : `Paid courses are ${plan.paidPlans}`}</span></span></button>
           </div>
-          {!plan.canSell && <p className="mt-2 text-xs text-slate">Paid courses are on Pro (text, PDFs, YouTube) and Business or Enterprise (uploaded video too). <Link href="/pricing" className="font-semibold text-crimson">See the plans</Link></p>}
+          {!plan.canSell && <p className="mt-2 text-xs text-slate">Paid courses are {plan.paidPlans} (text, PDFs and YouTube); uploaded video is {plan.videoPlans}. <Link href="/pricing" className="font-semibold text-crimson">See the plans</Link></p>}
           {paid && (
             <div className="mt-4 grid gap-3 sm:grid-cols-2 sm:items-end">
               <label className="block"><span className={label}>Course price (₦)</span>

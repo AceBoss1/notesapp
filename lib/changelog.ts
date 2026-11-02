@@ -24,6 +24,16 @@ export const CHANGELOG: Release[] = [
     ],
   },
   {
+    version: "v0.122.0",
+    bump: "minor",
+    date: "2026-11-02",
+    changes: [
+      { kind: "added", text: "Admin → Limits has a Courses section: switch free courses, paid courses and uploaded video lessons on or off for each plan, and set how many courses a member or an organisation may have, how much room uploaded PDFs may take and how many hours of uploaded video a plan includes. Changes are live within about 30 seconds." },
+      { kind: "changed", text: "The defaults are what courses had before, so nobody loses anything: free courses on every publishing plan, paid courses on Pro and up, uploaded video on Business and Enterprise, 30 courses a member and 90 an organisation, and no cap on PDF storage or video hours." },
+      { kind: "changed", text: "The course editor, the Teach page and the pricing page read the same settings, so which plans can sell courses or upload videos, and how many courses you can have, always match what the server allows. A course page or upload that's over a limit says what the limit is and what's used." },
+    ],
+  },
+  {
     version: "v0.121.0",
     bump: "minor",
     date: "2026-11-02",

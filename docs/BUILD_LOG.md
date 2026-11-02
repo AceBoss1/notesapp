@@ -2564,3 +2564,17 @@ address everywhere comes from `lib/host.ts` (`mcpOrigin`, `mcpServerUrl`, `famil
 `/api/v1` handlers through an internal marker rather than a second copy of each query. The courier hand-off moved into
 `dispatchWithCourier` so an approved "mark shipped" runs the same code as the Orders page. Emulator tests ran on a separate emulator
 port (8197) with a temporary config.
+
+**Courses step 3: course plans and limits in Admin → Limits (v0.122.0, 2 Nov 2026)** — Paid courses shipped in v0.55.0 with the plans
+hard-coded (`canSellCourses`, `canUploadVideo` in `lib/courses.ts`) and a fixed 30 courses a member (90 an organisation), while
+`docs/COURSES.md` had always said these belong in `lib/tiers.ts` and `lib/limits.ts` so an admin can change them. The flags went into
+`TierConfig` (`freeCourses`, `paidCourses`, `courseVideoUploads`) as the source of the defaults, and became on/off rows in the existing
+limits table rather than a second settings document: one place to edit (Admin → Limits, now with tick boxes for switches), one
+server-only document (`serverConfig/limits`), the same 30-second cache, the same "only what differs from the default is saved". Course
+counts, PDF storage and video hours are ordinary rows; storage and hours default to 0 = no limit, because there was no cap before and
+nobody should lose anything. Usage is counted across every course the owner has (drafts too) only when a cap is set, so the default
+costs no extra reads. To make video hours honest, a video lesson now keeps Stream's own length (`videoSeconds`) beside the minutes the
+tutor types, and a PDF its size from the bucket (`fileBytes`); older uploads count by their minutes and as 0 bytes. Every message and
+the editor, Teach page and pricing page name the plans from the settings (`plansWith`/`onPlans`), so turning a switch off can't leave
+copy that promises it.
+

@@ -5,12 +5,15 @@ import { setting } from "@/lib/config";
 import { MAX_NOTE_TOPICS, cleanTopics } from "./topics";
 import { heldPercent, type InviteAccess, type InviteAgreementFields } from "./invite-terms";
 import { ROOM_LISTENERS_MAX_P2P, ROOM_SPEAKERS_MAX } from "./rooms";
+import { DEFAULT_COURSES_PER_MEMBER, capOf, planHas, plansWith, type CourseFlag, type LimitOverrides } from "./limits";
+import type { AccountTier } from "./users";
 
 // On unless NEXT_PUBLIC_ACADEMY_LIVE=false: then /academy shows the opening-soon page, /academy/teach is closed and courses are
 // hidden everywhere else (profiles, Trending, member sites, the digest).
 export const ACADEMY_LIVE = setting("NEXT_PUBLIC_ACADEMY_LIVE") !== "false";
 
-export const MAX_COURSES_PER_MEMBER = 30;
+// The built-in number; the one that applies is set per plan in Admin → Limits (courseCap below).
+export const MAX_COURSES_PER_MEMBER = DEFAULT_COURSES_PER_MEMBER;
 export const MAX_LESSONS = 100;
 export const COURSE_TITLE_MAX = 120;
 export const COURSE_SUMMARY_MAX = 1_000;
@@ -50,10 +53,35 @@ export const COURSE_PRICE_MIN_KOBO = 50_000; // ₦500
 export const COURSE_PRICE_MAX_KOBO = 500_000_000; // ₦5,000,000
 export const COURSE_REFUND_DAYS = 7; // a refund within 7 days of buying, if the learner hasn't started
 export const PDF_MAX_BYTES = 50 * 1024 * 1024;
-// Which plans may do what (the owner's plan: the member's own, or the organisation's). Free courses: every publishing plan.
-// Paid courses with text, PDFs or YouTube lessons: Pro and up. Uploaded video: Business and Enterprise.
-export const canSellCourses = (tier?: string) => tier === "pro" || tier === "business" || tier === "enterprise";
-export const canUploadVideo = (tier?: string) => tier === "business" || tier === "enterprise";
+// Which plans may do what (the owner's plan: the member's own, or the organisation's). The defaults are in lib/tiers.ts (free
+// courses: every publishing plan; paid courses with text, PDFs or YouTube lessons: Pro and up; uploaded video: Business and
+// Enterprise) and an admin changes them in Admin → Limits: pass the saved overrides (lib/limits-server.ts) on the server.
+const tierIs = (tier?: string): AccountTier => (tier === "basic" || tier === "pro" || tier === "business" || tier === "enterprise" ? tier : "standard");
+export const canTeachFreeCourses = (tier?: string, o: LimitOverrides = {}) => planHas("freeCourses", tierIs(tier), o);
+export const canSellCourses = (tier?: string, o: LimitOverrides = {}) => planHas("paidCourses", tierIs(tier), o);
+export const canUploadVideo = (tier?: string, o: LimitOverrides = {}) => canSellCourses(tier, o) && planHas("courseVideoUploads", tierIs(tier), o);
+// Making a course at all: a course starts free, so either kind of course will do.
+export const canMakeCourses = (tier?: string, o: LimitOverrides = {}) => canTeachFreeCourses(tier, o) || canSellCourses(tier, o);
+// How many courses an account may have: a member's, or an organisation's (a bigger number), by the owner's plan.
+export const courseCap = (tier: string | undefined, isOrg: boolean, o: LimitOverrides = {}) => capOf(isOrg ? "coursesPerOrganisation" : "coursesPerMember", tierIs(tier), o);
+// "on Pro, Business and Enterprise plans", from the saved settings, for messages and the editor; never a hard-coded list.
+export const onPlans = (key: CourseFlag, o: LimitOverrides = {}) => { const p = plansWith(key, o); return !p ? "not open on any plan right now" : p.includes(" and ") ? `on ${p} plans` : `on the ${p} plan`; };
+
+// Room for one more upload under the owner's plan: storage for PDFs (GB) and hours of uploaded video, across all their courses.
+// used/add: bytes of PDFs and minutes of video. Returns "" when it fits, or the message to show.
+export const GB = 1024 * 1024 * 1024;
+export type UploadUse = { pdfBytes: number; videoMinutes: number };
+export function uploadRoomProblem(kind: "video" | "pdf", used: UploadUse, add: Partial<UploadUse>, cap: { storageGB: number; videoHours: number }): string {
+  if (kind === "pdf") {
+    const max = cap.storageGB * GB;
+    if (!Number.isFinite(max) || used.pdfBytes + (add.pdfBytes ?? 0) <= max) return "";
+    return `PDFs on this account's courses can take up to ${cap.storageGB} GB on its plan, and ${gbLabel(used.pdfBytes)} is used. Remove a PDF you no longer need, or upgrade for more room.`;
+  }
+  const max = cap.videoHours * 60;
+  if (!Number.isFinite(max) || used.videoMinutes + (add.videoMinutes ?? 0) <= max) return "";
+  return `Courses on this account can have up to ${cap.videoHours} hour${cap.videoHours === 1 ? "" : "s"} of uploaded video on its plan, and ${durationLabel(used.videoMinutes) || "none"} is used. Remove a video you no longer need, use a YouTube link, or upgrade for more.`;
+}
+const gbLabel = (bytes: number) => `${+(bytes / GB).toFixed(bytes < GB ? 2 : 1)} GB`;
 
 export type Course = {
   id: string; ownerUid: string; ownerUsername: string; ownerName: string; ownerAvatar: string;
@@ -86,6 +114,9 @@ export type Lesson = {
   videoCredit?: VideoCredit; // kind "youtube"
   preview?: boolean; moduleId?: string;
   streamUid?: string; fileKey?: string; fileName?: string; // uploads (paid courses): never public
+  // An upload's size as the server measured it, counted against the owner's plan (Admin → Limits): a PDF's bytes, a video's length.
+  // Uploads from before v0.122.0 don't have them: a PDF then counts as nothing and a video by its minutes.
+  fileBytes?: number; videoSeconds?: number;
   quiz?: Quiz; // kind "quiz"
 };
 export type Enrolment = {
@@ -335,6 +366,7 @@ export type LessonInput = {
   title: string; kind: LessonKind; youtubeId?: string; minutes: number | null; body?: string; preview: boolean; moduleId?: string;
   videoCredit?: VideoCredit; // a YouTube lesson's credit (the server fills it from oEmbed; see cleanLesson)
   streamUid?: string; fileKey?: string; fileName?: string;
+  fileBytes?: number; videoSeconds?: number; // filled in by the server from the upload itself (never from the editor)
   quiz?: { passPercent: number; questions: (QuizQuestion & { answer: number })[] }; // with the answers: the server splits them off
 };
 
