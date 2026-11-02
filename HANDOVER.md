@@ -336,6 +336,46 @@ on `main` that isn't understood is raised with the owner first.
     stand-in Cloudflare, the fallback, the cap, people/, the recount, slow mode, the Team hub reminder), `test:rules` (two new tests),
     `test:community`, `test:community-server`.
 
+99. **Live chat and signals for big audio rooms on a Cloudflare Durable Object (v0.126.0, branch `push/live-chat-edge`, cut from
+    `push/rooms-relay`; 97 and 98 are reserved for pending PRs):** built and **off until the worker is deployed and both settings are
+    set**; until then relay rooms keep the Firestore chat and count exactly as in item 96. Why: in a relay room every chat message is
+    read by everyone in it (10,000 listeners = 10,000 reads a message). Now each relay room opened while it's on (`edge: true` on the
+    room doc) has one Durable Object (`workers/live-rooms`, class `LiveRoom`, WebSocket Hibernation API) holding everyone's socket: it
+    broadcasts the chat (slow mode at the edge: automatic past the "slow mode above" setting, or the host's own switch; a rate limit per
+    connection; 2 KB per frame), the live listener count, raised hands, stage moves and a video on/off signal (for step 2a), and lets
+    the host and moderators remove a message, mute or ban for the room. Firestore stays the source of truth: a socket needs a 10-minute
+    token our server mints only for someone the room already let in (`/api/community/rooms` action `live`; joining still holds the
+    cap), stage moves and the end are pushed by our server (signed), and the room sends back, signed, the chat in batches (every 3 s or
+    50 messages) to `/api/community/rooms/edge`, which writes `communityRooms/{id}/chat` (the record, and what anyone on the fallback
+    polls), removals, bans (`communityRooms/{id}/edge/state`, server-only by the existing rules) and the count (onto the room doc at
+    most every 15 s; while it reports, the people/ recount stands aside, and the cap takes the higher of the two). The browser
+    reconnects with backoff and, after 3 failures, polls Firestore for new chat every 10 s and sends through the server (which also
+    forwards to the room) while it keeps trying. **Owner steps:** (1) Cloudflare → Workers & Pages → Plans: the **Workers Paid** plan
+    ($5 a month; Durable Objects with WebSockets need it for this load). (2) My Profile → API Tokens → Create Token → "Edit Cloudflare
+    Workers" template (Account: Workers Scripts: Edit, which includes Durable Objects; your account only) → copy it; note the Account
+    ID from the Workers overview. (3) GitHub → the repository → Settings → Secrets and variables → Actions: add `CLOUDFLARE_API_TOKEN`
+    and `CLOUDFLARE_ACCOUNT_ID` (optionally `LIVE_ROOMS_SECRET` too, and the workflow sets it on the worker). (4) Make the shared secret
+    once: `node -e "console.log(require('crypto').randomBytes(32).toString('base64url'))"`. (5) Actions → **Deploy live rooms** → Run
+    workflow; it prints the worker's `https://notesapp-live-rooms.<subdomain>.workers.dev` address. (6) Set the worker's secret:
+    `cd workers/live-rooms && npx wrangler@4.40.0 secret put LIVE_ROOMS_SECRET` (skip if you added the repository secret in 3);
+    `https://…workers.dev/health` then answers `ok`. (7) Vercel → Settings → Environment Variables, Production: `LIVE_ROOMS_SECRET` =
+    the same value (**Sensitive**), and `NEXT_PUBLIC_LIVE_ROOMS_URL` = `wss://notesapp-live-rooms.<subdomain>.workers.dev`. (8)
+    Redeploy. Start a test room: the help's "Chat in big rooms" paragraph appears, and the host sees "Slow mode (automatic: off)" under
+    the chat. No new Firestore rules or indexes (the `edge` subcollection is denied to browsers by default; the settings push queries
+    `status ==` and `edge ==`, equality only). Without the workflow: `npx wrangler deploy` from `workers/live-rooms`
+    (`workers/live-rooms/README.md`). The worker deploys again by itself on pushes to `main` that touch it, and skips (green) while the
+    two repository secrets are missing. **Cost to watch:** Durable Objects bill requests (a WebSocket message counts as 1/20 of a
+    request; "ping" keep-alives are answered by the runtime without waking the room) and duration (a hibernating room costs nothing
+    between messages); each chat message is one incoming message and N outgoing sends. **Unverified until it is deployed:** no part ran
+    on Cloudflare; the Durable Object was tested against an in-memory stand-in of the runtime (storage, alarm, hibernatable sockets
+    with attachments and tags), so check in one live room: sockets connecting through `wss://`, hibernation and waking (attachments,
+    storage), the alarm cadence, `setWebSocketAutoResponse` for "ping", the 101 upgrade, and the batch reaching Vercel. Tests:
+    `test:live-rooms` (tokens and signatures, rate limits, slow mode, batching, the count cadence, the help; the Durable Object with
+    fakes, including waking from hibernation, a failed batch and its retry, bans and the end; and `tsc -p workers/live-rooms`),
+    `test:live-rooms-server` (emulator: tokens only for people let in, with their role and never past a ban, the cap with the edge's
+    count, batch signatures, the chat record, removals, the count and the recount standing aside, stage/chat/unchat/end pushed to the
+    room, and a real `LiveRoom` wired to the server code end to end), plus `test:rooms`, `test:rooms-server`, `test:help`.
+
 All of these are on the team hub board with departments and dates (`lib/team-seed.ts`: `FUND_BACKLOG`, `LAUNCH_BACKLOG`, `COURSES_BACKLOG`, `TOPICS_BACKLOG`, `BIMI_BACKLOG`). Items can have several people (`ownerUids`; `ownerUid` stays as the first of them for older readers) and can repeat monthly (`repeat: "monthly"`: done moves the due date on a month).
 
 ## 3. How the work is done (please keep these)

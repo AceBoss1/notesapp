@@ -4,6 +4,7 @@ import { rateLimit } from "@/lib/rate-limit";
 import { authed, fail as failOther } from "@/lib/moments-api";
 import { iceServers } from "@/lib/calls-server";
 import { CommunityError } from "@/lib/community-server";
+import { mintLiveToken } from "@/lib/live-rooms-server";
 import { beatRoom, closeRoom, joinRoom, leaveRoom, liveRoomFigures, liveRooms, raiseHand, relayStep, removeChat, roomPeople, sendRoomChat, setSpeaker, startRoom } from "@/lib/rooms-server";
 
 export const dynamic = "force-dynamic";
@@ -17,6 +18,8 @@ const fail = (err: unknown, fallback: string) => (err instanceof CommunityError 
 //        (lib/rooms-server.ts relayStep; the Cloudflare token never leaves the server)
 //      { action: "people", id, after? } → { people, next } (relay rooms: who is listening, a page at a time)
 //      { action: "chat", id, text } (relay rooms: the chat goes through the server, with slow mode in big rooms)
+//      { action: "live", id } → { url, token, exp } (relay rooms on the live-rooms worker: a 10-minute token for the room's WebSocket,
+//        for someone already in the room; lib/live-rooms-server.ts)
 export async function GET(req: NextRequest) {
   try {
     const me = await authed(req, "messages", false);
@@ -54,6 +57,11 @@ export async function POST(req: NextRequest) {
         const limited = await rateLimit(req, "room-chat", me.uid, 30, 60);
         if (limited) return limited;
         return NextResponse.json(await sendRoomChat(db, me.uid, body.id, body.text));
+      }
+      case "live": {
+        const limited = await rateLimit(req, "room-live", me.uid, 30, 600);
+        if (limited) return limited;
+        return NextResponse.json(await mintLiveToken(db, me.uid, body.id), { headers: { "Cache-Control": "no-store" } });
       }
       case "unchat": await removeChat(db, me.uid, body.id, body.messageId); return NextResponse.json({ ok: true });
       default: throw new CommunityError(400, "Unknown action.");

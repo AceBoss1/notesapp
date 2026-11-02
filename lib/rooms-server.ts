@@ -8,6 +8,8 @@ import {
   type RoomChat, type RoomDoc, type RoomFigures, type RoomMode, type RoomPersonDoc, type RoomRelayRecord, type RoomSettings,
 } from "./rooms";
 import { RelayError, cleanSdp, relayClient, relayConfigured, type RelayClient } from "./rooms-relay-server";
+import { liveConfigFor, liveRoomsOn, tellLiveRoom } from "./live-rooms-edge";
+import { edgeFresh } from "./live-rooms";
 
 // Audio rooms (lib/rooms.ts). The server opens, joins, keeps and closes them and decides who is on stage; in a phone-to-phone room the
 // phones connect through communityRooms/{id}/links, and in a relay room through Cloudflare, with every step passing through relayStep
@@ -26,12 +28,17 @@ export async function saveRoomSettings(db: Firestore, input: unknown, adminUid: 
   const overrides = cleanRoomOverrides(input);
   await db.doc("serverConfig/rooms").set({ overrides, updatedAt: now.toISOString(), updatedBy: adminUid });
   settingsCache = { at: now.getTime(), data: roomSettings(overrides) };
+  // Rooms on the live-rooms worker hold slow mode at the edge: they get the new settings now.
+  if (liveRoomsOn()) {
+    const live = await db.collection("communityRooms").where("status", "==", "live").where("edge", "==", true).limit(100).get().catch(() => null);
+    await Promise.all((live?.docs ?? []).map((d) => tellLiveRoom(d.id, { op: "config", config: liveConfigFor(d.id, String(d.get("hostUid")), settingsCache!.data) })));
+  }
   return settingsCache.data;
 }
 export const resetRoomSettingsCache = () => { settingsCache = null; };
 // What a room opened now holds, for the help, the public pages and the Start a room form.
 export async function liveRoomFigures(db: Firestore): Promise<RoomFigures> {
-  return roomFigures(await getRoomSettings(db).catch(() => roomSettings()), relayConfigured());
+  return roomFigures(await getRoomSettings(db).catch(() => roomSettings()), relayConfigured(), liveRoomsOn());
 }
 
 // The relay's last trouble, for /status (lib/status.ts): serverConfig/roomsRelay, server-only. Never holds the token.
@@ -77,7 +84,9 @@ export async function recount(db: Firestore, roomId: string, now = new Date(), f
   const ref = db.doc(`communityRooms/${roomId}`);
   const claimed = await db.runTransaction(async (t) => {
     const r = (await t.get(ref)).data() as RoomDoc | undefined;
-    if (!r || r.status !== "live" || r.mode !== "relay" || (!force && !countDue(r, now.getTime()))) return false;
+    // On the live-rooms worker the count comes from the room's connected sockets (lib/live-rooms-server.ts ingestLive), unless the
+    // worker has stopped reporting.
+    if (!r || r.status !== "live" || r.mode !== "relay" || (!force && (!countDue(r, now.getTime()) || edgeFresh(r, now.getTime())))) return false;
     t.update(ref, { countedAt: now.toISOString() });
     return true;
   });
@@ -127,9 +136,11 @@ export async function startRoom(db: Firestore, uid: string, cid: unknown, title:
   }
   const r: RoomDoc = {
     cid: c.id, communityName: c.name, title: t, hostUid: uid, hostName: me.name, speakers: [], hands: {}, joined: { [uid]: { ...me, at, seen: at } }, status: "live", mode, createdAt: at, peak: 1,
-    ...(mode === "relay" ? { published: {}, listening: 0, countedAt: at, chatSlow: 0, handInfo: {} } : {}), ...(note ? { note } : {}),
+    ...(mode === "relay" ? { published: {}, listening: 0, countedAt: at, chatSlow: 0, handInfo: {}, ...(liveRoomsOn() ? { edge: true } : {}) } : {}), ...(note ? { note } : {}),
   };
   await db.doc(`communityRooms/${id}`).set(r);
+  // The live-rooms worker: the room's settings and where to send its chat's record (the room still works through Firestore if this fails).
+  if (r.edge) await tellLiveRoom(id, { op: "config", config: liveConfigFor(id, uid, settings) });
   return { id, mode, ...(note ? { note } : {}) };
 }
 
@@ -149,7 +160,8 @@ export async function joinRoom(db: Firestore, uid: string, id: unknown, now = ne
     const before = (await pref.get()).data() as RoomPersonDoc | undefined;
     // The cap counts the people docs now (a count costs one read per thousand). Two joining in the same instant may both get the last
     // seat: a room can go one or two over its cap, never more.
-    if (!isFresh(before, now.getTime()) && (await activeListeners(ref, now)) >= cap) throw new CommunityError(409, roomFullText(cap));
+    // On the live-rooms worker its count of connected listeners counts too (whichever is higher).
+    if (!isFresh(before, now.getTime()) && Math.max(await activeListeners(ref, now), edgeFresh(r, now.getTime()) ? r.listening ?? 0 : 0) >= cap) throw new CommunityError(409, roomFullText(cap));
     await pref.set({ ...me, at: before?.at ?? at, seen: at, ...(before?.chatAt ? { chatAt: before.chatAt } : {}) } satisfies RoomPersonDoc);
     await recount(db, ref.id, now).catch(() => null);
     return { ok: true, mode: "relay", cap };
@@ -232,7 +244,7 @@ export async function setSpeaker(db: Firestore, uid: string, id: unknown, who: u
       const here = presentIn(r, now.getTime()).includes(target) || (relay && isFresh(listener, now.getTime()));
       if (!here) {
         if (relay) t.update(ref, { [`hands.${target}`]: FieldValue.delete(), [`handInfo.${target}`]: FieldValue.delete() }); // a stale hand goes
-        return { error: "They've left the room.", speakers: r.speakers, relay };
+        return { error: "They've left the room.", speakers: r.speakers, relay, edge: false };
       }
       if (speakers.length >= ROOM_SPEAKERS_MAX) throw new CommunityError(409, `Up to ${ROOM_SPEAKERS_MAX} people can speak at a time besides you. Move someone back to listening first.`);
       speakers = [...speakers, target];
@@ -246,10 +258,12 @@ export async function setSpeaker(db: Firestore, uid: string, id: unknown, who: u
     }
     // Off the stage on the relay: they stop being pulled at once, and their microphone is cut at Cloudflare (below).
     t.update(ref, { speakers, [`hands.${target}`]: FieldValue.delete(), ...(relay ? { [`handInfo.${target}`]: FieldValue.delete() } : {}), ...moves, ...(on === false && relay ? { [`published.${target}`]: FieldValue.delete() } : {}) });
-    return { speakers, relay, error: "" };
+    return { speakers, relay, error: "", edge: !!r.edge };
   }).then(async (x) => {
     if (x.error) throw new CommunityError(409, x.error);
     if (on === false && x.relay) await stopPush(db, ref.id, target, deps).catch(() => {});
+    // The live-rooms worker learns the stage from us, never from a browser.
+    if (x.edge) await tellLiveRoom(ref.id, { op: "role", uid: target, role: on === false ? "listener" : "speaker" });
     return { speakers: x.speakers };
   });
 }
@@ -280,19 +294,26 @@ export async function sendRoomChat(db: Firestore, uid: string, id: unknown, text
   const at = now.toISOString();
   const stage = presentIn(r, now.getTime()).includes(uid) && roomRole(r, uid) !== "listener";
   const msg = ref.collection("chat").doc(`${String(now.getTime()).padStart(13, "0")}_${randomBytes(3).toString("hex")}`);
+  // On the live-rooms worker (someone whose socket is down): also broadcast to the sockets, which don't read Firestore.
+  const edge = (m: RoomChat) => (r.edge ? tellLiveRoom(ref.id, { op: "chat", m: { ...m, id: msg.id } }).then(() => undefined) : Promise.resolve());
   if (stage) {
-    await msg.set({ from: uid, name: r.joined[uid].name, avatar: r.joined[uid].avatar, text: t, at } satisfies RoomChat);
+    const m: RoomChat = { from: uid, name: r.joined[uid].name, avatar: r.joined[uid].avatar, text: t, at };
+    await msg.set(m);
+    await edge(m);
     return { ok: true };
   }
+  let sent: RoomChat | null = null;
   const pref = peopleOf(ref).doc(uid);
   await db.runTransaction(async (tx) => {
     const p = (await tx.get(pref)).data() as RoomPersonDoc | undefined;
     if (!isFresh(p, now.getTime())) throw new CommunityError(409, "Join the room first.");
     const wait = chatWait(p!.chatAt, r.chatSlow ?? 0, now.getTime());
     if (wait > 0) throw new CommunityError(429, `Slow mode is on in this big room: you can send again in ${wait} second${wait === 1 ? "" : "s"}.`);
-    tx.set(msg, { from: uid, name: p!.name, avatar: p!.avatar, text: t, at } satisfies RoomChat);
+    sent = { from: uid, name: p!.name, avatar: p!.avatar, text: t, at };
+    tx.set(msg, sent);
     tx.update(pref, { chatAt: at });
   });
+  if (sent) await edge(sent);
   return { ok: true };
 }
 
@@ -301,6 +322,7 @@ export async function removeChat(db: Firestore, uid: string, id: unknown, messag
   const { ref, r } = await roomOf(db, id);
   if (uid !== r.hostUid && !can(await roleIn(db, r.cid, uid), "remove_post")) throw new CommunityError(403, "Only the host or a moderator can remove messages.");
   await ref.collection("chat").doc(String(messageId ?? "x")).delete();
+  if (r.edge) await tellLiveRoom(ref.id, { op: "unchat", id: String(messageId ?? "") });
 }
 
 // Ending: the host, or an admin of the community. The connection details are cleared.
@@ -315,9 +337,11 @@ export async function endRoom(db: Firestore, id: string, now = new Date()): Prom
     const r = (await t.get(ref)).data() as RoomDoc | undefined;
     if (!r || r.status !== "live") return false;
     t.update(ref, { status: "ended", endedAt: now.toISOString(), joined: {}, hands: {}, speakers: [], ...(r.mode === "relay" ? { published: {}, handInfo: {}, listening: 0 } : {}) });
-    return true;
+    return r.edge ? "edge" : true;
   });
   if (!ended) return;
+  // The worker tells everyone, closes the sockets and sends its last batch and the room's peak.
+  if (ended === "edge") await tellLiveRoom(id, { op: "end" });
   for (let more = true; more;) {
     const chat = await db.collection(`communityRooms/${id}/chat`).limit(400).get();
     if (!chat.empty) { const b = db.batch(); chat.docs.forEach((d) => b.delete(d.ref)); await b.commit(); }

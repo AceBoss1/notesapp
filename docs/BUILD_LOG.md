@@ -2623,3 +2623,26 @@ page, course live classes, the Start a room form, Nana's prompt) now comes from 
 them to client pages. The Team hub reminder now reads "rooms run phone to phone … switches on when the keys are set" and goes once they
 are; /status gained "Audio rooms relay". Emulator and rules tests ran from a temporary copy on port 8209.
 
+**Live chat and signals for big audio rooms on a Durable Object (v0.126.0, 2 Nov 2026)** — Step 2b of the rooms plan. A relay room's
+Firestore chat costs one read per person per message, so a 10,000-listener room can't afford a live read of it. Each relay room opened
+while `NEXT_PUBLIC_LIVE_ROOMS_URL` and `LIVE_ROOMS_SECRET` are set (`edge: true` on the room doc; a room keeps what it opened with) gets
+one Cloudflare Durable Object (`workers/live-rooms`, its own package.json, tsconfig and wrangler.toml; excluded from the app's
+tsconfig) holding every socket through the Hibernation API, so a quiet room bills nothing. Chat, the live listener count (distinct
+people, not tabs, broadcast at most every 2 s), raised hands, stage moves and a video on/off signal go over the socket. Trust: the
+socket needs a 10-minute HMAC-SHA256 token (`lib/live-token.ts`, pure WebCrypto, imported by both sides) minted only for someone the
+room already let in; the role can change only by our server's signed push (`role` after `setSpeaker`), which also overrides an older
+token on reconnect; moderators come from the community role at mint time. Slow mode, the rate limits (a token bucket per connection,
+kept in the socket's attachment so it survives hibernation) and the size limit are enforced at the edge; the host can now switch slow
+mode on or off (or leave it automatic, from the existing settings, pushed to rooms at creation and when an admin saves them).
+Firestore stays the record: the object batches the chat (3 s or 50 messages), removals and bans to `/api/community/rooms/edge` (signed
+over the exact body, 5-minute clock window), which writes `communityRooms/{id}/chat` with the object's ids (same shape as
+`sendRoomChat`'s, so a removal through either side finds it) and the room doc's count at most every 15 s plus a 45 s keepalive;
+`recount` stands aside while the edge reports (`edgeFresh`, 45 s) and the cap takes the higher count. Messages sent through the server
+(the fallback) are forwarded to the object to broadcast, not batched back. A failed batch stays in the object's storage and retries
+with backoff (5 s up to 2 min); the end op closes every socket, sends the final batch with the peak (kept in `edge/state.finalPeak`)
+and clears the object, which then refuses old tokens. The client side is one hook, `components/community/useLiveChannel.ts`, so the
+room screen only swaps its chat source, count and hands (step 2a edits the same component in parallel); after three failed connects
+it polls Firestore for new chat every 10 s and sends through the server. Deploy: `.github/workflows/deploy-live-rooms.yml`
+(cloudflare/wrangler-action, skips green without the two repository secrets) or `npx wrangler deploy`. Tested without Cloudflare: the
+object against in-memory fakes (including a second instance on the same state as the "woken" object) and end to end against the
+Firestore emulator with our server's code on both sides.

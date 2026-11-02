@@ -52,6 +52,9 @@ export type RoomDoc = {
   // (0 = off). handInfo: the name and picture of each raised hand, since listeners aren't in `joined`.
   listening?: number; countedAt?: string; chatSlow?: number;
   handInfo?: Record<string, { name: string; avatar: string }>;
+  // Relay rooms opened while the live-rooms worker is on (v0.126.0, lib/live-rooms.ts): the chat, the live count, raised hands and stage
+  // signals go over a WebSocket to the room's Durable Object; edgeAt is when the worker last reported the count (it then sets listening).
+  edge?: boolean; edgeAt?: string;
 };
 // Relay rooms: one listener (communityRooms/{id}/people/{uid}, server-written). chatAt: their last chat message (for slow mode).
 export type RoomPersonDoc = RoomPerson & { chatAt?: string };
@@ -133,10 +136,11 @@ export const listenerCap = (mode: RoomMode | undefined, s: RoomSettings): number
 export const roomFullText = (cap: number) => `The room is full: ${cap.toLocaleString("en-GB")} people can listen at a time.`;
 
 // What the help, the public pages and the "Start a room" form say about room size, from the settings: what a room opened now holds.
-export type RoomFigures = { relay: boolean; listeners: number; p2pListeners: number; relayListeners: number; speakers: number; chatSlowAbove: number; chatSlowSeconds: number };
-export const roomFigures = (s: RoomSettings = ROOM_DEFAULTS, keysSet = false): RoomFigures => {
+// liveChat (v0.126.0): relay rooms carry their chat, count and hands on the live-rooms worker (lib/live-rooms.ts); present only when true.
+export type RoomFigures = { relay: boolean; listeners: number; p2pListeners: number; relayListeners: number; speakers: number; chatSlowAbove: number; chatSlowSeconds: number; liveChat?: true };
+export const roomFigures = (s: RoomSettings = ROOM_DEFAULTS, keysSet = false, liveChat = false): RoomFigures => {
   const mode = chooseRoomMode(s, keysSet);
-  return { relay: mode === "relay", listeners: listenerCap(mode, s), p2pListeners: s.p2pListeners, relayListeners: s.relayListeners, speakers: ROOM_SPEAKERS_MAX, chatSlowAbove: s.chatSlowAbove, chatSlowSeconds: s.chatSlowSeconds };
+  return { relay: mode === "relay", listeners: listenerCap(mode, s), p2pListeners: s.p2pListeners, relayListeners: s.relayListeners, speakers: ROOM_SPEAKERS_MAX, chatSlowAbove: s.chatSlowAbove, chatSlowSeconds: s.chatSlowSeconds, ...(liveChat && mode === "relay" ? { liveChat: true as const } : {}) };
 };
 export const DEFAULT_ROOM_FIGURES = roomFigures();
 

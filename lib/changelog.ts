@@ -11,6 +11,16 @@ export type Release = {
 
 export const CHANGELOG: Release[] = [
   {
+    version: "v0.126.0",
+    bump: "minor",
+    date: "2026-11-02",
+    changes: [
+      { kind: "added", text: "Chat in big audio rooms keeps up live: in rooms on our relay, the room chat, the number listening and raised hands now travel over one live connection to our chat service, run on Cloudflare, so a room of thousands sees each message as it's sent. If your connection drops, the app reconnects by itself and shows new messages every few seconds meanwhile. It switches on once the chat service is connected; until then rooms work exactly as before." },
+      { kind: "added", text: "Slow mode is the host's tool in these rooms: at the bottom of the chat the host can turn it on, turn it off, or leave it on Automatic (on once the room is very big). The host and moderators can also mute someone in the chat or remove them from the room, and a message they take down disappears from every screen at once." },
+      { kind: "changed", text: "In these rooms the listener count shown is the number connected right now." },
+    ],
+  },
+  {
     version: "v0.124.0",
     bump: "minor",
     date: "2026-11-02",
