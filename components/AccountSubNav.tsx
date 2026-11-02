@@ -12,6 +12,7 @@ const LINKS = [
   { href: "/profile/publishing", label: "Rates & payouts" },
   { href: "/profile/analytics", label: "Analytics" },
   { href: "/bookings", label: "Bookings" },
+  { href: "/profile/books", label: "Business books" },
   { href: "/profile/inventory", label: "Inventory" },
   { href: "/profile/discounts", label: "Discount codes" },
   { href: "/profile/coupons", label: "My coupons" },

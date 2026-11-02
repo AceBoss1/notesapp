@@ -7,7 +7,8 @@
 //   option, a cost price, a low-stock level with an alert, a history of every change (sales, refunds, restocks, corrections) and
 //   spreadsheet export and import.
 // - Stored server-only, because store items are public: inventory/{itemId} { ownerUid, sku, variantSku, costKobo, lowAt } and
-//   inventoryMoves/{id} { ownerUid, itemId, variant?, delta, after, reason, note?, by, at, orderRef? }.
+//   inventoryMoves/{id} { ownerUid, itemId, variant?, delta, after, reason, note?, by, at, orderRef?, bookRef? } (bookRef: a Business books
+//   entry, lib/books-server.ts, for a walk-in sale or an import).
 import { addonTrialDays } from "./trials";
 
 export const DEFAULT_LOW_AT = 3;
@@ -26,7 +27,7 @@ export const isManualReason = (v: unknown): v is MoveReason => MANUAL_REASONS.in
 export const reasonLabel = (r: string) => MOVE_REASONS.find((x) => x.id === r)?.label ?? r;
 
 export type InventoryDoc = { ownerUid: string; sku: string; variantSku: Record<string, string>; costKobo: number; lowAt: number };
-export type Move = { id?: string; ownerUid: string; itemId: string; variant?: string; delta: number; after: number; reason: MoveReason; note?: string; by: string; at: string; orderRef?: string };
+export type Move = { id?: string; ownerUid: string; itemId: string; variant?: string; delta: number; after: number; reason: MoveReason; note?: string; by: string; at: string; orderRef?: string; bookRef?: string };
 
 // ---- Who has it ----
 export type InventoryAccount = { trialStartedAt?: string; addonUntil?: string };

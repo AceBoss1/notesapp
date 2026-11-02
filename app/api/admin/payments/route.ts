@@ -9,6 +9,7 @@ import type { LedgerEntry } from "@/lib/payments";
 import { BoostCancelError, cancelBoost } from "@/lib/boost-cancel";
 import { confirmOrder, notifyBackInStock, returnStock } from "@/lib/orders-server";
 import { recordReturn } from "@/lib/inventory-server";
+import { bookOnlineOrder } from "@/lib/books-server";
 import { maskContacts } from "@/lib/pii";
 
 // GET → { conflicts, payments }: slot double-bookings to refund and the newest 300 payments, emails and phones masked
@@ -135,6 +136,8 @@ export async function POST(req: NextRequest) {
         batch.delete(db.doc(`slotLocks/${slotLockId(b.username, b.date, b.slot)}`));
       }
       await batch.commit();
+      // The refund in the seller's Business books (a refund entry next to the order's sale; safe to repeat).
+      if (paySnap.data()?.kind === "store") await bookOnlineOrder(db, paymentRef).catch((e) => console.error("books refund failed", paymentRef, e));
       // An unshipped store order that is refunded goes back on the shelf.
       if (paySnap.data()?.kind === "store") {
         const was = storeStatusBefore;

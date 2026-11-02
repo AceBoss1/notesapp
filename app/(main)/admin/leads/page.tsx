@@ -126,7 +126,7 @@ export default function AdminLeadsPage() {
           <div><p className="eyebrow">On the waitlist</p><p className="mt-1 font-display text-3xl text-ink">{books.length}</p><p className="text-[11px] text-slate">{books.filter((l) => l.booksWaitlist!.notify).length} want an email when it opens</p></div>
           <div><p className="eyebrow">Kinds of business</p><ul className="mt-1 space-y-0.5 text-slate">{count((l) => businessTypeLabel(l.booksWaitlist!.businessType)).slice(0, BUSINESS_TYPES.length).map(([k, n]) => <li key={k}>{k}: <b className="text-ink">{n}</b></li>)}</ul></div>
           <div><p className="eyebrow">Keep books today in</p><ul className="mt-1 space-y-0.5 text-slate">{count((l) => keepsBooksLabel(l.booksWaitlist!.keepsBooks)).map(([k, n]) => <li key={k}>{k}: <b className="text-ink">{n}</b></li>)}</ul></div>
-          <p className="text-xs text-slate sm:col-span-3">From <Link className="text-crimson underline" href="/books">/books</Link>. Business books isn&apos;t built yet (docs/BUSINESS-BOOKS.md); these answers shape what comes first.</p>
+          <p className="text-xs text-slate sm:col-span-3">From <Link className="text-crimson underline" href="/books">/books</Link>. The waitlist from before Business books opened (v0.118.0); the page no longer takes sign-ups, so these are kept for the record and for what to build next.</p>
         </div>
       )}
 

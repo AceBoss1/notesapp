@@ -1,7 +1,12 @@
-# Business books (plan)
+# Business books (plan, and what's built)
 
-> Status: **plan, for the owner's approval.** Written 1 November 2026. Nothing is built. The mockups (phone and desktop, Day and
-> Night) come first, for approval, before any code. The owner's brief: "plan Business books, add import your existing data, if we do
+> **Built, 2 Nov 2026 (v0.118.0):** build steps 1 to 6 below (the walk-in half, P&L, money owed and imports), after the owner's "start
+> building books". **Next:** steps 7 to 10 (Nana entries, offline entry, the monthly email, staff roles). What was built, and where it
+> differs from this plan, is in **section 10**. The owner's answers (2 Nov): pricing option A, the name "Business books", only store
+> orders flow in for now, CSV only (no Excel library), WhatsApp click-to-send for non-members, SMS greyed out until Send-Na.
+>
+> Status when written: **plan, for the owner's approval.** Written 1 November 2026. The mockups (phone and desktop, Day and
+> Night) came first, for approval, before any code. The owner's brief: "plan Business books, add import your existing data, if we do
 > not support it yet then suggest to support". This plan has the owner's earlier suggestions in it too: Nana bookkeeping from a short
 > message, honest reporting, and "import your Tralo or Excel stock list" for the Ghana launch.
 > **Decided 1 Nov 2026:** customers who aren't #NotesApp members get receipts and debt reminders by WhatsApp (SMS through Send-Na when
@@ -18,6 +23,15 @@
 > - **Thanks:** a thank-you email, plus a bell for members.
 > - **Links to the waitlist:** the roadmap's not-live list ("Business books — join the waitlist"), the Business books section on
 >   `/store-selling` (`#business-books`), the home page's features and the Inventory and Selling physical goods help articles.
+>
+> **Live, 2 Nov 2026 (v0.118.0): the public pages say it's open.** `/books` is now the landing page: what it does, the Free Basic
+> limits, the three images, and one button (`components/books/BooksCta.tsx`): **Open Business books** → `/profile/books` for
+> signed-in members, **Start free** → `/signup?next=/profile/books` for visitors (with a sign-in link). The waitlist form is gone;
+> `/api/books/waitlist`, `lib/books-waitlist.ts`, `submitBooksWaitlist` and the rule stay, so the old sign-ups are still in Admin →
+> Leads → Business books waitlist. The roadmap lists Business books as live (its not-live line is now what's next), and
+> `/store-selling#business-books`, the home features, the Inventory and Selling physical goods help articles, Nana's page list and
+> the anniversary announcement draft say it's open. Receipt and statement footers ("Keep your own books free: <domain>/books") land
+> on this page.
 
 ## 1. Who it's for and the problem
 
@@ -50,7 +64,8 @@ The screens are in the mockups (section 9). In short:
   - change the quantity and the price (a discount);
   - choose how they paid: **Cash, Transfer, POS or Credit**;
   - a **Customer owes** toggle with the customer, the part paid now and a due date. The rest goes to *Money owed to you*.
-- **Receipts.** Each sale gets an unguessable link, `naapp.tech/r/<code>`. The receipt page shows the shop's name and logo, the items,
+- **Receipts.** Each sale gets an unguessable link on the primary domain, `naapp.tech/receipt/<code>` (built; `/r/` is taken by referral
+  links, `/r/<username>`). The receipt page shows the shop's name and logo, the items,
   the total, how it was paid and what is still owed, but never the seller's or buyer's phone number.
   - **A customer who is a #NotesApp member** gets it by email and bell, as planned.
   - **A customer who isn't a member** gets it by **WhatsApp**: **Send receipt by WhatsApp** opens WhatsApp on the seller's phone with
@@ -342,15 +357,19 @@ mobile money. Ghana waits for those (`docs/PAYMENTS.md`).
 Each step ships with its tests, help article, changelog line, roadmap update, README and HANDOVER notes (the public-pages rule,
 `docs/ENGINEERING_GUIDE.md`), and phone and desktop screenshots from the real code.
 
-1. **This plan and the waitlist** (v0.115.0): the doc, the changelog line, and the public **waitlist** (built, see below). ✓
-2. **Mockups for approval**: the screens below. The owner approves or changes them.
+1. **This plan and the waitlist** (v0.115.0): the doc, the changelog line, and the public **waitlist** (built, see above; replaced by the
+   live landing page in v0.118.0). ✓
+2. **Mockups for approval**: the screens below. ✓ (approved: "start building books", 2 Nov 2026)
 3. **Walk-in sales and expenses**: `lib/books.ts`, `/api/books`, `/profile/books` (Books home, Record a sale, Add expense), receipts
-   (link and PDF), online orders flowing in, stock moves, Free Basic cap. Rules and emulator tests.
-4. **Profit and loss**: day, week and month, cash in hand, best sellers, running totals, PDF report and CSV.
+   (link and PDF), online orders flowing in, stock moves, Free Basic cap. Rules and emulator tests. ✓ (v0.118.0)
+4. **Profit and loss**: day, week and month, cash in hand, best sellers, running totals, PDF report and CSV. ✓ (v0.118.0; running
+   totals not yet, see section 10)
 5. **Money owed**: customers and suppliers, record payments, reminders by email and bell (members) and WhatsApp click-to-send with
-   the #NotesApp line (non-members, receipts too), paying a debt online (payment kind `debt`). SMS when Send-Na is live.
+   the #NotesApp line (non-members, receipts too), paying a debt online (payment kind `debt`). SMS when Send-Na is live. ✓ (v0.118.0;
+   paying a debt online and automatic repeat reminders not yet)
 6. **Imports**: the wizard, templates, presets (Tralo, Shopify, WooCommerce, Paystack), dry run, dedupe, undo for 24 hours. Excel files
-   once the library is approved. Bank CSV and paper-ledger photos last.
+   once the library is approved. Bank CSV and paper-ledger photos last. ✓ for CSV with the Tralo preset (v0.118.0); Shopify,
+   WooCommerce, Paystack, bank CSV and photos not yet; Excel files stay out (CSV only, owner 2 Nov)
 7. **Nana entries**: typed first, then voice notes. Pearl, metered.
 8. **Offline**: the outbox, service-worker caching for Books, sync and conflict flags.
 9. **Monthly email**: on the 1st, only with activity.
@@ -359,7 +378,8 @@ Each step ships with its tests, help article, changelog line, roadmap update, RE
 ## 8. Open questions for the owner
 
 Answered on 1 Nov 2026: non-members get receipts and reminders by WhatsApp (and SMS through Send-Na once the seller opts in), each
-with a #NotesApp line (section 2).
+with a #NotesApp line (section 2). Answered on 2 Nov 2026: 1 (option A, 150), 2 ("Business books"), 3 (only store orders for now) and 6
+(CSV only, no library). Still open: 4, 5, 7, 8, 9, 10.
 
 1. **Pricing:** Option A (free with a cap of 150 entries a month), B (a Books add-on or a ₦2,500 bundle with Inventory) or C (all free)?
    And is 150 the right cap?
@@ -394,3 +414,51 @@ outside the repo and shared with the owner for approval:
 8. The WhatsApp reminder as the customer sees it (phone).
 
 The example shop is Kemi's Store & Salon in Ojota, Lagos: rice, garri, Ankara, airtime and knotless braids.
+
+## 10. What's built (v0.118.0, 2 Nov 2026)
+
+**Screens** (`/profile/books`, `components/books/`): Today (the crimson profit card, tiles, today's entries, running low, you owe,
+best sellers, the Free Basic count), Sales and Expenses (day, week, month; tap an entry for its receipt, photos or Void), Stock,
+Money owed (owed to you with the reminder preview and WhatsApp, email and bell; you owe), Profit and loss (PDF through the print
+dialog, CSV), Import and export. The two quick sheets, **＋ Record a sale** and **Add expense**, open from anywhere. Phone first
+(tabs across the top, a bottom sheet), desktop with the sidebar, Day and Night. Public pages: `/receipt/<code>` (Save as PDF, QR) and
+`/statement/<code>` (what a customer owes, with Stop reminders); both on the main site (`middleware.ts` sends them there from the app
+address), and neither shows a phone number.
+
+**Collections** (all server-only in `firestore.rules`): `bookEntries`, `bookParties`, `bookItems`, `bookReceipts`, `bookReminders`,
+`bookImports`, `bookSettings`. Index: `bookEntries (ownerUid, on)`. Where the build differs from section 5:
+- **Settings and the month's count** are in `bookSettings/{uid}`, not `users/{uid}.books`: `users` documents are public and members
+  can write parts of their own, so a count there could be read or changed from the browser.
+- **`bookItems`** is new: a stock list row that isn't in the online store becomes a Books-only item (a private price list with stock,
+  never shown for sale), instead of a hidden store item (store items have no hidden state yet).
+- **Running totals** (`bookDays`, `bookMonths`) aren't built yet. Views read the period's entries through the `(ownerUid, on)` index,
+  which is fine at today's sizes (Free Basic's 150 a month; a busy Pro shop's month is a few thousand). Add them if months get slow.
+- **Statements** use a code on the customer (`bookParties.statementCode`), not a separate collection.
+- **Online orders** are written from the paid step (`lib/payments.ts` → `bookOnlineOrder`, ids `online_<ref>` and `online_<ref>_refund`,
+  created only if missing) and the admin refund (`app/api/admin/payments/route.ts`), and caught up when Books opens
+  (`syncOnlineOrders`: paid orders since the last look, all of them the first time, and any refunded). So no backfill script is needed.
+  Commission is a field on the sale (`feeKobo`), shown as the "#NotesApp commission (online orders)" expense line.
+- **Customers paying back** are `payment` entries, applied to their oldest sales first (`settleFifo`), and **opening balances** from a
+  customers import are `opening` entries. Neither is in the P&L.
+
+**Limits and where they're set:** `lib/pricing.ts` `books { freeEntries: 150, freeCustomers: 20, freeImportRows: 500 }` (Admin →
+Pricing → Business books; `test:pricing`); `lib/books.ts`: 5,000 rows and 5 MB a file, 10 imports a day, undo for 24 hours, 3
+receipt photos (10 MB each), 50 lines a sale. Rate limits in `/api/books`: 600 calls an hour, 60 reminders an hour, one reminder a
+day per customer (`lastRemindedOn`), 120 receipts an hour.
+
+**Who:** the seller and, on an organisation's account (Business and Enterprise), its admins (`canUseBooks`). A teammate with store
+access only doesn't see the books. Every entry keeps who recorded it (`by`).
+
+**Tests:** `test:books` (kobo maths, periods, P&L, cash in hand, the caps, paying back, debtors, the WhatsApp messages, CSV reading,
+column matching, the Tralo preset, dedupe, templates) and `test:books-server` (permissions, a sale with its receipt and stock moves,
+expenses, paying back, reminders by WhatsApp and email with the daily limit and stop, online orders and refunds, P&L, the Free
+Basic caps, imports with dry run, duplicates and undo, export); rules in `test:rules`. All in CI.
+
+**Next (steps 7 to 10, and what was left out of 3 to 6):** Nana entries; offline entry (the outbox); the monthly summary email
+(`bookReports`); staff roles (`orgMembers.books`: cashier and manager); paying a debt online (payment kind `debt`, open question 5);
+automatic repeat reminders and "remind again" prompts; the supplier bell the day before a due date; repeating expenses; the opening
+float and count-the-drawer screen (the float is stored, `bookSettings.floatKobo`, with no screen yet); a purchase (restock) entry from
+Books; any-range P&L; Shopify, WooCommerce and Paystack presets, bank CSV, paper-ledger photos and vCard contacts; the referral code
+on the #NotesApp line (open question 10); running totals; SMS when Send-Na is live. (The `/books` page now says it's open: see the
+note at the top.)
+

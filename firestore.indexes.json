@@ -411,6 +411,20 @@
           "order": "ASCENDING"
         }
       ]
+    },
+    {
+      "collectionGroup": "bookEntries",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "ownerUid",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "on",
+          "order": "ASCENDING"
+        }
+      ]
     }
   ],
   "fieldOverrides": [

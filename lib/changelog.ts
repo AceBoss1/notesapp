@@ -11,6 +11,21 @@ export type Release = {
 
 export const CHANGELOG: Release[] = [
   {
+    version: "v0.118.0",
+    bump: "minor",
+    date: "2026-11-02",
+    changes: [
+      { kind: "added", text: "Business books is open, under My account → Business books. Record a walk-in sale in a few taps (＋ Record a sale): pick items from your store or type a one-off, change the quantity and price, choose cash, transfer, POS or credit, and say who owes and by when. Add expenses by category, with up to 3 receipt photos kept private." },
+      { kind: "added", text: "Paid online store orders come into your books by themselves as sales marked Store, with #NotesApp's commission as an expense line, and a refund next to the order when it's refunded. Nothing is counted twice." },
+      { kind: "added", text: "Books home: profit today so far, sales, expenses, cash in hand and money owed to you, today's entries, what's running low, who you owe and the week's best sellers. Profit and loss for the day and the week (and the month on Pro and above), with walk-in and online sales apart, cost of what you sold, expenses by category, a PDF report and a CSV. Stock value is always shown on its own and never added to sales or profit." },
+      { kind: "added", text: "Money owed: customers who owe you, late ones first, with Record payment (all or part). Customers on #NotesApp get reminders and receipts by email and the bell; anyone else by WhatsApp, opened on your own phone with the message written and a short #NotesApp line at the end. One reminder a day at most, and a customer can stop reminders from their statement link. A simple list of what you owe suppliers too." },
+      { kind: "added", text: "Every sale has a receipt link (no phone numbers on it) with Save as PDF and a QR code." },
+      { kind: "added", text: "Import your existing records from a CSV (Excel and Google Sheets save as CSV): a stock list, past sales, expenses or customers and debtors, with the columns matched from your headings, a ready-made match for Tralo's exports, a dry run showing new rows, updates, duplicates skipped and rows to fix, and undo for 24 hours. Templates to download, and Export everything as CSV." },
+      { kind: "added", text: "Free on Free Basic: 150 sales and expenses a month (online orders never count) and up to 20 customers owing at once. Pro, Business and Enterprise have no limit. A walk-in sale of an item lowers its stock through Inventory, where you have it." },
+      { kind: "changed", text: "Business books is live, no waitlist: /books now shows what it does and the Free Basic limits, with Open Business books for members and Start free for visitors (sign up, then straight into your books). The roadmap, Store selling, the home page and the Inventory and Selling physical goods help articles say it's open, and receipts and statements link to /books." },
+    ],
+  },
+  {
     version: "v0.117.0",
     bump: "minor",
     date: "2026-11-02",

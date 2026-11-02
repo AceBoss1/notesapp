@@ -168,7 +168,7 @@ On our roadmap, coming soon (not live yet):
 - The #1MillionNairaNotesAppChallenge for influencers.
 - WhatsApp reminders alongside email and the bell.
 
-**Business books** for sellers: record walk-in sales and expenses, track stock and money owed to you, see your profit, and import your existing records from Excel and other tools. Be first to try it: join the waitlist at ${HOME_URL}/books
+New and open now: **Business books** for sellers. Record walk-in sales and expenses, track stock and money owed to you, see your profit, and import your existing records from Excel and other tools. Free on Free Basic: ${HOME_URL}/books
 
 ## Volunteers wanted: review Naija Exam Prep questions
 

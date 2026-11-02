@@ -106,7 +106,7 @@ export async function adjustStock(
 // history line written. Returns the new count.
 async function changeStock(
   db: Firestore, ownerUid: string, itemId: string, variant: string | undefined, to: (cur: number) => number,
-  meta: { reason: MoveReason; note?: string; by: string; at: string; orderRef?: string },
+  meta: { reason: MoveReason; note?: string; by: string; at: string; orderRef?: string; bookRef?: string },
 ): Promise<{ stock: number; move: Move }> {
   const ref = db.doc(`storeItems/${itemId}`);
   const moveRef = db.collection("inventoryMoves").doc();
@@ -122,7 +122,7 @@ async function changeStock(
       const next = { ...vs!, [variant!]: after };
       t.update(ref, { variantStock: next, stock: Object.values(next).reduce((n, v) => n + (Number(v) > 0 ? Number(v) : 0), 0) });
     } else t.update(ref, { stock: after });
-    const move: Move = { ownerUid, itemId, ...(hasOptions ? { variant } : {}), delta: after - before, after, reason: meta.reason, ...(meta.note ? { note: meta.note } : {}), by: meta.by, at: meta.at, ...(meta.orderRef ? { orderRef: meta.orderRef } : {}) };
+    const move: Move = { ownerUid, itemId, ...(hasOptions ? { variant } : {}), delta: after - before, after, reason: meta.reason, ...(meta.note ? { note: meta.note } : {}), by: meta.by, at: meta.at, ...(meta.orderRef ? { orderRef: meta.orderRef } : {}), ...(meta.bookRef ? { bookRef: meta.bookRef } : {}) };
     t.set(moveRef, move);
     return { stock: after, move: { ...move, id: moveRef.id }, title: String(item.title ?? ""), before };
   });
@@ -166,6 +166,14 @@ export async function historyOf(db: Firestore, actorUid: string, ownerUid: strin
     docs = (await q.get()).docs.sort((a, b) => String(b.data().at).localeCompare(String(a.data().at))).slice(0, 200);
   }
   return docs.map((d) => ({ id: d.id, ...(d.data() as Move) }));
+}
+
+// ---- Called by Business books (lib/books-server.ts) ----
+// A walk-in sale lowers the stock (reason sale), a voided one puts it back (return), and an import sets a count or an import's undo puts
+// the old count back (count): through the same path as every other change, with the book entry's reference. The caller has already
+// checked who is acting and that the store has inventory.
+export async function bookStockMove(db: Firestore, m: { ownerUid: string; itemId: string; variant?: string; delta?: number; set?: number; reason: MoveReason; note: string; by: string; bookRef: string; at?: string }) {
+  return changeStock(db, m.ownerUid, m.itemId, m.variant, (cur) => (m.set !== undefined ? m.set : cur + (m.delta ?? 0)), { reason: m.reason, note: m.note, by: m.by, at: m.at ?? new Date().toISOString(), bookRef: m.bookRef });
 }
 
 // ---- Called by orders ----

@@ -174,6 +174,22 @@ on `main` that isn't understood is raised with the owner first.
     `docs/SITES.md` (phase 5, the Powered by link, live and planned), `docs/BUILD_LOG.md` (v0.82.1 to v0.117.0), and the new rule in §3
     and `docs/ENGINEERING_GUIDE.md`.
 
+88. **Business books, the first working release (v0.118.0):** deploy `firebase deploy --only firestore` (rules: server-only
+    `bookEntries`, `bookParties`, `bookItems`, `bookReceipts`, `bookReminders`, `bookImports`, `bookSettings`; index: `bookEntries
+    (ownerUid ASC, on ASC)`; until it's built, reads fall back to the seller's entries and filter in memory). No new settings. The app
+    is `/profile/books` (My account → Business books; `/books` stays the public page, now to say it's open): Record a sale (store items,
+    Books-only items or typed; cash, transfer, POS, credit with a due date), Add expense (categories, up to 3 private receipt photos
+    through the private bucket), Today, Sales, Expenses, Stock, Money owed (WhatsApp `wa.me` click-to-send for non-members with the
+    footnote built from `ROOT_DOMAIN`, email and bell for members, one a day, stop from the statement), Profit and loss (day and week;
+    month on Pro and above; stock value always apart), Import and export (CSV only; Tralo preset; dry run, dedupe, undo for 24 hours;
+    templates; export everything). Receipts are `/receipt/<code>` (not `/r/`, which is referrals) and statements `/statement/<code>`.
+    Paid store orders are written by `bookOnlineOrder` from `lib/payments.ts` and the admin refund, and caught up when Books opens.
+    Walk-in sales move stock through Inventory (`bookStockMove` in `lib/inventory-server.ts`, moves carry `bookRef`). Free Basic caps
+    in `lib/pricing.ts` `books` (150 entries a month, 20 customers owing, 500 rows a file), editable on Admin → Pricing. Who: the
+    seller and an organisation's admins. Tests: `test:books`, `test:books-server`, and the rules test, in CI. Public pages: `/books` is the live landing
+    (Open Business books / Start free, `components/books/BooksCta.tsx`); the waitlist form is gone, its leads stay in Admin → Leads. What differs from the
+    plan, and what's next (Nana entries, offline, the monthly email, roles, paying a debt online): `docs/BUSINESS-BOOKS.md` section 10.
+
 All of these are on the team hub board with departments and dates (`lib/team-seed.ts`: `FUND_BACKLOG`, `LAUNCH_BACKLOG`, `COURSES_BACKLOG`, `TOPICS_BACKLOG`, `BIMI_BACKLOG`). Items can have several people (`ownerUids`; `ownerUid` stays as the first of them for older readers) and can repeat monthly (`repeat: "monthly"`: done moves the due date on a month).
 
 ## 3. How the work is done (please keep these)

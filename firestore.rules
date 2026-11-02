@@ -740,6 +740,18 @@ service cloud.firestore {
     // only by the server; the page reads them through /api/inventory.
     match /inventory/{itemId} { allow read, write: if false; }
     match /inventoryMoves/{id} { allow read, write: if false; }
+
+    // Business books (lib/books-server.ts, docs/BUSINESS-BOOKS.md): a seller's walk-in sales, expenses, customers and suppliers, Books-only
+    // items, receipts, reminders, imports and settings. All private to the seller (and an organisation's admins), and written only by the
+    // server after it checks who is acting; the page reads them through /api/books, and the public receipt and statement pages through
+    // the server, which never shows a phone number.
+    match /bookEntries/{id} { allow read, write: if false; }
+    match /bookParties/{id} { allow read, write: if false; }
+    match /bookItems/{id} { allow read, write: if false; }
+    match /bookReceipts/{code} { allow read, write: if false; }
+    match /bookReminders/{id} { allow read, write: if false; }
+    match /bookImports/{id} { allow read, write: if false; }
+    match /bookSettings/{uid} { allow read, write: if false; }
     // Reviews of store items and profile recommendations: server-only; pages read them through /api/store/reviews and /api/recommendations.
     match /storeReviews/{id} { allow read, write: if false; }
     // Subtopics (under our topics) and Market subcategories, created by members as they save (lib/subtopics-server.ts): public lists.

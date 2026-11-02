@@ -93,11 +93,12 @@ export default function StoreSellingPage() {
         liability stay with the organisation either way.
       </p>
 
-      <h2 id="business-books" className="mt-12 font-display text-2xl text-ink">Business books: join the waitlist</h2>
+      <h2 id="business-books" className="mt-12 font-display text-2xl text-ink">Business books</h2>
       <p className="mt-3 text-sm text-slate">
         For the sales you make in person: walk-in sales with receipts, expenses, stock that goes down with each sale, money owed to you
-        with reminders, and profit for a day, a week or a month, beside your online orders. It isn&apos;t open yet.{" "}
-        <Link href="/books" className="font-semibold text-crimson underline">See what it will do and join the waitlist</Link>.
+        with reminders, and profit for a day, a week or a month, beside your online orders, which come in by themselves. Free on Free Basic
+        up to a monthly limit; no limit on Pro and above.{" "}
+        <Link href="/books" className="font-semibold text-crimson underline">See what it does and start</Link>.
       </p>
 
       <h2 className="mt-12 font-display text-2xl text-ink">Who&apos;s responsible</h2>
