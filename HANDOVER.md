@@ -232,6 +232,22 @@ on `main` that isn't understood is raised with the owner first.
     Excel only; there's still no xlsx reader, so the wizard asks for CSV. The owner decided on 2 Nov 2026: no Excel library; sellers save Excel files as CSV (the wizard says how). Fixtures
     in `tests/books/fixtures/`, tests in `test:books` and `test:books-server`.
 
+93. **Nana operator and Connect NotesApp, agent layer phase 1 (v0.123.0, branch `push/agent-operator`; 91 and 92 are reserved for
+    other pending PRs):** design, decisions and code map in `docs/AGENT_LAYER.md`. **Deploy steps:** (1) `firebase deploy --only
+    firestore` (server-only rules for `agentGrants`, `agentAuthRequests`, `agentCodes`, `agentClients`, `agentUsage`,
+    `agentProposals`, `agentActions`, `agentEvents`, `nanaOps`; composite indexes `agentProposals` uid+createdAt and
+    status+expiresAt, `agentActions` uid+at). (2) TTL policies on `agentActions.expireAt`, `agentProposals.purgeAt`,
+    `agentUsage.expireAt`, `agentEvents.expireAt`. (3) cron-job.org: `GET https://www.<root>/api/cron/agents` every 15 minutes with
+    `Authorization: Bearer $CRON_SECRET`; `vercel.json` now also has a daily Vercel Cron for it (06:05 UTC, inside Hobby's once a
+    day). (4) Firebase → Authentication → Authorised domains: add `mcp.<root>` for every domain family (members sign in on the Connect
+    screen there). (5) No new environment variables. (6) Admin → Limits → "Nana and connected agents": the plan flags (`nanaOperator`
+    Business and Enterprise, `agentConnect` every plan) and the numbers (90 days, 100 actions, ₦2,000, 2 minutes, 24 hours, 48 hours,
+    12 months, 10-minute codes, 3 days, Monday 07:00). **Decisions taken while building, for the owner to confirm:** Nana's jobs stay
+    off until the member switches them on once; "confirmations go" means a thank-you to someone who already paid; journal drafts take
+    pasted notes or a voice note's words (automatic transcription is phase 2); Standard accounts may connect an assistant; an
+    account tool called without a credential answers HTTP 401 (so OAuth assistants start the Connect screen). Tests:
+    `test:agents`, `test:agents-server`, `test:mcp-server` (updated for the 401), `test:rules`.
+
 All of these are on the team hub board with departments and dates (`lib/team-seed.ts`: `FUND_BACKLOG`, `LAUNCH_BACKLOG`, `COURSES_BACKLOG`, `TOPICS_BACKLOG`, `BIMI_BACKLOG`). Items can have several people (`ownerUids`; `ownerUid` stays as the first of them for older readers) and can repeat monthly (`repeat: "monthly"`: done moves the due date on a month).
 
 ## 3. How the work is done (please keep these)
