@@ -8,6 +8,7 @@ import { certificateMetadata } from "@/lib/og";
 import Certificate from "@/components/academy/Certificate";
 import { qrSvg } from "@/lib/certificate-qr";
 import CertificateActions from "@/components/academy/CertificateActions";
+import { ROOT_DOMAIN } from "@/lib/host";
 
 export const dynamic = "force-dynamic";
 export const generateMetadata = ({ params }: { params: { id: string } }): Promise<Metadata> => certificateMetadata(normaliseCertificateId(decodeURIComponent(params.id)));
@@ -75,7 +76,7 @@ export default async function CertificatePage({ params }: { params: { id: string
           {!revoked && <CertificateActions id={c.id} ownerUid={c.uid} url={url} learnerName={c.learnerName} courseTitle={c.courseTitle} linkedIn={linkedInAddUrl(c, url)} />}
         </div>
       </div>
-      <p className="mt-8 text-center text-sm text-slate">Want to check another? Enter its ID at <Link href="/certificates" className="font-semibold text-crimson">notesapp.name.ng/certificates</Link></p>
+      <p className="mt-8 text-center text-sm text-slate">Want to check another? Enter its ID at <Link href="/certificates" className="font-semibold text-crimson">{ROOT_DOMAIN}/certificates</Link></p>
     </div>
   );
 }

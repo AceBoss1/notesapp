@@ -4,6 +4,7 @@ import { useMemo, useState, type ReactNode } from "react";
 import Link from "next/link";
 import CourseCard, { courseCardOf } from "@/components/CourseCard";
 import { courseHref, type CourseListing } from "@/lib/courses";
+import { ROOT_DOMAIN } from "@/lib/host";
 
 // The product half of Notes Academy (/academy, components/academy/AcademyPageClient.tsx puts the course catalogue between these
 // sections). Every claim here is something built (docs/COURSES.md, lib/kb-articles.ts "academy"); every number is counted from the
@@ -151,7 +152,7 @@ function CertificateVisual() {
           <img src="/images/academy/notes-academy-verifiable-certificate.webp" alt="" className="h-12 w-12" />
         </div>
       </div>
-      <p className="mt-3 text-right font-mono text-[10px] text-[#5C534E]">ID NA-C-•••••••• · notesapp.name.ng/certificates</p>
+      <p className="mt-3 text-right font-mono text-[10px] text-[#5C534E]">ID NA-C-•••••••• · {ROOT_DOMAIN}/certificates</p>
     </div>
   );
 }

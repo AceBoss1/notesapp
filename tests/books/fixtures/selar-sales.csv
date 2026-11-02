@@ -1,0 +1,5 @@
+Date,Product Name,Buyer Name,Buyer Email,Quantity,Amount,Currency,Status,Reference,Earnings
+2026-10-05 18:22,Small Business Bookkeeping (ebook),Yemi Alade,yemi@example.com,1,5000,NGN,successful,SEL-88231,4500
+2026-10-06 07:10,Small Business Bookkeeping (ebook),,kofi@example.com,1,75,GHS,successful,SEL-88232,67
+2026-10-06 09:45,Instagram Sales Masterclass,Bola Tinubu-Ade,bola@example.com,1,15000,NGN,failed,SEL-88233,0
+2026-10-07 12:00,Instagram Sales Masterclass,Bola Tinubu-Ade,bola@example.com,1,15000,NGN,successful,SEL-88234,13500

@@ -442,6 +442,9 @@ service cloud.firestore {
     match /referralWithdrawals/{id} { allow read, write: if false; }
     match /affiliateOffers/{id} { allow read, write: if false; }
     match /referralAlerts/{id} { allow read, write: if false; }
+    // The monthly referrals report (lib/referral-report-server.ts): one marker per member and month, and each month's run. Server-only.
+    match /referralReports/{id} { allow read, write: if false; }
+    match /referralReportRuns/{id} { allow read, write: if false; }
     // Discount codes and their uses (lib/discounts-server.ts): server-only; owners manage theirs through /api/discounts.
     match /discountCodes/{id} { allow read, write: if false; }
     match /discountRedemptions/{id} { allow read, write: if false; }
@@ -862,6 +865,7 @@ service cloud.firestore {
       match /{sub=**} { allow read, write: if false; }
     }
     match /adminViewLog/{id} { allow read, write: if false; }
+    match /payoutOtpLog/{id} { allow read, write: if false; } // who confirmed or resent a Paystack transfer OTP, and the result (never the OTP): server only
     match /backupLog/{id} { allow read, write: if false; } // Admin → Backups: who switched on, scheduled or restored what (server-only)
     match /socialConnections/{id} { allow read, write: if false; } // connected LinkedIn / X accounts (encrypted tokens): server only
     match /socialStates/{id} { allow read, write: if false; }
@@ -1242,12 +1246,22 @@ service cloud.firestore {
         && request.resource.data.name is string
         && request.resource.data.email is string
         && request.resource.data.category is string
+        // The one-month feedback, the Naija Exam Prep reviewer sign-up and the Business books waitlist come only through their
+        // rate-limited server routes (/api/feedback, /api/exam-prep/reviewers, /api/books/waitlist; lib/leads-server.ts), never
+        // straight from a browser.
+        && !(request.resource.data.category in ['feedback', 'volunteer', 'books-waitlist'])
         && request.resource.data.message is string;
 
       // Lead information is private. Customer care and growth read and manage leads through /api/admin/leads, with the
       // sender's email masked (lib/pii.ts); no browser reads them directly.
       allow read, update, delete: if false;
     }
+
+    // Announcements to every member (Admin → Announcements, /api/admin/announcements, lib/announcements-server.ts) and the record of
+    // who each one reached (one per member, so a send is never repeated): server only. Members read a sent one at
+    // /announcements/{id}, rendered by the server.
+    match /announcements/{id} { allow read, write: if false; }
+    match /announcementSends/{id} { allow read, write: if false; }
 
     // ============================================================
     // NOTIFICATIONS — NOTESAPP
@@ -1271,6 +1285,15 @@ service cloud.firestore {
 
       allow delete: if false;
     }
+
+    // ============================================================
+    // COURSE COVERS MADE WITH NANA (lib/covers-server.ts)
+    // ============================================================
+    // The recent covers per course, each member's daily count, and (development only) the pictures themselves: all written and read
+    // by the server, through /api/academy/covers, which checks the member teaches the course. No browser reads them directly.
+    match /courseCovers/{courseId} { allow read, write: if false; }
+    match /coverCounts/{countId} { allow read, write: if false; }
+    match /coverImages/{imageId} { allow read, write: if false; }
 
   }
 }

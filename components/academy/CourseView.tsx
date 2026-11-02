@@ -18,6 +18,7 @@ import { naira } from "@/lib/discounts";
 import AcademyFaq from "./AcademyFaq";
 import { useBottomTabs } from "@/components/shell/BottomTabs";
 import ShareRow from "./ShareRow";
+import { ShareMenu } from "@/components/share/ShareToNotesApp";
 import ReviewsPanel, { Stars } from "@/components/ReviewsPanel";
 import { useCourseSocial, useSavedCourses } from "@/lib/course-social-client";
 import {
@@ -38,6 +39,7 @@ export default function CourseView({ slug, site }: { slug: string; site?: { base
   const c = useCourse(slug);
   const { course, lessons, enrolment, user, preview } = c;
   const [busy, setBusy] = useState(false);
+  const [sharing, setSharing] = useState(false); // the share sheet: Moments, Journals, another app, Copy link
   const [error, setError] = useState("");
   const [disc, setDisc] = useState<{ code: string; discountKobo: number } | null>(null);
   const [tab, setTab] = useState<Tab>("overview");
@@ -157,6 +159,9 @@ export default function CourseView({ slug, site }: { slug: string; site?: { base
                   <span className="block font-mono text-xs text-paper/75">{tutors.length === 1 ? `@${course.ownerUsername} · ${course.isOrg ? "Organisation" : "Teacher"}` : `${course.isOrg ? course.ownerName : "Co-taught"} · ${plural(tutors.length, "tutor")}`}</span>
                 </span>
               </Link>
+              {course.isOrg && course.madeByName && (
+                <Link href={`/u/${course.madeByUsername}`} className="w-fit font-ui text-sm text-paper/85 hover:text-paper" data-testid="course-teacher">Taught by <b className="font-semibold text-paper">{course.madeByName}</b></Link>
+              )}
               <PlaysLife uid={course.ownerUid} className="mt-2 !bg-white/15 !text-paper hover:!bg-white/25" />
               {social && showsRating(social.rating) && (
                 <button type="button" onClick={() => openTab("reviews")} className="flex w-fit items-center gap-2 text-sm">
@@ -184,10 +189,11 @@ export default function CourseView({ slug, site }: { slug: string; site?: { base
               <BookmarkIcon on={saved.has(course.id)} />{saved.has(course.id) ? "Saved" : "Save"}
             </button>
             <button type="button" onClick={() => openTab("reviews")} className="flex items-center gap-1.5 rounded-full px-3 py-2 hover:bg-paper"><span aria-hidden className="text-amber-500">★</span>Review</button>
-            <button type="button" onClick={async () => { try { if (navigator.share) await navigator.share({ title: course.title, url: shareUrl }); else { await navigator.clipboard.writeText(shareUrl); flash("Link copied"); } } catch {} }}
+            <button type="button" onClick={() => setSharing(true)}
               className="flex items-center gap-1.5 rounded-full px-3 py-2 hover:bg-paper"><span aria-hidden>↗</span>Share</button>
           </div>
           {note && <p role="status" className="pb-2 text-center text-xs font-semibold text-crimson">{note}</p>}
+          {sharing && <ShareMenu shareRef={course.status === "published" ? { kind: "course", id: course.id } : null} url={shareUrl} title={course.title} onClose={() => setSharing(false)} />}
         </div>
       )}
 
@@ -220,7 +226,7 @@ export default function CourseView({ slug, site }: { slug: string; site?: { base
             {!preview && (
               <div className="card p-5">
                 <p className="font-ui text-sm font-bold text-ink">Share this course</p>
-                <div className="mt-3"><ShareRow url={shareUrl} title={course.title} /></div>
+                <div className="mt-3"><ShareRow url={shareUrl} title={course.title} shareRef={course.status === "published" ? { kind: "course", id: course.id } : undefined} /></div>
               </div>
             )}
             <div className="card p-5 text-sm">

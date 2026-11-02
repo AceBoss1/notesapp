@@ -88,6 +88,16 @@ export function occurrences(e: Pick<EventDoc, "startsAt" | "endsAt" | "repeat" |
   return out;
 }
 export const nextOccurrence = (e: Pick<EventDoc, "startsAt" | "endsAt" | "repeat" | "repeatUntil" | "cancelled">, now: Date) => (e.cancelled ? null : occurrences(e, now, 1)[0] ?? null);
+// Explore and Trending (owner, 2 Nov 2026: "explore and trending should also list events"). Only what anyone may see: a public event,
+// not cancelled, with an occurrence that hasn't ended, and, for a community's event, a community anyone can find (not invite-only).
+export function isListedEvent(e: Pick<EventDoc, "startsAt" | "endsAt" | "repeat" | "repeatUntil" | "cancelled" | "visibility" | "cid">, now: Date, communityFindable: boolean): boolean {
+  if (e.visibility !== "public" || e.cancelled) return false;
+  if (e.cid && !communityFindable) return false;
+  return nextOccurrence(e, now) !== null;
+}
+// Trending → Events: interest in the period. A ticket sold counts most, then an RSVP (Going or Interested), then a visit to its page,
+// like the store's "a save counts five looks" and communities' trendScore.
+export const eventTrendScore = (a: { views: number; rsvps: number; tickets: number }) => a.tickets * 5 + a.rsvps * 3 + a.views;
 export const isLive = (e: Pick<EventDoc, "startsAt" | "endsAt" | "repeat" | "repeatUntil" | "cancelled">, now: Date) => { const o = nextOccurrence(e, now); return !!o && o.start <= now && o.end > now; };
 
 // ---- Reminders: 24 hours and 1 hour before each start (the cron runs every ~15 minutes; each is sent once, keyed by the start) ----

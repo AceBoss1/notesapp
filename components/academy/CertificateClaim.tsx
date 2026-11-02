@@ -9,6 +9,7 @@ import { courseHref } from "@/lib/courses";
 import { firstName } from "@/lib/nana";
 import type { Quote } from "@/lib/certificates-server";
 import Certificate from "./Certificate";
+import { SITE_URL } from "@/lib/host";
 
 const naira = (kobo: number) => `₦${Math.round(kobo / 100).toLocaleString("en-NG")}`;
 const day = (iso: string) => new Date(iso).toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short", timeZone: "Africa/Lagos" });
@@ -62,7 +63,7 @@ export default function CertificateClaim({ slug }: { slug: string }) {
         </div>
         <div className="grid gap-8 p-6 sm:p-8 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,1fr)]">
           <div className="min-w-0">
-            <div className="rounded-2xl border border-rule p-1.5">{q ? <Certificate face={{ ...q.face, learnerName: name || q.face.learnerName }} verifyUrl="https://www.notesapp.name.ng/certificates/NA-C-XXXXXXXX" preview /> : <div className="aspect-[1.414] animate-pulse rounded-xl bg-paper" />}</div>
+            <div className="rounded-2xl border border-rule p-1.5">{q ? <Certificate face={{ ...q.face, learnerName: name || q.face.learnerName }} verifyUrl={`${SITE_URL}/certificates/NA-C-XXXXXXXX`} preview /> : <div className="aspect-[1.414] animate-pulse rounded-xl bg-paper" />}</div>
             <p className="mt-2 text-sm text-slate">Verifiable by anyone with its QR code or ID. You can add it to LinkedIn and share it once it&apos;s yours.</p>
           </div>
           <div className="min-w-0">

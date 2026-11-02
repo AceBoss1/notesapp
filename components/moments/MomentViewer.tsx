@@ -12,6 +12,7 @@ import { getUserByUsername } from "@/lib/users";
 import FollowButton from "@/components/FollowButton";
 import MessageButton from "@/components/messages/MessageButton";
 import ReportDialog from "./ReportDialog";
+import ShareLinkCard from "@/components/share/ShareLinkCard";
 
 const STILL_MS = 6000; // how long an image or text moment stays before the next one
 
@@ -197,6 +198,7 @@ export default function MomentViewer({ moments, onClose, onChanged, groups, onSe
               onEnded={() => { if (advanced.current !== m.id) { advanced.current = m.id; next(); } }}
             />
           )}
+          {m.kind === "link" && m.link && <div className="flex w-full justify-center px-6 pb-24"><ShareLinkCard link={m.link} /></div>}
           {m.kind === "text" && <p className="px-8 text-center font-display text-3xl leading-snug"><LinkedText text={m.text ?? ""} linkClass="text-white underline underline-offset-4" /></p>}
           {m.audioUrl && <audio key={m.id} src={m.audioUrl} autoPlay />}
         </div>
@@ -294,7 +296,7 @@ export default function MomentViewer({ moments, onClose, onChanged, groups, onSe
         )}
         <div className={card}>
           <p className="font-mono text-[11px] uppercase tracking-eyebrow text-pink-300">This moment</p>
-          <p className="mt-2 font-display text-2xl">{m.kind === "video" ? "Video" : m.kind === "image" ? "Picture" : "Text"}{length ? ` · ${Math.floor(length / 60)}:${String(Math.round(length % 60)).padStart(2, "0")}` : ""}</p>
+          <p className="mt-2 font-display text-2xl">{m.kind === "video" ? "Video" : m.kind === "image" ? "Picture" : m.kind === "link" ? `Shared ${m.link?.label.toLowerCase() ?? "link"}` : "Text"}{length ? ` · ${Math.floor(length / 60)}:${String(Math.round(length % 60)).padStart(2, "0")}` : ""}</p>
           <p className="mt-2 text-xs text-white/60">Posted {ago(m.createdAt)} ago · lasts {m.hours} hours · {timeLeftLabel(m.expiresAt)}</p>
         </div>
         {nextGroup && onSelectGroup && <p className="text-center text-xs text-white/50">Moves on to {nextGroup.displayName} next</p>}

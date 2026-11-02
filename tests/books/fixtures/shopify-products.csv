@@ -1,0 +1,6 @@
+Handle,Title,Body (HTML),Vendor,Type,Tags,Published,Option1 Name,Option1 Value,Option2 Name,Option2 Value,Option3 Name,Option3 Value,Variant SKU,Variant Grams,Variant Inventory Tracker,Variant Inventory Qty,Variant Inventory Policy,Variant Fulfillment Service,Variant Price,Variant Compare At Price,Variant Requires Shipping,Variant Taxable,Variant Barcode,Image Src,Image Position,Image Alt Text,Gift Card,Status,Cost per item
+ankara-gown,Ankara Gown,<p>Wax print</p>,Kemi Stores,Clothing,,TRUE,Size,S,,,,,ANK-GWN-S,,shopify,4,deny,manual,18500.00,22000.00,TRUE,FALSE,,https://cdn.shopify.com/a1.jpg,1,,FALSE,active,11000.00
+ankara-gown,,,,,,,,M,,,,,ANK-GWN-M,,shopify,6,,,18500.00,,,,,,,,,,11000.00
+ankara-gown,,,,,,,,L,,,,,ANK-GWN-L,,shopify,-1,,,19500.00,,,,,,,,,,11500.00
+ankara-gown,,,,,,,,,,,,,,,,,,,,,,,,https://cdn.shopify.com/a2.jpg,2,,,,
+shea-butter-250g,Shea Butter 250g,,Kemi Stores,Beauty,,TRUE,Title,Default Title,,,,,SHEA-250,,,30,,,3500.00,,,,,,,,,active,2100.00

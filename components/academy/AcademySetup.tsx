@@ -7,6 +7,7 @@ import { api } from "@/lib/moments-client";
 import { uploadToR2 } from "@/lib/upload";
 import { faceFor, type Academy } from "@/lib/certificates";
 import Certificate from "./Certificate";
+import { SITE_URL } from "@/lib/host";
 
 type Form = { name: string; subtext: string; website: string; logoUrl: string; signerName: string; signerTitle: string; signatureUrl: string; margin: string; accName: string; accLogoUrl: string; accProof: string };
 const EMPTY: Form = { name: "", subtext: "", website: "", logoUrl: "", signerName: "", signerTitle: "", signatureUrl: "", margin: "0", accName: "", accLogoUrl: "", accProof: "" };
@@ -186,7 +187,7 @@ export default function AcademySetup() {
         <aside className="min-w-0">
           <div className="lg:sticky lg:top-24">
             <p className="eyebrow">Preview</p>
-            <div className="mt-2 rounded-2xl border border-rule bg-card p-2 shadow-sm"><Certificate face={sample} verifyUrl="https://www.notesapp.name.ng/certificates/NA-C-7K2M9QXD" slots /></div>
+            <div className="mt-2 rounded-2xl border border-rule bg-card p-2 shadow-sm"><Certificate face={sample} verifyUrl={`${SITE_URL}/certificates/NA-C-7K2M9QXD`} slots /></div>
             <p className="mt-2 text-xs text-slate">A learner&apos;s name, course and date are shown as an example. The top-right space shows an accrediting institution once approved. &quot;#NotesApp Certified Course&quot; (top left) is added by our team to courses we&apos;ve reviewed.</p>
           </div>
         </aside>

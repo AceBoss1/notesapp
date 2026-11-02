@@ -7,10 +7,14 @@ import assert from "node:assert/strict";
 import {
   booksAccess, canAddDebtor, capState, cashInHand, changePct, countsTowardCap, debtors, firstName, footnote, isDay, lagosDay, linesCost, linesTotal,
   maskPhone, naira, periodOf, pnl, receiptText, reminderText, settleFifo, toKobo, usageFor, waLink, waPhone, whatOf, type Entry, type Party,
+  can, debtAmount, debtCommissionKobo, staffSeats, type BooksAct,
 } from "../../lib/books";
-import { FIELDS, PRESETS, csvOf, customerKey, dedupe, expenseKey, guessMapping, missingRequired, parseDay, parseMethod, readRows, readSheet, saleKey, templateCsv, cleanMapping, type Sheet } from "../../lib/books-import";
+import {
+  FIELDS, PRESETS, SOURCES, csvOf, customerKey, dedupe, detectSource, expenseKey, guessBankLine, guessMapping, missingRequired, parseDay, parseMethod, parseWhen, presetFor,
+  readRows, readSheet, refKey, saleKey, saleStatus, signedKobo, statementFromPdfLines, templateCsv, cleanMapping, type ImportKind, type Sheet, type SaleRow, type SourceId,
+} from "../../lib/books-import";
+import { readFileSync } from "node:fs";
 import { DEFAULT_PRICING } from "../../lib/pricing";
-import { can, debtAmount, debtCommissionKobo, staffSeats, type BooksAct } from "../../lib/books";
 import { cleanDrafts, matchItem, nanaPrompt, parseDue, parseNaira, readReply, standInEntries, type NanaItem } from "../../lib/books-nana";
 import { applyResults, backoff, badgeText, batchFailed, due, enqueue, prune, recordedAt, resultText, retry, waitingCount, type OutboxItem } from "../../lib/books-outbox";
 import { inSendWindow, monthById, previousMonth, renderReportHtml, renderReportText, reportBell, reportFrom, reportMonth, reportSubject } from "../../lib/books-report";
@@ -166,7 +170,7 @@ assert.deepEqual(guessMapping(["Product Name", "Category", "Cost Price", "Sellin
 assert.deepEqual(guessMapping(["Date", "Amount", "Narration"], "expenses"), ["date", "amount", "description"]);
 assert.deepEqual(missingRequired(["date", "", ""], "expenses"), ["Amount (₦)"]);
 assert.deepEqual(cleanMapping(["name", "name", "bogus"], ["a", "b", "c"], "stock"), ["name", "", ""], "each field once, and only real fields");
-for (const k of ["stock", "sales", "expenses", "customers"] as const) {
+for (const k of ["stock", "sales", "expenses", "customers", "bank"] as const) {
   const s = readSheet(templateCsv(k)) as Sheet;
   const m = guessMapping(s.headers, k);
   assert.deepEqual(missingRequired(m, k), [], `the ${k} template matches by itself`);
@@ -399,5 +403,128 @@ assert.ok(!html.includes("<script"), "no scripts in an email");
 const noProfit = reportFrom(octP, null, { ...rep, owed: rep.owed, low: rep.low }, false);
 assert.equal(noProfit.profitKobo, null);
 assert.ok(!renderReportHtml(noProfit).includes("PROFIT IN") && !reportSubject(noProfit).includes("profit"));
+
+// ---- Sources: Shopify, WooCommerce, Selar, Bumpa, Paystack, bank statements (fixtures in tests/books/fixtures, made up to match each
+// export's headings: verified ones from the source's help pages, guessed ones as lib/books-import.ts says) ----
+const fixture = (name: string) => readSheet(readFileSync(new URL(`./fixtures/${name}`, import.meta.url), "utf8")) as Sheet;
+const TODAY = "2026-11-02";
+const load = <K extends ImportKind>(name: string, source: SourceId, kind: K) => {
+  const s = fixture(name), p = presetFor(source, kind);
+  const m = guessMapping(s.headers, kind, p);
+  assert.deepEqual(missingRequired(m, kind), [], `${name}: every needed column is matched`);
+  return { s, m, ...readRows(s, m, kind, TODAY, p) };
+};
+// Every source in the wizard has steps, and every preset belongs to a source that lists its kind.
+for (const src of SOURCES) assert.ok(src.steps.length >= 2 && src.kinds.length, `${src.id} has export steps`);
+for (const p of PRESETS) assert.ok(SOURCES.find((x) => x.id === p.source)?.kinds.includes(p.kind), `${p.id} is offered by its source`);
+assert.ok(!SOURCES.find((x) => x.id === "selar")!.kinds.includes("stock"), "Selar sells digital items: no stock list");
+
+// Detection from the headings.
+const det = (n: string) => detectSource(fixture(n).headers)?.id ?? null;
+assert.equal(det("shopify-products.csv"), "shopify-stock"); assert.equal(det("shopify-products-new.csv"), "shopify-stock");
+assert.equal(det("shopify-orders.csv"), "shopify-sales"); assert.equal(det("woo-products.csv"), "woo-stock");
+assert.equal(det("woo-orders.csv"), "woo-sales"); assert.equal(det("woo-orders-advanced.csv"), "woo-sales");
+assert.equal(det("paystack-transactions.csv"), "paystack-sales");
+for (const b of ["bank-gtbank.csv", "bank-kuda.csv", "bank-signed.csv"]) assert.equal(det(b), "bank-statement", b);
+assert.equal(detectSource(["Product Name", "Category", "Cost Price", "Selling Price", "Stock Quantity", "Unit"])?.id, "tralo-stock");
+assert.equal(detectSource(["name", "phone", "owes"]), null, "a plain sheet isn't any app's");
+assert.equal(det("selar-sales.csv"), null, "Selar's headings aren't verified, so it isn't guessed from them");
+
+// Shopify products: each option its own item, the image-only row skipped, "Default Title" dropped, negative stock as 0.
+const shp = load("shopify-products.csv", "shopify", "stock");
+assert.deepEqual(shp.rows.map((r) => [r.name, r.sku, r.priceKobo, r.costKobo, r.stock]), [
+  ["Ankara Gown (S)", "ANK-GWN-S", 1_850_000, 1_100_000, 4], ["Ankara Gown (M)", "ANK-GWN-M", 1_850_000, 1_100_000, 6],
+  ["Ankara Gown (L)", "ANK-GWN-L", 1_950_000, 1_150_000, 0], ["Shea Butter 250g", "SHEA-250", 350_000, 210_000, 30]]);
+assert.equal(shp.problems.length, 0); assert.match(shp.notes[0].message, /stock was -1/);
+assert.equal(shp.m[shp.s.headers.indexOf("Variant Compare At Price")], "", "Shopify's other columns are left out, not guessed");
+assert.deepEqual(load("shopify-products-new.csv", "shopify", "stock").rows.map((r) => r.name), ["Adire Shirt (M / Blue)", "Adire Shirt (L / Blue)"], "today's Shopify headings too");
+
+// Shopify orders: lines grouped by order, only paid ones, refunds, part paid, Lagos time.
+const sho = load("shopify-orders.csv", "shopify", "sales");
+assert.deepEqual(sho.rows.map((r) => r.ref), ["#1001", "#1002", "#1003", "#1004"]);
+const o1 = sho.rows[0];
+assert.deepEqual(o1.lines, [{ title: "Ankara Gown - S", qty: 2, unitKobo: 1_850_000 }, { title: "Shea Butter 250g", qty: 1, unitKobo: 350_000 }]);
+assert.equal(o1.totalKobo, 4_300_000, "the order's total, with delivery"); assert.equal(o1.at, "2026-10-12T13:05:00.000Z"); assert.equal(o1.method, "card");
+assert.equal(o1.customer, "Bisi Adebayo"); assert.equal(o1.email, "bisi@example.com"); assert.equal(o1.phone, "2348031110001");
+assert.equal(sho.rows[1].refundKobo, 350_000, "refunded: the whole order comes back");
+assert.equal(sho.rows[2].refundKobo, 1_850_000, "partially refunded: the refunded amount");
+assert.equal(sho.rows[3].paidKobo, 1_000_000, "partially paid: the outstanding balance is owed");
+assert.deepEqual(sho.skipped.map((x) => x.row), [7, 8]); assert.match(sho.skipped[0].message, /pending/);
+// Currency: a store in dollars is refused, with a clear message.
+const usd = load("shopify-orders-usd.csv", "shopify", "sales");
+assert.equal(usd.rows.length, 0); assert.match(usd.problems[0].message, /is in USD\. Books keeps naira only/);
+
+// WooCommerce: the variable product is skipped and its variations come in; orders from either plugin.
+const wp = load("woo-products.csv", "woo", "stock");
+assert.deepEqual(wp.rows.map((r) => [r.name, r.sku, r.stock]), [["Garri, white (5 litre)", "GARRI-5L", 40], ["Hoodie - Blue", "HOODIE-BLU", 7], ["Hoodie (Black)", "HOODIE-BLK", 0]]);
+assert.equal(wp.rows[0].category, "Foodstuff", "the top category of 'Foodstuff > Grains'"); assert.equal(wp.rows[0].lowAt, 5);
+assert.match(wp.skipped[0].message, /has options/);
+const wo = load("woo-orders.csv", "woo", "sales");
+assert.deepEqual(wo.rows.map((r) => [r.ref, r.totalKobo, r.customer, r.refundKobo ?? 0]), [["501", 670_000, "Femi Ade", 0], ["502", 2_200_000, "Halima Musa", 0], ["504", 250_000, "Sade", 250_000]]);
+assert.equal(wo.rows[1].lines?.length, 2, "one row per item, one sale"); assert.equal(wo.rows[1].lines?.[1].unitKobo, 1_000_000, "price each from the line total");
+assert.equal(wo.m[wo.s.headers.indexOf("fee_total")], "", "Woo's fee_total isn't a payment fee");
+assert.match(wo.skipped[0].message, /cancelled/);
+const wa = load("woo-orders-advanced.csv", "woo", "sales");
+assert.deepEqual([wa.rows[0].ref, wa.rows[0].customer, wa.rows[0].method, wa.rows[0].totalKobo], ["610", "Ifeoma Nwosu", "transfer", 500_000]);
+
+// Selar: sales and buyers; failed ones out; cedis refused.
+const se = load("selar-sales.csv", "selar", "sales");
+assert.deepEqual(se.rows.map((r) => [r.ref, r.email, r.totalKobo]), [["SEL-88231", "yemi@example.com", 500_000], ["SEL-88234", "bola@example.com", 1_500_000]]);
+assert.match(se.problems[0].message, /cedis/); assert.match(se.skipped[0].message, /failed/);
+
+// Bumpa: options as items, part-paid and unpaid orders owed, customers with what they owe.
+assert.deepEqual(load("bumpa-products.csv", "bumpa", "stock").rows.map((r) => r.name), ["Hair Cream", "Lace Wig (14 inches)", "Lace Wig (18 inches)"]);
+const bo = load("bumpa-orders.csv", "bumpa", "sales");
+assert.deepEqual(bo.rows.map((r) => [r.ref, r.totalKobo - r.paidKobo]), [["BMP-1001", 2_500_000], ["BMP-1002", 1_000_000], ["BMP-1003", 0]]);
+const bc = load("bumpa-customers.csv", "bumpa", "customers");
+assert.deepEqual(bc.rows.map((r) => [r.name, r.owesKobo, r.email ?? ""]), [["Mama Bisi", 2_500_000, ""], ["Zainab", 0, "zainab@example.com"], ["Kola Stores", 1_200_000, "kola@example.com"]]);
+assert.equal(bc.m[bc.s.headers.indexOf("Total Spent")], "", "what they spent isn't what they owe");
+
+// Paystack: only successful ones; our own references skipped; fees kept for the expense line; transfer and card channels.
+const ps = load("paystack-transactions.csv", "paystack", "sales");
+assert.deepEqual(ps.rows.map((r) => r.ref), ["T812345678901", "T812345678902", "ORDER-REF-ONLINE", "T812345678906"], "the server skips ORDER-REF-ONLINE if it's an online_ entry");
+assert.deepEqual(ps.rows.map((r) => r.method), ["card", "transfer", "card", "transfer"]);
+assert.deepEqual(ps.rows.map((r) => r.feeKobo), [15_000, 37_500, 10_500, 4_500]);
+assert.equal(ps.rows[0].title, "Paystack payment T812345678901", "no item: named by its reference");
+assert.deepEqual(ps.skipped.map((x) => x.row), [4, 5, 6, 7]);
+assert.match(ps.skipped[3].message, /#NotesApp order/); assert.match(ps.skipped[2].message, /reversed/);
+assert.equal(saleStatus("processing", true), "skip", "Paystack: only success"); assert.equal(saleStatus("processing"), "sale", "Woo: processing is paid");
+assert.equal(saleStatus("wc-completed"), "sale"); assert.equal(saleStatus("Partially Paid"), "part"); assert.equal(saleStatus("unpaid"), "credit"); assert.equal(saleStatus("authorized"), "skip");
+
+// Re-importing: matched by the order number first, then a refund since only adds the refund.
+const srcKey = (r: SaleRow) => (r.ref ? refKey("shopify", r.ref) : saleKey(r.on, r.totalKobo, r.title));
+const inBooks = new Set(sho.rows.map(srcKey));
+assert.equal(dedupe(sho.rows, srcKey, inBooks).fresh.length, 0, "the same Shopify export twice adds nothing");
+assert.equal(refKey("shopify", "#1001 "), refKey("shopify", "#1001"));
+assert.notEqual(refKey("shopify", "1001"), refKey("woo", "1001"), "the same number from two shops are two orders");
+// Two orders on the same day for the same amount and item are both kept when they have their own numbers.
+const twin = dedupe([{ ...o1, ref: "#9" }, { ...o1, ref: "#10" }] as SaleRow[], srcKey, new Set());
+assert.equal(twin.fresh.length, 2);
+
+// Bank statements: the account heading lines and the totals row are left out; credits, debits, signed amounts, CR/DR.
+const gt = load("bank-gtbank.csv", "bank", "bank");
+assert.equal(gt.rows.length, 6); assert.equal(gt.problems.length, 0);
+assert.deepEqual(gt.rows.map((r) => [r.inKobo, r.outKobo, r.as, r.category, r.tick]), [
+  [4_500_000, 0, "sale", "", true], [0, 1_800_000, "expense", "transport", true], [0, 4_000, "expense", "bank", true],
+  [0, 500_000, "expense", "data", true], [10_000_000, 0, "skip", "", false], [0, 2_500_000, "expense", "power", true]]);
+const kd = load("bank-kuda.csv", "bank", "bank");
+assert.deepEqual(kd.rows.map((r) => [r.on, r.inKobo, r.outKobo, r.category]), [["2026-10-10", 1_250_000, 0, ""], ["2026-10-10", 0, 6_000_000, "rent"]]);
+const sg = load("bank-signed.csv", "bank", "bank");
+assert.deepEqual(sg.rows.map((r) => [r.inKobo, r.outKobo]), [[1_500_000, 0], [0, 1_200_000]]);
+assert.equal(signedKobo("5,000.00 DR"), -500_000); assert.equal(signedKobo("(1,200)"), -120_000); assert.equal(signedKobo("₦45,000.00 CR"), 4_500_000); assert.equal(signedKobo("-"), undefined);
+assert.deepEqual([guessBankLine("NEPA BILL", false).category, guessBankLine("STAMP DUTY", false).category, guessBankLine("TRF TO JOHN", false).tick, guessBankLine("REVERSAL OF FT123", true).as], ["power", "bank", false, "skip"]);
+// A text PDF statement: lines with a date and two amounts; which way the money went from the balance.
+const pdf = statementFromPdfLines(["GUARANTY TRUST BANK", "Opening Balance 107,000.00", "12/10/2026 12/10/2026 TRF FROM BISI ADEBAYO 45,000.00 152,000.00", "12/10/2026 12/10/2026 POS PURCHASE FUEL 18,000.00 134,000.00", "Page 1 of 1"]);
+assert.ok(pdf);
+const pr = readRows(readSheet(pdf!) as Sheet, guessMapping((readSheet(pdf!) as Sheet).headers, "bank"), "bank", TODAY);
+assert.deepEqual(pr.rows.map((r) => [r.narration, r.inKobo, r.outKobo]), [["TRF FROM BISI ADEBAYO", 4_500_000, 0], ["POS PURCHASE FUEL", 0, 1_800_000]]);
+assert.equal(statementFromPdfLines(["A scanned page", "no text here"]), null, "a scan: ask for CSV");
+// Dates and times as apps write them.
+assert.deepEqual(parseWhen("2026-10-12 14:05:33 +0100"), { on: "2026-10-12", hm: "14:05" });
+assert.deepEqual(parseWhen("2026-10-12T23:30:00.000Z"), { on: "2026-10-13", hm: "00:30" }, "UTC late at night is the next Lagos day");
+assert.deepEqual(parseWhen("Oct 12, 2026, 2:05 PM"), { on: "2026-10-12", hm: "14:05" });
+assert.equal(parseDay("12-OCT-26"), "2026-10-12");
+assert.equal(parseMethod("Credit card"), "pos", "a credit card isn't a sale on credit");
+assert.equal(customerKey("", "Bisi", "Bisi@Example.com"), "e:bisi@example.com");
 
 console.log("ALL OK");

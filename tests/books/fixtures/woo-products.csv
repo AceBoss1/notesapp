@@ -1,0 +1,5 @@
+ID,Type,SKU,Name,Published,Is featured?,Visibility in catalog,Short description,Description,Tax status,In stock?,Stock,Low stock amount,Backorders allowed?,Sale price,Regular price,Categories,Tags,Images,Parent,Attribute 1 name,Attribute 1 value(s),Attribute 1 visible,Attribute 1 global
+21,simple,GARRI-5L,"Garri, white (5 litre)",1,0,visible,,,taxable,1,40,5,,,2500,Foodstuff > Grains,,,,,,,
+30,variable,HOODIE,Hoodie,1,,,,,,1,,,,,,Clothing,,,,Colour,"Blue, Black",,
+31,variation,HOODIE-BLU,Hoodie - Blue,1,,,,,,1,7,,,10000,12000,,,,id:30,Colour,Blue,,
+32,variation,HOODIE-BLK,,1,,,,,,0,-2,,,,12000,,,,id:30,Colour,Black,,

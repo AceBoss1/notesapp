@@ -1,10 +1,12 @@
 // Business books against the emulators (lib/books-server.ts): who may keep a seller's books, a walk-in sale with its receipt and the
 // stock it lowers, an expense, customers owing and paying back, reminders (email and bell for members, WhatsApp for others, one a day),
-// online orders flowing in (and refunds), the Free Basic caps, an import with its dry run and duplicates, and undo. Then (v0.119.0): staff
-// roles (each role's limits on the server), Nana entries with a stubbed model and the allowance, offline entries synced once (every kind),
-// a purchase, paying a debt online with a stubbed Paystack (webhook-safe), and the monthly email (once per seller and month).
+// online orders flowing in (and refunds), the Free Basic caps, an import with its dry run and duplicates, and undo, and the app
+// imports (Shopify orders with refunds, Paystack skipping our own orders with its fees, a bank statement chosen line by line). Then
+// (v0.119.0): staff roles (each role's limits on the server), Nana entries with a stubbed model and the allowance, offline entries synced
+// once (every kind), a purchase, paying a debt online with a stubbed Paystack (webhook-safe), and the monthly email (once per seller and month).
 // Run: npm run test:books-server → "ALL OK".
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 process.env.ANTHROPIC_API_KEY = "test-key"; // Nana on "our" account; the model itself is stubbed below
 process.env.PAYSTACK_SECRET_KEY = "sk_test_standin"; // Paystack is stubbed below: no network, no money
 import { initializeApp } from "firebase-admin/app";
@@ -13,10 +15,10 @@ import { getFirestore } from "firebase-admin/firestore";
 import {
   BooksError, applyImport, bookOnlineOrder, canUseBooks, catalog, context, entriesView, exportAll, homeView, importsView, owedView, planImport, pnlView,
   publicReceipt, publicStatement, recordExpense, recordPayment, recordSale, remind, saveParty, shareReceipt, stopReminders, supplierPaid, undoImport, voidEntry,
+  booksRoleOf, recordPurchase,
 } from "../../lib/books-server";
 import { lagosDay } from "../../lib/books";
 import { templateCsv } from "../../lib/books-import";
-import { booksRoleOf, recordPurchase } from "../../lib/books-server";
 import { answerStaffInvite, cashierHome, catalogFor, inviteStaff, removeStaff, revokeInvite, setStaffRole, staffView } from "../../lib/books-staff-server";
 import { nanaEntries } from "../../lib/books-nana-server";
 import { syncOutbox } from "../../lib/books-sync-server";
@@ -243,7 +245,7 @@ const later = new Date(Date.parse(`${today}T00:00:00Z`) + 10 * 86_400_000).toISO
 2026-10-12,09:00,Garri,2,2500,,,cash,5000,no,
 2026-10-13,10:00,Ankara,1,18000,,,mobile money,18000,no,`;
   const dry = await planImport(k3, { kind: "sales", csv: tralo, preset: "tralo-sales" });
-  assert.deepEqual(dry.plan.counts, { fresh: 3, updates: 0, dupes: 1, problems: 0 });
+  assert.deepEqual(dry.plan.counts, { fresh: 3, updates: 0, dupes: 1, problems: 0, skipped: 0 });
   assert.ok(dry.plan.notes.some((n) => /goes to Money owed to you/.test(n.message)));
   assert.equal((await db.collection("bookEntries").where("importId", "!=", "").get()).size, 0, "a dry run saves nothing");
   const imp = await applyImport(k3, { kind: "sales", csv: tralo, preset: "tralo-sales", fileName: "tralo-sales.csv" });
@@ -272,7 +274,7 @@ Bad row,,Foodstuff,7000,9500,-2,bag`;
   await fails(applyImport(k3, { kind: "stock", csv: stockCsv }), 400);
   const fixed = stockCsv.split("\n").slice(0, 4).join("\n");
   const sp2 = await planImport(k3, { kind: "stock", csv: fixed });
-  assert.deepEqual(sp2.plan.counts, { fresh: 1, updates: 1, dupes: 1, problems: 0 });
+  assert.deepEqual(sp2.plan.counts, { fresh: 1, updates: 1, dupes: 1, problems: 0, skipped: 0 });
   const riceNow = (await db.doc("storeItems/rice").get()).data()!.stock;
   const si = await applyImport(k3, { kind: "stock", csv: fixed, fileName: "stock.csv" });
   assert.equal((await db.doc("storeItems/rice").get()).data()!.stock, 30);
@@ -297,6 +299,77 @@ Bad row,,Foodstuff,7000,9500,-2,bag`;
   const big = "date,amount\n" + Array.from({ length: 501 }, (_, i) => `2026-10-01,${i + 1}`).join("\n");
   await fails(planImport(k3, { kind: "expenses", csv: big }), 402, "import_rows");
   assert.equal((await planImport(pro, { kind: "expenses", csv: big })).plan.counts.fresh, 501);
+
+  // ---- Imports from other apps (fixtures in tests/books/fixtures) ----
+  const fx = (n: string) => readFileSync(new URL(`./fixtures/${n}`, import.meta.url), "utf8");
+  const ofImport = async (id: string) => (await db.collection("bookEntries").where("importId", "==", id).get()).docs.map((d) => d.data());
+  // Shopify orders: paid ones in, pending and voided out, refunds as refunds, the part-paid one owed. Then again: nothing new.
+  const shopify = fx("shopify-orders.csv");
+  const sd = await planImport(pro, { kind: "sales", csv: shopify, preset: "shopify-sales" });
+  assert.deepEqual(sd.plan.counts, { fresh: 4, updates: 0, dupes: 0, problems: 0, skipped: 2 });
+  assert.equal(sd.plan.source, "shopify");
+  const partiesBefore = new Set((await db.collection("bookParties").where("ownerUid", "==", "prox").get()).docs.map((d) => d.data().name));
+  const sh = await applyImport(pro, { kind: "sales", csv: shopify, preset: "shopify-sales", fileName: "orders_export.csv" });
+  assert.equal(sh.created.entries, 6, "four sales and two refunds");
+  assert.equal(sh.created.parties, ["Bisi Adebayo", "Chinedu Okafor", "Amaka Obi", "Tunde Bakare"].filter((n) => !partiesBefore.has(n)).length, "buyers matched to customers already there, the rest added");
+  const shE = await ofImport(sh.importId);
+  const o1001 = shE.find((e) => e.extRef === "shopify:#1001")!;
+  assert.equal(o1001.lines.length, 3, "two items and the delivery"); assert.equal(o1001.totalKobo, 4_300_000); assert.equal(o1001.method, "card");
+  assert.equal(shE.find((e) => e.extRef === "shopify:#1002:refund")!.kind, "refund");
+  assert.equal(shE.find((e) => e.extRef === "shopify:#1003:refund")!.totalKobo, 1_850_000);
+  const tunde = (await db.collection("bookParties").where("ownerUid", "==", "prox").where("name", "==", "Tunde Bakare").get()).docs[0];
+  assert.equal(tunde.data().balanceKobo, 950_000, "part paid: the rest is owed");
+  assert.equal((await db.collection("bookParties").where("ownerUid", "==", "prox").where("email", "==", "bisi@example.com").get()).size, 1, "buyers kept with their email");
+  assert.deepEqual((await planImport(pro, { kind: "sales", csv: shopify, preset: "shopify-sales" })).plan.counts, { fresh: 0, updates: 0, dupes: 4, problems: 0, skipped: 2 }, "the same export again adds nothing");
+  // #1001 refunded since: only its refund comes in.
+  const later1001 = shopify.replace("#1001,bisi@example.com,paid", "#1001,bisi@example.com,refunded").replace(/(Paystack,)0\.00(,,0\.00,5550001)/, "$143000.00$2");
+  const rp = await planImport(pro, { kind: "sales", csv: later1001, preset: "shopify-sales" });
+  assert.deepEqual([rp.plan.counts.fresh, rp.plan.counts.updates, rp.plan.counts.dupes], [0, 1, 3]);
+  const rf = await applyImport(pro, { kind: "sales", csv: later1001, preset: "shopify-sales" });
+  assert.equal(rf.created.updates, 1);
+  assert.deepEqual((await ofImport(rf.importId)).map((e) => [e.kind, e.extRef, e.totalKobo]), [["refund", "shopify:#1001:refund", 4_300_000]]);
+  // A store in dollars is refused.
+  const usd = await planImport(pro, { kind: "sales", csv: fx("shopify-orders-usd.csv"), preset: "shopify-sales" });
+  assert.match(usd.plan.problems[0].message, /USD/);
+  await fails(applyImport(pro, { kind: "sales", csv: fx("shopify-orders-usd.csv"), preset: "shopify-sales" }), 400);
+  // Undo both: the entries and the customers they made go.
+  await undoImport(pro, rf.importId); await undoImport(pro, sh.importId);
+  assert.equal((await ofImport(sh.importId)).length, 0);
+  assert.equal((await db.doc(`bookParties/${tunde.id}`).get()).exists, false);
+  assert.equal((await importsView(pro)).find((i) => i.id === sh.importId)!.source, "shopify");
+
+  // Paystack: successful payments only; our own (na_ references, and orders already in the books as online_<ref>) skipped; fees a day.
+  await db.doc("bookEntries/online_ORDER-REF-ONLINE").set({ ownerUid: "prox", kind: "sale", source: "online", on: "2026-10-11", at: "2026-10-11T13:00:00.000Z", by: "order", lines: [{ title: "Online", qty: 1, unitKobo: 700_000, costKobo: 0 }], totalKobo: 700_000, paidKobo: 700_000, method: "card", owesKobo: 0, settledKobo: 0, open: false, orderRef: "ORDER-REF-ONLINE", counts: false, files: [] });
+  const paystackCsv = fx("paystack-transactions.csv");
+  const pd = await planImport(pro, { kind: "sales", csv: paystackCsv, preset: "paystack-sales" });
+  assert.deepEqual(pd.plan.counts, { fresh: 3, updates: 0, dupes: 0, problems: 0, skipped: 5 });
+  assert.ok(pd.plan.skipped.some((x) => x.message.startsWith("ORDER-REF-ONLINE was a #NotesApp order")));
+  assert.ok(pd.plan.skipped.some((x) => x.message.startsWith("na_1760180000000")));
+  assert.ok(pd.plan.notes.some((n) => /₦570 in Paystack fees/.test(n.message)));
+  const pi = await applyImport(pro, { kind: "sales", csv: paystackCsv, preset: "paystack-sales" });
+  const pE = await ofImport(pi.importId);
+  assert.equal(pE.filter((e) => e.kind === "sale").length, 3);
+  const feeDays = pE.filter((e) => e.kind === "expense").map((e) => [e.on, e.totalKobo, e.category, e.note]).sort();
+  assert.deepEqual(feeDays, [["2026-10-10", 52_500, "bank", "Paystack fees · 2 payments"], ["2026-10-12", 4_500, "bank", "Paystack fees · 1 payment"]]);
+  assert.equal((await planImport(pro, { kind: "sales", csv: paystackCsv, preset: "paystack-sales" })).plan.counts.dupes, 3, "matched by reference");
+  await undoImport(pro, pi.importId);
+  assert.equal((await ofImport(pi.importId)).length, 0);
+  await db.doc("bookEntries/online_ORDER-REF-ONLINE").delete();
+
+  // A bank statement: every line back to choose from; only the ticked ones come in, then they're duplicates.
+  const bank = fx("bank-gtbank.csv");
+  const bd = await planImport(pro, { kind: "bank", csv: bank, preset: "bank-statement" });
+  assert.equal(bd.plan.bank!.length, 6); assert.equal(bd.plan.counts.fresh, 6);
+  await fails(applyImport(pro, { kind: "bank", csv: bank, preset: "bank-statement" }), 400);
+  const chosen = bd.plan.bank!.filter((l) => l.tick).map((l) => ({ row: l.row, as: l.as, category: l.category }));
+  assert.equal(chosen.length, 5, "the loan isn't ticked");
+  const bi = await applyImport(pro, { kind: "bank", csv: bank, preset: "bank-statement", choices: [...chosen, { row: 6, as: "expense" }] });
+  const bE = await ofImport(bi.importId);
+  assert.deepEqual(bE.map((e) => [e.kind, e.totalKobo, e.category ?? ""]).sort(), [["expense", 1_800_000, "transport"], ["expense", 2_500_000, "power"], ["expense", 4_000, "bank"], ["expense", 500_000, "data"], ["sale", 4_500_000, ""]].sort(), "money in can't be made an expense");
+  const bd2 = await planImport(pro, { kind: "bank", csv: bank, preset: "bank-statement" });
+  assert.equal(bd2.plan.counts.dupes, 5); assert.ok(bd2.plan.bank!.filter((l) => l.dupe).every((l) => !l.tick));
+  await undoImport(pro, bi.importId);
+  assert.equal((await ofImport(bi.importId)).length, 0);
 
   // ---- Export: everything, as CSV ----
   const files = await exportAll(k3);

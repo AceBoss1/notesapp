@@ -15,6 +15,7 @@ import ProgramThanks from "@/components/ProgramThanks";
 import { CALLS_LIVE, MESSAGES_LIVE, MOMENTS_LIVE } from "@/lib/moments-rules";
 import { planRate, pct } from "@/lib/pricing";
 import { getTierConfig } from "@/lib/tiers";
+import { ROOT_DOMAIN } from "@/lib/host";
 
 // The reference customers' links point at their own sites once they have them; refreshed every few minutes.
 export const revalidate = 300;
@@ -30,9 +31,9 @@ const LOOP = [
 
 const FEATURES = [
   { title: "Public & private journals", copy: "One toggle, same canvas. Publish an article, or keep a private session log for a client — your call, entry by entry." },
-  { title: "A journal feed made for you", copy: "Pick your interests and journals on them come first, under For you. Then Following, Latest and Top this week, with Most read and Who to follow between the posts. Like, comment, share and save straight from the feed, and find topics, people and channels in Explore, with the week's most looked-at products and courses in its Market and Academy tabs. On a phone, a tab bar along the bottom takes you to Feed, Explore, Market, Academy, Messages and your Profile." },
+  { title: "A journal feed made for you", copy: "Pick your interests and journals on them come first, under For you. Then Following, Latest and Top this week, with Most read and Who to follow between the posts. Like, comment, share and save straight from the feed, and find topics, people, channels, communities and upcoming events in Explore, with the week's most looked-at products and courses in its Market and Academy tabs. On a phone, a tab bar along the bottom takes you to Feed, Explore, Market, Academy, Messages and your Profile." },
   { title: "Notes Market", copy: "Every #NotesApp store in one place: items picked for you first, then the most viewed this week and the newest, with digital items, categories and a list of stores. Buying works just as it does in the seller's own store." },
-  { title: "Notes Academy: free and paid courses", copy: "Teach free courses with lessons from your own YouTube, or sell paid ones on Pro and above with text lessons and PDFs, plus your own uploaded videos on Business and Enterprise, which never download and carry each viewer's name. Add quizzes with a pass mark, marked on the spot. Teach alone, with up to 4 co-tutors who each get their share of a sale, or as your organisation. Learners keep their progress, like, save and review courses, and get certificates anyone can check at notesapp.name.ng/certificates." },
+  { title: "Notes Academy: free and paid courses", copy: `Teach free courses with lessons from your own YouTube, or sell paid ones on Pro and above with text lessons and PDFs, plus your own uploaded videos on Business and Enterprise, which never download and carry each viewer's name. Add quizzes with a pass mark, marked on the spot. Teach alone, with up to 4 co-tutors who each get their share of a sale, or as your organisation. Learners keep their progress, like, save and review courses, and get certificates anyone can check at ${ROOT_DOMAIN}/certificates.` },
   { title: "The Weekly Digest", copy: "On Sunday evenings, up to ten journals from the week, your interests first with people you follow mixed in, plus four items from Notes Market and four courses from Notes Academy. One click to unsubscribe." },
   { title: "Native booking calendar", copy: "Built into your profile page, running on your own weekly availability. No redirect, no second login — and clients can cancel or reschedule under a clear refund policy." },
   { title: "Your rates, your payouts", copy: "Set your own session price and monthly subscription price. Paystack collects in Naira; earnings are paid to your verified bank account after each session." },
@@ -59,6 +60,7 @@ const FEATURES = [
   { title: "Open about what's live", copy: "A public status page with response times and incident updates, and a changelog of every release, so you always know what changed." },
   { title: "Analytics for your business", copy: "See what you earned, your orders and average order, your best sellers and what's running low, and your visits, with a day-by-day chart. Pro adds 90 days, your customers and a sales download; Business adds visits by page and where visitors came from." },
   { title: "Community & Events", copy: "For churches, NGOs, schools and clubs: live audio rooms where you choose who speaks and everyone can chat, post to everyone or to members only, announce to the whole community, run private Circles, and publish events with reminders, a Join live link and paid tickets checked in by QR code. Take offerings, tithes and donations with charges like a bank transfer and receipts for every giver. You choose what non-members see. Free up to 200 members." },
+  { title: "Business books", copy: "Walk-in sales with receipts, expenses, stock, money owed to you and profit by day, week or month, beside your online orders, which come in by themselves, with import from Excel, Google Sheets and Tralo. Free on Free Basic up to a monthly limit.", href: "/books" },
   { title: "Bring your own transcription (coming)", copy: "Connect Otter.ai or Whisper for session notes. We integrate; we don't lock you into one AI vendor." },
 ];
 
@@ -189,7 +191,7 @@ export default async function Home() {
           Substack and Calendly get paid through Stripe or PayPal.
           We get you paid in Naira.
         </h2>
-        <FeatureMosaic className="mt-14" items={FEATURES.map((f) => ({ title: f.title, copy: f.copy }))} />
+        <FeatureMosaic className="mt-14" items={FEATURES.map((f) => ({ title: f.title, copy: f.copy, href: "href" in f ? f.href : undefined }))} />
       </section>
 
       {/* Partner strip: the first reference customers, each on their own domain */}

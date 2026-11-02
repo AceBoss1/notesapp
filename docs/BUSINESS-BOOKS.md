@@ -3,7 +3,8 @@
 > **Built, 2 Nov 2026 (v0.118.0):** build steps 1 to 6 below (the walk-in half, P&L, money owed and imports), after the owner's "start
 > building books". **Built, 2 Nov 2026 (v0.119.0):** steps 7 to 10 (Nana entries, offline entry, the monthly email, staff roles) and
 > paying a debt online, after the owner's "build: Nana entries, offline entry, the monthly email, staff and cashier roles, paying a debt
-> online, and … imports" (the import presets were built separately). What was built, and where it differs from this plan, is in
+> online, and … imports" (the import presets were built separately: **v0.120.0**, Shopify, WooCommerce, Selar, Bumpa, Paystack and
+> bank statements, section 3). What was built, and where it differs from this plan, is in
 > **section 10**. The owner's answers (2 Nov): pricing option A, the name "Business books", only store
 > orders flow in for now, CSV only (no Excel library), WhatsApp click-to-send for non-members, SMS greyed out until Send-Na.
 >
@@ -25,6 +26,15 @@
 > - **Thanks:** a thank-you email, plus a bell for members.
 > - **Links to the waitlist:** the roadmap's not-live list ("Business books — join the waitlist"), the Business books section on
 >   `/store-selling` (`#business-books`), the home page's features and the Inventory and Selling physical goods help articles.
+>
+> **Live, 2 Nov 2026 (v0.118.0): the public pages say it's open.** `/books` is now the landing page: what it does, the Free Basic
+> limits, the three images, and one button (`components/books/BooksCta.tsx`): **Open Business books** → `/profile/books` for
+> signed-in members, **Start free** → `/signup?next=/profile/books` for visitors (with a sign-in link). The waitlist form is gone;
+> `/api/books/waitlist`, `lib/books-waitlist.ts`, `submitBooksWaitlist` and the rule stay, so the old sign-ups are still in Admin →
+> Leads → Business books waitlist. The roadmap lists Business books as live (its not-live line is now what's next), and
+> `/store-selling#business-books`, the home features, the Inventory and Selling physical goods help articles, Nana's page list and
+> the anniversary announcement draft say it's open. Receipt and statement footers ("Keep your own books free: <domain>/books") land
+> on this page.
 
 ## 1. Who it's for and the problem
 
@@ -218,27 +228,28 @@ data).
 
 **Not supported today:** creating items from a spreadsheet, Excel (.xlsx) files, Google Sheets, sales history, expenses, customers,
 debtors, suppliers, Shopify, WooCommerce, Selar, Paystack exports, bank statements, contacts files (vCard), and photos of paper
-records. There's no xlsx or PDF library in `package.json` today.
+records. (Written 1 Nov 2026; Books now imports all of these except Excel files, vCard and photos: see the table below and section 10.) There's no xlsx or PDF library in `package.json` today.
 
 ### Sources, and how we'd support each
 
 | Source | What it brings | Today | How we'd support it |
 |---|---|---|---|
-| **Excel / CSV** | Stock list, sales, expenses, customers, debtors, suppliers | **Partly** (stock updates by CSV only) | One import wizard for every kind: upload, **match columns** (guessed from the headings, saved per source), **preview as a dry run**, import. Downloadable **templates** for each kind. Creates new items as well as updating them. CSV first; `.xlsx` once we add a vetted reader library (needs approval, open question 7). |
-| **Google Sheets** | Same as Excel | **Not yet** | Phase 1: File → Download → CSV, then the same wizard (the help article shows how). Later, maybe: paste a published-sheet link. |
-| **Tralo** | Stock list, sales history, credit sales | **Not yet** | Tralo's web app exports **inventory, sales history and inventory history as CSV**. Its inventory template has *Product Name, Category, Cost Price, Selling Price, Stock Quantity, Unit*. Its sales template has *date, time, product_name, quantity, unit_price, customer_name, customer_phone, payment_method, amount_paid, apply_taxes, notes*, with payment methods cash, mobile money, bank transfer and credit (from tralo.app, read 1 Nov 2026). A **Tralo preset** maps those columns for you. Credit sales with `amount_paid` below the total become *money owed*. Prices in GH₵ wait for cedi support (Ghana launch, `docs/PAYMENTS.md`). Until then a cedi file is refused with a clear message. |
-| **Shopify** | Products (title, SKU, price, cost, stock); past orders | **Not yet** | A preset for Shopify's products CSV export (Products → Export, per Shopify's help centre) and its orders CSV. Products become store items (hidden until the seller shows them) and orders become past sales, marked "imported". |
-| **WooCommerce** | Products; past orders | **Not yet** | A preset for WooCommerce's built-in product CSV exporter (Products → Export). Orders via its order export CSV. |
-| **Selar** | Digital products and sales | **Not yet** | We haven't checked Selar's export from its own documentation. Take whatever CSV its dashboard gives through column matching, and add a preset once we've seen a real file from a seller. |
-| **Paystack transaction export** | Payments received (amount, date, customer email, reference, status) | **Not yet** | Paystack's dashboard exports transactions as CSV (Transactions → Export; very long histories are emailed as a link). Import successful ones as past sales or as "money in". Skip `reversed` rows, and skip references that are already our own orders, so nothing is counted twice. |
-| **Bank statement (CSV)** | Money in and out | **Not yet** | Column matching (date, description, money in, money out). Each line is shown for the seller to mark as sale, expense, payment from a customer or transfer between accounts, and Nana suggests which (charged to the allowance). Bank PDFs: not in phase 1. |
+| **Excel / CSV** | Stock list, sales, expenses, customers, debtors, suppliers | **Supported (v0.118.0)**, CSV only | One import wizard for every kind: upload, **match columns** (guessed from the headings, saved per source), **preview as a dry run**, import. Downloadable **templates** for each kind. Creates new items as well as updating them. CSV first; `.xlsx` once we add a vetted reader library (needs approval, open question 7). |
+| **Google Sheets** | Same as Excel | **Supported (v0.118.0)**, by downloading CSV | Phase 1: File → Download → CSV, then the same wizard (the help article shows how). Later, maybe: paste a published-sheet link. |
+| **Tralo** | Stock list, sales history, credit sales | **Supported (v0.118.0)** | Tralo's web app exports **inventory, sales history and inventory history as CSV**. Its inventory template has *Product Name, Category, Cost Price, Selling Price, Stock Quantity, Unit*. Its sales template has *date, time, product_name, quantity, unit_price, customer_name, customer_phone, payment_method, amount_paid, apply_taxes, notes*, with payment methods cash, mobile money, bank transfer and credit (from tralo.app, read 1 Nov 2026). A **Tralo preset** maps those columns for you. Credit sales with `amount_paid` below the total become *money owed*. Prices in GH₵ wait for cedi support (Ghana launch, `docs/PAYMENTS.md`). Until then a cedi file is refused with a clear message. |
+| **Shopify** | Products (title, SKU, price, cost, stock); past orders | **Supported (v0.120.0)** | Presets `shopify-stock` and `shopify-sales`, from Shopify's help centre (products: help.shopify.com/en/manual/products/import-export/using-csv; orders: …/managing-orders/exporting-orders), both the older (*Handle, Title, Option1 Value, Variant SKU, Variant Price, Variant Inventory Qty, Cost per item*) and today's headings (*Title, URL handle, SKU, Option1 value, Price, Inventory quantity, Cost per item*). Each option is its own item; image-only rows are dropped. Orders: one sale per *Name* (line items on their own rows), *Financial Status* paid or partially_paid only (refunded and partially_refunded come in with a refund entry), *Outstanding Balance* owed, *Currency* other than NGN refused. Products become Books-only items (or update store items), orders past sales marked "imported". |
+| **WooCommerce** | Products; past orders | **Supported (v0.120.0)** | `woo-stock` from the built-in exporter (the Product CSV schema: *ID, Type, SKU, Name, Stock, Low stock amount, Regular price, Categories, Parent*); a variable product is skipped and its variations come in. Woo has no built-in orders CSV, so `woo-sales` matches the two common plugins (Customer / Order / Coupon Export, one row per item; Advanced Order Export For WooCommerce). Their headings aren't all documented, so the wizard asks the seller to check the match. Completed and processing orders count. |
+| **Selar** | Digital products and sales | **Supported, headings guessed (v0.120.0)** | We found no documentation of Selar's export (2 Nov 2026). `selar-sales` matches the likely headings (Date, Product Name, Buyer Name, Buyer Email, Amount, Currency, Status, Reference) and the seller checks them. Buyers become customers (kept with their email). Digital, so no stock. Cedi and other-currency sales are refused. Replace the guesses with a real file from a seller. |
+| **Bumpa** | Products, orders, customers and debtors | **Supported, columns guessed (v0.120.0)** | Bumpa's help centre documents how to export (Orders → Export CSV; Customers → Export, an Excel file; Pro and Growth plans) but not the columns, so `bumpa-stock`, `bumpa-sales` and `bumpa-customers` match the likely headings and the seller checks them. Unpaid and part-paid orders go to Money owed; an *Amount Owed* column makes debtors. The customers file is Excel only: save as CSV (no xlsx reader, open question 7). |
+| **Paystack transaction export** | Payments received (amount, date, customer email, reference, status) | **Supported (v0.120.0)** | `paystack-sales`: the export is documented (Transactions → Export, emailed when long), its default headings aren't, so they're matched (Reference, Amount, Currency, Status, Channel, Fees, Customer Email, Paid At). Only `success` comes in (reversed, failed, abandoned left out). References starting `na_` (ours, `lib/paystack.ts`) and any already in the books as `online_<ref>` are skipped. Fees become one Bank and POS charges expense a day. |
+| **Bank statement (CSV)** | Money in and out | **Supported (v0.120.0)** | A fifth import kind, `bank`: date, narration, reference, money in, money out (or a signed amount, or DR/CR), balance, with the common Nigerian headings (GTBank, Access, Zenith, First Bank, UBA, Opay, Moniepoint, Kuda; not verified with the banks). Each line comes back for the seller to tick: money in as a sale, money out as an expense with a category suggested by simple rules from the narration (not Nana: free). Money in that isn't a sale is left out. PDFs: read in the browser with `pdfjs-dist` when they have text; a scan asks for CSV. |
 | **Photo of a paper ledger** | Sales, expenses, debtors from an exercise book | **Not yet** | Nana reads the photo (a vision model, charged to the allowance; Emerald for hard handwriting). Every line goes into the **preview to confirm**, with the ones Nana is unsure of marked. Handwriting won't be read perfectly, so nothing is saved without the seller's check, and the photo is kept with the import for 24 hours so they can compare. Up to 2 pages a time. |
 | **Contacts (vCard)** | Customers and suppliers | **Not yet** | A `.vcf` file or the phone's Contact Picker (as Notes Life invites use) to add customers. Names and numbers only. |
 
 **Rules for every import:**
 - **Dry run first.** The preview shows new rows, updates, duplicates skipped and rows to fix. Nothing is saved until **Import**.
-- **Duplicates:** items matched by SKU (then by exact name). Sales and expenses matched by date + amount + item or description.
-  Payments matched by reference. A row that matches is skipped, and the preview says so.
+- **Duplicates:** an app's own order number or reference first (`extRef`, so a re-import adds nothing and an order refunded since
+  adds only its refund); then items by SKU (then exact name), sales and expenses by date + amount + item or description. A row that matches is skipped, and the preview says so.
 - **Undo for 24 hours:** each import has an id (`bookImports/{id}`), and every entry it made carries it. Undo removes them all and
   puts stock back. After 24 hours, entries are fixed one at a time like any other.
 - **Limits:** up to 5,000 rows and 5 MB a file, 10 imports a day. A bigger history goes in parts, a year at a time.
@@ -350,7 +361,8 @@ mobile money. Ghana waits for those (`docs/PAYMENTS.md`).
 Each step ships with its tests, help article, changelog line, roadmap update, README and HANDOVER notes (the public-pages rule,
 `docs/ENGINEERING_GUIDE.md`), and phone and desktop screenshots from the real code.
 
-1. **This plan and the waitlist** (v0.115.0): the doc, the changelog line, and the public **waitlist** (built, see below). ✓
+1. **This plan and the waitlist** (v0.115.0): the doc, the changelog line, and the public **waitlist** (built, see above; replaced by the
+   live landing page in v0.118.0). ✓
 2. **Mockups for approval**: the screens below. ✓ (approved: "start building books", 2 Nov 2026)
 3. **Walk-in sales and expenses**: `lib/books.ts`, `/api/books`, `/profile/books` (Books home, Record a sale, Add expense), receipts
    (link and PDF), online orders flowing in, stock moves, Free Basic cap. Rules and emulator tests. ✓ (v0.118.0)
@@ -360,8 +372,9 @@ Each step ships with its tests, help article, changelog line, roadmap update, RE
    the #NotesApp line (non-members, receipts too), paying a debt online (payment kind `debt`). SMS when Send-Na is live. ✓ (v0.118.0;
    paying a debt online ✓ v0.119.0; automatic repeat reminders not yet)
 6. **Imports**: the wizard, templates, presets (Tralo, Shopify, WooCommerce, Paystack), dry run, dedupe, undo for 24 hours. Excel files
-   once the library is approved. Bank CSV and paper-ledger photos last. ✓ for CSV with the Tralo preset (v0.118.0); Shopify,
-   WooCommerce, Paystack, bank CSV and photos not yet; Excel files stay out (CSV only, owner 2 Nov)
+   once the library is approved. Bank CSV and paper-ledger photos last. ✓ for CSV with the Tralo preset (v0.118.0); ✓ Shopify,
+   WooCommerce, Selar, Bumpa, Paystack and bank statements by CSV or text PDF (v0.120.0, the table in section 3); paper-ledger photos
+   not yet; Excel files stay out (CSV only, owner 2 Nov)
 7. **Nana entries**: typed first, then voice notes. Pearl, metered. ✓ (v0.119.0: typed, and spoken through the phone's own
    speech-to-text; voice notes wait for voice transcripts)
 8. **Offline**: the outbox, service-worker caching for Books, sync and conflict flags. ✓ (v0.119.0)
@@ -383,7 +396,7 @@ commission on a debt paid online (`books.debtCommission` "store"; "none" takes n
 4. **Cashiers on Free Basic and Pro:** should a market trader without a Business team be able to add one cashier (a helper seat)?
 5. **Paying a debt online:** OK to add a `debt` payment kind, with the seller's normal commission, or no commission because it's an
    offline sale?
-6. **Libraries:** may we add a vetted library to read and write Excel files (for example `exceljs` or `read-excel-file` plus a writer)?
+6. **Libraries:** may we add a vetted library to read and write Excel files (for example `exceljs` or `read-excel-file` plus a writer)? **Answered (owner, 2 Nov 2026): no.** Sellers save Excel files as CSV (File → Save As → CSV, or Download → CSV in Google Sheets); the wizard and help article say how.
    Without it, import and export are CSV only.
 7. **Ghana:** should the Tralo import wait for cedi prices, or come sooner, converting cedis to naira at the day's rate (we'd rather
    not)?
@@ -443,6 +456,9 @@ day per customer (`lastRemindedOn`), 120 receipts an hour.
 
 **Who:** the seller and, on an organisation's account (Business and Enterprise), its admins (`canUseBooks`). A teammate with store
 access only doesn't see the books. Every entry keeps who recorded it (`by`).
+
+**Imports from other apps (v0.120.0):** Shopify, WooCommerce, Selar, Bumpa, Paystack and bank statements, in the table in section
+3 (which headings are verified and which guessed). Fixtures for each in `tests/books/fixtures/`.
 
 **Tests:** `test:books` (kobo maths, periods, P&L, cash in hand, the caps, paying back, debtors, the WhatsApp messages, CSV reading,
 column matching, the Tralo preset, dedupe, templates) and `test:books-server` (permissions, a sale with its receipt and stock moves,
@@ -505,6 +521,7 @@ email once per seller and month), plus `test:pricing` and `test:rules`.
 **Next (what was left out of 3 to 10):** voice notes for Nana (with voice transcripts); a screen for "show profit in emails";
 automatic repeat reminders and "remind again" prompts; the supplier bell the day before a due date; repeating expenses; the opening
 float and count-the-drawer screen (the float is stored, `bookSettings.floatKobo`, with no screen yet); a Record a purchase sheet (purchases
-come from Tell Nana and offline for now); any-range P&L; Shopify, WooCommerce and Paystack presets, bank CSV, paper-ledger photos and vCard contacts; the referral code
-on the #NotesApp line (open question 10); running totals; SMS when Send-Na is live; the waitlist page (`/books`) saying it's open.
+come from Tell Nana and offline for now); any-range P&L; paper-ledger photos and vCard contacts; the referral code
+on the #NotesApp line (open question 10); running totals; SMS when Send-Na is live. (The `/books` page now says it's open: see the
+note at the top.)
 

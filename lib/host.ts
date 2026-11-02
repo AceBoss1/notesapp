@@ -84,6 +84,15 @@ export function familyHost(hostname: string, role: "main" | "app" | "life" | "pr
   return `${role === "main" ? "www" : role}.${root}`;
 }
 
+// A link to the main site from a page served on `hostname`, in the visitor's own family: prep.naapp.tech → https://www.naapp.tech/terms,
+// prep.notesapp.name.ng → https://www.notesapp.name.ng/terms (the owner, 2 Nov 2026: "by notesapp was hard coded on prep.naapp.tech").
+// Localhost, previews, members' own domains, a domain we don't know yet, or no host at all: the primary address (https://www.<root>).
+export function mainSiteUrl(hostname: string | null | undefined, path = ""): string {
+  const p = path && !path.startsWith("/") ? `/${path}` : path;
+  const h = bare(hostname || "");
+  return `https://${h && ourRoot(h) ? familyHost(h, "main") : MAIN_HOST}${p}`;
+}
+
 // The app domain: opens #NotesApp like an app (splash, then the journal) and sends marketing pages to the main site.
 export const APP_HOSTS = [APP_HOST];
 export const isAppHost = (hostname: string) => { const f = ourRoot(hostname); return !!f && roleOf(f) === "app"; };

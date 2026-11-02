@@ -6,7 +6,7 @@ import { collection, getDocs, limit, orderBy, query, where } from "firebase/fire
 import { db } from "./firebase";
 import { api } from "./moments-client";
 import { useMember } from "./member-client";
-import { isPaid, orderedLessons, type Course, type CourseGroup, type CourseListing, type Enrolment, type Lesson, type Quiz, type QuizGrade } from "./courses";
+import { isPaid, orderedLessons, type Course, type CourseListing, type Enrolment, type Lesson, type Quiz, type QuizGrade, type VideoCredit, type CourseGroup } from "./courses";
 import { visitSource } from "./track";
 
 // Notes Academy in the browser. Published courses (and a free course's lessons) are read straight from Firestore (the rules allow
@@ -144,7 +144,7 @@ export function useCoursePurchase(courseId: string | undefined, enabled: boolean
 }
 
 // One lesson's content through the server (paid courses, uploads). Throws with .code "device_limit" (and .devices) on a third device.
-export type LessonContent = { id: string; title: string; kind: Lesson["kind"]; preview: boolean; body?: string; youtubeId?: string; playerUrl?: string; pdf?: boolean; quiz?: Quiz; watermark?: { username: string; email: string } };
+export type LessonContent = { id: string; title: string; kind: Lesson["kind"]; preview: boolean; body?: string; youtubeId?: string; videoCredit?: VideoCredit; playerUrl?: string; pdf?: boolean; quiz?: Quiz; watermark?: { username: string; email: string } };
 
 // A learner's answers to a quiz lesson: marked by the server, which ticks the lesson off on a pass.
 export async function submitQuiz(courseId: string, lessonId: string, answers: number[]): Promise<{ grade: QuizGrade; attempt: { attempts: number; best: number; passedAt?: string }; enrolment: Enrolment }> {
