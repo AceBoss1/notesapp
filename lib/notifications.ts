@@ -45,7 +45,8 @@ export type NotificationType =
   | "team" // the team hub: a comment on your work, the morning summary
   | "community" // communities: join requests, approvals, announcements in General, comments on your posts
   | "event" // events: reminders 24 hours and 1 hour before, and changes to an event you said you'd go to
-  | "coupon"; // a saved coupon (My coupons) ending soon
+  | "coupon" // a saved coupon (My coupons) ending soon
+  | "books"; // Business books: a shop's receipt or a reminder of money owed (lib/books-server.ts)
 
 export type AppNotification = {
   id: string;

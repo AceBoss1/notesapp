@@ -47,6 +47,10 @@ export type PricingConfig = {
   logistics: { addonMonthlyKobo: number; trialDays: number; cutRate: number; cutMinKobo: number };
   // Inventory (lib/inventory.ts): included on Business and Enterprise; on Free Basic and Pro an add-on with a one-time free trial (owner, 21 Oct 2026).
   inventory: { addonMonthlyKobo: number; trialDays: number };
+  // Business books (lib/books.ts; owner, 2 Nov 2026, option A): free on Free Basic with a monthly cap, unlimited on Pro and above.
+  // freeEntries: walk-in sales and expenses a month (online orders never count); freeCustomers: customers owing at once;
+  // freeImportRows: rows in one imported file (Pro and above: BOOKS_IMPORT_MAX_ROWS).
+  books: { freeEntries: number; freeCustomers: number; freeImportRows: number };
   badgeKobo: number;
   gold: { personal: { monthlyKobo: number; depositKobo: number }; corporate: { monthlyKobo: number; depositKobo: number } };
   boosts: { id: string; name: string; impressions: number; priceKobo: number }[];
@@ -69,6 +73,7 @@ export function currentPricing(): PricingConfig {
     certificateLate: { ...CERTIFICATE_LATE },
     logistics: { ...LOGISTICS },
     inventory: { ...INVENTORY },
+    books: { ...BOOKS },
     nana: { budgets: { ...NANA.budgets }, topUps: NANA.topUps.map((t) => ({ ...t })), siteCeilingKobo: NANA.siteCeilingKobo, resetEvery: NANA.resetEvery, allowanceGems: NANA.allowanceGems, usdKobo: NANA.usdKobo, rates: { pearl: { ...NANA.rates.pearl }, emerald: { ...NANA.rates.emerald }, ruby: { ...NANA.rates.ruby } } },
     badgeKobo: BADGE_PRICE_KOBO,
     gold: { personal: { monthlyKobo: GOLD_PRICING.personal.monthlyKobo, depositKobo: GOLD_PRICING.personal.identityDepositKobo }, corporate: { monthlyKobo: GOLD_PRICING.corporate.monthlyKobo, depositKobo: GOLD_PRICING.corporate.identityDepositKobo } },
@@ -86,6 +91,8 @@ const CERTIFICATE_LATE = { graceDays: 7, weeklyRate: 0.01, capRate: 0.5 };
 // The trial is 15 days and never longer (owner, 21 Oct 2026: every trial is 15 days, lib/trials.ts).
 // Decided 21 Oct 2026: inventory is included on Business and Enterprise; Free Basic and Pro add it for ₦1,500 a month, after a 15-day free trial.
 const INVENTORY: PricingConfig["inventory"] = { addonMonthlyKobo: 1_500 * 100, trialDays: TRIAL_DAYS };
+// Decided 2 Nov 2026 (docs/BUSINESS-BOOKS.md, option A): 150 entries a month and 20 customers owing on Free Basic; review after three months.
+const BOOKS: PricingConfig["books"] = { freeEntries: 150, freeCustomers: 20, freeImportRows: 500 };
 const LOGISTICS: PricingConfig["logistics"] = { addonMonthlyKobo: 4_500 * 100, trialDays: TRIAL_DAYS, cutRate: 0.1, cutMinKobo: 100 * 100 };
 // Allowances in kobo of AI cost a month. Free Basic's is ours to give (our commission on Basic sales pays for it); 4 weekly summaries
 // on the small model cost about ₦15, so ₦50 leaves room. Free (Standard) members get the same. Top-ups keep 20% for card fees and
@@ -140,6 +147,7 @@ export function applyPricing(c: PricingConfig): void {
   Object.assign(CERTIFICATE_LATE, c.certificateLate);
   Object.assign(LOGISTICS, c.logistics);
   Object.assign(INVENTORY, c.inventory);
+  Object.assign(BOOKS, c.books);
   Object.assign(NANA.budgets, c.nana.budgets); NANA.siteCeilingKobo = c.nana.siteCeilingKobo;
   NANA.resetEvery = c.nana.resetEvery; NANA.allowanceGems = c.nana.allowanceGems; NANA.usdKobo = c.nana.usdKobo;
   for (const g of GEMS) Object.assign(NANA.rates[g], c.nana.rates[g]);
@@ -201,6 +209,10 @@ export function cleanPricing(input: unknown): PricingConfig {
   const ivDays = Math.round(Number(iv.trialDays));
   if (!Number.isFinite(ivDays) || ivDays < 0 || ivDays > 365) throw new PricingError(`Inventory add-on: the free trial should be 0 to ${TRIAL_DAYS} days.`);
   const inventory = { addonMonthlyKobo: kobo(iv.addonMonthlyKobo, "Inventory add-on monthly price", 100 * 100), trialDays: addonTrialDays(ivDays) };
+  // Added later too: a config without it keeps the defaults.
+  const bk = i.books === undefined ? d.books : rec(i.books);
+  const count = (v: unknown, what: string, min: number, max: number) => { const x = Math.round(Number(v)); if (!Number.isFinite(x) || x < min || x > max) throw new PricingError(`${what}: enter a whole number from ${min} to ${max.toLocaleString("en-NG")}.`); return x; };
+  const books = { freeEntries: count(bk.freeEntries, "Business books, Free Basic entries a month", 10, 100_000), freeCustomers: count(bk.freeCustomers, "Business books, Free Basic customers owing", 1, 100_000), freeImportRows: count(bk.freeImportRows, "Business books, Free Basic rows per import", 10, 5_000) };
   const n = i.nana === undefined ? d.nana : rec(i.nana), nb = rec(n.budgets);
   const nana = {
     // Free (Standard) was added later: a config without it gets the default
@@ -233,7 +245,7 @@ export function cleanPricing(input: unknown): PricingConfig {
   return {
     basic: r(i.basic, "Free Basic"), pro: paid(i.pro, "Pro"), business: paid(i.business, "Business"),
     enterprise: { fromMonthlyKobo, fromYearlyKobo, adShare: frac(e.adShare, "Enterprise ad share", 1), floorSession: frac(e.floorSession, "Enterprise session floor", 0.5), floorPhysical: frac(e.floorPhysical, "Enterprise physical floor", 0.5), floorDigital: frac(e.floorDigital, "Enterprise digital floor", 0.5) },
-    coursePackages, certificateLate, logistics, inventory, nana,
+    coursePackages, certificateLate, logistics, inventory, books, nana,
     badgeKobo: kobo(i.badgeKobo, "Verified badge price", 100 * 100),
     gold: { personal: gold(g.personal, "Personal"), corporate: gold(g.corporate, "Organisation") },
     boosts: list(i.boosts, d.boosts, "Boost"), ads: list(i.ads, d.ads, "Ad package"),
@@ -274,3 +286,4 @@ export const breakEven = (tierName: "pro" | "business") => {
 };
 export const inventoryAddonPrice = () => nairaText(INVENTORY.addonMonthlyKobo);
 export const inventoryTrialDays = () => INVENTORY.trialDays;
+export const booksCaps = () => ({ ...BOOKS });

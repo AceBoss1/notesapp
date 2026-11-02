@@ -19,6 +19,7 @@ import { issueInTransaction } from "./certificates-server";
 import { courseShares, fulfilCourseInTransaction, type SaleShare } from "./course-sales-server";
 import { extendAddon, type Carrier } from "./logistics-server";
 import { extendInventoryAddon, lowStockAlert, recordSale } from "./inventory-server";
+import { bookOnlineOrder } from "./books-server";
 import { SITE_URL } from "@/lib/host";
 import { grantPackInTransaction } from "./exam-prep-server";
 import { EXAMS, type ExamId } from "./exam-prep";
@@ -782,6 +783,8 @@ async function notifyPaid(p: PaymentRecord) {
     const st = p.store;
     // The seller hears when this sale took the item to its low-stock level or sold it out (when they have inventory).
     await lowStockAlert(getAdminDb(), { ownerUid: p.publisherUid, itemId: st.itemId, variant: st.variant, quantity: st.quantity }).catch(() => false);
+    // The sale in the seller's Business books (lib/books-server.ts): one entry per order, safe to repeat; books open also catches up.
+    await bookOnlineOrder(getAdminDb(), p.reference).catch((e) => console.error("books online order failed", p.reference, e));
     if (p.cartRef) return; // part of a basket: one message for the whole basket (below)
     await sendEmail({
       to: p.email,

@@ -50,4 +50,15 @@ const weekly = clone(); weekly.certificateLate.weeklyRate = 0.5;
 assert.throws(() => cleanPricing(weekly), PricingError, "at most 25% a week");
 const grace = clone(); grace.certificateLate.graceDays = -1;
 assert.throws(() => cleanPricing(grace), PricingError);
+// Business books (option A, 2 Nov 2026): 150 entries a month, 20 customers owing and 500 rows an import on Free Basic; added later, so an
+// older config keeps the defaults; an admin can change them within limits.
+assert.deepEqual(DEFAULT_PRICING.books, { freeEntries: 150, freeCustomers: 20, freeImportRows: 500 });
+const noBooks = clone(); delete noBooks.books;
+assert.deepEqual(cleanPricing(noBooks).books, DEFAULT_PRICING.books);
+const moreBooks = clone(); moreBooks.books.freeEntries = 200;
+assert.equal(cleanPricing(moreBooks).books.freeEntries, 200);
+const noEntries = clone(); noEntries.books.freeEntries = 0;
+assert.throws(() => cleanPricing(noEntries), PricingError, "at least 10 entries");
+const hugeImport = clone(); hugeImport.books.freeImportRows = 9_000;
+assert.throws(() => cleanPricing(hugeImport), PricingError, "a file is never more than 5,000 rows");
 console.log("ALL OK");
