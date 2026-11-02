@@ -11,6 +11,19 @@ export type Release = {
 
 export const CHANGELOG: Release[] = [
   {
+    version: "v0.114.0",
+    bump: "minor",
+    date: "2026-11-01",
+    changes: [
+      { kind: "added", text: "Share to Moments: on a journal, a course, a shop item (physical or a download), a service (your 1:1 sessions, or a line of the services on your site), a public event, a certificate, a coupon or a public community post, Share now offers Share to Moments. A quick sheet shows the card (title, cover, the price in naira for items and services, and who made it), takes an optional caption, and posts a moment that links to it, for 24, 48 or 72 hours, seen by the people who see your moments. The creator is credited on it." },
+      { kind: "added", text: "Share to Journals: the same Share menus start a new journal draft that quotes what you're sharing, with its title as a link, its cover and \"Shared from @creator\". Add your thoughts, then save it as a draft or publish it when you're ready: nothing is published for you." },
+      { kind: "changed", text: "Both are for signed-in members: visitors are asked to sign in and come straight back to finish. They're never offered on drafts, members-only posts, revoked certificates or ended coupons, and never in a child profile. On a journal's own domain they open #NotesApp to finish." },
+      { kind: "changed", text: "The share button on journal cards in the feed, on community posts and at the top of a course now opens a share sheet: Share to Moments, Share to Journals, Share to another app and Copy link." },
+      { kind: "added", text: "A Share button, with the same sheet, on shop item pages, on Notes Market and Explore item cards, on the booking card for your 1:1 sessions, on each service on a member's site, and on public event pages. Items only link out to another shop, switched-off shops, sessions that are off and members-only or cancelled events can't be shared to Moments or journals." },
+      { kind: "added", text: "Staff: when Paystack asks for a transfer OTP, a payout on Payments & payouts shows Awaiting OTP with a field for the 6-digit code Paystack emailed, Confirm, Resend OTP and the time left on the 30-minute code, so payouts no longer need a trip to the Paystack dashboard. Each waiting payout has its own field. Who confirmed it is recorded; the code itself is never kept." },
+    ],
+  },
+  {
     version: "v0.113.0",
     bump: "minor",
     date: "2026-11-01",

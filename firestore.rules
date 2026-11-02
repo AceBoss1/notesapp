@@ -846,6 +846,7 @@ service cloud.firestore {
       match /{sub=**} { allow read, write: if false; }
     }
     match /adminViewLog/{id} { allow read, write: if false; }
+    match /payoutOtpLog/{id} { allow read, write: if false; } // who confirmed or resent a Paystack transfer OTP, and the result (never the OTP): server only
     match /backupLog/{id} { allow read, write: if false; } // Admin → Backups: who switched on, scheduled or restored what (server-only)
     match /socialConnections/{id} { allow read, write: if false; } // connected LinkedIn / X accounts (encrypted tokens): server only
     match /socialStates/{id} { allow read, write: if false; }

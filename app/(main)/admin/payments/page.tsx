@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { collection, getDocs, limit, orderBy, query, where } from "firebase/firestore";
 import { Masked } from "@/components/admin/Masked";
+import PayoutOtpPanel from "@/components/admin/PayoutOtpPanel";
 import { db } from "@/lib/firebase";
 import { useAdminAuth } from "@/lib/useAdminAuth";
 import { formatNaira } from "@/lib/booking-time";
@@ -90,6 +91,8 @@ export default function AdminPaymentsPage() {
         </div>
       )}
 
+      <PayoutOtpPanel entries={(ledger || []).filter((l) => l.status === "transferring" && l.awaitingOtp)} user={user} onDone={() => load().catch((e) => setError(e.message))} />
+
       <div className="mt-8 overflow-x-auto">
         <table className="w-full text-left text-sm">
           <thead className="text-xs uppercase text-slate">
@@ -106,7 +109,7 @@ export default function AdminPaymentsPage() {
                   <td>{l.kind}{l.sharePercent ? ` · ${l.sharePercent}% share` : ""}</td>
                   <td>{formatNaira(l.grossKobo)}</td>
                   <td>{formatNaira(l.netKobo)}</td>
-                  <td>{l.status.replace("_", " ")}{l.failureReason ? ` — ${l.failureReason}` : ""}</td>
+                  <td>{l.status === "transferring" && l.awaitingOtp ? <span className="font-semibold text-amber-700">awaiting OTP</span> : l.status.replace("_", " ")}{l.failureReason ? ` — ${l.failureReason}` : ""}</td>
                   <td>{l.releaseAfter.slice(0, 10)}</td>
                   <td className="space-x-2 whitespace-nowrap">
                     {open && <button className={btn} disabled={!ready || !!busy} onClick={() => act("release", l.reference)}>Release</button>}
