@@ -51,6 +51,11 @@ export type Note = {
   // Accepted co-authors' uids (server-written via /api/coauthors; the agreed
   // earnings split lives in the private coAuthorInvites collection).
   coAuthorUids?: string[];
+  // The last save by a co-author who can edit (server-written via /api/coauthors/draft), so the lead's editor can warn before
+  // replacing it.
+  coEditedAt?: string;
+  coEditedBy?: string;
+  coEditedByName?: string;
   status: "draft" | "published";
   viewCount?: number;
   likeCount?: number;

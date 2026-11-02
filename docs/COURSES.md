@@ -12,6 +12,18 @@ from the published courses (no number is shown while it's 0), "Notes Academy for
 teachers' questions (`lib/academy-faq.ts`) with a link to the help centre, and a closing call to teach
 (`components/academy/AcademyLanding.tsx`). The catalogue sits in the middle at `#courses`.
 
+**YouTube lessons with notes and a credit (v0.110.0):** a YouTube lesson may also have `body` (the same Markdown as a text lesson, shown
+under the video as "Lesson notes") and `videoCredit: { title, name, url }`, filled by the server from YouTube's oEmbed
+(`https://www.youtube.com/oembed?url=…&format=json`: `title`, `author_name`, `author_url`) whenever the lesson is saved, never from the
+request. The player shows "Video: <title> by <creator>, on YouTube. Shared here with credit to the original creator." Older lessons
+have neither and play as before. Tutors using another creator's public video should credit them in the notes too.
+
+**Seeded courses (v0.110.0):** `lib/course-seeds.ts` holds two courses written for the owner (as @emmanuel): *How to Restart Your Life
+After a Breakdown* (a new draft) and *IT Support Training* (rewrites the published course `wLQCJdqolPh6A3WbvEZL` in place). Admin →
+Academy → Seed courses shows a dry run, then writes them (`lib/course-seeds-server.ts`). Seeded lessons have fixed ids, so seeding again
+never duplicates. A rewrite keeps the course's id, address, status, enrolments, reviews and certificates; learners' progress shows the
+new lessons (see HANDOVER item 80).
+
 **Covers made with Nana** (v0.111.0, owner 1 Nov 2026: "allow publishers generate cover picture art right in academy, only for courses,
 even free courses; Free Basic gets 3 generations a day, any mix of new ones and edits; their Pearl allowance is used, and when it's
 exhausted generations end till it refreshes"). There is no picture model, so a cover is designed artwork drawn on our server:
@@ -144,7 +156,19 @@ Each step ships with phone and desktop screenshots first (`HANDOVER.md`), the he
    the learner hasn't started (opening a paid lesson counts as starting).
 7. **Co-tutors:** a course can have one tutor or co-tutors. Sales are split like a co-authored post's gifts: each co-tutor's agreed
    percent, the lead keeps the rest, each share at its own plan's commission. Organisations' admins and writers can teach as the organisation.
+   **Access (v0.109.0, owner 1 Nov 2026):** the lead chooses per co-tutor **Can view** (the course and every lesson, draft or published,
+   read-only: the preview at `/academy/<slug>` through `GET /api/academy/courses?slug=`; the editor and uploads are refused) or **Can view
+   and edit** (details, About, modules and lessons). Publishing, the price and certificate, the shares, invitations and deleting stay with
+   the lead (`editable(…, "lead")`). The co-tutor accepts on `/invites/course/<courseId>_<uid>`, agreeing to the terms shown
+   (`agreedAt`, `agreedTerms` on `courseTutorInvites`, the full record in `inviteAgreements`). The lead may change access or share at any
+   time, published or not: less access applies at once; more access or a new share is a `change` the co-tutor must agree to. A 0% share
+   is allowed for both levels (credited without a share), as before. Co-tutors who accepted before access levels keep edit access
+   (`Tutor.access` missing reads as edit). The rules in plain words live in `lib/invite-terms.ts`.
 8. **Course details for every course**, free or paid (from the partner review of digitalwitchng.com): level, language, format (live
-   classes with recordings), what you'll learn, requirements, how it works, modules, This course includes, Share, and private class and
-   community links shown only to people who enrolled or bought.
+   classes with recordings), what you'll learn, requirements, how it works, modules, This course includes, Share, and a private class
+   link and course group shown only to people who enrolled or bought.
+   - **Course group (v0.108.0, owner 1 Nov 2026: our own tools first):** a Space in one of the publisher's communities instead of a
+     WhatsApp or Telegram group: linked, added to a community they run, or a new invite-only community started in one tap. Learners get
+     the invite with the links and join in one tap. Outside links saved before still show until replaced or removed; new ones are refused.
+     Live classes: an audio room (host, 4 speakers, 20 listeners) or a meeting link for video and bigger classes.
 

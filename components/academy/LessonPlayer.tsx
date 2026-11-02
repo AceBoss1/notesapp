@@ -7,7 +7,7 @@ import { remark } from "remark";
 import html from "remark-html";
 import { remarkLinkify } from "@/lib/linkify";
 import { fetchLesson, submitQuiz, useCourse, type LessonContent } from "@/lib/courses-client";
-import { courseHref, durationLabel, isPaid, lessonHref, nairaLabel, plural, progressOf, youtubeEmbed, type Enrolment, type Lesson, type Quiz, type QuizGrade } from "@/lib/courses";
+import { courseHref, durationLabel, isPaid, lessonHref, nairaLabel, plural, progressOf, youtubeEmbed, type Enrolment, type Lesson, type Quiz, type QuizGrade, type VideoCredit } from "@/lib/courses";
 import { deviceLabel, getDeviceId } from "@/lib/device";
 import dynamic from "next/dynamic";
 import type { User } from "firebase/auth";
@@ -16,7 +16,8 @@ import { LessonList } from "./CourseView";
 // The PDF viewer (pdf.js) loads in the browser only.
 const PdfViewer = dynamic(() => import("@/components/PdfViewer"), { ssr: false, loading: () => <div className="aspect-[3/4] w-full animate-pulse rounded-2xl bg-paper" /> });
 
-// /academy/<slug>/<lessonId>: one lesson. A YouTube video plays in YouTube's privacy-enhanced player and an uploaded video (paid
+// /academy/<slug>/<lessonId>: one lesson. A YouTube video plays in YouTube's privacy-enhanced player (its creator credited under it, then
+// the tutor's lesson notes, if any) and an uploaded video (paid
 // courses) in Cloudflare Stream's, with the viewer's @username and email drifting faintly across it; each is ticked off by itself
 // once the learner has watched about 90% of it, and "Mark as done" is always there too. A text lesson ends with the button; a PDF
 // opens in the page's own viewer. A quiz is answered here and marked by the server (POST /api/academy/quiz): it's ticked off only
@@ -79,7 +80,9 @@ export default function LessonPlayer({ slug, lessonId }: { slug: string; lessonI
     <>
       {preview && (
         <div className="bg-amber-100 px-4 py-2 text-center text-sm text-amber-900">
-          Preview of a draft: only its tutors can see it. <Link href={`/academy/teach/${course.id}`} className="font-semibold underline">Back to the editor</Link>
+          Preview of a draft: only its tutors can see it. {course.tutors?.find((t) => t.uid === user?.uid)?.access === "view"
+            ? <>You can view it (read-only).</>
+            : <Link href={`/academy/teach/${course.id}`} className="font-semibold underline">Back to the editor</Link>}
         </div>
       )}
       <div className="mx-auto max-w-6xl px-4 py-6 sm:px-8 sm:py-8">
@@ -89,7 +92,7 @@ export default function LessonPlayer({ slug, lessonId }: { slug: string; lessonI
             {!open ? joinBox
               : remote ? <RemoteLesson key={lesson.id} user={user} courseId={course.id} lesson={lesson} onWatched={watched} quizProps={quizProps} />
               : lesson.kind === "quiz" && lesson.quiz ? <QuizLesson key={lesson.id} quiz={lesson.quiz} {...quizProps} />
-              : lesson.kind === "youtube" && lesson.youtubeId ? <YouTubeLesson key={lesson.id} videoId={lesson.youtubeId} onWatched={watched} />
+              : lesson.kind === "youtube" && lesson.youtubeId ? <YouTubeWithNotes key={lesson.id} videoId={lesson.youtubeId} credit={lesson.videoCredit} notes={lesson.body} onWatched={watched} />
               : <TextLesson key={lesson.id} body={lesson.body ?? ""} />}
 
             <p className="mt-5 font-mono text-xs uppercase tracking-eyebrow text-slate">Lesson {i + 1} of {lessons.length}{lesson.minutes ? ` · ${durationLabel(lesson.minutes)}` : ""}{!inCourse && open && !mine ? " · Free preview" : ""}</p>
@@ -179,7 +182,7 @@ function RemoteLesson({ user, courseId, lesson, onWatched, quizProps }: { user: 
   if (!got) return <div className="aspect-video w-full animate-pulse rounded-2xl bg-paper" />;
   const mark = got.watermark ? [got.watermark.username, got.watermark.email].filter(Boolean).join(" · ") : "";
   if (got.kind === "video" && got.playerUrl) return <StreamLesson src={got.playerUrl} watermark={mark} onWatched={onWatched} />;
-  if (got.kind === "youtube" && got.youtubeId) return <YouTubeLesson videoId={got.youtubeId} onWatched={onWatched} />;
+  if (got.kind === "youtube" && got.youtubeId) return <YouTubeWithNotes videoId={got.youtubeId} credit={got.videoCredit} notes={got.body} onWatched={onWatched} />;
   if (got.kind === "quiz" && got.quiz) return <QuizLesson quiz={got.quiz} {...quizProps} />;
   if (got.kind === "pdf") {
     const load = async () => {
@@ -296,14 +299,32 @@ function QuizLesson({ quiz, courseId, lessonId, canSubmit, passed, onPassed }: {
 }
 
 // ---- text lessons: Markdown rendered as journals are (remark-html sanitises it; links and @mentions become links) ----
-function TextLesson({ body }: { body: string }) {
+function TextLesson({ body, heading }: { body: string; heading?: string }) {
   const [out, setOut] = useState("");
   useEffect(() => {
     let alive = true;
     remark().use(remarkLinkify).use(html).process(body).then((f) => alive && setOut(String(f))).catch(() => alive && setOut("<p>Couldn't show this lesson.</p>"));
     return () => { alive = false; };
   }, [body]);
-  return <article className="prose prose-lg max-w-none rounded-2xl border border-rule bg-card p-5 font-body text-ink prose-headings:font-display prose-a:text-crimson-bright sm:p-8" dangerouslySetInnerHTML={{ __html: out }} />;
+  const article = <article className="prose prose-lg max-w-none rounded-2xl border border-rule bg-card p-5 font-body text-ink prose-headings:font-display prose-a:text-crimson-bright sm:p-8" dangerouslySetInnerHTML={{ __html: out }} />;
+  if (!heading) return article;
+  return <section className="mt-5" aria-label={heading}><p className="mb-2 font-mono text-xs uppercase tracking-eyebrow text-slate">{heading}</p>{article}</section>;
+}
+
+// ---- a YouTube lesson: the video, who made it (from YouTube's oEmbed, saved with the lesson) and the tutor's notes under it ----
+function YouTubeWithNotes({ videoId, credit, notes, onWatched }: { videoId: string; credit?: VideoCredit; notes?: string; onWatched?: () => void }) {
+  return (
+    <>
+      <YouTubeLesson videoId={videoId} onWatched={onWatched} />
+      {credit && (
+        <p className="mt-2 text-xs leading-relaxed text-slate" data-testid="video-credit">
+          Video: <a href={`https://www.youtube.com/watch?v=${videoId}`} target="_blank" rel="noopener noreferrer" className="font-semibold text-ink hover:text-crimson">{credit.title}</a> by{" "}
+          <a href={credit.url} target="_blank" rel="noopener noreferrer" className="font-semibold text-crimson">{credit.name}</a>, on YouTube. Shared here with credit to the original creator.
+        </p>
+      )}
+      {notes?.trim() && <TextLesson body={notes} heading="Lesson notes" />}
+    </>
+  );
 }
 
 // ---- video lessons ----

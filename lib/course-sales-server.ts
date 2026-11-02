@@ -3,7 +3,7 @@ import { digitalCommissionRateFor, type CustomRates } from "./tiers";
 import { cleanLearnerName, AcademyError } from "./certificates";
 import { issueInTransaction } from "./certificates-server";
 import { CourseError, accessTo, courseOf, enrolmentOf, lessonOf, tierOf } from "./courses-server";
-import { COURSE_REFUND_DAYS, canSellCourses, isPaid, quizForLearner, type Course, type Lesson, type Quiz } from "./courses";
+import { COURSE_REFUND_DAYS, canSellCourses, isPaid, quizForLearner, type Course, type Lesson, type Quiz, type VideoCredit } from "./courses";
 import type { LedgerEntry, PaymentRecord } from "./payments";
 import type { AccountTier, UserProfile } from "./users";
 
@@ -97,6 +97,7 @@ export async function fulfilCourseInTransaction(t: Transaction, db: Firestore, p
 export type LessonContent = {
   id: string; title: string; kind: Lesson["kind"]; preview: boolean;
   body?: string; youtubeId?: string; playerUrl?: string; pdf?: boolean;
+  videoCredit?: VideoCredit; // a YouTube lesson's creator (its notes come in body)
   quiz?: Quiz; // the questions only: answers come back from POST /api/academy/quiz once the learner submits
   watermark?: { username: string; email: string };
 };
@@ -133,7 +134,7 @@ export async function openLesson(db: Firestore, viewer: { uid: string; email: st
   const who = viewer ? ((await db.doc(`users/${viewer.uid}`).get()).data() as UserProfile | undefined) : undefined;
   const content: LessonContent = {
     id: l.id, title: l.title, kind: l.kind, preview: !!l.preview,
-    ...(l.kind === "text" ? { body: l.body ?? "" } : {}), ...(l.kind === "youtube" ? { youtubeId: l.youtubeId } : {}), ...(l.kind === "pdf" ? { pdf: true } : {}),
+    ...(l.kind === "text" ? { body: l.body ?? "" } : {}), ...(l.kind === "youtube" ? { youtubeId: l.youtubeId, ...(l.body ? { body: l.body } : {}), ...(l.videoCredit ? { videoCredit: l.videoCredit } : {}) } : {}), ...(l.kind === "pdf" ? { pdf: true } : {}),
     ...(l.kind === "quiz" && l.quiz ? { quiz: quizForLearner(l.quiz) } : {}),
     ...(l.kind === "video" && l.streamUid ? { playerUrl: await deps.playerUrlFor(l.streamUid) } : {}),
     ...(isPaid(c) && viewer ? { watermark: { username: who?.username ? `@${who.username}` : "", email: viewer.email } } : {}),
