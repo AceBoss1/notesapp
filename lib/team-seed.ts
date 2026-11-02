@@ -200,3 +200,20 @@ export const PREP_SCHOOLS_BACKLOG: Seed[] = [
   { key: "schools-agreement", title: "Legal: finalise the schools onboarding data agreement and set it in Admin", detail: "The draft is with Emmanuel (kept out of the code). Decide controller and processor roles under the NDPA, whether schools may enrol under-13s, and the retention period; then Admin → Naija Exam Prep → Schools → Onboarding data agreement: a version and the full text. Approved schools can't sign until it's there.", status: "todo", horizon: "week", depts: ["legal"] },
   { key: "schools-pilot", title: "Exam Prep: invite two or three pilot schools", detail: "They apply at prep.notesapp.name.ng/schools (a key staff member). Approve them in Admin → Naija Exam Prep → Schools once the agreement is set. Free during the pilot; agree a per-student-per-year price before charging anything.", status: "todo", horizon: "later", depts: ["growth", "content"] },
 ];
+
+// Audio rooms past 20 listeners (owner, 2 Nov 2026): the Cloudflare relay, the keys it needs and the build. The standing reminder in
+// lib/team-server.ts teamSignals stays until the keys are set.
+export const ROOMS_RELAY_BACKLOG: Seed[] = [
+  {
+    key: "rooms-relay",
+    title: "Audio rooms past 20 listeners: Cloudflare relay (Realtime SFU)",
+    detail: [
+      "Today a room holds 20 listeners because the host's phone sends a copy of the stage to every listener (lib/rooms.ts, ROOM_LISTENERS_MAX_P2P).",
+      "With Cloudflare Realtime (Serverless SFU) each speaker sends once and listeners pull from Cloudflare, so rooms can hold hundreds. Cost: the first 1,000 GB a month are free, then about $0.05/GB (check Cloudflare's pricing page). Voice is about 15–30 MB per listener per hour.",
+      "Owner steps: dash.cloudflare.com → Realtime → Serverless SFU → Create application (e.g. notesapp-audio-rooms). Put the App ID in CLOUDFLARE_REALTIME_APP_ID and the App Token (shown once) in CLOUDFLARE_REALTIME_APP_TOKEN in Vercel → Settings → Environment Variables (Production, token marked Sensitive), then Redeploy. Never paste the token anywhere else.",
+      "While there: Realtime → TURN Server. The Turn Token ID goes in CLOUDFLARE_TURN_KEY_ID and its API token in CLOUDFLARE_TURN_API_TOKEN (fixes calls on strict networks, see /status).",
+      "Build (about a day; can be built before the keys and stays off until they're set): a relay mode for rooms, the server opening each speaker's and listener's Cloudflare session, the room screen sending and receiving through Cloudflare, a listener limit in Admin → Limits, tests, changelog and a help article.",
+    ].join("\n\n"),
+    status: "todo", horizon: "week", depts: ["engineering", "product"], due: "2026-11-09", ...FOUNDER,
+  },
+];

@@ -1,6 +1,6 @@
 // Team hub rules (lib/team.ts): several people on one item, monthly items. Run: npm run test:team → "ALL OK".
 import assert from "node:assert/strict";
-import { TeamError, addMonths, buildMorningSummary, cleanItem, isOwner, nextMonthly, ownerNames, ownersOf, workReminders, type TeamItem } from "../../lib/team";
+import { TeamError, addMonths, buildMorningSummary, cleanItem, horizonForDue, isOwner, nextMonthly, ownerNames, ownersOf, workReminders, type TeamItem } from "../../lib/team";
 
 // Several people, one person (older callers) or no one.
 assert.deepEqual(cleanItem({ title: "Ship", ownerUids: ["a", "b", "a", " ", 7] }, false).ownerUids, ["a", "b"]);
@@ -46,5 +46,18 @@ for (const uid of ["a", "b"]) {
   assert.ok(d.text.includes("- Shared"), `${uid} sees the shared item`);
 }
 assert.ok(!buildMorningSummary({ name: "Chi", uid: "c", today: "2026-10-17", items: [item({})], signals: [], milestones: [], meetingsToday: [], nameOf: name, link: "x" }).text.includes("Your day"));
+
+// The "+ New task" form: a full item is accepted on create, and a due date suggests the horizon.
+const full = cleanItem({ title: "Relay", detail: "See https://example.org/x", due: "2026-11-09", horizon: "week", status: "decision", decisionQuestion: "Which plan?", depts: ["engineering", "nope"], ownerUids: ["a"], repeat: "" }, false);
+assert.equal(full.detail, "See https://example.org/x");
+assert.deepEqual(full.depts, ["engineering"], "unknown departments are dropped");
+assert.equal(full.decisionQuestion, "Which plan?");
+assert.equal(full.due, "2026-11-09");
+assert.equal(horizonForDue("2026-11-02", "2026-11-02"), "today");
+assert.equal(horizonForDue("2026-10-30", "2026-11-02"), "today", "overdue counts as today");
+assert.equal(horizonForDue("2026-11-09", "2026-11-02"), "week", "in 1 week is still This week, as on the board");
+assert.equal(horizonForDue("2026-11-10", "2026-11-02"), "later");
+assert.equal(horizonForDue("2026-11-16", "2026-11-02"), "later", "in 2 weeks");
+assert.equal(horizonForDue("", "2026-11-02"), "later");
 
 console.log("ALL OK");

@@ -60,6 +60,9 @@ export const lagosDay = (iso: string) => lagosDate(new Date(iso));
 export function addDays(date: string, days: number): string {
   return new Date(new Date(`${date}T00:00:00Z`).getTime() + days * 86_400_000).toISOString().slice(0, 10);
 }
+// The horizon a due date suggests on the "+ New task" form: today (or overdue), within the next seven days (the board's This week,
+// groupItems below), or later.
+export const horizonForDue = (due: string, today: string): Horizon => (!due || due > addDays(today, 7) ? "later" : due <= today ? "today" : "week");
 // The same day next month; the 31st becomes the last day of a shorter month (31 Jan → 28 Feb).
 export function addMonths(date: string, months: number): string {
   const [y, m, d] = date.split("-").map(Number);
