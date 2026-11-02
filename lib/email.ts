@@ -51,11 +51,14 @@ export async function notifyBell(note: BellNote & { message: string }): Promise<
 // A member's own brand for emails sent on their behalf (Enterprise full white label): their name and logo replace #NotesApp's.
 export type EmailBrand = { name: string; logoUrl: string; siteUrl: string };
 
-export function renderEmailHtml(text: string, action?: EmailAction, brand?: EmailBrand): string {
+// `extra` (announcements, lib/announcements.ts): `bodyHtml` replaces the paragraphs made from `text` (headings and lists), `preheader`
+// is the hidden line inboxes show after the subject, and `footer` adds a line to the footer (the unsubscribe link).
+export type EmailExtra = { bodyHtml?: string; preheader?: string; footer?: string };
+export function renderEmailHtml(text: string, action?: EmailAction, brand?: EmailBrand, extra?: EmailExtra): string {
   const site = (brand?.siteUrl || SITE_URL).replace(/\/$/, "");
   // The footer carries the #NotesApp sign-off, so drop a trailing one from the body.
   const body = text.replace(/\s*#NotesApp\s*$/, "").trim();
-  const paragraphs = body
+  const paragraphs = extra?.bodyHtml ?? body
     .split(/\n{2,}/)
     .map((para) => `<p style="margin:0 0 16px;font-size:16px;line-height:1.6;color:${BRAND.ink};">${linkify(esc(para)).replace(/\n/g, "<br>")}</p>`)
     .join("");
@@ -63,7 +66,8 @@ export function renderEmailHtml(text: string, action?: EmailAction, brand?: Emai
   const button = action
     ? `<table role="presentation" cellpadding="0" cellspacing="0" style="margin:8px 0 12px;"><tr><td bgcolor="${BRAND.crimson}" style="background:${BRAND.crimson};border-radius:6px;"><a href="${esc(action.url)}" style="display:inline-block;padding:12px 22px;font-size:15px;font-weight:700;color:#ffffff;text-decoration:none;">${esc(action.label)}</a></td></tr></table>`
     : "";
-  return `<!doctype html><html><body style="margin:0;padding:0;background:${BRAND.paper};">
+  const pre = extra?.preheader ? `<div style="display:none;max-height:0;overflow:hidden;opacity:0;color:transparent;">${esc(extra.preheader)}${"&#8199;&#847; ".repeat(40)}</div>` : "";
+  return `<!doctype html><html><body style="margin:0;padding:0;background:${BRAND.paper};">${pre}
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" bgcolor="${BRAND.paper}" style="background:${BRAND.paper};"><tr><td align="center" style="padding:24px 12px;">
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:560px;font-family:-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
 <tr><td height="6" bgcolor="${BRAND.crimson}" style="background:${BRAND.crimson};font-size:0;line-height:0;border-radius:6px 6px 0 0;">&nbsp;</td></tr>
@@ -74,7 +78,7 @@ ${brand
 </td></tr>
 <tr><td bgcolor="#ffffff" style="background:#ffffff;padding:20px 28px 12px;border-left:1px solid ${BRAND.rule};border-right:1px solid ${BRAND.rule};">${paragraphs}${button}</td></tr>
 <tr><td bgcolor="#ffffff" style="background:#ffffff;padding:16px 28px 24px;border:1px solid ${BRAND.rule};border-top:1px solid ${BRAND.rule};border-radius:0 0 6px 6px;font-size:12px;line-height:1.5;color:${BRAND.muted};">
-<strong style="color:${BRAND.crimson};">${brand ? esc(brand.name) : "#NotesApp"}</strong> &middot; <a href="${site}" style="color:${BRAND.muted};">${site.replace(/^https?:\/\//, "")}</a><br>Replies to this address aren't monitored.${brand ? "" : ` Need help? <a href="${site}/contact" style="color:${BRAND.muted};">Contact us</a>.`}
+<strong style="color:${BRAND.crimson};">${brand ? esc(brand.name) : "#NotesApp"}</strong> &middot; <a href="${site}" style="color:${BRAND.muted};">${site.replace(/^https?:\/\//, "")}</a><br>Replies to this address aren't monitored.${brand ? "" : ` Need help? <a href="${site}/contact" style="color:${BRAND.muted};">Contact us</a>.`}${extra?.footer ? `<br>${extra.footer}` : ""}
 </td></tr>
 </table></td></tr></table></body></html>`;
 }

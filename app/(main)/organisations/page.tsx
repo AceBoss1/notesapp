@@ -76,7 +76,7 @@ export default function OrganisationsPage() {
         </div>
       </div>
 
-      <p className="mt-10 card p-4 text-sm text-slate"><strong className="text-ink">Community.</strong> Bring your members together: public and members-only Spaces, a General announcement channel, private Circles and Events. <Link href="/community" className="text-crimson underline">Start yours</Link>.</p>
+      <p className="mt-10 card p-4 text-sm text-slate"><strong className="text-ink">Community.</strong> Bring your members together: public and members-only Spaces, a General announcement channel, private Circles and Events with paid tickets and QR check-in. Take offerings, tithes and donations with Giving, with no commission and a receipt for every giver; each gift is capped at ₦20,000 until your organisation is verified. <Link href="/community" className="text-crimson underline">Start yours</Link>.</p>
       <h2 className="mt-12 font-display text-2xl text-ink">How onboarding works</h2>
       <ol className="mt-4 space-y-3">
         {STEPS.map(([t, d], i) => (

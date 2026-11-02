@@ -9,7 +9,9 @@ import Avatar from "@/components/Avatar";
 import { NameBadgeIcons } from "@/components/PersonName";
 import { hashtag } from "@/lib/topics";
 import { subtopicHashtag } from "@/lib/subtopics";
-import { countCourseView, useCourse, useCourseLinks, useCoursePurchase } from "@/lib/courses-client";
+import { countCourseView, useCourse, useCourseLinks, useCoursePurchase, type LearnerLinks } from "@/lib/courses-client";
+import { api } from "@/lib/moments-client";
+import { mainHref } from "@/components/community/place";
 import { startCheckout } from "@/lib/checkout";
 import DiscountCodeField from "@/components/DiscountCodeField";
 import { naira } from "@/lib/discounts";
@@ -20,14 +22,14 @@ import { ShareMenu } from "@/components/share/ShareToNotesApp";
 import ReviewsPanel, { Stars } from "@/components/ReviewsPanel";
 import { useCourseSocial, useSavedCourses } from "@/lib/course-social-client";
 import {
-  COURSE_REFUND_DAYS, RATING_SHOWN_FROM, durationLabel, formatLabel, groupByModule, includesOf, isPaid, lessonHref, lessonKindLabel, levelLabel, plural, priceLabel,
+  COURSE_REFUND_DAYS, RATING_SHOWN_FROM, courseGroupHref, durationLabel, formatLabel, groupByModule, includesOf, isPaid, lessonHref, lessonKindLabel, levelLabel, plural, priceLabel,
   progressOf, showsRating, type Course, type CourseModule, type Enrolment, type Lesson,
 } from "@/lib/courses";
 
 // /academy/<slug>: a course's page. The top: where it's filed, its level, format and language, the title, its tutors and stars. Then
 // tabs (Overview, Curriculum, Tutors, Reviews) beside a card with the price, what the course includes, Share and the details. A free
-// course: "Enrol — free". A paid course: "Buy the course" and its free previews; once bought, progress, Continue, the class and
-// community links, and a refund while it's allowed. On phones the price and the main button stay at the bottom of the screen.
+// course: "Enrol — free". A paid course: "Buy the course" and its free previews; once bought, progress, Continue, the class link and
+// "Join the course group" (its #NotesApp community; an outside group saved before still shows, labelled as before), and a refund while it's allowed. On phones the price and the main button stay at the bottom of the screen.
 // The tutors see their own draft here as a preview. On a member's own site (`site`: app/(site)/s/[username]/courses/[slug]) the same page
 // sits inside their site, without adverts, and only for a course they teach; its lessons and certificate stay on #NotesApp.
 type Tab = "overview" | "curriculum" | "tutors" | "reviews";
@@ -128,7 +130,9 @@ export default function CourseView({ slug, site }: { slug: string; site?: { base
     <>
       {preview && (
         <div className="bg-amber-100 px-4 py-2 text-center text-sm text-amber-900">
-          Preview: this course is a draft, so only its tutors can see it. <Link href={`/academy/teach/${course.id}`} className="font-semibold underline">Back to the editor</Link>
+          Preview: this course is a draft, so only its tutors can see it. {course.tutors?.find((t) => t.uid === user?.uid)?.access === "view"
+            ? <>You can view it (read-only): send the lead tutor your comments.</>
+            : <Link href={`/academy/teach/${course.id}`} className="font-semibold underline">Back to the editor</Link>}
         </div>
       )}
       <section className="bg-gradient-to-br from-crimson-deep via-crimson to-crimson-bright text-paper">
@@ -270,16 +274,17 @@ export default function CourseView({ slug, site }: { slug: string; site?: { base
                   </div>
                 </>
               )}
-              {(course.hasCommunityLink || course.hasClassLink) && (
+              {(course.hasGroup || course.hasCommunityLink || course.hasClassLink) && (
                 <div className="mt-3 rounded-xl bg-emerald-50 p-3.5 text-sm text-emerald-900">
-                  {links && (links.classUrl || links.communityUrl) ? (
+                  {links && (links.classUrl || links.communityUrl || links.group) ? (
                     <div className="flex flex-wrap items-center gap-2">
                       <span className="mr-1">You&apos;re in.</span>
+                      {links.group && <JoinGroup group={links.group} className="rounded-full bg-crimson px-4 py-1.5 font-ui text-xs font-bold text-paper" />}
                       {links.classUrl && <a href={links.classUrl} target="_blank" rel="noopener noreferrer" className="rounded-full bg-emerald-700 px-4 py-1.5 font-ui text-xs font-bold text-white">Join the live class</a>}
-                      {links.communityUrl && <a href={links.communityUrl} target="_blank" rel="noopener noreferrer" className="rounded-full bg-[#1f9d55] px-4 py-1.5 font-ui text-xs font-bold text-white">Join the {course.communityKind || "learners'"} group</a>}
+                      {!links.group && links.communityUrl && <a href={links.communityUrl} target="_blank" rel="noopener noreferrer" className="rounded-full bg-[#1f9d55] px-4 py-1.5 font-ui text-xs font-bold text-white">Join the {course.communityKind || "learners'"} group</a>}
                     </div>
                   ) : (
-                    <>{course.hasClassLink && course.hasCommunityLink ? "The live class link and the course's group are" : course.hasClassLink ? "The live class link is" : `The course's ${course.communityKind ? `${course.communityKind} ` : ""}group is`} shared with learners once they {paid ? "buy" : "enrol"}: support, questions and networking with fellow learners.</>
+                    <>{course.hasGroup ? `The course group on #NotesApp${course.hasClassLink ? " and the live class link are" : " is"}` : course.hasClassLink && course.hasCommunityLink ? "The live class link and the course's group are" : course.hasClassLink ? "The live class link is" : `The course's ${course.communityKind ? `${course.communityKind} ` : ""}group is`} shared with learners once they {paid ? "buy" : "enrol"}: support, questions and networking with fellow learners.</>
                   )}
                 </div>
               )}
@@ -343,7 +348,22 @@ const Badge = ({ children }: { children: React.ReactNode }) => <span className="
 const Row = ({ k, v }: { k: string; v: React.ReactNode }) => <div className="flex justify-between gap-4 py-2"><dt className="text-slate">{k}</dt><dd className="text-right font-semibold text-ink">{v}</dd></div>;
 const Fact = ({ k, v }: { k: string; v: string }) => <div className="rounded-xl border border-rule bg-card p-3"><p className="font-mono text-[10px] uppercase tracking-widest text-slate">{k}</p><p className="mt-1 font-ui text-sm font-bold text-ink">{v}</p></div>;
 
-function Progress({ course, lessons, enrolment, slug, mine, links }: { course: Course; lessons: Lesson[]; enrolment: Enrolment | null | undefined; slug: string; mine: boolean; links: { classUrl: string; communityUrl: string } | null }) {
+// "Join the course group": joins the course's #NotesApp community with the invite learners get, then opens its Space. Already a member,
+// or on a member's own domain, it just opens it (the community page has its own Join button).
+function JoinGroup({ group, className }: { group: NonNullable<LearnerLinks["group"]>; className: string }) {
+  const [busy, setBusy] = useState(false);
+  const href = mainHref(courseGroupHref(group));
+  const go = async (e: React.MouseEvent) => {
+    if (href.startsWith("http")) return;
+    e.preventDefault();
+    setBusy(true);
+    await api("/api/community", { body: { action: "join", id: group.communityId, invite: group.inviteCode } }).catch(() => {});
+    window.location.href = href;
+  };
+  return <a href={href} onClick={go} className={className}>{busy ? "Joining…" : "Join the course group"}</a>;
+}
+
+function Progress({ course, lessons, enrolment, slug, mine, links }: { course: Course; lessons: Lesson[]; enrolment: Enrolment | null | undefined; slug: string; mine: boolean; links: LearnerLinks | null }) {
   const p = progressOf(lessons.map((l) => l.id), enrolment);
   return (
     <>
@@ -354,8 +374,9 @@ function Progress({ course, lessons, enrolment, slug, mine, links }: { course: C
         </div>
       ) : null}
       {p.next && <Link href={lessonHref(slug, p.next)} className="btn-primary mt-4 w-full !py-3">{!enrolment ? "Open the lessons" : p.complete ? "Watch again" : p.done ? "Continue" : "Start"}</Link>}
+      {links?.group && <JoinGroup group={links.group} className="btn-ghost mt-2 w-full !py-2.5" />}
       {links?.classUrl && <a href={links.classUrl} target="_blank" rel="noopener noreferrer" className="btn-ghost mt-2 w-full !py-2.5">Join the live class</a>}
-      {links?.communityUrl && <a href={links.communityUrl} target="_blank" rel="noopener noreferrer" className="btn-ghost mt-2 w-full !py-2.5">Join the {course.communityKind || "learners'"} group</a>}
+      {!links?.group && links?.communityUrl && <a href={links.communityUrl} target="_blank" rel="noopener noreferrer" className="btn-ghost mt-2 w-full !py-2.5">Join the {course.communityKind || "learners'"} group</a>}
       {mine && <Link href={`/academy/teach/${course.id}`} className="mt-4 block text-center text-sm font-semibold text-crimson">You teach this course · Edit it</Link>}
       {mine ? (
         <Link href="/academy/teach/setup" className="mt-4 block border-t border-rule pt-3 text-center text-sm font-semibold text-crimson"><AcademyIcon className="mr-1.5 inline-block h-[1.2em] w-[1.2em] align-[-0.25em]" />Set up your certificates</Link>

@@ -30,6 +30,7 @@ assert.ok(size <= KNOWLEDGE_MAX_CHARS, "kept under the size cap");
 const fixed = buildSystem(all);
 assert.match(fixed, /- Refunds: \/help\/refunds/); assert.doesNotMatch(fixed, /If a session is cancelled/);
 assert.ok(fixed.length < 20_000, "small enough to stay cheap; well over the 512-token caching minimum");
+assert.match(fixed, /Our own tools first/); assert.match(fixed, /not a WhatsApp or Telegram group\) → Community/, "Nana suggests our own tools, not outside platforms");
 assert.match(knowledgeBlock(pickArticles(all, ["refunds"])), /If a session is cancelled you get a refund/);
 assert.match(knowledgeBlock([]), /none matched/);
 console.log("ALL OK");

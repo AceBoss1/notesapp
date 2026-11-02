@@ -99,6 +99,7 @@ export default function AffiliatesPage() {
         )}
         <p className="mt-10 text-xs text-slate">
           You earn on what the buyer actually pays (after any discount code), once the payment clears. Not on your own purchases.
+          On the 1st of each month, if you had sales or sign-ups, we email you a report on the month before (turn it off in your email settings).
           See <Link href="/help/referrals" className="text-crimson underline">Referrals and affiliates</Link> and your earnings in <Link href="/profile/referrals" className="text-crimson underline">Account → Referrals</Link>.
         </p>
       </section>

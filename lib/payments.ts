@@ -204,6 +204,7 @@ async function giftShares(p: PaymentRecord): Promise<Share[]> {
   const co: Share[] = [];
   for (const d of inv.docs) {
     const i = d.data();
+    if (!(Number(i.percent) > 0)) continue; // a view-only reviewer credited without a share
     const u = (await db.doc(`users/${i.inviteeUid}`).get()).data();
     if (!u || u.suspended) continue; // their share stays with the lead
     co.push({ uid: i.inviteeUid, username: i.inviteeUsername, percent: Number(i.percent), rate: commissionRateFor((u.accountTier as AccountTier) || "basic", u.customRates) });

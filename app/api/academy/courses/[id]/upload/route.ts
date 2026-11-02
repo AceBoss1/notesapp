@@ -19,7 +19,7 @@ export async function POST(req: NextRequest, { params }: Ctx) {
     const limited = await rateLimit(req, "academy-upload", uid, 30, 3600);
     if (limited) return limited;
     const b = await req.json().catch(() => ({}));
-    const { course, plan } = await courseForOwner(getAdminDb(), uid, { id: params.id });
+    const { course, plan } = await courseForOwner(getAdminDb(), uid, { id: params.id }, "tutor");
     if (!course.priceKobo) throw new CourseError("Uploads are for paid courses. Set a price first, or add a YouTube link.", 409);
     if (b.kind === "video" && !plan.canUploadVideo) throw new CourseError("Uploading videos is on Business and Enterprise plans.", 403);
     if (b.kind === "pdf" && !plan.canSell) throw new CourseError("Uploading PDFs is on Pro, Business and Enterprise plans.", 403);

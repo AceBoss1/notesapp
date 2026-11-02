@@ -75,7 +75,8 @@ export default function BoostPage() {
         <div className="card p-6">
           <p className="font-ui text-sm font-bold text-ink">Who can boost</p>
           <p className="mt-2 text-sm text-slate">
-            Any publisher, for their own published posts and the items in their own store. Pay in Naira through Paystack or from your NotesApp Credit wallet, and you need a verified email
+            Any publisher, for their own published posts and the items in their own store. Pay in Naira through Paystack or from your NotesApp Credit wallet, and you need a verified email.
+            Have a #NotesApp discount code? Choose &ldquo;Have a discount code?&rdquo; at checkout to see what it takes off before you pay
             (see <Link href="/pricing" className="text-crimson underline">pricing</Link> for the full picture).
           </p>
         </div>
