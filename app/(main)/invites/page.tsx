@@ -23,6 +23,8 @@ export default function InvitesPage() {
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const { orgs, invites: teamInvites } = useMemberships(user);
   const [teamDone, setTeamDone] = useState<Record<string, string>>({});
+  // Business books staff invitations (lib/books-staff-server.ts): each opens /invites/books/<id>.
+  const [booksInvites, setBooksInvites] = useState<{ id: string; ownerName: string; role: string }[]>([]);
 
   async function respondTeam(body: Record<string, unknown>, key: string, done: string) {
     if (!user) return;
@@ -52,6 +54,7 @@ export default function InvitesPage() {
         if (!u) return router.replace("/login");
         setUser(u);
         getUserByUid(u.uid).then(setProfile).catch(() => {});
+        u.getIdToken().then((t) => fetch("/api/books/staff", { headers: { Authorization: `Bearer ${t}` } })).then((r) => r.json()).then((j) => setBooksInvites(j.invites ?? [])).catch(() => {});
         load(u).catch(() => setInvites([]));
       }),
     [router, load]
@@ -92,6 +95,17 @@ export default function InvitesPage() {
         </p>
       )}
       {error && <p className="mt-4 text-sm text-crimson">{error}</p>}
+      {booksInvites.length > 0 && (
+        <div className="card mt-8 p-5 text-sm">
+          <p className="font-ui font-bold text-ink">Business books</p>
+          {booksInvites.map((b) => (
+            <p key={b.id} className="mt-3 flex items-center justify-between gap-3 border-t border-rule pt-3">
+              <span className="text-ink">{b.ownerName} invited you to their books as {b.role === "manager" ? "a Manager" : "a Cashier"}.</span>
+              <Link href={`/invites/books/${encodeURIComponent(b.id)}`} className="btn-primary !px-4 !py-2 text-xs">Review and answer</Link>
+            </p>
+          ))}
+        </div>
+      )}
       {(teamInvites.length > 0 || (orgs || []).length > 0) && (
         <div className="card mt-8 p-5 text-sm">
           <p className="font-ui font-bold text-ink">Organisation teams</p>

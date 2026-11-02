@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { SALE_METHODS, naira, shortDate, type Method } from "@/lib/books";
 import { Badge, Icon, WhatsAppIcon, field, nairaInput, newClientId, pill, type Api } from "./shared";
+import { saveOrQueue, useOutbox } from "./outbox";
 
 // Money owed: customers who owe you (late first), with reminders (email and bell for members; WhatsApp click-to-send with the #NotesApp
 // line for everyone else; SMS greyed out until Send-Na), recording a payment (all or part), and a simple list of what you owe suppliers.
@@ -79,6 +80,7 @@ function Remind({ api, d, onChanged }: { api: Api; d: Debtor; onChanged: () => v
   const [amount, setAmount] = useState("");
   const [method, setMethod] = useState<Method>("cash");
   const [phone, setPhone] = useState("");
+  const outbox = useOutbox();
   const remind = async (channel: "whatsapp" | "email", force = false) => {
     setMsg("");
     try {
@@ -99,7 +101,11 @@ function Remind({ api, d, onChanged }: { api: Api; d: Debtor; onChanged: () => v
   const pay = async () => {
     const k = nairaInput(amount);
     if (!k) return setMsg("Enter how much they paid.");
-    try { await api("", { action: "payment", clientId: newClientId(), partyId: d.party.id, amountKobo: k, method }); setPaying(false); setAmount(""); setMsg("Payment recorded."); onChanged(); } catch (e) { setMsg((e as Error).message); }
+    try {
+      const body = { action: "payment", clientId: newClientId(), partyId: d.party.id, partyName: d.party.name, amountKobo: k, method };
+      const r = await saveOrQueue(outbox, () => api("", body), "payment", body, `${d.party.name} paid back`, k);
+      setPaying(false); setAmount(""); setMsg(r.queued ? "Saved on this phone. It syncs when you're back online." : "Payment recorded."); onChanged();
+    } catch (e) { setMsg((e as Error).message); }
   };
   const savePhone = async () => { try { await api("", { action: "party", id: d.party.id, kind: "customer", name: d.party.name, phone }); setMsg("Number saved."); onChanged(); } catch (e) { setMsg((e as Error).message); } };
   return (

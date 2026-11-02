@@ -20,6 +20,7 @@ import { courseShares, fulfilCourseInTransaction, type SaleShare } from "./cours
 import { extendAddon, type Carrier } from "./logistics-server";
 import { extendInventoryAddon, lowStockAlert, recordSale } from "./inventory-server";
 import { bookOnlineOrder } from "./books-server";
+import { notifyDebtPaid, readDebt, writeDebt, type DebtInfo } from "./books-debt-server";
 import { SITE_URL } from "@/lib/host";
 import { grantPackInTransaction } from "./exam-prep-server";
 import { EXAMS, type ExamId } from "./exam-prep";
@@ -35,8 +36,8 @@ import { alertIfJump, recordPlanEarning, startReferralSubscription, writeProduct
 
 export type PaymentRecord = {
   reference: string;
-  kind: "booking" | "subscription" | "boost" | "gift" | "tier" | "badge" | "gold_deposit" | "gold" | "merch" | "ad" | "store" | "digital" | "wallet_topup" | "life_naira" | "nana_credit" | "certificate" | "course" | "logistics_addon" | "inventory_addon" | "store_cart" | "exam_pack" | "giving" | "ticket";
-  uid: string; // the payer
+  kind: "booking" | "subscription" | "boost" | "gift" | "tier" | "badge" | "gold_deposit" | "gold" | "merch" | "ad" | "store" | "digital" | "wallet_topup" | "life_naira" | "nana_credit" | "certificate" | "course" | "logistics_addon" | "inventory_addon" | "store_cart" | "exam_pack" | "giving" | "ticket" | "debt";
+  uid: string; // the payer ("" for a customer paying a debt from their statement link without signing in)
   email: string;
   amountKobo: number;
   status: "pending" | "paid" | "paid_slot_conflict" | "refunded";
@@ -124,6 +125,9 @@ export type PaymentRecord = {
   // bandKobo / cardChargeKobo / netKobo: the charges fixed at checkout (lib/tickets.ts quoteTickets, since v0.117.0); a ticket bought
   // before then has none and keeps the commission recorded in commissionRate.
   ticket?: { eventId: string; eventTitle: string; typeId: string; typeName: string; quantity: number; unitKobo: number; startsAt: string; endsAt: string; holderName: string; bandKobo?: number; cardChargeKobo?: number; netKobo?: number };
+  // A customer paying what they owe a Business books seller (lib/books-debt-server.ts): whose statement, which customer, and once paid
+  // the payment's entry and the customer's receipt. publisherUid is the seller.
+  debt?: DebtInfo;
 };
 
 // held      = collected, waiting for releaseAfter (session end / dispute window)
@@ -136,7 +140,7 @@ export type LedgerEntry = {
   reference: string; // ledger doc id (the payment reference, or `<ref>_<uid>` for a co-author's share)
   paymentReference?: string; // the Paystack payment this entry belongs to (set on split entries)
   sharePercent?: number; // this author's % of a co-authored post's gift
-  kind: "booking" | "subscription" | "gift" | "adshare" | "order" | "digital" | "certificate" | "course" | "shipping" | "affiliate" | "giving" | "ticket";
+  kind: "booking" | "subscription" | "gift" | "adshare" | "order" | "digital" | "certificate" | "course" | "shipping" | "affiliate" | "giving" | "ticket" | "debt";
   cardChargeKobo?: number; // giving and tickets by card: Paystack's charge at cost, passed on (grossKobo is already after it)
   affiliateKobo?: number; // an affiliate's share of this sale, already taken out of netKobo
   publisherUid: string;
@@ -277,6 +281,7 @@ export async function fulfillPayment(reference: string, paidWith?: { cartRef: st
     // A discount code's running totals: read now (every read comes before any write), written with the paid status below.
     const codeRead = await readCodeForRedemption(t, db, current.discount);
     const ticketRead = current.kind === "ticket" && current.ticket ? await readForTickets(t, db, current) : null;
+    const debtRead = current.kind === "debt" && current.debt ? await readDebt(t, db, current) : null;
 
     if (current.kind === "booking" && current.booking) {
       const { username, date, slot, minutes } = current.booking;
@@ -413,6 +418,11 @@ export async function fulfillPayment(reference: string, paidWith?: { cartRef: st
         ...(tk.cardChargeKobo ? { cardChargeKobo: tk.cardChargeKobo } : {}),
         status: "held", releaseAfter: new Date(tk.endsAt).toISOString(), createdAt: now,
       } satisfies LedgerEntry : ledgerFor(current, current.amountKobo, new Date(tk.endsAt), now));
+    } else if (current.kind === "debt" && current.debt && debtRead) {
+      // A customer paid what they owe a Business books seller: the payment in the seller's books (oldest sales first), the customer's
+      // receipt, and the seller's money held in the ledger, then paid out like a sale (lib/books-debt-server.ts).
+      current.debt = writeDebt(t, db, current, debtRead, now);
+      t.update(payRef, { debt: current.debt });
     } else if (current.kind === "boost" && current.boost) {
       // Boosts are platform revenue: no ledger entry, just an active campaign.
       const pk = getBoostPackage(current.boost.packageId);
@@ -699,6 +709,7 @@ async function emitSaleWebhooks(p: PaymentRecord): Promise<void> {
 }
 
 async function notifyPaid(p: PaymentRecord) {
+  if (p.kind === "debt" && p.debt) return notifyDebtPaid(p);
   if (p.kind === "gift" && p.gift) return notifyGift(p);
   if (p.kind === "giving" && p.giving) return notifyGiving(p);
   if (p.kind === "ticket" && p.ticket) return notifyTickets(p);

@@ -51,7 +51,12 @@ export type PricingConfig = {
   // Business books (lib/books.ts; owner, 2 Nov 2026, option A): free on Free Basic with a monthly cap, unlimited on Pro and above.
   // freeEntries: walk-in sales and expenses a month (online orders never count); freeCustomers: customers owing at once;
   // freeImportRows: rows in one imported file (Pro and above: BOOKS_IMPORT_MAX_ROWS).
-  books: { freeEntries: number; freeCustomers: number; freeImportRows: number };
+  // staffSeatsPro, staffSeatsBusiness: cashiers and managers a seller can invite to their books, by plan (Enterprise: no fixed limit; Free Basic: none). Pro is
+  // 0 until the owner answers open question 4 (a helper seat for a trader without a Business team).
+  // debtCommission: a customer paying what they owe online (payment kind "debt", open question 5): "store" takes the seller's normal
+  // physical-goods commission, as a store sale does (the default); "none" takes nothing. debtHoldDays: how long that money is held
+  // before it's paid out, like a store sale's hold.
+  books: { freeEntries: number; freeCustomers: number; freeImportRows: number; staffSeatsPro: number; staffSeatsBusiness: number; debtCommission: "store" | "none"; debtHoldDays: number };
   // Course covers made with Nana (lib/covers.ts): how many a member makes a day on each plan (new designs and edits count 1 each).
   // The owner's rule: Free Basic 3 a day; Free (Standard) can't publish, so 0. The Pearl tokens come from the Nana allowance as usual.
   academyCovers: CoverLimits;
@@ -99,7 +104,9 @@ const CERTIFICATE_LATE = { graceDays: 7, weeklyRate: 0.01, capRate: 0.5 };
 const ACADEMY_COVERS: CoverLimits = { ...DEFAULT_COVER_LIMITS };
 const INVENTORY: PricingConfig["inventory"] = { addonMonthlyKobo: 1_500 * 100, trialDays: TRIAL_DAYS };
 // Decided 2 Nov 2026 (docs/BUSINESS-BOOKS.md, option A): 150 entries a month and 20 customers owing on Free Basic; review after three months.
-const BOOKS: PricingConfig["books"] = { freeEntries: 150, freeCustomers: 20, freeImportRows: 500 };
+// Staff roles, paying a debt online (2 Nov 2026, v0.119.0): Business 4 staff seats (as its team seats), Pro none until open question 4 is
+// answered; a debt paid online takes the store's commission and is held 7 days, until open question 5 is answered.
+const BOOKS: PricingConfig["books"] = { freeEntries: 150, freeCustomers: 20, freeImportRows: 500, staffSeatsPro: 0, staffSeatsBusiness: 4, debtCommission: "store", debtHoldDays: 7 };
 const LOGISTICS: PricingConfig["logistics"] = { addonMonthlyKobo: 4_500 * 100, trialDays: TRIAL_DAYS, cutRate: 0.1, cutMinKobo: 100 * 100 };
 // Allowances in kobo of AI cost a month. Free Basic's is ours to give (our commission on Basic sales pays for it); 4 weekly summaries
 // on the small model cost about ₦15, so ₦50 leaves room. Free (Standard) members get the same. Top-ups keep 20% for card fees and
@@ -220,7 +227,14 @@ export function cleanPricing(input: unknown): PricingConfig {
   // Added later too: a config without it keeps the defaults.
   const bk = i.books === undefined ? d.books : rec(i.books);
   const count = (v: unknown, what: string, min: number, max: number) => { const x = Math.round(Number(v)); if (!Number.isFinite(x) || x < min || x > max) throw new PricingError(`${what}: enter a whole number from ${min} to ${max.toLocaleString("en-NG")}.`); return x; };
-  const books = { freeEntries: count(bk.freeEntries, "Business books, Free Basic entries a month", 10, 100_000), freeCustomers: count(bk.freeCustomers, "Business books, Free Basic customers owing", 1, 100_000), freeImportRows: count(bk.freeImportRows, "Business books, Free Basic rows per import", 10, 5_000) };
+  // Staff seats and paying a debt online came later still: a config without them keeps the defaults.
+  const books = {
+    freeEntries: count(bk.freeEntries, "Business books, Free Basic entries a month", 10, 100_000), freeCustomers: count(bk.freeCustomers, "Business books, Free Basic customers owing", 1, 100_000), freeImportRows: count(bk.freeImportRows, "Business books, Free Basic rows per import", 10, 5_000),
+    staffSeatsPro: bk.staffSeatsPro === undefined ? d.books.staffSeatsPro : count(bk.staffSeatsPro, "Business books, staff seats on Pro", 0, 50),
+    staffSeatsBusiness: bk.staffSeatsBusiness === undefined ? d.books.staffSeatsBusiness : count(bk.staffSeatsBusiness, "Business books, staff seats on Business", 0, 200),
+    debtCommission: bk.debtCommission === undefined ? d.books.debtCommission : bk.debtCommission === "store" || bk.debtCommission === "none" ? bk.debtCommission : bad("Business books, debts paid online: the store's commission, or none."),
+    debtHoldDays: bk.debtHoldDays === undefined ? d.books.debtHoldDays : count(bk.debtHoldDays, "Business books, days a debt paid online is held", 0, 60),
+  };
   // Added later too: a config without it keeps the default.
   const ac = i.academyCovers === undefined ? d.academyCovers : rec(i.academyCovers);
   const daily = (k: keyof CoverLimits, name: string) => {

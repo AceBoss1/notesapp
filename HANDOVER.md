@@ -190,6 +190,32 @@ on `main` that isn't understood is raised with the owner first.
     (Open Business books / Start free, `components/books/BooksCta.tsx`); the waitlist form is gone, its leads stay in Admin → Leads. What differs from the
     plan, and what's next (Nana entries, offline, the monthly email, roles, paying a debt online): `docs/BUSINESS-BOOKS.md` section 10.
 
+89. **Business books: Nana entries, offline entry, the monthly email, staff roles and paying a debt online (v0.119.0):** deploy
+    `firebase deploy --only firestore:rules` (new server-only collections `bookStaff`, `bookStaffInvites`, `bookReports`,
+    `bookReportRuns`; every Books collection stays server-only). **No new indexes** (the new queries are equality-only or a range on one
+    field). **Cron:** nothing new to schedule; the reminders cron (`/api/cron/reminders`, every ~15 min) now runs `booksReports`
+    (`lib/books-report-server.ts`): the 1st of each month from 08:00 Lagos, in batches of 40, catch-up for 3 days, one marker
+    `bookReports/{uid}_{YYYY-MM}` per seller and month, `bookReportRuns/{YYYY-MM}`; only sellers with entries; preference
+    `emailPrefs/{uid}.booksReport` (Email settings, on by default) and a signed one-click unsubscribe `/api/books/report/unsubscribe`
+    (uses `EMAIL_LINK_SECRET` or `CRON_SECRET`, like the digest). No new settings.
+    - **Nana entries** (`lib/books-nana.ts` pure, `lib/books-nana-server.ts`; `/api/books` action `nana`): Pearl reads a sentence into
+      draft entries against a strict JSON shape, matched to the seller's items and customers; nothing saved until each draft is saved.
+      Paid by the books' **owner** (their own AI key first, else their Nana allowance then credit, `meterCheck`/`meterCharge`); 40 an
+      hour per person, 120 per shop, 200 a day per shop on our key. With no AI key and the emulator set (development), a stand-in reader.
+    - **Offline** (`lib/books-outbox.ts` pure, `components/books/outbox.tsx`, `lib/books-sync-server.ts`, action `sync`; `public/sw.js`
+      caches `/profile/books` and its scripts and runs Background Sync tag `books-outbox`): every entry kind is saved once at
+      `bookEntries/{owner}_{clientId}`; offline entries keep the day they were recorded (14 days at most) and are marked `offline`.
+    - **Staff** (`lib/books-staff-server.ts`; `lib/books.ts` `can`): Cashier and Manager, invited by the owner or an organisation's
+      admins (bell and email; accept at `/invites/books/<id>`, also listed on `/invites`). Seats: `lib/pricing.ts`
+      `books.staffSeatsBusiness` 4, `staffSeatsPro` 0 (open question 4 unanswered), Enterprise unlimited. Roles are checked in
+      `/api/books` for every view and action. Entries keep who made them in `by` (the uid); the seller filters Sales and Expenses by person.
+    - **Paying a debt online** (`lib/books-debt-server.ts`, `/api/books/debt`, Pay now on `/statement/<code>`): payment kind `debt`
+      (Paystack card or bank transfer, no sign-in), fulfilled in `lib/payments.ts` (return page or webhook, once): a payment entry
+      `debt_<ref>` applied oldest first, a receipt, and `ledger/<ref>` kind `debt` held `books.debtHoldDays` (7) then auto-paid like a
+      download sale (`lib/payouts.ts`). Commission `books.debtCommission`: `"store"` (the seller's physical-goods rate, the default) or
+      `"none"`, editable on Admin → Pricing → Business books until the owner answers open question 5.
+    - Tests: `test:books`, `test:books-server` (both extended), `test:pricing`, `test:rules`. Plan and what's left:
+      `docs/BUSINESS-BOOKS.md` section 10.
 90. **Business books imports from other apps (v0.120.0, branch `push/books-imports`):** no deploy step (no new collections or
     indexes; entries gain `extRef`, customers `email`). `lib/books-import.ts` has a preset per source with the export headings and
     where they were checked: Shopify products and orders (help.shopify.com, verified), WooCommerce products (the Product CSV schema,

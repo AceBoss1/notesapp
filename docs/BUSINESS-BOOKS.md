@@ -1,8 +1,11 @@
 # Business books (plan, and what's built)
 
 > **Built, 2 Nov 2026 (v0.118.0):** build steps 1 to 6 below (the walk-in half, P&L, money owed and imports), after the owner's "start
-> building books". **Next:** steps 7 to 10 (Nana entries, offline entry, the monthly email, staff roles). What was built, and where it
-> differs from this plan, is in **section 10**. The owner's answers (2 Nov): pricing option A, the name "Business books", only store
+> building books". **Built, 2 Nov 2026 (v0.119.0):** steps 7 to 10 (Nana entries, offline entry, the monthly email, staff roles) and
+> paying a debt online, after the owner's "build: Nana entries, offline entry, the monthly email, staff and cashier roles, paying a debt
+> online, and … imports" (the import presets were built separately: **v0.120.0**, Shopify, WooCommerce, Selar, Bumpa, Paystack and
+> bank statements, section 3). What was built, and where it differs from this plan, is in
+> **section 10**. The owner's answers (2 Nov): pricing option A, the name "Business books", only store
 > orders flow in for now, CSV only (no Excel library), WhatsApp click-to-send for non-members, SMS greyed out until Send-Na.
 >
 > Status when written: **plan, for the owner's approval.** Written 1 November 2026. The mockups (phone and desktop, Day and
@@ -367,20 +370,24 @@ Each step ships with its tests, help article, changelog line, roadmap update, RE
    totals not yet, see section 10)
 5. **Money owed**: customers and suppliers, record payments, reminders by email and bell (members) and WhatsApp click-to-send with
    the #NotesApp line (non-members, receipts too), paying a debt online (payment kind `debt`). SMS when Send-Na is live. ✓ (v0.118.0;
-   paying a debt online and automatic repeat reminders not yet)
+   paying a debt online ✓ v0.119.0; automatic repeat reminders not yet)
 6. **Imports**: the wizard, templates, presets (Tralo, Shopify, WooCommerce, Paystack), dry run, dedupe, undo for 24 hours. Excel files
-   once the library is approved. Bank CSV and paper-ledger photos last. ✓ for CSV with the Tralo preset (v0.118.0); Shopify,
-   WooCommerce, Paystack, bank CSV and photos not yet; Excel files stay out (CSV only, owner 2 Nov)
-7. **Nana entries**: typed first, then voice notes. Pearl, metered.
-8. **Offline**: the outbox, service-worker caching for Books, sync and conflict flags.
-9. **Monthly email**: on the 1st, only with activity.
-10. **Staff roles**: cashier and manager on Business and Enterprise.
+   once the library is approved. Bank CSV and paper-ledger photos last. ✓ for CSV with the Tralo preset (v0.118.0); ✓ Shopify,
+   WooCommerce, Selar, Bumpa, Paystack and bank statements by CSV or text PDF (v0.120.0, the table in section 3); paper-ledger photos
+   not yet; Excel files stay out (CSV only, owner 2 Nov)
+7. **Nana entries**: typed first, then voice notes. Pearl, metered. ✓ (v0.119.0: typed, and spoken through the phone's own
+   speech-to-text; voice notes wait for voice transcripts)
+8. **Offline**: the outbox, service-worker caching for Books, sync and conflict flags. ✓ (v0.119.0)
+9. **Monthly email**: on the 1st, only with activity. ✓ (v0.119.0)
+10. **Staff roles**: cashier and manager on Business and Enterprise. ✓ (v0.119.0)
 
 ## 8. Open questions for the owner
 
 Answered on 1 Nov 2026: non-members get receipts and reminders by WhatsApp (and SMS through Send-Na once the seller opts in), each
 with a #NotesApp line (section 2). Answered on 2 Nov 2026: 1 (option A, 150), 2 ("Business books"), 3 (only store orders for now) and 6
-(CSV only, no library). Still open: 4, 5, 7, 8, 9, 10.
+(CSV only, no library). Still open: 4, 5, 7, 8, 9, 10. Built with defaults the owner can change on Admin → Pricing → Business books
+(v0.119.0): **4**, no staff seats on Pro (`books.staffSeatsPro` 0; set it to 1 for a helper seat); **5**, the seller's normal store
+commission on a debt paid online (`books.debtCommission` "store"; "none" takes nothing).
 
 1. **Pricing:** Option A (free with a cap of 150 entries a month), B (a Books add-on or a ₦2,500 bundle with Inventory) or C (all free)?
    And is 150 the right cap?
@@ -458,11 +465,63 @@ column matching, the Tralo preset, dedupe, templates) and `test:books-server` (p
 expenses, paying back, reminders by WhatsApp and email with the daily limit and stop, online orders and refunds, P&L, the Free
 Basic caps, imports with dry run, duplicates and undo, export); rules in `test:rules`. All in CI.
 
-**Next (steps 7 to 10, and what was left out of 3 to 6):** Nana entries; offline entry (the outbox); the monthly summary email
-(`bookReports`); staff roles (`orgMembers.books`: cashier and manager); paying a debt online (payment kind `debt`, open question 5);
+## 10b. What's built in v0.119.0 (2 Nov 2026)
+
+**Nana entries** (`lib/books-nana.ts`, `lib/books-nana-server.ts`, `components/books/TellNana.tsx`; `/api/books` action `nana`): Tell
+Nana takes a sentence, typed or spoken with the phone's own speech-to-text (Web Speech, `en-NG`). Pearl answers one JSON object
+(`{"entries":[{kind, items, amount, paid, method, on_credit, customer, due, category, note, unsure}]}`); every field is checked again
+(`cleanDraft`: kinds, whole quantities, naira amounts that add up, a due date that isn't past) and matched to the seller's items (name,
+SKU, the price each) and customers (first names). Draft cards show what Nana wasn't sure of; nothing is saved until each is saved, through
+the same actions as a typed entry. **Who pays:** the books' owner (their own AI key first, else their allowance then credit through
+`meterCheck` / `meterCharge`), so a cashier uses the shop's allowance, not their own. Limits: 40 an hour per person, 120 per shop, 200 a
+day per shop on our key. A stand-in reader (`standInEntries`) answers in development when there's no AI key (never on the live site).
+Cashiers get only sale and payment drafts.
+
+**Offline entry** (`lib/books-outbox.ts`, `components/books/outbox.tsx`, `lib/books-sync-server.ts`, `public/sw.js`): an IndexedDB
+outbox (`notesapp-books`) with a clientId on each entry, plus snapshots (home, items, customers) so Books opens with no signal. Sync:
+Background Sync (`books-outbox`) where the browser has it, else on open, focus, `visibilitychange` and `online`; 25 at a time, backoff up
+to 30 minutes. The server saves each once at `bookEntries/{owner}_{clientId}` for **every** kind (sale, expense, payment, purchase),
+keeps the moment it was recorded (14 days at most, never the future), checks stock at sync time (a sale is never dropped; the seller is
+told and belled to count), adds an unknown customer and says so, and fails clearly (no retry) when an entry can't be saved. The page
+shows "N waiting to sync" and each result. The service worker caches `/profile/books` (network first) and its scripts.
+
+**Purchases (restock)** (`recordPurchase`): an expense under Stock purchases with its lines; stock goes up through Inventory (reason
+`restock`) or on the Books-only item; optional cost-price update; voiding it takes the stock back down.
+
+**Staff roles** (`lib/books-staff-server.ts`, `components/books/Staff.tsx`, `CashierHome.tsx`, `/invites/books/<id>`,
+`/api/books/staff`): **different from section 5**, staff are `bookStaff/{owner}_{uid}` (and `bookStaffInvites`), not a field on
+`orgMembers`: a personal Business seller has no organisation team, and an organisation writer shouldn't become a cashier by accident.
+Organisation admins keep the books as before ("admin"). Roles are one table, `can` in `lib/books.ts`, checked in `/api/books` for every
+view and action: Cashier (home with only their sales and payments today, customers, the catalog without costs, sale, payment, new
+customer, receipts for their own sales, void of their own entries today, Nana, sync); Manager (everything but settings and staff).
+Seats: `books.staffSeatsBusiness` 4, Enterprise unlimited, Pro 0 (open question 4), Free Basic none; waiting invitations count. When the
+seller's plan loses staff seats, staff can't open the books. Entries keep who made them in `by` (the uid; section 5's "by"); the seller
+filters Sales and Expenses by person (`?by=`), and sees each staff member's week.
+
+**Paying a debt online** (`lib/books-debt-server.ts`, `/api/books/debt`, `PayDebt` on `/statement/<code>`): payment kind `debt`, no
+sign-in, the customer's email for Paystack and the receipt; Paystack offers card and bank transfer only. All or part, at least ₦100,
+never more than owed. Fulfilled inside `fulfillPayment`'s transaction (return page or webhook, once): `bookEntries/debt_<ref>` (a
+payment, source online, applied oldest first; anything paid over is noted for the seller), a receipt, and `ledger/<ref>` kind `debt`
+held `books.debtHoldDays` (7) then auto-paid like a download sale. Commission: `books.debtCommission` "store" (the seller's
+physical-goods rate) by default. Cash in hand counts it as online money.
+
+**Monthly email** (`lib/books-report.ts`, `lib/books-report-server.ts`): exactly as the referrals report: the reminders cron, the 1st
+from 08:00 Lagos, three days to catch up, 40 a run, `bookReports/{uid}_{YYYY-MM}` claimed with `create()`, `bookReportRuns/{YYYY-MM}`.
+Sellers are found from that month's entries (a range on `on`, reading only `ownerUid`); no entries, no email; never to staff. Sales
+(walk-in, online), expenses (with our commission), profit and the change on the month before, best sellers, money owed and who's late
+(first names), running low, and a link to last month's P&L (`?tab=pnl&period=month&back=1`). `bookSettings.hideProfitInEmail` leaves
+profit out (no screen for it yet). Preference `emailPrefs/{uid}.booksReport` in Email settings, on by default, and a signed one-click
+unsubscribe (`/api/books/report/unsubscribe`, RFC 8058 headers).
+
+**Tests:** `test:books` (Naija amounts and dates, a stubbed Pearl answer, the stand-in on sample phrases, the outbox, roles, seats, debt
+amounts, the report) and `test:books-server` (invites and each role on the server, Nana on the allowance and out of it, sync once for
+every kind with stock and customer notes, purchases, a debt through a stubbed Paystack confirmed twice and recorded once, the monthly
+email once per seller and month), plus `test:pricing` and `test:rules`.
+
+**Next (what was left out of 3 to 10):** voice notes for Nana (with voice transcripts); a screen for "show profit in emails";
 automatic repeat reminders and "remind again" prompts; the supplier bell the day before a due date; repeating expenses; the opening
-float and count-the-drawer screen (the float is stored, `bookSettings.floatKobo`, with no screen yet); a purchase (restock) entry from
-Books; any-range P&L; paper-ledger photos and vCard contacts; the referral code
+float and count-the-drawer screen (the float is stored, `bookSettings.floatKobo`, with no screen yet); a Record a purchase sheet (purchases
+come from Tell Nana and offline for now); any-range P&L; paper-ledger photos and vCard contacts; the referral code
 on the #NotesApp line (open question 10); running totals; SMS when Send-Na is live. (The `/books` page now says it's open: see the
 note at the top.)
 
