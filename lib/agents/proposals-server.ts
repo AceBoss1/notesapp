@@ -20,7 +20,7 @@ export type NewProposal = {
 export type Alert = (uid: string, n: { title: string; body: string; href: string }) => Promise<void>;
 // Bell and phone (when push is set up): something needs the member.
 export const defaultAlert: Alert = async (uid, n) => {
-  await notifyBell({ uid, type: "message", linkHref: n.href, message: `${n.title}: ${n.body}`.slice(0, 280) });
+  await notifyBell({ uid, type: "nana", linkHref: n.href, message: `${n.title}: ${n.body}`.slice(0, 280) });
   await sendPush(getAdminDb(), uid, { title: n.title, body: n.body, url: n.href }).catch(() => 0);
 };
 

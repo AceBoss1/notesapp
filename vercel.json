@@ -4,5 +4,11 @@
       "claude/*": false,
       "push/*": false
     }
-  }
+  },
+  "crons": [
+    {
+      "path": "/api/cron/agents",
+      "schedule": "5 6 * * *"
+    }
+  ]
 }
