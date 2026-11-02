@@ -6,10 +6,11 @@ import { useAdminAuth } from "@/lib/useAdminAuth";
 import NanaPanel from "@/components/NanaPanel";
 import DuesPanel from "@/components/DuesPanel";
 import GranolaPanel from "@/components/GranolaPanel";
+import LinkedText from "@/components/LinkedText";
 import { DEPARTMENTS, DEPT_LABEL, hasAnyDept, type Dept } from "@/lib/admin-access";
 import { formatNaira } from "@/lib/booking-time";
 import {
-  HORIZONS, HORIZON_LABEL, MEETING_TEAMS, METRICS, REPEATS, REPEAT_LABEL, STATUS_LABEL, addDays, defaultMembers, meetingTeamLabel, groupItems, isOverdue, isOwner, lagosParts, ownersOf,
+  HORIZONS, HORIZON_LABEL, MEETING_TEAMS, METRICS, REPEATS, REPEAT_LABEL, STATUS_LABEL, addDays, defaultMembers, horizonForDue, meetingTeamLabel, groupItems, isOverdue, isOwner, lagosParts, ownersOf,
   type Horizon, type Repeat, type Meeting, type MetricKey, type Milestone, type Progress, type Status, type TeamComment, type TeamItem,
 } from "@/lib/team";
 
@@ -96,7 +97,7 @@ function ItemCard({ item, people, today, me, send, fetchComments }: { item: Team
           {item.due && <span className={overdue ? "font-bold text-crimson" : ""}>{overdue ? "overdue · " : "due "}{dayLabel(item.due)}</span>}
         </span>
       </div>
-      {item.detail && <p className="mt-1 whitespace-pre-line text-xs text-slate">{item.detail}</p>}
+      {item.detail && <p className="mt-1 whitespace-pre-line break-words text-xs text-slate"><LinkedText text={item.detail} /></p>}
       {item.status === "blocked" && <p className="mt-2 text-xs text-amber-900"><strong>Blocked:</strong> {item.blockedReason}</p>}
       {item.status === "decision" && <p className="mt-2 text-xs text-crimson"><strong>Decision needed:</strong> {item.decisionQuestion}</p>}
       {item.status === "done" && item.decidedNote && <p className="mt-2 text-xs text-slate"><strong>Decided:</strong> {item.decidedNote}</p>}
@@ -189,6 +190,73 @@ function ItemCard({ item, people, today, me, send, fetchComments }: { item: Team
   );
 }
 
+// The "+ New task" form at the top of the hub: everything an item can carry, in one go. Links go in the details (they show as links).
+type NewTask = { title: string; detail: string; due: string; horizon: Horizon; status: Status; decisionQuestion: string; blockedReason: string; depts: string[]; ownerUids: string[]; repeat: Repeat };
+const blankTask = (me: string): NewTask => ({ title: "", detail: "", due: "", horizon: "week", status: "todo", decisionQuestion: "", blockedReason: "", depts: [], ownerUids: [me], repeat: "" });
+
+function NewTaskForm({ people, me, today, send, onClose }: { people: Person[]; me: string; today: string; send: (body: Record<string, unknown>) => Promise<void>; onClose: () => void }) {
+  const [t, setT] = useState<NewTask>(() => blankTask(me));
+  const [busy, setBusy] = useState(false);
+  const [saved, setSaved] = useState("");
+  const set = (p: Partial<NewTask>) => { setT((x) => ({ ...x, ...p })); setSaved(""); };
+  const setDue = (due: string) => set({ due, ...(due ? { horizon: horizonForDue(due, today) } : {}) });
+  const chip = (label: string, due: string) => (
+    <button key={label} type="button" onClick={() => setDue(due)} aria-pressed={t.due === due} className={`rounded-full border px-2.5 py-0.5 text-[11px] font-semibold ${t.due === due ? "border-crimson bg-crimson text-paper" : "border-rule text-ink hover:border-crimson hover:text-crimson"}`}>{label}</button>
+  );
+  const missing = !t.title.trim() || (t.status === "blocked" && !t.blockedReason.trim()) || (t.status === "decision" && !t.decisionQuestion.trim());
+  return (
+    <form id="new-task" aria-label="New task" className="card mt-4 grid gap-3 border-crimson p-4 sm:grid-cols-2" onSubmit={async (e) => {
+      e.preventDefault();
+      if (missing) return;
+      setBusy(true);
+      try {
+        await send({ action: "createItem", ...t, decisionQuestion: t.status === "decision" ? t.decisionQuestion : "", blockedReason: t.status === "blocked" ? t.blockedReason : "" });
+        setSaved(t.title.trim());
+        setT(blankTask(me));
+      } catch {} finally { setBusy(false); }
+    }}>
+      <div className="flex items-center justify-between gap-2 sm:col-span-2">
+        <h2 className="font-display text-xl text-ink">New task</h2>
+        <button type="button" onClick={onClose} className="text-xs text-slate underline">Close</button>
+      </div>
+      <label className="text-[11px] text-slate sm:col-span-2">Title (required)<input autoFocus required value={t.title} onChange={(e) => set({ title: e.target.value })} maxLength={140} placeholder="What needs doing?" className={input} /></label>
+      <label className="text-[11px] text-slate sm:col-span-2">Details<textarea value={t.detail} onChange={(e) => set({ detail: e.target.value })} maxLength={2000} rows={3} placeholder="Steps, context and links (web addresses show as links)" className={input} /></label>
+      <div className="text-[11px] text-slate">
+        <label>Due date<input type="date" value={t.due} onChange={(e) => setDue(e.target.value)} className={input} /></label>
+        <span className="mt-1.5 flex flex-wrap gap-1.5">
+          {chip("Today", today)}{chip("In 1 week", addDays(today, 7))}{chip("In 2 weeks", addDays(today, 14))}
+          {t.due && <button type="button" onClick={() => set({ due: "" })} className="text-[11px] text-slate underline">No date</button>}
+        </span>
+      </div>
+      <label className="text-[11px] text-slate">When
+        <select value={t.horizon} onChange={(e) => set({ horizon: e.target.value as Horizon })} className={input}>
+          {HORIZONS.map((h) => <option key={h} value={h}>{HORIZON_LABEL[h]}</option>)}
+        </select>
+      </label>
+      <label className="text-[11px] text-slate">Status
+        <select value={t.status} onChange={(e) => set({ status: e.target.value as Status })} className={input}>
+          {(["todo", "doing", "decision", "blocked"] as Status[]).map((s) => <option key={s} value={s}>{STATUS_LABEL[s]}</option>)}
+        </select>
+      </label>
+      <label className="text-[11px] text-slate">Repeat
+        <select value={t.repeat} onChange={(e) => set({ repeat: e.target.value as Repeat, due: e.target.value && !t.due ? addDays(today, 30) : t.due })} className={input}>
+          {REPEATS.map((r) => <option key={r} value={r}>{REPEAT_LABEL[r]}</option>)}
+        </select>
+      </label>
+      {t.status === "decision" && <label className="text-[11px] text-slate sm:col-span-2">What has to be decided?<input value={t.decisionQuestion} onChange={(e) => set({ decisionQuestion: e.target.value })} maxLength={500} className={input} /></label>}
+      {t.status === "blocked" && <label className="text-[11px] text-slate sm:col-span-2">What is it blocked on, and who can unblock it?<input value={t.blockedReason} onChange={(e) => set({ blockedReason: e.target.value })} maxLength={500} className={input} /></label>}
+      <fieldset className="text-[11px] text-slate sm:col-span-2"><legend>Departments</legend>
+        <span className="mt-1 flex flex-wrap gap-x-3 gap-y-1">{DEPARTMENTS.map((d) => <label key={d.key} className="inline-flex items-center gap-1 text-ink"><input type="checkbox" checked={t.depts.includes(d.key)} onChange={(e) => set({ depts: e.target.checked ? [...t.depts, d.key] : t.depts.filter((x) => x !== d.key) })} />{d.label}</label>)}</span>
+      </fieldset>
+      <div className="sm:col-span-2"><PeoplePicker people={people} me={me} value={t.ownerUids} onChange={(v) => set({ ownerUids: v })} /></div>
+      <div className="flex flex-wrap items-center gap-3 sm:col-span-2">
+        <button disabled={busy || missing} className="btn-primary !px-4 !py-2 text-xs">{busy ? "Adding…" : "Add task"}</button>
+        {saved && <span className="text-xs text-emerald-800" role="status">Added “{saved}”. Add another, or close.</span>}
+      </div>
+    </form>
+  );
+}
+
 const STATE_STYLE: Record<Progress["state"], string> = {
   hit: "bg-emerald-100 text-emerald-900", "on-track": "bg-emerald-50 text-emerald-900", behind: "bg-amber-100 text-amber-900",
   missed: "bg-crimson/10 text-crimson", upcoming: "bg-card text-slate ring-1 ring-rule",
@@ -219,6 +287,7 @@ function MilestoneCard({ m, people, send }: { m: MilestoneRow; people: Person[];
 export default function AdminTeamPage() {
   const { user, access, loading } = useAdminAuth();
   const [nana, setNana] = useState(false); // the Ask Nana panel
+  const [newTask, setNewTask] = useState(false); // the "+ New task" form
   const [data, setData] = useState<Data | null>(null);
   const [error, setError] = useState("");
   const [whose, setWhose] = useState(""); // "" = everyone, otherwise a person's uid (yours = "Assigned to me")
@@ -277,6 +346,7 @@ export default function AdminTeamPage() {
           <p className="mt-1 text-sm text-slate">{dayLabel(today)} · what is moving, what is stuck, and what needs a decision.</p>
         </div>
         <span className="flex flex-wrap items-center gap-3 text-sm text-slate">
+          <button type="button" onClick={() => setNewTask((v) => !v)} aria-expanded={newTask} aria-controls="new-task" className="btn-primary !px-4 !py-2 text-xs">{newTask ? "Close new task" : "+ New task"}</button>
           <button type="button" onClick={() => setNana((v) => !v)} aria-expanded={nana} className="btn-ghost !px-4 !py-2 text-xs">{nana ? "Close Nana" : "Ask Nana ✨"}</button>
           <Link href="/admin/team/review" className="btn-ghost !px-4 !py-2 text-xs">Weekly review →</Link>
           <Link href="/admin/team/vision" className="btn-ghost !px-4 !py-2 text-xs">Vision model →</Link>
@@ -296,6 +366,7 @@ export default function AdminTeamPage() {
           </label>
         </span>
       </div>
+      {newTask && <NewTaskForm people={people} me={data.me} today={today} send={send} onClose={() => setNewTask(false)} />}
       {error && <p className="mt-3 text-sm text-crimson">{error}</p>}
       {allOverdue.length > 0 && (
         <div className="mt-4 flex flex-wrap items-center gap-2 rounded-xl border border-crimson/30 bg-crimson/5 p-3 text-xs" role="status">
@@ -349,7 +420,7 @@ export default function AdminTeamPage() {
         await send({ action: "createItem", title: quick.title, horizon: quick.horizon, ownerUids: quick.ownerUids ?? [data.me], due: quick.horizon === "today" ? today : "" }).catch(() => {});
         setQuick({ ...quick, title: "" });
       }}>
-        <label className="min-w-[14rem] flex-1 text-[11px] text-slate">Add work<input value={quick.title} onChange={(e) => setQuick({ ...quick, title: e.target.value })} placeholder="What needs doing?" className={input} /></label>
+        <label className="min-w-[14rem] flex-1 text-[11px] text-slate">Quick add (more fields: + New task at the top)<input value={quick.title} onChange={(e) => setQuick({ ...quick, title: e.target.value })} placeholder="What needs doing?" className={input} /></label>
         <label className="text-[11px] text-slate">When
           <select value={quick.horizon} onChange={(e) => setQuick({ ...quick, horizon: e.target.value as Horizon })} className={input}>
             {HORIZONS.map((h) => <option key={h} value={h}>{HORIZON_LABEL[h]}</option>)}
