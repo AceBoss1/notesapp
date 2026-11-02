@@ -47,6 +47,7 @@ jobs:
       - run: npm run test:exam-prep
       - run: npm run test:life-social
       - run: npm run test:young
+      - run: npm run test:young-social
       - run: npm run test:prep-schools
       - run: npm run test:kids
       - run: npm run test:time

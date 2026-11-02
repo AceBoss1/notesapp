@@ -8,12 +8,13 @@ import {
 import type { ShareCard } from "./share-targets";
 import { isKidUid } from "./kids";
 import { sendMessage } from "./messages-server";
-import { notifyMentions } from "./mentions-server";
+import { mentionedUsernames, notifyMentions } from "./mentions-server";
 import { MESSAGE_MAX } from "./messages-rules";
 import { VIDEO_MAX_BYTES, VIDEO_TYPES, isoWeekKey } from "./video-rules";
 import { effectiveTier, type AccountTier } from "./users";
 import { limit } from "./limits-server";
 import { isAutoFollowed } from "./journals-directory";
+import { MENTION_BLOCKED, REPLY_BLOCKED, RESHARE_BLOCKED, firstName, hearsOnlyFromFollowed, mayReach, mayReshare, teenAudience } from "./young";
 
 // Server side of Moments. Clients never read or write the `moments` collection directly (firestore.rules say no):
 // every read goes through here so the audience check (the owner and their followers) and the expiry check can't be skipped,
@@ -66,7 +67,7 @@ export async function getMomentPrefs(db: Firestore, uid: string): Promise<{ mome
 }
 export async function setMomentPrefs(db: Firestore, uid: string, value: unknown): Promise<void> {
   if (typeof value !== "boolean") throw new MomentError(400, "Choose who can see your moments.");
-  if (value && ((await db.doc(`users/${uid}`).get()).data()?.teen === true || (await db.doc(`users/${uid}`).get()).data()?.keepRepliesFollowers === true)) throw new MomentError(403, "In teen mode your moments are for people you follow back.");
+  if (value && hearsOnlyFromFollowed((await db.doc(`users/${uid}`).get()).data())) throw new MomentError(403, "In teen mode your moments are for people you follow back.");
   await db.doc(`userPrefs/${uid}`).set({ uid, momentsPublic: value }, { merge: true });
 }
 
@@ -78,16 +79,43 @@ async function canSee(db: Firestore, viewerUid: string, m: MomentDoc): Promise<b
   if (a.exists || b.exists) return false;
   // Teen mode: a teen's moments are for people they follow back, never public, whatever the setting says.
   const owner = (await db.doc(`users/${m.ownerUid}`).get()).data();
-  if (owner?.teen === true || owner?.keepRepliesFollowers === true) return teenSees(db, m.ownerUid, m.ownerUsername, viewerUid);
+  if (!(await rootOk(db, viewerUid, m))) return false;
+  if (hearsOnlyFromFollowed(owner)) return teenSees(db, m.ownerUid, m.ownerUsername, viewerUid);
   return (await follows(db, viewerUid, m.ownerUsername)) || momentsPublic(db, m.ownerUid);
+}
+
+// A reshare of a teen's moment (made before reshares of them were refused) also keeps to the teen's own audience.
+async function rootOk(db: Firestore, viewerUid: string, m: MomentDoc): Promise<boolean> {
+  const rootUid = m.resharedFrom?.rootOwnerUid;
+  if (!rootUid || rootUid === m.ownerUid || rootUid === viewerUid) return true;
+  const root = (await db.doc(`users/${rootUid}`).get()).data();
+  return !hearsOnlyFromFollowed(root) || teenSees(db, rootUid, String(root?.username ?? ""), viewerUid);
 }
 
 // Both ways: the viewer follows the teen, and the teen follows the viewer.
 async function teenSees(db: Firestore, ownerUid: string, ownerUsername: string, viewerUid: string, viewerUsername?: string): Promise<boolean> {
+  if (ownerUid === viewerUid) return true;
   const name = viewerUsername ?? String((await db.doc(`users/${viewerUid}`).get()).data()?.username ?? "");
-  if (!name) return false;
+  if (!name || !ownerUsername) return false;
   const [a, b] = await Promise.all([db.doc(`follows/${viewerUid}_${ownerUsername}`).get(), db.doc(`follows/${ownerUid}_${name}`).get()]);
-  return a.exists && b.exists;
+  return teenAudience({ signedIn: true, self: false, viewerFollows: a.exists, followsViewer: b.exists });
+}
+
+// Teen mode: only people a teen follows can @mention them in a moment (the moment isn't shared, and the person is told why).
+// Kept on turning 18 by users.keepRepliesFollowers. The same people as replies on journals (teenGate in lib/comments-server.ts).
+async function mentionGate(db: Firestore, author: { uid: string; username: string }, text: string): Promise<void> {
+  if (!text.includes("@")) return;
+  const names = mentionedUsernames(text).slice(0, 30);
+  if (!names.length) return;
+  const claims = await db.getAll(...names.map((n) => db.doc(`usernames/${n}`)));
+  for (let i = 0; i < names.length; i++) {
+    const uid = claims[i].exists ? String(claims[i].data()?.uid ?? "") : "";
+    if (!uid || uid === author.uid) continue;
+    const u = (await db.doc(`users/${uid}`).get()).data();
+    if (!hearsOnlyFromFollowed(u)) continue;
+    const followed = (await db.doc(`follows/${uid}_${author.username}`).get()).exists;
+    if (!mayReach({ target: u, self: false, targetFollowsThem: followed })) throw new MomentError(403, MENTION_BLOCKED(names[i]));
+  }
 }
 
 function toView(id: string, m: MomentDoc, viewerUid: string, liked: boolean, deps: MomentDeps): MomentView {
@@ -114,6 +142,7 @@ export async function createMoment(db: Firestore, owner: { uid: string; username
   if (!isMomentHours(hours)) throw new MomentError(400, "A moment can last 24, 48 or 72 hours.");
   const text = typeof input.text === "string" ? input.text.trim() : "";
   if (text.length > MOMENT_TEXT_MAX) throw new MomentError(413, `Text can be up to ${MOMENT_TEXT_MAX} characters.`);
+  await mentionGate(db, owner, text);
 
   let videoRef: ReturnType<Firestore["doc"]> | null = null;
   let partsAllowed = 1;
@@ -203,6 +232,7 @@ export async function shareToMoment(
   if (!isMomentHours(hours)) throw new MomentError(400, "A moment can last 24, 48 or 72 hours.");
   const text = typeof input.text === "string" ? input.text.trim() : "";
   if (text.length > MOMENT_TEXT_MAX) throw new MomentError(413, `Text can be up to ${MOMENT_TEXT_MAX} characters.`);
+  await mentionGate(db, owner, text);
   const card = await resolve(db, input.share);
   if (!card) throw new MomentError(404, "That can't be shared: it may be private, a draft, or no longer there.");
   const link: MomentLink = Object.fromEntries(Object.entries(card).filter(([, v]) => v !== undefined)) as MomentLink;
@@ -257,8 +287,12 @@ export async function listFeed(db: Firestore, viewer: { uid: string; username: s
   const owners = ownerIds.length ? await db.getAll(...ownerIds.map((u) => db.doc(`users/${u}`))) : [];
   // A teen's moments only when they follow the viewer back (teen mode).
   const teenOk = new Map<string, boolean>();
-  for (const o of owners) if ((o.data()?.teen === true || o.data()?.keepRepliesFollowers === true) && o.id !== viewer.uid) teenOk.set(o.id, (await db.doc(`follows/${o.id}_${viewer.username}`).get()).exists);
-  const visible = unblocked.filter((d) => teenOk.get(d.m.ownerUid) !== false);
+  for (const o of owners) if (hearsOnlyFromFollowed(o.data()) && o.id !== viewer.uid) teenOk.set(o.id, (await db.doc(`follows/${o.id}_${viewer.username}`).get()).exists);
+  // A reshare of a teen's moment keeps to the teen's own audience (people they follow back), whoever reshared it.
+  const roots = Array.from(new Set(unblocked.map((d) => d.m.resharedFrom?.rootOwnerUid).filter((u): u is string => !!u && u !== viewer.uid && !teenOk.has(u))));
+  const rootUsers = roots.length ? await db.getAll(...roots.map((u) => db.doc(`users/${u}`))) : [];
+  for (const r of rootUsers) if (hearsOnlyFromFollowed(r.data())) teenOk.set(r.id, await teenSees(db, r.id, String(r.data()?.username ?? ""), viewer.uid, viewer.username));
+  const visible = unblocked.filter((d) => teenOk.get(d.m.ownerUid) !== false && (!d.m.resharedFrom || d.m.ownerUid === viewer.uid || teenOk.get(d.m.resharedFrom.rootOwnerUid) !== false));
   const liked = await likedSet(db, viewer.uid, visible.map((d) => d.id));
   const who = new Map(owners.map((o) => [o.id, { displayName: String(o.data()?.displayName ?? ""), avatar: String(o.data()?.avatar ?? ""), isOrg: o.data()?.accountKind === "organisation" }]));
   const groups = new Map<string, MomentGroup>();
@@ -280,9 +314,15 @@ export async function listForOwner(db: Firestore, viewerUid: string, ownerUserna
   const snap = await db.collection("moments").where("ownerUsername", "==", ownerUsername).get();
   const docs = snap.docs.map((d) => ({ id: d.id, m: d.data() as MomentDoc })).filter((d) => !isMomentExpired(d.m.expiresAt, now));
   if (!docs.length) return [];
-  if (!(await canSee(db, viewerUid, docs[0].m))) return [];
-  const liked = await likedSet(db, viewerUid, docs.map((d) => d.id));
-  return docs.sort((a, b) => (a.m.createdAt < b.m.createdAt ? -1 : 1)).map((d) => toView(d.id, d.m, viewerUid, liked.has(d.id), deps));
+  const { resharedFrom: _r, ...first } = docs[0].m;
+  void _r;
+  if (!(await canSee(db, viewerUid, first))) return [];
+  // Each reshare also keeps to its original's audience when that's a teen's (teen mode).
+  const ok = await Promise.all(docs.map((d) => (d.m.ownerUid === viewerUid ? true : rootOk(db, viewerUid, d.m))));
+  const shown = docs.filter((_, i) => ok[i]);
+  if (!shown.length) return [];
+  const liked = await likedSet(db, viewerUid, shown.map((d) => d.id));
+  return shown.sort((a, b) => (a.m.createdAt < b.m.createdAt ? -1 : 1)).map((d) => toView(d.id, d.m, viewerUid, liked.has(d.id), deps));
 }
 
 async function loadActive(db: Firestore, viewerUid: string, id: string, now: Date): Promise<{ m: MomentDoc }> {
@@ -325,6 +365,9 @@ export async function reshare(db: Firestore, user: { uid: string; username: stri
   const rootOwnerUid = m.resharedFrom?.rootOwnerUid ?? m.ownerUid;
   if (rootOwnerUid === user.uid) throw new MomentError(400, "That began as your own moment.");
   if (!user.username) throw new MomentError(400, "Finish setting up your profile first.");
+  // Teen mode: a teen's moment (or a teen's reshare of someone else's) stays with the people they follow back.
+  const [rootOwner, owner] = await db.getAll(db.doc(`users/${rootOwnerUid}`), db.doc(`users/${m.ownerUid}`));
+  if (!mayReshare(rootOwner.data()) || !mayReshare(owner.data())) throw new MomentError(403, RESHARE_BLOCKED);
   const newId = `rs_${user.uid}_${id}`; // one reshare per member per moment
   const { reported: _reported, ...rest } = m;
   void _reported;
@@ -347,6 +390,13 @@ export async function replyToMoment(db: Firestore, uid: string, id: string, text
   const { m } = await loadActive(db, uid, id, now);
   if (m.ownerUid === uid) throw new MomentError(400, "You can't reply to your own moment.");
   if (String(text ?? "").trim().length > MESSAGE_MAX) throw new MomentError(413, `Messages can be up to ${MESSAGE_MAX} characters.`);
+  // Teen mode: only people the teen follows can reply to their moments (kept on turning 18 by users.keepRepliesFollowers).
+  const owner = (await db.doc(`users/${m.ownerUid}`).get()).data();
+  if (hearsOnlyFromFollowed(owner)) {
+    const me = String((await db.doc(`users/${uid}`).get()).data()?.username ?? "");
+    const followed = !!me && (await db.doc(`follows/${m.ownerUid}_${me}`).get()).exists;
+    if (!mayReach({ target: owner, self: false, targetFollowsThem: followed })) throw new MomentError(403, REPLY_BLOCKED(firstName(owner)));
+  }
   const sent = await sendMessage(db, uid, m.ownerUid, { text, moment: { momentId: id, expiresAt: m.expiresAt } }, now);
   return { conversationId: sent.conversationId };
 }

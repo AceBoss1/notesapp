@@ -71,7 +71,7 @@ export default function TeenCard() {
   return (
     <div className={`${card} mb-5`}>
       <p className="font-semibold">Are you under 18?</p>
-      <p className="mt-1 text-sm text-[#0F2747]/75">We'll turn on teen mode: you won't show in people search, only people you follow can message you or reply to what you post, and the weekly board shows a nickname, never your name. We'll ask a parent or guardian to confirm by email.</p>
+      <p className="mt-1 text-sm text-[#0F2747]/75">We'll turn on teen mode: you won't show in people search, only people you follow can message you, reply to what you post or @mention you, your moments are only for people you follow back, and the weekly board shows a nickname, never your name. We'll ask a parent or guardian to confirm by email.</p>
       {msg && <div className="mt-2"><Note tone={msg.tone}>{msg.text}</Note></div>}
       {asking ? (
         <form onSubmit={send} className="mt-3 space-y-2">
