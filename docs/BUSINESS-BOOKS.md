@@ -379,7 +379,7 @@ with a #NotesApp line (section 2). Answered on 2 Nov 2026: 1 (option A, 150), 2 
 4. **Cashiers on Free Basic and Pro:** should a market trader without a Business team be able to add one cashier (a helper seat)?
 5. **Paying a debt online:** OK to add a `debt` payment kind, with the seller's normal commission, or no commission because it's an
    offline sale?
-6. **Libraries:** may we add a vetted library to read and write Excel files (for example `exceljs` or `read-excel-file` plus a writer)?
+6. **Libraries:** may we add a vetted library to read and write Excel files (for example `exceljs` or `read-excel-file` plus a writer)? **Answered (owner, 2 Nov 2026): no.** Sellers save Excel files as CSV (File → Save As → CSV, or Download → CSV in Google Sheets); the wizard and help article say how.
    Without it, import and export are CSV only.
 7. **Ghana:** should the Tralo import wait for cedi prices, or come sooner, converting cedis to naira at the day's rate (we'd rather
    not)?
@@ -452,6 +452,6 @@ Basic caps, imports with dry run, duplicates and undo, export); rules in `test:r
 (`bookReports`); staff roles (`orgMembers.books`: cashier and manager); paying a debt online (payment kind `debt`, open question 5);
 automatic repeat reminders and "remind again" prompts; the supplier bell the day before a due date; repeating expenses; the opening
 float and count-the-drawer screen (the float is stored, `bookSettings.floatKobo`, with no screen yet); a purchase (restock) entry from
-Books; any-range P&L; paper-ledger photos and vCard contacts; an xlsx reader (Bumpa's customer export is Excel only); the referral code
+Books; any-range P&L; paper-ledger photos and vCard contacts; the referral code
 on the #NotesApp line (open question 10); running totals; SMS when Send-Na is live; the waitlist page (`/books`) saying it's open.
 

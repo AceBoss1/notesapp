@@ -162,7 +162,7 @@ on `main` that isn't understood is raised with the owner first.
     Bank lines come back in the plan (`plan.bank`) for the seller to tick and label (a rules-based guess from the narration; Nana
     isn't used, to keep it free); only the ticked `choices` are saved. Bank PDFs are read in the browser with `pdfjs-dist` (already a
     dependency) by `statementFromPdfLines`; a scan asks for CSV. **Open question:** Bumpa's customer export (and some bank apps) give
-    Excel only; there's still no xlsx reader, so the wizard asks for CSV. Approve one (open question 7) if sellers struggle. Fixtures
+    Excel only; there's still no xlsx reader, so the wizard asks for CSV. The owner decided on 2 Nov 2026: no Excel library; sellers save Excel files as CSV (the wizard says how). Fixtures
     in `tests/books/fixtures/`, tests in `test:books` and `test:books-server`.
 
 All of these are on the team hub board with departments and dates (`lib/team-seed.ts`: `FUND_BACKLOG`, `LAUNCH_BACKLOG`, `COURSES_BACKLOG`, `TOPICS_BACKLOG`, `BIMI_BACKLOG`). Items can have several people (`ownerUids`; `ownerUid` stays as the first of them for older readers) and can repeat monthly (`repeat: "monthly"`: done moves the due date on a month).
