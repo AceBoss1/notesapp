@@ -5,8 +5,9 @@ import { useEffect, useState } from "react";
 import { api } from "@/lib/moments-client";
 import { useMember } from "@/lib/member-client";
 import { TARGET_LABEL, naira, type PublicCoupon } from "@/lib/discounts";
+import ShareToNotesApp from "@/components/share/ShareToNotesApp";
 
-// One coupon's page: the card, Copy, Save to my coupons, Share and Shop now. The card's picture is /api/coupons/card.
+// One coupon's page: the card, Copy, Save to my coupons, Share (WhatsApp, Copy link, Moments, Journals) and Shop now. The card's picture is /api/coupons/card.
 export default function CouponView({ seller, code }: { seller: string; code: string }) {
   const { user } = useMember();
   const [c, setC] = useState<PublicCoupon | null | undefined>(undefined);
@@ -56,6 +57,7 @@ export default function CouponView({ seller, code }: { seller: string; code: str
             <a href={`https://wa.me/?text=${encodeURIComponent(`${c.label} at @${seller}'s shop on #NotesApp with ${code}: ${url}`)}`} target="_blank" rel="noopener" className="text-crimson underline">Share on WhatsApp</a>
             <button type="button" onClick={() => copy(url, "Link copied.")} className="text-crimson underline">Copy link</button>
             <a href={card} download={`${code}.png`} className="text-crimson underline">Download the card</a>
+            <ShareToNotesApp shareRef={{ kind: "coupon", id: `${seller}/${code}` }} look="link" />
           </div>
         </>
       )}

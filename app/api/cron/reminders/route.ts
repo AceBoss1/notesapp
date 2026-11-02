@@ -17,6 +17,7 @@ import { sendMorningSummaries, sendWorkReminders } from "@/lib/team-server";
 import { sendGrantReminders } from "@/lib/grants-server";
 import { sendDueReminders } from "@/lib/dues-server";
 import { sendWeeklyDigests } from "@/lib/digest-server";
+import { continueAnnouncements } from "@/lib/announcements-server";
 import { announceReleases } from "@/lib/discord";
 import { setting } from "@/lib/config";
 import { syncOrcidSites } from "@/lib/publications-server";
@@ -26,6 +27,7 @@ import { sendInvoiceReminders } from "@/lib/invoices-server";
 import { sendKidReports } from "@/lib/kids-server";
 import { birthdayBells } from "@/lib/young-server";
 import { trackJob } from "@/lib/ops-metrics-server";
+import { monthlyReferralReports } from "@/lib/referral-report-server";
 
 // Run every ~15 minutes by an external scheduler with
 //   Authorization: Bearer $CRON_SECRET
@@ -115,9 +117,13 @@ async function run() {
   await job("birthday18", () => birthdayBells(db));
   // Sundays from 5 PM Lagos, in batches across runs, once WEEKLY_DIGEST=on (lib/digest-server.ts).
   await job("weeklyDigest", () => sendWeeklyDigests(db));
+  // Admin → Announcements: one more batch of an announcement left half-sent (the admin closed the page), until it's done.
+  await job("announcements", () => continueAnnouncements(db));
   // Events: reminders 24 hours and 1 hour before each start to everyone going or interested (lib/events-server.ts).
   await job("eventReminders", () => sendEventReminders(db));
   await job("couponReminders", () => remindExpiringCoupons(db)); // saved coupons ending within 3 days: one bell a day each
+  // The 1st of each month from 08:00 Lagos, in batches: last month's referrals report to members who had activity (lib/referral-report-server.ts).
+  await job("referralReports", () => monthlyReferralReports(db));
   // Researchers who linked ORCID with sync on: their new works are added to their site's Publications (lib/publications-server.ts).
   await job("syncOrcidSites", () => syncOrcidSites(db));
   await job("discordChangelog", () => announceReleases(db).then((v) => v.length)); // new releases to the Discord #announcements channel

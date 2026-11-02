@@ -12,6 +12,7 @@ import { hashtag, topicsOf } from "@/lib/topics";
 import Avatar from "@/components/Avatar";
 import { NameBadgeIcons } from "@/components/PersonName";
 import type { FeedAuthor } from "@/lib/feed-author";
+import { ShareMenu } from "@/components/share/ShareToNotesApp";
 
 export const ago = (iso: string) => {
   const m = Math.max(1, Math.round((Date.now() - Date.parse(iso)) / 60_000));
@@ -65,6 +66,7 @@ export default function FeedPost({ note, author, user, views, saved, onSave, fol
   const [likes, setLikes] = useState(note.likeCount || 0);
   const [shares, setShares] = useState(note.shareCount || 0);
   const [note2, setNote2] = useState<string | null>(null);
+  const [sharing, setSharing] = useState(false);
   const commentCount = useCommentCount(note.id);
   useEffect(() => { if (user) hasLiked(note.id, user.uid).then(setLiked).catch(() => {}); }, [user, note.id]);
 
@@ -76,14 +78,9 @@ export default function FeedPost({ note, author, user, views, saved, onSave, fol
     setLikes((c) => c + (now ? 1 : -1));
     if (now) notifyLiked(note.id).catch(() => {});
   }
-  async function share() {
-    const url = `${window.location.origin}${href}`;
-    try {
-      if (navigator.share) await navigator.share({ title: note.title, url });
-      else { await navigator.clipboard.writeText(url); setNote2("Link copied."); }
-      incrementShareCount(note.id).then(() => setShares((c) => c + 1)).catch(() => {});
-    } catch {}
-  }
+  // The share sheet: Share to Moments, Share to Journals, another app, Copy link (components/share/ShareToNotesApp.tsx).
+  const share = () => setSharing(true);
+  const counted = () => incrementShareCount(note.id).then(() => setShares((c) => c + 1)).catch(() => {});
   const save = () => (user ? onSave(note.id) : setNote2("Sign in to save journals."));
   const btn = "flex items-center gap-1.5 text-[15px] text-slate hover:text-crimson";
 
@@ -135,6 +132,7 @@ export default function FeedPost({ note, author, user, views, saved, onSave, fol
           <Link href={href} aria-label="Open" className={`${btn} hidden lg:flex`}><Icon d={OPEN} /></Link>
         </div>
       </div>
+      {sharing && <ShareMenu shareRef={note.status === "published" ? { kind: "journal", id: note.id } : null} url={typeof window === "undefined" ? href : `${window.location.origin}${href}`} title={note.title} onClose={() => setSharing(false)} onShared={counted} />}
       {note2 && <p role="status" className="mt-2 text-xs text-crimson">{note2} {!user && <Link href="/login" className="underline">Sign in</Link>}</p>}
     </article>
   );

@@ -51,6 +51,14 @@ export default function PrepHome() {
         <p className="font-semibold">Every question is checked by a person</p>
         <p className="mt-1 text-sm text-[#0F2747]/70">Questions are original, written for {PREP_NAME} and reviewed before they're published. Spot a mistake? Tap “Report” on the question and we'll look at it.</p>
       </div>
+
+      <div className={`${card} mt-3 flex flex-wrap items-center justify-between gap-3`}>
+        <div className="max-w-xl">
+          <p className="font-semibold">Teachers, examiners and graduates: help us review questions</p>
+          <p className="mt-1 text-sm text-[#0F2747]/70">Volunteer to check questions in the subjects you know before students see them. There&apos;s a private community for reviewers too, if you&apos;d like to join (it&apos;s optional).</p>
+        </div>
+        <PLink href="/reviewers" className={btnGo}>Volunteer to review</PLink>
+      </div>
     </>
   );
 }

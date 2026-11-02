@@ -22,6 +22,81 @@ export const CHANGELOG: Release[] = [
       { kind: "added", text: "Every sale has a receipt link (no phone numbers on it) with Save as PDF and a QR code." },
       { kind: "added", text: "Import your existing records from a CSV (Excel and Google Sheets save as CSV): a stock list, past sales, expenses or customers and debtors, with the columns matched from your headings, a ready-made match for Tralo's exports, a dry run showing new rows, updates, duplicates skipped and rows to fix, and undo for 24 hours. Templates to download, and Export everything as CSV." },
       { kind: "added", text: "Free on Free Basic: 150 sales and expenses a month (online orders never count) and up to 20 customers owing at once. Pro, Business and Enterprise have no limit. A walk-in sale of an item lowers its stock through Inventory, where you have it." },
+      { kind: "changed", text: "Business books is live, no waitlist: /books now shows what it does and the Free Basic limits, with Open Business books for members and Start free for visitors (sign up, then straight into your books). The roadmap, Store selling, the home page and the Inventory and Selling physical goods help articles say it's open, and receipts and statements link to /books." },
+    ],
+  },
+  {
+    version: "v0.116.0",
+    bump: "minor",
+    date: "2026-11-01",
+    changes: [
+      { kind: "added", text: "Seven free courses on AI for Africans from LWB Academy, by Emmanuel Adams: AI for Everyday Africans; AI for Small Businesses and Traders; AI for Farmers and Agribusiness; AI for Teachers, Schools and Students; AI for NGOs, Churches and Public Organisations; AI Careers and Freelancing in Africa; and AI for Professionals. Plain-English lessons with a practical exercise each, credited videos and a closing quiz. They're seeded from Admin → Academy as drafts for LWB Academy to preview and publish." },
+      { kind: "added", text: "A course an organisation publishes now says who teaches it: \"Taught by\" and the team member's name, under the organisation's." },
+    ],
+  },
+  {
+    version: "v0.115.0",
+    bump: "minor",
+    date: "2026-11-01",
+    changes: [
+      { kind: "changed", text: "Planned: Business books, for shops, market traders, salons and anyone who sells in person. Record a walk-in sale in a few taps (cash, transfer, POS or on credit) with a receipt link or PDF, and expenses with receipt photos. Stock goes down with each sale and online store orders come in by themselves. See who owes you and send reminders and receipts: by email and the bell to #NotesApp members, and by WhatsApp (or SMS, once Send-Na is live) to customers who aren't on #NotesApp yet. See what you owe suppliers too. Profit for a day, a week or a month. Import from Excel and other tools (planned), plus offline entry on phones and telling Nana \"Sold 3 bags of rice ₦45,000 to Mama Bisi on credit\"." },
+      { kind: "added", text: "Join the Business books waitlist at /books: see what it will do, with early designs, and tell us your kind of business, what you sell, how you keep your books today and your city. You get a thank-you email (and a bell if you're a member), and an email when it opens if you ask for one. It isn't open yet and no date is promised." },
+      { kind: "changed", text: "Store selling, the home page, the roadmap and the Inventory and Selling physical goods help articles now link to the Business books waitlist." },
+    ],
+  },
+  {
+    version: "v0.114.0",
+    bump: "minor",
+    date: "2026-11-01",
+    changes: [
+      { kind: "added", text: "Share to Moments: on a journal, a course, a shop item (physical or a download), a service (your 1:1 sessions, or a line of the services on your site), a public event, a certificate, a coupon or a public community post, Share now offers Share to Moments. A quick sheet shows the card (title, cover, the price in naira for items and services, and who made it), takes an optional caption, and posts a moment that links to it, for 24, 48 or 72 hours, seen by the people who see your moments. The creator is credited on it." },
+      { kind: "added", text: "Share to Journals: the same Share menus start a new journal draft that quotes what you're sharing, with its title as a link, its cover and \"Shared from @creator\". Add your thoughts, then save it as a draft or publish it when you're ready: nothing is published for you." },
+      { kind: "changed", text: "Both are for signed-in members: visitors are asked to sign in and come straight back to finish. They're never offered on drafts, members-only posts, revoked certificates or ended coupons, and never in a child profile. On a journal's own domain they open #NotesApp to finish." },
+      { kind: "changed", text: "The share button on journal cards in the feed, on community posts and at the top of a course now opens a share sheet: Share to Moments, Share to Journals, Share to another app and Copy link." },
+      { kind: "added", text: "A Share button, with the same sheet, on shop item pages, on Notes Market and Explore item cards, on the booking card for your 1:1 sessions, on each service on a member's site, and on public event pages. Items only link out to another shop, switched-off shops, sessions that are off and members-only or cancelled events can't be shared to Moments or journals." },
+      { kind: "added", text: "Staff: when Paystack asks for a transfer OTP, a payout on Payments & payouts shows Awaiting OTP with a field for the 6-digit code Paystack emailed, Confirm, Resend OTP and the time left on the 30-minute code, so payouts no longer need a trip to the Paystack dashboard. Each waiting payout has its own field. Who confirmed it is recorded; the code itself is never kept." },
+    ],
+  },
+  {
+    version: "v0.113.0",
+    bump: "minor",
+    date: "2026-11-01",
+    changes: [
+      { kind: "added", text: "#NotesApp is one month old. Tell us how it's been: Contact → Feedback (/contact?topic=feedback) asks five quick questions, how your first month went (1 to 5), what you love, what's missing or broken, how likely you are to recommend us (0 to 10), and whether we can contact you. It works signed in or not; members' name and email are filled in." },
+      { kind: "added", text: "Volunteer to review Naija Exam Prep questions (prep.notesapp.name.ng/reviewers): choose the subjects you know (all 18), the exams (JAMB, WAEC, NECO), your background and years of experience. Once we approve you, your reviewer access is switched on (or you get an invite link to create an account). Linked from the Exam Prep home page and footer." },
+      { kind: "added", text: "The Naija Exam Prep Reviewers community: a private community for reviewers, with Spaces for Start here, Sciences, Arts and humanities, Commercial, and Questions to discuss. Joining is optional; reviewers who ask to join get the invite link when they're approved." },
+      { kind: "added", text: "News and announcements from #NotesApp: now and then a message to every member, in the bell and by email, readable on its own page. Switch the emails off in Account settings or with the link in any announcement; the bell still shows them." },
+      { kind: "added", text: "For the team: Admin → Announcements, to write a message to every member (bell words, email subject, preheader and body, a button), preview it as members will see it, send yourself a test, then send to everyone, in batches, once per member. Admin → Leads has Feedback (with average scores and NPS) and Exam Prep reviewers (approve or decline, and set up the reviewers' community with one tap)." },
+    ],
+  },
+  {
+    version: "v0.112.0",
+    bump: "minor",
+    date: "2026-11-01",
+    changes: [
+      { kind: "added", text: "A monthly referrals and affiliate report by email, on the 1st of each month from 8 AM Lagos time, only to members who had referral activity the month before: friends who joined with your link or code, paid conversions, affiliate sales, what you earned that month and your available, pending and withdrawn balances, a table of the month's sign-ups and sales (buyers are never named), your link and code, and a tip. No activity, no email. A bell with the month's summary comes with it." },
+      { kind: "added", text: "Monthly referrals report in Account settings → Email (on by default), and a one-click link in each report to turn it off." },
+      { kind: "added", text: "Admin → Referrals: send yourself any member's monthly report as a preview, and send last month's due reports now if the scheduled run was missed." },
+    ],
+  },
+  {
+    version: "v0.111.0",
+    bump: "minor",
+    date: "2026-11-01",
+    changes: [
+      { kind: "added", text: "Make a cover with Nana: in the course editor, publishers can have Nana design a cover for any course, free or paid. Say what it should show (or leave it blank), then Use it, Edit it (\"make it green\", \"add a laptop\", \"shorter headline\") or Try another; the last few stay to go back to. Covers are our own artwork: eight templates in Crimson, Ivory, Ink, Moss, Indigo, Gold, Teal and Earth, with adire, kente-like, mud cloth and other patterns we drew, a set of simple icons, your title in bold type and a small Notes Academy mark, saved as WebP like an uploaded picture." },
+      { kind: "added", text: "Covers a day by plan: Free Basic 3, Pro 10, Business 25, Enterprise 50 (a new cover and each edit count one, so one cover and two edits is three). The count starts again at midnight Lagos time, and the editor shows how many are left. Nana's Pearl writes the design from your Nana allowance, then your Nana credit, like her writing help; when both are used up, covers stop until the allowance refreshes. Members with their own AI key use it instead. Drawing the picture costs nothing." },
+      { kind: "added", text: "Admin → Pricing has a Course covers by Nana section for the daily numbers, and /pricing lists them." },
+    ],
+  },
+  {
+    version: "v0.110.0",
+    bump: "minor",
+    date: "2026-11-01",
+    changes: [
+      { kind: "added", text: "Notes Academy: a YouTube lesson can have lesson notes under the video, written like a text lesson, and credits the video's creator: \"Video: <title> by <creator>, on YouTube. Shared here with credit to the original creator.\" The credit is filled in from YouTube when the lesson is saved." },
+      { kind: "added", text: "New course from Emmanuel Adams: How to Restart Your Life After a Breakdown, 9 strategies to get you moving again. Free, with a short exercise in every lesson and a reflection quiz. It isn't a substitute for a doctor, psychologist or counsellor; if you feel unsafe, call 112 or go to the nearest hospital." },
+      { kind: "changed", text: "IT Support Training is rewritten: ten lessons in six modules (troubleshooting, remote tools, customer service scripts, Zendesk, Intercom and HubSpot, Microsoft Azure, lead generation, Upwork and Fiverr, Clockify and getting paid in Nigeria, a capstone checklist), four module quizzes and new cover art. Learners keep their enrolments, reviews and certificates." },
     ],
   },
   {

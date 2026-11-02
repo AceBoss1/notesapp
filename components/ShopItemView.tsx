@@ -27,6 +27,7 @@ import { categoryOf } from "@/lib/store-meta";
 import { useSiteOptional } from "@/components/site/SiteContext";
 import { useBasket } from "@/lib/cart-client";
 import DiscountCodeField from "@/components/DiscountCodeField";
+import { ShareButton } from "@/components/share/ShareToNotesApp";
 
 const field = "mt-1 w-full border border-rule bg-card px-3 py-2 text-sm outline-none focus:border-crimson";
 
@@ -218,6 +219,8 @@ export default function ShopItemPage() {
                 <span>Sold by <span className="font-semibold text-crimson">{seller.displayName}</span><NameBadgeIcons username={seller.username} size={14} /></span>
               </Link>
               <MessageButton username={seller.username} profileUid={item.ownerUid} />
+              {/* Share: Moments, Journals, another app, Copy link (components/share/ShareToNotesApp.tsx). */}
+              <ShareButton shareRef={{ kind: "item", id: itemId }} path={typeof window === "undefined" ? `/shop/${itemId}` : window.location.pathname} title={item.title} />
             </div>
           )}
           <p className="mt-4 font-mono text-2xl text-crimson-bright">{formatNaira(unit)}</p>

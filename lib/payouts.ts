@@ -66,6 +66,12 @@ export async function releaseLedgerEntry(
       reference: `payout_${reference}`,
       reason: `#NotesApp ${ledger.kind} payout`,
     });
+    if (tr.status === "otp") {
+      // Transfers OTP is on in Paystack: nothing has moved yet. It waits, "transferring", until an admin types the emailed OTP on
+      // /admin/payments (lib/payout-otp-server.ts); the publisher's payout.released webhook goes out then.
+      await ledgerRef.update({ transferCode: tr.transfer_code, transferProvider: "paystack", transferReference: `payout_${reference}`, transferStartedAt: new Date().toISOString(), awaitingOtp: true, otpSentAt: new Date().toISOString(), otpTries: 0, otpResends: 0 });
+      return { ok: true, transferStatus: "otp" };
+    }
     await ledgerRef.update({ transferCode: tr.transfer_code });
     await emitWebhook(ledger.publisherUid, "payout.released", { id: reference, kind: ledger.kind, net_kobo: ledger.netKobo, transfer_status: tr.status });
     return { ok: true, transferStatus: tr.status };
@@ -108,6 +114,8 @@ export async function autoReleasePayouts(opts: { transfer?: typeof initiateTrans
       if (r.ok) {
         started++;
         await ref.update({ autoReleasedAt: new Date(now).toISOString() });
+        // Waiting for the OTP Paystack emailed the business: the publisher hears once it is actually sent (lib/payout-otp-server.ts).
+        if (r.transferStatus === "otp") continue;
         const to = await getUserEmail(l.publisherUid);
         const what = l.kind === "giving" ? { subject: "Gifts to your community are on their way", for: "from gifts to your community (after the charges)", short: "community gifts", link: "/community" }
           : l.kind === "ticket" ? { subject: "Your ticket sales payout is on its way", for: "for event tickets", short: "ticket sales", link: "/events" }

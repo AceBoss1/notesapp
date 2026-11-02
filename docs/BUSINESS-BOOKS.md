@@ -23,6 +23,15 @@
 > - **Thanks:** a thank-you email, plus a bell for members.
 > - **Links to the waitlist:** the roadmap's not-live list ("Business books — join the waitlist"), the Business books section on
 >   `/store-selling` (`#business-books`), the home page's features and the Inventory and Selling physical goods help articles.
+>
+> **Live, 2 Nov 2026 (v0.118.0): the public pages say it's open.** `/books` is now the landing page: what it does, the Free Basic
+> limits, the three images, and one button (`components/books/BooksCta.tsx`): **Open Business books** → `/profile/books` for
+> signed-in members, **Start free** → `/signup?next=/profile/books` for visitors (with a sign-in link). The waitlist form is gone;
+> `/api/books/waitlist`, `lib/books-waitlist.ts`, `submitBooksWaitlist` and the rule stay, so the old sign-ups are still in Admin →
+> Leads → Business books waitlist. The roadmap lists Business books as live (its not-live line is now what's next), and
+> `/store-selling#business-books`, the home features, the Inventory and Selling physical goods help articles, Nana's page list and
+> the anniversary announcement draft say it's open. Receipt and statement footers ("Keep your own books free: <domain>/books") land
+> on this page.
 
 ## 1. Who it's for and the problem
 
@@ -348,7 +357,8 @@ mobile money. Ghana waits for those (`docs/PAYMENTS.md`).
 Each step ships with its tests, help article, changelog line, roadmap update, README and HANDOVER notes (the public-pages rule,
 `docs/ENGINEERING_GUIDE.md`), and phone and desktop screenshots from the real code.
 
-1. **This plan and the waitlist** (v0.115.0): the doc, the changelog line, and the public **waitlist** (built, see below). ✓
+1. **This plan and the waitlist** (v0.115.0): the doc, the changelog line, and the public **waitlist** (built, see above; replaced by the
+   live landing page in v0.118.0). ✓
 2. **Mockups for approval**: the screens below. ✓ (approved: "start building books", 2 Nov 2026)
 3. **Walk-in sales and expenses**: `lib/books.ts`, `/api/books`, `/profile/books` (Books home, Record a sale, Add expense), receipts
    (link and PDF), online orders flowing in, stock moves, Free Basic cap. Rules and emulator tests. ✓ (v0.118.0)
@@ -449,5 +459,6 @@ Basic caps, imports with dry run, duplicates and undo, export); rules in `test:r
 automatic repeat reminders and "remind again" prompts; the supplier bell the day before a due date; repeating expenses; the opening
 float and count-the-drawer screen (the float is stored, `bookSettings.floatKobo`, with no screen yet); a purchase (restock) entry from
 Books; any-range P&L; Shopify, WooCommerce and Paystack presets, bank CSV, paper-ledger photos and vCard contacts; the referral code
-on the #NotesApp line (open question 10); running totals; SMS when Send-Na is live; the waitlist page (`/books`) saying it's open.
+on the #NotesApp line (open question 10); running totals; SMS when Send-Na is live. (The `/books` page now says it's open: see the
+note at the top.)
 
