@@ -3,8 +3,10 @@ import { FieldValue } from "firebase-admin/firestore";
 import { randomBytes } from "crypto";
 import {
   MOMENT_DEFAULT_HOURS, MOMENT_TEXT_MAX, MOMENT_VIDEO_MAX_SECONDS, MOMENT_VIDEO_SOURCE_MAX_SECONDS, momentVideoParts, MOMENT_AUDIO_MAX_SECONDS, AUDIO_MAX_BYTES, AUDIO_TYPES, sniffAudio,
-  isMomentExpired, isMomentHours, isMomentKind, momentExpiry, type MomentHours, type MomentKind,
+  isMomentExpired, isMomentHours, isMomentKind, momentExpiry, type MomentHours, type MomentKind, type MomentLink,
 } from "./moments-rules";
+import type { ShareCard } from "./share-targets";
+import { isKidUid } from "./kids";
 import { sendMessage } from "./messages-server";
 import { notifyMentions } from "./mentions-server";
 import { MESSAGE_MAX } from "./messages-rules";
@@ -30,6 +32,7 @@ type MomentDoc = {
   text?: string; imageKey?: string; videoKey?: string; durationSec?: number;
   clipStart?: number; clipEnd?: number; splitGroup?: string; // a part of a longer video: this moment plays clipStart to clipEnd of the shared file
   audioKey?: string; audioDurationSec?: number; // voice-over
+  link?: MomentLink; // kind "link": the card of what was shared (Share to Moments)
   hours: MomentHours; createdAt: string; expiresAt: string;
   likeCount: number; reshareCount: number; viewCount: number;
   ownsMedia: boolean; // false on a reshare: the file belongs to the original
@@ -41,6 +44,7 @@ type MomentDoc = {
 export type MomentView = {
   id: string; ownerUid: string; ownerUsername: string; kind: MomentKind;
   text?: string; imageUrl?: string; videoUrl?: string; durationSec?: number; clipStart?: number; clipEnd?: number; audioUrl?: string; audioDurationSec?: number;
+  link?: MomentLink;
   hours: MomentHours; createdAt: string; expiresAt: string;
   likeCount: number; reshareCount: number; liked: boolean; mine: boolean;
   viewCount?: number; // only for the owner
@@ -93,6 +97,7 @@ function toView(id: string, m: MomentDoc, viewerUid: string, liked: boolean, dep
     ...(m.imageKey ? { imageUrl: deps.publicUrl(m.imageKey) } : {}),
     ...(m.videoKey ? { videoUrl: deps.publicUrl(m.videoKey), durationSec: m.durationSec, ...(m.clipEnd ? { clipStart: m.clipStart ?? 0, clipEnd: m.clipEnd } : {}) } : {}),
     ...(m.audioKey ? { audioUrl: deps.publicUrl(m.audioKey), audioDurationSec: m.audioDurationSec } : {}),
+    ...(m.link ? { link: m.link } : {}),
     hours: m.hours, createdAt: m.createdAt, expiresAt: m.expiresAt,
     likeCount: m.likeCount, reshareCount: m.reshareCount, liked, mine: m.ownerUid === viewerUid,
     ...(m.ownerUid === viewerUid ? { viewCount: m.viewCount } : {}),
@@ -179,6 +184,45 @@ export async function createMoment(db: Firestore, owner: { uid: string; username
   if (text.includes("@")) {
     const u = (await db.doc(`users/${owner.uid}`).get()).data();
     await notifyMentions(db, { kind: "moment", sourceId: id, text, author: { uid: owner.uid, name: String(u?.displayName ?? owner.username), username: owner.username, avatar: String(u?.avatar ?? "") }, where: "in a moment", linkHref: `/u/${owner.username}` }, now).catch(() => {});
+  }
+  return toView(id, full, owner.uid, false, deps);
+}
+
+// Share to Moments (lib/share-targets.ts): a moment that carries an item's card (its title, cover and link, crediting whoever made it)
+// with an optional caption. Everything else is a moment like any other: 24 hours unless the member picks 48 or 72, the same audience
+// (followers, or anyone signed in if they made their moments public; a teen's only for people they follow back), the same daily limit.
+// `resolve` builds the card from the item as it is now, and returns null for anything that isn't public (a draft, members-only, gone).
+export type ShareInput = { share?: unknown; text?: unknown; hours?: unknown };
+export async function shareToMoment(
+  db: Firestore, owner: { uid: string; username: string }, input: ShareInput, deps: MomentDeps,
+  resolve: (db: Firestore, ref: unknown) => Promise<ShareCard | null>, now = new Date()
+): Promise<MomentView> {
+  if (isKidUid(owner.uid)) throw new MomentError(403, "Moments aren't part of a child profile.");
+  if (!owner.username) throw new MomentError(400, "Finish setting up your profile first.");
+  const hours = input.hours === undefined ? MOMENT_DEFAULT_HOURS : input.hours;
+  if (!isMomentHours(hours)) throw new MomentError(400, "A moment can last 24, 48 or 72 hours.");
+  const text = typeof input.text === "string" ? input.text.trim() : "";
+  if (text.length > MOMENT_TEXT_MAX) throw new MomentError(413, `Text can be up to ${MOMENT_TEXT_MAX} characters.`);
+  const card = await resolve(db, input.share);
+  if (!card) throw new MomentError(404, "That can't be shared: it may be private, a draft, or no longer there.");
+  const link: MomentLink = Object.fromEntries(Object.entries(card).filter(([, v]) => v !== undefined)) as MomentLink;
+  const id = randomBytes(8).toString("hex");
+  const full: MomentDoc = {
+    ownerUid: owner.uid, ownerUsername: owner.username, kind: "link", link, ...(text ? { text } : {}), hours,
+    createdAt: now.toISOString(), expiresAt: momentExpiry(now, hours).toISOString(),
+    likeCount: 0, reshareCount: 0, viewCount: 0, ownsMedia: false, // the cover belongs to the item, never deleted with the moment
+  };
+  const usageRef = db.doc(`momentUsage/${owner.uid}_${dayKey(now)}`);
+  const ownerDoc = (await db.doc(`users/${owner.uid}`).get()).data();
+  const dailyLimit = await limit(db, "momentsPerDay", effectiveTier({ username: ownerDoc?.username ?? "", role: ownerDoc?.role ?? "reader", accountTier: ownerDoc?.accountTier ?? "standard" }));
+  await db.runTransaction(async (t) => {
+    const used = ((await t.get(usageRef)).data()?.count as number | undefined) ?? 0;
+    if (used >= dailyLimit) throw new MomentError(429, `You can share ${dailyLimit} moments a day. Try again tomorrow.`);
+    t.set(usageRef, { uid: owner.uid, day: dayKey(now), count: used + 1 }, { merge: true });
+    t.set(db.doc(`moments/${id}`), { ...full, expireAt: new Date(full.expiresAt) });
+  });
+  if (text.includes("@")) {
+    await notifyMentions(db, { kind: "moment", sourceId: id, text, author: { uid: owner.uid, name: String(ownerDoc?.displayName ?? owner.username), username: owner.username, avatar: String(ownerDoc?.avatar ?? "") }, where: "in a moment", linkHref: `/u/${owner.username}` }, now).catch(() => {});
   }
   return toView(id, full, owner.uid, false, deps);
 }

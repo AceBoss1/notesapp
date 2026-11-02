@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { submitLead, LeadCategory, LEAD_CATEGORIES } from "@/lib/leads";
+import FeedbackForm from "@/components/FeedbackForm";
 
 
 export default function ContactForm() {
@@ -24,8 +25,12 @@ export default function ContactForm() {
     else if (match?.value === "api") setMessage((m) => m || "Please switch on API access for my account.\n\nUsername: @\nWhat we want to build: ");
   }, []);
 
+  // Feedback (the one-month survey) is its own form, sent through /api/feedback with its scores.
+  if (category === "feedback") return <FeedbackForm onBack={() => setCategory("support")} />;
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+    if (category === "feedback" || category === "volunteer" || category === "books-waitlist") return;
     setError("");
     setSending(true);
     try {

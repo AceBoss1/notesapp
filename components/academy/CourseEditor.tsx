@@ -11,6 +11,7 @@ import type { Subtopic } from "@/lib/subtopics";
 import { useMember } from "@/lib/member-client";
 import { api } from "@/lib/moments-client";
 import { uploadToR2 } from "@/lib/upload";
+import CoverMaker from "@/components/academy/CoverMaker";
 import { digitalCommissionRateFor } from "@/lib/tiers";
 import type { AccountTier } from "@/lib/users";
 import {
@@ -189,7 +190,7 @@ export default function CourseEditor({ courseId }: { courseId: string }) {
         <div className="mt-2"><p className={label}>Topics</p><p className="mb-2 text-xs text-slate">Up to {MAX_COURSE_TOPICS}: they bring the course to learners interested in them.</p><TopicPicker value={topics} onChange={(t) => { setTopics(t); setSubtopics((s) => s.filter((x) => t.includes(x.parent))); }} max={MAX_COURSE_TOPICS} compact /><SubtopicChips subtopics={subtopics} onRemove={(x) => setSubtopics((s) => s.filter((y) => y !== x))} /></div>
         <div className="mt-5">
           <p className={label}>Cover picture</p>
-          <p className="text-xs text-slate">Wide (16:9) works best. JPEG, PNG or WebP.</p>
+          <p className="text-xs text-slate">Wide (16:9) works best. JPEG, PNG or WebP, or make one with Nana.</p>
           <div className="mt-2 flex flex-col gap-3 sm:flex-row sm:items-center">
             {cover
               // eslint-disable-next-line @next/next/no-img-element
@@ -200,6 +201,7 @@ export default function CourseEditor({ courseId }: { courseId: string }) {
               {cover && <button type="button" onClick={() => setCover("")} className="btn-ghost !px-4 !py-2 text-sm">Remove</button>}
             </div>
           </div>
+          <CoverMaker courseId={courseId} cover={cover} onUse={async (url) => { await patch({ cover: url }); setCover(url); }} />
         </div>
         <SaveRow onSave={saveDetails} dirty={dirty} busy={busy === "details"} disabled={busy !== null || uploading} />
       </section>
@@ -659,11 +661,11 @@ function LessonForm({ courseId, kind, lesson, modules, paid, onSaved, onCancel }
         await send(s.uploadUrl, file, kind === "video" ? "POST" : "PUT");
         up = kind === "video" ? { streamUid: s.streamUid } : { fileKey: s.fileKey, fileName: file.name };
       } else if (upload && lesson) up = kind === "video" ? { streamUid: lesson.streamUid } : { fileKey: lesson.fileKey, fileName: lesson.fileName };
-      const payload = { kind, title, minutes: minutes.trim() || null, preview, moduleId: moduleId || undefined, ...(kind === "youtube" ? { url } : kind === "text" ? { body } : kind === "quiz" ? { quiz: { passPercent: passPercent.trim() || QUIZ_PASS_DEFAULT, questions } } : up) };
+      const payload = { kind, title, minutes: minutes.trim() || null, preview, moduleId: moduleId || undefined, ...(kind === "youtube" ? { url, body } : kind === "text" ? { body } : kind === "quiz" ? { quiz: { passPercent: passPercent.trim() || QUIZ_PASS_DEFAULT, questions } } : up) };
       const r = lesson
         ? await api<{ lesson: Lesson }>(`/api/academy/courses/${courseId}/lessons/${lesson.id}`, { method: "PATCH", body: payload })
         : await api<{ lesson: Lesson }>(`/api/academy/courses/${courseId}/lessons`, { body: payload });
-      if (kind === "text") try { localStorage.removeItem(`notesapp:draft:${draftKey}`); } catch {}
+      if (kind === "text" || kind === "youtube") try { localStorage.removeItem(`notesapp:draft:${draftKey}`); } catch {}
       onSaved(r.lesson);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Couldn't save the lesson.");
@@ -689,6 +691,7 @@ function LessonForm({ courseId, kind, lesson, modules, paid, onSaved, onCancel }
               <p className="text-xs text-slate">Is this the right video? If the picture is blank, the video may be private or removed.</p>
             </div>
           )}
+          <p className="mt-2 text-xs text-slate">{lesson?.videoCredit && lesson.youtubeId === vid ? <>Credited to <b>{lesson.videoCredit.name}</b> under the video. </> : null}We credit the video&apos;s creator under it, from YouTube, when you save.</p>
         </>
       )}
       {upload && (
@@ -715,6 +718,12 @@ function LessonForm({ courseId, kind, lesson, modules, paid, onSaved, onCancel }
       {kind === "text" && (
         <div className="mt-3">
           <p className={label}>Lesson</p>
+          <div className="mt-1"><RichTextEditor value={body} onChange={setBody} draftKey={draftKey} /></div>
+        </div>
+      )}
+      {kind === "youtube" && (
+        <div className="mt-3">
+          <p className={label}>Lesson notes <span className="font-normal text-slate">(optional: shown under the video)</span></p>
           <div className="mt-1"><RichTextEditor value={body} onChange={setBody} draftKey={draftKey} /></div>
         </div>
       )}

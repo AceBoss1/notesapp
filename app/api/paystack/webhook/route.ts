@@ -35,8 +35,8 @@ export async function POST(req: NextRequest) {
         if ((await l.get()).exists) {
           await l.update(
             event === "transfer.success"
-              ? { status: "paid_out" }
-              : { status: "held", failureReason: `Transfer ${event.split(".")[1]}: ${data?.reason || "see Paystack"}` }
+              ? { status: "paid_out", awaitingOtp: false }
+              : { status: "held", awaitingOtp: false, failureReason: `Transfer ${event.split(".")[1]}: ${data?.reason || "see Paystack"}` }
           );
           // Ad-share payouts mirror their result onto the publisher's statement.
           if (event === "transfer.success" && ref.startsWith("adshare_")) {

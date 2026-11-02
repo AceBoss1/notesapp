@@ -135,6 +135,8 @@ export function createTransferRecipient(params: { name: string; accountNumber: s
   });
 }
 
+// With "Transfers OTP" switched on in the Paystack dashboard, the answer's status is "otp": nothing is sent yet, Paystack emails (and
+// texts) the business an OTP, and the transfer waits for finalizeTransfer below (the admin types it in on /admin/payments).
 export function initiateTransfer(params: { amountKobo: number; recipient: string; reference: string; reason: string }) {
   return paystack<{ transfer_code: string; status: string }>("/transfer", {
     method: "POST",
@@ -145,6 +147,23 @@ export function initiateTransfer(params: { amountKobo: number; recipient: string
       reference: params.reference,
       reason: params.reason,
     }),
+  });
+}
+
+// Finishes a transfer that is waiting for its OTP (POST /transfer/finalize_transfer { transfer_code, otp }). A wrong or expired OTP
+// comes back as an error with Paystack's message. The OTP is passed straight through: never stored or logged.
+export function finalizeTransfer(transferCode: string, otp: string) {
+  return paystack<{ transfer_code: string; status: string; reference?: string }>("/transfer/finalize_transfer", {
+    method: "POST",
+    body: JSON.stringify({ transfer_code: transferCode, otp }),
+  });
+}
+
+// A fresh OTP for a transfer waiting for one (POST /transfer/resend_otp { transfer_code, reason }; reason is "resend_otp" or "transfer").
+export function resendTransferOtp(transferCode: string) {
+  return paystack<unknown>("/transfer/resend_otp", {
+    method: "POST",
+    body: JSON.stringify({ transfer_code: transferCode, reason: "transfer" }),
   });
 }
 

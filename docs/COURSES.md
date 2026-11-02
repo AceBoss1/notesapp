@@ -12,6 +12,40 @@ from the published courses (no number is shown while it's 0), "Notes Academy for
 teachers' questions (`lib/academy-faq.ts`) with a link to the help centre, and a closing call to teach
 (`components/academy/AcademyLanding.tsx`). The catalogue sits in the middle at `#courses`.
 
+**YouTube lessons with notes and a credit (v0.110.0):** a YouTube lesson may also have `body` (the same Markdown as a text lesson, shown
+under the video as "Lesson notes") and `videoCredit: { title, name, url }`, filled by the server from YouTube's oEmbed
+(`https://www.youtube.com/oembed?url=…&format=json`: `title`, `author_name`, `author_url`) whenever the lesson is saved, never from the
+request. The player shows "Video: <title> by <creator>, on YouTube. Shared here with credit to the original creator." Older lessons
+have neither and play as before. Tutors using another creator's public video should credit them in the notes too.
+
+**Seeded courses (v0.110.0):** `lib/course-seeds.ts` holds two courses written for the owner (as @emmanuel): *How to Restart Your Life
+After a Breakdown* (a new draft) and *IT Support Training* (rewrites the published course `wLQCJdqolPh6A3WbvEZL` in place). Admin →
+Academy → Seed courses shows a dry run, then writes them (`lib/course-seeds-server.ts`). Seeded lessons have fixed ids, so seeding again
+never duplicates. A rewrite keeps the course's id, address, status, enrolments, reviews and certificates; learners' progress shows the
+new lessons (see HANDOVER item 80).
+
+**Covers made with Nana** (v0.111.0, owner 1 Nov 2026: "allow publishers generate cover picture art right in academy, only for courses,
+even free courses; Free Basic gets 3 generations a day, any mix of new ones and edits; their Pearl allowance is used, and when it's
+exhausted generations end till it refreshes"). There is no picture model, so a cover is designed artwork drawn on our server:
+- **Design:** Nana's Pearl turns the course (title, summary, topics, level) and the publisher's words into a small JSON design,
+  `CoverSpec` in `lib/covers.ts`: template (band, split, frame, stripes, medallion, poster, tiles, arch), palette (crimson, ivory,
+  ink, moss, indigo, gold, teal, earth), pattern (adire, kente, mudcloth, diamonds, waves, dots, none), icon (31 of our own,
+  `lib/cover-art.ts`), headline (≤ 90), subline (≤ 90), tag (≤ 32) and layout (left, right, center). `cleanSpec` checks every field;
+  an answer that can't be read gets our own design from the course (`designFor`, which also follows words like "green" or "laptop").
+- **Drawing:** `lib/cover-render.tsx` draws 1600 × 900 with next/og and our fonts, sets the words line by line at a size measured
+  from the font files (`lib/font-metrics.ts`) so they never leave their box, and makes WebP with Next's own encoder. Saved in the media
+  bucket (`academy/covers/<courseId>/<id>.webp`), like an uploaded cover. Drawing costs nothing.
+- **Use, edit, go back:** `POST /api/academy/covers { courseId, prompt?, baseId? }`; with `baseId` Pearl gets the current design and the
+  instruction and changes only that. The last 8 per course are in `courseCovers/{courseId}`; **Use as cover** saves the url as the cover.
+- **Who and how many:** the lead, accepted co-tutors and admins; free and paid courses. Per member per Lagos day
+  (`coverCounts/{uid}_{day}`): Free 0 (can't publish), Free Basic 3, Pro 10, Business 25, Enterprise 50, in Admin → Pricing
+  (`academyCovers`); admins at least Enterprise's; on an organisation's course, the better of the member's and the organisation's plan.
+- **Paying for Pearl:** exactly like writing help: the member's own AI key first (not metered), else Pearl on our key, paid from the Nana
+  allowance and then Nana credit (`meterCheck`/`meterCharge`). Used up → refused before anything is counted: "Your Nana allowance is used
+  up; covers come back when it refreshes on …". The daily number applies to own-key members too.
+- **Without the AI:** `adminCover()` and `scripts/course-covers.ts` (no count, no charge; a fixed design or one from the course), and
+  `--samples` for the covers of our own courses in `public/images/academy/covers/<slug>.webp` (`lib/cover-samples.ts`).
+
 **Naija Exam Prep** (JAMB, WAEC and NECO practice at prep.notesapp.name.ng, v0.79.0) is part of Notes Academy but is not built on courses: it has its own questions, packs and reviewers (`lib/exam-prep.ts`, HANDOVER items 41–42).
 
 ## Who can do what

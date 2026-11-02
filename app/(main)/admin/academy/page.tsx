@@ -5,12 +5,14 @@ import Link from "next/link";
 import { useAdminAuth } from "@/lib/useAdminAuth";
 import { useAdminCall } from "@/lib/useAdminCall";
 import { certificateDate, type Academy, type Certificate } from "@/lib/certificates";
+import CourseSeedsCard from "@/components/admin/CourseSeedsCard";
 
 type Pending = Academy & { ownerUsername: string };
 type CourseRow = { id: string; title: string; slug: string; ownerName: string; enrolCount: number; certified: { at: string; by: string } | null };
 
 // Admin → Academy (lib/certificates-server.ts): accrediting institutions waiting to be checked, the "#NotesApp Certified Course" seal
-// for courses we've reviewed, and finding or revoking a certificate. Content and moderation staff.
+// for courses we've reviewed, and finding or revoking a certificate. Content and moderation staff. Super admins also see Seed courses
+// (components/admin/CourseSeedsCard.tsx).
 export default function AdminAcademyPage() {
   const { user, loading } = useAdminAuth();
   const call = useAdminCall(user, "/api/admin/academy");
@@ -40,6 +42,8 @@ export default function AdminAcademyPage() {
       <p className="mt-2 text-sm text-slate">Certificates: check accrediting institutions before their logo appears, mark courses we&apos;ve reviewed as #NotesApp Certified, and find or revoke a certificate.</p>
       {error && <p className="mt-4 text-sm text-crimson" role="alert">{error}</p>}
       {msg && <p className="mt-4 text-sm text-emerald-800" role="status">{msg}</p>}
+
+      <CourseSeedsCard user={user} />
 
       <h2 className="mt-8 font-display text-2xl">Accreditations to check {pending.length > 0 && <span className="ml-1 rounded-full bg-amber-100 px-2 py-0.5 font-ui text-sm text-amber-900">{pending.length}</span>}</h2>
       {pending.length === 0 ? <p className="mt-2 text-sm text-slate">Nothing waiting.</p> : (

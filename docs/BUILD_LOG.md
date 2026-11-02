@@ -2512,4 +2512,15 @@ A browser life game at **life.notesapp.name.ng**, its own look, **NotesApp sign-
 
 **Co-author and co-tutor access (v0.109.0)** — Can view or Can view and edit, an invitation page with the terms, agreed changes, leaving before publishing (`lib/invite-terms.ts`, `lib/invites-server.ts`, `lib/invite-agreements-server.ts`, `lib/coauthors-server.ts`).
 
+**Business books plan and waitlist (v0.115.0)** — The plan is `docs/BUSINESS-BOOKS.md`, for the owner's approval, with mockups for phone and desktop in Day and Night. It covers walk-in sales and receipts, expenses, stock linked to inventory, money owed to you and money you owe, profit and loss, offline entry, roles, Nana entries, the monthly email and honest numbers. It also lists what can be imported today and how we'd import from Excel, Tralo, Shopify, WooCommerce, Selar, Paystack, bank CSV and paper-ledger photos, plus pricing options. Owner's decisions: customers who aren't members get receipts and debt reminders by WhatsApp (click-to-send through `wa.me`) or SMS through Send-Na, with a short #NotesApp line (1 Nov); and Business books has a waitlist, never a "coming soon" label (2 Nov). Built for the waitlist:
+- `/books` (`app/(main)/books/page.tsx`, three mockups as WebP in `public/images/books/`, in the sitemap and in `APP_TO_MAIN`).
+- `components/BooksWaitlistForm.tsx`, which asks for name, email (filled in for members), kind of business, what they sell, how they keep books today, city and "email me when it opens".
+- `lib/books-waitlist.ts` (pure: the lists, `checkWaitlist`, `waitlistMessage`, `WAITLIST_LIMIT`).
+- `/api/books/waitlist`, rate limited per address and per member.
+- `submitBooksWaitlist` in `lib/leads-server.ts`: one lead per email, category `books-waitlist`, with a thank-you email, and a `books` bell for members.
+- A `books-waitlist` rule in `firestore.rules`: server-written only.
+- Admin → Leads → **Business books waitlist**, with counts by kind of business and by how people keep books today.
+- Links to `/books` from the roadmap, `/store-selling#business-books`, the home features and the Inventory and Selling physical goods help articles.
+- Tests: `tests/books/waitlist.emulator.ts` (`npm run test:books-server`) and the rules test.
+
 **No written-in domains; tickets like gifts; events on Explore and Trending (v0.117.0)** — The owner, 2 Nov 2026. `mainSiteUrl(host, path)` in `lib/host.ts` gives the main site of the domain being viewed (prep.naapp.tech → www.naapp.tech), or the primary address elsewhere; Exam Prep's header and footer and members' "Powered by #NotesApp" use it, and other links that named a domain now come from `lib/host.ts` (`npm run test:host`). Tickets: no commission, giving's band per ticket plus the card charge (`quoteTickets` in `lib/tickets.ts`), recorded on the payment; older tickets keep their commission. Explore and Trending get Events tabs (`listedEvents`, `trendingEvents` in `lib/events-server.ts`; public, upcoming, not cancelled, not from invite-only communities; tickets ×5, RSVPs ×3, visits). From now on every release adds an entry here (HANDOVER §3).

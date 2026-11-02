@@ -7,6 +7,7 @@ import { db } from "@/lib/firebase";
 import { startCheckout } from "@/lib/checkout";
 import { POLICY_TEXT } from "@/lib/cancellation";
 import DiscountCodeField from "@/components/DiscountCodeField";
+import { ShareButton } from "@/components/share/ShareToNotesApp";
 import { formatNaira, formatSlot, PublisherSettings } from "@/lib/booking-time";
 
 type Slots = { bookable: boolean; slots: string[]; priceKobo?: number; minutes?: number };
@@ -85,8 +86,12 @@ export default function BookingCard({
 
   return (
     <div className="card mt-12 p-7">
-      <p className="eyebrow">Native booking calendar</p>
-      <h2 className="mt-2 font-display text-2xl text-ink">{title}</h2>
+      <div className="flex items-start justify-between gap-3">
+        <div><p className="eyebrow">Native booking calendar</p>
+        <h2 className="mt-2 font-display text-2xl text-ink">{title}</h2></div>
+        {/* Share this service (the member's 1:1 sessions): Moments, Journals, another app, Copy link. */}
+        <ShareButton shareRef={{ kind: "service", id: username }} path={typeof window === "undefined" ? `/u/${username}#book` : `${window.location.pathname}#book`} title={`${title} with @${username}`} />
+      </div>
       <p className="mt-2 text-sm text-slate">
         {offered.minutes} minutes · {formatNaira(offered.priceKobo)} · times shown in Lagos time (WAT).
       </p>
