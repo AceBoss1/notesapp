@@ -174,7 +174,7 @@ export default function NanaInbox({ variant = "full" }: { variant?: "full" | "me
   };
   const Draft = ({ p, big }: { p: Proposal; big?: boolean }) => (
     <>
-      <textarea value={draftOf(p)} onChange={(e) => setDrafts((d) => ({ ...d, [p.id]: e.target.value }))} rows={big ? 10 : 7} aria-label="Nana's draft"
+      <textarea value={draftOf(p)} onChange={(e) => setDrafts((d) => ({ ...d, [p.id]: e.target.value }))} rows={big ? 13 : 8} aria-label="Nana's draft"
         className={`w-full resize-y rounded-[14px] border-[1.5px] border-crimson bg-card px-4 py-3 leading-relaxed text-ink outline-none ${big ? "text-[15px]" : "text-sm"}`} />
       {KIND_INFO[p.kind].sends && (
         <div className="mt-2.5 flex flex-wrap gap-2">

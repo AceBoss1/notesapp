@@ -60,6 +60,7 @@ export default function ConnectedAgents({ user }: { user: User }) {
   const [error, setError] = useState("");
   const [msg, setMsg] = useState("");
   const [howTo, setHowTo] = useState(false);
+  const [shown, setShown] = useState(12); // log rows on screen; "Show more" adds more (the CSV has them all)
 
   const call = useCallback(async (url: string, init: RequestInit = {}) => {
     const r = await fetch(url, { ...init, headers: { Authorization: `Bearer ${await user.getIdToken()}`, "Content-Type": "application/json" } });
@@ -112,7 +113,7 @@ export default function ConnectedAgents({ user }: { user: User }) {
         <div className="card p-4"><b className="block font-display text-[32px] font-medium leading-none">{data.stats.paused}</b><span className="mt-2 block text-[13px] text-slate">paused</span></div>
         <div className="card p-4"><b className="block font-display text-[32px] font-medium leading-none">{data.stats.actions7d.toLocaleString("en-GB")}</b><span className="mt-2 block text-[13px] text-slate">actions, last 7 days</span></div>
         <Link href="/nana/inbox" className={`card p-4 ${data.stats.waiting ? "border-crimson/40 bg-crimson/[.05]" : ""}`}><b className="block font-display text-[32px] font-medium leading-none text-crimson">{data.stats.waiting}</b><span className="mt-2 block text-[13px] text-slate">waiting for you · <span className="font-semibold text-crimson">Nana&apos;s inbox</span></span></Link>
-        <div className="card col-span-2 p-4 lg:col-span-1"><span className="block text-[13px] text-slate">Server address for any agent</span><span className="mt-2 flex items-center gap-2"><span className="truncate font-mono text-[13px]">{data.urls.mcp}</span><CopyButton value={data.urls.mcp} /></span></div>
+        <div className="card col-span-2 p-4 lg:col-span-1"><span className="block text-[13px] text-slate">Server address for any agent</span><span className="mt-2 flex flex-wrap items-center gap-x-2"><span className="break-all font-mono text-[13px]">{data.urls.mcp}</span><CopyButton value={data.urls.mcp} /></span></div>
       </div>
 
       <div className="mt-5 grid gap-5 lg:grid-cols-[400px,1fr] lg:items-start">
@@ -193,7 +194,7 @@ export default function ConnectedAgents({ user }: { user: User }) {
             <table className="w-full min-w-[560px] text-left text-[13.5px]">
               <thead><tr className="border-b border-rule font-ui text-[11px] uppercase tracking-wide text-slate"><th className="py-2 pr-3 font-semibold">When</th><th className="py-2 pr-3 font-semibold">What it did</th><th className="py-2 pr-3 font-semibold">Tool</th><th className="py-2 font-semibold">Result</th></tr></thead>
               <tbody>
-                {rows.map((r) => (
+                {rows.slice(0, shown).map((r) => (
                   <tr key={r.id} className="border-b border-rule align-top">
                     <td className="py-3 pr-3 font-mono text-xs text-slate">{when(r.at)}</td>
                     <td className="py-3 pr-3">{r.what}{!focus || focus === "" ? <span className="block text-xs text-slate">{r.agent}</span> : null}</td>
@@ -207,6 +208,7 @@ export default function ConnectedAgents({ user }: { user: User }) {
               </tbody>
             </table>
           </div>
+          {rows.length > shown && <button type="button" className="mt-3 font-ui text-sm font-bold text-crimson" onClick={() => setShown((n) => n + 25)}>Show more ({rows.length - shown} left)</button>}
           {current && (
             <div className="mt-4 grid gap-3 sm:grid-cols-2">
               <div className="rounded-xl border border-rule bg-paper p-3.5 text-[13px]"><b className="font-ui">Always asks you</b><p className="mt-1">{current.asks}</p></div>
