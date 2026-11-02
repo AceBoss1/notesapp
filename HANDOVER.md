@@ -149,6 +149,22 @@ on `main` that isn't understood is raised with the owner first.
     seller and an organisation's admins. Tests: `test:books`, `test:books-server`, and the rules test, in CI. What differs from the
     plan, and what's next (Nana entries, offline, the monthly email, roles, paying a debt online): `docs/BUSINESS-BOOKS.md` section 10.
 
+90. **Business books imports from other apps (v0.120.0, branch `push/books-imports`):** no deploy step (no new collections or
+    indexes; entries gain `extRef`, customers `email`). `lib/books-import.ts` has a preset per source with the export headings and
+    where they were checked: Shopify products and orders (help.shopify.com, verified), WooCommerce products (the Product CSV schema,
+    verified) and orders (no built-in export: the Customer / Order / Coupon Export and Advanced Order Export plugins, matched, seller
+    checks), Selar (not documented anywhere we found: guessed headings), Bumpa (export steps documented, columns not: guessed),
+    Paystack (the export is documented, the default headings aren't: matched) and bank statements (GTBank, Access, Zenith, First
+    Bank, UBA, Opay, Moniepoint, Kuda layouts from common statements, not from the banks). `detectSource` picks the source from the
+    headings. Orders with several rows are one sale; only paid ones come in; refunds become refund entries; other currencies are
+    refused. Re-imports match by `extRef` (`<source>:<order no.>`) before date + amount + item. Paystack skips `na_` references
+    (`lib/paystack.ts` `newReference`) and any `bookEntries/online_<ref>`, and its fees become one Bank and POS charges expense a day.
+    Bank lines come back in the plan (`plan.bank`) for the seller to tick and label (a rules-based guess from the narration; Nana
+    isn't used, to keep it free); only the ticked `choices` are saved. Bank PDFs are read in the browser with `pdfjs-dist` (already a
+    dependency) by `statementFromPdfLines`; a scan asks for CSV. **Open question:** Bumpa's customer export (and some bank apps) give
+    Excel only; there's still no xlsx reader, so the wizard asks for CSV. Approve one (open question 7) if sellers struggle. Fixtures
+    in `tests/books/fixtures/`, tests in `test:books` and `test:books-server`.
+
 All of these are on the team hub board with departments and dates (`lib/team-seed.ts`: `FUND_BACKLOG`, `LAUNCH_BACKLOG`, `COURSES_BACKLOG`, `TOPICS_BACKLOG`, `BIMI_BACKLOG`). Items can have several people (`ownerUids`; `ownerUid` stays as the first of them for older readers) and can repeat monthly (`repeat: "monthly"`: done moves the due date on a month).
 
 ## 3. How the work is done (please keep these)

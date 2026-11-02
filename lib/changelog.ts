@@ -11,6 +11,18 @@ export type Release = {
 
 export const CHANGELOG: Release[] = [
   {
+    version: "v0.120.0",
+    bump: "minor",
+    date: "2026-11-02",
+    changes: [
+      { kind: "added", text: "Business books imports from Shopify (products, with each size or colour as its own item, and orders), WooCommerce (products, and orders from the common export plugins), Selar (sales, with buyers as customers), Bumpa (products, orders and customers, with what they owe), Paystack (successful payments, with its fees as an expense) and bank statements. Each one shows how to export the file from that app." },
+      { kind: "added", text: "Upload a file and Books tells where it's from by its headings (Shopify, WooCommerce, Paystack, Tralo or a bank statement) and switches to it." },
+      { kind: "added", text: "Bank statements (CSV, or a PDF made by the bank): every line comes back to tick and label, money in as a sale and money out as an expense, with a category suggested from the narration. Nothing is saved until you import." },
+      { kind: "added", text: "Online shop imports bring in paid orders only, with refunded ones as refunds; orders in another currency are refused with a clear message. Paystack payments that were #NotesApp orders are skipped, since they're already in your books." },
+      { kind: "changed", text: "Importing the same export again matches orders by their own number first, so nothing comes in twice, and an order refunded since only adds its refund. The preview shows rows left out (not paid) apart from rows to fix." },
+    ],
+  },
+  {
     version: "v0.118.0",
     bump: "minor",
     date: "2026-11-02",
