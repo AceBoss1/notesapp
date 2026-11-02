@@ -336,6 +336,10 @@ on `main` that isn't understood is raised with the owner first.
     stand-in Cloudflare, the fallback, the cap, people/, the recount, slow mode, the Team hub reminder), `test:rules` (two new tests),
     `test:community`, `test:community-server`.
 
+101. **Pricing table without repeats (v0.124.2, branch `push/pricing-merge-cells`; 97–100 are reserved for pending PRs):** nothing to
+    deploy. In the /pricing compare table, neighbouring plans whose cell says the same thing are shown once across those plans
+    (`mergeCells` in `lib/pricing.ts`, worked out from the live text, so an Admin change that makes plans differ splits the cell again).
+
 All of these are on the team hub board with departments and dates (`lib/team-seed.ts`: `FUND_BACKLOG`, `LAUNCH_BACKLOG`, `COURSES_BACKLOG`, `TOPICS_BACKLOG`, `BIMI_BACKLOG`). Items can have several people (`ownerUids`; `ownerUid` stays as the first of them for older readers) and can repeat monthly (`repeat: "monthly"`: done moves the due date on a month).
 
 ## 3. How the work is done (please keep these)

@@ -16,7 +16,7 @@ import { getAdminDb } from "@/lib/firebase-admin";
 import { getLimitTable } from "@/lib/limits-server";
 import { CALLS_LIVE, MESSAGES_LIVE, MOMENTS_LIVE } from "@/lib/moments-rules";
 import { WALLET_LIVE } from "@/lib/wallet";
-import { academyApiFrom, certificateMin, enterpriseCoursesPrice, enterpriseFrom, logisticsAddonPrice, logisticsTrialDays, planPrice, planRate, pct, breakEven , inventoryAddonPrice, inventoryTrialDays, booksCaps, coversPerDay, nanaResetText, yearlyFreeText, COMMISSION_ROW_LABEL, commissionCell } from "@/lib/pricing";
+import { academyApiFrom, certificateMin, enterpriseCoursesPrice, enterpriseFrom, logisticsAddonPrice, logisticsTrialDays, planPrice, planRate, pct, breakEven , inventoryAddonPrice, inventoryTrialDays, booksCaps, coversPerDay, nanaResetText, yearlyFreeText, COMMISSION_ROW_LABEL, commissionCell, mergeCells } from "@/lib/pricing";
 import { loadLivePricing } from "@/lib/pricing-server";
 import { ROOT_DOMAIN } from "@/lib/host";
 import { UNVERIFIED_GIFT_CAP_KOBO, bandsText } from "@/lib/giving";
@@ -353,9 +353,9 @@ export default async function PricingPage() {
                     row.label
                   )}
                 </td>
-                {TIERS.map((t) => (
-                  <td key={t.tier} className="px-4 py-3.5 align-top text-[13px] text-[#372f2b]">
-                    {row.render(t, L)}
+                {mergeCells(TIERS.map((t) => row.render(t, L))).map((c) => (
+                  <td key={TIERS[c.from].tier} colSpan={c.span} className={`px-4 py-3.5 align-top text-[13px] text-[#372f2b]${c.span > 1 ? " text-center" : ""}`}>
+                    {c.text}
                   </td>
                 ))}
               </tr>
