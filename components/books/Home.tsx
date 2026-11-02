@@ -5,6 +5,7 @@ import Link from "next/link";
 import { categoryLabel, longDate, naira, shortDate, whatOf, type Cash, type CapState, type Entry, type Pnl } from "@/lib/books";
 import { Badge, Icon, entryBadge, timeOf, pill, type Api } from "./shared";
 import { SavedSale } from "./RecordSale";
+import { OutboxPanel } from "./outbox";
 
 export type HomeData = {
   today: string; shop: { name: string; username: string; tier: string }; access: { ok: true; unlimited: boolean; monthPnl: boolean; importRows: number };
@@ -19,7 +20,7 @@ const firstWord = (s: string) => s.split(/\s+/)[0].replace(/['’]s$/i, "");
 
 // Books home (Today): profit so far in the crimson card, sales, expenses, cash in hand and money owed, the day's entries, what's running
 // low, who you owe and the week's best sellers. Stock value is never added to any of these.
-export default function Home({ data, api, onSale, onExpense, onChanged, go }: { data: HomeData; api: Api; onSale: () => void; onExpense: () => void; onChanged: () => void; go: (tab: string) => void }) {
+export default function Home({ data, api, onSale, onExpense, onNana, onChanged, go }: { data: HomeData; api: Api; onSale: () => void; onExpense: () => void; onNana: () => void; onChanged: () => void; go: (tab: string) => void }) {
   const p = data.pnl;
   return (
     <div>
@@ -29,6 +30,7 @@ export default function Home({ data, api, onSale, onExpense, onChanged, go }: { 
           <h1 className="mt-1 font-display text-4xl text-ink sm:text-[2.6rem]">{greeting()}, {firstWord(data.shop.name)}</h1>
         </div>
         <div className="hidden items-center gap-2 lg:flex">
+          <button onClick={onNana} className={pill}><Icon name="sparkle" className="h-4 w-4" />Tell Nana</button>
           <button onClick={onExpense} className={pill}><Icon name="card" className="h-4 w-4" />Add expense</button>
           <button onClick={onSale} className="btn-primary !px-6 !py-3.5"><Icon name="plus" className="h-4 w-4" />Record a sale</button>
         </div>
@@ -59,8 +61,12 @@ export default function Home({ data, api, onSale, onExpense, onChanged, go }: { 
 
       <div className="mt-4 space-y-3 lg:hidden">
         <button onClick={onSale} className="btn-primary w-full !py-4 !text-base shadow-lg shadow-crimson/20"><Icon name="plus" className="h-5 w-5" />Record a sale</button>
-        <button onClick={onExpense} className={`${pill} w-full !py-3`}><Icon name="card" className="h-4 w-4" />Add expense</button>
+        <div className="grid grid-cols-2 gap-3">
+          <button onClick={onExpense} className={`${pill} w-full !py-3`}><Icon name="card" className="h-4 w-4" />Add expense</button>
+          <button onClick={onNana} className={`${pill} w-full !py-3`}><Icon name="sparkle" className="h-4 w-4" />Tell Nana</button>
+        </div>
       </div>
+      <OutboxPanel />
 
       <div className="mt-5 grid gap-4 lg:grid-cols-[1.35fr_1fr]">
         <section className="card p-5">
