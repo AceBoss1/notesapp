@@ -15,7 +15,7 @@ import { ORG_TRIAL_DAYS } from "./org";
 import { TRIAL_DAYS } from "./trials";
 import { COMPANY_INFO, SITE } from "./site";
 import { BADGE_PRICE_KOBO, TIERS, formatPercent } from "./tiers";
-import { academyApiFrom, certificateMin, currentPricing, enterpriseCoursesPrice, inventoryAddonPrice, inventoryTrialDays, logisticsAddonPrice, logisticsTrialDays } from "./pricing";
+import { academyApiFrom, booksCaps, certificateMin, currentPricing, enterpriseCoursesPrice, inventoryAddonPrice, inventoryTrialDays, logisticsAddonPrice, logisticsTrialDays } from "./pricing";
 import { academyFaq } from "./academy-faq";
 const CERTIFICATE_LATE_TEXT = () => { const l = currentPricing().certificateLate; return { grace: l.graceDays, weekly: `${Math.round(l.weeklyRate * 100)}%`, cap: `${Math.round(l.capRate * 100)}%` }; };
 import { VIDEO_MAX_SECONDS } from "./video-rules";
@@ -587,6 +587,34 @@ You need a confirmed email address to get it, and it only comes when there's som
     A("social-sharing", "Sharing posts to social media", "Publishing and earning", `
 Every post has a share menu (WhatsApp, X, Facebook, LinkedIn, copy link) that works without connecting anything. You can also connect LinkedIn and X once and publish an excerpt of your post there, with a link back to the full journal on #NotesApp. You always see and can edit the words first (Nana can write them for you), and nothing goes out until you press Post. LinkedIn connections last about 60 days before you reconnect. Facebook, Instagram and TikTok are on the [roadmap](/roadmap).`),
     // ── Selling
+    A("business-books", "Business books: walk-in sales, expenses, money owed and profit", "Selling", `
+[Business books](/profile/books), under My account, keeps the books for the selling you do **in person**, next to your online store: who bought what, what you spent, who owes you, and what you made today, this week and this month.
+
+**Record a sale:** tap **＋ Record a sale**. Search your items by name or SKU (items from your store, and items from a stock list you imported), or type a one-off ("2 yards lace"). Change the quantity and the price (for a discount), then choose how they paid: **Cash, Transfer, POS** or **Credit**. Turn on **Customer owes** for a sale on credit: choose the customer (or add one, with their WhatsApp number, or their @username if they're on #NotesApp), what they paid now and the day they'll pay by. The rest goes to **Money owed to you**. A sale of an item lowers its stock through [Inventory](/help/inventory) when you have it; without Inventory, stock isn't counted and Books says so.
+
+**Receipts:** every sale has a receipt link on #NotesApp, with your shop's name, the items, the total, how it was paid and what's still owed. It never shows your phone number or your customer's. **Receipt PDF** opens it ready to save as a PDF (it has a QR code that opens the link). Send it by **WhatsApp** (it opens on your phone with the message written; you tap Send), or by email and the bell to a customer who is on #NotesApp.
+
+**Expenses:** tap **Add expense**: the amount, the day, how you paid, a category (stock purchases, rent, staff pay, power, transport and loading, market and LG levies, data and airtime, repairs, salon or workshop supplies, bank and POS charges, other, or your own) and a note, with up to 3 receipt photos. The photos are kept privately; only you see them.
+
+**Online orders come in by themselves:** when a buyer pays for an item in your store, the order shows in your books as a sale marked **Store**, with #NotesApp's commission as an expense line, so your profit is true. A refunded order gets a refund line next to it. An order is never counted twice. Online money is paid out by #NotesApp, so it's never in your cash in hand.
+
+**Today:** profit so far (sales, minus the cost of what you sold, minus expenses), sales, expenses, **cash in hand** (your opening float plus cash taken, minus cash paid out; transfer and POS money are shown apart), money owed to you, today's entries, what's running low, who you owe and the week's best sellers. Tap an entry to see it, open its receipt or photos, or **Void** it with a reason (online orders follow the order instead).
+
+**Profit and loss:** for a day or a week, and on Pro and above a month. Sales (walk-in and online apart), refunds, the cost of what you sold, gross profit and margin, expenses by category and net profit, with the change on the period before. **PDF report** and **CSV** take it with you. Profit needs cost prices: when items have none, Books says so and links to [Inventory](/profile/inventory) to add them.
+
+**Honest numbers:** sales recorded, expenses recorded and the stock you hold are always separate numbers. Stock value is what you own, not business you did, so it is never added to sales or profit.
+
+**Money owed:** **Owed to you** lists customers with what they owe, since when and the due date, late ones first. **Record payment** takes all or part (oldest sales are paid first). **Remind by WhatsApp** opens WhatsApp on your phone with a polite message and a link to their statement; customers on #NotesApp get **email and the bell** instead. Each message to someone who isn't on #NotesApp ends with a short line: "Sent with #NotesApp Business books. Keep your own books free: …/books". One reminder a day at most. A customer can stop reminders from their statement link; email reminders stop then, and WhatsApp asks you first. SMS comes with Send-Na. **You owe** is a simple list of suppliers, what you owe and when; tap **Paid** when you pay.
+
+**Import your records:** **Import and export** brings in a **stock list, past sales, expenses or customers and debtors** from a CSV file. Excel: File → Save As → CSV. Google Sheets: File → Download → Comma-separated values. From Tralo, choose **Tralo**: its inventory and sales exports are matched for you. Upload the file, check the columns we matched from its headings, and see the dry run: new rows, updates, **duplicates skipped** (items by SKU then exact name; sales and expenses by the same day, amount and item or description; customers by phone, then exact name) and rows to fix (for example a price that isn't a number, stock below 0, or prices in cedis, which wait for cedi support). Nothing is saved until you tap **Import**, and you can **Undo** an import for 24 hours. Up to 5,000 rows and 5 MB a file, 10 imports a day. Imported sales don't move stock, send receipts or reminders, or count toward the monthly limit. A stock list needs Inventory: items already in your store get their stock, cost price and SKU updated (their online price stays as it is), and new ones are kept as Books-only items, not for sale online. Download a template for each kind to start from.
+
+**Export:** **Export everything** gives you your sales, expenses, payments received, money owed both ways and stock as CSV files that open in Excel and Google Sheets.
+
+**What it costs:** free on Free Basic for ${booksCaps().freeEntries} walk-in sales and expenses a month (online orders and customers paying you back never count), up to ${booksCaps().freeCustomers} customers owing at once, imports of ${booksCaps().freeImportRows} rows a file, and profit and loss for the day and the week. Pro, Business and Enterprise have no limits, the month's profit and loss, and imports of 5,000 rows. Stock counting is [Inventory](/help/inventory) (included on Business; an add-on on Free Basic and Pro).
+
+**Who sees it:** only you, and on an organisation's account its admins. Nobody else, not even other teammates, can see your books.
+
+**Next:** recording an entry by telling Nana, recording sales with no signal and syncing later, a monthly summary email, and cashier and manager roles for staff.`),
     A("inventory", "Inventory: your stock, SKUs and alerts", "Selling", `
 [Inventory](/profile/inventory), under My account, keeps your store's stock in one place.
 
@@ -598,13 +626,15 @@ Every post has a share menu (WhatsApp, X, Facebook, LinkedIn, copy link) that wo
 
 **Spreadsheet:** **Download spreadsheet** gives you every line (item_id, title, option, sku, stock, low_stock_at, cost_naira, price_naira). Change what you need, then **Upload spreadsheet**: you see what will change and any rows with problems before anything is saved. Rows are matched by item_id and option, or by SKU.
 
+**Walk-in sales:** a sale you record in [Business books](/help/business-books) lowers the stock the same way an online order does, and shows in the history as Sold with its book entry; voiding it puts the stock back. A stock list imported in Business books (a Tralo export, for example) updates stock, cost prices and SKUs here, and can be undone for 24 hours.
+
 **Who has it:** included on Business and Enterprise. On Free Basic and Pro, add it for ${inventoryAddonPrice()} a month, after a free ${inventoryTrialDays()}-day trial (no card, once). An organisation's teammates who run its store, and its admins, can use the organisation's inventory.`),
     A("selling-physical-goods", "Selling physical goods from your store", "Selling", `
 Your store lives at /u/yourname/store. Add an item, tick that it is sold through #NotesApp checkout, and set the price, your delivery fee and your stock. You need a payout account under Rates & payouts.
 
 The buyer pays here with their delivery address and gets a parcel ID by email; their money is held until delivery. You dispatch and keep the log (courier and tracking number, or who holds the parcel by bike, bus or motor park). Payout is released when the buyer confirms delivery, or 7 days after you mark it delivered. If the buyer reports a problem the money stays held while we review.
 
-Every item needs a category (buyers can filter a store by it) and, for physical items, where it ships from, which buyers see before they pay. Shoppers can save items with the heart (their private list is under Saved items), and a store shows what buyers check most.\n\nSizes: if an item comes in sizes (or sizes and colours), add them one at a time. Type the size and how many pieces you have, then tick ✔ to save it and add the next, for example L: 2, XL: 5. You can save up to 60 entries, edit or remove any of them, and the total stock is added up for you.\n\nCommission applies to the item price only (see [commission rates](/help/commission-rates)). Stores do not link out to other shops. To sell more, make [discount codes and coupons](/help/discount-codes) or set an affiliate share so members promote your items ([Referrals and affiliates](/help/referrals)). Full details: [Store selling](/store-selling).`),
+Every item needs a category (buyers can filter a store by it) and, for physical items, where it ships from, which buyers see before they pay. Shoppers can save items with the heart (their private list is under Saved items), and a store shows what buyers check most.\n\nSizes: if an item comes in sizes (or sizes and colours), add them one at a time. Type the size and how many pieces you have, then tick ✔ to save it and add the next, for example L: 2, XL: 5. You can save up to 60 entries, edit or remove any of them, and the total stock is added up for you.\n\nCommission applies to the item price only (see [commission rates](/help/commission-rates)). Stores do not link out to other shops. To sell more, make [discount codes and coupons](/help/discount-codes) or set an affiliate share so members promote your items ([Referrals and affiliates](/help/referrals)). Full details: [Store selling](/store-selling).\n\nSelling in person too? [Business books](/help/business-books) records walk-in sales, expenses and money owed next to your store, and every paid order comes into it by itself, with our commission as an expense, so you see your real profit.`),
     A("digital-downloads-and-courses", "Selling digital downloads, PDFs and video courses", "Selling", `
 Choose **Digital download** when you add an item and upload your file (PDF, ePub, ZIP, audio, video, Office files or images, up to 200 MB). It is stored privately; only people who pay can download it, instantly. The sale is final once downloaded, and your share is paid after a 7-day dispute window.
 

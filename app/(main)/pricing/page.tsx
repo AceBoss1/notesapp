@@ -14,7 +14,7 @@ import { getAdminDb } from "@/lib/firebase-admin";
 import { getLimitTable } from "@/lib/limits-server";
 import { CALLS_LIVE, MESSAGES_LIVE, MOMENTS_LIVE } from "@/lib/moments-rules";
 import { WALLET_LIVE } from "@/lib/wallet";
-import { academyApiFrom, certificateMin, enterpriseCoursesPrice, enterpriseFrom, logisticsAddonPrice, logisticsTrialDays, planPrice, planRate, pct, breakEven , inventoryAddonPrice, inventoryTrialDays } from "@/lib/pricing";
+import { academyApiFrom, certificateMin, enterpriseCoursesPrice, enterpriseFrom, logisticsAddonPrice, logisticsTrialDays, planPrice, planRate, pct, breakEven , inventoryAddonPrice, inventoryTrialDays, booksCaps } from "@/lib/pricing";
 import { ROOT_DOMAIN } from "@/lib/host";
 import { GIVING_BANDS, UNVERIFIED_GIFT_CAP_KOBO } from "@/lib/giving";
 import { TICKET_PRICE_MIN_KOBO } from "@/lib/tickets";
@@ -170,6 +170,11 @@ const ROWS: Row[] = [
     label: "Giving in communities",
     href: "/community#giving",
     render: () => `No commission: a charge like a bank transfer (${GIVING_CHARGES}), plus the card charge at cost by card · up to ${formatNaira(UNVERIFIED_GIFT_CAP_KOBO)} a gift until verified`,
+  },
+  {
+    label: "Business books",
+    href: "/help/business-books",
+    render: (t) => (!t.canPublish ? "—" : t.tier === "basic" ? `Free: ${booksCaps().freeEntries} walk-in sales and expenses a month (online orders never count), up to ${booksCaps().freeCustomers} customers owing, profit and loss for the day and week, receipts, WhatsApp reminders, CSV import (${booksCaps().freeImportRows} rows a file) and export` : "No limits: sales, expenses and customers owing, profit and loss for the day, week and month, receipts, reminders, CSV import (5,000 rows a file, undo for 24 hours) and export"),
   },
   {
     label: "Inventory",
