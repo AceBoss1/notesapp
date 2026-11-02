@@ -10,12 +10,13 @@ import { friendlyMessage } from "@/lib/api-errors";
 import { topicsOf } from "@/lib/topics";
 import { getAcademy } from "@/lib/courses-server";
 import { ACADEMY_LIVE } from "@/lib/courses";
+import { trendingEvents } from "@/lib/events-server";
 
 export const dynamic = "force-dynamic";
 
-type Bucket = { kind: "note" | "profile" | "item" | "course"; id: string; count: number };
+type Bucket = { kind: "note" | "profile" | "item" | "course" | "event"; id: string; count: number };
 
-// Trending posts, publishers, store items and courses. Score = visits in the last N days
+// Trending posts, publishers, store items, courses and events. Score = visits in the last N days
 // (pageViews buckets). Until any windowed data exists it falls back
 // to lifetime view counts, and says so via `basis`.
 export async function GET(req: NextRequest) {
@@ -39,9 +40,10 @@ export async function GET(req: NextRequest) {
     const noteViews = new Map<string, number>();
     const profileViews = new Map<string, number>();
     const courseViews = new Map<string, number>();
+    const eventViews = new Map<string, number>();
     viewSnap.docs.forEach((d) => {
       const b = d.data() as Bucket;
-      const m = b.kind === "note" ? noteViews : b.kind === "profile" ? profileViews : b.kind === "course" ? courseViews : null;
+      const m = b.kind === "note" ? noteViews : b.kind === "profile" ? profileViews : b.kind === "course" ? courseViews : b.kind === "event" ? eventViews : null;
       m?.set(b.id, (m.get(b.id) || 0) + (b.count || 0));
     });
     const windowTotal = [...noteViews.values(), ...profileViews.values()].reduce((a, b) => a + b, 0);
@@ -156,8 +158,12 @@ export async function GET(req: NextRequest) {
       ...courseRows.filter((c) => c.views === 0).sort((a, b) => b.publishedAt.localeCompare(a.publishedAt)),
     ].slice(0, limit);
 
+    // Events: public, upcoming, not cancelled, from no invite-only community, by tickets sold, RSVPs and visits in the same period
+    // (lib/events-server.ts trendingEvents). Always the window: events have no lifetime count to fall back to.
+    const events = await trendingEvents(db, days, eventViews).catch((e) => { console.error("trending events failed:", e); return []; });
+
     return NextResponse.json(
-      { basis: windowed ? `last ${days} days` : "all time", posts, publishers, items, courses },
+      { basis: windowed ? `last ${days} days` : "all time", posts, publishers, items, courses, events },
       { headers: { "Cache-Control": "public, s-maxage=900, stale-while-revalidate=1800" } }
     );
   } catch (err) {

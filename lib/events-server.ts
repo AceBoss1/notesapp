@@ -5,10 +5,10 @@ import { notifyBell, sendEmail } from "./email";
 import { getUserEmail } from "./firebase-admin";
 import { SITE_URL } from "./host";
 import { sendPush } from "./push-server";
-import { can, type Role } from "./community";
+import { can, isDiscoverable, type Community, type Role } from "./community";
 import { CommunityError, memberOf, readCommunity } from "./community-server";
 import { ticketsLeft, type TicketType } from "./tickets";
-import { cleanEvent, nextOccurrence, reminderDue, whenText, type EventDoc, type EventInput, type Rsvp } from "./events";
+import { cleanEvent, eventTrendScore, isListedEvent, nextOccurrence, reminderDue, whenText, type EventDoc, type EventInput, type Rsvp } from "./events";
 
 // Events on the server (the rules are lib/events.ts). events/{id} carries `nextStartAt` (the next start, kept up to date by the cron) so
 // upcoming lists and reminders are one query. Members-only events are a community's and only its members see them.
@@ -116,6 +116,47 @@ export async function upcoming(db: Firestore, f: { state?: string; city?: string
     .filter((e) => !f.city || e.city.toLowerCase() === f.city.toLowerCase())
     .sort((a, b) => String(a.nextStartAt).localeCompare(String(b.nextStartAt)))
     .slice(0, 100);
+}
+
+// Explore and Trending: every listed event (lib/events.ts isListedEvent: public, not cancelled, not over, and not from an invite-only
+// community), with its next start worked out now, soonest first. One query on nextStartAt (a single-field index); two days back so an
+// event on now, or a repeating one the cron hasn't moved on yet, is still read.
+export async function listedEvents(db: Firestore, now = new Date()): Promise<Ev[]> {
+  const from = new Date(now.getTime() - 2 * 86_400_000).toISOString();
+  const snap = await db.collection("events").where("nextStartAt", ">=", from).limit(1000).get();
+  const all = snap.docs.map((d) => ({ ...(d.data() as Ev), id: d.id })).filter((e) => e.visibility === "public" && !e.cancelled);
+  const cids = [...new Set(all.map((e) => e.cid).filter((c): c is string => !!c))];
+  const comms = cids.length ? await db.getAll(...cids.slice(0, 300).map((c) => db.doc(`communities/${c}`))) : [];
+  const findable = new Set(comms.filter((c) => c.exists && isDiscoverable(c.data() as Community)).map((c) => c.id));
+  return all
+    .filter((e) => isListedEvent(e, now, !!e.cid && findable.has(e.cid)))
+    .map((e) => ({ ...e, nextStartAt: nextOccurrence(e, now)!.start.toISOString() }))
+    .sort((a, b) => String(a.nextStartAt).localeCompare(String(b.nextStartAt)));
+}
+
+export type TrendingEvent = Ev & { views: number; rsvps: number; tickets: number; score: number };
+// Trending → Events: listed events by interest in the last `days` days (lib/events.ts eventTrendScore): tickets sold, RSVPs and visits to
+// the event's page (pageViews buckets of kind "event", passed in by /api/trending, which reads them already). Events nobody has shown
+// interest in yet follow, soonest first, so the tab isn't empty while there are events. Each query is on one field: no new index.
+export async function trendingEvents(db: Firestore, days: number, views: Map<string, number> = new Map(), now = new Date(), limit = 10): Promise<TrendingEvent[]> {
+  const since = new Date(now.getTime() - Math.min(30, Math.max(1, days)) * 86_400_000).toISOString();
+  const [list, rs, tk] = await Promise.all([
+    listedEvents(db, now),
+    db.collection("eventRsvps").where("at", ">=", since).limit(5000).get(),
+    db.collection("tickets").where("createdAt", ">=", since).limit(5000).get(),
+  ]);
+  const count = (m: Map<string, number>, id: unknown) => { const k = String(id ?? ""); if (k) m.set(k, (m.get(k) ?? 0) + 1); };
+  const rsvps = new Map<string, number>(), tickets = new Map<string, number>();
+  rs.docs.forEach((d) => count(rsvps, d.data().eventId));
+  tk.docs.forEach((d) => { if (d.data().status === "valid") count(tickets, d.data().eventId); });
+  const rows = list.map((e) => {
+    const a = { views: views.get(e.id) ?? 0, rsvps: rsvps.get(e.id) ?? 0, tickets: tickets.get(e.id) ?? 0 };
+    return { ...e, ...a, score: eventTrendScore(a) };
+  });
+  return [
+    ...rows.filter((r) => r.score > 0).sort((a, b) => b.score - a.score || String(a.nextStartAt).localeCompare(String(b.nextStartAt))),
+    ...rows.filter((r) => r.score === 0),
+  ].slice(0, limit);
 }
 
 export async function rsvp(db: Firestore, uid: string, id: string, status: unknown, now = new Date()): Promise<{ going: number; interested: number; rsvp: Rsvp | null }> {

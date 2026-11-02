@@ -182,7 +182,7 @@ Your publishing tier shows under your name on your profile, for example "Pro Pub
 
 **Codes, referrals and affiliates:** under Pro or Business on the [pricing page](/pricing), **Have a discount code?** takes a #NotesApp plan code off your first payment, or takes a member's referral code for a first month free (a month off a yearly plan); see [Discount codes and coupons](/help/discount-codes). Every publishing plan can make its own discount codes, and every member can earn from [referrals and the affiliate marketplace](/help/referrals).
 
-**Communities:** [giving](/help/giving) has no commission, only a charge like a bank transfer; [paid event tickets](/help/event-tickets) carry your plan's usual commission.
+**Communities:** [giving](/help/giving) has no commission, only a charge like a bank transfer; [paid event tickets](/help/event-tickets) have no commission either, only the same small charge per ticket.
 
 **Coming as paid add-ons:** ${ADD_ONS_LINE}
 
@@ -219,7 +219,7 @@ On paid sessions, journal subscriptions and gifts, #NotesApp takes a commission 
 
 On store sales, the commission is on the item price only (your delivery fee is yours): physical goods ${pct("basic", "physicalCommission", "physicalCommissionFloor")} on Free Basic, ${pct("pro", "physicalCommission", "physicalCommissionFloor")} on Pro, ${pct("business", "physicalCommission", "physicalCommissionFloor")} on Business; digital downloads ${pct("basic", "digitalCommission", "digitalCommissionFloor")}, ${pct("pro", "digitalCommission", "digitalCommissionFloor")} and ${pct("business", "digitalCommission", "digitalCommissionFloor")}. Enterprise rates are agreed with us.
 
-**Paid event tickets** carry the same commission as sessions, on your plan. **Giving** to a community has no commission: just a charge like a bank transfer (₦10 up to ₦5,000, ₦25 up to ₦50,000, ₦50 above), plus the card charge at cost by card; see [Giving to a community](/help/giving).
+**Paid event tickets** have no commission on any plan: like giving, each ticket has a small charge (₦10 up to ₦5,000, ₦25 up to ₦50,000, ₦50 above), plus the card charge at cost; see [Paid event tickets](/help/event-tickets). **Giving** to a community has no commission: just a charge like a bank transfer (₦10 up to ₦5,000, ₦25 up to ₦50,000, ₦50 above), plus the card charge at cost by card; see [Giving to a community](/help/giving).
 
 **Discount codes:** on a discounted sale, the commission is worked out on what the buyer actually paid. An **affiliate share** you set comes out of your part of the sale, not out of the buyer's price; see [Referrals and affiliates](/help/referrals).
 
@@ -489,7 +489,7 @@ Calls are free. Planned: paid calls inside Notes Life (₦5 a minute voice, ₦1
 
 **The journal feed:** [Journals](/journals) has four tabs: **For you** (journals on [your interests](/interests) first, then everything newest first), **Following** (people you follow), **Latest** and **Top · 7d** (what people read most this week). Like, comment, share or save a journal from the feed; saved journals are in [Saved](/saved). **Most read this week** and **Who to follow** appear between posts on a phone and on the right on a computer. Journals marked **Promoted** are boosted.
 
-**Explore:** [Explore](/explore) is where to browse topics, people and channels, with **Market** and **Academy** tabs for the week's most looked-at products and courses.
+**Explore:** [Explore](/explore) is where to browse topics, people, channels and communities, with an **Events** tab (every public event that hasn't happened yet, soonest first, searchable by title, city or host) and **Market** and **Academy** tabs for the week's most looked-at products and courses.
 
 **The order elsewhere:** [Notes Market](/shop) and [Notes Academy](/academy) show things in the same order: **For you** first, then **Most viewed** (the last 7 days), then **Recent**.
 
@@ -499,7 +499,7 @@ Calls are free. Planned: paid calls inside Notes Life (₦5 a minute voice, ₦1
 
 **Profiles** have **Notes**, **Store** and **Courses** tabs, and these buttons: **Follow** (it reads **✓ Following** once you follow; tap it to unfollow), **Book a session** (when the publisher takes bookings), **Conversation** (a direct message) and **Gift me**. If Gift me is greyed out, the publisher hasn't set up payouts yet: tap or hover the ℹ️ beside it.
 
-**Trending** has the same tabs: Notes, Store, Courses and Publishers.
+**Trending** has the same tabs: Notes, Store and Courses, plus **Events**, Communities and Publishers. Events are ranked by interest in the period (today, 7 or 30 days): a ticket sold counts most, then a Going or Interested, then a visit to the event's page. Only public events that haven't happened yet are listed: never members-only events, cancelled ones, or events of a community joined only by invite.
 
 **Badges** always come right after a person's name, before their @username, wherever their picture and name appear.
 `),
@@ -682,11 +682,13 @@ It costs the same on every plan: ${money(GOLD_PRICING.personal.monthlyKobo)} a m
 
 An event has a start and end (Lagos time), where it is, and or a **Join live** link. For a talk in your community, host it in an [audio room](/help/community-audio-rooms) on #NotesApp (the host, ${ROOM_SPEAKERS_MAX} speakers and up to ${ROOM_LISTENERS_MAX_P2P} listening). For video or a bigger audience, which our own streaming doesn't do yet, the link can be YouTube Live, Facebook Live, Zoom, Google Meet or any https link. It can repeat **every week** or **every month**, until a date if you like.
 
-People tap **Going** or **Interested** and get a reminder **24 hours and 1 hour before** (a notification, a phone notification and an email), and can **Add to calendar**. Public events are listed under Upcoming, by state and city. If you change or cancel an event, everyone going or interested is told.
+People tap **Going** or **Interested** and get a reminder **24 hours and 1 hour before** (a notification, a phone notification and an email), and can **Add to calendar**. Public events are listed under Upcoming, by state and city, in **Explore → Events**, and in **Trending → Events** when people are buying tickets, RSVPing or visiting. Members-only events and events of an invite-only community never are. If you change or cancel an event, everyone going or interested is told.
 
 **Paid tickets:** on your event's page, under **Tickets**, add ticket types (Regular, VIP …), each with a price (from ₦100) and how many. With none, the event stays a free RSVP. Paid tickets need your bank account under Rates & payouts. More in [Paid event tickets](/help/event-tickets).`),
     A("event-tickets", "Paid event tickets and check-in", "Teams and organisations", `
-**For organisers:** whoever can edit an event (its host, or a community's admins for the community's events) adds **ticket types** on the event's page: a name, a price in naira and how many. A type that has sold can't be removed or set below what's sold; set its number to what's sold to stop selling it. You're paid after the event ends (and the 24-hour window for problems), to your bank account under Rates & payouts, less your plan's usual commission, the same as for sessions.
+**For organisers:** whoever can edit an event (its host, or a community's admins for the community's events) adds **ticket types** on the event's page: a name, a price in naira and how many. A type that has sold can't be removed or set below what's sold; set its number to what's sold to stop selling it. You're paid after the event ends (and the 24-hour window for problems), to your bank account under Rates & payouts.
+
+**Charges:** no commission, on every plan, the same as [giving](/help/giving): each ticket has a small charge by its price (₦10 up to ₦5,000, ₦25 up to ₦50,000, ₦50 above), plus Paystack's card charge at cost on the payment (1.5%, plus ₦100 from ₦2,500, at most ₦2,000). The buyer pays the ticket price; the charges come out of it. For example, one ₦5,000 ticket: ₦10 charge and ₦175 card charge, so you get ₦4,815. Tickets sold before 2 November 2026 keep the commission they were sold with.
 
 **For buyers:** choose the type and how many (up to ${TICKETS_PER_ORDER_MAX} at a time) and pay by card or bank through Paystack. Each ticket gets its own code and **QR code**, under [My tickets](/tickets), on the event's page, and in your confirmation email. Each lets one person in, once. When a type is sold out, it says so before you pay.
 

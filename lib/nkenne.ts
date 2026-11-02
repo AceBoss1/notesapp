@@ -1,4 +1,5 @@
 // The NKENNEAi API (https://nkenne.ai/nkenneai-api), as #NotesApp uses it: Kiswahili only, as the NKENNEAi API Hackathon
+import { SITE_URL } from "./host";
 // allows (Oct 2026). Four calls, all with one API key sent as the Authorization header:
 //   text → text      POST /api/translate/with-api-key            { text, fromLanguage, toLanguage } → { translatedText }
 //   text → speech    POST /api/tts/v1/swahili/with-api-key       { text, voice_name?, speaking_rate? } → MP3/WAV bytes
@@ -40,7 +41,7 @@ async function send(cfg: NkenneConfig, path: string, init: RequestInit): Promise
   const ctl = new AbortController();
   const timer = setTimeout(() => ctl.abort(), cfg.timeoutMs ?? 60_000);
   try {
-    const res = await f(`${(cfg.base || NKENNE_BASE).replace(/\/$/, "")}${path}`, { ...init, headers: { Authorization: cfg.key, Accept: "application/json, audio/*", "User-Agent": "NotesApp/1.0 (+https://notesapp.name.ng)", ...(init.headers || {}) }, signal: ctl.signal, cache: "no-store" });
+    const res = await f(`${(cfg.base || NKENNE_BASE).replace(/\/$/, "")}${path}`, { ...init, headers: { Authorization: cfg.key, Accept: "application/json, audio/*", "User-Agent": `NotesApp/1.0 (+${SITE_URL})`, ...(init.headers || {}) }, signal: ctl.signal, cache: "no-store" });
     if (!res.ok) throw failure(res.status, await res.text().catch(() => ""), res.headers?.get?.("cf-mitigated"));
     return res;
   } catch (e) {

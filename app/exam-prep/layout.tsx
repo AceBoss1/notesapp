@@ -1,6 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { headers } from "next/headers";
-import { isPrepHost, PREP_URL, SITE_URL } from "@/lib/host";
+import { isPrepHost, mainSiteUrl, PREP_URL } from "@/lib/host";
 import { PREP_NAME, PREP_TAGLINE } from "@/lib/exam-prep";
 import { PrepBase } from "@/lib/exam-prep-client";
 import PrepChrome from "@/components/exam-prep/PrepChrome";
@@ -22,7 +22,8 @@ export default function PrepLayout({ children }: { children: React.ReactNode }) 
     <PrepBase base={isPrepHost(host) ? "" : "/exam-prep"}>
       {/* The wordmark's rounded type, for Exam Prep pages only */}
       <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredoka:wght@600;700&display=swap" />
-      <PrepChrome mainUrl={SITE_URL}>{children}</PrepChrome>
+      {/* "by NotesApp", Terms and Privacy go to the main site of the domain being viewed (prep.naapp.tech → www.naapp.tech) */}
+      <PrepChrome mainUrl={mainSiteUrl(host)}>{children}</PrepChrome>
     </PrepBase>
   );
 }

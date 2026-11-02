@@ -8,7 +8,8 @@ import { auth } from "@/lib/firebase";
 import { startCheckout } from "@/lib/checkout";
 import { formatNaira } from "@/lib/booking-time";
 import { whenText } from "@/lib/events";
-import { TICKETS_PER_ORDER_MAX, TICKET_TYPES_MAX, checkInPath, readTicketCode, showCode, type TicketDoc } from "@/lib/tickets";
+import { bandsText } from "@/lib/giving";
+import { TICKETS_PER_ORDER_MAX, TICKET_PRICE_MIN_KOBO, TICKET_TYPES_MAX, checkInPath, quoteTickets, readTicketCode, showCode, type TicketDoc } from "@/lib/tickets";
 import { capi, field, small } from "@/components/community/api";
 
 // Paid event tickets (lib/tickets.ts): buying on the event page, the buyer's tickets with their QR codes, the organiser's ticket types,
@@ -117,13 +118,14 @@ export function TicketTypesEditor({ eventId, offers, onSaved }: { eventId: strin
   return (
     <section className="card mt-6 p-5">
       <h3 className="font-display text-xl text-ink">Tickets</h3>
-      <p className="mt-1 text-xs text-slate">Add ticket types to sell paid tickets (with none, it stays a free RSVP). You&apos;re paid after the event, less your plan&apos;s usual commission, to your bank account under Rates &amp; payouts.</p>
+      <p className="mt-1 text-xs text-slate">Add ticket types to sell paid tickets (with none, it stays a free RSVP). You&apos;re paid after the event to your bank account under Rates &amp; payouts. No commission: like gifts to a community, each ticket has a small charge ({bandsText(formatNaira)}), plus the card charge at cost. <Link href="/help/event-tickets" className="text-crimson underline">How tickets work</Link>.</p>
       {rows.map((r, i) => (
         <div key={i} className="mt-2 grid gap-2 sm:grid-cols-[1fr,8rem,7rem,auto]">
           <input value={r.name} maxLength={40} placeholder="Regular" onChange={(e) => set(i, "name", e.target.value)} className={field} aria-label="Ticket name" />
           <input value={r.priceNaira} inputMode="numeric" placeholder="Price ₦" onChange={(e) => set(i, "priceNaira", e.target.value.replace(/[^\d]/g, ""))} className={field} aria-label="Price in naira" />
           <input value={r.quantity} inputMode="numeric" placeholder="How many" onChange={(e) => set(i, "quantity", e.target.value.replace(/[^\d]/g, ""))} className={field} aria-label="How many" />
           {r.sold ? <span className="self-center text-xs text-slate">{r.sold} sold</span> : <button className={small} onClick={() => setRows(rows.filter((_, j) => j !== i))}>Remove</button>}
+          {Number(r.priceNaira) * 100 >= TICKET_PRICE_MIN_KOBO && <p className="text-[11px] text-slate sm:col-span-4">You get about {formatNaira(quoteTickets(Number(r.priceNaira) * 100, 1).netKobo)} a ticket bought on its own (after the {formatNaira(quoteTickets(Number(r.priceNaira) * 100, 1).bandKobo)} charge and the card charge).</p>}
         </div>
       ))}
       {rows.length < TICKET_TYPES_MAX && <button className={`${small} mt-2`} onClick={() => setRows([...rows, { name: "", priceNaira: "", quantity: "", sold: 0 }])}>+ Add a ticket type</button>}

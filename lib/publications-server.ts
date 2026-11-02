@@ -3,11 +3,12 @@ import { LIMITS, type Publication } from "./site-kits";
 import { cleanDoi, cleanOrcid, fromBibtex, fromCrossref, fromOrcidBulk, mergePublications, orcidPutCodes } from "./publications-import";
 import { SiteError, readSite } from "./site-server";
 import { canHaveSite } from "./site-themes";
+import { SITE_URL } from "./host";
 
 // Importing publications (lib/publications-import.ts): fetching from Crossref and ORCID's public API, and the daily ORCID sync. Server-only.
 const CONTACT = "hello@notesapp.name.ng"; // Crossref asks callers to say who they are
 async function getJson(url: string, accept = "application/json"): Promise<unknown> {
-  const res = await fetch(url, { headers: { Accept: accept, "User-Agent": `NotesApp/1.0 (https://www.notesapp.name.ng; mailto:${CONTACT})` }, cache: "no-store", signal: AbortSignal.timeout(12_000) });
+  const res = await fetch(url, { headers: { Accept: accept, "User-Agent": `NotesApp/1.0 (${SITE_URL}; mailto:${CONTACT})` }, cache: "no-store", signal: AbortSignal.timeout(12_000) });
   if (res.status === 404) return null;
   if (!res.ok) throw new SiteError(502, "That service didn't answer. Try again in a minute.");
   return res.json();

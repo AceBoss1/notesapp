@@ -4,7 +4,7 @@ import { useState } from "react";
 import SocialLinksRow from "@/components/SocialLinksRow";
 import { buttonHref, byYear, durationText, menuActionOf, resolveButton, type BlockId, type SiteButton } from "@/lib/site-kits";
 import TalksGlobe from "./TalksGlobe";
-import { MAIN_HOST } from "@/lib/host";
+import { useMainSiteUrl } from "@/lib/use-family-url";
 import { useSite } from "./SiteContext";
 
 // The content sections of a member's site (lib/site-kits.ts), in the member's order. Colours come from the site's colour set (the crimson
@@ -218,6 +218,7 @@ function Testimonials() {
 }
 function Team() {
   const { blocks } = useSite();
+  const main = useMainSiteUrl();
   return (
     <section className="mt-14">
       <Heading>Our team</Heading>
@@ -230,7 +231,7 @@ function Team() {
               : <span aria-hidden className="mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-crimson/10 font-display text-2xl text-crimson">{x.name.split(/\s+/).slice(0, 2).map((w) => w[0]).join("").toUpperCase()}</span>}
             {/* Tagged: their name links to their #NotesApp profile. */}
             {x.username
-              ? <a href={`https://${MAIN_HOST}/u/${x.username}`} target="_blank" rel="noopener noreferrer" className="mt-3 block font-ui text-sm font-bold text-ink hover:text-crimson">{x.name} <span className="font-normal text-crimson">@{x.username}</span></a>
+              ? <a href={`${main}/u/${x.username}`} target="_blank" rel="noopener noreferrer" className="mt-3 block font-ui text-sm font-bold text-ink hover:text-crimson">{x.name} <span className="font-normal text-crimson">@{x.username}</span></a>
               : <p className="mt-3 font-ui text-sm font-bold text-ink">{x.name}</p>}
             {x.role && <p className="text-xs text-slate">{x.role}</p>}
           </li>

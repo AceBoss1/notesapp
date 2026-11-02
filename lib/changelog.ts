@@ -11,6 +11,20 @@ export type Release = {
 
 export const CHANGELOG: Release[] = [
   {
+    version: "v0.117.0",
+    bump: "minor",
+    date: "2026-11-02",
+    changes: [
+      { kind: "changed", text: "Paid event tickets have no commission any more, on every plan, like gifts to a community: each ticket has the same small charge as a gift (₦10 up to ₦5,000, ₦25 up to ₦50,000, ₦50 above), plus the card charge at cost. A ₦5,000 ticket now leaves the organiser ₦4,815 (₦3,750 before, on Pro). Tickets sold before today keep what they were sold with." },
+      { kind: "added", text: "Organisers see what they get for each ticket type as they set its price." },
+      { kind: "added", text: "Explore has an Events tab: every public event that hasn't happened yet, soonest first, searchable by title, city or host." },
+      { kind: "added", text: "Trending has an Events tab: public upcoming events ranked by tickets sold, Going and Interested, and visits, for today, 7 or 30 days. Members-only events, cancelled ones and events of invite-only communities are never listed." },
+      { kind: "fixed", text: "Naija Exam Prep's \"by NotesApp\", Terms and Privacy links go to the main site of the address you're on (prep.naapp.tech → www.naapp.tech), not always the old address." },
+      { kind: "fixed", text: "\"Powered by #NotesApp\" on members' sites, and their Terms and Privacy pages, link to the #NotesApp address you're on, or to our primary address on a member's own domain. Other links that named an address in the code now follow the settings too." },
+      { kind: "changed", text: "Pricing, Community, Community events, Events, Organisations, the roadmap, About and the help articles on tickets, commission, Explore and Trending say so." },
+    ],
+  },
+  {
     version: "v0.109.0",
     bump: "minor",
     date: "2026-11-01",

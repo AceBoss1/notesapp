@@ -2,6 +2,7 @@
 // what the community receives, the cap before verification, and cleaning the funds admins name. The server side is lib/giving-server.ts.
 // Amounts are in kobo.
 //
+// - Paid event tickets use the same bands, per ticket (lib/tickets.ts quoteTickets; owner, 2 Nov 2026).
 // - A flat charge in bands, like a Nigerian bank transfer: ₦10 up to ₦5,000, ₦25 up to ₦50,000, ₦50 above. That band is our margin
 //   (payouts to the organisation are batched); there is no commission on top.
 // - By card or bank (Paystack): Paystack's own charge at cost, shown as "card charge", plus the band. From the wallet: just the band.
@@ -25,6 +26,9 @@ export const GIVING_BANDS: { uptoKobo: number; chargeKobo: number }[] = [
   { uptoKobo: Infinity, chargeKobo: 50 * 100 },
 ];
 export const bandChargeKobo = (giftKobo: number) => GIVING_BANDS.find((b) => giftKobo <= b.uptoKobo)!.chargeKobo;
+// The bands in words, "₦10 up to ₦5,000, ₦25 up to ₦50,000, ₦50 above", for the pages that state them (giving and event tickets).
+export const bandsText = (naira: (kobo: number) => string) =>
+  GIVING_BANDS.map((b) => `${naira(b.chargeKobo)} ${Number.isFinite(b.uptoKobo) ? `up to ${naira(b.uptoKobo)}` : "above"}`).join(", ");
 
 // Paystack Nigeria, local cards and bank: 1.5% + ₦100, the ₦100 waived under ₦2,500, capped at ₦2,000.
 // Check Paystack's current rates before launch.

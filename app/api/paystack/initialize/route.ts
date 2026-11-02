@@ -195,7 +195,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ authorizationUrl: tx.authorization_url, reference, paid: payWith === "wallet" });
     }
 
-    // ---- paid event tickets (lib/tickets.ts): by card; refused here when sold out; the host's usual commission ----
+    // ---- paid event tickets (lib/tickets.ts): by card; refused here when sold out; giving's charges, no commission ----
     if (kind === "ticket") {
       if (payWith === "wallet") return NextResponse.json({ error: "Pay for tickets by card or bank." }, { status: 400 });
       let tk: Awaited<ReturnType<typeof ticketCheckout>>;

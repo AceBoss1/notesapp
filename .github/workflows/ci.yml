@@ -40,6 +40,7 @@ jobs:
       - run: npm run test:referrals
       - run: npm run test:mcp
       - run: npm run test:pricing
+      - run: npm run test:host
       - run: npm run test:ads
       - run: npm run test:cardtap
       - run: npm run test:kiswahili

@@ -133,6 +133,39 @@ on `main` that isn't understood is raised with the owner first.
     `docs/ENGINEERING_GUIDE.md` (How we work). The /academy landing page was left to its own redesign branch.
 78. **Our own tools first: course groups, and swiping Nana's suggestions (v0.108.0):** nothing to deploy (no rules or indexes: the course group lives in the server-only `courseLinks/{id}` as `communityId` and `spaceId`, with a public `hasGroup` flag on the course). The owner, 1 Nov 2026: "we should never suggest users to setup or add what we have to external platforms … we have community, spaces and circles … smart suggestions should be easy to adopt by swiping". The course editor's WhatsApp/Telegram field is gone: **Course group on #NotesApp** links a community the editor runs (owner or admin) and a Space in it, adds a members-only Space named after the course in one tap, or starts an invite-only community for the course (`createCourseGroup` in `lib/courses-server.ts`, `POST /api/academy/courses/<id>` `{ action: "group" }`). Enrolled learners (and buyers) get the invite with the links (`/api/academy/links`) and **Join the course group** joins them and opens the Space (`/c/<id>?invite=…&tab=spaces&space=…`). Circles weren't used for this: they're Business-only, up to 50, and admins add each person by hand. Old outside links stay and still show to learners ("Join the WhatsApp group") until a course group replaces them or the teacher removes them; `updateCourse` refuses any new or changed `communityUrl`. Live classes: audio rooms (host + 4 speakers + 20 listeners) or a meeting link for video and bigger classes. Swipe: `components/SwipeChip.tsx` (pointer events, Undo, a first-time hint and removed suggestions kept per title in localStorage, `prefers-reduced-motion`), used by `components/NanaSuggest.tsx` for topics, subtopics, Market categories and the new course lines (`kind: "course-lines"` on `/api/nana/suggest`, one Pearl call on a tap, cached an hour). Nana's prompt has the rule too (`lib/nana-prompt.ts`). Kept on purpose: share buttons, social profile links, contact WhatsApp numbers, payment providers, Join live links for streamed or video events, the comparisons with Calendly on Home and About, and the founders' Selar catalogue on `/merchstore` (`lib/store.ts` STORE_ITEMS, real products sold there; moving them onto the #NotesApp store is the owner's call).
 79. **Co-author and co-tutor access and agreements (v0.109.0):** `firebase deploy --only firestore` (rules: server-only `inviteAgreements` and `coAuthorEditPings`; a note's `coEditedAt`/`coEditedBy`/`coEditedByName` can't be written from a browser; no new indexes). The lead picks the access when inviting (`lib/invite-terms.ts`): **Can view** (journals: read the draft; courses: see the course and every lesson, read-only) or **Can view and edit** (journals: the draft's title and text through `GET/POST /api/coauthors/draft`; courses: details, About, modules and lessons). Publishing, the price, the split, invitations and deleting stay with the lead. A view-only journal co-author may have 0%; one who edits keeps the 5% minimum (courses keep 0% allowed for both). The invitee answers on **`/invites/<journal|course>/<id>`** (the bell and email link there): **Accept and agree** needs `agree`, the current `INVITE_TERMS_VERSION` and the access and share they saw, and stores `agreedAt` + `agreedTerms` on the invite (the lead's panel shows "Accepted on …") plus the full wording and user agent in `inviteAgreements`. The lead changes terms with `action: "change"` (`/api/coauthors`, `/api/academy/courses/<id>/tutors`): less access applies at once; more access or any share change is stored as `change` and waits for the member to agree, the agreed terms staying in force (and counting the larger share against the lead's minimum). Old invites: a journal invite with no `access` reads as credit only (no draft, as before), a co-tutor with none as edit (as before). Journal co-authors can now **leave** before publishing; nothing changes once a post is published (a pending change lapses), while courses keep allowing changes after publishing, as before. Tests: `npm run test:coauthors-server`, `test:courses-server` (viewer and contributor co-tutors), `test:rules`.
+87. **No written-in domains; tickets like gifts; events on Explore and Trending (v0.117.0):** nothing to deploy (no rules; no new
+    indexes: the new queries are on one field each: `events.nextStartAt`, `eventRsvps.at`, `tickets.createdAt`). **Domains** (owner,
+    2 Nov 2026: "by notesapp was hard coded on prep.naapp.tech … powered by #NotesApp on publisher's site are also hard coded"):
+    `mainSiteUrl(host, path)` in `lib/host.ts` is the main site of the family being viewed (prep.naapp.tech → www.naapp.tech), or the
+    primary address (`MAIN_HOST`) on localhost, previews, members' own domains and unknown domains. Exam Prep's header and footer
+    (`app/exam-prep/layout.tsx` → `PrepChrome mainUrl`), the member-site footer mark and "Go to #NotesApp"
+    (`app/(site)/s/[username]/layout.tsx`), `components/site/PoweredBy.tsx` and team tags (`useMainSiteUrl` in
+    `lib/use-family-url.ts`) use it. Other written-in domains now come from `lib/host.ts`: the Exam Prep admin (reviewer invite links
+    were `https://prep.notesapp.name.ng/...`: now `PREP_URL`), certificate addresses on home, About, `/certificates/<id>`, the Academy
+    page and FAQ (`ROOT_DOMAIN`), sample certificates' QR (`SITE_URL`), the Notes Life billboard, LUXNAS's shop link, and the NKENNEAi and
+    Crossref User-Agents. Kept on purpose: the brand page, help articles stating an address (Exam Prep schools, the MCP address), the
+    changelog, contact and test email addresses, the calendar UID `@notesapp.name.ng` in `lib/events.ts` (changing it would duplicate
+    events in people's calendars), `media.notesapp.name.ng`, `lib/team-seed.ts` and `lib/config.ts` descriptions, comments. Member sites
+    on their own domain link to `https://www.<NEXT_PUBLIC_ROOT_DOMAIN>`, so they show naapp.tech once that setting is changed in
+    Vercel (docs/DOMAIN_SWITCH.md step 4). `npm run test:host` (with the setting unset and as naapp.tech). **Tickets** (owner: "Event
+    tickets commissions should be like Gifts to a community, because they bring us more members"): no commission on any plan; giving's
+    band per ticket by its price (`bandChargeKobo`, ₦10/₦25/₦50) plus Paystack's card charge at cost on the payment (`quoteTickets` in
+    `lib/tickets.ts`, reusing `lib/giving.ts`, so a change to `GIVING_BANDS` moves both). Checkout records `bandKobo`,
+    `cardChargeKobo` and `netKobo` on `payment.ticket` with `commissionRate: 0`; the `ticket` ledger entry is gross after the card
+    charge, commission = the band, like a gift. A payment without those fields (sold before v0.117.0) keeps its recorded commission
+    (`ledgerFor`). ₦5,000 on Pro: the organiser got ₦3,750 (25%), now ₦4,815 (₦10 + ₦175 card charge). Kept from tickets: paid out
+    after the event ends (plus the usual hold), refunds void the tickets, card only, no discount codes. Not taken from gifts: the
+    ₦20,000 cap until verified (a ticket is admission sold by a named host, held until the event is over and refundable, so a cap
+    would only block ordinary gala and conference prices) and the giver's "cover the charges" (the buyer pays the ticket price).
+    Giving's bands aren't in Admin → Pricing, so tickets' aren't either; both would move there together. **Explore and Trending**
+    (owner: "explore and trending should also list events"): `listedEvents` (public, not cancelled, not over, not from an invite-only
+    community; `isListedEvent` in `lib/events.ts`) feeds Explore's new Events tab (`GET /api/events?explore=1`, `EventCard`, soonest
+    first, searchable) and `trendingEvents` Trending's new Events tab (in `/api/trending`): tickets sold ×5, RSVPs ×3 and visits to the
+    event page in the period (`eventTrendScore`), then events with no interest yet, soonest first. Visits: `/api/views` takes kind
+    `event` (public, not cancelled) and `EventDetail` records one per session (not the organiser's). Tests: `test:giving` (ticket
+    charges, which events are listed), `test:giving-server` (ledger, the older-ticket case, listed and trending events). Docs:
+    `docs/SITES.md` (phase 5, the Powered by link, live and planned), `docs/BUILD_LOG.md` (v0.82.1 to v0.117.0), and the new rule in §3
+    and `docs/ENGINEERING_GUIDE.md`.
 
 All of these are on the team hub board with departments and dates (`lib/team-seed.ts`: `FUND_BACKLOG`, `LAUNCH_BACKLOG`, `COURSES_BACKLOG`, `TOPICS_BACKLOG`, `BIMI_BACKLOG`). Items can have several people (`ownerUids`; `ownerUid` stays as the first of them for older readers) and can repeat monthly (`repeat: "monthly"`: done moves the due date on a month).
 
@@ -171,6 +204,11 @@ All of these are on the team hub board with departments and dates (`lib/team-see
   page that describes that area (home, About, pricing, the feature's own page, the roadmap's live and not-live lists, status, help
   articles, footer links), plus README and HANDOVER. A feature isn't done until its public pages say so (owner, 1 Nov 2026: "as a
   rule any new feature or update, should be updated on public pages as you push same with changelog").
+- **Always update docs/BUILD_LOG.md** with every release, alongside the changelog (owner, 2 Nov 2026). One short entry per version in
+  the file's style: `**Title (v0.x.y)** — what was built and where`, newest at the bottom.
+- **No written-in domains.** Links to our own sites use `lib/host.ts` (`SITE_URL`, `MAIN_HOST`, `PREP_URL`, or `mainSiteUrl(host)` for
+  the domain being viewed), never `notesapp.name.ng` or `naapp.tech` in code (owner, 2 Nov 2026). Text that is about the domain on
+  purpose (legal pages, the brand page, help articles stating an address, changelog history, email addresses, tests) stays.
 - Writing style for anything people read: short, plain sentences; British spelling; prices in N$ (game) or ₦ (real money).
 
 ## 4. Map of the code
@@ -220,6 +258,7 @@ npm run test:authors           # journal author backfill
 npm run test:shared            # shared rate limits and cache (a stand-in Upstash)
 npm run test:topics            # topics, hashtags and the topic backfill
 npm run test:discovery         # For you, Most viewed and Recent shelves
+npm run test:host              # links to the main site follow the domain being viewed (mainSiteUrl)
 npm run test:smoke             # Playwright, against a running site (SMOKE_BASE_URL)
 ```
 The emulator-based tests start their own emulator on port 8080, so stop any emulator you started yourself first.

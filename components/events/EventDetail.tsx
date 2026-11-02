@@ -6,6 +6,7 @@ import { onAuthStateChanged, User } from "firebase/auth";
 import { auth } from "@/lib/firebase";
 import { REPEATS, liveHost, whenText, type Rsvp } from "@/lib/events";
 import { capi, small } from "@/components/community/api";
+import { recordView } from "@/lib/track";
 import { EventForm, type Ev } from "./Events";
 import { BuyTickets, MyTickets, TicketTypesEditor, type TicketOffer } from "./Tickets";
 
@@ -21,6 +22,9 @@ export default function EventDetail({ id }: { id: string }) {
   const load = useCallback(() => capi<Data>(`/api/events?id=${id}`).then((x) => { setD(x); setErr(""); }).catch((e) => setErr(e.message)), [id]);
   useEffect(() => onAuthStateChanged(auth, setUser), []);
   useEffect(() => { if (user !== undefined) load(); }, [user, load]);
+  // A visit to a public event counts towards Trending → Events (the organiser's own visits don't).
+  const countable = !!d && d.event.visibility === "public" && !d.event.cancelled && !d.canManage;
+  useEffect(() => { if (countable) recordView("event", id); }, [countable, id]);
   if (err) return <p className="card p-6 text-sm text-crimson">{err}</p>;
   if (!d) return <p className="text-sm text-slate">Loading…</p>;
   const e = d.event;

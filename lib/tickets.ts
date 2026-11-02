@@ -3,6 +3,12 @@
 //
 // eventTickets/{eventId}: { eventId, hostUid, types: TicketType[] } — kept apart from events/{id} so editing the event never touches
 // the sold counts. tickets/{code}: one per admission (TicketDoc). Both server-only.
+//
+// Charges (owner, 2 Nov 2026: "like Gifts to a community, because they bring us more members"): no commission. Each ticket carries
+// giving's flat band for its price (₦10 up to ₦5,000, ₦25 up to ₦50,000, ₦50 above: GIVING_BANDS in lib/giving.ts, so the two stay
+// in step), plus Paystack's card charge at cost on the payment. The buyer pays the ticket price; the charges come out of it.
+// Tickets bought before this change keep the commission recorded on their payment (lib/payments.ts).
+import { bandChargeKobo, cardChargeKobo } from "./giving";
 
 export const TICKET_TYPES_MAX = 10;
 export const TICKETS_PER_ORDER_MAX = 10;
@@ -16,6 +22,20 @@ export type TicketDoc = {
   holderUid: string; holderName: string; reference: string; startsAt: string; endsAt: string;
   status: "valid" | "refunded"; checkedInAt?: string; checkedInBy?: string; createdAt: string;
 };
+
+export type TicketQuote = {
+  grossKobo: number; // what the buyer pays: price × quantity
+  bandKobo: number; // our charge: the band for one ticket's price, per ticket
+  cardChargeKobo: number; // Paystack's, at cost, on the whole payment
+  netKobo: number; // what the organiser receives
+};
+// What a ticket purchase costs and what the organiser receives.
+export function quoteTickets(unitKobo: number, quantity: number): TicketQuote {
+  const grossKobo = unitKobo * quantity;
+  const bandKobo = bandChargeKobo(unitKobo) * quantity;
+  const card = cardChargeKobo(grossKobo);
+  return { grossKobo, bandKobo, cardChargeKobo: card, netKobo: grossKobo - bandKobo - card };
+}
 
 export const ticketsLeft = (t: Pick<TicketType, "quantity" | "sold">) => Math.max(0, t.quantity - t.sold);
 

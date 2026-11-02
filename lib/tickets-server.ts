@@ -2,14 +2,13 @@ import type { Firestore, Transaction } from "firebase-admin/firestore";
 import { randomBytes } from "crypto";
 import { EventError, eventOf, mayManage, mayView } from "./events-server";
 import { nextOccurrence } from "./events";
-import { TICKETS_PER_ORDER_MAX, cleanTicketTypes, makeTicketCode, readTicketCode, ticketsLeft, type TicketDoc, type TicketType } from "./tickets";
-import { commissionRateFor } from "./tiers";
-import type { AccountTier } from "./users";
+import { TICKETS_PER_ORDER_MAX, cleanTicketTypes, makeTicketCode, quoteTickets, readTicketCode, ticketsLeft, type TicketDoc, type TicketType } from "./tickets";
 import type { PaymentRecord } from "./payments";
 
 // Paid event tickets on the server (the rules are lib/tickets.ts). Buying is a payment of kind "ticket" (app/api/paystack/initialize);
 // lib/payments.ts fulfillPayment calls fulfilTicketsInTransaction, which moves the sold count and writes one tickets/{code} per
-// admission. The organiser's money is a "ticket" ledger entry with their usual commission, released after the event ends.
+// admission. The organiser's money is a "ticket" ledger entry net of the charges (lib/tickets.ts quoteTickets: giving's band per ticket
+// plus the card charge, no commission), released after the event ends.
 
 const typesRef = (db: Firestore, eventId: string) => db.doc(`eventTickets/${eventId}`);
 async function typesOf(db: Firestore, eventId: string): Promise<TicketType[]> {
@@ -55,14 +54,14 @@ export async function ticketCheckout(db: Firestore, uid: string, raw: { eventId?
   const payout = (await db.doc(`payoutAccounts/${e.hostUid}`).get()).data();
   if (!payout?.recipientCode) throw new EventError(409, "The host hasn't set up payouts yet, so tickets can't be sold.");
   const buyer = (await db.doc(`users/${uid}`).get()).data();
+  const quote = quoteTickets(type.priceKobo, quantity);
   const info: NonNullable<PaymentRecord["ticket"]> = {
     eventId: e.id, eventTitle: e.title, typeId: type.id, typeName: type.name, quantity, unitKobo: type.priceKobo,
     startsAt: occ.start.toISOString(), endsAt: occ.end.toISOString(), holderName: String(buyer?.displayName || buyer?.username || "Guest"),
+    bandKobo: quote.bandKobo, cardChargeKobo: quote.cardChargeKobo, netKobo: quote.netKobo,
   };
-  return {
-    info, amountKobo: type.priceKobo * quantity, hostUid: e.hostUid, hostUsername: String(host.username ?? e.hostUsername ?? ""),
-    commissionRate: commissionRateFor((host.accountTier as AccountTier) || "basic", host.customRates),
-  };
+  // No commission: the charges are fixed now and recorded on the payment (commissionRate 0, like a gift to a community).
+  return { info, amountKobo: quote.grossKobo, hostUid: e.hostUid, hostUsername: String(host.username ?? e.hostUsername ?? ""), commissionRate: 0 };
 }
 
 // Reads for fulfillPayment's transaction (every read before any write): the ticket types, and fresh codes that aren't taken.
