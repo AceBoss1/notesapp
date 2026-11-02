@@ -35,9 +35,17 @@ export const apiError = (e: ApiError) =>
 
 export type ApiAuth = { uid: string; keyId: string; user: Record<string, any> };
 
+// A connected assistant's reading tools run through these same /api/v1 handlers, called from inside the MCP route (app/api/mcp) after it
+// has checked the assistant's token, the member's rules and today's limit. The route marks the request it builds with this symbol; a
+// request from outside can't carry it, so agent tokens never work on the REST API directly.
+export const AGENT_CALL = Symbol.for("notesapp.agentCall");
+export type AgentCallMark = { uid: string; grantId: string; user: Record<string, any> };
+
 // Checks the bearer key, the owner's API access flag, the scope and a per-key rate limit.
 export async function authenticateApiKey(req: NextRequest, scope: ApiScope | "any"): Promise<{ auth: ApiAuth } | { fail: NextResponse }> {
   const fail = (e: ApiError) => ({ fail: apiError(e) });
+  const agent = (req as unknown as Record<symbol, AgentCallMark | undefined>)[AGENT_CALL];
+  if (agent) return { auth: { uid: agent.uid, keyId: `agent:${agent.grantId}`, user: agent.user } };
   const header = req.headers.get("authorization") || "";
   const parsed = /^Bearer\s+(.+)$/i.test(header) ? parseToken(header.replace(/^Bearer\s+/i, "")) : null;
   if (!parsed) return fail({ status: 401, code: "invalid_key", message: "Send your key as `Authorization: Bearer nak_…`." });

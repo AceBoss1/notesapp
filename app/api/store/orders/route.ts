@@ -5,7 +5,7 @@ import { getAdminDb, getUserEmail, verifySignedInRequest } from "@/lib/firebase-
 import { rateLimit } from "@/lib/rate-limit";
 import { notifyBell, sendEmail } from "@/lib/email";
 import { CustodyEntry, StoreOrder, cleanText, isHttpsUrl, parseCustody } from "@/lib/orders";
-import { autoReleaseAt, canActForSeller, confirmOrder, expireLinks, hashToken, holderUrl, newLinkToken } from "@/lib/orders-server";
+import { autoReleaseAt, canActForSeller, confirmOrder, dispatchWithCourier, expireLinks, hashToken, holderUrl, newLinkToken } from "@/lib/orders-server";
 import { SITE_URL } from "@/lib/host";
 
 export const dynamic = "force-dynamic";
@@ -92,13 +92,7 @@ export async function POST(req: NextRequest) {
       const trackingUrl = String(body.trackingUrl || "").trim();
       if (!name || !trackingNumber) throw new Fail("Enter the courier's name and the tracking number.");
       if (trackingUrl && !isHttpsUrl(trackingUrl)) throw new Fail("The tracking link must start with https://");
-      const courier = { name, trackingNumber, trackingUrl };
-      const batch = db.batch();
-      batch.update(ref, { status: "dispatched", mode: "courier", courier, ...(order.dispatchedAt ? {} : { dispatchedAt: now }) });
-      batch.update(parcelRef, { status: "dispatched", mode: "courier", courier });
-      await batch.commit();
-      const to = order.buyerEmail;
-      if (!order.dispatchedAt && to) await sendEmail({ to, bell: { uid: order.buyerUid, type: "order", linkHref: `/track/${order.parcelId}`, message: `Your order is on its way: ${order.itemTitle}` }, subject: "Your #NotesApp order is on its way", text: `${order.itemTitle} was handed to ${name} (tracking ${trackingNumber}).\nFollow it with parcel ID ${order.parcelId} at ${site()}/track/${order.parcelId}, and confirm delivery at ${site()}/orders when it arrives.\n\n#NotesApp`, action: { label: "Track your parcel", url: `${site()}/track/${order.parcelId}` } }).catch(() => {});
+      await dispatchWithCourier(order, { name, trackingNumber, trackingUrl });
       return NextResponse.json({ ok: true });
     }
 

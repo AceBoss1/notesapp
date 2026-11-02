@@ -158,6 +158,18 @@ const ROWS: Row[] = [
     },
   },
   {
+    label: "Nana's jobs and inbox",
+    href: "/help/nanas-inbox",
+    render: (t, L) => (L.nanaOperator[t.tier] > 0
+      ? `Nana prepares booking replies, customer answers, journal drafts, shipping nudges and a Monday summary in your voice, for you to approve (up to ${L.nanaJobsPerDay[t.tier]} a day, from your Nana allowance); she never publishes or moves money`
+      : "Requests from AI assistants you connect arrive in Nana's inbox; Nana's own jobs come with Business and Enterprise"),
+  },
+  {
+    label: "Connect AI assistants (Claude, ChatGPT…)",
+    href: "/help/connect-an-ai-assistant",
+    render: (t, L) => (L.agentConnect[t.tier] > 0 ? "Choose what each may see and do and whether it asks you first; publishing and price changes always ask; no assistant moves money; every action logged in Console" : "—"),
+  },
+  {
     label: "Links out to other shops",
     render: (t) => (t.canPublish ? "Only your one profile link and links inside your posts — stores sell through #NotesApp checkout" : "—"),
   },

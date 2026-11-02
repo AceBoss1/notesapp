@@ -60,10 +60,12 @@ function route(req: NextRequest, host: string, fam: Family) {
   const { pathname, search } = req.nextUrl;
   const role = roleOf(fam);
   const main = familyHost(host, "main");
-  // mcp.<domain>: the MCP server for AI assistants (app/api/mcp). Its address is the root (or /mcp); anything else goes to the docs.
+  // mcp.<domain>: the MCP server for AI assistants (app/api/mcp). Its address is the root (or /mcp). The Connect NotesApp screen
+  // (/connect, where an assistant sends the member to say yes), the code page (/link), the sign-in pages they need and the API calls
+  // they make are served here too; anything else goes to the docs.
   if (fam.sub === "mcp") {
     if (pathname === "/" || pathname === "/mcp") return NextResponse.rewrite(new URL(`/api/mcp${search}`, req.url));
-    if (pathname.startsWith("/api/mcp") || pathname.startsWith("/_next") || PUBLIC_FILE.test(pathname)) return NextResponse.next();
+    if (/^\/(connect|link|login|signup|forgot-password)(\/|$)/.test(pathname) || pathname.startsWith("/api/") || pathname.startsWith("/_next") || PUBLIC_FILE.test(pathname)) return NextResponse.next();
     return NextResponse.redirect(`https://${main}/docs#mcp`, 307);
   }
   // life.<domain>: the Notes Life page at its root (an invite's ?ref= kept); /play opens the game on the main site, where the
@@ -118,6 +120,9 @@ function route(req: NextRequest, host: string, fam: Family) {
 export async function middleware(req: NextRequest) {
   const host = (req.headers.get("host") || "").toLowerCase().replace(/:\d+$/, "");
   if (!host) return NextResponse.next();
+  // OAuth discovery for AI assistants connecting to the MCP server (lib/agents/oauth-http.ts), on every host of ours.
+  const wk = /^\/\.well-known\/oauth-(authorization-server|protected-resource)(\/.*)?$/.exec(req.nextUrl.pathname);
+  if (wk && (ourRoot(host) || isMainHost(host))) return NextResponse.rewrite(new URL(`/api/agents/oauth/metadata?kind=${wk[1] === "protected-resource" ? "resource" : "server"}`, req.url));
   // Our domains (lib/host.ts): every domain on the Vercel project serves the site under its own name, so the address bar keeps
   // what the visitor typed. Only domains we know skip the lookup; any other one is checked against members' own domains below.
   const known = ourRoot(host);

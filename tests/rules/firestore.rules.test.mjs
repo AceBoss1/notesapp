@@ -1293,3 +1293,21 @@ test("one-month feedback, reviewer sign-ups and announcements: only through the 
   }
   await assertFails(getDoc(doc(as("alice"), "emailPrefs/alice")));
 });
+
+test("the agent layer's collections are server-only: no member reads or writes grants, proposals, the log or Nana's settings", async () => {
+  await env.withSecurityRulesDisabled(async (ctx) => {
+    const db = ctx.firestore();
+    await setDoc(doc(db, "agentGrants/g1"), { uid: "pub", hash: "x", status: "active" });
+    await setDoc(doc(db, "agentProposals/p1"), { uid: "pub", status: "pending" });
+    await setDoc(doc(db, "agentActions/a1"), { uid: "pub", tool: "my_posts" });
+    await setDoc(doc(db, "nanaOps/pub"), { paused: false });
+  });
+  for (const path of ["agentGrants/g1", "agentProposals/p1", "agentActions/a1", "nanaOps/pub", "agentAuthRequests/r1", "agentCodes/K7QM4F2D", "agentClients/c1", "agentUsage/g1_2026-11-02", "agentEvents/e1"]) {
+    await assertFails(getDoc(doc(as("pub"), path)));
+    await assertFails(setDoc(doc(as("pub"), path), { uid: "pub", status: "active" }));
+    await assertFails(getDoc(doc(anon(), path)));
+  }
+  await assertFails(getDocs(query(collection(as("pub"), "agentProposals"), where("uid", "==", "pub"))));
+  await assertFails(updateDoc(doc(as("pub"), "agentProposals/p1"), { status: "done" }));
+  await assertFails(deleteDoc(doc(as("pub"), "agentActions/a1")));
+});

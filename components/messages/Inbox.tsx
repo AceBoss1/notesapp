@@ -37,6 +37,9 @@ export default function Inbox({ as = "h2" }: { as?: "h1" | "h2" }) {
   const [q, setQ] = useState(""); // the search box
   const [tab, setTab] = useState<InboxTab>("all");
   const [contexts, setContexts] = useState<Contexts | null>(null); // who you have bookings and orders with (for those two chips)
+  // Nana's inbox (lib/agents): how many things are waiting for the member, shown on its pinned row.
+  const [nanaWaiting, setNanaWaiting] = useState(0);
+  useEffect(() => { if (user) api<{ needs: number }>("/api/nana/inbox?count=1").then((j) => setNanaWaiting(j.needs)).catch(() => {}); }, [user, pathname]);
   useEffect(() => { if (user) api<Contexts>("/api/messages/contexts").then(setContexts).catch(() => setContexts({ bookings: [], orders: [] })); }, [user]);
   useEffect(() => { if (!user) return; return onSnapshot(doc(db, "chatPins", user.uid), (d) => setPins((d.data()?.list as string[] | undefined) ?? []), () => {}); }, [user]);
   async function togglePin(id: string, pin: boolean) {
@@ -116,6 +119,10 @@ export default function Inbox({ as = "h2" }: { as?: "h1" | "h2" }) {
                 <span className="flex items-center gap-2 font-ui text-sm font-bold text-ink">Nana AI <span className={`${pill} bg-crimson/10 text-crimson`}>PINNED</span></span>
                 <span className="mt-0.5 block truncate text-[13px] text-slate">Your #NotesApp helper. Ask me anything about the platform.</span>
               </span>
+            </Link>
+            <Link href="/messages/nana/inbox" aria-current={pathname === "/messages/nana/inbox" ? "page" : undefined} className={`flex items-center gap-3 border-t border-rule/60 py-2.5 pl-[4.25rem] pr-5 text-[13px] ${pathname === "/messages/nana/inbox" ? "bg-paper" : "bg-amber-50/60 hover:bg-paper"}`}>
+              <span className="min-w-0 flex-1 font-ui font-bold text-ink">Nana&apos;s inbox <span className="font-normal text-slate">· needs you, done by Nana, jobs</span></span>
+              {nanaWaiting > 0 && <span className="rounded-full bg-crimson px-2 font-mono text-[11px] leading-5 text-paper">{nanaWaiting}</span>}
             </Link>
           </li>}
           {[...shown].sort((a, b) => Number(pins.includes(b.id)) - Number(pins.includes(a.id)) || (pins.includes(a.id) ? pins.indexOf(a.id) - pins.indexOf(b.id) : 0)).map((r) => {

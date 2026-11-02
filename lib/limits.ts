@@ -9,7 +9,7 @@ export const LIMIT_TIERS: AccountTier[] = ["standard", "basic", "pro", "business
 export const LIMIT_TIER_LABEL: Record<AccountTier, string> = { standard: "Free Standard", basic: "Basic", pro: "Pro", business: "Business", enterprise: "Enterprise" };
 
 export type LimitKey = "messageAttachmentMB" | "messageAttachmentsPerMessage" | "messageVoiceNoteSeconds" | "momentVideosPerWeek" | "momentsPerDay"
-  | CourseFlag | "coursesPerMember" | "coursesPerOrganisation" | "courseStorageGB" | "courseVideoHours";
+  | CourseFlag | "coursesPerMember" | "coursesPerOrganisation" | "courseStorageGB" | "courseVideoHours" | "nanaOperator" | "nanaJobsPerDay" | "agentConnect";
 // kind "switch": a plan flag, 1 = on and 0 = off (a tick box in Admin → Limits). noLimitAt0: 0 means "no limit" rather than "none".
 export type LimitDef = { key: LimitKey; group: string; label: string; unit: string; min: number; max: number; defaults: Record<AccountTier, number>; kind?: "switch"; noLimitAt0?: boolean };
 
@@ -36,6 +36,11 @@ export const LIMITS: LimitDef[] = [
   { key: "coursesPerOrganisation", group: "Courses", label: "Courses per organisation", unit: "courses", min: 1, max: 3_000, defaults: flat(DEFAULT_COURSES_PER_MEMBER * 3) },
   { key: "courseStorageGB", group: "Courses", label: "Uploaded PDFs across all courses (0 = no limit)", unit: "GB", min: 0, max: 10_000, noLimitAt0: true, defaults: flat(0) },
   { key: "courseVideoHours", group: "Courses", label: "Uploaded video across all courses (0 = no limit)", unit: "hours", min: 0, max: 10_000, noLimitAt0: true, defaults: flat(0) },
+  // Nana as an operator (owner, 2 Nov 2026: Business and Enterprise only; lower plans see a friendly upsell). Connected agents' requests
+  // reach Nana's inbox on every plan that may connect one.
+  { key: "nanaOperator", group: "Nana and connected agents", label: "Nana operator: jobs, drafts and Nana's inbox", unit: "on/off", min: 0, max: 1, kind: "switch", defaults: { standard: 0, basic: 0, pro: 0, business: 1, enterprise: 1 } },
+  { key: "nanaJobsPerDay", group: "Nana and connected agents", label: "Nana's job runs a day per member (each draft or summary counts)", unit: "runs", min: 0, max: 1000, defaults: { standard: 0, basic: 0, pro: 0, business: 60, enterprise: 200 } },
+  { key: "agentConnect", group: "Nana and connected agents", label: "Connect outside AI assistants (Connect NotesApp)", unit: "on/off", min: 0, max: 1, kind: "switch", defaults: { standard: 1, basic: 1, pro: 1, business: 1, enterprise: 1 } },
 ];
 
 // Saved by an admin: only the numbers they changed from the defaults need to be here.
@@ -69,7 +74,7 @@ export function cleanOverrides(input: unknown): LimitOverrides {
 }
 
 // A plan flag (kind "switch") as saved: on unless it's 0.
-export const planHas = (key: CourseFlag, tier: AccountTier, overrides: LimitOverrides = {}): boolean => limitFor(key, tier, overrides) > 0;
+export const planHas = (key: LimitKey, tier: AccountTier, overrides: LimitOverrides = {}): boolean => limitFor(key, tier, overrides) > 0;
 
 // The plans that have a flag, for copy: "Pro, Business and Enterprise". Only plans that can publish are named; "" when none has it.
 export function plansWith(key: CourseFlag, overrides: LimitOverrides = {}): string {

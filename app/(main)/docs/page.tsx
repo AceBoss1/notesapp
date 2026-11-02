@@ -2,8 +2,11 @@ import Link from "next/link";
 import type { Metadata } from "next";
 import { ENDPOINTS, WEBHOOK_DOCS } from "@/lib/api-docs";
 import PageHero from "@/components/PageHero";
-import { SITE_URL, MAIN_HOST, MCP_HOST } from "@/lib/host";
+import { headers } from "next/headers";
+import { SITE_URL, MAIN_HOST, mcpOrigin, mcpServerUrl } from "@/lib/host";
 import { TOOLS } from "@/lib/mcp/catalog";
+import { AGENT_TOOLS, CONNECT_TOOL } from "@/lib/agents/catalog";
+import { agentUrls, requestHost } from "@/lib/agents/urls";
 import { SITE } from "@/lib/site";
 
 export const metadata: Metadata = {
@@ -15,6 +18,9 @@ const code = "overflow-x-auto rounded bg-ink px-4 py-3 font-mono text-xs leading
 const METHOD: Record<string, string> = { GET: "bg-emerald-100 text-emerald-900", POST: "bg-sky-100 text-sky-900", PATCH: "bg-amber-100 text-amber-900" };
 
 export default function DocsPage() {
+  // The MCP address and the Connect pages for the domain being read (lib/host.ts), never a written-in one.
+  const host = requestHost(headers());
+  const mcp = mcpServerUrl(host), origin = mcpOrigin(host), urls = agentUrls(host);
   return (
     <>
       <PageHero eyebrow="Docs" title={<>#NotesApp API</>}>
@@ -100,20 +106,21 @@ function verify(rawBody, header, secret) {
       <h2 id="mcp" className="mt-12 font-display text-3xl text-ink">MCP server for AI assistants</h2>
       <p className="mt-3 text-slate">
         AI assistants that speak the Model Context Protocol (Claude, ChatGPT and others) can use #NotesApp through our MCP server: find creators, journals, store items and
-        courses, see a creator&apos;s open session times, and hand back booking links. <strong>It only reads.</strong> Booking, buying and paying always happen on #NotesApp itself.
+        courses, see a creator&apos;s open session times, and hand back booking links; and, for an assistant a member has connected, work on that member&apos;s account within their rules.
+        Booking, buying and paying always happen on #NotesApp itself, and <strong>money never moves through an assistant</strong>.
         Add it to your assistant as a remote (Streamable HTTP) server at:
       </p>
-      <pre className={`${code} mt-3`}>{`https://${MCP_HOST}`}</pre>
-      <p className="mt-2 text-xs text-slate">It answers at <span className="font-mono">{`${SITE_URL}/api/mcp`}</span> too; use either. No sign-in is needed for the public tools.</p>
+      <pre className={`${code} mt-3`}>{mcp}</pre>
+      <p className="mt-2 text-xs text-slate">It answers at <span className="font-mono">{`${SITE_URL}/api/mcp`}</span> too; use either. No sign-in is needed for the public tools; every domain we serve has its own mcp. address.</p>
       <p className="mt-3 text-slate">
         The <code className="font-mono text-xs">my_*</code> tools read your own account through the same API as above: send your API key as <code className="font-mono text-xs">Authorization: Bearer nak_…</code>
-        (the key&apos;s scopes apply). Every tool call is logged for 12 months (the tool, the arguments and the key&apos;s id, never the secret). Text members wrote, such as bios
+        (the key&apos;s scopes apply), or connect the assistant to your account (below). Every tool call is logged for 12 months (the tool, the arguments and the key&apos;s id, never the secret). Text members wrote, such as bios
         and titles, is marked as data so assistants don&apos;t take it as instructions. Up to 120 calls a minute.
       </p>
       <div className="mt-4 space-y-2">
         {TOOLS.map((t) => (
           <div key={t.name} className="card p-3">
-            <p className="font-mono text-sm font-bold text-ink">{t.name}{t.needsKey && <span className="ml-2 rounded bg-amber-100 px-1.5 py-0.5 font-ui text-[10px] font-bold text-amber-900">API KEY</span>}</p>
+            <p className="font-mono text-sm font-bold text-ink">{t.name}{t.needsKey && <span className="ml-2 rounded bg-amber-100 px-1.5 py-0.5 font-ui text-[10px] font-bold text-amber-900">API KEY OR CONNECTED</span>}</p>
             <p className="mt-1 text-sm text-slate">{t.description}</p>
           </div>
         ))}
@@ -124,7 +131,29 @@ function verify(rawBody, header, secret) {
   -H "Accept: application/json, text/event-stream" \
   -d '{"jsonrpc":"2.0","id":1,"method":"tools/call",
        "params":{"name":"search_creators","arguments":{"query":"therapist","bookable":true}}}'`}</pre>
-      <p className="mt-3 text-sm text-slate">Coming next: signing in with your #NotesApp account instead of a key, and tools that can draft posts and reply to bookings, always with your approval.</p>
+      <h3 id="mcp-connect" className="mt-8 font-display text-2xl text-ink">Connecting a member&apos;s account (Connect NotesApp)</h3>
+      <p className="mt-3 text-slate">
+        A member can let an assistant work on their account. Assistants that support OAuth get HTTP 401 with a <code className="font-mono text-xs">WWW-Authenticate</code> header when they first call an account
+        tool, find the server&apos;s metadata at <span className="font-mono text-xs">{`${origin}/.well-known/oauth-authorization-server`}</span>, register themselves, and send the member to
+        <span className="font-mono text-xs"> {urls.connect}</span> (OAuth 2.1, PKCE S256, public clients). Others call <code className="font-mono text-xs">connect_account</code>: it returns an
+        8-character code for the member to type at <span className="font-mono text-xs">{urls.link}</span>; calling it again with the <code className="font-mono text-xs">device_id</code> returns the token
+        once the member has connected (the device flow, also at <span className="font-mono text-xs">{`${origin}/api/agents/oauth/device`}</span>).
+      </p>
+      <p className="mt-3 text-slate">
+        The token (<code className="font-mono text-xs">Authorization: Bearer naa_…</code>) carries what the member chose: which parts of their account it may read, what it may change and whether
+        each change waits for their approval in Nana&apos;s inbox, how many actions a day (reading counts too; it resets at midnight Lagos time), the biggest discount it may mention, and how
+        long access lasts. Publishing and price changes always wait for the member. A tool that would move money doesn&apos;t exist and is refused if asked for. A changing tool answers
+        <code className="font-mono text-xs"> done</code> or <code className="font-mono text-xs">waiting_for_member</code> with a request id; asking twice for the same thing returns the same request.
+        Every call is logged for the member in Console → Connected agents: what was asked, never the content.
+      </p>
+      <div className="mt-4 space-y-2">
+        {[CONNECT_TOOL, ...AGENT_TOOLS].map((t) => (
+          <div key={t.name} className="card p-3">
+            <p className="font-mono text-sm font-bold text-ink">{t.name}{t.needsAgent && <span className="ml-2 rounded bg-crimson/10 px-1.5 py-0.5 font-ui text-[10px] font-bold text-crimson">CONNECTED</span>}</p>
+            <p className="mt-1 text-sm text-slate">{t.description}</p>
+          </div>
+        ))}
+      </div>
       <p className="mt-3 text-sm text-slate">Building something, or stuck? Ask on <a href={SITE.discord} target="_blank" rel="noopener noreferrer" className="text-crimson underline">our Discord</a>.</p>
 
       <h2 id="domains" className="mt-12 font-display text-3xl text-ink">Your own domain</h2>
