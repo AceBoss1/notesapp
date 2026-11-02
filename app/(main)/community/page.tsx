@@ -7,6 +7,7 @@ import { planPrice } from "@/lib/pricing";
 import { bandsText } from "@/lib/giving";
 import { formatNaira } from "@/lib/booking-time";
 import { COMMUNITY_FREE_MEMBERS, COMMUNITY_PARTS, COMMUNITY_PHASES, UNVERIFIED_COMMUNITY_NOTICE } from "@/lib/community";
+import { loadLivePricing } from "@/lib/pricing-server";
 
 export const metadata: Metadata = {
   title: "Community for organisations",
@@ -15,7 +16,11 @@ export const metadata: Metadata = {
 
 // Communities (lib/community.ts, docs/COMMUNITY.md): the directory and Start a community, then what a community has and costs. Like a
 // Facebook group with a channel, run by an organisation's own admins.
-export default function CommunityPage() {
+// Shows prices and rates an admin can change: applied on every render and redrawn each minute (the page used to be built once).
+export const revalidate = 60;
+
+export default async function CommunityPage() {
+  await loadLivePricing(); // prices and rates as saved in Admin → Pricing, not the built-in defaults
   return (
     <>
       <PageHero eyebrow="Community" title={<>Bring your members together</>}>

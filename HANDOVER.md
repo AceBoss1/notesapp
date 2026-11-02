@@ -285,6 +285,23 @@ on `main` that isn't understood is raised with the owner first.
     listeners: Cloudflare relay (Realtime SFU)", due 9 Nov, with the Cloudflare steps for `CLOUDFLARE_REALTIME_APP_ID` /
     `_TOKEN` and the TURN keys; the standing "rooms-relay" signal in `lib/team-server.ts` is unchanged. Tests: `test:team`,
     `test:team-server`.
+95. **Live commission and figures on booking, bookings, pricing and the help (v0.123.2, branch `push/live-rates`):** nothing to
+    deploy (no rules or indexes). Owner, 2 Nov 2026: "booking, bookings, pricing didn't show commission rate for booking Session,
+    subscription and gift cut... help should not hardwire figures that can be changed from admin limits/pricing". Root cause: the saved
+    pricing (`platformSettings/pricing`) is applied to the live objects only by `ensurePricing()`, which only money paths called. Server
+    pages (pricing, gifts, booking, badges, …) never called it, and most were built once at deploy, so they showed the defaults or
+    whatever that server instance had last loaded; screens drawn in the browser always had the defaults bundled; the help
+    (`lib/kb-server.ts`) never loaded pricing, limits or agent settings. Now: `loadLivePricing()` (`lib/pricing-server.ts`) at the top
+    of every server page that shows prices, with `revalidate = 60`; `/api/pricing` + `useLivePricing()` for browser screens
+    (Rates & payouts, BadgeCard, boosts, course editor, Academy FAQ, NoteForm…); `getArticles` loads pricing, `serverConfig/limits` and
+    `serverConfig/agents` and passes them to `builtInArticles(live)`, rebuilding at once when a figure changes. Publishers' own rate:
+    `/api/publisher/rates` (`lib/my-rates.ts`, `commissionRateFor(tier, customRates)`) shown by `components/MyCommission.tsx` on
+    `/profile/publishing`, `/bookings` (publishers only), `/booking` and `/gifts`. Fixed figures (referral share, discount limits,
+    giving bands, Paystack's card charge, ad-share hold and minimum, co-tutor limits) are quoted from their constants. Left as text on
+    purpose: `/terms` (legal wording), `/roadmap` (history), Notes Life game prices, the challenge prize, example sentences. Tests:
+    `test:help` (new: saves a non-default config in a stand-in database, loads it as the help does, checks the articles, the pricing
+    row and the publisher lines, and guards `lib/kb-articles.ts` against literals equal to an admin default), `test:pricing`,
+    `test:limits`, `test:nana`.
 
 97. **Calls: earpiece for voice, speaker for video, and a Sound picker (v0.124.1, branch `push/call-audio-route`; 95 and 96 are
     reserved for pending PRs, as are v0.123.2 and v0.124.0):** nothing to deploy. Root cause: iPhone Safari routes a page that has

@@ -4,6 +4,9 @@ import { GIFT_MAX_KOBO, GIFT_MIN_KOBO, GIFT_PRESETS_NAIRA } from "@/lib/boost-co
 import { formatNaira } from "@/lib/booking-time";
 import { TIERS, commissionRateFor, getTierConfig } from "@/lib/tiers";
 import PageHero from "@/components/PageHero";
+import MyCommission from "@/components/MyCommission";
+import { pct } from "@/lib/pricing";
+import { loadLivePricing } from "@/lib/pricing-server";
 
 export const metadata: Metadata = {
   title: "Gifts",
@@ -12,8 +15,11 @@ export const metadata: Metadata = {
 };
 
 const EXAMPLE_KOBO = 5_000 * 100;
+// The rates are set in Admin → Pricing: applied on every render (the page used to be built once, with the defaults), redrawn each minute.
+export const revalidate = 60;
 
-export default function GiftsPage() {
+export default async function GiftsPage() {
+  await loadLivePricing();
   const publisherTiers = TIERS.filter((t) => t.canPublish && t.sessionAndUnlockCommission !== "custom");
   return (
     <>
@@ -60,16 +66,21 @@ export default function GiftsPage() {
               <li key={t.tier} className="flex justify-between py-2">
                 <span className="text-ink">{t.label}</span>
                 <span className="text-slate">
-                  you keep {formatNaira(net)} <span className="font-mono text-xs">({Math.round((1 - rate) * 100)}%)</span>
+                  you keep {formatNaira(net)} <span className="font-mono text-xs">({pct(rate)} commission)</span>
                 </span>
               </li>
             );
           })}
           <li className="flex justify-between py-2">
             <span className="text-ink">Enterprise</span>
-            <span className="text-slate">negotiated (from {Math.round((getTierConfig("enterprise").sessionAndUnlockCommissionFloor ?? 0.05) * 100)}% commission)</span>
+            <span className="text-slate">agreed with us (from {pct(getTierConfig("enterprise").sessionAndUnlockCommissionFloor ?? 0.05)} commission)</span>
           </li>
         </ul>
+        <MyCommission kind="gift" className="mt-3 text-sm font-semibold text-ink" />
+        <p className="mt-3 text-xs text-slate">
+          Community giving (gifts to a community&apos;s funds) is different: no commission, only a flat charge like a bank transfer; see{" "}
+          <Link href="/help/giving" className="text-crimson underline">Giving to a community</Link>.
+        </p>
         <p className="mt-3 text-xs text-slate">
           Gifts are released to your verified bank account 7 days after they're received (a short dispute window).
           You'll see them under Earnings in <Link href="/profile/publishing" className="text-crimson underline">Rates &amp; payouts</Link>,

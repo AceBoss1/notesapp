@@ -17,6 +17,17 @@ import { COMPANY_INFO, SITE } from "./site";
 import { BADGE_PRICE_KOBO, TIERS, formatPercent } from "./tiers";
 import { academyApiFrom, booksCaps, certificateMin, currentPricing, enterpriseCoursesPrice, inventoryAddonPrice, inventoryTrialDays, logisticsAddonPrice, logisticsTrialDays, coversPerDay } from "./pricing";
 import { academyFaq } from "./academy-faq";
+import { MAX_CO_TUTORS, MAX_LESSONS, MIN_LEAD_TUTOR_PERCENT } from "./courses";
+import { nanaResetText, yearlyFreeText, pct as rate } from "./pricing";
+import { LIMIT_TIERS, LIMIT_TIER_LABEL, limitFor, plansWith, type LimitKey, type LimitOverrides } from "./limits";
+import { AGENT_DEFAULTS, type AgentSettings } from "./agents/config";
+import { CARD_CHECK_KOBO, CREDIT_BONUS, HOLD_DAYS, MAX_AFFILIATE_PERCENT, MIN_CASH_KOBO, PLAN_MONTHS, PLAN_SHARE, REFERRAL_COOKIE_DAYS } from "./referrals";
+import { MAX_PERCENT, MIN_PAYABLE_KOBO } from "./discounts";
+import { GIVING_MIN_KOBO, PAYSTACK_LOCAL, UNVERIFIED_GIFT_CAP_KOBO, bandChargeKobo, bandsText, cardChargeKobo } from "./giving";
+import { TICKET_PRICE_MIN_KOBO } from "./tickets";
+import { AD_SHARE_HOLD_DAYS, AD_SHARE_MIN_KOBO } from "./ad-share";
+import { CARDTAP_FEE_CAP_KOBO, CARDTAP_FEE_RATE } from "./cardtap-topup";
+import { ORG_SEATS } from "./org";
 const CERTIFICATE_LATE_TEXT = () => { const l = currentPricing().certificateLate; return { grace: l.graceDays, weekly: `${Math.round(l.weeklyRate * 100)}%`, cap: `${Math.round(l.capRate * 100)}%` }; };
 import { VIDEO_MAX_SECONDS } from "./video-rules";
 import { COMMENT_MAX, COMMUNITY_FREE_MEMBERS, POST_MAX, SPACES_MAX } from "./community";
@@ -38,7 +49,33 @@ const n = (x: number) => x.toLocaleString("en-NG");
 // The four tools our own team is testing first; said the same way wherever they come up.
 const ADD_ONS_LINE = "The Team hub, company finance tools, the investor and partner data room and advertising on LinkedIn from #NotesApp are being tested by our own team, and will be offered as paid add-ons for Business and Enterprise once that testing is done. There are no prices or dates yet; see [Paid add-ons for Business and Enterprise](/help/paid-add-ons).";
 
-export function builtInArticles(): KbArticle[] {
+// What an admin can change outside Admin → Pricing, passed in by lib/kb-server.ts after reading it: the plan limits (Admin → Limits) and
+// the Nana and connected-agent settings. Prices and rates are read from the live objects, so call this after ensurePricing().
+export type KbLive = { limits?: LimitOverrides; agents?: AgentSettings };
+const WORD = ["no", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine", "ten"];
+const words = (x: number) => WORD[x] ?? n(x);
+// Paystack's own charge on a local card, in words, from the numbers checkout uses (lib/giving.ts PAYSTACK_LOCAL).
+const CARD_CHARGE_TEXT = () => `${rate(PAYSTACK_LOCAL.percent)}, plus ${formatNaira(PAYSTACK_LOCAL.flatKobo)} from ${formatNaira(PAYSTACK_LOCAL.flatWaivedUnderKobo)}, at most ${formatNaira(PAYSTACK_LOCAL.capKobo)}`;
+// The session, subscription and gift commission across the plans that publish, for the articles about each.
+const SESSION_RATES = () => `${pct("basic", "sessionAndUnlockCommission", "sessionAndUnlockCommissionFloor")} on Free Basic, ${pct("pro", "sessionAndUnlockCommission", "sessionAndUnlockCommissionFloor")} on Pro, ${pct("business", "sessionAndUnlockCommission", "sessionAndUnlockCommissionFloor")} on Business, and the rate agreed with us on Enterprise (from ${rate(t("enterprise").sessionAndUnlockCommissionFloor ?? 0.05)})`;
+
+export function builtInArticles(live: KbLive = {}): KbArticle[] {
+  const ag = live.agents ?? AGENT_DEFAULTS;
+  const lim = (k: LimitKey, tier: (typeof LIMIT_TIERS)[number]) => limitFor(k, tier, live.limits);
+  // A plan limit over the plans that publish: "30", or "10 to 50" when the plans differ (byPlan says so).
+  const values = (k: LimitKey) => LIMIT_TIERS.filter((x) => t(x).canPublish).map((x) => lim(k, x));
+  const byPlan = (k: LimitKey) => new Set(values(k)).size > 1;
+  const span = (k: LimitKey, fmt: (x: number) => string = n) => {
+    const v = values(k), lo = Math.min(...v), hi = Math.max(...v);
+    return lo === hi ? fmt(lo) : `${fmt(lo)} to ${fmt(hi)}`;
+  };
+  const onPlans = (k: Parameters<typeof plansWith>[0]) => plansWith(k, live.limits) || "no plan for now";
+  const opPlans = LIMIT_TIERS.filter((x) => lim("nanaOperator", x) > 0).map((x) => LIMIT_TIER_LABEL[x]);
+  const operatorPlans = opPlans.length ? (opPlans.length === 1 ? opPlans[0] : `${opPlans.slice(0, -1).join(", ")} and ${opPlans[opPlans.length - 1]}`) : "no plan for now";
+  const voiceMax = span("messageVoiceNoteSeconds", (x) => (x % 60 === 0 ? `${x / 60} minute${x === 60 ? "" : "s"}` : `${x} seconds`)) + (byPlan("messageVoiceNoteSeconds") ? " by plan" : "");
+  const days = (h: number) => (h % 24 === 0 ? `${h / 24} day${h === 24 ? "" : "s"}` : `${h} hours`);
+  const DAYNAME = ["Sundays", "Mondays", "Tuesdays", "Wednesdays", "Thursdays", "Fridays", "Saturdays"];
+  const logKept = ag.logDays % 365 === 0 ? `${ag.logDays / 365 === 1 ? "12 months" : `${ag.logDays / 365} years`}` : `${ag.logDays} days`;
   const A = (slug: string, title: string, category: KbArticle["category"], body: string): KbArticle => ({ slug, title, category, body: body.trim(), source: "built-in" });
   const goldNow = GOLD_KIND_LIVE.identity ? "open now" : "coming soon";
   const list: KbArticle[] = [
@@ -69,15 +106,15 @@ Start at [Journals](/journals) to look around, or [create a free account](/signu
 
 **Your code:** the same page shows your code, which is your username in capitals. A friend can type it under **Have a discount code?** when they choose a plan, instead of using your link; it counts the same. If a friend uses your code and someone else's link, the first one recorded wins.
 
-**What a friend gets:** if they join through your link within 30 days, their first month of Pro or Business is free. They add a card, which is checked with ₦100 that is given straight back, and the plan is billed from the second month. On a yearly plan they get one month's value off the first year instead.
+**What a friend gets:** if they join through your link within ${REFERRAL_COOKIE_DAYS} days, their first month of Pro or Business is free. They add a card, which is checked with ${money(CARD_CHECK_KOBO)} that is given straight back, and the plan is billed from the second month. On a yearly plan they get one month's value off the first year instead.
 
-**What you earn on plans:** 20% of what your friend pays for their plan, every payment, for 12 months from their first real payment. Nothing is earned on the free month.
+**What you earn on plans:** ${rate(PLAN_SHARE)} of what your friend pays for their plan, every payment, for ${PLAN_MONTHS} months from their first real payment. Nothing is earned on the free month.
 
-**Promote products (affiliates):** open the **affiliate marketplace** ([/affiliates](/affiliates)) to see shop items, downloads and courses whose publishers pay a share. Choose **Get my link** on any of them and share it: anyone who buys through it within 30 days earns you that share of what they paid (after any discount code). You can't earn on your own purchases, or on your own products.
+**Promote products (affiliates):** open the **affiliate marketplace** ([/affiliates](/affiliates)) to see shop items, downloads and courses whose publishers pay a share. Choose **Get my link** on any of them and share it: anyone who buys through it within ${REFERRAL_COOKIE_DAYS} days earns you that share of what they paid (after any discount code). You can't earn on your own purchases, or on your own products.
 
-**For publishers:** under **Account → Referrals**, set a share (up to 50%) on any shop item on sale here, download or paid course. It goes on the marketplace at once; set 0 to take it off. The share comes out of your part of the sale, and #NotesApp's commission is worked out as usual.
+**For publishers:** under **Account → Referrals**, set a share (up to ${MAX_AFFILIATE_PERCENT}%) on any shop item on sale here, download or paid course. It goes on the marketplace at once; set 0 to take it off. The share comes out of your part of the sale, and #NotesApp's commission is worked out as usual.
 
-**Getting paid:** earnings wait 7 days (14 for delivered shop items) so payments can clear; a refund takes back what it earned. Then take them as **cash** to your bank account, from ₦2,000 (add one on the Referrals page if you don't sell), or as **NotesApp Credit** with 10% more, any amount.
+**Getting paid:** earnings wait ${HOLD_DAYS.plan} days (${HOLD_DAYS.store} for delivered shop items) so payments can clear; a refund takes back what it earned. Then take them as **cash** to your bank account, from ${money(MIN_CASH_KOBO)} (add one on the Referrals page if you don't sell), or as **NotesApp Credit** with ${rate(CREDIT_BONUS)} more, any amount.
 
 **Your monthly report:** on the 1st of each month we email you a report on the month before, but only if something happened: friends who joined, paid conversions, affiliate sales, what you earned, and your available, pending and withdrawn balances, with a table of the month's sign-ups and sales. Buyers and friends are never named. Turn it off under **Account settings → Email** ([/profile/account#email](/profile/account#email)) or with the link at the bottom of the email; your Referrals page always has the same numbers.
 
@@ -88,13 +125,13 @@ Start at [Journals](/journals) to look around, or [create a free account](/signu
     A("discount-codes", "Discount codes and coupons", "Publishing and earning", `
 **Make a code for your own products (every plan):** go to **Account → Discount codes** ([/profile/discounts](/profile/discounts)) and choose **New code**.
 - **The code:** 3 to 20 letters, numbers or dashes, like \`WELCOME10\`. Buyers type it at checkout; capitals don't matter.
-- **The discount:** a percentage (1% to 90%) or a naira amount off.
+- **The discount:** a percentage (1% to ${MAX_PERCENT}%) or a naira amount off.
 - **What it works on:** your shop items, downloads, courses and booked sessions; or only some of them (paste their links).
 - **Limits, all optional:** total uses, uses per member (one by default), a start and an end date, a minimum order, and "only for a first order from you".
 
 You see how many times each code was used, how much it took off and what buyers paid. You never see who used it. **Pause** a code at any time, for example if it's shared somewhere you didn't mean.
 
-**What a code never does:** take the price under ₦100, touch the delivery fee, or work on someone else's products. You can't use your own code.
+**What a code never does:** take the price under ${money(MIN_PAYABLE_KOBO)}, touch the delivery fee, or work on someone else's products. You can't use your own code.
 
 **The money:** the discount comes off your price, and #NotesApp's commission is worked out on what the buyer actually paid. On a basket the discount is shared across the items in proportion to their prices.
 
@@ -147,7 +184,7 @@ Nana runs on three AI models, named after gems: the dearer the gem, the more cap
 
 You can also choose how long Nana thinks before answering: **Quick** on every plan, **Balanced** from Business, **Thorough** on Enterprise. Choose both from the gem button next to Nana's name in the chat.
 
-**Free allowance.** Every member gets a free allowance on our AI account, sized by plan (Free and Free Basic, Pro, Business and Enterprise each get more). It refreshes on a timer, usually every Monday (Lagos time), and doesn't carry over. Dearer gems and more thinking use it faster. The chat's gem button and the [Nana page](/nana#credit) show what's left and when it refreshes.
+**Free allowance.** Every member gets a free allowance on our AI account, sized by plan (Free and Free Basic, Pro, Business and Enterprise each get more). It refreshes ${nanaResetText()} (Lagos time), and doesn't carry over. Dearer gems and more thinking use it faster. The chat's gem button and the [Nana page](/nana#credit) show what's left and when it refreshes.
 
 **Nana credit.** Anyone, on any plan, can buy Nana credit on the [Nana page](/nana#credit), by card or from your NotesApp Credit wallet. Your free allowance is always used first, then your credit. Credit never expires and carries over. When both run out, Nana answers from the help centre until your allowance refreshes.
 
@@ -173,9 +210,9 @@ Your publishing tier shows under your name on your profile, for example "Pro Pub
     // ── Plans and pricing
     A("plans-and-prices", "Plans and prices", "Plans and pricing", `
 - **Free Standard**: ${t("standard").price}. Read, comment, book and buy. No publishing.
-- **Free Basic**: ${t("basic").price}. Publish and earn. Commission is highest here.
-- **Pro**: ${t("pro").price}, or ${money(t("pro").yearlyKobo!)} a year (two months free).
-- **Business**: ${t("business").price}, or ${money(t("business").yearlyKobo!)} a year (two months free). Includes the verified badge, your own domain, and four team seats.
+- **Free Basic**: ${t("basic").price}. Publish and earn. Commission is highest here (${pct("basic", "sessionAndUnlockCommission", "sessionAndUnlockCommissionFloor")} on paid sessions, subscriptions and gifts).
+- **Pro**: ${t("pro").price}, or ${money(t("pro").yearlyKobo!)} a year${yearlyFreeText("pro") ? ` (${yearlyFreeText("pro")})` : ""}.
+- **Business**: ${t("business").price}, or ${money(t("business").yearlyKobo!)} a year${yearlyFreeText("business") ? ` (${yearlyFreeText("business")})` : ""}. Includes the verified badge, your own domain, and ${words(ORG_SEATS.business ?? 0)} team seats.
 - **Enterprise**: ${t("enterprise").price}. Rates and seats are agreed with us; [contact us](/contact).
 
 **Free trials:** you can try Pro and Business free for ${TRIAL_DAYS} days each, with no card, from [Pricing](/pricing) (a verified email is needed). Each plan can be tried once. When a trial ends you're back on the plan you pay for, or Free Basic, and everything you published stays. To try another plan after a trial, pay for a plan first: a paid plan has to come between two free trials. You can upgrade or downgrade by paying at any time. Add-ons (such as logistics) have a one-time free trial of up to ${TRIAL_DAYS} days too.
@@ -197,7 +234,7 @@ Paid plans renew automatically through Paystack, monthly or yearly. Cancel any t
 
 **Top up:** from ${money(TOPUP_MIN_KOBO)} to ${money(TOPUP_MAX_KOBO)} at a time, through Paystack (card, bank transfer or USSD). Open the menu under your name → **Wallet** → **Top up**.
 
-**Top up with CardTap:** on an Android phone with NFC, choose **Tap to pay with CardTap** under Top up. You get a code: open the free [CardTap app](https://play.google.com/store/apps/details?id=com.lonytech.cardtap) from Paylony, paste the code (or scan its QR), tap your bank card on the phone and enter your PIN. Your wallet updates by itself a moment later. CardTap's own fee is added at cost, 1% of the top-up and never more than ₦1,000, and you see it before you pay (during the launch offer, #NotesApp pays it for you). It's usually cheaper than paying by card. iPhones from the iPhone 13 follow when Paylony adds them. Refunds of a CardTap top-up go through Paylony.
+**Top up with CardTap:** on an Android phone with NFC, choose **Tap to pay with CardTap** under Top up. You get a code: open the free [CardTap app](https://play.google.com/store/apps/details?id=com.lonytech.cardtap) from Paylony, paste the code (or scan its QR), tap your bank card on the phone and enter your PIN. Your wallet updates by itself a moment later. CardTap's own fee is added at cost, ${rate(CARDTAP_FEE_RATE)} of the top-up and never more than ${money(CARDTAP_FEE_CAP_KOBO)}, and you see it before you pay (during the launch offer, #NotesApp pays it for you). It's usually cheaper than paying by card. iPhones from the iPhone 13 follow when Paylony adds them. Refunds of a CardTap top-up go through Paylony.
 
 **Bonus Credits** come with larger top-ups:
 ${BONUS_STEPS.map((b) => `- ${money(b.fromKobo)} or more: **+${money(b.bonusKobo)}**`).join("\n")}
@@ -215,7 +252,7 @@ They last ${BONUS_DAYS} days, are spent before your own credit (soonest-ending f
 **Your statement:** the Wallet page lists every top-up, payment, refund and expired bonus, with filters (Top-ups, Spent, Bonus, Held, Refunds). Closing your account? Spend your credit first, or [contact us](/contact) to refund unspent top-ups to your card (Bonus Credits aren't refunded).`)]
       : []),
     A("commission-rates", "What #NotesApp takes (commission) on each plan", "Plans and pricing", `
-On paid sessions, journal subscriptions and gifts, #NotesApp takes a commission that falls as you move up:
+On **paid sessions, journal subscriptions and gifts to you** (one rate for all three), #NotesApp takes a commission that falls as you move up:
 - Free Basic: ${pct("basic", "sessionAndUnlockCommission", "sessionAndUnlockCommissionFloor")}
 - Pro: ${pct("pro", "sessionAndUnlockCommission", "sessionAndUnlockCommissionFloor")}
 - Business: ${pct("business", "sessionAndUnlockCommission", "sessionAndUnlockCommissionFloor")}
@@ -223,7 +260,9 @@ On paid sessions, journal subscriptions and gifts, #NotesApp takes a commission 
 
 On store sales, the commission is on the item price only (your delivery fee is yours): physical goods ${pct("basic", "physicalCommission", "physicalCommissionFloor")} on Free Basic, ${pct("pro", "physicalCommission", "physicalCommissionFloor")} on Pro, ${pct("business", "physicalCommission", "physicalCommissionFloor")} on Business; digital downloads ${pct("basic", "digitalCommission", "digitalCommissionFloor")}, ${pct("pro", "digitalCommission", "digitalCommissionFloor")} and ${pct("business", "digitalCommission", "digitalCommissionFloor")}. Enterprise rates are agreed with us.
 
-**Paid event tickets** have no commission on any plan: like giving, each ticket has a small charge (₦10 up to ₦5,000, ₦25 up to ₦50,000, ₦50 above), plus the card charge at cost; see [Paid event tickets](/help/event-tickets). **Giving** to a community has no commission: just a charge like a bank transfer (₦10 up to ₦5,000, ₦25 up to ₦50,000, ₦50 above), plus the card charge at cost by card; see [Giving to a community](/help/giving).
+Your own rate is shown where you set your prices and see your earnings, under [Rates & payouts](/profile/publishing), and on [My bookings](/bookings). A sale keeps the rate in force when it was paid.
+
+**Not the same as gifts to you:** **giving** to a community (its funds) has no commission, just a flat charge like a bank transfer (${bandsText(money)}), plus the card charge at cost by card; see [Giving to a community](/help/giving). **Paid event tickets** have no commission on any plan either: each ticket has the same small charge, plus the card charge at cost; see [Paid event tickets](/help/event-tickets).
 
 **Discount codes:** on a discounted sale, the commission is worked out on what the buyer actually paid. An **affiliate share** you set comes out of your part of the sale, not out of the buyer's price; see [Referrals and affiliates](/help/referrals).
 
@@ -252,15 +291,17 @@ Publishers set a session price (${money(LIMITS.sessionMinKobo)} to ${money(LIMIT
 
 **Cancellations and refunds:** ${POLICY_TEXT}
 
+**What #NotesApp takes:** ${SESSION_RATES()} of each paid session; the same rate as subscriptions and gifts (see [commission rates](/help/commission-rates)). Your own rate shows under Rates & payouts and on My bookings.
+
 To earn from sessions, add a verified bank account under Rates & payouts. Manage your own bookings on [My bookings](/bookings). More at [Booking](/booking).`),
     A("subscriptions", "Journal subscriptions", "Publishing and earning", `
 A publisher can offer a paid monthly subscription (${money(LIMITS.subscriptionMinKobo)} to ${money(LIMITS.subscriptionMaxKobo)} a month) that unlocks their premium entries. Readers subscribe from the publisher's profile, pay by Paystack, and renew automatically; cancel any time.
 
-For the publisher, subscription money is released to their verified bank account after a 7-day window, minus the commission for their plan (see [commission rates](/help/commission-rates)).`),
+For the publisher, subscription money is released to their verified bank account after a 7-day window, minus the commission for their plan: ${SESSION_RATES()} (see [commission rates](/help/commission-rates)).`),
     A("gifts", "Gifts", "Publishing and earning", `
 A reader can send a publisher, or one single post, a gift from ${money(GIFT_MIN_KOBO)} to ${money(GIFT_MAX_KOBO)}, with a short note, or anonymously. Gift is the **Gift me** button on a publisher's profile and the 🎁 on their posts; both switch on once the publisher has added a payout account. If Gift me is greyed out, tap or hover the ℹ️ beside it.
 
-You need a verified email to send a gift, and you cannot gift yourself. Gifts are paid to the publisher's bank account 7 days after they arrive (a short dispute window), minus their plan's commission. More at [Gifts](/gifts).`),
+You need a verified email to send a gift, and you cannot gift yourself. Gifts are paid to the publisher's bank account 7 days after they arrive (a short dispute window), minus their plan's commission: ${SESSION_RATES()}, the same as sessions and subscriptions. Gifts to a community's funds are [giving](/help/giving) instead: no commission, a flat charge. More at [Gifts](/gifts).`),
     A("analytics", "Your analytics", "Publishing and earning", `
 [Analytics](/profile/analytics), under My account, shows how you're doing in one place.
 
@@ -308,7 +349,7 @@ Pro, Business and Enterprise publishers can write a post with other members. The
 
 Invites sent before access levels existed keep what they had: those co-authors are credited and paid but don't see the draft, until the lead offers them access and they agree. Gifts on the post are split in the agreed percentages; sessions stay personal to each author. See [Co-authoring](/coauthoring).`),
     A("co-teaching", "Co-teaching a course", "Publishing and earning", `
-On [Teach a course](/academy/teach), a course's lead (its owner, or for an organisation's course its admins and the team member who made it) can invite up to 4 co-tutors by @username under **4. Tutors**, choosing for each one **what they can do** and **their share of each sale** (from 0%; the lead keeps at least 10%).
+On [Teach a course](/academy/teach), a course's lead (its owner, or for an organisation's course its admins and the team member who made it) can invite up to ${MAX_CO_TUTORS} co-tutors by @username under **4. Tutors**, choosing for each one **what they can do** and **their share of each sale** (from 0%; the lead keeps at least ${MIN_LEAD_TUTOR_PERCENT}%).
 
 **Access levels**
 - **Can view:** they see the course and every lesson, draft or published, read-only (open it from Teach with **Preview**), to review it and send the lead their comments. No editing.
@@ -329,10 +370,10 @@ Every ad is reviewed; if we cannot run it you are refunded in full, and impressi
 
 **Sizes and spots:** one picture works everywhere: **1200 × 628 px** (1.91 : 1; at least 600 × 314, up to 2400 × 1256 for sharp screens), JPG, PNG or WebP, best under 500 KB and at most 1 MB, with the logo and words inside the middle 960 × 502. The campaign form crops other shapes for you before you pay. The headline is up to 60 characters and the text up to 120. Adverts can show on the home page, the journal feed, Trending, publishers' profiles and posts (when they show adverts), Notes Market, Notes Academy, Explore, search results, free course pages, the weekly digest (each email sent counts as an impression) and, if you choose, on a billboard in Notes Life, which needs its own 1600 × 900 picture. Never in Messages, checkout, lessons, paid course pages, certificates or the editors. When a spot has several adverts, each stays about 30 seconds. All of it, with templates to download: [Advert sizes and spots](/advertise/specifications).
 
-**Ad share for publishers:** Pro publishers earn ${formatPercent(t("pro").adRevenueShare!)} and Business publishers ${formatPercent(t("business").adRevenueShare!)} of the ad revenue on their pages if they opt in, with no follower or view threshold. Free journals always show ads and have no share. Shares are calculated monthly, reviewed, held for 30 days and paid to your verified bank account; amounts under ₦1,000 roll into the next month.`),
+**Ad share for publishers:** Pro publishers earn ${formatPercent(t("pro").adRevenueShare!)} and Business publishers ${formatPercent(t("business").adRevenueShare!)} of the ad revenue on their pages if they opt in, with no follower or view threshold. Free journals always show ads and have no share. Shares are calculated monthly, reviewed, held for ${AD_SHARE_HOLD_DAYS} days and paid to your verified bank account; amounts under ${money(AD_SHARE_MIN_KOBO)} roll into the next month.`),
     ...(MESSAGES_LIVE || MOMENTS_LIVE
       ? [A("messages-moments-groups", "Messages, group chats and moments", "Publishing and earning", `
-${MESSAGES_LIVE ? `**Messages:** talk one to one, with bold, italic and underline, sent and read ticks, pictures, videos and documents (how big and how many depends on your plan), voice notes of up to 5 minutes and stickers. You can also drag pictures and files into a conversation, or paste them. A web address in a message becomes a link with a preview card (the page's picture, title and description). You can block or report anyone. Open [Messages](/messages).
+${MESSAGES_LIVE ? `**Messages:** talk one to one, with bold, italic and underline, sent and read ticks, pictures, videos and documents (how big and how many depends on your plan), voice notes of up to ${voiceMax} and stickers. You can also drag pictures and files into a conversation, or paste them. A web address in a message becomes a link with a preview card (the page's picture, title and description). You can block or report anyone. Open [Messages](/messages).
 
 At the top of every conversation is the person's picture, their name with any badge, and whether they are online (see [Followers, following and online status](/help/followers-and-online-status)). ${CALLS_LIVE ? "The phone and camera buttons start a **free voice or video call** with anyone you follow who follows you back; tap **Call back** on any call line to call again (see [Voice and video calls](/help/voice-and-video-calls)). " : ""}The small arrow beside it opens a menu: **View profile**, **View moments**, **Create group**, **Mute notifications** (no bell, push or email for that one conversation until you unmute it), **Block** and **Report**.
 
@@ -541,15 +582,15 @@ Calls are free. Planned: paid calls inside Notes Life (₦5 a minute voice, ₦1
 - **Make a cover with Nana:** no picture? Under the cover, tap **✨ Make a cover with Nana**, say what it should show if you like ("a farmer with a phone, green and gold"), and Nana designs one from your course: our own African patterns (adire, kente-like stripes, mud cloth), an icon, your title in bold type and a small Notes Academy mark. Tap **Use as cover**, **Edit** it ("make it green", "add a laptop", "shorter headline") or **Try another**; your last few covers stay there to go back to. It works on free and paid courses, for the lead, co-tutors and admins. Each new cover or edit counts one of the day's covers: Free Basic ${coversPerDay("basicDaily")}, Pro ${coversPerDay("proDaily")}, Business ${coversPerDay("businessDaily")}, Enterprise ${coversPerDay("enterpriseDaily")} a day, starting again at midnight Lagos time (so on Free Basic, one cover and two edits, or three different ones). Nana's design comes from your Nana allowance, then your Nana credit; when both are used up, covers stop until the allowance refreshes, and the editor says when.
 - **About the course:** the level, language and format (self-paced, or live classes with recordings), what learners will learn and the requirements (one per line), how long it runs and when classes are, and, for live classes, an optional meeting link. Hold live classes in an [audio room](/help/community-audio-rooms) in your course group, for up to ${1 + ROOM_SPEAKERS_MAX + ROOM_LISTENERS_MAX_P2P} people (you, ${ROOM_SPEAKERS_MAX} speakers and ${ROOM_LISTENERS_MAX_P2P} listening); for video, or a bigger class, paste a meeting link. Only learners who enrolled or bought see it.
 - **Course group:** a place on #NotesApp for your learners, instead of a WhatsApp or Telegram group. Under About the course, link one of your communities and a Space in it, tap **Add a members-only Space for this course** to one you run, or tap **Start a community for this course**: it's joined only by invite link, and your learners get the link with a **Join the course group** button. No community yet? Start one on [Community](/community); see [Spaces](/help/community-spaces) and [Circles](/help/community-circles). If your community is open to anyone, its members-only Spaces are open to all its members, not only your learners. A WhatsApp or Telegram link saved on an older course keeps showing to its learners until you link a course group (which replaces it) or remove it; new outside group links can't be added.
-- **Price:** free, or paid on Pro (text lessons, PDFs and YouTube) and on Business or Enterprise (your own uploaded videos too). You get the price less the same fee as your digital items, paid to your bank 7 days after each sale; add your bank account in Rates & payouts before you publish. Tick **Certificate included** to include it in the price.
-- **Tutors:** teach alone, or invite up to 4 co-tutors by @username with what they can do (**Can view**, or **Can view and edit** the course's content and lessons) and their share of each sale. Each one reads the terms and agrees before they're listed, and is paid their share at their own plan's fee. The price, the shares, the tutors and publishing stay with the lead. See [Co-teaching a course](/help/co-teaching).
-- **Add lessons:** paste a link to a video on your own YouTube and check the picture to make sure it's the right one (keep videos public or unlisted, not private, or they won't play), or write a text lesson in the journal editor. On a paid course you can also upload videos (Business and Enterprise, up to 200 MB each) and PDFs (up to 50 MB), and tick **Free preview** on the lessons anyone may open before buying. Group lessons in **modules** if you like. Add the minutes; they add up to the course's length. Use ↑ and ↓ to put lessons in order.
+- **Price:** free, or paid on ${onPlans("paidCourses")} (text lessons, PDFs and YouTube), with your own uploaded videos too on ${onPlans("courseVideoUploads")}. You get the price less the same fee as your digital items, paid to your bank 7 days after each sale; add your bank account in Rates & payouts before you publish. Tick **Certificate included** to include it in the price.
+- **Tutors:** teach alone, or invite up to ${MAX_CO_TUTORS} co-tutors by @username with what they can do (**Can view**, or **Can view and edit** the course's content and lessons) and their share of each sale. Each one reads the terms and agrees before they're listed, and is paid their share at their own plan's fee. The price, the shares, the tutors and publishing stay with the lead. See [Co-teaching a course](/help/co-teaching).
+- **Add lessons:** paste a link to a video on your own YouTube and check the picture to make sure it's the right one (keep videos public or unlisted, not private, or they won't play), or write a text lesson in the journal editor. On a paid course you can also upload videos (${onPlans("courseVideoUploads")}, up to 200 MB each) and PDFs (up to 50 MB), and tick **Free preview** on the lessons anyone may open before buying. Group lessons in **modules** if you like. Add the minutes; they add up to the course's length. Use ↑ and ↓ to put lessons in order.
 - **Notes and credit on YouTube lessons:** a YouTube lesson can have **lesson notes** under the video, written like a text lesson: a summary, steps or an exercise. When you save it, we fill in the video's title and creator from YouTube and show "Video: <title> by <creator>, on YouTube. Shared here with credit to the original creator." under the player, linking to their channel. If you use someone else's public video, introduce it in your notes in your own words ("In this video, … shows…").
 - **Publish:** a course needs a title, a summary and at least one lesson. Use **Preview** first if you like; only its tutors can see a draft.
 - You can keep editing after publishing. To remove the last lesson of a published course, unpublish it first. Deleting a course removes its lessons and its learners' progress; a course people have bought can't be deleted (unpublish it instead, and they keep it).
 - **Your academy (certificates):** set it up once at [Your academy](/academy/teach/setup): the name and logo on your certificates, who signs them (a photo of the signature on white paper; we remove the white), an accrediting institution if you have one (its logo shows once #NotesApp has checked it) and your margin on top of our ${certificateMin()}. You receive the margin less our usual commission, and your share grows with any late claim fee. Courses our team has reviewed get the "#NotesApp Certified Course" seal.
 - **Add a quiz** to check what learners have learnt (see Quizzes below).
-- Up to 30 courses (90 for an organisation; each plan's number is on the [pricing page](/pricing)), each with up to 100 lessons. Your published courses show on your profile's Courses tab, on Trending, on your own site and in the weekly digest when they're popular.
+- Up to ${span("coursesPerMember")} courses${byPlan("coursesPerMember") ? " depending on your plan" : ""} (${span("coursesPerOrganisation")} for an organisation; each plan's number is on the [pricing page](/pricing)), each with up to ${n(MAX_LESSONS)} lessons. Your published courses show on your profile's Courses tab, on Trending, on your own site and in the weekly digest when they're popular.
 
 **Quizzes**
 - **For tutors:** tap **+ Add a quiz** under Curriculum, on any course, free or paid, on every plan that can teach. Write each question, give 2 to 6 answers, tick the right one and, if you like, add a short explanation. Set the pass mark (70% unless you change it). A quiz can have up to 50 questions. Learners never see the answers before they submit; edit the quiz any time and your answers load with it.
@@ -768,11 +809,11 @@ An event has a start and end (Lagos time), where it is, and or a **Join live** l
 
 People tap **Going** or **Interested** and get a reminder **24 hours and 1 hour before** (a notification, a phone notification and an email), and can **Add to calendar**. Public events are listed under Upcoming, by state and city, in **Explore → Events**, and in **Trending → Events** when people are buying tickets, RSVPing or visiting. Members-only events and events of an invite-only community never are. If you change or cancel an event, everyone going or interested is told.
 
-**Paid tickets:** on your event's page, under **Tickets**, add ticket types (Regular, VIP …), each with a price (from ₦100) and how many. With none, the event stays a free RSVP. Paid tickets need your bank account under Rates & payouts. More in [Paid event tickets](/help/event-tickets).`),
+**Paid tickets:** on your event's page, under **Tickets**, add ticket types (Regular, VIP …), each with a price (from ${money(TICKET_PRICE_MIN_KOBO)}) and how many. With none, the event stays a free RSVP. Paid tickets need your bank account under Rates & payouts. More in [Paid event tickets](/help/event-tickets).`),
     A("event-tickets", "Paid event tickets and check-in", "Teams and organisations", `
 **For organisers:** whoever can edit an event (its host, or a community's admins for the community's events) adds **ticket types** on the event's page: a name, a price in naira and how many. A type that has sold can't be removed or set below what's sold; set its number to what's sold to stop selling it. You're paid after the event ends (and the 24-hour window for problems), to your bank account under Rates & payouts.
 
-**Charges:** no commission, on every plan, the same as [giving](/help/giving): each ticket has a small charge by its price (₦10 up to ₦5,000, ₦25 up to ₦50,000, ₦50 above), plus Paystack's card charge at cost on the payment (1.5%, plus ₦100 from ₦2,500, at most ₦2,000). The buyer pays the ticket price; the charges come out of it. For example, one ₦5,000 ticket: ₦10 charge and ₦175 card charge, so you get ₦4,815. Tickets sold before 2 November 2026 keep the commission they were sold with.
+**Charges:** no commission, on every plan, the same as [giving](/help/giving): each ticket has a small charge by its price (${bandsText(money)}), plus Paystack's card charge at cost on the payment (${CARD_CHARGE_TEXT()}). The buyer pays the ticket price; the charges come out of it. For example, one ${money(5_000 * 100)} ticket: ${money(bandChargeKobo(5_000 * 100))} charge and ${money(cardChargeKobo(5_000 * 100))} card charge, so you get ${money(5_000 * 100 - bandChargeKobo(5_000 * 100) - cardChargeKobo(5_000 * 100))}. Tickets sold before 2 November 2026 keep the commission they were sold with.
 
 **For buyers:** choose the type and how many (up to ${TICKETS_PER_ORDER_MAX} at a time) and pay by card or bank through Paystack. Each ticket gets its own code and **QR code**, under [My tickets](/tickets), on the event's page, and in your confirmation email. Each lets one person in, once. When a type is sold out, it says so before you pay.
 
@@ -786,13 +827,13 @@ Churches, NGOs, schools and clubs can take offerings, tithes and donations in th
 
 **For admins:** open your community's **Admin** tab, find **Giving**, tick **Take gifts** and name your funds (Tithe, Offering, Building fund; "Donation" if you name none). Gifts are paid to the bank account of the community's owner under Rates & payouts, so add it first. Below the settings you see every gift (an anonymous giver's name hidden), and the totals per fund. Card details never reach us or you.
 
-**For givers:** tap **Give** on the community (members, and anyone signed in when the community is listed). Choose the amount (from ₦100), the fund, add a note if you like, and choose whether to give anonymously and whether to **cover the charges**. You see the charges and the total before you pay. Every gift gets a receipt by email, and all your receipts are under [My giving](/giving).
+**For givers:** tap **Give** on the community (members, and anyone signed in when the community is listed). Choose the amount (from ${money(GIVING_MIN_KOBO)}), the fund, add a note if you like, and choose whether to give anonymously and whether to **cover the charges**. You see the charges and the total before you pay. Every gift gets a receipt by email, and all your receipts are under [My giving](/giving).
 
-**Charges, like a bank transfer:** ₦10 on gifts up to ₦5,000, ₦25 up to ₦50,000, and ₦50 above. By card or bank, Paystack's own charge is added at cost and shown as the **card charge** (1.5% plus ₦100, the ₦100 waived under ₦2,500, at most ₦2,000). From the NotesApp Credit wallet there's no card charge, so it costs less. There's no commission on top. If you cover the charges, you pay the gift plus the charges and the community gets the whole gift; otherwise the charges come out of the gift.
+**Charges, like a bank transfer:** ${bandsText(money)}. By card or bank, Paystack's own charge is added at cost and shown as the **card charge** (${CARD_CHARGE_TEXT()}). From the NotesApp Credit wallet there's no card charge, so it costs less. There's no commission on top. If you cover the charges, you pay the gift plus the charges and the community gets the whole gift; otherwise the charges come out of the gift.
 
 **Payouts:** each gift is held for a day, then paid out with that day's other gifts on the next payout run, only to the owner's verified bank account.
 
-**Before verification:** until a community, or the organisation that runs it, is [verified](/organisations), each gift is capped at ₦20,000.
+**Before verification:** until a community, or the organisation that runs it, is [verified](/organisations), each gift is capped at ${money(UNVERIFIED_GIFT_CAP_KOBO)}.
 
 Selling tickets to your community's events? See [Paid event tickets and check-in](/help/event-tickets).`),
     A("community-general", "General: your community's announcement channel", "Teams and organisations", `
@@ -1034,7 +1075,7 @@ MCP (Model Context Protocol) is a standard way for AI assistants such as Claude 
     A("connect-an-ai-assistant", "Connect an AI assistant to your account (Connect NotesApp)", "Teams and organisations", `
 You can let an AI assistant such as Claude or ChatGPT work on your #NotesApp account: read your bookings, write journal drafts, answer booking requests. You decide exactly what it may do, and it never moves money.
 
-**How to connect:** in your assistant, add a connector (some call it an MCP server) with our MCP address, \`https://mcp.${ROOT_DOMAIN}\` (the address for the domain you use is shown in Console → Connected agents). The assistant then sends you to the **Connect NotesApp** page, or shows you an 8-character code: type it at [/link](/link). Codes last 10 minutes and work once.
+**How to connect:** in your assistant, add a connector (some call it an MCP server) with our MCP address, \`https://mcp.${ROOT_DOMAIN}\` (the address for the domain you use is shown in Console → Connected agents). The assistant then sends you to the **Connect NotesApp** page, or shows you an 8-character code: type it at [/link](/link). Codes last ${ag.linkCodeMinutes} minutes and work once.
 
 **Check the code.** The Connect page shows the code the assistant should be showing you. If they don't match, close the page: someone else may be trying to connect.
 
@@ -1044,21 +1085,21 @@ You can let an AI assistant such as Claude or ChatGPT work on your #NotesApp acc
 
 **Money never moves through an assistant.** Refunds, payouts, withdrawals, Boost and purchases stay with you, and an assistant can spend ₦0.
 
-**Limits:** actions a day (100 by default; reading counts too; resets at midnight, Lagos time), the biggest discount it may mention (₦2,000 by default), and how long access lasts (90 days by default; then it asks again).
+**Limits:** actions a day (${n(ag.actionsPerDay)} by default; reading counts too; resets at midnight, Lagos time), the biggest discount it may mention (${money(ag.discountCapNaira * 100)} by default), and how long access lasts (${ag.accessDays} days by default; then it asks again).
 
 **Afterwards:** Console → Connected agents shows each assistant, what it may do and everything it did (filters and a CSV download). Edit its permissions, pause it, or disconnect it there; disconnecting stops it at once. #NotesApp never asks for your password inside another app.`),
     A("nanas-inbox", "Nana's inbox: what Nana prepared, what she did, and her jobs", "Teams and organisations", `
 Nana's inbox is where Nana, and any AI assistant you've connected, leave work for you to approve. It's pinned in **Messages** under Nana's conversation, and at [/nana/inbox](/nana/inbox).
 
-**Needs you:** drafts and requests waiting for you: a reply to someone asking about a session (with your booking link), an answer to a customer's question, a journal to publish, a store change, an update for a buyer whose order hasn't shipped. Edit the text, make it shorter, warmer, more formal or Pidgin, then **Approve and send**, **Decline** or **Dismiss**. Anything you don't answer expires after 48 hours. Nothing leaves your account until you approve it.
+**Needs you:** drafts and requests waiting for you: a reply to someone asking about a session (with your booking link), an answer to a customer's question, a journal to publish, a store change, an update for a buyer whose order hasn't shipped. Edit the text, make it shorter, warmer, more formal or Pidgin, then **Approve and send**, **Decline** or **Dismiss**. Anything you don't answer expires after ${days(ag.draftHours)}. Nothing leaves your account until you approve it.
 
-**Done by Nana:** what was done for you, with **Undo**: a sent reply for 2 minutes, and what Nana did on her own (like a thank-you to someone who booked and paid) for 24 hours.
+**Done by Nana:** what was done for you, with **Undo**: a sent reply for ${ag.undoReplyMinutes} minute${ag.undoReplyMinutes === 1 ? "" : "s"}, and what Nana did on her own (like a thank-you to someone who booked and paid) for ${ag.undoAutoHours} hour${ag.undoAutoHours === 1 ? "" : "s"}.
 
-**Nana's jobs (Business and Enterprise):** switch them on once, then choose: booking replies, the weekly summary (Mondays, 07:00), customer questions, journal drafts from your notes (Nana never publishes) and shipping nudges (after 3 days unshipped). **Pause all** stops everything at once. On other plans you still get your connected assistants' requests here.
+**Nana's jobs (${operatorPlans}):** switch them on once, then choose: booking replies, the weekly summary (${DAYNAME[ag.weeklySummaryWeekday]}, ${String(ag.weeklySummaryHour).padStart(2, "0")}:00), customer questions, journal drafts from your notes (Nana never publishes) and shipping nudges (after ${ag.shipNudgeDays} day${ag.shipNudgeDays === 1 ? "" : "s"} unshipped). **Pause all** stops everything at once. On other plans you still get your connected assistants' requests here.
 
 **Writes like you:** Nana learns how you write from your own messages and journals (never other people's). Read what she learnt, edit it in your own words, or ask her to learn again.
 
-**Safe by design:** what customers write is shown to Nana as information, never as instructions; she can't send links, offer discounts or move money because a message asks her to. Nana uses your Nana allowance (or your own AI account if you connected one), and everything she does is in Console → Connected agents, kept for 12 months.`),
+**Safe by design:** what customers write is shown to Nana as information, never as instructions; she can't send links, offer discounts or move money because a message asks her to. Nana uses your Nana allowance (or your own AI account if you connected one), and everything she does is in Console → Connected agents, kept for ${logKept}.`),
     A("team-hub", "Team hub and team messaging (paid add-on, after internal testing)", "Teams and organisations", `
 A shared workspace for your team: a work board, milestones, a morning summary, a weekly review, meetings, a money ledger, payroll, a staff library and team messages. Our own team is testing it now. Once that testing is done, it will be offered as a **paid add-on for Business and Enterprise**. It is not available yet, and there is no price or date. See the [Team hub page](/teams) and the [roadmap](/roadmap).`),
     A("paid-add-ons", "Paid add-ons for Business and Enterprise", "Teams and organisations", `

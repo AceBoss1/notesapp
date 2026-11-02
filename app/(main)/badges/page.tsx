@@ -9,6 +9,7 @@ import { GOLD_KIND_LIVE } from "@/lib/badges";
 import { BADGE_PRICE_KOBO, TIERS, badgeIncluded } from "@/lib/tiers";
 import { formatNaira } from "@/lib/booking-time";
 import PageHero from "@/components/PageHero";
+import { loadLivePricing } from "@/lib/pricing-server";
 
 export const metadata: Metadata = {
   title: "Verification badges",
@@ -72,7 +73,11 @@ const faq = () => [
   },
 ];
 
-export default function BadgesPage() {
+// Shows prices and rates an admin can change: applied on every render and redrawn each minute (the page used to be built once).
+export const revalidate = 60;
+
+export default async function BadgesPage() {
+  await loadLivePricing(); // prices and rates as saved in Admin → Pricing, not the built-in defaults
   return (
     <>
       <PageHero eyebrow="Product" title={<>Verification badges</>}>

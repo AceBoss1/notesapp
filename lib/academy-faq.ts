@@ -1,4 +1,4 @@
-import { currentPricing } from "./pricing";
+import { currentPricing, nanaResetText } from "./pricing";
 import { ROOT_DOMAIN } from "./host";
 
 // The questions on every course page and on Notes Academy itself (components/academy/AcademyFaq.tsx) and in the help centre
@@ -16,7 +16,7 @@ export function academyFaq(): { q: string; a: string }[] {
     { q: "How long do I have access to this course?", a: "For good: a paid course you've bought stays yours even if the teacher stops selling it, and a free one for as long as the teacher keeps it on Notes Academy. Every update and new lesson comes at no extra cost, and your progress and your certificate stay yours." },
     { q: "On how many devices can I watch a paid course?", a: "Two: your phone and your computer, say. To watch on a third, remove one of the others when it asks (you can do that twice a month). Your @username and email drift faintly across uploaded videos, so a recording can always be traced back." },
     { q: "How do I get help if I'm stuck?", a: "Ask Nana first: she knows Notes Academy inside out and answers most questions straight away. If she can't, contact our team and we'll usually reply within 24 hours. For questions about the lessons themselves, message the teacher from their profile." },
-    { q: "How many questions can I ask Nana?", a: "As many as you like. Each answer uses a little of your free Nana allowance, which refreshes every week; after that Nana uses any Nana credit you've bought. Common questions answered from her answer bank are free." },
+    { q: "How many questions can I ask Nana?", a: `As many as you like. Each answer uses a little of your free Nana allowance, which refreshes ${nanaResetText().replace(/, .*/, "")}; after that Nana uses any Nana credit you've bought. Common questions answered from her answer bank are free.` },
     { q: "Can I watch this course offline?", a: "No. Lessons stream on #NotesApp and can't be downloaded, which keeps teachers' work safe from piracy. You can still watch on a bigger screen by casting or connecting your phone, tablet or computer to a TV." },
     { q: "Help! The videos won't play.", a: "It's usually the internet connection or the browser. Try another browser or connection, and turn off any data saver or ad blocker for #NotesApp. Still stuck? Ask Nana or contact our team." },
     { q: "Where are the course resources?", a: "If a lesson has worksheets, templates or other downloads, the teacher links them in the lesson. Paid extras are in the teacher's shop on Notes Market." },

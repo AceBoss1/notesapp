@@ -1,6 +1,10 @@
 import type { Firestore } from "firebase-admin/firestore";
 import { KbError, cleanArticle, type KbArticle } from "./kb";
-import { builtInArticles } from "./kb-articles";
+import { builtInArticles, type KbLive } from "./kb-articles";
+import { currentPricing } from "./pricing";
+import { ensurePricing } from "./pricing-server";
+import { getLimitOverrides } from "./limits-server";
+import { getAgentSettings } from "./agents/config-server";
 
 // The knowledge base the Help centre and Nana AI read: the built-in articles plus whatever staff have written at Admin → Help & Nana.
 // A staff article with the same slug as a built-in one replaces it (that is how staff correct or extend a built-in answer); unpublish or
@@ -9,7 +13,7 @@ const COL = "kbArticles";
 
 type StaffDoc = { slug: string; title: string; category: KbArticle["category"]; body: string; published: boolean; updatedAt: string; updatedByEmail?: string };
 
-let cache: { at: number; list: KbArticle[] } | null = null;
+let cache: { at: number; key: string; list: KbArticle[] } | null = null;
 export const clearKbCache = () => { cache = null; };
 
 export async function staffArticles(db: Firestore): Promise<(StaffDoc & { id: string })[]> {
@@ -17,14 +21,29 @@ export async function staffArticles(db: Firestore): Promise<(StaffDoc & { id: st
   return snap.docs.map((d) => ({ id: d.id, ...(d.data() as StaffDoc) })).sort((a, b) => (a.updatedAt < b.updatedAt ? 1 : -1));
 }
 
-// Everything readers and Nana can see, cached for a minute.
+// The admin-set numbers the built-in articles quote: prices and rates (Admin → Pricing, applied to the live objects), the plan limits and
+// the Nana and connected-agent settings (Admin → Limits). Each read is cached for half a minute or less, so this is cheap. A failed read
+// keeps what is in force (or the defaults) rather than blanking the help.
+export async function loadKbLive(db: Firestore): Promise<KbLive> {
+  const [limits, agents] = await Promise.all([
+    getLimitOverrides(db).catch(() => undefined),
+    getAgentSettings(db).catch(() => undefined),
+    ensurePricing(db).catch(() => undefined),
+  ]);
+  return { limits, agents };
+}
+
+// Everything readers and Nana can see, cached for a minute, and built again at once when an admin's change alters a figure the articles
+// quote (before, the help was built from whatever prices this server instance happened to hold, often the defaults, and never the limits).
 export async function getArticles(db: Firestore, now = Date.now()): Promise<KbArticle[]> {
-  if (cache && now - cache.at < 60_000) return cache.list;
+  const live = await loadKbLive(db);
+  const key = JSON.stringify([currentPricing(), live]);
+  if (cache && cache.key === key && now - cache.at < 60_000) return cache.list;
   const staff = (await staffArticles(db).catch(() => [])).filter((a) => a.published);
-  const bySlug = new Map<string, KbArticle>(builtInArticles().map((a) => [a.slug, a]));
+  const bySlug = new Map<string, KbArticle>(builtInArticles(live).map((a) => [a.slug, a]));
   for (const s of staff) bySlug.set(s.slug, { slug: s.slug, title: s.title, category: s.category, body: s.body, updatedAt: s.updatedAt, source: "staff" });
   const list = [...bySlug.values()];
-  cache = { at: now, list };
+  cache = { at: now, key, list };
   return list;
 }
 

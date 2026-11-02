@@ -7,6 +7,7 @@ import { CALLS_LIVE, MESSAGES_LIVE, MOMENTS_LIVE } from "@/lib/moments-rules";
 import { WALLET_LIVE } from "@/lib/wallet";
 import PageHero from "@/components/PageHero";
 import { certificateMin } from "@/lib/pricing";
+import { loadLivePricing } from "@/lib/pricing-server";
 
 export const metadata: Metadata = {
   title: "Roadmap",
@@ -219,7 +220,11 @@ const ITEMS: { title: string; tag: string; body: string; detail: string; link?: 
   },
 ];
 
-export default function RoadmapPage() {
+// Shows prices and rates an admin can change: applied on every render and redrawn each minute (the page used to be built once).
+export const revalidate = 60;
+
+export default async function RoadmapPage() {
+  await loadLivePricing(); // prices and rates as saved in Admin → Pricing, not the built-in defaults
   return (
     <>
       <PageHero eyebrow="Coming Soon" title={<>What's next for #NotesApp</>}>

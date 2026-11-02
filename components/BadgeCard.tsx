@@ -1,5 +1,6 @@
 "use client";
 
+import { useLivePricing } from "@/lib/useLivePricing";
 import { useEffect, useState } from "react";
 import { onAuthStateChanged, User } from "firebase/auth";
 import { doc, getDoc } from "firebase/firestore";
@@ -14,6 +15,7 @@ import { GOLD_KIND_LIVE } from "@/lib/badges";
 // Verified-badge status + buy/cancel. Free on Business/Enterprise,
 // ₦999/month add-on for everyone else. `pitch` = the pricing-page variant.
 export default function BadgeCard({ pitch = false }: { pitch?: boolean }) {
+  useLivePricing(); // prices as set in Admin → Pricing, not the defaults bundled with this screen
   const [user, setUser] = useState<User | null | undefined>(undefined);
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [sub, setSub] = useState<Record<string, any> | null>(null);

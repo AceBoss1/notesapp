@@ -3,13 +3,18 @@ import type { Metadata } from "next";
 import { TIERS, formatPercent } from "@/lib/tiers";
 import PageHero from "@/components/PageHero";
 import { MAX_AFFILIATE_PERCENT } from "@/lib/referrals";
+import { loadLivePricing } from "@/lib/pricing-server";
 
 export const metadata: Metadata = {
   title: "Sell physical goods & digital downloads",
   description: "Sell physical goods, digital downloads and view-only video courses from your #NotesApp store: buyers pay on-platform, the money is held until delivery is confirmed, and every parcel gets a tracking ID. Make discount codes and coupons on every plan, and let affiliates promote your products for a share of each sale.",
 };
 
-export default function StoreSellingPage() {
+// Shows prices and rates an admin can change: applied on every render and redrawn each minute (the page used to be built once).
+export const revalidate = 60;
+
+export default async function StoreSellingPage() {
+  await loadLivePricing(); // prices and rates as saved in Admin → Pricing, not the built-in defaults
   return (
     <>
       <PageHero eyebrow="Stores" title={<>Sell physical goods and digital downloads from your store</>}>

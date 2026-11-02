@@ -10,6 +10,7 @@ import { formatNaira, formatSlot } from "@/lib/booking-time";
 import { PAYOUT_HOLD_HOURS, POLICY_TEXT, RESCHEDULE_MAX, canReschedule, refundFraction } from "@/lib/cancellation";
 import { sessionEnd } from "@/lib/booking-time";
 import PageHero from "@/components/PageHero";
+import MyCommission from "@/components/MyCommission";
 
 type Booking = {
   reference: string;
@@ -227,6 +228,8 @@ export default function BookingsPage() {
         <p>{POLICY_TEXT}</p>
       </PageHero>
       <section className="mx-auto max-w-3xl px-4 py-10 sm:px-6">
+      {/* Publishers only (it renders nothing for someone who can't publish): what comes off the sessions they're booked for. */}
+      <MyCommission kind="session" className="rounded-xl2 border border-rule bg-paper px-4 py-3 text-sm text-ink" extra="Sessions already booked keep the rate they were booked at. See Rates & payouts for your earnings." />
       {error && <p className="mt-4 text-sm text-crimson">{error}</p>}
 
       <h2 className="mt-10 font-display text-xl">Upcoming</h2>
