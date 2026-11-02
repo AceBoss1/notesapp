@@ -11,6 +11,18 @@ export type Release = {
 
 export const CHANGELOG: Release[] = [
   {
+    version: "v0.127.0",
+    bump: "minor",
+    date: "2026-11-02",
+    changes: [
+      { kind: "added", text: "Recording a live: a host can tick Record this live before starting an audio room that runs through our relay (off by default). Everyone in the room sees \"This live is being recorded\", the room shows ● Recorded before you join, and anyone brought on stage taps once to agree before their mic goes on. The recording is made by our own recorder on our servers, never on anyone's phone." },
+      { kind: "added", text: "Recordings are kept in private storage for a set number of days after the live (30 to start with), then deleted unless the host publishes the replay. Hosts play, publish or delete them in the new Media area (My account → Media), with the days left on each." },
+      { kind: "added", text: "Replays: a published recording streams like a video, for everyone (shown on Explore and Trending, each with a new Replays tab), for the host's journal subscribers, or for the community's members only. If the host or a speaker is in teen mode, the replay stays inside the community. Replays can be shared to Moments, a journal, a chat or other apps, and carry a Book a session button." },
+      { kind: "added", text: "Share to Journal on a replay makes a draft journal post with the replay, plus a transcript and a summary with chapters drafted by Nana when transcripts are switched on, to edit and publish like any post. Unpublishing a replay removes its post too." },
+      { kind: "added", text: "For the team: Admin → Limits has a Live recording section (days to keep, longest recording, and a switch to record every relay room for safety review) and plan switches for who can record and who can publish replays; Admin → Live recordings lists every recording for safety review." },
+    ],
+  },
+  {
     version: "v0.124.0",
     bump: "minor",
     date: "2026-11-02",

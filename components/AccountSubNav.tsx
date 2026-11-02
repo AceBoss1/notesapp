@@ -11,6 +11,7 @@ const LINKS = [
   { href: "/profile/edit", label: "Edit profile" },
   { href: "/profile/publishing", label: "Rates & payouts" },
   { href: "/profile/analytics", label: "Analytics" },
+  { href: "/profile/media", label: "Media" },
   { href: "/bookings", label: "Bookings" },
   { href: "/profile/books", label: "Business books" },
   { href: "/profile/inventory", label: "Inventory" },

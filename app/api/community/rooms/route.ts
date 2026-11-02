@@ -4,13 +4,17 @@ import { rateLimit } from "@/lib/rate-limit";
 import { authed, fail as failOther } from "@/lib/moments-api";
 import { iceServers } from "@/lib/calls-server";
 import { CommunityError } from "@/lib/community-server";
+import { consentToRecording, recordingChoice } from "@/lib/live-recording-server";
 import { beatRoom, closeRoom, joinRoom, leaveRoom, liveRoomFigures, liveRooms, raiseHand, relayStep, removeChat, roomPeople, sendRoomChat, setSpeaker, startRoom } from "@/lib/rooms-server";
 
 export const dynamic = "force-dynamic";
 const fail = (err: unknown, fallback: string) => (err instanceof CommunityError ? NextResponse.json({ error: err.message }, { status: err.status }) : failOther(err, fallback));
 
 // Audio rooms in a community (lib/rooms.ts).
-// GET ?cid= → { rooms, figures } (live rooms, for members; figures: what a room opened now holds, from Admin → Limits)
+// GET ?cid= → { rooms, figures, recording } (live rooms, for members; figures: what a room opened now holds, from Admin → Limits;
+//      recording: whether this host can switch recording on, and the keep days: lib/live-recording.ts)
+// POST { action: "start", …, record } (record: the host's recording switch) · { action: "consent", id } (a speaker agrees to speak on the
+//      record, before their microphone goes up)
 // POST { action: "start", cid, title } → { id, mode, note?, iceServers } · { action: "join", id } → { mode, cap, iceServers } · { action: "beat", id } → { live }
 //      { action: "leave", id } · { action: "hand", id, up } · { action: "speaker", id, uid, on } · { action: "end", id } · { action: "unchat", id, messageId }
 //      { action: "relay", id, op, … } → relay rooms only: the browser's steps with Cloudflare, checked and passed on by the server
@@ -21,8 +25,8 @@ export async function GET(req: NextRequest) {
   try {
     const me = await authed(req, "messages", false);
     const db = getAdminDb();
-    const [rooms, figures] = await Promise.all([liveRooms(db, me.uid, String(req.nextUrl.searchParams.get("cid") ?? "")), liveRoomFigures(db)]);
-    return NextResponse.json({ rooms, figures }, { headers: { "Cache-Control": "no-store" } });
+    const [rooms, figures, recording] = await Promise.all([liveRooms(db, me.uid, String(req.nextUrl.searchParams.get("cid") ?? "")), liveRoomFigures(db), recordingChoice(db, me.uid).catch(() => null)]);
+    return NextResponse.json({ rooms, figures, recording }, { headers: { "Cache-Control": "no-store" } });
   } catch (err) {
     return fail(err, "Couldn't load the rooms");
   }
@@ -36,9 +40,10 @@ export async function POST(req: NextRequest) {
       case "start": {
         const limited = await rateLimit(req, "room-start", me.uid, 20, 3600);
         if (limited) return limited;
-        return NextResponse.json({ ...(await startRoom(db, me.uid, body.cid, body.title)), iceServers: await iceServers() });
+        return NextResponse.json({ ...(await startRoom(db, me.uid, body.cid, body.title, undefined, undefined, { record: body.record === true })), iceServers: await iceServers() });
       }
       case "join": return NextResponse.json({ ...(await joinRoom(db, me.uid, body.id)), iceServers: await iceServers() });
+      case "consent": return NextResponse.json(await consentToRecording(db, me.uid, body.id));
       case "beat": return NextResponse.json(await beatRoom(db, me.uid, body.id));
       case "leave": return NextResponse.json(await leaveRoom(db, me.uid, body.id));
       case "hand": await raiseHand(db, me.uid, body.id, body.up); return NextResponse.json({ ok: true });

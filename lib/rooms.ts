@@ -1,6 +1,6 @@
 // Audio rooms in a community (owner, 22 Oct 2026: "Clubhouse style … host appoints a few who can turn on mic, 4 max at any time, others just
 // listen"). Admins and moderators host; the host brings up to ROOM_SPEAKERS_MAX members on stage; everyone else listens and can raise a hand.
-// No recording.
+// Recording only when the host switches it on before going live (lib/live-recording.ts, v0.127.0); everyone is told.
 //
 // How the sound travels. Each room keeps the `mode` it opened with, so switching the relay on or off never changes a room already open.
 // - "p2p" (phone to phone): everyone on stage (the host and the speakers) connects straight to everyone else on stage, like a group call.
@@ -23,6 +23,8 @@
 // or leave first (claimed in a transaction, so one recount per window), which keeps the room doc to a handful of writes a minute. Listeners'
 // screens read the stage and the count, and open a paged "People here" list. The room chat goes through the server in relay rooms, with
 // slow mode once the room passes the chatSlowAbove setting. Phone-to-phone rooms work as before (everyone in `joined`).
+
+import { hasConsented, type RoomRecordingState } from "./live-recording";
 
 export const ROOM_SPEAKERS_MAX = 4; // on stage besides the host
 export const ROOM_LISTENERS_MAX_P2P = 20;
@@ -52,6 +54,8 @@ export type RoomDoc = {
   // (0 = off). handInfo: the name and picture of each raised hand, since listeners aren't in `joined`.
   listening?: number; countedAt?: string; chatSlow?: number;
   handInfo?: Record<string, { name: string; avatar: string }>;
+  // Recording (lib/live-recording.ts): set when the room starts recorded; consent: who agreed to speak on the record (uid → when).
+  recording?: RoomRecordingState; consent?: Record<string, string>;
 };
 // Relay rooms: one listener (communityRooms/{id}/people/{uid}, server-written). chatAt: their last chat message (for slow mode).
 export type RoomPersonDoc = RoomPerson & { chatAt?: string };
@@ -159,8 +163,9 @@ export const chatWait = (lastAt: string | undefined, slow: number, now = Date.no
 // ── Who may do what on the relay (checked by the server before it talks to Cloudflare) ──
 // here: whether the caller is in the room. The stage is in `joined`; a relay listener is in people/ (the server passes what it read).
 // Send (push) a microphone: the host or a speaker, here now, in a relay room that is live.
-export function canPush(r: Pick<RoomDoc, "hostUid" | "speakers" | "joined" | "status" | "mode">, uid: string, now = Date.now()): boolean {
-  return r.status === "live" && r.mode === "relay" && presentIn(r, now).includes(uid) && roomRole(r, uid) !== "listener";
+// In a recorded room a speaker must have agreed to speak on the record first (lib/live-recording.ts hasConsented).
+export function canPush(r: Pick<RoomDoc, "hostUid" | "speakers" | "joined" | "status" | "mode" | "recording" | "consent">, uid: string, now = Date.now()): boolean {
+  return r.status === "live" && r.mode === "relay" && presentIn(r, now).includes(uid) && roomRole(r, uid) !== "listener" && hasConsented(r, uid);
 }
 // Receive (pull) someone's microphone: anyone here now in a live relay room, from someone else who is on stage and sending.
 export function canPull(r: Pick<RoomDoc, "hostUid" | "speakers" | "joined" | "status" | "mode" | "published">, uid: string, from: string, now = Date.now(), listenerHere = false): boolean {

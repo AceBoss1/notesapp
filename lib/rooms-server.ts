@@ -8,6 +8,7 @@ import {
   type RoomChat, type RoomDoc, type RoomFigures, type RoomMode, type RoomPersonDoc, type RoomRelayRecord, type RoomSettings,
 } from "./rooms";
 import { RelayError, cleanSdp, relayClient, relayConfigured, type RelayClient } from "./rooms-relay-server";
+import { recordingPlan, startRoomRecording, stopRoomRecording, type RecordingDeps } from "./live-recording-server";
 
 // Audio rooms (lib/rooms.ts). The server opens, joins, keeps and closes them and decides who is on stage; in a phone-to-phone room the
 // phones connect through communityRooms/{id}/links, and in a relay room through Cloudflare, with every step passing through relayStep
@@ -38,7 +39,7 @@ export async function liveRoomFigures(db: Firestore): Promise<RoomFigures> {
 async function noteRelay(db: Firestore, why: string | null, now = new Date()) {
   await db.doc("serverConfig/roomsRelay").set(why ? { ok: false, why, at: now.toISOString() } : { ok: true, at: now.toISOString() }, { merge: true }).catch(() => {});
 }
-export type RoomDeps = { relay: () => RelayClient };
+export type RoomDeps = { relay: () => RelayClient; recording?: RecordingDeps };
 const defaultDeps: RoomDeps = { relay: () => relayClient() };
 
 
@@ -90,18 +91,19 @@ export async function recount(db: Firestore, roomId: string, now = new Date(), f
 }
 
 // The live rooms of a community, for its members (the Rooms card on its Home).
-export async function liveRooms(db: Firestore, uid: string, cid: string, now = new Date()): Promise<(Pick<RoomDoc, "title" | "hostName" | "hostUid" | "speakers" | "mode"> & { id: string; listening: number; faces: { name: string; avatar: string }[] })[]> {
+export async function liveRooms(db: Firestore, uid: string, cid: string, now = new Date()): Promise<(Pick<RoomDoc, "title" | "hostName" | "hostUid" | "speakers" | "mode"> & { id: string; listening: number; recorded: boolean; faces: { name: string; avatar: string }[] })[]> {
   if (!(await roleIn(db, cid, uid))) return [];
   const snap = await db.collection("communityRooms").where("cid", "==", cid).where("status", "==", "live").limit(10).get();
   return snap.docs.map((d) => ({ ...(d.data() as RoomDoc), id: d.id })).filter((r) => presentIn(r, now.getTime()).includes(r.hostUid)).map((r) => ({
     id: r.id, title: r.title, hostName: r.hostName, hostUid: r.hostUid, speakers: r.speakers, mode: r.mode ?? "p2p",
-    listening: headcount(r, now.getTime()), faces: presentIn(r, now.getTime()).slice(0, 6).map((u) => ({ name: r.joined[u].name, avatar: r.joined[u].avatar })),
+    listening: headcount(r, now.getTime()), recorded: r.recording?.on === true, faces: presentIn(r, now.getTime()).slice(0, 6).map((u) => ({ name: r.joined[u].name, avatar: r.joined[u].avatar })),
   }));
 }
 
 // A new room uses the relay when its keys are set and the switch is on (lib/rooms.ts chooseRoomMode). Cloudflare is asked for a session
 // first; if it doesn't answer, the room opens phone to phone with a note to the host, and /status shows why.
-export async function startRoom(db: Firestore, uid: string, cid: unknown, title: unknown, now = new Date(), deps: RoomDeps = defaultDeps): Promise<{ id: string; mode: RoomMode; note?: string }> {
+// record: the host's recording switch (lib/live-recording.ts); the room records only on the relay, with the recorder set up.
+export async function startRoom(db: Firestore, uid: string, cid: unknown, title: unknown, now = new Date(), deps: RoomDeps = defaultDeps, opts: { record?: unknown } = {}): Promise<{ id: string; mode: RoomMode; note?: string; recording?: boolean }> {
   const c = await readCommunity(db, String(cid ?? "")).catch(() => null);
   if (!c) throw new CommunityError(404, "That community wasn't found.");
   if (!can(await roleIn(db, c.id, uid), "rooms")) throw new CommunityError(403, "Admins and moderators start audio rooms.");
@@ -109,7 +111,7 @@ export async function startRoom(db: Firestore, uid: string, cid: unknown, title:
   if (t.length < 3) throw new CommunityError(400, "Give the room a name, like Sunday Q&A.");
   // One live room per host: an old one they left open is closed first.
   const mine = await db.collection("communityRooms").where("hostUid", "==", uid).where("status", "==", "live").limit(5).get();
-  for (const d of mine.docs) await endRoom(db, d.id, now);
+  for (const d of mine.docs) await endRoom(db, d.id, now, deps);
   const me = await person(db, uid);
   const id = `${now.getTime()}_${randomBytes(5).toString("hex")}`;
   const at = now.toISOString();
@@ -125,12 +127,16 @@ export async function startRoom(db: Firestore, uid: string, cid: unknown, title:
       note = `The relay isn't answering right now, so this room runs phone to phone: up to ${listenerCap("p2p", settings).toLocaleString("en-GB")} listeners.`;
     }
   }
+  const rec = await recordingPlan(db, uid, opts.record, mode === "relay");
+  if (rec.note) note = note ? `${note} ${rec.note}` : rec.note;
   const r: RoomDoc = {
+    ...(rec.state ? { recording: rec.state, consent: { [uid]: at } } : {}),
     cid: c.id, communityName: c.name, title: t, hostUid: uid, hostName: me.name, speakers: [], hands: {}, joined: { [uid]: { ...me, at, seen: at } }, status: "live", mode, createdAt: at, peak: 1,
     ...(mode === "relay" ? { published: {}, listening: 0, countedAt: at, chatSlow: 0, handInfo: {} } : {}), ...(note ? { note } : {}),
   };
   await db.doc(`communityRooms/${id}`).set(r);
-  return { id, mode, ...(note ? { note } : {}) };
+  if (rec.state) await startRoomRecording(db, id, now, deps.recording).catch((e) => console.error("[rooms] recording didn't start", e));
+  return { id, mode, ...(note ? { note } : {}), ...(rec.state ? { recording: true } : {}) };
 }
 
 // Joining: the listener cap is the room's mode's setting, read now (lib/rooms.ts listenerCap); someone already in (a reload) always gets back in.
@@ -185,7 +191,7 @@ export async function beatRoom(db: Firestore, uid: string, id: unknown, now = ne
 export async function leaveRoom(db: Firestore, uid: string, id: unknown, now = new Date(), deps: RoomDeps = defaultDeps): Promise<{ ended: boolean }> {
   const { ref, r } = await roomOf(db, id);
   if (r.status !== "live") return { ended: true };
-  if (uid === r.hostUid) { await endRoom(db, ref.id, now); return { ended: true }; }
+  if (uid === r.hostUid) { await endRoom(db, ref.id, now, deps); return { ended: true }; }
   const onStage = !!r.joined?.[uid] || !!r.hands?.[uid];
   if (r.mode !== "relay" || onStage) {
     await ref.update({ [`joined.${uid}`]: FieldValue.delete(), [`hands.${uid}`]: FieldValue.delete(), speakers: FieldValue.arrayRemove(uid), ...(r.mode === "relay" ? { [`published.${uid}`]: FieldValue.delete(), [`handInfo.${uid}`]: FieldValue.delete() } : {}) });
@@ -304,20 +310,22 @@ export async function removeChat(db: Firestore, uid: string, id: unknown, messag
 }
 
 // Ending: the host, or an admin of the community. The connection details are cleared.
-export async function closeRoom(db: Firestore, uid: string, id: unknown, now = new Date()): Promise<void> {
+export async function closeRoom(db: Firestore, uid: string, id: unknown, now = new Date(), deps: Pick<RoomDeps, "recording"> = {}): Promise<void> {
   const { ref, r } = await roomOf(db, id);
   if (uid !== r.hostUid && !can(await roleIn(db, r.cid, uid), "settings")) throw new CommunityError(403, "Only the host or an admin can end the room.");
-  await endRoom(db, ref.id, now);
+  await endRoom(db, ref.id, now, deps);
 }
-export async function endRoom(db: Firestore, id: string, now = new Date()): Promise<void> {
+export async function endRoom(db: Firestore, id: string, now = new Date(), deps: Pick<RoomDeps, "recording"> = {}): Promise<void> {
   const ref = db.doc(`communityRooms/${id}`);
   const ended = await db.runTransaction(async (t) => {
     const r = (await t.get(ref)).data() as RoomDoc | undefined;
-    if (!r || r.status !== "live") return false;
+    if (!r || r.status !== "live") return null;
     t.update(ref, { status: "ended", endedAt: now.toISOString(), joined: {}, hands: {}, speakers: [], ...(r.mode === "relay" ? { published: {}, handInfo: {}, listening: 0 } : {}) });
-    return true;
+    return r;
   });
   if (!ended) return;
+  // A recorded room: the recorder stops and sends what's left; the 30-day keep timer starts (lib/live-recording-server.ts).
+  if (ended.recording?.on) await stopRoomRecording(db, ended, now, deps.recording).catch((e) => console.error("[rooms] recording didn't stop", e));
   for (let more = true; more;) {
     const chat = await db.collection(`communityRooms/${id}/chat`).limit(400).get();
     if (!chat.empty) { const b = db.batch(); chat.docs.forEach((d) => b.delete(d.ref)); await b.commit(); }

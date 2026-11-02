@@ -2623,3 +2623,34 @@ page, course live classes, the Start a room form, Nana's prompt) now comes from 
 them to client pages. The Team hub reminder now reads "rooms run phone to phone … switches on when the keys are set" and goes once they
 are; /status gained "Audio rooms relay". Emulator and rules tests ran from a temporary copy on port 8209.
 
+
+**Live recording and replays (v0.127.0, 2 Nov 2026, step 2c of lives; off until the recorder is set up)** — The decided rule ("Recording for safety review, with the host's consent … Kept 30 days, then deleted unless the host publishes the
+replay") and the owner's choices of 2 November: the host switches recording on before going live (off by default; Admin can force it
+for safety later), everyone is told before they use a microphone, speakers agree with one tap, the recorder runs on our servers and
+never on a phone, recordings are server-only and deleted after the keep days unless published, and the host can publish a replay.
+Later the same day the owner changed one thing: **a published replay is not a journal post by default**. It shows in the host's Media
+area and on Explore and Trending; only "Share to Journal" makes a journal post (a draft with the transcript and Nana's summary).
+
+Why a recorder service and not the host's browser: a recording must not depend on the host's phone staying awake, and must include
+what the host can't record about themselves (the whole stage). The Cloudflare relay (v0.124.0) already lets anyone in the room pull the
+stage's tracks, so the recorder is just another receive-only participant: a hidden page in our own app
+(`/rooms/record/[id]?token=…`) opened by headless Chromium in a small Node service (`services/room-recorder`, Playwright, a
+Dockerfile, deployed on Cloud Run with Google Cloud credits: `docs/RECORDER.md`). Using our own page means the relay code, the mixing
+and MediaRecorder are ordinary browser code we can change with the app, and the service stays about 150 lines. The page's token is
+signed with a key derived from `RECORDER_SECRET`, names one room and one recording, and only allows pull/answer/close (the server
+refuses push); requests between the app and the service carry an HMAC over the body hash (`lib/recorder-sign.ts`, mirrored in
+`services/room-recorder/sign.mjs`, checked against each other in the tests).
+
+Storage: chunks arrive about every 10 seconds per file, far below R2's 5 MiB minimum part size, and a serverless function can't keep a
+buffer between requests, so each chunk is written as a small object and joined into a part once 5 MiB have arrived; finalize sends the
+rest as the last part. Nothing is lost if the recorder dies: the cron finishes a recording from what arrived. Two files are recorded:
+`stage` (a canvas picture with the mixed sound: the host's video track when one arrives, else the room's poster, else a title card) and
+`audio` (sound only, small enough for speech to text). Replays copy the stage file to Cloudflare Stream (copy from a signed link) so
+both audio-only and video replays stream with the same signed-playback rule as course videos.
+
+Transcripts: the only speech-to-text in the codebase is NKENNEAi (Kiswahili voice notes), with a 25 MB file limit, so transcription is
+a pluggable step (`Transcriber` in `lib/live-recording-server.ts`) that is off until `REPLAY_TRANSCRIBE` names a provider; Nana's
+summary needs the transcript. Teen mode: a host or a speaker in teen mode keeps the replay inside the community and off every list
+(`audienceFor`). Settings follow the rooms pattern (`serverConfig/recording`, a 30-second cache, its own section in Admin → Limits so
+the audio room settings stay untouched for parallel work), with two plan switches in the limits table for who can record and publish.
+Emulator and rules tests ran from temporary copies on ports 8217 and 8218.

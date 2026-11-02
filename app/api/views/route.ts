@@ -18,7 +18,7 @@ export async function POST(req: NextRequest) {
     }
     const body = await req.json();
     const { kind, id } = body;
-    if ((kind !== "note" && kind !== "profile" && kind !== "event") || typeof id !== "string" || !/^[A-Za-z0-9_-]{1,80}$/.test(id)) {
+    if ((kind !== "note" && kind !== "profile" && kind !== "event" && kind !== "replay") || typeof id !== "string" || !/^[A-Za-z0-9_-]{1,80}$/.test(id)) {
       return NextResponse.json({ error: "Invalid" }, { status: 400 });
     }
     if (await rateLimit(req, "view-ip", clientIp(req), 120, 600)) return NextResponse.json({ ok: true, counted: false });
@@ -41,6 +41,12 @@ export async function POST(req: NextRequest) {
       const e = (await db.doc(`events/${id}`).get()).data();
       if (!e || e.visibility !== "public" || e.cancelled) return NextResponse.json({ ok: true, counted: false });
       ownerUid = String(e.hostUid ?? "");
+    } else if (kind === "replay") {
+      // A listed replay (lib/live-recording.ts), for Trending → Replays; the host gets it in their analytics.
+      const r = (await db.doc(`replays/${id}`).get()).data();
+      if (!r || r.listed !== true) return NextResponse.json({ ok: true, counted: false });
+      ownerUid = String(r.hostUid ?? "");
+      await db.doc(`replays/${id}`).update({ views: FieldValue.increment(1) }).catch(() => {});
     } else {
       const user = (await getAllUsers()).find((u) => u.username === id);
       if (!user) return NextResponse.json({ ok: true, counted: false });
