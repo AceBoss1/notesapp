@@ -150,8 +150,8 @@ Environment Variables (mark secrets Sensitive), then redeploy: `NEXT_PUBLIC_*` v
 | `CALL_PUSH_SECRET` | **yes** | Signs the answer and decline links in call notifications (falls back to the VAPID private key). |
 | `CLOUDFLARE_TURN_KEY_ID` | no | Cloudflare TURN relay for calls on strict networks. |
 | `CLOUDFLARE_TURN_API_TOKEN` | **yes** | Cloudflare TURN token. |
-| `CLOUDFLARE_REALTIME_APP_ID` | no | Cloudflare Realtime app for community audio rooms past 20 listeners (not used yet; the Team hub reminds until set). |
-| `CLOUDFLARE_REALTIME_APP_TOKEN` | **yes** | Cloudflare Realtime app token. |
+| `CLOUDFLARE_REALTIME_APP_ID` | no | App ID of the Cloudflare Realtime Serverless SFU app (Realtime → Serverless SFU). With the token, new community audio rooms use the relay, for hundreds of listeners (Admin → Limits → Audio rooms sets how many, and can switch it off); without both, rooms run phone to phone. /status shows whether Cloudflare accepts them. |
+| `CLOUDFLARE_REALTIME_APP_TOKEN` | **yes** | App Token (secret) of that same Realtime SFU app. Server-only: browsers never see it. |
 | `TURN_URLS` | no | Our own TURN server instead: comma-separated addresses. |
 | `TURN_USERNAME` | no | Our own TURN server's username. |
 | `TURN_CREDENTIAL` | **yes** | Our own TURN server's password. |

@@ -34,7 +34,7 @@ import { COMMENT_MAX, COMMUNITY_FREE_MEMBERS, POST_MAX, SPACES_MAX } from "./com
 import { TICKETS_PER_ORDER_MAX } from "./tickets";
 import { GROUP_MEMBERS_MAX } from "./messages-rules";
 import { GROUP_CALL_MAX } from "./group-calls";
-import { ROOM_CHAT_MAX, ROOM_LISTENERS_MAX_P2P, ROOM_SPEAKERS_MAX } from "./rooms";
+import { DEFAULT_ROOM_FIGURES, ROOM_CHAT_MAX, ROOM_SPEAKERS_MAX, type RoomFigures } from "./rooms";
 import { BOARD_DAILY_CAP, DEFAULT_PACK_KOBO, DEFAULT_PACK_MONTHS, MOCK_SIZES, OFFLINE_PASS_DAYS, PAYLINK_DAYS, PREP_NAME, PREP_TAGLINE, REFUND_DAYS } from "./exam-prep";
 import type { KbArticle } from "./kb";
 
@@ -51,7 +51,8 @@ const ADD_ONS_LINE = "The Team hub, company finance tools, the investor and part
 
 // What an admin can change outside Admin → Pricing, passed in by lib/kb-server.ts after reading it: the plan limits (Admin → Limits) and
 // the Nana and connected-agent settings. Prices and rates are read from the live objects, so call this after ensurePricing().
-export type KbLive = { limits?: LimitOverrides; agents?: AgentSettings };
+// Audio rooms: how many can listen in a room opened now (the relay's setting once it's on, otherwise the phone-to-phone one).
+export type KbLive = { limits?: LimitOverrides; agents?: AgentSettings; rooms?: RoomFigures };
 const WORD = ["no", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine", "ten"];
 const words = (x: number) => WORD[x] ?? n(x);
 // Paystack's own charge on a local card, in words, from the numbers checkout uses (lib/giving.ts PAYSTACK_LOCAL).
@@ -61,6 +62,8 @@ const SESSION_RATES = () => `${pct("basic", "sessionAndUnlockCommission", "sessi
 
 export function builtInArticles(live: KbLive = {}): KbArticle[] {
   const ag = live.agents ?? AGENT_DEFAULTS;
+  const room = live.rooms ?? DEFAULT_ROOM_FIGURES;
+  const roomListeners = n(room.listeners);
   const lim = (k: LimitKey, tier: (typeof LIMIT_TIERS)[number]) => limitFor(k, tier, live.limits);
   // A plan limit over the plans that publish: "30", or "10 to 50" when the plans differ (byPlan says so).
   const values = (k: LimitKey) => LIMIT_TIERS.filter((x) => t(x).canPublish).map((x) => lim(k, x));
@@ -580,7 +583,7 @@ Calls are free. Planned: paid calls inside Notes Life (₦5 a minute voice, ₦1
 - Go to [Teach a course](/academy/teach) and tap **New course**. A working title is all you need to start.
 - **1. Describe it:** a clear title, a short summary of what learners will be able to do, up to 3 topics and a wide cover picture. The course's address follows the title until you first publish.
 - **Make a cover with Nana:** no picture? Under the cover, tap **✨ Make a cover with Nana**, say what it should show if you like ("a farmer with a phone, green and gold"), and Nana designs one from your course: our own African patterns (adire, kente-like stripes, mud cloth), an icon, your title in bold type and a small Notes Academy mark. Tap **Use as cover**, **Edit** it ("make it green", "add a laptop", "shorter headline") or **Try another**; your last few covers stay there to go back to. It works on free and paid courses, for the lead, co-tutors and admins. Each new cover or edit counts one of the day's covers: Free Basic ${coversPerDay("basicDaily")}, Pro ${coversPerDay("proDaily")}, Business ${coversPerDay("businessDaily")}, Enterprise ${coversPerDay("enterpriseDaily")} a day, starting again at midnight Lagos time (so on Free Basic, one cover and two edits, or three different ones). Nana's design comes from your Nana allowance, then your Nana credit; when both are used up, covers stop until the allowance refreshes, and the editor says when.
-- **About the course:** the level, language and format (self-paced, or live classes with recordings), what learners will learn and the requirements (one per line), how long it runs and when classes are, and, for live classes, an optional meeting link. Hold live classes in an [audio room](/help/community-audio-rooms) in your course group, for up to ${1 + ROOM_SPEAKERS_MAX + ROOM_LISTENERS_MAX_P2P} people (you, ${ROOM_SPEAKERS_MAX} speakers and ${ROOM_LISTENERS_MAX_P2P} listening); for video, or a bigger class, paste a meeting link. Only learners who enrolled or bought see it.
+- **About the course:** the level, language and format (self-paced, or live classes with recordings), what learners will learn and the requirements (one per line), how long it runs and when classes are, and, for live classes, an optional meeting link. Hold live classes in an [audio room](/help/community-audio-rooms) in your course group, for up to ${n(1 + ROOM_SPEAKERS_MAX + room.listeners)} people (you, ${ROOM_SPEAKERS_MAX} speakers and ${roomListeners} listening); for video, or a bigger class, paste a meeting link. Only learners who enrolled or bought see it.
 - **Course group:** a place on #NotesApp for your learners, instead of a WhatsApp or Telegram group. Under About the course, link one of your communities and a Space in it, tap **Add a members-only Space for this course** to one you run, or tap **Start a community for this course**: it's joined only by invite link, and your learners get the link with a **Join the course group** button. No community yet? Start one on [Community](/community); see [Spaces](/help/community-spaces) and [Circles](/help/community-circles). If your community is open to anyone, its members-only Spaces are open to all its members, not only your learners. A WhatsApp or Telegram link saved on an older course keeps showing to its learners until you link a course group (which replaces it) or remove it; new outside group links can't be added.
 - **Price:** free, or paid on ${onPlans("paidCourses")} (text lessons, PDFs and YouTube), with your own uploaded videos too on ${onPlans("courseVideoUploads")}. You get the price less the same fee as your digital items, paid to your bank 7 days after each sale; add your bank account in Rates & payouts before you publish. Tick **Certificate included** to include it in the price.
 - **Tutors:** teach alone, or invite up to ${MAX_CO_TUTORS} co-tutors by @username with what they can do (**Can view**, or **Can view and edit** the course's content and lessons) and their share of each sale. Each one reads the terms and agrees before they're listed, and is paid their share at their own plan's fee. The price, the shares, the tutors and publishing stay with the lead. See [Co-teaching a course](/help/co-teaching).
@@ -785,7 +788,7 @@ It costs the same on every plan: ${money(GOLD_PRICING.personal.monthlyKobo)} a m
 
 **What non-members see:** a home page with your name, pictures and a line about you, and only what your admins choose: General (read only), About, Contact, public events, the member list, and a Join button. Until we've verified who runs the community, it shows a notice; [verification](/organisations) removes it.
 
-**Audio rooms:** like Clubhouse, inside your community. Admins and moderators tap **+ Start a room** on the community's Home, give it a name (Sunday Q&A, Midweek Bible study) and go live. The host can bring up to **4 members on stage** to speak at a time; everyone else listens. A listener taps **✋ Raise hand to speak**, and the host taps **Bring up** (or taps anyone in the room and **Invite to speak**); **Move to listeners** sends a speaker back, and a speaker can step down with **Back to listening**. A green ring shows who is talking. **Leave quietly** to go; the host leaving, or **End room**, ends it for everyone. Rooms are for members only, run phone to phone (nothing passes through our servers and nothing is recorded), and hold up to **20 listeners** for now; bigger rooms come with our relay.
+**Audio rooms:** like Clubhouse, inside your community. Admins and moderators tap **+ Start a room** on the community's Home, give it a name (Sunday Q&A, Midweek Bible study) and go live. The host can bring up to **4 members on stage** to speak at a time; everyone else listens. A listener taps **✋ Raise hand to speak**, and the host taps **Bring up** (or taps anyone in the room and **Invite to speak**); **Move to listeners** sends a speaker back, and a speaker can step down with **Back to listening**. A green ring shows who is talking. **Leave quietly** to go; the host leaving, or **End room**, ends it for everyone. Rooms are for members only, nothing is recorded, and a room holds up to **${roomListeners} listeners**${room.relay ? " (the sound goes through our relay, run by Cloudflare)" : " (phone to phone for now; bigger rooms come with our relay)"}.
 
 **Room chat:** while a room is on, everyone in it can type: questions for the speakers, prayer points, amens, links. On a computer the chat sits beside the room; on a phone tap **💬 Chat** (a red number shows what you missed). The host and speakers are marked, the host or a moderator can **Remove** a message, and the chat goes when the room ends: nothing is kept.
 
@@ -805,7 +808,7 @@ It costs the same on every plan: ${money(GOLD_PRICING.personal.monthlyKobo)} a m
     A("events", "Events", "Teams and organisations", `
 [Events](/events) are for every account: services, meetings, launches, classes and outreaches. Add one on the Events page (for yourself) or on your community's Events tab (for the community, open to everyone or members only).
 
-An event has a start and end (Lagos time), where it is, and or a **Join live** link. For a talk in your community, host it in an [audio room](/help/community-audio-rooms) on #NotesApp (the host, ${ROOM_SPEAKERS_MAX} speakers and up to ${ROOM_LISTENERS_MAX_P2P} listening). For video or a bigger audience, which our own streaming doesn't do yet, the link can be YouTube Live, Facebook Live, Zoom, Google Meet or any https link. It can repeat **every week** or **every month**, until a date if you like.
+An event has a start and end (Lagos time), where it is, and or a **Join live** link. For a talk in your community, host it in an [audio room](/help/community-audio-rooms) on #NotesApp (the host, ${ROOM_SPEAKERS_MAX} speakers and up to ${roomListeners} listening). For video or a bigger audience, which our own streaming doesn't do yet, the link can be YouTube Live, Facebook Live, Zoom, Google Meet or any https link. It can repeat **every week** or **every month**, until a date if you like.
 
 People tap **Going** or **Interested** and get a reminder **24 hours and 1 hour before** (a notification, a phone notification and an email), and can **Add to calendar**. Public events are listed under Upcoming, by state and city, in **Explore → Events**, and in **Trending → Events** when people are buying tickets, RSVPing or visiting. Members-only events and events of an invite-only community never are. If you change or cancel an event, everyone going or interested is told.
 
@@ -879,13 +882,15 @@ A **Circle** is a private group chat inside a [community](/help/community) for t
 
 **On stage:** the host and up to **${ROOM_SPEAKERS_MAX} speakers** at a time. A listener taps **✋ Raise hand to speak**; the host sees the hand and taps **Bring up**. The host can also tap anyone and **Invite to speak**, or **Move to listeners**. A speaker can step down with **Back to listening**. A green ring shows who's talking; the mic button mutes and unmutes.
 
-**Listening:** tap **Join** and you're listening; your mic stays off until you're brought up. **Leave quietly** whenever you like. Up to **${ROOM_LISTENERS_MAX_P2P} listeners** for now.
+**Listening:** tap **Join** and you're listening; your mic stays off until you're brought up. **Leave quietly** whenever you like. Up to **${roomListeners} listeners**; if a room is full, you'll see how many it holds.
 
 **The room chat:** while the room is on, everyone in it can type (up to ${ROOM_CHAT_MAX} characters): questions, prayer points, amens, links. On a computer the chat sits beside the room; on a phone, tap **💬 Chat**, where a red number shows what you missed. The host and speakers are marked. The host or a moderator can **Remove** a message.
 
 **Ending:** **End room** ends it for everyone; the host leaving ends it too. Nothing is recorded, and the chat is deleted when the room ends.
 
-**How the sound travels:** phone to phone. The people on stage connect straight to each other, and each listener connects to the host, whose phone sends everyone the mix; nothing passes through #NotesApp's servers. That's why a room holds ${ROOM_LISTENERS_MAX_P2P} listeners for now, and why a host on Wi-Fi or strong 4G works best. Bigger rooms, for hundreds, come with our relay.
+**How the sound travels:** ${room.relay
+  ? `through our relay, run by Cloudflare. The host and each speaker send their microphone once to the relay, and everyone in the room hears the stage from there, so a room holds up to ${roomListeners} listeners and the host's phone carries no more than a speaker's. The sound passes through Cloudflare on its way and is never recorded or kept. A room that was already open before the relay was switched on keeps running phone to phone (up to ${n(room.p2pListeners)} listeners), and if the relay can't be reached when a room starts, that room runs phone to phone and the host is told. In a relay room the screen shows how many are listening; tap **People here** to see who (the host can invite anyone from there to speak). Once a room passes ${n(room.chatSlowAbove)} listeners its chat goes into slow mode: each listener can send one message every ${room.chatSlowSeconds} seconds (the host and speakers are never slowed).`
+  : `phone to phone. The people on stage connect straight to each other, and each listener connects to the host, whose phone sends everyone the mix; nothing passes through #NotesApp's servers. That's why a room holds ${roomListeners} listeners for now, and why a host on Wi-Fi or strong 4G works best. Bigger rooms, for hundreds, come with our relay.`}
 
 **Can't hear?** Check your phone isn't on silent and the browser has permission to play sound; on a speaker's phone, allow the microphone. If you joined on a weak network, leave and join again.`),
     A("organisation-accounts", "Organisation accounts", "Teams and organisations", `

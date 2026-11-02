@@ -4,19 +4,25 @@ import { rateLimit } from "@/lib/rate-limit";
 import { authed, fail as failOther } from "@/lib/moments-api";
 import { iceServers } from "@/lib/calls-server";
 import { CommunityError } from "@/lib/community-server";
-import { beatRoom, closeRoom, joinRoom, leaveRoom, liveRooms, raiseHand, removeChat, setSpeaker, startRoom } from "@/lib/rooms-server";
+import { beatRoom, closeRoom, joinRoom, leaveRoom, liveRoomFigures, liveRooms, raiseHand, relayStep, removeChat, roomPeople, sendRoomChat, setSpeaker, startRoom } from "@/lib/rooms-server";
 
 export const dynamic = "force-dynamic";
 const fail = (err: unknown, fallback: string) => (err instanceof CommunityError ? NextResponse.json({ error: err.message }, { status: err.status }) : failOther(err, fallback));
 
 // Audio rooms in a community (lib/rooms.ts).
-// GET ?cid= → { rooms } (live rooms, for members)
-// POST { action: "start", cid, title } → { id, iceServers } · { action: "join", id } → { iceServers } · { action: "beat", id } → { live }
+// GET ?cid= → { rooms, figures } (live rooms, for members; figures: what a room opened now holds, from Admin → Limits)
+// POST { action: "start", cid, title } → { id, mode, note?, iceServers } · { action: "join", id } → { mode, cap, iceServers } · { action: "beat", id } → { live }
 //      { action: "leave", id } · { action: "hand", id, up } · { action: "speaker", id, uid, on } · { action: "end", id } · { action: "unchat", id, messageId }
+//      { action: "relay", id, op, … } → relay rooms only: the browser's steps with Cloudflare, checked and passed on by the server
+//        (lib/rooms-server.ts relayStep; the Cloudflare token never leaves the server)
+//      { action: "people", id, after? } → { people, next } (relay rooms: who is listening, a page at a time)
+//      { action: "chat", id, text } (relay rooms: the chat goes through the server, with slow mode in big rooms)
 export async function GET(req: NextRequest) {
   try {
     const me = await authed(req, "messages", false);
-    return NextResponse.json({ rooms: await liveRooms(getAdminDb(), me.uid, String(req.nextUrl.searchParams.get("cid") ?? "")) }, { headers: { "Cache-Control": "no-store" } });
+    const db = getAdminDb();
+    const [rooms, figures] = await Promise.all([liveRooms(db, me.uid, String(req.nextUrl.searchParams.get("cid") ?? "")), liveRoomFigures(db)]);
+    return NextResponse.json({ rooms, figures }, { headers: { "Cache-Control": "no-store" } });
   } catch (err) {
     return fail(err, "Couldn't load the rooms");
   }
@@ -38,6 +44,17 @@ export async function POST(req: NextRequest) {
       case "hand": await raiseHand(db, me.uid, body.id, body.up); return NextResponse.json({ ok: true });
       case "speaker": return NextResponse.json(await setSpeaker(db, me.uid, body.id, body.uid, body.on));
       case "end": await closeRoom(db, me.uid, body.id); return NextResponse.json({ ok: true });
+      case "relay": {
+        const limited = await rateLimit(req, "room-relay", me.uid, 240, 600);
+        if (limited) return limited;
+        return NextResponse.json(await relayStep(db, me.uid, body.id, body));
+      }
+      case "people": return NextResponse.json(await roomPeople(db, me.uid, body.id, body.after));
+      case "chat": {
+        const limited = await rateLimit(req, "room-chat", me.uid, 30, 60);
+        if (limited) return limited;
+        return NextResponse.json(await sendRoomChat(db, me.uid, body.id, body.text));
+      }
       case "unchat": await removeChat(db, me.uid, body.id, body.messageId); return NextResponse.json({ ok: true });
       default: throw new CommunityError(400, "Unknown action.");
     }

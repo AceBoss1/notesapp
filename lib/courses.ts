@@ -167,9 +167,11 @@ export type CourseGroup = CourseGroupRef & { name: string; avatar: string; space
 // Where "Join the course group" goes: the community with its invite, opened on the course's Space.
 export const courseGroupHref = (g: Pick<CourseGroup, "communityId" | "spaceId" | "inviteCode">) =>
   `/c/${g.communityId}?${[g.inviteCode ? `invite=${encodeURIComponent(g.inviteCode)}` : "", g.spaceId ? `tab=spaces&space=${encodeURIComponent(g.spaceId)}` : "tab=home"].filter(Boolean).join("&")}`;
-// Live classes on #NotesApp: an audio room in the course group holds the host, this many speakers and this many listeners (lib/rooms.ts).
-// A bigger class, or one on video, still needs a meeting link: the editor says so plainly.
-export const COURSE_ROOM_SEATS = { speakers: ROOM_SPEAKERS_MAX, listeners: ROOM_LISTENERS_MAX_P2P, total: 1 + ROOM_SPEAKERS_MAX + ROOM_LISTENERS_MAX_P2P };
+// Live classes on #NotesApp: an audio room in the course group holds the host, this many speakers and this many listeners (lib/rooms.ts;
+// the listeners are an admin setting, so the editor passes the live figure from /api/limits). A bigger class, or one on video, still needs
+// a meeting link: the editor says so plainly.
+export const courseRoomSeats = (listeners: number = ROOM_LISTENERS_MAX_P2P) => ({ speakers: ROOM_SPEAKERS_MAX, listeners, total: 1 + ROOM_SPEAKERS_MAX + listeners });
+export const COURSE_ROOM_SEATS = courseRoomSeats();
 
 // What kind of group a community link saved before is ("WhatsApp", "Telegram"…), to label it as before on the course page.
 export function communityKindOf(url: string): string {

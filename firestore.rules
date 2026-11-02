@@ -908,21 +908,33 @@ service cloud.firestore {
     // Audio rooms in a community (lib/rooms.ts): the room is written only by the server and read by the people in it; each connection
     // between two people in it (lib/rooms.ts linksFor) is read and written only by those two, like group calls.
     match /communityRooms/{roomId} {
-      allow read: if isSignedIn() && request.auth.uid in resource.data.joined;
+      // In the room: in `joined` (the stage, and everyone in a phone-to-phone room) or, in a relay room, a listener with a people doc.
+      function listening() { return exists(/databases/$(database)/documents/communityRooms/$(roomId)/people/$(request.auth.uid)); }
+      allow read: if isSignedIn() && (request.auth.uid in resource.data.joined || listening());
       allow write: if false;
       function room() { return get(/databases/$(database)/documents/communityRooms/$(roomId)).data; }
-      function inRoom() { return isSignedIn() && room().status == 'live' && request.auth.uid in room().joined; }
+      function inRoom() { return isSignedIn() && room().status == 'live' && (request.auth.uid in room().joined || listening()); }
+      // Relay rooms' listeners (lib/rooms.ts, "Who is here, at scale"): written by the server on join, heartbeat and leave; each listener
+      // reads only their own (to know they're still in).
+      match /people/{uid} {
+        allow read: if isSignedIn() && request.auth.uid == uid;
+        allow write: if false;
+      }
       // The room's chat (lib/rooms.ts): read and written by the people in the room, as themselves (their name and picture as the room has
       // them), up to 500 characters; never edited; the host or a moderator removes through the server.
       match /chat/{messageId} {
         allow read: if inRoom();
-        allow create: if inRoom() && request.resource.data.keys().hasOnly(['from', 'name', 'avatar', 'text', 'at'])
+        // Phone-to-phone rooms only: in a relay room the chat goes through the server, which holds slow mode for big rooms.
+        allow create: if inRoom() && room().get('mode', 'p2p') != 'relay' && request.resource.data.keys().hasOnly(['from', 'name', 'avatar', 'text', 'at'])
           && request.resource.data.from == request.auth.uid
           && request.resource.data.name == room().joined[request.auth.uid].name && request.resource.data.avatar == room().joined[request.auth.uid].avatar
           && request.resource.data.text is string && request.resource.data.text.size() > 0 && request.resource.data.text.size() <= 500
           && request.resource.data.at is string;
         allow update, delete: if false;
       }
+      // Relay rooms (lib/rooms.ts, mode "relay"): each person's Cloudflare session id and microphone track. Server-only: nobody can read
+      // another's session (or their own), so the only way to send or receive sound is through the server's checks.
+      match /relay/{uid} { allow read, write: if false; }
       match /links/{linkId} {
         allow read: if isSignedIn() && (resource.data.from == request.auth.uid || resource.data.to == request.auth.uid);
         allow create: if inRoom() && request.resource.data.from == request.auth.uid

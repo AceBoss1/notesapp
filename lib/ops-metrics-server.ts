@@ -3,7 +3,7 @@ import { getAdminApp } from "./firebase-admin";
 import { setting } from "./config";
 import { redis } from "./shared-store";
 import { storedSnapshot } from "./stat-cache";
-import { ROOM_LISTENERS_MAX_P2P } from "./rooms";
+import { liveRoomFigures } from "./rooms-server";
 import { LINES, MAX_TIMING_MS, against, fmtInt, fmtMs, growth, percentile, worst, type Part, type Timing, type Trigger } from "./ops-metrics";
 
 // Gathers the five stage-trigger numbers (lib/ops-metrics.ts) for the admin dashboard, at most every 30 minutes (statCache).
@@ -172,7 +172,7 @@ export async function gatherTriggers(db: Firestore, now = new Date()): Promise<T
     ]),
     t("scale", 4, "Search speed, live-room size, video minutes", "Search over 500 ms, rooms past 20 people, or video near the plan's limit", [
       { label: "Search ready (95th percentile, 7 days)", value: fmtMs(searchP), status: against(searchP, LINES.searchP95Ms, 0.8) },
-      { label: "Biggest live room, 30 days", value: rooms ? `${fmtInt(rooms)} people` : "no rooms yet", status: against(rooms, ROOM_LISTENERS_MAX_P2P) },
+      { label: "Biggest live room, 30 days", value: rooms ? `${fmtInt(rooms)} people` : "no rooms yet", status: against(rooms, (await liveRoomFigures(db)).listeners), note: "against how many a room opened now holds (Admin → Limits → Audio rooms)" },
       { label: "Video stored", value: video ? `${fmtInt(Math.round(video.minutes))} of ${video.limit ? fmtInt(video.limit) : "?"} minutes` : "not connected", status: against(videoShare, LINES.videoShare, 0.7 / 0.9) },
     ]),
   ];
