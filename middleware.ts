@@ -39,7 +39,7 @@ async function resolve(host: string, check?: string): Promise<Resolved> {
 // academy/…: a course page inside their site — enrol, buy, like, save, review; logistics: the delivery price for an item or the basket).
 const PASS = /^\/(_next\/|favicon|robots\.txt|sitemap|images\/|fonts\/|api\/(views|trending|boosts|ads|public|status|consent|booking\/slots|auth\/branded|paystack\/(initialize|verify)|journals\/save|notify\/like|recommendations|track|logistics|community|events|upload|academy\/(enrol|social|links|purchase|view|reviews|courses))\b)/;
 // Pages the app domain doesn't carry: it sends them to the main site (MAIN_HOST). (Explore, Help, Terms and Privacy stay on the app domain.)
-const APP_TO_MAIN = /^\/(about|pricing|roadmap|status|docs|changelog|security|brand|challenge|advertise|domains|organisations|store-selling|logistics|merchstore|contact|coauthoring|gifts|boost|badges|track)(\/|$)/;
+const APP_TO_MAIN = /^\/(about|pricing|roadmap|status|docs|changelog|security|brand|challenge|advertise|domains|organisations|store-selling|books|logistics|merchstore|contact|coauthoring|gifts|boost|badges|track)(\/|$)/;
 const PUBLIC_FILE = /\.[a-z0-9]{2,5}$/i;
 
 // The site on one of our domains, staying in the visitor's family: life.<domain> → Notes Life, app.<domain> (and the short app

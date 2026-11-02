@@ -6,6 +6,18 @@
 > message, honest reporting, and "import your Tralo or Excel stock list" for the Ghana launch.
 > **Decided 1 Nov 2026:** customers who aren't #NotesApp members get receipts and debt reminders by WhatsApp (SMS through Send-Na when
 > the seller opts in), each with a short #NotesApp line. This is an approved exception to "our own tools first" (section 2).
+> **Decided 2 Nov 2026:** Business books is never labelled "coming soon". It has a **waitlist** instead (built, v0.115.0):
+> - **The page:** `/books` says what Business books will do. It's honest that it isn't open, promises no date, and shows three of the
+>   mockups (`public/images/books/`).
+> - **The form:** name, email (filled in for members), kind of business, what they sell, how they keep books today (exercise book,
+>   Excel, Tralo, another app, nothing), city, and "email me when it opens".
+> - **Where sign-ups go:** `/api/books/waitlist`, rate limited, 5 an hour per address and per member (`lib/books-waitlist.ts`). Each
+>   sign-up is a lead of category `books-waitlist` (one per email; signing up again updates it), written by the server only
+>   (`firestore.rules`). They're shown on Admin → Leads → **Business books waitlist**, with counts by kind of business and by how
+>   people keep books today.
+> - **Thanks:** a thank-you email, plus a bell for members.
+> - **Links to the waitlist:** the roadmap's not-live list ("Business books — join the waitlist"), the Business books section on
+>   `/store-selling` (`#business-books`), the home page's features and the Inventory and Selling physical goods help articles.
 
 ## 1. Who it's for and the problem
 
@@ -330,7 +342,7 @@ mobile money. Ghana waits for those (`docs/PAYMENTS.md`).
 Each step ships with its tests, help article, changelog line, roadmap update, README and HANDOVER notes (the public-pages rule,
 `docs/ENGINEERING_GUIDE.md`), and phone and desktop screenshots from the real code.
 
-1. **This plan** (v0.115.0): the doc, the roadmap item and the changelog line. ✓
+1. **This plan and the waitlist** (v0.115.0): the doc, the changelog line, and the public **waitlist** (built, see below). ✓
 2. **Mockups for approval**: the screens below. The owner approves or changes them.
 3. **Walk-in sales and expenses**: `lib/books.ts`, `/api/books`, `/profile/books` (Books home, Record a sale, Add expense), receipts
    (link and PDF), online orders flowing in, stock moves, Free Basic cap. Rules and emulator tests.

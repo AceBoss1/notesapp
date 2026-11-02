@@ -5,6 +5,7 @@ import { getAdminApp } from "./firebase-admin";
 import { notifyBell, sendEmail } from "./email";
 import { PREP_URL, SITE_URL } from "./host";
 import { checkFeedback, feedbackMessage } from "./feedback";
+import { BOOKS_PATH, checkWaitlist, waitlistMessage } from "./books-waitlist";
 import { REVIEWERS_COMMUNITY, REVIEWERS_COMMUNITY_ID, REVIEWERS_COMMUNITY_SEED, checkVolunteer, examsLabel, subjectKeysFor, subjectName, volunteerMessage } from "./prep-reviewers";
 import { allSubjects, createInvite, ensureCatalog, type Reviewer } from "./exam-prep-server";
 import { PREP_NAME } from "./exam-prep";
@@ -32,6 +33,28 @@ export async function submitFeedback(db: Firestore, raw: unknown, who: Who, now 
     ...(who.uid ? { uid: who.uid } : {}),
   });
   return { id: r.id };
+}
+
+// ---- the Business books waitlist (/books) ----
+// One sign-up per email: signing up again updates the first (and keeps its place, createdAt) instead of adding another. A thank-you
+// email always (members and visitors), and a bell for a signed-in member.
+export async function submitBooksWaitlist(db: Firestore, raw: unknown, who: Who, send: Send = sendEmail, now = new Date()): Promise<{ id: string; again: boolean }> {
+  const c = checkWaitlist(raw);
+  if (!c.ok) throw new LeadError(400, c.error);
+  const { name, email, ...answers } = c.value;
+  const open = await db.collection("leads").where("email", "==", email).where("category", "==", "books-waitlist").limit(1).get();
+  const first = open.docs[0];
+  const doc = { name, email, category: "books-waitlist", message: waitlistMessage(answers), booksWaitlist: answers, status: "new", ...(who.uid ? { uid: who.uid } : {}) };
+  const r = first ? first.ref : db.collection("leads").doc();
+  await r.set({ ...doc, createdAt: first ? String(first.data().createdAt) : iso(now), ...(first ? { updatedAt: iso(now) } : {}) }, { merge: !!first });
+  await send({
+    to: email,
+    subject: "You're on the Business books waitlist",
+    text: `Hello ${name.split(/\s+/)[0]},\n\nThank you for joining the waitlist for Business books on #NotesApp: walk-in sales, expenses, stock, money owed to you and profit, beside your online store.\n\nIt isn't open yet, and we're not promising a date. We're building it with what sellers like you tell us, so your answers help.${answers.notify ? " We'll email you when it opens." : ""}\n\nWhat it will do: ${SITE_URL}${BOOKS_PATH}\n\n#NotesApp`,
+    action: { label: "See what Business books will do", url: `${SITE_URL}${BOOKS_PATH}` },
+  }).catch(() => false);
+  if (who.uid) await notifyBell({ uid: who.uid, type: "books", linkHref: BOOKS_PATH, message: `You're on the Business books waitlist.${answers.notify ? " We'll let you know when it opens." : ""}` });
+  return { id: r.id, again: !!first };
 }
 
 // ---- the reviewer sign-up ----
