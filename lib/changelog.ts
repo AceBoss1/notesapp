@@ -11,6 +11,15 @@ export type Release = {
 
 export const CHANGELOG: Release[] = [
   {
+    version: "v0.116.0",
+    bump: "minor",
+    date: "2026-11-01",
+    changes: [
+      { kind: "added", text: "Seven free courses on AI for Africans from LWB Academy, by Emmanuel Adams: AI for Everyday Africans; AI for Small Businesses and Traders; AI for Farmers and Agribusiness; AI for Teachers, Schools and Students; AI for NGOs, Churches and Public Organisations; AI Careers and Freelancing in Africa; and AI for Professionals. Plain-English lessons with a practical exercise each, credited videos and a closing quiz. They're seeded from Admin → Academy as drafts for LWB Academy to preview and publish." },
+      { kind: "added", text: "A course an organisation publishes now says who teaches it: \"Taught by\" and the team member's name, under the organisation's." },
+    ],
+  },
+  {
     version: "v0.114.0",
     bump: "minor",
     date: "2026-11-01",

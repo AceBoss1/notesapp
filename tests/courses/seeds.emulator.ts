@@ -6,6 +6,7 @@ import { initializeApp } from "firebase-admin/app";
 import { getFirestore } from "firebase-admin/firestore";
 import { SeedError, planSeeds, seedCourses } from "../../lib/course-seeds-server";
 import { IT_SUPPORT_COURSE, RESTART_COURSE } from "../../lib/course-seeds";
+import { AI_COURSE_SEEDS } from "../../lib/course-seeds-ai";
 import { markLesson, setPublished } from "../../lib/courses-server";
 import { progressOf } from "../../lib/courses";
 initializeApp({ projectId: "demo-notesapp" });
@@ -41,7 +42,11 @@ const now = new Date("2026-11-01T10:00:00Z");
   assert.equal(pb.action, "rewrite"); assert.equal(pb.courseId, IT); assert.deepEqual(pb.before, { lessons: 8, minutes: 30, enrolCount: 2, reviews: 1 });
   assert.ok(pb.progressNote && /certificate/.test(pb.progressNote), "the card says what happens to learners");
   assert.equal((await db.collection("courses").where("ownerUid", "==", "u_e").get()).size, 1, "a dry run writes nothing");
-  await assert.rejects(planSeeds(db, "nobody"), (e) => e instanceof SeedError && e.status === 404);
+  assert.equal(plans.length, 9, "Emmanuel's two and LWB Academy's seven");
+  // @lwb doesn't exist yet: its seven are blocked, and seeding them is refused
+  const noOrg = plans.filter((p) => p.ownerUsername === "lwb");
+  assert.equal(noOrg.length, 7); assert.ok(noOrg.every((p) => p.action === "blocked" && /@lwb/.test(p.reason ?? "") && p.group === "LWB Academy (@lwb)"));
+  await assert.rejects(seedCourses(db, "lwb", now), (e) => e instanceof SeedError && e.status === 404);
 
   // seed both
   const r1 = await seedCourses(db, "emmanuel", now);
@@ -88,10 +93,12 @@ const now = new Date("2026-11-01T10:00:00Z");
   assert.equal(b.enrolCount, 2); assert.equal(b.status, "published");
 
   // a course that belongs to someone else is never touched
-  const blocked = await planSeeds(db, "other");
-  assert.equal(blocked.find((p) => p.key === IT_SUPPORT_COURSE.key)!.action, "blocked");
-  await assert.rejects(seedCourses(db, "other", now, { only: IT_SUPPORT_COURSE.key }), (x) => x instanceof SeedError && x.status === 409);
-  assert.equal((await db.doc(`courses/${IT}`).get()).data()!.ownerUid, "u_e");
+  await db.doc(`courses/${IT}`).update({ ownerUid: "u_o", ownerUsername: "other" });
+  const blocked = await planSeeds(db, { owner: "emmanuel" });
+  assert.equal(blocked.length, 2); assert.equal(blocked.find((p) => p.key === IT_SUPPORT_COURSE.key)!.action, "blocked");
+  await assert.rejects(seedCourses(db, null, now, { only: IT_SUPPORT_COURSE.key }), (x) => x instanceof SeedError && x.status === 409);
+  assert.equal((await db.doc(`courses/${IT}`).get()).data()!.ownerUid, "u_o");
+  await db.doc(`courses/${IT}`).update({ ownerUid: "u_e", ownerUsername: "emmanuel" });
 
   // when the existing course has gone, it's found again by its seed (or made afresh as a draft)
   await db.recursiveDelete(db.doc(`courses/${IT}`)); await db.doc("courseSlugs/it-support-staff-training").delete();
@@ -100,6 +107,51 @@ const now = new Date("2026-11-01T10:00:00Z");
   const [again] = await seedCourses(db, "emmanuel", now, { only: IT_SUPPORT_COURSE.key });
   assert.equal(again.done, "update"); assert.equal(again.courseId, made.courseId);
   await assert.rejects(seedCourses(db, "emmanuel", now, { only: "nope" }), SeedError);
+
+  // ---- LWB Academy: seven AI courses owned by the @lwb organisation, made by @emmanuel (a member of its team) ----
+  await db.doc("users/u_lwb").set({ uid: "u_lwb", username: "lwb", displayName: "LWB Academy", avatar: "/lwb.png", role: "publisher", accountTier: "business", accountKind: "organisation" });
+  // the organisation exists but Emmanuel isn't on its team yet: refused, nothing written
+  const notMember = (await planSeeds(db, { owner: "lwb" }));
+  assert.ok(notMember.every((p) => p.action === "blocked" && /isn't on @lwb's team/.test(p.reason ?? "")));
+  await assert.rejects(seedCourses(db, "lwb", now), (e) => e instanceof SeedError && e.status === 409);
+  await assert.rejects(seedCourses(db, null, now, { only: AI_COURSE_SEEDS[0].key }), (e) => e instanceof SeedError && e.status === 409);
+  const lwbCourses = async () => (await db.collection("courses").where("ownerUid", "==", "u_lwb").get()).docs;
+  assert.equal((await lwbCourses()).length, 0);
+  // a reader on the team doesn't count; a writer does
+  await db.doc("orgMembers/u_lwb_u_e").set({ orgUid: "u_lwb", memberUid: "u_e", role: "reader" });
+  await assert.rejects(seedCourses(db, "lwb", now), (e) => e instanceof SeedError && e.status === 409);
+  await db.doc("orgMembers/u_lwb_u_e").set({ orgUid: "u_lwb", memberUid: "u_e", role: "writer" });
+  const ready = await planSeeds(db, { owner: "lwb" });
+  assert.equal(ready.length, 7); assert.ok(ready.every((p) => p.action === "create" && p.teacherUsername === "emmanuel" && p.byline === "Emmanuel Adams"));
+  // seed all seven: drafts owned by the organisation, made by (and crediting) Emmanuel
+  const all = await seedCourses(db, "lwb", now);
+  assert.equal(all.length, 7); assert.ok(all.every((r) => r.done === "create" && r.status === "draft"));
+  const docs = await lwbCourses();
+  assert.equal(docs.length, 7);
+  for (const d of docs) {
+    const c = d.data(), seed = AI_COURSE_SEEDS.find((x) => x.key === c.seedKey)!;
+    assert.ok(seed, "each course remembers its seed");
+    assert.equal(c.status, "draft"); assert.equal(c.isOrg, true); assert.equal(c.createdByUid, "u_e"); assert.equal(c.ownerUsername, "lwb"); assert.equal(c.ownerName, "LWB Academy");
+    assert.equal(c.madeByName, "Emmanuel Adams"); assert.equal(c.madeByUsername, "emmanuel"); assert.equal(c.cover, `/images/academy/covers/${seed.slug}.webp`);
+    assert.equal(c.slug, seed.slug); assert.equal(c.lessonCount, seed.lessons.length); assert.equal(c.publishedAt, null);
+    assert.equal((await db.collection(`courses/${d.id}/lessons`).get()).size, seed.lessons.length);
+  }
+  const first = docs.find((d) => d.data().seedKey === AI_COURSE_SEEDS[0].key)!;
+  const { courseOf } = await import("../../lib/courses-server");
+  const shown = courseOf(first.id, first.data());
+  assert.equal(shown.madeByName, "Emmanuel Adams", "the course page credits him as the teacher");
+  // Emmanuel, as a writer on the team, edits them like any course he made for the organisation
+  const { myCourses } = await import("../../lib/courses-server");
+  assert.ok((await myCourses(db, "u_e")).filter((c) => c.isOrg).length === 7);
+  // seeding one again, then all seven again: the same courses, no copies, still drafts
+  const [one] = await seedCourses(db, null, new Date("2026-11-03T10:00:00Z"), { only: AI_COURSE_SEEDS[0].key });
+  assert.equal(one.done, "update"); assert.equal(one.courseId, first.id); assert.equal(one.status, "draft");
+  const again2 = await seedCourses(db, "lwb", new Date("2026-11-03T11:00:00Z"));
+  assert.ok(again2.every((r) => r.done === "update"));
+  assert.equal((await lwbCourses()).length, 7, "re-seeding makes no copies");
+  assert.equal((await db.doc(`courses/${first.id}`).get()).data()!.createdByUid, "u_e");
+  // Emmanuel's own courses are untouched by LWB's seeding
+  assert.equal((await mine()).length, 2);
   console.log("ALL OK");
   process.exit(0);
 })().catch((e) => { console.error(e); process.exit(1); });

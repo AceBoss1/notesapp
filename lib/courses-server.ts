@@ -52,6 +52,7 @@ export function courseOf(id: string, d: FirebaseFirestore.DocumentData): Course 
     hasClassLink: d.hasClassLink === true, hasCommunityLink: d.hasCommunityLink === true, communityKind: String(d.communityKind ?? ""), hasGroup: d.hasGroup === true,
     tutors: Array.isArray(d.tutors) ? (d.tutors as Tutor[]) : [], tutorUids: strings(d.tutorUids),
     isOrg: d.isOrg === true, createdByUid: String(d.createdByUid ?? d.ownerUid ?? ""),
+    ...(d.isOrg === true && d.madeByName ? { madeByName: String(d.madeByName), madeByUsername: String(d.madeByUsername ?? "") } : {}),
   };
 }
 export function lessonOf(id: string, d: FirebaseFirestore.DocumentData): Lesson {
@@ -103,6 +104,8 @@ async function teacher(db: Firestore, uid: string): Promise<UserProfile> {
   if (!canPublish(p)) throw new CourseError("Teaching is for publishing accounts. Start publishing (it's free on Basic), then come back.", 403);
   return p;
 }
+// An organisation's course credits the team member who made it as its teacher.
+export const madeByFields = (p: UserProfile) => ({ madeByName: p.displayName || p.username, madeByUsername: p.username });
 export const ownerFields = (p: UserProfile) => ({ ownerUsername: p.username, ownerName: p.displayName || p.username, ownerAvatar: p.avatar || "" });
 export const tierOf = (p: Pick<UserProfile, "username" | "role" | "accountTier"> | undefined): AccountTier =>
   p ? effectiveTier({ username: p.username ?? "", role: p.role ?? "reader", accountTier: p.accountTier ?? "standard" }) : "standard";
@@ -176,9 +179,9 @@ export async function createCourse(db: Firestore, uid: string, body: Record<stri
   const f = cleanCourseFields(body);
   if (typeof f === "string") throw new CourseError(f);
   if (!f.title) throw new CourseError("Give the course a title.");
-  let owner: UserProfile, ownerUid = uid;
+  let owner: UserProfile, ownerUid = uid, maker: UserProfile | null = null;
   if (typeof body.orgUid === "string" && body.orgUid && body.orgUid !== uid) {
-    const me = await profileOf(db, uid);
+    const me = maker = await profileOf(db, uid);
     if (me.suspended === true) throw new CourseError("Teaching is paused while your account is suspended.", 403);
     owner = (await orgForMember(db, uid, body.orgUid)).org;
     ownerUid = body.orgUid;
@@ -193,7 +196,7 @@ export async function createCourse(db: Firestore, uid: string, body: Record<stri
     ownerUid, ...ownerFields(owner), title: f.title, slug, summary: f.summary ?? "", topics: f.topics ?? [], cover: f.cover ?? "", free: true, priceKobo: 0, status: "draft",
     lessonIds: [], outline: [], lessonCount: 0, minutes: 0, enrolCount: 0, viewCount: 0, createdAt: iso(now), updatedAt: iso(now), publishedAt: null,
     level: "", language: "English", format: "self", outcomes: [], requirements: [], modules: [], tutors: [], tutorUids: [],
-    isOrg, createdByUid: uid,
+    isOrg, createdByUid: uid, ...(isOrg && maker ? madeByFields(maker) : {}),
   };
   await ref.set(data);
   return courseOf(ref.id, data);

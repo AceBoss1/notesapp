@@ -159,6 +159,9 @@ export default function CourseView({ slug, site }: { slug: string; site?: { base
                   <span className="block font-mono text-xs text-paper/75">{tutors.length === 1 ? `@${course.ownerUsername} · ${course.isOrg ? "Organisation" : "Teacher"}` : `${course.isOrg ? course.ownerName : "Co-taught"} · ${plural(tutors.length, "tutor")}`}</span>
                 </span>
               </Link>
+              {course.isOrg && course.madeByName && (
+                <Link href={`/u/${course.madeByUsername}`} className="w-fit font-ui text-sm text-paper/85 hover:text-paper" data-testid="course-teacher">Taught by <b className="font-semibold text-paper">{course.madeByName}</b></Link>
+              )}
               <PlaysLife uid={course.ownerUid} className="mt-2 !bg-white/15 !text-paper hover:!bg-white/25" />
               {social && showsRating(social.rating) && (
                 <button type="button" onClick={() => openTab("reviews")} className="flex w-fit items-center gap-2 text-sm">

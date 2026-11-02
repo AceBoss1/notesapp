@@ -70,6 +70,7 @@ export type Course = {
   hasGroup?: boolean; // linked to a #NotesApp course group (a community Space): which one is private too (courseLinks/{id})
   tutors?: Tutor[]; tutorUids?: string[]; // accepted co-tutors (the lead is the owner)
   isOrg?: boolean; createdByUid?: string; // published by an organisation; who on its team made it
+  madeByName?: string; madeByUsername?: string; // an organisation's course: that team member, credited as its teacher
 };
 export type LessonKind = "youtube" | "text" | "video" | "pdf" | "quiz";
 export const lessonKindLabel = (k: LessonKind) => (k === "text" ? "Reading" : k === "pdf" ? "PDF" : k === "quiz" ? "Quiz" : "Video");

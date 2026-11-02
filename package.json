@@ -24,6 +24,7 @@
     "test:discovery": "npx -y tsx tests/discovery/shelves.test.ts",
     "test:social": "npx -y tsx tests/social/social-links.test.ts",
     "test:courses": "npx -y tsx tests/courses/courses.test.ts && npx -y tsx tests/courses/quizzes.test.ts && npx -y tsx tests/courses/seeds.test.ts",
+    "test:ai-seeds": "npx -y tsx tests/courses/ai-seeds.test.ts",
     "test:nana": "npx -y tsx tests/nana/gems.test.ts && npx -y tsx tests/nana/prompt.test.ts",
     "test:certificates": "npx -y tsx tests/certificates/certificates.test.ts",
     "test:team": "npx -y tsx tests/team/team.test.ts",

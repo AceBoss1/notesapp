@@ -1,13 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
 import { AccessError, getAdminDb, verifyAdminAccess } from "@/lib/firebase-admin";
 import { isSuper } from "@/lib/admin-access";
-import { SEED_OWNER_USERNAME, SEED_PROGRESS_NOTE } from "@/lib/course-seeds";
+import { SEED_PROGRESS_NOTE } from "@/lib/course-seeds";
 import { SeedError, planSeeds, seedCourses } from "@/lib/course-seeds-server";
 
 export const dynamic = "force-dynamic";
 
-// Admin → Academy, "Seed courses": the owner's two prepared courses (lib/course-seeds.ts), written as @emmanuel's.
-// GET → { owner, plans, note }: the dry run (what each seed will create or rewrite). POST { key, confirm: true } → { result }.
+// Admin → Academy, "Seed courses": the prepared courses (lib/course-seeds.ts): Emmanuel's own two, and LWB Academy's seven on AI
+// (owned by the @lwb organisation, made by @emmanuel). GET → { plans, note }: the dry run (what each seed will create or rewrite, or why
+// it can't). POST { key, confirm: true } → { result, results }: one course. POST { owner: "lwb", confirm: true } → { results }: all of
+// that owner's courses ("Seed all seven"), refused as a whole when the organisation or the team membership is missing.
 // Super admins and the owner only: it writes courses on a member's behalf.
 async function owner(req: NextRequest) {
   const a = await verifyAdminAccess(req.headers.get("authorization")?.replace(/^Bearer\s+/i, ""));
@@ -24,16 +26,19 @@ const fail = (e: unknown) => {
 export async function GET(req: NextRequest) {
   try {
     await owner(req);
-    return NextResponse.json({ owner: SEED_OWNER_USERNAME, plans: await planSeeds(getAdminDb()), note: SEED_PROGRESS_NOTE }, { headers: { "Cache-Control": "no-store" } });
+    return NextResponse.json({ plans: await planSeeds(getAdminDb()), note: SEED_PROGRESS_NOTE }, { headers: { "Cache-Control": "no-store" } });
   } catch (e) { return fail(e); }
 }
 
 export async function POST(req: NextRequest) {
   try {
     await owner(req);
-    const b = (await req.json().catch(() => ({}))) as { key?: unknown; confirm?: unknown };
+    const b = (await req.json().catch(() => ({}))) as { key?: unknown; owner?: unknown; confirm?: unknown };
     if (b.confirm !== true) return NextResponse.json({ error: "Check what will change first, then confirm." }, { status: 400 });
-    const [result] = await seedCourses(getAdminDb(), SEED_OWNER_USERNAME, new Date(), { only: String(b.key ?? "") });
-    return NextResponse.json({ result });
+    const results = b.key
+      ? await seedCourses(getAdminDb(), null, new Date(), { only: String(b.key) })
+      : typeof b.owner === "string" && b.owner ? await seedCourses(getAdminDb(), b.owner, new Date()) : null;
+    if (!results) return NextResponse.json({ error: "Which course?" }, { status: 400 });
+    return NextResponse.json({ result: results[0], results });
   } catch (e) { return fail(e); }
 }
