@@ -263,6 +263,14 @@ on `main` that isn't understood is raised with the owner first.
     pasted notes or a voice note's words (automatic transcription is phase 2); Standard accounts may connect an assistant; an
     account tool called without a credential answers HTTP 401 (so OAuth assistants start the Connect screen). Tests:
     `test:agents`, `test:agents-server`, `test:mcp-server` (updated for the 401), `test:rules`.
+94. **Team hub "+ New task" and the rooms relay task (v0.123.1, branch `push/team-new-task`; 92 is reserved for a pending PR):**
+    nothing to deploy. A "+ New task" button beside the hub's title opens a form with every field an item has (title, details with
+    clickable links, due date with Today / In 1 week / In 2 weeks, when, status with the decision question or blocker, departments,
+    people, monthly repeat); the quick "Add work" row stays lower down. Item details now show web addresses as links
+    (`components/LinkedText.tsx`). Seed `rooms-relay-2026-11` (`ROOMS_RELAY_BACKLOG`) adds the owner's task "Audio rooms past 20
+    listeners: Cloudflare relay (Realtime SFU)", due 9 Nov, with the Cloudflare steps for `CLOUDFLARE_REALTIME_APP_ID` /
+    `_TOKEN` and the TURN keys; the standing "rooms-relay" signal in `lib/team-server.ts` is unchanged. Tests: `test:team`,
+    `test:team-server`.
 
 All of these are on the team hub board with departments and dates (`lib/team-seed.ts`: `FUND_BACKLOG`, `LAUNCH_BACKLOG`, `COURSES_BACKLOG`, `TOPICS_BACKLOG`, `BIMI_BACKLOG`). Items can have several people (`ownerUids`; `ownerUid` stays as the first of them for older readers) and can repeat monthly (`repeat: "monthly"`: done moves the due date on a month).
 

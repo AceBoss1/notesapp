@@ -11,6 +11,15 @@ export type Release = {
 
 export const CHANGELOG: Release[] = [
   {
+    version: "v0.123.1",
+    bump: "patch",
+    date: "2026-11-02",
+    changes: [
+      { kind: "added", text: "For the team: a + New task button at the top of the team hub. It opens a form with the title, details, a due date (or Today, In 1 week, In 2 weeks), when, status (with the question for a decision or what it's blocked on), departments, the people it's for and a monthly repeat. The quick Add work row is still there." },
+      { kind: "changed", text: "For the team: web addresses in a work item's details are now links." },
+    ],
+  },
+  {
     version: "v0.123.0",
     bump: "minor",
     date: "2026-11-02",

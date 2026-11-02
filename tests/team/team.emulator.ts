@@ -4,7 +4,7 @@ import assert from "node:assert/strict";
 import { initializeApp } from "firebase-admin/app";
 import { getFirestore } from "firebase-admin/firestore";
 import { addComment, createItem, sendWorkReminders, updateItem, type DigestDeps } from "../../lib/team-server";
-import { BIMI_BACKLOG, seedOnce } from "../../lib/team-seed";
+import { BIMI_BACKLOG, ROOMS_RELAY_BACKLOG, seedOnce } from "../../lib/team-seed";
 import { addMonths, lagosDate } from "../../lib/team";
 initializeApp({ projectId: "demo-notesapp" });
 const db = getFirestore();
@@ -67,6 +67,21 @@ const people = [{ uid: "u_boss", name: "Boss", email: "" }, { uid: "u_ada", name
   assert.equal(monthly.length, 1); assert.equal(monthly[0].repeat, "monthly"); assert.deepEqual(monthly[0].ownerUids, ["u_boss"]);
   const apply = (await db.collection("teamItems").where("seedKey", "==", "bimi-cmc-apply").get()).docs[0].data();
   assert.equal(apply.due, "2027-08-31");
+
+  // The rooms relay seed: one item on the founder, Engineering and Product, due 9 Nov.
+  assert.equal(await seedOnce(db, "rooms-relay-test", ROOMS_RELAY_BACKLOG, "u_boss"), 1);
+  assert.equal(await seedOnce(db, "rooms-relay-test", ROOMS_RELAY_BACKLOG, "u_boss"), 0);
+  const relay = (await db.collection("teamItems").where("seedKey", "==", "rooms-relay").get()).docs.map((d) => d.data());
+  assert.equal(relay.length, 1);
+  assert.deepEqual(relay[0].ownerUids, ["u_boss"]); assert.deepEqual(relay[0].depts, ["engineering", "product"]);
+  assert.equal(relay[0].due, "2026-11-09"); assert.equal(relay[0].status, "todo"); assert.equal(relay[0].horizon, "week");
+
+  // The "+ New task" form's full create: details, due, departments, people and a decision question are all kept.
+  const { id: nt } = await createItem(db, "u_boss", { title: "New task", detail: "Link: https://example.org", due: "2026-11-16", horizon: "later", status: "decision", decisionQuestion: "Go?", depts: ["product"], ownerUids: ["u_ada", "u_tunde"], repeat: "" });
+  const ntd = (await db.doc(`teamItems/${nt}`).get()).data()!;
+  assert.equal(ntd.detail, "Link: https://example.org"); assert.equal(ntd.due, "2026-11-16"); assert.deepEqual(ntd.depts, ["product"]);
+  assert.equal(ntd.status, "decision"); assert.equal(ntd.decisionQuestion, "Go?"); assert.deepEqual(ntd.ownerUids, ["u_ada", "u_tunde"]);
+  await assert.rejects(createItem(db, "u_boss", { title: "Stuck", status: "blocked", blockedReason: "" }), /blocked on/);
 
   console.log("ALL OK");
   process.exit(0);
