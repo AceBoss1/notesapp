@@ -1,4 +1,4 @@
-import { PREP_URL, SITE_URL } from "./host";
+import { SITE_URL } from "./host";
 import { FEEDBACK_PATH } from "./feedback";
 import { REVIEWERS_PATH } from "./prep-reviewers";
 
@@ -105,9 +105,14 @@ export function bodyHtml(body: string, style: BodyStyle = EMAIL_STYLE): string {
 // Facts from lib/changelog.ts (every release in October 2026 and 1 November), the rewards from lib/referrals.ts, what's coming from
 // the roadmap's "not live" list. The 50 members with no ads is the owner's own figure.
 export const ANNIVERSARY_SEED = "anniversary-2026-11";
+// The links in this draft name naapp.tech, our new primary home (owner, 2 Nov 2026), whatever NEXT_PUBLIC_ROOT_DOMAIN is set to.
+// Old notesapp.name.ng links keep working (lib/host.ts serves both families).
+export const NEW_HOME = "naapp.tech";
+const HOME_URL = `https://www.${NEW_HOME}`;
+const HOME_PREP_URL = `https://prep.${NEW_HOME}`;
 export const ANNIVERSARY_DRAFT: AnnouncementInput = {
   title: "#NotesApp is one month old",
-  bell: "#NotesApp is one month old today 🎉 50 of you found us with no ads. See what we built in October, what's coming in November, and how to help.",
+  bell: "#NotesApp is one month old today 🎉 50 of you found us with no ads, and we have a new home: naapp.tech. See what we built in October, what's coming in November, and how to help.",
   subject: "#NotesApp is one month old: thank you, and what's next",
   preheader: "50 members in our first month, with no ads. What we built in October, what's coming in November, and two ways to help.",
   linkLabel: "Get your referral link",
@@ -118,6 +123,10 @@ We launched #NotesApp on 1 October. Today we're one month old, and we want to sa
 
 In our first month, 50 of you joined. No ads, no marketing: just people finding us and telling a friend. That means a lot to us.
 
+## Our new home: naapp.tech
+
+#NotesApp now lives at ${HOME_URL}. Old links on notesapp.name.ng keep working, so nothing you've shared breaks, but please bookmark the new one.
+
 ## What we built in October
 
 - **Notes Market**: sell physical items and digital downloads, with a basket on your own site and reviews from verified buyers.
@@ -125,11 +134,17 @@ In our first month, 50 of you joined. No ads, no marketing: just people finding 
 - **Naija Exam Prep**: free JAMB, WAEC and NECO practice questions with full explanations, timed mocks, and packs that work with no data.
 - **Community**: a home for your church, school, NGO or club, with Spaces, private Circles and live audio rooms.
 - **Events and giving**: paid tickets with a QR code for every guest, and giving in communities with a receipt for every gift.
-- **Bookings**: people book and pay for a session with you, with reminders by email and the bell.
+- **Bookings**: set your price and weekly hours, and people book and pay for a 1:1 session with you in Naira. They get a confirmation and reminders 24 hours and 1 hour before, can reschedule or cancel under your refund policy, and you're paid out once the session is done.
 - **Messages**: group chats, voice notes, and free voice and video calls, including group calls of up to 6 people.
 - **Your own site**: every plan now has one, with ready-made kits for your trade.
 - **Discount codes and coupons** for your shop, downloads, courses and sessions, and Nana applies the best coupon for you at checkout.
 - **Nana AI**, our helper on every page, for answers, writing help and course cover art, and **Notes Life**, our free life game set in Abuja.
+
+## Recognised, and backed
+
+In October #NotesApp won **Special Recognition at the Build With NKENNEAi Hackathon** for our Kiswahili journals, translation and speech.
+
+With thanks to the programmes that support us: Claude Startups (Anthropic), Moda and Granola. Together their credits and free plans are worth up to $11,920. It is a ceiling: what we use will be less.
 
 ## What's coming in November
 
@@ -139,7 +154,7 @@ Before they do, invite the people you care about yourself:
 
 - **Your referral link** is under Account → Referrals. A friend who joins with it gets their first month of a plan free (on a yearly plan, one month off). Your username is also your referral code: they can type it under "Have a discount code?" on the pricing page.
 - **You earn 20%** of what they pay for their plan, for 12 months from their first payment.
-- **Sell or teach?** Set an affiliate share of up to 50% on your items, downloads or courses, and they go on the affiliate marketplace for members to promote. Anyone can share a link from ${SITE_URL}/affiliates and earn that share of every sale.
+- **Sell or teach?** Set an affiliate share of up to 50% on your items, downloads or courses, and they go on the affiliate marketplace for members to promote. Anyone can share a link from ${HOME_URL}/affiliates and earn that share of every sale.
 - **Take your earnings** as cash to your bank account (from ₦2,000) or as NotesApp Credit with 10% more. Earnings wait 7 days (14 for delivered shop items) so payments can clear.
 
 It isn't only about the rewards. When you invite a friend, a sister, a cousin or a colleague, you're giving them a place to sell, teach, learn and be found. You're doing them good.
@@ -152,17 +167,18 @@ On our roadmap, coming soon (not live yet):
 - Notes Life in a new pixel look, and an HD look with your own avatar.
 - The #1MillionNairaNotesAppChallenge for influencers.
 - WhatsApp reminders alongside email and the bell.
-- **Business books** for sellers: record walk-in sales and expenses, track stock and money owed to you, see your profit, and import your existing records from Excel and other tools.
+
+**Business books** for sellers: record walk-in sales and expenses, track stock and money owed to you, see your profit, and import your existing records from Excel and other tools. Be first to try it: join the waitlist at ${HOME_URL}/books
 
 ## Volunteers wanted: review Naija Exam Prep questions
 
-Every Naija Exam Prep question is checked by a person before students see it. If you're a teacher, an examiner, a graduate in a subject or a strong student, we'd love your help. Choose your subjects and sign up: ${PREP_URL}${REVIEWERS_PATH}
+Every Naija Exam Prep question is checked by a person before students see it. If you're a teacher, an examiner, a graduate in a subject or a strong student, we'd love your help. Choose your subjects and sign up: ${HOME_PREP_URL}${REVIEWERS_PATH}
 
 Reviewers can also join the Naija Exam Prep Reviewers community, a private place to talk through questions with other reviewers. Joining is optional.
 
 ## Tell us how we did
 
-You've had #NotesApp for a month. What do you love? What's missing or broken? It takes two minutes: ${SITE_URL}${FEEDBACK_PATH}
+You've had #NotesApp for a month. What do you love? What's missing or broken? It takes two minutes: ${HOME_URL}${FEEDBACK_PATH}
 
 Thank you for being here at the start. We're only getting going.
 
