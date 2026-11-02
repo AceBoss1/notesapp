@@ -3,6 +3,8 @@ import Link from "next/link";
 import Shelf from "@/components/Shelf";
 import AcademyPageClient from "@/components/academy/AcademyPageClient";
 import { ACADEMY_LIVE } from "@/lib/courses";
+import { enterpriseCoursesPrice } from "@/lib/pricing";
+import { loadLivePricing } from "@/lib/pricing-server";
 
 // Notes Academy: courses on #NotesApp (docs/COURSES.md). Free and paid courses are open (components/academy/AcademyPageClient.tsx:
 // a product page, components/academy/AcademyLanding.tsx, around the same shelves as Journals and Notes Market, the reader's
@@ -14,14 +16,18 @@ export const metadata: Metadata = {
   alternates: { canonical: "/academy" },
 };
 
-const POINTS = [
+const points = () => [
   { t: "Free courses", d: "Any publisher can teach for free, with lessons from their own YouTube that play right here." },
   { t: "Paid courses", d: "On Pro and above: text lessons, PDFs and YouTube, plus your own uploaded videos on Business and Enterprise; they're kept private and only learners who paid can open them." },
   { t: "Certificates", d: "Finish a course and get a certificate with its own page anyone can check, ready for LinkedIn." },
-  { t: "For organisations", d: "Enterprise courses for your team or customers, from ₦100,000 a month. Talk to us." },
+  { t: "For organisations", d: `Enterprise courses for your team or customers, from ${enterpriseCoursesPrice()} a month. Talk to us.` },
 ];
 
-export default function AcademyPage() {
+// The Enterprise Courses price is set in Admin → Pricing: applied before drawing, redrawn each minute.
+export const revalidate = 60;
+
+export default async function AcademyPage() {
+  if (!ACADEMY_LIVE) await loadLivePricing();
   return ACADEMY_LIVE ? <AcademyPageClient /> : <AcademySoon />;
 }
 
@@ -38,7 +44,7 @@ function AcademySoon() {
       <div className="mx-auto max-w-6xl px-4 py-10 sm:px-8">
         <Shelf title="What's coming">
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            {POINTS.map((p) => <div key={p.t} className="card p-5"><p className="font-ui font-bold text-ink">{p.t}</p><p className="mt-1 text-sm text-slate">{p.d}</p></div>)}
+            {points().map((p) => <div key={p.t} className="card p-5"><p className="font-ui font-bold text-ink">{p.t}</p><p className="mt-1 text-sm text-slate">{p.d}</p></div>)}
           </div>
         </Shelf>
         <Shelf title="For you" why={<>Courses on <Link href="/interests" className="text-crimson">your interests</Link> will show here first, then the most followed and the newest.</>}>

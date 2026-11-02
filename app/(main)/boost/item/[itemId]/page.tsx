@@ -1,5 +1,6 @@
 "use client";
 
+import { useLivePricing } from "@/lib/useLivePricing";
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
@@ -15,6 +16,7 @@ import type { StoreItem } from "@/lib/store";
 // Boost a store item: same packages and rules as post boosts. The item then rotates in the Boosted
 // strips (Journals, the shop) and at the top of its own store page.
 export default function BoostItemPage() {
+  useLivePricing(); // prices as set in Admin → Pricing, not the defaults bundled with this screen
   const { itemId } = useParams<{ itemId: string }>();
   const router = useRouter();
   const [user, setUser] = useState<User | null>(null);

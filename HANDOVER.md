@@ -232,6 +232,7 @@ on `main` that isn't understood is raised with the owner first.
     dependency) by `statementFromPdfLines`; a scan asks for CSV. **Open question:** Bumpa's customer export (and some bank apps) give
     Excel only; there's still no xlsx reader, so the wizard asks for CSV. The owner decided on 2 Nov 2026: no Excel library; sellers save Excel files as CSV (the wizard says how). Fixtures
     in `tests/books/fixtures/`, tests in `test:books` and `test:books-server`.
+
 91. **Teen mode on Moments and Notes Life (v0.121.0, branch `push/teen-moments-life`):** deploy `firebase deploy --only
     firestore:rules` (`lifePresence`: a member with `users.teen` or a child profile can't read or write it; they can still delete
     their own entry). No new indexes or collections. Closes the team hub item `young-moments`. `lib/young.ts` has the pure rules
@@ -277,6 +278,7 @@ on `main` that isn't understood is raised with the owner first.
     pasted notes or a voice note's words (automatic transcription is phase 2); Standard accounts may connect an assistant; an
     account tool called without a credential answers HTTP 401 (so OAuth assistants start the Connect screen). Tests:
     `test:agents`, `test:agents-server`, `test:mcp-server` (updated for the 401), `test:rules`.
+
 94. **Team hub "+ New task" and the rooms relay task (v0.123.1, branch `push/team-new-task`; 92 is reserved for a pending PR):**
     nothing to deploy. A "+ New task" button beside the hub's title opens a form with every field an item has (title, details with
     clickable links, due date with Today / In 1 week / In 2 weeks, when, status with the decision question or blocker, departments,
@@ -285,6 +287,25 @@ on `main` that isn't understood is raised with the owner first.
     listeners: Cloudflare relay (Realtime SFU)", due 9 Nov, with the Cloudflare steps for `CLOUDFLARE_REALTIME_APP_ID` /
     `_TOKEN` and the TURN keys; the standing "rooms-relay" signal in `lib/team-server.ts` is unchanged. Tests: `test:team`,
     `test:team-server`.
+
+95. **Live commission and figures on booking, bookings, pricing and the help (v0.123.2, branch `push/live-rates`):** nothing to
+    deploy (no rules or indexes). Owner, 2 Nov 2026: "booking, bookings, pricing didn't show commission rate for booking Session,
+    subscription and gift cut... help should not hardwire figures that can be changed from admin limits/pricing". Root cause: the saved
+    pricing (`platformSettings/pricing`) is applied to the live objects only by `ensurePricing()`, which only money paths called. Server
+    pages (pricing, gifts, booking, badges, …) never called it, and most were built once at deploy, so they showed the defaults or
+    whatever that server instance had last loaded; screens drawn in the browser always had the defaults bundled; the help
+    (`lib/kb-server.ts`) never loaded pricing, limits or agent settings. Now: `loadLivePricing()` (`lib/pricing-server.ts`) at the top
+    of every server page that shows prices, with `revalidate = 60`; `/api/pricing` + `useLivePricing()` for browser screens
+    (Rates & payouts, BadgeCard, boosts, course editor, Academy FAQ, NoteForm…); `getArticles` loads pricing, `serverConfig/limits` and
+    `serverConfig/agents` and passes them to `builtInArticles(live)`, rebuilding at once when a figure changes. Publishers' own rate:
+    `/api/publisher/rates` (`lib/my-rates.ts`, `commissionRateFor(tier, customRates)`) shown by `components/MyCommission.tsx` on
+    `/profile/publishing`, `/bookings` (publishers only), `/booking` and `/gifts`. Fixed figures (referral share, discount limits,
+    giving bands, Paystack's card charge, ad-share hold and minimum, co-tutor limits) are quoted from their constants. Left as text on
+    purpose: `/terms` (legal wording), `/roadmap` (history), Notes Life game prices, the challenge prize, example sentences. Tests:
+    `test:help` (new: saves a non-default config in a stand-in database, loads it as the help does, checks the articles, the pricing
+    row and the publisher lines, and guards `lib/kb-articles.ts` against literals equal to an admin default), `test:pricing`,
+    `test:limits`, `test:nana`.
+
 96. **Audio rooms on the Cloudflare relay (v0.124.0, branch `push/rooms-relay`; 95 is reserved for PR #251):** built and **off until
     the keys are set**: without `CLOUDFLARE_REALTIME_APP_ID` and `CLOUDFLARE_REALTIME_APP_TOKEN` every room runs phone to phone exactly
     as before (20 listeners). **Owner steps:** (1) dash.cloudflare.com → Realtime → Serverless SFU → Create application (e.g.

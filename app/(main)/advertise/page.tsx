@@ -4,6 +4,7 @@ import { AD_PACKAGES } from "@/lib/ad-packages";
 import { formatNaira } from "@/lib/booking-time";
 import PageHero from "@/components/PageHero";
 import { planRate } from "@/lib/pricing";
+import { loadLivePricing } from "@/lib/pricing-server";
 
 export const metadata: Metadata = {
   title: "Advertise",
@@ -11,7 +12,11 @@ export const metadata: Metadata = {
     "Buy a banner campaign on #NotesApp, paid online and priced by validated impressions. Ads come with a revenue share built in: Pro and Business publishers earn a share of the ad revenue on their pages.",
 };
 
-export default function AdvertisePage() {
+// Shows prices and rates an admin can change: applied on every render and redrawn each minute (the page used to be built once).
+export const revalidate = 60;
+
+export default async function AdvertisePage() {
+  await loadLivePricing(); // prices and rates as saved in Admin → Pricing, not the built-in defaults
   return (
     <>
       <PageHero eyebrow="Advertise" title={<>Advertise on #NotesApp</>}>

@@ -42,6 +42,7 @@ jobs:
       - run: npm run test:agents
       - run: npm run test:pricing
       - run: npm run test:limits
+      - run: npm run test:help
       - run: npm run test:host
       - run: npm run test:ads
       - run: npm run test:cardtap

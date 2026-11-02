@@ -22,6 +22,17 @@ export const CHANGELOG: Release[] = [
     ],
   },
   {
+    version: "v0.123.2",
+    bump: "patch",
+    date: "2026-11-02",
+    changes: [
+      { kind: "fixed", text: "The pricing page, Gifts, Booking, Badges, Boost, Advertise, Store selling, Community, Logistics, Books, Organisations and the home page now show the commission, prices and trial offers saved by our team, refreshed every minute. Before, they could show the starting figures instead." },
+      { kind: "fixed", text: "The help centre and Nana quote the prices, rates, plan limits and Nana and connected-assistant settings in force today, instead of starting figures written into the articles." },
+      { kind: "added", text: "Publishers see their own commission where they set prices and see earnings: \"NotesApp takes …% of each paid session (your plan: …)\" on Rates & payouts (sessions, subscriptions, gifts and earnings), My bookings, Booking and Gifts. Enterprise accounts see the rate agreed with us. People who book see nothing new." },
+      { kind: "changed", text: "The pricing table's commission row now reads \"Commission: paid sessions, journal subscriptions and gifts to you\", and says that community giving and event tickets have no commission, only a flat charge. Booking lists the commission on each plan." },
+    ],
+  },
+  {
     version: "v0.123.1",
     bump: "patch",
     date: "2026-11-02",

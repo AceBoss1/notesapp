@@ -1,5 +1,6 @@
 "use client";
 
+import { useLivePricing } from "@/lib/useLivePricing";
 import { useState } from "react";
 import Link from "next/link";
 import { User } from "firebase/auth";
@@ -9,6 +10,7 @@ import { planRate } from "@/lib/pricing";
 // Shown on Rates & payouts to accounts that can't publish yet (Free
 // Standard): apply for Free Basic (admin-reviewed) or pick a paid plan.
 export default function BecomePublisher({ user, profile, onApplied }: { user: User | null; profile: UserProfile | null; onApplied: () => void }) {
+  useLivePricing(); // prices as set in Admin → Pricing, not the defaults bundled with this screen
   const [message, setMessage] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);

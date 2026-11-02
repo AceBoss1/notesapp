@@ -1,5 +1,6 @@
 "use client";
 
+import { useLivePricing } from "@/lib/useLivePricing";
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { onAuthStateChanged } from "firebase/auth";
@@ -49,6 +50,7 @@ const write = (store: "local" | "session", key: string, value: string) => {
 // `subjectUid`: whose page this is, so nobody is nudged on their own profile. What it suggests depends on the member's plan
 // and badge (pitchFor below).
 export default function BadgeToast({ subjectUid }: { subjectUid?: string }) {
+  useLivePricing(); // prices as set in Admin → Pricing, not the defaults bundled with this screen
   const [pitch, setPitch] = useState<Pitch | null>(null);
 
   useEffect(() => {

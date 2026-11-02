@@ -1,5 +1,6 @@
 "use client";
 
+import { useLivePricing } from "@/lib/useLivePricing";
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
@@ -12,6 +13,7 @@ import DiscountCodeField from "@/components/DiscountCodeField";
 import { formatNaira } from "@/lib/booking-time";
 
 export default function BoostPage() {
+  useLivePricing(); // prices as set in Admin → Pricing, not the defaults bundled with this screen
   const { noteId } = useParams<{ noteId: string }>();
   const router = useRouter();
   const [user, setUser] = useState<User | null>(null);

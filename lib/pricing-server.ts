@@ -46,3 +46,13 @@ export async function savePricing(db: Firestore, c: PricingCaller, input: unknow
   loadedAt = Date.now();
   return { changes };
 }
+
+// For pages: apply the saved prices and rates before rendering anything that shows them. Never throws (no database at build time, or a
+// failed read): the values already in force, or the defaults, are shown instead.
+export async function loadLivePricing(): Promise<void> {
+  try {
+    await ensurePricing();
+  } catch {
+    /* the defaults stand */
+  }
+}

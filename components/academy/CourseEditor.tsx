@@ -14,6 +14,7 @@ import { api } from "@/lib/moments-client";
 import { uploadToR2 } from "@/lib/upload";
 import CoverMaker from "@/components/academy/CoverMaker";
 import { digitalCommissionRateFor } from "@/lib/tiers";
+import { useLivePricing } from "@/lib/useLivePricing";
 import type { AccountTier } from "@/lib/users";
 import {
   COURSE_LANGUAGES, COURSE_LEVELS, COURSE_PRICE_MIN_KOBO, COURSE_SUMMARY_MAX, COURSE_TITLE_MAX, LESSON_MINUTES_MAX, LESSON_TITLE_MAX, MAX_COURSE_TOPICS, MAX_CO_TUTORS,
@@ -41,6 +42,7 @@ type View = { course: Course; lessons: Lesson[]; access: "lead" | "tutor"; links
 const lines = (a?: string[]) => (a ?? []).join("\n");
 
 export default function CourseEditor({ courseId }: { courseId: string }) {
+  useLivePricing(); // the digital-items fee shown below, as set in Admin → Pricing
   const { user } = useMember();
   const router = useRouter();
   const [v, setV] = useState<View | null>(null);

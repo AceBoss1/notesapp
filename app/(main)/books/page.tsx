@@ -4,6 +4,7 @@ import Image from "next/image";
 import PageHero from "@/components/PageHero";
 import BooksCta from "@/components/books/BooksCta";
 import { booksCaps, inventoryAddonPrice } from "@/lib/pricing";
+import { loadLivePricing } from "@/lib/pricing-server";
 
 export const metadata: Metadata = {
   title: "Business books",
@@ -28,7 +29,11 @@ const SHOTS = [
   { src: "/images/books/books-profit-and-loss.webp", w: 1440, h: 900, alt: "Profit and loss for October: weekly sales, the statement, expenses by category and best sellers" },
 ];
 
-export default function BooksPage() {
+// Shows prices and rates an admin can change: applied on every render and redrawn each minute (the page used to be built once).
+export const revalidate = 60;
+
+export default async function BooksPage() {
+  await loadLivePricing(); // prices and rates as saved in Admin → Pricing, not the built-in defaults
   const caps = booksCaps();
   return (
     <>
