@@ -26,7 +26,8 @@ Legal checks these points (team hub, Legal & compliance): the Terms clause, the 
 | Who opens the account | A parent, who owns it | The student; a parent confirms by email | The member |
 | People search and directory | Hidden | Hidden | Their choice |
 | Messages and group invites | None | Only from people they follow | Anyone (their settings) |
-| Comments and moments | Off | Replies only from people they follow; moments only for mutual follows, never public (v0.83.0) | Their settings |
+| Comments and moments | Off | Replies only from people they follow; moments only for mutual follows, never public (v0.83.0); replies to moments and @mentions only from people they follow, no reshares (v0.121.0) | Their settings |
+| Notes Life | Kids' Notesville, residents only | Friends are mutual follows; off the Billionaires List and invite names except for people they follow (back); no presence either way; no player-to-player money exists (v0.121.0) | Their settings |
 | Board and public name | Nickname only | Nickname only | Their choice |
 | Ads, offers, newsletters | Never | Never to the student; anything goes to the parent | Opt in |
 | Paying | The parent | Allowed, refundable, parent told | Normal |
@@ -38,6 +39,27 @@ profile on the parent's account (`lib/kids.ts`, `lib/kids-server.ts`, `/api/kids
 identity `kid_<id>` minted only for the owning parent (claims kid, kidId, parentUid), back to the parent with a PIN, `KidGuard`
 keeping it to the areas switched on, kids' Notesville in Notes Life (residents only, play time per day), the Sunday email to the
 parent, and firestore.rules refusing a child profile any profile edit, username or follow.
+
+v0.121.0 finishes teen mode on Moments and Notes Life (the team hub item `young-moments`). The pure rules are in `lib/young.ts`
+(`hearsOnlyFromFollowed`, `mayReach`, `teenAudience`, `mayReshare`, `keptOffLists`, `lifeRowShown`, `inviteeShown`, and the words a
+stopped person sees), tested by `npm run test:young-social`:
+
+- **Replies to moments** (`replyToMoment`): only from people the teen follows. The moment is already hidden from anyone the teen
+  doesn't follow back, so this is a second lock, with its own message.
+- **@mentions in a moment** (`mentionGate` in `createMoment` and `shareToMoment`): refused, with "@name only hears from people they
+  follow…", unless the teen follows the author. **Mention bells everywhere** (`notifyMentions` in `lib/mentions-server.ts`): a teen
+  gets one only from someone they follow.
+- **Reshares** (`reshare`): a teen's moment, or a teen's reshare of someone else's, can't be reshared, since a reshare is seen by the
+  resharer's audience. Any reshare made before is filtered back to the teen's audience (`rootOk` in `canSee`, `listForOwner`, `listFeed`).
+- **Signed out and public pages:** moments are never public: every moments route needs a signed-in member and the collection is
+  closed to browsers. There are no moments on Explore, Trending, share pages or member sites.
+- **Notes Life:** the Billionaires List (`richList`) leaves out a player in teen mode (or `keepHidden`) except for themselves and
+  people they follow back; the invite list (`invites`) shows "A friend in teen mode" without name, picture or id unless the teen
+  follows the inviter; `lifePresence` (players at the same place) refuses a teen or child profile both ways in firestore.rules.
+  Friends and the friend chat were already mutual follows and go through Messages (`sendMessage`, teen rule included).
+- **Left out on purpose:** there's no player-to-player gifting or trading in Notes Life (every N$ comes from the game itself), and
+  calls and room visits aren't built ("coming"), so there was nothing to restrict; when they are, they should use `mayReach`.
+  The audience stays "people they follow back" (stricter than "followers"), as decided in v0.83.0.
 
 ## Turning 18 (the graduation flow, built in v0.86.0: `lib/young-server.ts`, `/api/young`, `/eighteen`)
 

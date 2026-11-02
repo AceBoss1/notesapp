@@ -232,6 +232,21 @@ on `main` that isn't understood is raised with the owner first.
     Excel only; there's still no xlsx reader, so the wizard asks for CSV. The owner decided on 2 Nov 2026: no Excel library; sellers save Excel files as CSV (the wizard says how). Fixtures
     in `tests/books/fixtures/`, tests in `test:books` and `test:books-server`.
 
+91. **Teen mode on Moments and Notes Life (v0.121.0, branch `push/teen-moments-life`):** deploy `firebase deploy --only
+    firestore:rules` (`lifePresence`: a member with `users.teen` or a child profile can't read or write it; they can still delete
+    their own entry). No new indexes or collections. Closes the team hub item `young-moments`. `lib/young.ts` has the pure rules
+    (`hearsOnlyFromFollowed` = `teen` or `keepRepliesFollowers`, `mayReach`, `teenAudience`, `mayReshare`, `keptOffLists` = `teen` or
+    `keepHidden`, `lifeRowShown`, `inviteeShown`). `lib/moments-server.ts`: `mentionGate` (a moment @mentioning a teen who doesn't
+    follow the author is refused with a friendly message), `replyToMoment` checks the owner's follow, `reshare` refuses a teen's
+    moment or a teen's reshare, and `rootOk` keeps older reshares of a teen's moment to the teen's audience in `canSee`,
+    `listForOwner` (which now checks reshares one by one) and `listFeed`. `lib/mentions-server.ts` `notifyMentions`: no bell to a
+    teen from someone they don't follow (every kind). `lib/life/server.ts`: `richList` drops teens (and `keepHidden`) for anyone but
+    themselves and people they follow back (one `users` read per listed player, plus two follow reads per teen); `invites` masks
+    teens who don't follow the inviter. Moments were already signed-in only (no public route), so nothing changed for signed-out
+    pages. Not built because there's nothing to restrict: player-to-player gifts or trades, calls and room visits in Notes Life.
+    Tests: `npm run test:young-social` (pure), `npm run test:young-server` (moments, mentions, the Billionaires List and invites
+    against the emulator), `npm run test:rules` (presence).
+
 All of these are on the team hub board with departments and dates (`lib/team-seed.ts`: `FUND_BACKLOG`, `LAUNCH_BACKLOG`, `COURSES_BACKLOG`, `TOPICS_BACKLOG`, `BIMI_BACKLOG`). Items can have several people (`ownerUids`; `ownerUid` stays as the first of them for older readers) and can repeat monthly (`repeat: "monthly"`: done moves the due date on a month).
 
 ## 3. How the work is done (please keep these)
