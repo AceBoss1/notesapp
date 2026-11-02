@@ -2578,3 +2578,19 @@ tutor types, and a PDF its size from the bucket (`fileBytes`); older uploads cou
 the editor, Teach page and pricing page name the plans from the settings (`plansWith`/`onPlans`), so turning a switch off can't leave
 copy that promises it.
 
+
+**Accelerators: Alliance, Village Global Velocity, Capital Wings (2 Nov 2026)** — The owner asked for three programmes to be checked on
+their own sites and the application material drafted, without applying or contacting anyone. `docs/FUNDING.md` gained §5–§7 and three
+rows in its table. Alliance (alliance.xyz, read 2 Nov 2026): USD 400k on a SAFE at a USD 4M post-money valuation with a 1:1 token side
+letter, cohort ALL19 from 11 January 2027 with Regular Admission closing 18 November, funding before the cohort possible; the owner's
+"USD 400k for up to 7%" doesn't match that price (400k at 4M post is 10%; 7% for 400k is about 5.71M post), and a second "USD 400k
+follow-on at seed" appeared on only one of two versions of the page (it runs an A/B test), so it's marked unconfirmed, as are the
+entity rule and the form's questions (the form loads them only after an email is entered, so none was entered). Fit is weak to
+moderate because NotesApp has no crypto; the section names the one honest stablecoin angle (cross-border creator payouts) and leaves
+apply-or-skip as a decision. Village Global Velocity (villageglobal.vc now redirects to villageglobal.com): up to USD 1M, rolling,
+pre-seed and any country; the instrument and cap aren't published, and the drafts answer the questions of its live application form.
+Capital Wings: an introducer registered in Bahrain with nobody named, no registration number or licence and placeholder legal pages;
+the recommendation is not to apply and to share nothing. `ACCELERATORS_BACKLOG` in `lib/team-seed.ts` (seed `accelerators-2026-11`,
+run from `app/api/admin/team/route.ts`) adds six founder-owned items: NotesApp Inc and the cap table first (6 Nov), the Alliance
+decision (7 Nov) and application (13 Nov), Village Global (20 Nov), the Capital Wings hold, and Legal's SAFE and dilution check before
+anything is signed (13 Nov). Internal only, so there's no changelog entry.
