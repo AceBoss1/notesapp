@@ -1,5 +1,6 @@
 "use client";
 
+import { useLivePricing } from "@/lib/useLivePricing";
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import Shelf from "@/components/Shelf";
@@ -31,6 +32,7 @@ type Level = "" | "beginner" | "intermediate" | "advanced";
 type Price = "" | "free" | "paid";
 
 export default function AcademyPageClient() {
+  useLivePricing(); // the certificate prices in the FAQ, as set in Admin → Pricing
   const courses = useAcademy();
   const { user, profile } = useMember();
   const { interests, signedIn } = useInterests();

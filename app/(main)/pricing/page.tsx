@@ -16,7 +16,8 @@ import { getAdminDb } from "@/lib/firebase-admin";
 import { getLimitTable } from "@/lib/limits-server";
 import { CALLS_LIVE, MESSAGES_LIVE, MOMENTS_LIVE } from "@/lib/moments-rules";
 import { WALLET_LIVE } from "@/lib/wallet";
-import { academyApiFrom, certificateMin, enterpriseCoursesPrice, enterpriseFrom, logisticsAddonPrice, logisticsTrialDays, planPrice, planRate, pct, breakEven , inventoryAddonPrice, inventoryTrialDays, booksCaps, coversPerDay } from "@/lib/pricing";
+import { academyApiFrom, certificateMin, enterpriseCoursesPrice, enterpriseFrom, logisticsAddonPrice, logisticsTrialDays, planPrice, planRate, pct, breakEven , inventoryAddonPrice, inventoryTrialDays, booksCaps, coversPerDay, nanaResetText, yearlyFreeText, COMMISSION_ROW_LABEL, commissionCell } from "@/lib/pricing";
+import { loadLivePricing } from "@/lib/pricing-server";
 import { ROOT_DOMAIN } from "@/lib/host";
 import { UNVERIFIED_GIFT_CAP_KOBO, bandsText } from "@/lib/giving";
 import { TICKET_PRICE_MIN_KOBO } from "@/lib/tickets";
@@ -28,7 +29,8 @@ export const metadata: Metadata = {
     "#NotesApp's tier ladder — Free Standard for readers, Free Basic through Enterprise for publishers, with transparent ad revenue share and commission at every level, course pricing for Notes Academy, and the Enterprise course packages.",
 };
 
-// These numbers are set by the admin team and can change; the page re-reads them every minute.
+// These numbers are set by the admin team and can change: each render first applies the saved prices and rates (loadLivePricing; without
+// it the page showed whatever this server instance last loaded, often the built-in defaults), and the page is redrawn every minute.
 export const revalidate = 60;
 
 type Row = { label: string; href?: string; render: (t: (typeof TIERS)[number], L: LimitTable) => string; show?: boolean };
@@ -75,11 +77,11 @@ const ROWS: Row[] = [
       t.adRevenueShare === null ? "—" : t.adRevenueShare === 0 ? "0% (ads run, no share)" : `${(t.adRevenueShare * 100).toFixed(0)}% of the ad revenue on your pages if you opt in — paid monthly after review`,
   },
   {
-    label: "Commission on sessions, subscriptions & gifts",
-    render: (t) =>
-      t.canPublish
-        ? `NotesApp takes ${formatPercent(t.sessionAndUnlockCommission, t.sessionAndUnlockCommissionFloor)}`
-        : "—",
+    // One rate for all three (lib/tiers.ts sessionAndUnlockCommission). Community giving and event tickets are not in it: they have no
+    // commission, only a flat charge (the "Giving in communities" and "Paid event tickets" rows).
+    label: COMMISSION_ROW_LABEL,
+    href: "/help/commission-rates",
+    render: (t) => commissionCell(t),
   },
   {
     label: "Verified badge ✔",
@@ -282,6 +284,7 @@ const ROWS: Row[] = [
   ];
 
 export default async function PricingPage() {
+  await loadLivePricing();
   // The admin-set limits; the built-in defaults if they can't be read.
   const L = await (async () => getLimitTable(getAdminDb()))().catch(() => limitTable());
   return (
@@ -302,10 +305,11 @@ export default async function PricingPage() {
       <p className="small">
         Publishers set their own prices — sessions from {formatNaira(LIMITS.sessionMinKobo)} to{" "}
         {formatNaira(LIMITS.sessionMaxKobo)}, monthly journal subscriptions from {formatNaira(LIMITS.subscriptionMinKobo)} to{" "}
-        {formatNaira(LIMITS.subscriptionMaxKobo)}. The commission below comes out of each paid session
-        or subscription; you're paid to your verified bank account
-        after the session (subscriptions after a 7-day dispute window).
-        Nana AI helps with drafts, posts for LinkedIn and X, and messages on every plan: each plan has a free Nana allowance that refreshes every week, bigger on higher plans, with Pearl on every plan, Emerald on Business and Enterprise and Ruby on Enterprise. Nana credit, bought on the Nana page by card or from your wallet, is used after the allowance and never expires, and questions asked before are answered free. You can also connect your own AI account (<Link href="/nana" className="text-crimson underline">about Nana</Link>).
+        {formatNaira(LIMITS.subscriptionMaxKobo)}. The commission below comes out of each paid session,
+        journal subscription and gift to you; you're paid to your verified bank account
+        after the session (subscriptions and gifts after a 7-day dispute window). Community giving and event
+        tickets have no commission, only a flat charge ({GIVING_CHARGES}).
+        Nana AI helps with drafts, posts for LinkedIn and X, and messages on every plan: each plan has a free Nana allowance that refreshes {nanaResetText().replace(/, .*/, "")}, bigger on higher plans, with Pearl on every plan, Emerald on Business and Enterprise and Ruby on Enterprise. Nana credit, bought on the Nana page by card or from your wallet, is used after the allowance and never expires, and questions asked before are answered free. You can also connect your own AI account (<Link href="/nana" className="text-crimson underline">about Nana</Link>).
       </p>
       </PageHero>
     <div className="mx-auto max-w-6xl px-4 pb-16 sm:px-6 lg:px-8">
@@ -316,7 +320,7 @@ export default async function PricingPage() {
             <p className="mt-2 font-display text-2xl leading-tight text-crimson">{t.price}</p>
             {t.priceNote && <p className="mt-1 text-xs text-slate">{t.priceNote}</p>}
             <p className="mt-3 flex-1 text-xs text-slate">
-              {!t.canPublish ? "Read, comment, book sessions and buy." : `Sessions and subscriptions: ${formatPercent(t.sessionAndUnlockCommission, t.sessionAndUnlockCommissionFloor)} commission${t.adRevenueShare ? ` · ${Math.round(t.adRevenueShare * 100)}% ad share` : ""}.`}
+              {!t.canPublish ? "Read, comment, book sessions and buy." : `Paid sessions, subscriptions and gifts: ${formatPercent(t.sessionAndUnlockCommission, t.sessionAndUnlockCommissionFloor)} commission${t.adRevenueShare ? ` · ${Math.round(t.adRevenueShare * 100)}% ad share` : ""}.`}
             </p>
             <a href="#compare" className="mt-4 inline-block rounded-full border border-crimson px-4 py-2 text-center font-ui text-xs font-bold text-crimson hover:bg-crimson hover:text-white">Compare this plan</a>
           </li>
@@ -369,7 +373,7 @@ export default async function PricingPage() {
               <div key={t.tier} className="rounded-2xl border border-white/10 bg-white/5 p-5">
                 <p className="font-ui text-sm font-bold text-paper/80">{t.label}</p>
                 <p className="mt-2 font-display text-4xl text-white">{formatPercent(t.sessionAndUnlockCommission, t.sessionAndUnlockCommissionFloor)}</p>
-                <p className="text-xs text-paper/60">on sessions and subscriptions</p>
+                <p className="text-xs text-paper/60">on paid sessions, journal subscriptions and gifts to you</p>
                 <p className="mt-3 text-xs text-paper/75">Physical goods {formatPercent(t.physicalCommission, t.physicalCommissionFloor)} · Digital {formatPercent(t.digitalCommission, t.digitalCommissionFloor)}{t.adRevenueShare ? ` · ${Math.round(t.adRevenueShare * 100)}% ad share` : ""}</p>
               </div>
             ))}
@@ -385,7 +389,7 @@ export default async function PricingPage() {
             your own profile (Rates &amp; payouts), reviewed by an admin — no payment
             involved. Pro ({planPrice("pro")}/month) and Business ({planPrice("business")}/month) are
             paid plans you can start right from this table — monthly or
-            yearly (two months free), renewing automatically through
+            yearly{yearlyFreeText("pro") ? ` (${yearlyFreeText("pro")})` : ""}, renewing automatically through
             Paystack. Cancel any time under Rates &amp; payouts: you keep the
             plan until the period you paid for ends, with no partial
             refunds. Have a code? Choose &ldquo;Have a discount code?&rdquo; under Pro or Business: a #NotesApp plan code comes off your first payment

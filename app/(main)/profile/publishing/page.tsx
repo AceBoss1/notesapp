@@ -12,6 +12,8 @@ import type { LedgerEntry } from "@/lib/payments";
 import BecomePublisher from "@/components/BecomePublisher";
 import PageHero from "@/components/PageHero";
 import { planRate } from "@/lib/pricing";
+import { useLivePricing } from "@/lib/useLivePricing";
+import MyCommission from "@/components/MyCommission";
 
 const TIME_OPTIONS = Array.from({ length: 30 }, (_, i) => {
   const mins = 6 * 60 + i * 30; // 06:00 … 20:30
@@ -25,6 +27,7 @@ export default function PublishingSettingsPage() {
   const router = useRouter();
   const [user, setUser] = useState<User | null>(null);
   const [profile, setProfile] = useState<UserProfile | null | undefined>(undefined);
+  useLivePricing(); // the ad shares below, as set in Admin → Pricing (not the defaults bundled with this page)
 
   const [sessionOn, setSessionOn] = useState(false);
   const [price, setPrice] = useState("15000");
@@ -209,8 +212,9 @@ export default function PublishingSettingsPage() {
           Awaiting release: {formatNaira(owed)} · Paid out: {formatNaira(paid)}
         </p>
         <p className="mt-1 text-xs text-slate">
-          Session earnings are released after the session; subscription earnings after a 7-day dispute window. Amounts are after NotesApp's commission for your tier.
+          Session earnings are released after the session; subscription earnings after a 7-day dispute window. Amounts are after NotesApp's commission for your plan.
         </p>
+        <MyCommission kind="all" className="mt-1 text-xs font-semibold text-ink" />
         {ledger.length > 0 && (
           <ul className="mt-4 divide-y divide-rule text-sm">
             {ledger.slice(0, 20).map((l) => (
@@ -262,8 +266,8 @@ export default function PublishingSettingsPage() {
             <div className="mt-5 grid gap-5">
               <div className="grid gap-4 sm:grid-cols-2">
                 <label className="block text-xs text-slate">
-                  Price per session (₦5,000 – ₦500,000)
-                  <input type="number" min={5000} max={500000} step={500} value={price} onChange={(e) => setPrice(e.target.value)} className={input} />
+                  Price per session ({formatNaira(LIMITS.sessionMinKobo)} – {formatNaira(LIMITS.sessionMaxKobo)})
+                  <input type="number" min={LIMITS.sessionMinKobo / 100} max={LIMITS.sessionMaxKobo / 100} step={500} value={price} onChange={(e) => setPrice(e.target.value)} className={input} />
                 </label>
                 <label className="block text-xs text-slate">
                   Length
@@ -272,6 +276,7 @@ export default function PublishingSettingsPage() {
                   </select>
                 </label>
               </div>
+              <MyCommission kind="session" />
               <div>
                 <p className="text-xs text-slate">Weekly availability (Lagos time, tap to toggle start times)</p>
                 {WEEKDAYS.map((name, d) => (
@@ -308,11 +313,12 @@ export default function PublishingSettingsPage() {
           </label>
           {subOn && (
             <label className="mt-5 block text-xs text-slate">
-              Price per month (₦1,000 – ₦100,000)
-              <input type="number" min={1000} max={100000} step={100} value={subPrice} onChange={(e) => setSubPrice(e.target.value)} className={input} />
+              Price per month ({formatNaira(LIMITS.subscriptionMinKobo)} – {formatNaira(LIMITS.subscriptionMaxKobo)})
+              <input type="number" min={LIMITS.subscriptionMinKobo / 100} max={LIMITS.subscriptionMaxKobo / 100} step={100} value={subPrice} onChange={(e) => setSubPrice(e.target.value)} className={input} />
               <span className="mt-1 block">Changing the price applies to new subscribers; current ones keep their old price.</span>
             </label>
           )}
+          {subOn && <MyCommission kind="subscription" className="mt-1 text-xs text-slate" />}
         </div>
 
         <div className="card p-6">
@@ -328,7 +334,8 @@ export default function PublishingSettingsPage() {
             <input type="checkbox" checked={giftsOn} onChange={(e) => setGiftsOn(e.target.checked)} />
             <span className="eyebrow">Accept gifts (a Gift button on your profile and every post)</span>
           </label>
-          <p className="mt-2 text-xs text-slate">Needs a verified payout account. Gifts pay out after a 7-day window, minus your tier's commission.</p>
+          <p className="mt-2 text-xs text-slate">Needs a verified payout account. Gifts pay out after a 7-day window, minus your plan's commission.</p>
+          <MyCommission kind="gift" className="mt-1 text-xs text-slate" />
         </div>
 
         <div className="card p-6">

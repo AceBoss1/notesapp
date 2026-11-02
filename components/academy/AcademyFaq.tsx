@@ -1,6 +1,7 @@
 "use client";
 
 import { academyFaq } from "@/lib/academy-faq";
+import { useLivePricing } from "@/lib/useLivePricing";
 import Markdownish from "@/components/Markdownish";
 
 // Questions, each opening on tap: the learners' ones (lib/academy-faq.ts) on every course page, or the list given (Notes Academy's
@@ -8,6 +9,7 @@ import Markdownish from "@/components/Markdownish";
 export default function AcademyFaq({ items, title = "Frequently asked questions", id = "faq", className = "mt-10" }: {
   items?: { q: string; a: string }[]; title?: string; id?: string; className?: string;
 }) {
+  useLivePricing(); // the certificate price and late fee, as set in Admin → Pricing (not the defaults bundled with the page)
   return (
     <section className={className} aria-labelledby={id}>
       <h2 id={id} className="font-display text-2xl text-ink">{title}</h2>

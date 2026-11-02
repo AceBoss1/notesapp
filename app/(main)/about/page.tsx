@@ -20,6 +20,7 @@ import { CALLS_LIVE, MESSAGES_LIVE, MOMENTS_LIVE } from "@/lib/moments-rules";
 import { planRate, pct } from "@/lib/pricing";
 import { getTierConfig } from "@/lib/tiers";
 import { ROOT_DOMAIN } from "@/lib/host";
+import { loadLivePricing } from "@/lib/pricing-server";
 
 export const metadata: Metadata = {
   title: "About",
@@ -80,7 +81,11 @@ const FOUNDERS = [
   { ...ADMIN_PROFILES["precheks.info@gmail.com"], role: "Guest Writer" },
 ];
 
+// Shows prices and rates an admin can change: applied on every render and redrawn each minute (the page used to be built once).
+export const revalidate = 60;
+
 export default async function AboutPage() {
+  await loadLivePricing(); // prices and rates as saved in Admin → Pricing, not the built-in defaults
   const site = await getSiteSettingsCached();
   return (
     <div>
