@@ -35,12 +35,13 @@ export async function looksLikeImage(file: File): Promise<boolean> {
 // logos and signatures stay PNG, because the certificate picture (lib/certificate-image.tsx) can't read WebP. Long sides are cut
 // down to `maxSide` (a profile picture needs far less than a cover). The original is kept when the browser can't make WebP or the
 // WebP comes out bigger.
-export type UploadPurpose = "journal" | "avatar" | "ad" | "moment" | "academy" | "chat";
+// "poster": the picture an audio room shows while video is off (lib/rooms-live.ts), in the host's own posters/ folder.
+export type UploadPurpose = "journal" | "avatar" | "ad" | "moment" | "academy" | "chat" | "poster";
 export const WEBP_QUALITY = 0.82;
 export function webpPlan(type: string, purpose: UploadPurpose): { maxSide: number } | null {
   if (purpose === "academy") return null;
   if (type !== "image/jpeg" && type !== "image/png") return null;
-  return { maxSide: purpose === "avatar" ? 1024 : 2560 };
+  return { maxSide: purpose === "avatar" ? 1024 : purpose === "poster" ? 1600 : 2560 };
 }
 export function fitWithin(width: number, height: number, maxSide: number): { width: number; height: number } {
   const scale = Math.min(1, maxSide / Math.max(width, height, 1));

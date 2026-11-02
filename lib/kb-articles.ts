@@ -35,6 +35,7 @@ import { TICKETS_PER_ORDER_MAX } from "./tickets";
 import { GROUP_MEMBERS_MAX } from "./messages-rules";
 import { GROUP_CALL_MAX } from "./group-calls";
 import { DEFAULT_ROOM_FIGURES, ROOM_CHAT_MAX, ROOM_SPEAKERS_MAX, type RoomFigures } from "./rooms";
+import { minutesLeftText } from "./rooms-live";
 import { BOARD_DAILY_CAP, DEFAULT_PACK_KOBO, DEFAULT_PACK_MONTHS, MOCK_SIZES, OFFLINE_PASS_DAYS, PAYLINK_DAYS, PREP_NAME, PREP_TAGLINE, REFUND_DAYS } from "./exam-prep";
 import type { KbArticle } from "./kb";
 
@@ -51,7 +52,8 @@ const ADD_ONS_LINE = "The Team hub, company finance tools, the investor and part
 
 // What an admin can change outside Admin → Pricing, passed in by lib/kb-server.ts after reading it: the plan limits (Admin → Limits) and
 // the Nana and connected-agent settings. Prices and rates are read from the live objects, so call this after ensurePricing().
-// Audio rooms: how many can listen in a room opened now (the relay's setting once it's on, otherwise the phone-to-phone one).
+// Audio rooms: how many can listen in a room opened now (the relay's setting once it's on, otherwise the phone-to-phone one), and Live
+// mode's figures (rooms.live: video minutes, the prompts' thresholds, the video's size).
 export type KbLive = { limits?: LimitOverrides; agents?: AgentSettings; rooms?: RoomFigures };
 const WORD = ["no", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine", "ten"];
 const words = (x: number) => WORD[x] ?? n(x);
@@ -64,6 +66,7 @@ export function builtInArticles(live: KbLive = {}): KbArticle[] {
   const ag = live.agents ?? AGENT_DEFAULTS;
   const room = live.rooms ?? DEFAULT_ROOM_FIGURES;
   const roomListeners = n(room.listeners);
+  const rlive = room.live ?? DEFAULT_ROOM_FIGURES.live; // Live mode (lib/rooms-live.ts)
   const lim = (k: LimitKey, tier: (typeof LIMIT_TIERS)[number]) => limitFor(k, tier, live.limits);
   // A plan limit over the plans that publish: "30", or "10 to 50" when the plans differ (byPlan says so).
   const values = (k: LimitKey) => LIMIT_TIERS.filter((x) => t(x).canPublish).map((x) => lim(k, x));
@@ -884,6 +887,16 @@ A **Circle** is a private group chat inside a [community](/help/community) for t
 **How the sound travels:** ${room.relay
   ? `through our relay, run by Cloudflare. The host and each speaker send their microphone once to the relay, and everyone in the room hears the stage from there, so a room holds up to ${roomListeners} listeners and the host's phone carries no more than a speaker's. The sound passes through Cloudflare on its way and is never recorded or kept. A room that was already open before the relay was switched on keeps running phone to phone (up to ${n(room.p2pListeners)} listeners), and if the relay can't be reached when a room starts, that room runs phone to phone and the host is told. In a relay room the screen shows how many are listening; tap **People here** to see who (the host can invite anyone from there to speak). Once a room passes ${n(room.chatSlowAbove)} listeners its chat goes into slow mode: each listener can send one message every ${room.chatSlowSeconds} seconds (the host and speakers are never slowed).`
   : `phone to phone. The people on stage connect straight to each other, and each listener connects to the host, whose phone sends everyone the mix; nothing passes through #NotesApp's servers. That's why a room holds ${roomListeners} listeners for now, and why a host on Wi-Fi or strong 4G works best. Bigger rooms, for hundreds, come with our relay.`}
+
+**Live: video, a poster and Audio only:** ${rlive.video ? `${room.relay ? "In a room that runs through our relay" : "Once rooms run through our relay"}, the host can tap **🎥 Video** to turn their camera on, and **🎥 Video off** to go back to sound only without anyone reconnecting. The host can tick **Speakers can turn video on** to let the speakers do the same. Video is kept light (${rlive.height}p, ${rlive.fps} frames a second). While nobody's camera is on, everyone sees the host's **poster**: a picture the host uploads, their profile picture or the challenge art, chosen when they start the room or with **🖼 Poster** during it. A poster is only a picture, never video.
+
+**Saving data:** tap **📺 Video when on** to switch to **🔈 Audio only**, and the video isn't downloaded at all (you still see the poster). On a slow connection (2G or 3G) or with your browser's data saver on, a room starts on Audio only; your choice is remembered on that phone or computer.
+
+**Video minutes:** each live has **${rlive.budgetMinutes} video minutes** (each camera that's on counts), and the host sees how many are left, like "${minutesLeftText(Math.max(0, rlive.budgetMinutes - 3))}". When they're used up, the host is told and video turns off by itself ${rlive.graceSeconds} seconds later; the room carries on with sound and the poster.
+
+**Tips for the host:** if listeners fall by ${rlive.dropPercent}% or more within ${rlive.dropWindowMinutes} minute${rlive.dropWindowMinutes === 1 ? "" : "s"} while video is off, you'll see "Listeners are dropping. Try ${rlive.tryMinutes} minute${rlive.tryMinutes === 1 ? "" : "s"} of video?". Once video has been on for ${rlive.burstMinutes} minute${rlive.burstMinutes === 1 ? "" : "s"} in a row, or ${rlive.nearlyLeftMinutes} or fewer video minutes are left, you'll see "Back to audio to keep your video minutes."` : "Video in audio rooms is switched off for now: rooms are sound only, with the host's poster."}${room.relay ? "" : " Rooms run phone to phone for now, so video isn't on yet."}
+
+**Book a session:** if the host offers paid sessions, **📅 Book a session** stays at the top of the room, with or without video; it opens their booking card in a new tab, so you don't leave the room.
 
 **Can't hear?** Check your phone isn't on silent and the browser has permission to play sound; on a speaker's phone, allow the microphone. If you joined on a weak network, leave and join again.`),
     A("organisation-accounts", "Organisation accounts", "Teams and organisations", `
